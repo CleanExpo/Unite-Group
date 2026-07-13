@@ -8,7 +8,7 @@ import type { BookkeeperOverview } from '@/lib/bookkeeper/types'
 
 function SkeletonCard() {
   return (
-    <div className="bg-[var(--surface-card)] border border-[var(--color-border)] rounded-sm p-4 animate-pulse">
+    <div className="bg-(--surface-card) border border-border rounded-sm p-4 animate-pulse">
       <div className="h-3 w-20 bg-white/5 rounded-sm mb-3" />
       <div className="h-6 w-28 bg-white/5 rounded-sm" />
     </div>
@@ -61,7 +61,7 @@ export function OverviewTab() {
 
   if (error) {
     return (
-      <div className="border border-[var(--color-danger)]/20 rounded-sm p-4 text-[13px]" style={{ color: 'var(--color-danger)' }}>
+      <div className="border border-danger/20 rounded-sm p-4 text-[13px]" style={{ color: 'var(--color-danger)' }}>
         {error}
       </div>
     )
@@ -69,7 +69,7 @@ export function OverviewTab() {
 
   if (!data || !data.lastRun) {
     return (
-      <div className="border border-[var(--color-border)] rounded-sm p-8 text-center">
+      <div className="border border-border rounded-sm p-8 text-center">
         <p className="text-[13px]" style={{ color: 'var(--color-text-secondary)' }}>
           No bookkeeper runs yet. The nightly CRON will process your first batch.
         </p>
@@ -186,7 +186,7 @@ export function OverviewTab() {
             key={card.label}
             whileHover={{ y: -1 }}
             transition={{ type: 'spring', stiffness: 300 }}
-            className="bg-[var(--surface-card)] border border-[var(--color-border)] rounded-sm p-4"
+            className="bg-(--surface-card) border border-border rounded-sm p-4"
           >
             <p className="text-[11px] tracking-wide uppercase mb-2" style={{ color: 'var(--color-text-disabled)' }}>
               {card.label}

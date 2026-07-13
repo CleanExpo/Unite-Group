@@ -1,16 +1,17 @@
 # Unite-Group Mission Control Operating Blueprint
 
 Date: 2026-06-16
+Current-authority update: 12/07/2026
 
 ## Outcome
 
-Unite-Group Mission Control becomes the daily business cockpit for Phill. It should show every active business, client, project, agent, provider, and blocked dependency in one visual operating layer. Work should be generated from Mission Control, routed through Pi-CEO and Hermes, tracked in Linear, reflected in the relevant project, and summarized back to Mission Control.
+Unite-Group Mission Control becomes the daily business cockpit for Phill. It should show every active business, client, project, agent, provider, and blocked dependency in one visual operating layer. Work should be generated and governed in CRM, reflected in the relevant project, and reconciled back to Mission Control with evidence. A future isolated executor may project approved CRM missions to Hermes, but no OWNEST runtime is currently emitted or authorised. Linear may remain a read-only integration signal; it is not execution authority.
 
 ## Senior Agent Council Synthesis
 
 ### Senior PM
 
-Mission Control must become the work generator, not just the dashboard. A user should enter a business outcome, pick or infer the target project/client, and receive a routed execution packet with owner agent, Linear issue, project links, approvals, usage budget, and completion proof.
+Mission Control must become the work generator, not just the dashboard. A user should enter a business outcome, pick or infer the target project/client, and receive a CRM work packet with owner agent, optional external issue links, project links, approvals, usage budget, and completion proof.
 
 ### CRM Architect
 
@@ -22,7 +23,7 @@ The topology has Margot, Pi-CEO Board, Hermes, and senior agents, but the UI sti
 
 ### Provider Operations
 
-Claude Max, MiniMax Max, Google Gemini, OpenAI, and OpenRouter are not interchangeable. Mission Control needs a usage and capability board that tracks plan type, approximate remaining capacity, cost risk, best-use lanes, model/provider fallback, and blocked credentials without exposing secrets.
+Claude Max, MiniMax Max, Google Gemini, OpenAI, and OpenRouter are not interchangeable. Mission Control needs a usage and capability board that tracks plan type, attested authentication route, measured capacity/usage when vendor telemetry exists, cost risk, best-use lanes, model/provider fallback, and blocked credentials without exposing secrets. A successful sign-in is auth evidence only; it must not be displayed as active or remaining capacity.
 
 ### UX Lead
 
@@ -30,7 +31,7 @@ Phill is visual. The default Mission Control view should use maps, meters, rails
 
 ### Security / Governance
 
-Agents should never receive broad write credentials for CRM truth. They should create recommendations, draft work packets, and approval-required actions. Mutation paths must remain gated, auditable, and linked to the final source-of-truth system: Supabase for CRM, Linear for execution, project repos for implementation, and provider dashboards for usage truth.
+Agents should never receive broad write credentials for CRM truth. They should create recommendations, draft work packets, and approval-required actions. Mutation paths must remain gated, auditable, and linked to the final source-of-truth system: Supabase `cc_tasks` and task events for mission authority, project repos/GitHub for implementation evidence, and provider-supported telemetry for usage truth. Hermes and Linear are projections or read-side integrations, never alternative CRM authorities.
 
 ## Verified Current System
 
@@ -45,7 +46,7 @@ Agents should never receive broad write credentials for CRM truth. They should c
 
 1. Mission Control work generator
    - Input: plain business outcome.
-   - Output: routed work packet with project/client, senior agent, Linear issue, provider budget, approval gates, and evidence path.
+   - Output: routed CRM work packet with project/client, senior agent, optional issue links, provider budget, approval gates, and evidence path.
 
 2. Live project switcher
    - Every project/client should be visible as a card or lane with health, work queue, source adapters, active agent, and next action.
@@ -54,7 +55,8 @@ Agents should never receive broad write credentials for CRM truth. They should c
 3. Provider usage cockpit
    - Track Claude Max, MiniMax Max, Google Gemini, OpenAI, and OpenRouter.
    - Show status as visual meters: available, near limit, blocked, unknown.
-   - Record plan type, reset cadence, best-use lane, last used, usage estimate/source, and fallback route.
+   - Record plan type, attested auth class, reset cadence, best-use lane, last used, usage value/source, and fallback route.
+   - Keep capacity `unknown` until provider telemetry or a bounded execution receipt proves it; auth-only state is not a green capacity signal.
 
 4. Hermes and Pi-CEO operating handoff
    - Hermes should watch, remind, scout, and dispatch.
@@ -64,7 +66,7 @@ Agents should never receive broad write credentials for CRM truth. They should c
 5. Client onboarding packet
    - Create CRM client.
    - Create or link Telegram destination.
-   - Create Linear project/work queue.
+   - Create a founder-scoped CRM mission queue; link an external issue only when useful as a projection.
    - Link project repo/source adapters.
    - Create first onboarding tasks and first AI-generated work plan.
    - Show onboarding completion as a visual checklist.
@@ -74,12 +76,14 @@ Agents should never receive broad write credentials for CRM truth. They should c
    - Include state, current task, source system, project, provider, started time, blocked reason, and output link.
 
 7. Completion and cleanup loop
-   - When scoped work is complete, the system should close the Linear project or task batch with a final summary.
+   - When scoped work is complete, the system should close the CRM mission or task batch only after independent verification and durable evidence.
    - Stale, duplicate, and completed work should not continue to clutter the queue.
 
 ## Build Order
 
-1. Connect the existing Linear autonomous loop to the Unite-Group Mission Control work generator.
+1. Retired 12/07/2026: do not reconnect the former Linear autonomous loop.
+   Keep CRM `cc_tasks` authoritative; OWNEST remains a design/test contract until
+   an isolated, brokered, independently verified executor is separately approved.
 2. Add provider usage cockpit API and UI.
 3. Convert the seed agent topology into a live agent operations map.
 4. Expand client creation into a full onboarding packet with Telegram and project workspace links.
@@ -88,9 +92,9 @@ Agents should never receive broad write credentials for CRM truth. They should c
 
 ## Non-Negotiables
 
-- No secret values in UI, logs, Linear, or generated work packets.
+- No secret values in UI, logs, external issue projections, or generated work packets.
 - Agent writes to CRM truth require approved server routes.
-- Linear remains execution truth.
-- Supabase remains CRM truth.
+- Supabase `cc_tasks` and task events remain mission and execution authority;
+  Hermes, Linear, and GitHub are bounded projections/evidence sources.
 - Provider usage numbers must declare whether they are live, estimated, manually entered, or unavailable.
 - The default view must be visual-first and understandable without engineering knowledge.

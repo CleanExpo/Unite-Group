@@ -313,7 +313,7 @@ export function OpportunitiesPageClient() {
                       {o.next_action ? ` · next: ${redactOpportunityText(o.next_action)}` : ''}
                     </span>
                   </div>
-                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                  <div className="flex flex-col items-end gap-1 shrink-0">
                     <span className="text-[13px]" style={{ color: 'var(--color-text-primary)' }}>
                       {o.value_amount != null ? aud(Number(o.value_amount)) : '—'}
                     </span>

@@ -1,39 +1,26 @@
-# syntax=docker/dockerfile:1
-# Stage-3 Autopilot Runner — Railway image.
-FROM node:20-slim
+# One-file compatibility tombstone for any surviving hosted Linear-runner
+# deployment. OWNEST and heartbeat have no runtime surface and are absent here.
+FROM node:24.14.1-slim@sha256:b506e7321f176aae77317f99d67a24b272c1f09f1d10f1761f2773447d8da26c AS build
 
-# git: worktree/clone ops. ca-certificates: HTTPS. The runner authors via Octokit
-# (no gh CLI needed) and runs the Claude CLI as the coding worker.
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends git ca-certificates \
-  && rm -rf /var/lib/apt/lists/*
-
-# The headless coding worker.
-RUN npm install -g @anthropic-ai/claude-code
-
-WORKDIR /app
+WORKDIR /build
 
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --ignore-scripts --no-audit --no-fund
 
-COPY tsconfig.json tsconfig.build.json ./
-COPY src ./src
-RUN npm run build
+COPY tsconfig.json tsconfig.container.json ./
+COPY src/index.ts ./src/index.ts
+RUN node node_modules/typescript/bin/tsc -p tsconfig.container.json
 
-# The Claude CLI refuses --dangerously-skip-permissions under root for security.
-# node:20-slim ships a non-root `node` user (uid 1000); run as it. /app build
-# artifacts are world-readable; the runner's work dirs live under /tmp (writable
-# by any user). HOME must point at the node user's writable home for CLI config.
-RUN chown -R node:node /app && mkdir -p /home/node/.claude && chown -R node:node /home/node
-# CI/headless Claude Code hygiene: no auto-update, no telemetry/non-essential
-# traffic (recommended for unattended runs). Auth is via ANTHROPIC_API_KEY (set on
-# the Railway service), which the CLI uses directly in non-interactive -p mode.
+FROM node:24.14.1-slim@sha256:b506e7321f176aae77317f99d67a24b272c1f09f1d10f1761f2773447d8da26c AS runtime
+
+LABEL org.opencontainers.image.title="Unite-Group retired Linear runner tombstone" \
+      org.opencontainers.image.description="Permanently retired; OWNEST and heartbeat have no runtime surface and are absent."
+
 ENV NODE_ENV=production \
-    HOME=/home/node \
-    DISABLE_AUTOUPDATER=1 \
-    DISABLE_TELEMETRY=1 \
-    CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
-USER node
+    HOME=/home/node
 
-# Kill switch: the runner drains unless CC_LINEAR_LIVE=1 is set on the service.
-CMD ["node", "dist/index.js"]
+WORKDIR /app
+COPY --from=build --chown=node:node /build/dist/container/index.js ./index.js
+
+USER node
+ENTRYPOINT ["node", "/app/index.js"]

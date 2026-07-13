@@ -38,7 +38,7 @@ function getBusinessName(key: string): string {
 
 function SkeletonRow() {
   return (
-    <tr className="border-b border-[var(--color-border)]">
+    <tr className="border-b border-border">
       {Array.from({ length: 8 }).map((_, i) => (
         <td key={i} className="px-3 py-3">
           <div className="h-3 bg-white/5 rounded-sm animate-pulse" style={{ width: `${40 + i * 8}px` }} />
@@ -206,7 +206,7 @@ export function ReconciliationTab() {
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value as StatusFilter)}
-          className="text-[12px] bg-transparent border rounded-sm px-2 py-1.5 appearance-none cursor-pointer focus:outline-none focus:border-[#16a34a]/40"
+          className="text-[12px] bg-transparent border rounded-sm px-2 py-1.5 appearance-none cursor-pointer focus:outline-hidden focus:border-[#16a34a]/40"
           style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
         >
           {STATUS_OPTIONS.map(opt => (
@@ -237,16 +237,16 @@ export function ReconciliationTab() {
       </div>
 
       {error && (
-        <div className="border border-[var(--color-danger)]/20 rounded-sm p-3 text-[12px]" style={{ color: 'var(--color-danger)' }}>
+        <div className="border border-danger/20 rounded-sm p-3 text-[12px]" style={{ color: 'var(--color-danger)' }}>
           {error}
         </div>
       )}
 
       {/* Table */}
-      <div className="overflow-x-auto border border-[var(--color-border)] rounded-sm">
+      <div className="overflow-x-auto border border-border rounded-sm">
         <table className="w-full text-[12px]">
           <thead>
-            <tr className="border-b border-[var(--color-border)]" style={{ backgroundColor: 'var(--surface-card)' }}>
+            <tr className="border-b border-border" style={{ backgroundColor: 'var(--surface-card)' }}>
               <th className="px-3 py-2.5 w-8">
                 <input
                   type="checkbox"
@@ -340,7 +340,7 @@ function TransactionRow({
   return (
     <motion.tr
       layout
-      className="border-b border-[var(--color-border)] hover:bg-black/[0.05] transition-colors"
+      className="border-b border-border hover:bg-black/5 transition-colors"
     >
       <td className="px-3 py-2.5 w-8">
         {isApprovable ? (
@@ -360,7 +360,7 @@ function TransactionRow({
       <td className="px-3 py-2.5">
         <div className="flex items-center gap-1.5">
           <span
-            className="w-2 h-2 rounded-full flex-shrink-0"
+            className="w-2 h-2 rounded-full shrink-0"
             style={{ backgroundColor: getBusinessColour(txn.businessKey) }}
           />
           <span className="text-[11px]" style={{ color: 'var(--color-text-secondary)' }}>

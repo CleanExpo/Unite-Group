@@ -135,7 +135,7 @@ export function CampaignGenerator({
   ])
 
   return (
-    <div className="bg-[#fff7ec] border border-white/[0.06] rounded-sm p-6 space-y-6">
+    <div className="bg-[#fff7ec] border border-white/6 rounded-sm p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
         <button
@@ -183,7 +183,7 @@ export function CampaignGenerator({
               value={theme}
               onChange={(e) => setTheme(e.target.value)}
               placeholder="e.g. Summer Sale, Product Launch, Brand Awareness"
-              className="w-full text-[12px] px-3 py-2.5 rounded-sm border outline-none transition-colors"
+              className="w-full text-[12px] px-3 py-2.5 rounded-sm border outline-hidden transition-colors"
               style={{
                 background: '#111',
                 borderColor: theme.trim() ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.1)',
@@ -203,7 +203,7 @@ export function CampaignGenerator({
             <select
               value={objective}
               onChange={(e) => setObjective(e.target.value as Objective)}
-              className="w-full text-[12px] px-3 py-2.5 rounded-sm border outline-none appearance-none"
+              className="w-full text-[12px] px-3 py-2.5 rounded-sm border outline-hidden appearance-none"
               style={{
                 background: '#111',
                 borderColor: 'rgba(255,255,255,0.1)',
@@ -243,7 +243,7 @@ export function CampaignGenerator({
                   >
                     {/* Custom checkbox dot */}
                     <span
-                      className="w-3 h-3 rounded-[2px] border flex items-center justify-center flex-shrink-0"
+                      className="w-3 h-3 rounded-[2px] border flex items-center justify-center shrink-0"
                       style={{
                         background: checked ? '#16a34a' : 'transparent',
                         borderColor: checked ? '#16a34a' : 'rgba(255,255,255,0.2)',
@@ -290,7 +290,7 @@ export function CampaignGenerator({
               onChange={(e) =>
                 setPostCount(Math.min(20, Math.max(1, parseInt(e.target.value, 10) || 1)))
               }
-              className="w-24 text-[12px] px-3 py-2.5 rounded-sm border outline-none"
+              className="w-24 text-[12px] px-3 py-2.5 rounded-sm border outline-hidden"
               style={{
                 background: '#111',
                 borderColor: 'rgba(255,255,255,0.1)',
@@ -312,7 +312,7 @@ export function CampaignGenerator({
                 type="date"
                 value={dateRangeStart}
                 onChange={(e) => setDateRangeStart(e.target.value)}
-                className="text-[12px] px-3 py-2.5 rounded-sm border outline-none"
+                className="text-[12px] px-3 py-2.5 rounded-sm border outline-hidden"
                 style={{
                   background: '#111',
                   borderColor: 'rgba(255,255,255,0.1)',
@@ -326,7 +326,7 @@ export function CampaignGenerator({
                 type="date"
                 value={dateRangeEnd}
                 onChange={(e) => setDateRangeEnd(e.target.value)}
-                className="text-[12px] px-3 py-2.5 rounded-sm border outline-none"
+                className="text-[12px] px-3 py-2.5 rounded-sm border outline-hidden"
                 style={{
                   background: '#111',
                   borderColor: 'rgba(255,255,255,0.1)',

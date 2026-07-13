@@ -117,7 +117,7 @@ export default async function OperatorGatewayPage() {
     <div style={wrap}>
       <h1 style={{ fontSize: 28, marginBottom: '0.25rem' }}>Nexus Command Centre · Operator Execution Surface</h1>
       <p style={{ color: theme.muted, marginTop: 0 }}>
-        Founder-controlled command centre for Hermes, Codex Max, Claude Code Max, Cursor CLI, and registered Agentic Nexus skills.
+        Founder-controlled inventory for Hermes, the attested Codex/ChatGPT plan lane, pending Claude Code plan lanes, Cursor CLI, and registered Nexus skills.
       </p>
 
       {/* Top status strip — at-a-glance summary of agent, safety, lanes, jobs. */}
@@ -201,7 +201,7 @@ export default async function OperatorGatewayPage() {
       >
         <h3 style={{ fontSize: 16, marginTop: '1rem' }}>Mission Control Runtime Monitor · Multi-CLI topology</h3>
         <p style={{ color: theme.ok, fontSize: 14 }}>
-          Single operator dashboard active: Hermes runs through Codex, Claude Max builders and MiniMax run in isolated monitors, and Obsidian captures research/evidence for the second brain.
+          Registry view only: Hermes, Codex, and skill execution are declared active. Claude Code, MiniMax, and Cursor remain install/login blocked until runtime telemetry proves otherwise.
         </p>
         <p style={{ color: theme.muted, fontSize: 13 }}>Status endpoint: <code>/api/hermes/operator-gateway/runtime-topology</code></p>
         <div style={grid}>

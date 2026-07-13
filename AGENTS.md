@@ -33,9 +33,11 @@ Correct flow:
 - **Toolchain**: each package keeps its own lockfile/package manager. Verify via
   root `package.json` scripts (`npm run verify:web`, etc.).
 - **No writes to other repos.** `brain-1`, `Spine`, `hermes-workspace`,
-  `pi-ceo-operator-mcp` — frozen pending deletion. **Unite-Hub is a SEPARATE LIVE
-  parallel product (not frozen, not deleted, no migration here — per Phill
-  2026-06-18); never write to it from this repo.**
+  `pi-ceo-operator-mcp` — frozen pending deletion. **Unite-Hub was wound down on
+  20/06/2026 after Phill's typed approval; its earlier 18/06/2026
+  separate-live-product instruction is superseded** — it is no longer live;
+  never target, write to, depend on, or recreate it from this repo. `apps/web`
+  is the canonical product surface.
 - **Deletion** of any repo/Supabase/Vercel resource: runbook gates + typed
   approval only. Never autonomous.
 - Do not read or print secrets. Locale: en-AU | DD/MM/YYYY | AUD | AEST/AEDT.

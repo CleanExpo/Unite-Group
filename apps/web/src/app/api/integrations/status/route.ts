@@ -15,7 +15,7 @@ type Source = 'vault' | 'social' | 'env'
 interface ProviderDef {
   id: string
   label: string
-  category: 'accounting' | 'email' | 'calendar' | 'storage' | 'social' | 'project' | 'dev' | 'video' | 'messaging'
+  category: 'accounting' | 'email' | 'calendar' | 'storage' | 'social' | 'project' | 'dev' | 'video' | 'messaging' | 'payments' | 'secrets'
   source: Source
   vaultService?: string   // source 'vault'
   socialPlatform?: string // source 'social'
@@ -36,11 +36,16 @@ const PROVIDERS: ProviderDef[] = [
   { id: 'tiktok',    label: 'TikTok',          category: 'social',     source: 'social', socialPlatform: 'tiktok',    envKeys: ['TIKTOK_CLIENT_KEY', 'TIKTOK_CLIENT_SECRET'] },
   { id: 'youtube',   label: 'YouTube',         category: 'social',     source: 'social', socialPlatform: 'youtube',   envKeys: ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'] },
   { id: 'linear',    label: 'Linear',          category: 'project',    source: 'env',    envKeys: ['LINEAR_API_KEY'] },
+  { id: 'stripe',    label: 'Stripe',          category: 'payments',   source: 'env',    envKeys: ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET'] },
   { id: 'sendgrid',  label: 'SendGrid',        category: 'email',      source: 'env',    envKeys: ['SENDGRID_API_KEY'] },
   { id: 'reddit',    label: 'Reddit',          category: 'social',     source: 'env',    envKeys: ['REDDIT_CLIENT_ID', 'REDDIT_CLIENT_SECRET'] },
   { id: 'github',    label: 'GitHub',          category: 'dev',        source: 'env',    envKeys: ['GITHUB_TOKEN'] },
   { id: 'heygen',    label: 'HeyGen',          category: 'video',      source: 'env',    envKeys: ['HEYGEN_API_KEY'] },
   { id: 'telegram',  label: 'Telegram',        category: 'messaging',  source: 'env',    envKeys: ['TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID'] },
+  // 1Password: env-key presence (service-account token) IS the wiring signal. Reads
+  // remain grant-gated at call time (UNI-2310) — being "configured" here does not
+  // grant access; the founder must approve a grant via the grant route.
+  { id: 'onepassword', label: '1Password',     category: 'secrets',    source: 'env',    envKeys: ['OP_SERVICE_ACCOUNT_TOKEN'] },
   // Microsoft OAuth is not configured on this deployment (no MICROSOFT_CLIENT_ID/SECRET) —
   // this row honestly reports not_connected rather than fabricating a status (UNI-2153 default).
   { id: 'outlook',   label: 'Outlook',         category: 'email',      source: 'vault',  vaultService: 'microsoft', envKeys: ['MICROSOFT_CLIENT_ID', 'MICROSOFT_CLIENT_SECRET'] },

@@ -1,162 +1,282 @@
-// POST /api/kanban/generate-next
-// The [Apply] button: generate the next tasks for a board stage (Today/Hot/
-// Pipeline/Someday). Phill's rule — the model ingests the FULL project scope
-// (name + 2-sentence description) before proposing work. Generated tasks are
-// created as labelled Linear issues, which the autopilot CLI (Max plan) then
-// claims and builds → PR. So [Apply] = describe scope → generate → push to
-// the production execution pipeline.
+import { createHash } from "node:crypto";
+import type Anthropic from "@anthropic-ai/sdk";
+import { NextResponse } from "next/server";
+import { getAIClient } from "@/lib/ai/client";
+import { ANTHROPIC_MODELS } from "@/lib/anthropic/models";
+import {
+  appendTaskEvent,
+  createTaskOnce,
+  type CreateTaskInput,
+  type TaskPriority,
+} from "@/lib/command-centre/tasks";
+import { sanitiseError } from "@/lib/error-reporting";
+import { getUser } from "@/lib/supabase/server";
 
-import { sanitiseError } from '@/lib/error-reporting'
-import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
-import { NextResponse } from 'next/server'
-import type Anthropic from '@anthropic-ai/sdk'
-import { getUser } from '@/lib/supabase/server'
-import { getAIClient } from '@/lib/ai/client'
-import { createIssue, resolveOrCreateLabelIds } from '@/lib/integrations/linear'
+export const dynamic = "force-dynamic";
 
-export const dynamic = 'force-dynamic'
-
-const MODEL = ANTHROPIC_MODELS.SONNET
-const HERMES_LABELS = ['mesh:auto', 'pi-dev:autonomous', 'source:hermes-kanban']
-
-// The project the generator must understand before proposing work.
+const MODEL = ANTHROPIC_MODELS.SONNET;
 const PROJECT = {
-  name: 'Unite-Group Nexus — Mission Control',
+  name: "Unite-Group Nexus — Mission Control",
   description:
-    'A single-founder command centre that orchestrates AI agents across the Unite-Group portfolio (the Nexus CRM, the Synthex marketing engine, and the autopilot build runner). The founder describes work in plain English; the system routes it to the right AI provider, builds it on a branch, and ships it via PR behind human approval gates.',
-}
+    "A single-founder command centre that orchestrates AI agents across the Unite-Group portfolio. CRM cc_tasks is the mission authority; Hermes and Linear are read-only projections.",
+};
 
 const STAGE_INTENT: Record<string, string> = {
-  today: 'concrete tasks to execute right now, this session — small, shippable, unblock-the-founder work',
-  hot: 'urgent, high-priority items and active blockers that must be handled before anything else',
-  pipeline: 'near-term planned work, ready to be picked up next once current work clears',
-  someday: 'backlog ideas and future considerations worth capturing but not yet scheduled',
+  today:
+    "small, shippable proposals for founder review that could unblock the current session",
+  hot: "urgent proposals and blockers that should be reviewed before lower-priority work",
+  pipeline: "near-term proposed work for review after current work clears",
+  someday: "future opportunities worth capturing without scheduling or execution",
+};
+
+interface GeneratedTask {
+  title: string;
+  context: string;
+  acceptance: string[];
 }
 
-interface GeneratedTask { title: string; context: string; acceptance: string[] }
-
 function parseTasks(text: string): GeneratedTask[] {
-  const match = text.match(/\[[\s\S]*\]/)
-  if (!match) return []
+  const match = text.match(/\[[\s\S]*\]/);
+  if (!match) return [];
   try {
-    const arr = JSON.parse(match[0]) as unknown
-    if (!Array.isArray(arr)) return []
-    return arr
-      .filter((t): t is { title: string } => Boolean(t) && typeof (t as { title?: unknown }).title === 'string' && (t as { title: string }).title.trim().length > 0)
-      .map((t) => {
-        const raw = t as { title: string; context?: unknown; acceptance?: unknown }
-        const acceptance = (Array.isArray(raw.acceptance)
-          ? raw.acceptance.map((a) => String(a).trim())
-          : typeof raw.acceptance === 'string'
-            ? [raw.acceptance.trim()]
-            : []
-        ).filter(Boolean).map((a) => a.slice(0, 300)).slice(0, 6)
+    const array = JSON.parse(match[0]) as unknown;
+    if (!Array.isArray(array)) return [];
+    return array
+      .filter(
+        (task): task is { title: string } =>
+          Boolean(task) &&
+          typeof (task as { title?: unknown }).title === "string" &&
+          (task as { title: string }).title.trim().length > 0,
+      )
+      .map((task) => {
+        const raw = task as {
+          title: string;
+          context?: unknown;
+          acceptance?: unknown;
+        };
+        const acceptance = (
+          Array.isArray(raw.acceptance)
+            ? raw.acceptance.map((value) => String(value).trim())
+            : typeof raw.acceptance === "string"
+              ? [raw.acceptance.trim()]
+              : []
+        )
+          .filter(Boolean)
+          .map((value) => value.slice(0, 300))
+          .slice(0, 6);
         return {
-          title: String(raw.title).trim().slice(0, 200),
-          context: String(raw.context ?? '').trim().slice(0, 600),
+          title: raw.title.trim().slice(0, 200),
+          context: String(raw.context ?? "")
+            .trim()
+            .slice(0, 600),
           acceptance,
-        }
+        };
       })
-      .slice(0, 5)
+      .slice(0, 5);
   } catch {
-    return []
+    return [];
   }
 }
 
-export async function POST(request: Request) {
-  const user = await getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+function externalRef(column: string, task: GeneratedTask): string {
+  const digest = createHash("sha256")
+    .update(
+      JSON.stringify({
+        column,
+        title: task.title.trim().toLowerCase(),
+        context: task.context.trim(),
+      }),
+    )
+    .digest("hex");
+  return `generated-next:${column}:${digest}`;
+}
 
-  let column = 'today'
-  let existingTitles: string[] = []
+function taskPriority(column: string): TaskPriority {
+  if (column === "hot") return "P1";
+  if (column === "today") return "P2";
+  return "P3";
+}
+
+function taskInput(
+  founderId: string,
+  column: string,
+  generatedAt: string,
+  task: GeneratedTask,
+): CreateTaskInput {
+  const validationRequired = task.acceptance.length
+    ? task.acceptance
+    : [task.context || "Founder review confirms the proposed outcome."];
+  const objective = [
+    task.context || task.title,
+    "",
+    "## Acceptance Criteria",
+    ...validationRequired.map((requirement) => `- ${requirement}`),
+  ].join("\n");
+  return {
+    founderId,
+    externalRef: externalRef(column, task),
+    title: task.title,
+    objective,
+    projectKey: "unite-group",
+    priority: taskPriority(column),
+    status: "proposed",
+    agentOwner: "Nexus",
+    riskLevel: "medium",
+    executionMode: "advisory",
+    origin: "board-review",
+    humanApprovalRequired: false,
+    validationRequired,
+    metadata: {
+      nexusGeneratedNext: {
+        schema: "crm.generated-next.v1",
+        source: "founder-kanban-propose",
+        column,
+        generatedAt,
+      },
+      tags: ["source:founder-kanban", "nexus-generated"],
+    },
+  };
+}
+
+export async function POST(request: Request) {
+  const user = await getUser();
+  if (!user)
+    return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
+
+  let column = "today";
+  let existingTitles: string[] = [];
   try {
-    const body = (await request.json()) as { column?: string; existingTitles?: string[] }
-    if (body.column && STAGE_INTENT[body.column]) column = body.column
-    if (Array.isArray(body.existingTitles)) existingTitles = body.existingTitles.slice(0, 40).map((t) => String(t).slice(0, 120))
+    const body = (await request.json()) as {
+      column?: string;
+      existingTitles?: string[];
+    };
+    if (body.column && STAGE_INTENT[body.column]) column = body.column;
+    if (Array.isArray(body.existingTitles)) {
+      existingTitles = body.existingTitles
+        .slice(0, 40)
+        .map((title) => String(title).slice(0, 120));
+    }
   } catch {
-    // defaults
+    // Safe defaults retain proposal-only behavior.
   }
 
   const prompt = [
     `Project: ${PROJECT.name}`,
     `What it does: ${PROJECT.description}`,
-    '',
-    `Generate the NEXT tasks for the "${column.toUpperCase()}" stage of the founder's execution board.`,
-    `"${column.toUpperCase()}" means: ${STAGE_INTENT[column]}.`,
+    "",
+    `Generate the NEXT CRM proposals for the "${column.toUpperCase()}" review stage.`,
+    `Stage intent: ${STAGE_INTENT[column]}.`,
     existingTitles.length
-      ? `Already on the board — do NOT duplicate these:\n- ${existingTitles.join('\n- ')}`
-      : 'This stage is currently empty.',
-    '',
-    'Propose 3–5 high-leverage, specific, non-duplicate tasks for THIS project at THIS stage. Each must be independently actionable by an autonomous coding agent: a clear scope and 2–4 verifiable acceptance criteria (concrete, checkable done-conditions).',
-    'Return ONLY a JSON array (no prose, no markdown fences): [{"title":"…","context":"1 sentence describing the scope","acceptance":["a verifiable done-condition","another checkable result"]}]',
-  ].join('\n')
+      ? `Already visible — do not duplicate:\n- ${existingTitles.join("\n- ")}`
+      : "No existing titles were supplied.",
+    "",
+    "Propose 3–5 bounded, verifiable tasks. Nothing is queued or sent to Hermes or Linear by this operation.",
+    'Return ONLY JSON: [{"title":"…","context":"…","acceptance":["…"]}]',
+  ].join("\n");
 
-  let text: string
+  let text: string;
   try {
     const response = await getAIClient().messages.create({
       model: MODEL,
       max_tokens: 1500,
-      messages: [{ role: 'user', content: prompt }],
-    })
+      messages: [{ role: "user", content: prompt }],
+    });
     text = response.content
-      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-      .map((b) => b.text)
-      .join('')
-  } catch (err) {
-    return NextResponse.json({ error: sanitiseError(err, 'AI generation failed') }, { status: 502 })
+      .filter((block): block is Anthropic.TextBlock => block.type === "text")
+      .map((block) => block.text)
+      .join("");
+  } catch (error) {
+    return NextResponse.json(
+      { error: sanitiseError(error, "AI generation failed") },
+      { status: 502 },
+    );
   }
 
-  const tasks = parseTasks(text)
+  const tasks = parseTasks(text);
   if (tasks.length === 0) {
-    return NextResponse.json({ error: 'The model did not return usable tasks — try again.' }, { status: 502 })
+    return NextResponse.json(
+      { error: "The model did not return usable proposals — try again." },
+      { status: 502 },
+    );
   }
 
-  // Ensure the autopilot labels exist, then create each task as a labelled Linear
-  // issue — the autopilot CLI (Max plan) claims these labels and builds them.
-  try {
-    await resolveOrCreateLabelIds(HERMES_LABELS)
-  } catch {
-    // best-effort: createIssue will still attach whatever labels resolve
-  }
+  const generatedAt = new Date().toISOString();
+  const created: Array<{ id: string; title: string; status: "proposed" }> = [];
+  const skippedExisting: Array<{
+    id: string;
+    title: string;
+    status: "proposed";
+  }> = [];
+  const failures: Array<{ title: string; error: "persistence_failed" }> = [];
 
-  const created: Array<{ identifier: string; url?: string; title: string }> = []
-  for (const t of tasks) {
+  for (const task of tasks) {
     try {
-      const issue = await createIssue({
-        teamKey: 'UNI',
-        // The autonomous claim loop only considers issues in this project — without
-        // it [Apply] tasks are created but never claimed/built by the runner.
-        projectName: 'Unite-Group',
-        title: t.title,
-        description: [
-          t.context,
-          '',
-          // REQUIRED: the autopilot claim filter (linear-claim.ts hasAcceptanceCriteria)
-          // only claims issues that carry an "Acceptance Criteria" heading. Without
-          // it the runner skips the task as `no-acceptance-criteria` and never builds
-          // it. Fall back to the scope sentence so the heading always has content.
-          '## Acceptance Criteria',
-          ...(t.acceptance.length ? t.acceptance : [t.context]).map((a) => `- ${a}`),
-          '',
-          `Generated by [Apply] for the ${column.toUpperCase()} stage of ${PROJECT.name}.`,
-          'Source: Hermes Kanban (Founder OS)',
-          `Autonomy labels: ${HERMES_LABELS.join(', ')}`,
-        ].join('\n'),
-        priority: column === 'hot' ? 2 : column === 'today' ? 3 : 4,
-        labelNames: HERMES_LABELS,
-      })
-      created.push({ identifier: issue.id, url: issue.url, title: t.title })
-    } catch (err) {
-      console.error('[generate-next] Linear issue create failed:', err instanceof Error ? err.message : err)
+      const result = await createTaskOnce(
+        taskInput(user.id, column, generatedAt, task),
+      );
+      const summary = {
+        id: result.task.id,
+        title: result.task.title,
+        status: "proposed" as const,
+      };
+      if (!result.created) {
+        skippedExisting.push(summary);
+        continue;
+      }
+      await appendTaskEvent({
+        founderId: user.id,
+        taskId: result.task.id,
+        type: "created",
+        actor: "nexus",
+        payload: {
+          source: "founder-kanban-propose",
+          column,
+          mode: "proposal-only",
+        },
+      });
+      created.push(summary);
+    } catch {
+      failures.push({ title: task.title, error: "persistence_failed" });
     }
   }
 
-  if (created.length === 0) {
+  if (created.length === 0 && skippedExisting.length === 0) {
     return NextResponse.json(
-      { error: 'Generated tasks but could not create them in Linear — check LINEAR_API_KEY.' },
-      { status: 502 },
-    )
+      {
+        error: "crm_persistence_failed",
+        generated: tasks.length,
+        failures,
+        linearCreated: 0,
+        hermesCreated: 0,
+      },
+      { status: 500 },
+    );
   }
 
-  return NextResponse.json({ column, generated: tasks.length, created })
+  const partial = failures.length > 0;
+  return NextResponse.json(
+    {
+      source: "crm-cc_tasks",
+      authority: "cc_tasks",
+      mode: "crm-proposal-only",
+      column,
+      generated: tasks.length,
+      createdCount: created.length,
+      skippedExistingCount: skippedExisting.length,
+      failedCount: failures.length,
+      partial,
+      created,
+      skippedExisting,
+      failures,
+      reviewPath: "/founder/command-centre",
+      linearCreated: 0,
+      hermesCreated: 0,
+    },
+    {
+      status: partial ? 207 : 200,
+      headers: { "Cache-Control": "no-store" },
+    },
+  );
 }
+
+export const __test__ = { parseTasks, externalRef, taskInput };

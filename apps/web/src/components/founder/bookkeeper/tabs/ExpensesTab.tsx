@@ -30,7 +30,7 @@ function CategoryBadge({ category }: { category: string }) {
 
 function SkeletonRow() {
   return (
-    <tr className="border-b border-[var(--color-border)]">
+    <tr className="border-b border-border">
       {Array.from({ length: 7 }).map((_, i) => (
         <td key={i} className="px-3 py-3">
           <div className="h-3 bg-white/5 rounded-sm animate-pulse" style={{ width: `${40 + i * 14}px` }} />
@@ -42,7 +42,7 @@ function SkeletonRow() {
 
 function SkeletonSummary() {
   return (
-    <div className="bg-[var(--surface-card)] border border-[var(--color-border)] rounded-sm p-4 animate-pulse">
+    <div className="bg-(--surface-card) border border-border rounded-sm p-4 animate-pulse">
       <div className="h-3 w-32 bg-white/5 rounded-sm mb-3" />
       <div className="h-6 w-24 bg-white/5 rounded-sm mb-4" />
       <div className="space-y-2">
@@ -164,7 +164,7 @@ export function ExpensesTab() {
         <motion.div
           initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-[var(--surface-card)] border border-[var(--color-border)] rounded-sm p-4"
+          className="bg-(--surface-card) border border-border rounded-sm p-4"
         >
           <div className="flex items-center justify-between mb-3">
             <span className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--color-text-disabled)' }}>
@@ -175,7 +175,7 @@ export function ExpensesTab() {
             </span>
           </div>
           {categoryBreakdown.length > 0 && (
-            <div className="border-t border-[var(--color-border)] pt-3 space-y-2">
+            <div className="border-t border-border pt-3 space-y-2">
               <p className="text-[10px] uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-disabled)' }}>
                 Category Breakdown
               </p>
@@ -199,17 +199,17 @@ export function ExpensesTab() {
 
       {/* Error */}
       {error && (
-        <div className="border border-[var(--color-danger)]/20 rounded-sm p-4 text-[13px]" style={{ color: 'var(--color-danger)' }}>
+        <div className="border border-danger/20 rounded-sm p-4 text-[13px]" style={{ color: 'var(--color-danger)' }}>
           {error}
         </div>
       )}
 
       {/* Table */}
       {!error && (
-        <div className="overflow-x-auto border border-[var(--color-border)] rounded-sm">
+        <div className="overflow-x-auto border border-border rounded-sm">
           <table className="w-full text-[12px]">
             <thead>
-              <tr className="border-b border-[var(--color-border)]" style={{ backgroundColor: 'var(--surface-card)' }}>
+              <tr className="border-b border-border" style={{ backgroundColor: 'var(--surface-card)' }}>
                 <th className="text-left px-3 py-2.5 font-medium" style={{ color: 'var(--color-text-disabled)' }}>Date</th>
                 <th className="text-left px-3 py-2.5 font-medium" style={{ color: 'var(--color-text-disabled)' }}>Business</th>
                 <th className="text-left px-3 py-2.5 font-medium" style={{ color: 'var(--color-text-disabled)' }}>Description</th>
@@ -233,7 +233,7 @@ export function ExpensesTab() {
                   <motion.tr
                     key={tx.id}
                     layout
-                    className="border-b border-[var(--color-border)] hover:bg-black/[0.05] transition-colors"
+                    className="border-b border-border hover:bg-black/5 transition-colors"
                   >
                     <td className="px-3 py-2.5 tabular-nums whitespace-nowrap" style={{ color: 'var(--color-text-secondary)' }}>
                       {formatDate(tx.transactionDate)}
@@ -241,7 +241,7 @@ export function ExpensesTab() {
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-2">
                         <span
-                          className="w-2 h-2 rounded-full flex-shrink-0"
+                          className="w-2 h-2 rounded-full shrink-0"
                           style={{ backgroundColor: getBusinessColour(tx.businessKey) }}
                         />
                         <span className="text-[11px] whitespace-nowrap" style={{ color: 'var(--color-text-secondary)' }}>

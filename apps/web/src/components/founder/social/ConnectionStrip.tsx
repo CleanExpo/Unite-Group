@@ -77,7 +77,7 @@ export function ConnectionStrip({ channels: initialChannels }: Props) {
         <select
           value={selectedBusiness}
           onChange={e => setSelectedBusiness(e.target.value)}
-          className="rounded-sm border px-2 py-1 text-[11px] bg-transparent outline-none"
+          className="rounded-sm border px-2 py-1 text-[11px] bg-transparent outline-hidden"
           style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
         >
           {BUSINESSES.map(biz => (

@@ -48,7 +48,7 @@ export function ReplyComposer({ threadId, account, defaultTo, defaultSubject, in
   }
 
   return (
-    <div className="border-t border-white/[0.06] p-4 space-y-3">
+    <div className="border-t border-white/6 p-4 space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-xs text-[#5f5f66]">
           Reply to <span className="text-[#52525b]">{defaultTo}</span>
@@ -63,7 +63,7 @@ export function ReplyComposer({ threadId, account, defaultTo, defaultSubject, in
         placeholder="Write your reply…"
         rows={5}
         autoFocus
-        className="w-full bg-[var(--surface-card)] border border-[var(--color-border)] rounded-sm px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:border-[#16a34a] focus:outline-none resize-none"
+        className="w-full bg-(--surface-card) border border-border rounded-sm px-3 py-2 text-sm text-(--color-text-primary) placeholder-(--color-text-muted) focus:border-[#16a34a] focus:outline-hidden resize-none"
       />
       {error && <p className="text-red-700 text-xs">{error}</p>}
       <div className="flex justify-end">

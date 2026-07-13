@@ -37,7 +37,7 @@ export default function Input({
           className="block text-sm font-medium text-[#52525b] mb-2"
         >
           {label}
-          {props.required && <span className="text-[var(--color-danger)] ml-1">*</span>}
+          {props.required && <span className="text-danger ml-1">*</span>}
         </label>
       )}
 
@@ -51,7 +51,7 @@ export default function Input({
         <input
           id={inputId}
           className={`
-            block w-full rounded-sm border-[0.5px] bg-white/[0.02] text-[#0A0A0A] placeholder-white/30 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed
+            block w-full rounded-sm border-[0.5px] bg-white/2 text-[#0A0A0A] placeholder-white/30 focus:outline-hidden disabled:opacity-50 disabled:cursor-not-allowed
             ${hasError ? 'input-focus-error' : 'input-focus'}
             ${leftIcon ? 'pl-10' : 'pl-4'}
             ${rightIcon ? 'pr-10' : 'pr-4'}
@@ -75,7 +75,7 @@ export default function Input({
       {error && (
         <p
           id={`${inputId}-error`}
-          className="mt-2 text-sm text-[var(--color-danger)]"
+          className="mt-2 text-sm text-danger"
           role="alert"
         >
           {error}

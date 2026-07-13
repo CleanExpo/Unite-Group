@@ -48,7 +48,7 @@ describe('deriveProviderState — state mapping', () => {
 })
 
 describe('readProviderSignalsFromEnv — no secret leakage', () => {
-  it('reports presence as booleans only, never the key value', () => {
+  it('reports API-key presence without mislabelling it as a Max plan', () => {
     const env = { ANTHROPIC_API_KEY: 'sk-ant-SECRET', OPENAI_API_KEY: '', OPENROUTER_API_KEY: 'or-SECRET' }
     const signals = readProviderSignalsFromEnv(env)
     expect(signals.claude.configured).toBe(true)
@@ -57,6 +57,12 @@ describe('readProviderSignalsFromEnv — no secret leakage', () => {
     expect(signals.minimax.configured).toBe(false)
     // The secret values appear nowhere in the produced signals.
     expect(JSON.stringify(signals)).not.toContain('SECRET')
+    expect(PROVIDERS.find((provider) => provider.id === 'claude')).toMatchObject({
+      label: 'Anthropic API',
+      planType: 'Metered API route',
+    })
+    expect(PROVIDERS.find((provider) => provider.id === 'openai')?.label).toBe('OpenAI API')
+    expect(JSON.stringify(PROVIDERS)).not.toMatch(/Max subscription|OpenAI Max|Claude Max/)
   })
 })
 
@@ -101,69 +107,20 @@ describe('buildProviderCockpit', () => {
     const payload = buildProviderCockpit({ signals: allConfigured(blocked), now: NOW })
     const fast = payload.routing.find((r) => r.lane === 'fast_drafting')
     expect(fast?.recommended).toBeNull()
-    expect(fast?.reason).toMatch(/blocked/)
-  })
-})
-
-describe('UNI-2338 — plan seats (honest per-seat bars)', () => {
-  it('claude declares 3 seats, openai 1, others none', () => {
-    const payload = buildProviderCockpit({ signals: allConfigured(), now: NOW })
-    const byId = new Map(payload.providers.map((p) => [p.id, p]))
-    expect(byId.get('claude')?.plans).toHaveLength(3)
-    expect(byId.get('openai')?.plans).toHaveLength(1)
-    expect(byId.get('gemini')?.plans).toBeUndefined()
-    expect(byId.get('openrouter')?.plans).toBeUndefined()
+    expect(fast?.reason).toMatch(/usable runtime telemetry/)
   })
 
-  it('unconfigured provider → seats blocked with null pct (never fabricated)', () => {
-    const payload = buildProviderCockpit({
-      signals: allConfigured({ claude: { configured: false } }),
-      now: NOW,
+  it('does not recommend a configured provider whose runtime telemetry is unknown', () => {
+    const signals = allConfigured({
+      claude: { configured: true },
+      openai: { configured: true },
     })
-    const claude = payload.providers.find((p) => p.id === 'claude')!
-    for (const seat of claude.plans!) {
-      expect(seat.state).toBe('blocked')
-      expect(seat.usagePct).toBeNull()
-      expect(seat.truthLevel).toBe('unavailable')
-    }
-  })
+    const payload = buildProviderCockpit({ signals, now: NOW })
+    const deep = payload.routing.find((route) => route.lane === 'deep_reasoning')
 
-  it('configured but no per-seat telemetry → unknown with null pct', () => {
-    const payload = buildProviderCockpit({
-      signals: allConfigured({ claude: { configured: true } }),
-      now: NOW,
+    expect(deep).toMatchObject({
+      recommended: null,
+      reason: 'no candidate has usable runtime telemetry',
     })
-    const claude = payload.providers.find((p) => p.id === 'claude')!
-    for (const seat of claude.plans!) {
-      expect(seat.state).toBe('unknown')
-      expect(seat.usagePct).toBeNull()
-    }
-  })
-
-  it('seatPressures drive per-seat state/pct at truth=manual', () => {
-    const payload = buildProviderCockpit({
-      signals: allConfigured({
-        claude: { configured: true, seatPressures: { claude_max_1: 0.6, claude_max_3: 0.97 } },
-      }),
-      now: NOW,
-    })
-    const seats = new Map(payload.providers.find((p) => p.id === 'claude')!.plans!.map((s) => [s.id, s]))
-    expect(seats.get('claude_max_1')).toMatchObject({ state: 'watching', usagePct: 60, truthLevel: 'manual' })
-    expect(seats.get('claude_max_2')).toMatchObject({ state: 'unknown', usagePct: null })
-    expect(seats.get('claude_max_3')).toMatchObject({ state: 'blocked', usagePct: 97, truthLevel: 'manual' })
-  })
-
-  it('readProviderSignalsFromEnv parses pressure envs and ignores junk', () => {
-    const signals = readProviderSignalsFromEnv({
-      ANTHROPIC_API_KEY: 'x',
-      PROVIDER_USAGE_PRESSURE_CLAUDE: '0.7',
-      PLAN_SEAT_PRESSURE_CLAUDE_MAX_1: '0.4',
-      PLAN_SEAT_PRESSURE_CLAUDE_MAX_2: 'not-a-number',
-      PLAN_SEAT_PRESSURE_CODEX_MAX_1: '1.7',
-      OPENAI_API_KEY: 'y',
-    })
-    expect(signals.claude).toMatchObject({ configured: true, usagePressure: 0.7, truth: 'manual' })
-    expect(signals.claude.seatPressures).toEqual({ claude_max_1: 0.4 })
-    expect(signals.openai.seatPressures).toEqual({ codex_max_1: 1 }) // clamped
   })
 })

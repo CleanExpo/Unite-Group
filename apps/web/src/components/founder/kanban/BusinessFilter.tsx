@@ -13,7 +13,7 @@ export function BusinessFilter({ activeFilter, onFilterChange }: BusinessFilterP
       {/* All pill */}
       <button
         onClick={() => onFilterChange(null)}
-        className="flex items-center gap-1.5 px-3 py-1 rounded-sm flex-shrink-0 transition-colors duration-150"
+        className="flex items-center gap-1.5 px-3 py-1 rounded-sm shrink-0 transition-colors duration-150"
         style={{
           border: activeFilter === null
             ? '1px solid #16a34a'
@@ -35,7 +35,7 @@ export function BusinessFilter({ activeFilter, onFilterChange }: BusinessFilterP
           <button
             key={biz.key}
             onClick={() => onFilterChange(isActive ? null : biz.key)}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-sm flex-shrink-0 transition-colors duration-150"
+            className="flex items-center gap-1.5 px-3 py-1 rounded-sm shrink-0 transition-colors duration-150"
             style={{
               border: isActive
                 ? '1px solid #16a34a'
@@ -48,7 +48,7 @@ export function BusinessFilter({ activeFilter, onFilterChange }: BusinessFilterP
             }}
           >
             <span
-              className="w-2 h-2 rounded-full flex-shrink-0"
+              className="w-2 h-2 rounded-full shrink-0"
               style={{ background: biz.color }}
             />
             {biz.name}

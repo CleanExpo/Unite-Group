@@ -103,13 +103,13 @@ export function TeamPanel() {
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               placeholder="Name *"
-              className="h-8 px-3 rounded-sm border text-[12px] outline-none"
+              className="h-8 px-3 rounded-sm border text-[12px] outline-hidden"
               style={{ borderColor: 'var(--color-border)', background: 'var(--surface-canvas)', color: 'var(--color-text-primary)' }}
             />
             <select
               value={form.role}
               onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
-              className="h-8 px-3 rounded-sm border text-[12px] outline-none bg-transparent"
+              className="h-8 px-3 rounded-sm border text-[12px] outline-hidden bg-transparent"
               style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
             >
               {['developer', 'designer', 'advisor', 'ai-agent'].map((r) => (
@@ -122,21 +122,21 @@ export function TeamPanel() {
               value={form.email}
               onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
               placeholder="Email"
-              className="h-8 px-3 rounded-sm border text-[12px] outline-none"
+              className="h-8 px-3 rounded-sm border text-[12px] outline-hidden"
               style={{ borderColor: 'var(--color-border)', background: 'var(--surface-canvas)', color: 'var(--color-text-primary)' }}
             />
             <input
               value={form.github_login}
               onChange={(e) => setForm((f) => ({ ...f, github_login: e.target.value }))}
               placeholder="GitHub login"
-              className="h-8 px-3 rounded-sm border text-[12px] outline-none"
+              className="h-8 px-3 rounded-sm border text-[12px] outline-hidden"
               style={{ borderColor: 'var(--color-border)', background: 'var(--surface-canvas)', color: 'var(--color-text-primary)' }}
             />
             <input
               value={form.linear_user_id}
               onChange={(e) => setForm((f) => ({ ...f, linear_user_id: e.target.value }))}
               placeholder="Linear user ID"
-              className="h-8 px-3 rounded-sm border text-[12px] outline-none"
+              className="h-8 px-3 rounded-sm border text-[12px] outline-hidden"
               style={{ borderColor: 'var(--color-border)', background: 'var(--surface-canvas)', color: 'var(--color-text-primary)' }}
             />
           </div>
@@ -161,7 +161,7 @@ export function TeamPanel() {
           {[...Array(3)].map((_, i) => (
             <div key={i} className="rounded-sm border p-4" style={{ borderColor: 'var(--color-border)', background: 'var(--surface-card)', borderLeft: '3px solid var(--surface-elevated)' }}>
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-9 h-9 rounded-sm flex-shrink-0" style={{ background: 'var(--surface-elevated)' }} />
+                <div className="w-9 h-9 rounded-sm shrink-0" style={{ background: 'var(--surface-elevated)' }} />
                 <div className="space-y-1.5 flex-1">
                   <div className="h-3 rounded-sm w-28" style={{ background: 'var(--surface-elevated)' }} />
                   <div className="h-2.5 rounded-sm w-16" style={{ background: 'var(--surface-elevated)' }} />
@@ -190,7 +190,7 @@ export function TeamPanel() {
               {/* Avatar + name */}
               <div className="flex items-center gap-3 mb-3">
                 <div
-                  className="w-9 h-9 rounded-sm flex items-center justify-center text-[12px] font-medium flex-shrink-0"
+                  className="w-9 h-9 rounded-sm flex items-center justify-center text-[12px] font-medium shrink-0"
                   style={{
                     background: `${roleColor}20`,
                     color: roleColor,

@@ -1,96 +1,59 @@
-// src/lib/ai/__tests__/client.test.ts
-// Unit tests for the Anthropic singleton client
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+const { sdk } = vi.hoisted(() => ({ sdk: vi.fn() }))
 
-// Mock the Anthropic SDK before importing the client.
-// `create` echoes its body back so we can assert what the wrapper injects.
 vi.mock('@anthropic-ai/sdk', () => ({
-  default: vi.fn().mockImplementation((opts: Record<string, unknown>) => ({
-    _opts: opts,
-    messages: { create: vi.fn((body: unknown) => body) },
+  default: sdk.mockImplementation((options: Record<string, unknown>) => ({
+    _options: options,
+    messages: { create: vi.fn() },
   })),
 }))
 
-import { getAIClient, getAIClientMode, resetAIClient } from '../client'
+import { getAIClient, resetAIClient } from '../client'
 
-describe('getAIClient', () => {
+describe('getAIClient server credential boundary', () => {
   beforeEach(() => {
+    vi.clearAllMocks()
     resetAIClient()
-    // Isolate auth env between tests
+    process.env.ANTHROPIC_API_KEY = 'metered-api-key'
     delete process.env.CLAUDE_CODE_OAUTH_TOKEN
     delete process.env.ANTHROPIC_AUTH_TOKEN
-    process.env.ANTHROPIC_API_KEY = 'test-key-123'
   })
 
-  it('returns an Anthropic client instance', () => {
+  it('uses only the metered Anthropic API credential', () => {
     const client = getAIClient()
+
     expect(client).toBeDefined()
-    expect(client.messages).toBeDefined()
+    expect(sdk).toHaveBeenCalledWith({ apiKey: 'metered-api-key', maxRetries: 0 })
   })
 
-  it('returns the same instance on subsequent calls (singleton)', () => {
+  it('returns the same instance until reset', () => {
     const first = getAIClient()
-    const second = getAIClient()
-    expect(first).toBe(second)
-  })
-
-  it('throws if no credential is configured', () => {
-    delete process.env.ANTHROPIC_API_KEY
-    expect(() => getAIClient()).toThrow('ANTHROPIC_API_KEY')
-  })
-
-  it('returns a new instance after resetAIClient()', () => {
-    const first = getAIClient()
+    expect(getAIClient()).toBe(first)
     resetAIClient()
-    const second = getAIClient()
-    expect(first).not.toBe(second)
+    expect(getAIClient()).not.toBe(first)
   })
 
-  describe('auth mode', () => {
-    it('uses apikey mode when only ANTHROPIC_API_KEY is set', () => {
-      getAIClient()
-      expect(getAIClientMode()).toBe('apikey')
-    })
+  it('rejects consumer Claude session credentials as backend API credentials', () => {
+    delete process.env.ANTHROPIC_API_KEY
+    process.env.CLAUDE_CODE_OAUTH_TOKEN = 'consumer-session-token'
+    process.env.ANTHROPIC_AUTH_TOKEN = 'alternate-consumer-token'
 
-    it('prefers OAuth (Max plan) when CLAUDE_CODE_OAUTH_TOKEN is set', () => {
-      process.env.CLAUDE_CODE_OAUTH_TOKEN = 'oauth-token-abc'
-      const client = getAIClient()
-      expect(getAIClientMode()).toBe('oauth')
-      // OAuth mode constructs the SDK with a Bearer authToken + beta header,
-      // never an apiKey.
-      const opts = (client as unknown as { _opts: Record<string, unknown> })._opts
-      expect(opts.authToken).toBe('oauth-token-abc')
-      // Must be explicitly null to suppress the x-api-key header (not just unset,
-      // which the SDK would backfill from process.env.ANTHROPIC_API_KEY).
-      expect(opts.apiKey).toBeNull()
-      expect((opts.defaultHeaders as Record<string, string>)['anthropic-beta']).toBe(
-        'oauth-2025-04-20',
-      )
-    })
+    expect(() => getAIClient()).toThrow(
+      'ANTHROPIC_API_KEY is required for the metered server route',
+    )
+    expect(sdk).not.toHaveBeenCalled()
+  })
 
-    it('injects the Claude Code identity into the system prompt in OAuth mode', async () => {
-      process.env.CLAUDE_CODE_OAUTH_TOKEN = 'oauth-token-abc'
-      const client = getAIClient()
-      const sent = (await client.messages.create({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 100,
-        system: 'Be concise.',
-        messages: [{ role: 'user', content: 'hi' }],
-      })) as unknown as { system: string }
-      expect(sent.system).toContain("You are Claude Code, Anthropic's official CLI")
-      expect(sent.system).toContain('Be concise.')
-    })
+  it('never forwards consumer tokens when an API key is configured', () => {
+    process.env.CLAUDE_CODE_OAUTH_TOKEN = 'consumer-session-token'
+    process.env.ANTHROPIC_AUTH_TOKEN = 'alternate-consumer-token'
 
-    it('does NOT alter the system prompt in apikey mode', async () => {
-      const client = getAIClient()
-      const sent = (await client.messages.create({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 100,
-        system: 'Be concise.',
-        messages: [{ role: 'user', content: 'hi' }],
-      })) as unknown as { system: string }
-      expect(sent.system).toBe('Be concise.')
-    })
+    getAIClient()
+
+    const options = sdk.mock.calls[0][0] as Record<string, unknown>
+    expect(options).toEqual({ apiKey: 'metered-api-key', maxRetries: 0 })
+    expect(JSON.stringify(options)).not.toContain('consumer-session-token')
+    expect(JSON.stringify(options)).not.toContain('alternate-consumer-token')
   })
 })

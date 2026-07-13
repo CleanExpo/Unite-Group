@@ -76,7 +76,7 @@ function LineItemRow({
   return (
     <div className="grid grid-cols-[1fr_60px_90px_80px_32px] gap-2 items-center">
       <input
-        className="bg-white/5 border border-white/10 rounded-sm px-2 py-1.5 text-[12px] text-[#0A0A0A] placeholder-white/30 focus:outline-none focus:border-[#16a34a]/40"
+        className="bg-white/5 border border-white/10 rounded-sm px-2 py-1.5 text-[12px] text-[#0A0A0A] placeholder-white/30 focus:outline-hidden focus:border-[#16a34a]/40"
         placeholder="Description"
         value={item.description}
         onChange={(e) => onChange(index, 'description', e.target.value)}
@@ -84,7 +84,7 @@ function LineItemRow({
       <input
         type="number"
         min={1}
-        className="bg-white/5 border border-white/10 rounded-sm px-2 py-1.5 text-[12px] text-[#0A0A0A] text-right focus:outline-none focus:border-[#16a34a]/40"
+        className="bg-white/5 border border-white/10 rounded-sm px-2 py-1.5 text-[12px] text-[#0A0A0A] text-right focus:outline-hidden focus:border-[#16a34a]/40"
         placeholder="Qty"
         value={item.quantity}
         onChange={(e) => onChange(index, 'quantity', parseFloat(e.target.value) || 1)}
@@ -93,13 +93,13 @@ function LineItemRow({
         type="number"
         min={0}
         step={0.01}
-        className="bg-white/5 border border-white/10 rounded-sm px-2 py-1.5 text-[12px] text-[#0A0A0A] text-right focus:outline-none focus:border-[#16a34a]/40"
+        className="bg-white/5 border border-white/10 rounded-sm px-2 py-1.5 text-[12px] text-[#0A0A0A] text-right focus:outline-hidden focus:border-[#16a34a]/40"
         placeholder="Unit $"
         value={item.unitAmount}
         onChange={(e) => onChange(index, 'unitAmount', parseFloat(e.target.value) || 0)}
       />
       <input
-        className="bg-white/5 border border-white/10 rounded-sm px-2 py-1.5 text-[12px] text-[#0A0A0A] focus:outline-none focus:border-[#16a34a]/40"
+        className="bg-white/5 border border-white/10 rounded-sm px-2 py-1.5 text-[12px] text-[#0A0A0A] focus:outline-hidden focus:border-[#16a34a]/40"
         placeholder="Code"
         value={item.accountCode}
         onChange={(e) => onChange(index, 'accountCode', e.target.value)}
@@ -193,7 +193,7 @@ function CreateInvoicePanel({
         <div className="col-span-1">
           <label className="block text-[11px] text-[#52525b] mb-1">Contact *</label>
           <input
-            className="w-full bg-white/5 border border-white/10 rounded-sm px-3 py-1.5 text-[12px] text-[#0A0A0A] placeholder-white/30 focus:outline-none focus:border-[#16a34a]/40"
+            className="w-full bg-white/5 border border-white/10 rounded-sm px-3 py-1.5 text-[12px] text-[#0A0A0A] placeholder-white/30 focus:outline-hidden focus:border-[#16a34a]/40"
             placeholder="Client name"
             value={contactName}
             onChange={(e) => setContactName(e.target.value)}
@@ -203,7 +203,7 @@ function CreateInvoicePanel({
           <label className="block text-[11px] text-[#52525b] mb-1">Due Date *</label>
           <input
             type="date"
-            className="w-full bg-white/5 border border-white/10 rounded-sm px-3 py-1.5 text-[12px] text-[#0A0A0A] focus:outline-none focus:border-[#16a34a]/40"
+            className="w-full bg-white/5 border border-white/10 rounded-sm px-3 py-1.5 text-[12px] text-[#0A0A0A] focus:outline-hidden focus:border-[#16a34a]/40"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
           />
@@ -211,7 +211,7 @@ function CreateInvoicePanel({
         <div>
           <label className="block text-[11px] text-[#52525b] mb-1">Reference</label>
           <input
-            className="w-full bg-white/5 border border-white/10 rounded-sm px-3 py-1.5 text-[12px] text-[#0A0A0A] placeholder-white/30 focus:outline-none focus:border-[#16a34a]/40"
+            className="w-full bg-white/5 border border-white/10 rounded-sm px-3 py-1.5 text-[12px] text-[#0A0A0A] placeholder-white/30 focus:outline-hidden focus:border-[#16a34a]/40"
             placeholder="INV-001"
             value={reference}
             onChange={(e) => setReference(e.target.value)}
@@ -301,7 +301,7 @@ function InvoiceRow({
   }
 
   return (
-    <tr className="border-b border-white/5 hover:bg-black/[0.05] transition-colors">
+    <tr className="border-b border-white/5 hover:bg-black/5 transition-colors">
       <td className="py-3 px-4 text-[12px] text-[#52525b]">{invoice.InvoiceNumber || '—'}</td>
       <td className="py-3 px-4 text-[12px] text-[#0A0A0A]">{invoice.Contact?.Name ?? '—'}</td>
       <td className="py-3 px-4 text-[12px] text-[#52525b]">{parseXeroDate(invoice.DateString)}</td>
@@ -396,7 +396,7 @@ export function InvoicesClient() {
             <select
               value={business}
               onChange={(e) => setBusiness(e.target.value)}
-              className="appearance-none bg-white/5 border border-white/10 rounded-sm pl-3 pr-8 py-1.5 text-[12px] text-[#0A0A0A] focus:outline-none focus:border-[#16a34a]/40 cursor-pointer"
+              className="appearance-none bg-white/5 border border-white/10 rounded-sm pl-3 pr-8 py-1.5 text-[12px] text-[#0A0A0A] focus:outline-hidden focus:border-[#16a34a]/40 cursor-pointer"
             >
               {XERO_BUSINESSES.map((b) => (
                 <option key={b.key} value={b.key} style={{ background: '#111' }}>

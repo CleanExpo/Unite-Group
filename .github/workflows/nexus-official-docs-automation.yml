@@ -1,0 +1,163 @@
+name: Nexus official-docs automation
+
+# Weekly read-only collection of official vendor documentation, deterministic
+# review, and an automated pull request proposing vendor-intelligence updates.
+# It never mutates `main`: proposals land on an isolated branch as a PR that a
+# human reviews and merges. Telegram notification uses owner-set repository
+# secrets referenced by name only — no secret value ever appears in this file.
+
+on:
+  schedule:
+    # 03:17 Sunday Australia/Brisbane (AEST, UTC+10; no daylight saving).
+    # Offset one hour after the read-only weekly evidence workflow.
+    - cron: '17 17 * * 6'
+  workflow_dispatch:
+
+# Elevated only to push an isolated branch and open a PR; `main` is never a target.
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: nexus-official-docs-automation
+  cancel-in-progress: false
+
+env:
+  AUTOMATION_BRANCH: automation/nexus-docs-intelligence
+  REVIEW_DIR: .artifacts/nexus-docs-review
+  WATCH_DIR: .artifacts/nexus-official-docs
+  CONTENT_DIR: content
+  SNAPSHOT_DIR: docs/vendor-intelligence/.snapshots
+
+jobs:
+  propose:
+    name: Collect, review and propose vendor-intelligence updates
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: '24'
+
+      - name: Test the watcher and review layer without external requests
+        run: |
+          npm run verify:docs-watch
+          npm run verify:docs-review
+
+      - name: Read-only collection of official-source evidence and content
+        run: |
+          node scripts/nexus-docs-watch.mjs \
+            --root . \
+            --config config/nexus-official-sources.json \
+            --baseline config/nexus-official-sources.baseline.json \
+            --write "${WATCH_DIR}" \
+            --write-content "${CONTENT_DIR}"
+
+      - name: Deterministic review (no network, no baseline overwrite)
+        id: review
+        run: |
+          set +e
+          node scripts/nexus-docs-review.mjs \
+            --root . \
+            --report "${WATCH_DIR}/report.json" \
+            --classification config/nexus-docs-classification.json \
+            --content "${CONTENT_DIR}" \
+            --snapshots "${SNAPSHOT_DIR}" \
+            --write "${REVIEW_DIR}"
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          material=$(node -e "process.stdout.write(String(require('./${REVIEW_DIR}/review.json').summary.materialChanges))")
+          echo "material=${material}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload deterministic evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: nexus-docs-automation-${{ github.run_id }}
+          path: |
+            .artifacts/nexus-official-docs/
+            .artifacts/nexus-docs-review/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Open or update the proposal pull request
+        id: pr
+        if: steps.review.outputs.material != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config user.name 'nexus-docs-bot'
+          git config user.email 'nexus-docs-bot@users.noreply.github.com'
+
+          # Refresh the proposed snapshot baseline and stage the review report.
+          mkdir -p "${SNAPSHOT_DIR}"
+          cp -f "${CONTENT_DIR}"/*.txt "${SNAPSHOT_DIR}/" 2>/dev/null || true
+          cp -f "${REVIEW_DIR}/review.md" docs/vendor-intelligence/REVIEW.md
+
+          git checkout -B "${AUTOMATION_BRANCH}"
+          git add "${SNAPSHOT_DIR}" docs/vendor-intelligence/REVIEW.md
+          if git diff --cached --quiet; then
+            echo "No snapshot changes to propose."
+            echo "created=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          material="${{ steps.review.outputs.material }}"
+          git commit -m "chore(nexus-docs): propose vendor-intelligence updates (${material} material)"
+          git push --force-with-lease origin "${AUTOMATION_BRANCH}"
+
+          # Dedup: reuse an existing open PR for this branch instead of opening another.
+          existing=$(gh pr list --head "${AUTOMATION_BRANCH}" --state open --json number --jq '.[0].number' || true)
+          body="Automated weekly vendor-intelligence review proposes ${material} material documentation change(s).\n\nReview the snapshot diffs under \`${SNAPSHOT_DIR}\` and \`docs/vendor-intelligence/REVIEW.md\`. This PR never mutates \`main\`; merge only after human review."
+          if [ -n "${existing}" ]; then
+            gh pr edit "${existing}" --body "$(printf '%b' "${body}")"
+            url=$(gh pr view "${existing}" --json url --jq '.url')
+          else
+            url=$(gh pr create \
+              --base main \
+              --head "${AUTOMATION_BRANCH}" \
+              --title "chore(nexus-docs): weekly vendor-intelligence proposals" \
+              --body "$(printf '%b' "${body}")")
+          fi
+          echo "created=true" >> "$GITHUB_OUTPUT"
+          echo "url=${url}" >> "$GITHUB_OUTPUT"
+
+      - name: Notify Telegram (summary and PR link only)
+        if: steps.pr.outputs.created == 'true'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          PR_URL: ${{ steps.pr.outputs.url }}
+          MATERIAL: ${{ steps.review.outputs.material }}
+        run: |
+          set -euo pipefail
+          if [ -z "${TELEGRAM_BOT_TOKEN}" ] || [ -z "${TELEGRAM_CHAT_ID}" ]; then
+            echo "Telegram secrets unset; skipping notification."
+            exit 0
+          fi
+          text="Nexus docs automation: ${MATERIAL} material change(s) proposed. Review: ${PR_URL}"
+          curl --silent --show-error --fail --retry 3 --retry-delay 5 --max-time 30 \
+            -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+            --data-urlencode "text=${text}" \
+            --data-urlencode "disable_web_page_preview=true" > /dev/null
+
+      - name: Notify Telegram on failure
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          if [ -z "${TELEGRAM_BOT_TOKEN}" ] || [ -z "${TELEGRAM_CHAT_ID}" ]; then
+            echo "Telegram secrets unset; skipping failure notification."
+            exit 0
+          fi
+          text="Nexus docs automation FAILED. Logs: ${RUN_URL}"
+          curl --silent --show-error --fail --retry 3 --retry-delay 5 --max-time 30 \
+            -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+            --data-urlencode "text=${text}" > /dev/null

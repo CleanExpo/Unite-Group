@@ -94,4 +94,11 @@ vercel-export-*/
 
 # Transient agent run artifacts (raw logs / exit codes — never canonical)
 .shipit_evidence/
+# Nexus official-docs automation transient outputs (snapshots proposed via PR, not here)
+/content/
+/.artifacts/nexus-official-docs/
+/.artifacts/nexus-docs-review/
 outputs/sandbox_voice_migration/
+# Local agent permissions and authenticated browser state are machine-owned.
+**/.claude/settings.local.json
+**/playwright/.auth/

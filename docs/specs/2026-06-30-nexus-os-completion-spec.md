@@ -1,6 +1,6 @@
 ---
 type: spec
-status: draft — Board go/no-go pending
+status: superseded 2026-07-12 — historical completion proposal only
 created: 2026-06-30
 author: SPM (/spm) + Pi-CEO board process
 scope: unite-group monorepo (apps/web + apps/workspace + apps/autopilot-runner)
@@ -8,7 +8,17 @@ evidence_standard: fabel — every claim tagged [VERIFIED]/[INFERENCE]/[UNCONFIR
 supersedes: none — this is the umbrella completion spec for the four 2026-06-28 Nexus specs
 ---
 
-# SPM Spec — Complete the Nexus Agentic OS within the Unite-Group CRM
+# Superseded historical spec — Complete the Nexus Agentic OS within the Unite-Group CRM
+
+> **SUPERSEDED — DO NOT EXECUTE AS A CURRENT BUILD PLAN.** This document is a
+> dated planning snapshot. Its presence-writer turn-on and persistent-host
+> proposals were rejected by the later security boundary: the local writer,
+> heartbeat/presence source, and host runtime were deleted, and the
+> autopilot-runner now emits only a one-file refusal container. Any future
+> autonomy requires a newly reviewed, isolated, brokered executor and completed
+> credential migration. See
+> [`apps/autopilot-runner/README.md`](../../apps/autopilot-runner/README.md) and
+> [`docs/security/credential-concentration-remediation-2026-07-12.md`](../security/credential-concentration-remediation-2026-07-12.md).
 
 ## 1. Task being planned
 
@@ -59,13 +69,13 @@ Strong: builds entirely on merged, verified infrastructure; each item is indepen
 
 ## 9. Proposed solution — four phases, gate-explicit
 
-### Phase 1 — Bridge turn-on (founder-gated; agent-prepped) `[code-complete #589]`
+### Historical Phase 1 — Bridge turn-on (rejected and retired; do not execute)
 Agent: nothing left to build — verified 30/30 tests. Founder: set prod `SUPABASE_SERVICE_ROLE_KEY` + `FOUNDER_USER_ID` in `~/.hermes/.env`; bootstrap `ai.hermes.presence.plist`; deploy `apps/web` via the named-grant gate. Verify: unite-group.in rail shows Hermes connected + `capabilities.gateway.state = running`.
 
 ### Phase 2 — CRM model unification (agent-prepped sandbox-first; founder decides family)
 Founder decision: canonical family = **`crm_*`** (recommended — it is the spec'd CRM spine in root `spec.md`; `contacts`/`leads` are the legacy shape). Agent (reversible): author the migration on a **Supabase branch**, add the missing `contacts GET`, approval request/execute, and pipeline-forecast READ routes against `crm_*`, repoint the split routes, add route tests. Hold prod promotion for founder approval. Verify: `information_schema` shows one family; route tests green; no `db push` to prod.
 
-### Phase 3 — Persistent host (Board spend decision; agent-scripts the provision)
+### Historical Phase 3 — Persistent host (rejected architecture; do not execute)
 Board: approve the host (Docker container on the Mac now → Tailscale-reachable; VPS later if spend justified). Agent: write the container/compose + LaunchAgent/systemd scaffolding that runs gateway + workspace + presence writer durably, and (on Linux) provisions **true per-account lane tokens** (resolves the macOS Keychain limit, [[macos-claude-cli-keychain-lanes]]). Verify: reboot-survival; `provision-lanes.sh status` shows 3 dedicated logins on the Linux host.
 
 ### Phase 4 — L4 distribution (fast-follow; founder-gated deploy)

@@ -113,7 +113,7 @@ export function InsightCard({ insight, onStatusChange }: InsightCardProps) {
 
         {/* Type badge */}
         <span
-          className="text-[10px] px-1.5 py-0.5 rounded-sm flex-shrink-0 font-medium"
+          className="text-[10px] px-1.5 py-0.5 rounded-sm shrink-0 font-medium"
           style={{
             color: typeColor,
             background: `${typeColor}18`,
@@ -130,14 +130,14 @@ export function InsightCard({ insight, onStatusChange }: InsightCardProps) {
 
         {/* Priority dot */}
         <span
-          className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+          className="w-1.5 h-1.5 rounded-full shrink-0"
           style={{ background: PRIORITY_COLORS[insight.priority] ?? '#6b7280' }}
           title={insight.priority}
         />
 
         {/* Effort badge */}
         {insight.metadata.effortEstimate && (
-          <span className="text-[10px] flex-shrink-0" style={{ color: 'var(--color-text-disabled)' }}>
+          <span className="text-[10px] shrink-0" style={{ color: 'var(--color-text-disabled)' }}>
             {insight.metadata.effortEstimate}
           </span>
         )}

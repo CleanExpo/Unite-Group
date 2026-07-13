@@ -107,17 +107,38 @@ function buildTransactionRecords(
 // ---------------------------------------------------------------------------
 
 /**
+ * Nightly incremental lookback window (days). The nightly CRON only needs to
+ * refresh recent activity — full history is a one-time backfill served by the
+ * manual trigger (`runBookkeeperForOneBusiness`). Without a bound the nightly
+ * run paginates ALL Xero history for every connected business (carsi dates back
+ * to 2022) and blows the 300s function ceiling. 100 days comfortably covers the
+ * current BAS quarter plus a margin for late-modified transactions.
+ */
+const NIGHTLY_LOOKBACK_DAYS = 100
+
+/** ISO yyyy-mm-dd for `days` ago from now, for the Xero Date>= where-filter. */
+function lookbackFromDate(days: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() - days)
+  return d.toISOString().slice(0, 10)
+}
+
+/**
  * Process a single business through the full bookkeeper pipeline.
  *
  * Steps:
  * 1. Load and validate Xero tokens (skip if not connected)
- * 2. Fetch bank transactions (last 30 days)
- * 3. Fetch invoices (last 90 days)
+ * 2. Fetch bank transactions (from `options.fromDate`, else all history)
+ * 3. Fetch invoices (from `options.fromDate`, else all history)
  * 4. Fetch contacts
  * 5. Reconcile transactions against invoices
  * 6. Optimise deduction categorisation
  * 7. Calculate BAS for the current quarter
  * 8. Insert transaction records into the database
+ *
+ * @param options.fromDate - Lower bound (ISO date) for the Xero fetch. The
+ *   nightly CRON passes a recent window; the manual backfill omits it to pull
+ *   full history.
  */
 export async function processOneBusiness(
   founderId: string,
@@ -125,6 +146,7 @@ export async function processOneBusiness(
   businessName: string,
   runId: string,
   supabase: SupabaseClient,
+  options?: { fromDate?: string },
 ): Promise<BusinessResult> {
   // Step 1: Load Xero tokens — skip if not connected
   const storedTokens = await loadXeroTokens(founderId, businessKey)
@@ -153,14 +175,15 @@ export async function processOneBusiness(
   }
   const tenantId = validTokens.tenant_id
 
-    // Step 3: Fetch ALL bank transactions (no date filter — paginate through all pages)
-      // CARSI data dates back to 2022 and we need full history for tax overhaul
+    // Step 3: Fetch bank transactions from options.fromDate (nightly = recent
+      // window; manual backfill = all history). Paginate through all pages.
       const allBankTransactions: XeroBankTransaction[] = []
       let bankTxnPage = 1
       let hasMoreBankTxns = true
       while (hasMoreBankTxns) {
               const bankTxnResponse = await fetchBankTransactions(founderId, businessKey, {
                         page: bankTxnPage,
+                        fromDate: options?.fromDate,
               })
               allBankTransactions.push(...bankTxnResponse.items)
               if (bankTxnResponse.pagination && bankTxnResponse.pagination.page < bankTxnResponse.pagination.pageCount) {
@@ -180,13 +203,15 @@ export async function processOneBusiness(
       // The unreconciled items are already captured above (IsReconciled === false).
       const statementLines: XeroBankStatementLine[] = []
   
-    // Step 4: Fetch ALL invoices (no date filter for full tax overhaul coverage)
+    // Step 4: Fetch invoices from options.fromDate (nightly = recent window;
+      // manual backfill = all history).
       const allInvoices: XeroInvoice[] = []
       let invoicePage = 1
       let hasMoreInvoices = true
       while (hasMoreInvoices) {
               const invoiceResponse = await fetchInvoices(founderId, businessKey, {
                         page: invoicePage,
+                        fromDate: options?.fromDate,
               })
               allInvoices.push(...invoiceResponse.items)
               if (invoiceResponse.pagination && invoiceResponse.pagination.page < invoiceResponse.pagination.pageCount) {
@@ -282,6 +307,23 @@ export async function runBookkeeperForAllBusinesses(
   const startedAt = new Date()
   const supabase = createServiceClient()
 
+  // Reap orphaned runs (UNI-2351): a run that timed out mid-flight leaves a
+  // 'running' row forever, which reads as a false-green "in progress". Mark any
+  // run still 'running' after 15 min (safely past the 5-min function ceiling)
+  // as 'failed' before starting a fresh one. Self-heals past orphans and
+  // prevents new ones.
+  const staleCutoff = new Date(startedAt.getTime() - 15 * 60_000).toISOString()
+  await supabase
+    .from('bookkeeper_runs')
+    .update({
+      status: 'failed',
+      completed_at: startedAt.toISOString(),
+      error_log: [{ businessKey: '_run', error: 'Reaped: run left running past the function timeout' }],
+    })
+    .eq('founder_id', founderId)
+    .eq('status', 'running')
+    .lt('started_at', staleCutoff)
+
   // Create run record
   const { data: run, error: runError } = await supabase
     .from('bookkeeper_runs')
@@ -306,6 +348,11 @@ export async function runBookkeeperForAllBusinesses(
   const businessResults: BusinessResult[] = []
   const errorLog: Array<{ businessKey: string; error: string }> = []
 
+  // Nightly incremental window — recent activity only. Full history is the
+  // manual backfill's job (runBookkeeperForOneBusiness), keeping each nightly
+  // per-business pass well within the 300s function ceiling.
+  const nightlyFromDate = lookbackFromDate(NIGHTLY_LOOKBACK_DAYS)
+
   // Process each business sequentially for Xero rate-limit compliance
   for (const business of activeBusinesses) {
     try {
@@ -315,6 +362,7 @@ export async function runBookkeeperForAllBusinesses(
         business.name,
         runId,
         supabase,
+        { fromDate: nightlyFromDate },
       )
       businessResults.push(result)
     } catch (err: unknown) {
@@ -373,12 +421,12 @@ export async function runBookkeeperForAllBusinesses(
       gst_collected_cents: gstCollectedCents,
       gst_paid_cents: gstPaidCents,
       net_gst_cents: netGstCents,
-      error_log: errorLog.length > 0 ? errorLog : null,
+      error_log: errorLog,
     })
     .eq('id', runId)
 
   if (updateError) {
-    console.error(`[Bookkeeper] Failed to update run record ${runId}:`, updateError)
+    throw new Error(`Failed to finalise bookkeeper run record: ${updateError.message}`)
   }
 
   return {
@@ -492,7 +540,7 @@ export async function runBookkeeperForOneBusiness(
     const netGstCents = gstCollectedCents - gstPaidCents
 
     // Update run record
-    await supabase
+    const { error: updateError } = await supabase
       .from('bookkeeper_runs')
       .update({
               completed_at: completedAt.toISOString(),
@@ -508,6 +556,10 @@ export async function runBookkeeperForOneBusiness(
               error_log: businessResult.error ? [{ businessKey: business.key, error: businessResult.error }] : [],
       })
       .eq('id', runId)
+
+    if (updateError) {
+          throw new Error(`Failed to finalise bookkeeper run record: ${updateError.message}`)
+    }
 
     return {
           runId,

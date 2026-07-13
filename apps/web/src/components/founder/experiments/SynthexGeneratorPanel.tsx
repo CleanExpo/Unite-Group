@@ -147,7 +147,7 @@ export function SynthexGeneratorPanel({ onClose }: Props) {
               <select
                 value={businessKey}
                 onChange={(e) => setBusinessKey(e.target.value as BusinessKey)}
-                className="w-full text-[11px] px-3 py-2 rounded-sm border bg-transparent outline-none"
+                className="w-full text-[11px] px-3 py-2 rounded-sm border bg-transparent outline-hidden"
                 style={{
                   borderColor: 'var(--color-border)',
                   color: 'var(--color-text-primary)',
@@ -173,7 +173,7 @@ export function SynthexGeneratorPanel({ onClose }: Props) {
               <select
                 value={experimentType}
                 onChange={(e) => setExperimentType(e.target.value as ExperimentType | '')}
-                className="w-full text-[11px] px-3 py-2 rounded-sm border bg-transparent outline-none"
+                className="w-full text-[11px] px-3 py-2 rounded-sm border bg-transparent outline-hidden"
                 style={{
                   borderColor: 'var(--color-border)',
                   color: 'var(--color-text-primary)',
@@ -202,7 +202,7 @@ export function SynthexGeneratorPanel({ onClose }: Props) {
                 value={focusArea}
                 onChange={(e) => setFocusArea(e.target.value)}
                 placeholder="e.g. increase insurance leads"
-                className="w-full text-[11px] px-3 py-2 rounded-sm border bg-transparent outline-none"
+                className="w-full text-[11px] px-3 py-2 rounded-sm border bg-transparent outline-hidden"
                 style={{
                   borderColor: 'var(--color-border)',
                   color: 'var(--color-text-primary)',

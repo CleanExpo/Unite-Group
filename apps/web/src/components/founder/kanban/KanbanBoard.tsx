@@ -1,6 +1,6 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -10,185 +10,206 @@ import {
   closestCenter,
   useSensor,
   useSensors,
-} from '@dnd-kit/core'
-import { arrayMove } from '@dnd-kit/sortable'
-import { KanbanColumn } from './KanbanColumn'
-import { KanbanCard } from './KanbanCard'
-import { BusinessFilter } from './BusinessFilter'
-import { IssueDetailPanel } from './IssueDetailPanel'
-import { CreateIssueModal } from './CreateIssueModal'
+} from "@dnd-kit/core";
+import { arrayMove } from "@dnd-kit/sortable";
+import { KanbanColumn } from "./KanbanColumn";
+import { KanbanCard } from "./KanbanCard";
+import { BusinessFilter } from "./BusinessFilter";
+import { IssueDetailPanel } from "./IssueDetailPanel";
+import { CreateIssueModal } from "./CreateIssueModal";
 
 interface Card {
-  id: string
-  title: string
-  businessKey: string
-  businessColor: string
-  teamKey: string
-  stateId: string
+  id: string;
+  title: string;
+  businessKey: string;
+  businessColor: string;
+  teamKey: string;
+  stateId: string;
 }
 
 interface Column {
-  id: string
-  title: string
-  cards: Card[]
+  id: string;
+  title: string;
+  cards: Card[];
 }
 
 const COLUMN_TITLES: Record<string, string> = {
-  today:    'TODAY',
-  hot:      'HOT',
-  pipeline: 'PIPELINE',
-  someday:  'SOMEDAY',
-  done:     'DONE',
-}
+  today: "TODAY",
+  hot: "HOT",
+  pipeline: "PIPELINE",
+  someday: "SOMEDAY",
+  done: "DONE",
+};
 
-const COLUMN_ORDER = ['today', 'hot', 'pipeline', 'someday', 'done']
+const COLUMN_ORDER = ["today", "hot", "pipeline", "someday", "done"];
 
 export function KanbanBoard() {
-  const [columns, setColumns] = useState<Column[]>([])
-  const [stateMap, setStateMap] = useState<Record<string, Record<string, string>>>({})
-  const [activeCard, setActiveCard] = useState<Card | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [stale, setStale] = useState(false)
-  const [configured, setConfigured] = useState(true)
-  const [lastSynced, setLastSynced] = useState<Date | null>(null)
-  const [createOpen, setCreateOpen] = useState(false)
-  const [businessFilter, setBusinessFilter] = useState<string | null>(null)
-  const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null)
-  const [applyingColumn, setApplyingColumn] = useState<string | null>(null)
-  const [applyStatus, setApplyStatus] = useState<string | null>(null)
+  const [columns, setColumns] = useState<Column[]>([]);
+  const [stateMap, setStateMap] = useState<
+    Record<string, Record<string, string>>
+  >({});
+  const [activeCard, setActiveCard] = useState<Card | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [stale, setStale] = useState(false);
+  const [configured, setConfigured] = useState(true);
+  const [lastSynced, setLastSynced] = useState<Date | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [businessFilter, setBusinessFilter] = useState<string | null>(null);
+  const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
+  const [applyingColumn, setApplyingColumn] = useState<string | null>(null);
+  const [applyStatus, setApplyStatus] = useState<string | null>(null);
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+  );
 
   const loadIssues = useCallback(async () => {
     try {
-      const res = await fetch('/api/linear/issues')
-      if (!res.ok) throw new Error(`${res.status}`)
-      const data = await res.json() as {
-        columns: Record<string, Card[]>
-        stateMap: Record<string, Record<string, string>>
-        configured?: boolean
-      }
-      setConfigured(data.configured ?? true)
-      setStateMap(data.stateMap)
+      const res = await fetch("/api/linear/issues");
+      if (!res.ok) throw new Error(`${res.status}`);
+      const data = (await res.json()) as {
+        columns: Record<string, Card[]>;
+        stateMap: Record<string, Record<string, string>>;
+        configured?: boolean;
+      };
+      setConfigured(data.configured ?? true);
+      setStateMap(data.stateMap);
       setColumns(
         COLUMN_ORDER.map((id) => ({
           id,
           title: COLUMN_TITLES[id],
           cards: data.columns[id] ?? [],
-        }))
-      )
-      setStale(false)
-      setLastSynced(new Date())
+        })),
+      );
+      setStale(false);
+      setLastSynced(new Date());
     } catch {
-      setStale(true)
+      setStale(true);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    loadIssues()
+    loadIssues();
     // Poll every 60s for inbound Linear changes
-    const interval = setInterval(loadIssues, 60_000)
-    return () => clearInterval(interval)
-  }, [loadIssues])
+    const interval = setInterval(loadIssues, 60_000);
+    return () => clearInterval(interval);
+  }, [loadIssues]);
 
-  // [Apply] — ask the model to generate the next tasks for a stage, given the
-  // full project scope, and push them into the build pipeline (labelled Linear
-  // issues the autopilot CLI claims).
+  // Generate CRM proposals only. The route creates no Hermes or Linear work.
   async function handleApply(columnId: string) {
-    setApplyingColumn(columnId)
-    setApplyStatus(null)
+    setApplyingColumn(columnId);
+    setApplyStatus(null);
     try {
-      const col = columns.find((c) => c.id === columnId)
-      const existingTitles = (col?.cards ?? []).map((c) => c.title)
-      const res = await fetch('/api/kanban/generate-next', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const col = columns.find((c) => c.id === columnId);
+      const existingTitles = (col?.cards ?? []).map((c) => c.title);
+      const res = await fetch("/api/kanban/generate-next", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ column: columnId, existingTitles }),
-      })
-      const data = (await res.json()) as { created?: { identifier: string }[]; error?: string }
-      if (!res.ok) throw new Error(data.error ?? 'generation failed')
-      const n = data.created?.length ?? 0
-      setApplyStatus(`Generated ${n} ${columnId.toUpperCase()} task${n === 1 ? '' : 's'} → pushed to the build pipeline`)
-      await loadIssues()
+      });
+      const data = (await res.json()) as {
+        createdCount?: number;
+        skippedExistingCount?: number;
+        failedCount?: number;
+        partial?: boolean;
+        error?: string;
+      };
+      if (!res.ok) throw new Error(data.error ?? "generation failed");
+      const n = data.createdCount ?? 0;
+      const reused = data.skippedExistingCount ?? 0;
+      const failed = data.failedCount ?? 0;
+      setApplyStatus(
+        `Created ${n} CRM proposal${n === 1 ? "" : "s"} for review${reused ? `; reused ${reused}` : ""}${failed ? `; ${failed} failed` : ""} — nothing was queued or sent to Hermes or Linear.`,
+      );
     } catch (err) {
-      setApplyStatus(`Apply failed: ${err instanceof Error ? err.message : 'unknown error'}`)
+      setApplyStatus(
+        `Propose failed: ${err instanceof Error ? err.message : "unknown error"}`,
+      );
     } finally {
-      setApplyingColumn(null)
+      setApplyingColumn(null);
     }
   }
 
   function findColumnByCardId(cardId: string): string | undefined {
-    return columns.find((col) => col.cards.some((c) => c.id === cardId))?.id
+    return columns.find((col) => col.cards.some((c) => c.id === cardId))?.id;
   }
 
   function handleDragStart(event: DragStartEvent) {
-    const card = columns.flatMap((c) => c.cards).find((c) => c.id === event.active.id)
-    setActiveCard(card ?? null)
+    const card = columns
+      .flatMap((c) => c.cards)
+      .find((c) => c.id === event.active.id);
+    setActiveCard(card ?? null);
   }
 
   async function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event
-    setActiveCard(null)
+    const { active, over } = event;
+    setActiveCard(null);
 
-    if (!over) return
+    if (!over) return;
 
-    const activeColId = findColumnByCardId(String(active.id))
+    const activeColId = findColumnByCardId(String(active.id));
     const overColId = columns.find((col) => col.id === over.id)
       ? String(over.id)
-      : findColumnByCardId(String(over.id))
+      : findColumnByCardId(String(over.id));
 
-    if (!activeColId || !overColId) return
+    if (!activeColId || !overColId) return;
 
     // Optimistic local update
     if (activeColId !== overColId) {
       setColumns((cols) => {
-        const activeCol = cols.find((c) => c.id === activeColId)!
-        const overCol = cols.find((c) => c.id === overColId)!
-        const card = activeCol.cards.find((c) => c.id === active.id)!
-        const overIndex = overCol.cards.findIndex((c) => c.id === over.id)
-        const insertAt = overIndex === -1 ? overCol.cards.length : overIndex
+        const activeCol = cols.find((c) => c.id === activeColId)!;
+        const overCol = cols.find((c) => c.id === overColId)!;
+        const card = activeCol.cards.find((c) => c.id === active.id)!;
+        const overIndex = overCol.cards.findIndex((c) => c.id === over.id);
+        const insertAt = overIndex === -1 ? overCol.cards.length : overIndex;
         return cols.map((col) => {
-          if (col.id === activeColId) return { ...col, cards: col.cards.filter((c) => c.id !== active.id) }
+          if (col.id === activeColId)
+            return {
+              ...col,
+              cards: col.cards.filter((c) => c.id !== active.id),
+            };
           if (col.id === overColId) {
-            const newCards = [...overCol.cards]
-            newCards.splice(insertAt, 0, card)
-            return { ...col, cards: newCards }
+            const newCards = [...overCol.cards];
+            newCards.splice(insertAt, 0, card);
+            return { ...col, cards: newCards };
           }
-          return col
-        })
-      })
+          return col;
+        });
+      });
 
       // Sync to Linear
-      const card = columns.flatMap((c) => c.cards).find((c) => c.id === String(active.id))
+      const card = columns
+        .flatMap((c) => c.cards)
+        .find((c) => c.id === String(active.id));
       if (card) {
         try {
-          await fetch('/api/linear/issues', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
+          await fetch("/api/linear/issues", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               issueId: card.id,
               columnId: overColId,
               teamKey: card.teamKey,
               stateMap,
             }),
-          })
+          });
         } catch {
           // Revert on failure
-          await loadIssues()
+          await loadIssues();
         }
       }
     } else {
       // Same-column reorder (local only)
       setColumns((cols) =>
         cols.map((col) => {
-          if (col.id !== activeColId) return col
-          const oldIndex = col.cards.findIndex((c) => c.id === active.id)
-          const newIndex = col.cards.findIndex((c) => c.id === over.id)
-          return { ...col, cards: arrayMove(col.cards, oldIndex, newIndex) }
-        })
-      )
+          if (col.id !== activeColId) return col;
+          const oldIndex = col.cards.findIndex((c) => c.id === active.id);
+          const newIndex = col.cards.findIndex((c) => c.id === over.id);
+          return { ...col, cards: arrayMove(col.cards, oldIndex, newIndex) };
+        }),
+      );
     }
   }
 
@@ -198,12 +219,12 @@ export function KanbanBoard() {
         {COLUMN_ORDER.map((id) => (
           <div
             key={id}
-            className="w-64 flex-shrink-0 rounded-sm animate-pulse"
-            style={{ background: 'var(--surface-card)', height: 200 }}
+            className="w-64 shrink-0 rounded-sm animate-pulse"
+            style={{ background: "var(--surface-card)", height: 200 }}
           />
         ))}
       </div>
-    )
+    );
   }
 
   return (
@@ -211,33 +232,50 @@ export function KanbanBoard() {
       {!configured && (
         <div
           className="flex items-center gap-2 px-3 py-1.5 rounded-sm text-[12px]"
-          style={{ background: 'var(--surface-card)', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}
+          style={{
+            background: "var(--surface-card)",
+            border: "1px solid var(--color-border)",
+            color: "var(--color-text-muted)",
+          }}
         >
-          <span className="w-1.5 h-1.5 rounded-sm" style={{ background: 'var(--color-border)' }} />
+          <span
+            className="w-1.5 h-1.5 rounded-sm"
+            style={{ background: "var(--color-border)" }}
+          />
           Demo — connect Linear via Settings to see live issues
         </div>
       )}
       {stale && configured && (
         <div
           className="flex items-center gap-2 px-3 py-1.5 rounded-sm text-[12px]"
-          style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.30)', color: '#f59e0b' }}
+          style={{
+            background: "rgba(245,158,11,0.08)",
+            border: "1px solid rgba(245,158,11,0.30)",
+            color: "#f59e0b",
+          }}
         >
           <span className="w-1.5 h-1.5 rounded-sm bg-[#f59e0b] animate-pulse" />
           Linear unreachable — showing cached data
-          <button onClick={loadIssues} className="ml-auto underline opacity-70 hover:opacity-100">
+          <button
+            onClick={loadIssues}
+            className="ml-auto underline opacity-70 hover:opacity-100"
+          >
             Retry
           </button>
         </div>
       )}
       {lastSynced && !stale && configured && (
         <div className="flex items-center justify-between">
-          <p className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
-            Synced with Linear — {lastSynced.toLocaleTimeString('en-AU')}
+          <p
+            className="text-[11px]"
+            style={{ color: "var(--color-text-muted)" }}
+          >
+            Synced with Linear — {lastSynced.toLocaleTimeString("en-AU")}
           </p>
           <button
             onClick={() => setCreateOpen(true)}
             className="text-[11px] font-medium px-3 py-1 rounded-sm transition-opacity hover:opacity-80"
-            style={{ background: '#16a34a', color: '#fffdf7' }}
+            style={{ background: "#16a34a", color: "#fffdf7" }}
           >
             + New Issue
           </button>
@@ -247,15 +285,22 @@ export function KanbanBoard() {
         <div
           className="px-3 py-1.5 rounded-sm text-[12px]"
           style={{
-            background: applyStatus.startsWith('Apply failed') ? 'rgba(239,68,68,0.08)' : 'var(--color-accent-dim)',
-            border: `1px solid ${applyStatus.startsWith('Apply failed') ? 'rgba(239,68,68,0.3)' : 'var(--color-accent-border)'}`,
-            color: applyStatus.startsWith('Apply failed') ? 'var(--color-danger)' : 'var(--color-accent-text)',
+            background: applyStatus.startsWith("Propose failed")
+              ? "rgba(239,68,68,0.08)"
+              : "var(--color-accent-dim)",
+            border: `1px solid ${applyStatus.startsWith("Propose failed") ? "rgba(239,68,68,0.3)" : "var(--color-accent-border)"}`,
+            color: applyStatus.startsWith("Propose failed")
+              ? "var(--color-danger)"
+              : "var(--color-accent-text)",
           }}
         >
           {applyStatus}
         </div>
       )}
-      <BusinessFilter activeFilter={businessFilter} onFilterChange={setBusinessFilter} />
+      <BusinessFilter
+        activeFilter={businessFilter}
+        onFilterChange={setBusinessFilter}
+      />
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -266,19 +311,21 @@ export function KanbanBoard() {
           {columns.map((col) => {
             const filteredCards = businessFilter
               ? col.cards.filter((c) => c.businessKey === businessFilter)
-              : col.cards
+              : col.cards;
             return (
               <KanbanColumn
                 key={col.id}
                 id={col.id}
                 title={col.title}
                 cards={filteredCards}
-                isDone={col.id === 'done'}
+                isDone={col.id === "done"}
                 onCardClick={setSelectedIssueId}
-                onApply={col.id !== 'done' ? () => handleApply(col.id) : undefined}
+                onPropose={
+                  col.id !== "done" ? () => handleApply(col.id) : undefined
+                }
                 applying={applyingColumn === col.id}
               />
-            )
+            );
           })}
         </div>
         <DragOverlay>
@@ -295,7 +342,10 @@ export function KanbanBoard() {
       <CreateIssueModal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        onCreated={() => { setCreateOpen(false); loadIssues() }}
+        onCreated={() => {
+          setCreateOpen(false);
+          loadIssues();
+        }}
       />
       {selectedIssueId && (
         <IssueDetailPanel
@@ -304,5 +354,5 @@ export function KanbanBoard() {
         />
       )}
     </div>
-  )
+  );
 }

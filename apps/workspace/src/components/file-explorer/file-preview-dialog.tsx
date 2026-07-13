@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   DialogClose,
   DialogContent,
@@ -6,20 +6,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-
-const LANGUAGE_MAP: Record<string, string> = {
-  ts: 'typescript',
-  tsx: 'typescript',
-  js: 'javascript',
-  jsx: 'javascript',
-  json: 'json',
-  md: 'markdown',
-  css: 'css',
-  html: 'html',
-  yml: 'yaml',
-  yaml: 'yaml',
-  env: 'dotenv',
-}
 
 function getExtension(path: string) {
   const parts = path.split('.')
@@ -51,18 +37,15 @@ export default function FilePreviewDialog({
   const [content, setContent] = useState('')
   const [dataUrl, setDataUrl] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [dirty, setDirty] = useState(false)
-
-  const language = useMemo(() => {
-    if (!path) return 'plaintext'
-    const ext = getExtension(path)
-    return LANGUAGE_MAP[ext] || 'plaintext'
-  }, [path])
+  const [saving, setSaving] = useState(false)
 
   const loadFile = useCallback(async () => {
     if (!path) return
     setLoading(true)
     setError(null)
+    setSaveError(null)
     try {
       const res = await fetch(
         `/api/files?action=read&path=${encodeURIComponent(path)}`,
@@ -93,17 +76,30 @@ export default function FilePreviewDialog({
 
   const handleSave = useCallback(async () => {
     if (!path) return
-    await fetch('/api/files', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        action: 'write',
-        path,
-        content,
-      }),
-    })
-    setDirty(false)
-    onSaved()
+    setSaving(true)
+    setSaveError(null)
+    try {
+      const response = await fetch('/api/files', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          action: 'write',
+          path,
+          content,
+        }),
+      })
+      if (!response.ok) {
+        throw new Error(`Failed to save file (${response.status})`)
+      }
+      setDirty(false)
+      onSaved()
+    } catch (saveFailure) {
+      setSaveError(
+        saveFailure instanceof Error ? saveFailure.message : String(saveFailure),
+      )
+    } finally {
+      setSaving(false)
+    }
   }, [content, onSaved, path])
 
   return (
@@ -120,8 +116,11 @@ export default function FilePreviewDialog({
           </DialogTitle>
           <div className="flex gap-2">
             {isTextFile(path || '') ? (
-              <Button onClick={handleSave} disabled={!dirty || loading}>
-                Save
+              <Button
+                onClick={handleSave}
+                disabled={!dirty || loading || saving}
+              >
+                {saving ? 'Saving…' : 'Save'}
               </Button>
             ) : null}
             <DialogClose render={<Button variant="outline">Close</Button>} />
@@ -129,10 +128,17 @@ export default function FilePreviewDialog({
         </div>
 
         <div className="p-4">
+          {saveError ? (
+            <div role="alert" className="mb-3 text-sm text-red-600">
+              {saveError}. Your unsaved draft is still in the editor.
+            </div>
+          ) : null}
           {loading ? (
             <div className="text-sm text-primary-500">Loading…</div>
           ) : error ? (
-            <div className="text-sm text-red-600">{error}</div>
+            <div role="alert" className="text-sm text-red-600">
+              {error}
+            </div>
           ) : path && isImageFile(path) ? (
             <div className="flex items-center justify-center">
               {dataUrl ? (
@@ -146,6 +152,7 @@ export default function FilePreviewDialog({
           ) : (
             <div className="h-[60vh]">
               <textarea
+                aria-label={path ? `Edit ${path}` : 'File editor'}
                 className="h-full w-full resize-none rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 font-mono text-xs leading-relaxed text-neutral-200 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
                 value={content}
                 onChange={(e) => {

@@ -108,14 +108,18 @@ export default function WikiPage() {
   }, [router]);
 
   useEffect(() => {
-    supabaseClient
-      .from('wiki_pages')
-      .select('id, title, tags, word_count, updated_at')
-      .order('title')
-      .then(({ data }) => {
-        setPages(data || []);
+    // Security (RLS-exposure fix): fetch the list from the requireAdmin-gated
+    // /api/wiki server route (service-role) instead of reading wiki_pages
+    // directly with the browser anon client. wiki_pages RLS is being locked to
+    // service_role (WS1), and the browser read previously exposed the whole
+    // internal wiki to ANY authenticated JWT via PostgREST.
+    fetch('/api/wiki')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data: WikiPage[]) => {
+        setPages(Array.isArray(data) ? data : []);
         setLoading(false);
-      });
+      })
+      .catch(() => setLoading(false));
   }, []);
 
   const openPage = useCallback((id: string) => {

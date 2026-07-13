@@ -6,13 +6,11 @@ name: Brand Video Render
 # (Gemini images -> ElevenLabs VO -> ffmpeg 1080p stitch), uploads the mp4 to
 # the BRAND_VIDEO_BUCKET Storage bucket, and sets status=done + output_url.
 #
-# schedule only fires on the default branch (main); use workflow_dispatch to
-# test from any branch. Secrets are configured in repo Settings → Secrets.
+# Runs only when requested manually. Automated queue dispatch is deferred until
+# the production GitHub credential is genuinely connected and can be canaried.
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '*/5 * * * *' # every ~5 minutes
 
 permissions:
   contents: read
@@ -27,16 +25,16 @@ jobs:
     name: Claim + render one queued job
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: '24'
 
       - name: Enable pnpm
         run: corepack enable && corepack prepare pnpm@9.15.0 --activate
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: '3.12'
 

@@ -1,0 +1,4 @@
+{
+  "include": ["apps/empire/.hermes/income-stack/ccw-service/**/*.md"],
+  "exclude": ["**/DECISION-PACKET.md", "**/EXTEND-ROUTE-HANDLER.md", "**/*TEMPLATE*", "**/_template*"]
+}

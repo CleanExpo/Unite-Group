@@ -74,8 +74,8 @@ export function ContactFormModal({ contact, onClose, onSave }: ContactFormModalP
   }
 
   const inputClass =
-    'w-full rounded-sm border border-[var(--color-border)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-[#16a34a] focus:outline-none'
-  const labelClass = 'block text-xs font-medium text-[var(--color-text-muted)] mb-1'
+    'w-full rounded-sm border border-border bg-(--surface-elevated) px-3 py-2 text-sm text-(--color-text-primary) placeholder:text-(--color-text-muted) focus:border-[#16a34a] focus:outline-hidden'
+  const labelClass = 'block text-xs font-medium text-(--color-text-muted) mb-1'
 
   return (
     <div
@@ -86,10 +86,10 @@ export function ContactFormModal({ contact, onClose, onSave }: ContactFormModalP
       }}
     >
       <div
-        className="w-full max-w-lg rounded-sm border border-[var(--color-border)] bg-[var(--surface-card)] p-6"
+        className="w-full max-w-lg rounded-sm border border-border bg-(--surface-card) p-6"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="mb-4 text-lg font-semibold text-[var(--color-text-primary)]">
+        <h2 className="mb-4 text-lg font-semibold text-(--color-text-primary)">
           {isEdit ? 'Edit Contact' : 'Add Contact'}
         </h2>
 
@@ -226,7 +226,7 @@ export function ContactFormModal({ contact, onClose, onSave }: ContactFormModalP
             <button
               type="button"
               onClick={onClose}
-              className="rounded-sm px-4 py-2 text-sm text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text-primary)]"
+              className="rounded-sm px-4 py-2 text-sm text-(--color-text-muted) transition-colors hover:text-(--color-text-primary)"
             >
               Cancel
             </button>

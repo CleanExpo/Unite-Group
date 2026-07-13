@@ -1,0 +1,511 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-12T10:09:18.070Z",
+  "registrySha256": "48dffaebfb5ddfcacbfea37f538fcb8dc9686d4fb80dae8afd1bcf33e9ff9b4d",
+  "sources": [
+    {
+      "id": "anthropic.claude-code.changelog",
+      "url": "https://code.claude.com/docs/en/changelog",
+      "finalUrl": "https://code.claude.com/docs/en/changelog",
+      "httpStatus": 200,
+      "contentType": "text/markdown",
+      "bytes": 459552,
+      "rawSha256": "0feb935be08c7a8d05c92725348ea9302672e5e12d1d2d6622a7db3bb5b2cd87",
+      "normalisedSha256": "cda4904cccd1899c256b2ba5d54f44315a6c18c7de70388a3efbe9a3de12e4bb",
+      "responseHeaders": {
+        "etag": null,
+        "lastModified": null
+      }
+    },
+    {
+      "id": "anthropic.claude-code.legal",
+      "url": "https://code.claude.com/docs/en/legal-and-compliance",
+      "finalUrl": "https://code.claude.com/docs/en/legal-and-compliance",
+      "httpStatus": 200,
+      "contentType": "text/markdown",
+      "bytes": 3540,
+      "rawSha256": "ed47ef940b51160be30b89d27f5217b896f9ef93d6f780c6770d22cd1759e2fd",
+      "normalisedSha256": "d269d121fe1d661cb0adb39167fe7e2124b2abd72d7ae6974228ad6920b64800",
+      "responseHeaders": {
+        "etag": null,
+        "lastModified": null
+      }
+    },
+    {
+      "id": "anthropic.platform.access-transparency",
+      "url": "https://platform.claude.com/docs/en/manage-claude/access-transparency",
+      "finalUrl": "https://platform.claude.com/docs/en/manage-claude/access-transparency",
+      "httpStatus": 200,
+      "contentType": "text/markdown",
+      "bytes": 19773,
+      "rawSha256": "7d3cacfde5c061be9fc29785870c6c18c333909860931e16e1637bc41285e4c5",
+      "normalisedSha256": "4f7977a34ccfec25bdda80b3b908ab8ca9c0d0014e2d6701b5d86fa16bc93a48",
+      "responseHeaders": {
+        "etag": null,
+        "lastModified": null
+      }
+    },
+    {
+      "id": "anthropic.platform.authentication",
+      "url": "https://platform.claude.com/docs/en/manage-claude/authentication",
+      "finalUrl": "https://platform.claude.com/docs/en/manage-claude/authentication",
+      "httpStatus": 200,
+      "contentType": "text/markdown",
+      "bytes": 8471,
+      "rawSha256": "361f6d2cd5cb45c0c4ba8e1d4518e8d7117b897de41ece485d0b0fb64ca7d334",
+      "normalisedSha256": "00613f5652ffaed79dd5fef2cf01cf699f54b8aa63dfd7e9923236661f500a80",
+      "responseHeaders": {
+        "etag": null,
+        "lastModified": null
+      }
+    },
+    {
+      "id": "anthropic.platform.data-retention",
+      "url": "https://platform.claude.com/docs/en/manage-claude/api-and-data-retention",
+      "finalUrl": "https://platform.claude.com/docs/en/manage-claude/api-and-data-retention",
+      "httpStatus": 200,
+      "contentType": "text/markdown",
+      "bytes": 44876,
+      "rawSha256": "f5f27cc5e1e5fbacc248b912c849c09b116aabb7d24649fbaee18e8894d42600",
+      "normalisedSha256": "55245bff23c4e680a9211a384570a438e67c0a748974b7e30c8b09384dab48ad",
+      "responseHeaders": {
+        "etag": null,
+        "lastModified": null
+      }
+    },
+    {
+      "id": "anthropic.platform.release-notes",
+      "url": "https://platform.claude.com/docs/en/release-notes/overview",
+      "finalUrl": "https://platform.claude.com/docs/en/release-notes/overview",
+      "httpStatus": 200,
+      "contentType": "text/markdown",
+      "bytes": 67636,
+      "rawSha256": "c334ba798c36980ae754a5e0fbab8d61c6430a79c9a50e707ca6afa72802d388",
+      "normalisedSha256": "ddff2c7328506b601f3a412266f2b00fda8caa5aecd28531585a9864901e1e4e",
+      "responseHeaders": {
+        "etag": null,
+        "lastModified": null
+      }
+    },
+    {
+      "id": "anthropic.platform.token-counting",
+      "url": "https://platform.claude.com/docs/en/build-with-claude/token-counting",
+      "finalUrl": "https://platform.claude.com/docs/en/build-with-claude/token-counting",
+      "httpStatus": 200,
+      "contentType": "text/markdown",
+      "bytes": 43866,
+      "rawSha256": "f8bcf5122369d6574b85d5271027888747cea147caf6d8da1d37474b6caa9394",
+      "normalisedSha256": "ac1dc7e03a21267383fc762f75894fed95276eb52702eaa4ad1ed58910435a50",
+      "responseHeaders": {
+        "etag": null,
+        "lastModified": null
+      }
+    },
+    {
+      "id": "apify.api.v2",
+      "url": "https://docs.apify.com/api/v2",
+      "finalUrl": "https://docs.apify.com/api/v2",
+      "httpStatus": 200,
+      "contentType": "text/markdown",
+      "bytes": 25510,
+      "rawSha256": "e9b7042fcd50097108f8d34353dae3e8eb45118cdf9c5f2abe7f1c4fb0ad424b",
+      "normalisedSha256": "bd25fb6b1bb86d80ce0c166cd0d3b22835bce3d3de705c4d0518be7a3c8a4fdd",
+      "responseHeaders": {
+        "etag": "\"6a50f029-63a6\"",
+        "lastModified": "Fri, 10 Jul 2026 13:14:17 GMT"
+      }
+    },
+    {
+      "id": "apify.cli.changelog",
+      "url": "https://docs.apify.com/cli/docs/changelog",
+      "finalUrl": "https://docs.apify.com/cli/docs/changelog",
+      "httpStatus": 200,
+      "contentType": "text/markdown",
+      "bytes": 46720,
+      "rawSha256": "1cceaaa8e936af514e44175988cabc9000791cf8b92f4d24bf697cb96ea7b6ff",
+      "normalisedSha256": "0433e3ffc873d5bf32806ebc6c0f88e2c06a34fea7773ac57daadcb2965fb164",
+      "responseHeaders": {
+        "etag": "\"6a50efe8-b680\"",
+        "lastModified": "Fri, 10 Jul 2026 13:13:12 GMT"
+      }
+    },
+    {
+      "id": "apify.integrations.mcp",
+      "url": "https://docs.apify.com/integrations/mcp",
+      "finalUrl": "https://docs.apify.com/integrations/mcp",
+      "httpStatus": 200,
+      "contentType": "text/markdown",
+      "bytes": 24549,
+      "rawSha256": "c91f6484e088d95c2e947356821cf12c0f197063add401bedf4140177ff8f5da",
+      "normalisedSha256": "6e12eee9ae348dd96e9ea6c07b40f4b972703e81d98664118b46d1376920d216",
+      "responseHeaders": {
+        "etag": "\"6a50f029-5fe5\"",
+        "lastModified": "Fri, 10 Jul 2026 13:14:17 GMT"
+      }
+    },
+    {
+      "id": "apify.platform.changelog",
+      "url": "https://apify.com/change-log",
+      "finalUrl": "https://apify.com/change-log?_format=html",
+      "httpStatus": 200,
+      "contentType": "text/html",
+      "bytes": 684528,
+      "rawSha256": "e362c6bfb39ebdee7192b2e45e50ce875916139c8f692ffb270a7055a9be9a54",
+      "normalisedSha256": "7a1c31857500f6d7e1d6fecbeea80ea5377bda21ce192ecbbb0224904e273d50",
+      "responseHeaders": {
+        "etag": "\"frumsqa7oiensd\"",
+        "lastModified": null
+      }
+    },
+    {
+      "id": "apify.sdk.javascript.changelog",
+      "url": "https://docs.apify.com/sdk/js/reference/changelog",
+      "finalUrl": "https://docs.apify.com/sdk/js/reference/changelog",
+      "httpStatus": 200,
+      "contentType": "text/markdown",
+      "bytes": 55179,
+      "rawSha256": "e057da5325fc7f168235b1c20e29f3413448546f35ca969d3a7a150d8baeae92",
+      "normalisedSha256": "ec5d64ffd9e0fc089a1bcd19f051ef87a96474f34e3056b0b3b66c7cc6bc5b42",
+      "responseHeaders": {
+        "etag": "\"6a520073-d78b\"",
+        "lastModified": "Sat, 11 Jul 2026 08:36:03 GMT"
+      }
+    },
+    {
+      "id": "exa.docs.changelog",
+      "url": "https://exa.ai/docs/changelog",
+      "finalUrl": "https://exa.ai/docs/changelog",
+      "httpStatus": 200,
+      "contentType": "text/markdown",
+      "bytes": 16490,
+      "rawSha256": "a59ed5c5d3f8a204e03cf1df5e73472bf118c92e84a7869816f8983833263798",
+      "normalisedSha256": "cfe6aeeefcaa8aae65994da2d7b2b68da1037bdd97f8d5c3ddcafab63bdcb105",
+      "responseHeaders": {
+        "etag": null,
+        "lastModified": null
+      }
+    },
+    {
+      "id": "exa.docs.contents-retrieval",
+      "url": "https://exa.ai/docs/reference/contents-retrieval",
+      "finalUrl": "https://exa.ai/docs/reference/contents-retrieval",
+      "httpStatus": 200,
+      "contentType": "text/markdown",
+      "bytes": 6436,
+      "rawSha256": "4dd6c2389db9376b1425ba557a25d27ddc26d4036657089d9610b8def0e04cd7",
+      "normalisedSha256": "f5ab74cebc766818387ba5ed5927557255f489517a3ca3c4f71b95ed5d2b4f7d",
+      "responseHeaders": {
+        "etag": null,
+        "lastModified": null
+      }
+    },
+    {
+      "id": "exa.docs.index",
+      "url": "https://exa.ai/docs/llms.txt",
+      "finalUrl": "https://exa.ai/docs/llms.txt",
+      "httpStatus": 200,
+      "contentType": "text/plain",
+      "bytes": 27702,
+      "rawSha256": "a904fc3ae03c7b704383f184a8fe301c0dd78e133994142dcd0af1fdb0ced772",
+      "normalisedSha256": "b9d7cdd0ec39ce211d76619b615ecbc1b8bde1beaa0b1bc71a809e00df69eaad",
+      "responseHeaders": {
+        "etag": null,
+        "lastModified": null
+      }
+    },
+    {
+      "id": "exa.docs.search",
+      "url": "https://exa.ai/docs/reference/search",
+      "finalUrl": "https://exa.ai/docs/reference/search",
+      "httpStatus": 200,
+      "contentType": "text/markdown",
+      "bytes": 84134,
+      "rawSha256": "1ae7b1c87585084ad2a29d221bb6445483b65b0041d8f8246544b02b966a5241",
+      "normalisedSha256": "fd66f0b972bba1685313b3b434f18a81fa309ca932d979af04c4af17e40930b7",
+      "responseHeaders": {
+        "etag": null,
+        "lastModified": null
+      }
+    },
+    {
+      "id": "firecrawl.docs.index",
+      "url": "https://docs.firecrawl.dev/llms.txt",
+      "finalUrl": "https://docs.firecrawl.dev/llms.txt",
+      "httpStatus": 200,
+      "contentType": "text/plain",
+      "bytes": 23955,
+      "rawSha256": "ba255577a3010985677fb538a23c18358b3afd99ce80162e228552bfb0b57dfa",
+      "normalisedSha256": "a72a70cc50ba8e593e3fc080b827d92e6f312f79c79f63b9e9c8d5eaf71000ee",
+      "responseHeaders": {
+        "etag": null,
+        "lastModified": "Sun, 12 Jul 2026 10:09:17 GMT"
+      }
+    },
+    {
+      "id": "firecrawl.github.releases",
+      "url": "https://github.com/firecrawl/firecrawl/releases",
+      "finalUrl": "https://github.com/firecrawl/firecrawl/releases",
+      "httpStatus": 200,
+      "contentType": "text/html",
+      "bytes": 768446,
+      "rawSha256": "2093634923fe6e03cea8e0da3525f73598ca88a41007f62f41da35d460186757",
+      "normalisedSha256": "f35bcf2a8dd4b2446cee172181d1de6091f99be9e1b47fda0cccf6c41b31c884",
+      "responseHeaders": {
+        "etag": "W/\"6f3a875c21ff0da6add47a07e833386c\"",
+        "lastModified": null
+      }
+    },
+    {
+      "id": "firecrawl.product.changelog",
+      "url": "https://www.firecrawl.dev/changelog",
+      "finalUrl": "https://www.firecrawl.dev/changelog",
+      "httpStatus": 200,
+      "contentType": "text/html",
+      "bytes": 973755,
+      "rawSha256": "ee732467dd95ad0e9a2ba3901bb358e7d68fa80f99ca90664f6dbfc1aa0e956b",
+      "normalisedSha256": "7b627138c6158f000c0e4cb32368c626c3054f632b30c55951a53ac9f194edce",
+      "responseHeaders": {
+        "etag": null,
+        "lastModified": null
+      }
+    },
+    {
+      "id": "gemini.api.changelog",
+      "url": "https://ai.google.dev/gemini-api/docs/changelog",
+      "finalUrl": "https://ai.google.dev/gemini-api/docs/changelog",
+      "httpStatus": 200,
+      "contentType": "text/html",
+      "bytes": 153375,
+      "rawSha256": "e8875d2637b19a43543244e6eff1eb8a77986f69b59efcf719846b0c8583bca9",
+      "normalisedSha256": "921d32534f00801f9c4e3c88050b1a056148d82ecb89dc02cbf8bff957f818e3",
+      "responseHeaders": {
+        "etag": null,
+        "lastModified": "Thu, 09 Jul 2026 23:04:22 GMT"
+      }
+    },
+    {
+      "id": "gemini.api.deprecations",
+      "url": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "finalUrl": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "httpStatus": 200,
+      "contentType": "text/html",
+      "bytes": 110681,
+      "rawSha256": "ff11040ca2ba8685a554ad3ef3d58454858686277aa0b3d64657591a7cdf538a",
+      "normalisedSha256": "8581fe2eb9783e35df919e3c276e0989f30ad1376db28862547a0885fb5339f1",
+      "responseHeaders": {
+        "etag": null,
+        "lastModified": "Thu, 02 Jul 2026 08:47:01 GMT"
+      }
+    },
+    {
+      "id": "gemini.api.models",
+      "url": "https://ai.google.dev/gemini-api/docs/models",
+      "finalUrl": "https://ai.google.dev/gemini-api/docs/models",
+      "httpStatus": 200,
+      "contentType": "text/html",
+      "bytes": 137368,
+      "rawSha256": "e82fa44c1d5d8caf6352542556090c08bb2a8859658ecd90c3166d24e3697d28",
+      "normalisedSha256": "a6c501233efa4973e130f439c99860e3c722b2f175f8960faf8727dcae0fb2e2",
+      "responseHeaders": {
+        "etag": null,
+        "lastModified": "Thu, 09 Jul 2026 23:04:22 GMT"
+      }
+    },
+    {
+      "id": "gemini.api.rate-limits",
+      "url": "https://ai.google.dev/gemini-api/docs/rate-limits",
+      "finalUrl": "https://ai.google.dev/gemini-api/docs/rate-limits",
+      "httpStatus": 200,
+      "contentType": "text/html",
+      "bytes": 102213,
+      "rawSha256": "7a285bd9fa668b812a2c4091341823b517ee93588f96910e50d2d104b1f4bb64",
+      "normalisedSha256": "a4feae61f2bd6c5b5abcc0464cf3961c13d4e2e06c54638f7e87323f5f5d63ae",
+      "responseHeaders": {
+        "etag": null,
+        "lastModified": "Fri, 03 Jul 2026 17:02:07 GMT"
+      }
+    },
+    {
+      "id": "gemini.api.tokens",
+      "url": "https://ai.google.dev/gemini-api/docs/tokens",
+      "finalUrl": "https://ai.google.dev/gemini-api/docs/tokens",
+      "httpStatus": 200,
+      "contentType": "text/html",
+      "bytes": 142639,
+      "rawSha256": "bc29d7ca600503c3893395bd026823f7153d0f483894737b42fe6b0273a6b39e",
+      "normalisedSha256": "cb6a0154ad217eb711248e685302abf0c29aea293da6abb596525812ac3ce870",
+      "responseHeaders": {
+        "etag": null,
+        "lastModified": "Mon, 06 Jul 2026 20:37:57 GMT"
+      }
+    },
+    {
+      "id": "hermes.docs.cli-commands",
+      "url": "https://hermes-agent.nousresearch.com/docs/reference/cli-commands",
+      "finalUrl": "https://hermes-agent.nousresearch.com/docs/reference/cli-commands",
+      "httpStatus": 200,
+      "contentType": "text/html",
+      "bytes": 252244,
+      "rawSha256": "b52b5d975861dc7dbc6027dea3b593c9f83287603c2800b64898a4455bcd554b",
+      "normalisedSha256": "db2d88a37a12bb2a4aef4d169024484ca5ad4c82fa9075151909f61cc175316a",
+      "responseHeaders": {
+        "etag": "W/\"6a5366ee-3d954\"",
+        "lastModified": "Sun, 12 Jul 2026 10:05:34 GMT"
+      }
+    },
+    {
+      "id": "hermes.docs.fallback-providers",
+      "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/fallback-providers",
+      "finalUrl": "https://hermes-agent.nousresearch.com/docs/user-guide/features/fallback-providers",
+      "httpStatus": 200,
+      "contentType": "text/html",
+      "bytes": 95754,
+      "rawSha256": "d147c47c8e1b0ff50ca4b4074eea773d6804855b8bdbe47e3caeb58613bea9e7",
+      "normalisedSha256": "5007d97b432aea9210f3d10bb33337ab99e5fbfcf79a3b30c380ed3db4a6266d",
+      "responseHeaders": {
+        "etag": "W/\"6a5366ee-1760a\"",
+        "lastModified": "Sun, 12 Jul 2026 10:05:34 GMT"
+      }
+    },
+    {
+      "id": "hermes.docs.mixture-of-agents",
+      "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/mixture-of-agents",
+      "finalUrl": "https://hermes-agent.nousresearch.com/docs/user-guide/features/mixture-of-agents",
+      "httpStatus": 200,
+      "contentType": "text/html",
+      "bytes": 53095,
+      "rawSha256": "4b9b74b6f66bad03c20d5c357e928282e4600f8165a8d106bc8dd11f855a170a",
+      "normalisedSha256": "791d314b6487b61a40573ce3f9294c4d61a42639cdce20ce831786a5cc515a31",
+      "responseHeaders": {
+        "etag": "W/\"6a5366ee-cf67\"",
+        "lastModified": "Sun, 12 Jul 2026 10:05:34 GMT"
+      }
+    },
+    {
+      "id": "hermes.github.releases",
+      "url": "https://github.com/NousResearch/hermes-agent/releases",
+      "finalUrl": "https://github.com/NousResearch/hermes-agent/releases",
+      "httpStatus": 200,
+      "contentType": "text/html",
+      "bytes": 1258184,
+      "rawSha256": "8c23f0064cd8fee963f5a65725bba3c08b81fe7fbafaceaf433d7f2bbf981e0f",
+      "normalisedSha256": "64388bfe5a467ee0a90b932b817bd927ec0227ebd20dcb59056f6ada7443234b",
+      "responseHeaders": {
+        "etag": "W/\"630a2e518369381b6061be429e3625a8\"",
+        "lastModified": null
+      }
+    },
+    {
+      "id": "openai.api.changelog",
+      "url": "https://developers.openai.com/api/docs/changelog",
+      "finalUrl": "https://developers.openai.com/api/docs/changelog",
+      "httpStatus": 200,
+      "contentType": "text/html",
+      "bytes": 490209,
+      "rawSha256": "2bfc4579a770cbb9a579533315473160cbb5117448b8b1acd7b74352f5de19d5",
+      "normalisedSha256": "cb80b3b870fcace381300cb6bc83fec526e249c43d13d8a418040045245f4a8d",
+      "responseHeaders": {
+        "etag": "\"ac5d4c511b69783e971f4b8b45b3de38\"",
+        "lastModified": "Sun, 12 Jul 2026 06:30:21 GMT"
+      }
+    },
+    {
+      "id": "openai.api.deprecations",
+      "url": "https://developers.openai.com/api/docs/deprecations",
+      "finalUrl": "https://developers.openai.com/api/docs/deprecations",
+      "httpStatus": 200,
+      "contentType": "text/html",
+      "bytes": 468388,
+      "rawSha256": "7071c41662539d2b9b6fb7fb78062ab50fe219a834971fe908cf088a12e6003f",
+      "normalisedSha256": "f900804d6ebf03f560968d719b06b428f7e30983b5ca1fb5b01ec11a26204982",
+      "responseHeaders": {
+        "etag": "\"2ce7b5eb73d48fd0c3a3bc1f1b449091\"",
+        "lastModified": "Sun, 12 Jul 2026 06:30:21 GMT"
+      }
+    },
+    {
+      "id": "openai.api.evals",
+      "url": "https://developers.openai.com/api/docs/guides/evals",
+      "finalUrl": "https://developers.openai.com/api/docs/guides/evals",
+      "httpStatus": 200,
+      "contentType": "text/html",
+      "bytes": 683811,
+      "rawSha256": "4cf00de8ebcf7259c3d8f27ab58d423f04961889bf77f36a8ac5ce6d362e0256",
+      "normalisedSha256": "8fce3be7e925ec61a9d5f2b0d042ba54ccd8acc8189cb9f04cfb3a1fa39ebe28",
+      "responseHeaders": {
+        "etag": "\"56a8aa2d93c7131f01b7eaaac0aff25f\"",
+        "lastModified": "Sun, 12 Jul 2026 07:59:36 GMT"
+      }
+    },
+    {
+      "id": "openai.api.models",
+      "url": "https://developers.openai.com/api/docs/models/all",
+      "finalUrl": "https://developers.openai.com/api/docs/models/all",
+      "httpStatus": 200,
+      "contentType": "text/html",
+      "bytes": 404228,
+      "rawSha256": "63c84c064356b028f3f3305c2ae062613a9857f2fa6d88cb59d7b066e2c7cce9",
+      "normalisedSha256": "50541bb99470f6c8ad8f9d0412627909e6f13fb47f31052a55b97b1b8b438b6d",
+      "responseHeaders": {
+        "etag": null,
+        "lastModified": null
+      }
+    },
+    {
+      "id": "openai.api.token-counting",
+      "url": "https://developers.openai.com/api/docs/guides/token-counting",
+      "finalUrl": "https://developers.openai.com/api/docs/guides/token-counting",
+      "httpStatus": 200,
+      "contentType": "text/html",
+      "bytes": 464984,
+      "rawSha256": "02c142728216677a785af7c4e960b241020886cfeb22daaa5e58d242a65934b8",
+      "normalisedSha256": "896cddeba242bcc1cbbb391ac9046adea0b3218d0a080d0ecc22bd73d4c36f60",
+      "responseHeaders": {
+        "etag": "\"f66d3d79c57815615725cc340ba70ce8\"",
+        "lastModified": "Sun, 12 Jul 2026 06:17:26 GMT"
+      }
+    },
+    {
+      "id": "openai.codex.changelog",
+      "url": "https://learn.chatgpt.com/docs/changelog",
+      "finalUrl": "https://learn.chatgpt.com/docs/changelog",
+      "httpStatus": 200,
+      "contentType": "text/html",
+      "bytes": 1463566,
+      "rawSha256": "fd272be07aa24f007918caa6b344cde784780f3a78f3db5e8b0e0b85748a66d3",
+      "normalisedSha256": "73e0de178fbd5e0006daa35f600449f01337b49644cd4fa70eebe5664ebb8038",
+      "responseHeaders": {
+        "etag": "\"48a0e497f64765f16ac9951317b50c48\"",
+        "lastModified": "Sun, 12 Jul 2026 06:17:48 GMT"
+      }
+    },
+    {
+      "id": "openai.codex.models",
+      "url": "https://learn.chatgpt.com/docs/models",
+      "finalUrl": "https://learn.chatgpt.com/docs/models",
+      "httpStatus": 200,
+      "contentType": "text/html",
+      "bytes": 603198,
+      "rawSha256": "c8ff17e5111aa64bfc18dba2cb8518eef5e09658b83b49b7608b2dca059073fa",
+      "normalisedSha256": "2895219a75f302451b000849730017f9acaf4bd319f4cc72aaf99e2a99347763",
+      "responseHeaders": {
+        "etag": "\"bef51131d03f84a5f74c5bef04d66267\"",
+        "lastModified": "Sun, 12 Jul 2026 06:18:54 GMT"
+      }
+    },
+    {
+      "id": "openai.codex.plan-usage",
+      "url": "https://learn.chatgpt.com/docs/pricing",
+      "finalUrl": "https://learn.chatgpt.com/docs/pricing",
+      "httpStatus": 200,
+      "contentType": "text/html",
+      "bytes": 645467,
+      "rawSha256": "625c88e5950df1e9fcb869abf449284e7cd2cf98cc55ed2e51a2ca1940f1e36d",
+      "normalisedSha256": "e05ef5842d50e554d06408923b0e2c740f380c5f4b458709ac45d00d617792d8",
+      "responseHeaders": {
+        "etag": "\"9aa819ae454c56e12929a9db526df88d\"",
+        "lastModified": "Sun, 12 Jul 2026 06:19:06 GMT"
+      }
+    }
+  ]
+}

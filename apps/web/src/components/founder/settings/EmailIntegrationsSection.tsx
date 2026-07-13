@@ -105,7 +105,7 @@ export function EmailIntegrationsSection({ founderEmail }: Props) {
               value={connectEmail}
               onChange={(e) => setConnectEmail(e.target.value)}
               placeholder="you@example.com"
-              className="w-full rounded-sm px-3 h-9 text-[13px] focus:outline-none"
+              className="w-full rounded-sm px-3 h-9 text-[13px] focus:outline-hidden"
               style={{
                 background: 'var(--surface-elevated)',
                 border: '1px solid var(--color-border)',

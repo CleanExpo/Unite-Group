@@ -44,7 +44,7 @@ export default function ForgotPasswordPage() {
       <h1 className="text-2xl font-extralight text-[#0A0A0A] mb-8">Reset password</h1>
 
       {error && (
-        <p className="text-sm text-[var(--color-danger)] mb-4 border border-[var(--color-danger)]/20 bg-[var(--color-danger-dim)] px-3 py-2 rounded-sm">
+        <p className="text-sm text-danger mb-4 border border-danger/20 bg-(--color-danger-dim) px-3 py-2 rounded-sm">
           {error}
         </p>
       )}

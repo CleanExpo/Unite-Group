@@ -1,7 +1,7 @@
 ---
 type: spec
 product: stage3-autopilot-runner
-status: draft
+status: superseded
 locale: en-AU
 created: 2026-06-21
 sources:
@@ -18,6 +18,16 @@ sources:
 ---
 
 # Stage-3 Autopilot Runner — build-ready spec
+
+> **SUPERSEDED 12/07/2026:** this Linear-authoritative hosted executor design is
+> permanently retired. Its shared identity, process, worktree, credential, and
+> publication boundaries could not safely isolate an untrusted coding worker.
+> CRM `cc_tasks` is authoritative. OWNEST now exists only as design/test policy;
+> no host lane, package command, or host artifact is emitted. Any future canary
+> requires a new isolated runtime design. See
+> `docs/superpowers/specs/2026-07-12-nexus-agentic-automation-foundation.md` and
+> `apps/autopilot-runner/README.md`. The body below is historical design context,
+> not an implementation or arming instruction.
 
 > The autonomy enabler. Today the deployed app can **pick** work from Linear but cannot
 > **do** it — a Claude worker on Phill's Mac (tmux) consumes the packet. This spec hosts that

@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "placeholder": "[[volatile]]",
+  "default": {
+    "volatile": [
+      "\\b\\d{1,3}(?:,\\d{3})+\\b",
+      "\\b\\d+(?:\\.\\d+)?[KMB]\\+?\\b",
+      "\\b\\d+(?:\\.\\d+)?\\s*(?:second|minute|hour|day|week|month|year)s?\\s+ago\\b",
+      "\\b(?:updated|edited|published|posted|generated|last\\s+modified)\\s*:?[^\\n]{0,40}?\\b\\d+[^\\n]{0,20}?ago\\b",
+      "©\\s*\\d{4}(?:\\s*[-–]\\s*\\d{4})?"
+    ]
+  },
+  "vendors": {
+    "OpenAI": {
+      "volatile": [
+        "\\bwas this (?:page|helpful)[^\\n]*",
+        "\\bcopy page\\b"
+      ],
+      "notes": "OpenAI docs render marketing headers and feedback widgets that must not gate a material change."
+    },
+    "Anthropic": {
+      "volatile": [
+        "\\bwas this page helpful\\b[^\\n]*",
+        "\\bon this page\\b"
+      ],
+      "notes": "Anthropic platform pages carry navigation and feedback chrome. Compliance surfaces (authentication, data-retention, access-transparency) are material and never treated as counters."
+    },
+    "Gemini": {
+      "volatile": [
+        "\\bsend feedback\\b[^\\n]*",
+        "\\bwas this helpful\\b[^\\n]*"
+      ],
+      "notes": "ai.google.dev appends feedback prompts and localisation banners."
+    },
+    "Hermes": {
+      "volatile": [
+        "\\b\\d+\\s+(?:star|fork|watching|contributor|commit|release)s?\\b",
+        "\\bassets\\s+\\d+\\b",
+        "\\bcompare\\b\\s*$",
+        "\\blatest\\b\\s*$"
+      ],
+      "notes": "GitHub release pages surface star/fork/watch counters and Assets counts that are pure noise; the release tag/title/body is material."
+    },
+    "Apify": {
+      "volatile": [
+        "\\b\\d+\\s+(?:user|run|build)s?\\b",
+        "\\btrusted by\\b[^\\n]*"
+      ],
+      "notes": "Apify changelog and store pages embed live usage counters and social-proof lines."
+    },
+    "Firecrawl": {
+      "volatile": [
+        "\\b\\d+\\s+(?:star|fork|watching|contributor|commit|release)s?\\b",
+        "\\bassets\\s+\\d+\\b"
+      ],
+      "notes": "Firecrawl GitHub release pages carry the same GitHub counter chrome as Hermes."
+    },
+    "Exa": {
+      "volatile": [
+        "\\bwas this page helpful\\b[^\\n]*"
+      ],
+      "notes": "Exa docs render a feedback widget beneath reference content."
+    }
+  },
+  "sourceSurfaces": {
+    "anthropic.platform.access-transparency": {
+      "surface": "api-compliance",
+      "label": "Anthropic API compliance — Access Transparency",
+      "isConsumerTelemetry": false,
+      "isMaxUsageTelemetry": false,
+      "excludes": [
+        "Claude Max plan usage telemetry",
+        "Claude consumer application (Claude.ai) surfaces",
+        "Claude Code local session telemetry",
+        "Claude mobile and desktop application usage"
+      ],
+      "note": "Access Transparency is a human-access audit facility covering specific Anthropic API customer-data surfaces only. It is NOT Claude Max usage telemetry and does not cover the excluded consumer/application surfaces. Changes here classify strictly under the API-compliance surface and must never be reported as Max or consumer usage telemetry."
+    }
+  }
+}

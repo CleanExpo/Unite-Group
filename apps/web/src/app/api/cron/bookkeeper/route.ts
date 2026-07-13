@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server'
 import { runBookkeeperForAllBusinesses } from '@/lib/bookkeeper/orchestrator'
 import { notify } from '@/lib/notifications'
 import { triggerMacasAdvisory } from '@/lib/advisory/auto-trigger'
+import { prepareBookkeeperRun } from '@/lib/bookkeeper/run-control'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300 // 5 minutes — processing 8 businesses sequentially
@@ -15,9 +16,17 @@ export const maxDuration = 300 // 5 minutes — processing 8 businesses sequenti
 export async function GET(request: Request) {
   const startTime = Date.now()
 
-  // 1. Authenticate — Vercel CRON sets Authorization: Bearer <CRON_SECRET>
+  // 1. Authenticate — Vercel CRON sets Authorization: Bearer ***
   const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET?.trim()}`) {
+  const cronSecret = process.env.CRON_SECRET?.trim()
+  if (!cronSecret) {
+    console.error('[Bookkeeper CRON] CRON_SECRET environment variable not set')
+    return NextResponse.json(
+      { error: 'CRON_SECRET not configured' },
+      { status: 500 },
+    )
+  }
+  if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
   }
 
@@ -32,7 +41,21 @@ export async function GET(request: Request) {
   }
 
   try {
-    // 3. Run the bookkeeper pipeline
+    // 3. Recover stale audit rows and reject a fresh overlapping run.
+    const runControl = await prepareBookkeeperRun(founderId)
+    if (runControl.activeRun) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Bookkeeper run already in progress',
+          activeRunId: runControl.activeRun.id,
+          activeRunStartedAt: runControl.activeRun.startedAt,
+        },
+        { status: 409 },
+      )
+    }
+
+    // 4. Run the bookkeeper pipeline
     console.log(`[Bookkeeper CRON] Starting nightly run for founder ${founderId}`)
     const result = await runBookkeeperForAllBusinesses(founderId)
 
@@ -65,10 +88,14 @@ export async function GET(request: Request) {
     }
 
     // Fire-and-forget notification
-    const severity = result.flaggedForReview > 0 ? 'warning' as const : 'info' as const
+    const severity = result.status === 'failed'
+      ? 'critical' as const
+      : result.flaggedForReview > 0
+        ? 'warning' as const
+        : 'info' as const
     notify({
       type: 'bookkeeper_summary',
-      title: 'Bookkeeper Run Complete',
+      title: result.status === 'failed' ? 'Bookkeeper Run FAILED' : 'Bookkeeper Run Complete',
       body:
         `Processed ${result.totalTransactions} transactions in ${durationMs}ms. ` +
         `Auto-reconciled: ${result.autoReconciled}. ` +
@@ -86,24 +113,34 @@ export async function GET(request: Request) {
       },
     }).catch(() => {})
 
-    return NextResponse.json({
-      success: result.status !== 'failed',
-      runId: result.runId,
-      status: result.status,
-      totalTransactions: result.totalTransactions,
-      autoReconciled: result.autoReconciled,
-      flaggedForReview: result.flaggedForReview,
-      gstCollectedCents: result.gstCollectedCents,
-      gstPaidCents: result.gstPaidCents,
-      netGstCents: result.netGstCents,
-      durationMs,
-      businessResults: result.businessResults.map((b) => ({
-        businessKey: b.businessKey,
-        status: b.status,
-        transactionCount: b.transactionCount,
-        error: b.error,
-      })),
-    })
+    const responseStatus = result.status === 'failed'
+      ? 500
+      : result.status === 'partial'
+        ? 207
+        : 200
+
+    return NextResponse.json(
+      {
+        success: result.status === 'completed',
+        runId: result.runId,
+        status: result.status,
+        recoveredStaleRunIds: runControl.recoveredStaleRunIds,
+        totalTransactions: result.totalTransactions,
+        autoReconciled: result.autoReconciled,
+        flaggedForReview: result.flaggedForReview,
+        gstCollectedCents: result.gstCollectedCents,
+        gstPaidCents: result.gstPaidCents,
+        netGstCents: result.netGstCents,
+        durationMs,
+        businessResults: result.businessResults.map((b) => ({
+          businessKey: b.businessKey,
+          status: b.status,
+          transactionCount: b.transactionCount,
+          error: b.error,
+        })),
+      },
+      { status: responseStatus },
+    )
   } catch (error) {
     const durationMs = Date.now() - startTime
     console.error('[Bookkeeper CRON] Fatal error:', error)

@@ -32,6 +32,8 @@ import {
 } from './work-packet'
 import {
   createTask,
+  createTaskOnce,
+  getTaskByExternalRef,
   listTasks,
   updateTaskStatus,
   appendTaskEvent,
@@ -189,6 +191,21 @@ export async function saveWorkPacket(
   return taskToPacket(task)
 }
 
+export interface SaveWorkPacketOnceResult {
+  packet: WorkPacket
+  created: boolean
+}
+
+/** Atomic idempotent variant backed by UNIQUE(founder_id, external_ref). */
+export async function saveWorkPacketOnce(
+  db: SupabaseLike,
+  founderId: string,
+  packet: WorkPacket,
+): Promise<SaveWorkPacketOnceResult> {
+  const result = await createTaskOnce(packetToCreateTaskInput(packet, founderId), db)
+  return { packet: taskToPacket(result.task), created: result.created }
+}
+
 /**
  * Fetch a persisted packet by its packet id (stored as external_ref). Returns
  * null when no founder-scoped row matches. Defensive: a missing row is a quiet
@@ -199,11 +216,8 @@ export async function getWorkPacket(
   founderId: string,
   id: string,
 ): Promise<WorkPacket | null> {
-  // The packet id is the row's external_ref, not its primary key, so list the
-  // founder's tasks and match on external_ref / reconstructed packet id.
-  const tasks = await listTasks({ founderId, limit: 100 }, db)
-  const match = tasks.find((t) => (t.external_ref ?? t.id) === id)
-  return match ? taskToPacket(match) : null
+  const task = await getTaskByExternalRef({ founderId, externalRef: id }, db)
+  return task ? taskToPacket(task) : null
 }
 
 /**
@@ -255,8 +269,7 @@ export async function applyPacketTransition(
   id: string,
   event: PacketEvent,
 ): Promise<ApplyPacketTransitionResult> {
-  const tasks = await listTasks({ founderId, limit: 100 }, db)
-  const task = tasks.find((t) => (t.external_ref ?? t.id) === id)
+  const task = await getTaskByExternalRef({ founderId, externalRef: id }, db)
   if (!task) {
     return { ok: false, packet: null, reason: `packet ${id} not found` }
   }

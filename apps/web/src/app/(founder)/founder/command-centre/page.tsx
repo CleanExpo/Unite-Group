@@ -12,6 +12,7 @@ import { summariseDashboard } from '@/lib/command-centre/dashboard-summary'
 import { loadDashboardHealthFromSupabase } from '@/lib/command-centre/dashboard-health-supabase'
 import { tailEvidence } from '@/lib/command-centre/evidence-stream'
 import { loadEvidenceLedgerFromSupabase } from '@/lib/command-centre/evidence-ledger-supabase'
+import { loadCrmMissionControlJobs } from '@/lib/command-centre/crm-mission-control-jobs-supabase'
 import { loadProjectIntegrationStatuses } from '@/lib/command-centre/project-integrations'
 import { loadActionQueueData } from './ActionQueueTile'
 import { loadBlockedLanesData } from './BlockedLanesTile'
@@ -36,6 +37,7 @@ import { BusinessFocusRail } from '@/components/command-centre/business-focus/Bu
 import { LiveAgentOperationsMap } from '@/components/command-centre/live-agent-operations/LiveAgentOperationsMap'
 import { ProviderUsageCockpit } from '@/components/command-centre/provider-usage/ProviderUsageCockpit'
 import { ActivityFeedPanel } from '@/components/command-centre/activity/ActivityFeedPanel'
+import { CrmAutonomyPanel } from '@/components/command-centre/crm-autonomy/CrmAutonomyPanel'
 import { DailyCrmDigestPanel } from '@/components/command-centre/digest/DailyCrmDigestPanel'
 import { MeshFleetTile } from '@/components/command-centre/mesh-fleet/MeshFleetTile'
 import { PortfolioHealthTile } from '@/components/command-centre/portfolio-health/PortfolioHealthTile'
@@ -165,6 +167,9 @@ export default async function CommandDeckPage() {
   // Needs user.id from the batch above, so it runs after. Degrades honestly
   // (empty board + 'degraded' badge) when the session or query is unavailable.
   const pipeline = await loadPipelineOpportunities(user?.id ?? null)
+  // Recent CRM Mission Control jobs (UNI-2234 slice 3). Founder-scoped; degrades
+  // honestly (not_connected / error) when the session or query is unavailable.
+  const crmMissionControlJobs = await loadCrmMissionControlJobs(user?.id ?? null)
 
   const activeCount = projects.filter((p) => p.status === 'active').length
   const sources = tools.reduce<Record<string, number>>((acc, t) => {
@@ -344,6 +349,19 @@ export default async function CommandDeckPage() {
         style={{ animationDelay: '0.06s' }}
       >
         <QueueBoard />
+      </section>
+
+      {/* ── CRM auto-execution — system-of-action, dormant behind the kill switch (UNI-2234) ── */}
+      <div className={`${shell.canvasScope} ${shell.glassSectionHead}`} id="crm-autonomy">
+        <h2>CRM Auto-Execution</h2>
+        <span className={shell.glassSub}>approval → lifecycle gate → operator job · dispatch is Board-gated</span>
+      </div>
+
+      <section
+        className={`${shell.canvasScope} ${shell.glassPanel} ${shell.glassSection} ${styles.reveal}`}
+        style={{ animationDelay: '0.065s' }}
+      >
+        <CrmAutonomyPanel recentJobs={crmMissionControlJobs} />
       </section>
 
       {/* ── Wiki knowledge base — canvas register (UNI-2339 slice 2) ── */}

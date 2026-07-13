@@ -105,7 +105,7 @@ function TagList({ items, onChange, placeholder }: TagListProps) {
           onChange={e => setInputVal(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag() } }}
           placeholder={placeholder}
-          className="flex-1 bg-transparent text-[12px] px-3 py-1.5 rounded-sm outline-none"
+          className="flex-1 bg-transparent text-[12px] px-3 py-1.5 rounded-sm outline-hidden"
           style={{
             border: '1px solid var(--color-border)',
             color: 'var(--color-text-primary)',
@@ -159,7 +159,7 @@ function StringList({ items, onChange, placeholder }: StringListProps) {
             type="text"
             value={item}
             onChange={e => updateItem(idx, e.target.value)}
-            className="flex-1 bg-transparent text-[12px] px-3 py-1.5 rounded-sm outline-none"
+            className="flex-1 bg-transparent text-[12px] px-3 py-1.5 rounded-sm outline-hidden"
             style={{
               border: '1px solid var(--color-border)',
               color: 'var(--color-text-primary)',
@@ -183,7 +183,7 @@ function StringList({ items, onChange, placeholder }: StringListProps) {
           onChange={e => setInputVal(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addItem() } }}
           placeholder={placeholder}
-          className="flex-1 bg-transparent text-[12px] px-3 py-1.5 rounded-sm outline-none"
+          className="flex-1 bg-transparent text-[12px] px-3 py-1.5 rounded-sm outline-hidden"
           style={{
             border: '1px solid var(--color-border)',
             color: 'var(--color-text-primary)',
@@ -232,7 +232,7 @@ function ColourField({ label, value, onChange }: ColourFieldProps) {
           onChange={e => onChange(e.target.value || null)}
           placeholder="#000000"
           maxLength={7}
-          className="w-28 bg-transparent text-[12px] px-3 py-1.5 rounded-sm outline-none font-mono"
+          className="w-28 bg-transparent text-[12px] px-3 py-1.5 rounded-sm outline-hidden font-mono"
           style={{
             border: '1px solid var(--color-border)',
             color: 'var(--color-text-primary)',
@@ -271,7 +271,7 @@ function CharacterEditor({ label, value, onChange }: CharacterEditorProps) {
             type="text"
             value={value.name}
             onChange={e => update('name', e.target.value)}
-            className="w-full bg-transparent text-[12px] px-3 py-1.5 rounded-sm outline-none"
+            className="w-full bg-transparent text-[12px] px-3 py-1.5 rounded-sm outline-hidden"
             style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
           />
         </div>
@@ -283,7 +283,7 @@ function CharacterEditor({ label, value, onChange }: CharacterEditorProps) {
             type="text"
             value={value.voiceStyle}
             onChange={e => update('voiceStyle', e.target.value)}
-            className="w-full bg-transparent text-[12px] px-3 py-1.5 rounded-sm outline-none"
+            className="w-full bg-transparent text-[12px] px-3 py-1.5 rounded-sm outline-hidden"
             style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
           />
         </div>
@@ -296,7 +296,7 @@ function CharacterEditor({ label, value, onChange }: CharacterEditorProps) {
           value={value.persona}
           onChange={e => update('persona', e.target.value)}
           rows={2}
-          className="w-full bg-transparent text-[12px] px-3 py-1.5 rounded-sm outline-none resize-none"
+          className="w-full bg-transparent text-[12px] px-3 py-1.5 rounded-sm outline-hidden resize-none"
           style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
         />
       </div>
@@ -475,7 +475,7 @@ export function BrandPersonas() {
 
       {/* Left: Business list */}
       <div
-        className="w-56 flex-shrink-0 rounded-sm overflow-hidden"
+        className="w-56 shrink-0 rounded-sm overflow-hidden"
         style={{ border: '1px solid var(--color-border)', background: 'var(--surface-card)' }}
       >
         <div
@@ -514,7 +514,7 @@ export function BrandPersonas() {
                     }}
                   >
                     <span
-                      className="w-2 h-2 rounded-sm flex-shrink-0"
+                      className="w-2 h-2 rounded-sm shrink-0"
                       style={{ background: biz.color }}
                     />
                     <span
@@ -524,7 +524,7 @@ export function BrandPersonas() {
                       {biz.name}
                     </span>
                     <span
-                      className="text-[10px] px-1.5 py-0.5 rounded-sm uppercase tracking-wider font-medium flex-shrink-0"
+                      className="text-[10px] px-1.5 py-0.5 rounded-sm uppercase tracking-wider font-medium shrink-0"
                       style={{
                         background: hasPersona ? 'rgba(34,197,94,0.1)' : 'rgba(255,255,255,0.05)',
                         color: hasPersona ? '#22c55e' : 'var(--color-text-secondary)',
@@ -593,7 +593,7 @@ export function BrandPersonas() {
                   type="button"
                   onClick={handleSave}
                   disabled={saving}
-                  className="px-4 py-1.5 text-[11px] uppercase tracking-[0.1em] rounded-sm transition-colors disabled:opacity-50"
+                  className="px-4 py-1.5 text-[11px] uppercase tracking-widest rounded-sm transition-colors disabled:opacity-50"
                   style={{
                     background: 'rgba(22, 163, 74,0.08)',
                     border: '1px solid rgba(22, 163, 74,0.3)',
@@ -614,7 +614,7 @@ export function BrandPersonas() {
                   value={draft.toneOfVoice}
                   onChange={e => updateDraft('toneOfVoice', e.target.value)}
                   rows={3}
-                  className="w-full bg-transparent text-[12px] px-3 py-2 rounded-sm outline-none resize-none"
+                  className="w-full bg-transparent text-[12px] px-3 py-2 rounded-sm outline-hidden resize-none"
                   style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
                 />
               </FormSection>
@@ -625,7 +625,7 @@ export function BrandPersonas() {
                   value={draft.targetAudience}
                   onChange={e => updateDraft('targetAudience', e.target.value)}
                   rows={3}
-                  className="w-full bg-transparent text-[12px] px-3 py-2 rounded-sm outline-none resize-none"
+                  className="w-full bg-transparent text-[12px] px-3 py-2 rounded-sm outline-hidden resize-none"
                   style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
                 />
               </FormSection>

@@ -39,7 +39,7 @@ export function ExperimentCard({ experiment, variantCount }: Props) {
   return (
     <Link href={`/founder/experiments/${experiment.id}`} className="block group">
       <div
-        className="border rounded-sm p-4 transition-colors bg-[var(--surface-card)] group-hover:bg-[var(--surface-elevated)]"
+        className="border rounded-sm p-4 transition-colors bg-(--surface-card) group-hover:bg-(--surface-elevated)"
         style={{
           borderColor: 'var(--color-border)',
         }}

@@ -27,6 +27,7 @@ const mockSelect = vi.fn()
 const mockSingle = vi.fn()
 const mockUpdate = vi.fn()
 const mockEq = vi.fn()
+const mockLt = vi.fn()
 const mockFrom = vi.fn()
 
 vi.mock('@/lib/supabase/service', () => ({
@@ -73,7 +74,11 @@ vi.mock('@/lib/bookkeeper/bas-calculator', () => ({
 }))
 
 // NOW import the system under test (after all mocks are set up)
-import { runBookkeeperForAllBusinesses, processOneBusiness } from '../orchestrator'
+import {
+  runBookkeeperForAllBusinesses,
+  runBookkeeperForOneBusiness,
+  processOneBusiness,
+} from '../orchestrator'
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -208,6 +213,7 @@ function setupSupabaseMocks(options?: {
   runId?: string
   insertError?: { message: string } | null
   runInsertError?: { message: string } | null
+  updateError?: { message: string } | null
 }) {
   const runId = options?.runId ?? RUN_ID
 
@@ -223,8 +229,16 @@ function setupSupabaseMocks(options?: {
             ),
           }),
         }),
-        update: mockUpdate.mockReturnValue({
-          eq: mockEq.mockResolvedValue({ error: null }),
+        // Chainable + thenable so both the terminal `.update().eq('id', …)` and
+        // the reaper's `.update().eq().eq().lt()` resolve to { error }.
+        update: mockUpdate.mockImplementation(() => {
+          const chain: Record<string, unknown> = {
+            eq: mockEq.mockImplementation(() => chain),
+            lt: mockLt.mockImplementation(() => chain),
+            then: (resolve: (v: unknown) => void) =>
+              resolve({ error: options?.updateError ?? null }),
+          }
+          return chain
         }),
       }
     }
@@ -518,6 +532,23 @@ describe('runBookkeeperForAllBusinesses', () => {
     )
   })
 
+  it('reaps orphaned running runs before starting (UNI-2351)', async () => {
+    await runBookkeeperForAllBusinesses(FOUNDER_ID)
+
+    // The reaper marks stale 'running' rows failed, filtering on status +
+    // an age cutoff, before the fresh run is created.
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'failed',
+        error_log: expect.arrayContaining([
+          expect.objectContaining({ businessKey: '_run' }),
+        ]),
+      }),
+    )
+    expect(mockEq).toHaveBeenCalledWith('status', 'running')
+    expect(mockLt).toHaveBeenCalledWith('started_at', expect.any(String))
+  })
+
   it('includes error_log when businesses fail', async () => {
     let callCount = 0
     mockLoadXeroTokens.mockImplementation(() => {
@@ -542,13 +573,21 @@ describe('runBookkeeperForAllBusinesses', () => {
     )
   })
 
-  it('sets error_log to null when no errors occur', async () => {
+  it('sets error_log to an empty array when no errors occur', async () => {
     await runBookkeeperForAllBusinesses(FOUNDER_ID)
 
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
-        error_log: null,
+        error_log: [],
       }),
+    )
+  })
+
+  it('fails the run when the final run-record update is not persisted', async () => {
+    setupSupabaseMocks({ updateError: { message: 'write failed' } })
+
+    await expect(runBookkeeperForAllBusinesses(FOUNDER_ID)).rejects.toThrow(
+      'Failed to finalise bookkeeper run record: write failed',
     )
   })
 
@@ -581,5 +620,16 @@ describe('runBookkeeperForAllBusinesses', () => {
     expect(errorResults).toHaveLength(0)
     // With all skipped (0 success, 0 error), status should be 'completed'
     expect(result.status).toBe('completed')
+  })
+})
+
+describe('runBookkeeperForOneBusiness', () => {
+  it('fails the run when the final run-record update is not persisted', async () => {
+    setupSupabaseMocks({ updateError: { message: 'write failed' } })
+    const businessKey = OWNED_BUSINESSES.find((business) => business.status === 'active')!.key
+
+    await expect(runBookkeeperForOneBusiness(FOUNDER_ID, businessKey)).rejects.toThrow(
+      'Failed to finalise bookkeeper run record: write failed',
+    )
   })
 })

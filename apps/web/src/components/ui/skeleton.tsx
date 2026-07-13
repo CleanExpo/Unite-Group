@@ -26,7 +26,7 @@ export default function Skeleton({
 
   return (
     <div
-      className={`bg-white/[0.03] animate-pulse rounded-sm ${variantClasses[variant]} ${className}`}
+      className={`bg-white/3 animate-pulse rounded-sm ${variantClasses[variant]} ${className}`}
       style={{ width, height }}
       aria-label="Loading..."
       role="status"
@@ -39,7 +39,7 @@ export default function Skeleton({
  */
 export function SkeletonCard() {
   return (
-    <div className="bg-white/[0.02] border-[0.5px] border-white/[0.06] rounded-sm p-6 space-y-4">
+    <div className="bg-white/2 border-[0.5px] border-white/6 rounded-sm p-6 space-y-4">
       <Skeleton height="2rem" width="60%" />
       <Skeleton height="1rem" width="100%" />
       <Skeleton height="1rem" width="90%" />

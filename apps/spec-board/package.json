@@ -2,8 +2,9 @@
   "name": "fable-system",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "engines": {
-    "node": ">=22"
+    "node": ">=24.14.1 <25"
   },
   "scripts": {
     "dev": "next dev",
@@ -13,16 +14,19 @@
     "test": "node --experimental-strip-types --test \"tests/*.test.ts\""
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.110.0",
-    "@supabase/supabase-js": "^2.110.0",
+    "@anthropic-ai/sdk": "^0.111.0",
+    "@supabase/supabase-js": "^2.110.2",
     "next": "^16.2.10",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },
   "devDependencies": {
-    "@types/node": "^26.1.0",
+    "@types/node": "^24.0.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "typescript": "^6.0.3"
+  },
+  "overrides": {
+    "postcss": "8.5.17"
   }
 }

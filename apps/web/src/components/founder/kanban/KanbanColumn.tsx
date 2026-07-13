@@ -17,12 +17,12 @@ interface KanbanColumnProps {
   cards: Card[]
   isDone?: boolean
   onCardClick?: (cardId: string) => void
-  /** When provided, shows an [Apply] button that generates the next tasks for this stage. */
-  onApply?: () => void
+  /** Generates CRM proposals for review; never queues or mutates a projection. */
+  onPropose?: () => void
   applying?: boolean
 }
 
-export function KanbanColumn({ id, title, cards, isDone, onCardClick, onApply, applying }: KanbanColumnProps) {
+export function KanbanColumn({ id, title, cards, isDone, onCardClick, onPropose, applying }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id })
 
   return (
@@ -41,16 +41,16 @@ export function KanbanColumn({ id, title, cards, isDone, onCardClick, onApply, a
           {title}
         </span>
         <div className="flex items-center gap-1.5">
-          {onApply && (
+          {onPropose && (
             <button
               type="button"
-              onClick={onApply}
+              onClick={onPropose}
               disabled={applying}
-              title={`Generate the next ${title} tasks and push them into the build pipeline`}
+              title="Generate CRM proposals for founder review; does not queue or create Hermes/Linear work."
               className="text-[10px] font-semibold px-2 py-0.5 rounded-sm transition-opacity hover:opacity-80 disabled:opacity-50"
               style={{ background: 'var(--color-accent-dim)', color: 'var(--color-accent-text)', border: '1px solid var(--color-accent-border)' }}
             >
-              {applying ? 'Generating…' : 'Apply'}
+              {applying ? 'Proposing…' : 'Propose'}
             </button>
           )}
           <span

@@ -6,7 +6,19 @@ import { getHermesRoot, getLocalBinDir, getProfilesDir } from './claude-paths'
 export const SWARM_CANONICAL_REPO = resolve(process.cwd())
 export const SWARM_MEMORY_ROOT = join(homedir(), '.openclaw', 'workspace')
 export const SWARM_MEMORY_HANDOFFS = join(SWARM_MEMORY_ROOT, 'memory')
-export const SWARM_FORBIDDEN_PATHS = [join(homedir(), 'hermes-workspace')]
+export const SWARM_SENSITIVE_HOME_ROOTS = [
+  join(homedir(), '.ssh'),
+  join(homedir(), '.gnupg'),
+  join(homedir(), '.aws'),
+  join(homedir(), '.azure'),
+  join(homedir(), '.kube'),
+  join(homedir(), '.docker'),
+  join(homedir(), '.config', 'gcloud'),
+]
+export const SWARM_FORBIDDEN_PATHS = [
+  join(homedir(), 'hermes-workspace'),
+  ...SWARM_SENSITIVE_HOME_ROOTS,
+]
 
 export type SwarmEnvironment = {
   canonicalRepo: string
@@ -64,12 +76,7 @@ export function getSwarmEnvironment(): SwarmEnvironment {
       '/api/swarm-tmux-scroll',
     ],
     writableRoots: [SWARM_CANONICAL_REPO, SWARM_MEMORY_HANDOFFS],
-    readOnlyRoots: [
-      SWARM_MEMORY_ROOT,
-      profilesRoot,
-      localBinDir,
-      join(homedir(), '.ssh'),
-    ],
+    readOnlyRoots: [SWARM_MEMORY_ROOT, profilesRoot, localBinDir],
     forbiddenRoots: SWARM_FORBIDDEN_PATHS,
     notes: [
       'Swarm code, git, build, and tests run only in the canonical repo.',
@@ -77,6 +84,7 @@ export function getSwarmEnvironment(): SwarmEnvironment {
       'Worker profiles live under ~/.hermes/profiles/<workerId> and wrappers under ~/.local/bin/swarmN.',
       'Prefer live tmux-backed Hermes sessions over one-shot subprocesses.',
       'Use the swarm APIs as the machine-readable source of worker/runtime truth.',
+      'Sensitive home credential roots are forbidden; remote operations use the authenticated SSH agent and approved host aliases, never key-file reads.',
     ],
   }
 }

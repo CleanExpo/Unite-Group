@@ -3,21 +3,20 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "description": "Stage-3 Autopilot Runner — hosted executor for the Linear autonomous loop. Spec: apps/spec-board/projects/stage3-autopilot-runner/spec.md",
+  "engines": {
+    "node": ">=24.14.1 <25"
+  },
+  "description": "Design/test-only CRM/Hermes policy plus a one-file retirement tombstone for the legacy Linear runner.",
   "scripts": {
     "type-check": "tsc --noEmit",
     "test": "vitest run",
-    "build": "tsc -p tsconfig.build.json",
-    "heartbeat": "node dist/heartbeat.js",
-    "operator-jobs": "node dist/operator-jobs-tick.js"
+    "build": "node scripts/build.mjs",
+    "retirement-tombstone": "node dist/container/index.js",
+    "verify:container": "bash scripts/verify-retirement-container.sh"
   },
   "devDependencies": {
-    "@types/node": "^20.16.0",
-    "typescript": "^5.6.3",
-    "vitest": "^2.1.8"
-  },
-  "dependencies": {
-    "@octokit/auth-app": "^7.2.2",
-    "@octokit/rest": "^21.1.1"
+    "@types/node": "^24.0.0",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
   }
 }

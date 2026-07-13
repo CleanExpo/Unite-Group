@@ -22,7 +22,7 @@ export function PasswordField(props: {
         onChange={props.onChange}
         placeholder={props.placeholder}
         autoFocus={props.autoFocus}
-        className="w-full px-3 pr-9 h-9 rounded-sm text-[13px] text-[#0A0A0A] outline-none transition-colors"
+        className="w-full px-3 pr-9 h-9 rounded-sm text-[13px] text-[#0A0A0A] outline-hidden transition-colors"
         style={{
           background: props.bg ?? 'var(--surface-card)',
           border: `1px solid ${props.error ? 'var(--color-danger)' : 'var(--color-border)'}`,

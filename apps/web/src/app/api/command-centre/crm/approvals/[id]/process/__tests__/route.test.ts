@@ -1,0 +1,254 @@
+// UNI-2234 — POST /api/command-centre/crm/approvals/[id]/process (slice 2).
+// Auth gate + lifecycle admission + evidence journaling + the dispatch-disabled invariant.
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+
+vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn(), createClient: vi.fn() }))
+vi.mock('@/lib/crm/auto-exec-matrix', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/crm/auto-exec-matrix')>()),
+  journalAutoExecution: vi.fn().mockResolvedValue(undefined),
+}))
+
+import { getUser, createClient } from '@/lib/supabase/server'
+import { journalAutoExecution } from '@/lib/crm/auto-exec-matrix'
+import { POST } from '../route'
+
+// Fake founder client for the operator_jobs persistence path (go-live step 2).
+function fakeDb(opts: { existing?: Array<{ id: string }>; insertError?: string } = {}) {
+  const selectBuilder = {
+    eq() {
+      return this
+    },
+    async limit() {
+      return { data: opts.existing ?? [], error: null }
+    },
+  }
+  return {
+    from(table: string) {
+      if (table === 'operator_jobs') {
+        return {
+          select: () => selectBuilder,
+          insert: () => ({
+            select: () => ({
+              single: async () => ({
+                data: opts.insertError ? null : { id: 'job_route' },
+                error: opts.insertError ? { message: opts.insertError } : null,
+              }),
+            }),
+          }),
+        }
+      }
+      return { insert: async () => ({ data: null, error: null }) }
+    },
+  }
+}
+
+// Fully-wired fake for the armed path: operator_jobs/events persistence + outcome
+// update, plus the real lead_conversion executor's crm_leads/crm_contacts calls.
+// Captures every operator_jobs.update so the test can assert the job row reaches
+// the terminal outcome status.
+function fakeArmedDb() {
+  const jobUpdates: Array<{ status: string; metadata: Record<string, unknown> }> = []
+  const lead = {
+    id: 'lead_1',
+    founder_id: 'u1',
+    status: 'qualified',
+    converted_at: null,
+    first_name: 'Ada',
+    last_name: 'Lovelace',
+    email: 'ada@example.com',
+    phone: null,
+    company: null,
+    job_title: null,
+    marketing_consent: true,
+  }
+  const client = {
+    from(table: string) {
+      if (table === 'operator_jobs') {
+        return {
+          select: () => ({ eq() { return this }, async limit() { return { data: [], error: null } } }),
+          insert: () => ({ select: () => ({ single: async () => ({ data: { id: 'job_route' }, error: null }) }) }),
+          update: (payload: { status: string; metadata: Record<string, unknown> }) => {
+            jobUpdates.push(payload)
+            return { eq: () => ({ eq: async () => ({ data: null, error: null }) }) }
+          },
+        }
+      }
+      if (table === 'operator_events') {
+        return { insert: async () => ({ data: null, error: null }) }
+      }
+      if (table === 'crm_leads') {
+        return {
+          select: () => ({
+            eq: () => ({ eq: () => ({ single: async () => ({ data: lead, error: null }) }) }),
+          }),
+          update: () => ({
+            eq: () => ({
+              eq: () => ({
+                select: () => ({
+                  single: async () => ({
+                    data: { ...lead, status: 'converted', converted_at: '2026-07-09T00:02:00.000Z' },
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          }),
+        }
+      }
+      // crm_contacts
+      return { insert: () => ({ select: () => ({ single: async () => ({ data: { id: 'contact_1' }, error: null }) }) }) }
+    },
+  }
+  return { client, jobUpdates }
+}
+
+const params = (id = 'appr_1') => ({ params: Promise.resolve({ id }) })
+const req = (b: unknown) =>
+  new Request('https://app.test/api/command-centre/crm/approvals/appr_1/process', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: typeof b === 'string' ? b : JSON.stringify(b),
+  })
+
+const approvedLead = {
+  subjectType: 'lead_conversion',
+  status: 'approved',
+  approvedBy: 'phill',
+  approvalReference: 'ref-1',
+  requestedAt: '2026-07-09T00:00:00.000Z',
+  now: '2026-07-09T00:01:00.000Z',
+}
+
+describe('POST /api/command-centre/crm/approvals/[id]/process', () => {
+  const originalKillSwitch = process.env.CRM_AUTO_EXECUTE
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(createClient).mockResolvedValue(fakeDb() as never)
+  })
+  afterEach(() => {
+    if (originalKillSwitch === undefined) delete process.env.CRM_AUTO_EXECUTE
+    else process.env.CRM_AUTO_EXECUTE = originalKillSwitch
+  })
+
+  it('401 without a session', async () => {
+    vi.mocked(getUser).mockResolvedValue(null)
+    expect((await POST(req(approvedLead), params())).status).toBe(401)
+  })
+
+  it('400 on invalid JSON', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    expect((await POST(req('{not json'), params())).status).toBe(400)
+  })
+
+  it('400 when subjectType is missing', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    expect((await POST(req({ status: 'approved' }), params())).status).toBe(400)
+  })
+
+  it('routes an approved lead_conversion to needs-review while the kill switch is off, and journals it', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    delete process.env.CRM_AUTO_EXECUTE
+    const res = await POST(req(approvedLead), params())
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.id).toBe('appr_1')
+    expect(json.admitted).toBe(false)
+    expect(json.state).toBe('needs_review')
+    expect(json.dispatchEnabled).toBe(false)
+    expect(journalAutoExecution).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(journalAutoExecution).mock.calls[0][0]).toMatchObject({
+      kind: 'crm_approval_admission',
+    })
+  })
+
+  it('never enables dispatch even with the kill switch on (Board gate holds at the route)', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    process.env.CRM_AUTO_EXECUTE = '1'
+    const res = await POST(req(approvedLead), params())
+    const json = await res.json()
+    // evaluateCrmApprovalLifecycle passes no auto-exec signals, so even with the
+    // kill switch on it stays needs-review; dispatch is never enabled by this route.
+    expect(json.dispatchEnabled).toBe(false)
+    expect(json.state).toBe('needs_review')
+  })
+
+  it('execution stays null (no dispatch) with the arming flip off', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    delete process.env.CRM_DISPATCH_ARMED
+    const json = await (await POST(req(approvedLead), params())).json()
+    expect(json.execution).toBeNull()
+  })
+
+  it('execution still null even with CRM_DISPATCH_ARMED=1 (nothing is admitted via the real lifecycle)', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    process.env.CRM_DISPATCH_ARMED = '1'
+    const json = await (await POST(req(approvedLead), params())).json()
+    expect(json.execution).toBeNull()
+    delete process.env.CRM_DISPATCH_ARMED
+  })
+
+  it('UNI-2234 step 2b: admits an approved lead_conversion with passing L1 signals when the kill switch is on (dispatch still off)', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    process.env.CRM_AUTO_EXECUTE = '1'
+    delete process.env.CRM_DISPATCH_ARMED
+    const res = await POST(req({ ...approvedLead, confidence: 0.9, hasExistingClientLink: false }), params())
+    const json = await res.json()
+    expect(json.admitted).toBe(true)
+    expect(json.state).toBe('queued')
+    expect(json.dispatchEnabled).toBe(false)
+    expect(json.execution).toBeNull()
+  })
+
+  it('UNI-2234 step 2b: an approved lead_conversion with below-threshold confidence stays needs-review even with the kill switch on', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    process.env.CRM_AUTO_EXECUTE = '1'
+    const res = await POST(req({ ...approvedLead, confidence: 0.4, hasExistingClientLink: false }), params())
+    const json = await res.json()
+    expect(json.admitted).toBe(false)
+    expect(json.state).toBe('needs_review')
+  })
+
+  it('UNI-2234 step 2: persists an operator_jobs record and returns its id for a processed approval', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    const res = await POST(req(approvedLead), params())
+    const json = await res.json()
+    expect(res.status).toBe(200)
+    expect(json.operatorJobId).toBe('job_route')
+  })
+
+  it('UNI-2234 step 2: returns the deduped operator_jobs id when a record already exists for the approval', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    vi.mocked(createClient).mockResolvedValue(fakeDb({ existing: [{ id: 'job_existing' }] }) as never)
+    const json = await (await POST(req(approvedLead), params())).json()
+    expect(json.operatorJobId).toBe('job_existing')
+  })
+
+  it('UNI-2234 step 2: a persistence failure is authoritative — returns 500, never a green 200', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    vi.mocked(createClient).mockResolvedValue(fakeDb({ insertError: 'rls denied' }) as never)
+    expect((await POST(req(approvedLead), params())).status).toBe(500)
+  })
+
+  it('UNI-2234 go-live: when admitted AND armed, the real executor runs and the outcome is reflected onto the job row (blocked → running → done)', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    process.env.CRM_AUTO_EXECUTE = '1'
+    process.env.CRM_DISPATCH_ARMED = '1'
+    const { client, jobUpdates } = fakeArmedDb()
+    vi.mocked(createClient).mockResolvedValue(client as never)
+
+    const res = await POST(
+      req({ ...approvedLead, confidence: 0.9, hasExistingClientLink: false, subjectId: 'lead_1' }),
+      params(),
+    )
+    const json = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(json.admitted).toBe(true)
+    expect(json.execution).toMatchObject({ state: 'executed', reason: 'executed_confirmed' })
+    // The job row was transitioned blocked → running → done, ending 'executed'.
+    expect(jobUpdates.map((u) => u.status)).toEqual(['running', 'done'])
+    expect(jobUpdates.at(-1)?.metadata).toMatchObject({ missionControlState: 'executed' })
+
+    delete process.env.CRM_DISPATCH_ARMED
+  })
+})
