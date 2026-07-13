@@ -29,6 +29,7 @@
     "docker:reset": "docker compose down -v && docker compose up -d",
     "docker:logs": "docker compose logs -f",
     "deps:check": "bash scripts/dependency-checks.sh",
+    "security:routes-check": "tsx scripts/check-route-security.ts",
     "prepare": "husky || true",
     "linear": "node scripts/linear-update.mjs",
     "mobile-voice:approve-board-packet": "tsx scripts/mobile-voice-approve-board-packet.ts",
@@ -61,7 +62,7 @@
     "@typescript-eslint/eslint-plugin": "^8.63.0",
     "@typescript-eslint/parser": "^8.63.0",
     "@vitejs/plugin-react": "^4.2.1",
-    "@vitest/coverage-v8": "^1.0.0",
+    "@vitest/coverage-v8": "^3.2.7",
     "autoprefixer": "^10.5.2",
     "chalk": "^5.3.0",
     "chokidar": "^5.0.0",
@@ -89,7 +90,7 @@
     "tsx": "^4.23.0",
     "typescript": "^5.4.0",
     "vite-tsconfig-paths": "^6.0.4",
-    "vitest": "^1.6.1",
+    "vitest": "^3.2.7",
     "xml2js": "^0.6.2"
   },
   "dependencies": {
@@ -166,7 +167,16 @@
       "supabase"
     ],
     "overrides": {
-      "happy-dom": ">=20.0.0"
+      "axios": ">=1.18.1",
+      "express-rate-limit": ">=8.5.2",
+      "flatted": ">=3.4.2",
+      "happy-dom": ">=20.0.0",
+      "hono": ">=4.12.28",
+      "linkify-it": ">=5.0.2",
+      "nuxt": ">=4.4.8",
+      "picomatch@^2.0.0": "2.3.2",
+      "vite": ">=6.4.3",
+      "vitest": "3.2.7"
     }
   },
   "engines": {

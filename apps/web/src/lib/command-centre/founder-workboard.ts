@@ -59,7 +59,10 @@ export type BlockedLanesFetchResult =
   | { ok: 'not_configured' }
 
 function resolveApiKey(deps: FounderWorkboardDeps): string | undefined {
-  return deps.apiKey ?? process.env.LINEAR_API_KEY?.trim()
+  if (Object.prototype.hasOwnProperty.call(deps, 'apiKey')) {
+    return deps.apiKey?.trim()
+  }
+  return process.env.LINEAR_API_KEY?.trim()
 }
 
 async function postGraphQL<T>(
