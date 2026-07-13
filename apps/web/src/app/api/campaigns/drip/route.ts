@@ -3,6 +3,7 @@
 
 import { NextResponse } from 'next/server'
 import { createClient, getUser } from '@/lib/supabase/server'
+import { processCampaignDrip } from '@/lib/campaigns/drip-processor'
 
 export const dynamic = 'force-dynamic'
 
@@ -86,7 +87,13 @@ type ProcessBody = {
   dryRun?: boolean
 }
 
-type DripBody = CreateCampaignBody | AddStepBody | EnrollBody | ProcessBody
+type SetStatusBody = {
+  action: 'set_status'
+  campaignId?: string
+  status?: string
+}
+
+type DripBody = CreateCampaignBody | AddStepBody | EnrollBody | ProcessBody | SetStatusBody
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 
 function required(value: string | undefined, name: string): string | NextResponse {
@@ -99,10 +106,6 @@ function required(value: string | undefined, name: string): string | NextRespons
 function contactName(contact: ContactRow): string | null {
   const name = [contact.first_name, contact.last_name].filter(Boolean).join(' ').trim()
   return name || null
-}
-
-function isSafeDryRunRecipient(email: string): boolean {
-  return email.endsWith('@unite-hub.test') || email.includes('__PW_TEST__')
 }
 
 function campaignPayload(campaign: DripCampaignRow) {
@@ -327,132 +330,47 @@ export async function POST(request: Request) {
     return NextResponse.json({ enrollment: enrollmentPayload(enrollment as DripEnrollmentRow) })
   }
 
+  if (body.action === 'set_status') {
+    const validStatuses = ['draft', 'active', 'paused', 'archived']
+    if (!body.status || !validStatuses.includes(body.status)) {
+      return NextResponse.json(
+        { error: `status must be one of: ${validStatuses.join(', ')}` },
+        { status: 400 }
+      )
+    }
+
+    const { data, error } = await supabase
+      .from('drip_campaigns')
+      .update({ status: body.status })
+      .eq('id', campaign.id)
+      .eq('founder_id', user.id)
+      .select('*')
+      .single()
+
+    if (error || !data) {
+      console.error('[campaigns/drip] set status failed:', error?.message)
+      return NextResponse.json({ error: 'Failed to update campaign status' }, { status: 500 })
+    }
+    return NextResponse.json({ campaign: campaignPayload(data as DripCampaignRow) })
+  }
+
   if (body.action === 'process_pending') {
     const dryRun = body.dryRun !== false
-    const now = new Date()
-    let processed = 0
-    let skipped = 0
-    let failed = 0
 
-    const steps = await loadSteps(supabase, user.id, campaign.id)
-    const stepsByOrder = new Map(steps.map((step) => [step.step_order, step]))
-
-    const { data: enrollments, error: enrollmentsError } = await supabase
-      .from('drip_enrollments')
-      .select('*')
-      .eq('campaign_id', campaign.id)
-      .eq('founder_id', user.id)
-      .eq('status', 'active')
-      .lte('next_run_at', now.toISOString())
-      .order('next_run_at', { ascending: true })
-
-    if (enrollmentsError) {
-      console.error('[campaigns/drip] load pending failed:', enrollmentsError.message)
+    try {
+      const result = await processCampaignDrip({
+        supabase,
+        founderId: user.id,
+        campaignId: campaign.id,
+        businessKey: campaign.business_key,
+        dryRun,
+      })
+      return NextResponse.json({ result })
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err)
+      console.error('[campaigns/drip] load pending failed:', message)
       return NextResponse.json({ error: 'Failed to process pending drip steps' }, { status: 500 })
     }
-
-    for (const enrollment of (enrollments ?? []) as DripEnrollmentRow[]) {
-      const step = stepsByOrder.get(enrollment.current_step_order)
-      if (!step) {
-        const { error } = await supabase
-          .from('drip_enrollments')
-          .update({ status: 'completed', completed_at: now.toISOString() })
-          .eq('id', enrollment.id)
-          .eq('founder_id', user.id)
-        if (error) failed++
-        else skipped++
-        continue
-      }
-
-      if (!dryRun || !isSafeDryRunRecipient(enrollment.email)) {
-        const { error: updateError } = await supabase
-          .from('drip_enrollments')
-          .update({
-            status: 'failed',
-            metadata: {
-              blockedReason: 'unsafe_or_live_send_blocked',
-              blockedAt: now.toISOString(),
-              dryRun,
-            } satisfies JsonObject,
-          })
-          .eq('id', enrollment.id)
-          .eq('founder_id', user.id)
-
-        if (updateError) {
-          console.error('[campaigns/drip] unsafe send block failed:', updateError.message)
-          failed++
-          continue
-        }
-
-        const { error: eventError } = await supabase.from('drip_events').insert({
-          founder_id: user.id,
-          campaign_id: campaign.id,
-          enrollment_id: enrollment.id,
-          contact_id: enrollment.contact_id,
-          step_id: step.id,
-          event_type: 'failed',
-          provider_send: 'not_attempted',
-          metadata: { dryRun, reason: 'unsafe_or_live_send_blocked' } satisfies JsonObject,
-        })
-
-        if (eventError) {
-          console.error('[campaigns/drip] unsafe send event failed:', eventError?.message)
-        }
-        failed++
-        continue
-      }
-
-      const nextOrder = enrollment.current_step_order + 1
-      const nextStep = stepsByOrder.get(nextOrder)
-      const update = nextStep
-        ? {
-            current_step_order: nextOrder,
-            next_run_at: new Date(now.getTime() + nextStep.delay_minutes * 60_000).toISOString(),
-          }
-        : {
-            current_step_order: nextOrder,
-            status: 'completed',
-            completed_at: now.toISOString(),
-          }
-
-      const { error: eventError } = await supabase.from('drip_events').insert({
-        founder_id: user.id,
-        campaign_id: campaign.id,
-        enrollment_id: enrollment.id,
-        contact_id: enrollment.contact_id,
-        step_id: step.id,
-        event_type: 'dry_run_processed',
-        provider_send: 'not_attempted',
-        metadata: { dryRun: true } satisfies JsonObject,
-      })
-
-      const { error: updateError } = await supabase
-        .from('drip_enrollments')
-        .update(update)
-        .eq('id', enrollment.id)
-        .eq('founder_id', user.id)
-
-      if (eventError || updateError) failed++
-      else processed++
-    }
-
-    if (failed > 0) {
-      await supabase
-        .from('drip_campaigns')
-        .update({ status: 'partial' })
-        .eq('id', campaign.id)
-        .eq('founder_id', user.id)
-    }
-
-    return NextResponse.json({
-      result: {
-        processed,
-        skipped,
-        failed,
-        dryRun,
-        providerSend: 'not_attempted',
-      },
-    })
   }
 
   return NextResponse.json({ error: `Unsupported action: ${(body as { action: string }).action}` }, { status: 400 })
