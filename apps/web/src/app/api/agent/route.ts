@@ -204,10 +204,10 @@ export async function POST(request: Request) {
   const supabase = createServiceClient()
   const validation = await validateSiteKey(supabase, parsed.siteKey, origin)
   if (!validation.ok) {
-    return NextResponse.json(
-      { error: 'Invalid site key', reason: validation.reason },
-      { status: 401, headers: cors },
-    )
+    // Log the specific reason server-side but return a generic 401 — do not let
+    // an anonymous caller distinguish unknown-key from inactive/wrong-origin.
+    console.warn(`[agent] site key rejected: ${validation.reason}`)
+    return NextResponse.json({ error: 'Invalid site key' }, { status: 401, headers: cors })
   }
 
   let client: Anthropic

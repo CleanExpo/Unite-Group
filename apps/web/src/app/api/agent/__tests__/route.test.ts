@@ -56,12 +56,15 @@ describe('POST /api/agent', () => {
     })
   })
 
-  it('returns 401 with CORS headers on a bad site key', async () => {
+  it('returns a generic 401 with CORS headers on a bad site key (no reason enumeration)', async () => {
     vi.mocked(validateSiteKey).mockResolvedValue({ ok: false, reason: 'unknown_key' })
     const res = await POST(req({ siteKey: uniqueKey(), messages: [{ role: 'user', content: 'hi' }] }))
     expect(res.status).toBe(401)
     expect(res.headers.get('Access-Control-Allow-Origin')).toBe('https://client.example')
-    expect(await res.json()).toMatchObject({ error: 'Invalid site key', reason: 'unknown_key' })
+    const body = await res.json()
+    expect(body).toEqual({ error: 'Invalid site key' })
+    // The discriminated reason must NOT leak to an anonymous caller.
+    expect(body).not.toHaveProperty('reason')
   })
 
   it('returns 400 when siteKey is missing', async () => {

@@ -14,59 +14,56 @@ const businessesChain = {
 businessesChain.select.mockReturnValue(businessesChain)
 businessesChain.eq.mockReturnValue(businessesChain)
 
-let pagesResult: { data: unknown; error: unknown } = { data: [], error: null }
-const pagesChain: Record<string, any> = {}
-for (const method of ['select', 'eq', 'limit', 'or']) {
-  pagesChain[method] = vi.fn().mockReturnValue(pagesChain)
-}
-// Thenable — awaiting the builder resolves the query, like supabase-js.
-pagesChain.then = (resolve: (value: unknown) => unknown) => Promise.resolve(pagesResult).then(resolve)
-
-const mockFrom = vi.fn((table: string) => (table === 'businesses' ? businessesChain : pagesChain))
+const mockFrom = vi.fn((table: string) => {
+  if (table === 'businesses') return businessesChain
+  // Any read of internal tables (e.g. nexus_pages) is a bug: the public agent
+  // must never touch them. Throw so a regression fails loudly.
+  throw new Error(`grounding must not query "${table}" on the anonymous surface`)
+})
 const mockClient = { from: mockFrom } as any
 
-describe('ground (rag module absent — keyword fallback)', () => {
+describe('ground (rag module absent — public profile fallback)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    pagesResult = { data: [], error: null }
   })
 
-  it('falls back to nexus_pages keyword lookup scoped by business', async () => {
+  it('grounds on the public business profile only, never internal pages', async () => {
     mockMaybeSingle.mockResolvedValue({
       data: { id: 'biz-1', name: 'Synthex', description: 'Marketing automation for trades.' },
       error: null,
     })
-    pagesResult = {
-      data: [
-        {
-          title: 'Pricing',
-          content: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Plans start at $99/mo.' }] }] },
-        },
-      ],
-      error: null,
-    }
 
     const result = await ground(mockClient, 'founder-1', 'synthex', 'what is your pricing?')
 
     expect(result.source).toBe('keyword')
     expect(result.businessName).toBe('Synthex')
-    // Business profile + matched page
-    expect(result.snippets.length).toBe(2)
+    expect(result.snippets.length).toBe(1)
     expect(result.snippets[0].content).toContain('Marketing automation')
-    expect(result.snippets[1].content).toContain('Plans start at $99/mo.')
-    expect(result.snippets[1].source).toBe('Pricing')
-    // Scoped by founder and resolved business id
-    expect(pagesChain.eq).toHaveBeenCalledWith('founder_id', 'founder-1')
-    expect(pagesChain.eq).toHaveBeenCalledWith('business_id', 'biz-1')
-    expect(pagesChain.or).toHaveBeenCalledWith(expect.stringContaining('title.ilike.%pricing%'))
+    expect(result.snippets[0].source).toBe('business_profile')
+    // nexus_pages (or any non-businesses table) must never have been queried.
+    expect(mockFrom).toHaveBeenCalledWith('businesses')
+    expect(mockFrom).not.toHaveBeenCalledWith('nexus_pages')
   })
 
-  it('returns source "none" when nothing is found', async () => {
+  it('fails closed (source "none", no snippets) when the business key does not resolve', async () => {
     mockMaybeSingle.mockResolvedValue({ data: null, error: null })
     const result = await ground(mockClient, 'founder-1', 'ghost', 'anything at all?')
     expect(result.source).toBe('none')
     expect(result.snippets).toEqual([])
     expect(result.businessName).toBeNull()
+    // Never falls through to any founder-wide table read.
+    expect(mockFrom).not.toHaveBeenCalledWith('nexus_pages')
+  })
+
+  it('returns source "none" when the resolved business has no description', async () => {
+    mockMaybeSingle.mockResolvedValue({
+      data: { id: 'biz-1', name: 'Synthex', description: null },
+      error: null,
+    })
+    const result = await ground(mockClient, 'founder-1', 'synthex', 'hello?')
+    expect(result.source).toBe('none')
+    expect(result.snippets).toEqual([])
+    expect(result.businessName).toBe('Synthex')
   })
 })
 
