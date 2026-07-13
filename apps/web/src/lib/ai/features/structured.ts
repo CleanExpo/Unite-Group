@@ -1,7 +1,7 @@
 // src/lib/ai/features/structured.ts
 // Zod-to-tool_use schema conversion and structured response parsing.
 
-import { type ZodType, type ZodObject, type ZodRawShape, ZodFirstPartyTypeKind } from 'zod'
+import { z, type ZodType, type ZodObject, type ZodRawShape } from 'zod'
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -27,81 +27,35 @@ interface ToolSchema {
   input_schema: ToolInputSchema
 }
 
-// ── Zod introspection helpers ───────────────────────────────────────────────
+// ── JSON Schema shaping ─────────────────────────────────────────────────────
+
+const PROPERTY_KEYS = ['type', 'minimum', 'maximum', 'items', 'enum', 'properties', 'required'] as const
 
 /**
- * Convert a single Zod type to a JSON Schema property descriptor.
+ * Reduce a z.toJSONSchema() node to the minimal property shape Anthropic
+ * tool_use input_schema expects, dropping metadata keys ($schema,
+ * additionalProperties, description, …) recursively.
  */
-function zodTypeToJsonSchema(zodType: ZodType): JsonSchemaProperty {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const def = (zodType as any)._def
+function pruneToProperty(node: unknown): JsonSchemaProperty {
+  const source = (node ?? {}) as Record<string, unknown>
+  const prop: Record<string, unknown> = {}
 
-  switch (def.typeName) {
-    case ZodFirstPartyTypeKind.ZodString:
-      return { type: 'string' }
-
-    case ZodFirstPartyTypeKind.ZodNumber: {
-      const prop: JsonSchemaProperty = { type: 'number' }
-      // Extract min/max checks from Zod's internal checks array
-      if (Array.isArray(def.checks)) {
-        for (const check of def.checks) {
-          if (check.kind === 'min') prop.minimum = check.value
-          if (check.kind === 'max') prop.maximum = check.value
-        }
+  for (const key of PROPERTY_KEYS) {
+    if (!(key in source) || source[key] === undefined) continue
+    if (key === 'items') {
+      prop.items = pruneToProperty(source.items)
+    } else if (key === 'properties') {
+      const nested: Record<string, JsonSchemaProperty> = {}
+      for (const [name, value] of Object.entries(source.properties as Record<string, unknown>)) {
+        nested[name] = pruneToProperty(value)
       }
-      return prop
-    }
-
-    case ZodFirstPartyTypeKind.ZodBoolean:
-      return { type: 'boolean' }
-
-    case ZodFirstPartyTypeKind.ZodArray:
-      return {
-        type: 'array',
-        items: zodTypeToJsonSchema(def.type),
-      }
-
-    case ZodFirstPartyTypeKind.ZodEnum:
-      return {
-        type: 'string',
-        enum: def.values as string[],
-      }
-
-    case ZodFirstPartyTypeKind.ZodOptional:
-      return zodTypeToJsonSchema(def.innerType)
-
-    case ZodFirstPartyTypeKind.ZodObject:
-      return zodObjectToJsonSchema(zodType as ZodObject<ZodRawShape>)
-
-    default:
-      return { type: 'string' }
-  }
-}
-
-/**
- * Convert a ZodObject to a JSON Schema object descriptor with properties and required.
- */
-function zodObjectToJsonSchema(schema: ZodObject<ZodRawShape>): JsonSchemaProperty {
-  const shape = schema.shape
-  const properties: Record<string, JsonSchemaProperty> = {}
-  const required: string[] = []
-
-  for (const [key, value] of Object.entries(shape)) {
-    properties[key] = zodTypeToJsonSchema(value as ZodType)
-
-    // Check if the field is optional
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const fieldDef = (value as any)._def
-    if (fieldDef.typeName !== ZodFirstPartyTypeKind.ZodOptional) {
-      required.push(key)
+      prop.properties = nested
+    } else {
+      prop[key] = source[key]
     }
   }
 
-  return {
-    type: 'object',
-    properties,
-    required,
-  }
+  return prop as unknown as JsonSchemaProperty
 }
 
 // ── Public API ──────────────────────────────────────────────────────────────
@@ -114,14 +68,14 @@ export function zodToToolSchema(
   schema: ZodObject<ZodRawShape>,
   description?: string
 ): ToolSchema {
-  const jsonSchema = zodObjectToJsonSchema(schema)
+  const jsonSchema = pruneToProperty(z.toJSONSchema(schema))
 
   const tool: ToolSchema = {
     name: toolName,
     input_schema: {
       type: 'object',
-      properties: jsonSchema.properties!,
-      required: jsonSchema.required!,
+      properties: jsonSchema.properties ?? {},
+      required: jsonSchema.required ?? [],
     },
   }
 
