@@ -15,15 +15,23 @@ const WEBHOOK_SIGNATURE_PATTERNS = [
   /verifyDecisionCallbackData/,
 ]
 
-const RATE_LIMIT_PATTERN = /withRateLimit|\brateLimit\s*\(|RATE_LIMITS\./
+const RATE_LIMIT_PATTERN = /withRateLimit|\b(?:rateLimit|isRateLimited)\s*\(|RATE_LIMITS\./
 
 const MUTATING_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE'] as const
 
-// This route is an intentionally inactive convergence stub: it returns a
-// not_connected/501 response and records no approval while its legacy ledger
-// subsystem is absent. Keep the exception narrow and explicit so new public
-// mutating routes still fail the checker by default.
-export const DEFAULT_ROUTE_SECURITY_ALLOWLIST = ['/api/telegram/approval-callback'] as const
+// These routes are intentionally reviewed exceptions rather than hidden by a
+// broad wildcard:
+// - Telegram approval callback is an inactive convergence stub that records no
+//   approval while its legacy ledger subsystem is absent.
+// - Frontdesk chat ships dark: feature-flag off returns 404; feature-flag on
+//   returns 503 until config/corpus/keys are provisioned.
+// - Public lead capture is a reviewed website ingress route; proxy middleware
+//   rate-limits it before auth, and the route only writes scoped CRM intake rows.
+export const DEFAULT_ROUTE_SECURITY_ALLOWLIST = [
+  '/api/telegram/approval-callback',
+  '/api/frontdesk/chat',
+  '/api/leads',
+] as const
 
 export interface RouteSecurityViolation {
   path: string

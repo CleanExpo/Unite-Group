@@ -79,7 +79,7 @@ describe('POST /api/leads', () => {
     expect(res.status).toBe(400)
   })
 
-  it('captures a lead with founder scoping, source, and request metadata', async () => {
+  it('captures a lead with founder scoping, source, request metadata, and a sanitized CRM timeline event', async () => {
     responses.crm_leads = [{ data: { id: 'lead-1' }, error: null }]
 
     const res = await POST(
@@ -107,6 +107,36 @@ describe('POST /api/leads', () => {
       user_agent: 'vitest',
       additional_data: { business_key: 'dr' },
     })
+
+    const timelineInsert = inserts.find((i) => i.table === 'agent_actions')
+    expect(timelineInsert?.payload).toMatchObject({
+      source: 'margot',
+      action_type: 'crm_timeline_lead_captured',
+      status: 'done',
+      idea_text: 'Lead captured: Jane via api/leads.',
+      client_id: null,
+      business_id: null,
+      linear_ticket_id: null,
+      parent_id: null,
+      payload: {
+        type: 'lead_captured',
+        category: 'lead',
+        severity: 'normal',
+        actionClass: 'auto',
+        actor: 'website_form',
+        subjectId: 'lead-1',
+        subjectLabel: 'Jane',
+        source: 'api/leads',
+        summary: 'Lead captured: Jane via api/leads.',
+        requiresApproval: false,
+        clientSlug: null,
+        businessSlug: 'dr',
+        metadata: { marketingConsent: true },
+      },
+    })
+    expect(timelineInsert?.payload.payload.metadata).not.toHaveProperty('email')
+    expect(timelineInsert?.payload.payload.metadata).not.toHaveProperty('phone')
+    expect(timelineInsert?.payload.payload.metadata).not.toHaveProperty('ipAddress')
   })
 
   it('returns 500 when the insert fails', async () => {

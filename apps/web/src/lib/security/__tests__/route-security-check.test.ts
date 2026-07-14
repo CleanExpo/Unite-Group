@@ -101,12 +101,35 @@ describe('findUnprotectedMutatingRoutes', () => {
     ])
   })
 
+  it('recognises a local isRateLimited guard on public mint routes', () => {
+    const apiRoot = makeApiRoot()
+    writeRoute(apiRoot, 'agent/voice/signed-url', `
+      function isRateLimited(key: string): boolean {
+        return key.length > 10
+      }
+
+      export async function POST(request: Request) {
+        if (isRateLimited(request.headers.get('x-forwarded-for') ?? 'local')) {
+          return Response.json({ error: 'Too many requests' }, { status: 429 })
+        }
+
+        return Response.json({ ok: true })
+      }
+    `)
+
+    expect(findUnprotectedMutatingRoutes({ apiRoot })).toEqual([])
+  })
+
   it('wires the package security route check to the local route-security CLI', () => {
     const pkg = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf8'))
     expect(pkg.scripts['security:routes-check']).toBe('tsx scripts/check-route-security.ts')
   })
 
-  it('keeps the inactive Telegram approval callback as the only default reviewed route exception', () => {
-    expect(DEFAULT_ROUTE_SECURITY_ALLOWLIST).toEqual(['/api/telegram/approval-callback'])
+  it('keeps only reviewed route exceptions in the default allowlist', () => {
+    expect(DEFAULT_ROUTE_SECURITY_ALLOWLIST).toEqual([
+      '/api/telegram/approval-callback',
+      '/api/frontdesk/chat',
+      '/api/leads',
+    ])
   })
 })
