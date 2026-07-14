@@ -13,6 +13,9 @@ export interface SocialPlatform {
   description: string
   envVarId: string
   envVarSecret: string
+  /** Alias env names honoured when the primary is unset (e.g. FACEBOOK_APP_ID for META_APP_ID). */
+  envVarIdFallback?: string
+  envVarSecretFallback?: string
   setupUrl: string
   docsUrl: string
   scope: string
@@ -29,6 +32,8 @@ export const SOCIAL_PLATFORMS: SocialPlatform[] = [
     description: 'Facebook, Instagram, WhatsApp Business',
     envVarId: 'META_APP_ID',
     envVarSecret: 'META_APP_SECRET',
+    envVarIdFallback: 'FACEBOOK_APP_ID',
+    envVarSecretFallback: 'FACEBOOK_APP_SECRET',
     setupUrl: 'https://developers.facebook.com/apps/',
     docsUrl: 'https://developers.facebook.com/docs/apps/',
     scope: 'pages_read_engagement,pages_manage_posts,instagram_basic,instagram_content_publish,whatsapp_business_management',
@@ -97,17 +102,26 @@ export const SOCIAL_PLATFORMS: SocialPlatform[] = [
 
 // ── Credential Checks ────────────────────────────────────────────────────────
 
+// Reads the primary env var, falling back to the alias when the primary is
+// unset. Values are trimmed; empty strings count as unset.
+function readEnvValue(name: string, fallbackName?: string): string {
+  const primary = process.env[name]?.trim()
+  if (primary) return primary
+  const fallback = fallbackName ? process.env[fallbackName]?.trim() : undefined
+  return fallback || ''
+}
+
 export function isPlatformConfigured(key: string): boolean {
   const platform = SOCIAL_PLATFORMS.find(p => p.key === key)
   if (!platform) return false
 
-  const id = process.env[platform.envVarId]
+  const id = readEnvValue(platform.envVarId, platform.envVarIdFallback)
   if (!id || id.length < 5) return false
 
   // YouTube only needs API key
   if (key === 'youtube') return true
 
-  const secret = process.env[platform.envVarSecret]
+  const secret = readEnvValue(platform.envVarSecret, platform.envVarSecretFallback)
   return Boolean(secret && secret.length > 5)
 }
 
@@ -116,8 +130,8 @@ export function getPlatformCredentials(key: string): { clientId: string; clientS
   if (!platform) return { clientId: '', clientSecret: '' }
 
   return {
-    clientId: process.env[platform.envVarId] ?? '',
-    clientSecret: process.env[platform.envVarSecret] ?? '',
+    clientId: readEnvValue(platform.envVarId, platform.envVarIdFallback),
+    clientSecret: readEnvValue(platform.envVarSecret, platform.envVarSecretFallback),
   }
 }
 
