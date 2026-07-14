@@ -15,6 +15,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import styles from './queue-board.module.css'
 import { subscribeToQueue, type RealtimeClientLike } from '@/lib/command-centre/realtime'
 import { createClient } from '@/lib/supabase/client'
+import { DeckDetails, DeckMoreLine, DECK_LIST_CAP } from '@/components/command-centre/DeckDetails'
 
 interface QueueTask {
   id: string
@@ -302,16 +303,26 @@ export function QueueBoard() {
         </div>
       )}
 
-      {grouped.map((group) => (
-        <section key={group.status} className={styles.group}>
-          <div className={styles.groupHead}>
-            <span className={styles.led} data-status={group.status} aria-hidden="true" />
-            <span className={styles.groupName}>{STATUS_LABEL[group.status] ?? group.status}</span>
-            <span className={styles.groupCount}>{group.items.length}</span>
-          </div>
-
+      {/* Founder feedback 14/07/2026 — lanes collapse to a summary strip
+          (lane · count · newest title); full lane contents live behind the
+          shared DeckDetails disclosure, capped with an honest "+N more".
+          Every task stays reachable; nothing is dropped. */}
+      {grouped.map((group) => {
+        const newest = group.items.reduce(
+          (a, b) => (Date.parse(b.updated_at) > Date.parse(a.updated_at) ? b : a),
+          group.items[0]!,
+        )
+        const shown = group.items.slice(0, DECK_LIST_CAP)
+        return (
+        <DeckDetails
+          key={group.status}
+          title={STATUS_LABEL[group.status] ?? group.status}
+          stats={`${group.items.length} · newest: ${newest.title}`}
+          badge={<span className={styles.led} data-status={group.status} aria-hidden="true" />}
+          testId={`queue-lane-${group.status}`}
+        >
           <ul className={styles.list}>
-            {group.items.map((task) => (
+            {shown.map((task) => (
               <li key={task.id} className={styles.row} style={{ '--rail': riskRail(task.risk_level) } as React.CSSProperties}>
                 <div className={styles.rowTop}>
                   <div className={styles.rowMain}>
@@ -385,8 +396,10 @@ export function QueueBoard() {
               </li>
             ))}
           </ul>
-        </section>
-      ))}
+          <DeckMoreLine total={group.items.length} shown={shown.length} />
+        </DeckDetails>
+        )
+      })}
     </div>
   )
 }

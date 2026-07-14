@@ -42,7 +42,7 @@ what to build, skip, or finish.** It holds the full Definition of GREEN, the Nav
 ## Identity
 Private founder CRM for Phill McGurk. NOT a public SaaS. One user.
 Stack: Next.js 16 App Router (src/ root), React 19, Supabase, Vercel, Tailwind CSS, pnpm monorepo. No FastAPI, no Python backend.
-Design: Scientific Luxury — OLED Black `#050505`, Cyan `#00F5FF`, `rounded-sm` only.
+Design: app-global editorial theme (globals.css light/dark, `rounded-sm` only) plus the command deck's own ratified registers — Gun Metal canvas `#0e1014` with green `#2dbb57` signals (UNI-2339; `command-deck.module.css` + `shell.module.css`) and the opt-in Daylight paper/indigo register behind the Feel toggle (PR #830). The former "Scientific Luxury — OLED Black `#050505`, Cyan `#00F5FF`" palette is retired on the deck; echoes of it in older docs are stale — the CSS modules are the token source of truth.
 Locale: en-AU | DD/MM/YYYY | AUD | AEST/AEDT
 
 ## Agent Routing Rules

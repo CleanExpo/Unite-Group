@@ -68,9 +68,23 @@ export default function LoginPage() {
     const params = new URLSearchParams(queryString);
     if (params.get("access") === "denied") {
       setError(
-        "Access denied. Your account is not on the allow-list. " +
-        "Verify that FOUNDER_USER_ID (or FOUNDER_ALLOWED_EMAILS) in Vercel matches your Supabase user."
+        "Access denied. Your account is not on the founder allow-list. " +
+        "Check FOUNDER_ALLOWED_EMAILS / FOUNDER_ALLOWED_USER_IDS in Vercel, then redeploy."
       );
+      // The denied visitor still has a Supabase session (authenticated, just
+      // not allow-listed) — name the exact rejected identity so the fix is a
+      // 2-minute env edit instead of an archaeology session (2026-07-14).
+      getSupabase()
+        .auth.getUser()
+        .then(({ data }) => {
+          const user = data.user;
+          if (!user) return;
+          setError(
+            `Access denied for ${user.email ?? "an account with no email"} (user id ${user.id}). ` +
+            "This signed-in identity is not on the founder allow-list — add the email to " +
+            "FOUNDER_ALLOWED_EMAILS or the id to FOUNDER_ALLOWED_USER_IDS in Vercel, then redeploy."
+          );
+        });
       return;
     }
     const message = oauthErrorMessage(params.get("error"));

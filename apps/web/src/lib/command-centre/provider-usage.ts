@@ -54,7 +54,7 @@ export interface PlanSeat {
 export const PROVIDERS: ProviderConfig[] = [
   { id: 'claude', label: 'Anthropic API', planType: 'Metered API route', resetCadence: 'provider limits', bestUseLane: 'deep_reasoning', fallback: 'openai', envKeys: ['ANTHROPIC_API_KEY'] },
   { id: 'openai', label: 'OpenAI API', planType: 'Metered API route', resetCadence: 'provider limits', bestUseLane: 'coding', fallback: 'claude', envKeys: ['OPENAI_API_KEY'] },
-  { id: 'minimax', label: 'MiniMax API', planType: 'Metered API route', resetCadence: 'provider limits', bestUseLane: 'video_media', fallback: 'gemini', envKeys: ['MINIMAX_API_KEY'] },
+  { id: 'minimax', label: 'MiniMax API', planType: 'Metered API route', resetCadence: 'provider limits', bestUseLane: 'video_media', fallback: 'gemini', envKeys: ['MINIMAX_API_KEY', 'MINIMAX_PREPAID'] },
   { id: 'gemini', label: 'Gemini API', planType: 'Metered API route', resetCadence: 'provider limits', bestUseLane: 'fast_drafting', fallback: 'openrouter', envKeys: ['GEMINI_API_KEY', 'GOOGLE_API_KEY', 'GOOGLE_GENERATIVE_AI_API_KEY'] },
   { id: 'openrouter', label: 'OpenRouter', planType: 'Credits', resetCadence: 'credit balance', bestUseLane: 'fallback_aggregator', fallback: null, envKeys: ['OPENROUTER_API_KEY'] },
 ]

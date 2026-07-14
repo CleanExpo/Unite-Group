@@ -59,6 +59,9 @@ const PUBLIC_PATHS = [
   '/api/health',
   '/api/cron',
   '/api/webhooks', // External provider callbacks verify their own signatures/secrets
+  '/api/leads',    // Public website lead capture (UNI-2355) — service-role insert, rate-limited above
+  '/api/agent',    // Public site chat agent — auth is the publishable site key, validated in-route (UNI-2359)
+  '/widget',       // Embeddable chat widget script must load on third-party sites (UNI-2359)
   '/robots.txt',
   '/sitemap.xml',
   '/site.webmanifest',
@@ -135,6 +138,13 @@ export async function proxy(request: NextRequest) {
   // 4. Private CRM guard — only explicit founder/invite allow-list can enter
   // ------------------------------------------------------------------
   if (user && !isPublicPath(pathname) && !hasPrivateAccess(user)) {
+    // Log the rejected identity so a lockout is diagnosable from Vercel runtime
+    // logs alone (2026-07-14: a stale FOUNDER_USER_ID denied the real founder
+    // and the logs showed nothing about who was rejected or why).
+    console.error(
+      `[private-access] Denied ${user.email ?? 'unknown-email'} (id ${user.id}) at ${pathname} — identity not on founder allow-list`,
+    );
+
     if (pathname.startsWith('/api/')) {
       return NextResponse.json(
         { error: 'Forbidden', message: 'This Unite-Hub CRM is private.' },

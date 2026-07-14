@@ -630,6 +630,21 @@ test('repository containers and active packages use the reviewed Node 24 runtime
   }
 });
 
+test('npm packages on the native TypeScript compiler keep all-platform lockfile coverage', () => {
+  const config = JSON.parse(readFileSync(join(REPOSITORY_ROOT, 'config/nexus-project-readiness.json'), 'utf8'));
+  for (const activePackage of config.activePackages) {
+    if (activePackage.manager !== 'npm') continue;
+    const manifest = JSON.parse(readFileSync(join(REPOSITORY_ROOT, activePackage.path, 'package.json'), 'utf8'));
+    const typescriptRange = manifest.devDependencies?.typescript ?? '';
+    if (!/^[~^]?(?:[7-9]|\d{2,})\./.test(typescriptRange)) continue;
+    const lockfile = readFileSync(join(REPOSITORY_ROOT, activePackage.path, 'package-lock.json'), 'utf8');
+    assert.ok(
+      lockfile.includes('node_modules/@typescript/typescript-linux-x64'),
+      `${activePackage.path} lockfile must carry the linux-x64 native compiler so ubuntu CI can npm ci`,
+    );
+  }
+});
+
 test('keeps configuration failure visible and fails the gate closed', () => {
   const root = makeRoot();
   write(root, 'config/nexus-project-readiness.json', '{not-json\n');

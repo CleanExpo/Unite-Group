@@ -2,37 +2,43 @@
 //
 // Design-system primitives for the Operator Execution Surface.
 // Server-component-safe: no 'use client', no hooks, no event handlers.
-// Centralises the bespoke GitHub-dark theme so the page carries semantic tone
-// props instead of 134 scattered inline styles.
+// Centralises the theme so the page carries semantic tone props instead of
+// 134 scattered inline styles. Palette = the command-deck token values
+// (command-deck.module.css --deck-*): OLED-adjacent panels, WCAG-AA text
+// accents, rounded-sm (2px), mono accents.
 
 import type { AgentConnectionState } from '@/lib/operator-gateway/presence'
 
 // ---------------------------------------------------------------------------
-// Theme tokens — the single home for the GitHub-dark palette.
+// Theme tokens — mapped 1:1 onto the command-deck token values.
 // ---------------------------------------------------------------------------
 
 export const theme = {
-  text: '#e6edf3',
-  muted: '#8b949e',
-  surface: '#0d1117',
-  border: '#30363d',
-  borderSoft: '#21262d',
-  ok: '#3fb950',
-  warn: '#d29922',
-  warnAlt: '#f97316',
-  bad: '#f85149',
-  info: '#16a34a',
+  text: '#f0f3f7', // --deck-text
+  muted: '#a6afbc', // --deck-muted
+  surface: '#1c2230', // --deck-panel
+  border: 'rgba(255, 255, 255, 0.10)', // --deck-line
+  borderSoft: 'rgba(255, 255, 255, 0.05)', // --deck-line-soft
+  ok: '#34d399', // --deck-cyan-text (go)
+  warn: '#f0a94c', // --deck-amber-text (caution)
+  warnAlt: '#f0a94c', // nearest deck token: --deck-amber-text (no orange text token)
+  bad: '#f87171', // --deck-abort-text
+  info: '#34d399', // nearest deck token: --deck-cyan-text
 } as const
+
+export const monoFont = 'ui-monospace, SFMono-Regular, monospace'
 
 export type Tone = 'ok' | 'warn' | 'bad' | 'muted' | 'info'
 
 // bg / fg / border per tone — used by Pill and tone-coloured text.
+// Fills are alpha washes of the deck LED fills (--deck-go / --deck-amber /
+// --deck-abort); text uses the AA --deck-*-text variants.
 const toneSwatch: Record<Tone, { bg: string; fg: string; bd: string }> = {
-  ok: { bg: '#12361f', fg: '#3fb950', bd: '#238636' },
-  bad: { bg: '#3a1d1d', fg: '#f85149', bd: '#da3633' },
-  warn: { bg: '#3a300f', fg: '#d29922', bd: '#9e6a03' },
-  info: { bg: '#071b24', fg: '#16a34a', bd: '#00a3b5' },
-  muted: { bg: '#161b22', fg: '#8b949e', bd: '#30363d' },
+  ok: { bg: 'rgba(45, 187, 87, 0.12)', fg: '#34d399', bd: 'rgba(45, 187, 87, 0.35)' },
+  bad: { bg: 'rgba(229, 72, 77, 0.12)', fg: '#f87171', bd: 'rgba(229, 72, 77, 0.4)' },
+  warn: { bg: 'rgba(244, 130, 15, 0.12)', fg: '#f0a94c', bd: 'rgba(244, 130, 15, 0.4)' },
+  info: { bg: 'rgba(45, 187, 87, 0.08)', fg: '#34d399', bd: 'rgba(45, 187, 87, 0.25)' },
+  muted: { bg: 'rgba(255, 255, 255, 0.04)', fg: '#a6afbc', bd: 'rgba(255, 255, 255, 0.10)' },
 }
 
 // ---------------------------------------------------------------------------
@@ -66,7 +72,7 @@ export const inputStyle: React.CSSProperties = {
   width: '100%',
   border: `1px solid ${theme.border}`,
   borderRadius: 2,
-  background: '#fffdf7',
+  background: '#232b3a', // --deck-panel-hi (was an off-system near-white)
   color: theme.muted,
   padding: '0.65rem 0.75rem',
 }
@@ -101,9 +107,10 @@ export function Pill({ tone, children }: { tone: Tone; children: React.ReactNode
       style={{
         display: 'inline-block',
         padding: '0.12rem 0.5rem',
-        borderRadius: 999,
+        borderRadius: 2, // deck standard: rounded-sm
         fontSize: 12,
         fontWeight: 700,
+        fontFamily: monoFont, // deck standard: mono accents
         background: bg,
         color: fg,
         border: `1px solid ${bd}`,
@@ -226,6 +233,7 @@ export function MetricCard({
           fontSize: 11,
           textTransform: 'uppercase',
           letterSpacing: '0.06em',
+          fontFamily: monoFont,
           color: theme.muted,
         }}
       >
@@ -234,7 +242,7 @@ export function MetricCard({
       <div style={{ fontSize: 20, fontWeight: 700, color: accent, margin: '0.2rem 0' }}>
         {value}
       </div>
-      {hint ? <div style={{ fontSize: 12, color: theme.muted }}>{hint}</div> : null}
+      {hint ? <div style={{ fontSize: 12, fontFamily: monoFont, color: theme.muted }}>{hint}</div> : null}
     </div>
   )
 }
@@ -284,10 +292,10 @@ export function CollapsibleGroup({
         }}
       >
         <span style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <span aria-hidden style={{ color: theme.muted, fontSize: 12 }}>▸</span>
+          <span aria-hidden style={{ color: theme.ok, fontSize: 12, fontFamily: monoFont }}>▸</span>
           <span style={{ fontSize: 16, fontWeight: 700 }}>{title}</span>
         </span>
-        <span style={{ fontSize: 13, color: accent }}>{summary}</span>
+        <span style={{ fontSize: 13, fontFamily: monoFont, letterSpacing: '0.03em', color: accent }}>{summary}</span>
       </summary>
       <div style={{ padding: '0 1.25rem 1.1rem', borderTop: `1px solid ${theme.borderSoft}` }}>
         {children}

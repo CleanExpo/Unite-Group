@@ -13,9 +13,13 @@ function secret(): string {
 /**
  * Creates a signed state string for OAuth authorize requests.
  * The HMAC ensures the state cannot be forged or tampered with without the secret.
- * NOTE: this does NOT prevent replay — there is no nonce or expiry, so a captured,
- * validly-signed state can be re-submitted. Add a nonce/timestamp to the payload and
- * verify it on the callback if replay protection is required.
+ *
+ * The HMAC alone does NOT prevent CSRF or replay. All OAuth flows here therefore
+ * put `founderId`, a `nonce`, and an `expiresAt` into the payload and validate
+ * them on the callback (founderId must match the session; state must be unexpired).
+ * That gives short-window replay resistance + session binding; it is NOT a
+ * server-side one-time-use nonce store (a captured state is reusable until it
+ * expires). Follow this pattern for any new flow — see e.g. `auth/tiktok/*`.
  */
 export function signOAuthState(payload: Record<string, string>): string {
   const data = Buffer.from(JSON.stringify(payload)).toString('base64url')

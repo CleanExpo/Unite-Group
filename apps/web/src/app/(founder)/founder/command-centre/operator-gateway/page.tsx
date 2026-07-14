@@ -6,6 +6,7 @@
 
 export const dynamic = 'force-dynamic'
 
+import { Chakra_Petch } from 'next/font/google'
 import { getUser, createClient } from '@/lib/supabase/server'
 import { getCommandCentreOperatorSurfaceView } from '@/lib/operator-gateway/command-centre'
 import {
@@ -34,25 +35,34 @@ import {
   theme,
   type Tone,
 } from './_components'
+import { DeckDetails, DeckMoreLine, DECK_LIST_CAP } from '@/components/command-centre/DeckDetails'
+import deckStyles from '../command-deck.module.css'
+
+// Deck typeface — same face + variable the command-centre deck loads, so the
+// command-deck.module.css `--font-chakra` stack resolves on this sub-route too.
+const chakra = Chakra_Petch({
+  weight: ['400', '500', '600', '700'],
+  subsets: ['latin'],
+  variable: '--font-chakra',
+  display: 'swap',
+})
 
 const wrap: React.CSSProperties = {
   maxWidth: 1180,
   margin: '0 auto',
-  padding: '2rem 1.25rem 3rem',
-  fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-  color: theme.text,
 }
+// Banner fills are alpha washes of the deck LED accents (--deck-go / --deck-amber).
 const banner: React.CSSProperties = {
-  background: '#071b24',
-  border: '1px solid #16a34a',
+  background: 'rgba(45, 187, 87, 0.08)',
+  border: '1px solid rgba(45, 187, 87, 0.35)',
   borderRadius: 2,
   padding: '0.85rem 1rem',
   marginBottom: '1rem',
   fontSize: 14,
 }
 const warning: React.CSSProperties = {
-  background: '#271506',
-  border: '1px solid #f97316',
+  background: 'rgba(244, 130, 15, 0.08)',
+  border: '1px solid rgba(244, 130, 15, 0.4)',
   borderRadius: 2,
   padding: '0.85rem 1rem',
   marginBottom: '1.25rem',
@@ -114,6 +124,7 @@ export default async function OperatorGatewayPage() {
   const jobsHint = `source: ${view.jobQueue.source} · dry-run only`
 
   return (
+    <div className={`${chakra.variable} ${deckStyles.deck}`}>
     <div style={wrap}>
       <h1 style={{ fontSize: 28, marginBottom: '0.25rem' }}>Nexus Command Centre · Operator Execution Surface</h1>
       <p style={{ color: theme.muted, marginTop: 0 }}>
@@ -410,7 +421,13 @@ export default async function OperatorGatewayPage() {
           <Card style={{ marginBottom: 0 }} aria-label="operator job queue">
             <h3 style={{ fontSize: 16, marginTop: 0 }}>Operator job queue · live (production)</h3>
             <p style={{ color: theme.ok, fontSize: 13 }}>Read live from prod operator_jobs (founder-scoped). The agent claims queued jobs and runs SAFE lanes only (read-only diagnostics); hard-gated tasks are blocked with an event. The buttons below remain dry-run / policy-foundation only.</p>
-            {jobsView?.jobs.length ? jobsView.jobs.map((job) => (
+            {jobsView?.jobs.length ? (
+              <DeckDetails
+                title="Jobs"
+                stats={`${jobsView.jobs.length} job${jobsView.jobs.length === 1 ? '' : 's'} · dry-run only`}
+                testId="operator-jobs-details"
+              >
+                {jobsView.jobs.slice(0, DECK_LIST_CAP).map((job) => (
               <div key={job.id} style={{ borderBottom: `1px solid ${theme.borderSoft}`, padding: '0.6rem 0' }}>
                 <div><b>{job.title}</b> <Pill tone="info">{job.status}</Pill></div>
                 <div style={{ color: theme.muted, fontSize: 13 }}>{job.laneId} · {job.taskType}</div>
@@ -426,7 +443,7 @@ export default async function OperatorGatewayPage() {
                     disabled={!view.dryRunExecution.enabled || job.status !== 'planned' || job.externalActionRequested || job.productionActionRequested || job.apiKeyRequested}
                     style={{
                       ...inputStyle,
-                      color: '#15803d',
+                      color: theme.ok,
                       fontWeight: 700,
                       opacity: view.dryRunExecution.enabled && job.status === 'planned' ? 1 : 0.6,
                       cursor: view.dryRunExecution.enabled && job.status === 'planned' ? 'pointer' : 'not-allowed',
@@ -461,14 +478,21 @@ export default async function OperatorGatewayPage() {
                   </button>
                 </form>
               </div>
-            )) : <p style={{ color: theme.muted, fontSize: 14 }}>No operator jobs yet. Queue one (operator_jobs, status=queued) and the agent claims it on its next sweep.</p>}
+                ))}
+                <DeckMoreLine total={jobsView.jobs.length} shown={Math.min(jobsView.jobs.length, DECK_LIST_CAP)} />
+              </DeckDetails>
+            ) : <p style={{ color: theme.muted, fontSize: 14 }}>No operator jobs yet. Queue one (operator_jobs, status=queued) and the agent claims it on its next sweep.</p>}
           </Card>
 
           <Card style={{ marginBottom: 0 }} aria-label="operator job activity">
             <h3 style={{ fontSize: 16, marginTop: 0 }}>Recent job activity</h3>
             {jobEvents.length ? (
-              <div>
-                {jobEvents.slice(0, 20).map((ev) => (
+              <DeckDetails
+                title="Events"
+                stats={`${jobEvents.length} event${jobEvents.length === 1 ? '' : 's'} · newest first`}
+                testId="operator-job-events-details"
+              >
+                {jobEvents.slice(0, DECK_LIST_CAP).map((ev) => (
                   <div key={ev.id} style={{ borderBottom: `1px solid ${theme.borderSoft}`, padding: '0.45rem 0', fontSize: 13 }}>
                     <span style={{ color: theme.muted, fontFamily: 'var(--font-mono, monospace)' }}>{new Date(ev.at).toLocaleTimeString('en-AU', { timeZone: 'Australia/Brisbane' })}</span>{' '}
                     <Pill tone={ev.eventType === 'gate_blocked' ? 'bad' : ev.toStatus === 'done' ? 'ok' : 'info'}>{ev.eventType}</Pill>{' '}
@@ -478,7 +502,8 @@ export default async function OperatorGatewayPage() {
                     <span>{ev.detail}</span>
                   </div>
                 ))}
-              </div>
+                <DeckMoreLine total={jobEvents.length} shown={Math.min(jobEvents.length, DECK_LIST_CAP)} />
+              </DeckDetails>
             ) : (
               <p style={{ color: theme.muted, fontSize: 14 }}>No job events yet. Agent claim / execution / block events stream here.</p>
             )}
@@ -818,6 +843,7 @@ export default async function OperatorGatewayPage() {
           </div>
         </Card>
       </CollapsibleGroup>
+    </div>
     </div>
   )
 }

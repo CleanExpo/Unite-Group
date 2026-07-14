@@ -64,6 +64,12 @@ describe('readProviderSignalsFromEnv — no secret leakage', () => {
     expect(PROVIDERS.find((provider) => provider.id === 'openai')?.label).toBe('OpenAI API')
     expect(JSON.stringify(PROVIDERS)).not.toMatch(/Max subscription|OpenAI Max|Claude Max/)
   })
+
+  it('honours the MINIMAX_PREPAID alias when MINIMAX_API_KEY is unset', () => {
+    expect(readProviderSignalsFromEnv({ MINIMAX_PREPAID: 'mm-SECRET' }).minimax.configured).toBe(true)
+    // Empty string counts as unset — on the alias too.
+    expect(readProviderSignalsFromEnv({ MINIMAX_API_KEY: '', MINIMAX_PREPAID: '' }).minimax.configured).toBe(false)
+  })
 })
 
 describe('buildProviderCockpit', () => {

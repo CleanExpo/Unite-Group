@@ -40,8 +40,10 @@ import { ActivityFeedPanel } from '@/components/command-centre/activity/Activity
 import { CrmAutonomyPanel } from '@/components/command-centre/crm-autonomy/CrmAutonomyPanel'
 import { DailyCrmDigestPanel } from '@/components/command-centre/digest/DailyCrmDigestPanel'
 import { MeshFleetTile } from '@/components/command-centre/mesh-fleet/MeshFleetTile'
+import { DeckDetails, DeckMoreLine, DECK_LIST_CAP } from '@/components/command-centre/DeckDetails'
 import { PortfolioHealthTile } from '@/components/command-centre/portfolio-health/PortfolioHealthTile'
 import { WikiGraphTile } from '@/components/command-centre/wiki-graph/WikiGraphTile'
+import { CostAllocationTile } from '@/components/command-centre/cost-allocation/CostAllocationTile'
 import { ProjectIntegrationWorkPacketControl } from './ProjectIntegrationWorkPacketControl'
 import { WikiEnhanceControl } from './WikiEnhanceControl'
 import { CommandSteps } from './CommandSteps'
@@ -49,6 +51,7 @@ import { CommandSteps } from './CommandSteps'
 // Priorities (Action Queue) and Evidence Stream sections. Fonts scoped to
 // this route only via next/font/google variables (see shell.module.css).
 import { HeroBand } from './HeroBand'
+import { DeckThemeShell } from './DeckThemeShell'
 import shell from './shell.module.css'
 // UNI-2339 slice 2 — Operate launch-pad (static BUSINESSES registry),
 // PipelineBoard revived read-only (server-side crm_opportunities read, no
@@ -183,7 +186,7 @@ export default async function CommandDeckPage() {
   const deckLabel = hasDegradedManifest ? 'Some manifests degraded' : 'Deck loaded'
 
   return (
-    <div className={`${chakra.variable} ${syne.variable} ${jbMono.variable} ${styles.deck}`}>
+    <DeckThemeShell className={`${chakra.variable} ${syne.variable} ${jbMono.variable} ${styles.deck}`}>
       <CommandPalette
         projects={projects.map((p) => ({ name: p.name, status: p.status, production_url: p.production_url }))}
         tools={tools.map((t) => ({ tool_key: t.tool_key, source: t.source, risk_class: t.risk_class }))}
@@ -398,6 +401,11 @@ export default async function CommandDeckPage() {
         <ProviderUsageCockpit />
       </section>
 
+      {/* Cost allocation — metering spend per source vs revenue, current month. */}
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.095s' }}>
+        <CostAllocationTile />
+      </section>
+
       {/* Consolidated from the retired US command-center page (self-contained panels). */}
       <section className={`${styles.reveal}`} style={{ animationDelay: '0.10s' }}>
         <BusinessFocusRail />
@@ -517,14 +525,21 @@ export default async function CommandDeckPage() {
                 {status.error ? (
                   <p className={styles.ppurpose}>Manifest unavailable: {status.error}</p>
                 ) : (
+                  // Founder feedback 14/07/2026 — cap the per-manifest connection
+                  // dump; the card already leads with the usable/blocked/mock
+                  // summary counts above.
                   <div className={styles.connectionList}>
-                    {status.connections.map((connection) => (
+                    {status.connections.slice(0, DECK_LIST_CAP).map((connection) => (
                       <div key={connection.id} className={styles.connectionRow}>
                         <span className={styles.led} data-state={connectionLedState(connection.state)} />
                         <span className={styles.connectionName}>{connection.label}</span>
                         <span className={styles.connectionState}>{connection.state}</span>
                       </div>
                     ))}
+                    <DeckMoreLine
+                      total={status.connections.length}
+                      shown={Math.min(status.connections.length, DECK_LIST_CAP)}
+                    />
                   </div>
                 )}
 
@@ -558,24 +573,34 @@ export default async function CommandDeckPage() {
           </span>
         </div>
 
-        <div className={styles.toolGrid}>
-          {tools.map((tool) => (
-            <div
-              key={tool.tool_key}
-              className={styles.toolRow}
-              style={{ '--rail': railFor(tool.risk_class) } as React.CSSProperties}
-            >
-              <div style={{ minWidth: 0 }}>
-                <div className={styles.toolKey}>{tool.tool_key}</div>
-                <div className={styles.toolDesc}>{tool.description}</div>
+        {/* Founder feedback 14/07/2026 — the raw tool_key dump collapses behind
+            the shared DeckDetails disclosure (summary = counts already shown in
+            the section head), capped with an honest "+N more". */}
+        <DeckDetails
+          title="Tool catalogue"
+          stats={`${tools.length} tools · list-only`}
+          testId="capability-bus-disclosure"
+        >
+          <div className={styles.toolGrid}>
+            {tools.slice(0, DECK_LIST_CAP).map((tool) => (
+              <div
+                key={tool.tool_key}
+                className={styles.toolRow}
+                style={{ '--rail': railFor(tool.risk_class) } as React.CSSProperties}
+              >
+                <div style={{ minWidth: 0 }}>
+                  <div className={styles.toolKey}>{tool.tool_key}</div>
+                  <div className={styles.toolDesc}>{tool.description}</div>
+                </div>
+                <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                  <span className={styles.riskTag}>{tool.risk_class}</span>
+                  {tool.approval_required && <span className={styles.approval}>approval</span>}
+                </div>
               </div>
-              <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                <span className={styles.riskTag}>{tool.risk_class}</span>
-                {tool.approval_required && <span className={styles.approval}>approval</span>}
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+          <DeckMoreLine total={tools.length} shown={Math.min(tools.length, DECK_LIST_CAP)} />
+        </DeckDetails>
       </section>
 
       {/* ── Operating System Health (Lane 16) — canvas glass chrome (UNI-2339 slice 2) ── */}
@@ -691,6 +716,6 @@ export default async function CommandDeckPage() {
 
       {/* 1-2-3 guided actions now sit below the live deck (founder lead-with-ops). */}
       <CommandSteps />
-    </div>
+    </DeckThemeShell>
   )
 }

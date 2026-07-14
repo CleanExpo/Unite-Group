@@ -1,56 +1,106 @@
-// POST /api/telegram/approval-callback — Telegram inline-keyboard decision callback.
+// POST /api/telegram/approval-callback — Telegram inline-button decision webhook.
 //
-// Ported from apps/authority-legacy/src/app/api/telegram/approval-callback/route.ts
-// (P4 — docs/convergence/migration-map.md).
+// WS2 P5: closes the Margot loop. A signed approve/reject button press is
+// verified, then routed THROUGH the approval gate (approve → send via
+// gmail.sendReply; reject → rejected). Replaces the former 501 stub — the
+// decision path is now the tested lib/margot gate, not the un-ported empire
+// ledger. DORMANT until MARGOT_DRAFTS_ENABLED=true and the margot migration is
+// applied. No autonomous send — a draft only sends on an explicit approval.
 //
-// ADAPTATION (apps/web):
-//   The legacy route is a thin transport over the Phase-1I "personal
-//   intelligence" decision-ledger subsystem
-//   (@/lib/personal-intelligence/phase-1i-decision-ledger and
-//   @/lib/personal-intelligence/approval-gate) plus on-disk gate/ledger JSON
-//   files under docs/margot/personal-intelligence/. NONE of that subsystem has
-//   been migrated into apps/web, and porting it is well outside this Stripe/
-//   webhook scope.
-//
-//   Per the convergence rule for "route depends on a table/module apps/web
-//   doesn't have", this route degrades HONESTLY: it verifies the Telegram bot
-//   token is configured, then returns a clear 501 not_connected with a TODO,
-//   rather than inventing the ledger or silently succeeding. No fake approval
-//   is ever recorded.
-//   TODO(convergence): port src/lib/personal-intelligence/* (approval-gate +
-//   phase-1i-decision-ledger) and the on-disk gate/ledger files, then restore
-//   the verify → append-decision → editMessage flow. See docs/convergence/migration-map.md.
+// Webhook auth (not session): the HMAC-signed callback_data (forgery-proof) +
+// the founder chat-id allowlist. Founder actor = FOUNDER_USER_ID (single-tenant).
 
 import { NextRequest, NextResponse } from 'next/server';
 
+import { createMargotDraftStore } from '@/lib/margot/draft-store';
+import { sendStoredDraft } from '@/lib/margot/providers';
+import { handleTelegramDecision } from '@/lib/margot/telegram-approval';
+
 export const dynamic = 'force-dynamic';
 
-export async function POST(_req: NextRequest) {
-  void _req;
+async function answerCallback(token: string, callbackId: string, text: string) {
+  await fetch(`https://api.telegram.org/bot${token}/answerCallbackQuery`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ callback_query_id: callbackId, text }),
+  }).catch(() => {});
+}
 
+export async function POST(req: NextRequest) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const signingKey = process.env.TELEGRAM_DECISION_SIGNING_KEY;
-
   if (!token || !signingKey) {
     return NextResponse.json(
       {
         ok: false,
         code: 'ERR_INTERNAL',
-        reason: 'TELEGRAM_BOT_TOKEN / TELEGRAM_DECISION_SIGNING_KEY not configured',
+        reason:
+          'TELEGRAM_BOT_TOKEN / TELEGRAM_DECISION_SIGNING_KEY not configured',
       },
-      { status: 503 },
+      { status: 503 }
     );
   }
 
-  // Decision-ledger subsystem not migrated into apps/web.
-  return NextResponse.json(
-    {
+  if (process.env.MARGOT_DRAFTS_ENABLED !== 'true') {
+    return NextResponse.json({
       ok: false,
-      code: 'not_connected',
-      reason:
-        'personal-intelligence decision-ledger subsystem not migrated in apps/web; ' +
-        'approval callbacks cannot be recorded. See docs/convergence/migration-map.md.',
+      dormant: true,
+      reason: 'MARGOT_DRAFTS_ENABLED is not true',
+    });
+  }
+
+  const founderId = process.env.FOUNDER_USER_ID;
+  if (!founderId) {
+    return NextResponse.json(
+      { ok: false, reason: 'FOUNDER_USER_ID not set' },
+      { status: 500 }
+    );
+  }
+
+  const update = (await req.json().catch(() => null)) as {
+    callback_query?: {
+      id: string;
+      data?: string;
+      message?: { chat?: { id?: number | string } };
+    };
+  } | null;
+
+  const cq = update?.callback_query;
+  if (!cq?.data) {
+    return NextResponse.json({ ok: false, reason: 'no callback decision' });
+  }
+
+  // Only accept decisions from the founder's own chat.
+  const chatId = String(cq.message?.chat?.id ?? '');
+  if (process.env.TELEGRAM_CHAT_ID && chatId !== process.env.TELEGRAM_CHAT_ID) {
+    return NextResponse.json(
+      { ok: false, reason: 'chat not permitted' },
+      { status: 403 }
+    );
+  }
+
+  const store = createMargotDraftStore();
+  const result = await handleTelegramDecision(cq.data, signingKey, founderId, {
+    getDraft: id => store.getDraft(id, founderId),
+    send: async draft => {
+      const stored = await store.getDraft(draft.id, founderId);
+      if (!stored) throw new Error('draft no longer available to send');
+      await sendStoredDraft(stored, draft);
     },
-    { status: 501 },
+    record: approval => store.recordApproval(approval, founderId),
+    markSent: id => store.markSent(id),
+    persistRejected: id => store.markRejected(id),
+  });
+
+  await answerCallback(
+    token,
+    cq.id,
+    result.ok
+      ? result.action === 'approve'
+        ? 'Approved and sent.'
+        : 'Rejected.'
+      : `No action: ${result.reason ?? 'unavailable'}`
   );
+
+  return NextResponse.json(result);
 }

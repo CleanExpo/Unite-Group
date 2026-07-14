@@ -6,7 +6,7 @@
 // destinations when they were maintained as separate hardcoded arrays).
 
 import type { LucideIcon } from 'lucide-react'
-import { BookOpen, Columns2, Lock, FileText, ClipboardCheck, Scale, Share2, FlaskConical, Users, Settings, Receipt, Mail, CalendarDays, Brain, Sparkles, BarChart2, Megaphone, ScrollText, Building2, Library, Command, Bot, NotebookText, GitPullRequest, TrendingUp, Clapperboard } from 'lucide-react'
+import { BookOpen, Columns2, Lock, FileText, ClipboardCheck, Scale, Share2, FlaskConical, Users, Settings, Receipt, Mail, CalendarDays, Brain, Sparkles, BarChart2, Megaphone, ScrollText, Building2, Library, Command, Bot, NotebookText, GitPullRequest, TrendingUp, Clapperboard, Radar, Timer, SquareKanban, MessagesSquare, FolderOpen } from 'lucide-react'
 
 export interface FounderNavItem {
   href: string
@@ -24,6 +24,8 @@ export const FOUNDER_NAV_GROUPS = [
     label: null,
     items: [
       { href: '/founder/command-centre', label: 'Command Centre',  icon: Command },
+      { href: '/founder/agents',         label: 'Agents',          icon: Radar },
+      { href: '/founder/chat',           label: 'Chat',            icon: MessagesSquare },
       { href: '/founder/nexus',          label: 'PR Approvals',    icon: GitPullRequest },
     ],
   },
@@ -40,6 +42,7 @@ export const FOUNDER_NAV_GROUPS = [
     label: 'Pipeline',
     items: [
       { href: '/founder/kanban',        label: 'Kanban',        icon: Columns2 },
+      { href: '/founder/kanban/own',    label: 'My Board',      icon: SquareKanban },
       { href: '/founder/opportunities', label: 'Opportunities', icon: TrendingUp },
       { href: '/founder/contacts',      label: 'Contacts',      icon: Users },
       { href: '/founder/email',    label: 'Email',    icon: Mail },
@@ -68,6 +71,7 @@ export const FOUNDER_NAV_GROUPS = [
     label: 'Knowledge',
     items: [
       { href: '/founder/notes',             label: 'Notes',             icon: FileText },
+      { href: '/founder/content',           label: 'Content',           icon: FolderOpen },
       { href: '/founder/knowledge-console', label: 'Knowledge Console', icon: Library },
       { href: '/founder/wiki',              label: 'Wiki',              icon: NotebookText },
       { href: '/founder/pi',                label: 'Pi',                icon: Bot },
@@ -77,6 +81,7 @@ export const FOUNDER_NAV_GROUPS = [
   {
     label: 'System',
     items: [
+      { href: '/founder/schedule', label: 'Schedule', icon: Timer },
       { href: '/founder/vault',    label: 'Vault',    icon: Lock },
       { href: '/founder/settings', label: 'Settings', icon: Settings },
     ],
