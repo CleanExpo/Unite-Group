@@ -138,6 +138,13 @@ export async function proxy(request: NextRequest) {
   // 4. Private CRM guard — only explicit founder/invite allow-list can enter
   // ------------------------------------------------------------------
   if (user && !isPublicPath(pathname) && !hasPrivateAccess(user)) {
+    // Log the rejected identity so a lockout is diagnosable from Vercel runtime
+    // logs alone (2026-07-14: a stale FOUNDER_USER_ID denied the real founder
+    // and the logs showed nothing about who was rejected or why).
+    console.error(
+      `[private-access] Denied ${user.email ?? 'unknown-email'} (id ${user.id}) at ${pathname} — identity not on founder allow-list`,
+    );
+
     if (pathname.startsWith('/api/')) {
       return NextResponse.json(
         { error: 'Forbidden', message: 'This Unite-Hub CRM is private.' },
