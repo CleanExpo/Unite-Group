@@ -5,29 +5,42 @@
 // No external connections, no MCP, no remote gateway, no messaging-channel activation,
 // no secret values. Every external surface renders as inert (not connected / none enabled).
 // Auth enforced by the (founder) layout.
+//
+// Presentation: command-deck standard (summary-first, founder feedback 14/07/2026) —
+// OLED ground + tokens via the shared command-deck.module.css register, mono accents,
+// rounded-sm (2px). The inert/placeholder mirror sections collapse behind the shared
+// DeckDetails disclosure with honest one-line summaries. Data logic unchanged.
 
 export const dynamic = 'force-dynamic'
 
+import { Chakra_Petch } from 'next/font/google'
 import { getControlPanelView } from '@/lib/operator-gateway/control-panel'
+import { DeckDetails, DeckMoreLine, DECK_LIST_CAP } from '@/components/command-centre/DeckDetails'
+import deckStyles from '../command-deck.module.css'
+
+// Deck typeface — same face + variable the command-centre deck loads, so the
+// command-deck.module.css `--font-chakra` stack resolves on this sub-route too.
+const chakra = Chakra_Petch({
+  weight: ['400', '500', '600', '700'],
+  subsets: ['latin'],
+  variable: '--font-chakra',
+  display: 'swap',
+})
+
+// Deck token values (command-deck.module.css) for the inline-styled bits.
+const mono = 'ui-monospace, SFMono-Regular, monospace'
+const muted = '#a6afbc' // --deck-muted
+const okText = '#34d399' // --deck-cyan-text
 
 const wrap: React.CSSProperties = {
   maxWidth: 1040,
   margin: '0 auto',
-  padding: '2rem 1.25rem',
-  fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-  color: '#e6edf3',
 }
-const card: React.CSSProperties = {
-  background: '#0d1117',
-  border: '1px solid #30363d',
-  borderRadius: 10,
-  padding: '1rem 1.25rem',
-  marginBottom: '1.25rem',
-}
+// Banner fill is an alpha wash of the deck go LED (--deck-go).
 const banner: React.CSSProperties = {
-  background: '#15233b',
-  border: '1px solid #1f6feb',
-  borderRadius: 10,
+  background: 'rgba(45, 187, 87, 0.08)',
+  border: '1px solid rgba(45, 187, 87, 0.35)',
+  borderRadius: 2,
   padding: '0.75rem 1rem',
   marginBottom: '1.5rem',
   fontSize: 14,
@@ -37,30 +50,33 @@ const th: React.CSSProperties = {
   fontSize: 12,
   textTransform: 'uppercase',
   letterSpacing: '0.04em',
-  color: '#8b949e',
+  fontFamily: mono,
+  color: muted,
   padding: '0.4rem 0.6rem',
-  borderBottom: '1px solid #30363d',
+  borderBottom: '1px solid rgba(255, 255, 255, 0.10)', // --deck-line
 }
 const td: React.CSSProperties = {
   padding: '0.5rem 0.6rem',
-  borderBottom: '1px solid #21262d',
+  borderBottom: '1px solid rgba(255, 255, 255, 0.05)', // --deck-line-soft
   fontSize: 14,
   verticalAlign: 'top',
 }
 
 function riskStyle(risk: string): React.CSSProperties {
+  // Alpha washes of the deck LED fills; text = the AA --deck-*-text variants.
   const map: Record<string, [string, string, string]> = {
-    none: ['#12361f', '#3fb950', '#238636'],
-    low: ['#3a300f', '#d29922', '#9e6a03'],
-    high: ['#3a1d1d', '#f85149', '#da3633'],
+    none: ['rgba(45, 187, 87, 0.12)', '#34d399', 'rgba(45, 187, 87, 0.35)'],
+    low: ['rgba(244, 130, 15, 0.12)', '#f0a94c', 'rgba(244, 130, 15, 0.4)'],
+    high: ['rgba(229, 72, 77, 0.12)', '#f87171', 'rgba(229, 72, 77, 0.4)'],
   }
   const [bg, fg, bd] = map[risk] ?? map.none
   return {
     display: 'inline-block',
     padding: '0.1rem 0.5rem',
-    borderRadius: 999,
+    borderRadius: 2, // deck standard: rounded-sm
     fontSize: 12,
     fontWeight: 600,
+    fontFamily: mono,
     background: bg,
     color: fg,
     border: `1px solid ${bd}`,
@@ -70,100 +86,135 @@ function riskStyle(risk: string): React.CSSProperties {
 export default function HermesControlPanelPage() {
   const view = getControlPanelView()
   const v = view.version
+  const posture = v.securityPosture
+
+  // Presentation-only summary counts for the disclosure headlines (honest,
+  // derived from the same read-only view — no data logic change).
+  const hardeningsOn = [
+    posture.secretRedaction,
+    posture.subprocessCredentialStripping,
+    posture.ssrfHardening,
+    posture.cveSecurityPinning,
+  ].filter((s) => s === 'on').length
+  const connectedSurfaces = [
+    view.liveConnections,
+    view.externalChannelsEnabled,
+    view.mcpConnected,
+    view.remoteGatewayConnected,
+  ].filter(Boolean).length
+  const shownModules = view.modules.slice(0, DECK_LIST_CAP)
 
   return (
-    <div style={wrap}>
-      <h1 style={{ fontSize: 24, marginBottom: '0.25rem' }}>Hermes Control Panel</h1>
-      <p style={{ color: '#8b949e', marginTop: 0 }}>
-        Hermes Agent v{v.version} · {v.releaseName} ({v.release}) · config format {v.configFormat}
-      </p>
-
-      <div style={banner}>
-        <strong>Read-only foundation.</strong> {view.note}
-      </div>
-
-      {/* ── Security / version posture ─────────────────────────────── */}
-      <div style={card}>
-        <h2 style={{ fontSize: 16, marginTop: 0 }}>Security &amp; version posture</h2>
-        <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', fontSize: 14 }}>
-          <span>Secret redaction: <b style={{ color: '#3fb950' }}>{v.securityPosture.secretRedaction}</b></span>
-          <span>Subprocess cred stripping: <b style={{ color: '#3fb950' }}>{v.securityPosture.subprocessCredentialStripping}</b></span>
-          <span>SSRF hardening: <b style={{ color: '#3fb950' }}>{v.securityPosture.ssrfHardening}</b></span>
-          <span>CVE pinning: <b style={{ color: '#3fb950' }}>{v.securityPosture.cveSecurityPinning}</b></span>
-          <span>Leaner skill set: <b>{v.securityPosture.leanerSkillSet}</b></span>
-          <span>NVIDIA tap: <b>{v.securityPosture.nvidiaTap}</b></span>
-        </div>
-      </div>
-
-      {/* ── Connection invariants ──────────────────────────────────── */}
-      <div style={card}>
-        <h2 style={{ fontSize: 16, marginTop: 0 }}>Connection state</h2>
-        <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', fontSize: 14 }}>
-          <span>Live connections: <b style={{ color: '#3fb950' }}>{view.liveConnections ? 'yes' : 'no'}</b></span>
-          <span>External channels enabled: <b style={{ color: '#3fb950' }}>{view.externalChannelsEnabled ? 'yes' : 'no'}</b></span>
-          <span>MCP connected: <b style={{ color: '#3fb950' }}>{view.mcpConnected ? 'yes' : 'no'}</b></span>
-          <span>Remote gateway connected: <b style={{ color: '#3fb950' }}>{view.remoteGatewayConnected ? 'yes' : 'no'}</b></span>
-          <span>Credentials exposed: <b style={{ color: '#3fb950' }}>{view.credentialsExposed ? 'yes' : 'no'}</b></span>
-        </div>
-      </div>
-
-      {/* ── Modules ────────────────────────────────────────────────── */}
-      <div style={card}>
-        <h2 style={{ fontSize: 16, marginTop: 0 }}>
-          Surface-Release modules ({view.moduleCount}) · {view.modulesImplementableNow} now ·{' '}
-          {view.modulesRequiringLaterApproval} need later approval · {view.highRiskGatedCount} high-risk gated
-        </h2>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr>
-              <th style={th}>Module</th>
-              <th style={th}>Hermes feature</th>
-              <th style={th}>State</th>
-              <th style={th}>Ext. risk</th>
-              <th style={th}>Later approval</th>
-            </tr>
-          </thead>
-          <tbody>
-            {view.modules.map((m) => (
-              <tr key={m.moduleId}>
-                <td style={td}>
-                  <div style={{ fontWeight: 600 }}>{m.title}</div>
-                  <div style={{ color: '#8b949e', fontSize: 12 }}>{m.note}</div>
-                </td>
-                <td style={td}>{m.hermesFeature}</td>
-                <td style={td}>{m.state}</td>
-                <td style={td}>
-                  <span style={riskStyle(m.externalActionRisk)}>{m.externalActionRisk}</span>
-                </td>
-                <td style={td}>{m.requiresLaterApproval ? 'yes' : 'no'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* ── Credential boundary (status only) ──────────────────────── */}
-      <div style={card}>
-        <h2 style={{ fontSize: 16, marginTop: 0 }}>Credential boundary</h2>
-        <p style={{ color: '#8b949e', fontSize: 13, marginTop: 0 }}>
-          Boundary names and status only — no secret values are ever displayed.
+    <div className={`${chakra.variable} ${deckStyles.deck}`}>
+      <div style={wrap}>
+        <h1 style={{ fontSize: 24, marginBottom: '0.25rem' }}>Hermes Control Panel</h1>
+        <p style={{ color: muted, marginTop: 0, fontFamily: mono, fontSize: 13 }}>
+          Hermes Agent v{v.version} · {v.releaseName} ({v.release}) · config format {v.configFormat}
         </p>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr>
-              <th style={th}>Boundary</th>
-              <th style={th}>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {view.credentialBoundaries.map((c) => (
-              <tr key={c.boundary}>
-                <td style={td}>{c.boundary}</td>
-                <td style={td}>{c.status}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+
+        <div style={banner}>
+          <strong>Read-only foundation.</strong> {view.note}
+        </div>
+
+        <div style={{ display: 'grid', gap: '1rem' }}>
+          {/* ── Security / version posture ─────────────────────────────── */}
+          <DeckDetails
+            title="Security & version posture"
+            stats={`${hardeningsOn}/4 hardenings on · leaner skill set ${posture.leanerSkillSet} · NVIDIA tap ${posture.nvidiaTap}`}
+            testId="hermes-security-posture"
+          >
+            <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', fontSize: 14 }}>
+              <span>Secret redaction: <b style={{ color: okText }}>{posture.secretRedaction}</b></span>
+              <span>Subprocess cred stripping: <b style={{ color: okText }}>{posture.subprocessCredentialStripping}</b></span>
+              <span>SSRF hardening: <b style={{ color: okText }}>{posture.ssrfHardening}</b></span>
+              <span>CVE pinning: <b style={{ color: okText }}>{posture.cveSecurityPinning}</b></span>
+              <span>Leaner skill set: <b>{posture.leanerSkillSet}</b></span>
+              <span>NVIDIA tap: <b>{posture.nvidiaTap}</b></span>
+            </div>
+          </DeckDetails>
+
+          {/* ── Connection invariants ──────────────────────────────────── */}
+          <DeckDetails
+            title="Connection state"
+            stats={
+              connectedSurfaces === 0
+                ? 'not connected — all external surfaces inert (by design)'
+                : `${connectedSurfaces}/4 external surfaces connected`
+            }
+            testId="hermes-connection-state"
+          >
+            <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', fontSize: 14 }}>
+              <span>Live connections: <b style={{ color: okText }}>{view.liveConnections ? 'yes' : 'no'}</b></span>
+              <span>External channels enabled: <b style={{ color: okText }}>{view.externalChannelsEnabled ? 'yes' : 'no'}</b></span>
+              <span>MCP connected: <b style={{ color: okText }}>{view.mcpConnected ? 'yes' : 'no'}</b></span>
+              <span>Remote gateway connected: <b style={{ color: okText }}>{view.remoteGatewayConnected ? 'yes' : 'no'}</b></span>
+              <span>Credentials exposed: <b style={{ color: okText }}>{view.credentialsExposed ? 'yes' : 'no'}</b></span>
+            </div>
+          </DeckDetails>
+
+          {/* ── Modules ────────────────────────────────────────────────── */}
+          <DeckDetails
+            title={`Surface-Release modules (${view.moduleCount})`}
+            stats={`${view.modulesImplementableNow} now · ${view.modulesRequiringLaterApproval} need later approval · ${view.highRiskGatedCount} high-risk gated`}
+            testId="hermes-modules"
+          >
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={th}>Module</th>
+                  <th style={th}>Hermes feature</th>
+                  <th style={th}>State</th>
+                  <th style={th}>Ext. risk</th>
+                  <th style={th}>Later approval</th>
+                </tr>
+              </thead>
+              <tbody>
+                {shownModules.map((m) => (
+                  <tr key={m.moduleId}>
+                    <td style={td}>
+                      <div style={{ fontWeight: 600 }}>{m.title}</div>
+                      <div style={{ color: muted, fontSize: 12 }}>{m.note}</div>
+                    </td>
+                    <td style={td}>{m.hermesFeature}</td>
+                    <td style={td}>{m.state}</td>
+                    <td style={td}>
+                      <span style={riskStyle(m.externalActionRisk)}>{m.externalActionRisk}</span>
+                    </td>
+                    <td style={td}>{m.requiresLaterApproval ? 'yes' : 'no'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <DeckMoreLine total={view.modules.length} shown={shownModules.length} />
+          </DeckDetails>
+
+          {/* ── Credential boundary (status only) ──────────────────────── */}
+          <DeckDetails
+            title="Credential boundary"
+            stats={`${view.credentialBoundaries.length} boundaries · status only — no secret values`}
+            testId="hermes-credential-boundary"
+          >
+            <p style={{ color: muted, fontSize: 13, marginTop: 0 }}>
+              Boundary names and status only — no secret values are ever displayed.
+            </p>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={th}>Boundary</th>
+                  <th style={th}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {view.credentialBoundaries.map((c) => (
+                  <tr key={c.boundary}>
+                    <td style={td}>{c.boundary}</td>
+                    <td style={td}>{c.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </DeckDetails>
+        </div>
       </div>
     </div>
   )

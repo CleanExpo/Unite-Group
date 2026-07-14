@@ -10,6 +10,11 @@ import Link from 'next/link'
 import { getUser, createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sanitiseError } from '@/lib/error-reporting'
+import {
+  DeckDetails,
+  LIGHT_THEME_DECK_TOKENS,
+  PAGE_LIST_CAP,
+} from '@/components/command-centre/DeckDetails'
 import { mergeNewestFirst, parseSourceFilter, type SourceFilter } from './merge'
 
 const PER_SOURCE_LIMIT = 100
@@ -142,8 +147,14 @@ export default async function ContentLibraryPage({
     drafts: draftItems.length,
   }
 
+  // Summary-first (founder 14/07/2026): the newest PAGE_LIST_CAP items are
+  // visible; older items stay reachable behind a DeckDetails disclosure
+  // instead of dumping up to 3 × PER_SOURCE_LIMIT rows flat.
+  const visibleItems = items.slice(0, PAGE_LIST_CAP)
+  const olderItems = items.slice(PAGE_LIST_CAP)
+
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <div className="p-6 max-w-4xl mx-auto space-y-6" style={LIGHT_THEME_DECK_TOKENS}>
       {/* Header */}
       <div>
         <h1 className="text-xl font-light" style={{ color: 'var(--color-text-primary)' }}>
@@ -200,90 +211,110 @@ export default async function ContentLibraryPage({
           </div>
         )}
 
-        {items.map((item) => {
-          if (item.kind === 'wiki') {
-            return (
-              <Link
-                key={`wiki-${item.id}`}
-                href={`/founder/wiki/${item.id}`}
-                className="flex items-center gap-3 px-4 py-3 transition-colors duration-100 hover:brightness-110"
-                style={{ color: 'var(--color-text-primary)' }}
-              >
-                <SourceBadge label="Wiki" />
-                <span className="text-[13px] flex-1 truncate">{item.title}</span>
-                <span className="text-[11px] shrink-0" style={{ color: 'var(--color-text-disabled)' }}>
-                  {item.wordCount.toLocaleString('en-AU')} words · {formatDate(item.timestamp)}
-                </span>
-              </Link>
-            )
-          }
-
-          if (item.kind === 'page') {
-            const row = (
-              <>
-                <SourceBadge label="Page" />
-                <span className="text-[13px] flex-1 truncate">{item.title}</span>
-                <span className="text-[11px] shrink-0" style={{ color: 'var(--color-text-disabled)' }}>
-                  {item.businessName ? `${item.businessName} · ` : ''}
-                  {formatDate(item.timestamp)}
-                </span>
-              </>
-            )
-            // Only link when the business slug resolves — no dead links.
-            return item.businessSlug ? (
-              <Link
-                key={`page-${item.id}`}
-                href={`/founder/${item.businessSlug}/page/${item.id}`}
-                className="flex items-center gap-3 px-4 py-3 transition-colors duration-100 hover:brightness-110"
-                style={{ color: 'var(--color-text-primary)' }}
-              >
-                {row}
-              </Link>
-            ) : (
-              <div
-                key={`page-${item.id}`}
-                className="flex items-center gap-3 px-4 py-3"
-                style={{ color: 'var(--color-text-primary)' }}
-              >
-                {row}
-              </div>
-            )
-          }
-
-          // Drafts have no reading surface yet — inline expandable preview
-          // (<details> keeps this server-only) instead of a dead link.
-          return (
-            <details key={`draft-${item.id}`} className="group">
-              <summary
-                className="flex items-center gap-3 px-4 py-3 cursor-pointer list-none transition-colors duration-100 hover:brightness-110"
-                style={{ color: 'var(--color-text-primary)' }}
-              >
-                <SourceBadge label="Draft" />
-                <span className="text-[13px] flex-1 truncate">{item.subject ?? '(no subject)'}</span>
-                <span
-                  className="text-[10px] px-2 py-0.5 rounded-sm font-medium uppercase tracking-wider shrink-0"
-                  style={{
-                    background: item.status === 'sent' ? 'rgba(34, 197, 94, 0.08)' : 'rgba(255, 255, 255, 0.05)',
-                    color: item.status === 'sent' ? '#22c55e' : 'var(--color-text-muted)',
-                  }}
-                >
-                  {item.status.replace(/_/g, ' ')}
-                </span>
-                <span className="text-[11px] shrink-0" style={{ color: 'var(--color-text-disabled)' }}>
-                  {formatDate(item.timestamp)}
-                </span>
-              </summary>
-              <pre
-                className="text-[12px] whitespace-pre-wrap font-mono leading-relaxed px-4 pb-4 pt-1 m-0"
-                style={{ color: 'var(--color-text-muted)' }}
-              >
-                {item.body.length > 600 ? `${item.body.slice(0, 600)}…` : item.body}
-              </pre>
-            </details>
-          )
-        })}
+        {visibleItems.map(renderContentRow)}
       </div>
+
+      {/* Older items — reachable, not dumped */}
+      {olderItems.length > 0 && (
+        <DeckDetails
+          title="Older items"
+          stats={`+${olderItems.length} more`}
+          testId="content-older-items"
+        >
+          <div
+            className="rounded-sm divide-y"
+            style={{ background: 'var(--surface-card)', borderColor: 'var(--color-border)' }}
+          >
+            {olderItems.map(renderContentRow)}
+          </div>
+        </DeckDetails>
+      )}
     </div>
+  )
+}
+
+// One content row — shared by the visible list and the "Older items"
+// disclosure so the markup is never duplicated.
+function renderContentRow(item: ContentItem) {
+  if (item.kind === 'wiki') {
+    return (
+      <Link
+        key={`wiki-${item.id}`}
+        href={`/founder/wiki/${item.id}`}
+        className="flex items-center gap-3 px-4 py-3 transition-colors duration-100 hover:brightness-110"
+        style={{ color: 'var(--color-text-primary)' }}
+      >
+        <SourceBadge label="Wiki" />
+        <span className="text-[13px] flex-1 truncate">{item.title}</span>
+        <span className="text-[11px] shrink-0" style={{ color: 'var(--color-text-disabled)' }}>
+          {item.wordCount.toLocaleString('en-AU')} words · {formatDate(item.timestamp)}
+        </span>
+      </Link>
+    )
+  }
+
+  if (item.kind === 'page') {
+    const row = (
+      <>
+        <SourceBadge label="Page" />
+        <span className="text-[13px] flex-1 truncate">{item.title}</span>
+        <span className="text-[11px] shrink-0" style={{ color: 'var(--color-text-disabled)' }}>
+          {item.businessName ? `${item.businessName} · ` : ''}
+          {formatDate(item.timestamp)}
+        </span>
+      </>
+    )
+    // Only link when the business slug resolves — no dead links.
+    return item.businessSlug ? (
+      <Link
+        key={`page-${item.id}`}
+        href={`/founder/${item.businessSlug}/page/${item.id}`}
+        className="flex items-center gap-3 px-4 py-3 transition-colors duration-100 hover:brightness-110"
+        style={{ color: 'var(--color-text-primary)' }}
+      >
+        {row}
+      </Link>
+    ) : (
+      <div
+        key={`page-${item.id}`}
+        className="flex items-center gap-3 px-4 py-3"
+        style={{ color: 'var(--color-text-primary)' }}
+      >
+        {row}
+      </div>
+    )
+  }
+
+  // Drafts have no reading surface yet — inline expandable preview
+  // (<details> keeps this server-only) instead of a dead link.
+  return (
+    <details key={`draft-${item.id}`} className="group">
+      <summary
+        className="flex items-center gap-3 px-4 py-3 cursor-pointer list-none transition-colors duration-100 hover:brightness-110"
+        style={{ color: 'var(--color-text-primary)' }}
+      >
+        <SourceBadge label="Draft" />
+        <span className="text-[13px] flex-1 truncate">{item.subject ?? '(no subject)'}</span>
+        <span
+          className="text-[10px] px-2 py-0.5 rounded-sm font-medium uppercase tracking-wider shrink-0"
+          style={{
+            background: item.status === 'sent' ? 'rgba(34, 197, 94, 0.08)' : 'rgba(255, 255, 255, 0.05)',
+            color: item.status === 'sent' ? '#22c55e' : 'var(--color-text-muted)',
+          }}
+        >
+          {item.status.replace(/_/g, ' ')}
+        </span>
+        <span className="text-[11px] shrink-0" style={{ color: 'var(--color-text-disabled)' }}>
+          {formatDate(item.timestamp)}
+        </span>
+      </summary>
+      <pre
+        className="text-[12px] whitespace-pre-wrap font-mono leading-relaxed px-4 pb-4 pt-1 m-0"
+        style={{ color: 'var(--color-text-muted)' }}
+      >
+        {item.body.length > 600 ? `${item.body.slice(0, 600)}…` : item.body}
+      </pre>
+    </details>
   )
 }
 
