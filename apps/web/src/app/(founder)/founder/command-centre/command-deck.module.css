@@ -534,3 +534,61 @@
   .metrics { gap: 1rem; }
   .clock { font-size: 1.1rem; }
 }
+
+/* ── Daylight register — Affirm-inspired fintech-trust feel: warm paper
+   ground, near-black ink, one indigo accent, soft shadows. Pattern source:
+   Mobbin — Affirm iOS (docs/design/mobbin-ui-library.md); the reference
+   informs hierarchy and tone, never pixels. Applied WITH .deck by
+   DeckThemeShell when the founder flips the Feel toggle; default stays the
+   dark deck. Contrast ratios noted per token against white (--deck-panel). */
+.deck.daylight {
+  --deck-cyan: #4a4af4;       /* indigo accent — fills, LEDs, glows only */
+  --deck-go: #0f9d58;
+  --deck-amber: #d97706;
+  --deck-abort: #dc2626;
+  --deck-line: rgba(22, 24, 29, 0.12);
+  --deck-line-soft: rgba(22, 24, 29, 0.06);
+  --deck-panel: #ffffff;
+  --deck-panel-hi: #f4f1eb;
+  --deck-text: #16181d;       /* 16.6:1 on white */
+  --deck-muted: #5c6470;      /* 5.9:1 on white */
+  --deck-cyan-text: #3d3ddb;  /* 6.9:1 on white */
+  --deck-amber-text: #92510a; /* 6.1:1 on white */
+  --deck-abort-text: #b91c1c; /* 6.3:1 on white */
+
+  --cc-bg-soft: #f7f5f1;
+  --cc-ink-hush: #6b7280;     /* 4.8:1 on white */
+
+  color: var(--deck-text);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  background-color: #faf9f7;
+  background-image: none;
+}
+.deck.daylight::after { background: none; }
+.deck.daylight .statusStrip {
+  box-shadow: 0 1px 2px rgba(22, 24, 29, 0.05), 0 8px 24px -18px rgba(22, 24, 29, 0.18);
+}
+.deck.daylight .brandMark { box-shadow: none; }
+
+/* Feel toggle — the only chrome DeckThemeShell adds. Fixed so it never
+   collides with deck content; pill shape per the daylight reference. */
+.feelToggle {
+  position: fixed;
+  right: 1.1rem;
+  bottom: 1.1rem;
+  z-index: 40;
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--deck-line);
+  border-radius: 999px;
+  background: var(--deck-panel);
+  color: var(--deck-muted);
+  font: inherit;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.feelToggle:hover {
+  color: var(--deck-text);
+  border-color: var(--deck-cyan);
+}

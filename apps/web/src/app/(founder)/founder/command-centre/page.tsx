@@ -51,6 +51,7 @@ import { CommandSteps } from './CommandSteps'
 // Priorities (Action Queue) and Evidence Stream sections. Fonts scoped to
 // this route only via next/font/google variables (see shell.module.css).
 import { HeroBand } from './HeroBand'
+import { DeckThemeShell } from './DeckThemeShell'
 import shell from './shell.module.css'
 // UNI-2339 slice 2 — Operate launch-pad (static BUSINESSES registry),
 // PipelineBoard revived read-only (server-side crm_opportunities read, no
@@ -185,7 +186,7 @@ export default async function CommandDeckPage() {
   const deckLabel = hasDegradedManifest ? 'Some manifests degraded' : 'Deck loaded'
 
   return (
-    <div className={`${chakra.variable} ${syne.variable} ${jbMono.variable} ${styles.deck}`}>
+    <DeckThemeShell className={`${chakra.variable} ${syne.variable} ${jbMono.variable} ${styles.deck}`}>
       <CommandPalette
         projects={projects.map((p) => ({ name: p.name, status: p.status, production_url: p.production_url }))}
         tools={tools.map((t) => ({ tool_key: t.tool_key, source: t.source, risk_class: t.risk_class }))}
@@ -715,6 +716,6 @@ export default async function CommandDeckPage() {
 
       {/* 1-2-3 guided actions now sit below the live deck (founder lead-with-ops). */}
       <CommandSteps />
-    </div>
+    </DeckThemeShell>
   )
 }
