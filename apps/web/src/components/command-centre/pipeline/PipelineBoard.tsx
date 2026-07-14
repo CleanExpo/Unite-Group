@@ -17,6 +17,7 @@
 import * as React from 'react'
 
 import { SourceBadge, type SourceMode } from '@/components/command-centre/SourceBadge'
+import { DeckDetails, DeckMoreLine, DECK_LIST_CAP } from '@/components/command-centre/DeckDetails'
 
 import styles from './pipeline-board.module.css'
 
@@ -143,22 +144,33 @@ export function PipelineBoard({
             </span>
           </div>
         ) : (
+          // Founder feedback 14/07/2026 — stage columns collapse to one
+          // summary strip per lane (stage · count · total · newest company);
+          // the deal cards live behind the shared DeckDetails disclosure,
+          // capped with an honest "+N more". Every deal stays reachable.
           PIPELINE_STAGES.map((stage) => {
             const deals = byStage[stage]
             const total = deals.reduce((sum, d) => sum + d.valueAud, 0)
+            const newest =
+              deals.length > 0
+                ? deals.reduce((a, b) => (Date.parse(b.lastActivityAt) > Date.parse(a.lastActivityAt) ? b : a))
+                : null
+            const shown = deals.slice(0, DECK_LIST_CAP)
             return (
-              <div key={stage} className={styles.stage} data-testid={`pipeline-stage-${stage}`}>
-                <div className={styles.stageHead}>
-                  <span className={styles.stageName}>{STAGE_LABEL[stage]}</span>
-                  <span className={styles.stageCount}>
-                    {deals.length} · {AUD.format(total)}
-                  </span>
-                </div>
-
+              <DeckDetails
+                key={stage}
+                title={STAGE_LABEL[stage]}
+                stats={
+                  newest === null
+                    ? 'no open deals'
+                    : `${deals.length} · ${AUD.format(total)} · newest: ${newest.company}`
+                }
+                testId={`pipeline-stage-${stage}`}
+              >
                 {deals.length === 0 ? (
                   <div className={styles.stageEmpty}>—</div>
                 ) : (
-                  deals.map((deal) => {
+                  shown.map((deal) => {
                     const stale = isStale(deal.lastActivityAt, now)
                     const days = daysSince(deal.lastActivityAt, now)
                     return (
@@ -194,7 +206,8 @@ export function PipelineBoard({
                     )
                   })
                 )}
-              </div>
+                <DeckMoreLine total={deals.length} shown={shown.length} />
+              </DeckDetails>
             )
           })
         )}

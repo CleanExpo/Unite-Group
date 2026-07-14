@@ -27,8 +27,10 @@
 
   position: relative;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 12px;
+  /* Founder feedback 14/07/2026 — stages render as stacked summary strips
+     (DeckDetails disclosures), not five parallel columns. */
+  grid-template-columns: 1fr;
+  gap: 8px;
   padding: 16px;
   border-radius: 4px;
   background: var(--pb-glass-1);

@@ -1,6 +1,7 @@
 'use client'
 
 import { SourceBadge } from '../SourceBadge'
+import { DeckDetails } from '../DeckDetails'
 
 export interface DailyCrmDigestSummary {
   leadCount?: number
@@ -107,7 +108,28 @@ export function DailyCrmDigestPanel({
 }: DailyCrmDigestPanelProps) {
   const isLive = !!sourceLiveAt
 
+  // Founder feedback 14/07/2026 — until a live digest is wired in, this panel
+  // renders zero-count cards and empty lists (inert scaffolding), so it
+  // collapses to a single summary line behind the shared DeckDetails
+  // disclosure and opens by default only when a live digest is present.
+  const summaryStats = isLive
+    ? `${safeCount(summary?.leadCount)} leads · ${safeCount(summary?.opportunityCount)} opportunities · ${safeCount(summary?.approvalRequiredCount)} approvals · ${safeCount(summary?.blockerCount)} blockers`
+    : 'awaiting first digest'
+
   return (
+    <DeckDetails
+      title="Daily CRM Digest"
+      stats={summaryStats}
+      badge={
+        isLive ? (
+          <SourceBadge mode="live" label="daily_crm_digest" lastUpdatedAt={sourceLiveAt} />
+        ) : (
+          <SourceBadge mode="seed" label="awaits daily CRM digest" />
+        )
+      }
+      defaultOpen={isLive}
+      testId="daily-crm-digest-disclosure"
+    >
     <section
       className="flex flex-col gap-4 px-5 py-4"
       style={{
@@ -189,5 +211,6 @@ export function DailyCrmDigestPanel({
         />
       </div>
     </section>
+    </DeckDetails>
   )
 }
