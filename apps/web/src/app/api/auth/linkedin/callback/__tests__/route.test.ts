@@ -18,7 +18,13 @@ describe('GET /api/auth/linkedin/callback', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://app.test')
-    vi.mocked(verifyOAuthState).mockReturnValue({ businessKey: 'test-biz' } as any)
+    // Default: a valid, founder-bound, unexpired state.
+    vi.mocked(verifyOAuthState).mockReturnValue({
+      businessKey: 'test-biz',
+      founderId: 'user-1',
+      nonce: 'n',
+      expiresAt: String(Date.now() + 10 * 60 * 1000),
+    } as any)
     global.fetch = vi.fn()
   })
 
@@ -57,5 +63,31 @@ describe('GET /api/auth/linkedin/callback', () => {
     const res = await GET(req({ code: 'c', state: 's' }))
     expect(res.status).toBe(307)
     expect(res.headers.get('location')).toContain('token_exchange_failed')
+  })
+
+  it('redirects with invalid_state when state founderId != session (anti-CSRF)', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
+    vi.mocked(verifyOAuthState).mockReturnValue({
+      businessKey: 'test-biz',
+      founderId: 'attacker',
+      nonce: 'n',
+      expiresAt: String(Date.now() + 60_000),
+    } as any)
+    const res = await GET(req({ code: 'c', state: 's' }))
+    expect(res.status).toBe(307)
+    expect(res.headers.get('location')).toContain('invalid_state')
+  })
+
+  it('redirects with invalid_state when state is expired (anti-replay)', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
+    vi.mocked(verifyOAuthState).mockReturnValue({
+      businessKey: 'test-biz',
+      founderId: 'user-1',
+      nonce: 'n',
+      expiresAt: String(Date.now() - 1),
+    } as any)
+    const res = await GET(req({ code: 'c', state: 's' }))
+    expect(res.status).toBe(307)
+    expect(res.headers.get('location')).toContain('invalid_state')
   })
 })

@@ -2,6 +2,7 @@
 // Generates Google OAuth URL with login_hint to target a specific account
 // GET /api/auth/google/authorize?email=phill@disasterrecovery.com.au
 
+import { randomUUID } from 'crypto'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { signOAuthState } from '@/lib/oauth-state'
@@ -50,7 +51,15 @@ export async function GET(request: Request) {
     access_type: 'offline',
     prompt: 'consent',        // force refresh_token every time
     login_hint: email,
-    state: signOAuthState({ email }),
+    // Signed, founder-bound, time-limited state — prevents OAuth CSRF/replay on
+    // the callback. founderId binding ensures the callback can't be replayed by
+    // a different session (matches the meta/tiktok/youtube/xero/microsoft flows).
+    state: signOAuthState({
+      email,
+      founderId: user.id,
+      nonce: randomUUID(),
+      expiresAt: String(Date.now() + 10 * 60 * 1000),
+    }),
   })
 
   return NextResponse.redirect(

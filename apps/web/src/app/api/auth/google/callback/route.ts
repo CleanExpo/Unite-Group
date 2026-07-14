@@ -30,10 +30,20 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${APP_URL}/founder/email?error=missing_params`)
   }
 
-  // Verify HMAC-signed state → { email }
+  // Verify HMAC-signed state → { email, founderId, nonce, expiresAt }. The HMAC
+  // blocks forgery; the founderId/nonce/expiry checks block CSRF and replay
+  // (a captured, still-valid state re-submitted from another session).
   let email = ''
   try {
     const decoded = verifyOAuthState(state)
+    if (
+      decoded.founderId !== user.id ||
+      !decoded.nonce ||
+      !decoded.expiresAt ||
+      Number(decoded.expiresAt) < Date.now()
+    ) {
+      throw new Error('state validation failed')
+    }
     email = decoded.email
   } catch {
     return NextResponse.redirect(`${APP_URL}/founder/email?error=invalid_state`)

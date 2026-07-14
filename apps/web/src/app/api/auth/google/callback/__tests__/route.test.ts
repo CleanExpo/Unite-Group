@@ -5,7 +5,7 @@ vi.mock('@/lib/supabase/service', () => ({ createServiceClient: vi.fn() }))
 vi.mock('@/lib/vault', () => ({ encrypt: vi.fn().mockReturnValue({ encryptedValue: 'enc', iv: 'iv', salt: 'salt' }) }))
 vi.mock('@/lib/email-accounts', () => ({ accountByEmail: vi.fn().mockReturnValue(null) }))
 vi.mock('@/lib/oauth-state', () => ({
-  verifyOAuthState: vi.fn().mockReturnValue({ email: 'test@test.com' }),
+  verifyOAuthState: vi.fn(),
 }))
 
 const mockFrom = vi.fn()
@@ -37,6 +37,13 @@ describe('GET /api/auth/google/callback', () => {
     vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://app.test')
     vi.stubEnv('GOOGLE_CLIENT_ID', 'client-id')
     vi.stubEnv('GOOGLE_CLIENT_SECRET', 'client-secret')
+    // Default: a valid, founder-bound, unexpired state.
+    vi.mocked(verifyOAuthState).mockReturnValue({
+      email: 'test@test.com',
+      founderId: 'user-1',
+      nonce: 'n',
+      expiresAt: String(Date.now() + 10 * 60 * 1000),
+    })
   })
 
   it('redirects to login when unauthorized', async () => {
@@ -64,6 +71,32 @@ describe('GET /api/auth/google/callback', () => {
     vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
     vi.mocked(verifyOAuthState).mockImplementation(() => { throw new Error('invalid') })
     const res = await GET(req('?code=abc&state=bad'))
+    expect(res.status).toBe(307)
+    expect(res.headers.get('location')).toContain('invalid_state')
+  })
+
+  it('redirects with invalid_state when state founderId != session (anti-CSRF)', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
+    vi.mocked(verifyOAuthState).mockReturnValue({
+      email: 'test@test.com',
+      founderId: 'attacker',
+      nonce: 'n',
+      expiresAt: String(Date.now() + 60_000),
+    })
+    const res = await GET(req('?code=abc&state=xyz'))
+    expect(res.status).toBe(307)
+    expect(res.headers.get('location')).toContain('invalid_state')
+  })
+
+  it('redirects with invalid_state when state is expired (anti-replay)', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
+    vi.mocked(verifyOAuthState).mockReturnValue({
+      email: 'test@test.com',
+      founderId: 'user-1',
+      nonce: 'n',
+      expiresAt: String(Date.now() - 1),
+    })
+    const res = await GET(req('?code=abc&state=xyz'))
     expect(res.status).toBe(307)
     expect(res.headers.get('location')).toContain('invalid_state')
   })
