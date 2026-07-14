@@ -42,6 +42,7 @@ import { DailyCrmDigestPanel } from '@/components/command-centre/digest/DailyCrm
 import { MeshFleetTile } from '@/components/command-centre/mesh-fleet/MeshFleetTile'
 import { PortfolioHealthTile } from '@/components/command-centre/portfolio-health/PortfolioHealthTile'
 import { WikiGraphTile } from '@/components/command-centre/wiki-graph/WikiGraphTile'
+import { CostAllocationTile } from '@/components/command-centre/cost-allocation/CostAllocationTile'
 import { ProjectIntegrationWorkPacketControl } from './ProjectIntegrationWorkPacketControl'
 import { WikiEnhanceControl } from './WikiEnhanceControl'
 import { CommandSteps } from './CommandSteps'
@@ -396,6 +397,11 @@ export default async function CommandDeckPage() {
       {/* AI provider capacity — usage meters next to the accounts pool. */}
       <section className={`${styles.reveal}`} style={{ animationDelay: '0.09s' }}>
         <ProviderUsageCockpit />
+      </section>
+
+      {/* Cost allocation — metering spend per source vs revenue, current month. */}
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.095s' }}>
+        <CostAllocationTile />
       </section>
 
       {/* Consolidated from the retired US command-center page (self-contained panels). */}
