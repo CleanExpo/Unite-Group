@@ -5,6 +5,11 @@ import { TrendingUp } from 'lucide-react'
 import type { Tables } from '@/types/database'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { PageHeader } from '@/components/ui/PageHeader'
+import {
+  DeckDetails,
+  LIGHT_THEME_DECK_TOKENS,
+  PAGE_LIST_CAP,
+} from '@/components/command-centre/DeckDetails'
 
 type Opportunity = Tables<'crm_opportunities'>
 
@@ -99,6 +104,38 @@ function mergeOpportunityRows(current: Opportunity[], incoming: Opportunity[]): 
     return true
   })
   return [...current, ...uniqueIncoming]
+}
+
+// One opportunity row — shared by the visible list and the "+N more"
+// disclosure so the markup is never duplicated.
+function renderOpportunityRow(o: Opportunity) {
+  return (
+    <div
+      key={o.id}
+      className="rounded-sm px-4 py-3 flex items-center gap-4"
+      style={{ background: 'var(--surface-card)', border: '1px solid var(--color-border)' }}
+    >
+      <div className="flex flex-col gap-1 flex-1 min-w-0">
+        <span className="text-[13px] font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>
+          {redactOpportunityText(o.name)}
+        </span>
+        <span className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
+          {label(o.stage)} · {o.status}
+          {o.next_action ? ` · next: ${redactOpportunityText(o.next_action)}` : ''}
+        </span>
+      </div>
+      <div className="flex flex-col items-end gap-1 shrink-0">
+        <span className="text-[13px]" style={{ color: 'var(--color-text-primary)' }}>
+          {o.value_amount != null ? aud(Number(o.value_amount)) : '—'}
+        </span>
+        {o.probability != null && (
+          <span className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
+            {o.probability}%
+          </span>
+        )}
+      </div>
+    </div>
+  )
 }
 
 function summarizeOpportunities(rows: Opportunity[]): Summary {
@@ -208,7 +245,7 @@ export function OpportunitiesPageClient() {
   ]
 
   return (
-    <div className="p-6 flex flex-col gap-6">
+    <div className="p-6 flex flex-col gap-6" style={LIGHT_THEME_DECK_TOKENS}>
       <PageHeader
         title="Revenue opportunities"
         subtitle="Forecast-only pipeline across the portfolio — not billing truth."
@@ -298,33 +335,21 @@ export function OpportunitiesPageClient() {
             />
           ) : (
             <div className="flex flex-col gap-2">
-              {filtered.map((o) => (
-                <div
-                  key={o.id}
-                  className="rounded-sm px-4 py-3 flex items-center gap-4"
-                  style={{ background: 'var(--surface-card)', border: '1px solid var(--color-border)' }}
+              {/* Summary-first (founder 14/07/2026): first PAGE_LIST_CAP rows
+                  visible; the rest of the loaded window stays reachable behind
+                  a DeckDetails disclosure instead of a 500-row dump. */}
+              {filtered.slice(0, PAGE_LIST_CAP).map(renderOpportunityRow)}
+              {filtered.length > PAGE_LIST_CAP && (
+                <DeckDetails
+                  title="Older loaded opportunities"
+                  stats={`+${filtered.length - PAGE_LIST_CAP} more`}
+                  testId="opportunities-older-loaded"
                 >
-                  <div className="flex flex-col gap-1 flex-1 min-w-0">
-                    <span className="text-[13px] font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>
-                      {redactOpportunityText(o.name)}
-                    </span>
-                    <span className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
-                      {label(o.stage)} · {o.status}
-                      {o.next_action ? ` · next: ${redactOpportunityText(o.next_action)}` : ''}
-                    </span>
+                  <div className="flex flex-col gap-2">
+                    {filtered.slice(PAGE_LIST_CAP).map(renderOpportunityRow)}
                   </div>
-                  <div className="flex flex-col items-end gap-1 shrink-0">
-                    <span className="text-[13px]" style={{ color: 'var(--color-text-primary)' }}>
-                      {o.value_amount != null ? aud(Number(o.value_amount)) : '—'}
-                    </span>
-                    {o.probability != null && (
-                      <span className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
-                        {o.probability}%
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
+                </DeckDetails>
+              )}
               {readiness?.nextCursor && (
                 <button
                   type="button"
