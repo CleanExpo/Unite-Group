@@ -10,6 +10,7 @@
 import { useEffect, useState } from 'react'
 import { SourceBadge, type SourceMode } from '../SourceBadge'
 import { DegradedDataBanner } from '../DegradedDataBanner'
+import { DeckDetails, DeckMoreLine, DECK_LIST_CAP } from '../DeckDetails'
 
 interface MeshMachine {
   host: string
@@ -86,31 +87,46 @@ export function MeshFleetTile() {
   const mode = sourceMode(loading, data, fetchError)
   const degradedReason = fetchError ?? (data && data.error) ?? null
 
+  // Founder feedback 14/07/2026 — the summary strip shows fleet health only
+  // (machine / ship counts + stale count); raw machine hostnames sit behind
+  // the shared DeckDetails disclosure. Founder-only page, so the collapsed
+  // identifier layer is de-clutter, not a security boundary.
+  const staleCount = machines.filter((m) => m.is_stale).length
+  const shownMachines = machines.slice(0, DECK_LIST_CAP)
+
   return (
     <section
       data-testid="mesh-fleet-tile"
       aria-label="Mesh Fleet"
       style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h3 style={{ color: 'var(--deck-text)', fontSize: 14, fontWeight: 700, margin: 0 }}>Mesh Fleet</h3>
-        <SourceBadge
-          mode={mode}
-          label={configured ? `${machines.length} machines · ${shipCount} ships` : 'not configured'}
-        />
-      </div>
+      {degradedReason && <DegradedDataBanner source="Mesh Fleet" reason={degradedReason} />}
 
+      <DeckDetails
+        title="Mesh Fleet"
+        stats={
+          !loading && configured && machines.length > 0
+            ? staleCount > 0
+              ? `${staleCount} stale heartbeat${staleCount === 1 ? '' : 's'}`
+              : 'all heartbeats fresh'
+            : undefined
+        }
+        badge={
+          <SourceBadge
+            mode={mode}
+            label={configured ? `${machines.length} machines · ${shipCount} ships` : 'not configured'}
+          />
+        }
+      >
       {!loading && !configured && !fetchError && (
         <p style={{ color: 'var(--deck-muted)', fontSize: 12, margin: 0 }}>
           Mesh fleet not configured — PI_CEO_API_URL / PI_CEO_API_KEY missing in this environment.
         </p>
       )}
 
-      {degradedReason && <DegradedDataBanner source="Mesh Fleet" reason={degradedReason} />}
-
       {configured && machines.length > 0 && (
         <div>
-          {machines.map((m) => (
+          {shownMachines.map((m) => (
             <div
               key={m.host}
               data-testid={`mesh-machine-${m.host}`}
@@ -145,12 +161,14 @@ export function MeshFleetTile() {
               </span>
             </div>
           ))}
+          <DeckMoreLine total={machines.length} shown={shownMachines.length} />
         </div>
       )}
 
       {configured && machines.length === 0 && !loading && !degradedReason && (
         <p style={{ color: 'var(--deck-muted)', fontSize: 12, margin: 0 }}>No machines reporting yet.</p>
       )}
+      </DeckDetails>
     </section>
   )
 }

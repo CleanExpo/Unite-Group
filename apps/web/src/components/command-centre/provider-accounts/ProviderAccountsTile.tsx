@@ -7,6 +7,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { SourceBadge, type SourceMode } from '../SourceBadge'
+import { DeckDetails, DeckMoreLine, DECK_LIST_CAP } from '../DeckDetails'
 
 interface AccountView {
   accountId: string
@@ -126,13 +127,22 @@ export function ProviderAccountsTile() {
   const inputStyle = { background: 'transparent', border: '1px solid var(--deck-line)', color: 'var(--deck-text)', borderRadius: 2, padding: '4px 6px', fontSize: 12 }
   const ctrlStyle = { background: 'transparent', border: '1px solid var(--deck-line)', color: 'var(--deck-text)', borderRadius: 2, padding: '2px 6px', fontSize: 11, cursor: 'pointer', textTransform: 'uppercase' as const, letterSpacing: '0.04em' }
 
+  // Founder feedback 14/07/2026 — the summary strip shows pool health only
+  // (registered / usable counts); the account roster, register form, and pool
+  // test collapse behind the shared DeckDetails disclosure. Founder-only page,
+  // so the collapsed identifier layer is de-clutter, not a security boundary.
+  const usableCount = accounts.filter((a) => a.usable && a.enabled).length
+  const shownAccounts = accounts.slice(0, DECK_LIST_CAP)
+
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h3 style={{ color: 'var(--deck-text)', fontSize: 14, fontWeight: 700, margin: 0 }}>Provider accounts — LLM pool</h3>
-        <SourceBadge mode={mode} label="Accounts" />
-      </div>
+      {error && <p style={{ color: 'var(--deck-abort-text)', fontSize: 12, margin: 0 }}>{error}</p>}
 
+      <DeckDetails
+        title="Provider accounts — LLM pool"
+        stats={loading ? undefined : `${accounts.length} registered · ${usableCount} usable`}
+        badge={<SourceBadge mode={mode} label="Accounts" />}
+      >
       {accounts.length === 0 && !loading && (
         <p style={{ color: 'var(--deck-muted)', fontSize: 12, margin: 0 }}>
           No provider accounts yet. Add a vault entry for each key, then register it below — the router pools across them.
@@ -140,7 +150,7 @@ export function ProviderAccountsTile() {
       )}
 
       <div>
-        {accounts.map((a) => (
+        {shownAccounts.map((a) => (
           <div key={a.accountId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--deck-line)', fontSize: 12 }}>
             <span style={{ color: a.enabled ? 'var(--deck-text)' : 'var(--deck-muted)' }}>
               {a.label} <span style={{ color: 'var(--deck-muted)' }}>· {a.provider} · {a.planKind}</span>
@@ -170,8 +180,7 @@ export function ProviderAccountsTile() {
           </div>
         ))}
       </div>
-
-      {error && <p style={{ color: 'var(--deck-abort-text)', fontSize: 12, margin: 0 }}>{error}</p>}
+      <DeckMoreLine total={accounts.length} shown={shownAccounts.length} />
 
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginTop: 4 }}>
         <select value={form.provider} onChange={(e) => setForm({ ...form, provider: e.target.value })} style={inputStyle}>
@@ -190,6 +199,7 @@ export function ProviderAccountsTile() {
         </button>
       </div>
       {testResult && <p style={{ color: 'var(--deck-muted)', fontSize: 12, margin: 0 }}>{testResult}</p>}
+      </DeckDetails>
     </section>
   )
 }

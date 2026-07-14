@@ -40,6 +40,7 @@ import { ActivityFeedPanel } from '@/components/command-centre/activity/Activity
 import { CrmAutonomyPanel } from '@/components/command-centre/crm-autonomy/CrmAutonomyPanel'
 import { DailyCrmDigestPanel } from '@/components/command-centre/digest/DailyCrmDigestPanel'
 import { MeshFleetTile } from '@/components/command-centre/mesh-fleet/MeshFleetTile'
+import { DeckDetails, DeckMoreLine, DECK_LIST_CAP } from '@/components/command-centre/DeckDetails'
 import { PortfolioHealthTile } from '@/components/command-centre/portfolio-health/PortfolioHealthTile'
 import { WikiGraphTile } from '@/components/command-centre/wiki-graph/WikiGraphTile'
 import { CostAllocationTile } from '@/components/command-centre/cost-allocation/CostAllocationTile'
@@ -523,14 +524,21 @@ export default async function CommandDeckPage() {
                 {status.error ? (
                   <p className={styles.ppurpose}>Manifest unavailable: {status.error}</p>
                 ) : (
+                  // Founder feedback 14/07/2026 — cap the per-manifest connection
+                  // dump; the card already leads with the usable/blocked/mock
+                  // summary counts above.
                   <div className={styles.connectionList}>
-                    {status.connections.map((connection) => (
+                    {status.connections.slice(0, DECK_LIST_CAP).map((connection) => (
                       <div key={connection.id} className={styles.connectionRow}>
                         <span className={styles.led} data-state={connectionLedState(connection.state)} />
                         <span className={styles.connectionName}>{connection.label}</span>
                         <span className={styles.connectionState}>{connection.state}</span>
                       </div>
                     ))}
+                    <DeckMoreLine
+                      total={status.connections.length}
+                      shown={Math.min(status.connections.length, DECK_LIST_CAP)}
+                    />
                   </div>
                 )}
 
@@ -564,24 +572,34 @@ export default async function CommandDeckPage() {
           </span>
         </div>
 
-        <div className={styles.toolGrid}>
-          {tools.map((tool) => (
-            <div
-              key={tool.tool_key}
-              className={styles.toolRow}
-              style={{ '--rail': railFor(tool.risk_class) } as React.CSSProperties}
-            >
-              <div style={{ minWidth: 0 }}>
-                <div className={styles.toolKey}>{tool.tool_key}</div>
-                <div className={styles.toolDesc}>{tool.description}</div>
+        {/* Founder feedback 14/07/2026 — the raw tool_key dump collapses behind
+            the shared DeckDetails disclosure (summary = counts already shown in
+            the section head), capped with an honest "+N more". */}
+        <DeckDetails
+          title="Tool catalogue"
+          stats={`${tools.length} tools · list-only`}
+          testId="capability-bus-disclosure"
+        >
+          <div className={styles.toolGrid}>
+            {tools.slice(0, DECK_LIST_CAP).map((tool) => (
+              <div
+                key={tool.tool_key}
+                className={styles.toolRow}
+                style={{ '--rail': railFor(tool.risk_class) } as React.CSSProperties}
+              >
+                <div style={{ minWidth: 0 }}>
+                  <div className={styles.toolKey}>{tool.tool_key}</div>
+                  <div className={styles.toolDesc}>{tool.description}</div>
+                </div>
+                <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                  <span className={styles.riskTag}>{tool.risk_class}</span>
+                  {tool.approval_required && <span className={styles.approval}>approval</span>}
+                </div>
               </div>
-              <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                <span className={styles.riskTag}>{tool.risk_class}</span>
-                {tool.approval_required && <span className={styles.approval}>approval</span>}
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+          <DeckMoreLine total={tools.length} shown={Math.min(tools.length, DECK_LIST_CAP)} />
+        </DeckDetails>
       </section>
 
       {/* ── Operating System Health (Lane 16) — canvas glass chrome (UNI-2339 slice 2) ── */}

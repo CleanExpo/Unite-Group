@@ -14,6 +14,7 @@ import { mapAddOnResult, type AddOnOutcome } from './add-on-result'
 import styles from '../command-centre.module.css'
 import { SourceBadge } from '../SourceBadge'
 import { DegradedDataBanner } from '../DegradedDataBanner'
+import { DeckDetails } from '../DeckDetails'
 
 type LiveControlWorkstream = ControlWorkstream & {
   ccTaskId?: string
@@ -166,7 +167,29 @@ export function HermesControlPanel({ initialPayload }: HermesControlPanelProps =
         : 'CC unreachable · seed plan'
   const activeWorkstream = workstreams.find((item) => item.id === activeWorkstreamId) ?? workstreams[0]
 
+  // Founder feedback 14/07/2026 — when the command-centre substrate is
+  // unreachable this panel renders the illustrative seed plan (inert
+  // scaffolding, per control-panel-data.ts), so the whole console collapses
+  // to a single summary line behind the shared DeckDetails disclosure. It
+  // opens by default only when live cc: data is driving it. Panel logic and
+  // content are unchanged inside the disclosure; the panel already uses the
+  // deck's --cc-* token vocabulary (mapped onto --deck-* in
+  // command-deck.module.css), so no off-system colours needed removing here.
+  const summaryStats =
+    sourceState === 'live'
+      ? `${green} green · ${yellow} yellow · ${red} red · ${approvalRequired} approval${approvalRequired === 1 ? '' : 's'} required`
+      : sourceState === 'loading'
+        ? 'requesting command-centre state…'
+        : 'not connected — showing the seed plan'
+
   return (
+    <DeckDetails
+      title="Hermes control panel"
+      stats={summaryStats}
+      badge={<SourceBadge mode={badgeMode} label={badgeLabel} lastUpdatedAt={payload?.generatedAt} />}
+      defaultOpen={sourceState === 'live'}
+      testId="hermes-control-panel-disclosure"
+    >
     <section
       className="flex min-h-168 flex-col"
       style={{ background: 'var(--cc-bg-soft)', borderTop: '1px solid var(--cc-grid)' }}
@@ -320,6 +343,7 @@ export function HermesControlPanel({ initialPayload }: HermesControlPanelProps =
         </div>
       </div>
     </section>
+    </DeckDetails>
   )
 }
 
