@@ -8,8 +8,22 @@
  * op), so we surface it rather than let ordering silently degrade.
  */
 
+import { COLUMNS, type TaskStatus } from '@/types/kanban';
+
 const GAP = 1000;
 const MIN_SPACING = 1e-4;
+
+const STATUS_ORDER: TaskStatus[] = COLUMNS.map(c => c.id);
+
+/** The status one step left/right of `status`, or null at the ends. */
+export function adjacentStatus(
+  status: TaskStatus,
+  dir: 'prev' | 'next'
+): TaskStatus | null {
+  const i = STATUS_ORDER.indexOf(status);
+  if (i < 0) return null;
+  return STATUS_ORDER[dir === 'next' ? i + 1 : i - 1] ?? null;
+}
 
 /**
  * A new position that places a card at `index` (0..n) within a column whose

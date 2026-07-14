@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
 
-import { positionForIndex, needsRebalance, rebalance } from './order';
+import {
+  positionForIndex,
+  needsRebalance,
+  rebalance,
+  adjacentStatus,
+} from './order';
 
 describe('kanban fractional ordering', () => {
   it('first card in an empty column gets a base position', () => {
@@ -35,6 +40,13 @@ describe('kanban fractional ordering', () => {
       expect(positions[i]).toBeGreaterThan(positions[i - 1]);
     }
     expect(needsRebalance(positions)).toBe(true);
+  });
+
+  it('adjacentStatus steps across the columns and stops at the ends', () => {
+    expect(adjacentStatus('todo', 'next')).toBe('in-progress');
+    expect(adjacentStatus('in-progress', 'prev')).toBe('todo');
+    expect(adjacentStatus('done', 'next')).toBeNull();
+    expect(adjacentStatus('todo', 'prev')).toBeNull();
   });
 
   it('rebalance re-spaces evenly while preserving order', () => {
