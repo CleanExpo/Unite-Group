@@ -3,13 +3,14 @@ import { buildOvernightDigest, digestToMarkdown } from '@/lib/command-centre/ove
 import type { CommandCentreTask, TaskStatus } from '@/lib/command-centre/tasks'
 import type { ExecutionSession, SessionStatus } from '@/lib/command-centre/sessions'
 
-function task(status: TaskStatus): CommandCentreTask {
+function task(status: TaskStatus, overrides: Partial<CommandCentreTask> = {}): CommandCentreTask {
   return {
     id: 't', founder_id: 'f', external_ref: null, queue_id: null, project_id: null, project_key: null,
     title: 'x', objective: '', priority: 'P2', status, agent_owner: null, risk_level: 'low',
     execution_mode: 'advisory', origin: 'idea', dependencies: [], human_approval_required: true,
     evidence_path: null, validation_required: [], linear_id: null, preview_url: null, metadata: {},
     created_at: 'now', updated_at: 'now',
+    ...overrides,
   }
 }
 function sess(status: SessionStatus): ExecutionSession {
@@ -37,11 +38,25 @@ describe('buildOvernightDigest', () => {
   })
 
   it('surfaces attention items (decisions, blocked, failed sessions)', () => {
-    const tasks = [task('proposed'), task('blocked')]
+    const tasks = [task('proposed'), task('blocked', { human_approval_required: false })]
     const d = buildOvernightDigest(tasks, [sess('failed')], AT)
     expect(d.attention).toContain('1 task awaiting your decision')
     expect(d.attention).toContain('1 task blocked')
     expect(d.attention).toContain('1 session failed overnight')
+  })
+
+  it('surfaces approval-gated blocked tasks distinctly for CRM decisions', () => {
+    const tasks = [
+      task('blocked', { title: 'Approve lead conversion', human_approval_required: true }),
+      task('blocked', { title: 'Investigate flaky CI', human_approval_required: false }),
+    ]
+
+    const d = buildOvernightDigest(tasks, [], AT)
+
+    expect(d.tasks.approvalGatedBlocked).toBe(1)
+    expect(d.attention).toContain('1 approval-gated task blocked')
+    expect(d.attention).toContain('1 task blocked')
+    expect(digestToMarkdown(d)).toContain('1 approval-gated task blocked')
   })
 
   it('clear board ⇒ no attention items', () => {
