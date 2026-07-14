@@ -21,6 +21,7 @@ export interface OvernightDigest {
     total: number
     byStatus: Record<TaskStatus, number>
     needsDecision: number // proposed + awaiting_approval
+    approvalGatedBlocked: number
     queued: number
     blocked: number
     failed: number
@@ -56,6 +57,7 @@ export function buildOvernightDigest(
   }
 
   const needsDecision = byStatus.proposed + byStatus.awaiting_approval
+  const approvalGatedBlocked = tasks.filter((task) => task.status === 'blocked' && task.human_approval_required).length
   const blocked = byStatus.blocked
   const failed = byStatus.failed
   const done = byStatus.done
@@ -63,7 +65,9 @@ export function buildOvernightDigest(
 
   const attention: string[] = []
   if (needsDecision > 0) attention.push(`${needsDecision} task${needsDecision === 1 ? '' : 's'} awaiting your decision`)
-  if (blocked > 0) attention.push(`${blocked} task${blocked === 1 ? '' : 's'} blocked`)
+  if (approvalGatedBlocked > 0) attention.push(`${approvalGatedBlocked} approval-gated task${approvalGatedBlocked === 1 ? '' : 's'} blocked`)
+  const otherBlocked = Math.max(0, blocked - approvalGatedBlocked)
+  if (otherBlocked > 0) attention.push(`${otherBlocked} task${otherBlocked === 1 ? '' : 's'} blocked`)
   if (sByStatus.failed > 0) attention.push(`${sByStatus.failed} session${sByStatus.failed === 1 ? '' : 's'} failed overnight`)
   if (failed > 0) attention.push(`${failed} task${failed === 1 ? '' : 's'} failed`)
   if (sByStatus.paused > 0) attention.push(`${sByStatus.paused} session${sByStatus.paused === 1 ? '' : 's'} paused`)
@@ -75,7 +79,7 @@ export function buildOvernightDigest(
 
   return {
     generatedAt,
-    tasks: { total: tasks.length, byStatus, needsDecision, queued, blocked, failed, done },
+    tasks: { total: tasks.length, byStatus, needsDecision, approvalGatedBlocked, queued, blocked, failed, done },
     sessions: { total: sessions.length, byStatus: sByStatus },
     attention,
     headline,
