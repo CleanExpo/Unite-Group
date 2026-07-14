@@ -12,6 +12,7 @@
   --deck-go: #2dbb57;       /* go — fills/LEDs only */
   --deck-amber: #f4820f;    /* caution — fills/LEDs only */
   --deck-abort: #e5484d;    /* abort — fills/LEDs only */
+  --deck-glow: 45, 187, 87; /* RGB triplet for LED/glow shadows — candy green on the dark deck */
   --deck-line: rgba(255, 255, 255, 0.10);
   --deck-line-soft: rgba(255, 255, 255, 0.05);
   --deck-panel: #1c2230;    /* canvas --surface-2 */
@@ -89,7 +90,7 @@
   color: var(--deck-cyan-text);
   font-weight: 700;
   letter-spacing: 0.05em;
-  box-shadow: 0 0 18px rgba(45, 187, 87, 0.35), inset 0 0 10px rgba(45, 187, 87, 0.12);
+  box-shadow: 0 0 18px rgba(var(--deck-glow), 0.35), inset 0 0 10px rgba(var(--deck-glow), 0.12);
 }
 
 .brandText { display: flex; flex-direction: column; line-height: 1.05; }
@@ -114,7 +115,7 @@
   font-weight: 500;
   letter-spacing: 0.08em;
   color: var(--deck-cyan-text);
-  text-shadow: 0 0 14px rgba(45, 187, 87, 0.45);
+  text-shadow: 0 0 14px rgba(var(--deck-glow), 0.45);
   font-variant-numeric: tabular-nums;
 }
 .clockLabel {
@@ -162,7 +163,7 @@
   border: 1px solid var(--deck-line);
   border-radius: 10px;
   padding: 0.28rem 0.5rem;
-  background: rgba(45, 187, 87, 0.05);
+  background: rgba(var(--deck-glow), 0.05);
   white-space: nowrap;
 }
 .kbd b { color: var(--deck-text); font-weight: 600; }
@@ -200,8 +201,8 @@
 .panel::after { bottom: 6px; left: 6px; border-right: 0; border-top: 0; }
 .panel:hover {
   transform: translateY(-2px);
-  border-color: rgba(45, 187, 87, 0.4);
-  box-shadow: 0 10px 30px rgba(45, 120, 70, 0.16), 0 0 0 1px rgba(45, 187, 87, 0.12);
+  border-color: rgba(var(--deck-glow), 0.4);
+  box-shadow: 0 10px 30px rgba(45, 120, 70, 0.16), 0 0 0 1px rgba(var(--deck-glow), 0.12);
 }
 
 .panelHead { display: flex; align-items: center; gap: 0.55rem; }
@@ -267,7 +268,7 @@
   width: fit-content;
   transition: text-shadow 0.15s ease;
 }
-.plink:hover { text-shadow: 0 0 10px rgba(45, 187, 87, 0.5); text-decoration: underline; }
+.plink:hover { text-shadow: 0 0 10px rgba(var(--deck-glow), 0.5); text-decoration: underline; }
 
 /* ── Project integration manifests ───────────────────────────────────── */
 .integrationGrid {
@@ -283,7 +284,7 @@
   padding: 0.55rem;
   border: 1px solid var(--deck-line-soft);
   border-radius: 10px;
-  background: rgba(45, 187, 87, 0.05);
+  background: rgba(var(--deck-glow), 0.05);
 }
 
 .integrationSummary span {
@@ -322,7 +323,7 @@
   padding: 0.45rem 0.5rem;
   border: 1px solid var(--deck-line-soft);
   border-radius: 10px;
-  background: rgba(45, 187, 87, 0.05);
+  background: rgba(var(--deck-glow), 0.05);
 }
 
 .connectionName {
@@ -394,7 +395,7 @@
 
 .iconCommand:hover,
 .queueCommand:hover {
-  border-color: rgba(45, 187, 87, 0.5);
+  border-color: rgba(var(--deck-glow), 0.5);
   color: var(--deck-cyan);
   background: rgba(13, 25, 38, 0.94);
 }
@@ -440,7 +441,7 @@
   border: 1px solid var(--deck-line);
   border-radius: 10px;
   padding: 0.22rem 0.5rem;
-  background: rgba(45, 187, 87, 0.05);
+  background: rgba(var(--deck-glow), 0.05);
 }
 .sourceChip b { color: var(--deck-cyan-text); font-weight: 600; }
 .stamp {
@@ -463,10 +464,10 @@
   border: 1px solid var(--deck-line-soft);
   border-left: 2px solid var(--rail, var(--deck-line));
   border-radius: 10px;
-  background: rgba(45, 187, 87, 0.05);
+  background: rgba(var(--deck-glow), 0.05);
   transition: background 0.15s ease, border-color 0.15s ease;
 }
-.toolRow:hover { background: rgba(45, 187, 87, 0.04); border-color: var(--deck-line); }
+.toolRow:hover { background: rgba(var(--deck-glow), 0.04); border-color: var(--deck-line); }
 .toolKey {
   font-family: var(--font-geist-mono), monospace;
   font-size: 0.7rem; color: var(--deck-text); font-weight: 500;
@@ -546,6 +547,7 @@
   --deck-go: #0f9d58;
   --deck-amber: #d97706;
   --deck-abort: #dc2626;
+  --deck-glow: 74, 74, 244; /* RGB triplet for LED/glow shadows — indigo, matches --deck-cyan */
   --deck-line: rgba(22, 24, 29, 0.12);
   --deck-line-soft: rgba(22, 24, 29, 0.06);
   --deck-panel: #ffffff;
