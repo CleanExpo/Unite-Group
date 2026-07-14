@@ -13,6 +13,10 @@ import { EMAIL_ACCOUNTS, type EmailAccount, type EmailProvider } from '@/lib/ema
 
 /** A mailbox as held in the registry (mirrors EmailAccount + a live status). */
 export interface MailboxAccount {
+  /** Registry row id (set when loaded from mailbox_account). */
+  id?: string;
+  /** Owning founder (set when loaded from the DB registry). */
+  founderId?: string;
   email: string;
   businessKey: string;
   label: string;
@@ -110,11 +114,14 @@ export const PROVIDER_FETCHERS: Partial<
   Record<MailboxAccount['provider'], MailboxFetcher>
 > = {};
 
-/** Accounts whose provider has no live fetcher yet — surfaced, not silently skipped. */
+/**
+ * Accounts whose provider has no live fetcher — surfaced, not silently skipped.
+ * `fetchers` is the LIVE registry (the cron passes its wired map, e.g. { google });
+ * defaults to the empty conceptual registry.
+ */
 export function uncapturedAccounts(
-  accounts: MailboxAccount[]
+  accounts: MailboxAccount[],
+  fetchers: Partial<Record<MailboxAccount['provider'], MailboxFetcher>> = PROVIDER_FETCHERS
 ): MailboxAccount[] {
-  return accounts.filter(
-    a => a.status !== 'disconnected' && !PROVIDER_FETCHERS[a.provider]
-  );
+  return accounts.filter(a => a.status !== 'disconnected' && !fetchers[a.provider]);
 }

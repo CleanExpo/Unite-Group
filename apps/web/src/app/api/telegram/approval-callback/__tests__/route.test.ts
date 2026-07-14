@@ -19,12 +19,13 @@ describe('POST /api/telegram/approval-callback', () => {
     expect(body.ok).toBe(false)
   })
 
-  it('returns 501 when tokens configured but subsystem not migrated', async () => {
+  it('is dormant when tokens configured but MARGOT_DRAFTS_ENABLED not set', async () => {
     vi.stubEnv('TELEGRAM_BOT_TOKEN', 'bot-token')
     vi.stubEnv('TELEGRAM_DECISION_SIGNING_KEY', 'signing-key')
+    vi.stubEnv('MARGOT_DRAFTS_ENABLED', '')
     const res = await POST(req())
-    expect(res.status).toBe(501)
     const body = await res.json()
-    expect(body.code).toBe('not_connected')
+    expect(body.ok).toBe(false)
+    expect(body.dormant).toBe(true)
   })
 })

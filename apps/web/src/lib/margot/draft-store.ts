@@ -41,6 +41,7 @@ export interface MargotDraftStore {
   getDraft(id: string, founderId: string): Promise<StoredDraft | null>;
   recordApproval(approval: Approval, founderId: string): Promise<void>;
   markSent(id: string): Promise<void>;
+  markRejected(id: string): Promise<void>;
 }
 
 export function createMargotDraftStore(): MargotDraftStore {
@@ -114,6 +115,16 @@ export function createMargotDraftStore(): MargotDraftStore {
         .update({ status: 'sent', updated_at: new Date().toISOString() })
         .eq('id', id);
       if (error) throw new Error(`margot_email_draft markSent: ${error.message}`);
+    },
+
+    async markRejected(id) {
+      const { error } = await db
+        .from('margot_email_draft')
+        .update({ status: 'rejected', updated_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) {
+        throw new Error(`margot_email_draft markRejected: ${error.message}`);
+      }
     },
   };
 }
