@@ -13,6 +13,7 @@ import { Chakra_Petch, Syne, JetBrains_Mono } from 'next/font/google'
 import { getToolCatalogue } from '@/lib/command-centre/tools/catalogue'
 import { WikiGraphTile } from '@/components/command-centre/wiki-graph/WikiGraphTile'
 import { DeckDetails, DeckMoreLine, DECK_LIST_CAP } from '@/components/command-centre/DeckDetails'
+import { DeckThemeShell } from '../DeckThemeShell'
 import { WikiEnhanceControl } from '../WikiEnhanceControl'
 import { railFor } from '../deck-visual-helpers'
 import shell from '../shell.module.css'
@@ -45,7 +46,7 @@ export default async function KnowledgeDeckPage() {
   }, {})
 
   return (
-    <div className={`${chakra.variable} ${syne.variable} ${jbMono.variable} ${styles.deck}`}>
+    <DeckThemeShell className={`${chakra.variable} ${syne.variable} ${jbMono.variable} ${styles.deck}`}>
       <Link href="/founder/command-centre" className={styles.plink}>
         &larr; Command deck
       </Link>
@@ -114,6 +115,6 @@ export default async function KnowledgeDeckPage() {
           <DeckMoreLine total={tools.length} shown={Math.min(tools.length, DECK_LIST_CAP)} />
         </DeckDetails>
       </section>
-    </div>
+    </DeckThemeShell>
   )
 }

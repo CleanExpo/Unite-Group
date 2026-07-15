@@ -16,6 +16,7 @@ import { tailEvidence } from '@/lib/command-centre/evidence-stream'
 import { loadEvidenceLedgerFromSupabase } from '@/lib/command-centre/evidence-ledger-supabase'
 import { loadCrmMissionControlJobs } from '@/lib/command-centre/crm-mission-control-jobs-supabase'
 import { getUser } from '@/lib/supabase/server'
+import { DeckThemeShell } from '../DeckThemeShell'
 import { QueueBoard } from '../QueueBoard'
 import { OperatingHealthTile } from '../OperatingHealthTile'
 import { EvidenceStreamTile } from '../EvidenceStreamTile'
@@ -78,7 +79,7 @@ export default async function OperationsDeckPage() {
   const crmMissionControlJobs = await loadCrmMissionControlJobs(user?.id ?? null)
 
   return (
-    <div className={`${chakra.variable} ${syne.variable} ${jbMono.variable} ${styles.deck}`}>
+    <DeckThemeShell className={`${chakra.variable} ${syne.variable} ${jbMono.variable} ${styles.deck}`}>
       <Link href="/founder/command-centre" className={styles.plink}>
         &larr; Command deck
       </Link>
@@ -230,6 +231,6 @@ export default async function OperationsDeckPage() {
           <EmailAccountsTile />
         </article>
       </section>
-    </div>
+    </DeckThemeShell>
   )
 }

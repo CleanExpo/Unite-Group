@@ -3,8 +3,9 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 type Theme = 'dark' | 'light'
-// Command-deck visual register: 'deck' (flight-deck dark, default) or
-// 'daylight' (Affirm-inspired paper/indigo — see docs/design/mobbin-ui-library.md).
+// Command-deck visual register: 'daylight' (Affirm-inspired paper/indigo —
+// see docs/design/mobbin-ui-library.md; default per founder directive 15/07)
+// or 'deck' (flight-deck dark, opt-in via the Feel toggle).
 type DeckTheme = 'deck' | 'daylight'
 
 interface UIStore {
@@ -28,7 +29,7 @@ export const useUIStore = create<UIStore>()(
       sidebarOpen: true,
       expandedBusinesses: [],
       theme: 'light',
-      deckTheme: 'deck',
+      deckTheme: 'daylight',
       captureOpen: false,
       commandBarOpen: false,
       toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
@@ -45,6 +46,20 @@ export const useUIStore = create<UIStore>()(
     }),
     {
       name: 'nexus-ui',
+      // v1: daylight became the default register (founder directive 15/07).
+      // Migrate v0 stores so machines that persisted 'deck' before the flip
+      // see daylight once; any Feel-toggle choice made after this persists.
+      version: 1,
+      migrate: (persisted, version) => {
+        const state = persisted as {
+          sidebarOpen: boolean
+          expandedBusinesses: string[]
+          theme: Theme
+          deckTheme: DeckTheme
+        }
+        if (version < 1) return { ...state, deckTheme: 'daylight' as const }
+        return state
+      },
       // commandBarOpen intentionally excluded — always starts closed
       partialize: (s) => ({
         sidebarOpen: s.sidebarOpen,

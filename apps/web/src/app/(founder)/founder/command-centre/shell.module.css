@@ -286,3 +286,9 @@
   color: var(--ink);
   font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
 }
+
+/* Hero's @supports glass gradient hardcodes the dark ground — repaint it
+   paper in daylight (three-class specificity beats the @supports rule). */
+.daylight .canvasScope.hero {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(250, 249, 247, 0.66));
+}

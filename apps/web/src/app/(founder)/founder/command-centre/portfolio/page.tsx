@@ -29,6 +29,7 @@ import { FounderStats } from '@/components/founder/dashboard/FounderStats'
 import { CoachBriefs } from '@/components/founder/dashboard/CoachBriefs'
 import { ExperimentsDashboardWidget } from '@/components/founder/dashboard/ExperimentsDashboardWidget'
 import { HubStatusWidget } from '@/components/founder/dashboard/HubStatusWidget'
+import { DeckThemeShell } from '../DeckThemeShell'
 import { ProjectIntegrationWorkPacketControl } from '../ProjectIntegrationWorkPacketControl'
 import { swatchFor, ledState, connectionLedState, hostOf } from '../deck-visual-helpers'
 import shell from '../shell.module.css'
@@ -66,7 +67,7 @@ export default async function PortfolioDeckPage() {
   const activeCount = projects.filter((p) => p.status === 'active').length
 
   return (
-    <div className={`${chakra.variable} ${syne.variable} ${jbMono.variable} ${styles.deck}`}>
+    <DeckThemeShell className={`${chakra.variable} ${syne.variable} ${jbMono.variable} ${styles.deck}`}>
       <Link href="/founder/command-centre" className={styles.plink}>
         &larr; Command deck
       </Link>
@@ -300,6 +301,6 @@ export default async function PortfolioDeckPage() {
       <section className={`${styles.reveal}`} style={{ animationDelay: '0.22s' }}>
         <ExperimentsDashboardWidget />
       </section>
-    </div>
+    </DeckThemeShell>
   )
 }
