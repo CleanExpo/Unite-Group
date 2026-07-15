@@ -27,7 +27,7 @@ import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getUser } from '@/lib/supabase/server'
-import { hasPrivateAccess } from '@/lib/auth/private-access'
+import { hasPrivateAccess, isPrivateAccessConfigured } from '@/lib/auth/private-access'
 import { encrypt } from '@/lib/vault'
 import { createServiceClient } from '@/lib/supabase/service'
 import { upsertChannel } from '@/lib/integrations/social/channels'
@@ -37,6 +37,11 @@ export const dynamic = 'force-dynamic'
 function isArmed(): boolean {
   return process.env.CREDENTIAL_SEED_ENABLED?.trim() === 'true'
 }
+
+// Bound the stored material — a credential is never megabytes. Caps keep a
+// founder-authenticated caller from forcing an oversized encrypt + store.
+const MAX_VALUE_BYTES = 16_384
+const MAX_TOKEN_BYTES = 8_192
 
 // A seeded value is either a raw string (an API key / token) or a structured
 // token object (e.g. Google StoredTokens { access_token, refresh_token, ... }).
@@ -48,7 +53,7 @@ const vaultSchema = z.object({
   // notes/email is the human-readable account handle stored on the row.
   notes: z.string().trim().max(256).optional(),
   businessKey: z.string().trim().max(64).optional(),
-  value: z.union([z.string().min(1), z.record(z.string(), z.unknown())]),
+  value: z.union([z.string().min(1).max(MAX_VALUE_BYTES), z.record(z.string(), z.unknown())]),
 })
 
 const socialSchema = z.object({
@@ -58,8 +63,8 @@ const socialSchema = z.object({
   channelId: z.string().trim().min(1).max(128),
   channelName: z.string().trim().min(1).max(256),
   handle: z.string().trim().max(128).nullish(),
-  accessToken: z.string().min(1),
-  refreshToken: z.string().min(1).nullish(),
+  accessToken: z.string().min(1).max(MAX_TOKEN_BYTES),
+  refreshToken: z.string().min(1).max(MAX_TOKEN_BYTES).nullish(),
   expiresAt: z.number().int().nonnegative(),
 })
 
@@ -73,7 +78,10 @@ export async function POST(request: Request) {
 
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
-  if (!hasPrivateAccess({ id: user.id, email: user.email })) {
+  // Fail CLOSED: a credential-writing endpoint must refuse when the founder
+  // allow-list is unconfigured — the general private-access gate fail-OPENS in
+  // that state to avoid a deploy lockout, which is the wrong default here.
+  if (!isPrivateAccessConfigured() || !hasPrivateAccess({ id: user.id, email: user.email })) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -110,16 +118,20 @@ export async function POST(request: Request) {
         metadata: { seeded_at: new Date().toISOString(), source: 'credential-seed' },
       })
 
-      // Write-then-confirm: the row must be readable back before we report success.
+      // Write-then-confirm: read back and assert THIS seed's fingerprint
+      // (source marker + channel name). upsertChannel discards its own upsert
+      // error, so a bare existence check would false-confirm a silent write
+      // failure against a pre-existing channel row — assert the write landed.
       const supabase = createServiceClient()
       const { data: confirm } = await supabase
         .from('social_channels')
-        .select('id')
+        .select('id, channel_name, metadata')
         .eq('founder_id', user.id)
         .eq('platform', body.platform)
         .eq('channel_id', body.channelId)
         .maybeSingle()
-      if (!confirm) {
+      const seededSource = (confirm?.metadata as { source?: unknown } | null)?.source
+      if (!confirm || confirm.channel_name !== body.channelName || seededSource !== 'credential-seed') {
         return NextResponse.json({ error: 'Seed did not persist' }, { status: 500 })
       }
       return NextResponse.json(

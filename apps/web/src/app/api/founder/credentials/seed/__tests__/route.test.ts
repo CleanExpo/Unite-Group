@@ -1,13 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn() }))
-vi.mock('@/lib/auth/private-access', () => ({ hasPrivateAccess: vi.fn() }))
+vi.mock('@/lib/auth/private-access', () => ({
+  hasPrivateAccess: vi.fn(),
+  isPrivateAccessConfigured: vi.fn(),
+}))
 vi.mock('@/lib/vault', () => ({ encrypt: vi.fn() }))
 vi.mock('@/lib/supabase/service', () => ({ createServiceClient: vi.fn() }))
 vi.mock('@/lib/integrations/social/channels', () => ({ upsertChannel: vi.fn() }))
 
 import { getUser } from '@/lib/supabase/server'
-import { hasPrivateAccess } from '@/lib/auth/private-access'
+import { hasPrivateAccess, isPrivateAccessConfigured } from '@/lib/auth/private-access'
 import { encrypt } from '@/lib/vault'
 import { createServiceClient } from '@/lib/supabase/service'
 import { upsertChannel } from '@/lib/integrations/social/channels'
@@ -34,7 +37,9 @@ function stubClient(opts: {
   const socialChain = {
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
-    maybeSingle: vi.fn().mockResolvedValue(opts.socialConfirm ?? { data: { id: 'c1' } }),
+    maybeSingle: vi.fn().mockResolvedValue(
+      opts.socialConfirm ?? { data: { id: 'c1', channel_name: 'Unite Group', metadata: { source: 'credential-seed' } } },
+    ),
   }
   return {
     from: vi.fn((table: string) => (table === 'social_channels' ? socialChain : vaultChain)),
@@ -49,6 +54,7 @@ describe('POST /api/founder/credentials/seed', () => {
     process.env.CREDENTIAL_SEED_ENABLED = 'true'
     vi.mocked(getUser).mockResolvedValue({ id: 'user-1', email: 'founder@x.test' } as any)
     vi.mocked(hasPrivateAccess).mockReturnValue(true)
+    vi.mocked(isPrivateAccessConfigured).mockReturnValue(true)
     vi.mocked(encrypt).mockReturnValue({ encryptedValue: 'ct', iv: 'iv', salt: 'salt' })
   })
   afterEach(() => {
@@ -72,6 +78,14 @@ describe('POST /api/founder/credentials/seed', () => {
 
   it('403s when the user is not an allow-listed founder', async () => {
     vi.mocked(hasPrivateAccess).mockReturnValue(false)
+    const res = await POST(postReq({ target: 'vault', service: 'google', label: 'a', value: 'k' }))
+    expect(res.status).toBe(403)
+  })
+
+  it('403s (fails closed) when the founder allow-list is unconfigured', async () => {
+    // The general gate fail-OPENS here; a credential endpoint must refuse.
+    vi.mocked(isPrivateAccessConfigured).mockReturnValue(false)
+    vi.mocked(hasPrivateAccess).mockReturnValue(true)
     const res = await POST(postReq({ target: 'vault', service: 'google', label: 'a', value: 'k' }))
     expect(res.status).toBe(403)
   })
@@ -124,7 +138,9 @@ describe('POST /api/founder/credentials/seed', () => {
   })
 
   it('seeds a social channel via the shared upsert path and confirms it (201)', async () => {
-    const client = stubClient({ socialConfirm: { data: { id: 'c1' } } })
+    const client = stubClient({
+      socialConfirm: { data: { id: 'c1', channel_name: 'Unite Group', metadata: { source: 'credential-seed' } } },
+    })
     vi.mocked(createServiceClient).mockReturnValue(client as any)
     vi.mocked(upsertChannel).mockResolvedValue(undefined as any)
 
