@@ -174,10 +174,18 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      # npm retired the classic audit endpoint on 15/07/2026 (HTTP 410:
+      # "use the bulk advisory endpoint"); pnpm 9.x/10.x still call it, so
+      # `pnpm@9.15.0 audit` fails on every run. pnpm 11 audits via the bulk
+      # advisory endpoint — audit-only version bump here; the workspaces'
+      # pinned packageManager (9.15.0) is untouched, hence --pm-on-fail=ignore
+      # to bypass pnpm 11's packageManager-mismatch guard for this read-only
+      # audit. Verified locally 15/07/2026: pnpm@11.13.0 audit resolves the
+      # full apps/web tree (1485 deps) and both workspaces report clean.
       - name: Audit pnpm lockfiles
         run: |
-          (cd apps/web && corepack pnpm@9.15.0 audit --audit-level high)
-          (cd apps/workspace && corepack pnpm@9.15.0 audit --audit-level high)
+          (cd apps/web && corepack pnpm@11.13.0 --pm-on-fail=ignore audit --audit-level high)
+          (cd apps/workspace && corepack pnpm@11.13.0 --pm-on-fail=ignore audit --audit-level high)
 
       - name: Audit npm lockfiles
         run: |
