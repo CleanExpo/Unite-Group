@@ -28,8 +28,11 @@ test.describe('Dashboard', () => {
       await loginAsFounder(page)
     })
 
-    test('dashboard page loads and renders KPI cards', async ({ page }) => {
-      await expect(page).toHaveURL(/\/founder\/dashboard/)
+    test('portfolio deck loads and renders KPI cards', async ({ page }) => {
+      // UNI-2378 (calm cockpit): the Founder Cockpit tiles (KPI grid included)
+      // relocated from the command-centre main page to the portfolio sub-route.
+      await page.goto('/founder/command-centre/portfolio')
+      await expect(page).toHaveURL(/\/founder\/command-centre\/portfolio/)
       await expect(page.locator('body')).not.toContainText('Application error')
 
       // KPI grid should be present
