@@ -139,6 +139,11 @@ export default function AnalyticsDashboard() {
   const [analytics, setAnalytics] = useState<AnalyticsRow[]>([])
   const [loading, setLoading] = useState(true)
   const [summary, setSummary] = useState<AnalyticsSummaryData | null>(null)
+  // A failed request must never render as the "no data yet" empty state —
+  // that reads as "connected, nothing published" when the truth is "the
+  // analytics service could not be reached" (No-Invaders).
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [retryToken, setRetryToken] = useState(0)
 
   useEffect(() => {
     const days = DATE_RANGE_OPTIONS.find((d) => d.value === dateRange)?.days ?? 30
@@ -149,8 +154,12 @@ export default function AnalyticsDashboard() {
     })
 
     setLoading(true)
+    setLoadError(null)
     fetch(`/api/analytics?${params.toString()}`)
-      .then((res) => res.json() as Promise<{ data: AnalyticsRow[] }>)
+      .then((res) => {
+        if (!res.ok) throw new Error(`Analytics request failed (HTTP ${res.status})`)
+        return res.json() as Promise<{ data: AnalyticsRow[] }>
+      })
       .then(({ data }) => {
         setAnalytics(data ?? [])
         setSummary(computeSummary(data ?? []))
@@ -159,9 +168,10 @@ export default function AnalyticsDashboard() {
         console.error('[analytics] fetch failed:', err)
         setAnalytics([])
         setSummary(null)
+        setLoadError(err instanceof Error ? err.message : 'Analytics request failed')
       })
       .finally(() => setLoading(false))
-  }, [selectedBusiness, selectedPlatform, dateRange])
+  }, [selectedBusiness, selectedPlatform, dateRange, retryToken])
 
   // Top 10 posts by engagements
   const topPosts = [...analytics]
@@ -261,8 +271,33 @@ export default function AnalyticsDashboard() {
         </AnimatePresence>
       </div>
 
+      {/* Load failure — honest error, distinct from a genuinely empty dataset */}
+      {!loading && loadError && (
+        <div
+          role="alert"
+          className="rounded-sm py-10 px-6 flex flex-col items-center justify-center gap-3 text-center"
+          style={{ border: '1px solid rgba(239, 68, 68, 0.35)' }}
+        >
+          <p className="text-[13px] font-medium" style={{ color: '#ef4444' }}>
+            Analytics unavailable — {loadError}
+          </p>
+          <p className="text-[12px] max-w-sm" style={{ color: 'var(--color-text-muted)' }}>
+            This is a load failure, not an empty account. Metrics stay hidden rather than
+            showing zeros that are not real.
+          </p>
+          <button
+            type="button"
+            onClick={() => setRetryToken((t) => t + 1)}
+            className="h-8 px-3 rounded-sm text-[12px] font-medium border"
+            style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       {/* Empty state */}
-      {!loading && analytics.length === 0 && (
+      {!loading && !loadError && analytics.length === 0 && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

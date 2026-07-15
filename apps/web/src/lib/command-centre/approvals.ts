@@ -39,6 +39,12 @@ export interface RecordApprovalInput {
   decision: ApprovalDecision
   approver?: string
   note?: string | null
+  /**
+   * Senior Board verdict persisted on the task (metadata.board.verdict), when
+   * one exists — recorded in the audit event so every APPROVE/REJECT carries
+   * the board context it was made against (UNI-2378 E2E finding 3).
+   */
+  boardVerdict?: string | null
 }
 
 export interface ListApprovalsFilter {
@@ -150,7 +156,12 @@ export async function applyApproval(
       taskId: input.taskId,
       type: 'approved',
       actor: input.approver ?? 'founder',
-      payload: { decision: input.decision, note: input.note ?? null, new_status: nextStatus },
+      payload: {
+        decision: input.decision,
+        note: input.note ?? null,
+        new_status: nextStatus,
+        board_verdict: input.boardVerdict ?? null,
+      },
     },
     db,
   )
