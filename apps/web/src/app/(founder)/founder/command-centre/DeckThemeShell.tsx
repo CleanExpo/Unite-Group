@@ -13,8 +13,11 @@ export function DeckThemeShell({ className, children }: { className: string; chi
   const deckTheme = useUIStore((s) => s.deckTheme)
   const setDeckTheme = useUIStore((s) => s.setDeckTheme)
   const daylight = deckTheme === 'daylight'
+  // cc-daylight is a global (unhashed) marker so nested CSS modules that keep
+  // their own token scopes (command-centre .scope, pipeline .board) can
+  // bridge into the daylight register.
   return (
-    <div className={daylight ? `${className} ${styles.daylight} ${shell.daylight}` : className}>
+    <div className={daylight ? `${className} ${styles.daylight} ${shell.daylight} cc-daylight` : className}>
       {children}
       <button
         type="button"

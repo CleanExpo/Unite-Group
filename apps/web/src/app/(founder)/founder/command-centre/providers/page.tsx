@@ -14,6 +14,7 @@ import { Chakra_Petch, Syne, JetBrains_Mono } from 'next/font/google'
 import { ProviderAccountsTile } from '@/components/command-centre/provider-accounts/ProviderAccountsTile'
 import { ProviderUsageCockpit } from '@/components/command-centre/provider-usage/ProviderUsageCockpit'
 import { CostAllocationTile } from '@/components/command-centre/cost-allocation/CostAllocationTile'
+import { DeckThemeShell } from '../DeckThemeShell'
 import shell from '../shell.module.css'
 import styles from '../command-deck.module.css'
 
@@ -38,7 +39,7 @@ const jbMono = JetBrains_Mono({
 
 export default function ProvidersDeckPage() {
   return (
-    <div className={`${chakra.variable} ${syne.variable} ${jbMono.variable} ${styles.deck}`}>
+    <DeckThemeShell className={`${chakra.variable} ${syne.variable} ${jbMono.variable} ${styles.deck}`}>
       <Link href="/founder/command-centre" className={styles.plink}>
         &larr; Command deck
       </Link>
@@ -62,6 +63,6 @@ export default function ProvidersDeckPage() {
       <section className={`${styles.reveal}`} style={{ animationDelay: '0.06s' }}>
         <CostAllocationTile />
       </section>
-    </div>
+    </DeckThemeShell>
   )
 }

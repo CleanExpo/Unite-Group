@@ -24,6 +24,8 @@
   --pb-orange: #e07020;
   --pb-amber: #f0a94c;
   --pb-ease: cubic-bezier(0.19, 1, 0.22, 1);
+  /* Daylight values for this block live in the :global(.cc-daylight) .board
+     override below — keep the two lists in step when adding tokens. */
 
   position: relative;
   display: grid;
@@ -216,4 +218,22 @@
   .deal {
     transition: none;
   }
+}
+
+/* Daylight register bridge (cc-daylight marker from DeckThemeShell): paper
+   glass surfaces, ink ramps via the daylight cc-* chain, and text accents
+   re-inked for AA on white. Candy-Red keeps the stale-deal meaning. */
+:global(.cc-daylight) .board {
+  --pb-glass-1: rgba(255, 255, 255, 0.72);
+  --pb-glass-3: rgba(244, 241, 235, 0.7);
+  --pb-brd: rgba(22, 24, 29, 0.1);
+  --pb-hi: rgba(22, 24, 29, 0.04);
+  --pb-line-soft: #e5e1d8;
+  --pb-ink: var(--cc-ink, #16181d);
+  --pb-ink-dim: var(--cc-ink-dim, #5c6470);
+  --pb-ink-hush: var(--cc-ink-hush, #79808c);
+  --pb-green-txt: #0b7a44;
+  --pb-red-bright: #c62a30;
+  --pb-orange: #b45309;
+  --pb-amber: #92510a;
 }
