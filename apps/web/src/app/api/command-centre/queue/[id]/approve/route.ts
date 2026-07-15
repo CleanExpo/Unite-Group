@@ -55,6 +55,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
   if (!task) return NextResponse.json({ error: 'Task not found' }, { status: 404 })
 
+  // Annotate the decision with the persisted Senior Board verdict when one
+  // exists on the task (metadata.board — written by POST /api/command-centre/board).
+  const board = (task.metadata as { board?: { verdict?: unknown } } | undefined)?.board
+  const boardVerdict =
+    board && typeof board.verdict === 'string' && board.verdict ? board.verdict : null
+
   try {
     const result = await applyApproval({
       founderId: user.id,
@@ -62,6 +68,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       decision: decision as ApprovalDecision,
       approver: 'founder',
       note,
+      boardVerdict,
     })
     return NextResponse.json(result, { status: 201 })
   } catch (err) {

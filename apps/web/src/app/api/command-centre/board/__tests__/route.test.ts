@@ -7,6 +7,7 @@ vi.mock('@/lib/supabase/server', () => ({
 vi.mock('@/lib/command-centre/tasks', () => ({
   appendTaskEvent: vi.fn(),
   addEvidenceRecord: vi.fn(),
+  mergeTaskMetadata: vi.fn(),
   CC_TASKS_TABLE: 'cc_tasks',
 }))
 vi.mock('@/lib/command-centre/decisions', () => ({ createDecision: vi.fn() }))
@@ -27,6 +28,7 @@ import { getUser, createClient } from '@/lib/supabase/server'
 import { runBoardReview } from '@/lib/command-centre/board-review'
 import { createDecision } from '@/lib/command-centre/decisions'
 import { decomposeApprovedIdea } from '@/lib/command-centre/decompose'
+import { mergeTaskMetadata } from '@/lib/command-centre/tasks'
 import { POST } from '../route'
 
 function makeTaskChain() {
@@ -122,5 +124,33 @@ describe('POST /api/command-centre/board', () => {
     expect(res.status).toBe(201)
     const body = await res.json()
     expect(body.subtasks).toHaveLength(1)
+  })
+
+  it('persists the verdict onto the task metadata when reviewing a taskId', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
+    vi.mocked(runBoardReview).mockResolvedValue(board as any)
+    const task = { id: 'task-1', title: 'Feature', objective: 'Build search', risk_level: 'low', project_key: 'CRM', project_id: 'p-1' }
+    mockSingle.mockResolvedValue({ data: task, error: null })
+
+    const res = await POST(postReq({ taskId: 'task-1' }))
+    expect(res.status).toBe(201)
+    expect(mergeTaskMetadata).toHaveBeenCalledWith(
+      expect.objectContaining({
+        founderId: 'user-1',
+        taskId: 'task-1',
+        patch: expect.objectContaining({
+          board: expect.objectContaining({ verdict: 'APPROVED', decision_id: 'dec-1' }),
+        }),
+      }),
+    )
+  })
+
+  it('does not persist task metadata for an ad-hoc review (no taskId)', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
+    vi.mocked(runBoardReview).mockResolvedValue(board as any)
+
+    const res = await POST(postReq({ subject: 'New feature', brief: 'Build search capability' }))
+    expect(res.status).toBe(201)
+    expect(mergeTaskMetadata).not.toHaveBeenCalled()
   })
 })

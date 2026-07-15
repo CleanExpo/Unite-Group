@@ -21,6 +21,7 @@ import { getUser, createClient } from '@/lib/supabase/server'
 import {
   appendTaskEvent,
   addEvidenceRecord,
+  mergeTaskMetadata,
   CC_TASKS_TABLE,
   type CommandCentreTask,
   type SupabaseLike,
@@ -143,7 +144,30 @@ export async function POST(request: Request) {
     )
   }
 
-  // 4. Append the gated task event + evidence record (best-effort).
+  // 4. Persist the verdict onto the task itself (metadata.board) so the queue
+  //    lane and the approve action can read it after this response is gone —
+  //    the rendered console panel alone is ephemeral (UNI-2378 E2E finding 3).
+  //    Best-effort relative to the durable cc_decisions row.
+  if (taskId) {
+    try {
+      await mergeTaskMetadata({
+        founderId: user.id,
+        taskId,
+        patch: {
+          board: {
+            verdict: board.verdict,
+            decision_id: decision.id,
+            rationale: board.rationale || null,
+            at: new Date().toISOString(),
+          },
+        },
+      })
+    } catch {
+      // cc_decisions already holds the verdict durably; the metadata mirror is best-effort.
+    }
+  }
+
+  // 5. Append the gated task event + evidence record (best-effort).
   if (taskId) {
     try {
       await appendTaskEvent({
@@ -167,7 +191,7 @@ export async function POST(request: Request) {
     }
   }
 
-  // 5. On APPROVED with a task: generate the queue (CC-09).
+  // 6. On APPROVED with a task: generate the queue (CC-09).
   let subtasks: CommandCentreTask[] = []
   if (board.verdict === 'APPROVED' && task) {
     try {
