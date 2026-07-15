@@ -171,7 +171,7 @@ export function BlockedLanesTile({ data }: { data: BlockedLanesData }) {
     return (
       <p
         data-testid="blocked-lanes-tile-error"
-        style={{ color: localOnly ? 'var(--color-text-muted)' : '#fb923c', fontSize: '0.85rem', margin: 0 }}
+        style={{ color: localOnly ? 'var(--color-text-muted)' : 'var(--tile-amber-txt, #fb923c)', fontSize: '0.85rem', margin: 0 }}
       >
         {localOnly
           ? "Linear not connected (LINEAR_API_KEY not set) — and the local backlog fallback isn't available in this environment."
@@ -183,7 +183,7 @@ export function BlockedLanesTile({ data }: { data: BlockedLanesData }) {
     return (
       <p
         data-testid="blocked-lanes-tile-empty"
-        style={{ color: '#34d399', fontSize: '0.85rem', margin: 0 }}
+        style={{ color: 'var(--tile-green-txt, #34d399)', fontSize: '0.85rem', margin: 0 }}
       >
         No blocked or gated lanes — {data.total_lanes} lanes total, all autonomous or done.
       </p>
@@ -194,7 +194,7 @@ export function BlockedLanesTile({ data }: { data: BlockedLanesData }) {
     <div data-testid="blocked-lanes-tile">
       <div
         style={{
-          color: '#fb923c',
+          color: 'var(--tile-amber-txt, #fb923c)',
           fontSize: '0.72rem',
           marginBottom: '0.3rem',
         }}
@@ -209,24 +209,24 @@ export function BlockedLanesTile({ data }: { data: BlockedLanesData }) {
               border: '1px solid rgba(251, 146, 60, 0.25)',
               borderLeft: '3px solid #fb923c',
               padding: '0.4rem 0.6rem',
-              background: 'rgba(0,0,0,0.25)',
+              background: 'var(--tile-card-bg, rgba(0,0,0,0.25))',
               borderRadius: '2px',
               fontSize: '0.78rem',
             }}
           >
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'baseline' }}>
               {r.number !== null && (
-                <span style={{ color: '#6f879b', fontFamily: 'ui-monospace, SFMono-Regular, monospace' }}>
+                <span style={{ color: 'var(--tile-ink-hush, #6f879b)', fontFamily: 'ui-monospace, SFMono-Regular, monospace' }}>
                   #{r.number}
                 </span>
               )}
-              <span style={{ fontWeight: 600, color: '#e6f7ff' }}>{r.name}</span>
-              <span style={{ color: '#9bb0c1' }}>· {r.status}</span>
+              <span style={{ fontWeight: 600, color: 'var(--tile-ink, #e6f7ff)' }}>{r.name}</span>
+              <span style={{ color: 'var(--tile-ink-dim, #9bb0c1)' }}>· {r.status}</span>
               <span
                 style={{
                   marginLeft: 'auto',
                   fontSize: '0.66rem',
-                  color: '#6f879b',
+                  color: 'var(--tile-ink-hush, #6f879b)',
                   fontFamily: 'ui-monospace, SFMono-Regular, monospace',
                 }}
               >
@@ -237,7 +237,7 @@ export function BlockedLanesTile({ data }: { data: BlockedLanesData }) {
               <div
                 style={{
                   marginTop: '0.3rem',
-                  color: '#9bb0c1',
+                  color: 'var(--tile-ink-dim, #9bb0c1)',
                   fontSize: '0.72rem',
                 }}
               >

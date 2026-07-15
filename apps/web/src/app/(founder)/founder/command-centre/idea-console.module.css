@@ -342,3 +342,22 @@
 @media (prefers-reduced-motion: reduce) {
   .spinner { animation-duration: 1.4s; }
 }
+
+/* Daylight register bridge (cc-daylight marker from DeckThemeShell): the
+   console keeps its cockpit anatomy but re-inks to paper — white panel,
+   ink text, daylight signal ramp. */
+:global(.cc-daylight) .console {
+  --c-cyan: #0f766e;
+  --c-go: #0b7a44;
+  --c-amber: #92510a;
+  --c-abort: #b91c1c;
+  --c-line: rgba(22, 24, 29, 0.12);
+  --c-panel: #ffffff;
+  --c-panel-hi: #f7f5f1;
+  --c-text: #16181d;
+  --c-muted: #5c6470;
+}
+:global(.cc-daylight) .textarea,
+:global(.cc-daylight) .select {
+  background: #faf9f7;
+}

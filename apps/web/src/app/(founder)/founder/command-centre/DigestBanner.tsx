@@ -88,7 +88,10 @@ export function DigestBanner() {
   return (
     <div className={styles.banner} data-attention={hasAttention}>
       <div className={styles.head}>
-        <span className={styles.title}>Morning Digest</span>
+        {/* "Board digest" names the scope: these counts come from the cc_tasks
+            board, while the hero's "N actions need you" counts the action
+            queue — two real sources, so each labels its own. */}
+        <span className={styles.title}>Board Digest</span>
         <span className={styles.headline}>{safeHeadline}</span>
       </div>
       {hasAttention ? (
