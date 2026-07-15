@@ -62,3 +62,20 @@
   font-size: 0.8rem;
   color: #bbf7d0;
 }
+
+/* Daylight register bridge — paper tints + ink ramps (AA on white). */
+:global(.cc-daylight) .banner {
+  background: linear-gradient(180deg, rgba(15, 157, 88, 0.05), rgba(250, 249, 247, 0.4));
+  border-color: rgba(22, 24, 29, 0.12);
+}
+:global(.cc-daylight) .banner[data-attention='true'] {
+  border-color: rgba(146, 81, 10, 0.35);
+  border-left-color: #92510a;
+  background: linear-gradient(180deg, rgba(146, 81, 10, 0.06), rgba(250, 249, 247, 0.4));
+}
+:global(.cc-daylight) .title { color: #5c6470; }
+:global(.cc-daylight) .headline { color: #16181d; }
+:global(.cc-daylight) .muted { color: #6b7280; }
+:global(.cc-daylight) .attention { color: #92510a; }
+:global(.cc-daylight) .attention li { color: #92510a; }
+:global(.cc-daylight) .clear { color: #0b7a44; }

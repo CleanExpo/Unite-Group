@@ -69,7 +69,7 @@ export function InProgressPRsTile() {
 
   if (error && !data) {
     return (
-      <p data-testid="in-progress-prs-tile-error" style={{ color: '#d02f35', fontSize: '0.85rem', margin: 0 }}>
+      <p data-testid="in-progress-prs-tile-error" style={{ color: 'var(--tile-red-txt, #d02f35)', fontSize: '0.85rem', margin: 0 }}>
         Could not load in-progress PRs: {error}
       </p>
     )
@@ -87,7 +87,7 @@ export function InProgressPRsTile() {
     // never render as an all-clear (NorthStar honesty).
     const unavailable = !data.available
     const partial = data.available && data.read_error !== null
-    const tone = unavailable || partial ? 'var(--color-text-muted)' : '#34d399'
+    const tone = unavailable || partial ? 'var(--color-text-muted)' : 'var(--tile-green-txt, #34d399)'
     return (
       <p
         data-testid="in-progress-prs-tile-empty"
@@ -103,7 +103,7 @@ export function InProgressPRsTile() {
     <div data-testid="in-progress-prs-tile">
       <div
         style={{
-          color: '#6f879b',
+          color: 'var(--tile-ink-hush, #6f879b)',
           fontSize: '0.72rem',
           marginBottom: '0.4rem',
         }}
@@ -127,14 +127,14 @@ export function InProgressPRsTile() {
               padding: '0.3rem 0.5rem',
               border: '1px solid rgba(56, 225, 255, 0.18)',
               borderLeft: '3px solid #16a34a',
-              background: 'rgba(0,0,0,0.25)',
+              background: 'var(--tile-card-bg, rgba(0,0,0,0.25))',
               borderRadius: '2px',
               fontSize: '0.78rem',
             }}
           >
             <span
               style={{
-                color: '#6f879b',
+                color: 'var(--tile-ink-hush, #6f879b)',
                 fontFamily: 'ui-monospace, SFMono-Regular, monospace',
                 minWidth: '3rem',
               }}
@@ -145,16 +145,16 @@ export function InProgressPRsTile() {
               href={pr.url}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ color: '#e6f7ff', textDecoration: 'none' }}
+              style={{ color: 'var(--tile-ink, #e6f7ff)', textDecoration: 'none' }}
             >
               {pr.title}
             </a>
-            <span style={{ color: '#9bb0c1' }}>· @{pr.author}</span>
-            <span style={{ color: '#9bb0c1' }}>· {pr.head_ref}</span>
+            <span style={{ color: 'var(--tile-ink-dim, #9bb0c1)' }}>· @{pr.author}</span>
+            <span style={{ color: 'var(--tile-ink-dim, #9bb0c1)' }}>· {pr.head_ref}</span>
             <span
               style={{
                 marginLeft: 'auto',
-                color: '#6f879b',
+                color: 'var(--tile-ink-hush, #6f879b)',
                 fontSize: '0.7rem',
                 fontFamily: 'ui-monospace, SFMono-Regular, monospace',
               }}

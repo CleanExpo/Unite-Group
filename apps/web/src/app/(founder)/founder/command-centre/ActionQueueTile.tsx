@@ -120,7 +120,7 @@ export function ActionQueueTile({ data }: { data: ActionQueueTileData }) {
     return (
       <p
         data-testid="action-queue-tile-error"
-        style={{ color: localOnly ? 'var(--color-text-muted)' : '#fb923c', fontSize: '0.85rem', margin: 0 }}
+        style={{ color: localOnly ? 'var(--color-text-muted)' : 'var(--tile-amber-txt, #fb923c)', fontSize: '0.85rem', margin: 0 }}
       >
         {localOnly
           ? "Linear not connected (LINEAR_API_KEY not set) — and the local 2nd-brain vault fallback isn't available in this environment."
@@ -132,7 +132,7 @@ export function ActionQueueTile({ data }: { data: ActionQueueTileData }) {
     return (
       <p
         data-testid="action-queue-tile-empty"
-        style={{ color: '#9bb0c1', fontSize: '0.85rem', margin: 0 }}
+        style={{ color: 'var(--tile-ink-dim, #9bb0c1)', fontSize: '0.85rem', margin: 0 }}
       >
         No actions queued at <code>{data.queue_path}</code>
       </p>
@@ -157,7 +157,7 @@ export function ActionQueueTile({ data }: { data: ActionQueueTileData }) {
     <div data-testid="action-queue-tile">
       <div
         style={{
-          color: '#6f879b',
+          color: 'var(--tile-ink-hush, #6f879b)',
           fontSize: '0.72rem',
           marginBottom: '0.3rem',
         }}
@@ -172,7 +172,7 @@ export function ActionQueueTile({ data }: { data: ActionQueueTileData }) {
         }}
       >
         <thead>
-          <tr style={{ color: '#6f879b', textAlign: 'left' }}>
+          <tr style={{ color: 'var(--tile-ink-hush, #6f879b)', textAlign: 'left' }}>
             {colHeaders.map((h, i) => (
               <th key={i} style={{ padding: '0.2rem 0.4rem', fontWeight: 500 }}>
                 {h}
@@ -188,7 +188,7 @@ export function ActionQueueTile({ data }: { data: ActionQueueTileData }) {
                   key={j}
                   style={{
                     padding: '0.2rem 0.4rem',
-                    color: j === 1 ? '#e6f7ff' : '#9bb0c1',
+                    color: j === 1 ? 'var(--tile-ink, #e6f7ff)' : 'var(--tile-ink-dim, #9bb0c1)',
                   }}
                 >
                   {c || '—'}

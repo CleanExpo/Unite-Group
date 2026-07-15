@@ -313,3 +313,24 @@
   gap: 0.35rem;
   flex-wrap: wrap;
 }
+
+/* Daylight register bridge — ink ramps + quiet paper fills; LEDs keep their
+   status colours (fills stay legible on paper). */
+:global(.cc-daylight) .count { color: #6b7280; }
+:global(.cc-daylight) .refresh {
+  color: #16181d;
+  background: rgba(22, 24, 29, 0.04);
+  border-color: rgba(22, 24, 29, 0.16);
+}
+:global(.cc-daylight) .refresh:hover:not(:disabled) {
+  background: rgba(22, 24, 29, 0.08);
+  border-color: rgba(22, 24, 29, 0.3);
+}
+:global(.cc-daylight) .liveLabel { color: #6b7280; }
+:global(.cc-daylight) .error {
+  background: rgba(185, 28, 28, 0.06);
+  color: #b91c1c;
+}
+:global(.cc-daylight) .placeholder { color: #6b7280; }
+:global(.cc-daylight) .groupName { color: #16181d; }
+:global(.cc-daylight) .groupCount { color: #6b7280; }

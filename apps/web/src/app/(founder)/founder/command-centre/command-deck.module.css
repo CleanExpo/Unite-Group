@@ -42,6 +42,19 @@
   --cc-signal-text: var(--deck-cyan-text);
   --cc-pulse-duration: 2.4s;
 
+  /* Tile inline-style tokens — the five queue/health/evidence tiles style via
+     inline `style={{}}` (class overrides can't reach them), so they consume
+     these vars with their old literals as fallbacks. Deck values = those
+     literals exactly; the daylight block re-inks them for paper. */
+  --tile-ink: #e6f7ff;
+  --tile-ink-dim: #9bb0c1;
+  --tile-ink-hush: #6f879b;
+  --tile-card-bg: rgba(0, 0, 0, 0.25);
+  --tile-card-line: rgba(255, 255, 255, 0.08);
+  --tile-amber-txt: #fb923c;
+  --tile-green-txt: #34d399;
+  --tile-red-txt: #d02f35;
+
   position: relative;
   min-height: 100%;
   padding: 1.75rem 1.75rem 3rem;
@@ -560,6 +573,15 @@
 
   --cc-bg-soft: #f7f5f1;
   --cc-ink-hush: #6b7280;     /* 4.8:1 on white */
+
+  --tile-ink: #16181d;
+  --tile-ink-dim: #5c6470;        /* 5.9:1 on white */
+  --tile-ink-hush: #6b7280;       /* 4.8:1 on white */
+  --tile-card-bg: rgba(22, 24, 29, 0.03);
+  --tile-card-line: rgba(22, 24, 29, 0.12);
+  --tile-amber-txt: #92510a;      /* 6.1:1 on white */
+  --tile-green-txt: #0b7a44;
+  --tile-red-txt: #b91c1c;        /* 6.3:1 on white */
 
   color: var(--deck-text);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
