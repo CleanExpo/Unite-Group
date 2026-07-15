@@ -1,4 +1,16 @@
+'use client'
+
+// ApprovalQueue — the /founder/approvals decision surface. The page promises
+// "actions waiting for your decision", so every row carries live Approve /
+// Reject controls wired to POST /api/approvals/[id]/decision (UNI-2373
+// register P2 — the component previously rendered read-only rows with no
+// wiring). Success is only ever claimed on a 2xx response; a failed decision
+// surfaces an honest error and the row stays put.
+
+import { useState } from 'react'
 import type { ApprovalItem } from '@/app/(founder)/founder/approvals/page'
+
+type Decision = 'approve' | 'reject'
 
 function formatType(type: string): string {
   return type
@@ -8,14 +20,55 @@ function formatType(type: string): string {
 }
 
 function formatDate(iso: string): string {
+  // timeZone pinned so the server render and client hydration produce the
+  // same string (this is a client component fed server props).
   return new Date(iso).toLocaleDateString('en-AU', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
+    timeZone: 'Australia/Brisbane',
   })
 }
 
-export function ApprovalQueue({ items }: { items: ApprovalItem[] }) {
+async function readError(res: Response, fallback: string): Promise<string> {
+  try {
+    const data = (await res.json()) as { error?: string }
+    if (data && typeof data.error === 'string' && data.error) return data.error
+  } catch {
+    // fall through
+  }
+  return `${fallback} (HTTP ${res.status})`
+}
+
+export function ApprovalQueue({ items: initialItems }: { items: ApprovalItem[] }) {
+  const [items, setItems] = useState(initialItems)
+  const [busyId, setBusyId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  async function decide(id: string, decision: Decision) {
+    if (busyId) return
+    setBusyId(id)
+    setError(null)
+    try {
+      const res = await fetch(`/api/approvals/${id}/decision`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ decision }),
+      })
+      if (!res.ok) {
+        setError(await readError(res, `Could not ${decision} this action`))
+        return
+      }
+      // The row is confirmed decided server-side; drop it from the pending list.
+      setItems((rows) => rows.filter((r) => r.id !== id))
+    } catch {
+      setError(`Network error — could not ${decision} this action.`)
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
@@ -30,6 +83,15 @@ export function ApprovalQueue({ items }: { items: ApprovalItem[] }) {
 
   return (
     <div className="flex flex-col gap-2">
+      {error && (
+        <div
+          role="alert"
+          className="rounded-sm px-4 py-2 text-[12px]"
+          style={{ color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.35)' }}
+        >
+          {error}
+        </div>
+      )}
       {items.map((item) => (
         <div
           key={item.id}
@@ -59,6 +121,26 @@ export function ApprovalQueue({ items }: { items: ApprovalItem[] }) {
           >
             {formatDate(item.created_at)}
           </time>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => void decide(item.id, 'reject')}
+              disabled={busyId !== null}
+              className="h-7 px-3 rounded-sm text-[12px] font-medium border transition-colors hover:bg-[rgba(239,68,68,0.08)] disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.4)' }}
+            >
+              {busyId === item.id ? '…' : 'Reject'}
+            </button>
+            <button
+              type="button"
+              onClick={() => void decide(item.id, 'approve')}
+              disabled={busyId !== null}
+              className="h-7 px-3 rounded-sm text-[12px] font-medium border transition-colors hover:bg-[rgba(22,163,74,0.08)] disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ color: '#16a34a', borderColor: 'rgba(22, 163, 74, 0.4)' }}
+            >
+              {busyId === item.id ? '…' : 'Approve'}
+            </button>
+          </div>
         </div>
       ))}
     </div>

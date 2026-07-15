@@ -159,6 +159,37 @@ describe('applyApproval', () => {
     expect(calls.some((c) => c.table === 'cc_tasks' && c.op === 'update')).toBe(false)
     expect(calls.some((c) => c.table === 'cc_task_events' && c.op === 'insert')).toBe(true)
   })
+
+  // UNI-2378 E2E finding 3 — the decision event carries the persisted Senior
+  // Board verdict it was made against (null when no board review ran).
+  it('records the board verdict in the audit event payload when provided', async () => {
+    const { client, calls } = makeMock({
+      [CC_APPROVALS_TABLE]: { data: { id: 'a1', decision: 'approve' }, error: null },
+      [CC_TASKS_TABLE]: { data: { id: 't1', status: 'queued' }, error: null },
+      [CC_TASK_EVENTS_TABLE]: { data: { id: 'e1' }, error: null },
+    })
+
+    await applyApproval(
+      { founderId: 'f1', taskId: 't1', decision: 'approve', boardVerdict: 'HOLD' },
+      client,
+    )
+
+    const event = calls.find((c) => c.table === 'cc_task_events' && c.op === 'insert')
+    expect(event?.inserted).toMatchObject({ payload: expect.objectContaining({ board_verdict: 'HOLD' }) })
+  })
+
+  it('defaults board_verdict to null when no verdict is supplied', async () => {
+    const { client, calls } = makeMock({
+      [CC_APPROVALS_TABLE]: { data: { id: 'a1', decision: 'approve' }, error: null },
+      [CC_TASKS_TABLE]: { data: { id: 't1', status: 'queued' }, error: null },
+      [CC_TASK_EVENTS_TABLE]: { data: { id: 'e1' }, error: null },
+    })
+
+    await applyApproval({ founderId: 'f1', taskId: 't1', decision: 'approve' }, client)
+
+    const event = calls.find((c) => c.table === 'cc_task_events' && c.op === 'insert')
+    expect(event?.inserted).toMatchObject({ payload: expect.objectContaining({ board_verdict: null }) })
+  })
 })
 
 describe('CC_APPROVALS_TABLE', () => {
