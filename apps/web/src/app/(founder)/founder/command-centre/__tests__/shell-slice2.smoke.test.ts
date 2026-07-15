@@ -1,11 +1,15 @@
 // src/app/(founder)/founder/command-centre/__tests__/shell-slice2.smoke.test.ts
 //
 // UNI-2339 slice 2 — canvas migration regression gate. Source-contract style
-// (mirrors shell-slice1.smoke.test.ts): the page is a Server Component with
-// async data loaders, so it is asserted against its source. Covers the
+// (mirrors shell-slice1.smoke.test.ts): the pages are Server Components with
+// async data loaders, so they are asserted against their source. Covers the
 // Operate launch-pad, the read-only PipelineBoard revival, the Approvals
 // (Task Queue) + Agent fleet migration, the deck-ground flip, and the
 // contrast pins for every token the flip re-points.
+//
+// UNI-2378 (calm cockpit): the dense tiles relocated wholesale onto four
+// sub-routes (operations / portfolio / providers / knowledge). Assertions
+// follow the tiles to their new page sources — none are weakened.
 
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
@@ -13,6 +17,10 @@ import { join } from 'node:path'
 
 const dir = join(process.cwd(), 'src/app/(founder)/founder/command-centre')
 const pageSrc = readFileSync(join(dir, 'page.tsx'), 'utf8')
+const operationsSrc = readFileSync(join(dir, 'operations/page.tsx'), 'utf8')
+const portfolioSrc = readFileSync(join(dir, 'portfolio/page.tsx'), 'utf8')
+const providersSrc = readFileSync(join(dir, 'providers/page.tsx'), 'utf8')
+const knowledgeSrc = readFileSync(join(dir, 'knowledge/page.tsx'), 'utf8')
 const shellCss = readFileSync(join(dir, 'shell.module.css'), 'utf8')
 const deckCss = readFileSync(join(dir, 'command-deck.module.css'), 'utf8')
 const stepsCss = readFileSync(join(dir, 'CommandSteps.module.css'), 'utf8')
@@ -29,71 +37,91 @@ const coachSrc = readFileSync(
   'utf8',
 )
 
+const allPageSources = [pageSrc, operationsSrc, portfolioSrc, providersSrc, knowledgeSrc]
+
 describe('command-centre shell slice 2 — canvas migration regression gate', () => {
   it('renders the Operate launch-pad from the static BUSINESSES registry (no invented fields)', () => {
-    expect(pageSrc).toContain("import { BUSINESSES } from '@/lib/businesses'")
-    expect(pageSrc).toContain('id="operate-launch-pad"')
-    expect(pageSrc).toContain('{BUSINESSES.map((business) =>')
+    expect(portfolioSrc).toContain("import { BUSINESSES } from '@/lib/businesses'")
+    expect(portfolioSrc).toContain('id="operate-launch-pad"')
+    expect(portfolioSrc).toContain('{BUSINESSES.map((business) =>')
     // The registry has no purpose/description field — the tile shows only
     // name, type · status and the repo link. No other business copy exists.
-    expect(pageSrc).toContain('{business.name}')
-    expect(pageSrc).toContain('{business.type} · {business.status}')
-    expect(pageSrc).toContain('href={business.repoUrl}')
+    expect(portfolioSrc).toContain('{business.name}')
+    expect(portfolioSrc).toContain('{business.type} · {business.status}')
+    expect(portfolioSrc).toContain('href={business.repoUrl}')
   })
 
   it('revives PipelineBoard READ-ONLY: server-side read model, no mutation handler wired', () => {
-    expect(pageSrc).toContain(
+    expect(portfolioSrc).toContain(
       "import { PipelineBoard } from '@/components/command-centre/pipeline/PipelineBoard'",
     )
-    expect(pageSrc).toContain(
+    expect(portfolioSrc).toContain(
       "import { loadPipelineOpportunities } from '@/lib/command-centre/pipeline-opportunities'",
     )
-    expect(pageSrc).toContain('id="pipeline"')
+    expect(portfolioSrc).toContain('id="pipeline"')
     // Read-only contract: the board's only interactive prop is never passed
     // (the '=' matters — the page comment names the prop to explain why not).
-    expect(pageSrc).not.toContain('onSelectOpportunity=')
+    expect(portfolioSrc).not.toContain('onSelectOpportunity=')
     // Honest provenance: the badge label names the system of record.
-    expect(pageSrc).toContain('sourceLabel="crm_opportunities"')
+    expect(portfolioSrc).toContain('sourceLabel="crm_opportunities"')
   })
 
   it('migrates Approvals (Task Queue) and Agent fleet onto the canvas register, tiles unchanged', () => {
-    // Heads carry the glass chrome; ids stay (task-queue pre-existing,
-    // agent-fleet new this slice).
+    // Heads carry the glass chrome; ids stay (relocated to the operations deck).
     for (const id of ['task-queue', 'agent-fleet']) {
-      expect(pageSrc).toMatch(
+      expect(operationsSrc).toMatch(
         new RegExp(`\\$\\{shell\\.canvasScope\\} \\$\\{shell\\.glassSectionHead\\}\`\\} id="${id}"`),
       )
     }
     // Tiles are imported and rendered exactly as before.
-    expect(pageSrc).toContain('<QueueBoard />')
-    expect(pageSrc).toContain('<MeshFleetTile />')
+    expect(operationsSrc).toContain('<QueueBoard />')
+    expect(operationsSrc).toContain('<MeshFleetTile />')
   })
 
-  it('leaves no section on the retired light-deck head register', () => {
-    expect(pageSrc).not.toContain('styles.sectionHead')
-    expect(pageSrc).not.toContain('styles.sectionLabel')
-    expect(pageSrc).not.toContain('styles.sectionCaption')
+  it('leaves no section on the retired light-deck head register (all five deck pages)', () => {
+    for (const src of allPageSources) {
+      expect(src).not.toContain('styles.sectionHead')
+      expect(src).not.toContain('styles.sectionLabel')
+      expect(src).not.toContain('styles.sectionCaption')
+    }
   })
 
-  it('keeps every pre-existing section anchor id intact (CommandPalette + smoke contracts)', () => {
-    const ids = [
+  it('keeps every pre-existing section anchor id intact on its relocated deck (UNI-2378)', () => {
+    // Main page: the ⌘K palette anchors land on the Vital Signs nav cards.
+    for (const id of ['portfolio', 'capability-bus']) {
+      expect(pageSrc).toContain(`id="${id}"`)
+    }
+    // Operations deck.
+    for (const id of [
       'operations-visibility',
-      'idea-intake',
       'task-queue',
-      'wiki-knowledge-base',
-      'portfolio',
-      'project-integrations',
-      'capability-bus',
+      'crm-autonomy',
+      'agent-fleet',
       'os-health',
       'evidence-stream',
       'action-queue',
       'blocked-lanes',
       'in-progress-prs',
-      'founder-cockpit',
-      'system-detail',
-    ]
-    for (const id of ids) {
-      expect(pageSrc).toContain(`id="${id}"`)
+    ]) {
+      expect(operationsSrc).toContain(`id="${id}"`)
+    }
+    // Portfolio deck.
+    for (const id of ['operate-launch-pad', 'pipeline', 'portfolio', 'project-integrations', 'founder-cockpit']) {
+      expect(portfolioSrc).toContain(`id="${id}"`)
+    }
+    // Knowledge deck.
+    for (const id of ['wiki-knowledge-base', 'capability-bus']) {
+      expect(knowledgeSrc).toContain(`id="${id}"`)
+    }
+  })
+
+  it('links every relocated deck from the calm home and back (deck nav + back-links)', () => {
+    for (const route of ['operations', 'portfolio', 'providers', 'knowledge']) {
+      expect(pageSrc).toContain(`/founder/command-centre/${route}`)
+    }
+    for (const src of [operationsSrc, portfolioSrc, providersSrc, knowledgeSrc]) {
+      expect(src).toContain('href="/founder/command-centre"')
+      expect(src).toContain('Command deck')
     }
   })
 
@@ -165,8 +193,8 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
   it('surfaces the rollup-excluded count in the pipeline head — no silent under-report (RA-1109)', () => {
     // The read model drops terminal/parked rows by design; the page must say
     // so whenever the drop is non-zero, next to the provenance label.
-    expect(pageSrc).toContain('pipeline.excludedCount > 0')
-    expect(pageSrc).toContain('lost/parked excluded')
+    expect(portfolioSrc).toContain('pipeline.excludedCount > 0')
+    expect(portfolioSrc).toContain('lost/parked excluded')
   })
 
   it('keeps the empty-state copy honest per source — degraded never claims "connected"', () => {
