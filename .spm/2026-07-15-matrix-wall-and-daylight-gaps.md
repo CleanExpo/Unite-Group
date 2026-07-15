@@ -243,3 +243,37 @@ name exactly what to install to light them, which is the recruitment loop for th
 of the fleet.
 
 SPM spec complete. Next safe action: on founder approval, run the §16 /goal command to start Wave A.
+
+---
+
+## Addendum — Command Brief end-to-end live test (15/07 13:53–14:05 AEST, production)
+
+Founder-directed test: submit a real idea through the Command Brief and follow it to
+execution. Result: **the founder-facing chain works; the execution layer does not exist.**
+
+**Proven working [VERIFIED live, network-captured]:** idea → `POST /api/command-centre/ideas`
+201 → proposed task (durable id, Studio link) → CLARIFY 200 ("clear enough to route") →
+CONVENE BOARD → full 9-persona verdict (net HOLD, per-persona reasons rendered) →
+APPROVE 201 → task moves to Queued live over Realtime → START SESSION 201.
+
+**Proven broken:**
+1. **No executor.** The new session renders `LOCAL · RUNNING` — but nothing anywhere runs
+   it. `cc_execution_sessions` is a control-plane row; no estate process consumes queued
+   tasks or reports back (audit §6). Founder ideas terminally strand in Queued. The two
+   pre-existing "awaiting your decision" tasks are this failure mode, aged.
+2. **`RUNNING` is fake-as-real** — direct No-Invaders violation; must render
+   "waiting for runner — none connected" until a runner heartbeat exists.
+3. **Board verdict is ephemeral** — rendered once in the console panel, not persisted on
+   the task, invisible from the queue lane, and does not annotate/gate APPROVE.
+4. **Duplicate intake** — the founder's MacBook idea exists twice in Proposed (no dedup).
+5. **Cold-load lies** — queue chip says `0 TASKS · OFFLINE` while the first GET is in
+   flight (~40s cold); must render a loading state, not a false empty.
+6. React error #418 (hydration text mismatch) on /operations [console-captured].
+
+**Consequence for the wave plan:** Wave B gains its missing half — B1 becomes
+**emitter + runner**: the same estate-side process that emits `cc_agent_events` also
+CLAIMS queued `cc_tasks` (founder-approved only, board-gated by design), executes them as
+Claude Code work on this Mac, and reports session status honestly. Items 2/3/4/5/6 join
+Wave A part 2 (honest-states PR). The founder's test task (`8d7e2006…`, "add a Matrix
+wall section") stays queued as the runner's first real job; its phantom session was
+closed honestly as FAILED during the test.
