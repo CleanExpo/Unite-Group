@@ -77,6 +77,7 @@ export function AssetPreview({ asset, businessKey, onPublished, onRegenerateImag
   const [publishing, setPublishing] = useState(false)
   const [approving, setApproving] = useState(false)
   const [publishError, setPublishError] = useState<string | null>(null)
+  const [approveError, setApproveError] = useState<string | null>(null)
 
   const copyTruncated = asset.copy.length > 150 && !expanded
     ? asset.copy.slice(0, 150) + '…'
@@ -119,8 +120,23 @@ export function AssetPreview({ asset, businessKey, onPublished, onRegenerateImag
   async function handleApprove() {
     if (!onApprove) return
     setApproving(true)
-    onApprove(asset.id)
-    setApproving(false)
+    setApproveError(null)
+    try {
+      // UNI-2395 — persist the approval server-side before flipping any state.
+      const res = await fetch(`/api/campaigns/${asset.campaignId}/assets/${asset.id}/approve`, {
+        method: 'POST',
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as { error?: string }
+        throw new Error(body.error ?? `HTTP ${res.status}`)
+      }
+      onApprove(asset.id)
+    } catch (err) {
+      // Never present a failed approval as approved — keep the review state, surface the error.
+      setApproveError(err instanceof Error ? err.message : 'Failed to approve')
+    } finally {
+      setApproving(false)
+    }
   }
 
   return (
@@ -222,7 +238,7 @@ export function AssetPreview({ asset, businessKey, onPublished, onRegenerateImag
 
         {asset.status === 'review' && onApprove && (
           <button
-            onClick={handleApprove}
+            onClick={() => void handleApprove()}
             disabled={approving}
             className="bg-green-600 text-white text-xs font-medium rounded-sm px-3 py-1.5 hover:bg-green-500 disabled:opacity-50 transition-colors"
           >
@@ -240,6 +256,13 @@ export function AssetPreview({ asset, businessKey, onPublished, onRegenerateImag
           </button>
         )}
       </div>
+
+      {/* Approve error */}
+      {approveError && (
+        <p className="text-red-700 text-xs" role="alert">
+          {approveError}
+        </p>
+      )}
 
       {/* Publish error */}
       {publishError && (

@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import dynamic from 'next/dynamic'
+import { usePathname } from 'next/navigation'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Topbar } from '@/components/layout/Topbar'
 import { useUIStore } from '@/store/ui'
@@ -26,6 +27,11 @@ export function FounderShell({ children, user }: FounderShellProps) {
   const sidebarOpen = useUIStore((s) => s.sidebarOpen)
   const toggleCommandBar = useUIStore((s) => s.toggleCommandBar)
   const toggleCapture = useUIStore((s) => s.toggleCapture)
+  const pathname = usePathname()
+  // UNI-2397 — the command-centre deck registers its own ⌘K palette
+  // (command-centre/CommandPalette.tsx). On deck routes the deck palette wins;
+  // the shell CommandBar keeps ⌘K everywhere else.
+  const onCommandDeck = pathname?.startsWith('/founder/command-centre') ?? false
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -33,12 +39,15 @@ export function FounderShell({ children, user }: FounderShellProps) {
       if (!mod) return
 
       if (e.key === '\\') { e.preventDefault(); toggleSidebar(); return }
-      if (e.key === 'k')  { e.preventDefault(); toggleCommandBar(); return }
+      if (e.key === 'k')  {
+        if (onCommandDeck) return
+        e.preventDefault(); toggleCommandBar(); return
+      }
       if (e.key === 'i')  { e.preventDefault(); toggleCapture(); return }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [toggleSidebar, toggleCommandBar, toggleCapture])
+  }, [toggleSidebar, toggleCommandBar, toggleCapture, onCommandDeck])
 
   return (
     <div
