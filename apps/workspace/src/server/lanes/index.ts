@@ -5,14 +5,16 @@
  */
 import os from 'node:os'
 import path from 'node:path'
-import {
-  createLaneOrchestrator,
-  type LaneOrchestrator,
-} from './lane-orchestrator'
-import { createWorktreeManager } from './worktree-manager'
-import { createGatewayAdapter } from './gateway-adapter'
+import { BEARER_TOKEN, CLAUDE_API } from '../gateway-capabilities'
 import { createCliAdapter } from './cli-adapter'
-import { CLAUDE_API } from '../gateway-capabilities'
+import { createGatewayAdapter } from './gateway-adapter'
+import {
+  cliAccountAvailable,
+  probeGatewayBackend,
+} from './lane-availability'
+import { createLaneOrchestrator } from './lane-orchestrator'
+import { createWorktreeManager } from './worktree-manager'
+import type { LaneOrchestrator } from './lane-orchestrator'
 
 let singleton: LaneOrchestrator | null = null
 
@@ -22,9 +24,15 @@ export function getLaneOrchestrator(): LaneOrchestrator {
     singleton = createLaneOrchestrator({
       registryPath: path.join(base, 'lanes.jsonl'),
       worktrees: createWorktreeManager({ baseDir: base }),
-      isBackendAvailable: () => true,
+      isBackendAvailable: async (backend) =>
+        backend.kind === 'gateway'
+          ? probeGatewayBackend(CLAUDE_API, backend, BEARER_TOKEN)
+          : cliAccountAvailable(backend.account, backend.tool),
       adapters: {
-        gateway: createGatewayAdapter({ baseUrl: CLAUDE_API }),
+        gateway: createGatewayAdapter({
+          baseUrl: CLAUDE_API,
+          bearerToken: BEARER_TOKEN,
+        }),
         cli: createCliAdapter(),
       },
     })

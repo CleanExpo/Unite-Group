@@ -3,6 +3,7 @@ import { json } from '@tanstack/react-start'
 import { isAuthenticated } from '../../../server/auth-middleware'
 import { requireJsonContentType } from '../../../server/rate-limit'
 import { getLaneOrchestrator } from '../../../server/lanes'
+import { LaneConflictError } from '../../../server/lanes/lane-orchestrator'
 
 export const Route = createFileRoute('/api/lanes/run')({
   server: {
@@ -24,21 +25,20 @@ export const Route = createFileRoute('/api/lanes/run')({
               { status: 400 },
             )
           }
-          const lane = await getLaneOrchestrator().runMission(
-            body.id,
-            body.mission,
-          )
-          return json({ ok: true, lane })
+          const orchestrator = getLaneOrchestrator()
+          const lane = await orchestrator.runMission(body.id, body.mission)
+          const run = lane.lastRunId
+            ? await orchestrator.getRun(lane.lastRunId)
+            : null
+          return json({ ok: true, lane, run })
         } catch (error) {
+          const conflict = error instanceof LaneConflictError
           return json(
             {
               ok: false,
-              error:
-                error instanceof Error
-                  ? error.message
-                  : 'Failed to run mission',
+              error: conflict ? error.message : 'Failed to run mission',
             },
-            { status: 500 },
+            { status: conflict ? 409 : 500 },
           )
         }
       },

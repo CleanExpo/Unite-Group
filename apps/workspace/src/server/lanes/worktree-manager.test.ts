@@ -51,6 +51,7 @@ describe('WorktreeManager', () => {
 
     await mgr.remove(repo, handle, { force: true })
     await expect(fs.access(handle.worktree)).rejects.toThrow()
+    await expect(mgr.remove(repo, handle, { force: true })).resolves.toBeUndefined()
   })
 
   it('rejects when the target is not a git repo', async () => {

@@ -5,6 +5,7 @@
  * worktree can be force-removed.
  */
 import { execFile } from 'node:child_process'
+import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { promisify } from 'node:util'
@@ -17,12 +18,12 @@ export interface WorktreeHandle {
 }
 
 export interface WorktreeManager {
-  create(repo: string, laneId: string): Promise<WorktreeHandle>
-  remove(
+  create: (repo: string, laneId: string) => Promise<WorktreeHandle>
+  remove: (
     repo: string,
     handle: WorktreeHandle,
     opts?: { force?: boolean },
-  ): Promise<void>
+  ) => Promise<void>
 }
 
 async function git(repo: string, args: Array<string>): Promise<string> {
@@ -49,7 +50,26 @@ export function createWorktreeManager(
     async remove(repo, handle, opts = {}) {
       const args = ['worktree', 'remove', handle.worktree]
       if (opts.force) args.push('--force')
-      await git(repo, args)
+      try {
+        await git(repo, args)
+      } catch (error) {
+        const registered = (
+          await git(repo, ['worktree', 'list', '--porcelain', '-z'])
+        )
+          .split('\0')
+          .some((line) => line === `worktree ${handle.worktree}`)
+        let pathExists = true
+        try {
+          await fs.access(handle.worktree)
+        } catch (accessError) {
+          if ((accessError as NodeJS.ErrnoException).code === 'ENOENT') {
+            pathExists = false
+          } else {
+            throw accessError
+          }
+        }
+        if (registered || pathExists) throw error
+      }
       // Prune any stale administrative entries.
       await git(repo, ['worktree', 'prune'])
     },
