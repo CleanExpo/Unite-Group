@@ -15,6 +15,7 @@ import { loadDashboardHealthFromSupabase } from '@/lib/command-centre/dashboard-
 import { tailEvidence } from '@/lib/command-centre/evidence-stream'
 import { loadEvidenceLedgerFromSupabase } from '@/lib/command-centre/evidence-ledger-supabase'
 import { loadCrmMissionControlJobs } from '@/lib/command-centre/crm-mission-control-jobs-supabase'
+import { loadAgentEventsWall } from '@/lib/command-centre/agent-events-wall'
 import { getUser } from '@/lib/supabase/server'
 import { DeckThemeShell } from '../DeckThemeShell'
 import { QueueBoard } from '../QueueBoard'
@@ -23,6 +24,7 @@ import { EvidenceStreamTile } from '../EvidenceStreamTile'
 import { ActionQueueTile, loadActionQueueData } from '../ActionQueueTile'
 import { BlockedLanesTile, loadBlockedLanesData } from '../BlockedLanesTile'
 import { InProgressPRsTile } from '../InProgressPRsTile'
+import { AgentEventsWallTile } from '../AgentEventsWallTile'
 import { MargotHealthTile } from '@/components/command-centre/margot-health/MargotHealthTile'
 import { TeamActivityTile } from '@/components/command-centre/team-activity/TeamActivityTile'
 import { EmailAccountsTile } from '@/components/command-centre/email-accounts/EmailAccountsTile'
@@ -77,6 +79,10 @@ export default async function OperationsDeckPage() {
   // Recent CRM Mission Control jobs (UNI-2234 slice 3). Founder-scoped; degrades
   // honestly (not_connected / error) when the session or query is unavailable.
   const crmMissionControlJobs = await loadCrmMissionControlJobs(user?.id ?? null)
+  // Agent events wall (UNI-2384 wave B2). Founder-scoped; the cc_agent_events
+  // migration is founder-gated, so a missing table renders as an honest
+  // "Wall dark" state — never a crash, never fabricated rows.
+  const agentEventsWall = await loadAgentEventsWall(user?.id ?? null)
 
   return (
     <DeckThemeShell className={`${chakra.variable} ${syne.variable} ${jbMono.variable} ${styles.deck}`}>
@@ -136,6 +142,23 @@ export default async function OperationsDeckPage() {
         style={{ animationDelay: '0.14s' }}
       >
         <MeshFleetTile />
+      </section>
+
+      {/* ── Agent events wall (UNI-2384 wave B2) — runner lifecycle feed over
+          cc_agent_events; honest dark/empty states, no fake live signals. ── */}
+      <div className={`${shell.canvasScope} ${shell.glassSectionHead}`} id="agent-events-wall">
+        <h2>Agent Events Wall</h2>
+        <span className={shell.glassSub}>runner lifecycle · claimed → started → draft PR · heartbeats</span>
+        {agentEventsWall.source === 'connected' && (
+          <span className={shell.glassSrc}>last {agentEventsWall.events.length} events</span>
+        )}
+      </div>
+
+      <section
+        className={`${shell.canvasScope} ${shell.glassPanel} ${shell.glassSection} ${styles.reveal}`}
+        style={{ animationDelay: '0.15s' }}
+      >
+        <AgentEventsWallTile data={agentEventsWall} nowMs={Date.now()} />
       </section>
 
       {/* ── Operating System Health (Lane 16) — canvas glass chrome (UNI-2339 slice 2) ── */}
