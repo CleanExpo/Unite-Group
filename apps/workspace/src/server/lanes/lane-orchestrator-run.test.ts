@@ -766,6 +766,7 @@ describe('LaneOrchestrator.runMission', () => {
       worktrees: noopWorktrees,
       adapters: { cli },
       idgen: () => 'ledger-failure-lane',
+      isBackendAvailable: () => true,
     })
     await o.create(cliInput)
     await fs.chmod(registryPath, 0o444)
