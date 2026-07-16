@@ -1,12 +1,14 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import {
   claimNextQueuedTask,
   releaseClaimedTask,
   buildRunnerStatusEvent,
   buildRunnerHeartbeat,
   RUNNER_AGENT_NAME,
+  MAX_REQUEUE_ATTEMPTS,
   type RunnerClaimClientLike,
 } from '../runner-claim'
+import { CC_TASK_EVENTS_TABLE } from '../tasks'
 
 // A programmable mock that records every update's values + filters and returns
 // scripted results: first the candidate select, then one result per update.
@@ -152,6 +154,165 @@ describe('releaseClaimedTask', () => {
       outcome: 'failed',
     })
     expect(released).toBeNull()
+  })
+})
+
+// UNI-2396 — the requeue attempt cap, counted from the cc_task_events audit
+// trail (no new DDL). A table-aware mock: the events-table select answers the
+// requeue count, cc_tasks updates behave like mockClient, and inserts (the
+// max-attempts event) are recorded.
+function capMockClient(opts: {
+  countData?: unknown
+  countError?: { message: string } | null
+  updateResults?: unknown[][]
+}) {
+  const updates: Array<{ values: Record<string, unknown>; filters: Array<[string, unknown]> }> = []
+  const inserts: Array<{ table: string; row: Record<string, unknown> }> = []
+  const countFilters: Array<[string, unknown]> = []
+  let updateCall = 0
+
+  const client = {
+    from: (table: string) => ({
+      select: () => {
+        const chain = {
+          eq: (column: string, value: unknown) => {
+            countFilters.push([column, value])
+            return chain
+          },
+          order: () => chain,
+          limit: () =>
+            Promise.resolve({ data: opts.countData ?? [], error: opts.countError ?? null }),
+        }
+        return chain
+      },
+      update: (values: Record<string, unknown>) => {
+        const filters: Array<[string, unknown]> = []
+        const chain = {
+          eq: (column: string, value: unknown) => {
+            filters.push([column, value])
+            return chain
+          },
+          select: () => {
+            updates.push({ values, filters })
+            const result = (opts.updateResults ?? [])[updateCall] ?? []
+            updateCall += 1
+            return Promise.resolve({ data: result, error: null })
+          },
+        }
+        return chain
+      },
+      insert: (row: Record<string, unknown>) => ({
+        select: () => ({
+          single: () => {
+            inserts.push({ table, row })
+            return Promise.resolve({ data: { id: 'evt-1', ...row }, error: null })
+          },
+        }),
+      }),
+    }),
+  }
+
+  return { client: client as unknown as RunnerClaimClientLike, updates, inserts, countFilters }
+}
+
+describe('releaseClaimedTask requeue cap (UNI-2396)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('requeues normally below the cap and counts only prior requeue events', async () => {
+    const row = { id: 't1', status: 'queued' }
+    const { client, updates, inserts, countFilters } = capMockClient({
+      countData: [{ id: 'e1' }, { id: 'e2' }],
+      updateResults: [[row]],
+    })
+
+    const released = await releaseClaimedTask(client, {
+      founderId: 'f1',
+      taskId: 't1',
+      runnerId: 'runner-a',
+      outcome: 'requeue',
+    })
+
+    expect(released).toEqual(row)
+    expect(updates[0].values.status).toBe('queued')
+    expect(updates[0].values.claimed_by).toBeNull()
+    expect(updates[0].values.claimed_at).toBeNull()
+    expect(inserts).toHaveLength(0)
+    // the count is scoped to this task's requeue releases, not all events
+    expect(countFilters).toContainEqual(['task_id', 't1'])
+    expect(countFilters).toContainEqual(['type', 'status_changed'])
+    expect(countFilters).toContainEqual(['payload->>outcome', 'requeue'])
+  })
+
+  it('releases as failed with a max-attempts event once the cap is reached', async () => {
+    const row = { id: 't1', status: 'failed' }
+    const priorRequeues = Array.from({ length: MAX_REQUEUE_ATTEMPTS }, (_, i) => ({ id: `e${i}` }))
+    const { client, updates, inserts } = capMockClient({
+      countData: priorRequeues,
+      updateResults: [[row]],
+    })
+
+    const released = await releaseClaimedTask(client, {
+      founderId: 'f1',
+      taskId: 't1',
+      runnerId: 'runner-a',
+      outcome: 'requeue',
+    })
+
+    expect(released).toEqual(row)
+    expect(updates[0].values.status).toBe('failed')
+    // a failed release keeps the claim columns — nothing is made claimable
+    expect(updates[0].values).not.toHaveProperty('claimed_by')
+    expect(updates[0].values).not.toHaveProperty('claimed_at')
+    // the audit trail records why the requeue became a failure
+    expect(inserts).toHaveLength(1)
+    expect(inserts[0].table).toBe(CC_TASK_EVENTS_TABLE)
+    expect(inserts[0].row.type).toBe('failed')
+    expect(inserts[0].row.actor).toBe('runner-a')
+    expect(inserts[0].row.payload).toMatchObject({
+      outcome: 'failed',
+      code: 'max_requeue_attempts_exhausted',
+      prior_requeues: MAX_REQUEUE_ATTEMPTS,
+    })
+  })
+
+  it('degrades honestly to a plain requeue when the count query errors', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const row = { id: 't1', status: 'queued' }
+    const { client, updates, inserts } = capMockClient({
+      countError: { message: 'boom' },
+      updateResults: [[row]],
+    })
+
+    const released = await releaseClaimedTask(client, {
+      founderId: 'f1',
+      taskId: 't1',
+      runnerId: 'runner-a',
+      outcome: 'requeue',
+    })
+
+    expect(released).toEqual(row)
+    expect(updates[0].values.status).toBe('queued')
+    expect(updates[0].values.claimed_by).toBeNull()
+    expect(inserts).toHaveLength(0)
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('requeue count failed'))
+  })
+
+  it('never touches the events table for done or failed outcomes', async () => {
+    const { client, updates, countFilters } = capMockClient({
+      updateResults: [[{ id: 't1', status: 'done' }]],
+    })
+
+    await releaseClaimedTask(client, {
+      founderId: 'f1',
+      taskId: 't1',
+      runnerId: 'runner-a',
+      outcome: 'done',
+    })
+
+    expect(updates[0].values.status).toBe('done')
+    expect(countFilters).toHaveLength(0)
   })
 })
 
