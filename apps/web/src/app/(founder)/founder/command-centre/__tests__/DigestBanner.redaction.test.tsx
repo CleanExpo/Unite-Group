@@ -26,7 +26,7 @@ describe('DigestBanner', () => {
 
     render(<DigestBanner />)
 
-    await waitFor(() => expect(screen.getByText('Morning Digest')).toBeTruthy())
+    await waitFor(() => expect(screen.getByText('Board Digest')).toBeTruthy())
     expect(fetchMock).toHaveBeenCalledWith('/api/command-centre/overnight-summary', {
       credentials: 'include',
       cache: 'no-store',
@@ -60,7 +60,7 @@ describe('DigestBanner', () => {
 
     render(<DigestBanner />)
 
-    await waitFor(() => expect(screen.getByText('Morning Digest')).toBeTruthy())
+    await waitFor(() => expect(screen.getByText('Board Digest')).toBeTruthy())
 
     const digestText = document.body.textContent ?? ''
     expect(digestText).not.toContain(boardRef)
@@ -95,7 +95,7 @@ describe('DigestBanner', () => {
 
     render(<DigestBanner />)
 
-    await waitFor(() => expect(screen.getByText('Morning Digest')).toBeTruthy())
+    await waitFor(() => expect(screen.getByText('Board Digest')).toBeTruthy())
 
     const digestText = document.body.textContent ?? ''
     expect(digestText).not.toContain(headerValue)
@@ -126,7 +126,7 @@ describe('DigestBanner', () => {
 
     render(<DigestBanner />)
 
-    await waitFor(() => expect(screen.getByText('Morning Digest')).toBeTruthy())
+    await waitFor(() => expect(screen.getByText('Board Digest')).toBeTruthy())
 
     const digestText = document.body.textContent ?? ''
     expect(digestText).not.toContain(userinfo)

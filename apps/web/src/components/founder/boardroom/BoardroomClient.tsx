@@ -22,17 +22,22 @@ export function BoardroomClient() {
   const [tab, setTab] = useState<Tab>('meeting')
   const [meetings, setMeetings] = useState<BoardMeeting[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const [lastRefresh, setLastRefresh] = useState(new Date())
 
   const fetchMeetings = useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetch('/api/boardroom/meetings?limit=30')
+      if (!res.ok) throw new Error('Failed to load board meetings')
       const d = await res.json() as { meetings: BoardMeeting[] }
       setMeetings(d.meetings ?? [])
       setLastRefresh(new Date())
+      setError(false)
     } catch {
-      // Silently retain stale data
+      // Honest hard-error state — never fabricate an empty boardroom (No-Invaders #1).
+      // Do NOT reset meetings to []: a failed poll must not masquerade as "no meetings yet".
+      setError(true)
     } finally {
       setLoading(false)
     }
@@ -94,6 +99,18 @@ export function BoardroomClient() {
       {/* Tab content */}
       {tab === 'meeting' && (
         <div className="space-y-3">
+          {!loading && error && (
+            <div
+              className="rounded-sm p-4"
+              style={{ background: 'var(--surface-card)', border: '1px solid var(--color-border)' }}
+              role="alert"
+            >
+              <span className="text-[13px]" style={{ color: 'var(--color-danger, #ef4444)' }}>
+                Board meetings unavailable — couldn’t load.
+                {meetings.length > 0 ? ' Showing the last loaded meetings.' : ''} Refresh to try again.
+              </span>
+            </div>
+          )}
           {loading && meetings.length === 0 && (
             <div className="space-y-3 animate-pulse" aria-label="Loading board meetings">
               {[...Array(3)].map((_, i) => (
@@ -108,7 +125,7 @@ export function BoardroomClient() {
               ))}
             </div>
           )}
-          {!loading && meetings.length === 0 && (
+          {!loading && !error && meetings.length === 0 && (
             <div className="py-12 text-center space-y-2">
               <p className="text-[13px]" style={{ color: 'var(--color-text-disabled)' }}>No board meetings yet.</p>
               <p className="text-[11px]" style={{ color: 'var(--color-text-disabled)' }}>The first meeting generates at 11:50 AEST. You can also trigger it manually via the API.</p>

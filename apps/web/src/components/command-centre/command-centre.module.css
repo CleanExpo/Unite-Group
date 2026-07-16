@@ -27,6 +27,20 @@
   color: var(--cc-ink);
 }
 
+/* Daylight register bridge — .cc-daylight is the global marker
+   DeckThemeShell sets on the deck root when the Feel is daylight (the
+   default per founder directive 15/07). Paper ground, ink text; the single
+   signal keeps its green meaning at the daylight ramp (--deck-go). */
+:global(.cc-daylight) .scope {
+  --cc-bg: #faf9f7;
+  --cc-bg-soft: #f4f1eb;
+  --cc-grid: rgba(15, 157, 88, 0.08);
+  --cc-ink: #16181d;
+  --cc-ink-dim: rgba(22, 24, 29, 0.66);
+  --cc-ink-hush: rgba(22, 24, 29, 0.45);
+  --cc-signal: #0f9d58;
+}
+
 /* rounded-sm only */
 .scope :global(article),
 .scope :global(section),

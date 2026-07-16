@@ -74,3 +74,17 @@ Consult and follow them:
 - **live-verify** — before pinning or reporting any time-sensitive fact
   (model IDs, package versions, API limits, pricing, provider status). End
   such outputs with: Verified live <date>: <fact> — <source URL>.
+
+## Sub-agent doctrine (persistent specialists)
+
+Multi-round agent work follows the global `persistent-subagents` skill: keep ONE warm,
+named specialist per domain per session and feed follow-ups via SendMessage resume —
+never re-spawn for a second task in the same domain. The main thread coordinates only;
+noisy collection (grep sweeps, web fan-outs, bulk reads) goes to throwaway children,
+which return distilled verdicts. Standing specialist domains for this monorepo:
+`frontend-founder-deck` (apps/web founder/command-centre surfaces),
+`db-supabase-nexus` (schema, RLS, migrations — schema-gate rules still apply),
+`integrations-connectors` (Google/social/Xero/Stripe planes),
+`ci-infra` (workflows, gates, deploys). Name = `<type>-<durable-mission>`, frozen at
+spawn, must still be true on resume #8. Retire a specialist near ~300k context with a
+written handoff; domain change = fresh agent, always.

@@ -748,7 +748,7 @@ test('root scripts and the weekly workflow stay read-only and artifact-only', as
   )
   assert.match(
     workflow,
-    /actions\/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e\s+# v6\.4\.0/,
+    /actions\/setup-node@820762786026740c76f36085b0efc47a31fe5020\s+# v7\.0\.0/,
   )
   assert.match(
     workflow,
@@ -785,5 +785,5 @@ test('pull-request CI enforces watcher tests on the supported Node 24 runtime', 
   assert.doesNotMatch(job, /node-version:\s*\[[^\]]*'22'/)
   assert.match(job, /npm run verify:docs-watch/)
   assert.match(job, /actions\/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0/)
-  assert.match(job, /actions\/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e/)
+  assert.match(job, /actions\/setup-node@820762786026740c76f36085b0efc47a31fe5020/)
 })

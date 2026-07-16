@@ -7,8 +7,10 @@ import { join } from 'node:path'
 // No-Invaders #1: configured data must not be dressed as live monitoring. This
 // guards the honesty caption + the absence of a liveness claim on a server
 // component that reads from the filesystem (can't render-test directly).
+// UNI-2378 (calm cockpit): the registry section relocated wholesale to the
+// portfolio sub-route; the contract follows it there.
 const source = readFileSync(
-  join(process.cwd(), 'src/app/(founder)/founder/command-centre/page.tsx'),
+  join(process.cwd(), 'src/app/(founder)/founder/command-centre/portfolio/page.tsx'),
   'utf8',
 )
 
