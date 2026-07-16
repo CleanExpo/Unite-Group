@@ -120,9 +120,15 @@ export default function HermesControlPanelPage() {
           {/* ── Security / version posture ─────────────────────────────── */}
           <DeckDetails
             title="Security & version posture"
-            stats={`${hardeningsOn}/4 hardenings on · leaner skill set ${posture.leanerSkillSet} · NVIDIA tap ${posture.nvidiaTap}`}
+            stats={`design target (not live) · ${hardeningsOn}/4 hardenings on · leaner skill set ${posture.leanerSkillSet} · NVIDIA tap ${posture.nvidiaTap}`}
             testId="hermes-security-posture"
           >
+            {/* UNI-2394 — these posture values come from the static registry
+                (control-panel.ts, source 'static_registry'), not a live Hermes
+                probe. Label them honestly instead of presenting them as live. */}
+            <p style={{ color: muted, fontFamily: mono, fontSize: 12, marginTop: 0 }}>
+              Design target (not live) — values are the v{v.version} release posture from the static registry, not a live probe of a running Hermes instance.
+            </p>
             <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', fontSize: 14 }}>
               <span>Secret redaction: <b style={{ color: okText }}>{posture.secretRedaction}</b></span>
               <span>Subprocess cred stripping: <b style={{ color: okText }}>{posture.subprocessCredentialStripping}</b></span>
