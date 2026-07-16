@@ -206,7 +206,7 @@ products:
       production:
         project_id: prj_15zLJSeVhpqXcWf1s2U1fHdIHOtw
         project_name: dr-nrpg-platform
-        domain: TBD
+        domain: nrpg.business
       sandbox:
         project_id: prj_RacaZ1ye4Fo27SF0CuaDPzRpDwC7
         project_name: dr-nrpg-sandbox
