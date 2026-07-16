@@ -37,7 +37,6 @@
 | `/api/cron/integrations/supabase` | GET | ✓ | ✗ | ✗ | ✗ | `src/app/api/cron/integrations/supabase/route.ts` |
 | `/api/cron/integrations/vercel` | GET | ✓ | ✗ | ✗ | ✗ | `src/app/api/cron/integrations/vercel/route.ts` |
 | `/api/cron/process-scan-requests` | GET | ✓ | ✗ | ✗ | ✗ | `src/app/api/cron/process-scan-requests/route.ts` |
-| `/api/cron/synthex-monitor` | GET | ✗ | ✗ | ✗ | ✗ | `src/app/api/cron/synthex-monitor/route.ts` |
 | `/api/dashboard/videos` | GET | ✓ | ✗ | ✗ | ✗ | `src/app/api/dashboard/videos/route.ts` |
 | `/api/empire/appstore` | GET | ✗ | ✗ | ✗ | ✗ | `src/app/api/empire/appstore/route.ts` |
 | `/api/empire/board-minutes` | GET | ✗ | ✗ | ✗ | ✗ | `src/app/api/empire/board-minutes/route.ts` |
