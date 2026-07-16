@@ -6,7 +6,7 @@
 // account" affordance (UNI-2153).
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Mail, Link2, Plus } from 'lucide-react'
 
 interface ProviderAccount {
@@ -32,6 +32,16 @@ export function EmailIntegrationsSection({ founderEmail }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [connectEmail, setConnectEmail] = useState('')
   const [disconnecting, setDisconnecting] = useState<string | null>(null)
+  const [confirming, setConfirming] = useState<string | null>(null)
+  const errorRef = useRef<HTMLParagraphElement>(null)
+  const [focusErrorOnRender, setFocusErrorOnRender] = useState(false)
+
+  useEffect(() => {
+    if (focusErrorOnRender && error && errorRef.current) {
+      errorRef.current.focus()
+      setFocusErrorOnRender(false)
+    }
+  }, [focusErrorOnRender, error])
 
   const load = useCallback(async () => {
     try {
@@ -55,8 +65,9 @@ export function EmailIntegrationsSection({ founderEmail }: Props) {
     if (founderEmail) setConnectEmail((current) => current || founderEmail)
   }, [founderEmail])
 
-  const handleDisconnect = useCallback(
+  const handleConfirmDisconnect = useCallback(
     async (service: ProviderService, email: string) => {
+      setConfirming(null)
       setDisconnecting(`${service}:${email}`)
       try {
         const res = await fetch('/api/settings/integrations/disconnect', {
@@ -68,12 +79,21 @@ export function EmailIntegrationsSection({ founderEmail }: Props) {
         await load()
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to disconnect account')
+        setFocusErrorOnRender(true)
       } finally {
         setDisconnecting(null)
       }
     },
     [load],
   )
+
+  const requestConfirm = useCallback((service: ProviderService, email: string) => {
+    setConfirming(`${service}:${email}`)
+  }, [])
+
+  const cancelConfirm = useCallback(() => {
+    setConfirming(null)
+  }, [])
 
   const emailToConnect = connectEmail.trim()
 
@@ -96,7 +116,13 @@ export function EmailIntegrationsSection({ founderEmail }: Props) {
       )}
 
       {error && (
-        <p role="alert" className="text-[13px] mb-3" style={{ color: 'var(--color-danger)' }}>
+        <p
+          ref={errorRef}
+          role="alert"
+          tabIndex={-1}
+          className="text-[13px] mb-3 focus:outline-hidden"
+          style={{ color: 'var(--color-danger)' }}
+        >
           {error}
         </p>
       )}
@@ -110,7 +136,11 @@ export function EmailIntegrationsSection({ founderEmail }: Props) {
             accounts={status.google.accounts}
             emailToConnect={emailToConnect}
             disconnecting={disconnecting}
-            onDisconnect={handleDisconnect}
+            confirming={confirming}
+            anyDisconnecting={disconnecting !== null}
+            onRequestConfirm={requestConfirm}
+            onCancelConfirm={cancelConfirm}
+            onConfirmDisconnect={handleConfirmDisconnect}
           />
           <ProviderRow
             name="Microsoft"
@@ -119,7 +149,11 @@ export function EmailIntegrationsSection({ founderEmail }: Props) {
             accounts={status.microsoft.accounts}
             emailToConnect={emailToConnect}
             disconnecting={disconnecting}
-            onDisconnect={handleDisconnect}
+            confirming={confirming}
+            anyDisconnecting={disconnecting !== null}
+            onRequestConfirm={requestConfirm}
+            onCancelConfirm={cancelConfirm}
+            onConfirmDisconnect={handleConfirmDisconnect}
           />
 
           <div className="rounded-sm p-3" style={{ border: '1px dashed var(--color-border)' }}>
@@ -167,7 +201,11 @@ function ProviderRow({
   accounts,
   emailToConnect,
   disconnecting,
-  onDisconnect,
+  confirming,
+  anyDisconnecting,
+  onRequestConfirm,
+  onCancelConfirm,
+  onConfirmDisconnect,
 }: {
   name: string
   service: ProviderService
@@ -175,7 +213,11 @@ function ProviderRow({
   accounts: ProviderAccount[]
   emailToConnect: string
   disconnecting: string | null
-  onDisconnect: (service: ProviderService, email: string) => void
+  confirming: string | null
+  anyDisconnecting: boolean
+  onRequestConfirm: (service: ProviderService, email: string) => void
+  onCancelConfirm: () => void
+  onConfirmDisconnect: (service: ProviderService, email: string) => void
 }) {
   const disabled = !emailToConnect
   const buttonDisabled = disabled || !configured
@@ -230,43 +272,89 @@ function ProviderRow({
           {accounts.map((account) => {
             const reconnectHref = `/api/auth/${service}/authorize?email=${encodeURIComponent(account.email)}`
             const isDisconnecting = disconnecting === `${service}:${account.email}`
+            const isConfirming = confirming === `${service}:${account.email}`
             return (
-              <li key={account.email} className="flex items-center justify-between gap-2 text-[12px]">
-                <span className="truncate" style={{ color: 'var(--color-text-secondary)' }}>
+              <li
+                key={account.email}
+                aria-busy={isDisconnecting}
+                className="flex items-center justify-between gap-2 text-[12px]"
+              >
+                <span
+                  className="truncate"
+                  title={account.email}
+                  style={{ color: 'var(--color-text-secondary)' }}
+                >
                   {account.email}
                 </span>
-                <div className="flex items-center gap-2 shrink-0">
-                  {account.needsReauth ? (
-                    <span
-                      className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm"
-                      style={{ color: '#b45309', background: '#f59e0b1a', border: '1px solid #f59e0b30' }}
-                    >
-                      Needs reauth
-                    </span>
+                <div aria-live="polite" className="flex items-center gap-2 shrink-0">
+                  {isConfirming ? (
+                    <>
+                      <span className="text-[11px]" style={{ color: 'var(--color-text-secondary)' }}>
+                        Confirm remove {account.email}?
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => onConfirmDisconnect(service, account.email)}
+                        disabled={anyDisconnecting}
+                        aria-label={`Confirm remove ${account.email}`}
+                        className="text-[11px] underline-offset-2 hover:underline disabled:opacity-50"
+                        style={{ color: 'var(--color-danger)', cursor: anyDisconnecting ? 'not-allowed' : 'pointer' }}
+                      >
+                        Confirm
+                      </button>
+                      <button
+                        type="button"
+                        onClick={onCancelConfirm}
+                        aria-label={`Cancel removing ${account.email}`}
+                        className="text-[11px] underline-offset-2 hover:underline"
+                        style={{ color: 'var(--color-text-muted)', cursor: 'pointer' }}
+                      >
+                        Cancel
+                      </button>
+                    </>
                   ) : (
-                    <span
-                      className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm"
-                      style={{ color: '#15803d', background: '#16a34a18', border: '1px solid #16a34a30' }}
-                    >
-                      Connected
-                    </span>
+                    <>
+                      {account.needsReauth ? (
+                        <span
+                          className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm"
+                          style={{ color: '#b45309', background: '#f59e0b1a', border: '1px solid #f59e0b30' }}
+                        >
+                          Needs reauth
+                        </span>
+                      ) : (
+                        <span
+                          className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm"
+                          style={{ color: '#15803d', background: '#16a34a18', border: '1px solid #16a34a30' }}
+                        >
+                          Connected
+                        </span>
+                      )}
+                      <a
+                        href={reconnectHref}
+                        aria-label={`Reconnect ${account.email}`}
+                        aria-disabled={anyDisconnecting || undefined}
+                        tabIndex={anyDisconnecting ? -1 : undefined}
+                        className="text-[11px] underline-offset-2 hover:underline"
+                        style={{
+                          color: 'var(--color-text-muted)',
+                          pointerEvents: anyDisconnecting ? 'none' : undefined,
+                          opacity: anyDisconnecting ? 0.5 : undefined,
+                        }}
+                      >
+                        Reconnect
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => onRequestConfirm(service, account.email)}
+                        disabled={anyDisconnecting}
+                        aria-label={`Disconnect ${account.email}`}
+                        className="text-[11px] underline-offset-2 hover:underline disabled:opacity-50"
+                        style={{ color: 'var(--color-danger)', cursor: anyDisconnecting ? 'not-allowed' : 'pointer' }}
+                      >
+                        {isDisconnecting ? 'Removing…' : 'Disconnect'}
+                      </button>
+                    </>
                   )}
-                  <a
-                    href={reconnectHref}
-                    className="text-[11px] underline-offset-2 hover:underline"
-                    style={{ color: 'var(--color-text-muted)' }}
-                  >
-                    Reconnect
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => onDisconnect(service, account.email)}
-                    disabled={isDisconnecting}
-                    className="text-[11px] underline-offset-2 hover:underline disabled:opacity-50"
-                    style={{ color: 'var(--color-danger)', cursor: isDisconnecting ? 'not-allowed' : 'pointer' }}
-                  >
-                    {isDisconnecting ? 'Removing…' : 'Disconnect'}
-                  </button>
                 </div>
               </li>
             )
