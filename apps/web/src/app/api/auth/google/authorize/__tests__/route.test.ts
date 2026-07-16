@@ -42,4 +42,15 @@ describe('GET /api/auth/google/authorize', () => {
     expect(res.status).toBe(307)
     expect(res.headers.get('location')).toContain('accounts.google.com')
   })
+
+  it('forces the account chooser so a different account can be added', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
+    vi.mocked(isGoogleConfigured).mockReturnValue(true)
+    vi.stubEnv('GOOGLE_CLIENT_ID', 'client-id')
+    const res = await GET(req('?email=test@test.com'))
+    // Without select_account Google rides the signed-in (admin) session and a
+    // new account can never be picked. consent still forces a refresh_token.
+    expect(res.headers.get('location')).toContain('select_account')
+    expect(res.headers.get('location')).toContain('consent')
+  })
 })

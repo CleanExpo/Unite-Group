@@ -100,4 +100,43 @@ describe('GET /api/auth/google/callback', () => {
     expect(res.status).toBe(307)
     expect(res.headers.get('location')).toContain('invalid_state')
   })
+
+  it('stores the REAL authenticated account from userinfo, not the requested email', async () => {
+    // The requested email in state is one thing; the account that actually
+    // authenticates (per Google userinfo) is another — e.g. Google rode the
+    // admin session. The stored identity MUST be the real authenticated email,
+    // else additional accounts collide on the label upsert key and never connect.
+    vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
+    vi.mocked(verifyOAuthState).mockReturnValue({
+      email: 'requested@test.com',
+      founderId: 'user-1',
+      nonce: 'n',
+      expiresAt: String(Date.now() + 60_000),
+    })
+    const upsert = vi.fn().mockReturnValue({ error: null })
+    const chain: Record<string, any> = { select: vi.fn(), eq: vi.fn(), upsert }
+    chain.select.mockReturnValue(chain)
+    chain.eq.mockReturnValue(chain)
+    chain.maybeSingle = vi.fn().mockResolvedValue({ data: null })
+    mockFrom.mockReturnValue(chain)
+    vi.mocked(createServiceClient).mockReturnValue({ from: mockFrom } as any)
+
+    const fetchMock = vi.fn(async (url: string) => {
+      if (String(url).includes('oauth2.googleapis.com/token')) {
+        return { ok: true, json: async () => ({ access_token: 'at', refresh_token: 'rt', expires_in: 3600, scope: 's' }) } as any
+      }
+      if (String(url).includes('userinfo')) {
+        return { ok: true, json: async () => ({ email: 'real-admin@gmail.com' }) } as any
+      }
+      return { ok: false, text: async () => 'unexpected' } as any
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const res = await GET(req('?code=abc&state=xyz'))
+
+    const upsertArg = upsert.mock.calls[0]?.[0]
+    expect(upsertArg.notes).toBe('real-admin@gmail.com')
+    expect(upsertArg.metadata.email).toBe('real-admin@gmail.com')
+    expect(res.headers.get('location')).toContain('connected=real-admin%40gmail.com')
+  })
 })
