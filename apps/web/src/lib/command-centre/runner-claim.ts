@@ -13,11 +13,18 @@
 // lifecycle verb in tool_name and a short machine-safe ref/code in target —
 // codes, never prose, so the cc_agent_events redaction contract holds.
 
-import type { CommandCentreTask } from './tasks'
+import { appendTaskEvent, CC_TASK_EVENTS_TABLE, type CommandCentreTask, type SupabaseLike } from './tasks'
 import type { AgentEventInput } from './agent-events'
 
 export const CC_TASKS_TABLE = 'cc_tasks'
 export const RUNNER_AGENT_NAME = 'nexus-runner'
+
+/**
+ * UNI-2396: a task may be requeued this many times before a further requeue is
+ * released as 'failed' instead — a deterministically-requeueing task must not
+ * loop forever. Counted from the cc_task_events audit trail (no new DDL).
+ */
+export const MAX_REQUEUE_ATTEMPTS = 3
 
 export type RunnerLifecycleVerb =
   | 'claimed'
@@ -132,17 +139,62 @@ const OUTCOME_STATUS: Record<RunnerReleaseOutcome, CommandCentreTask['status']> 
 }
 
 /**
+ * Count this task's prior requeue releases from the cc_task_events audit trail
+ * (the release route records each requeue as type='status_changed' with
+ * payload.outcome='requeue'). Returns null when the count query fails — the
+ * caller degrades honestly to a plain requeue rather than failing the release.
+ */
+async function countPriorRequeues(
+  client: RunnerClaimClientLike,
+  founderId: string,
+  taskId: string,
+): Promise<number | null> {
+  try {
+    const { data, error } = await client
+      .from(CC_TASK_EVENTS_TABLE)
+      .select('id')
+      .eq('founder_id', founderId)
+      .eq('task_id', taskId)
+      .eq('type', 'status_changed')
+      .eq('payload->>outcome', 'requeue')
+      .limit(MAX_REQUEUE_ATTEMPTS)
+    if (error) {
+      console.error(
+        `releaseClaimedTask: requeue count failed (${error.message}) — proceeding with requeue for task ${taskId}`,
+      )
+      return null
+    }
+    return ((data as Array<{ id: string }>) ?? []).length
+  } catch (err) {
+    console.error(
+      `releaseClaimedTask: requeue count threw (${err instanceof Error ? err.message : 'unknown'}) — proceeding with requeue for task ${taskId}`,
+    )
+    return null
+  }
+}
+
+/**
  * Release a running task this runner claimed. Guarded by claimed_by = runnerId
  * so only the claimant can release; returns null when no matching running row
  * exists (wrong id, wrong claimant, or already released). A requeue clears the
- * claim columns so the task is claimable again.
+ * claim columns so the task is claimable again — unless the task has already
+ * been requeued MAX_REQUEUE_ATTEMPTS times (per the cc_task_events audit
+ * trail), in which case it is released as 'failed' with a
+ * max_requeue_attempts_exhausted event instead (UNI-2396).
  */
 export async function releaseClaimedTask(
   client: RunnerClaimClientLike,
   input: ReleaseClaimedTaskInput,
 ): Promise<ClaimedTask | null> {
-  const values: Record<string, unknown> = { status: OUTCOME_STATUS[input.outcome] }
+  let outcome = input.outcome
+  let priorRequeues: number | null = null
   if (input.outcome === 'requeue') {
+    priorRequeues = await countPriorRequeues(client, input.founderId, input.taskId)
+    if (priorRequeues !== null && priorRequeues >= MAX_REQUEUE_ATTEMPTS) outcome = 'failed'
+  }
+
+  const values: Record<string, unknown> = { status: OUTCOME_STATUS[outcome] }
+  if (outcome === 'requeue') {
     values.claimed_by = null
     values.claimed_at = null
   }
@@ -159,7 +211,34 @@ export async function releaseClaimedTask(
   if (error) throw new Error(`releaseClaimedTask failed: ${error.message}`)
 
   const rows = (data as ClaimedTask[]) ?? []
-  return rows[0] ?? null
+  const released = rows[0] ?? null
+
+  // Record why a requeue came back as 'failed' — best-effort, the status
+  // change above is the source of truth (matches the queue route's pattern).
+  if (released && input.outcome === 'requeue' && outcome === 'failed') {
+    try {
+      await appendTaskEvent(
+        {
+          founderId: input.founderId,
+          taskId: input.taskId,
+          type: 'failed',
+          actor: input.runnerId,
+          payload: {
+            outcome: 'failed',
+            code: 'max_requeue_attempts_exhausted',
+            prior_requeues: priorRequeues,
+          },
+        },
+        client as unknown as SupabaseLike,
+      )
+    } catch (err) {
+      console.error(
+        `releaseClaimedTask: max-attempts event append failed (${err instanceof Error ? err.message : 'unknown'}) for task ${input.taskId}`,
+      )
+    }
+  }
+
+  return released
 }
 
 // ─── Lifecycle-event builders (UNI-2384 taxonomy) ─────────────────────────────

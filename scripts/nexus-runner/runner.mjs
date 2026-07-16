@@ -17,6 +17,7 @@ import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { homedir, hostname } from 'node:os'
 import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 const APP_URL = (process.env.NEXUS_APP_URL ?? '').replace(/\/$/, '')
 const SECRET = process.env.AGENT_EVENTS_SECRET ?? ''
@@ -28,7 +29,11 @@ const HARD_STOP = join(homedir(), '.claude', 'HARD_STOP')
 
 const SESSION_ID = `run-${Date.now().toString(36)}`
 
-if (!APP_URL || !SECRET) {
+// True when executed directly (node runner.mjs via run.sh); false when imported
+// by the unit tests, which must not start the loop or exit the process.
+const IS_MAIN = Boolean(process.argv[1]) && import.meta.url === pathToFileURL(process.argv[1]).href
+
+if (IS_MAIN && (!APP_URL || !SECRET)) {
   console.error('nexus-runner: NEXUS_APP_URL and AGENT_EVENTS_SECRET are required. Exiting.')
   process.exit(1)
 }
@@ -44,6 +49,38 @@ async function api(path, body) {
   })
   const json = await res.json().catch(() => ({}))
   return { status: res.status, json }
+}
+
+// Seconds to wait before each release retry (UNI-2390 — bounded backoff).
+const RELEASE_RETRY_DELAYS = [5, 15, 30]
+
+// UNI-2390: a release must never be fire-and-forget — an unacknowledged release
+// leaves the task stranded in 'running' forever while the runner logs success.
+// Retry non-2xx/network failures with bounded backoff; when every attempt
+// fails, log an ERROR naming the stranded task and let the loop continue.
+async function releaseTask(body) {
+  const attempts = RELEASE_RETRY_DELAYS.length + 1
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      const { status, json } = await api('/api/agents/runner/release', body)
+      if (status >= 200 && status < 300) return true
+      log(
+        `release attempt ${attempt}/${attempts} got ${status} (${json?.error ?? 'no detail'}) ` +
+          `for task ${body.taskId} (outcome ${body.outcome})`,
+      )
+    } catch (err) {
+      log(
+        `release attempt ${attempt}/${attempts} failed (${err?.message ?? 'network'}) ` +
+          `for task ${body.taskId} (outcome ${body.outcome})`,
+      )
+    }
+    if (attempt < attempts) await sleep(RELEASE_RETRY_DELAYS[attempt - 1])
+  }
+  log(
+    `ERROR: release exhausted ${attempts} attempts — task ${body.taskId} is stranded in 'running' ` +
+      `(outcome ${body.outcome} was not recorded); manual release required`,
+  )
+  return false
 }
 
 async function emit(events) {
@@ -147,31 +184,31 @@ async function executeTask(task) {
 
   if (outcome.kind === 'done') {
     await emit([statusEvent('draft_pr_opened', task.id, outcome.prRef.slice(0, 512))])
-    await api('/api/agents/runner/release', {
+    const released = await releaseTask({
       taskId: task.id,
       runnerId: RUNNER_ID,
       outcome: 'done',
       prRef: outcome.prRef,
     })
-    log(`done — ${outcome.prRef}`)
+    if (released) log(`done — ${outcome.prRef}`)
   } else if (outcome.kind === 'requeue') {
     await emit([statusEvent('requeued', task.id, outcome.code)])
-    await api('/api/agents/runner/release', {
+    const released = await releaseTask({
       taskId: task.id,
       runnerId: RUNNER_ID,
       outcome: 'requeue',
       code: outcome.code,
     })
-    log(`requeued — ${outcome.code}`)
+    if (released) log(`requeued — ${outcome.code}`)
   } else {
     await emit([statusEvent('aborted', task.id, outcome.code)])
-    await api('/api/agents/runner/release', {
+    const released = await releaseTask({
       taskId: task.id,
       runnerId: RUNNER_ID,
       outcome: 'failed',
       code: outcome.code,
     })
-    log(`failed — ${outcome.code}`)
+    if (released) log(`failed — ${outcome.code}`)
   }
 }
 
@@ -203,4 +240,7 @@ async function loop() {
   }
 }
 
-loop()
+if (IS_MAIN) loop()
+
+// Exported for the unit tests (apps/web/src/lib/command-centre/__tests__).
+export { releaseTask, RELEASE_RETRY_DELAYS }
