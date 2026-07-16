@@ -41,6 +41,22 @@ const APPROVED_INTEGRATION_STATUS_HOSTS = new Set([
   'disaster-recovery-seven.vercel.app',
 ])
 
+// Manifests that fail closed behind a bearer token (RestoreAssist's RA-6937
+// route 401s anonymous callers). Env var NAMES only — values live on the
+// Vercel plane. When the var is unset the fetch stays anonymous and the 401
+// renders as an honest error, never a fabricated status.
+const INTEGRATION_STATUS_TOKEN_ENV_BY_HOST: Record<string, string> = {
+  'restoreassist.app': 'RESTOREASSIST_CONNECTIONS_STATUS_TOKEN',
+}
+
+function integrationStatusHeaders(host: string): Record<string, string> {
+  const headers: Record<string, string> = { Accept: 'application/json' }
+  const envName = INTEGRATION_STATUS_TOKEN_ENV_BY_HOST[host]
+  const token = envName ? process.env[envName] : undefined
+  if (token) headers.Authorization = `Bearer ${token}`
+  return headers
+}
+
 function emptyStatus(projectName: string, statusUrl: string, error: string): ProjectIntegrationStatus {
   return {
     projectName,
@@ -77,14 +93,14 @@ function countConnections(connections: ProjectConnection[]): ProjectIntegrationS
   return summary
 }
 
-async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
+async function fetchWithTimeout(url: URL, timeoutMs: number): Promise<Response> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
   try {
-    return await fetch(url, {
+    return await fetch(url.toString(), {
       cache: 'no-store',
       signal: controller.signal,
-      headers: { Accept: 'application/json' },
+      headers: integrationStatusHeaders(url.hostname),
     })
   } finally {
     clearTimeout(timer)
@@ -113,7 +129,7 @@ export async function loadProjectIntegrationStatus(
   if (!approvedUrl) return emptyStatus(project.name, statusUrl, 'status endpoint host is not approved')
 
   try {
-    const response = await fetchWithTimeout(approvedUrl.toString(), timeoutMs)
+    const response = await fetchWithTimeout(approvedUrl, timeoutMs)
     if (!response.ok) {
       return emptyStatus(project.name, statusUrl, `status endpoint returned ${response.status}`)
     }
