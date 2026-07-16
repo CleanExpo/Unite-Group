@@ -138,6 +138,17 @@ const OUTCOME_STATUS: Record<RunnerReleaseOutcome, CommandCentreTask['status']> 
   requeue: 'queued',
 }
 
+export interface ReleaseClaimedTaskResult {
+  /** The released row, or null when no matching running row was claimed by this runner. */
+  task: ClaimedTask | null
+  /**
+   * The outcome actually applied — differs from the requested outcome when a
+   * capped requeue is downgraded to 'failed' (UNI-2396). Callers auditing the
+   * release must log this, never the raw request (UNI-2398).
+   */
+  effectiveOutcome: RunnerReleaseOutcome
+}
+
 /**
  * Count this task's prior requeue releases from the cc_task_events audit trail
  * (the release route records each requeue as type='status_changed' with
@@ -175,17 +186,18 @@ async function countPriorRequeues(
 
 /**
  * Release a running task this runner claimed. Guarded by claimed_by = runnerId
- * so only the claimant can release; returns null when no matching running row
- * exists (wrong id, wrong claimant, or already released). A requeue clears the
- * claim columns so the task is claimable again — unless the task has already
- * been requeued MAX_REQUEUE_ATTEMPTS times (per the cc_task_events audit
- * trail), in which case it is released as 'failed' with a
- * max_requeue_attempts_exhausted event instead (UNI-2396).
+ * so only the claimant can release; the returned task is null when no matching
+ * running row exists (wrong id, wrong claimant, or already released). A requeue
+ * clears the claim columns so the task is claimable again — unless the task has
+ * already been requeued MAX_REQUEUE_ATTEMPTS times (per the cc_task_events
+ * audit trail), in which case it is released as 'failed' with a
+ * max_requeue_attempts_exhausted event instead (UNI-2396). The result carries
+ * the EFFECTIVE outcome so callers audit what actually happened (UNI-2398).
  */
 export async function releaseClaimedTask(
   client: RunnerClaimClientLike,
   input: ReleaseClaimedTaskInput,
-): Promise<ClaimedTask | null> {
+): Promise<ReleaseClaimedTaskResult> {
   let outcome = input.outcome
   let priorRequeues: number | null = null
   if (input.outcome === 'requeue') {
@@ -238,7 +250,7 @@ export async function releaseClaimedTask(
     }
   }
 
-  return released
+  return { task: released, effectiveOutcome: outcome }
 }
 
 // ─── Lifecycle-event builders (UNI-2384 taxonomy) ─────────────────────────────

@@ -28,10 +28,12 @@ export function FounderShell({ children, user }: FounderShellProps) {
   const toggleCommandBar = useUIStore((s) => s.toggleCommandBar)
   const toggleCapture = useUIStore((s) => s.toggleCapture)
   const pathname = usePathname()
-  // UNI-2397 — the command-centre deck registers its own ⌘K palette
-  // (command-centre/CommandPalette.tsx). On deck routes the deck palette wins;
-  // the shell CommandBar keeps ⌘K everywhere else.
-  const onCommandDeck = pathname?.startsWith('/founder/command-centre') ?? false
+  // UNI-2397/UNI-2398 — the command-centre HOME page registers its own ⌘K
+  // palette (command-centre/CommandPalette.tsx), mounted only in its page.tsx.
+  // Exact-match the home route: on it the deck palette wins; the sub-decks
+  // (operations, portfolio, providers, …) have no palette of their own, so the
+  // shell CommandBar keeps ⌘K there and everywhere else.
+  const onCommandDeck = pathname === '/founder/command-centre'
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {

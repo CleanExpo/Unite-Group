@@ -81,7 +81,7 @@ describe('POST /api/agents/runner/release', () => {
 
   it('releases done, stores the PR ref, audits completed (200)', async () => {
     const task = { id: TASK_ID, status: 'done' }
-    vi.mocked(releaseClaimedTask).mockResolvedValue(task as never)
+    vi.mocked(releaseClaimedTask).mockResolvedValue({ task, effectiveOutcome: 'done' } as never)
     const res = await POST(req(doneBody, `Bearer ${SECRET}`))
     expect(res.status).toBe(200)
     expect(releaseClaimedTask).toHaveBeenCalledWith(expect.anything(), {
@@ -102,7 +102,10 @@ describe('POST /api/agents/runner/release', () => {
   })
 
   it('audits a requeue as status_changed with its code', async () => {
-    vi.mocked(releaseClaimedTask).mockResolvedValue({ id: TASK_ID, status: 'queued' } as never)
+    vi.mocked(releaseClaimedTask).mockResolvedValue({
+      task: { id: TASK_ID, status: 'queued' },
+      effectiveOutcome: 'requeue',
+    } as never)
     const res = await POST(
       req(
         { taskId: TASK_ID, runnerId: 'mac-mini-runner', outcome: 'requeue', code: 'scope_creep' },
@@ -119,8 +122,36 @@ describe('POST /api/agents/runner/release', () => {
     )
   })
 
+  // UNI-2398 — a capped requeue is released as 'failed' (UNI-2396); the audit
+  // event must carry the EFFECTIVE outcome, never a ghost 'requeue'.
+  it('audits the effective outcome when a capped requeue is downgraded to failed', async () => {
+    vi.mocked(releaseClaimedTask).mockResolvedValue({
+      task: { id: TASK_ID, status: 'failed' },
+      effectiveOutcome: 'failed',
+    } as never)
+    const res = await POST(
+      req(
+        { taskId: TASK_ID, runnerId: 'mac-mini-runner', outcome: 'requeue', code: 'scope_creep' },
+        `Bearer ${SECRET}`,
+      ),
+    )
+    expect(res.status).toBe(200)
+    expect(appendTaskEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'failed',
+        payload: expect.objectContaining({ outcome: 'failed', code: 'scope_creep' }),
+      }),
+      expect.anything(),
+    )
+    // no status_changed/'requeue' event may be written for a downgraded release
+    expect(appendTaskEvent).not.toHaveBeenCalledWith(
+      expect.objectContaining({ payload: expect.objectContaining({ outcome: 'requeue' }) }),
+      expect.anything(),
+    )
+  })
+
   it('404s honestly when no matching claimed running task exists', async () => {
-    vi.mocked(releaseClaimedTask).mockResolvedValue(null)
+    vi.mocked(releaseClaimedTask).mockResolvedValue({ task: null, effectiveOutcome: 'done' } as never)
     const res = await POST(req(doneBody, `Bearer ${SECRET}`))
     expect(res.status).toBe(404)
     expect(appendTaskEvent).not.toHaveBeenCalled()
