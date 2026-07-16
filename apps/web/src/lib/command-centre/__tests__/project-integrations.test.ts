@@ -116,6 +116,47 @@ describe('project integration manifests', () => {
     )
   })
 
+  it('fetches the DR-NRPG manifest anonymously — the endpoint is public, no token', async () => {
+    const fetch = vi.fn(async () => new Response(JSON.stringify({
+      source: 'dr-nrpg:connection-status',
+      generatedAt: '2026-07-16T00:00:00.000Z',
+      connections: [
+        { id: 'database', label: 'Primary database (Prisma)', state: 'connected', safeForMissionControl: true, detail: 'DATABASE_URL is configured.' },
+        { id: 'stripe', label: 'Payments (Stripe)', state: 'blocked', safeForMissionControl: true, detail: 'STRIPE_SECRET_KEY is not set.' },
+      ],
+    }), { status: 200 }))
+    vi.stubGlobal('fetch', fetch)
+
+    const status = await loadProjectIntegrationStatus({
+      name: 'DR-NRPG',
+      integration_status_url: 'https://nrpg.business/api/v1/connections/status',
+    })
+
+    expect(status?.ok).toBe(true)
+    expect(status?.source).toBe('dr-nrpg:connection-status')
+    expect(status?.summary).toMatchObject({ total: 2, connected: 1, blocked: 1 })
+    expect(fetch).toHaveBeenCalledWith(
+      'https://nrpg.business/api/v1/connections/status',
+      expect.objectContaining({ headers: { Accept: 'application/json' } }),
+    )
+  })
+
+  it('never attaches a bearer token to nrpg.business, even when a token env var is set', async () => {
+    vi.stubEnv('RESTOREASSIST_CONNECTIONS_STATUS_TOKEN', 'ra-token')
+    const fetch = vi.fn(async () => new Response(JSON.stringify({ connections: [] }), { status: 200 }))
+    vi.stubGlobal('fetch', fetch)
+
+    await loadProjectIntegrationStatus({
+      name: 'DR-NRPG',
+      integration_status_url: 'https://nrpg.business/api/v1/connections/status',
+    })
+
+    expect(fetch).toHaveBeenCalledWith(
+      'https://nrpg.business/api/v1/connections/status',
+      expect.objectContaining({ headers: { Accept: 'application/json' } }),
+    )
+  })
+
   it('loads only projects with integration status URLs', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ connections: [] }), { status: 200 })))
 
