@@ -116,6 +116,48 @@ describe('project integration manifests', () => {
     )
   })
 
+  it('normalises the Disaster-Recovery manifest fetched anonymously', async () => {
+    const fetch = vi.fn(async () => new Response(JSON.stringify({
+      source: 'disaster-recovery:connection-status',
+      generatedAt: '2026-07-16T11:29:15.180Z',
+      connections: [
+        { id: 'database', label: 'Primary database (Prisma)', state: 'connected', safeForMissionControl: true, detail: 'DATABASE_URL is configured' },
+        { id: 'auth', label: 'Authentication (NextAuth)', state: 'connected', safeForMissionControl: true },
+        { id: 'telegram', label: 'Telegram', state: 'blocked', safeForMissionControl: true, detail: 'missing env' },
+      ],
+    }), { status: 200 }))
+    vi.stubGlobal('fetch', fetch)
+
+    const status = await loadProjectIntegrationStatus({
+      name: 'Disaster-Recovery',
+      integration_status_url: 'https://disasterrecovery.com.au/api/v1/connections/status',
+    })
+
+    expect(status?.ok).toBe(true)
+    expect(status?.source).toBe('disaster-recovery:connection-status')
+    expect(status?.summary).toMatchObject({ total: 3, connected: 2, blocked: 1 })
+    expect(fetch).toHaveBeenCalledWith(
+      'https://disasterrecovery.com.au/api/v1/connections/status',
+      expect.objectContaining({ headers: { Accept: 'application/json' } }),
+    )
+  })
+
+  it('never attaches the RestoreAssist token to the Disaster-Recovery host', async () => {
+    vi.stubEnv('RESTOREASSIST_CONNECTIONS_STATUS_TOKEN', 'ra-token')
+    const fetch = vi.fn(async () => new Response(JSON.stringify({ connections: [] }), { status: 200 }))
+    vi.stubGlobal('fetch', fetch)
+
+    await loadProjectIntegrationStatus({
+      name: 'Disaster-Recovery',
+      integration_status_url: 'https://disasterrecovery.com.au/api/v1/connections/status',
+    })
+
+    expect(fetch).toHaveBeenCalledWith(
+      'https://disasterrecovery.com.au/api/v1/connections/status',
+      expect.objectContaining({ headers: { Accept: 'application/json' } }),
+    )
+  })
+
   it('parses the anonymous DR-NRPG manifest into Mission Control status', async () => {
     const fetch = vi.fn(async () => new Response(JSON.stringify({
       source: 'dr-nrpg:connection-status',
