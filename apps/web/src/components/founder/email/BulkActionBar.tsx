@@ -5,11 +5,12 @@ interface Props {
   onArchive: () => void
   onDelete: () => void
   onMarkRead: () => void
+  onMarkUnread: () => void
   onTriage: () => void
   loading?: boolean
 }
 
-export function BulkActionBar({ selectedCount, onArchive, onDelete, onMarkRead, onTriage, loading }: Props) {
+export function BulkActionBar({ selectedCount, onArchive, onDelete, onMarkRead, onMarkUnread, onTriage, loading }: Props) {
   if (selectedCount === 0) return null
 
   return (
@@ -24,6 +25,13 @@ export function BulkActionBar({ selectedCount, onArchive, onDelete, onMarkRead, 
         className="text-xs text-[#52525b] hover:text-[#0A0A0A] transition-colors disabled:opacity-40"
       >
         Mark Read
+      </button>
+      <button
+        onClick={onMarkUnread}
+        disabled={loading}
+        className="text-xs text-[#52525b] hover:text-[#0A0A0A] transition-colors disabled:opacity-40"
+      >
+        Mark Unread
       </button>
       <button
         onClick={onTriage}

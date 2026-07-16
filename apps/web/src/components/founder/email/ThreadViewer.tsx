@@ -66,6 +66,22 @@ export function ThreadViewer({ threadId, account, onArchive, onDelete, onClose }
             Reply
           </button>
           <button
+            onClick={() => doAction('unread')}
+            disabled={actionLoading}
+            title="Mark unread"
+            className="text-xs border border-white/20 px-3 py-1 rounded-sm text-[#52525b] hover:text-[#0A0A0A] hover:border-white/40 transition-colors disabled:opacity-40"
+          >
+            Mark unread
+          </button>
+          <button
+            onClick={() => doAction('read')}
+            disabled={actionLoading}
+            title="Mark read"
+            className="text-xs border border-white/20 px-3 py-1 rounded-sm text-[#52525b] hover:text-[#0A0A0A] hover:border-white/40 transition-colors disabled:opacity-40"
+          >
+            Mark read
+          </button>
+          <button
             onClick={() => doAction('archive')}
             disabled={actionLoading}
             title="Archive"
