@@ -10,7 +10,7 @@ the Matrix wall. Decisions of record: grill `2nd Brain/Grills/13-nexus-how-it-sh
 
 ```
 tmux (user session — NOT launchd: claude CLI trips TCC there)
- └─ run.sh (env wrapper, HARD_STOP gate, git/rm shims, Max-OAuth auth)
+ └─ run.sh (env wrapper, HARD_STOP gate, own bin/ git+rm shims, Max-OAuth auth)
      └─ runner.mjs  ──HTTP──►  POST /api/agents/runner/claim    (dark until armed)
                     ──HTTP──►  POST /api/agents/runner/release
                     ──HTTP──►  POST /api/agents/events           (wall ingest, B1)
@@ -19,6 +19,17 @@ tmux (user session — NOT launchd: claude CLI trips TCC there)
 
 One bearer secret (`AGENT_EVENTS_SECRET`) arms the whole plane. The runner holds **no**
 database credentials.
+
+## Safety envelope
+
+`run.sh` prepends the runner's OWN committed `bin/` (git + rm shims) to `PATH` — portable,
+no dependency on the machine-level `~/.claude/night-shift` shims (whose git guard blocks
+ALL pushes to the prod repo, which would stop the runner ever opening its draft PR —
+UNI-2399). The `bin/git` shim allows exactly what the L2 mandate needs — a plain
+feature-branch push to origin — and blocks force-push (all forms), `merge`, `reset --hard`,
+`branch -D`, and any push to the default branch (`main`/`master`), returning exit 3.
+The `bin/rm` shim blocks recursive delete outside the scratch dir. Both hold even under
+`--dangerously-skip-permissions`. Covered by `apps/web` vitest `runner-git-guard.test.ts`.
 
 ## Founder arming steps (one sitting, order matters — grill Q7)
 
