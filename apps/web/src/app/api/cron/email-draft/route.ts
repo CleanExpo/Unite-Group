@@ -39,8 +39,15 @@ const MAX_DRAFTS_PER_ACCOUNT = 20
 export async function GET(request: Request) {
   const startTime = Date.now()
 
+  // Refuse to run without a configured secret — otherwise `Bearer undefined`
+  // would match the header and bypass auth on a cron that spends on the LLM and
+  // writes drafts. (Guards the unset/empty CRON_SECRET case explicitly.)
+  const cronSecret = process.env.CRON_SECRET?.trim()
+  if (!cronSecret) {
+    return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 500 })
+  }
   const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET?.trim()}`) {
+  if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
   }
 

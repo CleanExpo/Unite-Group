@@ -105,6 +105,16 @@ describe('GET /api/cron/email-draft', () => {
     expect(res.status).toBe(401)
   })
 
+  it('returns 500 (not a bypass) when CRON_SECRET is unset — no Bearer undefined', async () => {
+    vi.stubEnv('MARGOT_DRAFTS_ENABLED', 'true')
+    vi.stubEnv('CRON_SECRET', '')
+    // The attacker guesses the stringified-undefined header; it must NOT pass.
+    const res = await GET(req('Bearer undefined'))
+    expect(res.status).toBe(500)
+    expect(getConnectedGoogleAccounts).not.toHaveBeenCalled()
+    vi.stubEnv('CRON_SECRET', 'test-secret')
+  })
+
   it('is DORMANT when MARGOT_DRAFTS_ENABLED !== true — no accounts, no LLM, no drafts', async () => {
     vi.stubEnv('MARGOT_DRAFTS_ENABLED', '')
     const res = await GET(req())
