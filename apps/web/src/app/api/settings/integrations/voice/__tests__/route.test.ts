@@ -8,6 +8,8 @@ vi.mock('@/lib/margot/account-voice', () => ({
   getAccountVoice: vi.fn(),
   getStoredAccountVoice: vi.fn(),
   saveAccountVoice: vi.fn(),
+  getAccountAgentEnabled: vi.fn(),
+  setAccountAgentEnabled: vi.fn(),
   DEFAULT_FOUNDER_VOICE: {
     name: 'Phill',
     signOff: 'Cheers, Phill',
@@ -21,6 +23,8 @@ import {
   getAccountVoice,
   getStoredAccountVoice,
   saveAccountVoice,
+  getAccountAgentEnabled,
+  setAccountAgentEnabled,
 } from '@/lib/margot/account-voice'
 import { GET, PUT } from '../route'
 
@@ -127,5 +131,60 @@ describe('GET/PUT /api/settings/integrations/voice (task 21)', () => {
       toneGuidelines: ['concise'],
       neverDo: [],
     })
+  })
+
+  it('GET returns the per-account agentEnabled flag (Slice 2)', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'founder-1' } as never)
+    vi.mocked(getStoredAccountVoice).mockResolvedValue(null)
+    vi.mocked(getAccountAgentEnabled).mockResolvedValue(true)
+    const res = await GET(new Request(`${url}?account_email=a@b.com`))
+    const body = await res.json()
+    expect(body.agentEnabled).toBe(true)
+    expect(getAccountAgentEnabled).toHaveBeenCalledWith('founder-1', 'a@b.com')
+  })
+
+  it('PUT toggles agent_enabled ONLY, without clobbering the voice', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'founder-1' } as never)
+    vi.mocked(setAccountAgentEnabled).mockResolvedValue(undefined)
+    vi.mocked(getAccountVoice).mockResolvedValue({
+      name: 'Phill',
+      signOff: 'Cheers, Phill',
+      toneGuidelines: [],
+      neverDo: [],
+    })
+    vi.mocked(getAccountAgentEnabled).mockResolvedValue(true)
+
+    const res = await PUT(putRequest({ account_email: 'a@b.com', agent_enabled: true }))
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(setAccountAgentEnabled).toHaveBeenCalledWith('founder-1', 'a@b.com', true)
+    // toggle carries no voice fields → voice must NOT be re-saved
+    expect(saveAccountVoice).not.toHaveBeenCalled()
+    expect(body.agentEnabled).toBe(true)
+  })
+
+  it('PUT with only a voice edit never flips the agent toggle', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'founder-1' } as never)
+    vi.mocked(saveAccountVoice).mockResolvedValue(undefined)
+    vi.mocked(getAccountVoice).mockResolvedValue({
+      name: 'Phill',
+      signOff: 'Cheers, Phill',
+      toneGuidelines: [],
+      neverDo: [],
+    })
+    vi.mocked(getAccountAgentEnabled).mockResolvedValue(false)
+
+    const res = await PUT(putRequest({ account_email: 'a@b.com', name: 'Phill' }))
+    expect(res.status).toBe(200)
+    expect(saveAccountVoice).toHaveBeenCalled()
+    expect(setAccountAgentEnabled).not.toHaveBeenCalled()
+  })
+
+  it('PUT requires authentication for the agent toggle', async () => {
+    vi.mocked(getUser).mockResolvedValue(null as never)
+    const res = await PUT(putRequest({ account_email: 'a@b.com', agent_enabled: true }))
+    expect(res.status).toBe(401)
+    expect(setAccountAgentEnabled).not.toHaveBeenCalled()
   })
 })

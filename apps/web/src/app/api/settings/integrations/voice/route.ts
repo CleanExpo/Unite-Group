@@ -12,6 +12,8 @@ import {
   getAccountVoice,
   getStoredAccountVoice,
   saveAccountVoice,
+  getAccountAgentEnabled,
+  setAccountAgentEnabled,
   DEFAULT_FOUNDER_VOICE,
 } from '@/lib/margot/account-voice';
 import type { FounderVoice } from '@/lib/margot/draft-reply-prompt';
@@ -33,10 +35,15 @@ export async function GET(request: Request) {
   }
 
   try {
-    const stored = await getStoredAccountVoice(user.id, accountEmail);
+    const [stored, agentEnabled] = await Promise.all([
+      getStoredAccountVoice(user.id, accountEmail),
+      getAccountAgentEnabled(user.id, accountEmail),
+    ]);
     return NextResponse.json({
       isCustom: stored !== null,
       voice: stored ?? DEFAULT_FOUNDER_VOICE,
+      // Slice 2: per-account auto-draft toggle. Off by default (dark).
+      agentEnabled,
     });
   } catch (err) {
     console.error('[settings/integrations/voice] GET error:', err);
@@ -54,6 +61,7 @@ export async function PUT(request: Request) {
     signOff?: string;
     toneGuidelines?: unknown;
     neverDo?: unknown;
+    agent_enabled?: unknown;
   };
   try {
     body = (await request.json()) as typeof body;
@@ -74,17 +82,38 @@ export async function PUT(request: Request) {
       ? value.filter((v): v is string => typeof v === 'string' && v.trim() !== '')
       : [];
 
-  const voice: FounderVoice = {
-    name: (body.name ?? '').trim() || DEFAULT_FOUNDER_VOICE.name,
-    signOff: (body.signOff ?? '').trim() || DEFAULT_FOUNDER_VOICE.signOff,
-    toneGuidelines: asStringArray(body.toneGuidelines),
-    neverDo: asStringArray(body.neverDo),
-  };
+  // Voice and the auto-draft toggle are independent settings on the same row.
+  // The voice editor PUTs the voice fields; the toggle PUTs only agent_enabled.
+  // Handle whichever the request carries so one never clobbers the other.
+  const hasVoiceFields =
+    'name' in body ||
+    'signOff' in body ||
+    'toneGuidelines' in body ||
+    'neverDo' in body;
+  const hasAgentToggle = typeof body.agent_enabled === 'boolean';
 
   try {
-    await saveAccountVoice(user.id, accountEmail, voice);
-    const saved = await getAccountVoice(user.id, accountEmail);
-    return NextResponse.json({ success: true, voice: saved });
+    if (hasAgentToggle) {
+      await setAccountAgentEnabled(
+        user.id,
+        accountEmail,
+        body.agent_enabled as boolean
+      );
+    }
+    if (hasVoiceFields) {
+      const voice: FounderVoice = {
+        name: (body.name ?? '').trim() || DEFAULT_FOUNDER_VOICE.name,
+        signOff: (body.signOff ?? '').trim() || DEFAULT_FOUNDER_VOICE.signOff,
+        toneGuidelines: asStringArray(body.toneGuidelines),
+        neverDo: asStringArray(body.neverDo),
+      };
+      await saveAccountVoice(user.id, accountEmail, voice);
+    }
+    const [saved, agentEnabled] = await Promise.all([
+      getAccountVoice(user.id, accountEmail),
+      getAccountAgentEnabled(user.id, accountEmail),
+    ]);
+    return NextResponse.json({ success: true, voice: saved, agentEnabled });
   } catch (err) {
     console.error('[settings/integrations/voice] PUT error:', err);
     return NextResponse.json({ error: 'Failed to save voice' }, { status: 500 });

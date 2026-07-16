@@ -127,6 +127,67 @@ describe('EmailIntegrationsSection — copywriter voice editor (task 21)', () =>
     })
   })
 
+  it('renders the auto-draft toggle OFF by default and flips it on (Slice 2)', async () => {
+    const fetchMock = stubFetch(() => ({ ok: true }))
+    render(<EmailIntegrationsSection founderEmail={ACCOUNT} />)
+
+    await waitFor(() => {
+      expect(screen.getByText(ACCOUNT)).toBeInTheDocument()
+    })
+
+    await userEvent.click(
+      screen.getByRole('button', { name: `Copywriter voice for ${ACCOUNT}` }),
+    )
+
+    const toggle = await screen.findByRole('switch', {
+      name: `Auto-draft replies for ${ACCOUNT}`,
+    })
+    // honest default: off
+    expect(toggle).toHaveAttribute('aria-checked', 'false')
+
+    await userEvent.click(toggle)
+
+    // PUT flips agent_enabled for this exact account
+    await waitFor(() => {
+      const putCall = fetchMock.mock.calls.find(
+        ([u, init]) =>
+          u === '/api/settings/integrations/voice' &&
+          (init as RequestInit | undefined)?.method === 'PUT',
+      )
+      expect(putCall).toBeTruthy()
+      const putBody = JSON.parse((putCall![1] as RequestInit).body as string)
+      expect(putBody.account_email).toBe(ACCOUNT)
+      expect(putBody.agent_enabled).toBe(true)
+    })
+
+    expect(toggle).toHaveAttribute('aria-checked', 'true')
+    // aria-live confirmation
+    await waitFor(() => {
+      expect(screen.getByText('Auto-draft on')).toBeInTheDocument()
+    })
+  })
+
+  it('reverts the auto-draft toggle when the save fails', async () => {
+    stubFetch(() => ({ ok: false }))
+    render(<EmailIntegrationsSection founderEmail={ACCOUNT} />)
+
+    await waitFor(() => {
+      expect(screen.getByText(ACCOUNT)).toBeInTheDocument()
+    })
+    await userEvent.click(
+      screen.getByRole('button', { name: `Copywriter voice for ${ACCOUNT}` }),
+    )
+    const toggle = await screen.findByRole('switch', {
+      name: `Auto-draft replies for ${ACCOUNT}`,
+    })
+    await userEvent.click(toggle)
+
+    // failed PUT → optimistic flip reverts to off
+    await waitFor(() => {
+      expect(toggle).toHaveAttribute('aria-checked', 'false')
+    })
+  })
+
   it('surfaces an error when the save fails', async () => {
     stubFetch(() => ({ ok: false }))
     render(<EmailIntegrationsSection founderEmail={ACCOUNT} />)
