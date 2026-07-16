@@ -6,6 +6,7 @@ import {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  vi.unstubAllEnvs()
 })
 
 describe('project integration manifests', () => {
@@ -61,6 +62,58 @@ describe('project integration manifests', () => {
     expect(status?.ok).toBe(false)
     expect(status?.error).toBe('status endpoint host is not approved')
     expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('sends the RestoreAssist bearer token when the env var is set', async () => {
+    vi.stubEnv('RESTOREASSIST_CONNECTIONS_STATUS_TOKEN', 'ra-token')
+    const fetch = vi.fn(async () => new Response(JSON.stringify({ connections: [] }), { status: 200 }))
+    vi.stubGlobal('fetch', fetch)
+
+    const status = await loadProjectIntegrationStatus({
+      name: 'RestoreAssist',
+      integration_status_url: 'https://restoreassist.app/api/v1/connections/status',
+    })
+
+    expect(status?.ok).toBe(true)
+    expect(fetch).toHaveBeenCalledWith(
+      'https://restoreassist.app/api/v1/connections/status',
+      expect.objectContaining({
+        headers: { Accept: 'application/json', Authorization: 'Bearer ra-token' },
+      }),
+    )
+  })
+
+  it('fetches anonymously when the RestoreAssist token env var is unset', async () => {
+    const fetch = vi.fn(async () => new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 }))
+    vi.stubGlobal('fetch', fetch)
+
+    const status = await loadProjectIntegrationStatus({
+      name: 'RestoreAssist',
+      integration_status_url: 'https://restoreassist.app/api/v1/connections/status',
+    })
+
+    expect(status?.ok).toBe(false)
+    expect(status?.error).toContain('401')
+    expect(fetch).toHaveBeenCalledWith(
+      'https://restoreassist.app/api/v1/connections/status',
+      expect.objectContaining({ headers: { Accept: 'application/json' } }),
+    )
+  })
+
+  it('never attaches the RestoreAssist token to other hosts', async () => {
+    vi.stubEnv('RESTOREASSIST_CONNECTIONS_STATUS_TOKEN', 'ra-token')
+    const fetch = vi.fn(async () => new Response(JSON.stringify({ connections: [] }), { status: 200 }))
+    vi.stubGlobal('fetch', fetch)
+
+    await loadProjectIntegrationStatus({
+      name: 'Synthex',
+      integration_status_url: 'https://synthex.social/api/v1/connections/status',
+    })
+
+    expect(fetch).toHaveBeenCalledWith(
+      'https://synthex.social/api/v1/connections/status',
+      expect.objectContaining({ headers: { Accept: 'application/json' } }),
+    )
   })
 
   it('loads only projects with integration status URLs', async () => {
