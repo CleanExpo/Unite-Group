@@ -40,6 +40,14 @@ export interface BoardMeetingResult {
   decisionsRequired: string[]  // action items needing CEO input today
 }
 
+/** Thrown when the briefing JSON is unparseable even after the strict-JSON retry (UNI-2391). */
+export class BoardBriefingParseError extends Error {
+  constructor(offendingText: string) {
+    super(`[CEO Board] Briefing JSON unparseable after retry. Output starts: "${offendingText.trim().slice(0, 120)}"`)
+    this.name = 'BoardBriefingParseError'
+  }
+}
+
 // ---------------------------------------------------------------------------
 // System prompt
 // ---------------------------------------------------------------------------
@@ -143,16 +151,69 @@ export async function runDailyBriefing(input: BriefingInput): Promise<BoardMeeti
     .map((b) => (b as { type: 'text'; text: string }).text)
     .join('')
 
-  let result: BoardMeetingResult
-  try {
-    result = JSON.parse(text.trim()) as BoardMeetingResult
-  } catch {
-    const match = text.match(/\{[\s\S]*\}/)
-    if (!match) throw new Error('[CEO Board] Failed to parse briefing JSON')
-    result = JSON.parse(match[0]) as BoardMeetingResult
+  let result = tryParseBoardResult(text)
+
+  if (!result) {
+    // UNI-2391: a malformed first response previously threw on the unguarded
+    // second parse and 500'd the whole cron run. One retry asking the model
+    // to re-emit strictly valid JSON, then a typed error if that also fails.
+    const retryResponse = await ai.messages.create({
+      model: ANTHROPIC_MODELS.SONNET,
+      max_tokens: 4000,
+      system: SYSTEM_PROMPT,
+      messages: [
+        { role: 'user', content: handoffMessage },
+        { role: 'assistant', content: text.trim() || '(empty response)' },
+        {
+          role: 'user',
+          content:
+            'Your previous response was not valid JSON. Re-emit the ENTIRE briefing as strictly valid JSON matching the required structure ("agenda", "brief_md", "decisionsRequired"). Return ONLY the JSON — no preamble, no markdown fences, no trailing text.',
+        },
+      ],
+    })
+    const retryText = retryResponse.content
+      .filter((b) => b.type === 'text')
+      .map((b) => (b as { type: 'text'; text: string }).text)
+      .join('')
+
+    result = tryParseBoardResult(retryText)
+    if (!result) throw new BoardBriefingParseError(retryText || text)
   }
 
   return result
+}
+
+// ---------------------------------------------------------------------------
+// Parse helpers (UNI-2391)
+// ---------------------------------------------------------------------------
+
+/** Parse model output into a BoardMeetingResult, or null when unparseable/invalid. Never throws. */
+function tryParseBoardResult(text: string): BoardMeetingResult | null {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(text.trim())
+  } catch {
+    const match = text.match(/\{[\s\S]*\}/)
+    if (!match) return null
+    try {
+      parsed = JSON.parse(match[0])
+    } catch {
+      return null
+    }
+  }
+  return isBoardMeetingResult(parsed) ? parsed : null
+}
+
+/** Cheap runtime check for the minimal required BoardMeetingResult keys. */
+function isBoardMeetingResult(value: unknown): value is BoardMeetingResult {
+  if (typeof value !== 'object' || value === null) return false
+  const v = value as Record<string, unknown>
+  return (
+    typeof v.agenda === 'object' &&
+    v.agenda !== null &&
+    typeof v.brief_md === 'string' &&
+    Array.isArray(v.decisionsRequired)
+  )
 }
 
 // ---------------------------------------------------------------------------
