@@ -71,13 +71,16 @@ export async function POST(request: Request) {
 
   try {
     const client = createServiceClient()
-    const task = await releaseClaimedTask(client as unknown as RunnerClaimClientLike, {
-      founderId,
-      taskId: parsed.data.taskId,
-      runnerId: parsed.data.runnerId,
-      outcome: parsed.data.outcome,
-      prRef: parsed.data.prRef ?? null,
-    })
+    const { task, effectiveOutcome } = await releaseClaimedTask(
+      client as unknown as RunnerClaimClientLike,
+      {
+        founderId,
+        taskId: parsed.data.taskId,
+        runnerId: parsed.data.runnerId,
+        outcome: parsed.data.outcome,
+        prRef: parsed.data.prRef ?? null,
+      },
+    )
 
     if (!task) {
       return NextResponse.json(
@@ -86,14 +89,17 @@ export async function POST(request: Request) {
       )
     }
 
+    // UNI-2398 — audit the EFFECTIVE outcome: a capped requeue is released as
+    // 'failed' (UNI-2396), and recording the raw requested 'requeue' here would
+    // write a ghost requeue event that never happened.
     await appendTaskEvent(
       {
         founderId,
         taskId: task.id,
-        type: OUTCOME_EVENT[parsed.data.outcome],
+        type: OUTCOME_EVENT[effectiveOutcome],
         actor: parsed.data.runnerId,
         payload: {
-          outcome: parsed.data.outcome,
+          outcome: effectiveOutcome,
           ...(parsed.data.prRef ? { pr_ref: parsed.data.prRef } : {}),
           ...(parsed.data.code ? { code: parsed.data.code } : {}),
         },

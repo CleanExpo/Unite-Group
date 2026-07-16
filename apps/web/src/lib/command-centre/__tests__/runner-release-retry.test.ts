@@ -71,6 +71,54 @@ describe('nexus-runner releaseTask (UNI-2390)', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 
+  // UNI-2398 — 4xx (except 429) is terminal: the server refused the request,
+  // so retrying cannot succeed and the task is NOT stranded in 'running'.
+  it('treats a 404 as terminal — one log line with the status and detail, no retries, no stranded ERROR', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(response(404, { error: 'No matching running task claimed by this runner' }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(releaseTask(body)).resolves.toBe(false)
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const lines = logSpy.mock.calls.map((call) => String(call[0]))
+    const terminalLine = lines.find((line) => line.includes('terminal 404'))
+    expect(terminalLine).toBeDefined()
+    expect(terminalLine).toContain('No matching running task claimed by this runner')
+    expect(terminalLine).toContain('task-1')
+    expect(lines.some((line) => line.includes('ERROR:'))).toBe(false)
+    expect(lines.some((line) => line.includes("stranded in 'running'"))).toBe(false)
+  })
+
+  it('treats other non-429 4xx (e.g. 401) as terminal without retrying', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    const fetchMock = vi.fn().mockResolvedValue(response(401, { error: 'Unauthorised' }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(releaseTask(body)).resolves.toBe(false)
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const lines = logSpy.mock.calls.map((call) => String(call[0]))
+    expect(lines.some((line) => line.includes('terminal 401'))).toBe(true)
+    expect(lines.some((line) => line.includes("stranded in 'running'"))).toBe(false)
+  })
+
+  it('still retries a 429 — rate limiting is transient, not terminal', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(response(429, { error: 'rate limited' }))
+      .mockResolvedValueOnce(response(200, { task: { id: 'task-1' } }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const promise = releaseTask(body)
+    await vi.advanceTimersByTimeAsync(RELEASE_RETRY_DELAYS[0] * 1000)
+
+    await expect(promise).resolves.toBe(true)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
   it('logs an ERROR naming the stranded task when every attempt fails', async () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
     const fetchMock = vi.fn().mockResolvedValue(response(503, { error: 'down' }))

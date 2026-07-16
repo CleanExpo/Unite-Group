@@ -121,7 +121,8 @@ describe('releaseClaimedTask', () => {
       prRef: 'https://github.com/CleanExpo/Unite-Group/pull/900',
     })
 
-    expect(released).toEqual(row)
+    expect(released.task).toEqual(row)
+    expect(released.effectiveOutcome).toBe('done')
     expect(updates[0].values.status).toBe('done')
     expect(updates[0].values.preview_url).toContain('/pull/900')
     // only the claimant can release, and only from running
@@ -145,7 +146,7 @@ describe('releaseClaimedTask', () => {
     expect(updates[0].values.claimed_at).toBeNull()
   })
 
-  it('returns null when no matching running row is claimed by this runner', async () => {
+  it('returns a null task when no matching running row is claimed by this runner', async () => {
     const { client } = mockClient([], [[]])
     const released = await releaseClaimedTask(client, {
       founderId: 'f1',
@@ -153,7 +154,8 @@ describe('releaseClaimedTask', () => {
       runnerId: 'runner-b',
       outcome: 'failed',
     })
-    expect(released).toBeNull()
+    expect(released.task).toBeNull()
+    expect(released.effectiveOutcome).toBe('failed')
   })
 })
 
@@ -234,7 +236,8 @@ describe('releaseClaimedTask requeue cap (UNI-2396)', () => {
       outcome: 'requeue',
     })
 
-    expect(released).toEqual(row)
+    expect(released.task).toEqual(row)
+    expect(released.effectiveOutcome).toBe('requeue')
     expect(updates[0].values.status).toBe('queued')
     expect(updates[0].values.claimed_by).toBeNull()
     expect(updates[0].values.claimed_at).toBeNull()
@@ -260,7 +263,9 @@ describe('releaseClaimedTask requeue cap (UNI-2396)', () => {
       outcome: 'requeue',
     })
 
-    expect(released).toEqual(row)
+    expect(released.task).toEqual(row)
+    // UNI-2398 — callers audit the effective outcome, not the raw request
+    expect(released.effectiveOutcome).toBe('failed')
     expect(updates[0].values.status).toBe('failed')
     // a failed release keeps the claim columns — nothing is made claimable
     expect(updates[0].values).not.toHaveProperty('claimed_by')
@@ -292,7 +297,8 @@ describe('releaseClaimedTask requeue cap (UNI-2396)', () => {
       outcome: 'requeue',
     })
 
-    expect(released).toEqual(row)
+    expect(released.task).toEqual(row)
+    expect(released.effectiveOutcome).toBe('requeue')
     expect(updates[0].values.status).toBe('queued')
     expect(updates[0].values.claimed_by).toBeNull()
     expect(inserts).toHaveLength(0)

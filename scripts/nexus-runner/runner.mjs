@@ -56,14 +56,26 @@ const RELEASE_RETRY_DELAYS = [5, 15, 30]
 
 // UNI-2390: a release must never be fire-and-forget — an unacknowledged release
 // leaves the task stranded in 'running' forever while the runner logs success.
-// Retry non-2xx/network failures with bounded backoff; when every attempt
+// Retry 5xx/429/network failures with bounded backoff; when every attempt
 // fails, log an ERROR naming the stranded task and let the loop continue.
+// UNI-2398: other 4xx responses are terminal — the server understood the
+// request and refused it (404 = no matching running task claimed by this
+// runner, or already released), so retrying cannot succeed and the task is
+// NOT stranded; log the status + body once and return false.
 async function releaseTask(body) {
   const attempts = RELEASE_RETRY_DELAYS.length + 1
   for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
       const { status, json } = await api('/api/agents/runner/release', body)
       if (status >= 200 && status < 300) return true
+      if (status >= 400 && status < 500 && status !== 429) {
+        log(
+          `release got terminal ${status} (${json?.error ?? 'no detail'}) ` +
+            `for task ${body.taskId} (outcome ${body.outcome}) — not retrying` +
+            (status === 404 ? '; no matching running task claimed by this runner (or already released)' : ''),
+        )
+        return false
+      }
       log(
         `release attempt ${attempt}/${attempts} got ${status} (${json?.error ?? 'no detail'}) ` +
           `for task ${body.taskId} (outcome ${body.outcome})`,
