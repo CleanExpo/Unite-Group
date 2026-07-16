@@ -66,3 +66,4 @@ Approve one task in the Command Centre UI and watch it go
       `requeued` with a short snake code) + heartbeats.
 - [ ] The draft PR exists on GitHub and was **not** merged by the runner.
 - 2026-07-16: runner E2E loop proven on local stack (UNI-2383).
+- 2026-07-16: runner armed in prod and demo-proven (UNI-2385).
