@@ -158,6 +158,49 @@ describe('project integration manifests', () => {
     )
   })
 
+  it('parses the anonymous DR-NRPG manifest into Mission Control status', async () => {
+    const fetch = vi.fn(async () => new Response(JSON.stringify({
+      source: 'dr-nrpg:connection-status',
+      generatedAt: '2026-07-16T00:00:00.000Z',
+      connections: [
+        { id: 'database', label: 'Primary database (Prisma)', state: 'connected', safeForMissionControl: true, detail: 'ok' },
+        { id: 'supabase', label: 'Supabase (storage + realtime)', state: 'ready', safeForMissionControl: true, detail: 'ok' },
+        { id: 'stripe', label: 'Payments (Stripe)', state: 'blocked', safeForMissionControl: true, detail: 'no key', nextAction: 'Set the Stripe key pair.' },
+      ],
+    }), { status: 200 }))
+    vi.stubGlobal('fetch', fetch)
+
+    const status = await loadProjectIntegrationStatus({
+      name: 'DR-NRPG',
+      integration_status_url: 'https://nrpg.business/api/v1/connections/status',
+    })
+
+    expect(status?.ok).toBe(true)
+    expect(status?.source).toBe('dr-nrpg:connection-status')
+    expect(status?.summary).toMatchObject({ total: 3, connected: 1, ready: 1, blocked: 1 })
+    // Anonymous fetch — no Authorization header ever attached to nrpg.business.
+    expect(fetch).toHaveBeenCalledWith(
+      'https://nrpg.business/api/v1/connections/status',
+      expect.objectContaining({ headers: { Accept: 'application/json' } }),
+    )
+  })
+
+  it('never attaches the RestoreAssist token to nrpg.business', async () => {
+    vi.stubEnv('RESTOREASSIST_CONNECTIONS_STATUS_TOKEN', 'ra-token')
+    const fetch = vi.fn(async () => new Response(JSON.stringify({ connections: [] }), { status: 200 }))
+    vi.stubGlobal('fetch', fetch)
+
+    await loadProjectIntegrationStatus({
+      name: 'DR-NRPG',
+      integration_status_url: 'https://nrpg.business/api/v1/connections/status',
+    })
+
+    expect(fetch).toHaveBeenCalledWith(
+      'https://nrpg.business/api/v1/connections/status',
+      expect.objectContaining({ headers: { Accept: 'application/json' } }),
+    )
+  })
+
   it('loads only projects with integration status URLs', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ connections: [] }), { status: 200 })))
 
