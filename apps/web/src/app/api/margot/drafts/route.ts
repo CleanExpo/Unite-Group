@@ -9,10 +9,8 @@ import { getUser } from '@/lib/supabase/server';
 import { generateFounderDraft } from '@/lib/margot/draft-reply';
 import { createAnthropicComplete } from '@/lib/margot/providers';
 import { createMargotDraftStore } from '@/lib/margot/draft-store';
-import type {
-  FounderVoice,
-  IncomingEmail,
-} from '@/lib/margot/draft-reply-prompt';
+import { getAccountVoice } from '@/lib/margot/account-voice';
+import type { IncomingEmail } from '@/lib/margot/draft-reply-prompt';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,7 +29,6 @@ export async function POST(request: NextRequest) {
 
   const input = (await request.json().catch(() => null)) as {
     incoming?: IncomingEmail;
-    voice?: FounderVoice;
     accountEmail?: string;
     threadId?: string;
     toAddress?: string;
@@ -40,17 +37,20 @@ export async function POST(request: NextRequest) {
     businessKey?: string;
   } | null;
 
-  if (!input?.incoming?.body || !input?.voice?.name) {
+  if (!input?.incoming?.body || !input?.accountEmail) {
     return NextResponse.json(
-      { error: 'incoming email and founder voice are required' },
+      { error: 'incoming email and accountEmail are required' },
       { status: 400 }
     );
   }
 
   try {
+    // Resolve the copywriter voice for the account we're drafting FROM — the
+    // stored per-account voice, or the labelled default when none is set.
+    const voice = await getAccountVoice(user.id, input.accountEmail);
     const body = await generateFounderDraft(
       input.incoming,
-      input.voice,
+      voice,
       createAnthropicComplete()
     );
     const store = createMargotDraftStore();
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       toAddress: input.toAddress,
       subject: input.subject ?? input.incoming.subject,
       body,
-      voiceMeta: { voiceName: input.voice.name },
+      voiceMeta: { voiceName: voice.name },
     });
     return NextResponse.json({ id, status: 'awaiting_approval', body });
   } catch (e) {

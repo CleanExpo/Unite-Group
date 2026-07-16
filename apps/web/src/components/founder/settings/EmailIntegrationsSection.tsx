@@ -7,7 +7,9 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Mail, Link2, Plus } from 'lucide-react'
+import { Mail, Link2, Plus, Pencil, ChevronDown } from 'lucide-react'
+
+import type { FounderVoice } from '@/lib/margot/draft-reply-prompt'
 
 interface ProviderAccount {
   email: string
@@ -277,8 +279,9 @@ function ProviderRow({
               <li
                 key={account.email}
                 aria-busy={isDisconnecting}
-                className="flex items-center justify-between gap-2 text-[12px]"
+                className="flex flex-col gap-1.5 text-[12px]"
               >
+                <div className="flex items-center justify-between gap-2">
                 <span
                   className="truncate"
                   title={account.email}
@@ -356,10 +359,236 @@ function ProviderRow({
                     </>
                   )}
                 </div>
+                </div>
+                <AccountVoiceEditor accountEmail={account.email} />
               </li>
             )
           })}
         </ul>
+      )}
+    </div>
+  )
+}
+
+// Collapsible per-account copywriter voice editor (task 21 / UNI-2153).
+// Reads GET /api/settings/integrations/voice and saves via PUT. Fetches lazily
+// on expand so it never fires on the settings load. Nothing here sends or drafts
+// email — it only stores the voice a Margot draft would use.
+function AccountVoiceEditor({ accountEmail }: { accountEmail: string }) {
+  const [expanded, setExpanded] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [isCustom, setIsCustom] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [status, setStatus] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [name, setName] = useState('')
+  const [signOff, setSignOff] = useState('')
+  const [tone, setTone] = useState('')
+  const [neverDo, setNeverDo] = useState('')
+
+  const applyVoice = useCallback((voice: FounderVoice) => {
+    setName(voice.name)
+    setSignOff(voice.signOff)
+    setTone((voice.toneGuidelines ?? []).join('\n'))
+    setNeverDo((voice.neverDo ?? []).join('\n'))
+  }, [])
+
+  const loadVoice = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch(
+        `/api/settings/integrations/voice?account_email=${encodeURIComponent(accountEmail)}`,
+      )
+      if (!res.ok) throw new Error('Failed to load voice')
+      const data = (await res.json()) as { isCustom: boolean; voice: FounderVoice }
+      setIsCustom(data.isCustom)
+      applyVoice(data.voice)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load voice')
+    } finally {
+      setLoading(false)
+    }
+  }, [accountEmail, applyVoice])
+
+  const toggle = useCallback(() => {
+    setExpanded((prev) => {
+      const next = !prev
+      if (next) void loadVoice()
+      return next
+    })
+  }, [loadVoice])
+
+  const handleSave = useCallback(async () => {
+    setSaving(true)
+    setStatus('')
+    setError(null)
+    try {
+      const res = await fetch('/api/settings/integrations/voice', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          account_email: accountEmail,
+          name,
+          signOff,
+          toneGuidelines: tone.split('\n').map((s) => s.trim()).filter(Boolean),
+          neverDo: neverDo.split('\n').map((s) => s.trim()).filter(Boolean),
+        }),
+      })
+      if (!res.ok) throw new Error('Failed to save voice')
+      setIsCustom(true)
+      setEditing(false)
+      setStatus('Voice saved')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save voice')
+    } finally {
+      setSaving(false)
+    }
+  }, [accountEmail, name, signOff, tone, neverDo])
+
+  const fieldStyle = {
+    background: 'var(--surface-card)',
+    border: '1px solid var(--color-border)',
+    color: 'var(--color-text-primary)',
+  }
+  const labelClass = 'block text-[11px] mb-0.5'
+  const labelStyle = { color: 'var(--color-text-disabled)' }
+
+  return (
+    <div className="mt-0.5">
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={expanded}
+        aria-label={`Copywriter voice for ${accountEmail}`}
+        className="flex items-center gap-1 text-[11px] underline-offset-2 hover:underline"
+        style={{ color: 'var(--color-text-muted)', cursor: 'pointer' }}
+      >
+        <ChevronDown
+          size={12}
+          strokeWidth={1.5}
+          style={{ transform: expanded ? 'rotate(0deg)' : 'rotate(-90deg)' }}
+        />
+        Copywriter voice
+      </button>
+
+      {expanded && (
+        <div
+          role="region"
+          aria-label={`Copywriter voice editor for ${accountEmail}`}
+          className="rounded-sm p-3 mt-1.5"
+          style={{ border: '1px solid var(--color-border)', background: 'var(--surface-elevated)' }}
+        >
+          {loading ? (
+            <p className="text-[11px]" style={{ color: 'var(--color-text-disabled)' }}>
+              Loading…
+            </p>
+          ) : editing ? (
+            <div className="flex flex-col gap-2">
+              <div>
+                <label className={labelClass} style={labelStyle} htmlFor={`voice-name-${accountEmail}`}>
+                  Name
+                </label>
+                <input
+                  id={`voice-name-${accountEmail}`}
+                  aria-label={`Voice name for ${accountEmail}`}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full rounded-sm px-2 h-8 text-[12px] focus:outline-hidden"
+                  style={fieldStyle}
+                />
+              </div>
+              <div>
+                <label className={labelClass} style={labelStyle} htmlFor={`voice-signoff-${accountEmail}`}>
+                  Sign-off
+                </label>
+                <input
+                  id={`voice-signoff-${accountEmail}`}
+                  aria-label={`Sign-off for ${accountEmail}`}
+                  value={signOff}
+                  onChange={(e) => setSignOff(e.target.value)}
+                  className="w-full rounded-sm px-2 h-8 text-[12px] focus:outline-hidden"
+                  style={fieldStyle}
+                />
+              </div>
+              <div>
+                <label className={labelClass} style={labelStyle} htmlFor={`voice-tone-${accountEmail}`}>
+                  Tone guidelines (one per line)
+                </label>
+                <textarea
+                  id={`voice-tone-${accountEmail}`}
+                  aria-label={`Tone guidelines for ${accountEmail}`}
+                  value={tone}
+                  onChange={(e) => setTone(e.target.value)}
+                  rows={3}
+                  className="w-full rounded-sm px-2 py-1.5 text-[12px] focus:outline-hidden"
+                  style={fieldStyle}
+                />
+              </div>
+              <div>
+                <label className={labelClass} style={labelStyle} htmlFor={`voice-neverdo-${accountEmail}`}>
+                  Never do (one per line)
+                </label>
+                <textarea
+                  id={`voice-neverdo-${accountEmail}`}
+                  aria-label={`Never-do list for ${accountEmail}`}
+                  value={neverDo}
+                  onChange={(e) => setNeverDo(e.target.value)}
+                  rows={3}
+                  className="w-full rounded-sm px-2 py-1.5 text-[12px] focus:outline-hidden"
+                  style={fieldStyle}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saving}
+                  aria-label={`Save copywriter voice for ${accountEmail}`}
+                  className="px-3 h-7 rounded-sm text-[12px] font-medium disabled:opacity-50"
+                  style={{ background: '#16a34a18', color: '#15803d', border: '1px solid #16a34a30', cursor: saving ? 'not-allowed' : 'pointer' }}
+                >
+                  {saving ? 'Saving…' : 'Save voice'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditing(false)}
+                  aria-label={`Cancel editing voice for ${accountEmail}`}
+                  className="text-[11px] underline-offset-2 hover:underline"
+                  style={{ color: 'var(--color-text-muted)', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px]" style={{ color: 'var(--color-text-disabled)' }}>
+                {isCustom ? `Custom voice — signs off as ${name}` : 'Using the default voice'}
+              </span>
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                aria-label={`Edit copywriter voice for ${accountEmail}`}
+                className="flex items-center gap-1 text-[11px] underline-offset-2 hover:underline"
+                style={{ color: 'var(--color-text-muted)', cursor: 'pointer' }}
+              >
+                <Pencil size={12} strokeWidth={1.5} />
+                Edit
+              </button>
+            </div>
+          )}
+
+          {error && (
+            <p role="alert" className="text-[11px] mt-2" style={{ color: 'var(--color-danger)' }}>
+              {error}
+            </p>
+          )}
+          <span aria-live="polite" className="sr-only">
+            {status}
+          </span>
+        </div>
       )}
     </div>
   )
