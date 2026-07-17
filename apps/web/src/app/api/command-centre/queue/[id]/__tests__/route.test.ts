@@ -73,6 +73,7 @@ describe('PATCH /api/command-centre/queue/[id]', () => {
 
   it('returns 422 when done but validation gates failing', async () => {
     vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
+    vi.mocked(getTaskById).mockResolvedValue({ id: 'task-1', status: 'running' } as any)
     vi.mocked(getValidationSummary).mockResolvedValue({
       canComplete: false,
       failed: ['type-check'],
@@ -88,19 +89,44 @@ describe('PATCH /api/command-centre/queue/[id]', () => {
 
   it('returns 404 when task not found', async () => {
     vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
-    vi.mocked(updateTaskStatus).mockResolvedValue(null)
+    vi.mocked(getTaskById).mockResolvedValue(null)
 
-    const res = await PATCH(patchReq({ status: 'queued' }), { params })
+    const res = await PATCH(patchReq({ status: 'blocked' }), { params })
     expect(res.status).toBe(404)
+    expect(updateTaskStatus).not.toHaveBeenCalled()
   })
 
-  it('updates status and returns task', async () => {
+  it('REJECTS promoting an awaiting_approval task to queued (governance bypass)', async () => {
     vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
-    vi.mocked(updateTaskStatus).mockResolvedValue({ id: 'task-1', status: 'running' } as any)
+    vi.mocked(getTaskById).mockResolvedValue({ id: 'task-1', status: 'awaiting_approval' } as any)
+
+    const res = await PATCH(patchReq({ status: 'queued' }), { params })
+    expect(res.status).toBe(409)
+    const body = await res.json()
+    expect(body.from).toBe('awaiting_approval')
+    expect(body.to).toBe('queued')
+    // The unapproved task must NOT be promoted.
+    expect(updateTaskStatus).not.toHaveBeenCalled()
+  })
+
+  it('REJECTS promoting a proposed task to running', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
+    vi.mocked(getTaskById).mockResolvedValue({ id: 'task-1', status: 'proposed' } as any)
 
     const res = await PATCH(patchReq({ status: 'running' }), { params })
+    expect(res.status).toBe(409)
+    expect(updateTaskStatus).not.toHaveBeenCalled()
+  })
+
+  it('allows a legal benign transition and returns the task', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
+    vi.mocked(getTaskById).mockResolvedValue({ id: 'task-1', status: 'proposed' } as any)
+    vi.mocked(updateTaskStatus).mockResolvedValue({ id: 'task-1', status: 'blocked' } as any)
+
+    const res = await PATCH(patchReq({ status: 'blocked' }), { params })
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.task.status).toBe('running')
+    expect(body.task.status).toBe('blocked')
+    expect(updateTaskStatus).toHaveBeenCalled()
   })
 })

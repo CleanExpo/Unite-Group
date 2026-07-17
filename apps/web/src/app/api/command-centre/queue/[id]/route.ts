@@ -11,6 +11,7 @@ import { getUser } from '@/lib/supabase/server'
 import { getTaskById, updateTaskStatus, appendTaskEvent, type TaskStatus } from '@/lib/command-centre/tasks'
 import { listApprovalsForTask } from '@/lib/command-centre/approvals'
 import { getValidationSummary } from '@/lib/command-centre/validation'
+import { isLegalTransition } from '@/lib/command-centre/task-transitions'
 
 export const dynamic = 'force-dynamic'
 
@@ -54,6 +55,33 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json(
       { error: `Field "status" must be one of: ${VALID_STATUS.join(', ')}` },
       { status: 400 },
+    )
+  }
+
+  // UNI-2417 governance guard: load the task's CURRENT status (founder-scoped)
+  // and reject any transition not legal for a direct client PATCH. This is what
+  // stops an authenticated caller promoting a `proposed`/`awaiting_approval` task
+  // straight to `queued`/`running` and bypassing the Board/approval path — only
+  // the approval route (`applyApproval`) may promote to `queued`.
+  let current
+  try {
+    current = await getTaskById({ founderId: user.id, taskId: id })
+  } catch (err) {
+    return NextResponse.json(
+      { error: sanitiseError(err, 'Failed to load task') },
+      { status: 500 },
+    )
+  }
+  if (!current) return NextResponse.json({ error: 'Task not found' }, { status: 404 })
+
+  if (!isLegalTransition(current.status, status, 'founder')) {
+    return NextResponse.json(
+      {
+        error: `Illegal transition: "${current.status}" → "${status}" is not permitted via this endpoint`,
+        from: current.status,
+        to: status,
+      },
+      { status: 409 },
     )
   }
 
