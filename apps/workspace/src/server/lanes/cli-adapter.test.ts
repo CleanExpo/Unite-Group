@@ -79,7 +79,7 @@ describe('CliLaneAdapter', () => {
     expect(cap!.env.CLAUDE_CONFIG_DIR).toBe('/accts/max-2')
   })
 
-  it('spawns `codex exec <mission>` with CODEX_HOME for the account', async () => {
+  it('spawns `codex exec -- <mission>` with CODEX_HOME for the account', async () => {
     let cap: Captured | null = null
     const spawn: SpawnFn = async (command, args, opts) => {
       cap = { command, args, cwd: opts.cwd, env: opts.env }
@@ -88,9 +88,29 @@ describe('CliLaneAdapter', () => {
     const adapter = createCliAdapter({ spawn, accountsDir: '/accts' })
     await adapter.run(cliLane('codex', 'openai-pro'), 'x')
     expect(cap!.command).toBe('codex')
-    expect(cap!.args).toEqual(['exec', 'x'])
+    expect(cap!.args).toEqual(['exec', '--', 'x'])
     expect(cap!.env.CODEX_HOME).toBe('/accts/openai-pro')
   })
+
+  it.each(['review', 'resume', '--dangerously-bypass-approvals-and-sandbox'])(
+    'passes parser-sensitive Codex mission text after end-of-options: %s',
+    async (mission) => {
+      const spawn = vi.fn<SpawnFn>().mockResolvedValue({
+        code: 0,
+        stdout: 'ok',
+        stderr: '',
+      })
+      const adapter = createCliAdapter({ spawn, accountsDir: '/accts' })
+
+      await adapter.run(cliLane('codex', 'openai-pro'), mission)
+
+      expect(spawn).toHaveBeenCalledWith(
+        'codex',
+        ['exec', '--', mission],
+        expect.objectContaining({ cwd: '/w/lane' }),
+      )
+    },
+  )
 
   it('does not inherit unrelated server credentials into CLI children', async () => {
     vi.stubEnv('UNRELATED_SERVER_SECRET', 'must-not-reach-child')
@@ -434,6 +454,79 @@ describe('CliLaneAdapter', () => {
       await running.catch(() => {})
     }
   })
+
+  it.skipIf(process.platform === 'win32')(
+    'reaps detached descendants before reporting controller failure',
+    async () => {
+      const tempRoot = mkdtempSync(path.join(tmpdir(), 'lane-tree-fallback-'))
+      const pidFile = path.join(tempRoot, 'descendant.pid')
+      const readyFile = path.join(tempRoot, 'descendant.ready')
+      const descendant = [
+        "const { writeFileSync } = require('node:fs')",
+        `writeFileSync(${JSON.stringify(readyFile)}, 'ready')`,
+        'setInterval(() => {}, 1000)',
+      ].join(';')
+      const root = [
+        "const { spawn } = require('node:child_process')",
+        "const { writeFileSync } = require('node:fs')",
+        `const child = spawn(process.execPath, ['-e', ${JSON.stringify(descendant)}], { stdio: 'ignore' })`,
+        `writeFileSync(${JSON.stringify(pidFile)}, String(child.pid))`,
+        'setInterval(() => {}, 1000)',
+      ].join(';')
+      const spawnWithRejectedController = createSupervisedSpawn(async () => {
+        throw new Error('injected controller failure')
+      })
+      const controller = new AbortController()
+      let running: ReturnType<typeof spawnWithRejectedController> | undefined
+      let descendantPid: number | undefined
+
+      try {
+        running = spawnWithRejectedController(process.execPath, ['-e', root], {
+          cwd: process.cwd(),
+          env: process.env,
+          signal: controller.signal,
+        })
+        for (
+          let attempt = 0;
+          attempt < 100 && !existsSync(readyFile);
+          attempt += 1
+        ) {
+          await new Promise((resolve) => setTimeout(resolve, 10))
+        }
+        expect(existsSync(readyFile)).toBe(true)
+        descendantPid = Number(readFileSync(pidFile, 'utf8'))
+
+        controller.abort()
+        await expect(running).rejects.toBeInstanceOf(StopNotAcknowledgedError)
+
+        let descendantAlive = true
+        for (let attempt = 0; attempt < 100 && descendantAlive; attempt += 1) {
+          try {
+            process.kill(descendantPid, 0)
+            await new Promise((resolve) => setTimeout(resolve, 10))
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code === 'ESRCH') {
+              descendantAlive = false
+            } else {
+              throw error
+            }
+          }
+        }
+        expect(descendantAlive).toBe(false)
+      } finally {
+        controller.abort()
+        if (descendantPid) {
+          try {
+            process.kill(descendantPid, 'SIGKILL')
+          } catch {
+            // Already reaped by the supervisor.
+          }
+        }
+        await running?.catch(() => {})
+        rmSync(tempRoot, { recursive: true, force: true })
+      }
+    },
+  )
 
   it.skipIf(process.platform === 'win32')(
     'does not acknowledge abort until a TERM-resistant descendant exits',

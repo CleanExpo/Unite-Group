@@ -73,6 +73,33 @@ export function isValidCliAccount(value: unknown): value is string {
 
 export type LaneBackend = GatewayBackend | CliBackend
 
+export const MAX_LANE_ID_LENGTH = 200
+export const MAX_LANE_MISSION_LENGTH = 16_000
+
+export interface LaneMissionInput {
+  id: string
+  mission: string
+}
+
+/** Validate and normalise untrusted input before it reaches durable lane state. */
+export function parseLaneMissionInput(value: unknown): LaneMissionInput | null {
+  if (!isRecord(value)) return null
+  if (typeof value.id !== 'string' || typeof value.mission !== 'string') {
+    return null
+  }
+  const id = value.id.trim()
+  const mission = value.mission.trim()
+  if (
+    !id ||
+    id.length > MAX_LANE_ID_LENGTH ||
+    !mission ||
+    mission.length > MAX_LANE_MISSION_LENGTH
+  ) {
+    return null
+  }
+  return { id, mission }
+}
+
 export interface Lane {
   id: string
   kind: LaneKind

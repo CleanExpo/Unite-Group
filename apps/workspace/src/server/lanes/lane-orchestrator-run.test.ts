@@ -1,12 +1,12 @@
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createLaneOrchestrator } from './lane-orchestrator'
 import { StopNotAcknowledgedError } from './adapter'
 import type { LaneAdapter } from './adapter'
 import type { WorktreeManager } from './worktree-manager'
-import type { CreateLaneInput } from './types'
+import type { CreateLaneInput, Lane } from './types'
 
 let tempRoot = ''
 
@@ -67,6 +67,28 @@ describe('LaneOrchestrator.runMission', () => {
     expect(lane.lastOutput).toBe('done:build x')
     expect(lane.mission).toBe('build x')
   })
+
+  it.each([{}, 42, '   ', 'x'.repeat(16_001)])(
+    'rejects malformed missions before writing the lane ledger: %o',
+    async (mission) => {
+      const gateway = {
+        run: vi.fn().mockResolvedValue({ output: 'should not run' }),
+      }
+      const o = orch({ gateway }, () => 'mission-boundary-lane')
+      await o.create(gatewayInput)
+
+      await expect(
+        o.runMission('mission-boundary-lane', mission as string),
+      ).rejects.toThrow(/valid mission/i)
+      expect(gateway.run).not.toHaveBeenCalled()
+      const [persisted] = await o.list()
+      expect(persisted).toMatchObject({
+        id: 'mission-boundary-lane',
+        status: 'idle',
+      })
+      expect(persisted).not.toHaveProperty('mission')
+    },
+  )
 
   it('runs a cli lane through the cli adapter', async () => {
     const cli: LaneAdapter = {
@@ -265,6 +287,64 @@ describe('LaneOrchestrator.runMission', () => {
       await o.get('success-settlement-failure-lane'),
     ).not.toHaveProperty('activeRunId')
     expect(lane.blockedReason).not.toContain(tempRoot)
+  })
+
+  it('retains active ownership until fallback settlement persistence completes', async () => {
+    const registryPath = path.join(tempRoot, 'lanes.jsonl')
+    const runsPath = path.join(tempRoot, 'runs.jsonl')
+    let announceFallback!: () => void
+    let releaseFallback!: () => void
+    const fallbackStarted = new Promise<void>((resolve) => {
+      announceFallback = resolve
+    })
+    const fallbackReleased = new Promise<void>((resolve) => {
+      releaseFallback = resolve
+    })
+    const appendLaneRecord = async (target: string, lane: Lane) => {
+      if (
+        lane.status === 'error' &&
+        lane.blockedReason?.includes('settlement persistence failed')
+      ) {
+        announceFallback()
+        await fallbackReleased
+      }
+      await fs.appendFile(target, `${JSON.stringify(lane)}\n`, 'utf8')
+    }
+    const o = createLaneOrchestrator({
+      registryPath,
+      runsPath,
+      worktrees: noopWorktrees,
+      adapters: {
+        cli: {
+          async run() {
+            await fs.rm(runsPath, { force: true })
+            await fs.mkdir(runsPath)
+            return { output: 'executed' }
+          },
+        },
+      },
+      appendLaneRecord,
+      idgen: () => 'settlement-race-lane',
+      runIdgen: () => 'settlement-race-run',
+      isBackendAvailable: () => true,
+    })
+    await o.create(cliInput)
+
+    const running = o.runMission('settlement-race-lane', 'build')
+    await fallbackStarted
+    const stopping = o.stop('settlement-race-lane')
+    const earlyOutcome = await Promise.race([
+      stopping.then(
+        () => 'settled',
+        () => 'settled',
+      ),
+      new Promise<'pending'>((resolve) => setTimeout(() => resolve('pending'), 20)),
+    ])
+
+    expect(earlyOutcome).toBe('pending')
+    releaseFallback()
+    await expect(running).resolves.toMatchObject({ status: 'error' })
+    await expect(stopping).resolves.toMatchObject({ status: 'stopped' })
   })
 
   it('does not strand a lane when failure settlement persistence fails', async () => {

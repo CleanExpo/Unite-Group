@@ -4,6 +4,7 @@ import { isAuthenticated } from '../../../server/auth-middleware'
 import { requireJsonContentType } from '../../../server/rate-limit'
 import { getLaneOrchestrator } from '../../../server/lanes'
 import { LaneConflictError } from '../../../server/lanes/lane-orchestrator'
+import { parseLaneMissionInput } from '../../../server/lanes/types'
 
 export const Route = createFileRoute('/api/lanes/run')({
   server: {
@@ -15,18 +16,15 @@ export const Route = createFileRoute('/api/lanes/run')({
         const csrfCheck = requireJsonContentType(request)
         if (csrfCheck) return csrfCheck
         try {
-          const body = (await request.json()) as {
-            id?: string
-            mission?: string
-          }
-          if (!body.id || !body.mission) {
+          const input = parseLaneMissionInput(await request.json())
+          if (!input) {
             return json(
-              { ok: false, error: 'id and mission are required' },
+              { ok: false, error: 'A valid id and mission are required' },
               { status: 400 },
             )
           }
           const orchestrator = getLaneOrchestrator()
-          const lane = await orchestrator.runMission(body.id, body.mission)
+          const lane = await orchestrator.runMission(input.id, input.mission)
           let run = null
           if (lane.lastRunId) {
             try {

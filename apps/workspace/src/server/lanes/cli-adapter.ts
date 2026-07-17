@@ -144,17 +144,41 @@ export function createSupervisedSpawn(
         settled = true
         clearTimeout(timer)
         opts.signal?.removeEventListener('abort', onAbort)
-        try {
-          child.kill('SIGKILL')
-        } catch {
-          // Best-effort reaping after process-tree control itself failed.
-        }
-        const detail =
-          error instanceof Error ? error.message : 'unknown termination error'
         reject(
-          new StopNotAcknowledgedError(
-            `CLI process tree termination failed: ${detail}`,
-          ),
+          error instanceof StopNotAcknowledgedError
+            ? error
+            : new StopNotAcknowledgedError(
+                `CLI process tree termination failed: ${error instanceof Error ? error.message : 'unknown termination error'}`,
+              ),
+        )
+      }
+
+      const reapAfterControllerFailure = async (
+        pid: number,
+        controllerError: unknown,
+      ): Promise<never> => {
+        const controllerDetail =
+          controllerError instanceof Error
+            ? controllerError.message
+            : 'unknown controller error'
+        try {
+          await terminateProcessTree(pid, { force: true, graceMs: 0 })
+        } catch (fallbackError) {
+          try {
+            child.kill('SIGKILL')
+          } catch {
+            // The root may already have exited; tree control remains unacknowledged.
+          }
+          const fallbackDetail =
+            fallbackError instanceof Error
+              ? fallbackError.message
+              : 'unknown fallback error'
+          throw new StopNotAcknowledgedError(
+            `CLI process tree termination failed: ${controllerDetail}; fallback reaping failed: ${fallbackDetail}`,
+          )
+        }
+        throw new StopNotAcknowledgedError(
+          `CLI process tree termination failed: ${controllerDetail}; fallback reaping completed`,
         )
       }
 
@@ -164,7 +188,7 @@ export function createSupervisedSpawn(
         terminationAck = terminate(child.pid, {
           force,
           graceMs: TERMINATE_GRACE_MS,
-        })
+        }).catch((error) => reapAfterControllerFailure(child.pid!, error))
         void terminationAck.catch(rejectTerminationFailure)
       }
 
@@ -200,14 +224,12 @@ export function createSupervisedSpawn(
           clearTimeout(timer)
           opts.signal?.removeEventListener('abort', onAbort)
           if (terminationError) {
-            const detail =
-              terminationError instanceof Error
-                ? terminationError.message
-                : 'unknown termination error'
             reject(
-              new StopNotAcknowledgedError(
-                `CLI process tree termination failed: ${detail}`,
-              ),
+              terminationError instanceof StopNotAcknowledgedError
+                ? terminationError
+                : new StopNotAcknowledgedError(
+                    `CLI process tree termination failed: ${terminationError instanceof Error ? terminationError.message : 'unknown termination error'}`,
+                  ),
             )
             return
           }
@@ -259,7 +281,7 @@ export function createCliAdapter(deps: CliAdapterDeps = {}): LaneAdapter {
       const configDir = accountConfigDir(accountsDir, account)
 
       const command = tool === 'codex' ? 'codex' : 'claude'
-      const args = tool === 'codex' ? ['exec', mission] : ['-p', mission]
+      const args = tool === 'codex' ? ['exec', '--', mission] : ['-p', mission]
 
       // Isolate the account's auth via its own config dir, and ensure the
       // common CLI install locations are on PATH.

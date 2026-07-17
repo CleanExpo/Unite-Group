@@ -27,6 +27,7 @@ export const Route = createFileRoute('/api/lanes/backends')({
         )
         const backends = listBackends(
           makeAvailabilityCheck(gatewayProviders),
+          (provider) => gatewayProviders.has(provider),
         ).map(
           (b) =>
             b.id.startsWith('cli:claude-code:')

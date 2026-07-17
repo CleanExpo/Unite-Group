@@ -12,7 +12,12 @@ import path from 'node:path'
 import { assertBackendAvailable } from './backend-registry'
 import { cliAccountAvailable } from './lane-availability'
 import { StopNotAcknowledgedError, sanitiseLaneOutput } from './adapter'
-import { isLane, isLaneRun, isLaneRunEvent } from './types'
+import {
+  isLane,
+  isLaneRun,
+  isLaneRunEvent,
+  parseLaneMissionInput,
+} from './types'
 import type { LaneAdapter } from './adapter'
 import type { WorktreeManager } from './worktree-manager'
 import type {
@@ -452,6 +457,10 @@ export function createLaneOrchestrator(
     },
 
     async runMission(id, mission) {
+      const input = parseLaneMissionInput({ id, mission })
+      if (!input) throw new Error('A valid mission and lane id are required')
+      id = input.id
+      mission = input.mission
       const admission = await withLaneTransition(id, async () => {
         const lanes = await readLedger(deps.registryPath)
         const lane = lanes.get(id)
@@ -663,7 +672,7 @@ export function createLaneOrchestrator(
           }
           return (await readLedger(deps.registryPath)).get(id) ?? completedLane
         } catch (persistenceError) {
-          return persistSettlementFailure(persistenceError)
+          return await persistSettlementFailure(persistenceError)
         }
       } catch (error) {
         if (error instanceof StopNotAcknowledgedError) {
@@ -712,7 +721,7 @@ export function createLaneOrchestrator(
           }
           return (await readLedger(deps.registryPath)).get(id) ?? failed
         } catch (persistenceError) {
-          return persistSettlementFailure(persistenceError)
+          return await persistSettlementFailure(persistenceError)
         }
       } finally {
         const active = activeRuns.get(id)

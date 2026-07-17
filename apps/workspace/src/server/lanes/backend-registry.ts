@@ -33,6 +33,9 @@ export interface BackendDescriptor {
 
 /** A function that reports whether a backend is authed. Injectable for tests. */
 export type AvailabilityCheck = (backend: LaneBackend) => boolean
+export type GatewayProviderAvailabilityCheck = (
+  provider: (typeof GATEWAY_PROVIDERS)[number],
+) => boolean
 
 /**
  * Resolve the Claude Code account for a role, falling back to a deterministic
@@ -48,13 +51,14 @@ export function resolveCliAccount(
 /** Build a backend descriptor list for the New IDE wizard. */
 export function listBackends(
   isAvailable: AvailabilityCheck,
+  isGatewayProviderAvailable: GatewayProviderAvailabilityCheck,
 ): Array<BackendDescriptor> {
   const gateway: Array<BackendDescriptor> = GATEWAY_PROVIDERS.map(
     (provider) => ({
       id: `gateway:${provider}`,
       kind: 'gateway',
       label: provider,
-      available: isAvailable({ kind: 'gateway', provider, model: '' }),
+      available: isGatewayProviderAvailable(provider),
     }),
   )
 
