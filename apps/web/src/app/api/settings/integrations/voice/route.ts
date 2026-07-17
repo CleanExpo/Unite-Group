@@ -14,6 +14,8 @@ import {
   saveAccountVoice,
   getAccountAgentEnabled,
   setAccountAgentEnabled,
+  getAccountSlogan,
+  setAccountSlogan,
   DEFAULT_FOUNDER_VOICE,
 } from '@/lib/margot/account-voice';
 import type { FounderVoice } from '@/lib/margot/draft-reply-prompt';
@@ -35,15 +37,18 @@ export async function GET(request: Request) {
   }
 
   try {
-    const [stored, agentEnabled] = await Promise.all([
+    const [stored, agentEnabled, slogan] = await Promise.all([
       getStoredAccountVoice(user.id, accountEmail),
       getAccountAgentEnabled(user.id, accountEmail),
+      getAccountSlogan(user.id, accountEmail),
     ]);
     return NextResponse.json({
       isCustom: stored !== null,
       voice: stored ?? DEFAULT_FOUNDER_VOICE,
       // Slice 2: per-account auto-draft toggle. Off by default (dark).
       agentEnabled,
+      // Signature slogan: stored value or null (caller falls back to default).
+      slogan,
     });
   } catch (err) {
     console.error('[settings/integrations/voice] GET error:', err);
@@ -62,6 +67,7 @@ export async function PUT(request: Request) {
     toneGuidelines?: unknown;
     neverDo?: unknown;
     agent_enabled?: unknown;
+    slogan?: unknown;
   };
   try {
     body = (await request.json()) as typeof body;
@@ -91,6 +97,7 @@ export async function PUT(request: Request) {
     'toneGuidelines' in body ||
     'neverDo' in body;
   const hasAgentToggle = typeof body.agent_enabled === 'boolean';
+  const hasSlogan = typeof body.slogan === 'string';
 
   try {
     if (hasAgentToggle) {
@@ -99,6 +106,10 @@ export async function PUT(request: Request) {
         accountEmail,
         body.agent_enabled as boolean
       );
+    }
+    if (hasSlogan) {
+      const trimmed = (body.slogan as string).trim();
+      await setAccountSlogan(user.id, accountEmail, trimmed || null);
     }
     if (hasVoiceFields) {
       const voice: FounderVoice = {
@@ -109,11 +120,12 @@ export async function PUT(request: Request) {
       };
       await saveAccountVoice(user.id, accountEmail, voice);
     }
-    const [saved, agentEnabled] = await Promise.all([
+    const [saved, agentEnabled, slogan] = await Promise.all([
       getAccountVoice(user.id, accountEmail),
       getAccountAgentEnabled(user.id, accountEmail),
+      getAccountSlogan(user.id, accountEmail),
     ]);
-    return NextResponse.json({ success: true, voice: saved, agentEnabled });
+    return NextResponse.json({ success: true, voice: saved, agentEnabled, slogan });
   } catch (err) {
     console.error('[settings/integrations/voice] PUT error:', err);
     return NextResponse.json({ error: 'Failed to save voice' }, { status: 500 });

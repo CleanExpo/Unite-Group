@@ -25,6 +25,10 @@ interface EmailAccountAgentRow {
   agent_enabled: boolean | null;
 }
 
+interface EmailAccountSloganRow {
+  slogan: string | null;
+}
+
 /**
  * The estate default voice — the labelled fallback when an account has no
  * stored voice. Folds the nexus-copywriter register into the tone guidelines:
@@ -130,6 +134,51 @@ export async function setAccountAgentEnabled(
     { onConflict: 'founder_id,account_email' }
   );
   if (error) throw new Error(`email_account_voice agent upsert: ${error.message}`);
+}
+
+/**
+ * The founder-editable signature slogan for an account, or `null` when unset.
+ * The slogan is a PROPOSED, editable line (see DEFAULT_SLOGAN in
+ * lib/email/signature.ts) — stored per (founder, account) on the same voice row.
+ */
+export async function getAccountSlogan(
+  founderId: string,
+  email: string
+): Promise<string | null> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = createServiceClient() as any;
+  const { data, error } = await db
+    .from('email_account_voice')
+    .select('slogan')
+    .eq('founder_id', founderId)
+    .eq('account_email', email)
+    .maybeSingle();
+  if (error) throw new Error(`email_account_voice slogan select: ${error.message}`);
+  if (!data) return null;
+  return (data as EmailAccountSloganRow).slogan ?? null;
+}
+
+/**
+ * Store an account's signature slogan. Upserts only the `slogan` column on the
+ * (founder_id, account_email) composite key, leaving voice + agent flag intact.
+ */
+export async function setAccountSlogan(
+  founderId: string,
+  email: string,
+  slogan: string | null
+): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = createServiceClient() as any;
+  const { error } = await db.from('email_account_voice').upsert(
+    {
+      founder_id: founderId,
+      account_email: email,
+      slogan,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'founder_id,account_email' }
+  );
+  if (error) throw new Error(`email_account_voice slogan upsert: ${error.message}`);
 }
 
 /** Upsert an account's voice on the (founder_id, account_email) composite key. */
