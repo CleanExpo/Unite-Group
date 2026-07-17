@@ -1,22 +1,30 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { StopNotAcknowledgedError } from '../../../server/lanes/adapter'
 import { LaneConflictError } from '../../../server/lanes/lane-orchestrator'
 
 const createMock = vi.fn()
+const getMock = vi.fn()
 const listMock = vi.fn()
 const stopMock = vi.fn()
+const requireLocalOrAuthMock = vi.fn(() => true)
 
 vi.mock('../../../server/auth-middleware', () => ({
-  isAuthenticated: () => true,
+  requireLocalOrAuth: requireLocalOrAuthMock,
 }))
 
 vi.mock('../../../server/rate-limit', () => ({
   requireJsonContentType: () => null,
 }))
 
+vi.mock('../../../server/gateway-capabilities', () => ({
+  BEARER_TOKEN: 'test-token',
+  CLAUDE_API: 'http://127.0.0.1:1',
+}))
+
 vi.mock('../../../server/lanes', () => ({
   getLaneOrchestrator: () => ({
     create: createMock,
+    get: getMock,
     list: listMock,
     stop: stopMock,
   }),
@@ -34,6 +42,62 @@ function jsonRequest(path: string, body: unknown) {
 }
 
 describe('lane API error boundaries', () => {
+  beforeEach(() => {
+    requireLocalOrAuthMock.mockReturnValue(true)
+  })
+
+  it('denies every lane control route to unauthenticated remote callers', async () => {
+    requireLocalOrAuthMock.mockReturnValue(false)
+    const [
+      { Route: createRoute },
+      { Route: detailRoute },
+      { Route: listRoute },
+      { Route: stopRoute },
+      { Route: backendsRoute },
+    ] =
+      await Promise.all([
+        import('./create'),
+        import('./$laneId'),
+        import('./list'),
+        import('./stop'),
+        import('./backends'),
+      ])
+    const createHandlers = createRoute.options.server?.handlers as {
+      POST: PostHandler
+    }
+    const detailHandlers = detailRoute.options.server?.handlers as {
+      GET: (ctx: {
+        request: Request
+        params: { laneId: string }
+      }) => Promise<Response>
+    }
+    const listHandlers = listRoute.options.server?.handlers as { GET: GetHandler }
+    const stopHandlers = stopRoute.options.server?.handlers as { POST: PostHandler }
+    const backendsHandlers = backendsRoute.options.server?.handlers as {
+      GET: GetHandler
+    }
+    const remote = 'http://203.0.113.10/api/lanes'
+
+    const responses = await Promise.all([
+      createHandlers.POST({ request: jsonRequest('/api/lanes/create', {}) }),
+      detailHandlers.GET({
+        request: new Request(`${remote}/l1`),
+        params: { laneId: 'l1' },
+      }),
+      listHandlers.GET({ request: new Request(`${remote}/list`) }),
+      stopHandlers.POST({ request: jsonRequest('/api/lanes/stop', { id: 'l1' }) }),
+      backendsHandlers.GET({ request: new Request(`${remote}/backends`) }),
+    ])
+
+    expect(responses.map((response) => response.status)).toEqual([
+      401, 401, 401, 401, 401,
+    ])
+    expect(createMock).not.toHaveBeenCalled()
+    expect(getMock).not.toHaveBeenCalled()
+    expect(listMock).not.toHaveBeenCalled()
+    expect(stopMock).not.toHaveBeenCalled()
+  })
+
   it('does not expose create internals', async () => {
     createMock.mockRejectedValueOnce(
       new Error('EACCES /Users/operator/.config/provider-secret'),
@@ -147,4 +211,20 @@ describe('lane API error boundaries', () => {
       error: 'Failed to stop lane',
     })
   })
+
+  it.each([null, {}, { id: {} }, { id: '   ' }, { id: 'x'.repeat(201) }])(
+    'rejects malformed stop input before orchestration: %o',
+    async (body) => {
+      const { Route } = await import('./stop')
+      const handlers = Route.options.server?.handlers as { POST: PostHandler }
+      const callsBefore = stopMock.mock.calls.length
+
+      const response = await handlers.POST({
+        request: jsonRequest('/api/lanes/stop', body),
+      })
+
+      expect(response.status).toBe(400)
+      expect(stopMock.mock.calls).toHaveLength(callsBefore)
+    },
+  )
 })

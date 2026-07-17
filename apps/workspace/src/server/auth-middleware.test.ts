@@ -69,14 +69,31 @@ describe('getRequestIp (#125)', () => {
     const ip = getRequestIp(
       makeRequest({ 'x-forwarded-for': '203.0.113.77, 10.0.0.1' }),
     )
-    expect(ip).toBe('127.0.0.1')
+    expect(ip).toBe('')
   })
 
   it('ignores x-real-ip when TRUST_PROXY is unset', async () => {
     delete process.env.TRUST_PROXY
     const { getRequestIp } = await import('./auth-middleware')
     const ip = getRequestIp(makeRequest({ 'x-real-ip': '203.0.113.77' }))
-    expect(ip).toBe('127.0.0.1')
+    expect(ip).toBe('')
+  })
+
+  it('denies an unverifiable peer when password protection is disabled', async () => {
+    delete process.env.CLAUDE_PASSWORD
+    const { requireLocalOrAuth } = await import('./auth-middleware')
+
+    expect(requireLocalOrAuth(makeRequest({}))).toBe(false)
+  })
+
+  it('accepts a verified loopback peer when password protection is disabled', async () => {
+    delete process.env.CLAUDE_PASSWORD
+    const { getRequestIp, requireLocalOrAuth } = await import('./auth-middleware')
+    const request = makeRequest({}) as Request & { remoteAddress: string }
+    request.remoteAddress = '127.0.0.1'
+
+    expect(getRequestIp(request)).toBe('127.0.0.1')
+    expect(requireLocalOrAuth(request)).toBe(true)
   })
 
   it('honors x-forwarded-for when TRUST_PROXY=1', async () => {

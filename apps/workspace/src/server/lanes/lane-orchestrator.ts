@@ -80,7 +80,8 @@ async function readLedger(registryPath: string): Promise<Map<string, Lane>> {
     try {
       const lane: unknown = JSON.parse(trimmed)
       if (!isLane(lane)) throw new Error('invalid lane record')
-      lanes.set(lane.id, lane) // latest record per id wins
+      const { mission: _legacyMission, ...durableLane } = lane
+      lanes.set(lane.id, durableLane) // latest record per id wins
     } catch {
       throw new Error('Lane registry contains a malformed JSONL record')
     }
@@ -114,6 +115,15 @@ function errorCode(error: unknown): string {
     return error.code
   }
   return 'UNKNOWN'
+}
+
+function sanitiseMissionDerivedText(
+  value: string,
+  mission: string,
+  limit?: number,
+): string {
+  const withoutMission = value.split(mission).join('[mission redacted]')
+  return sanitiseLaneOutput(withoutMission, limit)
 }
 
 /**
@@ -334,19 +344,30 @@ export function createLaneOrchestrator(
                   if (lane.status === 'stopped') {
                     return { kind: 'terminal' as const, lane }
                   }
+                  const active = activeRuns.get(id)
+                  if (active && active.runId !== lane.activeRunId) {
+                    throw new StopNotAcknowledgedError(
+                      `Lane "${id}" local termination handle does not own durable run "${lane.activeRunId ?? 'none'}"`,
+                    )
+                  }
+                  const hasAcknowledgedStop =
+                    lane.status !== 'running' &&
+                    lane.stopAcknowledgedAt !== undefined &&
+                    (lane.activeRunId
+                      ? lane.stopAcknowledgedRunId === lane.activeRunId
+                      : lane.stopAcknowledgedRunId === undefined)
                   if (
                     lane.status === 'stopping' &&
-                    !lane.stopAcknowledgedAt
+                    !hasAcknowledgedStop
                   ) {
                     throw new StopNotAcknowledgedError(
                       `Lane "${id}" has an interrupted unacknowledged stop; Slice B reconciliation is required`,
                     )
                   }
-                  const active = activeRuns.get(id)
                   if (
-                    lane.activeRunId &&
+                    (lane.status === 'running' || lane.activeRunId) &&
                     !active &&
-                    !lane.stopAcknowledgedAt
+                    !hasAcknowledgedStop
                   ) {
                     throw new StopNotAcknowledgedError(
                       `Lane "${id}" has an active run without a local termination handle; durable reconciliation is required`,
@@ -359,6 +380,7 @@ export function createLaneOrchestrator(
                           ...lane,
                           status: 'stopping',
                           stopAcknowledgedAt: undefined,
+                          stopAcknowledgedRunId: undefined,
                         }
                   stoppingLanes.add(id)
                   if (lane.status !== 'stopping') {
@@ -371,6 +393,7 @@ export function createLaneOrchestrator(
               if (claim.kind === 'terminal') return claim.lane
 
               let lane = claim.lane
+              const claimedRunId = claim.lane.activeRunId
               const active = claim.active
               if (active) {
                 active.controller.abort()
@@ -391,18 +414,24 @@ export function createLaneOrchestrator(
                   const outcome = await Promise.race([active.done, timeout])
                   if (!outcome.acknowledged) throw outcome.error
                 } catch (error) {
-                  const message = sanitiseLaneOutput(
-                    error instanceof Error
-                      ? error.message
-                      : 'CLI stop was not acknowledged',
-                    400,
-                  )
-                  const failed: Lane = {
-                    ...lane,
-                    status: 'error',
-                    blockedReason: message,
-                  }
-                  await appendLedger(deps.registryPath, failed)
+                  const message = 'CLI stop was not acknowledged'
+                  await withRegistryLock(deps.registryPath, async () => {
+                    const current = (await readLedger(deps.registryPath)).get(id)
+                    if (
+                      !current ||
+                      current.status !== 'stopping' ||
+                      current.activeRunId !== claimedRunId
+                    ) {
+                      throw new StopNotAcknowledgedError(
+                        `Lane "${id}" ownership changed while recording stop failure`,
+                      )
+                    }
+                    await appendLedger(deps.registryPath, {
+                      ...current,
+                      status: 'error',
+                      blockedReason: message,
+                    })
+                  })
                   if (error instanceof StopNotAcknowledgedError) {
                     throw new StopNotAcknowledgedError(message)
                   }
@@ -410,44 +439,65 @@ export function createLaneOrchestrator(
                 } finally {
                   clearTimeout(timer)
                 }
+              }
+
+              return withRegistryLock(deps.registryPath, async () => {
                 const latestLanes = await readLedger(deps.registryPath)
-                lane = latestLanes.get(id) ?? lane
-              }
-
-              if (!lane.stopAcknowledgedAt) {
-                lane = { ...lane, stopAcknowledgedAt: now() }
-                await appendLedger(deps.registryPath, lane)
-              }
-
-              try {
-                await deps.worktrees.remove(
-                  lane.repo,
-                  { worktree: lane.worktree, branch: lane.branch },
-                  { force: true },
-                )
-              } catch (error) {
-                const message = sanitiseLaneOutput(
-                  error instanceof Error
-                    ? error.message
-                    : 'Unknown cleanup error',
-                  400,
-                )
-                const failed: Lane = {
-                  ...lane,
-                  status: 'error',
-                  activeRunId: undefined,
-                  blockedReason: `Worktree cleanup failed: ${message}`,
+                const latest = latestLanes.get(id)
+                if (!latest) throw new Error(`Lane "${id}" not found`)
+                if (
+                  latest.status !== 'stopping' ||
+                  latest.activeRunId !== claimedRunId
+                ) {
+                  throw new StopNotAcknowledgedError(
+                    `Lane "${id}" ownership changed before stop cleanup`,
+                  )
                 }
-                await appendLedger(deps.registryPath, failed)
-                throw new Error(failed.blockedReason)
-              }
-              const stopped: Lane = {
-                ...lane,
-                status: 'stopped',
-                activeRunId: undefined,
-              }
-              await appendLedger(deps.registryPath, stopped)
-              return stopped
+
+                const hasBoundAcknowledgement =
+                  latest.stopAcknowledgedAt !== undefined &&
+                  (claimedRunId
+                    ? latest.stopAcknowledgedRunId === claimedRunId
+                    : latest.stopAcknowledgedRunId === undefined)
+                lane = latest
+                if (!hasBoundAcknowledgement) {
+                  lane = {
+                    ...latest,
+                    stopAcknowledgedAt: now(),
+                    stopAcknowledgedRunId: claimedRunId,
+                  }
+                  await appendLedger(deps.registryPath, lane)
+                }
+
+                try {
+                  await deps.worktrees.remove(
+                    lane.repo,
+                    { worktree: lane.worktree, branch: lane.branch },
+                    { force: true },
+                  )
+                } catch (error) {
+                  const message = sanitiseLaneOutput(
+                    error instanceof Error
+                      ? error.message
+                      : 'Unknown cleanup error',
+                    400,
+                  )
+                  const failed: Lane = {
+                    ...lane,
+                    status: 'error',
+                    blockedReason: `Worktree cleanup failed: ${message}`,
+                  }
+                  await appendLedger(deps.registryPath, failed)
+                  throw new Error(failed.blockedReason)
+                }
+                const stopped: Lane = {
+                  ...lane,
+                  status: 'stopped',
+                  activeRunId: undefined,
+                }
+                await appendLedger(deps.registryPath, stopped)
+                return stopped
+              })
             } finally {
               stoppingLanes.delete(id)
             }
@@ -521,12 +571,14 @@ export function createLaneOrchestrator(
           const done = new Promise<StopOutcome>((resolve) => {
             acknowledge = resolve
           })
+          const { mission: _legacyMission, ...missionlessClaim } = claimLane
           const running: Lane = {
-            ...claimLane,
+            ...missionlessClaim,
             status: 'running',
-            mission,
             activeRunId: runId,
             lastRunId: runId,
+            stopAcknowledgedAt: undefined,
+            stopAcknowledgedRunId: undefined,
             attempt: (claimLane.attempt ?? 0) + 1,
           }
           const run: LaneRun = {
@@ -604,30 +656,39 @@ export function createLaneOrchestrator(
       let unacknowledgedStop: StopNotAcknowledgedError | undefined
       const persistSettlementFailure = async (error: unknown): Promise<Lane> => {
         const code = errorCode(error)
-        if (stoppingLanes.has(id)) {
-          unacknowledgedStop = new StopNotAcknowledgedError(
-            `Run settlement persistence failed (${code}) while stop was in progress`,
-          )
-          throw unacknowledgedStop
-        }
-        const failedAt = now()
-        const failed: Lane = {
-          ...running,
-          status: 'error',
-          activeRunId: undefined,
-          lastRunId: runId,
-          lastFinishedAt: failedAt,
-          blockedReason: `Run settlement persistence failed (${code})`,
-        }
-        try {
-          await appendLedger(deps.registryPath, failed)
-        } catch (rollbackError) {
-          unacknowledgedStop = new StopNotAcknowledgedError(
-            `Run settlement rollback failed (${errorCode(rollbackError)})`,
-          )
-          throw unacknowledgedStop
-        }
-        return failed
+        return withRegistryLock(deps.registryPath, async () => {
+          const current = (await readLedger(deps.registryPath)).get(id)
+          if (!current || current.activeRunId !== runId) {
+            unacknowledgedStop = new StopNotAcknowledgedError(
+              `Run settlement ownership changed before failure recovery (${code})`,
+            )
+            throw unacknowledgedStop
+          }
+          if (current.status === 'stopping' || stoppingLanes.has(id)) {
+            unacknowledgedStop = new StopNotAcknowledgedError(
+              `Run settlement persistence failed (${code}) while stop was in progress`,
+            )
+            throw unacknowledgedStop
+          }
+          const failedAt = now()
+          const failed: Lane = {
+            ...current,
+            status: 'error',
+            activeRunId: undefined,
+            lastRunId: runId,
+            lastFinishedAt: failedAt,
+            blockedReason: `Run settlement persistence failed (${code})`,
+          }
+          try {
+            await appendLedger(deps.registryPath, failed)
+          } catch (rollbackError) {
+            unacknowledgedStop = new StopNotAcknowledgedError(
+              `Run settlement rollback failed (${errorCode(rollbackError)})`,
+            )
+            throw unacknowledgedStop
+          }
+          return failed
+        })
       }
       try {
         let result
@@ -649,29 +710,41 @@ export function createLaneOrchestrator(
           activeRunId: undefined,
           lastRunId: runId,
           lastFinishedAt: finishedAt,
-          lastOutput: sanitiseLaneOutput(result.output),
+          lastOutput: sanitiseMissionDerivedText(result.output, mission),
           blockedReason: undefined,
         }
         try {
-          await appendRecord(runsPath, {
-            ...run,
-            status: 'succeeded',
-            finishedAt,
-          } satisfies LaneRun)
-          await appendRecord(eventsPath, {
-            runId,
-            laneId: id,
-            sequence: 2,
-            occurredAt: finishedAt,
-            type: 'lifecycle',
-            message: 'Run succeeded',
-          } satisfies LaneRunEvent)
-          if (!stoppingLanes.has(id)) {
+          return await withRegistryLock(deps.registryPath, async () => {
+            const current = (await readLedger(deps.registryPath)).get(id)
+            if (!current || current.activeRunId !== runId) {
+              throw new StopNotAcknowledgedError(
+                `Run "${runId}" lost ownership before success settlement`,
+              )
+            }
+            await appendRecord(runsPath, {
+              ...run,
+              status: 'succeeded',
+              finishedAt,
+            } satisfies LaneRun)
+            await appendRecord(eventsPath, {
+              runId,
+              laneId: id,
+              sequence: 2,
+              occurredAt: finishedAt,
+              type: 'lifecycle',
+              message: 'Run succeeded',
+            } satisfies LaneRunEvent)
+            if (current.status === 'stopping' || stoppingLanes.has(id)) {
+              return current
+            }
             await appendLedger(deps.registryPath, completedLane)
             return completedLane
-          }
-          return (await readLedger(deps.registryPath)).get(id) ?? completedLane
+          })
         } catch (persistenceError) {
+          if (persistenceError instanceof StopNotAcknowledgedError) {
+            unacknowledgedStop = persistenceError
+            throw persistenceError
+          }
           return await persistSettlementFailure(persistenceError)
         }
       } catch (error) {
@@ -687,40 +760,52 @@ export function createLaneOrchestrator(
           activeRunId: undefined,
           lastRunId: runId,
           lastFinishedAt: finishedAt,
-          blockedReason: sanitiseLaneOutput(
+          blockedReason: sanitiseMissionDerivedText(
             error instanceof Error ? error.message : 'Mission failed',
+            mission,
             400,
           ),
         }
         try {
-          await appendRecord(runsPath, {
-            ...run,
-            status: stopped ? 'stopped' : 'failed',
-            finishedAt,
-          } satisfies LaneRun)
-          await appendRecord(eventsPath, {
-            runId,
-            laneId: id,
-            sequence: 2,
-            occurredAt: finishedAt,
-            type: stopped ? 'control' : 'error',
-            message: stopped ? 'Run stopped' : 'Run failed',
-          } satisfies LaneRunEvent)
-          if (!stoppingLanes.has(id)) {
+          return await withRegistryLock(deps.registryPath, async () => {
             const current = (await readLedger(deps.registryPath)).get(id)
-            const terminalLane: Lane =
-              stopped && current?.status === 'error'
-                ? {
-                    ...failed,
-                    status: 'error',
-                    blockedReason: current.blockedReason,
-                  }
-                : failed
-            await appendLedger(deps.registryPath, terminalLane)
-            return terminalLane
-          }
-          return (await readLedger(deps.registryPath)).get(id) ?? failed
+            if (!current || current.activeRunId !== runId) {
+              throw new StopNotAcknowledgedError(
+                `Run "${runId}" lost ownership before failure settlement`,
+              )
+            }
+            await appendRecord(runsPath, {
+              ...run,
+              status: stopped ? 'stopped' : 'failed',
+              finishedAt,
+            } satisfies LaneRun)
+            await appendRecord(eventsPath, {
+              runId,
+              laneId: id,
+              sequence: 2,
+              occurredAt: finishedAt,
+              type: stopped ? 'control' : 'error',
+              message: stopped ? 'Run stopped' : 'Run failed',
+            } satisfies LaneRunEvent)
+            if (current.status !== 'stopping' && !stoppingLanes.has(id)) {
+              const terminalLane: Lane =
+                stopped && current.status === 'error'
+                  ? {
+                      ...failed,
+                      status: 'error',
+                      blockedReason: current.blockedReason,
+                    }
+                  : failed
+              await appendLedger(deps.registryPath, terminalLane)
+              return terminalLane
+            }
+            return current
+          })
         } catch (persistenceError) {
+          if (persistenceError instanceof StopNotAcknowledgedError) {
+            unacknowledgedStop = persistenceError
+            throw persistenceError
+          }
           return await persistSettlementFailure(persistenceError)
         }
       } finally {

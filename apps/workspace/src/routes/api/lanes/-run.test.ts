@@ -3,9 +3,10 @@ import { LaneConflictError } from '../../../server/lanes/lane-orchestrator'
 
 const runMissionMock = vi.fn()
 const getRunMock = vi.fn()
+const requireLocalOrAuthMock = vi.fn(() => true)
 
 vi.mock('../../../server/auth-middleware', () => ({
-  isAuthenticated: () => true,
+  requireLocalOrAuth: requireLocalOrAuthMock,
 }))
 
 vi.mock('../../../server/rate-limit', () => ({
@@ -23,6 +24,26 @@ describe('POST /api/lanes/run', () => {
   beforeEach(() => {
     runMissionMock.mockReset()
     getRunMock.mockReset()
+    requireLocalOrAuthMock.mockReturnValue(true)
+  })
+
+  it('denies unauthenticated remote callers before dispatch', async () => {
+    requireLocalOrAuthMock.mockReturnValue(false)
+    const { Route } = await import('./run')
+    const handlers = Route.options.server?.handlers as {
+      POST: (ctx: { request: Request }) => Promise<Response>
+    }
+
+    const response = await handlers.POST({
+      request: new Request('http://203.0.113.10/api/lanes/run', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ id: 'l1', mission: 'build' }),
+      }),
+    })
+
+    expect(response.status).toBe(401)
+    expect(runMissionMock).not.toHaveBeenCalled()
   })
 
   it.each([

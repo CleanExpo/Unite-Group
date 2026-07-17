@@ -6,12 +6,19 @@ import {
   CLI_OUTPUT_LIMIT,
   createCliAdapter,
   createSupervisedSpawn,
+  supervisedSpawn as productionSupervisedSpawn,
   redactCliOutput,
-  supervisedSpawn,
 } from './cli-adapter'
 import { StopNotAcknowledgedError, truncateUtf8 } from './adapter'
+import { terminateProcessTree } from './process-tree'
 import type { SpawnFn } from './cli-adapter'
 import type { Lane } from './types'
+
+const supervisedSpawn = createSupervisedSpawn(
+  terminateProcessTree,
+  process.platform,
+  () => true,
+)
 
 function cliLane(tool: 'claude-code' | 'codex', account = 'max-1'): Lane {
   return {
@@ -31,6 +38,7 @@ type Captured = {
   args: Array<string>
   cwd: string
   env: NodeJS.ProcessEnv
+  input?: string
 }
 
 async function abortAndSettle(
@@ -64,36 +72,40 @@ describe('CliLaneAdapter', () => {
     expect(multibyteMarker).not.toContain('�')
   })
 
-  it('spawns `claude -p <mission>` in the worktree with the account config dir', async () => {
+  it('pipes Claude missions over stdin instead of exposing them in argv', async () => {
     let cap: Captured | null = null
     const spawn: SpawnFn = async (command, args, opts) => {
-      cap = { command, args, cwd: opts.cwd, env: opts.env }
+      cap = { command, args, cwd: opts.cwd, env: opts.env, input: opts.input }
       return { code: 0, stdout: 'done', stderr: '' }
     }
     const adapter = createCliAdapter({ spawn, accountsDir: '/accts' })
     const res = await adapter.run(cliLane('claude-code', 'max-2'), 'build it')
     expect(res.output).toBe('done')
     expect(cap!.command).toBe('claude')
-    expect(cap!.args).toEqual(['-p', 'build it'])
+    expect(cap!.args).toEqual(['-p'])
+    expect(cap!.input).toBe('build it')
+    expect(cap!.args).not.toContain('build it')
     expect(cap!.cwd).toBe('/w/lane')
     expect(cap!.env.CLAUDE_CONFIG_DIR).toBe('/accts/max-2')
   })
 
-  it('spawns `codex exec -- <mission>` with CODEX_HOME for the account', async () => {
+  it('pipes Codex missions over stdin instead of exposing them in argv', async () => {
     let cap: Captured | null = null
     const spawn: SpawnFn = async (command, args, opts) => {
-      cap = { command, args, cwd: opts.cwd, env: opts.env }
+      cap = { command, args, cwd: opts.cwd, env: opts.env, input: opts.input }
       return { code: 0, stdout: 'ok', stderr: '' }
     }
     const adapter = createCliAdapter({ spawn, accountsDir: '/accts' })
     await adapter.run(cliLane('codex', 'openai-pro'), 'x')
     expect(cap!.command).toBe('codex')
-    expect(cap!.args).toEqual(['exec', '--', 'x'])
+    expect(cap!.args).toEqual(['exec', '-'])
+    expect(cap!.input).toBe('x')
+    expect(cap!.args).not.toContain('x')
     expect(cap!.env.CODEX_HOME).toBe('/accts/openai-pro')
   })
 
   it.each(['review', 'resume', '--dangerously-bypass-approvals-and-sandbox'])(
-    'passes parser-sensitive Codex mission text after end-of-options: %s',
+    'keeps parser-sensitive Codex mission text out of argv: %s',
     async (mission) => {
       const spawn = vi.fn<SpawnFn>().mockResolvedValue({
         code: 0,
@@ -106,8 +118,8 @@ describe('CliLaneAdapter', () => {
 
       expect(spawn).toHaveBeenCalledWith(
         'codex',
-        ['exec', '--', mission],
-        expect.objectContaining({ cwd: '/w/lane' }),
+        ['exec', '-'],
+        expect.objectContaining({ cwd: '/w/lane', input: mission }),
       )
     },
   )
@@ -373,7 +385,11 @@ describe('CliLaneAdapter', () => {
 
   it('checks the process group after a normal parent exit', async () => {
     const terminate = vi.fn(async () => {})
-    const spawnWithTreeCheck = createSupervisedSpawn(terminate)
+    const spawnWithTreeCheck = createSupervisedSpawn(
+      terminate,
+      process.platform,
+      () => true,
+    )
 
     await expect(
       spawnWithTreeCheck(process.execPath, ['-e', 'process.exit(0)'], {
@@ -383,11 +399,21 @@ describe('CliLaneAdapter', () => {
     ).resolves.toMatchObject({ code: 0 })
 
     expect(terminate).toHaveBeenCalledOnce()
-    expect(terminate).toHaveBeenCalledWith(expect.any(Number), { force: false })
+    expect(terminate).toHaveBeenCalledWith(
+      expect.any(Number),
+      expect.objectContaining({
+        force: false,
+        ownedPids: expect.any(Set),
+      }),
+    )
   })
 
   it('decodes UTF-8 output across child stream chunk boundaries', async () => {
-    const spawnWithTreeCheck = createSupervisedSpawn(async () => {})
+    const spawnWithTreeCheck = createSupervisedSpawn(
+      async () => {},
+      process.platform,
+      () => true,
+    )
     const script = [
       "const bytes = Buffer.from('😀')",
       'process.stdout.write(bytes.subarray(0, 2))',
@@ -415,12 +441,41 @@ describe('CliLaneAdapter', () => {
     ).rejects.toThrow(/aborted before spawn/i)
   })
 
+  it.each(['darwin', 'linux', 'win32'] as const)(
+    'rejects %s CLI execution before spawning without kernel containment',
+    async (platform) => {
+      const terminate = vi.fn(async () => {})
+      const unsupportedSpawn = createSupervisedSpawn(terminate, platform)
+
+      await expect(
+        unsupportedSpawn('definitely-not-a-real-command', [], {
+          cwd: process.cwd(),
+          env: process.env,
+        }),
+      ).rejects.toThrow(new RegExp(`unsupported on ${platform}`, 'i'))
+      expect(terminate).not.toHaveBeenCalled()
+    },
+  )
+
+  it('keeps the production spawn export fail-closed on this host', async () => {
+    await expect(
+      productionSupervisedSpawn('definitely-not-a-real-command', [], {
+        cwd: process.cwd(),
+        env: process.env,
+      }),
+    ).rejects.toThrow(/unsupported.*kernel-backed owner/i)
+  })
+
   it('fails stop acknowledgement when process-tree termination fails', async () => {
     let childPid: number | undefined
-    const spawnWithBrokenTree = createSupervisedSpawn(async (pid) => {
-      childPid = pid
-      throw new Error('tree control unavailable')
-    })
+    const spawnWithBrokenTree = createSupervisedSpawn(
+      async (pid) => {
+        childPid = pid
+        throw new Error('injected process-tree failure')
+      },
+      process.platform,
+      () => true,
+    )
     const controller = new AbortController()
     const running = spawnWithBrokenTree(
       process.execPath,
@@ -469,13 +524,17 @@ describe('CliLaneAdapter', () => {
       const root = [
         "const { spawn } = require('node:child_process')",
         "const { writeFileSync } = require('node:fs')",
-        `const child = spawn(process.execPath, ['-e', ${JSON.stringify(descendant)}], { stdio: 'ignore' })`,
+        `const child = spawn(process.execPath, ['-e', ${JSON.stringify(descendant)}], { detached: true, stdio: 'ignore' })`,
         `writeFileSync(${JSON.stringify(pidFile)}, String(child.pid))`,
         'setInterval(() => {}, 1000)',
       ].join(';')
-      const spawnWithRejectedController = createSupervisedSpawn(async () => {
-        throw new Error('injected controller failure')
-      })
+      const spawnWithRejectedController = createSupervisedSpawn(
+        async () => {
+          throw new Error('injected controller failure')
+        },
+        process.platform,
+        () => true,
+      )
       const controller = new AbortController()
       let running: ReturnType<typeof spawnWithRejectedController> | undefined
       let descendantPid: number | undefined
@@ -543,7 +602,7 @@ describe('CliLaneAdapter', () => {
       const root = [
         "const { spawn } = require('node:child_process')",
         "const { writeFileSync } = require('node:fs')",
-        `const child = spawn(process.execPath, ['-e', ${JSON.stringify(descendant)}], { stdio: 'ignore' })`,
+        `const child = spawn(process.execPath, ['-e', ${JSON.stringify(descendant)}], { detached: true, stdio: 'ignore' })`,
         `writeFileSync(${JSON.stringify(pidFile)}, String(child.pid))`,
         'setInterval(() => {}, 1000)',
       ].join(';')
