@@ -52,6 +52,23 @@ describe('buildSignatureParts', () => {
       buildSignatureParts('nobody@nowhere.test', { signOff: 'x', slogan: 'y', founderName: 'z' }),
     ).toBeNull()
   })
+
+  it('resolves the HQ mailbox as Unite-Group Nexus with every business as a sibling', () => {
+    const parts = buildSignatureParts('contact@unite-group.in', {
+      signOff: 'Cheers, Phill', slogan: 'y', founderName: 'Phill',
+    })
+    expect(parts?.businessName).toBe('Unite-Group Nexus')
+    expect(parts?.businessDomain).toBe('unite-group.in')
+    // HQ references every portfolio business — none excluded.
+    expect(parts?.siblings.map((s) => s.name)).toEqual(
+      ['Disaster Recovery', 'NRPG', 'CARSI', 'RestoreAssist', 'SYNTHEX', 'CCW'],
+    )
+  })
+
+  it('never lists the HQ identity as a sibling on a portfolio account footer', () => {
+    const parts = buildSignatureParts(DR_EMAIL, { signOff: 'x', slogan: 'y', founderName: 'z' })
+    expect(parts?.siblings.map((s) => s.name)).not.toContain('Unite-Group Nexus')
+  })
 })
 
 describe('renderSignatureHtml', () => {

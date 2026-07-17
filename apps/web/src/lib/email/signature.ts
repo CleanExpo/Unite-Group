@@ -40,6 +40,12 @@ export const PORTFOLIO_CONTACT: Record<string, { name: string; domain: string }>
   ccw: { name: 'CCW', domain: 'connexusm.com' },
 };
 
+// The parent identity for the Unite-Group Nexus HQ mailbox (contact@unite-group.in).
+// Deliberately NOT in PORTFOLIO_CONTACT (so it never appears as a sibling on other
+// footers) and NOT in businesses.ts (so it is not a portfolio tile).
+export const HQ_KEY = 'ugn';
+export const HQ_IDENTITY = { name: 'Unite-Group Nexus', domain: 'unite-group.in' };
+
 export interface SignatureParts {
   logoUrl: string;
   slogan: string;
@@ -69,16 +75,22 @@ export function buildSignatureParts(
   const account = accountByEmail(accountEmail);
   if (!account || account.scope === 'personal') return null;
 
-  const business = getBusinessByKey(account.businessKey);
-  if (!business) return null;
-
   const ownKey = account.businessKey;
-  const ownContact = PORTFOLIO_CONTACT[ownKey] ?? null;
+  // The Unite-Group Nexus HQ mailbox (contact@unite-group.in) is the PARENT
+  // identity, not a portfolio business — kept out of PORTFOLIO_CONTACT so it never
+  // lists itself as a sibling on other footers, and out of businesses.ts so it is
+  // not a portfolio tile. Its own footer references every portfolio business.
+  const isHQ = ownKey === HQ_KEY;
+  const ownContact = isHQ ? HQ_IDENTITY : (PORTFOLIO_CONTACT[ownKey] ?? null);
+  const business = getBusinessByKey(ownKey);
+  if (!ownContact && !business) return null;
+
   const businessDomain = ownContact?.domain ?? null;
 
   // Every OTHER business that has a real domain — excludes this account's own
   // business and excludes domain-less businesses (ato/itr are not in the map).
   // Uses the clean public brand name, not the internal businesses.ts SSOT name.
+  // For the HQ account (ownKey='ugn', not in PORTFOLIO_CONTACT) none are excluded.
   const siblings = Object.entries(PORTFOLIO_CONTACT)
     .filter(([key]) => key !== ownKey)
     .map(([, c]) => ({ name: c.name, domain: c.domain }));
@@ -89,7 +101,7 @@ export function buildSignatureParts(
     signOff: opts.signOff,
     founderName: opts.founderName,
     // Prefer the clean public brand name for the account's own business too.
-    businessName: ownContact?.name ?? business.name,
+    businessName: ownContact?.name ?? business?.name ?? '',
     accountEmail,
     businessDomain,
     siblings,
