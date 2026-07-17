@@ -47,16 +47,22 @@ export function ThreadList({
     <div className="flex flex-col h-full">
       {/* Select-all header — acts on loaded threads only */}
       <div className="flex items-center gap-3 px-4 py-2 border-b border-white/6 shrink-0">
-        <div
-          className="shrink-0"
-          onClick={() => onToggleAll(threads.map(t => t.id), !allChecked)}
-        >
+        <div className="shrink-0">
           <div
             role="checkbox"
             aria-checked={allChecked}
             aria-label="Select all threads"
+            tabIndex={0}
+            onClick={() => onToggleAll(threads.map(t => t.id), !allChecked)}
+            onKeyDown={(e) => {
+              if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault()
+                onToggleAll(threads.map(t => t.id), !allChecked)
+              }
+            }}
             className={[
               'w-4 h-4 rounded-sm border flex items-center justify-center transition-colors cursor-pointer',
+              'focus:outline-none focus-visible:ring-2 focus-visible:ring-[#16a34a]',
               allChecked ? 'bg-[#16a34a] border-[#16a34a]' : 'border-white/20 hover:border-white/40',
             ].join(' ')}
           >

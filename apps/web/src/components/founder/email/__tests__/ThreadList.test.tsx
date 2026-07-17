@@ -47,4 +47,20 @@ describe('ThreadList — select all', () => {
     fireEvent.click(box)
     expect(onToggleAll).toHaveBeenCalledWith(['a', 'b'], false)
   })
+
+  it('is keyboard-operable — Space toggles select-all', () => {
+    const onToggleAll = vi.fn()
+    render(
+      <ThreadList
+        {...base}
+        threads={[thread('a'), thread('b')]}
+        checkedIds={new Set()}
+        onToggleAll={onToggleAll}
+      />,
+    )
+    const box = screen.getByLabelText('Select all threads')
+    expect(box).toHaveAttribute('tabindex', '0')
+    fireEvent.keyDown(box, { key: ' ' })
+    expect(onToggleAll).toHaveBeenCalledWith(['a', 'b'], true)
+  })
 })
