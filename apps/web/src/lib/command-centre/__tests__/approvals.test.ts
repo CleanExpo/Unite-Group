@@ -56,17 +56,24 @@ function makeMock(resultsByTable: Record<string, { data: unknown; error: { messa
         update(values: unknown) {
           record.op = 'update'
           record.inserted = values
-          return {
-            eq(c1: string, v1: unknown) {
-              record.eqs.push([c1, v1])
-              return {
-                eq(c2: string, v2: unknown) {
-                  record.eqs.push([c2, v2])
-                  return { select: () => ({ single }) }
-                },
-              }
+          // Chain any number of .eq() then a terminal .select() that resolves to
+          // an ARRAY — mirrors updateTaskStatusGuarded (WHERE founder_id AND id
+          // AND status, .select('*') returning rows). The guard reads rows[0].
+          const updateChain = {
+            eq(column: string, value: unknown) {
+              record.eqs.push([column, value])
+              return updateChain
+            },
+            select: () => {
+              const rows = Array.isArray(result.data)
+                ? result.data
+                : result.data == null
+                  ? []
+                  : [result.data]
+              return Promise.resolve({ data: rows, error: result.error })
             },
           }
+          return updateChain
         },
         select() {
           return {
@@ -189,6 +196,87 @@ describe('applyApproval', () => {
 
     const event = calls.find((c) => c.table === 'cc_task_events' && c.op === 'insert')
     expect(event?.inserted).toMatchObject({ payload: expect.objectContaining({ board_verdict: null }) })
+  })
+
+  // UNI-2436 — when the caller supplies `expectedStatus`, the transition is a
+  // status-GUARDED conditional write (WHERE ... AND status = expected), so it only
+  // lands while the task still holds the status the caller read.
+  it('approve with expectedStatus does a guarded write and returns the task on success', async () => {
+    const taskRow = { id: 't1', founder_id: 'f1', status: 'queued' }
+    const inserts: string[] = []
+    let guardedFilters: Array<[string, unknown]> = []
+    const client = {
+      from(table: string) {
+        return {
+          insert() {
+            inserts.push(table)
+            const data = table === 'cc_approvals' ? { id: 'a1', decision: 'approve' } : { id: 'e1' }
+            return { select: () => ({ single: () => Promise.resolve({ data, error: null }) }) }
+          },
+          update() {
+            const filters: Array<[string, unknown]> = []
+            const eq = (c: string, v: unknown) => {
+              filters.push([c, v])
+              return {
+                eq,
+                select: () => {
+                  guardedFilters = filters
+                  return Promise.resolve({ data: [taskRow], error: null })
+                },
+              }
+            }
+            return { eq }
+          },
+        }
+      },
+    } as unknown as SupabaseLike
+
+    const { task, conflict } = await applyApproval(
+      { founderId: 'f1', taskId: 't1', decision: 'approve', expectedStatus: 'awaiting_approval' },
+      client,
+    )
+
+    expect(conflict).toBe(false)
+    expect(task).toEqual(taskRow)
+    // the write filtered on the expected current status — the atomic guard
+    expect(guardedFilters).toContainEqual(['status', 'awaiting_approval'])
+    // the 'approved' audit event is appended only after a successful transition
+    expect(inserts).toContain('cc_task_events')
+  })
+
+  it('approve with expectedStatus surfaces a conflict and writes no event when the guarded write matches zero rows (UNI-2436 TOCTOU)', async () => {
+    const inserts: string[] = []
+    const client = {
+      from(table: string) {
+        return {
+          insert() {
+            inserts.push(table)
+            return {
+              select: () => ({
+                single: () => Promise.resolve({ data: { id: 'a1', decision: 'approve' }, error: null }),
+              }),
+            }
+          },
+          update() {
+            const eq = () => ({ eq, select: () => Promise.resolve({ data: [], error: null }) })
+            return { eq }
+          },
+        }
+      },
+    } as unknown as SupabaseLike
+
+    const { task, conflict } = await applyApproval(
+      { founderId: 'f1', taskId: 't1', decision: 'approve', expectedStatus: 'awaiting_approval' },
+      client,
+    )
+
+    expect(conflict).toBe(true)
+    expect(task).toBeNull()
+    // UNI-2436: on a lost race the decision was NOT applied, so NEITHER the
+    // cc_approvals audit row NOR the 'approved' event is written — the audit trail
+    // never shows an approval for a transition that did not happen.
+    expect(inserts).not.toContain('cc_approvals')
+    expect(inserts).not.toContain('cc_task_events')
   })
 })
 

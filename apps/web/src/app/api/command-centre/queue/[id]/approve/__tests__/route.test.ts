@@ -83,4 +83,16 @@ describe('POST /api/command-centre/queue/[id]/approve', () => {
     expect(res.status).toBe(201)
     expect(applyApproval).toHaveBeenCalled()
   })
+
+  it('returns 409 when the task status changed under a concurrent write (UNI-2436 TOCTOU)', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
+    vi.mocked(getTaskById).mockResolvedValue({ id: 'task-1', status: 'awaiting_approval' } as any)
+    // The guarded write lost the race: applyApproval reports a conflict.
+    vi.mocked(applyApproval).mockResolvedValueOnce({ conflict: true, approval: {}, task: null } as any)
+    const res = await POST(req({ decision: 'approve' }), params)
+    expect(res.status).toBe(409)
+    const body = await res.json()
+    expect(body.from).toBe('awaiting_approval')
+    expect(body.to).toBe('queued')
+  })
 })

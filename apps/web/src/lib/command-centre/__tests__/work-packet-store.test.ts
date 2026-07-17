@@ -61,18 +61,40 @@ function makeFakeDb() {
           }
         },
         update(values: unknown) {
+          const filters: Array<[string, unknown]> = []
+          const apply = () => {
+            const match = rows.find((r) => filters.every(([c, v]) => r[c] === v))
+            if (match) Object.assign(match, values as Record<string, unknown>, { updated_at: nowIso() })
+            return match ?? null
+          }
           return {
-            eq(_c1: string, v1: unknown) {
+            eq(c1: string, v1: unknown) {
+              filters.push([c1, v1])
               return {
-                eq(_c2: string, v2: unknown) {
+                eq(c2: string, v2: unknown) {
+                  filters.push([c2, v2])
                   return {
+                    // 2-eq path (non-guarded update, e.g. metadata): .select().single()
                     select() {
                       return {
                         single() {
-                          const match = rows.find((r) => r.founder_id === v1 && r.id === v2)
-                          if (!match) return Promise.resolve({ data: null, error: { message: 'no row' } })
-                          Object.assign(match, values as Record<string, unknown>, { updated_at: nowIso() })
-                          return Promise.resolve({ data: match, error: null })
+                          const match = apply()
+                          return Promise.resolve({
+                            data: match,
+                            error: match ? null : { message: 'no row' },
+                          })
+                        },
+                      }
+                    },
+                    // 3-eq status-guarded path (updateTaskStatusGuarded): a third
+                    // .eq(status) then .select() resolves directly to an array, so
+                    // zero rows means the expected status no longer matched.
+                    eq(c3: string, v3: unknown) {
+                      filters.push([c3, v3])
+                      return {
+                        select() {
+                          const match = apply()
+                          return Promise.resolve({ data: match ? [match] : [], error: null })
                         },
                       }
                     },
@@ -279,6 +301,84 @@ describe('work-packet-store', () => {
     const result = await applyPacketTransition(client, FOUNDER, 'nope', { type: 'route' })
     expect(result.ok).toBe(false)
     expect(result.packet).toBeNull()
+  })
+
+  it('applyPacketTransition refuses to clobber a status that changed since it was read (UNI-2436 TOCTOU)', async () => {
+    // A stale read sees 'running', but the status-guarded write matches ZERO rows
+    // (another writer moved the status on). The transition must be refused, not
+    // silently applied over the newer status, and nothing may be audited.
+    const staleRow: CommandCentreTask = {
+      id: 't1',
+      founder_id: FOUNDER,
+      external_ref: 'pkt-x',
+      queue_id: null,
+      project_id: null,
+      project_key: 'synthex',
+      title: 'x',
+      objective: 'x',
+      priority: 'P2',
+      status: 'running',
+      agent_owner: null,
+      risk_level: 'low',
+      execution_mode: 'advisory',
+      origin: 'idea',
+      dependencies: [],
+      human_approval_required: false,
+      evidence_path: null,
+      validation_required: [],
+      linear_id: null,
+      preview_url: null,
+      metadata: {},
+      created_at: '2026-06-16T00:00:00.000Z',
+      updated_at: '2026-06-16T00:00:00.000Z',
+    }
+    let eventInserted = false
+    const client = {
+      from() {
+        return {
+          select() {
+            return {
+              eq() {
+                return {
+                  eq() {
+                    return { single: () => Promise.resolve({ data: staleRow, error: null }) }
+                  },
+                }
+              },
+            }
+          },
+          update() {
+            return {
+              eq() {
+                return {
+                  eq() {
+                    return {
+                      eq() {
+                        // status-guarded write matches zero rows — the race is lost.
+                        return { select: () => Promise.resolve({ data: [], error: null }) }
+                      },
+                    }
+                  },
+                }
+              },
+            }
+          },
+          insert() {
+            eventInserted = true
+            return {
+              select: () => ({ single: () => Promise.resolve({ data: { id: 'e1' }, error: null }) }),
+            }
+          },
+        }
+      },
+    } as unknown as SupabaseLike
+
+    const result = await applyPacketTransition(client, FOUNDER, 'pkt-x', { type: 'block' })
+
+    expect(result.ok).toBe(false)
+    expect(result.reason).toMatch(/conflict/)
+    expect(result.packet?.status).toBe('running') // unchanged in-memory packet
+    expect(eventInserted).toBe(false) // nothing audited on a refused write
   })
 
   it('persisted metadata contains no secret/key-ish strings', async () => {
