@@ -27,13 +27,17 @@ export const DEFAULT_SLOGAN = 'One command centre. Every venture, connected.';
  * businesses with a real domain appear; ato/itr have none and are intentionally
  * omitted, so they never surface as a contact or a sibling link.
  */
-export const PORTFOLIO_CONTACT: Record<string, string> = {
-  dr: 'disasterrecovery.com.au',
-  nrpg: 'nrpg.business',
-  carsi: 'carsi.com.au',
-  restore: 'restoreassist.app',
-  synthex: 'synthex.social',
-  ccw: 'connexusm.com',
+// Clean PUBLIC brand name + real domain per business — the name shown in the
+// footer is decoupled from the internal businesses.ts SSOT name (e.g. ccw's SSOT
+// name is "CCW-ERP/CRM", which must not appear on outgoing mail). Only businesses
+// with a real domain appear; ato/itr have none and are intentionally omitted.
+export const PORTFOLIO_CONTACT: Record<string, { name: string; domain: string }> = {
+  dr: { name: 'Disaster Recovery', domain: 'disasterrecovery.com.au' },
+  nrpg: { name: 'NRPG', domain: 'nrpg.business' },
+  carsi: { name: 'CARSI', domain: 'carsi.com.au' },
+  restore: { name: 'RestoreAssist', domain: 'restoreassist.app' },
+  synthex: { name: 'SYNTHEX', domain: 'synthex.social' },
+  ccw: { name: 'CCW', domain: 'connexusm.com' },
 };
 
 export interface SignatureParts {
@@ -69,20 +73,23 @@ export function buildSignatureParts(
   if (!business) return null;
 
   const ownKey = account.businessKey;
-  const businessDomain = PORTFOLIO_CONTACT[ownKey] ?? null;
+  const ownContact = PORTFOLIO_CONTACT[ownKey] ?? null;
+  const businessDomain = ownContact?.domain ?? null;
 
   // Every OTHER business that has a real domain — excludes this account's own
   // business and excludes domain-less businesses (ato/itr are not in the map).
+  // Uses the clean public brand name, not the internal businesses.ts SSOT name.
   const siblings = Object.entries(PORTFOLIO_CONTACT)
     .filter(([key]) => key !== ownKey)
-    .map(([key, domain]) => ({ name: getBusinessByKey(key)?.name ?? key, domain }));
+    .map(([, c]) => ({ name: c.name, domain: c.domain }));
 
   return {
     logoUrl: logoUrl(),
     slogan: opts.slogan,
     signOff: opts.signOff,
     founderName: opts.founderName,
-    businessName: business.name,
+    // Prefer the clean public brand name for the account's own business too.
+    businessName: ownContact?.name ?? business.name,
     accountEmail,
     businessDomain,
     siblings,
