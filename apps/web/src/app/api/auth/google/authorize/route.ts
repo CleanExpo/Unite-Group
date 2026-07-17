@@ -49,8 +49,12 @@ export async function GET(request: Request) {
     response_type: 'code',
     scope: SCOPES,
     access_type: 'offline',
-    prompt: 'consent',        // force refresh_token every time
-    login_hint: email,
+    // `select_account` shows Google's account chooser so a DIFFERENT Google
+    // account can be added — without it Google silently rides the currently
+    // signed-in (e.g. admin) session and additional accounts can't be picked.
+    // `consent` still forces a refresh_token every time.
+    prompt: 'select_account consent',
+    login_hint: email,        // pre-highlights the target; chooser still shown
     // Signed, founder-bound, time-limited state — prevents OAuth CSRF/replay on
     // the callback. founderId binding ensures the callback can't be replayed by
     // a different session (matches the meta/tiktok/youtube/xero/microsoft flows).
