@@ -56,17 +56,24 @@ function makeMock(resultsByTable: Record<string, { data: unknown; error: { messa
         update(values: unknown) {
           record.op = 'update'
           record.inserted = values
-          return {
-            eq(c1: string, v1: unknown) {
-              record.eqs.push([c1, v1])
-              return {
-                eq(c2: string, v2: unknown) {
-                  record.eqs.push([c2, v2])
-                  return { select: () => ({ single }) }
-                },
-              }
+          // Chain any number of .eq() then a terminal .select() that resolves to
+          // an ARRAY — mirrors updateTaskStatusGuarded (WHERE founder_id AND id
+          // AND status, .select('*') returning rows). The guard reads rows[0].
+          const updateChain = {
+            eq(column: string, value: unknown) {
+              record.eqs.push([column, value])
+              return updateChain
+            },
+            select: () => {
+              const rows = Array.isArray(result.data)
+                ? result.data
+                : result.data == null
+                  ? []
+                  : [result.data]
+              return Promise.resolve({ data: rows, error: result.error })
             },
           }
+          return updateChain
         },
         select() {
           return {
@@ -265,9 +272,10 @@ describe('applyApproval', () => {
 
     expect(conflict).toBe(true)
     expect(task).toBeNull()
-    // the decision (audited intent) is still recorded, but NO 'approved' event is
-    // appended for a transition that did not happen.
-    expect(inserts).toContain('cc_approvals')
+    // UNI-2436: on a lost race the decision was NOT applied, so NEITHER the
+    // cc_approvals audit row NOR the 'approved' event is written — the audit trail
+    // never shows an approval for a transition that did not happen.
+    expect(inserts).not.toContain('cc_approvals')
     expect(inserts).not.toContain('cc_task_events')
   })
 })
