@@ -75,6 +75,26 @@ export async function GET(request: Request) {
     scope: string
   }
 
+  // Identity = the account that ACTUALLY authenticated, read from Google
+  // userinfo — NOT the requested `email` from state. Without this, Google
+  // riding a different (e.g. admin) session would store its tokens under the
+  // requested address, so additional accounts collide on the label upsert key
+  // and never really connect. `state.email` stays the CSRF/founder binding only.
+  let authenticatedEmail = email
+  try {
+    const infoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { Authorization: `Bearer ${tokens.access_token}` },
+    })
+    if (infoRes.ok) {
+      const info = await infoRes.json() as { email?: string }
+      if (info.email) authenticatedEmail = info.email
+    }
+  } catch {
+    // Fall back to the requested email if userinfo is unreachable — the token
+    // still persists; identity is corrected on the next successful connect.
+  }
+  email = authenticatedEmail
+
   // Encrypt the token bundle
   const payload = encrypt(JSON.stringify({
     access_token: tokens.access_token,
@@ -83,7 +103,7 @@ export async function GET(request: Request) {
     scope: tokens.scope,
   }))
 
-  // Map email → business slug + label
+  // Map the REAL authenticated email → business slug + label
   const account = accountByEmail(email)
   const businessKey = account?.businessKey ?? 'personal'
   const label = account?.label ?? email
