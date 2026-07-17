@@ -199,26 +199,60 @@ describe('work-packet-store', () => {
     expect(ids).toEqual([a.id, b.id].sort())
   })
 
-  it('applyPacketTransition persists a successful route transition + audit event', async () => {
+  it('applyPacketTransition REFUSES a route that would promote proposed → queued (UNI-2417)', async () => {
     const { client, tables } = makeFakeDb()
     const packet = samplePacket()
     await saveWorkPacket(client, FOUNDER, packet)
 
+    // route maps draft→routed == cc proposed→queued: a client-driven promotion
+    // into the runner-claimable queue that bypasses the approval matrix.
     const result = await applyPacketTransition(client, FOUNDER, packet.id, { type: 'route' })
 
-    expect(result.ok).toBe(true)
-    expect(result.packet?.status).toBe('routed')
-
-    // Status persisted on the underlying row (mapped to 'queued').
+    expect(result.ok).toBe(false)
+    expect(result.reason).toMatch(/illegal promotion/)
+    // The backing row stays 'proposed'; nothing was promoted or audited.
     const stored = tables[CC_TASKS_TABLE][0] as unknown as CommandCentreTask
-    expect(stored.status).toBe('queued')
-    // An append-only audit event was written.
-    expect(tables[CC_TASK_EVENTS_TABLE]).toHaveLength(1)
-    expect(tables[CC_TASK_EVENTS_TABLE][0].type).toBe('status_changed')
+    expect(stored.status).toBe('proposed')
+    expect(tables[CC_TASK_EVENTS_TABLE]).toHaveLength(0)
 
-    // Reloading reflects the durable new status.
+    // Reloading confirms the durable status did not change.
     const reloaded = await getWorkPacket(client, FOUNDER, packet.id)
-    expect(reloaded?.status).toBe('routed')
+    expect(reloaded?.status).toBe('draft')
+  })
+
+  it('applyPacketTransition REFUSES an approve that would drive a task → running (UNI-2417)', async () => {
+    const { client, tables } = makeFakeDb()
+    const packet = samplePacket({ touchesCrmWrite: true })
+    await saveWorkPacket(client, FOUNDER, packet)
+    // Move the row to awaiting_approval so `approve` is otherwise packet-legal.
+    ;(tables[CC_TASKS_TABLE][0] as Record<string, unknown>).status =
+      packetStatusToTaskStatus('awaiting_approval')
+
+    const result = await applyPacketTransition(client, FOUNDER, packet.id, { type: 'approve', by: FOUNDER })
+
+    // approve maps to cc running — only the runner may reach running; refused.
+    expect(result.ok).toBe(false)
+    expect(result.reason).toMatch(/illegal promotion/)
+    const stored = tables[CC_TASKS_TABLE][0] as unknown as CommandCentreTask
+    expect(stored.status).toBe('awaiting_approval')
+    expect(tables[CC_TASK_EVENTS_TABLE]).toHaveLength(0)
+  })
+
+  it('applyPacketTransition allows a benign non-promoting transition (running → blocked)', async () => {
+    const { client, tables } = makeFakeDb()
+    const packet = samplePacket()
+    await saveWorkPacket(client, FOUNDER, packet)
+    // Force the backing row to 'running' (as if the runner had claimed it).
+    ;(tables[CC_TASKS_TABLE][0] as Record<string, unknown>).status = packetStatusToTaskStatus('running')
+
+    const result = await applyPacketTransition(client, FOUNDER, packet.id, { type: 'block' })
+
+    // block targets cc 'blocked' (not queued/running) — passes through unchanged.
+    expect(result.ok).toBe(true)
+    expect(result.packet?.status).toBe('blocked')
+    const stored = tables[CC_TASKS_TABLE][0] as unknown as CommandCentreTask
+    expect(stored.status).toBe('blocked')
+    expect(tables[CC_TASK_EVENTS_TABLE]).toHaveLength(1)
   })
 
   it('applyPacketTransition refuses completing an approval-required packet and writes nothing', async () => {

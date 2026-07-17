@@ -3,14 +3,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn() }))
 vi.mock('@/lib/command-centre/tasks', () => ({
   getTaskById: vi.fn(),
-  updateTaskStatus: vi.fn(),
+  updateTaskStatusGuarded: vi.fn(),
   appendTaskEvent: vi.fn(),
 }))
 vi.mock('@/lib/command-centre/approvals', () => ({ listApprovalsForTask: vi.fn() }))
 vi.mock('@/lib/command-centre/validation', () => ({ getValidationSummary: vi.fn() }))
 
 import { getUser } from '@/lib/supabase/server'
-import { getTaskById, updateTaskStatus } from '@/lib/command-centre/tasks'
+import { getTaskById, updateTaskStatusGuarded } from '@/lib/command-centre/tasks'
 import { listApprovalsForTask } from '@/lib/command-centre/approvals'
 import { getValidationSummary } from '@/lib/command-centre/validation'
 import { GET, PATCH } from '../route'
@@ -93,7 +93,7 @@ describe('PATCH /api/command-centre/queue/[id]', () => {
 
     const res = await PATCH(patchReq({ status: 'blocked' }), { params })
     expect(res.status).toBe(404)
-    expect(updateTaskStatus).not.toHaveBeenCalled()
+    expect(updateTaskStatusGuarded).not.toHaveBeenCalled()
   })
 
   it('REJECTS promoting an awaiting_approval task to queued (governance bypass)', async () => {
@@ -106,7 +106,7 @@ describe('PATCH /api/command-centre/queue/[id]', () => {
     expect(body.from).toBe('awaiting_approval')
     expect(body.to).toBe('queued')
     // The unapproved task must NOT be promoted.
-    expect(updateTaskStatus).not.toHaveBeenCalled()
+    expect(updateTaskStatusGuarded).not.toHaveBeenCalled()
   })
 
   it('REJECTS promoting a proposed task to running', async () => {
@@ -115,18 +115,33 @@ describe('PATCH /api/command-centre/queue/[id]', () => {
 
     const res = await PATCH(patchReq({ status: 'running' }), { params })
     expect(res.status).toBe(409)
-    expect(updateTaskStatus).not.toHaveBeenCalled()
+    expect(updateTaskStatusGuarded).not.toHaveBeenCalled()
   })
 
   it('allows a legal benign transition and returns the task', async () => {
     vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
     vi.mocked(getTaskById).mockResolvedValue({ id: 'task-1', status: 'proposed' } as any)
-    vi.mocked(updateTaskStatus).mockResolvedValue({ id: 'task-1', status: 'blocked' } as any)
+    vi.mocked(updateTaskStatusGuarded).mockResolvedValue({ id: 'task-1', status: 'blocked' } as any)
 
     const res = await PATCH(patchReq({ status: 'blocked' }), { params })
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.task.status).toBe('blocked')
-    expect(updateTaskStatus).toHaveBeenCalled()
+    expect(updateTaskStatusGuarded).toHaveBeenCalledWith(
+      expect.objectContaining({ expectedStatus: 'proposed', status: 'blocked' }),
+    )
+  })
+
+  it('returns 409 when the status changed under a stale read (TOCTOU)', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
+    // Read sees 'proposed'; the guarded conditional update matches zero rows
+    // (someone else moved it) and resolves null → the write must not be clobbered.
+    vi.mocked(getTaskById).mockResolvedValue({ id: 'task-1', status: 'proposed' } as any)
+    vi.mocked(updateTaskStatusGuarded).mockResolvedValue(null)
+
+    const res = await PATCH(patchReq({ status: 'blocked' }), { params })
+    expect(res.status).toBe(409)
+    const body = await res.json()
+    expect(body.from).toBe('proposed')
   })
 })
