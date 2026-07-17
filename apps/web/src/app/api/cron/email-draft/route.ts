@@ -16,6 +16,7 @@
 
 import { NextResponse } from 'next/server'
 
+import { assertCronAuth } from '@/lib/cron-auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getConnectedGoogleAccounts, fetchFullThread } from '@/lib/integrations/google'
 import { getAccountVoice, getAccountAgentEnabled } from '@/lib/margot/account-voice'
@@ -42,14 +43,8 @@ export async function GET(request: Request) {
   // Refuse to run without a configured secret — otherwise `Bearer undefined`
   // would match the header and bypass auth on a cron that spends on the LLM and
   // writes drafts. (Guards the unset/empty CRON_SECRET case explicitly.)
-  const cronSecret = process.env.CRON_SECRET?.trim()
-  if (!cronSecret) {
-    return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 500 })
-  }
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
-  }
+  const denied = assertCronAuth(request)
+  if (denied) return denied
 
   // GATE 1 (global): dark unless the founder has flipped the prod env flag.
   // Return BEFORE the account loop — no Gmail read, no LLM call, no draft.

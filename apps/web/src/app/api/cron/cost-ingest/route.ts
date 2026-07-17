@@ -10,6 +10,7 @@
 
 import { NextResponse } from 'next/server';
 
+import { assertCronAuth } from '@/lib/cron-auth';
 import { COST_FETCHERS, type Period } from '@/lib/metering/fetchers/registry';
 import { planIngest } from '@/lib/metering/ingest';
 import { persistPlan } from '@/lib/metering/persist';
@@ -31,12 +32,8 @@ function currentMonthPeriod(now: Date): Period {
 }
 
 export async function GET(request: Request) {
-  if (
-    request.headers.get('authorization') !==
-    `Bearer ${process.env.CRON_SECRET?.trim()}`
-  ) {
-    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
-  }
+  const denied = assertCronAuth(request);
+  if (denied) return denied;
 
   // Dormant switch — off until the founder flips it on post-migration.
   if (process.env.COST_METERING_ENABLED !== 'true') {

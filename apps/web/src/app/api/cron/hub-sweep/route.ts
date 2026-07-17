@@ -10,6 +10,7 @@
 //   5. Calculates health_status and upserts into hub_satellites
 
 import { NextResponse } from 'next/server'
+import { assertCronAuth } from '@/lib/cron-auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sanitiseError } from '@/lib/error-reporting'
 import { fetchIssueCountByBusiness } from '@/lib/integrations/linear'
@@ -20,13 +21,6 @@ import { evaluateAllowListHealth, type AllowListHealth } from '@/lib/auth/allow-
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60 // 1 minute — lightweight API polling only
-
-// ── Auth ─────────────────────────────────────────────────────────────────────
-
-function isAuthorised(request: Request): boolean {
-  const authHeader = request.headers.get('authorization')
-  return authHeader === `Bearer ${process.env.CRON_SECRET?.trim()}`
-}
 
 // ── Health calculation ────────────────────────────────────────────────────────
 
@@ -123,9 +117,8 @@ async function fetchLastBookkeeperRunDate(
 export async function GET(request: Request) {
   const startTime = Date.now()
 
-  if (!isAuthorised(request)) {
-    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
-  }
+  const denied = assertCronAuth(request)
+  if (denied) return denied
 
   const founderId = process.env.FOUNDER_USER_ID
   if (!founderId) {

@@ -4,21 +4,15 @@
 
 import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
+import { assertCronAuth } from '@/lib/cron-auth'
 import { checkSynthexProgress } from '@/lib/integrations/linear-monitor'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
 
 export async function GET(request: Request) {
-  const cronSecret = process.env.CRON_SECRET?.trim()
-  if (!cronSecret) {
-    return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 500 })
-  }
-
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
-  }
+  const denied = assertCronAuth(request)
+  if (denied) return denied
 
   try {
     const result = await checkSynthexProgress()

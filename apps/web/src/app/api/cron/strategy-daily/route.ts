@@ -4,6 +4,7 @@
 // Called by 7 Vercel crons staggered 5 min apart from 02:00 AEST.
 
 import { NextResponse } from 'next/server'
+import { assertCronAuth } from '@/lib/cron-auth'
 import { runDailyAnalysis } from '@/lib/strategy/daily-analysis'
 import { createServiceClient } from '@/lib/supabase/service'
 import { BUSINESSES } from '@/lib/businesses'
@@ -23,11 +24,8 @@ export async function GET(request: Request) {
   const businessKey = url.searchParams.get('business')?.trim() ?? ''
 
   // 1. Auth
-  if (!process.env.CRON_SECRET) return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 500 })
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET.trim()}`) {
-    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
-  }
+  const denied = assertCronAuth(request)
+  if (denied) return denied
 
   // 2. Validate business key
   if (!businessKey || !VALID_KEYS.includes(businessKey)) {

@@ -7,6 +7,7 @@
 
 import { NextResponse } from 'next/server';
 
+import { assertCronAuth } from '@/lib/cron-auth';
 import { createCaptureStore } from '@/lib/margot/capture-store';
 import { googleFetcher } from '@/lib/margot/google-fetcher';
 import {
@@ -27,13 +28,8 @@ export async function GET(request: Request) {
   // Refuse to run without a configured secret — otherwise `Bearer undefined`
   // would match the header when CRON_SECRET is unset and bypass auth. Guard the
   // unset/empty case explicitly BEFORE the compare (mirrors cron/email-draft).
-  const cronSecret = process.env.CRON_SECRET?.trim();
-  if (!cronSecret) {
-    return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 500 });
-  }
-  if (request.headers.get('authorization') !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
-  }
+  const denied = assertCronAuth(request);
+  if (denied) return denied;
   if (process.env.MAILBOX_CAPTURE_ENABLED !== 'true') {
     return NextResponse.json({
       dormant: true,

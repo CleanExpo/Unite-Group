@@ -4,6 +4,7 @@
 // Fetches last 50 unread threads per Gmail account, runs AI triage, auto-archives noise
 
 import { NextResponse } from 'next/server'
+import { assertCronAuth } from '@/lib/cron-auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getConnectedGoogleAccounts, fetchThreadsPaginated, archiveThread } from '@/lib/integrations/google'
 import { triageThreadBatch, type TriageResult } from '@/lib/ai/capabilities/email-triage'
@@ -19,10 +20,8 @@ const BATCH_SIZE = 10
 export async function GET(request: Request) {
   const startTime = Date.now()
 
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET?.trim()}`) {
-    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
-  }
+  const denied = assertCronAuth(request)
+  if (denied) return denied
 
   const founderId = process.env.FOUNDER_USER_ID
   if (!founderId) {

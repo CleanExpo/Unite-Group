@@ -6,21 +6,14 @@
 // loudly without listing, claiming, updating, or commenting on Linear issues.
 
 import { NextResponse } from "next/server";
+import { assertCronAuth } from "@/lib/cron-auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export async function GET(request: Request) {
-  if (!process.env.CRON_SECRET) {
-    return NextResponse.json(
-      { error: "CRON_SECRET not configured" },
-      { status: 500 },
-    );
-  }
-  const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET.trim()}`) {
-    return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
-  }
+  const denied = assertCronAuth(request);
+  if (denied) return denied;
 
   return NextResponse.json(
     {

@@ -10,6 +10,7 @@
 // Response: CitationReport
 
 import { NextResponse } from 'next/server'
+import { assertCronAuth } from '@/lib/cron-auth'
 import { generateCitationReport } from '@/lib/synthex/citation-tracker'
 
 export const dynamic = 'force-dynamic'
@@ -23,10 +24,8 @@ interface CitationCheckBody {
 
 export async function POST(request: Request): Promise<Response> {
   // ── Auth: CRON_SECRET bearer token ────────────────────────────────────────
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET?.trim()}`) {
-    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
-  }
+  const denied = assertCronAuth(request)
+  if (denied) return denied
 
   // ── Parse + validate body ─────────────────────────────────────────────────
   let body: CitationCheckBody
