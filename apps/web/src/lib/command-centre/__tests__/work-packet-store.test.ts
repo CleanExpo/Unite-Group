@@ -196,6 +196,31 @@ describe('work-packet-store', () => {
     expect(saved.approvalRequired).toBe(packet.approvalRequired)
   })
 
+  // UNI-2438 — creation-time governance: persisting a packet whose status maps
+  // to a mid-lifecycle task status must be refused by the createTask guard, so
+  // ingestion cannot mint a task already in the runner-claimable queue (or
+  // beyond) without ever crossing the approval/transition matrix.
+  it.each(['routed', 'running', 'blocked', 'completed'] as const)(
+    'saveWorkPacket refuses to persist a %s packet (illegal initial task status)',
+    async (status) => {
+      const { client, tables } = makeFakeDb()
+      const packet = { ...samplePacket(), status }
+
+      await expect(saveWorkPacket(client, FOUNDER, packet)).rejects.toMatchObject({
+        name: 'IllegalInitialStatusError',
+      })
+      expect(tables[CC_TASKS_TABLE]).toHaveLength(0)
+    },
+  )
+
+  it('saveWorkPacket persists an awaiting_approval packet (legal initial status)', async () => {
+    const { client } = makeFakeDb()
+    const packet = { ...samplePacket(), status: 'awaiting_approval' as const }
+
+    const saved = await saveWorkPacket(client, FOUNDER, packet)
+    expect(saved.status).toBe('awaiting_approval')
+  })
+
   it('getWorkPacket fetches a persisted packet by id, null when absent', async () => {
     const { client } = makeFakeDb()
     const packet = samplePacket()
