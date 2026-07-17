@@ -16,7 +16,11 @@ import {
   sanitiseLaneOutput,
   truncateUtf8,
 } from './adapter'
-import { terminateProcessTree } from './process-tree'
+import {
+  createProcessTreeTracker,
+  processTreeContainmentSupported,
+  terminateProcessTree,
+} from './process-tree'
 import { isValidCliAccount } from './types'
 import type { LaneAdapter, LaneRunOptions, RunResult } from './adapter'
 import type { ProcessTreeOptions } from './process-tree'
@@ -66,6 +70,8 @@ export interface SpawnResult {
 export interface SpawnOptions {
   cwd: string
   env: NodeJS.ProcessEnv
+  /** Sensitive mission text is delivered over stdin, never process argv. */
+  input?: string
   signal?: AbortSignal
   timeoutMs?: number
 }
@@ -98,9 +104,21 @@ function accountConfigDir(accountsDir: string, account: string): string {
 /** Build a supervised spawn with injectable process-tree control for failure drills. */
 export function createSupervisedSpawn(
   terminate: TerminateProcessTreeFn = terminateProcessTree,
+  platform: NodeJS.Platform = process.platform,
+  isContainmentSupported: (
+    platform: NodeJS.Platform,
+  ) => boolean = processTreeContainmentSupported,
 ): SpawnFn {
   return function supervisedSpawnImpl(command, args, opts) {
     return new Promise((resolve, reject) => {
+      if (!isContainmentSupported(platform)) {
+        reject(
+          new Error(
+            `Safe CLI process containment is unsupported on ${platform} without a kernel-backed owner`,
+          ),
+        )
+        return
+      }
       if (opts.signal?.aborted) {
         reject(new Error('CLI run aborted before spawn'))
         return
@@ -116,22 +134,27 @@ export function createSupervisedSpawn(
       const hasSettled = () => settled
       let child
       try {
-        // stdin closed so the CLI doesn't block waiting on it (it reads the
-        // mission from argv); capture stdout/stderr.
+        // Keep sensitive mission text out of process inspection by piping it.
         child = spawn(command, args, {
           cwd: opts.cwd,
           env: opts.env,
-          stdio: ['ignore', 'pipe', 'pipe'],
-          detached: process.platform !== 'win32',
+          stdio: ['pipe', 'pipe', 'pipe'],
+          detached: true,
         })
       } catch (err) {
         reject(err)
         return
       }
+      const tracker = child.pid ? createProcessTreeTracker(child.pid) : null
       const appendBounded = (current: string, chunk: unknown) =>
         truncateUtf8(`${current}${String(chunk)}`, RAW_CAPTURE_LIMIT, '')
       child.stdout.setEncoding('utf8')
       child.stderr.setEncoding('utf8')
+      child.stdin.on('error', (error) => {
+        spawnError = error
+      })
+      if (opts.input) child.stdin.end(opts.input)
+      else child.stdin.end()
       child.stdout.on('data', (d) => {
         stdout = appendBounded(stdout, d)
       })
@@ -144,6 +167,7 @@ export function createSupervisedSpawn(
         settled = true
         clearTimeout(timer)
         opts.signal?.removeEventListener('abort', onAbort)
+        void tracker?.stop().catch(() => {})
         reject(
           error instanceof StopNotAcknowledgedError
             ? error
@@ -162,7 +186,11 @@ export function createSupervisedSpawn(
             ? controllerError.message
             : 'unknown controller error'
         try {
-          await terminateProcessTree(pid, { force: true, graceMs: 0 })
+          await terminateProcessTree(pid, {
+            force: true,
+            graceMs: 0,
+            ownedPids: tracker?.ownedPids,
+          })
         } catch (fallbackError) {
           try {
             child.kill('SIGKILL')
@@ -188,6 +216,7 @@ export function createSupervisedSpawn(
         terminationAck = terminate(child.pid, {
           force,
           graceMs: TERMINATE_GRACE_MS,
+          ownedPids: tracker?.ownedPids,
         }).catch((error) => reapAfterControllerFailure(child.pid!, error))
         void terminationAck.catch(rejectTerminationFailure)
       }
@@ -208,15 +237,21 @@ export function createSupervisedSpawn(
         closing = true
         void (async () => {
           let terminationError: unknown
+          try {
+            await tracker?.stop()
+          } catch (error) {
+            terminationError = error
+          }
           if (!terminating && child.pid) {
             terminationAck = terminate(child.pid, {
               force: Boolean(signal || code === null),
+              ownedPids: tracker?.ownedPids,
             })
           }
           try {
             await terminationAck
           } catch (error) {
-            terminationError = error
+            terminationError ??= error
           }
 
           if (hasSettled()) return
@@ -241,16 +276,16 @@ export function createSupervisedSpawn(
             reject(new Error('CLI run aborted'))
             return
           }
-          if (spawnError) {
-            reject(spawnError)
-            return
-          }
           if (signal || code === null) {
             reject(
               new Error(
                 `CLI agent terminated by ${signal ? `signal ${signal}` : 'an unknown signal'}`,
               ),
             )
+            return
+          }
+          if (spawnError) {
+            reject(spawnError)
             return
           }
           resolve({ code, stdout, stderr })
@@ -281,7 +316,7 @@ export function createCliAdapter(deps: CliAdapterDeps = {}): LaneAdapter {
       const configDir = accountConfigDir(accountsDir, account)
 
       const command = tool === 'codex' ? 'codex' : 'claude'
-      const args = tool === 'codex' ? ['exec', '--', mission] : ['-p', mission]
+      const args = tool === 'codex' ? ['exec', '-'] : ['-p']
 
       // Isolate the account's auth via its own config dir, and ensure the
       // common CLI install locations are on PATH.
@@ -310,6 +345,7 @@ export function createCliAdapter(deps: CliAdapterDeps = {}): LaneAdapter {
       const result = await spawnFn(command, args, {
         cwd: lane.worktree,
         env,
+        input: mission,
         signal: options.signal,
       })
       if (result.code !== 0) {

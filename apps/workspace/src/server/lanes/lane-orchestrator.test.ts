@@ -135,6 +135,112 @@ describe('LaneOrchestrator', () => {
     expect((await orch.get('lane_x'))?.status).toBe('stopped')
   })
 
+  it('holds the registry ownership lock through stop acknowledgement and cleanup', async () => {
+    const registryPath = path.join(tempRoot, 'lanes.jsonl')
+    let cleanupObservedRegistryLock = false
+    const worktrees: WorktreeManager = {
+      async create(_repo, laneId) {
+        return {
+          worktree: path.join(tempRoot, 'wt', laneId),
+          branch: `lane/${laneId}`,
+        }
+      },
+      async remove() {
+        try {
+          const competing = await fs.open(`${registryPath}.lock`, 'wx')
+          await competing.close()
+          await fs.unlink(`${registryPath}.lock`)
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error
+          cleanupObservedRegistryLock = true
+        }
+      },
+    }
+    const orch = createLaneOrchestrator({
+      registryPath,
+      worktrees,
+      idgen: () => 'lane_locked_cleanup',
+      isBackendAvailable: gatewayAvailable,
+    })
+    await orch.create(input)
+
+    await expect(orch.stop('lane_locked_cleanup')).resolves.toMatchObject({
+      status: 'stopped',
+    })
+    expect(cleanupObservedRegistryLock).toBe(true)
+  })
+
+  it('rejects a stop acknowledgement bound to a different active run', async () => {
+    const registryPath = path.join(tempRoot, 'lanes.jsonl')
+    const wt = fakeWorktrees()
+    const orch = createLaneOrchestrator({
+      registryPath,
+      worktrees: wt.manager,
+      idgen: () => 'lane_stale_ack',
+      isBackendAvailable: gatewayAvailable,
+    })
+    const lane = await orch.create(input)
+    await fs.appendFile(
+      registryPath,
+      `${JSON.stringify({
+        ...lane,
+        status: 'stopping',
+        activeRunId: 'run_current',
+        stopAcknowledgedAt: 1_000,
+        stopAcknowledgedRunId: 'run_prior',
+      })}\n`,
+    )
+
+    await expect(orch.stop(lane.id)).rejects.toThrow(/unacknowledged stop/i)
+    expect(wt.removed).toHaveLength(0)
+  })
+
+  it('rejects a stale local termination handle for a different durable run', async () => {
+    const registryPath = path.join(tempRoot, 'lanes.jsonl')
+    let announceStarted!: () => void
+    let releaseRun!: () => void
+    let aborted = false
+    const started = new Promise<void>((resolve) => {
+      announceStarted = resolve
+    })
+    const heldRun = new Promise<void>((resolve) => {
+      releaseRun = resolve
+    })
+    const orch = createLaneOrchestrator({
+      registryPath,
+      worktrees: fakeWorktrees().manager,
+      adapters: {
+        gateway: {
+          async run(_lane, _mission, options) {
+            options?.signal?.addEventListener('abort', () => {
+              aborted = true
+            })
+            announceStarted()
+            await heldRun
+            return { output: 'done' }
+          },
+        },
+      },
+      idgen: () => 'lane_stale_handle',
+      runIdgen: () => 'run_local',
+      isBackendAvailable: gatewayAvailable,
+      stopAckTimeoutMs: 10,
+    })
+    const lane = await orch.create(input)
+    const running = orch.runMission(lane.id, 'held mission').catch((error) => error)
+    await started
+    const current = await orch.get(lane.id)
+    await fs.appendFile(
+      registryPath,
+      `${JSON.stringify({ ...current, activeRunId: 'run_replacement' })}\n`,
+    )
+
+    await expect(orch.stop(lane.id)).rejects.toThrow(/termination handle|ownership/i)
+    expect(aborted).toBe(false)
+    releaseRun()
+    await expect(running).resolves.toBeInstanceOf(Error)
+  })
+
   it('persists across orchestrator instances via the jsonl ledger', async () => {
     const registryPath = path.join(tempRoot, 'lanes.jsonl')
     const wtA = fakeWorktrees()
@@ -226,6 +332,26 @@ describe('LaneOrchestrator', () => {
       status: 'stopped',
     })
     expect(wt.removed).toHaveLength(1)
+  })
+
+  it('fails closed for a legacy running lane without a local termination handle', async () => {
+    const registryPath = path.join(tempRoot, 'lanes.jsonl')
+    const wt = fakeWorktrees()
+    const orch = createLaneOrchestrator({
+      registryPath,
+      worktrees: wt.manager,
+      idgen: () => 'legacy-running-lane',
+      isBackendAvailable: gatewayAvailable,
+    })
+    const lane = await orch.create(input)
+    await fs.appendFile(
+      registryPath,
+      `${JSON.stringify({ ...lane, status: 'running' })}\n`,
+      'utf8',
+    )
+
+    await expect(orch.stop(lane.id)).rejects.toThrow(/reconciliation|required/i)
+    expect(wt.removed).toEqual([])
   })
 
   it('recovers acknowledged cleanup when final stopped persistence fails', async () => {

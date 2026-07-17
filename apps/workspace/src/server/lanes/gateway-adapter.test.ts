@@ -23,7 +23,7 @@ describe('GatewayLaneAdapter', () => {
     expect(res.output).toBe('echo:abab6.5:hello')
   })
 
-  it('falls back to the provider name when no model is set', async () => {
+  it('fails closed when a legacy lane has no exact model', async () => {
     const lane: Lane = {
       ...gatewayLane,
       backend: { kind: 'gateway', provider: 'openrouter', model: '' },
@@ -32,7 +32,7 @@ describe('GatewayLaneAdapter', () => {
       baseUrl: 'http://gw',
       chat: async (a) => a.model,
     })
-    expect((await adapter.run(lane, 'x')).output).toBe('openrouter')
+    await expect(adapter.run(lane, 'x')).rejects.toThrow(/exact gateway model/i)
   })
 
   it('rejects non-gateway lanes', async () => {
@@ -100,6 +100,32 @@ describe('GatewayLaneAdapter', () => {
     expect(capturedHeaders).toMatchObject({
       authorization: 'Bearer test-gateway-token',
     })
+  })
+
+  it.each([
+    { error: { message: 'upstream failure' } },
+    { choices: [] },
+    { choices: [{ message: {} }] },
+    { choices: [{ message: { content: 42 } }] },
+  ])('fails closed for a malformed successful response: %o', async (body) => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(JSON.stringify(body), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+      ),
+    )
+    const adapter = createGatewayAdapter({ baseUrl: 'http://gw' })
+
+    try {
+      await expect(adapter.run(gatewayLane, 'x')).rejects.toThrow(
+        /malformed gateway response/i,
+      )
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 
   it('sanitises gateway output and error detail before returning it', async () => {

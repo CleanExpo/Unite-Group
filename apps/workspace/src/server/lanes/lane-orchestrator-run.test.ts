@@ -64,8 +64,61 @@ describe('LaneOrchestrator.runMission', () => {
     await o.create(gatewayInput)
     const lane = await o.runMission('l1', 'build x')
     expect(lane.status).toBe('idle')
-    expect(lane.lastOutput).toBe('done:build x')
-    expect(lane.mission).toBe('build x')
+    expect(lane.lastOutput).toBe('done:[mission redacted]')
+    expect(lane).not.toHaveProperty('mission')
+  })
+
+  it('keeps the complete executable mission transient', async () => {
+    const mission = 'correct horse battery staple proprietary recovery phrase'
+    const gateway = {
+      run: vi.fn().mockResolvedValue({ output: `done:${mission}` }),
+    }
+    const registryPath = path.join(tempRoot, 'lanes.jsonl')
+    const o = orch({ gateway }, () => 'redacted-mission-lane')
+    await o.create(gatewayInput)
+
+    const lane = await o.runMission('redacted-mission-lane', mission)
+    const ledger = await fs.readFile(registryPath, 'utf8')
+
+    expect(gateway.run).toHaveBeenCalledWith(
+      expect.not.objectContaining({ mission: expect.anything() }),
+      mission,
+      expect.any(Object),
+    )
+    expect(lane).not.toHaveProperty('mission')
+    expect(lane.lastOutput).toBe('done:[mission redacted]')
+    expect(ledger).not.toContain(mission)
+  })
+
+  it('clears stale stop acknowledgement when claiming a new run', async () => {
+    const registryPath = path.join(tempRoot, 'lanes.jsonl')
+    const gateway = {
+      run: vi.fn().mockResolvedValue({ output: 'done' }),
+    }
+    const o = createLaneOrchestrator({
+      registryPath,
+      worktrees: noopWorktrees,
+      adapters: { gateway },
+      idgen: () => 'stale-ack-lane',
+      runIdgen: () => 'fresh-run',
+      now: () => 2_000,
+      isBackendAvailable: () => true,
+    })
+    const lane = await o.create(gatewayInput)
+    await fs.appendFile(
+      registryPath,
+      `${JSON.stringify({
+        ...lane,
+        stopAcknowledgedAt: 1_000,
+        stopAcknowledgedRunId: 'old-run',
+      })}\n`,
+      'utf8',
+    )
+
+    await o.runMission(lane.id, 'fresh mission')
+
+    expect(await o.get(lane.id)).not.toHaveProperty('stopAcknowledgedAt')
+    expect(await o.get(lane.id)).not.toHaveProperty('stopAcknowledgedRunId')
   })
 
   it.each([{}, 42, '   ', 'x'.repeat(16_001)])(
@@ -385,16 +438,19 @@ describe('LaneOrchestrator.runMission', () => {
   })
 
   it('marks the lane error when the adapter throws', async () => {
+    const mission = 'confidential restoration strategy'
     const gateway: LaneAdapter = {
       async run() {
-        throw new Error('gateway down')
+        throw new Error(`gateway rejected: ${mission}`)
       },
     }
+    const registryPath = path.join(tempRoot, 'lanes.jsonl')
     const o = orch({ gateway }, () => 'l2')
     await o.create(gatewayInput)
-    const lane = await o.runMission('l2', 'x')
+    const lane = await o.runMission('l2', mission)
     expect(lane.status).toBe('error')
-    expect(lane.blockedReason).toBe('gateway down')
+    expect(lane.blockedReason).toBe('gateway rejected: [mission redacted]')
+    expect(await fs.readFile(registryPath, 'utf8')).not.toContain(mission)
   })
 
   it('blocks when no adapter is configured for the lane kind', async () => {
@@ -658,6 +714,7 @@ describe('LaneOrchestrator.runMission', () => {
 
     expect(order).toEqual(['terminated', 'cleanup'])
     expect(stopped.status).toBe('stopped')
+    expect(stopped.stopAcknowledgedRunId).toBe('controlled-run')
     expect((await o.get('controlled-lane'))?.status).toBe('stopped')
     expect(await o.getRun('controlled-run')).toMatchObject({
       status: 'stopped',
@@ -728,6 +785,113 @@ describe('LaneOrchestrator.runMission', () => {
     expect(await o.get('unacknowledged-lane')).toMatchObject({
       status: 'error',
       blockedReason: expect.stringMatching(/not acknowledged/i),
+    })
+  })
+
+  it('does not persist a mission echoed by a stop failure', async () => {
+    const mission = 'EXACT_MISSION_ECHO_SENTINEL'
+    const registryPath = path.join(tempRoot, 'lanes.jsonl')
+    let announceStarted!: () => void
+    const started = new Promise<void>((resolve) => {
+      announceStarted = resolve
+    })
+    const cli: LaneAdapter = {
+      async run(_lane, _mission, options) {
+        announceStarted()
+        return new Promise((_resolve, reject) => {
+          options?.signal?.addEventListener(
+            'abort',
+            () =>
+              reject(
+                new StopNotAcknowledgedError(
+                  `adapter echoed: ${mission}`,
+                ),
+              ),
+            { once: true },
+          )
+        })
+      },
+    }
+    const o = createLaneOrchestrator({
+      registryPath,
+      worktrees: noopWorktrees,
+      adapters: { cli },
+      idgen: () => 'mission-echo-stop-lane',
+      runIdgen: () => 'mission-echo-stop-run',
+      isBackendAvailable: () => true,
+    })
+    await o.create(cliInput)
+
+    const running = o
+      .runMission('mission-echo-stop-lane', mission)
+      .catch((error: unknown) => error)
+    await started
+    await expect(o.stop('mission-echo-stop-lane')).rejects.toThrow(
+      StopNotAcknowledgedError,
+    )
+    expect(await running).toBeInstanceOf(StopNotAcknowledgedError)
+
+    expect(await fs.readFile(registryPath, 'utf8')).not.toContain(mission)
+    expect(await o.get('mission-echo-stop-lane')).toMatchObject({
+      status: 'error',
+      blockedReason: expect.stringMatching(/not acknowledged/i),
+    })
+  })
+
+  it('does not overwrite replacement ownership after stop failure', async () => {
+    const registryPath = path.join(tempRoot, 'lanes.jsonl')
+    let announceStarted!: () => void
+    const started = new Promise<void>((resolve) => {
+      announceStarted = resolve
+    })
+    const cli: LaneAdapter = {
+      async run(_lane, _mission, options) {
+        announceStarted()
+        return new Promise((_resolve, reject) => {
+          options?.signal?.addEventListener(
+            'abort',
+            () => {
+              void (async () => {
+                const current = await o.get('replacement-owner-lane')
+                await fs.appendFile(
+                  registryPath,
+                  `${JSON.stringify({
+                    ...current,
+                    status: 'running',
+                    activeRunId: 'replacement-run',
+                  })}\n`,
+                )
+                reject(
+                  new StopNotAcknowledgedError(
+                    'Process tree termination was not acknowledged',
+                  ),
+                )
+              })()
+            },
+            { once: true },
+          )
+        })
+      },
+    }
+    const o = createLaneOrchestrator({
+      registryPath,
+      worktrees: noopWorktrees,
+      adapters: { cli },
+      idgen: () => 'replacement-owner-lane',
+      runIdgen: () => 'original-run',
+      isBackendAvailable: () => true,
+    })
+    await o.create(cliInput)
+    const running = o
+      .runMission('replacement-owner-lane', 'long task')
+      .catch((error: unknown) => error)
+    await started
+
+    await expect(o.stop('replacement-owner-lane')).rejects.toThrow(/ownership/i)
+    await expect(running).resolves.toBeInstanceOf(StopNotAcknowledgedError)
+    expect(await o.get('replacement-owner-lane')).toMatchObject({
+      status: 'running',
+      activeRunId: 'replacement-run',
     })
   })
 
@@ -832,7 +996,7 @@ describe('LaneOrchestrator.runMission', () => {
     expect(cleanupCalls).toBe(0)
     expect(await o.get('settlement-stop-lane')).toMatchObject({
       status: 'error',
-      blockedReason: expect.stringMatching(/settlement persistence failed/i),
+      blockedReason: 'CLI stop was not acknowledged',
     })
   })
 

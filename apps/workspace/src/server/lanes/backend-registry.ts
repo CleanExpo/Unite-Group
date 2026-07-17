@@ -27,15 +27,18 @@ export interface BackendDescriptor {
   id: string
   kind: 'gateway' | 'cli'
   label: string
+  /** Concrete payload submitted by the New IDE wizard. */
+  backend: LaneBackend
   /** Best-effort: is this backend authed/usable right now. */
   available: boolean
 }
 
 /** A function that reports whether a backend is authed. Injectable for tests. */
 export type AvailabilityCheck = (backend: LaneBackend) => boolean
-export type GatewayProviderAvailabilityCheck = (
-  provider: (typeof GATEWAY_PROVIDERS)[number],
-) => boolean
+export interface GatewayModelOption {
+  id: string
+  provider: string
+}
 
 /**
  * Resolve the Claude Code account for a role, falling back to a deterministic
@@ -51,34 +54,55 @@ export function resolveCliAccount(
 /** Build a backend descriptor list for the New IDE wizard. */
 export function listBackends(
   isAvailable: AvailabilityCheck,
-  isGatewayProviderAvailable: GatewayProviderAvailabilityCheck,
+  gatewayModels: ReadonlyArray<GatewayModelOption>,
 ): Array<BackendDescriptor> {
-  const gateway: Array<BackendDescriptor> = GATEWAY_PROVIDERS.map(
-    (provider) => ({
-      id: `gateway:${provider}`,
+  const gateway: Array<BackendDescriptor> = gatewayModels
+    .filter((model) =>
+      GATEWAY_PROVIDERS.includes(
+        model.provider as (typeof GATEWAY_PROVIDERS)[number],
+      ),
+    )
+    .map((model) => ({
+      id: `gateway:${model.provider}:${encodeURIComponent(model.id)}`,
       kind: 'gateway',
-      label: provider,
-      available: isGatewayProviderAvailable(provider),
-    }),
-  )
+      label: `${model.provider} / ${model.id}`,
+      backend: {
+        kind: 'gateway',
+        provider: model.provider,
+        model: model.id,
+      },
+      available: true,
+    }))
 
   const cli: Array<BackendDescriptor> = [
-    ...Object.values(DEFAULT_ROLE_ACCOUNT_MAP).map((account) => ({
-      id: `cli:claude-code:${account}`,
-      kind: 'cli' as const,
-      label: `Claude Code (${account})`,
-      available: isAvailable({ kind: 'cli', tool: 'claude-code', account }),
-    })),
-    {
-      id: `cli:codex:${CODEX_ACCOUNT}`,
-      kind: 'cli' as const,
-      label: `Codex (${CODEX_ACCOUNT})`,
-      available: isAvailable({
+    ...Object.values(DEFAULT_ROLE_ACCOUNT_MAP).map((account) => {
+      const backend: LaneBackend = {
+        kind: 'cli',
+        tool: 'claude-code',
+        account,
+      }
+      return {
+        id: `cli:claude-code:${account}`,
+        kind: 'cli' as const,
+        label: `Claude Code (${account})`,
+        backend,
+        available: isAvailable(backend),
+      }
+    }),
+    (() => {
+      const backend: LaneBackend = {
         kind: 'cli',
         tool: 'codex',
         account: CODEX_ACCOUNT,
-      }),
-    },
+      }
+      return {
+      id: `cli:codex:${CODEX_ACCOUNT}`,
+      kind: 'cli' as const,
+      label: `Codex (${CODEX_ACCOUNT})`,
+        backend,
+        available: isAvailable(backend),
+      }
+    })(),
   ]
 
   return [...gateway, ...cli]

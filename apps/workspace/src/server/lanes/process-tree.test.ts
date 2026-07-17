@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { terminateProcessTree, windowsTaskkillArgs } from './process-tree'
+import { createProcessTreeTracker, terminateProcessTree } from './process-tree'
 
 describe('process-tree supervision', () => {
   it('escalates a surviving POSIX process group from TERM to KILL', async () => {
@@ -12,6 +12,7 @@ describe('process-tree supervision', () => {
       forceAckMs: 0,
       signalGroup: (_pid, signal) => signals.push(signal),
       groupExists: () => groupStates.shift() ?? false,
+      listDescendants: () => Promise.resolve([]),
       sleep: async () => {},
     })
 
@@ -26,6 +27,7 @@ describe('process-tree supervision', () => {
       graceMs: 0,
       signalGroup: (_pid, signal) => signals.push(signal),
       groupExists: () => false,
+      listDescendants: () => Promise.resolve([]),
       sleep: async () => {},
     })
 
@@ -47,36 +49,102 @@ describe('process-tree supervision', () => {
         force: true,
         forceAckMs: 25,
         signalGroup: () => {},
+        listDescendants: () => Promise.resolve([]),
         sleep: async () => {},
       }),
     ).resolves.toBeUndefined()
     expect(probes).toBe(2)
   })
 
-  it('uses Windows tree termination and escalates to force', async () => {
-    const forces: Array<boolean> = []
-    const taskkill = vi.fn(async (_pid: number, force: boolean) => {
-      forces.push(force)
-      if (!force) throw new Error('soft termination failed')
-    })
+  it('tracks, kills and verifies a descendant that escaped the root process group', async () => {
+    const descendantSignals: Array<NodeJS.Signals> = []
+    let groupAlive = true
+    let descendantAlive = true
 
     await terminateProcessTree(42, {
-      platform: 'win32',
+      platform: 'darwin',
       graceMs: 0,
-      taskkill,
+      forceAckMs: 0,
+      signalGroup: (_pid, signal) => {
+        if (signal === 'SIGKILL') groupAlive = false
+      },
+      groupExists: () => groupAlive,
+      listDescendants: () => Promise.resolve([99]),
+      signalProcess: (_pid, signal) => {
+        descendantSignals.push(signal)
+        if (signal === 'SIGKILL') descendantAlive = false
+      },
+      processExists: () => descendantAlive,
       sleep: async () => {},
     })
 
-    expect(forces).toEqual([false, true])
+    expect(descendantSignals).toEqual(['SIGTERM', 'SIGKILL'])
   })
 
-  it('builds taskkill arguments for the whole Windows process tree', () => {
-    expect(windowsTaskkillArgs(42, false)).toEqual(['/PID', '42', '/T'])
-    expect(windowsTaskkillArgs(42, true)).toEqual([
-      '/PID',
-      '42',
-      '/T',
-      '/F',
-    ])
+  it('adopts descendants added by the live tracker after termination starts', async () => {
+    const externallyTracked = new Set<number>()
+    const descendantSignals: Array<NodeJS.Signals> = []
+    let descendantAlive = true
+
+    await terminateProcessTree(42, {
+      platform: 'darwin',
+      graceMs: 0,
+      ownedPids: externallyTracked,
+      signalGroup: (_pid, signal) => {
+        if (signal === 'SIGTERM') externallyTracked.add(99)
+      },
+      groupExists: () => false,
+      listDescendants: () => Promise.resolve([]),
+      signalProcess: (_pid, signal) => {
+        descendantSignals.push(signal)
+        descendantAlive = false
+      },
+      processExists: () => descendantAlive,
+      sleep: async () => {},
+    })
+
+    expect(descendantSignals).toEqual(['SIGTERM'])
+  })
+
+  it('discovers children of a tracked process after the original root exits', async () => {
+    const signalled = new Set<number>()
+
+    await terminateProcessTree(42, {
+      platform: 'darwin',
+      graceMs: 0,
+      ownedPids: new Set([99]),
+      signalGroup: () => {},
+      groupExists: () => false,
+      listDescendants: (rootPid: number) =>
+        Promise.resolve(rootPid === 99 ? [100] : []),
+      signalProcess: (targetPid: number) => {
+        signalled.add(targetPid)
+      },
+      processExists: (targetPid: number) => !signalled.has(targetPid),
+      sleep: async () => {},
+    })
+
+    expect([...signalled].sort((a, b) => a - b)).toEqual([99, 100])
+  })
+
+  it('fails closed when any descendant-tracker sample fails', async () => {
+    let samples = 0
+    const tracker = createProcessTreeTracker(
+      42,
+      () => {
+        samples += 1
+        if (samples === 1) return Promise.reject(new Error('ps snapshot failed'))
+        return Promise.resolve([])
+      },
+      1_000,
+    )
+
+    await expect(tracker.stop()).rejects.toThrow(/snapshot failed/i)
+  })
+
+  it('fails closed on Windows where taskkill cannot prove tree ownership', async () => {
+    await expect(
+      terminateProcessTree(42, { platform: 'win32' }),
+    ).rejects.toThrow(/unsupported.*windows|windows.*unsupported/i)
   })
 })

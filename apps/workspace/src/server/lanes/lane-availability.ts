@@ -17,6 +17,7 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { processTreeContainmentSupported } from './process-tree'
 import { isValidCliAccount } from './types'
 import type { AvailabilityCheck } from './backend-registry'
 import type { CliBackend, LaneBackend } from './types'
@@ -52,7 +53,9 @@ export function cliAccountHasDedicatedCreds(
 export function cliAccountAvailable(
   account: string,
   tool: CliBackend['tool'] = 'claude-code',
+  platform: NodeJS.Platform = process.platform,
 ): boolean {
+  if (!processTreeContainmentSupported(platform)) return false
   return (
     cliAccountHasDedicatedCreds(account, tool) ||
     (tool === 'claude-code' && sharedTokenPresent())
@@ -63,10 +66,24 @@ export function cliAccountAvailable(
 export function cliAccountSource(
   account: string,
   tool: CliBackend['tool'] = 'claude-code',
+  platform: NodeJS.Platform = process.platform,
 ): 'dedicated' | 'shared' | null {
+  if (!processTreeContainmentSupported(platform)) return null
   if (cliAccountHasDedicatedCreds(account, tool)) return 'dedicated'
   if (tool === 'claude-code' && sharedTokenPresent()) return 'shared'
   return null
+}
+
+/** Human-readable reason an unavailable backend cannot be selected. */
+export function backendUnavailableReason(
+  backend: LaneBackend,
+  platform: NodeJS.Platform = process.platform,
+): string {
+  if (backend.kind === 'gateway') return 'model unavailable'
+  if (!processTreeContainmentSupported(platform)) {
+    return 'execution unavailable — kernel containment required'
+  }
+  return 'not configured'
 }
 
 /** Probe the gateway /health endpoint; true only when it responds ok. */
@@ -84,7 +101,7 @@ export async function probeGateway(baseUrl: string): Promise<boolean> {
 type GatewayBackend = Extract<LaneBackend, { kind: 'gateway' }>
 type GatewayFetch = typeof fetch
 
-interface GatewayModel {
+export interface GatewayModel {
   id: string
   provider: string
 }
@@ -93,7 +110,7 @@ function readModelString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
 }
 
-async function loadGatewayModels(
+export async function probeGatewayModels(
   baseUrl: string,
   bearerToken?: string,
   fetcher: GatewayFetch = fetch,
@@ -135,7 +152,7 @@ export async function probeGatewayProviders(
   bearerToken?: string,
   fetcher: GatewayFetch = fetch,
 ): Promise<ReadonlySet<string>> {
-  const models = await loadGatewayModels(baseUrl, bearerToken, fetcher)
+  const models = await probeGatewayModels(baseUrl, bearerToken, fetcher)
   return new Set(models.map((model) => model.provider).filter(Boolean))
 }
 
@@ -146,7 +163,7 @@ export async function probeGatewayBackend(
   bearerToken?: string,
   fetcher: GatewayFetch = fetch,
 ): Promise<boolean> {
-  const models = await loadGatewayModels(baseUrl, bearerToken, fetcher)
+  const models = await probeGatewayModels(baseUrl, bearerToken, fetcher)
   const provider = backend.provider.trim().toLowerCase()
   const providerModels = models.filter((model) => model.provider === provider)
   if (providerModels.length === 0) return false
@@ -168,10 +185,11 @@ export async function probeGatewayBackend(
  */
 export function makeAvailabilityCheck(
   gatewayProviders: ReadonlySet<string>,
+  platform: NodeJS.Platform = process.platform,
 ): AvailabilityCheck {
   return (backend: LaneBackend): boolean =>
     backend.kind === 'gateway'
       ? Boolean(backend.model.trim()) &&
         gatewayProviders.has(backend.provider.toLowerCase())
-      : cliAccountAvailable(backend.account, backend.tool)
+      : cliAccountAvailable(backend.account, backend.tool, platform)
 }

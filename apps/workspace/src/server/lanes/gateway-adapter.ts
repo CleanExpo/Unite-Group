@@ -24,6 +24,10 @@ export interface GatewayAdapterDeps {
   chat?: ChatFn
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
 /** Default chat call: POST {baseUrl}/v1/chat/completions (non-streaming). */
 async function defaultChat(args: ChatArgs): Promise<string> {
   const res = await fetch(`${args.baseUrl}/v1/chat/completions`, {
@@ -49,10 +53,15 @@ async function defaultChat(args: ChatArgs): Promise<string> {
       `Gateway chat failed (${res.status}): ${sanitiseLaneOutput(text, 300)}`,
     )
   }
-  const data = (await res.json()) as {
-    choices?: Array<{ message?: { content?: string } }>
+  const data: unknown = await res.json()
+  const choice =
+    isRecord(data) && Array.isArray(data.choices) ? data.choices[0] : undefined
+  const message = isRecord(choice) ? choice.message : undefined
+  const content = isRecord(message) ? message.content : undefined
+  if (typeof content !== 'string') {
+    throw new Error('Malformed gateway response: assistant content is missing')
   }
-  return data.choices?.[0]?.message?.content ?? ''
+  return content
 }
 
 export function createGatewayAdapter(deps: GatewayAdapterDeps): LaneAdapter {
@@ -66,7 +75,8 @@ export function createGatewayAdapter(deps: GatewayAdapterDeps): LaneAdapter {
       if (lane.backend.kind !== 'gateway') {
         throw new Error('GatewayLaneAdapter only runs gateway lanes')
       }
-      const model = lane.backend.model || lane.backend.provider
+      const model = lane.backend.model.trim()
+      if (!model) throw new Error('An exact gateway model is required')
       try {
         const output = await chat({
           baseUrl: deps.baseUrl,

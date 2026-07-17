@@ -81,17 +81,23 @@ export interface LaneMissionInput {
   mission: string
 }
 
+/** Validate and normalise an untrusted lane identifier. */
+export function parseLaneIdInput(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const id = value.trim()
+  return id && id.length <= MAX_LANE_ID_LENGTH ? id : null
+}
+
 /** Validate and normalise untrusted input before it reaches durable lane state. */
 export function parseLaneMissionInput(value: unknown): LaneMissionInput | null {
   if (!isRecord(value)) return null
   if (typeof value.id !== 'string' || typeof value.mission !== 'string') {
     return null
   }
-  const id = value.id.trim()
+  const id = parseLaneIdInput(value.id)
   const mission = value.mission.trim()
   if (
     !id ||
-    id.length > MAX_LANE_ID_LENGTH ||
     !mission ||
     mission.length > MAX_LANE_MISSION_LENGTH
   ) {
@@ -113,6 +119,8 @@ export interface Lane {
   activeRunId?: string
   /** Durable proof that process termination completed before worktree cleanup. */
   stopAcknowledgedAt?: number
+  /** Run whose process termination was acknowledged; binds proof to ownership. */
+  stopAcknowledgedRunId?: string
   lastRunId?: string
   attempt?: number
   lastOutput?: string
@@ -204,6 +212,7 @@ export function isLane(value: unknown): value is Lane {
     !isOptionalString(value.mission) ||
     !isOptionalString(value.activeRunId) ||
     !isOptionalNumber(value.stopAcknowledgedAt) ||
+    !isOptionalString(value.stopAcknowledgedRunId) ||
     !isOptionalString(value.lastRunId) ||
     !isOptionalString(value.lastOutput) ||
     !isOptionalNumber(value.startedAt) ||
