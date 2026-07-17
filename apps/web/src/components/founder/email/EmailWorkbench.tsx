@@ -104,6 +104,18 @@ export function EmailWorkbench({ accounts }: Props) {
     })
   }
 
+  // Select-all over the currently-loaded (visible) threads — not a whole-mailbox primitive.
+  function handleToggleAll(ids: string[], checked: boolean) {
+    setCheckedIds(prev => {
+      const next = new Set(prev)
+      for (const id of ids) {
+        if (checked) next.add(id)
+        else next.delete(id)
+      }
+      return next
+    })
+  }
+
   function removeThread(id: string) {
     setThreads(prev => prev.filter(t => t.id !== id))
     if (activeThreadId === id) setActiveThreadId(null)
@@ -213,6 +225,7 @@ export function EmailWorkbench({ accounts }: Props) {
                   hasMore={Boolean(nextPageToken)}
                   loading={loading}
                   onCheck={handleCheck}
+                  onToggleAll={handleToggleAll}
                   onThreadClick={setActiveThreadId}
                   onLoadMore={() => loadThreads(activeAccount, nextPageToken)}
                 />
@@ -246,6 +259,7 @@ export function EmailWorkbench({ accounts }: Props) {
         onArchive={() => handleBulkAction('archive')}
         onDelete={() => handleBulkAction('delete')}
         onMarkRead={() => handleBulkAction('read')}
+        onMarkUnread={() => handleBulkAction('unread')}
         onTriage={handleBulkTriage}
         loading={bulkLoading}
       />
