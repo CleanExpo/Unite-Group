@@ -29,7 +29,11 @@ export const EMAIL_ACCOUNTS: EmailAccount[] = [
 ]
 
 export function accountByEmail(email: string): EmailAccount | undefined {
-  return EMAIL_ACCOUNTS.find((account) => account.email === email)
+  // Canonicalise to lowercase so a provider returning a differently-cased
+  // address (e.g. Phill@ConnexusM.com) still resolves — otherwise the account's
+  // footer and voice would be silently dropped.
+  const canonical = email.trim().toLowerCase()
+  return EMAIL_ACCOUNTS.find((account) => account.email.toLowerCase() === canonical)
 }
 
 export function getOwnedReceiptAccounts(provider?: EmailProvider): EmailAccount[] {

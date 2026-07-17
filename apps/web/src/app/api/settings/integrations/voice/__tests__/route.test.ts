@@ -168,6 +168,35 @@ describe('GET/PUT /api/settings/integrations/voice (task 21)', () => {
     expect(body.agentEnabled).toBe(true)
   })
 
+  it('PUT of only `name` MERGES — preserves stored signOff/tone/neverDo (§10)', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'founder-1' } as never)
+    vi.mocked(saveAccountVoice).mockResolvedValue(undefined)
+    // A voice already stored for the account.
+    vi.mocked(getStoredAccountVoice).mockResolvedValue({
+      name: 'Old Name',
+      signOff: 'Kind regards, Phill',
+      toneGuidelines: ['formal', 'measured'],
+      neverDo: ['never use slang'],
+    })
+    vi.mocked(getAccountVoice).mockResolvedValue({
+      name: 'New Name',
+      signOff: 'Kind regards, Phill',
+      toneGuidelines: ['formal', 'measured'],
+      neverDo: ['never use slang'],
+    })
+    vi.mocked(getAccountAgentEnabled).mockResolvedValue(false)
+
+    const res = await PUT(putRequest({ account_email: 'a@b.com', name: 'New Name' }))
+    expect(res.status).toBe(200)
+    // Only `name` overlaid; the omitted fields are the STORED values, not defaults/[].
+    expect(saveAccountVoice).toHaveBeenCalledWith('founder-1', 'a@b.com', {
+      name: 'New Name',
+      signOff: 'Kind regards, Phill',
+      toneGuidelines: ['formal', 'measured'],
+      neverDo: ['never use slang'],
+    })
+  })
+
   it('PUT with only a voice edit never flips the agent toggle', async () => {
     vi.mocked(getUser).mockResolvedValue({ id: 'founder-1' } as never)
     vi.mocked(saveAccountVoice).mockResolvedValue(undefined)

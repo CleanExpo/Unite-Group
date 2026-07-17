@@ -55,6 +55,13 @@ export interface SignatureParts {
   accountEmail: string;
   businessDomain: string | null;
   siblings: Array<{ name: string; domain: string }>;
+  /**
+   * Whether to render the "Part of the Unite-Group Nexus portfolio …" disclosure
+   * (and the Pty Ltd legal line). True for OWNED accounts and the HQ mailbox;
+   * false for CLIENT accounts (e.g. CCW) — a client mailbox must never broadcast
+   * the internal portfolio.
+   */
+  showPortfolioLine: boolean;
 }
 
 function logoUrl(): string {
@@ -87,13 +94,22 @@ export function buildSignatureParts(
 
   const businessDomain = ownContact?.domain ?? null;
 
+  // The portfolio disclosure (siblings + "Part of the Unite-Group Nexus
+  // portfolio" + the Pty Ltd line) is for OWNED accounts and the HQ mailbox only.
+  // A CLIENT mailbox (e.g. CCW phill@connexusm.com) must NOT broadcast the
+  // internal portfolio — it still gets a branded footer with its own identity.
+  const showPortfolioLine = account.scope === 'owned' || ownKey === HQ_KEY;
+
   // Every OTHER business that has a real domain — excludes this account's own
   // business and excludes domain-less businesses (ato/itr are not in the map).
   // Uses the clean public brand name, not the internal businesses.ts SSOT name.
   // For the HQ account (ownKey='ugn', not in PORTFOLIO_CONTACT) none are excluded.
-  const siblings = Object.entries(PORTFOLIO_CONTACT)
-    .filter(([key]) => key !== ownKey)
-    .map(([, c]) => ({ name: c.name, domain: c.domain }));
+  // Empty for client accounts (they never show siblings).
+  const siblings = showPortfolioLine
+    ? Object.entries(PORTFOLIO_CONTACT)
+        .filter(([key]) => key !== ownKey)
+        .map(([, c]) => ({ name: c.name, domain: c.domain }))
+    : [];
 
   return {
     logoUrl: logoUrl(),
@@ -105,15 +121,25 @@ export function buildSignatureParts(
     accountEmail,
     businessDomain,
     siblings,
+    showPortfolioLine,
   };
 }
 
-function escapeHtml(value: string): string {
+/**
+ * HTML-escape a value for safe interpolation into TEXT context. Escapes the five
+ * XSS-relevant characters plus `'` and `/` (OWASP output-encoding set) so a
+ * hostile value can neither break out of an element nor an attribute nor forge a
+ * closing tag. Exported so the send path (gmail.sendReply) escapes the untrusted
+ * draft body with the same hardened rules.
+ */
+export function escapeHtml(value: string): string {
   return value
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/\//g, '&#x2F;');
 }
 
 /**
@@ -140,29 +166,37 @@ export function renderSignatureHtml(parts: SignatureParts): string {
   const rule = '#e5e7eb';
   const sep = ' &nbsp;&middot;&nbsp; ';
 
+  // URLs go in href/src attributes: encodeURI keeps `/` `:` `@` intact (so the
+  // path/domain still resolves) while percent-encoding attribute-breakout chars
+  // like `"`, `<`, `>` and spaces. Visible link TEXT is escapeHtml'd (text
+  // context). Both defend against a hostile domain/email/logo value.
   const domainLink = businessDomain
-    ? `<a href="https://${businessDomain}" style="color:${link};text-decoration:none;">${businessDomain}</a>`
+    ? `<a href="https://${encodeURI(businessDomain)}" style="color:${link};text-decoration:none;">${escapeHtml(businessDomain)}</a>`
     : '';
 
   const siblingLinks = siblings
     .map(
       (s) =>
-        `<a href="https://${s.domain}" style="color:${link};text-decoration:none;">${escapeHtml(s.name)}</a>`
+        `<a href="https://${encodeURI(s.domain)}" style="color:${link};text-decoration:none;">${escapeHtml(s.name)}</a>`
     )
     .join(sep);
 
+  const portfolioRows = parts.showPortfolioLine
+    ? `
+  <tr><td style="padding:8px 0 0 0;border-top:1px solid ${rule};font-size:11px;color:${muted};">Part of the Unite-Group Nexus portfolio${siblings.length ? ` &mdash; ${siblingLinks}` : ''}</td></tr>
+  <tr><td style="padding:4px 0 0 0;font-size:11px;color:${muted};">Unite-Group Nexus Pty Ltd</td></tr>`
+    : '';
+
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-family:${font};font-size:13px;line-height:1.5;color:${text};">
   <tr><td style="padding:0 0 8px 0;">
-    <img src="${logo}" width="120" alt="Unite-Group Nexus" style="display:block;border:0;width:120px;height:auto;" />
+    <img src="${encodeURI(logo)}" width="120" alt="Unite-Group Nexus" style="display:block;border:0;width:120px;height:auto;" />
   </td></tr>
   <tr><td style="padding:0 0 6px 0;font-style:italic;font-size:12px;color:${muted};">${escapeHtml(slogan)}</td></tr>
   <tr><td style="padding:0 0 2px 0;font-weight:bold;color:${text};">${escapeHtml(signOff)}</td></tr>
   <tr><td style="padding:0 0 4px 0;color:${text};">${escapeHtml(founderName)}${sep}${escapeHtml(businessName)}</td></tr>
   <tr><td style="padding:0 0 8px 0;font-size:12px;color:${muted};">
-    <a href="mailto:${accountEmail}" style="color:${link};text-decoration:none;">${escapeHtml(accountEmail)}</a>${businessDomain ? `${sep}${domainLink}` : ''}
-  </td></tr>
-  <tr><td style="padding:8px 0 0 0;border-top:1px solid ${rule};font-size:11px;color:${muted};">Part of the Unite-Group Nexus portfolio${siblings.length ? ` &mdash; ${siblingLinks}` : ''}</td></tr>
-  <tr><td style="padding:4px 0 0 0;font-size:11px;color:${muted};">Unite-Group Nexus Pty Ltd</td></tr>
+    <a href="mailto:${encodeURI(accountEmail)}" style="color:${link};text-decoration:none;">${escapeHtml(accountEmail)}</a>${businessDomain ? `${sep}${domainLink}` : ''}
+  </td></tr>${portfolioRows}
 </table>`;
 }
 

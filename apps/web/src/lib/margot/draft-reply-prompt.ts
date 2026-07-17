@@ -43,7 +43,7 @@ export function buildFounderReplySystemPrompt(voice: FounderVoice): string {
     '## Rules',
     '- Match the sender’s register; be warm, direct, and concise.',
     '- Australian English (colour, organise, recognise, licence). Dates DD/MM/YYYY. AUD.',
-    `- End with the sign-off: "${voice.signOff}".`,
+    '- Do NOT add a sign-off, signature, or your name at the end — the account signature footer is appended automatically. End on the last sentence of the reply.',
     '- Output ONLY the email body text — no subject line, no preamble, no explanation, no markdown fences.',
   ];
   return parts.join('\n');

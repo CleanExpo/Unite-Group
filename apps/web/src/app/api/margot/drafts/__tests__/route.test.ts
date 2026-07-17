@@ -48,19 +48,18 @@ describe('POST /api/margot/drafts — signature append (UNI-2153)', () => {
     delete process.env.MARGOT_DRAFTS_ENABLED
   })
 
-  it('business account: returned body ends with the signature', async () => {
-    vi.mocked(getAccountSignature).mockResolvedValue('SIGNATURE')
+  it('business account: stores the model body ONLY — no footer (send path owns it)', async () => {
     const res = await POST(
       post({ incoming: { body: 'hi', subject: 's' }, accountEmail: BUSINESS }),
     )
     const body = await res.json()
     expect(res.status).toBe(200)
-    expect(body.body).toBe('DRAFT BODY\n\nSIGNATURE')
-    expect(body.body.endsWith('SIGNATURE')).toBe(true)
-    expect(getAccountSignature).toHaveBeenCalledWith('founder-1', BUSINESS)
-    // The stored draft carries the combined body too.
+    // The footer is appended exactly once at send time by gmail.sendReply, NOT
+    // when the draft is stored — otherwise the sent email would carry two footers.
+    expect(body.body).toBe('DRAFT BODY')
+    expect(getAccountSignature).not.toHaveBeenCalled()
     expect(createDraft).toHaveBeenCalledWith(
-      expect.objectContaining({ body: 'DRAFT BODY\n\nSIGNATURE' }),
+      expect.objectContaining({ body: 'DRAFT BODY' }),
     )
   })
 

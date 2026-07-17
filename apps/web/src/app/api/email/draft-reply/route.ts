@@ -12,7 +12,6 @@ import { fetchFullThread } from '@/lib/integrations/google'
 import { getAccountVoice } from '@/lib/margot/account-voice'
 import { generateFounderDraft } from '@/lib/margot/draft-reply'
 import { createAnthropicComplete } from '@/lib/margot/providers'
-import { getAccountSignature } from '@/lib/email/signature'
 import type { IncomingEmail } from '@/lib/margot/draft-reply-prompt'
 
 export const dynamic = 'force-dynamic'
@@ -46,11 +45,10 @@ export async function POST(request: Request) {
     }
 
     const body = await generateFounderDraft(incoming, voice, createAnthropicComplete())
-    // Append the account's signature footer so the founder edits the FINAL email
-    // (footer included) in the composer before Send. Returns '' for personal
-    // accounts, so only business mailboxes get a footer.
-    const signature = await getAccountSignature(user.id, account)
-    return NextResponse.json({ body: signature ? `${body}\n\n${signature}` : body })
+    // Return the model body ONLY. The signature footer is owned by the single
+    // send chokepoint (gmail.sendReply), which appends it exactly once for
+    // business accounts — appending here too would double the footer.
+    return NextResponse.json({ body })
   } catch (error) {
     console.error('[Email API] draft-reply failed:', error)
     return NextResponse.json(

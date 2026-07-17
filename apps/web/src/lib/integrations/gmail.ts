@@ -9,6 +9,7 @@ import {
   type StoredTokens,
 } from './google-oauth'
 import { accountByEmail } from '@/lib/email-accounts'
+import { getAccountSignature, escapeHtml } from '@/lib/email/signature'
 
 const GOOGLE_CACHE_TTL_MS = 5 * 60 * 1_000
 
@@ -467,17 +468,45 @@ export async function sendReply(
 ): Promise<{ messageId: string }> {
   const accessToken = await getAccessTokenForEmail(founderId, email)
 
-  // Strip CR/LF to prevent email header injection
+  // Strip CR/LF from every header-bound value to prevent email header injection.
+  // `email` (From) and `inReplyToMessageId` are header values too — not just
+  // `to`/`subject` — so a CRLF in either could otherwise smuggle extra headers.
   const cleanTo = opts.to.replace(/[\r\n]/g, '')
   const cleanSubject = opts.subject.replace(/[\r\n]/g, ' ')
-  const replyTo = opts.inReplyToMessageId ? `\r\nIn-Reply-To: <${opts.inReplyToMessageId}>\r\nReferences: <${opts.inReplyToMessageId}>` : ''
+  const cleanFrom = email.replace(/[\r\n]/g, '')
+  const cleanInReplyTo = opts.inReplyToMessageId?.replace(/[\r\n]/g, '')
+  const replyTo = cleanInReplyTo
+    ? `\r\nIn-Reply-To: <${cleanInReplyTo}>\r\nReferences: <${cleanInReplyTo}>`
+    : ''
+
+  // The draft/founder body is UNTRUSTED plain text (LLM- or inbound-influenced):
+  // escape its HTML and convert newlines to <br> BEFORE it enters the text/html
+  // part, so it can neither inject markup nor hide the trusted footer that
+  // follows. The signature HTML is trusted and appended AFTER escaping.
+  const escapedBody = escapeHtml(opts.body).replace(/\n/g, '<br>')
+
+  // Append the account signature footer at the single SEND chokepoint —
+  // business accounts only (getAccountSignature returns '' for personal/unknown),
+  // exactly once. A signature-lookup failure must NEVER block the send: on any
+  // error fall back to sending without a footer.
+  const signature = await getAccountSignature(founderId, cleanFrom).catch(() => '')
+  const htmlBody = signature ? `${escapedBody}${signature}` : escapedBody
+
+  // Declare Content-Transfer-Encoding: base64 and actually base64-encode the
+  // body part (RFC 2045, wrapped at 76 chars) so non-ASCII AU text decodes
+  // reliably in every client, independent of the outer Gmail raw wrapping.
+  const encodedBody = Buffer.from(htmlBody, 'utf8')
+    .toString('base64')
+    .replace(/(.{76})/g, '$1\r\n')
   const mime = [
-    `From: ${email}`,
+    `From: ${cleanFrom}`,
     `To: ${cleanTo}`,
     `Subject: ${cleanSubject}${replyTo}`,
+    'MIME-Version: 1.0',
     'Content-Type: text/html; charset=UTF-8',
+    'Content-Transfer-Encoding: base64',
     '',
-    opts.body,
+    encodedBody,
   ].join('\r\n')
 
   const raw = Buffer.from(mime)

@@ -10,11 +10,14 @@ import {
   buildSignatureParts,
   renderSignatureHtml,
   getAccountSignature,
+  escapeHtml,
   DEFAULT_SLOGAN,
 } from './signature'
 
 const DR_EMAIL = 'phill@disasterrecovery.com.au'
 const PERSONAL_EMAIL = 'phill.mcgurk@gmail.com'
+const CCW_EMAIL = 'phill@connexusm.com' // scope: client
+const HQ_EMAIL = 'contact@unite-group.in' // scope: owned, key: ugn
 
 describe('buildSignatureParts', () => {
   it('resolves a business account with business, own domain, and siblings', () => {
@@ -107,6 +110,79 @@ describe('renderSignatureHtml', () => {
   it('is email-safe: table layout, inline styles, no external classes', () => {
     expect(html).toContain('<table')
     expect(html).not.toContain('class=')
+  })
+})
+
+describe('escapeHtml hardening (UNI-2153)', () => {
+  it('escapes the five XSS chars plus apostrophe and slash', () => {
+    expect(escapeHtml('&')).toBe('&amp;')
+    expect(escapeHtml('<')).toBe('&lt;')
+    expect(escapeHtml('>')).toBe('&gt;')
+    expect(escapeHtml('"')).toBe('&quot;')
+    expect(escapeHtml("'")).toBe('&#39;')
+    expect(escapeHtml('/')).toBe('&#x2F;')
+  })
+
+  it('neutralises a quote in both text and attribute context in the rendered footer', () => {
+    // A hostile value carrying a double-quote must not break out of an attribute
+    // or forge a tag: escapeHtml renders it inert as &quot; / &#39; in text.
+    const parts = buildSignatureParts(DR_EMAIL, {
+      signOff: 'Cheers " onmouseover=alert(1) x',
+      slogan: "It's a </table><script>alert(1)</script> slogan",
+      founderName: 'Phill',
+    })!
+    const out = renderSignatureHtml(parts)
+    // The quote is escaped, so the value cannot break out of an attribute or
+    // introduce an event handler; the <script> tag is inert as text.
+    expect(out).not.toContain('<script>')
+    expect(out).not.toContain('</table><script>')
+    expect(out).toContain('&quot; onmouseover') // the raw " became &quot;
+    expect(out).toContain('&#39;') // the apostrophe in "It's"
+    expect(out).toContain('&lt;script&gt;')
+  })
+})
+
+describe('client-scope footer (UNI-2153 §12)', () => {
+  it('CCW (client) footer shows its own identity but NO portfolio/sibling disclosure', () => {
+    const parts = buildSignatureParts(CCW_EMAIL, {
+      signOff: 'Cheers, Phill', slogan: 'y', founderName: 'Phill',
+    })!
+    expect(parts.showPortfolioLine).toBe(false)
+    expect(parts.siblings).toHaveLength(0)
+    expect(parts.businessName).toBe('CCW')
+    expect(parts.businessDomain).toBe('connexusm.com')
+
+    const out = renderSignatureHtml(parts)
+    // Own identity + own domain/email present…
+    expect(out).toContain('CCW')
+    expect(out).toContain('https://connexusm.com')
+    expect(out).toContain('mailto:phill@connexusm.com')
+    // …but the internal portfolio is NOT broadcast on a client mailbox.
+    expect(out).not.toContain('Part of the Unite-Group Nexus portfolio')
+    expect(out).not.toContain('Unite-Group Nexus Pty Ltd')
+    expect(out).not.toContain('https://nrpg.business')
+    expect(out).not.toContain('https://disasterrecovery.com.au')
+  })
+
+  it('NRPG (owned) still shows the portfolio disclosure and siblings', () => {
+    const parts = buildSignatureParts('nrpg.team@gmail.com', {
+      signOff: 'Cheers, Phill', slogan: 'y', founderName: 'Phill',
+    })!
+    expect(parts.showPortfolioLine).toBe(true)
+    const out = renderSignatureHtml(parts)
+    expect(out).toContain('Part of the Unite-Group Nexus portfolio')
+    expect(out).toContain('Unite-Group Nexus Pty Ltd')
+    expect(out).toContain('https://disasterrecovery.com.au')
+  })
+
+  it('HQ (ugn) still shows the portfolio disclosure and every sibling', () => {
+    const parts = buildSignatureParts(HQ_EMAIL, {
+      signOff: 'Cheers, Phill', slogan: 'y', founderName: 'Phill',
+    })!
+    expect(parts.showPortfolioLine).toBe(true)
+    const out = renderSignatureHtml(parts)
+    expect(out).toContain('Part of the Unite-Group Nexus portfolio')
+    expect(out).toContain('https://connexusm.com')
   })
 })
 

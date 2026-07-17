@@ -80,18 +80,22 @@ export async function GET(request: Request) {
   // riding a different (e.g. admin) session would store its tokens under the
   // requested address, so additional accounts collide on the label upsert key
   // and never really connect. `state.email` stays the CSRF/founder binding only.
-  let authenticatedEmail = email
+  let authenticatedEmail: string
   try {
     const infoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
     })
-    if (infoRes.ok) {
-      const info = await infoRes.json() as { email?: string }
-      if (info.email) authenticatedEmail = info.email
-    }
-  } catch {
-    // Fall back to the requested email if userinfo is unreachable — the token
-    // still persists; identity is corrected on the next successful connect.
+    if (!infoRes.ok) throw new Error(`userinfo ${infoRes.status}`)
+    const info = await infoRes.json() as { email?: string }
+    if (!info.email) throw new Error('userinfo returned no email')
+    authenticatedEmail = info.email
+  } catch (e) {
+    // FAIL CLOSED: if we cannot confirm the REAL authenticated email, do NOT
+    // persist tokens under the unverified requested address — that would let
+    // Google riding a different session store credentials under the wrong
+    // identity. Discard the tokens and surface an error redirect instead.
+    console.error('[Google OAuth] userinfo failed — failing closed:', e)
+    return NextResponse.redirect(`${APP_URL}/founder/email?error=identity_unconfirmed`)
   }
   email = authenticatedEmail
 
