@@ -43,6 +43,7 @@ import {
   type TaskEventType,
   type SupabaseLike,
 } from './tasks'
+import { isLegalTransition } from './task-transitions'
 
 // ─── Status mapping (PacketStatus <-> TaskStatus) ────────────────────────────
 
@@ -281,6 +282,31 @@ export async function applyPacketTransition(
   }
 
   const next = result.packet
+
+  // UNI-2417 governance guard: the work-packet lane is a SEPARATE promotion path
+  // into cc_tasks. Because a `routed` packet maps to cc_tasks `queued` (runner-
+  // claimable) and `running` maps to `running`, a plain client transition here
+  // (route / start / unblock / approve) could otherwise drive the backing task
+  // into `queued`/`running` without ever passing the task-transition matrix —
+  // bypassing the Board/approval + runner authority the matrix exists to enforce.
+  // This endpoint is client-driven, so promotions are validated under the
+  // `founder` actor, which the matrix does NOT allow to reach `queued`/`running`.
+  // Legitimate promotion to `queued` goes through the approval route
+  // (`applyApproval`); `running` is the runner's claim alone. Benign transitions
+  // (block, complete → done, start → awaiting_approval) do not target
+  // `queued`/`running` and pass through unchanged.
+  const fromTaskStatus = task.status
+  const toTaskStatus = packetStatusToTaskStatus(next.status)
+  if (
+    (toTaskStatus === 'queued' || toTaskStatus === 'running') &&
+    !isLegalTransition(fromTaskStatus, toTaskStatus, 'founder')
+  ) {
+    return {
+      ok: false,
+      packet: current,
+      reason: `illegal promotion: ${fromTaskStatus} → ${toTaskStatus} is not permitted via a work-packet transition`,
+    }
+  }
   // Persist the new status against the row's primary key. The append-only event
   // records the rest of the transition (actor, from/to, reason) for the audit
   // trail; the returned packet carries the full in-memory transition result.

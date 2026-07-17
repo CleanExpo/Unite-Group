@@ -439,6 +439,51 @@ export async function updateTaskStatus(
   return (data as CommandCentreTask) ?? null
 }
 
+// A minimal structural client for a status-guarded conditional update: it adds a
+// third `.eq('status', expected)` filter and returns the affected rows as an
+// array (no `.single()`), so zero rows unambiguously means "no row matched the
+// expected status" — the same atomic pattern the runner uses (runner-claim.ts).
+export interface GuardedUpdateClientLike {
+  from(table: string): {
+    update(values: unknown): {
+      eq(column: string, value: unknown): {
+        eq(column: string, value: unknown): {
+          eq(column: string, value: unknown): {
+            select(columns?: string): Promise<{ data: unknown; error: SupabaseErrorLike | null }>
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * UNI-2417 TOCTOU guard: update a task's status ONLY while it still holds the
+ * `expectedStatus` the caller read, via a conditional
+ * `UPDATE ... WHERE founder_id = ? AND id = ? AND status = <expected>`. Returns
+ * the updated row, or null when zero rows matched — i.e. the row was deleted or
+ * its status changed between the caller's read and this write (a lost race). The
+ * caller treats null as a 409 conflict. Mirrors the runner's atomic claim.
+ */
+export async function updateTaskStatusGuarded(
+  input: { founderId: string; taskId: string; status: TaskStatus; expectedStatus: TaskStatus },
+  client?: GuardedUpdateClientLike,
+): Promise<CommandCentreTask | null> {
+  const db = client ?? ((await createClient()) as unknown as GuardedUpdateClientLike)
+
+  const { data, error } = await db
+    .from(CC_TASKS_TABLE)
+    .update({ status: input.status })
+    .eq('founder_id', input.founderId)
+    .eq('id', input.taskId)
+    .eq('status', input.expectedStatus)
+    .select('*')
+
+  if (error) throw new Error(`updateTaskStatusGuarded failed: ${error.message}`)
+  const rows = (data as CommandCentreTask[]) ?? []
+  return rows[0] ?? null
+}
+
 /**
  * Shallow-merge `patch` into a task's metadata JSONB by (founder_id, id).
  * Returns the updated row, or null when no matching row exists.

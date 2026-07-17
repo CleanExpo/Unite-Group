@@ -8,7 +8,7 @@
 import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
-import { getTaskById, updateTaskStatus, appendTaskEvent, type TaskStatus } from '@/lib/command-centre/tasks'
+import { getTaskById, updateTaskStatusGuarded, appendTaskEvent, type TaskStatus } from '@/lib/command-centre/tasks'
 import { listApprovalsForTask } from '@/lib/command-centre/approvals'
 import { getValidationSummary } from '@/lib/command-centre/validation'
 import { isLegalTransition } from '@/lib/command-centre/task-transitions'
@@ -110,8 +110,26 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   try {
-    const task = await updateTaskStatus({ founderId: user.id, taskId: id, status: status as TaskStatus })
-    if (!task) return NextResponse.json({ error: 'Task not found' }, { status: 404 })
+    // UNI-2417 TOCTOU guard: only write while the row still holds the status we
+    // read above (`current.status`). A zero-row result means the status changed
+    // (or the row was deleted) between the read and this write — a lost race that
+    // must NOT be clobbered; report it as a 409 conflict so the caller re-reads.
+    const task = await updateTaskStatusGuarded({
+      founderId: user.id,
+      taskId: id,
+      status: status as TaskStatus,
+      expectedStatus: current.status,
+    })
+    if (!task) {
+      return NextResponse.json(
+        {
+          error: 'Task status changed since it was read; re-read and retry',
+          from: current.status,
+          to: status,
+        },
+        { status: 409 },
+      )
+    }
 
     // Audit the transition (best-effort relative to the update).
     try {
