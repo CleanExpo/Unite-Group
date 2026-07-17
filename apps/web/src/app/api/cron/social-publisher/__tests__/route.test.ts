@@ -41,6 +41,15 @@ describe('GET /api/cron/social-publisher', () => {
     expect(res.status).toBe(401)
   })
 
+  it('rejects `Bearer undefined` when CRON_SECRET is unset (no bypass)', async () => {
+    vi.stubEnv('CRON_SECRET', undefined)
+    const res = await GET(req('Bearer undefined'))
+    expect(res.status).not.toBe(200)
+    expect(res.status).toBe(500)
+    expect(mockFrom).not.toHaveBeenCalled()
+    vi.stubEnv('CRON_SECRET', 'test-secret')
+  })
+
   it('founder-scopes the social_posts query', async () => {
     vi.stubEnv('FOUNDER_USER_ID', 'founder-uuid')
     const chain = makeChain()

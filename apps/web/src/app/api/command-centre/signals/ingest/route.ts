@@ -14,6 +14,7 @@
 
 import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
+import { isCronAuthorised } from '@/lib/cron-auth'
 import { getUser } from '@/lib/supabase/server'
 import { createTask, listTasks, appendTaskEvent, addEvidenceRecord } from '@/lib/command-centre/tasks'
 import { ingestSignal } from '@/lib/command-centre/signals/ingest'
@@ -26,9 +27,7 @@ const SEVERITIES: readonly SignalSeverity[] = ['info', 'warning', 'critical']
 
 export async function POST(request: Request): Promise<Response> {
   // ── Auth: founder session, or a machine caller bearing CRON_SECRET ──────────
-  const authHeader = request.headers.get('authorization')
-  const cronSecret = process.env.CRON_SECRET?.trim()
-  const cronOk = !!cronSecret && authHeader === `Bearer ${cronSecret}`
+  const cronOk = isCronAuthorised(request)
 
   let founderId: string
   if (cronOk) {

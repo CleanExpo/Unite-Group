@@ -4,6 +4,7 @@
 // Aggregates GitHub + Linear + Xero + coach reports + strategy insights → Sonnet synthesis
 
 import { NextResponse } from 'next/server'
+import { assertCronAuth } from '@/lib/cron-auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { runDailyBriefing, type BriefingInput } from '@/lib/ceo-board/daily-briefing'
 import {
@@ -31,11 +32,8 @@ export async function GET(request: Request) {
   const startTime = Date.now()
 
   // 1. Auth
-  if (!process.env.CRON_SECRET) return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 500 })
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET.trim()}`) {
-    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
-  }
+  const denied = assertCronAuth(request)
+  if (denied) return denied
 
   const founderId = process.env.FOUNDER_USER_ID?.trim()
   if (!founderId) {

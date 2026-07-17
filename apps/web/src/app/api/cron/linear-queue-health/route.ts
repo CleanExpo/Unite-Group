@@ -6,6 +6,7 @@
 
 import { sanitiseError } from "@/lib/error-reporting";
 import { NextResponse } from "next/server";
+import { assertCronAuth } from "@/lib/cron-auth";
 import {
   fetchClaimCandidates,
   type LinearClaimCandidateRaw,
@@ -43,18 +44,8 @@ function toCandidate(raw: LinearClaimCandidateRaw): ClaimCandidate {
 }
 
 export async function GET(request: Request) {
-  if (!process.env.CRON_SECRET) {
-    return NextResponse.json(
-      { error: "CRON_SECRET not configured" },
-      { status: 500 },
-    );
-  }
-  if (
-    request.headers.get("authorization") !==
-    `Bearer ${process.env.CRON_SECRET.trim()}`
-  ) {
-    return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
-  }
+  const denied = assertCronAuth(request);
+  if (denied) return denied;
 
   const config = buildConfigReadiness({
     linearKey: process.env.LINEAR_API_KEY,

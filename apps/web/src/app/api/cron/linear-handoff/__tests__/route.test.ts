@@ -45,7 +45,6 @@ describe("GET /api/cron/linear-handoff", () => {
 
     expect(response.status).toBe(500);
     expect(await response.json()).toEqual({
-      ok: false,
       error: "CRON_SECRET not configured",
     });
   });
@@ -54,7 +53,7 @@ describe("GET /api/cron/linear-handoff", () => {
     const response = await GET(request("Bearer wrong"));
 
     expect(response.status).toBe(401);
-    expect(await response.json()).toEqual({ ok: false, error: "Unauthorised" });
+    expect(await response.json()).toEqual({ error: "Unauthorised" });
   });
 
   it.each([undefined, "0", "1"])(

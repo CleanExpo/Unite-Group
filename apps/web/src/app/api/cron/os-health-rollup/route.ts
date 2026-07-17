@@ -15,6 +15,7 @@
 // Schedule: every 15 minutes (vercel.json).
 
 import { NextResponse } from 'next/server'
+import { assertCronAuth } from '@/lib/cron-auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import {
   PORTFOLIO_REPOS,
@@ -334,9 +335,8 @@ async function buildEmailAccountsRow(supabase: ServiceClient): Promise<HealthRow
 // --- route -----------------------------------------------------------------
 
 export async function GET(request: Request) {
-  if (request.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET?.trim()}`) {
-    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
-  }
+  const denied = assertCronAuth(request)
+  if (denied) return denied
 
   const supabase = createServiceClient()
   const reportedAt = new Date().toISOString()
