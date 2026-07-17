@@ -53,8 +53,9 @@ describe('capture — normalise + dedupe', () => {
 });
 
 describe('registry seed + provider coverage', () => {
-  it('seeds all 9 real mailboxes from EMAIL_ACCOUNTS', () => {
-    expect(MAILBOX_SEED).toHaveLength(9);
+  it('seeds all 10 real mailboxes from EMAIL_ACCOUNTS', () => {
+    // 9 portfolio/personal mailboxes + the Unite-Group Nexus HQ account (ugn).
+    expect(MAILBOX_SEED).toHaveLength(10);
     expect(MAILBOX_SEED.map(m => m.provider)).toContain('microsoft');
     expect(MAILBOX_SEED.map(m => m.provider)).toContain('siteground');
   });

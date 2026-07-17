@@ -7,7 +7,8 @@ export type EmailAccountScope = 'owned' | 'client' | 'personal'
 
 export interface EmailAccount {
   email: string
-  businessKey: BusinessKey | 'personal'
+  // 'ugn' = the Unite-Group Nexus HQ/parent identity (not a portfolio business).
+  businessKey: BusinessKey | 'personal' | 'ugn'
   label: string
   provider: EmailProvider
   scope: EmailAccountScope
@@ -15,6 +16,7 @@ export interface EmailAccount {
 }
 
 export const EMAIL_ACCOUNTS: EmailAccount[] = [
+  { email: 'contact@unite-group.in', businessKey: 'ugn', label: 'Unite-Group Nexus HQ', provider: 'google', scope: 'owned', receiptIngestion: false },
   { email: 'phill@disasterrecovery.com.au', businessKey: 'dr', label: 'DR Primary', provider: 'microsoft', scope: 'owned', receiptIngestion: true },
   { email: 'disasterrecoverynrp@gmail.com', businessKey: 'nrpg', label: 'NRPG Gmail', provider: 'google', scope: 'owned', receiptIngestion: true },
   { email: 'airestoreassist@gmail.com', businessKey: 'restore', label: 'Restore AI', provider: 'google', scope: 'owned', receiptIngestion: true },
