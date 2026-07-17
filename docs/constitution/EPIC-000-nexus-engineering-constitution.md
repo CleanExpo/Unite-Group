@@ -280,6 +280,7 @@ These are recorded so the constitution is not silently contradicted by later blo
 | 4 | **SPM placement** | §12: SPM *"is constitutional"* | ARR-002 §1.1: orchestration sits in the ACP, **below** the Executive | ARR-002 §1.2 |
 | 5 | **§16 sequencing** | §16: landscape scan **first** | ARR-001 §3: **registry population first** — Stage 3 against a 0-row registry returns nothing for every candidate and concludes *"build new"*, **inverting Principles 2 and 18**. Founder-accepted | ARR-001 §3.1 |
 | 6 | **Evidence Registry naming** | §5.11 *Evidence Registry* | ARR-006 *Evidence Register* · ARR-002 §4 *Engineering Evidence Board* — one construct or three? | ARR-006 §7.1 |
+| 7 | **"Margo" vs "Margot"** | §12 and §14 read **"Margo"**. `grep -c "Margot"` against this file → **0** | The entire rest of the estate reads **"Margot"** — the `margot-deep-research` MCP server, `apps/empire/docs/margot/MARGOT-COMMAND-CENTER.md`, the CARSI integration, `docs/superpowers/`. **Typo, or a deliberate rename the estate has not followed?** Not corrected on an agent's guess — ARR-008 §1 | ARR-009 §5 |
 
 ---
 
