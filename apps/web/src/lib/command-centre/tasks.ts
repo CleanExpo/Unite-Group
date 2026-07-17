@@ -358,35 +358,6 @@ export async function addEvidenceRecord(
 }
 
 /**
- * Update a task's status by (founder_id, external_ref). Returns the updated row,
- * or null when no matching row exists (e.g. an external_ref that was never
- * persisted). The `client` argument is for testing — production callers omit it.
- */
-export async function updateTaskStatusByExternalRef(
-  input: { founderId: string; externalRef: string; status: TaskStatus },
-  client?: SupabaseLike,
-): Promise<CommandCentreTask | null> {
-  const db = client ?? ((await createClient()) as unknown as SupabaseLike)
-
-  const { data, error } = await db
-    .from(CC_TASKS_TABLE)
-    .update({ status: input.status })
-    .eq('founder_id', input.founderId)
-    .eq('external_ref', input.externalRef)
-    .select('*')
-    .single()
-
-  // PostgREST returns an error (PGRST116) when .single() matches no rows; treat
-  // a missing row as a quiet null rather than a hard failure.
-  if (error) {
-    if (!data) return null
-    throw new Error(`updateTaskStatusByExternalRef failed: ${error.message}`)
-  }
-  if (!data) return null
-  return data as CommandCentreTask
-}
-
-/**
  * Fetch a single founder-scoped task by id. Returns null when no matching row
  * exists (wrong id, or another founder's task hidden by RLS). The `client`
  * argument is for testing — production callers omit it.
@@ -409,32 +380,6 @@ export async function getTaskById(
   if (error) {
     if (!data) return null
     throw new Error(`getTaskById failed: ${error.message}`)
-  }
-  return (data as CommandCentreTask) ?? null
-}
-
-/**
- * Update a task's status by (founder_id, id). Returns the updated row, or null
- * when no matching row exists. The `client` argument is for testing — production
- * callers omit it.
- */
-export async function updateTaskStatus(
-  input: { founderId: string; taskId: string; status: TaskStatus },
-  client?: SupabaseLike,
-): Promise<CommandCentreTask | null> {
-  const db = client ?? ((await createClient()) as unknown as SupabaseLike)
-
-  const { data, error } = await db
-    .from(CC_TASKS_TABLE)
-    .update({ status: input.status })
-    .eq('founder_id', input.founderId)
-    .eq('id', input.taskId)
-    .select('*')
-    .single()
-
-  if (error) {
-    if (!data) return null
-    throw new Error(`updateTaskStatus failed: ${error.message}`)
   }
   return (data as CommandCentreTask) ?? null
 }
