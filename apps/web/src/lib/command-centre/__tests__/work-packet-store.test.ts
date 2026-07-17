@@ -74,7 +74,7 @@ function makeFakeDb() {
                 eq(c2: string, v2: unknown) {
                   filters.push([c2, v2])
                   return {
-                    // 2-eq path (updateTaskStatus): .select().single()
+                    // 2-eq path (non-guarded update, e.g. metadata): .select().single()
                     select() {
                       return {
                         single() {

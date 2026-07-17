@@ -256,7 +256,7 @@ const EVENT_TO_TASK_EVENT_TYPE: Record<PacketEvent['type'], TaskEventType> = {
 
 /**
  * Load a packet, run the guarded transition from work-packet.ts, and on success
- * persist the new status (updateTaskStatus) plus an append-only audit event
+ * persist the new status (updateTaskStatusGuarded) plus an append-only audit event
  * (appendTaskEvent). On a refused transition nothing is written.
  *
  * Returns { ok, packet, reason }:
