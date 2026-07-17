@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn() }))
-vi.mock('@/lib/email/signature', () => ({ getAccountSignature: vi.fn() }))
+vi.mock('@/lib/email/signature', async (orig) => ({
+  ...(await orig<Record<string, unknown>>()),
+  getAccountSignature: vi.fn(),
+}))
+vi.mock('@/lib/margot/account-voice', () => ({ getAccountSlogan: vi.fn().mockResolvedValue(null) }))
 
 import { getUser } from '@/lib/supabase/server'
 import { getAccountSignature } from '@/lib/email/signature'
@@ -10,6 +14,7 @@ import { GET } from '../route'
 const url = 'http://localhost/api/settings/integrations/signature'
 const BUSINESS = 'phill@disasterrecovery.com.au'
 const PERSONAL = 'phill.mcgurk@gmail.com'
+const UNKNOWN = 'nobody@nowhere.example'
 
 describe('GET /api/settings/integrations/signature (UNI-2153)', () => {
   beforeEach(() => vi.clearAllMocks())
@@ -35,7 +40,17 @@ describe('GET /api/settings/integrations/signature (UNI-2153)', () => {
     const body = await res.json()
     expect(res.status).toBe(200)
     expect(body.html).toBe('<table>SIG</table>')
+    // Returns the effective slogan so the editor hydrates it (no clobber-on-save).
+    expect(typeof body.slogan).toBe('string')
+    expect(body.slogan.length).toBeGreaterThan(0)
     expect(getAccountSignature).toHaveBeenCalledWith('founder-1', BUSINESS, undefined)
+  })
+
+  it('returns 400 for an unknown account (not 200/null)', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'founder-1' } as never)
+    const res = await GET(new Request(`${url}?account=${encodeURIComponent(UNKNOWN)}`))
+    expect(res.status).toBe(400)
+    expect(getAccountSignature).not.toHaveBeenCalled()
   })
 
   it('passes a slogan override through to the generator', async () => {

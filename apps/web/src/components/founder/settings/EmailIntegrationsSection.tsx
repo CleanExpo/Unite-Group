@@ -696,9 +696,12 @@ function AccountSignaturePreview({ accountEmail }: { accountEmail: string }) {
           `/api/settings/integrations/signature?${params.toString()}`,
         )
         if (!res.ok) throw new Error('Failed to load signature')
-        const data = (await res.json()) as { html: string | null; note?: string }
+        const data = (await res.json()) as { html: string | null; note?: string; slogan?: string }
         setHtml(data.html)
         setNote(data.note ?? null)
+        // Hydrate the input from the stored slogan on initial/refresh load (not
+        // during live-preview typing), so Save never clobbers a saved slogan.
+        if (!sloganOverride && data.slogan) setSlogan(data.slogan)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load signature')
       } finally {
