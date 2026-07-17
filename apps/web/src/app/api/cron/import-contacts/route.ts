@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { assertCronAuth } from '@/lib/cron-auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { fetchContacts } from '@/lib/integrations/xero/client'
 import { fetchGmailThreads } from '@/lib/integrations/gmail'
@@ -44,9 +45,8 @@ export function parseFrom(from: string): { name: string | null; email: string | 
  * cron route in this app. Manual triggers use GET + the same CRON_SECRET bearer.
  */
 export async function GET(request: NextRequest) {
-  if (request.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET?.trim()}`) {
-    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
-  }
+  const denied = assertCronAuth(request)
+  if (denied) return denied
 
   const founderId = process.env.FOUNDER_USER_ID?.trim()
   if (!founderId) {

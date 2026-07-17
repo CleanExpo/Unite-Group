@@ -28,6 +28,15 @@ describe('GET /api/cron/email-triage', () => {
     expect(res.status).toBe(401)
   })
 
+  it('rejects `Bearer undefined` when CRON_SECRET is unset (no bypass)', async () => {
+    vi.stubEnv('CRON_SECRET', undefined)
+    const res = await GET(req('Bearer undefined'))
+    expect(res.status).not.toBe(200)
+    expect(res.status).toBe(500)
+    expect(getConnectedGoogleAccounts).not.toHaveBeenCalled()
+    vi.stubEnv('CRON_SECRET', 'test-secret')
+  })
+
   it('returns 200 when no connected accounts', async () => {
     vi.mocked(getConnectedGoogleAccounts).mockResolvedValue([])
     const res = await GET(req())

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { assertCronAuth } from '@/lib/cron-auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { processCampaignDrip, type DripProcessSummary } from '@/lib/campaigns/drip-processor'
 
@@ -21,9 +22,8 @@ type ActiveCampaignRow = {
  * every other cron route in this app. Manual triggers use GET + CRON_SECRET.
  */
 export async function GET(request: NextRequest) {
-  if (request.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET?.trim()}`) {
-    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
-  }
+  const denied = assertCronAuth(request)
+  if (denied) return denied
 
   const founderId = process.env.FOUNDER_USER_ID?.trim()
   if (!founderId) {

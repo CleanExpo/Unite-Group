@@ -3,6 +3,7 @@
 // Schedule: 04:00 AEST / 18:00 UTC — runs after content has had time to accumulate engagement
 
 import { NextResponse } from 'next/server'
+import { assertCronAuth } from '@/lib/cron-auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { fetchAnalyticsForChannel } from '@/lib/integrations/social/analytics'
 import type { SocialChannel } from '@/lib/integrations/social/types'
@@ -11,9 +12,8 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 120
 
 export async function GET(request: Request) {
-  if (request.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET?.trim()}`) {
-    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
-  }
+  const denied = assertCronAuth(request)
+  if (denied) return denied
 
   const supabase = createServiceClient()
 

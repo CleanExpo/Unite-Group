@@ -4,6 +4,7 @@
 
 import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
+import { assertCronAuth } from '@/lib/cron-auth'
 import { runCoach } from '@/lib/coaches/runner'
 import { fetchBuildData } from '@/lib/coaches/build'
 import { BUILD_COACH_SYSTEM_PROMPT, buildBuildUserMessage } from '@/lib/coaches/prompts/build'
@@ -15,10 +16,8 @@ export const maxDuration = 60
 export async function GET(request: Request) {
   const startTime = Date.now()
 
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET?.trim()}`) {
-    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
-  }
+  const denied = assertCronAuth(request)
+  if (denied) return denied
 
   const founderId = process.env.FOUNDER_USER_ID
   if (!founderId) {
