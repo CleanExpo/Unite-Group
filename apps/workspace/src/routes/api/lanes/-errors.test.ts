@@ -79,6 +79,24 @@ describe('lane API error boundaries', () => {
     expect(createMock.mock.calls).toHaveLength(callsBefore)
   })
 
+  it('rejects a blank gateway model before orchestration', async () => {
+    const { Route } = await import('./create')
+    const handlers = Route.options.server?.handlers as { POST: PostHandler }
+    const callsBefore = createMock.mock.calls.length
+
+    const response = await handlers.POST({
+      request: jsonRequest('/api/lanes/create', {
+        kind: 'gateway',
+        backend: { kind: 'gateway', provider: 'minimax', model: '   ' },
+        role: 'builder',
+        repo: '/repo',
+      }),
+    })
+
+    expect(response.status).toBe(400)
+    expect(createMock.mock.calls).toHaveLength(callsBefore)
+  })
+
   it('does not expose list internals', async () => {
     listMock.mockRejectedValueOnce(new Error('database password=synthetic-secret'))
     const { Route } = await import('./list')

@@ -12,6 +12,18 @@ export class StopNotAcknowledgedError extends Error {
   override name = 'StopNotAcknowledgedError'
 }
 
+function utf8Prefix(value: string, limit: number): string {
+  let output = ''
+  let size = 0
+  for (const character of value) {
+    const characterSize = Buffer.byteLength(character, 'utf8')
+    if (size + characterSize > limit) break
+    output += character
+    size += characterSize
+  }
+  return output
+}
+
 export function truncateUtf8(
   value: string,
   limit: number,
@@ -19,17 +31,11 @@ export function truncateUtf8(
 ): string {
   if (Buffer.byteLength(value, 'utf8') <= limit) return value
   if (limit <= 0) return ''
-  if (Buffer.byteLength(marker, 'utf8') >= limit) return marker.slice(0, limit)
-  const contentLimit = Math.max(0, limit - Buffer.byteLength(marker, 'utf8'))
-  let output = ''
-  let size = 0
-  for (const character of value) {
-    const characterSize = Buffer.byteLength(character, 'utf8')
-    if (size + characterSize > contentLimit) break
-    output += character
-    size += characterSize
+  if (Buffer.byteLength(marker, 'utf8') >= limit) {
+    return utf8Prefix(marker, limit)
   }
-  return `${output}${marker}`
+  const contentLimit = Math.max(0, limit - Buffer.byteLength(marker, 'utf8'))
+  return `${utf8Prefix(value, contentLimit)}${marker}`
 }
 
 /** Defence-in-depth sanitiser used before any adapter output or error reaches a ledger or API. */

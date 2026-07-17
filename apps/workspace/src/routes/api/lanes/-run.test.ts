@@ -98,4 +98,25 @@ describe('POST /api/lanes/run', () => {
     await expect(response.json()).resolves.toEqual({ ok: true, lane, run })
     expect(getRunMock).toHaveBeenCalledWith('run-1')
   })
+
+  it('preserves a successful mission when the evidence lookup fails', async () => {
+    const lane = { id: 'l1', status: 'idle', lastRunId: 'run-2' }
+    runMissionMock.mockResolvedValueOnce(lane)
+    getRunMock.mockRejectedValueOnce(new Error('synthetic ledger read failure'))
+    const { Route } = await import('./run')
+    const handlers = Route.options.server?.handlers as {
+      POST: (ctx: { request: Request }) => Promise<Response>
+    }
+
+    const response = await handlers.POST({
+      request: new Request('http://localhost/api/lanes/run', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ id: 'l1', mission: 'build' }),
+      }),
+    })
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toEqual({ ok: true, lane, run: null })
+  })
 })

@@ -27,9 +27,15 @@ export const Route = createFileRoute('/api/lanes/run')({
           }
           const orchestrator = getLaneOrchestrator()
           const lane = await orchestrator.runMission(body.id, body.mission)
-          const run = lane.lastRunId
-            ? await orchestrator.getRun(lane.lastRunId)
-            : null
+          let run = null
+          if (lane.lastRunId) {
+            try {
+              run = await orchestrator.getRun(lane.lastRunId)
+            } catch {
+              // The mission already settled. Preserve that truthful success even
+              // when the follow-up evidence read is temporarily unavailable.
+            }
+          }
           return json({ ok: true, lane, run })
         } catch (error) {
           const conflict = error instanceof LaneConflictError

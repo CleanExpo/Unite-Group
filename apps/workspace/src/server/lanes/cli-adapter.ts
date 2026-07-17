@@ -113,6 +113,7 @@ export function createSupervisedSpawn(
       let spawnError: Error | null = null
       let closing = false
       let terminationAck: Promise<void> | null = null
+      const hasSettled = () => settled
       let child
       try {
         // stdin closed so the CLI doesn't block waiting on it (it reads the
@@ -129,12 +130,33 @@ export function createSupervisedSpawn(
       }
       const appendBounded = (current: string, chunk: unknown) =>
         truncateUtf8(`${current}${String(chunk)}`, RAW_CAPTURE_LIMIT, '')
+      child.stdout.setEncoding('utf8')
+      child.stderr.setEncoding('utf8')
       child.stdout.on('data', (d) => {
         stdout = appendBounded(stdout, d)
       })
       child.stderr.on('data', (d) => {
         stderr = appendBounded(stderr, d)
       })
+
+      const rejectTerminationFailure = (error: unknown) => {
+        if (settled) return
+        settled = true
+        clearTimeout(timer)
+        opts.signal?.removeEventListener('abort', onAbort)
+        try {
+          child.kill('SIGKILL')
+        } catch {
+          // Best-effort reaping after process-tree control itself failed.
+        }
+        const detail =
+          error instanceof Error ? error.message : 'unknown termination error'
+        reject(
+          new StopNotAcknowledgedError(
+            `CLI process tree termination failed: ${detail}`,
+          ),
+        )
+      }
 
       const beginTermination = (force = false) => {
         if (settled || !child.pid || (terminating && !force)) return
@@ -143,7 +165,7 @@ export function createSupervisedSpawn(
           force,
           graceMs: TERMINATE_GRACE_MS,
         })
-        void terminationAck.catch(() => {})
+        void terminationAck.catch(rejectTerminationFailure)
       }
 
       const onAbort = () => beginTermination()
@@ -173,6 +195,7 @@ export function createSupervisedSpawn(
             terminationError = error
           }
 
+          if (hasSettled()) return
           settled = true
           clearTimeout(timer)
           opts.signal?.removeEventListener('abort', onAbort)

@@ -696,6 +696,66 @@ describe('LaneOrchestrator.runMission', () => {
     expect((await o.get('stop-race-lane'))?.status).toBe('stopped')
   })
 
+  it('does not acknowledge stop when settlement persistence fails', async () => {
+    const eventsPath = path.join(tempRoot, 'events.jsonl')
+    let announceStarted!: () => void
+    const started = new Promise<void>((resolve) => {
+      announceStarted = resolve
+    })
+    let cleanupCalls = 0
+    const worktrees: WorktreeManager = {
+      async create(_repo, laneId) {
+        return { worktree: `/wt/${laneId}`, branch: `lane/${laneId}` }
+      },
+      async remove() {
+        cleanupCalls += 1
+      },
+    }
+    const cli: LaneAdapter = {
+      async run(_lane, _mission, options) {
+        announceStarted()
+        return new Promise((resolve) => {
+          options?.signal?.addEventListener(
+            'abort',
+            () => {
+              void (async () => {
+                await fs.rm(eventsPath, { force: true })
+                await fs.mkdir(eventsPath)
+                resolve({ output: 'aborted after event ledger failure' })
+              })()
+            },
+            { once: true },
+          )
+        })
+      },
+    }
+    const o = createLaneOrchestrator({
+      registryPath: path.join(tempRoot, 'lanes.jsonl'),
+      eventsPath,
+      worktrees,
+      adapters: { cli },
+      idgen: () => 'settlement-stop-lane',
+      runIdgen: () => 'settlement-stop-run',
+      isBackendAvailable: () => true,
+    })
+    await o.create(cliInput)
+
+    const running = o
+      .runMission('settlement-stop-lane', 'fail settlement during stop')
+      .catch((error: unknown) => error)
+    await started
+
+    await expect(o.stop('settlement-stop-lane')).rejects.toThrow(
+      StopNotAcknowledgedError,
+    )
+    expect(await running).toBeInstanceOf(StopNotAcknowledgedError)
+    expect(cleanupCalls).toBe(0)
+    expect(await o.get('settlement-stop-lane')).toMatchObject({
+      status: 'error',
+      blockedReason: expect.stringMatching(/settlement persistence failed/i),
+    })
+  })
+
   it('does not clean up or resurrect a lane after stop acknowledgement times out', async () => {
     let announceStarted!: () => void
     let releaseRun!: () => void
@@ -756,6 +816,7 @@ describe('LaneOrchestrator.runMission', () => {
 
   it('releases the active claim when the running ledger write fails', async () => {
     const registryPath = path.join(tempRoot, 'lanes.jsonl')
+    let failRunningWrite = true
     const cli: LaneAdapter = {
       async run() {
         return { output: 'ok' }
@@ -767,15 +828,23 @@ describe('LaneOrchestrator.runMission', () => {
       adapters: { cli },
       idgen: () => 'ledger-failure-lane',
       isBackendAvailable: () => true,
+      appendLaneRecord: async (ledgerPath, lane) => {
+        if (lane.status === 'running' && failRunningWrite) {
+          failRunningWrite = false
+          throw Object.assign(new Error('synthetic append failure'), {
+            code: 'EIO',
+          })
+        }
+        await fs.mkdir(path.dirname(ledgerPath), { recursive: true })
+        await fs.appendFile(ledgerPath, `${JSON.stringify(lane)}\n`, 'utf8')
+      },
     })
     await o.create(cliInput)
-    await fs.chmod(registryPath, 0o444)
 
     await expect(
       o.runMission('ledger-failure-lane', 'first'),
     ).rejects.toThrow()
 
-    await fs.chmod(registryPath, 0o644)
     await expect(
       o.runMission('ledger-failure-lane', 'second'),
     ).resolves.toMatchObject({ status: 'idle' })

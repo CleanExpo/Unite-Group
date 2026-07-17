@@ -151,7 +151,7 @@ export async function probeGatewayBackend(
   const providerModels = models.filter((model) => model.provider === provider)
   if (providerModels.length === 0) return false
   const requestedModel = backend.model.trim().toLowerCase()
-  if (!requestedModel) return true
+  if (!requestedModel) return false
   return providerModels.some((model) => {
     const id = model.id.toLowerCase()
     return (
@@ -171,6 +171,7 @@ export function makeAvailabilityCheck(
 ): AvailabilityCheck {
   return (backend: LaneBackend): boolean =>
     backend.kind === 'gateway'
-      ? gatewayProviders.has(backend.provider.toLowerCase())
+      ? Boolean(backend.model.trim()) &&
+        gatewayProviders.has(backend.provider.toLowerCase())
       : cliAccountAvailable(backend.account, backend.tool)
 }

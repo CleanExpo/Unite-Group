@@ -113,11 +113,18 @@ describe('lane-availability (spec R9)', () => {
   it('makeAvailabilityCheck gates gateway backends on the probed provider set', () => {
     const down = makeAvailabilityCheck(new Set())
     const up = makeAvailabilityCheck(new Set(['minimax']))
-    const gw = { kind: 'gateway' as const, provider: 'minimax', model: '' }
+    const gw = {
+      kind: 'gateway' as const,
+      provider: 'minimax',
+      model: 'abab6.5',
+    }
     expect(down(gw)).toBe(false)
     expect(up(gw)).toBe(true)
     expect(
-      up({ kind: 'gateway', provider: 'openrouter', model: '' }),
+      up({ kind: 'gateway', provider: 'openrouter', model: 'gpt-5' }),
+    ).toBe(false)
+    expect(
+      up({ kind: 'gateway', provider: 'minimax', model: '   ' }),
     ).toBe(false)
   })
 
@@ -187,6 +194,14 @@ describe('lane-availability (spec R9)', () => {
       probeGatewayBackend(
         'http://gw',
         { kind: 'gateway', provider: 'openrouter', model: '' },
+        undefined,
+        fetcher,
+      ),
+    ).resolves.toBe(false)
+    await expect(
+      probeGatewayBackend(
+        'http://gw',
+        { kind: 'gateway', provider: 'minimax', model: '   ' },
         undefined,
         fetcher,
       ),

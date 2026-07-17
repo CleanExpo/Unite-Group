@@ -33,7 +33,8 @@ function isCreateLaneInput(value: unknown): value is CreateLaneInput {
       backend.kind === 'gateway' &&
       typeof backend.provider === 'string' &&
       !!backend.provider.trim() &&
-      typeof backend.model === 'string'
+      typeof backend.model === 'string' &&
+      !!backend.model.trim()
     )
   }
   return false

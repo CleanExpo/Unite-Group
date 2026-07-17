@@ -33,14 +33,35 @@ type Captured = {
   env: NodeJS.ProcessEnv
 }
 
+async function abortAndSettle(
+  controller: AbortController,
+  running: Promise<unknown> | undefined,
+): Promise<void> {
+  controller.abort()
+  if (!running) return
+  await Promise.race([
+    running.then(
+      () => undefined,
+      () => undefined,
+    ),
+    new Promise<void>((resolve) => {
+      const timer = setTimeout(resolve, 3_000)
+      timer.unref()
+    }),
+  ])
+}
+
 describe('CliLaneAdapter', () => {
   it('honours byte limits smaller than the truncation marker', () => {
     const tiny = truncateUtf8('abcdef', 2)
     const multibyte = truncateUtf8('😀😀😀', 7, '')
+    const multibyteMarker = truncateUtf8('abcdef', 3, '😀')
 
     expect(Buffer.byteLength(tiny, 'utf8')).toBeLessThanOrEqual(2)
     expect(Buffer.byteLength(multibyte, 'utf8')).toBeLessThanOrEqual(7)
     expect(multibyte).not.toContain('�')
+    expect(Buffer.byteLength(multibyteMarker, 'utf8')).toBeLessThanOrEqual(3)
+    expect(multibyteMarker).not.toContain('�')
   })
 
   it('spawns `claude -p <mission>` in the worktree with the account config dir', async () => {
@@ -301,19 +322,22 @@ describe('CliLaneAdapter', () => {
         signal: controller.signal,
       },
     )
-    setTimeout(() => controller.abort(), 30)
-
     try {
-      await running
-      expect.fail('aborted child unexpectedly resolved')
-    } catch (error) {
-      expect(error).toBeInstanceOf(Error)
-      const message = (error as Error).message
-      if (/termination failed/i.test(message)) {
-        expect(error).toBeInstanceOf(StopNotAcknowledgedError)
-      } else {
-        expect(message).toMatch(/aborted/i)
+      setTimeout(() => controller.abort(), 30)
+      try {
+        await running
+        expect.fail('aborted child unexpectedly resolved')
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error)
+        const message = (error as Error).message
+        if (/termination failed/i.test(message)) {
+          expect(error).toBeInstanceOf(StopNotAcknowledgedError)
+        } else {
+          expect(message).toMatch(/aborted/i)
+        }
       }
+    } finally {
+      await abortAndSettle(controller, running)
     }
   })
 
@@ -342,6 +366,22 @@ describe('CliLaneAdapter', () => {
     expect(terminate).toHaveBeenCalledWith(expect.any(Number), { force: false })
   })
 
+  it('decodes UTF-8 output across child stream chunk boundaries', async () => {
+    const spawnWithTreeCheck = createSupervisedSpawn(async () => {})
+    const script = [
+      "const bytes = Buffer.from('😀')",
+      'process.stdout.write(bytes.subarray(0, 2))',
+      'setTimeout(() => process.stdout.write(bytes.subarray(2)), 10)',
+    ].join(';')
+
+    await expect(
+      spawnWithTreeCheck(process.execPath, ['-e', script], {
+        cwd: process.cwd(),
+        env: process.env,
+      }),
+    ).resolves.toMatchObject({ stdout: '😀' })
+  })
+
   it('does not spawn when the run was already aborted', async () => {
     const controller = new AbortController()
     controller.abort()
@@ -356,23 +396,43 @@ describe('CliLaneAdapter', () => {
   })
 
   it('fails stop acknowledgement when process-tree termination fails', async () => {
-    const spawnWithBrokenTree = createSupervisedSpawn(async () => {
+    let childPid: number | undefined
+    const spawnWithBrokenTree = createSupervisedSpawn(async (pid) => {
+      childPid = pid
       throw new Error('tree control unavailable')
     })
     const controller = new AbortController()
     const running = spawnWithBrokenTree(
       process.execPath,
-      ['-e', 'setTimeout(() => {}, 40)'],
+      ['-e', 'setInterval(() => {}, 1000)'],
       {
         cwd: process.cwd(),
         env: process.env,
-        timeoutMs: 2_000,
+        timeoutMs: 10_000,
         signal: controller.signal,
       },
     )
     controller.abort()
 
-    await expect(running).rejects.toBeInstanceOf(StopNotAcknowledgedError)
+    try {
+      await expect(
+        Promise.race([
+          running,
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('termination rejection hung')), 250),
+          ),
+        ]),
+      ).rejects.toBeInstanceOf(StopNotAcknowledgedError)
+    } finally {
+      if (childPid) {
+        try {
+          process.kill(childPid, 'SIGKILL')
+        } catch {
+          // The supervised spawn may already have reaped it.
+        }
+      }
+      await running.catch(() => {})
+    }
   })
 
   it.skipIf(process.platform === 'win32')(
@@ -395,9 +455,11 @@ describe('CliLaneAdapter', () => {
         'setInterval(() => {}, 1000)',
       ].join(';')
       const controller = new AbortController()
+      let running: ReturnType<typeof supervisedSpawn> | undefined
+      let descendantPid: number | undefined
 
       try {
-        const running = supervisedSpawn(process.execPath, ['-e', root], {
+        running = supervisedSpawn(process.execPath, ['-e', root], {
           cwd: process.cwd(),
           env: process.env,
           signal: controller.signal,
@@ -406,7 +468,8 @@ describe('CliLaneAdapter', () => {
           await new Promise((resolve) => setTimeout(resolve, 10))
         }
         expect(existsSync(readyFile)).toBe(true)
-        const descendantPid = Number(readFileSync(pidFile, 'utf8'))
+        const observedDescendantPid = Number(readFileSync(pidFile, 'utf8'))
+        descendantPid = observedDescendantPid
 
         controller.abort()
         try {
@@ -417,7 +480,7 @@ describe('CliLaneAdapter', () => {
           if (error instanceof StopNotAcknowledgedError) {
             expect(error.message).toMatch(/termination failed/i)
             try {
-              process.kill(descendantPid, 'SIGKILL')
+              process.kill(observedDescendantPid, 'SIGKILL')
             } catch (cleanupError) {
               expect(['EPERM', 'ESRCH']).toContain(
                 (cleanupError as NodeJS.ErrnoException).code,
@@ -425,12 +488,22 @@ describe('CliLaneAdapter', () => {
             }
           } else {
             expect((error as Error).message).toMatch(/aborted/i)
-            expect(() => process.kill(descendantPid, 0)).toThrow(
+            expect(() => process.kill(observedDescendantPid, 0)).toThrow(
               expect.objectContaining({ code: 'ESRCH' }),
             )
           }
         }
       } finally {
+        await abortAndSettle(controller, running)
+        if (descendantPid) {
+          try {
+            process.kill(descendantPid, 'SIGKILL')
+          } catch (cleanupError) {
+            expect(['EPERM', 'ESRCH']).toContain(
+              (cleanupError as NodeJS.ErrnoException).code,
+            )
+          }
+        }
         rmSync(tempRoot, { recursive: true, force: true })
       }
     },

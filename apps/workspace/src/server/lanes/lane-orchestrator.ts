@@ -42,6 +42,8 @@ export interface OrchestratorDeps {
   runsPath?: string
   eventsPath?: string
   machineId?: string
+  /** Injectable lane writer for deterministic persistence-failure drills. */
+  appendLaneRecord?: (registryPath: string, lane: Lane) => Promise<void>
 }
 
 export interface LaneOrchestrator {
@@ -81,7 +83,10 @@ async function readLedger(registryPath: string): Promise<Map<string, Lane>> {
   return lanes
 }
 
-async function appendLedger(registryPath: string, lane: Lane): Promise<void> {
+async function appendLaneRecord(
+  registryPath: string,
+  lane: Lane,
+): Promise<void> {
   await fs.mkdir(path.dirname(registryPath), { recursive: true })
   await fs.appendFile(registryPath, `${JSON.stringify(lane)}\n`, 'utf8')
 }
@@ -223,6 +228,7 @@ export function createLaneOrchestrator(
   const runsPath = deps.runsPath ?? path.join(baseDir, 'runs.jsonl')
   const eventsPath = deps.eventsPath ?? path.join(baseDir, 'events.jsonl')
   const machineId = deps.machineId ?? hostname()
+  const appendLedger = deps.appendLaneRecord ?? appendLaneRecord
   type StopOutcome =
     | { acknowledged: true }
     | { acknowledged: false; error: StopNotAcknowledgedError }
@@ -590,9 +596,10 @@ export function createLaneOrchestrator(
       const persistSettlementFailure = async (error: unknown): Promise<Lane> => {
         const code = errorCode(error)
         if (stoppingLanes.has(id)) {
-          throw new StopNotAcknowledgedError(
+          unacknowledgedStop = new StopNotAcknowledgedError(
             `Run settlement persistence failed (${code}) while stop was in progress`,
           )
+          throw unacknowledgedStop
         }
         const failedAt = now()
         const failed: Lane = {
@@ -606,9 +613,10 @@ export function createLaneOrchestrator(
         try {
           await appendLedger(deps.registryPath, failed)
         } catch (rollbackError) {
-          throw new StopNotAcknowledgedError(
+          unacknowledgedStop = new StopNotAcknowledgedError(
             `Run settlement rollback failed (${errorCode(rollbackError)})`,
           )
+          throw unacknowledgedStop
         }
         return failed
       }
@@ -658,7 +666,10 @@ export function createLaneOrchestrator(
           return persistSettlementFailure(persistenceError)
         }
       } catch (error) {
-        if (error instanceof StopNotAcknowledgedError) throw error
+        if (error instanceof StopNotAcknowledgedError) {
+          unacknowledgedStop = error
+          throw error
+        }
         const finishedAt = now()
         const stopped = controller.signal.aborted
         const failed: Lane = {
