@@ -13,13 +13,9 @@ export const Route = createFileRoute('/api/lanes/list')({
         try {
           const lanes = await getLaneOrchestrator().list()
           return json({ ok: true, lanes })
-        } catch (error) {
+        } catch {
           return json(
-            {
-              ok: false,
-              error:
-                error instanceof Error ? error.message : 'Failed to list lanes',
-            },
+            { ok: false, error: 'Failed to list lanes' },
             { status: 500 },
           )
         }

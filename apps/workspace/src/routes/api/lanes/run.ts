@@ -3,6 +3,8 @@ import { json } from '@tanstack/react-start'
 import { isAuthenticated } from '../../../server/auth-middleware'
 import { requireJsonContentType } from '../../../server/rate-limit'
 import { getLaneOrchestrator } from '../../../server/lanes'
+import { LaneConflictError } from '../../../server/lanes/lane-orchestrator'
+import { parseLaneMissionInput } from '../../../server/lanes/types'
 
 export const Route = createFileRoute('/api/lanes/run')({
   server: {
@@ -14,31 +16,33 @@ export const Route = createFileRoute('/api/lanes/run')({
         const csrfCheck = requireJsonContentType(request)
         if (csrfCheck) return csrfCheck
         try {
-          const body = (await request.json()) as {
-            id?: string
-            mission?: string
-          }
-          if (!body.id || !body.mission) {
+          const input = parseLaneMissionInput(await request.json())
+          if (!input) {
             return json(
-              { ok: false, error: 'id and mission are required' },
+              { ok: false, error: 'A valid id and mission are required' },
               { status: 400 },
             )
           }
-          const lane = await getLaneOrchestrator().runMission(
-            body.id,
-            body.mission,
-          )
-          return json({ ok: true, lane })
+          const orchestrator = getLaneOrchestrator()
+          const lane = await orchestrator.runMission(input.id, input.mission)
+          let run = null
+          if (lane.lastRunId) {
+            try {
+              run = await orchestrator.getRun(lane.lastRunId)
+            } catch {
+              // The mission already settled. Preserve that truthful success even
+              // when the follow-up evidence read is temporarily unavailable.
+            }
+          }
+          return json({ ok: true, lane, run })
         } catch (error) {
+          const conflict = error instanceof LaneConflictError
           return json(
             {
               ok: false,
-              error:
-                error instanceof Error
-                  ? error.message
-                  : 'Failed to run mission',
+              error: conflict ? error.message : 'Failed to run mission',
             },
-            { status: 500 },
+            { status: conflict ? 409 : 500 },
           )
         }
       },

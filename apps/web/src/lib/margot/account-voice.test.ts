@@ -37,6 +37,8 @@ import {
   getAccountVoice,
   getStoredAccountVoice,
   saveAccountVoice,
+  getAccountAgentEnabled,
+  setAccountAgentEnabled,
   DEFAULT_FOUNDER_VOICE,
 } from './account-voice'
 import type { FounderVoice } from './draft-reply-prompt'
@@ -118,5 +120,34 @@ describe('account-voice accessor (task 21)', () => {
     expect(resolved[0]).toEqual(voiceA)
     expect(resolved[1]).toEqual(voiceB)
     expect(resolved[0]).not.toEqual(resolved[1])
+  })
+})
+
+describe('per-account auto-draft toggle (Slice 2)', () => {
+  beforeEach(() => {
+    store.clear()
+  })
+
+  it('defaults to false (dark) when the account is unset', async () => {
+    expect(await getAccountAgentEnabled(FOUNDER, ACCOUNT_A)).toBe(false)
+  })
+
+  it('reflects the stored flag once set', async () => {
+    await setAccountAgentEnabled(FOUNDER, ACCOUNT_A, true)
+    expect(await getAccountAgentEnabled(FOUNDER, ACCOUNT_A)).toBe(true)
+    await setAccountAgentEnabled(FOUNDER, ACCOUNT_A, false)
+    expect(await getAccountAgentEnabled(FOUNDER, ACCOUNT_A)).toBe(false)
+  })
+
+  it('ISOLATION: turning A on never turns B on', async () => {
+    await setAccountAgentEnabled(FOUNDER, ACCOUNT_A, true)
+    expect(await getAccountAgentEnabled(FOUNDER, ACCOUNT_A)).toBe(true)
+    expect(await getAccountAgentEnabled(FOUNDER, ACCOUNT_B)).toBe(false)
+  })
+
+  it('is founder-scoped — every read/write filters on founder_id', async () => {
+    await setAccountAgentEnabled(FOUNDER, ACCOUNT_A, true)
+    // a different founder never sees founder-1's flag
+    expect(await getAccountAgentEnabled('founder-2', ACCOUNT_A)).toBe(false)
   })
 })

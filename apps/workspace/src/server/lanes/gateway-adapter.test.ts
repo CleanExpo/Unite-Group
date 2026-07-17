@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { createGatewayAdapter } from './gateway-adapter'
 import type { Lane } from './types'
 
@@ -56,5 +56,66 @@ describe('GatewayLaneAdapter', () => {
       },
     })
     await expect(adapter.run(gatewayLane, 'x')).rejects.toThrow('boom')
+  })
+
+  it('propagates the orchestrator abort signal to the gateway request', async () => {
+    const controller = new AbortController()
+    let captured: AbortSignal | undefined
+    const adapter = createGatewayAdapter({
+      baseUrl: 'http://gw',
+      chat: async (args) => {
+        captured = args.signal
+        return 'ok'
+      },
+    })
+
+    await adapter.run(gatewayLane, 'x', { signal: controller.signal })
+
+    expect(captured).toBe(controller.signal)
+  })
+
+  it('uses the configured bearer token for gateway execution', async () => {
+    let capturedHeaders: HeadersInit | undefined
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
+        capturedHeaders = init?.headers
+        return new Response(
+          JSON.stringify({ choices: [{ message: { content: 'ok' } }] }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        )
+      }),
+    )
+    const adapter = createGatewayAdapter({
+      baseUrl: 'http://gw',
+      bearerToken: 'test-gateway-token',
+    })
+
+    try {
+      await adapter.run(gatewayLane, 'x')
+    } finally {
+      vi.unstubAllGlobals()
+    }
+
+    expect(capturedHeaders).toMatchObject({
+      authorization: 'Bearer test-gateway-token',
+    })
+  })
+
+  it('sanitises gateway output and error detail before returning it', async () => {
+    const secret = `sk-${'a'.repeat(48)}`
+    const outputAdapter = createGatewayAdapter({
+      baseUrl: 'http://gw',
+      chat: async () => `result ${secret}`,
+    })
+    const errorAdapter = createGatewayAdapter({
+      baseUrl: 'http://gw',
+      chat: async () => {
+        throw new Error(`gateway failed with ${secret}`)
+      },
+    })
+
+    expect((await outputAdapter.run(gatewayLane, 'x')).output).not.toContain(secret)
+    await expect(errorAdapter.run(gatewayLane, 'x')).rejects.not.toThrow(secret)
   })
 })
