@@ -386,6 +386,9 @@ function AccountVoiceEditor({ accountEmail }: { accountEmail: string }) {
   const [signOff, setSignOff] = useState('')
   const [tone, setTone] = useState('')
   const [neverDo, setNeverDo] = useState('')
+  // Slice 2: per-account auto-draft toggle. Off by default (dark).
+  const [agentEnabled, setAgentEnabled] = useState(false)
+  const [togglingAgent, setTogglingAgent] = useState(false)
 
   const applyVoice = useCallback((voice: FounderVoice) => {
     setName(voice.name)
@@ -402,8 +405,13 @@ function AccountVoiceEditor({ accountEmail }: { accountEmail: string }) {
         `/api/settings/integrations/voice?account_email=${encodeURIComponent(accountEmail)}`,
       )
       if (!res.ok) throw new Error('Failed to load voice')
-      const data = (await res.json()) as { isCustom: boolean; voice: FounderVoice }
+      const data = (await res.json()) as {
+        isCustom: boolean
+        voice: FounderVoice
+        agentEnabled?: boolean
+      }
       setIsCustom(data.isCustom)
+      setAgentEnabled(data.agentEnabled ?? false)
       applyVoice(data.voice)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load voice')
@@ -411,6 +419,30 @@ function AccountVoiceEditor({ accountEmail }: { accountEmail: string }) {
       setLoading(false)
     }
   }, [accountEmail, applyVoice])
+
+  // Flip the auto-draft toggle. Persists agent_enabled only — never touches the
+  // voice fields. Optimistic; reverts on failure. Nothing here sends or drafts.
+  const handleToggleAgent = useCallback(async () => {
+    const next = !agentEnabled
+    setTogglingAgent(true)
+    setStatus('')
+    setError(null)
+    setAgentEnabled(next)
+    try {
+      const res = await fetch('/api/settings/integrations/voice', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ account_email: accountEmail, agent_enabled: next }),
+      })
+      if (!res.ok) throw new Error('Failed to update auto-draft')
+      setStatus(next ? 'Auto-draft on' : 'Auto-draft off')
+    } catch (err) {
+      setAgentEnabled(!next)
+      setError(err instanceof Error ? err.message : 'Failed to update auto-draft')
+    } finally {
+      setTogglingAgent(false)
+    }
+  }, [accountEmail, agentEnabled])
 
   const toggle = useCallback(() => {
     setExpanded((prev) => {
@@ -480,6 +512,39 @@ function AccountVoiceEditor({ accountEmail }: { accountEmail: string }) {
           className="rounded-sm p-3 mt-1.5"
           style={{ border: '1px solid var(--color-border)', background: 'var(--surface-elevated)' }}
         >
+          <div className="flex items-start justify-between gap-3 mb-3 pb-3" style={{ borderBottom: '1px solid var(--color-border)' }}>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[12px] font-medium" style={{ color: 'var(--color-text-primary)' }}>
+                Auto-draft replies
+              </span>
+              <span className="text-[11px]" style={{ color: 'var(--color-text-disabled)' }}>
+                When on, Margot pre-writes reply drafts for this mailbox. Drafts are
+                saved for your approval and are never sent automatically.
+              </span>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={agentEnabled}
+              aria-label={`Auto-draft replies for ${accountEmail}`}
+              onClick={handleToggleAgent}
+              disabled={togglingAgent}
+              className="relative shrink-0 w-9 h-5 rounded-sm transition-colors disabled:opacity-50"
+              style={{
+                background: agentEnabled ? '#16a34a' : 'var(--color-border)',
+                cursor: togglingAgent ? 'not-allowed' : 'pointer',
+              }}
+            >
+              <span
+                aria-hidden="true"
+                className="absolute top-0.5 h-4 w-4 rounded-sm transition-transform"
+                style={{
+                  background: 'var(--surface-card)',
+                  transform: agentEnabled ? 'translateX(18px)' : 'translateX(2px)',
+                }}
+              />
+            </button>
+          </div>
           {loading ? (
             <p className="text-[11px]" style={{ color: 'var(--color-text-disabled)' }}>
               Loading…

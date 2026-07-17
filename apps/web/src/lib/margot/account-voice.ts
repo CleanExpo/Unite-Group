@@ -21,6 +21,10 @@ interface EmailAccountVoiceRow {
   never_do: string[] | null;
 }
 
+interface EmailAccountAgentRow {
+  agent_enabled: boolean | null;
+}
+
 /**
  * The estate default voice — the labelled fallback when an account has no
  * stored voice. Folds the nexus-copywriter register into the tone guidelines:
@@ -79,6 +83,53 @@ export async function getAccountVoice(
 ): Promise<FounderVoice> {
   const stored = await getStoredAccountVoice(founderId, email);
   return stored ?? DEFAULT_FOUNDER_VOICE;
+}
+
+/**
+ * Whether the auto-draft agent is turned on for an account (Slice 2). Defaults
+ * to `false` when no row exists — dark by default. This is only the per-account
+ * gate; the global `MARGOT_DRAFTS_ENABLED` env flag is the second, independent
+ * gate the draft cron also checks before anything is drafted.
+ */
+export async function getAccountAgentEnabled(
+  founderId: string,
+  email: string
+): Promise<boolean> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = createServiceClient() as any;
+  const { data, error } = await db
+    .from('email_account_voice')
+    .select('agent_enabled')
+    .eq('founder_id', founderId)
+    .eq('account_email', email)
+    .maybeSingle();
+  if (error) throw new Error(`email_account_voice agent select: ${error.message}`);
+  if (!data) return false;
+  return (data as EmailAccountAgentRow).agent_enabled ?? false;
+}
+
+/**
+ * Turn the auto-draft agent on/off for an account. Upserts only the
+ * `agent_enabled` flag on the (founder_id, account_email) composite key, leaving
+ * any stored voice untouched — the two are independent settings on the same row.
+ */
+export async function setAccountAgentEnabled(
+  founderId: string,
+  email: string,
+  enabled: boolean
+): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = createServiceClient() as any;
+  const { error } = await db.from('email_account_voice').upsert(
+    {
+      founder_id: founderId,
+      account_email: email,
+      agent_enabled: enabled,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'founder_id,account_email' }
+  );
+  if (error) throw new Error(`email_account_voice agent upsert: ${error.message}`);
 }
 
 /** Upsert an account's voice on the (founder_id, account_email) composite key. */
