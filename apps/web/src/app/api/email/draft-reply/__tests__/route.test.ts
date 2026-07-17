@@ -11,12 +11,15 @@ vi.mock('@/lib/integrations/google', () => ({
 vi.mock('@/lib/margot/account-voice', () => ({ getAccountVoice: vi.fn() }))
 vi.mock('@/lib/margot/draft-reply', () => ({ generateFounderDraft: vi.fn() }))
 vi.mock('@/lib/margot/providers', () => ({ createAnthropicComplete: vi.fn(() => vi.fn()) }))
+// Footer append: '' for personal/unknown (default), a footer for business accounts.
+vi.mock('@/lib/email/signature', () => ({ getAccountSignature: vi.fn().mockResolvedValue('') }))
 
 import { getUser } from '@/lib/supabase/server'
 import { fetchFullThread, sendReply } from '@/lib/integrations/google'
 import { getAccountVoice } from '@/lib/margot/account-voice'
 import { generateFounderDraft } from '@/lib/margot/draft-reply'
 import { createAnthropicComplete } from '@/lib/margot/providers'
+import { getAccountSignature } from '@/lib/email/signature'
 import { POST } from '../route'
 
 function req(body: object) {
@@ -74,6 +77,20 @@ describe('POST /api/email/draft-reply', () => {
     expect(incoming).toMatchObject({ from: 'b@client.com', subject: 'Quote request', body: 'Latest message' })
     expect(getAccountVoice).toHaveBeenCalledWith('user-1', 'a@b.com')
     expect(fetchFullThread).toHaveBeenCalledWith('user-1', 'a@b.com', 't-1')
+  })
+
+  it('appends the account signature footer for a business account', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as never)
+    vi.mocked(getAccountVoice).mockResolvedValue(voice as never)
+    vi.mocked(fetchFullThread).mockResolvedValue(thread as never)
+    vi.mocked(generateFounderDraft).mockResolvedValue('Here is the reply.')
+    vi.mocked(getAccountSignature).mockResolvedValue('<table>FOOTER</table>')
+
+    const res = await POST(req({ account: 'nrpg.team@gmail.com', threadId: 't-1' }))
+    const json = await res.json()
+    // The composer receives the FINAL email (body + footer) to edit before Send.
+    expect(json.body).toBe('Here is the reply.\n\n<table>FOOTER</table>')
+    expect(getAccountSignature).toHaveBeenCalledWith('user-1', 'nrpg.team@gmail.com')
   })
 
   it('is on-demand: does NOT send and does NOT gate behind MARGOT_DRAFTS_ENABLED', async () => {
