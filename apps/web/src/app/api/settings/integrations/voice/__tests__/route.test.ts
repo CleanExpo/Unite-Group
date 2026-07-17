@@ -10,6 +10,8 @@ vi.mock('@/lib/margot/account-voice', () => ({
   saveAccountVoice: vi.fn(),
   getAccountAgentEnabled: vi.fn(),
   setAccountAgentEnabled: vi.fn(),
+  getAccountSlogan: vi.fn(),
+  setAccountSlogan: vi.fn(),
   DEFAULT_FOUNDER_VOICE: {
     name: 'Phill',
     signOff: 'Cheers, Phill',
@@ -25,6 +27,8 @@ import {
   saveAccountVoice,
   getAccountAgentEnabled,
   setAccountAgentEnabled,
+  getAccountSlogan,
+  setAccountSlogan,
 } from '@/lib/margot/account-voice'
 import { GET, PUT } from '../route'
 
@@ -186,5 +190,55 @@ describe('GET/PUT /api/settings/integrations/voice (task 21)', () => {
     const res = await PUT(putRequest({ account_email: 'a@b.com', agent_enabled: true }))
     expect(res.status).toBe(401)
     expect(setAccountAgentEnabled).not.toHaveBeenCalled()
+  })
+
+  it('GET returns the per-account signature slogan (UNI-2153)', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'founder-1' } as never)
+    vi.mocked(getStoredAccountVoice).mockResolvedValue(null)
+    vi.mocked(getAccountAgentEnabled).mockResolvedValue(false)
+    vi.mocked(getAccountSlogan).mockResolvedValue('Stored slogan')
+    const res = await GET(new Request(`${url}?account_email=a@b.com`))
+    const body = await res.json()
+    expect(body.slogan).toBe('Stored slogan')
+    expect(getAccountSlogan).toHaveBeenCalledWith('founder-1', 'a@b.com')
+  })
+
+  it('PUT persists a trimmed slogan and does not touch the voice or toggle', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'founder-1' } as never)
+    vi.mocked(setAccountSlogan).mockResolvedValue(undefined)
+    vi.mocked(getAccountVoice).mockResolvedValue({
+      name: 'Phill',
+      signOff: 'Cheers, Phill',
+      toneGuidelines: [],
+      neverDo: [],
+    })
+    vi.mocked(getAccountAgentEnabled).mockResolvedValue(false)
+    vi.mocked(getAccountSlogan).mockResolvedValue('New slogan')
+
+    const res = await PUT(putRequest({ account_email: 'a@b.com', slogan: '  New slogan  ' }))
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(setAccountSlogan).toHaveBeenCalledWith('founder-1', 'a@b.com', 'New slogan')
+    expect(saveAccountVoice).not.toHaveBeenCalled()
+    expect(setAccountAgentEnabled).not.toHaveBeenCalled()
+    expect(body.slogan).toBe('New slogan')
+  })
+
+  it('PUT stores an empty slogan as null (revert to default)', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'founder-1' } as never)
+    vi.mocked(setAccountSlogan).mockResolvedValue(undefined)
+    vi.mocked(getAccountVoice).mockResolvedValue({
+      name: 'Phill',
+      signOff: 'Cheers, Phill',
+      toneGuidelines: [],
+      neverDo: [],
+    })
+    vi.mocked(getAccountAgentEnabled).mockResolvedValue(false)
+    vi.mocked(getAccountSlogan).mockResolvedValue(null)
+
+    const res = await PUT(putRequest({ account_email: 'a@b.com', slogan: '   ' }))
+    expect(res.status).toBe(200)
+    expect(setAccountSlogan).toHaveBeenCalledWith('founder-1', 'a@b.com', null)
   })
 })

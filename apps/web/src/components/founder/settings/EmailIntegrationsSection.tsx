@@ -361,6 +361,7 @@ function ProviderRow({
                 </div>
                 </div>
                 <AccountVoiceEditor accountEmail={account.email} />
+                <AccountSignaturePreview accountEmail={account.email} />
               </li>
             )
           })}
@@ -647,6 +648,186 @@ function AccountVoiceEditor({ accountEmail }: { accountEmail: string }) {
 
           {error && (
             <p role="alert" className="text-[11px] mt-2" style={{ color: 'var(--color-danger)' }}>
+              {error}
+            </p>
+          )}
+          <span aria-live="polite" className="sr-only">
+            {status}
+          </span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Proposed, founder-editable default slogan. Mirrors DEFAULT_SLOGAN in
+// lib/email/signature.ts — kept as a local literal because that module pulls in
+// server-only code (service-role Supabase client) and must not enter the client
+// bundle. NOT an asserted brand line — shown as an editable suggestion.
+const PROPOSED_SLOGAN = 'One command centre. Every venture, connected.'
+
+// Collapsible per-account signature footer preview (UNI-2153). Renders the
+// generated, email-safe footer for the account via
+// GET /api/settings/integrations/signature. Personal mailboxes return
+// { html: null } with an honest note. The Slogan input re-renders the preview
+// via ?slogan= (live, non-persisting); Save persists it through the voice PUT.
+// The preview HTML is our own generated, escaped output — never arbitrary user
+// HTML — so dangerouslySetInnerHTML in a bordered, founder-only box is fine.
+function AccountSignaturePreview({ accountEmail }: { accountEmail: string }) {
+  const [expanded, setExpanded] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [html, setHtml] = useState<string | null>(null)
+  const [note, setNote] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [slogan, setSlogan] = useState(PROPOSED_SLOGAN)
+  const [saving, setSaving] = useState(false)
+  const [status, setStatus] = useState('')
+
+  const loadPreview = useCallback(
+    async (sloganOverride?: string) => {
+      setLoading(true)
+      setError(null)
+      try {
+        const params = new URLSearchParams({ account: accountEmail })
+        if (sloganOverride && sloganOverride.trim()) {
+          params.set('slogan', sloganOverride.trim())
+        }
+        const res = await fetch(
+          `/api/settings/integrations/signature?${params.toString()}`,
+        )
+        if (!res.ok) throw new Error('Failed to load signature')
+        const data = (await res.json()) as { html: string | null; note?: string; slogan?: string }
+        setHtml(data.html)
+        setNote(data.note ?? null)
+        // Hydrate the input from the stored slogan on initial/refresh load (not
+        // during live-preview typing), so Save never clobbers a saved slogan.
+        if (!sloganOverride && data.slogan) setSlogan(data.slogan)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load signature')
+      } finally {
+        setLoading(false)
+      }
+    },
+    [accountEmail],
+  )
+
+  const toggle = useCallback(() => {
+    setExpanded((prev) => {
+      const next = !prev
+      if (next) void loadPreview()
+      return next
+    })
+  }, [loadPreview])
+
+  const handleSave = useCallback(async () => {
+    setSaving(true)
+    setStatus('')
+    setError(null)
+    try {
+      const res = await fetch('/api/settings/integrations/voice', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ account_email: accountEmail, slogan }),
+      })
+      if (!res.ok) throw new Error('Failed to save slogan')
+      setStatus('Slogan saved')
+      await loadPreview()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save slogan')
+    } finally {
+      setSaving(false)
+    }
+  }, [accountEmail, slogan, loadPreview])
+
+  const fieldStyle = {
+    background: 'var(--surface-card)',
+    border: '1px solid var(--color-border)',
+    color: 'var(--color-text-primary)',
+  }
+
+  return (
+    <div className="mt-0.5">
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={expanded}
+        aria-label={`Signature footer for ${accountEmail}`}
+        className="flex items-center gap-1 text-[11px] underline-offset-2 hover:underline"
+        style={{ color: 'var(--color-text-muted)', cursor: 'pointer' }}
+      >
+        <ChevronDown
+          size={12}
+          strokeWidth={1.5}
+          style={{ transform: expanded ? 'rotate(0deg)' : 'rotate(-90deg)' }}
+        />
+        Signature footer
+      </button>
+
+      {expanded && (
+        <div
+          role="region"
+          aria-label={`Signature footer preview for ${accountEmail}`}
+          className="rounded-sm p-3 mt-1.5 flex flex-col gap-2"
+          style={{ border: '1px solid var(--color-border)', background: 'var(--surface-elevated)' }}
+        >
+          <div>
+            <label
+              className="block text-[11px] mb-0.5"
+              style={{ color: 'var(--color-text-disabled)' }}
+              htmlFor={`signature-slogan-${accountEmail}`}
+            >
+              Slogan — proposed, edit before use
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                id={`signature-slogan-${accountEmail}`}
+                aria-label={`Signature slogan for ${accountEmail} (proposed — edit before use)`}
+                value={slogan}
+                onChange={(e) => setSlogan(e.target.value)}
+                className="flex-1 rounded-sm px-2 h-8 text-[12px] focus:outline-hidden"
+                style={fieldStyle}
+              />
+              <button
+                type="button"
+                onClick={() => void loadPreview(slogan)}
+                aria-label={`Update signature preview for ${accountEmail}`}
+                className="px-2 h-8 rounded-sm text-[11px] font-medium shrink-0"
+                style={{ background: 'var(--surface-card)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)', cursor: 'pointer' }}
+              >
+                Preview
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving}
+                aria-label={`Save signature slogan for ${accountEmail}`}
+                className="px-2 h-8 rounded-sm text-[11px] font-medium shrink-0 disabled:opacity-50"
+                style={{ background: '#16a34a18', color: '#15803d', border: '1px solid #16a34a30', cursor: saving ? 'not-allowed' : 'pointer' }}
+              >
+                {saving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+
+          {loading ? (
+            <p className="text-[11px]" style={{ color: 'var(--color-text-disabled)' }}>
+              Loading…
+            </p>
+          ) : html ? (
+            <div
+              aria-label={`Rendered signature for ${accountEmail}`}
+              className="rounded-sm p-3 overflow-x-auto"
+              style={{ border: '1px solid var(--color-border)', background: '#ffffff' }}
+              dangerouslySetInnerHTML={{ __html: html }}
+            />
+          ) : (
+            <p className="text-[11px]" style={{ color: 'var(--color-text-disabled)' }}>
+              {note ?? 'Signatures apply to business accounts only.'}
+            </p>
+          )}
+
+          {error && (
+            <p role="alert" className="text-[11px]" style={{ color: 'var(--color-danger)' }}>
               {error}
             </p>
           )}
