@@ -107,6 +107,42 @@ describe('command-centre tasks accessors', () => {
     await expect(createTask({ founderId: 'f1', title: 'x' }, client)).rejects.toThrow(/createTask failed: rls denied/)
   })
 
+  // UNI-2438 — creation-time governance: a task must be born at a legal initial
+  // status; queued/running (runner-claimable) and blocked/done/failed (lifecycle
+  // outcomes) are rejected BEFORE any insert reaches the database.
+  it.each(['queued', 'running', 'blocked', 'done', 'failed'] as const)(
+    'createTask refuses illegal initial status %s without touching the database',
+    async (status) => {
+      const { client, calls } = makeMockClient({ data: null, error: null })
+
+      await expect(createTask({ founderId: 'f1', title: 'x', status }, client)).rejects.toMatchObject({
+        name: 'IllegalInitialStatusError',
+        status,
+      })
+      expect(calls).toHaveLength(0)
+    },
+  )
+
+  it.each(['proposed', 'awaiting_approval'] as const)(
+    'createTask accepts legal initial status %s',
+    async (status) => {
+      const returned = { id: 't1', founder_id: 'f1', title: 'x', status }
+      const { client, calls } = makeMockClient({ data: returned, error: null })
+
+      await expect(createTask({ founderId: 'f1', title: 'x', status }, client)).resolves.toEqual(returned)
+      expect((calls[0].inserted as Record<string, unknown>).status).toBe(status)
+    },
+  )
+
+  it('createTaskOnce inherits the initial-status guard (no insert, no fallback read)', async () => {
+    const { client, calls } = makeMockClient({ data: null, error: null })
+
+    await expect(
+      createTaskOnce({ founderId: 'f1', title: 'x', externalRef: 'ref-1', status: 'running' }, client),
+    ).rejects.toMatchObject({ name: 'IllegalInitialStatusError', status: 'running' })
+    expect(calls).toHaveLength(0)
+  })
+
   it('gets one founder-scoped task by exact external_ref without a capped list scan', async () => {
     const returned = { id: 't1', founder_id: 'f1', external_ref: 'stable-ref' }
     const { client, calls } = makeMockClient({ data: returned, error: null })

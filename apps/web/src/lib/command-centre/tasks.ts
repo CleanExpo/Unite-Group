@@ -199,15 +199,49 @@ export interface SupabaseLike {
 
 // ─── Accessors ────────────────────────────────────────────────────────────────
 
+// UNI-2438 — creation-time governance. A task must be BORN at a legal initial
+// status; `queued`/`running` (the runner-claimable states) are reachable only
+// through the guarded transition matrix (approval edge → queued, runner claim →
+// running — see ./task-transitions.ts), and `blocked`/`done`/`failed` are
+// lifecycle outcomes, not birth states. Creation is the one lifecycle edge the
+// matrix cannot see, so it is guarded here at the single insert choke point:
+// every producer (routes, decompose, signals ingest, and work-packet ingestion
+// via packetToCreateTaskInput) flows through createTask/createTaskOnce.
+export const ALLOWED_INITIAL_STATUSES: readonly TaskStatus[] = [
+  'proposed',
+  'awaiting_approval',
+]
+
+export class IllegalInitialStatusError extends Error {
+  constructor(status: TaskStatus) {
+    super(
+      `createTask refused: '${status}' is not a legal initial status — a task starts at ` +
+        `${ALLOWED_INITIAL_STATUSES.join(' or ')} and is promoted only via the transition matrix`,
+    )
+    this.name = 'IllegalInitialStatusError'
+    this.status = status
+  }
+
+  readonly status: TaskStatus
+}
+
 /**
  * Create a new task row. Defaults mirror the SQL column defaults. Returns the
  * inserted row. The `client` argument is for testing — production callers omit it
  * and a founder-scoped server client is created lazily.
+ *
+ * Throws IllegalInitialStatusError (before any insert) when `input.status` is
+ * not in ALLOWED_INITIAL_STATUSES.
  */
 export async function createTask(
   input: CreateTaskInput,
   client?: SupabaseLike,
 ): Promise<CommandCentreTask> {
+  const initialStatus = input.status ?? 'proposed'
+  if (!ALLOWED_INITIAL_STATUSES.includes(initialStatus)) {
+    throw new IllegalInitialStatusError(initialStatus)
+  }
+
   const db = client ?? ((await createClient()) as unknown as SupabaseLike)
 
   const row = {
@@ -219,7 +253,7 @@ export async function createTask(
     title: input.title,
     objective: input.objective ?? '',
     priority: input.priority ?? 'P2',
-    status: input.status ?? 'proposed',
+    status: initialStatus,
     agent_owner: input.agentOwner ?? null,
     risk_level: input.riskLevel ?? 'low',
     execution_mode: input.executionMode ?? 'advisory',
