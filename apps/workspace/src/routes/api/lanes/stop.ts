@@ -3,6 +3,8 @@ import { json } from '@tanstack/react-start'
 import { isAuthenticated } from '../../../server/auth-middleware'
 import { requireJsonContentType } from '../../../server/rate-limit'
 import { getLaneOrchestrator } from '../../../server/lanes'
+import { StopNotAcknowledgedError } from '../../../server/lanes/adapter'
+import { LaneConflictError } from '../../../server/lanes/lane-orchestrator'
 
 export const Route = createFileRoute('/api/lanes/stop')({
   server: {
@@ -21,13 +23,15 @@ export const Route = createFileRoute('/api/lanes/stop')({
           const lane = await getLaneOrchestrator().stop(body.id)
           return json({ ok: true, lane })
         } catch (error) {
+          const conflict =
+            error instanceof LaneConflictError ||
+            error instanceof StopNotAcknowledgedError
           return json(
             {
               ok: false,
-              error:
-                error instanceof Error ? error.message : 'Failed to stop lane',
+              error: conflict ? error.message : 'Failed to stop lane',
             },
-            { status: 500 },
+            { status: conflict ? 409 : 500 },
           )
         }
       },

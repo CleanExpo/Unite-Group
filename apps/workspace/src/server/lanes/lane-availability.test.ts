@@ -8,6 +8,8 @@ import {
   cliAccountSource,
   makeAvailabilityCheck,
   probeGateway,
+  probeGatewayBackend,
+  probeGatewayProviders,
   sharedTokenPresent,
 } from './lane-availability'
 
@@ -40,6 +42,12 @@ describe('lane-availability (spec R9)', () => {
     fs.writeFileSync(path.join(dir, '.credentials.json'), '{}')
   }
 
+  const seedCodex = (account: string) => {
+    const dir = path.join(tmp, 'accounts', account)
+    fs.mkdirSync(dir, { recursive: true })
+    fs.writeFileSync(path.join(dir, 'auth.json'), '{}')
+  }
+
   it('unavailable when dir absent and no shared token', () => {
     expect(cliAccountAvailable('max-1')).toBe(false)
     expect(cliAccountSource('max-1')).toBe(null)
@@ -65,6 +73,31 @@ describe('lane-availability (spec R9)', () => {
     expect(cliAccountSource('max-2')).toBe('shared')
   })
 
+  it('does not use Claude shared OAuth to admit Codex', () => {
+    process.env.CLAUDE_CODE_OAUTH_TOKEN = 'test-shared-oauth-token'
+
+    expect(cliAccountAvailable('openai-pro', 'codex')).toBe(false)
+    expect(cliAccountAvailable('max-1', 'claude-code')).toBe(true)
+  })
+
+  it('binds dedicated credentials to the matching CLI tool', () => {
+    seed('claude-only')
+    seedCodex('codex-only')
+
+    expect(cliAccountAvailable('claude-only', 'claude-code')).toBe(true)
+    expect(cliAccountAvailable('claude-only', 'codex')).toBe(false)
+    expect(cliAccountAvailable('codex-only', 'codex')).toBe(true)
+    expect(cliAccountAvailable('codex-only', 'claude-code')).toBe(false)
+  })
+
+  it('rejects account identifiers that escape the credential root', () => {
+    const outside = path.join(tmp, 'outside')
+    fs.mkdirSync(outside, { recursive: true })
+    fs.writeFileSync(path.join(outside, '.credentials.json'), '{}')
+
+    expect(cliAccountHasDedicatedCreds('../outside')).toBe(false)
+  })
+
   it('dedicated takes precedence over shared in the source label', () => {
     process.env.CLAUDE_CODE_OAUTH_TOKEN = 'sk-ant-oat-test'
     seed('max-1')
@@ -77,17 +110,27 @@ describe('lane-availability (spec R9)', () => {
     expect(cliAccountAvailable('max-3')).toBe(false)
   })
 
-  it('makeAvailabilityCheck gates gateway backends on the probed flag', () => {
-    const down = makeAvailabilityCheck(false)
-    const up = makeAvailabilityCheck(true)
-    const gw = { kind: 'gateway' as const, provider: 'minimax', model: '' }
+  it('makeAvailabilityCheck gates gateway backends on the probed provider set', () => {
+    const down = makeAvailabilityCheck(new Set())
+    const up = makeAvailabilityCheck(new Set(['minimax']))
+    const gw = {
+      kind: 'gateway' as const,
+      provider: 'minimax',
+      model: 'abab6.5',
+    }
     expect(down(gw)).toBe(false)
     expect(up(gw)).toBe(true)
+    expect(
+      up({ kind: 'gateway', provider: 'openrouter', model: 'gpt-5' }),
+    ).toBe(false)
+    expect(
+      up({ kind: 'gateway', provider: 'minimax', model: '   ' }),
+    ).toBe(false)
   })
 
   it('makeAvailabilityCheck gates CLI backends on dedicated-or-shared', () => {
     seed('max-2')
-    const check = makeAvailabilityCheck(true)
+    const check = makeAvailabilityCheck(new Set(['minimax']))
     expect(check({ kind: 'cli', tool: 'claude-code', account: 'max-2' })).toBe(
       true,
     )
@@ -107,5 +150,77 @@ describe('lane-availability (spec R9)', () => {
       new Response('{"status":"ok"}', { status: 200 }),
     )
     expect(await probeGateway('http://127.0.0.1:8642')).toBe(true)
+  })
+
+  it('discovers configured providers from the authenticated model catalogue', async () => {
+    const fetcher = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          data: [
+            { id: 'minimax/abab6.5', provider: 'minimax' },
+            { id: 'openai/gpt-5', owned_by: 'openai' },
+          ],
+        }),
+        { status: 200 },
+      ),
+    )
+
+    const providers = await probeGatewayProviders(
+      'http://127.0.0.1:8642',
+      'test-token',
+      fetcher,
+    )
+
+    expect([...providers]).toEqual(expect.arrayContaining(['minimax', 'openai']))
+    expect(fetcher).toHaveBeenCalledWith(
+      'http://127.0.0.1:8642/v1/models',
+      expect.objectContaining({
+        headers: { Authorization: 'Bearer test-token' },
+      }),
+    )
+  })
+
+  it('fails closed when the requested provider or model is absent', async () => {
+    const fetcher = vi.fn().mockImplementation(async () =>
+      new Response(
+        JSON.stringify({
+          data: [{ id: 'minimax/abab6.5', provider: 'minimax' }],
+        }),
+        { status: 200 },
+      ),
+    )
+
+    await expect(
+      probeGatewayBackend(
+        'http://gw',
+        { kind: 'gateway', provider: 'openrouter', model: '' },
+        undefined,
+        fetcher,
+      ),
+    ).resolves.toBe(false)
+    await expect(
+      probeGatewayBackend(
+        'http://gw',
+        { kind: 'gateway', provider: 'minimax', model: '   ' },
+        undefined,
+        fetcher,
+      ),
+    ).resolves.toBe(false)
+    await expect(
+      probeGatewayBackend(
+        'http://gw',
+        { kind: 'gateway', provider: 'minimax', model: 'missing-model' },
+        undefined,
+        fetcher,
+      ),
+    ).resolves.toBe(false)
+    await expect(
+      probeGatewayBackend(
+        'http://gw',
+        { kind: 'gateway', provider: 'minimax', model: 'minimax/abab6.5' },
+        undefined,
+        fetcher,
+      ),
+    ).resolves.toBe(true)
   })
 })
