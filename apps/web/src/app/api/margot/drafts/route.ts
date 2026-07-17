@@ -10,8 +10,6 @@ import { generateFounderDraft } from '@/lib/margot/draft-reply';
 import { createAnthropicComplete } from '@/lib/margot/providers';
 import { createMargotDraftStore } from '@/lib/margot/draft-store';
 import { getAccountVoice } from '@/lib/margot/account-voice';
-import { accountByEmail } from '@/lib/email-accounts';
-import { getAccountSignature } from '@/lib/email/signature';
 import type { IncomingEmail } from '@/lib/margot/draft-reply-prompt';
 
 export const dynamic = 'force-dynamic';
@@ -50,20 +48,15 @@ export async function POST(request: NextRequest) {
     // Resolve the copywriter voice for the account we're drafting FROM — the
     // stored per-account voice, or the labelled default when none is set.
     const voice = await getAccountVoice(user.id, input.accountEmail);
+    // Store the model body ONLY — no signature footer here. The footer is owned
+    // by the single send chokepoint (gmail.sendReply), which appends it exactly
+    // once when the approved draft is sent. Appending it at draft time too would
+    // double the footer on the sent email.
     const body = await generateFounderDraft(
       input.incoming,
       voice,
       createAnthropicComplete()
     );
-    // Append the account's signature footer for BUSINESS accounts only; personal
-    // mailboxes get the draft body unchanged (no footer). getAccountSignature
-    // itself returns '' for personal/unknown, but we skip it entirely here so a
-    // personal account never triggers a lookup.
-    const account = accountByEmail(input.accountEmail);
-    const finalBody =
-      account && account.scope !== 'personal'
-        ? `${body}\n\n${await getAccountSignature(user.id, input.accountEmail)}`
-        : body;
     const store = createMargotDraftStore();
     const id = await store.createDraft({
       founderId: user.id,
@@ -73,10 +66,10 @@ export async function POST(request: NextRequest) {
       threadId: input.threadId,
       toAddress: input.toAddress,
       subject: input.subject ?? input.incoming.subject,
-      body: finalBody,
+      body,
       voiceMeta: { voiceName: voice.name },
     });
-    return NextResponse.json({ id, status: 'awaiting_approval', body: finalBody });
+    return NextResponse.json({ id, status: 'awaiting_approval', body });
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : 'draft generation failed' },

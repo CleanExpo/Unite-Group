@@ -79,18 +79,17 @@ describe('POST /api/email/draft-reply', () => {
     expect(fetchFullThread).toHaveBeenCalledWith('user-1', 'a@b.com', 't-1')
   })
 
-  it('appends the account signature footer for a business account', async () => {
+  it('returns the model body ONLY — never appends a footer (the send path owns it)', async () => {
     vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as never)
     vi.mocked(getAccountVoice).mockResolvedValue(voice as never)
     vi.mocked(fetchFullThread).mockResolvedValue(thread as never)
     vi.mocked(generateFounderDraft).mockResolvedValue('Here is the reply.')
-    vi.mocked(getAccountSignature).mockResolvedValue('<table>FOOTER</table>')
 
     const res = await POST(req({ account: 'nrpg.team@gmail.com', threadId: 't-1' }))
     const json = await res.json()
-    // The composer receives the FINAL email (body + footer) to edit before Send.
-    expect(json.body).toBe('Here is the reply.\n\n<table>FOOTER</table>')
-    expect(getAccountSignature).toHaveBeenCalledWith('user-1', 'nrpg.team@gmail.com')
+    // No footer here — gmail.sendReply appends it exactly once at send time.
+    expect(json.body).toBe('Here is the reply.')
+    expect(getAccountSignature).not.toHaveBeenCalled()
   })
 
   it('is on-demand: does NOT send and does NOT gate behind MARGOT_DRAFTS_ENABLED', async () => {

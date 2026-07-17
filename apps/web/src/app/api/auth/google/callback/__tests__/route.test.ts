@@ -139,4 +139,74 @@ describe('GET /api/auth/google/callback', () => {
     expect(upsertArg.metadata.email).toBe('real-admin@gmail.com')
     expect(res.headers.get('location')).toContain('connected=real-admin%40gmail.com')
   })
+
+  it('FAILS CLOSED when userinfo fails — no vault upsert, identity_unconfirmed redirect (§11)', async () => {
+    // If we cannot confirm the REAL authenticated email, tokens must NOT be
+    // persisted under the unverified requested address.
+    vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
+    vi.mocked(verifyOAuthState).mockReturnValue({
+      email: 'requested@test.com',
+      founderId: 'user-1',
+      nonce: 'n',
+      expiresAt: String(Date.now() + 60_000),
+    })
+    const upsert = vi.fn().mockReturnValue({ error: null })
+    const chain: Record<string, any> = { select: vi.fn(), eq: vi.fn(), upsert }
+    chain.select.mockReturnValue(chain)
+    chain.eq.mockReturnValue(chain)
+    chain.maybeSingle = vi.fn().mockResolvedValue({ data: null })
+    mockFrom.mockReturnValue(chain)
+    vi.mocked(createServiceClient).mockReturnValue({ from: mockFrom } as any)
+
+    const fetchMock = vi.fn(async (url: string) => {
+      if (String(url).includes('oauth2.googleapis.com/token')) {
+        return { ok: true, json: async () => ({ access_token: 'at', refresh_token: 'rt', expires_in: 3600, scope: 's' }) } as any
+      }
+      if (String(url).includes('userinfo')) {
+        // userinfo unreachable / non-OK — identity cannot be confirmed.
+        return { ok: false, status: 503, json: async () => ({}) } as any
+      }
+      return { ok: false, text: async () => 'unexpected' } as any
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const res = await GET(req('?code=abc&state=xyz'))
+
+    expect(res.status).toBe(307)
+    expect(res.headers.get('location')).toContain('error=identity_unconfirmed')
+    // Fail-closed: nothing persisted.
+    expect(upsert).not.toHaveBeenCalled()
+  })
+
+  it('FAILS CLOSED when userinfo email is whitespace-only (truthy but blank)', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
+    vi.mocked(verifyOAuthState).mockReturnValue({
+      email: 'requested@test.com', founderId: 'user-1', nonce: 'n',
+      expiresAt: String(Date.now() + 60_000),
+    })
+    const upsert = vi.fn().mockReturnValue({ error: null })
+    const chain: Record<string, any> = { select: vi.fn(), eq: vi.fn(), upsert }
+    chain.select.mockReturnValue(chain)
+    chain.eq.mockReturnValue(chain)
+    chain.maybeSingle = vi.fn().mockResolvedValue({ data: null })
+    mockFrom.mockReturnValue(chain)
+    vi.mocked(createServiceClient).mockReturnValue({ from: mockFrom } as any)
+
+    const fetchMock = vi.fn(async (url: string) => {
+      if (String(url).includes('oauth2.googleapis.com/token')) {
+        return { ok: true, json: async () => ({ access_token: 'at', refresh_token: 'rt', expires_in: 3600, scope: 's' }) } as any
+      }
+      if (String(url).includes('userinfo')) {
+        // A blank/whitespace email is truthy but must NOT reach the vault upsert.
+        return { ok: true, json: async () => ({ email: '   ' }) } as any
+      }
+      return { ok: false, text: async () => 'unexpected' } as any
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const res = await GET(req('?code=abc&state=xyz'))
+    expect(res.status).toBe(307)
+    expect(res.headers.get('location')).toContain('error=identity_unconfirmed')
+    expect(upsert).not.toHaveBeenCalled()
+  })
 })

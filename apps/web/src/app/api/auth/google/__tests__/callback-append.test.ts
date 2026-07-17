@@ -43,7 +43,12 @@ function signedState(email: string) {
   })
 }
 
+// The authenticated identity is now read from Google userinfo (not the requested
+// state email). Track the account under test so the userinfo mock echoes it.
+let currentEmail = ''
+
 async function runCallback(email: string) {
+  currentEmail = email
   const state = signedState(email)
   const url = `https://app.test/api/auth/google/callback?code=auth-code&state=${encodeURIComponent(state)}`
   return callback(new Request(url))
@@ -61,14 +66,20 @@ describe('Google callback — append-not-overwrite', () => {
 
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          access_token: 'at',
-          refresh_token: 'rt',
-          expires_in: 3600,
-          scope: 'https://www.googleapis.com/auth/gmail.modify',
-        }),
+      vi.fn(async (url: string) => {
+        if (String(url).includes('userinfo')) {
+          // Identity is confirmed from userinfo — echo the account under test.
+          return { ok: true, json: async () => ({ email: currentEmail }) } as never
+        }
+        return {
+          ok: true,
+          json: async () => ({
+            access_token: 'at',
+            refresh_token: 'rt',
+            expires_in: 3600,
+            scope: 'https://www.googleapis.com/auth/gmail.modify',
+          }),
+        } as never
       }),
     )
   })

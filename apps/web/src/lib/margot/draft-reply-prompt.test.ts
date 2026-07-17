@@ -15,12 +15,15 @@ const voice: FounderVoice = {
 };
 
 describe('founder-voice reply prompt', () => {
-  it('drafts in the founder voice and signs off correctly', () => {
+  it('drafts in the founder voice but does NOT append a sign-off (footer owns it)', () => {
     const p = buildFounderReplySystemPrompt(voice);
     expect(p).toContain('AS Phill');
-    expect(p).toContain('Cheers, Phill');
     expect(p).toContain('Direct and warm');
     expect(p).toContain('Never over-promise timelines');
+    // The signature footer now carries the sign-off, so the model must NOT add
+    // one — the prompt no longer instructs it to end with the sign-off line.
+    expect(p).not.toContain('End with the sign-off');
+    expect(p).toMatch(/Do NOT add a sign-off/i);
   });
 
   it('states plainly that a human reviews and sends (confirm-before-send)', () => {

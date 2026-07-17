@@ -112,11 +112,16 @@ export async function PUT(request: Request) {
       await setAccountSlogan(user.id, accountEmail, trimmed || null);
     }
     if (hasVoiceFields) {
+      // Merge, don't replace: a partial PUT (e.g. only `name`) must preserve the
+      // stored signOff/toneGuidelines/neverDo rather than reset omitted fields to
+      // defaults. Start from the stored voice (or the default when none is set)
+      // and overlay ONLY the fields the request actually carries.
+      const base = (await getStoredAccountVoice(user.id, accountEmail)) ?? DEFAULT_FOUNDER_VOICE;
       const voice: FounderVoice = {
-        name: (body.name ?? '').trim() || DEFAULT_FOUNDER_VOICE.name,
-        signOff: (body.signOff ?? '').trim() || DEFAULT_FOUNDER_VOICE.signOff,
-        toneGuidelines: asStringArray(body.toneGuidelines),
-        neverDo: asStringArray(body.neverDo),
+        name: 'name' in body ? (body.name ?? '').trim() || base.name : base.name,
+        signOff: 'signOff' in body ? (body.signOff ?? '').trim() || base.signOff : base.signOff,
+        toneGuidelines: 'toneGuidelines' in body ? asStringArray(body.toneGuidelines) : base.toneGuidelines,
+        neverDo: 'neverDo' in body ? asStringArray(body.neverDo) : base.neverDo,
       };
       await saveAccountVoice(user.id, accountEmail, voice);
     }
