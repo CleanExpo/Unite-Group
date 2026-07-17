@@ -35,13 +35,14 @@ import {
   createTaskOnce,
   getTaskByExternalRef,
   listTasks,
-  updateTaskStatus,
+  updateTaskStatusGuarded,
   appendTaskEvent,
   type CommandCentreTask,
   type CreateTaskInput,
   type TaskStatus,
   type TaskEventType,
   type SupabaseLike,
+  type GuardedUpdateClientLike,
 } from './tasks'
 import { isLegalTransition } from './task-transitions'
 
@@ -307,13 +308,28 @@ export async function applyPacketTransition(
       reason: `illegal promotion: ${fromTaskStatus} → ${toTaskStatus} is not permitted via a work-packet transition`,
     }
   }
-  // Persist the new status against the row's primary key. The append-only event
-  // records the rest of the transition (actor, from/to, reason) for the audit
+  // UNI-2436 TOCTOU guard: persist the new status ONLY while the row still holds
+  // the status we read at the top of this function (task.status). A zero-row
+  // (null) result means another writer changed the status underneath between that
+  // read and here — refuse rather than clobber it, and audit nothing. The
+  // append-only event (below) records the rest of the transition for the audit
   // trail; the returned packet carries the full in-memory transition result.
-  await updateTaskStatus(
-    { founderId, taskId: task.id, status: packetStatusToTaskStatus(next.status) },
-    db,
+  const updated = await updateTaskStatusGuarded(
+    {
+      founderId,
+      taskId: task.id,
+      status: packetStatusToTaskStatus(next.status),
+      expectedStatus: task.status,
+    },
+    db as unknown as GuardedUpdateClientLike,
   )
+  if (!updated) {
+    return {
+      ok: false,
+      packet: current,
+      reason: `conflict: task ${task.id} status changed since it was read`,
+    }
+  }
   await appendTaskEvent(
     {
       founderId,

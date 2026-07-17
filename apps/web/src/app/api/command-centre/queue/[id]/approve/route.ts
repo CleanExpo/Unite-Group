@@ -89,7 +89,20 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       approver: 'founder',
       note,
       boardVerdict,
+      // UNI-2436 TOCTOU guard: the status write is conditional on the task still
+      // holding the status we read above; a lost race surfaces as result.conflict.
+      expectedStatus: task.status,
     })
+    if (result.conflict) {
+      return NextResponse.json(
+        {
+          error: 'Task status changed since it was read; re-read and retry',
+          from: task.status,
+          to: targetStatus,
+        },
+        { status: 409 },
+      )
+    }
     return NextResponse.json(result, { status: 201 })
   } catch (err) {
     return NextResponse.json(

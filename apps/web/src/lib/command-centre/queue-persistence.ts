@@ -27,12 +27,14 @@ import type {
 import {
   createTask,
   appendTaskEvent,
+  getTaskByExternalRef,
   updateTaskStatusByExternalRef,
   type SupabaseLike,
   type TaskStatus,
   type TaskEventType,
   type TaskRiskLevel,
 } from '@/lib/command-centre/tasks'
+import { isLegalTransition } from '@/lib/command-centre/task-transitions'
 
 /**
  * Map a FounderRunQueueItem status onto the durable cc_tasks TaskStatus union.
@@ -139,12 +141,37 @@ export function createSupabaseQueuePersistence(opts: {
     },
 
     async onTransition(p: QueuePersistTransition): Promise<void> {
-      const row = await updateTaskStatusByExternalRef(
-        { founderId, externalRef: p.externalRef, status: mapStatus(p.status) },
+      // UNI-2436 latent-safety guard: this adapter has no production caller, but
+      // if it is ever wired its queue→cc_tasks status writes must NOT bypass the
+      // governance transition matrix. Read the row's current status first, then
+      // refuse any client-driven promotion into the runner-claimable `queued` /
+      // `running` states that the `founder` actor is not permitted to make (only
+      // the approval and runner paths may promote). Benign edits pass through.
+      // Guarded, not deleted, so the adapter stays intact for a future wiring.
+      const current = await getTaskByExternalRef(
+        { founderId, externalRef: p.externalRef },
         client,
       )
 
       // Missing/unknown external_ref → quietly do nothing (no event, no throw).
+      if (!current) return
+
+      const nextStatus = mapStatus(p.status)
+      if (
+        (nextStatus === 'queued' || nextStatus === 'running') &&
+        !isLegalTransition(current.status, nextStatus, 'founder')
+      ) {
+        // Illegal promotion for a client-driven write — refuse silently, matching
+        // the adapter's best-effort contract (no throw, no event, no clobber).
+        return
+      }
+
+      const row = await updateTaskStatusByExternalRef(
+        { founderId, externalRef: p.externalRef, status: nextStatus },
+        client,
+      )
+
+      // Row may have been deleted between the read and the write → quiet no-op.
       if (!row) return
 
       await appendTaskEvent(

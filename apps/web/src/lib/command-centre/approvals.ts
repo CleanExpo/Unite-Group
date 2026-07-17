@@ -12,7 +12,9 @@ import { createClient } from '@/lib/supabase/server'
 import {
   appendTaskEvent,
   updateTaskStatus,
+  updateTaskStatusGuarded,
   type SupabaseLike,
+  type GuardedUpdateClientLike,
   type TaskStatus,
   type CommandCentreTask,
 } from './tasks'
@@ -45,6 +47,14 @@ export interface RecordApprovalInput {
    * the board context it was made against (UNI-2378 E2E finding 3).
    */
   boardVerdict?: string | null
+  /**
+   * UNI-2436 TOCTOU guard: the task status the caller read immediately before
+   * calling. When present and the decision implies a transition, the status
+   * write is made conditional on the task still holding this value (guarded
+   * conditional update); a zero-row result is surfaced as a conflict instead of
+   * clobbering a newer status. Omitted (legacy callers) → unconditional update.
+   */
+  expectedStatus?: TaskStatus
 }
 
 export interface ListApprovalsFilter {
@@ -121,8 +131,18 @@ export async function listApprovalsForTask(
 
 export interface ApplyApprovalResult {
   approval: Approval
-  /** The updated task, or null if the decision implied no status change (edit). */
+  /**
+   * The updated task, or null if the decision implied no status change (edit) or
+   * the guarded write lost a TOCTOU race (see `conflict`).
+   */
   task: CommandCentreTask | null
+  /**
+   * UNI-2436 — true when the decision implied a status transition but the task's
+   * status had already changed since the caller read it (the guarded conditional
+   * write matched zero rows). The caller surfaces this as a 409 and must NOT treat
+   * the decision as applied. The approval row (audited intent) is still recorded.
+   */
+  conflict: boolean
 }
 
 /**
@@ -144,10 +164,31 @@ export async function applyApproval(
   const nextStatus = decisionToStatus(input.decision)
   let task: CommandCentreTask | null = null
   if (nextStatus) {
-    task = await updateTaskStatus(
-      { founderId: input.founderId, taskId: input.taskId, status: nextStatus },
-      db,
-    )
+    if (input.expectedStatus) {
+      // UNI-2436 TOCTOU guard: only transition while the task still holds the
+      // status the caller read. A zero-row (null) result means the status changed
+      // (or the row vanished) between that read and this write — a lost race that
+      // must NOT clobber the newer status. Surface it as a conflict; the recorded
+      // approval remains as audited intent, but no 'approved' event is written for
+      // a transition that did not happen.
+      task = await updateTaskStatusGuarded(
+        {
+          founderId: input.founderId,
+          taskId: input.taskId,
+          status: nextStatus,
+          expectedStatus: input.expectedStatus,
+        },
+        db as unknown as GuardedUpdateClientLike,
+      )
+      if (!task) {
+        return { approval, task: null, conflict: true }
+      }
+    } else {
+      task = await updateTaskStatus(
+        { founderId: input.founderId, taskId: input.taskId, status: nextStatus },
+        db,
+      )
+    }
   }
 
   await appendTaskEvent(
@@ -166,5 +207,5 @@ export async function applyApproval(
     db,
   )
 
-  return { approval, task }
+  return { approval, task, conflict: false }
 }

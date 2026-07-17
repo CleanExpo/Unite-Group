@@ -5,12 +5,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('@/lib/command-centre/tasks', () => ({
   createTask: vi.fn(),
   appendTaskEvent: vi.fn(),
+  getTaskByExternalRef: vi.fn(),
   updateTaskStatusByExternalRef: vi.fn(),
 }))
 
 import {
   createTask,
   appendTaskEvent,
+  getTaskByExternalRef,
   updateTaskStatusByExternalRef,
 } from '@/lib/command-centre/tasks'
 import {
@@ -26,6 +28,7 @@ import type {
 
 const createTaskMock = vi.mocked(createTask)
 const appendTaskEventMock = vi.mocked(appendTaskEvent)
+const getByRefMock = vi.mocked(getTaskByExternalRef)
 const updateStatusMock = vi.mocked(updateTaskStatusByExternalRef)
 
 // Minimal sentinel for the `item` field the bridge passes through; the adapter
@@ -143,6 +146,9 @@ describe('createSupabaseQueuePersistence', () => {
   })
 
   it('onTransition updates status and appends the mapped event when a row exists', async () => {
+    // The adapter now reads the current row first to matrix-guard promotions; a
+    // 'done' target is not a promotion, so it passes through.
+    getByRefMock.mockResolvedValue({ id: 't1', status: 'running' } as never)
     updateStatusMock.mockResolvedValue({ id: 't1' } as never)
     appendTaskEventMock.mockResolvedValue({ id: 'e3' } as never)
 
@@ -167,14 +173,45 @@ describe('createSupabaseQueuePersistence', () => {
   })
 
   it('onTransition does not throw and appends no event for an unknown external_ref', async () => {
-    updateStatusMock.mockResolvedValue(null)
+    getByRefMock.mockResolvedValue(null)
 
     const persistence = createSupabaseQueuePersistence({ founderId, client })
     await expect(
       persistence.onTransition(transitionPayload({ externalRef: 'run_unknown' })),
     ).resolves.toBeUndefined()
 
-    expect(updateStatusMock).toHaveBeenCalledTimes(1)
+    expect(getByRefMock).toHaveBeenCalledTimes(1)
+    expect(updateStatusMock).not.toHaveBeenCalled()
     expect(appendTaskEventMock).not.toHaveBeenCalled()
+  })
+
+  it('onTransition refuses a client-driven promotion into queued/running (UNI-2436 matrix guard)', async () => {
+    // A 'proposed' row driven into 'running' (in_progress) is a promotion the
+    // founder actor may not make; it must be refused without any write or audit.
+    getByRefMock.mockResolvedValue({ id: 't1', status: 'proposed' } as never)
+
+    const persistence = createSupabaseQueuePersistence({ founderId, client })
+    await persistence.onTransition(transitionPayload({ action: 'start', status: 'in_progress' }))
+
+    expect(getByRefMock).toHaveBeenCalledTimes(1)
+    expect(updateStatusMock).not.toHaveBeenCalled()
+    expect(appendTaskEventMock).not.toHaveBeenCalled()
+  })
+
+  it('onTransition allows a benign non-promoting transition through the matrix', async () => {
+    getByRefMock.mockResolvedValue({ id: 't1', status: 'running' } as never)
+    updateStatusMock.mockResolvedValue({ id: 't1' } as never)
+    appendTaskEventMock.mockResolvedValue({ id: 'e9' } as never)
+
+    const persistence = createSupabaseQueuePersistence({ founderId, client })
+    await persistence.onTransition(transitionPayload({ action: 'block', status: 'blocked' }))
+
+    expect(updateStatusMock).toHaveBeenCalledTimes(1)
+    expect(updateStatusMock.mock.calls[0][0]).toEqual({
+      founderId: 'f1',
+      externalRef: 'run_task-1',
+      status: 'blocked',
+    })
+    expect(appendTaskEventMock).toHaveBeenCalledTimes(1)
   })
 })
