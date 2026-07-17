@@ -86,9 +86,13 @@ export async function GET(request: Request) {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
     })
     if (!infoRes.ok) throw new Error(`userinfo ${infoRes.status}`)
-    const info = await infoRes.json() as { email?: string }
-    if (!info.email) throw new Error('userinfo returned no email')
-    authenticatedEmail = info.email
+    const info = await infoRes.json() as { email?: unknown }
+    // Require a real, non-empty string — a whitespace-only or non-string value
+    // must NOT reach the vault upsert (it would store tokens under a blank/garbage
+    // identity). Normalise to trimmed lowercase (matches accountByEmail lookup).
+    const confirmed = typeof info.email === 'string' ? info.email.trim().toLowerCase() : ''
+    if (!confirmed) throw new Error('userinfo returned no usable email')
+    authenticatedEmail = confirmed
   } catch (e) {
     // FAIL CLOSED: if we cannot confirm the REAL authenticated email, do NOT
     // persist tokens under the unverified requested address — that would let
