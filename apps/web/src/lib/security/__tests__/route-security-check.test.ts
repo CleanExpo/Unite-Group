@@ -132,4 +132,21 @@ describe('findUnprotectedMutatingRoutes', () => {
       '/api/leads',
     ])
   })
+
+  it('recognises the agent events ingest route bearer guard in the real route inventory', () => {
+    const violations = findUnprotectedMutatingRoutes({
+      allowlist: DEFAULT_ROUTE_SECURITY_ALLOWLIST,
+    })
+
+    expect(violations.map((violation) => violation.path)).not.toContain('/api/agents/events')
+  })
+
+  it('recognises runner claim and release bearer guards in the real route inventory', () => {
+    const violations = findUnprotectedMutatingRoutes({
+      allowlist: DEFAULT_ROUTE_SECURITY_ALLOWLIST,
+    })
+
+    expect(violations.map((violation) => violation.path)).not.toContain('/api/agents/runner/claim')
+    expect(violations.map((violation) => violation.path)).not.toContain('/api/agents/runner/release')
+  })
 })
