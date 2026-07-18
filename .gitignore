@@ -46,10 +46,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# python bytecode
-__pycache__/
-*.py[cod]
-
 # Source route/lib directories literally named 'build' (e.g. command-centre
 # lane routes at src/app/api/**/build/). A global gitignore `build/` pattern on
 # some machines silently drops these source files from `git add`. Re-include

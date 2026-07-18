@@ -30,7 +30,6 @@ import { TeamActivityTile } from '@/components/command-centre/team-activity/Team
 import { EmailAccountsTile } from '@/components/command-centre/email-accounts/EmailAccountsTile'
 import { HermesControlPanel } from '@/components/command-centre/control-panel/HermesControlPanel'
 import { LiveAgentOperationsMap } from '@/components/command-centre/live-agent-operations/LiveAgentOperationsMap'
-import { LiveMachineGrid } from '@/components/command-centre/live-machine-grid/LiveMachineGrid'
 import { ActivityFeedPanel } from '@/components/command-centre/activity/ActivityFeedPanel'
 import { CrmAutonomyPanel } from '@/components/command-centre/crm-autonomy/CrmAutonomyPanel'
 import { DailyCrmDigestPanel } from '@/components/command-centre/digest/DailyCrmDigestPanel'
@@ -115,19 +114,6 @@ export default async function OperationsDeckPage() {
         style={{ animationDelay: '0.04s' }}
       >
         <CrmAutonomyPanel recentJobs={crmMissionControlJobs} />
-      </section>
-
-      {/* ── Actual estate — fixed 3-machine × 2-screen safe activity projection. ── */}
-      <div className={`${shell.canvasScope} ${shell.glassSectionHead}`} id="live-machine-activity">
-        <h2>Live Machine Activity</h2>
-        <span className={shell.glassSub}>3 trusted computers · 6 structured screens · never raw video</span>
-      </div>
-
-      <section
-        className={`${shell.canvasScope} ${shell.glassPanel} ${shell.glassSection} ${styles.reveal}`}
-        style={{ animationDelay: '0.06s' }}
-      >
-        <LiveMachineGrid />
       </section>
 
       {/* Consolidated from the retired US command-center page (self-contained panels). */}
