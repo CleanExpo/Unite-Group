@@ -8,13 +8,13 @@ beforeEach(() => {
 })
 
 describe('MeshFleetTile', () => {
-  it('renders machines with fresh/stale badges, state, current task, and ship count', async () => {
+  it('renders machines with fresh/stale badges, bounded state and ship count without task text', async () => {
     vi.spyOn(global, 'fetch').mockResolvedValue({
       ok: true,
       json: async () => ({
         configured: true,
         machines: [
-          { host: 'mac-mini', last_seen: '2026-07-05T02:00:00Z', is_stale: false, state: 'working', current_task: 'shipping UNI-2305' },
+          { host: 'mac-mini', last_seen: '2026-07-05T02:00:00Z', is_stale: false, state: 'working' },
           { host: 'windows-box', last_seen: '2026-07-04T20:00:00Z', is_stale: true },
         ],
         shipCount: 3,
@@ -26,7 +26,7 @@ describe('MeshFleetTile', () => {
 
     await waitFor(() => expect(screen.getByTestId('mesh-machine-mac-mini')).toBeInTheDocument())
     expect(screen.getByText('mac-mini', { exact: false })).toBeInTheDocument()
-    expect(screen.getByText('shipping UNI-2305', { exact: false })).toBeInTheDocument()
+    expect(screen.queryByText('private client recovery details')).not.toBeInTheDocument()
     expect(screen.getByTestId('mesh-badge-mac-mini')).toHaveTextContent('fresh')
     expect(screen.getByTestId('mesh-badge-windows-box')).toHaveTextContent('stale')
     expect(screen.getByText('2 machines · 3 ships', { exact: false })).toBeInTheDocument()
