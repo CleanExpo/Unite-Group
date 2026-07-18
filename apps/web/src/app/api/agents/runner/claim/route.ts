@@ -12,6 +12,7 @@
 // founder_id is never taken from the body. An immutable cc_task_events
 // 'started' row records the claim for the audit trail.
 
+import { timingSafeEqual } from 'node:crypto'
 import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
@@ -28,11 +29,19 @@ const bodySchema = z.object({
   runnerId: z.string().trim().min(1).max(128),
 })
 
-function bearerOk(request: Request): boolean {
-  const secret = process.env.AGENT_EVENTS_SECRET?.trim()
+function timingSafeBearerMatch(request: Request, expectedSecret: string | undefined): boolean {
+  const secret = expectedSecret?.trim()
   if (!secret) return false // dormant by default — no secret, no claims
+
   const header = request.headers.get('authorization') ?? ''
-  return header === `Bearer ${secret}`
+  const expected = `Bearer ${secret}`
+  const receivedBuffer = Buffer.from(header)
+  const expectedBuffer = Buffer.from(expected)
+  return receivedBuffer.length === expectedBuffer.length && timingSafeEqual(receivedBuffer, expectedBuffer)
+}
+
+function bearerOk(request: Request): boolean {
+  return timingSafeBearerMatch(request, process.env.AGENT_EVENTS_SECRET)
 }
 
 export async function POST(request: Request) {

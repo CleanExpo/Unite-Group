@@ -13,6 +13,7 @@
 // are accepted; the accessor writes a fixed column set, so no payload/args can
 // be persisted even if sent. Write-then-confirm: the insert returns its rows.
 
+import { timingSafeEqual } from 'node:crypto'
 import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
@@ -44,11 +45,19 @@ const bodySchema = z.object({
   events: z.array(eventSchema).min(1).max(MAX_BATCH),
 })
 
-function bearerOk(request: Request): boolean {
-  const secret = process.env.AGENT_EVENTS_SECRET?.trim()
+function timingSafeBearerMatch(request: Request, expectedSecret: string | undefined): boolean {
+  const secret = expectedSecret?.trim()
   if (!secret) return false // dormant by default — no secret, no ingest
+
   const header = request.headers.get('authorization') ?? ''
-  return header === `Bearer ${secret}`
+  const expected = `Bearer ${secret}`
+  const receivedBuffer = Buffer.from(header)
+  const expectedBuffer = Buffer.from(expected)
+  return receivedBuffer.length === expectedBuffer.length && timingSafeEqual(receivedBuffer, expectedBuffer)
+}
+
+function bearerOk(request: Request): boolean {
+  return timingSafeBearerMatch(request, process.env.AGENT_EVENTS_SECRET)
 }
 
 export async function POST(request: Request) {
