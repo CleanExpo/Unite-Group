@@ -79,3 +79,56 @@
 :global(.cc-daylight) .attention { color: #92510a; }
 :global(.cc-daylight) .attention li { color: #92510a; }
 :global(.cc-daylight) .clear { color: #0b7a44; }
+
+.crmSurface {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid rgba(56, 225, 255, 0.14);
+}
+
+.crmHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #a7f3d0;
+}
+
+.crmHead span:last-child {
+  color: #7d93a6;
+}
+
+.crmMetrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.crmMetrics li {
+  padding: 0.45rem 0.55rem;
+  border: 1px solid rgba(45, 187, 87, 0.24);
+  border-radius: 6px;
+  background: rgba(45, 187, 87, 0.08);
+  font-size: 0.78rem;
+  color: #e6f1f8;
+}
+
+.crmGuardrail {
+  margin: 0;
+  font-size: 0.72rem;
+  color: #bbf7d0;
+}
+
+.crmScope {
+  margin: 0;
+  font-size: 0.72rem;
+  color: #aebfcd;
+}
