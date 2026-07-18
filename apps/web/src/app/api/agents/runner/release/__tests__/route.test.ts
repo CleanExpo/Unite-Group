@@ -64,6 +64,14 @@ describe('POST /api/agents/runner/release', () => {
     expect((await POST(req(doneBody, 'Bearer wrong'))).status).toBe(401)
   })
 
+  it('401s on an equal-length wrong bearer secret without starting work', async () => {
+    const res = await POST(req(doneBody, 'Bearer test-secreu'))
+    expect(res.status).toBe(401)
+    expect(createServiceClient).not.toHaveBeenCalled()
+    expect(releaseClaimedTask).not.toHaveBeenCalled()
+    expect(appendTaskEvent).not.toHaveBeenCalled()
+  })
+
   it('503s when FOUNDER_USER_ID is not configured', async () => {
     delete process.env.FOUNDER_USER_ID
     const res = await POST(req(doneBody, `Bearer ${SECRET}`))

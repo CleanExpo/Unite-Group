@@ -51,6 +51,13 @@ describe('POST /api/agents/events', () => {
     expect((await POST(req(oneEvent, 'Bearer wrong'))).status).toBe(401)
   })
 
+  it('401s on an equal-length wrong bearer secret without starting work', async () => {
+    const res = await POST(req(oneEvent, 'Bearer test-secreu'))
+    expect(res.status).toBe(401)
+    expect(createServiceClient).not.toHaveBeenCalled()
+    expect(insertAgentEvents).not.toHaveBeenCalled()
+  })
+
   it('503s when FOUNDER_USER_ID is not configured', async () => {
     delete process.env.FOUNDER_USER_ID
     const res = await POST(req(oneEvent, `Bearer ${SECRET}`))
