@@ -102,14 +102,21 @@ describe('GET /api/command-centre/mesh-fleet', () => {
     expect(body.machines).toEqual([])
   })
 
-  it('maps machines + ship count on the live path and never echoes the secret', async () => {
+  it('maps only safe machine fields + ship count and never echoes secrets or free text', async () => {
     vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
     process.env.PI_CEO_API_URL = 'https://pi-ceo.test'
     process.env.PI_CEO_API_KEY = 'super-secret-value'
 
     const upstreamRes = jsonResponse({
       machines: [
-        { host: 'mac-mini', last_seen: '2026-07-05T02:00:00Z', is_stale: false, state: 'working', current_task: 'shipping UNI-2305' },
+        {
+          host: 'mac-mini',
+          last_seen: '2026-07-05T02:00:00Z',
+          is_stale: false,
+          state: 'working',
+          current_task: 'private client recovery details',
+          prompt: 'must never reach the browser',
+        },
         { host: 'windows-box', last_seen: '2026-07-04T20:00:00Z', is_stale: true },
       ],
       ships: [{ id: 'a' }, { id: 'b' }, { id: 'c' }],
@@ -122,7 +129,7 @@ describe('GET /api/command-centre/mesh-fleet', () => {
     const bodyText = await res.text()
     const body = JSON.parse(bodyText) as {
       configured: boolean; source: string; shipCount: number
-      machines: Array<{ host: string; is_stale: boolean; state?: string; current_task?: string }>
+      machines: Array<{ host: string; is_stale: boolean; state?: string }>
     }
     expect(body.configured).toBe(true)
     expect(body.source).toBe('pi_ceo_live')
@@ -130,6 +137,8 @@ describe('GET /api/command-centre/mesh-fleet', () => {
     expect(body.machines).toHaveLength(2)
     expect(body.machines[0]).toMatchObject({ host: 'mac-mini', is_stale: false, state: 'working' })
     expect(body.machines[1]).toMatchObject({ host: 'windows-box', is_stale: true })
+    expect(bodyText).not.toContain('private client recovery details')
+    expect(bodyText).not.toContain('must never reach the browser')
 
     // The secret was only sent as an outbound header — never present in the response body.
     expect(bodyText).not.toContain('super-secret-value')

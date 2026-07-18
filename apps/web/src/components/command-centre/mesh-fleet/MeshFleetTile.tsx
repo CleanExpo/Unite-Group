@@ -17,7 +17,6 @@ interface MeshMachine {
   last_seen: string
   is_stale: boolean
   state?: string
-  current_task?: string
 }
 
 interface MeshFleetResponse {
@@ -143,7 +142,6 @@ export function MeshFleetTile() {
               <span style={{ color: 'var(--deck-text)' }}>
                 {m.host}
                 {m.state && <span style={{ color: 'var(--deck-muted)' }}> · {m.state}</span>}
-                {m.current_task && <span style={{ color: 'var(--deck-muted)' }}> · {m.current_task}</span>}
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span
