@@ -1,0 +1,141 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://exa.ai/docs/llms.txt
+> Use this file to discover all available pages before exploring further.
+# Contents Retrieval
+***
+When using the Exa API, you can request different types of content. On `/search`, content options are nested under `contents`; on `/contents`, the same options are top-level fields because the endpoint already retrieves known URLs.
+## Text (text=True)
+Returns the full text content of the result, formatted as markdown. It extracts the main content (like article body text) while filtering out navigation elements, pop-ups, and other peripheral text. This is extractive content taken directly from the page's source.
+### Content Filtering Options
+<Note>
+**Important**: Content filtering options (`verbosity`, `includeSections`, `excludeSections`) require live crawling to take effect. Use `maxAgeHours: 0` to force a fresh crawl for these filters.
+</Note>
+You can control the level of detail and which page sections are included using these options:
+1. **Verbosity** - Controls overall content detail level:
+* `compact` (default): Most concise output, main content only
+* `standard`: Balanced content with more detail
+* `full`: Complete content including all sections
+2. **Section Filtering** - Include or exclude specific semantic sections:
+* `includeSections`: Only include content from specified sections
+* `excludeSections`: Remove content from specified sections
+Available section tags:
+* `header` - Page header content
+* `navigation` - Navigation menus
+* `banner` - Banner/hero sections
+* `body` - Main body content
+* `sidebar` - Sidebar content
+* `footer` - Page footer
+* `metadata` - Page metadata
+Example `/search` configuration:
+```json theme={null}
+{
+"query": "latest product updates",
+"contents": {
+"text": {
+"verbosity": "standard",
+"includeSections": ["body", "header"]
+},
+"maxAgeHours": 0
+}
+}
+```
+Equivalent `/contents` configuration:
+```json theme={null}
+{
+"ids": ["https://example.com"],
+"text": {
+"excludeSections": ["navigation", "footer", "sidebar"]
+},
+"maxAgeHours": 0
+}
+```
+## Summary (summary=True)
+Provides a concise summary generated from the text, tailored to a specific query you provide. This is abstractive content created by processing the source text using Gemini Flash.
+### Structured Summaries
+You can also request structured summaries by providing a JSON schema. This is `/contents` top-level form:
+```json theme={null}
+{
+"ids": ["https://example.com"],
+"summary": {
+"query": "Provide company information",
+"schema": {
+"$schema": "http://json-schema.org/draft-07/schema#",
+"title": "Company Information",
+"type": "object",
+"properties": {
+"name": { "type": "string", "description": "The name of the company" },
+"industry": { "type": "string", "description": "The industry the company operates in" },
+"foundedYear": { "type": "number", "description": "The year the company was founded" }
+},
+"required": ["name", "industry"]
+}
+}
+}
+```
+The API will return the summary as a JSON string that matches your schema structure, which you can parse to access the structured data.
+## Highlights
+Delivers key excerpts from the text that are most relevant to your search query, emphasizing important information within the content. This is also extractive content from the source.
+You can configure highlights in two ways:
+1. **Simple boolean** (`highlights=True` in SDKs): Returns default highlights based on the search query
+2. **Detailed configuration** (pass as an object): include `query` to guide selection and `maxCharacters` to cap highlight length
+`/search` nested form:
+```json theme={null}
+{
+"query": "What changed in the latest earnings report?",
+"contents": {
+"highlights": {
+"query": "revenue growth and guidance",
+"maxCharacters": 1000
+}
+}
+}
+```
+`/contents` top-level form:
+```json theme={null}
+{
+"ids": ["https://example.com/report"],
+"highlights": {
+"query": "revenue growth and guidance",
+"maxCharacters": 1000
+}
+}
+```
+## Context String (Deprecated)
+<Warning>
+The `context` parameter is deprecated and will be removed in a future version. Do not use it for new integrations. Use `highlights` for token-efficient excerpts or `text` with `maxCharacters` when you need fuller page content.
+</Warning>
+`context` joined all result contents into one text block. To migrate, request per-result content instead and combine it in your application only if needed.
+## Images and favicons
+You can get images from webpages by setting `imageLinks` (under `contents.extras.imageLinks`) to specify how many images you want per result. Each result also includes the website's `favicon` URL and a representative `image` URL when available.
+## Crawl Errors
+The contents endpoint provides detailed status information for each URL through the `statuses` field in the response. The endpoint only returns an error if there's an internal issue on Exa's end - all other cases are reported through individual URL statuses.
+Each response includes a `statuses` array with status information for each requested URL:
+```json theme={null}
+{
+"results": [...],
+"statuses": [
+{
+"id": "https://example.com",
+"status": "success" | "error",
+"error": {
+"tag": "CRAWL_NOT_FOUND" | "CRAWL_TIMEOUT" | "CRAWL_LIVECRAWL_TIMEOUT" | "SOURCE_NOT_AVAILABLE" | "CRAWL_UNKNOWN_ERROR",
+"httpStatusCode": 404 | 504 | 403 | 500
+}
+}
+]
+}
+```
+The error tags correspond to different failure scenarios:
+* `CRAWL_NOT_FOUND`: Content not found (HTTP 404)
+* `CRAWL_TIMEOUT`: The crawl timed out while fetching content (HTTP 504)
+* `CRAWL_LIVECRAWL_TIMEOUT`: Content could not be retrieved within your requested `livecrawlTimeout` (HTTP 504)
+* `SOURCE_NOT_AVAILABLE`: Access forbidden or source unavailable (HTTP 403)
+* `CRAWL_UNKNOWN_ERROR`: Other errors (HTTP 500+)
+To handle errors, check the `statuses` field for each URL:
+```python theme={null}
+result = exa.get_contents(["https://example.com"])
+for status in result.statuses:
+if status.status == "error":
+print(f"Error for {status.id}: {status.error.tag} ({status.error.httpStatusCode})")
+```
+This allows you to handle different failure scenarios appropriately for each URL in your request.

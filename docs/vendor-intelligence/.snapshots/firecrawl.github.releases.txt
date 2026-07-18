@@ -1,0 +1,1011 @@
+Releases · firecrawl/firecrawl · GitHub
+Skip to content
+Navigation Menu
+Toggle navigation
+Sign in
+Appearance settings
+Search or jump to...
+Search code, repositories, users, issues, pull requests...
+Provide feedback
+Cancel
+Submit feedback
+Saved searches
+Use saved searches to filter your results more quickly
+Cancel
+Create saved search
+Sign in
+Sign up
+Appearance settings
+Resetting focus
+firecrawl
+/
+firecrawl
+Public
+Notifications
+You must be signed in to change notification settings
+Fork
+8.7k
+Star
+153k
+Releases: firecrawl/firecrawl
+Release list
+Previous Next
+Jump to release
+Firecrawl v2.11.0
+Firecrawl v2.10
+v2.9.0
+v2.8.0
+v2.7.0
+v2.6.0
+v2.5.0 - The World's Best Web Data API
+v2.4.0
+v2.3.0
+v2.2.0
+Previous Next
+Firecrawl v2.11.0
+Firecrawl v2.11.0
+Latest
+Latest
+Compare
+Choose a tag to compare
+Sorry, something went wrong.
+Filter
+View all tags
+rhys-firecrawl
+released this
+19 Jun 15:09
+v2.11.0
+ef12eb3
+This commit was created on GitHub.com and signed with GitHub’s verified signature .
+GPG key ID: B5690EEEBB952194
+Verified
+Learn about vigilant mode .
+Firecrawl v2.11.0
+Improvements
+Firecrawl Research Index — Added a specialized index for agentic AI/ML research: search across 3M+ arXiv papers and the GitHub code behind them (issues, merged PRs, and READMEs, refreshed daily), fetch a paper's details or related work, and check claims against full text. It has state-of-the-art recall on arXivQA, outperforming the next best provider by 18% at comparable cost. Available via the API, SDKs, MCP, and CLI.
+Keyless access for core endpoints — Use /scrape , /search , /interact , and /parse without an API key from official MCP, CLI, and SDK clients.
+Automatic PII redaction — Added a redactPII option that strips personal and sensitive data like names, emails, phone numbers, addresses, and secrets out of scraped content before it's returned.
+deterministicJson format — Added a format that returns structured JSON without running an LLM on every request. Firecrawl generates a reusable extractor for your schema and caches it per site, so repeat scrapes are cheaper and return consistent results.
+Video discovery on any page — Expanded the video format to find videos on any page, not just supported providers like YouTube, returning each video's URL, title, thumbnail, duration, and more.
+Attach your own browser automation — Added a CDP WebSocket URL ( cdpUrl ) to browser session responses, so you can drive a live Firecrawl browser session directly with Playwright, Puppeteer, or any other CDP client.
+Smarter monitor alerts — Added a goal to monitors so an LLM judges each detected change as meaningful or noise against what you actually care about, cutting alert spam and surfacing the changes that matter first in summary emails.
+Field-level JSON diffs for monitors — Monitors that scrape in JSON mode now compare the actual field values between runs instead of the rendered page, so you see exactly which fields changed rather than noise from layout shifts.
+Monitor email confirmation — Added an opt-in confirmation flow with one-click unsubscribe for external monitor recipients; team members are auto-confirmed, and Monitor responses now report each recipient's subscription status.
+AM/PM monitor schedules — Added support for 12-hour schedule inputs like daily at 9am and daily at 5:30pm , converted to the correct UTC cron expression.
+Monitor webhook delivery status — Added delivery status to each monitor check, so you can see whether its webhook was attempted, delivered, or failed — and why.
+Steadier monitor checks — Monitors now wait for pages to finish rendering before diffing, cutting false alerts caused by partially-loaded pages.
+PDF size cap — Raised the PDF download and scrape size cap from 30 MB to 50 MB.
+Python SDK crawl() scrape kwargs — Added direct scrape kwargs ( formats , headers , include_tags , exclude_tags , etc.) to crawl() and start_crawl() , removing the need to wrap them in ScrapeOptions(...) .
+Clearer .data errors — Improved the error raised when accessing .data on a search result to point at .web , .news , and .images with their counts, instead of returning a silent None .
+Python format defaults — Removed the required type= argument on JsonFormat and ChangeTrackingFormat , defaulting it like ScreenshotFormat .
+ChangeTrackingFormat casing — Added acceptance of both change_tracking and changeTracking for the format type so payloads round-trip between snake_case and camelCase clients.
+Fixes
+Resolved security advisories across the API and SDKs by upgrading axios , esbuild , ws , openssl , and other dependencies.
+Fixed scrape workers stalling for tens of seconds on very large LLM-extractor inputs, which previously caused dropped jobs and worker restarts.
+Fixed Wikipedia scrapes missing metadata.ogImage on roughly half of Wikimedia URLs.
+Fixed crawl and batch cancellation not draining the per-team concurrency backlog and reporting stale state; queued jobs are now removed and status reports cancelled immediately.
+Fixed monitor checks being charged when the credit lock was denied; denied locks now mark the check skipped_no_credits and stop the run.
+Fixed JSON-mode monitor diffs returning spurious changed verdicts when field values were identical but reordered; diffs now use order-insensitive equality.
+Fixed JSON-mode monitors treating an empty-string scrape as missing input and reporting changed on every run.
+Fixed monitor webhooks being dispatched twice for the same check.
+Fixed monitor webhooks being dropped as malformed by wrapping monitor.page and monitor.check.completed payloads in an array to match the crawl/batch shape.
+Fixed the monitor judge fabricating before/after text and losing context on long pages; it now receives the full unified diff as its only evidence.
+Fixed corrupt or unexpected stored artifacts breaking GET /v2/monitor/:id/checks/:checkId ; bad data now surfaces as no diff.
+Fixed HTML tables losing their header row when the first row used td cells; the markdown converter now promotes it to a header so column labels survive into document.markdown .
+Fixed the PDF size cap being bypassed on certain scrape paths so oversized PDFs are now rejected consistently.
+Fixed ChangeTrackingFormat options ( modes , prompt , and related fields) being dropped through Python SDK serialization round-trips.
+API
+Replaced the experimental pii format with redactPII ( boolean or { mode?, entities?, replaceStyle? } ) on POST /v2/scrape , /v2/batch/scrape , /v2/crawl , /v2/parse , and /v2/extract ; when enabled, document.markdown returns redacted text (defaults mode: "accurate" , replaceStyle: "tag" ). The old pii format and document.pii block are removed, and requests including "pii" in formats are now rejected.
+Added the deterministicJson format ( { type: "deterministicJson", schema?, prompt? } ) to POST /v2/scrape , /v2/batch/scrape , /v2/crawl , /v2/parse , and /v2/extract , populating document.json . Cannot be combined with the json format.
+Added document.videos: VideoItem[] (with url , sourceURL , source , and optional title , thumbnail , duration , dimensions, and more) to POST /v2/scrape and the endpoints sharing its options when the video format is requested. The legacy document.video string remains for supported providers.
+Added createdAt , completedAt , and duration (seconds) to GET /v2/crawl/{id} and GET /v2/batch/scrape/{id} ; completedAt is present only on terminal states.
+Added the /v2/search/research proxy — GET /v2/search/research/papers , /papers/:id , /papers/:id/similar , and /github — billed against SEARCH_CREDITS at 2 credits per 10 results (10 per 10 for ZDR teams). The legacy /v2/research/* mount is kept as a deprecated alias.
+Added POST / GET /interact , POST /interact/:sessionId/execute , and DELETE /interact/:sessionId as full aliases for the /v2/browser session endpoints; behavior, rate limits, and the 2-credit session-create charge are identical.
+Added cdpUrl (Python: cdp_url ) to the POST /v2/scrape/:jobId/interact and /v2/browser execute responses, exposing the raw CDP WebSocket URL alongside the existing live-view URLs.
+Added POST /v2/feedback covering search, scrape, parse, and map jobs with shared recording and refund logic; the legacy POST /v2/search/:jobId/feedback keeps working and writes to the same store.
+Added keyless access to POST /v2/parse , matching scrape and search, and tightened keyless credit accounting so concurrent requests stay within the per-IP daily cap.
+Added a WWW-Authenticate: Bearer realm="firecrawl" header to all 401 responses across /v0 , /v1 , and /v2 so agent clients can discover the credential scheme.
+Added searchZDR values "forced-zdr" and "forced-anon" and deprecated "forced" (now an alias for "forced-zdr" ); the resolved mode drives both billing and routing.
+Added goal and judgeEnabled to POST /v2/monitor and PATCH /v2/monitor/:id ; judgeEnabled defaults to true when goal is set, and goal: null clears it.
+Added judgment , meaningfulChange (with a per-change reason ), meaningfulChanges[] , a structured diff object ( text and/or json ), and a snapshot field to monitor check pages; JSON-mode checks return field-level diffs plus a current-value snapshot.
+Added unauthenticated POST /v2/monitor/email/confirm and POST /v2/monitor/email/unsubscribe (token accepted in the request body only), plus an emailRecipientSubscriptions array on Monitor responses reporting each recipient's email , status ( pending / confirmed / unsubscribed ), source , and confirmationEmailSent .
+Added origin to monitor create/update bodies, matching the other v2 endpoints.
+Added stricter validation on delay for POST /v2/crawl and POST /v1/crawl ; non-numeric, negative, or values over 86400 are now rejected with a schema error instead of being silently applied.
+Added include_domains and exclude_domains to the Python SDK's sync Firecrawl.search() , matching the async client and the /v2/search payload.
+Added V1-compatible method aliases ( scrape_url / scrapeUrl , crawl_url / crawlUrl , batch_scrape_urls , map_url , etc.) on the V2 Python and JS clients; aliases emit a DeprecationWarning .
+Changed the monitor webhook payload to wrap data in an array; monitor.page now includes isMeaningful , judgment , and a diff object.
+Normalized monitor scrapeOptions.formats so changeTracking json mode is rewritten to json , and the mixed ["json", "git-diff"] form now runs both diffs instead of silently falling back to one.
+Full Changelog : v2.10...v2.11.0
+Assets
+2
+Loading
+Firecrawl v2.10
+Firecrawl v2.10
+Compare
+Choose a tag to compare
+Sorry, something went wrong.
+Filter
+View all tags
+rhys-firecrawl
+released this
+15 May 17:34
+v2.10
+1173517
+Firecrawl v2.10
+Improvements
+/parse endpoint — Upload local files (PDF, DOCX, DOC, ODT, RTF, XLSX, XLS, HTML) up to 50 MB and get back clean, LLM-ready Markdown, JSON, or a summary. Tables and reading order are preserved, with full Zero Data Retention support for enterprise plans. Available in JS, Python, Go, Rust, Java, .NET, PHP, Ruby, and Elixir SDKs.
+Lockdown Mode — Set lockdown: true on /scrape to serve results exclusively from Firecrawl's index with zero outbound requests and zero data retention by default. Gated outbound paths include HTTP fetches, robots.txt, audio downloads, and media. Available in every SDK, the CLI ( --lockdown ), and MCP.
+question format — Pass a natural-language prompt to /scrape and get a grounded, hallucination-free answer back in data.question . Runs on a managed model chain with automatic fallback, prompt-injection isolation via XML tagging and zero-width-space escaping, and up to 100x fewer tokens per call.
+highlights format — Returns the exact sentences, code blocks, and table rows on a page that match your query. Consecutive sentences re-join into paragraphs, code lines wrap in fenced blocks with their original language, and table rows rebuild into Markdown tables with headers — all from the source page, using up to 100x fewer tokens per call.
+video format — Added video to scrape formats. Returns a signed downloadable video URL for supported sites (e.g. YouTube), with cookie forwarding for authenticated downloads and explicit Lockdown gating.
+/search domain filters — Added includeDomains and excludeDomains parameters to /search for scoping results to a specific set of sites.
+/search feedback endpoint — Submit a rating on a search result with POST /v2/search/:jobId/feedback . Each accepted submission refunds 1 credit, capped per UTC day, with idempotent retries.
+Custom robots.txt user agent — Added robotsUserAgent to crawl requests to evaluate robots.txt rules and crawl delays against a custom agent string, and a separate customRobotsAgent org flag independent from ignoreRobots . Available in JS, Python, and Java SDKs.
+Official Go SDK — Added a first-party Go SDK for the v2 API, replacing the community module. Includes context-aware retry backoff and proper MapData.Links typing.
+Ruby SDK — Added the official Firecrawl Ruby SDK v2 with full endpoint coverage and v2-native typing.
+PHP SDK — Added the official PHP SDK with Laravel support, scrape/search/crawl/map/parse coverage, and a published firecrawl/firecrawl-sdk Composer package.
+.NET SDK — Added the official .NET SDK with v2 API support, parse, and an firecrawl-sdk NuGet package.
+Rust SDK v2 — The Rust SDK has been promoted to the official v2 SDK with parity across scrape, search, crawl, map, agent, and parse.
+/interact suggestion — Calls to /scrape that pass an actions array now return a warning suggesting /interact for stateful browser automation.
+PDF size cap — Raised the PDF upload size limit from 10 MB to 30 MB.
+PDF page-processed billing — Updated PDF billing to reflect pages processed instead of raw page count.
+Docker harness — Exposed HARNESS_STARTUP_TIMEOUT_MS through docker-compose for self-hosted users who need longer startup windows.
+Elixir SDK — Added parse_file/3 to the Elixir SDK for the /parse endpoint.
+JS SDK request timeout — Added an explicit request timeout option to the JS SDK to prevent hanging requests.
+Fixes
+Resolved multiple CVEs across the API and SDKs including axios , postcss , fast-xml-parser , protobufjs , follow-redirects , langsmith , lodash , fast-uri , and fast-xml-builder .
+Fixed branding colors.secondary being incorrectly populated when the LLM omitted a value — secondary is now optional and is no longer applied as a default.
+Fixed the Playwright service ignoring the caller's User-Agent request header.
+Fixed screenshot signed URLs returning stale results from cache by forcing a cache miss when the signed URL has expired.
+Fixed Lockdown requests being billed twice for ZDR by treating Lockdown as zero data retention by default.
+Fixed proxy billing for cached scrapes incorrectly charging proxy credits when no proxy egress occurred.
+Fixed YouTube transcript scripts running on audio-only scrapes and audio downloads not receiving CDP cookies.
+Fixed html-to-md conversion service ignoring zero data retention.
+Fixed a stack overflow in marked.parse when handling certain PDF outputs.
+Fixed robotsUserAgent not being honored by the native link filter and not being included in JS SDK crawl payloads.
+Fixed /v1 status endpoints returning 500 on non-UUID job IDs — now returns a proper 400.
+Fixed empty actions: [] arrays being treated as actions in feature flags.
+Fixed JS SDK watcher emitting duplicate events, leaking timeouts, and hanging start() on watcher timeouts.
+Fixed Ruby SDK unwrapping of credit_usage data fields and defaulted skipTlsVerification to false .
+Fixed missing negative-limit validation in Python, Java, and Go SDKs.
+Fixed Java SDK accepting empty API keys and missing async lifecycle methods.
+Fixed billing period timestamps, subscription lookups, and plan credit reporting.
+Fixed crawl-backlog timeouts being unbounded — now capped at 48h.
+API
+Added POST /v2/parse for multipart file uploads up to 50 MB. Returns a standard Document. Disallowed scrape options on parse: changeTracking , screenshot , branding , actions , waitFor , location , mobile ; proxy is restricted to auto or basic . Errors with PARSE_UNSUPPORTED_OPTIONS on disallowed input.
+Added lockdown: boolean to /scrape . Cache misses return 404 with SCRAPE_LOCKDOWN_CACHE_MISS . Billing: +4 credits when lockdown is enabled, 1 credit on cache miss. Available across all SDKs.
+Added question and highlights to /scrape formats, returning data.question and data.highlights respectively.
+Added video to /scrape formats. Returns document.video as a signed URL. +4 credits per request. Unsupported URLs raise SCRAPE_VIDEO_UNSUPPORTED_URL ; parse rejects the video format client- and server-side.
+Added includeDomains and excludeDomains arrays on /v2/search for scoping results to specific domains.
+Added POST /v2/search/:jobId/feedback for rating search results. Each accepted submission refunds 1 credit, capped per UTC day via SEARCH_FEEDBACK_DAILY_CAP_CREDITS , with idempotent retries returning alreadySubmitted: true . Feedback submissions older than SEARCH_FEEDBACK_MAX_AGE_SEC (default 120s) are rejected. Search billing is now ceil(results/10) * 2 credits, surfaced in responses.
+Added robotsUserAgent to /v2/crawl crawlerOptions for custom-agent robots.txt evaluation. Gated behind the ignoreRobots org flag.
+Added a separate customRobotsAgent org flag independent from ignoreRobots , so teams can ship custom user-agents without disabling robots.txt enforcement.
+Migrated the ignoreRobots org flag from a boolean to a disabled / allowed / forced pattern. The legacy ignoreRobots: boolean request shape has been removed — clients must use the new flag values.
+Deprecated /v0/scrape , /v0/crawl , /v0/crawl/status/:jobId , DELETE /v0/crawl/cancel/:jobId , /v0/search , /v1/extract , /v1/extract/:jobId , /v2/extract , /v2/extract/:jobId , /v1/deep-research , /v1/deep-research/:jobId , /v1/llmstxt , and /v1/llmstxt/:jobId . Deprecated endpoints emit Deprecation: true , Warning: 299 - "<message>" , Link; rel="successor-version" , and (when configured) Sunset headers, plus warnings[] and replacement in the JSON body. JS and Python SDKs surface these to clients.
+Full Changelog : v2.9.0...v2.10
+Assets
+2
+Loading
+35 people reacted
+v2.9.0
+v2.9.0
+Compare
+Choose a tag to compare
+Sorry, something went wrong.
+Filter
+View all tags
+firecrawl-spring
+released this
+10 Apr 16:36
+v2.9.0
+11490b5
+This commit was created on GitHub.com and signed with GitHub’s verified signature .
+GPG key ID: B5690EEEBB952194
+Verified
+Learn about vigilant mode .
+Firecrawl v2.9.0
+Improvements
+Browser Interaction via /interact endpoint — Scrape a page, then call /interact to take actions on it — click buttons, fill forms, navigate deeper, or extract dynamic content. Describe what you want in natural language via prompt , or write Playwright code (Node.js, Python) and Bash ( agent-browser ) for full control. Sessions persist across calls, with live view and interactive live view URLs for real-time browser streaming. Persistent profiles let you save and reuse browser state (cookies, localStorage) across scrapes. Available in JS, Python, Java, and Rust SDKs.
+query format — Added query format to the /scrape endpoint — pass a natural-language prompt and get a direct answer back in data.answer .
+audio format — Added audio format option to scrape responses, returning audio output as a field on the document.
+onlyCleanContent parameter — Added onlyCleanContent parameter to the /scrape endpoint, which strips navigation, ads, cookie banners, and other non-semantic content from markdown output.
+PDF parsing modes — Added PDF parsing modes ( fast , auto , ocr ) and a maxPages option to control extraction depth and OCR behavior.
+Java and Elixir SDKs — Added official Java and Elixir SDKs with full v2 API support.
+Legacy .doc file support — Added support for parsing legacy .doc files.
+Wikimedia engine — Added a dedicated engine for scraping Wikipedia and Wikimedia pages with improved output quality.
+contentType in scrape responses — Added contentType to scrape responses for PDFs and documents.
+PDF pipeline improvements — Improved PDF pipeline with better table detection, header/footer stripping, mixed PDF handling, inline image parsing, and magic byte detection.
+Branding extraction — Improved branding extraction to skip hidden DOM elements for cleaner output.
+HTML-to-markdown performance — Improved HTML-to-markdown conversion performance and fixed code blocks losing content during conversion.
+Concurrency queue — New concurrency queue system with reconciler and backfill for more reliable job scheduling.
+Rust SDK v2 — Added v2 API namespace with agent support to the Rust SDK.
+Fixed Python SDK parameters timeout , max_retries , and backoff_factor — these were previously accepted but silently ignored.
+Capped job timeouts at 48 hours to prevent runaway jobs from consuming resources.
+Added retry limits to prevent scrape loops.
+Binary content types are now rejected early in the scrape pipeline to avoid wasted processing.
+Fixes
+Fixed empty responses when using the o3-mini model on extract jobs.
+Fixed revoked API keys remaining valid for up to 10 minutes after deletion.
+Fixed a race condition in extract jobs that caused "Job not found" crashes.
+Fixed time_taken in /v1/map always returning ~0.
+Fixed crawl status responses now surfacing a failed status with an error message and partial data when a crawl-level failure occurs.
+Fixed maxPages not being passed to the PDF extractor — previously, full PDF content was returned while only charging for the limited page count.
+Fixed free request credits being incorrectly consumed and billed on agent jobs exceeding the maxCredits threshold.
+Fixed dashboard displaying incorrect concurrency limits due to stale reads.
+Fixed branding colors.secondary not being populated.
+Fixed removeBase64Images running after deriveDiff in the transformer pipeline, causing diff issues.
+Fixed GCS fetch using wrong row index for cache info lookups.
+Fixed unhandled ZodError in /v1/search controller.
+Resolved multiple CVEs across dependencies including handlebars , path-to-regexp , fast-xml-parser , rollup ( CVE-2026-27606 ), undici , and others.
+Hardened the Playwright service against SSRF attacks.
+API
+Added GET /v2/team/activity endpoint for listing recent scrape, crawl, and extract jobs with cursor-based pagination (last 24 hours, up to 100 results per page, filterable by endpoint type).
+Added regexOnFullURL parameter on crawl requests to apply includePaths / excludePaths filtering against the full URL including query parameters. Available in JS, Python, Java, and Elixir SDKs.
+Added deduplicateSimilarURLs parameter on crawl requests. Available in JS, Python, Java, and Elixir SDKs.
+Deprecated the extract endpoint — use the /agent endpoint instead. Existing extract methods in JS and Python SDKs are marked deprecated.
+Renamed persistentSession to profile on browser/interact requests ( writeMode is now saveChanges ). The old parameter name remains functional but is no longer documented.
+New Contributors
+@misza-one made their first contribution in #2660
+@madmikeross made their first contribution in #2948
+@rowinsg made their first contribution in #3065
+@Bortlesboat made their first contribution in #3243
+@dagecko made their first contribution in #3249
+@cokemine made their first contribution in #3262
+@paulonasc made their first contribution in #3275
+Contributors
+@nickscamara
+@mogery
+@amplitudesxd
+@abimaelmartell
+@ericciarla
+@rafaelsideguide
+@delong3
+@devhims
+@Chadha93
+@tomsideguide
+@charlietlamb
+@developersdigest
+@micahstairs
+@rhys-firecrawl
+@firecrawl-spring
+@devin-ai-integration
+@misza-one
+@madmikeross
+@rowinsg
+@Bortlesboat
+@dagecko
+@cokemine
+@paulonasc
+Full Changelog : v2.8.0...v2.9.0
+Contributors
+abimaelmartell, madmikeross, and 20 other contributors
+Assets
+2
+Loading
+54 people reacted
+v2.8.0
+v2.8.0
+Compare
+Choose a tag to compare
+Sorry, something went wrong.
+Filter
+View all tags
+rhys-firecrawl
+released this
+03 Feb 17:12
+v2.8.0
+43f61e7
+This commit was created on GitHub.com and signed with GitHub’s verified signature .
+GPG key ID: B5690EEEBB952194
+Verified
+Learn about vigilant mode .
+v2.8.0
+Firecrawl v2.8.0 is here!
+Firecrawl v2.8.0 brings major improvements to agent workflows, developer tooling, and self-hosted deployments across the API and SDKs, including our new Skill.
+Parallel Agents for running thousands of /agent queries simultaneously, powered by our new Spark 1 Fast model.
+Firecrawl CLI with full support for scrape, search, crawl, and map commands.
+Firecrawl Skill for enabling AI agents (Claude Code, Codex, OpenCode) to use Firecrawl autonomously.
+Three new models powering /agent: Spark 1 Fast for instant retrieval (currently only available in Playground), Spark 1 Mini for complex research queries, and Spark 1 Pro for advanced extraction tasks.
+Agent enhancements including webhooks, model selection, and new MCP Server tools.
+Platform-wide performance improvements including faster search execution and optimized Redis calls.
+SDK improvements including Zod v4 compatibility.
+And much more, check it out below!
+New Features
+Parallel Agents
+Execute thousands of /agent queries in parallel with automatic failure handling and intelligent waterfall execution. Powered by Spark 1-Fast for instant retrieval, automatically upgrading to Spark 1 Mini for complex queries requiring full research.
+Firecrawl CLI
+New command-line interface for Firecrawl with full support for scrape, search, crawl, and map commands. Install with npm install -g firecrawl-cli .
+Firecrawl Skill
+Enables agents like Claude Cursor, Codex, and OpenCode to use Firecrawl for web scraping and data extraction, installable via npx skills add firecrawl/cli.
+Spark Model Family
+Three new models powering /agent: Spark 1 Fast for instant retrieval (currently available in Playground), Spark 1 Mini (default) for everyday extraction tasks at 60% lower cost, and Spark 1 Pro for complex multi-domain research requiring maximum accuracy. Spark 1 Pro achieves ~50% recall while Mini delivers ~40% recall, both significantly outperforming tools costing 4-7x more per task.
+Firecrawl MCP Server Agent Tools
+New firecrawl_agent and firecrawl_agent_status tools for autonomous web data gathering via MCP-enabled agents.
+Agent Webhooks
+Agent endpoint now supports webhooks for real-time notifications on job completion and progress.
+Agent Model Selection
+Agent endpoint now accepts a model parameter and includes model info in status responses.
+Multi-Arch Docker Images
+Self-hosted deployments now support linux/arm64 architecture in addition to amd64 .
+Sitemap-Only Crawl Mode
+New crawl option to exclusively use sitemap URLs without following links.
+ignoreCache Map Parameter
+New option to bypass cached results when mapping URLs.
+Custom Headers for /map
+Map endpoint now supports custom request headers.
+Background Image Extraction
+Scraper now extracts background images from CSS styles.
+Improved Error Messages
+All user-facing error messages now include detailed explanations to help diagnose issues.
+API Improvements
+Search without concurrency limits — scrapes in search now execute directly without queue overhead.
+Return 400 for unsupported actions with clear errors when requested actions aren't supported by available engines.
+Job ID now included in search metadata for easier tracking.
+Metadata responses now include detected timezone.
+Backfill metadata title from og:title or twitter:title when missing.
+Preserve gid parameter when rewriting Google Sheets URLs.
+Fixed v2 path in batch scrape status pagination.
+Validate team ownership when appending to existing crawls.
+Screenshots with custom viewport or quality settings now bypass cache.
+Optimized Redis calls across endpoints.
+Reduced excessive robots.txt fetching and parsing.
+Minimum request timeout parameter now configurable.
+SDK Improvements
+JavaScript SDK
+Zod v4 Compatibility — schema conversion now works with Zod v4 with improved error detection.
+Watcher Exports — Watcher and WatcherOptions now exported from the SDK entrypoint.
+Agent Webhook Support — new webhook options for agent calls.
+Error Retry Polling — SDK retries polling after transient errors.
+Job ID in Exceptions — error exceptions now include jobId for debugging.
+Python SDK
+Manual pagination helpers for iterating through results.
+Agent webhook support added to agent client.
+Agent endpoint now accepts model selection parameter.
+Metadata now includes concurrency limit information.
+Fixed max_pages handling in crawl requests.
+Dashboard Improvements
+Dark mode is now supported.
+On the usage page, you can now view credit usage broken down by day.
+On the activity logs page, you can now filter by the API key that was used.
+The "images" output format is now supported in the Playground.
+All admins can now manage their team's subscriptions.
+Quality & Performance
+Skip markdown conversion checks for large HTML documents.
+Export Google Docs as HTML instead of PDF for improved performance.
+Improved branding format with better logo detection and error messages for PDFs and documents.
+Improved lopdf metadata loading performance.
+Updated html-to-markdown module with multiple bug fixes.
+Increased markdown service body limit and added request ID logging.
+Better Sentry filtering for cancelled jobs and engine errors.
+Fixed extract race conditions and RabbitMQ poison pill handling.
+Centralized Firecrawl configuration across the codebase.
+Multiple security vulnerability fixes, including CVE-2025-59466 and lodash prototype pollution.
+Self-Hosted Improvements
+CLI custom API URL support via firecrawl --api-url http://localhost:3002 for local instances.
+ARM64 Docker support via multi-arch images for Apple Silicon and ARM servers.
+Fixed docker-compose database credentials out of the box.
+Fixed Playwright service startup caused by Chromium path issues.
+Updated Node.js to major version 22 instead of a pinned minor.
+Added RabbitMQ health check endpoint.
+Fixed PostgreSQL port exposure in docker-compose.
+New Contributors
+@gemyago
+@loganaden
+@pcgeek86
+@dmlarionov
+Full Changelog : v2.7.0...v2.8.0
+What's Changed
+refactor(api): centralize firecrawl config by @amplitudesxd in #2496
+fix(config): add .catch to NUQ worker port defaults for error handling by @amplitudesxd in #2505
+(sdk)fix/same timeout as api now by @rafaelsideguide in #2503
+(sdks)feat/added concurrency info to metadata by @rafaelsideguide in #2502
+fix: make srcset URLs absolute in HTML transformation by @Chadha93 in #2515
+feat(api/admin/crawl-monitor): add endpoint for monitoring crawl system by @mogery in #2518
+feat(api/logRequest): associate requests with API keys by @mogery in #2519
+Fix Config Load on Tests by @abimaelmartell in #2506
+feat(api): update model usage to gpt-4o-mini by @amplitudesxd in #2520
+feat(api/scrapeURL): engpicker integ by @mogery in #2523
+fix(playwright-service-ts): wasn't starting up due to the lack of chromium under /tmp/.cache by @dmlarionov in #2512
+added timezone to metadata response by @rafaelsideguide in #2526
+Increase Go Service Write Timeout by @abimaelmartell in #2489
+(python-sdk)fix/max_pages by @rafaelsideguide in #2527
+Use invoiced billing for certain expansion packs by @micahstairs in #2532
+Fix PostgreSQL port exposure in docker-compose by @abimaelmartell in #2530
+(feat/partners) Allow email to be optional for partners API by @nickscamara in #2533
+Advanced model for recursive schemas by @amplitudesxd in #2535
+feat(api): update gpt-4o usage to gpt-4.1 by @amplitudesxd in #2536
+fix(api): cost tracking by @amplitudesxd in #2537
+Update Sentry for ZDR compliance by @abimaelmartell in #2529
+sanitize null-byte strings and report robustInsert failures to Sentry by @abimaelmartell in #2538
+Dont log Feature Flog Errors to Sentry by @abimaelmartell in #2540
+Debug logs to Extract Updates by @abimaelmartell in #2539
+Update test site build by @abimaelmartell in #2543
+feat: increase precrawl limits by @delong3 in #2544
+fix(api): engines for robots and scrape + reduced sitemap limit by @delong3 in #2545
+Webhook dispatcher by @amplitudesxd in #2534
+(feat/partner-integrations) Rotate endpoint by @nickscamara in #2547
+fix: extract race condition by @amplitudesxd in https://github.com/fir ...
+Read more
+Contributors
+gemyago, pcgeek86, and 14 other contributors
+Assets
+2
+Loading
+13 people reacted
+v2.7.0
+v2.7.0
+Compare
+Choose a tag to compare
+Sorry, something went wrong.
+Filter
+View all tags
+nickscamara
+released this
+05 Dec 17:40
+v2.7.0
+ccbd8d6
+This commit was created on GitHub.com and signed with GitHub’s verified signature .
+GPG key ID: B5690EEEBB952194
+Verified
+Learn about vigilant mode .
+Firecrawl v2.7.0 is here!
+ZDR Search support for enterprise customers.
+Improved Branding Format with better detection.
+Partner Integrations API now in closed beta.
+Faster and more accurate screenshots.
+Self-hosted improvements
+And a lot more enhacements, check it out below!
+New Features
+Improved Branding Extract
+Better logo and color detection for more accurate brand extraction results.
+NOQ Scrape System (Experimental)
+New scrape pipeline with improved stability and integrated concurrency checks.
+Enhanced Redirect Handling
+URLs now resolve before mapping, with safer redirect-chain detection and new abort timeouts.
+Enterprise Search Parameters
+New enterprise-level options available for the /search endpoint.
+Integration-Based User Creation
+Users can now be automatically created when coming from referring integrations.
+minAge Scrape Parameter
+Allows requiring a minimum cached age before re-scraping.
+Extract Billing Credits
+Extract jobs now use the same credit billing system as other endpoints.
+Self-Host: Configurable Crawl Concurrency
+Self-hosted deployments can now set custom concurrency limits.
+Sentry Enhancements
+Added Vercel AI integration, configurable sampling rates, and improved exception filtering.
+UUIDv7 IDs
+All new resources use lexicographically sortable UUIDv7.
+API Improvements
+DNS Resolution Errors Now Return 200 for more consistent failure handling.
+Improved URL Mapping Logic including sitemap maxAge fixes, recursive sitemap support, Vue/Angular router normalization, and skipping subdomain logic for IP addresses.
+Partial Results for Multi-Source Search instead of failing all sources.
+Concurrency Metadata Added to scrape job responses.
+Enhanced Metrics including total wait time, LLM usage, and format details.
+Batch Scrape Upgrades
+Added missing /v2/batch/scrape/:jobId/errors endpoint
+Fixed pagination off-by-one bug
+More Robust Error Handling for PDF/document engines, pydantic parsing, Zod validation, URL validation, and billing edge cases.
+SDK Improvements
+JavaScript SDK
+Returns job ID from synchronous methods.
+Improved WebSocket document event handling.
+Fixed types , Deno WS , and added support for ignoreQueryParameter .
+Version bump with internal cleanup.
+Python SDK
+Added extra metadata fields.
+Improved batch validation handling.
+Quality & Performance
+Reduced log file size and improved tmp file cleanup.
+Updated Express version and patched vulnerable packages.
+Disabled markdown conversion for sitemap scrapes for improved performance.
+Better precrawl logging and formatting.
+Skip URL rewriting for published Google Docs.
+Prevent empty cookie headers during webhook callbacks.
+Self-Hosted Improvements
+Disabled concurrency limit enforcement for self-hosted mode.
+PostgreSQL credentials now configurable via environment variables.
+Docker-compose build instructions fixed.
+👥 New Contributors
+@omahs
+@davidkhala
+@DraPraks
+@devhims
+Full Changelog: v2.6.0...v2.7.0
+What's Changed
+(feat/dns) DNS Resolution errors should be a 200 by @nickscamara in #2402
+Improve Logo and Color Detection on Branding Extract by @abimaelmartell in #2362
+(js-sdk) fix: ws 'document' event implementation by @rafaelsideguide in #2415
+(js-sdk): Return job ID from synchronous methods by @abimaelmartell in #2414
+(js-sdk): Fix types by @abimaelmartell in #2416
+(js-sdk): Bump Version by @abimaelmartell in #2417
+fix(api): disable gcs logging without db auth by @delong3 in #2418
+feat: noq scrape system by @delong3 in #2419
+Muv2 exp add more logs by @tomkosm in #2421
+feat(api): noq concurrency check integration by @delong3 in #2424
+Fix concurrency backfill bug by @micahstairs in #2425
+feat: redirect to docs when hitting main api endpoint by @amplitudesxd in #2426
+feat(api): total wait time in request metrics by @delong3 in #2428
+(fix/search) rm legacy external search apis by @nickscamara in #2420
+fix(api): various vulnerable packages (2025/11/21) by @mogery in #2431
+fix(api): pdf + document engines not respecting skipTlsVerification flag and error handling for uncidi by @delong3 in #2435
+fix(api): /map returning less urls with sitemap include by @delong3 in #2440
+feat: resolve redirects before mapping urls by @amplitudesxd in #2439
+fix(api): tally system rework by @mogery in #2430
+fix(api): update URL handling of resolved redirects by @amplitudesxd in #2442
+fix(api): opaque fire engine delete + poll interval by @delong3 in #2443
+feat(api): add abort timeout for resolveRedirects by @amplitudesxd in #2444
+(python-sdk) feat: added extra fields to metadata by @rafaelsideguide in #2441
+fix(api): handle case with no billed teams in tallyBilling function by @amplitudesxd in #2446
+fix: Add support for ignoreQueryParameter in map SDKs by @Chadha93 in #2429
+fix(api): vue + angular router url normalization by @delong3 in #2447
+feat(api): usedLlm + formats in request metrics by @delong3 in #2448
+feat(api): switch to uuidv7 by @mogery in #2449
+Add Sentry Settings by @abimaelmartell in #2451
+Filter Sentry Exceptions by @abimaelmartell in #2453
+Add minAge parameter to scrape (ENG-4073) by @amplitudesxd in #2452
+Fix typos by @omahs in #2457
+fix docker-compose service build instructions by @davidkhala in #2406
+Cleanup tmp files from downloadFile by @abimaelmartell in #2455
+Optimize Logs File Size by @abimaelmartell in #2456
+Update express version by @abimaelmartell in #2465
+Annotate test failures on CI by @abimaelmartell in #2462
+fix(api/precrawl): precrawl logging + format + skip index by @delong3 in #2466
+fix(go-html-to-md): request body max 60MB by @delong3 in #2467
+fix(api): dns + crawl denial errors by @delong3 in #2469
+Disable markdown conversion for sitemap scrapes by @abimaelmartell in #2461
+Add missing /v2/batch/scrape/:jobId/errors endpoint by @devin-ai-integration [bot] in #2471
+fix: improve pydantic parsing error handling | ENG-4070 by @Chadha93 in #2450
+fix: Make PostgreSQL credentials configurable via environment variables by @DraPraks in #2388
+feat(api): create users via referring integrations by @mogery in #2463
+feat: muv2 exp apikey env by @tomkosm in #2472
+(feat/search) Enterprise params by @nickscamara in #2412
+Validate UUID from URL in Requests by @abimaelmartell in #2392
+Disable Concurrency Limit on Self Hosted by @abimaelmartell in #2475
+(js sdk)fix/ws deno by @rafaelsideguide in #2476
+fix(api): sitemap max age for map requests by @delong3 in #2479
+fix(api): sitemap max age for recursive sitemaps by @delong3 in #2480
+feat: new app database shape by @mogery in #2445
+chore(api): disable x-powered-by by @amplitudesxd in #2483
+Skip subdomain logic for IP addresses by @abimaelmartell in #2477
+Attempt Fix Search Tests by @abimaelmartell in #2478
+fix(api): don't bill where stealth proxy was unsupported by @amplitudesxd in #2484
+feat(extract): port to billing credits by @mogery in #2482
+feat: [self-host] - add support to configure concurrency for crawl...
+Read more
+Contributors
+abimaelmartell, davidkhala, and 12 other contributors
+Assets
+2
+Loading
+22 people reacted
+v2.6.0
+v2.6.0
+Compare
+Choose a tag to compare
+Sorry, something went wrong.
+Filter
+View all tags
+nickscamara
+released this
+14 Nov 16:13
+v2.6.0
+c61826d
+v2.6.0
+Highlights
+Unified Billing Model - Credits and tokens merged into single system. Extract now uses credits (15 tokens = 1 credit), existing tokens work everywhere.
+Full Release of Branding Format - Full support across Playground, MCP, JS and Python SDKs.
+Change Tracking - Faster and more reliable detection of web page content updates.
+Reliability and Speed Improvements - All endpoints significantly faster with improved reliability.
+Instant Credit Purchases - Buy credit packs directly from dashboard without waiting for auto-recharge.
+Improved Markdown Parsing - Enhanced markdown conversion and main content extraction accuracy.
+Core Stability Fixes - Fixed change-tracking issues, PDF timeouts, and improved error handling.
+What's Changed
+fix(mu): Bug fix on v2 exp by @tomkosm in #2345
+Allow index use with waitFor (ENG-3481) by @amplitudesxd in #2346
+Fix autoCharge return, add top level guard by @abimaelmartell in #2341
+fix: import MAX_MAP_LIMIT from types.ts to resolve 1000 URL cap by @prashu0705 in #2333
+chore: improve llm extract logging by @amplitudesxd in #2348
+fix: error truncation by @amplitudesxd in #2349
+feat(go-html-to-md): enhance markdown conversion with robust PRE and … by @rafaelsideguide in #2321
+feat(billing): merge credits and tokens by @mogery in #2352
+chore: update geoip database by @amplitudesxd in #2354
+Implement Branding Format by @abimaelmartell in #2326
+Filter non-HTTP(S) protocols with separate error message by @devin-ai-integration [bot] in #2357
+Add branding format support to JS and Python SDKs by @devin-ai-integration [bot] in #2360
+Fix: Handle invalid favicon URLs gracefully in metadata extraction by @abimaelmartell in #2361
+feat: allow disabling webhook delivery by @amplitudesxd in #2367
+feat: add engine forcing by domain pattern by @devin-ai-integration [bot] in #2371
+revert nuq commits by @amplitudesxd in #2376
+CI: Remove npm audit from server tests by @abimaelmartell in #2385
+ci: Fix dependency audit by @abimaelmartell in #2386
+(fix/ctracking) Fix change tracking issues by @nickscamara in #2391
+update: Adds support for recursive schema for python-sdk with model selection by @Chadha93 in #2266
+fix: image search field mapping in Python SDK by @naaa760 in #2244
+fix(api/scrape): document + pdf scrape loop by @delong3 in #2396
+New Contributors
+@prashu0705 made their first contribution in #2333
+@naaa760 made their first contribution in #2244
+Full Changelog : v2.5.0...v2.6.0
+Contributors
+abimaelmartell, tomkosm, and 9 other contributors
+Assets
+2
+Loading
+7 people reacted
+v2.5.0 - The World's Best Web Data API
+v2.5.0 - The World's Best Web Data API
+Compare
+Choose a tag to compare
+Sorry, something went wrong.
+Filter
+View all tags
+nickscamara
+released this
+30 Oct 04:02
+v2.5.0
+8bcc5b4
+v2.5.0 - The World's Best Web Data API
+We now have the highest quality and most comprehensive web data API available powered by our new semantic index and custom browser stack.
+See the benchmarks below:
+New Features
+Implemented scraping for .xlsx (Excel) files.
+Introduced new crawl architecture and NUQ concurrency tracking system.
+Per-owner/group concurrency limiting + dynamic concurrency calculation.
+Added group backlog handling and improved group operations.
+Added /search pricing update
+Added team flag to skip country check.
+Always populate NUQ metrics for improved observability.
+New test-site app for improved CI testing.
+Extract metadata from document head for richer output.
+Enhancements & Improvements
+Improved blocklist loading and unsupported site error messages.
+Updated x402-express version.
+Improved includePaths handling for subdomains.
+Updated self-hosted search to use DuckDuckGo.
+JS & Python SDKs no longer require API key for self-hosted deployments.
+Python SDK timeout handling improvements.
+Rust client now uses tracing instead of print .
+Reduced noise in auto-recharge Slack notifications.
+Fixes
+Ensured crawl robots.txt warnings surface reliably.
+Resolved concurrency deadlocks and duplicate job handling.
+Fixed search country defaults and pricing logic bugs.
+Fixed port conflicts in harness environments.
+Fixed viewport dimension support and screenshot behavior in Playwright.
+Resolved CI test flakiness (playwright cache, prod tests).
+👋 New Contributors
+@delong3
+@c4nc
+@codetheweb
+Full diff: v2.4.0...v2.5.0
+What's Changed
+More verbose blocklist loading errors by @amplitudesxd in #2277
+Update x402-express Version by @abimaelmartell in #2279
+Revise unsupported site error message by @micahstairs in #2286
+feat: index precrawl by @delong3 in #2289
+fix: ensure includePaths apply to subdomains when allowSubdomains is enabled by @abimaelmartell in #2278
+Fix search country parameter to default to undefined when location is set by @devin-ai-integration [bot] in #2283
+Fix Port Conflict in Harness by @abimaelmartell in #2285
+js-sdk: require API key only for cloud API (not self-hosted) by @abimaelmartell in #2237
+feat: Implement Scraping Excel xlsx files by @abimaelmartell in #2284
+feat(nuq): concurrency tracking by @mogery in #2291
+fix(crawl): surface robots.txt warning reliably by @ftonato in #2287
+feat(nuq): add source for max_concurrency by @mogery in #2293
+feat(nuq/concurrency-tracking): fix deadlock by @mogery in #2295
+Replace self-hosted Google with DDG search (ENG-3499) by @amplitudesxd in #2225
+python-sdk: Fix timeout handling across api calls by @abimaelmartell in #2288
+python-sdk: Don't require API Key when running Self Hosted by @abimaelmartell in #2290
+Add team flag to skip country check by @devin-ai-integration [bot] in #2300
+Update /search endpoint pricing to 2 credits per 10 search results by @devin-ai-integration [bot] in #2299
+Fix search pricing bug by @devin-ai-integration [bot] in #2301
+feat(nuq): per-owner-per-group concurrency limiting by @mogery in #2302
+update: handle circular refs as well in recursive schema by @Chadha93 in #2298
+feat(nuq): dynamically calculate current concurrency by @mogery in #2305
+feat(nuq): group_id, job backlogs, and group add operations by @mogery in #2309
+feat(ci): new test-site app + updated jest tests by @delong3 in #2312
+feat: new crawl architecture by @mogery in #2320
+Moved index for backlog query after the table creation by @c4nc in #2323
+fix(ci): playwright cache + prod tests by @delong3 in #2314
+Improve slack notifications for scale auto-recharges by @micahstairs in #2325
+Make auto-recharge notifications less noisy by @micahstairs in #2327
+fix: viewport dimension support for Playwright engine screenshots by @ftonato in #2329
+feat: always populate nuq metrics by @amplitudesxd in #2328
+fix: scrape viewport test by @amplitudesxd in #2330
+Revert "Merge pull request #2329 from firecrawl/devin/ENG-3639-175924… by @micahstairs in #2332
+fix(nuq): per-instance listen channel ID by @mogery in #2336
+fix(auto_charge): add a cooldown to the new recharge route by @mogery in #2338
+chore: update last scrape rpc by @amplitudesxd in #2339
+Rust client: use tracing instead of print by @codetheweb in #2324
+Extract metadata from document head (ENG-3822) by @amplitudesxd in #2342
+fix(nuq,concurrency-limit): handle if there are duplicate jobs in the concurrency queue by @mogery in #2343
+New Contributors
+@delong3 made their first contribution in #2289
+@c4nc made their first contribution in #2323
+@codetheweb made their first contribution in #2324
+Full Changelog : v2.4.0...v2.5.0
+Contributors
+c4nc, abimaelmartell, and 8 other contributors
+Assets
+2
+Loading
+17 people reacted
+v2.4.0
+v2.4.0
+Compare
+Choose a tag to compare
+Sorry, something went wrong.
+Filter
+View all tags
+nickscamara
+released this
+13 Oct 15:09
+v2.4.0
+40a7d38
+This commit was created on GitHub.com and signed with GitHub’s verified signature .
+GPG key ID: B5690EEEBB952194
+Verified
+Learn about vigilant mode .
+v2.4.0
+New Features
+New PDF Search Category - You can now search for only pdfs via our v2/search endpoints by specifying .pdf category
+Gemini 2.5 Flash CLI Image Editor — Create and edit images directly in the CLI using Firecrawl + Gemini 2.5 Flash integration ( #2172 )
+x402 Search Endpoint ( /v2/x402 ) — Added a next-gen search API with improved accuracy and speed ( #2218 )
+RabbitMQ Event System — Firecrawl jobs now support event-based communication and prefetching from Postgres ( #2230 , #2233 )
+Improved Crawl Status API — More accurate and real-time crawl status reporting using the new crawl_status_2 RPC ( #2239 )
+Low-Results & Robots.txt Warnings — Users now receive clear feedback when crawls are limited by robots.txt or yield few results ( #2248 )
+Enhanced Tracing (OpenTelemetry) — Much-improved distributed tracing for better observability across services ( #2219 )
+Metrics & Analytics — Added request-level metrics for both Scrape and Search endpoints ( #2216 )
+Self-Hosted Webhook Support — Webhooks can now be delivered to private IP addresses for self-hosted environments ( #2232 )
+Improvements
+Reduced Docker Image Size — Playwright service image size reduced by 1 GB by only installing Chromium ( #2210 )
+Python SDK Enhancements — Added "cancelled" job status handling and poll interval fixes ( #2240 , #2265 )
+Faster Node SDK Timeouts — Axios timeouts now propagate correctly, improving reliability under heavy loads ( #2235 )
+Improved Crawl Parameter Previews — Enhanced prompts and validation for crawl parameter previews ( #2220 )
+Zod Schema Validation — Stricter API parameter validation with rejection of extra fields ( #2058 )
+Better Redis Job Handling — Fixed edge cases in getDoneJobsOrderedUntil for more stable Redis retrieval ( #2258 )
+Markdown & YouTube Fixes — Fixed YouTube cache and empty markdown summary bugs ( #2226 , #2261 )
+Updated Docs & Metadata — README updates and new metadata fields added to the JS SDK ( #2250 , #2254 )
+Improved API Port Configuration — The API now respects environment-defined ports ( #2209 )
+Fixes
+Fixed recursive $ref schema validation edge cases ( #2238 )
+Fixed enum arrays being incorrectly converted to objects ( #2224 )
+Fixed harness timeouts and self-hosted docker-compose.yaml issues ( #2242 , #2252 )
+New Contributors
+@Chadha93 ( #2155 )
+@MAVRICK-1 ( #2172 )
+@bernie43 ( #2210 )
+@abimaelmartell ( #2209 )
+@th3w1zard1 ( #2252 )
+🔗 Full Changelog: v2.3.0 → v2.4.0
+What's Changed
+fix: add missing poll_interval param in watcher by @Chadha93 in #2155
+feat: Add Firecrawl + Gemini 2.5 Flash Image CLI Editor by @MAVRICK-1 in #2172
+Add environment variable to disable blocklist by @amplitudesxd in #2197
+Fix ARM builds by @amplitudesxd in #2198
+fix(v1/search): if f-e search is available, only use that by @mogery in #2199
+Upgrade html-to-markdown dependency (ENG-3563) by @amplitudesxd in #2195
+feat(map): add crawler and scrape options to job logging by @ftonato in #2203
+refactor: integrate facilitator in payment middleware by @ftonato in #2213
+(feat/metrics) Scrape and Search Request Metrics by @nickscamara in #2216
+(feat/big-query) Big Query by @nickscamara in #2217
+feat(api): add x402 search endpoint to /v2 by @ftonato in #2218
+feat(api/otel): much improved tracing by @mogery in #2219
+fix: Add Zod validation to reject additionalProperties in schema parameters by @devin-ai-integration [bot] in #2058
+Reduce playwright-service image size by 1 GB by installing only Chromium by @bernie43 in #2210
+fix: enum arrays being converted to objects by @Chadha93 in #2224
+feat(nuq): RabbitMQ support for job finish events and waiting by @mogery in #2230
+fix: Use port from env.PORT for API by @abimaelmartell in #2209
+feat(nuq/rabbitmq): add prefetching jobs from psql to rabbitmq by @mogery in #2233
+fix: skip summary generation when markdown is empty by @devin-ai-integration [bot] in #2226
+Propagate timeout to Axios in Node SDK (ENG-3474) by @amplitudesxd in #2235
+feat(api/crawl-status): use crawl_status_2 RPC by @mogery in #2239
+Allow self-hosted webhook delivery to private IP addresses by @abimaelmartell in #2232
+Update harness timeout by @amplitudesxd in #2242
+python-sdk: include "cancelled" in CrawlJob.status and exit wait loop on cancel (fixes #2190 ) by @Jeelislive in #2240
+feat(api/ci): test with RabbitMQ on prod by @mogery in #2241
+(fix/crawl-params) Enhance crawl param preview prompt further by @nickscamara in #2220
+build(deps): bump actions/checkout from 3 to 5 by @dependabot [bot] in #2115
+fix: harness by @amplitudesxd in #2249
+Fix a self-hosted docker-compose.yaml bug caused by a recent firecrawl change by @th3w1zard1 in #2252
+fix: handle $ref for recursive schema validation by @Chadha93 in #2238
+Add missing metadata fields to JS SDK (ENG-3439) by @amplitudesxd in #2250
+Update README.md by @nickscamara in #2254
+fix: handle edge case in getDoneJobsOrderedUntil function for Redis job retrieval by @ftonato in #2258
+Fix YouTube cache markdown bug by @devin-ai-integration [bot] in #2261
+feat(api): add warnings for low results and robots.txt restrictions in map and crawl controllers by @ftonato in #2248
+Test new mu alternative by @tomkosm in #2263
+chore(python-sdk): Bump version to 4.3.7 for poll_interval fix by @devin-ai-integration [bot] in #2265
+Feat/test new mu alt by @tomkosm in #2267
+(feat/search-index) Search Index by @nickscamara in #2268
+Feat/test new mu alt by @tomkosm in #2270
+(feat/search-index) Separate service by @nickscamara in #2271
+fix: additional queue_scrape for nuq schema by @Chadha93 in #2272
+(feat/search) Pdf search category by @nickscamara in #2276
+New Contributors
+@Chadha93 made their first contribution in #2155
+@MAVRICK-1 made their first contribution in #2172
+@bernie43 made their first contribution in #2210
+@abimaelmartell made their first contribution in #2209
+@th3w1zard1 made their first contribution in #2252
+Full Changelog : v2.3.0...v2.4.0
+Contributors
+abimaelmartell, oldrepublicwizard, and 11 other contributors
+Assets
+2
+Loading
+10 people reacted
+v2.3.0
+v2.3.0
+Compare
+Choose a tag to compare
+Sorry, something went wrong.
+Filter
+View all tags
+nickscamara
+released this
+19 Sep 19:01
+v2.3.0
+3c4ec3b
+v2.3.0
+New Features
+YouTube Support: You can now get YouTube transcripts
+Enterprise Auto-Recharge: Added enterprise support for auto-recharge
+odt and .rtf : Now support odt and rtf file parsing
+Docx Parsing : 50x faster docx parsing
+K8s Deployment: Added NuQ worker deployment example
+Self Host : Tons of improvements for our self host users
+Improvements & Fixes
+Stability: Fixed timeout race condition, infinite scrape loop, and location query bug
+Tooling: Replaced ts-prune with knip, updated pnpm with minimumReleaseAge
+Docs: Added Rust to CONTRIBUTING and fixed typos
+Security: Fixed pkgvuln issue
+What's Changed
+Update blocklist by @micahstairs in #2150
+docs: fix typo and punctuation in CONTRIBUTING.md by @jarrensj in #2149
+Fix timeout error message race condition for ENG-3372 by @devin-ai-integration [bot] in #2144
+Add exceptions to blocklist by @micahstairs in #2156
+fix: pkgvuln by @mogery in #2158
+Replace ts prune with knip (ENG-3540) by @amplitudesxd in #2148
+feat(auto-recharge): enterprise by @mogery in #2127
+feat(scrapeURL/index): index metrics by @mogery in #2160
+Update pnpm and add minimumReleaseAge (ENG-3560) by @amplitudesxd in #2162
+feat(api/scrapeURL): add special support for YouTube watch pages by @mogery in #2157
+fix(scrapeURL/index): locations array querying bug by @mogery in #2164
+Fix infinite loop when scraping a forbidden webpage (ENG-3339) by @amplitudesxd in #2147
+Add Rust to CONTRIBUTING by @oalsing in #2180
+feat(scrapeURL/summary): use gpt-5-mini by @mogery in #2174
+Custom Rust document parser (ENG-3489) by @amplitudesxd in #2159
+feat: add NuQ worker deployment to Kubernetes examples by @devin-ai-integration [bot] in #2163
+feat(api): move blocklist to DB by @mogery in #2186
+New Contributors
+@jarrensj made their first contribution in #2149
+@oalsing made their first contribution in #2180
+Full Changelog : v2.2.0...v2.3.0
+Contributors
+oalsing, micahstairs, and 4 other contributors
+Assets
+2
+Loading
+11 people reacted
+v2.2.0
+v2.2.0
+Compare
+Choose a tag to compare
+Sorry, something went wrong.
+Filter
+View all tags
+nickscamara
+released this
+12 Sep 14:59
+v2.2.0
+1740e42
+This commit was created on GitHub.com and signed with GitHub’s verified signature .
+GPG key ID: B5690EEEBB952194
+Verified
+Learn about vigilant mode .
+v2.2.0
+Features
+MCP version 3 is live. Stable support for cloud mcp with HTTP Transport and SSE modes. Compatible with v2 and v1 from.
+Webhooks: Now we support signatures + extract support + event failures
+Map is now 15x faster + supports more urls
+Search reliability improvements
+Usage is now tracked by API Key
+Support for additional locations (CA, CZ, IL, IN, IT, PL, and PT)
+Queue status endpoint
+Added maxPages parameter to v2 scrape API for pdf parsing
+Improvements
+API:
+New /team/queue-status endpoint.
+Added nuq feature.
+Added VIASOCKET integration.
+Historical credit/token usage endpoints with expanded data.
+Student Program : Support for more universities + students to get free credits through our student program
+Map : 15x faster and increased the limit to 100k
+Scrape API: Added maxPages parameter for PDF parser.
+Python SDK:
+Added get_queue_status to aio + normalization of docs in search results.
+SDKs: Added next cursor pagination and integration param support.
+Infrastructure: Added static IP proxy pool + proxy location support.
+Webhooks: Implemented signatures, refactored sending, added scrape error events.
+Performance: Optimized map, converted Rust natives to single NAPI library.
+CI/CD: Revamped CI, added pre-commit hooks, cross-platform harness.
+🐛 Fixes
+Corrected concurrency limit scaling.
+Fixed search result links/descriptions and retry mechanism for empty results.
+Re-signed expired screenshot URLs.
+Trimmed null chars from PDF titles + fixed encoding.
+Fixed sitemap parsing and added .gz sitemap support.
+Fixed js-sdk zod-to-json-schema import.
+Fixed webhook data format regression.
+Improved credit handling in account object.
+🛠️ Chores & Other
+Removed unused dependencies, updated CONTRIBUTING.md.
+Added debug logging, ignored scripts during CI build.
+Various dependency bumps and build improvements.
+🔗 Full Changelog: v2.1.0...v2.2.0
+What's Changed
+feat(sdks): next cursor pagination by @rafaelsideguide in #2067
+feat: add maxPages parameter to PDF parser in v2 scrape API by @devin-ai-integration [bot] in #2047
+fix(concurrency-limit): scale! by @mogery in #2071
+feat(api): add /team/queue-status endpoint by @mogery in #2063
+build(deps): bump actions/checkout from 3 to 5 by @dependabot [bot] in #1998
+build(deps): bump actions/setup-python from 4 to 5 by @dependabot [bot] in #2028
+build(deps): bump docker/login-action from 1 to 3 by @dependabot [bot] in #1996
+build(deps): bump docker/build-push-action from 5 to 6 by @dependabot [bot] in #1995
+build(deps): bump actions/setup-node from 3 to 4 by @dependabot [bot] in #1997
+feat: historical credit/token usage endpoints + more data in existing usage endpoints by @mogery in #2077
+fix(api/tsconfig): remove baseUrl by @mogery in #2078
+fix(search): get links and descriptions correctly by @mogery in #2076
+fix(api/crawler/sitemap): bump sitemap limit by @mogery in #2079
+fix(api/scrapeURL/index): re-sign expired screenshot URLs by @mogery in #2080
+fix(python-sdk): added missing get_queue_status in aio and added to t… by @rafaelsideguide in #2081
+Fix go-html-to-md on Windows (ENG-3398) by @amplitudesxd in #2082
+fix(js-sdk): zod-to-json-schema import by @rafaelsideguide in #2083
+Replace custom address validation functions with ipaddr.js (ENG-3404) by @amplitudesxd in #2084
+fix(api/native/pdf-parser): trim null chars out of pdf titles by @mogery in #2086
+Fix sitemap parsing (ENG-3361) by @amplitudesxd in #2085
+Implement webhook signatures (ENG-3018) by @amplitudesxd in #2087
+Format api and add pre-commit hooks (ENG-3408) by @amplitudesxd in #2088
+Fix pre-commit hook by @amplitudesxd in #2089
+Ignore scripts during CI build by @amplitudesxd in #2090
+Add more debug logging to crawler by @amplitudesxd in #2091
+Add proxy location support to crawl and map endpoints (ENG-3361) by @amplitudesxd in #2092
+post-incident changes by @mogery in #2095
+feat(python-sdk): normalize docs in search results by @rafaelsideguide in #2098
+Feat(sdks): integration param by @rafaelsideguide in #2096
+Refactor webhook sending (ENG-3426) by @amplitudesxd in #2094
+Fix webhook data format regression by @amplitudesxd in #2106
+Update Type Annotations for v2 Async Search (SearchResponse → SearchData) by @devin-ai-integration [bot] in #2097
+Fire webhook events for scrape/batch scrape errors (ENG-3463) by @amplitudesxd in #2107
+Add static IP proxy pool (ENG-3420) by @amplitudesxd in #2103
+Convert all Rust natives to a single library using NAPI (ENG-3397) by @amplitudesxd in #2105
+Filter out invalidated index records (ENG-3396) by @amplitudesxd in #2102
+feat(sdk): added agent option by @rafaelsideguide in #2108
+feat(api): nuq by @mogery in #1984
+Make harness cross-platform compatible (ENG-3477) by @amplitudesxd in #2110
+Update error messages for self-hosted instances by @devin-ai-integration [bot] in #2119
+Revise /extract's error message when no content could be fetched from URLs by @micahstairs in #2109
+Fix graceful credit handling in account object (ENG-3495) by @amplitudesxd in #2120
+fix(scrapeURL/f-e/scrape): bad failed schema by @mogery in #2123
+feat(ci): revamp by @mogery in #2124
+fix(api/native/pdf): get title with proper encoding by @mogery in #2125
+chore: remove unused dependencies + various CI fixes by @mogery in #2128
+Perform watching inside of harness (ENG-3514) by @amplitudesxd in #2131
+Add gzipped sitemap support (ENG-3520) by @amplitudesxd in #2132
+Remove .xml.gz from include entries by @amplitudesxd in #2134
+fix(api): rearchitect crawl kickoff by @mogery in #2133
+Update CONTRIBUTING.md by @nickscamara in #2141
+Update CONTRIBUTING.md by @nickscamara in #2142
+(fix/search) Implement retry mechanisms for empty results by @nickscamara in #2140
+Optimize map (ENG-3526) by @amplitudesxd in #2138
+feat(api): add VIASOCKET integration by @ftonato in #2143
+Full Changelog : v2.1.0...v2.2.0
+Contributors
+ftonato, micahstairs, and 6 other contributors
+Assets
+2
+Loading
+13 people reacted
+Previous 1 2 3 4 Next
+Previous Next
