@@ -5,6 +5,7 @@ import { promisify } from 'node:util'
 import { fileURLToPath } from 'node:url'
 
 const execFileAsync = promisify(execFile)
+export const DEFAULT_SCANNER_TIMEOUT_MS = 60_000
 const LOCKFILE_TYPES = Object.freeze({
   'package-lock.json': { manager: 'npm', supported: true },
   'npm-shrinkwrap.json': { manager: 'npm', supported: true },
@@ -204,7 +205,13 @@ export function parseAuditReport(stdout) {
   }
 }
 
-export async function executeAudit(entry, { root = process.cwd() } = {}) {
+export async function executeAudit(entry, {
+  root = process.cwd(),
+  timeoutMs = DEFAULT_SCANNER_TIMEOUT_MS,
+} = {}) {
+  if (!Number.isInteger(timeoutMs) || timeoutMs <= 0) {
+    throw new TypeError('Audit scanner timeoutMs must be a positive integer')
+  }
   const executable = entry.manager === 'pnpm' ? 'corepack' : 'npm'
   const args = entry.manager === 'pnpm'
     ? ['pnpm@11.13.0', '--pm-on-fail=ignore', 'audit', '--audit-level', 'high', '--json']
@@ -215,13 +222,17 @@ export async function executeAudit(entry, { root = process.cwd() } = {}) {
       cwd: resolve(root, entry.workspace),
       env: process.env,
       maxBuffer: 10 * 1024 * 1024,
+      timeout: timeoutMs,
     })
-    return { exitCode: 0, stdout, stderr }
+    return { exitCode: 0, stdout, stderr, timedOut: false, timeoutMs }
   } catch (error) {
+    const timedOut = error.killed === true || error.code === 'ETIMEDOUT'
     return {
       exitCode: Number.isInteger(error.code) ? error.code : 2,
       stdout: error.stdout ?? '',
       stderr: error.stderr ?? error.message,
+      timedOut,
+      timeoutMs,
     }
   }
 }
@@ -268,6 +279,19 @@ export async function runActiveLockfileAudits({
       continue
     }
     const execution = await runAudit(entry, { root })
+    if (execution.timedOut) {
+      results.push({
+        ...entry,
+        status: 'error',
+        exitCode: execution.exitCode,
+        timeoutMs: execution.timeoutMs,
+        vulnerabilities: { ...ZERO_VULNERABILITIES },
+        findings: [],
+        error: `Audit scanner timed out after ${execution.timeoutMs}ms`,
+        stderr: execution.stderr.trim(),
+      })
+      continue
+    }
     try {
       const parsed = parseAuditReport(execution.stdout)
       const breached = parsed.vulnerabilities.high > 0 || parsed.vulnerabilities.critical > 0
@@ -275,6 +299,7 @@ export async function runActiveLockfileAudits({
         ...entry,
         status: execution.exitCode === 0 && !breached ? 'passed' : 'failed',
         exitCode: execution.exitCode,
+        timeoutMs: execution.timeoutMs ?? null,
         vulnerabilities: parsed.vulnerabilities,
         findings: parsed.findings,
         stderr: execution.stderr.trim(),
@@ -284,6 +309,7 @@ export async function runActiveLockfileAudits({
         ...entry,
         status: 'error',
         exitCode: execution.exitCode,
+        timeoutMs: execution.timeoutMs ?? null,
         vulnerabilities: { ...ZERO_VULNERABILITIES },
         findings: [],
         error: error.message,

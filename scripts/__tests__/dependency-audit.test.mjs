@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
+import { chmod, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { test } from 'node:test'
@@ -344,6 +344,52 @@ test('scanner errors fail closed without suppressing later lock results', async 
   assert.equal(result.results.length, EXPECTED_LOCKS.length)
   assert.equal(result.results[0].status, 'error')
   assert.match(result.results[0].error, /JSON/i)
+})
+
+test('a timed-out scanner becomes an error while later locks run and the report persists', async (t) => {
+  const root = await makeFixture(t, {
+    locks: ['stalled/package-lock.json', 'later/package-lock.json'],
+  })
+  const bin = join(root, 'bin')
+  await mkdir(bin)
+  const fakeNpm = join(bin, 'npm')
+  await writeFile(fakeNpm, `#!/usr/bin/env node
+const clean = ${JSON.stringify(CLEAN_AUDIT)}
+if (process.cwd().endsWith('/stalled')) {
+  setTimeout(() => process.stdout.write(clean), 1000)
+} else {
+  process.stdout.write(clean)
+}
+`)
+  await chmod(fakeNpm, 0o755)
+
+  const originalPath = process.env.PATH
+  process.env.PATH = `${bin}:${originalPath}`
+  t.after(() => { process.env.PATH = originalPath })
+
+  const { executeAudit, main } = await loadRunner()
+  const reportPath = join(root, 'result.json')
+  const startedAt = Date.now()
+  const exitCode = await main({
+    argv: ['--output', reportPath],
+    entries: [
+      { manager: 'npm', workspace: 'stalled', lockfile: 'stalled/package-lock.json' },
+      { manager: 'npm', workspace: 'later', lockfile: 'later/package-lock.json' },
+    ],
+    root,
+    stdout: { write() {} },
+    runAudit: (entry, options) => executeAudit(entry, { ...options, timeoutMs: 250 }),
+  })
+  const elapsedMs = Date.now() - startedAt
+  const stored = JSON.parse(await readFile(reportPath, 'utf8'))
+
+  assert.equal(exitCode, 1)
+  assert.ok(elapsedMs < 750, `scanner timeout took ${elapsedMs}ms`)
+  assert.equal(stored.results.length, 2)
+  assert.equal(stored.results[0].status, 'error')
+  assert.match(stored.results[0].error, /timed out/i)
+  assert.equal(stored.results[0].timeoutMs, 250)
+  assert.equal(stored.results[1].status, 'passed')
 })
 
 test('structurally incomplete scanner JSON fails closed instead of normalising missing counts to zero', async () => {
