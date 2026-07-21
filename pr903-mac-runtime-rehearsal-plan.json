@@ -1,0 +1,2343 @@
+{
+  "schema_version": "2.0",
+  "artifact": "pr903-mac-runtime-rehearsal-plan",
+  "verdict": "PR903_MAC_RUNTIME_REHEARSAL_PLAN_REPAIRED",
+  "generated_at": "2026-07-21T19:38:07Z",
+  "classification": "L0_REPAIRED_SPECIFICATION_ONLY_NO_RUNTIME_AUTHORITY",
+  "project_id": "unite-group-nexus",
+  "goal": "Post-clearance macOS runtime rehearsal for PR #903 without executing runtime now",
+  "win_condition": [
+    {
+      "id": "WC1",
+      "statement": "Static authorities and immutable PR/base/head/governed dependency scope are exact and supersession is resolved",
+      "check": "auto"
+    },
+    {
+      "id": "WC2",
+      "statement": "Every future runtime command has platform/shell/executable/target/order/exit/output-hash receipt binding",
+      "check": "auto"
+    },
+    {
+      "id": "WC3",
+      "statement": "First launch, relaunch, clean profile, failure/offline, UI/accessibility and cleanup scenarios have fail-closed acceptance",
+      "check": "auto+human"
+    },
+    {
+      "id": "WC4",
+      "statement": "18-move graph is acyclic/reachable and every L1-L3 action is dominated by explicit Phill gates",
+      "check": "auto"
+    },
+    {
+      "id": "WC5",
+      "statement": "PR approval, signing, notarisation, publication, merge and deployment remain detached and non-automatic",
+      "check": "human"
+    }
+  ],
+  "immutable_identity": {
+    "repository": "CleanExpo/Unite-Group",
+    "pr_number": 903,
+    "base_sha": "2993429d6a812747550bac82f33568417c8b8279",
+    "head_sha": "ce065adaf0f057837a1b1ec4721bf4d95f771925",
+    "changed_files": [
+      "apps/web/package.json",
+      "apps/web/pnpm-lock.yaml",
+      "apps/workspace/package.json",
+      "apps/workspace/pnpm-lock.yaml",
+      "packages/pi-ceo-operator-mcp/package-lock.json",
+      "packages/pi-ceo-operator-mcp/package.json"
+    ],
+    "changed_files_sha256": "53cc47beb4a320209790c1686373220405cf1d898fe6cf2ec06a2d7bff5754e2",
+    "manifest_sha256": "ae075f9b7e9ac717a78125cb0de01934c92c33b5aa532dd7a4f6228597e6b9a4",
+    "lockfile_sha256": "e542133bd9cd56118e5a88c9293d9894241872f511c261859e8309696b2c1659"
+  },
+  "input_authorities": {
+    "accepted_markdown_attachment_1097": "9f508f3acd540e73771e7f1f0df38cad734ca98cb275db1410d1944de9699f53",
+    "accepted_replay_attachment_1099": "690ed9611b12b67f8b575295fc0fafd7cb37c75a6370a2ea94c4cc56524fe632",
+    "accepted_hash_receipt_attachment_1100": "604e73afdf3f153edf49ceb32b175bc6e4c48ae20ec9094e1dadc056450a6a19",
+    "accepted_canonical_verdict_attachment_1101": "c05b1b1189e4af3eba695ac21727fb27a9e1d3487251a231c4ee9d5bb142bd22",
+    "superseded_attachment_1098": "e049d5f6dd9a7a25c89f99580a0ca0fcb9b632ef4b0e9fe157219c9dc851930e",
+    "producer_archive_attachment_1031": "a29a87fbeef40b20b4e1d6eb222ffc85faf9d2d6fae687c151f8b2af927d8e78",
+    "producer_trust_anchor_attachment_1032": "c5b4ed9391230cefe3d73af6820856a05e677ed7c9f2b8884e236ee20063210d",
+    "producer_validator_attachment_1033": "e521d36171521812f9249f8dfd0b570f28cbebc978d74786379dc1f08f213819",
+    "portability_markdown_attachment_1089": "b8bfd5b0b7cd4c40dd2679c98886a5dc8e044057e251003b65008b99a1b3385a",
+    "portability_json_attachment_1090": "6733f5001b5fb36787c390281a5648f48959c552de14856fb5364ef47f03c243",
+    "portability_sums_attachment_1091_corrected": "2efbfcb2ec04090ad8e7aa37d625572eeed632337006e8eae71387a8580e0516"
+  },
+  "supersession": {
+    "attachment_1098": "superseded due to eight-byte prose typo; never canonical",
+    "canonical_attachment": 1101
+  },
+  "hard_stop_start": {
+    "path": "/Users/phill-mac/.claude/HARD_STOP",
+    "inode": 134511257,
+    "size": 0,
+    "mtime_epoch": 1784200128,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "present": true
+  },
+  "current_actions": {
+    "tier": "L0",
+    "runtime_executed": false,
+    "github_queried": false,
+    "dmg_mounted": false,
+    "electron_launched": false,
+    "l1_l2_l3_action": false
+  },
+  "scenarios": [
+    {
+      "id": "S01",
+      "name": "authority and identity preflight",
+      "moves": [
+        "M01",
+        "M02",
+        "M03",
+        "M04"
+      ],
+      "accept": "exact packet/head/host; all gates present"
+    },
+    {
+      "id": "S02",
+      "name": "DMG build and integrity",
+      "moves": [
+        "M05",
+        "M06",
+        "M07",
+        "M08",
+        "M09",
+        "M10"
+      ],
+      "accept": "one exact unsigned arm64 DMG/app/executable; integrity and ownership proven"
+    },
+    {
+      "id": "S03",
+      "name": "first launch",
+      "moves": [
+        "M11"
+      ],
+      "accept": "unique owned PID, loopback readiness <=45s, route probes pass"
+    },
+    {
+      "id": "S04",
+      "name": "relaunch",
+      "moves": [
+        "M12"
+      ],
+      "accept": "new PID and fresh receipts; no stale state"
+    },
+    {
+      "id": "S05",
+      "name": "clean profile",
+      "moves": [
+        "M13"
+      ],
+      "accept": "run-owned profile only; no writes outside run root"
+    },
+    {
+      "id": "S06",
+      "name": "offline and failure paths",
+      "moves": [
+        "M14"
+      ],
+      "accept": "safe degraded UI/controlled 503/no secret leak; network state restored"
+    },
+    {
+      "id": "S07",
+      "name": "gateway observation and operator accessibility",
+      "moves": [
+        "M15",
+        "M16"
+      ],
+      "accept": "read-only gateway receipts plus keyboard/AX/visual acceptance"
+    },
+    {
+      "id": "S08",
+      "name": "operability cleanup and review",
+      "moves": [
+        "M17",
+        "M18"
+      ],
+      "accept": "no owned resources remain; envelope validates; non-author verdict recorded"
+    }
+  ],
+  "moves": [
+    {
+      "id": "M01",
+      "title": "Revalidate accepted static authorities",
+      "autonomy": "L0",
+      "depends_on": [],
+      "unlocks": [
+        "M02"
+      ],
+      "gate": "G-CONTRACT-AUTHORITY",
+      "scenario": "authority-preflight",
+      "deliverable": "M01 command and evidence receipt set",
+      "verify": "All canonical hashes match; attachment 1098 remains explicitly superseded; no network or runtime.",
+      "commands": [
+        {
+          "command_id": "C01",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/shasum",
+          "argv": [
+            "-a",
+            "256",
+            "<canonical-attachments>"
+          ],
+          "target": "accepted packet and portability attachments",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 30,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        }
+      ],
+      "success_receipt_id": "R-M01-SUCCESS",
+      "failure": {
+        "outcome": "EVIDENCE_INCOMPLETE",
+        "absorbing": true,
+        "successors": [],
+        "cleanup_scope": "run-owned resources only; preserve unrelated processes, mounts, profiles and files",
+        "receipt_id": "R-M01-FAILURE"
+      },
+      "satisfies": [
+        "WC1",
+        "WC2",
+        "WC4"
+      ],
+      "is_branch_point": false,
+      "branches": []
+    },
+    {
+      "id": "M02",
+      "title": "Verify deliberate HARD_STOP clearance",
+      "autonomy": "L3_DECISION",
+      "depends_on": [
+        "M01"
+      ],
+      "unlocks": [
+        "M03"
+      ],
+      "gate": "G-HARDSTOP-CLEARANCE",
+      "scenario": "clearance",
+      "deliverable": "M02 command and evidence receipt set",
+      "verify": "Human receipt names Phill, scope, time and exact packet; HARD_STOP is absent only after deliberate clearance.",
+      "commands": [],
+      "success_receipt_id": "R-M02-SUCCESS",
+      "failure": {
+        "outcome": "BLOCKED",
+        "absorbing": true,
+        "successors": [],
+        "cleanup_scope": "run-owned resources only; preserve unrelated processes, mounts, profiles and files",
+        "receipt_id": "R-M02-FAILURE"
+      },
+      "satisfies": [
+        "WC4"
+      ],
+      "is_branch_point": false,
+      "branches": []
+    },
+    {
+      "id": "M03",
+      "title": "Read live PR identity and fail stale before runtime",
+      "autonomy": "L0",
+      "depends_on": [
+        "M02"
+      ],
+      "unlocks": [
+        "M04"
+      ],
+      "gate": "G-HARDSTOP-CLEARANCE",
+      "scenario": "identity-preflight",
+      "deliverable": "M03 command and evidence receipt set",
+      "verify": "Live repository, PR, base, head and exactly two changed paths equal immutable identity; mismatch returns STALE before checkout/install/build/mount/launch.",
+      "commands": [
+        {
+          "command_id": "C03",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/local/bin/gh",
+          "argv": [
+            "pr",
+            "view",
+            "903",
+            "--repo",
+            "CleanExpo/Unite-Group",
+            "--json",
+            "number,baseRefOid,headRefOid,files"
+          ],
+          "target": "GitHub PR 903 read-only",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 60,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        }
+      ],
+      "success_receipt_id": "R-M03-SUCCESS",
+      "failure": {
+        "outcome": "STALE",
+        "absorbing": true,
+        "successors": [],
+        "cleanup_scope": "run-owned resources only; preserve unrelated processes, mounts, profiles and files",
+        "receipt_id": "R-M03-FAILURE"
+      },
+      "satisfies": [
+        "WC1",
+        "WC2",
+        "WC4"
+      ],
+      "is_branch_point": true,
+      "branches": [
+        {
+          "decider": "live immutable identity exact; otherwise use typed absorbing failure",
+          "if": "yes",
+          "then": [
+            "M04"
+          ],
+          "reconverge": "M04"
+        }
+      ]
+    },
+    {
+      "id": "M04",
+      "title": "Capture Mac host and toolchain preflight",
+      "autonomy": "L0",
+      "depends_on": [
+        "M03"
+      ],
+      "unlocks": [
+        "M05"
+      ],
+      "gate": "G-RUNTIME-WINDOW",
+      "scenario": "host-preflight",
+      "deliverable": "M04 command and evidence receipt set",
+      "verify": "macOS version/build, arm64 architecture, free disk, shell, Node, pnpm, Git, hdiutil, codesign, spctl and capture-tool identities are recorded; unsupported host blocks.",
+      "commands": [
+        {
+          "command_id": "C04A",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/sw_vers",
+          "argv": [],
+          "target": "Mac host",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 30,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        },
+        {
+          "command_id": "C04B",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/uname",
+          "argv": [
+            "-m"
+          ],
+          "target": "Mac host",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 30,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        },
+        {
+          "command_id": "C04C",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/bin/df",
+          "argv": [
+            "-Pk",
+            "<RUN_ROOT>"
+          ],
+          "target": "run volume",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 30,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        },
+        {
+          "command_id": "C04D",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/xcrun",
+          "argv": [
+            "--find",
+            "codesign"
+          ],
+          "target": "Apple toolchain",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 30,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        }
+      ],
+      "success_receipt_id": "R-M04-SUCCESS",
+      "failure": {
+        "outcome": "BLOCKED",
+        "absorbing": true,
+        "successors": [],
+        "cleanup_scope": "run-owned resources only; preserve unrelated processes, mounts, profiles and files",
+        "receipt_id": "R-M04-FAILURE"
+      },
+      "satisfies": [
+        "WC1",
+        "WC2",
+        "WC4"
+      ],
+      "is_branch_point": false,
+      "branches": []
+    },
+    {
+      "id": "M05",
+      "title": "Create run-owned exact-head source root and freeze source manifest",
+      "autonomy": "L1",
+      "depends_on": [
+        "M04"
+      ],
+      "unlocks": [
+        "M06"
+      ],
+      "gate": "G-RUNTIME-WINDOW",
+      "scenario": "build-preflight",
+      "deliverable": "M05 command and evidence receipt set",
+      "verify": "Fresh run root is owned by run_id; checkout resolves to exact head; changed-path and package manifests are hash-bound before dependencies.",
+      "commands": [
+        {
+          "command_id": "C05A",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/mktemp",
+          "argv": [
+            "-d",
+            "${TMPDIR%/}/pr903-runtime.XXXXXXXX"
+          ],
+          "target": "run-owned root",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 30,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        },
+        {
+          "command_id": "C05B",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/git",
+          "argv": [
+            "clone",
+            "--no-checkout",
+            "<approved-repository-url>",
+            "<RUN_ROOT>/source"
+          ],
+          "target": "run-owned source",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 180,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        },
+        {
+          "command_id": "C05C",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/git",
+          "argv": [
+            "-C",
+            "<RUN_ROOT>/source",
+            "checkout",
+            "--detach",
+            "ce065adaf0f057837a1b1ec4721bf4d95f771925"
+          ],
+          "target": "exact PR head",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 60,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        }
+      ],
+      "success_receipt_id": "R-M05-SUCCESS",
+      "failure": {
+        "outcome": "BLOCKED",
+        "absorbing": true,
+        "successors": [],
+        "cleanup_scope": "run-owned resources only; preserve unrelated processes, mounts, profiles and files",
+        "receipt_id": "R-M05-FAILURE"
+      },
+      "satisfies": [
+        "WC2",
+        "WC4"
+      ],
+      "is_branch_point": false,
+      "branches": []
+    },
+    {
+      "id": "M06",
+      "title": "Install frozen dependencies and run bounded prerequisites",
+      "autonomy": "L1",
+      "depends_on": [
+        "M05"
+      ],
+      "unlocks": [
+        "M07"
+      ],
+      "gate": "G-RUNTIME-WINDOW",
+      "scenario": "build-preflight",
+      "deliverable": "M06 command and evidence receipt set",
+      "verify": "pnpm lockfile is frozen; install, unit/type/lint/package prerequisites use declared scripts only; each step has a strict timeout and receipt.",
+      "commands": [
+        {
+          "command_id": "C06A",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/env",
+          "argv": [
+            "pnpm",
+            "--dir",
+            "<RUN_ROOT>/source/apps/workspace",
+            "install",
+            "--frozen-lockfile"
+          ],
+          "target": "apps/workspace",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 600,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        },
+        {
+          "command_id": "C06B",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/env",
+          "argv": [
+            "pnpm",
+            "--dir",
+            "<RUN_ROOT>/source/apps/workspace",
+            "test",
+            "--if-present"
+          ],
+          "target": "apps/workspace",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 600,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        }
+      ],
+      "success_receipt_id": "R-M06-SUCCESS",
+      "failure": {
+        "outcome": "REQUEST_CHANGES",
+        "absorbing": true,
+        "successors": [],
+        "cleanup_scope": "run-owned resources only; preserve unrelated processes, mounts, profiles and files",
+        "receipt_id": "R-M06-FAILURE"
+      },
+      "satisfies": [
+        "WC2",
+        "WC4"
+      ],
+      "is_branch_point": false,
+      "branches": []
+    },
+    {
+      "id": "M07",
+      "title": "Build exactly one unsigned macOS arm64 DMG",
+      "autonomy": "L1",
+      "depends_on": [
+        "M06"
+      ],
+      "unlocks": [
+        "M08"
+      ],
+      "gate": "G-RUNTIME-WINDOW",
+      "scenario": "dmg-build",
+      "deliverable": "M07 command and evidence receipt set",
+      "verify": "Declared package script produces exactly one regular non-symlink DMG inside evidence root; build does not sign, notarise or publish.",
+      "commands": [
+        {
+          "command_id": "C07",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/env",
+          "argv": [
+            "pnpm",
+            "--dir",
+            "<RUN_ROOT>/source/apps/workspace",
+            "run",
+            "<DECLARED_MAC_DMG_SCRIPT>"
+          ],
+          "target": "apps/workspace unsigned arm64 DMG",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 900,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        }
+      ],
+      "success_receipt_id": "R-M07-SUCCESS",
+      "failure": {
+        "outcome": "REQUEST_CHANGES",
+        "absorbing": true,
+        "successors": [],
+        "cleanup_scope": "run-owned resources only; preserve unrelated processes, mounts, profiles and files",
+        "receipt_id": "R-M07-FAILURE"
+      },
+      "satisfies": [
+        "WC2",
+        "WC4"
+      ],
+      "is_branch_point": false,
+      "branches": []
+    },
+    {
+      "id": "M08",
+      "title": "Verify DMG identity, integrity, quarantine and pre-mount state",
+      "autonomy": "L0",
+      "depends_on": [
+        "M07"
+      ],
+      "unlocks": [
+        "M09"
+      ],
+      "gate": "G-RUNTIME-WINDOW",
+      "scenario": "dmg-integrity",
+      "deliverable": "M08 command and evidence receipt set",
+      "verify": "One contained regular non-symlink DMG has size, SHA-256, image verification, xattrs and existing-mount absence recorded; wrong/reused build fails.",
+      "commands": [
+        {
+          "command_id": "C08A",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/stat",
+          "argv": [
+            "-f",
+            "%N|%HT|%z|%m",
+            "<DMG>"
+          ],
+          "target": "DMG",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 30,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        },
+        {
+          "command_id": "C08B",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/shasum",
+          "argv": [
+            "-a",
+            "256",
+            "<DMG>"
+          ],
+          "target": "DMG",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 30,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        },
+        {
+          "command_id": "C08C",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/hdiutil",
+          "argv": [
+            "verify",
+            "<DMG>"
+          ],
+          "target": "DMG",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 120,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        },
+        {
+          "command_id": "C08D",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/xattr",
+          "argv": [
+            "-l",
+            "<DMG>"
+          ],
+          "target": "DMG",
+          "expected_exit_codes": [
+            0,
+            1
+          ],
+          "timeout_seconds": 30,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        }
+      ],
+      "success_receipt_id": "R-M08-SUCCESS",
+      "failure": {
+        "outcome": "REQUEST_CHANGES",
+        "absorbing": true,
+        "successors": [],
+        "cleanup_scope": "run-owned resources only; preserve unrelated processes, mounts, profiles and files",
+        "receipt_id": "R-M08-FAILURE"
+      },
+      "satisfies": [
+        "WC2",
+        "WC4"
+      ],
+      "is_branch_point": false,
+      "branches": []
+    },
+    {
+      "id": "M09",
+      "title": "Mount one run-owned DMG read-only and non-browsing",
+      "autonomy": "L1",
+      "depends_on": [
+        "M08"
+      ],
+      "unlocks": [
+        "M10"
+      ],
+      "gate": "G-RUNTIME-WINDOW",
+      "scenario": "dmg-mount",
+      "deliverable": "M09 command and evidence receipt set",
+      "verify": "hdiutil plist names one mountpoint bound to run_id; no Finder browse; ownership receipt exists before any detach can be attempted.",
+      "commands": [
+        {
+          "command_id": "C09",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/hdiutil",
+          "argv": [
+            "attach",
+            "-readonly",
+            "-nobrowse",
+            "-plist",
+            "<DMG>"
+          ],
+          "target": "one run-owned mount",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 120,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        }
+      ],
+      "success_receipt_id": "R-M09-SUCCESS",
+      "failure": {
+        "outcome": "BLOCKED",
+        "absorbing": true,
+        "successors": [],
+        "cleanup_scope": "run-owned resources only; preserve unrelated processes, mounts, profiles and files",
+        "receipt_id": "R-M09-FAILURE"
+      },
+      "satisfies": [
+        "WC2",
+        "WC4"
+      ],
+      "is_branch_point": false,
+      "branches": []
+    },
+    {
+      "id": "M10",
+      "title": "Bind app, executable, signature, quarantine and architecture",
+      "autonomy": "L0",
+      "depends_on": [
+        "M09"
+      ],
+      "unlocks": [
+        "M11"
+      ],
+      "gate": "G-RUNTIME-WINDOW",
+      "scenario": "app-identity",
+      "deliverable": "M10 command and evidence receipt set",
+      "verify": "Exactly one regular non-symlink .app is contained; CFBundleExecutable resolves inside it; executable hash and arm64 architecture match; codesign/spctl/xattr results are evidence, never silently treated as approval.",
+      "commands": [
+        {
+          "command_id": "C10A",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/plutil",
+          "argv": [
+            "-convert",
+            "json",
+            "-o",
+            "-",
+            "<APP>/Contents/Info.plist"
+          ],
+          "target": "mounted app plist",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 30,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        },
+        {
+          "command_id": "C10B",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/file",
+          "argv": [
+            "<EXECUTABLE>"
+          ],
+          "target": "app executable",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 30,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        },
+        {
+          "command_id": "C10C",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/lipo",
+          "argv": [
+            "-archs",
+            "<EXECUTABLE>"
+          ],
+          "target": "app executable",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 30,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        },
+        {
+          "command_id": "C10D",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/codesign",
+          "argv": [
+            "-dvvv",
+            "--strict",
+            "<APP>"
+          ],
+          "target": "mounted app",
+          "expected_exit_codes": [
+            0,
+            1
+          ],
+          "timeout_seconds": 30,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        },
+        {
+          "command_id": "C10E",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/sbin/spctl",
+          "argv": [
+            "-a",
+            "-vv",
+            "-t",
+            "exec",
+            "<APP>"
+          ],
+          "target": "mounted app",
+          "expected_exit_codes": [
+            0,
+            1
+          ],
+          "timeout_seconds": 30,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        },
+        {
+          "command_id": "C10F",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/xattr",
+          "argv": [
+            "-lr",
+            "<APP>"
+          ],
+          "target": "mounted app",
+          "expected_exit_codes": [
+            0,
+            1
+          ],
+          "timeout_seconds": 30,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        }
+      ],
+      "success_receipt_id": "R-M10-SUCCESS",
+      "failure": {
+        "outcome": "REQUEST_CHANGES",
+        "absorbing": true,
+        "successors": [],
+        "cleanup_scope": "run-owned resources only; preserve unrelated processes, mounts, profiles and files",
+        "receipt_id": "R-M10-FAILURE"
+      },
+      "satisfies": [
+        "WC2",
+        "WC4"
+      ],
+      "is_branch_point": true,
+      "branches": [
+        {
+          "decider": "DMG/app/executable identity and declared unsigned expectation pass; otherwise use typed absorbing failure",
+          "if": "yes",
+          "then": [
+            "M11"
+          ],
+          "reconverge": "M11"
+        }
+      ]
+    },
+    {
+      "id": "M11",
+      "title": "Run first-launch scenario with bounded readiness",
+      "autonomy": "L1",
+      "depends_on": [
+        "M10"
+      ],
+      "unlocks": [
+        "M12"
+      ],
+      "gate": "G-RUNTIME-WINDOW",
+      "scenario": "first-launch",
+      "deliverable": "M11 command and evidence receipt set",
+      "verify": "Executable launches from mounted app; unique PID/start identity is bound; loopback-only readiness reaches expected state inside 45 seconds or typed timeout; root/settings/ping/assets/fonts/CSS/DOM probes pass.",
+      "commands": [
+        {
+          "command_id": "C11A",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "<EXECUTABLE>",
+          "argv": [
+            "--run-id",
+            "<RUN_ID>"
+          ],
+          "target": "first-launch run",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 5,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        },
+        {
+          "command_id": "C11B",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/sbin/lsof",
+          "argv": [
+            "-nP",
+            "-a",
+            "-p",
+            "<PID>",
+            "-iTCP",
+            "-sTCP:LISTEN"
+          ],
+          "target": "owned PID listeners",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 30,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        },
+        {
+          "command_id": "C11C",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/curl",
+          "argv": [
+            "--fail-with-body",
+            "--silent",
+            "--show-error",
+            "--max-time",
+            "5",
+            "http://127.0.0.1:<PORT>/"
+          ],
+          "target": "loopback root",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 10,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        }
+      ],
+      "success_receipt_id": "R-M11-SUCCESS",
+      "failure": {
+        "outcome": "REQUEST_CHANGES",
+        "absorbing": true,
+        "successors": [],
+        "cleanup_scope": "run-owned resources only; preserve unrelated processes, mounts, profiles and files",
+        "receipt_id": "R-M11-FAILURE"
+      },
+      "satisfies": [
+        "WC2",
+        "WC3",
+        "WC4"
+      ],
+      "is_branch_point": false,
+      "branches": []
+    },
+    {
+      "id": "M12",
+      "title": "Terminate owned PID and prove relaunch consistency",
+      "autonomy": "L1",
+      "depends_on": [
+        "M11"
+      ],
+      "unlocks": [
+        "M13"
+      ],
+      "gate": "G-RUNTIME-WINDOW",
+      "scenario": "relaunch",
+      "deliverable": "M12 command and evidence receipt set",
+      "verify": "Only PID whose executable hash/start identity/run marker match is terminated; relaunch creates a new PID and preserves route, state and UI expectations without stale receipts.",
+      "commands": [
+        {
+          "command_id": "C12A",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/bin/kill",
+          "argv": [
+            "-TERM",
+            "<OWNED_PID>"
+          ],
+          "target": "owned first-launch PID",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 30,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        },
+        {
+          "command_id": "C12B",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "<EXECUTABLE>",
+          "argv": [
+            "--run-id",
+            "<RUN_ID>-relaunch"
+          ],
+          "target": "relaunch run",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 5,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        }
+      ],
+      "success_receipt_id": "R-M12-SUCCESS",
+      "failure": {
+        "outcome": "REQUEST_CHANGES",
+        "absorbing": true,
+        "successors": [],
+        "cleanup_scope": "run-owned resources only; preserve unrelated processes, mounts, profiles and files",
+        "receipt_id": "R-M12-FAILURE"
+      },
+      "satisfies": [
+        "WC2",
+        "WC3",
+        "WC4"
+      ],
+      "is_branch_point": false,
+      "branches": []
+    },
+    {
+      "id": "M13",
+      "title": "Run isolated clean-profile scenario",
+      "autonomy": "L1",
+      "depends_on": [
+        "M12"
+      ],
+      "unlocks": [
+        "M14"
+      ],
+      "gate": "G-RUNTIME-WINDOW",
+      "scenario": "clean-profile",
+      "deliverable": "M13 command and evidence receipt set",
+      "verify": "Run-owned HOME/TMPDIR/profile roots are empty before launch; app either honours isolation with no writes outside run root or returns BLOCKED; no real operator profile/config is touched.",
+      "commands": [
+        {
+          "command_id": "C13",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/env",
+          "argv": [
+            "HOME=<RUN_ROOT>/home-clean",
+            "TMPDIR=<RUN_ROOT>/tmp-clean",
+            "<EXECUTABLE>",
+            "--user-data-dir=<RUN_ROOT>/profile-clean",
+            "--run-id",
+            "<RUN_ID>-clean"
+          ],
+          "target": "clean isolated profile",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 5,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        }
+      ],
+      "success_receipt_id": "R-M13-SUCCESS",
+      "failure": {
+        "outcome": "REQUEST_CHANGES",
+        "absorbing": true,
+        "successors": [],
+        "cleanup_scope": "run-owned resources only; preserve unrelated processes, mounts, profiles and files",
+        "receipt_id": "R-M13-FAILURE"
+      },
+      "satisfies": [
+        "WC2",
+        "WC3",
+        "WC4"
+      ],
+      "is_branch_point": true,
+      "branches": [
+        {
+          "decider": "clean-profile isolation proven; otherwise use typed absorbing failure",
+          "if": "yes",
+          "then": [
+            "M14"
+          ],
+          "reconverge": "M14"
+        }
+      ]
+    },
+    {
+      "id": "M14",
+      "title": "Exercise offline, unavailable-gateway and no-secret-leak failure paths",
+      "autonomy": "L1",
+      "depends_on": [
+        "M13"
+      ],
+      "unlocks": [
+        "M15"
+      ],
+      "gate": "G-RUNTIME-WINDOW",
+      "scenario": "failure-offline-security",
+      "deliverable": "M14 command and evidence receipt set",
+      "verify": "C14A captures the gate-approved sole external/default-route interface and exact pre-state. C14B proves transport success plus exact HTTP 503 headers/body. C14C proves approved-interface isolation, absence of all non-loopback external routes and the frozen transport-failure class without relabelling HTTP 000. C14D always restores the exact captured state from a finally path and hash-compares every field.",
+      "commands": [
+        {
+          "command_id": "C14A",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/bin/zsh",
+          "argv": [
+            "-lc",
+            "<CAPTURE_APPROVED_SERVICE_INTERFACE_POWER_LINK_DEFAULT_ROUTE_ALL_NONLOOPBACK_INTERFACES_AND_ROUTES_TO_RUN_OWNED_RECEIPT>"
+          ],
+          "target": "gate-approved interface and complete network pre-state",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 30,
+          "capture": "separate exact fields plus canonical pre_state_sha256; block unless interface is sole external/default-route path"
+        },
+        {
+          "command_id": "C14B",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/curl",
+          "argv": [
+            "--silent",
+            "--show-error",
+            "--max-time",
+            "5",
+            "--dump-header",
+            "<RUN_OWNED_HEADERS>",
+            "--output",
+            "<RUN_OWNED_BODY>",
+            "--write-out",
+            "%{http_code}",
+            "http://127.0.0.1:<PORT>/<FROZEN_APPLICATION_ROUTE>"
+          ],
+          "target": "gateway-unavailable application route exact 503 contract",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 30,
+          "capture": "process exit, transport outcome, HTTP status, headers and body separately; require status 503 and exact frozen error schema"
+        },
+        {
+          "command_id": "C14C",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/bin/zsh",
+          "argv": [
+            "-lc",
+            "<ISOLATE_ONLY_GATE_APPROVED_INTERFACE; PROVE_NO_NONLOOPBACK_EXTERNAL_ROUTES; PROBE_FROZEN_ROUTE_AND_UI_STATE>"
+          ],
+          "target": "approved-interface offline transport-failure contract",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 30,
+          "capture": "route absence, offline UI predicate and transport failure separately; HTTP 000 is never 503"
+        },
+        {
+          "command_id": "C14D",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/bin/zsh",
+          "argv": [
+            "-lc",
+            "<FINALLY_RESTORE_EXACT_CAPTURED_SERVICE_INTERFACE_POWER_LINK_AND_ROUTE_STATE; REREAD_ALL_FIELDS; COMPARE_POST_HASH_TO_PRE_HASH>"
+          ],
+          "target": "exact captured network state finally-path restoration",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 30,
+          "capture": "success/failure/timeout/interruption cleanup receipt; mismatch is BLOCKED_ROLLBACK_FAILED and forbids later moves"
+        }
+      ],
+      "success_receipt_id": "R-M14-SUCCESS",
+      "failure": {
+        "outcome": "REQUEST_CHANGES",
+        "absorbing": true,
+        "successors": [],
+        "cleanup_scope": "run-owned resources only; preserve unrelated processes, mounts, profiles and files",
+        "receipt_id": "R-M14-FAILURE"
+      },
+      "satisfies": [
+        "WC2",
+        "WC3",
+        "WC4"
+      ],
+      "is_branch_point": false,
+      "branches": [],
+      "offline_contract": {
+        "C14A": {
+          "action": "capture",
+          "required": [
+            "network_service",
+            "device_interface",
+            "power_or_link_state",
+            "default_route",
+            "all_active_non_loopback_interfaces",
+            "all_external_routes",
+            "gateway_service_target",
+            "exact_test_route",
+            "route_body_contract",
+            "pre_state_sha256",
+            "gate_approved_interface"
+          ],
+          "block_if": "selected interface is not the sole external and default-route path",
+          "blocked_verdict": "BLOCKED_OFFLINE_SCOPE"
+        },
+        "C14B": {
+          "action": "gateway_unavailable_probe",
+          "assert_separately": [
+            "process_exit",
+            "transport_outcome",
+            "http_status",
+            "headers_sha256",
+            "body_sha256",
+            "body_schema_verdict"
+          ],
+          "pass": [
+            "transport succeeds",
+            "HTTP status equals 503",
+            "body exactly matches frozen error schema",
+            "secret_scan_count equals zero"
+          ]
+        },
+        "C14C": {
+          "action": "approved_interface_offline",
+          "pass": [
+            "all non-loopback external routes absent",
+            "frozen offline UI state observed",
+            "transport outcome equals frozen failure class",
+            "HTTP 000 is not classified as 503"
+          ]
+        },
+        "C14D": {
+          "action": "restore",
+          "execution": "mandatory finally/cleanup path",
+          "runs_on": [
+            "success",
+            "failure",
+            "timeout",
+            "interruption"
+          ],
+          "pass": [
+            "captured power/link/service/route state restored exactly",
+            "all captured fields re-read",
+            "post_state_sha256 equals pre_state_sha256"
+          ],
+          "failure_terminal": "BLOCKED_ROLLBACK_FAILED"
+        }
+      }
+    },
+    {
+      "id": "M15",
+      "title": "Capture gateway, profile and config observations read-only",
+      "autonomy": "L0",
+      "depends_on": [
+        "M14"
+      ],
+      "unlocks": [
+        "M16"
+      ],
+      "gate": "G-RUNTIME-WINDOW",
+      "scenario": "gateway-observation",
+      "deliverable": "M15 command and evidence receipt set",
+      "verify": "Resolved Hermes executable, default/empire gateway state, profile, board path and named config hash are receipts only; no config write, restart or dispatch occurs.",
+      "commands": [
+        {
+          "command_id": "C15A",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/which",
+          "argv": [
+            "hermes"
+          ],
+          "target": "Hermes executable",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 30,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        },
+        {
+          "command_id": "C15B",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/env",
+          "argv": [
+            "hermes",
+            "-p",
+            "default",
+            "gateway",
+            "status"
+          ],
+          "target": "default gateway read-only",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 30,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        },
+        {
+          "command_id": "C15C",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/env",
+          "argv": [
+            "hermes",
+            "-p",
+            "empire",
+            "gateway",
+            "status"
+          ],
+          "target": "empire gateway read-only",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 30,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        },
+        {
+          "command_id": "C15D",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/env",
+          "argv": [
+            "hermes",
+            "-p",
+            "default",
+            "config",
+            "check"
+          ],
+          "target": "default config check read-only",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 30,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        }
+      ],
+      "success_receipt_id": "R-M15-SUCCESS",
+      "failure": {
+        "outcome": "BLOCKED",
+        "absorbing": true,
+        "successors": [],
+        "cleanup_scope": "run-owned resources only; preserve unrelated processes, mounts, profiles and files",
+        "receipt_id": "R-M15-FAILURE"
+      },
+      "satisfies": [
+        "WC2",
+        "WC3",
+        "WC4"
+      ],
+      "is_branch_point": false,
+      "branches": []
+    },
+    {
+      "id": "M16",
+      "title": "Verify operator UI and accessibility acceptance",
+      "autonomy": "L1",
+      "depends_on": [
+        "M15"
+      ],
+      "unlocks": [
+        "M17"
+      ],
+      "gate": "G-RUNTIME-WINDOW",
+      "scenario": "operator-ui-accessibility",
+      "deliverable": "M16 command and evidence receipt set",
+      "verify": "Fresh route/state-bound screenshots cover first launch, relaunch, clean profile, offline and 503; keyboard-only traversal, visible focus, labels/roles, contrast, reduced motion, zoom and VoiceOver AX tree have explicit human verdicts.",
+      "commands": [
+        {
+          "command_id": "C16A",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/sbin/screencapture",
+          "argv": [
+            "-x",
+            "<RUN_ROOT>/evidence/ui-<STATE>.png"
+          ],
+          "target": "state-bound screenshot",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 30,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        },
+        {
+          "command_id": "C16B",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/shasum",
+          "argv": [
+            "-a",
+            "256",
+            "<RUN_ROOT>/evidence/ui-<STATE>.png"
+          ],
+          "target": "screenshot",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 30,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        }
+      ],
+      "success_receipt_id": "R-M16-SUCCESS",
+      "failure": {
+        "outcome": "REQUEST_CHANGES",
+        "absorbing": true,
+        "successors": [],
+        "cleanup_scope": "run-owned resources only; preserve unrelated processes, mounts, profiles and files",
+        "receipt_id": "R-M16-FAILURE"
+      },
+      "satisfies": [
+        "WC2",
+        "WC3",
+        "WC4"
+      ],
+      "is_branch_point": false,
+      "branches": []
+    },
+    {
+      "id": "M17",
+      "title": "Freeze process, log, crash and bounded cleanup evidence",
+      "autonomy": "L1",
+      "depends_on": [
+        "M16"
+      ],
+      "unlocks": [
+        "M18"
+      ],
+      "gate": "G-RUNTIME-WINDOW",
+      "scenario": "cleanup-operability",
+      "deliverable": "M17 command and evidence receipt set",
+      "verify": "PID/start/executable/run ownership is rechecked before TERM/KILL escalation; crash reports and scoped logs are captured/redacted; only owned mount detaches; zero owned resources remain; unrelated resources unchanged.",
+      "commands": [
+        {
+          "command_id": "C17A",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/bin/ps",
+          "argv": [
+            "-p",
+            "<PID>",
+            "-o",
+            "pid=,ppid=,lstart=,command="
+          ],
+          "target": "owned PID identity",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 30,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        },
+        {
+          "command_id": "C17B",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/log",
+          "argv": [
+            "show",
+            "--style",
+            "json",
+            "--start",
+            "<START_ISO>",
+            "--end",
+            "<END_ISO>",
+            "--predicate",
+            "processIdentifier == <PID>"
+          ],
+          "target": "scoped process logs",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 120,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        },
+        {
+          "command_id": "C17C",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/bin/kill",
+          "argv": [
+            "-TERM",
+            "<OWNED_PID>"
+          ],
+          "target": "owned PID",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 30,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        },
+        {
+          "command_id": "C17D",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/hdiutil",
+          "argv": [
+            "detach",
+            "<OWNED_MOUNTPOINT>"
+          ],
+          "target": "owned mount",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 120,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        }
+      ],
+      "success_receipt_id": "R-M17-SUCCESS",
+      "failure": {
+        "outcome": "REQUEST_CHANGES",
+        "absorbing": true,
+        "successors": [],
+        "cleanup_scope": "run-owned resources only; preserve unrelated processes, mounts, profiles and files",
+        "receipt_id": "R-M17-FAILURE"
+      },
+      "satisfies": [
+        "WC2",
+        "WC3",
+        "WC4"
+      ],
+      "is_branch_point": false,
+      "branches": []
+    },
+    {
+      "id": "M18",
+      "title": "Freeze evidence envelope and obtain fresh non-author runtime verdict",
+      "autonomy": "L0",
+      "depends_on": [
+        "M17"
+      ],
+      "unlocks": [],
+      "gate": "G-PR-APPROVAL",
+      "scenario": "evidence-review",
+      "deliverable": "M18 command and evidence receipt set",
+      "verify": "All command/gate/scenario receipts, screenshots and envelope hashes are complete; detached accepted validator passes; fresh non-author returns ACCEPTED/REQUEST_CHANGES/STALE/BLOCKED/EVIDENCE_INCOMPLETE; no PR approval/merge/deploy occurs automatically.",
+      "commands": [
+        {
+          "command_id": "C18A",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/shasum",
+          "argv": [
+            "-a",
+            "256",
+            "<RUN_ROOT>/evidence/<ALL_REGULAR_FILES>"
+          ],
+          "target": "runtime evidence envelope",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 30,
+          "capture": "raw stdout/stderr bytes separately; hash both with SHA-256; never capture secrets"
+        },
+        {
+          "command_id": "C18B",
+          "status": "NOT_EXECUTED",
+          "platform": "macos-arm64",
+          "shell": "zsh",
+          "executable": "/usr/bin/python3",
+          "argv": [
+            "validate_pr903_mac_rehearsal_envelope.py",
+            "--plan",
+            "pr903-mac-runtime-rehearsal-plan.json",
+            "--receipt-schema",
+            "pr903-mac-command-receipt.schema.json",
+            "--trust-anchor",
+            "pr903-mac-rehearsal-trust-anchor.json",
+            "--receipts-dir",
+            "<RUN_OWNED_RECEIPTS_DIR>",
+            "--expected-run-id",
+            "<G_RUNTIME_WINDOW_RUN_ID>",
+            "--expected-base-sha",
+            "2993429d6a812747550bac82f33568417c8b8279",
+            "--expected-head-sha",
+            "ce065adaf0f057837a1b1ec4721bf4d95f771925",
+            "--expected-plan-sha256",
+            "<TRUST_ANCHOR_PLAN_SHA256>",
+            "--replay-ledger",
+            "<IMMUTABLE_REPLAY_LEDGER>",
+            "--output",
+            "<NEW_RUN_OWNED_VALIDATION_RECEIPT>"
+          ],
+          "target": "detached validator plus trust anchor complete 45-receipt directory and validation output",
+          "expected_exit_codes": [
+            0
+          ],
+          "timeout_seconds": 120,
+          "capture": "exact named-argument interface only; validator/trust-anchor/plan/schema self hashes and typed verdict"
+        }
+      ],
+      "success_receipt_id": "R-M18-SUCCESS",
+      "failure": {
+        "outcome": "EVIDENCE_INCOMPLETE",
+        "absorbing": true,
+        "successors": [],
+        "cleanup_scope": "run-owned resources only; preserve unrelated processes, mounts, profiles and files",
+        "receipt_id": "R-M18-FAILURE"
+      },
+      "satisfies": [
+        "WC2",
+        "WC3",
+        "WC4",
+        "WC5"
+      ],
+      "is_branch_point": false,
+      "branches": []
+    }
+  ],
+  "gates": [
+    {
+      "id": "G-HARDSTOP-CLEARANCE",
+      "tier": "L3",
+      "authority": "Phill",
+      "action": "deliberately clear HARD_STOP for this exact packet and head",
+      "automatic": false,
+      "required_before": [
+        "M02",
+        "M03"
+      ]
+    },
+    {
+      "id": "G-RUNTIME-WINDOW",
+      "tier": "L3_DECISION_WITH_BOUNDED_L1_L2_EXECUTION",
+      "authority": "Phill",
+      "action": "approve bounded Mac build/runtime/network-isolation/cleanup window",
+      "automatic": false,
+      "required_before": [
+        "M04",
+        "M05",
+        "M06",
+        "M07",
+        "M08",
+        "M09",
+        "M10",
+        "M11",
+        "M12",
+        "M13",
+        "M14",
+        "M15",
+        "M16",
+        "M17"
+      ]
+    },
+    {
+      "id": "G-PR-APPROVAL",
+      "tier": "L3",
+      "authority": "Phill plus fresh non-author runtime reviewer",
+      "action": "approve PR after exact-head runtime envelope is accepted",
+      "automatic": false,
+      "required_before": [
+        "M18"
+      ]
+    },
+    {
+      "id": "L3-SIGN",
+      "tier": "L3",
+      "authority": "Phill",
+      "action": "signing",
+      "automatic": false,
+      "detached_after": "M18"
+    },
+    {
+      "id": "L3-NOTARISE",
+      "tier": "L3",
+      "authority": "Phill",
+      "action": "notarisation",
+      "automatic": false,
+      "detached_after": "M18"
+    },
+    {
+      "id": "L3-PUBLISH",
+      "tier": "L3",
+      "authority": "Phill",
+      "action": "publication",
+      "automatic": false,
+      "detached_after": "M18"
+    },
+    {
+      "id": "L3-MERGE",
+      "tier": "L3",
+      "authority": "Phill",
+      "action": "merge",
+      "automatic": false,
+      "detached_after": "G-PR-APPROVAL"
+    },
+    {
+      "id": "L3-DEPLOY",
+      "tier": "L3",
+      "authority": "Phill",
+      "action": "deployment",
+      "automatic": false,
+      "detached_after": "L3-MERGE"
+    }
+  ],
+  "receipt_contract": {
+    "schema_version": "2.0",
+    "cardinality": 45,
+    "expected_commands": [
+      {
+        "sequence": 1,
+        "command_id": "C01",
+        "move_id": "M01",
+        "scenario_id": "authority-preflight",
+        "gate_id": "G-CONTRACT-AUTHORITY",
+        "target_identity": "accepted packet and portability attachments",
+        "scenario_target_sha256": "2af18141875583c4b15c8d3e696e787fdbdd68f121e1e71982fa2ec41b224af7"
+      },
+      {
+        "sequence": 2,
+        "command_id": "C03",
+        "move_id": "M03",
+        "scenario_id": "identity-preflight",
+        "gate_id": "G-HARDSTOP-CLEARANCE",
+        "target_identity": "GitHub PR 903 read-only",
+        "scenario_target_sha256": "42861e9cecae7e329f10fd88c7d53865aaa4e0240eb4885967021bc7e6e3af38"
+      },
+      {
+        "sequence": 3,
+        "command_id": "C04A",
+        "move_id": "M04",
+        "scenario_id": "host-preflight",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "Mac host",
+        "scenario_target_sha256": "62c30fe14695561b066d1073a828fbfb78bd16764f609dcf7afdc5ab5c11e9f8"
+      },
+      {
+        "sequence": 4,
+        "command_id": "C04B",
+        "move_id": "M04",
+        "scenario_id": "host-preflight",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "Mac host",
+        "scenario_target_sha256": "62c30fe14695561b066d1073a828fbfb78bd16764f609dcf7afdc5ab5c11e9f8"
+      },
+      {
+        "sequence": 5,
+        "command_id": "C04C",
+        "move_id": "M04",
+        "scenario_id": "host-preflight",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "run volume",
+        "scenario_target_sha256": "2a1243d0affc98d26fcd30d0ed5911eb1411163f9f56f81c64fe506ae028a657"
+      },
+      {
+        "sequence": 6,
+        "command_id": "C04D",
+        "move_id": "M04",
+        "scenario_id": "host-preflight",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "Apple toolchain",
+        "scenario_target_sha256": "fbcf96ff07abd35db17de883a12bad24b51c80721ed39adad7cda75c4cf1bc0e"
+      },
+      {
+        "sequence": 7,
+        "command_id": "C05A",
+        "move_id": "M05",
+        "scenario_id": "build-preflight",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "run-owned root",
+        "scenario_target_sha256": "c26bc58a22011466f9360e6566b998b77571e8ae0db63d2312a8277a025cb00a"
+      },
+      {
+        "sequence": 8,
+        "command_id": "C05B",
+        "move_id": "M05",
+        "scenario_id": "build-preflight",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "run-owned source",
+        "scenario_target_sha256": "8f9cba626d562dc47515e195015f4d0098315dfd4eab8433650c34adeac1f60e"
+      },
+      {
+        "sequence": 9,
+        "command_id": "C05C",
+        "move_id": "M05",
+        "scenario_id": "build-preflight",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "exact PR head",
+        "scenario_target_sha256": "b99a33db340eab65375d275b5e037aea9eb8f6eb2c2455d66bba803f3e4b8d2f"
+      },
+      {
+        "sequence": 10,
+        "command_id": "C06A",
+        "move_id": "M06",
+        "scenario_id": "build-preflight",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "apps/workspace",
+        "scenario_target_sha256": "4d35dcb5f380d27c8e5cc61345951cc588469ff2b964ee780850ea3f3329519e"
+      },
+      {
+        "sequence": 11,
+        "command_id": "C06B",
+        "move_id": "M06",
+        "scenario_id": "build-preflight",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "apps/workspace",
+        "scenario_target_sha256": "4d35dcb5f380d27c8e5cc61345951cc588469ff2b964ee780850ea3f3329519e"
+      },
+      {
+        "sequence": 12,
+        "command_id": "C07",
+        "move_id": "M07",
+        "scenario_id": "dmg-build",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "apps/workspace unsigned arm64 DMG",
+        "scenario_target_sha256": "ea3768f38029bed86d715788faf774fb6ada283503700a8a21dba85cd8d4c0b7"
+      },
+      {
+        "sequence": 13,
+        "command_id": "C08A",
+        "move_id": "M08",
+        "scenario_id": "dmg-integrity",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "DMG",
+        "scenario_target_sha256": "a21de62b5122d827fee69b3f30705d87cb22187bb6791f15571c4f9154c6c259"
+      },
+      {
+        "sequence": 14,
+        "command_id": "C08B",
+        "move_id": "M08",
+        "scenario_id": "dmg-integrity",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "DMG",
+        "scenario_target_sha256": "a21de62b5122d827fee69b3f30705d87cb22187bb6791f15571c4f9154c6c259"
+      },
+      {
+        "sequence": 15,
+        "command_id": "C08C",
+        "move_id": "M08",
+        "scenario_id": "dmg-integrity",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "DMG",
+        "scenario_target_sha256": "a21de62b5122d827fee69b3f30705d87cb22187bb6791f15571c4f9154c6c259"
+      },
+      {
+        "sequence": 16,
+        "command_id": "C08D",
+        "move_id": "M08",
+        "scenario_id": "dmg-integrity",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "DMG",
+        "scenario_target_sha256": "a21de62b5122d827fee69b3f30705d87cb22187bb6791f15571c4f9154c6c259"
+      },
+      {
+        "sequence": 17,
+        "command_id": "C09",
+        "move_id": "M09",
+        "scenario_id": "dmg-mount",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "one run-owned mount",
+        "scenario_target_sha256": "7685a1c34d2cadee8ac75df827318b38954746c78c977804f87c2ea416818b2c"
+      },
+      {
+        "sequence": 18,
+        "command_id": "C10A",
+        "move_id": "M10",
+        "scenario_id": "app-identity",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "mounted app plist",
+        "scenario_target_sha256": "dafbc9ec70735039242868d2dbfa1927ae6d300faa79068a8fc0331f85857ad6"
+      },
+      {
+        "sequence": 19,
+        "command_id": "C10B",
+        "move_id": "M10",
+        "scenario_id": "app-identity",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "app executable",
+        "scenario_target_sha256": "0a3982b0f1d78f18eeb0fcd35b3f3528cb14d8ff562b7455827a634973a449fa"
+      },
+      {
+        "sequence": 20,
+        "command_id": "C10C",
+        "move_id": "M10",
+        "scenario_id": "app-identity",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "app executable",
+        "scenario_target_sha256": "0a3982b0f1d78f18eeb0fcd35b3f3528cb14d8ff562b7455827a634973a449fa"
+      },
+      {
+        "sequence": 21,
+        "command_id": "C10D",
+        "move_id": "M10",
+        "scenario_id": "app-identity",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "mounted app",
+        "scenario_target_sha256": "b20b0d5fcf4785564690911f50c244bdf906fab301957ac93c93317f89878cd7"
+      },
+      {
+        "sequence": 22,
+        "command_id": "C10E",
+        "move_id": "M10",
+        "scenario_id": "app-identity",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "mounted app",
+        "scenario_target_sha256": "b20b0d5fcf4785564690911f50c244bdf906fab301957ac93c93317f89878cd7"
+      },
+      {
+        "sequence": 23,
+        "command_id": "C10F",
+        "move_id": "M10",
+        "scenario_id": "app-identity",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "mounted app",
+        "scenario_target_sha256": "b20b0d5fcf4785564690911f50c244bdf906fab301957ac93c93317f89878cd7"
+      },
+      {
+        "sequence": 24,
+        "command_id": "C11A",
+        "move_id": "M11",
+        "scenario_id": "first-launch",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "first-launch run",
+        "scenario_target_sha256": "9cb53506b8160e586b13eea8d4364fb4f10c4b33be47437e33a5f7adefc7d294"
+      },
+      {
+        "sequence": 25,
+        "command_id": "C11B",
+        "move_id": "M11",
+        "scenario_id": "first-launch",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "owned PID listeners",
+        "scenario_target_sha256": "4a672b3e21b7b7a8431e02c9ca282c40d5ec5d0eccca55c623825f040004c2bd"
+      },
+      {
+        "sequence": 26,
+        "command_id": "C11C",
+        "move_id": "M11",
+        "scenario_id": "first-launch",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "loopback root",
+        "scenario_target_sha256": "3e9377f91ba6617c7e8b568ab3ccd7245fdc44e3e6319efe832b3196422b087d"
+      },
+      {
+        "sequence": 27,
+        "command_id": "C12A",
+        "move_id": "M12",
+        "scenario_id": "relaunch",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "owned first-launch PID",
+        "scenario_target_sha256": "501bcdd291f3b568c6d9f1122bcdc5afb01bb69615463cf8fa8a675d484bb70a"
+      },
+      {
+        "sequence": 28,
+        "command_id": "C12B",
+        "move_id": "M12",
+        "scenario_id": "relaunch",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "relaunch run",
+        "scenario_target_sha256": "d019143125dc5a374f11af8aa14b3cd9f0ae58cfab69b949eb99d3522197093c"
+      },
+      {
+        "sequence": 29,
+        "command_id": "C13",
+        "move_id": "M13",
+        "scenario_id": "clean-profile",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "clean isolated profile",
+        "scenario_target_sha256": "744d84ab33386cb53bab6c46ee70c3b5abb3cd45ae68d124387ec1edd743dbfd"
+      },
+      {
+        "sequence": 30,
+        "command_id": "C14A",
+        "move_id": "M14",
+        "scenario_id": "failure-offline-security",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "gate-approved interface and complete network pre-state",
+        "scenario_target_sha256": "9be0c325143d40ad203885eb7ba3379341897df5bab483ea001f7910560d81fa"
+      },
+      {
+        "sequence": 31,
+        "command_id": "C14B",
+        "move_id": "M14",
+        "scenario_id": "failure-offline-security",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "gateway-unavailable application route exact 503 contract",
+        "scenario_target_sha256": "cec690b56f00d511f92c552763d8157355acc2884fd85e90387d85fbc091ef6b"
+      },
+      {
+        "sequence": 32,
+        "command_id": "C14C",
+        "move_id": "M14",
+        "scenario_id": "failure-offline-security",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "approved-interface offline transport-failure contract",
+        "scenario_target_sha256": "5050052876ed981286c75fb7e34d799c52db5866614951db70f740607e8f46f2"
+      },
+      {
+        "sequence": 33,
+        "command_id": "C14D",
+        "move_id": "M14",
+        "scenario_id": "failure-offline-security",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "exact captured network state finally-path restoration",
+        "scenario_target_sha256": "8e1d610ff18019b13e2f0485b6af9a8e10f76e20fa407ebd44eceb502f2019a9"
+      },
+      {
+        "sequence": 34,
+        "command_id": "C15A",
+        "move_id": "M15",
+        "scenario_id": "gateway-observation",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "Hermes executable",
+        "scenario_target_sha256": "42a6aa96ef8a0af1cc8587b3f3697f60e3fa5c5a8c77649e13cb02f1d22d3d3a"
+      },
+      {
+        "sequence": 35,
+        "command_id": "C15B",
+        "move_id": "M15",
+        "scenario_id": "gateway-observation",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "default gateway read-only",
+        "scenario_target_sha256": "5725ec13cfec61282ed29018292b96da3bb186cdd3aab4fc614a067f82e74cb3"
+      },
+      {
+        "sequence": 36,
+        "command_id": "C15C",
+        "move_id": "M15",
+        "scenario_id": "gateway-observation",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "empire gateway read-only",
+        "scenario_target_sha256": "f7581a85ef0e999c59eacd90ff53e4da8c59b1a56377f654a01ddcd5aab99700"
+      },
+      {
+        "sequence": 37,
+        "command_id": "C15D",
+        "move_id": "M15",
+        "scenario_id": "gateway-observation",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "default config check read-only",
+        "scenario_target_sha256": "edd152f88430c35b8bac255a7f939151ebc9449d0492d9257b2548644960bc97"
+      },
+      {
+        "sequence": 38,
+        "command_id": "C16A",
+        "move_id": "M16",
+        "scenario_id": "operator-ui-accessibility",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "state-bound screenshot",
+        "scenario_target_sha256": "ce0150b95bb1aa17e0b9994f78a75e1153a30c8f3f5990bd860adb2394a47dc9"
+      },
+      {
+        "sequence": 39,
+        "command_id": "C16B",
+        "move_id": "M16",
+        "scenario_id": "operator-ui-accessibility",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "screenshot",
+        "scenario_target_sha256": "1202680d9b92f3c7929852a25deb2e5d61eb1994ce936b68c7d77d6fa6e4528e"
+      },
+      {
+        "sequence": 40,
+        "command_id": "C17A",
+        "move_id": "M17",
+        "scenario_id": "cleanup-operability",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "owned PID identity",
+        "scenario_target_sha256": "cac427c14d2b123106c953bb28d9ee129f42a00d90e894d9a522d1229787a142"
+      },
+      {
+        "sequence": 41,
+        "command_id": "C17B",
+        "move_id": "M17",
+        "scenario_id": "cleanup-operability",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "scoped process logs",
+        "scenario_target_sha256": "695476f0a09e8b5e55f47bc4c58387043eea98f7987374f8b4b53b9bc1b335b1"
+      },
+      {
+        "sequence": 42,
+        "command_id": "C17C",
+        "move_id": "M17",
+        "scenario_id": "cleanup-operability",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "owned PID",
+        "scenario_target_sha256": "1907f2b7ba1faa2144892de85ad91b1cb2ff9526d149657fbe4f7d59b383ecff"
+      },
+      {
+        "sequence": 43,
+        "command_id": "C17D",
+        "move_id": "M17",
+        "scenario_id": "cleanup-operability",
+        "gate_id": "G-RUNTIME-WINDOW",
+        "target_identity": "owned mount",
+        "scenario_target_sha256": "5e35f845b5a8d91cfdedbbde651fd9cc00b5568e274481d26288887d075fed0b"
+      },
+      {
+        "sequence": 44,
+        "command_id": "C18A",
+        "move_id": "M18",
+        "scenario_id": "evidence-review",
+        "gate_id": "G-PR-APPROVAL",
+        "target_identity": "runtime evidence envelope",
+        "scenario_target_sha256": "3d68f3ca8016a62e41a8f0ed5e90d596b3a638fe328021d6fbceaf0175be91ad"
+      },
+      {
+        "sequence": 45,
+        "command_id": "C18B",
+        "move_id": "M18",
+        "scenario_id": "evidence-review",
+        "gate_id": "G-PR-APPROVAL",
+        "target_identity": "detached validator plus trust anchor complete 45-receipt directory and validation output",
+        "scenario_target_sha256": "324c745e8612af634f2922b59ed61620fb9d7700648e52733f2cae5e55d8ba5f"
+      }
+    ],
+    "serialization": {
+      "encoding": "UTF-8",
+      "bom": false,
+      "key_order": "lexicographic",
+      "separators": "compact-comma-colon",
+      "trailing_lf_count": 1,
+      "hash_scope": "complete_file_bytes"
+    },
+    "directory_policy": {
+      "members": "exactly the 45 mapped regular non-symlink JSON files",
+      "unknown_members": "REJECT_EXTRA_RECEIPT"
+    },
+    "chain": {
+      "first": "trust_anchor.receipt_chain_seed_sha256",
+      "subsequent": "sha256 of immediately preceding complete receipt bytes"
+    },
+    "replay_keys": [
+      "run_id",
+      "receipt_id",
+      "complete receipt sha256",
+      "fresh stdout sha256",
+      "fresh stderr sha256"
+    ],
+    "required_bindings": [
+      "command_id",
+      "plan_sha256",
+      "run_id",
+      "run_started_at_utc",
+      "move_id",
+      "scenario_id",
+      "target identity",
+      "gate_id",
+      "gate_receipt_sha256",
+      "sequence",
+      "previous_receipt_bytes_sha256",
+      "argv_nul_sha256",
+      "timeout",
+      "exit/signal",
+      "raw output byte counts/hashes",
+      "pre/post/owned/rollback digests"
+    ]
+  },
+  "strict_timeouts": {
+    "host_probe_seconds": 30,
+    "identity_probe_seconds": 60,
+    "install_or_test_seconds": 600,
+    "build_seconds": 900,
+    "mount_seconds": 120,
+    "launch_readiness_seconds": 45,
+    "route_probe_seconds": 5,
+    "graceful_termination_seconds": 15,
+    "forced_termination_seconds": 5,
+    "cleanup_total_seconds": 180
+  },
+  "red_team": [
+    {
+      "risk": "stale head or changed scope",
+      "response": "M03 returns STALE before checkout/install/build/mount/launch"
+    },
+    {
+      "risk": "wrong or reused DMG",
+      "response": "M07-M10 bind source manifest, one contained DMG/app, hashes, architecture and receipt chain"
+    },
+    {
+      "risk": "reused screenshots or partial runtime",
+      "response": "M16 binds run_id, state, route, capture time, viewport and prior receipt; M18 rejects missing scenarios"
+    },
+    {
+      "risk": "false green from exit 0",
+      "response": "desired-state predicates are separate from process exit and output hashes"
+    },
+    {
+      "risk": "PID reuse or unrelated cleanup",
+      "response": "M12/M17 require PID start identity, executable hash and owner marker before signalling"
+    },
+    {
+      "risk": "secret leakage",
+      "response": "M14/M17 require zero secret-scan matches and redacted derivatives while preserving raw hashes securely"
+    },
+    {
+      "risk": "offline test leaves host disconnected",
+      "response": "pre-state receipt and restoration command are mandatory; failure becomes BLOCKED_ROLLBACK_FAILED"
+    },
+    {
+      "risk": "unsigned build confused with releasable artifact",
+      "response": "M07 labels unsigned rehearsal-only; L3 sign/notarise/publish remain detached"
+    }
+  ],
+  "branch_points": [
+    {
+      "after": "M03",
+      "if": "identity mismatch",
+      "then": "STALE terminal",
+      "else": "M04"
+    },
+    {
+      "after": "M10",
+      "if": "signature or Gatekeeper result differs from declared unsigned expectation",
+      "then": "REQUEST_CHANGES terminal",
+      "else": "M11"
+    },
+    {
+      "after": "M13",
+      "if": "clean-profile isolation unsupported",
+      "then": "BLOCKED without touching real profile",
+      "else": "M14"
+    },
+    {
+      "after": "M18",
+      "if": "fresh non-author verdict is not ACCEPTED",
+      "then": "absorbing typed terminal",
+      "else": "await G-PR-APPROVAL"
+    }
+  ],
+  "non_claims": [
+    "no live GitHub freshness",
+    "no repository checkout/install/build/test",
+    "no DMG mount or Electron/app launch",
+    "no browser/network/runtime/config/process/service mutation",
+    "no signing/notarisation/publication/PR approval/merge/deployment",
+    "no L1-L3 action",
+    "future commands are specifications and were not executed"
+  ],
+  "next_dependency": "Phill deliberately clears HARD_STOP and separately approves the bounded Mac runtime window; then an empire-mac runner executes this exact plan against a fresh live identity and a fresh non-author reviewer accepts the complete envelope before PR approval.",
+  "repair_contract": {
+    "source_task": "t_5f8f6f27",
+    "findings_closed": [
+      "PR903-MRP-01",
+      "PR903-MRP-02",
+      "PR903-MRP-03"
+    ],
+    "runtime_authority": false,
+    "release_authority": false
+  },
+  "validator_contract": {
+    "detached": true,
+    "executable": "python3",
+    "script": "validate_pr903_mac_rehearsal_envelope.py",
+    "named_arguments_in_order": [
+      "--plan",
+      "pr903-mac-runtime-rehearsal-plan.json",
+      "--receipt-schema",
+      "pr903-mac-command-receipt.schema.json",
+      "--trust-anchor",
+      "pr903-mac-rehearsal-trust-anchor.json",
+      "--receipts-dir",
+      "<RUN_OWNED_RECEIPTS_DIR>",
+      "--expected-run-id",
+      "<G_RUNTIME_WINDOW_RUN_ID>",
+      "--expected-base-sha",
+      "2993429d6a812747550bac82f33568417c8b8279",
+      "--expected-head-sha",
+      "ce065adaf0f057837a1b1ec4721bf4d95f771925",
+      "--expected-plan-sha256",
+      "<TRUST_ANCHOR_PLAN_SHA256>",
+      "--replay-ledger",
+      "<IMMUTABLE_REPLAY_LEDGER>",
+      "--output",
+      "<NEW_RUN_OWNED_VALIDATION_RECEIPT>"
+    ],
+    "rejects": [
+      "unknown flags",
+      "positional arguments",
+      "symlinks",
+      "non-regular files",
+      "path escape",
+      "duplicate JSON keys",
+      "unknown object keys",
+      "wrong types",
+      "trust-anchor hash mismatch",
+      "unexpected directory member",
+      "replay-ledger collision"
+    ],
+    "accepted_verdict": "ACCEPTED"
+  }
+}

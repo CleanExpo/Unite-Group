@@ -1,0 +1,473 @@
+{
+  "schema_version": "1.0",
+  "artifact": "pr903-mac-rehearsal-trust-anchor",
+  "self_sha256": "d83420972172f92ae2ce703536975fb0a1587c90c0adec3deb6efe272566a336",
+  "identity": {
+    "repository": "CleanExpo/Unite-Group",
+    "pr_number": 903,
+    "base_sha": "2993429d6a812747550bac82f33568417c8b8279",
+    "head_sha": "ce065adaf0f057837a1b1ec4721bf4d95f771925",
+    "changed_files": [
+      "apps/web/package.json",
+      "apps/web/pnpm-lock.yaml",
+      "apps/workspace/package.json",
+      "apps/workspace/pnpm-lock.yaml",
+      "packages/pi-ceo-operator-mcp/package-lock.json",
+      "packages/pi-ceo-operator-mcp/package.json"
+    ],
+    "changed_files_sha256": "53cc47beb4a320209790c1686373220405cf1d898fe6cf2ec06a2d7bff5754e2",
+    "manifest_sha256": "ae075f9b7e9ac717a78125cb0de01934c92c33b5aa532dd7a4f6228597e6b9a4",
+    "lockfile_sha256": "e542133bd9cd56118e5a88c9293d9894241872f511c261859e8309696b2c1659"
+  },
+  "files": {
+    "plan_markdown": {
+      "path": "PR903-MAC-RUNTIME-REHEARSAL-PLAN.md",
+      "sha256": "c92fc246dcf98e13e5fb20982ab37d6b8ebe6b63fff0c9d967f084bd92ef4129"
+    },
+    "plan": {
+      "path": "pr903-mac-runtime-rehearsal-plan.json",
+      "sha256": "08ef338da34e997d8944ce56f882e48b80ae75af2d6e445e9d4e9a48e02fac79"
+    },
+    "receipt_schema": {
+      "path": "pr903-mac-command-receipt.schema.json",
+      "sha256": "ac1e2af2179e446a0ac00ca6e30d1d31b227388a8e705c083c0b027dd706bb0e"
+    },
+    "validator": {
+      "path": "validate_pr903_mac_rehearsal_envelope.py",
+      "sha256": "38a7c7efd03389139b5ba0a2909771537a9e53c313a4c351c7ccb7cb7535f6c3"
+    }
+  },
+  "expected_commands": [
+    {
+      "sequence": 1,
+      "command_id": "C01",
+      "move_id": "M01",
+      "scenario_id": "authority-preflight",
+      "gate_id": "G-CONTRACT-AUTHORITY",
+      "target_identity": "accepted packet and portability attachments",
+      "scenario_target_sha256": "2af18141875583c4b15c8d3e696e787fdbdd68f121e1e71982fa2ec41b224af7"
+    },
+    {
+      "sequence": 2,
+      "command_id": "C03",
+      "move_id": "M03",
+      "scenario_id": "identity-preflight",
+      "gate_id": "G-HARDSTOP-CLEARANCE",
+      "target_identity": "GitHub PR 903 read-only",
+      "scenario_target_sha256": "42861e9cecae7e329f10fd88c7d53865aaa4e0240eb4885967021bc7e6e3af38"
+    },
+    {
+      "sequence": 3,
+      "command_id": "C04A",
+      "move_id": "M04",
+      "scenario_id": "host-preflight",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "Mac host",
+      "scenario_target_sha256": "62c30fe14695561b066d1073a828fbfb78bd16764f609dcf7afdc5ab5c11e9f8"
+    },
+    {
+      "sequence": 4,
+      "command_id": "C04B",
+      "move_id": "M04",
+      "scenario_id": "host-preflight",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "Mac host",
+      "scenario_target_sha256": "62c30fe14695561b066d1073a828fbfb78bd16764f609dcf7afdc5ab5c11e9f8"
+    },
+    {
+      "sequence": 5,
+      "command_id": "C04C",
+      "move_id": "M04",
+      "scenario_id": "host-preflight",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "run volume",
+      "scenario_target_sha256": "2a1243d0affc98d26fcd30d0ed5911eb1411163f9f56f81c64fe506ae028a657"
+    },
+    {
+      "sequence": 6,
+      "command_id": "C04D",
+      "move_id": "M04",
+      "scenario_id": "host-preflight",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "Apple toolchain",
+      "scenario_target_sha256": "fbcf96ff07abd35db17de883a12bad24b51c80721ed39adad7cda75c4cf1bc0e"
+    },
+    {
+      "sequence": 7,
+      "command_id": "C05A",
+      "move_id": "M05",
+      "scenario_id": "build-preflight",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "run-owned root",
+      "scenario_target_sha256": "c26bc58a22011466f9360e6566b998b77571e8ae0db63d2312a8277a025cb00a"
+    },
+    {
+      "sequence": 8,
+      "command_id": "C05B",
+      "move_id": "M05",
+      "scenario_id": "build-preflight",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "run-owned source",
+      "scenario_target_sha256": "8f9cba626d562dc47515e195015f4d0098315dfd4eab8433650c34adeac1f60e"
+    },
+    {
+      "sequence": 9,
+      "command_id": "C05C",
+      "move_id": "M05",
+      "scenario_id": "build-preflight",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "exact PR head",
+      "scenario_target_sha256": "b99a33db340eab65375d275b5e037aea9eb8f6eb2c2455d66bba803f3e4b8d2f"
+    },
+    {
+      "sequence": 10,
+      "command_id": "C06A",
+      "move_id": "M06",
+      "scenario_id": "build-preflight",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "apps/workspace",
+      "scenario_target_sha256": "4d35dcb5f380d27c8e5cc61345951cc588469ff2b964ee780850ea3f3329519e"
+    },
+    {
+      "sequence": 11,
+      "command_id": "C06B",
+      "move_id": "M06",
+      "scenario_id": "build-preflight",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "apps/workspace",
+      "scenario_target_sha256": "4d35dcb5f380d27c8e5cc61345951cc588469ff2b964ee780850ea3f3329519e"
+    },
+    {
+      "sequence": 12,
+      "command_id": "C07",
+      "move_id": "M07",
+      "scenario_id": "dmg-build",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "apps/workspace unsigned arm64 DMG",
+      "scenario_target_sha256": "ea3768f38029bed86d715788faf774fb6ada283503700a8a21dba85cd8d4c0b7"
+    },
+    {
+      "sequence": 13,
+      "command_id": "C08A",
+      "move_id": "M08",
+      "scenario_id": "dmg-integrity",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "DMG",
+      "scenario_target_sha256": "a21de62b5122d827fee69b3f30705d87cb22187bb6791f15571c4f9154c6c259"
+    },
+    {
+      "sequence": 14,
+      "command_id": "C08B",
+      "move_id": "M08",
+      "scenario_id": "dmg-integrity",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "DMG",
+      "scenario_target_sha256": "a21de62b5122d827fee69b3f30705d87cb22187bb6791f15571c4f9154c6c259"
+    },
+    {
+      "sequence": 15,
+      "command_id": "C08C",
+      "move_id": "M08",
+      "scenario_id": "dmg-integrity",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "DMG",
+      "scenario_target_sha256": "a21de62b5122d827fee69b3f30705d87cb22187bb6791f15571c4f9154c6c259"
+    },
+    {
+      "sequence": 16,
+      "command_id": "C08D",
+      "move_id": "M08",
+      "scenario_id": "dmg-integrity",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "DMG",
+      "scenario_target_sha256": "a21de62b5122d827fee69b3f30705d87cb22187bb6791f15571c4f9154c6c259"
+    },
+    {
+      "sequence": 17,
+      "command_id": "C09",
+      "move_id": "M09",
+      "scenario_id": "dmg-mount",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "one run-owned mount",
+      "scenario_target_sha256": "7685a1c34d2cadee8ac75df827318b38954746c78c977804f87c2ea416818b2c"
+    },
+    {
+      "sequence": 18,
+      "command_id": "C10A",
+      "move_id": "M10",
+      "scenario_id": "app-identity",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "mounted app plist",
+      "scenario_target_sha256": "dafbc9ec70735039242868d2dbfa1927ae6d300faa79068a8fc0331f85857ad6"
+    },
+    {
+      "sequence": 19,
+      "command_id": "C10B",
+      "move_id": "M10",
+      "scenario_id": "app-identity",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "app executable",
+      "scenario_target_sha256": "0a3982b0f1d78f18eeb0fcd35b3f3528cb14d8ff562b7455827a634973a449fa"
+    },
+    {
+      "sequence": 20,
+      "command_id": "C10C",
+      "move_id": "M10",
+      "scenario_id": "app-identity",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "app executable",
+      "scenario_target_sha256": "0a3982b0f1d78f18eeb0fcd35b3f3528cb14d8ff562b7455827a634973a449fa"
+    },
+    {
+      "sequence": 21,
+      "command_id": "C10D",
+      "move_id": "M10",
+      "scenario_id": "app-identity",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "mounted app",
+      "scenario_target_sha256": "b20b0d5fcf4785564690911f50c244bdf906fab301957ac93c93317f89878cd7"
+    },
+    {
+      "sequence": 22,
+      "command_id": "C10E",
+      "move_id": "M10",
+      "scenario_id": "app-identity",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "mounted app",
+      "scenario_target_sha256": "b20b0d5fcf4785564690911f50c244bdf906fab301957ac93c93317f89878cd7"
+    },
+    {
+      "sequence": 23,
+      "command_id": "C10F",
+      "move_id": "M10",
+      "scenario_id": "app-identity",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "mounted app",
+      "scenario_target_sha256": "b20b0d5fcf4785564690911f50c244bdf906fab301957ac93c93317f89878cd7"
+    },
+    {
+      "sequence": 24,
+      "command_id": "C11A",
+      "move_id": "M11",
+      "scenario_id": "first-launch",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "first-launch run",
+      "scenario_target_sha256": "9cb53506b8160e586b13eea8d4364fb4f10c4b33be47437e33a5f7adefc7d294"
+    },
+    {
+      "sequence": 25,
+      "command_id": "C11B",
+      "move_id": "M11",
+      "scenario_id": "first-launch",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "owned PID listeners",
+      "scenario_target_sha256": "4a672b3e21b7b7a8431e02c9ca282c40d5ec5d0eccca55c623825f040004c2bd"
+    },
+    {
+      "sequence": 26,
+      "command_id": "C11C",
+      "move_id": "M11",
+      "scenario_id": "first-launch",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "loopback root",
+      "scenario_target_sha256": "3e9377f91ba6617c7e8b568ab3ccd7245fdc44e3e6319efe832b3196422b087d"
+    },
+    {
+      "sequence": 27,
+      "command_id": "C12A",
+      "move_id": "M12",
+      "scenario_id": "relaunch",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "owned first-launch PID",
+      "scenario_target_sha256": "501bcdd291f3b568c6d9f1122bcdc5afb01bb69615463cf8fa8a675d484bb70a"
+    },
+    {
+      "sequence": 28,
+      "command_id": "C12B",
+      "move_id": "M12",
+      "scenario_id": "relaunch",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "relaunch run",
+      "scenario_target_sha256": "d019143125dc5a374f11af8aa14b3cd9f0ae58cfab69b949eb99d3522197093c"
+    },
+    {
+      "sequence": 29,
+      "command_id": "C13",
+      "move_id": "M13",
+      "scenario_id": "clean-profile",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "clean isolated profile",
+      "scenario_target_sha256": "744d84ab33386cb53bab6c46ee70c3b5abb3cd45ae68d124387ec1edd743dbfd"
+    },
+    {
+      "sequence": 30,
+      "command_id": "C14A",
+      "move_id": "M14",
+      "scenario_id": "failure-offline-security",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "gate-approved interface and complete network pre-state",
+      "scenario_target_sha256": "9be0c325143d40ad203885eb7ba3379341897df5bab483ea001f7910560d81fa"
+    },
+    {
+      "sequence": 31,
+      "command_id": "C14B",
+      "move_id": "M14",
+      "scenario_id": "failure-offline-security",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "gateway-unavailable application route exact 503 contract",
+      "scenario_target_sha256": "cec690b56f00d511f92c552763d8157355acc2884fd85e90387d85fbc091ef6b"
+    },
+    {
+      "sequence": 32,
+      "command_id": "C14C",
+      "move_id": "M14",
+      "scenario_id": "failure-offline-security",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "approved-interface offline transport-failure contract",
+      "scenario_target_sha256": "5050052876ed981286c75fb7e34d799c52db5866614951db70f740607e8f46f2"
+    },
+    {
+      "sequence": 33,
+      "command_id": "C14D",
+      "move_id": "M14",
+      "scenario_id": "failure-offline-security",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "exact captured network state finally-path restoration",
+      "scenario_target_sha256": "8e1d610ff18019b13e2f0485b6af9a8e10f76e20fa407ebd44eceb502f2019a9"
+    },
+    {
+      "sequence": 34,
+      "command_id": "C15A",
+      "move_id": "M15",
+      "scenario_id": "gateway-observation",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "Hermes executable",
+      "scenario_target_sha256": "42a6aa96ef8a0af1cc8587b3f3697f60e3fa5c5a8c77649e13cb02f1d22d3d3a"
+    },
+    {
+      "sequence": 35,
+      "command_id": "C15B",
+      "move_id": "M15",
+      "scenario_id": "gateway-observation",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "default gateway read-only",
+      "scenario_target_sha256": "5725ec13cfec61282ed29018292b96da3bb186cdd3aab4fc614a067f82e74cb3"
+    },
+    {
+      "sequence": 36,
+      "command_id": "C15C",
+      "move_id": "M15",
+      "scenario_id": "gateway-observation",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "empire gateway read-only",
+      "scenario_target_sha256": "f7581a85ef0e999c59eacd90ff53e4da8c59b1a56377f654a01ddcd5aab99700"
+    },
+    {
+      "sequence": 37,
+      "command_id": "C15D",
+      "move_id": "M15",
+      "scenario_id": "gateway-observation",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "default config check read-only",
+      "scenario_target_sha256": "edd152f88430c35b8bac255a7f939151ebc9449d0492d9257b2548644960bc97"
+    },
+    {
+      "sequence": 38,
+      "command_id": "C16A",
+      "move_id": "M16",
+      "scenario_id": "operator-ui-accessibility",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "state-bound screenshot",
+      "scenario_target_sha256": "ce0150b95bb1aa17e0b9994f78a75e1153a30c8f3f5990bd860adb2394a47dc9"
+    },
+    {
+      "sequence": 39,
+      "command_id": "C16B",
+      "move_id": "M16",
+      "scenario_id": "operator-ui-accessibility",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "screenshot",
+      "scenario_target_sha256": "1202680d9b92f3c7929852a25deb2e5d61eb1994ce936b68c7d77d6fa6e4528e"
+    },
+    {
+      "sequence": 40,
+      "command_id": "C17A",
+      "move_id": "M17",
+      "scenario_id": "cleanup-operability",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "owned PID identity",
+      "scenario_target_sha256": "cac427c14d2b123106c953bb28d9ee129f42a00d90e894d9a522d1229787a142"
+    },
+    {
+      "sequence": 41,
+      "command_id": "C17B",
+      "move_id": "M17",
+      "scenario_id": "cleanup-operability",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "scoped process logs",
+      "scenario_target_sha256": "695476f0a09e8b5e55f47bc4c58387043eea98f7987374f8b4b53b9bc1b335b1"
+    },
+    {
+      "sequence": 42,
+      "command_id": "C17C",
+      "move_id": "M17",
+      "scenario_id": "cleanup-operability",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "owned PID",
+      "scenario_target_sha256": "1907f2b7ba1faa2144892de85ad91b1cb2ff9526d149657fbe4f7d59b383ecff"
+    },
+    {
+      "sequence": 43,
+      "command_id": "C17D",
+      "move_id": "M17",
+      "scenario_id": "cleanup-operability",
+      "gate_id": "G-RUNTIME-WINDOW",
+      "target_identity": "owned mount",
+      "scenario_target_sha256": "5e35f845b5a8d91cfdedbbde651fd9cc00b5568e274481d26288887d075fed0b"
+    },
+    {
+      "sequence": 44,
+      "command_id": "C18A",
+      "move_id": "M18",
+      "scenario_id": "evidence-review",
+      "gate_id": "G-PR-APPROVAL",
+      "target_identity": "runtime evidence envelope",
+      "scenario_target_sha256": "3d68f3ca8016a62e41a8f0ed5e90d596b3a638fe328021d6fbceaf0175be91ad"
+    },
+    {
+      "sequence": 45,
+      "command_id": "C18B",
+      "move_id": "M18",
+      "scenario_id": "evidence-review",
+      "gate_id": "G-PR-APPROVAL",
+      "target_identity": "detached validator plus trust anchor complete 45-receipt directory and validation output",
+      "scenario_target_sha256": "324c745e8612af634f2922b59ed61620fb9d7700648e52733f2cae5e55d8ba5f"
+    }
+  ],
+  "receipt_chain_seed_sha256": "4d7b7ab772f11e7053df72265c2834aca166ca1961428cd15e63eb91208c0578",
+  "receipt_directory": {
+    "member_count": 45,
+    "filename_pattern": "receipt-{sequence:02d}-{command_id}.json",
+    "regular_files_only": true,
+    "symlinks": false,
+    "unknown_members": false
+  },
+  "gates": [
+    "G-CONTRACT-AUTHORITY",
+    "G-HARDSTOP-CLEARANCE",
+    "G-RUNTIME-WINDOW",
+    "G-PR-APPROVAL",
+    "L3-SIGN",
+    "L3-NOTARISE",
+    "L3-PUBLISH",
+    "L3-MERGE",
+    "L3-DEPLOY"
+  ],
+  "accepted_verdicts": [
+    "ACCEPTED"
+  ],
+  "serialization": {
+    "receipts": "UTF-8 no BOM sorted keys compact separators exactly one LF",
+    "trust_anchor_self_sha256": "SHA-256 of canonical anchor JSON with self_sha256 set to null"
+  }
+}
