@@ -140,7 +140,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Test readiness kernel
-        run: node --test scripts/__tests__/check-env.test.mjs scripts/__tests__/nexus-project-readiness.test.mjs scripts/__tests__/verify-web-ci-build.test.mjs scripts/__tests__/workflow-supply-chain.test.mjs
+        run: node --test scripts/__tests__/check-env.test.mjs scripts/__tests__/dependency-audit.test.mjs scripts/__tests__/nexus-project-readiness.test.mjs scripts/__tests__/verify-web-ci-build.test.mjs scripts/__tests__/workflow-supply-chain.test.mjs
 
       - name: Enforce configured P0 findings
         run: node scripts/nexus-project-readiness.mjs --root . --json --gate
@@ -182,17 +182,16 @@ jobs:
       # to bypass pnpm 11's packageManager-mismatch guard for this read-only
       # audit. Verified locally 15/07/2026: pnpm@11.13.0 audit resolves the
       # full apps/web tree (1485 deps) and both workspaces report clean.
-      - name: Audit pnpm lockfiles
-        run: |
-          (cd apps/web && corepack pnpm@11.13.0 --pm-on-fail=ignore audit --audit-level high)
-          (cd apps/workspace && corepack pnpm@11.13.0 --pm-on-fail=ignore audit --audit-level high)
+      - name: Audit every tracked JavaScript lockfile
+        run: node scripts/audit-active-lockfiles.mjs --output dependency-audit-results.json
 
-      - name: Audit npm lockfiles
-        run: |
-          npm audit --prefix apps/autopilot-runner --audit-level high
-          npm audit --prefix apps/spec-board --audit-level high
-          npm audit --prefix packages/pi-ceo-operator-mcp --audit-level high
-          npm audit --prefix packages/spine/packages/spine --audit-level high
+      - name: Upload dependency audit matrix
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: dependency-audit-results
+          path: dependency-audit-results.json
+          retention-days: 14
 
   mcp:
     name: packages/pi-ceo-operator-mcp — build
