@@ -24,11 +24,35 @@ type Lane = {
   blockedReason?: string
 }
 
-type BackendDescriptor = {
+export type BackendDescriptor = {
   id: string
   kind: 'gateway' | 'cli'
   label: string
+  backend: LaneBackend
   available: boolean
+  unavailableReason?: string
+}
+
+export function formatBackendOptionLabel(
+  descriptor: BackendDescriptor,
+): string {
+  if (descriptor.available) return descriptor.label
+  return `${descriptor.label} (${descriptor.unavailableReason ?? 'not configured'})`
+}
+
+export function buildLaneCreateInput(
+  descriptor: BackendDescriptor,
+  role: string,
+  repo: string,
+) {
+  const trimmedRepo = repo.trim()
+  if (!trimmedRepo) return null
+  return {
+    kind: descriptor.kind,
+    backend: descriptor.backend,
+    role,
+    repo: trimmedRepo,
+  }
 }
 
 async function readJson<T>(url: string): Promise<T> {
@@ -235,14 +259,9 @@ function NewIdeWizard({
 
   function submit() {
     const descriptor = backends.find((b) => b.id === backendId)
-    if (!descriptor || !repo.trim()) return
-    // Reconstruct the backend object from its id ("gateway:minimax" | "cli:claude-code:max-1").
-    const parts = descriptor.id.split(':')
-    const backend =
-      descriptor.kind === 'gateway'
-        ? { kind: 'gateway', provider: parts[1], model: '' }
-        : { kind: 'cli', tool: parts[1], account: parts[2] }
-    onCreate({ kind: descriptor.kind, backend, role, repo: repo.trim() })
+    if (!descriptor) return
+    const input = buildLaneCreateInput(descriptor, role, repo)
+    if (input) onCreate(input)
   }
 
   return (
@@ -258,8 +277,7 @@ function NewIdeWizard({
             <option value="">Select…</option>
             {backends.map((b) => (
               <option key={b.id} value={b.id} disabled={!b.available}>
-                {b.label}
-                {b.available ? '' : ' (not configured)'}
+                {formatBackendOptionLabel(b)}
               </option>
             ))}
           </select>

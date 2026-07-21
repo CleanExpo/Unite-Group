@@ -204,7 +204,7 @@ export function getRuntimeTopologyStatus(): RuntimeTopologyStatus {
       'Phill main dashboard captures idea / approval / question.',
       'Margot + Board + Senior PM expand scope using gstack and Compound Engineering.',
       'Hermes Codex orchestrator claims/assigns tasks and creates isolated runner worktrees.',
-      'Claude Max builders and MiniMax media agent execute bounded work in separate monitors.',
+      'Claude Code, MiniMax, and Cursor lanes remain blocked until install/login and isolated monitor telemetry are proven.',
       'Each runner returns evidence, tests, diffs, asset manifests, and questions to Hermes.',
       'Hermes reconciles Linear/Hermes Kanban, then writes learning/evidence to Obsidian/2nd-brain.',
       'Phill approves merges, public/client actions, browser/computer-use grants, and production gates from the main dashboard.',

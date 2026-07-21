@@ -21,7 +21,16 @@ export async function GET(request: Request) {
 
   let businessKey = ''
   try {
-    businessKey = verifyOAuthState(state).businessKey
+    const stateData = verifyOAuthState(state)
+    if (
+      stateData.founderId !== user.id ||
+      !stateData.nonce ||
+      !stateData.expiresAt ||
+      Number(stateData.expiresAt) < Date.now()
+    ) {
+      throw new Error('state validation failed')
+    }
+    businessKey = stateData.businessKey
   } catch {
     return NextResponse.redirect(`${APP_URL}/founder/social?error=invalid_state`)
   }

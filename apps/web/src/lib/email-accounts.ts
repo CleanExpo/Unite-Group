@@ -7,7 +7,8 @@ export type EmailAccountScope = 'owned' | 'client' | 'personal'
 
 export interface EmailAccount {
   email: string
-  businessKey: BusinessKey | 'personal'
+  // 'ugn' = the Unite-Group Nexus HQ/parent identity (not a portfolio business).
+  businessKey: BusinessKey | 'personal' | 'ugn'
   label: string
   provider: EmailProvider
   scope: EmailAccountScope
@@ -15,6 +16,7 @@ export interface EmailAccount {
 }
 
 export const EMAIL_ACCOUNTS: EmailAccount[] = [
+  { email: 'contact@unite-group.in', businessKey: 'ugn', label: 'Unite-Group Nexus HQ', provider: 'google', scope: 'owned', receiptIngestion: false },
   { email: 'phill@disasterrecovery.com.au', businessKey: 'dr', label: 'DR Primary', provider: 'microsoft', scope: 'owned', receiptIngestion: true },
   { email: 'disasterrecoverynrp@gmail.com', businessKey: 'nrpg', label: 'NRPG Gmail', provider: 'google', scope: 'owned', receiptIngestion: true },
   { email: 'airestoreassist@gmail.com', businessKey: 'restore', label: 'Restore AI', provider: 'google', scope: 'owned', receiptIngestion: true },
@@ -27,7 +29,11 @@ export const EMAIL_ACCOUNTS: EmailAccount[] = [
 ]
 
 export function accountByEmail(email: string): EmailAccount | undefined {
-  return EMAIL_ACCOUNTS.find((account) => account.email === email)
+  // Canonicalise to lowercase so a provider returning a differently-cased
+  // address (e.g. Phill@ConnexusM.com) still resolves — otherwise the account's
+  // footer and voice would be silently dropped.
+  const canonical = email.trim().toLowerCase()
+  return EMAIL_ACCOUNTS.find((account) => account.email.toLowerCase() === canonical)
 }
 
 export function getOwnedReceiptAccounts(provider?: EmailProvider): EmailAccount[] {

@@ -57,6 +57,10 @@
       "schedule": "0 19 * * *"
     },
     {
+      "path": "/api/cron/email-draft",
+      "schedule": "30 19 * * *"
+    },
+    {
       "path": "/api/cron/hub-sweep",
       "schedule": "0 13 * * *"
     },
@@ -107,6 +111,14 @@
     {
       "path": "/api/cron/import-contacts",
       "schedule": "0 15 * * 1"
+    },
+    {
+      "path": "/api/cron/drip-process",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/cost-ingest",
+      "schedule": "30 15 * * *"
     }
   ],
   "functions": {
@@ -152,13 +164,10 @@
     "src/app/api/cron/email-triage/route.ts": {
       "maxDuration": 300
     },
+    "src/app/api/cron/email-draft/route.ts": {
+      "maxDuration": 300
+    },
     "src/app/api/cron/hub-sweep/route.ts": {
-      "maxDuration": 60
-    },
-    "src/app/api/cron/linear-claim/route.ts": {
-      "maxDuration": 60
-    },
-    "src/app/api/cron/linear-handoff/route.ts": {
       "maxDuration": 60
     },
     "src/app/api/cron/linear-queue-health/route.ts": {
@@ -181,7 +190,10 @@
     {
       "source": "/api/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate"
+        }
       ]
     }
   ]

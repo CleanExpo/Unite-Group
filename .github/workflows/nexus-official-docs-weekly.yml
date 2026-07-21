@@ -1,0 +1,50 @@
+name: Nexus official-docs weekly evidence
+
+on:
+  schedule:
+    # 02:17 Sunday Australia/Brisbane (AEST, UTC+10; no daylight saving).
+    - cron: '17 16 * * 6'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nexus-official-docs-weekly
+  cancel-in-progress: false
+
+jobs:
+  evidence:
+    name: Fetch and fingerprint official documentation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+
+      - name: Test the watcher without external source requests
+        run: npm run verify:docs-watch
+
+      - name: Capture read-only official-source evidence
+        # The artifact includes a candidate baseline; replacing the committed baseline requires review.
+        run: |
+          node scripts/nexus-docs-watch.mjs \
+            --root . \
+            --config config/nexus-official-sources.json \
+            --baseline config/nexus-official-sources.baseline.json \
+            --write .artifacts/nexus-official-docs \
+            --gate-material
+
+      - name: Upload deterministic evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: nexus-official-docs-${{ github.run_id }}
+          path: .artifacts/nexus-official-docs/
+          if-no-files-found: warn
+          retention-days: 30

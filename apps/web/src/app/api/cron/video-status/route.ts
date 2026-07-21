@@ -2,6 +2,7 @@
 // Runs every 5 minutes via Vercel CRON. Authenticates via CRON_SECRET.
 
 import { NextResponse } from 'next/server'
+import { assertCronAuth } from '@/lib/cron-auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getVideoStatus } from '@/lib/integrations/heygen'
 
@@ -10,10 +11,8 @@ export const maxDuration = 60
 
 export async function GET(request: Request) {
   // 1. Verify CRON_SECRET from Authorization header
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET?.trim()}`) {
-    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
-  }
+  const denied = assertCronAuth(request)
+  if (denied) return denied
 
   const supabase = createServiceClient()
 

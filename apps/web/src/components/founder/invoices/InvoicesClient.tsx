@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Plus, X, ExternalLink, CheckCircle, Loader2, RefreshCw, ChevronDown } from 'lucide-react'
+import { PAGE_LIST_CAP } from '@/components/command-centre/DeckDetails'
 
 // ── Businesses that have Xero connected ───────────────────────────────────────
 const XERO_BUSINESSES = [
@@ -351,6 +352,11 @@ export function InvoicesClient() {
   const [error, setError] = useState('')
   const [showCreate, setShowCreate] = useState(false)
   const [filterStatus, setFilterStatus] = useState<'ALL' | XeroInvoice['Status']>('ALL')
+  // Summary-first (founder 14/07/2026): cap the table at PAGE_LIST_CAP rows
+  // with an honest "+N more" toggle. A <details> disclosure can't wrap <tr>
+  // rows, so the DeckDetails primitive doesn't fit inside a table — a plain
+  // show-all toggle keeps one tbody and every invoice reachable.
+  const [showAllRows, setShowAllRows] = useState(false)
 
   const loadInvoices = useCallback(async () => {
     setLoading(true)
@@ -383,6 +389,8 @@ export function InvoicesClient() {
   const filtered = filterStatus === 'ALL'
     ? invoices
     : invoices.filter((inv) => inv.Status === filterStatus)
+  const visibleRows = showAllRows ? filtered : filtered.slice(0, PAGE_LIST_CAP)
+  const hiddenCount = filtered.length - visibleRows.length
 
   const STATUS_OPTIONS: Array<'ALL' | XeroInvoice['Status']> = ['ALL', 'DRAFT', 'AUTHORISED', 'PAID', 'VOIDED']
 
@@ -499,7 +507,7 @@ export function InvoicesClient() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((inv) => (
+              {visibleRows.map((inv) => (
                 <InvoiceRow
                   key={inv.InvoiceID}
                   invoice={inv}
@@ -513,10 +521,30 @@ export function InvoicesClient() {
       )}
 
       {filtered.length > 0 && (
-        <p className="mt-3 text-[11px] text-[#6b6b6b] text-right">
-          {filtered.length} invoice{filtered.length !== 1 ? 's' : ''}
-          {filterStatus !== 'ALL' ? ` (${filterStatus.toLowerCase()})` : ''}
-        </p>
+        <div className="mt-3 flex items-center justify-between gap-3">
+          {hiddenCount > 0 ? (
+            <button
+              onClick={() => setShowAllRows(true)}
+              className="text-[11px] text-[#15803d] hover:underline"
+            >
+              +{hiddenCount} more not shown — show all
+            </button>
+          ) : filtered.length > PAGE_LIST_CAP ? (
+            <button
+              onClick={() => setShowAllRows(false)}
+              className="text-[11px] text-[#15803d] hover:underline"
+            >
+              Show first {PAGE_LIST_CAP} only
+            </button>
+          ) : (
+            <span />
+          )}
+          <p className="text-[11px] text-[#6b6b6b] text-right">
+            {visibleRows.length < filtered.length ? `${visibleRows.length} of ` : ''}
+            {filtered.length} invoice{filtered.length !== 1 ? 's' : ''}
+            {filterStatus !== 'ALL' ? ` (${filterStatus.toLowerCase()})` : ''}
+          </p>
+        </div>
       )}
     </div>
   )

@@ -1,4 +1,7 @@
-node_modules
-dist
-**/*.test.ts
-.git
+**
+!package.json
+!package-lock.json
+!tsconfig.json
+!tsconfig.container.json
+!src/
+!src/index.ts

@@ -32,15 +32,19 @@ import {
 } from './work-packet'
 import {
   createTask,
+  createTaskOnce,
+  getTaskByExternalRef,
   listTasks,
-  updateTaskStatus,
+  updateTaskStatusGuarded,
   appendTaskEvent,
   type CommandCentreTask,
   type CreateTaskInput,
   type TaskStatus,
   type TaskEventType,
   type SupabaseLike,
+  type GuardedUpdateClientLike,
 } from './tasks'
+import { isLegalTransition } from './task-transitions'
 
 // ─── Status mapping (PacketStatus <-> TaskStatus) ────────────────────────────
 
@@ -189,6 +193,21 @@ export async function saveWorkPacket(
   return taskToPacket(task)
 }
 
+export interface SaveWorkPacketOnceResult {
+  packet: WorkPacket
+  created: boolean
+}
+
+/** Atomic idempotent variant backed by UNIQUE(founder_id, external_ref). */
+export async function saveWorkPacketOnce(
+  db: SupabaseLike,
+  founderId: string,
+  packet: WorkPacket,
+): Promise<SaveWorkPacketOnceResult> {
+  const result = await createTaskOnce(packetToCreateTaskInput(packet, founderId), db)
+  return { packet: taskToPacket(result.task), created: result.created }
+}
+
 /**
  * Fetch a persisted packet by its packet id (stored as external_ref). Returns
  * null when no founder-scoped row matches. Defensive: a missing row is a quiet
@@ -199,11 +218,8 @@ export async function getWorkPacket(
   founderId: string,
   id: string,
 ): Promise<WorkPacket | null> {
-  // The packet id is the row's external_ref, not its primary key, so list the
-  // founder's tasks and match on external_ref / reconstructed packet id.
-  const tasks = await listTasks({ founderId, limit: 100 }, db)
-  const match = tasks.find((t) => (t.external_ref ?? t.id) === id)
-  return match ? taskToPacket(match) : null
+  const task = await getTaskByExternalRef({ founderId, externalRef: id }, db)
+  return task ? taskToPacket(task) : null
 }
 
 /**
@@ -240,7 +256,7 @@ const EVENT_TO_TASK_EVENT_TYPE: Record<PacketEvent['type'], TaskEventType> = {
 
 /**
  * Load a packet, run the guarded transition from work-packet.ts, and on success
- * persist the new status (updateTaskStatus) plus an append-only audit event
+ * persist the new status (updateTaskStatusGuarded) plus an append-only audit event
  * (appendTaskEvent). On a refused transition nothing is written.
  *
  * Returns { ok, packet, reason }:
@@ -255,8 +271,7 @@ export async function applyPacketTransition(
   id: string,
   event: PacketEvent,
 ): Promise<ApplyPacketTransitionResult> {
-  const tasks = await listTasks({ founderId, limit: 100 }, db)
-  const task = tasks.find((t) => (t.external_ref ?? t.id) === id)
+  const task = await getTaskByExternalRef({ founderId, externalRef: id }, db)
   if (!task) {
     return { ok: false, packet: null, reason: `packet ${id} not found` }
   }
@@ -268,13 +283,53 @@ export async function applyPacketTransition(
   }
 
   const next = result.packet
-  // Persist the new status against the row's primary key. The append-only event
-  // records the rest of the transition (actor, from/to, reason) for the audit
+
+  // UNI-2417 governance guard: the work-packet lane is a SEPARATE promotion path
+  // into cc_tasks. Because a `routed` packet maps to cc_tasks `queued` (runner-
+  // claimable) and `running` maps to `running`, a plain client transition here
+  // (route / start / unblock / approve) could otherwise drive the backing task
+  // into `queued`/`running` without ever passing the task-transition matrix —
+  // bypassing the Board/approval + runner authority the matrix exists to enforce.
+  // This endpoint is client-driven, so promotions are validated under the
+  // `founder` actor, which the matrix does NOT allow to reach `queued`/`running`.
+  // Legitimate promotion to `queued` goes through the approval route
+  // (`applyApproval`); `running` is the runner's claim alone. Benign transitions
+  // (block, complete → done, start → awaiting_approval) do not target
+  // `queued`/`running` and pass through unchanged.
+  const fromTaskStatus = task.status
+  const toTaskStatus = packetStatusToTaskStatus(next.status)
+  if (
+    (toTaskStatus === 'queued' || toTaskStatus === 'running') &&
+    !isLegalTransition(fromTaskStatus, toTaskStatus, 'founder')
+  ) {
+    return {
+      ok: false,
+      packet: current,
+      reason: `illegal promotion: ${fromTaskStatus} → ${toTaskStatus} is not permitted via a work-packet transition`,
+    }
+  }
+  // UNI-2436 TOCTOU guard: persist the new status ONLY while the row still holds
+  // the status we read at the top of this function (task.status). A zero-row
+  // (null) result means another writer changed the status underneath between that
+  // read and here — refuse rather than clobber it, and audit nothing. The
+  // append-only event (below) records the rest of the transition for the audit
   // trail; the returned packet carries the full in-memory transition result.
-  await updateTaskStatus(
-    { founderId, taskId: task.id, status: packetStatusToTaskStatus(next.status) },
-    db,
+  const updated = await updateTaskStatusGuarded(
+    {
+      founderId,
+      taskId: task.id,
+      status: packetStatusToTaskStatus(next.status),
+      expectedStatus: task.status,
+    },
+    db as unknown as GuardedUpdateClientLike,
   )
+  if (!updated) {
+    return {
+      ok: false,
+      packet: current,
+      reason: `conflict: task ${task.id} status changed since it was read`,
+    }
+  }
   await appendTaskEvent(
     {
       founderId,

@@ -4,6 +4,7 @@ import {
   listBackends,
   resolveCliAccount,
 } from './backend-registry'
+import { makeAvailabilityCheck } from './lane-availability'
 import type { LaneBackend } from './types'
 
 describe('BackendRegistry', () => {
@@ -14,13 +15,20 @@ describe('BackendRegistry', () => {
   })
 
   it('lists gateway + cli backends with availability flags', () => {
+    const gatewayProviders = new Set(['minimax'])
     const all = listBackends(
-      (b: LaneBackend) => b.kind === 'gateway' && b.provider === 'minimax',
+      makeAvailabilityCheck(gatewayProviders),
+      [{ provider: 'minimax', id: 'minimax/abab6.5' }],
     )
-    expect(all.find((d) => d.id === 'gateway:minimax')?.available).toBe(true)
-    expect(all.find((d) => d.id === 'gateway:openrouter')?.available).toBe(
-      false,
-    )
+    expect(all.find((d) => d.id.startsWith('gateway:minimax'))).toMatchObject({
+      available: true,
+      backend: {
+        kind: 'gateway',
+        provider: 'minimax',
+        model: 'minimax/abab6.5',
+      },
+    })
+    expect(all.some((d) => d.id.startsWith('gateway:openrouter'))).toBe(false)
     expect(all.some((d) => d.id.startsWith('cli:claude-code:max-1'))).toBe(true)
     expect(all.find((d) => d.id.startsWith('cli:codex'))?.available).toBe(false)
   })

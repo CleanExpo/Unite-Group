@@ -15,6 +15,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import styles from './queue-board.module.css'
 import { subscribeToQueue, type RealtimeClientLike } from '@/lib/command-centre/realtime'
 import { createClient } from '@/lib/supabase/client'
+import { DeckDetails, DeckMoreLine, DECK_LIST_CAP } from '@/components/command-centre/DeckDetails'
 
 interface QueueTask {
   id: string
@@ -26,6 +27,13 @@ interface QueueTask {
   origin: string
   project_key: string | null
   updated_at: string
+  metadata?: Record<string, unknown>
+}
+
+/** Board verdict persisted on the task by POST /api/command-centre/board (metadata.board). */
+function boardVerdictOf(task: QueueTask): string | null {
+  const board = (task.metadata as { board?: { verdict?: unknown } } | undefined)?.board
+  return board && typeof board.verdict === 'string' && board.verdict ? board.verdict : null
 }
 
 type Decision = 'approve' | 'defer' | 'reject'
@@ -99,7 +107,10 @@ export function QueueBoard() {
   const [sessOpen, setSessOpen] = useState<string | null>(null)
   const [sessData, setSessData] = useState<Record<string, SessionCell>>({})
   const [sessBusy, setSessBusy] = useState(false)
-  const [live, setLive] = useState(false)
+  // Realtime state is three-valued so the cold path is honest: 'connecting'
+  // until the subscription resolves, never a false 'Offline' while the first
+  // handshake is still in flight (UNI-2378 E2E finding 5).
+  const [liveState, setLiveState] = useState<'connecting' | 'live' | 'offline'>('connecting')
   const reloadTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const loadQueue = useCallback(async () => {
@@ -131,7 +142,8 @@ export function QueueBoard() {
     try {
       client = createClient() as unknown as RealtimeClientLike
     } catch {
-      return // env not ready; the static board still works without live updates
+      setLiveState('offline') // env not ready; the static board still works without live updates
+      return
     }
     const unsub = subscribeToQueue(
       client,
@@ -139,11 +151,11 @@ export function QueueBoard() {
         if (reloadTimer.current) clearTimeout(reloadTimer.current)
         reloadTimer.current = setTimeout(() => void loadQueue(), 400)
       },
-      (status) => setLive(status === 'SUBSCRIBED'),
+      (status) => setLiveState(status === 'SUBSCRIBED' ? 'live' : 'offline'),
     )
     return () => {
       if (reloadTimer.current) clearTimeout(reloadTimer.current)
-      setLive(false)
+      setLiveState('offline')
       unsub()
     }
   }, [loadQueue])
@@ -274,16 +286,24 @@ export function QueueBoard() {
     <div className={styles.board} aria-live="polite">
       <div className={styles.toolbar}>
         <span className={styles.count}>
-          {tasks.length} task{tasks.length === 1 ? '' : 's'}
+          {loading && tasks.length === 0 ? 'Loading tasks…' : `${tasks.length} task${tasks.length === 1 ? '' : 's'}`}
         </span>
         <span className={styles.toolbarRight}>
           <span
             className={styles.liveDot}
-            data-live={live}
-            title={live ? 'Live — board updates in real time' : 'Not connected to live updates'}
+            data-live={liveState === 'live'}
+            title={
+              liveState === 'live'
+                ? 'Live — board updates in real time'
+                : liveState === 'connecting'
+                  ? 'Connecting to live updates'
+                  : 'Not connected to live updates'
+            }
             aria-hidden="true"
           />
-          <span className={styles.liveLabel}>{live ? 'Live' : 'Offline'}</span>
+          <span className={styles.liveLabel}>
+            {liveState === 'live' ? 'Live' : liveState === 'connecting' ? 'Connecting…' : 'Offline'}
+          </span>
           <button type="button" className={styles.refresh} onClick={() => void loadQueue()} disabled={loading}>
             {loading ? 'Loading…' : '↻ Refresh'}
           </button>
@@ -302,16 +322,26 @@ export function QueueBoard() {
         </div>
       )}
 
-      {grouped.map((group) => (
-        <section key={group.status} className={styles.group}>
-          <div className={styles.groupHead}>
-            <span className={styles.led} data-status={group.status} aria-hidden="true" />
-            <span className={styles.groupName}>{STATUS_LABEL[group.status] ?? group.status}</span>
-            <span className={styles.groupCount}>{group.items.length}</span>
-          </div>
-
+      {/* Founder feedback 14/07/2026 — lanes collapse to a summary strip
+          (lane · count · newest title); full lane contents live behind the
+          shared DeckDetails disclosure, capped with an honest "+N more".
+          Every task stays reachable; nothing is dropped. */}
+      {grouped.map((group) => {
+        const newest = group.items.reduce(
+          (a, b) => (Date.parse(b.updated_at) > Date.parse(a.updated_at) ? b : a),
+          group.items[0]!,
+        )
+        const shown = group.items.slice(0, DECK_LIST_CAP)
+        return (
+        <DeckDetails
+          key={group.status}
+          title={STATUS_LABEL[group.status] ?? group.status}
+          stats={`${group.items.length} · newest: ${newest.title}`}
+          badge={<span className={styles.led} data-status={group.status} aria-hidden="true" />}
+          testId={`queue-lane-${group.status}`}
+        >
           <ul className={styles.list}>
-            {group.items.map((task) => (
+            {shown.map((task) => (
               <li key={task.id} className={styles.row} style={{ '--rail': riskRail(task.risk_level) } as React.CSSProperties}>
                 <div className={styles.rowTop}>
                   <div className={styles.rowMain}>
@@ -321,6 +351,13 @@ export function QueueBoard() {
                       <span className={styles.tag} data-risk={task.risk_level}>{task.risk_level}</span>
                       <span className={styles.tag}>{task.origin}</span>
                       {task.project_key && <span className={styles.tag}>{task.project_key}</span>}
+                      {/* Persisted Senior Board verdict — annotates the lane the
+                          Approve/Defer/Reject buttons act on (UNI-2378 E2E finding 3). */}
+                      {boardVerdictOf(task) && (
+                        <span className={styles.tag} data-verdict={boardVerdictOf(task)}>
+                          board: {boardVerdictOf(task)}
+                        </span>
+                      )}
                     </span>
                   </div>
 
@@ -385,8 +422,10 @@ export function QueueBoard() {
               </li>
             ))}
           </ul>
-        </section>
-      ))}
+          <DeckMoreLine total={group.items.length} shown={shown.length} />
+        </DeckDetails>
+        )
+      })}
     </div>
   )
 }
@@ -471,8 +510,11 @@ function SessionsView({
         <div className={styles.sessList}>
           {sessions.map((s) => (
             <div key={s.id} className={styles.sessRow}>
+              {/* No estate runner exists yet, so a 'running' row is a control-plane
+                  intent, not execution — say so (No-Invaders; UNI-2378 E2E finding 2).
+                  The label reverts to the raw status once a runner heartbeat exists. */}
               <span className={styles.gateChip} data-state={sessionChipState(s.status)}>
-                {s.surface} · {s.status}
+                {s.surface} · {s.status === 'running' ? 'waiting for runner — none connected' : s.status}
               </span>
               <div className={styles.sessActions}>
                 {SESSION_ACTIONS_FOR[s.status].map((a) => (

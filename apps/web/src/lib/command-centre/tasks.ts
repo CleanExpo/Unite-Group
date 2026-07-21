@@ -149,17 +149,35 @@ export const CC_TASKS_TABLE = 'cc_tasks'
 export const CC_TASK_EVENTS_TABLE = 'cc_task_events'
 export const CC_EVIDENCE_RECORDS_TABLE = 'cc_evidence_records'
 
+interface SupabaseErrorLike {
+  message: string
+  code?: string
+}
+
+export class TaskStoreError extends Error {
+  constructor(
+    operation: string,
+    error: SupabaseErrorLike,
+  ) {
+    super(`${operation} failed: ${error.message}`)
+    this.name = 'TaskStoreError'
+    this.code = error.code ?? null
+  }
+
+  readonly code: string | null
+}
+
 // A minimal structural type for the Supabase client we depend on, so the
 // accessors are testable with a mock and don't pull the full generated types.
 export interface SupabaseLike {
   from(table: string): {
     insert(values: unknown): {
-      select(columns?: string): { single(): Promise<{ data: unknown; error: { message: string } | null }> }
+      select(columns?: string): { single(): Promise<{ data: unknown; error: SupabaseErrorLike | null }> }
     }
     update(values: unknown): {
       eq(column: string, value: unknown): {
         eq(column: string, value: unknown): {
-          select(columns?: string): { single(): Promise<{ data: unknown; error: { message: string } | null }> }
+          select(columns?: string): { single(): Promise<{ data: unknown; error: SupabaseErrorLike | null }> }
         }
       }
     }
@@ -167,12 +185,12 @@ export interface SupabaseLike {
       eq(column: string, value: unknown): {
         eq(column: string, value: unknown): {
           order(column: string, opts: { ascending: boolean }): {
-            limit(n: number): Promise<{ data: unknown; error: { message: string } | null }>
+            limit(n: number): Promise<{ data: unknown; error: SupabaseErrorLike | null }>
           }
-          single(): Promise<{ data: unknown; error: { message: string } | null }>
+          single(): Promise<{ data: unknown; error: SupabaseErrorLike | null }>
         }
         order(column: string, opts: { ascending: boolean }): {
-          limit(n: number): Promise<{ data: unknown; error: { message: string } | null }>
+          limit(n: number): Promise<{ data: unknown; error: SupabaseErrorLike | null }>
         }
       }
     }
@@ -181,15 +199,49 @@ export interface SupabaseLike {
 
 // ─── Accessors ────────────────────────────────────────────────────────────────
 
+// UNI-2438 — creation-time governance. A task must be BORN at a legal initial
+// status; `queued`/`running` (the runner-claimable states) are reachable only
+// through the guarded transition matrix (approval edge → queued, runner claim →
+// running — see ./task-transitions.ts), and `blocked`/`done`/`failed` are
+// lifecycle outcomes, not birth states. Creation is the one lifecycle edge the
+// matrix cannot see, so it is guarded here at the single insert choke point:
+// every producer (routes, decompose, signals ingest, and work-packet ingestion
+// via packetToCreateTaskInput) flows through createTask/createTaskOnce.
+export const ALLOWED_INITIAL_STATUSES: readonly TaskStatus[] = [
+  'proposed',
+  'awaiting_approval',
+]
+
+export class IllegalInitialStatusError extends Error {
+  constructor(status: TaskStatus) {
+    super(
+      `createTask refused: '${status}' is not a legal initial status — a task starts at ` +
+        `${ALLOWED_INITIAL_STATUSES.join(' or ')} and is promoted only via the transition matrix`,
+    )
+    this.name = 'IllegalInitialStatusError'
+    this.status = status
+  }
+
+  readonly status: TaskStatus
+}
+
 /**
  * Create a new task row. Defaults mirror the SQL column defaults. Returns the
  * inserted row. The `client` argument is for testing — production callers omit it
  * and a founder-scoped server client is created lazily.
+ *
+ * Throws IllegalInitialStatusError (before any insert) when `input.status` is
+ * not in ALLOWED_INITIAL_STATUSES.
  */
 export async function createTask(
   input: CreateTaskInput,
   client?: SupabaseLike,
 ): Promise<CommandCentreTask> {
+  const initialStatus = input.status ?? 'proposed'
+  if (!ALLOWED_INITIAL_STATUSES.includes(initialStatus)) {
+    throw new IllegalInitialStatusError(initialStatus)
+  }
+
   const db = client ?? ((await createClient()) as unknown as SupabaseLike)
 
   const row = {
@@ -201,7 +253,7 @@ export async function createTask(
     title: input.title,
     objective: input.objective ?? '',
     priority: input.priority ?? 'P2',
-    status: input.status ?? 'proposed',
+    status: initialStatus,
     agent_owner: input.agentOwner ?? null,
     risk_level: input.riskLevel ?? 'low',
     execution_mode: input.executionMode ?? 'advisory',
@@ -216,8 +268,63 @@ export async function createTask(
   }
 
   const { data, error } = await db.from(CC_TASKS_TABLE).insert(row).select('*').single()
-  if (error) throw new Error(`createTask failed: ${error.message}`)
+  if (error) throw new TaskStoreError('createTask', error)
   return data as CommandCentreTask
+}
+
+export interface GetTaskByExternalRefInput {
+  founderId: string
+  externalRef: string
+}
+
+/** Exact, founder-scoped lookup used by idempotent producers. */
+export async function getTaskByExternalRef(
+  input: GetTaskByExternalRefInput,
+  client?: SupabaseLike,
+): Promise<CommandCentreTask | null> {
+  const db = client ?? ((await createClient()) as unknown as SupabaseLike)
+  const { data, error } = await db
+    .from(CC_TASKS_TABLE)
+    .select('*')
+    .eq('founder_id', input.founderId)
+    .eq('external_ref', input.externalRef)
+    .single()
+  if (error?.code === 'PGRST116') return null
+  if (error) throw new TaskStoreError('getTaskByExternalRef', error)
+  return (data as CommandCentreTask | null) ?? null
+}
+
+export interface CreateTaskOnceResult {
+  task: CommandCentreTask
+  created: boolean
+}
+
+/**
+ * Uses the schema's UNIQUE(founder_id, external_ref) constraint as the atomic
+ * deduplication boundary. A losing concurrent insert reuses the winner by an
+ * exact key lookup; no capped list scan or process-local lock is involved.
+ */
+export async function createTaskOnce(
+  input: CreateTaskInput,
+  client?: SupabaseLike,
+): Promise<CreateTaskOnceResult> {
+  if (!input.externalRef) {
+    return { task: await createTask(input, client), created: true }
+  }
+
+  try {
+    return { task: await createTask(input, client), created: true }
+  } catch (error) {
+    if (!(error instanceof TaskStoreError) || error.code !== '23505') throw error
+    const existing = await getTaskByExternalRef(
+      { founderId: input.founderId, externalRef: input.externalRef },
+      client,
+    )
+    if (!existing) {
+      throw new Error('createTaskOnce lost the unique-key winner before it could be read')
+    }
+    return { task: existing, created: false }
+  }
 }
 
 /**
@@ -285,35 +392,6 @@ export async function addEvidenceRecord(
 }
 
 /**
- * Update a task's status by (founder_id, external_ref). Returns the updated row,
- * or null when no matching row exists (e.g. an external_ref that was never
- * persisted). The `client` argument is for testing — production callers omit it.
- */
-export async function updateTaskStatusByExternalRef(
-  input: { founderId: string; externalRef: string; status: TaskStatus },
-  client?: SupabaseLike,
-): Promise<CommandCentreTask | null> {
-  const db = client ?? ((await createClient()) as unknown as SupabaseLike)
-
-  const { data, error } = await db
-    .from(CC_TASKS_TABLE)
-    .update({ status: input.status })
-    .eq('founder_id', input.founderId)
-    .eq('external_ref', input.externalRef)
-    .select('*')
-    .single()
-
-  // PostgREST returns an error (PGRST116) when .single() matches no rows; treat
-  // a missing row as a quiet null rather than a hard failure.
-  if (error) {
-    if (!data) return null
-    throw new Error(`updateTaskStatusByExternalRef failed: ${error.message}`)
-  }
-  if (!data) return null
-  return data as CommandCentreTask
-}
-
-/**
  * Fetch a single founder-scoped task by id. Returns null when no matching row
  * exists (wrong id, or another founder's task hidden by RLS). The `client`
  * argument is for testing — production callers omit it.
@@ -340,30 +418,49 @@ export async function getTaskById(
   return (data as CommandCentreTask) ?? null
 }
 
+// A minimal structural client for a status-guarded conditional update: it adds a
+// third `.eq('status', expected)` filter and returns the affected rows as an
+// array (no `.single()`), so zero rows unambiguously means "no row matched the
+// expected status" — the same atomic pattern the runner uses (runner-claim.ts).
+export interface GuardedUpdateClientLike {
+  from(table: string): {
+    update(values: unknown): {
+      eq(column: string, value: unknown): {
+        eq(column: string, value: unknown): {
+          eq(column: string, value: unknown): {
+            select(columns?: string): Promise<{ data: unknown; error: SupabaseErrorLike | null }>
+          }
+        }
+      }
+    }
+  }
+}
+
 /**
- * Update a task's status by (founder_id, id). Returns the updated row, or null
- * when no matching row exists. The `client` argument is for testing — production
- * callers omit it.
+ * UNI-2417 TOCTOU guard: update a task's status ONLY while it still holds the
+ * `expectedStatus` the caller read, via a conditional
+ * `UPDATE ... WHERE founder_id = ? AND id = ? AND status = <expected>`. Returns
+ * the updated row, or null when zero rows matched — i.e. the row was deleted or
+ * its status changed between the caller's read and this write (a lost race). The
+ * caller treats null as a 409 conflict. Mirrors the runner's atomic claim.
  */
-export async function updateTaskStatus(
-  input: { founderId: string; taskId: string; status: TaskStatus },
-  client?: SupabaseLike,
+export async function updateTaskStatusGuarded(
+  input: { founderId: string; taskId: string; status: TaskStatus; expectedStatus: TaskStatus },
+  client?: GuardedUpdateClientLike,
 ): Promise<CommandCentreTask | null> {
-  const db = client ?? ((await createClient()) as unknown as SupabaseLike)
+  const db = client ?? ((await createClient()) as unknown as GuardedUpdateClientLike)
 
   const { data, error } = await db
     .from(CC_TASKS_TABLE)
     .update({ status: input.status })
     .eq('founder_id', input.founderId)
     .eq('id', input.taskId)
+    .eq('status', input.expectedStatus)
     .select('*')
-    .single()
 
-  if (error) {
-    if (!data) return null
-    throw new Error(`updateTaskStatus failed: ${error.message}`)
-  }
-  return (data as CommandCentreTask) ?? null
+  if (error) throw new Error(`updateTaskStatusGuarded failed: ${error.message}`)
+  const rows = (data as CommandCentreTask[]) ?? []
+  return rows[0] ?? null
 }
 
 /**

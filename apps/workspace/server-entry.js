@@ -2,7 +2,12 @@ import { createServer } from 'node:http'
 import { readFile, stat } from 'node:fs/promises'
 import { join, extname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import server from './dist/server/server.js'
+import { captureGatewaySecretsFromEnvironment } from './scripts/operator-environment.mjs'
+
+// Move gateway credentials into an in-process holder and delete every token
+// variable before the bundled server imports any child-process launch surface.
+captureGatewaySecretsFromEnvironment(process.env)
+const { default: server } = await import('./dist/server/server.js')
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const CLIENT_DIR = join(__dirname, 'dist', 'client')

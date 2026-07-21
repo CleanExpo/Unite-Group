@@ -5,6 +5,7 @@
 
 import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
+import { assertCronAuth } from '@/lib/cron-auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { fetchNewComments, replyToFacebookComment, replyToInstagramComment } from '@/lib/integrations/social/engagement'
 import { decodeToken } from '@/lib/integrations/social/channels'
@@ -67,10 +68,8 @@ export async function GET(request: Request) {
   const startTime = Date.now()
 
   // 1. Verify CRON_SECRET
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET?.trim()}`) {
-    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
-  }
+  const denied = assertCronAuth(request)
+  if (denied) return denied
 
   const founderId = process.env.FOUNDER_USER_ID
   if (!founderId) {

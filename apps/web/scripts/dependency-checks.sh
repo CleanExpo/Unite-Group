@@ -28,25 +28,9 @@ check_lockfile_integrity() {
         return 1
     fi
 
-    # Check modification times to see if package.json is newer
-    local pkg_mtime pkg_mtime_unix lock_mtime lock_mtime_unix
-
-    # Handle both macOS (stat -f) and Linux (stat -c)
-    if stat -f %m "$package_json" >/dev/null 2>&1; then
-        # macOS
-        pkg_mtime_unix=$(stat -f %m "$package_json")
-        lock_mtime_unix=$(stat -f %m "$lockfile")
-    else
-        # Linux
-        pkg_mtime_unix=$(stat -c %Y "$package_json")
-        lock_mtime_unix=$(stat -c %Y "$lockfile")
-    fi
-
-    if [ "$lock_mtime_unix" -lt "$pkg_mtime_unix" ]; then
-        echo "WARN:OUTDATED:Lockfile is older than package.json (may be out of sync)"
-        return 2
-    fi
-
+    # Do not infer lockfile freshness from filesystem mtimes. Git checkouts,
+    # merges, and formatter touches can make package.json newer than an otherwise
+    # valid lockfile; dependency sync and frozen-install gates verify real drift.
     return 0
 }
 
@@ -64,10 +48,10 @@ check_dependency_sync() {
     fi
 
     # Use Node.js to parse package.json and verify installations
-    local node_script=$(cat << 'NODEJS_SCRIPT'
+    node - "$workspace" << 'NODEJS_SCRIPT'
 const fs = require('fs');
 const path = require('path');
-const workspace = process.argv[1];
+const workspace = process.argv[2];
 const cwd = process.cwd();
 
 try {
@@ -146,10 +130,6 @@ try {
     process.exit(1);
 }
 NODEJS_SCRIPT
-)
-
-    # Run Node.js script
-    node -e "$node_script" "$workspace"
     return $?
 }
 
@@ -172,10 +152,10 @@ check_orphaned_dependencies() {
     fi
 
     # Use Node.js to find orphans
-    local node_script=$(cat << 'NODEJS_SCRIPT'
+    node - "$workspace" << 'NODEJS_SCRIPT'
 const fs = require('fs');
 const path = require('path');
-const workspace = process.argv[1];
+const workspace = process.argv[2];
 
 try {
     const pkgPath = path.join(workspace, 'package.json');
@@ -250,10 +230,6 @@ try {
     process.exit(1);
 }
 NODEJS_SCRIPT
-)
-
-    # Run Node.js script
-    node -e "$node_script" "$workspace"
     return $?
 }
 
@@ -262,7 +238,7 @@ NODEJS_SCRIPT
 # Detects version conflicts for same package across different workspaces
 # ============================================================================
 check_workspace_consistency() {
-    local node_script=$(cat << 'NODEJS_SCRIPT'
+    node << 'NODEJS_SCRIPT'
 const fs = require('fs');
 const path = require('path');
 
@@ -339,10 +315,6 @@ try {
     process.exit(1);
 }
 NODEJS_SCRIPT
-)
-
-    # Run Node.js script
-    node -e "$node_script"
     return $?
 }
 
@@ -350,13 +322,30 @@ NODEJS_SCRIPT
 # Main execution (if script is run directly, not sourced)
 # ============================================================================
 if [ "${BASH_SOURCE[0]}" == "${0}" ]; then
-    echo "Dependency verification functions module."
-    echo "Source this script in verify.sh: source scripts/dependency-checks.sh"
-    echo ""
-    echo "Available functions:"
-    echo "  check_lockfile_integrity()"
-    echo "  check_dependency_sync <workspace>"
-    echo "  check_orphaned_dependencies <workspace>"
-    echo "  check_workspace_consistency()"
-    exit 0
+    echo "Running dependency verification checks..."
+
+    overall=0
+
+    check_lockfile_integrity
+    code=$?
+    echo "check_lockfile_integrity:$code"
+    if [ "$code" -eq 1 ]; then
+        overall=1
+    fi
+
+    check_dependency_sync .
+    code=$?
+    echo "check_dependency_sync:.:$code"
+    if [ "$code" -ne 0 ]; then
+        overall=1
+    fi
+
+    check_workspace_consistency
+    code=$?
+    echo "check_workspace_consistency:$code"
+    if [ "$code" -ne 0 ]; then
+        overall=1
+    fi
+
+    exit "$overall"
 fi

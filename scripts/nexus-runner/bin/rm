@@ -1,0 +1,21 @@
+#!/bin/sh
+# nexus-runner rm shim — refuse recursive/force delete outside the scratch dir.
+# Ported verbatim from the night-shift rm guard so the runner keeps that
+# protection portably, without depending on the machine-level shim dir.
+# Guards the known "subagent deleted a canonical checkout" scar under headless bypass.
+REAL_RM=/bin/rm
+SCRATCH="${NIGHT_SHIFT_SCRATCH:-$HOME/.claude/night-shift/scratch}"
+recursive=0
+for a in "$@"; do
+  case "$a" in -rf|-fr|-r|-R|--recursive) recursive=1 ;; esac
+done
+if [ "$recursive" = 1 ]; then
+  for a in "$@"; do
+    case "$a" in
+      -*) : ;;  # flag
+      "$SCRATCH"/*|"$SCRATCH") : ;;  # inside scratch = allowed
+      *) echo "nexus-runner: BLOCKED 'rm -r $a' outside scratch (reversible-envelope guard)" >&2; exit 3 ;;
+    esac
+  done
+fi
+exec "$REAL_RM" "$@"

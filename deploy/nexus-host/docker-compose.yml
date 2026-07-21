@@ -1,56 +1,42 @@
 # Nexus persistent host — Docker-local + Tailscale (Board mandate P3, 2026-06-30).
 #
-# Runs the Nexus operator console (workspace) and the presence writer durably so
-# the cockpit survives reboots, and — on Linux — gives each lane account a real
-# isolated login (creds land in CLAUDE_CONFIG_DIR, not the macOS Keychain, which
-# is what blocks true 3-plan isolation on a Mac; see memory
-# macos-claude-cli-keychain-lanes).
+# Runs the Nexus operator console durably so the cockpit survives reboots.
+# Credentials stay in the separately managed host gateway; this container gets
+# a gateway token and a read-only knowledge mount, not account profiles or
+# Supabase service-role credentials.
 #
 # The Hermes gateway (python hermes-agent venv at ~/.hermes/hermes-agent) runs on
 # the HOST and is reached at host.docker.internal:8642 — it is not vendored here,
 # so it is documented as an external dependency rather than a container.
 #
-# Validate syntax:  docker compose -f deploy/nexus-host/docker-compose.yml config
-# Run (Linux host):  docker compose -f deploy/nexus-host/docker-compose.yml up -d
+# Validate syntax from the repository root:
+#   docker compose --env-file deploy/nexus-host/.env -f deploy/nexus-host/docker-compose.yml config
+# Run (Linux host):
+#   docker compose --env-file deploy/nexus-host/.env -f deploy/nexus-host/docker-compose.yml up -d
 services:
   workspace:
     build:
-      context: ../..
-      dockerfile: deploy/nexus-host/Dockerfile.workspace
+      context: ../../apps/workspace
+      dockerfile: Dockerfile
     image: nexus/workspace:local
     restart: unless-stopped          # reboot-survival (P3 DoD)
     environment:
       HERMES_API_URL: "http://host.docker.internal:8642"
-      HERMES_API_TOKEN: "${API_SERVER_KEY}"
-      HERMES_DASHBOARD_TOKEN: "${API_SERVER_KEY}"
-      CLAUDE_DASHBOARD_TOKEN: "${API_SERVER_KEY}"
+      HERMES_API_TOKEN: "${API_SERVER_KEY:?set API_SERVER_KEY in deploy/nexus-host/.env}"
+      HERMES_DASHBOARD_TOKEN: "${API_SERVER_KEY:?set API_SERVER_KEY in deploy/nexus-host/.env}"
+      CLAUDE_DASHBOARD_TOKEN: "${API_SERVER_KEY:?set API_SERVER_KEY in deploy/nexus-host/.env}"
       KNOWLEDGE_DIR: "/vault"
       OBSIDIAN_VAULT: "/vault"
       HOST: "0.0.0.0"
       PORT: "3000"
       # Non-loopback exposure REQUIRES this (server-entry enforces it).
-      HERMES_PASSWORD: "${HERMES_PASSWORD}"
+      HERMES_PASSWORD: "${HERMES_PASSWORD:?set HERMES_PASSWORD in deploy/nexus-host/.env}"
     volumes:
-      - "${VAULT_DIR}:/vault:ro"
-      - "${HERMES_ACCOUNTS_DIR}:/root/.hermes/accounts"   # per-account lane logins (Linux: dedicated)
+      - "${VAULT_DIR:?set VAULT_DIR in deploy/nexus-host/.env}:/vault:ro"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
       - "127.0.0.1:3000:3000"        # bind loopback; expose via Tailscale, not 0.0.0.0
-
-  presence:
-    build:
-      context: ../..
-      dockerfile: deploy/nexus-host/Dockerfile.presence
-    image: nexus/presence:local
-    restart: unless-stopped          # reboot-survival (P3 DoD)
-    environment:
-      SUPABASE_URL: "${SUPABASE_URL}"
-      SUPABASE_SERVICE_ROLE_KEY: "${SUPABASE_SERVICE_ROLE_KEY}"   # founder-entered secret
-      FOUNDER_USER_ID: "${FOUNDER_USER_ID}"
-      HERMES_API_URL: "http://host.docker.internal:8642"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
 
 # Tailscale: run the gateway + this compose behind tailscaled on the host so the
 # deployed web CC reaches the operator over the tailnet, never the public net.

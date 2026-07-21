@@ -61,18 +61,40 @@ function makeFakeDb() {
           }
         },
         update(values: unknown) {
+          const filters: Array<[string, unknown]> = []
+          const apply = () => {
+            const match = rows.find((r) => filters.every(([c, v]) => r[c] === v))
+            if (match) Object.assign(match, values as Record<string, unknown>, { updated_at: nowIso() })
+            return match ?? null
+          }
           return {
-            eq(_c1: string, v1: unknown) {
+            eq(c1: string, v1: unknown) {
+              filters.push([c1, v1])
               return {
-                eq(_c2: string, v2: unknown) {
+                eq(c2: string, v2: unknown) {
+                  filters.push([c2, v2])
                   return {
+                    // 2-eq path (non-guarded update, e.g. metadata): .select().single()
                     select() {
                       return {
                         single() {
-                          const match = rows.find((r) => r.founder_id === v1 && r.id === v2)
-                          if (!match) return Promise.resolve({ data: null, error: { message: 'no row' } })
-                          Object.assign(match, values as Record<string, unknown>, { updated_at: nowIso() })
-                          return Promise.resolve({ data: match, error: null })
+                          const match = apply()
+                          return Promise.resolve({
+                            data: match,
+                            error: match ? null : { message: 'no row' },
+                          })
+                        },
+                      }
+                    },
+                    // 3-eq status-guarded path (updateTaskStatusGuarded): a third
+                    // .eq(status) then .select() resolves directly to an array, so
+                    // zero rows means the expected status no longer matched.
+                    eq(c3: string, v3: unknown) {
+                      filters.push([c3, v3])
+                      return {
+                        select() {
+                          const match = apply()
+                          return Promise.resolve({ data: match ? [match] : [], error: null })
                         },
                       }
                     },
@@ -107,7 +129,10 @@ function makeFakeDb() {
                 order: orderLimit.order,
                 single() {
                   const matched = run()
-                  return Promise.resolve({ data: matched[0] ?? null, error: matched[0] ? null : { message: 'no row' } })
+                  return Promise.resolve({
+                    data: matched[0] ?? null,
+                    error: matched[0] ? null : { code: 'PGRST116', message: 'no row' },
+                  })
                 },
               }
               return chain
@@ -171,6 +196,31 @@ describe('work-packet-store', () => {
     expect(saved.approvalRequired).toBe(packet.approvalRequired)
   })
 
+  // UNI-2438 — creation-time governance: persisting a packet whose status maps
+  // to a mid-lifecycle task status must be refused by the createTask guard, so
+  // ingestion cannot mint a task already in the runner-claimable queue (or
+  // beyond) without ever crossing the approval/transition matrix.
+  it.each(['routed', 'running', 'blocked', 'completed'] as const)(
+    'saveWorkPacket refuses to persist a %s packet (illegal initial task status)',
+    async (status) => {
+      const { client, tables } = makeFakeDb()
+      const packet = { ...samplePacket(), status }
+
+      await expect(saveWorkPacket(client, FOUNDER, packet)).rejects.toMatchObject({
+        name: 'IllegalInitialStatusError',
+      })
+      expect(tables[CC_TASKS_TABLE]).toHaveLength(0)
+    },
+  )
+
+  it('saveWorkPacket persists an awaiting_approval packet (legal initial status)', async () => {
+    const { client } = makeFakeDb()
+    const packet = { ...samplePacket(), status: 'awaiting_approval' as const }
+
+    const saved = await saveWorkPacket(client, FOUNDER, packet)
+    expect(saved.status).toBe('awaiting_approval')
+  })
+
   it('getWorkPacket fetches a persisted packet by id, null when absent', async () => {
     const { client } = makeFakeDb()
     const packet = samplePacket()
@@ -196,26 +246,60 @@ describe('work-packet-store', () => {
     expect(ids).toEqual([a.id, b.id].sort())
   })
 
-  it('applyPacketTransition persists a successful route transition + audit event', async () => {
+  it('applyPacketTransition REFUSES a route that would promote proposed → queued (UNI-2417)', async () => {
     const { client, tables } = makeFakeDb()
     const packet = samplePacket()
     await saveWorkPacket(client, FOUNDER, packet)
 
+    // route maps draft→routed == cc proposed→queued: a client-driven promotion
+    // into the runner-claimable queue that bypasses the approval matrix.
     const result = await applyPacketTransition(client, FOUNDER, packet.id, { type: 'route' })
 
-    expect(result.ok).toBe(true)
-    expect(result.packet?.status).toBe('routed')
-
-    // Status persisted on the underlying row (mapped to 'queued').
+    expect(result.ok).toBe(false)
+    expect(result.reason).toMatch(/illegal promotion/)
+    // The backing row stays 'proposed'; nothing was promoted or audited.
     const stored = tables[CC_TASKS_TABLE][0] as unknown as CommandCentreTask
-    expect(stored.status).toBe('queued')
-    // An append-only audit event was written.
-    expect(tables[CC_TASK_EVENTS_TABLE]).toHaveLength(1)
-    expect(tables[CC_TASK_EVENTS_TABLE][0].type).toBe('status_changed')
+    expect(stored.status).toBe('proposed')
+    expect(tables[CC_TASK_EVENTS_TABLE]).toHaveLength(0)
 
-    // Reloading reflects the durable new status.
+    // Reloading confirms the durable status did not change.
     const reloaded = await getWorkPacket(client, FOUNDER, packet.id)
-    expect(reloaded?.status).toBe('routed')
+    expect(reloaded?.status).toBe('draft')
+  })
+
+  it('applyPacketTransition REFUSES an approve that would drive a task → running (UNI-2417)', async () => {
+    const { client, tables } = makeFakeDb()
+    const packet = samplePacket({ touchesCrmWrite: true })
+    await saveWorkPacket(client, FOUNDER, packet)
+    // Move the row to awaiting_approval so `approve` is otherwise packet-legal.
+    ;(tables[CC_TASKS_TABLE][0] as Record<string, unknown>).status =
+      packetStatusToTaskStatus('awaiting_approval')
+
+    const result = await applyPacketTransition(client, FOUNDER, packet.id, { type: 'approve', by: FOUNDER })
+
+    // approve maps to cc running — only the runner may reach running; refused.
+    expect(result.ok).toBe(false)
+    expect(result.reason).toMatch(/illegal promotion/)
+    const stored = tables[CC_TASKS_TABLE][0] as unknown as CommandCentreTask
+    expect(stored.status).toBe('awaiting_approval')
+    expect(tables[CC_TASK_EVENTS_TABLE]).toHaveLength(0)
+  })
+
+  it('applyPacketTransition allows a benign non-promoting transition (running → blocked)', async () => {
+    const { client, tables } = makeFakeDb()
+    const packet = samplePacket()
+    await saveWorkPacket(client, FOUNDER, packet)
+    // Force the backing row to 'running' (as if the runner had claimed it).
+    ;(tables[CC_TASKS_TABLE][0] as Record<string, unknown>).status = packetStatusToTaskStatus('running')
+
+    const result = await applyPacketTransition(client, FOUNDER, packet.id, { type: 'block' })
+
+    // block targets cc 'blocked' (not queued/running) — passes through unchanged.
+    expect(result.ok).toBe(true)
+    expect(result.packet?.status).toBe('blocked')
+    const stored = tables[CC_TASKS_TABLE][0] as unknown as CommandCentreTask
+    expect(stored.status).toBe('blocked')
+    expect(tables[CC_TASK_EVENTS_TABLE]).toHaveLength(1)
   })
 
   it('applyPacketTransition refuses completing an approval-required packet and writes nothing', async () => {
@@ -242,6 +326,84 @@ describe('work-packet-store', () => {
     const result = await applyPacketTransition(client, FOUNDER, 'nope', { type: 'route' })
     expect(result.ok).toBe(false)
     expect(result.packet).toBeNull()
+  })
+
+  it('applyPacketTransition refuses to clobber a status that changed since it was read (UNI-2436 TOCTOU)', async () => {
+    // A stale read sees 'running', but the status-guarded write matches ZERO rows
+    // (another writer moved the status on). The transition must be refused, not
+    // silently applied over the newer status, and nothing may be audited.
+    const staleRow: CommandCentreTask = {
+      id: 't1',
+      founder_id: FOUNDER,
+      external_ref: 'pkt-x',
+      queue_id: null,
+      project_id: null,
+      project_key: 'synthex',
+      title: 'x',
+      objective: 'x',
+      priority: 'P2',
+      status: 'running',
+      agent_owner: null,
+      risk_level: 'low',
+      execution_mode: 'advisory',
+      origin: 'idea',
+      dependencies: [],
+      human_approval_required: false,
+      evidence_path: null,
+      validation_required: [],
+      linear_id: null,
+      preview_url: null,
+      metadata: {},
+      created_at: '2026-06-16T00:00:00.000Z',
+      updated_at: '2026-06-16T00:00:00.000Z',
+    }
+    let eventInserted = false
+    const client = {
+      from() {
+        return {
+          select() {
+            return {
+              eq() {
+                return {
+                  eq() {
+                    return { single: () => Promise.resolve({ data: staleRow, error: null }) }
+                  },
+                }
+              },
+            }
+          },
+          update() {
+            return {
+              eq() {
+                return {
+                  eq() {
+                    return {
+                      eq() {
+                        // status-guarded write matches zero rows — the race is lost.
+                        return { select: () => Promise.resolve({ data: [], error: null }) }
+                      },
+                    }
+                  },
+                }
+              },
+            }
+          },
+          insert() {
+            eventInserted = true
+            return {
+              select: () => ({ single: () => Promise.resolve({ data: { id: 'e1' }, error: null }) }),
+            }
+          },
+        }
+      },
+    } as unknown as SupabaseLike
+
+    const result = await applyPacketTransition(client, FOUNDER, 'pkt-x', { type: 'block' })
+
+    expect(result.ok).toBe(false)
+    expect(result.reason).toMatch(/conflict/)
+    expect(result.packet?.status).toBe('running') // unchanged in-memory packet
+    expect(eventInserted).toBe(false) // nothing audited on a refused write
   })
 
   it('persisted metadata contains no secret/key-ish strings', async () => {

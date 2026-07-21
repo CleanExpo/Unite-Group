@@ -100,7 +100,7 @@ cd ~/hermes-workspace && pnpm dev
 
 - **Merge conflict markers in source files:** `grep -r "<<<<<<" src/` — if you find any, resolve them or `git checkout -- <file>`.
 - **Missing node_modules:** `pnpm install`
-- **Node version too old:** `node --version` — requires Node 22+.
+- **Node version too old:** `node --version` — requires Node >=24.14.1 <25.
 - **Port already in use:** `lsof -i :3000` (macOS) or `ss -tlnp | grep 3000` (Linux) — kill the stale process.
 
 ---

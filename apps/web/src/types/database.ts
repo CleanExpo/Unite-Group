@@ -411,6 +411,69 @@ export type Database = {
         }
         Relationships: []
       }
+      kanban_task: {
+        Row: {
+          assignee_id: string | null
+          assignee_name: string | null
+          assignee_type: string
+          business_key: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          founder_id: string
+          id: string
+          position: number
+          priority: string
+          source_draft_id: string | null
+          source_message_id: string | null
+          status: string
+          tags: string[]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assignee_id?: string | null
+          assignee_name?: string | null
+          assignee_type?: string
+          business_key?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          founder_id: string
+          id?: string
+          position?: number
+          priority?: string
+          source_draft_id?: string | null
+          source_message_id?: string | null
+          status?: string
+          tags?: string[]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assignee_id?: string | null
+          assignee_name?: string | null
+          assignee_type?: string
+          business_key?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          founder_id?: string
+          id?: string
+          position?: number
+          priority?: string
+          source_draft_id?: string | null
+          source_message_id?: string | null
+          status?: string
+          tags?: string[]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       margot_voice_sessions: {
         Row: {
           actions: Json | null

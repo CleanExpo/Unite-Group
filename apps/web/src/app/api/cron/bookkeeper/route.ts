@@ -5,6 +5,7 @@
 
 import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
+import { assertCronAuth } from '@/lib/cron-auth'
 import { runBookkeeperForAllBusinesses } from '@/lib/bookkeeper/orchestrator'
 import { notify } from '@/lib/notifications'
 import { triggerMacasAdvisory } from '@/lib/advisory/auto-trigger'
@@ -17,18 +18,8 @@ export async function GET(request: Request) {
   const startTime = Date.now()
 
   // 1. Authenticate — Vercel CRON sets Authorization: Bearer ***
-  const authHeader = request.headers.get('authorization')
-  const cronSecret = process.env.CRON_SECRET?.trim()
-  if (!cronSecret) {
-    console.error('[Bookkeeper CRON] CRON_SECRET environment variable not set')
-    return NextResponse.json(
-      { error: 'CRON_SECRET not configured' },
-      { status: 500 },
-    )
-  }
-  if (authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
-  }
+  const denied = assertCronAuth(request)
+  if (denied) return denied
 
   // 2. Get founder ID — single-tenant system
   const founderId = process.env.FOUNDER_USER_ID

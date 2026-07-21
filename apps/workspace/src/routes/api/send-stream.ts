@@ -40,7 +40,7 @@ import {
 import {
   collectSyntheticLiveToolEvents,
   createSyntheticLiveToolTracker,
-} from './send-stream-live-tools'
+} from './-send-stream-live-tools'
 import type {
   OpenAICompatContentPart,
   OpenAICompatMessage,

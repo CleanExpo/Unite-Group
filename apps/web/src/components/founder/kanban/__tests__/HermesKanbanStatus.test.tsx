@@ -1,44 +1,104 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { HermesKanbanStatus } from '../HermesKanbanStatus'
+
+const liveBoard = {
+  configured: true,
+  readOnly: true,
+  authority: 'crm-cc_tasks',
+  board: 'default',
+  mode: 'cli',
+  summary: { ready: 2, running: 1, blocked: 0, todo: 0, scheduled: 0, done: 12 },
+  tasks: [
+    {
+      id: 't_176bb1b0',
+      status: 'running',
+      assignee: 'default',
+      title: 'Hermes visibility projection',
+      linearLink: {
+        identifier: 'UNI-777',
+        url: 'https://linear.app/unite-group/issue/UNI-777/test',
+      },
+    },
+  ],
+  lastSyncedAt: '2026-06-01T23:11:50.734Z',
+}
 
 beforeEach(() => {
   vi.restoreAllMocks()
 })
 
-const liveBoard = {
-  configured: true,
-  board: 'default',
-  summary: { ready: 2, running: 1, blocked: 0, todo: 0, scheduled: 0, done: 12 },
-  tasks: [
-    { id: 't_176bb1b0', status: 'running', assignee: 'default', title: 'Unite-Hub: keep Hermes Kanban mirrored in Founder OS' },
-  ],
-  lastSyncedAt: '2026-06-01T23:11:50.734Z',
-}
-
 describe('HermesKanbanStatus', () => {
-  it('displays the live Hermes board status alongside task counts', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValue({
+  it('renders projection visibility, CRM authority, counts, and backlinks', async () => {
+    const fetchMock = vi.spyOn(global, 'fetch').mockResolvedValue({
       ok: true,
       json: async () => liveBoard,
     } as unknown as Response)
 
     render(<HermesKanbanStatus />)
 
-    await waitFor(() => expect(screen.getByText('Live sync')).toBeInTheDocument())
-    expect(screen.getByText('Board: default')).toBeInTheDocument()
-    expect(screen.getByText('Hermes Kanban')).toBeInTheDocument()
-    expect(screen.getByText('Unite-Hub: keep Hermes Kanban mirrored in Founder OS')).toBeInTheDocument()
-    expect(screen.getAllByText('running')).toHaveLength(2)
-    expect(screen.getByText('12')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText('Read-only live view')).toBeInTheDocument())
+    expect(screen.getByText('Hermes projection visibility')).toBeInTheDocument()
+    expect(screen.getByText(/CRM cc_tasks is the mission source of truth/)).toBeInTheDocument()
+    expect(screen.getByText('Hermes visibility projection')).toBeInTheDocument()
+    expect(screen.getByText('Linked: UNI-777')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'View in Linear ↗' })).toHaveAttribute(
+      'href',
+      'https://linear.app/unite-group/issue/UNI-777/test',
+    )
+    expect(screen.getByRole('link', { name: 'Open CRM mission queue' })).toHaveAttribute(
+      'href',
+      '/founder/command-centre',
+    )
+    expect(fetchMock).toHaveBeenCalledWith('/api/hermes/kanban')
   })
 
-  it('shows degraded state when the Hermes board endpoint is unavailable', async () => {
+  it('exposes no projection mutation controls and performs GET only', async () => {
+    const fetchMock = vi.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => liveBoard,
+    } as unknown as Response)
+
+    render(<HermesKanbanStatus />)
+    await screen.findByText('Hermes visibility projection')
+
+    for (const label of [
+      /create hermes task/i,
+      /block t_/i,
+      /unblock t_/i,
+      /complete t_/i,
+      /link linear t_/i,
+      /promote t_/i,
+    ]) {
+      expect(screen.queryByRole('button', { name: label })).not.toBeInTheDocument()
+    }
+    expect(fetchMock.mock.calls.every(([, init]) => !init || init.method === undefined || init.method === 'GET')).toBe(true)
+  })
+
+  it('states when no CRM or Linear backlink was reported', async () => {
+    vi.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ...liveBoard,
+        tasks: [{ ...liveBoard.tasks[0], linearLink: undefined }],
+      }),
+    } as unknown as Response)
+
+    render(<HermesKanbanStatus />)
+
+    await waitFor(() =>
+      expect(screen.getByText('No CRM/Linear backlink reported.')).toBeInTheDocument(),
+    )
+  })
+
+  it('shows an honest degraded state when projection loading fails', async () => {
     vi.spyOn(global, 'fetch').mockResolvedValue({
       ok: false,
       json: async () => ({
         configured: false,
+        readOnly: true,
+        authority: 'crm-cc_tasks',
         board: 'default',
         summary: {},
         tasks: [],
@@ -49,126 +109,7 @@ describe('HermesKanbanStatus', () => {
 
     render(<HermesKanbanStatus />)
 
-    await waitFor(() => expect(screen.getByText('Needs attention')).toBeInTheDocument())
-    expect(screen.getByText('No open Hermes Kanban tasks on this board.')).toBeInTheDocument()
-  })
-
-  it('creates a Hermes task from the Founder OS control surface', async () => {
-    const fetchMock = vi.spyOn(global, 'fetch')
-      .mockResolvedValueOnce({ ok: true, json: async () => liveBoard } as unknown as Response)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          action: 'create',
-          receipt: { stdout: '{"id":"t_new123"}' },
-          board: {
-            ...liveBoard,
-            summary: { ...liveBoard.summary, ready: 3 },
-            tasks: [
-              ...liveBoard.tasks,
-              { id: 't_new123', status: 'ready', assignee: 'default', title: 'Founder approved dual-board control' },
-            ],
-          },
-        }),
-      } as unknown as Response)
-
-    render(<HermesKanbanStatus />)
-
-    await waitFor(() => expect(screen.getByText('Live sync')).toBeInTheDocument())
-    fireEvent.change(screen.getByLabelText('Hermes task title'), { target: { value: 'Founder approved dual-board control' } })
-    fireEvent.change(screen.getByLabelText('Hermes task context'), { target: { value: 'Create from Unite-Hub control surface' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Create Hermes task' }))
-
-    await waitFor(() => expect(screen.getByText('Action recorded: create')).toBeInTheDocument())
-    expect(screen.getByText('Founder approved dual-board control')).toBeInTheDocument()
-    expect(fetchMock).toHaveBeenLastCalledWith('/api/hermes/kanban', expect.objectContaining({
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'create',
-        title: 'Founder approved dual-board control',
-        body: 'Create from Unite-Hub control surface',
-        assignee: 'default',
-      }),
-    }))
-  })
-
-  it('can block an open Hermes task from the dual-board row controls', async () => {
-    const fetchMock = vi.spyOn(global, 'fetch')
-      .mockResolvedValueOnce({ ok: true, json: async () => liveBoard } as unknown as Response)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          action: 'block',
-          receipt: { stdout: 'blocked t_176bb1b0' },
-          board: {
-            ...liveBoard,
-            summary: { ready: 2, running: 0, blocked: 1, todo: 0, scheduled: 0, done: 12 },
-            tasks: [{ ...liveBoard.tasks[0], status: 'blocked' }],
-          },
-        }),
-      } as unknown as Response)
-
-    render(<HermesKanbanStatus />)
-
-    await waitFor(() => expect(screen.getByText('Unite-Hub: keep Hermes Kanban mirrored in Founder OS')).toBeInTheDocument())
-    fireEvent.click(screen.getByRole('button', { name: 'Block t_176bb1b0' }))
-
-    await waitFor(() => expect(screen.getByText('Action recorded: block')).toBeInTheDocument())
-    expect(fetchMock).toHaveBeenLastCalledWith('/api/hermes/kanban', expect.objectContaining({
-      method: 'POST',
-      body: JSON.stringify({ action: 'block', taskId: 't_176bb1b0', note: 'Blocked from Unite-Hub dual-board controls' }),
-    }))
-  })
-
-  it('hydrates an existing Linear backlink from the Hermes board payload on page load', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        ...liveBoard,
-        tasks: [{
-          ...liveBoard.tasks[0],
-          linearLink: { identifier: 'UNI-777', url: 'https://linear.app/unite-group/issue/UNI-777/test' },
-        }],
-      }),
-    } as unknown as Response)
-
-    render(<HermesKanbanStatus />)
-
-    await waitFor(() => expect(screen.getByText('Linked: UNI-777')).toBeInTheDocument())
-    expect(screen.queryByText('Hermes only')).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Link Linear t_176bb1b0' })).toBeDisabled()
-  })
-
-  it('links a Hermes task to Linear and surfaces the dual-board badge', async () => {
-    const fetchMock = vi.spyOn(global, 'fetch')
-      .mockResolvedValueOnce({ ok: true, json: async () => liveBoard } as unknown as Response)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          action: 'linkLinear',
-          linkedIssue: { identifier: 'UNI-777', url: 'https://linear.app/unite-group/issue/UNI-777/test' },
-          board: liveBoard,
-        }),
-      } as unknown as Response)
-
-    render(<HermesKanbanStatus />)
-
-    await waitFor(() => expect(screen.getByText('Unite-Hub: keep Hermes Kanban mirrored in Founder OS')).toBeInTheDocument())
-    expect(screen.getByText('Hermes only')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Link Linear t_176bb1b0' }))
-
-    await waitFor(() => expect(screen.getByText('Action recorded: linkLinear → UNI-777')).toBeInTheDocument())
-    expect(screen.getByText('Linked: UNI-777')).toBeInTheDocument()
-    expect(fetchMock).toHaveBeenLastCalledWith('/api/hermes/kanban', expect.objectContaining({
-      method: 'POST',
-      body: JSON.stringify({
-        action: 'linkLinear',
-        taskId: 't_176bb1b0',
-        title: 'Unite-Hub: keep Hermes Kanban mirrored in Founder OS',
-        body: 'Linked from Unite-Hub dual-board controls',
-        teamKey: 'UNI',
-      }),
-    }))
+    await waitFor(() => expect(screen.getByText('Projection unavailable')).toBeInTheDocument())
+    expect(screen.getByText('No open Hermes projection tasks were reported.')).toBeInTheDocument()
   })
 })

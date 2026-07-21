@@ -30,10 +30,20 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${APP_URL}/founder/email?error=missing_params`)
   }
 
-  // Verify HMAC-signed state → { email }
+  // Verify HMAC-signed state → { email, founderId, nonce, expiresAt }. The HMAC
+  // blocks forgery; the founderId/nonce/expiry checks block CSRF and replay
+  // (a captured, still-valid state re-submitted from another session).
   let email = ''
   try {
     const decoded = verifyOAuthState(state)
+    if (
+      decoded.founderId !== user.id ||
+      !decoded.nonce ||
+      !decoded.expiresAt ||
+      Number(decoded.expiresAt) < Date.now()
+    ) {
+      throw new Error('state validation failed')
+    }
     email = decoded.email
   } catch {
     return NextResponse.redirect(`${APP_URL}/founder/email?error=invalid_state`)
@@ -65,6 +75,34 @@ export async function GET(request: Request) {
     scope: string
   }
 
+  // Identity = the account that ACTUALLY authenticated, read from Google
+  // userinfo — NOT the requested `email` from state. Without this, Google
+  // riding a different (e.g. admin) session would store its tokens under the
+  // requested address, so additional accounts collide on the label upsert key
+  // and never really connect. `state.email` stays the CSRF/founder binding only.
+  let authenticatedEmail: string
+  try {
+    const infoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { Authorization: `Bearer ${tokens.access_token}` },
+    })
+    if (!infoRes.ok) throw new Error(`userinfo ${infoRes.status}`)
+    const info = await infoRes.json() as { email?: unknown }
+    // Require a real, non-empty string — a whitespace-only or non-string value
+    // must NOT reach the vault upsert (it would store tokens under a blank/garbage
+    // identity). Normalise to trimmed lowercase (matches accountByEmail lookup).
+    const confirmed = typeof info.email === 'string' ? info.email.trim().toLowerCase() : ''
+    if (!confirmed) throw new Error('userinfo returned no usable email')
+    authenticatedEmail = confirmed
+  } catch (e) {
+    // FAIL CLOSED: if we cannot confirm the REAL authenticated email, do NOT
+    // persist tokens under the unverified requested address — that would let
+    // Google riding a different session store credentials under the wrong
+    // identity. Discard the tokens and surface an error redirect instead.
+    console.error('[Google OAuth] userinfo failed — failing closed:', e)
+    return NextResponse.redirect(`${APP_URL}/founder/email?error=identity_unconfirmed`)
+  }
+  email = authenticatedEmail
+
   // Encrypt the token bundle
   const payload = encrypt(JSON.stringify({
     access_token: tokens.access_token,
@@ -73,7 +111,7 @@ export async function GET(request: Request) {
     scope: tokens.scope,
   }))
 
-  // Map email → business slug + label
+  // Map the REAL authenticated email → business slug + label
   const account = accountByEmail(email)
   const businessKey = account?.businessKey ?? 'personal'
   const label = account?.label ?? email

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Sparkles, Loader2 } from 'lucide-react'
 
 interface Props {
   threadId: string
@@ -16,6 +17,30 @@ export function ReplyComposer({ threadId, account, defaultTo, defaultSubject, in
   const [body, setBody] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [drafting, setDrafting] = useState(false)
+  const [draftError, setDraftError] = useState<string | null>(null)
+
+  async function handleDraft() {
+    setDrafting(true)
+    setDraftError(null)
+    try {
+      const res = await fetch('/api/email/draft-reply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ account, threadId }),
+      })
+      const data = await res.json() as { body?: string; error?: string }
+      if (!res.ok || !data.body) {
+        setDraftError(data.error ?? 'Draft failed')
+        return
+      }
+      setBody(data.body)
+    } catch {
+      setDraftError('Network error — check connection')
+    } finally {
+      setDrafting(false)
+    }
+  }
 
   async function handleSend() {
     if (!body.trim()) return
@@ -53,10 +78,25 @@ export function ReplyComposer({ threadId, account, defaultTo, defaultSubject, in
         <p className="text-xs text-[#5f5f66]">
           Reply to <span className="text-[#52525b]">{defaultTo}</span>
         </p>
-        <button onClick={onCancel} className="text-xs text-[#5f5f66] hover:text-[#52525b] transition-colors">
-          Cancel
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleDraft}
+            disabled={drafting}
+            aria-label="Draft with the skill"
+            aria-busy={drafting}
+            className="flex items-center gap-1.5 text-xs border border-white/20 px-2.5 py-1 rounded-sm text-[#52525b] hover:text-[#0A0A0A] hover:border-white/40 transition-colors disabled:opacity-40"
+          >
+            {drafting
+              ? <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
+              : <Sparkles className="w-3 h-3" aria-hidden="true" />}
+            {drafting ? 'Drafting…' : 'Draft with the skill'}
+          </button>
+          <button onClick={onCancel} className="text-xs text-[#5f5f66] hover:text-[#52525b] transition-colors">
+            Cancel
+          </button>
+        </div>
       </div>
+      {draftError && <p role="alert" className="text-red-700 text-xs">{draftError}</p>}
       <textarea
         value={body}
         onChange={e => setBody(e.target.value)}

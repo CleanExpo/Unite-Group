@@ -5,6 +5,11 @@
 // is a Server Component with async data loaders, so it is asserted against
 // its source rather than rendered. Confirms the canvas shell landed without
 // disturbing any pre-existing data-testid or CommandPalette anchor id.
+//
+// UNI-2378 (calm cockpit): the Action Queue and Evidence Stream sections
+// relocated wholesale to the operations sub-route; those assertions now
+// point at operations/page.tsx. The ⌘K palette anchors stay resolvable on
+// the main page (the Vital Signs nav cards carry the ids).
 
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
@@ -12,6 +17,7 @@ import { join } from 'node:path'
 
 const dir = join(process.cwd(), 'src/app/(founder)/founder/command-centre')
 const pageSrc = readFileSync(join(dir, 'page.tsx'), 'utf8')
+const operationsSrc = readFileSync(join(dir, 'operations/page.tsx'), 'utf8')
 const paletteSrc = readFileSync(join(dir, 'CommandPalette.tsx'), 'utf8')
 const shellCss = readFileSync(join(dir, 'shell.module.css'), 'utf8')
 
@@ -30,14 +36,14 @@ describe('command-centre shell slice 1 — reshell regression gate', () => {
     }
   })
 
-  it('preserves the action-queue and evidence-stream section ids verbatim', () => {
-    expect(pageSrc).toContain('id="action-queue"')
-    expect(pageSrc).toContain('id="evidence-stream"')
+  it('preserves the action-queue and evidence-stream section ids verbatim (relocated to the operations deck)', () => {
+    expect(operationsSrc).toContain('id="action-queue"')
+    expect(operationsSrc).toContain('id="evidence-stream"')
   })
 
-  it('leaves the ActionQueueTile and EvidenceStreamTile components imported and rendered unchanged', () => {
-    expect(pageSrc).toContain('<ActionQueueTile data={actionQueue} />')
-    expect(pageSrc).toContain('<EvidenceStreamTile data={evidence} />')
+  it('leaves the ActionQueueTile and EvidenceStreamTile components imported and rendered unchanged (operations deck)', () => {
+    expect(operationsSrc).toContain('<ActionQueueTile data={actionQueue} />')
+    expect(operationsSrc).toContain('<EvidenceStreamTile data={evidence} />')
   })
 
   it('scopes Syne + JetBrains Mono to this route only (next/font/google, distinct variables)', () => {

@@ -1,8 +1,8 @@
-import { Editor } from '@monaco-editor/react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { FloppyDiskIcon, LockIcon } from '@hugeicons/core-free-icons'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
+import { NativeTextEditor } from '@/components/ui/native-text-editor'
 
 type SaveState = 'saved' | 'saving' | 'unsaved' | 'error'
 
@@ -14,10 +14,8 @@ type MemoryEditorProps = {
   readOnly: boolean
   saveState: SaveState
   lastSavedAt: string | null
-  theme: 'light' | 'dark'
   editorFontSize: number
   editorWordWrap: boolean
-  editorMinimap: boolean
   onChangeContent: (value: string) => void
   onSave: () => void
   onToggleReadOnly: (next: boolean) => void
@@ -47,10 +45,8 @@ function MemoryEditor({
   readOnly,
   saveState,
   lastSavedAt,
-  theme,
   editorFontSize,
   editorWordWrap,
-  editorMinimap,
   onChangeContent,
   onSave,
   onToggleReadOnly,
@@ -64,7 +60,11 @@ function MemoryEditor({
           <h2 className="truncate text-sm font-medium text-balance text-primary-900">
             {path || 'No file selected'}
           </h2>
-          <p className="text-xs text-primary-600 text-pretty tabular-nums">
+          <p
+            role="status"
+            aria-live="polite"
+            className="text-xs text-primary-600 text-pretty tabular-nums"
+          >
             {getStatusLabel(saveState, lastSavedAt)}
           </p>
         </div>
@@ -97,27 +97,23 @@ function MemoryEditor({
             Loading file content...
           </div>
         ) : error ? (
-          <div className="flex h-full items-center justify-center px-5 text-sm text-red-700 text-pretty">
+          <div
+            role="alert"
+            className="flex h-full items-center justify-center px-5 text-sm text-red-700 text-pretty"
+          >
             {error}
           </div>
         ) : (
-          <Editor
-            height="100%"
-            theme={theme === 'dark' ? 'vs-dark' : 'vs-light'}
-            language="markdown"
-            path={path || 'memory.md'}
+          <NativeTextEditor
+            key={path || 'memory-none'}
+            accessibleName={path ? `Edit ${path}` : 'Memory editor'}
             value={content}
-            onChange={function onChangeEditor(nextValue) {
-              onChangeContent(nextValue || '')
+            onValueChange={function onChangeEditor(nextValue) {
+              onChangeContent(nextValue)
             }}
-            options={{
-              readOnly,
-              minimap: { enabled: editorMinimap },
-              fontSize: editorFontSize,
-              scrollBeyondLastLine: false,
-              wordWrap: editorWordWrap ? 'on' : 'off',
-              lineNumbersMinChars: 3,
-            }}
+            readOnly={readOnly}
+            fontSize={editorFontSize}
+            wordWrap={editorWordWrap}
           />
         )}
       </div>

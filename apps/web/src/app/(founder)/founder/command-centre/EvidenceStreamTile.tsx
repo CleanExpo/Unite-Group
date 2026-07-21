@@ -32,7 +32,7 @@ export function EvidenceStreamTile({ data }: { data: EvidenceStreamResult }) {
     return (
       <p
         data-testid="evidence-stream-tile-empty"
-        style={{ color: '#9bb0c1', fontSize: '0.85rem', margin: 0 }}
+        style={{ color: 'var(--tile-ink-dim, #9bb0c1)', fontSize: '0.85rem', margin: 0 }}
       >
         No evidence entries yet at{' '}
         <code style={{ fontSize: '0.78rem' }}>{data.ledger_path}</code>
@@ -46,7 +46,7 @@ export function EvidenceStreamTile({ data }: { data: EvidenceStreamResult }) {
         style={{
           display: 'flex',
           gap: '1rem',
-          color: '#6f879b',
+          color: 'var(--tile-ink-hush, #6f879b)',
           fontSize: '0.72rem',
           marginBottom: '0.4rem',
         }}
@@ -54,7 +54,7 @@ export function EvidenceStreamTile({ data }: { data: EvidenceStreamResult }) {
         <span>{data.total_lines} total lines</span>
         <span>· {data.parsed_lines} parsed</span>
         {data.malformed_lines > 0 && (
-          <span style={{ color: '#fb923c' }}>· {data.malformed_lines} malformed (skipped)</span>
+          <span style={{ color: 'var(--tile-amber-txt, #fb923c)' }}>· {data.malformed_lines} malformed (skipped)</span>
         )}
         <span>· {data.entries.length} shown</span>
       </div>
@@ -67,7 +67,7 @@ export function EvidenceStreamTile({ data }: { data: EvidenceStreamResult }) {
         }}
       >
         <thead>
-          <tr style={{ color: '#6f879b', textAlign: 'left' }}>
+          <tr style={{ color: 'var(--tile-ink-hush, #6f879b)', textAlign: 'left' }}>
             <th style={{ padding: '0.2rem 0.4rem', fontWeight: 500 }}>timestamp</th>
             <th style={{ padding: '0.2rem 0.4rem', fontWeight: 500 }}>event</th>
             <th style={{ padding: '0.2rem 0.4rem', fontWeight: 500 }}>repo</th>
@@ -78,11 +78,11 @@ export function EvidenceStreamTile({ data }: { data: EvidenceStreamResult }) {
         <tbody>
           {data.entries.map((e: EvidenceEntry) => (
             <tr key={e.line_index} data-line-index={e.line_index}>
-              <td style={{ padding: '0.2rem 0.4rem', color: '#9bb0c1' }}>{fmtTime(e.timestamp)}</td>
-              <td style={{ padding: '0.2rem 0.4rem', color: '#e6f7ff' }}>{e.event ?? e.event_type ?? '—'}</td>
-              <td style={{ padding: '0.2rem 0.4rem', color: '#9bb0c1' }}>{e.repo ?? '—'}</td>
-              <td style={{ padding: '0.2rem 0.4rem', color: '#9bb0c1' }}>{e.head_ref ?? '—'}</td>
-              <td style={{ padding: '0.2rem 0.4rem', color: '#9bb0c1' }}>{shortSha(e.head_sha) || '—'}</td>
+              <td style={{ padding: '0.2rem 0.4rem', color: 'var(--tile-ink-dim, #9bb0c1)' }}>{fmtTime(e.timestamp)}</td>
+              <td style={{ padding: '0.2rem 0.4rem', color: 'var(--tile-ink, #e6f7ff)' }}>{e.event ?? e.event_type ?? '—'}</td>
+              <td style={{ padding: '0.2rem 0.4rem', color: 'var(--tile-ink-dim, #9bb0c1)' }}>{e.repo ?? '—'}</td>
+              <td style={{ padding: '0.2rem 0.4rem', color: 'var(--tile-ink-dim, #9bb0c1)' }}>{e.head_ref ?? '—'}</td>
+              <td style={{ padding: '0.2rem 0.4rem', color: 'var(--tile-ink-dim, #9bb0c1)' }}>{shortSha(e.head_sha) || '—'}</td>
             </tr>
           ))}
         </tbody>

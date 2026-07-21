@@ -1,0 +1,37 @@
+#!/bin/sh
+# nexus-runner git shim — the runner's OWN committed, portable tool-boundary
+# guard (does NOT depend on the machine-level ~/.claude/night-shift shims).
+# Allows exactly what the L2 mandate needs — a plain feature-branch push to
+# origin so the runner can open its draft PR — and nothing more.
+# Blocks: all force-push, merge, hard reset, branch -D, and any push to the
+# default branch (main/master). Everything else passes to real git. Holds even
+# under --dangerously-skip-permissions (the permission engine is off; this is not).
+REAL_GIT="${NEXUS_RUNNER_REAL_GIT:-/usr/bin/git}"
+[ -x "$REAL_GIT" ] || REAL_GIT=$(PATH=/usr/bin:/usr/local/bin:/opt/homebrew/bin command -v git)
+
+deny() { echo "nexus-runner: BLOCKED '$*' (L2 reversible-envelope guard)" >&2; exit 3; }
+
+sub="$1"
+case "$sub" in
+  push)
+    # forbid all force
+    for a in "$@"; do
+      case "$a" in --force|--force-with-lease|-f|--force-with-lease=*) deny "git push force" ;; esac
+    done
+    # forbid an explicit main/master destination refspec
+    for a in "$@"; do
+      case "$a" in main|master|*:main|*:master) deny "git push to default branch ($a)" ;; esac
+    done
+    # forbid a push while the current branch IS the default branch
+    br=$("$REAL_GIT" rev-parse --abbrev-ref HEAD 2>/dev/null)
+    case "$br" in
+      main|master) deny "git push from default branch ($br)" ;;
+    esac
+    ;;
+  merge)        deny "git merge" ;;
+  reset)
+    for a in "$@"; do case "$a" in --hard) deny "git reset --hard" ;; esac; done ;;
+  branch)
+    for a in "$@"; do case "$a" in -D|-Dr|--delete) deny "git branch delete" ;; esac; done ;;
+esac
+exec "$REAL_GIT" "$@"

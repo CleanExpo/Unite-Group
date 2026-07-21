@@ -20,7 +20,7 @@ Hermes is the agent command centre for Unite-Group, operated by Phill McGurk (co
 - **Runtime**: Electron 40 wrapping a Vite 7 / React 19 / TypeScript 5 SPA
 - **Routing**: TanStack Router with SSR-query
 - **State**: Zustand 5 + TanStack Query 5
-- **UI**: Tailwind CSS 4, Base UI, Hugeicons, Monaco editor, xterm.js, Recharts
+- **UI**: Tailwind CSS 4, Base UI, Hugeicons, native text editor, xterm.js, Recharts
 - **Agent workers**: Claude CLI processes spawned via `node:child_process`; config read from `~/.hermes/.env`; health-checked on port 8642+
 - **Gateway**: `hermes gateway run` (companion process); WebSocket (`ws`) bridge to UI
 - **Supabase**: connects to prod `lksfwktwtmyznckodsau` (shared 1728-table mega-DB; founder_id scoped)

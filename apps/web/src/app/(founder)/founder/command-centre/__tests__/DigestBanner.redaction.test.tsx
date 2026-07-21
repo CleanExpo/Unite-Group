@@ -26,11 +26,92 @@ describe('DigestBanner', () => {
 
     render(<DigestBanner />)
 
-    await waitFor(() => expect(screen.getByText('Morning Digest')).toBeTruthy())
+    await waitFor(() => expect(screen.getByText('Board Digest')).toBeTruthy())
     expect(fetchMock).toHaveBeenCalledWith('/api/command-centre/overnight-summary', {
       credentials: 'include',
       cache: 'no-store',
     })
+  })
+
+  it('renders CRM read-surface signals as decision support without action authority', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          digest: {
+            generatedAt: '2026-06-29T07:00:00Z',
+            tasks: { total: 0, needsDecision: 0, queued: 0, blocked: 0, failed: 0, done: 0 },
+            sessions: { total: 0 },
+            headline: '2 CRM leads in latest window · 0 queued · 0 need you · 0 sessions · 0 done',
+            attention: ['2 new CRM leads to review in latest window', '1 approval-gated opportunity needs decision in latest window'],
+            crm: {
+              source: 'crm:read-surface-signals',
+              leads: { newCount: 2, needsReviewCount: 3 },
+              opportunities: {
+                approvalGatedCount: 1,
+                weightedForecast: {
+                  status: 'available',
+                  totalsByCurrency: [{ currency: 'AUD', amount: 12000 }, { currency: 'USD', amount: 500 }],
+                },
+              },
+              window: {
+                kind: 'latest-window', limit: 500, leadsReturned: 500, opportunitiesReturned: 2,
+                leadsMayBeTruncated: true, opportunitiesMayBeTruncated: false,
+              },
+            },
+          },
+        }),
+      })),
+    )
+
+    render(<DigestBanner />)
+
+    await waitFor(() => expect(screen.getByText('Board Digest')).toBeTruthy())
+    expect(screen.getByText('CRM read surface')).toBeTruthy()
+    expect(screen.getByText('Latest-window limit 500 per table · 500 leads returned · 2 opportunities returned')).toBeTruthy()
+    expect(screen.getByText('Bounded window may be truncated; values are not complete CRM totals.')).toBeTruthy()
+    expect(screen.getByText('New CRM leads in window: 2')).toBeTruthy()
+    expect(screen.getByText('Leads needing review in window: 3')).toBeTruthy()
+    expect(screen.getByText('Approval-gated opportunities in window: 1')).toBeTruthy()
+    expect(screen.getByText('Weighted forecast in window: AUD 12000')).toBeTruthy()
+    expect(screen.getByText('Weighted forecast in window: USD 500')).toBeTruthy()
+    expect(document.body.textContent).not.toContain('AUD 12500')
+    expect(screen.getByText('Decision support only — no approvals, conversions, billing, or outreach are executed here.')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /approve|convert|send/i })).toBeNull()
+  })
+
+  it('renders unavailable CRM read-surface state without action authority', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          digest: {
+            generatedAt: '2026-06-29T07:00:00Z',
+            tasks: { total: 0, needsDecision: 0, queued: 0, blocked: 0, failed: 0, done: 0 },
+            sessions: { total: 0 },
+            headline: 'No tasks in the queue yet — capture an idea to begin.',
+            attention: ['CRM read surface unavailable — check lead/opportunity sync before decisions'],
+            crm: {
+              source: 'crm:read-surface-signals',
+              status: 'unavailable',
+              reason: 'read_failed',
+            },
+          },
+        }),
+      })),
+    )
+
+    render(<DigestBanner />)
+
+    await waitFor(() => expect(screen.getByText('Board Digest')).toBeTruthy())
+    expect(screen.getByText('CRM read surface unavailable')).toBeTruthy()
+    expect(screen.getByText('Check lead/opportunity sync before making CRM decisions.')).toBeTruthy()
+    expect(screen.getByText('Decision support degraded — no approvals, conversions, billing, or outreach are executed here.')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /approve|convert|send/i })).toBeNull()
   })
 
   it('redacts sensitive headline and attention copy from the overnight digest response', async () => {
@@ -60,7 +141,7 @@ describe('DigestBanner', () => {
 
     render(<DigestBanner />)
 
-    await waitFor(() => expect(screen.getByText('Morning Digest')).toBeTruthy())
+    await waitFor(() => expect(screen.getByText('Board Digest')).toBeTruthy())
 
     const digestText = document.body.textContent ?? ''
     expect(digestText).not.toContain(boardRef)
@@ -95,7 +176,7 @@ describe('DigestBanner', () => {
 
     render(<DigestBanner />)
 
-    await waitFor(() => expect(screen.getByText('Morning Digest')).toBeTruthy())
+    await waitFor(() => expect(screen.getByText('Board Digest')).toBeTruthy())
 
     const digestText = document.body.textContent ?? ''
     expect(digestText).not.toContain(headerValue)
@@ -126,7 +207,7 @@ describe('DigestBanner', () => {
 
     render(<DigestBanner />)
 
-    await waitFor(() => expect(screen.getByText('Morning Digest')).toBeTruthy())
+    await waitFor(() => expect(screen.getByText('Board Digest')).toBeTruthy())
 
     const digestText = document.body.textContent ?? ''
     expect(digestText).not.toContain(userinfo)

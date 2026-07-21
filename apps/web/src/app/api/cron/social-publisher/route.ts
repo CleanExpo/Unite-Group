@@ -4,6 +4,7 @@
 // Authenticates via CRON_SECRET (set by Vercel CRON).
 
 import { NextResponse } from 'next/server'
+import { assertCronAuth } from '@/lib/cron-auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { decodeToken } from '@/lib/integrations/social/channels'
 import { publishToPlatform } from '@/lib/integrations/social/publisher'
@@ -36,10 +37,8 @@ export async function GET(request: Request) {
   const startTime = Date.now()
 
   // 1. Verify CRON_SECRET from Authorization header
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET?.trim()}`) {
-    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
-  }
+  const denied = assertCronAuth(request)
+  if (denied) return denied
 
   const supabase = createServiceClient()
 

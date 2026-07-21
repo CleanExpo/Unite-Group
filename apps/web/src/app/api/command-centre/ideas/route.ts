@@ -15,7 +15,7 @@
 import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
-import { createTask, appendTaskEvent, addEvidenceRecord } from '@/lib/command-centre/tasks'
+import { createTask, listTasks, appendTaskEvent, addEvidenceRecord } from '@/lib/command-centre/tasks'
 import { getProjects } from '@/lib/command-centre/registry'
 import { writeEvidence } from '@/lib/obsidian/evidence'
 
@@ -68,6 +68,29 @@ export async function POST(request: Request) {
   }
 
   const title = deriveTitle(idea)
+
+  // 0. Dedup against the Proposed lane: resubmitting the same idea text must
+  //    not mint a second proposed task (UNI-2378 E2E finding 4). Scoped to
+  //    'proposed' only — an idea that was approved/rejected/done can be
+  //    legitimately proposed again. Best-effort: a dedup-read failure never
+  //    blocks intake.
+  const normalisedIdea = idea.replace(/\s+/g, ' ').toLowerCase()
+  try {
+    const proposed = await listTasks({ founderId: user.id, status: 'proposed', limit: 100 })
+    const existing = proposed.find(
+      (t) =>
+        t.origin === 'idea' &&
+        t.objective.replace(/\s+/g, ' ').toLowerCase() === normalisedIdea,
+    )
+    if (existing) {
+      return NextResponse.json(
+        { task: existing, evidencePath: existing.evidence_path, deduplicated: true },
+        { status: 200 },
+      )
+    }
+  } catch {
+    // Dedup is best-effort; fall through to normal intake.
+  }
 
   // 1. Create the PROPOSED idea task (never auto-executed).
   let task

@@ -84,7 +84,7 @@ function scheduleCleanup(): void {
 // Tier classification
 // ---------------------------------------------------------------------------
 
-function classifyTier(pathname: string): Tier | null {
+export function classifyTier(pathname: string): Tier | null {
   // Non-API routes — no rate limiting
   if (!pathname.startsWith('/api/') && !pathname.startsWith('/api')) return null;
 
@@ -93,6 +93,11 @@ function classifyTier(pathname: string): Tier | null {
 
   // Drip lifecycle actions are CRUD/workflow operations, not AI generation.
   if (pathname.startsWith('/api/campaigns/drip')) return 'standard';
+
+  // Public site chat agent — anonymous, spends model tokens; tightest tier.
+  // Exact-or-segment match only: /api/agents/* is the bearer-authed machine
+  // plane (runner/events) and must NOT inherit the chat-agent tier.
+  if (pathname === '/api/agent' || pathname.startsWith('/api/agent/')) return 'ai';
 
   // AI-heavy routes
   for (const fragment of AI_PATH_FRAGMENTS) {

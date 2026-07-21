@@ -3,8 +3,7 @@
 // 50% cost reduction vs synchronous API; best for non-urgent background crons.
 
 import type Anthropic from '@anthropic-ai/sdk'
-import { APIError } from '@anthropic-ai/sdk'
-import { getAIClient, getAIClientMode } from '@/lib/ai/client'
+import { getAIClient } from '@/lib/ai/client'
 
 // ── Request types ────────────────────────────────────────────────────────────
 
@@ -50,73 +49,6 @@ export interface BatchItemResult {
 const DEFAULT_POLL_INTERVAL_MS = 5_000   // 5 s
 const DEFAULT_TIMEOUT_MS       = 240_000 // 4 min (cron max is 5 min)
 
-// ── OAuth fallback (honest degradation) ──────────────────────────────────────
-// Max-plan OAuth tokens (getAIClientMode() === 'oauth') lack the `user:batch`
-// scope the Batches API requires, so the API returns a 403 permission_error in
-// that mode. Fall back to sequential `messages.create` calls instead. Results
-// are held in memory keyed by a synthetic batch id so createBatch/checkBatchStatus/
-// retrieveBatchResults keep their existing contract — callers (e.g. router.ts's
-// batchExecute → pollBatchUntilDone) need no changes.
-
-const _sequentialResults = new Map<string, BatchItemResult[]>()
-
-function makeSequentialBatchId(): string {
-  return `seq_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
-}
-
-// Bounded concurrency: strictly serial ran up to 50 threads × N accounts inside
-// the calling cron's maxDuration (review should-fix). 4 keeps wall-time ~N/4
-// without burst-firing the shared Anthropic pool (429 handling stays in
-// ai/router createWithRetry for capability calls; these direct calls stay tame).
-const SEQUENTIAL_CONCURRENCY = 4
-
-/** Runs batch requests through messages.create with bounded concurrency,
- *  carrying per-item errors and preserving request order in the results. */
-async function runSequentially(
-  client: Anthropic,
-  requests: BatchRequest[]
-): Promise<BatchItemResult[]> {
-  const results: BatchItemResult[] = new Array(requests.length)
-  let next = 0
-
-  async function worker(): Promise<void> {
-    while (next < requests.length) {
-      const index = next
-      next += 1
-      const req = requests[index]
-      try {
-        const message = await client.messages.create(req.params)
-        results[index] = {
-          customId: req.custom_id,
-          status: 'succeeded',
-          message: {
-            content: message.content as unknown[],
-            usage: {
-              input_tokens: message.usage.input_tokens,
-              output_tokens: message.usage.output_tokens,
-            },
-            model: message.model,
-          },
-        }
-      } catch (err) {
-        results[index] = {
-          customId: req.custom_id,
-          status: 'errored',
-          error: {
-            type: err instanceof APIError ? (err.type ?? err.name) : 'error',
-            message: err instanceof Error ? err.message : String(err),
-          },
-        }
-      }
-    }
-  }
-
-  await Promise.all(
-    Array.from({ length: Math.min(SEQUENTIAL_CONCURRENCY, requests.length) }, () => worker())
-  )
-  return results
-}
-
 // ── API helpers ──────────────────────────────────────────────────────────────
 
 /**
@@ -155,15 +87,6 @@ export function buildBatchRequest(
 export async function createBatch(requests: BatchRequest[]): Promise<BatchResult> {
   const client = getAIClient()
 
-  if (getAIClientMode() === 'oauth') {
-    console.log(
-      `batch API unavailable in OAuth mode — running ${requests.length} requests sequentially`
-    )
-    const id = makeSequentialBatchId()
-    _sequentialResults.set(id, await runSequentially(client, requests))
-    return { id, status: 'ended' }
-  }
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Batch API types not yet in stable SDK
   const batch = await (client.messages.batches as any).create({ requests })
   return {
@@ -177,11 +100,6 @@ export async function createBatch(requests: BatchRequest[]): Promise<BatchResult
  * status === 'ended' means all requests have finished (check individual results for success/error).
  */
 export async function checkBatchStatus(batchId: string): Promise<BatchResult> {
-  // Sequential (OAuth fallback) batches complete synchronously in createBatch.
-  if (_sequentialResults.has(batchId)) {
-    return { id: batchId, status: 'ended' }
-  }
-
   const client = getAIClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Batch API types not yet in stable SDK
   const batch = await (client.messages.batches as any).retrieve(batchId)
@@ -197,13 +115,6 @@ export async function checkBatchStatus(batchId: string): Promise<BatchResult> {
  * Only call this after checkBatchStatus returns status === 'ended'.
  */
 export async function retrieveBatchResults(batchId: string): Promise<BatchItemResult[]> {
-  // Sequential (OAuth fallback) results were computed up front in createBatch.
-  const sequential = _sequentialResults.get(batchId)
-  if (sequential) {
-    _sequentialResults.delete(batchId)
-    return sequential
-  }
-
   const client = getAIClient()
   const results: BatchItemResult[] = []
 

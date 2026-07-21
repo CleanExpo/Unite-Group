@@ -13,17 +13,51 @@ import { getUser } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
-interface MeshMachine {
+interface MeshFleetUpstream {
+  machines?: unknown[]
+  ships?: unknown[]
+}
+
+interface SafeMeshMachine {
   host: string
   last_seen: string
   is_stale: boolean
-  state?: string
-  current_task?: string
+  state?: 'working' | 'idle' | 'offline' | 'stale' | 'unknown'
 }
 
-interface MeshFleetUpstream {
-  machines?: MeshMachine[]
-  ships?: unknown[]
+const SAFE_MACHINE_STATES = new Set<SafeMeshMachine['state']>([
+  'working',
+  'idle',
+  'offline',
+  'stale',
+  'unknown',
+])
+
+function safeMachine(value: unknown): SafeMeshMachine | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const machine = value as Record<string, unknown>
+  if (
+    typeof machine.host !== 'string' ||
+    !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/.test(machine.host) ||
+    typeof machine.last_seen !== 'string' ||
+    !Number.isFinite(Date.parse(machine.last_seen)) ||
+    typeof machine.is_stale !== 'boolean'
+  ) {
+    return null
+  }
+
+  const state =
+    typeof machine.state === 'string' &&
+    SAFE_MACHINE_STATES.has(machine.state as SafeMeshMachine['state'])
+      ? (machine.state as SafeMeshMachine['state'])
+      : undefined
+
+  return {
+    host: machine.host,
+    last_seen: new Date(machine.last_seen).toISOString(),
+    is_stale: machine.is_stale,
+    ...(state ? { state } : {}),
+  }
 }
 
 export async function GET() {
@@ -58,7 +92,9 @@ export async function GET() {
     }
 
     const data = (await res.json()) as MeshFleetUpstream
-    const machines = Array.isArray(data.machines) ? data.machines : []
+    const machines = Array.isArray(data.machines)
+      ? data.machines.map(safeMachine).filter((machine): machine is SafeMeshMachine => machine !== null)
+      : []
     const shipCount = Array.isArray(data.ships) ? data.ships.length : 0
 
     return NextResponse.json({
@@ -74,7 +110,7 @@ export async function GET() {
       machines: [],
       shipCount: 0,
       source: timedOut ? 'timeout' : 'error',
-      error: err instanceof Error ? err.message : 'fetch failed',
+      error: timedOut ? 'upstream_timeout' : 'upstream_fetch_failed',
     })
   }
 }

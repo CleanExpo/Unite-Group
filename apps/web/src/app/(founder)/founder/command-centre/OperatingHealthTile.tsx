@@ -23,7 +23,7 @@ function statusColor(s: DashboardSummary['status']): string {
     case 'DRAFT_FOR_REVIEW':
       return '#a78bfa'
     default:
-      return '#6f879b'
+      return 'var(--tile-ink-hush, #6f879b)'
   }
 }
 
@@ -88,11 +88,11 @@ export function OperatingHealthTile({ data }: { data: DashboardSummaryResult }) 
             data-severity={e.severity}
             data-read-error={e.read_error ?? ''}
             style={{
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid var(--tile-card-line, rgba(255,255,255,0.08))',
               borderLeft: `3px solid ${color}`,
               padding: '0.5rem 0.6rem',
               fontSize: '0.78rem',
-              background: 'rgba(0,0,0,0.25)',
+              background: 'var(--tile-card-bg, rgba(0,0,0,0.25))',
               borderRadius: '2px',
             }}
           >
@@ -107,14 +107,14 @@ export function OperatingHealthTile({ data }: { data: DashboardSummaryResult }) 
                   flexShrink: 0,
                 }}
               />
-              <span style={{ fontWeight: 600, color: '#e6f7ff' }}>{e.title}</span>
+              <span style={{ fontWeight: 600, color: 'var(--tile-ink, #e6f7ff)' }}>{e.title}</span>
             </header>
             <div
               style={{
                 display: 'flex',
                 gap: '0.5rem',
                 marginTop: '0.25rem',
-                color: '#9bb0c1',
+                color: 'var(--tile-ink-dim, #9bb0c1)',
                 fontSize: '0.7rem',
               }}
             >
@@ -126,7 +126,7 @@ export function OperatingHealthTile({ data }: { data: DashboardSummaryResult }) 
               <p
                 style={{
                   marginTop: '0.3rem',
-                  color: '#fb923c',
+                  color: 'var(--tile-amber-txt, #fb923c)',
                   fontSize: '0.7rem',
                   wordBreak: 'break-word',
                 }}
@@ -138,7 +138,7 @@ export function OperatingHealthTile({ data }: { data: DashboardSummaryResult }) 
               title={e.source_path}
               style={{
                 marginTop: '0.3rem',
-                color: '#6f879b',
+                color: 'var(--tile-ink-hush, #6f879b)',
                 fontSize: '0.66rem',
                 fontFamily: 'ui-monospace, SFMono-Regular, monospace',
                 whiteSpace: 'nowrap',

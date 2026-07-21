@@ -1,6 +1,6 @@
 # Hermes Workspace — Comprehensive Features Inventory
 
-> **Version:** 2.0.0 | **Stack:** React 19 + TanStack Start/Router + Vite 7 + Tailwind CSS 4 + Zustand + xterm.js + Monaco Editor  
+> **Version:** 2.1.3 | **Stack:** React 19 + TanStack Start/Router + Vite 7 + Tailwind CSS 4 + Zustand + xterm.js + native text editor
 > **Description:** Desktop workspace for Hermes Agent — chat, orchestration, and multi-agent coding pipelines
 
 ---
@@ -66,7 +66,7 @@
 
 - **Full workspace file browser** with directory tree navigation
 - **File preview dialog** — inline file viewing
-- **Monaco Editor integration** — full code editing
+- **Accessible native text editor** — lightweight drafting with word wrap and font-size controls
 - **File operations:** create, read, write, rename, delete, mkdir
 - **File upload** — multipart form upload support
 - **Image preview** — base64 rendering for image files
@@ -330,9 +330,8 @@
 | `claudeToken`             | string                          | `''`     | Bearer token                |
 | `theme`                   | `system\|light\|dark`           | `system` | Color mode                  |
 | `accentColor`             | `orange\|purple\|blue\|green`   | `blue`   | Accent color                |
-| `editorFontSize`          | number                          | `13`     | Monaco editor font size     |
+| `editorFontSize`          | number                          | `13`     | Text editor font size       |
 | `editorWordWrap`          | boolean                         | `true`   | Editor word wrap            |
-| `editorMinimap`           | boolean                         | `false`  | Editor minimap              |
 | `notificationsEnabled`    | boolean                         | `true`   | Sound/notifications         |
 | `usageThreshold`          | number                          | `80`     | Context usage warning %     |
 | `smartSuggestionsEnabled` | boolean                         | `false`  | Smart model suggestions     |
@@ -723,7 +722,7 @@ pnpm stop:stable   # Stop via scripts/stop-stable.sh
 | State         | Zustand 5 (persisted)           |
 | Data Fetching | TanStack React Query 5          |
 | Terminal      | xterm.js 5 + Python PTY         |
-| Editor        | Monaco Editor                   |
+| Editor        | Native accessible text editor   |
 | Markdown      | react-markdown + Shiki          |
 | Charts        | Recharts 3                      |
 | Animation     | Motion (Framer Motion)          |

@@ -8,9 +8,10 @@
 import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
-import { getTaskById, updateTaskStatus, appendTaskEvent, type TaskStatus } from '@/lib/command-centre/tasks'
+import { getTaskById, updateTaskStatusGuarded, appendTaskEvent, type TaskStatus } from '@/lib/command-centre/tasks'
 import { listApprovalsForTask } from '@/lib/command-centre/approvals'
 import { getValidationSummary } from '@/lib/command-centre/validation'
+import { isLegalTransition } from '@/lib/command-centre/task-transitions'
 
 export const dynamic = 'force-dynamic'
 
@@ -57,6 +58,33 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     )
   }
 
+  // UNI-2417 governance guard: load the task's CURRENT status (founder-scoped)
+  // and reject any transition not legal for a direct client PATCH. This is what
+  // stops an authenticated caller promoting a `proposed`/`awaiting_approval` task
+  // straight to `queued`/`running` and bypassing the Board/approval path — only
+  // the approval route (`applyApproval`) may promote to `queued`.
+  let current
+  try {
+    current = await getTaskById({ founderId: user.id, taskId: id })
+  } catch (err) {
+    return NextResponse.json(
+      { error: sanitiseError(err, 'Failed to load task') },
+      { status: 500 },
+    )
+  }
+  if (!current) return NextResponse.json({ error: 'Task not found' }, { status: 404 })
+
+  if (!isLegalTransition(current.status, status, 'founder')) {
+    return NextResponse.json(
+      {
+        error: `Illegal transition: "${current.status}" → "${status}" is not permitted via this endpoint`,
+        from: current.status,
+        to: status,
+      },
+      { status: 409 },
+    )
+  }
+
   // CC-12 enforcement (no fake-green): a task may not be marked `done` while any
   // required validation gate is failing or unrun. Returns 422 with the offenders.
   if (status === 'done') {
@@ -82,8 +110,26 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   try {
-    const task = await updateTaskStatus({ founderId: user.id, taskId: id, status: status as TaskStatus })
-    if (!task) return NextResponse.json({ error: 'Task not found' }, { status: 404 })
+    // UNI-2417 TOCTOU guard: only write while the row still holds the status we
+    // read above (`current.status`). A zero-row result means the status changed
+    // (or the row was deleted) between the read and this write — a lost race that
+    // must NOT be clobbered; report it as a 409 conflict so the caller re-reads.
+    const task = await updateTaskStatusGuarded({
+      founderId: user.id,
+      taskId: id,
+      status: status as TaskStatus,
+      expectedStatus: current.status,
+    })
+    if (!task) {
+      return NextResponse.json(
+        {
+          error: 'Task status changed since it was read; re-read and retry',
+          from: current.status,
+          to: status,
+        },
+        { status: 409 },
+      )
+    }
 
     // Audit the transition (best-effort relative to the update).
     try {

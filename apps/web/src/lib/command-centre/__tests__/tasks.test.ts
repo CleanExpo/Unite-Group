@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
 import {
   createTask,
+  createTaskOnce,
+  getTaskByExternalRef,
   listTasks,
   appendTaskEvent,
   addEvidenceRecord,
@@ -13,7 +15,11 @@ import {
 // A small recording mock of the Supabase client surface used by the accessors.
 // It captures the table name, the inserted row, and the chained query calls,
 // and returns whatever `result` the test seeds.
-function makeMockClient(result: { data: unknown; error: { message: string } | null }) {
+type MockResult = { data: unknown; error: { message: string; code?: string } | null }
+
+function makeMockClient(resultOrResults: MockResult | MockResult[]) {
+  const results = Array.isArray(resultOrResults) ? [...resultOrResults] : [resultOrResults]
+  const nextResult = () => results.shift() ?? resultOrResults
   const calls: {
     table: string
     op: 'insert' | 'select'
@@ -28,10 +34,10 @@ function makeMockClient(result: { data: unknown; error: { message: string } | nu
       const record: (typeof calls)[number] = { table, op: 'select', eqs: [] }
       calls.push(record)
 
-      const single = () => Promise.resolve(result)
+      const single = () => Promise.resolve(nextResult())
       const limit = (n: number) => {
         record.limit = n
-        return Promise.resolve(result)
+        return Promise.resolve(nextResult())
       }
       const order = (column: string, opts: { ascending: boolean }) => {
         record.order = [column, opts]
@@ -42,6 +48,7 @@ function makeMockClient(result: { data: unknown; error: { message: string } | nu
           record.eqs.push([column, value])
           return eqChain
         },
+        single,
         order,
         limit,
       }
@@ -98,6 +105,77 @@ describe('command-centre tasks accessors', () => {
   it('createTask throws a typed error when the client reports an error', async () => {
     const { client } = makeMockClient({ data: null, error: { message: 'rls denied' } })
     await expect(createTask({ founderId: 'f1', title: 'x' }, client)).rejects.toThrow(/createTask failed: rls denied/)
+  })
+
+  // UNI-2438 — creation-time governance: a task must be born at a legal initial
+  // status; queued/running (runner-claimable) and blocked/done/failed (lifecycle
+  // outcomes) are rejected BEFORE any insert reaches the database.
+  it.each(['queued', 'running', 'blocked', 'done', 'failed'] as const)(
+    'createTask refuses illegal initial status %s without touching the database',
+    async (status) => {
+      const { client, calls } = makeMockClient({ data: null, error: null })
+
+      await expect(createTask({ founderId: 'f1', title: 'x', status }, client)).rejects.toMatchObject({
+        name: 'IllegalInitialStatusError',
+        status,
+      })
+      expect(calls).toHaveLength(0)
+    },
+  )
+
+  it.each(['proposed', 'awaiting_approval'] as const)(
+    'createTask accepts legal initial status %s',
+    async (status) => {
+      const returned = { id: 't1', founder_id: 'f1', title: 'x', status }
+      const { client, calls } = makeMockClient({ data: returned, error: null })
+
+      await expect(createTask({ founderId: 'f1', title: 'x', status }, client)).resolves.toEqual(returned)
+      expect((calls[0].inserted as Record<string, unknown>).status).toBe(status)
+    },
+  )
+
+  it('createTaskOnce inherits the initial-status guard (no insert, no fallback read)', async () => {
+    const { client, calls } = makeMockClient({ data: null, error: null })
+
+    await expect(
+      createTaskOnce({ founderId: 'f1', title: 'x', externalRef: 'ref-1', status: 'running' }, client),
+    ).rejects.toMatchObject({ name: 'IllegalInitialStatusError', status: 'running' })
+    expect(calls).toHaveLength(0)
+  })
+
+  it('gets one founder-scoped task by exact external_ref without a capped list scan', async () => {
+    const returned = { id: 't1', founder_id: 'f1', external_ref: 'stable-ref' }
+    const { client, calls } = makeMockClient({ data: returned, error: null })
+
+    await expect(
+      getTaskByExternalRef({ founderId: 'f1', externalRef: 'stable-ref' }, client),
+    ).resolves.toEqual(returned)
+    expect(calls[0].eqs).toEqual([
+      ['founder_id', 'f1'],
+      ['external_ref', 'stable-ref'],
+    ])
+    expect(calls[0].limit).toBeUndefined()
+  })
+
+  it('turns a unique external_ref race into one idempotently reused task', async () => {
+    const existing = {
+      id: 'winner',
+      founder_id: 'f1',
+      external_ref: 'stable-ref',
+      title: 'One task',
+    }
+    const { client, calls } = makeMockClient([
+      { data: null, error: { code: '23505', message: 'duplicate key value' } },
+      { data: existing, error: null },
+    ])
+
+    await expect(
+      createTaskOnce(
+        { founderId: 'f1', title: 'One task', externalRef: 'stable-ref' },
+        client,
+      ),
+    ).resolves.toEqual({ task: existing, created: false })
+    expect(calls.map((call) => call.op)).toEqual(['insert', 'select'])
   })
 
   it('listTasks selects cc_tasks scoped to the founder, with filters + ordering', async () => {

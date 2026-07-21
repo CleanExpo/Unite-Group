@@ -9,7 +9,14 @@ import autoTable from 'jspdf-autotable';
 import { readFileSync, writeFileSync } from 'fs';
 import { createRequire } from 'module';
 
-const SEMRUSH_KEY = process.env.SEMRUSH_API_KEY || '8a9cd10576ea2e989b0d8945b6e1ce56';
+const SEMRUSH_KEY = process.env.SEMRUSH_API_KEY;
+if (!SEMRUSH_KEY) {
+  console.error(
+    'SEMRUSH_API_KEY is not set. Refusing to run without a key. ' +
+      'Set SEMRUSH_API_KEY in the environment and retry.',
+  );
+  process.exit(1);
+}
 
 async function semrush(params) {
   const url = new URL('https://api.semrush.com/');

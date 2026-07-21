@@ -16,8 +16,8 @@ jobs:
     name: Australian-English content guard
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
       - run: node scripts/check-au-english.mjs
@@ -29,14 +29,14 @@ jobs:
       run:
         working-directory: apps/web
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
         with:
           version: 9.15.0
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
@@ -55,18 +55,10 @@ jobs:
         run: pnpm run test
 
       - name: Build
-        run: pnpm run build
-        env:
-          # Placeholders keep compile/static-generation verifiable before repo
-          # secrets are wired; production uses real Vercel env vars.
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://example.supabase.co' }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'ci-placeholder-anon-key' }}
-          NEXT_PUBLIC_APP_URL: https://unite-group.vercel.app
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'ci-placeholder-anthropic-key' }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'ci-placeholder-service-role-key' }}
-          VAULT_ENCRYPTION_KEY: ${{ secrets.VAULT_ENCRYPTION_KEY || '12345678901234567890123456789012' }}
-          CRON_SECRET: ${{ secrets.CRON_SECRET || 'ci-placeholder-cron-secret' }}
-          FOUNDER_USER_ID: ${{ secrets.FOUNDER_USER_ID || '00000000-0000-0000-0000-000000000000' }}
+        # The shared wrapper supplies fixed structural placeholders through an
+        # exact build-only environment. Local and CI verification cannot drift
+        # or accidentally compile against live service/provider credentials.
+        run: node ../../scripts/verify-web-ci-build.mjs
 
   workspace:
     name: apps/workspace — build
@@ -75,14 +67,14 @@ jobs:
       run:
         working-directory: apps/workspace
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
         with:
           version: 9.15.0
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
@@ -107,6 +99,101 @@ jobs:
       - name: Build
         run: pnpm run build
 
+  autopilot:
+    name: apps/autopilot-runner — test, type-check, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/autopilot-runner
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: apps/autopilot-runner/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test
+        run: npm run test
+
+      - name: Type-check
+        run: npm run type-check
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify retired runner container boundary
+        run: npm run verify:container
+
+  project-readiness:
+    name: Nexus project-readiness P0 gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Test readiness kernel
+        run: node --test scripts/__tests__/check-env.test.mjs scripts/__tests__/nexus-project-readiness.test.mjs scripts/__tests__/verify-web-ci-build.test.mjs scripts/__tests__/workflow-supply-chain.test.mjs
+
+      - name: Enforce configured P0 findings
+        run: node scripts/nexus-project-readiness.mjs --root . --json --gate
+
+  docs-watch:
+    name: Nexus official-docs watcher — Node ${{ matrix.node-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ['24']
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Test bounded watcher and committed baseline
+        run: npm run verify:docs-watch
+
+  dependency-audit:
+    name: Active lockfiles — high-severity dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # npm retired the classic audit endpoint on 15/07/2026 (HTTP 410:
+      # "use the bulk advisory endpoint"); pnpm 9.x/10.x still call it, so
+      # `pnpm@9.15.0 audit` fails on every run. pnpm 11 audits via the bulk
+      # advisory endpoint — audit-only version bump here; the workspaces'
+      # pinned packageManager (9.15.0) is untouched, hence --pm-on-fail=ignore
+      # to bypass pnpm 11's packageManager-mismatch guard for this read-only
+      # audit. Verified locally 15/07/2026: pnpm@11.13.0 audit resolves the
+      # full apps/web tree (1485 deps) and both workspaces report clean.
+      - name: Audit pnpm lockfiles
+        run: |
+          (cd apps/web && corepack pnpm@11.13.0 --pm-on-fail=ignore audit --audit-level high)
+          (cd apps/workspace && corepack pnpm@11.13.0 --pm-on-fail=ignore audit --audit-level high)
+
+      - name: Audit npm lockfiles
+        run: |
+          npm audit --prefix apps/autopilot-runner --audit-level high
+          npm audit --prefix apps/spec-board --audit-level high
+          npm audit --prefix packages/pi-ceo-operator-mcp --audit-level high
+          npm audit --prefix packages/spine/packages/spine --audit-level high
+
   mcp:
     name: packages/pi-ceo-operator-mcp — build
     runs-on: ubuntu-latest
@@ -114,9 +201,9 @@ jobs:
       run:
         working-directory: packages/pi-ceo-operator-mcp
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -127,6 +214,34 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  spine:
+    name: packages/spine — type-check and bounded tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/spine/packages/spine
+    env:
+      # Integration tests fail closed or self-report a skip when this dedicated
+      # non-production connection is absent. Production credentials are never a fallback.
+      SPINE_DATABASE_URL: ${{ secrets.SPINE_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: packages/spine/packages/spine/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
 
   e2e:
     name: apps/web — Playwright E2E
@@ -145,22 +260,23 @@ jobs:
       run:
         working-directory: apps/web
     env:
-      # Route the E2E lane to the dedicated non-prod Supabase branch.
-      # Falls back to prod secrets so the job fails loudly rather than silently
-      # hitting prod if the E2E secrets are not yet configured.
-      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://example.supabase.co' }}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY || secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'ci-placeholder-anon-key' }}
+      # Route the E2E lane only to the dedicated non-prod Supabase branch.
+      # Placeholders make missing E2E credentials fail loudly; production
+      # credentials are deliberately outside this job's authority boundary.
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL || 'https://example.supabase.co' }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY || 'ci-placeholder-anon-key' }}
       # Read directly by supabase-admin-config.ts to bypass the prod-only host assertion.
       E2E_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
       E2E_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}
       E2E_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY }}
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY || secrets.SUPABASE_SERVICE_ROLE_KEY || 'ci-placeholder-service-role-key' }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY || 'ci-placeholder-service-role-key' }}
       NEXT_PUBLIC_APP_URL: https://unite-hub-sandbox.vercel.app
-      # Dev server needs these to boot without crashing on missing vars.
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'ci-placeholder-anthropic-key' }}
-      VAULT_ENCRYPTION_KEY: ${{ secrets.VAULT_ENCRYPTION_KEY || '12345678901234567890123456789012' }}
-      CRON_SECRET: ${{ secrets.CRON_SECRET || 'ci-placeholder-cron-secret' }}
-      FOUNDER_USER_ID: ${{ secrets.FOUNDER_USER_ID || '00000000-0000-0000-0000-000000000000' }}
+      # Structural placeholders let the dev server boot without granting the
+      # browser suite any production provider, vault, cron, or founder secret.
+      ANTHROPIC_API_KEY: ci-placeholder-anthropic-key
+      VAULT_ENCRYPTION_KEY: '12345678901234567890123456789012'
+      CRON_SECRET: ci-placeholder-cron-secret
+      FOUNDER_USER_ID: '00000000-0000-0000-0000-000000000000'
       # Authenticated E2E specs read these directly and fail closed if the
       # test-user secrets are absent. Values are supplied by GitHub secrets only.
       PLAYWRIGHT_TEST_EMAIL: ${{ secrets.PLAYWRIGHT_TEST_EMAIL }}
@@ -178,14 +294,14 @@ jobs:
       # rate limiter (prod-guarded in rate-limit.ts) so it doesn't 429 the run.
       E2E_DISABLE_RATE_LIMIT: '1'
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
         with:
           version: 9.15.0
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
@@ -204,7 +320,7 @@ jobs:
         run: pnpm exec playwright test
 
       - name: Upload Playwright report
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: playwright-report
@@ -218,9 +334,9 @@ jobs:
       run:
         working-directory: apps/spec-board
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -242,4 +358,25 @@ jobs:
           # keep the static build verifiable before repo secrets are wired.
           SUPABASE_URL: ${{ secrets.FABEL_SUPABASE_URL || 'https://example.supabase.co' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.FABEL_SUPABASE_SERVICE_ROLE_KEY || 'ci-placeholder-service-role-key' }}
+
+  gitleaks:
+    name: gitleaks — secret scan (git commits)
+    runs-on: ubuntu-latest
+    steps:
+      # Full history so the action can scan the event's commit range.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Scan git history for secrets
+        # Pinned to the full commit SHA of gitleaks-action v3.0.0 for supply-chain
+        # integrity. Runs in git mode (scans commits), config is .gitleaks.toml.
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+          # gitleaks-action requires a license only for GitHub organizations.
+          # Harmless (unused) for a personal-account repo; passed through so the
+          # job keeps working if the repo later moves under an org.
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'ci-placeholder-anthropic-key' }}

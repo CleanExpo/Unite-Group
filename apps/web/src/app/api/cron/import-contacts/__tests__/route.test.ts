@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 import { parseFrom, GET } from '../route'
 
@@ -26,8 +26,20 @@ describe('parseFrom', () => {
 
 describe('GET auth', () => {
   it('rejects an unauthenticated request with 401 (no DB access)', async () => {
+    vi.stubEnv('CRON_SECRET', 'test-secret')
     const req = new NextRequest('https://x.test/api/cron/import-contacts')
     const res = await GET(req)
     expect(res.status).toBe(401)
+    vi.unstubAllEnvs()
+  })
+
+  it('rejects `Bearer undefined` with 500 when CRON_SECRET is unset (no bypass)', async () => {
+    vi.stubEnv('CRON_SECRET', undefined)
+    const req = new NextRequest('https://x.test/api/cron/import-contacts', {
+      headers: { authorization: 'Bearer undefined' },
+    })
+    const res = await GET(req)
+    expect(res.status).toBe(500)
+    vi.unstubAllEnvs()
   })
 })

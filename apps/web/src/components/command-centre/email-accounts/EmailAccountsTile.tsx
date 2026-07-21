@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react'
 import type { EmailAccountsPayload, EmailAccountState } from '@/lib/command-centre/email-accounts'
 import { SourceBadge, type SourceMode } from '../SourceBadge'
+import { DeckDetails } from '../DeckDetails'
 
 const POLL_MS = 120000
 
@@ -59,42 +60,48 @@ export function EmailAccountsTile() {
 
   const mode: SourceMode = loading ? 'loading' : error || !payload ? 'degraded' : 'live'
 
+  // Founder feedback 14/07/2026 — the summary strip carries the health counts
+  // only; the per-provider roster (identifiers layer) sits behind the shared
+  // DeckDetails disclosure. This page is founder-only behind the (founder)
+  // layout auth, so keeping identifiers in the collapsed layer is visual
+  // de-clutter, not a security boundary. (Rows are provider labels, e.g.
+  // "Google (Gmail)" — no personal email addresses render on this tile, so
+  // no masking is needed in the summary layer.)
   return (
     <section data-testid="email-accounts-tile" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h3 style={{ color: 'var(--deck-text, #e6f7ff)', fontSize: 14, fontWeight: 700, margin: 0 }}>Email accounts</h3>
-        <SourceBadge mode={mode} label="Email accounts" lastUpdatedAt={payload?.generatedAt} />
-      </div>
-
-      {payload && (
-        <p style={{ color: 'var(--deck-muted)', fontSize: 11, margin: 0 }}>
-          {payload.summary.connected} connected · {payload.summary.needsReauth} need reauth · {payload.summary.notConnected} not connected
-        </p>
-      )}
-
       {error && <p style={{ color: 'var(--deck-abort-text, #d02f35)', fontSize: 12, margin: 0 }}>Could not load email accounts: {error}</p>}
 
-      {payload && (
-        <div>
-          {payload.providers.map((p) => {
-            const rel = relTime(p.lastActivityAt)
-            return (
-              <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--deck-line, rgba(207,224,236,0.12))' }}>
-                <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: stateColor(p.state) }} />
-                <span style={{ color: 'var(--deck-text, #e6f7ff)', fontSize: 12 }}>{p.label}</span>
-                <span style={{ marginLeft: 'auto', color: stateColor(p.state), fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  {STATE_LABEL[p.state]}
-                </span>
-                {rel && <span style={{ color: 'var(--deck-muted)', fontSize: 10 }}>{rel}</span>}
-              </div>
-            )
-          })}
-        </div>
-      )}
+      <DeckDetails
+        title="Email accounts"
+        stats={
+          payload
+            ? `${payload.summary.connected} connected · ${payload.summary.needsReauth} need reauth · ${payload.summary.notConnected} not connected`
+            : undefined
+        }
+        badge={<SourceBadge mode={mode} label="Email accounts" lastUpdatedAt={payload?.generatedAt} />}
+      >
+        {payload && (
+          <div>
+            {payload.providers.map((p) => {
+              const rel = relTime(p.lastActivityAt)
+              return (
+                <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--deck-line, rgba(207,224,236,0.12))' }}>
+                  <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: stateColor(p.state) }} />
+                  <span style={{ color: 'var(--deck-text, #e6f7ff)', fontSize: 12 }}>{p.label}</span>
+                  <span style={{ marginLeft: 'auto', color: stateColor(p.state), fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    {STATE_LABEL[p.state]}
+                  </span>
+                  {rel && <span style={{ color: 'var(--deck-muted)', fontSize: 10 }}>{rel}</span>}
+                </div>
+              )
+            })}
+          </div>
+        )}
 
-      <a href="/founder/settings" style={{ color: 'var(--deck-cyan-text, #15803d)', fontSize: 11, textDecoration: 'underline' }}>
-        ↗ manage in Settings
-      </a>
+        <a href="/founder/settings" style={{ color: 'var(--deck-cyan-text, #15803d)', fontSize: 11, textDecoration: 'underline' }}>
+          ↗ manage in Settings
+        </a>
+      </DeckDetails>
     </section>
   )
 }

@@ -36,7 +36,9 @@ describe('OperatingHealthTile source contract', () => {
 
   it('surfaces per-file read errors in orange so missing data is visible', () => {
     expect(src).toContain('read_error')
-    expect(src).toMatch(/color:\s*['"]#fb923c['"]/)
+    // amber text rides the --tile-amber-txt token (register-aware) with the
+    // original orange literal as its fallback
+    expect(src).toMatch(/color:\s*['"]var\(--tile-amber-txt, #fb923c\)['"]/)
   })
 
   it('always renders the source path on the card footer (NorthStar: 200 != real)', () => {

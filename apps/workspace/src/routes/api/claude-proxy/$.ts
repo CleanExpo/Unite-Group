@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { BEARER_TOKEN, CLAUDE_API } from '../../../server/gateway-capabilities'
 import { isAuthenticated } from '../../../server/auth-middleware'
+import { getGatewayApiToken } from '../../../server/gateway-secret'
 
 /**
  * Vanilla hermes-agent (any version through 2026-05) does not expose
@@ -59,8 +60,7 @@ async function proxyRequest(request: Request, splat: string) {
   headers.delete('host')
   headers.delete('content-length')
   // Read at request time — follows the same fix as PR #234.
-  const bearer =
-    process.env.HERMES_API_TOKEN || process.env.CLAUDE_API_TOKEN || BEARER_TOKEN
+  const bearer = getGatewayApiToken() || BEARER_TOKEN
   if (bearer) headers.set('Authorization', `Bearer ${bearer}`)
 
   const init: RequestInit = {

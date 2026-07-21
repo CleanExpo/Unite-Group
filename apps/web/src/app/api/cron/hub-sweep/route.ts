@@ -10,21 +10,17 @@
 //   5. Calculates health_status and upserts into hub_satellites
 
 import { NextResponse } from 'next/server'
+import { assertCronAuth } from '@/lib/cron-auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sanitiseError } from '@/lib/error-reporting'
 import { fetchIssueCountByBusiness } from '@/lib/integrations/linear'
 import { fetchLastCommit, parseRepoUrl } from '@/lib/integrations/github'
 import { BUSINESSES } from '@/lib/businesses'
+import { getPrivateAccessConfig } from '@/lib/auth/private-access'
+import { evaluateAllowListHealth, type AllowListHealth } from '@/lib/auth/allow-list-health'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60 // 1 minute — lightweight API polling only
-
-// ── Auth ─────────────────────────────────────────────────────────────────────
-
-function isAuthorised(request: Request): boolean {
-  const authHeader = request.headers.get('authorization')
-  return authHeader === `Bearer ${process.env.CRON_SECRET?.trim()}`
-}
 
 // ── Health calculation ────────────────────────────────────────────────────────
 
@@ -121,9 +117,8 @@ async function fetchLastBookkeeperRunDate(
 export async function GET(request: Request) {
   const startTime = Date.now()
 
-  if (!isAuthorised(request)) {
-    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
-  }
+  const denied = assertCronAuth(request)
+  if (denied) return denied
 
   const founderId = process.env.FOUNDER_USER_ID
   if (!founderId) {
@@ -133,6 +128,23 @@ export async function GET(request: Request) {
 
   const supabase = createServiceClient()
   const now = new Date().toISOString()
+
+  // --- Founder allow-list drift check (2026-07-14 lockout prevention) ---
+  // Verifies FOUNDER_ALLOWED_* / FOUNDER_USER_ID still name a real, active
+  // auth user, so drift is flagged nightly instead of discovered as a lockout.
+  let allowListHealth: AllowListHealth | null = null
+  try {
+    const { data, error } = await supabase.auth.admin.listUsers({ perPage: 200 })
+    if (error) throw error
+    allowListHealth = evaluateAllowListHealth(
+      getPrivateAccessConfig(),
+      data.users.map(u => ({ id: u.id, email: u.email ?? null, lastSignInAt: u.last_sign_in_at ?? null })),
+    )
+    const log = allowListHealth.status === 'green' ? console.log : console.error
+    log(`[Hub Sweep] Founder allow-list ${allowListHealth.status}: ${allowListHealth.detail}`)
+  } catch (err) {
+    console.warn('[Hub Sweep] Allow-list health check failed:', err instanceof Error ? err.message : err)
+  }
 
   // Owned satellites only
   const ownedBusinesses = BUSINESSES.filter(b => b.type === 'owned')
@@ -259,6 +271,7 @@ export async function GET(request: Request) {
     durationMs,
     satellitesSwept: successCount,
     errors: errorCount,
+    allowListHealth,
     results,
   })
 }

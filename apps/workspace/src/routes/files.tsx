@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Editor } from '@monaco-editor/react'
 import { createFileRoute } from '@tanstack/react-router'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Folder01Icon } from '@hugeicons/core-free-icons'
 import { usePageTitle } from '@/hooks/use-page-title'
 import { FileExplorerSidebar } from '@/components/file-explorer'
-import { resolveTheme, useSettings } from '@/hooks/use-settings'
+import { NativeTextEditor } from '@/components/ui/native-text-editor'
+import { useSettings } from '@/hooks/use-settings'
 
 const INITIAL_EDITOR_VALUE = `// Files workspace
 // Use the file tree on the left to browse and manage project files.
@@ -57,7 +57,6 @@ function FilesRoute() {
   const [isMobile, setIsMobile] = useState(false)
   const [fileExplorerCollapsed, setFileExplorerCollapsed] = useState(false)
   const [editorValue, setEditorValue] = useState(INITIAL_EDITOR_VALUE)
-  const resolvedTheme = resolveTheme(settings.theme)
 
   useEffect(() => {
     const media = window.matchMedia('(max-width: 767px)')
@@ -111,20 +110,14 @@ function FilesRoute() {
             </div>
           </header>
           <div className="min-h-0 flex-1 pb-24 md:pb-0">
-            <Editor
-              height="100%"
-              theme={resolvedTheme === 'dark' ? 'vs-dark' : 'vs-light'}
-              language="typescript"
+            <NativeTextEditor
+              accessibleName="Workspace draft editor"
               value={editorValue}
-              onChange={function onEditorChange(value) {
-                setEditorValue(value || '')
+              onValueChange={function onEditorChange(value) {
+                setEditorValue(value)
               }}
-              options={{
-                minimap: { enabled: settings.editorMinimap },
-                fontSize: settings.editorFontSize,
-                scrollBeyondLastLine: false,
-                wordWrap: settings.editorWordWrap ? 'on' : 'off',
-              }}
+              fontSize={settings.editorFontSize}
+              wordWrap={settings.editorWordWrap}
             />
           </div>
         </main>
