@@ -36,19 +36,24 @@
   "immutable_identity": {
     "repository": "CleanExpo/Unite-Group",
     "pr_number": 903,
-    "base_sha": "2993429d6a812747550bac82f33568417c8b8279",
-    "head_sha": "ce065adaf0f057837a1b1ec4721bf4d95f771925",
+    "base_sha": "8e30cabe2811ba270777076a16dc817f6aaa3efd",
+    "head_sha": "b2a283decbe69aa16b422eb4636a8ddf2d9e86ec",
     "changed_files": [
+      "PR903-MAC-RUNTIME-REHEARSAL-PLAN.md",
       "apps/web/package.json",
       "apps/web/pnpm-lock.yaml",
       "apps/workspace/package.json",
       "apps/workspace/pnpm-lock.yaml",
       "packages/pi-ceo-operator-mcp/package-lock.json",
-      "packages/pi-ceo-operator-mcp/package.json"
+      "packages/pi-ceo-operator-mcp/package.json",
+      "pr903-mac-command-receipt.schema.json",
+      "pr903-mac-rehearsal-trust-anchor.json",
+      "pr903-mac-runtime-rehearsal-plan.json",
+      "validate_pr903_mac_rehearsal_envelope.py"
     ],
-    "changed_files_sha256": "53cc47beb4a320209790c1686373220405cf1d898fe6cf2ec06a2d7bff5754e2",
-    "manifest_sha256": "ae075f9b7e9ac717a78125cb0de01934c92c33b5aa532dd7a4f6228597e6b9a4",
-    "lockfile_sha256": "e542133bd9cd56118e5a88c9293d9894241872f511c261859e8309696b2c1659"
+    "changed_files_sha256": "c025f832122f8f8c0152b67b64bb0208e6b6351864059c3c0c4f7a4b477cad4f",
+    "manifest_sha256": "b608639c7dca082b557fcc3259ee81554e702a7255cef2d0b28f3f3258475007",
+    "lockfile_sha256": "fa44571489dbb490a322f2e6fb7da1d8a2352bcd6580b4965a04fc4c77b27015"
   },
   "input_authorities": {
     "accepted_markdown_attachment_1097": "9f508f3acd540e73771e7f1f0df38cad734ca98cb275db1410d1944de9699f53",
@@ -250,7 +255,7 @@
       "gate": "G-HARDSTOP-CLEARANCE",
       "scenario": "identity-preflight",
       "deliverable": "M03 command and evidence receipt set",
-      "verify": "Live repository, PR, base, head and exactly two changed paths equal immutable identity; mismatch returns STALE before checkout/install/build/mount/launch.",
+      "verify": "Live repository, PR, base, repaired source head and exact governed changed-path set equal immutable identity; mismatch returns STALE before checkout/install/build/mount/launch.",
       "commands": [
         {
           "command_id": "C03",
@@ -458,7 +463,7 @@
             "<RUN_ROOT>/source",
             "checkout",
             "--detach",
-            "ce065adaf0f057837a1b1ec4721bf4d95f771925"
+            "b2a283decbe69aa16b422eb4636a8ddf2d9e86ec"
           ],
           "target": "exact PR head",
           "expected_exit_codes": [
@@ -1633,9 +1638,9 @@
             "--expected-run-id",
             "<G_RUNTIME_WINDOW_RUN_ID>",
             "--expected-base-sha",
-            "2993429d6a812747550bac82f33568417c8b8279",
+            "8e30cabe2811ba270777076a16dc817f6aaa3efd",
             "--expected-head-sha",
-            "ce065adaf0f057837a1b1ec4721bf4d95f771925",
+            "b2a283decbe69aa16b422eb4636a8ddf2d9e86ec",
             "--expected-plan-sha256",
             "<TRUST_ANCHOR_PLAN_SHA256>",
             "--replay-ledger",
@@ -2315,9 +2320,9 @@
       "--expected-run-id",
       "<G_RUNTIME_WINDOW_RUN_ID>",
       "--expected-base-sha",
-      "2993429d6a812747550bac82f33568417c8b8279",
+      "8e30cabe2811ba270777076a16dc817f6aaa3efd",
       "--expected-head-sha",
-      "ce065adaf0f057837a1b1ec4721bf4d95f771925",
+      "b2a283decbe69aa16b422eb4636a8ddf2d9e86ec",
       "--expected-plan-sha256",
       "<TRUST_ANCHOR_PLAN_SHA256>",
       "--replay-ledger",

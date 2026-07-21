@@ -1,32 +1,37 @@
 {
   "schema_version": "1.0",
   "artifact": "pr903-mac-rehearsal-trust-anchor",
-  "self_sha256": "d83420972172f92ae2ce703536975fb0a1587c90c0adec3deb6efe272566a336",
+  "self_sha256": "cd1ee662d659228755a339398b0a175c81ca2600181864765dabb9badbff3b39",
   "identity": {
     "repository": "CleanExpo/Unite-Group",
     "pr_number": 903,
-    "base_sha": "2993429d6a812747550bac82f33568417c8b8279",
-    "head_sha": "ce065adaf0f057837a1b1ec4721bf4d95f771925",
+    "base_sha": "8e30cabe2811ba270777076a16dc817f6aaa3efd",
+    "head_sha": "b2a283decbe69aa16b422eb4636a8ddf2d9e86ec",
     "changed_files": [
+      "PR903-MAC-RUNTIME-REHEARSAL-PLAN.md",
       "apps/web/package.json",
       "apps/web/pnpm-lock.yaml",
       "apps/workspace/package.json",
       "apps/workspace/pnpm-lock.yaml",
       "packages/pi-ceo-operator-mcp/package-lock.json",
-      "packages/pi-ceo-operator-mcp/package.json"
+      "packages/pi-ceo-operator-mcp/package.json",
+      "pr903-mac-command-receipt.schema.json",
+      "pr903-mac-rehearsal-trust-anchor.json",
+      "pr903-mac-runtime-rehearsal-plan.json",
+      "validate_pr903_mac_rehearsal_envelope.py"
     ],
-    "changed_files_sha256": "53cc47beb4a320209790c1686373220405cf1d898fe6cf2ec06a2d7bff5754e2",
-    "manifest_sha256": "ae075f9b7e9ac717a78125cb0de01934c92c33b5aa532dd7a4f6228597e6b9a4",
-    "lockfile_sha256": "e542133bd9cd56118e5a88c9293d9894241872f511c261859e8309696b2c1659"
+    "changed_files_sha256": "c025f832122f8f8c0152b67b64bb0208e6b6351864059c3c0c4f7a4b477cad4f",
+    "manifest_sha256": "b608639c7dca082b557fcc3259ee81554e702a7255cef2d0b28f3f3258475007",
+    "lockfile_sha256": "fa44571489dbb490a322f2e6fb7da1d8a2352bcd6580b4965a04fc4c77b27015"
   },
   "files": {
     "plan_markdown": {
       "path": "PR903-MAC-RUNTIME-REHEARSAL-PLAN.md",
-      "sha256": "c92fc246dcf98e13e5fb20982ab37d6b8ebe6b63fff0c9d967f084bd92ef4129"
+      "sha256": "82019441cf5affa79cced085400e2fe0678b5356b8511ee7f5f96fada01fc1be"
     },
     "plan": {
       "path": "pr903-mac-runtime-rehearsal-plan.json",
-      "sha256": "08ef338da34e997d8944ce56f882e48b80ae75af2d6e445e9d4e9a48e02fac79"
+      "sha256": "9af7d2be8b21cfbcbc8b6d13f440028e0478303d957fc12805df17c6822012c3"
     },
     "receipt_schema": {
       "path": "pr903-mac-command-receipt.schema.json",
