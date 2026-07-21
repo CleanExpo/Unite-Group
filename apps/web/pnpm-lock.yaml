@@ -8,7 +8,7 @@ overrides:
   '@babel/core': 7.29.7
   '@hono/node-server': 1.19.14
   axios: 1.18.1
-  brace-expansion@5.0.4: 5.0.6
+  brace-expansion@5.0.4: 5.0.7
   esbuild: 0.28.1
   express-rate-limit: 8.2.2
   flatted: 3.4.2
@@ -3430,10 +3430,6 @@ packages:
 
   brace-expansion@2.1.2:
     resolution: {integrity: sha512-w5JZcKgdhDOgOwm8H+KgbosopHMuGcl6qbulwjtz3SM7I7P3yW1eAjzMPLrIE+NQ9vjgANKHWeMHnrT0OXW1oA==}
-
-  brace-expansion@5.0.6:
-    resolution: {integrity: sha512-kLpxurY4Z4r9sgMsyG0Z9uzsBlgiU/EFKhj/h91/8yHu0edo7XuixOIH3VcJ8kkxs6/jPzoI6U9Vj3WqbMQ94g==}
-    engines: {node: 18 || 20 || >=22}
 
   brace-expansion@5.0.7:
     resolution: {integrity: sha512-7oFy703dxfY3/NLxC1fh2SUCQ0H9rmAY+5EpDVfXjUTTs+HEwR2nYaqLv+GWcTsumwxPfiz6CzCNkwXwBUwqCA==}
@@ -10240,10 +10236,6 @@ snapshots:
     dependencies:
       balanced-match: 1.0.2
 
-  brace-expansion@5.0.6:
-    dependencies:
-      balanced-match: 4.0.4
-
   brace-expansion@5.0.7:
     dependencies:
       balanced-match: 4.0.4
@@ -12578,7 +12570,7 @@ snapshots:
 
   minimatch@10.2.4:
     dependencies:
-      brace-expansion: 5.0.6
+      brace-expansion: 5.0.7
 
   minimatch@10.2.5:
     dependencies:
