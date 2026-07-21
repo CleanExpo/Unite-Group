@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { test } from 'node:test'
@@ -23,9 +23,30 @@ const EXPECTED_ENTRIES = EXPECTED_LOCKS.map((lockfile) => ({
   workspace: dirname(lockfile),
   lockfile,
 }))
+const CLEAN_AUDIT = JSON.stringify({
+  metadata: {
+    vulnerabilities: { info: 0, low: 0, moderate: 0, high: 0, critical: 0, total: 0 },
+  },
+})
 
 async function loadRunner() {
   return import(pathToFileURL(RUNNER).href)
+}
+
+async function makeFixture(t, { locks = ['app/package-lock.json'], manifest = {} } = {}) {
+  const root = await mkdtemp(join(tmpdir(), 'nexus-dependency-audit-fixture-'))
+  t.after(() => rm(root, { recursive: true, force: true }))
+  for (const lockfile of locks) {
+    const workspace = join(root, dirname(lockfile))
+    await mkdir(workspace, { recursive: true })
+    await writeFile(join(root, lockfile), '{}\n')
+    await writeFile(join(workspace, 'package.json'), `${JSON.stringify(manifest)}\n`)
+  }
+  return root
+}
+
+function trackedFiles(...lockfiles) {
+  return async () => ({ stdout: `${lockfiles.join('\0')}\0` })
 }
 
 test('dependency audit discovers every tracked JavaScript lock instead of relying on a static allowlist', async () => {
@@ -34,6 +55,231 @@ test('dependency audit discovers every tracked JavaScript lock instead of relyin
   const actual = discovered.map(({ lockfile }) => lockfile).sort()
   assert.deepEqual(actual, EXPECTED_LOCKS)
   assert.equal(new Set(actual).size, EXPECTED_LOCKS.length)
+})
+
+test('discovery represents npm shrinkwrap plus unsupported yarn and bun locks instead of omitting them', async () => {
+  const { discoverTrackedLockfiles } = await loadRunner()
+  const discovered = await discoverTrackedLockfiles({
+    runGit: trackedFiles('npm/npm-shrinkwrap.json', 'yarn/yarn.lock', 'bun/bun.lock', 'bun-binary/bun.lockb'),
+  })
+
+  assert.deepEqual(discovered.map(({ lockfile, manager, supported }) => ({ lockfile, manager, supported })), [
+    { lockfile: 'bun-binary/bun.lockb', manager: 'bun', supported: false },
+    { lockfile: 'bun/bun.lock', manager: 'bun', supported: false },
+    { lockfile: 'npm/npm-shrinkwrap.json', manager: 'npm', supported: true },
+    { lockfile: 'yarn/yarn.lock', manager: 'yarn', supported: false },
+  ])
+})
+
+test('a mixed supported and unsupported inventory fails while still auditing the supported npm lock', async (t) => {
+  const root = await makeFixture(t, { locks: ['npm/package-lock.json', 'yarn/yarn.lock'] })
+  const { discoverTrackedLockfiles, runActiveLockfileAudits } = await loadRunner()
+  const entries = await discoverTrackedLockfiles({ root, runGit: trackedFiles('npm/package-lock.json', 'yarn/yarn.lock') })
+  const visited = []
+  const report = await runActiveLockfileAudits({
+    root,
+    entries,
+    runAudit: async (entry) => {
+      visited.push(entry.lockfile)
+      return { exitCode: 0, stdout: CLEAN_AUDIT, stderr: '' }
+    },
+  })
+
+  assert.deepEqual(visited, ['npm/package-lock.json'])
+  assert.equal(report.passed, false)
+  assert.match(report.inventoryError, /yarn\.lock.*unsupported/i)
+  assert.equal(report.results.find(({ lockfile }) => lockfile === 'yarn/yarn.lock').status, 'error')
+})
+
+test('an unsupported-only inventory fails without invoking a scanner', async (t) => {
+  const root = await makeFixture(t, { locks: ['bun/bun.lock'] })
+  const { discoverTrackedLockfiles, runActiveLockfileAudits } = await loadRunner()
+  const entries = await discoverTrackedLockfiles({ root, runGit: trackedFiles('bun/bun.lock') })
+  let calls = 0
+  const report = await runActiveLockfileAudits({
+    root,
+    entries,
+    runAudit: async () => { calls += 1 },
+  })
+
+  assert.equal(calls, 0)
+  assert.equal(report.passed, false)
+  assert.equal(report.results.length, 1)
+  assert.match(report.inventoryError, /unsupported/i)
+})
+
+test('npm shrinkwrap is treated as a supported npm audit input', async (t) => {
+  const root = await makeFixture(t, { locks: ['npm/npm-shrinkwrap.json'] })
+  const { discoverTrackedLockfiles, runActiveLockfileAudits } = await loadRunner()
+  const entries = await discoverTrackedLockfiles({ root, runGit: trackedFiles('npm/npm-shrinkwrap.json') })
+  const visited = []
+  const report = await runActiveLockfileAudits({
+    root,
+    entries,
+    runAudit: async (entry) => {
+      visited.push(entry)
+      return { exitCode: 0, stdout: CLEAN_AUDIT, stderr: '' }
+    },
+  })
+
+  assert.equal(report.passed, true)
+  assert.equal(visited.length, 1)
+  assert.equal(visited[0].manager, 'npm')
+})
+
+test('missing package.json fails before scanner execution', async (t) => {
+  const root = await makeFixture(t)
+  await rm(join(root, 'app', 'package.json'))
+  const { runActiveLockfileAudits } = await loadRunner()
+  let calls = 0
+  const report = await runActiveLockfileAudits({
+    root,
+    entries: [{ manager: 'npm', workspace: 'app', lockfile: 'app/package-lock.json' }],
+    runAudit: async () => { calls += 1 },
+  })
+
+  assert.equal(calls, 0)
+  assert.equal(report.passed, false)
+  assert.match(report.inventoryError, /package\.json.*missing|missing.*package\.json/i)
+})
+
+test('a missing tracked lockfile fails before scanner execution', async (t) => {
+  const root = await makeFixture(t)
+  await rm(join(root, 'app', 'package-lock.json'))
+  const { runActiveLockfileAudits } = await loadRunner()
+  let calls = 0
+  const report = await runActiveLockfileAudits({
+    root,
+    entries: [{ manager: 'npm', workspace: 'app', lockfile: 'app/package-lock.json' }],
+    runAudit: async () => { calls += 1 },
+  })
+
+  assert.equal(calls, 0)
+  assert.equal(report.passed, false)
+  assert.match(report.inventoryError, /Lockfile.*missing/i)
+})
+
+test('malformed and non-object package manifests fail before scanner execution', async (t) => {
+  const root = await makeFixture(t, { locks: ['bad/package-lock.json', 'array/package-lock.json'] })
+  await writeFile(join(root, 'bad', 'package.json'), '{not-json')
+  await writeFile(join(root, 'array', 'package.json'), '[]\n')
+  const { runActiveLockfileAudits } = await loadRunner()
+  let calls = 0
+  const report = await runActiveLockfileAudits({
+    root,
+    entries: [
+      { manager: 'npm', workspace: 'bad', lockfile: 'bad/package-lock.json' },
+      { manager: 'npm', workspace: 'array', lockfile: 'array/package-lock.json' },
+    ],
+    runAudit: async () => { calls += 1 },
+  })
+
+  assert.equal(calls, 0)
+  assert.equal(report.passed, false)
+  assert.match(report.inventoryError, /valid JSON/i)
+  assert.match(report.inventoryError, /JSON object/i)
+})
+
+test('lockfile and manifest symlinks fail before scanner execution', async (t) => {
+  const root = await makeFixture(t, { locks: ['lock-link/package-lock.json', 'manifest-link/package-lock.json'] })
+  await writeFile(join(root, 'external-lock.json'), '{}\n')
+  await rm(join(root, 'lock-link', 'package-lock.json'))
+  await symlink(join(root, 'external-lock.json'), join(root, 'lock-link', 'package-lock.json'))
+  await writeFile(join(root, 'external-package.json'), '{}\n')
+  await rm(join(root, 'manifest-link', 'package.json'))
+  await symlink(join(root, 'external-package.json'), join(root, 'manifest-link', 'package.json'))
+  const { runActiveLockfileAudits } = await loadRunner()
+  let calls = 0
+  const report = await runActiveLockfileAudits({
+    root,
+    entries: [
+      { manager: 'npm', workspace: 'lock-link', lockfile: 'lock-link/package-lock.json' },
+      { manager: 'npm', workspace: 'manifest-link', lockfile: 'manifest-link/package-lock.json' },
+    ],
+    runAudit: async () => { calls += 1 },
+  })
+
+  assert.equal(calls, 0)
+  assert.equal(report.passed, false)
+  assert.match(report.inventoryError, /lockfile.*symbolic link/i)
+  assert.match(report.inventoryError, /package\.json.*symbolic link/i)
+})
+
+test('a realpath escape through a symlinked workspace fails before scanner execution', async (t) => {
+  const root = await mkdtemp(join(tmpdir(), 'nexus-dependency-audit-root-'))
+  const outside = await mkdtemp(join(tmpdir(), 'nexus-dependency-audit-outside-'))
+  t.after(() => Promise.all([
+    rm(root, { recursive: true, force: true }),
+    rm(outside, { recursive: true, force: true }),
+  ]))
+  await writeFile(join(outside, 'package-lock.json'), '{}\n')
+  await writeFile(join(outside, 'package.json'), '{}\n')
+  await symlink(outside, join(root, 'escaped'))
+  const { runActiveLockfileAudits } = await loadRunner()
+  let calls = 0
+  const report = await runActiveLockfileAudits({
+    root,
+    entries: [{ manager: 'npm', workspace: 'escaped', lockfile: 'escaped/package-lock.json' }],
+    runAudit: async () => { calls += 1 },
+  })
+
+  assert.equal(calls, 0)
+  assert.equal(report.passed, false)
+  assert.match(report.inventoryError, /outside repository root/i)
+})
+
+test('entry manager drift, manifest manager drift, and duplicate lock entries fail closed', async (t) => {
+  const root = await makeFixture(t, { manifest: { packageManager: 'pnpm@9.15.0' } })
+  const entry = { manager: 'pnpm', workspace: 'app', lockfile: 'app/package-lock.json' }
+  const { runActiveLockfileAudits } = await loadRunner()
+  let calls = 0
+  const report = await runActiveLockfileAudits({
+    root,
+    entries: [entry, entry],
+    runAudit: async () => { calls += 1 },
+  })
+
+  assert.equal(calls, 0)
+  assert.equal(report.passed, false)
+  assert.match(report.inventoryError, /manager.*npm/i)
+  assert.match(report.inventoryError, /packageManager.*pnpm.*npm|npm.*packageManager.*pnpm/i)
+  assert.match(report.inventoryError, /duplicate/i)
+})
+
+test('colliding lock formats in one workspace fail before either scanner invocation', async (t) => {
+  const root = await makeFixture(t, { locks: ['app/package-lock.json', 'app/npm-shrinkwrap.json'] })
+  const { runActiveLockfileAudits } = await loadRunner()
+  let calls = 0
+  const report = await runActiveLockfileAudits({
+    root,
+    entries: [
+      { manager: 'npm', workspace: 'app', lockfile: 'app/package-lock.json' },
+      { manager: 'npm', workspace: 'app', lockfile: 'app/npm-shrinkwrap.json' },
+    ],
+    runAudit: async () => { calls += 1 },
+  })
+
+  assert.equal(calls, 0)
+  assert.equal(report.passed, false)
+  assert.match(report.inventoryError, /colliding lockfiles.*workspace app/i)
+})
+
+test('audit evidence distinguishes workflow SHA, pull-request head SHA, and git tree', async () => {
+  const { runActiveLockfileAudits } = await loadRunner()
+  const report = await runActiveLockfileAudits({
+    entries: [],
+    evidence: {
+      githubSha: 'merge-sha',
+      pullRequestHeadSha: 'head-sha',
+      gitTree: 'tree-sha',
+    },
+  })
+
+  assert.equal(report.schema, 'unite-active-lockfile-audit-v2')
+  assert.equal(report.githubSha, 'merge-sha')
+  assert.equal(report.pullRequestHeadSha, 'head-sha')
+  assert.equal(report.gitTree, 'tree-sha')
+  assert.equal(Object.hasOwn(report, 'headSha'), false)
 })
 
 test('dependency audit collects a machine-readable result for every lock after an early failure', async () => {
@@ -128,6 +374,7 @@ test('CI runs the aggregate audit and always persists its result matrix', async 
   const ci = await readFile(join(ROOT, '.github', 'workflows', 'ci.yml'), 'utf8')
   const job = ci.match(/\n  dependency-audit:\n([\s\S]*?)\n  mcp:/)?.[1]
   assert.ok(job, 'expected dependency-audit job')
+  assert.match(job, /timeout-minutes:\s*\d+/)
   assert.match(job, /node scripts\/audit-active-lockfiles\.mjs --output dependency-audit-results\.json/)
   assert.match(job, /if:\s*always\(\)/)
   assert.match(job, /path:\s*dependency-audit-results\.json/)

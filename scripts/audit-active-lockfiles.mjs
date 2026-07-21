@@ -1,10 +1,18 @@
 import { execFile } from 'node:child_process'
-import { mkdir, writeFile } from 'node:fs/promises'
-import { dirname, resolve } from 'node:path'
+import { lstat, mkdir, readFile, realpath, writeFile } from 'node:fs/promises'
+import { basename, dirname, isAbsolute, relative, resolve } from 'node:path'
 import { promisify } from 'node:util'
 import { fileURLToPath } from 'node:url'
 
 const execFileAsync = promisify(execFile)
+const LOCKFILE_TYPES = Object.freeze({
+  'package-lock.json': { manager: 'npm', supported: true },
+  'npm-shrinkwrap.json': { manager: 'npm', supported: true },
+  'pnpm-lock.yaml': { manager: 'pnpm', supported: true },
+  'yarn.lock': { manager: 'yarn', supported: false },
+  'bun.lock': { manager: 'bun', supported: false },
+  'bun.lockb': { manager: 'bun', supported: false },
+})
 const ZERO_VULNERABILITIES = Object.freeze({
   info: 0,
   low: 0,
@@ -21,13 +29,120 @@ export async function discoverTrackedLockfiles({ root = process.cwd(), runGit = 
   })
   return stdout
     .split('\0')
-    .filter((lockfile) => /(?:^|\/)(?:package-lock\.json|pnpm-lock\.yaml)$/.test(lockfile))
+    .filter((lockfile) => Object.hasOwn(LOCKFILE_TYPES, basename(lockfile)))
     .sort()
-    .map((lockfile) => ({
-      manager: lockfile.endsWith('pnpm-lock.yaml') ? 'pnpm' : 'npm',
-      workspace: dirname(lockfile),
-      lockfile,
-    }))
+    .map((lockfile) => {
+      const type = LOCKFILE_TYPES[basename(lockfile)]
+      return {
+        manager: type.manager,
+        supported: type.supported,
+        workspace: dirname(lockfile),
+        lockfile,
+      }
+    })
+}
+
+function isWithinRoot(root, candidate) {
+  const path = relative(resolve(root), resolve(candidate))
+  return path === '' || (path !== '..' && !path.startsWith(`..${process.platform === 'win32' ? '\\' : '/'}`) && !isAbsolute(path))
+}
+
+async function validateRegularFile({ root, path, label }) {
+  const absolute = resolve(root, path)
+  if (!isWithinRoot(root, absolute)) return `${label} ${path} resolves outside repository root`
+  let stat
+  try {
+    stat = await lstat(absolute)
+  } catch (error) {
+    return `${label} ${path} is missing: ${error.code ?? error.message}`
+  }
+  if (stat.isSymbolicLink()) return `${label} ${path} must not be a symbolic link`
+  if (!stat.isFile()) return `${label} ${path} must be a regular file`
+  let canonical
+  try {
+    canonical = await realpath(absolute)
+  } catch (error) {
+    return `${label} ${path} cannot be resolved: ${error.code ?? error.message}`
+  }
+  const canonicalRoot = await realpath(root)
+  if (!isWithinRoot(canonicalRoot, canonical)) return `${label} ${path} resolves outside repository root`
+  return null
+}
+
+async function validateInventoryEntry(entry, { root, duplicate, collision }) {
+  const errors = []
+  const type = LOCKFILE_TYPES[basename(entry.lockfile)]
+  if (!type) {
+    errors.push(`${entry.lockfile} is not a recognised JavaScript lockfile`)
+    return errors
+  }
+  if (duplicate) errors.push(`${entry.lockfile} is a duplicate lockfile inventory entry`)
+  if (collision) errors.push(`${entry.lockfile} has colliding lockfiles in workspace ${entry.workspace}`)
+  if (entry.manager !== type.manager) {
+    errors.push(`${entry.lockfile} manager must be ${type.manager}, not ${entry.manager ?? 'unset'}`)
+  }
+  if (!type.supported) {
+    errors.push(`${entry.lockfile} uses unsupported ${type.manager} audit format`)
+  }
+  if (entry.workspace !== dirname(entry.lockfile)) {
+    errors.push(`${entry.lockfile} workspace must be its co-located directory ${dirname(entry.lockfile)}`)
+  }
+
+  const lockError = await validateRegularFile({ root, path: entry.lockfile, label: 'Lockfile' })
+  if (lockError) errors.push(lockError)
+  const manifestPath = resolve(root, entry.workspace, 'package.json')
+  const manifestError = await validateRegularFile({ root, path: manifestPath, label: 'Manifest package.json' })
+  if (manifestError) {
+    errors.push(manifestError)
+    return errors
+  }
+
+  let manifest
+  try {
+    manifest = JSON.parse(await readFile(resolve(root, manifestPath), 'utf8'))
+  } catch (error) {
+    errors.push(`Manifest package.json for ${entry.lockfile} is not valid JSON: ${error.message}`)
+    return errors
+  }
+  if (manifest === null || typeof manifest !== 'object' || Array.isArray(manifest)) {
+    errors.push(`Manifest package.json for ${entry.lockfile} must contain a JSON object`)
+    return errors
+  }
+  if (Object.hasOwn(manifest, 'packageManager')) {
+    if (typeof manifest.packageManager !== 'string') {
+      errors.push(`Manifest packageManager for ${entry.lockfile} must be a string`)
+    } else {
+      const manifestManager = manifest.packageManager.split('@', 1)[0]
+      if (manifestManager !== type.manager) {
+        errors.push(`Manifest packageManager ${manifestManager} does not match ${type.manager} lockfile ${entry.lockfile}`)
+      }
+    }
+  }
+  return errors
+}
+
+async function collectEvidence({ root }) {
+  let pullRequestHeadSha = null
+  if (process.env.GITHUB_EVENT_PATH) {
+    try {
+      const event = JSON.parse(await readFile(process.env.GITHUB_EVENT_PATH, 'utf8'))
+      pullRequestHeadSha = event?.pull_request?.head?.sha ?? null
+    } catch {
+      pullRequestHeadSha = null
+    }
+  }
+  let gitTree = null
+  try {
+    const { stdout } = await execFileAsync('git', ['rev-parse', 'HEAD^{tree}'], { cwd: root })
+    gitTree = stdout.trim() || null
+  } catch {
+    gitTree = null
+  }
+  return {
+    githubSha: process.env.GITHUB_SHA ?? null,
+    pullRequestHeadSha,
+    gitTree,
+  }
 }
 
 function normaliseVulnerabilities(report) {
@@ -115,14 +230,43 @@ export async function runActiveLockfileAudits({
   entries,
   runAudit = executeAudit,
   root = process.cwd(),
+  evidence,
 } = {}) {
   const activeEntries = entries ?? await discoverTrackedLockfiles({ root })
-  const inventoryError = activeEntries.length === 0
-    ? 'No tracked JavaScript lockfiles were discovered'
-    : null
+  const evidenceFields = evidence ?? await collectEvidence({ root })
+  const lockCounts = new Map()
+  const workspaceCounts = new Map()
+  for (const entry of activeEntries) {
+    lockCounts.set(entry.lockfile, (lockCounts.get(entry.lockfile) ?? 0) + 1)
+    workspaceCounts.set(entry.workspace, (workspaceCounts.get(entry.workspace) ?? 0) + 1)
+  }
+  const validations = await Promise.all(activeEntries.map(async (entry) => ({
+    entry,
+    errors: await validateInventoryEntry(entry, {
+      root,
+      duplicate: lockCounts.get(entry.lockfile) > 1,
+      collision: workspaceCounts.get(entry.workspace) > 1,
+    }),
+  })))
+  const inventoryErrors = activeEntries.length === 0
+    ? ['No tracked JavaScript lockfiles were discovered']
+    : validations.flatMap(({ errors }) => errors)
+  const inventoryError = inventoryErrors.length > 0 ? inventoryErrors.join('; ') : null
   const results = []
 
-  for (const entry of activeEntries) {
+  for (const { entry, errors } of validations) {
+    if (errors.length > 0) {
+      results.push({
+        ...entry,
+        status: 'error',
+        exitCode: null,
+        vulnerabilities: { ...ZERO_VULNERABILITIES },
+        findings: [],
+        error: errors.join('; '),
+        stderr: '',
+      })
+      continue
+    }
     const execution = await runAudit(entry, { root })
     try {
       const parsed = parseAuditReport(execution.stdout)
@@ -149,12 +293,13 @@ export async function runActiveLockfileAudits({
   }
 
   return {
-    schema: 'unite-active-lockfile-audit-v1',
+    schema: 'unite-active-lockfile-audit-v2',
     generatedAt: new Date().toISOString(),
-    headSha: process.env.GITHUB_SHA ?? null,
+    ...evidenceFields,
     threshold: 'high',
     installScriptsExecuted: false,
     inventoryError,
+    inventoryErrors,
     passed: inventoryError === null
       && results.length === activeEntries.length
       && results.every(({ status }) => status === 'passed'),
