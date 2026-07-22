@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { chmod, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
+import { delimiter, dirname, join, resolve } from 'node:path'
 import { test } from 'node:test'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
@@ -346,6 +346,92 @@ test('scanner errors fail closed without suppressing later lock results', async 
   assert.match(result.results[0].error, /JSON/i)
 })
 
+test('Windows audit scanners launch npm and corepack JavaScript entrypoints through Node with isolated argv', async () => {
+  const { buildAuditInvocation } = await loadRunner()
+  assert.equal(typeof buildAuditInvocation, 'function')
+
+  const nodeExecutable = 'C:\\Program Files & Tools\\node.exe'
+  assert.deepEqual(buildAuditInvocation({ manager: 'npm' }, { platform: 'win32', nodeExecutable }), {
+    executable: nodeExecutable,
+    args: [
+      'C:\\Program Files & Tools\\node_modules\\npm\\bin\\npm-cli.js',
+      'audit',
+      '--package-lock-only',
+      '--ignore-scripts',
+      '--audit-level=high',
+      '--json',
+    ],
+  })
+  assert.deepEqual(buildAuditInvocation({ manager: 'pnpm' }, { platform: 'win32', nodeExecutable }), {
+    executable: nodeExecutable,
+    args: [
+      'C:\\Program Files & Tools\\node_modules\\corepack\\dist\\corepack.js',
+      'pnpm@11.13.0',
+      '--pm-on-fail=ignore',
+      'audit',
+      '--audit-level',
+      'high',
+      '--json',
+    ],
+  })
+})
+
+test('Windows audit execution preserves argv, workspace and bounded timeout without a shell', async () => {
+  const { executeAudit } = await loadRunner()
+  const calls = []
+  const root = join(tmpdir(), 'repo space & metachar')
+  const workspace = 'workspace [x] & more'
+  const entries = [
+    { manager: 'npm', workspace, lockfile: `${workspace}/package-lock.json` },
+    { manager: 'pnpm', workspace, lockfile: `${workspace}/pnpm-lock.yaml` },
+  ]
+  for (const entry of entries) {
+    const result = await executeAudit(
+      entry,
+      {
+        root,
+        timeoutMs: 321,
+        platform: 'win32',
+        nodeExecutable: 'C:\\Program Files & Tools\\node.exe',
+        runExec: async (...call) => {
+          calls.push(call)
+          return { stdout: CLEAN_AUDIT, stderr: '' }
+        },
+      },
+    )
+    assert.equal(result.exitCode, 0)
+  }
+
+  assert.equal(calls.length, 2)
+  assert.deepEqual(calls.map(([executable, args]) => ({ executable, args })), [{
+    executable: 'C:\\Program Files & Tools\\node.exe',
+    args: [
+      'C:\\Program Files & Tools\\node_modules\\npm\\bin\\npm-cli.js',
+      'audit',
+      '--package-lock-only',
+      '--ignore-scripts',
+      '--audit-level=high',
+      '--json',
+    ],
+  }, {
+    executable: 'C:\\Program Files & Tools\\node.exe',
+    args: [
+      'C:\\Program Files & Tools\\node_modules\\corepack\\dist\\corepack.js',
+      'pnpm@11.13.0',
+      '--pm-on-fail=ignore',
+      'audit',
+      '--audit-level',
+      'high',
+      '--json',
+    ],
+  }])
+  for (const [, , options] of calls) {
+    assert.equal(options.cwd, resolve(root, workspace))
+    assert.equal(options.timeout, 321)
+    assert.equal(Object.hasOwn(options, 'shell'), false)
+  }
+})
+
 test('a timed-out scanner becomes an error while later locks run and the report persists', async (t) => {
   const root = await makeFixture(t, {
     locks: ['stalled/package-lock.json', 'later/package-lock.json'],
@@ -355,7 +441,7 @@ test('a timed-out scanner becomes an error while later locks run and the report 
   const fakeNpm = join(bin, 'npm')
   await writeFile(fakeNpm, `#!/usr/bin/env node
 const clean = ${JSON.stringify(CLEAN_AUDIT)}
-if (process.cwd().endsWith('/stalled')) {
+if (process.cwd().split(/[\\\\/]/).at(-1) === 'stalled') {
   setTimeout(() => process.stdout.write(clean), 1000)
 } else {
   process.stdout.write(clean)
@@ -364,7 +450,7 @@ if (process.cwd().endsWith('/stalled')) {
   await chmod(fakeNpm, 0o755)
 
   const originalPath = process.env.PATH
-  process.env.PATH = `${bin}:${originalPath}`
+  process.env.PATH = `${bin}${delimiter}${originalPath}`
   t.after(() => { process.env.PATH = originalPath })
 
   const { executeAudit, main } = await loadRunner()

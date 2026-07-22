@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process'
 import { lstat, mkdir, readFile, realpath, writeFile } from 'node:fs/promises'
-import { basename, dirname, isAbsolute, relative, resolve } from 'node:path'
+import { basename, dirname, isAbsolute, relative, resolve, win32 } from 'node:path'
 import { promisify } from 'node:util'
 import { fileURLToPath } from 'node:url'
 
@@ -205,20 +205,37 @@ export function parseAuditReport(stdout) {
   }
 }
 
-export async function executeAudit(entry, {
-  root = process.cwd(),
-  timeoutMs = DEFAULT_SCANNER_TIMEOUT_MS,
+export function buildAuditInvocation(entry, {
+  platform = process.platform,
+  nodeExecutable = process.execPath,
 } = {}) {
-  if (!Number.isInteger(timeoutMs) || timeoutMs <= 0) {
-    throw new TypeError('Audit scanner timeoutMs must be a positive integer')
-  }
   const executable = entry.manager === 'pnpm' ? 'corepack' : 'npm'
   const args = entry.manager === 'pnpm'
     ? ['pnpm@11.13.0', '--pm-on-fail=ignore', 'audit', '--audit-level', 'high', '--json']
     : ['audit', '--package-lock-only', '--ignore-scripts', '--audit-level=high', '--json']
 
+  if (platform !== 'win32') return { executable, args }
+
+  const entrypoint = entry.manager === 'pnpm'
+    ? win32.join(win32.dirname(nodeExecutable), 'node_modules', 'corepack', 'dist', 'corepack.js')
+    : win32.join(win32.dirname(nodeExecutable), 'node_modules', 'npm', 'bin', 'npm-cli.js')
+  return { executable: nodeExecutable, args: [entrypoint, ...args] }
+}
+
+export async function executeAudit(entry, {
+  root = process.cwd(),
+  timeoutMs = DEFAULT_SCANNER_TIMEOUT_MS,
+  platform = process.platform,
+  nodeExecutable = process.execPath,
+  runExec = execFileAsync,
+} = {}) {
+  if (!Number.isInteger(timeoutMs) || timeoutMs <= 0) {
+    throw new TypeError('Audit scanner timeoutMs must be a positive integer')
+  }
+  const { executable, args } = buildAuditInvocation(entry, { platform, nodeExecutable })
+
   try {
-    const { stdout, stderr } = await execFileAsync(executable, args, {
+    const { stdout, stderr } = await runExec(executable, args, {
       cwd: resolve(root, entry.workspace),
       env: process.env,
       maxBuffer: 10 * 1024 * 1024,
