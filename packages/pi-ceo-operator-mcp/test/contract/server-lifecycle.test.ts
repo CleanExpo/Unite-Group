@@ -2,8 +2,7 @@ import { createServer as createHttpServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
-import { BASE_SHA, CASE_IDS } from "../../scripts/verify-runtime-evidence.mjs";
-import { recordCase } from "../fixtures/fake-gh.mjs";
+import { BASE_SHA, CASE_IDS, recordCase } from "../fixtures/fake-gh.mjs";
 
 const roots = { package: resolve(import.meta.dirname, "../.."), repo: resolve(import.meta.dirname, "../../../..") };
 const closers: Array<() => Promise<void>> = [];
@@ -16,7 +15,11 @@ describe("runtime prerequisites and lifecycle", () => {
     expect(BASE_SHA).toBe("8e30cabe2811ba270777076a16dc817f6aaa3efd");
     expect(CASE_IDS).toHaveLength(31);
     expect(CASE_IDS).toContain("PRE-01");
-    await recordCase("PRE-01", { assertions: 3 });
+    const fixtureSource = await readFile(resolve(roots.package, "test/fixtures/fake-gh.mjs"), "utf8");
+    const verifierSource = await readFile(resolve(roots.package, "scripts/verify-runtime-evidence.mjs"), "utf8");
+    expect(fixtureSource).toContain("export const BASE_SHA");
+    expect(verifierSource).toMatch(/import \{ BASE_SHA, CASE_IDS \} from "\.\.\/test\/fixtures\/fake-gh\.mjs"/);
+    await recordCase("PRE-01", { assertions: 5 });
   });
 
   test("ENV-01 declares the approved Node and npm install contract", async () => {

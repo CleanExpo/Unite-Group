@@ -2,9 +2,15 @@ import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { BASE_SHA, CASE_IDS } from "../../scripts/verify-runtime-evidence.mjs";
 
-export { BASE_SHA, CASE_IDS };
+export const BASE_SHA = "8e30cabe2811ba270777076a16dc817f6aaa3efd";
+export const CASE_IDS = Object.freeze([
+  "PRE-01", "ENV-01", "SRV-01", "SRV-02", "RPC-01", "RPC-02", "RPC-03",
+  "LIST-01", "LIST-02", "PH-01", "PH-02", "PH-03", "PH-04", "PV-01",
+  "PV-02", "PV-03", "PV-04", "PV-05", "MAN-01", "VIEW-01", "VIEW-02",
+  "VIEW-03", "VIEW-04", "ALP-01", "ALP-02", "ALP-03", "UBU-01", "WIN-01",
+  "MUSL-01", "AUD-01", "CLOSE-01",
+]);
 
 export function evidenceDir() {
   return process.env.MCP_RUNTIME_EVIDENCE_DIR ?? join(tmpdir(), "pi-ceo-mcp-runtime-evidence");
