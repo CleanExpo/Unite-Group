@@ -5,7 +5,11 @@ import { promisify } from "node:util";
 import { execFile } from "node:child_process";
 import { describe, expect, test } from "vitest";
 import { BASE_SHA, CASE_IDS, recordCase, sha256 } from "../fixtures/fake-gh.mjs";
-import { verifyEvidence } from "../../scripts/verify-runtime-evidence.mjs";
+import {
+  BASE_SHA as VERIFIER_BASE_SHA,
+  CASE_IDS as VERIFIER_CASE_IDS,
+  verifyEvidence,
+} from "../../scripts/verify-runtime-evidence.mjs";
 
 const exec = promisify(execFile);
 const packageRoot = resolve(import.meta.dirname, "../..");
@@ -48,7 +52,19 @@ describe("Alpic, platform and closure contracts", () => {
     expect(() => allowedAlpicArgv("validate")).toThrow(/EVIDENCE_INCOMPLETE/);
     expect(() => allowedAlpicArgv("deploy")).toThrow();
     expect(JSON.stringify([allowedAlpicArgv("version"), allowedAlpicArgv("help")])).not.toContain("deploy");
-    await recordCase("ALP-03", { assertions: 3, status: "pass", log: "EVIDENCE_INCOMPLETE is the accepted fail-closed terminal" });
+    const marker = "RAW_SECRET_MARKER_912";
+    const receipt = await recordCase("ALP-03", {
+      assertions: 3,
+      status: "fail",
+      case_id: "PV-01",
+      base_sha: "0".repeat(40),
+      logs_sha256: "attacker-controlled-hash",
+      log: marker,
+    });
+    expect(receipt).not.toHaveProperty("log");
+    expect(receipt).toMatchObject({ case_id: "ALP-03", status: "pass", base_sha: BASE_SHA });
+    expect(receipt.logs_sha256).toBe(sha256(marker));
+    expect(JSON.stringify(receipt)).not.toContain(marker);
   });
 
   test("UBU-01 required Ubuntu context executes every phase and records gnu identity", async () => {
@@ -61,20 +77,24 @@ describe("Alpic, platform and closure contracts", () => {
 
   test("WIN-01 has a real x64 lane with canonical fail-fast PowerShell", async () => {
     const text = await workflow();
+    const lane = text.match(/  mcp-windows:\n([\s\S]*?)\n  mcp-musl:/)?.[1] ?? "";
     expect(text).toContain("mcp-windows:");
     expect(text).toContain("runs-on: windows-2025");
     expect(text).toContain("win32-x64-msvc");
+    expect(lane).toMatch(/actions\/checkout@[a-f0-9]+[\s\S]*persist-credentials:\s*false/);
     expect(text).toContain("$ErrorActionPreference = 'Stop'; npm ci; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; npm run test:contract; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; npm run test:view-contract; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; npm run build; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; exit 0");
-    await recordCase("WIN-01", { assertions: 4 });
+    await recordCase("WIN-01", { assertions: 5 });
   });
 
   test("MUSL-01 uses digest-pinned Alpine x64 and records musl identity", async () => {
     const text = await workflow();
+    const lane = text.match(/  mcp-musl:\n([\s\S]*?)\n  mcp:/)?.[1] ?? "";
     expect(text).toContain("mcp-musl:");
     expect(text).toMatch(/node:24\.18-alpine@sha256:[a-f0-9]{64}/);
     expect(text).toContain("linux-x64-musl");
     expect(text).toContain("--platform linux/amd64");
-    await recordCase("MUSL-01", { assertions: 4 });
+    expect(lane).toMatch(/actions\/checkout@[a-f0-9]+[\s\S]*persist-credentials:\s*false/);
+    await recordCase("MUSL-01", { assertions: 5 });
   });
 
   test("AUD-01 keeps the package audit independent from the portfolio audit", async () => {
@@ -85,6 +105,8 @@ describe("Alpic, platform and closure contracts", () => {
   });
 
   test("CLOSE-01 rejects missing, failed, stale, skipped, duplicate and zero-count receipts", async () => {
+    expect(VERIFIER_BASE_SHA).toBe(BASE_SHA);
+    expect(VERIFIER_CASE_IDS).toBe(CASE_IDS);
     const actualDir = process.env.MCP_RUNTIME_EVIDENCE_DIR ?? join(tmpdir(), "pi-ceo-mcp-runtime-evidence");
     const before = await verifyEvidence({ dir: actualDir, beforeClose: true });
     expect(before.count).toBe(30);
@@ -111,6 +133,6 @@ describe("Alpic, platform and closure contracts", () => {
         await expect(verifyEvidence({ dir, beforeClose: true })).rejects.toThrow();
       } finally { await rm(dir, { recursive: true, force: true }); }
     }
-    await recordCase("CLOSE-01", { assertions: 9 });
+    await recordCase("CLOSE-01", { assertions: 11 });
   });
 });

@@ -26,15 +26,22 @@ describe("portfolio health", () => {
     await recordCase("PH-02", { assertions: 2 });
   });
 
-  test("PH-03 total gh failure returns nine redacted unknown rows and remains bounded", async () => {
-    const { getPortfolioHealth } = await runtime();
+  test("PH-03 hung gh commands use a finite default and return explicit redacted timeouts", async () => {
+    const { GH_TIMEOUT_MS, getPortfolioHealth } = await runtime();
     const marker = "Bearer secret-suffix-123";
-    const fixtures = Object.fromEntries(repos.map((repo) => [repo, new Error(`\u001b[31m${marker}\u001b[0m`)]));
-    const result = await getPortfolioHealth({ execFile: makeFakeGh(fixtures) });
+    expect(GH_TIMEOUT_MS).toBeGreaterThan(0);
+    const started = Date.now();
+    const result = await getPortfolioHealth({
+      ghTimeoutMs: 25,
+      execFile: async (_file: string, _args: string[], options: { timeout: number }) => new Promise<never>((_, reject) => {
+        setTimeout(() => reject(Object.assign(new Error(`\u001b[31m${marker}\u001b[0m`), { code: "ETIMEDOUT" })), options.timeout);
+      }),
+    });
+    expect(Date.now() - started).toBeLessThan(500);
     expect(result.repos).toHaveLength(9);
-    expect(result.repos.every((repo: { latest_conclusion: string; error?: string }) => repo.latest_conclusion === "unknown" && repo.error === "External command failed (redacted).")).toBe(true);
+    expect(result.repos.every((repo: { latest_conclusion: string; error?: string }) => repo.latest_conclusion === "unknown" && repo.error === "External command timed out (redacted).")).toBe(true);
     expect(JSON.stringify(result)).not.toContain("secret-suffix-123");
-    await recordCase("PH-03", { assertions: 3 });
+    await recordCase("PH-03", { assertions: 5 });
   });
 
   test("PH-04 preserves healthy rows during one redacted partial failure", async () => {

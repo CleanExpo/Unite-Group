@@ -2,15 +2,9 @@ import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { BASE_SHA, CASE_IDS } from "../../scripts/verify-runtime-evidence.mjs";
 
-export const BASE_SHA = "8e30cabe2811ba270777076a16dc817f6aaa3efd";
-export const CASE_IDS = [
-  "PRE-01", "ENV-01", "SRV-01", "SRV-02", "RPC-01", "RPC-02", "RPC-03",
-  "LIST-01", "LIST-02", "PH-01", "PH-02", "PH-03", "PH-04", "PV-01",
-  "PV-02", "PV-03", "PV-04", "PV-05", "MAN-01", "VIEW-01", "VIEW-02",
-  "VIEW-03", "VIEW-04", "ALP-01", "ALP-02", "ALP-03", "UBU-01", "WIN-01",
-  "MUSL-01", "AUD-01", "CLOSE-01",
-];
+export { BASE_SHA, CASE_IDS };
 
 export function evidenceDir() {
   return process.env.MCP_RUNTIME_EVIDENCE_DIR ?? join(tmpdir(), "pi-ceo-mcp-runtime-evidence");
@@ -33,6 +27,9 @@ export async function recordCase(caseId, details = {}) {
   if (!CASE_IDS.includes(caseId)) throw new Error(`unknown case id: ${caseId}`);
   const dir = evidenceDir();
   await mkdir(dir, { recursive: true });
+  const log = typeof details.log === "string" ? details.log : `${caseId}:pass`;
+  const argv = Array.isArray(details.argv) ? details.argv : ["vitest", caseId];
+  const assertions = Number.isInteger(details.assertions) ? details.assertions : 1;
   const receipt = {
     schema_version: 1,
     case_id: caseId,
@@ -41,12 +38,11 @@ export async function recordCase(caseId, details = {}) {
     skipped: false,
     base_sha: BASE_SHA,
     identity: nativeIdentity(),
-    argv: details.argv ?? ["vitest", caseId],
+    argv,
     exit_code: 0,
     timed_out: false,
-    assertions: details.assertions ?? 1,
-    logs_sha256: sha256(details.log ?? `${caseId}:pass`),
-    ...details,
+    assertions,
+    logs_sha256: sha256(log),
   };
   const canonical = JSON.stringify(receipt);
   const envelope = { ...receipt, receipt_sha256: sha256(canonical) };

@@ -1,18 +1,26 @@
+import { win32 } from "node:path";
 import { describe, expect, test } from "vitest";
 import { recordCase } from "../fixtures/fake-gh.mjs";
 
 async function runtime() { return import("../../src/runtime.js"); }
-const logPath = "/tmp/hermetic-home/.hermes/logs/pilot_v1_scheduler.log";
+const windowsHome = "C:\\hermetic-home";
+const windowsLogPath = win32.join(windowsHome, ".hermes/logs/pilot_v1_scheduler.log");
 
 describe("Pilot V1 outcomes", () => {
   test("PV-01 returns the newest five valid fixtures with exact path and counts", async () => {
     const { getPilotV1Outcomes } = await runtime();
     const lines = Array.from({ length: 7 }, (_, index) => JSON.stringify({ outcome: index % 2 ? "sent" : "paused", ts: `2026-07-22T00:00:0${index}Z` })).join("\n");
-    const result = await getPilotV1Outcomes(5, { homedir: () => "/tmp/hermetic-home", readFile: async () => lines });
-    expect(result.log_path).toBe(logPath);
+    let readPath = "";
+    const result = await getPilotV1Outcomes(5, {
+      homedir: () => windowsHome,
+      readFile: async (path) => { readPath = path; return lines; },
+      joinPath: win32.join,
+    });
+    expect(readPath).toBe(windowsLogPath);
+    expect(result.log_path).toBe(windowsLogPath);
     expect(result.outcomes).toHaveLength(5);
     expect(result.outcomes[0].ts).toBe("2026-07-22T00:00:06Z");
-    await recordCase("PV-01", { assertions: 3 });
+    await recordCase("PV-01", { assertions: 4 });
   });
 
   test("PV-02 skips noise, scalars and objects without outcome", async () => {
@@ -44,9 +52,13 @@ describe("Pilot V1 outcomes", () => {
 
   test("PV-05 fails soft on missing file with bounded redaction", async () => {
     const { getPilotV1Outcomes } = await runtime();
-    const result = await getPilotV1Outcomes(5, { homedir: () => "/tmp/hermetic-home", readFile: async () => { throw new Error("Basic c2VjcmV0OnN1ZmZpeA=="); } });
+    const result = await getPilotV1Outcomes(5, {
+      homedir: () => windowsHome,
+      readFile: async () => { throw new Error("Basic c2VjcmV0OnN1ZmZpeA=="); },
+      joinPath: win32.join,
+    });
     expect(result.outcomes).toEqual([]);
-    expect(result.log_path).toBe(logPath);
+    expect(result.log_path).toBe(windowsLogPath);
     expect(result.error).toBe("Local outcome log unavailable (redacted).");
     expect(JSON.stringify(result)).not.toContain("c2VjcmV0");
     await recordCase("PV-05", { assertions: 4 });

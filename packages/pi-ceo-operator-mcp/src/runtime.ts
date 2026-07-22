@@ -14,6 +14,7 @@ export const PORTFOLIO_REPOS = [
 ] as const;
 const ORG = "CleanExpo";
 const execFileDefault = promisify(execFileCallback);
+export const GH_TIMEOUT_MS = 15_000;
 
 export type RepoHealth = {
   repo: string;
@@ -25,16 +26,20 @@ export type RepoHealth = {
 export type PilotOutcome = { outcome: string; tenant_slug?: string; ts: string; error?: string; error_type?: string };
 type ExecResult = { stdout: string | Buffer; stderr: string | Buffer };
 export type RuntimeDependencies = {
-  execFile: (file: string, args: string[]) => Promise<ExecResult>;
+  execFile: (file: string, args: string[], options: { timeout: number }) => Promise<ExecResult>;
+  ghTimeoutMs: number;
   readFile: (path: string, encoding: "utf8") => Promise<string>;
   homedir: () => string;
+  joinPath: (...paths: string[]) => string;
   now: () => Date;
 };
 
 const defaults: RuntimeDependencies = {
-  execFile: async (file, args) => execFileDefault(file, args) as Promise<ExecResult>,
+  execFile: async (file, args, options) => execFileDefault(file, args, options) as Promise<ExecResult>,
+  ghTimeoutMs: GH_TIMEOUT_MS,
   readFile: nodeReadFile,
   homedir: nodeHomedir,
+  joinPath: join,
   now: () => new Date(),
 };
 const portfolioInput = z.object({}).strict();
@@ -52,8 +57,16 @@ export function validatePilotInput(value: unknown): { limit: number } {
   return pilotInput.parse(value);
 }
 
-export function redactError(_value: unknown, kind: "command" | "file" = "command"): string {
-  return kind === "file" ? "Local outcome log unavailable (redacted)." : "External command failed (redacted).";
+export function redactError(_value: unknown, kind: "command" | "file" | "timeout" = "command"): string {
+  if (kind === "file") return "Local outcome log unavailable (redacted).";
+  if (kind === "timeout") return "External command timed out (redacted).";
+  return "External command failed (redacted).";
+}
+
+function isTimeoutError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const value = error as { code?: unknown; killed?: unknown };
+  return value.code === "ETIMEDOUT" || value.killed === true;
 }
 
 export function redactRepoResults<T extends { repos: RepoHealth[] }>(value: T): T {
@@ -70,7 +83,7 @@ async function fetchRepoHealth(repo: string, deps: RuntimeDependencies): Promise
       `repos/${ORG}/${repo}/actions/runs?branch=main&per_page=10`,
       "--jq",
       "{runs: [.workflow_runs[] | {conclusion, html_url, name}]}",
-    ]);
+    ], { timeout: deps.ghTimeoutMs });
     const parsed = JSON.parse(String(stdout)) as { runs?: Array<{ conclusion: string | null; html_url: string }> };
     const runs = Array.isArray(parsed.runs) ? parsed.runs : [];
     const latest = runs[0];
@@ -83,7 +96,12 @@ async function fetchRepoHealth(repo: string, deps: RuntimeDependencies): Promise
       ...(latest?.html_url ? { latest_run_url: latest.html_url } : {}),
     };
   } catch (error) {
-    return { repo, latest_conclusion: "unknown", fail_count_last_10: 0, error: redactError(error) };
+    return {
+      repo,
+      latest_conclusion: "unknown",
+      fail_count_last_10: 0,
+      error: redactError(error, isTimeoutError(error) ? "timeout" : "command"),
+    };
   }
 }
 
@@ -101,7 +119,7 @@ export async function getPortfolioHealth(overrides: Partial<RuntimeDependencies>
 export async function getPilotV1Outcomes(limit: number, overrides: Partial<RuntimeDependencies> = {}) {
   const validated = validatePilotInput({ limit });
   const deps = dependencies(overrides);
-  const log_path = join(deps.homedir(), ".hermes/logs/pilot_v1_scheduler.log");
+  const log_path = deps.joinPath(deps.homedir(), ".hermes/logs/pilot_v1_scheduler.log");
   try {
     const contents = await deps.readFile(log_path, "utf8");
     const outcomes: PilotOutcome[] = [];

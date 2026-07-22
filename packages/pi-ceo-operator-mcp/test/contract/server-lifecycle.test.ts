@@ -2,6 +2,7 @@ import { createServer as createHttpServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
+import { BASE_SHA, CASE_IDS } from "../../scripts/verify-runtime-evidence.mjs";
 import { recordCase } from "../fixtures/fake-gh.mjs";
 
 const roots = { package: resolve(import.meta.dirname, "../.."), repo: resolve(import.meta.dirname, "../../../..") };
@@ -11,18 +12,10 @@ afterEach(async () => { while (closers.length) await closers.pop()?.(); });
 async function runtime() { return import("../../src/runtime.js"); }
 
 describe("runtime prerequisites and lifecycle", () => {
-  test("PRE-01 exact base and branch contract are frozen", async () => {
-    const { execFile } = await import("node:child_process");
-    const { promisify } = await import("node:util");
-    const exec = promisify(execFile);
-    const [{ stdout: main }, { stdout: mergeBase }, { stdout: branch }] = await Promise.all([
-      exec("git", ["rev-parse", "origin/main"], { cwd: roots.repo }),
-      exec("git", ["merge-base", "HEAD", "origin/main"], { cwd: roots.repo }),
-      exec("git", ["branch", "--show-current"], { cwd: roots.repo }),
-    ]);
-    expect(main.trim()).toBe("8e30cabe2811ba270777076a16dc817f6aaa3efd");
-    expect(mergeBase.trim()).toBe("8e30cabe2811ba270777076a16dc817f6aaa3efd");
-    expect(branch.trim()).toBe("fix/pi-ceo-mcp-runtime-contract-8e30cabe");
+  test("PRE-01 freezes evidence authority without git, branch or remote-ref prerequisites", async () => {
+    expect(BASE_SHA).toBe("8e30cabe2811ba270777076a16dc817f6aaa3efd");
+    expect(CASE_IDS).toHaveLength(31);
+    expect(CASE_IDS).toContain("PRE-01");
     await recordCase("PRE-01", { assertions: 3 });
   });
 
