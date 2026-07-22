@@ -14,9 +14,11 @@ Generated: 2026-07-21T19:38:07Z · Horizon: 18 moves · Current authority: L0 sp
 - [auto] 18-move graph is acyclic/reachable and every L1-L3 action is dominated by explicit Phill gates
 - [human] PR approval, signing, notarisation, publication, merge and deployment remain detached and non-automatic
 
-## Frozen board state
+## Frozen board state and external authority
 
-- Immutable identity: `CleanExpo/Unite-Group` PR `903`; current base `8e30cabe2811ba270777076a16dc817f6aaa3efd`; repaired exact source head `b2a283decbe69aa16b422eb4636a8ddf2d9e86ec`; governed scope exactly `PR903-MAC-RUNTIME-REHEARSAL-PLAN.md`, `apps/web/package.json`, `apps/web/pnpm-lock.yaml`, `apps/workspace/package.json`, `apps/workspace/pnpm-lock.yaml`, `packages/pi-ceo-operator-mcp/package-lock.json`, `packages/pi-ceo-operator-mcp/package.json`, `pr903-mac-command-receipt.schema.json`, `pr903-mac-rehearsal-trust-anchor.json`, `pr903-mac-runtime-rehearsal-plan.json`, `validate_pr903_mac_rehearsal_envelope.py`.
+- Tracked identity uses `external_exact_pr_authority_v1`: `CleanExpo/Unite-Group` PR `903`, input base `8e30cabe2811ba270777076a16dc817f6aaa3efd`, and the exact ordered 11-path governed scope. No tracked file claims the final head or tree that contains its own bytes.
+- Runtime authority is the canonical external `<RUN_ROOT>/authority/pr-authority-receipt.json`, produced only after ordinary push from authenticated GitHub PR and commit/tree reads. It binds OPEN/non-draft state, base, final head, final tree, ordered changed paths, their digest, observation time and the exact raw source-payload digest.
+- C05C checks out `head_sha` from that verified external receipt. The validator independently requires checkout `HEAD`, `HEAD^{tree}`, base ancestry, ordered `git diff --name-only base...head`, and the governed-path digest to match it exactly.
 - Accepted canonical verdict is attachment 1101. Attachment 1098 is superseded and must never be used as authority.
 - Portability manifest authority uses corrected attachment 1091 hash `2efbfcb2ec04090ad8e7aa37d625572eeed632337006e8eae71387a8580e0516`, not stale completion metadata.
 - HARD_STOP start: present, inode 134511257, 0 bytes, mtime 1784200128, SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
@@ -122,9 +124,13 @@ The five accepted-packet release gates remain exactly signing, notarisation, pub
 ## Closed 45-command envelope and detached validator repair
 
 - Exactly 45 canonical UTF-8 JSON receipts are required, with the contiguous command map frozen in `pr903-mac-rehearsal-trust-anchor.json`; no missing, duplicate, reordered or 46th member is accepted.
-- Every receipt binds command, frozen plan hash, one run, move, scenario, exact repository/PR/base/head/governed-path digest, scenario target, non-null expected gate, sequence, NUL-delimited argv, timeout, exit/signal, raw byte counts/hashes and pre/post/owned/rollback state.
+- Every receipt binds command, frozen plan hash, one run, move, scenario, exact external repository/PR/base/head/tree/governed-path authority, scenario target, authenticated expected gate, sequence, recomputed NUL-delimited argv, exact timeout/exit/signal, raw stream byte counts/hashes and a closed desired-state predicate.
 - Sequence 1 binds the non-null trust-anchor seed. Sequences 2–45 bind the SHA-256 of the immediately preceding complete canonical receipt bytes.
-- `validate_pr903_mac_rehearsal_envelope.py` is detached and hash-bound. Its only accepted CLI is the exact ordered named-argument interface frozen in the JSON plan. It rejects unknown flags/positionals, duplicate/unknown JSON keys, wrong types, path escape, symlinks, non-regular files, trust-anchor mismatch, unexpected directory members and replay-ledger collisions.
+- `validate_pr903_mac_rehearsal_envelope.py` is detached and hash-bound. Before argparse it requires exactly these 13 flag/value pairs in order: `--evidence-root`, `--run-root`, `--repo-root`, `--plan`, `--receipt-schema`, `--trust-anchor`, `--receipts-dir`, `--streams-dir`, `--authority-receipt`, `--gates-dir`, `--expected-run-id`, `--replay-ledger`, `--output`. Unknown, duplicated, reordered, omitted or positional tokens are `REJECT_INTERFACE`.
+- Paths are absolute fixed children of owner-only, non-symlink evidence/run roots. Lexical `..`, symlink components, wrong owner/type/mode, alternate receipt/stream/gate/ledger paths and implicit mkdir are rejected. Critical files are opened with `O_NOFOLLOW` and checked by matching `lstat`/`fstat` identity.
+- All 90 fixed stream files are reopened and rehashed. Receipt-controlled freshness is removed; each command's anchor-owned `freshness_policy` is enforced. Status must be `PASS`, exact exit semantics must match, and requested/resolved executable, argv and timeout must equal the frozen command entry.
+- Gate JSON is canonical UTF-8 plus LF and must verify with `/usr/bin/ssh-keygen -Y verify`, namespace `unite-group-pr903-gate-v1`, signer `phill@unite-group.in`, and a pinned CleanExpo Ed25519 key. It binds exact authority bytes, scope, base/head/tree, run and a maximum four-hour window. This specification creates no real Phill gate.
+- Replay state is a canonical hash-chained JSONL ledger guarded by bounded exclusive `fcntl.flock`. Under lock the validator rereads the whole ledger, rejects run/receipt/stream replay, appends once with `O_APPEND|O_NOFOLLOW`, then fsyncs file and evidence-root directory. `ACCEPTED` output is exclusively installed and fsynced only after the durable append.
 - The trust anchor self-digest is computed over canonical JSON with `self_sha256` set to null, avoiding an impossible recursive byte hash while still freezing every trust-anchor field.
 
 ## Repaired C14 transport and restoration contract

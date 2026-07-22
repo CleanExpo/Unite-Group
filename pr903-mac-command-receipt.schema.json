@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:unite-group:pr903:mac-command-receipt:2.0",
+  "$id": "urn:unite-group:pr903:mac-command-receipt:3.0",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -8,10 +8,10 @@
     "run_started_at_utc", "move_id", "scenario_id", "observed_at_utc",
     "platform", "shell", "executable", "target", "gate_id",
     "gate_receipt_sha256", "sequence", "previous_receipt_bytes_sha256",
-    "command", "exit", "output", "state", "status"
+    "command", "exit", "output", "desired_state", "status"
   ],
   "properties": {
-    "schema_version": {"const": "2.0"},
+    "schema_version": {"const": "3.0"},
     "receipt_id": {"type": "string", "minLength": 1},
     "command_id": {"type": "string", "pattern": "^C(01|03|04[A-D]|05[A-C]|06[A-B]|07|08[A-D]|09|10[A-F]|11[A-C]|12[A-B]|13|14[A-D]|15[A-D]|16[A-B]|17[A-D]|18[A-B])$"},
     "plan_sha256": {"$ref": "#/$defs/sha256"},
@@ -48,13 +48,15 @@
     },
     "target": {
       "type": "object", "additionalProperties": false,
-      "required": ["kind", "identity", "sha256", "repository", "pr_number", "base_sha", "head_sha", "changed_files_sha256", "scenario_target_sha256"],
+      "required": ["kind", "identity", "sha256", "repository", "pr_number", "base_sha", "head_sha", "tree_sha", "changed_files_sha256", "scenario_target_sha256", "authority_receipt_sha256"],
       "properties": {
         "kind": {"type": "string", "minLength": 1}, "identity": {"type": "string", "minLength": 1},
         "sha256": {"$ref": "#/$defs/sha256"}, "repository": {"const": "CleanExpo/Unite-Group"},
         "pr_number": {"const": 903}, "base_sha": {"$ref": "#/$defs/gitSha"},
-        "head_sha": {"$ref": "#/$defs/gitSha"}, "changed_files_sha256": {"$ref": "#/$defs/sha256"},
-        "scenario_target_sha256": {"$ref": "#/$defs/sha256"}
+        "head_sha": {"$ref": "#/$defs/gitSha"}, "tree_sha": {"$ref": "#/$defs/gitSha"},
+        "changed_files_sha256": {"$ref": "#/$defs/sha256"},
+        "scenario_target_sha256": {"$ref": "#/$defs/sha256"},
+        "authority_receipt_sha256": {"$ref": "#/$defs/sha256"}
       }
     },
     "gate_id": {"type": "string", "minLength": 1},
@@ -65,7 +67,7 @@
       "type": "object", "additionalProperties": false,
       "required": ["argv", "argv_nul_sha256", "timeout_seconds"],
       "properties": {
-        "argv": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "argv": {"type": "array", "items": {"type": "string", "not": {"pattern": "\\u0000"}}},
         "argv_nul_sha256": {"$ref": "#/$defs/sha256"},
         "timeout_seconds": {"type": "integer", "minimum": 1, "maximum": 900}
       }
@@ -75,30 +77,84 @@
       "required": ["code", "signal", "timed_out"],
       "properties": {
         "code": {"type": ["integer", "null"]}, "signal": {"type": ["string", "null"]},
-        "timed_out": {"type": "boolean"}
+        "timed_out": {"const": false}
       }
     },
     "output": {
       "type": "object", "additionalProperties": false,
-      "required": ["stdout_bytes", "stdout_sha256", "stderr_bytes", "stderr_sha256", "secret_scan_count", "fresh_output_required"],
+      "required": ["stdout_bytes", "stdout_sha256", "stderr_bytes", "stderr_sha256", "secret_scan_count"],
       "properties": {
         "stdout_bytes": {"type": "integer", "minimum": 0}, "stdout_sha256": {"$ref": "#/$defs/sha256"},
         "stderr_bytes": {"type": "integer", "minimum": 0}, "stderr_sha256": {"$ref": "#/$defs/sha256"},
-        "secret_scan_count": {"const": 0}, "fresh_output_required": {"type": "boolean"}
+        "secret_scan_count": {"const": 0}
       }
     },
-    "state": {
-      "type": "object", "additionalProperties": false,
-      "required": ["pre_state_sha256", "post_state_sha256", "owned_resources_sha256", "rollback_receipt_sha256"],
-      "properties": {
-        "pre_state_sha256": {"$ref": "#/$defs/sha256"}, "post_state_sha256": {"$ref": "#/$defs/sha256"},
-        "owned_resources_sha256": {"$ref": "#/$defs/sha256"}, "rollback_receipt_sha256": {"$ref": "#/$defs/sha256"}
-      }
+    "desired_state": {
+      "oneOf": [
+        {"$ref": "#/$defs/commandCompleted"},
+        {"$ref": "#/$defs/c14a"},
+        {"$ref": "#/$defs/c14b"},
+        {"$ref": "#/$defs/c14c"},
+        {"$ref": "#/$defs/c14d"}
+      ]
     },
-    "status": {"enum": ["PASS", "BLOCKED", "REQUEST_CHANGES", "STALE", "EVIDENCE_INCOMPLETE", "BLOCKED_ROLLBACK_FAILED"]}
+    "status": {"const": "PASS"}
   },
   "$defs": {
     "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "gitSha": {"type": "string", "pattern": "^[0-9a-f]{40}$"}
+    "gitSha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "commandCompleted": {
+      "type": "object", "additionalProperties": false,
+      "required": ["predicate_id", "passed"],
+      "properties": {"predicate_id": {"const": "command_completed_v1"}, "passed": {"const": true}}
+    },
+    "c14a": {
+      "type": "object", "additionalProperties": false,
+      "required": ["predicate_id", "approved_interface_disabled", "sole_external_interface", "default_route_interface_matches", "service_state_captured", "device_state_captured", "power_state_captured", "link_state_captured", "all_non_loopback_interfaces_captured", "all_external_routes_captured", "gateway_target_captured", "application_contract_captured", "pre_state", "pre_state_sha256"],
+      "properties": {
+        "predicate_id": {"const": "approved_interface_prestate_v1"},
+        "approved_interface_disabled": {"const": false},
+        "sole_external_interface": {"const": true}, "default_route_interface_matches": {"const": true},
+        "service_state_captured": {"const": true}, "device_state_captured": {"const": true},
+        "power_state_captured": {"const": true}, "link_state_captured": {"const": true},
+        "all_non_loopback_interfaces_captured": {"const": true}, "all_external_routes_captured": {"const": true},
+        "gateway_target_captured": {"const": true}, "application_contract_captured": {"const": true},
+        "pre_state": {"type": "object"}, "pre_state_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "c14b": {
+      "type": "object", "additionalProperties": false,
+      "required": ["predicate_id", "transport_class", "transport_succeeded", "http_status", "content_type", "content_type_passed", "required_headers_passed", "body_schema", "body_schema_passed", "route_identity_passed", "secret_scan_count"],
+      "properties": {
+        "predicate_id": {"const": "gateway_unavailable_503_v1"}, "transport_class": {"const": "http"},
+        "transport_succeeded": {"const": true}, "http_status": {"const": 503},
+        "content_type": {"const": "application/json"}, "content_type_passed": {"const": true},
+        "required_headers_passed": {"const": true}, "body_schema": {"const": "gateway_unavailable_v1"},
+        "body_schema_passed": {"const": true}, "route_identity_passed": {"const": true},
+        "secret_scan_count": {"const": 0}
+      }
+    },
+    "c14c": {
+      "type": "object", "additionalProperties": false,
+      "required": ["predicate_id", "approved_interface_disabled", "external_route_count", "transport_class", "http_status", "route_absence_proof_passed", "offline_ui_predicate_passed", "secret_scan_count"],
+      "properties": {
+        "predicate_id": {"const": "approved_interface_offline_v1"}, "approved_interface_disabled": {"const": true},
+        "external_route_count": {"const": 0}, "transport_class": {"enum": ["dns_failure", "connect_refused", "network_unreachable", "timeout"]},
+        "http_status": {"type": "null"}, "route_absence_proof_passed": {"const": true},
+        "offline_ui_predicate_passed": {"const": true}, "secret_scan_count": {"const": 0}
+      }
+    },
+    "c14d": {
+      "type": "object", "additionalProperties": false,
+      "required": ["predicate_id", "finally_executed", "trigger", "restoration_attempted", "restoration_succeeded", "power_reread", "link_reread", "service_reread", "routes_reread", "pre_state_sha256", "post_state_sha256"],
+      "properties": {
+        "predicate_id": {"const": "finally_exact_restoration_v1"}, "finally_executed": {"const": true},
+        "trigger": {"enum": ["success", "failure", "timeout", "interruption"]},
+        "restoration_attempted": {"const": true}, "restoration_succeeded": {"const": true},
+        "power_reread": {"const": true}, "link_reread": {"const": true},
+        "service_reread": {"const": true}, "routes_reread": {"const": true},
+        "pre_state_sha256": {"$ref": "#/$defs/sha256"}, "post_state_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    }
   }
 }

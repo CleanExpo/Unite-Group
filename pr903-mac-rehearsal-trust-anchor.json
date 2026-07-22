@@ -1,13 +1,13 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "artifact": "pr903-mac-rehearsal-trust-anchor",
-  "self_sha256": "cd1ee662d659228755a339398b0a175c81ca2600181864765dabb9badbff3b39",
+  "self_sha256": "9058762bbb77baefe931b3920e12c882e6a38a47fe66e83e79dbb0e26a468776",
   "identity": {
+    "binding_mode": "external_exact_pr_authority_v1",
     "repository": "CleanExpo/Unite-Group",
     "pr_number": 903,
-    "base_sha": "8e30cabe2811ba270777076a16dc817f6aaa3efd",
-    "head_sha": "b2a283decbe69aa16b422eb4636a8ddf2d9e86ec",
-    "changed_files": [
+    "input_base_sha": "8e30cabe2811ba270777076a16dc817f6aaa3efd",
+    "governed_paths": [
       "PR903-MAC-RUNTIME-REHEARSAL-PLAN.md",
       "apps/web/package.json",
       "apps/web/pnpm-lock.yaml",
@@ -20,26 +20,27 @@
       "pr903-mac-runtime-rehearsal-plan.json",
       "validate_pr903_mac_rehearsal_envelope.py"
     ],
-    "changed_files_sha256": "c025f832122f8f8c0152b67b64bb0208e6b6351864059c3c0c4f7a4b477cad4f",
+    "changed_files_sha256": "2f57c865c390c81d419a8ab4ecdace89e5987c779d941705ad30ec28b628b184",
+    "changed_files_digest_algorithm": "SHA-256 of canonical ordered governed_paths JSON plus LF",
     "manifest_sha256": "b608639c7dca082b557fcc3259ee81554e702a7255cef2d0b28f3f3258475007",
     "lockfile_sha256": "fa44571489dbb490a322f2e6fb7da1d8a2352bcd6580b4965a04fc4c77b27015"
   },
   "files": {
     "plan_markdown": {
       "path": "PR903-MAC-RUNTIME-REHEARSAL-PLAN.md",
-      "sha256": "82019441cf5affa79cced085400e2fe0678b5356b8511ee7f5f96fada01fc1be"
+      "sha256": "43da1c9b780ea2c4af76ec5540a542274ed7755bf1467cbd8c2c708db04f4198"
     },
     "plan": {
       "path": "pr903-mac-runtime-rehearsal-plan.json",
-      "sha256": "9af7d2be8b21cfbcbc8b6d13f440028e0478303d957fc12805df17c6822012c3"
+      "sha256": "d20b5a6a207515aa0bfe454f747866a5b6c21012689b5bb9111e1446c7525686"
     },
     "receipt_schema": {
       "path": "pr903-mac-command-receipt.schema.json",
-      "sha256": "ac1e2af2179e446a0ac00ca6e30d1d31b227388a8e705c083c0b027dd706bb0e"
+      "sha256": "bfdcad6d265c6fa57c9fa332dd296a5d5a5e557413be0b10cf9ef77338071421"
     },
     "validator": {
       "path": "validate_pr903_mac_rehearsal_envelope.py",
-      "sha256": "38a7c7efd03389139b5ba0a2909771537a9e53c313a4c351c7ccb7cb7535f6c3"
+      "sha256": "00942c937087bbed14b454776e3e60404df3339d3874046c25fce3463e4a3723"
     }
   },
   "expected_commands": [
@@ -50,7 +51,24 @@
       "scenario_id": "authority-preflight",
       "gate_id": "G-CONTRACT-AUTHORITY",
       "target_identity": "accepted packet and portability attachments",
-      "scenario_target_sha256": "2af18141875583c4b15c8d3e696e787fdbdd68f121e1e71982fa2ec41b224af7"
+      "scenario_target_sha256": "67ebca26bfb74f294d6f273b2e3e88958beb65bcee62eb649448023a0f5f6926",
+      "requested_executable": "/usr/bin/shasum",
+      "allowed_resolved_executables": [
+        "/usr/bin/shasum"
+      ],
+      "argv": [
+        "-a",
+        "256",
+        "<canonical-attachments>"
+      ],
+      "timeout_seconds": 30,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 2,
@@ -59,7 +77,28 @@
       "scenario_id": "identity-preflight",
       "gate_id": "G-HARDSTOP-CLEARANCE",
       "target_identity": "GitHub PR 903 read-only",
-      "scenario_target_sha256": "42861e9cecae7e329f10fd88c7d53865aaa4e0240eb4885967021bc7e6e3af38"
+      "scenario_target_sha256": "8443e49643c71ffe5f590c3e0ad7190a043ade022d8d955c62715535bb4d3d9f",
+      "requested_executable": "/usr/local/bin/gh",
+      "allowed_resolved_executables": [
+        "/usr/local/bin/gh"
+      ],
+      "argv": [
+        "pr",
+        "view",
+        "903",
+        "--repo",
+        "CleanExpo/Unite-Group",
+        "--json",
+        "number,baseRefOid,headRefOid,files"
+      ],
+      "timeout_seconds": 60,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 3,
@@ -68,7 +107,20 @@
       "scenario_id": "host-preflight",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "Mac host",
-      "scenario_target_sha256": "62c30fe14695561b066d1073a828fbfb78bd16764f609dcf7afdc5ab5c11e9f8"
+      "scenario_target_sha256": "463f27ccd8366070e3ae31c4b8515fa0a9a8503fcd7a21d83e6fc7fa34154433",
+      "requested_executable": "/usr/bin/sw_vers",
+      "allowed_resolved_executables": [
+        "/usr/bin/sw_vers"
+      ],
+      "argv": [],
+      "timeout_seconds": 30,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 4,
@@ -77,7 +129,22 @@
       "scenario_id": "host-preflight",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "Mac host",
-      "scenario_target_sha256": "62c30fe14695561b066d1073a828fbfb78bd16764f609dcf7afdc5ab5c11e9f8"
+      "scenario_target_sha256": "463f27ccd8366070e3ae31c4b8515fa0a9a8503fcd7a21d83e6fc7fa34154433",
+      "requested_executable": "/usr/bin/uname",
+      "allowed_resolved_executables": [
+        "/usr/bin/uname"
+      ],
+      "argv": [
+        "-m"
+      ],
+      "timeout_seconds": 30,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 5,
@@ -86,7 +153,23 @@
       "scenario_id": "host-preflight",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "run volume",
-      "scenario_target_sha256": "2a1243d0affc98d26fcd30d0ed5911eb1411163f9f56f81c64fe506ae028a657"
+      "scenario_target_sha256": "d033db663065a5c2e32146d11a715cef7472b4a6a33cba2fcfab3046bdb55fe4",
+      "requested_executable": "/bin/df",
+      "allowed_resolved_executables": [
+        "/bin/df"
+      ],
+      "argv": [
+        "-Pk",
+        "<RUN_ROOT>"
+      ],
+      "timeout_seconds": 30,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 6,
@@ -95,7 +178,23 @@
       "scenario_id": "host-preflight",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "Apple toolchain",
-      "scenario_target_sha256": "fbcf96ff07abd35db17de883a12bad24b51c80721ed39adad7cda75c4cf1bc0e"
+      "scenario_target_sha256": "52f1b40e60c41a98583f7c0a61eee5aed03f9febbebfecb39382fc1a1e95fac9",
+      "requested_executable": "/usr/bin/xcrun",
+      "allowed_resolved_executables": [
+        "/usr/bin/xcrun"
+      ],
+      "argv": [
+        "--find",
+        "codesign"
+      ],
+      "timeout_seconds": 30,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 7,
@@ -104,7 +203,23 @@
       "scenario_id": "build-preflight",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "run-owned root",
-      "scenario_target_sha256": "c26bc58a22011466f9360e6566b998b77571e8ae0db63d2312a8277a025cb00a"
+      "scenario_target_sha256": "d10d24de6c88966c00c1a7a5925d97088b52c5299fab6d6860ffca59089e665c",
+      "requested_executable": "/usr/bin/mktemp",
+      "allowed_resolved_executables": [
+        "/usr/bin/mktemp"
+      ],
+      "argv": [
+        "-d",
+        "${TMPDIR%/}/pr903-runtime.XXXXXXXX"
+      ],
+      "timeout_seconds": 30,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 8,
@@ -113,7 +228,25 @@
       "scenario_id": "build-preflight",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "run-owned source",
-      "scenario_target_sha256": "8f9cba626d562dc47515e195015f4d0098315dfd4eab8433650c34adeac1f60e"
+      "scenario_target_sha256": "dc910461083a70722c10634fa8ae5153dc8aa43fb04d87dbdaa6f6a501279ffc",
+      "requested_executable": "/usr/bin/git",
+      "allowed_resolved_executables": [
+        "/usr/bin/git"
+      ],
+      "argv": [
+        "clone",
+        "--no-checkout",
+        "<approved-repository-url>",
+        "<RUN_ROOT>/source"
+      ],
+      "timeout_seconds": 180,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 9,
@@ -122,7 +255,26 @@
       "scenario_id": "build-preflight",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "exact PR head",
-      "scenario_target_sha256": "b99a33db340eab65375d275b5e037aea9eb8f6eb2c2455d66bba803f3e4b8d2f"
+      "scenario_target_sha256": "781de97d738b189c4a7813816c72a7ef92a263c4ce83d13ddc101640dcf31ba2",
+      "requested_executable": "/usr/bin/git",
+      "allowed_resolved_executables": [
+        "/usr/bin/git"
+      ],
+      "argv": [
+        "-C",
+        "<RUN_ROOT>/source",
+        "checkout",
+        "--detach",
+        "<VERIFIED_EXTERNAL_AUTHORITY_HEAD_SHA>"
+      ],
+      "timeout_seconds": 60,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 10,
@@ -131,7 +283,26 @@
       "scenario_id": "build-preflight",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "apps/workspace",
-      "scenario_target_sha256": "4d35dcb5f380d27c8e5cc61345951cc588469ff2b964ee780850ea3f3329519e"
+      "scenario_target_sha256": "99fe222ad0c23b2f6c6ea94a392ab7983214f75d931e3b47f37525ad4369bf3a",
+      "requested_executable": "/usr/bin/env",
+      "allowed_resolved_executables": [
+        "/usr/bin/env"
+      ],
+      "argv": [
+        "pnpm",
+        "--dir",
+        "<RUN_ROOT>/source/apps/workspace",
+        "install",
+        "--frozen-lockfile"
+      ],
+      "timeout_seconds": 600,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 11,
@@ -140,7 +311,26 @@
       "scenario_id": "build-preflight",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "apps/workspace",
-      "scenario_target_sha256": "4d35dcb5f380d27c8e5cc61345951cc588469ff2b964ee780850ea3f3329519e"
+      "scenario_target_sha256": "99fe222ad0c23b2f6c6ea94a392ab7983214f75d931e3b47f37525ad4369bf3a",
+      "requested_executable": "/usr/bin/env",
+      "allowed_resolved_executables": [
+        "/usr/bin/env"
+      ],
+      "argv": [
+        "pnpm",
+        "--dir",
+        "<RUN_ROOT>/source/apps/workspace",
+        "test",
+        "--if-present"
+      ],
+      "timeout_seconds": 600,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 12,
@@ -149,7 +339,26 @@
       "scenario_id": "dmg-build",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "apps/workspace unsigned arm64 DMG",
-      "scenario_target_sha256": "ea3768f38029bed86d715788faf774fb6ada283503700a8a21dba85cd8d4c0b7"
+      "scenario_target_sha256": "8df50a84b3b4f0d31a4b9c5e8dee3cfa6446e9b981f08cd2abf5adefcc92f925",
+      "requested_executable": "/usr/bin/env",
+      "allowed_resolved_executables": [
+        "/usr/bin/env"
+      ],
+      "argv": [
+        "pnpm",
+        "--dir",
+        "<RUN_ROOT>/source/apps/workspace",
+        "run",
+        "<DECLARED_MAC_DMG_SCRIPT>"
+      ],
+      "timeout_seconds": 900,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 13,
@@ -158,7 +367,24 @@
       "scenario_id": "dmg-integrity",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "DMG",
-      "scenario_target_sha256": "a21de62b5122d827fee69b3f30705d87cb22187bb6791f15571c4f9154c6c259"
+      "scenario_target_sha256": "5d6b5c297a9d9a08b374f9d81ea803eec55c6ca189fc842aed44168af14e7687",
+      "requested_executable": "/usr/bin/stat",
+      "allowed_resolved_executables": [
+        "/usr/bin/stat"
+      ],
+      "argv": [
+        "-f",
+        "%N|%HT|%z|%m",
+        "<DMG>"
+      ],
+      "timeout_seconds": 30,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 14,
@@ -167,7 +393,24 @@
       "scenario_id": "dmg-integrity",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "DMG",
-      "scenario_target_sha256": "a21de62b5122d827fee69b3f30705d87cb22187bb6791f15571c4f9154c6c259"
+      "scenario_target_sha256": "5d6b5c297a9d9a08b374f9d81ea803eec55c6ca189fc842aed44168af14e7687",
+      "requested_executable": "/usr/bin/shasum",
+      "allowed_resolved_executables": [
+        "/usr/bin/shasum"
+      ],
+      "argv": [
+        "-a",
+        "256",
+        "<DMG>"
+      ],
+      "timeout_seconds": 30,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 15,
@@ -176,7 +419,23 @@
       "scenario_id": "dmg-integrity",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "DMG",
-      "scenario_target_sha256": "a21de62b5122d827fee69b3f30705d87cb22187bb6791f15571c4f9154c6c259"
+      "scenario_target_sha256": "5d6b5c297a9d9a08b374f9d81ea803eec55c6ca189fc842aed44168af14e7687",
+      "requested_executable": "/usr/bin/hdiutil",
+      "allowed_resolved_executables": [
+        "/usr/bin/hdiutil"
+      ],
+      "argv": [
+        "verify",
+        "<DMG>"
+      ],
+      "timeout_seconds": 120,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 16,
@@ -185,7 +444,23 @@
       "scenario_id": "dmg-integrity",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "DMG",
-      "scenario_target_sha256": "a21de62b5122d827fee69b3f30705d87cb22187bb6791f15571c4f9154c6c259"
+      "scenario_target_sha256": "5d6b5c297a9d9a08b374f9d81ea803eec55c6ca189fc842aed44168af14e7687",
+      "requested_executable": "/usr/bin/xattr",
+      "allowed_resolved_executables": [
+        "/usr/bin/xattr"
+      ],
+      "argv": [
+        "-l",
+        "<DMG>"
+      ],
+      "timeout_seconds": 30,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 17,
@@ -194,7 +469,26 @@
       "scenario_id": "dmg-mount",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "one run-owned mount",
-      "scenario_target_sha256": "7685a1c34d2cadee8ac75df827318b38954746c78c977804f87c2ea416818b2c"
+      "scenario_target_sha256": "b71796942be3933e74a8b27fd3f2e86fd46e1e5db2cedec10905199bc90f2100",
+      "requested_executable": "/usr/bin/hdiutil",
+      "allowed_resolved_executables": [
+        "/usr/bin/hdiutil"
+      ],
+      "argv": [
+        "attach",
+        "-readonly",
+        "-nobrowse",
+        "-plist",
+        "<DMG>"
+      ],
+      "timeout_seconds": 120,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 18,
@@ -203,7 +497,26 @@
       "scenario_id": "app-identity",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "mounted app plist",
-      "scenario_target_sha256": "dafbc9ec70735039242868d2dbfa1927ae6d300faa79068a8fc0331f85857ad6"
+      "scenario_target_sha256": "1c549b2d4724e7f21d483e019bd2de0a9c1370f81e6a39f3d92ea2fa0c7f149f",
+      "requested_executable": "/usr/bin/plutil",
+      "allowed_resolved_executables": [
+        "/usr/bin/plutil"
+      ],
+      "argv": [
+        "-convert",
+        "json",
+        "-o",
+        "-",
+        "<APP>/Contents/Info.plist"
+      ],
+      "timeout_seconds": 30,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 19,
@@ -212,7 +525,22 @@
       "scenario_id": "app-identity",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "app executable",
-      "scenario_target_sha256": "0a3982b0f1d78f18eeb0fcd35b3f3528cb14d8ff562b7455827a634973a449fa"
+      "scenario_target_sha256": "141fd971d754950062274119326f3a201480f69e0035096d85860292e68bf3c4",
+      "requested_executable": "/usr/bin/file",
+      "allowed_resolved_executables": [
+        "/usr/bin/file"
+      ],
+      "argv": [
+        "<EXECUTABLE>"
+      ],
+      "timeout_seconds": 30,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 20,
@@ -221,7 +549,23 @@
       "scenario_id": "app-identity",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "app executable",
-      "scenario_target_sha256": "0a3982b0f1d78f18eeb0fcd35b3f3528cb14d8ff562b7455827a634973a449fa"
+      "scenario_target_sha256": "141fd971d754950062274119326f3a201480f69e0035096d85860292e68bf3c4",
+      "requested_executable": "/usr/bin/lipo",
+      "allowed_resolved_executables": [
+        "/usr/bin/lipo"
+      ],
+      "argv": [
+        "-archs",
+        "<EXECUTABLE>"
+      ],
+      "timeout_seconds": 30,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 21,
@@ -230,7 +574,24 @@
       "scenario_id": "app-identity",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "mounted app",
-      "scenario_target_sha256": "b20b0d5fcf4785564690911f50c244bdf906fab301957ac93c93317f89878cd7"
+      "scenario_target_sha256": "98d93f2b6c7de04092db884d9da8c97f1c36980fecb3c3b143658027501659e1",
+      "requested_executable": "/usr/bin/codesign",
+      "allowed_resolved_executables": [
+        "/usr/bin/codesign"
+      ],
+      "argv": [
+        "-dvvv",
+        "--strict",
+        "<APP>"
+      ],
+      "timeout_seconds": 30,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 22,
@@ -239,7 +600,26 @@
       "scenario_id": "app-identity",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "mounted app",
-      "scenario_target_sha256": "b20b0d5fcf4785564690911f50c244bdf906fab301957ac93c93317f89878cd7"
+      "scenario_target_sha256": "98d93f2b6c7de04092db884d9da8c97f1c36980fecb3c3b143658027501659e1",
+      "requested_executable": "/usr/sbin/spctl",
+      "allowed_resolved_executables": [
+        "/usr/sbin/spctl"
+      ],
+      "argv": [
+        "-a",
+        "-vv",
+        "-t",
+        "exec",
+        "<APP>"
+      ],
+      "timeout_seconds": 30,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 23,
@@ -248,7 +628,23 @@
       "scenario_id": "app-identity",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "mounted app",
-      "scenario_target_sha256": "b20b0d5fcf4785564690911f50c244bdf906fab301957ac93c93317f89878cd7"
+      "scenario_target_sha256": "98d93f2b6c7de04092db884d9da8c97f1c36980fecb3c3b143658027501659e1",
+      "requested_executable": "/usr/bin/xattr",
+      "allowed_resolved_executables": [
+        "/usr/bin/xattr"
+      ],
+      "argv": [
+        "-lr",
+        "<APP>"
+      ],
+      "timeout_seconds": 30,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 24,
@@ -257,7 +653,26 @@
       "scenario_id": "first-launch",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "first-launch run",
-      "scenario_target_sha256": "9cb53506b8160e586b13eea8d4364fb4f10c4b33be47437e33a5f7adefc7d294"
+      "scenario_target_sha256": "89295c2e02a3ff78385e85ab7095eed255fbf57b391adf739657245cc92998e3",
+      "requested_executable": "/usr/bin/open",
+      "allowed_resolved_executables": [
+        "/usr/bin/open"
+      ],
+      "argv": [
+        "-n",
+        "<MOUNT_POINT>/<APP_BUNDLE_NAME>.app",
+        "--args",
+        "--run-id",
+        "<RUN_ID>"
+      ],
+      "timeout_seconds": 5,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 25,
@@ -266,7 +681,27 @@
       "scenario_id": "first-launch",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "owned PID listeners",
-      "scenario_target_sha256": "4a672b3e21b7b7a8431e02c9ca282c40d5ec5d0eccca55c623825f040004c2bd"
+      "scenario_target_sha256": "c2973646a187f97d19eff19b7000d0190c6f113eb5c990de4d457c201002912b",
+      "requested_executable": "/usr/sbin/lsof",
+      "allowed_resolved_executables": [
+        "/usr/sbin/lsof"
+      ],
+      "argv": [
+        "-nP",
+        "-a",
+        "-p",
+        "<PID>",
+        "-iTCP",
+        "-sTCP:LISTEN"
+      ],
+      "timeout_seconds": 30,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 26,
@@ -275,7 +710,27 @@
       "scenario_id": "first-launch",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "loopback root",
-      "scenario_target_sha256": "3e9377f91ba6617c7e8b568ab3ccd7245fdc44e3e6319efe832b3196422b087d"
+      "scenario_target_sha256": "4d4eb8737fe12e4839773fc62a8696390326037e3a8c295dbf3cd8cb24cd0781",
+      "requested_executable": "/usr/bin/curl",
+      "allowed_resolved_executables": [
+        "/usr/bin/curl"
+      ],
+      "argv": [
+        "--fail-with-body",
+        "--silent",
+        "--show-error",
+        "--max-time",
+        "5",
+        "http://127.0.0.1:<PORT>/"
+      ],
+      "timeout_seconds": 10,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 27,
@@ -284,7 +739,23 @@
       "scenario_id": "relaunch",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "owned first-launch PID",
-      "scenario_target_sha256": "501bcdd291f3b568c6d9f1122bcdc5afb01bb69615463cf8fa8a675d484bb70a"
+      "scenario_target_sha256": "79948150f3553b11d62846a8a9d9652ad52667371766ca7ecb47d0bf351a31b0",
+      "requested_executable": "/bin/kill",
+      "allowed_resolved_executables": [
+        "/bin/kill"
+      ],
+      "argv": [
+        "-TERM",
+        "<OWNED_PID>"
+      ],
+      "timeout_seconds": 30,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 28,
@@ -293,7 +764,26 @@
       "scenario_id": "relaunch",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "relaunch run",
-      "scenario_target_sha256": "d019143125dc5a374f11af8aa14b3cd9f0ae58cfab69b949eb99d3522197093c"
+      "scenario_target_sha256": "6b3db7b6f481e4ffe3d3de3f72899105a24e5546a32411c193e23ff1e71c65a8",
+      "requested_executable": "/usr/bin/open",
+      "allowed_resolved_executables": [
+        "/usr/bin/open"
+      ],
+      "argv": [
+        "-n",
+        "<MOUNT_POINT>/<APP_BUNDLE_NAME>.app",
+        "--args",
+        "--run-id",
+        "<RUN_ID>-relaunch"
+      ],
+      "timeout_seconds": 5,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 29,
@@ -302,7 +792,27 @@
       "scenario_id": "clean-profile",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "clean isolated profile",
-      "scenario_target_sha256": "744d84ab33386cb53bab6c46ee70c3b5abb3cd45ae68d124387ec1edd743dbfd"
+      "scenario_target_sha256": "88774a8f7a70492795c44249f71368bc084667a4a0946a072812eb11128b6a4d",
+      "requested_executable": "/usr/bin/env",
+      "allowed_resolved_executables": [
+        "/usr/bin/env"
+      ],
+      "argv": [
+        "HOME=<RUN_ROOT>/home-clean",
+        "TMPDIR=<RUN_ROOT>/tmp-clean",
+        "<EXECUTABLE>",
+        "--user-data-dir=<RUN_ROOT>/profile-clean",
+        "--run-id",
+        "<RUN_ID>-clean"
+      ],
+      "timeout_seconds": 5,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 30,
@@ -311,7 +821,23 @@
       "scenario_id": "failure-offline-security",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "gate-approved interface and complete network pre-state",
-      "scenario_target_sha256": "9be0c325143d40ad203885eb7ba3379341897df5bab483ea001f7910560d81fa"
+      "scenario_target_sha256": "f4a97639d35fc561b169846822633de38540ad489dcab728627d08b1b789acf4",
+      "requested_executable": "/bin/zsh",
+      "allowed_resolved_executables": [
+        "/bin/zsh"
+      ],
+      "argv": [
+        "-lc",
+        "<CAPTURE_APPROVED_SERVICE_INTERFACE_POWER_LINK_DEFAULT_ROUTE_ALL_NONLOOPBACK_INTERFACES_AND_ROUTES_TO_RUN_OWNED_RECEIPT>"
+      ],
+      "timeout_seconds": 30,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "approved_interface_prestate_v1"
     },
     {
       "sequence": 31,
@@ -320,7 +846,32 @@
       "scenario_id": "failure-offline-security",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "gateway-unavailable application route exact 503 contract",
-      "scenario_target_sha256": "cec690b56f00d511f92c552763d8157355acc2884fd85e90387d85fbc091ef6b"
+      "scenario_target_sha256": "730b1975f3c4552abb546d217d2b6c94f3b6095ee3fae6eb5da7a95690221bdf",
+      "requested_executable": "/usr/bin/curl",
+      "allowed_resolved_executables": [
+        "/usr/bin/curl"
+      ],
+      "argv": [
+        "--silent",
+        "--show-error",
+        "--max-time",
+        "5",
+        "--dump-header",
+        "<RUN_OWNED_HEADERS>",
+        "--output",
+        "<RUN_OWNED_BODY>",
+        "--write-out",
+        "%{http_code}",
+        "http://127.0.0.1:<PORT>/<FROZEN_APPLICATION_ROUTE>"
+      ],
+      "timeout_seconds": 30,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "gateway_unavailable_503_v1"
     },
     {
       "sequence": 32,
@@ -329,7 +880,23 @@
       "scenario_id": "failure-offline-security",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "approved-interface offline transport-failure contract",
-      "scenario_target_sha256": "5050052876ed981286c75fb7e34d799c52db5866614951db70f740607e8f46f2"
+      "scenario_target_sha256": "62168a675510c81cd56f1b7a93ef3eb6813645e295974496d4833da3c64c619b",
+      "requested_executable": "/bin/zsh",
+      "allowed_resolved_executables": [
+        "/bin/zsh"
+      ],
+      "argv": [
+        "-lc",
+        "<ISOLATE_ONLY_GATE_APPROVED_INTERFACE; PROVE_NO_NONLOOPBACK_EXTERNAL_ROUTES; PROBE_FROZEN_ROUTE_AND_UI_STATE>"
+      ],
+      "timeout_seconds": 30,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "approved_interface_offline_v1"
     },
     {
       "sequence": 33,
@@ -338,7 +905,23 @@
       "scenario_id": "failure-offline-security",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "exact captured network state finally-path restoration",
-      "scenario_target_sha256": "8e1d610ff18019b13e2f0485b6af9a8e10f76e20fa407ebd44eceb502f2019a9"
+      "scenario_target_sha256": "61bed30f230a8d458c9308ae70a608c8ba7a1f81a49435d64df17d06cb890845",
+      "requested_executable": "/bin/zsh",
+      "allowed_resolved_executables": [
+        "/bin/zsh"
+      ],
+      "argv": [
+        "-lc",
+        "<FINALLY_RESTORE_EXACT_CAPTURED_SERVICE_INTERFACE_POWER_LINK_AND_ROUTE_STATE; REREAD_ALL_FIELDS; COMPARE_POST_HASH_TO_PRE_HASH>"
+      ],
+      "timeout_seconds": 30,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "finally_exact_restoration_v1"
     },
     {
       "sequence": 34,
@@ -347,7 +930,22 @@
       "scenario_id": "gateway-observation",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "Hermes executable",
-      "scenario_target_sha256": "42a6aa96ef8a0af1cc8587b3f3697f60e3fa5c5a8c77649e13cb02f1d22d3d3a"
+      "scenario_target_sha256": "4a3def44fcb49dd5fba4a8b26db65700ac898244cc7d4009816d220f137978c1",
+      "requested_executable": "/usr/bin/which",
+      "allowed_resolved_executables": [
+        "/usr/bin/which"
+      ],
+      "argv": [
+        "hermes"
+      ],
+      "timeout_seconds": 30,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 35,
@@ -356,7 +954,26 @@
       "scenario_id": "gateway-observation",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "default gateway read-only",
-      "scenario_target_sha256": "5725ec13cfec61282ed29018292b96da3bb186cdd3aab4fc614a067f82e74cb3"
+      "scenario_target_sha256": "e871dab945164a56bfb6628cca32f6b9c4178d0ef962191ae3a6dbcebce0fa6b",
+      "requested_executable": "/usr/bin/env",
+      "allowed_resolved_executables": [
+        "/usr/bin/env"
+      ],
+      "argv": [
+        "hermes",
+        "-p",
+        "default",
+        "gateway",
+        "status"
+      ],
+      "timeout_seconds": 30,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 36,
@@ -365,7 +982,26 @@
       "scenario_id": "gateway-observation",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "empire gateway read-only",
-      "scenario_target_sha256": "f7581a85ef0e999c59eacd90ff53e4da8c59b1a56377f654a01ddcd5aab99700"
+      "scenario_target_sha256": "253203491c2f07d2c62c2e4a41e97bbe3344351dbb287cbc7f1bc3ee7174f605",
+      "requested_executable": "/usr/bin/env",
+      "allowed_resolved_executables": [
+        "/usr/bin/env"
+      ],
+      "argv": [
+        "hermes",
+        "-p",
+        "empire",
+        "gateway",
+        "status"
+      ],
+      "timeout_seconds": 30,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 37,
@@ -374,7 +1010,26 @@
       "scenario_id": "gateway-observation",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "default config check read-only",
-      "scenario_target_sha256": "edd152f88430c35b8bac255a7f939151ebc9449d0492d9257b2548644960bc97"
+      "scenario_target_sha256": "cae78db1a6823b54be5e6ad7fd2ad37309b92d0d6cbbb8a047f3d7efa32d496a",
+      "requested_executable": "/usr/bin/env",
+      "allowed_resolved_executables": [
+        "/usr/bin/env"
+      ],
+      "argv": [
+        "hermes",
+        "-p",
+        "default",
+        "config",
+        "check"
+      ],
+      "timeout_seconds": 30,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 38,
@@ -383,7 +1038,23 @@
       "scenario_id": "operator-ui-accessibility",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "state-bound screenshot",
-      "scenario_target_sha256": "ce0150b95bb1aa17e0b9994f78a75e1153a30c8f3f5990bd860adb2394a47dc9"
+      "scenario_target_sha256": "780f0f3d0ddd846e2a303f0a3dcfce3bccfba466e28fc50cbacc9d6fa1833123",
+      "requested_executable": "/usr/sbin/screencapture",
+      "allowed_resolved_executables": [
+        "/usr/sbin/screencapture"
+      ],
+      "argv": [
+        "-x",
+        "<RUN_ROOT>/evidence/ui-<STATE>.png"
+      ],
+      "timeout_seconds": 30,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 39,
@@ -392,7 +1063,24 @@
       "scenario_id": "operator-ui-accessibility",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "screenshot",
-      "scenario_target_sha256": "1202680d9b92f3c7929852a25deb2e5d61eb1994ce936b68c7d77d6fa6e4528e"
+      "scenario_target_sha256": "4441146b0fe1d5c6845af126ba5ce6003ea77d6b4cb04d14114f86a925c5dbca",
+      "requested_executable": "/usr/bin/shasum",
+      "allowed_resolved_executables": [
+        "/usr/bin/shasum"
+      ],
+      "argv": [
+        "-a",
+        "256",
+        "<RUN_ROOT>/evidence/ui-<STATE>.png"
+      ],
+      "timeout_seconds": 30,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 40,
@@ -401,7 +1089,25 @@
       "scenario_id": "cleanup-operability",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "owned PID identity",
-      "scenario_target_sha256": "cac427c14d2b123106c953bb28d9ee129f42a00d90e894d9a522d1229787a142"
+      "scenario_target_sha256": "7148de706834e951b3f37a9d0b67f024d159750e6f06c3fad6ef2836bb3286d4",
+      "requested_executable": "/bin/ps",
+      "allowed_resolved_executables": [
+        "/bin/ps"
+      ],
+      "argv": [
+        "-p",
+        "<PID>",
+        "-o",
+        "pid=,ppid=,lstart=,command="
+      ],
+      "timeout_seconds": 30,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 41,
@@ -410,7 +1116,30 @@
       "scenario_id": "cleanup-operability",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "scoped process logs",
-      "scenario_target_sha256": "695476f0a09e8b5e55f47bc4c58387043eea98f7987374f8b4b53b9bc1b335b1"
+      "scenario_target_sha256": "95fa8d6bd1aa879d029baa6621edeba5921938ee141efe147f7141cc9dfddb66",
+      "requested_executable": "/usr/bin/log",
+      "allowed_resolved_executables": [
+        "/usr/bin/log"
+      ],
+      "argv": [
+        "show",
+        "--style",
+        "json",
+        "--start",
+        "<START_ISO>",
+        "--end",
+        "<END_ISO>",
+        "--predicate",
+        "processIdentifier == <PID>"
+      ],
+      "timeout_seconds": 120,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 42,
@@ -419,7 +1148,23 @@
       "scenario_id": "cleanup-operability",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "owned PID",
-      "scenario_target_sha256": "1907f2b7ba1faa2144892de85ad91b1cb2ff9526d149657fbe4f7d59b383ecff"
+      "scenario_target_sha256": "04937e7b1f64f8d35829e77a97d561c6045be7960a6a4148965a935176e19f4a",
+      "requested_executable": "/bin/kill",
+      "allowed_resolved_executables": [
+        "/bin/kill"
+      ],
+      "argv": [
+        "-TERM",
+        "<OWNED_PID>"
+      ],
+      "timeout_seconds": 30,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 43,
@@ -428,7 +1173,23 @@
       "scenario_id": "cleanup-operability",
       "gate_id": "G-RUNTIME-WINDOW",
       "target_identity": "owned mount",
-      "scenario_target_sha256": "5e35f845b5a8d91cfdedbbde651fd9cc00b5568e274481d26288887d075fed0b"
+      "scenario_target_sha256": "d2a93fedd0a21569b043b4922fd7a0f2481d99c42a95d53e0ce131ff41658f9e",
+      "requested_executable": "/usr/bin/hdiutil",
+      "allowed_resolved_executables": [
+        "/usr/bin/hdiutil"
+      ],
+      "argv": [
+        "detach",
+        "<OWNED_MOUNTPOINT>"
+      ],
+      "timeout_seconds": 120,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 44,
@@ -437,7 +1198,24 @@
       "scenario_id": "evidence-review",
       "gate_id": "G-PR-APPROVAL",
       "target_identity": "runtime evidence envelope",
-      "scenario_target_sha256": "3d68f3ca8016a62e41a8f0ed5e90d596b3a638fe328021d6fbceaf0175be91ad"
+      "scenario_target_sha256": "fce4a2f29257b7738e8261abe69a14e38f1c38b182a8d999c483abb4651f5f48",
+      "requested_executable": "/usr/bin/shasum",
+      "allowed_resolved_executables": [
+        "/usr/bin/shasum"
+      ],
+      "argv": [
+        "-a",
+        "256",
+        "<RUN_ROOT>/evidence/<ALL_REGULAR_FILES>"
+      ],
+      "timeout_seconds": 30,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     },
     {
       "sequence": 45,
@@ -446,33 +1224,120 @@
       "scenario_id": "evidence-review",
       "gate_id": "G-PR-APPROVAL",
       "target_identity": "detached validator plus trust anchor complete 45-receipt directory and validation output",
-      "scenario_target_sha256": "324c745e8612af634f2922b59ed61620fb9d7700648e52733f2cae5e55d8ba5f"
+      "scenario_target_sha256": "ee9804b2f27087c0f779d02c7523f4a1b5fc04a79d02daa2ebd25b7991406f6d",
+      "requested_executable": "/usr/bin/python3",
+      "allowed_resolved_executables": [
+        "/usr/bin/python3"
+      ],
+      "argv": [
+        "<RUN_ROOT>/source/validate_pr903_mac_rehearsal_envelope.py",
+        "--evidence-root",
+        "<EVIDENCE_ROOT>",
+        "--run-root",
+        "<EVIDENCE_ROOT>/runs/<RUN_ID>",
+        "--repo-root",
+        "<RUN_ROOT>/source",
+        "--plan",
+        "<RUN_ROOT>/source/pr903-mac-runtime-rehearsal-plan.json",
+        "--receipt-schema",
+        "<RUN_ROOT>/source/pr903-mac-command-receipt.schema.json",
+        "--trust-anchor",
+        "<RUN_ROOT>/source/pr903-mac-rehearsal-trust-anchor.json",
+        "--receipts-dir",
+        "<RUN_ROOT>/receipts",
+        "--streams-dir",
+        "<RUN_ROOT>/streams",
+        "--authority-receipt",
+        "<RUN_ROOT>/authority/pr-authority-receipt.json",
+        "--gates-dir",
+        "<RUN_ROOT>/gates",
+        "--expected-run-id",
+        "<RUN_ID>",
+        "--replay-ledger",
+        "<EVIDENCE_ROOT>/replay-ledger.jsonl",
+        "--output",
+        "<RUN_ROOT>/validation/result.json"
+      ],
+      "timeout_seconds": 300,
+      "exit_contract": {
+        "code": 0,
+        "signal": null,
+        "timed_out": false
+      },
+      "freshness_policy": "required_nonempty",
+      "desired_state_predicate_id": "command_completed_v1"
     }
   ],
-  "receipt_chain_seed_sha256": "4d7b7ab772f11e7053df72265c2834aca166ca1961428cd15e63eb91208c0578",
+  "receipt_chain_seed_sha256": "ef78f8c03b0dee4734a7809be0b44b8385f02e3a7230d077f7c799cf54c2f177",
   "receipt_directory": {
     "member_count": 45,
     "filename_pattern": "receipt-{sequence:02d}-{command_id}.json",
+    "stream_member_count": 90,
+    "stdout_pattern": "receipt-{sequence:02d}-{command_id}.stdout.bin",
+    "stderr_pattern": "receipt-{sequence:02d}-{command_id}.stderr.bin",
     "regular_files_only": true,
     "symlinks": false,
     "unknown_members": false
   },
-  "gates": [
-    "G-CONTRACT-AUTHORITY",
-    "G-HARDSTOP-CLEARANCE",
-    "G-RUNTIME-WINDOW",
-    "G-PR-APPROVAL",
-    "L3-SIGN",
-    "L3-NOTARISE",
-    "L3-PUBLISH",
-    "L3-MERGE",
-    "L3-DEPLOY"
-  ],
+  "gate_authentication": {
+    "namespace": "unite-group-pr903-gate-v1",
+    "signer_identity": "phill@unite-group.in",
+    "verify_executable": "/usr/bin/ssh-keygen",
+    "pinned_public_keys": [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJpe0gZEl74IwkLrq3FISlfqNZTI9eQ2GpLr13GbeUcs",
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGAYMM7Ptb058/2oPZ6tkQGZRD9nkOCjY6H1QT9syEPC",
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF3fsZL+GI7rYG+UtpaFPkEgUn2CBpYEfVVcQXuc2CBV"
+    ],
+    "maximum_validity_seconds": 14400,
+    "maximum_clock_skew_seconds": 300,
+    "gate_scopes": {
+      "G-CONTRACT-AUTHORITY": [
+        "verify_static_contract"
+      ],
+      "G-HARDSTOP-CLEARANCE": [
+        "verify_hard_stop_clearance"
+      ],
+      "G-RUNTIME-WINDOW": [
+        "build",
+        "mount",
+        "launch",
+        "bounded_test_interface_isolation",
+        "mandatory_restoration",
+        "cleanup"
+      ],
+      "G-PR-APPROVAL": [
+        "review_runtime_evidence",
+        "approve_pull_request"
+      ]
+    }
+  },
+  "replay_ledger": {
+    "path": "<EVIDENCE_ROOT>/replay-ledger.jsonl",
+    "lock_path": "<EVIDENCE_ROOT>/replay-ledger.lock",
+    "lock_timeout_seconds": 5,
+    "format": "canonical hash-chained JSONL",
+    "append_flags": [
+      "O_APPEND",
+      "O_NOFOLLOW"
+    ],
+    "commit_order": [
+      "exclusive lock",
+      "full ledger reread",
+      "collision check",
+      "single append",
+      "fsync ledger",
+      "fsync evidence root",
+      "exclusive ACCEPTED result",
+      "fsync result",
+      "fsync validation directory"
+    ]
+  },
   "accepted_verdicts": [
     "ACCEPTED"
   ],
   "serialization": {
     "receipts": "UTF-8 no BOM sorted keys compact separators exactly one LF",
+    "authority_and_gates": "UTF-8 no BOM sorted keys compact separators exactly one LF",
     "trust_anchor_self_sha256": "SHA-256 of canonical anchor JSON with self_sha256 set to null"
   }
 }

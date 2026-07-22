@@ -1,9 +1,9 @@
 {
-  "schema_version": "2.0",
+  "schema_version": "3.0",
   "artifact": "pr903-mac-runtime-rehearsal-plan",
   "verdict": "PR903_MAC_RUNTIME_REHEARSAL_PLAN_REPAIRED",
   "generated_at": "2026-07-21T19:38:07Z",
-  "classification": "L0_REPAIRED_SPECIFICATION_ONLY_NO_RUNTIME_AUTHORITY",
+  "classification": "L0_FAIL_CLOSED_SPECIFICATION_ONLY_NO_RUNTIME_AUTHORITY",
   "project_id": "unite-group-nexus",
   "goal": "Post-clearance macOS runtime rehearsal for PR #903 without executing runtime now",
   "win_condition": [
@@ -33,28 +33,6 @@
       "check": "human"
     }
   ],
-  "immutable_identity": {
-    "repository": "CleanExpo/Unite-Group",
-    "pr_number": 903,
-    "base_sha": "8e30cabe2811ba270777076a16dc817f6aaa3efd",
-    "head_sha": "b2a283decbe69aa16b422eb4636a8ddf2d9e86ec",
-    "changed_files": [
-      "PR903-MAC-RUNTIME-REHEARSAL-PLAN.md",
-      "apps/web/package.json",
-      "apps/web/pnpm-lock.yaml",
-      "apps/workspace/package.json",
-      "apps/workspace/pnpm-lock.yaml",
-      "packages/pi-ceo-operator-mcp/package-lock.json",
-      "packages/pi-ceo-operator-mcp/package.json",
-      "pr903-mac-command-receipt.schema.json",
-      "pr903-mac-rehearsal-trust-anchor.json",
-      "pr903-mac-runtime-rehearsal-plan.json",
-      "validate_pr903_mac_rehearsal_envelope.py"
-    ],
-    "changed_files_sha256": "c025f832122f8f8c0152b67b64bb0208e6b6351864059c3c0c4f7a4b477cad4f",
-    "manifest_sha256": "b608639c7dca082b557fcc3259ee81554e702a7255cef2d0b28f3f3258475007",
-    "lockfile_sha256": "fa44571489dbb490a322f2e6fb7da1d8a2352bcd6580b4965a04fc4c77b27015"
-  },
   "input_authorities": {
     "accepted_markdown_attachment_1097": "9f508f3acd540e73771e7f1f0df38cad734ca98cb275db1410d1944de9699f53",
     "accepted_replay_attachment_1099": "690ed9611b12b67f8b575295fc0fafd7cb37c75a6370a2ea94c4cc56524fe632",
@@ -463,7 +441,7 @@
             "<RUN_ROOT>/source",
             "checkout",
             "--detach",
-            "b2a283decbe69aa16b422eb4636a8ddf2d9e86ec"
+            "<VERIFIED_EXTERNAL_AUTHORITY_HEAD_SHA>"
           ],
           "target": "exact PR head",
           "expected_exit_codes": [
@@ -934,8 +912,11 @@
           "status": "NOT_EXECUTED",
           "platform": "macos-arm64",
           "shell": "zsh",
-          "executable": "<EXECUTABLE>",
+          "executable": "/usr/bin/open",
           "argv": [
+            "-n",
+            "<MOUNT_POINT>/<APP_BUNDLE_NAME>.app",
+            "--args",
             "--run-id",
             "<RUN_ID>"
           ],
@@ -1042,8 +1023,11 @@
           "status": "NOT_EXECUTED",
           "platform": "macos-arm64",
           "shell": "zsh",
-          "executable": "<EXECUTABLE>",
+          "executable": "/usr/bin/open",
           "argv": [
+            "-n",
+            "<MOUNT_POINT>/<APP_BUNDLE_NAME>.app",
+            "--args",
             "--run-id",
             "<RUN_ID>-relaunch"
           ],
@@ -1626,33 +1610,39 @@
           "shell": "zsh",
           "executable": "/usr/bin/python3",
           "argv": [
-            "validate_pr903_mac_rehearsal_envelope.py",
+            "<RUN_ROOT>/source/validate_pr903_mac_rehearsal_envelope.py",
+            "--evidence-root",
+            "<EVIDENCE_ROOT>",
+            "--run-root",
+            "<EVIDENCE_ROOT>/runs/<RUN_ID>",
+            "--repo-root",
+            "<RUN_ROOT>/source",
             "--plan",
-            "pr903-mac-runtime-rehearsal-plan.json",
+            "<RUN_ROOT>/source/pr903-mac-runtime-rehearsal-plan.json",
             "--receipt-schema",
-            "pr903-mac-command-receipt.schema.json",
+            "<RUN_ROOT>/source/pr903-mac-command-receipt.schema.json",
             "--trust-anchor",
-            "pr903-mac-rehearsal-trust-anchor.json",
+            "<RUN_ROOT>/source/pr903-mac-rehearsal-trust-anchor.json",
             "--receipts-dir",
-            "<RUN_OWNED_RECEIPTS_DIR>",
+            "<RUN_ROOT>/receipts",
+            "--streams-dir",
+            "<RUN_ROOT>/streams",
+            "--authority-receipt",
+            "<RUN_ROOT>/authority/pr-authority-receipt.json",
+            "--gates-dir",
+            "<RUN_ROOT>/gates",
             "--expected-run-id",
-            "<G_RUNTIME_WINDOW_RUN_ID>",
-            "--expected-base-sha",
-            "8e30cabe2811ba270777076a16dc817f6aaa3efd",
-            "--expected-head-sha",
-            "b2a283decbe69aa16b422eb4636a8ddf2d9e86ec",
-            "--expected-plan-sha256",
-            "<TRUST_ANCHOR_PLAN_SHA256>",
+            "<RUN_ID>",
             "--replay-ledger",
-            "<IMMUTABLE_REPLAY_LEDGER>",
+            "<EVIDENCE_ROOT>/replay-ledger.jsonl",
             "--output",
-            "<NEW_RUN_OWNED_VALIDATION_RECEIPT>"
+            "<RUN_ROOT>/validation/result.json"
           ],
           "target": "detached validator plus trust anchor complete 45-receipt directory and validation output",
           "expected_exit_codes": [
             0
           ],
-          "timeout_seconds": 120,
+          "timeout_seconds": 300,
           "capture": "exact named-argument interface only; validator/trust-anchor/plan/schema self hashes and typed verdict"
         }
       ],
@@ -2295,54 +2285,166 @@
   ],
   "next_dependency": "Phill deliberately clears HARD_STOP and separately approves the bounded Mac runtime window; then an empire-mac runner executes this exact plan against a fresh live identity and a fresh non-author reviewer accepts the complete envelope before PR approval.",
   "repair_contract": {
-    "source_task": "t_5f8f6f27",
+    "source_task": "t_146f5a36",
     "findings_closed": [
-      "PR903-MRP-01",
-      "PR903-MRP-02",
-      "PR903-MRP-03"
+      "PR903-REVIEW-01",
+      "PR903-REVIEW-02",
+      "PR903-REVIEW-03",
+      "PR903-REVIEW-04",
+      "PR903-REVIEW-05"
     ],
     "runtime_authority": false,
     "release_authority": false
   },
-  "validator_contract": {
-    "detached": true,
-    "executable": "python3",
-    "script": "validate_pr903_mac_rehearsal_envelope.py",
-    "named_arguments_in_order": [
-      "--plan",
-      "pr903-mac-runtime-rehearsal-plan.json",
-      "--receipt-schema",
+  "external_authority": {
+    "binding_mode": "external_exact_pr_authority_v1",
+    "repository": "CleanExpo/Unite-Group",
+    "pr_number": 903,
+    "input_base_sha": "8e30cabe2811ba270777076a16dc817f6aaa3efd",
+    "governed_paths": [
+      "PR903-MAC-RUNTIME-REHEARSAL-PLAN.md",
+      "apps/web/package.json",
+      "apps/web/pnpm-lock.yaml",
+      "apps/workspace/package.json",
+      "apps/workspace/pnpm-lock.yaml",
+      "packages/pi-ceo-operator-mcp/package-lock.json",
+      "packages/pi-ceo-operator-mcp/package.json",
       "pr903-mac-command-receipt.schema.json",
-      "--trust-anchor",
       "pr903-mac-rehearsal-trust-anchor.json",
+      "pr903-mac-runtime-rehearsal-plan.json",
+      "validate_pr903_mac_rehearsal_envelope.py"
+    ],
+    "changed_files_sha256": "2f57c865c390c81d419a8ab4ecdace89e5987c779d941705ad30ec28b628b184",
+    "authority_receipt": "<RUN_ROOT>/authority/pr-authority-receipt.json",
+    "source_payload": "<RUN_ROOT>/authority/source-payload.json",
+    "source": "github_rest_authenticated_read",
+    "tracked_final_head_or_tree": false
+  },
+  "validator_interface": {
+    "flags_in_exact_order": [
+      "--evidence-root",
+      "--run-root",
+      "--repo-root",
+      "--plan",
+      "--receipt-schema",
+      "--trust-anchor",
       "--receipts-dir",
-      "<RUN_OWNED_RECEIPTS_DIR>",
+      "--streams-dir",
+      "--authority-receipt",
+      "--gates-dir",
       "--expected-run-id",
-      "<G_RUNTIME_WINDOW_RUN_ID>",
-      "--expected-base-sha",
-      "8e30cabe2811ba270777076a16dc817f6aaa3efd",
-      "--expected-head-sha",
-      "b2a283decbe69aa16b422eb4636a8ddf2d9e86ec",
-      "--expected-plan-sha256",
-      "<TRUST_ANCHOR_PLAN_SHA256>",
       "--replay-ledger",
-      "<IMMUTABLE_REPLAY_LEDGER>",
-      "--output",
-      "<NEW_RUN_OWNED_VALIDATION_RECEIPT>"
+      "--output"
     ],
-    "rejects": [
-      "unknown flags",
-      "positional arguments",
-      "symlinks",
-      "non-regular files",
-      "path escape",
-      "duplicate JSON keys",
-      "unknown object keys",
-      "wrong types",
-      "trust-anchor hash mismatch",
-      "unexpected directory member",
-      "replay-ledger collision"
+    "fixed_paths": {
+      "run_root": "<EVIDENCE_ROOT>/runs/<RUN_ID>",
+      "repo_root": "<RUN_ROOT>/source",
+      "receipts": "<RUN_ROOT>/receipts",
+      "streams": "<RUN_ROOT>/streams",
+      "authority": "<RUN_ROOT>/authority/pr-authority-receipt.json",
+      "gates": "<RUN_ROOT>/gates",
+      "ledger": "<EVIDENCE_ROOT>/replay-ledger.jsonl",
+      "lock": "<EVIDENCE_ROOT>/replay-ledger.lock",
+      "output": "<RUN_ROOT>/validation/result.json"
+    },
+    "policy": [
+      "absolute paths",
+      "reject lexical dotdot",
+      "lstat every component",
+      "reject symlinks",
+      "owner euid",
+      "no group/other write",
+      "O_NOFOLLOW plus lstat/fstat equality",
+      "no implicit mkdir"
+    ]
+  },
+  "gate_authentication": {
+    "format": "canonical UTF-8 JSON plus one LF and OpenSSH detached signature",
+    "namespace": "unite-group-pr903-gate-v1",
+    "signer_identity": "phill@unite-group.in",
+    "authority": "Phill McGurk",
+    "verify_executable": "/usr/bin/ssh-keygen",
+    "pinned_public_keys": [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJpe0gZEl74IwkLrq3FISlfqNZTI9eQ2GpLr13GbeUcs",
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGAYMM7Ptb058/2oPZ6tkQGZRD9nkOCjY6H1QT9syEPC",
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIF3fsZL+GI7rYG+UtpaFPkEgUn2CBpYEfVVcQXuc2CBV"
     ],
-    "accepted_verdict": "ACCEPTED"
+    "maximum_validity_seconds": 14400,
+    "maximum_clock_skew_seconds": 300,
+    "real_gate_created": false
+  },
+  "durable_replay": {
+    "format": "canonical hash-chained JSONL",
+    "lock": "bounded exclusive fcntl.flock",
+    "append": "O_APPEND|O_NOFOLLOW, one complete write, fsync file and evidence root",
+    "result_order": "durable acceptance append before exclusive fsynced ACCEPTED output",
+    "malformed_line": "REJECT_REPLAY_LEDGER without automatic repair"
+  },
+  "test_matrix": {
+    "positive": {
+      "id": "P01",
+      "executed": 1,
+      "expected": "ACCEPTED",
+      "receipt_count": 45,
+      "stream_count": 90,
+      "ledger_appends": 1
+    },
+    "negative": [
+      {
+        "id": "NF01_STALE_EXTERNAL_HEAD",
+        "expected": "REJECT_TARGET: external PR authority differs from run-owned checkout"
+      },
+      {
+        "id": "NF02_FAILED_RECEIPT",
+        "expected": "REJECT_COMMAND_SEMANTICS: required command did not PASS"
+      },
+      {
+        "id": "NF03_ARBITRARY_ARGV",
+        "expected": "REJECT_COMMAND_SEMANTICS: executable argv or timeout mismatch"
+      },
+      {
+        "id": "NF04_BAD_ARGV_DIGEST",
+        "expected": "REJECT_COMMAND_SEMANTICS: argv NUL digest mismatch"
+      },
+      {
+        "id": "NF05_C14B_HTTP_CONTRACT",
+        "expected": "REJECT_DESIRED_STATE: C14B exact 503 contract failed"
+      },
+      {
+        "id": "NF06_C14C_ROUTE_CONTRACT",
+        "expected": "REJECT_DESIRED_STATE: C14C offline transport contract failed"
+      },
+      {
+        "id": "NF07_C14D_RESTORE_CONTRACT",
+        "expected": "BLOCKED_ROLLBACK_FAILED: C14D exact restoration failed"
+      },
+      {
+        "id": "NF08_UNSIGNED_OR_WRONG_GATE",
+        "expected": "REJECT_GATE: authenticated gate verification failed"
+      },
+      {
+        "id": "NF09_RECEIPT_REPLAY",
+        "expected": "REJECT_REPLAY: receipt or run already accepted"
+      },
+      {
+        "id": "NF10_OUTPUT_REPLAY",
+        "expected": "REJECT_REUSED_OUTPUT: frozen fresh output was reused"
+      },
+      {
+        "id": "NF11_REORDERED_INTERFACE",
+        "expected": "REJECT_INTERFACE: exact ordered CLI required"
+      },
+      {
+        "id": "NF12_PATH_ESCAPE_OR_SYMLINK",
+        "expected": "REJECT_PATH_POLICY: path is outside fixed non-symlink roots"
+      }
+    ],
+    "negative_invariants": [
+      "12 executed",
+      "12 exact typed rejections",
+      "0 skipped",
+      "ledger acceptance count unchanged",
+      "no ACCEPTED output"
+    ]
   }
 }
