@@ -87,7 +87,7 @@
     "remark-gfm": "^4.0.1",
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.1.2",
-    "sharp": "^0.34.2",
+    "sharp": "^0.35.3",
     "sonner": "^2.0.3",
     "stripe": "^22.1.1",
     "tailwind-merge": "^3.3.0",
@@ -145,6 +145,7 @@
     "typescript": "^5.0.4"
   },
   "overrides": {
+    "sharp": "$sharp",
     "brace-expansion@<1.1.16": "1.1.16",
     "brace-expansion@>=2.0.0 <2.1.2": "2.1.2",
     "brace-expansion@>=3.0.0 <5.0.7": "5.0.7",
