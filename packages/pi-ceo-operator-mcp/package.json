@@ -9,7 +9,14 @@
     "dev:tunnel": "skybridge dev --tunnel",
     "build": "skybridge build",
     "start": "skybridge start",
-    "deploy": "alpic deploy"
+    "deploy": "alpic deploy",
+    "test:contract": "vitest run test/contract --reporter=verbose",
+    "test:view-contract": "vitest run test/view --reporter=verbose",
+    "test:alpic-contract": "vitest run test/alpic --reporter=verbose",
+    "verify:mcp-runtime-evidence": "node scripts/verify-runtime-evidence.mjs",
+    "audit:package": "npm audit --audit-level high",
+    "check:licences": "node -e \"const {execFileSync}=require('node:child_process');const rows=JSON.parse(execFileSync('npm',['query',':not([license])','--json'],{encoding:'utf8'}));const unexpected=rows.filter(p=>!['pi-ceo-operator-mcp','@skybridge/devtools'].includes(p.name));if(unexpected.length)throw new Error('unlicensed dependencies: '+unexpected.map(p=>p.name).join(','));console.log('licence exceptions verified: package + @skybridge/devtools upstream metadata gap')\"",
+    "check:install-scripts": "node -e \"const lock=require('./package-lock.json');const found=Object.entries(lock.packages).filter(([,v])=>v.hasInstallScript).map(([p,v])=>p+'@'+v.version).sort();const expected=['node_modules/esbuild@0.28.1','node_modules/fsevents@2.3.3'];if(JSON.stringify(found)!==JSON.stringify(expected))throw new Error('install-script allow-list drift: '+found.join(','));console.log('install-script allow-list verified:',found.join(','))\""
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
@@ -20,14 +27,17 @@
   },
   "devDependencies": {
     "@skybridge/devtools": "^1.2.7",
+    "@types/express": "^5.0.6",
     "@types/node": "^24.0.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "alpic": "^1.152.0",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
   },
   "overrides": {
-    "esbuild": "0.28.1"
+    "esbuild": "0.28.1",
+    "fast-uri": "3.1.4"
   },
   "engines": {
     "node": ">=24.14.1 <25"
