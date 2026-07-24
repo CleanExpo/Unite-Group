@@ -41,7 +41,11 @@ beforeEach(() => {
 
 async function loadMod() {
   vi.resetModules()
-  return import('../local-provider-discovery')
+  const mod = await import('../local-provider-discovery')
+  // The module starts discovery at import time. Wait for that shared promise so
+  // Vitest cannot tear down the worker while a probe is still logging.
+  await mod.ensureDiscovery()
+  return mod
 }
 
 describe('local-provider-discovery', () => {
