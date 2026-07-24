@@ -1,10 +1,10 @@
 # Hermes Senior Board Continuity — Architecture and Acceptance Contract
 
-**Date:** 24/07/2026  
-**Owner:** Phill McGurk  
-**Chief of Staff / architecture owner:** Margot (`default` Hermes profile)  
-**Canonical repository:** `CleanExpo/Unite-Group`  
-**Status:** **PROPOSED — architecture approval required before runtime code, service installation, credential migration, or live task admission**  
+**Date:** 24/07/2026\
+**Owner:** Phill McGurk\
+**Chief of Staff / architecture owner:** Margot (`default` Hermes profile)\
+**Canonical repository:** `CleanExpo/Unite-Group`\
+**Status:** **PROPOSED — architecture approval required before runtime code, service installation, credential migration, or live task admission**\
 **Approval phrase:** `approve architecture HSBC-1`
 
 ## 1. Executive decision
@@ -17,7 +17,7 @@ The system will operate as one bounded, durable orchestra:
 2. Hermes challenges and frames the mission against the exit thesis and current operational priorities.
 3. The CRM mission ledger stores the authoritative task, risk, approval state, cancellation state, and expected outcome.
 4. Hermes Kanban projects the next executable work item and assigns the right profile, model family, machine, tools, and limits.
-5. Codex usually builds; Claude usually reviews independently; deterministic tests outrank both.
+5. Claude usually builds; Codex usually reviews independently; deterministic tests outrank both.
 6. Every transition writes a provider-neutral handoff and evidence receipt.
 7. The Mac mini owns durable scheduling and continuation after the isolated runtime gates pass.
 8. The MacBook remains Phill's cockpit and approval surface; it must not need to stay awake.
@@ -88,26 +88,26 @@ Linear remains an engineering projection. The Wiki remains knowledge. Neither be
 
 ### 6.1 Margot — Chair and Chief of Staff (`default`)
 
-**Inputs:** Phill's message, Wiki-first context, current mission state, live evidence.  
-**Outputs:** challenged objective, decision packet, approval request where required, executive brief.  
-**Authority:** frame and prioritise; create or update proposed/queued missions; pause work.  
-**Must not:** merge, deploy, spend, disclose credentials, or invent evidence.  
+**Inputs:** Phill's message, Wiki-first context, current mission state, live evidence.\
+**Outputs:** challenged objective, decision packet, approval request where required, executive brief.\
+**Authority:** frame and prioritise; create or update proposed/queued missions; pause work.\
+**Must not:** merge, deploy, spend, disclose credentials, or invent evidence.\
 **Escalates when:** the request is strategically unclear, consequential, contradictory, or outside standing authority.
 
 ### 6.2 Empire — Chief Operating Orchestrator (`empire`)
 
-**Inputs:** approved mission envelope and current receipts.  
-**Outputs:** dependency graph, machine and agent assignments, bounded next actions, recovery decisions.  
-**Authority:** dispatch approval-free low/medium-risk work inside the mission envelope.  
-**Must not:** change business priority or approval state; widen scope; self-approve completion.  
+**Inputs:** approved mission envelope and current receipts.\
+**Outputs:** dependency graph, machine and agent assignments, bounded next actions, recovery decisions.\
+**Authority:** dispatch approval-free low/medium-risk work inside the mission envelope.\
+**Must not:** change business priority or approval state; widen scope; self-approve completion.\
 **Escalates when:** policy conflicts, retry/dead-letter limits, missing evidence, or new consequential action appear.
 
 ### 6.3 OWNEST Advisory Board (`ownest`)
 
-**Inputs:** high-value decision packet with redacted evidence.  
-**Outputs:** multi-model recommendation, dissent, assumptions, and proposed gate.  
-**Authority:** advisory only until the isolated runtime is separately built and admitted.  
-**Must not:** operate as a continuous same-UID service or claim that profile health proves execution capacity.  
+**Inputs:** high-value decision packet with redacted evidence.\
+**Outputs:** multi-model recommendation, dissent, assumptions, and proposed gate.\
+**Authority:** advisory only until the isolated runtime is separately built and admitted.\
+**Must not:** operate as a continuous same-UID service or claim that profile health proves execution capacity.\
 **Escalates when:** advisors disagree materially or the evidence is insufficient.
 
 ### 6.4 Machine supervisors
@@ -118,21 +118,23 @@ Linear remains an engineering projection. The Wiki remains knowledge. Neither be
 
 ### 6.5 Specialist runtimes
 
-**Codex — primary builder**
+**Claude — primary builder**
 
 - Best for scoped implementation, tests, repository analysis, and repair loops.
 - Receives a frozen mission pack and isolated worktree.
 - Returns candidate commit, exact diff, commands, exit codes, and unresolved risks.
 - Has no merge, deployment, production DB, credential, publication, or branch-protection authority.
 
-**Claude — independent reviewer by default**
+**Codex — independent reviewer by default**
 
-- Reviews the frozen Codex candidate from a different model family.
-- Receives the original mission and evidence, not only Codex's narrative.
+- Reviews the frozen Claude candidate from a different model family.
+- Receives the original mission and evidence, not only Claude's narrative.
 - Starts read-only; it may create a separate repair candidate only when explicitly reassigned.
 - Cannot approve work it authored.
 
 Roles may reverse for a task, but generator and final model reviewer must remain different families.
+For Board release voting under §16, this pairing is fixed and does not reverse: Claude is bound as
+builder and excluded from voting on its own work; Codex is the eligible reviewer.
 
 ### 6.6 Deterministic verifier
 
@@ -157,11 +159,11 @@ Phill / MacBook cockpit / Telegram
        v                    v
 Mac mini durable host   Approval / exception queue
        |
-       +--> dedicated worker identity --> Codex builder worktree
+       +--> dedicated worker identity --> Claude builder worktree
        |
        +--> separate verifier domain --> deterministic gates
        |
-       +--> independent model lane ----> Claude review
+       +--> independent model lane ----> Codex review
        |
        +--> receipt/event reconciliation --> CRM + Wiki links
 ```
@@ -327,7 +329,7 @@ The global kill switch must fail closed. Routine retries do not become founder w
 12. Build the operation-scoped local broker and eliminate reliance on general service-role or broad user credentials.
 13. Build the independent verifier in a separate identity/trust domain and prove the worker cannot forge completion.
 14. Wire the Mac mini dispatcher as a disabled service with a tested STOP/rollback path.
-15. Run one supervised offline mission through Hermes → Codex → deterministic verifier → Claude → receipt, with no external mutation.
+15. Run one supervised offline mission through Hermes → Claude → deterministic verifier → Codex → receipt, with no external mutation.
 16. Run fault injection: kill worker, duplicate tick, MacBook sleep, Tailscale loss, Mac mini restart, model outage, MCP outage, malformed evidence, and policy attack.
 17. Run five supervised low-risk canaries at concurrency one; retain exact receipts and investigate every intervention.
 18. Present a widening packet. Only a new typed approval may enable unattended low-risk admission; merge/deploy and all consequential gates remain manual.
@@ -350,9 +352,9 @@ The global kill switch must fail closed. Routine retries do not become founder w
 ### Supervised integration tests
 
 - Hermes creates one fixture mission and one Kanban projection;
-- Codex produces a candidate commit in a disposable worktree;
+- Claude produces a candidate commit in a disposable worktree;
 - deterministic verifier reruns fresh checks;
-- Claude reviews the frozen candidate independently;
+- Codex reviews the frozen candidate independently;
 - a valid receipt returns to the mission ledger;
 - restarting the local dispatcher resumes from the ledger, not from chat history.
 
@@ -389,3 +391,46 @@ Approval of `HSBC-1` authorises the next bounded tranche only:
 4. a design for dedicated-UID isolation, brokered operations, and independent verification.
 
 It does **not** authorise service installation, credential migration, live CRM admission, production mutation, merge, deployment, publication, spend, or widening autonomy.
+
+## 16. Board release authority for verified PRs (founder ruling 24/07/2026)
+
+Distinct from, and additional to, the `approve architecture HSBC-1` gate in §15. Recorded in
+`docs/constitution/ADDENDUM-001-board-release-authority-for-verified-prs-v1.0.md` and linked from
+EPIC-000's Amendments table.
+
+**The ruling.** A PR that completes the full check → reject → rework process to closure, meets every
+required criterion, receives 100% approval from the eligible Board roster
+(`docs/constitution/board-release-roster.v1.json` — currently Margot-chair, Empire-orchestrator, and
+Codex-reviewer; Claude is the builder on most PRs and cannot self-approve, OWNEST remains
+advisory-only per §6.3, and the deterministic verifier is a required check rather than a vote), and
+complies with the governing constitution is authorised by the founder for **automatic progression**.
+Board decision authority substitutes for a blanket founder pause at this one checkpoint only.
+
+**What does not change.** Human/founder merge remains the default (§11's `merge_to_main` and
+`production_deploy` rows, the repo-wide `pr-release-gate` skill and the CLAUDE.md "Global PR release
+law"). The single exception is the founder-ratified UG-AUTONOMY-001 mandate: a deterministic,
+fail-closed controller may perform an automatic exact-HEAD merge for `CleanExpo/Unite-Group`,
+`CleanExpo/CARSI` and `CleanExpo/RestoreAssist` only, and only after every gate passes (verified
+build, standalone Codex independent review, 100% hash-bound Board approval, all required checks,
+tested rollback, and the constitutional verifier). Protected and governing changes — anything
+touching `docs/constitution/` or `tools/board-release-verifier/`, including this verifier candidate
+itself — remain founder-manual and can never self-authorise. Five stops remain founder-only
+regardless of Board approval: new direct cost, constitutional change, a missing credential or
+privilege only Phill can grant, an unresolved authority conflict, and any irreversible action
+without tested rollback. Deployment remains separately founder-only and is never authorised by the
+controller. A `BOARD_RELEASE_READY` verdict from `tools/board-release-verifier/verifier.py` is
+evidence a human merge-approver may use; `merge_authorised` is consumed only by the separate
+controller inside the UG-AUTONOMY-001 scope and never authorises deployment.
+
+**Verification.** `tools/board-release-verifier/verifier.py` validates a release receipt bound to repo,
+PR, `base=main`, an exact 40-character HEAD, the constitution's SHA-256, the eligible roster's SHA-256,
+exactly one `APPROVE` decision per eligible member, all required checks passed, every rejection closed
+with evidence and a successor/review reference, no direct-spend or constitutional-change flag, and an
+unexpired timestamp — failing closed on any missing, duplicate, unknown, dissenting, pending, stale, or
+malformed input. It never calls `gh`/`git push`/merge/deploy, and its output always states that this
+runtime's separate production merge/deploy control still applies.
+
+**Scope.** This ruling does not itself authorise anything in the plan's
+`promotion_policy.explicitly_not_authorised` list (service installation, credential migration, live CRM
+admission, production mutation, merge, deployment, publication, spend, unattended execution) — those
+remain gated exactly as before. The 18-move sequence in §12 is unchanged by this ruling.

@@ -80,9 +80,9 @@ roles:
       - continuous same-uid service
       - live task admission
       - completion approval
-  - id: codex-builder
-    runtime: codex-cli
-    model_family: openai
+  - id: claude-builder
+    runtime: claude-cli
+    model_family: anthropic
     mode: isolated_worktree
     responsibilities:
       - implementation
@@ -95,9 +95,9 @@ roles:
       - production database
       - secrets
       - publication
-  - id: claude-reviewer
-    runtime: claude-cli
-    model_family: anthropic
+  - id: codex-reviewer
+    runtime: codex-cli
+    model_family: openai
     mode: read_only_candidate_review
     responsibilities:
       - independent review
@@ -396,3 +396,49 @@ promotion_policy:
     - publication
     - spend
     - unattended_execution
+
+board_release_authority:
+  ruling_date: '2026-07-24'
+  status: ratified
+  addendum: docs/constitution/ADDENDUM-001-board-release-authority-for-verified-prs-v1.0.md
+  roster: docs/constitution/board-release-roster.v1.json
+  verifier: tools/board-release-verifier/verifier.py
+  automatic_progression:
+    condition: full_check_reject_rework_closure_and_100pct_eligible_board_approval_and_constitutional_compliance
+    effect: board_authority_substitutes_for_blanket_founder_pause_at_pr_review_completion_only
+  retained_founder_only_gates:
+    - new_direct_cost
+    - constitutional_change
+    - missing_privilege
+    - unresolved_authority_conflict
+    - irreversible_action_without_tested_rollback
+    - production_deployment
+  automatic_merge_exception:
+    mandate: UG-AUTONOMY-001
+    default: human_founder_merge
+    eligible_repos:
+      - CleanExpo/Unite-Group
+      - CleanExpo/CARSI
+      - CleanExpo/RestoreAssist
+    requires_every_gate: true
+    protected_founder_manual_paths:
+      - docs/constitution/
+      - tools/board-release-verifier/
+    deployment: founder_only_never_controller_authorised
+  explicit_conflict_not_resolved:
+    description: >-
+      Human/founder merge is the default (pr-release-gate skill / CLAUDE.md Global PR
+      release law). The founder-ratified UG-AUTONOMY-001 exception permits automatic
+      exact-HEAD merge for CleanExpo/Unite-Group, CleanExpo/CARSI and
+      CleanExpo/RestoreAssist only, after every gate passes. Protected/governing
+      changes (docs/constitution/, tools/board-release-verifier/, including this
+      verifier candidate) remain founder-manual and can never self-authorise.
+      Deployment remains separately founder-only and is never authorised by the
+      controller. A BOARD_RELEASE_READY verdict is evidence for a human
+      merge-approver; merge_authorised is consumed only by the fail-closed controller
+      inside that scope.
+    unaffected_control: pr-release-gate
+  verifier_constraints:
+    - never_calls_gh_or_git_push_merge_deploy
+    - never_claims_production_merged
+    - fails_closed_on_any_missing_duplicate_unknown_dissenting_pending_stale_or_malformed_input
