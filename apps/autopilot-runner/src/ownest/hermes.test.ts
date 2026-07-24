@@ -1,3 +1,4 @@
+import { createHmac } from 'node:crypto'
 import { EventEmitter } from 'node:events'
 import { PassThrough } from 'node:stream'
 import type { ChildProcess } from 'node:child_process'
@@ -9,6 +10,7 @@ import {
   generateIntegrityNonce,
   idempotencyKey,
   redactMissionText,
+  rebuildPersistedMissionContract,
   sha256Digest,
 } from './policy.js'
 import {
@@ -27,6 +29,7 @@ import type {
   CcTask,
   HardenedOwnestStateV1,
   HermesTask,
+  HmacSha256Digest,
   OwnestConfig,
   OwnestMissionContractV1,
   ProcessResult,
@@ -542,6 +545,51 @@ function stderrBoundaryCap(codePointBytes: number): number {
 }
 
 describe('createHermesClient.createMission', () => {
+  it('dispatches an exact persisted pre-sourceCommit v1 mission without admitting new legacy work', async () => {
+    const legacyBase = task({ metadata: {} })
+    const canonical = JSON.stringify({
+      schema: 'ownest.mission.v1',
+      id: legacyBase.id,
+      title: legacyBase.title,
+      objective: legacyBase.objective,
+      priority: legacyBase.priority,
+      owner: legacyBase.agent_owner?.trim().toLowerCase(),
+      risk: legacyBase.risk_level,
+      mode: legacyBase.execution_mode,
+      dependencies: legacyBase.dependencies,
+      approval: legacyBase.human_approval_required,
+      validation: legacyBase.validation_required,
+    })
+    const legacyDigest = `hmac-sha256:${createHmac('sha256', integrityNonce)
+      .update('ownest.mission.digest.v1', 'utf8')
+      .update('\0', 'utf8')
+      .update(canonical, 'utf8')
+      .digest('hex')}` as HmacSha256Digest
+    const currentClaim = claimedTask({}, { missionDigest: legacyDigest })
+    const missionTask: CcTask = {
+      ...currentClaim,
+      metadata: { ownest: currentClaim.metadata.ownest },
+    }
+    const contract = rebuildPersistedMissionContract(
+      missionTask,
+      'attempt-1',
+      'rollout-1',
+      integrityNonce,
+      config.hermesProfile,
+      config.hermesBoard,
+      legacyDigest,
+    )
+    const run = mockRunner(jsonResult(liveTask()))
+    const client = createHermesClient(config, { run })
+
+    await client.createMission(missionTask, contract)
+
+    const body = valueAfter(capturedArgs(run), '--body')
+    expect(contract.schema).toBe('ownest.mission.v1')
+    expect(body).toContain('"schema": "ownest.mission.v1"')
+    expect(body).not.toContain('"sourceCommit"')
+  })
+
   it('uses the exact fixed-argv Hermes command family and configured cwd', async () => {
     const hostileTitle = 'Research $(touch /tmp/not-run) and `uname` for jane@example.com'
     const run = mockRunner(jsonResult(liveTask({ title: redactMissionText(hostileTitle) })))
@@ -808,7 +856,8 @@ describe('createHermesClient.createMission', () => {
     expect(body).toContain('--- END UNTRUSTED CRM TASK CONTENT ---')
     expect(body).toContain('--- BEGIN TRUSTED OWNEST MISSION ENVELOPE ---')
     expect(body).toContain('--- END TRUSTED OWNEST MISSION ENVELOPE ---')
-    expect(body).toContain('"schema": "ownest.mission.v1"')
+    expect(body).toContain('"schema": "ownest.mission.v2"')
+    expect(body).toContain(`"sourceCommit": "${sourceCommit}"`)
     expect(body).toContain(`"attemptId": "${contract.attemptId}"`)
     expect(body).toContain(`"rolloutId": "${contract.rolloutId}"`)
     expect(body).toContain(`"hermesProfile": "${contract.hermesProfile}"`)

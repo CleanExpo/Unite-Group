@@ -233,6 +233,7 @@
     "No plaintext credential backup or broad ambient environment inheritance."
   ],
   "board_release_authority": {
+    "authority_notice": "Non-authoritative summary only. ADDENDUM-001 and its canonical manifests govern if this plan drifts or conflicts.",
     "ruling_date": "2026-07-24",
     "status": "ratified",
     "addendum": "docs/constitution/ADDENDUM-001-board-release-authority-for-verified-prs-v1.0.md",
@@ -260,8 +261,8 @@
       ],
       "requires_every_gate": true,
       "protected_founder_manual_paths": [
-        "docs/constitution/",
-        "tools/board-release-verifier/"
+        "docs/constitution/**",
+        "tools/board-release-verifier/**"
       ],
       "deployment": "founder_only_never_controller_authorised"
     },

@@ -56,6 +56,10 @@ it('binds the mission integrity digest to the admitted source commit', () => {
     'unite-group-ownest',
   )
 
+  expect(mission.schema).toBe('ownest.mission.v2')
+  expect(mission.sourceCommit).toBe(SOURCE_COMMIT)
+  expect(changedSourceMission.schema).toBe('ownest.mission.v2')
+  expect(changedSourceMission.sourceCommit).toBe(CHANGED_SOURCE_COMMIT)
   expect(mission.missionDigest).not.toBe(changedSourceMission.missionDigest)
 })
 

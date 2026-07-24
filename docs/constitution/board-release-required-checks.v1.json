@@ -16,7 +16,7 @@
     {
       "id": "git-diff-check",
       "name": "git diff --check",
-      "command": ["git", "diff", "--check"],
+      "command": ["git", "diff", "--check", "origin/main...HEAD"],
       "trust_domain": "ci-runner"
     },
     {

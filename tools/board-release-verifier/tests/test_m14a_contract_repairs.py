@@ -221,6 +221,19 @@ class TestGoverningDocsContract(unittest.TestCase):
             yaml.safe_load(text)
         self._plan_text_contract(text)
 
+    def test_plan_summaries_defer_to_addendum_and_use_exact_protected_globs(self):
+        for path in (PLAN_JSON, PLAN_YAML):
+            text = path.read_text()
+            self.assertIn("Non-authoritative summary", text, path)
+            self.assertIn("ADDENDUM-001", text, path)
+            self.assertIn("docs/constitution/**", text, path)
+            self.assertIn("tools/board-release-verifier/**", text, path)
+
+    def test_git_diff_check_covers_committed_pr_comparison(self):
+        manifest = json.loads(tv.CHECK_MANIFEST_PATH.read_text())
+        check = next(c for c in manifest["required_checks"] if c["id"] == "git-diff-check")
+        self.assertEqual(check["command"], ["git", "diff", "--check", "origin/main...HEAD"])
+
     def test_addendum_documents_zero_future_issuance(self):
         text = ADDENDUM.read_text()
         self.assertIn("zero future issuance", text)

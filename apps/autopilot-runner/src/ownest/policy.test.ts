@@ -1,3 +1,4 @@
+import { createHmac } from 'node:crypto'
 import { performance } from 'node:perf_hooks'
 import { describe, expect, it } from 'vitest'
 import {
@@ -12,6 +13,7 @@ import {
   idempotencyKey,
   mapHermesStatus,
   redactMissionText,
+  rebuildPersistedMissionContract,
   sha256Digest,
 } from './policy.js'
 import type {
@@ -1004,6 +1006,73 @@ describe('computeMissionDigest', () => {
   })
 })
 
+describe('persisted mission digest compatibility', () => {
+  const legacyTask = (): CcTask => ({ ...task(), metadata: {} })
+
+  function legacyDigest(value: CcTask): HmacSha256Digest {
+    const canonical = JSON.stringify({
+      schema: 'ownest.mission.v1',
+      id: value.id,
+      title: value.title,
+      objective: value.objective,
+      priority: value.priority,
+      owner: value.agent_owner?.trim().toLowerCase(),
+      risk: value.risk_level,
+      mode: value.execution_mode,
+      dependencies: value.dependencies,
+      approval: value.human_approval_required,
+      validation: value.validation_required,
+    })
+    const digest = createHmac('sha256', integrityNonce)
+      .update('ownest.mission.digest.v1', 'utf8')
+      .update('\0', 'utf8')
+      .update(canonical, 'utf8')
+      .digest('hex')
+    return `hmac-sha256:${digest}` as HmacSha256Digest
+  }
+
+  it('keeps a persisted pre-sourceCommit v1 contract verifiable without admitting new legacy work', () => {
+    const value = legacyTask()
+    const persisted = rebuildPersistedMissionContract(
+      value,
+      'attempt-1',
+      'rollout-1',
+      integrityNonce,
+      hermesProfile,
+      hermesBoard,
+      legacyDigest(value),
+    )
+
+    expect(persisted.schema).toBe('ownest.mission.v1')
+    expect('sourceCommit' in persisted).toBe(false)
+    expect(persisted.missionDigest).toBe(legacyDigest(value))
+    expect(() =>
+      buildMissionContract(
+        value,
+        'attempt-1',
+        'rollout-1',
+        integrityNonce,
+        hermesProfile,
+        hermesBoard,
+      ),
+    ).toThrow(/continuity base commit/i)
+  })
+
+  it('rejects legacy compatibility when the persisted digest does not match v1 bytes', () => {
+    expect(() =>
+      rebuildPersistedMissionContract(
+        legacyTask(),
+        'attempt-1',
+        'rollout-1',
+        integrityNonce,
+        hermesProfile,
+        hermesBoard,
+        `hmac-sha256:${'f'.repeat(64)}` as HmacSha256Digest,
+      ),
+    ).toThrow(/persisted mission digest/i)
+  })
+})
+
 describe('buildMissionContract', () => {
   it('binds one attempt and rollout to the canonical task and validation requirements', () => {
     const contract = buildMissionContract(
@@ -1016,7 +1085,8 @@ describe('buildMissionContract', () => {
     )
 
     expect(contract).toMatchObject({
-      schema: 'ownest.mission.v1',
+      schema: 'ownest.mission.v2',
+      sourceCommit,
       crmTaskId: 'task-1',
       attemptId: 'attempt-1',
       idempotencyKey: idempotencyKey(
