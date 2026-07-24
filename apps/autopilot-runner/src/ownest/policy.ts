@@ -20,6 +20,7 @@ export const MAX_VALIDATION_AGGREGATE_BYTES = 16 * 1024
 const SHA256_DIGEST = /^sha256:[0-9a-f]{64}$/
 const HMAC_SHA256_DIGEST = /^hmac-sha256:[0-9a-f]{64}$/
 const INTEGRITY_NONCE = /^[0-9a-f]{64}$/
+const SOURCE_COMMIT = /^[0-9a-f]{40}$/
 const SAFE_OWNEST_TOKEN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/
 const HERMES_PROFILE = /^[a-z0-9]{1,64}$/
 const HERMES_BOARD = /^[a-z0-9][a-z0-9_-]{0,63}$/
@@ -715,6 +716,7 @@ export function buildValidationRequirements(
 
 function assertMissionTask(task: CcTask): {
   id: string
+  sourceCommit: string
   title: string
   objective: string
   priority: CcTask['priority']
@@ -727,6 +729,11 @@ function assertMissionTask(task: CcTask): {
 } {
   if (!isRecord(task)) throw new TypeError('Mission task must be an object')
   if (!isSafeOwnestToken(task.id)) throw new Error('Mission task has an invalid id')
+  const continuity = isRecord(task.metadata) ? task.metadata.continuity : null
+  const sourceCommit = isRecord(continuity) ? continuity.baseCommit : null
+  if (typeof sourceCommit !== 'string' || !SOURCE_COMMIT.test(sourceCommit)) {
+    throw new Error('Mission task has an invalid continuity base commit')
+  }
   if (!isNonEmptyString(task.title) || !isNonEmptyString(task.objective)) {
     throw new Error('Mission task title and objective must not be blank')
   }
@@ -763,6 +770,7 @@ function assertMissionTask(task: CcTask): {
 
   return {
     id: task.id,
+    sourceCommit,
     title: task.title,
     objective: task.objective,
     priority: task.priority,
@@ -787,6 +795,7 @@ export function computeMissionDigest(
     integrityNonce,
     JSON.stringify({
       schema: 'ownest.mission.v1',
+      sourceCommit: mission.sourceCommit,
       id: mission.id,
       title: mission.title,
       objective: mission.objective,

@@ -29,6 +29,7 @@ const integrityNonce = generateIntegrityNonce()
 const differentIntegrityNonce = generateIntegrityNonce()
 const hermesProfile = 'ownest'
 const hermesBoard = 'unite-group-ownest'
+const sourceCommit = '0123456789abcdef0123456789abcdef01234567'
 
 function task(overrides: Partial<CcTask> = {}): CcTask {
   return {
@@ -44,10 +45,13 @@ function task(overrides: Partial<CcTask> = {}): CcTask {
     dependencies: [],
     human_approval_required: false,
     validation_required: ['Cite the source data'],
-    metadata: {},
     created_at: '2026-07-12T00:00:00.000Z',
     updated_at: '2026-07-12T00:00:00.000Z',
     ...overrides,
+    metadata: {
+      continuity: { baseCommit: sourceCommit },
+      ...overrides.metadata,
+    },
   }
 }
 

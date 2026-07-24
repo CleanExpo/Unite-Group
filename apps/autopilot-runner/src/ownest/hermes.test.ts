@@ -34,6 +34,7 @@ import type {
 } from './types.js'
 
 const integrityNonce = generateIntegrityNonce()
+const sourceCommit = '0123456789abcdef0123456789abcdef01234567'
 
 const config: OwnestConfig = {
   supabaseUrl: 'https://example.invalid',
@@ -67,10 +68,13 @@ function task(overrides: Partial<CcTask> = {}): CcTask {
     dependencies: [],
     human_approval_required: false,
     validation_required: ['Cite the source data', 'Explain material uncertainty'],
-    metadata: {},
     created_at: '2026-07-12T00:00:00.000Z',
     updated_at: '2026-07-12T00:00:00.000Z',
     ...overrides,
+    metadata: {
+      continuity: { baseCommit: sourceCommit },
+      ...overrides.metadata,
+    },
   }
 }
 
