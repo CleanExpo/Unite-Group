@@ -24,6 +24,7 @@ import type {
 const NOW_ISO = '2026-07-12T00:04:00.000Z'
 const ATTEMPT_ID = '11111111-1111-4111-8111-111111111111'
 const NONCE = '000102030405060708090a0b0c0d0e0f'.repeat(2) as IntegrityNonce
+const SOURCE_COMMIT = '0123456789abcdef0123456789abcdef01234567'
 
 const baseConfig: OwnestConfig = {
   supabaseUrl: 'https://example.supabase.co',
@@ -61,10 +62,14 @@ function task(overrides: Partial<CcTask> = {}): CcTask {
     dependencies: [],
     human_approval_required: false,
     validation_required: ['Cite the source data'],
-    metadata: { unrelated: { preserve: true } },
     created_at: '2026-07-12T00:00:00.000Z',
     updated_at: '2026-07-12T00:00:00.000Z',
     ...overrides,
+    metadata: {
+      continuity: { baseCommit: SOURCE_COMMIT },
+      unrelated: { preserve: true },
+      ...overrides.metadata,
+    },
   }
 }
 

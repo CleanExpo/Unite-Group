@@ -1,0 +1,30 @@
+{
+  "schema": "nexus.board-release-required-checks.v1",
+  "manifest_id": "hsbc1-board-release-required-checks-v1",
+  "version": "1.2",
+  "effective_date": "2026-07-24",
+  "defined_by": "docs/constitution/ADDENDUM-001-board-release-authority-for-verified-prs-v1.0.md",
+  "repo": "CleanExpo/Unite-Group",
+  "note": "Bound to exactly one governed repository (m14a repair). CARSI and RestoreAssist are eligible under UG-AUTONOMY-001's activation manifest but remain fail-closed for merge authorisation until separately versioned, repo-bound required-check manifests are installed for them -- this manifest's commands are never invented or reused for those repos.",
+  "required_checks": [
+    {
+      "id": "apps-web-lint-typecheck-test-build",
+      "name": "apps/web — lint,type-check,test,build",
+      "command": ["npm", "run", "verify:web"],
+      "trust_domain": "ci-runner"
+    },
+    {
+      "id": "git-diff-check",
+      "name": "git diff --check",
+      "command": ["git", "diff", "--check", "origin/main...HEAD"],
+      "trust_domain": "ci-runner"
+    },
+    {
+      "id": "board-release-verifier-tests",
+      "name": "tools/board-release-verifier unit test suite",
+      "command": ["python3", "-m", "unittest", "discover", "-s", "tools/board-release-verifier/tests"],
+      "trust_domain": "ci-runner",
+      "path_prefix": "tools/board-release-verifier/"
+    }
+  ]
+}
