@@ -162,7 +162,7 @@
     "tailwind-merge": "^3.6.0",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^14.0.1",
-    "xero-node": "^18.0.0",
+    "xero-node": "^19.0.0",
     "yaml": "^2.9.0",
     "zod": "^4.4.3",
     "zustand": "^5.0.14"
