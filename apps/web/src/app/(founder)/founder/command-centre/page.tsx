@@ -25,6 +25,7 @@ import { IdeaConsole } from './IdeaConsole'
 import { DigestBanner } from './DigestBanner'
 import { CommandSteps } from './CommandSteps'
 import { HeroBand } from './HeroBand'
+import { MissionStatusBand } from './MissionStatusBand'
 import { DeckThemeShell } from './DeckThemeShell'
 import shell from './shell.module.css'
 // Vital Signs sources — all data below is already computed for the strip /
@@ -157,6 +158,20 @@ export default async function CommandDeckPage() {
           ))}
         </div>
       </nav>
+
+      {/* ── Mission Status (UNI-2378 wave 2) — status-first, at-a-glance view
+          of the fleet heartbeats + the AI agents working right now, so the calm
+          home still READS as a mission control. Fed only by data sources this
+          deck already exposes (mesh-fleet + live-agent-operations); the dense
+          tiles stay on the Operations deck. No-Invaders: no new numbers. ── */}
+      <div className={`${shell.canvasScope} ${shell.glassSectionHead}`} id="mission-status">
+        <h2>Mission Status</h2>
+        <span className={shell.glassSub}>fleet heartbeats + agent sessions · per-card source state · detail on Operations</span>
+      </div>
+
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.005s' }}>
+        <MissionStatusBand />
+      </section>
 
       {/* ── Command Brief — the AI-works-here centrepiece (UNI-2378) ── */}
       <div className={`${shell.canvasScope} ${shell.glassSectionHead}`} id="command-brief">
