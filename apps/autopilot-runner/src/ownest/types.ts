@@ -90,7 +90,7 @@ export interface OwnestValidationRequirementV1 {
   readonly digest: HmacSha256Digest
 }
 
-export interface OwnestMissionContractV1 {
+export interface OwnestMissionContractLegacyV1 {
   readonly schema: 'ownest.mission.v1'
   readonly crmTaskId: string
   readonly attemptId: string
@@ -101,6 +101,24 @@ export interface OwnestMissionContractV1 {
   readonly missionDigest: HmacSha256Digest
   readonly validationRequirements: readonly OwnestValidationRequirementV1[]
 }
+
+export interface OwnestMissionContractV2 {
+  readonly schema: 'ownest.mission.v2'
+  readonly sourceCommit: string
+  readonly crmTaskId: string
+  readonly attemptId: string
+  readonly idempotencyKey: string
+  readonly rolloutId: string
+  readonly hermesProfile: string
+  readonly hermesBoard: string
+  readonly missionDigest: HmacSha256Digest
+  readonly validationRequirements: readonly OwnestValidationRequirementV1[]
+}
+
+export type OwnestMissionContract = OwnestMissionContractLegacyV1 | OwnestMissionContractV2
+
+/** @deprecated Compatibility alias; new code should use OwnestMissionContract. */
+export type OwnestMissionContractV1 = OwnestMissionContract
 
 export type OwnestCompletionEvidenceKind =
   | 'source'

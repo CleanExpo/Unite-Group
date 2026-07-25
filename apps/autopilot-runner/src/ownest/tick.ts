@@ -6,6 +6,7 @@ import {
   generateIntegrityNonce,
   isCanonicalUtcTimestamp,
   redactMissionText,
+  rebuildPersistedMissionContract,
   sha256Digest,
 } from './policy.js'
 import type {
@@ -101,13 +102,14 @@ function rebuildContract(
   state: HardenedOwnestStateV1,
 ): OwnestMissionContractV1 | null {
   try {
-    const contract = buildMissionContract(
+    const contract = rebuildPersistedMissionContract(
       task,
       state.attemptId,
       state.rolloutId,
       state.integrityNonce,
       state.hermesProfile,
       state.hermesBoard,
+      state.missionDigest,
     )
     if (
       contract.idempotencyKey !== state.idempotencyKey ||
