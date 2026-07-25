@@ -101,6 +101,8 @@
   },
   "pnpm": {
     "overrides": {
+      "brace-expansion": "5.0.8",
+      "minimatch": "10.2.5",
       "fast-uri": "3.1.4",
       "js-yaml@4.2.0": "4.3.0",
       "shell-quote@1.8.4": "1.10.0"
