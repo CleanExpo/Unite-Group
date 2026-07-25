@@ -8,6 +8,7 @@ import {
   extractOwnestState,
   isCanonicalUtcTimestamp,
   redactMissionText,
+  rebuildPersistedMissionContract,
   sha256Digest,
 } from './policy.js'
 import type {
@@ -1255,13 +1256,14 @@ function validateCompletionPreflight(
   ) {
     throw new Error('CRM completion task authority or phase is invalid')
   }
-  const authoritativeContract = buildMissionContract(
+  const authoritativeContract = rebuildPersistedMissionContract(
     task,
     state.attemptId,
     state.rolloutId,
     state.integrityNonce,
     state.hermesProfile,
     state.hermesBoard,
+    state.missionDigest,
   )
   if (
     !isDeepStrictEqual(input.expectedContract, authoritativeContract) ||

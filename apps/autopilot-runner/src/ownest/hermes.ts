@@ -10,6 +10,7 @@ import {
   extractHardenedOwnestState,
   idempotencyKey,
   redactMissionText,
+  rebuildPersistedMissionContract,
   sha256Digest,
 } from './policy.js'
 import type {
@@ -130,6 +131,7 @@ const MISSION_CONTRACT_KEYS = [
   'schema',
   'validationRequirements',
 ] as const
+const MISSION_CONTRACT_V2_KEYS = [...MISSION_CONTRACT_KEYS, 'sourceCommit'] as const
 const MISSION_REQUIREMENT_KEYS = ['digest', 'id', 'text'] as const
 const RECEIPT_KEYS = [
   'attemptId',
@@ -161,6 +163,7 @@ const SAFE_OWNEST_TOKEN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/
 const HERMES_PROFILE = /^[a-z0-9]{1,64}$/
 const HERMES_BOARD = /^[a-z0-9][a-z0-9_-]{0,63}$/
 const HMAC_SHA256_DIGEST = /^hmac-sha256:[0-9a-f]{64}$/
+const SOURCE_COMMIT = /^[0-9a-f]{40}$/
 const SHA256_DIGEST = /^sha256:[0-9a-f]{64}$/
 const STOP_HERMES_PROFILE = 'ownest'
 const STOP_HERMES_BOARD = 'unite-group-ownest'
@@ -477,9 +480,17 @@ function validateExpectedMissionContract(
   const invalid = () => {
     throw new Error('Hermes expected OWNEST mission contract is invalid')
   }
-  if (!isPlainRecord(value) || !hasExactKeys(value, MISSION_CONTRACT_KEYS)) return invalid()
+  if (!isPlainRecord(value)) return invalid()
+  const isV1 = value.schema === 'ownest.mission.v1'
+  const isV2 = value.schema === 'ownest.mission.v2'
   if (
-    value.schema !== 'ownest.mission.v1' ||
+    (!isV1 && !isV2) ||
+    !hasExactKeys(value, isV2 ? MISSION_CONTRACT_V2_KEYS : MISSION_CONTRACT_KEYS) ||
+    (isV2 && (typeof value.sourceCommit !== 'string' || !SOURCE_COMMIT.test(value.sourceCommit)))
+  ) {
+    return invalid()
+  }
+  if (
     !isSafeOwnestToken(value.crmTaskId) ||
     !isSafeOwnestToken(value.attemptId) ||
     !isSafeOwnestToken(value.rolloutId) ||
@@ -532,8 +543,7 @@ function validateExpectedMissionContract(
   )
   if (value.idempotencyKey !== expectedKey) return invalid()
 
-  return {
-    schema: 'ownest.mission.v1',
+  const shared = {
     crmTaskId: value.crmTaskId,
     attemptId: value.attemptId,
     idempotencyKey: expectedKey,
@@ -543,6 +553,9 @@ function validateExpectedMissionContract(
     missionDigest: value.missionDigest,
     validationRequirements,
   }
+  return isV2
+    ? { schema: 'ownest.mission.v2', sourceCommit: value.sourceCommit as string, ...shared }
+    : { schema: 'ownest.mission.v1', ...shared }
 }
 
 function normaliseTypedTask(value: unknown): HermesTask | null {
@@ -1188,6 +1201,7 @@ interface StopShowState {
 function trustedMissionEnvelope(contract: OwnestMissionContractV1): Record<string, unknown> {
   return {
     schema: contract.schema,
+    ...('sourceCommit' in contract ? { sourceCommit: contract.sourceCommit } : {}),
     crmTaskId: contract.crmTaskId,
     attemptId: contract.attemptId,
     idempotencyKey: contract.idempotencyKey,
@@ -1660,13 +1674,14 @@ function validateMissionContract(
   state: HardenedOwnestStateV1,
   value: unknown,
 ): OwnestMissionContractV1 {
-  const authoritative = buildMissionContract(
+  const authoritative = rebuildPersistedMissionContract(
     task,
     state.attemptId,
     state.rolloutId,
     state.integrityNonce,
     state.hermesProfile,
     state.hermesBoard,
+    state.missionDigest,
   )
   if (state.idempotencyKey !== authoritative.idempotencyKey) {
     throw new Error('Claim idempotency key does not match the authoritative task')

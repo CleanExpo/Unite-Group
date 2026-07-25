@@ -1,0 +1,44 @@
+{
+  "schema": "nexus.board-release-roster.v1",
+  "roster_id": "hsbc1-board-release-roster-v1",
+  "version": "1.0",
+  "effective_date": "2026-07-24",
+  "defined_by": "docs/constitution/ADDENDUM-001-board-release-authority-for-verified-prs-v1.0.md",
+  "source_design": "docs/superpowers/specs/2026-07-24-hermes-senior-board-continuity-design.md#6",
+  "eligible_members": [
+    {
+      "id": "margot-chair",
+      "role": "Chair and Chief of Staff",
+      "runtime": "hermes",
+      "profile": "default"
+    },
+    {
+      "id": "empire-orchestrator",
+      "role": "Chief Operating Orchestrator",
+      "runtime": "hermes",
+      "profile": "empire"
+    },
+    {
+      "id": "codex-reviewer",
+      "role": "Independent reviewer",
+      "runtime": "codex-cli",
+      "model_family": "openai"
+    }
+  ],
+  "excluded": [
+    {
+      "id": "claude-builder",
+      "reason": "builder on most PRs; cannot approve its own work",
+      "runtime": "claude-cli",
+      "model_family": "anthropic"
+    },
+    {
+      "id": "ownest-advisory-board",
+      "reason": "advisory only per HSBC-1 design §6.3 until an isolated runtime is separately built and admitted"
+    },
+    {
+      "id": "deterministic-verifier",
+      "reason": "non-model required check, not a Board vote"
+    }
+  ]
+}
