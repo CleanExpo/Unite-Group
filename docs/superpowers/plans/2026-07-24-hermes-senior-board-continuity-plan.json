@@ -1,0 +1,279 @@
+{
+  "schema": "forward-planner/v1",
+  "project_id": "HSBC-1",
+  "goal": "Make Hermes the senior board and durable orchestrator for bounded Codex and Claude work across the MacBook and Mac mini, with provider-neutral continuity, independent verification, and founder-only consequential approvals.",
+  "status": "proposed",
+  "approval_phrase": "approve architecture HSBC-1",
+  "win_condition": [
+    {"id": "WC01", "text": "Founder intent becomes a versioned mission and board packet within 60 seconds."},
+    {"id": "WC02", "text": "Every mission carries objective, authority, non-goals, done criteria, sources, evidence requirements, and 15-20 anticipated moves."},
+    {"id": "WC03", "text": "Retries and duplicate intake resolve to one active attempt and one active owner."},
+    {"id": "WC04", "text": "Codex or Claude produces a candidate only in an isolated worktree and returns an exact-diff/test receipt."},
+    {"id": "WC05", "text": "A different model family reviews the frozen candidate and cannot approve its own authored work."},
+    {"id": "WC06", "text": "Deterministic verification reruns after candidate freeze and outranks model opinions."},
+    {"id": "WC07", "text": "A complete redacted receipt records mission, actor route, machine, commits, commands, exits, hashes, verdict, and next action."},
+    {"id": "WC08", "text": "MacBook sleep or disconnection does not stop admitted work on the Mac mini."},
+    {"id": "WC09", "text": "Worker crash or Mac mini restart recovers within ten minutes without duplicate external action."},
+    {"id": "WC10", "text": "Broken model, MCP, network, GitHub, or Linear routes produce visible bounded blockers, never silent success."},
+    {"id": "WC11", "text": "Merge, production, spend, credentials, publication, destructive, and privilege actions remain founder-gated."},
+    {"id": "WC12", "text": "Worker identity cannot read Phill's user home, broad credentials, or verifier state."},
+    {"id": "WC13", "text": "STOP completes within 60 seconds and preserves ledger and evidence integrity."},
+    {"id": "WC14", "text": "Five supervised canaries complete with zero duplicate execution, missing receipts, policy escapes, or failed recovery tests."}
+  ],
+  "moves": [
+    {
+      "id": "M01",
+      "title": "Ratify the architecture and bounded authority",
+      "depends_on": [],
+      "satisfies": ["WC02", "WC11"],
+      "owner": "Phill with Margot",
+      "status": "awaiting_approval",
+      "acceptance": ["The exact architecture, acceptance criteria, migration boundary, test strategy and prohibited actions are approved by the phrase approve architecture HSBC-1."],
+      "evidence": ["Approval message ID and immutable design commit."],
+      "risk": "medium"
+    },
+    {
+      "id": "M02",
+      "title": "Freeze the MacBook runtime inventory",
+      "depends_on": ["M01"],
+      "satisfies": ["WC10", "WC11"],
+      "owner": "Margot",
+      "status": "in_progress",
+      "acceptance": ["Record Hermes profiles, gateway, Kanban, MCPs, auth classes, scheduled loops, launchd services, Codex and Claude routes without credential values."],
+      "evidence": ["Redacted inventory receipt and exact command exits."],
+      "risk": "low"
+    },
+    {
+      "id": "M03",
+      "title": "Read-only inventory the Mac mini over Tailscale",
+      "depends_on": ["M01"],
+      "satisfies": ["WC08", "WC09", "WC10"],
+      "owner": "Margot",
+      "status": "blocked_by_terminal_approval",
+      "acceptance": ["Verify named Tailscale device, SSH reachability without agent forwarding, host identity, Hermes/Codex/Claude state, service managers, storage and runtime constraints without mutation."],
+      "evidence": ["Redacted remote inventory receipt."],
+      "risk": "low"
+    },
+    {
+      "id": "M04",
+      "title": "Freeze one-ledger authority and projection rules",
+      "depends_on": ["M01"],
+      "satisfies": ["WC01", "WC02", "WC03", "WC11"],
+      "owner": "Margot and Empire",
+      "status": "designed",
+      "acceptance": ["CRM is mission authority, Hermes Kanban is execution projection, Wiki is doctrine, Git is delivery evidence and Linear is an engineering projection."],
+      "evidence": ["Versioned authority matrix."],
+      "risk": "low"
+    },
+    {
+      "id": "M05",
+      "title": "Version the Senior Board five-part contracts",
+      "depends_on": ["M04"],
+      "satisfies": ["WC01", "WC02", "WC05", "WC11"],
+      "owner": "Margot",
+      "status": "designed",
+      "acceptance": ["Each board role declares inputs, outputs, authority, prohibitions and escalation paths."],
+      "evidence": ["Board roster contract fixtures."],
+      "risk": "low"
+    },
+    {
+      "id": "M06",
+      "title": "Align Second Brain retrieval across Hermes, Codex and Claude",
+      "depends_on": ["M02"],
+      "satisfies": ["WC02", "WC10"],
+      "owner": "Integration lane",
+      "status": "pending",
+      "acceptance": ["All three runtimes retrieve the required page IDs and revisions and produce matching content digests; Claude's current failed MCP path is repaired."],
+      "evidence": ["Three connector health receipts and digest comparison."],
+      "risk": "medium"
+    },
+    {
+      "id": "M07",
+      "title": "Define provider-neutral mission, handoff, receipt, lease and machine schemas",
+      "depends_on": ["M04", "M05"],
+      "satisfies": ["WC01", "WC02", "WC03", "WC07"],
+      "owner": "Architecture lane",
+      "status": "designed",
+      "acceptance": ["Schemas are versioned, secret-free, source-commit-bound and reject malformed or incomplete state."],
+      "evidence": ["JSON Schema or equivalent types plus valid/invalid fixtures."],
+      "risk": "low"
+    },
+    {
+      "id": "M08",
+      "title": "Create the RED continuity suite",
+      "depends_on": ["M01", "M07"],
+      "satisfies": ["WC03", "WC05", "WC06", "WC07", "WC09", "WC10", "WC11", "WC12", "WC13"],
+      "owner": "Test lane",
+      "status": "pending",
+      "acceptance": ["Tests fail for duplicate intake, dual claim, stale lease, worker crash, malformed receipt, self-review, secret request, gated action, provider outage, knowledge mismatch and forged verifier result."],
+      "evidence": ["Fresh RED test command with expected failures."],
+      "risk": "low"
+    },
+    {
+      "id": "M09",
+      "title": "Build the offline reconcile-first dispatcher with fake adapters",
+      "depends_on": ["M08"],
+      "satisfies": ["WC01", "WC03", "WC07", "WC09", "WC10", "WC13"],
+      "owner": "Codex builder",
+      "status": "pending",
+      "acceptance": ["Offline tests pass with no network, live CRM, credentials, service installation or external mutation."],
+      "evidence": ["GREEN unit/property test receipt and exact diff."],
+      "risk": "medium"
+    },
+    {
+      "id": "M10",
+      "title": "Build bounded Codex and Claude worker adapters",
+      "depends_on": ["M08", "M09"],
+      "satisfies": ["WC04", "WC05", "WC07", "WC10", "WC11"],
+      "owner": "Codex builder with Claude review",
+      "status": "pending",
+      "acceptance": ["Adapters use fixed argv, bounded runtime/iterations, route attestation, redaction, isolated worktrees and no merge/deploy authority."],
+      "evidence": ["Adapter contract tests and adversarial review receipt."],
+      "risk": "medium"
+    },
+    {
+      "id": "M11",
+      "title": "Build the Mac mini dedicated worker identity and sealed workspace",
+      "depends_on": ["M03", "M08"],
+      "satisfies": ["WC08", "WC09", "WC12", "WC13"],
+      "owner": "Security and infrastructure lane",
+      "status": "pending",
+      "acceptance": ["Dedicated identity, sealed HOME/workspace, pinned binary digests, fixed tools and deny-by-default egress are independently proven; the worker cannot read Phill's home."],
+      "evidence": ["Permission-denial tests, binary hashes, egress tests and threat-model review."],
+      "risk": "high",
+      "approval_required": true
+    },
+    {
+      "id": "M12",
+      "title": "Build the operation-scoped credential broker",
+      "depends_on": ["M11"],
+      "satisfies": ["WC11", "WC12", "WC13"],
+      "owner": "Security and infrastructure lane",
+      "status": "pending",
+      "acceptance": ["No general Supabase service role, broad GitHub PAT, browser, SSH, payment, social, email or deployment credential enters the child; grants are mission/verb scoped, expiring and revocable."],
+      "evidence": ["Deny tests, expiry/revocation tests and names-only credential audit."],
+      "risk": "high",
+      "approval_required": true
+    },
+    {
+      "id": "M13",
+      "title": "Build the independent verifier in a separate trust domain",
+      "depends_on": ["M08", "M11"],
+      "satisfies": ["WC05", "WC06", "WC07", "WC12"],
+      "owner": "Verifier lane",
+      "status": "pending",
+      "acceptance": ["Verifier retrieves artefacts independently, reruns pinned checks, validates hashes and model-family separation, and cannot be modified or impersonated by the worker."],
+      "evidence": ["Forgery, mutation and family-separation tests."],
+      "risk": "high"
+    },
+    {
+      "id": "M14",
+      "title": "Install the Mac mini dispatcher disabled by default",
+      "depends_on": ["M11", "M12", "M13"],
+      "satisfies": ["WC08", "WC09", "WC10", "WC13"],
+      "owner": "Infrastructure lane",
+      "status": "pending",
+      "acceptance": ["Service starts disabled, admits no live task, exposes bounded health, and passes STOP/rollback without plaintext backups."],
+      "evidence": ["Service-state, no-admission, STOP and restore receipts."],
+      "risk": "high",
+      "approval_required": true
+    },
+    {
+      "id": "M15",
+      "title": "Run one supervised offline real-agent mission",
+      "depends_on": ["M10", "M13", "M14"],
+      "satisfies": ["WC01", "WC03", "WC04", "WC05", "WC06", "WC07", "WC10", "WC11"],
+      "owner": "Empire orchestrator",
+      "status": "pending",
+      "acceptance": ["Hermes creates one projection, Codex produces a frozen candidate, deterministic checks rerun, Claude independently reviews and a valid receipt reconciles without external mutation."],
+      "evidence": ["End-to-end fixture mission receipt."],
+      "risk": "medium"
+    },
+    {
+      "id": "M16",
+      "title": "Run fault injection and restart recovery",
+      "depends_on": ["M15"],
+      "satisfies": ["WC03", "WC08", "WC09", "WC10", "WC12", "WC13"],
+      "owner": "Verifier and infrastructure lanes",
+      "status": "pending",
+      "acceptance": ["Kill-worker, duplicate-tick, MacBook-sleep, Tailscale-loss, Mac-mini-restart, provider-outage, MCP-outage, malformed-evidence and policy-injection cases all fail or recover exactly as specified."],
+      "evidence": ["Fault matrix with fresh exits, timings and receipts."],
+      "risk": "medium"
+    },
+    {
+      "id": "M17",
+      "title": "Run five supervised low-risk canaries at concurrency one",
+      "depends_on": ["M16"],
+      "satisfies": ["WC01", "WC03", "WC04", "WC05", "WC06", "WC07", "WC08", "WC09", "WC10", "WC11", "WC12", "WC13", "WC14"],
+      "owner": "Margot and Empire",
+      "status": "pending",
+      "acceptance": ["Five consecutive canaries have zero duplicate execution, missing receipts, policy escapes or failed recovery tests, with every intervention documented."],
+      "evidence": ["Five immutable canary receipts and one roll-up report."],
+      "risk": "high",
+      "approval_required": true
+    },
+    {
+      "id": "M18",
+      "title": "Present the unattended low-risk widening decision packet",
+      "depends_on": ["M17"],
+      "satisfies": ["WC11", "WC14"],
+      "owner": "Margot",
+      "status": "pending",
+      "acceptance": ["Board packet compares canary evidence to every win condition, lists residual risks and seeks a new explicit approval; consequential gates remain manual."],
+      "evidence": ["Founder decision and signed rollout scope."],
+      "risk": "high",
+      "approval_required": true
+    }
+  ],
+  "non_goals": [
+    "No free-running model-to-model conversation.",
+    "No second orchestration framework or second authoritative queue.",
+    "No production mutation, merge, deploy, publication, spend or credential migration under this architecture approval.",
+    "No claim that an installed CLI, active profile, healthy login or green model opinion proves safe execution capacity.",
+    "No plaintext credential backup or broad ambient environment inheritance."
+  ],
+  "board_release_authority": {
+    "authority_notice": "Non-authoritative summary only. ADDENDUM-001 and its canonical manifests govern if this plan drifts or conflicts.",
+    "ruling_date": "2026-07-24",
+    "status": "ratified",
+    "addendum": "docs/constitution/ADDENDUM-001-board-release-authority-for-verified-prs-v1.0.md",
+    "roster": "docs/constitution/board-release-roster.v1.json",
+    "verifier": "tools/board-release-verifier/verifier.py",
+    "automatic_progression": {
+      "condition": "full_check_reject_rework_closure_and_100pct_eligible_board_approval_and_constitutional_compliance",
+      "effect": "board_authority_substitutes_for_blanket_founder_pause_at_pr_review_completion_only"
+    },
+    "retained_founder_only_gates": [
+      "new_direct_cost",
+      "constitutional_change",
+      "missing_privilege",
+      "unresolved_authority_conflict",
+      "irreversible_action_without_tested_rollback",
+      "production_deployment"
+    ],
+    "automatic_merge_exception": {
+      "mandate": "UG-AUTONOMY-001",
+      "default": "human_founder_merge",
+      "eligible_repos": [
+        "CleanExpo/Unite-Group",
+        "CleanExpo/CARSI",
+        "CleanExpo/RestoreAssist"
+      ],
+      "requires_every_gate": true,
+      "protected_founder_manual_paths": [
+        "docs/constitution/**",
+        "tools/board-release-verifier/**"
+      ],
+      "deployment": "founder_only_never_controller_authorised"
+    },
+    "explicit_conflict_not_resolved": {
+      "description": "Human/founder merge is the default (pr-release-gate skill / CLAUDE.md Global PR release law). The founder-ratified UG-AUTONOMY-001 exception permits automatic exact-HEAD merge for CleanExpo/Unite-Group, CleanExpo/CARSI and CleanExpo/RestoreAssist only, after every gate passes. Protected/governing changes (docs/constitution/, tools/board-release-verifier/, including this verifier candidate) remain founder-manual and can never self-authorise. Deployment remains separately founder-only and is never authorised by the controller. A BOARD_RELEASE_READY verdict is evidence for a human merge-approver; merge_authorised is consumed only by the fail-closed controller inside that scope.",
+      "unaffected_control": "pr-release-gate"
+    },
+    "verifier_constraints": [
+      "never_calls_gh_or_git_push_merge_deploy",
+      "never_claims_production_merged",
+      "fails_closed_on_any_missing_duplicate_unknown_dissenting_pending_stale_or_malformed_input"
+    ]
+  }
+}
