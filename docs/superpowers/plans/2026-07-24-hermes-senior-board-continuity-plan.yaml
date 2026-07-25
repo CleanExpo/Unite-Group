@@ -1,0 +1,447 @@
+schema: nexus.continuity.plan.v1
+plan_id: HSBC-1
+created_at: '2026-07-24T13:00:09+10:00'
+owner: Phill McGurk
+chair_profile: default
+orchestrator_profile: empire
+status: proposed
+approval_phrase: approve architecture HSBC-1
+north_star:
+  target: Unite Group acquired for AUD 2 billion by 2028-06-30
+  contribution:
+    - founder-independent execution continuity
+    - auditable multi-agent operating moat
+    - controlled delivery velocity without widening consequential authority
+
+sources_of_truth:
+  doctrine:
+    system: second-brain
+    required_pages:
+      - exit-thesis
+      - operational-priorities-q2-2026
+      - unite-group-nexus-architecture
+  mission:
+    system: crm
+    tables:
+      - cc_tasks
+      - cc_task_events
+      - cc_evidence_records
+  execution_projection:
+    system: hermes-kanban
+    board: unite-group
+  engineering_projection:
+    system: linear-github
+  code:
+    repo: CleanExpo/Unite-Group
+    base_branch: main
+
+roles:
+  - id: margot-chair
+    runtime: hermes
+    profile: default
+    model_family: openai
+    responsibilities:
+      - founder intake
+      - wiki-first challenge
+      - mission framing
+      - executive decision packet
+      - approval routing
+    prohibited:
+      - merge
+      - deploy
+      - production mutation
+      - spend
+      - credential disclosure
+      - external publication
+  - id: empire-orchestrator
+    runtime: hermes
+    profile: empire
+    model_family: openai
+    responsibilities:
+      - dependency planning
+      - machine and worker assignment
+      - bounded dispatch
+      - lease recovery
+      - evidence reconciliation
+    prohibited:
+      - change mission priority
+      - widen mission scope
+      - self-approve completion
+  - id: ownest-advisory-board
+    runtime: hermes-moa
+    profile: ownest
+    model_family: mixed
+    mode: advisory_only
+    responsibilities:
+      - dissent
+      - assumptions
+      - high-value recommendation
+    prohibited:
+      - continuous same-uid service
+      - live task admission
+      - completion approval
+  - id: claude-builder
+    runtime: claude-cli
+    model_family: anthropic
+    mode: isolated_worktree
+    responsibilities:
+      - implementation
+      - tests
+      - repair
+      - candidate receipt
+    prohibited:
+      - merge
+      - deploy
+      - production database
+      - secrets
+      - publication
+  - id: codex-reviewer
+    runtime: codex-cli
+    model_family: openai
+    mode: read_only_candidate_review
+    responsibilities:
+      - independent review
+      - policy challenge
+      - defect report
+    prohibited:
+      - approve own authored work
+      - mutate frozen candidate
+      - merge
+      - deploy
+  - id: deterministic-verifier
+    runtime: non_model
+    trust_domain: separate_from_worker
+    responsibilities:
+      - rerun pinned commands
+      - validate hashes and receipts
+      - enforce branch and policy gates
+    prohibited:
+      - merge
+      - deploy
+      - change mission state without valid evidence
+
+machine_roles:
+  macbook:
+    role: founder_cockpit
+    responsibilities:
+      - intake
+      - review
+      - approval
+      - supervised pilot
+    must_not_be_required_for_continuation: true
+  mac_mini:
+    role: durable_control_host
+    connection: tailscale
+    admission_blockers:
+      - read_only_inventory_not_completed
+      - dedicated_uid_not_proven
+      - sealed_workspace_not_proven
+      - brokered_credentials_not_proven
+      - independent_verifier_not_proven
+      - stop_restore_not_proven
+  windows_laptop:
+    role: optional_worker
+    status: not_in_initial_canary
+  windows_tower:
+    role: optional_heavy_worker
+    status: not_in_initial_canary
+
+hard_gates:
+  always_require_founder_approval:
+    - merge_to_main
+    - production_deploy
+    - production_database_mutation
+    - spend_or_payment
+    - credential_or_privilege_change
+    - person_facing_or_public_message
+    - destructive_action
+    - access_control_or_branch_protection
+    - canary_scope_or_concurrency_widening
+  runtime_requirements:
+    - dedicated_worker_identity
+    - sealed_home_and_workspace
+    - pinned_binary_digests
+    - fixed_argv_no_shell
+    - allowlisted_tools_and_filesystem
+    - deny_by_default_egress
+    - operation_scoped_broker_tokens
+    - route_and_billing_attestation
+    - separate_completion_verifier
+    - tested_stop_and_restore
+    - no_plaintext_credential_backup
+
+win_condition:
+  mission_packet_seconds_max: 60
+  crash_recovery_seconds_max: 600
+  stop_seconds_max: 60
+  max_active_owner_per_step: 1
+  max_canary_concurrency: 1
+  supervised_clean_runs_required: 5
+  duplicate_execution_allowed: 0
+  missing_completion_receipts_allowed: 0
+  policy_escapes_allowed: 0
+  model_self_approval_allowed: false
+  macbook_sleep_survival_required: true
+  mac_mini_restart_recovery_required: true
+
+moves:
+  - id: M01
+    title: Ratify architecture and bounded authority
+    status: awaiting_approval
+    depends_on: []
+    evidence:
+      - architecture approval phrase recorded
+  - id: M02
+    title: Freeze local runtime inventory
+    status: in_progress
+    depends_on: [M01]
+    safe_before_approval: read_only_only
+    evidence:
+      - Hermes profiles, gateway, Kanban, MCP and auth-class inventory
+      - Codex and Claude MCP/auth-class inventory
+      - current launchd and automation inventory
+  - id: M03
+    title: Inventory Mac mini over Tailscale
+    status: blocked_by_terminal_approval
+    depends_on: [M01]
+    evidence:
+      - named device and Tailscale identity
+      - SSH reachability without agent forwarding
+      - non-secret runtime and service inventory
+  - id: M04
+    title: Freeze one-ledger authority map
+    status: designed
+    depends_on: [M01]
+    evidence:
+      - CRM/Hermes/Wiki/Git/Linear responsibility contract
+  - id: M05
+    title: Version Senior Board five-part contracts
+    status: designed
+    depends_on: [M04]
+    evidence:
+      - inputs, outputs, authority, prohibitions and escalation for each role
+  - id: M06
+    title: Align Second Brain retrieval
+    status: pending
+    depends_on: [M02]
+    acceptance:
+      - Hermes retrieves required pages
+      - Codex retrieves same pages
+      - Claude retrieves same pages
+      - content digests match
+  - id: M07
+    title: Define mission, handoff, receipt, lease and machine schemas
+    status: designed
+    depends_on: [M04, M05]
+    evidence:
+      - schema validation fixtures
+  - id: M08
+    title: Create RED continuity suite
+    status: pending
+    depends_on: [M01, M07]
+    red_cases:
+      - duplicate_intake
+      - dual_worker_claim
+      - stale_lease
+      - worker_crash
+      - malformed_receipt
+      - self_review
+      - secret_request
+      - gated_action
+      - unavailable_provider
+      - second_brain_mismatch
+  - id: M09
+    title: Build offline dispatcher core with fake adapters
+    status: pending
+    depends_on: [M08]
+    prohibitions:
+      - network
+      - live_crm
+      - secrets
+      - service_install
+  - id: M10
+    title: Build bounded Codex and Claude adapters
+    status: pending
+    depends_on: [M08, M09]
+    acceptance:
+      - fixed argv
+      - bounded runtime and iterations
+      - auth/billing route attested
+      - outputs redacted
+      - no merge or deployment capability
+  - id: M11
+    title: Build Mac mini isolated worker identity
+    status: pending
+    depends_on: [M03, M08]
+    approval_required: true
+    acceptance:
+      - dedicated identity
+      - sealed workspace
+      - pinned binary digests
+      - worker cannot read Phill user home
+      - deny-by-default egress
+  - id: M12
+    title: Build operation-scoped broker
+    status: pending
+    depends_on: [M11]
+    approval_required: true
+    acceptance:
+      - no general Supabase service role in child
+      - no broad GitHub PAT in child
+      - mission and verb scoped grants
+      - expiry and revocation tested
+  - id: M13
+    title: Build independent verifier
+    status: pending
+    depends_on: [M08, M11]
+    acceptance:
+      - separate identity or trust domain
+      - independent artefact retrieval
+      - digest validation
+      - model-family separation
+      - worker cannot forge verifier result
+  - id: M14
+    title: Install disabled Mac mini dispatcher
+    status: pending
+    depends_on: [M11, M12, M13]
+    approval_required: true
+    acceptance:
+      - disabled by default
+      - stop and rollback tested
+      - no live task admission
+  - id: M15
+    title: Run supervised offline real-agent mission
+    status: pending
+    depends_on: [M10, M13, M14]
+    acceptance:
+      - Hermes projection created once
+      - Codex candidate produced
+      - deterministic tests rerun
+      - Claude independent review complete
+      - valid receipt reconciled
+  - id: M16
+    title: Run fault-injection and restart suite
+    status: pending
+    depends_on: [M15]
+    cases:
+      - kill_worker
+      - duplicate_tick
+      - macbook_sleep
+      - tailscale_loss
+      - mac_mini_restart
+      - codex_outage
+      - claude_outage
+      - second_brain_outage
+      - malformed_evidence
+      - policy_injection
+  - id: M17
+    title: Run five supervised low-risk canaries
+    status: pending
+    depends_on: [M16]
+    approval_required: true
+    concurrency: 1
+  - id: M18
+    title: Present widening decision packet
+    status: pending
+    depends_on: [M17]
+    approval_required: true
+    note: Consequential action gates remain manual after widening.
+
+current_observations:
+  hermes_gateway: running
+  hermes_active_profiles:
+    - default
+  hermes_stopped_profiles:
+    - empire
+    - empire-laptop-win
+    - empire-mac
+    - empire-tower-win
+    - ownest
+  hermes_kanban:
+    board: unite-group
+    running: 0
+    todo: 4
+    blocked: 1
+    done: 145
+  codex_auth: chatgpt_login
+  claude_auth: first_party_oauth
+  second_brain:
+    hermes: connected
+    codex: connected
+    claude: failed
+  existing_loops:
+    claude_continuous:
+      state: idle
+      scope: research_read_only
+      authoritative_queue: false
+    codex_peer_loop:
+      state: scheduled
+      scope: research_read_only
+      authoritative_queue: false
+    ownest:
+      state: design_test_only
+      live_admission: blocked
+
+promotion_policy:
+  current_stage: architecture
+  next_stage: offline_contract_tests
+  required_approval: approve architecture HSBC-1
+  explicitly_not_authorised:
+    - service_installation
+    - credential_migration
+    - live_crm_admission
+    - production_mutation
+    - merge
+    - deployment
+    - publication
+    - spend
+    - unattended_execution
+
+board_release_authority:
+  authority_notice: >-
+    Non-authoritative summary only. ADDENDUM-001 and its canonical manifests
+    govern if this plan drifts or conflicts.
+  ruling_date: '2026-07-24'
+  status: ratified
+  addendum: docs/constitution/ADDENDUM-001-board-release-authority-for-verified-prs-v1.0.md
+  roster: docs/constitution/board-release-roster.v1.json
+  verifier: tools/board-release-verifier/verifier.py
+  automatic_progression:
+    condition: full_check_reject_rework_closure_and_100pct_eligible_board_approval_and_constitutional_compliance
+    effect: board_authority_substitutes_for_blanket_founder_pause_at_pr_review_completion_only
+  retained_founder_only_gates:
+    - new_direct_cost
+    - constitutional_change
+    - missing_privilege
+    - unresolved_authority_conflict
+    - irreversible_action_without_tested_rollback
+    - production_deployment
+  automatic_merge_exception:
+    mandate: UG-AUTONOMY-001
+    default: human_founder_merge
+    eligible_repos:
+      - CleanExpo/Unite-Group
+      - CleanExpo/CARSI
+      - CleanExpo/RestoreAssist
+    requires_every_gate: true
+    protected_founder_manual_paths:
+      - docs/constitution/**
+      - tools/board-release-verifier/**
+    deployment: founder_only_never_controller_authorised
+  explicit_conflict_not_resolved:
+    description: >-
+      Human/founder merge is the default (pr-release-gate skill / CLAUDE.md Global PR
+      release law). The founder-ratified UG-AUTONOMY-001 exception permits automatic
+      exact-HEAD merge for CleanExpo/Unite-Group, CleanExpo/CARSI and
+      CleanExpo/RestoreAssist only, after every gate passes. Protected/governing
+      changes (docs/constitution/, tools/board-release-verifier/, including this
+      verifier candidate) remain founder-manual and can never self-authorise.
+      Deployment remains separately founder-only and is never authorised by the
+      controller. A BOARD_RELEASE_READY verdict is evidence for a human
+      merge-approver; merge_authorised is consumed only by the fail-closed controller
+      inside that scope.
+    unaffected_control: pr-release-gate
+  verifier_constraints:
+    - never_calls_gh_or_git_push_merge_deploy
+    - never_claims_production_merged
+    - fails_closed_on_any_missing_duplicate_unknown_dissenting_pending_stale_or_malformed_input

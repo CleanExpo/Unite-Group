@@ -5,7 +5,9 @@ import type {
   HardenedOwnestStateV1,
   HmacSha256Digest,
   IntegrityNonce,
-  OwnestMissionContractV1,
+  OwnestMissionContract,
+  OwnestMissionContractLegacyV1,
+  OwnestMissionContractV2,
   OwnestStateV1,
   OwnestValidationRequirementV1,
   Sha256Digest,
@@ -20,6 +22,7 @@ export const MAX_VALIDATION_AGGREGATE_BYTES = 16 * 1024
 const SHA256_DIGEST = /^sha256:[0-9a-f]{64}$/
 const HMAC_SHA256_DIGEST = /^hmac-sha256:[0-9a-f]{64}$/
 const INTEGRITY_NONCE = /^[0-9a-f]{64}$/
+const SOURCE_COMMIT = /^[0-9a-f]{40}$/
 const SAFE_OWNEST_TOKEN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/
 const HERMES_PROFILE = /^[a-z0-9]{1,64}$/
 const HERMES_BOARD = /^[a-z0-9][a-z0-9_-]{0,63}$/
@@ -657,7 +660,10 @@ export function generateIntegrityNonce(): IntegrityNonce {
 }
 
 function nonceBoundDigest(
-  domain: 'ownest.mission.digest.v1' | 'ownest.validation.digest.v1',
+  domain:
+    | 'ownest.mission.digest.v1'
+    | 'ownest.mission.digest.v2'
+    | 'ownest.validation.digest.v1',
   integrityNonce: IntegrityNonce,
   rawPayload: string,
 ): HmacSha256Digest {
@@ -715,6 +721,7 @@ export function buildValidationRequirements(
 
 function assertMissionTask(task: CcTask): {
   id: string
+  sourceCommit: string
   title: string
   objective: string
   priority: CcTask['priority']
@@ -727,6 +734,11 @@ function assertMissionTask(task: CcTask): {
 } {
   if (!isRecord(task)) throw new TypeError('Mission task must be an object')
   if (!isSafeOwnestToken(task.id)) throw new Error('Mission task has an invalid id')
+  const continuity = isRecord(task.metadata) ? task.metadata.continuity : null
+  const sourceCommit = isRecord(continuity) ? continuity.baseCommit : null
+  if (typeof sourceCommit !== 'string' || !SOURCE_COMMIT.test(sourceCommit)) {
+    throw new Error('Mission task has an invalid continuity base commit')
+  }
   if (!isNonEmptyString(task.title) || !isNonEmptyString(task.objective)) {
     throw new Error('Mission task title and objective must not be blank')
   }
@@ -763,6 +775,7 @@ function assertMissionTask(task: CcTask): {
 
   return {
     id: task.id,
+    sourceCommit,
     title: task.title,
     objective: task.objective,
     priority: task.priority,
@@ -783,10 +796,11 @@ export function computeMissionDigest(
   if (!isIntegrityNonce(integrityNonce)) throw new Error('Mission integrity nonce is invalid')
   const mission = assertMissionTask(task)
   return nonceBoundDigest(
-    'ownest.mission.digest.v1',
+    'ownest.mission.digest.v2',
     integrityNonce,
     JSON.stringify({
-      schema: 'ownest.mission.v1',
+      schema: 'ownest.mission.v2',
+      sourceCommit: mission.sourceCommit,
       id: mission.id,
       title: mission.title,
       objective: mission.objective,
@@ -809,13 +823,93 @@ export function buildMissionContract(
   integrityNonce: IntegrityNonce,
   hermesProfile: string,
   hermesBoard: string,
-): OwnestMissionContractV1 {
+): OwnestMissionContractV2 {
   if (!isSafeOwnestToken(attemptId)) throw new Error('Mission attempt id is invalid')
   if (!isSafeOwnestToken(rolloutId)) throw new Error('Mission rollout id is invalid')
   if (!isIntegrityNonce(integrityNonce)) throw new Error('Mission integrity nonce is invalid')
+  const mission = assertMissionTask(task)
   const missionDigest = computeMissionDigest(task, integrityNonce)
 
   return {
+    schema: 'ownest.mission.v2',
+    sourceCommit: mission.sourceCommit,
+    crmTaskId: task.id,
+    attemptId,
+    idempotencyKey: idempotencyKey(
+      task.id,
+      rolloutId,
+      attemptId,
+      hermesProfile,
+      hermesBoard,
+    ),
+    rolloutId,
+    hermesProfile,
+    hermesBoard,
+    missionDigest,
+    validationRequirements: buildValidationRequirements(task.validation_required, integrityNonce),
+  }
+}
+
+function computeLegacyMissionDigest(
+  task: CcTask,
+  integrityNonce: IntegrityNonce,
+): HmacSha256Digest {
+  if (!isRecord(task.metadata) || Object.hasOwn(task.metadata, 'continuity')) {
+    throw new Error('Legacy mission compatibility requires an absent continuity field')
+  }
+  const { sourceCommit: _ignored, ...mission } = assertMissionTask({
+    ...task,
+    metadata: { ...task.metadata, continuity: { baseCommit: '0'.repeat(40) } },
+  })
+  return nonceBoundDigest(
+    'ownest.mission.digest.v1',
+    integrityNonce,
+    JSON.stringify({ schema: 'ownest.mission.v1', ...mission }),
+  )
+}
+
+/**
+ * Reconstructs an already-persisted mission. New admissions always use v2;
+ * v1 is accepted only when continuity metadata is absent and the persisted
+ * digest proves the exact pre-sourceCommit canonical bytes.
+ */
+export function rebuildPersistedMissionContract(
+  task: CcTask,
+  attemptId: string,
+  rolloutId: string,
+  integrityNonce: IntegrityNonce,
+  hermesProfile: string,
+  hermesBoard: string,
+  persistedMissionDigest: HmacSha256Digest,
+): OwnestMissionContract {
+  if (!isHmacSha256Digest(persistedMissionDigest)) {
+    throw new Error('Persisted mission digest is invalid')
+  }
+  try {
+    const current = buildMissionContract(
+      task,
+      attemptId,
+      rolloutId,
+      integrityNonce,
+      hermesProfile,
+      hermesBoard,
+    )
+    if (current.missionDigest !== persistedMissionDigest) {
+      throw new Error('Persisted mission digest does not match v2 mission bytes')
+    }
+    return current
+  } catch (error) {
+    if (isRecord(task.metadata) && Object.hasOwn(task.metadata, 'continuity')) throw error
+  }
+
+  if (!isSafeOwnestToken(attemptId)) throw new Error('Mission attempt id is invalid')
+  if (!isSafeOwnestToken(rolloutId)) throw new Error('Mission rollout id is invalid')
+  if (!isIntegrityNonce(integrityNonce)) throw new Error('Mission integrity nonce is invalid')
+  const missionDigest = computeLegacyMissionDigest(task, integrityNonce)
+  if (missionDigest !== persistedMissionDigest) {
+    throw new Error('Persisted mission digest does not match legacy v1 mission bytes')
+  }
+  const legacy: OwnestMissionContractLegacyV1 = {
     schema: 'ownest.mission.v1',
     crmTaskId: task.id,
     attemptId,
@@ -832,6 +926,7 @@ export function buildMissionContract(
     missionDigest,
     validationRequirements: buildValidationRequirements(task.validation_required, integrityNonce),
   }
+  return legacy
 }
 
 /** Derives a stable RFC 9562-compatible UUIDv8 from a scoped SHA-256 input. */
