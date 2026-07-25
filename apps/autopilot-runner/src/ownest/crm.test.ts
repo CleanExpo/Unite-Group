@@ -74,6 +74,7 @@ const artifactConfig: OwnestConfig = {
 
 const expectedUpdatedAt = '2026-07-12T00:00:00.000Z'
 const completionNowIso = '2026-07-12T00:04:00.000Z'
+const sourceCommit = '0123456789abcdef0123456789abcdef01234567'
 
 const validEnv: NodeJS.ProcessEnv = {
   SUPABASE_URL: OWNEST_PRODUCTION_CRM_ORIGIN,
@@ -143,10 +144,13 @@ function task(overrides: Partial<CcTask> = {}): CcTask {
     dependencies: [],
     human_approval_required: false,
     validation_required: ['Cite the source data'],
-    metadata: {},
     created_at: '2026-07-12T00:00:00.000Z',
     updated_at: '2026-07-12T00:00:00.000Z',
     ...overrides,
+    metadata: {
+      continuity: { baseCommit: sourceCommit },
+      ...overrides.metadata,
+    },
   }
 }
 
@@ -228,7 +232,10 @@ function completionFixture(): CompletionFixture {
     receiptSha256,
   }
   return {
-    freshTask: { ...missionTask, metadata: { ownest: state } },
+    freshTask: {
+      ...missionTask,
+      metadata: { ...missionTask.metadata, ownest: state },
+    },
     expectedContract,
     completion,
   }
@@ -1458,7 +1465,10 @@ describe('persistent claim quotas', () => {
 
 describe('compareAndSetTask', () => {
   it('uses founder/id/expected-status CAS filters and returns one validated representation', async () => {
-    const metadata = { ownest: ownestState('task-1') }
+    const metadata = {
+      continuity: { baseCommit: sourceCommit },
+      ownest: ownestState('task-1'),
+    }
     const updated = task({ status: 'running', metadata })
     const fetchImpl = mockFetch(jsonResponse([updated]))
 
@@ -1619,8 +1629,16 @@ describe('compareAndSetTask', () => {
   })
 
   it('accepts JSON-semantically identical metadata regardless of object key order', async () => {
-    const metadata = { alpha: 1, nested: { beta: true, gamma: ['x'] } }
-    const returnedMetadata = { nested: { gamma: ['x'], beta: true }, alpha: 1 }
+    const metadata = {
+      continuity: { baseCommit: sourceCommit },
+      alpha: 1,
+      nested: { beta: true, gamma: ['x'] },
+    }
+    const returnedMetadata = {
+      nested: { gamma: ['x'], beta: true },
+      alpha: 1,
+      continuity: { baseCommit: sourceCommit },
+    }
     const updated = task({ status: 'running', metadata: returnedMetadata })
     const fetchImpl = mockFetch(jsonResponse([updated]))
 

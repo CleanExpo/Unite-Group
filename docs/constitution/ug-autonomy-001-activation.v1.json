@@ -1,0 +1,33 @@
+{
+  "schema": "nexus.ug-autonomy-001-activation.v1",
+  "manifest_id": "ug-autonomy-001-activation-v1",
+  "version": "1.0",
+  "ratification_date": "2026-07-24",
+  "founder": "Phill McGurk",
+  "authority": "UG-AUTONOMY-001",
+  "defined_by": "docs/constitution/ADDENDUM-001-board-release-authority-for-verified-prs-v1.0.md",
+  "note": "Independently supplied, hash-bound activation manifest for the founder-ratified UG-AUTONOMY-001 deterministic auto-merge exception. Contains no secrets. A receipt-declared activation status is never proof; the verifier binds this file's live SHA-256 to the receipt and requires exact-HEAD / digest / trust-domain evidence. Constitutional amendments themselves remain founder-only and can never self-authorise.",
+  "eligible_repos": [
+    "CleanExpo/Unite-Group",
+    "CleanExpo/CARSI",
+    "CleanExpo/RestoreAssist"
+  ],
+  "canary_trust_domain": "canary-runner",
+  "required_activation_gates": [
+    "board_release_ready",
+    "eligible_repo",
+    "non_constitutional_candidate",
+    "policy_activation_reconciled",
+    "activation_manifest_hash_bound",
+    "restart_canary_evidence_exact_head_digest_trust_domain",
+    "tested_rollback",
+    "post_deployment_verification_plan"
+  ],
+  "never_authorises": [
+    "new_or_increased_direct_cost",
+    "constitutional_amendment",
+    "missing_founder_only_privilege",
+    "authority_conflict",
+    "irreversible_action_without_tested_rollback"
+  ]
+}
