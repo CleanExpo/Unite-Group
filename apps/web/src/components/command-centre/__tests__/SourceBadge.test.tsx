@@ -47,13 +47,32 @@ describe("SourceBadge — verified snapshot contract", () => {
     expect(badge).toHaveAttribute("data-source-state", "fresh");
     expect(badge).not.toHaveAttribute("aria-label");
     expect(screen.getByText("CCW sandbox proof")).toBeInTheDocument();
-    expect(screen.getByTestId("source-checked-at")).toHaveTextContent(
-      "checked 2026-07-27T10:00:00.000Z",
+    const checkedAt = screen.getByTestId("source-checked-at");
+    expect(checkedAt).toHaveTextContent("checked 27/07/2026 20:00:00 AEST");
+    expect(checkedAt.querySelector("time")).toHaveAttribute(
+      "datetime",
+      "2026-07-27T10:00:00.000Z",
     );
-    expect(screen.getByTestId("source-verified-at")).toHaveTextContent(
-      "verified 2026-07-27T09:55:00.000Z",
+    const verifiedAt = screen.getByTestId("source-verified-at");
+    expect(verifiedAt).toHaveTextContent("verified 27/07/2026 19:55:00 AEST");
+    expect(verifiedAt.querySelector("time")).toHaveAttribute(
+      "datetime",
+      "2026-07-27T09:55:00.000Z",
     );
     const accessibleDetail = screen.getByTestId("source-accessible-detail");
+    expect(accessibleDetail).toHaveTextContent(
+      /Observed at 27\/07\/2026 19:55:00 AEST/i,
+    );
+    expect(accessibleDetail).toHaveTextContent(
+      /Verified at 27\/07\/2026 19:55:00 AEST/i,
+    );
+    expect(
+      screen.getByTestId("source-observed-at").querySelector("time"),
+    ).toHaveAttribute("datetime", "2026-07-27T09:55:00.000Z");
+    expect(
+      screen.getByTestId("source-accessible-verified-at").querySelector("time"),
+    ).toHaveAttribute("datetime", "2026-07-27T09:55:00.000Z");
+    expect(badge).not.toHaveTextContent(/2026-07-27T/i);
     expect(accessibleDetail).toHaveTextContent(
       /Evidence synthetic:\/\/ccw\/snapshot\/001/i,
     );
@@ -65,6 +84,36 @@ describe("SourceBadge — verified snapshot contract", () => {
     expect(accessibleDetail).toHaveTextContent(
       /Basis all required synthetic fields were verified/i,
     );
+  });
+
+  it("uses Australia/Melbourne daylight time deterministically", () => {
+    const snapshot = assess(
+      {
+        ...candidate({ openItems: 2 }),
+        observedAt: "2026-01-14T23:55:00.000Z",
+        verifiedAt: "2026-01-14T23:55:00.000Z",
+      },
+      Date.parse("2026-01-15T00:00:00.000Z"),
+    );
+
+    render(<SourceBadge snapshot={snapshot} />);
+
+    expect(screen.getByTestId("source-checked-at")).toHaveTextContent(
+      "checked 15/01/2026 11:00:00 AEDT",
+    );
+    expect(screen.getByTestId("source-verified-at")).toHaveTextContent(
+      "verified 15/01/2026 10:55:00 AEDT",
+    );
+    expect(screen.getByTestId("source-accessible-detail")).toHaveTextContent(
+      /Observed at 15\/01\/2026 10:55:00 AEDT/i,
+    );
+    expect(
+      screen.getByTestId("source-checked-at").querySelector("time"),
+    ).toHaveAttribute("datetime", "2026-01-15T00:00:00.000Z");
+    expect(
+      screen.getByTestId("source-observed-at").querySelector("time"),
+    ).toHaveAttribute("datetime", "2026-01-14T23:55:00.000Z");
+    expect(screen.getByRole("status")).not.toHaveTextContent(/2026-01-1[45]T/i);
   });
 
   it("shows stale state without describing the historical value as current", () => {
@@ -95,8 +144,11 @@ describe("SourceBadge — verified snapshot contract", () => {
     expect(badge).toHaveAttribute("data-source-mode", "unavailable");
     expect(badge).toHaveAttribute("data-source-state", "unavailable");
     expect(screen.getByText("source unavailable")).toBeInTheDocument();
-    expect(screen.getByTestId("source-checked-at")).toHaveTextContent(
-      "checked 2026-07-27T10:00:00.000Z",
+    const checkedAt = screen.getByTestId("source-checked-at");
+    expect(checkedAt).toHaveTextContent("checked 27/07/2026 20:00:00 AEST");
+    expect(checkedAt.querySelector("time")).toHaveAttribute(
+      "datetime",
+      "2026-07-27T10:00:00.000Z",
     );
     expect(screen.getByTestId("source-never-verified")).toHaveTextContent(
       "never verified",
@@ -120,6 +172,7 @@ describe("SourceBadge — verified snapshot contract", () => {
       /Confidence unavailable/i,
     );
     expect(screen.queryByTestId("source-verified-at")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("source-observed-at")).not.toBeInTheDocument();
     expect(badge).not.toHaveTextContent(/2026-07-27T09:55:00.000Z/i);
     expect(badge).not.toHaveTextContent(/synthetic:\/\/ccw\/snapshot\/001/i);
     expect(badge).not.toHaveTextContent(/clock-controlled test fixture/i);
@@ -144,6 +197,9 @@ describe("SourceBadge — verified snapshot contract", () => {
     expect(accessibleDetail).toHaveTextContent(/Never verified/i);
     expect(accessibleDetail).toHaveTextContent(/Reason timestamp invalid/i);
     expect(accessibleDetail).not.toHaveTextContent(/Verified at not-a-date/i);
+    expect(screen.queryByTestId("source-observed-at")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("source-verified-at")).not.toBeInTheDocument();
+    expect(badge).not.toHaveTextContent(/not-a-date|2026-07-27T09:55/i);
   });
 
   it("never presents a relationally invalid verification time as verified", () => {

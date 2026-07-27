@@ -103,23 +103,71 @@ function formatTimestamp(iso: string): string | null {
   return `${Math.round(deltaSec / 86400)}d ago`;
 }
 
+const MELBOURNE_DATE_TIME = new Intl.DateTimeFormat("en-AU", {
+  timeZone: "Australia/Melbourne",
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hourCycle: "h23",
+  timeZoneName: "shortOffset",
+});
+
+function formatMelbourneTimestamp(iso: string): string | null {
+  const parsed = Date.parse(iso);
+  if (!Number.isFinite(parsed)) return null;
+
+  const values = Object.fromEntries(
+    MELBOURNE_DATE_TIME.formatToParts(parsed).map(({ type, value }) => [
+      type,
+      value,
+    ]),
+  );
+  const zone =
+    values.timeZoneName === "GMT+10"
+      ? "AEST"
+      : values.timeZoneName === "GMT+11"
+        ? "AEDT"
+        : null;
+  if (
+    !values.day ||
+    !values.month ||
+    !values.year ||
+    !values.hour ||
+    !values.minute ||
+    !values.second ||
+    !zone
+  ) {
+    return null;
+  }
+
+  return `${values.day}/${values.month}/${values.year} ${values.hour}:${values.minute}:${values.second} ${zone}`;
+}
+
+function LocalisedTime({ iso }: { iso: string }) {
+  return (
+    <time dateTime={iso}>
+      {formatMelbourneTimestamp(iso) ?? "time unavailable"}
+    </time>
+  );
+}
+
 function humaniseReason(reason: SnapshotUnavailableReason): string {
   return reason.replaceAll("_", " ");
 }
 
-function verifiedAccessibleDetail(
-  snapshot: VerifiedSnapshot<unknown>,
-  verifiedAt: string | null,
-): string {
+function VerifiedAccessibleDetail({
+  snapshot,
+  verifiedAt,
+}: {
+  snapshot: VerifiedSnapshot<unknown>;
+  verifiedAt: string | null;
+}) {
   const snapshotIdentity = snapshot.snapshotVersion
     ? `Snapshot ${snapshot.snapshotVersion}.`
     : "Snapshot identity unavailable.";
-  const verification = verifiedAt
-    ? `Verified at ${verifiedAt}.`
-    : "Never verified.";
-  const observation = snapshot.observedAt
-    ? `Observed at ${snapshot.observedAt}.`
-    : "No observation recorded.";
   const evidence = snapshot.evidence
     ? `Evidence ${snapshot.evidence.reference}. Provenance ${snapshot.evidence.provenance}.`
     : "Evidence unavailable.";
@@ -131,7 +179,26 @@ function verifiedAccessibleDetail(
       ? `Reason ${humaniseReason(snapshot.reason)}.${snapshot.detail ? ` Detail ${snapshot.detail}.` : ""}`
       : "";
 
-  return `Contract ${snapshot.contractVersion}. ${snapshotIdentity} ${observation} ${verification} ${evidence} ${confidence} ${unavailableReason}`.trim();
+  return (
+    <span className="sr-only" data-testid="source-accessible-detail">
+      Contract {snapshot.contractVersion}. {snapshotIdentity}{" "}
+      {snapshot.observedAt ? (
+        <span data-testid="source-observed-at">
+          Observed at <LocalisedTime iso={snapshot.observedAt} />.
+        </span>
+      ) : (
+        "No observation recorded."
+      )}{" "}
+      {verifiedAt ? (
+        <span data-testid="source-accessible-verified-at">
+          Verified at <LocalisedTime iso={verifiedAt} />.
+        </span>
+      ) : (
+        "Never verified."
+      )}{" "}
+      {evidence} {confidence} {unavailableReason}
+    </span>
+  );
 }
 
 function hasVerifiedSnapshot(
@@ -170,13 +237,11 @@ export function SourceBadge(props: SourceBadgeProps) {
       ? formatTimestamp(props.lastUpdatedAt)
       : null;
   const verifiedAt = snapshot ? verifiedTimestampForDisplay(snapshot) : null;
-  const accessibleDetail = snapshot
-    ? verifiedAccessibleDetail(snapshot, verifiedAt)
-    : rejectedSnapshot
-      ? "Snapshot assessment unavailable. Source, timing, evidence, provenance, confidence, and value are not trusted."
-      : rejectedLegacyMode
-        ? "Source mode unavailable. Source, timing, and value are not trusted."
-        : null;
+  const accessibleDetail = rejectedSnapshot
+    ? "Snapshot assessment unavailable. Source, timing, evidence, provenance, confidence, and value are not trusted."
+    : rejectedLegacyMode
+      ? "Source mode unavailable. Source, timing, and value are not trusted."
+      : null;
 
   return (
     <span
@@ -212,13 +277,12 @@ export function SourceBadge(props: SourceBadgeProps) {
         <>
           <span>·</span>
           <span data-testid="source-checked-at">
-            checked{" "}
-            <time dateTime={snapshot.checkedAt}>{snapshot.checkedAt}</time>
+            checked <LocalisedTime iso={snapshot.checkedAt} />
           </span>
           <span>·</span>
           {verifiedAt ? (
             <span data-testid="source-verified-at">
-              verified <time dateTime={verifiedAt}>{verifiedAt}</time>
+              verified <LocalisedTime iso={verifiedAt} />
             </span>
           ) : (
             <span data-testid="source-never-verified">never verified</span>
@@ -246,11 +310,13 @@ export function SourceBadge(props: SourceBadgeProps) {
           <span data-testid="source-mode-rejected">source mode rejected</span>
         </>
       )}
-      {accessibleDetail && (
+      {snapshot ? (
+        <VerifiedAccessibleDetail snapshot={snapshot} verifiedAt={verifiedAt} />
+      ) : accessibleDetail ? (
         <span className="sr-only" data-testid="source-accessible-detail">
           {accessibleDetail}
         </span>
-      )}
+      ) : null}
     </span>
   );
 }
