@@ -2,16 +2,20 @@
 import { createClient } from "@supabase/supabase-js";
 import {
   assertCoverageGate,
+  assertEmbeddingDimensions,
+  assertSemanticWriteTarget,
   contentFingerprint,
   normalisePage,
+  withRetry,
   type SemanticCoverage,
   type WikiPage,
 } from "../src/lib/nexus/semantic-ingestion";
 
 const MODEL = "text-embedding-3-large";
 const DIMENSIONS = 1536;
-const PAGE_SIZE = 100;
-const PROD_PROJECT_REF = "lksfwktwtmyznckodsau";
+const DEFAULT_LIMIT = 100;
+const MAX_LIMIT = 1_000;
+const DEFAULT_MAX_ATTEMPTS = 3;
 
 function requiredEnv(name: string): string {
   const value = process.env[name];
@@ -19,16 +23,14 @@ function requiredEnv(name: string): string {
   return value;
 }
 
-function assertSandboxTarget(url: string) {
-  const hostname = new URL(url).hostname;
-  if (hostname.startsWith(`${PROD_PROJECT_REF}.`)) {
-    throw new Error("refusing to write to the production Supabase project");
+function integerArgument(name: string, fallback: number, maximum: number): number {
+  const index = process.argv.indexOf(name);
+  if (index === -1) return fallback;
+  const value = Number(process.argv[index + 1]);
+  if (!Number.isInteger(value) || value < 1 || value > maximum) {
+    throw new Error(`${name} must be an integer between 1 and ${maximum}`);
   }
-  if (process.env.NEXUS_SEMANTIC_ALLOW_WRITE !== "1") {
-    throw new Error(
-      "NEXUS_SEMANTIC_ALLOW_WRITE=1 is required for sandbox writes",
-    );
-  }
+  return value;
 }
 
 async function embed(inputs: string[], apiKey: string): Promise<number[][]> {
@@ -63,26 +65,34 @@ async function main() {
   }
 
   const supabaseUrl = requiredEnv("NEXUS_SANDBOX_SUPABASE_URL");
-  assertSandboxTarget(supabaseUrl);
+  assertSemanticWriteTarget(
+    supabaseUrl,
+    process.env.NEXUS_SEMANTIC_ALLOW_WRITE === "1",
+  );
   const serviceRoleKey = requiredEnv("NEXUS_SANDBOX_SERVICE_ROLE_KEY");
   const openAiKey = requiredEnv("OPENAI_API_KEY");
+  const limit = integerArgument("--limit", DEFAULT_LIMIT, MAX_LIMIT);
+  const maxAttempts = integerArgument(
+    "--max-attempts",
+    DEFAULT_MAX_ATTEMPTS,
+    10,
+  );
   const supabase = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  const pages: WikiPage[] = [];
-  for (let from = 0; ; from += PAGE_SIZE) {
-    const { data, error } = await supabase
-      .from("wiki_pages")
-      .select("id,title,content,updated_at")
-      .order("id")
-      .range(from, from + PAGE_SIZE - 1);
-    if (error) throw error;
-    pages.push(...((data ?? []) as WikiPage[]));
-    if (!data || data.length < PAGE_SIZE) break;
-  }
-  if (pages.length === 0) throw new Error("sandbox has zero wiki_pages");
-  console.log(`Loaded ${pages.length} sandbox wiki pages`);
+  const { data: queuedPages } = await withRetry(
+    async () => {
+      const result = await supabase.rpc("wiki_pages_needing_embedding", {
+        p_limit: limit,
+      });
+      if (result.error) throw result.error;
+      return result;
+    },
+    { maxAttempts, delayMs: 500 },
+  );
+  const pages = (queuedPages ?? []) as WikiPage[];
+  console.log(`Loaded ${pages.length} actionable wiki pages (limit ${limit})`);
 
   for (let index = 0; index < pages.length; index += 1) {
     const page = pages[index];
@@ -91,30 +101,41 @@ async function main() {
     const chunks = normalised.chunks.length
       ? normalised.chunks
       : [{ chunk_index: 0, content: semanticText }];
-    const vectors = await embed(
-      [semanticText.slice(0, 30_000), ...chunks.map((chunk) => chunk.content)],
-      openAiKey,
+    const vectors = await withRetry(
+      () =>
+        embed(
+          [
+            semanticText.slice(0, 30_000),
+            ...chunks.map((chunk) => chunk.content),
+          ],
+          openAiKey,
+        ),
+      { maxAttempts, delayMs: 500 },
     );
+    vectors.forEach(assertEmbeddingDimensions);
     const rpcChunks = chunks.map((chunk, chunkIndex) => ({
       ...chunk,
       embedding: vectors[chunkIndex + 1],
       content_sha256: contentFingerprint(chunk.content),
     }));
 
-    const { data, error } = await supabase.rpc(
-      "upsert_wiki_semantic_document",
-      {
-        p_source_id: normalised.source_id,
-        p_title: normalised.title,
-        p_content: normalised.content.slice(0, 30_000),
-        p_embedding: vectors[0],
-        p_embedding_model: MODEL,
-        p_source_updated_at: normalised.source_updated_at,
-        p_content_sha256: normalised.fingerprint,
-        p_chunks: rpcChunks,
+    const { data } = await withRetry(
+      async () => {
+        const result = await supabase.rpc("upsert_wiki_semantic_document", {
+          p_source_id: normalised.source_id,
+          p_title: normalised.title,
+          p_content: normalised.content.slice(0, 30_000),
+          p_embedding: vectors[0],
+          p_embedding_model: MODEL,
+          p_source_updated_at: normalised.source_updated_at,
+          p_content_sha256: normalised.fingerprint,
+          p_chunks: rpcChunks,
+        });
+        if (result.error) throw result.error;
+        return result;
       },
+      { maxAttempts, delayMs: 500 },
     );
-    if (error) throw error;
     if (!data?.[0] || data[0].chunk_count !== rpcChunks.length) {
       throw new Error(`write read-back failed for ${normalised.source_id}`);
     }
