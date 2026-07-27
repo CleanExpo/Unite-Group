@@ -68,6 +68,7 @@ async function main() {
   assertSemanticWriteTarget(
     supabaseUrl,
     process.env.NEXUS_SEMANTIC_ALLOW_WRITE === "1",
+    requiredEnv("NEXUS_APPROVED_SUPABASE_BRANCH_REF"),
   );
   const serviceRoleKey = requiredEnv("NEXUS_SANDBOX_SERVICE_ROLE_KEY");
   const openAiKey = requiredEnv("OPENAI_API_KEY");

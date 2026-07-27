@@ -96,18 +96,41 @@ describe("Nexus semantic ingestion", () => {
     ).toThrow("actionable documents 1");
   });
 
-  it("refuses production and requires an explicit write arm for non-production", () => {
+  it("allows only the explicitly approved non-production Supabase branch", () => {
     expect(() =>
       assertSemanticWriteTarget(
         "https://lksfwktwtmyznckodsau.supabase.co",
         true,
+        "approved-branch-ref",
       ),
     ).toThrow("production Supabase project");
     expect(() =>
-      assertSemanticWriteTarget("https://branch-ref.supabase.co", false),
+      assertSemanticWriteTarget(
+        "https://approved-branch-ref.supabase.co",
+        false,
+        "approved-branch-ref",
+      ),
     ).toThrow("explicitly armed");
     expect(() =>
-      assertSemanticWriteTarget("https://branch-ref.supabase.co", true),
+      assertSemanticWriteTarget(
+        "https://db.example.internal",
+        true,
+        "approved-branch-ref",
+      ),
+    ).toThrow("approved non-production Supabase branch");
+    expect(() =>
+      assertSemanticWriteTarget(
+        "https://other-project.supabase.co",
+        true,
+        "approved-branch-ref",
+      ),
+    ).toThrow("approved non-production Supabase branch");
+    expect(() =>
+      assertSemanticWriteTarget(
+        "https://approved-branch-ref.supabase.co",
+        true,
+        "approved-branch-ref",
+      ),
     ).not.toThrow();
   });
 

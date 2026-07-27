@@ -38,8 +38,13 @@ export function contentFingerprint(content: string): string {
   return createHash("sha256").update(content, "utf8").digest("hex");
 }
 
-export function assertSemanticWriteTarget(url: string, explicitlyArmed: boolean) {
-  const hostname = new URL(url).hostname;
+export function assertSemanticWriteTarget(
+  url: string,
+  explicitlyArmed: boolean,
+  approvedBranchProjectRef: string,
+) {
+  const target = new URL(url);
+  const hostname = target.hostname.toLowerCase();
   if (
     hostname === `${PROD_PROJECT_REF}.supabase.co` ||
     hostname.startsWith(`${PROD_PROJECT_REF}.`)
@@ -48,6 +53,20 @@ export function assertSemanticWriteTarget(url: string, explicitlyArmed: boolean)
   }
   if (!explicitlyArmed) {
     throw new Error("non-production semantic writes must be explicitly armed");
+  }
+  const approvedRef = approvedBranchProjectRef.trim().toLowerCase();
+  if (
+    !approvedRef ||
+    approvedRef === PROD_PROJECT_REF ||
+    target.protocol !== "https:" ||
+    target.port ||
+    target.username ||
+    target.password ||
+    hostname !== `${approvedRef}.supabase.co`
+  ) {
+    throw new Error(
+      "semantic writes require the approved non-production Supabase branch",
+    );
   }
 }
 
