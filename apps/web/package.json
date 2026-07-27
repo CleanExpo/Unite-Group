@@ -9,7 +9,7 @@
     "dev": "next dev -p 3008",
     "dev:all": "turbo run dev",
     "prebuild": "node scripts/sync-portfolio-registry.mjs && node scripts/validate-env.mjs --ci",
-    "build": "next build",
+    "build": "next build --webpack",
     "validate:env": "node scripts/validate-env.mjs",
     "build:all": "turbo run build",
     "lint": "eslint src/",
