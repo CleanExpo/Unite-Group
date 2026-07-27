@@ -18,7 +18,16 @@ export type SemanticCoverage = {
   chunk_documents: number;
   duplicate_chunk_keys: number;
   stale_documents: number;
+  missing_page_vectors?: number;
+  missing_chunk_documents?: number;
+  invalid_chunk_vectors?: number;
+  stale_chunk_documents?: number;
+  actionable_documents?: number;
+  freshness_policy_documents?: number;
 };
+
+const PROD_PROJECT_REF = "lksfwktwtmyznckodsau";
+const EMBEDDING_DIMENSIONS = 1536;
 
 export const DEFAULT_CHUNK_SETTINGS: ChunkSettings = {
   size: 800,
@@ -27,6 +36,52 @@ export const DEFAULT_CHUNK_SETTINGS: ChunkSettings = {
 
 export function contentFingerprint(content: string): string {
   return createHash("sha256").update(content, "utf8").digest("hex");
+}
+
+export function assertSemanticWriteTarget(url: string, explicitlyArmed: boolean) {
+  const hostname = new URL(url).hostname;
+  if (
+    hostname === `${PROD_PROJECT_REF}.supabase.co` ||
+    hostname.startsWith(`${PROD_PROJECT_REF}.`)
+  ) {
+    throw new Error("refusing to write to the production Supabase project");
+  }
+  if (!explicitlyArmed) {
+    throw new Error("non-production semantic writes must be explicitly armed");
+  }
+}
+
+export function assertEmbeddingDimensions(embedding: number[]): void {
+  if (
+    embedding.length !== EMBEDDING_DIMENSIONS ||
+    embedding.some((value) => !Number.isFinite(value))
+  ) {
+    throw new Error(
+      `expected ${EMBEDDING_DIMENSIONS} embedding dimensions with finite values`,
+    );
+  }
+}
+
+export async function withRetry<T>(
+  operation: () => Promise<T>,
+  options: { maxAttempts: number; delayMs: number },
+): Promise<T> {
+  if (!Number.isInteger(options.maxAttempts) || options.maxAttempts < 1) {
+    throw new Error("maxAttempts must be a positive integer");
+  }
+
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= options.maxAttempts; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      if (attempt < options.maxAttempts && options.delayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, options.delayMs));
+      }
+    }
+  }
+  throw lastError;
 }
 
 export function chunkText(
@@ -83,8 +138,10 @@ export function assertCoverageGate(coverage: SemanticCoverage) {
   if (coverage.duplicate_chunk_keys > 0) {
     errors.push(`duplicate chunk keys ${coverage.duplicate_chunk_keys}`);
   }
-  if (coverage.stale_documents > 0) {
-    errors.push(`stale documents ${coverage.stale_documents}`);
+  const actionableDocuments =
+    coverage.actionable_documents ?? coverage.stale_documents;
+  if (actionableDocuments > 0) {
+    errors.push(`actionable documents ${actionableDocuments}`);
   }
   if (errors.length > 0) {
     throw new Error(`semantic coverage gate failed: ${errors.join("; ")}`);

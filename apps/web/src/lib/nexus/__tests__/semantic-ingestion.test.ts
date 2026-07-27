@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   assertCoverageGate,
+  assertEmbeddingDimensions,
+  assertSemanticWriteTarget,
   chunkText,
   contentFingerprint,
   normalisePage,
+  withRetry,
 } from "../semantic-ingestion";
 
 describe("Nexus semantic ingestion", () => {
@@ -70,10 +73,77 @@ describe("Nexus semantic ingestion", () => {
         chunk_documents: 620,
         duplicate_chunk_keys: 0,
         stale_documents: 0,
+        actionable_documents: 0,
+        freshness_policy_documents: 620,
       }),
     ).toEqual({
       passed: true,
       summary: "620/620 pages have page vectors and chunks",
     });
+  });
+
+  it("rejects actionable defects while keeping unchanged age-policy rows visible", () => {
+    expect(() =>
+      assertCoverageGate({
+        wiki_pages: 10,
+        page_vectors: 10,
+        chunk_documents: 10,
+        duplicate_chunk_keys: 0,
+        stale_documents: 1,
+        actionable_documents: 1,
+        freshness_policy_documents: 9,
+      }),
+    ).toThrow("actionable documents 1");
+  });
+
+  it("refuses production and requires an explicit write arm for non-production", () => {
+    expect(() =>
+      assertSemanticWriteTarget(
+        "https://lksfwktwtmyznckodsau.supabase.co",
+        true,
+      ),
+    ).toThrow("production Supabase project");
+    expect(() =>
+      assertSemanticWriteTarget("https://branch-ref.supabase.co", false),
+    ).toThrow("explicitly armed");
+    expect(() =>
+      assertSemanticWriteTarget("https://branch-ref.supabase.co", true),
+    ).not.toThrow();
+  });
+
+  it("rejects embeddings that are not exactly 1536 dimensions", () => {
+    expect(() => assertEmbeddingDimensions([0.1, 0.2])).toThrow(
+      "expected 1536 embedding dimensions",
+    );
+    expect(() => assertEmbeddingDimensions(Array(1536).fill(0.1))).not.toThrow();
+  });
+
+  it("retries transient work up to the bounded attempt count", async () => {
+    let attempts = 0;
+    const result = await withRetry(
+      async () => {
+        attempts += 1;
+        if (attempts < 3) throw new Error("transient");
+        return "ok";
+      },
+      { maxAttempts: 3, delayMs: 0 },
+    );
+
+    expect(result).toBe("ok");
+    expect(attempts).toBe(3);
+  });
+
+  it("fails closed after the bounded retry budget is exhausted", async () => {
+    let attempts = 0;
+    await expect(
+      withRetry(
+        async () => {
+          attempts += 1;
+          throw new Error("still broken");
+        },
+        { maxAttempts: 2, delayMs: 0 },
+      ),
+    ).rejects.toThrow("still broken");
+    expect(attempts).toBe(2);
   });
 });
