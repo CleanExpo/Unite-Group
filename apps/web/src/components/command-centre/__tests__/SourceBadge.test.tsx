@@ -86,7 +86,7 @@ describe("SourceBadge — verified snapshot contract", () => {
     );
   });
 
-  it("uses Australia/Melbourne daylight time deterministically", () => {
+  it("uses Australia/Brisbane fixed AEST deterministically", () => {
     const snapshot = assess(
       {
         ...candidate({ openItems: 2 }),
@@ -99,13 +99,13 @@ describe("SourceBadge — verified snapshot contract", () => {
     render(<SourceBadge snapshot={snapshot} />);
 
     expect(screen.getByTestId("source-checked-at")).toHaveTextContent(
-      "checked 15/01/2026 11:00:00 AEDT",
+      "checked 15/01/2026 10:00:00 AEST",
     );
     expect(screen.getByTestId("source-verified-at")).toHaveTextContent(
-      "verified 15/01/2026 10:55:00 AEDT",
+      "verified 15/01/2026 09:55:00 AEST",
     );
     expect(screen.getByTestId("source-accessible-detail")).toHaveTextContent(
-      /Observed at 15\/01\/2026 10:55:00 AEDT/i,
+      /Observed at 15\/01\/2026 09:55:00 AEST/i,
     );
     expect(
       screen.getByTestId("source-checked-at").querySelector("time"),
@@ -113,6 +113,7 @@ describe("SourceBadge — verified snapshot contract", () => {
     expect(
       screen.getByTestId("source-observed-at").querySelector("time"),
     ).toHaveAttribute("datetime", "2026-01-14T23:55:00.000Z");
+    expect(screen.getByRole("status")).not.toHaveTextContent(/AEDT/i);
     expect(screen.getByRole("status")).not.toHaveTextContent(/2026-01-1[45]T/i);
   });
 
