@@ -103,8 +103,8 @@ function formatTimestamp(iso: string): string | null {
   return `${Math.round(deltaSec / 86400)}d ago`;
 }
 
-const MELBOURNE_DATE_TIME = new Intl.DateTimeFormat("en-AU", {
-  timeZone: "Australia/Melbourne",
+const BRISBANE_DATE_TIME = new Intl.DateTimeFormat("en-AU", {
+  timeZone: "Australia/Brisbane",
   day: "2-digit",
   month: "2-digit",
   year: "numeric",
@@ -112,44 +112,36 @@ const MELBOURNE_DATE_TIME = new Intl.DateTimeFormat("en-AU", {
   minute: "2-digit",
   second: "2-digit",
   hourCycle: "h23",
-  timeZoneName: "shortOffset",
 });
 
-function formatMelbourneTimestamp(iso: string): string | null {
+function formatBrisbaneTimestamp(iso: string): string | null {
   const parsed = Date.parse(iso);
   if (!Number.isFinite(parsed)) return null;
 
   const values = Object.fromEntries(
-    MELBOURNE_DATE_TIME.formatToParts(parsed).map(({ type, value }) => [
+    BRISBANE_DATE_TIME.formatToParts(parsed).map(({ type, value }) => [
       type,
       value,
     ]),
   );
-  const zone =
-    values.timeZoneName === "GMT+10"
-      ? "AEST"
-      : values.timeZoneName === "GMT+11"
-        ? "AEDT"
-        : null;
   if (
     !values.day ||
     !values.month ||
     !values.year ||
     !values.hour ||
     !values.minute ||
-    !values.second ||
-    !zone
+    !values.second
   ) {
     return null;
   }
 
-  return `${values.day}/${values.month}/${values.year} ${values.hour}:${values.minute}:${values.second} ${zone}`;
+  return `${values.day}/${values.month}/${values.year} ${values.hour}:${values.minute}:${values.second} AEST`;
 }
 
 function LocalisedTime({ iso }: { iso: string }) {
   return (
     <time dateTime={iso}>
-      {formatMelbourneTimestamp(iso) ?? "time unavailable"}
+      {formatBrisbaneTimestamp(iso) ?? "time unavailable"}
     </time>
   );
 }
