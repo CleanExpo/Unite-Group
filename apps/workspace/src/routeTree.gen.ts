@@ -110,9 +110,11 @@ import { Route as ApiKnowledgeSyncRouteImport } from './routes/api/knowledge/syn
 import { Route as ApiLanesLaneIdRouteImport } from './routes/api/lanes/$laneId'
 import { Route as ApiLanesBackendsRouteImport } from './routes/api/lanes/backends'
 import { Route as ApiLanesCreateRouteImport } from './routes/api/lanes/create'
+import { Route as ApiLanesDispatchRouteImport } from './routes/api/lanes/dispatch'
 import { Route as ApiLanesListRouteImport } from './routes/api/lanes/list'
 import { Route as ApiLanesRunRouteImport } from './routes/api/lanes/run'
 import { Route as ApiLanesStopRouteImport } from './routes/api/lanes/stop'
+import { Route as ApiLanesTasksRouteImport } from './routes/api/lanes/tasks'
 import { Route as ApiMcpNameRouteImport } from './routes/api/mcp/$name'
 import { Route as ApiMcpConfigureRouteImport } from './routes/api/mcp/configure'
 import { Route as ApiMcpDiscoverRouteImport } from './routes/api/mcp/discover'
@@ -654,6 +656,11 @@ const ApiLanesCreateRoute = ApiLanesCreateRouteImport.update({
   path: '/api/lanes/create',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiLanesDispatchRoute = ApiLanesDispatchRouteImport.update({
+  id: '/api/lanes/dispatch',
+  path: '/api/lanes/dispatch',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiLanesListRoute = ApiLanesListRouteImport.update({
   id: '/api/lanes/list',
   path: '/api/lanes/list',
@@ -667,6 +674,11 @@ const ApiLanesRunRoute = ApiLanesRunRouteImport.update({
 const ApiLanesStopRoute = ApiLanesStopRouteImport.update({
   id: '/api/lanes/stop',
   path: '/api/lanes/stop',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLanesTasksRoute = ApiLanesTasksRouteImport.update({
+  id: '/api/lanes/tasks',
+  path: '/api/lanes/tasks',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiMcpNameRoute = ApiMcpNameRouteImport.update({
@@ -944,9 +956,11 @@ export interface FileRoutesByFullPath {
   '/api/lanes/$laneId': typeof ApiLanesLaneIdRoute
   '/api/lanes/backends': typeof ApiLanesBackendsRoute
   '/api/lanes/create': typeof ApiLanesCreateRoute
+  '/api/lanes/dispatch': typeof ApiLanesDispatchRoute
   '/api/lanes/list': typeof ApiLanesListRoute
   '/api/lanes/run': typeof ApiLanesRunRoute
   '/api/lanes/stop': typeof ApiLanesStopRoute
+  '/api/lanes/tasks': typeof ApiLanesTasksRoute
   '/api/mcp/$name': typeof ApiMcpNameRouteWithChildren
   '/api/mcp/configure': typeof ApiMcpConfigureRoute
   '/api/mcp/discover': typeof ApiMcpDiscoverRoute
@@ -1083,9 +1097,11 @@ export interface FileRoutesByTo {
   '/api/lanes/$laneId': typeof ApiLanesLaneIdRoute
   '/api/lanes/backends': typeof ApiLanesBackendsRoute
   '/api/lanes/create': typeof ApiLanesCreateRoute
+  '/api/lanes/dispatch': typeof ApiLanesDispatchRoute
   '/api/lanes/list': typeof ApiLanesListRoute
   '/api/lanes/run': typeof ApiLanesRunRoute
   '/api/lanes/stop': typeof ApiLanesStopRoute
+  '/api/lanes/tasks': typeof ApiLanesTasksRoute
   '/api/mcp/$name': typeof ApiMcpNameRouteWithChildren
   '/api/mcp/configure': typeof ApiMcpConfigureRoute
   '/api/mcp/discover': typeof ApiMcpDiscoverRoute
@@ -1224,9 +1240,11 @@ export interface FileRoutesById {
   '/api/lanes/$laneId': typeof ApiLanesLaneIdRoute
   '/api/lanes/backends': typeof ApiLanesBackendsRoute
   '/api/lanes/create': typeof ApiLanesCreateRoute
+  '/api/lanes/dispatch': typeof ApiLanesDispatchRoute
   '/api/lanes/list': typeof ApiLanesListRoute
   '/api/lanes/run': typeof ApiLanesRunRoute
   '/api/lanes/stop': typeof ApiLanesStopRoute
+  '/api/lanes/tasks': typeof ApiLanesTasksRoute
   '/api/mcp/$name': typeof ApiMcpNameRouteWithChildren
   '/api/mcp/configure': typeof ApiMcpConfigureRoute
   '/api/mcp/discover': typeof ApiMcpDiscoverRoute
@@ -1366,9 +1384,11 @@ export interface FileRouteTypes {
     | '/api/lanes/$laneId'
     | '/api/lanes/backends'
     | '/api/lanes/create'
+    | '/api/lanes/dispatch'
     | '/api/lanes/list'
     | '/api/lanes/run'
     | '/api/lanes/stop'
+    | '/api/lanes/tasks'
     | '/api/mcp/$name'
     | '/api/mcp/configure'
     | '/api/mcp/discover'
@@ -1505,9 +1525,11 @@ export interface FileRouteTypes {
     | '/api/lanes/$laneId'
     | '/api/lanes/backends'
     | '/api/lanes/create'
+    | '/api/lanes/dispatch'
     | '/api/lanes/list'
     | '/api/lanes/run'
     | '/api/lanes/stop'
+    | '/api/lanes/tasks'
     | '/api/mcp/$name'
     | '/api/mcp/configure'
     | '/api/mcp/discover'
@@ -1645,9 +1667,11 @@ export interface FileRouteTypes {
     | '/api/lanes/$laneId'
     | '/api/lanes/backends'
     | '/api/lanes/create'
+    | '/api/lanes/dispatch'
     | '/api/lanes/list'
     | '/api/lanes/run'
     | '/api/lanes/stop'
+    | '/api/lanes/tasks'
     | '/api/mcp/$name'
     | '/api/mcp/configure'
     | '/api/mcp/discover'
@@ -1781,9 +1805,11 @@ export interface RootRouteChildren {
   ApiLanesLaneIdRoute: typeof ApiLanesLaneIdRoute
   ApiLanesBackendsRoute: typeof ApiLanesBackendsRoute
   ApiLanesCreateRoute: typeof ApiLanesCreateRoute
+  ApiLanesDispatchRoute: typeof ApiLanesDispatchRoute
   ApiLanesListRoute: typeof ApiLanesListRoute
   ApiLanesRunRoute: typeof ApiLanesRunRoute
   ApiLanesStopRoute: typeof ApiLanesStopRoute
+  ApiLanesTasksRoute: typeof ApiLanesTasksRoute
   ApiModelInfoRoute: typeof ApiModelInfoRoute
   ApiOauthDeviceCodeRoute: typeof ApiOauthDeviceCodeRoute
   ApiOauthPollTokenRoute: typeof ApiOauthPollTokenRoute
@@ -2508,6 +2534,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiLanesCreateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/lanes/dispatch': {
+      id: '/api/lanes/dispatch'
+      path: '/api/lanes/dispatch'
+      fullPath: '/api/lanes/dispatch'
+      preLoaderRoute: typeof ApiLanesDispatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/lanes/list': {
       id: '/api/lanes/list'
       path: '/api/lanes/list'
@@ -2527,6 +2560,13 @@ declare module '@tanstack/react-router' {
       path: '/api/lanes/stop'
       fullPath: '/api/lanes/stop'
       preLoaderRoute: typeof ApiLanesStopRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/lanes/tasks': {
+      id: '/api/lanes/tasks'
+      path: '/api/lanes/tasks'
+      fullPath: '/api/lanes/tasks'
+      preLoaderRoute: typeof ApiLanesTasksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/mcp/$name': {
@@ -3027,9 +3067,11 @@ const rootRouteChildren: RootRouteChildren = {
   ApiLanesLaneIdRoute: ApiLanesLaneIdRoute,
   ApiLanesBackendsRoute: ApiLanesBackendsRoute,
   ApiLanesCreateRoute: ApiLanesCreateRoute,
+  ApiLanesDispatchRoute: ApiLanesDispatchRoute,
   ApiLanesListRoute: ApiLanesListRoute,
   ApiLanesRunRoute: ApiLanesRunRoute,
   ApiLanesStopRoute: ApiLanesStopRoute,
+  ApiLanesTasksRoute: ApiLanesTasksRoute,
   ApiModelInfoRoute: ApiModelInfoRoute,
   ApiOauthDeviceCodeRoute: ApiOauthDeviceCodeRoute,
   ApiOauthPollTokenRoute: ApiOauthPollTokenRoute,

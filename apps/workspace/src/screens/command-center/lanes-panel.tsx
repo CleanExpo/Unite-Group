@@ -24,6 +24,48 @@ type Lane = {
   blockedReason?: string
 }
 
+type NexusTaskStatus =
+  'pending' | 'running' | 'completed' | 'failed' | 'blocked'
+
+type NexusTask = {
+  id: string
+  laneId: string
+  workerId: string
+  status: NexusTaskStatus
+  createdAt: number
+  updatedAt: number
+  runId?: string
+  blockedReason?: string
+  evidence?: {
+    runUri?: string
+    eventsUri?: string
+    commitSha?: string
+  }
+}
+
+type NexusWorker = {
+  id: string
+  label: string
+  transport: 'local-cli' | 'local-gateway' | 'tailscale'
+  machineId: string
+  machineStatus: 'local' | 'unverified'
+  enabled: boolean
+  reason?: string
+}
+
+type NexusTaskSummary = {
+  pending: number
+  running: number
+  completed: number
+  blocked: number
+}
+
+type NexusTasksResponse = {
+  tasks: Array<NexusTask>
+  workers: Array<NexusWorker>
+  summary: NexusTaskSummary
+}
+
 export type BackendDescriptor = {
   id: string
   kind: 'gateway' | 'cli'
@@ -53,6 +95,11 @@ export function buildLaneCreateInput(
     role,
     repo: trimmedRepo,
   }
+}
+
+export function formatWorkerStatus(worker: NexusWorker): string {
+  if (worker.enabled) return `${worker.machineId} · admitted`
+  return `${worker.machineStatus} · ${worker.reason ?? 'not admitted'}`
 }
 
 async function readJson<T>(url: string): Promise<T> {
@@ -117,6 +164,11 @@ export function LanesPanel() {
       readJson<{ backends: Array<BackendDescriptor> }>('/api/lanes/backends'),
     enabled: open,
   })
+  const tasksQuery = useQuery({
+    queryKey: ['nexus-tasks'],
+    queryFn: () => readJson<NexusTasksResponse>('/api/lanes/tasks'),
+    refetchInterval: 5000,
+  })
 
   const createMutation = useMutation({
     mutationFn: (input: unknown) => postJson('/api/lanes/create', input),
@@ -165,6 +217,14 @@ export function LanesPanel() {
           lanes.map((lane) => <LaneCard key={lane.id} lane={lane} />)
         )}
       </div>
+
+      <NexusTaskDashboard
+        data={tasksQuery.data}
+        loading={tasksQuery.isPending}
+        error={
+          tasksQuery.error instanceof Error ? tasksQuery.error.message : null
+        }
+      />
     </div>
   )
 }
@@ -173,16 +233,19 @@ function LaneCard({ lane }: { lane: Lane }) {
   const qc = useQueryClient()
   const [mission, setMission] = useState('')
 
-  const runMutation = useMutation({
-    mutationFn: () => postJson('/api/lanes/run', { id: lane.id, mission }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['lanes'] }),
+  const queueMutation = useMutation({
+    mutationFn: () => postJson('/api/lanes/tasks', { id: lane.id, mission }),
+    onSuccess: () => {
+      setMission('')
+      qc.invalidateQueries({ queryKey: ['nexus-tasks'] })
+    },
   })
   const stopMutation = useMutation({
     mutationFn: () => postJson('/api/lanes/stop', { id: lane.id }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['lanes'] }),
   })
 
-  const busy = runMutation.isPending || lane.status === 'running'
+  const busy = queueMutation.isPending || lane.status === 'running'
 
   return (
     <div className="rounded-lg border border-neutral-800 p-3">
@@ -214,11 +277,11 @@ function LaneCard({ lane }: { lane: Lane }) {
         />
         <button
           type="button"
-          onClick={() => runMutation.mutate()}
+          onClick={() => queueMutation.mutate()}
           disabled={busy || !mission.trim()}
           className="rounded border border-cyan-500/40 px-2 py-1 text-[10px] uppercase tracking-wide text-cyan-300 transition-colors hover:bg-cyan-500/10 disabled:opacity-50"
         >
-          {busy ? 'Running…' : 'Run'}
+          {queueMutation.isPending ? 'Queuing…' : 'Queue'}
         </button>
         <button
           type="button"
@@ -233,12 +296,146 @@ function LaneCard({ lane }: { lane: Lane }) {
       {lane.blockedReason ? (
         <p className="mt-2 text-[11px] text-amber-400">{lane.blockedReason}</p>
       ) : null}
+      {queueMutation.error instanceof Error ? (
+        <p className="mt-2 text-[11px] text-red-400">
+          {queueMutation.error.message}
+        </p>
+      ) : null}
       {lane.lastOutput ? (
         <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded bg-neutral-900 p-2 text-[11px] text-neutral-300">
           {lane.lastOutput}
         </pre>
       ) : null}
     </div>
+  )
+}
+
+function NexusTaskDashboard({
+  data,
+  loading,
+  error,
+}: {
+  data?: NexusTasksResponse
+  loading: boolean
+  error: string | null
+}) {
+  const qc = useQueryClient()
+  const [dispatchError, setDispatchError] = useState<string | null>(null)
+  const dispatchMutation = useMutation({
+    mutationFn: (workerId: string) =>
+      postJson<{ outcome: string }>('/api/lanes/dispatch', { workerId }),
+    onSuccess: () => {
+      setDispatchError(null)
+      qc.invalidateQueries({ queryKey: ['lanes'] })
+      qc.invalidateQueries({ queryKey: ['nexus-tasks'] })
+    },
+    onError: (mutationError) => {
+      setDispatchError(
+        mutationError instanceof Error
+          ? mutationError.message
+          : 'Dispatch failed',
+      )
+    },
+  })
+  const summary = data?.summary ?? {
+    pending: 0,
+    running: 0,
+    completed: 0,
+    blocked: 0,
+  }
+  const tasks = data?.tasks ?? []
+  const workers = data?.workers ?? []
+
+  return (
+    <section className="mt-4 rounded-lg border border-neutral-800 p-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-xs uppercase tracking-wide text-neutral-500">
+          Nexus task queue
+        </span>
+        {(['pending', 'running', 'completed', 'blocked'] as const).map(
+          (status) => (
+            <span
+              key={status}
+              className="text-[10px] uppercase tracking-wide text-neutral-400"
+            >
+              {status} {summary[status]}
+            </span>
+          ),
+        )}
+      </div>
+
+      {loading ? (
+        <p className="mt-2 text-xs text-neutral-600">Reading local evidence…</p>
+      ) : null}
+      {error ? <p className="mt-2 text-xs text-red-400">{error}</p> : null}
+
+      <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-2">
+        {workers.map((worker) => (
+          <div
+            key={worker.id}
+            className="rounded border border-neutral-800 bg-neutral-950 p-2"
+          >
+            <div className="flex items-center gap-2">
+              <Dot tone={worker.enabled ? 'on' : 'off'} />
+              <span className="text-xs text-neutral-200">{worker.label}</span>
+              <span className="ml-auto text-[10px] text-neutral-500">
+                {worker.transport}
+              </span>
+            </div>
+            <p className="mt-1 text-[10px] text-neutral-600">
+              {formatWorkerStatus(worker)}
+            </p>
+            <button
+              type="button"
+              onClick={() => dispatchMutation.mutate(worker.id)}
+              disabled={!worker.enabled || dispatchMutation.isPending}
+              className="mt-2 rounded border border-cyan-500/40 px-2 py-1 text-[10px] uppercase tracking-wide text-cyan-300 disabled:border-neutral-800 disabled:text-neutral-600"
+            >
+              Dispatch next
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {dispatchError ? (
+        <p className="mt-2 text-[11px] text-red-400">{dispatchError}</p>
+      ) : null}
+
+      <div className="mt-3 space-y-1">
+        {tasks.length === 0 && !loading ? (
+          <p className="text-xs text-neutral-600">
+            No queued task evidence yet.
+          </p>
+        ) : (
+          tasks.slice(0, 12).map((task) => (
+            <div
+              key={task.id}
+              className="flex flex-wrap items-center gap-2 rounded border border-neutral-900 px-2 py-1 text-[10px]"
+            >
+              <span className="uppercase text-neutral-400">{task.status}</span>
+              <span className="text-neutral-600">{task.workerId}</span>
+              <span className="text-neutral-600">{task.laneId}</span>
+              {task.runId ? (
+                <span className="text-neutral-500">{task.runId}</span>
+              ) : null}
+              {task.evidence?.commitSha ? (
+                <span
+                  className="ml-auto font-mono text-neutral-500"
+                  title={task.evidence.commitSha}
+                >
+                  {task.evidence.commitSha.slice(0, 10)}
+                </span>
+              ) : null}
+              {task.blockedReason ? (
+                <span className="w-full text-amber-400">
+                  {task.blockedReason}
+                </span>
+              ) : null}
+            </div>
+          ))
+        )}
+      </div>
+    </section>
   )
 }
 
