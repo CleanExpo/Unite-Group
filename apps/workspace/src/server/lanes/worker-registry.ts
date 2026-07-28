@@ -20,6 +20,7 @@ export interface NexusWorkerDescriptor {
 
 export interface WorkerRegistryProbe {
   machineId?: string
+  dispatchArmed: boolean
   claudeAvailable: boolean
   codexAvailable: boolean
   hermesAvailable: boolean
@@ -38,6 +39,20 @@ export function buildWorkerRegistry(
   probe: WorkerRegistryProbe,
 ): Array<NexusWorkerDescriptor> {
   const machineId = probe.machineId ?? hostname()
+  const localWorker = (
+    available: boolean,
+    unavailableReason: string,
+  ): Pick<NexusWorkerDescriptor, 'enabled' | 'reason'> => {
+    if (!available) return { enabled: false, reason: unavailableReason }
+    if (!probe.dispatchArmed) {
+      return {
+        enabled: false,
+        reason:
+          'Bounded dispatch is not armed (set NEXUS_BOUNDED_DISPATCH_ARMED=1)',
+      }
+    }
+    return { enabled: true }
+  }
   return [
     {
       id: 'claude-cli',
@@ -45,10 +60,7 @@ export function buildWorkerRegistry(
       transport: 'local-cli',
       machineId,
       machineStatus: 'local',
-      enabled: probe.claudeAvailable,
-      ...(!probe.claudeAvailable
-        ? { reason: 'No admitted local Claude account' }
-        : {}),
+      ...localWorker(probe.claudeAvailable, 'No admitted local Claude account'),
     },
     {
       id: 'codex-cli',
@@ -56,10 +68,7 @@ export function buildWorkerRegistry(
       transport: 'local-cli',
       machineId,
       machineStatus: 'local',
-      enabled: probe.codexAvailable,
-      ...(!probe.codexAvailable
-        ? { reason: 'No admitted local Codex account' }
-        : {}),
+      ...localWorker(probe.codexAvailable, 'No admitted local Codex account'),
     },
     {
       id: 'hermes-gateway',
@@ -67,10 +76,7 @@ export function buildWorkerRegistry(
       transport: 'local-gateway',
       machineId,
       machineStatus: 'local',
-      enabled: probe.hermesAvailable,
-      ...(!probe.hermesAvailable
-        ? { reason: 'Hermes gateway is unavailable' }
-        : {}),
+      ...localWorker(probe.hermesAvailable, 'Hermes gateway is unavailable'),
     },
     {
       id: 'mac-mini-tailscale',
@@ -92,6 +98,7 @@ export async function probeWorkerRegistry(
     (account) => cliAccountAvailable(account, 'claude-code'),
   )
   return buildWorkerRegistry({
+    dispatchArmed: process.env.NEXUS_BOUNDED_DISPATCH_ARMED === '1',
     claudeAvailable,
     codexAvailable: cliAccountAvailable(CODEX_ACCOUNT, 'codex'),
     hermesAvailable: await probeGateway(gatewayUrl),

@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createNexusDispatcher } from './dispatcher'
+import { createBoundedTaskAuthority } from './task-queue'
 import type { LaneOrchestrator } from './lane-orchestrator'
 import type { NexusTask, NexusTaskQueue } from './task-queue'
-import type { Lane } from './types'
+import type { Lane, LaneRun, LaneRunEvent } from './types'
 
 function task(overrides: Partial<NexusTask> = {}): NexusTask {
   return {
@@ -13,6 +14,7 @@ function task(overrides: Partial<NexusTask> = {}): NexusTask {
     status: 'running',
     createdAt: 1,
     updatedAt: 2,
+    authority: createBoundedTaskAuthority(1),
     ...overrides,
   }
 }
@@ -55,10 +57,46 @@ function lanes(overrides: Partial<LaneOrchestrator> = {}): LaneOrchestrator {
     get: vi.fn(() => Promise.resolve(lane())),
     stop: vi.fn(),
     runMission: vi.fn(() => Promise.resolve(lane({ lastRunId: 'run-1' }))),
-    getRun: vi.fn(),
-    listRunEvents: vi.fn(),
+    getRun: vi.fn(() =>
+      Promise.resolve({
+        id: 'run-1',
+        laneId: 'lane-1',
+        machineId: 'test-machine',
+        status: 'succeeded',
+        attempt: 1,
+        startedAt: 3,
+        finishedAt: 4,
+      } satisfies LaneRun),
+    ),
+    listRunEvents: vi.fn(() =>
+      Promise.resolve([
+        {
+          runId: 'run-1',
+          laneId: 'lane-1',
+          sequence: 1,
+          occurredAt: 3,
+          type: 'lifecycle',
+          message: 'Run started',
+        },
+        {
+          runId: 'run-1',
+          laneId: 'lane-1',
+          sequence: 2,
+          occurredAt: 4,
+          type: 'lifecycle',
+          message: 'Run succeeded',
+        },
+      ] satisfies Array<LaneRunEvent>),
+    ),
     ...overrides,
   }
+}
+
+function verifiedChangedWorktree() {
+  return vi
+    .fn()
+    .mockResolvedValueOnce({ commitSha: 'a'.repeat(40), clean: true })
+    .mockResolvedValueOnce({ commitSha: 'b'.repeat(40), clean: true })
 }
 
 describe('Nexus single-worker dispatcher', () => {
@@ -83,7 +121,7 @@ describe('Nexus single-worker dispatcher', () => {
     const dispatcher = createNexusDispatcher({
       queue: q.value,
       lanes: laneOrchestrator,
-      resolveCommitSha: () => Promise.resolve('a'.repeat(40)),
+      resolveWorktreeState: verifiedChangedWorktree(),
     })
 
     await expect(dispatcher.dispatchNext('codex-cli')).resolves.toMatchObject({
@@ -94,12 +132,44 @@ describe('Nexus single-worker dispatcher', () => {
         evidence: {
           runUri: 'lane-run:run-1',
           eventsUri: 'lane-events:run-1',
-          commitSha: 'a'.repeat(40),
+          commitSha: 'b'.repeat(40),
         },
       },
     })
-    expect(laneOrchestrator.runMission).toHaveBeenCalledWith('lane-1', 'build')
+    expect(laneOrchestrator.runMission).toHaveBeenCalledWith(
+      'lane-1',
+      expect.stringMatching(
+        /NEXUS BOUNDED NON-PRODUCTION EXECUTION[\s\S]*Prohibited actions:[\s\S]*\[PRIVATE TASK\]\nbuild/,
+      ),
+    )
+    expect(laneOrchestrator.getRun).toHaveBeenCalledWith('run-1')
+    expect(laneOrchestrator.listRunEvents).toHaveBeenCalledWith('run-1')
     expect(q.settle).toHaveBeenCalledTimes(1)
+  })
+
+  it('blocks a claimed task without valid bounded authority', async () => {
+    const q = queue(
+      task({
+        authority: {
+          ...createBoundedTaskAuthority(1),
+          prohibitedActions: [],
+        },
+      }),
+    )
+    const laneOrchestrator = lanes()
+    const dispatcher = createNexusDispatcher({
+      queue: q.value,
+      lanes: laneOrchestrator,
+    })
+
+    await expect(dispatcher.dispatchNext('codex-cli')).resolves.toMatchObject({
+      outcome: 'blocked',
+      task: {
+        blockedReason: expect.stringMatching(/bounded execution authority/i),
+      },
+    })
+    expect(laneOrchestrator.get).not.toHaveBeenCalled()
+    expect(laneOrchestrator.runMission).not.toHaveBeenCalled()
   })
 
   it('blocks a task whose durable lane is missing', async () => {
@@ -123,6 +193,8 @@ describe('Nexus single-worker dispatcher', () => {
     const dispatcher = createNexusDispatcher({
       queue: q.value,
       lanes: lanes(),
+      resolveWorktreeState: () =>
+        Promise.resolve({ commitSha: 'a'.repeat(40), clean: true }),
     })
 
     await expect(dispatcher.dispatchNext('claude-cli')).resolves.toMatchObject({
@@ -149,20 +221,85 @@ describe('Nexus single-worker dispatcher', () => {
     expect(q.settle).toHaveBeenCalledTimes(1)
   })
 
-  it('records a bounded failure without returning secret-shaped detail', async () => {
+  it('blocks dispatch when the assigned worktree is not a verified clean baseline', async () => {
+    const q = queue(task())
+    const laneOrchestrator = lanes()
+    const dispatcher = createNexusDispatcher({
+      queue: q.value,
+      lanes: laneOrchestrator,
+      resolveWorktreeState: () =>
+        Promise.resolve({ commitSha: 'a'.repeat(40), clean: false }),
+    })
+
+    await expect(dispatcher.dispatchNext('codex-cli')).resolves.toMatchObject({
+      outcome: 'blocked',
+      task: { blockedReason: expect.stringMatching(/clean baseline/i) },
+    })
+    expect(laneOrchestrator.runMission).not.toHaveBeenCalled()
+  })
+
+  it('blocks completion when the run does not create a new clean commit', async () => {
+    const q = queue(task())
+    const dispatcher = createNexusDispatcher({
+      queue: q.value,
+      lanes: lanes(),
+      resolveWorktreeState: vi
+        .fn()
+        .mockResolvedValue({ commitSha: 'a'.repeat(40), clean: true }),
+    })
+
+    await expect(dispatcher.dispatchNext('codex-cli')).resolves.toMatchObject({
+      outcome: 'blocked',
+      task: {
+        status: 'blocked',
+        runId: 'run-1',
+        blockedReason: expect.stringMatching(/completion evidence/i),
+      },
+    })
+  })
+
+  it('blocks completion when the durable run and lifecycle evidence disagree', async () => {
     const q = queue(task())
     const dispatcher = createNexusDispatcher({
       queue: q.value,
       lanes: lanes({
-        runMission: vi.fn(() =>
-          Promise.reject(new Error('OPENAI_API_KEY=synthetic-secret-value')),
-        ),
+        getRun: vi.fn(() => Promise.resolve(null)),
+        listRunEvents: vi.fn(() => Promise.resolve([])),
       }),
+      resolveWorktreeState: verifiedChangedWorktree(),
     })
 
     await expect(dispatcher.dispatchNext('codex-cli')).resolves.toMatchObject({
-      outcome: 'failed',
-      task: { blockedReason: 'OPENAI_API_KEY=[REDACTED]' },
+      outcome: 'blocked',
+      task: {
+        status: 'blocked',
+        blockedReason: expect.stringMatching(/completion evidence/i),
+      },
     })
+  })
+
+  it('records mission-blind failures even when a worker echoes the private mission', async () => {
+    const privateMission = 'private-customer-plan-9274'
+    const q = queue(task({ mission: privateMission }))
+    const dispatcher = createNexusDispatcher({
+      queue: q.value,
+      lanes: lanes({
+        runMission: vi.fn(() =>
+          Promise.reject(new Error(`Worker rejected ${privateMission}`)),
+        ),
+      }),
+      resolveWorktreeState: () =>
+        Promise.resolve({ commitSha: 'a'.repeat(40), clean: true }),
+    })
+
+    const result = await dispatcher.dispatchNext('codex-cli')
+    expect(result).toMatchObject({
+      outcome: 'failed',
+      task: {
+        blockedReason:
+          'Worker execution failed; inspect the redacted lane run evidence',
+      },
+    })
+    expect(JSON.stringify(result)).not.toContain(privateMission)
   })
 })

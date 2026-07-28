@@ -3,12 +3,14 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
+  createBoundedTaskAuthority,
   createNexusTaskQueue,
   missionContainsSensitiveValue,
 } from './task-queue'
 
 let root = ''
 let queuePath = ''
+const authority = () => createBoundedTaskAuthority(5)
 
 beforeEach(async () => {
   root = await fs.mkdtemp(path.join(os.tmpdir(), 'nexus-queue-'))
@@ -31,6 +33,7 @@ describe('Nexus durable task queue', () => {
       laneId: 'lane-1',
       workerId: 'codex-cli',
       mission: '  build the bounded slice  ',
+      authority: authority(),
     })
 
     expect(task).toEqual({
@@ -40,6 +43,7 @@ describe('Nexus durable task queue', () => {
       status: 'pending',
       createdAt: 10,
       updatedAt: 10,
+      authority: authority(),
     })
     expect(await queue.list()).toEqual([task])
     expect((await fs.stat(queuePath)).mode & 0o777).toBe(0o600)
@@ -62,8 +66,26 @@ describe('Nexus durable task queue', () => {
         laneId: 'lane-1',
         workerId: 'codex-cli',
         mission: 'Use OPENAI_API_KEY=synthetic-secret-value to run this',
+        authority: authority(),
       }),
     ).rejects.toThrow(/credential-shaped/i)
+    await expect(fs.stat(queuePath)).rejects.toMatchObject({ code: 'ENOENT' })
+  })
+
+  it('refuses malformed authority before writing the durable ledger', async () => {
+    const queue = createNexusTaskQueue({ queuePath })
+
+    await expect(
+      queue.enqueue({
+        laneId: 'lane-1',
+        workerId: 'codex-cli',
+        mission: 'build the bounded slice',
+        authority: {
+          ...authority(),
+          prohibitedActions: [],
+        },
+      }),
+    ).rejects.toThrow(/bounded task authority/i)
     await expect(fs.stat(queuePath)).rejects.toMatchObject({ code: 'ENOENT' })
   })
 
@@ -79,16 +101,19 @@ describe('Nexus durable task queue', () => {
       laneId: 'lane-codex',
       workerId: 'codex-cli',
       mission: 'first',
+      authority: authority(),
     })
     await queue.enqueue({
       laneId: 'lane-claude',
       workerId: 'claude-cli',
       mission: 'other worker',
+      authority: authority(),
     })
     await queue.enqueue({
       laneId: 'lane-codex',
       workerId: 'codex-cli',
       mission: 'second',
+      authority: authority(),
     })
 
     await expect(queue.claimNext('codex-cli')).resolves.toMatchObject({
@@ -114,6 +139,7 @@ describe('Nexus durable task queue', () => {
       laneId: 'lane-1',
       workerId: 'codex-cli',
       mission: 'build',
+      authority: authority(),
     })
     await queue.claimNext('codex-cli')
 
@@ -144,6 +170,7 @@ describe('Nexus durable task queue', () => {
       laneId: 'lane-1',
       workerId: 'codex-cli',
       mission: 'build',
+      authority: authority(),
     })
     await queue.claimNext('codex-cli')
 
@@ -153,6 +180,89 @@ describe('Nexus durable task queue', () => {
         status: 'blocked',
         blockedReason: expect.stringMatching(/manual run reconciliation/i),
       }),
+    ])
+  })
+
+  it('recovers a stale dead same-host lock before accepting work', async () => {
+    await fs.mkdir(path.dirname(queuePath), { recursive: true })
+    await fs.writeFile(
+      `${queuePath}.lock`,
+      JSON.stringify({
+        token: 'abandoned-lock',
+        pid: 424_242,
+        hostId: 'test-host',
+        acquiredAt: Date.now() - 6_000,
+      }),
+    )
+    const checkedPids: Array<number> = []
+    const queue = createNexusTaskQueue({
+      queuePath,
+      hostId: 'test-host',
+      processId: 101,
+      isProcessAlive: (pid) => {
+        checkedPids.push(pid)
+        return false
+      },
+      idgen: () => 'task-recovered-lock',
+      now: () => 20,
+    })
+
+    await expect(
+      queue.enqueue({
+        laneId: 'lane-1',
+        workerId: 'codex-cli',
+        mission: 'resume bounded work',
+        authority: authority(),
+      }),
+    ).resolves.toMatchObject({
+      id: 'task-recovered-lock',
+      status: 'pending',
+    })
+    expect(checkedPids).toContain(424_242)
+    await expect(fs.stat(`${queuePath}.lock`)).rejects.toMatchObject({
+      code: 'ENOENT',
+    })
+  })
+
+  it('repairs a torn final JSONL record while preserving prior tasks and future writes', async () => {
+    let id = 0
+    const queue = createNexusTaskQueue({
+      queuePath,
+      idgen: () => `task-${++id}`,
+      now: () => id,
+    })
+    await queue.enqueue({
+      laneId: 'lane-1',
+      workerId: 'codex-cli',
+      mission: 'preserve this task',
+      authority: authority(),
+    })
+    await fs.appendFile(queuePath, '{"id":"torn')
+
+    await expect(queue.list()).resolves.toEqual([
+      expect.objectContaining({
+        id: 'task-1',
+        status: 'pending',
+      }),
+    ])
+    await expect(
+      queue.enqueue({
+        laneId: 'lane-2',
+        workerId: 'claude-cli',
+        mission: 'write after recovery',
+        authority: authority(),
+      }),
+    ).resolves.toMatchObject({
+      id: 'task-2',
+      status: 'pending',
+    })
+
+    const raw = await fs.readFile(queuePath, 'utf8')
+    expect(raw).not.toContain('{"id":"torn')
+    expect(raw.endsWith('\n')).toBe(true)
+    await expect(queue.list()).resolves.toEqual([
+      expect.objectContaining({ id: 'task-2' }),
+      expect.objectContaining({ id: 'task-1' }),
     ])
   })
 })

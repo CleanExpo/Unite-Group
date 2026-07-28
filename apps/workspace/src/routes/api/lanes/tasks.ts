@@ -8,9 +8,19 @@ import {
   getNexusTaskQueue,
   getNexusWorkers,
 } from '../../../server/lanes'
+import { createBoundedTaskAuthority } from '../../../server/lanes/task-queue'
 import { parseLaneMissionInput } from '../../../server/lanes/types'
 import { workerIdForLane } from '../../../server/lanes/worker-registry'
 import type { PublicNexusTask } from '../../../server/lanes'
+
+function isExplicitlyApproved(value: unknown): boolean {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value) &&
+    (value as Record<string, unknown>).approved === true
+  )
+}
 
 export function summariseNexusTasks(tasks: Array<PublicNexusTask>) {
   return {
@@ -57,10 +67,15 @@ export const Route = createFileRoute('/api/lanes/tasks')({
         const csrfCheck = requireJsonContentType(request)
         if (csrfCheck) return csrfCheck
         try {
-          const input = parseLaneMissionInput(await request.json())
-          if (!input) {
+          const body: unknown = await request.json()
+          const input = parseLaneMissionInput(body)
+          if (!input || !isExplicitlyApproved(body)) {
             return json(
-              { ok: false, error: 'A valid id and mission are required' },
+              {
+                ok: false,
+                error:
+                  'A valid id, mission and explicit bounded-task approval are required',
+              },
               { status: 400 },
             )
           }
@@ -76,6 +91,7 @@ export const Route = createFileRoute('/api/lanes/tasks')({
             laneId: lane.id,
             workerId: workerIdForLane(lane),
             mission: input.mission,
+            authority: createBoundedTaskAuthority(),
           })
           return json({ ok: true, task }, { status: 202 })
         } catch {

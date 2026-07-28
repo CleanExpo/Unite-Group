@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildLaneCreateInput,
+  buildQueuedTaskInput,
   formatBackendOptionLabel,
   formatWorkerStatus,
 } from './lanes-panel'
@@ -62,5 +63,14 @@ describe('buildLaneCreateInput', () => {
         reason: 'Interface only — remote identity is not verified',
       }),
     ).toBe('unverified · Interface only — remote identity is not verified')
+  })
+
+  it('requires explicit approval before producing a queue request', () => {
+    expect(buildQueuedTaskInput('lane-1', ' bounded work ', false)).toBeNull()
+    expect(buildQueuedTaskInput('lane-1', ' bounded work ', true)).toEqual({
+      id: 'lane-1',
+      mission: 'bounded work',
+      approved: true,
+    })
   })
 })

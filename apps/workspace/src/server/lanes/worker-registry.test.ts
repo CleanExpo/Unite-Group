@@ -25,6 +25,7 @@ describe('Nexus worker registry', () => {
   it('keeps the Mac Mini Tailscale interface dormant and unverified', () => {
     const workers = buildWorkerRegistry({
       machineId: 'macbook',
+      dispatchArmed: true,
       claudeAvailable: true,
       codexAvailable: true,
       hermesAvailable: true,
@@ -46,6 +47,7 @@ describe('Nexus worker registry', () => {
   it('reports unavailable local workers honestly', () => {
     const workers = buildWorkerRegistry({
       machineId: 'macbook',
+      dispatchArmed: true,
       claudeAvailable: false,
       codexAvailable: false,
       hermesAvailable: false,
@@ -55,5 +57,20 @@ describe('Nexus worker registry', () => {
     expect(
       workers.find((worker) => worker.id === 'hermes-gateway')?.reason,
     ).toMatch(/unavailable/i)
+  })
+
+  it('keeps all local execution paths inert until explicitly armed', () => {
+    const workers = buildWorkerRegistry({
+      machineId: 'macbook',
+      dispatchArmed: false,
+      claudeAvailable: true,
+      codexAvailable: true,
+      hermesAvailable: true,
+    })
+
+    expect(workers.every((worker) => !worker.enabled)).toBe(true)
+    expect(workers.find((worker) => worker.id === 'codex-cli')?.reason).toMatch(
+      /not armed/i,
+    )
   })
 })

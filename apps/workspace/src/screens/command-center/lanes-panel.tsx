@@ -34,6 +34,12 @@ type NexusTask = {
   status: NexusTaskStatus
   createdAt: number
   updatedAt: number
+  authority: {
+    mode: 'bounded-non-production'
+    risk: 'low'
+    approval: 'explicit-authenticated-operator'
+    approvedAt: number
+  }
   runId?: string
   blockedReason?: string
   evidence?: {
@@ -100,6 +106,16 @@ export function buildLaneCreateInput(
 export function formatWorkerStatus(worker: NexusWorker): string {
   if (worker.enabled) return `${worker.machineId} · admitted`
   return `${worker.machineStatus} · ${worker.reason ?? 'not admitted'}`
+}
+
+export function buildQueuedTaskInput(
+  id: string,
+  mission: string,
+  approved: boolean,
+) {
+  const trimmedMission = mission.trim()
+  if (!id || !trimmedMission || !approved) return null
+  return { id, mission: trimmedMission, approved: true as const }
 }
 
 async function readJson<T>(url: string): Promise<T> {
@@ -232,11 +248,17 @@ export function LanesPanel() {
 function LaneCard({ lane }: { lane: Lane }) {
   const qc = useQueryClient()
   const [mission, setMission] = useState('')
+  const [approved, setApproved] = useState(false)
 
   const queueMutation = useMutation({
-    mutationFn: () => postJson('/api/lanes/tasks', { id: lane.id, mission }),
+    mutationFn: () => {
+      const input = buildQueuedTaskInput(lane.id, mission, approved)
+      if (!input) throw new Error('Explicit bounded-task approval is required')
+      return postJson('/api/lanes/tasks', input)
+    },
     onSuccess: () => {
       setMission('')
+      setApproved(false)
       qc.invalidateQueries({ queryKey: ['nexus-tasks'] })
     },
   })
@@ -271,14 +293,17 @@ function LaneCard({ lane }: { lane: Lane }) {
       <div className="mt-2 flex items-center gap-2">
         <input
           value={mission}
-          onChange={(e) => setMission(e.target.value)}
+          onChange={(event) => {
+            setMission(event.target.value)
+            setApproved(false)
+          }}
           placeholder="Mission for this lane…"
           className="flex-1 rounded border border-neutral-800 bg-neutral-900 px-2 py-1 text-xs text-neutral-200"
         />
         <button
           type="button"
           onClick={() => queueMutation.mutate()}
-          disabled={busy || !mission.trim()}
+          disabled={busy || !mission.trim() || !approved}
           className="rounded border border-cyan-500/40 px-2 py-1 text-[10px] uppercase tracking-wide text-cyan-300 transition-colors hover:bg-cyan-500/10 disabled:opacity-50"
         >
           {queueMutation.isPending ? 'Queuing…' : 'Queue'}
@@ -292,6 +317,19 @@ function LaneCard({ lane }: { lane: Lane }) {
           Stop
         </button>
       </div>
+      <label className="mt-2 flex items-start gap-2 text-[10px] leading-4 text-neutral-400">
+        <input
+          type="checkbox"
+          checked={approved}
+          onChange={(event) => setApproved(event.target.checked)}
+          disabled={busy}
+          className="mt-0.5"
+        />
+        <span>
+          I approve this bounded, low-risk, non-production task. It may not
+          push, merge, deploy, delete, write to production or dispatch remotely.
+        </span>
+      </label>
 
       {lane.blockedReason ? (
         <p className="mt-2 text-[11px] text-amber-400">{lane.blockedReason}</p>

@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createBoundedTaskAuthority } from '../../../server/lanes/task-queue'
 import { summariseNexusTasks } from './tasks'
+
+const authority = createBoundedTaskAuthority(1)
 
 const mocks = vi.hoisted(() => ({
   get: vi.fn(),
@@ -39,6 +42,7 @@ describe('Nexus task API', () => {
           status: 'pending',
           createdAt: 1,
           updatedAt: 1,
+          authority,
         },
         {
           id: '2',
@@ -47,6 +51,7 @@ describe('Nexus task API', () => {
           status: 'running',
           createdAt: 1,
           updatedAt: 1,
+          authority,
         },
         {
           id: '3',
@@ -55,6 +60,7 @@ describe('Nexus task API', () => {
           status: 'completed',
           createdAt: 1,
           updatedAt: 1,
+          authority,
         },
         {
           id: '4',
@@ -63,6 +69,7 @@ describe('Nexus task API', () => {
           status: 'failed',
           createdAt: 1,
           updatedAt: 1,
+          authority,
         },
       ]),
     ).toEqual({ pending: 1, running: 1, completed: 1, blocked: 1 })
@@ -81,6 +88,7 @@ describe('Nexus task API', () => {
       status: 'pending',
       createdAt: 1,
       updatedAt: 1,
+      authority,
     })
     const handlers = Route.options.server?.handlers as {
       POST: (ctx: { request: Request }) => Promise<Response>
@@ -89,7 +97,11 @@ describe('Nexus task API', () => {
       request: new Request('http://localhost/api/lanes/tasks', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ id: 'lane-1', mission: ' bounded build ' }),
+        body: JSON.stringify({
+          id: 'lane-1',
+          mission: ' bounded build ',
+          approved: true,
+        }),
       }),
     })
 
@@ -98,8 +110,29 @@ describe('Nexus task API', () => {
       laneId: 'lane-1',
       workerId: 'codex-cli',
       mission: 'bounded build',
+      authority: expect.objectContaining({
+        mode: 'bounded-non-production',
+        approval: 'explicit-authenticated-operator',
+      }),
     })
     expect(JSON.stringify(await response.json())).not.toContain('bounded build')
+  })
+
+  it('refuses to queue a task without explicit approval', async () => {
+    const handlers = Route.options.server?.handlers as {
+      POST: (ctx: { request: Request }) => Promise<Response>
+    }
+    const response = await handlers.POST({
+      request: new Request('http://localhost/api/lanes/tasks', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ id: 'lane-1', mission: 'bounded build' }),
+      }),
+    })
+
+    expect(response.status).toBe(400)
+    expect(mocks.get).not.toHaveBeenCalled()
+    expect(mocks.enqueue).not.toHaveBeenCalled()
   })
 
   it('denies unauthenticated task reads', async () => {
