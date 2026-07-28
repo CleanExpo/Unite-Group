@@ -1,0 +1,388 @@
+import fs from 'node:fs/promises'
+import os from 'node:os'
+import path from 'node:path'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  createBoundedTaskAuthority,
+  createNexusTaskQueue,
+  missionContainsSensitiveValue,
+} from './task-queue'
+
+let root = ''
+let queuePath = ''
+const authority = () => createBoundedTaskAuthority(5)
+
+beforeEach(async () => {
+  root = await fs.mkdtemp(path.join(os.tmpdir(), 'nexus-queue-'))
+  queuePath = path.join(root, 'private', 'tasks.jsonl')
+})
+
+afterEach(async () => {
+  await fs.rm(root, { recursive: true, force: true })
+})
+
+describe('Nexus durable task queue', () => {
+  it('persists pending work privately without exposing the mission in list results', async () => {
+    const queue = createNexusTaskQueue({
+      queuePath,
+      idgen: () => 'task-1',
+      now: () => 10,
+    })
+
+    const task = await queue.enqueue({
+      idempotencyKey: 'idem-task-0001',
+      laneId: 'lane-1',
+      workerId: 'codex-cli',
+      mission: '  build the bounded slice  ',
+      authority: authority(),
+    })
+
+    expect(task).toEqual({
+      id: 'task-1',
+      idempotencyKey: 'idem-task-0001',
+      laneId: 'lane-1',
+      workerId: 'codex-cli',
+      status: 'pending',
+      createdAt: 10,
+      updatedAt: 10,
+      authority: authority(),
+    })
+    expect(await queue.list()).toEqual([task])
+    expect((await fs.stat(queuePath)).mode & 0o777).toBe(0o600)
+    expect((await fs.stat(path.dirname(queuePath))).mode & 0o777).toBe(0o700)
+    expect(await fs.readFile(queuePath, 'utf8')).toContain(
+      'build the bounded slice',
+    )
+  })
+
+  it('deduplicates an exact retry and rejects idempotency-key reuse', async () => {
+    const idgen = vi.fn(() => 'task-idempotent')
+    const queue = createNexusTaskQueue({ queuePath, idgen, now: () => 10 })
+    const input = {
+      idempotencyKey: 'idem-retry-0001',
+      laneId: 'lane-1',
+      workerId: 'codex-cli' as const,
+      mission: 'bounded retry-safe work',
+      authority: authority(),
+    }
+
+    const first = await queue.enqueue(input)
+    const retry = await queue.enqueue({
+      ...input,
+      authority: createBoundedTaskAuthority(99),
+    })
+
+    expect(retry).toEqual(first)
+    expect(idgen).toHaveBeenCalledTimes(1)
+    expect(
+      (await fs.readFile(queuePath, 'utf8')).trim().split('\n'),
+    ).toHaveLength(1)
+    await expect(
+      queue.enqueue({ ...input, mission: 'different work' }),
+    ).rejects.toThrow(/already bound/i)
+  })
+
+  it('refuses credential-shaped missions before writing the durable ledger', async () => {
+    const queue = createNexusTaskQueue({ queuePath })
+    expect(
+      missionContainsSensitiveValue(
+        'Use OPENAI_API_KEY=synthetic-secret-value to run this',
+      ),
+    ).toBe(true)
+
+    await expect(
+      queue.enqueue({
+        idempotencyKey: 'idem-task-0002',
+        laneId: 'lane-1',
+        workerId: 'codex-cli',
+        mission: 'Use OPENAI_API_KEY=synthetic-secret-value to run this',
+        authority: authority(),
+      }),
+    ).rejects.toThrow(/credential-shaped/i)
+    await expect(fs.stat(queuePath)).rejects.toMatchObject({ code: 'ENOENT' })
+  })
+
+  it('refuses malformed authority before writing the durable ledger', async () => {
+    const queue = createNexusTaskQueue({ queuePath })
+
+    await expect(
+      queue.enqueue({
+        idempotencyKey: 'idem-task-0003',
+        laneId: 'lane-1',
+        workerId: 'codex-cli',
+        mission: 'build the bounded slice',
+        authority: {
+          ...authority(),
+          prohibitedActions: [],
+        },
+      }),
+    ).rejects.toThrow(/bounded task authority/i)
+    await expect(fs.stat(queuePath)).rejects.toMatchObject({ code: 'ENOENT' })
+  })
+
+  it('claims the oldest pending task for exactly one worker', async () => {
+    let id = 0
+    let now = 0
+    const queue = createNexusTaskQueue({
+      queuePath,
+      idgen: () => `task-${++id}`,
+      now: () => ++now,
+    })
+    await queue.enqueue({
+      idempotencyKey: 'idem-task-0004',
+      laneId: 'lane-codex',
+      workerId: 'codex-cli',
+      mission: 'first',
+      authority: authority(),
+    })
+    await queue.enqueue({
+      idempotencyKey: 'idem-task-0005',
+      laneId: 'lane-claude',
+      workerId: 'claude-cli',
+      mission: 'other worker',
+      authority: authority(),
+    })
+    await queue.enqueue({
+      idempotencyKey: 'idem-task-0006',
+      laneId: 'lane-codex',
+      workerId: 'codex-cli',
+      mission: 'second',
+      authority: authority(),
+    })
+
+    await expect(queue.claimNext('codex-cli')).resolves.toMatchObject({
+      id: 'task-1',
+      mission: 'first',
+      status: 'running',
+    })
+    await expect(queue.claimNext('codex-cli')).resolves.toMatchObject({
+      id: 'task-3',
+      mission: 'second',
+      status: 'running',
+    })
+    await expect(queue.claimNext('codex-cli')).resolves.toBeNull()
+  })
+
+  it('settles a claimed task with run and commit evidence', async () => {
+    const queue = createNexusTaskQueue({
+      queuePath,
+      idgen: () => 'task-1',
+      now: () => 10,
+    })
+    await queue.enqueue({
+      idempotencyKey: 'idem-task-0007',
+      laneId: 'lane-1',
+      workerId: 'codex-cli',
+      mission: 'build',
+      authority: authority(),
+    })
+    await queue.claimNext('codex-cli')
+
+    await expect(
+      queue.settle('task-1', {
+        status: 'completed',
+        runId: 'run-1',
+        evidence: {
+          runUri: 'lane-run:run-1',
+          eventsUri: 'lane-events:run-1',
+          commitSha: 'a'.repeat(40),
+        },
+      }),
+    ).resolves.toMatchObject({
+      status: 'completed',
+      runId: 'run-1',
+      evidence: { commitSha: 'a'.repeat(40) },
+    })
+  })
+
+  it('fails closed when a prior dispatcher left a running task', async () => {
+    const queue = createNexusTaskQueue({
+      queuePath,
+      idgen: () => 'task-1',
+      now: () => 10,
+    })
+    await queue.enqueue({
+      idempotencyKey: 'idem-task-0008',
+      laneId: 'lane-1',
+      workerId: 'codex-cli',
+      mission: 'build',
+      authority: authority(),
+    })
+    await queue.claimNext('codex-cli')
+
+    await expect(queue.reconcileInterrupted()).resolves.toBe(1)
+    await expect(queue.list()).resolves.toEqual([
+      expect.objectContaining({
+        status: 'blocked',
+        blockedReason: expect.stringMatching(/manual run reconciliation/i),
+      }),
+    ])
+  })
+
+  it('recovers a stale dead same-host lock before accepting work', async () => {
+    await fs.mkdir(`${queuePath}.lock`, { recursive: true })
+    await fs.writeFile(
+      path.join(`${queuePath}.lock`, 'owner.json'),
+      JSON.stringify({
+        token: 'abandoned-lock',
+        pid: 424_242,
+        hostId: 'test-host',
+        acquiredAt: Date.now() - 6_000,
+      }),
+    )
+    const checkedPids: Array<number> = []
+    const queue = createNexusTaskQueue({
+      queuePath,
+      hostId: 'test-host',
+      processId: 101,
+      isProcessAlive: (pid) => {
+        checkedPids.push(pid)
+        return false
+      },
+      idgen: () => 'task-recovered-lock',
+      now: () => 20,
+    })
+
+    await expect(
+      queue.enqueue({
+        idempotencyKey: 'idem-task-0009',
+        laneId: 'lane-1',
+        workerId: 'codex-cli',
+        mission: 'resume bounded work',
+        authority: authority(),
+      }),
+    ).resolves.toMatchObject({
+      id: 'task-recovered-lock',
+      status: 'pending',
+    })
+    expect(checkedPids).toContain(424_242)
+    await expect(fs.stat(`${queuePath}.lock`)).rejects.toMatchObject({
+      code: 'ENOENT',
+    })
+  })
+
+  it('serialises concurrent stale-lock recovery without deleting a new owner', async () => {
+    await fs.mkdir(`${queuePath}.lock`, { recursive: true })
+    await fs.writeFile(
+      path.join(`${queuePath}.lock`, 'owner.json'),
+      JSON.stringify({
+        token: 'abandoned-lock',
+        pid: 424_242,
+        hostId: 'test-host',
+        acquiredAt: Date.now() - 6_000,
+      }),
+    )
+    const first = createNexusTaskQueue({
+      queuePath,
+      hostId: 'test-host',
+      processId: 101,
+      isProcessAlive: () => false,
+      idgen: () => 'task-first',
+      now: () => 20,
+    })
+    const second = createNexusTaskQueue({
+      queuePath,
+      hostId: 'test-host',
+      processId: 202,
+      isProcessAlive: () => false,
+      idgen: () => 'task-second',
+      now: () => 21,
+    })
+
+    await expect(
+      Promise.all([
+        first.enqueue({
+          idempotencyKey: 'idem-task-0010',
+          laneId: 'lane-1',
+          workerId: 'codex-cli',
+          mission: 'first recovery contender',
+          authority: authority(),
+        }),
+        second.enqueue({
+          idempotencyKey: 'idem-task-0011',
+          laneId: 'lane-2',
+          workerId: 'claude-cli',
+          mission: 'second recovery contender',
+          authority: authority(),
+        }),
+      ]),
+    ).resolves.toHaveLength(2)
+    await expect(first.list()).resolves.toEqual([
+      expect.objectContaining({ id: 'task-second' }),
+      expect.objectContaining({ id: 'task-first' }),
+    ])
+  })
+
+  it('cleans a stale recovery tombstone left by a crashed recoverer', async () => {
+    const recoveryPath = `${queuePath}.lock.recovering`
+    await fs.mkdir(recoveryPath, { recursive: true })
+    await fs.writeFile(
+      path.join(recoveryPath, 'owner.json'),
+      JSON.stringify({ token: 'crashed-recoverer' }),
+    )
+    const old = new Date(Date.now() - 11_000)
+    await fs.utimes(recoveryPath, old, old)
+    const queue = createNexusTaskQueue({
+      queuePath,
+      idgen: () => 'task-after-crash',
+      now: () => 30,
+    })
+
+    await expect(
+      queue.enqueue({
+        idempotencyKey: 'idem-task-0012',
+        laneId: 'lane-1',
+        workerId: 'codex-cli',
+        mission: 'continue after recovery crash',
+        authority: authority(),
+      }),
+    ).resolves.toMatchObject({ id: 'task-after-crash' })
+    await expect(fs.stat(recoveryPath)).rejects.toMatchObject({
+      code: 'ENOENT',
+    })
+  })
+
+  it('repairs a torn final JSONL record while preserving prior tasks and future writes', async () => {
+    let id = 0
+    const queue = createNexusTaskQueue({
+      queuePath,
+      idgen: () => `task-${++id}`,
+      now: () => id,
+    })
+    await queue.enqueue({
+      idempotencyKey: 'idem-task-0013',
+      laneId: 'lane-1',
+      workerId: 'codex-cli',
+      mission: 'preserve this task',
+      authority: authority(),
+    })
+    await fs.appendFile(queuePath, '{"id":"torn')
+
+    await expect(queue.list()).resolves.toEqual([
+      expect.objectContaining({
+        id: 'task-1',
+        status: 'pending',
+      }),
+    ])
+    await expect(
+      queue.enqueue({
+        idempotencyKey: 'idem-task-0014',
+        laneId: 'lane-2',
+        workerId: 'claude-cli',
+        mission: 'write after recovery',
+        authority: authority(),
+      }),
+    ).resolves.toMatchObject({
+      id: 'task-2',
+      status: 'pending',
+    })
+
+    const raw = await fs.readFile(queuePath, 'utf8')
+    expect(raw).not.toContain('{"id":"torn')
+    expect(raw.endsWith('\n')).toBe(true)
+    await expect(queue.list()).resolves.toEqual([
+      expect.objectContaining({ id: 'task-2' }),
+      expect.objectContaining({ id: 'task-1' }),
+    ])
+  })
+})
