@@ -42,6 +42,7 @@ export interface NexusTaskAuthority {
 /** Private durable task record. The mission must never be returned by an API. */
 export interface NexusTask {
   id: string
+  idempotencyKey: string
   laneId: string
   workerId: NexusWorkerId
   mission: string
@@ -57,6 +58,7 @@ export interface NexusTask {
 export type PublicNexusTask = Omit<NexusTask, 'mission'>
 
 export interface EnqueueTaskInput {
+  idempotencyKey: string
   laneId: string
   workerId: NexusWorkerId
   mission: string
@@ -109,6 +111,7 @@ const SENSITIVE_MISSION_PATTERNS: ReadonlyArray<RegExp> = [
   /\b(?:sk-|gh[opusr]_|github_pat_|xox[baprs]-|AKIA|ASIA|AIza|sk_live_|rk_live_|whsec_|gsk_|hf_|lin_api_|sb_secret_|sb_publishable_)[A-Za-z0-9._-]{8,}/,
   /["']?(?:api[-_]?key|access[-_]?token|refresh[-_]?token|client[-_]?secret|password|secret|token)["']?\s*[:=]\s*["'][^"']{8,}["']/i,
 ]
+const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -158,6 +161,7 @@ function isTask(value: unknown): value is NexusTask {
   if (
     typeof value.id !== 'string' ||
     !value.id ||
+    !isValidTaskIdempotencyKey(value.idempotencyKey) ||
     typeof value.laneId !== 'string' ||
     !value.laneId ||
     !WORKER_IDS.includes(value.workerId as NexusWorkerId) ||
@@ -200,6 +204,10 @@ function publicTask(task: NexusTask): PublicNexusTask {
 
 export function missionContainsSensitiveValue(mission: string): boolean {
   return SENSITIVE_MISSION_PATTERNS.some((pattern) => pattern.test(mission))
+}
+
+export function isValidTaskIdempotencyKey(value: unknown): value is string {
+  return typeof value === 'string' && IDEMPOTENCY_KEY_PATTERN.test(value)
 }
 
 async function readTasks(queuePath: string): Promise<Map<string, NexusTask>> {
@@ -571,10 +579,27 @@ export function createNexusTaskQueue(deps: QueueDeps): NexusTaskQueue {
       if (!isBoundedTaskAuthority(input.authority)) {
         throw new Error('A valid bounded task authority is required')
       }
+      if (!isValidTaskIdempotencyKey(input.idempotencyKey)) {
+        throw new Error('A valid task idempotency key is required')
+      }
       return withQueueLock(deps.queuePath, owner, isProcessAlive, async () => {
+        const existing = [...(await readTasks(deps.queuePath)).values()].find(
+          (task) => task.idempotencyKey === input.idempotencyKey,
+        )
+        if (existing) {
+          if (
+            existing.laneId !== parsed.id ||
+            existing.workerId !== input.workerId ||
+            existing.mission !== parsed.mission
+          ) {
+            throw new Error('Task idempotency key is already bound')
+          }
+          return publicTask(existing)
+        }
         const timestamp = now()
         const task: NexusTask = {
           id: idgen(),
+          idempotencyKey: input.idempotencyKey,
           laneId: parsed.id,
           workerId: input.workerId,
           mission: parsed.mission,

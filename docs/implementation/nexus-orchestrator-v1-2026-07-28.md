@@ -35,6 +35,9 @@ Scope: local, bounded Mission Control orchestration only
 - Queueing requires a fresh, explicit approval in the authenticated UI/API.
   The server creates the fixed low-risk authority envelope; clients cannot
   weaken its prohibited actions or evidence requirements.
+- Each approval creates a stable idempotency key that is retained across a
+  failed/lost-response retry. The durable queue returns the existing task for
+  an exact retry and rejects reuse of the key for different work.
 - Dispatch requires an existing admitted local worker and an existing lane.
 - A durable task worker must still match the lane backend at dispatch time.
 - Interrupted `running` tasks become `blocked` on process restart and require
@@ -61,7 +64,7 @@ Runtime: Node `24.14.1`, the repository-declared minimum.
 Focused evidence:
 
 - 7 focused test files passed.
-- 69 focused tests passed.
+- 70 focused tests passed.
 - TypeScript `--noEmit` passed.
 - Touched-file ESLint passed after the final import-order check.
 
@@ -70,7 +73,7 @@ Repository-defined workspace gate:
 - `npm run verify:workspace`
 - TypeScript passed.
 - 103 test files passed.
-- 784 tests passed.
+- 785 tests passed.
 - Vite client production build passed.
 - Vite SSR production build passed.
 
@@ -94,8 +97,9 @@ Warnings observed but not introduced by this scope:
 5. No three-machine failure drills or seven-day soak evidence exist.
 6. Independent reviews of the first two implementation SHAs failed closed. The
    second review found gateway evidence, lock ownership and successful-output
-   privacy defects; those are repaired in the current working tree. The new
-   exact SHA still requires independent review.
+   privacy defects. A third review found enqueue retry duplication. Those
+   findings are repaired in the current working tree; the new exact SHA still
+   requires independent review.
 
 ## Exact next steps
 

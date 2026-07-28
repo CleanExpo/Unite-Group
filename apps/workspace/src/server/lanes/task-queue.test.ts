@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   createBoundedTaskAuthority,
   createNexusTaskQueue,
@@ -30,6 +30,7 @@ describe('Nexus durable task queue', () => {
     })
 
     const task = await queue.enqueue({
+      idempotencyKey: 'idem-task-0001',
       laneId: 'lane-1',
       workerId: 'codex-cli',
       mission: '  build the bounded slice  ',
@@ -38,6 +39,7 @@ describe('Nexus durable task queue', () => {
 
     expect(task).toEqual({
       id: 'task-1',
+      idempotencyKey: 'idem-task-0001',
       laneId: 'lane-1',
       workerId: 'codex-cli',
       status: 'pending',
@@ -53,6 +55,33 @@ describe('Nexus durable task queue', () => {
     )
   })
 
+  it('deduplicates an exact retry and rejects idempotency-key reuse', async () => {
+    const idgen = vi.fn(() => 'task-idempotent')
+    const queue = createNexusTaskQueue({ queuePath, idgen, now: () => 10 })
+    const input = {
+      idempotencyKey: 'idem-retry-0001',
+      laneId: 'lane-1',
+      workerId: 'codex-cli' as const,
+      mission: 'bounded retry-safe work',
+      authority: authority(),
+    }
+
+    const first = await queue.enqueue(input)
+    const retry = await queue.enqueue({
+      ...input,
+      authority: createBoundedTaskAuthority(99),
+    })
+
+    expect(retry).toEqual(first)
+    expect(idgen).toHaveBeenCalledTimes(1)
+    expect(
+      (await fs.readFile(queuePath, 'utf8')).trim().split('\n'),
+    ).toHaveLength(1)
+    await expect(
+      queue.enqueue({ ...input, mission: 'different work' }),
+    ).rejects.toThrow(/already bound/i)
+  })
+
   it('refuses credential-shaped missions before writing the durable ledger', async () => {
     const queue = createNexusTaskQueue({ queuePath })
     expect(
@@ -63,6 +92,7 @@ describe('Nexus durable task queue', () => {
 
     await expect(
       queue.enqueue({
+        idempotencyKey: 'idem-task-0002',
         laneId: 'lane-1',
         workerId: 'codex-cli',
         mission: 'Use OPENAI_API_KEY=synthetic-secret-value to run this',
@@ -77,6 +107,7 @@ describe('Nexus durable task queue', () => {
 
     await expect(
       queue.enqueue({
+        idempotencyKey: 'idem-task-0003',
         laneId: 'lane-1',
         workerId: 'codex-cli',
         mission: 'build the bounded slice',
@@ -98,18 +129,21 @@ describe('Nexus durable task queue', () => {
       now: () => ++now,
     })
     await queue.enqueue({
+      idempotencyKey: 'idem-task-0004',
       laneId: 'lane-codex',
       workerId: 'codex-cli',
       mission: 'first',
       authority: authority(),
     })
     await queue.enqueue({
+      idempotencyKey: 'idem-task-0005',
       laneId: 'lane-claude',
       workerId: 'claude-cli',
       mission: 'other worker',
       authority: authority(),
     })
     await queue.enqueue({
+      idempotencyKey: 'idem-task-0006',
       laneId: 'lane-codex',
       workerId: 'codex-cli',
       mission: 'second',
@@ -136,6 +170,7 @@ describe('Nexus durable task queue', () => {
       now: () => 10,
     })
     await queue.enqueue({
+      idempotencyKey: 'idem-task-0007',
       laneId: 'lane-1',
       workerId: 'codex-cli',
       mission: 'build',
@@ -167,6 +202,7 @@ describe('Nexus durable task queue', () => {
       now: () => 10,
     })
     await queue.enqueue({
+      idempotencyKey: 'idem-task-0008',
       laneId: 'lane-1',
       workerId: 'codex-cli',
       mission: 'build',
@@ -209,6 +245,7 @@ describe('Nexus durable task queue', () => {
 
     await expect(
       queue.enqueue({
+        idempotencyKey: 'idem-task-0009',
         laneId: 'lane-1',
         workerId: 'codex-cli',
         mission: 'resume bounded work',
@@ -255,12 +292,14 @@ describe('Nexus durable task queue', () => {
     await expect(
       Promise.all([
         first.enqueue({
+          idempotencyKey: 'idem-task-0010',
           laneId: 'lane-1',
           workerId: 'codex-cli',
           mission: 'first recovery contender',
           authority: authority(),
         }),
         second.enqueue({
+          idempotencyKey: 'idem-task-0011',
           laneId: 'lane-2',
           workerId: 'claude-cli',
           mission: 'second recovery contender',
@@ -291,6 +330,7 @@ describe('Nexus durable task queue', () => {
 
     await expect(
       queue.enqueue({
+        idempotencyKey: 'idem-task-0012',
         laneId: 'lane-1',
         workerId: 'codex-cli',
         mission: 'continue after recovery crash',
@@ -310,6 +350,7 @@ describe('Nexus durable task queue', () => {
       now: () => id,
     })
     await queue.enqueue({
+      idempotencyKey: 'idem-task-0013',
       laneId: 'lane-1',
       workerId: 'codex-cli',
       mission: 'preserve this task',
@@ -325,6 +366,7 @@ describe('Nexus durable task queue', () => {
     ])
     await expect(
       queue.enqueue({
+        idempotencyKey: 'idem-task-0014',
         laneId: 'lane-2',
         workerId: 'claude-cli',
         mission: 'write after recovery',

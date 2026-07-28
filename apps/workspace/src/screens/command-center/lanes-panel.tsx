@@ -29,6 +29,7 @@ type NexusTaskStatus =
 
 type NexusTask = {
   id: string
+  idempotencyKey: string
   laneId: string
   workerId: string
   status: NexusTaskStatus
@@ -112,10 +113,16 @@ export function buildQueuedTaskInput(
   id: string,
   mission: string,
   approved: boolean,
+  idempotencyKey: string | null,
 ) {
   const trimmedMission = mission.trim()
-  if (!id || !trimmedMission || !approved) return null
-  return { id, mission: trimmedMission, approved: true as const }
+  if (!id || !trimmedMission || !approved || !idempotencyKey) return null
+  return {
+    id,
+    mission: trimmedMission,
+    approved: true as const,
+    idempotencyKey,
+  }
 }
 
 async function readJson<T>(url: string): Promise<T> {
@@ -249,16 +256,23 @@ function LaneCard({ lane }: { lane: Lane }) {
   const qc = useQueryClient()
   const [mission, setMission] = useState('')
   const [approved, setApproved] = useState(false)
+  const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null)
 
   const queueMutation = useMutation({
     mutationFn: () => {
-      const input = buildQueuedTaskInput(lane.id, mission, approved)
+      const input = buildQueuedTaskInput(
+        lane.id,
+        mission,
+        approved,
+        idempotencyKey,
+      )
       if (!input) throw new Error('Explicit bounded-task approval is required')
       return postJson('/api/lanes/tasks', input)
     },
     onSuccess: () => {
       setMission('')
       setApproved(false)
+      setIdempotencyKey(null)
       qc.invalidateQueries({ queryKey: ['nexus-tasks'] })
     },
   })
@@ -296,6 +310,7 @@ function LaneCard({ lane }: { lane: Lane }) {
           onChange={(event) => {
             setMission(event.target.value)
             setApproved(false)
+            setIdempotencyKey(null)
           }}
           placeholder="Mission for this lane…"
           className="flex-1 rounded border border-neutral-800 bg-neutral-900 px-2 py-1 text-xs text-neutral-200"
@@ -321,7 +336,13 @@ function LaneCard({ lane }: { lane: Lane }) {
         <input
           type="checkbox"
           checked={approved}
-          onChange={(event) => setApproved(event.target.checked)}
+          onChange={(event) => {
+            const nextApproved = event.target.checked
+            setApproved(nextApproved)
+            setIdempotencyKey(
+              nextApproved ? globalThis.crypto.randomUUID() : null,
+            )
+          }}
           disabled={busy}
           className="mt-0.5"
         />

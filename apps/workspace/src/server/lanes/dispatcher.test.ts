@@ -8,6 +8,7 @@ import type { Lane, LaneRun, LaneRunEvent } from './types'
 function task(overrides: Partial<NexusTask> = {}): NexusTask {
   return {
     id: 'task-1',
+    idempotencyKey: 'idem-task-0001',
     laneId: 'lane-1',
     workerId: 'codex-cli',
     mission: 'build',

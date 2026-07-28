@@ -8,7 +8,10 @@ import {
   getNexusTaskQueue,
   getNexusWorkers,
 } from '../../../server/lanes'
-import { createBoundedTaskAuthority } from '../../../server/lanes/task-queue'
+import {
+  createBoundedTaskAuthority,
+  isValidTaskIdempotencyKey,
+} from '../../../server/lanes/task-queue'
 import { parseLaneMissionInput } from '../../../server/lanes/types'
 import { workerIdForLane } from '../../../server/lanes/worker-registry'
 import type { PublicNexusTask } from '../../../server/lanes'
@@ -20,6 +23,14 @@ function isExplicitlyApproved(value: unknown): boolean {
     !Array.isArray(value) &&
     (value as Record<string, unknown>).approved === true
   )
+}
+
+function taskIdempotencyKey(value: unknown): string | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return null
+  }
+  const key = (value as Record<string, unknown>).idempotencyKey
+  return isValidTaskIdempotencyKey(key) ? key : null
 }
 
 export function summariseNexusTasks(tasks: Array<PublicNexusTask>) {
@@ -69,12 +80,13 @@ export const Route = createFileRoute('/api/lanes/tasks')({
         try {
           const body: unknown = await request.json()
           const input = parseLaneMissionInput(body)
-          if (!input || !isExplicitlyApproved(body)) {
+          const idempotencyKey = taskIdempotencyKey(body)
+          if (!input || !isExplicitlyApproved(body) || !idempotencyKey) {
             return json(
               {
                 ok: false,
                 error:
-                  'A valid id, mission and explicit bounded-task approval are required',
+                  'A valid id, mission, idempotency key and explicit bounded-task approval are required',
               },
               { status: 400 },
             )
@@ -88,6 +100,7 @@ export const Route = createFileRoute('/api/lanes/tasks')({
             )
           }
           const task = await getNexusTaskQueue().enqueue({
+            idempotencyKey,
             laneId: lane.id,
             workerId: workerIdForLane(lane),
             mission: input.mission,

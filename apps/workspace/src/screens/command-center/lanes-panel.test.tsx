@@ -66,11 +66,19 @@ describe('buildLaneCreateInput', () => {
   })
 
   it('requires explicit approval before producing a queue request', () => {
-    expect(buildQueuedTaskInput('lane-1', ' bounded work ', false)).toBeNull()
-    expect(buildQueuedTaskInput('lane-1', ' bounded work ', true)).toEqual({
+    expect(
+      buildQueuedTaskInput('lane-1', ' bounded work ', false, 'idem-task-0001'),
+    ).toBeNull()
+    expect(
+      buildQueuedTaskInput('lane-1', ' bounded work ', true, null),
+    ).toBeNull()
+    expect(
+      buildQueuedTaskInput('lane-1', ' bounded work ', true, 'idem-task-0001'),
+    ).toEqual({
       id: 'lane-1',
       mission: 'bounded work',
       approved: true,
+      idempotencyKey: 'idem-task-0001',
     })
   })
 })

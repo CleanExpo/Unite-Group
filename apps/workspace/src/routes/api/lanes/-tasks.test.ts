@@ -37,6 +37,7 @@ describe('Nexus task API', () => {
       summariseNexusTasks([
         {
           id: '1',
+          idempotencyKey: 'idem-task-0001',
           laneId: 'l',
           workerId: 'codex-cli',
           status: 'pending',
@@ -46,6 +47,7 @@ describe('Nexus task API', () => {
         },
         {
           id: '2',
+          idempotencyKey: 'idem-task-0002',
           laneId: 'l',
           workerId: 'codex-cli',
           status: 'running',
@@ -55,6 +57,7 @@ describe('Nexus task API', () => {
         },
         {
           id: '3',
+          idempotencyKey: 'idem-task-0003',
           laneId: 'l',
           workerId: 'codex-cli',
           status: 'completed',
@@ -64,6 +67,7 @@ describe('Nexus task API', () => {
         },
         {
           id: '4',
+          idempotencyKey: 'idem-task-0004',
           laneId: 'l',
           workerId: 'codex-cli',
           status: 'failed',
@@ -83,6 +87,7 @@ describe('Nexus task API', () => {
     })
     mocks.enqueue.mockResolvedValueOnce({
       id: 'task-1',
+      idempotencyKey: 'idem-task-0005',
       laneId: 'lane-1',
       workerId: 'codex-cli',
       status: 'pending',
@@ -101,12 +106,14 @@ describe('Nexus task API', () => {
           id: 'lane-1',
           mission: ' bounded build ',
           approved: true,
+          idempotencyKey: 'idem-task-0005',
         }),
       }),
     })
 
     expect(response.status).toBe(202)
     expect(mocks.enqueue).toHaveBeenCalledWith({
+      idempotencyKey: 'idem-task-0005',
       laneId: 'lane-1',
       workerId: 'codex-cli',
       mission: 'bounded build',
