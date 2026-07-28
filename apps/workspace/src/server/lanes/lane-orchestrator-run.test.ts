@@ -90,6 +90,28 @@ describe('LaneOrchestrator.runMission', () => {
     expect(ledger).not.toContain(mission)
   })
 
+  it('redacts a private task echoed without its bounded guardrail envelope', async () => {
+    const privateTask = 'private-customer-plan-9274'
+    const boundedMission = [
+      '[NEXUS BOUNDED NON-PRODUCTION EXECUTION]',
+      'Prohibited actions: production-write.',
+      '[PRIVATE TASK]',
+      privateTask,
+    ].join('\n')
+    const gateway = {
+      run: vi.fn().mockResolvedValue({ output: `result:${privateTask}` }),
+    }
+    const registryPath = path.join(tempRoot, 'lanes.jsonl')
+    const o = orch({ gateway }, () => 'bounded-redaction-lane')
+    await o.create(gatewayInput)
+
+    const lane = await o.runMission('bounded-redaction-lane', boundedMission)
+    const ledger = await fs.readFile(registryPath, 'utf8')
+
+    expect(lane.lastOutput).toBe('result:[mission redacted]')
+    expect(ledger).not.toContain(privateTask)
+  })
+
   it('clears stale stop acknowledgement when claiming a new run', async () => {
     const registryPath = path.join(tempRoot, 'lanes.jsonl')
     const gateway = {

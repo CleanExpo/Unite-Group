@@ -18,9 +18,10 @@ Scope: local, bounded Mission Control orchestration only
 - Added a Mac Mini-over-Tailscale interface that is deliberately disabled and
   labelled `unverified`; no remote command, SSH or Tailscale execution path was
   added.
-- Added task-to-run evidence links. Completion now requires a durable succeeded
-  run, matching start/success lifecycle events, and a new clean Git commit
-  produced after the verified clean baseline.
+- Added task-to-run evidence links. Completion requires a durable succeeded
+  run, matching start/success lifecycle events and a clean worktree. CLI coding
+  tasks also require a new commit; chat-only Hermes tasks omit commit evidence
+  when the clean SHA is unchanged.
 - Added an authenticated task API, an authenticated dispatch API and queue,
   worker and machine-state summaries in the existing Mission Control lanes
   panel.
@@ -38,12 +39,15 @@ Scope: local, bounded Mission Control orchestration only
 - A durable task worker must still match the lane backend at dispatch time.
 - Interrupted `running` tasks become `blocked` on process restart and require
   manual reconciliation.
-- Dead same-host queue locks and torn final JSONL writes are recovered before
-  queue operations; rewrites use a synced temporary file and atomic rename.
+- Queue ownership uses an atomic lock directory with PID, host, token and inode
+  checks. Dead same-host locks are moved to a fixed recovery tombstone so
+  concurrent recoverers cannot delete a new owner; crashed recovery tombstones
+  and torn final JSONL writes are recovered.
 - The private task ledger is mode `0600`; its directory is mode `0700`.
 - Task missions are never returned by the API or rendered in the dashboard.
-- Dispatch and lane lookup failures use mission-blind public reasons, including
-  when a worker error echoes the private mission.
+- Dispatch and lane lookup failures use mission-blind public reasons. The lane
+  ledger separately redacts the original private task as well as its guardrail
+  envelope when worker output echoes it.
 - Credential-shaped missions are rejected before the ledger is written.
 - Worker output continues through the existing bounded redaction and evidence
   pipeline.
@@ -56,8 +60,8 @@ Runtime: Node `24.14.1`, the repository-declared minimum.
 
 Focused evidence:
 
-- 6 focused test files passed.
-- 33 focused tests passed.
+- 7 focused test files passed.
+- 69 focused tests passed.
 - TypeScript `--noEmit` passed.
 - Touched-file ESLint passed after the final import-order check.
 
@@ -66,7 +70,7 @@ Repository-defined workspace gate:
 - `npm run verify:workspace`
 - TypeScript passed.
 - 103 test files passed.
-- 779 tests passed.
+- 784 tests passed.
 - Vite client production build passed.
 - Vite SSR production build passed.
 
@@ -88,8 +92,9 @@ Warnings observed but not introduced by this scope:
 4. Existing run events record lifecycle outcomes; live stdout/stderr streaming
    and a unified evidence timeline remain later Mission Control slices.
 5. No three-machine failure drills or seven-day soak evidence exist.
-6. Independent review of the first implementation SHA failed with four P2
-   findings. Those findings are repaired in the current working tree; the new
+6. Independent reviews of the first two implementation SHAs failed closed. The
+   second review found gateway evidence, lock ownership and successful-output
+   privacy defects; those are repaired in the current working tree. The new
    exact SHA still requires independent review.
 
 ## Exact next steps

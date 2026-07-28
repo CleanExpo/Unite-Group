@@ -184,9 +184,9 @@ describe('Nexus durable task queue', () => {
   })
 
   it('recovers a stale dead same-host lock before accepting work', async () => {
-    await fs.mkdir(path.dirname(queuePath), { recursive: true })
+    await fs.mkdir(`${queuePath}.lock`, { recursive: true })
     await fs.writeFile(
-      `${queuePath}.lock`,
+      path.join(`${queuePath}.lock`, 'owner.json'),
       JSON.stringify({
         token: 'abandoned-lock',
         pid: 424_242,
@@ -220,6 +220,84 @@ describe('Nexus durable task queue', () => {
     })
     expect(checkedPids).toContain(424_242)
     await expect(fs.stat(`${queuePath}.lock`)).rejects.toMatchObject({
+      code: 'ENOENT',
+    })
+  })
+
+  it('serialises concurrent stale-lock recovery without deleting a new owner', async () => {
+    await fs.mkdir(`${queuePath}.lock`, { recursive: true })
+    await fs.writeFile(
+      path.join(`${queuePath}.lock`, 'owner.json'),
+      JSON.stringify({
+        token: 'abandoned-lock',
+        pid: 424_242,
+        hostId: 'test-host',
+        acquiredAt: Date.now() - 6_000,
+      }),
+    )
+    const first = createNexusTaskQueue({
+      queuePath,
+      hostId: 'test-host',
+      processId: 101,
+      isProcessAlive: () => false,
+      idgen: () => 'task-first',
+      now: () => 20,
+    })
+    const second = createNexusTaskQueue({
+      queuePath,
+      hostId: 'test-host',
+      processId: 202,
+      isProcessAlive: () => false,
+      idgen: () => 'task-second',
+      now: () => 21,
+    })
+
+    await expect(
+      Promise.all([
+        first.enqueue({
+          laneId: 'lane-1',
+          workerId: 'codex-cli',
+          mission: 'first recovery contender',
+          authority: authority(),
+        }),
+        second.enqueue({
+          laneId: 'lane-2',
+          workerId: 'claude-cli',
+          mission: 'second recovery contender',
+          authority: authority(),
+        }),
+      ]),
+    ).resolves.toHaveLength(2)
+    await expect(first.list()).resolves.toEqual([
+      expect.objectContaining({ id: 'task-second' }),
+      expect.objectContaining({ id: 'task-first' }),
+    ])
+  })
+
+  it('cleans a stale recovery tombstone left by a crashed recoverer', async () => {
+    const recoveryPath = `${queuePath}.lock.recovering`
+    await fs.mkdir(recoveryPath, { recursive: true })
+    await fs.writeFile(
+      path.join(recoveryPath, 'owner.json'),
+      JSON.stringify({ token: 'crashed-recoverer' }),
+    )
+    const old = new Date(Date.now() - 11_000)
+    await fs.utimes(recoveryPath, old, old)
+    const queue = createNexusTaskQueue({
+      queuePath,
+      idgen: () => 'task-after-crash',
+      now: () => 30,
+    })
+
+    await expect(
+      queue.enqueue({
+        laneId: 'lane-1',
+        workerId: 'codex-cli',
+        mission: 'continue after recovery crash',
+        authority: authority(),
+      }),
+    ).resolves.toMatchObject({ id: 'task-after-crash' })
+    await expect(fs.stat(recoveryPath)).rejects.toMatchObject({
       code: 'ENOENT',
     })
   })

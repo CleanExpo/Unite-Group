@@ -162,10 +162,14 @@ export function createNexusDispatcher(deps: DispatcherDeps) {
             run.status === 'succeeded' &&
             hasStartedEvent &&
             hasSucceededEvent
-          const hasCommitProof =
-            afterState?.clean === true &&
+          const changedCommit =
+            afterState?.commitSha !== undefined &&
             afterState.commitSha !== beforeState.commitSha
-          if (!hasRunProof || !hasCommitProof) {
+          const requiresChangedCommit = claimed.workerId !== 'hermes-gateway'
+          const hasWorktreeProof =
+            afterState?.clean === true &&
+            (!requiresChangedCommit || changedCommit)
+          if (!hasRunProof || !hasWorktreeProof) {
             const task = await deps.queue.settle(claimed.id, {
               status: 'blocked',
               runId,
@@ -179,7 +183,7 @@ export function createNexusDispatcher(deps: DispatcherDeps) {
             evidence: {
               runUri: `lane-run:${runId}`,
               eventsUri: `lane-events:${runId}`,
-              commitSha: afterState.commitSha,
+              ...(changedCommit ? { commitSha: afterState.commitSha } : {}),
             },
           })
           return { outcome: 'completed', task }

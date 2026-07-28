@@ -104,6 +104,7 @@ async function appendRecord<T>(ledgerPath: string, record: T): Promise<void> {
 
 const REGISTRY_LOCK_TIMEOUT_MS = 5_000
 const REGISTRY_LOCK_RETRY_MS = 10
+const PRIVATE_TASK_MARKER = '[PRIVATE TASK]\n'
 
 function errorCode(error: unknown): string {
   if (
@@ -122,7 +123,18 @@ function sanitiseMissionDerivedText(
   mission: string,
   limit?: number,
 ): string {
-  const withoutMission = value.split(mission).join('[mission redacted]')
+  const markerIndex = mission.indexOf(PRIVATE_TASK_MARKER)
+  const privateTask =
+    markerIndex >= 0
+      ? mission.slice(markerIndex + PRIVATE_TASK_MARKER.length)
+      : undefined
+  const redactions = [mission, privateTask]
+    .filter((candidate): candidate is string => Boolean(candidate))
+    .sort((left, right) => right.length - left.length)
+  const withoutMission = redactions.reduce(
+    (safe, candidate) => safe.split(candidate).join('[mission redacted]'),
+    value,
+  )
   return sanitiseLaneOutput(withoutMission, limit)
 }
 

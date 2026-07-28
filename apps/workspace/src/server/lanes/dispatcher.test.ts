@@ -258,6 +258,81 @@ describe('Nexus single-worker dispatcher', () => {
     })
   })
 
+  it('completes a Hermes gateway run with clean unchanged worktree evidence', async () => {
+    const gatewayLane = lane({
+      kind: 'gateway',
+      backend: {
+        kind: 'gateway',
+        provider: 'openrouter',
+        model: 'bounded-model',
+      },
+    })
+    const q = queue(task({ workerId: 'hermes-gateway' }))
+    const dispatcher = createNexusDispatcher({
+      queue: q.value,
+      lanes: lanes({
+        get: vi.fn(() => Promise.resolve(gatewayLane)),
+        runMission: vi.fn(() =>
+          Promise.resolve({ ...gatewayLane, lastRunId: 'run-1' }),
+        ),
+      }),
+      resolveWorktreeState: vi
+        .fn()
+        .mockResolvedValue({ commitSha: 'a'.repeat(40), clean: true }),
+    })
+
+    await expect(
+      dispatcher.dispatchNext('hermes-gateway'),
+    ).resolves.toMatchObject({
+      outcome: 'completed',
+      task: {
+        status: 'completed',
+        runId: 'run-1',
+        evidence: {
+          runUri: 'lane-run:run-1',
+          eventsUri: 'lane-events:run-1',
+        },
+      },
+    })
+    const settledEvidence = q.settle.mock.calls[0]?.[1]?.evidence
+    expect(settledEvidence).not.toHaveProperty('commitSha')
+  })
+
+  it('blocks a Hermes gateway run when the final worktree is dirty', async () => {
+    const gatewayLane = lane({
+      kind: 'gateway',
+      backend: {
+        kind: 'gateway',
+        provider: 'openrouter',
+        model: 'bounded-model',
+      },
+    })
+    const q = queue(task({ workerId: 'hermes-gateway' }))
+    const dispatcher = createNexusDispatcher({
+      queue: q.value,
+      lanes: lanes({
+        get: vi.fn(() => Promise.resolve(gatewayLane)),
+        runMission: vi.fn(() =>
+          Promise.resolve({ ...gatewayLane, lastRunId: 'run-1' }),
+        ),
+      }),
+      resolveWorktreeState: vi
+        .fn()
+        .mockResolvedValueOnce({ commitSha: 'a'.repeat(40), clean: true })
+        .mockResolvedValueOnce({ commitSha: 'a'.repeat(40), clean: false }),
+    })
+
+    await expect(
+      dispatcher.dispatchNext('hermes-gateway'),
+    ).resolves.toMatchObject({
+      outcome: 'blocked',
+      task: {
+        status: 'blocked',
+        blockedReason: expect.stringMatching(/completion evidence/i),
+      },
+    })
+  })
+
   it('blocks completion when the durable run and lifecycle evidence disagree', async () => {
     const q = queue(task())
     const dispatcher = createNexusDispatcher({
