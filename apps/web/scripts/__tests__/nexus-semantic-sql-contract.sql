@@ -1,6 +1,18 @@
 \set ON_ERROR_STOP on
 SET search_path TO public, extensions;
 
+DO $$
+BEGIN
+  IF has_function_privilege(
+    'anon',
+    'public.nexus_semantic_coverage(interval)',
+    'EXECUTE'
+  ) THEN
+    RAISE EXCEPTION 'anon must not execute nexus_semantic_coverage';
+  END IF;
+END
+$$;
+
 INSERT INTO public.wiki_pages (id, title, content, tags, created_at, updated_at)
 VALUES
   ('healthy', 'Healthy', 'healthy current content', '{}', now(), now()),
@@ -21,7 +33,14 @@ SELECT
   source_id || ' content',
   CASE WHEN source_id = 'null-vector' THEN NULL ELSE array_fill(0.001::real, ARRAY[1536])::vector END,
   'test-1536',
-  '{}'::jsonb,
+  jsonb_build_object(
+    'source_updated_at',
+    CASE
+      WHEN source_id IN ('stale-document', 'freshness-only')
+        THEN now() - interval '60 days'
+      ELSE now()
+    END
+  ),
   CASE WHEN source_id IN ('stale-document', 'freshness-only') THEN now() - interval '60 days' ELSE now() END,
   CASE WHEN source_id IN ('stale-document', 'freshness-only') THEN now() - interval '60 days' ELSE now() END
 FROM unnest(ARRAY[
@@ -80,6 +99,68 @@ BEGIN
      OR coverage->>'stale_documents' <> '5'
      OR coverage->>'duplicate_chunk_keys' <> '0' THEN
     RAISE EXCEPTION 'coverage contract mismatch: %', coverage;
+  END IF;
+END
+$$;
+
+-- Reproduce the fetch/write race: an old source snapshot can be ingested after
+-- the source changes. Ingestion timestamps are current, but source_updated_at
+-- remains older and must keep the page actionable.
+INSERT INTO public.wiki_pages (id, title, content, tags, created_at, updated_at)
+VALUES (
+  'stale-source-snapshot',
+  'Stale source snapshot',
+  'new source content',
+  '{}',
+  now() - interval '2 minutes',
+  now() - interval '1 minute'
+);
+
+WITH inserted_document AS (
+  INSERT INTO public.document_embeddings (
+    source_type, source_id, title, content, embedding, embedding_model, metadata, created_at, updated_at
+  ) VALUES (
+    'wiki',
+    'stale-source-snapshot',
+    'Stale source snapshot',
+    'old source content',
+    array_fill(0.001::real, ARRAY[1536])::vector,
+    'test-1536',
+    jsonb_build_object('source_updated_at', now() - interval '2 minutes'),
+    now(),
+    now()
+  )
+  RETURNING id
+)
+INSERT INTO public.document_chunks (
+  document_id, chunk_index, content, embedding, metadata, created_at
+)
+SELECT
+  id,
+  0,
+  'old source chunk',
+  array_fill(0.001::real, ARRAY[1536])::vector,
+  '{}'::jsonb,
+  now()
+FROM inserted_document;
+
+DO $$
+DECLARE
+  queued_count integer;
+  coverage jsonb;
+BEGIN
+  SELECT count(*) INTO queued_count
+  FROM public.wiki_pages_needing_embedding(100)
+  WHERE id = 'stale-source-snapshot';
+
+  SELECT public.nexus_semantic_coverage(interval '30 days') INTO coverage;
+
+  IF queued_count <> 1 THEN
+    RAISE EXCEPTION 'stale source snapshot was not queued';
+  END IF;
+  IF coverage->>'stale_chunk_documents' <> '2'
+     OR coverage->>'actionable_documents' <> '6' THEN
+    RAISE EXCEPTION 'stale source snapshot was not fail-closed: %', coverage;
   END IF;
 END
 $$;

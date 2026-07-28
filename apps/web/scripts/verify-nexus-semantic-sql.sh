@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 BASE_MIGRATION="$ROOT/supabase/migrations/20260713093000_unify_nexus_semantic_ingestion.sql"
 REPAIR_MIGRATION="$ROOT/supabase/migrations/20260727010000_repair_nexus_semantic_coverage.sql"
+HARDENING_MIGRATION="$ROOT/supabase/migrations/20260728010000_harden_nexus_semantic_freshness.sql"
 CONTRACT="$ROOT/scripts/__tests__/nexus-semantic-sql-contract.sql"
 CONTAINER="nexus-semantic-contract-${RANDOM}-$$"
 
@@ -34,6 +35,7 @@ fi
 
 docker exec -i "$CONTAINER" psql --username postgres --dbname nexus_contract --set ON_ERROR_STOP=1 <<'SQL'
 CREATE ROLE service_role;
+CREATE ROLE anon;
 CREATE SCHEMA extensions;
 CREATE EXTENSION vector WITH SCHEMA extensions;
 CREATE TABLE public.wiki_pages (
@@ -52,5 +54,10 @@ docker exec -i "$CONTAINER" psql --username postgres --dbname nexus_contract --s
 if [[ -f "$REPAIR_MIGRATION" ]]; then
   docker exec -i "$CONTAINER" psql --username postgres --dbname nexus_contract --set ON_ERROR_STOP=1 < "$REPAIR_MIGRATION"
 fi
+
+docker exec -i "$CONTAINER" psql --username postgres --dbname nexus_contract --set ON_ERROR_STOP=1 < "$HARDENING_MIGRATION"
+# The forward-only hardening migration is intentionally rerunnable so a failed
+# branch validation can be retried without widening privileges or changing data.
+docker exec -i "$CONTAINER" psql --username postgres --dbname nexus_contract --set ON_ERROR_STOP=1 < "$HARDENING_MIGRATION"
 
 docker exec -i "$CONTAINER" psql --username postgres --dbname nexus_contract --set ON_ERROR_STOP=1 < "$CONTRACT"
