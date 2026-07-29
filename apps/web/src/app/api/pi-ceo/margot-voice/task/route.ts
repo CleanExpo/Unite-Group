@@ -189,7 +189,7 @@ async function readDeliveryLedger(
   supabase: ReturnType<typeof createServiceClient>,
   founderId: string,
   packetId: string,
-): Promise<{ atCap: boolean; latestId: string | null }> {
+): Promise<{ state: 'under_cap' | 'at_cap' | 'unknown'; latestId: string | null }> {
   try {
     const { data, error } = await supabase
       .from('margot_voice_sessions')
@@ -198,14 +198,14 @@ async function readDeliveryLedger(
       .eq('packet_id', packetId)
       .order('created_at', { ascending: false })
       .limit(DELIVERY_LEDGER_CAP);
-    if (error) return { atCap: false, latestId: null };
+    if (error) return { state: 'unknown', latestId: null };
     const rows = (data as Array<{ id: string }> | null) ?? [];
     return {
-      atCap: rows.length >= DELIVERY_LEDGER_CAP,
+      state: rows.length >= DELIVERY_LEDGER_CAP ? 'at_cap' : 'under_cap',
       latestId: rows[0]?.id ?? null,
     };
   } catch {
-    return { atCap: false, latestId: null };
+    return { state: 'unknown', latestId: null };
   }
 }
 
@@ -271,7 +271,21 @@ export async function POST(req: NextRequest) {
   // property that matters; at the cap the delivery is collapsed onto the most
   // recent existing row instead of adding another copy of the same transcript.
   const ledger = await readDeliveryLedger(supabase, founderId, packet.packet_id);
-  if (ledger.atCap) {
+
+  // An unreadable ledger is not permission to write. Treating a read failure as
+  // "under the cap" failed open: with the cap already reached and a persistent
+  // SELECT error, the insert below ran on every retry and reproduced exactly the
+  // unbounded growth the cap exists to prevent - at the moment the database is
+  // already unhealthy. 503 defers the delivery instead of losing it; nothing is
+  // written and the caller redelivers once the read recovers.
+  if (ledger.state === 'unknown') {
+    return NextResponse.json(
+      { ok: false, error: 'delivery_ledger_unavailable' },
+      { status: 503, headers: { 'Cache-Control': 'no-store' } },
+    );
+  }
+
+  if (ledger.state === 'at_cap') {
     // Answer honestly rather than pretending a fresh delivery was recorded. The
     // mission bridge still runs below, so a packet whose bridge finally succeeds
     // on retry number MAX+1 is not stranded.

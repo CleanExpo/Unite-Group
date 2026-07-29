@@ -46,23 +46,38 @@ function bearerOk(request: Request): boolean {
   return timingSafeBearerMatch(request, process.env.AGENT_EVENTS_SECRET)
 }
 
-/** How many missions may be in flight for this founder at once. */
-const MAX_CONCURRENT_MISSIONS = Number(process.env.MISSION_LANE_MAX_CONCURRENT ?? '1') || 1
+/**
+ * How many missions may be in flight for this founder at once.
+ *
+ * Validated as a finite positive integer, not merely coerced. `Number(x) || 1`
+ * accepted a negative: MISSION_LANE_MAX_CONCURRENT=-1 gave maxConcurrent = -1,
+ * `inFlight >= -1` is true for any count, and every claimed mission was requeued
+ * until its budget ran out and it failed. A misconfigured number silently
+ * emptied the queue. Anything not a positive integer falls back to 1.
+ */
+function readMaxConcurrent(raw: string | undefined): number {
+  const parsed = Number(raw)
+  if (!Number.isInteger(parsed) || parsed < 1) return 1
+  return parsed
+}
+
+const MAX_CONCURRENT_MISSIONS = readMaxConcurrent(process.env.MISSION_LANE_MAX_CONCURRENT)
 
 /**
- * Missions already running for this founder, excluding the one just claimed.
+ * Missions already running for this founder.
  *
- * A count failure returns Infinity, not 0. The capacity check is
- * `inFlight >= maxConcurrent`, so Infinity refuses — and a refusal here is
- * `at_capacity`, which is transient and requeues the mission for the next poll.
- * Returning 0 on failure would do the opposite: an unreadable database would
- * silently disable the concurrency limit at exactly the moment things are going
- * wrong.
+ * Called BEFORE the claim, so the row about to be claimed is not yet 'running'
+ * and nothing needs excluding.
+ *
+ * A count failure returns Infinity, not 0. The check is
+ * `inFlight >= maxConcurrent`, so Infinity refuses — and that refusal is
+ * `at_capacity`, which is transient, so the next poll retries. Returning 0 on
+ * failure would do the opposite: an unreadable database would silently disable
+ * the concurrency limit at exactly the moment things are going wrong.
  */
-async function countRunningExcluding(
+async function countRunning(
   client: RunnerClaimClientLike,
   founderId: string,
-  excludeTaskId: string,
 ): Promise<number> {
   try {
     // Only enough rows to decide the comparison — the exact count above the
@@ -76,7 +91,7 @@ async function countRunningExcluding(
       .limit(MAX_CONCURRENT_MISSIONS + 2)
     if (error) return Number.POSITIVE_INFINITY
     const rows = (data as Array<{ id: string }> | null) ?? []
-    return rows.filter((r) => r.id !== excludeTaskId).length
+    return rows.length
   } catch {
     return Number.POSITIVE_INFINITY
   }
@@ -124,6 +139,29 @@ export async function POST(request: Request) {
 
   try {
     const client = createServiceClient()
+
+    // Capacity is checked BEFORE claiming, for the same reason as the kill
+    // switch: claiming and then putting the mission back burns its bounded
+    // requeue budget every poll.
+    //
+    // HONEST LIMIT — this is backpressure, not a mutual-exclusion guarantee.
+    // The count and the claim are two statements, so two runners polling
+    // simultaneously can each read a count taken before the other's claim became
+    // visible and both be admitted under maxConcurrent = 1. An independent
+    // review raised exactly this, and it is correct. Narrowing the window is
+    // genuinely worth having (the previous code hardcoded inFlight to 0, so the
+    // limit could never refuse at all) but it must not be described as an
+    // atomic limit.
+    //
+    // Closing the race needs the count and the claim in ONE statement — a
+    // Postgres function claiming only while `running < N`, which is a prod
+    // schema migration and therefore founder-gated. Recorded rather than
+    // silently approximated.
+    const inFlight = await countRunning(client as unknown as RunnerClaimClientLike, founderId)
+    if (inFlight >= MAX_CONCURRENT_MISSIONS) {
+      return NextResponse.json({ task: null, refused: 'at_capacity' }, { status: 200 })
+    }
+
     const task = await claimNextQueuedTask(client as unknown as RunnerClaimClientLike, {
       founderId,
       runnerId: parsed.data.runnerId,
@@ -140,18 +178,10 @@ export async function POST(request: Request) {
       // Refusal releases the claim rather than returning the task, so the runner
       // cannot act on it and the mission does not silently vanish from the queue.
       const decision = admitMissionToLane(task, {
-        // Counted, not assumed. This was hardcoded to 0, so `0 < maxConcurrent`
-        // held on every request and the capacity limit could never fire — two
-        // concurrent polls would each claim a different row and both be
-        // admitted under maxConcurrent: 1. A limit that cannot refuse is not a
-        // limit; it reads as a concurrency control in review while enforcing
-        // nothing. The count excludes the row just claimed, which is already
-        // 'running'.
-        inFlight: await countRunningExcluding(
-          client as unknown as RunnerClaimClientLike,
-          founderId,
-          task.id,
-        ),
+        // Settled before the claim above, so the gate is told the count that
+        // decision was made on rather than re-reading a number that now
+        // includes the row just claimed.
+        inFlight,
         maxConcurrent: MAX_CONCURRENT_MISSIONS,
         // Already returned above if engaged; passed through so the gate keeps
         // its own ordering guarantee rather than trusting this caller.

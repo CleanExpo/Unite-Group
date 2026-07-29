@@ -20,14 +20,15 @@ const mockInsert = vi.fn(() => ({ select: () => ({ single: mockSingle }) }))
 // Existing delivery rows for the packet, used by the ledger cap. Empty by
 // default: a first delivery.
 let ledgerRows: Array<{ id: string }> = []
-const mockSelect = vi.fn(() => {
+const mockSelect = vi.fn()
+function ledgerChain(result: { data: unknown; error: unknown }) {
   const chain = {
     eq: () => chain,
     order: () => chain,
-    limit: () => Promise.resolve({ data: ledgerRows, error: null }),
+    limit: () => Promise.resolve(result),
   }
   return chain
-})
+}
 const mockFrom = vi.fn(() => ({ insert: mockInsert, select: mockSelect }))
 
 vi.mock('@/lib/supabase/service', () => ({
@@ -81,6 +82,10 @@ describe('margot-voice ingest: payload bounds and retry semantics', () => {
     mockSingle.mockResolvedValue({ data: { id: 'sess-1' }, error: null })
     mockIngest.mockResolvedValue(created())
     ledgerRows = []
+    // Re-established every test: clearAllMocks drops the implementation, and a
+    // select returning undefined reads as an unreadable ledger, which now
+    // (correctly) fails closed with 503.
+    mockSelect.mockImplementation(() => ledgerChain({ data: ledgerRows, error: null }))
   })
 
   afterEach(() => {
@@ -118,7 +123,29 @@ describe('margot-voice ingest: payload bounds and retry semantics', () => {
     const res = await POST(req(validPacket))
     expect(res.status).toBe(200)
     expect(mockIngest).toHaveBeenCalledTimes(1)
-    expect(((await res.json()) as { mission: { status: string } }).mission.status).toBe('created')
+    const body = (await res.json()) as {
+      mission: { status: string }
+      deliveries_collapsed: boolean
+      session_id: string
+    }
+    expect(body.mission.status).toBe('created')
+    // Without these the test passes against the pre-cap code, which also bridges
+    // and also returns 200 — it just writes another transcript row first.
+    expect(mockInsert).not.toHaveBeenCalled()
+    expect(body.deliveries_collapsed).toBe(true)
+    expect(body.session_id).toBe('sess-10')
+  })
+
+  it('fails CLOSED with 503 when the delivery ledger cannot be read', async () => {
+    // Treating an unreadable ledger as "under the cap" reproduced the unbounded
+    // growth the cap exists to prevent, at the moment the database is already
+    // unhealthy. Nothing is written and the caller is asked to redeliver.
+    mockSelect.mockImplementationOnce(() => ledgerChain({ data: null, error: { message: 'db down' } }))
+    const res = await POST(req(validPacket))
+    expect(res.status).toBe(503)
+    expect(((await res.json()) as { error: string }).error).toBe('delivery_ledger_unavailable')
+    expect(mockInsert).not.toHaveBeenCalled()
+    expect(mockIngest).not.toHaveBeenCalled()
   })
 
   // ── P1 #3: nothing unbounded is ever persisted ────────────────────────────
@@ -153,11 +180,19 @@ describe('margot-voice ingest: payload bounds and retry semantics', () => {
     expect(mockFrom).not.toHaveBeenCalled()
   })
 
-  it('stores a legal summary whole, with no slice applied', async () => {
+  it('propagates the full summary into requested_outcome, which the old slice truncated', async () => {
+    // A 500-character summary is identical under `.slice(0, 500)`, so asserting
+    // on it proved nothing. requested_outcome falls back to the summary, and the
+    // pre-fix code passed the ALREADY-SLICED value into that fallback — so a
+    // 501-character summary silently lost a character there too. Now an
+    // over-long summary is refused outright, and a legal one reaches both fields
+    // intact.
     const summary = 's'.repeat(500)
     await POST(req({ ...validPacket, summary }))
     const inserted = mockInsert.mock.calls[0][0] as Record<string, unknown>
     expect(inserted.summary).toBe(summary)
+    expect(inserted.requested_outcome).toBe(summary)
+    expect((inserted.requested_outcome as string).length).toBe(500)
   })
 
   it('bounds the actions array by count and by serialised size', async () => {

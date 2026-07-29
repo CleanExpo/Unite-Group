@@ -66,6 +66,16 @@ function makeClient() {
                   : { data: null, error: { code: 'PGRST116', message: 'no rows' } },
               )
             },
+            // The route reads the per-packet delivery ledger before inserting.
+            // Answered from the same rows the fake already holds, so the ledger
+            // cap is exercised against real inserted state rather than a
+            // hardcoded empty list.
+            order: () => chain,
+            limit: (n: number) =>
+              Promise.resolve({
+                data: rows.filter((r) => filters.every(([c, v]) => r[c] === v)).slice(0, n),
+                error: null,
+              }),
           }
           return chain
         },
