@@ -298,6 +298,29 @@ describe('margot-voice ingest: payload bounds and retry semantics', () => {
     expect(body.mission.reason).toBe('provenance_secret_unset')
   })
 
+  it('REGRESSION: the AT-CAP path also answers 503 on a missing provenance key', async () => {
+    // The route has two exit paths and each carried its own copy of the
+    // mission-to-HTTP mapping. When provenance_secret_unset was made retryable,
+    // only the ordinary path was updated, so an at-cap delivery hitting a
+    // missing key still answered 200 with ok: true and the sender stopped
+    // retrying. Both paths now call one shared decider.
+    ledgerRows = Array.from({ length: 10 }, (_, i) => ({ id: `sess-${10 - i}` }))
+    mockIngest.mockResolvedValue({ status: 'rejected', reasons: ['provenance_secret_unset'] })
+    const res = await POST(req(validPacket))
+    expect(res.status).toBe(503)
+    const body = (await res.json()) as { ok: boolean; deliveries_collapsed: boolean }
+    expect(body.ok).toBe(false)
+    expect(body.deliveries_collapsed).toBe(true)
+  })
+
+  it('REGRESSION: the AT-CAP path keeps 409 for a conflict', async () => {
+    ledgerRows = Array.from({ length: 10 }, (_, i) => ({ id: `sess-${10 - i}` }))
+    mockIngest.mockResolvedValue({
+      status: 'conflict', task: { id: 'task-1', status: 'awaiting_approval' }, reason: 'payload_changed',
+    })
+    expect((await POST(req(validPacket))).status).toBe(409)
+  })
+
   it('answers 200 for a mission refused on its merits, which retrying cannot fix', async () => {
     mockIngest.mockResolvedValue({ status: 'rejected', reasons: ['unsafe_action'] })
     const res = await POST(req(validPacket))

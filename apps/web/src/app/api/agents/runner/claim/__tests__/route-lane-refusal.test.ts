@@ -205,6 +205,47 @@ describe('POST /api/agents/runner/claim — lane refusal handling', () => {
     expect(claimNextQueuedTask).not.toHaveBeenCalled()
   })
 
+  it('REGRESSION: a pre-rollout mission is refused WITH a recovery pointer', async () => {
+    // provenance_legacy must not read as a forgery. It settles terminally
+    // (it can never be authenticated) but the audit event carries the packet id,
+    // so the transcript still in margot_voice_sessions can be re-POSTed to
+    // rebridge it with a signed envelope. Without this the work is written off
+    // with no route back.
+    vi.mocked(claimNextQueuedTask).mockResolvedValue({
+      id: 'task-7', status: 'running', claimed_by: RUNNER,
+      external_ref: 'voice:pkt-legacy-1', objective: 'Summarise the call',
+      // A faithful pre-rollout envelope: it HAS a complete admission verdict
+      // (the old bridge wrote one) and an unkeyed SHA-256 hash, but no
+      // `approvalRequested` — only the post-rollout bridge writes that field,
+      // which is what dates the row.
+      metadata: {
+        voiceMission: {
+          packetId: 'pkt-legacy-1',
+          provenance: { missionHash: 'f'.repeat(64) },
+          admission: {
+            tier: 'L1', safe: true, sideEffecting: false, humanApprovalRequired: false,
+            reason: 'ok', initialStatus: 'awaiting_approval', executionMode: 'local-code',
+          },
+        },
+      },
+    } as never)
+    const body = await (await POST(req())).json()
+    expect(body.refused).toBe('provenance_legacy')
+    const [event] = vi.mocked(appendTaskEvent).mock.calls[0]
+    const payload = (event as { payload: Record<string, unknown> }).payload
+    expect(payload.recover_packet_id).toBe('pkt-legacy-1')
+    expect(payload.recovery).toBe('re_ingest_packet')
+    // Still never the objective.
+    expect(JSON.stringify(payload)).not.toContain('Summarise the call')
+  })
+
+  it('does NOT attach a recovery pointer to an ordinary refusal', async () => {
+    vi.mocked(claimNextQueuedTask).mockResolvedValue(unclassifiedVoiceTask as never)
+    await POST(req())
+    const [event] = vi.mocked(appendTaskEvent).mock.calls[0]
+    expect((event as { payload: Record<string, unknown> }).payload.recover_packet_id).toBeUndefined()
+  })
+
   it('still admits a legitimate non-voice mission end to end', async () => {
     vi.mocked(claimNextQueuedTask).mockResolvedValue({
       id: 'task-9',

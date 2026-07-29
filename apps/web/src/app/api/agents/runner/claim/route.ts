@@ -100,6 +100,25 @@ async function countRunning(
   }
 }
 
+/**
+ * The packet id of a pre-rollout voice mission, so a refusal can point at the
+ * transcript that still exists in margot_voice_sessions. Falls back to the
+ * external_ref, which the bridge derives from the packet id. Bounded and
+ * character-restricted because it is written into an audit payload.
+ */
+function legacyPacketId(task: { external_ref?: unknown; metadata?: unknown }): string | null {
+  const envelope = (task.metadata as { voiceMission?: Record<string, unknown> } | null)?.voiceMission
+  const fromEnvelope = envelope?.packetId
+  const raw =
+    typeof fromEnvelope === 'string' && fromEnvelope
+      ? fromEnvelope
+      : typeof task.external_ref === 'string'
+        ? task.external_ref.replace(/^voice:/, '')
+        : ''
+  const safe = raw.replace(/[^A-Za-z0-9._:-]/g, '').slice(0, 200)
+  return safe || null
+}
+
 export async function POST(request: Request) {
   if (!bearerOk(request)) {
     return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
@@ -216,6 +235,15 @@ export async function POST(request: Request) {
           'lane_unavailable',
           'at_capacity',
         ])
+        //
+        // `provenance_legacy` is a THIRD kind: the mission was approved by the
+        // founder and is probably fine, but it was bridged before keyed
+        // provenance existed, so it can never be authenticated and must not run.
+        // It is not transient (retrying cannot mint a key it never had), and
+        // treating it like a forgery writes off real work with no route back.
+        // It settles as `failed` because that is the only terminal outcome this
+        // release path has — but the event below carries everything needed to
+        // recover it.
         const outcome = TRANSIENT.has(decision.code) ? 'requeue' : 'failed'
         const release = await releaseClaimedTask(client as unknown as RunnerClaimClientLike, {
           founderId,
@@ -240,6 +268,17 @@ export async function POST(request: Request) {
             payload: {
               lane_admission: decision.code,
               effective_outcome: release.effectiveOutcome,
+              // Recovery pointer for a pre-rollout mission. The transcript still
+              // exists in margot_voice_sessions under this packet id, so
+              // re-POSTing that packet to /api/pi-ceo/margot-voice/task rebridges
+              // it with a signed envelope. A machine-safe reference, never the
+              // objective. Find them with:
+              //   select payload->>'recover_packet_id' from cc_task_events
+              //     where type = 'blocked'
+              //       and payload->>'lane_admission' = 'provenance_legacy';
+              ...(decision.code === 'provenance_legacy'
+                ? { recover_packet_id: legacyPacketId(task), recovery: 're_ingest_packet' }
+                : {}),
             },
           },
           client as unknown as SupabaseLike,

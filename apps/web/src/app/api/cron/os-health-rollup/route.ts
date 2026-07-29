@@ -260,7 +260,13 @@ async function buildMargotRow(supabase: ServiceClient): Promise<HealthRow> {
       elevenLabsApiKey: !!process.env.ELEVENLABS_API_KEY?.trim(),
       margotAgentId: !!process.env.ELEVENLABS_MARGOT_AGENT_ID?.trim(),
       ingestToken: !!process.env.ELEVENLABS_INGEST_TOKEN?.trim(),
-      founderConfigured: true,
+      // Read, not asserted. This was hardcoded true, so with an ingest token and
+      // a provenance key present the rollup reported missionBridgeReady even
+      // when FOUNDER_USER_ID was absent and ingest could not scope its writes to
+      // a founder at all — a health surface claiming green for a bridge that
+      // cannot accept a single mission. The interactive route already reads the
+      // environment; this one now matches it.
+      founderConfigured: !!process.env.FOUNDER_USER_ID?.trim(),
       provenanceKeyConfigured: !!process.env[MISSION_PROVENANCE_SECRET_ENV]?.trim(),
     },
     voice,

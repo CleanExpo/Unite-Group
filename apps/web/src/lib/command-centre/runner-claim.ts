@@ -160,38 +160,37 @@ async function countPriorRequeues(
   founderId: string,
   taskId: string,
 ): Promise<number | null> {
-  try {
-    const { data, error } = await client
-      .from(CC_TASK_EVENTS_TABLE)
-      .select('id')
-      .eq('founder_id', founderId)
-      .eq('task_id', taskId)
-      .eq('type', 'status_changed')
-      .eq('payload->>outcome', 'requeue')
-      .limit(MAX_REQUEUE_ATTEMPTS)
-    if (error) {
-      console.error(
-        `releaseClaimedTask: requeue count failed (${error.message}) — proceeding with requeue for task ${taskId}`,
-      )
-      return null
+  // Read the count with a bounded retry before deciding anything.
+  //
+  // The two ambiguous outcomes used to disagree with each other: a null body
+  // returned "cap exhausted" (so ONE blip could permanently fail a task with
+  // zero prior requeues) while a thrown query returned null and proceeded with
+  // the requeue (so a persistently unreadable count could loop forever). Both
+  // are the same situation - the count is unknown - and they now take the same
+  // path: retry a couple of times, and only if it is still unreadable treat the
+  // cap as exhausted. That keeps a transient blip from destroying work while
+  // still bounding the loop, which is the third option an independent review
+  // pointed out neither original branch took.
+  const ATTEMPTS = 3
+  for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
+    try {
+      const { data, error } = await client
+        .from(CC_TASK_EVENTS_TABLE)
+        .select('id')
+        .eq('founder_id', founderId)
+        .eq('task_id', taskId)
+        .eq('type', 'status_changed')
+        .eq('payload->>outcome', 'requeue')
+        .limit(MAX_REQUEUE_ATTEMPTS)
+      if (!error && Array.isArray(data)) return (data as Array<{ id: string }>).length
+    } catch {
+      // fall through to the retry
     }
-    // A successful response with a null or non-array body means the count is
-    // UNKNOWN. Returning 0 (what `?? []` did) reads as "no prior requeues" and
-    // lets a repeatedly crashing mission requeue forever, defeating the cap. The
-    // cap is the loop bound, so unknown must be treated as exhausted.
-    if (!Array.isArray(data)) {
-      console.error(
-        `releaseClaimedTask: requeue count returned no usable body — treating the cap as exhausted for task ${taskId}`,
-      )
-      return MAX_REQUEUE_ATTEMPTS
-    }
-    return (data as Array<{ id: string }>).length
-  } catch (err) {
-    console.error(
-      `releaseClaimedTask: requeue count threw (${err instanceof Error ? err.message : 'unknown'}) — proceeding with requeue for task ${taskId}`,
-    )
-    return null
   }
+  console.error(
+    `releaseClaimedTask: requeue count unreadable after ${ATTEMPTS} attempts — treating the cap as exhausted for task ${taskId}`,
+  )
+  return MAX_REQUEUE_ATTEMPTS
 }
 
 /**

@@ -296,18 +296,17 @@ export async function POST(req: NextRequest) {
     // mission bridge still runs below, so a packet whose bridge finally succeeds
     // on retry number MAX+1 is not stranded.
     const mission = await bridgeMission(supabase as unknown as SupabaseLike, founderId, body);
-    const status =
-      mission.status === 'conflict' ? 409 : mission.status === 'bridge_failed' ? 503 : 200;
+    const contract = missionResponseContract(mission);
     return NextResponse.json(
       {
-        ok: mission.status !== 'conflict' && mission.status !== 'bridge_failed',
+        ok: contract.ok,
         session_id: ledger.latestId,
         deliveries_collapsed: true,
         risk_level: packet.risk_level,
         approval_required: approvalRequired,
         mission,
       },
-      { status, headers: { 'Cache-Control': 'no-store' } },
+      { status: contract.status, headers: { 'Cache-Control': 'no-store' } },
     );
   }
 
@@ -364,30 +363,18 @@ export async function POST(req: NextRequest) {
   //  - rejected      200 — the mission was refused on its merits. That verdict is
   //                       the correct final answer; redelivering the same packet
   //                       would only earn the same refusal.
-  // 'rejected' normally means the packet was refused on its merits, which is a
-  // final answer. But ONE rejection reason is a server misconfiguration rather
-  // than a verdict about the packet: provenance_secret_unset. Returning 200 for
-  // it told ElevenLabs the delivery succeeded, so a deployment missing
-  // MISSION_PROVENANCE_SECRET would silently drop every mission the founder
-  // spoke, with no retry and no signal. It is retryable, so it answers 503.
-  const misconfigured =
-    mission.status === 'rejected' && mission.reason === 'provenance_secret_unset';
-  const status =
-    mission.status === 'conflict'
-      ? 409
-      : mission.status === 'bridge_failed' || misconfigured
-        ? 503
-        : 200;
+  // One shared decider for both exit paths - see missionResponseContract.
+  const contract = missionResponseContract(mission);
 
   return NextResponse.json(
     {
-      ok: mission.status !== 'conflict' && mission.status !== 'bridge_failed' && !misconfigured,
+      ok: contract.ok,
       session_id: session.id,
       risk_level: packet.risk_level,
       approval_required: approvalRequired,
       mission,
     },
-    { status, headers: { 'Cache-Control': 'no-store' } },
+    { status: contract.status, headers: { 'Cache-Control': 'no-store' } },
   );
 }
 
@@ -409,6 +396,38 @@ interface MissionBridgeView {
    * than hidden behind a 200.
    */
   receipt: 'complete' | 'incomplete' | 'unverified' | 'none';
+}
+
+/**
+ * The single mapping from a mission outcome to the caller's retry instruction.
+ *
+ * There are two exit paths from this route (the ordinary insert path and the
+ * at-cap collapse path) and they previously each carried their own copy of this
+ * mapping. When `provenance_secret_unset` was made retryable, only one copy was
+ * updated, so an at-cap delivery hitting a missing provenance key still answered
+ * 200 with ok: true and the sender stopped retrying. Patching the second copy
+ * would have left the same trap for the next status added, so the decision lives
+ * here once and both paths call it.
+ *
+ *  - conflict      409  reused packet id, changed control payload; retrying the
+ *                       same body cannot help.
+ *  - bridge_failed 503  transcript persisted, mission never reached cc_tasks.
+ *                       Safe to retry: the bridge is idempotent on
+ *                       UNIQUE(founder_id, external_ref).
+ *  - rejected with
+ *    provenance_
+ *    secret_unset  503  a SERVER misconfiguration, not a verdict about the
+ *                       packet. 200 here silently drops every spoken mission.
+ *  - rejected      200  refused on its merits; that verdict is final.
+ *  - otherwise     200  accepted.
+ */
+function missionResponseContract(mission: MissionBridgeView): { status: number; ok: boolean } {
+  if (mission.status === 'conflict') return { status: 409, ok: false };
+  if (mission.status === 'bridge_failed') return { status: 503, ok: false };
+  if (mission.status === 'rejected' && mission.reason === 'provenance_secret_unset') {
+    return { status: 503, ok: false };
+  }
+  return { status: 200, ok: true };
 }
 
 async function bridgeMission(
