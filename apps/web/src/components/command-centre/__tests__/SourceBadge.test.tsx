@@ -117,6 +117,45 @@ describe("SourceBadge — verified snapshot contract", () => {
     expect(screen.getByRole("status")).not.toHaveTextContent(/2026-01-1[45]T/i);
   });
 
+  it("fails closed for historical Brisbane daylight offsets rather than mislabelling them as AEST", () => {
+    const snapshot = assess(
+      {
+        ...candidate({ openItems: 2 }),
+        observedAt: "1991-01-14T23:55:00.000Z",
+        verifiedAt: "1991-01-14T23:55:00.000Z",
+      },
+      Date.parse("1991-01-15T00:00:00.000Z"),
+    );
+
+    render(<SourceBadge snapshot={snapshot} />);
+
+    const badge = screen.getByRole("status");
+    expect(screen.getByTestId("source-checked-at")).toHaveTextContent(
+      "checked time unavailable",
+    );
+    expect(screen.getByTestId("source-verified-at")).toHaveTextContent(
+      "verified time unavailable",
+    );
+    const accessibleDetail = screen.getByTestId("source-accessible-detail");
+    expect(accessibleDetail).toHaveTextContent(/Observed at time unavailable/i);
+    expect(accessibleDetail).toHaveTextContent(/Verified at time unavailable/i);
+    expect(
+      screen.getByTestId("source-checked-at").querySelector("time"),
+    ).toHaveAttribute("datetime", "1991-01-15T00:00:00.000Z");
+    expect(
+      screen.getByTestId("source-verified-at").querySelector("time"),
+    ).toHaveAttribute("datetime", "1991-01-14T23:55:00.000Z");
+    expect(
+      screen.getByTestId("source-observed-at").querySelector("time"),
+    ).toHaveAttribute("datetime", "1991-01-14T23:55:00.000Z");
+    expect(
+      screen
+        .getByTestId("source-accessible-verified-at")
+        .querySelector("time"),
+    ).toHaveAttribute("datetime", "1991-01-14T23:55:00.000Z");
+    expect(badge).not.toHaveTextContent(/AEST|AEDT/i);
+  });
+
   it("shows stale state without describing the historical value as current", () => {
     const snapshot = assess({
       ...candidate({ openItems: 2 }),
