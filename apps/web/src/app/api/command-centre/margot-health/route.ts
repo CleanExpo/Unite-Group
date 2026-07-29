@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
 import { sanitiseError } from '@/lib/error-reporting'
+import { MISSION_PROVENANCE_SECRET_ENV } from '@/lib/command-centre/voice-mission-bridge'
 import {
   deriveMargotHealth,
   type MargotVoiceRead,
@@ -73,6 +74,7 @@ export async function GET() {
         margotAgentId: !!process.env.ELEVENLABS_MARGOT_AGENT_ID?.trim(),
         ingestToken: !!process.env.ELEVENLABS_INGEST_TOKEN?.trim(),
         founderConfigured: !!process.env.FOUNDER_USER_ID?.trim(),
+        provenanceKeyConfigured: !!process.env[MISSION_PROVENANCE_SECRET_ENV]?.trim(),
       },
       voice,
       presence,

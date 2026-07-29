@@ -364,12 +364,24 @@ export async function POST(req: NextRequest) {
   //  - rejected      200 — the mission was refused on its merits. That verdict is
   //                       the correct final answer; redelivering the same packet
   //                       would only earn the same refusal.
+  // 'rejected' normally means the packet was refused on its merits, which is a
+  // final answer. But ONE rejection reason is a server misconfiguration rather
+  // than a verdict about the packet: provenance_secret_unset. Returning 200 for
+  // it told ElevenLabs the delivery succeeded, so a deployment missing
+  // MISSION_PROVENANCE_SECRET would silently drop every mission the founder
+  // spoke, with no retry and no signal. It is retryable, so it answers 503.
+  const misconfigured =
+    mission.status === 'rejected' && mission.reason === 'provenance_secret_unset';
   const status =
-    mission.status === 'conflict' ? 409 : mission.status === 'bridge_failed' ? 503 : 200;
+    mission.status === 'conflict'
+      ? 409
+      : mission.status === 'bridge_failed' || misconfigured
+        ? 503
+        : 200;
 
   return NextResponse.json(
     {
-      ok: mission.status !== 'conflict' && mission.status !== 'bridge_failed',
+      ok: mission.status !== 'conflict' && mission.status !== 'bridge_failed' && !misconfigured,
       session_id: session.id,
       risk_level: packet.risk_level,
       approval_required: approvalRequired,

@@ -284,6 +284,20 @@ describe('margot-voice ingest: payload bounds and retry semantics', () => {
     expect(body).toHaveProperty('session_id', 'sess-1')
   })
 
+  it('REGRESSION: answers 503 when the provenance key is unset, so the sender retries', async () => {
+    // provenance_secret_unset is a SERVER misconfiguration, not a verdict about
+    // the packet. Returning 200 told ElevenLabs the delivery succeeded, so a
+    // deployment missing MISSION_PROVENANCE_SECRET silently dropped every
+    // mission the founder spoke — transcripts arriving, no missions appearing,
+    // and no retry.
+    mockIngest.mockResolvedValue({ status: 'rejected', reasons: ['provenance_secret_unset'] })
+    const res = await POST(req(validPacket))
+    expect(res.status).toBe(503)
+    const body = (await res.json()) as { ok: boolean; mission: { reason: string } }
+    expect(body.ok).toBe(false)
+    expect(body.mission.reason).toBe('provenance_secret_unset')
+  })
+
   it('answers 200 for a mission refused on its merits, which retrying cannot fix', async () => {
     mockIngest.mockResolvedValue({ status: 'rejected', reasons: ['unsafe_action'] })
     const res = await POST(req(validPacket))

@@ -35,7 +35,7 @@
 // Supabase client is imported, so the whole module is unit-testable with no DB
 // (the house pattern from ./tasks.ts and ./signals/ingest.ts).
 
-import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
+import { createHmac, timingSafeEqual } from 'node:crypto'
 
 import type { AgentEventInput } from './agent-events'
 import {

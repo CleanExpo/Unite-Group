@@ -175,7 +175,17 @@ async function countPriorRequeues(
       )
       return null
     }
-    return ((data as Array<{ id: string }>) ?? []).length
+    // A successful response with a null or non-array body means the count is
+    // UNKNOWN. Returning 0 (what `?? []` did) reads as "no prior requeues" and
+    // lets a repeatedly crashing mission requeue forever, defeating the cap. The
+    // cap is the loop bound, so unknown must be treated as exhausted.
+    if (!Array.isArray(data)) {
+      console.error(
+        `releaseClaimedTask: requeue count returned no usable body — treating the cap as exhausted for task ${taskId}`,
+      )
+      return MAX_REQUEUE_ATTEMPTS
+    }
+    return (data as Array<{ id: string }>).length
   } catch (err) {
     console.error(
       `releaseClaimedTask: requeue count threw (${err instanceof Error ? err.message : 'unknown'}) — proceeding with requeue for task ${taskId}`,

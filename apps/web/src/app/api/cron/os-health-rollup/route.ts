@@ -14,6 +14,7 @@
 //
 // Schedule: every 15 minutes (vercel.json).
 
+import { MISSION_PROVENANCE_SECRET_ENV } from '@/lib/command-centre/voice-mission-bridge'
 import { NextResponse } from 'next/server'
 import { assertCronAuth } from '@/lib/cron-auth'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -260,6 +261,7 @@ async function buildMargotRow(supabase: ServiceClient): Promise<HealthRow> {
       margotAgentId: !!process.env.ELEVENLABS_MARGOT_AGENT_ID?.trim(),
       ingestToken: !!process.env.ELEVENLABS_INGEST_TOKEN?.trim(),
       founderConfigured: true,
+      provenanceKeyConfigured: !!process.env[MISSION_PROVENANCE_SECRET_ENV]?.trim(),
     },
     voice,
     presence,

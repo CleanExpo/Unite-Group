@@ -56,6 +56,7 @@ export type LaneAdmissionCode =
   | 'not_queued'
   | 'risk_unclassified'
   | 'provenance_missing'
+  | 'provenance_legacy'
   | 'side_effecting'
   | 'tier_not_admissible'
   | 'admission_not_safe'
@@ -198,7 +199,25 @@ export function admitMissionToLane(
   if (isVoiceOriginated(task)) {
     const admission = readAdmission(task)
     if (!admission) return { admit: false, code: 'risk_unclassified' }
-    if (!hasProvenance(task)) return { admit: false, code: 'provenance_missing' }
+    if (!hasProvenance(task)) {
+      // A mission bridged BEFORE the keyed-provenance rollout carries an
+      // envelope with no `approvalRequested` field, because only the new bridge
+      // writes one. Its hash was an unkeyed SHA-256 and can never verify against
+      // the HMAC, so it must not run — but reporting it as `provenance_missing`
+      // would file approved work under the same code as a forgery, and the
+      // caller settles that as a terminal failure. A distinct code lets the
+      // refusal say what actually happened: this mission predates the key and
+      // has to be re-spoken or re-ingested, not quietly written off as invalid.
+      //
+      // Verified against production before shipping: zero cc_tasks rows carry
+      // voiceMission metadata (48 tasks, 40 queued, 0 voice), so there is
+      // nothing to migrate today. That is a reason to keep the deploy ordering
+      // safe, not a reason to leave the path destructive.
+      return {
+        admit: false,
+        code: isLegacyEnvelope(task) ? 'provenance_legacy' : 'provenance_missing',
+      }
+    }
     if (admission.sideEffecting) return { admit: false, code: 'side_effecting' }
     if (!ADMISSIBLE_TIERS.has(admission.tier)) return { admit: false, code: 'tier_not_admissible' }
     if (!admission.safe) return { admit: false, code: 'admission_not_safe' }
@@ -207,6 +226,22 @@ export function admitMissionToLane(
   if (context.inFlight >= context.maxConcurrent) return { admit: false, code: 'at_capacity' }
 
   return { admit: true, code: 'admitted' }
+}
+
+/**
+ * Whether this envelope predates keyed provenance. `approvalRequested` is
+ * written only by the post-rollout bridge, so its absence on an otherwise
+ * well-formed voice envelope dates the row rather than condemning it.
+ */
+function isLegacyEnvelope(task: CommandCentreTask): boolean {
+  const envelope = readVoiceEnvelope(task)
+  if (!envelope) return false
+  const provenance = envelope.provenance
+  const hasHash =
+    !!provenance &&
+    typeof provenance === 'object' &&
+    typeof (provenance as Record<string, unknown>).missionHash === 'string'
+  return hasHash && !('approvalRequested' in envelope)
 }
 
 /**

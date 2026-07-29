@@ -203,6 +203,31 @@ describe('the gate stops forgeries without starving the runner', () => {
     }
   })
 
+  it('REGRESSION: names a pre-rollout mission legacy, not missing', () => {
+    // A mission bridged before keyed provenance carries an unkeyed SHA-256 and
+    // no `approvalRequested` (only the new bridge writes one), so it can never
+    // verify. It must not run — but filing approved work under the same code as
+    // a forgery means the claim route settles it as a terminal failure with no
+    // signal about why. A distinct code says it predates the key and has to be
+    // re-ingested.
+    const task = bridged()
+    const envelope = {
+      ...((task.metadata as Record<string, unknown>).voiceMission as Record<string, unknown>),
+    }
+    delete envelope.approvalRequested
+    const legacy = { ...task, metadata: { voiceMission: envelope } } as CommandCentreTask
+    expect(admitMissionToLane(legacy, HEALTHY).code).toBe('provenance_legacy')
+  })
+
+  it('still calls a forged envelope provenance_missing, not legacy', () => {
+    // The legacy code must not become a way to launder a forgery: an envelope
+    // that HAS approvalRequested but a bad hash is a forgery, not an old row.
+    const forged = withEnvelope(bridged(), {
+      provenance: { missionHash: 'a'.repeat(64), packetId: 'pkt-1' },
+    })
+    expect(admitMissionToLane(forged, HEALTHY).code).toBe('provenance_missing')
+  })
+
   it('keeps the hard stop ahead of every one of these paths', () => {
     const ordinary = {
       id: 'task-3', status: 'queued', external_ref: 'packet:wp-2', metadata: {},

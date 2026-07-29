@@ -21,6 +21,17 @@ export interface MargotConfigPresence {
   ingestToken: boolean
   /** FOUNDER_USER_ID present (ingest writes are scoped to it). */
   founderConfigured: boolean
+  /**
+   * MISSION_PROVENANCE_SECRET present — the HMAC key that signs a voice mission
+   * so the lane gate can prove the bridge produced it.
+   *
+   * Surfaced because its absence is silent in the worst way: packets still
+   * authenticate and still persist as transcripts, but every mission is refused
+   * as `provenance_secret_unset` and none is ever created. Without this flag the
+   * founder sees voice sessions arriving and no missions appearing, with nothing
+   * on the health surface explaining why. Boolean only — never the value.
+   */
+  provenanceKeyConfigured: boolean
 }
 
 export type MargotReadSource = 'live' | 'error'
@@ -53,6 +64,13 @@ export interface MargotHealthPayload {
   windowDays: number
   /** True when the signed-url route would succeed (both API key + agent id set). */
   voiceReady: boolean
+  /**
+   * True when a spoken mission can actually become governed work: the ingest
+   * lane is configured AND the provenance key is present. voiceReady only
+   * covers reaching the agent, so it can be green while every mission is
+   * silently refused.
+   */
+  missionBridgeReady: boolean
   config: MargotConfigPresence
   voice: {
     source: MargotReadSource
@@ -75,6 +93,10 @@ export function deriveMargotHealth(input: MargotHealthInput): MargotHealthPayloa
     generatedAt: input.now,
     windowDays: input.windowDays,
     voiceReady: input.config.elevenLabsApiKey && input.config.margotAgentId,
+    missionBridgeReady:
+      input.config.ingestToken &&
+      input.config.founderConfigured &&
+      input.config.provenanceKeyConfigured,
     config: input.config,
     voice: {
       source: input.voice.ok ? 'live' : 'error',
