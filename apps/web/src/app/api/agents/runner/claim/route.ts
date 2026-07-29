@@ -127,6 +127,42 @@ function legacyPacketId(task: { external_ref?: unknown; metadata?: unknown }): s
   return safe || null
 }
 
+/**
+ * Whether a lane with real process-tree containment is available to receive a
+ * mission on this host.
+ *
+ * This was the literal `true` passed into admitMissionToLane, and it made the
+ * gate's `lane_unavailable` refusal unreachable in production. The lane layer's
+ * own answer is the opposite and always has been:
+ * apps/workspace/src/server/lanes/process-tree.ts returns false unconditionally,
+ * because polling a process table is not containment — a child that calls
+ * setsid() leaves the parentage graph the poller walks.
+ *
+ * So the "INERT BY DESIGN" note on mission-lane-binding.ts described
+ * apps/workspace accurately and production not at all: missions were admitted
+ * here and handed to scripts/nexus-runner/runner.mjs, which spawns
+ * `claude --print --permission-mode bypassPermissions` with cwd = the real
+ * checkout. The worktree isolation and tier ceiling in that prompt are TEXT, not
+ * enforcement, because the code that would enforce them lives in an app that is
+ * not on this call path.
+ *
+ * It is the same defect as the `inFlight: 0` literal fixed earlier in this
+ * series — a hardcoded value standing where a control should be — and it was
+ * sitting on the next line.
+ *
+ * Now computed, and fail-closed: containment must be positively asserted by
+ * naming the host that has it. Unset (the production default) means no lane, so
+ * nothing is claimed. Setting this is a deliberate act by someone who has
+ * verified that host really can contain a process tree; a Mac cannot, because
+ * macOS has neither cgroups v2 nor Job Objects.
+ */
+export const MISSION_LANE_CONTAINMENT_ENV = 'MISSION_LANE_CONTAINMENT'
+
+export function laneContainmentHost(): string | null {
+  const host = process.env[MISSION_LANE_CONTAINMENT_ENV]?.trim()
+  return host ? host : null
+}
+
 export async function POST(request: Request) {
   if (!bearerOk(request)) {
     return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
@@ -187,6 +223,15 @@ export async function POST(request: Request) {
     // Postgres function claiming only while `running < N`, which is a prod
     // schema migration and therefore founder-gated. Recorded rather than
     // silently approximated.
+    // Containment is checked BEFORE claiming, for the same reason as the kill
+    // switch and capacity: claiming a mission this host cannot contain and then
+    // putting it back would burn its bounded requeue budget every poll until it
+    // was permanently failed. Nothing is claimed, so the mission stays queued and
+    // waits for a host that can actually run it.
+    if (laneContainmentHost() === null) {
+      return NextResponse.json({ task: null, refused: 'lane_unavailable' }, { status: 200 })
+    }
+
     const inFlight = await countRunning(client as unknown as RunnerClaimClientLike, founderId)
     if (inFlight >= MAX_CONCURRENT_MISSIONS) {
       return NextResponse.json({ task: null, refused: 'at_capacity' }, { status: 200 })
@@ -216,7 +261,9 @@ export async function POST(request: Request) {
         // Already returned above if engaged; passed through so the gate keeps
         // its own ordering guarantee rather than trusting this caller.
         hardStop,
-        laneAvailable: true,
+        // Computed above, never a literal. Reaching this line at all means a
+        // containment host was named.
+        laneAvailable: laneContainmentHost() !== null,
         // claimNextQueuedTask returns the row AFTER flipping it to 'running',
         // so the gate is told which runner won it. Without this the status check
         // refuses every claim and the runner starves.

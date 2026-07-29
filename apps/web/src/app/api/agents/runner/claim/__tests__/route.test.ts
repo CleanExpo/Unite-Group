@@ -38,6 +38,9 @@ describe('POST /api/agents/runner/claim', () => {
     vi.clearAllMocks()
     process.env.AGENT_EVENTS_SECRET = SECRET
     process.env.FOUNDER_USER_ID = 'founder-1'
+    // A containment host must be named or the route claims nothing — see
+    // route-lane-refusal.test.ts for the fail-closed case.
+    process.env.MISSION_LANE_CONTAINMENT = 'test-contained-host'
     // The route counts running missions to enforce maxConcurrent, so the client
     // has to answer that query. An empty result means nothing else is in flight.
     vi.mocked(createServiceClient).mockReturnValue(runningCountClient([]) as never)

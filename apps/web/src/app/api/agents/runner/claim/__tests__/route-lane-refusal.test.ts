@@ -50,6 +50,10 @@ describe('POST /api/agents/runner/claim — lane refusal handling', () => {
     process.env.AGENT_EVENTS_SECRET = SECRET
     process.env.FOUNDER_USER_ID = 'founder-1'
     delete process.env.MISSION_LANE_HARD_STOP
+    // Containment must be positively named or nothing is claimed. Tests that
+    // exercise the claim path name a host explicitly; the refusal case has its
+    // own test below.
+    process.env.MISSION_LANE_CONTAINMENT = 'test-contained-host'
     vi.mocked(createServiceClient).mockReturnValue(runningCountClient([]) as never)
     vi.mocked(releaseClaimedTask).mockResolvedValue({
       task: null,
@@ -130,6 +134,39 @@ describe('POST /api/agents/runner/claim — lane refusal handling', () => {
 
   it('treats an explicit non-1 value as NOT stopped, so a typo cannot wedge the queue', async () => {
     process.env.MISSION_LANE_HARD_STOP = 'true'
+    vi.mocked(claimNextQueuedTask).mockResolvedValue(null)
+    await POST(req())
+    expect(claimNextQueuedTask).toHaveBeenCalledTimes(1)
+  })
+
+  // ── Containment must be positively asserted ───────────────────────────────
+
+  it('REGRESSION: claims NOTHING when no containment host is named', async () => {
+    // `laneAvailable` was the literal `true`, which made the gate's
+    // lane_unavailable refusal unreachable in production while runner.mjs ran
+    // `claude --permission-mode bypassPermissions` in the real checkout. The
+    // worktree isolation in that prompt is text, not enforcement.
+    delete process.env.MISSION_LANE_CONTAINMENT
+    const res = await POST(req())
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.task).toBeNull()
+    expect(body.refused).toBe('lane_unavailable')
+    // Nothing claimed means no requeue budget burned and the mission stays
+    // queued for a host that can actually contain it.
+    expect(claimNextQueuedTask).not.toHaveBeenCalled()
+    expect(releaseClaimedTask).not.toHaveBeenCalled()
+  })
+
+  it('treats a whitespace-only containment host as unset', async () => {
+    process.env.MISSION_LANE_CONTAINMENT = '   '
+    const body = await (await POST(req())).json()
+    expect(body.refused).toBe('lane_unavailable')
+    expect(claimNextQueuedTask).not.toHaveBeenCalled()
+  })
+
+  it('POSITIVE CONTROL: with a containment host named, the same request claims', async () => {
+    process.env.MISSION_LANE_CONTAINMENT = 'win-ts-job-object'
     vi.mocked(claimNextQueuedTask).mockResolvedValue(null)
     await POST(req())
     expect(claimNextQueuedTask).toHaveBeenCalledTimes(1)
