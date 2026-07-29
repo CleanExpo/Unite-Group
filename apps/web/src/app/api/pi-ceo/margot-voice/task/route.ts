@@ -297,6 +297,44 @@ export async function POST(req: NextRequest) {
     // on retry number MAX+1 is not stranded.
     const mission = await bridgeMission(supabase as unknown as SupabaseLike, founderId, body);
     const contract = missionResponseContract(mission);
+
+    // DEAD LETTER. At the cap, a retryable outcome has already been retried the
+    // full budget and is not getting better: an independent review pointed out
+    // that answering 503 here forever bounds storage but not retry VOLUME, and
+    // an outcome that can never resolve is not honestly "try again".
+    //
+    // So the retry stops and the failure is made visible instead. The caller is
+    // told the delivery is settled (it will not redeliver) and the response
+    // carries `dead_letter` with the unresolved mission state, which is the
+    // signal an operator can act on. The mission row itself still exists; what
+    // is missing is its immutable receipt, and that hole is now reported rather
+    // than either hidden behind a 200 or hammered forever behind a 503.
+    // Narrowed deliberately to the UNRESOLVABLE case. `provenance_secret_unset`
+    // and `bridge_failed` are 503s that resolve themselves the moment the
+    // founder sets the key or the database recovers, so those must keep asking
+    // for redelivery even at the cap. Only a mission that exists with an
+    // unwritable receipt is stuck in a way more retries cannot fix.
+    const receiptStuck =
+      (mission.status === 'created' ||
+        mission.status === 'created_incomplete' ||
+        mission.status === 'duplicate') &&
+      mission.receipt !== 'complete'
+    if (receiptStuck) {
+      return NextResponse.json(
+        {
+          ok: false,
+          session_id: ledger.latestId,
+          deliveries_collapsed: true,
+          dead_letter: true,
+          dead_letter_reason: 'receipt_unresolved',
+          risk_level: packet.risk_level,
+          approval_required: approvalRequired,
+          mission,
+        },
+        { status: 200, headers: { 'Cache-Control': 'no-store' } },
+      );
+    }
+
     return NextResponse.json(
       {
         ok: contract.ok,
@@ -456,10 +494,23 @@ function missionResponseContract(mission: MissionBridgeView): { status: number; 
   // separate times in this change series. Only the two known-good outcomes are
   // acknowledged; anything else is treated as a server-side problem the caller
   // should retry.
+  // Positive proof, not label trust. A `created`/`duplicate` is acknowledged
+  // ONLY when its receipt is positively complete — a malformed or future
+  // producer emitting `created` with receipt 'none' would otherwise be handed a
+  // 200 despite having no immutable audit row. The receipt check above catches
+  // 'incomplete'/'unverified'; this requires the affirmative rather than merely
+  // the absence of a known-bad value.
   if (mission.status === 'created' || mission.status === 'duplicate') {
+    return mission.receipt === 'complete'
+      ? { status: 200, ok: true }
+      : { status: 503, ok: false };
+  }
+  // A merit rejection creates no task, so it carries no receipt and is final.
+  // Required to be exactly 'none' so an unexpected receipt value on a rejection
+  // is treated as a server-side problem rather than waved through.
+  if (mission.status === 'rejected' && mission.receipt === 'none') {
     return { status: 200, ok: true };
   }
-  if (mission.status === 'rejected') return { status: 200, ok: true };
   return { status: 503, ok: false };
 }
 

@@ -381,6 +381,48 @@ describe('margot-voice ingest: payload bounds and retry semantics', () => {
     expect((await POST(req(validPacket))).status).toBe(200)
   })
 
+  it('REGRESSION: an unresolvable receipt DEAD-LETTERS at the cap instead of retrying forever', async () => {
+    // 503 forever bounds storage but not retry volume, and an outcome that can
+    // never resolve is not honestly "try again". At the cap the retry stops and
+    // the hole is reported so an operator can act on it.
+    ledgerRows = Array.from({ length: 10 }, (_, i) => ({ id: `sess-${10 - i}` }))
+    mockIngest.mockResolvedValue({
+      status: 'created_incomplete',
+      task: { id: 'task-1', status: 'awaiting_approval' },
+      admission: { tier: 'L1', reason: 'ok' },
+      receipt: 'incomplete',
+    })
+    const res = await POST(req(validPacket))
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { ok: boolean; dead_letter: boolean; dead_letter_reason: string }
+    expect(body.ok).toBe(false)
+    expect(body.dead_letter).toBe(true)
+    expect(body.dead_letter_reason).toBe('receipt_unresolved')
+  })
+
+  it('GUARD: a SELF-RESOLVING failure keeps asking for redelivery even at the cap', async () => {
+    // provenance_secret_unset resolves the moment the founder sets the key, so
+    // it must NOT be dead-lettered — that would drop the mission permanently
+    // over a fixable misconfiguration.
+    ledgerRows = Array.from({ length: 10 }, (_, i) => ({ id: `sess-${10 - i}` }))
+    mockIngest.mockResolvedValue({ status: 'rejected', reasons: ['provenance_secret_unset'] })
+    const res = await POST(req(validPacket))
+    expect(res.status).toBe(503)
+    expect(((await res.json()) as { dead_letter?: boolean }).dead_letter).toBeUndefined()
+  })
+
+  it('REGRESSION: a created mission with NO receipt is not waved through as 200', async () => {
+    // The mapper trusted the status label, so a malformed producer emitting
+    // `created` with receipt 'none' got a 200 despite having no audit row.
+    mockIngest.mockResolvedValue({
+      status: 'created',
+      task: { id: 'task-1', status: 'awaiting_approval' },
+      admission: { tier: 'L1', reason: 'ok' },
+      receipt: 'none',
+    })
+    expect((await POST(req(validPacket))).status).toBe(503)
+  })
+
   it('answers 200 for a mission refused on its merits, which retrying cannot fix', async () => {
     mockIngest.mockResolvedValue({ status: 'rejected', reasons: ['unsafe_action'] })
     const res = await POST(req(validPacket))
