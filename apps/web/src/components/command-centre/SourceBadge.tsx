@@ -112,6 +112,7 @@ const BRISBANE_DATE_TIME = new Intl.DateTimeFormat("en-AU", {
   minute: "2-digit",
   second: "2-digit",
   hourCycle: "h23",
+  timeZoneName: "shortOffset",
 });
 
 function formatBrisbaneTimestamp(iso: string): string | null {
@@ -124,18 +125,20 @@ function formatBrisbaneTimestamp(iso: string): string | null {
       value,
     ]),
   );
+  const zone = values.timeZoneName === "GMT+10" ? "AEST" : null;
   if (
     !values.day ||
     !values.month ||
     !values.year ||
     !values.hour ||
     !values.minute ||
-    !values.second
+    !values.second ||
+    !zone
   ) {
     return null;
   }
 
-  return `${values.day}/${values.month}/${values.year} ${values.hour}:${values.minute}:${values.second} AEST`;
+  return `${values.day}/${values.month}/${values.year} ${values.hour}:${values.minute}:${values.second} ${zone}`;
 }
 
 function LocalisedTime({ iso }: { iso: string }) {
