@@ -14,6 +14,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { claimNextQueuedTask } from '@/lib/command-centre/runner-claim'
 import { appendTaskEvent } from '@/lib/command-centre/tasks'
 import { POST } from '../route'
+import { runningCountClient } from './fixtures'
 
 const SECRET = 'test-secret'
 
@@ -37,7 +38,9 @@ describe('POST /api/agents/runner/claim', () => {
     vi.clearAllMocks()
     process.env.AGENT_EVENTS_SECRET = SECRET
     process.env.FOUNDER_USER_ID = 'founder-1'
-    vi.mocked(createServiceClient).mockReturnValue({} as never)
+    // The route counts running missions to enforce maxConcurrent, so the client
+    // has to answer that query. An empty result means nothing else is in flight.
+    vi.mocked(createServiceClient).mockReturnValue(runningCountClient([]) as never)
   })
   afterEach(() => {
     if (savedSecret === undefined) delete process.env.AGENT_EVENTS_SECRET

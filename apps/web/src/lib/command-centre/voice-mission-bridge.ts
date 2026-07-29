@@ -35,7 +35,7 @@
 // Supabase client is imported, so the whole module is unit-testable with no DB
 // (the house pattern from ./tasks.ts and ./signals/ingest.ts).
 
-import { createHash, timingSafeEqual } from 'node:crypto'
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
 
 import type { AgentEventInput } from './agent-events'
 import {
@@ -323,11 +323,48 @@ export function buildMissionProvenance(mission: NormalisedVoiceMission): {
     businessContext: mission.businessContext,
   })
 
-  return {
-    missionHash: createHash('sha256').update(canonicalPayload).digest('hex'),
-    packetId: mission.packetId,
-    hashedFields,
+  const missionHash = computeMissionHash(canonicalPayload)
+  if (missionHash === null) throw new MissionProvenanceUnavailable()
+
+  return { missionHash, packetId: mission.packetId, hashedFields }
+}
+
+/** The env var holding the provenance key. */
+export const MISSION_PROVENANCE_SECRET_ENV = 'MISSION_PROVENANCE_SECRET'
+
+/**
+ * Thrown when the provenance key is absent. Deliberately fatal rather than
+ * silently degrading to an unkeyed hash: a hash anyone can recompute is not a
+ * control, and the failure has to be visible at ingest instead of showing up
+ * later as missions that mysteriously never run.
+ */
+export class MissionProvenanceUnavailable extends Error {
+  constructor() {
+    super('mission provenance secret unset')
+    this.name = 'MissionProvenanceUnavailable'
   }
+}
+
+/**
+ * Keyed hash over the canonical mission payload, or null when no key is
+ * configured.
+ *
+ * An independent review was right that the previous plain SHA-256 was an
+ * integrity check, not authentication: it proves the envelope still matches the
+ * task's own fields, but anyone who can WRITE the row can also recompute the
+ * digest, so a writer with database access (a leaked service-role key, an
+ * injection) could mint a mission that passes the lane gate. An HMAC keyed on a
+ * server-side secret closes that: forging now requires the key as well as write
+ * access, and the key never leaves the application environment.
+ *
+ * Returns null rather than falling back to an unkeyed digest, so every caller
+ * has to decide explicitly what to do without a key — and every one of them
+ * fails closed.
+ */
+function computeMissionHash(canonicalPayload: string): string | null {
+  const secret = process.env[MISSION_PROVENANCE_SECRET_ENV]?.trim()
+  if (!secret) return null
+  return createHmac('sha256', secret).update(canonicalPayload).digest('hex')
 }
 
 /** Shape of a well-formed persisted mission hash. */
@@ -397,7 +434,14 @@ export function verifyMissionProvenance(task: CommandCentreTask): boolean {
     businessContext: task.project_key,
   })
 
-  const expected = createHash('sha256').update(canonicalPayload).digest('hex')
+  // No key configured means no mission can be proved authentic, so none is
+  // admitted. Falling back to an unkeyed digest here would hand an attacker the
+  // exact bypass the key exists to prevent: strip the key from the environment,
+  // or simply exploit an environment that never set it, and every forged
+  // envelope verifies again.
+  const expected = computeMissionHash(canonicalPayload)
+  if (expected === null) return false
+
   const a = Buffer.from(expected, 'utf8')
   const b = Buffer.from(stored, 'utf8')
   if (a.length !== b.length) return false
@@ -622,7 +666,22 @@ export async function ingestVoiceMission(
   if (!parsed.ok) return { status: 'rejected', reasons: parsed.reasons }
 
   const admission = classifyVoiceMission(parsed.mission)
-  const provenance = buildMissionProvenance(parsed.mission)
+
+  // Refuse BEFORE creating the task. Without the provenance key no mission can
+  // be signed, so one created here could never pass the lane gate — it would sit
+  // in the queue being claimed and refused until its requeue budget ran out.
+  // Rejecting up front tells the caller the truth immediately instead of
+  // manufacturing work that is guaranteed to fail later.
+  let provenance: ReturnType<typeof buildMissionProvenance>
+  try {
+    provenance = buildMissionProvenance(parsed.mission)
+  } catch (err) {
+    if (err instanceof MissionProvenanceUnavailable) {
+      return { status: 'rejected', reasons: ['provenance_secret_unset'] }
+    }
+    throw err
+  }
+
   const { task, created } = await createTaskOnce(
     voiceMissionToCreateTaskInput(parsed.mission, admission, founderId),
     client,

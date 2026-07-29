@@ -19,6 +19,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { claimNextQueuedTask, releaseClaimedTask } from '@/lib/command-centre/runner-claim'
 import { appendTaskEvent } from '@/lib/command-centre/tasks'
 import { POST } from '../route'
+import { runningCountClient, countErrorClient } from './fixtures'
 
 const SECRET = 'test-secret'
 const RUNNER = 'mac-mini-runner'
@@ -49,7 +50,7 @@ describe('POST /api/agents/runner/claim — lane refusal handling', () => {
     process.env.AGENT_EVENTS_SECRET = SECRET
     process.env.FOUNDER_USER_ID = 'founder-1'
     delete process.env.MISSION_LANE_HARD_STOP
-    vi.mocked(createServiceClient).mockReturnValue({} as never)
+    vi.mocked(createServiceClient).mockReturnValue(runningCountClient([]) as never)
     vi.mocked(releaseClaimedTask).mockResolvedValue({
       task: null,
       effectiveOutcome: 'failed',
@@ -132,6 +133,64 @@ describe('POST /api/agents/runner/claim — lane refusal handling', () => {
     vi.mocked(claimNextQueuedTask).mockResolvedValue(null)
     await POST(req())
     expect(claimNextQueuedTask).toHaveBeenCalledTimes(1)
+  })
+
+  // ── The concurrency limit must actually be able to refuse ─────────────────
+
+  it('refuses at capacity when another mission is already running', async () => {
+    // inFlight was hardcoded to 0, so `0 < maxConcurrent` held on every request
+    // and this limit could never fire — it read as a concurrency control while
+    // enforcing nothing. Here another mission is running, so the claim is
+    // refused.
+    vi.mocked(createServiceClient).mockReturnValue(
+      runningCountClient([{ id: 'other-task' }]) as never,
+    )
+    vi.mocked(claimNextQueuedTask).mockResolvedValue({
+      id: 'task-9', status: 'running', claimed_by: RUNNER,
+      external_ref: 'packet:wp-1', objective: 'Ship the thing', metadata: {},
+    } as never)
+    vi.mocked(releaseClaimedTask).mockResolvedValue({
+      task: null, effectiveOutcome: 'requeue',
+    } as never)
+
+    const res = await POST(req())
+    const body = await res.json()
+    expect(body.task).toBeNull()
+    expect(body.refused).toBe('at_capacity')
+    // Capacity is about the host, not the mission, so the work goes back to the
+    // queue rather than being destroyed.
+    expect(releaseClaimedTask).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ outcome: 'requeue' }),
+    )
+  })
+
+  it('does NOT count the row it just claimed against the limit', async () => {
+    // The claimed row is already 'running', so counting it would mean the very
+    // first mission refuses itself and nothing ever runs.
+    vi.mocked(createServiceClient).mockReturnValue(
+      runningCountClient([{ id: 'task-9' }]) as never,
+    )
+    vi.mocked(claimNextQueuedTask).mockResolvedValue({
+      id: 'task-9', status: 'running', claimed_by: RUNNER,
+      external_ref: 'packet:wp-1', objective: 'Ship the thing', metadata: {},
+    } as never)
+    const body = await (await POST(req())).json()
+    expect(body.task?.id).toBe('task-9')
+  })
+
+  it('fails CLOSED when the running count cannot be read', async () => {
+    // An unreadable database must not silently disable the limit.
+    vi.mocked(createServiceClient).mockReturnValue(countErrorClient() as never)
+    vi.mocked(claimNextQueuedTask).mockResolvedValue({
+      id: 'task-9', status: 'running', claimed_by: RUNNER,
+      external_ref: 'packet:wp-1', objective: 'Ship the thing', metadata: {},
+    } as never)
+    vi.mocked(releaseClaimedTask).mockResolvedValue({
+      task: null, effectiveOutcome: 'requeue',
+    } as never)
+    const body = await (await POST(req())).json()
+    expect(body.refused).toBe('at_capacity')
   })
 
   it('still admits a legitimate non-voice mission end to end', async () => {

@@ -48,7 +48,10 @@ const LIMITS = {
   /** Serialised size ceiling for the two JSONB columns. */
   actionsBytes: 20_000,
   evidenceRefCount: 50,
+  evidenceRefKey: 200,
   evidenceRefValue: 2_000,
+  /** Serialised ceiling for the evidence_refs column as a whole. */
+  evidenceRefsBytes: 20_000,
 } as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -100,7 +103,15 @@ function firstOversizedField(value: Record<string, unknown>): string | null {
   if (isRecord(value.evidence_refs)) {
     const refs = asStringRecord(value.evidence_refs);
     if (Object.keys(refs).length > LIMITS.evidenceRefCount) return 'evidence_refs';
+    // Keys as well as values. Bounding the count and the values while leaving
+    // the KEYS unbounded still admits `{ ["k".repeat(100000)]: "v" }` — one
+    // entry, a one-character value, and a 100 KB JSONB column. An independent
+    // review found exactly this.
+    if (Object.keys(refs).some((k) => k.length > LIMITS.evidenceRefKey)) return 'evidence_refs';
     if (Object.values(refs).some((v) => v.length > LIMITS.evidenceRefValue)) return 'evidence_refs';
+    // Belt and braces on the column as a whole, so no future combination of
+    // individually-legal parts adds up to an illegal total.
+    if (JSON.stringify(refs).length > LIMITS.evidenceRefsBytes) return 'evidence_refs';
   }
 
   return null;
@@ -160,6 +171,44 @@ function validatePacket(value: unknown): PacketResult {
   return { ok: true, packet };
 }
 
+/**
+ * How many deliveries of one packet id are recorded in full before further
+ * redeliveries collapse onto the most recent row. Comfortably above the two a
+ * normal webhook replay produces, and far below anything that could grow the
+ * table without bound.
+ */
+const DELIVERY_LEDGER_CAP = 10;
+
+/**
+ * Existing recorded deliveries for this packet. A read failure is treated as
+ * "not at cap": the ledger bound is a storage-growth guard, not a security
+ * control, and letting a transient read error silently swallow the delivery
+ * record would be the worse failure.
+ */
+async function readDeliveryLedger(
+  supabase: ReturnType<typeof createServiceClient>,
+  founderId: string,
+  packetId: string,
+): Promise<{ atCap: boolean; latestId: string | null }> {
+  try {
+    const { data, error } = await supabase
+      .from('margot_voice_sessions')
+      .select('id')
+      .eq('founder_id', founderId)
+      .eq('packet_id', packetId)
+      .order('created_at', { ascending: false })
+      .limit(DELIVERY_LEDGER_CAP);
+    if (error) return { atCap: false, latestId: null };
+    const rows = (data as Array<{ id: string }> | null) ?? [];
+    return {
+      atCap: rows.length >= DELIVERY_LEDGER_CAP,
+      latestId: rows[0]?.id ?? null,
+    };
+  } catch {
+    return { atCap: false, latestId: null };
+  }
+}
+
 function timingSafeTokenMatch(received: string | null, expected: string | undefined): boolean {
   if (!received || !expected) return false;
   try {
@@ -213,6 +262,35 @@ export async function POST(req: NextRequest) {
   // UNIQUE(founder_id, external_ref) on cc_tasks maps a redelivered packet onto
   // the mission it already created. That is what makes the 503 below safe to
   // retry without minting a second mission.
+  //
+  // But an unbounded ledger plus a retryable 503 is a growth loop: an
+  // independent review pointed out that a bridge failing persistently for one
+  // packet means every redelivery writes another full transcript row forever,
+  // deduplicated at the mission layer but not here. So the ledger is capped per
+  // packet. Below the cap every delivery is recorded, which keeps the audit
+  // property that matters; at the cap the delivery is collapsed onto the most
+  // recent existing row instead of adding another copy of the same transcript.
+  const ledger = await readDeliveryLedger(supabase, founderId, packet.packet_id);
+  if (ledger.atCap) {
+    // Answer honestly rather than pretending a fresh delivery was recorded. The
+    // mission bridge still runs below, so a packet whose bridge finally succeeds
+    // on retry number MAX+1 is not stranded.
+    const mission = await bridgeMission(supabase as unknown as SupabaseLike, founderId, body);
+    const status =
+      mission.status === 'conflict' ? 409 : mission.status === 'bridge_failed' ? 503 : 200;
+    return NextResponse.json(
+      {
+        ok: mission.status !== 'conflict' && mission.status !== 'bridge_failed',
+        session_id: ledger.latestId,
+        deliveries_collapsed: true,
+        risk_level: packet.risk_level,
+        approval_required: approvalRequired,
+        mission,
+      },
+      { status, headers: { 'Cache-Control': 'no-store' } },
+    );
+  }
+
   const { data: session, error: sessionError } = await supabase
     .from('margot_voice_sessions')
     .insert({

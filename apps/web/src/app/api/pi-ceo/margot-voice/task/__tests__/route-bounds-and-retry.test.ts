@@ -16,7 +16,19 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 const mockSingle = vi.fn()
 const mockInsert = vi.fn(() => ({ select: () => ({ single: mockSingle }) }))
-const mockFrom = vi.fn(() => ({ insert: mockInsert }))
+
+// Existing delivery rows for the packet, used by the ledger cap. Empty by
+// default: a first delivery.
+let ledgerRows: Array<{ id: string }> = []
+const mockSelect = vi.fn(() => {
+  const chain = {
+    eq: () => chain,
+    order: () => chain,
+    limit: () => Promise.resolve({ data: ledgerRows, error: null }),
+  }
+  return chain
+})
+const mockFrom = vi.fn(() => ({ insert: mockInsert, select: mockSelect }))
 
 vi.mock('@/lib/supabase/service', () => ({
   createServiceClient: vi.fn(() => ({ from: mockFrom })),
@@ -68,10 +80,45 @@ describe('margot-voice ingest: payload bounds and retry semantics', () => {
     process.env.FOUNDER_USER_ID = FOUNDER
     mockSingle.mockResolvedValue({ data: { id: 'sess-1' }, error: null })
     mockIngest.mockResolvedValue(created())
+    ledgerRows = []
   })
 
   afterEach(() => {
     process.env = { ...ORIGINAL_ENV }
+  })
+
+  // ── The retryable 503 must not become a storage growth loop ───────────────
+
+  it('collapses further deliveries once the per-packet ledger cap is reached', async () => {
+    // An independent review found that a persistently failing bridge plus a
+    // retryable 503 writes another full transcript row on every redelivery,
+    // forever — deduplicated at the mission layer but not here.
+    ledgerRows = Array.from({ length: 10 }, (_, i) => ({ id: `sess-${10 - i}` }))
+    mockIngest.mockRejectedValue(new Error('still down'))
+
+    const res = await POST(req(validPacket))
+    expect(res.status).toBe(503)
+    const body = (await res.json()) as { session_id: string; deliveries_collapsed: boolean }
+    // No further row written...
+    expect(mockInsert).not.toHaveBeenCalled()
+    // ...and the caller is told plainly rather than shown a fabricated new id.
+    expect(body.deliveries_collapsed).toBe(true)
+    expect(body.session_id).toBe('sess-10')
+  })
+
+  it('POSITIVE CONTROL: below the cap every delivery is still recorded in full', async () => {
+    ledgerRows = Array.from({ length: 9 }, (_, i) => ({ id: `sess-${9 - i}` }))
+    const res = await POST(req(validPacket))
+    expect(res.status).toBe(200)
+    expect(mockInsert).toHaveBeenCalledTimes(1)
+  })
+
+  it('still bridges the mission when a delivery is collapsed, so a late success lands', async () => {
+    ledgerRows = Array.from({ length: 10 }, (_, i) => ({ id: `sess-${10 - i}` }))
+    const res = await POST(req(validPacket))
+    expect(res.status).toBe(200)
+    expect(mockIngest).toHaveBeenCalledTimes(1)
+    expect(((await res.json()) as { mission: { status: string } }).mission.status).toBe('created')
   })
 
   // ── P1 #3: nothing unbounded is ever persisted ────────────────────────────
@@ -139,6 +186,20 @@ describe('margot-voice ingest: payload bounds and retry semantics', () => {
     const byValue = await POST(req({ ...validPacket, evidence_refs: { k: 'v'.repeat(2_001) } }))
     expect(byValue.status).toBe(413)
     expect(((await byValue.json()) as { field: string }).field).toBe('evidence_refs')
+  })
+
+  it('bounds evidence_refs KEYS, not just values and count', async () => {
+    // An independent review found this: bounding the entry count and the values
+    // while leaving keys unbounded still admits one entry with a 100 KB key.
+    const res = await POST(req({ ...validPacket, evidence_refs: { ['k'.repeat(201)]: 'v' } }))
+    expect(res.status).toBe(413)
+    expect(((await res.json()) as { field: string }).field).toBe('evidence_refs')
+    expect(mockFrom).not.toHaveBeenCalled()
+  })
+
+  it('accepts a legal evidence_refs key, so the bound is not a blanket refusal', async () => {
+    const res = await POST(req({ ...validPacket, evidence_refs: { ['k'.repeat(200)]: 'v' } }))
+    expect(res.status).toBe(200)
   })
 
   it('reports a malformed packet as malformed, not as oversized', async () => {

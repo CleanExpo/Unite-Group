@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { admitMissionToLane } from '@/lib/command-centre/mission-lane-binding'
 import {
   classifyVoiceMission,
+  buildMissionProvenance,
   parseVoiceMissionPacket,
   verifyMissionProvenance,
   voiceMissionToCreateTaskInput,
@@ -157,6 +158,49 @@ describe('the gate stops forgeries without starving the runner', () => {
   it('refuses a running row when the caller names no claimant at all', () => {
     const claimed = { ...bridged('running'), claimed_by: 'mac-mini-runner' } as CommandCentreTask
     expect(admitMissionToLane(claimed, HEALTHY).code).toBe('not_queued')
+  })
+
+  it('cannot be forged by a writer who lacks the provenance key', () => {
+    // The independent review was right that a plain SHA-256 is integrity, not
+    // authentication: anyone able to WRITE the row could recompute the digest.
+    // The hash is now an HMAC, so a forger with database access but no key
+    // cannot produce a passing envelope. Simulated by computing a hash under a
+    // DIFFERENT key — exactly what an attacker guessing the scheme would get.
+    const task = bridged()
+    const envelope = (task.metadata as Record<string, unknown>).voiceMission as Record<string, unknown>
+    const previous = process.env.MISSION_PROVENANCE_SECRET
+    process.env.MISSION_PROVENANCE_SECRET = 'attacker-guessed-key'
+    const forgedHash = (() => {
+      const p = parseVoiceMissionPacket({
+        packet_id: 'pkt-1', transcript_text: 'summarise the tuesday call',
+        summary: 'Summarise the Tuesday call', risk_level: 'low',
+        actions: [{ kind: 'research' }],
+      })
+      if (!p.ok) throw new Error('fixture must parse')
+      return buildMissionProvenance(p.mission).missionHash
+    })()
+    process.env.MISSION_PROVENANCE_SECRET = previous
+
+    const forged = {
+      ...task,
+      metadata: { voiceMission: { ...envelope, provenance: { missionHash: forgedHash, packetId: 'pkt-1' } } },
+    } as CommandCentreTask
+    expect(verifyMissionProvenance(forged)).toBe(false)
+    expect(admitMissionToLane(forged, HEALTHY).code).toBe('provenance_missing')
+  })
+
+  it('fails CLOSED when no provenance key is configured', () => {
+    const task = bridged()
+    const previous = process.env.MISSION_PROVENANCE_SECRET
+    delete process.env.MISSION_PROVENANCE_SECRET
+    try {
+      // Falling back to an unkeyed digest here would hand back the exact bypass
+      // the key exists to prevent.
+      expect(verifyMissionProvenance(task)).toBe(false)
+      expect(admitMissionToLane(task, HEALTHY).code).toBe('provenance_missing')
+    } finally {
+      process.env.MISSION_PROVENANCE_SECRET = previous
+    }
   })
 
   it('keeps the hard stop ahead of every one of these paths', () => {
