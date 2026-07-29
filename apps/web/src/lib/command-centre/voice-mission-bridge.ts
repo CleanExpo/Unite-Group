@@ -732,7 +732,10 @@ export async function ingestVoiceMission(
   // Exactly-once receipt: the event id is derived from (task id, 'created'), so
   // a concurrent racer collides on cc_task_events' PRIMARY KEY and treats that
   // as success. One row, both racers truthful, no migration required.
-  const writeReceiptFor = async (taskId: string): Promise<MissionReceiptState> => {
+  const writeReceiptFor = async (
+    taskId: string,
+    extraPayload?: Record<string, unknown>,
+  ): Promise<MissionReceiptState> => {
     try {
       await appendTaskEventOnce(
         {
@@ -741,7 +744,7 @@ export async function ingestVoiceMission(
           type: 'created',
           eventKey: VOICE_MISSION_RECEIPT_KEY,
           actor: VOICE_MISSION_AGENT_NAME,
-          payload: receiptPayload,
+          payload: extraPayload ? { ...receiptPayload, ...extraPayload } : receiptPayload,
         },
         client,
       )
@@ -752,11 +755,23 @@ export async function ingestVoiceMission(
   }
   const writeReceipt = (): Promise<MissionReceiptState> => writeReceiptFor(task.id)
 
+  // ONE decider for "a task was just created": its status depends on whether the
+  // immutable receipt landed. There are now TWO creation paths (the ordinary one
+  // here and the legacy-recovery replacement below) and the first version of the
+  // recovery path hardcoded `created`, so a recovery whose receipt insert failed
+  // was reported as a clean success and never retried. That is the third time in
+  // this change series that a second copy of a decision drifted from the first,
+  // so the decision is a function and both paths call it.
+  const createdStatus = (
+    createdTask: CommandCentreTask,
+    receipt: MissionReceiptState,
+  ): IngestVoiceMissionResult =>
+    receipt === 'complete'
+      ? { status: 'created', task: createdTask, admission, receipt }
+      : { status: 'created_incomplete', task: createdTask, admission, receipt }
+
   if (created) {
-    const receipt = await writeReceipt()
-    return receipt === 'complete'
-      ? { status: 'created', task, admission, receipt }
-      : { status: 'created_incomplete', task, admission, receipt }
+    return createdStatus(task, await writeReceipt())
   }
 
   // A pre-rollout mission that was refused and terminally failed can be
@@ -779,6 +794,16 @@ export async function ingestVoiceMission(
   // mission — so it passes back through the founder's approval actor rather than
   // inheriting the old task's approval.
   if (isRecoverableLegacyTask(task)) {
+    // Lineage, so an operator does not see two unrelated rows. The replacement's
+    // receipt records ITS ref (not the original's) and names the failed task it
+    // replaces; the packet contents are whatever this delivery carried, which is
+    // recorded honestly rather than assumed identical to the original.
+    const recoveryReceipt = {
+      externalRef: voiceMissionRekeyedExternalRef(parsed.mission.packetId),
+      recoveredFromTaskId: task.id,
+      recoveredFromExternalRef: voiceMissionExternalRef(parsed.mission.packetId),
+      recovery: 'legacy_provenance_rekey' as const,
+    }
     const { task: replacement, created: replacementCreated } = await createTaskOnce(
       {
         ...voiceMissionToCreateTaskInput(parsed.mission, admission, founderId),
@@ -787,16 +812,18 @@ export async function ingestVoiceMission(
       client,
     )
     if (replacementCreated) {
-      return {
-        status: 'created',
-        task: replacement,
-        admission,
-        receipt: await writeReceiptFor(replacement.id),
-      }
+      // Same rule as the ordinary path: an unwritten receipt is reported as
+      // created_incomplete so the caller retries and can close the audit hole.
+      return createdStatus(replacement, await writeReceiptFor(replacement.id, recoveryReceipt))
     }
     // The replacement already exists (a second recovery attempt). Report it as a
     // duplicate rather than a conflict: the recovery already happened.
-    return { status: 'duplicate', task: replacement, admission, receipt: await writeReceiptFor(replacement.id) }
+    return {
+      status: 'duplicate',
+      task: replacement,
+      admission,
+      receipt: await writeReceiptFor(replacement.id, recoveryReceipt),
+    }
   }
 
   // The packet id already owns a mission. Before treating this as a replay,

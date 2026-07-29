@@ -195,6 +195,52 @@ describe('pre-rollout voice missions are actually recoverable', () => {
     expect(tables.cc_tasks).toHaveLength(2)
   })
 
+  it('REGRESSION: a recovery whose receipt fails reports created_incomplete, not created', async () => {
+    // The recovery branch hardcoded `status: 'created'`, so a replacement whose
+    // immutable cc_task_events insert failed was acknowledged as a clean success
+    // and never retried — the audit hole became permanent. Both creation paths
+    // now share one decider.
+    const { client, tables } = makeDb([legacyRow('failed')])
+    const realFrom = (client as unknown as { from: (t: string) => unknown }).from.bind(client)
+    ;(client as unknown as { from: (t: string) => unknown }).from = (table: string) => {
+      if (table !== 'cc_task_events') return realFrom(table)
+      return {
+        insert: () => ({
+          select: () => ({
+            single: () => Promise.resolve({ data: null, error: { code: '500', message: 'events down' } }),
+          }),
+        }),
+        select: () => {
+          const chain = {
+            eq: () => chain,
+            order: () => chain,
+            limit: () => Promise.resolve({ data: [], error: null }),
+            single: () => Promise.resolve({ data: null, error: { code: 'PGRST116', message: 'no rows' } }),
+          }
+          return chain
+        },
+      }
+    }
+
+    const result = await ingestVoiceMission(FOUNDER, packet(), client)
+    expect(result.status).toBe('created_incomplete')
+    expect(result.receipt).toBe('incomplete')
+    // The replacement task still exists — only its receipt is missing.
+    expect(tables.cc_tasks).toHaveLength(2)
+  })
+
+  it('REGRESSION: the replacement receipt records its own ref and its lineage', async () => {
+    // Without this an operator sees two rows with nothing linking them, and the
+    // receipt claimed the ORIGINAL external_ref.
+    const { client, tables } = makeDb([legacyRow('failed')])
+    await ingestVoiceMission(FOUNDER, packet(), client)
+    const receipt = tables.cc_task_events.find((e) => e.type === 'created')
+    const payload = receipt?.payload as Record<string, unknown>
+    expect(payload.externalRef).toBe(voiceMissionRekeyedExternalRef(PACKET))
+    expect(payload.recoveredFromTaskId).toBe('task-legacy')
+    expect(payload.recovery).toBe('legacy_provenance_rekey')
+  })
+
   it('refuses to fork a legacy mission that is still LIVE', async () => {
     // The status check is what stops recovery becoming a way to duplicate an
     // active mission under a second ref.

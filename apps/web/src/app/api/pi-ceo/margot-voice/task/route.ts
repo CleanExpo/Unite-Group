@@ -435,7 +435,17 @@ function missionResponseContract(mission: MissionBridgeView): { status: number; 
   // receipt that can never be written degrades to a collapsed delivery rather
   // than an unbounded loop.
   if (mission.status === 'created_incomplete') return { status: 503, ok: false };
-  return { status: 200, ok: true };
+  // Success is an ALLOWLIST, not a default. Falling through to 200 meant any
+  // status added later - or any unexpected runtime value - was reported to the
+  // caller as an accepted mission, which is the same fail-open shape found four
+  // separate times in this change series. Only the two known-good outcomes are
+  // acknowledged; anything else is treated as a server-side problem the caller
+  // should retry.
+  if (mission.status === 'created' || mission.status === 'duplicate') {
+    return { status: 200, ok: true };
+  }
+  if (mission.status === 'rejected') return { status: 200, ok: true };
+  return { status: 503, ok: false };
 }
 
 async function bridgeMission(

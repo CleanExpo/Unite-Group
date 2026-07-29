@@ -284,9 +284,16 @@ async function buildMargotRow(supabase: ServiceClient): Promise<HealthRow> {
   // all. A health surface that reads green for a bridge which cannot accept a
   // single mission is precisely the fabricated-green this rollup exists to
   // avoid, and the flag was computed and then dropped on the floor.
+  // Both halves of the path, not one. missionBridgeReady covers packet ->
+  // mission (ingest token, founder, provenance key); voiceReady covers whether
+  // the founder can reach the agent to speak at all (API key + agent id).
+  // Checking only the first meant a missing ElevenLabs key plus one historical
+  // session still read GREEN, with no way for the founder to record a mission
+  // and nothing on the surface saying so.
   const bridgeReady = payload.missionBridgeReady
+  const voiceReady = payload.voiceReady
   const status: HealthStatus =
-    readFailed || !hasRecentSession || !bridgeReady ? 'AMBER' : 'GREEN'
+    readFailed || !hasRecentSession || !bridgeReady || !voiceReady ? 'AMBER' : 'GREEN'
 
   return {
     id: 'margot',
@@ -296,11 +303,13 @@ async function buildMargotRow(supabase: ServiceClient): Promise<HealthRow> {
     detail: {
       reason: readFailed
         ? 'read_failed'
-        : !bridgeReady
-          ? 'mission_bridge_not_ready'
-          : hasRecentSession
-            ? undefined
-            : 'no_recent_session',
+        : !voiceReady
+          ? 'voice_ingress_not_ready'
+          : !bridgeReady
+            ? 'mission_bridge_not_ready'
+            : hasRecentSession
+              ? undefined
+              : 'no_recent_session',
       voiceReady: payload.voiceReady,
       missionBridgeReady: bridgeReady,
       latestSessionAt: payload.voice.latestSessionAt,
