@@ -24,7 +24,7 @@ import { runningCountClient, countErrorClient, nullBodyCountClient } from './fix
 const SECRET = 'test-secret'
 const RUNNER = 'mac-mini-runner'
 
-function req(body: unknown = { runnerId: RUNNER }) {
+function req(body: unknown = { runnerId: RUNNER, platform: 'win32', containment: 'job-object' }) {
   return new Request('https://app.test/api/agents/runner/claim', {
     method: 'POST',
     headers: { authorization: `Bearer ${SECRET}`, 'content-type': 'application/json' },
@@ -53,7 +53,7 @@ describe('POST /api/agents/runner/claim — lane refusal handling', () => {
     // Containment must be positively named or nothing is claimed. Tests that
     // exercise the claim path name a host explicitly; the refusal case has its
     // own test below.
-    process.env.MISSION_LANE_CONTAINMENT = 'test-contained-host'
+    process.env.MISSION_LANE_CONTAINMENT = 'job-object'
     vi.mocked(createServiceClient).mockReturnValue(runningCountClient([]) as never)
     vi.mocked(releaseClaimedTask).mockResolvedValue({
       task: null,
@@ -141,7 +141,63 @@ describe('POST /api/agents/runner/claim — lane refusal handling', () => {
 
   // ── Containment must be positively asserted ───────────────────────────────
 
-  it('REGRESSION: claims NOTHING when no containment host is named', async () => {
+  it('REGRESSION: an arbitrary containment label is NOT proof', async () => {
+    // The first fix read a free-text env var and accepted any non-empty value,
+    // so `%%%` — or a Mac naming itself — became laneAvailable: true and opened
+    // the path to a bypassPermissions runner in the real checkout. An
+    // environment variable is not host capability attestation.
+    for (const armed of ['%%%', 'darwin', 'my-macbook', 'true', 'seatbelt']) {
+      process.env.MISSION_LANE_CONTAINMENT = armed
+      vi.mocked(claimNextQueuedTask).mockClear()
+      const body = await (await POST(req())).json()
+      expect(body.refused).toBe('lane_unavailable')
+      expect(claimNextQueuedTask).not.toHaveBeenCalled()
+    }
+  })
+
+  it('REGRESSION: a macOS runner cannot attest containment under any combination', async () => {
+    // macOS has neither cgroups v2 nor Job Objects. No pairing may pass.
+    for (const [armed, mech] of [['job-object', 'job-object'], ['cgroup2', 'cgroup2']]) {
+      process.env.MISSION_LANE_CONTAINMENT = armed
+      vi.mocked(claimNextQueuedTask).mockClear()
+      const body = await (
+        await POST(req({ runnerId: RUNNER, platform: 'darwin', containment: mech }))
+      ).json()
+      expect(body.refused).toBe('lane_unavailable')
+      expect(claimNextQueuedTask).not.toHaveBeenCalled()
+    }
+  })
+
+  it('REGRESSION: the runner cannot claim a mechanism its platform does not provide', async () => {
+    // cgroup2 is Linux-only; job-object is Windows-only. A mismatched pair is a
+    // lie the server-side table catches.
+    process.env.MISSION_LANE_CONTAINMENT = 'cgroup2'
+    const body = await (
+      await POST(req({ runnerId: RUNNER, platform: 'win32', containment: 'cgroup2' }))
+    ).json()
+    expect(body.refused).toBe('lane_unavailable')
+    expect(claimNextQueuedTask).not.toHaveBeenCalled()
+  })
+
+  it('REGRESSION: an un-upgraded runner sending no attestation fails closed', async () => {
+    const body = await (await POST(req({ runnerId: RUNNER }))).json()
+    expect(body.refused).toBe('lane_unavailable')
+    expect(claimNextQueuedTask).not.toHaveBeenCalled()
+  })
+
+  it('records WHICH kernel ran the mission on the started event', async () => {
+    vi.mocked(claimNextQueuedTask).mockResolvedValue({
+      id: 'task-9', status: 'running', claimed_by: RUNNER,
+      external_ref: 'packet:wp-1', objective: 'Ship the thing', metadata: {},
+    } as never)
+    await POST(req())
+    const [event] = vi.mocked(appendTaskEvent).mock.calls[0]
+    const payload = (event as { payload: Record<string, unknown> }).payload
+    expect(payload.platform).toBe('win32')
+    expect(payload.containment).toBe('job-object')
+  })
+
+  it('REGRESSION: claims NOTHING when no containment mechanism is armed', async () => {
     // `laneAvailable` was the literal `true`, which made the gate's
     // lane_unavailable refusal unreachable in production while runner.mjs ran
     // `claude --permission-mode bypassPermissions` in the real checkout. The
@@ -165,10 +221,19 @@ describe('POST /api/agents/runner/claim — lane refusal handling', () => {
     expect(claimNextQueuedTask).not.toHaveBeenCalled()
   })
 
-  it('POSITIVE CONTROL: with a containment host named, the same request claims', async () => {
-    process.env.MISSION_LANE_CONTAINMENT = 'win-ts-job-object'
+  it('POSITIVE CONTROL: a coherent attestation DOES claim', async () => {
+    // Without this, every refusal test above would also pass against a route
+    // that refuses unconditionally.
+    process.env.MISSION_LANE_CONTAINMENT = 'job-object'
     vi.mocked(claimNextQueuedTask).mockResolvedValue(null)
-    await POST(req())
+    await POST(req({ runnerId: RUNNER, platform: 'win32', containment: 'job-object' }))
+    expect(claimNextQueuedTask).toHaveBeenCalledTimes(1)
+  })
+
+  it('POSITIVE CONTROL: the Linux pairing also claims', async () => {
+    process.env.MISSION_LANE_CONTAINMENT = 'cgroup2'
+    vi.mocked(claimNextQueuedTask).mockResolvedValue(null)
+    await POST(req({ runnerId: RUNNER, platform: 'linux', containment: 'cgroup2' }))
     expect(claimNextQueuedTask).toHaveBeenCalledTimes(1)
   })
 

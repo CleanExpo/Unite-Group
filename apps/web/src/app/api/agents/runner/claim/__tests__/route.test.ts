@@ -28,7 +28,8 @@ function req(body: unknown, auth?: string) {
   })
 }
 
-const validBody = { runnerId: 'mac-mini-runner' }
+// A coherent attestation: armed mechanism 'job-object' requires platform win32.
+const validBody = { runnerId: 'mac-mini-runner', platform: 'win32', containment: 'job-object' }
 
 const savedSecret = process.env.AGENT_EVENTS_SECRET
 const savedFounder = process.env.FOUNDER_USER_ID
@@ -40,7 +41,7 @@ describe('POST /api/agents/runner/claim', () => {
     process.env.FOUNDER_USER_ID = 'founder-1'
     // A containment host must be named or the route claims nothing — see
     // route-lane-refusal.test.ts for the fail-closed case.
-    process.env.MISSION_LANE_CONTAINMENT = 'test-contained-host'
+    process.env.MISSION_LANE_CONTAINMENT = 'job-object'
     // The route counts running missions to enforce maxConcurrent, so the client
     // has to answer that query. An empty result means nothing else is in flight.
     vi.mocked(createServiceClient).mockReturnValue(runningCountClient([]) as never)

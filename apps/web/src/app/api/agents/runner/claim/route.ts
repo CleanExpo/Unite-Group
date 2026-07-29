@@ -29,6 +29,11 @@ export const dynamic = 'force-dynamic'
 
 const bodySchema = z.object({
   runnerId: z.string().trim().min(1).max(128),
+  // Declared by the runner and checked against the server-side platform table.
+  // Optional so an un-upgraded runner fails CLOSED (undefined satisfies nothing)
+  // rather than erroring at parse time and looking like a different fault.
+  platform: z.string().trim().max(32).optional(),
+  containment: z.string().trim().max(32).optional(),
 })
 
 function timingSafeBearerMatch(request: Request, expectedSecret: string | undefined): boolean {
@@ -128,39 +133,72 @@ function legacyPacketId(task: { external_ref?: unknown; metadata?: unknown }): s
 }
 
 /**
- * Whether a lane with real process-tree containment is available to receive a
- * mission on this host.
+ * Process-containment mechanisms that actually exist as KERNEL primitives.
  *
- * This was the literal `true` passed into admitMissionToLane, and it made the
- * gate's `lane_unavailable` refusal unreachable in production. The lane layer's
- * own answer is the opposite and always has been:
- * apps/workspace/src/server/lanes/process-tree.ts returns false unconditionally,
- * because polling a process table is not containment — a child that calls
- * setsid() leaves the parentage graph the poller walks.
+ * A closed set, and each entry is bound to the only platform whose kernel
+ * provides it:
+ *  - 'job-object' — Windows Job Object with KILL_ON_JOB_CLOSE. Atomic, and
+ *    inherited by descendants regardless of session changes.
+ *  - 'cgroup2'    — Linux cgroup v2 `cgroup.kill`. One write, atomic, defeats
+ *    setsid.
  *
- * So the "INERT BY DESIGN" note on mission-lane-binding.ts described
- * apps/workspace accurately and production not at all: missions were admitted
- * here and handed to scripts/nexus-runner/runner.mjs, which spawns
- * `claude --print --permission-mode bypassPermissions` with cwd = the real
- * checkout. The worktree isolation and tier ceiling in that prompt are TEXT, not
- * enforcement, because the code that would enforce them lives in an app that is
- * not on this call path.
+ * macOS is deliberately absent and must stay absent. It has neither primitive;
+ * process groups and sessions are its only hierarchy and setsid() sheds both by
+ * definition. Adding 'darwin' here would be the whole control undone.
+ */
+const CONTAINMENT_MECHANISMS = {
+  'job-object': 'win32',
+  cgroup2: 'linux',
+} as const satisfies Record<string, NodeJS.Platform>
+
+type ContainmentMechanism = keyof typeof CONTAINMENT_MECHANISMS
+
+/**
+ * Whether this claim is permitted to reach a lane, judged on POSITIVE PROOF
+ * rather than on a label.
  *
- * It is the same defect as the `inFlight: 0` literal fixed earlier in this
- * series — a hardcoded value standing where a control should be — and it was
- * sitting on the next line.
+ * The first version of this check read a free-text env var and treated any
+ * non-empty value as containment. An independent review put it plainly: an
+ * environment variable is not host capability attestation. `%%%` passed, and a
+ * Mac naming itself passed, either of which opened the path to
+ * `claude --permission-mode bypassPermissions` in the real checkout.
  *
- * Now computed, and fail-closed: containment must be positively asserted by
- * naming the host that has it. Unset (the production default) means no lane, so
- * nothing is claimed. Setting this is a deliberate act by someone who has
- * verified that host really can contain a process tree; a Mac cannot, because
- * macOS has neither cgroups v2 nor Job Objects.
+ * Three things must now agree, and the claim is refused unless all three do:
+ *  1. the founder has armed a mechanism from the closed set above (env);
+ *  2. the runner declares the SAME mechanism for itself (request body);
+ *  3. the runner's declared platform is the one whose kernel provides that
+ *     mechanism (server-side table).
+ *
+ * The bearer secret is what binds (2) and (3) to a host the founder
+ * provisioned, so this is an attestation carried on an authenticated channel
+ * rather than a self-assigned name. A macOS runner cannot satisfy it under any
+ * combination, which is the correct outcome.
+ *
+ * HONEST LIMIT: this is still a DECLARATION, not a measurement. The route runs
+ * on Vercel and cannot execute a probe on the runner's kernel, so a runner that
+ * lies about its platform is not caught here. Closing that needs the claim path
+ * to reach the host — infrastructure this estate does not yet have (no inbound
+ * route to the tailnet, no host registration record). What it does buy: a typo,
+ * an arbitrary label, and any Mac are all now impossible, and the declared
+ * platform and mechanism are persisted on the claim so the question "which
+ * kernel ran this mission" has an answer for the first time.
  */
 export const MISSION_LANE_CONTAINMENT_ENV = 'MISSION_LANE_CONTAINMENT'
 
-export function laneContainmentHost(): string | null {
-  const host = process.env[MISSION_LANE_CONTAINMENT_ENV]?.trim()
-  return host ? host : null
+export function armedContainmentMechanism(): ContainmentMechanism | null {
+  const armed = process.env[MISSION_LANE_CONTAINMENT_ENV]?.trim()
+  if (!armed) return null
+  return armed in CONTAINMENT_MECHANISMS ? (armed as ContainmentMechanism) : null
+}
+
+export function containmentAttested(input: {
+  platform: string | undefined
+  containment: string | undefined
+}): boolean {
+  const armed = armedContainmentMechanism()
+  if (armed === null) return false
+  if (input.containment !== armed) return false
+  return input.platform === CONTAINMENT_MECHANISMS[armed]
 }
 
 export async function POST(request: Request) {
@@ -228,7 +266,11 @@ export async function POST(request: Request) {
     // putting it back would burn its bounded requeue budget every poll until it
     // was permanently failed. Nothing is claimed, so the mission stays queued and
     // waits for a host that can actually run it.
-    if (laneContainmentHost() === null) {
+    const attested = containmentAttested({
+      platform: parsed.data.platform,
+      containment: parsed.data.containment,
+    })
+    if (!attested) {
       return NextResponse.json({ task: null, refused: 'lane_unavailable' }, { status: 200 })
     }
 
@@ -261,9 +303,9 @@ export async function POST(request: Request) {
         // Already returned above if engaged; passed through so the gate keeps
         // its own ordering guarantee rather than trusting this caller.
         hardStop,
-        // Computed above, never a literal. Reaching this line at all means a
-        // containment host was named.
-        laneAvailable: laneContainmentHost() !== null,
+        // Computed above, never a literal. Reaching this line means the armed
+        // mechanism, the runner's declaration and its platform all agreed.
+        laneAvailable: attested,
         // claimNextQueuedTask returns the row AFTER flipping it to 'running',
         // so the gate is told which runner won it. Without this the status check
         // refuses every claim and the runner starves.
@@ -350,7 +392,14 @@ export async function POST(request: Request) {
           taskId: task.id,
           type: 'started',
           actor: parsed.data.runnerId,
-          payload: { claimed_by: parsed.data.runnerId },
+          // Persist WHICH kernel ran this mission. Until now nothing in the
+          // pipeline recorded it, so a completed mission looked identical
+          // whether it ran contained or in an unsandboxed live checkout.
+          payload: {
+            claimed_by: parsed.data.runnerId,
+            platform: parsed.data.platform ?? null,
+            containment: parsed.data.containment ?? null,
+          },
         },
         client as unknown as SupabaseLike,
       )
