@@ -275,7 +275,18 @@ async function buildMargotRow(supabase: ServiceClient): Promise<HealthRow> {
 
   const readFailed = payload.voice.source === 'error' || payload.agents.source === 'error'
   const hasRecentSession = !!payload.voice.latestSessionAt
-  const status: HealthStatus = readFailed || !hasRecentSession ? 'AMBER' : 'GREEN'
+
+  // missionBridgeReady is part of the verdict, not just the detail.
+  //
+  // Status was derived from session recency alone, so with transcripts arriving
+  // and MISSION_PROVENANCE_SECRET absent this row reported GREEN while every one
+  // of those spoken missions was being refused and no mission was created at
+  // all. A health surface that reads green for a bridge which cannot accept a
+  // single mission is precisely the fabricated-green this rollup exists to
+  // avoid, and the flag was computed and then dropped on the floor.
+  const bridgeReady = payload.missionBridgeReady
+  const status: HealthStatus =
+    readFailed || !hasRecentSession || !bridgeReady ? 'AMBER' : 'GREEN'
 
   return {
     id: 'margot',
@@ -283,8 +294,15 @@ async function buildMargotRow(supabase: ServiceClient): Promise<HealthRow> {
     status,
     severity: status === 'GREEN' ? 'informational' : 'P3',
     detail: {
-      reason: readFailed ? 'read_failed' : hasRecentSession ? undefined : 'no_recent_session',
+      reason: readFailed
+        ? 'read_failed'
+        : !bridgeReady
+          ? 'mission_bridge_not_ready'
+          : hasRecentSession
+            ? undefined
+            : 'no_recent_session',
       voiceReady: payload.voiceReady,
+      missionBridgeReady: bridgeReady,
       latestSessionAt: payload.voice.latestSessionAt,
       sessionsInWindow: payload.voice.sessionsInWindow,
       activeAgents: payload.agents.activeCount,

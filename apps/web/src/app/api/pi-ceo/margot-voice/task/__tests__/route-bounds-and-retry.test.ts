@@ -313,12 +313,38 @@ describe('margot-voice ingest: payload bounds and retry semantics', () => {
     expect(body.deliveries_collapsed).toBe(true)
   })
 
-  it('REGRESSION: the AT-CAP path keeps 409 for a conflict', async () => {
+  it('REGRESSION: the AT-CAP path keeps 409 for a conflict AND collapses the delivery', async () => {
+    // The earlier version of this test only asserted the 409, which the
+    // ordinary path already produced — so it passed without ever exercising the
+    // at-cap branch and an independent review correctly called it decorative.
+    // Asserting the collapse is what pins it to this branch.
     ledgerRows = Array.from({ length: 10 }, (_, i) => ({ id: `sess-${10 - i}` }))
     mockIngest.mockResolvedValue({
       status: 'conflict', task: { id: 'task-1', status: 'awaiting_approval' }, reason: 'payload_changed',
     })
-    expect((await POST(req(validPacket))).status).toBe(409)
+    const res = await POST(req(validPacket))
+    expect(res.status).toBe(409)
+    const body = (await res.json()) as { deliveries_collapsed: boolean; session_id: string }
+    expect(body.deliveries_collapsed).toBe(true)
+    expect(body.session_id).toBe('sess-10')
+    expect(mockInsert).not.toHaveBeenCalled()
+  })
+
+  it('REGRESSION: an unwritten audit receipt is retryable, not a silent 200', async () => {
+    // created_incomplete means the mission exists but its immutable `created`
+    // event does not. Returning 200 told the sender the delivery was complete,
+    // so nothing retried and the audit hole became permanent.
+    mockIngest.mockResolvedValue({
+      status: 'created_incomplete',
+      task: { id: 'task-1', status: 'awaiting_approval' },
+      admission: { tier: 'L1', reason: 'ok' },
+      receipt: 'incomplete',
+    })
+    const res = await POST(req(validPacket))
+    expect(res.status).toBe(503)
+    const body = (await res.json()) as { ok: boolean; mission: { receipt: string } }
+    expect(body.ok).toBe(false)
+    expect(body.mission.receipt).toBe('incomplete')
   })
 
   it('answers 200 for a mission refused on its merits, which retrying cannot fix', async () => {

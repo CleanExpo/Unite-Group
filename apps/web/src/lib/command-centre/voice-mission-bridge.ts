@@ -657,6 +657,40 @@ export type IngestVoiceMissionResult =
  * refused before any write. A replayed packet resolves to the existing task and
  * appends no second 'created' event, so the audit trail stays truthful.
  */
+/** Suffix marking a mission re-bridged under keyed provenance. */
+export const VOICE_MISSION_REKEY_SUFFIX = '#rekeyed'
+
+/**
+ * The external_ref a signed REPLACEMENT for a pre-rollout mission is minted
+ * under. Distinct from the original so the failed row survives untouched as the
+ * audit record, and deterministic so a second recovery attempt is a duplicate
+ * rather than a second replacement.
+ */
+export function voiceMissionRekeyedExternalRef(packetId: string): string {
+  return `${voiceMissionExternalRef(packetId)}${VOICE_MISSION_REKEY_SUFFIX}`
+}
+
+/**
+ * Whether an existing task is a pre-rollout mission eligible for recovery.
+ *
+ * All three conditions are required, and each one is load-bearing:
+ *  - it carries a persisted missionHash (so it IS a bridged voice mission),
+ *  - its envelope has no `approvalRequested` (only the post-rollout bridge
+ *    writes that field, so its absence dates the row rather than condemning it),
+ *  - and it is terminally `failed` (a live mission must never be duplicated
+ *    under a second ref while it is still queued, running or done).
+ *
+ * The status check is what stops this becoming a way to fork an active mission.
+ */
+function isRecoverableLegacyTask(task: CommandCentreTask): boolean {
+  if (task.status !== 'failed') return false
+  if (persistedMissionHash(task) === null) return false
+  const envelope = task.metadata?.voiceMission
+  if (!envelope || typeof envelope !== 'object' || Array.isArray(envelope)) return false
+  return !('approvalRequested' in (envelope as Record<string, unknown>))
+}
+
+
 export async function ingestVoiceMission(
   founderId: string,
   packet: unknown,
@@ -698,12 +732,12 @@ export async function ingestVoiceMission(
   // Exactly-once receipt: the event id is derived from (task id, 'created'), so
   // a concurrent racer collides on cc_task_events' PRIMARY KEY and treats that
   // as success. One row, both racers truthful, no migration required.
-  const writeReceipt = async (): Promise<MissionReceiptState> => {
+  const writeReceiptFor = async (taskId: string): Promise<MissionReceiptState> => {
     try {
       await appendTaskEventOnce(
         {
           founderId,
-          taskId: task.id,
+          taskId,
           type: 'created',
           eventKey: VOICE_MISSION_RECEIPT_KEY,
           actor: VOICE_MISSION_AGENT_NAME,
@@ -716,12 +750,53 @@ export async function ingestVoiceMission(
       return 'incomplete'
     }
   }
+  const writeReceipt = (): Promise<MissionReceiptState> => writeReceiptFor(task.id)
 
   if (created) {
     const receipt = await writeReceipt()
     return receipt === 'complete'
       ? { status: 'created', task, admission, receipt }
       : { status: 'created_incomplete', task, admission, receipt }
+  }
+
+  // A pre-rollout mission that was refused and terminally failed can be
+  // RECOVERED here, and this is the only place it can be.
+  //
+  // The previous commit added a `recover_packet_id` pointer to the refusal
+  // event, then never proved the path it pointed at actually worked. It did
+  // not: re-POSTing the packet lands on this function, finds the existing task
+  // through UNIQUE(founder_id, external_ref), compares the new HMAC against the
+  // old unkeyed SHA-256, and returns `provenance_mismatch` — so the "recovery"
+  // was a dead end and the work stayed failed. That is a recovery route that was
+  // wired and never exercised, which is exactly the class of defect this gate
+  // exists to catch, and an independent review caught it rather than the author.
+  //
+  // The fix does NOT repair the old row. Rewriting provenance in place would
+  // mean an ingest-token holder could re-sign an existing mission's fields, so
+  // instead a signed REPLACEMENT is minted under a distinct external_ref. The
+  // failed row stays exactly as it is, as the audit record of what happened, and
+  // the replacement is born at `proposed`/`awaiting_approval` like any new
+  // mission — so it passes back through the founder's approval actor rather than
+  // inheriting the old task's approval.
+  if (isRecoverableLegacyTask(task)) {
+    const { task: replacement, created: replacementCreated } = await createTaskOnce(
+      {
+        ...voiceMissionToCreateTaskInput(parsed.mission, admission, founderId),
+        externalRef: voiceMissionRekeyedExternalRef(parsed.mission.packetId),
+      },
+      client,
+    )
+    if (replacementCreated) {
+      return {
+        status: 'created',
+        task: replacement,
+        admission,
+        receipt: await writeReceiptFor(replacement.id),
+      }
+    }
+    // The replacement already exists (a second recovery attempt). Report it as a
+    // duplicate rather than a conflict: the recovery already happened.
+    return { status: 'duplicate', task: replacement, admission, receipt: await writeReceiptFor(replacement.id) }
   }
 
   // The packet id already owns a mission. Before treating this as a replay,

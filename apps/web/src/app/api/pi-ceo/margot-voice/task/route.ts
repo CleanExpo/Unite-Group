@@ -427,6 +427,14 @@ function missionResponseContract(mission: MissionBridgeView): { status: number; 
   if (mission.status === 'rejected' && mission.reason === 'provenance_secret_unset') {
     return { status: 503, ok: false };
   }
+  // The mission exists but its immutable `created` receipt does not. Returning
+  // 200 told the sender the delivery was complete, so nothing ever retried and
+  // the audit trail kept its hole permanently. Retry is safe and can close it:
+  // the bridge is idempotent, so a redelivery maps onto the same task and
+  // rewrites the receipt. The per-packet delivery cap bounds the retries, so a
+  // receipt that can never be written degrades to a collapsed delivery rather
+  // than an unbounded loop.
+  if (mission.status === 'created_incomplete') return { status: 503, ok: false };
   return { status: 200, ok: true };
 }
 
