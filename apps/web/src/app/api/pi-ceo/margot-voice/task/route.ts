@@ -434,6 +434,21 @@ function missionResponseContract(mission: MissionBridgeView): { status: number; 
   // rewrites the receipt. The per-packet delivery cap bounds the retries, so a
   // receipt that can never be written degrades to a collapsed delivery rather
   // than an unbounded loop.
+  // Judge the PROPERTY, not the label.
+  //
+  // Enumerating statuses is what kept failing: `created_incomplete` was made
+  // retryable, then `duplicate` was found doing the same thing on a different
+  // code path, because the rule was attached to a status name rather than to the
+  // condition that actually matters. What matters is whether the mission's
+  // immutable receipt exists. Any outcome carrying an incomplete receipt is
+  // retryable, whatever it is called and whatever statuses are added later.
+  //
+  // This is the fourth time in this change series that a decision keyed on a
+  // label drifted from a second copy; keying it on the underlying property is
+  // what stops a fifth.
+  if (mission.receipt === 'incomplete' || mission.receipt === 'unverified') {
+    return { status: 503, ok: false };
+  }
   if (mission.status === 'created_incomplete') return { status: 503, ok: false };
   // Success is an ALLOWLIST, not a default. Falling through to 200 meant any
   // status added later - or any unexpected runtime value - was reported to the

@@ -347,6 +347,40 @@ describe('margot-voice ingest: payload bounds and retry semantics', () => {
     expect(body.mission.receipt).toBe('incomplete')
   })
 
+  it('REGRESSION: a DUPLICATE with an unwritten receipt is retryable, not a 200', async () => {
+    // The retry rule was attached to the `created_incomplete` LABEL, so the
+    // second delivery of a mission whose receipt insert keeps failing came back
+    // as `duplicate` -> HTTP 200, the sender stopped, and the audit hole became
+    // permanent. The rule now keys on the receipt itself.
+    mockIngest.mockResolvedValue({
+      status: 'duplicate',
+      task: { id: 'task-1', status: 'awaiting_approval' },
+      admission: { tier: 'L1', reason: 'ok' },
+      receipt: 'incomplete',
+    })
+    const res = await POST(req(validPacket))
+    expect(res.status).toBe(503)
+    expect(((await res.json()) as { ok: boolean }).ok).toBe(false)
+  })
+
+  it('POSITIVE CONTROL: a duplicate WITH a complete receipt is still a plain 200', async () => {
+    mockIngest.mockResolvedValue({
+      status: 'duplicate',
+      task: { id: 'task-1', status: 'awaiting_approval' },
+      admission: { tier: 'L1', reason: 'ok' },
+      receipt: 'complete',
+    })
+    const res = await POST(req(validPacket))
+    expect(res.status).toBe(200)
+    expect(((await res.json()) as { ok: boolean }).ok).toBe(true)
+  })
+
+  it('GUARD: a merit rejection carries no receipt and stays a final 200', async () => {
+    // receipt 'none' must not be swept up by the new receipt-based rule.
+    mockIngest.mockResolvedValue({ status: 'rejected', reasons: ['unsafe_action'] })
+    expect((await POST(req(validPacket))).status).toBe(200)
+  })
+
   it('answers 200 for a mission refused on its merits, which retrying cannot fix', async () => {
     mockIngest.mockResolvedValue({ status: 'rejected', reasons: ['unsafe_action'] })
     const res = await POST(req(validPacket))
