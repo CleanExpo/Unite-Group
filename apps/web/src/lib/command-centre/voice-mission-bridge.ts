@@ -732,7 +732,22 @@ export async function ingestVoiceMission(
   // Exactly-once receipt: the event id is derived from (task id, 'created'), so
   // a concurrent racer collides on cc_task_events' PRIMARY KEY and treats that
   // as success. One row, both racers truthful, no migration required.
-  const writeReceiptFor = async (
+  /**
+   * How many times a receipt write is attempted before it is reported as
+   * incomplete.
+   *
+   * An independent review pointed out that dead-lettering at the delivery cap
+   * treats every non-complete receipt as permanently unresolved, while a single
+   * transient cc_task_events failure looks identical to a store that is truly
+   * gone. Retrying here means the "unresolved" classification is EARNED rather
+   * than assumed: combined with the per-packet delivery cap, a receipt is only
+   * declared stuck after the write has genuinely failed repeatedly across
+   * repeated deliveries. Same shape as the bounded retry on the requeue count -
+   * an ambiguous single failure is not a verdict.
+   */
+  const RECEIPT_WRITE_ATTEMPTS = 3
+
+  const attemptReceiptWrite = async (
     taskId: string,
     extraPayload?: Record<string, unknown>,
   ): Promise<MissionReceiptState> => {
@@ -753,6 +768,17 @@ export async function ingestVoiceMission(
       return 'incomplete'
     }
   }
+  const writeReceiptFor = async (
+    taskId: string,
+    extraPayload?: Record<string, unknown>,
+  ): Promise<MissionReceiptState> => {
+    for (let attempt = 1; attempt <= RECEIPT_WRITE_ATTEMPTS; attempt++) {
+      const state = await attemptReceiptWrite(taskId, extraPayload)
+      if (state === 'complete') return state
+    }
+    return 'incomplete'
+  }
+
   const writeReceipt = (): Promise<MissionReceiptState> => writeReceiptFor(task.id)
 
   // ONE decider for "a task was just created": its status depends on whether the

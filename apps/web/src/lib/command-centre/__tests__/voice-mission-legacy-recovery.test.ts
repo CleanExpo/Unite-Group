@@ -229,6 +229,40 @@ describe('pre-rollout voice missions are actually recoverable', () => {
     expect(tables.cc_tasks).toHaveLength(2)
   })
 
+  it('REGRESSION: a TRANSIENT receipt failure recovers instead of being called unresolved', async () => {
+    // Dead-lettering treats a non-complete receipt as permanently unresolved, so
+    // a single transient cc_task_events failure must not be enough to earn that
+    // verdict. The write is retried; only a persistent failure is 'incomplete'.
+    const { client, tables } = makeDb([legacyRow('failed')])
+    const realFrom = (client as unknown as { from: (t: string) => unknown }).from.bind(client)
+    let eventAttempts = 0
+    ;(client as unknown as { from: (t: string) => unknown }).from = (table: string) => {
+      if (table !== 'cc_task_events') return realFrom(table)
+      const real = realFrom(table) as { insert: (v: Record<string, unknown>) => unknown }
+      return {
+        ...(real as object),
+        insert: (values: Record<string, unknown>) => {
+          eventAttempts += 1
+          if (eventAttempts === 1) {
+            return {
+              select: () => ({
+                single: () =>
+                  Promise.resolve({ data: null, error: { code: '500', message: 'blip' } }),
+              }),
+            }
+          }
+          return real.insert(values)
+        },
+      }
+    }
+
+    const result = await ingestVoiceMission(FOUNDER, packet(), client)
+    expect(result.status).toBe('created')
+    expect(result.receipt).toBe('complete')
+    expect(eventAttempts).toBeGreaterThan(1)
+    expect(tables.cc_task_events.length).toBe(1)
+  })
+
   it('REGRESSION: the replacement receipt records its own ref and its lineage', async () => {
     // Without this an operator sees two rows with nothing linking them, and the
     // receipt claimed the ORIGINAL external_ref.
