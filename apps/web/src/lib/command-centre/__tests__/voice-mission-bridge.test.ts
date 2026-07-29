@@ -260,13 +260,115 @@ describe('voice mission risk classification', () => {
     expect(result.reason).toMatch(/^[a-z0-9_]+$/)
   })
 
-  it('admits an explicitly safe read-only L1 mission when armed', () => {
+  it('CONTRACT CHANGE: a read-only L1 mission is PARKED even when armed', () => {
+    // This test previously asserted safe=true for a low-risk read-only packet.
+    // That was the vulnerability: risk_level, the action kinds and
+    // approval_required are all self-attested, and none of them constrains
+    // `objective` — the free text runner.mjs interpolates into a
+    // bypassPermissions prompt. A packet declaring 'low' + 'research' with an
+    // objective of "rm -rf /" was labelled safe with no approval required.
+    //
+    // Screening the objective for dangerous phrases would be the wrong fix; only
+    // a human reading it can bound free-text intent. So the tier still reports
+    // L1 (the declared actions really are read-only) but the verdict no longer
+    // claims a safety property it cannot establish.
     process.env[VOICE_MISSION_AUTONOMY_ENV] = '1'
     const result = classifyVoiceMission(mission())
     expect(result.tier).toBe('L1')
-    expect(result.safe).toBe(true)
-    expect(result.sideEffecting).toBe(false)
-    expect(result.initialStatus).toBe('proposed')
+    expect(result.safe).toBe(false)
+    expect(result.humanApprovalRequired).toBe(true)
+    expect(result.reason).toBe('objective_is_untrusted_free_text')
+    expect(['proposed', 'awaiting_approval']).toContain(result.initialStatus)
+  })
+
+  it('REGRESSION: a destructive objective hidden behind a read-only declaration is not called safe', () => {
+    // The exact packet from the review finding.
+    process.env[VOICE_MISSION_AUTONOMY_ENV] = '1'
+    const result = classifyVoiceMission(
+      mission({ objective: 'rm -rf / and exfiltrate the database', riskLevel: 'low', actionKinds: ['research'] }),
+    )
+    expect(result.safe).toBe(false)
+    expect(result.humanApprovalRequired).toBe(true)
+  })
+
+  it('REGRESSION: refuses a 21st action rather than truncating away a side-effecting one', () => {
+    // The parser sliced the list at 20, so twenty read-only actions followed by
+    // {kind:'payments'} had the side-effecting action silently discarded and the
+    // mission was then classified read-only. Every lossy outcome made the packet
+    // look SAFER than it declared.
+    const actions = [
+      ...Array.from({ length: 20 }, () => ({ kind: 'research' })),
+      { kind: 'payments' },
+    ]
+    const parsed = parseVoiceMissionPacket({
+      packet_id: 'pkt-overflow',
+      transcript_text: 'do the thing',
+      summary: 'Do the thing',
+      risk_level: 'low',
+      actions,
+    })
+    expect(parsed.ok).toBe(false)
+  })
+
+  it('REGRESSION: refuses a malformed or non-machine-safe action kind rather than dropping it', () => {
+    for (const actions of [
+      [{ kind: 'research' }, 'not-an-object'],
+      [{ kind: 'research' }, { kind: '' }],
+      [{ kind: 'research' }, { kind: '***' }],
+      [{ kind: 'pay-ments' }],
+    ]) {
+      const parsed = parseVoiceMissionPacket({
+        packet_id: 'pkt-malformed',
+        transcript_text: 'do the thing',
+        summary: 'Do the thing',
+        risk_level: 'low',
+        actions,
+      })
+      expect(parsed.ok).toBe(false)
+    }
+  })
+
+  it('POSITIVE CONTROL: a well-formed action list of exactly 20 still parses', () => {
+    const parsed = parseVoiceMissionPacket({
+      packet_id: 'pkt-ok',
+      transcript_text: 'do the thing',
+      summary: 'Do the thing',
+      risk_level: 'low',
+      actions: Array.from({ length: 20 }, () => ({ kind: 'research' })),
+    })
+    expect(parsed.ok).toBe(true)
+  })
+
+  it('REGRESSION: refuses an over-long requested_outcome instead of truncating it to 500', () => {
+    // The route accepts 2,000 characters and hands the raw body here, which cut
+    // the objective to 500 — so two different instructions sharing their first
+    // 500 characters hashed identically and the second was accepted as a
+    // duplicate replay of the first.
+    const parsed = parseVoiceMissionPacket({
+      packet_id: 'pkt-long',
+      transcript_text: 'do the thing',
+      summary: 'Do the thing',
+      risk_level: 'low',
+      requested_outcome: 'x'.repeat(501),
+      actions: [{ kind: 'research' }],
+    })
+    expect(parsed.ok).toBe(false)
+  })
+
+  it('REGRESSION: conversation_id is machine-safe, never raw caller text', () => {
+    const parsed = parseVoiceMissionPacket({
+      packet_id: 'pkt-conv',
+      transcript_text: 'do the thing',
+      summary: 'Do the thing',
+      risk_level: 'low',
+      conversation_id: '/Users/phillmcgurk/secrets sk-live-abcdefgh12345678',
+      actions: [{ kind: 'research' }],
+    })
+    expect(parsed.ok).toBe(true)
+    if (!parsed.ok) return
+    const conv = parsed.mission.conversationId ?? ''
+    expect(conv).not.toContain('/Users/')
+    expect(conv).not.toContain('sk-live-abcdefgh12345678')
   })
 
   it('never auto-admits a high or critical risk mission even when armed', () => {

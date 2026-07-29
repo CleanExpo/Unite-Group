@@ -220,7 +220,24 @@ export function admitMissionToLane(
     }
     if (admission.sideEffecting) return { admit: false, code: 'side_effecting' }
     if (!ADMISSIBLE_TIERS.has(admission.tier)) return { admit: false, code: 'tier_not_admissible' }
-    if (!admission.safe) return { admit: false, code: 'admission_not_safe' }
+    // `admission.safe` is deliberately NOT required here any more.
+    //
+    // The classifier no longer claims safety for a voice mission, because every
+    // input it has is self-attested by the packet and none of them constrains
+    // the free-text objective the runner executes. So `safe` is now always false
+    // on this path, and requiring it would mean a mission the FOUNDER read and
+    // approved could never run — the fix for one hole opening a worse one.
+    //
+    // The authority that replaces it is stronger, not weaker: reaching `queued`
+    // requires the approval actor, i.e. a human who read the objective. That is
+    // checked above (status must be queued, or running-and-claimed-by-us). The
+    // self-attested restrictions still apply — a side-effecting or above-L1
+    // declaration is still refused — but the affirmative safety judgement now
+    // comes from the human rather than from the packet describing itself.
+    //
+    // If auto-admission is ever restored it must come with a structurally
+    // bounded objective (validated action descriptors, not free text), and this
+    // check comes back with it.
   }
 
   if (context.inFlight >= context.maxConcurrent) return { admit: false, code: 'at_capacity' }

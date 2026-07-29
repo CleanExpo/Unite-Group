@@ -135,10 +135,37 @@ describe('mission lane admission', () => {
     expect(decision).toEqual({ admit: false, code: 'risk_unclassified' })
   })
 
-  it('refuses a mission that was never marked safe, even if it reached queued', () => {
+  it('CONTRACT CHANGE: a queued mission is admitted on HUMAN approval, not a self-attested safe flag', () => {
+    // This test previously asserted the opposite: safe=false refused with
+    // `admission_not_safe`. That check had to go, because the classifier no
+    // longer claims safety for a voice mission at all — every input it has is
+    // self-attested by the packet and none of them constrains the free-text
+    // objective the runner executes (an independent review found a low-risk
+    // research packet carrying "rm -rf /" as its objective).
+    //
+    // `safe` is therefore always false on this path now, and keeping the check
+    // would mean a mission the FOUNDER read and approved could never run. The
+    // authority that replaces it is stronger: reaching `queued` requires the
+    // approval actor, i.e. a human who read the objective.
     const decision = admitMissionToLane(bridgedTask('queued', false), HEALTHY)
-    expect(decision.admit).toBe(false)
-    expect(decision.code).toBe('admission_not_safe')
+    expect(decision).toEqual({ admit: true, code: 'admitted' })
+  })
+
+  it('still refuses a queued mission whose declared actions are side-effecting', () => {
+    // Dropping the `safe` check does NOT drop the declared-restriction checks.
+    // A packet that admits to side effects is still refused.
+    const task = bridgedTask('queued', false)
+    const envelope = (task.metadata as Record<string, unknown>).voiceMission as Record<string, unknown>
+    const tampered = {
+      ...task,
+      metadata: {
+        voiceMission: {
+          ...envelope,
+          admission: { ...(envelope.admission as Record<string, unknown>), sideEffecting: true },
+        },
+      },
+    } as typeof task
+    expect(admitMissionToLane(tampered, HEALTHY).code).toBe('side_effecting')
   })
 
   /**

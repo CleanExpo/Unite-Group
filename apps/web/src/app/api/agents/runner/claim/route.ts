@@ -55,9 +55,17 @@ function bearerOk(request: Request): boolean {
  * until its budget ran out and it failed. A misconfigured number silently
  * emptied the queue. Anything not a positive integer falls back to 1.
  */
+/** Nobody runs more missions than this on one host; a larger value is a typo. */
+const MAX_CONCURRENT_CEILING = 64
+
 export function readMaxConcurrent(raw: string | undefined): number {
   const parsed = Number(raw)
-  if (!Number.isInteger(parsed) || parsed < 1) return 1
+  // isSafeInteger, not isInteger: `Number.isInteger(1e100)` is TRUE, so '1e100'
+  // passed the old check and became both an effectively infinite concurrency
+  // limit and an absurd `.limit(1e100 + 2)` on the count query. An upper ceiling
+  // then bounds the honest-but-wrong values too — a limit nobody would set on
+  // purpose is a misconfiguration, not an instruction.
+  if (!Number.isSafeInteger(parsed) || parsed < 1 || parsed > MAX_CONCURRENT_CEILING) return 1
   return parsed
 }
 

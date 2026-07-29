@@ -185,6 +185,12 @@ describe('POST /api/agents/runner/claim — lane refusal handling', () => {
     expect(readMaxConcurrent('abc')).toBe(1)
     expect(readMaxConcurrent(' 2 ')).toBe(2)
     expect(readMaxConcurrent('4')).toBe(4)
+    // isSafeInteger, not isInteger: Number.isInteger(1e100) is true, so '1e100'
+    // previously became an unbounded limit AND an absurd .limit(1e100+2) query.
+    expect(readMaxConcurrent('1e100')).toBe(1)
+    expect(readMaxConcurrent('9007199254740993')).toBe(1)
+    expect(readMaxConcurrent('65')).toBe(1)
+    expect(readMaxConcurrent('64')).toBe(64)
   })
 
   it('REGRESSION: treats a null count body as unknown, not as zero', async () => {

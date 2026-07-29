@@ -176,16 +176,40 @@ function readRiskLevel(value: unknown): TaskRiskLevel | null {
   return (VOICE_RISK_LEVELS as readonly string[]).includes(risk) ? (risk as TaskRiskLevel) : null
 }
 
-/** Pull the bounded, machine-safe `kind` of each proposed action. */
-function readActionKinds(value: unknown): string[] {
-  if (!Array.isArray(value)) return []
-  return value
-    .filter(isRecord)
-    .map((action) => asString(action.kind ?? action.type).toLowerCase())
-    .filter((kind) => kind.length > 0)
-    .map((kind) => kind.replace(/[^a-z0-9_]/g, '').slice(0, 64))
-    .filter((kind) => kind.length > 0)
-    .slice(0, MAX_ACTION_KINDS)
+/**
+ * Pull the bounded, machine-safe `kind` of each proposed action, or null if the
+ * action list cannot be read faithfully.
+ *
+ * This previously DROPPED what it could not parse and TRUNCATED after 20, which
+ * made the parser a bypass: a packet carrying twenty read-only actions followed
+ * by `{kind:'payments'}` had the side-effecting action silently discarded and
+ * was then classified read-only. The same held for a malformed entry, an empty
+ * kind, or a kind whose characters were all stripped. Every one of those made
+ * the mission look SAFER than the packet actually declared, which is the wrong
+ * direction for a lossy step to fail in.
+ *
+ * The same reasoning the packet-id canonicaliser already documents applies here:
+ * refusing keeps the mapping faithful, whereas quietly rewriting the input
+ * merges distinct meanings. So an unreadable or over-long action list is now a
+ * parse failure, and the caller refuses the packet.
+ */
+function readActionKinds(value: unknown): string[] | null {
+  if (!Array.isArray(value)) return null
+  if (value.length > MAX_ACTION_KINDS) return null
+
+  const kinds: string[] = []
+  for (const action of value) {
+    if (!isRecord(action)) return null
+    const raw = asString(action.kind ?? action.type).toLowerCase()
+    if (!raw) return null
+    const cleaned = raw.replace(/[^a-z0-9_]/g, '')
+    // A kind that is not already machine-safe is refused rather than rewritten:
+    // 'pay-ments' and 'payments' must not silently become the same token, and a
+    // kind of '***' must not vanish into nothing.
+    if (cleaned !== raw || cleaned.length > 64) return null
+    kinds.push(cleaned)
+  }
+  return kinds
 }
 
 /**
@@ -245,24 +269,57 @@ export function parseVoiceMissionPacket(value: unknown): VoiceMissionParse {
     reasons.push(`risk_level is required and must be one of ${VOICE_RISK_LEVELS.join(', ')}`)
   }
 
-  if (reasons.length > 0 || !packetId || !riskLevel) {
+  // An action list that cannot be read FAITHFULLY is refused, never partially
+  // accepted: every lossy outcome (a dropped malformed entry, an emptied kind, a
+  // list truncated at the cap) made the mission look safer than the packet
+  // declared, so the parser now fails closed and says so.
+  const actionKinds = readActionKinds(value.actions)
+  if (actionKinds === null) {
+    reasons.push(
+      `actions must be an array of at most ${MAX_ACTION_KINDS} objects, each with a machine-safe kind of [a-z0-9_] up to 64 characters`,
+    )
+  }
+
+  // requested_outcome must fit the objective bound rather than be truncated to
+  // it. The route accepts up to 2,000 characters and hands the raw body to this
+  // parser, which then cut the objective to 500 — so two different instructions
+  // sharing their first 500 characters produced the SAME provenance hash and the
+  // second was accepted as a duplicate replay of the first. Refusing keeps the
+  // hash injective over admissible packets, which is the property the whole
+  // provenance check depends on.
+  const requestedOutcome = asString(value.requested_outcome)
+  if (requestedOutcome && cleanText(requestedOutcome, MAX_OBJECTIVE_LENGTH + 1).length > MAX_OBJECTIVE_LENGTH) {
+    reasons.push(`requested_outcome exceeds ${MAX_OBJECTIVE_LENGTH} characters after normalisation`)
+  }
+  if (summary && cleanText(summary, MAX_TITLE_LENGTH + 1).length > MAX_TITLE_LENGTH && !requestedOutcome) {
+    // summary is the objective fallback, so it is bound by the objective limit
+    // when it plays that role.
+    if (cleanText(summary, MAX_OBJECTIVE_LENGTH + 1).length > MAX_OBJECTIVE_LENGTH) {
+      reasons.push(`summary exceeds ${MAX_OBJECTIVE_LENGTH} characters after normalisation`)
+    }
+  }
+
+  if (reasons.length > 0 || !packetId || !riskLevel || actionKinds === null) {
     return { ok: false, reasons: reasons.length > 0 ? reasons : ['packet failed validation'] }
   }
 
-  const objective = cleanText(asString(value.requested_outcome) || summary, MAX_OBJECTIVE_LENGTH)
+  const objective = cleanText(requestedOutcome || summary, MAX_OBJECTIVE_LENGTH)
   const title = cleanText(summary, MAX_TITLE_LENGTH) || 'Mobile voice mission'
 
   return {
     ok: true,
     mission: {
       packetId,
-      conversationId: asString(value.conversation_id) || null,
+      // Machine-safe, not raw. This value reaches cc_tasks metadata and the
+      // provenance payload, so an unredacted caller string could carry a secret
+      // or a host path out of the voice-session record and into the mission row.
+      conversationId: machineSafeRef(asString(value.conversation_id), 200) || null,
       title,
       objective,
       riskLevel,
       approvalRequested: value.approval_required === true,
       approvalReason: cleanText(asString(value.approval_reason), MAX_OBJECTIVE_LENGTH) || null,
-      actionKinds: readActionKinds(value.actions),
+      actionKinds,
       transcriptCharacterCount: transcript.length,
       businessContext: machineSafeRef(asString(value.business_context) || 'unite-group', 64),
     },
@@ -530,15 +587,32 @@ export function classifyVoiceMission(mission: NormalisedVoiceMission): VoiceMiss
     return parked('L0', 'advise_only', sideEffecting)
   }
 
-  return {
-    tier: 'L1',
-    safe: true,
-    reason: 'l1_read_only_ok',
-    initialStatus: 'proposed',
-    humanApprovalRequired: false,
-    sideEffecting: false,
-    executionMode: 'local-code',
-  }
+  // NO AUTO-ADMIT. Every input this function has read so far is SELF-ATTESTED by
+  // the inbound packet: risk_level, the action kinds, approval_required. None of
+  // them constrains `mission.objective`, which is untrusted free text and is the
+  // thing runner.mjs interpolates into a `claude --permission-mode
+  // bypassPermissions` prompt.
+  //
+  // So a packet declaring risk_level 'low' with a single 'research' action and an
+  // objective of "rm -rf /" previously arrived here and was labelled
+  // `safe: true, humanApprovalRequired: false`. Keyed HMAC provenance does not
+  // help: it authenticates that the bridge produced the record, not that the
+  // record's intent is safe. An independent review found exactly this.
+  //
+  // Screening the objective for dangerous phrases is the wrong fix and this
+  // estate has lost that argument repeatedly — detect-the-bad-thing is defeated
+  // every time. The only thing that can bound free-text intent is a human
+  // reading it, so an L1 read-only voice mission is now PARKED for approval
+  // rather than marked safe. The tier still says L1 (the declared actions really
+  // are read-only) but the verdict no longer claims a safety property it cannot
+  // establish.
+  //
+  // What this costs: voice missions never auto-dispatch, even with
+  // MOBILE_VOICE_AUTONOMY armed. That flag now governs how a mission is
+  // PRESENTED, not whether a human sees it. Restoring auto-admit requires
+  // bounding the objective structurally — dispatching validated action
+  // descriptors instead of free text — not relaxing this branch.
+  return parked('L1', 'objective_is_untrusted_free_text', false)
 }
 
 // ─── Mapping onto the existing mission authority ──────────────────────────────
