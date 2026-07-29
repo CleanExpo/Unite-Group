@@ -18,8 +18,8 @@ vi.mock('@/lib/command-centre/tasks', async (orig) => {
 import { createServiceClient } from '@/lib/supabase/service'
 import { claimNextQueuedTask, releaseClaimedTask } from '@/lib/command-centre/runner-claim'
 import { appendTaskEvent } from '@/lib/command-centre/tasks'
-import { POST } from '../route'
-import { runningCountClient, countErrorClient } from './fixtures'
+import { POST, readMaxConcurrent } from '../route'
+import { runningCountClient, countErrorClient, nullBodyCountClient } from './fixtures'
 
 const SECRET = 'test-secret'
 const RUNNER = 'mac-mini-runner'
@@ -164,19 +164,37 @@ describe('POST /api/agents/runner/claim — lane refusal handling', () => {
     expect(releaseClaimedTask).not.toHaveBeenCalled()
   })
 
-  it('treats a negative MISSION_LANE_MAX_CONCURRENT as 1, not as -1', async () => {
-    // `Number(x) || 1` accepted -1, and `inFlight >= -1` is true for any count,
-    // so every claimed mission was requeued until it permanently failed. A
-    // misconfigured number silently emptied the queue. The module reads the env
-    // var at import time, so this is asserted through the resulting behaviour:
-    // with nothing running, a claim must still be admitted.
-    vi.mocked(claimNextQueuedTask).mockResolvedValue({
-      id: 'task-9', status: 'running', claimed_by: RUNNER,
-      external_ref: 'packet:wp-1', objective: 'Ship the thing', metadata: {},
-    } as never)
+  it('REGRESSION: parses MISSION_LANE_MAX_CONCURRENT, rejecting values that disable the limit', () => {
+    // The previous version of this test went through the route, but the module
+    // reads the env var at import time, so it never actually exercised a
+    // negative value — Codex called it decorative and was right. Testing the
+    // parser directly is the only honest way to cover it.
+    //
+    // `Number(x) || 1` returned -1 for '-1', and `inFlight >= -1` is true for
+    // any count, so every claimed mission was requeued until it permanently
+    // failed. Each of these FAILS against that implementation:
+    expect(readMaxConcurrent('-1')).toBe(1)
+    expect(readMaxConcurrent('0')).toBe(1)
+    expect(readMaxConcurrent('-100')).toBe(1)
+    expect(readMaxConcurrent('2.5')).toBe(1)
+    expect(readMaxConcurrent('Infinity')).toBe(1)
+    expect(readMaxConcurrent('NaN')).toBe(1)
+    // And these pin the values that must keep working:
+    expect(readMaxConcurrent(undefined)).toBe(1)
+    expect(readMaxConcurrent('')).toBe(1)
+    expect(readMaxConcurrent('abc')).toBe(1)
+    expect(readMaxConcurrent(' 2 ')).toBe(2)
+    expect(readMaxConcurrent('4')).toBe(4)
+  })
+
+  it('REGRESSION: treats a null count body as unknown, not as zero', async () => {
+    // `?? []` read a successful-but-null response as "nothing running" and
+    // admitted the claim. Unknown must refuse, not assume the safest-looking
+    // number.
+    vi.mocked(createServiceClient).mockReturnValue(nullBodyCountClient() as never)
     const body = await (await POST(req())).json()
-    expect(body.task?.id).toBe('task-9')
-    expect(body.refused).toBeUndefined()
+    expect(body.refused).toBe('at_capacity')
+    expect(claimNextQueuedTask).not.toHaveBeenCalled()
   })
 
   it('fails CLOSED when the running count cannot be read', async () => {

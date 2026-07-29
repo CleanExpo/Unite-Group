@@ -199,7 +199,13 @@ async function readDeliveryLedger(
       .order('created_at', { ascending: false })
       .limit(DELIVERY_LEDGER_CAP);
     if (error) return { state: 'unknown', latestId: null };
-    const rows = (data as Array<{ id: string }> | null) ?? [];
+    // `?? []` was wrong: a successful response carrying null or a non-array body
+    // is not evidence of an empty ledger, it is evidence the ledger could not be
+    // read. Coercing it to [] reported under_cap and inserted another transcript
+    // on every redelivery — the same fail-open the explicit error path already
+    // closed, reached through a different door.
+    if (!Array.isArray(data)) return { state: 'unknown', latestId: null };
+    const rows = data as Array<{ id: string }>;
     return {
       state: rows.length >= DELIVERY_LEDGER_CAP ? 'at_cap' : 'under_cap',
       latestId: rows[0]?.id ?? null,

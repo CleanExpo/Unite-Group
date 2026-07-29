@@ -11,7 +11,12 @@
 //       reached cc_tasks. The founder had spoken a mission that existed only as
 //       a transcript and nothing on either side would notice.
 //
-// Each test below fails against the pre-fix route.
+// Tests marked REGRESSION fail against the pre-fix route; that was verified by
+// reverting each fix and re-running. Tests marked GUARD do not discriminate
+// against the pre-fix code — they pin behaviour that must not drift as this
+// route changes. Labelling them honestly matters: a suite that claims every
+// test is a regression test, when some cannot fail, is exactly the kind of
+// vacuous green this codebase keeps getting caught by.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 const mockSingle = vi.fn()
@@ -136,7 +141,25 @@ describe('margot-voice ingest: payload bounds and retry semantics', () => {
     expect(body.session_id).toBe('sess-10')
   })
 
-  it('fails CLOSED with 503 when the delivery ledger cannot be read', async () => {
+  it('REGRESSION: treats a null ledger body as unreadable, not as empty', async () => {
+    // `{ data: null, error: null }` was coerced to [] by `?? []`, reported
+    // under_cap, and inserted another transcript on every redelivery — the same
+    // fail-open the error path already closed, reached through a different door.
+    mockSelect.mockImplementationOnce(() => ledgerChain({ data: null, error: null }))
+    const res = await POST(req(validPacket))
+    expect(res.status).toBe(503)
+    expect(((await res.json()) as { error: string }).error).toBe('delivery_ledger_unavailable')
+    expect(mockInsert).not.toHaveBeenCalled()
+  })
+
+  it('REGRESSION: treats a non-array ledger body as unreadable', async () => {
+    mockSelect.mockImplementationOnce(() => ledgerChain({ data: { oops: true }, error: null }))
+    const res = await POST(req(validPacket))
+    expect(res.status).toBe(503)
+    expect(mockInsert).not.toHaveBeenCalled()
+  })
+
+  it('REGRESSION: fails CLOSED with 503 when the delivery ledger cannot be read', async () => {
     // Treating an unreadable ledger as "under the cap" reproduced the unbounded
     // growth the cap exists to prevent, at the moment the database is already
     // unhealthy. Nothing is written and the caller is asked to redeliver.
@@ -180,19 +203,17 @@ describe('margot-voice ingest: payload bounds and retry semantics', () => {
     expect(mockFrom).not.toHaveBeenCalled()
   })
 
-  it('propagates the full summary into requested_outcome, which the old slice truncated', async () => {
-    // A 500-character summary is identical under `.slice(0, 500)`, so asserting
-    // on it proved nothing. requested_outcome falls back to the summary, and the
-    // pre-fix code passed the ALREADY-SLICED value into that fallback — so a
-    // 501-character summary silently lost a character there too. Now an
-    // over-long summary is refused outright, and a legal one reaches both fields
-    // intact.
+  it('GUARD: a legal summary reaches both summary and requested_outcome intact', async () => {
+    // Deliberately NOT claimed as a regression test. Codex was right that a
+    // 500-character summary is unchanged by the old `.slice(0, 500)`, and now
+    // that anything longer is refused outright there is no legal input where the
+    // old and new code differ. The discriminating test for that fix is the
+    // 501-character refusal above; this one only pins the fallback wiring.
     const summary = 's'.repeat(500)
     await POST(req({ ...validPacket, summary }))
     const inserted = mockInsert.mock.calls[0][0] as Record<string, unknown>
     expect(inserted.summary).toBe(summary)
     expect(inserted.requested_outcome).toBe(summary)
-    expect((inserted.requested_outcome as string).length).toBe(500)
   })
 
   it('bounds the actions array by count and by serialised size', async () => {
@@ -237,7 +258,10 @@ describe('margot-voice ingest: payload bounds and retry semantics', () => {
     expect(res.status).toBe(200)
   })
 
-  it('reports a malformed packet as malformed, not as oversized', async () => {
+  it('GUARD: reports a malformed packet as malformed, not as oversized', async () => {
+    // Pre-fix this route already returned 400 here, so it cannot fail against
+    // the old code. It guards the NEW 413 path from swallowing malformed
+    // packets as it evolves.
     // Missing transcript AND an over-long summary: shape wins, so the caller is
     // told the actionable thing first.
     const res = await POST(req({ packet_id: 'pkt-1', summary: 's'.repeat(9_000) }))

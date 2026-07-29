@@ -28,3 +28,17 @@ export function countErrorClient() {
   }
   return { from: () => ({ select: () => chain }) }
 }
+
+/**
+ * A client whose count query succeeds but returns a null body. Postgrest can do
+ * this, and `?? []` read it as "nothing is running" — admitting a claim while a
+ * mission was already in flight.
+ */
+export function nullBodyCountClient() {
+  const chain = {
+    eq: () => chain,
+    order: () => chain,
+    limit: () => Promise.resolve({ data: null, error: null }),
+  }
+  return { from: () => ({ select: () => chain }) }
+}

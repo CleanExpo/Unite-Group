@@ -55,7 +55,7 @@ function bearerOk(request: Request): boolean {
  * until its budget ran out and it failed. A misconfigured number silently
  * emptied the queue. Anything not a positive integer falls back to 1.
  */
-function readMaxConcurrent(raw: string | undefined): number {
+export function readMaxConcurrent(raw: string | undefined): number {
   const parsed = Number(raw)
   if (!Number.isInteger(parsed) || parsed < 1) return 1
   return parsed
@@ -90,8 +90,11 @@ async function countRunning(
       .order('claimed_at', { ascending: true })
       .limit(MAX_CONCURRENT_MISSIONS + 2)
     if (error) return Number.POSITIVE_INFINITY
-    const rows = (data as Array<{ id: string }> | null) ?? []
-    return rows.length
+    // Same reasoning as the delivery ledger: a successful response with null or
+    // a non-array body means the count is UNKNOWN, not zero. Treating it as zero
+    // would admit a claim while a mission is already running.
+    if (!Array.isArray(data)) return Number.POSITIVE_INFINITY
+    return (data as Array<{ id: string }>).length
   } catch {
     return Number.POSITIVE_INFINITY
   }
