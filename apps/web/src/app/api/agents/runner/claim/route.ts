@@ -71,6 +71,21 @@ export async function POST(request: Request) {
     )
   }
 
+  // The kill switch is read BEFORE anything is claimed. Checking it only after
+  // the claim would mean every poll made while the estate is stopped claims a
+  // mission and then has to put it back — burning that mission's bounded requeue
+  // budget (MAX_REQUEUE_ATTEMPTS = 3) until it is permanently failed. The safety
+  // control would itself become the thing that destroys approved work. Nothing
+  // is claimed here, so nothing needs releasing.
+  //
+  // No hard-stop reader exists in this codebase — `~/.claude/HARD_STOP` is a
+  // local file and this route is serverless, so the deployable equivalent is an
+  // env var. Absent means not stopped; only an explicit '1' engages it.
+  const hardStop = process.env.MISSION_LANE_HARD_STOP === '1'
+  if (hardStop) {
+    return NextResponse.json({ task: null, refused: 'hard_stop' }, { status: 200 })
+  }
+
   try {
     const client = createServiceClient()
     const task = await claimNextQueuedTask(client as unknown as RunnerClaimClientLike, {
@@ -88,13 +103,12 @@ export async function POST(request: Request) {
       //
       // Refusal releases the claim rather than returning the task, so the runner
       // cannot act on it and the mission does not silently vanish from the queue.
-      // No hard-stop reader exists in this codebase — `~/.claude/HARD_STOP` is a
-      // local file and this route is serverless, so the deployable equivalent is
-      // an env var. Absent means not stopped; only an explicit '1' engages it.
       const decision = admitMissionToLane(task, {
         inFlight: 0,
         maxConcurrent: 1,
-        hardStop: process.env.MISSION_LANE_HARD_STOP === '1',
+        // Already returned above if engaged; passed through so the gate keeps
+        // its own ordering guarantee rather than trusting this caller.
+        hardStop,
         laneAvailable: true,
         // claimNextQueuedTask returns the row AFTER flipping it to 'running',
         // so the gate is told which runner won it. Without this the status check
@@ -103,14 +117,31 @@ export async function POST(request: Request) {
       })
 
       if (!decision.admit) {
-        // 'failed', not 'requeue'. Requeue maps to status 'queued', so the next
-        // poll would claim it, refuse it and requeue it again — an inadmissible
-        // mission would spin forever. Refusal is terminal by design.
-        await releaseClaimedTask(client as unknown as RunnerClaimClientLike, {
+        // Whether a refusal is terminal depends on WHAT was refused.
+        //
+        // A verdict about the MISSION is terminal: an unclassified, unprovenanced,
+        // side-effecting or above-tier mission will be refused identically on
+        // every future poll, so requeueing it would have the runner claim,
+        // refuse and requeue it forever.
+        //
+        // A verdict about the HOST is not. `hard_stop`, `lane_unavailable` and
+        // `at_capacity` say nothing about whether the mission is fit to run —
+        // only that this box cannot run it now. Marking those 'failed' would
+        // mean engaging the kill switch silently destroys every approved mission
+        // the runner happens to claim while it is engaged, and the founder would
+        // come back to a queue of permanent failures caused by the safety
+        // control itself. Those go back to 'queued' to be picked up later.
+        const TRANSIENT: ReadonlySet<string> = new Set([
+          'hard_stop',
+          'lane_unavailable',
+          'at_capacity',
+        ])
+        const outcome = TRANSIENT.has(decision.code) ? 'requeue' : 'failed'
+        const release = await releaseClaimedTask(client as unknown as RunnerClaimClientLike, {
           founderId,
           taskId: task.id,
           runnerId: parsed.data.runnerId,
-          outcome: 'failed',
+          outcome,
         })
         await appendTaskEvent(
           {
@@ -120,7 +151,16 @@ export async function POST(request: Request) {
             actor: parsed.data.runnerId,
             // The code only — never the objective. A refusal reason that echoed
             // the text would put unvalidated voice input into the audit trail.
-            payload: { lane_admission: decision.code },
+            //
+            // effective_outcome, not the requested one (UNI-2398):
+            // releaseClaimedTask downgrades a requeue to 'failed' once
+            // MAX_REQUEUE_ATTEMPTS is exhausted, and an audit trail that logged
+            // the request would claim the mission went back to the queue when it
+            // was actually terminated.
+            payload: {
+              lane_admission: decision.code,
+              effective_outcome: release.effectiveOutcome,
+            },
           },
           client as unknown as SupabaseLike,
         )
