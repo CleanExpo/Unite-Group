@@ -19,8 +19,10 @@ import { z } from 'zod'
 import { createServiceClient } from '@/lib/supabase/service'
 import {
   claimNextQueuedTask,
+  releaseClaimedTask,
   type RunnerClaimClientLike,
 } from '@/lib/command-centre/runner-claim'
+import { admitMissionToLane } from '@/lib/command-centre/mission-lane-binding'
 import { appendTaskEvent, type SupabaseLike } from '@/lib/command-centre/tasks'
 
 export const dynamic = 'force-dynamic'
@@ -77,6 +79,57 @@ export async function POST(request: Request) {
     })
 
     if (task) {
+      // The admission gate had no production caller: a task was claimed and
+      // handed straight to runner.mjs, which interpolates `task.objective` into a
+      // `claude --permission-mode bypassPermissions` prompt. So a mission could
+      // declare read-only actionKinds while its objective text carried arbitrary
+      // instructions, and nothing between voice input and an unsandboxed agent
+      // ever consulted the gate that exists to stop exactly that.
+      //
+      // Refusal releases the claim rather than returning the task, so the runner
+      // cannot act on it and the mission does not silently vanish from the queue.
+      // No hard-stop reader exists in this codebase — `~/.claude/HARD_STOP` is a
+      // local file and this route is serverless, so the deployable equivalent is
+      // an env var. Absent means not stopped; only an explicit '1' engages it.
+      const decision = admitMissionToLane(task, {
+        inFlight: 0,
+        maxConcurrent: 1,
+        hardStop: process.env.MISSION_LANE_HARD_STOP === '1',
+        laneAvailable: true,
+        // claimNextQueuedTask returns the row AFTER flipping it to 'running',
+        // so the gate is told which runner won it. Without this the status check
+        // refuses every claim and the runner starves.
+        claimedBy: parsed.data.runnerId,
+      })
+
+      if (!decision.admit) {
+        // 'failed', not 'requeue'. Requeue maps to status 'queued', so the next
+        // poll would claim it, refuse it and requeue it again — an inadmissible
+        // mission would spin forever. Refusal is terminal by design.
+        await releaseClaimedTask(client as unknown as RunnerClaimClientLike, {
+          founderId,
+          taskId: task.id,
+          runnerId: parsed.data.runnerId,
+          outcome: 'failed',
+        })
+        await appendTaskEvent(
+          {
+            founderId,
+            taskId: task.id,
+            type: 'blocked',
+            actor: parsed.data.runnerId,
+            // The code only — never the objective. A refusal reason that echoed
+            // the text would put unvalidated voice input into the audit trail.
+            payload: { lane_admission: decision.code },
+          },
+          client as unknown as SupabaseLike,
+        )
+        return NextResponse.json(
+          { task: null, refused: decision.code },
+          { status: 200 },
+        )
+      }
+
       await appendTaskEvent(
         {
           founderId,

@@ -35,7 +35,7 @@
 // Supabase client is imported, so the whole module is unit-testable with no DB
 // (the house pattern from ./tasks.ts and ./signals/ingest.ts).
 
-import { createHash } from 'node:crypto'
+import { createHash, timingSafeEqual } from 'node:crypto'
 
 import type { AgentEventInput } from './agent-events'
 import {
@@ -334,6 +334,77 @@ export function buildMissionProvenance(mission: NormalisedVoiceMission): {
 const MISSION_HASH_PATTERN = /^[a-f0-9]{64}$/
 
 /**
+ * Recompute a stored task's mission hash from its own fields and compare.
+ *
+ * The lane gate previously accepted any 32-64 char hex as provenance, so a
+ * forged envelope carrying a plausible-looking `missionHash` satisfied it. A
+ * shape check proves the value looks like a hash; it proves nothing about what
+ * was hashed. This recomputes the same canonical payload `buildMissionProvenance`
+ * signs and requires an exact match, so the hash can only be produced by
+ * possessing the mission it describes.
+ *
+ * Fails closed on anything it cannot fully reconstruct — a task whose envelope
+ * predates `approvalRequested` being persisted is unverifiable, not trusted.
+ * Constant-time comparison because the attacker controls the candidate and can
+ * iterate.
+ */
+export function verifyMissionProvenance(task: CommandCentreTask): boolean {
+  const envelope = task.metadata?.voiceMission
+  if (!envelope || typeof envelope !== 'object') return false
+  const e = envelope as Record<string, unknown>
+
+  const stored = persistedMissionHash(task)
+  if (!stored) return false
+
+  const actionKinds = e.actionKinds
+  // conversationId and approvalReason are legitimately null on a mission that
+  // arrived without a conversation or an approval note. Demanding a string here
+  // refused every such mission — fail-closed, but wrong, and it is the majority
+  // case rather than an edge one.
+  if (
+    typeof e.packetId !== 'string' ||
+    (e.conversationId !== null && typeof e.conversationId !== 'string') ||
+    typeof e.approvalRequested !== 'boolean' ||
+    !Array.isArray(actionKinds) ||
+    !actionKinds.every((k) => typeof k === 'string') ||
+    typeof task.title !== 'string' ||
+    typeof task.objective !== 'string' ||
+    // snake_case: the PERSISTED row, not the camelCase CreateTaskInput that wrote
+    // it. Reading task.riskLevel here yields undefined, every recomputed hash then
+    // mismatches, and every mission is refused — fail-closed, but a total outage
+    // of the feature. tsc caught it; a runtime-only check would not have.
+    typeof task.risk_level !== 'string' ||
+    typeof task.project_key !== 'string'
+  ) {
+    return false
+  }
+  const approvalReason = e.approvalReason
+  if (approvalReason !== null && typeof approvalReason !== 'string') return false
+
+  // Field order and sorting must match buildMissionProvenance exactly; a
+  // divergence here silently fails every mission rather than passing a forged
+  // one, which is the safe direction but still a bug. The shared-shape test
+  // pins them together.
+  const canonicalPayload = JSON.stringify({
+    packetId: e.packetId,
+    conversationId: e.conversationId,
+    title: task.title,
+    objective: task.objective,
+    riskLevel: task.risk_level,
+    approvalRequested: e.approvalRequested,
+    approvalReason: approvalReason ?? null,
+    actionKinds: [...(actionKinds as string[])].sort(),
+    businessContext: task.project_key,
+  })
+
+  const expected = createHash('sha256').update(canonicalPayload).digest('hex')
+  const a = Buffer.from(expected, 'utf8')
+  const b = Buffer.from(stored, 'utf8')
+  if (a.length !== b.length) return false
+  return timingSafeEqual(a, b)
+}
+
+/**
  * Read the provenance hash previously persisted on a task. Returns null when it
  * is absent or malformed — either way the task cannot be proved to correspond
  * to the incoming packet, so the caller must refuse rather than repair.
@@ -460,6 +531,11 @@ export function voiceMissionToCreateTaskInput(
         transcriptCharacterCount: mission.transcriptCharacterCount,
         actionKinds: mission.actionKinds,
         approvalReason: mission.approvalReason,
+        // Hashed but previously unpersisted, which made missionHash impossible to
+        // recompute from a stored task — so the lane gate could only shape-check
+        // the hex and a forged envelope passed. Persisting it is what lets
+        // verifyMissionProvenance() authenticate rather than pattern-match.
+        approvalRequested: mission.approvalRequested,
         admission,
       },
     },

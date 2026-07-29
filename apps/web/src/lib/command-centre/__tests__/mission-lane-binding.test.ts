@@ -69,13 +69,56 @@ function voiceMetadata(armed: boolean, overrides: Record<string, unknown> = {}) 
   return { voiceMission }
 }
 
+/**
+ * A task consistent with its own provenance, as a real bridged mission is.
+ *
+ * `taskWith` hardcodes title/objective/project_key/risk_level while
+ * `voiceMetadata` derives the mission hash from the packet, so combining them
+ * produced a task whose stored hash did not describe its own fields. That passed
+ * only while the lane gate shape-checked the hex; now that provenance is
+ * recomputed, the fixture has to be as coherent as the thing it stands in for.
+ */
+function bridgedTask(
+  status: TaskStatus,
+  armed: boolean,
+  overrides: Record<string, unknown> = {},
+): CommandCentreTask {
+  const previous = process.env[VOICE_MISSION_AUTONOMY_ENV]
+  if (armed) process.env[VOICE_MISSION_AUTONOMY_ENV] = '1'
+  else delete process.env[VOICE_MISSION_AUTONOMY_ENV]
+  const parsed = parseVoiceMissionPacket({
+    packet_id: 'pkt-1',
+    transcript_text: 'summarise the tuesday call',
+    summary: 'Summarise the Tuesday call',
+    risk_level: 'low',
+    actions: [{ kind: 'research' }],
+  })
+  if (!parsed.ok) throw new Error('fixture must parse')
+  const input = voiceMissionToCreateTaskInput(parsed.mission, classifyVoiceMission(parsed.mission), 'f1')
+  if (previous === undefined) delete process.env[VOICE_MISSION_AUTONOMY_ENV]
+  else process.env[VOICE_MISSION_AUTONOMY_ENV] = previous
+
+  const meta = input.metadata as Record<string, unknown>
+  const base = taskWith(status)
+  return {
+    ...base,
+    title: input.title,
+    objective: input.objective,
+    project_key: input.projectKey,
+    risk_level: input.riskLevel,
+    metadata: {
+      voiceMission: { ...(meta.voiceMission as Record<string, unknown>), ...overrides },
+    },
+  } as CommandCentreTask
+}
+
 const HEALTHY = { inFlight: 0, maxConcurrent: 2, hardStop: false, laneAvailable: true }
 
 // ─── SUITE C1 — runner/lane admission + backpressure ─────────────────────────
 
 describe('mission lane admission', () => {
   it('admits a queued, explicitly safe L1 mission', () => {
-    const decision = admitMissionToLane(taskWith('queued', voiceMetadata(true)), HEALTHY)
+    const decision = admitMissionToLane(bridgedTask('queued', true), HEALTHY)
     expect(decision).toEqual({ admit: true, code: 'admitted' })
   })
 
@@ -93,43 +136,46 @@ describe('mission lane admission', () => {
   })
 
   it('refuses a mission that was never marked safe, even if it reached queued', () => {
-    const decision = admitMissionToLane(taskWith('queued', voiceMetadata(false)), HEALTHY)
+    const decision = admitMissionToLane(bridgedTask('queued', false), HEALTHY)
     expect(decision.admit).toBe(false)
     expect(decision.code).toBe('admission_not_safe')
   })
 
-  it('refuses a side-effecting mission even at L1', () => {
-    const meta = voiceMetadata(true)
-    const decision = admitMissionToLane(
-      taskWith('queued', {
+  /**
+   * Override the admission verdict on an OTHERWISE COHERENT task. Tampering with
+   * the admission does not invalidate provenance — the hash covers the mission,
+   * not the verdict — so these still reach the check they are testing. Built on
+   * bridgedTask rather than taskWith so provenance verifies and the refusal code
+   * under test is the one that actually fires.
+   */
+  function tamperedAdmission(patch: Record<string, unknown>): CommandCentreTask {
+    const task = bridgedTask('queued', true)
+    const envelope = (task.metadata as Record<string, unknown>).voiceMission as Record<string, unknown>
+    return {
+      ...task,
+      metadata: {
         voiceMission: {
-          ...meta.voiceMission,
-          admission: { ...(meta.voiceMission as never as { admission: object }).admission, sideEffecting: true },
+          ...envelope,
+          admission: { ...(envelope.admission as Record<string, unknown>), ...patch },
         },
-      }),
-      HEALTHY,
-    )
+      },
+    } as CommandCentreTask
+  }
+
+  it('refuses a side-effecting mission even at L1', () => {
+    const decision = admitMissionToLane(tamperedAdmission({ sideEffecting: true }), HEALTHY)
     expect(decision).toEqual({ admit: false, code: 'side_effecting' })
   })
 
   it('refuses a tier above L1', () => {
-    const meta = voiceMetadata(true)
     for (const tier of ['L2', 'L3'] as const) {
-      const decision = admitMissionToLane(
-        taskWith('queued', {
-          voiceMission: {
-            ...meta.voiceMission,
-            admission: { ...(meta.voiceMission as never as { admission: object }).admission, tier },
-          },
-        }),
-        HEALTHY,
-      )
+      const decision = admitMissionToLane(tamperedAdmission({ tier }), HEALTHY)
       expect(decision).toEqual({ admit: false, code: 'tier_not_admissible' })
     }
   })
 
   it('refuses everything while HARD_STOP is present, before any other check', () => {
-    const decision = admitMissionToLane(taskWith('queued', voiceMetadata(true)), {
+    const decision = admitMissionToLane(bridgedTask('queued', true), {
       ...HEALTHY,
       hardStop: true,
     })
@@ -137,7 +183,7 @@ describe('mission lane admission', () => {
   })
 
   it('reports the lane honestly as unavailable rather than admitting into nothing', () => {
-    const decision = admitMissionToLane(taskWith('queued', voiceMetadata(true)), {
+    const decision = admitMissionToLane(bridgedTask('queued', true), {
       ...HEALTHY,
       laneAvailable: false,
     })
@@ -145,7 +191,7 @@ describe('mission lane admission', () => {
   })
 
   it('applies backpressure at capacity as a soft refusal', () => {
-    const decision = admitMissionToLane(taskWith('queued', voiceMetadata(true)), {
+    const decision = admitMissionToLane(bridgedTask('queued', true), {
       ...HEALTHY,
       inFlight: 2,
       maxConcurrent: 2,
@@ -274,7 +320,7 @@ describe('mission control status view', () => {
   const NOW = Date.parse('2026-07-28T12:00:00.000Z')
 
   it('reports not_connected when no lane is attached, never a fabricated green', () => {
-    const row = toMissionControlRow(taskWith('queued', voiceMetadata(true)), null, { now: NOW })
+    const row = toMissionControlRow(bridgedTask('queued', true), null, { now: NOW })
     expect(row.source).toBe('not_connected')
     expect(row.laneStatus).toBeNull()
     expect(row.lastHeartbeatAt).toBeNull()
@@ -282,7 +328,7 @@ describe('mission control status view', () => {
   })
 
   it('reports live when a lane heartbeat is inside the window', () => {
-    const row = toMissionControlRow(taskWith('running', voiceMetadata(true)), {
+    const row = toMissionControlRow(bridgedTask('running', true), {
       laneStatus: 'running',
       lastHeartbeatAt: new Date(NOW - 30_000).toISOString(),
     }, { now: NOW })
@@ -291,7 +337,7 @@ describe('mission control status view', () => {
   })
 
   it('reports stale rather than healthy when the heartbeat has aged out', () => {
-    const row = toMissionControlRow(taskWith('running', voiceMetadata(true)), {
+    const row = toMissionControlRow(bridgedTask('running', true), {
       laneStatus: 'running',
       lastHeartbeatAt: new Date(NOW - 10 * 60_000).toISOString(),
     }, { now: NOW, staleAfterMs: 120_000 })
@@ -299,14 +345,14 @@ describe('mission control status view', () => {
   })
 
   it('explains why a parked mission is parked', () => {
-    const row = toMissionControlRow(taskWith('awaiting_approval', voiceMetadata(false)), null, { now: NOW })
+    const row = toMissionControlRow(bridgedTask('awaiting_approval', false), null, { now: NOW })
     expect(row.gate).toBe('awaiting_approval')
     expect(row.gateReason).toBe('kill_switch_off')
     expect(row.tier).toBe('L1')
   })
 
   it('never leaks a worktree path or transcript into the surfaced row', () => {
-    const row = toMissionControlRow(taskWith('running', voiceMetadata(true)), {
+    const row = toMissionControlRow(bridgedTask('running', true), {
       laneStatus: 'running',
       lastHeartbeatAt: new Date(NOW).toISOString(),
       worktree: '/Users/phill-mac/.hermes/lanes/lane-1',

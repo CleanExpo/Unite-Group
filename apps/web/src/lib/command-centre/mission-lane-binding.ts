@@ -28,7 +28,11 @@
 //  - A missing lane reports `not_connected` and a stale heartbeat reports
 //    `stale` — never a fabricated healthy green.
 
-import { redactVoiceText, type VoiceMissionAdmission } from './voice-mission-bridge'
+import {
+  redactVoiceText,
+  verifyMissionProvenance,
+  type VoiceMissionAdmission,
+} from './voice-mission-bridge'
 import type { RunnerReleaseOutcome } from './runner-claim'
 import type { CommandCentreTask, TaskStatus } from './tasks'
 
@@ -70,6 +74,23 @@ export interface LaneAdmissionContext {
   hardStop: boolean
   /** Whether an execution lane is actually available to receive the mission. */
   laneAvailable: boolean
+  /**
+   * The runner id that just won this task via the atomic claim, when the caller
+   * IS that claim path.
+   *
+   * claimNextQueuedTask flips queued → running under `.eq('status','queued')`
+   * and returns the UPDATED row, so a freshly claimed task arrives here already
+   * reading 'running'. Judging it on `status === 'queued'` alone would therefore
+   * refuse every task the runner ever claims. That is not a reason to drop the
+   * status check: it is a reason to state what the check is really asserting —
+   * that this mission cleared the approval actor and was handed to THIS caller.
+   *
+   * So a 'running' task is admissible only when its `claimed_by` matches this
+   * id, which is exactly the row the atomic guard just proved was queued a
+   * moment ago. Omit it (the default) and only a 'queued' task is admissible,
+   * which keeps every other caller on the stricter rule.
+   */
+  claimedBy?: string
 }
 
 /** Tiers a voice mission may be dispatched at without a fresh human decision. */
@@ -83,7 +104,9 @@ const VALID_TIERS = new Set(['L0', 'L1', 'L2', 'L3'])
 const VALID_INITIAL_STATUSES = new Set(['proposed', 'awaiting_approval'])
 const VALID_EXECUTION_MODES = new Set(['advisory', 'local-code', 'branch-preview', 'overnight'])
 const MACHINE_CODE = /^[a-z0-9_]+$/
-const MISSION_HASH = /^[a-f0-9]{32,64}$/
+// MISSION_HASH removed: matching the SHAPE of a hash is not evidence about what
+// produced it, and accepting any 32-64 char hex is what let a forged envelope
+// through the lane gate. Provenance is now recomputed, not pattern-matched.
 
 function readVoiceEnvelope(task: CommandCentreTask): Record<string, unknown> | null {
   const voiceMission = task.metadata?.voiceMission
@@ -114,13 +137,19 @@ function readAdmission(task: CommandCentreTask): VoiceMissionAdmission | null {
   return c as unknown as VoiceMissionAdmission
 }
 
-/** Immutable provenance must be present for a mission to be dispatchable. */
+/**
+ * Immutable provenance must be present AND authentic for a mission to be
+ * dispatchable.
+ *
+ * This previously returned true for any 32-64 char hex `missionHash`, which is a
+ * check on the shape of the value rather than on what produced it — a forged
+ * envelope carrying a plausible hash satisfied the lane gate and reached an
+ * execution lane. `verifyMissionProvenance` recomputes the hash from the task's
+ * own fields and requires an exact match, so it can only be produced by
+ * possessing the mission it describes.
+ */
 function hasProvenance(task: CommandCentreTask): boolean {
-  const envelope = readVoiceEnvelope(task)
-  const provenance = envelope?.provenance
-  if (!provenance || typeof provenance !== 'object') return false
-  const hash = (provenance as Record<string, unknown>).missionHash
-  return typeof hash === 'string' && MISSION_HASH.test(hash)
+  return verifyMissionProvenance(task)
 }
 
 /**
@@ -137,19 +166,59 @@ export function admitMissionToLane(
   if (!context.laneAvailable) return { admit: false, code: 'lane_unavailable' }
 
   // Only the runner's own atomic claim moves queued → running; anything not
-  // sitting in `queued` has not cleared the approval actor.
-  if (task.status !== 'queued') return { admit: false, code: 'not_queued' }
+  // sitting in `queued` has not cleared the approval actor. The one exception is
+  // the claimant itself reading back the row it just won — see `claimedBy`.
+  const justClaimedByCaller =
+    task.status === 'running' &&
+    typeof context.claimedBy === 'string' &&
+    context.claimedBy.length > 0 &&
+    (task as { claimed_by?: unknown }).claimed_by === context.claimedBy
+  if (task.status !== 'queued' && !justClaimedByCaller) {
+    return { admit: false, code: 'not_queued' }
+  }
 
-  const admission = readAdmission(task)
-  if (!admission) return { admit: false, code: 'risk_unclassified' }
-  if (!hasProvenance(task)) return { admit: false, code: 'provenance_missing' }
-  if (admission.sideEffecting) return { admit: false, code: 'side_effecting' }
-  if (!ADMISSIBLE_TIERS.has(admission.tier)) return { admit: false, code: 'tier_not_admissible' }
-  if (!admission.safe) return { admit: false, code: 'admission_not_safe' }
+  // The admission + provenance checks below judge a VOICE mission, and only a
+  // voice mission carries the envelope they read. cc_tasks is also written by
+  // work-packet-store and queue-bridge, whose rows have no `voiceMission` key at
+  // all — applying these checks to them would refuse every non-voice mission as
+  // `risk_unclassified` and starve the runner completely. Those rows reach
+  // `queued` through their own founder-authenticated approval path, which is the
+  // control that governs them.
+  //
+  // Scope is decided by TWO independent signals, either of which is sufficient,
+  // so an envelope cannot be dropped to escape the check it is subject to: a row
+  // that still says `voice:` in external_ref is judged as voice even with no
+  // envelope, and an envelope is judged as voice even with external_ref rewritten.
+  //
+  // Honest boundary: a writer holding the service-role key could insert a row
+  // bearing neither signal and skip this gate. That is unchanged by this fix and
+  // out of its threat model — the P1 was about the ElevenLabs ingest token, which
+  // reaches cc_tasks only through the voice bridge, and the bridge always sets
+  // both signals.
+  if (isVoiceOriginated(task)) {
+    const admission = readAdmission(task)
+    if (!admission) return { admit: false, code: 'risk_unclassified' }
+    if (!hasProvenance(task)) return { admit: false, code: 'provenance_missing' }
+    if (admission.sideEffecting) return { admit: false, code: 'side_effecting' }
+    if (!ADMISSIBLE_TIERS.has(admission.tier)) return { admit: false, code: 'tier_not_admissible' }
+    if (!admission.safe) return { admit: false, code: 'admission_not_safe' }
+  }
 
   if (context.inFlight >= context.maxConcurrent) return { admit: false, code: 'at_capacity' }
 
   return { admit: true, code: 'admitted' }
+}
+
+/**
+ * Whether this row came from the voice ingest path, and so must satisfy the
+ * voice admission contract. Deliberately over-inclusive: anything that looks
+ * like a voice mission by either signal is held to the stricter rule.
+ */
+function isVoiceOriginated(task: CommandCentreTask): boolean {
+  if (readVoiceEnvelope(task) !== null) return true
+  const externalRef = (task as { external_ref?: unknown }).external_ref
+  if (typeof externalRef === 'string' && externalRef.startsWith('voice:')) return true
+  return (task as { agent_owner?: unknown }).agent_owner === 'margot-voice'
 }
 
 // ─── Terminal outcomes ───────────────────────────────────────────────────────

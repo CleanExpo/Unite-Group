@@ -20,6 +20,37 @@ interface VoicePacket {
   evidence_refs: Record<string, string>;
 }
 
+// Every free-text and JSON field this route persists is bounded, and a packet
+// that exceeds a bound is REFUSED rather than truncated.
+//
+// The session row is written before the strict mission bridge runs, because the
+// transcript is the durable account of what was said even when the mission is
+// rejected. That ordering is deliberate, but it meant an authenticated caller
+// could park an arbitrarily large blob in margot_voice_sessions: nothing between
+// `req.json()` and the insert capped transcript_text, actions or evidence_refs,
+// and only `summary` was bounded — by a silent .slice(0, 500) that discarded the
+// overflow without telling the caller. Storage growth is not the only cost; the
+// row is read back by margot-health and the os-health-rollup cron.
+//
+// Truncating is the wrong remedy: a transcript cut mid-sentence still reaches the
+// mission bridge and can change what the mission is understood to mean. Refusing
+// is honest — the caller is told its packet was too large and which field did it.
+const LIMITS = {
+  packetId: 200,
+  conversationId: 200,
+  businessContext: 120,
+  summary: 500,
+  requestedOutcome: 2_000,
+  approvalReason: 2_000,
+  /** A very long call still transcribes well under this. */
+  transcript: 50_000,
+  actionCount: 50,
+  /** Serialised size ceiling for the two JSONB columns. */
+  actionsBytes: 20_000,
+  evidenceRefCount: 50,
+  evidenceRefValue: 2_000,
+} as const;
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 }
@@ -39,6 +70,42 @@ function asStringRecord(value: unknown): Record<string, string> {
   );
 }
 
+/**
+ * The single field name that broke a bound, or null when the packet fits.
+ * Returned rather than thrown so the caller can name the field in a 413 without
+ * echoing any of the oversized content back.
+ */
+function firstOversizedField(value: Record<string, unknown>): string | null {
+  const overLength: Array<[string, unknown, number]> = [
+    ['packet_id', value.packet_id, LIMITS.packetId],
+    ['conversation_id', value.conversation_id, LIMITS.conversationId],
+    ['business_context', value.business_context, LIMITS.businessContext],
+    ['summary', value.summary, LIMITS.summary],
+    ['requested_outcome', value.requested_outcome, LIMITS.requestedOutcome],
+    ['approval_reason', value.approval_reason, LIMITS.approvalReason],
+    ['transcript_text', value.transcript_text, LIMITS.transcript],
+  ];
+  for (const [name, raw, limit] of overLength) {
+    if (typeof raw === 'string' && raw.trim().length > limit) return name;
+  }
+
+  if (Array.isArray(value.actions)) {
+    if (value.actions.length > LIMITS.actionCount) return 'actions';
+    // Bound what is actually stored, not what was sent: asRecordArray drops
+    // non-object entries, so the persisted array is what must fit.
+    const persisted = asRecordArray(value.actions);
+    if (JSON.stringify(persisted).length > LIMITS.actionsBytes) return 'actions';
+  }
+
+  if (isRecord(value.evidence_refs)) {
+    const refs = asStringRecord(value.evidence_refs);
+    if (Object.keys(refs).length > LIMITS.evidenceRefCount) return 'evidence_refs';
+    if (Object.values(refs).some((v) => v.length > LIMITS.evidenceRefValue)) return 'evidence_refs';
+  }
+
+  return null;
+}
+
 // An absent or unrecognised risk_level is REFUSED, not silently downgraded to
 // 'low'. Coercing an unclassified risk into the lowest band is how an
 // unreviewed mission acquires a safe-looking verdict, so the packet is rejected
@@ -54,22 +121,34 @@ function readRiskLevel(value: unknown): VoiceRiskLevel | null {
     : null;
 }
 
-function validatePacket(value: unknown): VoicePacket | null {
-  if (!isRecord(value)) return null;
+type PacketResult =
+  | { ok: true; packet: VoicePacket }
+  | { ok: false; error: 'invalid_packet' }
+  | { ok: false; error: 'packet_too_large'; field: string };
+
+function validatePacket(value: unknown): PacketResult {
+  if (!isRecord(value)) return { ok: false, error: 'invalid_packet' };
 
   const packetId = asString(value.packet_id);
   const summary = asString(value.summary);
   const transcript = asString(value.transcript_text);
-  if (!packetId || !summary || !transcript) return null;
+  if (!packetId || !summary || !transcript) return { ok: false, error: 'invalid_packet' };
 
   const riskLevel = readRiskLevel(value.risk_level);
-  if (!riskLevel) return null;
+  if (!riskLevel) return { ok: false, error: 'invalid_packet' };
 
-  return {
+  // Checked after the shape is known good, so a malformed packet is reported as
+  // malformed rather than as oversized.
+  const oversized = firstOversizedField(value);
+  if (oversized) return { ok: false, error: 'packet_too_large', field: oversized };
+
+  const packet: VoicePacket = {
     packet_id: packetId,
     conversation_id: asString(value.conversation_id),
     transcript_text: transcript,
-    summary: summary.slice(0, 500),
+    // No longer sliced: an over-long summary is refused above, so what is stored
+    // is exactly what was sent rather than a silently shortened version of it.
+    summary,
     requested_outcome: asString(value.requested_outcome) || summary,
     business_context: asString(value.business_context) || 'unite-group',
     risk_level: riskLevel,
@@ -78,6 +157,7 @@ function validatePacket(value: unknown): VoicePacket | null {
     actions: asRecordArray(value.actions),
     evidence_refs: asStringRecord(value.evidence_refs),
   };
+  return { ok: true, packet };
 }
 
 function timingSafeTokenMatch(received: string | null, expected: string | undefined): boolean {
@@ -107,13 +187,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'invalid_json' }, { status: 400 });
   }
 
-  const packet = validatePacket(body);
-  if (!packet) return NextResponse.json({ error: 'invalid_packet' }, { status: 400 });
+  const validated = validatePacket(body);
+  if (!validated.ok) {
+    // 413 for a well-formed but oversized packet so the caller can tell "your
+    // packet is malformed, fix it" from "your packet is too big, trim it".
+    // Neither is retryable, so both stay 4xx.
+    if (validated.error === 'packet_too_large') {
+      return NextResponse.json(
+        { error: 'packet_too_large', field: validated.field },
+        { status: 413 },
+      );
+    }
+    return NextResponse.json({ error: 'invalid_packet' }, { status: 400 });
+  }
+  const packet = validated.packet;
 
   const supabase = createServiceClient();
   const highPriorityRisk = packet.risk_level === 'high' || packet.risk_level === 'critical';
   const approvalRequired = packet.approval_required || highPriorityRisk;
 
+  // Deliberately an insert, not an upsert. This table is the delivery ledger:
+  // every delivery of a packet is recorded, including a redelivery, which is the
+  // contract asserted by "dedupes the mission but still records both deliveries
+  // in the session ledger". Deduplication belongs one layer down, where
+  // UNIQUE(founder_id, external_ref) on cc_tasks maps a redelivered packet onto
+  // the mission it already created. That is what makes the 503 below safe to
+  // retry without minting a second mission.
   const { data: session, error: sessionError } = await supabase
     .from('margot_voice_sessions')
     .insert({
@@ -142,20 +241,37 @@ export async function POST(req: NextRequest) {
   // work. Idempotent by construction (UNIQUE(founder_id, external_ref)), so a
   // webhook redelivery maps to the same mission rather than a second one.
   //
-  // A bridge failure is REPORTED, never swallowed: the session is already
-  // persisted, so the response stays 200 and carries an honest mission status
-  // the caller and Mission Control can act on.
+  // A bridge failure is REPORTED, never swallowed: the mission status below
+  // always says what happened, and the HTTP status says whether to try again.
   const mission = await bridgeMission(supabase as unknown as SupabaseLike, founderId, body);
 
-  // A reused packet id carrying a changed control payload is a conflict, not a
-  // success. The delivery is still recorded above (the session row is the
-  // durable account of what was said) but the caller is told plainly that its
-  // mission was NOT accepted under an id that already means something else.
-  const status = mission.status === 'conflict' ? 409 : 200;
+  // The HTTP status is the caller's retry instruction, so it has to distinguish
+  // "we handled it" from "we dropped it":
+  //
+  //  - conflict     409 — a reused packet id carrying a changed control payload.
+  //                       The delivery is recorded (the session row is the
+  //                       durable account of what was said) but the mission was
+  //                       NOT accepted under an id that already means something
+  //                       else. Retrying the same body cannot help.
+  //  - bridge_failed 503 — the transcript persisted but the mission never
+  //                       reached cc_tasks. This previously returned 200, so
+  //                       ElevenLabs recorded a successful delivery and never
+  //                       redelivered: the founder had spoken a mission that
+  //                       existed only as a transcript, and nothing on either
+  //                       side was going to notice. 503 asks for redelivery, and
+  //                       the retry cannot mint a second mission because the
+  //                       bridge is idempotent on UNIQUE(founder_id,
+  //                       external_ref) — a redelivered packet maps onto the same
+  //                       mission and comes back as `duplicate`.
+  //  - rejected      200 — the mission was refused on its merits. That verdict is
+  //                       the correct final answer; redelivering the same packet
+  //                       would only earn the same refusal.
+  const status =
+    mission.status === 'conflict' ? 409 : mission.status === 'bridge_failed' ? 503 : 200;
 
   return NextResponse.json(
     {
-      ok: mission.status !== 'conflict',
+      ok: mission.status !== 'conflict' && mission.status !== 'bridge_failed',
       session_id: session.id,
       risk_level: packet.risk_level,
       approval_required: approvalRequired,
