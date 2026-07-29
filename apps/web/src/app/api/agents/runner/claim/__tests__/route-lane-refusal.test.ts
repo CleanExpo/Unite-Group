@@ -197,7 +197,7 @@ describe('POST /api/agents/runner/claim — lane refusal handling', () => {
     expect(payload.containment).toBe('job-object')
   })
 
-  it('REGRESSION: claims NOTHING when no containment mechanism is armed', async () => {
+  it('GUARD: claims NOTHING when no containment mechanism is armed', async () => {
     // `laneAvailable` was the literal `true`, which made the gate's
     // lane_unavailable refusal unreachable in production while runner.mjs ran
     // `claude --permission-mode bypassPermissions` in the real checkout. The
@@ -214,7 +214,7 @@ describe('POST /api/agents/runner/claim — lane refusal handling', () => {
     expect(releaseClaimedTask).not.toHaveBeenCalled()
   })
 
-  it('treats a whitespace-only containment host as unset', async () => {
+  it('GUARD: treats a whitespace-only containment value as unset', async () => {
     process.env.MISSION_LANE_CONTAINMENT = '   '
     const body = await (await POST(req())).json()
     expect(body.refused).toBe('lane_unavailable')

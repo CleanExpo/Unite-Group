@@ -447,6 +447,16 @@ export async function appendTaskEventOnce(
     if (error.code === '23505') return { event: null, created: false }
     throw new Error(`appendTaskEventOnce failed: ${error.message}`)
   }
+  // A successful response with no row is NOT a written receipt. `{data: null,
+  // error: null}` used to fall through here and report `created: true`, so the
+  // voice bridge would call the receipt complete and the caller would be told the
+  // mission's immutable audit row existed when it did not. Sixth instance of this
+  // exact shape in this change set: an unusable-but-not-errored response treated
+  // as success. Throwing routes it to the caller's receipt-failure path, which
+  // retries and then dead-letters rather than lying.
+  if (!data) {
+    throw new Error('appendTaskEventOnce failed: insert returned no row and no error')
+  }
   return { event: data as TaskEvent, created: true }
 }
 

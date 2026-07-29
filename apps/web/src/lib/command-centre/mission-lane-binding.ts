@@ -29,10 +29,12 @@
 //    `stale` — never a fabricated healthy green.
 
 import {
+  READ_ONLY_ACTION_KINDS,
   redactVoiceText,
   verifyMissionProvenance,
   type VoiceMissionAdmission,
 } from './voice-mission-bridge'
+import { HARD_GATED_TASK_TYPES } from '../operator-gateway/lanes'
 import type { RunnerReleaseOutcome } from './runner-claim'
 import type { CommandCentreTask, TaskStatus } from './tasks'
 
@@ -94,8 +96,11 @@ export interface LaneAdmissionContext {
   claimedBy?: string
 }
 
-/** Tiers a voice mission may be dispatched at without a fresh human decision. */
-const ADMISSIBLE_TIERS = new Set(['L0', 'L1'])
+// ADMISSIBLE_TIERS removed: the gate no longer reads the stored tier at all. It
+// derives the hard-gate/high-risk refusal from actionKinds and risk_level, both
+// of which are covered by the HMAC — so there is no tier value left to compare
+// against a set. Keeping the constant would imply the stored tier still has
+// authority here, and it does not.
 
 // (C) Independent review: the previous implementation cast a partial object
 // after checking only two fields, so a verdict with `sideEffecting: undefined`
@@ -151,6 +156,21 @@ function readAdmission(task: CommandCentreTask): VoiceMissionAdmission | null {
  */
 function hasProvenance(task: CommandCentreTask): boolean {
   return verifyMissionProvenance(task)
+}
+
+/**
+ * The action kinds from the envelope, which ARE covered by the HMAC — so by the
+ * time provenance has verified, these are authenticated inputs rather than
+ * mutable metadata. Returns null if the list is absent or not an array of
+ * strings, which the caller treats as unclassified and refuses.
+ */
+function readAuthenticatedActionKinds(task: CommandCentreTask): string[] | null {
+  const envelope = readVoiceEnvelope(task)
+  if (!envelope) return null
+  const kinds = envelope.actionKinds
+  if (!Array.isArray(kinds)) return null
+  if (!kinds.every((kind): kind is string => typeof kind === 'string')) return null
+  return kinds
 }
 
 /**
@@ -218,8 +238,40 @@ export function admitMissionToLane(
         code: isLegacyEnvelope(task) ? 'provenance_legacy' : 'provenance_missing',
       }
     }
-    if (admission.sideEffecting) return { admit: false, code: 'side_effecting' }
-    if (!ADMISSIBLE_TIERS.has(admission.tier)) return { admit: false, code: 'tier_not_admissible' }
+    // RECOMPUTED from authenticated fields, never read from the stored verdict.
+    //
+    // The HMAC covers the mission (packetId, title, objective, riskLevel,
+    // approvalRequested, approvalReason, actionKinds, businessContext). It does
+    // NOT cover `admission.sideEffecting` or `admission.tier` — and this gate
+    // used to read exactly those two to refuse. So a writer with database access
+    // but no provenance key could take a genuine L3 side-effecting voice task,
+    // rewrite its envelope to `{sideEffecting: false, tier: 'L1'}`, and pass the
+    // gate once a human approved it. The provenance check would still verify,
+    // because nothing it covers had changed.
+    //
+    // That is the same defect this whole change set began with: a gate trusting
+    // unauthenticated metadata. I authenticated the mission and left the verdict
+    // unauthenticated, while the gate reads the verdict.
+    //
+    // Extending the hash to cover the verdict would work, but recomputing is
+    // strictly better: it removes the possibility of the two disagreeing rather
+    // than detecting it. `sideEffecting` and the hard-gate/high-risk tier are
+    // pure functions of actionKinds and riskLevel, both of which ARE
+    // authenticated, so the gate derives them itself and the stored verdict
+    // becomes advisory display data with no authority.
+    const authenticatedActionKinds = readAuthenticatedActionKinds(task)
+    if (authenticatedActionKinds === null) return { admit: false, code: 'risk_unclassified' }
+
+    const sideEffecting = authenticatedActionKinds.some(
+      (kind) => !READ_ONLY_ACTION_KINDS.has(kind),
+    )
+    if (sideEffecting) return { admit: false, code: 'side_effecting' }
+
+    const hardGated = authenticatedActionKinds.some((kind) =>
+      HARD_GATED_TASK_TYPES.includes(kind),
+    )
+    const highRisk = task.risk_level === 'high' || task.risk_level === 'critical'
+    if (hardGated || highRisk) return { admit: false, code: 'tier_not_admissible' }
     // `admission.safe` is deliberately NOT required here any more.
     //
     // The classifier no longer claims safety for a voice mission, because every

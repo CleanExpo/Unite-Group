@@ -82,6 +82,7 @@ function bridgedTask(
   status: TaskStatus,
   armed: boolean,
   overrides: Record<string, unknown> = {},
+  packetOverrides: Record<string, unknown> = {},
 ): CommandCentreTask {
   const previous = process.env[VOICE_MISSION_AUTONOMY_ENV]
   if (armed) process.env[VOICE_MISSION_AUTONOMY_ENV] = '1'
@@ -92,6 +93,7 @@ function bridgedTask(
     summary: 'Summarise the Tuesday call',
     risk_level: 'low',
     actions: [{ kind: 'research' }],
+    ...packetOverrides,
   })
   if (!parsed.ok) throw new Error('fixture must parse')
   const input = voiceMissionToCreateTaskInput(parsed.mission, classifyVoiceMission(parsed.mission), 'f1')
@@ -115,6 +117,19 @@ function bridgedTask(
 const HEALTHY = { inFlight: 0, maxConcurrent: 2, hardStop: false, laneAvailable: true }
 
 // ─── SUITE C1 — runner/lane admission + backpressure ─────────────────────────
+
+/**
+ * A task BRIDGED with the given packet fields, so its provenance is genuine.
+ *
+ * actionKinds and risk_level are covered by the HMAC, which is why they cannot be
+ * edited after the fact to test a refusal — doing so invalidates provenance and
+ * the gate refuses on that instead. The fixture has to be built through the real
+ * bridge, which is a good constraint: it means these tests exercise inputs that
+ * could actually arrive.
+ */
+function bridgedWith(packet: Record<string, unknown>, status: TaskStatus = 'queued') {
+  return bridgedTask(status, true, {}, packet)
+}
 
 describe('mission lane admission', () => {
   it('admits a queued, explicitly safe L1 mission', () => {
@@ -153,19 +168,38 @@ describe('mission lane admission', () => {
 
   it('still refuses a queued mission whose declared actions are side-effecting', () => {
     // Dropping the `safe` check does NOT drop the declared-restriction checks.
-    // A packet that admits to side effects is still refused.
-    const task = bridgedTask('queued', false)
+    // Expressed through actionKinds because that is the authenticated input the
+    // gate recomputes from; rewriting admission.sideEffecting is exactly the
+    // tamper this change made ineffective.
+    expect(
+      admitMissionToLane(bridgedWith({ actions: [{ kind: 'deploy' }] }), HEALTHY).code,
+    ).toBe('side_effecting')
+  })
+
+  it('REGRESSION: rewriting the stored verdict does NOT open the gate', () => {
+    // admission.sideEffecting and admission.tier are NOT covered by the HMAC, and
+    // the gate used to read them. A writer with database access but no provenance
+    // key could flip a genuine side-effecting L3 task to
+    // {sideEffecting: false, tier: 'L1'} and pass once approved, because nothing
+    // the hash covers had changed. The gate now recomputes both from actionKinds
+    // and risk_level, which ARE authenticated.
+    const task = bridgedWith({ actions: [{ kind: 'deploy' }] })
     const envelope = (task.metadata as Record<string, unknown>).voiceMission as Record<string, unknown>
-    const tampered = {
+    const laundered = {
       ...task,
       metadata: {
         voiceMission: {
           ...envelope,
-          admission: { ...(envelope.admission as Record<string, unknown>), sideEffecting: true },
+          admission: {
+            ...(envelope.admission as Record<string, unknown>),
+            sideEffecting: false,
+            tier: 'L1',
+            safe: true,
+          },
         },
       },
     } as typeof task
-    expect(admitMissionToLane(tampered, HEALTHY).code).toBe('side_effecting')
+    expect(admitMissionToLane(laundered, HEALTHY).code).toBe('side_effecting')
   })
 
   /**
@@ -190,15 +224,41 @@ describe('mission lane admission', () => {
   }
 
   it('refuses a side-effecting mission even at L1', () => {
-    const decision = admitMissionToLane(tamperedAdmission({ sideEffecting: true }), HEALTHY)
+    // A side-effecting DECLARED action, not a rewritten verdict.
+    const decision = admitMissionToLane(
+      bridgedWith({ actions: [{ kind: 'research' }, { kind: 'deploy' }] }),
+      HEALTHY,
+    )
     expect(decision).toEqual({ admit: false, code: 'side_effecting' })
   })
 
-  it('refuses a tier above L1', () => {
-    for (const tier of ['L2', 'L3'] as const) {
-      const decision = admitMissionToLane(tamperedAdmission({ tier }), HEALTHY)
+  it('refuses an above-L1 mission, derived from AUTHENTICATED risk_level', () => {
+    // Was `tamperedAdmission({ tier })`, which no longer changes the answer: the
+    // gate recomputes the tier from risk_level and actionKinds rather than
+    // reading the stored verdict. risk_level IS covered by the HMAC, so the
+    // fixture is bridged with a high/critical packet instead of edited after.
+    for (const risk of ['high', 'critical'] as const) {
+      const decision = admitMissionToLane(bridgedWith({ risk_level: risk }), HEALTHY)
       expect(decision).toEqual({ admit: false, code: 'tier_not_admissible' })
     }
+  })
+
+  it('REGRESSION: rewriting the stored TIER does not open the gate', () => {
+    // The companion to the sideEffecting laundering test: a genuine critical-risk
+    // mission whose envelope claims tier L1 is still refused, because the tier is
+    // derived from the authenticated risk_level.
+    const task = bridgedWith({ risk_level: 'critical' })
+    const envelope = (task.metadata as Record<string, unknown>).voiceMission as Record<string, unknown>
+    const laundered = {
+      ...task,
+      metadata: {
+        voiceMission: {
+          ...envelope,
+          admission: { ...(envelope.admission as Record<string, unknown>), tier: 'L1', safe: true },
+        },
+      },
+    } as typeof task
+    expect(admitMissionToLane(laundered, HEALTHY).code).toBe('tier_not_admissible')
   })
 
   it('refuses everything while HARD_STOP is present, before any other check', () => {

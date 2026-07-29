@@ -64,6 +64,8 @@ const MAX_OBJECTIVE_LENGTH = 500
 const MAX_TARGET_LENGTH = 128
 const MAX_PACKET_ID_LENGTH = 200
 const MAX_ACTION_KINDS = 20
+/** Hashed AND used for routing, so an over-long value is refused, not shortened. */
+const MAX_BUSINESS_CONTEXT_LENGTH = 64
 
 /**
  * The closed set of action kinds a voice mission may carry and still be
@@ -299,6 +301,28 @@ export function parseVoiceMissionPacket(value: unknown): VoiceMissionParse {
     }
   }
 
+  // Same injectivity requirement as requested_outcome, applied to its SIBLINGS.
+  // Both of these are hashed, and both were silently shortened before hashing
+  // while the route accepted a longer value: approval_reason (route 2,000 ->
+  // hashed at 500) and business_context (route 120 -> hashed at 64). Two packets
+  // differing only past the cut produced the SAME provenance hash, so the second
+  // resolved as a duplicate replay of the first instead of a conflict — and for
+  // business_context it also changed where the mission routes. I fixed
+  // requested_outcome and did not sweep for the other fields with the same shape.
+  const approvalReasonRaw = asString(value.approval_reason)
+  if (
+    approvalReasonRaw &&
+    cleanText(approvalReasonRaw, MAX_OBJECTIVE_LENGTH + 1).length > MAX_OBJECTIVE_LENGTH
+  ) {
+    reasons.push(`approval_reason exceeds ${MAX_OBJECTIVE_LENGTH} characters after normalisation`)
+  }
+  const businessContextRaw = asString(value.business_context)
+  if (businessContextRaw && machineSafeRef(businessContextRaw, MAX_BUSINESS_CONTEXT_LENGTH + 1).length > MAX_BUSINESS_CONTEXT_LENGTH) {
+    reasons.push(
+      `business_context exceeds ${MAX_BUSINESS_CONTEXT_LENGTH} characters after normalisation`,
+    )
+  }
+
   if (reasons.length > 0 || !packetId || !riskLevel || actionKinds === null) {
     return { ok: false, reasons: reasons.length > 0 ? reasons : ['packet failed validation'] }
   }
@@ -318,10 +342,10 @@ export function parseVoiceMissionPacket(value: unknown): VoiceMissionParse {
       objective,
       riskLevel,
       approvalRequested: value.approval_required === true,
-      approvalReason: cleanText(asString(value.approval_reason), MAX_OBJECTIVE_LENGTH) || null,
+      approvalReason: cleanText(approvalReasonRaw, MAX_OBJECTIVE_LENGTH) || null,
       actionKinds,
       transcriptCharacterCount: transcript.length,
-      businessContext: machineSafeRef(asString(value.business_context) || 'unite-group', 64),
+      businessContext: machineSafeRef(businessContextRaw || 'unite-group', MAX_BUSINESS_CONTEXT_LENGTH),
     },
   }
 }
