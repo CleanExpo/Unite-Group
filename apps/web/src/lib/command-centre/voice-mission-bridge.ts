@@ -35,7 +35,7 @@
 // Supabase client is imported, so the whole module is unit-testable with no DB
 // (the house pattern from ./tasks.ts and ./signals/ingest.ts).
 
-import { createHmac, timingSafeEqual } from 'node:crypto'
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
 
 import type { AgentEventInput } from './agent-events'
 import {
@@ -99,6 +99,8 @@ export interface NormalisedVoiceMission {
   actionKinds: string[]
   transcriptCharacterCount: number
   businessContext: string
+  /** sha256 of the packet exactly as sent — see rawPacketFingerprint. */
+  rawFingerprint: string
 }
 
 export type VoiceMissionParse =
@@ -164,6 +166,67 @@ function asString(value: unknown): string {
 }
 
 /**
+ * A fingerprint of the packet EXACTLY AS SENT, before any normalisation.
+ *
+ * This exists because per-field reasoning about normalisation kept failing. The
+ * previous approach classified each hashed field as "identity/routing" (must be an
+ * identity map) or "prose" (may be normalised) and enforced accordingly. Two
+ * independent reviews then demonstrated the classification was wrong on its most
+ * important field: `objective` is interpolated into a shell-adjacent prompt, so
+ * `printf 'a  b'` and `printf 'a b'` are DIFFERENT commands that cleanText
+ * collapsed into the same approved mission. A third finding showed identity fields
+ * were trimmed before validation, so ' pkt-1 ' and 'pkt-1' collapsed too.
+ *
+ * The durable fix is structural rather than a better judgement: hash the raw
+ * packet. Any two packets the route accepted as different produce different
+ * fingerprints, so they produce different mission hashes, whatever normalisation
+ * each field goes through afterwards. Normalisation becomes display and routing
+ * only, and injectivity stops depending on anyone classifying nine fields
+ * correctly - or classifying the tenth correctly when it is added.
+ *
+ * Not a keyed MAC: it does not need to be, because it is itself a field inside the
+ * HMAC-signed canonical payload. Its job is to make distinct inputs distinct, not
+ * to authenticate them.
+ */
+function rawPacketFingerprint(value: Record<string, unknown>): string {
+  const raw = (key: string): string | null => {
+    const v = value[key]
+    return typeof v === 'string' ? v : null
+  }
+  // Every field that can influence the mission or its admission, verbatim.
+  // Non-strings are captured by their JSON form so a type change is also a change.
+  const canonical = JSON.stringify({
+    packet_id: raw('packet_id'),
+    conversation_id: raw('conversation_id'),
+    summary: raw('summary'),
+    requested_outcome: raw('requested_outcome'),
+    transcript_text: raw('transcript_text'),
+    risk_level: raw('risk_level'),
+    approval_required: value.approval_required ?? null,
+    approval_reason: raw('approval_reason'),
+    business_context: raw('business_context'),
+    // ACTIONS are sorted by their canonical JSON form, and this is the ONE
+    // equivalence the fingerprint claims. It is not a judgement about what
+    // "probably means the same thing" - the kind that failed for whitespace in
+    // the objective - it is a property provable from the consumer: admission reads
+    // actionKinds as a SET (`.some(...)`), and no code path reads action order.
+    // The full action object is preserved, not just `kind`, so any content change
+    // still changes the fingerprint.
+    //
+    // Dropping this and going fully verbatim would fail SAFE (a reordered
+    // redelivery would become a conflict rather than a duplicate) but it would
+    // break the documented order-insensitivity contract that
+    // voice-mission-exactly-once.test.ts asserts, turning a legitimate client's
+    // array ordering into spurious rejected missions.
+    actions: Array.isArray(value.actions)
+      ? [...value.actions].map((a) => JSON.stringify(a)).sort()
+      : (value.actions ?? null),
+  })
+  return createHash('sha256').update(canonical).digest('hex')
+}
+
+
+/**
  * The four declared risk levels. A packet must state one of them exactly.
  *
  * (A) Independent review: an absent or unrecognised risk_level must NOT quietly
@@ -202,8 +265,13 @@ function readActionKinds(value: unknown): string[] | null {
   const kinds: string[] = []
   for (const action of value) {
     if (!isRecord(action)) return null
-    const raw = asString(action.kind ?? action.type).toLowerCase()
-    if (!raw) return null
+    // Checked BEFORE lowercasing. The declared alphabet is lowercase, but the
+    // value was lowercased first, so 'RESEARCH' satisfied a check that says it
+    // must already be [a-z0-9_]. Same shape as the trim problem above: a
+    // normalisation applied before its own validation.
+    const sent = typeof (action.kind ?? action.type) === 'string' ? String(action.kind ?? action.type) : ''
+    if (!sent) return null
+    const raw = sent
     const cleaned = raw.replace(/[^a-z0-9_]/g, '')
     // A kind that is not already machine-safe is refused rather than rewritten:
     // 'pay-ments' and 'payments' must not silently become the same token, and a
@@ -335,8 +403,13 @@ export function parseVoiceMissionPacket(value: unknown): VoiceMissionParse {
   // both become 'conv-a' — two route-legal ids collapsing to one hashed value and
   // therefore one mission. This is the same lossy-canonicaliser trap the packet-id
   // comment already warns about; refusing keeps the mapping injective.
+  // Validated UNTRIMMED. asString() trims, so ' conv-a ' previously arrived here
+  // already equal to 'conv-a' and passed the identity-map test - collapsing two
+  // values the route accepted as different into one mission. The identity check is
+  // only an identity check if it runs on what was actually sent.
+  const conversationIdSent = typeof value.conversation_id === 'string' ? value.conversation_id : ''
   const conversationIdRaw = asString(value.conversation_id)
-  if (conversationIdRaw && machineSafeRef(conversationIdRaw, 200) !== conversationIdRaw) {
+  if (conversationIdSent && machineSafeRef(conversationIdSent, 200) !== conversationIdSent) {
     reasons.push(
       'conversation_id must already be machine-safe ([A-Za-z0-9._:/-], no spaces) and at most 200 characters',
     )
@@ -358,11 +431,14 @@ export function parseVoiceMissionPacket(value: unknown): VoiceMissionParse {
   //   cleanText collapses whitespace runs, and 'Do X' and 'Do  X' genuinely mean
   //   the same instruction, so merging them is correct rather than lossy.
   // Any NEW hashed field must be classified against that rule before it is added.
+  // Same correction as conversation_id: validate what was SENT, not what trimming
+  // already tidied.
+  const businessContextSent = typeof value.business_context === 'string' ? value.business_context : ''
   const businessContextRaw = asString(value.business_context)
-  if (businessContextRaw) {
-    if (businessContextRaw.length > MAX_BUSINESS_CONTEXT_LENGTH) {
+  if (businessContextSent) {
+    if (businessContextSent.length > MAX_BUSINESS_CONTEXT_LENGTH) {
       reasons.push(`business_context exceeds ${MAX_BUSINESS_CONTEXT_LENGTH} characters`)
-    } else if (machineSafeRef(businessContextRaw, MAX_BUSINESS_CONTEXT_LENGTH) !== businessContextRaw) {
+    } else if (machineSafeRef(businessContextSent, MAX_BUSINESS_CONTEXT_LENGTH) !== businessContextSent) {
       reasons.push(
         'business_context must already be machine-safe ([A-Za-z0-9._:/-], no spaces)',
       )
@@ -393,6 +469,7 @@ export function parseVoiceMissionPacket(value: unknown): VoiceMissionParse {
       approvalReason: cleanText(approvalReasonRaw, MAX_OBJECTIVE_LENGTH) || null,
       actionKinds,
       transcriptCharacterCount: transcript.length,
+      rawFingerprint: rawPacketFingerprint(value),
       // Proven machine-safe above, so this is an identity map, not a rewrite.
       businessContext: businessContextRaw || 'unite-group',
     },
@@ -438,6 +515,10 @@ export function buildMissionProvenance(mission: NormalisedVoiceMission): {
     'approvalReason',
     'actionKinds',
     'businessContext',
+    // The raw-packet fingerprint. Its presence here is what makes injectivity
+    // structural: two packets the route accepted as different cannot share a
+    // mission hash, whatever normalisation the fields above receive.
+    'rawFingerprint',
   ] as const
 
   const canonicalPayload = JSON.stringify({
@@ -451,6 +532,7 @@ export function buildMissionProvenance(mission: NormalisedVoiceMission): {
     // Sorted: action ORDER is not semantic, action SET is.
     actionKinds: [...mission.actionKinds].sort(),
     businessContext: mission.businessContext,
+    rawFingerprint: mission.rawFingerprint,
   })
 
   const missionHash = computeMissionHash(canonicalPayload)
@@ -532,6 +614,11 @@ export function verifyMissionProvenance(task: CommandCentreTask): boolean {
     typeof e.packetId !== 'string' ||
     (e.conversationId !== null && typeof e.conversationId !== 'string') ||
     typeof e.approvalRequested !== 'boolean' ||
+    // Absent or malformed means unverifiable, not "skip this field": an envelope
+    // without the fingerprint is either pre-rollout or has had it stripped, and
+    // either way the injectivity guarantee does not hold for it.
+    typeof e.rawFingerprint !== 'string' ||
+    !/^[a-f0-9]{64}$/.test(e.rawFingerprint) ||
     !Array.isArray(actionKinds) ||
     !actionKinds.every((k) => typeof k === 'string') ||
     typeof task.title !== 'string' ||
@@ -562,6 +649,7 @@ export function verifyMissionProvenance(task: CommandCentreTask): boolean {
     approvalReason: approvalReason ?? null,
     actionKinds: [...(actionKinds as string[])].sort(),
     businessContext: task.project_key,
+    rawFingerprint: e.rawFingerprint,
   })
 
   // No key configured means no mission can be proved authentic, so none is
@@ -721,6 +809,7 @@ export function voiceMissionToCreateTaskInput(
         conversationId: mission.conversationId,
         transcriptCharacterCount: mission.transcriptCharacterCount,
         actionKinds: mission.actionKinds,
+        rawFingerprint: mission.rawFingerprint,
         approvalReason: mission.approvalReason,
         // Hashed but previously unpersisted, which made missionHash impossible to
         // recompute from a stored task — so the lane gate could only shape-check

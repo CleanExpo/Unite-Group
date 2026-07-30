@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import {
+  buildMissionProvenance,
   parseVoiceMissionPacket,
   voiceMissionExternalRef,
   classifyVoiceMission,
@@ -370,6 +371,78 @@ describe('voice mission risk classification', () => {
       actions: [{ kind: 'research' }],
     })
     expect(parsed.ok).toBe(false)
+  })
+
+  it('REGRESSION: whitespace-only differences in the OBJECTIVE produce different missions', () => {
+    // The finding that killed the prose/identity classification: the objective is
+    // interpolated into a shell-adjacent prompt, so `printf 'a  b'` and
+    // `printf 'a b'` are DIFFERENT commands. cleanText collapsed them to one
+    // normalised objective and therefore one mission hash, so the second was
+    // accepted as a duplicate replay of the first. The raw-packet fingerprint makes
+    // them distinct regardless of what cleanText does downstream.
+    const base = {
+      packet_id: 'pkt-ws',
+      transcript_text: 'run it',
+      summary: 'Run it',
+      risk_level: 'low',
+      actions: [{ kind: 'research' }],
+    }
+    const a = parseVoiceMissionPacket({ ...base, requested_outcome: "printf 'a  b'" })
+    const b = parseVoiceMissionPacket({ ...base, requested_outcome: "printf 'a b'" })
+    expect(a.ok && b.ok).toBe(true)
+    if (!a.ok || !b.ok) return
+    // Same normalised objective...
+    expect(a.mission.objective).toBe(b.mission.objective)
+    // ...but NOT the same mission.
+    expect(a.mission.rawFingerprint).not.toBe(b.mission.rawFingerprint)
+    expect(buildMissionProvenance(a.mission).missionHash).not.toBe(
+      buildMissionProvenance(b.mission).missionHash,
+    )
+  })
+
+  it('REGRESSION: a leading/trailing-space identity value is REFUSED, not trimmed into a collision', () => {
+    // Identity fields were validated after asString() had already trimmed them, so
+    // ' conv-a ' arrived equal to 'conv-a' and passed the identity-map test.
+    const base = {
+      packet_id: 'pkt-trim',
+      transcript_text: 'run it',
+      summary: 'Run it',
+      risk_level: 'low',
+      actions: [{ kind: 'research' }],
+    }
+    expect(parseVoiceMissionPacket({ ...base, conversation_id: ' conv-a ' }).ok).toBe(false)
+    expect(parseVoiceMissionPacket({ ...base, business_context: ' client-a ' }).ok).toBe(false)
+    // The untrimmed-but-clean forms still pass.
+    expect(parseVoiceMissionPacket({ ...base, conversation_id: 'conv-a' }).ok).toBe(true)
+  })
+
+  it('REGRESSION: an uppercase action kind is refused, matching the declared alphabet', () => {
+    // The kind was lowercased BEFORE the [a-z0-9_] check, so 'RESEARCH' satisfied a
+    // rule that says it must already be lowercase.
+    const parsed = parseVoiceMissionPacket({
+      packet_id: 'pkt-case',
+      transcript_text: 'run it',
+      summary: 'Run it',
+      risk_level: 'low',
+      actions: [{ kind: 'RESEARCH' }],
+    })
+    expect(parsed.ok).toBe(false)
+  })
+
+  it('GUARD: reordering actions still yields the SAME mission', () => {
+    // The one equivalence the fingerprint claims, and it is provable from the
+    // consumer rather than assumed: admission reads actionKinds as a set.
+    const base = {
+      packet_id: 'pkt-order',
+      transcript_text: 'run it',
+      summary: 'Run it',
+      risk_level: 'low',
+    }
+    const a = parseVoiceMissionPacket({ ...base, actions: [{ kind: 'research' }, { kind: 'draft' }] })
+    const b = parseVoiceMissionPacket({ ...base, actions: [{ kind: 'draft' }, { kind: 'research' }] })
+    expect(a.ok && b.ok).toBe(true)
+    if (!a.ok || !b.ok) return
+    expect(a.mission.rawFingerprint).toBe(b.mission.rawFingerprint)
   })
 
   it('REGRESSION: two business_contexts differing only by a stripped character stay distinct', () => {
