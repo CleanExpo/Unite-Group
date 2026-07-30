@@ -55,7 +55,7 @@ describe('POST /api/agents/runner/claim — lane refusal handling', () => {
     // own test below.
     process.env.MISSION_LANE_CONTAINMENT = 'job-object'
     // The runner must also be one the founder registered as contained.
-    process.env.MISSION_LANE_CONTAINED_RUNNERS = 'mac-mini-runner'
+    process.env.MISSION_LANE_CONTAINED_RUNNERS = 'mac-mini-runner:win32:job-object'
     vi.mocked(createServiceClient).mockReturnValue(runningCountClient([]) as never)
     vi.mocked(releaseClaimedTask).mockResolvedValue({
       task: null,
@@ -163,9 +163,47 @@ describe('POST /api/agents/runner/claim — lane refusal handling', () => {
     // dishonest declaration cannot be detected from the route, so the set of
     // parties permitted to make one is now restricted to runner ids the founder
     // registered. This is the lying-Mac case the earlier darwin-only test missed.
-    process.env.MISSION_LANE_CONTAINED_RUNNERS = 'win-ts-runner'
+    process.env.MISSION_LANE_CONTAINED_RUNNERS = 'win-ts-runner:win32:job-object'
     const body = await (
       await POST(req({ runnerId: 'sneaky-mac', platform: 'win32', containment: 'job-object' }))
+    ).json()
+    expect(body.refused).toBe('lane_unavailable')
+    expect(claimNextQueuedTask).not.toHaveBeenCalled()
+  })
+
+  it('REGRESSION: a registered id is not enough — the PLATFORM must match the registry', async () => {
+    // The blocking finding: "a bearer holder can use a registered runnerId while
+    // declaring platform win32 and containment job-object from macOS". Borrowing a
+    // registered name was sufficient because the platform came from the request.
+    // The registry now binds runnerId -> platform:mechanism, so the declaration must
+    // agree with what the founder wrote down.
+    process.env.MISSION_LANE_CONTAINED_RUNNERS = 'mac-mini-runner:win32:job-object'
+    const body = await (
+      await POST(req({ runnerId: RUNNER, platform: 'darwin', containment: 'job-object' }))
+    ).json()
+    expect(body.refused).toBe('lane_unavailable')
+    expect(claimNextQueuedTask).not.toHaveBeenCalled()
+  })
+
+  it('REGRESSION: a malformed registry entry grants nothing', async () => {
+    // A half-written triple must not degrade into "id is enough" — that is the
+    // exact shape that just failed.
+    for (const entry of ['mac-mini-runner', 'mac-mini-runner:win32', 'mac-mini-runner::job-object']) {
+      process.env.MISSION_LANE_CONTAINED_RUNNERS = entry
+      vi.mocked(claimNextQueuedTask).mockClear()
+      const body = await (await POST(req())).json()
+      expect(body.refused).toBe('lane_unavailable')
+      expect(claimNextQueuedTask).not.toHaveBeenCalled()
+    }
+  })
+
+  it('REGRESSION: an internally inconsistent registry entry grants nothing', async () => {
+    // cgroup2 is Linux-only. Registering it against win32 is a misconfiguration,
+    // not a grant, even if the runner declares the same wrong pair.
+    process.env.MISSION_LANE_CONTAINMENT = 'cgroup2'
+    process.env.MISSION_LANE_CONTAINED_RUNNERS = 'mac-mini-runner:win32:cgroup2'
+    const body = await (
+      await POST(req({ runnerId: RUNNER, platform: 'win32', containment: 'cgroup2' }))
     ).json()
     expect(body.refused).toBe('lane_unavailable')
     expect(claimNextQueuedTask).not.toHaveBeenCalled()
@@ -202,8 +240,21 @@ describe('POST /api/agents/runner/claim — lane refusal handling', () => {
     expect(claimNextQueuedTask).not.toHaveBeenCalled()
   })
 
-  it('REGRESSION: an un-upgraded runner sending no attestation fails closed', async () => {
-    const body = await (await POST(req({ runnerId: RUNNER }))).json()
+  it('CONTRACT: a registered runner is granted with no declaration at all', async () => {
+    // This replaced a test asserting that a runner sending no platform/containment
+    // "fails closed". That framing was wrong, and asserting it entrenched the wrong
+    // model: the declaration was never evidence - a macOS process willing to lie
+    // declares whatever the registry says, verified against the reviewer's exact
+    // attack. Requiring it was theatre, so its absence is not disqualifying.
+    //
+    // The registry is the boundary. The test below is the one that must hold.
+    vi.mocked(claimNextQueuedTask).mockResolvedValue(null)
+    await POST(req({ runnerId: RUNNER }))
+    expect(claimNextQueuedTask).toHaveBeenCalledTimes(1)
+  })
+  it('REGRESSION: an UNREGISTERED runner is refused even with no declaration', async () => {
+    // The registry is the boundary, so this is the case that must hold.
+    const body = await (await POST(req({ runnerId: 'not-registered' }))).json()
     expect(body.refused).toBe('lane_unavailable')
     expect(claimNextQueuedTask).not.toHaveBeenCalled()
   })
@@ -249,7 +300,7 @@ describe('POST /api/agents/runner/claim — lane refusal handling', () => {
     // that refuses unconditionally.
     process.env.MISSION_LANE_CONTAINMENT = 'job-object'
     // The runner must also be one the founder registered as contained.
-    process.env.MISSION_LANE_CONTAINED_RUNNERS = 'mac-mini-runner'
+    process.env.MISSION_LANE_CONTAINED_RUNNERS = 'mac-mini-runner:win32:job-object'
     vi.mocked(claimNextQueuedTask).mockResolvedValue(null)
     await POST(req({ runnerId: RUNNER, platform: 'win32', containment: 'job-object' }))
     expect(claimNextQueuedTask).toHaveBeenCalledTimes(1)
@@ -257,6 +308,8 @@ describe('POST /api/agents/runner/claim — lane refusal handling', () => {
 
   it('POSITIVE CONTROL: the Linux pairing also claims', async () => {
     process.env.MISSION_LANE_CONTAINMENT = 'cgroup2'
+    // The registry must agree with the armed mechanism and the runner's platform.
+    process.env.MISSION_LANE_CONTAINED_RUNNERS = 'mac-mini-runner:linux:cgroup2'
     vi.mocked(claimNextQueuedTask).mockResolvedValue(null)
     await POST(req({ runnerId: RUNNER, platform: 'linux', containment: 'cgroup2' }))
     expect(claimNextQueuedTask).toHaveBeenCalledTimes(1)

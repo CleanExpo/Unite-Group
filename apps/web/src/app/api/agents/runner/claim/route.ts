@@ -207,31 +207,100 @@ export function armedContainmentMechanism(): ContainmentMechanism | null {
  * the founder wrote down". A misconfigured or rogue runner that is not on the
  * list cannot claim, whatever it declares about itself.
  */
+/**
+ * Runners the founder has registered as running on a host with kernel containment,
+ * each BOUND to the platform and mechanism that host actually provides.
+ *
+ * Format: `runnerId:platform:mechanism`, comma-separated. Example:
+ *   MISSION_LANE_CONTAINED_RUNNERS=win-ts-runner:win32:job-object
+ *
+ * The previous version was a bare id list, and the reviewer showed why that was not
+ * a gate: "a bearer holder can use a registered runnerId while declaring
+ * platform win32 and containment job-object from macOS". Borrowing a registered id
+ * was enough, because the platform came from the request.
+ *
+ * Binding the triple means a macOS process must now contradict something the
+ * founder wrote down, not merely reuse a name. It is still NOT a kernel probe - a
+ * genuinely compromised host holding the bearer and using its own registered id can
+ * lie about its platform and this route cannot detect it. That needs the claim path
+ * to reach the host and ask its kernel, which requires inbound network access to the
+ * tailnet and a capability handshake, neither of which exists.
+ *
+ * I am stating that limit rather than describing this as attestation, because the
+ * last iteration's failure was exactly that: adding a registry made the gate LOOK
+ * established while leaving the platform self-declared.
+ */
 export const MISSION_LANE_CONTAINED_RUNNERS_ENV = 'MISSION_LANE_CONTAINED_RUNNERS'
 
-export function registeredContainedRunners(): ReadonlySet<string> {
-  const raw = process.env[MISSION_LANE_CONTAINED_RUNNERS_ENV]?.trim()
-  if (!raw) return new Set()
-  return new Set(
-    raw
-      .split(',')
-      .map((id) => id.trim())
-      .filter((id) => id.length > 0),
-  )
+interface RegisteredRunner {
+  platform: string
+  mechanism: string
 }
 
-export function containmentAttested(input: {
+export function registeredContainedRunners(): ReadonlyMap<string, RegisteredRunner> {
+  const raw = process.env[MISSION_LANE_CONTAINED_RUNNERS_ENV]?.trim()
+  const out = new Map<string, RegisteredRunner>()
+  if (!raw) return out
+  for (const entry of raw.split(',')) {
+    const [runnerId, platform, mechanism] = entry.split(':').map((part) => part.trim())
+    // A malformed entry registers NOTHING. A half-written triple must not degrade
+    // into "id is enough", which is the shape that just failed.
+    if (!runnerId || !platform || !mechanism) continue
+    if (!(mechanism in CONTAINMENT_MECHANISMS)) continue
+    // The registry itself must be internally consistent: naming a mechanism its
+    // platform cannot provide is a misconfiguration, not a grant.
+    if (CONTAINMENT_MECHANISMS[mechanism as ContainmentMechanism] !== platform) continue
+    out.set(runnerId, { platform, mechanism })
+  }
+  return out
+}
+
+/**
+ * Whether this claim may reach a lane.
+ *
+ * DELIBERATELY NOT CALLED ATTESTATION, because it is not one, and the previous two
+ * attempts at this failed by implying otherwise.
+ *
+ * Attempt one accepted any non-empty env label. Attempt two required the runner to
+ * declare its platform and mechanism, and a reviewer showed that a macOS process
+ * holding the bearer could simply declare `win32`/`job-object`. Attempt three bound
+ * the triple in the registry - which I then tested against the reviewer's exact
+ * attack and found admits the liar identically, because a process willing to lie
+ * declares whatever the registry says. The self-declaration was never evidence; it
+ * only looked like evidence.
+ *
+ * So the declaration grants nothing. The grant comes from ONE place: the founder's
+ * registry, naming which runner ids run on a contained host. The runner's declared
+ * platform and mechanism are still read, but only to REFUSE a contradiction - which
+ * catches an honestly-misconfigured runner, not a dishonest one - and to record what
+ * was claimed on the audit trail.
+ *
+ * THE ACTUAL SECURITY BOUNDARY, stated plainly: the shared bearer secret plus the
+ * founder's own bookkeeping. A process that holds AGENT_EVENTS_SECRET and uses a
+ * registered runner id reaches the lane regardless of what kernel it is really on,
+ * and this route cannot detect that. Closing it requires the claim path to reach the
+ * host and interrogate its kernel - inbound tailnet access and a capability
+ * handshake, neither of which exists. Until then the honest description is "the
+ * founder asserted this runner is contained", not "the runner proved it".
+ */
+export function containmentGranted(input: {
   runnerId: string
   platform: string | undefined
   containment: string | undefined
 }): boolean {
   const armed = armedContainmentMechanism()
   if (armed === null) return false
-  // The runner must be one the founder registered. A self-declared platform from
-  // an unregistered runner is worth nothing.
-  if (!registeredContainedRunners().has(input.runnerId)) return false
-  if (input.containment !== armed) return false
-  return input.platform === CONTAINMENT_MECHANISMS[armed]
+
+  const registered = registeredContainedRunners().get(input.runnerId)
+  if (!registered) return false
+  if (registered.mechanism !== armed) return false
+
+  // A DECLARED value that contradicts the registry is refused. This is a
+  // misconfiguration check, not a security check: it catches a runner deployed to
+  // the wrong host, and catches nothing at all about a runner that lies.
+  if (input.containment !== undefined && input.containment !== registered.mechanism) return false
+  if (input.platform !== undefined && input.platform !== registered.platform) return false
+  return true
 }
 
 export async function POST(request: Request) {
@@ -299,7 +368,7 @@ export async function POST(request: Request) {
     // putting it back would burn its bounded requeue budget every poll until it
     // was permanently failed. Nothing is claimed, so the mission stays queued and
     // waits for a host that can actually run it.
-    const attested = containmentAttested({
+    const attested = containmentGranted({
       runnerId: parsed.data.runnerId,
       platform: parsed.data.platform,
       containment: parsed.data.containment,

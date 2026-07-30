@@ -43,7 +43,7 @@ describe('POST /api/agents/runner/claim', () => {
     // route-lane-refusal.test.ts for the fail-closed case.
     process.env.MISSION_LANE_CONTAINMENT = 'job-object'
     // The runner must also be one the founder registered as contained.
-    process.env.MISSION_LANE_CONTAINED_RUNNERS = 'mac-mini-runner'
+    process.env.MISSION_LANE_CONTAINED_RUNNERS = 'mac-mini-runner:win32:job-object'
     // The route counts running missions to enforce maxConcurrent, so the client
     // has to answer that query. An empty result means nothing else is in flight.
     vi.mocked(createServiceClient).mockReturnValue(runningCountClient([]) as never)

@@ -196,7 +196,48 @@ function asString(value: unknown): string {
  * change when a client happened to emit the same fields in a different order -
  * turning a genuine redelivery into a false conflict.
  */
+/**
+ * True when every number anywhere in the packet is finite.
+ *
+ * A JSON literal that overflows the double range - `1e400` - parses to Infinity,
+ * and so does `1e500`. By the time any of our code sees the body those two
+ * route-legal packets are the SAME value, so the fingerprint cannot distinguish
+ * them and neither can anything else. The only honest response is to refuse the
+ * packet rather than pretend the distinction survived.
+ *
+ * NaN cannot appear in valid JSON, but is checked for completeness because the
+ * bridge accepts an already-parsed object and a non-route caller could supply one.
+ */
+function allNumbersFinite(value: unknown, depth = 0): boolean {
+  if (depth > 32) return false
+  if (typeof value === 'number') return Number.isFinite(value)
+  if (Array.isArray(value)) return value.every((v) => allNumbersFinite(v, depth + 1))
+  if (value !== null && typeof value === 'object') {
+    return Object.values(value as Record<string, unknown>).every((v) =>
+      allNumbersFinite(v, depth + 1),
+    )
+  }
+  return true
+}
+
 function canonicalJson(value: unknown): string {
+  // Numbers are encoded explicitly, because JSON.stringify is itself lossy on two
+  // of them and a reviewer reproduced both: Infinity serialises as "null" (so it
+  // collided with an actual null), and -0 serialises as "0" (so it collided with
+  // positive zero). Object.is distinguishes -0 from 0 in memory even though
+  // stringify does not.
+  //
+  // Non-finite values are encoded here for completeness, but the parser refuses any
+  // packet containing one — see assertAllNumbersFinite. Encoding alone would not be
+  // enough: 1e400 and 1e500 BOTH parse to Infinity, so they are already the same
+  // value before this function is reached and no serialiser can separate them.
+  if (typeof value === 'number') {
+    if (Number.isNaN(value)) return '"#NaN"'
+    if (value === Number.POSITIVE_INFINITY) return '"#Infinity"'
+    if (value === Number.NEGATIVE_INFINITY) return '"#-Infinity"'
+    if (Object.is(value, -0)) return '"#-0"'
+    return JSON.stringify(value)
+  }
   if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'null'
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`
   const entries = Object.entries(value as Record<string, unknown>)
@@ -326,6 +367,12 @@ export function canonicalPacketId(value: unknown): string | null {
 export function parseVoiceMissionPacket(value: unknown): VoiceMissionParse {
   const reasons: string[] = []
   if (!isRecord(value)) return { ok: false, reasons: ['packet must be an object'] }
+
+  // Numbers that collapsed during JSON.parse cannot be distinguished by anything
+  // downstream, so the packet is refused rather than hashed into a false duplicate.
+  if (!allNumbersFinite(value)) {
+    reasons.push('packet contains a non-finite number (an out-of-range JSON literal such as 1e400)')
+  }
 
   // Server-controlled fields must never arrive from the caller.
   for (const forbidden of ['founder_id', 'founderId', 'status', 'execution_mode']) {
