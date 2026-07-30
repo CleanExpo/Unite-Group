@@ -188,41 +188,50 @@ function asString(value: unknown): string {
  * HMAC-signed canonical payload. Its job is to make distinct inputs distinct, not
  * to authenticate them.
  */
+/**
+ * Deterministic canonical JSON: object keys sorted recursively, so two
+ * structurally-equal packets serialise identically regardless of key order.
+ *
+ * JSON.stringify preserves insertion order, so without this the fingerprint would
+ * change when a client happened to emit the same fields in a different order -
+ * turning a genuine redelivery into a false conflict.
+ */
+function canonicalJson(value: unknown): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'null'
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`
+  const entries = Object.entries(value as Record<string, unknown>)
+    .filter(([, v]) => v !== undefined)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+  return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonicalJson(v)}`).join(',')}}`
+}
+
 function rawPacketFingerprint(value: Record<string, unknown>): string {
-  const raw = (key: string): string | null => {
-    const v = value[key]
-    return typeof v === 'string' ? v : null
-  }
-  // Every field that can influence the mission or its admission, verbatim.
-  // Non-strings are captured by their JSON form so a type change is also a change.
-  const canonical = JSON.stringify({
-    packet_id: raw('packet_id'),
-    conversation_id: raw('conversation_id'),
-    summary: raw('summary'),
-    requested_outcome: raw('requested_outcome'),
-    transcript_text: raw('transcript_text'),
-    risk_level: raw('risk_level'),
-    approval_required: value.approval_required ?? null,
-    approval_reason: raw('approval_reason'),
-    business_context: raw('business_context'),
-    // ACTIONS are sorted by their canonical JSON form, and this is the ONE
-    // equivalence the fingerprint claims. It is not a judgement about what
-    // "probably means the same thing" - the kind that failed for whitespace in
-    // the objective - it is a property provable from the consumer: admission reads
-    // actionKinds as a SET (`.some(...)`), and no code path reads action order.
-    // The full action object is preserved, not just `kind`, so any content change
-    // still changes the fingerprint.
-    //
-    // Dropping this and going fully verbatim would fail SAFE (a reordered
-    // redelivery would become a conflict rather than a duplicate) but it would
-    // break the documented order-insensitivity contract that
-    // voice-mission-exactly-once.test.ts asserts, turning a legitimate client's
-    // array ordering into spurious rejected missions.
-    actions: Array.isArray(value.actions)
-      ? [...value.actions].map((a) => JSON.stringify(a)).sort()
-      : (value.actions ?? null),
-  })
-  return createHash('sha256').update(canonical).digest('hex')
+  // The WHOLE packet, not a hand-picked field list.
+  //
+  // The first version of this listed the fields it thought mattered and coerced
+  // each through `typeof v === 'string' ? v : null`. That reintroduced exactly the
+  // lossiness it existed to remove: `requested_outcome: 42` and
+  // `requested_outcome: 43` both became null, and `evidence_refs` was omitted
+  // entirely, so packets differing only in those ways shared a fingerprint and the
+  // second was accepted as a duplicate. A reviewer reproduced it concretely.
+  //
+  // Including everything by default is the only version that does not depend on
+  // guessing which fields matter - the same reason the fingerprint exists at all.
+  // A new packet field is covered automatically rather than needing to be
+  // remembered.
+  //
+  // ONE documented exception: the `actions` array is sorted by its canonical form.
+  // Array order is otherwise preserved. This is provable rather than assumed -
+  // admission consumes actionKinds as a SET (`.some(...)`) and no path reads order,
+  // which the reviewer independently confirmed - and it keeps the
+  // order-insensitivity contract that voice-mission-exactly-once.test.ts asserts.
+  const { actions, ...rest } = value
+  const canonicalActions = Array.isArray(actions)
+    ? [...actions].map(canonicalJson).sort()
+    : actions
+  return createHash('sha256')
+    .update(canonicalJson({ ...rest, actions: canonicalActions }))
+    .digest('hex')
 }
 
 
@@ -297,11 +306,16 @@ const PACKET_ID_HAS_SUBSTANCE = /[A-Za-z0-9]/
 
 export function canonicalPacketId(value: unknown): string | null {
   if (typeof value !== 'string') return null
-  const trimmed = value.trim()
-  if (!trimmed || trimmed.length > MAX_PACKET_ID_LENGTH) return null
-  if (!PACKET_ID_ALPHABET.test(trimmed)) return null
-  if (!PACKET_ID_HAS_SUBSTANCE.test(trimmed)) return null
-  return trimmed
+  // Validated UNTRIMMED, so this is genuinely an identity map. It used to trim
+  // first, which meant ' pkt-1 ' was accepted as 'pkt-1' - the same
+  // normalise-before-validating shape corrected for conversation_id and
+  // business_context, left behind here. The fingerprint now prevents the silent
+  // hash collision either way, so this was non-blocking, but a rule that holds for
+  // two of three identity fields is not a rule.
+  if (!value || value.length > MAX_PACKET_ID_LENGTH) return null
+  if (!PACKET_ID_ALPHABET.test(value)) return null
+  if (!PACKET_ID_HAS_SUBSTANCE.test(value)) return null
+  return value
 }
 
 /**

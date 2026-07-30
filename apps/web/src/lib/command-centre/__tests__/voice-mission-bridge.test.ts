@@ -429,6 +429,61 @@ describe('voice mission risk classification', () => {
     expect(parsed.ok).toBe(false)
   })
 
+  it('REGRESSION: the fingerprint covers NON-STRING and UNLISTED fields', () => {
+    // The reviewer's concrete reproduction. The first fingerprint hand-picked its
+    // fields and coerced each through `typeof v === 'string' ? v : null`, so
+    // requested_outcome: 42 and 43 both became null, and evidence_refs was omitted
+    // entirely - packets differing only in those ways shared a fingerprint and the
+    // second was accepted as a duplicate. Hashing the whole packet covers all of it,
+    // including fields nobody thought to list.
+    const base = {
+      packet_id: 'pkt-cover',
+      transcript_text: 'run it',
+      summary: 'Run it',
+      risk_level: 'low',
+      actions: [{ kind: 'research' }],
+    }
+    const fp = (extra: Record<string, unknown>) => {
+      const parsed = parseVoiceMissionPacket({ ...base, ...extra })
+      expect(parsed.ok).toBe(true)
+      return parsed.ok ? parsed.mission.rawFingerprint : ''
+    }
+    // Non-string values of the same field must differ.
+    expect(fp({ requested_outcome: 'Ship it' })).not.toBe(fp({ requested_outcome: 'Ship it!' }))
+    // A field the old list omitted entirely.
+    expect(fp({ evidence_refs: { note: 'x' } })).not.toBe(fp({ evidence_refs: { note: 'y' } }))
+    expect(fp({})).not.toBe(fp({ evidence_refs: { note: 'x' } }))
+    // A wholly unanticipated field is still covered.
+    expect(fp({})).not.toBe(fp({ some_future_field: 'v' }))
+  })
+
+  it('GUARD: key ORDER does not change the fingerprint', () => {
+    // Canonical serialisation sorts keys, so a client emitting the same fields in a
+    // different order is the same mission rather than a false conflict.
+    const a = parseVoiceMissionPacket({
+      packet_id: 'pkt-order2', transcript_text: 'run it', summary: 'Run it',
+      risk_level: 'low', actions: [{ kind: 'research' }],
+    })
+    const b = parseVoiceMissionPacket({
+      actions: [{ kind: 'research' }], risk_level: 'low', summary: 'Run it',
+      transcript_text: 'run it', packet_id: 'pkt-order2',
+    })
+    expect(a.ok && b.ok).toBe(true)
+    if (!a.ok || !b.ok) return
+    expect(a.mission.rawFingerprint).toBe(b.mission.rawFingerprint)
+  })
+
+  it('REGRESSION: a padded packet_id is refused, so all three identity fields agree', () => {
+    // canonicalPacketId trimmed before validating, so ' pkt-1 ' was accepted as
+    // 'pkt-1' while conversation_id and business_context refused the same shape.
+    const base = {
+      transcript_text: 'run it', summary: 'Run it', risk_level: 'low',
+      actions: [{ kind: 'research' }],
+    }
+    expect(parseVoiceMissionPacket({ ...base, packet_id: ' pkt-1 ' }).ok).toBe(false)
+    expect(parseVoiceMissionPacket({ ...base, packet_id: 'pkt-1' }).ok).toBe(true)
+  })
+
   it('GUARD: reordering actions still yields the SAME mission', () => {
     // The one equivalence the fingerprint claims, and it is provable from the
     // consumer rather than assumed: admission reads actionKinds as a set.
