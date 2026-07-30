@@ -423,6 +423,27 @@ describe('mission control status view', () => {
     expect(row.laneStatus).toBe('running')
   })
 
+  it('REGRESSION: a FUTURE heartbeat reports stale, not live', () => {
+    // `now - beat > staleAfterMs` is negative for a future beat, so it reported
+    // 'live' - a fabricated green in the module whose header promises never to
+    // produce one. A future timestamp means a clock fault or a fabricated value;
+    // neither establishes the lane is alive.
+    const row = toMissionControlRow(bridgedTask('running', true), {
+      laneStatus: 'running',
+      lastHeartbeatAt: new Date(NOW + 60_000).toISOString(),
+    }, { now: NOW })
+    expect(row.source).toBe('stale')
+  })
+
+  it('GUARD: a heartbeat exactly at `now` is still live', () => {
+    // The strict check must not reject a legitimately current beat.
+    const row = toMissionControlRow(bridgedTask('running', true), {
+      laneStatus: 'running',
+      lastHeartbeatAt: new Date(NOW).toISOString(),
+    }, { now: NOW })
+    expect(row.source).toBe('live')
+  })
+
   it('reports stale rather than healthy when the heartbeat has aged out', () => {
     const row = toMissionControlRow(bridgedTask('running', true), {
       laneStatus: 'running',

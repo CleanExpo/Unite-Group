@@ -525,7 +525,19 @@ export function toMissionControlRow(
       source = 'not_connected'
     } else {
       lastHeartbeatAt = lane.lastHeartbeatAt
-      source = options.now - beat > staleAfterMs ? 'stale' : 'live'
+      // A heartbeat in the FUTURE is not evidence of liveness.
+      //
+      // The comparison was `now - beat > staleAfterMs`, which is negative for a
+      // future beat and therefore reported 'live' - a fabricated green in the one
+      // module whose header promises never to produce one. A future timestamp means
+      // a clock problem or a fabricated value, and neither establishes that the lane
+      // is alive right now.
+      //
+      // Judged strictly, with no skew tolerance. Adding one would mean choosing an
+      // arbitrary threshold, and host clock skew large enough to matter here is a
+      // real fault worth surfacing as 'stale' rather than masking.
+      const age = options.now - beat
+      source = age < 0 || age > staleAfterMs ? 'stale' : 'live'
     }
   }
 
