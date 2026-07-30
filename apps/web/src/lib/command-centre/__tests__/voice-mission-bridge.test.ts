@@ -355,7 +355,12 @@ describe('voice mission risk classification', () => {
     expect(parsed.ok).toBe(false)
   })
 
-  it('REGRESSION: conversation_id is machine-safe, never raw caller text', () => {
+  it('REGRESSION: an unsafe conversation_id is REFUSED, not scrubbed', () => {
+    // This previously asserted the value was sanitised. Scrubbing was itself the
+    // defect: machineSafeRef strips characters, so 'conv a' and 'conv-a' both
+    // became 'conv-a' — two route-legal ids collapsing to one hashed value and
+    // therefore one mission. Refusing is strictly stronger, and it keeps the
+    // provenance hash injective, which everything else depends on.
     const parsed = parseVoiceMissionPacket({
       packet_id: 'pkt-conv',
       transcript_text: 'do the thing',
@@ -364,11 +369,51 @@ describe('voice mission risk classification', () => {
       conversation_id: '/Users/phillmcgurk/secrets sk-live-abcdefgh12345678',
       actions: [{ kind: 'research' }],
     })
+    expect(parsed.ok).toBe(false)
+  })
+
+  it('REGRESSION: two conversation_ids differing only by a stripped character stay distinct', () => {
+    // The collision the refusal prevents: both of these used to normalise to the
+    // same value, so the second mission would be treated as a replay of the first.
+    const base = {
+      packet_id: 'pkt-conv2',
+      transcript_text: 'do the thing',
+      summary: 'Do the thing',
+      risk_level: 'low',
+      actions: [{ kind: 'research' }],
+    }
+    expect(parseVoiceMissionPacket({ ...base, conversation_id: 'conv a' }).ok).toBe(false)
+    const safe = parseVoiceMissionPacket({ ...base, conversation_id: 'conv-a' })
+    expect(safe.ok).toBe(true)
+    if (safe.ok) expect(safe.mission.conversationId).toBe('conv-a')
+  })
+
+  it('REGRESSION: an over-long summary is refused when requested_outcome owns the objective', () => {
+    // summary is hashed only via title (120 chars). With requested_outcome
+    // present, summary lands nowhere else, so two summaries differing after
+    // character 120 hashed identically and the second became a duplicate replay.
+    const parsed = parseVoiceMissionPacket({
+      packet_id: 'pkt-summary',
+      transcript_text: 'do the thing',
+      summary: 's'.repeat(121),
+      requested_outcome: 'Ship the feature',
+      risk_level: 'low',
+      actions: [{ kind: 'research' }],
+    })
+    expect(parsed.ok).toBe(false)
+  })
+
+  it('GUARD: a long summary is still fine when it IS the objective', () => {
+    // Without requested_outcome, summary becomes the objective at 500 chars, so
+    // the difference shows up there and the hash separates the two missions.
+    const parsed = parseVoiceMissionPacket({
+      packet_id: 'pkt-summary2',
+      transcript_text: 'do the thing',
+      summary: 's'.repeat(200),
+      risk_level: 'low',
+      actions: [{ kind: 'research' }],
+    })
     expect(parsed.ok).toBe(true)
-    if (!parsed.ok) return
-    const conv = parsed.mission.conversationId ?? ''
-    expect(conv).not.toContain('/Users/')
-    expect(conv).not.toContain('sk-live-abcdefgh12345678')
   })
 
   it('never auto-admits a high or critical risk mission even when armed', () => {

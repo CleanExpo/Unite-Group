@@ -316,6 +316,32 @@ export function parseVoiceMissionPacket(value: unknown): VoiceMissionParse {
   ) {
     reasons.push(`approval_reason exceeds ${MAX_OBJECTIVE_LENGTH} characters after normalisation`)
   }
+  // TITLE. `summary` is hashed only via `title`, which is cut to
+  // MAX_TITLE_LENGTH. When requested_outcome is PRESENT it becomes the objective,
+  // so summary lands nowhere else — and two packets whose summaries differ only
+  // after character 120 then produce an identical canonical payload, making the
+  // second a duplicate replay of the first. (With requested_outcome absent,
+  // summary also becomes the objective at 500, so the difference still shows up
+  // there and the hash separates them.) Refused rather than cut, for the same
+  // reason as every other hashed field.
+  const summaryNormalised = cleanText(summary, MAX_TITLE_LENGTH + 1)
+  if (asString(value.requested_outcome) && summaryNormalised.length > MAX_TITLE_LENGTH) {
+    reasons.push(
+      `summary exceeds ${MAX_TITLE_LENGTH} characters after normalisation, and is the only hashed home for it when requested_outcome is supplied`,
+    )
+  }
+
+  // CONVERSATION ID. machineSafeRef STRIPS characters, so 'conv a' and 'conv-a'
+  // both become 'conv-a' — two route-legal ids collapsing to one hashed value and
+  // therefore one mission. This is the same lossy-canonicaliser trap the packet-id
+  // comment already warns about; refusing keeps the mapping injective.
+  const conversationIdRaw = asString(value.conversation_id)
+  if (conversationIdRaw && machineSafeRef(conversationIdRaw, 200) !== conversationIdRaw) {
+    reasons.push(
+      'conversation_id must already be machine-safe ([A-Za-z0-9._:/-], no spaces) and at most 200 characters',
+    )
+  }
+
   const businessContextRaw = asString(value.business_context)
   if (businessContextRaw && machineSafeRef(businessContextRaw, MAX_BUSINESS_CONTEXT_LENGTH + 1).length > MAX_BUSINESS_CONTEXT_LENGTH) {
     reasons.push(
@@ -337,7 +363,9 @@ export function parseVoiceMissionPacket(value: unknown): VoiceMissionParse {
       // Machine-safe, not raw. This value reaches cc_tasks metadata and the
       // provenance payload, so an unredacted caller string could carry a secret
       // or a host path out of the voice-session record and into the mission row.
-      conversationId: machineSafeRef(asString(value.conversation_id), 200) || null,
+      // Already proven machine-safe above, so this is an identity map rather than
+      // a rewrite.
+      conversationId: conversationIdRaw || null,
       title,
       objective,
       riskLevel,
