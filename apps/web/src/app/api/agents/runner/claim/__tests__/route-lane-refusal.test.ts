@@ -54,6 +54,8 @@ describe('POST /api/agents/runner/claim — lane refusal handling', () => {
     // exercise the claim path name a host explicitly; the refusal case has its
     // own test below.
     process.env.MISSION_LANE_CONTAINMENT = 'job-object'
+    // The runner must also be one the founder registered as contained.
+    process.env.MISSION_LANE_CONTAINED_RUNNERS = 'mac-mini-runner'
     vi.mocked(createServiceClient).mockReturnValue(runningCountClient([]) as never)
     vi.mocked(releaseClaimedTask).mockResolvedValue({
       task: null,
@@ -155,6 +157,27 @@ describe('POST /api/agents/runner/claim — lane refusal handling', () => {
     }
   })
 
+  it('REGRESSION: an UNREGISTERED runner cannot attest containment even declaring win32', async () => {
+    // The blocking finding: "a macOS runner with the bearer can declare
+    // win32/job-object and receive work for the bypassPermissions path." A
+    // dishonest declaration cannot be detected from the route, so the set of
+    // parties permitted to make one is now restricted to runner ids the founder
+    // registered. This is the lying-Mac case the earlier darwin-only test missed.
+    process.env.MISSION_LANE_CONTAINED_RUNNERS = 'win-ts-runner'
+    const body = await (
+      await POST(req({ runnerId: 'sneaky-mac', platform: 'win32', containment: 'job-object' }))
+    ).json()
+    expect(body.refused).toBe('lane_unavailable')
+    expect(claimNextQueuedTask).not.toHaveBeenCalled()
+  })
+
+  it('REGRESSION: no registered runners at all means nothing claims', async () => {
+    delete process.env.MISSION_LANE_CONTAINED_RUNNERS
+    const body = await (await POST(req())).json()
+    expect(body.refused).toBe('lane_unavailable')
+    expect(claimNextQueuedTask).not.toHaveBeenCalled()
+  })
+
   it('REGRESSION: a macOS runner cannot attest containment under any combination', async () => {
     // macOS has neither cgroups v2 nor Job Objects. No pairing may pass.
     for (const [armed, mech] of [['job-object', 'job-object'], ['cgroup2', 'cgroup2']]) {
@@ -225,6 +248,8 @@ describe('POST /api/agents/runner/claim — lane refusal handling', () => {
     // Without this, every refusal test above would also pass against a route
     // that refuses unconditionally.
     process.env.MISSION_LANE_CONTAINMENT = 'job-object'
+    // The runner must also be one the founder registered as contained.
+    process.env.MISSION_LANE_CONTAINED_RUNNERS = 'mac-mini-runner'
     vi.mocked(claimNextQueuedTask).mockResolvedValue(null)
     await POST(req({ runnerId: RUNNER, platform: 'win32', containment: 'job-object' }))
     expect(claimNextQueuedTask).toHaveBeenCalledTimes(1)

@@ -372,6 +372,24 @@ describe('voice mission risk classification', () => {
     expect(parsed.ok).toBe(false)
   })
 
+  it('REGRESSION: two business_contexts differing only by a stripped character stay distinct', () => {
+    // business_context is hashed AND is a routing key. machineSafeRef strips, so
+    // 'client a' and 'client-a' both became 'client-a' - one hashed value, one
+    // mission, routed somewhere the caller did not ask for. Length was refused a
+    // commit earlier; this lossy dimension was missed.
+    const base = {
+      packet_id: 'pkt-bc',
+      transcript_text: 'do the thing',
+      summary: 'Do the thing',
+      risk_level: 'low',
+      actions: [{ kind: 'research' }],
+    }
+    expect(parseVoiceMissionPacket({ ...base, business_context: 'client a' }).ok).toBe(false)
+    const safe = parseVoiceMissionPacket({ ...base, business_context: 'client-a' })
+    expect(safe.ok).toBe(true)
+    if (safe.ok) expect(safe.mission.businessContext).toBe('client-a')
+  })
+
   it('REGRESSION: two conversation_ids differing only by a stripped character stay distinct', () => {
     // The collision the refusal prevents: both of these used to normalise to the
     // same value, so the second mission would be treated as a replay of the first.

@@ -342,11 +342,31 @@ export function parseVoiceMissionPacket(value: unknown): VoiceMissionParse {
     )
   }
 
+  // BUSINESS CONTEXT. Two dimensions, and the previous pass only closed one.
+  //
+  // Length was refused; lossy character normalisation was not. machineSafeRef
+  // STRIPS, so 'client a' and 'client-a' both became 'client-a' — one hashed
+  // value, one mission, and a routing key pointing somewhere the caller did not
+  // ask for. The identical fix had just been applied to conversation_id in the
+  // same commit and was not carried to its neighbour.
+  //
+  // THE RULE, so this boundary is decidable rather than remembered:
+  //   IDENTITY and ROUTING fields (packet_id, conversation_id, business_context)
+  //   must be an IDENTITY MAP or a refusal. Distinct values designate distinct
+  //   things, so collapsing two of them merges two entities.
+  //   PROSE fields (title, objective, approval_reason) may be normalised —
+  //   cleanText collapses whitespace runs, and 'Do X' and 'Do  X' genuinely mean
+  //   the same instruction, so merging them is correct rather than lossy.
+  // Any NEW hashed field must be classified against that rule before it is added.
   const businessContextRaw = asString(value.business_context)
-  if (businessContextRaw && machineSafeRef(businessContextRaw, MAX_BUSINESS_CONTEXT_LENGTH + 1).length > MAX_BUSINESS_CONTEXT_LENGTH) {
-    reasons.push(
-      `business_context exceeds ${MAX_BUSINESS_CONTEXT_LENGTH} characters after normalisation`,
-    )
+  if (businessContextRaw) {
+    if (businessContextRaw.length > MAX_BUSINESS_CONTEXT_LENGTH) {
+      reasons.push(`business_context exceeds ${MAX_BUSINESS_CONTEXT_LENGTH} characters`)
+    } else if (machineSafeRef(businessContextRaw, MAX_BUSINESS_CONTEXT_LENGTH) !== businessContextRaw) {
+      reasons.push(
+        'business_context must already be machine-safe ([A-Za-z0-9._:/-], no spaces)',
+      )
+    }
   }
 
   if (reasons.length > 0 || !packetId || !riskLevel || actionKinds === null) {
@@ -373,7 +393,8 @@ export function parseVoiceMissionPacket(value: unknown): VoiceMissionParse {
       approvalReason: cleanText(approvalReasonRaw, MAX_OBJECTIVE_LENGTH) || null,
       actionKinds,
       transcriptCharacterCount: transcript.length,
-      businessContext: machineSafeRef(businessContextRaw || 'unite-group', MAX_BUSINESS_CONTEXT_LENGTH),
+      // Proven machine-safe above, so this is an identity map, not a rewrite.
+      businessContext: businessContextRaw || 'unite-group',
     },
   }
 }

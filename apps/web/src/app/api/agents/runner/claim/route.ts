@@ -191,12 +191,45 @@ export function armedContainmentMechanism(): ContainmentMechanism | null {
   return armed in CONTAINMENT_MECHANISMS ? (armed as ContainmentMechanism) : null
 }
 
+/**
+ * The runner ids the founder has explicitly registered as running on a host with
+ * kernel containment. Comma-separated; unset means none.
+ *
+ * This is the host-registration record the release review found missing, in its
+ * minimal form. Without it, `containmentAttested` was satisfied by any bearer
+ * holder willing to type `win32`, and the reviewer's verdict was blunt and
+ * correct: "a macOS runner with the bearer can declare win32/job-object and
+ * receive work for the bypassPermissions path. Containment is therefore not an
+ * actual safety gate."
+ *
+ * It still is not a kernel probe. What it changes: the set of parties who can
+ * assert containment goes from "anyone holding the shared bearer" to "a runner id
+ * the founder wrote down". A misconfigured or rogue runner that is not on the
+ * list cannot claim, whatever it declares about itself.
+ */
+export const MISSION_LANE_CONTAINED_RUNNERS_ENV = 'MISSION_LANE_CONTAINED_RUNNERS'
+
+export function registeredContainedRunners(): ReadonlySet<string> {
+  const raw = process.env[MISSION_LANE_CONTAINED_RUNNERS_ENV]?.trim()
+  if (!raw) return new Set()
+  return new Set(
+    raw
+      .split(',')
+      .map((id) => id.trim())
+      .filter((id) => id.length > 0),
+  )
+}
+
 export function containmentAttested(input: {
+  runnerId: string
   platform: string | undefined
   containment: string | undefined
 }): boolean {
   const armed = armedContainmentMechanism()
   if (armed === null) return false
+  // The runner must be one the founder registered. A self-declared platform from
+  // an unregistered runner is worth nothing.
+  if (!registeredContainedRunners().has(input.runnerId)) return false
   if (input.containment !== armed) return false
   return input.platform === CONTAINMENT_MECHANISMS[armed]
 }
@@ -267,6 +300,7 @@ export async function POST(request: Request) {
     // was permanently failed. Nothing is claimed, so the mission stays queued and
     // waits for a host that can actually run it.
     const attested = containmentAttested({
+      runnerId: parsed.data.runnerId,
       platform: parsed.data.platform,
       containment: parsed.data.containment,
     })
