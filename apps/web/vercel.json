@@ -53,6 +53,10 @@
       "schedule": "0 18 * * *"
     },
     {
+      "path": "/api/cron/experiment-results-ingest",
+      "schedule": "30 18 * * *"
+    },
+    {
       "path": "/api/cron/campaign-engine",
       "schedule": "0 20 * * 0"
     },
@@ -163,6 +167,9 @@
       "maxDuration": 120
     },
     "src/app/api/cron/analytics-sync/route.ts": {
+      "maxDuration": 120
+    },
+    "src/app/api/cron/experiment-results-ingest/route.ts": {
       "maxDuration": 120
     },
     "src/app/api/cron/campaign-engine/route.ts": {

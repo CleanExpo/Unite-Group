@@ -25,6 +25,15 @@ describe("automation control-plane configuration", () => {
     expect(vercel).toContain('/api/cron/brand-video-dispatch');
   });
 
+  it("registers experiment_results ingest after analytics-sync (UNI-2373 P4)", () => {
+    const vercel = readFileSync(
+      join(repoRoot, "apps/web/vercel.json"),
+      "utf8",
+    );
+    expect(vercel).toContain('/api/cron/experiment-results-ingest');
+    expect(vercel).toContain('/api/cron/analytics-sync');
+  });
+
   it("keeps the superseded operator queue service permanently retired", () => {
     const installer = readFileSync(
       join(
