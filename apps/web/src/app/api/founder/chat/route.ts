@@ -25,6 +25,7 @@ import { getAIClient } from '@/lib/ai/client'
 import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 import { ground, formatGroundingContext, type GroundingResult } from '@/lib/site-agent/grounding'
 import { sanitiseError } from '@/lib/error-reporting'
+import type { Json } from '@/types/database'
 import {
   parseFounderChatBody,
   trimToLeadingUserTurn,
@@ -112,7 +113,7 @@ export async function PUT(request: Request) {
       .upsert(
         {
           founder_id: user.id,
-          messages: parsed.messages,
+          messages: parsed.messages as unknown as Json,
           business_key: parsed.businessKey,
           updated_at: now,
         },
