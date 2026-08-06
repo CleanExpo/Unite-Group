@@ -321,6 +321,33 @@ export type Database = {
           },
         ]
       }
+      founder_chat_threads: {
+        Row: {
+          business_key: string | null
+          created_at: string
+          founder_id: string
+          id: string
+          messages: Json
+          updated_at: string
+        }
+        Insert: {
+          business_key?: string | null
+          created_at?: string
+          founder_id: string
+          id?: string
+          messages?: Json
+          updated_at?: string
+        }
+        Update: {
+          business_key?: string | null
+          created_at?: string
+          founder_id?: string
+          id?: string
+          messages?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       founder_notifications: {
         Row: {
           created_at: string | null
