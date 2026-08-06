@@ -50,7 +50,7 @@ ingest cannot have come through this pipeline; resolve before trusting cost rows
 | P5 | Brand-video job processor — jobs enqueue in prod, worker absent from vercel.json [VERIFIED] | AMBER-build | S–M |
 | P6 | Founder-chat persistence (thread table + load/save) — today a refresh wipes the founder's chat | AMBER-build | M |
 | P7 | `skill_health` producer (the referenced eval-runner script is missing from the repo) | AMBER-build | S |
-| P8 | TikTok + YouTube analytics fetchers (stubbed `return []`) | AMBER-build | M |
+| P8 | TikTok + YouTube analytics fetchers — `fetchTikTokAnalytics` / `fetchYouTubeAnalytics` wired via existing OAuth scopes (`video.list`, `youtube.readonly`) [VERIFIED] | GREEN | M |
 | P9 | First cron runs: boardroom `ceo-board-meeting`, knowledge `pi-ceo-weekly-review` (pipelines fully built) | AMBER-env | S |
 
 ### Class R — The runner (Wave B1, already spec'd, L)
