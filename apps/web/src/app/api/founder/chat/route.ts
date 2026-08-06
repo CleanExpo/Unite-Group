@@ -1,6 +1,7 @@
 // src/app/api/founder/chat/route.ts
-// POST /api/founder/chat — the founder's direct chat with the estate's agent
-// (the Nexus operator assistant) from inside the CRM, without Telegram.
+// POST /api/founder/chat — stream a founder chat turn (SSE).
+// GET  /api/founder/chat — load the persisted founder thread (UNI-2373 P6).
+// PUT  /api/founder/chat — upsert the persisted founder thread (UNI-2373 P6).
 //
 // Auth/scoping copies the sibling founder route (api/founder/opportunities):
 // getUser() session auth → 401, founder-scoped RLS client for every query.
@@ -23,11 +24,13 @@ import { getUser, createClient } from '@/lib/supabase/server'
 import { getAIClient } from '@/lib/ai/client'
 import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 import { ground, formatGroundingContext, type GroundingResult } from '@/lib/site-agent/grounding'
+import { sanitiseError } from '@/lib/error-reporting'
 import {
   parseFounderChatBody,
   trimToLeadingUserTurn,
   buildFounderSystemPrompt,
 } from '@/lib/founder-chat/messages'
+import { normaliseStoredMessages, parsePersistBody } from '@/lib/founder-chat/persist'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -45,6 +48,100 @@ function sseEvent(payload: object): Uint8Array {
 }
 
 const SSE_DONE = encoder.encode('data: [DONE]\n\n')
+
+export async function GET() {
+  const user = await getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorised' }, { status: 401, headers: NO_STORE_HEADERS })
+  }
+
+  try {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('founder_chat_threads')
+      .select('messages, business_key, updated_at')
+      .eq('founder_id', user.id)
+      .maybeSingle()
+
+    if (error) throw error
+
+    return NextResponse.json(
+      {
+        messages: normaliseStoredMessages(data?.messages ?? []),
+        businessKey: data?.business_key ?? null,
+        updatedAt: data?.updated_at ?? null,
+      },
+      { headers: NO_STORE_HEADERS },
+    )
+  } catch (err) {
+    return NextResponse.json(
+      {
+        error: sanitiseError(err, 'Failed to load chat thread', {
+          route: '/api/founder/chat',
+        }),
+      },
+      { status: 500, headers: NO_STORE_HEADERS },
+    )
+  }
+}
+
+export async function PUT(request: Request) {
+  const user = await getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorised' }, { status: 401, headers: NO_STORE_HEADERS })
+  }
+
+  let raw: unknown
+  try {
+    raw = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400, headers: NO_STORE_HEADERS })
+  }
+
+  const parsed = parsePersistBody(raw)
+  if (!parsed.ok) {
+    return NextResponse.json({ error: parsed.error }, { status: 400, headers: NO_STORE_HEADERS })
+  }
+
+  const now = new Date().toISOString()
+
+  try {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('founder_chat_threads')
+      .upsert(
+        {
+          founder_id: user.id,
+          messages: parsed.messages,
+          business_key: parsed.businessKey,
+          updated_at: now,
+        },
+        { onConflict: 'founder_id' },
+      )
+      .select('messages, business_key, updated_at')
+      .single()
+
+    if (error) throw error
+
+    return NextResponse.json(
+      {
+        messages: normaliseStoredMessages(data.messages ?? []),
+        businessKey: data.business_key ?? null,
+        updatedAt: data.updated_at ?? now,
+      },
+      { headers: NO_STORE_HEADERS },
+    )
+  } catch (err) {
+    return NextResponse.json(
+      {
+        error: sanitiseError(err, 'Failed to save chat thread', {
+          route: '/api/founder/chat',
+        }),
+      },
+      { status: 500, headers: NO_STORE_HEADERS },
+    )
+  }
+}
 
 export async function POST(request: Request) {
   const user = await getUser()
