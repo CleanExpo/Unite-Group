@@ -1,9 +1,10 @@
 // src/app/api/founder/opportunities/route.ts
-// GET /api/founder/opportunities
-// Revenue-opportunity register (spec B9). Founder-scoped pipeline read from
-// crm_opportunities, with a pipeline summary. Forecast-only — not billing truth.
+// GET /api/founder/opportunities — founder-scoped pipeline read (spec B9).
+// POST /api/founder/opportunities — create a forecast opportunity (UNI-2373 P1).
+// Forecast-only — not billing truth.
 
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
 import { getUser, createClient } from '@/lib/supabase/server'
 import { sanitiseError } from '@/lib/error-reporting'
 import type { Tables } from '@/types/database'
@@ -12,6 +13,37 @@ export const dynamic = 'force-dynamic'
 
 type Opportunity = Tables<'crm_opportunities'>
 
+const STAGES = [
+  'new_signal',
+  'qualified',
+  'discovery',
+  'proposal_needed',
+  'proposal_sent',
+  'negotiation',
+  'decision_needed',
+  'won_pending_client_conversion',
+  'won_converted',
+  'lost',
+  'paused',
+  'blocked_review',
+] as const
+
+const STATUSES = ['open', 'won', 'lost', 'paused', 'blocked_review', 'cancelled'] as const
+
+const createOpportunitySchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  stage: z.enum(STAGES).optional(),
+  status: z.enum(STATUSES).optional(),
+  value_amount: z.number().nonnegative().nullable().optional(),
+  value_currency: z.string().trim().min(1).max(8).nullable().optional(),
+  probability: z.number().int().min(0).max(100).nullable().optional(),
+  next_action: z.string().trim().max(500).nullable().optional(),
+  source: z.string().trim().min(1).max(64).optional(),
+  source_detail: z.string().trim().max(500).nullable().optional(),
+  owner: z.string().trim().min(1).max(64).optional(),
+  linked_lead_id: z.string().uuid().nullable().optional(),
+  linked_contact_id: z.string().uuid().nullable().optional(),
+})
 export interface OpportunitySummary {
   total: number
   open: number
@@ -137,6 +169,62 @@ export async function GET(request?: Request) {
   } catch (err) {
     return NextResponse.json(
       { error: sanitiseError(err, 'Failed to load opportunities', { route: '/api/founder/opportunities' }) },
+      { status: 500, headers: NO_STORE_HEADERS },
+    )
+  }
+}
+
+export async function POST(request: Request) {
+  const user = await getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401, headers: NO_STORE_HEADERS })
+
+  let body: unknown
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400, headers: NO_STORE_HEADERS })
+  }
+
+  const parsed = createOpportunitySchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Invalid opportunity payload', details: parsed.error.flatten() },
+      { status: 400, headers: NO_STORE_HEADERS },
+    )
+  }
+
+  const input = parsed.data
+  const stage = input.stage ?? 'new_signal'
+  const status = input.status ?? 'open'
+
+  try {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('crm_opportunities')
+      .insert({
+        founder_id: user.id,
+        name: input.name,
+        stage,
+        status,
+        value_amount: input.value_amount ?? null,
+        value_currency: input.value_currency ?? (input.value_amount != null ? 'AUD' : null),
+        probability: input.probability ?? null,
+        next_action: input.next_action ?? null,
+        source: input.source ?? 'manual',
+        source_detail: input.source_detail ?? null,
+        owner: input.owner ?? 'Margot',
+        linked_lead_id: input.linked_lead_id ?? null,
+        linked_contact_id: input.linked_contact_id ?? null,
+      })
+      .select('*')
+      .single()
+
+    if (error) throw error
+
+    return NextResponse.json({ opportunity: data as Opportunity }, { status: 201, headers: NO_STORE_HEADERS })
+  } catch (err) {
+    return NextResponse.json(
+      { error: sanitiseError(err, 'Failed to create opportunity', { route: '/api/founder/opportunities' }) },
       { status: 500, headers: NO_STORE_HEADERS },
     )
   }
