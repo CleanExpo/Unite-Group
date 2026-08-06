@@ -41,6 +41,10 @@
       "schedule": "*/5 * * * *"
     },
     {
+      "path": "/api/cron/brand-video-dispatch",
+      "schedule": "*/15 * * * *"
+    },
+    {
       "path": "/api/cron/engagement-monitor",
       "schedule": "*/30 * * * *"
     },
@@ -148,6 +152,9 @@
     },
     "src/app/api/cron/video-status/route.ts": {
       "maxDuration": 60
+    },
+    "src/app/api/cron/brand-video-dispatch/route.ts": {
+      "maxDuration": 30
     },
     "src/app/api/cron/engagement-monitor/route.ts": {
       "maxDuration": 120

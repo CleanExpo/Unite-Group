@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 const repoRoot = join(process.cwd(), "../..");
 
 describe("automation control-plane configuration", () => {
-  it("keeps Brand Video manual-only without an unattended schedule", () => {
+  it("keeps Brand Video GHA manual-only without an unattended schedule", () => {
     const workflow = readFileSync(
       join(repoRoot, ".github/workflows/brand-video-render.yml"),
       "utf8",
@@ -15,6 +15,14 @@ describe("automation control-plane configuration", () => {
     expect(workflow).not.toContain("repository_dispatch:");
     expect(workflow).not.toMatch(/^\s*schedule:/m);
     expect(workflow).not.toMatch(/^\s*- cron:/m);
+  });
+
+  it("registers the Brand Video Vercel cron dispatcher (UNI-2373 P5)", () => {
+    const vercel = readFileSync(
+      join(repoRoot, "apps/web/vercel.json"),
+      "utf8",
+    );
+    expect(vercel).toContain('/api/cron/brand-video-dispatch');
   });
 
   it("keeps the superseded operator queue service permanently retired", () => {
