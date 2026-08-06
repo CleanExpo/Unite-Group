@@ -43,13 +43,13 @@ ingest cannot have come through this pipeline; resolve before trusting cost rows
 ### Class P — Missing producers/writers (code, S–M each)
 | # | Build | Grade today | Effort |
 |---|---|---|---|
-| P1 | Opportunities writer (POST + "New opportunity" UI or lead-conversion) — zero insert sites exist [VERIFIED] | AMBER-build | M |
-| P2 | Approvals approve/reject actions — page promises "your decision", component has zero interactive wiring [VERIFIED] | AMBER-build | S |
-| P3 | `wiki_pages` ingest (vault→table; target RPC already exists) — zero writers [VERIFIED]; feeds /wiki + /content + wiki-graph | AMBER-build | M |
-| P4 | `experiment_results` ingestion from platform_analytics — zero insert sites [VERIFIED]; experiments are decorative without it | AMBER-build | M |
-| P5 | Brand-video job processor — jobs enqueue in prod, worker absent from vercel.json [VERIFIED] | AMBER-build | S–M |
-| P6 | Founder-chat persistence (thread table + load/save) — today a refresh wipes the founder's chat | AMBER-build | M |
-| P7 | `skill_health` producer (the referenced eval-runner script is missing from the repo) | AMBER-build | S |
+| P1 | Opportunities writer (POST + "New opportunity" UI) — shipped #940 | GREEN | M |
+| P2 | Approvals approve/reject actions — wired in Wave A part 2 (#849) | GREEN | S |
+| P3 | `wiki_pages` vault ingest — shipped #942 | GREEN | M |
+| P4 | `experiment_results` ingest from `platform_analytics` — cron `/api/cron/experiment-results-ingest` (#944) | GREEN | M |
+| P5 | Brand-video Vercel cron dispatcher — shipped #943 | GREEN | S–M |
+| P6 | Founder-chat persistence — shipped #941 | GREEN | M |
+| P7 | `skill_health` producer — `apps/web/scripts/skill-eval-runner.mjs` (Wave A #849) | GREEN | S |
 | P8 | TikTok + YouTube analytics fetchers — `fetchTikTokAnalytics` / `fetchYouTubeAnalytics` wired via existing OAuth scopes (`video.list`, `youtube.readonly`) [VERIFIED] | GREEN | M |
 | P9 | First cron runs: boardroom `ceo-board-meeting`, knowledge `pi-ceo-weekly-review` (pipelines fully built) | AMBER-env | S |
 
