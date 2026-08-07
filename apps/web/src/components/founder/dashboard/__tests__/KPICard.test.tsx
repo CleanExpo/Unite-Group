@@ -79,4 +79,71 @@ describe('KPICard', () => {
     // The stale "Loading…" fallback must NOT persist after a hard failure.
     expect(screen.queryByText('Loading...')).not.toBeInTheDocument()
   })
+
+  // UNI-2373 H6 — mock boundary must surface end-to-end (API source → Demo badge).
+  it('renders the Demo badge when the revenue API returns source: mock', async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: {
+          businessKey: 'restore',
+          revenueCents: 9900,
+          expensesCents: 1000,
+          growth: 5.2,
+          invoiceCount: 3,
+          lastUpdated: '2020-01-01T00:00:00.000Z',
+        },
+        source: 'mock',
+      }),
+    })
+
+    render(
+      <KPICard
+        business={business}
+        metric="—"
+        metricLabel="Revenue MTD"
+        trend={{ value: '—', positive: true }}
+        secondary="Loading..."
+        xeroBusinessKey="restore"
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Demo')).toBeInTheDocument()
+    })
+    expect(screen.queryByText('Live')).not.toBeInTheDocument()
+  })
+
+  it('renders the Live badge only when the revenue API returns source: xero', async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: {
+          businessKey: 'restore',
+          revenueCents: 15_000_00,
+          expensesCents: 5_000_00,
+          growth: 12,
+          invoiceCount: 9,
+          lastUpdated: '2026-08-07T03:00:00.000Z',
+        },
+        source: 'xero',
+      }),
+    })
+
+    render(
+      <KPICard
+        business={business}
+        metric="—"
+        metricLabel="Revenue MTD"
+        trend={{ value: '—', positive: true }}
+        secondary="Loading..."
+        xeroBusinessKey="restore"
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Live')).toBeInTheDocument()
+    })
+    expect(screen.queryByText('Demo')).not.toBeInTheDocument()
+  })
 })
