@@ -94,27 +94,31 @@ A 07/08 re-audit reported "H1–H8 all already done on `main`" from these citati
 `DeckThemeShell.tsx:17-22` (H8).
 
 **Independent review falsified that conclusion.** The audit located an honest-looking
-symbol at each site and called it done; it never checked the behaviour. Known bad rows:
+symbol at each site and called it done; it never checked the behaviour. Known bad rows
+(as of 07/08 morning):
 
-- **H1 — OPEN, and rendering a false state in prod right now.**
-  `QueueBoard.tsx:513-517` is an *unconditional* ternary: every `running` session renders
-  "waiting for runner — none connected", with no heartbeat-dependent path. The in-code
-  comment concedes the revert is manual future work. The Nexus runner was **armed in prod
-  on 16/07** (`scripts/nexus-runner/README.md`, UNI-2385), so that label now lies in the
-  opposite direction — denying a runner that is genuinely claiming tasks. The 16/07
-  break-sweep recorded this exact inversion (`…break-sweep-readiness-assessment.md:94`)
-  and it is still unfixed. H1 is not done until the label reflects real connectivity.
-- **H6 — DISPUTED.** The audit cited `source: 'mock'` existing in `xero/client.ts`. The
-  break-sweep reaches the opposite conclusion: the client still silently substitutes
-  hardcoded mock revenue whenever creds are absent, and **no test asserts the mock
-  boundary end-to-end** — the hardening H6 actually asks for has not shipped.
-- **H2–H5, H7, H8 — UNCONFIRMED.** Same unsound method. Re-derive by behaviour before
-  treating any as closed. Do not cite the list above as evidence.
-- **H9 — OPEN.** A fix exists on `fix/uni-2373-h9-studio-deck-tokens`; it has **not
-  landed** and is not an ancestor of this commit. Its first attempt was independently
-  reviewed FAIL (1 P0: the palette guard was vacuous against a `rgb(0,245,255)`
-  reintroduction and never covered sibling `page.tsx`; 4 P1 contrast failures, two of
-  them regressions the migration itself introduced).
+- **H1 — was OPEN (false state).** Fixed and merged [#947](https://github.com/CleanExpo/Unite-Group/pull/947)
+  (`eaf1be06`): session label now depends on a real nexus-runner heartbeat.
+- **H6 — DISPUTED → closing.** Client/route already tagged `source:'mock'`; KPICard already
+  rendered Demo/Live; coach prompts already labelled DEMO. Residual from the 16/07
+  break-sweep: mock `lastUpdated` used `new Date()` (looked freshly live) and no UI test
+  asserted the Demo badge on `source:'mock'`. Those residuals ship in the H6 PR.
+- **H2–H5, H7, H8 — BEHAVIOUR-CONFIRMED GREEN (07/08 afternoon re-derive).** Not symbol
+  presence — render/API paths checked:
+  - H2: `board/route.ts` persists `metadata.board.verdict`; `QueueBoard` shows
+    `board: {verdict}`; approve route annotates `boardVerdict`; approvals tests cover
+    audit payload.
+  - H3: `ideas/route.ts` dedups Proposed-lane by normalised objective; MacBook
+    resubmit test returns `deduplicated: true`.
+  - H4: cold load shows `Loading tasks…` when `loading && tasks.length === 0`; empty
+    only after load; Offline is the realtime label, not a false task count.
+  - H5: hermes panel stats/copy read `design target (not live)`.
+  - H7: `AnalyticsDashboard` keeps load-failure distinct from empty-state.
+  - H8: `DeckThemeShell` defers daylight preference until hydrated; guarded by
+    no-invaders test.
+- **H9 — MERGED** [#948](https://github.com/CleanExpo/Unite-Group/pull/948) (`a30a3976`):
+  studio off retired OLED/cyan; directory-enumerated palette guard; AA contrast fixes.
+
 
 #### §2a — P9 re-graded AMBER-env → AMBER-build, and the fix is NOT small
 
@@ -183,11 +187,10 @@ boundary asserts `source:'mock'` end-to-end · H7 analytics fetch-failure ≠ em
 H8 React #418 hydration fix on /operations · H9 studio palette off the retired OLED
 tokens.
 
-**Status 07/08/2026: Class H is NOT closed — see §2b.** H1 is open and currently renders a
-false state in prod; H6 is disputed; H9 is open and has not landed; H2–H5/H7/H8 are
-unconfirmed because the audit that cleared them only located symbols. Do not record this
-wave as closed, and do not re-plan it from the nine-item list either — re-derive each item
-by behaviour first.
+**Status 07/08/2026 afternoon: Class H nearly closed — see §2b.** H1 (#947) and H9 (#948)
+merged; H2–H5/H7/H8 behaviour-confirmed GREEN; H6 residuals (fixed seed `lastUpdated` +
+Demo-badge e2e assertion) ship with this register update. Next code item after H6 lands
+is P9 (M–L, founder/Board-gated schema).
 
 ## 3. Judge
 
@@ -216,7 +219,7 @@ not buildable.
 4. ~~**Producer wave:** P1 → P3 → P5 → P4 → P6 → P8~~ — all merged (#940–#945)
 5. Re-walk all five routes + UNI-2377 parked-line grilling closes "comprehensive".
 
-## 4a. Live sequence — 07/08/2026
+## 4a. Live sequence — 07/08/2026 (updated afternoon)
 
 Deliberately short. Two earlier attempts to write a confident forward plan here each
 introduced a fresh false claim (P9 "founder-visible"; Class R "largest remaining item"
@@ -224,35 +227,31 @@ when it was merged and prod-armed). Only items verified outstanding this session
 
 1. **Phill (minutes, unchanged and still the highest leverage):** F1 → F2 → F3 → F4.
    F1 alone un-empties the CRM. No agent may self-perform these.
-2. **H1 — the most urgent code item.** The session label denies a runner that is live in
-   prod (§2b). It is a No-Invaders violation rendering today, and it is small: make the
-   label depend on an actual heartbeat instead of a hardcoded ternary.
-3. **H9** — land the studio palette fix once its P0/P1 review findings are drained.
-4. **Re-derive the rest of Class H by behaviour** (H6 disputed; H2–H5/H7/H8 unconfirmed)
-   before planning or rebuilding any of it.
+2. ~~**H1**~~ — merged [#947](https://github.com/CleanExpo/Unite-Group/pull/947).
+3. ~~**H9**~~ — merged [#948](https://github.com/CleanExpo/Unite-Group/pull/948).
+4. ~~**Re-derive Class H**~~ — H2–H5/H7/H8 GREEN by behaviour; **H6** closing (seed
+   `lastUpdated` + Demo-badge e2e assertion).
 5. **P9, re-scoped M–L** per §2a: visibility fix, write-then-confirm persistence, honest
    upstream-failure states, dormant-by-default arming, and a schema decision on the
    `board_meetings` collision. The migration is founder/Board-gated — not agent work.
 6. Re-walk all five routes + UNI-2377 parked-line grilling closes "comprehensive".
 
 **Not on this list because it is already done:** Class R / Wave B1 / B2 (merged and armed
-in prod 16/07), Wave A part 2, and the whole P1–P8 producer wave.
+in prod 16/07), Wave A part 2, the whole P1–P8 producer wave, H1, H9, and behaviour-
+confirmed H2–H5/H7/H8.
 
 ## 5. /goal command
 
 ```
 /goal Execute the ship-readiness register at .spm/2026-07-15-ship-readiness-register.md
-per §4a ONLY. §3 and §4 are superseded and describe merged work; the Class R / Wave B1 /
-B2 runner is already built and armed in prod (#852/#853/#854) — do not plan or rebuild
-it. Order: H1 (make the session label depend on a real runner heartbeat — it currently
-denies a live runner), then H9, then re-derive the remaining Class H items BY BEHAVIOUR
-before touching them, then P9 at its re-scoped M-L. Treat every status claim in this file
-as presence-only evidence until re-checked: for UI find the render path, for a guard
-mutate the defect back in, for "still outstanding" run git merge-base --is-ancestor.
-Honour No-Invaders, dormant-by-default (merging must arm nothing), the merge gate and
-independent adversary review per wave. Founder actions F1-F7 and any prod schema
-migration are named dependencies, never self-performed.
+per §4a ONLY. H1 (#947) and H9 (#948) are merged; H2–H5/H7/H8 are behaviour-confirmed
+GREEN. Close H6 (mock lastUpdated seed + Demo-badge e2e), then P9 at its re-scoped M–L.
+Treat every status claim in this file as presence-only evidence until re-checked: for UI
+find the render path, for a guard mutate the defect back in, for "still outstanding" run
+git merge-base --is-ancestor. Honour No-Invaders, dormant-by-default (merging must arm
+nothing), the merge gate and independent adversary review per wave. Founder actions
+F1-F7 and any prod schema migration are named dependencies, never self-performed.
 ```
 
-Next safe action: fix H1, and land H9 once its review findings are drained, while Phill
-executes F1–F4.
+Next safe action: land H6, then start P9 design (schema decision is founder/Board-gated)
+while Phill executes F1–F4.

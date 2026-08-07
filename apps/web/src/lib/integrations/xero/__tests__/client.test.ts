@@ -42,6 +42,7 @@ import {
   getExpectedXeroTenantId,
   selectXeroTenantForBusiness,
   getMockRevenueMTD,
+  MOCK_REVENUE_LAST_UPDATED,
   refreshXeroToken,
   getValidXeroToken,
   loadXeroTokens,
@@ -197,11 +198,20 @@ describe('Xero Client', () => {
       expect(result.revenueCents).toBe(2_475_000)
     })
 
+    it('stamps a fixed seed lastUpdated — never "just now" (H6 freshness honesty)', () => {
+      const before = Date.now()
+      const result = getMockRevenueMTD('dr')
+      expect(result.lastUpdated).toBe(MOCK_REVENUE_LAST_UPDATED)
+      // Guard against a regression that reintroduces new Date().toISOString().
+      expect(Date.parse(result.lastUpdated)).toBeLessThan(before - 86_400_000)
+    })
+
     it('returns zeroed data for an unknown business key', () => {
       const result = getMockRevenueMTD('unknown')
       expect(result.businessKey).toBe('unknown')
       expect(result.revenueCents).toBe(0)
       expect(result.invoiceCount).toBe(0)
+      expect(result.lastUpdated).toBe(MOCK_REVENUE_LAST_UPDATED)
     })
   })
 
