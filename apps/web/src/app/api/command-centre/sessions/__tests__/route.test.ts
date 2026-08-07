@@ -1,16 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn() }))
+vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn(), createClient: vi.fn() }))
 vi.mock('@/lib/command-centre/tasks', () => ({ getTaskById: vi.fn() }))
 vi.mock('@/lib/command-centre/sessions', () => ({
   listSessionsForTask: vi.fn(),
   startSession: vi.fn(),
   SESSION_SURFACES: ['local', 'vercel', 'codex'],
 }))
+vi.mock('@/lib/command-centre/runner-heartbeat', () => ({
+  loadRunnerHeartbeat: vi.fn(),
+}))
 
-import { getUser } from '@/lib/supabase/server'
+import { getUser, createClient } from '@/lib/supabase/server'
 import { getTaskById } from '@/lib/command-centre/tasks'
 import { listSessionsForTask, startSession } from '@/lib/command-centre/sessions'
+import { loadRunnerHeartbeat } from '@/lib/command-centre/runner-heartbeat'
 import { GET, POST } from '../route'
 
 function postReq(body: object) {
@@ -40,12 +44,21 @@ describe('GET /api/command-centre/sessions', () => {
   it('returns sessions for the task', async () => {
     vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
     vi.mocked(listSessionsForTask).mockResolvedValue([{ id: 'sess-1' }] as any)
+    vi.mocked(createClient).mockResolvedValue({} as any)
+    vi.mocked(loadRunnerHeartbeat).mockResolvedValue({
+      state: 'connected',
+      source: 'cc_agent_events',
+      ageSeconds: 12,
+      checkedAt: '2026-08-07T03:00:00.000Z',
+    })
 
     const res = await GET(new Request('https://app.test/api/command-centre/sessions?taskId=task-1'))
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.sessions).toHaveLength(1)
+    expect(body.runnerHeartbeat).toMatchObject({ state: 'connected', ageSeconds: 12 })
     expect(listSessionsForTask).toHaveBeenCalledWith(expect.objectContaining({ taskId: 'task-1' }))
+    expect(loadRunnerHeartbeat).toHaveBeenCalledWith(expect.anything(), 'user-1')
   })
 })
 
