@@ -5,7 +5,12 @@ const mockOrder = vi.fn(() => ({ limit: mockLimit }))
 const mockLt = vi.fn(() => ({ order: mockOrder }))
 const mockEq = vi.fn(() => ({ lt: mockLt, order: mockOrder }))
 const mockSelect = vi.fn(() => ({ eq: mockEq }))
-const mockFrom = vi.fn((table: string) => (table === 'crm_opportunities' ? { select: mockSelect } : {}))
+const mockInsertSingle = vi.fn<() => { data: any | null; error: unknown | null }>(() => ({ data: null, error: null }))
+const mockInsertSelect = vi.fn(() => ({ single: mockInsertSingle }))
+const mockInsert = vi.fn(() => ({ select: mockInsertSelect }))
+const mockFrom = vi.fn((table: string) =>
+  table === 'crm_opportunities' ? { select: mockSelect, insert: mockInsert } : {},
+)
 
 vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn(), createClient: vi.fn() }))
 vi.mock('@/lib/error-reporting', () => ({
@@ -14,7 +19,7 @@ vi.mock('@/lib/error-reporting', () => ({
 }))
 
 import { getUser, createClient } from '@/lib/supabase/server'
-import { GET } from '../route'
+import { GET, POST } from '../route'
 
 describe('GET /api/founder/opportunities', () => {
   beforeEach(() => {
@@ -132,5 +137,80 @@ describe('GET /api/founder/opportunities', () => {
     const body = await res.json()
     expect(body.error).toBe('Failed to load opportunities')
     expect(body.error).not.toContain('db.internal')
+  })
+})
+
+describe('POST /api/founder/opportunities', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(createClient).mockResolvedValue({ from: mockFrom } as any)
+    mockInsertSingle.mockReturnValue({
+      data: {
+        id: 'o-new',
+        founder_id: 'user-123',
+        name: 'CARSI renew',
+        stage: 'new_signal',
+        status: 'open',
+        value_amount: 15000,
+        value_currency: 'AUD',
+        probability: 40,
+        source: 'manual',
+        owner: 'Margot',
+      },
+      error: null,
+    })
+  })
+
+  it('returns 401 without caching when unauthenticated', async () => {
+    vi.mocked(getUser).mockResolvedValue(null as any)
+    const res = await POST(new Request('https://unit.test/api/founder/opportunities', {
+      method: 'POST',
+      body: JSON.stringify({ name: 'x' }),
+    }))
+    expect(res.status).toBe(401)
+    expect(res.headers.get('Cache-Control')).toBe('no-store')
+  })
+
+  it('rejects invalid payloads without querying', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'user-123' } as any)
+    const res = await POST(new Request('https://unit.test/api/founder/opportunities', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: '', value_amount: -1 }),
+    }))
+    expect(res.status).toBe(400)
+    expect(createClient).not.toHaveBeenCalled()
+  })
+
+  it('inserts a founder-scoped opportunity and returns 201', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'user-123' } as any)
+
+    const res = await POST(new Request('https://unit.test/api/founder/opportunities', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'CARSI renew',
+        value_amount: 15000,
+        probability: 40,
+        next_action: 'send proposal',
+      }),
+    }))
+
+    expect(res.status).toBe(201)
+    expect(res.headers.get('Cache-Control')).toBe('no-store')
+    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({
+      founder_id: 'user-123',
+      name: 'CARSI renew',
+      stage: 'new_signal',
+      status: 'open',
+      value_amount: 15000,
+      value_currency: 'AUD',
+      probability: 40,
+      next_action: 'send proposal',
+      source: 'manual',
+      owner: 'Margot',
+    }))
+    const body = await res.json()
+    expect(body.opportunity.id).toBe('o-new')
   })
 })

@@ -309,6 +309,10 @@ svg.lucide {
     --color-border-strong:  rgba(0, 0, 0, 0.15);
     --color-success:        #16a34a;
     --color-danger:         #ef4444;
+    /* Danger TEXT on the light canvas. #ef4444 is only 3.70:1 on --surface-canvas
+       (#fffdf7) and fails AA for normal text, so it stays for fills/borders/icons
+       exactly as #16a34a does. Mirrors the --color-accent-text split above. */
+    --color-danger-text:    #b91c1c; /* 6.33:1 on --surface-canvas — AA */
     --color-warning:        #f97316;
 
     /* Derived alpha tokens */

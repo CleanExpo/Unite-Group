@@ -1,3 +1,4 @@
+/** @vitest-environment jsdom */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -226,6 +227,53 @@ describe('OpportunitiesPageClient', () => {
     fetchMock.mockReturnValue(resp({ opportunities: [], summary: { total: 0, open: 0, won: 0, lost: 0, openValue: 0, weightedPipeline: 0 } }))
     render(<OpportunitiesPageClient />)
     expect(await screen.findByText('No opportunities yet')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /new opportunity/i }).length).toBeGreaterThan(0)
+  })
+
+  it('creates an opportunity via POST and prepends it to the pipeline', async () => {
+    fetchMock
+      .mockReturnValueOnce(resp({
+        opportunities: [],
+        summary: { total: 0, open: 0, won: 0, lost: 0, openValue: 0, weightedPipeline: 0 },
+        sourceOfTruth: { crm: 'crm_opportunities', billing: 'stripe', mode: 'forecast_only' },
+        readiness: {
+          queueWindow: 'latest_500_created_at',
+          pagination: 'cursor_by_created_at',
+          latestOpportunityUpdatedAt: null,
+          nextCursor: null,
+        },
+      }))
+      .mockReturnValueOnce(resp({
+        opportunity: {
+          id: 'o-created',
+          name: 'RestoreAssist expansion',
+          stage: 'qualified',
+          status: 'open',
+          value_amount: 25000,
+          probability: 55,
+          next_action: 'book discovery',
+          updated_at: '2026-08-06T04:00:00.000Z',
+          created_at: '2026-08-06T04:00:00.000Z',
+        },
+      }))
+
+    render(<OpportunitiesPageClient />)
+    expect(await screen.findByText('No opportunities yet')).toBeInTheDocument()
+
+    await userEvent.click(screen.getAllByRole('button', { name: /new opportunity/i })[0])
+    await userEvent.type(screen.getByLabelText(/^Name$/i), 'RestoreAssist expansion')
+    await userEvent.selectOptions(screen.getByLabelText(/^Stage$/i), 'qualified')
+    await userEvent.type(screen.getByLabelText(/Value \(AUD\)/i), '25000')
+    await userEvent.type(screen.getByLabelText(/Probability \(%\)/i), '55')
+    await userEvent.type(screen.getByLabelText(/Next action/i), 'book discovery')
+    await userEvent.click(screen.getByRole('button', { name: /create opportunity/i }))
+
+    expect(await screen.findByText('RestoreAssist expansion')).toBeInTheDocument()
+    expect(screen.getByText('$13,750')).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/founder/opportunities', expect.objectContaining({
+      method: 'POST',
+      credentials: 'include',
+    }))
   })
 
   it('shows an honest error state (never a fake-empty pipeline) when the fetch fails', async () => {

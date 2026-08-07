@@ -3,7 +3,7 @@
 // Founder chat — talk to the estate's agent (the Nexus operator assistant)
 // directly from the CRM, without Telegram. Server component: authenticates,
 // loads the founder's businesses for optional grounding, and hands the thread
-// to the client. Session lives in page state only — no tables, no DDL.
+// to the client. Thread persistence is GET/PUT /api/founder/chat (UNI-2373 P6).
 
 export const dynamic = 'force-dynamic'
 

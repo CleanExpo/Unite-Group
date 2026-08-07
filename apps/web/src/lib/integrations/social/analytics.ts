@@ -243,6 +243,244 @@ export async function fetchLinkedInAnalytics(
   return metrics
 }
 
+// ─── TikTok ───────────────────────────────────────────────────────────────────
+// Uses Display API video.list (already requested at OAuth: video.list).
+// Public video stats: view/like/comment/share counts — no separate insights scope.
+
+export async function fetchTikTokAnalytics(
+  channel: SocialChannel,
+  accessTokenEncrypted: string,
+  since: string,
+  until: string
+): Promise<PostMetrics[]> {
+  const accessToken = decodeToken(accessTokenEncrypted)
+  const sinceTs = Math.floor(new Date(`${since}T00:00:00Z`).getTime() / 1000)
+  const untilTs = Math.floor(new Date(`${until}T23:59:59Z`).getTime() / 1000)
+  const metrics: PostMetrics[] = []
+
+  let cursor: number | undefined
+  let hasMore = true
+  let pages = 0
+
+  while (hasMore && pages < 5 && metrics.length < 100) {
+    pages += 1
+    const body: Record<string, unknown> = { max_count: 20 }
+    if (cursor !== undefined) body.cursor = cursor
+
+    const res = await fetch(
+      'https://open.tiktokapis.com/v2/video/list/?fields=id,create_time,view_count,like_count,comment_count,share_count',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      },
+    )
+
+    if (!res.ok) {
+      console.error(
+        `[Analytics:TT] video.list failed for ${channel.channelId}:`,
+        await res.text(),
+      )
+      return metrics
+    }
+
+    const payload = (await res.json()) as {
+      data?: {
+        videos?: Array<{
+          id?: string
+          create_time?: number
+          view_count?: number
+          like_count?: number
+          comment_count?: number
+          share_count?: number
+        }>
+        cursor?: number
+        has_more?: boolean
+      }
+      error?: { code?: string; message?: string }
+    }
+
+    if (payload.error?.code && payload.error.code !== 'ok') {
+      console.error(`[Analytics:TT] API error:`, payload.error.message ?? payload.error.code)
+      return metrics
+    }
+
+    for (const video of payload.data?.videos ?? []) {
+      if (!video.id) continue
+      const created = video.create_time ?? 0
+      if (created < sinceTs || created > untilTs) continue
+
+      const likes = video.like_count ?? 0
+      const comments = video.comment_count ?? 0
+      const shares = video.share_count ?? 0
+      const views = video.view_count ?? 0
+
+      metrics.push({
+        postExternalId: video.id,
+        impressions: views,
+        reach: 0,
+        engagements: likes + comments + shares,
+        likes,
+        comments,
+        shares,
+        saves: 0,
+        clicks: 0,
+        videoViews: views,
+        videoWatchTimeSeconds: 0,
+      })
+    }
+
+    hasMore = Boolean(payload.data?.has_more)
+    cursor = payload.data?.cursor
+  }
+
+  return metrics
+}
+
+// ─── YouTube ──────────────────────────────────────────────────────────────────
+// youtube.readonly already requested — channel uploads playlist + video statistics.
+
+export async function fetchYouTubeAnalytics(
+  channel: SocialChannel,
+  accessTokenEncrypted: string,
+  since: string,
+  until: string
+): Promise<PostMetrics[]> {
+  const accessToken = decodeToken(accessTokenEncrypted)
+  const sinceIso = `${since}T00:00:00Z`
+  const untilIso = `${until}T23:59:59Z`
+
+  const channelParams = new URLSearchParams({
+    part: 'contentDetails',
+    mine: 'true',
+  })
+  // Prefer the stored channel id when present (avoids mine=true ambiguity on multi-channel tokens)
+  if (channel.channelId) {
+    channelParams.delete('mine')
+    channelParams.set('id', channel.channelId)
+  }
+
+  const channelRes = await fetch(
+    `https://www.googleapis.com/youtube/v3/channels?${channelParams}`,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  )
+  if (!channelRes.ok) {
+    console.error('[Analytics:YT] channels.list failed:', await channelRes.text())
+    return []
+  }
+
+  const channelData = (await channelRes.json()) as {
+    items?: Array<{ contentDetails?: { relatedPlaylists?: { uploads?: string } } }>
+  }
+  const uploadsId = channelData.items?.[0]?.contentDetails?.relatedPlaylists?.uploads
+  if (!uploadsId) {
+    console.warn('[Analytics:YT] No uploads playlist for channel', channel.channelId)
+    return []
+  }
+
+  const videoIds: string[] = []
+  let pageToken: string | undefined
+  let pages = 0
+
+  while (pages < 5 && videoIds.length < 50) {
+    pages += 1
+    const playlistParams = new URLSearchParams({
+      part: 'contentDetails,snippet',
+      playlistId: uploadsId,
+      maxResults: '50',
+    })
+    if (pageToken) playlistParams.set('pageToken', pageToken)
+
+    const playlistRes = await fetch(
+      `https://www.googleapis.com/youtube/v3/playlistItems?${playlistParams}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    )
+    if (!playlistRes.ok) {
+      console.error('[Analytics:YT] playlistItems.list failed:', await playlistRes.text())
+      break
+    }
+
+    const playlistData = (await playlistRes.json()) as {
+      items?: Array<{
+        contentDetails?: { videoId?: string; videoPublishedAt?: string }
+        snippet?: { publishedAt?: string }
+      }>
+      nextPageToken?: string
+    }
+
+    let sawOlderThanWindow = false
+    for (const item of playlistData.items ?? []) {
+      const published =
+        item.contentDetails?.videoPublishedAt ?? item.snippet?.publishedAt ?? ''
+      if (!published) continue
+      if (published < sinceIso) {
+        sawOlderThanWindow = true
+        continue
+      }
+      if (published > untilIso) continue
+      const id = item.contentDetails?.videoId
+      if (id) videoIds.push(id)
+    }
+
+    pageToken = playlistData.nextPageToken
+    if (!pageToken || sawOlderThanWindow) break
+  }
+
+  if (videoIds.length === 0) return []
+
+  const metrics: PostMetrics[] = []
+  for (let i = 0; i < videoIds.length; i += 50) {
+    const batch = videoIds.slice(i, i + 50)
+    const statsRes = await fetch(
+      `https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${batch.join(',')}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    )
+    if (!statsRes.ok) {
+      console.error('[Analytics:YT] videos.list failed:', await statsRes.text())
+      break
+    }
+
+    const statsData = (await statsRes.json()) as {
+      items?: Array<{
+        id?: string
+        statistics?: {
+          viewCount?: string
+          likeCount?: string
+          commentCount?: string
+          favoriteCount?: string
+        }
+      }>
+    }
+
+    for (const item of statsData.items ?? []) {
+      if (!item.id) continue
+      const views = Number(item.statistics?.viewCount ?? 0) || 0
+      const likes = Number(item.statistics?.likeCount ?? 0) || 0
+      const comments = Number(item.statistics?.commentCount ?? 0) || 0
+      const saves = Number(item.statistics?.favoriteCount ?? 0) || 0
+
+      metrics.push({
+        postExternalId: item.id,
+        impressions: views,
+        reach: 0,
+        engagements: likes + comments + saves,
+        likes,
+        comments,
+        shares: 0,
+        saves,
+        clicks: 0,
+        videoViews: views,
+        videoWatchTimeSeconds: 0,
+      })
+    }
+  }
+
+  return metrics
+}
+
 // ─── Dispatcher ───────────────────────────────────────────────────────────────
 
 export async function fetchAnalyticsForChannel(
@@ -259,11 +497,9 @@ export async function fetchAnalyticsForChannel(
     case 'linkedin':
       return fetchLinkedInAnalytics(channel, accessTokenEncrypted, since, until)
     case 'tiktok':
+      return fetchTikTokAnalytics(channel, accessTokenEncrypted, since, until)
     case 'youtube':
-      // TikTok Content Posting API and YouTube Data API v3 analytics require
-      // additional OAuth scopes — stubbed until those scopes are configured
-      console.log(`[Analytics] ${channel.platform} analytics not yet implemented`)
-      return []
+      return fetchYouTubeAnalytics(channel, accessTokenEncrypted, since, until)
     default:
       return []
   }

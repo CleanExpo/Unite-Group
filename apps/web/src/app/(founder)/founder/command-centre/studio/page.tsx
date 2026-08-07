@@ -10,7 +10,7 @@ export default async function StudioPage({
   const { taskId } = await searchParams
   if (!taskId) {
     return (
-      <div className="p-6 text-sm text-neutral-400">
+      <div className="p-6 text-sm text-[var(--color-text-muted)]">
         Open the studio from a routed idea — a <code>taskId</code> is required.
       </div>
     )

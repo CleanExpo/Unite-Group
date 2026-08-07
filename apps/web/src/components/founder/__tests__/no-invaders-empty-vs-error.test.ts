@@ -36,9 +36,18 @@ describe('founder components — failed load is not rendered as empty', () => {
 // Wave A part 2 honesty invariants (UNI-2373 register H1/H4/H8, P2/P7) — source
 // guards in the same style as above for surfaces that are awkward to render-test.
 describe('command-centre — honest states over theatre', () => {
-  it('QueueBoard renders running sessions as waiting for a runner (H1)', () => {
-    const src = read('src/app/(founder)/founder/command-centre/QueueBoard.tsx')
-    expect(src).toContain('waiting for runner — none connected')
+  it('QueueBoard running-session label depends on a real runner heartbeat (H1)', () => {
+    const board = read('src/app/(founder)/founder/command-centre/QueueBoard.tsx')
+    const heartbeat = read('src/lib/command-centre/runner-heartbeat.ts')
+    // Offline honesty copy lives in the classifier…
+    expect(heartbeat).toContain('waiting for runner — none connected')
+    expect(heartbeat).toContain("runnerState === 'connected'")
+    // …and QueueBoard must call it (not an unconditional running ternary).
+    expect(board).toContain('runningSessionLabel')
+    expect(board).toContain('runnerState')
+    expect(board).not.toContain(
+      "s.status === 'running' ? 'waiting for runner — none connected' : s.status",
+    )
   })
 
   it('QueueBoard cold-load never claims 0 TASKS · OFFLINE while the first fetch is in flight (H4)', () => {

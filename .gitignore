@@ -102,3 +102,7 @@ outputs/sandbox_voice_migration/
 # Local agent permissions and authenticated browser state are machine-owned.
 **/.claude/settings.local.json
 **/playwright/.auth/
+
+# Agent/local worktrees must never be committed as gitlinks
+.claude/worktrees/
+.worktrees/

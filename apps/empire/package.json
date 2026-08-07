@@ -107,7 +107,7 @@
     "test:all": "jest",
     "type-check": "tsc --noEmit",
     "gen:types": "supabase gen types typescript --project-id lksfwktwtmyznckodsau > types/supabase.ts",
-    "check:schema-drift": "supabase gen types typescript --project-id lksfwktwtmyznckodsau > /tmp/supabase-fresh.ts && diff types/supabase.ts /tmp/supabase-fresh.ts && echo 'No schema drift' || (echo 'SCHEMA DRIFT DETECTED — run npm run gen:types' && exit 1)",
+    "check:schema-drift": "supabase gen types typescript --project-id lksfwktwtmyznckodsau > /tmp/supabase-fresh.ts && diff types/supabase.ts /tmp/supabase-fresh.ts && echo 'No schema drift' || (echo 'SCHEMA DRIFT DETECTED \u2014 run npm run gen:types' && exit 1)",
     "validate:jsonld": "npx ts-node --project tsconfig.json scripts/validate-jsonld.ts",
     "brand:lint": "ts-node --transpile-only -O '{\"module\":\"commonjs\",\"moduleResolution\":\"node\"}' scripts/brand-guardian-lint.ts",
     "brand:lint:csv": "ts-node --transpile-only -O '{\"module\":\"commonjs\",\"moduleResolution\":\"node\"}' scripts/brand-guardian-lint.ts > docs/brand/voice-audit-2026-05-13.csv 2>&1 || true",
@@ -147,10 +147,10 @@
   "overrides": {
     "sharp": "$sharp",
     "postcss": "$postcss",
-    "brace-expansion": "5.0.8",
-    "minimatch": "10.2.5",
-    "js-yaml@<3.15.0": "3.15.0",
-    "js-yaml@>=4.0.0 <4.3.0": "4.3.0",
-    "undici@>=7.0.0 <7.28.0": "7.28.0"
+    "brace-expansion": "5.0.9",
+    "minimatch": "10.2.6",
+    "js-yaml@3": "3.15.1",
+    "js-yaml@4": "4.3.1",
+    "undici": "7.29.0"
   }
 }

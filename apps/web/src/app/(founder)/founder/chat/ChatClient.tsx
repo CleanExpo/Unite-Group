@@ -4,9 +4,10 @@
 //
 // Client thread UI for the founder chat lane. Command-deck aesthetic via the
 // shared operator-gateway theme tokens (same reuse pattern as the sibling
-// /founder/agents page). In-memory session only — refresh clears the thread.
+// /founder/agents page). Thread persistence: GET/PUT /api/founder/chat
+// (UNI-2373 P6) — refresh restores the founder's conversation.
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { theme } from '../command-centre/operator-gateway/_components'
 import {
   MAX_MESSAGES,
@@ -57,8 +58,93 @@ export function ChatClient({
   const [input, setInput] = useState('')
   const [businessKey, setBusinessKey] = useState('')
   const [busy, setBusy] = useState(false)
+  const [loadingThread, setLoadingThread] = useState(signedIn)
   const [error, setError] = useState<string | null>(null)
+  const [persistError, setPersistError] = useState<string | null>(null)
   const threadEndRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!signedIn) {
+      setLoadingThread(false)
+      return
+    }
+
+    let cancelled = false
+    async function loadThread() {
+      setLoadingThread(true)
+      setPersistError(null)
+      try {
+        const response = await fetch('/api/founder/chat', {
+          credentials: 'include',
+          cache: 'no-store',
+        })
+        if (!response.ok) {
+          let message = `Could not load chat (${response.status})`
+          try {
+            const body = (await response.json()) as { error?: string }
+            if (body.error) message = body.error
+          } catch {
+            // keep fallback
+          }
+          throw new Error(message)
+        }
+        const body = (await response.json()) as {
+          messages?: FounderChatMessage[]
+          businessKey?: string | null
+        }
+        if (cancelled) return
+        setMessages(Array.isArray(body.messages) ? body.messages : [])
+        setBusinessKey(typeof body.businessKey === 'string' ? body.businessKey : '')
+      } catch (loadError) {
+        if (!cancelled) {
+          setPersistError(
+            loadError instanceof Error ? loadError.message : 'Could not load chat thread',
+          )
+        }
+      } finally {
+        if (!cancelled) setLoadingThread(false)
+      }
+    }
+
+    void loadThread()
+    return () => {
+      cancelled = true
+    }
+  }, [signedIn])
+
+  async function persistThread(
+    nextMessages: FounderChatMessage[],
+    nextBusinessKey: string,
+  ): Promise<boolean> {
+    try {
+      const response = await fetch('/api/founder/chat', {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          messages: nextMessages.slice(-MAX_MESSAGES),
+          businessKey: nextBusinessKey || null,
+        }),
+      })
+      if (!response.ok) {
+        let message = `Could not save chat (${response.status})`
+        try {
+          const body = (await response.json()) as { error?: string }
+          if (body.error) message = body.error
+        } catch {
+          // keep fallback
+        }
+        throw new Error(message)
+      }
+      setPersistError(null)
+      return true
+    } catch (saveError) {
+      setPersistError(
+        saveError instanceof Error ? saveError.message : 'Could not save chat thread',
+      )
+      return false
+    }
+  }
 
   function appendAssistantDelta(delta: string) {
     setMessages((current) => {
@@ -82,6 +168,8 @@ export function ChatClient({
     setInput('')
     setError(null)
     setBusy(true)
+
+    let finalThread = thread
 
     try {
       const response = await fetch('/api/founder/chat', {
@@ -110,6 +198,7 @@ export function ChatClient({
       const decoder = new TextDecoder()
       let buffer = ''
       let streamDone = false
+      let assistant = ''
       while (!streamDone) {
         const { value, done } = await reader.read()
         if (done) break
@@ -117,17 +206,33 @@ export function ChatClient({
         const extracted = extractSseEvents(buffer)
         buffer = extracted.rest
         for (const event of extracted.events) {
-          if (typeof event.delta === 'string') appendAssistantDelta(event.delta)
+          if (typeof event.delta === 'string') {
+            assistant += event.delta
+            appendAssistantDelta(event.delta)
+          }
           if (typeof event.error === 'string') setError(event.error)
         }
         if (extracted.done) streamDone = true
       }
+
+      finalThread = assistant
+        ? [...thread, { role: 'assistant' as const, content: assistant }]
+        : thread
+      setMessages(finalThread)
+      await persistThread(finalThread, businessKey)
     } catch (sendError) {
       setError(sendError instanceof Error ? sendError.message : 'Unable to send message')
     } finally {
       setBusy(false)
       threadEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
     }
+  }
+
+  async function clearThread() {
+    if (busy) return
+    setMessages([])
+    setError(null)
+    await persistThread([], businessKey)
   }
 
   function onKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -141,7 +246,7 @@ export function ChatClient({
     <div style={wrap}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
         <h1 style={{ fontSize: 28, margin: '0 0 0.25rem' }}>Chat</h1>
-        <span style={monoLabel}>claude · streamed live · session in memory</span>
+        <span style={monoLabel}>claude · streamed live · persisted</span>
       </div>
       <p style={{ color: theme.muted, marginTop: 0, fontSize: 14 }}>
         Direct line to the estate&apos;s agent from the CRM — no Telegram required. Real model
@@ -152,6 +257,17 @@ export function ChatClient({
       {!signedIn && (
         <div style={{ ...panel, borderColor: theme.bad, padding: '0.85rem 1rem', marginBottom: '1rem' }}>
           <span style={{ color: theme.bad, fontSize: 14 }}>Not signed in — messages will be rejected (401).</span>
+        </div>
+      )}
+
+      {persistError && (
+        <div
+          role="alert"
+          style={{ ...panel, borderColor: theme.warn, padding: '0.75rem 1rem', marginBottom: '0.75rem' }}
+        >
+          <span style={{ color: theme.warn, fontSize: 13, fontFamily: 'var(--font-mono, monospace)' }}>
+            Persistence: {persistError}
+          </span>
         </div>
       )}
 
@@ -168,35 +284,41 @@ export function ChatClient({
           gap: '0.75rem',
         }}
         aria-label="chat thread"
-        aria-busy={busy}
+        aria-busy={busy || loadingThread}
       >
-        {messages.length === 0 && (
+        {loadingThread && (
+          <p style={{ color: theme.muted, fontSize: 14, margin: 'auto', textAlign: 'center' }}>
+            Loading saved thread…
+          </p>
+        )}
+        {!loadingThread && messages.length === 0 && (
           <p style={{ color: theme.muted, fontSize: 14, margin: 'auto', textAlign: 'center' }}>
             No messages yet. Ask the operator assistant anything — select a business below to
             ground answers in its content.
           </p>
         )}
-        {messages.map((message, index) => (
-          <div
-            key={`${message.role}-${index}`}
-            style={{
-              alignSelf: message.role === 'user' ? 'flex-end' : 'flex-start',
-              maxWidth: '85%',
-              border: `1px solid ${message.role === 'user' ? theme.borderSoft : theme.border}`,
-              borderLeft: `3px solid ${message.role === 'user' ? theme.ok : theme.info}`,
-              borderRadius: 2,
-              background: message.role === 'user' ? '#11151c' : '#0b0e14',
-              padding: '0.6rem 0.8rem',
-            }}
-          >
-            <div style={{ ...monoLabel, marginBottom: 4 }}>
-              {message.role === 'user' ? 'founder' : 'agent'}
+        {!loadingThread &&
+          messages.map((message, index) => (
+            <div
+              key={`${message.role}-${index}`}
+              style={{
+                alignSelf: message.role === 'user' ? 'flex-end' : 'flex-start',
+                maxWidth: '85%',
+                border: `1px solid ${message.role === 'user' ? theme.borderSoft : theme.border}`,
+                borderLeft: `3px solid ${message.role === 'user' ? theme.ok : theme.info}`,
+                borderRadius: 2,
+                background: message.role === 'user' ? '#11151c' : '#0b0e14',
+                padding: '0.6rem 0.8rem',
+              }}
+            >
+              <div style={{ ...monoLabel, marginBottom: 4 }}>
+                {message.role === 'user' ? 'founder' : 'agent'}
+              </div>
+              <div style={{ fontSize: 14, whiteSpace: 'pre-wrap', lineHeight: 1.55 }}>
+                {message.content || (busy && index === messages.length - 1 ? '…' : '')}
+              </div>
             </div>
-            <div style={{ fontSize: 14, whiteSpace: 'pre-wrap', lineHeight: 1.55 }}>
-              {message.content || (busy && index === messages.length - 1 ? '…' : '')}
-            </div>
-          </div>
-        ))}
+          ))}
         {busy && messages[messages.length - 1]?.role === 'user' && (
           <div style={{ ...monoLabel, alignSelf: 'flex-start' }}>agent is responding…</div>
         )}
@@ -224,7 +346,7 @@ export function ChatClient({
             id="chat-business"
             value={businessKey}
             onChange={(event) => setBusinessKey(event.target.value)}
-            disabled={busy}
+            disabled={busy || loadingThread}
             style={{
               background: '#0b0e14',
               color: theme.text,
@@ -249,6 +371,25 @@ export function ChatClient({
           {businesses.length === 0 && !businessLoadError && signedIn && (
             <span style={{ color: theme.muted, fontSize: 12 }}>No businesses on file — general chat only.</span>
           )}
+          {signedIn && messages.length > 0 && (
+            <button
+              type="button"
+              onClick={() => void clearThread()}
+              disabled={busy || loadingThread}
+              style={{
+                marginLeft: 'auto',
+                background: 'transparent',
+                color: theme.muted,
+                border: `1px solid ${theme.border}`,
+                borderRadius: 2,
+                padding: '0.3rem 0.6rem',
+                fontSize: 12,
+                cursor: busy || loadingThread ? 'not-allowed' : 'pointer',
+              }}
+            >
+              Clear thread
+            </button>
+          )}
         </div>
 
         <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-end' }}>
@@ -258,7 +399,7 @@ export function ChatClient({
             onKeyDown={onKeyDown}
             rows={3}
             placeholder="Message the operator assistant… (Enter to send, Shift+Enter for a new line)"
-            disabled={busy}
+            disabled={busy || loadingThread}
             aria-label="chat message"
             style={{
               flex: 1,
@@ -275,16 +416,16 @@ export function ChatClient({
           <button
             type="button"
             onClick={() => void send()}
-            disabled={busy || !input.trim()}
+            disabled={busy || loadingThread || !input.trim()}
             style={{
-              background: busy || !input.trim() ? theme.borderSoft : '#12361f',
-              color: busy || !input.trim() ? theme.muted : theme.ok,
-              border: `1px solid ${busy || !input.trim() ? theme.border : '#238636'}`,
+              background: busy || loadingThread || !input.trim() ? theme.borderSoft : '#12361f',
+              color: busy || loadingThread || !input.trim() ? theme.muted : theme.ok,
+              border: `1px solid ${busy || loadingThread || !input.trim() ? theme.border : '#238636'}`,
               borderRadius: 2,
               padding: '0.6rem 1.1rem',
               fontSize: 14,
               fontWeight: 700,
-              cursor: busy || !input.trim() ? 'not-allowed' : 'pointer',
+              cursor: busy || loadingThread || !input.trim() ? 'not-allowed' : 'pointer',
             }}
           >
             {busy ? 'Streaming…' : 'Send'}

@@ -100,12 +100,20 @@ export function isXeroConfigured(): boolean {
 
 // ── Mock data (dev / pre-connect fallback) ──────────────────────────────────
 
+/**
+ * Seed MTD figures for pre-connect / unconfigured Xero. Always tagged
+ * `source: 'mock'` by callers. `lastUpdated` is a FIXED seed timestamp — never
+ * `new Date()` — so demo rows cannot masquerade as freshly-fetched live data
+ * (UNI-2373 H6 residual from the 16/07 break-sweep).
+ */
+export const MOCK_REVENUE_LAST_UPDATED = '2020-01-01T00:00:00.000Z'
+
 export function getMockRevenueMTD(businessKey: string): XeroRevenueMTD {
   const mocks: Record<string, XeroRevenueMTD> = {
-    dr:    { businessKey: 'dr',    revenueCents: 2_475_000, expensesCents: 1_100_000, growth: 12,  invoiceCount: 47, lastUpdated: new Date().toISOString() },
-    nrpg:  { businessKey: 'nrpg',  revenueCents:   840_000, expensesCents:   320_000, growth: 5,   invoiceCount: 12, lastUpdated: new Date().toISOString() },
-    carsi: { businessKey: 'carsi', revenueCents: 1_220_000, expensesCents:   580_000, growth: -3,  invoiceCount: 8,  lastUpdated: new Date().toISOString() },
-    ccw:   { businessKey: 'ccw',   revenueCents: 3_150_000, expensesCents: 1_800_000, growth: 8,   invoiceCount: 15, lastUpdated: new Date().toISOString() },
+    dr:    { businessKey: 'dr',    revenueCents: 2_475_000, expensesCents: 1_100_000, growth: 12,  invoiceCount: 47, lastUpdated: MOCK_REVENUE_LAST_UPDATED },
+    nrpg:  { businessKey: 'nrpg',  revenueCents:   840_000, expensesCents:   320_000, growth: 5,   invoiceCount: 12, lastUpdated: MOCK_REVENUE_LAST_UPDATED },
+    carsi: { businessKey: 'carsi', revenueCents: 1_220_000, expensesCents:   580_000, growth: -3,  invoiceCount: 8,  lastUpdated: MOCK_REVENUE_LAST_UPDATED },
+    ccw:   { businessKey: 'ccw',   revenueCents: 3_150_000, expensesCents: 1_800_000, growth: 8,   invoiceCount: 15, lastUpdated: MOCK_REVENUE_LAST_UPDATED },
   }
   return mocks[businessKey] ?? {
     businessKey,
@@ -113,7 +121,7 @@ export function getMockRevenueMTD(businessKey: string): XeroRevenueMTD {
     expensesCents: 0,
     growth: 0,
     invoiceCount: 0,
-    lastUpdated: new Date().toISOString(),
+    lastUpdated: MOCK_REVENUE_LAST_UPDATED,
   }
 }
 

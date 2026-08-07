@@ -51,9 +51,21 @@ is marked `failed` with the error — it no longer parks at `needs_local_render`
 
 A Vercel function can't run ffmpeg or long jobs, so the worker runs in GitHub
 Actions where ffmpeg exists: `.github/workflows/brand-video-render.yml`
-(`workflow_dispatch` only). Automatic event dispatch is intentionally deferred
-until a production GitHub credential and a tested queue-owner emitter are connected.
-Each manual run installs ffmpeg + Node + Python, installs `apps/web` deps, then
+(`workflow_dispatch` only — no unattended GHA `schedule:`).
+
+**Vercel cron processor (UNI-2373 P5):** `/api/cron/brand-video-dispatch` every
+15 minutes (`vercel.json`). It counts `brand_video_jobs` with `status=queued`
+and, when armed, fires `workflow_dispatch` on that workflow.
+
+Arming (both required):
+- `GITHUB_TOKEN` — repo token that can dispatch workflows
+- `BRAND_VIDEO_DISPATCH_LIVE=1` — explicit live flag (safe default off)
+
+Without arming the cron still returns honest queue depth (`dispatched:false`,
+`reason: github_not_configured | dispatch_disabled | empty_queue`). Manual
+`workflow_dispatch` from the Actions UI always works.
+
+Each render run installs ffmpeg + Node + Python, installs `apps/web` deps, then
 runs the worker to claim and render one queued job, uploading the mp4 to
 `BRAND_VIDEO_BUCKET` and setting `status=done` + `output_url`.
 

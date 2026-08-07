@@ -73,14 +73,17 @@ export function StudioClient({ taskId }: { taskId: string }) {
   }
 
   return (
-    <div className="flex min-h-[70vh] flex-col bg-[#050505] text-white">
+    <div className="flex min-h-[70vh] flex-col bg-[var(--surface-canvas)] text-[var(--color-text-primary)]">
       <div className="flex-1 p-4" aria-label="Concept canvas">
         {notConnected ? (
-          <div className="rounded-sm border border-[#00F5FF55] p-4 text-sm" role="alert">
+          <div
+            className="rounded-sm border border-[var(--color-accent-border)] bg-[var(--color-accent-dim)] p-4 text-sm"
+            role="alert"
+          >
             {notConnected}
           </div>
         ) : concepts.length === 0 ? (
-          <p className="text-sm text-neutral-400">
+          <p className="text-sm text-[var(--color-text-muted)]">
             Describe your campaign below and the design agent will generate concept directions.
           </p>
         ) : (
@@ -92,8 +95,14 @@ export function StudioClient({ taskId }: { taskId: string }) {
                 aria-label={`Concept ${c.id}`}
                 aria-pressed={chosenId === c.id}
                 onClick={() => setChosenId(c.id)}
-                className={`aspect-square overflow-hidden rounded-sm border bg-neutral-900 ${
-                  chosenId === c.id ? 'border-[#00F5FF]' : 'border-neutral-700'
+                className={`aspect-square overflow-hidden rounded-sm bg-[var(--surface-overlay)] ${
+                  // Selected state must clear WCAG 1.4.11 (3:1 for non-text UI).
+                  // --color-accent on the overlay is only 2.96:1, and the default
+                  // 8%-black border ~1.20:1, so selection reads on the darker
+                  // accent (4.51:1) plus a width change, not colour alone.
+                  chosenId === c.id
+                    ? 'border-2 border-[var(--color-accent-text)]'
+                    : 'border-2 border-[var(--color-border-strong)]'
                 }`}
               >
                 <span
@@ -109,24 +118,34 @@ export function StudioClient({ taskId }: { taskId: string }) {
 
         <div className="mt-4 space-y-1" aria-live="polite">
           {messages.map((m, i) => (
-            <p key={i} className={`text-xs ${m.role === 'agent' ? 'text-[#00F5FF]' : 'text-neutral-300'}`}>
+            <p
+              key={i}
+              className={`text-xs ${
+                m.role === 'agent'
+                  ? 'text-[var(--color-accent-text)]'
+                  : 'text-[var(--color-text-secondary)]'
+              }`}
+            >
               {m.text}
             </p>
           ))}
           {error && (
-            <p className="text-xs text-amber-400" role="alert">
+            <p className="text-xs text-[var(--color-danger-text)]" role="alert">
               {error}
             </p>
           )}
         </div>
       </div>
 
-      <form onSubmit={send} className="flex items-center gap-2 border-t border-neutral-800 p-3">
+      <form
+        onSubmit={send}
+        className="flex items-center gap-2 border-t border-[var(--color-border)] p-3"
+      >
         <select
           aria-label="Image engine"
           value={provider}
           onChange={(e) => setProvider(e.target.value as Provider)}
-          className="rounded-sm border border-neutral-700 bg-neutral-900 px-2 py-2 text-xs"
+          className="rounded-sm border border-[var(--color-border)] bg-[var(--surface-card)] px-2 py-2 text-xs"
         >
           <option value="gemini">Gemini</option>
           <option value="openai">OpenAI (soon)</option>
@@ -136,13 +155,16 @@ export function StudioClient({ taskId }: { taskId: string }) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Describe your campaign…"
-          className="flex-1 rounded-sm border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+          className="flex-1 rounded-sm border border-[var(--color-border)] bg-[var(--surface-card)] px-3 py-2 text-sm"
         />
+        {/* Dark ink on the accent fill: 5.55:1. Plain white ink would be 3.30:1 and
+            fail AA — the pre-migration button was near-black on cyan, so going
+            light here would have been a contrast regression, not a port. */}
         <button
           type="submit"
           disabled={busy}
           aria-label="Generate"
-          className="rounded-sm bg-[#00F5FF] px-4 py-2 text-sm font-semibold text-[#04141a] disabled:opacity-60"
+          className="rounded-sm bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)] disabled:opacity-60"
         >
           {busy ? 'Generating…' : 'Generate'}
         </button>

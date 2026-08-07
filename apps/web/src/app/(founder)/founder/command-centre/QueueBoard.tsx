@@ -14,6 +14,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import styles from './queue-board.module.css'
 import { subscribeToQueue, type RealtimeClientLike } from '@/lib/command-centre/realtime'
+import {
+  runningSessionLabel,
+  type RunnerHeartbeatState,
+  type RunnerHeartbeatSummary,
+} from '@/lib/command-centre/runner-heartbeat'
 import { createClient } from '@/lib/supabase/client'
 import { DeckDetails, DeckMoreLine, DECK_LIST_CAP } from '@/components/command-centre/DeckDetails'
 
@@ -64,6 +69,8 @@ interface SessionCell {
   loading?: boolean
   error?: string
   sessions?: ExecutionSession[]
+  /** H1 — from GET /api/command-centre/sessions runnerHeartbeat (real cc_agent_events). */
+  runnerState?: RunnerHeartbeatState
 }
 
 // Which lifecycle actions are valid from each session status (mirrors the API).
@@ -215,8 +222,23 @@ export function QueueBoard() {
         setSessData((d) => ({ ...d, [taskId]: { error: msg } }))
         return
       }
-      const data = (await res.json()) as { sessions?: ExecutionSession[] }
-      setSessData((d) => ({ ...d, [taskId]: { sessions: Array.isArray(data.sessions) ? data.sessions : [] } }))
+      const data = (await res.json()) as {
+        sessions?: ExecutionSession[]
+        runnerHeartbeat?: Pick<RunnerHeartbeatSummary, 'state'>
+      }
+      const runnerState: RunnerHeartbeatState =
+        data.runnerHeartbeat?.state === 'connected' ||
+        data.runnerHeartbeat?.state === 'stale' ||
+        data.runnerHeartbeat?.state === 'offline'
+          ? data.runnerHeartbeat.state
+          : 'offline'
+      setSessData((d) => ({
+        ...d,
+        [taskId]: {
+          sessions: Array.isArray(data.sessions) ? data.sessions : [],
+          runnerState,
+        },
+      }))
     } catch {
       setSessData((d) => ({ ...d, [taskId]: { error: 'Network error — could not load sessions.' } }))
     }
@@ -501,6 +523,7 @@ function SessionsView({
     )
   }
   const sessions = cell.sessions ?? []
+  const runnerState: RunnerHeartbeatState = cell.runnerState ?? 'offline'
   return (
     <div className={styles.sessPanel}>
       {cell.error && <span className={styles.valError}>{cell.error}</span>}
@@ -510,11 +533,12 @@ function SessionsView({
         <div className={styles.sessList}>
           {sessions.map((s) => (
             <div key={s.id} className={styles.sessRow}>
-              {/* No estate runner exists yet, so a 'running' row is a control-plane
-                  intent, not execution — say so (No-Invaders; UNI-2378 E2E finding 2).
-                  The label reverts to the raw status once a runner heartbeat exists. */}
+              {/* H1: label depends on a real nexus-runner heartbeat from
+                  cc_agent_events (via sessions GET runnerHeartbeat). Offline
+                  keeps the honest "none connected" copy; connected shows raw
+                  status so an armed runner is never denied. */}
               <span className={styles.gateChip} data-state={sessionChipState(s.status)}>
-                {s.surface} · {s.status === 'running' ? 'waiting for runner — none connected' : s.status}
+                {s.surface} · {runningSessionLabel(s.status, runnerState)}
               </span>
               <div className={styles.sessActions}>
                 {SESSION_ACTIONS_FOR[s.status].map((a) => (

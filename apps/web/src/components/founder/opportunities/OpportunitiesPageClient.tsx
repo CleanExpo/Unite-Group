@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { TrendingUp } from 'lucide-react'
 import type { Tables } from '@/types/database'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -40,6 +40,16 @@ const STAGE_OPTIONS = [
   'negotiation', 'decision_needed', 'won_pending_client_conversion', 'won_converted',
   'lost', 'paused', 'blocked_review',
 ] as const
+
+const CREATE_STAGE_OPTIONS = STAGE_OPTIONS.filter((s) => s !== 'all')
+
+type CreateFormState = {
+  name: string
+  stage: (typeof CREATE_STAGE_OPTIONS)[number]
+  value_amount: string
+  probability: string
+  next_action: string
+}
 
 function aud(value: number): string {
   return `$${Math.round(value).toLocaleString('en-AU')}`
@@ -163,6 +173,16 @@ export function OpportunitiesPageClient() {
   const [error, setError] = useState(false)
   const [olderError, setOlderError] = useState(false)
   const [stageFilter, setStageFilter] = useState<string>('all')
+  const [composerOpen, setComposerOpen] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
+  const [form, setForm] = useState<CreateFormState>({
+    name: '',
+    stage: 'new_signal',
+    value_amount: '',
+    probability: '',
+    next_action: '',
+  })
 
   const fetchOpportunities = useCallback(async () => {
     setLoading(true)
@@ -219,6 +239,98 @@ export function OpportunitiesPageClient() {
     fetchOpportunities()
   }, [fetchOpportunities])
 
+  async function createOpportunity(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (creating) return
+
+    const name = form.name.trim()
+    if (!name) {
+      setCreateError('Name is required')
+      return
+    }
+
+    const valueRaw = form.value_amount.trim()
+    const probabilityRaw = form.probability.trim()
+    const value_amount = valueRaw === '' ? null : Number(valueRaw)
+    const probability = probabilityRaw === '' ? null : Number(probabilityRaw)
+
+    if (value_amount != null && (!Number.isFinite(value_amount) || value_amount < 0)) {
+      setCreateError('Value must be a non-negative number (AUD)')
+      return
+    }
+    if (
+      probability != null &&
+      (!Number.isInteger(probability) || probability < 0 || probability > 100)
+    ) {
+      setCreateError('Probability must be an integer from 0 to 100')
+      return
+    }
+
+    setCreating(true)
+    setCreateError(null)
+    try {
+      const res = await fetch('/api/founder/opportunities', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          stage: form.stage,
+          value_amount,
+          value_currency: value_amount != null ? 'AUD' : null,
+          probability,
+          next_action: form.next_action.trim() || null,
+          source: 'manual',
+        }),
+      })
+      if (!res.ok) {
+        let message = `Could not create opportunity (HTTP ${res.status})`
+        try {
+          const data = (await res.json()) as { error?: string }
+          if (data.error) message = data.error
+        } catch {
+          // keep fallback
+        }
+        setCreateError(message)
+        return
+      }
+
+      const data = (await res.json()) as { opportunity?: Opportunity }
+      const created = data.opportunity
+      if (!created?.id) {
+        setCreateError('Create succeeded but no opportunity was returned')
+        return
+      }
+
+      setOpportunities((rows) => {
+        const next = [created, ...rows.filter((row) => row.id !== created.id)]
+        setSummary(summarizeOpportunities(next))
+        return next
+      })
+      setReadiness((current) =>
+        mergeReadiness(current, {
+          queueWindow: 'latest_500_created_at',
+          pagination: 'cursor_by_created_at',
+          latestOpportunityUpdatedAt: created.updated_at ?? created.created_at ?? null,
+          nextCursor: current?.nextCursor ?? null,
+        }),
+      )
+      setForm({
+        name: '',
+        stage: 'new_signal',
+        value_amount: '',
+        probability: '',
+        next_action: '',
+      })
+      setComposerOpen(false)
+      setError(false)
+    } catch {
+      setCreateError('Network error — could not create opportunity.')
+    } finally {
+      setCreating(false)
+    }
+  }
+
   const filtered = useMemo(() => {
     if (stageFilter === 'all') return opportunities
     return opportunities.filter((o) => o.stage === stageFilter)
@@ -249,7 +361,103 @@ export function OpportunitiesPageClient() {
       <PageHeader
         title="Revenue opportunities"
         subtitle="Forecast-only pipeline across the portfolio — not billing truth."
+        actions={
+          <button
+            type="button"
+            onClick={() => {
+              setComposerOpen((open) => !open)
+              setCreateError(null)
+            }}
+            className="h-8 px-3 rounded-sm text-[12px] font-medium border"
+            style={{ color: 'var(--color-text-primary)', borderColor: 'var(--color-border)' }}
+          >
+            {composerOpen ? 'Cancel' : 'New opportunity'}
+          </button>
+        }
       />
+
+      {composerOpen && (
+        <form
+          onSubmit={(event) => void createOpportunity(event)}
+          className="rounded-sm px-4 py-4 flex flex-col gap-3"
+          style={{ background: 'var(--surface-card)', border: '1px solid var(--color-border)' }}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1 text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
+              Name
+              <input
+                required
+                value={form.name}
+                onChange={(e) => setForm((current) => ({ ...current, name: e.target.value }))}
+                className="h-8 rounded-sm px-3 text-[13px]"
+                style={{ background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
+              Stage
+              <select
+                value={form.stage}
+                onChange={(e) =>
+                  setForm((current) => ({
+                    ...current,
+                    stage: e.target.value as CreateFormState['stage'],
+                  }))
+                }
+                className="h-8 rounded-sm px-3 text-[13px]"
+                style={{ background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
+              >
+                {CREATE_STAGE_OPTIONS.map((stage) => (
+                  <option key={stage} value={stage}>{label(stage)}</option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
+              Value (AUD)
+              <input
+                inputMode="decimal"
+                value={form.value_amount}
+                onChange={(e) => setForm((current) => ({ ...current, value_amount: e.target.value }))}
+                className="h-8 rounded-sm px-3 text-[13px]"
+                style={{ background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
+              Probability (%)
+              <input
+                inputMode="numeric"
+                value={form.probability}
+                onChange={(e) => setForm((current) => ({ ...current, probability: e.target.value }))}
+                className="h-8 rounded-sm px-3 text-[13px]"
+                style={{ background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
+              />
+            </label>
+          </div>
+          <label className="flex flex-col gap-1 text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
+            Next action
+            <input
+              value={form.next_action}
+              onChange={(e) => setForm((current) => ({ ...current, next_action: e.target.value }))}
+              className="h-8 rounded-sm px-3 text-[13px]"
+              style={{ background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
+            />
+          </label>
+          {createError && (
+            <p role="alert" className="text-[12px]" style={{ color: '#ef4444' }}>
+              {createError}
+            </p>
+          )}
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={creating}
+              className="h-8 px-3 rounded-sm text-[12px] font-medium border disabled:opacity-40"
+              style={{ color: '#16a34a', borderColor: 'rgba(22, 163, 74, 0.4)' }}
+            >
+              {creating ? 'Creating…' : 'Create opportunity'}
+            </button>
+          </div>
+        </form>
+      )}
 
       {error ? (
         <div
@@ -329,8 +537,20 @@ export function OpportunitiesPageClient() {
               title={opportunities.length === 0 ? 'No opportunities yet' : 'No opportunities in this stage'}
               description={
                 opportunities.length === 0
-                  ? 'Revenue opportunities will appear here as leads are qualified into the pipeline.'
+                  ? 'Create the first forecast opportunity to start the pipeline — this is not billing truth.'
                   : 'Try a different stage filter.'
+              }
+              action={
+                opportunities.length === 0
+                  ? {
+                      label: 'New opportunity',
+                      href: '#',
+                      onClick: () => {
+                        setComposerOpen(true)
+                        setCreateError(null)
+                      },
+                    }
+                  : undefined
               }
             />
           ) : (
