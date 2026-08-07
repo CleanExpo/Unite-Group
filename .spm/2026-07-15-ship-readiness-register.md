@@ -63,7 +63,12 @@ blocking — that note was stale, not the CI. Open-PR queue is empty.
 (H1) · `:34-37`/`:356-360` (H2) · `command-centre/ideas/route.ts:72-93` (H3) ·
 `QueueBoard.tsx:289` (H4) · `hermes-control-panel/page.tsx:123,130` (H5) ·
 `xero/client.ts:331,376` (H6) · `AnalyticsDashboard.tsx:145,300` (H7) ·
-`DeckThemeShell.tsx:17-22` (H8). Only **H9** was outstanding; shipped separately.
+`DeckThemeShell.tsx:17-22` (H8). **H9 is the only Class H item still outstanding.** A fix
+exists on `fix/uni-2373-h9-studio-deck-tokens` but has **not landed on `main`** and is not
+an ancestor of this commit — do not read Class H as closed until it merges. Its first
+attempt was independently reviewed FAIL (1 P0: the palette guard was vacuous against a
+`rgb(0,245,255)` reintroduction and never covered `page.tsx`; 4 P1 contrast failures,
+two of them regressions the migration itself introduced). Those are being drained.
 
 #### P9 re-graded AMBER-env → AMBER-build, and the fix is NOT small
 
@@ -118,35 +123,63 @@ boundary asserts `source:'mock'` end-to-end · H7 analytics fetch-failure ≠ em
 H8 React #418 hydration fix on /operations · H9 studio palette off the retired OLED
 tokens.
 
-**Status 07/08/2026: H1–H8 already on `main` (evidence in the session note above); H9
-shipped separately.** This wave is closed — do not re-plan it as nine open items.
+**Status 07/08/2026: H1–H8 are already on `main`** (file:line evidence in the session note
+above). **Only H9 remains, and it has NOT landed.** Do not re-plan this wave as nine open
+items; do not record it as closed either.
 
 ## 3. Judge
 
-Register 100/100 as an audit (every priority claim double-verified). Build authorisation
-stays wave-gated: Class H + P2/P7 (S items) = APPROVE BUILD now; Class P M-items =
-APPROVE BUILD in value order after F1 (identity) lands — building writers against data
-the founder can't see inverts the leverage; Class R = already approved (spec §16),
-schema-gate pause stands; Class F = founder-owned, not buildable.
+> **Superseded 07/08/2026.** The original judge is kept below for provenance, but its
+> build authorisations are spent: Wave A part 2, P2/P7 and the whole P1–P8 producer wave
+> have since merged. Its "100/100 as an audit" line is no longer true of this file —
+> P9's AMBER-env grade was wrong (see the session note), so at least one priority claim
+> the register rested on was not what double-verification implied.
+
+*Original (15/07/2026):* Register 100/100 as an audit (every priority claim
+double-verified). Build authorisation stays wave-gated: Class H + P2/P7 (S items) =
+APPROVE BUILD now; Class P M-items = APPROVE BUILD in value order after F1 (identity)
+lands — building writers against data the founder can't see inverts the leverage;
+Class R = already approved (spec §16), schema-gate pause stands; Class F = founder-owned,
+not buildable.
 
 ## 4. Recommended sequence
 
+> **Superseded 07/08/2026.** Steps 2 and 4 below are DONE — following them re-plans
+> merged work. Kept for provenance; the live sequence is §4a.
+
+*Original (15/07/2026):*
 1. **Phill (minutes):** F1 → F2 → F3 → F4 (F1 alone un-empties the CRM).
-2. **Wave A part 2 (one PR):** H1–H4, H7, H8 + P2 + P7.
+2. ~~**Wave A part 2 (one PR):** H1–H4, H7, H8 + P2 + P7.~~ — merged (#849)
 3. **Wave B1** (runner+emitter, schema-gate checkpoint) → **B2** (Matrix wall).
-4. **Producer wave:** P1 → P3 → P5 → P4 → P6 → P8 in founder-value order, pending the
-   UNI-2376 ranking; P9 alongside F-class.
+4. ~~**Producer wave:** P1 → P3 → P5 → P4 → P6 → P8~~ — all merged (#940–#945)
+5. Re-walk all five routes + UNI-2377 parked-line grilling closes "comprehensive".
+
+## 4a. Live sequence — 07/08/2026
+
+1. **Phill (minutes, unchanged and still the highest leverage):** F1 → F2 → F3 → F4.
+   F1 alone un-empties the CRM. No agent may self-perform these.
+2. **H9** — land the studio palette fix once its P0/P1 review findings are drained.
+   This is the last Class H item.
+3. **Class R — the runner (Wave B1)**, then B2 (Matrix wall). This is now the largest
+   remaining founder-value item: it is what makes "Agents build it — you watch it
+   happen" true rather than theatre.
+4. **P9, re-scoped M–L** per the session note: visibility fix, write-then-confirm error
+   handling, honest upstream-failure states, dormant-by-default arming, and a schema
+   decision on the `board_meetings` collision. The migration is founder/Board-gated.
 5. Re-walk all five routes + UNI-2377 parked-line grilling closes "comprehensive".
 
 ## 5. /goal command
 
 ```
-/goal Execute the ship-readiness register at .spm/2026-07-15-ship-readiness-register.md:
-Wave A part 2 (H1-H4,H7,H8,P2,P7 — one PR, gates green, lane-merge); then Wave B1
-runner+emitter per the Matrix-wall spec with its schema-gate checkpoint; then the
-producer wave P1→P3→P5→P4→P6→P8 in founder-value order. Honour No-Invaders, merge-gate,
-adversary review per wave. Founder actions F1-F7 are named dependencies, never
-self-performed.
+/goal Execute the ship-readiness register at .spm/2026-07-15-ship-readiness-register.md
+per §4a (the live sequence — §3/§4 are superseded and describe merged work): land H9;
+then Wave B1 runner+emitter per the Matrix-wall spec with its schema-gate checkpoint,
+then B2; then P9 at its re-scoped M–L, which needs the visibility fix, write-then-confirm
+persistence, honest failure states and a dormant-by-default arming gate before any
+scheduler entry. Honour No-Invaders, dormant-by-default, merge-gate and independent
+adversary review per wave. Founder actions F1-F7 and any prod schema migration are named
+dependencies, never self-performed.
 ```
 
-SPM spec complete. Next safe action: start Wave A part 2 under the standing /goal while Phill executes F1–F4.
+Next safe action: drain H9's review findings and land it, then start Wave B1, while Phill
+executes F1–F4.
