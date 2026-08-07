@@ -43,15 +43,23 @@ ingest cannot have come through this pipeline; resolve before trusting cost rows
 ### Class P — Missing producers/writers (code, S–M each)
 | # | Build | Grade today | Effort |
 |---|---|---|---|
-| P1 | Opportunities writer (POST + "New opportunity" UI or lead-conversion) — zero insert sites exist [VERIFIED] | AMBER-build | M |
-| P2 | Approvals approve/reject actions — page promises "your decision", component has zero interactive wiring [VERIFIED] | AMBER-build | S |
-| P3 | `wiki_pages` ingest (vault→table; target RPC already exists) — zero writers [VERIFIED]; feeds /wiki + /content + wiki-graph | AMBER-build | M |
-| P4 | `experiment_results` ingestion from platform_analytics — zero insert sites [VERIFIED]; experiments are decorative without it | AMBER-build | M |
-| P5 | Brand-video job processor — jobs enqueue in prod, worker absent from vercel.json [VERIFIED] | AMBER-build | S–M |
-| P6 | Founder-chat persistence (thread table + load/save) — today a refresh wipes the founder's chat | AMBER-build | M |
-| P7 | `skill_health` producer (the referenced eval-runner script is missing from the repo) | AMBER-build | S |
-| P8 | TikTok + YouTube analytics fetchers (stubbed `return []`) | AMBER-build | M |
+| P1 | Opportunities writer (POST + "New opportunity" UI) — shipped #940 | GREEN | M |
+| P2 | Approvals approve/reject actions — wired in Wave A part 2 (#849) | GREEN | S |
+| P3 | `wiki_pages` vault ingest — shipped #942 | GREEN | M |
+| P4 | `experiment_results` ingest from `platform_analytics` — cron `/api/cron/experiment-results-ingest` (#944) | GREEN | M |
+| P5 | Brand-video Vercel cron dispatcher — shipped #943 | GREEN | S–M |
+| P6 | Founder-chat persistence — shipped #941 | GREEN | M |
+| P7 | `skill_health` producer — `apps/web/scripts/skill-eval-runner.mjs` (Wave A #849) | GREEN | S |
+| P8 | TikTok + YouTube analytics fetchers — `fetchTikTokAnalytics` / `fetchYouTubeAnalytics` wired via existing OAuth scopes (`video.list`, `youtube.readonly`) [VERIFIED]; code on PR [#945](https://github.com/CleanExpo/Unite-Group/pull/945) (squash auto-merge armed) | GREEN (merge pending) | M |
 | P9 | First cron runs: boardroom `ceo-board-meeting`, knowledge `pi-ceo-weekly-review` (pipelines fully built) | AMBER-env | S |
+
+### Session note — 07/08/2026 ~08:28 AEST (babysitter recheck)
+
+**Producer wave P1–P8:** code complete. P1–P7 merged (#940/#849/#942/#944/#943/#941). **P8 sole remaining gate = merge of #945.**
+
+**Blocker (updated ~09:57 AEST):** GitHub Status still reports `Actions: major_outage`, but Monorepo CI for #945 **did complete**. All required checks green **except** `Active lockfiles — high-severity dependency audit` — high `js-yaml` (GHSA-5p4m-2wfm-xmqj; needs ≥3.15.1 / ≥4.3.1; repo overrides still pinned 3.15.0 / 4.3.0). Auto-merge (SQUASH) remains armed; merge waits on audit green after override bump.
+
+**Keepalive:** `ai.estate.claude-desktop-keepalive` LaunchAgent loaded (`runs=57`, last exit 0, interval 480s); pulse.log healthy through 22:26Z / 08:26 AEST.
 
 ### Class R — The runner (Wave B1, already spec'd, L)
 One estate-side process (this Mac first): claims founder-approved queued `cc_tasks`,
