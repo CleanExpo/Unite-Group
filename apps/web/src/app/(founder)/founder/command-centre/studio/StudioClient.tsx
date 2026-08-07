@@ -95,10 +95,14 @@ export function StudioClient({ taskId }: { taskId: string }) {
                 aria-label={`Concept ${c.id}`}
                 aria-pressed={chosenId === c.id}
                 onClick={() => setChosenId(c.id)}
-                className={`aspect-square overflow-hidden rounded-sm border bg-[var(--surface-overlay)] ${
+                className={`aspect-square overflow-hidden rounded-sm bg-[var(--surface-overlay)] ${
+                  // Selected state must clear WCAG 1.4.11 (3:1 for non-text UI).
+                  // --color-accent on the overlay is only 2.96:1, and the default
+                  // 8%-black border ~1.20:1, so selection reads on the darker
+                  // accent (4.51:1) plus a width change, not colour alone.
                   chosenId === c.id
-                    ? 'border-[var(--color-accent)]'
-                    : 'border-[var(--color-border)]'
+                    ? 'border-2 border-[var(--color-accent-text)]'
+                    : 'border-2 border-[var(--color-border-strong)]'
                 }`}
               >
                 <span
@@ -126,7 +130,7 @@ export function StudioClient({ taskId }: { taskId: string }) {
             </p>
           ))}
           {error && (
-            <p className="text-xs text-[var(--color-danger)]" role="alert">
+            <p className="text-xs text-[var(--color-danger-text)]" role="alert">
               {error}
             </p>
           )}
@@ -153,11 +157,14 @@ export function StudioClient({ taskId }: { taskId: string }) {
           placeholder="Describe your campaign…"
           className="flex-1 rounded-sm border border-[var(--color-border)] bg-[var(--surface-card)] px-3 py-2 text-sm"
         />
+        {/* Dark ink on the accent fill: 5.55:1. Plain white ink would be 3.30:1 and
+            fail AA — the pre-migration button was near-black on cyan, so going
+            light here would have been a contrast regression, not a port. */}
         <button
           type="submit"
           disabled={busy}
           aria-label="Generate"
-          className="rounded-sm bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          className="rounded-sm bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)] disabled:opacity-60"
         >
           {busy ? 'Generating…' : 'Generate'}
         </button>

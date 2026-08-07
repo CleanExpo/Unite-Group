@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
@@ -10,29 +10,63 @@ import { describe, expect, it } from 'vitest'
  * truth. Studio has no `.deck` ancestor — there is no layout.tsx in
  * command-centre — so it consumes the app-global tokens, not `--deck-*`,
  * which would silently resolve to nothing here.
+ *
+ * The first version of this guard hardcoded two filenames and matched only the
+ * hex forms. Independent review demonstrated two live bypasses: the cyan
+ * reintroduced as `rgb(0,245,255)`, and page.tsx — a sibling the SOURCES list
+ * never named — still carrying `text-neutral-400`. Both returned a green
+ * suite. So this guard now enumerates the directory rather than a list, and
+ * matches the retired colours by VALUE in every CSS notation.
  */
 const STUDIO_DIR = join(__dirname, '..')
-const SOURCES = ['StudioClient.tsx', 'loading.tsx'] as const
 
-// Retired register. Matched case-insensitively so #00f5ff cannot slip back in.
-const RETIRED = [/#050505/i, /#00F5FF/i]
+/** Every source file in the studio route, discovered — never hand-listed. */
+function studioSources(): string[] {
+  return readdirSync(STUDIO_DIR, { withFileTypes: true })
+    .filter((e) => e.isFile() && /\.tsx?$/.test(e.name))
+    .map((e) => e.name)
+}
+
+/**
+ * The retired colours in every notation that reaches CSS: hex (3/6/8-digit,
+ * either case), rgb()/rgba() with arbitrary spacing, and the Tailwind
+ * arbitrary-value wrappers that carry them.
+ */
+const RETIRED_PATTERNS: { label: string; pattern: RegExp }[] = [
+  { label: 'OLED black hex (#050505)', pattern: /#050505/i },
+  { label: 'retired cyan hex (#00F5FF)', pattern: /#00F5FF/i },
+  { label: 'OLED black rgb()', pattern: /rgba?\(\s*5\s*,\s*5\s*,\s*5\s*[,)]/i },
+  { label: 'retired cyan rgb()', pattern: /rgba?\(\s*0\s*,\s*245\s*,\s*255\s*[,)]/i },
+]
 
 describe('studio palette (UNI-2373 H9)', () => {
-  for (const file of SOURCES) {
-    it(`${file} carries no retired OLED/cyan literals`, () => {
+  it('discovers every studio source file, so a new sibling cannot slip the guard', () => {
+    const sources = studioSources()
+    // Fails loudly if the route is emptied or renamed out from under the guard.
+    expect(sources.length).toBeGreaterThanOrEqual(3)
+    expect(sources).toContain('StudioClient.tsx')
+    expect(sources).toContain('loading.tsx')
+    expect(sources).toContain('page.tsx')
+  })
+
+  for (const file of studioSources()) {
+    it(`${file} carries no retired OLED/cyan colour in any notation`, () => {
       const source = readFileSync(join(STUDIO_DIR, file), 'utf8')
-      for (const pattern of RETIRED) {
-        expect(source).not.toMatch(pattern)
+      for (const { label, pattern } of RETIRED_PATTERNS) {
+        expect(source, `${file} reintroduced the ${label}`).not.toMatch(pattern)
       }
     })
 
-    it(`${file} paints from design tokens, not hardcoded neutrals`, () => {
+    it(`${file} paints from design tokens, not raw Tailwind colour ramps`, () => {
       const source = readFileSync(join(STUDIO_DIR, file), 'utf8')
-      // Tailwind's neutral-* ramp assumes a dark ground. Studio previously used
-      // it to stay legible on its hardcoded black; on the token canvas those
-      // greys are the bug, so they must be gone too.
-      expect(source).not.toMatch(/\b(?:bg|text|border)-neutral-\d{3}\b/)
-      expect(source).toMatch(/var\(--/)
+      // Tailwind's numbered ramps assume their own ground. Studio previously
+      // used neutral-* to stay legible on hardcoded black; on the token canvas
+      // those greys drop to ~2.5:1 and are the bug, not the fix. text-white on
+      // the accent fill is the same mistake in the other direction (3.30:1).
+      expect(source).not.toMatch(
+        /\b(?:bg|text|border)-(?:neutral|gray|zinc|slate|stone|amber|cyan)-\d{2,3}\b/,
+      )
+      expect(source).not.toMatch(/\b(?:bg|text|border)-white\b/)
     })
   }
 })
