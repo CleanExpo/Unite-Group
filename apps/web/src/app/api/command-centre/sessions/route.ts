@@ -12,9 +12,11 @@
 
 import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
-import { getUser } from '@/lib/supabase/server'
+import { createClient, getUser } from '@/lib/supabase/server'
 import { getTaskById } from '@/lib/command-centre/tasks'
 import { startSession, listSessionsForTask, SESSION_SURFACES, type SessionSurface } from '@/lib/command-centre/sessions'
+import type { AgentEventsClientLike } from '@/lib/command-centre/agent-events'
+import { loadRunnerHeartbeat } from '@/lib/command-centre/runner-heartbeat'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,7 +29,22 @@ export async function GET(request: Request) {
 
   try {
     const sessions = await listSessionsForTask({ founderId: user.id, taskId })
-    return NextResponse.json({ sessions })
+    // H1: session chips need a real runner heartbeat, not a hardcoded "none connected".
+    // Degrades honestly if cc_agent_events is missing — never blocks the sessions list.
+    let runnerHeartbeat
+    try {
+      const db = (await createClient()) as unknown as AgentEventsClientLike
+      runnerHeartbeat = await loadRunnerHeartbeat(db, user.id)
+    } catch (err) {
+      runnerHeartbeat = {
+        state: 'offline' as const,
+        source: 'error' as const,
+        ageSeconds: null,
+        checkedAt: new Date().toISOString(),
+        error: sanitiseError(err, 'Failed to load runner heartbeat'),
+      }
+    }
+    return NextResponse.json({ sessions, runnerHeartbeat })
   } catch (err) {
     return NextResponse.json(
       { error: sanitiseError(err, 'Failed to list sessions') },
