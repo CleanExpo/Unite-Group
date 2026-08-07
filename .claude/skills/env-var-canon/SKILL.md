@@ -68,6 +68,12 @@ recorded here; confirm placement live per "Two planes".
 `CRM_DISPATCH_ARMED` (dispatch flag, default off) ·
 `DR_NRPG_CRM_LEAD_INTEGRATION_ALLOW_PROD_WRITES`.
 
+**Cron arming gates** (see `nexus-conventions`)
+`PI_CEO_WEEKLY_REVIEW_LIVE` (weekly Pi-CEO review, default off — unarmed the
+route writes nothing; arming it is a founder/Board act paired with the
+`apps/web/vercel.json` cron registration, see
+`.spm/2026-08-07-p9-board-meetings-collision.md`).
+
 **OWNEST host profile (local-only, dormant and not armable)**
 `SUPABASE_URL` · `SUPABASE_SERVICE_ROLE_KEY` (server-only; never passed to
 Hermes) · `FOUNDER_USER_ID` · `CC_OWNEST_WORKER_ID` ·
