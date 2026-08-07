@@ -1,5 +1,18 @@
 # SPM Ship-Readiness Register — the whole site vs NorthStar GREEN
 
+> ## ⚠ 15/07/2026 SNAPSHOT — ITS STATUS CLAIMS ARE STALE. READ §2a/§2b FIRST.
+>
+> Verified 07/08/2026: the whole P1–P8 producer wave merged · **Class R (the runner) was
+> merged AND armed in prod on 16/07** (#852/#853/#854, UNI-2385) — it is NOT outstanding ·
+> P9's grade was wrong (§2a) · at least two Class H items are open, one of them a false
+> state rendering right now (§2b).
+>
+> **Method warning — the load-bearing one.** Both the original audit and a 07/08 re-audit
+> established "implemented" largely by *locating symbols*. That proves presence, not
+> behaviour, and it produced false GREENs in both passes. Before trusting any row here:
+> for a UI claim find the render path; for a guard mutate the defect back in; for a
+> "still outstanding" claim run `git merge-base --is-ancestor <sha> origin/main`.
+
 Date: 15/07/2026 (afternoon) · Method: five parallel domain audits (CRM core, Money,
 Growth, Advisory/Knowledge/System, agent plane) + orchestrator spot-verification of every
 load-bearing claim + the live Command Brief E2E test + the five-route production walk.
@@ -11,6 +24,11 @@ AMBER-env = code-complete, starved of a credential/env/first-run. AMBER-build = 
 missing piece of code. All grades from the domain audits; every claim the register's
 priorities rest on was re-verified by orchestrator grep [VERIFIED] this session.
 
+> **That sentence is historical, and its method was not sound.** "Re-verified by grep" is
+> exactly what produced the false grades — P9's AMBER-env (§2a) and H1's GREEN (§2b) both
+> survived it. Read every `[VERIFIED]` marker in this file as "the symbol was located",
+> never as "the behaviour was checked".
+
 ## 1. Scoreboard
 
 **GREEN now (shippable as-is):** auth spine + founder layout · contacts (CRUD, identity-
@@ -21,6 +39,14 @@ confirm) · dashboard→command-centre redirect.
 
 **Nothing fake-as-real anywhere** — all five audits + the walk found zero No-Invaders
 violations rendering today; three latent risks listed in §4.
+
+> **False as of 07/08/2026, and the §4 pointer is dangling** (§4 carries no risk list).
+> At least one No-Invaders violation renders today: the QueueBoard session label asserts
+> "waiting for runner — none connected" unconditionally while the runner has been armed
+> in prod since 16/07 — see §2b (H1). The 16/07 break-sweep
+> (`2026-07-16-break-sweep-readiness-assessment.md`) additionally documents honest-state
+> defects across strategy, boardroom, kanban, bookkeeper and contacts that this
+> scoreboard does not reflect.
 
 ## 2. Register by unblock mechanism
 
@@ -50,18 +76,97 @@ ingest cannot have come through this pipeline; resolve before trusting cost rows
 | P5 | Brand-video Vercel cron dispatcher — shipped #943 | GREEN | S–M |
 | P6 | Founder-chat persistence — shipped #941 | GREEN | M |
 | P7 | `skill_health` producer — `apps/web/scripts/skill-eval-runner.mjs` (Wave A #849) | GREEN | S |
-| P8 | TikTok + YouTube analytics fetchers — `fetchTikTokAnalytics` / `fetchYouTubeAnalytics` wired via existing OAuth scopes (`video.list`, `youtube.readonly`) [VERIFIED]; code on PR [#945](https://github.com/CleanExpo/Unite-Group/pull/945) (squash auto-merge armed) | GREEN (merge pending) | M |
-| P9 | First cron runs: boardroom `ceo-board-meeting`, knowledge `pi-ceo-weekly-review` (pipelines fully built) | AMBER-env | S |
+| P8 | TikTok + YouTube analytics fetchers — `fetchTikTokAnalytics` / `fetchYouTubeAnalytics` wired via existing OAuth scopes (`video.list`, `youtube.readonly`) [VERIFIED]; shipped [#945](https://github.com/CleanExpo/Unite-Group/pull/945), merged `02d7c313` | GREEN | M |
+| P9 | First cron runs: boardroom `ceo-board-meeting` (scheduled `50 1 * * *`) · knowledge `pi-ceo-weekly-review` — **RE-GRADED AMBER-build, was wrong at AMBER-env.** Not "pipelines fully built awaiting a run": the route is unschedulable and, if scheduled as-is, unsafe and invisible. Five blockers below | AMBER-build | **M–L, not S** |
 
-### Session note — 07/08/2026 ~08:28 AEST (babysitter recheck)
+### Session note — 07/08/2026 ~12:40 AEST (P8 landed; P9 re-graded)
 
-**Producer wave P1–P8:** code complete. P1–P7 merged (#940/#849/#942/#944/#943/#941). **P8 sole remaining gate = merge of #945.**
+**Producer wave P1–P8: COMPLETE and merged.** #945 merged as `02d7c313`; all 18 checks
+green including the `js-yaml` audit (GHSA-5p4m-2wfm-xmqj) that the 09:57 note recorded as
+blocking — that note was stale, not the CI. Open-PR queue is empty.
 
-**Blocker (updated ~09:57 AEST):** GitHub Status still reports `Actions: major_outage`, but Monorepo CI for #945 **did complete**. All required checks green **except** `Active lockfiles — high-severity dependency audit` — high `js-yaml` (GHSA-5p4m-2wfm-xmqj; needs ≥3.15.1 / ≥4.3.1; repo overrides still pinned 3.15.0 / 4.3.0). Auto-merge (SQUASH) remains armed; merge waits on audit green after override bump.
+#### §2b — Class H: the 07/08 re-audit was UNSOUND. Class H is NOT closed.
+
+A 07/08 re-audit reported "H1–H8 all already done on `main`" from these citations:
+`QueueBoard.tsx:517` (H1) · `:34-37`/`:356-360` (H2) · `ideas/route.ts:72-93` (H3) ·
+`QueueBoard.tsx:289` (H4) · `hermes-control-panel/page.tsx:123,130` (H5) ·
+`xero/client.ts:331,376` (H6) · `AnalyticsDashboard.tsx:145,300` (H7) ·
+`DeckThemeShell.tsx:17-22` (H8).
+
+**Independent review falsified that conclusion.** The audit located an honest-looking
+symbol at each site and called it done; it never checked the behaviour. Known bad rows:
+
+- **H1 — OPEN, and rendering a false state in prod right now.**
+  `QueueBoard.tsx:513-517` is an *unconditional* ternary: every `running` session renders
+  "waiting for runner — none connected", with no heartbeat-dependent path. The in-code
+  comment concedes the revert is manual future work. The Nexus runner was **armed in prod
+  on 16/07** (`scripts/nexus-runner/README.md`, UNI-2385), so that label now lies in the
+  opposite direction — denying a runner that is genuinely claiming tasks. The 16/07
+  break-sweep recorded this exact inversion (`…break-sweep-readiness-assessment.md:94`)
+  and it is still unfixed. H1 is not done until the label reflects real connectivity.
+- **H6 — DISPUTED.** The audit cited `source: 'mock'` existing in `xero/client.ts`. The
+  break-sweep reaches the opposite conclusion: the client still silently substitutes
+  hardcoded mock revenue whenever creds are absent, and **no test asserts the mock
+  boundary end-to-end** — the hardening H6 actually asks for has not shipped.
+- **H2–H5, H7, H8 — UNCONFIRMED.** Same unsound method. Re-derive by behaviour before
+  treating any as closed. Do not cite the list above as evidence.
+- **H9 — OPEN.** A fix exists on `fix/uni-2373-h9-studio-deck-tokens`; it has **not
+  landed** and is not an ancestor of this commit. Its first attempt was independently
+  reviewed FAIL (1 P0: the palette guard was vacuous against a `rgb(0,245,255)`
+  reintroduction and never covered sibling `page.tsx`; 4 P1 contrast failures, two of
+  them regressions the migration itself introduced).
+
+#### §2a — P9 re-graded AMBER-env → AMBER-build, and the fix is NOT small
+
+An attempt to close P9 by registering `pi-ceo-weekly-review` in `vercel.json` was built,
+locally green (591 files / 3766 tests, build exit 0), sent for independent review, and
+**withdrawn on a FAIL with five P1 blockers**. All five were re-verified against source.
+Recording them here so the next attempt starts from the truth:
+
+1. **It was never schedulable.** Registered in no scheduler — not `vercel.json`, not a
+   workflow, not `pg_cron` — so no env flip could ever have started it. The 16/07
+   break-sweep already logged this as **D015** and it sat unfixed for three weeks. The
+   AMBER-env grade is what hid it: "waiting on the founder" stops anyone re-checking.
+2. **Scheduling it destroys data.** It upserts `board_meetings` on
+   `(founder_id, meeting_date)` — `UNIQUE` per `20260326000001_ceo_boardroom.sql:17` —
+   and the daily `ceo-board-meeting` runs `50 1 * * *`, *every* day including Sunday. The
+   later weekly write resets `status` to `new` and overwrites `brief_md`, leaving a hybrid
+   row. Needs a discriminator column, i.e. a migration on a Supabase branch.
+3. **Its output is invisible.** The weekly writes `brief_md` but never `agenda`;
+   `MeetingCard.tsx` renders `agenda` only and `brief_md` appears there solely as a type
+   (`:17`). Only `ceo-board-meeting` writes `agenda` (`:175`). So a scheduled weekly
+   produces either a blank card or a misleading hybrid. `weekly_reviews` has no reader at
+   all. **Verifying a table has a reader is not the same as verifying the field renders.**
+4. **It can report success having persisted nothing.** Both upserts sit in `try/catch`
+   with empty catches and the Supabase error result is discarded, then the route emits
+   completion and returns `success: true` — false-green first-run evidence.
+5. **Merging it would arm unattended production.** `nexus-conventions` requires "merging
+   this arms nothing": admission gate, arming flag, founder/Board go-live. The route has
+   cron auth + `FOUNDER_USER_ID` only — no kill switch, no arming flag.
+
+**Next attempt must therefore cover:** the visibility fix (write `agenda`, or render
+`brief_md`), write-then-confirm error handling, honest upstream-failure states instead of
+fabricated zeros, a dormant-by-default arming gate, and a schema decision on the
+`board_meetings` collision. The migration is founder/Board-gated per root `CLAUDE.md` and
+is not autonomously shippable.
 
 **Keepalive:** `ai.estate.claude-desktop-keepalive` LaunchAgent loaded (`runs=57`, last exit 0, interval 480s); pulse.log healthy through 22:26Z / 08:26 AEST.
 
-### Class R — The runner (Wave B1, already spec'd, L)
+### Class R — The runner (Wave B1) — ✅ **BUILT AND ARMED IN PROD 16/07/2026**
+
+> **Not outstanding. Do not plan it.** `1412b724` (B1 ingest, #852), `81f40cfa` (runner,
+> #853) and `5022770f` (B2 Matrix wall, #854) are all ancestors of `origin/main`
+> (`git merge-base --is-ancestor`). `scripts/nexus-runner/README.md` records the runner
+> executing at the L2 ceiling (branch → gates → **draft PR**, never merge/migrate/deploy)
+> with "runner E2E loop proven on local stack" (16/07, UNI-2383) and "**runner armed in
+> prod and demo-proven**" (16/07, UNI-2385).
+>
+> The text below is the 15/07 spec, kept for provenance. Its closing claim that the loop
+> "is theatre from START SESSION onward" was true on 15/07 and is **false now** — which
+> is what makes H1's hardcoded "none connected" label an active lie rather than an
+> honest placeholder (§2b).
+
+*Original spec (15/07/2026):*
 One estate-side process (this Mac first): claims founder-approved queued `cc_tasks`,
 executes as Claude Code work, reports honest session status, emits `cc_agent_events`.
 Unblocks: founder/agents page, operator-gateway, live-map sessions, the Matrix wall,
@@ -78,32 +183,76 @@ boundary asserts `source:'mock'` end-to-end · H7 analytics fetch-failure ≠ em
 H8 React #418 hydration fix on /operations · H9 studio palette off the retired OLED
 tokens.
 
+**Status 07/08/2026: Class H is NOT closed — see §2b.** H1 is open and currently renders a
+false state in prod; H6 is disputed; H9 is open and has not landed; H2–H5/H7/H8 are
+unconfirmed because the audit that cleared them only located symbols. Do not record this
+wave as closed, and do not re-plan it from the nine-item list either — re-derive each item
+by behaviour first.
+
 ## 3. Judge
 
-Register 100/100 as an audit (every priority claim double-verified). Build authorisation
-stays wave-gated: Class H + P2/P7 (S items) = APPROVE BUILD now; Class P M-items =
-APPROVE BUILD in value order after F1 (identity) lands — building writers against data
-the founder can't see inverts the leverage; Class R = already approved (spec §16),
-schema-gate pause stands; Class F = founder-owned, not buildable.
+> **Superseded 07/08/2026.** The original judge is kept below for provenance, but its
+> build authorisations are spent: Wave A part 2, P2/P7 and the whole P1–P8 producer wave
+> have since merged. Its "100/100 as an audit" line is no longer true of this file —
+> P9's AMBER-env grade was wrong (see the session note), so at least one priority claim
+> the register rested on was not what double-verification implied.
+
+*Original (15/07/2026):* Register 100/100 as an audit (every priority claim
+double-verified). Build authorisation stays wave-gated: Class H + P2/P7 (S items) =
+APPROVE BUILD now; Class P M-items = APPROVE BUILD in value order after F1 (identity)
+lands — building writers against data the founder can't see inverts the leverage;
+Class R = already approved (spec §16), schema-gate pause stands; Class F = founder-owned,
+not buildable.
 
 ## 4. Recommended sequence
 
+> **Superseded 07/08/2026.** Steps 2 and 4 below are DONE — following them re-plans
+> merged work. Kept for provenance; the live sequence is §4a.
+
+*Original (15/07/2026):*
 1. **Phill (minutes):** F1 → F2 → F3 → F4 (F1 alone un-empties the CRM).
-2. **Wave A part 2 (one PR):** H1–H4, H7, H8 + P2 + P7.
+2. ~~**Wave A part 2 (one PR):** H1–H4, H7, H8 + P2 + P7.~~ — merged (#849)
 3. **Wave B1** (runner+emitter, schema-gate checkpoint) → **B2** (Matrix wall).
-4. **Producer wave:** P1 → P3 → P5 → P4 → P6 → P8 in founder-value order, pending the
-   UNI-2376 ranking; P9 alongside F-class.
+4. ~~**Producer wave:** P1 → P3 → P5 → P4 → P6 → P8~~ — all merged (#940–#945)
 5. Re-walk all five routes + UNI-2377 parked-line grilling closes "comprehensive".
+
+## 4a. Live sequence — 07/08/2026
+
+Deliberately short. Two earlier attempts to write a confident forward plan here each
+introduced a fresh false claim (P9 "founder-visible"; Class R "largest remaining item"
+when it was merged and prod-armed). Only items verified outstanding this session appear.
+
+1. **Phill (minutes, unchanged and still the highest leverage):** F1 → F2 → F3 → F4.
+   F1 alone un-empties the CRM. No agent may self-perform these.
+2. **H1 — the most urgent code item.** The session label denies a runner that is live in
+   prod (§2b). It is a No-Invaders violation rendering today, and it is small: make the
+   label depend on an actual heartbeat instead of a hardcoded ternary.
+3. **H9** — land the studio palette fix once its P0/P1 review findings are drained.
+4. **Re-derive the rest of Class H by behaviour** (H6 disputed; H2–H5/H7/H8 unconfirmed)
+   before planning or rebuilding any of it.
+5. **P9, re-scoped M–L** per §2a: visibility fix, write-then-confirm persistence, honest
+   upstream-failure states, dormant-by-default arming, and a schema decision on the
+   `board_meetings` collision. The migration is founder/Board-gated — not agent work.
+6. Re-walk all five routes + UNI-2377 parked-line grilling closes "comprehensive".
+
+**Not on this list because it is already done:** Class R / Wave B1 / B2 (merged and armed
+in prod 16/07), Wave A part 2, and the whole P1–P8 producer wave.
 
 ## 5. /goal command
 
 ```
-/goal Execute the ship-readiness register at .spm/2026-07-15-ship-readiness-register.md:
-Wave A part 2 (H1-H4,H7,H8,P2,P7 — one PR, gates green, lane-merge); then Wave B1
-runner+emitter per the Matrix-wall spec with its schema-gate checkpoint; then the
-producer wave P1→P3→P5→P4→P6→P8 in founder-value order. Honour No-Invaders, merge-gate,
-adversary review per wave. Founder actions F1-F7 are named dependencies, never
-self-performed.
+/goal Execute the ship-readiness register at .spm/2026-07-15-ship-readiness-register.md
+per §4a ONLY. §3 and §4 are superseded and describe merged work; the Class R / Wave B1 /
+B2 runner is already built and armed in prod (#852/#853/#854) — do not plan or rebuild
+it. Order: H1 (make the session label depend on a real runner heartbeat — it currently
+denies a live runner), then H9, then re-derive the remaining Class H items BY BEHAVIOUR
+before touching them, then P9 at its re-scoped M-L. Treat every status claim in this file
+as presence-only evidence until re-checked: for UI find the render path, for a guard
+mutate the defect back in, for "still outstanding" run git merge-base --is-ancestor.
+Honour No-Invaders, dormant-by-default (merging must arm nothing), the merge gate and
+independent adversary review per wave. Founder actions F1-F7 and any prod schema
+migration are named dependencies, never self-performed.
 ```
 
-SPM spec complete. Next safe action: start Wave A part 2 under the standing /goal while Phill executes F1–F4.
+Next safe action: fix H1, and land H9 once its review findings are drained, while Phill
+executes F1–F4.
