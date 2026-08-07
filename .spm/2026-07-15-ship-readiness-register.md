@@ -50,8 +50,16 @@ ingest cannot have come through this pipeline; resolve before trusting cost rows
 | P5 | Brand-video Vercel cron dispatcher — shipped #943 | GREEN | S–M |
 | P6 | Founder-chat persistence — shipped #941 | GREEN | M |
 | P7 | `skill_health` producer — `apps/web/scripts/skill-eval-runner.mjs` (Wave A #849) | GREEN | S |
-| P8 | TikTok + YouTube analytics fetchers — `fetchTikTokAnalytics` / `fetchYouTubeAnalytics` wired via existing OAuth scopes (`video.list`, `youtube.readonly`) [VERIFIED] | GREEN | M |
+| P8 | TikTok + YouTube analytics fetchers — `fetchTikTokAnalytics` / `fetchYouTubeAnalytics` wired via existing OAuth scopes (`video.list`, `youtube.readonly`) [VERIFIED]; code on PR [#945](https://github.com/CleanExpo/Unite-Group/pull/945) (squash auto-merge armed) | GREEN (merge pending) | M |
 | P9 | First cron runs: boardroom `ceo-board-meeting`, knowledge `pi-ceo-weekly-review` (pipelines fully built) | AMBER-env | S |
+
+### Session note — 07/08/2026 ~08:28 AEST (babysitter recheck)
+
+**Producer wave P1–P8:** code complete. P1–P7 merged (#940/#849/#942/#944/#943/#941). **P8 sole remaining gate = merge of #945.**
+
+**Blocker (updated ~09:57 AEST):** GitHub Status still reports `Actions: major_outage`, but Monorepo CI for #945 **did complete**. All required checks green **except** `Active lockfiles — high-severity dependency audit` — high `js-yaml` (GHSA-5p4m-2wfm-xmqj; needs ≥3.15.1 / ≥4.3.1; repo overrides still pinned 3.15.0 / 4.3.0). Auto-merge (SQUASH) remains armed; merge waits on audit green after override bump.
+
+**Keepalive:** `ai.estate.claude-desktop-keepalive` LaunchAgent loaded (`runs=57`, last exit 0, interval 480s); pulse.log healthy through 22:26Z / 08:26 AEST.
 
 ### Class R — The runner (Wave B1, already spec'd, L)
 One estate-side process (this Mac first): claims founder-approved queued `cc_tasks`,
