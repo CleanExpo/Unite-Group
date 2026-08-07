@@ -50,14 +50,54 @@ ingest cannot have come through this pipeline; resolve before trusting cost rows
 | P5 | Brand-video Vercel cron dispatcher — shipped #943 | GREEN | S–M |
 | P6 | Founder-chat persistence — shipped #941 | GREEN | M |
 | P7 | `skill_health` producer — `apps/web/scripts/skill-eval-runner.mjs` (Wave A #849) | GREEN | S |
-| P8 | TikTok + YouTube analytics fetchers — `fetchTikTokAnalytics` / `fetchYouTubeAnalytics` wired via existing OAuth scopes (`video.list`, `youtube.readonly`) [VERIFIED]; code on PR [#945](https://github.com/CleanExpo/Unite-Group/pull/945) (squash auto-merge armed) | GREEN (merge pending) | M |
-| P9 | First cron runs: boardroom `ceo-board-meeting`, knowledge `pi-ceo-weekly-review` (pipelines fully built) | AMBER-env | S |
+| P8 | TikTok + YouTube analytics fetchers — `fetchTikTokAnalytics` / `fetchYouTubeAnalytics` wired via existing OAuth scopes (`video.list`, `youtube.readonly`) [VERIFIED]; shipped [#945](https://github.com/CleanExpo/Unite-Group/pull/945), merged `02d7c313` | GREEN | M |
+| P9 | First cron runs: boardroom `ceo-board-meeting` (scheduled `50 1 * * *`) · knowledge `pi-ceo-weekly-review` — **RE-GRADED AMBER-build, was wrong at AMBER-env.** Not "pipelines fully built awaiting a run": the route is unschedulable and, if scheduled as-is, unsafe and invisible. Five blockers below | AMBER-build | **M–L, not S** |
 
-### Session note — 07/08/2026 ~08:28 AEST (babysitter recheck)
+### Session note — 07/08/2026 ~12:40 AEST (P8 landed; P9 re-graded)
 
-**Producer wave P1–P8:** code complete. P1–P7 merged (#940/#849/#942/#944/#943/#941). **P8 sole remaining gate = merge of #945.**
+**Producer wave P1–P8: COMPLETE and merged.** #945 merged as `02d7c313`; all 18 checks
+green including the `js-yaml` audit (GHSA-5p4m-2wfm-xmqj) that the 09:57 note recorded as
+blocking — that note was stale, not the CI. Open-PR queue is empty.
 
-**Blocker (updated ~09:57 AEST):** GitHub Status still reports `Actions: major_outage`, but Monorepo CI for #945 **did complete**. All required checks green **except** `Active lockfiles — high-severity dependency audit` — high `js-yaml` (GHSA-5p4m-2wfm-xmqj; needs ≥3.15.1 / ≥4.3.1; repo overrides still pinned 3.15.0 / 4.3.0). Auto-merge (SQUASH) remains armed; merge waits on audit green after override bump.
+**Class H re-audited — H1–H8 were already done on `main`.** Evidence: `QueueBoard.tsx:517`
+(H1) · `:34-37`/`:356-360` (H2) · `command-centre/ideas/route.ts:72-93` (H3) ·
+`QueueBoard.tsx:289` (H4) · `hermes-control-panel/page.tsx:123,130` (H5) ·
+`xero/client.ts:331,376` (H6) · `AnalyticsDashboard.tsx:145,300` (H7) ·
+`DeckThemeShell.tsx:17-22` (H8). Only **H9** was outstanding; shipped separately.
+
+#### P9 re-graded AMBER-env → AMBER-build, and the fix is NOT small
+
+An attempt to close P9 by registering `pi-ceo-weekly-review` in `vercel.json` was built,
+locally green (591 files / 3766 tests, build exit 0), sent for independent review, and
+**withdrawn on a FAIL with five P1 blockers**. All five were re-verified against source.
+Recording them here so the next attempt starts from the truth:
+
+1. **It was never schedulable.** Registered in no scheduler — not `vercel.json`, not a
+   workflow, not `pg_cron` — so no env flip could ever have started it. The 16/07
+   break-sweep already logged this as **D015** and it sat unfixed for three weeks. The
+   AMBER-env grade is what hid it: "waiting on the founder" stops anyone re-checking.
+2. **Scheduling it destroys data.** It upserts `board_meetings` on
+   `(founder_id, meeting_date)` — `UNIQUE` per `20260326000001_ceo_boardroom.sql:17` —
+   and the daily `ceo-board-meeting` runs `50 1 * * *`, *every* day including Sunday. The
+   later weekly write resets `status` to `new` and overwrites `brief_md`, leaving a hybrid
+   row. Needs a discriminator column, i.e. a migration on a Supabase branch.
+3. **Its output is invisible.** The weekly writes `brief_md` but never `agenda`;
+   `MeetingCard.tsx` renders `agenda` only and `brief_md` appears there solely as a type
+   (`:17`). Only `ceo-board-meeting` writes `agenda` (`:175`). So a scheduled weekly
+   produces either a blank card or a misleading hybrid. `weekly_reviews` has no reader at
+   all. **Verifying a table has a reader is not the same as verifying the field renders.**
+4. **It can report success having persisted nothing.** Both upserts sit in `try/catch`
+   with empty catches and the Supabase error result is discarded, then the route emits
+   completion and returns `success: true` — false-green first-run evidence.
+5. **Merging it would arm unattended production.** `nexus-conventions` requires "merging
+   this arms nothing": admission gate, arming flag, founder/Board go-live. The route has
+   cron auth + `FOUNDER_USER_ID` only — no kill switch, no arming flag.
+
+**Next attempt must therefore cover:** the visibility fix (write `agenda`, or render
+`brief_md`), write-then-confirm error handling, honest upstream-failure states instead of
+fabricated zeros, a dormant-by-default arming gate, and a schema decision on the
+`board_meetings` collision. The migration is founder/Board-gated per root `CLAUDE.md` and
+is not autonomously shippable.
 
 **Keepalive:** `ai.estate.claude-desktop-keepalive` LaunchAgent loaded (`runs=57`, last exit 0, interval 480s); pulse.log healthy through 22:26Z / 08:26 AEST.
 
@@ -77,6 +117,9 @@ security-posture booleans re-labelled "design target (not live)" · H6 revenue-m
 boundary asserts `source:'mock'` end-to-end · H7 analytics fetch-failure ≠ empty-state ·
 H8 React #418 hydration fix on /operations · H9 studio palette off the retired OLED
 tokens.
+
+**Status 07/08/2026: H1–H8 already on `main` (evidence in the session note above); H9
+shipped separately.** This wave is closed — do not re-plan it as nine open items.
 
 ## 3. Judge
 
