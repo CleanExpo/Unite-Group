@@ -88,7 +88,16 @@ const GREEN_MARGOT = {
   generatedAt: '2026-07-09T00:00:00.000Z',
   windowDays: 14,
   voiceReady: true,
-  config: { elevenLabsApiKey: true, margotAgentId: true, ingestToken: true, founderConfigured: true },
+  config: {
+    elevenLabsApiKey: true,
+    margotAgentId: true,
+    ingestToken: true,
+    founderConfigured: true,
+    provenanceKeyConfigured: true,
+  },
+  // The margot row's status now depends on whether a spoken mission can actually
+  // become governed work, not on session recency alone.
+  missionBridgeReady: true,
   voice: { source: 'live', latestSessionAt: '2026-07-08T23:00:00.000Z', sessionsInWindow: 3, error: null },
   agents: { source: 'live', latestSeenAt: '2026-07-08T23:00:00.000Z', activeCount: 1, error: null },
 }
@@ -179,6 +188,49 @@ describe('GET /api/cron/os-health-rollup', () => {
 
     const margotRow = rows.find((row) => row?.id === 'margot')
     expect(margotRow.status).toBe('GREEN')
+  })
+
+  it('REGRESSION: margot is AMBER when the mission bridge cannot accept a mission', async () => {
+    // Status used to come from session recency alone, so with transcripts
+    // arriving and MISSION_PROVENANCE_SECRET absent this row read GREEN while
+    // every spoken mission was being refused and none was ever created — a
+    // health surface reporting green for a bridge that accepts nothing.
+    vi.mocked(deriveMargotHealth).mockReturnValue({
+      ...GREEN_MARGOT,
+      missionBridgeReady: false,
+      config: { ...GREEN_MARGOT.config, provenanceKeyConfigured: false },
+    } as any)
+
+    const res = await GET(req())
+    expect(res.status).toBe(200)
+    const rows = mockFrom.mock.results
+      .filter((_, i) => mockFrom.mock.calls[i][0] === 'dashboard_health')
+      .map((r) => r.value.upsert.mock.calls[0]?.[0])
+    const margotRow = rows.find((row) => row?.id === 'margot')
+    expect(margotRow.status).toBe('AMBER')
+    expect(margotRow.detail.reason).toBe('mission_bridge_not_ready')
+    expect(margotRow.detail.missionBridgeReady).toBe(false)
+  })
+
+  it('REGRESSION: margot is AMBER when voice INGRESS is unavailable', async () => {
+    // missionBridgeReady covers packet -> mission. It does NOT cover whether the
+    // founder can reach the agent to speak at all. Checking only the bridge meant
+    // a missing ElevenLabs key plus one historical session still read GREEN,
+    // with no way to record a mission and nothing on the surface saying so.
+    vi.mocked(deriveMargotHealth).mockReturnValue({
+      ...GREEN_MARGOT,
+      voiceReady: false,
+      config: { ...GREEN_MARGOT.config, elevenLabsApiKey: false },
+    } as any)
+
+    const res = await GET(req())
+    expect(res.status).toBe(200)
+    const rows = mockFrom.mock.results
+      .filter((_, i) => mockFrom.mock.calls[i][0] === 'dashboard_health')
+      .map((r) => r.value.upsert.mock.calls[0]?.[0])
+    const margotRow = rows.find((row) => row?.id === 'margot')
+    expect(margotRow.status).toBe('AMBER')
+    expect(margotRow.detail.reason).toBe('voice_ingress_not_ready')
   })
 
   it('response shape is { upserted, errors }', async () => {

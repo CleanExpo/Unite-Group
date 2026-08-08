@@ -5,7 +5,18 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 const mockSingle = vi.fn()
 const mockInsert = vi.fn(() => ({ select: () => ({ single: mockSingle }) }))
-const mockFrom = vi.fn(() => ({ insert: mockInsert }))
+// The route reads the per-packet delivery ledger before inserting, and an
+// unreadable ledger now fails closed with 503. An empty result means this is a
+// first delivery.
+const mockLedgerSelect = vi.fn(() => {
+  const chain = {
+    eq: () => chain,
+    order: () => chain,
+    limit: () => Promise.resolve({ data: [], error: null }),
+  }
+  return chain
+})
+const mockFrom = vi.fn(() => ({ insert: mockInsert, select: mockLedgerSelect }))
 
 vi.mock('@/lib/supabase/service', () => ({
   createServiceClient: vi.fn(() => ({ from: mockFrom })),
@@ -41,6 +52,14 @@ describe('POST /api/pi-ceo/margot-voice/task', () => {
     process.env.ELEVENLABS_INGEST_TOKEN = TOKEN
     process.env.FOUNDER_USER_ID = FOUNDER
     mockSingle.mockResolvedValue({ data: { id: 'sess-1' }, error: null })
+    mockLedgerSelect.mockImplementation(() => {
+      const chain = {
+        eq: () => chain,
+        order: () => chain,
+        limit: () => Promise.resolve({ data: [], error: null }),
+      }
+      return chain
+    })
   })
 
   afterEach(() => {

@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
 import { sanitiseError } from '@/lib/error-reporting'
+import { MISSION_PROVENANCE_SECRET_ENV } from '@/lib/command-centre/voice-mission-bridge'
 import {
   deriveMargotHealth,
   type MargotVoiceRead,
@@ -48,21 +49,32 @@ export async function GET() {
         .limit(500),
     ])
 
-    const voice: MargotVoiceRead =
-      voiceRes.error || latestVoiceRes.error
-        ? { ok: false, latestSessionAt: null, sessionsInWindow: 0, error: 'voice read failed' }
-        : {
-            ok: true,
-            latestSessionAt: latestVoiceRes.data?.[0]?.created_at ?? null,
-            sessionsInWindow: voiceRes.count ?? 0,
-          }
+    // A successful response whose body is unusable is an UNREADABLE read, not a
+    // zero. `count ?? 0` and `data?.length ?? 0` turned `{ error: null,
+    // count: null }` into a confident "0 sessions" and, combined with a recent
+    // historical session, could surface a false green. This is the same
+    // fail-open shape found four times elsewhere in this change series, so the
+    // ambiguous case is reported as a failed read and the surface says so.
+    const voiceUnreadable =
+      !!voiceRes.error ||
+      !!latestVoiceRes.error ||
+      typeof voiceRes.count !== 'number' ||
+      !Array.isArray(latestVoiceRes.data)
+    const voice: MargotVoiceRead = voiceUnreadable
+      ? { ok: false, latestSessionAt: null, sessionsInWindow: 0, error: 'voice read failed' }
+      : {
+          ok: true,
+          latestSessionAt: latestVoiceRes.data?.[0]?.created_at ?? null,
+          sessionsInWindow: voiceRes.count as number,
+        }
 
-    const presence: MargotPresenceRead = presenceRes.error
+    const presenceUnreadable = !!presenceRes.error || !Array.isArray(presenceRes.data)
+    const presence: MargotPresenceRead = presenceUnreadable
       ? { ok: false, latestSeenAt: null, agentCount: 0, error: 'presence read failed' }
       : {
           ok: true,
           latestSeenAt: presenceRes.data?.[0]?.last_seen_at ?? null,
-          agentCount: presenceRes.data?.length ?? 0,
+          agentCount: (presenceRes.data as unknown[]).length,
         }
 
     const payload = deriveMargotHealth({
@@ -73,6 +85,7 @@ export async function GET() {
         margotAgentId: !!process.env.ELEVENLABS_MARGOT_AGENT_ID?.trim(),
         ingestToken: !!process.env.ELEVENLABS_INGEST_TOKEN?.trim(),
         founderConfigured: !!process.env.FOUNDER_USER_ID?.trim(),
+        provenanceKeyConfigured: !!process.env[MISSION_PROVENANCE_SECRET_ENV]?.trim(),
       },
       voice,
       presence,

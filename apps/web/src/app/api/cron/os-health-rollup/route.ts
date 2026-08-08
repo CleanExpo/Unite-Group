@@ -14,6 +14,7 @@
 //
 // Schedule: every 15 minutes (vercel.json).
 
+import { MISSION_PROVENANCE_SECRET_ENV } from '@/lib/command-centre/voice-mission-bridge'
 import { NextResponse } from 'next/server'
 import { assertCronAuth } from '@/lib/cron-auth'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -259,7 +260,14 @@ async function buildMargotRow(supabase: ServiceClient): Promise<HealthRow> {
       elevenLabsApiKey: !!process.env.ELEVENLABS_API_KEY?.trim(),
       margotAgentId: !!process.env.ELEVENLABS_MARGOT_AGENT_ID?.trim(),
       ingestToken: !!process.env.ELEVENLABS_INGEST_TOKEN?.trim(),
-      founderConfigured: true,
+      // Read, not asserted. This was hardcoded true, so with an ingest token and
+      // a provenance key present the rollup reported missionBridgeReady even
+      // when FOUNDER_USER_ID was absent and ingest could not scope its writes to
+      // a founder at all — a health surface claiming green for a bridge that
+      // cannot accept a single mission. The interactive route already reads the
+      // environment; this one now matches it.
+      founderConfigured: !!process.env.FOUNDER_USER_ID?.trim(),
+      provenanceKeyConfigured: !!process.env[MISSION_PROVENANCE_SECRET_ENV]?.trim(),
     },
     voice,
     presence,
@@ -267,7 +275,25 @@ async function buildMargotRow(supabase: ServiceClient): Promise<HealthRow> {
 
   const readFailed = payload.voice.source === 'error' || payload.agents.source === 'error'
   const hasRecentSession = !!payload.voice.latestSessionAt
-  const status: HealthStatus = readFailed || !hasRecentSession ? 'AMBER' : 'GREEN'
+
+  // missionBridgeReady is part of the verdict, not just the detail.
+  //
+  // Status was derived from session recency alone, so with transcripts arriving
+  // and MISSION_PROVENANCE_SECRET absent this row reported GREEN while every one
+  // of those spoken missions was being refused and no mission was created at
+  // all. A health surface that reads green for a bridge which cannot accept a
+  // single mission is precisely the fabricated-green this rollup exists to
+  // avoid, and the flag was computed and then dropped on the floor.
+  // Both halves of the path, not one. missionBridgeReady covers packet ->
+  // mission (ingest token, founder, provenance key); voiceReady covers whether
+  // the founder can reach the agent to speak at all (API key + agent id).
+  // Checking only the first meant a missing ElevenLabs key plus one historical
+  // session still read GREEN, with no way for the founder to record a mission
+  // and nothing on the surface saying so.
+  const bridgeReady = payload.missionBridgeReady
+  const voiceReady = payload.voiceReady
+  const status: HealthStatus =
+    readFailed || !hasRecentSession || !bridgeReady || !voiceReady ? 'AMBER' : 'GREEN'
 
   return {
     id: 'margot',
@@ -275,8 +301,17 @@ async function buildMargotRow(supabase: ServiceClient): Promise<HealthRow> {
     status,
     severity: status === 'GREEN' ? 'informational' : 'P3',
     detail: {
-      reason: readFailed ? 'read_failed' : hasRecentSession ? undefined : 'no_recent_session',
+      reason: readFailed
+        ? 'read_failed'
+        : !voiceReady
+          ? 'voice_ingress_not_ready'
+          : !bridgeReady
+            ? 'mission_bridge_not_ready'
+            : hasRecentSession
+              ? undefined
+              : 'no_recent_session',
       voiceReady: payload.voiceReady,
+      missionBridgeReady: bridgeReady,
       latestSessionAt: payload.voice.latestSessionAt,
       sessionsInWindow: payload.voice.sessionsInWindow,
       activeAgents: payload.agents.activeCount,

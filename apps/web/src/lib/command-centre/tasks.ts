@@ -8,6 +8,8 @@
 // created lazily inside each accessor (matching the repo's API-route pattern).
 // All rows are founder-scoped by RLS (founder_id = auth.uid()).
 
+import { createHash } from 'node:crypto'
+
 import { createClient } from '@/lib/supabase/server'
 
 // ─── Types (hand-written; mirror the SQL schema) ──────────────────────────────
@@ -368,6 +370,94 @@ export async function appendTaskEvent(
   const { data, error } = await db.from(CC_TASK_EVENTS_TABLE).insert(row).select('*').single()
   if (error) throw new Error(`appendTaskEvent failed: ${error.message}`)
   return data as TaskEvent
+}
+
+/**
+ * A fixed namespace for deriving deterministic cc_task_events primary keys.
+ * Any RFC 4122 UUID works as a namespace; this one is arbitrary, constant, and
+ * must never change — altering it would re-derive every id and defeat the
+ * exactly-once property it exists to provide.
+ */
+const TASK_EVENT_ID_NAMESPACE = '6f1d1b64-9a54-4f2b-9a2f-3f5f1d0c7a11'
+
+function uuidToBytes(uuid: string): Buffer {
+  return Buffer.from(uuid.replace(/-/g, ''), 'hex')
+}
+
+/**
+ * Derive a stable RFC 4122 v5 (SHA-1, name-based) UUID for one logical task
+ * event, so the same logical event always resolves to the same primary key.
+ *
+ * WHY: cc_task_events has only `id UUID PRIMARY KEY` — there is no uniqueness on
+ * (task_id, type), and adding one is a founder-gated migration. Deriving the id
+ * instead turns the existing primary key into the dedupe boundary, giving
+ * exactly-once receipts with no schema change.
+ */
+export function deterministicTaskEventId(taskId: string, eventKey: string): string {
+  const hash = createHash('sha1')
+    .update(uuidToBytes(TASK_EVENT_ID_NAMESPACE))
+    .update(`${taskId}:${eventKey}`, 'utf8')
+    .digest()
+
+  const bytes = Buffer.from(hash.subarray(0, 16))
+  bytes[6] = (bytes[6] & 0x0f) | 0x50 // version 5
+  bytes[8] = (bytes[8] & 0x3f) | 0x80 // RFC 4122 variant
+
+  const hex = bytes.toString('hex')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+
+export interface AppendTaskEventOnceInput extends AppendTaskEventInput {
+  /** Logical event identity within the task, e.g. 'created'. */
+  eventKey: string
+}
+
+export interface AppendTaskEventOnceResult {
+  /** The inserted row, or null when a concurrent writer had already written it. */
+  event: TaskEvent | null
+  created: boolean
+}
+
+/**
+ * Append an audit event AT MOST ONCE for a given (task, eventKey), using a
+ * deterministic primary key as the atomic boundary — the same trick
+ * createTaskOnce uses with UNIQUE(founder_id, external_ref).
+ *
+ * A 23505 on that derived key is SUCCESS, not failure: it means a concurrent
+ * writer won the race and the receipt exists. Both racers therefore return
+ * truthfully, and exactly one row is written.
+ */
+export async function appendTaskEventOnce(
+  input: AppendTaskEventOnceInput,
+  client?: SupabaseLike,
+): Promise<AppendTaskEventOnceResult> {
+  const db = client ?? ((await createClient()) as unknown as SupabaseLike)
+
+  const row = {
+    id: deterministicTaskEventId(input.taskId, input.eventKey),
+    founder_id: input.founderId,
+    task_id: input.taskId,
+    type: input.type,
+    actor: input.actor ?? 'system',
+    payload: input.payload ?? {},
+  }
+
+  const { data, error } = await db.from(CC_TASK_EVENTS_TABLE).insert(row).select('*').single()
+  if (error) {
+    if (error.code === '23505') return { event: null, created: false }
+    throw new Error(`appendTaskEventOnce failed: ${error.message}`)
+  }
+  // A successful response with no row is NOT a written receipt. `{data: null,
+  // error: null}` used to fall through here and report `created: true`, so the
+  // voice bridge would call the receipt complete and the caller would be told the
+  // mission's immutable audit row existed when it did not. Sixth instance of this
+  // exact shape in this change set: an unusable-but-not-errored response treated
+  // as success. Throwing routes it to the caller's receipt-failure path, which
+  // retries and then dead-letters rather than lying.
+  if (!data) {
+    throw new Error('appendTaskEventOnce failed: insert returned no row and no error')
+  }
+  return { event: data as TaskEvent, created: true }
 }
 
 /** Link an evidence note (wiki path + sources) to a task. */

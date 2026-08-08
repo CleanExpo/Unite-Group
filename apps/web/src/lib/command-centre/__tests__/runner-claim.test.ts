@@ -166,12 +166,16 @@ describe('releaseClaimedTask', () => {
 function capMockClient(opts: {
   countData?: unknown
   countError?: { message: string } | null
+  /** Errors only on the FIRST read, then succeeds — exercises the bounded retry. */
+  countErrorOnce?: { message: string } | null
+  countRows?: unknown
   updateResults?: unknown[][]
 }) {
   const updates: Array<{ values: Record<string, unknown>; filters: Array<[string, unknown]> }> = []
   const inserts: Array<{ table: string; row: Record<string, unknown> }> = []
   const countFilters: Array<[string, unknown]> = []
   let updateCall = 0
+  let countCall = 0
 
   const client = {
     from: (table: string) => ({
@@ -182,8 +186,14 @@ function capMockClient(opts: {
             return chain
           },
           order: () => chain,
-          limit: () =>
-            Promise.resolve({ data: opts.countData ?? [], error: opts.countError ?? null }),
+          limit: () => {
+            countCall += 1
+            if (opts.countErrorOnce && countCall === 1) {
+              return Promise.resolve({ data: null, error: opts.countErrorOnce })
+            }
+            const rows = opts.countRows ?? opts.countData ?? []
+            return Promise.resolve({ data: rows, error: opts.countError ?? null })
+          },
         }
         return chain
       },
@@ -282,10 +292,20 @@ describe('releaseClaimedTask requeue cap (UNI-2396)', () => {
     })
   })
 
-  it('degrades honestly to a plain requeue when the count query errors', async () => {
+  it('CONTRACT CHANGE: an unreadable requeue count now fails closed, not open', async () => {
+    // This test previously asserted the opposite — that an errored count
+    // "degrades honestly to a plain requeue". An independent review showed that
+    // is a fail-OPEN: the cap IS the loop bound, so a persistently unreadable
+    // count let a repeatedly crashing mission requeue forever. It also
+    // disagreed with the null-body branch, which treated the same ambiguity as
+    // "cap exhausted".
+    //
+    // Both now take one path: retry the read a bounded number of times, and
+    // only if it is STILL unreadable treat the cap as exhausted. A transient
+    // blip no longer destroys work; a persistent failure no longer loops.
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const row = { id: 't1', status: 'queued' }
-    const { client, updates, inserts } = capMockClient({
+    const row = { id: 't1', status: 'failed' }
+    const { client, updates } = capMockClient({
       countError: { message: 'boom' },
       updateResults: [[row]],
     })
@@ -297,12 +317,32 @@ describe('releaseClaimedTask requeue cap (UNI-2396)', () => {
       outcome: 'requeue',
     })
 
-    expect(released.task).toEqual(row)
+    expect(released.effectiveOutcome).toBe('failed')
+    expect(updates[0].values.status).toBe('failed')
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining('unreadable after'),
+    )
+  })
+
+  it('retries a flaky count before giving up, so one blip does not fail the task', async () => {
+    // The reason the bounded retry exists: a single failed read must not be
+    // enough to terminate a task that has never been requeued.
+    const row = { id: 't1', status: 'queued' }
+    const { client, updates } = capMockClient({
+      countErrorOnce: { message: 'transient' },
+      countRows: [],
+      updateResults: [[row]],
+    })
+
+    const released = await releaseClaimedTask(client, {
+      founderId: 'f1',
+      taskId: 't1',
+      runnerId: 'runner-a',
+      outcome: 'requeue',
+    })
+
     expect(released.effectiveOutcome).toBe('requeue')
     expect(updates[0].values.status).toBe('queued')
-    expect(updates[0].values.claimed_by).toBeNull()
-    expect(inserts).toHaveLength(0)
-    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('requeue count failed'))
   })
 
   it('never touches the events table for done or failed outcomes', async () => {

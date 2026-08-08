@@ -15,9 +15,14 @@
 
 import { appendTaskEvent, CC_TASK_EVENTS_TABLE, type CommandCentreTask, type SupabaseLike } from './tasks'
 import type { AgentEventInput } from './agent-events'
+import { RUNNER_AGENT_NAME } from './runner-identity'
 
 export const CC_TASKS_TABLE = 'cc_tasks'
-export const RUNNER_AGENT_NAME = 'nexus-runner'
+// Re-exported so existing importers keep working. The DEFINITION moved to
+// runner-identity.ts because this module reaches `node:crypto` through
+// ./tasks, and a client component that only wanted this string was pulling
+// that in — see the note in runner-identity.ts.
+export { RUNNER_AGENT_NAME }
 
 /**
  * UNI-2396: a task may be requeued this many times before a further requeue is
@@ -160,28 +165,37 @@ async function countPriorRequeues(
   founderId: string,
   taskId: string,
 ): Promise<number | null> {
-  try {
-    const { data, error } = await client
-      .from(CC_TASK_EVENTS_TABLE)
-      .select('id')
-      .eq('founder_id', founderId)
-      .eq('task_id', taskId)
-      .eq('type', 'status_changed')
-      .eq('payload->>outcome', 'requeue')
-      .limit(MAX_REQUEUE_ATTEMPTS)
-    if (error) {
-      console.error(
-        `releaseClaimedTask: requeue count failed (${error.message}) — proceeding with requeue for task ${taskId}`,
-      )
-      return null
+  // Read the count with a bounded retry before deciding anything.
+  //
+  // The two ambiguous outcomes used to disagree with each other: a null body
+  // returned "cap exhausted" (so ONE blip could permanently fail a task with
+  // zero prior requeues) while a thrown query returned null and proceeded with
+  // the requeue (so a persistently unreadable count could loop forever). Both
+  // are the same situation - the count is unknown - and they now take the same
+  // path: retry a couple of times, and only if it is still unreadable treat the
+  // cap as exhausted. That keeps a transient blip from destroying work while
+  // still bounding the loop, which is the third option an independent review
+  // pointed out neither original branch took.
+  const ATTEMPTS = 3
+  for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
+    try {
+      const { data, error } = await client
+        .from(CC_TASK_EVENTS_TABLE)
+        .select('id')
+        .eq('founder_id', founderId)
+        .eq('task_id', taskId)
+        .eq('type', 'status_changed')
+        .eq('payload->>outcome', 'requeue')
+        .limit(MAX_REQUEUE_ATTEMPTS)
+      if (!error && Array.isArray(data)) return (data as Array<{ id: string }>).length
+    } catch {
+      // fall through to the retry
     }
-    return ((data as Array<{ id: string }>) ?? []).length
-  } catch (err) {
-    console.error(
-      `releaseClaimedTask: requeue count threw (${err instanceof Error ? err.message : 'unknown'}) — proceeding with requeue for task ${taskId}`,
-    )
-    return null
   }
+  console.error(
+    `releaseClaimedTask: requeue count unreadable after ${ATTEMPTS} attempts — treating the cap as exhausted for task ${taskId}`,
+  )
+  return MAX_REQUEUE_ATTEMPTS
 }
 
 /**

@@ -19,14 +19,21 @@ import { z } from 'zod'
 import { createServiceClient } from '@/lib/supabase/service'
 import {
   claimNextQueuedTask,
+  releaseClaimedTask,
   type RunnerClaimClientLike,
 } from '@/lib/command-centre/runner-claim'
+import { admitMissionToLane } from '@/lib/command-centre/mission-lane-binding'
 import { appendTaskEvent, type SupabaseLike } from '@/lib/command-centre/tasks'
 
 export const dynamic = 'force-dynamic'
 
 const bodySchema = z.object({
   runnerId: z.string().trim().min(1).max(128),
+  // Declared by the runner and checked against the server-side platform table.
+  // Optional so an un-upgraded runner fails CLOSED (undefined satisfies nothing)
+  // rather than erroring at parse time and looking like a different fault.
+  platform: z.string().trim().max(32).optional(),
+  containment: z.string().trim().max(32).optional(),
 })
 
 function timingSafeBearerMatch(request: Request, expectedSecret: string | undefined): boolean {
@@ -42,6 +49,258 @@ function timingSafeBearerMatch(request: Request, expectedSecret: string | undefi
 
 function bearerOk(request: Request): boolean {
   return timingSafeBearerMatch(request, process.env.AGENT_EVENTS_SECRET)
+}
+
+/**
+ * How many missions may be in flight for this founder at once.
+ *
+ * Validated as a finite positive integer, not merely coerced. `Number(x) || 1`
+ * accepted a negative: MISSION_LANE_MAX_CONCURRENT=-1 gave maxConcurrent = -1,
+ * `inFlight >= -1` is true for any count, and every claimed mission was requeued
+ * until its budget ran out and it failed. A misconfigured number silently
+ * emptied the queue. Anything not a positive integer falls back to 1.
+ */
+/** Nobody runs more missions than this on one host; a larger value is a typo. */
+const MAX_CONCURRENT_CEILING = 64
+
+export function readMaxConcurrent(raw: string | undefined): number {
+  const parsed = Number(raw)
+  // isSafeInteger, not isInteger: `Number.isInteger(1e100)` is TRUE, so '1e100'
+  // passed the old check and became both an effectively infinite concurrency
+  // limit and an absurd `.limit(1e100 + 2)` on the count query. An upper ceiling
+  // then bounds the honest-but-wrong values too — a limit nobody would set on
+  // purpose is a misconfiguration, not an instruction.
+  if (!Number.isSafeInteger(parsed) || parsed < 1 || parsed > MAX_CONCURRENT_CEILING) return 1
+  return parsed
+}
+
+const MAX_CONCURRENT_MISSIONS = readMaxConcurrent(process.env.MISSION_LANE_MAX_CONCURRENT)
+
+/**
+ * Missions already running for this founder.
+ *
+ * Called BEFORE the claim, so the row about to be claimed is not yet 'running'
+ * and nothing needs excluding.
+ *
+ * A count failure returns Infinity, not 0. The check is
+ * `inFlight >= maxConcurrent`, so Infinity refuses — and that refusal is
+ * `at_capacity`, which is transient, so the next poll retries. Returning 0 on
+ * failure would do the opposite: an unreadable database would silently disable
+ * the concurrency limit at exactly the moment things are going wrong.
+ */
+async function countRunning(
+  client: RunnerClaimClientLike,
+  founderId: string,
+): Promise<number> {
+  try {
+    // Only enough rows to decide the comparison — the exact count above the
+    // limit is not needed, and fetching it would scale with the queue.
+    const { data, error } = await (client as unknown as SupabaseLike)
+      .from('cc_tasks')
+      .select('id')
+      .eq('founder_id', founderId)
+      .eq('status', 'running')
+      .order('claimed_at', { ascending: true })
+      .limit(MAX_CONCURRENT_MISSIONS + 2)
+    if (error) return Number.POSITIVE_INFINITY
+    // Same reasoning as the delivery ledger: a successful response with null or
+    // a non-array body means the count is UNKNOWN, not zero. Treating it as zero
+    // would admit a claim while a mission is already running.
+    if (!Array.isArray(data)) return Number.POSITIVE_INFINITY
+    return (data as Array<{ id: string }>).length
+  } catch {
+    return Number.POSITIVE_INFINITY
+  }
+}
+
+/**
+ * The packet id of a pre-rollout voice mission, so a refusal can point at the
+ * transcript that still exists in margot_voice_sessions. Falls back to the
+ * external_ref, which the bridge derives from the packet id. Bounded and
+ * character-restricted because it is written into an audit payload.
+ */
+function legacyPacketId(task: { external_ref?: unknown; metadata?: unknown }): string | null {
+  const envelope = (task.metadata as { voiceMission?: Record<string, unknown> } | null)?.voiceMission
+  const fromEnvelope = envelope?.packetId
+  const raw =
+    typeof fromEnvelope === 'string' && fromEnvelope
+      ? fromEnvelope
+      : typeof task.external_ref === 'string'
+        ? task.external_ref.replace(/^voice:/, '')
+        : ''
+  const safe = raw.replace(/[^A-Za-z0-9._:-]/g, '').slice(0, 200)
+  return safe || null
+}
+
+/**
+ * Process-containment mechanisms that actually exist as KERNEL primitives.
+ *
+ * A closed set, and each entry is bound to the only platform whose kernel
+ * provides it:
+ *  - 'job-object' — Windows Job Object with KILL_ON_JOB_CLOSE. Atomic, and
+ *    inherited by descendants regardless of session changes.
+ *  - 'cgroup2'    — Linux cgroup v2 `cgroup.kill`. One write, atomic, defeats
+ *    setsid.
+ *
+ * macOS is deliberately absent and must stay absent. It has neither primitive;
+ * process groups and sessions are its only hierarchy and setsid() sheds both by
+ * definition. Adding 'darwin' here would be the whole control undone.
+ */
+const CONTAINMENT_MECHANISMS = {
+  'job-object': 'win32',
+  cgroup2: 'linux',
+} as const satisfies Record<string, NodeJS.Platform>
+
+type ContainmentMechanism = keyof typeof CONTAINMENT_MECHANISMS
+
+/**
+ * Whether this claim is permitted to reach a lane, judged on POSITIVE PROOF
+ * rather than on a label.
+ *
+ * The first version of this check read a free-text env var and treated any
+ * non-empty value as containment. An independent review put it plainly: an
+ * environment variable is not host capability attestation. `%%%` passed, and a
+ * Mac naming itself passed, either of which opened the path to
+ * `claude --permission-mode bypassPermissions` in the real checkout.
+ *
+ * Three things must now agree, and the claim is refused unless all three do:
+ *  1. the founder has armed a mechanism from the closed set above (env);
+ *  2. the runner declares the SAME mechanism for itself (request body);
+ *  3. the runner's declared platform is the one whose kernel provides that
+ *     mechanism (server-side table).
+ *
+ * The bearer secret is what binds (2) and (3) to a host the founder
+ * provisioned, so this is an attestation carried on an authenticated channel
+ * rather than a self-assigned name. A macOS runner cannot satisfy it under any
+ * combination, which is the correct outcome.
+ *
+ * HONEST LIMIT: this is still a DECLARATION, not a measurement. The route runs
+ * on Vercel and cannot execute a probe on the runner's kernel, so a runner that
+ * lies about its platform is not caught here. Closing that needs the claim path
+ * to reach the host — infrastructure this estate does not yet have (no inbound
+ * route to the tailnet, no host registration record). What it does buy: a typo,
+ * an arbitrary label, and any Mac are all now impossible, and the declared
+ * platform and mechanism are persisted on the claim so the question "which
+ * kernel ran this mission" has an answer for the first time.
+ */
+export const MISSION_LANE_CONTAINMENT_ENV = 'MISSION_LANE_CONTAINMENT'
+
+export function armedContainmentMechanism(): ContainmentMechanism | null {
+  const armed = process.env[MISSION_LANE_CONTAINMENT_ENV]?.trim()
+  if (!armed) return null
+  return armed in CONTAINMENT_MECHANISMS ? (armed as ContainmentMechanism) : null
+}
+
+/**
+ * The runner ids the founder has explicitly registered as running on a host with
+ * kernel containment. Comma-separated; unset means none.
+ *
+ * This is the host-registration record the release review found missing, in its
+ * minimal form. Without it, `containmentAttested` was satisfied by any bearer
+ * holder willing to type `win32`, and the reviewer's verdict was blunt and
+ * correct: "a macOS runner with the bearer can declare win32/job-object and
+ * receive work for the bypassPermissions path. Containment is therefore not an
+ * actual safety gate."
+ *
+ * It still is not a kernel probe. What it changes: the set of parties who can
+ * assert containment goes from "anyone holding the shared bearer" to "a runner id
+ * the founder wrote down". A misconfigured or rogue runner that is not on the
+ * list cannot claim, whatever it declares about itself.
+ */
+/**
+ * Runners the founder has registered as running on a host with kernel containment,
+ * each BOUND to the platform and mechanism that host actually provides.
+ *
+ * Format: `runnerId:platform:mechanism`, comma-separated. Example:
+ *   MISSION_LANE_CONTAINED_RUNNERS=win-ts-runner:win32:job-object
+ *
+ * The previous version was a bare id list, and the reviewer showed why that was not
+ * a gate: "a bearer holder can use a registered runnerId while declaring
+ * platform win32 and containment job-object from macOS". Borrowing a registered id
+ * was enough, because the platform came from the request.
+ *
+ * Binding the triple means a macOS process must now contradict something the
+ * founder wrote down, not merely reuse a name. It is still NOT a kernel probe - a
+ * genuinely compromised host holding the bearer and using its own registered id can
+ * lie about its platform and this route cannot detect it. That needs the claim path
+ * to reach the host and ask its kernel, which requires inbound network access to the
+ * tailnet and a capability handshake, neither of which exists.
+ *
+ * I am stating that limit rather than describing this as attestation, because the
+ * last iteration's failure was exactly that: adding a registry made the gate LOOK
+ * established while leaving the platform self-declared.
+ */
+export const MISSION_LANE_CONTAINED_RUNNERS_ENV = 'MISSION_LANE_CONTAINED_RUNNERS'
+
+interface RegisteredRunner {
+  platform: string
+  mechanism: string
+}
+
+export function registeredContainedRunners(): ReadonlyMap<string, RegisteredRunner> {
+  const raw = process.env[MISSION_LANE_CONTAINED_RUNNERS_ENV]?.trim()
+  const out = new Map<string, RegisteredRunner>()
+  if (!raw) return out
+  for (const entry of raw.split(',')) {
+    const [runnerId, platform, mechanism] = entry.split(':').map((part) => part.trim())
+    // A malformed entry registers NOTHING. A half-written triple must not degrade
+    // into "id is enough", which is the shape that just failed.
+    if (!runnerId || !platform || !mechanism) continue
+    if (!(mechanism in CONTAINMENT_MECHANISMS)) continue
+    // The registry itself must be internally consistent: naming a mechanism its
+    // platform cannot provide is a misconfiguration, not a grant.
+    if (CONTAINMENT_MECHANISMS[mechanism as ContainmentMechanism] !== platform) continue
+    out.set(runnerId, { platform, mechanism })
+  }
+  return out
+}
+
+/**
+ * Whether this claim may reach a lane.
+ *
+ * DELIBERATELY NOT CALLED ATTESTATION, because it is not one, and the previous two
+ * attempts at this failed by implying otherwise.
+ *
+ * Attempt one accepted any non-empty env label. Attempt two required the runner to
+ * declare its platform and mechanism, and a reviewer showed that a macOS process
+ * holding the bearer could simply declare `win32`/`job-object`. Attempt three bound
+ * the triple in the registry - which I then tested against the reviewer's exact
+ * attack and found admits the liar identically, because a process willing to lie
+ * declares whatever the registry says. The self-declaration was never evidence; it
+ * only looked like evidence.
+ *
+ * So the declaration grants nothing. The grant comes from ONE place: the founder's
+ * registry, naming which runner ids run on a contained host. The runner's declared
+ * platform and mechanism are still read, but only to REFUSE a contradiction - which
+ * catches an honestly-misconfigured runner, not a dishonest one - and to record what
+ * was claimed on the audit trail.
+ *
+ * THE ACTUAL SECURITY BOUNDARY, stated plainly: the shared bearer secret plus the
+ * founder's own bookkeeping. A process that holds AGENT_EVENTS_SECRET and uses a
+ * registered runner id reaches the lane regardless of what kernel it is really on,
+ * and this route cannot detect that. Closing it requires the claim path to reach the
+ * host and interrogate its kernel - inbound tailnet access and a capability
+ * handshake, neither of which exists. Until then the honest description is "the
+ * founder asserted this runner is contained", not "the runner proved it".
+ */
+export function containmentGranted(input: {
+  runnerId: string
+  platform: string | undefined
+  containment: string | undefined
+}): boolean {
+  const armed = armedContainmentMechanism()
+  if (armed === null) return false
+
+  const registered = registeredContainedRunners().get(input.runnerId)
+  if (!registered) return false
+  if (registered.mechanism !== armed) return false
+
+  // A DECLARED value that contradicts the registry is refused. This is a
+  // misconfiguration check, not a security check: it catches a runner deployed to
+  // the wrong host, and catches nothing at all about a runner that lies.
+  if (input.containment !== undefined && input.containment !== registered.mechanism) return false
+  if (input.platform !== undefined && input.platform !== registered.platform) return false
+  return true
 }
 
 export async function POST(request: Request) {
@@ -69,21 +328,181 @@ export async function POST(request: Request) {
     )
   }
 
+  // The kill switch is read BEFORE anything is claimed. Checking it only after
+  // the claim would mean every poll made while the estate is stopped claims a
+  // mission and then has to put it back — burning that mission's bounded requeue
+  // budget (MAX_REQUEUE_ATTEMPTS = 3) until it is permanently failed. The safety
+  // control would itself become the thing that destroys approved work. Nothing
+  // is claimed here, so nothing needs releasing.
+  //
+  // No hard-stop reader exists in this codebase — `~/.claude/HARD_STOP` is a
+  // local file and this route is serverless, so the deployable equivalent is an
+  // env var. Absent means not stopped; only an explicit '1' engages it.
+  const hardStop = process.env.MISSION_LANE_HARD_STOP === '1'
+  if (hardStop) {
+    return NextResponse.json({ task: null, refused: 'hard_stop' }, { status: 200 })
+  }
+
   try {
     const client = createServiceClient()
+
+    // Capacity is checked BEFORE claiming, for the same reason as the kill
+    // switch: claiming and then putting the mission back burns its bounded
+    // requeue budget every poll.
+    //
+    // HONEST LIMIT — this is backpressure, not a mutual-exclusion guarantee.
+    // The count and the claim are two statements, so two runners polling
+    // simultaneously can each read a count taken before the other's claim became
+    // visible and both be admitted under maxConcurrent = 1. An independent
+    // review raised exactly this, and it is correct. Narrowing the window is
+    // genuinely worth having (the previous code hardcoded inFlight to 0, so the
+    // limit could never refuse at all) but it must not be described as an
+    // atomic limit.
+    //
+    // Closing the race needs the count and the claim in ONE statement — a
+    // Postgres function claiming only while `running < N`, which is a prod
+    // schema migration and therefore founder-gated. Recorded rather than
+    // silently approximated.
+    // Containment is checked BEFORE claiming, for the same reason as the kill
+    // switch and capacity: claiming a mission this host cannot contain and then
+    // putting it back would burn its bounded requeue budget every poll until it
+    // was permanently failed. Nothing is claimed, so the mission stays queued and
+    // waits for a host that can actually run it.
+    const attested = containmentGranted({
+      runnerId: parsed.data.runnerId,
+      platform: parsed.data.platform,
+      containment: parsed.data.containment,
+    })
+    if (!attested) {
+      return NextResponse.json({ task: null, refused: 'lane_unavailable' }, { status: 200 })
+    }
+
+    const inFlight = await countRunning(client as unknown as RunnerClaimClientLike, founderId)
+    if (inFlight >= MAX_CONCURRENT_MISSIONS) {
+      return NextResponse.json({ task: null, refused: 'at_capacity' }, { status: 200 })
+    }
+
     const task = await claimNextQueuedTask(client as unknown as RunnerClaimClientLike, {
       founderId,
       runnerId: parsed.data.runnerId,
     })
 
     if (task) {
+      // The admission gate had no production caller: a task was claimed and
+      // handed straight to runner.mjs, which interpolates `task.objective` into a
+      // `claude --permission-mode bypassPermissions` prompt. So a mission could
+      // declare read-only actionKinds while its objective text carried arbitrary
+      // instructions, and nothing between voice input and an unsandboxed agent
+      // ever consulted the gate that exists to stop exactly that.
+      //
+      // Refusal releases the claim rather than returning the task, so the runner
+      // cannot act on it and the mission does not silently vanish from the queue.
+      const decision = admitMissionToLane(task, {
+        // Settled before the claim above, so the gate is told the count that
+        // decision was made on rather than re-reading a number that now
+        // includes the row just claimed.
+        inFlight,
+        maxConcurrent: MAX_CONCURRENT_MISSIONS,
+        // Already returned above if engaged; passed through so the gate keeps
+        // its own ordering guarantee rather than trusting this caller.
+        hardStop,
+        // Computed above, never a literal. Reaching this line means the armed
+        // mechanism, the runner's declaration and its platform all agreed.
+        laneAvailable: attested,
+        // claimNextQueuedTask returns the row AFTER flipping it to 'running',
+        // so the gate is told which runner won it. Without this the status check
+        // refuses every claim and the runner starves.
+        claimedBy: parsed.data.runnerId,
+      })
+
+      if (!decision.admit) {
+        // Whether a refusal is terminal depends on WHAT was refused.
+        //
+        // A verdict about the MISSION is terminal: an unclassified, unprovenanced,
+        // side-effecting or above-tier mission will be refused identically on
+        // every future poll, so requeueing it would have the runner claim,
+        // refuse and requeue it forever.
+        //
+        // A verdict about the HOST is not. `hard_stop`, `lane_unavailable` and
+        // `at_capacity` say nothing about whether the mission is fit to run —
+        // only that this box cannot run it now. Marking those 'failed' would
+        // mean engaging the kill switch silently destroys every approved mission
+        // the runner happens to claim while it is engaged, and the founder would
+        // come back to a queue of permanent failures caused by the safety
+        // control itself. Those go back to 'queued' to be picked up later.
+        const TRANSIENT: ReadonlySet<string> = new Set([
+          'hard_stop',
+          'lane_unavailable',
+          'at_capacity',
+        ])
+        //
+        // `provenance_legacy` is a THIRD kind: the mission was approved by the
+        // founder and is probably fine, but it was bridged before keyed
+        // provenance existed, so it can never be authenticated and must not run.
+        // It is not transient (retrying cannot mint a key it never had), and
+        // treating it like a forgery writes off real work with no route back.
+        // It settles as `failed` because that is the only terminal outcome this
+        // release path has — but the event below carries everything needed to
+        // recover it.
+        const outcome = TRANSIENT.has(decision.code) ? 'requeue' : 'failed'
+        const release = await releaseClaimedTask(client as unknown as RunnerClaimClientLike, {
+          founderId,
+          taskId: task.id,
+          runnerId: parsed.data.runnerId,
+          outcome,
+        })
+        await appendTaskEvent(
+          {
+            founderId,
+            taskId: task.id,
+            type: 'blocked',
+            actor: parsed.data.runnerId,
+            // The code only — never the objective. A refusal reason that echoed
+            // the text would put unvalidated voice input into the audit trail.
+            //
+            // effective_outcome, not the requested one (UNI-2398):
+            // releaseClaimedTask downgrades a requeue to 'failed' once
+            // MAX_REQUEUE_ATTEMPTS is exhausted, and an audit trail that logged
+            // the request would claim the mission went back to the queue when it
+            // was actually terminated.
+            payload: {
+              lane_admission: decision.code,
+              effective_outcome: release.effectiveOutcome,
+              // Recovery pointer for a pre-rollout mission. The transcript still
+              // exists in margot_voice_sessions under this packet id, so
+              // re-POSTing that packet to /api/pi-ceo/margot-voice/task rebridges
+              // it with a signed envelope. A machine-safe reference, never the
+              // objective. Find them with:
+              //   select payload->>'recover_packet_id' from cc_task_events
+              //     where type = 'blocked'
+              //       and payload->>'lane_admission' = 'provenance_legacy';
+              ...(decision.code === 'provenance_legacy'
+                ? { recover_packet_id: legacyPacketId(task), recovery: 're_ingest_packet' }
+                : {}),
+            },
+          },
+          client as unknown as SupabaseLike,
+        )
+        return NextResponse.json(
+          { task: null, refused: decision.code },
+          { status: 200 },
+        )
+      }
+
       await appendTaskEvent(
         {
           founderId,
           taskId: task.id,
           type: 'started',
           actor: parsed.data.runnerId,
-          payload: { claimed_by: parsed.data.runnerId },
+          // Persist WHICH kernel ran this mission. Until now nothing in the
+          // pipeline recorded it, so a completed mission looked identical
+          // whether it ran contained or in an unsandboxed live checkout.
+          payload: {
+            claimed_by: parsed.data.runnerId,
+            platform: parsed.data.platform ?? null,
+            containment: parsed.data.containment ?? null,
+          },
         },
         client as unknown as SupabaseLike,
       )
