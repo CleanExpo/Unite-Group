@@ -15,9 +15,14 @@
 
 import { appendTaskEvent, CC_TASK_EVENTS_TABLE, type CommandCentreTask, type SupabaseLike } from './tasks'
 import type { AgentEventInput } from './agent-events'
+import { RUNNER_AGENT_NAME } from './runner-identity'
 
 export const CC_TASKS_TABLE = 'cc_tasks'
-export const RUNNER_AGENT_NAME = 'nexus-runner'
+// Re-exported so existing importers keep working. The DEFINITION moved to
+// runner-identity.ts because this module reaches `node:crypto` through
+// ./tasks, and a client component that only wanted this string was pulling
+// that in — see the note in runner-identity.ts.
+export { RUNNER_AGENT_NAME }
 
 /**
  * UNI-2396: a task may be requeued this many times before a further requeue is
