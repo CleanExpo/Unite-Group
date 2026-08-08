@@ -16,7 +16,9 @@ import {
   type AgentEventsClientLike,
   type AgentEvent,
 } from '@/lib/command-centre/agent-events'
-import { RUNNER_AGENT_NAME } from '@/lib/command-centre/runner-claim'
+// From runner-identity, NOT runner-claim: this module is reachable from the
+// 'use client' QueueBoard, and runner-claim reaches node:crypto via ./tasks.
+import { RUNNER_AGENT_NAME } from '@/lib/command-centre/runner-identity'
 import { isMissingTableError } from '@/lib/command-centre/agent-events-wall'
 
 export type RunnerHeartbeatState = 'connected' | 'stale' | 'offline'
