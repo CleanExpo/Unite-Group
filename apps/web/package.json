@@ -2,7 +2,7 @@
   "name": "unite-group",
   "version": "1.0.0",
   "private": true,
-  "description": "Unite Hub \u2014 AI-Powered CRM & Marketing Automation. Next.js 16 + Supabase PostgreSQL.",
+  "description": "Unite Hub — AI-Powered CRM & Marketing Automation. Next.js 16 + Supabase PostgreSQL.",
   "author": "Unite Group",
   "license": "ISC",
   "scripts": {
@@ -152,7 +152,7 @@
     "imapflow": "^1.4.7",
     "lowlight": "^3.3.0",
     "lucide-react": "^1.24.0",
-    "nanoid": "^6.0.0",
+    "nanoid": "^6.0.1",
     "next": "^16.2.11",
     "novel": "^1.0.2",
     "react": "^19.2.7",

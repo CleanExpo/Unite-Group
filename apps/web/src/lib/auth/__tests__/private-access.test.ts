@@ -2,9 +2,17 @@ import { describe, expect, it } from 'vitest'
 import { getPrivateAccessConfig, hasPrivateAccess, isPrivateAccessConfigured } from '../private-access'
 
 describe('private access allow-list', () => {
-  it('allows access when no founder allow-list is configured to prevent accidental lockout', () => {
-    expect(hasPrivateAccess({ id: 'any-user', email: 'guest@example.com' }, {} as NodeJS.ProcessEnv)).toBe(true)
-    expect(isPrivateAccessConfigured({} as NodeJS.ProcessEnv)).toBe(false)
+  it('fails OPEN in non-production when no allow-list is configured (local-dev ergonomics)', () => {
+    const env = { NODE_ENV: 'development' } as NodeJS.ProcessEnv
+    expect(hasPrivateAccess({ id: 'any-user', email: 'guest@example.com' }, env)).toBe(true)
+    expect(isPrivateAccessConfigured(env)).toBe(false)
+  })
+
+  it('fails CLOSED in production when no allow-list is configured (no silent exposure)', () => {
+    const env = { NODE_ENV: 'production' } as NodeJS.ProcessEnv
+    expect(hasPrivateAccess({ id: 'any-user', email: 'guest@example.com' }, env)).toBe(false)
+    // Covers Vercel preview too (also NODE_ENV=production) — an unset FOUNDER_ALLOWED_* must DENY.
+    expect(isPrivateAccessConfigured(env)).toBe(false)
   })
 
   it('allows the configured founder user id', () => {

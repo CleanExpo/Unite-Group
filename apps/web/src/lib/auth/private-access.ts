@@ -34,11 +34,12 @@ export function hasPrivateAccess(
 ): boolean {
   const config = getPrivateAccessConfig(env)
 
-  // Fail-open only until the founder allow-list is configured. This prevents an
-  // accidental production lockout during deployment, while still allowing Vercel
-  // to become locked/private as soon as FOUNDER_USER_ID or FOUNDER_ALLOWED_* is set.
+  // Fail CLOSED in production (covers Vercel preview AND prod, both NODE_ENV=production)
+  // when the founder allow-list is unconfigured: an unset/empty FOUNDER_ALLOWED_* must
+  // DENY, not silently expose the private single-tenant CRM to any authenticated user.
+  // Fail-open is kept ONLY for local dev ergonomics.
   if (config.allowedUserIds.length === 0 && config.allowedEmails.length === 0) {
-    return true
+    return env.NODE_ENV !== 'production'
   }
 
   const userId = user?.id?.trim().toLowerCase()
