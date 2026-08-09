@@ -91,6 +91,15 @@ jobs:
           git config user.name 'nexus-docs-bot'
           git config user.email 'nexus-docs-bot@users.noreply.github.com'
 
+          # Register + fetch any existing remote branch so --force-with-lease below
+          # has a real tracked remote-tracking ref to compare against. checkout only
+          # fetched main (single-branch); a plain `git fetch origin <branch>` alone
+          # writes FETCH_HEAD but does not register the ref as a tracked remote
+          # branch under this single-branch clone's restricted fetch refspec, and
+          # --force-with-lease silently ignores an untracked ref (verified empirically).
+          git remote set-branches --add origin "${AUTOMATION_BRANCH}"
+          git fetch origin "${AUTOMATION_BRANCH}" || true
+
           # Refresh the proposed snapshot baseline and stage the review report.
           mkdir -p "${SNAPSHOT_DIR}"
           cp -f "${CONTENT_DIR}"/*.txt "${SNAPSHOT_DIR}/" 2>/dev/null || true
