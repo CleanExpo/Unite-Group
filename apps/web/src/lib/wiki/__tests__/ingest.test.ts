@@ -1,3 +1,4 @@
+import path from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import {
   buildWikiPageUpsert,
@@ -16,8 +17,10 @@ describe('wiki ingest helpers', () => {
     expect(
       resolveWikiIngestPath({ BRAIN1_WIKI_DIR: '/brain/Wiki' }, '/Users/phill'),
     ).toBe('/brain/Wiki')
+    // The fallback is a real filesystem path, so its separator is the host's —
+    // asserting a literal '/' would only ever hold off Windows.
     expect(resolveWikiIngestPath({}, '/Users/phill')).toBe(
-      '/Users/phill/2nd Brain/Wiki',
+      path.join('/Users/phill', '2nd Brain', 'Wiki'),
     )
   })
 

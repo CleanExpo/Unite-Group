@@ -4,6 +4,13 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { findPosixBash, toPosixPath } from '@/test/posix-shell'
+
+// Windows cannot exec a `#!/bin/sh` script directly (spawnSync yields a null
+// status), so there the shim is handed to Git Bash — which runs the very same
+// committed script against the real filesystem. Elsewhere it is spawned
+// directly, exactly as the runner invokes it.
+const BASH = findPosixBash()
 
 // Resolve the committed runner git shim by walking up from this test file to
 // the repo root (the file that must exist: scripts/nexus-runner/bin/git).
@@ -46,13 +53,20 @@ afterAll(() => {
 })
 
 function runShim(args: string[], branch = 'feature-x') {
-  return spawnSync(SHIM, args, {
-    encoding: 'utf8',
-    env: { ...process.env, NEXUS_RUNNER_REAL_GIT: stubGit, STUB_BRANCH: branch },
-  })
+  const options = {
+    encoding: 'utf8' as const,
+    env: {
+      ...process.env,
+      NEXUS_RUNNER_REAL_GIT: toPosixPath(stubGit),
+      STUB_BRANCH: branch,
+    },
+  }
+  return process.platform === 'win32'
+    ? spawnSync(BASH as string, [toPosixPath(SHIM), ...args], options)
+    : spawnSync(SHIM, args, options)
 }
 
-describe('nexus-runner git shim', () => {
+describe.skipIf(!BASH)('nexus-runner git shim', () => {
   it('blocks force push (--force) with exit 3', () => {
     const r = runShim(['push', '--force', 'origin', 'feature-x'])
     expect(r.status).toBe(3)
