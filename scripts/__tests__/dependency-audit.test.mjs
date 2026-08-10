@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { chmod, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
+import { chmod, copyFile, link, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { delimiter, dirname, join, resolve } from 'node:path'
 import { test } from 'node:test'
@@ -47,6 +47,41 @@ async function makeFixture(t, { locks = ['app/package-lock.json'], manifest = {}
 
 function trackedFiles(...lockfiles) {
   return async () => ({ stdout: `${lockfiles.join('\0')}\0` })
+}
+
+/**
+ * Put `source` where the runner will actually invoke it, and return the options
+ * that reach it.
+ *
+ * The seam differs by platform, and using the wrong one silently runs the real
+ * npm against the fixture instead of the stub. Off Windows the runner resolves
+ * `npm` from PATH. On Windows buildAuditInvocation() deliberately bypasses PATH
+ * and spawns `<dirname(nodeExecutable)>/node_modules/npm/bin/npm-cli.js`, so a
+ * PATH shim cannot intercept it — and an extensionless shebang file is not
+ * executable there anyway.
+ */
+async function installStubScanner(t, bin, source) {
+  if (process.platform !== 'win32') {
+    await mkdir(bin, { recursive: true })
+    const stub = join(bin, 'npm')
+    await writeFile(stub, source)
+    await chmod(stub, 0o755)
+    const originalPath = process.env.PATH
+    process.env.PATH = `${bin}${delimiter}${originalPath}`
+    t.after(() => { process.env.PATH = originalPath })
+    return {}
+  }
+
+  const cli = join(bin, 'node_modules', 'npm', 'bin', 'npm-cli.js')
+  await mkdir(dirname(cli), { recursive: true })
+  await writeFile(cli, source)
+  const nodeExecutable = join(bin, 'node.exe')
+  try {
+    await link(process.execPath, nodeExecutable)
+  } catch {
+    await copyFile(process.execPath, nodeExecutable)
+  }
+  return { nodeExecutable }
 }
 
 test('dependency audit discovers every tracked JavaScript lock instead of relying on a static allowlist', async () => {
@@ -436,10 +471,7 @@ test('a timed-out scanner becomes an error while later locks run and the report 
   const root = await makeFixture(t, {
     locks: ['stalled/package-lock.json', 'later/package-lock.json'],
   })
-  const bin = join(root, 'bin')
-  await mkdir(bin)
-  const fakeNpm = join(bin, 'npm')
-  await writeFile(fakeNpm, `#!/usr/bin/env node
+  const injection = await installStubScanner(t, join(root, 'bin'), `#!/usr/bin/env node
 const clean = ${JSON.stringify(CLEAN_AUDIT)}
 if (process.cwd().split(/[\\\\/]/).at(-1) === 'stalled') {
   setTimeout(() => process.stdout.write(clean), 1000)
@@ -447,11 +479,6 @@ if (process.cwd().split(/[\\\\/]/).at(-1) === 'stalled') {
   process.stdout.write(clean)
 }
 `)
-  await chmod(fakeNpm, 0o755)
-
-  const originalPath = process.env.PATH
-  process.env.PATH = `${bin}${delimiter}${originalPath}`
-  t.after(() => { process.env.PATH = originalPath })
 
   const { executeAudit, main } = await loadRunner()
   const reportPath = join(root, 'result.json')
@@ -464,7 +491,7 @@ if (process.cwd().split(/[\\\\/]/).at(-1) === 'stalled') {
     ],
     root,
     stdout: { write() {} },
-    runAudit: (entry, options) => executeAudit(entry, { ...options, timeoutMs: 250 }),
+    runAudit: (entry, options) => executeAudit(entry, { ...options, ...injection, timeoutMs: 250 }),
   })
   const elapsedMs = Date.now() - startedAt
   const stored = JSON.parse(await readFile(reportPath, 'utf8'))
