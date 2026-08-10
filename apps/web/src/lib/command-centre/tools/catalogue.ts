@@ -16,7 +16,6 @@
 
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
-import os from 'node:os'
 
 export type ToolSource = 'hermes' | 'mcp' | 'project' | 'codex' | 'claude-code' | 'local'
 
@@ -71,13 +70,38 @@ export const KNOWN_TOOLS: readonly CommandCentreTool[] = [
   { tool_key: 'claude-code', source: 'claude-code', description: 'Claude Code — agentic code execution surface.', risk_class: 'write-local', approval_required: true, invocable: false },
 ] as const
 
+/**
+ * The host user's home directory, read from the environment rather than
+ * `os.homedir()`.
+ *
+ * These are host-machine config files that must never be traced into a
+ * deployment bundle, and `os.homedir()` defeats that: @vercel/nft folds it to a
+ * literal at build time, then — because the candidates below are only partially
+ * static — backtracks and emits a glob of the whole resolved directory. On
+ * Windows that enumerates %LOCALAPPDATA%, which holds the self-referential
+ * "Application Data" compatibility junction, and scandir fails EPERM. The
+ * result is `next build` dying before it compiles, on Windows only; CI never
+ * sees it because no such junction exists on Linux.
+ *
+ * Environment reads are opaque to the tracer, so the candidates stay untraced.
+ * Opacity is the intent here, not a workaround.
+ *
+ * USERPROFILE is checked before HOME, unlike the other command-centre readers:
+ * under Git Bash on Windows HOME is an MSYS path (`/c/Users/...`) that Node's
+ * fs cannot resolve, while USERPROFILE is always the native one.
+ */
+function hostHome(): string {
+  return process.env.USERPROFILE?.trim() || process.env.HOME?.trim() || ''
+}
+
 /** Candidate Hermes config locations (read-only). First existing wins. */
 function hermesConfigCandidates(): string[] {
-  const localAppData = process.env.LOCALAPPDATA ?? path.join(os.homedir(), 'AppData', 'Local')
+  const home = hostHome()
+  const localAppData = process.env.LOCALAPPDATA?.trim() || (home ? path.join(home, 'AppData', 'Local') : '')
   return [
     process.env.HERMES_CONFIG?.trim() || '',
-    path.join(localAppData, 'hermes', 'config.yaml'),
-    path.join(os.homedir(), '.hermes', 'config.yaml'),
+    localAppData ? path.join(localAppData, 'hermes', 'config.yaml') : '',
+    home ? path.join(home, '.hermes', 'config.yaml') : '',
   ].filter(Boolean)
 }
 
