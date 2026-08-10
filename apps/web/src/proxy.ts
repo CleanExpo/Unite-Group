@@ -175,8 +175,26 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimisation)
      * - favicon.ico (browser icon)
-     * - public folder assets (images, fonts, etc.)
+     * - public folder assets (images, fonts, etc.) — but NEVER under /api/ or
+     *   /founder/, see below.
+     *
+     * SECURITY: the asset exemption is gated behind `(?!api/|founder/)`.
+     *
+     * Without that guard the exemption applied to EVERY path, so appending a
+     * static-looking extension skipped this middleware entirely — the only
+     * control that distinguishes the founder from any other authenticated
+     * user. Confirmed against production 10/08/2026: `/api/contacts/probe`
+     * returned the login redirect (proxy ran) while `/api/contacts/probe.png`
+     * returned a bare 401 (proxy did NOT run, and the request reached the
+     * route handler). Nothing leaked, because every dynamic route scopes its
+     * query with `.eq('founder_id', user.id)` — but that made the routes the
+     * last line of defence rather than the second.
+     *
+     * A regex change here is load-bearing. Both directions are covered by
+     * src/__tests__/proxy-matcher.test.ts: protected paths must MATCH even
+     * with an asset extension, and genuine static assets must NOT match (or
+     * the login page loses its own CSS and images).
      */
-    '/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf|eot)$).*)',
+    '/((?!_next/static|_next/image|favicon\\.ico|(?!api/|founder/).*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf|eot)$).*)',
   ],
 };
