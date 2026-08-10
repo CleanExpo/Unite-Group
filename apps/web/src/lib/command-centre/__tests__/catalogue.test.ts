@@ -1,5 +1,3 @@
-import { readFile } from 'node:fs/promises'
-import path from 'node:path'
 import { describe, it, expect } from 'vitest'
 import {
   getToolCatalogue,
@@ -78,21 +76,6 @@ describe('command-centre tool catalogue', () => {
     expect(names).not.toContain('port')
   })
 
-  // A build-time property, so it has to be asserted against the source: the
-  // symptom is invisible to every runtime test and to CI. os.homedir() is
-  // folded to a literal by @vercel/nft, which then globs the whole resolved
-  // directory while tracing. On Windows that enumerates %LOCALAPPDATA% and its
-  // self-referential "Application Data" junction, and `next build` dies EPERM
-  // before compiling. Linux has no such junction, so CI stays green while every
-  // Windows build breaks.
-  it('never folds a literal home directory into a traced path', async () => {
-    const source = await readFile(
-      path.join(process.cwd(), 'src', 'lib', 'command-centre', 'tools', 'catalogue.ts'),
-      'utf-8',
-    )
-    const code = source.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '')
-
-    expect(code).not.toMatch(/\bhomedir\s*\(/)
-    expect(code).not.toMatch(/from\s+['"]node:os['"]/)
-  })
+  // The home-directory tracing guard for this module now lives in
+  // src/lib/__tests__/host-home.test.ts, which covers every consumer.
 })

@@ -22,6 +22,9 @@ describe('wiki ingest helpers', () => {
     expect(resolveWikiIngestPath({}, '/Users/phill')).toBe(
       path.join('/Users/phill', '2nd Brain', 'Wiki'),
     )
+    // No override and no resolvable home: unresolved, NOT a relative
+    // '2nd Brain/Wiki' read from wherever the process happens to be running.
+    expect(resolveWikiIngestPath({}, '')).toBe('')
   })
 
   it('builds stable page ids and titles', () => {

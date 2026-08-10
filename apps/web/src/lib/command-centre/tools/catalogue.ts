@@ -16,6 +16,7 @@
 
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
+import { hostHome } from '@/lib/host-home'
 
 export type ToolSource = 'hermes' | 'mcp' | 'project' | 'codex' | 'claude-code' | 'local'
 
@@ -71,30 +72,12 @@ export const KNOWN_TOOLS: readonly CommandCentreTool[] = [
 ] as const
 
 /**
- * The host user's home directory, read from the environment rather than
- * `os.homedir()`.
+ * Candidate Hermes config locations (read-only). First existing wins.
  *
- * These are host-machine config files that must never be traced into a
- * deployment bundle, and `os.homedir()` defeats that: @vercel/nft folds it to a
- * literal at build time, then — because the candidates below are only partially
- * static — backtracks and emits a glob of the whole resolved directory. On
- * Windows that enumerates %LOCALAPPDATA%, which holds the self-referential
- * "Application Data" compatibility junction, and scandir fails EPERM. The
- * result is `next build` dying before it compiles, on Windows only; CI never
- * sees it because no such junction exists on Linux.
- *
- * Environment reads are opaque to the tracer, so the candidates stay untraced.
- * Opacity is the intent here, not a workaround.
- *
- * USERPROFILE is checked before HOME, unlike the other command-centre readers:
- * under Git Bash on Windows HOME is an MSYS path (`/c/Users/...`) that Node's
- * fs cannot resolve, while USERPROFILE is always the native one.
+ * The home directory comes from hostHome(), never os.homedir() — see
+ * src/lib/host-home.ts for why folding a literal home directory into these
+ * partially-static paths breaks `next build` on Windows.
  */
-function hostHome(): string {
-  return process.env.USERPROFILE?.trim() || process.env.HOME?.trim() || ''
-}
-
-/** Candidate Hermes config locations (read-only). First existing wins. */
 function hermesConfigCandidates(): string[] {
   const home = hostHome()
   const localAppData = process.env.LOCALAPPDATA?.trim() || (home ? path.join(home, 'AppData', 'Local') : '')

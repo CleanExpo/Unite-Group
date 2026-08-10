@@ -5,20 +5,30 @@
 
 import { readdir, readFile, stat } from 'node:fs/promises'
 import path from 'node:path'
-import { homedir } from 'node:os'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { hostHome } from '@/lib/host-home'
 
 export const SKIP_WIKI_FILES = new Set(['log.md', 'index.md', 'MEMORY.md'])
 
 export const MAX_WIKI_CONTENT_CHARS = 50_000
 
+/**
+ * The vault root: WIKI_PATH, then BRAIN1_WIKI_DIR, then `~/2nd Brain/Wiki`.
+ *
+ * `home` defaults to hostHome() rather than os.homedir() — see src/lib/host-home.ts
+ * for why folding a literal home directory in here breaks `next build` on Windows.
+ *
+ * Returns '' when there is no env override and no home to fall back to, so the
+ * caller fails on an unresolved path instead of silently reading a relative
+ * `2nd Brain/Wiki` next to the process's working directory.
+ */
 export function resolveWikiIngestPath(
   env: NodeJS.ProcessEnv = process.env,
-  home: string = homedir(),
+  home: string = hostHome(),
 ): string {
   const fromEnv = env.WIKI_PATH?.trim() || env.BRAIN1_WIKI_DIR?.trim()
   if (fromEnv) return fromEnv
-  return path.join(home, '2nd Brain', 'Wiki')
+  return home ? path.join(home, '2nd Brain', 'Wiki') : ''
 }
 
 export function pageIdFromRelative(relPath: string): string {
