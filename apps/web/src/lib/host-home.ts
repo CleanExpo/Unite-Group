@@ -29,14 +29,7 @@ export function hostHome(): string {
   return process.env.USERPROFILE?.trim() || process.env.HOME?.trim() || ''
 }
 
-/**
- * Modules that must never fold a literal home directory into a traced path.
- *
- * Guarded by src/lib/__tests__/host-home.test.ts. Add a module here when it
- * starts reading machine-local files via this helper.
- */
-export const HOME_OPAQUE_MODULES = [
-  'src/lib/host-home.ts',
-  'src/lib/command-centre/tools/catalogue.ts',
-  'src/lib/wiki/ingest.ts',
-] as const
+// The rule this helper exists to satisfy is enforced repo-wide, not per-module:
+// src/lib/__tests__/host-home.test.ts walks every production file under src/ and
+// fails on any os.homedir() call. There is no allowlist, and nothing is
+// grandfathered — the ban was installed when the count was already zero.
