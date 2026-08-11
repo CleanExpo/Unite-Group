@@ -72,24 +72,88 @@ export function toMsysPath(value) {
   return value.replace(/^([A-Za-z]):/, (_, drive) => `/${drive.toLowerCase()}`).replace(/\\/g, '/')
 }
 
+/** Rewrite a Windows path into WSL's mount form (`D:\a\b` → `/mnt/d/a/b`). */
+export function toWslPath(value) {
+  if (process.platform !== 'win32') return value
+  return value.replace(/^([A-Za-z]):/, (_, drive) => `/mnt/${drive.toLowerCase()}`).replace(/\\/g, '/')
+}
+
+/** Which of `required` the shell cannot resolve. */
+function missingIn(shell, required) {
+  if (required.length === 0) return []
+  // /usr/bin is the shell's own virtual root on Windows, not a filesystem path,
+  // so ask the shell rather than guessing where it was installed.
+  const probe = required.map((path) => `[ -x ${path} ] || echo ${path}`).join('; ')
+  const { status, stdout } = shell.probe(probe)
+  if (status !== 0) return required
+  return stdout.split('\n').map((line) => line.trim()).filter(Boolean)
+}
+
+function gitBashShell() {
+  const bash = findPosixBash()
+  if (!bash) return null
+  return {
+    label: bash,
+    toPath: toMsysPath,
+    probe: (script) => spawnSync(bash, ['-c', script], { encoding: 'utf8' }),
+    spawnArgs: (scriptPath, env) => [bash, [toMsysPath(scriptPath)], { env }],
+  }
+}
+
 /**
- * The absolute system binaries from `required` that this machine does not have.
+ * Every installed WSL distribution, as shell candidates.
+ *
+ * `wsl -l -q` writes UTF-16, so decode it as such rather than letting the
+ * ASCII happen to survive a UTF-8 read. The default distribution is not
+ * necessarily a usable one — docker-desktop is listed here and has no bash —
+ * so callers must probe each rather than trusting `wsl.exe --`.
+ */
+function wslShells() {
+  if (process.platform !== 'win32') return []
+  const listed = spawnSync('wsl.exe', ['-l', '-q'], { encoding: 'buffer' })
+  if (listed.status !== 0 || !listed.stdout) return []
+
+  return listed.stdout
+    .toString('utf16le')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((distro) => ({
+      label: `wsl:${distro}`,
+      toPath: toWslPath,
+      probe: (script) => spawnSync('wsl.exe', ['-d', distro, '--', 'bash', '-c', script], { encoding: 'utf8' }),
+      // WSL does not inherit the Windows environment, so hand the child exactly
+      // the environment the caller asked for — the same contract execFile's
+      // `env` option gives the Git Bash branch.
+      spawnArgs: (scriptPath, env) => [
+        'wsl.exe',
+        [
+          '-d', distro, '--', 'env', '-i',
+          ...Object.entries(env).map(([key, value]) => `${key}=${value}`),
+          'bash', toWslPath(scriptPath),
+        ],
+        {},
+      ],
+    }))
+}
+
+/**
+ * The first available shell that can resolve every path in `required`, or null.
  *
  * The scripts under test pin absolute paths like /usr/bin/git on purpose, so an
  * attacker-controlled PATH cannot substitute them. Git Bash ships git as
  * /mingw64/bin/git and has no /usr/bin/git at all, so the pinned call cannot
- * resolve. Pointing the script at a PATH-resolved git to make the test green
- * would delete the very control the test exists to prove — the suite reports
- * the gap and skips instead.
+ * resolve there. Rather than point the script at a PATH-resolved git — which
+ * would delete the very control the test exists to prove — fall through to a
+ * shell that has a real /usr/bin. On Windows that is WSL.
+ *
+ * Git Bash is preferred when it qualifies: it is far cheaper to start, and it
+ * reaches the Windows filesystem the fixtures are written to without a mount
+ * translation.
  */
-export function missingSystemBinaries(required) {
-  const bash = findPosixBash()
-  if (!bash) return required
-
-  // /usr/bin is the shell's own virtual root on Windows, not a filesystem path,
-  // so ask the shell rather than guessing where it was installed.
-  const probe = required.map((path) => `[ -x ${path} ] || echo ${path}`).join('; ')
-  const { status, stdout } = spawnSync(bash, ['-c', probe], { encoding: 'utf8' })
-  if (status !== 0) return required
-  return stdout.split('\n').map((line) => line.trim()).filter(Boolean)
+export function findSystemShell(required = []) {
+  for (const shell of [gitBashShell(), ...wslShells()].filter(Boolean)) {
+    if (missingIn(shell, required).length === 0) return shell
+  }
+  return null
 }
