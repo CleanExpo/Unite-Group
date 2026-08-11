@@ -12,7 +12,7 @@
 // the main page (the Vital Signs nav cards carry the ids).
 
 import { describe, expect, it } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const dir = join(process.cwd(), 'src/app/(founder)/founder/command-centre')
@@ -20,6 +20,27 @@ const pageSrc = readFileSync(join(dir, 'page.tsx'), 'utf8')
 const operationsSrc = readFileSync(join(dir, 'operations/page.tsx'), 'utf8')
 const paletteSrc = readFileSync(join(dir, 'CommandPalette.tsx'), 'utf8')
 const shellCss = readFileSync(join(dir, 'shell.module.css'), 'utf8')
+const fontsSrc = readFileSync(join(dir, 'fonts/index.ts'), 'utf8')
+
+// Every deck that carries the command-centre type register.
+const DECK_PAGES = [
+  'page.tsx',
+  'operations/page.tsx',
+  'portfolio/page.tsx',
+  'providers/page.tsx',
+  'knowledge/page.tsx',
+  'operator-gateway/page.tsx',
+  'hermes-control-panel/page.tsx',
+]
+const deckSrcs = DECK_PAGES.map((p) => readFileSync(join(dir, p), 'utf8'))
+const FONT_FILES = [
+  'chakra-petch-400.woff2',
+  'chakra-petch-500.woff2',
+  'chakra-petch-600.woff2',
+  'chakra-petch-700.woff2',
+  'syne-variable.woff2',
+  'jetbrains-mono-variable.woff2',
+]
 
 describe('command-centre shell slice 1 — reshell regression gate', () => {
   it('renders the HeroBand at the top of the page, sourced from the already-loaded actionQueue (no duplicate fetch)', () => {
@@ -46,10 +67,24 @@ describe('command-centre shell slice 1 — reshell regression gate', () => {
     expect(operationsSrc).toContain('<EvidenceStreamTile data={evidence} />')
   })
 
-  it('scopes Syne + JetBrains Mono to this route only (next/font/google, distinct variables)', () => {
-    expect(pageSrc).toContain("Syne, JetBrains_Mono } from 'next/font/google'")
-    expect(pageSrc).toContain("variable: '--font-syne'")
-    expect(pageSrc).toContain("variable: '--font-jbmono'")
+  it('scopes Syne + JetBrains Mono to this route only (self-hosted, distinct variables)', () => {
+    expect(pageSrc).toContain("import { chakra, syne, jbMono } from './fonts'")
+    expect(fontsSrc).toContain("variable: '--font-syne'")
+    expect(fontsSrc).toContain("variable: '--font-jbmono'")
+  })
+
+  // The decks must never reach fonts.gstatic.com during `next build` — that
+  // fetch is what broke the compile offline (NextFontError: Failed to fetch
+  // `JetBrains Mono`). Every face is loaded from the committed woff2 files.
+  it('loads every deck face from disk, with no next/font/google left in the route', () => {
+    expect(fontsSrc).toContain("import localFont from 'next/font/local'")
+    for (const src of deckSrcs) {
+      expect(src).not.toContain('next/font/google')
+    }
+    for (const file of FONT_FILES) {
+      expect(fontsSrc).toContain(file)
+      expect(existsSync(join(dir, 'fonts', file))).toBe(true)
+    }
   })
 
   it('gives every backdrop-filter a solid @supports fallback to --surface-2 (perf gate)', () => {

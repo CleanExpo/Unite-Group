@@ -9,7 +9,7 @@
 export const dynamic = 'force-dynamic'
 
 import Link from 'next/link'
-import { Chakra_Petch, Syne, JetBrains_Mono } from 'next/font/google'
+import { chakra, syne, jbMono } from '../fonts'
 import { summariseDashboard } from '@/lib/command-centre/dashboard-summary'
 import { loadDashboardHealthFromSupabase } from '@/lib/command-centre/dashboard-health-supabase'
 import { tailEvidence } from '@/lib/command-centre/evidence-stream'
@@ -36,25 +36,6 @@ import { DailyCrmDigestPanel } from '@/components/command-centre/digest/DailyCrm
 import { MeshFleetTile } from '@/components/command-centre/mesh-fleet/MeshFleetTile'
 import shell from '../shell.module.css'
 import styles from '../command-deck.module.css'
-
-const chakra = Chakra_Petch({
-  weight: ['400', '500', '600', '700'],
-  subsets: ['latin'],
-  variable: '--font-chakra',
-  display: 'swap',
-})
-const syne = Syne({
-  weight: ['400', '500', '600', '700', '800'],
-  subsets: ['latin'],
-  variable: '--font-syne',
-  display: 'swap',
-})
-const jbMono = JetBrains_Mono({
-  weight: ['400', '500', '600'],
-  subsets: ['latin'],
-  variable: '--font-jbmono',
-  display: 'swap',
-})
 
 export default async function OperationsDeckPage() {
   const [dashboard, evidence, actionQueue, blockedLanes, user] = await Promise.all([
