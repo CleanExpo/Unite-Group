@@ -78,13 +78,22 @@ export function buildWikiPageUpsert(
   }
 }
 
+/**
+ * A vault root we could not READ is not an empty vault. Nested directories stay
+ * best-effort (one unreadable subfolder must not fail a whole ingest), but a
+ * failure to read the ROOT is fatal: swallowing it yields zero files, which the
+ * caller reports as scanned: 0, failed: 0 — an apparently clean ingest of a
+ * vault that was never opened. A typoed WIKI_PATH, a missing default vault and a
+ * root permission failure all take this path.
+ */
 async function collectMarkdownFiles(root: string): Promise<string[]> {
   const out: string[] = []
-  async function walk(dir: string): Promise<void> {
+  async function walk(dir: string, isRoot = false): Promise<void> {
     let entries
     try {
       entries = await readdir(dir, { withFileTypes: true })
-    } catch {
+    } catch (err) {
+      if (isRoot) throw err
       return
     }
     for (const entry of entries) {
@@ -98,7 +107,7 @@ async function collectMarkdownFiles(root: string): Promise<string[]> {
       }
     }
   }
-  await walk(root)
+  await walk(root, true)
   return out
 }
 
