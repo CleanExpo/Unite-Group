@@ -6,10 +6,43 @@ import { dirname, join, resolve } from 'node:path'
 import { test } from 'node:test'
 import { promisify } from 'node:util'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { findSystemShell } from './helpers/posix-shell.mjs'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const WORKFLOWS = join(ROOT, '.github', 'workflows')
 const execFileAsync = promisify(execFile)
+
+// The interpreter is absolute on every platform: these tests hand the script a
+// PATH containing a fake `bash`, so a PATH-resolved one would run the
+// attacker's shim and quietly invert what the test proves.
+const SHELL = findSystemShell()
+
+// The dirty-checkout case additionally needs a real /usr/bin/git, which the
+// script pins so an attacker-controlled PATH cannot substitute git. Git Bash
+// has none, so that one resolves its own shell and lands on WSL here.
+const GIT_SHELL = findSystemShell(['/usr/bin/git'])
+
+// Reason strings, not booleans — node:test prints them beside the skip, so an
+// unrunnable guard can never be mistaken for a green one. And `false`, never
+// `null`: node:test runs the body for `skip: null` but still reports SKIP,
+// which would hide a genuine pass behind a skip marker.
+const NO_SHELL = SHELL ? false : 'no POSIX shell on this machine (set GIT_BASH to override)'
+const NO_GIT_SHELL = GIT_SHELL
+  ? false
+  : 'no shell here resolves /usr/bin/git — Git Bash ships git as /mingw64/bin/git, and no WSL distribution qualified'
+
+/** Run a committed .sh under `shell`, in that shell's own path dialect. */
+function runIn(shell, scriptPath, env) {
+  return execFileAsync(...shell.spawnArgs(scriptPath, env))
+}
+
+/** Run under the default shell (Git Bash on Windows, /bin/bash elsewhere). */
+function runScript(scriptPath, env) {
+  return runIn(SHELL, scriptPath, env)
+}
+
+/** Path in the default shell's dialect — for fixtures the script will read. */
+const toPath = (value) => (SHELL ? SHELL.toPath(value) : value)
 
 test('every root GitHub Action is pinned to an immutable commit or image digest', async () => {
   const files = (await readdir(WORKFLOWS)).filter((name) => /\.ya?ml$/i.test(name)).sort()
@@ -111,7 +144,7 @@ test('workspace launchers enforce Node 24 and verify the pinned Hermes installer
   assert.match(install, /npm install -g "pnpm@\$PNPM_VERSION"/)
 })
 
-test('a bad pinned Hermes digest cannot execute the downloaded installer', async (t) => {
+test('a bad pinned Hermes digest cannot execute the downloaded installer', { skip: NO_SHELL }, async (t) => {
   const root = await mkdtemp(join(tmpdir(), 'nexus-hermes-pin-'))
   t.after(() => rm(root, { recursive: true, force: true }))
   const bin = join(root, 'bin')
@@ -119,25 +152,23 @@ test('a bad pinned Hermes digest cannot execute the downloaded installer', async
   const curlMarker = join(root, 'curl-executed')
   const hashMarker = join(root, 'hash-executed')
   await mkdir(bin)
-  await writeFile(join(bin, 'curl'), `#!/bin/sh\nprintf executed > '${curlMarker}'\nexit 1\n`)
-  await writeFile(join(bin, 'shasum'), `#!/bin/sh\nprintf executed > '${hashMarker}'\nexit 1\n`)
-  await writeFile(join(bin, 'bash'), `#!/bin/sh\nprintf executed > '${bashMarker}'\n`)
+  await writeFile(join(bin, 'curl'), `#!/bin/sh\nprintf executed > '${toPath(curlMarker)}'\nexit 1\n`)
+  await writeFile(join(bin, 'shasum'), `#!/bin/sh\nprintf executed > '${toPath(hashMarker)}'\nexit 1\n`)
+  await writeFile(join(bin, 'bash'), `#!/bin/sh\nprintf executed > '${toPath(bashMarker)}'\n`)
   await chmod(join(bin, 'curl'), 0o755)
   await chmod(join(bin, 'shasum'), 0o755)
   await chmod(join(bin, 'bash'), 0o755)
 
   const script = join(ROOT, 'apps', 'workspace', 'scripts', 'install-pinned-hermes.sh')
   await assert.rejects(
-    execFileAsync('/bin/bash', [script], {
-      env: {
-        HOME: root,
-        PATH: `${bin}:/usr/bin:/bin`,
-        TMPDIR: root,
-        USER: 'tester',
-        SHELL: '/bin/bash',
-        TERM: 'dumb',
-        NEXUS_HERMES_INSTALLER_TEST_TAMPER: '1',
-      },
+    runScript(script, {
+      HOME: toPath(root),
+      PATH: `${toPath(bin)}:/usr/bin:/bin`,
+      TMPDIR: toPath(root),
+      USER: 'tester',
+      SHELL: '/bin/bash',
+      TERM: 'dumb',
+      NEXUS_HERMES_INSTALLER_TEST_TAMPER: '1',
     }),
     /integrity check failed/i,
   )
@@ -146,42 +177,44 @@ test('a bad pinned Hermes digest cannot execute the downloaded installer', async
   }
 })
 
-test('operator launcher rejects an invalid Node before starting the trusted entry', async (t) => {
+test('operator launcher rejects an invalid Node before starting the trusted entry', { skip: NO_SHELL }, async (t) => {
   const root = await mkdtemp(join(tmpdir(), 'nexus-operator-node-'))
   t.after(() => rm(root, { recursive: true, force: true }))
   const bin = join(root, 'bin')
+  const ranMarker = join(root, 'node-shim-ran')
   await mkdir(bin)
-  await writeFile(join(bin, 'node'), '#!/bin/sh\nexit 1\n')
+  await writeFile(join(bin, 'node'), `#!/bin/sh\nprintf ran > '${toPath(ranMarker)}'\nexit 1\n`)
   await chmod(join(bin, 'node'), 0o755)
 
   const script = join(ROOT, 'apps', 'workspace', 'start-operator.sh')
   await assert.rejects(
-    execFileAsync('/bin/bash', [script], { env: { HOME: root, PATH: `${bin}:/usr/bin:/bin` } }),
+    runScript(script, { HOME: toPath(root), PATH: `${toPath(bin)}:/usr/bin:/bin` }),
     /Node >=24\.14\.1 <25 is required/,
   )
+  // A machine with no node at all produces the same message, which would make
+  // the rejection above vacuous. Prove the launcher reached and ran the shim.
+  assert.equal(await readFile(ranMarker, 'utf8'), 'ran')
 })
 
-test('operator launcher scrubs unrelated ambient secrets', async (t) => {
+test('operator launcher scrubs unrelated ambient secrets', { skip: NO_SHELL }, async (t) => {
   const root = await mkdtemp(join(tmpdir(), 'nexus-operator-env-'))
   t.after(() => rm(root, { recursive: true, force: true }))
   const bin = join(root, 'bin')
   const marker = join(root, 'child-env')
   const fakeEnvMarker = join(root, 'fake-env')
   await mkdir(bin)
-  await writeFile(join(bin, 'node'), `#!/bin/sh\nif [ "$1" = '-e' ]; then exec '${process.execPath}' "$@"; fi\nprintf 'arg=%s\\n' "$1" > '${marker}'\n/usr/bin/env >> '${marker}'\n`)
-  await writeFile(join(bin, 'env'), `#!/bin/sh\nprintf executed > '${fakeEnvMarker}'\nexit 1\n`)
+  await writeFile(join(bin, 'node'), `#!/bin/sh\nif [ "$1" = '-e' ]; then exec '${toPath(process.execPath)}' "$@"; fi\nprintf 'arg=%s\\n' "$1" > '${toPath(marker)}'\n/usr/bin/env >> '${toPath(marker)}'\n`)
+  await writeFile(join(bin, 'env'), `#!/bin/sh\nprintf executed > '${toPath(fakeEnvMarker)}'\nexit 1\n`)
   await chmod(join(bin, 'node'), 0o755)
   await chmod(join(bin, 'env'), 0o755)
 
   const script = join(ROOT, 'apps', 'workspace', 'start-operator.sh')
-  await execFileAsync('/bin/bash', [script], {
-    env: {
-      HOME: root,
-      PATH: `${bin}:/usr/bin:/bin`,
-      SHELL: '/bin/bash',
-      TMPDIR: root,
-      TOP_SECRET_SENTINEL: 'must-not-cross-boundary',
-    },
+  await runScript(script, {
+    HOME: toPath(root),
+    PATH: `${toPath(bin)}:/usr/bin:/bin`,
+    SHELL: '/bin/bash',
+    TMPDIR: toPath(root),
+    TOP_SECRET_SENTINEL: 'must-not-cross-boundary',
   })
   const childEnv = await readFile(marker, 'utf8')
   assert.doesNotMatch(childEnv, /TOP_SECRET_SENTINEL/)
@@ -190,7 +223,7 @@ test('operator launcher scrubs unrelated ambient secrets', async (t) => {
   await assert.rejects(readFile(fakeEnvMarker), { code: 'ENOENT' })
 })
 
-test('operator launcher resolves a symlink before exposing the gateway key', async (t) => {
+test('operator launcher resolves a symlink before exposing the gateway key', { skip: NO_SHELL }, async (t) => {
   const root = await mkdtemp(join(tmpdir(), 'nexus-operator-symlink-'))
   t.after(() => rm(root, { recursive: true, force: true }))
   const bin = join(root, 'bin')
@@ -205,16 +238,21 @@ test('operator launcher resolves a symlink before exposing the gateway key', asy
   await symlink(realScript, join(attacker, 'start-operator.sh'))
   await writeFile(
     join(bin, 'node'),
-    `#!/bin/sh\nif [ "$1" = '-e' ]; then exec '${process.execPath}' "$@"; fi\nprintf 'cwd=%s\\narg=%s\\n' "$PWD" "$1" > '${marker}'\n/usr/bin/env >> '${marker}'\n`,
+    `#!/bin/sh\nif [ "$1" = '-e' ]; then exec '${toPath(process.execPath)}' "$@"; fi\nprintf 'cwd=%s\\narg=%s\\n' "$PWD" "$1" > '${toPath(marker)}'\n/usr/bin/env >> '${toPath(marker)}'\n`,
   )
   await chmod(join(bin, 'node'), 0o755)
 
-  await execFileAsync('/bin/bash', [join(attacker, 'start-operator.sh')], {
-    env: { HOME: root, PATH: `${bin}:/usr/bin:/bin`, SHELL: '/bin/bash', TMPDIR: root },
+  await runScript(join(attacker, 'start-operator.sh'), {
+    HOME: toPath(root),
+    PATH: `${toPath(bin)}:/usr/bin:/bin`,
+    SHELL: '/bin/bash',
+    TMPDIR: toPath(root),
   })
+  // The launcher reports paths in the shell's dialect, so compare in it too.
   const launch = await readFile(marker, 'utf8')
-  assert.match(launch, new RegExp(`cwd=${expectedDir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`))
-  assert.match(launch, new RegExp(`arg=${join(expectedDir, 'operator-entry.js').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`))
+  const escape = (value) => toPath(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  assert.match(launch, new RegExp(`cwd=${escape(expectedDir)}`))
+  assert.match(launch, new RegExp(`arg=${escape(join(expectedDir, 'operator-entry.js'))}`))
 })
 
 test('operator environment reads the gateway key inside Node without logging file contents', async (t) => {
@@ -265,32 +303,71 @@ test('workspace gateway tokens live outside process.env before server modules lo
   )
 })
 
-test('workspace installer resolves its own symlink before invoking the pinned helper', async (t) => {
+test('workspace installer resolves its own symlink before invoking the pinned helper', { skip: NO_SHELL }, async (t) => {
   const root = await mkdtemp(join(tmpdir(), 'nexus-workspace-install-symlink-'))
   t.after(() => rm(root, { recursive: true, force: true }))
   const attacker = join(root, 'attacker')
+  const bin = join(root, 'bin')
   const marker = join(root, 'attacker-helper')
   const realScript = join(ROOT, 'apps', 'workspace', 'install.sh')
   await mkdir(join(attacker, 'scripts'), { recursive: true })
+  await mkdir(bin)
   await symlink(realScript, join(attacker, 'install.sh'))
-  await writeFile(join(attacker, 'scripts', 'install-pinned-hermes.sh'), `#!/bin/sh\nprintf ran > '${marker}'\nexit 42\n`)
+  await writeFile(join(attacker, 'scripts', 'install-pinned-hermes.sh'), `#!/bin/sh\nprintf ran > '${toPath(marker)}'\nexit 42\n`)
   await chmod(join(attacker, 'scripts', 'install-pinned-hermes.sh'), 0o755)
 
-  await assert.rejects(
-    execFileAsync('/bin/bash', [join(attacker, 'install.sh')], {
-      env: {
-        ...process.env,
-        HOME: root,
-        INSTALL_DIR: join(root, 'workspace'),
-        NEXUS_HERMES_INSTALLER_TEST_TAMPER: '1',
-      },
-    }),
-    /integrity check failed/i,
-  )
-  await assert.rejects(readFile(marker), { code: 'ENOENT' })
+  // install.sh's preflight runs before the symlink resolution this case exists
+  // to prove, and it gates on whatever node/git/pnpm the PATH resolves first.
+  // Inheriting the ambient PATH made the gate depend on the machine's package
+  // manager and on registry reachability: on a host whose pnpm is not exactly
+  // 9.15.0 the preflight falls into `corepack prepare`, then
+  // `npm install -g pnpm@9.15.0`, and spends over a minute failing to reach the
+  // registry without ever reaching the assertion below. Satisfy every preflight
+  // from a fixture bin instead, so the gate is hermetic and offline.
+  const bootstrap = { corepack: join(root, 'corepack-ran'), npm: join(root, 'npm-ran'), curl: join(root, 'curl-ran') }
+  await writeFile(join(bin, 'node'), `#!/bin/sh\nexec '${toPath(process.execPath)}' "$@"\n`)
+  await writeFile(join(bin, 'pnpm'), '#!/bin/sh\n[ "$1" = --version ] && { echo 9.15.0; exit 0; }\nexit 1\n')
+  await writeFile(join(bin, 'git'), '#!/bin/sh\n[ "$1" = --version ] && { echo "git version 2.99.0"; exit 0; }\nexit 1\n')
+  // Not stubs but tripwires: the preflight reaches for these three only when it
+  // is about to bootstrap or download, so a recorded invocation is the
+  // hermeticity failure itself, asserted below.
+  for (const [name, path] of Object.entries(bootstrap)) {
+    await writeFile(join(bin, name), `#!/bin/sh\nprintf '%s ' "$@" >> '${toPath(path)}'\nexit 1\n`)
+  }
+  for (const name of ['node', 'pnpm', 'git', ...Object.keys(bootstrap)]) {
+    await chmod(join(bin, name), 0o755)
+  }
+
+  const failure = await runScript(join(attacker, 'install.sh'), {
+    PATH: `${toPath(bin)}:/usr/bin:/bin`,
+    HOME: toPath(root),
+    TMPDIR: toPath(root),
+    USER: 'tester',
+    SHELL: '/bin/bash',
+    TERM: 'dumb',
+    INSTALL_DIR: toPath(join(root, 'workspace')),
+    NEXUS_HERMES_INSTALLER_TEST_TAMPER: '1',
+  }).then(() => null, (error) => error)
+
+  // Read the markers before the message. Both of the ways this gate can be
+  // lost — a preflight that bootstraps, or a symlink that redirects the helper
+  // — stop short of the pinned payload and would otherwise surface only as an
+  // unrelated mismatch on the final assertion.
+  for (const [name, path] of Object.entries(bootstrap)) {
+    await assert.rejects(readFile(path), { code: 'ENOENT' }, `${name} ran: the installer bootstrapped instead of reaching the pinned helper`)
+  }
+  await assert.rejects(readFile(marker), { code: 'ENOENT' }, 'the attacker-controlled helper ran: install.sh trusted its symlink directory')
+  assert.ok(failure, 'the installer must fail closed on a tampered pinned payload')
+  assert.match(String(failure), /integrity check failed/i)
 })
 
-test('pinned Hermes installer rejects a dirty existing checkout before download', async (t) => {
+test('pinned Hermes installer rejects a dirty existing checkout before download', {
+  skip: NO_GIT_SHELL,
+}, async (t) => {
+  // GIT_SHELL, not the default one: this is the only case that reaches the
+  // pinned /usr/bin/git, so it runs wherever that resolves and speaks that
+  // shell's path dialect throughout.
+  const p = GIT_SHELL.toPath
   const root = await mkdtemp(join(tmpdir(), 'nexus-hermes-dirty-'))
   t.after(() => rm(root, { recursive: true, force: true }))
   const bin = join(root, 'bin')
@@ -300,13 +377,18 @@ test('pinned Hermes installer rejects a dirty existing checkout before download'
   await mkdir(checkout, { recursive: true })
   await execFileAsync('git', ['init', '--quiet'], { cwd: checkout })
   await writeFile(join(checkout, 'unexpected.py'), 'print("modified")\n')
-  await writeFile(join(bin, 'curl'), `#!/bin/sh\nprintf downloaded > '${curlMarker}'\nexit 1\n`)
+  await writeFile(join(bin, 'curl'), `#!/bin/sh\nprintf downloaded > '${p(curlMarker)}'\nexit 1\n`)
   await chmod(join(bin, 'curl'), 0o755)
 
   const script = join(ROOT, 'apps', 'workspace', 'scripts', 'install-pinned-hermes.sh')
   await assert.rejects(
-    execFileAsync('/bin/bash', [script], {
-      env: { HOME: root, PATH: `${bin}:/usr/bin:/bin`, TMPDIR: root, USER: 'tester', SHELL: '/bin/bash', TERM: 'dumb' },
+    runIn(GIT_SHELL, script, {
+      HOME: p(root),
+      PATH: `${p(bin)}:/usr/bin:/bin`,
+      TMPDIR: p(root),
+      USER: 'tester',
+      SHELL: '/bin/bash',
+      TERM: 'dumb',
     }),
     /dirty existing checkout/i,
   )

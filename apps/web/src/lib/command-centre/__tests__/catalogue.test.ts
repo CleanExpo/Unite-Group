@@ -75,4 +75,7 @@ describe('command-centre tool catalogue', () => {
     expect(names).not.toContain('command')
     expect(names).not.toContain('port')
   })
+
+  // The home-directory tracing guard for this module now lives in
+  // src/lib/__tests__/host-home.test.ts, which covers every consumer.
 })

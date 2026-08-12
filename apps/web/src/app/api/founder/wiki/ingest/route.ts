@@ -50,10 +50,23 @@ export async function POST(request: Request) {
     )
   }
 
-  const wikiRoot = resolveWikiIngestPath()
   const dryRun = parsed.data.dryRun ?? false
 
   try {
+    // A vault we could not LOCATE is not an empty vault. resolveWikiIngestPath
+    // returns '' when neither WIKI_PATH nor BRAIN1_WIKI_DIR is set and the host
+    // home is unreadable; readdir('') then rejects, collectMarkdownFiles
+    // swallows that with `catch { return }`, and `ok: result.failed === 0`
+    // below would report a clean ingest of zero pages. Resolution therefore
+    // happens inside this try and an unresolved root throws into the sanitised
+    // 500 path rather than being reported as success.
+    const wikiRoot = resolveWikiIngestPath()
+    if (!wikiRoot) {
+      throw new Error(
+        'Wiki vault root is unresolved — set WIKI_PATH or BRAIN1_WIKI_DIR, or make the host home readable',
+      )
+    }
+
     const supabase = dryRun
       ? ({ from: () => ({ upsert: async () => ({ error: null }) }) } as never)
       : createServiceClient()

@@ -6,7 +6,9 @@
 
 export const dynamic = 'force-dynamic'
 
-import { Chakra_Petch } from 'next/font/google'
+// Deck typeface — same face + variable the command-centre deck loads, so the
+// command-deck.module.css `--font-chakra` stack resolves on this sub-route too.
+import { chakra } from '../fonts'
 import { getUser, createClient } from '@/lib/supabase/server'
 import { getCommandCentreOperatorSurfaceView } from '@/lib/operator-gateway/command-centre'
 import {
@@ -37,15 +39,6 @@ import {
 } from './_components'
 import { DeckDetails, DeckMoreLine, DECK_LIST_CAP } from '@/components/command-centre/DeckDetails'
 import deckStyles from '../command-deck.module.css'
-
-// Deck typeface — same face + variable the command-centre deck loads, so the
-// command-deck.module.css `--font-chakra` stack resolves on this sub-route too.
-const chakra = Chakra_Petch({
-  weight: ['400', '500', '600', '700'],
-  subsets: ['latin'],
-  variable: '--font-chakra',
-  display: 'swap',
-})
 
 const wrap: React.CSSProperties = {
   maxWidth: 1180,

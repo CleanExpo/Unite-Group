@@ -10,7 +10,7 @@
 export const dynamic = 'force-dynamic'
 
 import Link from 'next/link'
-import { Chakra_Petch, Syne, JetBrains_Mono } from 'next/font/google'
+import { chakra, syne, jbMono } from '../fonts'
 import { getProjects, type CommandCentreProject } from '@/lib/command-centre/registry'
 import { loadProjectIntegrationStatuses } from '@/lib/command-centre/project-integrations'
 import { getUser } from '@/lib/supabase/server'
@@ -34,25 +34,6 @@ import { ProjectIntegrationWorkPacketControl } from '../ProjectIntegrationWorkPa
 import { swatchFor, ledState, connectionLedState, hostOf } from '../deck-visual-helpers'
 import shell from '../shell.module.css'
 import styles from '../command-deck.module.css'
-
-const chakra = Chakra_Petch({
-  weight: ['400', '500', '600', '700'],
-  subsets: ['latin'],
-  variable: '--font-chakra',
-  display: 'swap',
-})
-const syne = Syne({
-  weight: ['400', '500', '600', '700', '800'],
-  subsets: ['latin'],
-  variable: '--font-syne',
-  display: 'swap',
-})
-const jbMono = JetBrains_Mono({
-  weight: ['400', '500', '600'],
-  subsets: ['latin'],
-  variable: '--font-jbmono',
-  display: 'swap',
-})
 
 export default async function PortfolioDeckPage() {
   const projects = await getProjects()

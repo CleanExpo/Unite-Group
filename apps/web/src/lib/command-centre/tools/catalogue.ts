@@ -16,7 +16,7 @@
 
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
-import os from 'node:os'
+import { hostHome } from '@/lib/host-home'
 
 export type ToolSource = 'hermes' | 'mcp' | 'project' | 'codex' | 'claude-code' | 'local'
 
@@ -71,13 +71,20 @@ export const KNOWN_TOOLS: readonly CommandCentreTool[] = [
   { tool_key: 'claude-code', source: 'claude-code', description: 'Claude Code — agentic code execution surface.', risk_class: 'write-local', approval_required: true, invocable: false },
 ] as const
 
-/** Candidate Hermes config locations (read-only). First existing wins. */
+/**
+ * Candidate Hermes config locations (read-only). First existing wins.
+ *
+ * The home directory comes from hostHome(), never os.homedir() — see
+ * src/lib/host-home.ts for why folding a literal home directory into these
+ * partially-static paths breaks `next build` on Windows.
+ */
 function hermesConfigCandidates(): string[] {
-  const localAppData = process.env.LOCALAPPDATA ?? path.join(os.homedir(), 'AppData', 'Local')
+  const home = hostHome()
+  const localAppData = process.env.LOCALAPPDATA?.trim() || (home ? path.join(home, 'AppData', 'Local') : '')
   return [
     process.env.HERMES_CONFIG?.trim() || '',
-    path.join(localAppData, 'hermes', 'config.yaml'),
-    path.join(os.homedir(), '.hermes', 'config.yaml'),
+    localAppData ? path.join(localAppData, 'hermes', 'config.yaml') : '',
+    home ? path.join(home, '.hermes', 'config.yaml') : '',
   ].filter(Boolean)
 }
 

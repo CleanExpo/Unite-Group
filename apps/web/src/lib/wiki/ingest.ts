@@ -5,20 +5,30 @@
 
 import { readdir, readFile, stat } from 'node:fs/promises'
 import path from 'node:path'
-import { homedir } from 'node:os'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { hostHome } from '@/lib/host-home'
 
 export const SKIP_WIKI_FILES = new Set(['log.md', 'index.md', 'MEMORY.md'])
 
 export const MAX_WIKI_CONTENT_CHARS = 50_000
 
+/**
+ * The vault root: WIKI_PATH, then BRAIN1_WIKI_DIR, then `~/2nd Brain/Wiki`.
+ *
+ * `home` defaults to hostHome() rather than os.homedir() — see src/lib/host-home.ts
+ * for why folding a literal home directory in here breaks `next build` on Windows.
+ *
+ * Returns '' when there is no env override and no home to fall back to, so the
+ * caller fails on an unresolved path instead of silently reading a relative
+ * `2nd Brain/Wiki` next to the process's working directory.
+ */
 export function resolveWikiIngestPath(
   env: NodeJS.ProcessEnv = process.env,
-  home: string = homedir(),
+  home: string = hostHome(),
 ): string {
   const fromEnv = env.WIKI_PATH?.trim() || env.BRAIN1_WIKI_DIR?.trim()
   if (fromEnv) return fromEnv
-  return path.join(home, '2nd Brain', 'Wiki')
+  return home ? path.join(home, '2nd Brain', 'Wiki') : ''
 }
 
 export function pageIdFromRelative(relPath: string): string {
@@ -68,13 +78,22 @@ export function buildWikiPageUpsert(
   }
 }
 
+/**
+ * A vault root we could not READ is not an empty vault. Nested directories stay
+ * best-effort (one unreadable subfolder must not fail a whole ingest), but a
+ * failure to read the ROOT is fatal: swallowing it yields zero files, which the
+ * caller reports as scanned: 0, failed: 0 — an apparently clean ingest of a
+ * vault that was never opened. A typoed WIKI_PATH, a missing default vault and a
+ * root permission failure all take this path.
+ */
 async function collectMarkdownFiles(root: string): Promise<string[]> {
   const out: string[] = []
-  async function walk(dir: string): Promise<void> {
+  async function walk(dir: string, isRoot = false): Promise<void> {
     let entries
     try {
       entries = await readdir(dir, { withFileTypes: true })
-    } catch {
+    } catch (err) {
+      if (isRoot) throw err
       return
     }
     for (const entry of entries) {
@@ -88,7 +107,7 @@ async function collectMarkdownFiles(root: string): Promise<string[]> {
       }
     }
   }
-  await walk(root)
+  await walk(root, true)
   return out
 }
 

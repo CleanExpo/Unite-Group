@@ -13,7 +13,7 @@
 export const dynamic = 'force-dynamic'
 
 import Link from 'next/link'
-import { Chakra_Petch, Syne, JetBrains_Mono } from 'next/font/google'
+import { chakra, syne, jbMono } from './fonts'
 import { getProjects } from '@/lib/command-centre/registry'
 import { getToolCatalogue } from '@/lib/command-centre/tools/catalogue'
 import { loadProjectIntegrationStatuses } from '@/lib/command-centre/project-integrations'
@@ -34,29 +34,6 @@ import { BUSINESSES } from '@/lib/businesses'
 import { loadPipelineOpportunities } from '@/lib/command-centre/pipeline-opportunities'
 import { getUser } from '@/lib/supabase/server'
 import styles from './command-deck.module.css'
-
-const chakra = Chakra_Petch({
-  weight: ['400', '500', '600', '700'],
-  subsets: ['latin'],
-  variable: '--font-chakra',
-  display: 'swap',
-})
-
-// UNI-2339 slice 1 — canvas register typography (Syne display + JetBrains
-// Mono data/KPIs), scoped to this route via CSS variables consumed only by
-// shell.module.css.
-const syne = Syne({
-  weight: ['400', '500', '600', '700', '800'],
-  subsets: ['latin'],
-  variable: '--font-syne',
-  display: 'swap',
-})
-const jbMono = JetBrains_Mono({
-  weight: ['400', '500', '600'],
-  subsets: ['latin'],
-  variable: '--font-jbmono',
-  display: 'swap',
-})
 
 // The four relocated decks (UNI-2378). Rendered as the compact deck nav next
 // to the status strip AND echoed by the Vital Signs cards below.
