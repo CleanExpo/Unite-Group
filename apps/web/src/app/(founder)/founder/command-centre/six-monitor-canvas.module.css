@@ -17,7 +17,8 @@
 .sidebar { display:flex; flex-direction:column; gap:.25rem; padding:.55rem; border-right:1px solid var(--line); }
 .sideTitle { margin-bottom:.45rem; color:#526d8e; font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; font-weight:800; }
 .sidebar a { color:var(--ink); text-decoration:none; font-size:.8rem; padding:.5rem .55rem; border-radius:7px; }
-.sidebar a:hover, .sidebar a:focus-visible { background:rgba(82,109,142,.12); outline:2px solid #466e9a; outline-offset:2px; }
+.sidebarButton { color:var(--ink); text-decoration:none; font:inherit; font-size:.8rem; text-align:left; padding:.5rem .55rem; border:0; border-radius:7px; background:transparent; cursor:pointer; }
+.sidebar a:hover, .sidebar a:focus-visible, .sidebarButton:hover, .sidebarButton:focus-visible { background:rgba(82,109,142,.12); outline:2px solid #466e9a; outline-offset:2px; }
 .matrix { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.85rem; align-items:stretch; }
 .monitor, .commandMatrix { min-height:12rem; display:flex; flex-direction:column; gap:.55rem; padding:1rem; border-radius:34px 34px 16px 16px; background:var(--panel); border:2px solid var(--accent); box-shadow:0 8px 22px rgba(29,34,39,.12), inset 0 1px 0 rgba(255,255,255,.8); }
 .monitor { border-bottom-width:6px; }

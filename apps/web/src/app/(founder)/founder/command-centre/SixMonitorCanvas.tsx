@@ -1,3 +1,5 @@
+'use client'
+
 import Link from 'next/link'
 import { MissionStatusBand } from './MissionStatusBand'
 import styles from './six-monitor-canvas.module.css'
@@ -25,14 +27,12 @@ export function SixMonitorCanvas({
     <section className={styles.canvas} aria-label="Mission Control canvas" data-testid="six-monitor-canvas">
       <aside className={styles.sidebar} aria-label="Command Centre tools">
         <span className={styles.sideTitle}>Command</span>
-        <a href="#command-brief">Search</a>
-        <Link href="/founder/command-centre/operations">Agents</Link>
-        <a href="#command-brief">Command Chat</a>
-        <Link href="/founder/command-centre/operations">Approvals</Link>
-        <Link href="/founder/command-centre/operations">PRs</Link>
-        <Link href="/founder/command-centre/providers">Finance</Link>
-        <Link href="/founder/command-centre/knowledge">Media</Link>
+        <button type="button" className={styles.sidebarButton} onClick={openCommandPalette}>Search</button>
+        <Link href="/founder/command-centre/operations">Agents & approvals</Link>
+        <Link href="/founder/command-centre/operations">Delivery & proof</Link>
+        <Link href="/founder/command-centre/providers">Provider accounts</Link>
         <Link href="/founder/command-centre/knowledge">Knowledge</Link>
+        <a href="#command-brief">Command brief</a>
       </aside>
 
       <div className={styles.matrix}>
@@ -61,6 +61,10 @@ export function SixMonitorCanvas({
       <div className={styles.fleetBand}><MissionStatusBand /></div>
     </section>
   )
+}
+
+function openCommandPalette() {
+  window.dispatchEvent(new Event('command-centre:open-palette'))
 }
 
 function Monitor({ colour, eyebrow, title, href, children }: {

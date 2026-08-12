@@ -110,6 +110,12 @@ export function CommandPalette({
   }, [open, close])
 
   useEffect(() => {
+    const openPalette = () => setOpen(true)
+    window.addEventListener('command-centre:open-palette', openPalette)
+    return () => window.removeEventListener('command-centre:open-palette', openPalette)
+  }, [])
+
+  useEffect(() => {
     if (open) requestAnimationFrame(() => inputRef.current?.focus())
   }, [open])
 
