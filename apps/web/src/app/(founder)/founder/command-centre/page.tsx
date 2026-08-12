@@ -36,12 +36,15 @@ import { getUser } from '@/lib/supabase/server'
 import styles from './command-deck.module.css'
 
 // The four relocated decks (UNI-2378). Rendered as the compact deck nav next
-// to the status strip AND echoed by the Vital Signs cards below.
+// to the status strip AND echoed by the Vital Signs cards below. Canvas (the
+// six-zone local-host canvas) joins the nav only — it has no Vital Signs card,
+// because its one live reading is local-host state this page never loads.
 const DECK_ROUTES = [
   { href: '/founder/command-centre/operations', label: 'Operations' },
   { href: '/founder/command-centre/portfolio', label: 'Portfolio' },
   { href: '/founder/command-centre/providers', label: 'Providers' },
   { href: '/founder/command-centre/knowledge', label: 'Knowledge' },
+  { href: '/founder/command-centre/six-zone', label: 'Canvas' },
 ] as const
 
 export default async function CommandDeckPage() {
