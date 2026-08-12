@@ -12,7 +12,7 @@
 // the main page (the Vital Signs nav cards carry the ids).
 
 import { describe, expect, it } from 'vitest'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const dir = join(process.cwd(), 'src/app/(founder)/founder/command-centre')
@@ -22,16 +22,14 @@ const paletteSrc = readFileSync(join(dir, 'CommandPalette.tsx'), 'utf8')
 const shellCss = readFileSync(join(dir, 'shell.module.css'), 'utf8')
 const fontsSrc = readFileSync(join(dir, 'fonts/index.ts'), 'utf8')
 
-// Every deck that carries the command-centre type register.
-const DECK_PAGES = [
-  'page.tsx',
-  'operations/page.tsx',
-  'portfolio/page.tsx',
-  'providers/page.tsx',
-  'knowledge/page.tsx',
-  'operator-gateway/page.tsx',
-  'hermes-control-panel/page.tsx',
-]
+// Every deck that carries the command-centre type register. Discovered, not
+// enumerated: a hardcoded list stops policing the moment an eighth deck is
+// added, and a new deck is precisely where a next/font/google import would
+// reappear and break the offline build again.
+const DECK_PAGES = readdirSync(dir, { recursive: true, encoding: 'utf8' })
+  .map((p) => p.replaceAll('\\', '/'))
+  .filter((p) => p === 'page.tsx' || p.endsWith('/page.tsx'))
+  .sort()
 const deckSrcs = DECK_PAGES.map((p) => readFileSync(join(dir, p), 'utf8'))
 const FONT_FILES = [
   'chakra-petch-400.woff2',
@@ -78,6 +76,9 @@ describe('command-centre shell slice 1 — reshell regression gate', () => {
   // `JetBrains Mono`). Every face is loaded from the committed woff2 files.
   it('loads every deck face from disk, with no next/font/google left in the route', () => {
     expect(fontsSrc).toContain("import localFont from 'next/font/local'")
+    // Floor the population. A discovery that resolves to nothing would satisfy
+    // the loop below while policing zero decks; seven exist today.
+    expect(DECK_PAGES.length).toBeGreaterThanOrEqual(7)
     for (const src of deckSrcs) {
       expect(src).not.toContain('next/font/google')
     }
