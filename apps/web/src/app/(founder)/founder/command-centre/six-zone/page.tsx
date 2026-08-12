@@ -8,6 +8,7 @@
 export const dynamic = 'force-dynamic'
 
 import Link from 'next/link'
+import { chakra, syne, jbMono } from '../fonts'
 import { DeckThemeShell } from '../DeckThemeShell'
 import { SixZoneCanvas } from './SixZoneCanvas'
 import shell from '../shell.module.css'
@@ -21,7 +22,9 @@ export default async function SixZoneCanvasPage() {
   const actionIndex = findColumnIndex(queue.headers, 'action')
   const nextAction = actionIndex >= 0 ? (queue.rows[0]?.[actionIndex] ?? null) : null
   return (
-    <DeckThemeShell className={styles.deck}>
+    // Font variables match every sibling deck; without them --font-jbmono /
+    // --font-chakra / --font-syne are unset here and the deck chrome falls back.
+    <DeckThemeShell className={`${chakra.variable} ${syne.variable} ${jbMono.variable} ${styles.deck}`}>
       <Link href="/founder/command-centre" className={styles.plink}>
         &larr; Command deck
       </Link>

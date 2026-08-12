@@ -54,6 +54,33 @@ describe('SixZoneCanvas', () => {
     expect(screen.getByTestId('six-zone-link-operations')).toHaveTextContent('next: Review receipt')
   })
 
+  it('never badges a disabled local adapter as live', async () => {
+    // The adapter returns configured:false with four 'unknown' signals when
+    // MISSION_CONTROL_LOCAL_HOST_ADAPTER is unset. That is real data about an
+    // UNAVAILABLE source — it must never render as a live reading.
+    mockStatus({
+      configured: false,
+      observedAt: new Date().toISOString(),
+      host: null,
+      signals: [
+        { id: 'hermes', label: 'Hermes', state: 'unknown', detail: 'local adapter not enabled' },
+        { id: 'ollama', label: 'Ollama / Gemma', state: 'unknown', detail: 'local adapter not enabled' },
+        { id: 'storage', label: 'External storage', state: 'unknown', detail: 'local adapter not enabled' },
+        { id: 'mesh_heartbeat', label: 'Mesh heartbeat', state: 'unknown', detail: 'local adapter not enabled' },
+      ],
+    })
+
+    render(<SixZoneCanvas work={{ queued: 0, blocked: 0, source: 'Linear', nextAction: null, error: false }} />)
+
+    await waitFor(() => expect(screen.getByTestId('six-zone-host-name')).toHaveTextContent('host unknown'))
+    const badge = screen.getByTestId('six-zone-host').querySelector('[data-source-mode]')
+    expect(badge).toHaveAttribute('data-source-mode', 'degraded')
+    expect(badge).not.toHaveAttribute('data-source-mode', 'live')
+    for (const id of ['hermes', 'ollama', 'storage', 'mesh_heartbeat']) {
+      expect(screen.getByTestId(`six-zone-signal-${id}`)).toHaveAttribute('data-state', 'unknown')
+    }
+  })
+
   it('falls back to unknown signals and no observation when the status read fails', async () => {
     mockStatus(null, { reject: true })
 
