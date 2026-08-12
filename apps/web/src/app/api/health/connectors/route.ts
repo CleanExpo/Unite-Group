@@ -5,6 +5,7 @@
 
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
+import { hasPrivateAccess } from '@/lib/auth/private-access'
 import { isXeroConfigured } from '@/lib/integrations/xero'
 import { isGoogleConfigured } from '@/lib/integrations/google-oauth'
 
@@ -29,6 +30,24 @@ export async function GET() {
   const user = await getUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+  }
+
+  // This route is EXEMPT from the middleware's founder gate, because
+  // '/api/health' is in PUBLIC_PATHS and this is a segment-child of it. So the
+  // "Founder-only" promise in the header above was enforced by nothing:
+  // getUser() proves only that SOMEONE is logged in, and the response maps every
+  // integration and env var the estate has configured.
+  //
+  // Restore exactly what proxy.ts:145 would have applied — hasPrivateAccess, and
+  // a 403 for an /api/ path. Not the stricter credentials/seed variant, which
+  // also demands isPrivateAccessConfigured(): that fails closed in local dev
+  // too, and this route is a read, not a credential write. hasPrivateAccess
+  // already fails CLOSED in production when the allow-list is unset.
+  if (!hasPrivateAccess({ id: user.id, email: user.email })) {
+    return NextResponse.json(
+      { error: 'Forbidden', message: 'This Unite-Hub CRM is private.' },
+      { status: 403 },
+    )
   }
 
   const connectors: ConnectorStatus[] = []
