@@ -18,7 +18,7 @@
 //   - genuine static assets must NOT match, or the login page loses its own
 //     CSS/images and every visitor is bounced on the assets themselves.
 import { describe, it, expect } from 'vitest'
-import { config } from '../proxy'
+import { config, isPublicPath } from '../proxy'
 
 /**
  * Next compiles each matcher string into a path regex. We anchor it the same
@@ -84,11 +84,62 @@ describe('proxy matcher', () => {
     })
   })
 
+  // Matching is only half the gate. A path the matcher RUNS on is still waved
+  // through if isPublicPath() exempts it, so "the matcher runs on X" must never
+  // be read as "X is protected" — see the exemption suite below.
+
   it('the matcher actually discriminates (guards against a match-everything regex)', () => {
     // If a future edit made the matcher match every path, the protected-path
     // assertions above would all still pass. This asserts the exemption still
     // exists at all, so the test cannot be satisfied by deleting the logic.
     expect(isMatched('/logo.png')).toBe(false)
     expect(isMatched('/api/contacts/probe.png')).toBe(true)
+  })
+})
+
+// The second half of the gate. PUBLIC_PATHS was compared with a bare
+// startsWith, so the '/api/agent' entry (public site chat, UNI-2359) also
+// exempted every '/api/agents/*' route — /api/agents/events,
+// /api/agents/runner/claim and /api/agents/runner/release are real, exist on
+// origin/main, and require auth. The matcher ran on them and isPublicPath then
+// let them straight through.
+describe('public-path exemption is segment-aware, not prefix-loose', () => {
+  describe('genuinely public paths stay exempt', () => {
+    const exempt = [
+      '/api/agent',
+      '/api/agent/chat',
+      '/api/auth/callback',
+      '/api/health',
+      '/api/cron/hub-sweep',
+      '/auth/login',
+      '/robots.txt',
+    ]
+
+    it.each(exempt)('exempts %s', (p) => {
+      expect(isPublicPath(p)).toBe(true)
+    })
+  })
+
+  describe('a sibling route must not inherit a shorter entry’s exemption', () => {
+    // Enumerated, not sampled: the collision needed only ONE route to survive.
+    const gated = [
+      '/api/agents',
+      '/api/agents/events',
+      '/api/agents/runner/claim',
+      '/api/agents/runner/release',
+    ]
+
+    it.each(gated)('does NOT exempt %s', (p) => {
+      expect(isPublicPath(p)).toBe(false)
+    })
+
+    // Negative control. Without it, an isPublicPath() that returned false for
+    // everything would satisfy every assertion in this block while breaking
+    // OAuth callbacks and the login page — which is why the exempt block above
+    // is not optional.
+    it('still discriminates (guards against an exempt-nothing regression)', () => {
+      expect(isPublicPath('/api/founder/wiki')).toBe(false)
+      expect(isPublicPath('/api/auth/callback')).toBe(true)
+    })
   })
 })

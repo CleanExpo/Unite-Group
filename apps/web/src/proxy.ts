@@ -68,12 +68,17 @@ const PUBLIC_PATHS = [
   '/founder-os-sw.js',
 ] as const;
 
-function isPublicPath(pathname: string): boolean {
+export function isPublicPath(pathname: string): boolean {
   if (process.env.KNOWLEDGE_CONSOLE_PREVIEW === '1' && pathname === '/preview/knowledge-console') {
     return true;
   }
 
-  return PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+  // Segment-aware, NOT a bare prefix. A bare startsWith let '/api/agent'
+  // (the public site chat, UNI-2359) hand its exemption to '/api/agents/*',
+  // where three authenticated runner/event routes live — so the middleware ran
+  // on them and then waved them straight through. Match the whole entry or a
+  // real path segment beneath it.
+  return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
 // ---------------------------------------------------------------------------
