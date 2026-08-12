@@ -36,11 +36,11 @@ export function SixMonitorCanvas({
       </aside>
 
       <div className={styles.matrix}>
-        <Monitor colour="ruby" eyebrow="PC · Delivery" title="Build & proof" href="/founder/command-centre/operations">
-          <p>{queueLabel}</p><small>Open the Operations deck for task receipts and validation.</small>
+        <Monitor colour="ruby" eyebrow="PC pair · unassigned" title="Build & proof" href="/founder/command-centre/operations">
+          <p>{queueLabel}</p><small>The queue source has no machine assignment. Open Operations for task receipts and validation.</small>
         </Monitor>
-        <Monitor colour="gold" eyebrow="Mac Mini · Host" title="Fleet heartbeat" href="/founder/command-centre/operations">
-          <p>Live state below</p><small>Only heartbeat and session data are treated as live.</small>
+        <Monitor colour="gold" eyebrow="Mac Mini pair · mapping unavailable" title="Fleet heartbeat" href="/founder/command-centre/operations">
+          <p>Verified state below</p><small>Only reported heartbeat and session data are treated as live.</small>
         </Monitor>
         <section className={styles.commandMatrix}>
           <span>Command Matrix</span>
@@ -48,14 +48,14 @@ export function SixMonitorCanvas({
           <p>Work, evidence and machine status stay separate until their source confirms them.</p>
           <a href="#command-brief">Open command brief</a>
         </section>
-        <Monitor colour="gold" eyebrow="Mac Mini · Local AI" title="Ollama / Gemma" href="/founder/command-centre/operations">
-          <p>Connection state is not yet supplied.</p><small>Shown as unavailable until a verified local adapter reports it.</small>
+        <Monitor colour="gold" eyebrow="Mac Mini pair · local AI" title="Ollama / Gemma" href="/founder/command-centre/operations">
+          <p>Connection state is not yet supplied.</p><small>This visual pairing is not a host mapping. Shown as unavailable until a verified adapter reports it.</small>
         </Monitor>
-        <Monitor colour="emerald" eyebrow="MacBook · Knowledge" title="Knowledge & tools" href="/founder/command-centre/knowledge">
-          <p>{toolCount} catalogue entries</p><small>This is not a knowledge freshness check. Open the Knowledge deck for source state.</small>
+        <Monitor colour="emerald" eyebrow="MacBook pair · unassigned" title="Knowledge & tools" href="/founder/command-centre/knowledge">
+          <p>{toolCount} catalogue entries</p><small>Catalogue data has no machine assignment or freshness check. Open Knowledge for source state.</small>
         </Monitor>
-        <Monitor colour="emerald" eyebrow="MacBook · Work" title="Queue & blockers" href="/founder/command-centre/operations">
-          <p>{blockedLabel}</p><small>Dispatch is not connected unless the Operations deck proves it.</small>
+        <Monitor colour="emerald" eyebrow="MacBook pair · unassigned" title="Queue & blockers" href="/founder/command-centre/operations">
+          <p>{blockedLabel}</p><small>Blocker data has no machine assignment. Dispatch is not connected unless Operations proves it.</small>
         </Monitor>
       </div>
       <div className={styles.fleetBand}><MissionStatusBand /></div>

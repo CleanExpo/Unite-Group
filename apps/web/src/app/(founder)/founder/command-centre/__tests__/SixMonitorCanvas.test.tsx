@@ -33,4 +33,13 @@ describe('SixMonitorCanvas', () => {
     expect(screen.queryByRole('link', { name: 'Command Chat' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Media' })).not.toBeInTheDocument()
   })
+
+  it('does not claim that queue or catalogue data belongs to a machine', () => {
+    render(<SixMonitorCanvas {...props} />)
+
+    expect(screen.getByTestId('six-monitor-canvas')).toHaveTextContent('PC pair · unassigned')
+    expect(screen.getByTestId('six-monitor-canvas')).toHaveTextContent('The queue source has no machine assignment.')
+    expect(screen.getByTestId('six-monitor-canvas')).toHaveTextContent('MacBook pair · unassigned')
+    expect(screen.getByTestId('six-monitor-canvas')).toHaveTextContent('Catalogue data has no machine assignment or freshness check.')
+  })
 })
