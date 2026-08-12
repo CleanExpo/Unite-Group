@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
 import { chmod, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { delimiter, dirname, join, resolve } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { test } from 'node:test'
 import { promisify } from 'node:util'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -307,27 +307,58 @@ test('workspace installer resolves its own symlink before invoking the pinned he
   const root = await mkdtemp(join(tmpdir(), 'nexus-workspace-install-symlink-'))
   t.after(() => rm(root, { recursive: true, force: true }))
   const attacker = join(root, 'attacker')
+  const bin = join(root, 'bin')
   const marker = join(root, 'attacker-helper')
   const realScript = join(ROOT, 'apps', 'workspace', 'install.sh')
   await mkdir(join(attacker, 'scripts'), { recursive: true })
+  await mkdir(bin)
   await symlink(realScript, join(attacker, 'install.sh'))
   await writeFile(join(attacker, 'scripts', 'install-pinned-hermes.sh'), `#!/bin/sh\nprintf ran > '${toPath(marker)}'\nexit 42\n`)
   await chmod(join(attacker, 'scripts', 'install-pinned-hermes.sh'), 0o755)
 
-  await assert.rejects(
-    runScript(join(attacker, 'install.sh'), {
-      ...process.env,
-      // install.sh gates on the Node it finds first. Inheriting the ambient PATH
-      // made this test assert the machine's default node rather than the symlink
-      // resolution it exists to prove, so bind it to the interpreter running it.
-      PATH: `${dirname(process.execPath)}${delimiter}${process.env.PATH}`,
-      HOME: toPath(root),
-      INSTALL_DIR: toPath(join(root, 'workspace')),
-      NEXUS_HERMES_INSTALLER_TEST_TAMPER: '1',
-    }),
-    /integrity check failed/i,
-  )
-  await assert.rejects(readFile(marker), { code: 'ENOENT' })
+  // install.sh's preflight runs before the symlink resolution this case exists
+  // to prove, and it gates on whatever node/git/pnpm the PATH resolves first.
+  // Inheriting the ambient PATH made the gate depend on the machine's package
+  // manager and on registry reachability: on a host whose pnpm is not exactly
+  // 9.15.0 the preflight falls into `corepack prepare`, then
+  // `npm install -g pnpm@9.15.0`, and spends over a minute failing to reach the
+  // registry without ever reaching the assertion below. Satisfy every preflight
+  // from a fixture bin instead, so the gate is hermetic and offline.
+  const bootstrap = { corepack: join(root, 'corepack-ran'), npm: join(root, 'npm-ran'), curl: join(root, 'curl-ran') }
+  await writeFile(join(bin, 'node'), `#!/bin/sh\nexec '${toPath(process.execPath)}' "$@"\n`)
+  await writeFile(join(bin, 'pnpm'), '#!/bin/sh\n[ "$1" = --version ] && { echo 9.15.0; exit 0; }\nexit 1\n')
+  await writeFile(join(bin, 'git'), '#!/bin/sh\n[ "$1" = --version ] && { echo "git version 2.99.0"; exit 0; }\nexit 1\n')
+  // Not stubs but tripwires: the preflight reaches for these three only when it
+  // is about to bootstrap or download, so a recorded invocation is the
+  // hermeticity failure itself, asserted below.
+  for (const [name, path] of Object.entries(bootstrap)) {
+    await writeFile(join(bin, name), `#!/bin/sh\nprintf '%s ' "$@" >> '${toPath(path)}'\nexit 1\n`)
+  }
+  for (const name of ['node', 'pnpm', 'git', ...Object.keys(bootstrap)]) {
+    await chmod(join(bin, name), 0o755)
+  }
+
+  const failure = await runScript(join(attacker, 'install.sh'), {
+    PATH: `${toPath(bin)}:/usr/bin:/bin`,
+    HOME: toPath(root),
+    TMPDIR: toPath(root),
+    USER: 'tester',
+    SHELL: '/bin/bash',
+    TERM: 'dumb',
+    INSTALL_DIR: toPath(join(root, 'workspace')),
+    NEXUS_HERMES_INSTALLER_TEST_TAMPER: '1',
+  }).then(() => null, (error) => error)
+
+  // Read the markers before the message. Both of the ways this gate can be
+  // lost — a preflight that bootstraps, or a symlink that redirects the helper
+  // — stop short of the pinned payload and would otherwise surface only as an
+  // unrelated mismatch on the final assertion.
+  for (const [name, path] of Object.entries(bootstrap)) {
+    await assert.rejects(readFile(path), { code: 'ENOENT' }, `${name} ran: the installer bootstrapped instead of reaching the pinned helper`)
+  }
+  await assert.rejects(readFile(marker), { code: 'ENOENT' }, 'the attacker-controlled helper ran: install.sh trusted its symlink directory')
+  assert.ok(failure, 'the installer must fail closed on a tampered pinned payload')
+  assert.match(String(failure), /integrity check failed/i)
 })
 
 test('pinned Hermes installer rejects a dirty existing checkout before download', {
