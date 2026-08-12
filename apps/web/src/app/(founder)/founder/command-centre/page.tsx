@@ -140,7 +140,6 @@ export default async function CommandDeckPage() {
         actionQueue={actionQueue}
         blockedLanes={blockedLanes}
         toolCount={tools.length}
-        knowledgeReady={tools.length > 0}
       />
 
       {/* ── Command Brief — the AI-works-here centrepiece (UNI-2378) ── */}

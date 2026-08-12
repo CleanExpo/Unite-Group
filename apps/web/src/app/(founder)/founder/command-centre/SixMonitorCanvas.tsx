@@ -9,12 +9,10 @@ export function SixMonitorCanvas({
   actionQueue,
   blockedLanes,
   toolCount,
-  knowledgeReady,
 }: {
   actionQueue: QueueData
   blockedLanes: BlockedData
   toolCount: number
-  knowledgeReady: boolean
 }) {
   const queueLabel = actionQueue.read_error
     ? 'Queue source unavailable'
@@ -53,8 +51,8 @@ export function SixMonitorCanvas({
         <Monitor colour="gold" eyebrow="Mac Mini · Local AI" title="Ollama / Gemma" href="/founder/command-centre/operations">
           <p>Connection state is not yet supplied.</p><small>Shown as unavailable until a verified local adapter reports it.</small>
         </Monitor>
-        <Monitor colour="emerald" eyebrow="MacBook · Knowledge" title="Second Brain" href="/founder/command-centre/knowledge">
-          <p>{knowledgeReady ? `${toolCount} catalogued tools` : 'Knowledge source unavailable'}</p><small>Open the Knowledge deck for graph and source freshness.</small>
+        <Monitor colour="emerald" eyebrow="MacBook · Knowledge" title="Knowledge & tools" href="/founder/command-centre/knowledge">
+          <p>{toolCount} catalogue entries</p><small>This is not a knowledge freshness check. Open the Knowledge deck for source state.</small>
         </Monitor>
         <Monitor colour="emerald" eyebrow="MacBook · Work" title="Queue & blockers" href="/founder/command-centre/operations">
           <p>{blockedLabel}</p><small>Dispatch is not connected unless the Operations deck proves it.</small>
