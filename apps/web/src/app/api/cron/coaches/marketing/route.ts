@@ -5,6 +5,7 @@
 import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { assertCronAuth } from '@/lib/cron-auth'
+import { getFounderUserId } from '@/lib/auth/founder-user-id'
 import { runCoach } from '@/lib/coaches/runner'
 import { fetchMarketingData } from '@/lib/coaches/marketing'
 import { MARKETING_COACH_SYSTEM_PROMPT, buildMarketingUserMessage } from '@/lib/coaches/prompts/marketing'
@@ -19,7 +20,7 @@ export async function GET(request: Request) {
   const denied = assertCronAuth(request)
   if (denied) return denied
 
-  const founderId = process.env.FOUNDER_USER_ID
+  const founderId = getFounderUserId()
   if (!founderId) {
     console.error('[Marketing Coach CRON] FOUNDER_USER_ID not set')
     return NextResponse.json({ error: 'FOUNDER_USER_ID not configured' }, { status: 500 })

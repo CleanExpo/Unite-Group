@@ -5,6 +5,7 @@
 import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { assertCronAuth } from '@/lib/cron-auth'
+import { getFounderUserId } from '@/lib/auth/founder-user-id'
 import { runCoach } from '@/lib/coaches/runner'
 import { fetchLifeData } from '@/lib/coaches/life'
 import { LIFE_COACH_SYSTEM_PROMPT, buildLifeUserMessage } from '@/lib/coaches/prompts/life'
@@ -21,7 +22,7 @@ export async function GET(request: Request) {
   if (denied) return denied
 
   // 2. Get founder ID
-  const founderId = process.env.FOUNDER_USER_ID
+  const founderId = getFounderUserId()
   if (!founderId) {
     console.error('[Life Coach CRON] FOUNDER_USER_ID not set')
     return NextResponse.json({ error: 'FOUNDER_USER_ID not configured' }, { status: 500 })

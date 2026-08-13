@@ -17,6 +17,7 @@
 import { MISSION_PROVENANCE_SECRET_ENV } from '@/lib/command-centre/voice-mission-bridge'
 import { NextResponse } from 'next/server'
 import { assertCronAuth } from '@/lib/cron-auth'
+import { getFounderUserId } from '@/lib/auth/founder-user-id'
 import { createServiceClient } from '@/lib/supabase/service'
 import {
   PORTFOLIO_REPOS,
@@ -198,7 +199,7 @@ async function buildMeshFleetRow(): Promise<HealthRow> {
 
 async function buildMargotRow(supabase: ServiceClient): Promise<HealthRow> {
   const title = 'Margot Operational State'
-  const founderId = process.env.FOUNDER_USER_ID?.trim()
+  const founderId = getFounderUserId()
 
   if (!founderId) {
     return {
@@ -266,7 +267,7 @@ async function buildMargotRow(supabase: ServiceClient): Promise<HealthRow> {
       // a founder at all — a health surface claiming green for a bridge that
       // cannot accept a single mission. The interactive route already reads the
       // environment; this one now matches it.
-      founderConfigured: !!process.env.FOUNDER_USER_ID?.trim(),
+      founderConfigured: !!getFounderUserId(),
       provenanceKeyConfigured: !!process.env[MISSION_PROVENANCE_SECRET_ENV]?.trim(),
     },
     voice,
@@ -323,7 +324,7 @@ async function buildMargotRow(supabase: ServiceClient): Promise<HealthRow> {
 
 async function buildEmailAccountsRow(supabase: ServiceClient): Promise<HealthRow> {
   const title = 'Email Account Roster'
-  const founderId = process.env.FOUNDER_USER_ID?.trim()
+  const founderId = getFounderUserId()
 
   if (!founderId) {
     return {

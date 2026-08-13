@@ -184,6 +184,16 @@ describe('GET /api/cron/bookkeeper', () => {
     expect(mockRunBookkeeper).toHaveBeenCalledWith('founder-uuid-123')
   })
 
+  it('canonicalises pasted whitespace before the founder ID reaches the run', async () => {
+    process.env.FOUNDER_USER_ID = '  founder-uuid-123\r\n'
+    mockRunBookkeeper.mockResolvedValue(makeSuccessResult())
+
+    await GET(makeRequest('Bearer test-cron-secret'))
+
+    expect(mockPrepareBookkeeperRun).toHaveBeenCalledWith('founder-uuid-123')
+    expect(mockRunBookkeeper).toHaveBeenCalledWith('founder-uuid-123')
+  })
+
   it('returns 409 without invoking the orchestrator when a fresh run is active', async () => {
     mockPrepareBookkeeperRun.mockResolvedValue({
       activeRun: {

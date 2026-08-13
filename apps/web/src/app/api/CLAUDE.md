@@ -27,10 +27,15 @@ Routes are thin — auth, parse, delegate, respond. Do not put domain logic in a
    `createBrowserClient` here. `SUPABASE_SERVICE_ROLE_KEY` is server-side only.
 5. **CRON routes authenticate by `CRON_SECRET`, not session:**
    ```ts
-   const authHeader = request.headers.get('authorization')
-   if (authHeader !== `Bearer ${process.env.CRON_SECRET?.trim()}`) return 401
-   const founderId = process.env.FOUNDER_USER_ID   // single-tenant cron actor
+   const denied = assertCronAuth(request)
+   if (denied) return denied
+   const founderId = getFounderUserId() // from '@/lib/auth/founder-user-id'
+   if (!founderId) {
+     return NextResponse.json({ error: 'FOUNDER_USER_ID not configured' }, { status: 500 })
+   }
    ```
+   Never read either variable directly in a route. The shared accessors trim
+   pasted whitespace and fail closed when a value is empty.
    Long jobs set `export const maxDuration = 300`. 15 crons are registered in `vercel.json`.
 
 ## Patterns to follow

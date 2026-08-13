@@ -6,6 +6,7 @@
 import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { assertCronAuth } from '@/lib/cron-auth'
+import { getFounderUserId } from '@/lib/auth/founder-user-id'
 import { createServiceClient } from '@/lib/supabase/service'
 import { fetchNewComments, replyToFacebookComment, replyToInstagramComment } from '@/lib/integrations/social/engagement'
 import { decodeToken } from '@/lib/integrations/social/channels'
@@ -71,7 +72,7 @@ export async function GET(request: Request) {
   const denied = assertCronAuth(request)
   if (denied) return denied
 
-  const founderId = process.env.FOUNDER_USER_ID
+  const founderId = getFounderUserId()
   if (!founderId) {
     console.error('[Engagement CRON] FOUNDER_USER_ID not set')
     return NextResponse.json({ error: 'FOUNDER_USER_ID not configured' }, { status: 500 })
