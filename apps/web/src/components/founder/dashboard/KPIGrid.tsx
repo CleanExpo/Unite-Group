@@ -24,7 +24,15 @@ export function KPIGrid() {
 
   useEffect(() => {
     fetch('/api/dashboard/kpi')
-      .then(res => res.json() as Promise<BatchKPIResponse>)
+      .then(async (res) => {
+        // A degraded batch still carries a `kpis` object, so parsing the body
+        // unconditionally would hand every card an empty entry — truthy enough
+        // to suppress its individual fallback fetch, empty enough to leave it on
+        // "Loading…" forever. The status is the verdict; leave batchData null so
+        // the cards fetch individually and surface their own error states.
+        if (!res.ok) throw new Error(`/api/dashboard/kpi returned ${res.status}`)
+        return res.json() as Promise<BatchKPIResponse>
+      })
       .then(({ kpis }) => setBatchData(kpis))
       .catch((error) => {
         console.error('[kpi-grid] Batch fetch failed, cards will fetch individually:', error)

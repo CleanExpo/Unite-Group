@@ -180,3 +180,56 @@ describe('issueToBusiness', () => {
     expect(issueToBusiness({ team: { key: 'UNI' }, project: { name: 'ATIA' } })).toBe('ccw')
   })
 })
+
+// Missing configuration is UNAVAILABILITY, not a successful read of zero issues.
+//
+// The first attempt at this control lived in the hub-sweep route test and mocked
+// `fetchIssueCountByBusiness` to reject — so it never executed this production
+// branch. Independent review round 6 proved it vacuous by restoring the old
+// warn-and-return-{} implementation: 11/11 tests still passed, including the one
+// named for unconfigured Linear. A control aimed at a mock cannot see a
+// regression in the source.
+//
+// This suite loads the REAL module with the key absent, so the mutant dies here.
+describe('fetchIssueCountByBusiness — unconfigured contract', () => {
+  async function loadUnconfigured() {
+    vi.resetModules()
+    vi.stubEnv('LINEAR_API_KEY', '')
+    return import('@/lib/integrations/linear')
+  }
+
+  it('REJECTS when LINEAR_API_KEY is absent, rather than returning zero counts', async () => {
+    const { fetchIssueCountByBusiness } = await loadUnconfigured()
+    const fetchSpy = vi.spyOn(global, 'fetch')
+
+    await expect(fetchIssueCountByBusiness()).rejects.toThrow(/not configured/i)
+    // ...and it must not have reached the network to discover that.
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
+  it('never resolves to an empty object when unconfigured', async () => {
+    const { fetchIssueCountByBusiness } = await loadUnconfigured()
+    const outcome = await fetchIssueCountByBusiness().then(
+      (value) => ({ resolved: true, value }),
+      (err: Error) => ({ resolved: false, value: err.message }),
+    )
+    expect(outcome.resolved).toBe(false)
+  })
+
+  // Negative control: "always throw" would satisfy both assertions above while
+  // breaking every configured caller. A configured client must still read.
+  it('returns real counts when the key IS configured', async () => {
+    const { fetchIssueCountByBusiness } = await loadLinear()
+    vi.spyOn(global, 'fetch').mockResolvedValue(
+      response({
+        issues: {
+          nodes: [{ team: { key: 'UNI' }, project: null }],
+          pageInfo: { hasNextPage: false, endCursor: null },
+        },
+      }) as never,
+    )
+
+    const counts = await fetchIssueCountByBusiness()
+    expect(Object.values(counts).reduce((a, b) => a + b, 0)).toBeGreaterThan(0)
+  })
+})
