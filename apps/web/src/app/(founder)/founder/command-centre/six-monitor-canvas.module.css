@@ -23,7 +23,7 @@
   font-size: 0.66rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #747b84;
+  color: #8b96a5;
 }
 
 .inspector h1,
@@ -85,14 +85,17 @@
   transition: border-color 120ms ease, background 120ms ease;
 }
 
-.domain:hover,
+.domain:hover {
+  background: #101318;
+  border-color: #3b424b;
+}
+
 .domain:focus-visible {
   background: #101318;
   border-color: #3b424b;
-  outline: none;
+  outline: 2px solid #2dbb57;
+  outline-offset: 2px;
 }
-
-.domain:focus-visible { box-shadow: 0 0 0 2px #2dbb57; }
 
 .domainTopline {
   display: grid;
@@ -141,7 +144,7 @@
 
 .detail {
   margin-top: auto;
-  color: #747b84;
+  color: #8b96a5;
   font-size: 0.72rem;
   line-height: 1.4;
 }

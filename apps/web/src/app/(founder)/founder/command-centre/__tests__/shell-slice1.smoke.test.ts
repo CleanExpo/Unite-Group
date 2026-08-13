@@ -66,6 +66,7 @@ describe('command-centre shell slice 1 — reshell regression gate', () => {
   it('passes live queue and lane reads into the mounted canvas so degraded sources stay visible', () => {
     expect(pageSrc).toContain('loadActionQueueData()')
     expect(pageSrc).toContain('loadBlockedLanesData()')
+    expect(pageSrc).toContain('getOperationalSourceStatus(actionQueue, blockedLanes)')
     expect(pageSrc).toMatch(/<SixMonitorCanvas[\s\S]*?actionQueue=\{actionQueue\}[\s\S]*?blockedLanes=\{blockedLanes\}/)
   })
 

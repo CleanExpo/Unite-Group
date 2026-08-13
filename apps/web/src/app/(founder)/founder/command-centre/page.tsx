@@ -15,6 +15,7 @@ import { LiveClock } from './LiveClock'
 import { CommandPalette, CommandPaletteTrigger } from './CommandPalette'
 import { IdeaConsole } from './IdeaConsole'
 import { SixMonitorCanvas } from './SixMonitorCanvas'
+import { getOperationalSourceStatus } from './operational-source-status'
 import shell from './shell.module.css'
 import styles from './command-deck.module.css'
 
@@ -28,7 +29,7 @@ export default async function CommandDeckPage() {
 
   const activeCount = projects.filter((project) => project.status === 'active').length
   const sourceCount = new Set(tools.map((tool) => tool.source)).size
-  const sourceUnavailable = Boolean(actionQueue.read_error || blockedLanes.read_error)
+  const operationalStatus = getOperationalSourceStatus(actionQueue, blockedLanes)
 
   return (
     <div className={`${chakra.variable} ${syne.variable} ${jbMono.variable} ${styles.deck}`}>
@@ -60,9 +61,9 @@ export default async function CommandDeckPage() {
         </div>
 
         <span className={styles.sys}>
-          <span className={styles.led} data-state={sourceUnavailable ? 'stub' : 'active'} />
+          <span className={styles.led} data-state={operationalStatus.unavailable ? 'stub' : 'active'} />
           <span className={styles.sysText}>
-            {sourceUnavailable ? 'Queue or lane read unavailable' : 'Queue and lane reads available'}
+            {operationalStatus.label}
           </span>
         </span>
 

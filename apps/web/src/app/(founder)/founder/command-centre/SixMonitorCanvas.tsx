@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import styles from './six-monitor-canvas.module.css'
+import { getOperationalSourceStatus } from './operational-source-status'
 
 type QueueData = { total_rows: number; shown_rows: number; read_error: string | null }
 type BlockedData = { total_lanes: number; blocked_count: number; read_error: string | null }
@@ -21,8 +22,7 @@ export function SixMonitorCanvas({
   toolCount,
   sourceCount,
 }: SixMonitorCanvasProps) {
-  const queueUnavailable = Boolean(actionQueue.read_error)
-  const blockersUnavailable = Boolean(blockedLanes.read_error)
+  const { queueUnavailable, blockersUnavailable } = getOperationalSourceStatus(actionQueue, blockedLanes)
   const queueSummary = queueUnavailable
     ? 'Queue source unavailable'
     : `${actionQueue.total_rows} proposed action${actionQueue.total_rows === 1 ? '' : 's'}`
