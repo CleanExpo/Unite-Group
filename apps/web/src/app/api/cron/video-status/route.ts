@@ -3,6 +3,7 @@
 
 import { NextResponse } from 'next/server'
 import { assertCronAuth } from '@/lib/cron-auth'
+import { getFounderUserId } from '@/lib/auth/founder-user-id'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getVideoStatus } from '@/lib/integrations/heygen'
 
@@ -14,6 +15,11 @@ export async function GET(request: Request) {
   const denied = assertCronAuth(request)
   if (denied) return denied
 
+  const founderId = getFounderUserId()
+  if (!founderId) {
+    return NextResponse.json({ error: 'FOUNDER_USER_ID not configured' }, { status: 500 })
+  }
+
   const supabase = createServiceClient()
 
   // 2. Query all video_assets that are still generating
@@ -21,7 +27,7 @@ export async function GET(request: Request) {
     .from('video_assets')
     .select('id, external_job_id')
     .eq('status', 'generating')
-    .eq('founder_id', process.env.FOUNDER_USER_ID)
+    .eq('founder_id', founderId)
     .not('external_job_id', 'is', null)
 
   if (queryError) {

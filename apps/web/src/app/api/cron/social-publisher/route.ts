@@ -5,6 +5,7 @@
 
 import { NextResponse } from 'next/server'
 import { assertCronAuth } from '@/lib/cron-auth'
+import { getFounderUserId } from '@/lib/auth/founder-user-id'
 import { createServiceClient } from '@/lib/supabase/service'
 import { decodeToken } from '@/lib/integrations/social/channels'
 import { publishToPlatform } from '@/lib/integrations/social/publisher'
@@ -40,6 +41,11 @@ export async function GET(request: Request) {
   const denied = assertCronAuth(request)
   if (denied) return denied
 
+  const founderId = getFounderUserId()
+  if (!founderId) {
+    return NextResponse.json({ error: 'FOUNDER_USER_ID not configured' }, { status: 500 })
+  }
+
   const supabase = createServiceClient()
 
   // 2. Query social_posts where status = 'scheduled' AND scheduled_at <= now()
@@ -47,7 +53,7 @@ export async function GET(request: Request) {
     .from('social_posts')
     .select('*')
     .eq('status', 'scheduled')
-    .eq('founder_id', process.env.FOUNDER_USER_ID)
+    .eq('founder_id', founderId)
     .lte('scheduled_at', new Date().toISOString())
     .order('scheduled_at', { ascending: true })
 

@@ -5,6 +5,7 @@
 
 import { NextResponse } from 'next/server'
 import { assertCronAuth } from '@/lib/cron-auth'
+import { getFounderUserId } from '@/lib/auth/founder-user-id'
 import { createServiceClient } from '@/lib/supabase/service'
 import { runDailyBriefing, type BriefingInput } from '@/lib/ceo-board/daily-briefing'
 import {
@@ -35,7 +36,7 @@ export async function GET(request: Request) {
   const denied = assertCronAuth(request)
   if (denied) return denied
 
-  const founderId = process.env.FOUNDER_USER_ID?.trim()
+  const founderId = getFounderUserId()
   if (!founderId) {
     return NextResponse.json({ error: 'FOUNDER_USER_ID not configured' }, { status: 500 })
   }

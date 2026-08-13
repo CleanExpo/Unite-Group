@@ -35,6 +35,7 @@ function req(auth = 'Bearer test-secret') {
 describe('GET /api/cron/video-status', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.stubEnv('FOUNDER_USER_ID', 'founder-uuid')
     listResolve = { data: [], error: null }
     mockFrom.mockReturnValue(makeChain())
     vi.mocked(createServiceClient).mockReturnValue(mockServiceClient as any)
@@ -54,12 +55,21 @@ describe('GET /api/cron/video-status', () => {
   })
 
   it('founder-scopes the video_assets query', async () => {
-    vi.stubEnv('FOUNDER_USER_ID', 'founder-uuid')
+    vi.stubEnv('FOUNDER_USER_ID', '  founder-uuid\r\n')
     const chain = makeChain()
     mockFrom.mockReturnValue(chain)
 
     await GET(req())
     expect(chain.eq).toHaveBeenCalledWith('founder_id', 'founder-uuid')
+  })
+
+  it('fails before querying when the canonical founder ID is blank', async () => {
+    vi.stubEnv('FOUNDER_USER_ID', ' \n')
+
+    const res = await GET(req())
+
+    expect(res.status).toBe(500)
+    expect(mockFrom).not.toHaveBeenCalled()
   })
 
   it('returns 500 on DB query error', async () => {

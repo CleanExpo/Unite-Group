@@ -5,6 +5,7 @@
 
 import { NextResponse } from 'next/server'
 import { assertCronAuth } from '@/lib/cron-auth'
+import { getFounderUserId } from '@/lib/auth/founder-user-id'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getConnectedGoogleAccounts, fetchThreadsPaginated, archiveThread } from '@/lib/integrations/google'
 import { triageThreadBatch, type TriageResult } from '@/lib/ai/capabilities/email-triage'
@@ -23,7 +24,7 @@ export async function GET(request: Request) {
   const denied = assertCronAuth(request)
   if (denied) return denied
 
-  const founderId = process.env.FOUNDER_USER_ID
+  const founderId = getFounderUserId()
   if (!founderId) {
     return NextResponse.json({ error: 'FOUNDER_USER_ID not configured' }, { status: 500 })
   }
