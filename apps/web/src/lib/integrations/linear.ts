@@ -496,9 +496,14 @@ export async function createIssue(input: CreateIssueInput): Promise<{ id: string
 }
 
 export async function fetchIssueCountByBusiness(): Promise<Record<string, number>> {
+  // Missing configuration is UNAVAILABILITY, not a successful read of zero
+  // issues. Returning {} here was indistinguishable from a healthy empty
+  // backlog, so the hub sweep persisted zeroes and derived green health from a
+  // source it had never contacted. Throwing matches resolveStateId below, which
+  // has always refused to run unconfigured. Found by independent review
+  // 11/08/2026.
   if (!isLinearConfigured()) {
-    console.warn('LINEAR_API_KEY is not configured — returning empty issue counts')
-    return {}
+    throw new Error('LINEAR_API_KEY is not configured — issue counts are unavailable, not zero')
   }
   const issues = await fetchIssues()
   const counts: Record<string, number> = {}

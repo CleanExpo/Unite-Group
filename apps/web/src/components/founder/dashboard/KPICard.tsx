@@ -54,11 +54,21 @@ export function KPICard({
     metric: null, trend: null, secondary: null, source: null, loading: false, error: false,
   })
   const [linearCount, setLinearCount] = useState<number | null>(null)
+  /** True when the issue count was NOT read — unconfigured Linear, or a read
+   *  that threw. Distinct from `linearCount === 0`, which is a real zero from a
+   *  read that succeeded. [UNI-2485] */
+  const [linearUnavailable, setLinearUnavailable] = useState(false)
 
   // When batch liveData is provided, populate state directly — no individual fetch needed
   useEffect(() => {
     if (liveData) {
-      if (liveData.revenueCents !== undefined) {
+      if (liveData.xeroDegraded) {
+        // The batch read for THIS business rejected. Take the same honest
+        // affordance the individual fetch's catch takes — "Error" badge and
+        // "Couldn't load", never placeholders beside "Demo", which reads as
+        // "not connected" rather than "we could not read it".
+        setLive({ metric: null, trend: null, secondary: null, source: null, loading: false, error: true })
+      } else if (liveData.revenueCents !== undefined) {
         setLive({
           metric: formatAUD(liveData.revenueCents),
           trend: {
@@ -83,7 +93,18 @@ export function KPICard({
     if (xeroBusinessKey) {
       setLive(prev => ({ ...prev, loading: true, error: false }))
       fetch(`/api/xero/revenue?business=${encodeURIComponent(xeroBusinessKey)}`)
-        .then(res => (res.ok ? res.json() : null) as Promise<{ data?: XeroRevenueMTD; source?: 'xero' | 'mock' } | null>)
+        .then(res => {
+          // A non-OK status is a FAILED read, not "Xero not connected".
+          // Mapping it to null sent it into the degrade branch below — which is
+          // documented as an expected state and sets `error: false` — so a 500
+          // rendered with the Demo badge and a "Loading…" secondary. Throwing
+          // hands it to the catch, which already surfaces it honestly.
+          //
+          // The Linear fallback directly below carries this same guard. This
+          // sibling was missed when that one was added. [UNI-2492]
+          if (!res.ok) throw new Error(`/api/xero/revenue returned ${res.status}`)
+          return res.json() as Promise<{ data?: XeroRevenueMTD; source?: 'xero' | 'mock' } | null>
+        })
         .then((payload) => {
           const data = payload?.data
           // Xero not connected / no data — an expected degraded state, not an error.
@@ -115,10 +136,26 @@ export function KPICard({
   useEffect(() => {
     if (liveData) return // Batch data takes precedence
     if (!linearBusinessKey) return
+    setLinearUnavailable(false)
     fetch(`/api/linear/kpi?business=${encodeURIComponent(linearBusinessKey)}`)
-      .then(res => res.json() as Promise<{ activeCount: number }>)
-      .then(({ activeCount }) => { setLinearCount(activeCount) })
-      .catch(() => {})
+      .then(async (res) => {
+        // The status carries the verdict for a thrown read, and this path used
+        // to parse the body regardless — so a 500 yielded `activeCount:
+        // undefined` and set the count to it.
+        if (!res.ok) throw new Error(`/api/linear/kpi returned ${res.status}`)
+        return res.json() as Promise<{ activeCount?: number; configured?: boolean }>
+      })
+      .then((body) => {
+        // `activeCount` is ABSENT whenever the count was not read. Defaulting
+        // it to 0 here would reinstate the false zero the route just stopped
+        // sending, so the count stays unknown and the card says so. [UNI-2485]
+        if (typeof body.activeCount === 'number') {
+          setLinearCount(body.activeCount)
+          return
+        }
+        setLinearUnavailable(true)
+      })
+      .catch(() => { setLinearUnavailable(true) })
   }, [linearBusinessKey, liveData])
 
   const isLive = !!xeroBusinessKey
@@ -130,7 +167,9 @@ export function KPICard({
     ? "Couldn’t load — refresh to retry"
     : linearCount !== null
       ? `${linearCount} active issue${linearCount !== 1 ? 's' : ''}`
-      : (live.secondary ?? secondary)
+      : linearUnavailable
+        ? 'Issue count unavailable'
+        : (live.secondary ?? secondary)
 
   return (
     <motion.div
