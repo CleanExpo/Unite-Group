@@ -31,6 +31,7 @@ function req(auth = 'Bearer test-secret') {
 describe('GET /api/cron/social-publisher', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.stubEnv('FOUNDER_USER_ID', 'founder-uuid')
     postsResolve = { data: [], error: null }
     mockFrom.mockReturnValue(makeChain())
     vi.mocked(createServiceClient).mockReturnValue({ from: mockFrom } as any)
@@ -51,12 +52,21 @@ describe('GET /api/cron/social-publisher', () => {
   })
 
   it('founder-scopes the social_posts query', async () => {
-    vi.stubEnv('FOUNDER_USER_ID', 'founder-uuid')
+    vi.stubEnv('FOUNDER_USER_ID', '  founder-uuid\r\n')
     const chain = makeChain()
     mockFrom.mockReturnValue(chain)
 
     await GET(req())
     expect(chain.eq).toHaveBeenCalledWith('founder_id', 'founder-uuid')
+  })
+
+  it('fails before querying when the canonical founder ID is blank', async () => {
+    vi.stubEnv('FOUNDER_USER_ID', ' \n')
+
+    const res = await GET(req())
+
+    expect(res.status).toBe(500)
+    expect(mockFrom).not.toHaveBeenCalled()
   })
 
   it('returns published=0 when no scheduled posts', async () => {

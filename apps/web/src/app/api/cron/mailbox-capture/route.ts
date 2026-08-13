@@ -8,6 +8,7 @@
 import { NextResponse } from 'next/server';
 
 import { assertCronAuth } from '@/lib/cron-auth';
+import { getFounderUserId } from '@/lib/auth/founder-user-id';
 import { createCaptureStore } from '@/lib/margot/capture-store';
 import { googleFetcher } from '@/lib/margot/google-fetcher';
 import {
@@ -36,7 +37,7 @@ export async function GET(request: Request) {
       message: 'MAILBOX_CAPTURE_ENABLED is not true — capture is dormant',
     });
   }
-  const founderId = process.env.FOUNDER_USER_ID;
+  const founderId = getFounderUserId();
   if (!founderId) {
     return NextResponse.json({ error: 'FOUNDER_USER_ID not set' }, { status: 500 });
   }

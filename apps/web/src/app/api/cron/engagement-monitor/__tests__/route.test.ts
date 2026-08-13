@@ -33,6 +33,7 @@ function req(auth = 'Bearer test-secret') {
 describe('GET /api/cron/engagement-monitor', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.stubEnv('FOUNDER_USER_ID', 'founder-1')
     channelsResolve = { data: [], error: null }
     mockFrom.mockReturnValue(makeChain())
     vi.mocked(createServiceClient).mockReturnValue({ from: mockFrom } as any)
@@ -49,6 +50,17 @@ describe('GET /api/cron/engagement-monitor', () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.processed).toBe(0)
+  })
+
+  it('founder-scopes the brand identities query with the canonical ID', async () => {
+    vi.stubEnv('FOUNDER_USER_ID', '  founder-1\r\n')
+    const chain = makeChain()
+    mockFrom.mockReturnValue(chain)
+
+    await GET(req())
+
+    expect(mockFrom).toHaveBeenCalledWith('brand_identities')
+    expect(chain.eq).toHaveBeenCalledWith('founder_id', 'founder-1')
   })
 
   it('returns 500 on DB error', async () => {

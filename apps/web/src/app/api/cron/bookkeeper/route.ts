@@ -6,6 +6,7 @@
 import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { assertCronAuth } from '@/lib/cron-auth'
+import { getFounderUserId } from '@/lib/auth/founder-user-id'
 import { runBookkeeperForAllBusinesses } from '@/lib/bookkeeper/orchestrator'
 import { notify } from '@/lib/notifications'
 import { triggerMacasAdvisory } from '@/lib/advisory/auto-trigger'
@@ -22,7 +23,7 @@ export async function GET(request: Request) {
   if (denied) return denied
 
   // 2. Get founder ID — single-tenant system
-  const founderId = process.env.FOUNDER_USER_ID
+  const founderId = getFounderUserId()
   if (!founderId) {
     console.error('[Bookkeeper CRON] FOUNDER_USER_ID environment variable not set')
     return NextResponse.json(
