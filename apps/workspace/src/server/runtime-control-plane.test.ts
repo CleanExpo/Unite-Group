@@ -87,4 +87,36 @@ describe('runtime control plane', () => {
     })
     expect(result.summary).toMatchObject({ blocked: 1, overdue: 1 })
   })
+
+  it('projects a fresh Codex receipt and never treats it as dispatch authority', () => {
+    const result = buildRuntimeControlPlane({
+      workerIds: [],
+      runtimes: [],
+      now: 100,
+      codexCheckpoint: {
+        detail: 'Codex checkpoint observed.',
+        checkpoint: {
+          version: 1,
+          publisher: 'codex',
+          observedAt: 99,
+          task: {
+            id: 'command-centre-proof',
+            title: 'Capture authenticated canvas proof',
+            state: 'complete',
+            deadlineAt: null,
+            evidence: [{ label: 'Playwright receipt', kind: 'report' }],
+            blocker: null,
+            nextAction: 'Run independent review',
+            receipt: 'authenticated preview receipt',
+          },
+        },
+      },
+    })
+
+    expect(result.runtimes.find((entry) => entry.id === 'codex')).toMatchObject({ state: 'observed' })
+    expect(result.tasks[0]).toMatchObject({
+      runtime: 'codex', evidenceStatus: 'present', handoff: { eligible: true, target: 'reviewer' },
+    })
+    expect(result.execution).toBe('disabled')
+  })
 })

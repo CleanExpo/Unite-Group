@@ -4,6 +4,7 @@ import * as yaml from 'yaml'
 import { getProfilesDir } from './claude-paths'
 import { listSwarmWorkerIds, readSwarmRuntimeFile } from './swarm-foundation'
 import { rosterByWorkerId } from './swarm-roster'
+import { readCodexCheckpoint } from './codex-runtime-checkpoint'
 
 /**
  * A read-only reconciliation of the runtimes that actually publish task state.
@@ -164,6 +165,7 @@ export function buildRuntimeControlPlane(input: {
   runtimes: Array<{ workerId: string; runtime: RawRuntime }>
   now?: number
   hermesReportsLocalGemma?: boolean
+  codexCheckpoint?: ReturnType<typeof readCodexCheckpoint>
 }): RuntimeControlPlane {
   const now = input.now ?? Date.now()
   const roster = rosterByWorkerId(input.workerIds)
@@ -177,6 +179,43 @@ export function buildRuntimeControlPlane(input: {
       }),
     )
     .filter((task): task is ControlPlaneTask => Boolean(task))
+
+  const codex = input.codexCheckpoint ?? {
+    checkpoint: null,
+    detail: 'Codex has not published a checkpoint.',
+  }
+  const codexTask = codex.checkpoint
+    ? {
+        taskId: `codex:${codex.checkpoint.task.id}`,
+        title: codex.checkpoint.task.title,
+        owner: 'codex',
+        runtime: 'codex' as const,
+        state: codex.checkpoint.task.state,
+        evidenceStatus: codex.checkpoint.task.state === 'complete'
+          ? (codex.checkpoint.task.evidence.length > 0 || codex.checkpoint.task.receipt
+              ? 'present' as const
+              : 'missing' as const)
+          : 'not_required' as const,
+        deadlineStatus: deadlineStatus(codex.checkpoint.task.deadlineAt, now),
+        deadlineAt: codex.checkpoint.task.deadlineAt,
+        evidence: codex.checkpoint.task.evidence,
+        blocker: codex.checkpoint.task.blocker,
+        nextAction: codex.checkpoint.task.nextAction,
+        handoff: {
+          eligible: codex.checkpoint.task.state === 'complete' &&
+            (codex.checkpoint.task.evidence.length > 0 || Boolean(codex.checkpoint.task.receipt)) &&
+            Boolean(codex.checkpoint.task.nextAction),
+          target: codex.checkpoint.task.state === 'complete' && codex.checkpoint.task.nextAction
+            ? (/review|verify|test|gate/i.test(codex.checkpoint.task.nextAction) ? 'reviewer' as const : 'orchestrator' as const)
+            : null,
+          reason: codex.checkpoint.task.state === 'complete'
+            ? 'Codex completion requires evidence or receipt plus a declared next action.'
+            : null,
+        },
+        observedAt: codex.checkpoint.observedAt,
+      }
+    : null
+  const allTasks = codexTask ? [...tasks, codexTask] : tasks
 
   return {
     source: 'runtime_checkpoints_only',
@@ -192,9 +231,8 @@ export function buildRuntimeControlPlane(input: {
       },
       {
         id: 'codex',
-        state: 'not_reporting',
-        detail:
-          'Codex does not yet publish into the shared checkpoint contract; no activity is inferred.',
+        state: codexTask ? 'observed' : 'not_reporting',
+        detail: codex.detail,
       },
       {
         id: 'ollama',
@@ -204,14 +242,14 @@ export function buildRuntimeControlPlane(input: {
           : 'No local Ollama/Gemma declaration was found in Hermes configuration.',
       },
     ],
-    tasks,
+    tasks: allTasks,
     summary: {
-      active: tasks.filter((task) => task.state === 'active').length,
-      blocked: tasks.filter((task) => task.state === 'blocked').length,
-      complete: tasks.filter((task) => task.state === 'complete').length,
-      missingEvidence: tasks.filter((task) => task.evidenceStatus === 'missing').length,
-      overdue: tasks.filter((task) => task.deadlineStatus === 'overdue').length,
-      eligibleHandoffs: tasks.filter((task) => task.handoff.eligible).length,
+      active: allTasks.filter((task) => task.state === 'active').length,
+      blocked: allTasks.filter((task) => task.state === 'blocked').length,
+      complete: allTasks.filter((task) => task.state === 'complete').length,
+      missingEvidence: allTasks.filter((task) => task.evidenceStatus === 'missing').length,
+      overdue: allTasks.filter((task) => task.deadlineStatus === 'overdue').length,
+      eligibleHandoffs: allTasks.filter((task) => task.handoff.eligible).length,
     },
   }
 }
@@ -229,6 +267,7 @@ export function readRuntimeControlPlane(now = Date.now()): RuntimeControlPlane {
     workerIds,
     runtimes,
     now,
+    codexCheckpoint: readCodexCheckpoint({ now }),
     hermesReportsLocalGemma: configReportsLocalGemma(join(profilesDir, '..')),
   })
 }

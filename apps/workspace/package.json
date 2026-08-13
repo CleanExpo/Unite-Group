@@ -20,6 +20,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "runtime:control-plane": "tsx scripts/runtime-control-plane.ts",
+    "codex:checkpoint": "tsx scripts/codex-checkpoint-publisher.ts",
     "smoke:managed": "node scripts/managed-companion-smoke.mjs",
     "lint": "eslint",
     "format": "prettier",
