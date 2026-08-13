@@ -3,13 +3,13 @@
 // UNI-2339 slice 1 — shell reshell regression gate. Source-contract style
 // (mirrors ActionQueueTile.test.ts / EvidenceStreamTile.test.ts): the page
 // is a Server Component with async data loaders, so it is asserted against
-// its source rather than rendered. Confirms the canvas shell landed without
-// disturbing any pre-existing data-testid or CommandPalette anchor id.
+// its source rather than rendered. Confirms the distilled canvas keeps the
+// CommandPalette anchors while removing duplicated home-page chrome.
 //
 // UNI-2378 (calm cockpit): the Action Queue and Evidence Stream sections
 // relocated wholesale to the operations sub-route; those assertions now
 // point at operations/page.tsx. The ⌘K palette anchors stay resolvable on
-// the main page (the Vital Signs nav cards carry the ids).
+// the main page (the restrained domain links carry the ids).
 
 import { describe, expect, it } from 'vitest'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
@@ -17,6 +17,7 @@ import { join } from 'node:path'
 
 const dir = join(process.cwd(), 'src/app/(founder)/founder/command-centre')
 const pageSrc = readFileSync(join(dir, 'page.tsx'), 'utf8')
+const canvasSrc = readFileSync(join(dir, 'SixMonitorCanvas.tsx'), 'utf8')
 const operationsSrc = readFileSync(join(dir, 'operations/page.tsx'), 'utf8')
 const paletteSrc = readFileSync(join(dir, 'CommandPalette.tsx'), 'utf8')
 const shellCss = readFileSync(join(dir, 'shell.module.css'), 'utf8')
@@ -41,18 +42,32 @@ const FONT_FILES = [
 ]
 
 describe('command-centre shell slice 1 — reshell regression gate', () => {
-  it('renders the HeroBand at the top of the page, sourced from the already-loaded actionQueue (no duplicate fetch)', () => {
-    expect(pageSrc).toContain("import { HeroBand } from './HeroBand'")
-    expect(pageSrc).toContain('<HeroBand data={actionQueue} />')
+  it('binds the distilled canvas to the home route and removes the retired chrome imports', () => {
+    expect(pageSrc).toContain('<header className={styles.statusStrip}>')
+    expect(pageSrc).toContain("import { SixMonitorCanvas } from './SixMonitorCanvas'")
+    expect(pageSrc).toContain('CommandPaletteTrigger')
+    expect(pageSrc).toContain('<CommandPaletteTrigger')
+    expect(pageSrc).toContain('<SixMonitorCanvas')
+    expect(pageSrc).not.toContain("import { HeroBand } from './HeroBand'")
+    expect(pageSrc).not.toContain('<HeroBand')
+    expect(pageSrc).not.toContain('DECK_ROUTES')
+    expect(pageSrc).not.toContain('DeckThemeShell')
+    expect(pageSrc).not.toContain('<h1')
   })
 
   it('keeps every CommandPalette jump-target id intact (idea-console, portfolio, capability-bus)', () => {
     const anchorIds = [...paletteSrc.matchAll(/scrollTo\('([^']+)'\)/g)].map((m) => m[1])
     expect(anchorIds).toEqual(expect.arrayContaining(['portfolio', 'capability-bus']))
     expect(paletteSrc).toContain("getElementById('idea-console')")
-    for (const id of anchorIds) {
-      expect(pageSrc).toContain(`id="${id}"`)
-    }
+    expect(pageSrc).toContain('<SixMonitorCanvas')
+    for (const id of anchorIds) expect(canvasSrc).toContain(`id="${id}"`)
+  })
+
+  it('passes live queue and lane reads into the mounted canvas so degraded sources stay visible', () => {
+    expect(pageSrc).toContain('loadActionQueueData()')
+    expect(pageSrc).toContain('loadBlockedLanesData()')
+    expect(pageSrc).toContain('getOperationalSourceStatus(actionQueue, blockedLanes)')
+    expect(pageSrc).toMatch(/<SixMonitorCanvas[\s\S]*?actionQueue=\{actionQueue\}[\s\S]*?blockedLanes=\{blockedLanes\}/)
   })
 
   it('preserves the action-queue and evidence-stream section ids verbatim (relocated to the operations deck)', () => {

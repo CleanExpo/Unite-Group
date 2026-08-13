@@ -169,6 +169,7 @@
 }
 
 .kbd {
+  appearance: none;
   font-family: var(--font-geist-mono), monospace;
   font-size: 0.62rem;
   letter-spacing: 0.1em;
@@ -178,8 +179,12 @@
   padding: 0.28rem 0.5rem;
   background: rgba(var(--deck-glow), 0.05);
   white-space: nowrap;
+  cursor: pointer;
 }
 .kbd b { color: var(--deck-text); font-weight: 600; }
+.kbd:hover,
+.kbd:focus-visible { border-color: var(--deck-cyan); color: var(--deck-text); }
+.kbd:focus-visible { outline: 2px solid var(--deck-cyan); outline-offset: 2px; }
 
 /* Section labels (HUD) removed — UNI-2339 slice 2 migrated every section
    head to the canvas register (shell.module.css .glassSectionHead). */
