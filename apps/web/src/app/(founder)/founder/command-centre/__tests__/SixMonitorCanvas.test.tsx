@@ -1,45 +1,54 @@
-import { describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it } from 'vitest'
+import { render, screen } from '@testing-library/react'
 import { SixMonitorCanvas } from '../SixMonitorCanvas'
 
-vi.mock('../MissionStatusBand', () => ({
-  MissionStatusBand: () => <div data-testid="mission-status-band">verified fleet state</div>,
-}))
-
-describe('SixMonitorCanvas', () => {
+describe('SixMonitorCanvas North Star distillation', () => {
   const props = {
     actionQueue: { total_rows: 3, shown_rows: 3, read_error: null },
     blockedLanes: { total_lanes: 5, blocked_count: 1, read_error: null },
-    toolCount: 12,
+    projectCount: 12,
+    activeProjectCount: 8,
+    toolCount: 24,
+    sourceCount: 4,
   }
 
-  it('opens the existing command palette through its explicit event', () => {
-    const openPalette = vi.fn()
-    window.addEventListener('command-centre:open-palette', openPalette)
+  it('renders one selected inspector followed by six operational domains', () => {
     render(<SixMonitorCanvas {...props} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
-
-    expect(openPalette).toHaveBeenCalledOnce()
-    window.removeEventListener('command-centre:open-palette', openPalette)
+    expect(screen.getByRole('heading', { level: 1, name: 'Work from verified truth first.' })).toBeInTheDocument()
+    expect(screen.getAllByRole('link')).toHaveLength(6)
+    expect(screen.getByRole('link', { name: /Operations/ })).toHaveAttribute('href', '/founder/command-centre/operations')
+    expect(screen.getByRole('link', { name: /Machines/ })).toHaveAttribute('href', '/founder/command-centre/six-zone')
   })
 
-  it('labels only routes that the current decks provide', () => {
+  it('removes the nested sidebar and decorative monitor language', () => {
     render(<SixMonitorCanvas {...props} />)
 
-    expect(screen.getByRole('link', { name: 'Agents & approvals' })).toHaveAttribute('href', '/founder/command-centre/operations')
-    expect(screen.getByRole('link', { name: 'Delivery & proof' })).toHaveAttribute('href', '/founder/command-centre/operations')
-    expect(screen.getByRole('link', { name: 'Provider accounts' })).toHaveAttribute('href', '/founder/command-centre/providers')
-    expect(screen.queryByRole('link', { name: 'Command Chat' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Media' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Search' })).not.toBeInTheDocument()
+    expect(screen.queryByText(/PC pair|Mac Mini pair|MacBook pair/)).not.toBeInTheDocument()
+    expect(screen.queryByText('Command Matrix')).not.toBeInTheDocument()
   })
 
-  it('does not claim that queue or catalogue data belongs to a machine', () => {
+  it('shows source counts without inventing machine ownership', () => {
     render(<SixMonitorCanvas {...props} />)
 
-    expect(screen.getByTestId('six-monitor-canvas')).toHaveTextContent('PC pair · unassigned')
-    expect(screen.getByTestId('six-monitor-canvas')).toHaveTextContent('The queue source has no machine assignment.')
-    expect(screen.getByTestId('six-monitor-canvas')).toHaveTextContent('MacBook pair · unassigned')
-    expect(screen.getByTestId('six-monitor-canvas')).toHaveTextContent('Catalogue data has no machine assignment or freshness check.')
+    expect(screen.getByRole('link', { name: /Operations/ })).toHaveTextContent('3 proposed actions · 1 blocked of 5 lanes')
+    expect(screen.getByRole('link', { name: /Portfolio/ })).toHaveTextContent('12 projects · 8 active')
+    expect(screen.getByRole('link', { name: /Providers/ })).toHaveTextContent('4 sources · 24 tool entries')
+    expect(screen.getByRole('link', { name: /Machines/ })).toHaveTextContent('No host mapping is inferred')
+  })
+
+  it('fails visibly when queue and lane sources are unavailable', () => {
+    render(
+      <SixMonitorCanvas
+        {...props}
+        actionQueue={{ ...props.actionQueue, read_error: 'queue failed' }}
+        blockedLanes={{ ...props.blockedLanes, read_error: 'lanes failed' }}
+      />,
+    )
+
+    expect(screen.getByText('Restore the queue source before making a delivery decision.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Operations/ })).toHaveTextContent('Queue source unavailable · Lane source unavailable')
   })
 })
