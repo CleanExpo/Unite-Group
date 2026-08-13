@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { createHash } from 'node:crypto'
+import { createHash, verify } from 'node:crypto'
 import { join } from 'node:path'
 
 export const INLINE_TOOL_OUTPUT_LIMIT = 4_000
@@ -8,11 +8,7 @@ const INDEX_FILE = join(DATA_DIR, 'index.json')
 const PREVIEW_LIMIT = 1_000
 
 export type ToolArtifactKind =
-  | 'tool_output'
-  | 'file_read'
-  | 'terminal_log'
-  | 'diff'
-  | 'skill_doc'
+  'tool_output' | 'file_read' | 'terminal_log' | 'diff' | 'skill_doc'
 
 export type ToolArtifact = {
   id: string
@@ -29,8 +25,42 @@ export type ToolArtifact = {
   createdAt: number
 }
 
+/**
+ * A broker-issued receipt is deliberately persisted outside this store. Tool
+ * artifact writers can choose their own content and labels, but they cannot
+ * issue a receipt: only the external receipt broker holds the private key.
+ */
+export type TrustedReceiptSource =
+  'test-runner' | 'independent-review' | 'external-service'
+
+export type TrustedToolArtifactReceipt = {
+  version: 1
+  issuer: 'runtime-receipt-broker'
+  source: TrustedReceiptSource
+  taskId: string
+  workerId: string
+  artifactId: string
+  sha256: string
+  producer: {
+    sessionId: string
+    toolName: string
+  }
+  issuedAt: number
+  signature: string
+}
+
 type ArtifactIndex = {
   artifacts: Record<string, ToolArtifact>
+}
+
+const RECEIPT_BROKER_DIR_ENV = 'RUNTIME_CONTROL_PLANE_RECEIPT_BROKER_DIR'
+const RECEIPT_BROKER_PUBLIC_KEY_ENV =
+  'RUNTIME_CONTROL_PLANE_RECEIPT_BROKER_PUBLIC_KEY'
+
+const TRUSTED_PRODUCER_TOOL: Record<TrustedReceiptSource, string> = {
+  'test-runner': 'test-runner',
+  'independent-review': 'independent-review',
+  'external-service': 'external-service',
 }
 
 let index: ArtifactIndex = { artifacts: {} }
@@ -66,6 +96,68 @@ function sanitizePathSegment(value: string): string {
 
 function hashString(value: string): string {
   return createHash('sha256').update(value).digest('hex')
+}
+
+export function trustedReceiptPayload(
+  receipt: Omit<TrustedToolArtifactReceipt, 'signature'>,
+): string {
+  return JSON.stringify({
+    version: receipt.version,
+    issuer: receipt.issuer,
+    source: receipt.source,
+    taskId: receipt.taskId,
+    workerId: receipt.workerId,
+    artifactId: receipt.artifactId,
+    sha256: receipt.sha256,
+    producer: receipt.producer,
+    issuedAt: receipt.issuedAt,
+  })
+}
+
+function trustedSource(value: string): value is TrustedReceiptSource {
+  return (
+    value === 'test-runner' ||
+    value === 'independent-review' ||
+    value === 'external-service'
+  )
+}
+
+function brokerReceiptPath(artifactId: string): string | null {
+  if (!/^toolout_[a-f0-9]{16}$/i.test(artifactId)) return null
+  const directory = process.env[RECEIPT_BROKER_DIR_ENV]
+  return typeof directory === 'string' && directory.trim()
+    ? join(directory, `${artifactId}.json`)
+    : null
+}
+
+function readBrokerReceipt(
+  artifactId: string,
+): TrustedToolArtifactReceipt | null {
+  const path = brokerReceiptPath(artifactId)
+  if (!path || !existsSync(path)) return null
+  try {
+    const parsed = JSON.parse(
+      readFileSync(path, 'utf8'),
+    ) as Partial<TrustedToolArtifactReceipt>
+    if (
+      parsed.version !== 1 ||
+      parsed.issuer !== 'runtime-receipt-broker' ||
+      !trustedSource(String(parsed.source ?? '')) ||
+      typeof parsed.taskId !== 'string' ||
+      typeof parsed.workerId !== 'string' ||
+      typeof parsed.artifactId !== 'string' ||
+      typeof parsed.sha256 !== 'string' ||
+      !parsed.producer ||
+      typeof parsed.producer.sessionId !== 'string' ||
+      typeof parsed.producer.toolName !== 'string' ||
+      typeof parsed.issuedAt !== 'number' ||
+      typeof parsed.signature !== 'string'
+    )
+      return null
+    return parsed as TrustedToolArtifactReceipt
+  } catch {
+    return null
+  }
 }
 
 function artifactContentPath(sessionId: string, artifactId: string): string {
@@ -121,6 +213,48 @@ export function getToolArtifact(
     }
   } catch {
     return { ...artifact, content: '' }
+  }
+}
+
+/** Verify an externally brokered receipt and all persisted producer bindings. */
+export function verifyTrustedToolArtifactReceipt(input: {
+  artifactId: string
+  sha256: string
+  taskId: string
+  workerId: string
+}): boolean {
+  const artifact = getToolArtifact(input.artifactId)
+  const receipt = readBrokerReceipt(input.artifactId)
+  const publicKey = process.env[RECEIPT_BROKER_PUBLIC_KEY_ENV]
+  if (!artifact || !receipt || !publicKey || !trustedSource(receipt.source))
+    return false
+  const expectedToolName = TRUSTED_PRODUCER_TOOL[receipt.source]
+  if (
+    receipt.artifactId !== artifact.id ||
+    receipt.sha256 !== input.sha256 ||
+    receipt.sha256 !== hashString(artifact.content) ||
+    receipt.taskId !== input.taskId ||
+    receipt.workerId !== input.workerId ||
+    receipt.producer.sessionId !== artifact.sessionId ||
+    receipt.producer.toolName !== artifact.toolName ||
+    receipt.producer.toolName !== expectedToolName
+  )
+    return false
+
+  try {
+    return verify(
+      null,
+      Buffer.from(
+        trustedReceiptPayload({ ...receipt, signature: undefined } as Omit<
+          TrustedToolArtifactReceipt,
+          'signature'
+        >),
+      ),
+      publicKey,
+      Buffer.from(receipt.signature, 'base64'),
+    )
+  } catch {
+    return false
   }
 }
 

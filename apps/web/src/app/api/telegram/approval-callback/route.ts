@@ -71,8 +71,25 @@ export async function POST(req: NextRequest) {
   }
 
   // Only accept decisions from the founder's own chat.
+  //
+  // Fail CLOSED when TELEGRAM_CHAT_ID is unset. This was previously
+  // `if (process.env.TELEGRAM_CHAT_ID && chatId !== ...)`, which skipped the
+  // check entirely when the variable was missing — so an unset env var did not
+  // disable the feature, it disabled the AUTHORISATION on the feature and let
+  // any chat approve a draft. Approving here sends mail as the founder.
+  //
+  // A missing credential must be a loud fault, never a silent widening. Matches
+  // the TELEGRAM_BOT_TOKEN / FOUNDER_USER_ID handling above.
+  const expectedChatId = process.env.TELEGRAM_CHAT_ID;
+  if (!expectedChatId) {
+    return NextResponse.json(
+      { ok: false, reason: 'TELEGRAM_CHAT_ID not set' },
+      { status: 500 }
+    );
+  }
+
   const chatId = String(cq.message?.chat?.id ?? '');
-  if (process.env.TELEGRAM_CHAT_ID && chatId !== process.env.TELEGRAM_CHAT_ID) {
+  if (chatId !== expectedChatId) {
     return NextResponse.json(
       { ok: false, reason: 'chat not permitted' },
       { status: 403 }

@@ -50,6 +50,7 @@ import { Route as ApiLocalProvidersRouteImport } from './routes/api/local-provid
 import { Route as ApiMcpRouteImport } from './routes/api/mcp'
 import { Route as ApiMemoryRouteImport } from './routes/api/memory'
 import { Route as ApiMissionControlOsRouteImport } from './routes/api/mission-control-os'
+import { Route as ApiRuntimeControlPlaneRouteImport } from './routes/api/runtime-control-plane'
 import { Route as ApiModelsRouteImport } from './routes/api/models'
 import { Route as ApiPathsRouteImport } from './routes/api/paths'
 import { Route as ApiPingRouteImport } from './routes/api/ping'
@@ -353,6 +354,11 @@ const ApiMemoryRoute = ApiMemoryRouteImport.update({
 const ApiMissionControlOsRoute = ApiMissionControlOsRouteImport.update({
   id: '/api/mission-control-os',
   path: '/api/mission-control-os',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRuntimeControlPlaneRoute = ApiRuntimeControlPlaneRouteImport.update({
+  id: '/api/runtime-control-plane',
+  path: '/api/runtime-control-plane',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiModelsRoute = ApiModelsRouteImport.update({
@@ -896,6 +902,7 @@ export interface FileRoutesByFullPath {
   '/api/mcp': typeof ApiMcpRouteWithChildren
   '/api/memory': typeof ApiMemoryRouteWithChildren
   '/api/mission-control-os': typeof ApiMissionControlOsRoute
+  '/api/runtime-control-plane': typeof ApiRuntimeControlPlaneRoute
   '/api/models': typeof ApiModelsRoute
   '/api/paths': typeof ApiPathsRoute
   '/api/ping': typeof ApiPingRoute
@@ -1037,6 +1044,7 @@ export interface FileRoutesByTo {
   '/api/mcp': typeof ApiMcpRouteWithChildren
   '/api/memory': typeof ApiMemoryRouteWithChildren
   '/api/mission-control-os': typeof ApiMissionControlOsRoute
+  '/api/runtime-control-plane': typeof ApiRuntimeControlPlaneRoute
   '/api/models': typeof ApiModelsRoute
   '/api/paths': typeof ApiPathsRoute
   '/api/ping': typeof ApiPingRoute
@@ -1180,6 +1188,7 @@ export interface FileRoutesById {
   '/api/mcp': typeof ApiMcpRouteWithChildren
   '/api/memory': typeof ApiMemoryRouteWithChildren
   '/api/mission-control-os': typeof ApiMissionControlOsRoute
+  '/api/runtime-control-plane': typeof ApiRuntimeControlPlaneRoute
   '/api/models': typeof ApiModelsRoute
   '/api/paths': typeof ApiPathsRoute
   '/api/ping': typeof ApiPingRoute
@@ -1324,6 +1333,7 @@ export interface FileRouteTypes {
     | '/api/mcp'
     | '/api/memory'
     | '/api/mission-control-os'
+    | '/api/runtime-control-plane'
     | '/api/models'
     | '/api/paths'
     | '/api/ping'
@@ -1465,6 +1475,7 @@ export interface FileRouteTypes {
     | '/api/mcp'
     | '/api/memory'
     | '/api/mission-control-os'
+    | '/api/runtime-control-plane'
     | '/api/models'
     | '/api/paths'
     | '/api/ping'
@@ -1607,6 +1618,7 @@ export interface FileRouteTypes {
     | '/api/mcp'
     | '/api/memory'
     | '/api/mission-control-os'
+    | '/api/runtime-control-plane'
     | '/api/models'
     | '/api/paths'
     | '/api/ping'
@@ -1750,6 +1762,7 @@ export interface RootRouteChildren {
   ApiMcpRoute: typeof ApiMcpRouteWithChildren
   ApiMemoryRoute: typeof ApiMemoryRouteWithChildren
   ApiMissionControlOsRoute: typeof ApiMissionControlOsRoute
+  ApiRuntimeControlPlaneRoute: typeof ApiRuntimeControlPlaneRoute
   ApiModelsRoute: typeof ApiModelsRoute
   ApiPathsRoute: typeof ApiPathsRoute
   ApiPingRoute: typeof ApiPingRoute
@@ -2112,6 +2125,13 @@ declare module '@tanstack/react-router' {
       path: '/api/mission-control-os'
       fullPath: '/api/mission-control-os'
       preLoaderRoute: typeof ApiMissionControlOsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/runtime-control-plane': {
+      id: '/api/runtime-control-plane'
+      path: '/api/runtime-control-plane'
+      fullPath: '/api/runtime-control-plane'
+      preLoaderRoute: typeof ApiRuntimeControlPlaneRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/models': {
@@ -3012,6 +3032,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMcpRoute: ApiMcpRouteWithChildren,
   ApiMemoryRoute: ApiMemoryRouteWithChildren,
   ApiMissionControlOsRoute: ApiMissionControlOsRoute,
+  ApiRuntimeControlPlaneRoute: ApiRuntimeControlPlaneRoute,
   ApiModelsRoute: ApiModelsRoute,
   ApiPathsRoute: ApiPathsRoute,
   ApiPingRoute: ApiPingRoute,

@@ -13,19 +13,12 @@
 
 export const dynamic = 'force-dynamic'
 
-import { Chakra_Petch } from 'next/font/google'
+// Deck typeface — same face + variable the command-centre deck loads, so the
+// command-deck.module.css `--font-chakra` stack resolves on this sub-route too.
+import { chakra } from '../fonts'
 import { getControlPanelView } from '@/lib/operator-gateway/control-panel'
 import { DeckDetails, DeckMoreLine, DECK_LIST_CAP } from '@/components/command-centre/DeckDetails'
 import deckStyles from '../command-deck.module.css'
-
-// Deck typeface — same face + variable the command-centre deck loads, so the
-// command-deck.module.css `--font-chakra` stack resolves on this sub-route too.
-const chakra = Chakra_Petch({
-  weight: ['400', '500', '600', '700'],
-  subsets: ['latin'],
-  variable: '--font-chakra',
-  display: 'swap',
-})
 
 // Deck token values (command-deck.module.css) for the inline-styled bits.
 const mono = 'ui-monospace, SFMono-Regular, monospace'

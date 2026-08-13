@@ -106,3 +106,7 @@ outputs/sandbox_voice_migration/
 # Agent/local worktrees must never be committed as gitlinks
 .claude/worktrees/
 .worktrees/
+
+# Firecrawl scrape output: third-party pages pulled for research. Transient,
+# re-fetchable, and not ours to redistribute — keep it out of the repo.
+.firecrawl/

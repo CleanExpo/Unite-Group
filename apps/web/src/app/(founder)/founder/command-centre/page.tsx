@@ -13,7 +13,7 @@
 export const dynamic = 'force-dynamic'
 
 import Link from 'next/link'
-import { Chakra_Petch, Syne, JetBrains_Mono } from 'next/font/google'
+import { chakra, syne, jbMono } from './fonts'
 import { getProjects } from '@/lib/command-centre/registry'
 import { getToolCatalogue } from '@/lib/command-centre/tools/catalogue'
 import { loadProjectIntegrationStatuses } from '@/lib/command-centre/project-integrations'
@@ -25,7 +25,7 @@ import { IdeaConsole } from './IdeaConsole'
 import { DigestBanner } from './DigestBanner'
 import { CommandSteps } from './CommandSteps'
 import { HeroBand } from './HeroBand'
-import { MissionStatusBand } from './MissionStatusBand'
+import { SixMonitorCanvas } from './SixMonitorCanvas'
 import { DeckThemeShell } from './DeckThemeShell'
 import shell from './shell.module.css'
 // Vital Signs sources — all data below is already computed for the strip /
@@ -35,36 +35,16 @@ import { loadPipelineOpportunities } from '@/lib/command-centre/pipeline-opportu
 import { getUser } from '@/lib/supabase/server'
 import styles from './command-deck.module.css'
 
-const chakra = Chakra_Petch({
-  weight: ['400', '500', '600', '700'],
-  subsets: ['latin'],
-  variable: '--font-chakra',
-  display: 'swap',
-})
-
-// UNI-2339 slice 1 — canvas register typography (Syne display + JetBrains
-// Mono data/KPIs), scoped to this route via CSS variables consumed only by
-// shell.module.css.
-const syne = Syne({
-  weight: ['400', '500', '600', '700', '800'],
-  subsets: ['latin'],
-  variable: '--font-syne',
-  display: 'swap',
-})
-const jbMono = JetBrains_Mono({
-  weight: ['400', '500', '600'],
-  subsets: ['latin'],
-  variable: '--font-jbmono',
-  display: 'swap',
-})
-
 // The four relocated decks (UNI-2378). Rendered as the compact deck nav next
-// to the status strip AND echoed by the Vital Signs cards below.
+// to the status strip AND echoed by the Vital Signs cards below. Canvas (the
+// six-zone local-host canvas) joins the nav only — it has no Vital Signs card,
+// because its one live reading is local-host state this page never loads.
 const DECK_ROUTES = [
   { href: '/founder/command-centre/operations', label: 'Operations' },
   { href: '/founder/command-centre/portfolio', label: 'Portfolio' },
   { href: '/founder/command-centre/providers', label: 'Providers' },
   { href: '/founder/command-centre/knowledge', label: 'Knowledge' },
+  { href: '/founder/command-centre/six-zone', label: 'Canvas' },
 ] as const
 
 export default async function CommandDeckPage() {
@@ -159,19 +139,11 @@ export default async function CommandDeckPage() {
         </div>
       </nav>
 
-      {/* ── Mission Status (UNI-2378 wave 2) — status-first, at-a-glance view
-          of the fleet heartbeats + the AI agents working right now, so the calm
-          home still READS as a mission control. Fed only by data sources this
-          deck already exposes (mesh-fleet + live-agent-operations); the dense
-          tiles stay on the Operations deck. No-Invaders: no new numbers. ── */}
-      <div className={`${shell.canvasScope} ${shell.glassSectionHead}`} id="mission-status">
-        <h2>Mission Status</h2>
-        <span className={shell.glassSub}>fleet heartbeats + agent sessions · per-card source state · detail on Operations</span>
-      </div>
-
-      <section className={`${styles.reveal}`} style={{ animationDelay: '0.005s' }}>
-        <MissionStatusBand />
-      </section>
+      <SixMonitorCanvas
+        actionQueue={actionQueue}
+        blockedLanes={blockedLanes}
+        toolCount={tools.length}
+      />
 
       {/* ── Command Brief — the AI-works-here centrepiece (UNI-2378) ── */}
       <div className={`${shell.canvasScope} ${shell.glassSectionHead}`} id="command-brief">

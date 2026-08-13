@@ -67,12 +67,7 @@ type RunConsoleProps = {
 }
 
 type ConsoleTab =
-  | 'stream'
-  | 'timeline'
-  | 'artifacts'
-  | 'report'
-  | 'events'
-  | 'learnings'
+  'stream' | 'timeline' | 'artifacts' | 'report' | 'events' | 'learnings'
 type StreamView = 'combined' | 'lanes'
 
 type LiveStreamEvent = {
@@ -165,6 +160,7 @@ function extractContent(msg: {
 function sanitizeArgsPreview(args?: string): string {
   if (!args) return 'No arguments'
   const cleaned = args
+    // eslint-disable-next-line no-control-regex -- Explicitly replace unsafe control bytes in UI previews.
     .replace(/[\u0000-\u001F\u007F]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
@@ -419,7 +415,6 @@ export function RunConsole({
       agentName,
       events,
     }))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [displayEvents])
 
   const copyArtifactContent = useCallback(async (artifact: RunArtifact) => {

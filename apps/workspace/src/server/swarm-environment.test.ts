@@ -1,10 +1,10 @@
-import { describe, expect, it } from 'vitest'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
+import { describe, expect, it } from 'vitest'
 import {
+  SWARM_SENSITIVE_HOME_ROOTS,
   getSwarmEnvironment,
   isForbiddenSwarmPath,
-  SWARM_SENSITIVE_HOME_ROOTS,
 } from './swarm-environment'
 
 describe('swarm environment sensitive-home boundary', () => {

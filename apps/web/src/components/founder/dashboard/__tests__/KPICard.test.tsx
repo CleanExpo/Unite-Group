@@ -80,6 +80,38 @@ describe('KPICard', () => {
     expect(screen.queryByText('Loading...')).not.toBeInTheDocument()
   })
 
+  // The test above covers a THROWN fetch. A non-OK STATUS took a different path
+  // and was not covered: the response was mapped to `null`, which fell into the
+  // "Xero not connected / no data" degrade branch and set `error: false`. A 500
+  // therefore rendered the Demo badge and a permanent "Loading…" — the same
+  // defect the test above forbids, reached by the other door. [UNI-2492]
+  it('shows an honest error state when the revenue API returns 500 — not Demo/Loading', async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => ({ error: 'Xero unavailable' }),
+    })
+
+    render(
+      <KPICard
+        business={business}
+        metric="—"
+        metricLabel="Revenue MTD"
+        trend={{ value: '—', positive: true }}
+        secondary="Loading..."
+        xeroBusinessKey="restore"
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(/refresh to retry/i)
+    })
+    expect(screen.queryByText('Loading...')).not.toBeInTheDocument()
+    // "Demo" would tell the founder they are looking at sample data. They are
+    // looking at nothing, because the read failed.
+    expect(screen.queryByText('Demo')).not.toBeInTheDocument()
+  })
+
   // UNI-2373 H6 — mock boundary must surface end-to-end (API source → Demo badge).
   it('renders the Demo badge when the revenue API returns source: mock', async () => {
     global.fetch = vi.fn().mockResolvedValueOnce({

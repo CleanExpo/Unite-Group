@@ -5,6 +5,12 @@ User-agent: *
 Allow: /
 Disallow: /founder/
 Disallow: /api/
+# /docs is the public OpenAPI viewer for this private Nexus — it maps the
+# internal endpoint surface. No reason to have it indexed. (Added 10/08/2026.)
+# NOTE: robots.txt is ADVISORY. It asks well-behaved crawlers not to look; it
+# is not an access control, and listing a path here also advertises that the
+# path is interesting. Real protection is the proxy.ts gate.
+Disallow: /docs
 
 # Block AI training crawlers from private business data
 User-agent: GPTBot

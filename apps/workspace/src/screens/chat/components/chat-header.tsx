@@ -1,6 +1,7 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Folder01Icon } from '@hugeicons/core-free-icons'
+import type { ThinkingLevel } from '../types'
 import { Button } from '@/components/ui/button'
 import {
   TooltipContent,
@@ -10,7 +11,6 @@ import {
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { openHamburgerMenu } from '@/components/mobile-hamburger-menu'
-import type { ThinkingLevel } from '../types'
 
 function toTitleCase(value: string): string {
   return value

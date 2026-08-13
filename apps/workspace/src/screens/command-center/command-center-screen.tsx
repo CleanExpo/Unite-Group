@@ -49,6 +49,36 @@ type MissionControlOs = {
   quickCommands?: Array<QuickCommand>
 }
 
+type RuntimeControlPlane = {
+  source: 'runtime_checkpoints_only'
+  checkedAt: number
+  execution: 'disabled'
+  runtimes: Array<{
+    id: 'hermes' | 'codex' | 'ollama'
+    state: 'observed' | 'not_reporting' | 'stale'
+    detail: string
+  }>
+  tasks: Array<{
+    taskId: string
+    title: string
+    owner: string
+    runtime: 'hermes' | 'codex' | 'ollama'
+    state: 'active' | 'waiting' | 'blocked' | 'complete' | 'unknown'
+    evidenceStatus: 'present' | 'missing' | 'not_required'
+    deadlineStatus: 'not_set' | 'on_track' | 'overdue'
+    evidence: Array<{ label: string; kind: string }>
+    blocker: string | null
+    nextAction: string | null
+  }>
+  summary: {
+    active: number
+    blocked: number
+    complete: number
+    missingEvidence: number
+    overdue: number
+  }
+}
+
 async function readJson<T>(url: string): Promise<T> {
   const response = await fetch(url)
   if (!response.ok) {
@@ -86,6 +116,11 @@ export function CommandCenterScreen() {
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['mission-control-os'],
     queryFn: () => readJson<MissionControlOs>('/api/mission-control-os'),
+  })
+  const controlPlane = useQuery({
+    queryKey: ['runtime-control-plane'],
+    queryFn: () => readJson<RuntimeControlPlane>('/api/runtime-control-plane'),
+    refetchInterval: 5000,
   })
 
   // Quick-run: fire a Quick Command headless on the plan-backed gateway and
@@ -140,6 +175,7 @@ export function CommandCenterScreen() {
   }
 
   const obsidianTone = data.obsidian?.status === 'connected' ? 'on' : 'off'
+  const controlPlaneData = controlPlane.data
   // Connection rail: Obsidian is live; the rest are stubbed until slice 3.
   const rail: Array<{
     label: string
@@ -184,6 +220,61 @@ export function CommandCenterScreen() {
               : null}
           </span>
         </div>
+
+        {/* Runtime receipts — observed state only; this panel cannot dispatch work. */}
+        <section className="rounded-lg border border-neutral-800 p-4" aria-label="Runtime receipts">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="text-xs uppercase tracking-wide text-neutral-500">
+              Runtime receipts
+            </div>
+            <span className="text-[10px] uppercase tracking-wide text-neutral-600">
+              Read-only · execution disabled
+            </span>
+            {controlPlaneData ? (
+              <span className="ml-auto text-[11px] text-neutral-500">
+                {controlPlaneData.summary.active} active · {controlPlaneData.summary.blocked} blocked · {controlPlaneData.summary.overdue} overdue
+              </span>
+            ) : null}
+          </div>
+
+          {controlPlane.isError ? (
+            <p className="mt-2 text-xs text-red-400">Runtime receipts could not be read.</p>
+          ) : controlPlane.isLoading ? (
+            <p className="mt-2 text-xs text-neutral-500">Reading runtime receipts…</p>
+          ) : controlPlaneData ? (
+            <>
+              <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                {controlPlaneData.runtimes.map((runtime) => (
+                  <div key={runtime.id} className="rounded-md border border-neutral-800 px-3 py-2">
+                    <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-neutral-400">
+                      <Dot tone={runtime.state === 'observed' ? 'on' : runtime.state === 'stale' ? 'warn' : 'unknown'} />
+                      {runtime.id}
+                    </div>
+                    <p className="mt-1 text-xs text-neutral-500">{runtime.detail}</p>
+                  </div>
+                ))}
+              </div>
+              {controlPlaneData.tasks.length ? (
+                <div className="mt-3 space-y-2">
+                  {controlPlaneData.tasks.map((task) => (
+                    <div key={task.taskId} className="rounded-md border border-neutral-800 px-3 py-2 text-xs">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <Dot tone={task.state === 'blocked' || task.deadlineStatus === 'overdue' ? 'off' : task.state === 'active' ? 'on' : 'warn'} />
+                        <span className="font-medium text-neutral-200">{task.title}</span>
+                        <span className="text-neutral-500">{task.runtime} · {task.state}</span>
+                        {task.evidenceStatus === 'missing' ? <span className="text-amber-300">evidence missing</span> : null}
+                      </div>
+                      {task.blocker ? <p className="mt-1 text-red-300">Blocked: {task.blocker}</p> : null}
+                      {task.nextAction ? <p className="mt-1 text-neutral-400">Next: {task.nextAction}</p> : null}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-3 text-xs text-neutral-500">No runtime checkpoints have published a task receipt.</p>
+              )}
+            </>
+          ) : null}
+        </section>
 
         {/* Inspector — decision surface */}
         {data.decisionSurface ? (
