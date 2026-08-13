@@ -6,21 +6,31 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('@/components/ui/dialog', () => ({
   DialogRoot: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  DialogContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DialogTitle: ({ children }: { children: React.ReactNode }) => <h2>{children}</h2>,
+  DialogContent: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
+  DialogTitle: ({ children }: { children: React.ReactNode }) => (
+    <h2>{children}</h2>
+  ),
   DialogClose: ({ render }: { render: React.ReactNode }) => <>{render}</>,
 }))
 
 vi.mock('@/components/ui/button', () => ({
-  Button: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+  Button: ({
+    children,
+    ...props
+  }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
     <button {...props}>{children}</button>
   ),
 }))
 
+// eslint-disable-next-line import/first -- Vitest mocks must be declared before importing the mocked component.
 import FilePreviewDialog from './file-preview-dialog'
 
-;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean })
-  .IS_REACT_ACT_ENVIRONMENT = true
+// eslint-disable-next-line import/newline-after-import -- The mock-first import exception is intentionally followed by test setup.
+;(
+  globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true
 
 const cleanups: Array<() => Promise<void>> = []
 
@@ -65,9 +75,9 @@ describe('FilePreviewDialog confirmed writes', () => {
     const { container, onSaved } = await renderDialog()
 
     await vi.waitFor(() =>
-      expect((container.querySelector('textarea') as HTMLTextAreaElement)?.value).toBe(
-        '# Original',
-      ),
+      expect(
+        (container.querySelector('textarea') as HTMLTextAreaElement)?.value,
+      ).toBe('# Original'),
     )
     const editor = container.querySelector('textarea') as HTMLTextAreaElement
     await React.act(async () => {

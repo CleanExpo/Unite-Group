@@ -94,7 +94,7 @@ export function formatSkillName(raw: string): string {
   if (!raw) return '—'
   const trimmed = raw.trim()
   if (!trimmed.includes(':') && !trimmed.includes('/')) return trimmed
-  const segments = trimmed.split(/[:\/]/)
+  const segments = trimmed.split(/[:/]/)
   return segments[segments.length - 1] || trimmed
 }
 

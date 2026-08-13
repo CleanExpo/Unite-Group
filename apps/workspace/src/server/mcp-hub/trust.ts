@@ -12,6 +12,7 @@ import type { HubTrust } from './types'
 const SHELL_METACHAR_RE = /[;|&$`<>]/
 
 // Control characters (including NUL) that must not appear in command or args
+// eslint-disable-next-line no-control-regex -- Security validation intentionally rejects control bytes.
 const CONTROL_CHAR_RE = /[\x00-\x1F\x7F]/
 
 // Env key must be SCREAMING_SNAKE_CASE (same rule as mcp-input-validate.ts)
@@ -69,8 +70,7 @@ const INTERPRETER_INLINE_FLAGS: ReadonlyMap<
 ])
 
 export type NormalizeResult =
-  | { ok: true; template: McpClientInput }
-  | { ok: false; reason: string }
+  { ok: true; template: McpClientInput } | { ok: false; reason: string }
 
 /**
  * Return the basename of a command (handles both plain names and absolute paths).
