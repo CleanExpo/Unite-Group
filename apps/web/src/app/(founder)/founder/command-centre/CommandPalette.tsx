@@ -41,6 +41,19 @@ function focusIdeaConsole() {
   })
 }
 
+export function CommandPaletteTrigger({ className }: { className?: string }) {
+  return (
+    <button
+      type="button"
+      className={className}
+      onClick={() => window.dispatchEvent(new Event('command-centre:open-palette'))}
+      aria-label="Open command palette"
+    >
+      <b>⌘K</b> command
+    </button>
+  )
+}
+
 export function CommandPalette({
   projects,
   tools,

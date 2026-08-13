@@ -16,6 +16,7 @@ describe('SixMonitorCanvas North Star distillation', () => {
     const { container } = render(<SixMonitorCanvas {...props} />)
 
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
+    expect(screen.queryByRole('main')).not.toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 1, name: 'Work from verified truth first.' })).toBeInTheDocument()
     expect(screen.getAllByRole('link')).toHaveLength(6)
     expect(screen.getByRole('link', { name: /Operations/ })).toHaveAttribute('href', '/founder/command-centre/operations')
@@ -42,7 +43,8 @@ describe('SixMonitorCanvas North Star distillation', () => {
 
     expect(screen.getByRole('link', { name: /Operations/ })).toHaveTextContent('3 proposed actions · 1 blocked of 5 lanes')
     expect(screen.getByRole('link', { name: /Portfolio/ })).toHaveTextContent('12 projects · 8 active')
-    expect(screen.getByRole('link', { name: /Providers/ })).toHaveTextContent('4 sources · 24 tool entries')
+    expect(screen.getByRole('link', { name: /Providers/ })).toHaveTextContent('4 catalogue source labels · 24 tool entries')
+    expect(screen.getByRole('link', { name: /Providers/ })).toHaveTextContent('Verify account availability inside the provider deck')
     expect(screen.getByRole('link', { name: /Machines/ })).toHaveTextContent('No host mapping is inferred')
   })
 
@@ -57,5 +59,7 @@ describe('SixMonitorCanvas North Star distillation', () => {
 
     expect(screen.getByText('Restore the queue source before making a delivery decision.')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Operations/ })).toHaveTextContent('Queue source unavailable · Lane source unavailable')
+    expect(screen.getByRole('link', { name: /Operations/ }).querySelector('[data-signal]')).toHaveAttribute('data-signal', 'unavailable')
+    expect(screen.getByRole('link', { name: /Machines/ }).querySelector('[data-signal]')).toHaveAttribute('data-signal', 'unverified')
   })
 })

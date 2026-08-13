@@ -36,7 +36,7 @@ export function SixMonitorCanvas({
       : 'No action is waiting. Inspect live operations only when a source changes.'
 
   return (
-    <main className={styles.canvas} aria-label="Mission Control workspace" data-testid="six-monitor-canvas">
+    <section className={styles.canvas} aria-label="Mission Control workspace" data-testid="six-monitor-canvas">
       <section className={styles.inspector} aria-labelledby="mission-inspector-title">
         <span className={styles.eyebrow}>Inspector</span>
         <h1 id="mission-inspector-title">Work from verified truth first.</h1>
@@ -67,7 +67,8 @@ export function SixMonitorCanvas({
         <div className={styles.domainGrid}>
           <Domain
             title="Operations"
-            state={queueUnavailable || blockersUnavailable ? 'unavailable' : 'source read'}
+            state={queueUnavailable || blockersUnavailable ? 'source unavailable' : 'source read'}
+            signal={queueUnavailable || blockersUnavailable ? 'unavailable' : 'available'}
             summary={`${queueSummary} · ${blockerSummary}`}
             detail="Agents, approvals, delivery and proof"
             href="/founder/command-centre/operations"
@@ -75,6 +76,7 @@ export function SixMonitorCanvas({
           <Domain
             title="Portfolio"
             state="registry"
+            signal="catalogue"
             summary={`${projectCount} projects · ${activeProjectCount} active`}
             detail="Businesses, opportunities and integration state"
             href="/founder/command-centre/portfolio"
@@ -82,14 +84,16 @@ export function SixMonitorCanvas({
           />
           <Domain
             title="Providers"
-            state="catalogue"
-            summary={`${sourceCount} sources · ${toolCount} tool entries`}
-            detail="Account and provider availability"
+            state="catalogue only"
+            signal="catalogue"
+            summary={`${sourceCount} catalogue source labels · ${toolCount} tool entries`}
+            detail="Verify account availability inside the provider deck"
             href="/founder/command-centre/providers"
           />
           <Domain
             title="Knowledge"
             state="catalogue"
+            signal="catalogue"
             summary={`${toolCount} capability entries`}
             detail="Wiki, memory and source provenance"
             href="/founder/command-centre/knowledge"
@@ -97,21 +101,23 @@ export function SixMonitorCanvas({
           />
           <Domain
             title="Evidence"
-            state="gated"
+            state="approval gated"
+            signal="gated"
             summary="Receipts and delivery proof"
             detail="Technical and visual evidence stay separate"
             href="/founder/command-centre/operations#evidence-stream"
           />
           <Domain
             title="Machines"
-            state="verified adapter only"
+            state="not a live read"
+            signal="unverified"
             summary="Local and mesh status"
             detail="No host mapping is inferred from catalogue data"
             href="/founder/command-centre/six-zone"
           />
         </div>
       </section>
-    </main>
+    </section>
   )
 }
 
@@ -122,6 +128,7 @@ function Domain({
   detail,
   href,
   id,
+  signal,
 }: {
   title: string
   state: string
@@ -129,11 +136,12 @@ function Domain({
   detail: string
   href: string
   id?: string
+  signal: 'available' | 'unavailable' | 'catalogue' | 'gated' | 'unverified'
 }) {
   return (
     <Link href={href} className={styles.domain} id={id}>
       <span className={styles.domainTopline}>
-        <span className={styles.signal} aria-hidden />
+        <span className={styles.signal} data-signal={signal} aria-hidden />
         <strong>{title}</strong>
         <span className={styles.state}>{state}</span>
       </span>

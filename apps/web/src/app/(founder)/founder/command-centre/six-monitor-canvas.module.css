@@ -112,16 +112,24 @@
 .signal {
   width: 0.45rem;
   height: 0.45rem;
-  background: #2dbb57;
+  background: #7d8590;
   border-radius: 50%;
+}
+
+.signal[data-signal="available"] {
+  background: #2dbb57;
   box-shadow: 0 0 8px rgba(45, 187, 87, 0.45);
 }
 
+.signal[data-signal="unavailable"] { background: #e5484d; }
+.signal[data-signal="gated"] { background: #f0a94c; }
+.signal[data-signal="catalogue"],
+.signal[data-signal="unverified"] { background: #7d8590; }
+
 .state {
-  overflow: hidden;
-  max-width: 8.5rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  max-width: 10rem;
+  text-align: right;
+  white-space: normal;
 }
 
 .summary {
@@ -148,7 +156,7 @@
   .inspector { padding: 1rem; }
   .decisionGrid,
   .domainGrid { grid-template-columns: 1fr; }
-  .state { max-width: 7rem; }
+  .state { max-width: 9rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

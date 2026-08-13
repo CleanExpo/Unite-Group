@@ -12,7 +12,7 @@ import { getToolCatalogue } from '@/lib/command-centre/tools/catalogue'
 import { loadActionQueueData } from './ActionQueueTile'
 import { loadBlockedLanesData } from './BlockedLanesTile'
 import { LiveClock } from './LiveClock'
-import { CommandPalette } from './CommandPalette'
+import { CommandPalette, CommandPaletteTrigger } from './CommandPalette'
 import { IdeaConsole } from './IdeaConsole'
 import { SixMonitorCanvas } from './SixMonitorCanvas'
 import shell from './shell.module.css'
@@ -62,13 +62,11 @@ export default async function CommandDeckPage() {
         <span className={styles.sys}>
           <span className={styles.led} data-state={sourceUnavailable ? 'stub' : 'active'} />
           <span className={styles.sysText}>
-            {sourceUnavailable ? 'Some sources unavailable' : 'Authenticated source reads'}
+            {sourceUnavailable ? 'Queue or lane read unavailable' : 'Queue and lane reads available'}
           </span>
         </span>
 
-        <span className={styles.kbd}>
-          <b>⌘K</b> command
-        </span>
+        <CommandPaletteTrigger className={styles.kbd} />
       </header>
 
       <SixMonitorCanvas

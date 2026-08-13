@@ -45,6 +45,8 @@ describe('command-centre shell slice 1 — reshell regression gate', () => {
   it('binds the distilled canvas to the home route and removes the retired chrome imports', () => {
     expect(pageSrc).toContain('<header className={styles.statusStrip}>')
     expect(pageSrc).toContain("import { SixMonitorCanvas } from './SixMonitorCanvas'")
+    expect(pageSrc).toContain('CommandPaletteTrigger')
+    expect(pageSrc).toContain('<CommandPaletteTrigger')
     expect(pageSrc).toContain('<SixMonitorCanvas')
     expect(pageSrc).not.toContain("import { HeroBand } from './HeroBand'")
     expect(pageSrc).not.toContain('<HeroBand')
