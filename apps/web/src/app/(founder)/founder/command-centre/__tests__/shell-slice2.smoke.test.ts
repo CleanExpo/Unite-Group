@@ -89,6 +89,8 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
 
   it('keeps every pre-existing section anchor id intact on its relocated deck (UNI-2378)', () => {
     // Main page: the ⌘K palette anchors land on the distilled domain links.
+    expect(pageSrc).toContain("import { SixMonitorCanvas } from './SixMonitorCanvas'")
+    expect(pageSrc).toContain('<SixMonitorCanvas')
     for (const id of ['portfolio', 'capability-bus']) {
       expect(canvasSrc).toContain(`id="${id}"`)
     }
@@ -117,6 +119,7 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
   })
 
   it('links every relocated deck from the calm home and back (domain links + back-links)', () => {
+    expect(pageSrc).toContain('<SixMonitorCanvas')
     for (const route of ['operations', 'portfolio', 'providers', 'knowledge']) {
       expect(canvasSrc).toContain(`/founder/command-centre/${route}`)
     }

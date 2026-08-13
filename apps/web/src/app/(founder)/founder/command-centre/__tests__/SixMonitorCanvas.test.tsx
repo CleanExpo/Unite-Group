@@ -13,12 +13,19 @@ describe('SixMonitorCanvas North Star distillation', () => {
   }
 
   it('renders one selected inspector followed by six operational domains', () => {
-    render(<SixMonitorCanvas {...props} />)
+    const { container } = render(<SixMonitorCanvas {...props} />)
 
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
     expect(screen.getByRole('heading', { level: 1, name: 'Work from verified truth first.' })).toBeInTheDocument()
     expect(screen.getAllByRole('link')).toHaveLength(6)
     expect(screen.getByRole('link', { name: /Operations/ })).toHaveAttribute('href', '/founder/command-centre/operations')
+    expect(screen.getByRole('link', { name: /Portfolio/ })).toHaveAttribute('href', '/founder/command-centre/portfolio')
+    expect(screen.getByRole('link', { name: /Providers/ })).toHaveAttribute('href', '/founder/command-centre/providers')
+    expect(screen.getByRole('link', { name: /Knowledge/ })).toHaveAttribute('href', '/founder/command-centre/knowledge')
+    expect(screen.getByRole('link', { name: /Evidence/ })).toHaveAttribute('href', '/founder/command-centre/operations#evidence-stream')
     expect(screen.getByRole('link', { name: /Machines/ })).toHaveAttribute('href', '/founder/command-centre/six-zone')
+    expect(container.querySelector('#portfolio')).toBe(screen.getByRole('link', { name: /Portfolio/ }))
+    expect(container.querySelector('#capability-bus')).toBe(screen.getByRole('link', { name: /Knowledge/ }))
   })
 
   it('removes the nested sidebar and decorative monitor language', () => {

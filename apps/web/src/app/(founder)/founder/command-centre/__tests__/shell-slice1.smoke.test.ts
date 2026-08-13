@@ -42,21 +42,29 @@ const FONT_FILES = [
 ]
 
 describe('command-centre shell slice 1 — reshell regression gate', () => {
-  it('keeps one page status line and removes duplicate hero, secondary navigation and theme chrome', () => {
+  it('binds the distilled canvas to the home route and removes the retired chrome imports', () => {
     expect(pageSrc).toContain('<header className={styles.statusStrip}>')
+    expect(pageSrc).toContain("import { SixMonitorCanvas } from './SixMonitorCanvas'")
+    expect(pageSrc).toContain('<SixMonitorCanvas')
     expect(pageSrc).not.toContain("import { HeroBand } from './HeroBand'")
     expect(pageSrc).not.toContain('<HeroBand')
     expect(pageSrc).not.toContain('DECK_ROUTES')
     expect(pageSrc).not.toContain('DeckThemeShell')
-    expect(canvasSrc).toContain('<h1 id="mission-inspector-title">Work from verified truth first.</h1>')
+    expect(pageSrc).not.toContain('<h1')
   })
 
   it('keeps every CommandPalette jump-target id intact (idea-console, portfolio, capability-bus)', () => {
     const anchorIds = [...paletteSrc.matchAll(/scrollTo\('([^']+)'\)/g)].map((m) => m[1])
     expect(anchorIds).toEqual(expect.arrayContaining(['portfolio', 'capability-bus']))
     expect(paletteSrc).toContain("getElementById('idea-console')")
-    const homeSources = `${pageSrc}\n${canvasSrc}`
-    for (const id of anchorIds) expect(homeSources).toContain(`id="${id}"`)
+    expect(pageSrc).toContain('<SixMonitorCanvas')
+    for (const id of anchorIds) expect(canvasSrc).toContain(`id="${id}"`)
+  })
+
+  it('passes live queue and lane reads into the mounted canvas so degraded sources stay visible', () => {
+    expect(pageSrc).toContain('loadActionQueueData()')
+    expect(pageSrc).toContain('loadBlockedLanesData()')
+    expect(pageSrc).toMatch(/<SixMonitorCanvas[\s\S]*?actionQueue=\{actionQueue\}[\s\S]*?blockedLanes=\{blockedLanes\}/)
   })
 
   it('preserves the action-queue and evidence-stream section ids verbatim (relocated to the operations deck)', () => {
