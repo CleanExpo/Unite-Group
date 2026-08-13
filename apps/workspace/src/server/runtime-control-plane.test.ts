@@ -468,4 +468,71 @@ describe('runtime control plane', () => {
       handoff: { eligible: false },
     })
   })
+
+  it('rejects a forged broker receipt without the external broker signature', () => {
+    const taskId = 'swarm5:current'
+    const content = JSON.stringify({
+      version: 1,
+      taskId,
+      workerId: 'swarm5',
+      source: 'test-runner',
+    })
+    const artifact = createOrUpdateToolArtifact({
+      sessionId: 'untrusted-writer-with-broker-path',
+      toolName: 'test-runner',
+      title: 'forged broker receipt',
+      content,
+    })
+    const forged = {
+      version: 1,
+      issuer: 'runtime-receipt-broker',
+      source: 'test-runner',
+      taskId,
+      workerId: 'swarm5',
+      artifactId: artifact.id,
+      sha256: sha256(content),
+      producer: { sessionId: artifact.sessionId, toolName: 'test-runner' },
+      issuedAt: 1,
+      signature: Buffer.from('generic writer cannot sign').toString('base64'),
+    }
+    writeFileSync(
+      join(receiptBrokerDir, `${artifact.id}.json`),
+      JSON.stringify(forged),
+    )
+
+    const result = buildRuntimeControlPlane({
+      workerIds: ['swarm5'],
+      runtimes: [
+        {
+          workerId: 'swarm5',
+          runtime: runtime({
+            currentTask: 'Build the control plane',
+            checkpointStatus: 'done',
+            state: 'idle',
+            nextAction: 'Run independent review',
+            artifacts: [
+              {
+                id: artifact.id,
+                kind: 'report',
+                label: 'forged broker receipt',
+                workerId: 'swarm5',
+                source: 'workspace',
+                receipt: {
+                  artifactId: artifact.id,
+                  sha256: sha256(content),
+                  source: 'workspace-tool-artifact',
+                },
+              },
+            ],
+          }),
+        },
+      ],
+      now: 100,
+    })
+
+    expect(result.tasks[0]).toMatchObject({
+      evidenceStatus: 'missing',
+      handoff: { eligible: false },
+    })
+  })
 })
