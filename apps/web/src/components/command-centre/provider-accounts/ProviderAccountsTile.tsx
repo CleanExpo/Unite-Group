@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { SourceBadge, type SourceMode } from '../SourceBadge'
 import { DeckDetails, DeckMoreLine, DECK_LIST_CAP } from '../DeckDetails'
+import { StaleReadNotice } from '@/components/ui/StaleReadNotice'
 
 interface AccountView {
   accountId: string
@@ -134,16 +135,56 @@ export function ProviderAccountsTile() {
   const usableCount = accounts.filter((a) => a.usable && a.enabled).length
   const shownAccounts = accounts.slice(0, DECK_LIST_CAP)
 
-  return (
-    <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {error && <p style={{ color: 'var(--deck-abort-text)', fontSize: 12, margin: 0 }}>{error}</p>}
+  // The 11/08 fix stopped the STATS LINE and the EMPTY STATE lying after a
+  // failed read. The ROSTER was left, and it is the half that matters here:
+  // every reload path on this tile runs after a mutation (add / toggle /
+  // remove all `await load()`), so a failure leaves the pre-mutation account
+  // list on screen with `disable` and `remove` still live beside it. The
+  // founder can then disable an account whose real state they cannot see, or
+  // remove a row that may no longer exist.
+  //
+  // Unlike the read-only tiles drained alongside this one, this is the case
+  // `actionsDisabled` exists for, so the INERT half of the contract in
+  // components/ui/StaleReadNotice.tsx is enforced rather than satisfied
+  // vacuously: the two controls that ACT ON RETAINED RECORDS go offline until
+  // a read succeeds. `add account` and `test the pool` stay live — neither
+  // acts on a retained row, and both are how the founder gets back to a good
+  // read. Disabling them would trap the tile in its degraded state. [UNI-2476]
+  const staleRead = Boolean(error) && accounts.length > 0
 
+  return (
+    <section
+      style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+      data-stale-read={staleRead ? 'true' : undefined}
+    >
+      {error && <p role="alert" style={{ color: 'var(--deck-abort-text)', fontSize: 12, margin: 0 }}>{error}</p>}
+
+      {staleRead && <StaleReadNotice source="Provider accounts" actionsDisabled />}
+
+      {/* Recovery control, and it is REQUIRED rather than decorative. Every
+          other re-read on this tile is triggered by a mutation handler, so
+          taking `disable` and `remove` offline while stale would have left no
+          way back to a live read at all — the founder would be stuck in the
+          degraded state until a full page reload. StaleReadNotice is explicit
+          that recovery controls stay live for exactly this reason, so the
+          INERT half could not be implemented honestly without adding one. */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <button type="button" onClick={() => void load()} disabled={loading} style={ctrlStyle}>
+          {loading ? 'loading…' : '↻ refresh'}
+        </button>
+      </div>
+
+      {/* Both the stats line and the empty state assert a successful read.
+          After a failure `accounts` is still [], so they used to render
+          "0 registered · 0 usable" and "No provider accounts yet" NEXT TO the
+          alert above — telling the founder the pool was empty when it was
+          unreadable. Found by independent review 11/08/2026. */}
       <DeckDetails
         title="Provider accounts — LLM pool"
-        stats={loading ? undefined : `${accounts.length} registered · ${usableCount} usable`}
+        stats={loading || error ? undefined : `${accounts.length} registered · ${usableCount} usable`}
         badge={<SourceBadge mode={mode} label="Accounts" />}
       >
-      {accounts.length === 0 && !loading && (
+      {accounts.length === 0 && !loading && !error && (
         <p style={{ color: 'var(--deck-muted)', fontSize: 12, margin: 0 }}>
           No provider accounts yet. Add a vault entry for each key, then register it below — the router pools across them.
         </p>
@@ -163,7 +204,7 @@ export function ProviderAccountsTile() {
               <button
                 data-testid={`account-toggle-${a.accountId}`}
                 onClick={() => toggleAccount(a.accountId, !a.enabled)}
-                disabled={busyId === a.accountId}
+                disabled={busyId === a.accountId || staleRead}
                 style={ctrlStyle}
               >
                 {busyId === a.accountId ? '…' : a.enabled ? 'disable' : 'enable'}
@@ -171,7 +212,7 @@ export function ProviderAccountsTile() {
               <button
                 data-testid={`account-remove-${a.accountId}`}
                 onClick={() => removeAccount(a.accountId)}
-                disabled={busyId === a.accountId}
+                disabled={busyId === a.accountId || staleRead}
                 style={{ ...ctrlStyle, color: 'var(--deck-abort-text)', borderColor: 'var(--deck-abort)' }}
               >
                 remove

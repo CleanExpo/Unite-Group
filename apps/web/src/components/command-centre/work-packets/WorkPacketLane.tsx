@@ -16,6 +16,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { PacketEvent, PacketStatus, WorkPacket } from '@/lib/command-centre/work-packet'
 import { SourceBadge, type SourceMode } from '../SourceBadge'
 import { DegradedDataBanner } from '../DegradedDataBanner'
+import { StaleReadNotice } from '@/components/ui/StaleReadNotice'
 
 const POLL_MS = 20000
 
@@ -164,13 +165,25 @@ export function WorkPacketLane() {
     () => packets.filter((packet) => packet.status === 'awaiting_approval').length,
     [packets],
   )
-  const isEmpty = loaded && packets.length === 0
+  // Both the count label and the empty state assert a successful read. After a
+  // failure `packets` is still [], so they stated "0 packets · 0 awaiting
+  // approval" and an empty-lane message beside the degraded banner. Found by
+  // the strengthened No-Invaders census 11/08/2026.
+  const isEmpty = loaded && !error && packets.length === 0
+  // A failed 20s poll keeps the previous packets on screen — and kept every
+  // Route / Start / Block / Complete / Approve button live beside them. Those
+  // buttons POST a transition against a packet whose status was read before
+  // the failure, so the founder could approve a packet that had already moved.
+  // Retain the cards, mark them stale, and take the actions offline until a
+  // read succeeds.
+  const staleRead = Boolean(error) && packets.length > 0
 
   return (
     <section
       className="flex flex-col"
       style={{ background: 'var(--cc-bg-soft)', borderTop: '1px solid var(--cc-grid)' }}
       aria-label="Work Packet Lane"
+      data-stale-read={staleRead ? 'true' : undefined}
     >
       <header
         className="flex flex-col gap-3 px-6 py-5 lg:flex-row lg:items-end lg:justify-between"
@@ -185,17 +198,27 @@ export function WorkPacketLane() {
           </h2>
           <SourceBadge
             mode={sourceMode(loaded, loading, error)}
-            label={`${packets.length} packet${packets.length === 1 ? '' : 's'} · ${approvalCount} awaiting approval`}
+            label={
+              error
+                ? 'packet counts unavailable'
+                : `${packets.length} packet${packets.length === 1 ? '' : 's'} · ${approvalCount} awaiting approval`
+            }
           />
         </div>
       </header>
 
       {error && <DegradedDataBanner source="Work Packet Lane" reason={error} />}
+      {staleRead && <StaleReadNotice source="Work Packet Lane" actionsDisabled />}
 
       <div
         className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6"
         style={{ gap: 1, background: 'var(--cc-grid)' }}
       >
+        {/* Gating only the aggregate header left six columns publishing
+             "Draft 0 empty", "Routed 0 empty", ... from a read that never
+             happened. A count and an empty label are both claims, so the whole
+             data region is withheld until a read succeeds. Found by independent
+             review 11/08/2026. */}
         {columns.map((column) => (
           <PacketColumn
             key={column.status}
@@ -203,6 +226,8 @@ export function WorkPacketLane() {
             items={column.items}
             pendingId={pendingId}
             onTransition={runTransition}
+            degraded={Boolean(error)}
+            stale={staleRead}
           />
         ))}
       </div>
@@ -221,11 +246,15 @@ function PacketColumn({
   items,
   pendingId,
   onTransition,
+  degraded = false,
+  stale = false,
 }: {
   status: PacketStatus
   items: WorkPacket[]
   pendingId: string | null
   onTransition: (packetId: string, event: PacketEvent) => void
+  degraded?: boolean
+  stale?: boolean
 }) {
   const alert = status === 'awaiting_approval' || status === 'blocked'
   return (
@@ -244,7 +273,7 @@ function PacketColumn({
           className="font-mono text-[10px] tabular-nums"
           style={{ color: 'var(--cc-ink-hush)' }}
         >
-          {items.length}
+          {degraded ? '—' : items.length}
         </span>
       </div>
 
@@ -255,9 +284,10 @@ function PacketColumn({
             packet={packet}
             pending={pendingId === packet.id}
             onTransition={onTransition}
+            stale={stale}
           />
         ))}
-        {items.length === 0 && (
+        {items.length === 0 && !degraded && (
           <p className="px-4 py-3 font-mono text-[10px] uppercase tracking-[0.14em]" style={{ color: 'var(--cc-ink-hush)', background: 'var(--cc-bg-soft)' }}>
             empty
           </p>
@@ -271,10 +301,12 @@ function PacketCard({
   packet,
   pending,
   onTransition,
+  stale = false,
 }: {
   packet: WorkPacket
   pending: boolean
   onTransition: (packetId: string, event: PacketEvent) => void
+  stale?: boolean
 }) {
   const actions = actionsFor(packet.status)
   return (
@@ -310,7 +342,9 @@ function PacketCard({
             <button
               key={action.key}
               type="button"
-              disabled={pending}
+              // A transition is an act on THIS packet's status. A status read
+              // before the failed poll is not a fact you can act on.
+              disabled={pending || stale}
               onClick={() => onTransition(packet.id, action.event)}
               className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] transition-opacity disabled:opacity-40"
               style={{
