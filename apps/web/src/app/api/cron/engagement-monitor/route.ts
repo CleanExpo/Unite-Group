@@ -87,6 +87,7 @@ export async function GET(request: Request) {
     const { data: brandRows, error: brandError } = await supabase
       .from('brand_identities')
       .select('*')
+      .eq('founder_id', founderId)
 
     if (brandError) {
       throw new Error(`Failed to load brand identities: ${brandError.message}`)
