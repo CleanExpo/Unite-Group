@@ -50,34 +50,43 @@ export function parseRepoUrl(repoUrl: string): { owner: string; repo: string } |
 
 /**
  * Fetch the most recent commit for a repository.
- * Returns null on any failure — hub sweep is non-fatal.
+ *
+ * Returns `null` ONLY when the read SUCCEEDED and the repository genuinely has
+ * no commits. A read that could not be performed — unconfigured, non-OK, or a
+ * thrown fetch — THROWS.
+ *
+ * This used to return `null` for all four cases, and the docstring called that
+ * non-fatal. Non-fatal is right; indistinguishable is not. The sole consumer is
+ * the hub sweep, which treats a null commit date as "no signal": it skips the
+ * staleness check in `calculateHealthStatus` and persists the null over the
+ * previous value. So a missing token or a GitHub 500 could certify a satellite
+ * GREEN and overwrite the real last-commit data on the way. Failure is still
+ * non-fatal — the caller catches it, keeps the last known values, and degrades
+ * that satellite to `unknown`. [UNI-2487]
  */
 export async function fetchLastCommit(
   owner: string,
   repo: string
 ): Promise<GitHubCommitSummary | null> {
-  if (!isGitHubConfigured()) return null
-  try {
-    const res = await fetch(`${GITHUB_API}/repos/${owner}/${repo}/commits?per_page=1`, {
-      headers: headers(),
-    })
-    if (!res.ok) {
-      console.warn(`[GitHub] Commits fetch failed for ${owner}/${repo}: ${res.status}`)
-      return null
-    }
-    const commits = await res.json() as Array<{
-      sha: string
-      commit: { message: string; author: { date: string } }
-    }>
-    if (!commits.length) return null
-    return {
-      sha: commits[0].sha.slice(0, 7),
-      message: commits[0].commit.message.split('\n')[0].slice(0, 100),
-      authorDate: commits[0].commit.author.date,
-    }
-  } catch (err) {
-    console.warn(`[GitHub] fetchLastCommit error for ${owner}/${repo}:`, err)
-    return null
+  if (!isGitHubConfigured()) {
+    throw new Error('GitHub is not configured — the last commit is UNKNOWN, not absent')
+  }
+  const res = await fetch(`${GITHUB_API}/repos/${owner}/${repo}/commits?per_page=1`, {
+    headers: headers(),
+  })
+  if (!res.ok) {
+    throw new Error(`GitHub commits fetch failed for ${owner}/${repo}: ${res.status}`)
+  }
+  const commits = await res.json() as Array<{
+    sha: string
+    commit: { message: string; author: { date: string } }
+  }>
+  // A successful read of a repository that has no commits. THIS null is a fact.
+  if (!commits.length) return null
+  return {
+    sha: commits[0].sha.slice(0, 7),
+    message: commits[0].commit.message.split('\n')[0].slice(0, 100),
+    authorDate: commits[0].commit.author.date,
   }
 }
 
