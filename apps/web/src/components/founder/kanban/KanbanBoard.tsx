@@ -379,6 +379,30 @@ export function KanbanBoard() {
           census could find, and the explicit promise that the retained board
           is inert until a read succeeds. [UNI-2494] */}
       {staleRead && <StaleReadNotice source="Linear board" actionsDisabled />}
+      {/* An unconfigured Linear is not an empty board, and taking its ACTIONS
+          offline was only half the fix. The route omits `columns` on purpose, but
+          `data.columns?.[id] ?? []` turned that absence into five columns each
+          rendering `{cards.length}` — a visible 0 per column. "0 issues in TODAY"
+          is a claim, and it was being made about a board that was never read.
+          The connection banner above said otherwise two lines up.
+
+          So the grid is withheld entirely, not merely disabled. A genuinely empty
+          CONFIGURED board still renders its zeros, because that zero is a fact.
+          Found by the round at e8118ed7, pressing the same point a round earlier
+          had raised about actionability. [UNI-2493] */}
+      {!configured ? (
+        <div
+          className="flex items-center justify-center rounded-sm border p-8 text-[12px]"
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-text-muted)",
+            background: "var(--surface-card)",
+          }}
+        >
+          No Linear board to show — the integration is not connected, so the
+          backlog was never read.
+        </div>
+      ) : (
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -430,6 +454,7 @@ export function KanbanBoard() {
           ) : null}
         </DragOverlay>
       </DndContext>
+      )}
       <CreateIssueModal
         open={createOpen}
         onClose={() => setCreateOpen(false)}

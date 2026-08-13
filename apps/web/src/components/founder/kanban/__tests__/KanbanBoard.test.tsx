@@ -412,7 +412,7 @@ describe('KanbanBoard', () => {
    * release round at 2d209caa, which probed it directly and found the
    * not-connected banner beside four enabled Propose buttons.
    */
-  it('an unconfigured Linear leaves no board action live', async () => {
+  it('an unconfigured Linear renders no board at all, not an empty one', async () => {
     const fetchMock = vi.mocked(global.fetch)
     fetchMock.mockResolvedValueOnce({
       ok: true,
@@ -420,22 +420,69 @@ describe('KanbanBoard', () => {
     } as unknown as Response)
 
     render(<KanbanBoard />)
-    await waitFor(() => expect(screen.getByText('TODAY')).toBeInTheDocument())
+    await waitFor(() =>
+      expect(screen.getByText(/the integration is not connected/i)).toBeInTheDocument(),
+    )
 
-    const propose = Array.from(document.querySelectorAll('button')).filter(
-      (b) => b.textContent?.trim() === 'Propose',
-    ) as HTMLButtonElement[]
-    expect(propose.length, 'no Propose control rendered at all').toBeGreaterThan(0)
+    // THE ASSERTION THE PREVIOUS VERSION OF THIS TEST MISSED. It waited for
+    // 'TODAY' and then only checked Propose was disabled — proving the board was
+    // inert while accepting that it rendered five columns each showing a `0`
+    // count for a backlog that was never read. Disabled is not the same as absent,
+    // and a visible zero is a claim.
     expect(
-      propose.every((b) => b.disabled),
-      'left Propose live on a board that was never read — it POSTs /api/kanban/generate-next',
-    ).toBe(true)
+      screen.queryByText('TODAY'),
+      'rendered the column grid for a board that was never read — each column shows a 0 count',
+    ).toBeNull()
+    for (const label of ['HOT', 'PIPELINE', 'SOMEDAY', 'DONE']) {
+      expect(screen.queryByText(label)).toBeNull()
+    }
+    expect(
+      Array.from(document.querySelectorAll('button')).some(
+        (b) => b.textContent?.trim() === 'Propose',
+      ),
+      'a Propose control exists on a board that was never read',
+    ).toBe(false)
 
     // No drag assertion here, deliberately. An unconfigured board has no cards,
     // so handleDragEnd exits at findColumnByCardId before reaching any guard —
     // a mutation control proved such an assertion passes whether the guard is
     // present or absent. Asserting it would have looked like coverage and been
     // worth nothing.
+
+    vi.restoreAllMocks()
+  })
+
+  // NEGATIVE CONTROL for the test above, and the line it must not cross. A
+  // genuinely empty board that WAS read still shows its columns and its zeros —
+  // that zero is a fact, and withholding it would replace one false-empty with a
+  // false-unavailable.
+  it('a genuinely empty CONFIGURED board still renders its columns and zeros', async () => {
+    const fetchMock = vi.mocked(global.fetch)
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        columns: { today: [], hot: [], pipeline: [], someday: [], done: [] },
+        stateMap: {},
+        configured: true,
+      }),
+    } as unknown as Response)
+
+    render(<KanbanBoard />)
+    await waitFor(() => expect(screen.getByText('TODAY')).toBeInTheDocument())
+
+    expect(screen.queryByText(/the integration is not connected/i)).toBeNull()
+    for (const label of ['HOT', 'PIPELINE', 'SOMEDAY', 'DONE']) {
+      expect(screen.getByText(label)).toBeInTheDocument()
+    }
+    // Propose is live: this board was read, and it is genuinely empty.
+    const propose = Array.from(document.querySelectorAll('button')).filter(
+      (b) => b.textContent?.trim() === 'Propose',
+    ) as HTMLButtonElement[]
+    expect(propose.length).toBeGreaterThan(0)
+    expect(
+      propose.every((b) => !b.disabled),
+      'disabled Propose on a board that was successfully read and is genuinely empty',
+    ).toBe(true)
 
     vi.restoreAllMocks()
   })
@@ -459,7 +506,12 @@ describe('KanbanBoard', () => {
     } as unknown as Response)
 
     render(<KanbanBoard />)
-    await waitFor(() => expect(screen.getByText('TODAY')).toBeInTheDocument())
+    // Waits on the not-connected placeholder, not on 'TODAY'. An unconfigured
+    // board no longer renders columns at all, so waiting for a column header
+    // would hang until timeout — the wait condition had to move with the fix.
+    await waitFor(() =>
+      expect(screen.getByText(/the integration is not connected/i)).toBeInTheDocument(),
+    )
 
     fetchMock.mockRejectedValueOnce(new Error('network down'))
     expect(polls.length, 'the board registered no poll to fire').toBeGreaterThan(0)
