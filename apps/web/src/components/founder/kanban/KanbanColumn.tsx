@@ -20,9 +20,13 @@ interface KanbanColumnProps {
   /** Generates CRM proposals for review; never queues or mutates a projection. */
   onPropose?: () => void
   applying?: boolean
+  /** Set when the board is showing a payload retained from a failed read.
+   *  Separate from `applying` so the label still reads "Propose" rather than
+   *  claiming a proposal is already in flight. [UNI-2495] */
+  proposeDisabled?: boolean
 }
 
-export function KanbanColumn({ id, title, cards, isDone, onCardClick, onPropose, applying }: KanbanColumnProps) {
+export function KanbanColumn({ id, title, cards, isDone, onCardClick, onPropose, applying, proposeDisabled }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id })
 
   return (
@@ -45,7 +49,7 @@ export function KanbanColumn({ id, title, cards, isDone, onCardClick, onPropose,
             <button
               type="button"
               onClick={onPropose}
-              disabled={applying}
+              disabled={applying || proposeDisabled}
               title="Generate CRM proposals for founder review; does not queue or create Hermes/Linear work."
               className="text-[10px] font-semibold px-2 py-0.5 rounded-sm transition-opacity hover:opacity-80 disabled:opacity-50"
               style={{ background: 'var(--color-accent-dim)', color: 'var(--color-accent-text)', border: '1px solid var(--color-accent-border)' }}
