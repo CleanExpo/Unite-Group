@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { Zap, Code2, Palette, Lightbulb, Plus, ExternalLink } from 'lucide-react'
+import { StaleReadNotice } from '@/components/ui/StaleReadNotice'
 
 interface TeamMember {
   id: string
@@ -37,6 +38,9 @@ export function TeamPanel() {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ name: '', role: 'developer', email: '', github_login: '', linear_user_id: '' })
   const [submitting, setSubmitting] = useState(false)
+  // A failed read left `members` at [] and rendered "0 team members" — a fact
+  // the founder had no way to distinguish from an empty team.
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
     void load()
@@ -46,8 +50,14 @@ export function TeamPanel() {
     setLoading(true)
     try {
       const res = await fetch('/api/boardroom/team')
+      if (!res.ok) throw new Error('read failed')
       const d = await res.json() as { members: TeamMember[] }
       setMembers(d.members ?? [])
+      // Cleared on SUCCESS only. Clearing on entry would un-mark the retained
+      // roster the moment the Refresh control added alongside this is pressed.
+      setLoadError(null)
+    } catch {
+      setLoadError('Could not load the team — this is a failed read, not an empty team.')
     } finally {
       setLoading(false)
     }
@@ -80,12 +90,34 @@ export function TeamPanel() {
     return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
   }
 
+  const staleRead = Boolean(loadError) && members.length > 0
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
+        {/* The count is a claim about the team, so it may only be made from a
+            read that succeeded. Adding the alert below was not enough on its
+            own: `members` stays [] after a failed read, so this line went on
+            stating "0 team members" NEXT TO the alert — a fabricated fact with
+            a warning beside it. Found by independent review 11/08/2026. */}
         <p className="text-[11px]" style={{ color: 'var(--color-text-disabled)' }}>
-          {members.length} team member{members.length !== 1 ? 's' : ''}
+          {loadError
+            ? 'Team unavailable'
+            : `${members.length} team member${members.length !== 1 ? 's' : ''}`}
         </p>
+        {/* Recovery control. Before this the only re-read was `addMember`, so a
+            failed team read — first or subsequent — left the founder with no
+            retry short of a page reload, and no way to clear a stale roster.
+            Not disabled while stale: it is the way back to a live read. */}
+        <button
+          type="button"
+          onClick={() => void load()}
+          disabled={loading}
+          className="text-[11px] px-2 py-1 rounded-sm"
+          style={{ color: 'var(--color-text-disabled)', border: '1px solid var(--color-border)' }}
+        >
+          {loading ? 'loading…' : '↻ refresh'}
+        </button>
         <button
           onClick={() => setShowForm((v) => !v)}
           className="flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-sm"
@@ -156,6 +188,12 @@ export function TeamPanel() {
         </div>
       )}
 
+      {loadError && (
+        <div role="alert" className="rounded-sm border p-4 text-[12px]" style={{ borderColor: 'rgba(239,68,68,0.4)', background: 'rgba(239,68,68,0.08)', color: '#ef4444' }}>
+          {loadError}
+        </div>
+      )}
+
       {loading && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 animate-pulse" aria-label="Loading team members">
           {[...Array(3)].map((_, i) => (
@@ -173,7 +211,19 @@ export function TeamPanel() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+      {/* The count above was fixed on 11/08; the ROSTER was not. `members` is
+          retained across a failed read, and `addMember` re-reads via `load()`,
+          so adding someone whose confirming read fails leaves the previous
+          roster on screen looking current — the new member simply absent, with
+          no indication the list is a photograph. Marked rather than blanked.
+          The cards carry no controls that act on a member, so this is the
+          VISIBLE half only and `actionsDisabled` stays off. [UNI-2476] */}
+      {staleRead && <StaleReadNotice source="Boardroom team" />}
+
+      <div
+        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3"
+        data-stale-read={staleRead ? 'true' : undefined}
+      >
         {members.map((m) => {
           const roleColor = ROLE_COLORS[m.role] ?? 'var(--color-text-disabled)'
           const isAI = m.role === 'ai-agent'

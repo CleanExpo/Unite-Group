@@ -737,6 +737,46 @@ const STALE_FIXTURES: StaleFixture[] = [
     refresh: tick,
     actions: [],
   },
+  // eleven — the boardroom roster, added by slice 3b. The list and the shipped
+  // files must move together: a surface added to a slice without a fixture is
+  // the exact failure this file exists to prevent.
+  {
+    file: 'components/founder/boardroom/TeamPanel.tsx',
+    exportName: 'TeamPanel',
+    ok: {
+      members: [
+        {
+          id: 'tm-stale-1',
+          name: 'Retained teammate',
+          role: 'developer',
+          email: null,
+          github_login: null,
+          linear_user_id: null,
+          avatar_url: null,
+          active: true,
+          metadata: {},
+          created_at: '2026-08-12T00:00:00.000Z',
+        },
+      ],
+    },
+    retained: /Retained teammate/,
+    // TeamPanel reads once on mount with no poll, so `tick` would never drive a
+    // second read and the fixture would prove nothing. Its recovery control is
+    // the only re-read path.
+    //
+    // The accessible name is '↻ refresh' — lowercase, and prefixed with a
+    // glyph — so this pattern must stay UNANCHORED. /^Refresh$/i matches it in
+    // nobody's head but silently matches nothing here, and a fixture that never
+    // triggers the failed read reports the surface compliant for free. Two
+    // tests in this audit already went red for that class of reason.
+    refresh: ({ container }) => clickByName(container, /refresh/i),
+    // VISIBLE half only. The marked region holds member cards and external
+    // links; nothing inside it acts on a retained record, so `actionsDisabled`
+    // is deliberately off and the INERT half has nothing to assert here.
+    // Navigating to the source of truth is the REMEDY for staleness, not an
+    // action over stale data. [UNI-2476]
+    actions: [],
+  },
     ]
 
 /**

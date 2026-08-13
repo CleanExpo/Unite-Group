@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, CheckCircle2, Circle, XCircle } from 'lucide-react'
 import { BUSINESSES } from '@/lib/businesses'
+import { StaleReadNotice } from '@/components/ui/StaleReadNotice'
 
 interface Decision {
   id: string
@@ -46,6 +47,9 @@ export function DecisionLog() {
   const [form, setForm] = useState({ title: '', type: 'strategic', rationale: '', amount_aud: '', deadline: '', business_key: '' })
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  // A failed READ must not render as an empty board. formError covers the write
+  // path only; without this a dead endpoint looked like "nothing here yet".
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
     void load()
@@ -59,9 +63,15 @@ export function DecisionLog() {
       const d = await res.json() as { decisions?: Decision[]; error?: string }
       if (!res.ok) {
         console.error('[DecisionLog] load error:', d.error)
+        setLoadError(d.error ?? `Decisions unavailable (${res.status})`)
         return
       }
       setDecisions(d.decisions ?? [])
+      setLoadError(null)
+    } catch (err) {
+      // No catch existed: a network throw escaped the effect and left the board
+      // rendering "No decisions yet".
+      setLoadError(err instanceof Error ? err.message : 'Decisions unavailable')
     } finally {
       setLoading(false)
     }
@@ -113,6 +123,16 @@ export function DecisionLog() {
   }
 
   const visible = decisions.filter((d) => !filterStatus || d.status === filterStatus)
+
+  // A failed RELOAD keeps the previous decisions on screen — deliberate, and the
+  // alert below already says so in words. What was missing is the other half of
+  // the contract: the retained rows stayed ACTIONABLE, so the founder could
+  // advance a decision's status through a PATCH against a list the latest read
+  // could not confirm. Marked and taken offline until a read succeeds.
+  //
+  // This surface reloads only through `useEffect(..., [filterStatus])`, which is
+  // why the risk-class census could not see it at all until UNI-2488. [UNI-2489]
+  const staleRead = Boolean(loadError) && visible.length > 0
 
   return (
     <div className="space-y-4">
@@ -235,10 +255,28 @@ export function DecisionLog() {
           ))}
         </div>
       )}
-      {!loading && visible.length === 0 && (
-        <p className="text-[12px] py-6 text-center" style={{ color: 'var(--color-text-disabled)' }}>No decisions yet. Record your first strategic decision.</p>
+      {/* The alert used to render only when `visible.length === 0`, so a failed
+          RELOAD — a filter change whose fetch rejects — kept the previous rows
+          on screen with no warning at all. The founder saw stale rows as if
+          they were current. A failed read must announce itself regardless of
+          how much stale data survived it. Found by independent review
+          11/08/2026. */}
+      {!loading && loadError && (
+        <p role="alert" className="text-[12px] py-3 text-center" style={{ color: '#ef4444' }}>
+          {loadError}
+        </p>
       )}
-      <div className="space-y-2">
+      {/* The staleness message and the inert-actions promise now come from the
+          shared contract component rather than a sentence appended to the error,
+          so this surface is discoverable by `data-stale-read-notice` like every
+          other marked region. */}
+      {staleRead && <StaleReadNotice source="Boardroom decisions" actionsDisabled />}
+      {!loading && !loadError && visible.length === 0 && (
+        <p className="text-[12px] py-6 text-center" style={{ color: 'var(--color-text-disabled)' }}>
+          No decisions yet. Record your first strategic decision.
+        </p>
+      )}
+      <div className="space-y-2" data-stale-read={staleRead ? 'true' : undefined}>
         {visible.map((d) => {
           const typeColor = TYPE_COLORS[d.type] ?? 'var(--color-text-disabled)'
           const biz = BUSINESSES.find((b) => b.key === d.business_key)
@@ -260,7 +298,7 @@ export function DecisionLog() {
                 {d.rationale && <p className="text-[11px] mt-1" style={{ color: 'var(--color-text-muted)' }}>{d.rationale}</p>}
               </div>
               {NEXT_STATUS[d.status] && (
-                <button onClick={() => void advance(d.id, d.status)} className="text-[10px] px-2 py-1 rounded-sm border shrink-0" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-disabled)' }}>
+                <button onClick={() => void advance(d.id, d.status)} disabled={staleRead} className="text-[10px] px-2 py-1 rounded-sm border shrink-0 disabled:opacity-40 disabled:cursor-not-allowed" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-disabled)' }}>
                   → {NEXT_STATUS[d.status]}
                 </button>
               )}
