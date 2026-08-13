@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Send, ExternalLink, Plus } from 'lucide-react'
 import { BUSINESSES, type BusinessKey } from '@/lib/businesses'
+import { StaleReadNotice } from '@/components/ui/StaleReadNotice'
 
 interface Dispatch {
   id: string
@@ -67,7 +68,16 @@ export function DispatchPanel() {
   })
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  // A failed READ must not render as an empty board. formError covers the write
+  // path only; without this a dead endpoint looked like "nothing here yet".
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [lastDispatched, setLastDispatched] = useState<{ title: string; url?: string } | null>(null)
+
+  // Retained dispatch rows across a failed read. The alert below already said so
+  // in words, but nothing machine-readable marked the region, so no census could
+  // see this surface at all — it reloads only through an effect dependency and
+  // was one of the four UNI-2488 enumerated as never assessed. [UNI-2494]
+  const staleRead = Boolean(loadError) && dispatches.length > 0
 
   useEffect(() => {
     void load()
@@ -79,8 +89,17 @@ export function DispatchPanel() {
       const params = filterBiz ? `?businessKey=${filterBiz}` : ''
       const res = await fetch(`/api/satellites/dispatch${params}`)
       const d = await res.json() as { dispatches?: Dispatch[]; error?: string }
-      if (!res.ok) { console.error('[DispatchPanel]', d.error); return }
+      if (!res.ok) {
+        console.error('[DispatchPanel]', d.error)
+        setLoadError(d.error ?? `Dispatches unavailable (${res.status})`)
+        return
+      }
       setDispatches(d.dispatches ?? [])
+      setLoadError(null)
+    } catch (err) {
+      // No catch existed: a network throw escaped the effect and left the panel
+      // rendering "No work packages dispatched yet".
+      setLoadError(err instanceof Error ? err.message : 'Dispatches unavailable')
     } finally {
       setLoading(false)
     }
@@ -279,13 +298,29 @@ export function DispatchPanel() {
         </div>
       )}
 
-      {!loading && dispatches.length === 0 && (
+      {/* Same stale-data/no-alert state machine as DecisionLog: the alert was
+          gated on an empty list, so a failed RELOAD left the previous
+          dispatches on screen unannounced. Found by independent review
+          11/08/2026. */}
+      {!loading && loadError && (
+        <p role="alert" className="text-[12px] py-4 text-center" style={{ color: '#ef4444' }}>
+          {loadError}
+        </p>
+      )}
+      {/* The staleness statement moves to the shared contract component so the
+          region is discoverable by `data-stale-read-notice`, not only by prose.
+          NO `actionsDisabled`: the retained rows carry no acting control — the
+          only affordance is an "Open in Linear" link, which is the remedy for
+          staleness rather than an act on it — so this surface does not claim an
+          inertness it has nothing to enforce. */}
+      {staleRead && <StaleReadNotice source="Boardroom dispatches" />}
+      {!loading && !loadError && dispatches.length === 0 && (
         <p className="text-[12px] py-8 text-center" style={{ color: 'var(--color-text-disabled)' }}>
           No work packages dispatched yet. Use &quot;Dispatch Work&quot; to push a task to a satellite business via Linear.
         </p>
       )}
 
-      <div className="space-y-2">
+      <div className="space-y-2" data-stale-read={staleRead ? 'true' : undefined}>
         {dispatches.map(d => {
           const b = biz(d.business_key)
           const bizColor = b?.color ?? 'var(--color-text-disabled)'
