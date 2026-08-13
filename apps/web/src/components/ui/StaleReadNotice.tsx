@@ -23,11 +23,18 @@
 //      succeeds again.
 //
 // The `data-stale-read="true"` attribute is the machine-readable half of the
-// same statement. The census sweep in
-// components/founder/__tests__/no-invaders-render-under-failure.test.tsx finds
-// that region and asserts nothing inside it is still actionable, so a mutation
-// control added to a stale region later is a RED run rather than a silent
-// regression.
+// same statement: a sweep can find the region and assert nothing inside it is
+// still actionable.
+//
+// NOTE: that sweep does NOT exist in this branch yet. The census which enforces
+// it — components/founder/__tests__/no-invaders-render-under-failure.test.tsx —
+// ships in a later slice of this audit. Until then the contract is enforced per
+// surface by each component's own tests; see kanban/__tests__/KanbanBoard.test.tsx.
+//
+// An earlier draft of this comment described that census in the present tense
+// and was caught by review. A comment promising enforcement that does not exist
+// is the same class of false confidence this audit is about, in prose instead of
+// code.
 //
 // Recovery controls (Refresh, a filter change, pagination) are NOT disabled —
 // they are how the founder gets back to a live read, and disabling them would

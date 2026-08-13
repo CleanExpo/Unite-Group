@@ -441,6 +441,45 @@ describe('KanbanBoard', () => {
   })
 
   /**
+   * An unconfigured response is a SUCCESSFUL request that carries no board, so a
+   * later failed poll must not claim retained data. [UNI-2493]
+   *
+   * `hasLoadedOnce` was set for every 200, including the unconfigured one, so
+   * unconfigured → failed poll wrapped a never-read empty board in
+   * `data-stale-read="true"` and showed a notice promising last-known data that
+   * had never been received. The inverse of the defect the flag was added to fix,
+   * introduced by that fix. Found by the round at dc0d44db.
+   */
+  it('a failed poll after an UNCONFIGURED response claims no retained data', async () => {
+    const polls = capturePolls()
+    const fetchMock = vi.mocked(global.fetch)
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ configured: false, stateMap: {} }),
+    } as unknown as Response)
+
+    render(<KanbanBoard />)
+    await waitFor(() => expect(screen.getByText('TODAY')).toBeInTheDocument())
+
+    fetchMock.mockRejectedValueOnce(new Error('network down'))
+    expect(polls.length, 'the board registered no poll to fire').toBeGreaterThan(0)
+    await act(async () => {
+      for (const poll of [...polls]) poll()
+    })
+
+    expect(
+      document.querySelector('[data-stale-read="true"]'),
+      'marked a never-read board as retained stale data — nothing was ever received to retain',
+    ).toBeNull()
+    expect(
+      document.querySelector('[data-stale-read-notice="true"]'),
+      'promised last-known data for a board that was never read',
+    ).toBeNull()
+
+    vi.restoreAllMocks()
+  })
+
+  /**
    * Opening a retained card GETs /api/linear/issues/{id} for an id the latest
    * read could not confirm. It is an act on a retained record inside the marked
    * region — and invisible to the census detector, because a card is not a

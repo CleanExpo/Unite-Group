@@ -92,7 +92,14 @@ export function KanbanBoard() {
         })),
       );
       setStale(false);
-      setHasLoadedOnce(true);
+      // A 200 is not a board. The unconfigured response is a SUCCESSFUL request
+      // that deliberately carries no `columns`, and setting this flag for it made
+      // a later failed poll mark a never-read empty board as retained stale data —
+      // `data-stale-read="true"` plus a notice promising last-known data that was
+      // never received. That is the exact inverse of the defect this flag was
+      // added to fix, introduced by the fix itself. Found by the round at
+      // dc0d44db. [UNI-2493]
+      if (data.configured !== false && data.columns) setHasLoadedOnce(true);
       setLastSynced(new Date());
     } catch {
       setStale(true);
