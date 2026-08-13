@@ -52,13 +52,29 @@ export function KanbanBoard() {
   const [activeCard, setActiveCard] = useState<Card | null>(null);
   const [loading, setLoading] = useState(true);
   const [stale, setStale] = useState(false);
-  // Whether a read has EVER succeeded. Distinguishes the two failure states the
-  // board could not previously tell apart: a failed reload over a payload that
-  // was genuinely read (retained data, must be marked), and a first read that
-  // never landed (nothing retained, nothing to mark, and no "cached data" to
-  // claim). [UNI-2501]
-  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
-  const [configured, setConfigured] = useState(true);
+  // ONE state describing what is on screen and where it came from, replacing
+  // three interacting booleans (`stale`, `hasLoadedOnce`, `configured`).
+  //
+  // Four consecutive review rounds found defects in the boolean version, each a
+  // different path through the same state space, each fixed by adding another
+  // condition:
+  //   - an empty board that HAD been read could not be marked      (needed hasLoadedOnce)
+  //   - an unconfigured 200 counted as a read                       (needed a columns check)
+  //   - configured -> unconfigured -> failed poll still latched     (needed a clear)
+  // Three booleans give eight states, most of which are unreachable and two of
+  // which are lies. The bug was never any one condition; it was modelling "what
+  // is displayed" as flags that each fix had to keep in agreement by hand.
+  //
+  // `boardSource` says it directly:
+  //   'none'         nothing has ever been read — no board, nothing to retain
+  //   'read'         a real payload is displayed — the only state that can go stale
+  //   'unconfigured' Linear answered successfully with no board at all
+  // A failed poll can only make a 'read' board stale, and an unconfigured
+  // response OVERWRITES 'read', which is precisely the transition the fourth
+  // round caught. [UNI-2493]
+  type BoardSource = "none" | "read" | "unconfigured";
+  const [boardSource, setBoardSource] = useState<BoardSource>("none");
+  const configured = boardSource !== "unconfigured";
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [businessFilter, setBusinessFilter] = useState<string | null>(null);
@@ -82,7 +98,12 @@ export function KanbanBoard() {
         stateMap: Record<string, Record<string, string>>;
         configured?: boolean;
       };
-      setConfigured(data.configured ?? true);
+      // Assigned, never accumulated: every successful read REPLACES what is on
+      // screen, so the source of the displayed board is whatever this response
+      // was. The boolean version only ever set flags true, which is why an
+      // unconfigured response could not undo an earlier successful read.
+      const hasBoard = data.configured !== false && Boolean(data.columns);
+      setBoardSource(hasBoard ? "read" : "unconfigured");
       setStateMap(data.stateMap);
       setColumns(
         COLUMN_ORDER.map((id) => ({
@@ -92,14 +113,6 @@ export function KanbanBoard() {
         })),
       );
       setStale(false);
-      // A 200 is not a board. The unconfigured response is a SUCCESSFUL request
-      // that deliberately carries no `columns`, and setting this flag for it made
-      // a later failed poll mark a never-read empty board as retained stale data —
-      // `data-stale-read="true"` plus a notice promising last-known data that was
-      // never received. That is the exact inverse of the defect this flag was
-      // added to fix, introduced by the fix itself. Found by the round at
-      // dc0d44db. [UNI-2493]
-      if (data.configured !== false && data.columns) setHasLoadedOnce(true);
       setLastSynced(new Date());
     } catch {
       setStale(true);
@@ -154,19 +167,16 @@ export function KanbanBoard() {
     return columns.find((col) => col.cards.some((c) => c.id === cardId))?.id;
   }
 
-  // Cached data retained across a failed read.
+  // Cached data retained across a failed read. Only a board that was actually
+  // READ can be stale: 'unconfigured' has no payload to retain and 'none' never
+  // had one, so neither can be marked.
   //
-  // This used to require at least one retained CARD, on the reasoning that with
-  // no cards nothing is being presented as current. That was wrong, and it is
-  // this branch's own thesis inverted: a board that last read successfully and
-  // found nothing is presenting "no issues" as a FACT. After a failed reload
-  // that fact is no longer confirmed, yet the board skipped the marker, skipped
-  // the notice, and passed `proposeDisabled={staleRead}` — leaving Propose live
-  // to generate work from a board it could not read. An empty board is a claim.
-  //
-  // Keyed on "a read has succeeded before" instead, which is the condition that
-  // actually makes the payload RETAINED rather than absent. [UNI-2501]
-  const staleRead = stale && hasLoadedOnce;
+  // An earlier version required at least one retained CARD, on the reasoning
+  // that with no cards nothing is presented as current. That was this branch's
+  // own thesis inverted — a board whose last SUCCESSFUL read found nothing is
+  // presenting "no issues" as a fact, and after a failed reload that fact is no
+  // longer confirmed. An empty board is a claim. [UNI-2501]
+  const staleRead = stale && boardSource === "read";
 
   // An unconfigured Linear omits `columns` entirely rather than sending empty
   // ones, and line ~91 coerces that absence into five empty columns. The
@@ -326,7 +336,7 @@ export function KanbanBoard() {
               first read that never landed the board is empty because nothing
               was read, and claiming a cache is the same false-empty this branch
               exists to remove — one banner away from the defect it reports. */}
-          {hasLoadedOnce
+          {boardSource === "read"
             ? "Linear unreachable — showing cached data"
             : "Linear unreachable — the board could not be read"}
           <button

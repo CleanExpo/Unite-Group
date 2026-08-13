@@ -532,6 +532,65 @@ describe('KanbanBoard', () => {
   })
 
   /**
+   * configured → unconfigured → failed poll. [UNI-2493]
+   *
+   * The sequence the fourth round caught. A real board is read, a later poll
+   * answers `configured:false` and REPLACES it with no board, then a poll fails.
+   * The old `hasLoadedOnce` flag was only ever set true, so it still said "a
+   * payload was read" about a board that had since been cleared, and the notice
+   * promised last-known data that was no longer on screen.
+   *
+   * `boardSource` is assigned on every successful read rather than accumulated,
+   * so the unconfigured response overwrites 'read' and this cannot latch.
+   */
+  it('a board cleared by an unconfigured response cannot later be called stale', async () => {
+    const polls = capturePolls()
+    const fetchMock = vi.mocked(global.fetch)
+    // 1. a real board
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        columns: { today: [CARD], hot: [], pipeline: [], someday: [], done: [] },
+        stateMap: {},
+        configured: true,
+      }),
+    } as unknown as Response)
+
+    render(<KanbanBoard />)
+    await screen.findByText(/Retained card/)
+
+    // 2. a SUCCESSFUL unconfigured response clears it
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ configured: false, stateMap: {} }),
+    } as unknown as Response)
+    expect(polls.length, 'the board registered no poll to fire').toBeGreaterThan(0)
+    await act(async () => {
+      for (const poll of [...polls]) poll()
+    })
+    await waitFor(() =>
+      expect(screen.getByText(/the integration is not connected/i)).toBeInTheDocument(),
+    )
+
+    // 3. now a poll fails
+    fetchMock.mockRejectedValueOnce(new Error('network down'))
+    await act(async () => {
+      for (const poll of [...polls]) poll()
+    })
+
+    expect(
+      document.querySelector('[data-stale-read="true"]'),
+      'marked a board as retained stale data after an unconfigured response had already cleared it',
+    ).toBeNull()
+    expect(
+      document.querySelector('[data-stale-read-notice="true"]'),
+      'promised last-known data for a board that is no longer on screen',
+    ).toBeNull()
+
+    vi.restoreAllMocks()
+  })
+
+  /**
    * Opening a retained card GETs /api/linear/issues/{id} for an id the latest
    * read could not confirm. It is an act on a retained record inside the marked
    * region — and invisible to the census detector, because a card is not a
