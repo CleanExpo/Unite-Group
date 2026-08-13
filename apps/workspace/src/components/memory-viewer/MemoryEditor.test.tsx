@@ -4,6 +4,8 @@ import { createRoot } from 'react-dom/client'
 import { fireEvent } from '@testing-library/dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { MemoryEditor } from './MemoryEditor'
+
 vi.mock('@hugeicons/react', () => ({
   HugeiconsIcon: () => React.createElement('span', { 'aria-hidden': true }),
 }))
@@ -31,8 +33,6 @@ vi.mock('@/components/ui/switch', () => ({
         onCheckedChange(event.target.checked),
     }),
 }))
-
-import { MemoryEditor } from './MemoryEditor'
 
 const cleanups: Array<() => Promise<void>> = []
 

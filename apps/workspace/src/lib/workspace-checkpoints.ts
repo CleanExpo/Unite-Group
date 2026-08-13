@@ -1,11 +1,7 @@
 import { cn } from '@/lib/utils'
 
 export type CheckpointStatus =
-  | 'pending'
-  | 'approved'
-  | 'rejected'
-  | 'revised'
-  | string
+  'pending' | 'approved' | 'rejected' | 'revised' | string
 
 export type CheckpointReviewAction =
   | 'approve'
@@ -62,10 +58,7 @@ export type WorkspaceCheckpointVerificationItem = {
 }
 
 export type WorkspaceCheckpointVerificationKey =
-  | 'tsc'
-  | 'tests'
-  | 'lint'
-  | 'e2e'
+  'tsc' | 'tests' | 'lint' | 'e2e'
 
 export type WorkspaceCheckpointVerificationMap = Record<
   WorkspaceCheckpointVerificationKey,
@@ -410,7 +403,7 @@ function parseDiffLineTotals(
     )
 
   if (!line) return null
-  const match = line.match(/^(.*?)\s+\|\s+(\d+)\s+([+\-]+)$/)
+  const match = line.match(/^(.*?)\s+\|\s+(\d+)\s+([+-]+)$/)
   if (!match) return null
   const markers = match[3] ?? ''
   return {

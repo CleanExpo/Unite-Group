@@ -545,10 +545,14 @@ export function buildDisplayEntries(
     }
 
     if (message.role === 'tool' || message.role === 'toolResult') {
-      const previousEntry = entries.length > 0 ? entries[entries.length - 1] : null
+      const previousEntry =
+        entries.length > 0 ? entries[entries.length - 1] : null
       if (pendingAssistantToolMessages.length > 0) {
         pendingAssistantToolMessages.push(message)
-      } else if (previousEntry !== null && previousEntry.message.role === 'assistant') {
+      } else if (
+        previousEntry !== null &&
+        previousEntry.message.role === 'assistant'
+      ) {
         previousEntry.attachedToolMessages.push(message)
       }
       return
@@ -893,7 +897,7 @@ function ChatMessageListComponent({
         clearTimeout(thinkingGraceTimerRef.current)
       }
     }
-  }, [displayEntries, waitingForResponse]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [displayEntries, waitingForResponse])
 
   const normalizedMessageSearch = useMemo(
     function getNormalizedMessageSearch() {

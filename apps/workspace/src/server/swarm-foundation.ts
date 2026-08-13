@@ -112,6 +112,11 @@ const RuntimeArtifactMetadataSchema = z.object({
   source: SwarmArtifactSourceSchema,
   sizeBytes: z.number().int().nullable().optional(),
   contentType: z.string().nullable().optional(),
+  receipt: z.object({
+    artifactId: z.string(),
+    sha256: z.string().regex(/^[a-f0-9]{64}$/i),
+    source: z.literal('workspace-tool-artifact'),
+  }).nullable().optional(),
 })
 
 const RuntimePreviewMetadataSchema = z.object({
@@ -333,6 +338,7 @@ function parseArtifactMetadata(
         source: readString(row.source) ?? 'runtime',
         sizeBytes: readNumber(row.sizeBytes),
         contentType: readString(row.contentType),
+        receipt: row.receipt,
       })
     })
     .flatMap((result) => (result.success ? [result.data] : []))
