@@ -36,13 +36,18 @@ describe('/api/linear/issues', () => {
     expect(res.status).toBe(401)
   })
 
-  it('GET returns configured=false when LINEAR_API_KEY not set', async () => {
+  it('GET omits columns when LINEAR_API_KEY is not set — unknown, not an empty board', async () => {
     vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
     vi.stubEnv('LINEAR_API_KEY', '')
     const res = await GET(req('GET'))
+    // 200 is right: not configured is an expected state, not a failure.
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.configured).toBe(false)
+    // Columns must be ABSENT. Sending empty ones asserted a read result that no
+    // read produced, so "Linear is not connected" and "the board has no issues"
+    // arrived in the same shape and no consumer could tell them apart. [UNI-2493]
+    expect(body.columns).toBeUndefined()
   })
 
   it('POST returns 401 when unauthorized', async () => {
@@ -56,6 +61,21 @@ describe('/api/linear/issues', () => {
     vi.stubEnv('LINEAR_API_KEY', '')
     const res = await POST(req('POST', { teamKey: 'UNI', title: 'Task' }))
     expect(res.status).toBe(503)
+  })
+
+  // GET and POST both guarded this; PATCH did not. `updateIssueState()` logs and
+  // returns when the key is missing, so the route answered 200 for a write that
+  // never reached Linear — a failed write reported as a successful one. [UNI-2495]
+  it('PATCH returns 503 when Linear is not configured — never a 200 for a write that did not happen', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
+    vi.stubEnv('LINEAR_API_KEY', '')
+    const res = await PATCH(
+      req('PATCH', { issueId: 'i1', columnId: 'today', teamKey: 'UNI', stateMap: { UNI: { today: 's1' } } }),
+    )
+    expect(res.status).toBe(503)
+    expect(res.ok).toBe(false)
+    // ...and the write must not have been attempted.
+    expect(vi.mocked(updateIssueState)).not.toHaveBeenCalled()
   })
 
   it('PATCH returns 401 when unauthorized', async () => {

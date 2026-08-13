@@ -22,19 +22,21 @@ export const dynamic = 'force-dynamic'
 const bizColor = (key: string): string =>
   BUSINESSES.find((b) => b.key === key)?.color ?? '#555555'
 
-const EMPTY_COLUMNS = {
-  today: [], hot: [], pipeline: [], someday: [], done: [],
-} as const
-
 export async function GET() {
   const user = await getUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
   }
 
-  // Return empty board when Linear is not configured — not an error
+  // Not configured is not an error — but it is not an empty board either.
+  // Returning empty columns asserted a READ RESULT that no read produced, so
+  // "Linear is not connected" and "the board has no issues" arrived in the same
+  // shape. `columns` is therefore OMITTED: a consumer can render whatever
+  // placeholder it likes, but it cannot mistake absence for a fact about the
+  // board. 200 stays, because unconfigured is an expected state; a thrown read
+  // is already a 502 below. [UNI-2493]
   if (!process.env.LINEAR_API_KEY) {
-    return NextResponse.json({ columns: EMPTY_COLUMNS, stateMap: {}, configured: false })
+    return NextResponse.json({ stateMap: {}, configured: false })
   }
 
   try {
@@ -138,6 +140,15 @@ export async function PATCH(request: Request) {
   const user = await getUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+  }
+
+  // GET and POST both guard this; PATCH did not. `updateIssueState()` logs and
+  // returns when the key is missing, so this route answered 200 for a write
+  // that never reached Linear — a failed write reported as a successful one,
+  // which is this branch's thesis on the write side. Same 503 as POST.
+  // [UNI-2495]
+  if (!process.env.LINEAR_API_KEY) {
+    return NextResponse.json({ error: 'Linear is not configured' }, { status: 503 })
   }
 
   try {

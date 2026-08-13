@@ -17,6 +17,7 @@ import { KanbanCard } from "./KanbanCard";
 import { BusinessFilter } from "./BusinessFilter";
 import { IssueDetailPanel } from "./IssueDetailPanel";
 import { CreateIssueModal } from "./CreateIssueModal";
+import { StaleReadNotice } from "@/components/ui/StaleReadNotice";
 
 interface Card {
   id: string;
@@ -51,6 +52,12 @@ export function KanbanBoard() {
   const [activeCard, setActiveCard] = useState<Card | null>(null);
   const [loading, setLoading] = useState(true);
   const [stale, setStale] = useState(false);
+  // Whether a read has EVER succeeded. Distinguishes the two failure states the
+  // board could not previously tell apart: a failed reload over a payload that
+  // was genuinely read (retained data, must be marked), and a first read that
+  // never landed (nothing retained, nothing to mark, and no "cached data" to
+  // claim). [UNI-2501]
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [configured, setConfigured] = useState(true);
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -68,7 +75,10 @@ export function KanbanBoard() {
       const res = await fetch("/api/linear/issues");
       if (!res.ok) throw new Error(`${res.status}`);
       const data = (await res.json()) as {
-        columns: Record<string, Card[]>;
+        // Optional on purpose: an unconfigured Linear omits `columns` rather
+        // than sending empty ones, so absence cannot be read as "no issues".
+        // The `!configured` banner below is what the founder sees in that case.
+        columns?: Record<string, Card[]>;
         stateMap: Record<string, Record<string, string>>;
         configured?: boolean;
       };
@@ -78,10 +88,11 @@ export function KanbanBoard() {
         COLUMN_ORDER.map((id) => ({
           id,
           title: COLUMN_TITLES[id],
-          cards: data.columns[id] ?? [],
+          cards: data.columns?.[id] ?? [],
         })),
       );
       setStale(false);
+      setHasLoadedOnce(true);
       setLastSynced(new Date());
     } catch {
       setStale(true);
@@ -136,6 +147,20 @@ export function KanbanBoard() {
     return columns.find((col) => col.cards.some((c) => c.id === cardId))?.id;
   }
 
+  // Cached data retained across a failed read.
+  //
+  // This used to require at least one retained CARD, on the reasoning that with
+  // no cards nothing is being presented as current. That was wrong, and it is
+  // this branch's own thesis inverted: a board that last read successfully and
+  // found nothing is presenting "no issues" as a FACT. After a failed reload
+  // that fact is no longer confirmed, yet the board skipped the marker, skipped
+  // the notice, and passed `proposeDisabled={staleRead}` — leaving Propose live
+  // to generate work from a board it could not read. An empty board is a claim.
+  //
+  // Keyed on "a read has succeeded before" instead, which is the condition that
+  // actually makes the payload RETAINED rather than absent. [UNI-2501]
+  const staleRead = stale && hasLoadedOnce;
+
   function handleDragStart(event: DragStartEvent) {
     const card = columns
       .flatMap((c) => c.cards)
@@ -146,6 +171,14 @@ export function KanbanBoard() {
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     setActiveCard(null);
+
+    // A failed reload keeps the cached cards on screen — deliberate, and the
+    // banner above says so. What was missing is the INERT half: dragging a
+    // retained card still PATCHed /api/linear/issues with a stateMap from a
+    // read that has since failed, moving an issue in Linear on the strength of
+    // stale state. Nothing acts on the retained board until a read succeeds;
+    // the Retry in the banner above stays live as the way back. [UNI-2494]
+    if (staleRead) return;
 
     if (!over) return;
 
@@ -185,7 +218,7 @@ export function KanbanBoard() {
         .find((c) => c.id === String(active.id));
       if (card) {
         try {
-          await fetch("/api/linear/issues", {
+          const res = await fetch("/api/linear/issues", {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -195,8 +228,17 @@ export function KanbanBoard() {
               stateMap,
             }),
           });
+          // A non-OK Response does NOT throw, so without this only network
+          // failures were caught and every rejected write was rendered as a
+          // completed move. This branch is what made that reachable: UNI-2493
+          // and UNI-2495 taught PATCH to answer 503 when Linear is
+          // unconfigured and 502 on an update error, replacing a silent 200.
+          // The route stopped lying and the only consumer kept believing it.
+          if (!res.ok) throw new Error(`PATCH /api/linear/issues ${res.status}`);
         } catch {
-          // Revert on failure
+          // Revert by re-reading: the optimistic move is discarded and the
+          // board shows whatever Linear actually holds. If that read fails too
+          // the board marks itself stale, which is the honest end state.
           await loadIssues();
         }
       }
@@ -255,7 +297,13 @@ export function KanbanBoard() {
           }}
         >
           <span className="w-1.5 h-1.5 rounded-sm bg-[#f59e0b] animate-pulse" />
-          Linear unreachable — showing cached data
+          {/* "showing cached data" is only true if there IS cached data. On a
+              first read that never landed the board is empty because nothing
+              was read, and claiming a cache is the same false-empty this branch
+              exists to remove — one banner away from the defect it reports. */}
+          {hasLoadedOnce
+            ? "Linear unreachable — showing cached data"
+            : "Linear unreachable — the board could not be read"}
           <button
             onClick={loadIssues}
             className="ml-auto underline opacity-70 hover:opacity-100"
@@ -301,13 +349,18 @@ export function KanbanBoard() {
         activeFilter={businessFilter}
         onFilterChange={setBusinessFilter}
       />
+      {/* The banner above carries the recovery affordance and stays as it is.
+          This adds the machine-readable half of the contract — the marker no
+          census could find, and the explicit promise that the retained board
+          is inert until a read succeeds. [UNI-2494] */}
+      {staleRead && <StaleReadNotice source="Linear board" actionsDisabled />}
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex gap-4 h-full">
+        <div className="flex gap-4 h-full" data-stale-read={staleRead ? "true" : undefined}>
           {columns.map((col) => {
             const filteredCards = businessFilter
               ? col.cards.filter((c) => c.businessKey === businessFilter)
@@ -324,6 +377,12 @@ export function KanbanBoard() {
                   col.id !== "done" ? () => handleApply(col.id) : undefined
                 }
                 applying={applyingColumn === col.id}
+                // Propose builds `existingTitles` from the retained cards and
+                // POSTs /api/kanban/generate-next, so on a stale board it would
+                // generate work from a list the latest read could not confirm.
+                // Disabled rather than hidden, so the affordance and its reason
+                // stay visible. [UNI-2495]
+                proposeDisabled={staleRead}
               />
             );
           })}
