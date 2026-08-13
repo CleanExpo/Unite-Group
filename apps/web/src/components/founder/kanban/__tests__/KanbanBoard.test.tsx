@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Mock fetch so the board resolves past the loading skeleton
@@ -398,6 +398,151 @@ describe('KanbanBoard', () => {
     expect(
       fetchMock.mock.calls.length - callsBefore,
       'a retained card was dragged and PATCHed to Linear from a read that has since failed',
+    ).toBe(0)
+
+    vi.restoreAllMocks()
+  })
+
+  /**
+   * An UNCONFIGURED Linear is not an empty backlog. [UNI-2493]
+   *
+   * The route now omits `columns` for `configured:false`, but the board coerced
+   * that absence into five empty columns with every action live — the false-empty
+   * class surviving at the consumer after the route stopped lying. Found by the
+   * release round at 2d209caa, which probed it directly and found the
+   * not-connected banner beside four enabled Propose buttons.
+   */
+  it('an unconfigured Linear leaves no board action live', async () => {
+    const fetchMock = vi.mocked(global.fetch)
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ configured: false, stateMap: {} }),
+    } as unknown as Response)
+
+    render(<KanbanBoard />)
+    await waitFor(() => expect(screen.getByText('TODAY')).toBeInTheDocument())
+
+    const propose = Array.from(document.querySelectorAll('button')).filter(
+      (b) => b.textContent?.trim() === 'Propose',
+    ) as HTMLButtonElement[]
+    expect(propose.length, 'no Propose control rendered at all').toBeGreaterThan(0)
+    expect(
+      propose.every((b) => b.disabled),
+      'left Propose live on a board that was never read — it POSTs /api/kanban/generate-next',
+    ).toBe(true)
+
+    // No drag assertion here, deliberately. An unconfigured board has no cards,
+    // so handleDragEnd exits at findColumnByCardId before reaching any guard —
+    // a mutation control proved such an assertion passes whether the guard is
+    // present or absent. Asserting it would have looked like coverage and been
+    // worth nothing.
+
+    vi.restoreAllMocks()
+  })
+
+  /**
+   * Opening a retained card GETs /api/linear/issues/{id} for an id the latest
+   * read could not confirm. It is an act on a retained record inside the marked
+   * region — and invisible to the census detector, because a card is not a
+   * <button>. [UNI-2494][UNI-2502]
+   */
+  it('a retained card cannot be opened while the board is stale', async () => {
+    const polls = capturePolls()
+    const fetchMock = vi.mocked(global.fetch)
+    // TWO cards, and that is load-bearing. With one card the healthy click below
+    // already selects it, so the stale click re-selects the SAME id, React sees
+    // no state change and refetches nothing — the assertion then passes whether
+    // the gate exists or not. A mutation control caught exactly that: removing
+    // the gate left the test green. The second card makes the stale click a real
+    // selection change, so the fetch would happen if nothing stopped it.
+    const SECOND = { ...CARD, id: 'c2', title: 'UNI-2 — Second card' }
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        columns: { today: [CARD, SECOND], hot: [], pipeline: [], someday: [], done: [] },
+        stateMap: {},
+        configured: true,
+      }),
+    } as unknown as Response)
+
+    render(<KanbanBoard />)
+    const card = await screen.findByText(/Retained card/)
+
+    // Healthy first: the card opens, or the assertion below proves nothing.
+    // The detail response has to be shaped, not just ok — IssueDetailPanel reads
+    // `issue.state.name` and maps `labels.nodes`, so a board-shaped payload
+    // crashes the panel and the test would fail for the wrong reason.
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        id: 'c1',
+        identifier: 'UNI-1',
+        title: 'Retained card',
+        description: null,
+        priority: 2,
+        url: 'https://linear.app/x/UNI-1',
+        createdAt: '2026-08-01T00:00:00Z',
+        updatedAt: '2026-08-01T00:00:00Z',
+        team: { id: 't1', key: 'UNI', name: 'Unite' },
+        state: { id: 's1', name: 'Todo', type: 'unstarted' },
+        labels: { nodes: [] },
+        businessKey: 'dr',
+        businessColor: '#16a34a',
+      }),
+    } as unknown as Response)
+
+    await act(async () => {
+      fireEvent.click(card)
+    })
+    expect(
+      fetchMock.mock.calls.some((c) => /\/api\/linear\/issues\/[^/?]+$/.test(String(c[0]))),
+      'a card click on a HEALTHY board did not open the issue — the negative case is vacuous',
+    ).toBe(true)
+
+    fetchMock.mockRejectedValueOnce(new Error('network down'))
+    await act(async () => {
+      for (const poll of [...polls]) poll()
+    })
+    await waitFor(() =>
+      expect(document.querySelector('[data-stale-read="true"]')).not.toBeNull(),
+    )
+
+    // Scoped to the marked region: the detail panel opened by the healthy click
+    // above renders the same title, so an unscoped query matches two elements.
+    // The region is also the right scope on the merits — the claim is about what
+    // stays live INSIDE it.
+    // A valid detail response for the second card, queued but expected to go
+    // UNCONSUMED. Without it the control fails by crashing IssueDetailPanel on a
+    // board-shaped payload instead of failing on the assertion below — proving
+    // only that something broke, not that the fetch happened.
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        id: 'c2',
+        identifier: 'UNI-2',
+        title: 'Second card',
+        description: null,
+        priority: 2,
+        url: 'https://linear.app/x/UNI-2',
+        createdAt: '2026-08-01T00:00:00Z',
+        updatedAt: '2026-08-01T00:00:00Z',
+        team: { id: 't1', key: 'UNI', name: 'Unite' },
+        state: { id: 's1', name: 'Todo', type: 'unstarted' },
+        labels: { nodes: [] },
+        businessKey: 'dr',
+        businessColor: '#16a34a',
+      }),
+    } as unknown as Response)
+
+    const region = document.querySelector('[data-stale-read="true"]') as HTMLElement
+    const callsBefore = fetchMock.mock.calls.length
+    // The SECOND card, so this is a genuine selection change.
+    await act(async () => {
+      fireEvent.click(within(region).getByText(/Second card/))
+    })
+    expect(
+      fetchMock.mock.calls.length - callsBefore,
+      'clicking a retained card on a stale board still fetched the issue by an id the latest read could not confirm',
     ).toBe(0)
 
     vi.restoreAllMocks()

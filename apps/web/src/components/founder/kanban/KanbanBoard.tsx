@@ -161,6 +161,19 @@ export function KanbanBoard() {
   // actually makes the payload RETAINED rather than absent. [UNI-2501]
   const staleRead = stale && hasLoadedOnce;
 
+  // An unconfigured Linear omits `columns` entirely rather than sending empty
+  // ones, and line ~91 coerces that absence into five empty columns. The
+  // not-connected banner appears, but the board beneath it looked like a
+  // successfully-read empty backlog with every action live — the same false-empty
+  // class this branch exists to remove, surviving at the CONSUMER after the route
+  // stopped lying. Found by the release round at 2d209caa.
+  //
+  // Kept separate from `staleRead`, which means "a payload was read and is being
+  // retained". Nothing was ever read here, so there is no retained data to mark
+  // as stale; what is required is that nothing ACTS on a board that does not
+  // exist. Both conditions gate the actions; only `staleRead` marks a region.
+  const unreadableBoard = staleRead || !configured;
+
   function handleDragStart(event: DragStartEvent) {
     const card = columns
       .flatMap((c) => c.cards)
@@ -178,6 +191,11 @@ export function KanbanBoard() {
     // read that has since failed, moving an issue in Linear on the strength of
     // stale state. Nothing acts on the retained board until a read succeeds;
     // the Retry in the banner above stays live as the way back. [UNI-2494]
+    // Gated on `staleRead` only, deliberately. Widening this to an
+    // unconfigured board is untestable: that board has no cards, so
+    // findColumnByCardId returns undefined and the handler exits before any
+    // gate is reached. A mutation control proved the widened form could not
+    // fail, and an uncontrolled line is what this audit keeps finding.
     if (staleRead) return;
 
     if (!over) return;
@@ -372,7 +390,14 @@ export function KanbanBoard() {
                 title={col.title}
                 cards={filteredCards}
                 isDone={col.id === "done"}
-                onCardClick={setSelectedIssueId}
+                // Opening a retained card mounts IssueDetailPanel and GETs
+                // /api/linear/issues/{id} for an id the latest read could not
+                // confirm — an act on a retained record, inside the marked
+                // region, and invisible to the census detector because a card
+                // is not a <button>. Withheld rather than disabled: there is no
+                // affordance to keep visible, and the Retry in the banner is
+                // still the way back. [UNI-2502]
+                onCardClick={unreadableBoard ? undefined : setSelectedIssueId}
                 onPropose={
                   col.id !== "done" ? () => handleApply(col.id) : undefined
                 }
@@ -382,7 +407,7 @@ export function KanbanBoard() {
                 // generate work from a list the latest read could not confirm.
                 // Disabled rather than hidden, so the affordance and its reason
                 // stay visible. [UNI-2495]
-                proposeDisabled={staleRead}
+                proposeDisabled={unreadableBoard}
               />
             );
           })}
