@@ -1,14 +1,57 @@
-import { createHash } from 'node:crypto'
+import { createHash, generateKeyPairSync, sign } from 'node:crypto'
+import { mkdtempSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { buildRuntimeControlPlane } from './runtime-control-plane'
 import { normalizeSwarmRuntime } from './swarm-foundation'
 import {
   createOrUpdateToolArtifact,
-  issueTrustedToolArtifactReceipt,
+  getToolArtifact,
+  trustedReceiptPayload,
 } from './tool-artifacts-store'
+import type { TrustedReceiptSource } from './tool-artifacts-store'
 
-process.env.RUNTIME_CONTROL_PLANE_RECEIPT_SIGNING_KEY =
-  'test-only-runtime-receipt-signing-key-0123456789'
+const receiptBrokerDir = mkdtempSync(join(tmpdir(), 'runtime-receipt-broker-'))
+const receiptBrokerKeys = generateKeyPairSync('ed25519')
+process.env.RUNTIME_CONTROL_PLANE_RECEIPT_BROKER_DIR = receiptBrokerDir
+process.env.RUNTIME_CONTROL_PLANE_RECEIPT_BROKER_PUBLIC_KEY =
+  receiptBrokerKeys.publicKey.export({ type: 'spki', format: 'pem' }).toString()
+
+function writeBrokerReceipt(input: {
+  artifact: ReturnType<typeof createOrUpdateToolArtifact>
+  taskId: string
+  workerId: string
+  source: TrustedReceiptSource
+}): void {
+  const toolName = input.artifact.toolName ?? ''
+  const content = JSON.stringify({
+    version: 1,
+    issuer: 'runtime-receipt-broker',
+    source: input.source,
+    taskId: input.taskId,
+    workerId: input.workerId,
+    artifactId: input.artifact.id,
+    sha256: sha256(getToolArtifact(input.artifact.id)?.content ?? ''),
+    producer: { sessionId: input.artifact.sessionId, toolName },
+    issuedAt: 1,
+  })
+  const unsigned = JSON.parse(content) as Parameters<
+    typeof trustedReceiptPayload
+  >[0]
+  const receipt = {
+    ...unsigned,
+    signature: sign(
+      null,
+      Buffer.from(trustedReceiptPayload(unsigned)),
+      receiptBrokerKeys.privateKey,
+    ).toString('base64'),
+  }
+  writeFileSync(
+    join(receiptBrokerDir, `${input.artifact.id}.json`),
+    JSON.stringify(receipt),
+  )
+}
 
 function runtime(input: Record<string, unknown>) {
   return {
@@ -37,12 +80,11 @@ function persistedReceipt(input: { taskId: string; workerId: string }) {
     title: 'control-plane test receipt',
     content,
   })
-  issueTrustedToolArtifactReceipt({
-    artifactId: artifact.id,
+  writeBrokerReceipt({
+    artifact,
     taskId: input.taskId,
     workerId: input.workerId,
     source: 'test-runner',
-    issuedAt: 1,
   })
   return {
     artifactId: artifact.id,
