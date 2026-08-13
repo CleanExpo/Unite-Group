@@ -14,11 +14,13 @@ Routes are thin — auth, parse, delegate, respond. Do not put domain logic in a
 
 ## Non-negotiable invariants
 
-1. **Auth on every route.** First lines:
+1. **Auth on every route.** For non-CRON routes, the first route operation is:
    ```ts
    const user = await getUser()              // from '@/lib/supabase/server'
    if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
    ```
+   CRON routes are the exception: they must call `assertCronAuth(request)` first,
+   before any other route operation, as specified in rule 5.
 2. **Founder scoping.** Every Supabase query filters `.eq('founder_id', user.id)`.
    Single-tenant — never `workspace_id`, never trust a client-supplied id.
 3. **`export const dynamic = 'force-dynamic'`** on every route (no static caching of
