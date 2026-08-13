@@ -20,9 +20,28 @@ function req(qs = '', auth = 'Bearer test-secret') {
 describe('GET /api/cron/strategy-daily', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('returns 401 when unauthorized', async () => {
-    const res = await GET(req('', 'bad'))
-    expect(res.status).toBe(401)
+  it('returns 401 before reading the URL or starting business work', async () => {
+    const dateNow = vi
+      .spyOn(Date, 'now')
+      .mockImplementation(() => {
+        throw new Error('Date.now must not run before authentication')
+      })
+    const unauthorizedRequest = {
+      headers: new Headers({ authorization: 'bad' }),
+      get url() {
+        throw new Error('request URL must not be read before authentication')
+      },
+    } as Request
+
+    try {
+      const res = await GET(unauthorizedRequest)
+
+      expect(res.status).toBe(401)
+      expect(dateNow).not.toHaveBeenCalled()
+      expect(runDailyAnalysis).not.toHaveBeenCalled()
+    } finally {
+      dateNow.mockRestore()
+    }
   })
 
   it('returns 400 when business key is invalid', async () => {

@@ -3,6 +3,7 @@
 // All notification delivery is fire-and-forget — never throws, never blocks callers.
 
 import { sendSlack, formatSlackNotification } from './slack'
+import { getFounderUserId } from '@/lib/auth/founder-user-id'
 import { createServiceClient, hasSupabaseServiceConfig } from '@/lib/supabase/service'
 
 /**
@@ -58,7 +59,7 @@ export interface NotificationPayload {
 export async function notify(payload: NotificationPayload): Promise<void> {
   try {
     const { type, title, body, businessKey, severity, metadata } = payload
-    const founderId = process.env.FOUNDER_USER_ID
+    const founderId = getFounderUserId()
 
     // Audit log — always fires regardless of channel preferences
     console.log(
