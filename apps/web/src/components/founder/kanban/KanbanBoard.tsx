@@ -191,6 +191,30 @@ export function KanbanBoard() {
   // exist. Both conditions gate the actions; only `staleRead` marks a region.
   const unreadableBoard = staleRead || !configured;
 
+  // REACH, not sequence. `boardSource` fixed which states can follow which; this
+  // fixes how far the unreadable state has to travel.
+  //
+  // Gating `onCardClick` stopped NEW cards being opened but left an ALREADY-OPEN
+  // IssueDetailPanel mounted, still rendering an actionable "Open in Linear" link
+  // built from an issue fetched by an id the latest board read could not confirm.
+  // Closing the card-click path is exactly what made this the remaining door.
+  // Found by the round at a6d6c7d1. [UNI-2504]
+  //
+  // The panel is CLOSED rather than marked, deliberately. Marking it would mean
+  // changing IssueDetailPanel, which belongs to a later slice, and the panel's
+  // whole content derives from a board read that is no longer confirmed — there
+  // is no honest subset to keep on screen. The board's Retry stays live as the
+  // way back, so this does not trap the founder.
+  //
+  // Every other consumer of board-derived data was checked rather than assumed:
+  // the drag PATCH is already gated, BusinessFilter is a view filter and must
+  // stay live, CreateIssueModal creates NEW issues rather than acting on retained
+  // ones and reloads on success, and applyStatus only appears from a Propose that
+  // is already disabled here.
+  useEffect(() => {
+    if (unreadableBoard) setSelectedIssueId(null);
+  }, [unreadableBoard]);
+
   function handleDragStart(event: DragStartEvent) {
     const card = columns
       .flatMap((c) => c.cards)
@@ -224,7 +248,10 @@ export function KanbanBoard() {
 
     if (!activeColId || !overColId) return;
 
-    // Optimistic local update
+    // Optimistic local update.
+    // `preMove` is this render's columns, captured BEFORE the optimistic
+    // change, so a revert never depends on the network succeeding.
+    const preMove = columns;
     if (activeColId !== overColId) {
       setColumns((cols) => {
         const activeCol = cols.find((c) => c.id === activeColId)!;
@@ -271,9 +298,20 @@ export function KanbanBoard() {
           // The route stopped lying and the only consumer kept believing it.
           if (!res.ok) throw new Error(`PATCH /api/linear/issues ${res.status}`);
         } catch {
-          // Revert by re-reading: the optimistic move is discarded and the
-          // board shows whatever Linear actually holds. If that read fails too
-          // the board marks itself stale, which is the honest end state.
+          // Revert LOCALLY first, then re-read. The previous version called
+          // loadIssues() alone and called that a revert — but loadIssues's own
+          // catch only sets `stale`; it never touches `columns`. So the revert
+          // only reverted when the re-read SUCCEEDED.
+          //
+          // Double failure was the hole: the PATCH fails, the revert GET fails
+          // too, and the optimistic move stays on screen. The card sits in a
+          // column Linear never confirmed, the counts reflect it, and
+          // StaleReadNotice announces that everything below came from an
+          // earlier successful read — false for precisely that card. It is an
+          // uncommitted local mutation that failed to sync AND failed to be
+          // undone, presented as retained truth. Found by an adversarial review
+          // pass, in the one path none of the tests drove. [UNI-2504]
+          setColumns(preMove);
           await loadIssues();
         }
       }
