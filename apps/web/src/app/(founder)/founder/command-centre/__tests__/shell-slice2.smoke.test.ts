@@ -17,6 +17,7 @@ import { join } from 'node:path'
 
 const dir = join(process.cwd(), 'src/app/(founder)/founder/command-centre')
 const pageSrc = readFileSync(join(dir, 'page.tsx'), 'utf8')
+const canvasSrc = readFileSync(join(dir, 'SixMonitorCanvas.tsx'), 'utf8')
 const operationsSrc = readFileSync(join(dir, 'operations/page.tsx'), 'utf8')
 const portfolioSrc = readFileSync(join(dir, 'portfolio/page.tsx'), 'utf8')
 const providersSrc = readFileSync(join(dir, 'providers/page.tsx'), 'utf8')
@@ -87,9 +88,9 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
   })
 
   it('keeps every pre-existing section anchor id intact on its relocated deck (UNI-2378)', () => {
-    // Main page: the ⌘K palette anchors land on the Vital Signs nav cards.
+    // Main page: the ⌘K palette anchors land on the distilled domain links.
     for (const id of ['portfolio', 'capability-bus']) {
-      expect(pageSrc).toContain(`id="${id}"`)
+      expect(canvasSrc).toContain(`id="${id}"`)
     }
     // Operations deck.
     for (const id of [
@@ -115,9 +116,9 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
     }
   })
 
-  it('links every relocated deck from the calm home and back (deck nav + back-links)', () => {
+  it('links every relocated deck from the calm home and back (domain links + back-links)', () => {
     for (const route of ['operations', 'portfolio', 'providers', 'knowledge']) {
-      expect(pageSrc).toContain(`/founder/command-centre/${route}`)
+      expect(canvasSrc).toContain(`/founder/command-centre/${route}`)
     }
     for (const src of [operationsSrc, portfolioSrc, providersSrc, knowledgeSrc]) {
       expect(src).toContain('href="/founder/command-centre"')
