@@ -352,6 +352,57 @@ describe('KanbanBoard', () => {
     vi.restoreAllMocks()
   })
 
+  /**
+   * The INERT half of UNI-2494, finally reachable.
+   *
+   * `if (staleRead) return` in handleDragEnd is the guard that ticket exists for
+   * — it stops a retained card being PATCHed to Linear on the strength of a read
+   * that has since failed. No test in this file could reach it, because the
+   * mocked DndContext dropped `onDragEnd`, so the guard has been asserted BY
+   * READING ONLY since it was written.
+   *
+   * Capturing the handler for the PATCH tests above made this testable, and
+   * leaving it untested to keep a review plant strong would be preserving a hole
+   * on purpose. The drag tests either side of this one run on a HEALTHY board;
+   * this is the only one that drags a stale one.
+   */
+  it('a drag on a STALE board issues no PATCH at all', async () => {
+    const polls = capturePolls()
+    const fetchMock = vi.mocked(global.fetch)
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        columns: { today: [CARD], hot: [], pipeline: [], someday: [], done: [] },
+        stateMap: {},
+        configured: true,
+      }),
+    } as unknown as Response)
+
+    render(<KanbanBoard />)
+    await screen.findByText(/Retained card/)
+
+    fetchMock.mockRejectedValueOnce(new Error('network down'))
+    expect(polls.length, 'the board registered no poll to fire').toBeGreaterThan(0)
+    await act(async () => {
+      for (const poll of [...polls]) poll()
+    })
+    await waitFor(() =>
+      expect(document.querySelector('[data-stale-read="true"]')).not.toBeNull(),
+    )
+
+    const callsBefore = fetchMock.mock.calls.length
+    await act(async () => {
+      await dnd.onDragEnd?.({ active: { id: 'c1' }, over: { id: 'hot' } })
+    })
+
+    expect(
+      fetchMock.mock.calls.length - callsBefore,
+      'a retained card was dragged and PATCHed to Linear from a read that has since failed',
+    ).toBe(0)
+
+    vi.restoreAllMocks()
+  })
+
   // NEGATIVE CONTROL. Without it, "always reload after a drag" would satisfy the
   // test above while throwing away every successful optimistic move.
   it('a drag whose PATCH SUCCEEDS does not trigger a revert read', async () => {
