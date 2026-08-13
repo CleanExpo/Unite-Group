@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import * as yaml from 'yaml'
@@ -5,6 +6,7 @@ import { getProfilesDir } from './claude-paths'
 import { listSwarmWorkerIds, readSwarmRuntimeFile } from './swarm-foundation'
 import { rosterByWorkerId } from './swarm-roster'
 import { readCodexCheckpoint } from './codex-runtime-checkpoint'
+import { getToolArtifact } from './tool-artifacts-store'
 
 /**
  * A read-only reconciliation of the runtimes that actually publish task state.
@@ -69,6 +71,19 @@ type RuntimeSource = ReturnType<typeof readSwarmRuntimeFile>['source']
 
 export const HERMES_CHECKPOINT_MAX_AGE_MS = 10 * 60 * 1000
 
+type ReceiptSubject = {
+  version: 1
+  taskId: string
+  workerId: string
+  source: 'test-runner' | 'independent-review' | 'external-service'
+}
+
+type ReceiptReference = {
+  artifactId: string
+  sha256: string
+  source: 'workspace-tool-artifact'
+}
+
 function nonEmpty(value: string | null | undefined): string | null {
   const trimmed = value?.trim()
   return trimmed ? trimmed : null
@@ -106,6 +121,53 @@ function isStaleActiveRuntime(runtime: RawRuntime, now: number): boolean {
   )
 }
 
+function sha256(value: string): string {
+  return createHash('sha256').update(value).digest('hex')
+}
+
+function verifiedReceipt(reference: ReceiptReference, taskId: string, workerId: string): boolean {
+  const artifact = getToolArtifact(reference.artifactId)
+  if (!artifact || sha256(artifact.content) !== reference.sha256) return false
+  try {
+    const subject = JSON.parse(artifact.content) as Partial<ReceiptSubject>
+    return (
+      subject.version === 1 &&
+      subject.taskId === taskId &&
+      subject.workerId === workerId &&
+      (subject.source === 'test-runner' ||
+        subject.source === 'independent-review' ||
+        subject.source === 'external-service')
+    )
+  } catch {
+    return false
+  }
+}
+
+function verifiedHermesArtifacts(runtime: RawRuntime, taskId: string): Array<{ label: string; kind: string }> {
+  return runtime.artifacts.flatMap((artifact) => {
+    const receipt = artifact.receipt
+    if (
+      !receipt ||
+      receipt.artifactId !== artifact.id ||
+      !verifiedReceipt(receipt, taskId, runtime.workerId)
+    ) {
+      return []
+    }
+    return [{ label: artifact.label, kind: artifact.kind }]
+  })
+}
+
+function verifiedCodexArtifacts(
+  evidence: Array<{ label: string; kind: string; artifactId: string; sha256: string; source: 'workspace-tool-artifact' }>,
+  taskId: string,
+): Array<{ label: string; kind: string }> {
+  return evidence.flatMap((entry) =>
+    verifiedReceipt(entry, taskId, 'codex')
+      ? [{ label: entry.label, kind: entry.kind }]
+      : [],
+  )
+}
+
 function taskForRuntime(input: {
   workerId: string
   runtime: RawRuntime
@@ -114,10 +176,8 @@ function taskForRuntime(input: {
 }): ControlPlaneTask | null {
   const { workerId, runtime, title, now } = input
   const state = isStaleActiveRuntime(runtime, now) ? 'unknown' : stateFromRuntime(runtime)
-  const artifacts = runtime.artifacts.map((artifact) => ({
-    label: artifact.label,
-    kind: artifact.kind,
-  }))
+  const taskId = `${workerId}:${runtime.sessionId ?? 'current'}`
+  const artifacts = verifiedHermesArtifacts(runtime, taskId)
   const requiresEvidence = state === 'complete'
   const evidenceStatus: EvidenceStatus = requiresEvidence
     ? artifacts.length > 0
@@ -136,7 +196,7 @@ function taskForRuntime(input: {
 
   const deadlineAt = deadlineFromRuntime(runtime)
   return {
-    taskId: `${workerId}:${runtime.sessionId ?? 'current'}`,
+    taskId,
     title: runtime.currentTask ?? title,
     owner: workerId,
     runtime: 'hermes',
@@ -206,26 +266,30 @@ export function buildRuntimeControlPlane(input: {
     checkpoint: null,
     detail: 'Codex has not published a checkpoint.',
   }
-  const codexTask = codex.checkpoint
+  const codexTaskId = codex.checkpoint ? `codex:${codex.checkpoint.task.id}` : null
+  const codexArtifacts = codex.checkpoint && codexTaskId
+    ? verifiedCodexArtifacts(codex.checkpoint.task.evidence, codexTaskId)
+    : []
+  const codexTask = codex.checkpoint && codexTaskId
     ? {
-        taskId: `codex:${codex.checkpoint.task.id}`,
+        taskId: codexTaskId,
         title: codex.checkpoint.task.title,
         owner: 'codex',
         runtime: 'codex' as const,
         state: codex.checkpoint.task.state,
         evidenceStatus: codex.checkpoint.task.state === 'complete'
-          ? (codex.checkpoint.task.evidence.length > 0
+          ? (codexArtifacts.length > 0
               ? 'present' as const
               : 'missing' as const)
           : 'not_required' as const,
         deadlineStatus: deadlineStatus(codex.checkpoint.task.deadlineAt, now),
         deadlineAt: codex.checkpoint.task.deadlineAt,
-        evidence: codex.checkpoint.task.evidence,
+        evidence: codexArtifacts,
         blocker: codex.checkpoint.task.blocker,
         nextAction: codex.checkpoint.task.nextAction,
         handoff: {
           eligible: codex.checkpoint.task.state === 'complete' &&
-            codex.checkpoint.task.evidence.length > 0 &&
+            codexArtifacts.length > 0 &&
             Boolean(codex.checkpoint.task.nextAction),
           target: codex.checkpoint.task.state === 'complete' && codex.checkpoint.task.nextAction
             ? (/review|verify|test|gate/i.test(codex.checkpoint.task.nextAction) ? 'reviewer' as const : 'orchestrator' as const)

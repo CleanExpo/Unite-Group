@@ -1,11 +1,37 @@
+import { createHash } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
 import { buildRuntimeControlPlane } from './runtime-control-plane'
 import { normalizeSwarmRuntime } from './swarm-foundation'
+import { createOrUpdateToolArtifact } from './tool-artifacts-store'
 
 function runtime(input: Record<string, unknown>) {
   return {
     ...normalizeSwarmRuntime('swarm5', input, { workspaceRoot: '/tmp' }),
     ...input,
+  }
+}
+
+function sha256(value: string): string {
+  return createHash('sha256').update(value).digest('hex')
+}
+
+function persistedReceipt(input: { taskId: string; workerId: string }) {
+  const content = JSON.stringify({
+    version: 1,
+    taskId: input.taskId,
+    workerId: input.workerId,
+    source: 'test-runner',
+  })
+  const artifact = createOrUpdateToolArtifact({
+    sessionId: `control-plane-${input.workerId}`,
+    toolName: 'test-runner',
+    title: 'control-plane test receipt',
+    content,
+  })
+  return {
+    artifactId: artifact.id,
+    sha256: sha256(content),
+    source: 'workspace-tool-artifact' as const,
   }
 }
 
@@ -60,6 +86,7 @@ describe('runtime control plane', () => {
   })
 
   it('makes evidenced completion eligible for a reviewer handoff', () => {
+    const receipt = persistedReceipt({ taskId: 'swarm5:current', workerId: 'swarm5' })
     const result = buildRuntimeControlPlane({
       workerIds: ['swarm5'],
       runtimes: [
@@ -71,7 +98,7 @@ describe('runtime control plane', () => {
             state: 'idle',
             lastResult: 'Focused tests passed.',
             nextAction: 'Run independent review',
-            artifacts: [{ id: 'test', kind: 'report', label: 'focused test receipt', workerId: 'swarm5', source: 'runtime' }],
+            artifacts: [{ id: receipt.artifactId, kind: 'report', label: 'focused test receipt', workerId: 'swarm5', source: 'workspace', receipt }],
           }),
         },
       ],
@@ -160,6 +187,7 @@ describe('runtime control plane', () => {
   })
 
   it('projects a fresh Codex receipt and never treats it as dispatch authority', () => {
+    const receipt = persistedReceipt({ taskId: 'codex:command-centre-proof', workerId: 'codex' })
     const result = buildRuntimeControlPlane({
       workerIds: [],
       runtimes: [],
@@ -175,7 +203,7 @@ describe('runtime control plane', () => {
             title: 'Capture authenticated canvas proof',
             state: 'complete',
             deadlineAt: null,
-            evidence: [{ label: 'Playwright receipt', kind: 'report' }],
+            evidence: [{ label: 'Playwright receipt', kind: 'report', ...receipt }],
             blocker: null,
             nextAction: 'Run independent review',
             receipt: 'authenticated preview receipt',
@@ -214,6 +242,41 @@ describe('runtime control plane', () => {
           },
         },
       },
+    })
+
+    expect(result.tasks[0]).toMatchObject({
+      evidenceStatus: 'missing',
+      handoff: { eligible: false },
+    })
+  })
+
+  it('does not trust artifact metadata unless its persisted receipt binds the task and checksum', () => {
+    const result = buildRuntimeControlPlane({
+      workerIds: ['swarm5'],
+      runtimes: [
+        {
+          workerId: 'swarm5',
+          runtime: runtime({
+            currentTask: 'Build the control plane',
+            checkpointStatus: 'done',
+            state: 'idle',
+            nextAction: 'Run independent review',
+            artifacts: [{
+              id: 'toolout_0000000000000000',
+              kind: 'report',
+              label: 'fabricated receipt',
+              workerId: 'swarm5',
+              source: 'workspace',
+              receipt: {
+                artifactId: 'toolout_0000000000000000',
+                sha256: '0'.repeat(64),
+                source: 'workspace-tool-artifact',
+              },
+            }],
+          }),
+        },
+      ],
+      now: 100,
     })
 
     expect(result.tasks[0]).toMatchObject({

@@ -13,6 +13,9 @@ const TextSchema = z.string().trim().min(1).max(500)
 const EvidenceSchema = z.object({
   label: TextSchema,
   kind: z.enum(['file', 'diff', 'patch', 'build', 'log', 'report', 'preview']),
+  artifactId: z.string().trim().regex(/^toolout_[a-f0-9]{16}$/),
+  sha256: z.string().trim().regex(/^[a-f0-9]{64}$/i),
+  source: z.literal('workspace-tool-artifact'),
 })
 
 export const CodexCheckpointSchema = z.object({
