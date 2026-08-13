@@ -508,7 +508,7 @@ export function useStreamingMessage(options: UseStreamingMessageOptions = {}) {
           // model thinking and would otherwise pollute the TUI activity card.
           const isKeepalivePlaceholder =
             typeof thinking === 'string' &&
-            /^still\s+working[\.\u2026]*\s*$/i.test(thinking.trim())
+            /^still\s+working[.\u2026]*\s*$/i.test(thinking.trim())
           if (isKeepalivePlaceholder) break
           if (thinking) {
             markActivity()

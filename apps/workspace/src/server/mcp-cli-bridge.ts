@@ -8,6 +8,7 @@ export interface CliTestResult {
   error: string | null
 }
 
+// eslint-disable-next-line no-control-regex -- ANSI escape removal requires matching ESC explicitly.
 const ANSI_RE = /\x1b\[[0-9;]*m/g
 const HERMES_BIN = process.env.HERMES_CLI_BIN || 'hermes'
 const DEFAULT_TIMEOUT_MS = 60_000

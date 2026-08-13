@@ -97,13 +97,11 @@ describe('corrupt file → empty cache', () => {
 
     vi.resetModules()
     // Should not throw
-    let mod: Awaited<ReturnType<typeof loadCache>>
+    const mod: Awaited<ReturnType<typeof loadCache>> = await loadCache()
     expect(() => {
       // loadCache() is async, but the module-level readDisk() runs synchronously
       // during import. We just need to confirm no unhandled error.
     }).not.toThrow()
-    mod = await loadCache()
-
     // Cache should be empty (corrupt file ignored)
     expect(mod.getProbe('anything')).toBeNull()
   })

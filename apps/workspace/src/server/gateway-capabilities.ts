@@ -19,10 +19,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
-import {
-  getGatewayApiToken,
-  getGatewayDashboardToken,
-} from './gateway-secret'
+import { getGatewayApiToken, getGatewayDashboardToken } from './gateway-secret'
 
 type WorkspaceOverrides = {
   claudeApiUrl?: string
@@ -206,18 +203,12 @@ export type GatewayCapabilities = CoreCapabilities &
   DashboardCapabilities
 
 export type GatewayMode =
-  | 'zero-fork'
-  | 'enhanced-fork'
-  | 'portable'
-  | 'disconnected'
+  'zero-fork' | 'enhanced-fork' | 'portable' | 'disconnected'
 
 export type ChatMode = 'enhanced-claude' | 'portable' | 'disconnected'
 
 export type ConnectionStatus =
-  | 'connected'
-  | 'enhanced'
-  | 'partial'
-  | 'disconnected'
+  'connected' | 'enhanced' | 'partial' | 'disconnected'
 
 // ── State ─────────────────────────────────────────────────────────
 
@@ -279,8 +270,8 @@ let loggedHtmlScrapeFallback = false
  * Resolve a bearer token for dashboard API calls.
  *
  * Lookup order:
- *   1.  CLAUDE_DASHBOARD_TOKEN / CLAUDE_API_TOKEN env (preferred)
- *   2.  Inline token injected into the dashboard's root HTML (legacy
+ *   1. CLAUDE_DASHBOARD_TOKEN / CLAUDE_API_TOKEN env (preferred)
+ *   2. Inline token injected into the dashboard's root HTML (legacy
  *      fallback — logs a deprecation warning; to be removed once all
  *      supported dashboards expose a first-class token endpoint). See #124.
  */
