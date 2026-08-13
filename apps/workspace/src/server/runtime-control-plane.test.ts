@@ -2,11 +2,20 @@ import { createHash } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
 import { buildRuntimeControlPlane } from './runtime-control-plane'
 import { normalizeSwarmRuntime } from './swarm-foundation'
-import { createOrUpdateToolArtifact } from './tool-artifacts-store'
+import {
+  createOrUpdateToolArtifact,
+  issueTrustedToolArtifactReceipt,
+} from './tool-artifacts-store'
+
+process.env.RUNTIME_CONTROL_PLANE_RECEIPT_SIGNING_KEY =
+  'test-only-runtime-receipt-signing-key-0123456789'
 
 function runtime(input: Record<string, unknown>) {
   return {
     ...normalizeSwarmRuntime('swarm5', input, { workspaceRoot: '/tmp' }),
+    // A checkpoint without an observed timestamp is not fresh enough to claim
+    // a state. Fixtures that are intended to be current therefore supply one.
+    lastOutputAt: 99,
     ...input,
   }
 }
@@ -27,6 +36,13 @@ function persistedReceipt(input: { taskId: string; workerId: string }) {
     toolName: 'test-runner',
     title: 'control-plane test receipt',
     content,
+  })
+  issueTrustedToolArtifactReceipt({
+    artifactId: artifact.id,
+    taskId: input.taskId,
+    workerId: input.workerId,
+    source: 'test-runner',
+    issuedAt: 1,
   })
   return {
     artifactId: artifact.id,
@@ -56,7 +72,10 @@ describe('runtime control plane', () => {
     expect(result.tasks[0]).toMatchObject({
       state: 'complete',
       evidenceStatus: 'missing',
-      handoff: { eligible: false, reason: 'Completion has no runtime evidence.' },
+      handoff: {
+        eligible: false,
+        reason: 'Completion has no runtime evidence.',
+      },
     })
     expect(result.summary.eligibleHandoffs).toBe(0)
   })
@@ -86,7 +105,10 @@ describe('runtime control plane', () => {
   })
 
   it('makes evidenced completion eligible for a reviewer handoff', () => {
-    const receipt = persistedReceipt({ taskId: 'swarm5:current', workerId: 'swarm5' })
+    const receipt = persistedReceipt({
+      taskId: 'swarm5:current',
+      workerId: 'swarm5',
+    })
     const result = buildRuntimeControlPlane({
       workerIds: ['swarm5'],
       runtimes: [
@@ -98,7 +120,16 @@ describe('runtime control plane', () => {
             state: 'idle',
             lastResult: 'Focused tests passed.',
             nextAction: 'Run independent review',
-            artifacts: [{ id: receipt.artifactId, kind: 'report', label: 'focused test receipt', workerId: 'swarm5', source: 'workspace', receipt }],
+            artifacts: [
+              {
+                id: receipt.artifactId,
+                kind: 'report',
+                label: 'focused test receipt',
+                workerId: 'swarm5',
+                source: 'workspace',
+                receipt,
+              },
+            ],
           }),
         },
       ],
@@ -110,7 +141,9 @@ describe('runtime control plane', () => {
       evidenceStatus: 'present',
       handoff: { eligible: true, target: 'reviewer' },
     })
-    expect(result.runtimes.find((entry) => entry.id === 'ollama')?.state).toBe('observed')
+    expect(result.runtimes.find((entry) => entry.id === 'ollama')?.state).toBe(
+      'observed',
+    )
   })
 
   it('shows overdue work and blockers without inventing a handoff', () => {
@@ -156,7 +189,9 @@ describe('runtime control plane', () => {
       now: 10 * 60 * 1000 + 1,
     })
 
-    expect(result.runtimes.find((entry) => entry.id === 'hermes')).toMatchObject({
+    expect(
+      result.runtimes.find((entry) => entry.id === 'hermes'),
+    ).toMatchObject({
       state: 'stale',
       detail: expect.stringMatching(/stale/i),
     })
@@ -165,6 +200,47 @@ describe('runtime control plane', () => {
       blocker: expect.stringMatching(/stale/i),
     })
     expect(result.summary.active).toBe(0)
+  })
+
+  it('expires a stale completed Hermes checkpoint instead of making it eligible', () => {
+    const receipt = persistedReceipt({
+      taskId: 'swarm5:current',
+      workerId: 'swarm5',
+    })
+    const result = buildRuntimeControlPlane({
+      workerIds: ['swarm5'],
+      runtimes: [
+        {
+          workerId: 'swarm5',
+          runtime: runtime({
+            currentTask: 'Publish completed work',
+            checkpointStatus: 'done',
+            state: 'idle',
+            lastOutputAt: 0,
+            nextAction: 'Run independent review',
+            artifacts: [
+              {
+                id: receipt.artifactId,
+                kind: 'report',
+                label: 'test receipt',
+                workerId: 'swarm5',
+                source: 'workspace',
+                receipt,
+              },
+            ],
+          }),
+        },
+      ],
+      now: 10 * 60 * 1000 + 1,
+    })
+
+    expect(result.tasks[0]).toMatchObject({
+      state: 'unknown',
+      evidenceStatus: 'not_required',
+      blocker: expect.stringMatching(/stale/i),
+      handoff: { eligible: false, target: null },
+    })
+    expect(result.summary.eligibleHandoffs).toBe(0)
   })
 
   it('does not count unreadable or missing Hermes files as observed', () => {
@@ -180,14 +256,19 @@ describe('runtime control plane', () => {
       now: 100,
     })
 
-    expect(result.runtimes.find((entry) => entry.id === 'hermes')).toMatchObject({
+    expect(
+      result.runtimes.find((entry) => entry.id === 'hermes'),
+    ).toMatchObject({
       state: 'not_reporting',
     })
     expect(result.tasks).toHaveLength(0)
   })
 
   it('projects a fresh Codex receipt and never treats it as dispatch authority', () => {
-    const receipt = persistedReceipt({ taskId: 'codex:command-centre-proof', workerId: 'codex' })
+    const receipt = persistedReceipt({
+      taskId: 'codex:command-centre-proof',
+      workerId: 'codex',
+    })
     const result = buildRuntimeControlPlane({
       workerIds: [],
       runtimes: [],
@@ -203,7 +284,9 @@ describe('runtime control plane', () => {
             title: 'Capture authenticated canvas proof',
             state: 'complete',
             deadlineAt: null,
-            evidence: [{ label: 'Playwright receipt', kind: 'report', ...receipt }],
+            evidence: [
+              { label: 'Playwright receipt', kind: 'report', ...receipt },
+            ],
             blocker: null,
             nextAction: 'Run independent review',
             receipt: 'authenticated preview receipt',
@@ -212,9 +295,13 @@ describe('runtime control plane', () => {
       },
     })
 
-    expect(result.runtimes.find((entry) => entry.id === 'codex')).toMatchObject({ state: 'observed' })
+    expect(result.runtimes.find((entry) => entry.id === 'codex')).toMatchObject(
+      { state: 'observed' },
+    )
     expect(result.tasks[0]).toMatchObject({
-      runtime: 'codex', evidenceStatus: 'present', handoff: { eligible: true, target: 'reviewer' },
+      runtime: 'codex',
+      evidenceStatus: 'present',
+      handoff: { eligible: true, target: 'reviewer' },
     })
     expect(result.execution).toBe('disabled')
   })
@@ -261,18 +348,73 @@ describe('runtime control plane', () => {
             checkpointStatus: 'done',
             state: 'idle',
             nextAction: 'Run independent review',
-            artifacts: [{
-              id: 'toolout_0000000000000000',
-              kind: 'report',
-              label: 'fabricated receipt',
-              workerId: 'swarm5',
-              source: 'workspace',
-              receipt: {
-                artifactId: 'toolout_0000000000000000',
-                sha256: '0'.repeat(64),
-                source: 'workspace-tool-artifact',
+            artifacts: [
+              {
+                id: 'toolout_0000000000000000',
+                kind: 'report',
+                label: 'fabricated receipt',
+                workerId: 'swarm5',
+                source: 'workspace',
+                receipt: {
+                  artifactId: 'toolout_0000000000000000',
+                  sha256: '0'.repeat(64),
+                  source: 'workspace-tool-artifact',
+                },
               },
-            }],
+            ],
+          }),
+        },
+      ],
+      now: 100,
+    })
+
+    expect(result.tasks[0]).toMatchObject({
+      evidenceStatus: 'missing',
+      handoff: { eligible: false },
+    })
+  })
+
+  it('rejects an unbrokered artifact that declares a trusted receipt source in its content', () => {
+    const taskId = 'swarm5:current'
+    const content = JSON.stringify({
+      version: 1,
+      taskId,
+      workerId: 'swarm5',
+      source: 'test-runner',
+    })
+    const artifact = createOrUpdateToolArtifact({
+      // A generic artifact writer can still label itself as a trusted producer.
+      // Only the separately persisted broker signature may make it evidence.
+      sessionId: 'untrusted-writer',
+      toolName: 'test-runner',
+      title: 'forged test receipt',
+      content,
+    })
+    const result = buildRuntimeControlPlane({
+      workerIds: ['swarm5'],
+      runtimes: [
+        {
+          workerId: 'swarm5',
+          runtime: runtime({
+            currentTask: 'Build the control plane',
+            checkpointStatus: 'done',
+            state: 'idle',
+            lastOutputAt: 99,
+            nextAction: 'Run independent review',
+            artifacts: [
+              {
+                id: artifact.id,
+                kind: 'report',
+                label: 'forged receipt',
+                workerId: 'swarm5',
+                source: 'workspace',
+                receipt: {
+                  artifactId: artifact.id,
+                  sha256: sha256(content),
+                  source: 'workspace-tool-artifact',
+                },
+              },
+            ],
           }),
         },
       ],

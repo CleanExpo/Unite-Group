@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import * as yaml from 'yaml'
@@ -6,7 +5,7 @@ import { getProfilesDir } from './claude-paths'
 import { listSwarmWorkerIds, readSwarmRuntimeFile } from './swarm-foundation'
 import { rosterByWorkerId } from './swarm-roster'
 import { readCodexCheckpoint } from './codex-runtime-checkpoint'
-import { getToolArtifact } from './tool-artifacts-store'
+import { verifyTrustedToolArtifactReceipt } from './tool-artifacts-store'
 
 /**
  * A read-only reconciliation of the runtimes that actually publish task state.
@@ -17,11 +16,7 @@ import { getToolArtifact } from './tool-artifacts-store'
  * includes a concrete next action and evidence.
  */
 export type ControlPlaneState =
-  | 'active'
-  | 'waiting'
-  | 'blocked'
-  | 'complete'
-  | 'unknown'
+  'active' | 'waiting' | 'blocked' | 'complete' | 'unknown'
 
 export type EvidenceStatus = 'present' | 'missing' | 'not_required'
 export type DeadlineStatus = 'not_set' | 'on_track' | 'overdue'
@@ -71,13 +66,6 @@ type RuntimeSource = ReturnType<typeof readSwarmRuntimeFile>['source']
 
 export const HERMES_CHECKPOINT_MAX_AGE_MS = 10 * 60 * 1000
 
-type ReceiptSubject = {
-  version: 1
-  taskId: string
-  workerId: string
-  source: 'test-runner' | 'independent-review' | 'external-service'
-}
-
 type ReceiptReference = {
   artifactId: string
   sha256: string
@@ -93,14 +81,20 @@ function stateFromRuntime(runtime: RawRuntime): ControlPlaneState {
   if (runtime.checkpointStatus === 'done') return 'complete'
   if (runtime.state === 'blocked' || runtime.checkpointStatus === 'blocked')
     return 'blocked'
-  if (runtime.state === 'executing' || runtime.checkpointStatus === 'in_progress')
+  if (
+    runtime.state === 'executing' ||
+    runtime.checkpointStatus === 'in_progress'
+  )
     return 'active'
   if (runtime.state === 'waiting' || runtime.checkpointStatus === 'needs_input')
     return 'waiting'
   return 'unknown'
 }
 
-function deadlineStatus(deadlineAt: number | null, now: number): DeadlineStatus {
+function deadlineStatus(
+  deadlineAt: number | null,
+  now: number,
+): DeadlineStatus {
   if (!deadlineAt) return 'not_set'
   return deadlineAt < now ? 'overdue' : 'on_track'
 }
@@ -110,40 +104,30 @@ function deadlineFromRuntime(runtime: RawRuntime): number | null {
   return typeof raw === 'number' && Number.isFinite(raw) ? raw : null
 }
 
-function isActiveRuntime(runtime: RawRuntime): boolean {
-  return runtime.state === 'executing' || runtime.checkpointStatus === 'in_progress'
-}
-
-function isStaleActiveRuntime(runtime: RawRuntime, now: number): boolean {
+function isStaleRuntime(runtime: RawRuntime, now: number): boolean {
   return (
-    isActiveRuntime(runtime) &&
-    (runtime.lastOutputAt === null || now - runtime.lastOutputAt > HERMES_CHECKPOINT_MAX_AGE_MS)
+    runtime.lastOutputAt === null ||
+    now - runtime.lastOutputAt > HERMES_CHECKPOINT_MAX_AGE_MS
   )
 }
 
-function sha256(value: string): string {
-  return createHash('sha256').update(value).digest('hex')
+function verifiedReceipt(
+  reference: ReceiptReference,
+  taskId: string,
+  workerId: string,
+): boolean {
+  return verifyTrustedToolArtifactReceipt({
+    artifactId: reference.artifactId,
+    sha256: reference.sha256,
+    taskId,
+    workerId,
+  })
 }
 
-function verifiedReceipt(reference: ReceiptReference, taskId: string, workerId: string): boolean {
-  const artifact = getToolArtifact(reference.artifactId)
-  if (!artifact || sha256(artifact.content) !== reference.sha256) return false
-  try {
-    const subject = JSON.parse(artifact.content) as Partial<ReceiptSubject>
-    return (
-      subject.version === 1 &&
-      subject.taskId === taskId &&
-      subject.workerId === workerId &&
-      (subject.source === 'test-runner' ||
-        subject.source === 'independent-review' ||
-        subject.source === 'external-service')
-    )
-  } catch {
-    return false
-  }
-}
-
-function verifiedHermesArtifacts(runtime: RawRuntime, taskId: string): Array<{ label: string; kind: string }> {
+function verifiedHermesArtifacts(
+  runtime: RawRuntime,
+  taskId: string,
+): Array<{ label: string; kind: string }> {
   return runtime.artifacts.flatMap((artifact) => {
     const receipt = artifact.receipt
     if (
@@ -158,7 +142,13 @@ function verifiedHermesArtifacts(runtime: RawRuntime, taskId: string): Array<{ l
 }
 
 function verifiedCodexArtifacts(
-  evidence: Array<{ label: string; kind: string; artifactId: string; sha256: string; source: 'workspace-tool-artifact' }>,
+  evidence: Array<{
+    label: string
+    kind: string
+    artifactId: string
+    sha256: string
+    source: 'workspace-tool-artifact'
+  }>,
   taskId: string,
 ): Array<{ label: string; kind: string }> {
   return evidence.flatMap((entry) =>
@@ -175,7 +165,8 @@ function taskForRuntime(input: {
   now: number
 }): ControlPlaneTask | null {
   const { workerId, runtime, title, now } = input
-  const state = isStaleActiveRuntime(runtime, now) ? 'unknown' : stateFromRuntime(runtime)
+  const stale = isStaleRuntime(runtime, now)
+  const state = stale ? 'unknown' : stateFromRuntime(runtime)
   const taskId = `${workerId}:${runtime.sessionId ?? 'current'}`
   const artifacts = verifiedHermesArtifacts(runtime, taskId)
   const requiresEvidence = state === 'complete'
@@ -205,13 +196,17 @@ function taskForRuntime(input: {
     deadlineStatus: deadlineStatus(deadlineAt, now),
     deadlineAt,
     evidence: artifacts,
-    blocker: isStaleActiveRuntime(runtime, now)
-      ? 'Runtime checkpoint is stale; no current activity is inferred.'
+    blocker: stale
+      ? 'Runtime checkpoint is stale; no current state is inferred.'
       : nonEmpty(runtime.blockedReason),
     nextAction,
     handoff: {
       eligible: handoffEligible,
-      target: handoffEligible ? (reviewLike ? 'reviewer' : 'orchestrator') : null,
+      target: handoffEligible
+        ? reviewLike
+          ? 'reviewer'
+          : 'orchestrator'
+        : null,
       reason: handoffEligible
         ? 'Completion has runtime evidence and a declared next action.'
         : state === 'complete' && evidenceStatus === 'missing'
@@ -238,7 +233,11 @@ function configReportsLocalGemma(hermesRoot: string): boolean {
 
 export function buildRuntimeControlPlane(input: {
   workerIds: Array<string>
-  runtimes: Array<{ workerId: string; runtime: RawRuntime; source?: RuntimeSource }>
+  runtimes: Array<{
+    workerId: string
+    runtime: RawRuntime
+    source?: RuntimeSource
+  }>
   now?: number
   hermesReportsLocalGemma?: boolean
   codexCheckpoint?: ReturnType<typeof readCodexCheckpoint>
@@ -249,7 +248,7 @@ export function buildRuntimeControlPlane(input: {
     ({ source = 'runtime.json' }) => source === 'runtime.json',
   )
   const staleRuntimes = reportedRuntimes.filter(({ runtime }) =>
-    isStaleActiveRuntime(runtime, now),
+    isStaleRuntime(runtime, now),
   )
   const tasks = reportedRuntimes
     .map(({ workerId, runtime }) =>
@@ -266,41 +265,54 @@ export function buildRuntimeControlPlane(input: {
     checkpoint: null,
     detail: 'Codex has not published a checkpoint.',
   }
-  const codexTaskId = codex.checkpoint ? `codex:${codex.checkpoint.task.id}` : null
-  const codexArtifacts = codex.checkpoint && codexTaskId
-    ? verifiedCodexArtifacts(codex.checkpoint.task.evidence, codexTaskId)
-    : []
-  const codexTask = codex.checkpoint && codexTaskId
-    ? {
-        taskId: codexTaskId,
-        title: codex.checkpoint.task.title,
-        owner: 'codex',
-        runtime: 'codex' as const,
-        state: codex.checkpoint.task.state,
-        evidenceStatus: codex.checkpoint.task.state === 'complete'
-          ? (codexArtifacts.length > 0
-              ? 'present' as const
-              : 'missing' as const)
-          : 'not_required' as const,
-        deadlineStatus: deadlineStatus(codex.checkpoint.task.deadlineAt, now),
-        deadlineAt: codex.checkpoint.task.deadlineAt,
-        evidence: codexArtifacts,
-        blocker: codex.checkpoint.task.blocker,
-        nextAction: codex.checkpoint.task.nextAction,
-        handoff: {
-          eligible: codex.checkpoint.task.state === 'complete' &&
-            codexArtifacts.length > 0 &&
-            Boolean(codex.checkpoint.task.nextAction),
-          target: codex.checkpoint.task.state === 'complete' && codex.checkpoint.task.nextAction
-            ? (/review|verify|test|gate/i.test(codex.checkpoint.task.nextAction) ? 'reviewer' as const : 'orchestrator' as const)
-            : null,
-          reason: codex.checkpoint.task.state === 'complete'
-            ? 'Codex completion requires evidence or receipt plus a declared next action.'
-            : null,
-        },
-        observedAt: codex.checkpoint.observedAt,
-      }
+  const codexTaskId = codex.checkpoint
+    ? `codex:${codex.checkpoint.task.id}`
     : null
+  const codexArtifacts =
+    codex.checkpoint && codexTaskId
+      ? verifiedCodexArtifacts(codex.checkpoint.task.evidence, codexTaskId)
+      : []
+  const codexTask =
+    codex.checkpoint && codexTaskId
+      ? {
+          taskId: codexTaskId,
+          title: codex.checkpoint.task.title,
+          owner: 'codex',
+          runtime: 'codex' as const,
+          state: codex.checkpoint.task.state,
+          evidenceStatus:
+            codex.checkpoint.task.state === 'complete'
+              ? codexArtifacts.length > 0
+                ? ('present' as const)
+                : ('missing' as const)
+              : ('not_required' as const),
+          deadlineStatus: deadlineStatus(codex.checkpoint.task.deadlineAt, now),
+          deadlineAt: codex.checkpoint.task.deadlineAt,
+          evidence: codexArtifacts,
+          blocker: codex.checkpoint.task.blocker,
+          nextAction: codex.checkpoint.task.nextAction,
+          handoff: {
+            eligible:
+              codex.checkpoint.task.state === 'complete' &&
+              codexArtifacts.length > 0 &&
+              Boolean(codex.checkpoint.task.nextAction),
+            target:
+              codex.checkpoint.task.state === 'complete' &&
+              codex.checkpoint.task.nextAction
+                ? /review|verify|test|gate/i.test(
+                    codex.checkpoint.task.nextAction,
+                  )
+                  ? ('reviewer' as const)
+                  : ('orchestrator' as const)
+                : null,
+            reason:
+              codex.checkpoint.task.state === 'complete'
+                ? 'Codex completion requires evidence or receipt plus a declared next action.'
+                : null,
+          },
+          observedAt: codex.checkpoint.observedAt,
+        }
+      : null
   const allTasks = codexTask ? [...tasks, codexTask] : tasks
 
   return {
@@ -316,7 +328,7 @@ export function buildRuntimeControlPlane(input: {
             ? 'observed'
             : 'not_reporting',
         detail: staleRuntimes.length
-          ? `${staleRuntimes.length} Hermes active checkpoint(s) are stale; no current activity is inferred.`
+          ? `${staleRuntimes.length} Hermes checkpoint(s) are stale; no current state is inferred.`
           : reportedRuntimes.length
             ? `${reportedRuntimes.length} worker runtime checkpoint(s) observed.`
             : 'No readable Hermes worker runtime checkpoints found.',
@@ -339,8 +351,11 @@ export function buildRuntimeControlPlane(input: {
       active: allTasks.filter((task) => task.state === 'active').length,
       blocked: allTasks.filter((task) => task.state === 'blocked').length,
       complete: allTasks.filter((task) => task.state === 'complete').length,
-      missingEvidence: allTasks.filter((task) => task.evidenceStatus === 'missing').length,
-      overdue: allTasks.filter((task) => task.deadlineStatus === 'overdue').length,
+      missingEvidence: allTasks.filter(
+        (task) => task.evidenceStatus === 'missing',
+      ).length,
+      overdue: allTasks.filter((task) => task.deadlineStatus === 'overdue')
+        .length,
       eligibleHandoffs: allTasks.filter((task) => task.handoff.eligible).length,
     },
   }

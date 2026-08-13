@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { createHash } from 'node:crypto'
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
 import { join } from 'node:path'
 
 export const INLINE_TOOL_OUTPUT_LIMIT = 4_000
@@ -8,11 +8,7 @@ const INDEX_FILE = join(DATA_DIR, 'index.json')
 const PREVIEW_LIMIT = 1_000
 
 export type ToolArtifactKind =
-  | 'tool_output'
-  | 'file_read'
-  | 'terminal_log'
-  | 'diff'
-  | 'skill_doc'
+  'tool_output' | 'file_read' | 'terminal_log' | 'diff' | 'skill_doc'
 
 export type ToolArtifact = {
   id: string
@@ -27,10 +23,44 @@ export type ToolArtifact = {
   contentSize: number
   contentPath: string
   createdAt: number
+  trustedReceipt?: TrustedToolArtifactReceipt
+}
+
+/**
+ * A broker-issued receipt is deliberately separate from an artifact's JSON
+ * content.  Artifact writers can choose their own content and labels, but
+ * cannot make that content eligible as delivery evidence without the receipt
+ * broker's signing key.
+ */
+export type TrustedReceiptSource =
+  'test-runner' | 'independent-review' | 'external-service'
+
+export type TrustedToolArtifactReceipt = {
+  version: 1
+  issuer: 'runtime-receipt-broker'
+  source: TrustedReceiptSource
+  taskId: string
+  workerId: string
+  artifactId: string
+  sha256: string
+  producer: {
+    sessionId: string
+    toolName: string
+  }
+  issuedAt: number
+  signature: string
 }
 
 type ArtifactIndex = {
   artifacts: Record<string, ToolArtifact>
+}
+
+const RECEIPT_SIGNING_KEY_ENV = 'RUNTIME_CONTROL_PLANE_RECEIPT_SIGNING_KEY'
+
+const TRUSTED_PRODUCER_TOOL: Record<TrustedReceiptSource, string> = {
+  'test-runner': 'test-runner',
+  'independent-review': 'independent-review',
+  'external-service': 'external-service',
 }
 
 let index: ArtifactIndex = { artifacts: {} }
@@ -66,6 +96,39 @@ function sanitizePathSegment(value: string): string {
 
 function hashString(value: string): string {
   return createHash('sha256').update(value).digest('hex')
+}
+
+function receiptPayload(
+  receipt: Omit<TrustedToolArtifactReceipt, 'signature'>,
+): string {
+  return JSON.stringify({
+    version: receipt.version,
+    issuer: receipt.issuer,
+    source: receipt.source,
+    taskId: receipt.taskId,
+    workerId: receipt.workerId,
+    artifactId: receipt.artifactId,
+    sha256: receipt.sha256,
+    producer: receipt.producer,
+    issuedAt: receipt.issuedAt,
+  })
+}
+
+function receiptSigningKey(): string | null {
+  const key = process.env[RECEIPT_SIGNING_KEY_ENV]
+  return typeof key === 'string' && key.length >= 32 ? key : null
+}
+
+function receiptSignature(payload: string, key: string): string {
+  return createHmac('sha256', key).update(payload).digest('hex')
+}
+
+function trustedSource(value: string): value is TrustedReceiptSource {
+  return (
+    value === 'test-runner' ||
+    value === 'independent-review' ||
+    value === 'external-service'
+  )
 }
 
 function artifactContentPath(sessionId: string, artifactId: string): string {
@@ -122,6 +185,93 @@ export function getToolArtifact(
   } catch {
     return { ...artifact, content: '' }
   }
+}
+
+/**
+ * The only path that can turn an existing immutable artifact into runtime
+ * evidence. The source is derived from the persisted producer metadata, not
+ * the artifact's caller-controlled content.
+ */
+export function issueTrustedToolArtifactReceipt(input: {
+  artifactId: string
+  taskId: string
+  workerId: string
+  source: TrustedReceiptSource
+  issuedAt?: number
+}): TrustedToolArtifactReceipt {
+  const artifact = getToolArtifact(input.artifactId)
+  const signingKey = receiptSigningKey()
+  if (!artifact || !signingKey) {
+    throw new Error('Trusted receipt broker is unavailable.')
+  }
+  const toolName = artifact.toolName?.trim() ?? ''
+  if (toolName !== TRUSTED_PRODUCER_TOOL[input.source]) {
+    throw new Error(
+      'Artifact producer is not authorised for the declared receipt source.',
+    )
+  }
+
+  const unsignedReceipt: Omit<TrustedToolArtifactReceipt, 'signature'> = {
+    version: 1,
+    issuer: 'runtime-receipt-broker',
+    source: input.source,
+    taskId: input.taskId,
+    workerId: input.workerId,
+    artifactId: artifact.id,
+    sha256: hashString(artifact.content),
+    producer: { sessionId: artifact.sessionId, toolName },
+    issuedAt: input.issuedAt ?? Date.now(),
+  }
+  const trustedReceipt: TrustedToolArtifactReceipt = {
+    ...unsignedReceipt,
+    signature: receiptSignature(receiptPayload(unsignedReceipt), signingKey),
+  }
+  index.artifacts[artifact.id] = {
+    ...index.artifacts[artifact.id],
+    trustedReceipt,
+  }
+  saveIndex()
+  return trustedReceipt
+}
+
+/** Verify the broker signature and all persisted producer bindings. */
+export function verifyTrustedToolArtifactReceipt(input: {
+  artifactId: string
+  sha256: string
+  taskId: string
+  workerId: string
+}): boolean {
+  const artifact = getToolArtifact(input.artifactId)
+  const signingKey = receiptSigningKey()
+  const receipt = artifact?.trustedReceipt
+  if (!artifact || !signingKey || !receipt || !trustedSource(receipt.source))
+    return false
+  const expectedToolName = TRUSTED_PRODUCER_TOOL[receipt.source]
+  if (
+    receipt.artifactId !== artifact.id ||
+    receipt.sha256 !== input.sha256 ||
+    receipt.sha256 !== hashString(artifact.content) ||
+    receipt.taskId !== input.taskId ||
+    receipt.workerId !== input.workerId ||
+    receipt.producer.sessionId !== artifact.sessionId ||
+    receipt.producer.toolName !== artifact.toolName ||
+    receipt.producer.toolName !== expectedToolName
+  )
+    return false
+
+  const expected = receiptSignature(
+    receiptPayload({ ...receipt, signature: undefined } as Omit<
+      TrustedToolArtifactReceipt,
+      'signature'
+    >),
+    signingKey,
+  )
+  const received = Buffer.from(receipt.signature, 'hex')
+  const expectedBuffer = Buffer.from(expected, 'hex')
+  return (
+    received.length === expectedBuffer.length &&
+    timingSafeEqual(received, expectedBuffer)
+  )
 }
 
 type CreateArtifactInput = {
