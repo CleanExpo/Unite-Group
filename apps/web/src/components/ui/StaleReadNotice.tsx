@@ -26,15 +26,25 @@
 // same statement: a sweep can find the region and assert nothing inside it is
 // still actionable.
 //
-// NOTE: that sweep does NOT exist in this branch yet. The census which enforces
-// it — components/founder/__tests__/no-invaders-render-under-failure.test.tsx —
-// ships in a later slice of this audit. Until then the contract is enforced per
-// surface by each component's own tests; see kanban/__tests__/KanbanBoard.test.tsx.
+// WHAT ACTUALLY ENFORCES IT, as of this slice:
+//   components/founder/__tests__/stale-read-fixture-sweep.test.tsx — drives a
+//   named set of surfaces through success -> failed refresh -> recovery and
+//   asserts the marker and the inertness for each. It polices exactly the
+//   surfaces shipped so far and grows with every slice.
 //
-// An earlier draft of this comment described that census in the present tense
-// and was caught by review. A comment promising enforcement that does not exist
-// is the same class of false confidence this audit is about, in prose instead of
-// code.
+// The full census (no-invaders-render-under-failure.test.tsx) is NOT here. Its
+// other three sweeps police the entire candidate population — announce-failure,
+// the retain-and-write risk class, clear-on-success — so it can only land once
+// every surface in the app is compliant. When it does, the scoped sweep above is
+// DELETED rather than left beside it making overlapping claims.
+//
+// This comment has now been wrong twice, in opposite directions. The first draft
+// described the census in the present tense when it did not exist. The second
+// said "that sweep does NOT exist in this branch" — in the very branch that adds
+// one; written before the sweep and never revised after. Both are the failure
+// this audit is about, in prose instead of code: a claim about enforcement that
+// nobody re-checks against the tree. The second was caught by an adversarial
+// review pass, not by me.
 //
 // Recovery controls (Refresh, a filter change, pagination) are NOT disabled —
 // they are how the founder gets back to a live read, and disabling them would

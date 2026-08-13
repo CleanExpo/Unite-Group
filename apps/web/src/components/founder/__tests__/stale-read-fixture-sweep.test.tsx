@@ -244,7 +244,6 @@ const rel = (f: string) => path.relative(ROOT, f).replace(/\\/g, '/')
  * run competing for CPU — and the failure mode there is a timeout, which looks
  * exactly like a real finding while telling you nothing.
  */
-const SCAN_TIMEOUT_MS = 300_000
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -277,16 +276,24 @@ const SCAN_TIMEOUT_MS = 300_000
  * The DOM half of the contract, extracted so the predicate itself can be
  * asserted against fixtures rather than only exercised against components.
  *
- * Deliberately limited to `button`:
+ * NOT limited to `button` — that limit was the defect UNI-2502. See the two-rule
+ * design below: verb-named controls AND record-selection inputs. What remains
+ * excluded, and why:
  *   - `<a href>` is excluded. HermesKanbanStatus keeps a "View in Linear" link
  *     live on a stale card on purpose — it navigates to the source of truth,
  *     which is the REMEDY for staleness, not an act on stale data.
- *   - `<select>` / `<input>` are excluded because a select's textContent is the
- *     concatenation of every option, which produces matches that have nothing
- *     to do with an action ("Reconciled" inside a status filter). Filters and
- *     pagination are also recovery paths: they trigger a fresh read, and
+ *   - `<select>` is excluded. Its textContent is the concatenation of every
+ *     option, producing matches with nothing to do with an action ("Reconciled"
+ *     inside a status filter), and a dropdown changes a VIEW or feeds a form
+ *     whose submit is separately guarded. Including it flagged five false
+ *     positives in one sweep. Filters and pagination are also recovery paths:
  *     disabling them would trap the surface in its degraded state.
- * Both limits are stated so a green run is not read as more than it is.
+ * The exclusions are stated so a green run is not read as more than it is.
+ *
+ * This comment said "deliberately limited to `button`" and listed `<input>` as
+ * excluded, standing directly above code that scans checkboxes. It survived the
+ * widening it was contradicting, and survived an adversarial review pass that
+ * caught three other stale comments in this file but not this one.
  */
 // `propose` was absent, and its absence was invisible: KanbanBoard's Propose
 // button sits inside a marked stale region and POSTs /api/kanban/generate-next
@@ -507,9 +514,9 @@ const STALE_FIXTURES: StaleFixture[] = [
     actions: [/^Approve$/i, /^Defer$/i, /^Reject$/i],
   },
       // UNI-2476. Two Mission Control tiles the No-Invaders branch already edited,
-  // carrying the same retain-and-present-as-current defect the four above were
-  // fixed for. Both are READ-ONLY, so like LiveAgentOperationsMap and
-  // HermesKanbanStatus they carry `actions: []`: the VISIBLE half of the
+  // carrying the same retain-and-present-as-current defect the tiles above were
+  // fixed for. Both are READ-ONLY, so like LiveAgentOperationsMap they carry
+  // `actions: []`: the VISIBLE half of the
   // contract is the whole of it here, and the INERT half is satisfied
   // vacuously. That is stated rather than left implied — an empty `actions`
   // list is otherwise indistinguishable from a fixture whose author forgot to
@@ -697,13 +704,16 @@ const STALE_FIXTURES: StaleFixture[] = [
     refresh: ({ container }) => clickByName(container, /refresh/i),
     actions: [/^disable$/i, /^remove$/i],
   },
-  // The final three, and the set is closed. They were found by the residue of
-  // the 11/08 round rather than by guessing: that round fixed the COUNT and the
-  // EMPTY STATE in every file it touched and left the retained LIST, so
-  // `grep -rln 'independent review 11/08/2026'` bounds the population. Nine
-  // files, five already marked, three here. InsightDiscussion is deliberately
-  // not among them — its `setError` calls are all post-a-note failures, not
-  // read failures.
+  // Found by the residue of the 11/08 round rather than by guessing: that round
+  // fixed the COUNT and the EMPTY STATE in every file it touched and left the
+  // retained LIST, so `grep -rln 'independent review 11/08/2026'` bounds the
+  // population. That bound named three surfaces — ActivityFeedPanel, TeamPanel
+  // and PiRouterPanel. Only ActivityFeedPanel is in THIS slice; the other two
+  // arrive with the slices that ship them, and this fixture list grows then.
+  //
+  // The original of this comment said "the final three, and the set is closed"
+  // and was left unrevised when the list was trimmed from fifteen fixtures to
+  // ten — a comment describing a file's own contents, wrong about them.
   {
     file: 'components/command-centre/activity/ActivityFeedPanel.tsx',
     exportName: 'ActivityFeedPanel',
@@ -730,7 +740,7 @@ const STALE_FIXTURES: StaleFixture[] = [
     ]
 
 /**
- * Named ratchet, same reasoning as MUST_BE_POLICED above: a count cannot say
+ * Named ratchet: a count cannot say
  * WHICH surfaces were exercised. Each of these must appear in the census
  * candidate population AND be driven through the whole success → failure →
  * success sequence. A surface that stops being discoverable, or whose fixture
