@@ -17,9 +17,15 @@ export interface ActivityLogProps {
   maxRows?: number
   /** When set, the SourceBadge flips from `seed` to `live`. */
   sourceLiveAt?: string
+  /**
+   * The caller's read failed. Suppresses the event count and the "no activity
+   * yet" line, both of which are claims that a read succeeded and found
+   * nothing. Found by the strengthened No-Invaders census 11/08/2026.
+   */
+  degraded?: boolean
 }
 
-export function ActivityLog({ events = ACTIVITY_DATA, maxRows = 20, sourceLiveAt }: ActivityLogProps) {
+export function ActivityLog({ events = ACTIVITY_DATA, maxRows = 20, sourceLiveAt, degraded = false }: ActivityLogProps) {
   const isLive = !!sourceLiveAt
   const sorted = useMemo(() => {
     return [...events].sort((a, b) => (a.ts < b.ts ? 1 : -1)).slice(0, maxRows)
@@ -61,8 +67,8 @@ export function ActivityLog({ events = ACTIVITY_DATA, maxRows = 20, sourceLiveAt
             />
           )}
           <span>
-            {sorted.length} events
-            {signalCount > 0 ? ` · ${signalCount} signal` : ''}
+            {degraded ? 'event count unavailable' : `${sorted.length} events`}
+            {!degraded && signalCount > 0 ? ` · ${signalCount} signal` : ''}
           </span>
           {isLive ? (
             <SourceBadge mode="live" label="agent_actions" lastUpdatedAt={sourceLiveAt} />
@@ -81,7 +87,7 @@ export function ActivityLog({ events = ACTIVITY_DATA, maxRows = 20, sourceLiveAt
       >
         {sorted.length > 0 ? (
           sorted.map((event) => <ActivityRow key={event.id} data={event} />)
-        ) : (
+        ) : degraded ? null : (
           <p
             className="px-5 py-6 font-mono text-[11px] leading-relaxed"
             style={{ color: 'var(--cc-ink-hush)' }}

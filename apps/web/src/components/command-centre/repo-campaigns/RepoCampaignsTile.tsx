@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react'
 import type { RepoCampaignsPayload, CampaignEntry, CampaignState } from '@/lib/command-centre/repo-campaigns'
 import { SourceBadge, type SourceMode } from '../SourceBadge'
+import { StaleReadNotice } from '@/components/ui/StaleReadNotice'
 
 const POLL_MS = 60000
 
@@ -73,19 +74,34 @@ export function RepoCampaignsTile() {
 
   const mode: SourceMode = loading ? 'loading' : error || !payload ? 'degraded' : 'live'
 
+  // The poll above sets `error` and returns; `payload` keeps whatever the last
+  // successful read produced. So every campaign row, and the summary counts
+  // above them, survive a failed refresh and read as current. Keep them — one
+  // flaky poll should not blank the tile — but mark them, per the two-sided
+  // contract in components/ui/StaleReadNotice.tsx. This tile is READ-ONLY: it
+  // has no control that acts on a campaign, so `actionsDisabled` stays off
+  // rather than claiming an inertness there is nothing to enforce. The repo
+  // links are left live deliberately — navigating to GitHub is the remedy for
+  // staleness, not an act on stale data.
+  const staleRead = Boolean(error) && payload !== null
+
   return (
-    <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <section
+      style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+      data-stale-read={staleRead ? 'true' : undefined}
+    >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h3 style={{ color: 'var(--deck-text)', fontSize: 14, fontWeight: 700, margin: 0 }}>Campaigns — Nexus repos</h3>
         <SourceBadge mode={mode} label="Campaigns" />
       </div>
+      {error && <p role="alert" style={{ color: 'var(--deck-abort-text)', fontSize: 12, margin: 0 }}>Could not load campaigns: {error}</p>}
+      {staleRead && <StaleReadNotice source="Campaigns — Nexus repos" />}
       {payload && (
         <p style={{ color: 'var(--deck-muted)', fontSize: 11, margin: 0 }}>
           {payload.summary.activeCampaigns} active · {payload.summary.building} building · {payload.summary.idle} idle · {payload.summary.planned} planned
           {!payload.githubConnected && ' · GitHub not connected (set GITHUB_TOKEN for live signal)'}
         </p>
       )}
-      {error && <p style={{ color: 'var(--deck-abort-text)', fontSize: 12, margin: 0 }}>Could not load campaigns: {error}</p>}
       <div>{payload?.campaigns.map((c) => <CampaignRow key={c.name} c={c} />)}</div>
     </section>
   )

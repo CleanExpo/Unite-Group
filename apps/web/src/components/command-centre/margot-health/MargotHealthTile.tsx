@@ -7,6 +7,7 @@
 import { useEffect, useState } from 'react'
 import type { MargotHealthPayload } from '@/lib/command-centre/margot-health'
 import { SourceBadge, type SourceMode } from '../SourceBadge'
+import { StaleReadNotice } from '@/components/ui/StaleReadNotice'
 
 const POLL_MS = 60000
 
@@ -62,14 +63,28 @@ export function MargotHealthTile() {
 
   const mode: SourceMode = loading ? 'loading' : error || !payload ? 'degraded' : 'live'
 
+  // A failed poll retains `payload`, so "Voice endpoint ready", the four
+  // config-presence flags, the last voice session and the agent heartbeat all
+  // keep rendering as current. This tile's whole job is to answer "is Margot
+  // working right now" — a stale yes is the worst possible answer to that
+  // question, and `lastUpdatedAt` on the badge makes it look freshly read.
+  // Marked, not blanked. Read-only surface, so no `actionsDisabled`. [UNI-2476]
+  const staleRead = Boolean(error) && payload !== null
+
   return (
-    <section data-testid="margot-health-tile" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <section
+      data-testid="margot-health-tile"
+      style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+      data-stale-read={staleRead ? 'true' : undefined}
+    >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h3 style={{ color: 'var(--deck-text, #e6f7ff)', fontSize: 14, fontWeight: 700, margin: 0 }}>Margot — operational state</h3>
         <SourceBadge mode={mode} label="Margot" lastUpdatedAt={payload?.generatedAt} />
       </div>
 
-      {error && <p style={{ color: 'var(--deck-abort-text, #d02f35)', fontSize: 12, margin: 0 }}>Could not load Margot state: {error}</p>}
+      {error && <p role="alert" style={{ color: 'var(--deck-abort-text, #d02f35)', fontSize: 12, margin: 0 }}>Could not load Margot state: {error}</p>}
+
+      {staleRead && <StaleReadNotice source="Margot operational state" />}
 
       {payload && (
         <>

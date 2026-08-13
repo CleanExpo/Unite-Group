@@ -14,8 +14,9 @@
 //
 // Read-only. No mutations.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import type { InProgressPR, InProgressPRsResult } from '@/lib/command-centre/in-progress-prs'
+import { StaleReadNotice } from '@/components/ui/StaleReadNotice'
 
 const POLL_MS = 60000
 
@@ -69,7 +70,7 @@ export function InProgressPRsTile() {
 
   if (error && !data) {
     return (
-      <p data-testid="in-progress-prs-tile-error" style={{ color: 'var(--tile-red-txt, #d02f35)', fontSize: '0.85rem', margin: 0 }}>
+      <p role="alert" data-testid="in-progress-prs-tile-error" style={{ color: 'var(--tile-red-txt, #d02f35)', fontSize: '0.85rem', margin: 0 }}>
         Could not load in-progress PRs: {error}
       </p>
     )
@@ -81,6 +82,32 @@ export function InProgressPRsTile() {
     return null
   }
 
+  // The branch above is `error && !data`, so once a read has SUCCEEDED a later
+  // failed poll fell through it and rendered nothing at all — no alert, no
+  // marker, just the previous PR list looking current. That is worse than the
+  // sibling tiles, which at least showed an error beside the stale payload:
+  // here the failure was invisible. The retained payload is kept (blanking the
+  // deck on one flaky poll is its own failure mode) and instead marked, per the
+  // two-sided contract in components/ui/StaleReadNotice.tsx. Read-only tile —
+  // no acting control to disable, so no `actionsDisabled`. [UNI-2476]
+  const staleRead = Boolean(error)
+
+  // Applied to BOTH remaining branches. The empty state is as capable of lying
+  // as the list is: "no open PRs" from a read that failed is the original
+  // No-Invaders defect wearing a different hat.
+  const wrap = (body: ReactNode): ReactNode =>
+    staleRead ? (
+      <div data-stale-read="true">
+        <p role="alert" style={{ color: 'var(--tile-red-txt, #d02f35)', fontSize: '0.85rem', margin: 0 }}>
+          Could not refresh in-progress PRs: {error}
+        </p>
+        <StaleReadNotice source="In-progress PRs" />
+        {body}
+      </div>
+    ) : (
+      body
+    )
+
   if (data.entries.length === 0) {
     // Either GitHub is not connected, some repos failed, or there are genuinely
     // no open PRs. Green only when the sweep was clean — a partial failure must
@@ -88,18 +115,18 @@ export function InProgressPRsTile() {
     const unavailable = !data.available
     const partial = data.available && data.read_error !== null
     const tone = unavailable || partial ? 'var(--color-text-muted)' : 'var(--tile-green-txt, #34d399)'
-    return (
+    return wrap(
       <p
         data-testid="in-progress-prs-tile-empty"
         style={{ color: tone, fontSize: '0.85rem', margin: 0 }}
       >
         {data.status_message}
         {data.read_error ? ` — ${data.read_error}` : ''}
-      </p>
+      </p>,
     )
   }
 
-  return (
+  return wrap(
     <div data-testid="in-progress-prs-tile">
       <div
         style={{
@@ -164,6 +191,6 @@ export function InProgressPRsTile() {
           </li>
         ))}
       </ul>
-    </div>
+    </div>,
   )
 }

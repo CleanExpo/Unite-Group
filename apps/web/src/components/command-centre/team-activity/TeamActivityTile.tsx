@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react'
 import type { TeamActivityPayload, MemberActivity } from '@/lib/command-centre/team-activity'
 import { SourceBadge, type SourceMode } from '../SourceBadge'
+import { StaleReadNotice } from '@/components/ui/StaleReadNotice'
 
 const POLL_MS = 120000
 
@@ -70,20 +71,34 @@ export function TeamActivityTile() {
 
   const mode: SourceMode = loading ? 'loading' : error || !payload ? 'degraded' : 'live'
 
+  // Same sequence as the campaigns tile: a failed poll sets `error` and leaves
+  // `payload` in place, so every per-person commit count, day span and the
+  // `lastUpdatedAt` on the badge keep reading as current. Per-person activity
+  // figures are exactly the kind of number a founder acts on, so they are
+  // marked rather than silently retained. Read-only surface — no acting
+  // control to disable, so `actionsDisabled` stays off.
+  const staleRead = Boolean(error) && payload !== null
+
   return (
-    <section data-testid="team-activity-tile" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <section
+      data-testid="team-activity-tile"
+      style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+      data-stale-read={staleRead ? 'true' : undefined}
+    >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h3 style={{ color: 'var(--deck-text, #e6f7ff)', fontSize: 14, fontWeight: 700, margin: 0 }}>Team activity — {payload?.repo ?? 'CCW-CRM'}</h3>
         <SourceBadge mode={mode} label="Team activity" lastUpdatedAt={payload?.generatedAt} />
       </div>
+
+      {error && <p role="alert" style={{ color: 'var(--deck-abort-text, #d02f35)', fontSize: 12, margin: 0 }}>Could not load team activity: {error}</p>}
+
+      {staleRead && <StaleReadNotice source="Team activity" />}
 
       {payload && (
         <p data-testid="team-activity-disclaimer" style={{ color: 'var(--deck-amber-text, #b45309)', fontSize: 11, margin: 0 }}>
           {payload.disclaimer}
         </p>
       )}
-
-      {error && <p style={{ color: 'var(--deck-abort-text, #d02f35)', fontSize: 12, margin: 0 }}>Could not load team activity: {error}</p>}
 
       {payload && payload.github !== 'live' && (
         <p style={{ color: 'var(--deck-muted)', fontSize: 11, margin: 0 }}>

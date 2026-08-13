@@ -12,6 +12,7 @@ import { useEffect, useState } from 'react'
 import { ActivityLog } from './ActivityLog'
 import type { ActivityDatum } from './activity-data'
 import { DegradedDataBanner } from '../DegradedDataBanner'
+import { StaleReadNotice } from '@/components/ui/StaleReadNotice'
 
 interface ActivityFeedPayload {
   source: 'cc:activity'
@@ -52,12 +53,28 @@ export function ActivityFeedPanel() {
     }
   }, [])
 
+  // `degraded` already suppresses ActivityLog's event COUNT and its "no
+  // activity yet" line — both claims that a read succeeded. The rows themselves
+  // were left: after a successful poll and then a failed one, `payload` is
+  // retained and every event still renders as though it were current, under a
+  // banner that says the read failed. That is the same shape the sibling tiles
+  // were drained for, and the distinction matters here because the feed is
+  // read as a live log — an event list that has silently stopped advancing is
+  // worse than one that admits it. Read-only panel, so no `actionsDisabled`.
+  //
+  // `payload !== null` is load-bearing: on a FIRST-read failure payload is null,
+  // ActivityLog falls back to its seed data behind a `seed` badge, and that is
+  // the existing honest cold-start path, not a stale read. [UNI-2476]
+  const staleRead = Boolean(error) && payload !== null
+
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col" data-stale-read={staleRead ? 'true' : undefined}>
       {error && <DegradedDataBanner source="Activity Log" reason={error} />}
+      {staleRead && <StaleReadNotice source="Activity Log" />}
       <ActivityLog
         events={payload?.events}
         sourceLiveAt={payload?.sourceLiveAt ?? undefined}
+        degraded={Boolean(error)}
       />
     </div>
   )

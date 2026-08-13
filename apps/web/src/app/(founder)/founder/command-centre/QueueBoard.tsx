@@ -21,6 +21,7 @@ import {
 } from '@/lib/command-centre/runner-heartbeat'
 import { createClient } from '@/lib/supabase/client'
 import { DeckDetails, DeckMoreLine, DECK_LIST_CAP } from '@/components/command-centre/DeckDetails'
+import { StaleReadNotice } from '@/components/ui/StaleReadNotice'
 
 interface QueueTask {
   id: string
@@ -122,7 +123,11 @@ export function QueueBoard() {
 
   const loadQueue = useCallback(async () => {
     setLoading(true)
-    setError(null)
+    // `error` is cleared on SUCCESS, not here. Clearing on entry would drop
+    // `staleRead` the instant a refresh starts — and realtime fires this on
+    // every visible row change — un-marking the retained lanes and putting
+    // Approve / Defer / Reject back over them while the replacement read is
+    // still in flight, with nothing having succeeded.
     try {
       const res = await fetch('/api/command-centre/queue', { credentials: 'include' })
       if (!res.ok) {
@@ -131,6 +136,7 @@ export function QueueBoard() {
       }
       const data = (await res.json()) as { tasks?: QueueTask[] }
       setTasks(Array.isArray(data.tasks) ? data.tasks : [])
+      setError(null)
     } catch {
       setError('Network error — could not reach the queue service.')
     } finally {
@@ -304,11 +310,28 @@ export function QueueBoard() {
     items: tasks.filter((t) => t.status === status),
   })).filter((g) => g.items.length > 0)
 
+  // `loadQueue` sets `error` and returns; `tasks` keeps whatever the last
+  // successful read produced. Every lane therefore survives a failed refresh —
+  // realtime-triggered, Refresh-button, or the initial load retried — with
+  // Approve / Defer / Reject live beside statuses that may already have moved.
+  // Keep the lanes (they are the founder's only picture of the queue), mark
+  // them, and take the DECISIONS offline. Refresh, Validation and Sessions stay
+  // live: the first is how you recover, the other two issue their own fresh
+  // reads and mutate nothing.
+  const staleRead = Boolean(error) && tasks.length > 0
+
   return (
-    <div className={styles.board} aria-live="polite">
+    <div className={styles.board} aria-live="polite" data-stale-read={staleRead ? 'true' : undefined}>
       <div className={styles.toolbar}>
         <span className={styles.count}>
-          {loading && tasks.length === 0 ? 'Loading tasks…' : `${tasks.length} task${tasks.length === 1 ? '' : 's'}`}
+          {/* The empty state below is already gated on !error, but this count
+              was not — so a failed read still announced "0 tasks" next to the
+              error. Found by the strengthened No-Invaders census 11/08/2026. */}
+          {loading && tasks.length === 0
+            ? 'Loading tasks…'
+            : error
+              ? 'task count unavailable'
+              : `${tasks.length} task${tasks.length === 1 ? '' : 's'}`}
         </span>
         <span className={styles.toolbarRight}>
           <span
@@ -337,6 +360,8 @@ export function QueueBoard() {
           {error}
         </div>
       )}
+
+      {staleRead && <StaleReadNotice source="Command Centre queue" actionsDisabled />}
 
       {!loading && tasks.length === 0 && !error && (
         <div className={styles.placeholder}>
@@ -406,7 +431,7 @@ export function QueueBoard() {
                           type="button"
                           className={`${styles.action} ${styles.approve}`}
                           onClick={() => void decide(task.id, 'approve')}
-                          disabled={busyId !== null}
+                          disabled={busyId !== null || staleRead}
                         >
                           Approve
                         </button>
@@ -414,7 +439,7 @@ export function QueueBoard() {
                           type="button"
                           className={`${styles.action} ${styles.defer}`}
                           onClick={() => void decide(task.id, 'defer')}
-                          disabled={busyId !== null}
+                          disabled={busyId !== null || staleRead}
                         >
                           Defer
                         </button>
@@ -422,7 +447,7 @@ export function QueueBoard() {
                           type="button"
                           className={`${styles.action} ${styles.reject}`}
                           onClick={() => void decide(task.id, 'reject')}
-                          disabled={busyId !== null}
+                          disabled={busyId !== null || staleRead}
                         >
                           Reject
                         </button>
@@ -436,7 +461,9 @@ export function QueueBoard() {
                   <SessionsView
                     cell={sessData[task.id]}
                     canStart={task.status === 'queued'}
-                    busy={sessBusy}
+                    // Start / pause / resume / complete / fail all act on a
+                    // task whose status came from the failed read.
+                    busy={sessBusy || staleRead}
                     onStart={() => void startSession(task.id)}
                     onAction={(sid, a) => void sessionAction(task.id, sid, a)}
                   />

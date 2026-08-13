@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react'
 import type { EmailAccountsPayload, EmailAccountState } from '@/lib/command-centre/email-accounts'
 import { SourceBadge, type SourceMode } from '../SourceBadge'
 import { DeckDetails } from '../DeckDetails'
+import { StaleReadNotice } from '@/components/ui/StaleReadNotice'
 
 const POLL_MS = 120000
 
@@ -67,9 +68,24 @@ export function EmailAccountsTile() {
   // de-clutter, not a security boundary. (Rows are provider labels, e.g.
   // "Google (Gmail)" — no personal email addresses render on this tile, so
   // no masking is needed in the summary layer.)
+  // A failed poll sets `error` and leaves `payload` in place, so the summary
+  // strip's connected / needs-reauth / not-connected counts and the whole
+  // provider roster keep reading as current beside the error. Connection state
+  // is exactly what a founder acts on here — "Google connected" from a read
+  // that failed sends them off to debug the wrong thing. Marked, not blanked.
+  // Read-only tile (it links to Settings, never touches OAuth), so no
+  // `actionsDisabled`. [UNI-2476]
+  const staleRead = Boolean(error) && payload !== null
+
   return (
-    <section data-testid="email-accounts-tile" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {error && <p style={{ color: 'var(--deck-abort-text, #d02f35)', fontSize: 12, margin: 0 }}>Could not load email accounts: {error}</p>}
+    <section
+      data-testid="email-accounts-tile"
+      style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+      data-stale-read={staleRead ? 'true' : undefined}
+    >
+      {error && <p role="alert" style={{ color: 'var(--deck-abort-text, #d02f35)', fontSize: 12, margin: 0 }}>Could not load email accounts: {error}</p>}
+
+      {staleRead && <StaleReadNotice source="Email accounts" />}
 
       <DeckDetails
         title="Email accounts"
