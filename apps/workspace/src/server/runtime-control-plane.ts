@@ -50,7 +50,7 @@ export type RuntimeControlPlane = {
   execution: 'disabled'
   runtimes: Array<{
     id: 'hermes' | 'codex' | 'ollama'
-    state: 'observed' | 'not_reporting'
+    state: 'observed' | 'not_reporting' | 'stale'
     detail: string
   }>
   tasks: Array<ControlPlaneTask>
@@ -65,6 +65,9 @@ export type RuntimeControlPlane = {
 }
 
 type RawRuntime = ReturnType<typeof readSwarmRuntimeFile>['runtime']
+type RuntimeSource = ReturnType<typeof readSwarmRuntimeFile>['source']
+
+export const HERMES_CHECKPOINT_MAX_AGE_MS = 10 * 60 * 1000
 
 function nonEmpty(value: string | null | undefined): string | null {
   const trimmed = value?.trim()
@@ -92,6 +95,17 @@ function deadlineFromRuntime(runtime: RawRuntime): number | null {
   return typeof raw === 'number' && Number.isFinite(raw) ? raw : null
 }
 
+function isActiveRuntime(runtime: RawRuntime): boolean {
+  return runtime.state === 'executing' || runtime.checkpointStatus === 'in_progress'
+}
+
+function isStaleActiveRuntime(runtime: RawRuntime, now: number): boolean {
+  return (
+    isActiveRuntime(runtime) &&
+    (runtime.lastOutputAt === null || now - runtime.lastOutputAt > HERMES_CHECKPOINT_MAX_AGE_MS)
+  )
+}
+
 function taskForRuntime(input: {
   workerId: string
   runtime: RawRuntime
@@ -99,21 +113,21 @@ function taskForRuntime(input: {
   now: number
 }): ControlPlaneTask | null {
   const { workerId, runtime, title, now } = input
-  const state = stateFromRuntime(runtime)
+  const state = isStaleActiveRuntime(runtime, now) ? 'unknown' : stateFromRuntime(runtime)
   const artifacts = runtime.artifacts.map((artifact) => ({
     label: artifact.label,
     kind: artifact.kind,
   }))
   const requiresEvidence = state === 'complete'
   const evidenceStatus: EvidenceStatus = requiresEvidence
-    ? artifacts.length > 0 || Boolean(nonEmpty(runtime.lastResult))
+    ? artifacts.length > 0
       ? 'present'
       : 'missing'
     : 'not_required'
   const nextAction = nonEmpty(runtime.nextAction)
   const reviewLike = /review|verify|test|gate/i.test(nextAction ?? '')
   const handoffEligible =
-    state === 'complete' && evidenceStatus === 'present' && Boolean(nextAction)
+    state === 'complete' && artifacts.length > 0 && Boolean(nextAction)
 
   // Do not surface an idle shell as a real task. It has no evidence-bearing
   // state and is exactly the kind of invented progress this panel must avoid.
@@ -131,7 +145,9 @@ function taskForRuntime(input: {
     deadlineStatus: deadlineStatus(deadlineAt, now),
     deadlineAt,
     evidence: artifacts,
-    blocker: nonEmpty(runtime.blockedReason),
+    blocker: isStaleActiveRuntime(runtime, now)
+      ? 'Runtime checkpoint is stale; no current activity is inferred.'
+      : nonEmpty(runtime.blockedReason),
     nextAction,
     handoff: {
       eligible: handoffEligible,
@@ -162,14 +178,20 @@ function configReportsLocalGemma(hermesRoot: string): boolean {
 
 export function buildRuntimeControlPlane(input: {
   workerIds: Array<string>
-  runtimes: Array<{ workerId: string; runtime: RawRuntime }>
+  runtimes: Array<{ workerId: string; runtime: RawRuntime; source?: RuntimeSource }>
   now?: number
   hermesReportsLocalGemma?: boolean
   codexCheckpoint?: ReturnType<typeof readCodexCheckpoint>
 }): RuntimeControlPlane {
   const now = input.now ?? Date.now()
   const roster = rosterByWorkerId(input.workerIds)
-  const tasks = input.runtimes
+  const reportedRuntimes = input.runtimes.filter(
+    ({ source = 'runtime.json' }) => source === 'runtime.json',
+  )
+  const staleRuntimes = reportedRuntimes.filter(({ runtime }) =>
+    isStaleActiveRuntime(runtime, now),
+  )
+  const tasks = reportedRuntimes
     .map(({ workerId, runtime }) =>
       taskForRuntime({
         workerId,
@@ -192,7 +214,7 @@ export function buildRuntimeControlPlane(input: {
         runtime: 'codex' as const,
         state: codex.checkpoint.task.state,
         evidenceStatus: codex.checkpoint.task.state === 'complete'
-          ? (codex.checkpoint.task.evidence.length > 0 || codex.checkpoint.task.receipt
+          ? (codex.checkpoint.task.evidence.length > 0
               ? 'present' as const
               : 'missing' as const)
           : 'not_required' as const,
@@ -203,7 +225,7 @@ export function buildRuntimeControlPlane(input: {
         nextAction: codex.checkpoint.task.nextAction,
         handoff: {
           eligible: codex.checkpoint.task.state === 'complete' &&
-            (codex.checkpoint.task.evidence.length > 0 || Boolean(codex.checkpoint.task.receipt)) &&
+            codex.checkpoint.task.evidence.length > 0 &&
             Boolean(codex.checkpoint.task.nextAction),
           target: codex.checkpoint.task.state === 'complete' && codex.checkpoint.task.nextAction
             ? (/review|verify|test|gate/i.test(codex.checkpoint.task.nextAction) ? 'reviewer' as const : 'orchestrator' as const)
@@ -224,10 +246,16 @@ export function buildRuntimeControlPlane(input: {
     runtimes: [
       {
         id: 'hermes',
-        state: input.runtimes.length ? 'observed' : 'not_reporting',
-        detail: input.runtimes.length
-          ? `${input.runtimes.length} worker runtime checkpoint(s) observed.`
-          : 'No Hermes worker runtime checkpoints found.',
+        state: staleRuntimes.length
+          ? 'stale'
+          : reportedRuntimes.length
+            ? 'observed'
+            : 'not_reporting',
+        detail: staleRuntimes.length
+          ? `${staleRuntimes.length} Hermes active checkpoint(s) are stale; no current activity is inferred.`
+          : reportedRuntimes.length
+            ? `${reportedRuntimes.length} worker runtime checkpoint(s) observed.`
+            : 'No readable Hermes worker runtime checkpoints found.',
       },
       {
         id: 'codex',
@@ -257,12 +285,12 @@ export function buildRuntimeControlPlane(input: {
 export function readRuntimeControlPlane(now = Date.now()): RuntimeControlPlane {
   const workerIds = listSwarmWorkerIds({ swarmOnly: true })
   const profilesDir = getProfilesDir()
-  const runtimes = workerIds.map((workerId) => ({
-    workerId,
-    runtime: readSwarmRuntimeFile(join(profilesDir, workerId), workerId, {
+  const runtimes = workerIds.map((workerId) => {
+    const read = readSwarmRuntimeFile(join(profilesDir, workerId), workerId, {
       workspaceRoot: process.cwd(),
-    }).runtime,
-  }))
+    })
+    return { workerId, runtime: read.runtime, source: read.source }
+  })
   return buildRuntimeControlPlane({
     workerIds,
     runtimes,

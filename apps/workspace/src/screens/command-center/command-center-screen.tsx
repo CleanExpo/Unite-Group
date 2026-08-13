@@ -55,7 +55,7 @@ type RuntimeControlPlane = {
   execution: 'disabled'
   runtimes: Array<{
     id: 'hermes' | 'codex' | 'ollama'
-    state: 'observed' | 'not_reporting'
+    state: 'observed' | 'not_reporting' | 'stale'
     detail: string
   }>
   tasks: Array<{
@@ -247,7 +247,7 @@ export function CommandCenterScreen() {
                 {controlPlaneData.runtimes.map((runtime) => (
                   <div key={runtime.id} className="rounded-md border border-neutral-800 px-3 py-2">
                     <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-neutral-400">
-                      <Dot tone={runtime.state === 'observed' ? 'on' : 'unknown'} />
+                      <Dot tone={runtime.state === 'observed' ? 'on' : runtime.state === 'stale' ? 'warn' : 'unknown'} />
                       {runtime.id}
                     </div>
                     <p className="mt-1 text-xs text-neutral-500">{runtime.detail}</p>
