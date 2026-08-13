@@ -412,7 +412,7 @@ describe('KanbanBoard', () => {
    * release round at 2d209caa, which probed it directly and found the
    * not-connected banner beside four enabled Propose buttons.
    */
-  it('an unconfigured Linear leaves no board action live', async () => {
+  it('an unconfigured Linear renders no board at all, not an empty one', async () => {
     const fetchMock = vi.mocked(global.fetch)
     fetchMock.mockResolvedValueOnce({
       ok: true,
@@ -420,22 +420,69 @@ describe('KanbanBoard', () => {
     } as unknown as Response)
 
     render(<KanbanBoard />)
-    await waitFor(() => expect(screen.getByText('TODAY')).toBeInTheDocument())
+    await waitFor(() =>
+      expect(screen.getByText(/the integration is not connected/i)).toBeInTheDocument(),
+    )
 
-    const propose = Array.from(document.querySelectorAll('button')).filter(
-      (b) => b.textContent?.trim() === 'Propose',
-    ) as HTMLButtonElement[]
-    expect(propose.length, 'no Propose control rendered at all').toBeGreaterThan(0)
+    // THE ASSERTION THE PREVIOUS VERSION OF THIS TEST MISSED. It waited for
+    // 'TODAY' and then only checked Propose was disabled — proving the board was
+    // inert while accepting that it rendered five columns each showing a `0`
+    // count for a backlog that was never read. Disabled is not the same as absent,
+    // and a visible zero is a claim.
     expect(
-      propose.every((b) => b.disabled),
-      'left Propose live on a board that was never read — it POSTs /api/kanban/generate-next',
-    ).toBe(true)
+      screen.queryByText('TODAY'),
+      'rendered the column grid for a board that was never read — each column shows a 0 count',
+    ).toBeNull()
+    for (const label of ['HOT', 'PIPELINE', 'SOMEDAY', 'DONE']) {
+      expect(screen.queryByText(label)).toBeNull()
+    }
+    expect(
+      Array.from(document.querySelectorAll('button')).some(
+        (b) => b.textContent?.trim() === 'Propose',
+      ),
+      'a Propose control exists on a board that was never read',
+    ).toBe(false)
 
     // No drag assertion here, deliberately. An unconfigured board has no cards,
     // so handleDragEnd exits at findColumnByCardId before reaching any guard —
     // a mutation control proved such an assertion passes whether the guard is
     // present or absent. Asserting it would have looked like coverage and been
     // worth nothing.
+
+    vi.restoreAllMocks()
+  })
+
+  // NEGATIVE CONTROL for the test above, and the line it must not cross. A
+  // genuinely empty board that WAS read still shows its columns and its zeros —
+  // that zero is a fact, and withholding it would replace one false-empty with a
+  // false-unavailable.
+  it('a genuinely empty CONFIGURED board still renders its columns and zeros', async () => {
+    const fetchMock = vi.mocked(global.fetch)
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        columns: { today: [], hot: [], pipeline: [], someday: [], done: [] },
+        stateMap: {},
+        configured: true,
+      }),
+    } as unknown as Response)
+
+    render(<KanbanBoard />)
+    await waitFor(() => expect(screen.getByText('TODAY')).toBeInTheDocument())
+
+    expect(screen.queryByText(/the integration is not connected/i)).toBeNull()
+    for (const label of ['HOT', 'PIPELINE', 'SOMEDAY', 'DONE']) {
+      expect(screen.getByText(label)).toBeInTheDocument()
+    }
+    // Propose is live: this board was read, and it is genuinely empty.
+    const propose = Array.from(document.querySelectorAll('button')).filter(
+      (b) => b.textContent?.trim() === 'Propose',
+    ) as HTMLButtonElement[]
+    expect(propose.length).toBeGreaterThan(0)
+    expect(
+      propose.every((b) => !b.disabled),
+      'disabled Propose on a board that was successfully read and is genuinely empty',
+    ).toBe(true)
 
     vi.restoreAllMocks()
   })
@@ -459,7 +506,12 @@ describe('KanbanBoard', () => {
     } as unknown as Response)
 
     render(<KanbanBoard />)
-    await waitFor(() => expect(screen.getByText('TODAY')).toBeInTheDocument())
+    // Waits on the not-connected placeholder, not on 'TODAY'. An unconfigured
+    // board no longer renders columns at all, so waiting for a column header
+    // would hang until timeout — the wait condition had to move with the fix.
+    await waitFor(() =>
+      expect(screen.getByText(/the integration is not connected/i)).toBeInTheDocument(),
+    )
 
     fetchMock.mockRejectedValueOnce(new Error('network down'))
     expect(polls.length, 'the board registered no poll to fire').toBeGreaterThan(0)
@@ -474,6 +526,65 @@ describe('KanbanBoard', () => {
     expect(
       document.querySelector('[data-stale-read-notice="true"]'),
       'promised last-known data for a board that was never read',
+    ).toBeNull()
+
+    vi.restoreAllMocks()
+  })
+
+  /**
+   * configured → unconfigured → failed poll. [UNI-2493]
+   *
+   * The sequence the fourth round caught. A real board is read, a later poll
+   * answers `configured:false` and REPLACES it with no board, then a poll fails.
+   * The old `hasLoadedOnce` flag was only ever set true, so it still said "a
+   * payload was read" about a board that had since been cleared, and the notice
+   * promised last-known data that was no longer on screen.
+   *
+   * `boardSource` is assigned on every successful read rather than accumulated,
+   * so the unconfigured response overwrites 'read' and this cannot latch.
+   */
+  it('a board cleared by an unconfigured response cannot later be called stale', async () => {
+    const polls = capturePolls()
+    const fetchMock = vi.mocked(global.fetch)
+    // 1. a real board
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        columns: { today: [CARD], hot: [], pipeline: [], someday: [], done: [] },
+        stateMap: {},
+        configured: true,
+      }),
+    } as unknown as Response)
+
+    render(<KanbanBoard />)
+    await screen.findByText(/Retained card/)
+
+    // 2. a SUCCESSFUL unconfigured response clears it
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ configured: false, stateMap: {} }),
+    } as unknown as Response)
+    expect(polls.length, 'the board registered no poll to fire').toBeGreaterThan(0)
+    await act(async () => {
+      for (const poll of [...polls]) poll()
+    })
+    await waitFor(() =>
+      expect(screen.getByText(/the integration is not connected/i)).toBeInTheDocument(),
+    )
+
+    // 3. now a poll fails
+    fetchMock.mockRejectedValueOnce(new Error('network down'))
+    await act(async () => {
+      for (const poll of [...polls]) poll()
+    })
+
+    expect(
+      document.querySelector('[data-stale-read="true"]'),
+      'marked a board as retained stale data after an unconfigured response had already cleared it',
+    ).toBeNull()
+    expect(
+      document.querySelector('[data-stale-read-notice="true"]'),
+      'promised last-known data for a board that is no longer on screen',
     ).toBeNull()
 
     vi.restoreAllMocks()
@@ -583,6 +694,141 @@ describe('KanbanBoard', () => {
       fetchMock.mock.calls.length - callsBefore,
       'clicking a retained card on a stale board still fetched the issue by an id the latest read could not confirm',
     ).toBe(0)
+
+    vi.restoreAllMocks()
+  })
+
+  /**
+   * An ALREADY-OPEN detail panel, not just future opens. [UNI-2504]
+   *
+   * Gating `onCardClick` stopped new cards being opened and left a mounted
+   * IssueDetailPanel rendering an actionable "Open in Linear" link from an issue
+   * fetched by an id the latest board read could not confirm. Closing the click
+   * path is what made this the remaining door — the fifth consecutive round on
+   * this slice to find a defect created by the previous fix.
+   */
+  it('an open issue panel closes when the board it came from goes stale', async () => {
+    const polls = capturePolls()
+    const fetchMock = vi.mocked(global.fetch)
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        columns: { today: [CARD], hot: [], pipeline: [], someday: [], done: [] },
+        stateMap: {},
+        configured: true,
+      }),
+    } as unknown as Response)
+
+    render(<KanbanBoard />)
+    const card = await screen.findByText(/Retained card/)
+
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        id: 'c1',
+        identifier: 'UNI-1',
+        title: 'Retained card',
+        description: null,
+        priority: 2,
+        url: 'https://linear.app/x/UNI-1',
+        createdAt: '2026-08-01T00:00:00Z',
+        updatedAt: '2026-08-01T00:00:00Z',
+        team: { id: 't1', key: 'UNI', name: 'Unite' },
+        state: { id: 's1', name: 'Todo', type: 'unstarted' },
+        labels: { nodes: [] },
+        businessKey: 'dr',
+        businessColor: '#16a34a',
+      }),
+    } as unknown as Response)
+
+    await act(async () => {
+      fireEvent.click(card)
+    })
+    // The panel is genuinely open, or the assertion below proves nothing.
+    // Queried by the link's ACCESSIBLE NAME ("Open in Linear"), not by the issue
+    // identifier — an earlier draft of this test looked for /UNI-1/ and failed
+    // identically with and without the guard, which made it a control that
+    // proved nothing rather than a test that caught something.
+    const link = await screen.findByRole('link', { name: /Open in Linear/i })
+    expect(link.getAttribute('href')).toBe('https://linear.app/x/UNI-1')
+
+    // ...and now the board read that produced it fails.
+    fetchMock.mockRejectedValueOnce(new Error('network down'))
+    expect(polls.length, 'the board registered no poll to fire').toBeGreaterThan(0)
+    await act(async () => {
+      for (const poll of [...polls]) poll()
+    })
+    await waitFor(() =>
+      expect(document.querySelector('[data-stale-read="true"]')).not.toBeNull(),
+    )
+
+    expect(
+      screen.queryByRole('link', { name: /Open in Linear/i }),
+      'left an actionable issue link on screen, built from a board read that has since failed',
+    ).toBeNull()
+
+    vi.restoreAllMocks()
+  })
+
+  /**
+   * DOUBLE failure: the PATCH fails AND the revert read fails. [UNI-2504]
+   *
+   * The catch called loadIssues() and described it as reverting, but loadIssues's
+   * own catch only sets `stale` — it never restores `columns`. So the revert only
+   * reverted when the re-read succeeded. On a double failure the optimistic move
+   * stayed on screen: a card in a column Linear never confirmed, counted in the
+   * totals, beneath a notice announcing that everything below came from an
+   * earlier successful read.
+   *
+   * Found by an adversarial review pass rather than by a release round — none of
+   * the thirteen tests drove this path. The neighbouring test covers
+   * PATCH-fails-then-revert-SUCCEEDS, which is why the gap survived.
+   */
+  it('a drag whose PATCH and revert BOTH fail does not leave the move on screen', async () => {
+    const fetchMock = vi.mocked(global.fetch)
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        columns: { today: [CARD], hot: [], pipeline: [], someday: [], done: [] },
+        stateMap: {},
+        configured: true,
+      }),
+    } as unknown as Response)
+
+    render(<KanbanBoard />)
+    await screen.findByText(/Retained card/)
+
+    // KanbanColumn renders: column root > header div > title span. So the root
+    // is the title's GRANDparent. An earlier draft used closest('div'), which is
+    // the header row — it holds the count but not the cards, so the assertion
+    // found nothing and failed identically with and without the fix. A test that
+    // fails for the wrong reason is worse than no test.
+    const columnRoot = (title: string) =>
+      screen.getByText(title).parentElement!.parentElement as HTMLElement
+
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 503, json: async () => ({}) } as unknown as Response)
+    fetchMock.mockRejectedValueOnce(new Error('network down'))
+
+    await act(async () => {
+      await dnd.onDragEnd?.({ active: { id: 'c1' }, over: { id: 'hot' } })
+    })
+
+    // The board is stale, correctly — but the card must be back where the last
+    // SUCCESSFUL read put it, not where an unconfirmed drag left it.
+    await waitFor(() =>
+      expect(document.querySelector('[data-stale-read="true"]')).not.toBeNull(),
+    )
+    // Two-sided: back where the last SUCCESSFUL read put it, and NOT where the
+    // unconfirmed drag left it. One-sided would pass if the revert dropped the
+    // card somewhere else entirely.
+    expect(
+      within(columnRoot('TODAY')).queryByText(/Retained card/),
+      'the optimistic move survived a failed PATCH and a failed revert — the board shows a placement Linear never confirmed while claiming to show an earlier successful read',
+    ).not.toBeNull()
+    expect(
+      within(columnRoot('HOT')).queryByText(/Retained card/),
+      'the card is still sitting in the column the failed drag moved it to',
+    ).toBeNull()
 
     vi.restoreAllMocks()
   })

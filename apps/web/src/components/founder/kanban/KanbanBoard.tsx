@@ -52,13 +52,29 @@ export function KanbanBoard() {
   const [activeCard, setActiveCard] = useState<Card | null>(null);
   const [loading, setLoading] = useState(true);
   const [stale, setStale] = useState(false);
-  // Whether a read has EVER succeeded. Distinguishes the two failure states the
-  // board could not previously tell apart: a failed reload over a payload that
-  // was genuinely read (retained data, must be marked), and a first read that
-  // never landed (nothing retained, nothing to mark, and no "cached data" to
-  // claim). [UNI-2501]
-  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
-  const [configured, setConfigured] = useState(true);
+  // ONE state describing what is on screen and where it came from, replacing
+  // three interacting booleans (`stale`, `hasLoadedOnce`, `configured`).
+  //
+  // Four consecutive review rounds found defects in the boolean version, each a
+  // different path through the same state space, each fixed by adding another
+  // condition:
+  //   - an empty board that HAD been read could not be marked      (needed hasLoadedOnce)
+  //   - an unconfigured 200 counted as a read                       (needed a columns check)
+  //   - configured -> unconfigured -> failed poll still latched     (needed a clear)
+  // Three booleans give eight states, most of which are unreachable and two of
+  // which are lies. The bug was never any one condition; it was modelling "what
+  // is displayed" as flags that each fix had to keep in agreement by hand.
+  //
+  // `boardSource` says it directly:
+  //   'none'         nothing has ever been read — no board, nothing to retain
+  //   'read'         a real payload is displayed — the only state that can go stale
+  //   'unconfigured' Linear answered successfully with no board at all
+  // A failed poll can only make a 'read' board stale, and an unconfigured
+  // response OVERWRITES 'read', which is precisely the transition the fourth
+  // round caught. [UNI-2493]
+  type BoardSource = "none" | "read" | "unconfigured";
+  const [boardSource, setBoardSource] = useState<BoardSource>("none");
+  const configured = boardSource !== "unconfigured";
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [businessFilter, setBusinessFilter] = useState<string | null>(null);
@@ -82,7 +98,12 @@ export function KanbanBoard() {
         stateMap: Record<string, Record<string, string>>;
         configured?: boolean;
       };
-      setConfigured(data.configured ?? true);
+      // Assigned, never accumulated: every successful read REPLACES what is on
+      // screen, so the source of the displayed board is whatever this response
+      // was. The boolean version only ever set flags true, which is why an
+      // unconfigured response could not undo an earlier successful read.
+      const hasBoard = data.configured !== false && Boolean(data.columns);
+      setBoardSource(hasBoard ? "read" : "unconfigured");
       setStateMap(data.stateMap);
       setColumns(
         COLUMN_ORDER.map((id) => ({
@@ -92,14 +113,6 @@ export function KanbanBoard() {
         })),
       );
       setStale(false);
-      // A 200 is not a board. The unconfigured response is a SUCCESSFUL request
-      // that deliberately carries no `columns`, and setting this flag for it made
-      // a later failed poll mark a never-read empty board as retained stale data —
-      // `data-stale-read="true"` plus a notice promising last-known data that was
-      // never received. That is the exact inverse of the defect this flag was
-      // added to fix, introduced by the fix itself. Found by the round at
-      // dc0d44db. [UNI-2493]
-      if (data.configured !== false && data.columns) setHasLoadedOnce(true);
       setLastSynced(new Date());
     } catch {
       setStale(true);
@@ -154,19 +167,16 @@ export function KanbanBoard() {
     return columns.find((col) => col.cards.some((c) => c.id === cardId))?.id;
   }
 
-  // Cached data retained across a failed read.
+  // Cached data retained across a failed read. Only a board that was actually
+  // READ can be stale: 'unconfigured' has no payload to retain and 'none' never
+  // had one, so neither can be marked.
   //
-  // This used to require at least one retained CARD, on the reasoning that with
-  // no cards nothing is being presented as current. That was wrong, and it is
-  // this branch's own thesis inverted: a board that last read successfully and
-  // found nothing is presenting "no issues" as a FACT. After a failed reload
-  // that fact is no longer confirmed, yet the board skipped the marker, skipped
-  // the notice, and passed `proposeDisabled={staleRead}` — leaving Propose live
-  // to generate work from a board it could not read. An empty board is a claim.
-  //
-  // Keyed on "a read has succeeded before" instead, which is the condition that
-  // actually makes the payload RETAINED rather than absent. [UNI-2501]
-  const staleRead = stale && hasLoadedOnce;
+  // An earlier version required at least one retained CARD, on the reasoning
+  // that with no cards nothing is presented as current. That was this branch's
+  // own thesis inverted — a board whose last SUCCESSFUL read found nothing is
+  // presenting "no issues" as a fact, and after a failed reload that fact is no
+  // longer confirmed. An empty board is a claim. [UNI-2501]
+  const staleRead = stale && boardSource === "read";
 
   // An unconfigured Linear omits `columns` entirely rather than sending empty
   // ones, and line ~91 coerces that absence into five empty columns. The
@@ -180,6 +190,30 @@ export function KanbanBoard() {
   // as stale; what is required is that nothing ACTS on a board that does not
   // exist. Both conditions gate the actions; only `staleRead` marks a region.
   const unreadableBoard = staleRead || !configured;
+
+  // REACH, not sequence. `boardSource` fixed which states can follow which; this
+  // fixes how far the unreadable state has to travel.
+  //
+  // Gating `onCardClick` stopped NEW cards being opened but left an ALREADY-OPEN
+  // IssueDetailPanel mounted, still rendering an actionable "Open in Linear" link
+  // built from an issue fetched by an id the latest board read could not confirm.
+  // Closing the card-click path is exactly what made this the remaining door.
+  // Found by the round at a6d6c7d1. [UNI-2504]
+  //
+  // The panel is CLOSED rather than marked, deliberately. Marking it would mean
+  // changing IssueDetailPanel, which belongs to a later slice, and the panel's
+  // whole content derives from a board read that is no longer confirmed — there
+  // is no honest subset to keep on screen. The board's Retry stays live as the
+  // way back, so this does not trap the founder.
+  //
+  // Every other consumer of board-derived data was checked rather than assumed:
+  // the drag PATCH is already gated, BusinessFilter is a view filter and must
+  // stay live, CreateIssueModal creates NEW issues rather than acting on retained
+  // ones and reloads on success, and applyStatus only appears from a Propose that
+  // is already disabled here.
+  useEffect(() => {
+    if (unreadableBoard) setSelectedIssueId(null);
+  }, [unreadableBoard]);
 
   function handleDragStart(event: DragStartEvent) {
     const card = columns
@@ -214,7 +248,10 @@ export function KanbanBoard() {
 
     if (!activeColId || !overColId) return;
 
-    // Optimistic local update
+    // Optimistic local update.
+    // `preMove` is this render's columns, captured BEFORE the optimistic
+    // change, so a revert never depends on the network succeeding.
+    const preMove = columns;
     if (activeColId !== overColId) {
       setColumns((cols) => {
         const activeCol = cols.find((c) => c.id === activeColId)!;
@@ -261,9 +298,20 @@ export function KanbanBoard() {
           // The route stopped lying and the only consumer kept believing it.
           if (!res.ok) throw new Error(`PATCH /api/linear/issues ${res.status}`);
         } catch {
-          // Revert by re-reading: the optimistic move is discarded and the
-          // board shows whatever Linear actually holds. If that read fails too
-          // the board marks itself stale, which is the honest end state.
+          // Revert LOCALLY first, then re-read. The previous version called
+          // loadIssues() alone and called that a revert — but loadIssues's own
+          // catch only sets `stale`; it never touches `columns`. So the revert
+          // only reverted when the re-read SUCCEEDED.
+          //
+          // Double failure was the hole: the PATCH fails, the revert GET fails
+          // too, and the optimistic move stays on screen. The card sits in a
+          // column Linear never confirmed, the counts reflect it, and
+          // StaleReadNotice announces that everything below came from an
+          // earlier successful read — false for precisely that card. It is an
+          // uncommitted local mutation that failed to sync AND failed to be
+          // undone, presented as retained truth. Found by an adversarial review
+          // pass, in the one path none of the tests drove. [UNI-2504]
+          setColumns(preMove);
           await loadIssues();
         }
       }
@@ -326,7 +374,7 @@ export function KanbanBoard() {
               first read that never landed the board is empty because nothing
               was read, and claiming a cache is the same false-empty this branch
               exists to remove — one banner away from the defect it reports. */}
-          {hasLoadedOnce
+          {boardSource === "read"
             ? "Linear unreachable — showing cached data"
             : "Linear unreachable — the board could not be read"}
           <button
@@ -379,6 +427,30 @@ export function KanbanBoard() {
           census could find, and the explicit promise that the retained board
           is inert until a read succeeds. [UNI-2494] */}
       {staleRead && <StaleReadNotice source="Linear board" actionsDisabled />}
+      {/* An unconfigured Linear is not an empty board, and taking its ACTIONS
+          offline was only half the fix. The route omits `columns` on purpose, but
+          `data.columns?.[id] ?? []` turned that absence into five columns each
+          rendering `{cards.length}` — a visible 0 per column. "0 issues in TODAY"
+          is a claim, and it was being made about a board that was never read.
+          The connection banner above said otherwise two lines up.
+
+          So the grid is withheld entirely, not merely disabled. A genuinely empty
+          CONFIGURED board still renders its zeros, because that zero is a fact.
+          Found by the round at e8118ed7, pressing the same point a round earlier
+          had raised about actionability. [UNI-2493] */}
+      {!configured ? (
+        <div
+          className="flex items-center justify-center rounded-sm border p-8 text-[12px]"
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-text-muted)",
+            background: "var(--surface-card)",
+          }}
+        >
+          No Linear board to show — the integration is not connected, so the
+          backlog was never read.
+        </div>
+      ) : (
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -430,6 +502,7 @@ export function KanbanBoard() {
           ) : null}
         </DragOverlay>
       </DndContext>
+      )}
       <CreateIssueModal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
