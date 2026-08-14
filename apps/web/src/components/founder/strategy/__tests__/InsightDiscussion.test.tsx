@@ -151,16 +151,20 @@ describe('InsightDiscussion — a failed read is not an empty thread [UNI-2486]'
       return { ok: true, status: 200, json: async () => ({ comments: [COMMENT] }) }
     }))
 
-    const { rerender } = render(<InsightDiscussion insightId="i1" />)
+    render(<InsightDiscussion insightId="i1" />)
     await waitFor(() => {
       expect(screen.getByText('Retained discussion note')).toBeInTheDocument()
     })
     // Stage-1 negative control: a healthy read must NOT be marked.
     expect(document.querySelector('[data-stale-read="true"]')).toBeNull()
 
-    // Re-read via the insightId dependency, with the read now failing.
+    // Failed refresh of the SAME insight — the case retention exists for.
+    // The first draft of this test drove the refresh by changing insightId,
+    // which conflated "stale" with "belongs to a different insight" and would
+    // have passed even while the component leaked one thread into another.
+    // Raised by review on PR #981.
     failNext = true
-    rerender(<InsightDiscussion insightId="i2" />)
+    fireEvent.click(screen.getByRole('button', { name: /refresh/i }))
 
     await waitFor(() => {
       expect(document.querySelector('[data-stale-read="true"]')).not.toBeNull()
@@ -202,11 +206,11 @@ describe('InsightDiscussion — a failed read is not an empty thread [UNI-2486]'
       return { ok: true, status: 200, json: async () => ({ comments: [COMMENT] }) }
     }))
 
-    const { rerender } = render(<InsightDiscussion insightId="i1" />)
+    render(<InsightDiscussion insightId="i1" />)
     await waitFor(() => expect(screen.getByText('Retained discussion note')).toBeInTheDocument())
 
     failNext = true
-    rerender(<InsightDiscussion insightId="i2" />)
+    fireEvent.click(screen.getByRole('button', { name: /refresh/i }))
     await waitFor(() => {
       expect(document.querySelector('[data-stale-read="true"]')).not.toBeNull()
     })
@@ -224,5 +228,32 @@ describe('InsightDiscussion — a failed read is not an empty thread [UNI-2486]'
     await waitFor(() => {
       expect(document.querySelector('[data-stale-read="true"]')).toBeNull()
     })
+  })
+
+  // Retention is scoped to ONE resource. Without the clear-on-id-change, a
+  // failed read for insight B rendered insight A's comments — marked stale,
+  // which is the worse lie: an accurate "from an earlier read" notice sitting
+  // above comments belonging to a different insight, which a later post would
+  // then append to. Raised by review on PR #981.
+  it('never renders one insight\'s comments under another insight', async () => {
+    let failNext = false
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      if (failNext) throw new Error('read failed for the new insight')
+      return { ok: true, status: 200, json: async () => ({ comments: [COMMENT] }) }
+    }))
+
+    const { rerender } = render(<InsightDiscussion insightId="i1" />)
+    await waitFor(() => expect(screen.getByText('Retained discussion note')).toBeInTheDocument())
+
+    // Navigate to a different insight whose read fails.
+    failNext = true
+    rerender(<InsightDiscussion insightId="i2" />)
+
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
+    // i1's comment must be gone — not retained, not marked stale, gone.
+    expect(screen.queryByText('Retained discussion note')).toBeNull()
+    expect(document.querySelector('[data-stale-read="true"]')).toBeNull()
+    // …and no fabricated "No notes yet" either, because the read failed.
+    expect(screen.queryByText(/no notes yet/i)).toBeNull()
   })
 })

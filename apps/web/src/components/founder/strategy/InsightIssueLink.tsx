@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ExternalLink, GitBranchPlus } from "lucide-react";
 
 interface BridgeLink {
@@ -38,8 +38,16 @@ export function InsightIssueLink({
   const [acceptanceCriteria, setAcceptanceCriteria] = useState("");
   const [evidence, setEvidence] = useState("");
 
+  // Generation token. `load` is called both by the mount effect and directly by
+  // Retry, and the effect's cleanup is not available to the latter — so two
+  // reads can be in flight at once. Without this, an older response landing
+  // after a newer one can resurrect a cleared `loadError` or overwrite a fresher
+  // `link`. Only the newest read may write state.
+  const readGeneration = useRef(0);
+
   const load = useCallback(() => {
-    let active = true;
+    const generation = ++readGeneration.current;
+    const isCurrent = () => readGeneration.current === generation;
     setLoading(true);
     fetch(`/api/strategy/insights/${insightId}/create-issue`)
       .then((r) => {
@@ -47,7 +55,7 @@ export function InsightIssueLink({
         return r.json();
       })
       .then((d) => {
-        if (!active) return;
+        if (!isCurrent()) return;
         setLink(d.link ?? null);
         // Cleared on SUCCESS only, never at loader entry. Clearing on entry
         // would drop the "unknown" state mid-read and flash the Create button
@@ -55,20 +63,24 @@ export function InsightIssueLink({
         setLoadError(null);
       })
       .catch(() => {
-        if (active)
-          setLoadError(
-            "Could not check whether this insight already has a Linear issue — this is a failed read, not a confirmed absence.",
-          );
+        if (!isCurrent()) return;
+        setLoadError(
+          "Could not check whether this insight already has a Linear issue — this is a failed read, not a confirmed absence.",
+        );
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (isCurrent()) setLoading(false);
       });
-    return () => {
-      active = false;
-    };
   }, [insightId]);
 
-  useEffect(() => load(), [load]);
+  useEffect(() => {
+    load();
+    // Superseding the generation on unmount stops a late response writing to a
+    // component that is gone.
+    return () => {
+      readGeneration.current += 1;
+    };
+  }, [load]);
 
   async function submit() {
     if (!acceptanceCriteria.trim() || submitting) return;
@@ -102,8 +114,17 @@ export function InsightIssueLink({
     }
   }
 
-  if (loading) return null;
-
+  // The unknown state is checked BEFORE `loading`, not after. `load` sets
+  // `loading` true, so with the order reversed pressing Retry replaced the alert
+  // and the Retry button with nothing at all — and if that read stalled, the
+  // founder was left staring at an empty area with no way back. The first load
+  // still renders nothing (no error yet), which is what the `loading` return
+  // below is for.
+  //
+  // This also fixed a test that was passing for the wrong reason: the in-flight
+  // case asserted the Create button was absent, and it was — because the whole
+  // component was rendering null. It now asserts the recovery UI is present.
+  //
   // The unknown state renders BEFORE the link check and before the Create
   // button, and it renders no write control at all — not even a disabled one.
   //
@@ -121,21 +142,26 @@ export function InsightIssueLink({
         <p role="alert" className="text-[11px]" style={{ color: "#ef4444" }}>
           {loadError}
         </p>
-        {/* Recovery control — never disabled; it is the way back to a live read. */}
+        {/* Recovery control. Disabled only while its own read is in flight —
+            that is progress feedback, not a stale-read gate, and it stops a
+            queue of overlapping retries building up. */}
         <button
           type="button"
           onClick={() => load()}
-          className="text-[11px] px-2 py-1 rounded-sm border shrink-0"
+          disabled={loading}
+          className="text-[11px] px-2 py-1 rounded-sm border shrink-0 disabled:opacity-40"
           style={{
             borderColor: "var(--color-border)",
             color: "var(--color-text-disabled)",
           }}
         >
-          ↻ retry
+          {loading ? "retrying…" : "↻ retry"}
         </button>
       </div>
     );
   }
+
+  if (loading) return null;
 
   if (link) {
     return (
