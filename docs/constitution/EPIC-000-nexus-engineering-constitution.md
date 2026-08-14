@@ -278,6 +278,8 @@ Constitutional amendments are always Class 3. The founder's explicit instruction
 14/08/2026 to implement the Nexus Learning Harness plan ratified this section and its
 root resolution pointer. It does not authorise any other Class 2 or Class 3 effect.
 
+### End Waterline gate
+
 ---
 
 ## Amendments
