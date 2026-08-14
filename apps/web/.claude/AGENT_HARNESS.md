@@ -1,228 +1,191 @@
 # Agent Harness — Multi-Agent Convergence Protocol
 
-> **Purpose**: 8-phase convergence protocol for complex multi-agent tasks (3+ agents, cross-domain).
-> **Authority**: Orchestrator selects this protocol. Complements (does not replace) the Minion one-shot protocol.
-> **When to use**: Complex tasks requiring 3+ agents, cross-domain coordination, or iterative refinement.
-> **When NOT to use**: Single-domain tasks, quick fixes, exploration → use Minion or direct delegation.
+> **Purpose**: Coordinate complex cross-domain engineering while preserving one mission owner, independent verification and evidence-backed lifecycle state.
+> **Authority**: The Harness may build and verify within the active `/spm` execution lease. It does not grant merge/deploy/business authority.
+
+## When to use
+
+Use the Harness for work that genuinely needs multiple specialist domains or coordinated parallel tracks. Use the simpler builder/minion path for bounded single-domain work.
+
+Do not invoke multiple agents merely to make a task look more sophisticated.
 
 ---
 
-## Harness vs Minion Decision
+## Phase 1 — Mission intake
 
-| Signal | Use Minion | Use Harness |
-|--------|-----------|-------------|
-| Task scope | Single domain | 3+ domains |
-| Agent count | 1–2 | 3+ |
-| Iteration expected | No | Yes (max 2 cycles) |
-| Output type | Code/PR | Integrated deliverable |
-| Complexity | Clear, bounded | Ambiguous, emergent |
-| Verification | Type-check/lint | Cross-agent review |
+Resolve the existing `/spm` mission first.
 
----
+Required:
+- mission ID and current lifecycle state;
+- intended outcome and measurable success;
+- active execution lease/authority boundary;
+- current canonical context/evidence;
+- known blockers/dependencies.
 
-## 8-Phase Convergence Protocol
-
-### Phase 1 — Intake
-
-**Orchestrator action**: Receive and classify the task.
-
-```
-HARNESS INTAKE
-task: {description}
-complexity: {LOW/MEDIUM/HIGH/CRITICAL}
-estimated_agents: {n}
-cross_domain: {yes/no}
-```
-
-**Output**: Classified task ready for discovery.
+If the mission is already BUILD_AUTHORISED, do not restart a planning interview.
 
 ---
 
-### Phase 2 — Discovery
+## Phase 2 — Bounded discovery
 
-**Orchestrator action**: Scan Vault Index and codebase for all relevant context.
+Search/reuse before creating:
+- current implementation and tests;
+- relevant active decisions/contracts;
+- existing skills/capabilities;
+- current runtime evidence where applicable.
 
-Checklist:
-- [ ] Read `.claude/VAULT-INDEX.md` for asset lookup
-- [ ] Identify all files in scope (Glob/Grep, NOT full file reads)
-- [ ] Load relevant toolshed from `.claude/data/toolsheds.json`
-- [ ] Check `.claude/memory/architectural-decisions.md` for precedents
-- [ ] Check `.claude/memory/CONSTITUTION.md` for constraints
-
-**Output**: Context manifest with bounded file list.
+Load only the context each specialist needs. Superseded/legacy context is excluded unless history is explicitly required.
 
 ---
 
-### Phase 3 — Decomposition
+## Phase 3 — Decomposition
 
-**Orchestrator action**: Break the task into independent, assignable subtasks.
+Break work into independently ownable packets.
 
 Rules:
-- Each subtask must have a **single owner agent**
-- Subtasks with dependencies must be sequenced (not parallelised)
-- Maximum **6 subtasks** per Harness invocation (if more, decompose into sub-Harness)
-- Identify the critical path (longest sequential chain)
-
-```
-DECOMPOSITION PLAN
-critical_path: {phase_a} → {phase_b} → {phase_c}
-parallel_tracks:
-  track_1: {subtask_x}
-  track_2: {subtask_y}
-```
-
-**Output**: Subtask list with dependencies, owners, and file boundaries.
+- one owner per packet;
+- explicit dependencies/critical path;
+- parallelise only truly independent work;
+- every packet has success criteria, allowed paths, prohibited paths and required evidence;
+- the SPM/harness retains outcome ownership across packet boundaries.
 
 ---
 
-### Phase 4 — Execution
+## Phase 4 — Execution
 
-**Orchestrator action**: Produce a typed context manifest for each subtask, then dispatch.
-
-#### Manifest-First Protocol (REQUIRED before any Agent tool call)
+Each worker receives a typed manifest containing at minimum:
 
 ```json
 {
-  "agent": "{agent-type}",
-  "task": "{subtask description}",
-  "toolshed": "{frontend|backend|database|security|test|debug}",
-  "token_budget": 60000,
+  "mission_id": "...",
+  "attempt_id": "...",
+  "agent": "...",
+  "task": "...",
   "files": {
-    "must_read": ["path/to/file.ts"],
-    "reference_only": ["path/to/globals.css"],
-    "must_not_touch": ["supabase/migrations/", "src/lib/supabase/"]
+    "must_read": [],
+    "allowed_write": [],
+    "must_not_touch": []
   },
-  "skills": ["skill-a", "skill-b"],
-  "constraints": ["founder_id isolation", "Scientific Luxury tokens"],
-  "success_criteria": "verifiable completion statement",
-  "output_format": "edited_files_list + verification_tier_A_result"
+  "constraints": [],
+  "success_criteria": [],
+  "required_evidence": [],
+  "candidate_base_sha": "..."
 }
 ```
 
-**Rules**:
-1. **Manifest before dispatch** — no Agent tool call without a complete manifest
-2. **Max 5–6 skills per agent** — load from toolshed only (`.claude/data/toolsheds.json`)
-3. **Australian context always** — included in every manifest constraints array
-4. **Structured return only** — subagent returns file list + verification output, NOT full file contents
-5. **Monitor for `BLUEPRINT_ESCALATION`** — halt and surface to human if received
+Workers return changed paths, candidate SHA/diff summary, verification evidence and unresolved risk—not a prose claim of completion.
 
-**Context partitioning**: Each agent operates in an isolated context. No agent sees another's working files unless they are explicit manifest inputs. Reference: `.claude/skills/custom/context-partitioning/SKILL.md`
+Current design/schema/runtime facts must be read from current canonical sources rather than hard-coded historical assumptions in the manifest.
 
 ---
 
-### Phase 5 — Aggregation
+## Phase 5 — Aggregation
 
-**Orchestrator action**: Collect and merge all subtask outputs.
-
-Checklist:
-- [ ] All subtasks completed (or failed with documented reason)
-- [ ] No conflicting changes (diff review across all outputs)
-- [ ] Australian English verified across all outputs
-- [ ] Design tokens compliance verified (if UI changes)
-- [ ] No cross-agent file conflicts
-
-**Output**: Integrated deliverable ready for verification.
+Before verification:
+- resolve overlapping edits/conflicts;
+- confirm every packet returned evidence or a truthful failure;
+- review integrated diff against the mission scope;
+- ensure no unauthorised scope expansion/dependency/configuration mutation occurred;
+- freeze the candidate for independent review.
 
 ---
 
-### Phase 6 — Verification
+## Phase 6 — Independent verification
 
-**Rule**: NO agent verifies its own work. Route to `[[verification]]` agent.
+The final verifier must not be the builder of the candidate.
 
-Verification tiers applied based on task type:
+Apply the verification contract appropriate to the change:
+- lint/type/tests/build;
+- integration/data/security gates;
+- Playwright and visual evidence for user-facing work;
+- environment/release checks where applicable.
 
-| Task Type | Verification Tier | Time |
-|-----------|------------------|------|
-| Code changes | Tier A (type-check + lint + test) | 30s |
-| Feature additions | Tier B (+ integration tests) | 2–3min |
-| Migration/deploy | Tier C (+ E2E + security) | 5–10min |
-| Production release | Tier D (full suite) | 15–20min |
+Deterministic failure outranks model judgement.
 
-**Blocking condition**: If verification fails, go to Phase 7 (Iteration). Do NOT proceed to production.
-
----
-
-### Phase 7 — Iteration
-
-**Hard cap**: Maximum **2 iteration cycles** per Harness invocation.
-
-```
-Iteration counter: {n}/2
-
-If n >= 2 → HARNESS_ESCALATION → surface to human
-```
-
-**Cycle**: Verification findings → targeted fixes → re-verification.
-
-**Rules**:
-- Only fix what verification identified — no scope creep
-- Re-run the same verification tier (not a lighter one)
-- Document all changes made in this iteration
-
-**HARNESS_ESCALATION** (when cap reached):
-```
-HARNESS_ESCALATION
-task: {description}
-cycles_used: 2/2
-blocking_issue: {what failed}
-evidence: {last verification output}
-recommended_action: Human review required
-```
+Failure routes to technical repair, not immediately to the founder.
 
 ---
 
-### Phase 8 — Production
+## Phase 7 — Bounded repair and technical escalation
 
-**Orchestrator action**: Commit, document, and close out.
+Use bounded repair cycles to prevent infinite loops, but **iteration exhaustion is not automatically a founder escalation**.
 
-Checklist:
-- [ ] All verification tiers passed
-- [ ] Commit staged with clean message
-- [ ] `.claude/memory/architectural-decisions.md` updated (if architectural decision was made)
-- [ ] `.claude/memory/current-state.md` updated
-- [ ] PR created (if applicable)
-- [ ] HARNESS session state cleared
+After the normal repair budget is exhausted, route through an appropriate technical escalation ladder, for example:
+1. fresh diagnostic pass on the exact evidence;
+2. alternate model family / specialist reviewer;
+3. fresh worktree/environment or dependency/state reproduction;
+4. architecture/security/database specialist as relevant;
+5. CI/log/browser/Computer Use investigation;
+6. SPM re-plan of the blocked technical packet while keeping independent lanes moving.
 
-**Output**:
-```
-HARNESS COMPLETE
-task: {description}
-agents_used: {list}
-iterations: {n}/2
-verification: Tier {A/B/C/D} — all passed
-deliverable: {file list or PR URL}
+Escalate to Phill only when the remaining question is a genuine business decision, consequential authority decision, risk-appetite choice, or an irreducible blocker whose options are clearly stated.
+
+A technical stack trace by itself is not a founder decision packet.
+
+---
+
+## Phase 8 — Candidate closeout / release-ready handoff
+
+**This phase is not Production. A PR is not Production.**
+
+For engineering work, close out the Harness by recording the strongest state actually earned, such as:
+- `LOCALLY_VERIFIED`
+- `PR_OPEN`
+- `REVIEWING`
+- `CI_GREEN`
+- `STAGING_VERIFIED`
+- `RELEASE_READY`
+
+Required closeout:
+- candidate SHA and branch/PR;
+- verification receipts;
+- independent-review state;
+- visual/integration evidence where applicable;
+- remaining blocker or next lifecycle transition;
+- mission evidence written to the authoritative ledger/projection path.
+
+Output:
+
+```text
+HARNESS RESULT
+mission: [id]
+candidate: [sha/pr]
+agents_used: [...]
+verification: [evidence refs]
+EARNED STATE: [state]
+blocker: none | [...]
+next executable move: [...]
+founder decision: none | [genuine decision]
 ```
 
----
-
-## Orchestrator Routing Reference
-
-From `.claude/agents/orchestrator/agent.md` — extended routing:
-
-| Condition | Route |
-|-----------|-------|
-| Single domain, bounded scope | `/minion` (Blueprint DAG) |
-| 3+ domains, complex integration | Agent Harness (this protocol) |
-| Architecture decision needed | `[[discuss]]` command + `[[technical-architect]]` |
-| HARNESS_ESCALATION received | Surface to human — do not retry |
+Do not output `HARNESS COMPLETE` unless the `/spm` mission itself has earned `COMPLETE` through the full completion contract.
 
 ---
 
-## Key Rules
+## Production / shipping boundary
 
-1. **No self-verification** — `[[verification]]` always verifies, never the executing agent
-2. **Context isolation** — each agent gets only its scope, not the full codebase
-3. **2-cycle hard cap** — escalate, never loop endlessly
-4. **Australian defaults** — `[[standards]]` agent enforces on every output
-5. **Vault-first discovery** — check `[[VAULT-INDEX]]` before Glob/Grep
-6. **Architectural decisions → ADR** — write to `architectural-decisions.md` after Phase 8
+Production action is a separate `/spm ship` / release-controller transition and must use the current authority contract. Harness verification may make a candidate `RELEASE_READY`; it does not make the Harness an approver or deployment executor.
+
+After an authorised release, post-deploy/customer-path evidence is required before mission `COMPLETE`.
 
 ---
 
-## Cross-References
+## Key invariants
 
-- **Simple tasks**: `.claude/commands/minion.md`
-- **Orchestrator**: `.claude/agents/orchestrator/agent.md`
-- **Verification**: `.claude/agents/verification/agent.md`
-- **Vault lookup**: `.claude/VAULT-INDEX.md`
-- **Toolsheds**: `.claude/data/toolsheds.json`
+1. No final self-verification.
+2. One mission owner survives all specialist handoffs.
+3. Planning does not silently replace BUILD after BUILD_AUTHORISED.
+4. Bounded retries prevent loops; technical rerouting occurs before founder escalation.
+5. PR/green CI are intermediate states, never synonyms for Production or Complete.
+6. Current canonical evidence outranks stale memory.
+7. User-facing verification is system-owned through Playwright/visual tooling by default.
+8. Every claim carries evidence and an earned lifecycle state.
+
+## Cross-references
+
+- `/spm`: `.claude/commands/spm.md`
+- Simple bounded execution: `.claude/commands/minion.md`
+- Orchestrator: `.claude/agents/orchestrator/agent.md`
+- Verification: `.claude/agents/verification/agent.md`
+- Completion gate: `.claude/commands/done.md`
+- Verification ownership: `.claude/rules/verification-gate.md`
