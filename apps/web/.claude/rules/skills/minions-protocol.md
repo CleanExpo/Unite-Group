@@ -1,151 +1,114 @@
-# Minions Protocol — Scoped Rule File
+# Minions Protocol — Scoped Rule
 
-> **Scope**: Applies within `.claude/blueprints/**` and `.claude/commands/minion.md` contexts only.
-> **Authority**: Overrides default interactive workflow when `/minion` command is active.
-> **Locale**: en-AU — colour, behaviour, optimisation, organised, licence (noun).
+> **Scope**: `.claude/blueprints/**` and `.claude/commands/minion.md` while a Minion invocation is active.
+> **Authority**: Bounded worker protocol inside the current `/spm` mission. Current SPM, authority and completion contracts outrank stale Blueprint wording.
 
----
+## One-shot engineering mandate
 
-## One-Shot Mandate
+A Minion should execute a clear bounded engineering packet without routine mid-flight founder interaction.
 
-When executing via `/minion`, the agent MUST complete the full blueprint DAG without:
+- Do not ask technical clarification questions that current repo/runtime evidence or a specialist can answer.
+- Do not request intermediate founder confirmation for reversible work already inside the execution lease.
+- If genuine product/business intent is missing, return `BLOCKED_PRODUCT_DECISION` to SPM with the exact decision needed.
+- If technical discovery exceeds the bounded context budget, return `BLOCKED_TECHNICAL_DISCOVERY` to the Orchestrator/SPM—not the founder.
 
-- Asking clarifying questions (escalate instead)
-- Requesting confirmation at intermediate steps
-- Pausing for user input of any kind
+## Context discipline
 
-The only human touchpoint is the PR review gate at the end.
+Pre-hydration uses `.claude/hooks/scripts/pre-hydration.mjs` and the current estate.
 
-If the task is ambiguous → output `BLUEPRINT_ESCALATION` immediately. Do not attempt to guess intent.
+The manifest is the **initial** context set. It may be expanded only through the bounded expansion protocol defined by `/minion`:
+1. identify the missing technical dependency/reference;
+2. targeted search only;
+3. add the exact required files;
+4. record the reason;
+5. remain inside `read_budget.expansion_max_files` or return technical discovery to SPM.
 
----
+This preserves context economy without making an outdated manifest a blind source of failure.
 
-## Context Scoping Rule
+Superseded/legacy material is excluded from normal context unless history is specifically required.
 
-The pre-hydration manifest defines the COMPLETE set of files available for this invocation.
+## Blueprint contract
 
-**Permitted**: Files listed in `manifest.always` and `manifest.domain`.
-**Prohibited**: Any file not listed in the manifest — even if logically relevant.
+Blueprints describe the local DAG. They do not redefine global mission states or authority.
 
-Rationale (Shannon Information Theory): Loading unrequested context adds noise that degrades
-the signal quality of the specific task. Toolshed curation eliminates decision paralysis by
-constraining the search space to domain-relevant patterns only.
+Every agentic packet must carry:
+- mission/task/attempt identity;
+- current base/candidate provenance;
+- exact objective/success criteria;
+- allowed/prohibited scope;
+- required evidence;
+- authority/stop conditions.
 
----
+A Blueprint reference to a missing file, retired architecture or superseded control is a conformance failure. Do not pretend the capability exists.
 
-## Blueprint Manifest YAML Schema
+## Attempt budget
 
-Every blueprint consumed by `/minion` MUST have a manifest in its frontmatter:
+The live `iteration-counter.py` hook caps one Minion invocation at **3 Task-tool calls**.
 
-```yaml
----
-name: blueprint-name                    # kebab-case, matches filename
-version: 1.0.0
-dag:
-  - id: implement
-    type: agentic                       # agentic | deterministic
-    agent: senior-fullstack
-    cap: 1                              # max iterations for this node
-  - id: fix-ci
-    type: agentic
-    agent: verification
-    cap: 2
-    depends_on: [implement]
-  - id: fix-lint
-    type: deterministic                 # deterministic nodes have no cap
-    depends_on: [fix-ci]
-  - id: create-pr
-    type: deterministic
-    depends_on: [fix-lint]
-manifest:
-  always:
-    - .claude/memory/CONSTITUTION.md
-    - .claude/memory/compass.md
-  domain:
-    - src/app/api/[relevant]/**
-    - .claude/agents/[relevant]/agent.md
----
+Purpose: stop one tactic from looping indefinitely—not escalate the founder by count.
+
+When the cap is reached:
+- the hook blocks that over-budget Task call using the current Claude Code PreToolUse blocking behaviour;
+- current Minion state is marked inactive with `technical_reroute_required: true`;
+- the branch/worktree and evidence are preserved;
+- control returns to Orchestrator/SPM for a different technical strategy.
+
+Possible reroutes include alternate model/specialist, fresh environment/worktree, deeper CI/log/browser diagnosis or architecture/database/security review.
+
+Do not immediately re-run the same Minion.
+
+## Verification
+
+Before candidate creation:
+- run the current `/done` evidence contract;
+- changed behaviour requires meaningful regression coverage;
+- deterministic failures outrank model PASS;
+- user-facing work requires applicable Playwright/visual evidence;
+- final independent reviewer must not be the builder where required.
+
+## GitHub boundary
+
+Minion may produce a candidate **draft PR targeting `main`** only.
+
+```text
+gh pr create --draft --base main ...
 ```
 
-The `manifest.always` block defines **context injection** — these files are loaded before execution starts. The `manifest.domain` block scopes file access (Minions Protocol context isolation rule).
+Minion does not:
+- mark the PR ready for review;
+- merge it;
+- call raw GitHub mutation APIs to bypass the local authority guard;
+- deploy or promote production;
+- claim the draft PR means task/misson COMPLETE.
 
-## Iteration Counting Requirement
+The next lifecycle transition is owned by SPM/review/release controls and their authority receipts.
 
-Every agentic node execution MUST:
+## Outcome states
 
-1. Increment `iterations.total` in `.claude/data/minion-state.json`
-2. Increment the node-specific counter (`implement`, `fix_ci`, `fix_lint`)
-3. Check total against the cap (3) before proceeding
+A Minion invocation returns one of:
+- `PR_OPEN`
+- `BLOCKED_PRODUCT_DECISION`
+- `BLOCKED_AUTHORITY`
+- `BLOCKED_TECHNICAL_DISCOVERY`
+- `MINION_TECHNICAL_REROUTE`
+- `FAILED_ENVIRONMENT`
 
-**Initialisation**: At the start of each `/minion` run, reset `minion-state.json`:
-```json
-{ "blueprint": "name", "started_at": "DD/MM/YYYY HH:MM", "iterations": { "total": 0, "implement": 0, "fix_ci": 0, "fix_lint": 0 } }
-```
+Do not use `MINION COMPLETE` unless the overall SPM mission has actually earned `COMPLETE` through its completion contract.
 
-**Reset**: After a successful `create-pr` node, the state file is archived to `.claude/data/minion-archive/` and reset for the next run.
+## State and evidence
 
-The `iteration-counter.py` PreToolUse hook enforces this automatically for `Task` tool calls.
-For direct agentic work (non-Task), the agent must self-report counts.
+`minion-state.json` is runtime attempt state only. Do not turn it or `.claude/memory/current-state.md` into another independent source of truth.
 
-**Hard caps (non-advisory):**
-| Node | Cap |
-|------|-----|
-| `implement` | 1 |
-| `fix-ci` | 2 |
-| `fix-lint` | 1 |
-| **Total per blueprint** | **3** |
+Return structured evidence to Orchestrator/SPM, which persists authoritative state in the mission/evidence ledger and projects it to Linear/Mission Control.
 
----
+## Locale
 
-## Human Review Gate
+Australian English and current project locale conventions.
 
-`/minion` NEVER merges PRs. The workflow always terminates at `create-pr`.
+## Cross-references
 
-The PR is labelled `minion-generated` to signal it was produced autonomously and requires
-human validation before merging.
-
-Rationale: Even with 1,300+ PRs/week, Stripe's Minions system maintains mandatory human
-review. Autonomous generation accelerates throughput; human review preserves correctness.
-
----
-
-## en-AU Locale Enforcement
-
-All output from blueprint execution must use Australian English:
-
-| American       | Australian    |
-| -------------- | ------------- |
-| color          | colour        |
-| behavior       | behaviour     |
-| optimization   | optimisation  |
-| organize       | organise      |
-| license (noun) | licence       |
-| authorization  | authorisation |
-
-All dates: DD/MM/YYYY. All times: AEST or AEDT. All currency: AUD.
-
----
-
-## Escalation vs Retry Policy
-
-| Situation                                | Action                                       |
-| ---------------------------------------- | -------------------------------------------- |
-| Iteration cap reached                    | `BLUEPRINT_ESCALATION` — halt                |
-| Agentic node fails once                  | `BLUEPRINT_ESCALATION` — halt (no retry)     |
-| HIGH risk detected by execution-guardian | `BLUEPRINT_ESCALATION` — halt                |
-| Ambiguous task description               | `BLUEPRINT_ESCALATION` — halt                |
-| Auto-fix resolves the issue              | Continue DAG (no iteration cost)             |
-| Deterministic node fails                 | Retry once (deterministic nodes have no cap) |
-
----
-
-## Minions Additive Principle
-
-The `/minion` pathway is **additive** to the existing interactive system:
-
-- All existing commands (`/new-feature`, `/audit`, `/verify`, `/ui-review`) are unchanged
-- Genesis orchestrator multi-turn protocol is unchanged
-- Council of Logic, Execution Guardian, System Supervisor are unchanged
-- Minion calls them as **deterministic nodes** — their logic runs, but LLM reasoning is bounded
-
-The minion pathway adds a one-shot lane alongside the existing multi-turn highway.
+- `.claude/commands/minion.md`
+- `.claude/commands/spm.md`
+- `.claude/commands/done.md`
+- `.claude/agents/orchestrator/agent.md`
+- `.claude/rules/verification-gate.md`
