@@ -1,78 +1,111 @@
-# Non-Coder Build Guide — Idea to Production
+# Founder Build Guide — Idea to Verified Outcome
 
-> Universal reference for solo founders using Claude Code to build SaaS applications.
-> Use this to understand what phase you're in, what specialist role is working, and what your job is at each step.
+> You do not need to become the software engineer to use Nexus. Your job is to describe the outcome, set priorities and make business/authority decisions. Nexus owns the technical work required to make the outcome real.
 
----
+## Your normal workflow
 
-## How to Use This Guide
+### 1. Describe the idea
 
-1. **Before starting a feature**: Read the phase descriptions to understand what's involved
-2. **When giving instructions**: Use the `/build` command — it structures your requirements so Claude builds what you actually want
-3. **When Claude says "done"**: Check the VERIFICATION CHECKLIST it provides against what you see in the browser
-4. **When something feels wrong**: Find the relevant phase below and check "Common Pitfalls"
+Say, in normal language:
+- what you want to happen;
+- who it is for;
+- why it matters;
+- what the user/business should experience when it works;
+- anything that must not change.
 
----
+You do **not** need to name files, tables, APIs, frameworks or implementation patterns.
 
-## The 10 Phases of Building a Feature
+### 2. Let SPM establish enough truth to execute
 
-### Phase 1: Idea & Requirements
+Nexus should inspect the current estate, find existing capability, identify real gaps and define measurable success. Technical questions are routed to the relevant engineering specialist.
 
-**Real-team specialist:** Product Manager
-**What Claude does:** Asks clarifying questions, echoes back your requirement to confirm understanding
-**What you do:** Describe WHAT you want, WHO uses it, and WHAT they should see
+If Nexus genuinely needs a business/product decision from you, it should ask that decision in plain English with the relevant options/trade-offs.
 
-**Use the `/build` command.** It gives Claude a structured template instead of free-text.
+### 3. Stop Planning, Build
 
-| Term | Plain English |
-|------|---------------|
-| Requirements | A written description of what the feature should do |
-| User story | "As a [role], I want [thing] so that [reason]" |
-| Acceptance criteria | How you'll know it's done — what you can see and click |
-| Scope | The boundary of what's included (and what's NOT) |
+Once the outcome and acceptance criteria are sufficient, the mission moves through `/spm build` / `Stop Planning, Build`.
 
-**Common pitfalls:**
-- Describing HOW to build it instead of WHAT it should do (let Claude choose the how)
-- Forgetting to say who uses the feature (admin? student? public visitor?)
-- Not specifying what the user should SEE when it works
+Nexus then owns:
+- architecture/file placement;
+- implementation;
+- database/API decisions derived from the current system;
+- test creation and repair;
+- lint/type/build failures;
+- dependency compatibility;
+- CI and merge-conflict repair;
+- Playwright/browser verification;
+- Computer Use/visual investigation where needed;
+- independent technical review;
+- evidence and status reporting.
 
----
+### 4. Review the outcome, not the engineering homework
 
-### Phase 2: Architecture
+Nexus should present an evidence-backed status such as:
 
-**Real-team specialist:** Software Architect / Tech Lead
-**What Claude does:** Decides which files to create, which patterns to follow, how data flows
-**What you do:** Nothing — this is Claude's domain. Review the plan if one is presented.
+```text
+MISSION: [name]
+STATE: RELEASE_READY
+WHAT CHANGED: [plain-English result]
+WHAT WAS PROVEN: tests/build/review/Playwright/etc.
+WHAT REMAINS: none | [real blocker]
+FOUNDER DECISION: none | [business/authority decision]
+```
 
-| Term | Plain English |
-|------|---------------|
-| Architecture | The structure of how parts of the app connect to each other |
-| Frontend | What runs in the browser — the pages, buttons, forms you see |
-| Backend | What runs on the server — the logic, data processing, security |
-| API | The bridge between frontend and backend — how they talk to each other |
-| Database | Where all the data is permanently stored (users, courses, orders) |
-| Monorepo | One repository containing multiple apps (e.g. `apps/web/` + `apps/backend/`) |
+You should not normally receive:
+- raw stack traces asking what to do;
+- “which folder should this be in?”;
+- “do we need a new table/API?”;
+- a checklist asking you to perform routine QA;
+- a request to decide which package/version fixes a build;
+- a PR that silently becomes the finish line when the intended outcome is not live/verified.
 
-**Common pitfalls:**
-- Asking Claude to "just make it work" without context about what exists
-- Not knowing which folder to look in (see Architecture Routing in your CLAUDE.md)
+### 5. Shipping is a separate governed transition
 
----
+When work is `RELEASE_READY`, Nexus should present the release state, evidence, risk/rollback and any genuine authority decision required. A PR or green CI is not automatically production.
 
-### Phase 3–10
+After an authorised release, Nexus performs the applicable post-release health and user/customer-path checks before reporting `COMPLETE`.
 
-See the full guide: `docs/NON_CODER_BUILD_GUIDE.md` in the NodeJS-Starter-V1 template repo for all phases.
-This is the same document — phases 3-10 cover Database, Backend API, Frontend Pages, Integration & Wiring, Testing, Design & Polish, Deployment, and Maintenance.
+## Your role vs Nexus role
 
----
+| Phill / Founder | Nexus engineering system |
+|---|---|
+| Set North Star and priorities | Discover current technical reality |
+| Describe product/customer outcome | Decide technical implementation within policy |
+| Choose subjective product/business trade-offs | Build, test, debug and integrate |
+| Set risk appetite | Diagnose and contain technical failures |
+| Give consequential approval when required | Run CI, Playwright and visual verification |
+| Decide commercial/brand direction | Resolve technical review findings/conflicts |
+| Project-manage outcomes with Margot | Produce evidence and continuously improve the engineering system |
 
-## Quick Reference: Your Job vs Claude's Job
+## If you find a technical defect first
 
-| Your Job | Claude's Job |
-|----------|-------------|
-| Describe WHAT you want | Decide HOW to build it |
-| Say WHO uses it | Choose which files and patterns |
-| Say what they SHOULD SEE | Write the code |
-| Say what to AVOID | Run the tests |
-| Confirm the checklist | Produce the verification checklist |
-| Say "looks good" or describe what's wrong | Fix what's wrong |
+Treat it as an **escaped Nexus defect**, not normal founder work.
+
+Nexus should record:
+1. what you discovered;
+2. why existing monitoring/testing/review failed to catch it;
+3. the immediate repair;
+4. the permanent prevention control/test/monitor;
+5. whether the same defect class exists elsewhere.
+
+The target trend is simple: fewer technical problems should reach you first over time.
+
+## Useful commands / phrases
+
+- `/spm plan <goal>` — bounded discovery when a new idea genuinely needs it.
+- `Stop Planning, Build` / `/spm build` — execute the current sufficiently-defined mission.
+- `/spm status` — plain-English current state, evidence, blocker and next move.
+- `/spm ship` — request the separately governed release transition.
+- `/done` — evidence audit; this should run technical verification rather than handing QA to you.
+
+## What success looks like
+
+Your normal experience should increasingly be:
+
+> “Here is the outcome I want.”
+
+then later:
+
+> “Here is what Nexus delivered, the proof, what it learned, and what it recommends next.”
+
+The engineering language between those two points belongs inside the engineering system unless you explicitly want to inspect it.
