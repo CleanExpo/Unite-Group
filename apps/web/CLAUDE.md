@@ -1,13 +1,14 @@
-# Unite-Group Nexus
+# Unite-Group
 
 @.portfolio/PORTFOLIO.yaml
 
 ## Identity (Portfolio SSOT)
-**Canonical name:** Unite-Group Nexus _(decided 2026-06-27; supersedes the former "Unite-Hub")_
-**Aliases this project answers to:** "Unite-Hub", "Unite Hub", "Unite Group", "Unite-Group", "Unite-Group CRM", "the CRM", "Marketing CRM", "Nexus"
-**Canonical repo/path:** `CleanExpo/Unite-Group` → `apps/web` (post-convergence; the former `CleanExpo/Unite-Hub` repo is wound down)
+**Canonical name:** Unite-Group
+**Current aliases:** "Unite Group", "Unite-Group CRM", "the CRM", "Marketing CRM", "Nexus"
+**Canonical repo/path:** `CleanExpo/Unite-Group` → `apps/web`
 
-> If the user uses any alias, this is what they mean.
+> If the user uses a current alias, this is what they mean.
+> Retired product names are not aliases and must not be reintroduced into active context.
 > Do NOT create new repos or clones. Do NOT create folders matching
 > `local.do_not_clone_to[]` in `.portfolio/PORTFOLIO.yaml`.
 
@@ -42,7 +43,7 @@ what to build, skip, or finish.** It holds the full Definition of GREEN, the Nav
 ## Identity
 Private founder CRM for Phill McGurk. NOT a public SaaS. One user.
 Stack: Next.js 16 App Router (src/ root), React 19, Supabase, Vercel, Tailwind CSS, pnpm monorepo. No FastAPI, no Python backend.
-Design: app-global editorial theme (globals.css light/dark, `rounded-sm` only) plus the command deck's own ratified registers — Gun Metal canvas `#0e1014` with green `#2dbb57` signals (UNI-2339; `command-deck.module.css` + `shell.module.css`) and the opt-in Daylight paper/indigo register behind the Feel toggle (PR #830). The former "Scientific Luxury — OLED Black `#050505`, Cyan `#00F5FF`" palette is retired on the deck; echoes of it in older docs are stale — the CSS modules are the token source of truth.
+Design: app-global editorial theme (globals.css light/dark, `rounded-sm` only) plus the command deck's own ratified registers — Gun Metal canvas `#0e1014` with green `#2dbb57` signals (UNI-2339; `command-deck.module.css` + `shell.module.css`) and the opt-in Daylight paper/indigo register behind the Feel toggle (PR #830). The former Scientific Luxury palette is retired on the deck; echoes of it in older docs are stale — the CSS modules are the token source of truth.
 Locale: en-AU | DD/MM/YYYY | AUD | AEST/AEDT
 
 ## Agent Routing Rules
@@ -119,12 +120,12 @@ Map common outcome phrases to concrete checklists:
 
 | Phrase | Translates To |
 |--------|--------------|
-| "Make it work" | Type-check passes + tests pass + no runtime errors |
-| "Ship it" | Verify → commit → push → create PR → deploy |
-| "Clean this up" | Lint + format + remove dead code + simplify |
-| "Is this safe?" | Security audit + RLS check + env var audit + OWASP scan |
-| "Make it fast" | Lighthouse audit + bundle analysis + query optimisation |
-| "Make it pretty" | Design tokens compliance + Scientific Luxury review + responsive check |
+| "Make it work" | Production-equivalent build passes + type-check + tests + no runtime errors + applicable integration checks + Playwright/visual verification + intended outcome evidence |
+| "Ship it" | Route through the governed SPM release path; require release-ready evidence, applicable approval, deployment receipt, and post-release verification before COMPLETE |
+| "Clean this up" | Lint + format + remove dead code + simplify + remove duplicate/obsolete capability where safe |
+| "Is this safe?" | Security audit + RLS check + env var audit + OWASP scan + rollback/reversibility assessment where applicable |
+| "Make it fast" | Lighthouse audit + bundle analysis + query optimisation + before/after performance evidence |
+| "Make it pretty" | Current ratified design tokens + responsive check + Playwright/visual review across key breakpoints |
 
 ## Blueprint-First Protocol
 
