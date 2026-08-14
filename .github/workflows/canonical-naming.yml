@@ -1,0 +1,36 @@
+name: Canonical naming guard
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  naming-drift:
+    name: Prevent retired identity drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Check new lines for retired product naming
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          forbidden="Unite""-Hub"
+          added_lines="$(git diff --unified=0 "origin/${{ github.base_ref }}...HEAD" -- . \
+            ':(exclude)docs/legacy/**' \
+            ':(exclude)**/CHANGELOG.md' \
+            | grep -E '^\+[^+]' || true)"
+
+          if printf '%s\n' "$added_lines" | grep -F "$forbidden"; then
+            echo "Retired product naming detected in newly-added active content."
+            echo "Use the canonical current identity: Unite-Group."
+            exit 1
+          fi
+
+          echo "Canonical naming guard passed."
