@@ -25,6 +25,7 @@ Correct flow:
 
 ## Other load-bearing rules (see `CLAUDE.md` for detail)
 
+- **Canonical identity**: the current product/project name is **Unite-Group**. Retired product names must not appear in active prompts, task titles, status text, dashboards, memory or newly-authored documentation. Historical lineage belongs only in explicit legacy/history context.
 - **DB — Supabase branching**: validate every schema change/migration on a
   **Supabase database branch** before prod. There is no standing sandbox (the
   mirror project was deleted 15/06/2026 and won't be replaced). Prod moves only
@@ -33,11 +34,11 @@ Correct flow:
 - **Toolchain**: each package keeps its own lockfile/package manager. Verify via
   root `package.json` scripts (`npm run verify:web`, etc.).
 - **No writes to other repos.** `brain-1`, `Spine`, `hermes-workspace`,
-  `pi-ceo-operator-mcp` — frozen pending deletion. **Unite-Hub was wound down on
-  20/06/2026 after Phill's typed approval; its earlier 18/06/2026
-  separate-live-product instruction is superseded** — it is no longer live;
-  never target, write to, depend on, or recreate it from this repo. `apps/web`
-  is the canonical product surface.
+  `pi-ceo-operator-mcp` — frozen pending deletion. The former standalone CRM
+  repository was wound down on 20/06/2026 after Phill's typed approval; its
+  earlier separate-live-product instruction is superseded. It is no longer
+  live; never target, write to, depend on, or recreate it from this repo.
+  `apps/web` is the canonical product surface.
 - **Deletion** of any repo/Supabase/Vercel resource: runbook gates + typed
   approval only. Never autonomous.
 - Do not read or print secrets. Locale: en-AU | DD/MM/YYYY | AUD | AEST/AEDT.
