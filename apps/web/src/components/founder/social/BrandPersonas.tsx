@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { BUSINESSES } from '@/lib/businesses'
 import { CARSI_BRAND, RESTOREASSIST_BRAND } from '@/lib/content/brand-identities'
 import { StaleReadNotice } from '@/components/ui/StaleReadNotice'
@@ -324,6 +324,13 @@ export function BrandPersonas() {
   // the map unread, `selectBusiness` falls through to `emptyPersona(key)`, so
   // Save would PUT a BLANK persona over a real one. [UNI-2486]
   const [loadError, setLoadError] = useState<string | null>(null)
+  // True when `draft` was seeded blank because the map was unread, rather than
+  // authored by the founder. Such a draft must never survive a recovery.
+  const [draftSynthesised, setDraftSynthesised] = useState(false)
+  const draftSynthesisedRef = useRef(false)
+  const selectedKeyRef = useRef<string | null>(null)
+  draftSynthesisedRef.current = draftSynthesised
+  selectedKeyRef.current = selectedKey
 
   // Load all personas and auto-seed CARSI + RestoreAssist if missing
   const loadPersonas = useCallback(async () => {
@@ -371,6 +378,23 @@ export function BrandPersonas() {
 
       if (seedPromises.length > 0) await Promise.allSettled(seedPromises)
       setPersonas({ ...map })
+      // Rebuild a synthesised draft from what the recovered read actually
+      // returned, BEFORE clearing `loadError` re-enables Save. Otherwise the
+      // blank guess made during the outage becomes writable over the real
+      // persona the moment the read comes back — the same overwrite this fix
+      // exists to stop, just one step later in the sequence.
+      // Read through refs, not closure: `loadPersonas` is a `useCallback([])`,
+      // so the closure's `selectedKey` and `draftSynthesised` are whatever they
+      // were at mount. Adding them to the dep array instead would make the mount
+      // effect re-fire — a full re-read on every business click.
+      if (draftSynthesisedRef.current) {
+        const key = selectedKeyRef.current
+        if (key) {
+          const recovered = map[key]
+          setDraft(recovered ? draftFromPersona(recovered) : emptyPersona(key))
+        }
+        setDraftSynthesised(false)
+      }
       // Cleared on SUCCESS only, never at loader entry. Entry-clearing would
       // drop the mark — and re-enable Save — the instant refresh was pressed,
       // while the map was still the unread one.
@@ -388,28 +412,40 @@ export function BrandPersonas() {
   }, [loadPersonas])
 
   // When a business is selected, initialise the draft from existing data or empty
+  function draftFromPersona(existing: BrandIdentity): PersonaDraft {
+    return {
+      businessKey: existing.businessKey,
+      toneOfVoice: existing.toneOfVoice,
+      targetAudience: existing.targetAudience,
+      industryKeywords: [...existing.industryKeywords],
+      uniqueSellingPoints: [...existing.uniqueSellingPoints],
+      characterMale: { ...existing.characterMale },
+      characterFemale: { ...existing.characterFemale },
+      colourPrimary: existing.colourPrimary,
+      colourSecondary: existing.colourSecondary,
+      doList: [...existing.doList],
+      dontList: [...existing.dontList],
+      sampleContent: { ...existing.sampleContent },
+    }
+  }
+
   function selectBusiness(key: string) {
     setSelectedKey(key)
     setSaveError(null)
     setSaveSuccess(false)
     const existing = personas[key]
     if (existing) {
-      setDraft({
-        businessKey: existing.businessKey,
-        toneOfVoice: existing.toneOfVoice,
-        targetAudience: existing.targetAudience,
-        industryKeywords: [...existing.industryKeywords],
-        uniqueSellingPoints: [...existing.uniqueSellingPoints],
-        characterMale: { ...existing.characterMale },
-        characterFemale: { ...existing.characterFemale },
-        colourPrimary: existing.colourPrimary,
-        colourSecondary: existing.colourSecondary,
-        doList: [...existing.doList],
-        dontList: [...existing.dontList],
-        sampleContent: { ...existing.sampleContent },
-      })
+      setDraft(draftFromPersona(existing))
+      setDraftSynthesised(false)
     } else {
       setDraft(emptyPersona(key))
+      // A blank draft built while the map could not be read is a GUESS, not an
+      // authored persona. Recording that here is what lets the recovery path
+      // below throw it away instead of writing it back. Without this flag the
+      // Save gate merely DELAYED the blank overwrite until the read recovered:
+      // `loadError` cleared, Save re-enabled, and the stale blank draft was
+      // still sitting there ready to go over the real persona.
+      setDraftSynthesised(loadError !== null)
     }
   }
 
