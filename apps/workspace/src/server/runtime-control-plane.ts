@@ -115,25 +115,28 @@ function verifiedReceipt(
   reference: ReceiptReference,
   taskId: string,
   workerId: string,
+  now: number,
 ): boolean {
   return verifyTrustedToolArtifactReceipt({
     artifactId: reference.artifactId,
     sha256: reference.sha256,
     taskId,
     workerId,
+    now,
   })
 }
 
 function verifiedHermesArtifacts(
   runtime: RawRuntime,
   taskId: string,
+  now: number,
 ): Array<{ label: string; kind: string }> {
   return runtime.artifacts.flatMap((artifact) => {
     const receipt = artifact.receipt
     if (
       !receipt ||
       receipt.artifactId !== artifact.id ||
-      !verifiedReceipt(receipt, taskId, runtime.workerId)
+      !verifiedReceipt(receipt, taskId, runtime.workerId, now)
     ) {
       return []
     }
@@ -150,9 +153,10 @@ function verifiedCodexArtifacts(
     source: 'workspace-tool-artifact'
   }>,
   taskId: string,
+  now: number,
 ): Array<{ label: string; kind: string }> {
   return evidence.flatMap((entry) =>
-    verifiedReceipt(entry, taskId, 'codex')
+    verifiedReceipt(entry, taskId, 'codex', now)
       ? [{ label: entry.label, kind: entry.kind }]
       : [],
   )
@@ -168,7 +172,7 @@ function taskForRuntime(input: {
   const stale = isStaleRuntime(runtime, now)
   const state = stale ? 'unknown' : stateFromRuntime(runtime)
   const taskId = `${workerId}:${runtime.sessionId ?? 'current'}`
-  const artifacts = verifiedHermesArtifacts(runtime, taskId)
+  const artifacts = verifiedHermesArtifacts(runtime, taskId, now)
   const requiresEvidence = state === 'complete'
   const evidenceStatus: EvidenceStatus = requiresEvidence
     ? artifacts.length > 0
@@ -270,7 +274,7 @@ export function buildRuntimeControlPlane(input: {
     : null
   const codexArtifacts =
     codex.checkpoint && codexTaskId
-      ? verifiedCodexArtifacts(codex.checkpoint.task.evidence, codexTaskId)
+      ? verifiedCodexArtifacts(codex.checkpoint.task.evidence, codexTaskId, now)
       : []
   const codexTask =
     codex.checkpoint && codexTaskId
