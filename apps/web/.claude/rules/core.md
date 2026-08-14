@@ -1,36 +1,40 @@
 # Core Governance Rules
 
 > **Authority**: Constitutional layer. Loaded for every session. Overrides all other rules when conflicts arise.
-> **Source**: Adapted from NodeJS-Starter-V1 framework for Unite-Group Nexus (Next.js/Supabase).
+> **Source**: Adapted for Unite-Group Nexus (Next.js/Supabase).
 
 ---
 
 ## Operational Constitution
 
-The single source of truth for project identity, values, and constraints is:
+The durable human-ratified principles and authority boundaries live in:
 
-**`.claude/memory/CONSTITUTION.md`** — Human-authored. Never modified by agents.
+**`.claude/memory/CONSTITUTION.md`** — Human-authored. Agents must not silently amend constitutional authority.
 
-All agent behaviour must align with the Constitution. When in doubt, re-read it.
+Mutable technical facts (current stack, runtime health, model/tool versions, design implementation, schema and machine state) must be verified from current canonical/live sources rather than treated as immutable constitutional truth.
 
 ---
 
 ## Intent-Driven Workflow Mapping
 
-User intent determines execution mode and governance intensity. Detection logic lives in `cli-control-plane.md` — this file defines the behavioural contract per mode.
+User intent determines execution mode and governance intensity. Detection logic lives in `cli-control-plane.md`; `/spm` owns explicit mission-state transitions.
 
 | User Intent | Execution Mode | Workflow |
 |------------|---------------|----------|
-| "Build this feature" | BUILD | Spec → Implement → Verify → Commit |
+| "Build this feature" | BUILD | Discover/reuse → Implement → Verify → Candidate |
 | "Fix this bug" | FIX | Reproduce → Diagnose → Fix → Verify |
-| "Clean up this code" | REFACTOR | Analyse → Plan → Refactor → Verify |
+| "Clean up this code" | REFACTOR | Analyse → Refactor → Verify |
 | "Migrate to X" | MIGRATE | Audit → Plan → Migrate → Rollback-ready |
-| "Deploy this" | DEPLOY | Verify → Stage → Deploy → Monitor |
+| "Deploy this" | DEPLOY | Verify → Stage → Governed release → Monitor |
 | "Plan the architecture" | PLAN | Research → Options → Trade-offs → Recommend |
 | "Audit the codebase" | AUDIT | Scan → Classify → Report → Prioritise |
 | "How does X work?" | EXPLORE | Read → Trace → Explain |
 
-**Rule**: Match intent to mode. Execute mode workflow. Do not mix modes mid-task.
+**Mode rule**:
+- Do not switch modes implicitly or merely because a subtask became difficult.
+- An explicit `/spm` lifecycle transition (for example `PLANNED → BUILD_AUTHORISED → EXECUTING`) is valid within the same mission and must preserve mission identity, evidence, constraints and authority state.
+- `Stop Planning, Build` is an explicit PLAN → BUILD transition when the current mission is sufficiently specified.
+- After BUILD is authorised, local planning may occur as an execution activity, but the mission must not silently fall back to a planning-only terminal state.
 
 ---
 
@@ -40,9 +44,9 @@ Classify every factual claim before acting on it:
 
 | Classification | Definition | Action |
 |---------------|-----------|--------|
-| **Confirmed** | Read from file, tool output, user-provided | Act freely |
-| **Inferred** | Logical deduction from confirmed facts | Act with note |
-| **Assumed** | Not verified by any source | **Pause and verify before acting** |
+| **Confirmed** | Read from current file, tool output, or user-provided evidence | Act within authority |
+| **Inferred** | Logical deduction from confirmed facts | Act only where the inference is safe/reversible and record it |
+| **Assumed** | Not verified by any current source | **Verify before acting** |
 
 ### Never Invent
 
@@ -52,75 +56,65 @@ Classify every factual claim before acting on it:
 - Environment variable names or values
 - Package versions or compatibility claims
 - Configuration options or flags
+- authority receipts, verification results, runtime health or release state
 
 ### Verification Method
 
-When a claim is **Assumed**, verify using:
-1. **Vault Index** — `.claude/VAULT-INDEX.md` for O(1) asset lookup
-2. **Retrieval-First Protocol** — `.claude/rules/retrieval-first.md` for source hierarchy
-3. **Codebase search** — Grep/Glob for implementation details
-4. **User confirmation** — Ask if verification is not possible programmatically
+When a claim is **Assumed**, verify using the smallest current source that can resolve it:
+1. canonical current index/registry where one exists;
+2. live/runtime evidence for time-sensitive state;
+3. active code/configuration;
+4. current official documentation for external capabilities;
+5. founder/business clarification only when the ambiguity is not technically resolvable and materially affects intent or authority.
+
+Do not send routine engineering uncertainty to the founder when repository/runtime evidence or a specialist can resolve it.
 
 ---
 
 ## Retrieval Hierarchy
 
-Before answering any question or making any recommendation, consult sources in this order. Full protocol in `.claude/rules/retrieval-first.md`.
+Prefer current canonical evidence over historical memory. Superseded/legacy material is excluded from normal operating context unless history is explicitly requested.
 
-```
-0. Vault Index        — .claude/VAULT-INDEX.md (O(1) asset lookup)
-1. NotebookLM         — Project-specific knowledge
-2. Context7 MCP       — Library/framework documentation
-3. Skills             — Pattern libraries (.skills/custom/)
-4. Codebase search    — Grep/Glob for implementation details
-5. Web search         — Last resort for external/current information
-```
+1. Current mission / authority / evidence ledger
+2. Canonical active repo instructions and registries
+3. Current runtime/system evidence
+4. Relevant active skills and specialist context
+5. Codebase discovery
+6. Current official external sources where required
 
 ---
 
 ## Stack Constraints
 
-Unite-Group Nexus is a **Next.js-only** project. These are hard constraints:
+Unite-Group's current web product is Next.js/React/Supabase. Verify current versions and implementation from active package/configuration files before making version-specific claims.
 
-| Allowed | Prohibited |
-|---------|-----------|
-| Next.js 16 App Router | FastAPI, Flask, Django |
-| React 19, TypeScript | Python backend services |
-| Supabase (PostgreSQL, Auth, Storage) | SQLAlchemy, Alembic |
-| Tailwind CSS v4 | CSS-in-JS (styled-components, emotion) |
-| Vercel deployment | Docker for production |
-| pnpm monorepo | npm, yarn |
-| Server Actions, API Routes | Express.js, Hono |
-
-**If a template, skill, or reference suggests Python/FastAPI patterns, translate to Next.js equivalents or discard.**
+Do not introduce a new framework, backend, dependency or parallel system merely because a template suggests it. Search/reuse the existing implementation first and follow the current North Star / authority contract for dependency or architecture changes.
 
 ---
 
 ## Single-Tenant Enforcement
 
-- **One user**: Phill McGurk (founder)
-- **No multi-tenancy**: No workspace_id, no team features, no user switching
-- **DB queries**: Always `.eq('founder_id', founderId)` — never workspace_id
-- **Auth**: Supabase PKCE server-side only
+- **One founder account** for the private founder surface unless current architecture explicitly proves otherwise.
+- DB/auth scope must follow the current canonical repository contract and verified schema.
+- Never infer tenancy/scoping fields from historical examples.
 
 ---
 
 ## Australian Defaults
 
-All output must use Australian English and conventions. Enforced by the `standards` agent and `pre-response` hook. See `.claude/agents/standards/agent.md` for full specification.
-
-- **Spelling**: colour, behaviour, optimisation, analyse, centre, licence (noun)
-- **Dates**: DD/MM/YYYY
-- **Currency**: AUD ($)
-- **Timezone**: AEST/AEDT
+- Australian English
+- DD/MM/YYYY
+- AUD ($)
+- AEST/AEDT / Australia-Brisbane where the system requires an IANA zone
 
 ---
 
 ## Cross-References
 
 - **Detection logic**: `.claude/rules/cli-control-plane.md`
+- **SPM lifecycle**: `.claude/commands/spm.md`
 - **Retrieval protocol**: `.claude/rules/retrieval-first.md`
 - **Output quality**: `.claude/rules/slop-prevention.md`
 - **Response structure**: `.claude/rules/audit-mode-classifier.md`
-- **Constitution**: `.claude/memory/CONSTITUTION.md`
-- **Compass**: `.claude/memory/compass.md`
+- **Constitutional authority**: `.claude/memory/CONSTITUTION.md`
+- **Prompt Compass**: `.claude/memory/compass.md`
