@@ -260,6 +260,28 @@ No candidate will be installed into the Nexus production environment until the g
 
 ---
 
+## The Waterline — autonomy gate
+
+This gate classifies the authority required for Nexus work. A task inherits the
+highest class of any action it contains. Missing, ambiguous, stale, or conflicting
+authority fails closed to the higher class. Evidence, evaluation, or model consensus
+cannot lower a class.
+
+| Class | Boundary | Authority |
+| --- | --- | --- |
+| **Class 0 — observe** | Read, search, research, replay frozen cases, inspect local artefacts, and run local evaluation that cannot change an authoritative source. | May proceed autonomously inside the declared task scope. |
+| **Class 1 — local candidate** | Create or change reversible repository-local candidates, tests, documentation, schemas, profiles, and untracked local evaluation artefacts. Merging the candidate must arm nothing. | Requires an explicit implementation request and all repository gates; the candidate cannot approve or release itself. |
+| **Class 2 — governed external effect** | External writes or messages, credential use or relocation, spend, publication, approval-state changes, and changes to shared non-production systems. | Requires explicit approval for the exact target and effect, least privilege, write-then-confirm evidence, and a tested rollback where applicable. |
+| **Class 3 — founder action** | Production deployment or mutation, deletion, merge authority, constitutional change, legal or financial commitment, irreversible action, and any unresolved authority conflict. | Requires Phill McGurk's explicit authority for the exact action. Agent or Board consensus cannot substitute for it. Existing release, database, deletion, and production gates remain cumulative. |
+
+Constitutional amendments are always Class 3. The founder's explicit instruction on
+14/08/2026 to implement the Nexus Learning Harness plan ratified this section and its
+root resolution pointer. It does not authorise any other Class 2 or Class 3 effect.
+
+### End Waterline gate
+
+---
+
 ## Amendments
 
 Per **ARR-008 §1**, doctrine evolves **only** through evidence-backed, versioned proposals. **Silent change is prohibited.** Every amendment MUST be recorded below with date, author, ARR reference, evidence, and rationale.
@@ -269,6 +291,7 @@ Per **ARR-008 §1**, doctrine evolves **only** through evidence-backed, versione
 | 2026-07-17 | Landed in-repo verbatim. No textual change to the founder's constitution. | ARR-004 §2.1 | Phill McGurk / filed by Claude Opus 4.8 |
 | 2026-07-24 | Added [ADDENDUM-001](./ADDENDUM-001-board-release-authority-for-verified-prs-v1.0.md): PRs that close the full check-reject-rework process, meet every criterion, receive 100% approval from the eligible Board roster (`board-release-roster.v1.json`), and comply with the constitution are authorised for automatic progression — bounded exception to §12's blanket founder-pause pattern. Phill-only gates explicitly retained: new/increased direct spend, constitutional change, a missing founder-only credential/privilege, unresolved authority conflict, irreversible action without tested rollback, and production deployment (no executor implemented, never reopened). Machine-checked by `tools/board-release-verifier/verifier.py`. No textual change to §1-16 above. | ADDENDUM-001 | Phill McGurk / filed by Claude Sonnet 5 |
 | 2026-07-24 | Ratified UG-AUTONOMY-001 (recorded in ADDENDUM-001 §8): for `CleanExpo/Unite-Group`, `CleanExpo/CARSI` and `CleanExpo/RestoreAssist` only, a deterministic, fail-closed merge controller (`tools/board-release-verifier/controller.py`) may execute one SHA-guarded, independently post-merge-verified merge once the verifier's `merge_authorised` (split from, and never implying, `deployment_authorised`, which remains permanently `false` — no deployment executor exists) is `true` for the exact live HEAD. A constitutional candidate can never self-authorise its own merge; retained founder-only gates (§3) are unaffected. | ADDENDUM-001 §8 | Phill McGurk / filed by Claude Sonnet 5 |
+| 2026-08-14 | Ratified NEXUS-HARNESS-001: added the executable Waterline autonomy classes and a root pointer to this single constitution. The approval is limited to the local, replay-only Nexus Learning Harness candidate; it does not authorise external effects, production action, merge, or deployment. | NEXUS-HARNESS-001 | Phill McGurk / filed by Codex |
 
 ### Known open conflicts against this text — NOT amendments, awaiting founder ruling
 
