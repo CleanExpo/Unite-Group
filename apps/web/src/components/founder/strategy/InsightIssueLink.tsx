@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ExternalLink, GitBranchPlus } from "lucide-react";
 
 interface BridgeLink {
@@ -22,19 +22,44 @@ export function InsightIssueLink({
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // Write-path slot: the POST that creates the issue. Distinct from `loadError`
+  // below, and deliberately cleared at submit ENTRY — it describes the write
+  // currently in flight, so carrying the previous attempt's message into a new
+  // one would be the lie. The read-side rule (clear on success only) does NOT
+  // apply here; see the comment on `loadError`.
   const [error, setError] = useState<string | null>(null);
+  // Read-path slot. Before this the read was `.catch(() => {})` with no
+  // `res.ok` check at all, so a 500 — HTML body and all — left `link` at null
+  // and `loading` false. `link === null` is not "no data yet": it is the
+  // positive claim "this insight has no Linear issue", and the Create button
+  // below was offered on the strength of it. [UNI-2486]
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [acceptanceCriteria, setAcceptanceCriteria] = useState("");
   const [evidence, setEvidence] = useState("");
 
-  useEffect(() => {
+  const load = useCallback(() => {
     let active = true;
+    setLoading(true);
     fetch(`/api/strategy/insights/${insightId}/create-issue`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (active) setLink(d.link ?? null);
+      .then((r) => {
+        if (!r.ok) throw new Error("read failed");
+        return r.json();
       })
-      .catch(() => {})
+      .then((d) => {
+        if (!active) return;
+        setLink(d.link ?? null);
+        // Cleared on SUCCESS only, never at loader entry. Clearing on entry
+        // would drop the "unknown" state mid-read and flash the Create button
+        // back on screen before the answer arrived.
+        setLoadError(null);
+      })
+      .catch(() => {
+        if (active)
+          setLoadError(
+            "Could not check whether this insight already has a Linear issue — this is a failed read, not a confirmed absence.",
+          );
+      })
       .finally(() => {
         if (active) setLoading(false);
       });
@@ -42,6 +67,8 @@ export function InsightIssueLink({
       active = false;
     };
   }, [insightId]);
+
+  useEffect(() => load(), [load]);
 
   async function submit() {
     if (!acceptanceCriteria.trim() || submitting) return;
@@ -76,6 +103,39 @@ export function InsightIssueLink({
   }
 
   if (loading) return null;
+
+  // The unknown state renders BEFORE the link check and before the Create
+  // button, and it renders no write control at all — not even a disabled one.
+  //
+  // This is the one surface in the failed-read audit where the standard
+  // retain-mark-disable shape is the wrong fix. There is no retained payload to
+  // mark: the only thing a failed read leaves behind is `link === null`, which
+  // the UI reads as "no Linear issue exists yet". A DISABLED Create button
+  // still asserts that claim, and the claim is what causes the harm — acting on
+  // it can raise a duplicate of an issue that already exists. So the button is
+  // withheld until a read has actually answered the question, and the founder
+  // is given a live Retry instead. [UNI-2486]
+  if (loadError) {
+    return (
+      <div className="mt-3 flex items-center gap-2">
+        <p role="alert" className="text-[11px]" style={{ color: "#ef4444" }}>
+          {loadError}
+        </p>
+        {/* Recovery control — never disabled; it is the way back to a live read. */}
+        <button
+          type="button"
+          onClick={() => load()}
+          className="text-[11px] px-2 py-1 rounded-sm border shrink-0"
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-text-disabled)",
+          }}
+        >
+          ↻ retry
+        </button>
+      </div>
+    );
+  }
 
   if (link) {
     return (
@@ -161,8 +221,12 @@ export function InsightIssueLink({
               color: "var(--color-text-primary)",
             }}
           />
+          {/* `role="alert"` was absent, so the write failure was invisible to
+              the census oracle (`announcesFailure`) as well as to assistive
+              technology — the surface could fail a POST and still read as
+              silent to every instrument watching it. [UNI-2486] */}
           {error && (
-            <p className="text-[11px]" style={{ color: "#ef4444" }}>
+            <p role="alert" className="text-[11px]" style={{ color: "#ef4444" }}>
               {error}
             </p>
           )}

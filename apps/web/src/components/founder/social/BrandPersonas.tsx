@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { BUSINESSES } from '@/lib/businesses'
 import { CARSI_BRAND, RESTOREASSIST_BRAND } from '@/lib/content/brand-identities'
+import { StaleReadNotice } from '@/components/ui/StaleReadNotice'
 import type { BrandIdentity, CharacterPersona } from '@/lib/content/types'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -311,9 +312,18 @@ export function BrandPersonas() {
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
   const [draft, setDraft] = useState<PersonaDraft | null>(null)
   const [saving, setSaving] = useState(false)
+  // Write-path slot: the PUT in `handleSave`. Cleared at that handler's ENTRY
+  // on purpose — it describes the save in flight. The read-side rule (clear on
+  // success only) applies to `loadError` below, NOT to this.
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [loading, setLoading] = useState(true)
+  // Read-path slot. `loadPersonas` caught to `console.error` and nothing else,
+  // so a failed read left `personas` at {} and the surface rendered every
+  // business as having no persona. That display defect is the lesser half: with
+  // the map unread, `selectBusiness` falls through to `emptyPersona(key)`, so
+  // Save would PUT a BLANK persona over a real one. [UNI-2486]
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   // Load all personas and auto-seed CARSI + RestoreAssist if missing
   const loadPersonas = useCallback(async () => {
@@ -361,8 +371,13 @@ export function BrandPersonas() {
 
       if (seedPromises.length > 0) await Promise.allSettled(seedPromises)
       setPersonas({ ...map })
+      // Cleared on SUCCESS only, never at loader entry. Entry-clearing would
+      // drop the mark — and re-enable Save — the instant refresh was pressed,
+      // while the map was still the unread one.
+      setLoadError(null)
     } catch (err) {
       console.error('[BrandPersonas] Load failed:', err)
+      setLoadError('Could not load brand personas — this is a failed read, not an absence of personas.')
     } finally {
       setLoading(false)
     }
@@ -400,6 +415,16 @@ export function BrandPersonas() {
 
   async function handleSave() {
     if (!draft || !selectedKey) return
+    // Guarded in the handler, not only on the button. The hazard is writing a
+    // draft built from an unread map: `selectBusiness` seeds `emptyPersona(key)`
+    // when `personas[key]` is missing, and after a failed read EVERY key is
+    // missing — so a Save here overwrites a real persona with a blank one.
+    //
+    // Note this gates on `loadError` rather than on a conventional `staleRead`
+    // (`loadError && payload.length > 0`). The overwrite is worst precisely
+    // when the map is EMPTY, which is when `staleRead` would be false. Using
+    // the usual flag here would leave the sharp case ungated.
+    if (loadError) return
     setSaving(true)
     setSaveError(null)
     setSaveSuccess(false)
@@ -469,6 +494,7 @@ export function BrandPersonas() {
   // ── Render ─────────────────────────────────────────────────────────────────
 
   const selectedBusiness = selectedKey ? BUSINESSES.find(b => b.key === selectedKey) : null
+  const staleRead = Boolean(loadError) && Object.keys(personas).length > 0
 
   return (
     <div className="flex gap-4" style={{ minHeight: '480px' }}>
@@ -479,15 +505,48 @@ export function BrandPersonas() {
         style={{ border: '1px solid var(--color-border)', background: 'var(--surface-card)' }}
       >
         <div
-          className="px-3 py-2 border-b"
+          className="px-3 py-2 border-b flex items-center justify-between gap-2"
           style={{ borderColor: 'var(--color-border)' }}
         >
           <p className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>
             Businesses
           </p>
+          {/* Recovery control. `loadPersonas` ran only on mount and `handleSave`
+              does not re-read, so before this a failed read left the founder no
+              retry short of a page reload — and no way to clear the mark.
+              Not disabled while stale: it is the way back to a live read. */}
+          <button
+            type="button"
+            onClick={() => void loadPersonas()}
+            disabled={loading}
+            className="text-[10px] px-2 py-0.5 rounded-sm border shrink-0"
+            style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-disabled)' }}
+          >
+            {loading ? 'loading…' : '↻ refresh'}
+          </button>
         </div>
 
-        {loading ? (
+        {/* Announced whenever the read failed, not gated on the map being
+            empty — that gating is what let a fabricated fact sit beside its
+            own warning on the surfaces fixed on 11/08/2026. */}
+        {!loading && loadError && (
+          <p role="alert" className="px-3 py-2 text-[11px]" style={{ color: '#ef4444' }}>
+            {loadError}
+          </p>
+        )}
+
+        {/* VISIBLE half. `actionsDisabled` is set because Save really is taken
+            offline below — but note the gate there is `loadError`, not this
+            flag, for the reason given on `handleSave`. */}
+        {staleRead && <StaleReadNotice source="Brand personas" actionsDisabled />}
+
+        {/* Skeleton only on the FIRST load. A bare `loading` ternary here swapped
+            the retained list for a skeleton on every refresh, so the marked
+            payload — and its stale mark with it — vanished for the duration of
+            the read. Retaining the payload is the deliberate behaviour this
+            contract is built on; blanking it on each poll is the failure mode
+            StaleReadNotice's header calls out by name. */}
+        {loading && Object.keys(personas).length === 0 ? (
           <div className="px-3 py-4 space-y-2">
             {[...Array(8)].map((_, i) => (
               <div
@@ -498,7 +557,11 @@ export function BrandPersonas() {
             ))}
           </div>
         ) : (
-          <ul className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
+          <ul
+            className="divide-y"
+            style={{ borderColor: 'var(--color-border)' }}
+            data-stale-read={staleRead ? 'true' : undefined}
+          >
             {BUSINESSES.map(biz => {
               const hasPersona = Boolean(personas[biz.key])
               const isActive = selectedKey === biz.key
@@ -523,14 +586,20 @@ export function BrandPersonas() {
                     >
                       {biz.name}
                     </span>
+                    {/* '—' is a claim that this business has NO persona, so it
+                        may only be made from a read that succeeded. After a
+                        failed read every business rendered '—' — the whole
+                        portfolio reported as unconfigured. '?' says the honest
+                        thing instead. */}
                     <span
                       className="text-[10px] px-1.5 py-0.5 rounded-sm uppercase tracking-wider font-medium shrink-0"
+                      title={loadError ? 'Unknown — the personas read failed' : undefined}
                       style={{
                         background: hasPersona ? 'rgba(34,197,94,0.1)' : 'rgba(255,255,255,0.05)',
                         color: hasPersona ? '#22c55e' : 'var(--color-text-secondary)',
                       }}
                     >
-                      {hasPersona ? '✓' : '—'}
+                      {hasPersona ? '✓' : loadError ? '?' : '—'}
                     </span>
                   </button>
                 </li>
@@ -578,22 +647,27 @@ export function BrandPersonas() {
                     color: personas[selectedKey] ? '#22c55e' : 'var(--color-text-secondary)',
                   }}
                 >
-                  {personas[selectedKey] ? 'Complete' : 'Missing'}
+                  {/* 'Missing' asserts this business has no persona. After a
+                      failed read it is an unread map, not a missing persona. */}
+                  {personas[selectedKey] ? 'Complete' : loadError ? 'Unknown' : 'Missing'}
                 </span>
               </div>
 
               <div className="flex items-center gap-3">
                 {saveError && (
-                  <span className="text-[11px]" style={{ color: '#ef4444' }}>{saveError}</span>
+                  <span role="alert" className="text-[11px]" style={{ color: '#ef4444' }}>{saveError}</span>
                 )}
                 {saveSuccess && (
                   <span className="text-[11px]" style={{ color: '#22c55e' }}>Saved</span>
                 )}
+                {/* Gated on `loadError`, NOT on `staleRead` — see `handleSave`.
+                    The blank-overwrite hazard is worst when the map is empty,
+                    which is exactly when `staleRead` is false. */}
                 <button
                   type="button"
                   onClick={handleSave}
-                  disabled={saving}
-                  className="px-4 py-1.5 text-[11px] uppercase tracking-widest rounded-sm transition-colors disabled:opacity-50"
+                  disabled={saving || loadError !== null}
+                  className="px-4 py-1.5 text-[11px] uppercase tracking-widest rounded-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{
                     background: 'rgba(22, 163, 74,0.08)',
                     border: '1px solid rgba(22, 163, 74,0.3)',
