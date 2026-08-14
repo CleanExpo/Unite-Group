@@ -54,4 +54,25 @@ describe('control-plane execution/verification conformance', () => {
     expect(harness).not.toContain('### Phase 8 — Production')
     expect(harness).toContain('technical rerouting occurs before founder escalation')
   })
+
+  it('keeps completion verification separate from merge/deploy authority', () => {
+    const audit = read('.skills/custom/finished-audit/SKILL.md')
+    expect(audit).toContain('AUTHORITY CLAIMED BY THIS AUDIT: NONE')
+    expect(audit).toContain('Verification authority and execution authority are separate')
+    expect(audit).not.toContain('APPROVED FOR: [merge/deploy/close/ship')
+  })
+
+  it('makes idea-to-production include real release and post-release states', () => {
+    const pipeline = read('.skills/custom/idea-to-production/SKILL.md')
+    expect(pipeline).toContain('→ RELEASE_READY')
+    expect(pipeline).toContain('→ SHIP_AUTHORISED')
+    expect(pipeline).toContain('→ PRODUCTION')
+    expect(pipeline).toContain('→ POST_DEPLOY_VERIFIED')
+    expect(pipeline).toContain('→ COMPLETE')
+    expect(pipeline).toContain('A mission may skip unnecessary preparation states')
+    expect(pipeline).toContain('If merging `main` automatically triggers production, merge is production-affecting')
+    expect(pipeline).not.toContain('| 8     | **Production**    | A PR is created')
+    expect(pipeline).not.toContain('.claude/workflows/spec-to-build.md')
+    expect(pipeline).not.toContain('.claude/workflows/build-to-release.md')
+  })
 })
