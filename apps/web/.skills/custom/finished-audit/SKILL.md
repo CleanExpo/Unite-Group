@@ -2,9 +2,9 @@
 id: finished-audit
 name: finished-audit
 type: Capability Uplift
-version: 1.0.0
+version: 2.0.0
 created: 20/03/2026
-modified: 20/03/2026
+modified: 14/08/2026
 status: active
 triggers:
   - are we done
@@ -15,166 +15,120 @@ triggers:
   - is it ready
   - can we ship
   - can we close this
-description: ">"
+description: >-
+  Evidence-only completion audit. Determines the strongest lifecycle state
+  actually proven; never grants merge/deploy/business authority.
 ---
 
+# Finished Audit
 
-# Finished Audit Skill
+## Purpose
 
-> **Purpose**: Systematically verify that "finished" is actually true.
-> No vague summaries. No optimistic assumptions. Evidence only.
+Test a completion/readiness claim against current evidence. No vague summaries, optimistic assumptions or authority inflation.
 
-## When to Use
+## Evidence classes
 
-Use this skill when:
+For every required criterion classify:
+- **PROVEN** — current, specific evidence was independently checked;
+- **CLAIMED** — somebody says it passed but the evidence was not verified;
+- **UNKNOWN** — technically verifiable but not yet checked;
+- **MISSING** — confirmed absent/broken;
+- **NOT_APPLICABLE** — explicitly inapplicable with recorded reason.
 
-- A developer or agent claims a task, feature, or project is complete
-- Before merging a PR or closing a milestone
-- Before claiming production readiness
-- Whenever a completion claim is made without accompanying proof
-
-## Banned Output Phrases
-
-The following phrases indicate a false completion claim. Never output them:
-
-| Banned Phrase              | Reason          |
-| -------------------------- | --------------- |
-| "Done!"                    | No evidence     |
-| "That's complete."         | No evidence     |
-| "Everything is working."   | No evidence     |
-| "You're production ready." | No evidence     |
-| "Finished."                | No evidence     |
-| "It's ready."              | Subjective      |
-| "Should be working."       | Unverified      |
-| "Looks good."              | Subjective      |
-| "Tests are passing."       | No output shown |
-
-## Inputs
-
-- The task, feature, or project description
-- The Definition of Done criteria (from `definition-of-done-builder` or provided)
-- Any proof artifacts already provided
+Structural existence is not automatically behavioural proof: a route/test/schema/document file existing proves only that the file exists unless the criterion specifically asks for existence.
 
 ## Procedure
 
-### Step 1: Load or generate DoD
+1. Resolve the active `/spm` mission and candidate SHA/environment.
+2. Load the applicable completion contract / Definition of Done.
+3. Verify each proof artefact against the exact candidate/environment.
+4. Reject stale, adjacent, synthetic or merely claimed evidence.
+5. Calculate whether every applicable criterion is PROVEN/NOT_APPLICABLE.
+6. Report the **earned lifecycle state** and any remaining evidence/authority gates.
 
-If no DoD exists: activate `definition-of-done-builder` first.
-If DoD exists: use it as the audit checklist.
+UNKNOWN technical evidence should be verified by Nexus, not assigned to the founder as routine QA.
 
-### Step 2: Verify each criterion
+## Output — incomplete
 
-For each criterion in the DoD:
-
-1. Check if proof artifact exists
-2. If yes: classify as PROVEN (record the artifact)
-3. If artifact is claimed but not shown: classify as CLAIMED (not accepted)
-4. If no artifact: classify as UNKNOWN
-5. If definitively absent: classify as MISSING
-
-| Status  | Meaning                        | Accepted as proof? |
-| ------- | ------------------------------ | ------------------ |
-| PROVEN  | Evidence exists, verified      | Yes                |
-| CLAIMED | Evidence claimed but not shown | No                 |
-| UNKNOWN | Not verified either way        | No                 |
-| MISSING | Confirmed absent or broken     | No                 |
-
-### Step 3: Calculate completion
-
-```
-Completion % = (PROVEN count / total criteria count) × 100
-```
-
-### Step 4: Gate decision
-
-```
-If ALL criteria = PROVEN:
-  → Output: COMPLETION APPROVED
-
-If ANY criterion = UNKNOWN, CLAIMED, or MISSING:
-  → Output: NOT COMPLETE
-  → List every blocking criterion
-  → Specify exact next action per blocker
-```
-
-## Output Format
-
-### Not Complete
-
-```
+```text
 FINISHED AUDIT
-═══════════════════════════════════════════════════
-Task:        [task description]
-Audit Date:  [DD/MM/YYYY]
-Completion:  [N]% ([proven]/[total] criteria PROVEN)
+mission: [id]
+candidate: [SHA/PR/environment]
+criteria proven: [n]/[n]
 
+EARNED STATE: [IMPLEMENTED | LOCALLY_VERIFIED | PR_OPEN | CI_GREEN | STAGING_VERIFIED | RELEASE_READY | POST_DEPLOY_VERIFIED | BLOCKED]
 STATUS: NOT COMPLETE
 
-BLOCKING CRITERIA
-─────────────────
-[criterion] — Status: UNKNOWN
-   Required: [exact action to verify]
+BLOCKERS / MISSING PROOF
+1. [criterion] — [CLAIMED|UNKNOWN|MISSING] — next technical action: [...]
 
-[criterion] — Status: MISSING
-   Required: [exact remediation]
+AUTHORITY REMAINING
+none | [merge/release/business/other authority that has not been granted]
 
-[criterion] — Status: CLAIMED (evidence not shown)
-   Required: [show exact output/screenshot]
-
-NEXT ACTION
-─────────────
-[Single most important thing to do right now]
-═══════════════════════════════════════════════════
+NEXT EXECUTABLE MOVE
+[technical action or genuine decision packet]
 ```
 
-### Completion Approved
+## Output — all completion criteria proven
 
-```
+```text
 FINISHED AUDIT
-═══════════════════════════════════════════════════
-Task:        [task description]
-Audit Date:  [DD/MM/YYYY]
-Completion:  100% ([N]/[N] criteria PROVEN)
+mission: [id]
+candidate: [SHA/environment]
+criteria proven: 100%
 
-STATUS: COMPLETION APPROVED
+EARNED STATE: COMPLETE
+STATUS: COMPLETION PROVEN
 
-PROOF ARTIFACTS
-─────────────────
-[criterion] — Proof: [artifact description + path/output]
-[criterion] — Proof: [artifact]
+PROOF
+- [criterion] — [evidence ref]
 ...
 
-APPROVED FOR: [merge/deploy/close/ship — as appropriate]
-═══════════════════════════════════════════════════
+AUTHORITY CLAIMED BY THIS AUDIT: NONE
 ```
 
-## Validation Gates
+If all pre-release criteria are proven but production/outcome evidence is not applicable yet, return `RELEASE_READY`, not `COMPLETE`.
 
-Before accepting a PROVEN status:
+## Authority boundary
 
-- [ ] The proof artifact is shown (not just claimed)
-- [ ] The artifact is recent (matches the current state)
-- [ ] The artifact is specific (not a generic screenshot)
-- [ ] The artifact covers the specific criterion (not adjacent evidence)
+This skill **never outputs “APPROVED FOR merge/deploy/ship”** merely because evidence passed.
 
-## Failure Modes
+Verification authority and execution authority are separate:
+- this skill proves evidence/state;
+- `/spm` and the canonical authority/release contract decide whether the next consequential transition is authorised;
+- green CI or `RELEASE_READY` is not itself a merge/deploy receipt.
 
-| Failure                                    | Recovery                                     |
-| ------------------------------------------ | -------------------------------------------- |
-| No DoD exists                              | Activate `definition-of-done-builder` first  |
-| Proof is a screenshot of wrong state       | Request updated screenshot                   |
-| Proof is from a different environment      | Request production environment proof         |
-| Developer argues criterion is "not needed" | Escalate to PM Agent — DoD is non-negotiable |
+## Proof quality checks
 
-## Eval Examples
+Before PROVEN:
+- evidence is from the current candidate/environment;
+- evidence is recent enough for the claim;
+- evidence is specific to the criterion;
+- deterministic output is available where the criterion is deterministic;
+- user-facing criteria use applicable Playwright/visual evidence;
+- production claims use provider/runtime receipts tied to exact SHA/environment.
 
-### Good Example
+## Failure handling
 
-**Input:** "I've shipped the auth feature, it's done."
+- Missing DoD → generate/resolve the completion contract, then continue.
+- Wrong/stale evidence → gather current evidence.
+- Failed criterion → route repair to the technical owner, then re-verify.
+- Criterion disputed as unnecessary → SPM/product owner decides scope; verifier does not silently waive it.
+- Technical repair exhaustion → route through the technical escalation ladder before founder handoff.
 
-**Audit output:** NOT COMPLETE — 6/9 criteria PROVEN. 3 criteria UNKNOWN (no production URL proof, no rate limiting proof, JWT secret check missing).
+## Banned shortcuts
 
-### Bad Example (rejected)
+Do not say:
+- Done/Finished/Everything working without proof;
+- production-ready from CI alone;
+- deployed from a merge alone;
+- “looks good” as evidence;
+- tests passed without verified output;
+- approved for merge/deploy/ship unless citing a separate valid authority receipt.
 
-**Input:** "The feature is complete."
-**Output:** "Great! Looks like it's done." — REJECTED (no audit performed)
+## Cross-references
+
+- `.claude/commands/spm.md`
+- `.claude/commands/done.md`
+- `.claude/rules/verification-gate.md`
+- `.skills/custom/definition-of-done-builder/SKILL.md`
