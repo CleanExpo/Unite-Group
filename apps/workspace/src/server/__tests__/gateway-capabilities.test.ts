@@ -40,12 +40,25 @@ beforeEach(() => {
   delete process.env.HERMES_DASHBOARD_URL
 })
 
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
 async function loadMod() {
   vi.resetModules()
   return import('../gateway-capabilities')
 }
 
 describe('gateway-capabilities', () => {
+  it('does not start gateway probes as a module-load side effect in tests', async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new Error('offline'))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await loadMod()
+
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
   it('default port is 8642', async () => {
     const mod = await loadMod()
     expect(mod.CLAUDE_API).toBe('http://127.0.0.1:8642')

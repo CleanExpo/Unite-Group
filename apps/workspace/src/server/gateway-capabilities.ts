@@ -894,4 +894,9 @@ export function isClaudeConnected(): boolean {
   return capabilities.health || capabilities.dashboard.available
 }
 
-void ensureGatewayProbed()
+// Vitest workers import this module for pure helpers and may tear down before
+// the eager async probe completes. Keep runtime startup eager, but require
+// tests to call ensureGatewayProbed() explicitly when they exercise probing.
+if (process.env.NODE_ENV !== 'test') {
+  void ensureGatewayProbed()
+}
