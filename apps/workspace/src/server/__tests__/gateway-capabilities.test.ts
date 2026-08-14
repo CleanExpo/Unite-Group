@@ -59,6 +59,23 @@ describe('gateway-capabilities', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
+  it('keeps eager gateway probing enabled outside tests', async () => {
+    const originalNodeEnv = process.env.NODE_ENV
+    const fetchMock = vi.fn().mockRejectedValue(new Error('offline'))
+    vi.stubGlobal('fetch', fetchMock)
+
+    try {
+      process.env.NODE_ENV = 'production'
+      const mod = await loadMod()
+
+      // Await the in-flight eager probe so no async work survives teardown.
+      await mod.ensureGatewayProbed()
+      expect(fetchMock).toHaveBeenCalled()
+    } finally {
+      process.env.NODE_ENV = originalNodeEnv
+    }
+  })
+
   it('default port is 8642', async () => {
     const mod = await loadMod()
     expect(mod.CLAUDE_API).toBe('http://127.0.0.1:8642')
