@@ -1,97 +1,120 @@
 # /done — Completion Verification Gate
 
-> Runs the full completion checklist before marking any task as done.
-> Prevents false "it's done" reports by enforcing objective verification.
+> Verifies the current candidate against the applicable completion contract.
+> `/done` reports evidence; it does not convert a draft PR or a clean working tree into mission `COMPLETE` by itself.
 
 ## Usage
 
-```
+```text
 /done
 /done "feature name"
 ```
 
-## Execution Protocol
+## Scope rule
 
-### Step 1 — Type-Check
+First classify the change:
+- behavioural code change;
+- user-facing change;
+- schema/integration/security change;
+- documentation/configuration/test-only change.
+
+Run the strongest applicable verification. Do not downgrade a required check merely because it is inconvenient.
+
+## apps/web deterministic baseline
+
+For normal `apps/web` code changes, align with the current CI contract:
 
 ```bash
-pnpm turbo run type-check
+pnpm run lint
+pnpm run type-check
+pnpm run test
+node ../../scripts/verify-web-ci-build.mjs
 ```
 
-**Pass condition**: Zero TypeScript errors.
-**Fail condition**: Any error → task is NOT done. Fix first.
+Record exact commands, exit codes and candidate SHA/worktree.
 
-### Step 2 — Lint
+**Any failure means NOT DONE.** Repair first, then rerun the failed check and the applicable final baseline.
+
+### Test coverage rule
+
+For changed behaviour, **missing meaningful regression coverage is blocking**, not a note.
+
+`NOT_APPLICABLE` is allowed only when the change is genuinely non-behavioural and the reason is recorded (for example a prose-only documentation correction). Do not convert `NO TESTS` into PASS for changed application/runtime behaviour.
+
+## Additional gates by change type
+
+### User-facing
+
+Require the applicable Playwright journey plus console/network inspection and visual evidence. Use Computer Use or equivalent visual/desktop verification when Playwright cannot prove the real state.
+
+### Schema / data / integration / security
+
+Require the relevant specialised gate, isolated environment/branch where applicable, rollback/reversibility evidence, and independent review required by the current authority contract.
+
+### Configuration / operating-control changes
+
+Validate syntax plus active-reference/conformance rules. A Markdown rule or config edit is not accepted merely because the file exists.
+
+## Candidate integrity
 
 ```bash
-pnpm turbo run lint
-```
-
-**Pass condition**: Zero lint errors (warnings acceptable).
-**Fail condition**: Any error → task is NOT done. Fix first.
-
-**Auto-fixable lint**: Run `pnpm turbo run lint -- --fix` first, then re-check.
-
-### Step 3 — Tests
-
-```bash
-pnpm turbo run test
-```
-
-**Pass condition**: All tests pass.
-**Fail condition**: Any failing test → task is NOT done. Fix first.
-
-If no tests exist for the changed code: flag as MISSING COVERAGE (does not block, but must be noted).
-
-### Step 4 — Uncommitted Changes Check
-
-```bash
-git status
+git status --short
 git diff --stat
 ```
 
-**Pass condition**: All changes are staged and committed (or PR created).
-**Fail condition**: Uncommitted changes exist → commit or document why.
+Record:
+- source/base SHA;
+- candidate HEAD SHA;
+- branch/worktree;
+- changed paths;
+- uncommitted changes, if intentionally present;
+- PR reference when one exists.
 
-### Step 5 — AGENT-PROTOCOL Score
+A commit or PR is an artefact, not proof of completion.
 
-Check the current task against `.claude/rules/cli-control-plane.md` validation gates:
+## Independent verification
 
-- [ ] Referenced files confirmed to exist (no invented paths)
-- [ ] Import paths verified against actual file locations
-- [ ] No `console.log` in production code
-- [ ] No `any` types introduced
-- [ ] No TODOs left without tracking
+When the mission requires independent review, the final reviewer must be a different execution identity/model lane from the builder and must review the frozen candidate. Model PASS never overrides a deterministic failure.
 
-### Step 6 — Report
+## Output
 
+```text
+COMPLETION CHECK — [task]
+
+candidate:       [SHA / branch / PR]
+lint:            PASS / FAIL / N/A
+type-check:      PASS / FAIL / N/A
+tests:           PASS / FAIL / MISSING_COVERAGE / N/A
+build:           PASS / FAIL / N/A
+integration:     PASS / FAIL / N/A
+independent:     PASS / FAIL / PENDING / N/A
+playwright:      PASS / FAIL / PENDING / N/A
+visual:          PASS / FAIL / PENDING / N/A
+release-proof:   PASS / FAIL / PENDING / N/A
+outcome-proof:   PASS / FAIL / PENDING / N/A
+
+EARNED STATE: [IMPLEMENTED | LOCALLY_VERIFIED | PR_OPEN | CI_GREEN | STAGING_VERIFIED | RELEASE_READY | POST_DEPLOY_VERIFIED | COMPLETE | BLOCKED]
+
+Missing evidence / blockers:
+1. ...
+
+Next executable move:
+...
 ```
-DONE CHECK: {task name or current context}
-Date: {DD/MM/YYYY HH:MM} AEST
 
-type-check:   PASS ✓ / FAIL ✗ ({n} errors)
-lint:         PASS ✓ / FAIL ✗ ({n} errors)
-tests:        PASS ✓ / FAIL ✗ ({n} failures) | NO TESTS (noted)
-committed:    YES ✓ / NO ✗
-protocol:     PASS ✓ / FAIL ✗ ({what failed})
+## Hard rules
 
-VERDICT: DONE ✓ / NOT DONE ✗
+- Never say DONE/COMPLETE merely because code was written, committed, or a PR exists.
+- Never mark changed behaviour complete with missing test coverage.
+- Never skip the production-equivalent build when the affected deliverable is buildable.
+- Never ask the founder to perform routine engineering QA that Playwright, Computer Use, logs, tests or a specialist can perform.
+- `RELEASE_READY` is not `DEPLOYED`; `DEPLOYED` is not `COMPLETE` until post-release/outcome evidence is satisfied.
+- If evidence is stale or unavailable, downgrade to an honest state.
 
-{If NOT DONE}: Remaining blockers:
-1. {specific blocker with file:line}
-```
+## Integration
 
-## Hard Rules
-
-- Never self-report "done" without running this command
-- A FAIL on type-check, lint, or tests means the task is NOT done — no exceptions
-- Missing tests are noted but do not block (unless the task was specifically to write tests)
-- Uncommitted code is not shipped — always commit before reporting done
-
-## Integration with Minion
-
-The `/minion` protocol runs verification automatically (Steps 1–3) before git operations. `/done` is for interactive sessions where minion was not used.
+`/spm` owns mission lifecycle and authority transitions. `/done` supplies completion evidence to that state machine; it does not grant merge/deploy authority.
 
 ## Locale
 
-All output: Australian English. All dates: DD/MM/YYYY. All times: AEST/AEDT.
+Australian English. Dates DD/MM/YYYY. AEST/AEDT where applicable.
