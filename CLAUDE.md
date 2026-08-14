@@ -2,16 +2,16 @@
 
 **Read `SOURCE-OF-TRUTH.md` first.** This repo (`CleanExpo/Unite-Group`) is the
 single canonical repository for the Unite-Group product and ecosystem. On
-12/06/2026 it absorbed Unite-Hub, hermes-workspace, Unite-Group-Spine,
-pi-ceo-operator-mcp and brain-1 with full git history. On 15/06/2026 it
-absorbed Fabel-Prompt-Engineer (→ `apps/spec-board/`), the fix-queue gate
-having been met.
+12/06/2026 it absorbed the former standalone CRM repository, hermes-workspace,
+Unite-Group-Spine, pi-ceo-operator-mcp and brain-1 with full git history. On
+15/06/2026 it absorbed Fabel-Prompt-Engineer (→ `apps/spec-board/`), the
+fix-queue gate having been met.
 
 ## Layout
 
 | Path | What it is |
 |---|---|
-| `apps/web/` | **The product** — Unite-Group (formerly Unite-Hub CRM engine). Next.js 16, React 19, Supabase, pnpm workspace. Its own `apps/web/CLAUDE.md` rules (NorthStar, No-Invaders, founder_id scoping, Scientific Luxury) still apply inside it. |
+| `apps/web/` | **The product** — Unite-Group. Next.js 16, React 19, Supabase, pnpm workspace. Its own `apps/web/CLAUDE.md` rules (NorthStar, No-Invaders, founder_id scoping, current design tokens) still apply inside it. |
 | `apps/workspace/` | Hermes workspace — agent command centre (Vite/React 19) |
 | `apps/empire/` | Pi-CEO / Margot voice / CEO activity app — source of voice + activity routes now ported to `apps/web`. Retained for reference only; do not build new features here. |
 | `apps/spec-board/` | Fabel-Prompt-Engineer — plain-English vision → verified, build-ready spec (Next.js 16, npm, own Supabase project `yhteftfnoegmdkimzzjd`). Keeps its own lockfile/toolchain. Live founder data (visions/specs/board) untouched by the fold-in. |
@@ -21,7 +21,7 @@ having been met.
 | `docs/brain/` | Residual brain files (Drafts, NEXUS.md) — the strategic knowledge vault lives canonically at `~/2nd Brain/2nd Brain` (CleanExpo/brain-1); the stale `2nd Brain/` snapshot was removed 06/07/2026 after its 4 unique files were rescued to the canonical vault |
 | `docs/legacy/authority-site/` | Old Authority-Site docs |
 | `docs/convergence/` | Migration map + cutover & deletion runbook |
-| `.portfolio/PORTFOLIO.yaml` | Portfolio registry SSOT (moved here from Unite-Hub) |
+| `.portfolio/PORTFOLIO.yaml` | Portfolio registry SSOT (moved here during convergence) |
 
 ## Convergence programme
 
@@ -29,11 +29,12 @@ having been met.
 ported to `apps/web` (Margot Voice, Notifications inbox, Wiki/knowledge base,
 Pi-CEO activity — PRs #355/#356). `apps/authority-legacy` never existed locally
 in this checkout; `apps/empire` was the actual source and is retained for reference.
-Unite-Hub (`CleanExpo/Unite-Hub`) fully wound down (env vars confirmed in `apps/web`,
-GitHub repo + Vercel project deleted 20/06/2026 — per Phill's typed approval).
+The former standalone CRM repository and its Vercel project were fully wound down
+20/06/2026 after all required environment configuration was confirmed in `apps/web`.
 
 ## Hard rules
 
+- **Canonical identity**: the current product/project name is **Unite-Group**. Do not reintroduce retired product names into active prompts, docs, statuses, tasks, dashboards, memory, or code. Historical lineage belongs in explicit legacy/history context only.
 - **Toolchain**: each package keeps its own lockfile/package manager. The root
   is NOT a pnpm workspace (apps/web is one itself; pnpm cannot nest). Verify
   via root `package.json` scripts (`npm run verify:web` etc.).
@@ -48,8 +49,8 @@ GitHub repo + Vercel project deleted 20/06/2026 — per Phill's typed approval).
   **`CleanExpo/Unite-Group-Spine` was ARCHIVED on GitHub 05/07/2026** (Phill's
   typed instruction) — read-only; the canonical Spine is `packages/spine/` here.
   Full deletion, if ever, still needs runbook gates + Phill's typed approval.
-  **Unite-Hub (`CleanExpo/Unite-Hub`) and its Vercel project were deleted on
-  20/06/2026 after the approved wind-down.** Do not describe them as pending,
+  The retired standalone CRM repository and its Vercel project were deleted on
+  20/06/2026 after the approved wind-down. Do not describe them as pending,
   query them as active infrastructure, or start new work against them.
 - **Deletion** of any repo/Supabase/Vercel resource: runbook gates + Phill's
   typed approval only. Never autonomous.
