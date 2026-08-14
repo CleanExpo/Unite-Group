@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -71,7 +71,7 @@ describe.skipIf(!PYTHON)('Minion iteration hook', () => {
     tempDirs.push(root)
     const stateDir = path.join(root, '.claude', 'data')
     const statePath = path.join(stateDir, 'minion-state.json')
-    require('node:fs').mkdirSync(stateDir, { recursive: true })
+    mkdirSync(stateDir, { recursive: true })
     writeFileSync(statePath, JSON.stringify({
       active: true,
       task_id: 'minion-test',
