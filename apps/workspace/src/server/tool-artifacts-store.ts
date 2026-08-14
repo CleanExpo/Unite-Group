@@ -56,6 +56,8 @@ type ArtifactIndex = {
 const RECEIPT_BROKER_DIR_ENV = 'RUNTIME_CONTROL_PLANE_RECEIPT_BROKER_DIR'
 const RECEIPT_BROKER_PUBLIC_KEY_ENV =
   'RUNTIME_CONTROL_PLANE_RECEIPT_BROKER_PUBLIC_KEY'
+const RECEIPT_MAX_AGE_MS = 10 * 60 * 1000
+const RECEIPT_FUTURE_SKEW_MS = 30 * 1000
 
 const TRUSTED_PRODUCER_TOOL: Record<TrustedReceiptSource, string> = {
   'test-runner': 'test-runner',
@@ -222,6 +224,7 @@ export function verifyTrustedToolArtifactReceipt(input: {
   sha256: string
   taskId: string
   workerId: string
+  now: number
 }): boolean {
   const artifact = getToolArtifact(input.artifactId)
   const receipt = readBrokerReceipt(input.artifactId)
@@ -230,6 +233,9 @@ export function verifyTrustedToolArtifactReceipt(input: {
     return false
   const expectedToolName = TRUSTED_PRODUCER_TOOL[receipt.source]
   if (
+    !Number.isFinite(input.now) ||
+    input.now - receipt.issuedAt > RECEIPT_MAX_AGE_MS ||
+    receipt.issuedAt - input.now > RECEIPT_FUTURE_SKEW_MS ||
     receipt.artifactId !== artifact.id ||
     receipt.sha256 !== input.sha256 ||
     receipt.sha256 !== hashString(artifact.content) ||

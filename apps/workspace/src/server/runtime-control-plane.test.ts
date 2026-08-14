@@ -9,6 +9,7 @@ import {
   createOrUpdateToolArtifact,
   getToolArtifact,
   trustedReceiptPayload,
+  verifyTrustedToolArtifactReceipt,
 } from './tool-artifacts-store'
 import type { TrustedReceiptSource } from './tool-artifacts-store'
 
@@ -23,6 +24,7 @@ function writeBrokerReceipt(input: {
   taskId: string
   workerId: string
   source: TrustedReceiptSource
+  issuedAt?: number
 }): void {
   const toolName = input.artifact.toolName ?? ''
   const content = JSON.stringify({
@@ -34,7 +36,7 @@ function writeBrokerReceipt(input: {
     artifactId: input.artifact.id,
     sha256: sha256(getToolArtifact(input.artifact.id)?.content ?? ''),
     producer: { sessionId: input.artifact.sessionId, toolName },
-    issuedAt: 1,
+    issuedAt: input.issuedAt ?? 1,
   })
   const unsigned = JSON.parse(content) as Parameters<
     typeof trustedReceiptPayload
@@ -67,12 +69,17 @@ function sha256(value: string): string {
   return createHash('sha256').update(value).digest('hex')
 }
 
-function persistedReceipt(input: { taskId: string; workerId: string }) {
+function persistedReceipt(input: {
+  taskId: string
+  workerId: string
+  issuedAt?: number
+}) {
   const content = JSON.stringify({
     version: 1,
     taskId: input.taskId,
     workerId: input.workerId,
     source: 'test-runner',
+    issuedAt: input.issuedAt,
   })
   const artifact = createOrUpdateToolArtifact({
     sessionId: `control-plane-${input.workerId}`,
@@ -85,6 +92,7 @@ function persistedReceipt(input: { taskId: string; workerId: string }) {
     taskId: input.taskId,
     workerId: input.workerId,
     source: 'test-runner',
+    issuedAt: input.issuedAt,
   })
   return {
     artifactId: artifact.id,
@@ -534,5 +542,162 @@ describe('runtime control plane', () => {
       evidenceStatus: 'missing',
       handoff: { eligible: false },
     })
+  })
+
+  it('rejects an expired receipt replayed by the same worker and session', () => {
+    const receiptMaxAgeMs = 10 * 60 * 1000
+    const now = receiptMaxAgeMs + 2
+    const receipt = persistedReceipt({
+      taskId: 'swarm5:current',
+      workerId: 'swarm5',
+      issuedAt: 1,
+    })
+
+    const result = buildRuntimeControlPlane({
+      workerIds: ['swarm5'],
+      runtimes: [
+        {
+          workerId: 'swarm5',
+          runtime: runtime({
+            currentTask: 'Replay old evidence',
+            checkpointStatus: 'done',
+            state: 'idle',
+            lastOutputAt: now,
+            nextAction: 'Run independent review',
+            artifacts: [
+              {
+                id: receipt.artifactId,
+                kind: 'report',
+                label: 'expired same-session receipt',
+                workerId: 'swarm5',
+                source: 'workspace',
+                receipt,
+              },
+            ],
+          }),
+        },
+      ],
+      now,
+    })
+
+    expect(result.tasks[0]).toMatchObject({
+      evidenceStatus: 'missing',
+      handoff: { eligible: false, target: null },
+    })
+  })
+
+  it('rejects a receipt issued beyond the permitted future clock skew', () => {
+    const now = 1_000_000
+    const receipt = persistedReceipt({
+      taskId: 'swarm5:current',
+      workerId: 'swarm5',
+      issuedAt: now + 30_001,
+    })
+
+    const result = buildRuntimeControlPlane({
+      workerIds: ['swarm5'],
+      runtimes: [
+        {
+          workerId: 'swarm5',
+          runtime: runtime({
+            currentTask: 'Present future-dated evidence',
+            checkpointStatus: 'done',
+            state: 'idle',
+            lastOutputAt: now,
+            nextAction: 'Run independent review',
+            artifacts: [
+              {
+                id: receipt.artifactId,
+                kind: 'report',
+                label: 'future-dated receipt',
+                workerId: 'swarm5',
+                source: 'workspace',
+                receipt,
+              },
+            ],
+          }),
+        },
+      ],
+      now,
+    })
+
+    expect(result.tasks[0]).toMatchObject({
+      evidenceStatus: 'missing',
+      handoff: { eligible: false, target: null },
+    })
+  })
+
+  it('accepts a receipt at the exact maximum age', () => {
+    const now = 1_000_000
+    const receipt = persistedReceipt({
+      taskId: 'swarm5:current',
+      workerId: 'swarm5',
+      issuedAt: now - 10 * 60 * 1000,
+    })
+
+    expect(
+      verifyTrustedToolArtifactReceipt({
+        artifactId: receipt.artifactId,
+        sha256: receipt.sha256,
+        taskId: 'swarm5:current',
+        workerId: 'swarm5',
+        now,
+      }),
+    ).toBe(true)
+  })
+
+  it('accepts a receipt at the exact future clock-skew limit', () => {
+    const now = 1_000_000
+    const receipt = persistedReceipt({
+      taskId: 'swarm5:current',
+      workerId: 'swarm5',
+      issuedAt: now + 30_000,
+    })
+
+    expect(
+      verifyTrustedToolArtifactReceipt({
+        artifactId: receipt.artifactId,
+        sha256: receipt.sha256,
+        taskId: 'swarm5:current',
+        workerId: 'swarm5',
+        now,
+      }),
+    ).toBe(true)
+  })
+
+  it('keeps cross-task receipt replay fail-closed', () => {
+    const receipt = persistedReceipt({
+      taskId: 'swarm5:current',
+      workerId: 'swarm5',
+      issuedAt: 100,
+    })
+
+    expect(
+      verifyTrustedToolArtifactReceipt({
+        artifactId: receipt.artifactId,
+        sha256: receipt.sha256,
+        taskId: 'swarm5:other-task',
+        workerId: 'swarm5',
+        now: 100,
+      }),
+    ).toBe(false)
+  })
+
+  it('keeps cross-worker receipt replay fail-closed', () => {
+    const receipt = persistedReceipt({
+      taskId: 'swarm5:current',
+      workerId: 'swarm5',
+      issuedAt: 100,
+    })
+
+    expect(
+      verifyTrustedToolArtifactReceipt({
+        artifactId: receipt.artifactId,
+        sha256: receipt.sha256,
+        taskId: 'swarm5:current',
+        workerId: 'swarm6',
+        now: 100,
+      }),
+    ).toBe(false)
   })
 })
