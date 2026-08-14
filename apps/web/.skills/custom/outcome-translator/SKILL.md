@@ -2,9 +2,9 @@
 id: outcome-translator
 name: outcome-translator
 type: flexible
-version: 1.0.0
+version: 2.0.0
 created: 20/03/2026
-modified: 20/03/2026
+modified: 14/08/2026
 status: active
 triggers:
   - finished
@@ -20,289 +20,101 @@ triggers:
   - it's ready
   - we're done
   - release it
-description: ">"
+description: >-
+  Translate founder outcome language into the correct Nexus mission target state,
+  proof gap and next executable move without forcing clear execution intent back
+  into another planning cycle.
 ---
 
+# Outcome Translator
 
-# Outcome Translator Skill
+> Founders describe outcomes. Nexus owns the technical decomposition required to make those outcomes real.
 
-> **Purpose**: Non-technical founders speak in outcomes. Engineers speak in tasks.
-> This skill bridges the gap — translating every outcome phrase into a provable engineering plan.
->
-> **Locale**: en-AU — colour, behaviour, optimisation, organised, licence (noun).
+## Primary rule
 
----
+Translate the founder's phrase into:
+1. intended business/user outcome;
+2. target `/spm` lifecycle state;
+3. current evidence-backed state;
+4. missing proof/blocker;
+5. next executable move.
 
-## When to Invoke
+**Do not automatically generate a new gated plan.** First resolve the active mission and current `/spm` state. If a sufficient plan/mission already exists, continue it.
 
-Invoke this skill BEFORE any action when the user's message contains:
+## Intent routing
 
-- Completion claims: "finished", "done", "complete", "ready"
-- Launch instructions: "launch it", "ship it", "go live", "release it", "deploy"
-- Goal statements: "make it work", "just fix it", "get it working"
-- Readiness claims: "production ready", "ready for clients", "ready to sell"
+| Founder phrase | Target behaviour |
+|---|---|
+| `make it work`, `just fix it` | Continue/enter BUILD or FIX; diagnose root cause, implement, verify |
+| `Stop Planning, Build` | Explicit `PLANNED → BUILD_AUTHORISED` transition via `/spm` |
+| `ready`, `done`, `complete` | Audit the completion claim against current evidence; report earned state |
+| `ship it`, `go live`, `release it` | Resolve `RELEASE_READY`; repair missing gates or route to `/spm ship` if separately authorised |
+| `ready for clients` | Verify customer-path/outcome evidence in addition to technical readiness |
 
-**Never assume the claim is true.** Always translate and verify first.
+Execution language must not be rerouted to generic AUDIT mode merely because this translator activated.
 
----
+## Founder abstraction boundary
 
-## Output Format
+Do not ask Phill to answer technical questions that can be resolved from the estate, such as:
+- which files/folders/routes should change;
+- whether a new table/API is technically required;
+- why CI/build/type/test failed;
+- whether the UI renders correctly;
+- which dependency/version is compatible;
+- how a merge conflict should be repaired.
 
-Always produce the full structured output below. Do not skip any section.
+Resolve these through current code/runtime evidence and specialist agents. Ask the founder only for product/business intent, subjective preference, risk appetite, or consequential authority that cannot be derived technically.
 
-```
-OUTCOME TRANSLATION
-═══════════════════════════════════════════════════════════════
-Outcome:          [Exact phrase the user said]
-Interpreted As:   [Engineering definition — be specific]
+## Evidence states
 
-DEFINITION OF DONE
-───────────────────────────────────────────────────────────────
-□ [Criterion 1 — measurable, specific]
-□ [Criterion 2]
-□ [Criterion N]
+- **PROVEN** — current evidence exists and was verified.
+- **UNKNOWN** — technically verifiable; Nexus should perform the verification.
+- **MISSING** — confirmed gap; route repair work.
+- **BLOCKED** — real dependency/authority blocker with evidence.
 
-CURRENT STATE AUDIT
-───────────────────────────────────────────────────────────────
-Proven:
-  ✓ [Confirmed working item — state the evidence]
-  ✓ [Another confirmed item]
+`UNKNOWN` is not a reason to send a manual checklist to the founder when Nexus has the tools to verify it.
 
-Unknown:
-  ? [Item that cannot be verified without action — state what action is needed]
-  ? [Another unknown]
+## Outcome definitions
 
-Missing:
-  ✗ [Item confirmed absent or broken — state what is missing]
-  ✗ [Another missing item]
-
-GATED PLAN
-───────────────────────────────────────────────────────────────
-Phase 1: [Phase Title]
-  Priority: [CRITICAL / HIGH / MEDIUM]
-  Steps:
-    1. [Specific action]
-    2. [Specific action]
-  Gate: [Command or artifact that proves this phase is complete]
-  Rollback: [How to undo if this phase fails]
-
-Phase 2: [Phase Title]
-  Priority: [CRITICAL / HIGH / MEDIUM]
-  Steps:
-    1. [Specific action]
-  Gate: [Proof of completion]
-  Rollback: [Undo path]
-
-[Repeat for all phases]
-
-PROOF REQUIRED
-───────────────────────────────────────────────────────────────
-Before claiming completion, the following artifacts must exist:
-
-□ [Artifact 1 — e.g. "curl -I output showing HTTP 200 for production URL"]
-□ [Artifact 2 — e.g. "screenshot of successful login with production credentials"]
-□ [Artifact 3 — e.g. "provider dashboard showing live transaction"]
-□ [Artifact N]
-
-COMPLETION GATE
-───────────────────────────────────────────────────────────────
-Status:   [NOT COMPLETE / COMPLETE]
-Blocking: [List every criterion that is Unknown or Missing]
-
-NEXT ACTION
-───────────────────────────────────────────────────────────────
-[Single most important action to take RIGHT NOW]
-[Exact command or step — no ambiguity]
-═══════════════════════════════════════════════════════════════
-```
-
----
-
-## Outcome Definitions Reference
-
-Use these definitions when interpreting outcome language. Adapt to the project's actual stack.
-
-### "Finished" / "Done" / "Complete"
-
-Requires ALL of the following:
-
-- Production URL live and returning HTTP 200
-- Auth flows working (register, login, logout, protected routes)
-- All linked assets loading without 404
-- Backend health check passing
-- No unhandled errors in production logs
-- SSL valid
-- Environment variables are production values (not dev defaults)
-
-### "Ready" / "Production Ready"
-
-Same as "Finished" plus:
-
-- CI/CD pipeline green
-- Monitoring configured (error tracking, uptime)
-- Rollback path documented
-- Database backups configured
-
-### "Launch it" / "Ship it" / "Go live"
-
-Same as "Production Ready" plus:
-
-- Deployment executed to production environment
-- DNS confirmed pointing to production
-- First user journey end-to-end verified post-deploy
-
-### "Make it work" / "Just fix it"
+### Make it work
 
 Requires:
+- root cause understood to an appropriate level;
+- smallest complete repair implemented;
+- regression coverage appropriate to changed behaviour;
+- deterministic checks/build pass;
+- applicable integration and visual evidence pass.
 
-- Root cause identified (not just symptoms suppressed)
-- Fix applied and tested
-- Regression check: nothing else broken
-- Evidence of working state (test output, screenshot, or log)
+### Release ready
 
-### "Ready for clients" / "Ready to sell"
+Requires the current `/spm` release-ready contract: frozen candidate, required CI, independent review, applicable staging/visual/security/data gates and rollback evidence. Release authority is separate.
 
-Same as "Production Ready" plus:
+### Complete
 
-- At least one real user account created and verified
-- Payment flow tested in live mode (if applicable)
-- Support contact reachable
-- Legal pages published (privacy policy, terms of service)
-- Email delivery confirmed (not in spam)
+Requires the intended outcome plus all applicable post-release/customer-path evidence. A PR, merge, deployment, HTTP 200 or green CI alone is not COMPLETE.
 
----
+## Response shape
 
-## Gap Analysis Rules
+Keep translation compact unless a new mission genuinely needs specification:
 
-**Proven** = you have evidence. Name the evidence. Examples:
-
-- "CI pipeline green — last run [date]"
-- "Backend health check returns 200 — confirmed by curl output in session"
-- "Database migrations applied — confirmed by Alembic history"
-
-**Unknown** = you could verify it but haven't yet. State exactly what action would verify it. Examples:
-
-- "Production URL response — requires: curl -I https://production-url.com"
-- "Email delivery — requires: send test email to external Gmail address"
-- "Payment webhook — requires: check provider dashboard for delivery"
-
-**Missing** = confirmed absent. State what is missing. Examples:
-
-- "Production JWT secret — still set to default value 'your-secret-key-change-in-production'"
-- "Monitoring — no error tracking service configured"
-- "SSL certificate — domain not pointing to production server yet"
-
----
-
-## Completion Prohibition
-
-This skill enforces a hard prohibition on false completion claims.
-
-Do NOT output any of these phrases unless ALL criteria are Proven:
-
-- "Done!"
-- "You're production ready."
-- "Everything is working."
-- "That's complete."
-- "Looks good to go."
-
-If ANY criterion is Unknown or Missing, output:
-
-```
-STATUS: NOT COMPLETE
-[N] criteria require action before this can be claimed as complete.
-Next required action: [specific step]
+```text
+OUTCOME: [plain-English founder goal]
+MISSION: [id/name]
+CURRENT STATE: [evidence-backed SPM state]
+TARGET STATE: [next meaningful lifecycle state]
+PROVEN: [key evidence]
+GAPS: [missing/unknown/blocker]
+NEXT MOVE: [the action Nexus will perform now]
+FOUNDER DECISION: none | [only genuine business/authority decision]
 ```
 
----
+After emitting this state, **perform the next safe authorised move**. Do not stop at the translation itself.
 
-## Integration Points
+## Integration
 
-- **Rule**: `.claude/rules/human-outcome-translation.md` — always-on trigger
-- **CLI Control Plane**: outcome translation triggers AUDIT mode
-- **Blueprint First**: if a build plan is generated, invoke `.skills/custom/blueprint-first/SKILL.md` before code generation
-- **Verification**: always invoke `.skills/custom/verify/SKILL.md` (or equivalent) after execution
+- Mission lifecycle and mode transitions: `.claude/commands/spm.md`
+- Verification ownership/proof language: `.claude/rules/verification-gate.md`
+- Completion evidence: `.claude/commands/done.md`
+- Execution mode/risk classification: `.claude/rules/cli-control-plane.md`
 
----
-
-## Example Invocation
-
-**User**: "We're production ready, launch it"
-
-**Skill invoked**: outcome-translator
-
-**Output**:
-
-```
-OUTCOME TRANSLATION
-═══════════════════════════════════════════════════════════════
-Outcome:          "We're production ready, launch it"
-Interpreted As:   Claim that all production criteria are met; instruction to deploy to production
-
-DEFINITION OF DONE
-───────────────────────────────────────────────────────────────
-□ Production URL responds HTTP 200
-□ Auth flow verified (register → login → dashboard)
-□ Backend health check passing
-□ SSL certificate valid
-□ No dev environment variables in production
-□ CI/CD pipeline green
-□ Monitoring active
-□ Rollback path documented
-
-CURRENT STATE AUDIT
-───────────────────────────────────────────────────────────────
-Proven:
-  ✓ CI pipeline green — confirmed by last run log
-
-Unknown:
-  ? Production URL — requires: curl -I https://your-production-url.com
-  ? Auth flow — requires: manual test with production credentials
-  ? SSL certificate — requires: ssl-checker.io or browser inspection
-  ? Monitoring — requires: confirm Sentry/equivalent is configured
-
-Missing:
-  ✗ Rollback plan — no documented rollback procedure found
-  ✗ Production env vars — JWT_SECRET_KEY still at default value
-
-GATED PLAN
-───────────────────────────────────────────────────────────────
-Phase 1: Resolve Missing Items [CRITICAL]
-  Steps:
-    1. Rotate JWT_SECRET_KEY in production environment
-    2. Document rollback procedure in runbook
-  Gate: grep JWT_SECRET_KEY .env.production confirms non-default value
-
-Phase 2: Verify Unknown Items [CRITICAL]
-  Steps:
-    1. curl -I https://your-production-url.com
-    2. Test auth flow manually
-    3. Confirm SSL validity
-    4. Confirm monitoring is receiving events
-  Gate: All four return expected results
-
-Phase 3: Deploy [HIGH]
-  Steps:
-    1. Trigger production deployment via CI/CD
-    2. Verify post-deploy health check
-  Gate: Health endpoint returns 200 post-deploy
-  Rollback: git revert + re-deploy or platform rollback
-
-PROOF REQUIRED
-───────────────────────────────────────────────────────────────
-□ curl -I output showing HTTP 200
-□ Screenshot of successful login on production
-□ SSL validity confirmation
-□ Monitoring dashboard showing active tracking
-
-COMPLETION GATE
-───────────────────────────────────────────────────────────────
-Status:   NOT COMPLETE
-Blocking: 2 Missing items, 4 Unknown items must be resolved
-
-NEXT ACTION
-───────────────────────────────────────────────────────────────
-Rotate JWT_SECRET_KEY in production environment — this is a security blocker.
-Command: Set JWT_SECRET_KEY to a new 64-character random string in your hosting platform's env config.
-═══════════════════════════════════════════════════════════════
-```
+All referenced controls must exist; a missing cross-reference is a conformance failure, not an assumed capability.
