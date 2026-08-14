@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Card, { CardDescription, CardTitle } from '@/components/ui/card'
 import Button from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { StaleReadNotice } from '@/components/ui/StaleReadNotice'
 import type { FounderContinuationEnforcement, FounderRunQueueAction, FounderRunQueueItem, FounderRunQueueSummary } from '@/lib/founder-os'
 
 interface PiQueueReceipt {
@@ -78,8 +79,24 @@ export function PiRouterPanel() {
   const [workflowState, setWorkflowState] = useState<PiWorkflowState | null>(null)
   const [transitionNote, setTransitionNote] = useState('')
   const [evidenceLink, setEvidenceLink] = useState('')
+  // Write-path slot only: the two mutating handlers below. Its entry-clears at
+  // `:setError(null)` in each are CORRECT — they describe the write currently in
+  // flight, so the previous attempt's message must not survive into a new one.
+  // The read-side rule (clear on success only) applies to the two slots below,
+  // NOT to this one.
   const [error, setError] = useState<string | null>(null)
+  // Read-path slots, one per read. Both reads previously did
+  // `if (!response.ok) return` with no catch at all, so a failed read wrote no
+  // state whatsoever and a network throw became an unhandled rejection off the
+  // `void` calls in the mount effect. [UNI-2479]
+  //
+  // Two slots rather than one: these are independent endpoints, and sharing a
+  // slot is UNI-2496's defect in miniature — a failed workflow read would mark
+  // the queue degraded, and either read recovering would clear the other's mark.
+  const [queueError, setQueueError] = useState<string | null>(null)
+  const [workflowError, setWorkflowError] = useState<string | null>(null)
   const [isRouting, setIsRouting] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [activeAction, setActiveAction] = useState<FounderRunQueueAction | null>(null)
 
   useEffect(() => {
@@ -88,19 +105,44 @@ export function PiRouterPanel() {
   }, [])
 
   async function loadWorkflowState() {
-    const response = await fetch('/api/pi/workflows')
-    if (!response.ok) return
-    const body = (await response.json()) as PiWorkflowResponse
-    setWorkflowState(body.workflow)
+    try {
+      const response = await fetch('/api/pi/workflows')
+      if (!response.ok) throw new Error('read failed')
+      const body = (await response.json()) as PiWorkflowResponse
+      setWorkflowState(body.workflow)
+      // Cleared on SUCCESS only, never at loader entry — entry-clearing would
+      // un-mark the retained payload the moment refresh was pressed.
+      setWorkflowError(null)
+    } catch {
+      setWorkflowError('Could not load the Pi workflow — this is a failed read, not an absent workflow.')
+    }
   }
 
   async function loadQueue() {
-    const response = await fetch('/api/pi/run-queue')
-    if (!response.ok) return
-    const body = (await response.json()) as PiRunQueueListResponse
-    setQueueItems(body.items)
-    setSummary(body.summary)
-    setEnforcement(body.enforcement)
+    try {
+      const response = await fetch('/api/pi/run-queue')
+      if (!response.ok) throw new Error('read failed')
+      const body = (await response.json()) as PiRunQueueListResponse
+      setQueueItems(body.items)
+      setSummary(body.summary)
+      setEnforcement(body.enforcement)
+      setQueueError(null)
+    } catch {
+      setQueueError('Could not load the run queue — this is a failed read, not an empty queue.')
+    }
+  }
+
+  // Recovery control's handler. The only re-reads before this were the two write
+  // handlers, so a founder whose read failed had no way back short of a page
+  // reload — and no way to clear the mark. Never gated on staleness.
+  async function refreshQueue() {
+    setIsRefreshing(true)
+    try {
+      await loadQueue()
+      await loadWorkflowState()
+    } finally {
+      setIsRefreshing(false)
+    }
   }
 
   async function routeMessage() {
@@ -131,6 +173,12 @@ export function PiRouterPanel() {
 
   async function transitionActiveItem(action: FounderRunQueueAction) {
     if (!activeItem) return
+    // Guarded in the handler, not only on the buttons. `activeItem` is seeded by
+    // clicking a queue row, and after a failed read those rows are a photograph
+    // — so without this a founder could transition a run whose real state the
+    // last read could not confirm. An element-level gate alone is not
+    // behavioural; this is what actually stops the POST.
+    if (staleRead) return
     setActiveAction(action)
     setError(null)
 
@@ -165,14 +213,22 @@ export function PiRouterPanel() {
 
   const activeItem = result?.queueItem
   const latestReceipt = result?.receipt ?? activeItem?.receipts.at(-1) ?? null
+  const staleRead = Boolean(queueError) && queueItems.length > 0
+
+  // Each count is a claim about the queue, so it may only be made from a read
+  // that succeeded. With no summary and a failed read the `?? 0` fallbacks
+  // rendered "0 / 0 / 0 / 0" as fact — four fabricated numbers where the honest
+  // answer is that nobody knows. When `summary` IS retained the numbers are real
+  // but old, so they stay and sit inside the marked region instead.
+  const countsUnknown = Boolean(queueError) && !summary
   const queueCounts = useMemo(
     () => [
-      { label: 'Total', value: summary?.total ?? queueItems.length, tone: 'neutral' as const },
-      { label: 'Approval', value: summary?.waitingForApproval ?? 0, tone: 'warning' as const },
-      { label: 'Waiting', value: summary?.waitingForDevice ?? 0, tone: 'info' as const },
-      { label: 'Queued', value: summary?.queued ?? 0, tone: 'neutral' as const },
+      { label: 'Total', value: countsUnknown ? '—' : summary?.total ?? queueItems.length, tone: 'neutral' as const },
+      { label: 'Approval', value: countsUnknown ? '—' : summary?.waitingForApproval ?? 0, tone: 'warning' as const },
+      { label: 'Waiting', value: countsUnknown ? '—' : summary?.waitingForDevice ?? 0, tone: 'info' as const },
+      { label: 'Queued', value: countsUnknown ? '—' : summary?.queued ?? 0, tone: 'neutral' as const },
     ],
-    [queueItems.length, summary]
+    [countsUnknown, queueItems.length, summary]
   )
 
   return (
@@ -205,15 +261,39 @@ export function PiRouterPanel() {
             <span className="text-xs text-[#5f5f66]">Founder-safe: queue first, execute after evidence path is clear.</span>
           </div>
 
-          {error && <div className="rounded-sm border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700">{error}</div>}
+          {/* `role="alert"` was absent, so even the write failure was invisible
+              to assistive technology and to the census oracle. */}
+          {error && <div role="alert" className="rounded-sm border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700">{error}</div>}
         </Card>
 
         <Card variant="bordered" padding="lg" className="space-y-4">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-[0.24em] text-[#5f5f66]">Run queue</p>
-            <CardTitle className="mt-2">Control tower</CardTitle>
-            <CardDescription>Select one queued run to inspect context, controls, and evidence.</CardDescription>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.24em] text-[#5f5f66]">Run queue</p>
+              <CardTitle className="mt-2">Control tower</CardTitle>
+              <CardDescription>Select one queued run to inspect context, controls, and evidence.</CardDescription>
+            </div>
+            {/* Recovery control. Never disabled by staleness — it is the way back
+                to a live read; disabling it would trap the panel in the degraded
+                state, which is the trap ProviderAccountsTile hit. */}
+            <button
+              type="button"
+              onClick={() => void refreshQueue()}
+              disabled={isRefreshing}
+              className="shrink-0 rounded-sm border border-white/12 px-2 py-1 text-xs text-[#5f5f66] disabled:opacity-40"
+            >
+              {isRefreshing ? 'refreshing…' : '↻ refresh'}
+            </button>
           </div>
+
+          {/* Announced whenever the read failed — NOT gated on the queue being
+              empty. That gating is what let a fabricated fact sit beside its own
+              warning on the surfaces fixed on 11/08/2026. */}
+          {queueError && (
+            <p role="alert" className="rounded-sm border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700">
+              {queueError}
+            </p>
+          )}
 
           <div className="grid grid-cols-2 gap-2">
             {queueCounts.map((metric) => (
@@ -221,7 +301,13 @@ export function PiRouterPanel() {
             ))}
           </div>
 
-          <div className="space-y-2">
+          {/* VISIBLE half. `actionsDisabled` is set because the rows really do go
+              offline below: clicking one is what seeds `activeItem`, and
+              `activeItem` is the sole enabler of every mutating control in the
+              right-hand rail — so a retained row arms the write path. */}
+          {staleRead && <StaleReadNotice source="Pi run queue" actionsDisabled />}
+
+          <div className="space-y-2" data-stale-read={staleRead ? 'true' : undefined}>
             {queueItems.slice(0, 8).map((item) => {
               const selected = activeItem?.id === item.id
               return (
@@ -229,7 +315,8 @@ export function PiRouterPanel() {
                   key={item.id}
                   type="button"
                   onClick={() => setResult({ queueItem: item, receipt: item.receipts.at(-1) ?? null })}
-                  className={`w-full rounded-sm border p-3 text-left transition ${
+                  disabled={staleRead}
+                  className={`w-full rounded-sm border p-3 text-left transition disabled:opacity-40 disabled:cursor-not-allowed ${
                     selected
                       ? 'border-cyan-300/40 bg-cyan-300/[0.07]'
                       : 'border-white/8 bg-white/2 hover:border-white/18 hover:bg-black/5'
@@ -247,7 +334,9 @@ export function PiRouterPanel() {
                 </button>
               )
             })}
-            {queueItems.length === 0 && (
+            {/* "No queued Pi tasks yet" is a claim about the queue, so it may
+                only be made from a read that succeeded. */}
+            {!queueError && queueItems.length === 0 && (
               <div className="rounded-sm border border-dashed border-white/12 bg-white/2 p-4 text-sm text-[#5f5f66]">
                 No queued Pi tasks yet. Route a command to create the first operational run.
               </div>
@@ -328,8 +417,22 @@ export function PiRouterPanel() {
               <CardTitle className="mt-2">Senior engineer gate</CardTitle>
               <CardDescription>Dynamic Workflow evidence surfaced before the next build lane moves.</CardDescription>
             </div>
-            <StatusPill status={workflowState?.status ?? 'waiting'} />
+            {/* 'waiting' is a claim about the workflow's state. With the read
+                failed and nothing loaded, the honest answer is that it is
+                unknown, not that the gate is waiting. */}
+            <StatusPill
+              status={workflowState?.status ?? (workflowError ? 'unknown' : 'waiting')}
+              label={!workflowState && workflowError ? 'Unknown' : undefined}
+            />
           </div>
+
+          {/* Independent of the queue's slot: a failed workflow read must not
+              mark the queue degraded, and a queue recovery must not clear this. */}
+          {workflowError && (
+            <p role="alert" className="rounded-sm border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700">
+              {workflowError}
+            </p>
+          )}
 
           {workflowState ? (
             <div className="space-y-3">
@@ -346,9 +449,11 @@ export function PiRouterPanel() {
               </div>
             </div>
           ) : (
-            <div className="rounded-sm border border-dashed border-white/12 p-3 text-sm text-[#5f5f66]">
-              Workflow evidence not loaded yet.
-            </div>
+            !workflowError && (
+              <div className="rounded-sm border border-dashed border-white/12 p-3 text-sm text-[#5f5f66]">
+                Workflow evidence not loaded yet.
+              </div>
+            )
           )}
         </Card>
 
@@ -391,16 +496,16 @@ export function PiRouterPanel() {
           />
 
           <div className="grid grid-cols-2 gap-2">
-            <Button variant="secondary" onClick={() => transitionActiveItem('approve')} loading={activeAction === 'approve'} disabled={!activeItem}>
+            <Button variant="secondary" onClick={() => transitionActiveItem('approve')} loading={activeAction === 'approve'} disabled={!activeItem || staleRead}>
               Approve
             </Button>
-            <Button variant="secondary" onClick={() => transitionActiveItem('start')} loading={activeAction === 'start'} disabled={!activeItem}>
+            <Button variant="secondary" onClick={() => transitionActiveItem('start')} loading={activeAction === 'start'} disabled={!activeItem || staleRead}>
               Start
             </Button>
-            <Button variant="danger" onClick={() => transitionActiveItem('block')} loading={activeAction === 'block'} disabled={!activeItem}>
+            <Button variant="danger" onClick={() => transitionActiveItem('block')} loading={activeAction === 'block'} disabled={!activeItem || staleRead}>
               Block
             </Button>
-            <Button onClick={() => transitionActiveItem('complete')} loading={activeAction === 'complete'} disabled={!activeItem || !evidenceLink.trim()}>
+            <Button onClick={() => transitionActiveItem('complete')} loading={activeAction === 'complete'} disabled={!activeItem || !evidenceLink.trim() || staleRead}>
               Complete
             </Button>
           </div>
@@ -437,7 +542,7 @@ export function PiRouterPanel() {
   )
 }
 
-function Metric({ label, value, tone }: { label: string; value: number; tone: 'neutral' | 'warning' | 'info' }) {
+function Metric({ label, value, tone }: { label: string; value: number | string; tone: 'neutral' | 'warning' | 'info' }) {
   const toneClass = tone === 'warning' ? 'text-amber-700' : tone === 'info' ? 'text-sky-700' : 'text-[#3f3f46]'
   return (
     <div className="rounded-sm border border-white/8 bg-white/2 p-3">
