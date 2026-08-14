@@ -1,129 +1,139 @@
-# /build — Structured Requirements for Non-Coders
+# /build — Execution-First Build Command
 
-> Use this command every time you want Claude to build or change something.
-> It forces structured input so Claude builds what you actually want.
-
----
+> Compatibility entry point for software changes. `/build` now means **build**, not "produce a plan and wait".
+> Canonical lifecycle and authority rules live in `/spm build`.
 
 ## Usage
 
-```
-/build <paste your description here>
+```text
+/build <task description>
 ```
 
-Or just type `/build` and Claude will prompt you to fill in the template.
+Natural-language equivalent: **Stop Planning, Build**.
+
+If an active plan/mission already exists, consume it. Do not ask the user to repeat requirements already captured in the conversation, Linear, Mission Control or the current execution plan.
 
 ---
 
-## STEP 1: EXTRACT REQUIREMENTS
+## Step 1 — Resolve requirements without re-planning
 
-Parse the user's input into the 7-field template. If any field is missing, ask ONE question to fill it — then proceed.
+Normalise the task into:
 
+```text
+WHAT:       what is being built or changed
+WHERE:      page/service/repo/area
+WHO:        affected user/actor
+TRIGGER:    action/event that invokes it
+SHOULD SEE: observable successful behaviour
+DON'T DO:   boundaries/non-goals
+SUCCESS:    objective verification criteria
 ```
-WHAT:       [One sentence — what is being built or changed]
-WHERE:      [Which page, URL, or area of the app]
-WHO:        [Which user role — Phill/founder, admin, public]
-WHEN:       [What triggers this — click, page load, form submit, schedule]
-SHOULD SEE: [What the user sees when it works — be specific and visual]
-DON'T DO:   [What to avoid — features to preserve, patterns to skip]
-SUCCESS:    [Observable outcomes — how Phill will know it's right]
-```
+
+Fill missing non-material fields from current plans and repository evidence.
+
+**Do not stop for routine confirmation.** Ask only when a missing answer materially changes business intent, irreversible scope, production authority, security/privilege boundaries, spend or another constitutional gate.
 
 ---
 
-## STEP 2: ECHO BACK
+## Step 2 — Transition to BUILD_AUTHORISED
 
-Before writing any code, restate the requirement in your own words:
+Treat `/build` as explicit authority for reversible engineering writes inside the stated mission envelope.
 
-```
-UNDERSTOOD — Here's what I'll build:
+Run the `/spm build` execution-readiness preflight:
 
-[Plain-English summary of what you understood]
+- confirm canonical repo/base;
+- search existing implementation before creating anything;
+- confirm worker is execution-capable rather than plan/read-only;
+- establish isolated branch/worktree;
+- define deterministic verification;
+- define Playwright/visual evidence for user-facing work;
+- identify real stop gates.
 
-Files I'll create or modify:
-- [file path 1]
-- [file path 2]
-
-Integration points:
-- [ ] Navigation link added to [location]
-- [ ] API route created at src/app/api/[path]/route.ts
-- [ ] Auth gate: founder_id isolation via Supabase RLS
-- [ ] Component created at src/components/features/[name]/
-- [ ] Documentation updated
-
-Does this match what you had in mind? Say "go" to proceed.
-```
-
-**Do NOT start coding until the user confirms.** If they correct something, update the echo and ask again.
+If readiness fails, report a specific `BLOCKED` state with evidence. **Do not return another generic plan as the result of `/build`.**
 
 ---
 
-## STEP 3: PRE-IMPLEMENTATION CHECK
+## Step 3 — Execute
 
-Before writing code:
+Use the existing implementation harnesses (builder/minion/worktree/toolshed/skills) rather than inventing a parallel workflow.
 
-1. **Read `CLAUDE.md`** — check architecture routing for correct file locations
-2. **Read relevant existing files** — understand what already exists before adding to it
-3. **Check for existing implementations** — search before creating (anti-duplication)
-4. **Verify the layer** — components go in `src/components/`, API routes in `src/app/api/`, services in `src/server/services/`, repositories in `src/server/repositories/`
+Expected flow:
 
-Announce what you found:
+```text
+BUILD_AUTHORISED
+  -> EXECUTING
+  -> LOCALLY_VERIFIED
+  -> PR_OPEN
+  -> REVIEWING
+  -> CI_GREEN
+  -> STAGING_VERIFIED
+  -> RELEASE_READY
 ```
-CONTEXT:
-  PAGE: /contacts
-  COMPONENT FILE: src/components/features/contacts/
-  API ROUTE: src/app/api/contacts/route.ts
-  SERVICE: src/server/services/contacts.service.ts
-  TABLES: contacts (with founder_id RLS)
-  KNOWN ISSUES: (none listed)
-```
+
+During execution:
+
+1. inspect relevant existing code;
+2. implement the smallest complete change;
+3. add/update tests;
+4. run targeted checks while working;
+5. run applicable lint/type/test/build gates;
+6. self-review the diff;
+7. create candidate commit/PR;
+8. obtain independent review where available;
+9. repair actionable review/CI/conflict failures;
+10. run browser/visual verification for user-facing changes;
+11. continue until `RELEASE_READY` or a real blocker exists.
+
+A PR is not completion.
 
 ---
 
-## STEP 4: BUILD
+## Step 4 — Verify real behaviour
 
-Execute the implementation. Follow project rules:
-- Scientific Luxury design system (OLED Black `#050505`, Cyan `#00F5FF`, `rounded-sm`)
-- `founder_id` isolation on every Supabase query
-- `handleApiError` on every API route
-- `pnpm` not npm
-- TypeScript strict mode throughout
+For user-facing work, the system—not Phill—should perform the normal verification loop using Playwright and available visual/browser tooling.
 
----
+Evidence should include, where applicable:
 
-## STEP 5: INTEGRATION CHECKLIST
+- expected navigation/route works;
+- API/client integration works;
+- auth/scope boundaries work;
+- loading/error states are honest;
+- console/network failures are absent;
+- critical Playwright journey passes;
+- required screenshot/trace evidence exists.
 
-Before claiming completion, verify all integration points:
-
-- [ ] **Navigation**: Can the user get to this page/feature from the existing app? (sidebar link, menu item)
-- [ ] **Route mounting**: Is the API endpoint registered and accessible?
-- [ ] **Auth protection**: Is the page/endpoint behind Supabase auth + founder_id isolation?
-- [ ] **API client**: Does the frontend actually call the API endpoint?
-- [ ] **Design system**: Are colours, corners, typography from design tokens (not hardcoded)?
-- [ ] **Error states**: What happens when the API fails? Empty state shown?
-- [ ] **Loading states**: Does the page have `loading.tsx` and `error.tsx`?
-- [ ] **Type safety**: Does `pnpm run type-check` pass?
+Escalate to Phill only when human judgement is genuinely required.
 
 ---
 
-## STEP 6: VERIFICATION CHECKLIST
+## Step 5 — Release boundary
 
-Produce a checklist of OBSERVABLE outcomes the user can verify in their browser:
+`/build` proceeds through `RELEASE_READY`.
 
+Production/irreversible release remains separately governed through `/spm ship` (or the approved release authority mechanism). Do not reinterpret build authority as blanket production authority.
+
+After release is separately authorised, continue through post-deploy/customer-path verification before reporting `COMPLETE`.
+
+---
+
+## Reporting
+
+Do not narrate every internal planning thought. Report state transitions and evidence:
+
+```text
+SPM BUILD
+state: EXECUTING | BLOCKED | RELEASE_READY | COMPLETE
+mission: <id>
+worker: <worker/model/machine>
+evidence: <tests / commit / PR / visual proof>
+blocker: <specific blocker or none>
+next_move: <next executable action>
 ```
-VERIFICATION CHECKLIST — [Feature Name]
 
-Before this is done, please check:
-[ ] Go to: [URL]
-[ ] [Action to take]
-[ ] You should see: [expected visual result]
-[ ] You should see: [another expected result]
-[ ] You should NOT see: [what should be absent]
+## Hard rules
 
-How to get there: [Navigation path from login]
-
-Reply "looks good" to close this, or describe what's different.
-```
-
-**Do NOT say "done", "complete", "finished", or "ready" without this checklist.**
-**Do NOT proceed to next tasks until the user explicitly confirms.**
+- Build intent should produce an execution attempt, not merely a plan.
+- Do not require a redundant `go` after the user already issued `/build` or `Stop Planning, Build`.
+- Do not silently regress from `BUILD_AUTHORISED` to `PLANNED`.
+- Do not call a PR, green build or HTTP 200 "complete" without the applicable downstream verification.
+- Never bypass a real production, destructive, spend, privilege or security gate.
