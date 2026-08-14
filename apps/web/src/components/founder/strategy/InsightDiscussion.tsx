@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+
 import { Send } from 'lucide-react'
 import { StaleReadNotice } from '@/components/ui/StaleReadNotice'
 
@@ -32,15 +33,23 @@ export function InsightDiscussion({ insightId }: InsightDiscussionProps) {
   const [loadError, setLoadError] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
+  // Generation token. `load` is called both by the mount effect and directly by
+  // Retry, and the effect's cleanup is not available to the latter — so two
+  // reads can be in flight at once. Without this, an older failed response
+  // landing after a newer successful one re-marks the thread stale, and an older
+  // successful one can overwrite fresher comments. Only the newest read writes.
+  const readGeneration = useRef(0)
+
   const load = useCallback(() => {
-    let active = true
+    const generation = ++readGeneration.current
+    const isCurrent = () => readGeneration.current === generation
     fetch(`/api/strategy/insights/${insightId}/comments`)
       .then((r) => {
         if (!r.ok) throw new Error('read failed')
         return r.json()
       })
       .then((d: { comments: Comment[] }) => {
-        if (!active) return
+        if (!isCurrent()) return
         setComments(d.comments ?? [])
         // Cleared on SUCCESS only, never at loader entry — entry-clearing would
         // un-mark the retained thread the moment Retry is pressed, which is the
@@ -48,14 +57,26 @@ export function InsightDiscussion({ insightId }: InsightDiscussionProps) {
         setLoadError(null)
       })
       .catch(() => {
-        if (active) setLoadError('Could not load the discussion — this is a failed read, not an empty thread.')
+        if (isCurrent()) setLoadError('Could not load the discussion — this is a failed read, not an empty thread.')
       })
-    return () => {
-      active = false
-    }
   }, [insightId])
 
-  useEffect(() => load(), [load])
+  // Retention is scoped to ONE resource. Switching insight clears the thread
+  // before reading the new one, so a failed read for insight B can never render
+  // insight A's comments — marked stale or otherwise. Marking them would have
+  // been the worse lie of the two: an accurate "this is from an earlier read"
+  // notice sitting above comments belonging to a different insight entirely,
+  // which a subsequent post would then have appended to.
+  //
+  // Retry calls `load()` directly and deliberately does NOT clear, because that
+  // is a failed refresh of the SAME resource — the case the contract exists for.
+  useEffect(() => {
+    setComments([])
+    load()
+    return () => {
+      readGeneration.current += 1
+    }
+  }, [load])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -93,9 +114,26 @@ export function InsightDiscussion({ insightId }: InsightDiscussionProps) {
 
   return (
     <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
-      <p className="text-[10px] uppercase tracking-widest mb-3" style={{ color: 'var(--color-text-disabled)' }}>
-        Discussion
-      </p>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--color-text-disabled)' }}>
+          Discussion
+        </p>
+        {/* Recovery control, and the only same-resource re-read this surface
+            has. Without it the retention contract below is unreachable: the
+            thread is cleared and re-read whenever `insightId` changes, so a
+            failed read could only ever find an empty list, and the stale
+            marking would be dead code that no test could honestly drive.
+            TeamPanel gained a refresh for the same reason. Never disabled by
+            staleness — it is the way back to a live read. */}
+        <button
+          type="button"
+          onClick={() => load()}
+          className="text-[10px] px-2 py-0.5 rounded-sm border shrink-0"
+          style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-disabled)' }}
+        >
+          ↻ refresh
+        </button>
+      </div>
 
       {/* Read failure is announced whenever it is set — NOT gated on the thread
           being empty. Gating it on emptiness is what let a fabricated fact sit

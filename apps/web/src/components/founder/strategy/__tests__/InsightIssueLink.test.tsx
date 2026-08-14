@@ -149,7 +149,14 @@ describe('InsightIssueLink — a failed read must not offer a write [UNI-2486]',
   // stage-2b assertion; a per-component test has no such stage, so it is
   // written by hand. Moving `setLoadError(null)` to loader entry fails exactly
   // this case — the Create button would flash back on screen mid-read.
-  it('does not drop the unknown state while a retry is still in flight', async () => {
+  //
+  // The first draft of this test asserted ONLY that Create was absent, and it
+  // passed against a component that rendered null for the whole in-flight
+  // window — the founder losing the alert and the Retry button entirely. It was
+  // measuring nothing. The recovery-UI assertions below are what make it real,
+  // and reordering the `loading` early-return ahead of the `loadError` branch
+  // fails them. Raised by review on PR #981.
+  it('keeps the alert and Retry visible while a retry is still in flight', async () => {
     let release: (() => void) | null = null
     let failNext = true
 
@@ -166,12 +173,69 @@ describe('InsightIssueLink — a failed read must not offer a write [UNI-2486]',
     fireEvent.click(screen.getByRole('button', { name: /retry/i }))
 
     await waitFor(() => expect(release).not.toBeNull())
-    // Still unknown: no write control may appear before the answer arrives.
+    // The recovery UI must survive the in-flight window — a stalled retry must
+    // not leave the founder with a blank area and no way back.
+    expect(screen.getByRole('alert')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument()
+    // …and still no write control before the answer arrives.
     expect(screen.queryByText(/create linear issue/i)).toBeNull()
 
     release!()
     await waitFor(() => {
       expect(screen.getByText(/create linear issue/i)).toBeInTheDocument()
     })
+  })
+
+  // Superseded reads. Two guards now exist and they cover different paths, so
+  // they are asserted separately rather than through one contrived scenario.
+  //
+  // Guard 1 — Retry is disabled while its own read is in flight, so a founder
+  // cannot stack overlapping retries by clicking. This is the path review
+  // raised on PR #981; it is now structurally impossible rather than merely
+  // unlikely, which is why the assertion is about the control, not the race.
+  it('disables Retry while its own read is in flight, so retries cannot stack', async () => {
+    let release: (() => void) | null = null
+    let failNext = true
+
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      if (failNext) throw new Error('network down')
+      await new Promise<void>((resolve) => { release = resolve })
+      return { ok: true, status: 200, json: async () => ({ link: LINK }) }
+    }))
+
+    render(<InsightIssueLink insightId="i1" />)
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
+
+    failNext = false
+    fireEvent.click(screen.getByRole('button', { name: /retry/i }))
+
+    await waitFor(() => expect(release).not.toBeNull())
+    expect(screen.getByRole('button', { name: /retrying/i })).toBeDisabled()
+
+    release!()
+    await waitFor(() => expect(screen.getByText('UNI-9999')).toBeInTheDocument())
+  })
+
+  // Guard 2 — the generation token, which covers the path no disabled button
+  // can: a read still in flight when the component goes away, or when
+  // `insightId` changes under it. Removing the token's `isCurrent()` checks
+  // makes React warn about setting state on an unmounted component, which this
+  // asserts on directly.
+  it('does not write state from a read that resolves after unmount', async () => {
+    let release: (() => void) | null = null
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      await new Promise<void>((resolve) => { release = resolve })
+      return { ok: true, status: 200, json: async () => ({ link: LINK }) }
+    }))
+
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const { unmount } = render(<InsightIssueLink insightId="i1" />)
+    await waitFor(() => expect(release).not.toBeNull())
+    unmount()
+    release!()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(spy).not.toHaveBeenCalled()
   })
 })

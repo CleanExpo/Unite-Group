@@ -198,6 +198,58 @@ describe('BrandPersonas — a failed read must not authorise a blank overwrite [
     expect(screen.queryByRole('alert')).toBeNull()
   })
 
+  // THE RECOVERY OVERWRITE. Raised by review on PR #981, and a real hole in the
+  // first version of this fix: the Save gate only DELAYED the blank overwrite.
+  // Sequence — read fails, founder clicks a business (draft seeded blank because
+  // the map is unread), refresh succeeds, `loadError` clears, Save re-enables —
+  // and the blank draft from the outage is still sitting there, now writable
+  // over the persona the recovered read just returned.
+  //
+  // MUTATION CONTROL: delete the `draftSynthesisedRef` rebuild block from
+  // `loadPersonas` and this case fails on the PUT body — the write goes out with
+  // empty fields instead of the recovered ones.
+  it('rebuilds a draft synthesised during an outage, so recovery cannot be overwritten with blanks', async () => {
+    let failNext = true
+    const fetchMock = vi.fn(async (_url: string, init?: { method?: string }) => {
+      if (init?.method === 'PUT' || init?.method === 'POST') {
+        return { ok: true, status: 200, json: async () => ({ persona: PERSONA }) }
+      }
+      if (failNext) throw new Error('network down')
+      return { ok: true, status: 200, json: async () => personasBody([PERSONA]) }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<BrandPersonas />)
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
+
+    // Select while the map is unread — this is where the blank draft is born.
+    fireEvent.click(screen.getByText('Disaster Recovery'))
+    expect(await screen.findByRole('button', { name: /save persona/i })).toBeDisabled()
+
+    // Recover.
+    failNext = false
+    fireEvent.click(screen.getByRole('button', { name: /refresh/i }))
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /save persona/i })).not.toBeDisabled()
+    })
+
+    // The editor must now hold the RECOVERED persona, not the blank guess.
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('Retained tone of voice')).toBeInTheDocument()
+    })
+
+    // And saving must write the recovered values, not empty ones.
+    fireEvent.click(screen.getByRole('button', { name: /save persona/i }))
+    await waitFor(() => expect(writeCount(fetchMock)).toBe(1))
+
+    const put = fetchMock.mock.calls.find(
+      (call) => (call[1] as { method?: string } | undefined)?.method === 'PUT',
+    )
+    const body = JSON.parse(String((put![1] as { body?: string }).body)) as { toneOfVoice: string }
+    expect(body.toneOfVoice).toBe('Retained tone of voice')
+    expect(body.toneOfVoice).not.toBe('')
+  })
+
   // The in-flight case. The fixture sweep catches clear-on-entry with stage 2b;
   // a per-component test has none, so it is written by hand. Moving
   // `setLoadError(null)` to loader entry fails exactly this case — the mark
