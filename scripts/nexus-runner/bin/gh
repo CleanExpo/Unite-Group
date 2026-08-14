@@ -1,0 +1,123 @@
+#!/bin/sh
+# nexus-runner gh shim — deterministic GitHub mutation boundary for the L2 runner.
+#
+# The runner launches Claude with bypassPermissions, so prompt text is not an
+# authority boundary. This shim permits only the GitHub CLI operations required
+# to inspect repository state and open a DRAFT PR targeting main. Consequential
+# GitHub mutations (ready/merge/review/edit/close/release/settings/secrets/raw
+# API mutation) fail closed before the real gh binary is reached.
+
+REAL_GH="${NEXUS_RUNNER_REAL_GH:-}"
+if [ -z "$REAL_GH" ] || [ ! -x "$REAL_GH" ]; then
+  for candidate in /opt/homebrew/bin/gh /usr/local/bin/gh /usr/bin/gh; do
+    if [ -x "$candidate" ]; then
+      REAL_GH="$candidate"
+      break
+    fi
+  done
+fi
+
+if [ -z "$REAL_GH" ] || [ ! -x "$REAL_GH" ]; then
+  echo "nexus-runner: real gh binary unavailable" >&2
+  exit 127
+fi
+
+deny() {
+  echo "nexus-runner: BLOCKED '$*' (L2 GitHub authority guard)" >&2
+  exit 3
+}
+
+command_name="${1:-}"
+subcommand="${2:-}"
+
+case "$command_name" in
+  --version|version|help|completion)
+    ;;
+
+  auth)
+    case "$subcommand" in
+      status) ;;
+      *) deny "gh auth $subcommand" ;;
+    esac
+    ;;
+
+  pr)
+    case "$subcommand" in
+      view|list|status|checks|diff)
+        ;;
+      create)
+        has_draft=0
+        base=""
+        previous=""
+        for arg in "$@"; do
+          if [ "$previous" = "--base" ]; then
+            base="$arg"
+          fi
+          case "$arg" in
+            --draft) has_draft=1 ;;
+            --base=*) base=${arg#--base=} ;;
+            --web) deny "gh pr create --web" ;;
+          esac
+          previous="$arg"
+        done
+        [ "$has_draft" -eq 1 ] || deny "gh pr create without --draft"
+        [ "$base" = "main" ] || deny "gh pr create without --base main"
+        ;;
+      *)
+        deny "gh pr $subcommand"
+        ;;
+    esac
+    ;;
+
+  repo)
+    case "$subcommand" in
+      view) ;;
+      *) deny "gh repo $subcommand" ;;
+    esac
+    ;;
+
+  issue)
+    case "$subcommand" in
+      view|list|status) ;;
+      *) deny "gh issue $subcommand" ;;
+    esac
+    ;;
+
+  run)
+    case "$subcommand" in
+      view|list|watch) ;;
+      *) deny "gh run $subcommand" ;;
+    esac
+    ;;
+
+  workflow)
+    case "$subcommand" in
+      view|list) ;;
+      *) deny "gh workflow $subcommand" ;;
+    esac
+    ;;
+
+  search)
+    case "$subcommand" in
+      prs|issues|code|commits|repos) ;;
+      *) deny "gh search $subcommand" ;;
+    esac
+    ;;
+
+  api)
+    # `gh api` is intentionally unavailable to the L2 worker. Even commands
+    # that look read-only can become POST requests when fields are supplied.
+    # Higher-authority deterministic controllers use their own isolated gh path.
+    deny "gh api"
+    ;;
+
+  release|secret|variable|ruleset|attestation|cache|codespace|extension|gpg-key|label|ssh-key)
+    deny "gh $command_name $subcommand"
+    ;;
+
+  *)
+    deny "gh $command_name"
+    ;;
+esac
+
+exec "$REAL_GH" "$@"
