@@ -1,46 +1,74 @@
-# /minion — One-Shot Task Execution Command
+# /minion — Bounded One-Shot Engineering Execution
 
-> Implements a task from natural language description to PR, with zero mid-flight interaction.
-> Inspired by Stripe's Minions system: hybrid Blueprint DAGs with hard iteration caps.
+> Executes a clear, bounded engineering packet through implementation, deterministic verification and **draft PR candidate creation** without routine mid-flight founder interaction.
+>
+> Minion is a worker protocol inside the `/spm` lifecycle. It is **not** a release authority and a draft PR is not DONE/COMPLETE.
 
 ## Usage
 
-```
-/minion <task description>
-```
-
-**Examples:**
-
-```
-/minion "add rate limiting to the /api/auth/login endpoint"
-/minion "fix the null pointer error in the user profile component"
-/minion "migrate the contractors table to use UUID primary keys"
-/minion "refactor the auth middleware to use a shared validation helper"
+```text
+/minion <bounded task description>
 ```
 
-## Execution Protocol (Ordered — No Deviation)
+Use Minion for a single-domain or otherwise well-bounded implementation packet. Complex cross-domain missions belong in the Agent Harness under the same SPM mission.
 
-### Step 1 — Pre-Hydration (Deterministic)
+## Step 0 — Resolve mission and authority
 
-Run the pre-hydration pipeline to build a context manifest:
+Before execution, identify:
+- mission/task ID where available;
+- current `/spm` lifecycle state;
+- allowed and prohibited scope;
+- candidate base SHA/worktree;
+- required evidence;
+- any real authority stop gate.
 
-```powershell
-powershell -ExecutionPolicy Bypass -File ".claude/hooks/scripts/pre-hydration.ps1" -TaskText "$ARGUMENTS"
+If the mission is already BUILD_AUTHORISED, do not restart a planning interview.
+
+If material **product/business intent** is missing, return `BLOCKED_PRODUCT_DECISION` to SPM with the exact decision needed. Do not ask technical architecture questions of the founder.
+
+## Step 1 — Cross-platform pre-hydration
+
+Run the current-estate deterministic manifest builder:
+
+```bash
+node .claude/hooks/scripts/pre-hydration.mjs --task "$ARGUMENTS"
 ```
 
-Parse the JSON manifest. Read ALL files listed in `manifest.always` and `manifest.domain`. These are the ONLY files you may read during this invocation. No additional file reads permitted.
+The manifest:
+- resolves the current `apps/web` root on macOS, Windows or Linux;
+- selects the appropriate Blueprint/toolshed from the task;
+- loads current canonical control files;
+- scores existing `src/`, `e2e/`, `supabase/` and `scripts/` files against the task;
+- filters to paths that actually exist;
+- defines a bounded read-expansion budget.
 
-Print the manifest to confirm context loaded:
+Do not use the retired PowerShell-only pre-hydration path.
 
-```
+Print:
+
+```text
 MINION CONTEXT LOADED
-task_id: {manifest.task_id}
-blueprint: {manifest.blueprint}
-toolshed: {manifest.toolshed}
-files loaded: {count of files read}
+task_id: ...
+blueprint: ...
+toolshed: ...
+initial files: ...
+expansion budget: ...
 ```
 
-### Step 2 — Initialise Iteration Counter
+### Bounded manifest expansion
+
+The initial manifest is a starting set, not a blind prison.
+
+If implementation evidence proves another file is required:
+1. state the missing dependency/reference and why it is required;
+2. perform a targeted filename/symbol/import search;
+3. add only the specific required files to the manifest;
+4. record the expansion;
+5. do not exceed `read_budget.expansion_max_files` without returning `BLOCKED_TECHNICAL_DISCOVERY` to the Orchestrator/SPM.
+
+No full-tree file dumps.
+
+## Step 2 — Initialise bounded attempt state
 
 Create `.claude/data/minion-state.json`:
 
@@ -48,160 +76,149 @@ Create `.claude/data/minion-state.json`:
 {
   "active": true,
   "task_id": "{manifest.task_id}",
-  "created": "{DD/MM/YYYY HH:MM} AEST",
+  "mission_id": "{mission id if known}",
+  "created": "{ISO/current local timestamp}",
   "iterations": {
     "total": 0,
     "implement": 0,
     "fix_ci": 0,
-    "fix_lint": 0
-  }
+    "fix_lint": 0,
+    "diagnose": 0,
+    "other": 0
+  },
+  "technical_reroute_required": false
 }
 ```
 
-### Step 3 — Blueprint Selection
+The wired PreToolUse Task hook enforces a maximum of **3 Task-tool calls for this Minion invocation**. This prevents one tactic from looping forever; it is not a founder-escalation count.
 
-Read `.claude/blueprints/{manifest.blueprint}.blueprint.md`. This defines the DAG to execute.
+## Step 3 — Blueprint + minimal toolshed
 
-### Step 4 — Toolshed Load
+Read `.claude/blueprints/{manifest.blueprint}.blueprint.md` and the current toolshed definition.
 
-Read `.claude/data/toolsheds.json`, extract `toolsheds[manifest.toolshed].skills`. Load only those skills (max 5–6). All 57 other skills are unavailable in this invocation.
+Load only the specialist capabilities relevant to this packet. Do not load dozens of skills for appearance of sophistication.
 
-### Step 5 — Blueprint DAG Execution
+Blueprint instructions are subordinate to current `/spm`, authority and completion contracts when older wording conflicts.
 
-Execute the DAG defined in the blueprint file. For every agentic node:
+## Step 4 — Execute
 
-1. Increment `iterations.total` and `iterations.{node_type}` in `minion-state.json`
-2. Check if cap exceeded — if `total >= 3` → output `BLUEPRINT_ESCALATION` and halt
-3. Execute the node
-4. Run the next deterministic check
-5. Continue to next node
+Implement the smallest complete change that satisfies the packet.
 
-**CRITICAL RULES — Non-Negotiable:**
+Rules:
+- search/reuse before create;
+- preserve scope and current architecture;
+- no silent dependency/configuration mutation to suppress an error;
+- no fake/synthetic success;
+- no gate bypasses;
+- technical uncertainty is resolved through repository/runtime evidence and specialists, not by asking Phill which file/table/API to use;
+- maintain candidate provenance (base SHA → changed paths → candidate SHA).
 
-- **Do NOT ask clarifying questions**. If ambiguous → escalate immediately with `BLUEPRINT_ESCALATION`
-- **Do NOT exceed 3 total agentic iterations** across all nodes
-- **Do NOT read files outside the pre-hydration manifest**
-- **Do NOT merge PRs** — the human review gate is mandatory
-- **Do NOT retry the same agentic node** after it fails — escalate
+## Step 5 — Verify before candidate creation
 
-### Step 6 — Git Operations (Deterministic)
+Use `/done` or the equivalent current completion baseline for the affected change.
+
+For normal `apps/web` behavioural code this includes the current CI-equivalent lint/type/test/build baseline, meaningful regression coverage, and additional integration/security/data/Playwright/visual checks when applicable.
+
+Any required failure means repair and re-verify. A model PASS does not override deterministic failure.
+
+## Step 6 — Bounded technical rerouting
+
+When the Minion Task-call budget is exhausted, the live hook blocks the over-budget Task call and marks the Minion state:
+
+```text
+MINION_TECHNICAL_REROUTE
+founder_decision_required: false
+```
+
+At that point:
+1. **stop this Minion invocation**;
+2. preserve the branch/worktree and exact failure evidence;
+3. return a technical escalation packet to the Orchestrator/SPM;
+4. change strategy — e.g. alternate model/specialist, fresh worktree/environment, deeper CI/log/browser diagnosis, architecture/database/security review;
+5. keep independent mission lanes moving.
+
+Do not retry the same Minion blindly. Do not send Phill a stack trace merely because the attempt budget was exhausted.
+
+Founder escalation is appropriate only when the remaining blocker is a genuine product/business decision, consequential authority/risk choice, or irreducible blocker with clear options.
+
+## Step 7 — Candidate branch/commit
+
+Create or use the mission's isolated feature branch/worktree from the current approved base.
+
+Before commit, record the verification evidence and candidate scope.
+
+Commit messages should identify the mission/task and evidence path where available. Do not hard-code a model/version as the author or co-author when that is not the actual execution identity.
+
+## Step 8 — Draft PR only
+
+Open the candidate **as a draft targeting `main`**:
 
 ```bash
-# Create branch
-git checkout -b minion/{manifest.task_id}
+gh pr create \
+  --draft \
+  --base main \
+  --title "minion: {task summary}" \
+  --body "$(cat <<'EOF'
+{summary}
 
-# After implementation passes lint + type-check + test:
-git add -A
-git commit -m "$(cat <<'EOF'
-minion: {one-line task summary}
+## Mission
+{mission/task ID}
 
-Blueprint: {manifest.blueprint} v1.0.0
-Toolshed: {manifest.toolshed}
-Task ID: {manifest.task_id}
-Agentic iterations: {n}/3
+## Evidence
+{verification receipts}
 
-Generated: {DD/MM/YYYY} AEST
+## Earned state
+PR_OPEN
 
-Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+No ready-for-review, merge, deployment or production authority is implied by this draft.
 EOF
 )"
 ```
 
-### Step 7 — PR Creation
+If the local authority guard rejects the GitHub command, return the exact block to SPM. Do not bypass it with raw API calls or another shell path.
 
-```bash
-gh pr create \
-  --title "minion: {task summary}" \
-  --body "$(cat <<'EOF'
-{blueprint PR template content — pulled from blueprint file}
-EOF
-)" \
-  --label "minion-generated"
+## Step 9 — Return structured evidence to SPM
+
+Do not create a competing local truth store by appending generic “completed” entries to `current-state.md` or architectural decisions.
+
+Return:
+
+```text
+MINION RESULT
+mission: [id]
+task_id: [id]
+blueprint: [type]
+toolshed: [type]
+iterations: [n]/3
+candidate_sha: [sha]
+pr: [draft PR URL]
+verification: [evidence refs]
+EARNED STATE: PR_OPEN
+blocker: none | [...]
+next move: independent review / CI / SPM technical reroute
+founder decision: none | [genuine decision]
 ```
 
-### Step 8 — State Write
+The Orchestrator/SPM persists authoritative mission/evidence state and continues the lifecycle. **PR creation is not task COMPLETE.**
 
-Append to `.claude/memory/current-state.md`:
+## Terminal outcomes for one Minion invocation
 
-```markdown
-## Minion Completed — {DD/MM/YYYY HH:MM} AEST
+- `PR_OPEN` — candidate produced and verified sufficiently for draft review.
+- `BLOCKED_PRODUCT_DECISION` — genuine missing product/business intent.
+- `BLOCKED_AUTHORITY` — next action exceeds the execution lease.
+- `BLOCKED_TECHNICAL_DISCOVERY` — bounded context discovery exhausted; route specialist discovery.
+- `MINION_TECHNICAL_REROUTE` — current tactic budget exhausted; outer technical rerouting required.
+- `FAILED_ENVIRONMENT` — required tool/environment unavailable with evidence.
 
-- task_id: {manifest.task_id}
-- blueprint: {manifest.blueprint}
-- toolshed: {manifest.toolshed}
-- iterations used: {n}/3
-- PR: {pr_url}
-- status: AWAITING HUMAN REVIEW
-```
-
-Append to `.claude/memory/architectural-decisions.md`:
-
-```
-[{DD/MM/YYYY}] DECISION: Implemented {task summary} via minion/{manifest.task_id} | REASON: Automated via Blueprint DAG | ALTERNATIVES REJECTED: Manual multi-turn interaction
-```
-
-Delete `.claude/data/minion-state.json` (runtime state — not committed).
-
-### Step 9 — Completion Report
-
-Print final summary:
-
-```
-MINION COMPLETE
-task_id: {manifest.task_id}
-blueprint: {manifest.blueprint}
-toolshed: {manifest.toolshed}
-agentic iterations: {n}/3
-pr: {pr_url}
-status: AWAITING HUMAN REVIEW
-
-Next action: Review the PR at the URL above. Do not merge without review.
-```
-
----
-
-## Escalation Protocol
-
-When a `BLUEPRINT_ESCALATION` occurs (cap exceeded, blocking error, HIGH risk detected):
-
-1. Output the escalation block:
-
-```
-BLUEPRINT_ESCALATION
-task_id: {manifest.task_id}
-node: {failing-node}
-iteration: {n}/{max}
-reason: {what failed in one line}
-evidence: {last 5 lines of error output}
-next_action: Human review required — do not retry automatically
-```
-
-2. Write escalation to `.claude/memory/current-state.md`
-3. Do NOT create a PR
-4. Do NOT clean up the branch (leave it for human inspection)
-5. Print: "Minion halted. Human review required. Branch `minion/{task_id}` preserved."
-
----
+None of these except a mission-level evidence-backed `COMPLETE` should be labelled `MINION COMPLETE`.
 
 ## Requirements
 
-- `gh` CLI (GitHub CLI) must be installed and authenticated
-- Docker must be running (for database-related blueprints)
-- Git must be clean (no uncommitted changes) before starting
-
----
+- Node.js/current project toolchain;
+- Git/feature worktree capability;
+- GitHub CLI only where the current authority boundary permits candidate creation;
+- additional Blueprint-specific tools only when actually required.
 
 ## Locale
 
-All output uses Australian English: colour, behaviour, optimisation, organised, licence (noun).
-All dates: DD/MM/YYYY. All times: AEST/AEDT.
-
----
-
-## What Minion Does NOT Do
-
-- Ask clarifying questions (escalates instead)
-- Merge PRs (human review gate is mandatory)
-- Exceed 3 total agentic iterations
-- Read files outside the pre-hydration manifest
-- Replace the existing interactive multi-turn workflow (additive only)
+Australian English; project date/time conventions; current evidence over stale template text.
