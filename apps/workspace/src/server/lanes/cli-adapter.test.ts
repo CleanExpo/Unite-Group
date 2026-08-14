@@ -601,9 +601,10 @@ describe('CliLaneAdapter', () => {
       ].join(';')
       const root = [
         "const { spawn } = require('node:child_process')",
-        "const { writeFileSync } = require('node:fs')",
+        "const { existsSync, writeFileSync } = require('node:fs')",
         `const child = spawn(process.execPath, ['-e', ${JSON.stringify(descendant)}], { detached: true, stdio: 'ignore' })`,
-        `writeFileSync(${JSON.stringify(pidFile)}, String(child.pid))`,
+        `const publishPid = () => existsSync(${JSON.stringify(readyFile)}) ? setTimeout(() => writeFileSync(${JSON.stringify(pidFile)}, String(child.pid)), 50) : setTimeout(publishPid, 1)`,
+        'publishPid()',
         'setInterval(() => {}, 1000)',
       ].join(';')
       const controller = new AbortController()
@@ -616,10 +617,15 @@ describe('CliLaneAdapter', () => {
           env: process.env,
           signal: controller.signal,
         })
-        for (let attempt = 0; attempt < 100 && !existsSync(readyFile); attempt += 1) {
+        for (
+          let attempt = 0;
+          attempt < 100 && (!existsSync(readyFile) || !existsSync(pidFile));
+          attempt += 1
+        ) {
           await new Promise((resolve) => setTimeout(resolve, 10))
         }
         expect(existsSync(readyFile)).toBe(true)
+        expect(existsSync(pidFile)).toBe(true)
         const observedDescendantPid = Number(readFileSync(pidFile, 'utf8'))
         descendantPid = observedDescendantPid
 
@@ -659,6 +665,8 @@ describe('CliLaneAdapter', () => {
         rmSync(tempRoot, { recursive: true, force: true })
       }
     },
-    10_000,
+    // Process-tree termination intentionally allows 1.5s for TERM and 3s for
+    // SIGKILL acknowledgement; keep headroom for repeated ps discovery in CI.
+    20_000,
   )
 })
