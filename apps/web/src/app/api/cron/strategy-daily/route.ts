@@ -20,13 +20,13 @@ export const maxDuration = 120 // Opus + extended thinking needs time
 const VALID_KEYS = BUSINESSES.map((b) => b.key) as string[]
 
 export async function GET(request: Request) {
-  const startTime = Date.now()
-  const url = new URL(request.url)
-  const businessKey = url.searchParams.get('business')?.trim() ?? ''
-
   // 1. Auth
   const denied = assertCronAuth(request)
   if (denied) return denied
+
+  const startTime = Date.now()
+  const url = new URL(request.url)
+  const businessKey = url.searchParams.get('business')?.trim() ?? ''
 
   // 2. Validate business key
   if (!businessKey || !VALID_KEYS.includes(businessKey)) {
