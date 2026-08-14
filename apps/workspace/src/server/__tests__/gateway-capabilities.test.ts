@@ -68,9 +68,10 @@ describe('gateway-capabilities', () => {
       process.env.NODE_ENV = 'production'
       const mod = await loadMod()
 
-      // Await the in-flight eager probe so no async work survives teardown.
-      await mod.ensureGatewayProbed()
       expect(fetchMock).toHaveBeenCalled()
+      // Observe the module-started probe reaching completion without calling
+      // ensureGatewayProbed(), which would mask a missing eager-start branch.
+      await vi.waitFor(() => expect(mod.getCapabilities().probed).toBe(true))
     } finally {
       process.env.NODE_ENV = originalNodeEnv
     }
