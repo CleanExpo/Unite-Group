@@ -276,6 +276,15 @@ export function buildRuntimeControlPlane(input: {
     codex.checkpoint && codexTaskId
       ? verifiedCodexArtifacts(codex.checkpoint.task.evidence, codexTaskId, now)
       : []
+  const codexNextAction = codex.checkpoint
+    ? nonEmpty(codex.checkpoint.task.nextAction)
+    : null
+  const codexHandoffEligible = Boolean(
+    codex.checkpoint?.task.state === 'complete' &&
+    codexArtifacts.length > 0 &&
+    codexNextAction,
+  )
+  const codexReviewLike = /review|verify|test|gate/i.test(codexNextAction ?? '')
   const codexTask =
     codex.checkpoint && codexTaskId
       ? {
@@ -294,25 +303,22 @@ export function buildRuntimeControlPlane(input: {
           deadlineAt: codex.checkpoint.task.deadlineAt,
           evidence: codexArtifacts,
           blocker: codex.checkpoint.task.blocker,
-          nextAction: codex.checkpoint.task.nextAction,
+          nextAction: codexNextAction,
           handoff: {
-            eligible:
-              codex.checkpoint.task.state === 'complete' &&
-              codexArtifacts.length > 0 &&
-              Boolean(codex.checkpoint.task.nextAction),
-            target:
-              codex.checkpoint.task.state === 'complete' &&
-              codex.checkpoint.task.nextAction
-                ? /review|verify|test|gate/i.test(
-                    codex.checkpoint.task.nextAction,
-                  )
-                  ? ('reviewer' as const)
-                  : ('orchestrator' as const)
-                : null,
-            reason:
-              codex.checkpoint.task.state === 'complete'
-                ? 'Codex completion requires evidence or receipt plus a declared next action.'
-                : null,
+            eligible: codexHandoffEligible,
+            target: codexHandoffEligible
+              ? codexReviewLike
+                ? ('reviewer' as const)
+                : ('orchestrator' as const)
+              : null,
+            reason: codexHandoffEligible
+              ? 'Completion has runtime evidence and a declared next action.'
+              : codex.checkpoint.task.state === 'complete' &&
+                  codexArtifacts.length === 0
+                ? 'Completion has no runtime evidence.'
+                : codex.checkpoint.task.state === 'complete'
+                  ? 'Completion has no declared next action.'
+                  : null,
           },
           observedAt: codex.checkpoint.observedAt,
         }

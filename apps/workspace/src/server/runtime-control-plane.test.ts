@@ -351,7 +351,11 @@ describe('runtime control plane', () => {
     expect(result.tasks[0]).toMatchObject({
       runtime: 'codex',
       evidenceStatus: 'present',
-      handoff: { eligible: true, target: 'reviewer' },
+      handoff: {
+        eligible: true,
+        target: 'reviewer',
+        reason: 'Completion has runtime evidence and a declared next action.',
+      },
     })
     expect(result.execution).toBe('disabled')
   })
@@ -383,7 +387,11 @@ describe('runtime control plane', () => {
 
     expect(result.tasks[0]).toMatchObject({
       evidenceStatus: 'missing',
-      handoff: { eligible: false },
+      handoff: {
+        eligible: false,
+        target: null,
+        reason: 'Completion has no runtime evidence.',
+      },
     })
   })
 
