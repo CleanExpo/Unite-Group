@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { execFileSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { EMPTY_MANIFEST, toCcToolRows, type CapabilityManifest } from '@/lib/command-centre/capabilities'
@@ -17,14 +16,52 @@ import { readRegistryTools, type RegistrySupabaseLike } from '@/lib/command-cent
 
 const repoRoot = path.resolve(process.cwd(), '..', '..')
 
-function repoGrep(pattern: string, target: string): string {
-  try {
-    return execFileSync('/bin/zsh', ['-lc', `cd ${repoRoot} && grep -rl ${pattern} ${target} 2>/dev/null | grep -v node_modules | grep -v '/.next/'`], {
-      encoding: 'utf8',
-    }).trim()
-  } catch {
-    return ''
+/**
+ * Files under `target` whose contents contain `needle`, as repo-relative paths.
+ *
+ * Implemented with node:fs. An earlier cut delegated the search to a zsh
+ * subprocess, which the ubuntu-latest CI runner does not provide: the catch
+ * swallowed the ENOENT and returned '', so the search reported zero matches
+ * for a reason that had nothing to do with the repository. A search that can
+ * silently answer "nothing" when it never ran is not a search — this version
+ * reads the tree directly and has no catch-all.
+ *
+ * ALL test source is skipped, and that exclusion is load-bearing rather than
+ * tidy. This file lives under `apps/web/src`, so a walk that included it would
+ * match the assertion lines below: searching for `operator_jobs` would find
+ * THIS file's own source and report a hit even if production code had none.
+ * The proof is about production source, so the proof must not be able to see
+ * itself.
+ *
+ * Excluding only the `__tests__` directory is NOT enough — apps/web/src holds
+ * 40 `*.test.ts` / `*.test.tsx` files outside any `__tests__` directory. None
+ * of them mentions `operator_jobs` today, so the current verdict is sound, but
+ * a future one would silently be counted as production evidence. The filename
+ * predicate closes that before it can happen.
+ */
+const TEST_FILE = /\.(test|spec)\.[jt]sx?$/
+const SEARCHABLE = /\.(ts|tsx|mjs|js|jsx|sql|md|json)$/
+
+function repoGrep(needle: string, target: string): string[] {
+  const skipDir = new Set(['node_modules', '.next', '.git', '__tests__', '__mocks__', '__fixtures__'])
+  const matches: string[] = []
+
+  const walk = (dir: string): void => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (skipDir.has(entry.name)) continue
+      const full = path.join(dir, entry.name)
+      if (entry.isDirectory()) {
+        walk(full)
+      } else if (SEARCHABLE.test(entry.name) && !TEST_FILE.test(entry.name)) {
+        if (readFileSync(full, 'utf-8').includes(needle)) {
+          matches.push(path.relative(repoRoot, full).replace(/\\/g, '/'))
+        }
+      }
+    }
   }
+
+  walk(path.join(repoRoot, target))
+  return matches
 }
 
 function readRepoFile(relative: string): string {
@@ -110,7 +147,15 @@ describe('4. cc_tasks is the Nexus Runner execution queue', () => {
 
 describe('5. operator_jobs survives only for Model Operator Gateway semantics', () => {
   it('is still referenced by live gateway code, so it was not wrongly retired', () => {
-    const files = repoGrep("operator_jobs", 'apps/web/src').split('\n').filter(Boolean)
+    // Positive and NEGATIVE control, in that order. Without both, a broken
+    // search and a genuinely retired queue produce the same empty result —
+    // which is how this test failed on CI while passing locally.
+    // The negative control is what catches a search that matches ITSELF: with
+    // `__tests__` in scope this line's own nonsense symbol scored a hit.
+    expect(repoGrep('cc_tasks', 'apps/web/src').length).toBeGreaterThan(0)
+    expect(repoGrep('zzz_symbol_that_must_not_exist_zzz', 'apps/web/src')).toEqual([])
+
+    const files = repoGrep('operator_jobs', 'apps/web/src')
     expect(files.length).toBeGreaterThan(0)
     expect(files.some((f) => f.includes('operator-gateway'))).toBe(true)
   })
