@@ -5,27 +5,34 @@ vi.mock('@/lib/command-centre/capabilities', () => ({ getCapabilityManifest: vi.
 vi.mock('@/lib/command-centre/registry-sync', () => ({
   syncCapabilityRegistry: vi.fn(),
   readRegistryTools: vi.fn(),
+  readRegistryLastSync: vi.fn(),
 }))
 
 import { getUser } from '@/lib/supabase/server'
 import { getCapabilityManifest } from '@/lib/command-centre/capabilities'
-import { readRegistryTools, syncCapabilityRegistry } from '@/lib/command-centre/registry-sync'
+import {
+  readRegistryLastSync,
+  readRegistryTools,
+  syncCapabilityRegistry,
+} from '@/lib/command-centre/registry-sync'
 import { GET, POST } from '../route'
 
 const POPULATED_MANIFEST = {
-  schema_version: 1,
+  schema_version: 2,
   generated_from: 'apps/web',
   agents: [{ key: 'qa-tester', name: 'qa-tester', role: 'QA', model_tier: null, skills: [], definition_path: 'p' }],
   skills: [{ key: 'seo', name: 'seo', description: '', definition_path: 'x/SKILL.md' }],
   mcp_servers: [{ name: 'context7', transport: 'stdio', description: '', config_path: '.mcp.json' }],
+  collisions: [{ name: 'council-of-logic', paths: ['a/SKILL.md', 'b/SKILL.md'] }],
 }
 
 const EMPTY_MANIFEST = {
-  schema_version: 1,
+  schema_version: 2,
   generated_from: '',
   agents: [],
   skills: [],
   mcp_servers: [],
+  collisions: [],
 }
 
 describe('POST /api/command-centre/registry/sync', () => {
@@ -105,17 +112,33 @@ describe('GET /api/command-centre/registry/sync', () => {
     vi.mocked(getUser).mockResolvedValue({ id: 'founder-1' } as any)
     vi.mocked(getCapabilityManifest).mockResolvedValue(POPULATED_MANIFEST as any)
     vi.mocked(readRegistryTools).mockResolvedValue([])
+    vi.mocked(readRegistryLastSync).mockResolvedValue(null)
 
     const body = await (await GET()).json()
 
     expect(body.registered_tools).toBe(0)
     expect(body.sync_required).toBe(true)
+    // "never synced" must stay distinguishable from "synced a while ago".
+    expect(body.last_sync).toBeNull()
+  })
+
+  it('surfaces discovery collisions so they are not left only in build logs', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'founder-1' } as any)
+    vi.mocked(getCapabilityManifest).mockResolvedValue(POPULATED_MANIFEST as any)
+    vi.mocked(readRegistryTools).mockResolvedValue([])
+    vi.mocked(readRegistryLastSync).mockResolvedValue(null)
+
+    const body = await (await GET()).json()
+
+    expect(body.collisions).toHaveLength(1)
+    expect(body.collisions[0].name).toBe('council-of-logic')
   })
 
   it('does not flag sync_required once the registry holds rows', async () => {
     vi.mocked(getUser).mockResolvedValue({ id: 'founder-1' } as any)
     vi.mocked(getCapabilityManifest).mockResolvedValue(POPULATED_MANIFEST as any)
     vi.mocked(readRegistryTools).mockResolvedValue([{ tool_key: 'skill:seo' } as any])
+    vi.mocked(readRegistryLastSync).mockResolvedValue("2026-08-15T09:00:00.000Z")
 
     const body = await (await GET()).json()
 
@@ -127,6 +150,7 @@ describe('GET /api/command-centre/registry/sync', () => {
     vi.mocked(getUser).mockResolvedValue({ id: 'founder-1' } as any)
     vi.mocked(getCapabilityManifest).mockResolvedValue(EMPTY_MANIFEST as any)
     vi.mocked(readRegistryTools).mockResolvedValue([])
+    vi.mocked(readRegistryLastSync).mockResolvedValue(null)
 
     const body = await (await GET()).json()
 

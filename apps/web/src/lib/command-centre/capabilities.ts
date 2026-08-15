@@ -59,12 +59,23 @@ export interface DiscoveredMcpServer {
   config_path: string
 }
 
+/**
+ * Two or more DIFFERENT capabilities sharing one display name. Recorded rather
+ * than only logged, so the founder deck can surface it — a collision left in
+ * build output is a collision nobody sees.
+ */
+export interface CapabilityCollision {
+  name: string
+  paths: string[]
+}
+
 export interface CapabilityManifest {
   schema_version: number
   generated_from: string
   agents: DiscoveredAgent[]
   skills: DiscoveredSkill[]
   mcp_servers: DiscoveredMcpServer[]
+  collisions: CapabilityCollision[]
 }
 
 /** A `cc_agents` row, minus the columns the database owns (id, founder_id, created_at). */
@@ -91,11 +102,12 @@ export interface CcToolRow {
 }
 
 export const EMPTY_MANIFEST: CapabilityManifest = {
-  schema_version: 1,
+  schema_version: 2,
   generated_from: '',
   agents: [],
   skills: [],
   mcp_servers: [],
+  collisions: [],
 }
 
 /**
@@ -172,6 +184,14 @@ export function parseCapabilityManifest(jsonSource: string): CapabilityManifest 
         transport: nonEmpty(entry.transport),
         description: nonEmpty(entry.description),
         config_path: nonEmpty(entry.config_path),
+      })),
+    // Absent in a schema-1 manifest; an empty list is the honest reading.
+    collisions: (Array.isArray(raw.collisions) ? raw.collisions : [])
+      .map((entry) => entry as Record<string, unknown>)
+      .filter((entry) => nonEmpty(entry?.name) !== '')
+      .map((entry) => ({
+        name: nonEmpty(entry.name),
+        paths: stringArray(entry.paths),
       })),
   }
 }

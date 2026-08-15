@@ -19,7 +19,11 @@ import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { sanitiseError } from '@/lib/error-reporting'
 import { getCapabilityManifest } from '@/lib/command-centre/capabilities'
-import { readRegistryTools, syncCapabilityRegistry } from '@/lib/command-centre/registry-sync'
+import {
+  readRegistryLastSync,
+  readRegistryTools,
+  syncCapabilityRegistry,
+} from '@/lib/command-centre/registry-sync'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -73,9 +77,10 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   try {
-    const [manifest, registered] = await Promise.all([
+    const [manifest, registered, lastSync] = await Promise.all([
       getCapabilityManifest(),
       readRegistryTools({ founderId: user.id }),
+      readRegistryLastSync({ founderId: user.id }),
     ])
 
     return NextResponse.json({
@@ -85,6 +90,11 @@ export async function GET() {
         mcp_servers: manifest.mcp_servers.length,
       },
       registered_tools: registered.length,
+      last_sync: lastSync,
+      // Surfaced, not just logged: two different capabilities sharing a display
+      // name is the condition that silently dropped three skills before the
+      // key strategy landed.
+      collisions: manifest.collisions,
       // The condition the audit was about: a populated manifest with an empty
       // registry means reuse-before-build searches will find nothing.
       sync_required: registered.length === 0 && manifest.skills.length + manifest.mcp_servers.length > 0,

@@ -10,8 +10,31 @@ import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sanitiseError } from '@/lib/error-reporting'
+import { COST_FETCHERS } from '@/lib/metering/fetchers/registry'
 
 export const dynamic = 'force-dynamic'
+
+/**
+ * Whether anything is actually collecting cost, derived from real config
+ * rather than assumed from a successful query.
+ *
+ * A zero total means two very different things, and the deck must not blur
+ * them: either the pipeline IS collecting and spend genuinely was zero, or
+ * nothing is collecting at all. `/api/cron/cost-ingest` is registered in
+ * vercel.json and runs on schedule, but it returns `{dormant:true}` while
+ * COST_METERING_ENABLED is unset and `{wired:0}` while no fetcher is
+ * registered — a scheduled no-op, which must never render as active
+ * collection.
+ */
+export type MeteringState = 'collecting' | 'scheduled_noop' | 'dormant'
+
+export function resolveMeteringState(
+  enabledFlag: string | undefined,
+  fetcherCount: number,
+): MeteringState {
+  if (enabledFlag !== 'true') return 'dormant'
+  return fetcherCount > 0 ? 'collecting' : 'scheduled_noop'
+}
 
 interface SourceRow {
   id: string
@@ -108,6 +131,10 @@ export async function GET() {
         total_cost_aud: sumAmounts(costRows),
         total_revenue_aud: sumAmounts(revenueRows),
         prior_month_cost_aud: sumAmounts(priorRows),
+        metering: {
+          state: resolveMeteringState(process.env.COST_METERING_ENABLED, COST_FETCHERS.length),
+          fetchers_wired: COST_FETCHERS.length,
+        },
       },
       { headers: { 'Cache-Control': 'no-store' } },
     )

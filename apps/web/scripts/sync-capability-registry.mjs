@@ -229,13 +229,22 @@ function discoverMcpServers() {
   return [...servers.values()].sort((a, b) => a.name.localeCompare(b.name))
 }
 
+// Order matters: discovery populates `nameCollisions` as a side effect, so the
+// agents/skills calls must run before the collisions field is read.
+const agents = discoverAgents()
+const skills = discoverSkills()
+const mcpServers = discoverMcpServers()
+
 const manifest = {
   // Bumped when the manifest shape changes so a stale file is detectable.
-  schema_version: 1,
+  // v2 adds `collisions` so the founder deck can surface them rather than
+  // leaving them only in build logs nobody reads.
+  schema_version: 2,
   generated_from: relative(repoRoot, appRoot).replace(/\\/g, '/') || '.',
-  agents: discoverAgents(),
-  skills: discoverSkills(),
-  mcp_servers: discoverMcpServers(),
+  agents,
+  skills,
+  mcp_servers: mcpServers,
+  collisions: nameCollisions,
 }
 
 mkdirSync(dirname(target), { recursive: true })

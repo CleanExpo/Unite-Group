@@ -145,6 +145,26 @@ jobs:
       - name: Enforce configured P0 findings
         run: node scripts/nexus-project-readiness.mjs --root . --json --gate
 
+  board-release-verifier:
+    name: tools/board-release-verifier — tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Runs the verifier's OWN test suite. It does NOT run the verifier as a
+      # gate: verifier.py validates a release RECEIPT and requires a receipt,
+      # roster, evidence index, check manifest and their SHA256 bindings, all
+      # supplied INDEPENDENTLY of the builder (ADDENDUM-001 §"Controller, not
+      # verifier, mutates"). Having CI manufacture those inputs would destroy
+      # the independence that is the tool's entire purpose.
+      #
+      # What was actually missing is this: the tool that machine-checks the
+      # constitution's merge authority had no gate on its own tests, so it
+      # could rot silently. Stdlib-only, no network, ~4s.
+      - name: Test the board release verifier and controller
+        working-directory: tools/board-release-verifier
+        run: python3 -m unittest discover -s tests -v
+
   docs-watch:
     name: Nexus official-docs watcher — Node ${{ matrix.node-version }}
     runs-on: ubuntu-latest

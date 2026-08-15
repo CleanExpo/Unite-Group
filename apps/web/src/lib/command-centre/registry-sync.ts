@@ -128,6 +128,34 @@ export async function syncCapabilityRegistry(params: {
   return { agents, tools, errors }
 }
 
+/**
+ * When this founder's registry was last written, as an ISO timestamp, or null
+ * if it never has been. Read from `cc_tools.discovered_at`, which the upsert
+ * refreshes — so "never synced" and "synced long ago" stay distinguishable
+ * instead of both rendering as an empty tile.
+ */
+export async function readRegistryLastSync(params: {
+  founderId: string
+  client?: RegistrySupabaseLike
+}): Promise<string | null> {
+  const { founderId } = params
+  if (!founderId) return null
+  try {
+    const db = params.client ?? ((await createClient()) as unknown as RegistrySupabaseLike)
+    const { data, error } = await db
+      .from('cc_tools')
+      .select('discovered_at')
+      .eq('founder_id', founderId)
+      .eq('active', true)
+      .order('discovered_at', { ascending: false })
+    if (error || !Array.isArray(data) || data.length === 0) return null
+    const first = data[0] as { discovered_at?: unknown }
+    return typeof first?.discovered_at === 'string' ? first.discovered_at : null
+  } catch {
+    return null
+  }
+}
+
 interface CcToolSelectRow {
   tool_key: unknown
   source: unknown
