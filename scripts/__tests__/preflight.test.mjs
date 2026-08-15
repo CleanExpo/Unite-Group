@@ -165,6 +165,26 @@ function ignoreExitCode(env) {
   }
 }
 
+/**
+ * git that returns null instead of throwing.
+ *
+ * Needed because CI checks out at depth 1 (actions/checkout default), so any
+ * commit's parent is simply absent — `rev-parse HEAD^` exits 128 rather than
+ * returning a SHA. The history-dependent test below detects that and skips,
+ * instead of failing for a reason that has nothing to do with the code.
+ */
+function tryGit(args) {
+  try {
+    return execFileSync('git', args, {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+  } catch {
+    return null;
+  }
+}
+
 test('missing baseline SHA builds rather than skips', () => {
   assert.equal(
     ignoreExitCode({ VERCEL_GIT_PREVIOUS_SHA: '', VERCEL_GIT_COMMIT_SHA: 'HEAD' }),
@@ -185,19 +205,43 @@ test('a baseline SHA absent from the clone builds rather than skips', () => {
   );
 });
 
-test('a real range touching apps/web builds', () => {
-  const sha = execFileSync(
-    'git',
-    ['log', '--format=%H', '-1', '--', 'apps/web'],
-    { cwd: repoRoot, encoding: 'utf8' },
-  ).trim();
-  if (!sha) return; // no apps/web history in this checkout
-  const parent = execFileSync('git', ['rev-parse', `${sha}^`], { cwd: repoRoot, encoding: 'utf8' }).trim();
+test('a real range touching apps/web builds', (t) => {
+  // Needs two connected commits. CI checks out at depth 1, so this is a skip
+  // there and real coverage on any full clone (developer machines, and the
+  // Vercel build environment this actually runs in). Skipping loudly beats
+  // failing for an absent parent, and beats a silent `return` that reads as a
+  // pass — the positive path would then be uncovered everywhere without saying so.
+  const sha = tryGit(['log', '--format=%H', '-1', '--', 'apps/web']);
+  if (!sha) return t.skip('no apps/web history in this checkout (shallow clone)');
+  const parent = tryGit(['rev-parse', `${sha}^`]);
+  if (!parent) return t.skip('parent commit absent — shallow clone, cannot form a range');
   assert.equal(
     ignoreExitCode({ VERCEL_GIT_PREVIOUS_SHA: parent, VERCEL_GIT_COMMIT_SHA: sha }),
     BUILD,
     'a commit that changed apps/web must build',
   );
+});
+
+test('a real range touching nothing apps/web depends on skips', (t) => {
+  // The other half of the positive path, and the one that actually saves money:
+  // prove a real docs-only commit SKIPS. Same shallow-clone caveat.
+  const shas = tryGit(['log', '--format=%H', '-40', 'HEAD']);
+  if (!shas) return t.skip('no history in this checkout');
+  for (const sha of shas.split('\n').filter(Boolean)) {
+    const parent = tryGit(['rev-parse', `${sha}^`]);
+    if (!parent) continue;
+    const files = tryGit(['diff', '--name-only', `${parent}..${sha}`]);
+    if (!files) continue;
+    const list = files.split('\n').filter(Boolean);
+    if (list.length === 0 || affectsWebBuild(list)) continue;
+    assert.equal(
+      ignoreExitCode({ VERCEL_GIT_PREVIOUS_SHA: parent, VERCEL_GIT_COMMIT_SHA: sha }),
+      SKIP,
+      `commit ${sha.slice(0, 8)} touches nothing apps/web depends on and must skip`,
+    );
+    return;
+  }
+  t.skip('no non-apps/web commit available in this checkout');
 });
 
 test('an identical range skips', () => {
