@@ -11,11 +11,15 @@
     "verify:mcp": "cd packages/pi-ceo-operator-mcp && npm ci && npm run test:contract && npm run test:view-contract && npm run test:alpic-contract && npm run verify:mcp-runtime-evidence && npm run build && npm run audit:package && npm run check:licences && npm run check:install-scripts",
     "verify:spine": "cd packages/spine/packages/spine && npm ci && npm run typecheck && npm test",
     "verify:spec-board": "cd apps/spec-board && npm ci && npx tsc --noEmit && npm test && npm run build",
-    "verify:readiness": "node --test scripts/__tests__/check-env.test.mjs scripts/__tests__/nexus-project-readiness.test.mjs scripts/__tests__/verify-web-ci-build.test.mjs scripts/__tests__/workflow-supply-chain.test.mjs && node scripts/nexus-project-readiness.mjs --root . --json --gate",
+    "verify:readiness": "node --test scripts/__tests__/check-env.test.mjs scripts/__tests__/nexus-project-readiness.test.mjs scripts/__tests__/verify-web-ci-build.test.mjs scripts/__tests__/workflow-supply-chain.test.mjs scripts/__tests__/preflight.test.mjs scripts/__tests__/cron-cost-audit.test.mjs && node scripts/nexus-project-readiness.mjs --root . --json --gate",
     "verify:docs-watch": "node --test scripts/__tests__/nexus-docs-watch.test.mjs",
     "verify:docs-review": "node --test scripts/__tests__/nexus-docs-review.test.mjs",
     "nexus:docs:watch": "node scripts/nexus-docs-watch.mjs --root . --baseline config/nexus-official-sources.baseline.json --gate-material",
     "verify": "npm run verify:readiness && npm run verify:docs-watch && npm run verify:docs-review && npm run verify:web && npm run verify:workspace && npm run verify:autopilot && npm run verify:mcp && npm run verify:spine && npm run verify:spec-board",
+    "preflight": "node scripts/preflight.mjs",
+    "preflight:list": "node scripts/preflight.mjs --list",
+    "preflight:all": "node scripts/preflight.mjs --all",
+    "cron:audit": "node scripts/cron-cost-audit.mjs",
     "env:check": "node scripts/check-env.mjs --package all"
   },
   "engines": {
