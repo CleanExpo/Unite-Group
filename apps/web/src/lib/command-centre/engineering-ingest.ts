@@ -25,6 +25,18 @@
 import type { DecompositionStep } from './decompose'
 import type { TaskRiskLevel } from './tasks'
 
+/**
+ * Where the contract below is copied FROM. This module mirrors constants owned
+ * by another process, so the mirror must be findable and checkable.
+ *
+ * The gate is not importable: it is Python, and it lives outside the repo (and
+ * therefore outside CI's checkout). `engineering-ingest-drift.test.ts` compares
+ * the two whenever the gate is present, and when it is absent asserts this
+ * provenance is still declared rather than passing silently.
+ */
+export const GATE_SOURCE_OF_TRUTH =
+  '~/.claude/skills/engineering-requirements/scripts/engineering_gate.py'
+
 /** The ten categories `engineering_gate.py` requires. Order is not significant here. */
 export const ENGINEERING_CATEGORIES = [
   'data_model',
