@@ -70,8 +70,8 @@ describe("GET /api/cron/linear-claim", () => {
         retired: true,
         source: "command-centre:linear-claim",
         error:
-          "Legacy Linear autonomous claim is permanently retired. CRM OWNEST is authoritative.",
-        next_action: "use_crm_ownest",
+          "Legacy Linear autonomous claim is permanently retired. Approved CRM `cc_tasks` claimed by the Nexus Runner are authoritative.",
+        next_action: "use_cc_tasks_queue",
       });
       expect(fetchClaimCandidates).not.toHaveBeenCalled();
       expect(resolveStateId).not.toHaveBeenCalled();

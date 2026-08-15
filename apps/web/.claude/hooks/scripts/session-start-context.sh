@@ -18,7 +18,18 @@ COMMITS=$(git log --oneline -3 2>/dev/null | tr '\n' ',' | sed 's/,$//')
 CONST="${CLAUDE_PROJECT_DIR:-$(pwd)}/.claude/memory/CONSTITUTION.md"
 if [ -f "$CONST" ]; then
   CONST_CONTENT=$(head -c 800 "$CONST" | tr '\n' ' ')
-  PARTS+=("CONSTITUTION: $CONST_CONTENT")
+  PARTS+=("SESSION CONSTITUTION (apps/web): $CONST_CONTENT")
+fi
+
+# The BINDING constitution is EPIC-000 at the monorepo root, not the apps/web
+# session memory file above. Resolve it from the git toplevel so it loads whether
+# the hook runs from apps/web or the repo root. Skip the provenance preamble and
+# inject from the governing position onwards — that is the operative text.
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+EPIC000="${REPO_ROOT}/docs/constitution/EPIC-000-nexus-engineering-constitution.md"
+if [ -n "$REPO_ROOT" ] && [ -f "$EPIC000" ]; then
+  EPIC000_CONTENT=$(sed -n '/^## 1\. Governing Position/,$p' "$EPIC000" | head -c 1200 | tr '\n' ' ')
+  [ -n "$EPIC000_CONTENT" ] && PARTS+=("BINDING CONSTITUTION (EPIC-000, docs/constitution/): $EPIC000_CONTENT")
 fi
 
 PARTS+=("LOCALE: en-AU (DD/MM/YYYY, AUD, AEST/AEDT)")

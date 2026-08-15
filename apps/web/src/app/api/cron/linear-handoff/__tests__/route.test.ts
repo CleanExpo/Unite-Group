@@ -70,8 +70,8 @@ describe("GET /api/cron/linear-handoff", () => {
         retired: true,
         source: "command-centre:linear-handoff",
         error:
-          "Legacy Linear autonomous handoff is permanently retired. CRM OWNEST is authoritative.",
-        next_action: "use_crm_ownest",
+          "Legacy Linear autonomous handoff is permanently retired. Approved CRM `cc_tasks` claimed by the Nexus Runner are authoritative.",
+        next_action: "use_cc_tasks_queue",
       });
       expect(fetchClaimCandidates).not.toHaveBeenCalled();
       expect(resolveStateId).not.toHaveBeenCalled();

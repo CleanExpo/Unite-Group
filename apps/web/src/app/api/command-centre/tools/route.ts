@@ -5,7 +5,7 @@
 import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
-import { getToolCatalogue } from '@/lib/command-centre/tools/catalogue'
+import { getFounderToolCatalogue } from '@/lib/command-centre/tools/catalogue'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,8 +14,11 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   try {
-    const tools = await getToolCatalogue()
-    return NextResponse.json({ tools, count: tools.length })
+    // Registry-first: serve `cc_tools` when it has rows, otherwise the static
+    // set. `origin` says which — a static catalogue must never be mistaken for
+    // a populated registry. `POST /api/command-centre/registry/sync` fills it.
+    const { tools, origin, registry_count } = await getFounderToolCatalogue(user.id)
+    return NextResponse.json({ tools, count: tools.length, origin, registry_count })
   } catch (error) {
     const message = sanitiseError(error, 'Failed to load tool catalogue')
     return NextResponse.json({ error: message }, { status: 500 })

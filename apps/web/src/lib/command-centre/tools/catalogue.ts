@@ -176,3 +176,43 @@ export async function getToolCatalogue(): Promise<CommandCentreTool[]> {
 export function getKnownTools(): CommandCentreTool[] {
   return [...KNOWN_TOOLS]
 }
+
+/** Where a served catalogue actually came from. Never inferred by the caller. */
+export type ToolCatalogueOrigin = 'registry' | 'static'
+
+export interface ToolCatalogueResult {
+  tools: CommandCentreTool[]
+  /**
+   * `registry` when the rows came from `cc_tools`; `static` when the registry
+   * was empty or unreachable and the hard-coded set below was served instead.
+   * Surfaced rather than hidden: a static catalogue that looks like a populated
+   * registry is exactly the fake-as-real failure the deck must not ship.
+   */
+  origin: ToolCatalogueOrigin
+  /** How many rows the registry returned — 0 is the signal that a sync is due. */
+  registry_count: number
+}
+
+/**
+ * Registry-first catalogue for an authenticated founder.
+ *
+ * Reads `cc_tools`; falls back to the static known set plus Hermes discovery
+ * when the registry has no rows for this founder. The fallback is reported in
+ * `origin`, so "the registry is empty" stays visible instead of being masked by
+ * a catalogue that happens to be non-empty.
+ *
+ * Populate the registry with `POST /api/command-centre/registry/sync`.
+ */
+export async function getFounderToolCatalogue(founderId: string): Promise<ToolCatalogueResult> {
+  // Imported lazily: `registry-sync` pulls in the Supabase server client, and
+  // the static path (used by unauthenticated/server-component callers) must not
+  // drag a cookie-bound client into its module graph.
+  const { readRegistryTools } = await import('../registry-sync')
+  const registryTools = await readRegistryTools({ founderId })
+
+  if (registryTools.length > 0) {
+    return { tools: registryTools, origin: 'registry', registry_count: registryTools.length }
+  }
+
+  return { tools: await getToolCatalogue(), origin: 'static', registry_count: 0 }
+}
