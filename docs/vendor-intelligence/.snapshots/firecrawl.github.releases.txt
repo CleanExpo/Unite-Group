@@ -2,7 +2,7 @@ Releases · firecrawl/firecrawl · GitHub
 Skip to content
 Navigation Menu
 Sign in
-Type / to search
+Search
 Sign in
 Sign up
 firecrawl
@@ -12,9 +12,9 @@ Public
 Notifications
 You must be signed in to change notification settings
 Fork
-9.2k
+9.4k
 Star
-164k
+168k
 Releases: firecrawl/firecrawl
 Release list
 Previous Next

@@ -1,7 +1,18 @@
 Changelog | Firecrawl
 Introducing our most accurate /search yet. Read the announcement →
-163.6K Sign up
+167.7K Sign up
 Changelog
+Aug 13, 2026
+Life Sciences in Firecrawl Research Index
+The Life Sciences category is now available in Firecrawl Research Index . It covers 41M+ papers across the drug discovery, clinical trial, and biology literature. Your AI agents get citable papers back for a query and can pull the full text on demand. The whole index is also free to use now.
+Highlights
+High-recall retrieval. The index hits 90% recall@10 on our paper-retrieval eval, so your AI agents find more of what matters on the first page of results.
+Millions of life sciences papers. The corpus holds 41M+ papers from authoritative sources and refreshes daily, so your AI agents only cite domain-specific literature.
+Abstract to full text. Your AI agents search abstracts to find the right papers, then pull the full text to verify a claim against the source.
+No DIY stack. Research Index stands in for the source APIs plus the parsing and ranking you would otherwise build yourself.
+Free to use. Every category is free, the AI and ML literature it already carried alongside the new Life Sciences papers.
+Available everywhere you build. Query it through the API at /search/research , plus the CLI, MCP, and SDKs.
+Read the full blog here .
 Jul 22, 2026
 Introducing our most accurate /search yet
 Firecrawl /search now returns the excerpts that best answer your query from each result. Agents using it achieve state-of-the-art accuracy on SimpleQA while using 10x fewer tokens than processing full pages.

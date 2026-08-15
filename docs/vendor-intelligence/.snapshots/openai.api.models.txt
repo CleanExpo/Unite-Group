@@ -170,6 +170,7 @@ Rate limits and spend
 Model, tool, and data controls
 Import and reconciliation
 Private Link
+IP allowlist
 Workload identity federation X.509 certificates (beta)
 Kubernetes
 AWS
@@ -212,6 +213,7 @@ Product checkout spec
 Guides
 UI guidelines
 Optimize Metadata
+Submit a Claude Code plugin
 Security & Privacy
 Troubleshooting
 Resources
@@ -314,7 +316,7 @@ Troubleshooting
 Customization
 Overview
 Memories
-Chronicle
+Computer History
 Config file
 Config Basics
 Advanced Config
@@ -329,6 +331,8 @@ Rules
 Extend ChatGPT and Codex
 Record & Replay
 MCP
+Linux
+Desktop app
 Windows
 Desktop app
 Windows sandbox
@@ -388,17 +392,21 @@ Codex Security cloud Setup
 Security Review
 Improving the threat model
 FAQ
-Safety
-Cyber Safety
+Cyber safety
+Models & Trusted Access
+Recommended configuration
 Getting started
 Admin rollout guide
+ChatGPT Work Overview
 ChatGPT Work admin FAQ
 Identity and authentication
 Authentication overview
-Access tokens
+Personal Access Tokens
+Service accounts
 Workspace access, policy, and models
 Groups and provisioning
 Roles and workspace permissions
+GPTs and Sharing
 Managed configuration
 Prisma AIRS
 HIPAA configuration
@@ -498,34 +506,10 @@ GPT-5.6 Terra
 GPT-5.6 model that balances intelligence and cost
 GPT-5.6 Luna
 GPT-5.6 model optimized for cost-sensitive workloads
-GPT-5.5
-A new class of intelligence for coding and professional work.
-GPT-5.5 Pro
-Version of GPT-5.5 that produces smarter and more precise responses.
-GPT-5.4
-A more affordable model for coding and professional work.
-GPT-5.4 Pro
-Version of GPT-5.4 that produces smarter and more precise responses.
-GPT-5.4 mini
-Our strongest mini model yet for coding, computer use, and subagents
-GPT-5.4 nano
-Our cheapest GPT-5.4-class model for simple high-volume tasks
 Image
 Models for image generation and editing.
 GPT Image 2
 State-of-the-art image generation model
-GPT Image 1.5
-Deprecated
-Our previous image generation model
-chatgpt-image-latest
-Deprecated
-Previous image model used in ChatGPT.
-GPT Image 1
-Deprecated
-Our previous image generation model
-gpt-image-1-mini
-Deprecated
-A cost-efficient version of GPT Image 1
 Realtime & audio
 Models for realtime, speech, and audio workflows.
 GPT-Realtime-2.1
@@ -542,14 +526,8 @@ GPT-Realtime-Whisper
 Streaming speech-to-text model for realtime transcription
 GPT-Realtime-1.5
 The best voice model for audio in, audio out
-GPT-Realtime
-Deprecated
-Model capable of realtime text and audio inputs and outputs
 gpt-audio-1.5
 The best voice model for audio in, audio out with Chat Completions.
-gpt-audio
-Deprecated
-For audio inputs and outputs with Chat Completions API
 GPT Transcribe
 High-accuracy speech-to-text model for file and Realtime input transcription
 GPT-4o Transcribe
@@ -564,26 +542,16 @@ TTS-1 HD
 Text-to-speech model optimized for quality
 Whisper
 General-purpose speech recognition model
-GPT-Realtime mini
-Deprecated
-A cost-efficient version of GPT-Realtime
-gpt-audio-mini
-Deprecated
-A cost-efficient version of GPT Audio
-GPT-4o Audio
-Deprecated
-GPT-4o models capable of audio inputs and outputs
-GPT-4o mini Audio
-Deprecated
-Smaller model capable of audio inputs and outputs
-GPT-4o Realtime
-Deprecated
-Model capable of realtime text and audio inputs and outputs
-GPT-4o mini Realtime
-Deprecated
-Smaller realtime model for text and audio inputs and outputs
 GPT-4o mini TTS
 Text-to-speech model powered by GPT-4o mini
+OpenAI Daybreak
+Frontier cyber models for defenders
+GPT-5.6 Cyber
+Our most advanced cybersecurity model for authorized vulnerability research and security testing.
+Daybreak Red
+An alias for advanced cybersecurity models for authorized vulnerability research and security testing.
+Daybreak Blue
+An alias for frontier general-purpose models with safeguards for defensive cybersecurity work.
 Open-weight models
 Open-weight models under a permissive Apache 2.0 license.
 gpt-oss-120b
@@ -600,6 +568,18 @@ text-embedding-ada-002
 Older embedding model
 More models
 Diverse models for a variety of tasks.
+GPT-5.5
+A new class of intelligence for coding and professional work.
+GPT-5.5 Pro
+Version of GPT-5.5 that produces smarter and more precise responses.
+GPT-5.4
+A more affordable model for coding and professional work.
+GPT-5.4 Pro
+Version of GPT-5.4 that produces smarter and more precise responses.
+GPT-5.4 mini
+Our strongest mini model yet for coding, computer use, and subagents
+GPT-5.4 nano
+Our cheapest GPT-5.4-class model for simple high-volume tasks
 GPT-5.3-Codex
 The most capable agentic coding model to date.
 GPT-5.2
@@ -628,6 +608,14 @@ omni-moderation
 Identify potentially harmful content in text and images
 GPT-4o mini
 Fast, affordable small model for focused tasks
+GPT-4o
+Fast, intelligent, flexible GPT model
+GPT-Realtime
+Deprecated
+Model capable of realtime text and audio inputs and outputs
+gpt-audio
+Deprecated
+For audio inputs and outputs with Chat Completions API
 GPT-5.3 Chat
 Deprecated
 GPT-5.3 Instant model used in ChatGPT
@@ -643,6 +631,18 @@ Flagship video generation with synced audio
 Sora 2 Pro
 Deprecated
 Most advanced synced-audio video generation
+GPT Image 1.5
+Deprecated
+Our previous image generation model
+chatgpt-image-latest
+Deprecated
+Previous image model used in ChatGPT.
+gpt-image-1-mini
+Deprecated
+A cost-efficient version of GPT Image 1
+GPT Image 1
+Deprecated
+Our previous image generation model
 o3-deep-research
 Deprecated
 Our most powerful deep research model
@@ -661,6 +661,12 @@ Version of o1 with more compute for better responses
 computer-use-preview
 Deprecated
 Specialized model for computer use tool
+GPT-Realtime mini
+Deprecated
+A cost-efficient version of GPT-Realtime
+gpt-audio-mini
+Deprecated
+A cost-efficient version of GPT Audio
 GPT-4o mini Search Preview
 Deprecated
 Fast, affordable small model for web search
@@ -682,8 +688,18 @@ A small model alternative to o1
 o1 Preview
 Deprecated
 Preview of our first o-series reasoning model
-GPT-4o
-Fast, intelligent, flexible GPT model
+GPT-4o Audio
+Deprecated
+GPT-4o models capable of audio inputs and outputs
+GPT-4o mini Audio
+Deprecated
+Smaller model capable of audio inputs and outputs
+GPT-4o mini Realtime
+Deprecated
+Smaller realtime model for text and audio inputs and outputs
+GPT-4o Realtime
+Deprecated
+Model capable of realtime text and audio inputs and outputs
 GPT-4 Turbo
 Deprecated
 An older high-intelligence GPT model

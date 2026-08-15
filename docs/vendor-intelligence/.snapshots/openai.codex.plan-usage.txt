@@ -169,6 +169,7 @@ Rate limits and spend
 Model, tool, and data controls
 Import and reconciliation
 Private Link
+IP allowlist
 Workload identity federation X.509 certificates (beta)
 Kubernetes
 AWS
@@ -211,6 +212,7 @@ Product checkout spec
 Guides
 UI guidelines
 Optimize Metadata
+Submit a Claude Code plugin
 Security & Privacy
 Troubleshooting
 Resources
@@ -314,7 +316,7 @@ Troubleshooting
 Customization
 Overview
 Memories
-Chronicle
+Computer History
 Config file
 Config Basics
 Advanced Config
@@ -329,6 +331,8 @@ Rules
 Extend ChatGPT and Codex
 Record & Replay
 MCP
+Linux
+Desktop app
 Windows
 Desktop app
 Windows sandbox
@@ -388,17 +392,21 @@ Codex Security cloud Setup
 Security Review
 Improving the threat model
 FAQ
-Safety
-Cyber Safety
+Cyber safety
+Models & Trusted Access
+Recommended configuration
 Getting started
 Admin rollout guide
+ChatGPT Work Overview
 ChatGPT Work admin FAQ
 Identity and authentication
 Authentication overview
-Access tokens
+Personal Access Tokens
+Service accounts
 Workspace access, policy, and models
 Groups and provisioning
 Roles and workspace permissions
+GPTs and Sharing
 Managed configuration
 Prisma AIRS
 HIPAA configuration
@@ -858,6 +866,14 @@ GPT-5.6 Sol
 125 credits
 12.5 credits
 750 credits
+Daybreak Blue
+125 credits
+12.5 credits
+750 credits
+Daybreak Red
+312.5 credits
+31.25 credits
+1875 credits
 GPT-5.6 Terra
 50 credits
 5 credits
@@ -891,6 +907,10 @@ GPT-Image-2 (text)
 GPT-5.6 usage averages 5-40 credits per message.
 Fast mode consumes credits at a higher rate for supported models. See
 Speed for rates.
+Daybreak access requires Trusted Access for
+Cyber approval.
+Daybreak Blue uses GPT-5.6 Sol credit rates. Daybreak Red requires
+separate approval and provisioning.
 Speed configurations will increase credit consumption for all models that apply.
 Fast mode consumes credits at a higher rate for supported models. See
 Speed for supported models and rates.
@@ -1017,10 +1037,7 @@ Limited*
 Limited*
 Limited*
 Limited*
-Chronicle
-—
-Limited*
-—
+Computer History
 —
 —
 Cloud and integrations
@@ -1142,7 +1159,7 @@ MCP
 Subagents
 Memories
 Limited*
-Chronicle
+Computer History
 —
 Cloud and integrations
 Cloud chats

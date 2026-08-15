@@ -268,9 +268,10 @@ The `get-actor-output` tool is automatically included with any Actor-related too
 #### Find and call any Actor on demand
 Your AI can search Apify Store for relevant Actors using the `search-actors` tool, inspect Actor details to understand required inputs, and call any Actor by name using `call-actor` - without needing to pre-configure it. This means your AI can adapt to new tasks without manual configuration.
 ## Agentic payments
-Agentic payments allow AI agents to autonomously pay for Actor runs without requiring an Apify API token. The Apify MCP server supports two payment methods:
-* [x402 protocol](https://docs.apify.com/integrations/x402.md) - Direct on-chain payments using USDC on the [Base](https://www.base.org/) blockchain via the open [x402](https://www.x402.org/) standard.
-* [Skyfire](https://docs.apify.com/integrations/skyfire.md) - Managed payment tokens through the [Skyfire](https://www.skyfire.xyz/) payment platform.
+Agentic payments allow AI agents to autonomously pay for Actor runs without requiring an Apify API token:
+* [AGI](https://docs.apify.com/integrations/x402.md) - buy a prepaid Apify API token from [Apify AGI](https://agi.apify.com) with an x402 or MPP payment, then use it against this MCP server or the Apify API directly. Recommended for most agents - works for any Actor, not just Pay Per Event ones.
+* [Skyfire](https://docs.apify.com/integrations/skyfire.md) - managed payment tokens through the [Skyfire](https://www.skyfire.xyz/) payment platform.
+The MCP server also has its own Direct x402 support (per-request, no minted token, Pay Per Event Actors only) via [mcpc](https://github.com/apify/mcp-cli) - see the [Apify MCP Server README](https://github.com/apify/apify-mcp-server#-agentic-payments) for setup.
 For setup instructions and details, see the individual integration pages.
 ## Telemetry
 The MCP server collects telemetry data about tool calls and MCP clients to help Apify understand usage patterns and improve the service. Participation in this program is optional and you may opt out if you prefer not to share any information.
