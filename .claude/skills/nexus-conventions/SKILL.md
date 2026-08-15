@@ -50,14 +50,31 @@ behaviour is provably unchanged. Behaviour-neutral until armed.
 - **L2 / L3** — always `needs_review`. Executors resolve to null. Do not
   build L2/L3 execution paths without an explicit founder decision.
 
-## Reuse the operator-gateway backbone
+## Two queues, one rule: reuse, never invent a third
 
-Job-like work lands in `operator_jobs` + `operator_events` — do not invent a
-parallel harness. Status transitions follow the gateway idiom:
+There are exactly two job surfaces. Both are live. Pick by who executes the
+work, then reuse that surface's idiom — do not build a parallel harness.
+
+| Surface | Owns | Executor |
+|---|---|---|
+| `cc_tasks` + `cc_task_events` | Command Centre work the founder approves from the deck | Nexus Runner (UNI-2383), which claims approved rows via `POST /api/agents/runner/claim` |
+| `operator_jobs` + `operator_events` | Model Operator Gateway work — CRM mission-control execution, wiki/lane jobs | The operator-gateway routes, synchronously |
+
+`operator_jobs` is NOT superseded. The autopilot README's "superseded queue
+surface" line is scoped to OWNEST's consumption of it — OWNEST's host worker is
+permanently retired (UNI-2143) and its old LaunchAgent must stay unloaded — not
+to the gateway itself, which 18 files under `apps/web/src` still use.
+
+Status transitions on `operator_jobs` follow the gateway idiom:
 `blocked → running → done | failed`, one `status_changed` event per hop.
 Outcome statuses (`running`, `done`, `failed`) must stay OUTSIDE the autopilot
 poller's claim set (`planned`, `queued`) so the Mac-side runner can never
 double-claim work that another path is executing synchronously.
+
+Retired names that must not come back as executors: the Linear autonomous claim
+lane (`/api/cron/linear-claim` and `/api/cron/linear-handoff` are authenticated
+410 tombstones returning `next_action: "use_cc_tasks_queue"`) and the OWNEST
+host worker.
 
 ## Migrations are founder-gated
 

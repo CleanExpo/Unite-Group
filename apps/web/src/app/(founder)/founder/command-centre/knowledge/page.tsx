@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { chakra, syne, jbMono } from '../fonts'
 import { getToolCatalogue } from '@/lib/command-centre/tools/catalogue'
 import { WikiGraphTile } from '@/components/command-centre/wiki-graph/WikiGraphTile'
+import { CapabilityRegistryTile } from '@/components/command-centre/capability-registry/CapabilityRegistryTile'
 import { DeckDetails, DeckMoreLine, DECK_LIST_CAP } from '@/components/command-centre/DeckDetails'
 import { DeckThemeShell } from '../DeckThemeShell'
 import { WikiEnhanceControl } from '../WikiEnhanceControl'
@@ -51,6 +52,16 @@ export default async function KnowledgeDeckPage() {
         <h2>Capability Bus</h2>
         <span className={shell.glassSub}>{tools.length} tools · {Object.keys(sources).length} sources</span>
       </div>
+
+      {/*
+        Capability registry state (cc_tools / cc_agents) + the founder-initiated
+        sync. Sits directly under the bus head because the bus listing above is
+        the STATIC catalogue: this tile is what says whether the registry an
+        agent actually searches has anything in it.
+      */}
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.03s' }}>
+        <CapabilityRegistryTile />
+      </section>
 
       <section className={`${styles.bus} ${styles.reveal}`} style={{ animationDelay: '0.04s' }}>
         <div className={styles.busTop}>

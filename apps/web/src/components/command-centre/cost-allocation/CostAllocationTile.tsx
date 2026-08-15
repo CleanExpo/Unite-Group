@@ -14,12 +14,31 @@ interface SourceView {
   name: string
   amount_aud: number
 }
+type MeteringState = 'collecting' | 'scheduled_noop' | 'dormant'
+
 interface CostAllocationView {
   period: { start: string; end: string }
   sources: SourceView[]
   total_cost_aud: number
   total_revenue_aud: number
   prior_month_cost_aud: number
+  /** Absent on a response from before the metering-state field shipped. */
+  metering?: { state: MeteringState; fetchers_wired: number }
+}
+
+/**
+ * What an empty tile actually means. A zero total is only "live" when the
+ * pipeline is genuinely collecting; otherwise the cron is a scheduled no-op
+ * and saying "live" would present dormancy as active cost collection.
+ */
+function meteringCopy(state: MeteringState, fetchersWired: number): string {
+  if (state === 'dormant') {
+    return 'Cost metering is dormant — COST_METERING_ENABLED is not set, so the scheduled cron exits without collecting.'
+  }
+  if (state === 'scheduled_noop') {
+    return `Cost metering is enabled but no provider fetcher is wired (${fetchersWired} registered) — the scheduled cron runs and collects nothing.`
+  }
+  return 'No cost events recorded for this period yet.'
 }
 
 const AUD = new Intl.NumberFormat('en-AU', {
@@ -55,7 +74,17 @@ export function CostAllocationTile() {
 
   useEffect(() => { load() }, [load])
 
-  const mode: SourceMode = loading ? 'loading' : error ? 'degraded' : 'live'
+  // A successful fetch is NOT evidence that anything is collecting. Only a
+  // 'collecting' pipeline may badge as live; a dormant or no-op pipeline is
+  // 'degraded', which is what the deck already uses for "this is not real".
+  const meteringState: MeteringState = data?.metering?.state ?? 'dormant'
+  const mode: SourceMode = loading
+    ? 'loading'
+    : error
+      ? 'degraded'
+      : meteringState === 'collecting'
+        ? 'live'
+        : 'degraded'
   const sources = data?.sources ?? []
   const maxAmount = sources.reduce((acc, s) => Math.max(acc, s.amount_aud), 0)
   const empty =
@@ -83,7 +112,7 @@ export function CostAllocationTile() {
 
       {empty && (
         <p style={{ color: 'var(--deck-muted)', fontSize: 12, margin: 0 }}>
-          No cost events ingested yet — cost-ingest cron pending first run.
+          {meteringCopy(meteringState, data?.metering?.fetchers_wired ?? 0)}
         </p>
       )}
 

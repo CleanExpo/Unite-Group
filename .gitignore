@@ -110,3 +110,7 @@ outputs/sandbox_voice_migration/
 # Firecrawl scrape output: third-party pages pulled for research. Transient,
 # re-fetchable, and not ours to redistribute — keep it out of the repo.
 .firecrawl/
+
+# pnpm content-addressable store — created by container/CI installs that set a repo-local
+# store-dir. Never a source artefact; 1.4GB and individual files exceed GitHub 100MB.
+/.pnpm-store/
