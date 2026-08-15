@@ -105,6 +105,63 @@ describe('readEngineeringArtifact — refusals', () => {
   })
 })
 
+// Three P0s raised by the independent reviewer against b4eb2d9ea. Two
+// reproduced and are regressed here; the third did not — malformed indentation
+// yields "category `budget` is missing — all ten are required", so a dropped
+// category IS detected. That test is kept too, as the standing proof.
+describe('reviewer P0 regressions', () => {
+  it('refuses `blocking` values that are neither true nor false, rather than assuming not-blocking', () => {
+    // Verified before the fix: `blocking: yes` was accepted and produced a full
+    // ten-step plan from an artefact that carried a blocking finding.
+    for (const value of ['yes', '1', 'y', 'maybe', '']) {
+      const raw = doc().replace('    blocking: false\n    answer: answer for migration', `    blocking: ${value}\n    answer: answer for migration`)
+      expect(() => readEngineeringArtifact(raw)).toThrow(/unreadable `blocking` value|blocking findings/)
+    }
+  })
+
+  it('still accepts the two legal spellings, case-insensitively', () => {
+    expect(() => readEngineeringArtifact(doc({ budget: { blocking: false } }))).not.toThrow()
+    // TRUE is legible as true — and therefore refused as a blocking finding,
+    // which is the correct outcome for a different reason.
+    expect(() => readEngineeringArtifact(doc({ budget: { blocking: true } }))).toThrow(/blocking findings/)
+  })
+
+  it('planFromEngineering refuses a BLOCKED artefact handed to it directly', () => {
+    // The parse path already refuses these, but planFromEngineering is exported
+    // and takes a plain object, so the refusal must live on the step-emitting
+    // function too. Verified before the guard: this produced 10 steps.
+    const categories = Object.fromEntries(
+      ENGINEERING_CATEGORIES.map((name) => [name, { state: 'DECIDED', blocking: true, answer: 'x' }]),
+    )
+    expect(() =>
+      planFromEngineering({ spec: 's', specSha256: 'h', status: 'BLOCKED', categories } as never),
+    ).toThrow(EngineeringIngestRefusal)
+  })
+
+  it('planFromEngineering refuses a PASS-labelled artefact carrying blocking findings', () => {
+    const categories = Object.fromEntries(
+      ENGINEERING_CATEGORIES.map((name) => [
+        name,
+        { state: 'DECIDED', blocking: name === 'rollback', answer: 'x' },
+      ]),
+    )
+    expect(() =>
+      planFromEngineering({ spec: 's', specSha256: 'h', status: 'PASS', categories } as never),
+    ).toThrow(/blocking findings/)
+  })
+
+  it('detects a category dropped by malformed indentation — the third P0 did not reproduce', () => {
+    const lines = ['---', 'type: engineering-requirements', 'spec: s', 'spec_sha256: h', 'categories:']
+    for (const name of ENGINEERING_CATEGORIES) {
+      const indent = name === 'budget' ? '      ' : '  '
+      const field = name === 'budget' ? '        ' : '    '
+      lines.push(`${indent}${name}:`, `${field}state: DECIDED`, `${field}blocking: false`, `${field}answer: a`)
+    }
+    lines.push('---')
+    expect(() => readEngineeringArtifact(lines.join('\n'))).toThrow(/category `budget` is missing/)
+  })
+})
+
 describe('readEngineeringArtifact — acceptance', () => {
   it('accepts a conforming, unblocked artefact and derives PASS', () => {
     const artifact = readEngineeringArtifact(doc())

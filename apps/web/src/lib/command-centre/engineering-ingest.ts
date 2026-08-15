@@ -229,8 +229,26 @@ function stripQuotes(value: string): string {
   return quoted ? quoted[2] : value
 }
 
-function asBoolean(value: unknown): boolean {
-  return typeof value === 'string' && value.trim().toLowerCase() === 'true'
+/**
+ * Read a boolean that gates safety, failing CLOSED on anything unrecognised.
+ *
+ * `blocking` decides whether a finding stops a spec becoming code, so an
+ * unreadable value must never resolve to "not blocking". An earlier cut
+ * returned false for everything that was not the literal string "true", which
+ * meant `blocking: yes` — or `1`, or a YAML boolean the writer expected to
+ * work — silently admitted a blocked artefact. Verified: `blocking: yes` was
+ * accepted and produced a full ten-step plan.
+ *
+ * Returns null for anything that is neither true nor false, so the caller can
+ * refuse rather than guess.
+ */
+function asBooleanStrict(value: unknown): boolean | null {
+  if (typeof value === 'boolean') return value
+  if (typeof value !== 'string') return null
+  const normalised = value.trim().toLowerCase()
+  if (normalised === 'true') return true
+  if (normalised === 'false') return false
+  return null
 }
 
 function asString(value: unknown): string {
@@ -292,9 +310,18 @@ export function readEngineeringArtifact(raw: string): EngineeringArtifact {
         )
         continue
       }
+      const blocking = asBooleanStrict(fields.blocking)
+      if (blocking === null) {
+        reasons.push(
+          `category \`${name}\` has an unreadable \`blocking\` value ` +
+            `\`${asString(fields.blocking) || 'unset'}\` — must be exactly true or false. ` +
+            'Refusing rather than assuming not-blocking.',
+        )
+        continue
+      }
       categories[name] = {
         state: state as CategoryState,
-        blocking: asBoolean(fields.blocking),
+        blocking,
         answer: asString(fields.answer),
       }
     }
@@ -357,6 +384,27 @@ export interface EngineeringPlan {
 }
 
 export function planFromEngineering(artifact: EngineeringArtifact): EngineeringPlan {
+  // Defence in depth. readEngineeringArtifact already refuses a BLOCKED
+  // document, but this function is exported and takes a plain object, so a
+  // caller can hand it a hand-built artefact that never went through that path.
+  // Verified before this guard existed: a `status: 'BLOCKED'` artefact with all
+  // ten categories blocking produced a full ten-step plan. The refusal must live
+  // on the function that emits steps, not only on the one that parses text.
+  if (artifact.status !== 'PASS') {
+    throw new EngineeringIngestRefusal([
+      `artefact status is ${artifact.status} — a blocked review cannot generate a plan`,
+    ])
+  }
+  const blocking = Object.entries(artifact.categories)
+    .filter(([, entry]) => entry?.blocking)
+    .map(([name]) => name)
+  if (blocking.length > 0) {
+    throw new EngineeringIngestRefusal([
+      'artefact carries blocking findings and cannot generate a plan: ' +
+        blocking.sort().map((name) => `\`${name}\``).join(', '),
+    ])
+  }
+
   const steps: DecompositionStep[] = []
   const planned: EngineeringCategory[] = []
   const skipped: Array<{ category: EngineeringCategory; state: CategoryState }> = []
