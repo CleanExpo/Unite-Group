@@ -169,6 +169,7 @@ Rate limits and spend
 Model, tool, and data controls
 Import and reconciliation
 Private Link
+IP allowlist
 Workload identity federation X.509 certificates (beta)
 Kubernetes
 AWS
@@ -211,6 +212,7 @@ Product checkout spec
 Guides
 UI guidelines
 Optimize Metadata
+Submit a Claude Code plugin
 Security & Privacy
 Troubleshooting
 Resources
@@ -314,7 +316,7 @@ Troubleshooting
 Customization
 Overview
 Memories
-Chronicle
+Computer History
 Config file
 Config Basics
 Advanced Config
@@ -329,6 +331,8 @@ Rules
 Extend ChatGPT and Codex
 Record & Replay
 MCP
+Linux
+Desktop app
 Windows
 Desktop app
 Windows sandbox
@@ -388,17 +392,21 @@ Codex Security cloud Setup
 Security Review
 Improving the threat model
 FAQ
-Safety
-Cyber Safety
+Cyber safety
+Models & Trusted Access
+Recommended configuration
 Getting started
 Admin rollout guide
+ChatGPT Work Overview
 ChatGPT Work admin FAQ
 Identity and authentication
 Authentication overview
-Access tokens
+Personal Access Tokens
+Service accounts
 Workspace access, policy, and models
 Groups and provisioning
 Roles and workspace permissions
+GPTs and Sharing
 Managed configuration
 Prisma AIRS
 HIPAA configuration
@@ -491,7 +499,56 @@ Latest updates to ChatGPT and Codex
 All updates General ChatGPT desktop app Remote Codex CLI
 August 2026 July 2026 June 2026 May 2026 April 2026 March 2026 February 2026 January 2026 December 2025 November 2025 October 2025 September 2025 August 2025 June 2025 May 2025
 August 2026
-li+li]:mt-12"> 2026-08-07
+li+li]:mt-12"> 2026-08-13
+Computer History
+Computer History is an opt-in feature
+in the ChatGPT desktop app on macOS that turns activity across apps and
+websites into memories and a timeline that ChatGPT and Codex can use. Choose
+which apps and websites contribute, pause collection, and review or delete
+your history at any time.
+Computer History is available to ChatGPT Pro, Business, and Enterprise users.
+Business and Enterprise administrators must enable access before workspace
+members can turn it on. Initial availability excludes the European Economic Area (EEA),
+Switzerland, and the United Kingdom.
+2026-08-11
+Linux desktop preview and agent imports
+Install the ChatGPT desktop app on Linux
+The ChatGPT desktop app for Linux is available in
+preview for supported Ubuntu, Debian, and Fedora desktop distributions on x64
+and ARM64 processors. Download the .deb or .rpm package for your
+distribution, then sign in to work with projects, local files, and Codex.
+Import setup and recent work from other agents
+The desktop app supports Claude Code , Claude Cowork , and
+Cursor . Import instructions, settings, skills, plugins, projects, and
+recent work , then turn on automatic updates in
+Settings > Import to keep imported work in sync.
+Codex CLI can also import supported setup and recent chats from Claude Code
+and Cursor with /import .
+2026-08-10
+Introducing Daybreak Blue and Daybreak Red
+Daybreak now offers two access tiers for approved defenders: Daybreak Blue and
+Daybreak Red. Use them to move from security findings to validated fixes in
+explicitly authorized engagements.
+Start with Daybreak Blue for most defensive security work. It provides access
+to general-purpose models such as GPT-5.6 Sol for vulnerability discovery,
+secure code review, detection engineering, incident response, malware analysis,
+and patch validation.
+Daybreak Red provides separately approved access to purpose-trained models such
+as GPT-5.6 Cyber for authorized vulnerability reproduction, exploit validation,
+penetration testing, red teaming, and complex system analysis.
+Access requires approval through
+Trusted Access for Cyber and
+applies only to the approved identity, workspace or API organization and
+project, model, and product surface. Daybreak Red requires separate approval
+and provisioning; Daybreak Blue access doesn’t grant access to Daybreak Red.
+Work in an isolated environment, define your engagement scope, use
+least-privilege permission profiles , and configure
+Auto-review for eligible actions before they
+cross the sandbox boundary.
+Learn more about Cyber Safety ,
+Codex credit rates , and
+API token prices .
+2026-08-07
 Codex CLI 0.147.0
 pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.147.0
 View details New Features
@@ -884,6 +941,12 @@ configurations, custom agents, and scheduled tasks that use either model.
 See Codex models and
 workspace model availability
 for details.
+2026-07-31
+Record & Replay expands to the EU, UK, and Switzerland
+Record & Replay is now available in the
+European Union, the United Kingdom, and Switzerland. On macOS, demonstrate a
+workflow and turn it into a reusable skill. Computer Use must also be available
+and enabled.
 2026-07-30
 Browser upgrades, multi-repository review, and image editing 26.727
 The latest ChatGPT desktop app update makes browsing, reviewing code, and
@@ -2136,23 +2199,7 @@ Full Changelog: rust-v0.142.4...rust-v0.142.5
 #30771 [codex] Backport websocket trace fix to release/0.142 @dylan-hurd-oai
 Full release on Github
 June 2026
-li+li]:mt-12"> 2026-06-29
-Codex CLI 0.142.4
-pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.142.4
-View details Chores
-No user-facing changes were identified for this release.
-Changelog
-Full Changelog: rust-v0.142.3...rust-v0.142.4
-Full release on Github
-2026-06-26
-Codex CLI 0.142.3
-pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.142.3
-View details Chores
-Maintenance-only patch release with no user-facing changes since 0.142.2.
-Changelog
-Full Changelog: rust-v0.142.2...rust-v0.142.3
-Full release on Github
-2026-06-25
+li+li]:mt-12"> 2026-06-25
 Codex Remote reaches general availability
 Codex Remote has reached general availability. Use Codex from the ChatGPT mobile
 app to start or continue work on a connected Mac or Windows host, review
@@ -2166,57 +2213,6 @@ lets Codex provision a DigitalOcean Droplet, configure SSH access, and connect
 it to the Codex App as a remote workspace.
 See Remote connections for setup and
 troubleshooting.
-2026-06-25
-Codex CLI 0.142.2
-pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.142.2
-View details New Features
-MCP tools now use tool search by default when supported, improving tool discovery while preserving compatibility with older models and providers. ( #29486 )
-macOS authentication clients can honor system proxy, PAC, and WPAD settings when respect_system_proxy is enabled. ( #26709 )
-Plugins can provide dedicated dark-mode logos through local manifests and remote catalogs. ( #29488 )
-Apps can display richer safety-buffering UI using server-provided visibility and faster-model metadata. ( #29473 )
-Bug Fixes
-Remote plugin catalogs now return curated featured-plugin rankings. ( #29485 )
-Expired Amazon Bedrock credentials now produce actionable recovery guidance instead of a generic authorization error. ( #28992 )
-Remote stdio MCP servers now accept absolute working directories written in the remote platform’s path format. ( #29493 )
-Remote HTTP(S) image inputs now return clear model-visible validation errors; inline data URLs and local images remain supported. ( #29417 , #29419 )
-PowerShell commands containing executable AST regions the safety classifier cannot inspect now require approval. ( #24092 )
-Code Mode now warns when the selected model lacks the required metadata. ( #29490 )
-Chores
-Updated bundled OpenSSL and esbuild dependencies to patched releases. ( #29487 , #29489 )
-Successful formatter runs are now quiet while failures still show diagnostics. ( #29467 )
-Changelog
-Full Changelog: rust-v0.142.1...rust-v0.142.2
-#28769 Register full CDP requirements feature @syuan-oai
-#29485 [codex] fetch featured IDs for remote plugins @ericning-o
-#29487 Upgrade bundled OpenSSL to 3.6.3 @jif-oai
-#29489 [codex] Update esbuild to 0.28.1 @pakrym-oai
-#29488 [plugins] Add dark-mode logo metadata @drewschuster-openai
-#29249 [codex] migrate environment context to model world state @pakrym-oai
-#29494 core: wrap token budget window context @bolinfest
-#29417 [codex] replace remote images with model-visible error text @rka-oai
-#28360 feat(core): store turn_id on ResponseItem metadata @owenlin0
-#29486 [codex] Use tool search for MCP tools by default @sayan-oai
-#29501 path-uri: clarify host-native path conversion @anp-oai
-#29504 fix: world state response item test @celia-oai
-#26704 TUI Plugin Sharing 4 - cover remote plugin catalog flows @canvrno-oai
-#29419 [codex] reject remote images at app-server ingress @rka-oai
-#28992 chore: improve expired Bedrock credential errors @celia-oai
-#29467 Make formatter output quiet on success @anp-oai
-#26709 PAC 4 - Add macOS system proxy resolver @canvrno-oai
-#29490 chore: warn when Code Mode lacks model metadata @celia-oai
-#29493 mcp: accept foreign absolute cwd for remote stdio @anp-oai
-#29473 Propagate safety buffering treatment metadata @fc-oai
-#24092 [codex] Reject unlowered PowerShell AST regions @bookholt-oai
-Full release on Github
-2026-06-25
-Codex CLI 0.142.1
-pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.142.1
-View details New Features
-Added opt-in Windows system proxy support for authentication, including PAC, WPAD, static proxies, and bypass rules. ( #26708 )
-Changelog
-Full Changelog: rust-v0.142.0...rust-v0.142.1
-#26708 PAC 3 - Add Windows system proxy resolver @canvrno-oai
-Full release on Github
 2026-06-22
 ChatGPT for iOS 1.2026.167
 New features

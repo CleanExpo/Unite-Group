@@ -35,7 +35,7 @@ nous
 hermes setup --portal (fresh) or hermes auth add nous (OAuth)
 OpenAI Codex
 openai-codex
-hermes model (ChatGPT OAuth)
+hermes model → ChatGPT or Codex Subscription (ChatGPT OAuth)
 GitHub Copilot
 copilot
 COPILOT_GITHUB_TOKEN , GH_TOKEN , or GITHUB_TOKEN
@@ -297,7 +297,7 @@ Force Nous Portal
 hermes auth
 "codex"
 Force Codex OAuth
-hermes model → Codex
+hermes model → ChatGPT or Codex Subscription
 "main"
 Use whatever provider the main agent uses (auxiliary tasks only)
 Active main provider configured
