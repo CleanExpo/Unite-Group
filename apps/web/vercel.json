@@ -3,6 +3,7 @@
   "buildCommand": "corepack pnpm@9.15.0 build",
   "outputDirectory": ".next",
   "installCommand": "corepack enable && corepack pnpm@9.15.0 install",
+  "ignoreCommand": "node ../../scripts/vercel-ignore-build.mjs",
   "crons": [
     {
       "path": "/api/cron/bookkeeper",
