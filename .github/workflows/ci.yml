@@ -139,8 +139,13 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      # preflight.test.mjs is the anti-drift gate: it asserts every job in THIS
+      # file is either mirrored in the local preflight runner or listed as
+      # explicitly unreproducible. Adding a job below without updating
+      # scripts/lib/preflight-jobs.mjs fails here, rather than silently letting
+      # the local gate go stale and start green-lighting pushes it cannot check.
       - name: Test readiness kernel
-        run: node --test scripts/__tests__/check-env.test.mjs scripts/__tests__/dependency-audit.test.mjs scripts/__tests__/nexus-project-readiness.test.mjs scripts/__tests__/verify-web-ci-build.test.mjs scripts/__tests__/workflow-supply-chain.test.mjs
+        run: node --test scripts/__tests__/check-env.test.mjs scripts/__tests__/dependency-audit.test.mjs scripts/__tests__/nexus-project-readiness.test.mjs scripts/__tests__/verify-web-ci-build.test.mjs scripts/__tests__/workflow-supply-chain.test.mjs scripts/__tests__/preflight.test.mjs scripts/__tests__/cron-cost-audit.test.mjs
 
       - name: Enforce configured P0 findings
         run: node scripts/nexus-project-readiness.mjs --root . --json --gate
