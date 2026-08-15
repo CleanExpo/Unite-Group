@@ -26,6 +26,7 @@ describe('parseCapabilityManifest', () => {
             model_tier: 'opus',
             skills: ['audit/forensics.md'],
             definition_path: 'apps/web/.claude/agents/code-auditor/agent.md',
+            key: 'code-auditor',
           },
         ],
         skills: [
@@ -33,6 +34,7 @@ describe('parseCapabilityManifest', () => {
             name: 'council-of-logic',
             description: 'First-principles validation.',
             definition_path: 'apps/web/.skills/custom/council-of-logic/SKILL.md',
+            key: 'council-of-logic',
           },
         ],
         mcp_servers: [
@@ -68,6 +70,7 @@ describe('parseCapabilityManifest', () => {
     )
 
     expect(parsed.agents[0]).toEqual({
+      key: 'bare',
       name: 'bare',
       role: '',
       model_tier: null,
@@ -75,6 +78,13 @@ describe('parseCapabilityManifest', () => {
       definition_path: '',
     })
     expect(parsed.schema_version).toBe(0)
+  })
+
+  it('falls back to the name when a pre-key manifest has no key field', () => {
+    const parsed = parseCapabilityManifest(
+      JSON.stringify({ skills: [{ name: 'legacy', description: 'd', definition_path: 'p' }] }),
+    )
+    expect(parsed.skills[0].key).toBe('legacy')
   })
 
   it('throws on a non-object manifest', () => {
@@ -87,7 +97,7 @@ describe('toCcAgentRows', () => {
     const rows = toCcAgentRows(
       manifest({
         agents: [
-          { name: 'qa-tester', role: 'QA', model_tier: null, skills: ['a'], definition_path: 'p' },
+          { key: 'qa-tester', name: 'qa-tester', role: 'QA', model_tier: null, skills: ['a'], definition_path: 'p' },
         ],
       }),
     )
@@ -109,6 +119,7 @@ describe('toCcAgentRows', () => {
       manifest({
         agents: [
           {
+            key: 'deploy-guardian',
             name: 'deploy-guardian',
             role: 'Autonomous production deploy authority',
             model_tier: null,
@@ -127,7 +138,7 @@ describe('toCcAgentRows', () => {
 describe('toCcToolRows', () => {
   const built = toCcToolRows(
     manifest({
-      skills: [{ name: 'seo', description: 'SEO work.', definition_path: 'x/SKILL.md' }],
+      skills: [{ key: 'seo', name: 'seo', description: 'SEO work.', definition_path: 'x/SKILL.md' }],
       mcp_servers: [{ name: 'seo', transport: 'http', description: '', config_path: '.mcp.json' }],
     }),
   )
@@ -164,7 +175,7 @@ describe('toCcToolRows', () => {
 
   it('describes a bare capability from its definition path instead of shipping an empty description', () => {
     const [row] = toCcToolRows(
-      manifest({ skills: [{ name: 'bare', description: '', definition_path: 'a/b/SKILL.md' }] }),
+      manifest({ skills: [{ key: 'bare', name: 'bare', description: '', definition_path: 'a/b/SKILL.md' }] }),
     )
     expect(row.description).toContain('a/b/SKILL.md')
   })
@@ -172,5 +183,54 @@ describe('toCcToolRows', () => {
   it('produces nothing from an empty manifest — the state that inverts reuse', () => {
     expect(toCcToolRows(EMPTY_MANIFEST)).toEqual([])
     expect(toCcAgentRows(EMPTY_MANIFEST)).toEqual([])
+  })
+})
+
+// The repo really does carry two DIFFERENT skills named `council-of-logic` (one
+// under .skills/custom, one under .claude/skills/custom, ~430 diff lines apart),
+// and likewise for `execution-guardian` and `system-supervisor`. An earlier cut
+// of the discovery script deduplicated by name and silently dropped one of every
+// pair — the registry under-reported by three, so a reuse-before-build search
+// could miss the capability it was looking for.
+describe('name collisions between distinct capabilities', () => {
+  const COLLIDING = manifest({
+    skills: [
+      {
+        key: 'council-of-logic@apps/web/.skills/custom/council-of-logic/SKILL.md',
+        name: 'council-of-logic',
+        description: 'Mathematical first principles.',
+        definition_path: 'apps/web/.skills/custom/council-of-logic/SKILL.md',
+      },
+      {
+        key: 'council-of-logic@apps/web/.claude/skills/custom/council-of-logic/SKILL.md',
+        name: 'council-of-logic',
+        description: 'Multi-perspective reasoning.',
+        definition_path: 'apps/web/.claude/skills/custom/council-of-logic/SKILL.md',
+      },
+    ],
+    agents: [
+      { key: 'a@one', name: 'chief-reviewer', role: 'x', model_tier: null, skills: [], definition_path: 'one' },
+      { key: 'a@two', name: 'chief-reviewer', role: 'y', model_tier: null, skills: [], definition_path: 'two' },
+    ],
+  })
+
+  it('registers BOTH same-named skills rather than dropping one', () => {
+    const rows = toCcToolRows(COLLIDING)
+    expect(rows).toHaveLength(2)
+    expect(rows.map((row) => row.description).sort()).toEqual([
+      'Mathematical first principles.',
+      'Multi-perspective reasoning.',
+    ])
+  })
+
+  it('gives colliding skills distinct tool_keys so the upsert cannot overwrite', () => {
+    const keys = toCcToolRows(COLLIDING).map((row) => row.tool_key)
+    expect(new Set(keys).size).toBe(keys.length)
+  })
+
+  it('gives colliding agents distinct cc_agents names for the same reason', () => {
+    const names = toCcAgentRows(COLLIDING).map((row) => row.name)
+    expect(names).toHaveLength(2)
+    expect(new Set(names).size).toBe(2)
   })
 })

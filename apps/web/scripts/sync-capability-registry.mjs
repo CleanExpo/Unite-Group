@@ -115,14 +115,64 @@ function enclosingDirName(filePath) {
   return dirname(filePath).split(/[\\/]/).pop() ?? ''
 }
 
+/** Collisions found while assigning keys, reported at the end of the run. */
+const nameCollisions = []
+
+/**
+ * Assign each entry a registry `key` that is unique across the whole manifest.
+ *
+ * Two DIFFERENT capabilities can legitimately share a `name` — apps/web carries
+ * a `council-of-logic`, an `execution-guardian` and a `system-supervisor` under
+ * BOTH `.skills/custom/` and `.claude/skills/custom/`, and the pairs differ by
+ * 400-500 lines each. They are distinct skills that collide by name, not copies.
+ *
+ * Deduplicating by name would silently drop one of each pair, which is the
+ * failure this function exists to prevent: the registry would under-report what
+ * exists and a reuse-before-build search could miss the very capability it was
+ * looking for. Colliding names are disambiguated by their definition path and
+ * the collision is reported, never swallowed.
+ */
+function assignUniqueKeys(entries) {
+  const byName = new Map()
+  for (const entry of entries) {
+    const bucket = byName.get(entry.name)
+    if (bucket) bucket.push(entry)
+    else byName.set(entry.name, [entry])
+  }
+
+  for (const [name, bucket] of byName) {
+    if (bucket.length === 1) {
+      bucket[0].key = name
+      continue
+    }
+    nameCollisions.push({ name, paths: bucket.map((entry) => entry.definition_path) })
+    for (const entry of bucket) {
+      // The definition path is unique by construction, so `name@path` is too.
+      entry.key = `${name}@${entry.definition_path}`
+    }
+  }
+
+  return entries.sort((a, b) => a.key.localeCompare(b.key))
+}
+
+/** Same definition file reached through two roots — a true duplicate, safe to drop. */
+function dedupeByPath(entries) {
+  const seen = new Set()
+  return entries.filter((entry) => {
+    if (seen.has(entry.definition_path)) return false
+    seen.add(entry.definition_path)
+    return true
+  })
+}
+
 function discoverAgents() {
-  const agents = new Map()
+  const agents = []
   for (const root of AGENT_ROOTS) {
     for (const file of [...findFiles(root, 'agent.md'), ...findFiles(root, 'AGENT.md')]) {
       const fm = readFrontmatter(file)
       const name = firstString(fm.name, enclosingDirName(file))
-      if (!name || agents.has(name)) continue
-      agents.set(name, {
+      if (!name) continue
+      agents.push({
         name,
         role: firstString(fm.role, fm.description),
         model_tier: firstString(fm.model, fm.model_tier) || null,
@@ -131,24 +181,24 @@ function discoverAgents() {
       })
     }
   }
-  return [...agents.values()].sort((a, b) => a.name.localeCompare(b.name))
+  return assignUniqueKeys(dedupeByPath(agents))
 }
 
 function discoverSkills() {
-  const skills = new Map()
+  const skills = []
   for (const root of SKILL_ROOTS) {
     for (const file of findFiles(root, 'SKILL.md')) {
       const fm = readFrontmatter(file)
       const name = firstString(fm.name, enclosingDirName(file))
-      if (!name || skills.has(name)) continue
-      skills.set(name, {
+      if (!name) continue
+      skills.push({
         name,
         description: firstString(fm.description),
         definition_path: relative(repoRoot, file).replace(/\\/g, '/'),
       })
     }
   }
-  return [...skills.values()].sort((a, b) => a.name.localeCompare(b.name))
+  return assignUniqueKeys(dedupeByPath(skills))
 }
 
 /**
@@ -196,6 +246,13 @@ console.log(
   `✓ sync-capability-registry: ${manifest.agents.length} agents, ${manifest.skills.length} skills, ` +
     `${manifest.mcp_servers.length} MCP servers (${total} capabilities) → ${relative(appRoot, target)}`,
 )
+
+for (const collision of nameCollisions) {
+  console.log(
+    `  · name collision "${collision.name}" across ${collision.paths.length} definitions — ` +
+      `all registered under distinct keys: ${collision.paths.join(', ')}`,
+  )
+}
 
 if (total === 0) {
   // Not fatal — a partial checkout can legitimately have none — but silence

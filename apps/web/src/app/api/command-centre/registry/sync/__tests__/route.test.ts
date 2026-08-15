@@ -15,8 +15,8 @@ import { GET, POST } from '../route'
 const POPULATED_MANIFEST = {
   schema_version: 1,
   generated_from: 'apps/web',
-  agents: [{ name: 'qa-tester', role: 'QA', model_tier: null, skills: [], definition_path: 'p' }],
-  skills: [{ name: 'seo', description: '', definition_path: 'x/SKILL.md' }],
+  agents: [{ key: 'qa-tester', name: 'qa-tester', role: 'QA', model_tier: null, skills: [], definition_path: 'p' }],
+  skills: [{ key: 'seo', name: 'seo', description: '', definition_path: 'x/SKILL.md' }],
   mcp_servers: [{ name: 'context7', transport: 'stdio', description: '', config_path: '.mcp.json' }],
 }
 

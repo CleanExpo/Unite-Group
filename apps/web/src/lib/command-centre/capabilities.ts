@@ -25,8 +25,17 @@ import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import type { ToolRiskClass, ToolSource } from './tools/catalogue'
 
-/** One agent definition found on disk. */
+/**
+ * One agent definition found on disk.
+ *
+ * `key` is the registry identity and is unique across the manifest; `name` is
+ * the human label and is NOT. Two different capabilities can share a name (the
+ * repo has three such skill pairs across `.skills/custom` and
+ * `.claude/skills/custom`, differing by 400-500 lines each), so keying on
+ * `name` would silently drop one of every pair.
+ */
 export interface DiscoveredAgent {
+  key: string
   name: string
   role: string
   model_tier: string | null
@@ -34,8 +43,9 @@ export interface DiscoveredAgent {
   definition_path: string
 }
 
-/** One SKILL.md found on disk. */
+/** One SKILL.md found on disk. See `DiscoveredAgent` for the key/name split. */
 export interface DiscoveredSkill {
+  key: string
   name: string
   description: string
   definition_path: string
@@ -137,6 +147,8 @@ export function parseCapabilityManifest(jsonSource: string): CapabilityManifest 
       .map((entry) => entry as Record<string, unknown>)
       .filter((entry) => nonEmpty(entry?.name) !== '')
       .map((entry) => ({
+        // A manifest written before the key field existed falls back to `name`.
+        key: nonEmpty(entry.key) || nonEmpty(entry.name),
         name: nonEmpty(entry.name),
         role: nonEmpty(entry.role),
         model_tier: nonEmpty(entry.model_tier) || null,
@@ -147,6 +159,7 @@ export function parseCapabilityManifest(jsonSource: string): CapabilityManifest 
       .map((entry) => entry as Record<string, unknown>)
       .filter((entry) => nonEmpty(entry?.name) !== '')
       .map((entry) => ({
+        key: nonEmpty(entry.key) || nonEmpty(entry.name),
         name: nonEmpty(entry.name),
         description: nonEmpty(entry.description),
         definition_path: nonEmpty(entry.definition_path),
@@ -183,10 +196,16 @@ export async function getCapabilityManifest(): Promise<CapabilityManifest> {
   }
 }
 
-/** Map discovered agents to `cc_agents` rows. */
+/**
+ * Map discovered agents to `cc_agents` rows.
+ *
+ * The row's `name` carries the manifest `key`, not the label: `cc_agents` is
+ * UNIQUE(founder_id, name), so writing a colliding label would make two
+ * distinct agents overwrite each other on upsert.
+ */
 export function toCcAgentRows(manifest: CapabilityManifest): CcAgentRow[] {
   return manifest.agents.map((agent) => ({
-    name: agent.name,
+    name: agent.key,
     role: agent.role,
     autonomy_max_level: DISCOVERED_AGENT_AUTONOMY_LEVEL,
     model_tier: agent.model_tier,
@@ -208,7 +227,7 @@ export function toCcAgentRows(manifest: CapabilityManifest): CcAgentRow[] {
  */
 export function toCcToolRows(manifest: CapabilityManifest): CcToolRow[] {
   const skillRows: CcToolRow[] = manifest.skills.map((skill) => ({
-    tool_key: `skill:${skill.name}`,
+    tool_key: `skill:${skill.key}`,
     source: 'project',
     server: null,
     description: skill.description || `Skill defined at ${skill.definition_path}.`,

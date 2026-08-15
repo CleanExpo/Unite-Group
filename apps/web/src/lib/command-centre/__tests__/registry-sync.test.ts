@@ -36,8 +36,8 @@ function upsertRecorder(errorByTable: Record<string, string> = {}) {
 }
 
 const SAMPLE = manifest({
-  agents: [{ name: 'qa-tester', role: 'QA', model_tier: null, skills: [], definition_path: 'p' }],
-  skills: [{ name: 'seo', description: 'SEO.', definition_path: 'x/SKILL.md' }],
+  agents: [{ key: 'qa-tester', name: 'qa-tester', role: 'QA', model_tier: null, skills: [], definition_path: 'p' }],
+  skills: [{ key: 'seo', name: 'seo', description: 'SEO.', definition_path: 'x/SKILL.md' }],
   mcp_servers: [{ name: 'context7', transport: 'stdio', description: '', config_path: '.mcp.json' }],
 })
 
@@ -98,6 +98,7 @@ describe('syncCapabilityRegistry', () => {
     const { client, calls } = upsertRecorder()
     const many = manifest({
       skills: Array.from({ length: 250 }, (_, index) => ({
+        key: `skill-${index}`,
         name: `skill-${index}`,
         description: '',
         definition_path: `s/${index}/SKILL.md`,
