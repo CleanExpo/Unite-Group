@@ -76,6 +76,37 @@ sync scripts read.
 the existing `prebuild` already reads `../../.portfolio` and `../../.claude`, and
 production builds succeed. So `../../scripts/` will resolve the same way.
 
+#### Measured in production, 16/08/2026
+
+`[VERIFIED]` **It works on `main`, which is where the production builds are.**
+The #1004 merge (`a1259dd`, 29 files, none under `apps/web`) logged
+`[ignore-build] SKIP — none of 29 changed file(s) affect apps/web`, followed by
+`The Deployment has been canceled as a result of running the command defined in
+the "Ignored Build Step" setting` (`dpl_njPPsQEf…`). A real production build was
+skipped. The control is not a no-op.
+
+`[VERIFIED]` **It fails open on branch pushes that restart their history.**
+`dpl_3b2M2eh…` logged `BUILD — previous commit 5bdf89c7 is not in this shallow
+clone`, and `dpl_Gg68RQC…` (this document's own PR) logged the same for
+`6e763f0d`.
+
+`[INFERENCE]` Both misses share one cause, and it is a workflow artefact rather
+than a defect in the check. `VERCEL_GIT_PREVIOUS_SHA` is the last *deployed*
+commit on that branch name. After each merge this branch is restarted from
+`main` (`git checkout -B <branch> origin/main`), so the previously deployed
+commit sits on orphaned history and cannot be in a shallow clone of the new
+head. Pushes to `main` do not have this shape — there the previous deployment is
+a genuine ancestor, which is why the `main` case skips correctly.
+
+`[UNCONFIRMED]` A fallback baseline would recover these. The obvious candidate —
+diff against `HEAD^` when the previous SHA is missing — is **rejected**: a push
+carrying more than one commit would then be judged on its last commit alone, and
+an earlier commit touching `apps/web` would be silently skipped. That is exactly
+the stale-production failure the fail-open rule exists to prevent. A safe
+fallback needs the merge-base with the production branch, which needs a deeper
+clone than Vercel currently makes — a project setting, not a script change. Left
+alone deliberately; the cost is a needless preview build on restarted branches.
+
 ### 2b. Cron invocations — the recurring cost
 
 Run `npm run cron:audit` for the live figures.
