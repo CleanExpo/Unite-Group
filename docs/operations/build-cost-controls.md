@@ -228,7 +228,7 @@ alike. The `ignoreCommand` does apply to both, so the skip logic is not lost.
 
 `[VERIFIED]` **It also writes to production data.** `unite-group-sandbox`'s
 `bookkeeper` cron logged `Starting nightly run for founder
-c3f32c79-0d4a-4607-a906-ba8ca08e83b6`, completed in 6,111 ms, recorded a run
+c3f32c79-…`, completed in 6,111 ms, recorded a run
 (`runId 09c5f41a-…`) and emitted a `bookkeeper_summary` notification. That is
 the real founder against the real database, from a second deployment. The
 `social-publisher` claim-then-finalise hazard in §2b is materially worse under
@@ -245,9 +245,25 @@ branch, so it is a second copy of production rather than a staging surface.
 Changing or removing a Vercel project needs the runbook gates and Phill's typed
 approval, so nothing has been altered.
 
-`[INFERENCE]` The reversible fix, cheapest first: repoint the project's
-production branch away from `main` (crons only run on production deployments,
-so they stop), or disconnect its Git integration, before considering deletion.
+**The fix is written up as a gated procedure:
+`docs/operations/vercel-sandbox-pause-runbook.md`.**
+
+`[VERIFIED]` **Correction to the first version of this section.** It advised
+repointing the production branch away from `main`, on the reasoning that crons
+only run on production deployments. That reasoning is incomplete and the advice
+was wrong. Crons run on the **active** production deployment, and changing which
+branch produces *future* ones does not retire the one that already exists —
+repointing would freeze `dpl_2u1iWe5…` as the permanent production deployment,
+still firing all 31 crons forever. It stops the duplicate builds and none of the
+duplicate invocations. There is also no `sandbox` branch on `origin` to point
+at (checked against all 107 remote heads).
+
+`[VERIFIED]` The instrument that matches the intent is
+[`POST /v1/projects/{projectId}/pause`](https://vercel.com/docs/rest-api/projects/pause-a-project),
+which "disables auto-assigning custom production domains and **blocks the active
+Production Deployment**", and is reversed by
+[`/unpause`](https://vercel.com/docs/rest-api/projects/unpause-a-project). The
+runbook carries the gates, the negative control, and the rollback.
 
 `[UNCONFIRMED]` Five other `*-sandbox` projects exist on the team
 (`ccw-crm-sandbox`, `synthex-sandbox`, `dr-nrpg-sandbox`,

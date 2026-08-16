@@ -120,7 +120,7 @@ project; export Vercel env vars to 1Password). Store bundles in the
 | D4 | repo `CleanExpo/pi-ceo-operator-mcp` | (lives in packages/) |
 | D5 | repo `outsourc-e/hermes-workspace` | (lives in apps/workspace) |
 | ~~D6~~ | ~~Vercel `unite-hub` + `unite-hub-sandbox` projects~~ — **CANCELLED 2026-06-18: Unite-Hub stays live** | — |
-| D7 | Vercel `unite-group-sandbox` (if replaced by monorepo preview flow) | Vercel |
+| D7 | Vercel `unite-group-sandbox` (if replaced by monorepo preview flow) — **pause and soak FIRST: `docs/operations/vercel-sandbox-pause-runbook.md`.** It is a live duplicate production deployment of this repo (~12,879 duplicate cron invocations/month, and a second writer against prod data), so it is not merely idle; pause is reversible in one call, this row is not | Vercel |
 | D8 | Supabase `uqfgdezadpkiadugufbs` | Supabase → Settings → Delete project |
 
 After D1–D8: update `.portfolio/PORTFOLIO.yaml` (statuses → `deleted`, with
