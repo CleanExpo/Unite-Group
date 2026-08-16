@@ -1,0 +1,17 @@
+> @unite-group/spine@0.0.1 test
+> vitest run
+
+
+ RUN  v4.1.10 /home/runner/work/Unite-Group/Unite-Group/packages/spine/packages/spine
+
+ ✓ tests/integration/outbox_race.test.ts (6 tests) 812ms
+ ✓ tests/integration/match_isolation.test.ts (2 tests) 337ms
+ ✓ tests/integration/c3_completeness.test.ts (4 tests) 455ms
+ ✓ tests/integration/rls.test.ts (4 tests) 604ms
+ ✓ tests/integration/idempotency.test.ts (3 tests) 1204ms
+ ✓ tests/unit.test.ts (3 tests) 5ms
+
+ Test Files  6 passed (6)
+      Tests  22 passed (22)
+   Start at  05:08:45
+   Duration  3550ms (transform 196ms, setup 0ms, import 487ms, tests 3417ms, environment 1ms)
