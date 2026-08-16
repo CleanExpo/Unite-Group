@@ -13,6 +13,7 @@
       "id": "spine-required-tests",
       "requiredCheck": "packages/spine — type-check and bounded tests",
       "workflow": ".github/workflows/ci.yml",
+      "workflowName": "Monorepo CI",
       "job": "spine",
       "reporter": "vitest-json",
       "workingDirectory": "packages/spine/packages/spine",

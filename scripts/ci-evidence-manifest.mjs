@@ -98,7 +98,7 @@ export function validateManifest(manifest) {
     }
     checkIds.add(check.id);
 
-    for (const field of ['requiredCheck', 'workflow', 'job', 'workingDirectory']) {
+    for (const field of ['requiredCheck', 'workflow', 'workflowName', 'job', 'workingDirectory']) {
       if (typeof check[field] !== 'string' || check[field] === '') {
         throw new Error(`Check "${check.id}" declares no ${field}.`);
       }
@@ -347,15 +347,19 @@ export function resolveProvenance({
       `PROVENANCE_WRONG_RUN: job ${jobId} belongs to run ${job.run_id}, not ${expectedRunId}.`,
     );
   }
-  if (job.workflow_name !== undefined && !check.workflow.endsWith(`${job.workflow_name}.yml`)
-    && job.workflow_name !== check.workflowName) {
-    // Advisory only when the manifest does not declare a workflow display name.
-    if (check.workflowName) {
-      throw new Error(
-        `PROVENANCE_WRONG_WORKFLOW: job ${jobId} ran in "${job.workflow_name}", not `
-        + `"${check.workflowName}".`,
-      );
-    }
+  /*
+   * Unconditional on purpose. The previous revision guarded this with
+   * `if (check.workflowName)` while the manifest declared no such field, so the
+   * branch could never throw and a job from ANY workflow was accepted — a control
+   * that read as protection and could not fire. validateManifest now requires
+   * workflowName, so there is nothing to be defensive about: a missing value is a
+   * manifest error raised earlier, not a reason to wave a job through here.
+   */
+  if (job.workflow_name !== check.workflowName) {
+    throw new Error(
+      `PROVENANCE_WRONG_WORKFLOW: job ${jobId} ran in `
+      + `"${job.workflow_name}", not "${check.workflowName}".`,
+    );
   }
 
   return {

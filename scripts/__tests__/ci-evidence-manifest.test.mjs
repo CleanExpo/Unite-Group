@@ -329,6 +329,7 @@ const MINIMAL_CHECK = {
   id: 'x',
   requiredCheck: 'x',
   workflow: 'w',
+  workflowName: 'W',
   job: 'j',
   workingDirectory: 'd',
   requiredCapabilities: ['unit'],
@@ -559,4 +560,48 @@ test('an evidence file with no testResults entries cannot pass', () => {
   });
   assert.equal(result.verdict, 'FAIL');
   assert.equal(result.violations.filter((v) => v.reason === 'REQUIRED_EVIDENCE_UNAVAILABLE').length, 6);
+});
+
+// ---------------------------------------------------------------------------
+// The dead-guard class. Self-caught: PROVENANCE_WRONG_WORKFLOW was previously
+// wrapped in `if (check.workflowName)` while the manifest declared no such
+// field, so a job from ANY workflow was accepted and the guard could not fire.
+// ---------------------------------------------------------------------------
+
+test('THE DEAD GUARD, CLOSED: a job from another workflow is refused', () => {
+  for (const workflowName of ['Totally Unrelated Workflow', '', undefined]) {
+    assert.throws(
+      () => resolveProvenance({
+        check: shippedCheck(), repo: REPO, jobId: JOB_ID, expectedSha: REAL_SHA,
+        expectedRunId: RUN_ID, fetcher: stubFetcher({ workflow_name: workflowName }),
+      }),
+      /PROVENANCE_WRONG_WORKFLOW/,
+      String(workflowName),
+    );
+  }
+});
+
+test('the matching workflow is still accepted, so the guard is not simply always-on', () => {
+  const provenance = resolveProvenance({
+    check: shippedCheck(), repo: REPO, jobId: JOB_ID, expectedSha: REAL_SHA,
+    expectedRunId: RUN_ID, fetcher: stubFetcher({ workflow_name: 'Monorepo CI' }),
+  });
+  assert.equal(provenance.workflowName, 'Monorepo CI');
+});
+
+test('a manifest without workflowName is rejected: the guard may never be unreachable', () => {
+  const check = structuredClone(shippedCheck());
+  delete check.workflowName;
+  assert.throws(() => validateManifest({ checks: [check] }), /declares no workflowName/);
+});
+
+test("the manifest's workflowName matches the declared workflow file's own name", () => {
+  // Anti-stale: renaming the workflow in ci.yml without updating the manifest
+  // would otherwise silently refuse every real job.
+  const check = shippedCheck();
+  const workflow = readFileSync(join(repositoryRoot, ...check.workflow.split('/')), 'utf8');
+  const declared = /^name:\s*(.+?)\s*$/mu.exec(workflow);
+
+  assert.ok(declared, `${check.workflow} declares no top-level name:`);
+  assert.equal(check.workflowName, declared[1]);
 });
