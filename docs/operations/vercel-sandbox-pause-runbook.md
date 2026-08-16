@@ -71,6 +71,16 @@ claims `sandbox_branch: sandbox` for every product; that is registry drift.
 "disables auto-assigning custom production domains and **blocks the active
 Production Deployment**."
 
+`[INFERENCE]` **Be clear about which link in that chain is inferred.** The Vercel
+docs state that pause blocks the active production deployment, and separately
+that crons run on the production deployment. They do **not** anywhere state "a
+paused project's cron jobs stop" — that conclusion is mine, joining two
+documented facts. It is a short and well-supported join, but it is not a quoted
+guarantee, and the whole procedure rests on it. That is precisely what step 6a
+measures: if the crons are still firing 70 minutes after the pause, the
+inference was wrong, and the answer is to roll back and reach for D7 rather than
+to keep waiting.
+
 `[VERIFIED]` Alternatives considered and rejected:
 
 | Option | Why not |
