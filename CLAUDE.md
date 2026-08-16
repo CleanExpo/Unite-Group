@@ -118,3 +118,22 @@ that trigger such sessions: `docs/mission-control/harness-wrapper-contract.md`.
 The freeze-versus-canonical-vault tension predates this section (`brain-1` is named both
 as frozen and as the canonical knowledge store) — this narrows it to a stated exception
 rather than resolving it. FLAGGED for founder confirmation.
+
+## Session boot contract (UNI-2523)
+
+Every session, in this order:
+
+1. Read `SOURCE-OF-TRUTH.md`, then `NORTH-STAR.md`, then `FOUNDER-QUEUE.md`.
+2. **State the top FOUNDER-QUEUE blocker and its age in the first reply.** Not a
+   summary of the queue — the single oldest open decision and how many days it
+   has been waiting.
+3. Take **the single top unblocked ticket from Linear (team UNI)** as the only
+   queue. `.spm/` and `docs/specs/` are **read-only registers** — history and
+   context, never task sources. Six places to look for work is why sessions
+   re-orient instead of building.
+4. End with **a PR URL or a named blocker with terminal evidence**. A zero-code
+   ending is not a valid handoff state.
+
+`NORTH-STAR.md` opens with a disambiguation block: "NorthStar" already names the
+honest-sources rule and the `apps/web` completion spec, and those are three
+different things.

@@ -1,0 +1,143 @@
+name: Nexus Heartbeat
+
+# The scheduled pulse (UNI-2523): proves the gates daily and reports the distance
+# to the North Star while nobody is watching.
+#
+# AUTHORITY. This workflow OBSERVES AND REPORTS — Waterline Class 0/1. It must not
+# deploy, merge, or arm anything: merge is not deploy (UNI-2542) and there is one
+# release authority (UNI-2562). Its only write is a single pinned issue, which is
+# why `permissions` grants `issues: write` and nothing else.
+#
+# HONEST DEGRADATION. Every gate runs with `continue-on-error` so one red gate
+# cannot hide the others behind a cancelled job, and each result is captured
+# explicitly. A gate that failed is reported FAIL with its exit code; a gate that
+# never ran is reported NOT RUN. Neither is ever allowed to read as PASS — that is
+# the UNI-2567 lesson applied here (a required check went green while the evidence
+# it certified never executed).
+
+on:
+  schedule:
+    # 19:00 UTC = 05:00 Brisbane (AEST, UTC+10, no DST).
+    - cron: '0 19 * * *'
+  # Manual dispatch exists so the issue can be seen once before the cron is trusted.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: nexus-heartbeat
+  cancel-in-progress: false
+
+jobs:
+  heartbeat:
+    name: Observe gates and report distance to North Star
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          # engines require >=24.14.1 <25. The root is NOT a pnpm workspace
+          # (apps/web is one itself; pnpm cannot nest), so the root uses npm.
+          node-version: '24.14.1'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Run gates and capture every result
+        id: gates
+        run: |
+          set +e
+          results='[]'
+          for gate in verify:readiness verify:docs-watch verify:docs-review; do
+            npm run "$gate" > "/tmp/${gate//:/-}.log" 2>&1
+            code=$?
+            if [ "$code" -eq 0 ]; then status=PASS; else status=FAIL; fi
+            results=$(node -e '
+              const [existing, name, status, code] = process.argv.slice(1);
+              const list = JSON.parse(existing);
+              list.push({ name, status, exitCode: Number(code) });
+              console.log(JSON.stringify(list));
+            ' "$results" "$gate" "$status" "$code")
+          done
+          printf '%s' "$results" > /tmp/gate-results.json
+          cat /tmp/gate-results.json
+
+      - name: Compute founder-queue age
+        id: queue
+        run: node scripts/founder-queue.mjs > /tmp/queue.json && cat /tmp/queue.json
+
+      - name: Create or update the pinned heartbeat issue
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const { readFileSync } = require('node:fs');
+            const {
+              HEARTBEAT_TITLE, buildHeartbeatBody, detectDrift, upsertHeartbeatIssue,
+            } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/nexus-heartbeat.mjs`);
+
+            const declared = ['verify:readiness', 'verify:docs-watch', 'verify:docs-review'];
+            let captured = [];
+            try {
+              captured = JSON.parse(readFileSync('/tmp/gate-results.json', 'utf8'));
+            } catch { captured = []; }
+
+            // A gate missing from the capture never ran. Report it as NOT RUN
+            // rather than dropping it, so silence can never read as success.
+            const byName = new Map(captured.map((gate) => [gate.name, gate]));
+            const gates = declared.map((name) => byName.get(name)
+              ?? { name, status: 'NOT_RUN', exitCode: null });
+
+            let queue = { openCount: 0, oldest: null };
+            try {
+              queue = JSON.parse(readFileSync('/tmp/queue.json', 'utf8'));
+            } catch {
+              queue = { openCount: 0, oldest: null };
+            }
+
+            const client = {
+              listOpenIssues: async () => {
+                const { data } = await github.rest.issues.listForRepo({
+                  owner: context.repo.owner, repo: context.repo.repo, state: 'open', per_page: 100,
+                });
+                return data.map((issue) => ({ number: issue.number, title: issue.title, body: issue.body }));
+              },
+              createIssue: async ({ title, body }) => {
+                const { data } = await github.rest.issues.create({
+                  owner: context.repo.owner, repo: context.repo.repo, title, body,
+                });
+                return { number: data.number };
+              },
+              updateIssue: async (issue_number, { title, body }) => {
+                const { data } = await github.rest.issues.update({
+                  owner: context.repo.owner, repo: context.repo.repo, issue_number, title, body,
+                });
+                return { number: data.number };
+              },
+            };
+
+            // Drift is measured against the previous run's own report, which is
+            // the only record of it that survives.
+            const existing = (await client.listOpenIssues())
+              .find((issue) => issue.title === HEARTBEAT_TITLE);
+            const previous = existing
+              ? declared.map((name) => ({
+                name,
+                status: new RegExp(`\`${name}\`\\s*\\|\\s*PASS`).test(existing.body ?? '')
+                  ? 'PASS'
+                  : 'FAIL',
+              }))
+              : null;
+
+            const body = buildHeartbeatBody({
+              date: new Date().toISOString().slice(0, 10),
+              gates,
+              queue,
+              drift: detectDrift(previous, gates),
+            });
+
+            const result = await upsertHeartbeatIssue({ client, body });
+            core.info(`Heartbeat issue ${result.action}: #${result.number}`);
