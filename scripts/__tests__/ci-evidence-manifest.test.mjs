@@ -1665,6 +1665,28 @@ test('THE TWO HEADERS MUST AGREE ON EVERY FIELD THEY BOTH CARRY, not just the na
   streamed.writeUInt32LE(0, 18);
   streamed.writeUInt32LE(0, 22);
   assert.throws(() => readZipEntries(streamed), /streamed entry/u);
+
+  /*
+   * AND THE CENTRAL COPY OF THE FLAG. The first fix read bit 3 of the LOCAL
+   * flags only, so an archive declaring the entry streamed in the DIRECTORY and
+   * not locally walked past the refusal — the same pair-of-duplicated-fields
+   * mistake this reader has now made three times (name but not method, method
+   * but not crc/sizes, local flags but not central).
+   */
+  // Locate the central header by its signature rather than by arithmetic — the
+  // payload is deflated, so its length is not the source string's length, and
+  // the first version of this test wrote 8 bytes past nothing and asserted a
+  // throw that never came.
+  const centralAt = zip.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02]));
+  assert.ok(centralAt > 0, 'no central header signature found');
+  const centralStreamed = Buffer.from(zip);
+  centralStreamed.writeUInt16LE(0x08, centralAt + 8);
+  assert.throws(() => readZipEntries(centralStreamed), /streamed entry.*central/su);
+
+  // Flags that simply disagree are refused too, streamed or not.
+  const flagMismatch = Buffer.from(zip);
+  flagMismatch.writeUInt16LE(0x02, centralAt + 8);
+  assert.throws(() => readZipEntries(flagMismatch), /declares flags/u);
   void nameLength;
 });
 

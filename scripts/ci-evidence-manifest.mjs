@@ -662,6 +662,18 @@ export function readZipEntries(buffer) {
     if (zipUInt(buffer, offset, 4, 'central header signature') !== 0x02014b50) {
       throw new Error('CORRUPT_ZIP: central directory header signature is wrong.');
     }
+    /*
+     * THE CENTRAL COPY OF THE FLAGS, TOO.
+     *
+     * The previous round refused a streamed entry by reading bit 3 of the LOCAL
+     * flags, and left the central copy unread — so an archive declaring the
+     * entry streamed in the directory and not in the local header sailed past
+     * the refusal. Exactly the pair-of-duplicated-fields mistake this reader
+     * has now made three times: name checked but not method, method checked but
+     * not crc/sizes, local flags checked but not central. Both copies of
+     * EVERYTHING the two headers share, or the refusal is half a refusal.
+     */
+    const centralFlags = zipUInt(buffer, offset + 8, 2, 'central flags');
     const method = zipUInt(buffer, offset + 10, 2, 'compression method');
     const expectedCrc = zipUInt(buffer, offset + 16, 4, 'central CRC');
     const compressedSize = zipUInt(buffer, offset + 20, 4, 'compressed size');
@@ -752,10 +764,20 @@ export function readZipEntries(buffer) {
      * properly or refuse it, never half-honour it.
      */
     const localFlags = zipUInt(buffer, localOffset + 6, 2, 'local flags');
-    if ((localFlags & 0x08) !== 0) {
+    if ((localFlags & 0x08) !== 0 || (centralFlags & 0x08) !== 0) {
       throw new Error(
-        `UNSUPPORTED_ZIP: "${name}" is a streamed entry (data-descriptor flag set), which this `
-        + 'reader does not implement. Evidence artefacts are not streamed.',
+        `UNSUPPORTED_ZIP: "${name}" is a streamed entry (data-descriptor flag set in the `
+        + `${(localFlags & 0x08) !== 0 ? 'local' : 'central'} header), which this reader does `
+        + 'not implement. Evidence artefacts are not streamed.',
+      );
+    }
+    // And the two copies of the flags must agree at all, for the same reason
+    // every other duplicated field must: two headers describing one entry
+    // differently is an archive with two meanings.
+    if (localFlags !== centralFlags) {
+      throw new Error(
+        `CORRUPT_ZIP: "${name}" declares flags 0x${localFlags.toString(16)} in its local header `
+        + `and 0x${centralFlags.toString(16)} in the central directory.`,
       );
     }
     const disagreements = [
