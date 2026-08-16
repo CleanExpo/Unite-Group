@@ -85,10 +85,17 @@ The #1004 merge (`a1259dd`, 29 files, none under `apps/web`) logged
 the "Ignored Build Step" setting` (`dpl_njPPsQEf…`). A real production build was
 skipped. The control is not a no-op.
 
-`[VERIFIED]` **It fails open on branch pushes that restart their history.**
+`[VERIFIED]` **It fails open on the FIRST push after a branch is restarted.**
 `dpl_3b2M2eh…` logged `BUILD — previous commit 5bdf89c7 is not in this shallow
 clone`, and `dpl_Gg68RQC…` (this document's own PR) logged the same for
 `6e763f0d`.
+
+`[VERIFIED]` **The very next push on the same branch skipped, on both
+projects.** `dpl_kdknr44…` (`unite-group`) logged `SKIP — none of 1 changed
+file(s) affect apps/web`, and `unite-group-sandbox` reported `Ignored` for the
+same commit. So preview builds are protected too; only the first push after a
+restart misses, because that is the only push whose predecessor sits on
+discarded history.
 
 `[INFERENCE]` Both misses share one cause, and it is a workflow artefact rather
 than a defect in the check. `VERCEL_GIT_PREVIOUS_SHA` is the last *deployed*
