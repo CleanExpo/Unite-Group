@@ -1,9 +1,9 @@
 ---
 type: index
 name: docs
-description: OKF index — 1 concepts, 12 subfolders
+description: OKF index — 1 concepts, 13 subfolders
 okf_version: "0.1"
-updated: 2026-07-06
+updated: 2026-08-16
 ---
 
 <!-- okf:generated -->
@@ -17,6 +17,7 @@ _Read this first. Lists every concept + subfolder here so an agent loads only wh
 - [[convergence/index]]
 - [[decisions/index]]
 - [[legacy/index]]
+- [[mission-control/index]]
 - [[plans/index]]
 - [[research/index]]
 - [[session-handoffs/index]]

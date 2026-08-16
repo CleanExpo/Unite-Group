@@ -89,3 +89,16 @@ which return distilled verdicts. Standing specialist domains for this monorepo:
 `ci-infra` (workflows, gates, deploys). Name = `<type>-<durable-mission>`, frozen at
 spawn, must still be true on resume #8. Retire a specialist near ~300k context with a
 written handoff; domain change = fresh agent, always.
+
+## Research-output contract
+
+Research-producing sessions **on founder machines** also capture their findings to the
+canonical `brain-1` vault (`~/2nd Brain/2nd Brain`) via the `brain-capture` skill, so the
+2nd Brain grows as a by-product of the work rather than as a separate chore. Captures are
+raw entries with their source and an ISO capture date; synthesis into the wiki is a
+separate, later step.
+
+This binds only where the vault is actually reachable. Remote and CI checkouts have no
+vault — they report it unavailable and carry on; they never write findings into
+`docs/brain/`, which is residual and must not grow. Routing rules for the entry points
+that trigger such sessions: `docs/mission-control/harness-wrapper-contract.md`.
