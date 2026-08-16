@@ -6,6 +6,7 @@ import type Anthropic from '@anthropic-ai/sdk'
 import { getAIClient } from '@/lib/ai/client'
 import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 import { BUSINESSES } from '@/lib/businesses'
+import { recordAiUsage } from '@/lib/ai/usage-recorder'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -111,6 +112,32 @@ Focus on specific, concrete recommendations — not generic advice.`
   } as Anthropic.MessageCreateParamsNonStreaming
   ;(params as { thinking?: unknown }).thinking = { type: 'adaptive' }
   const response = (await ai.messages.create(params)) as Anthropic.Message
+
+  // This route calls the Anthropic SDK DIRECTLY, bypassing lib/ai/router, so the
+  // router's metering never sees it. It is also the single largest recurring AI
+  // cost in the app — Opus at max_tokens 16000, seven businesses a day — so
+  // instrumenting only the router would have measured everything except the item
+  // most worth measuring. Not awaited; recordAiUsage never throws.
+  // AWAITED, unlike the router's waitUntil. This is a cron path, so nothing is
+  // waiting on latency, and one insert is negligible beside an Opus call at
+  // max_tokens 16000. Awaiting is the strongest guarantee the write lands
+  // before the invocation ends — and this is the largest recurring AI cost in
+  // the app, so it is the row least affordable to lose. recordAiUsage never
+  // throws, so awaiting cannot fail the analysis.
+  const usage = response.usage as Anthropic.Message['usage'] & {
+    cache_read_input_tokens?: number | null
+    cache_creation_input_tokens?: number | null
+  }
+  await recordAiUsage({
+    taskType: 'strategy-daily',
+    model: response.model,
+    inputTokens: usage.input_tokens,
+    outputTokens: usage.output_tokens,
+    cacheReadTokens: usage.cache_read_input_tokens ?? 0,
+    cacheWriteTokens: usage.cache_creation_input_tokens ?? 0,
+    requestId: response.id,
+    metadata: { via: 'direct', business: businessKey },
+  })
 
   // Extract text content (thinking blocks are separate and not included in text blocks)
   const textContent = (response.content as Anthropic.ContentBlock[])

@@ -9,6 +9,8 @@ import { zodToToolSchema, parseStructuredResponse } from './features/structured'
 import { createBatch, pollBatchUntilDone, buildBatchRequest } from './features/batch'
 import { recallMemories, formatMemoriesForContext } from './features/memory-store'
 import { calculateThinkingBudget } from './features/thinking'
+import { recordAiUsage } from './usage-recorder'
+import { waitUntil } from '@vercel/functions'
 import { buildWebSearchTool, parseWebSearchResults } from './features/web-search'
 import { extractCitations as extractTextCitations } from './features/citations'
 import { buildFileReference } from './features/files'
@@ -234,7 +236,9 @@ export async function execute(
   }
 
   const client = getAIClient()
+  const startedAt = Date.now()
   const response = await createWithRetry(client, params)
+  const latencyMs = Date.now() - startedAt
 
   // Extract content from response blocks
   let textContent = ''
@@ -289,6 +293,34 @@ export async function execute(
       citations = [...(citations ?? []), ...textCitations]
     }
   }
+
+  // Meter the call. Every capability routed through execute() lands here, which
+  // makes this the one place worth instrumenting rather than each caller.
+  //
+  // waitUntil, NOT a bare floating promise. Metering still must not add latency
+  // to the AI response — but on Vercel the invocation can be suspended or torn
+  // down as soon as the handler responds, and a pending Supabase insert is then
+  // not guaranteed to land. A silently dropped write is an undercount, which is
+  // the exact failure this whole feature exists to remove. waitUntil keeps the
+  // write alive past the response without blocking it. The .catch() stays so
+  // metering can never fail the AI call.
+  const usage = response.usage as Anthropic.Message['usage'] & {
+    cache_read_input_tokens?: number | null
+    cache_creation_input_tokens?: number | null
+  }
+  waitUntil(
+    recordAiUsage({
+      taskType: capabilityId,
+      model: response.model,
+      inputTokens: usage.input_tokens,
+      outputTokens: usage.output_tokens,
+      cacheReadTokens: usage.cache_read_input_tokens ?? 0,
+      cacheWriteTokens: usage.cache_creation_input_tokens ?? 0,
+      requestId: response.id,
+      latencyMs,
+      metadata: { via: 'router' },
+    }).catch(() => {}),
+  )
 
   return {
     content: textContent,

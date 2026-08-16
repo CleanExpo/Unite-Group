@@ -227,8 +227,10 @@ billed), hard delete (premature — D7 after soak)`.
 
 ## 6. Verify — do not skip the negative control
 
-Wait **70 minutes** after pausing so that at least one hourly schedule and four
-`*/15` schedules would have fired.
+Wait **70 minutes** after pausing so that at least one hourly invocation, and
+four invocations of EACH of the two `*/15` schedules, would have occurred. (Two
+schedules × four firings, not four schedules — accepting evidence from four
+firings total would under-sample by half.)
 
 **6-zero. The state check is step 3 of §5**, and it is the strongest evidence
 available: `"paused": true` on the sandbox project. Everything below corroborates
@@ -290,7 +292,7 @@ founder login renders.
 **6d. Preview behaviour.** On the next PR, check whether the Vercel bot comment
 still lists `unite-group-sandbox`. That answers the `[UNCONFIRMED]` in §3.
 
-**6e. After 24 h**, re-run `6a` over `since: 24h` and confirm the count is zero
+**6e. After 24 h**, re-run `6a` with the window ANCHORED to the pause timestamp recorded in step 5 — query `from = <pause timestamp>` rather than a bare `since: 24h`, and confirm the count is zero. A rolling 24-hour window run near the boundary still contains pre-pause requests, so a non-zero count would be misread as the pause having failed (or, if the window drifts the other way, a zero would be accepted before a full post-pause day had elapsed)
 against the 879 baseline.
 
 ## 7. Rollback

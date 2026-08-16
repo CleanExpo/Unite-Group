@@ -14,7 +14,10 @@
  * Stripe (fees), LLM APIs, ElevenLabs, Twilio, and domains follow identically.
  */
 
+import { anthropicAdapter } from '../adapters/anthropic';
 import type { CostSourceAdapter } from '../types';
+
+import { fetchAnthropicUsage } from './anthropic';
 
 export interface Period {
   /** ISO date YYYY-MM-DD, inclusive. */
@@ -28,4 +31,18 @@ export interface CostFetcher<TInput = unknown> {
   fetch(period: Period): Promise<TInput>;
 }
 
-export const COST_FETCHERS: CostFetcher[] = [];
+export const COST_FETCHERS: CostFetcher[] = [
+  // Anthropic is registered without a confirmed billing endpoint, and that is
+  // deliberate rather than an exception to the rule above. The rule exists to
+  // stop us GUESSING a provider's billing payload; this fetcher guesses
+  // nothing. It reads back token counts Anthropic itself returned on each
+  // Messages response, which lib/ai/usage-recorder.ts persisted at call time,
+  // and prices them from lib/ai/pricing.ts. Quantities are observed; only the
+  // published rates are looked up.
+  //
+  // The honest limitation, carried through to the ledger: the amount is
+  // COMPUTED, not invoiced, and will diverge from the bill where prompt
+  // caching or batch discounts apply. Reconciling against Anthropic's Admin
+  // usage/cost report is a later step and needs an admin key we do not hold.
+  { adapter: anthropicAdapter, fetch: fetchAnthropicUsage },
+];
