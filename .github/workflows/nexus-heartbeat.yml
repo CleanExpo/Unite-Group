@@ -94,8 +94,24 @@ jobs:
           # (apps/web is one itself; pnpm cannot nest), so the root uses npm.
           node-version: '24.14.1'
 
-      - name: Install root dependencies
-        run: npm ci
+      # NO INSTALL STEP, AND THIS IS THE FINDING THAT MATTERED MOST.
+      #
+      # This step used to be `npm ci`, and it could never have succeeded: the
+      # repository root has no `package-lock.json` and no `npm-shrinkwrap.json`,
+      # so `npm ci` exits 1 with EUSAGE before doing anything. The observe job
+      # would have died here, before running a single gate, and every dispatch
+      # would have reported all three gates as NOT RUN — a heartbeat that only
+      # ever published its own failure.
+      #
+      # Nothing was wrong with the tests. They were all green, the mutation
+      # harness was clean, and the workflow was broken anyway, because nothing
+      # here had ever been executed. That is the whole of "shipped is not
+      # observed" in one step.
+      #
+      # No install is needed at all: the root declares zero dependencies and
+      # zero devDependencies, and the three gates run on `node --test` alone.
+      # Adding a lockfile to satisfy a command we do not need would be fixing
+      # the symptom.
 
       # The shell records EXIT CODES ONLY. It used to decide `status=PASS` itself,
       # which put a verdict back inside the YAML where no test could reach it —

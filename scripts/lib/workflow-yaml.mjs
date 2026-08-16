@@ -92,9 +92,29 @@ function parseScalar(raw, lineNumber) {
   if (value.startsWith('&') || value.startsWith('*') || value.startsWith('<<')) {
     fail(lineNumber, 'anchors, aliases and merge keys are not supported by this reader');
   }
+  // A TAG CHANGES WHAT THE VALUE IS. `!!str`, `!!int`, `!<tag>` are all valid
+  // for Actions-compatible YAML — actionlint accepts them — and this reader
+  // implements none of them, so it must not pretend to read one.
+  if (value.startsWith('!')) {
+    fail(lineNumber, `tags are not implemented by this reader (${value.slice(0, 20)})`);
+  }
   if ((value.startsWith("'") && value.endsWith("'") && value.length > 1)
     || (value.startsWith('"') && value.endsWith('"') && value.length > 1)) {
-    return value.slice(1, -1);
+    const inner = value.slice(1, -1);
+    /*
+     * AN ESCAPE IS A DIFFERENT STRING. Round eight sent `issues: "write"`,
+     * which Ruby's Psych reads as `write` and this reader read as the literal
+     * `write` — so the job held issues:write and the guard saw no writer.
+     * Same class as the quoted key, one level down in the value.
+     *
+     * Refused rather than decoded, for the same reason: after `\u` come `\x`,
+     * octal, and every other escape form, and closing one per round is the game
+     * that has now been lost four times.
+     */
+    if (inner.includes('\\')) {
+      fail(lineNumber, 'escape sequences in quoted scalars are not implemented by this reader');
+    }
+    return inner;
   }
   return value;
 }
@@ -218,6 +238,13 @@ function parseBlock(lines, cursor, indent) {
     kind = 'mapping';
 
     const key = separator[1].trim();
+    // A TAGGED KEY IS A KEY THIS READER CANNOT NAME. `!!str uses: x` is valid
+    // for Actions (actionlint 1.7.12 accepts it) and arrived here as the raw
+    // key `!!str uses`, so `step.uses` came back null and both isolation guards
+    // passed over a step invoking an unallowlisted action.
+    if (key.startsWith('!')) {
+      fail(line.number, `tagged keys are not implemented by this reader (${key})`);
+    }
     if (/^["']/u.test(key) || /["']$/u.test(key)) {
       fail(
         line.number,

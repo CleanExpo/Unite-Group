@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -27,6 +28,15 @@ import {
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const WORKFLOW_PATH = join(repositoryRoot, '.github', 'workflows', 'nexus-heartbeat.yml');
+
+/**
+ * The exact bytes of the workflow, as read and approved by a human.
+ *
+ * This is the load-bearing control for every structural claim below. Four
+ * review rounds were lost to YAML constructs the reader did not implement; a
+ * hash implements all of them.
+ */
+const PINNED_WORKFLOW_SHA256 = 'c97a2ff9b1ed1fb3eac946e64b658517b76abdb39da28a826ec957c1b0e1dae7';
 
 // Rendered gate lists (what reconcileGates PRODUCES).
 const GREEN = [
@@ -635,6 +645,47 @@ test('THE WORKFLOW IS DORMANT ON MERGE: it declares no schedule', () => {
   );
 });
 
+test('THE OBSERVE JOB RUNS NO COMMAND THAT CANNOT SUCCEED (round-eight P1)', () => {
+  /*
+   * THE FINDING THAT MATTERED MOST, and no test in this file could have caught
+   * it, because every test read the workflow and none of them ran it.
+   *
+   * The observe job's first step was `npm ci`. The repository root has no
+   * `package-lock.json` and no `npm-shrinkwrap.json`, so `npm ci` exits 1 with
+   * EUSAGE before doing anything — the job would have died there, before a
+   * single gate ran, and every dispatch would have published all three gates as
+   * NOT RUN. A heartbeat whose only possible output was its own failure.
+   *
+   * Everything was green while that was true: 176 passing tests, a clean
+   * 62-mutant harness, and a workflow that could not work. "Shipped is not
+   * observed", in one step.
+   *
+   * This test pins the narrow fact that made it impossible: `npm ci` requires a
+   * lockfile this repo does not have, and the root declares no dependencies to
+   * install in the first place.
+   */
+  const structure = readWorkflowStructure(readFileSync(WORKFLOW_PATH, 'utf8'));
+  const observe = structure.jobs.find((job) => job.name === 'observe');
+  assert.ok(observe, 'no observe job found');
+
+  const lockfiles = ['package-lock.json', 'npm-shrinkwrap.json']
+    .filter((name) => existsSync(join(repositoryRoot, name)));
+  const commands = executedCommands(observe);
+
+  if (lockfiles.length === 0) {
+    assert.ok(
+      !commands.some((command) => /\bnpm\s+ci\b/u.test(command)),
+      `the observe job runs \`npm ci\` with no lockfile in the repo; it can only fail:\n${commands.join('\n')}`,
+    );
+  }
+
+  // The root genuinely has nothing to install, which is why no install step is
+  // the right answer rather than adding a lockfile to satisfy the command.
+  const root = JSON.parse(readFileSync(join(repositoryRoot, 'package.json'), 'utf8'));
+  assert.deepEqual(root.dependencies ?? {}, {});
+  assert.deepEqual(root.devDependencies ?? {}, {});
+});
+
 test('THE WORKFLOW SUPPLIES THE READBACK: its client can get an issue', () => {
   // upsertHeartbeatIssue refuses a client with no `getIssue`, so a workflow that
   // forgets it fails every run. Catching that here rather than in production.
@@ -667,6 +718,40 @@ test('THE WORKFLOW READER FAILS CLOSED: unreadable YAML throws rather than parsi
   assert.throws(
     () => readWorkflowStructure('on:\n  workflow_dispatch:\njobs:\n  a: not-a-mapping\n'),
     /job `a` is not a mapping/u,
+  );
+});
+
+test('THE WORKFLOW IS PINNED BY CONTENT, so no YAML construct can bypass the guards', () => {
+  /*
+   * FOUR CONSECUTIVE ROUNDS WERE LOST INTERPRETING THIS FILE, so the guard
+   * stops depending on interpretation.
+   *
+   *   round six   `"uses":`            quotes kept, step.uses null
+   *   round seven `"uses":`       escape not decoded
+   *   round eight `!!str uses:`        tag not implemented
+   *   round eight `issues: "write"`  escaped value not decoded
+   *
+   * Every one was a valid construct this reader did not implement, and every
+   * fix closed one spelling while the format kept others in reserve. A parser
+   * can always be shown a document it reads differently from GitHub Actions.
+   *
+   * A HASH CANNOT. This assertion is the load-bearing control: the structural
+   * checks below describe what the file contained when a human read it, and
+   * this pin is what makes those descriptions still true. Any byte change —
+   * quoted, tagged, escaped, whitespace, anything — fails here and forces the
+   * author to re-pin deliberately, which is visible in the diff and is exactly
+   * the outcome the isolation guard wanted all along.
+   *
+   * TO RE-PIN: read the diff, satisfy yourself the issues-write job still runs
+   * no commands and checks out one file, then paste the printed hash here. If
+   * that reading feels like a formality, it is the only thing standing between
+   * this workflow and an unallowlisted action holding a write token.
+   */
+  const actual = createHash('sha256').update(readFileSync(WORKFLOW_PATH)).digest('hex');
+  assert.equal(
+    actual,
+    PINNED_WORKFLOW_SHA256,
+    `nexus-heartbeat.yml changed. Re-read it, then re-pin to:\n  ${actual}`,
   );
 });
 
@@ -736,6 +821,52 @@ test('A QUOTED KEY IS REFUSED, not decoded (rounds six and seven, one class)', (
 
   // And the real workflow still parses, so the refusal is not always-on.
   assert.ok(readWorkflowStructure(source).jobs.length >= 2);
+});
+
+test('A TAG IS REFUSED, on a key or a value (round-eight P0)', () => {
+  // `!!str uses: actions/setup-node@v4` is valid for Actions — actionlint
+  // 1.7.12 accepts it — and arrived here as the raw key `!!str uses`, so
+  // `step.uses` came back null and both isolation guards passed over a step
+  // invoking an unallowlisted action.
+  for (const line of ['!!str uses: actions/setup-node@v4', '!<tag> uses: x']) {
+    assert.throws(
+      () => readWorkflowStructure(`on:\n  workflow_dispatch:\njobs:\n  a:\n    steps:\n      - ${line}\n`),
+      /tag(ged key)?s are not implemented/u,
+      line,
+    );
+  }
+  // And on a value.
+  assert.throws(
+    () => readWorkflowStructure('on:\n  workflow_dispatch:\njobs:\n  a:\n    x: !!str y\n'),
+    /tags are not implemented/u,
+  );
+});
+
+test('AN ESCAPED QUOTED VALUE IS REFUSED, not read literally (round-eight P0)', () => {
+  /*
+   * `issues: "wri\u0074e"` is `write` to Ruby's Psych and was the literal
+   * `wri\u0074e` here — so the job held issues:write while the guard saw no
+   * writer at all, and both isolation tests passed at 2/2. Same class as the
+   * quoted key, one level down in the value.
+   */
+  const doc = (perm) => 'on:\n  workflow_dispatch:\njobs:\n  a:\n    permissions:\n'
+    + `      issues: ${perm}\n    steps:\n      - run: npm ci\n`;
+
+  assert.throws(
+    () => readWorkflowStructure(doc('"wri\\u0074e"')),
+    /escape sequences in quoted scalars are not implemented/u,
+  );
+  assert.throws(
+    () => readWorkflowStructure(doc("'wri\\x74e'")),
+    /escape sequences in quoted scalars are not implemented/u,
+  );
+
+  // A plainly quoted value is still read, so the refusal is not always-on —
+  // and it must still be seen as a writer.
+  assert.deepEqual(
+    jobsThatCanWriteIssues(readWorkflowStructure(doc('"write"'))).map((j) => j.name),
+    ['a'],
+  );
 });
 
 test('A RESERVED KEY IS REFUSED, not written onto every mapping', () => {
