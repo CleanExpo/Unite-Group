@@ -40,11 +40,19 @@ export function computeAgeDays(opened, now) {
   const nowMs = Date.parse(now);
   if (Number.isNaN(nowMs)) throw new Error(`Unparseable now: ${JSON.stringify(now)}`);
 
+  /*
+   * ONE DAY OF TOLERANCE, BECAUSE THE DATES ARE BRISBANE AND `now` IS UTC. The
+   * cron fires at 19:00 UTC, which is already 05:00 the next day in Brisbane
+   * (UTC+10, no DST). A row a founder opens "today" in local time is therefore
+   * up to a day ahead of a UTC `now`, and refusing it rendered a false DEGRADED
+   * on a perfectly valid ledger. A genuinely fabricated future date is still
+   * refused; only the timezone's own width is forgiven, and the age floors at 0.
+   */
   const days = Math.floor((nowMs - openedMs) / MS_PER_DAY);
-  if (days < 0) {
+  if (days < -1) {
     throw new Error(`Opened date ${opened} is in the future relative to ${now}.`);
   }
-  return days;
+  return Math.max(0, days);
 }
 
 /**
@@ -58,8 +66,22 @@ function splitRow(line) {
   return trimmed.split('|').map((cell) => cell.trim());
 }
 
+/** GFM allows a single hyphen, and optional alignment colons. */
 function isSeparator(cells) {
-  return cells.length > 0 && cells.every((cell) => /^:?-{2,}:?$/u.test(cell));
+  return cells.length > 0 && cells.every((cell) => /^:?-+:?$/u.test(cell));
+}
+
+/**
+ * A header row is the WHOLE header, not merely a first cell reading "ID".
+ * Matching on `cells[0] === 'ID'` alone swallowed a legitimate data row whose ID
+ * happened to be the literal string `ID`, and counted it as the header.
+ */
+function isHeaderRow(cells, section) {
+  const expected = section === 'resolved'
+    ? ['id', 'decision', 'opened', 'resolved', 'decision text']
+    : ['id', 'decision', 'opened', 'age (days)', 'blocks', 'context', 'status'];
+  if (cells.length !== expected.length) return false;
+  return cells.every((cell, index) => cell.trim().toLowerCase() === expected[index]);
 }
 
 function looksLikeRow(line) {
@@ -85,50 +107,75 @@ export function parseFounderQueue(markdown) {
   let section = 'open';
   let lineNumber = 0;
 
+  /*
+   * THE TABLE BODY IS A CONTIGUOUS BLOCK, AND THAT IS POSITIVE PROOF.
+   *
+   * The previous revision guessed at lost rows with `/^\s*[A-Z]\d+\s/`, which is
+   * a detect-the-bad-thing heuristic and lost both ways in review: it MISSED
+   * `SEC1 decide 2026-08-16 ...` (two letters) and FIRED on the prose
+   * `F1 is waiting on legal.` A gate that cries wolf gets switched off, and one
+   * that misses the real row prints "nothing is blocked" over a blocker.
+   *
+   * A GFM table body runs from the separator to the first blank line. Inside that
+   * block every non-blank line IS a row and must parse; outside it, nothing is.
+   * No guessing at what a row looks like.
+   */
+  let inBody = false;
+
   for (const line of lines) {
     lineNumber += 1;
     const heading = /^##\s+(.+?)\s*$/u.exec(line);
     if (heading) {
       section = /^resolved$/iu.test(heading[1]) ? 'resolved' : 'open';
+      inBody = false;
       continue;
     }
-    if (!looksLikeRow(line)) {
+    if (line.trim() === '') {
+      inBody = false;
+      continue;
+    }
+
+    const cells = splitRow(line);
+    if (looksLikeRow(line) && isSeparator(cells)) {
+      inBody = headersSeen.has(section);
+      continue;
+    }
+    if (looksLikeRow(line) && isHeaderRow(cells, section)) {
+      headersSeen.add(section);
+      continue;
+    }
+
+    if (!inBody) {
       /*
-       * A NON-EMPTY LINE INSIDE A TABLE THAT HAS NO PIPES AT ALL. `| F1 | ... |`
-       * with the pipes lost to an editor is not a row this parser can read, and
-       * skipping it silently is how "No open founder decisions" gets printed over
-       * a real blocker. Only lines that follow a header and look like content are
-       * flagged; prose between sections is not a table row.
+       * Outside a table body. Prose with a stray pipe is not this parser's
+       * business — but a line with EXACTLY a row's worth of cells is a real row
+       * that has drifted out of its table, and dropping it loses a decision.
+       * Cell count is a precise test, not a guess at what a row looks like.
        */
-      if (headersSeen.has(section) && /^\s*[A-Z]\d+\s/u.test(line)) {
+      if (looksLikeRow(line) && (cells.length === 7 || cells.length === 5)) {
         malformed.push(
-          `Line ${lineNumber} of the ${section} table looks like a row but has no cell `
-          + `separators: ${line.trim()}`,
+          `Line ${lineNumber} looks like a table row but sits outside any table body: `
+          + `${line.trim()}`,
         );
       }
       continue;
     }
 
-    const cells = splitRow(line);
-    if (isSeparator(cells)) continue;
-    if (/^id$/iu.test(cells[0])) {
-      headersSeen.add(section);
-      continue;
-    }
-    if (!headersSeen.has(section)) {
-      // A table row BEFORE any header cannot be attributed to a section. Skipping
-      // it silently loses it; the row is real even if its placement is wrong.
+    if (!looksLikeRow(line)) {
       malformed.push(
-        `Line ${lineNumber} is a table row appearing before any header: ${line.trim()}`,
+        `Line ${lineNumber} of the ${section} table has no cell separators: ${line.trim()}`,
       );
       continue;
     }
 
     const required = section === 'resolved' ? 5 : 7;
-    if (cells.length < required) {
+    if (cells.length !== required) {
+      // BOTH directions. Too few loses a value; too MANY shifts every cell after
+      // the extra pipe, so `see | notes` silently became the Status column and
+      // the real status was dropped.
       malformed.push(
         `Line ${lineNumber} of the ${section} table has ${cells.length} cells, `
-        + `expected at least ${required}: ${line.trim()}`,
+        + `expected exactly ${required}: ${line.trim()}`,
       );
       continue;
     }
@@ -192,10 +239,16 @@ export function renderQueue(parsed, now) {
 }
 
 export function summarise(parsed, now) {
-  const { oldest, unaged } = oldestOpen(parsed.open, now);
+  /*
+   * THE STATUS COLUMN IS DATA, NOT DECORATION. A row in the Open table marked
+   * `resolved` was still counted as open and could be reported as the oldest
+   * founder blocker — an active blocker that had already been decided.
+   */
+  const stillOpen = parsed.open.filter((row) => row.status.trim().toLowerCase() === 'open');
+  const { oldest, unaged } = oldestOpen(stillOpen, now);
   const malformed = [...(parsed.malformed ?? []), ...unaged];
   return {
-    openCount: parsed.open.length,
+    openCount: stillOpen.length,
     resolvedCount: parsed.resolved.length,
     oldest,
     integrity: malformed.length === 0 ? 'OK' : 'MALFORMED',
@@ -223,8 +276,19 @@ export function main(argv = process.argv.slice(2), {
       return 2;
     }
     const table = renderQueue(parsed, now);
-    const pattern = /\| ID \| Decision \| Opened \| Age \(days\)[\s\S]*?(?=\n\n|\n## |$)/u;
-    if (!pattern.test(markdown)) {
+    /*
+     * `\r?` ON BOTH BOUNDARIES. Round three reported that a CRLF ledger made this
+     * match swallow the Resolved section and the rewrite delete it. That does NOT
+     * reproduce — `\n## ` still matches the `\n` of `\r\n## `, so the match stops
+     * correctly and Resolved survives; it was checked before anything changed.
+     * What IS true is narrower: `\n\n` cannot match `\r\n\r\n`, so on a CRLF file
+     * whose Open table is followed by a blank line and then ordinary prose rather
+     * than a heading, the match would overrun. `\r?` closes that, and the test
+     * below pins the Resolved section surviving a CRLF render either way.
+     */
+    const pattern = /\| ID \| Decision \| Opened \| Age \(days\)[\s\S]*?(?=\r?\n\r?\n|\r?\n## |$)/u;
+    const match = pattern.exec(markdown);
+    if (!match) {
       io.error('Refusing to rewrite FOUNDER-QUEUE.md: the Open table header was not found.');
       return 2;
     }

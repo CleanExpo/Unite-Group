@@ -158,6 +158,22 @@ export function reconcileQueue(queueEvidence) {
   const malformed = Array.isArray(value.malformed) ? value.malformed : [];
   const queue = { ...value, integrity, malformed };
 
+  // A SHAPE CHECK THAT ACCEPTS AN IMPOSSIBLE SUMMARY IS NOT A SHAPE CHECK.
+  // `{openCount: 5, oldest: null}` and a negative count both passed and rendered
+  // "No open founder decisions. Nothing is blocked on Phill."
+  if (value.openCount < 0) {
+    anomalies.push(`The queue reports a negative open count (${value.openCount}).`);
+  }
+  if (value.openCount > 0 && (value.oldest === null || value.oldest === undefined)) {
+    anomalies.push(
+      `The queue reports ${value.openCount} open decisions but names no oldest one, so the `
+      + 'count and the detail disagree.',
+    );
+  }
+  if (value.openCount === 0 && value.oldest) {
+    anomalies.push('The queue reports zero open decisions while naming an oldest one.');
+  }
+
   if (integrity !== 'OK') {
     anomalies.push(
       `\`FOUNDER-QUEUE.md\` did not parse cleanly (integrity ${integrity}); the open count `
@@ -213,6 +229,10 @@ export function findOwnedIssue(issues, title = HEARTBEAT_TITLE) {
       // and `issues.update` will happily rewrite a PR's body. An open PR titled
       // like the heartbeat, carrying the marker copied out of the public issue,
       // was adoptable — and if its number were lower it became canonical.
+      // Round three claimed `=== undefined` let a client normalising the field
+      // to null put PRs back in scope. It does not: `null === undefined` is
+      // false, so a null field already disqualifies. Probed before changing
+      // anything, and left alone.
       && issue.pull_request === undefined
       && typeof issue.body === 'string'
       && issue.body.includes(OWNER_MARKER),
@@ -226,12 +246,18 @@ export function findOwnedIssue(issues, title = HEARTBEAT_TITLE) {
   return owned.reduce((low, issue) => (issue.number < low.number ? issue : low));
 }
 
-export async function upsertHeartbeatIssue({ client, body, title = HEARTBEAT_TITLE }) {
+export async function upsertHeartbeatIssue({ client, body, title = HEARTBEAT_TITLE, issues = null }) {
   if (!body.includes(OWNER_MARKER)) {
     throw new Error('Refusing to write a heartbeat body with no ownership marker.');
   }
 
-  const target = findOwnedIssue(await client.listOpenIssues(), title);
+  /*
+   * The caller passes the listing it already read for the drift comparison. Two
+   * separate lookups race: the issue drift was computed from could be closed
+   * between them, and the report would then be written to a NEW issue while
+   * claiming a regression measured against the old one.
+   */
+  const target = findOwnedIssue(issues ?? await client.listOpenIssues(), title);
 
   if (target === null) {
     const created = await client.createIssue({ title, body });

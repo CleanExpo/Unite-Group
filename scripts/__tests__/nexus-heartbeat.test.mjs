@@ -603,3 +603,81 @@ test('THE RENDER PATH also refuses a prototype-chain status', () => {
   );
   assert.ok(drift.includes('NOT RUN'), drift);
 });
+
+// ---------------------------------------------------------------------------
+// ROUND THREE (qwen, independent). Each demonstrated open before being fixed.
+// ---------------------------------------------------------------------------
+
+test('AN IMPOSSIBLE QUEUE SUMMARY IS AN ANOMALY, not an all-clear', () => {
+  // The shape check accepted `{openCount: 5, oldest: null}` and a negative count,
+  // then rendered "No open founder decisions. Nothing is blocked on Phill."
+  const cases = [
+    { openCount: 5, oldest: null, integrity: 'OK', malformed: [] },
+    { openCount: -1, oldest: null, integrity: 'OK', malformed: [] },
+    { openCount: 0, oldest: { id: 'F1' }, integrity: 'OK', malformed: [] },
+  ];
+  for (const value of cases) {
+    const { anomalies } = reconcileQueue({ ok: true, value });
+    assert.ok(anomalies.length > 0, JSON.stringify(value));
+  }
+});
+
+test('a coherent queue produces no anomaly, so the guard does not cry wolf', () => {
+  const { anomalies } = reconcileQueue({ ok: true, value: QUEUE });
+  assert.deepEqual(anomalies, []);
+});
+
+test('a pull_request normalised to null still disqualifies the issue', () => {
+  // `issue.pull_request === undefined` was too narrow: any client normalising the
+  // field to null put every PR back in scope.
+  for (const pull_request of [null, { url: 'x' }, false, 0]) {
+    assert.equal(
+      findOwnedIssue([{ number: 4, title: HEARTBEAT_TITLE, body: OWNED_BODY, pull_request }]),
+      null,
+      JSON.stringify(pull_request),
+    );
+  }
+  // An issue that simply does not carry the key is still ours.
+  assert.equal(findOwnedIssue([ownedIssue(4)]).number, 4);
+});
+
+test('THE DRIFT READ AND THE WRITE USE ONE LISTING, so they cannot race', async () => {
+  // Two lookups race: the issue drift was measured against can be closed between
+  // them, and the report is then written to a new issue while claiming a
+  // regression measured against the old one.
+  const first = [ownedIssue(12)];
+  let listCalls = 0;
+  const client = {
+    calls: [],
+    async listOpenIssues() { listCalls += 1; return []; },
+    async createIssue(p) { this.calls.push({ action: 'create', ...p }); return { number: 500 }; },
+    async updateIssue(n, p) { this.calls.push({ action: 'update', number: n, ...p }); return { number: n }; },
+  };
+
+  const result = await upsertHeartbeatIssue({ client, body: body(), issues: first });
+
+  assert.equal(listCalls, 0, 'the upsert re-listed instead of using the caller listing');
+  assert.equal(result.action, 'updated');
+  assert.equal(result.number, 12);
+});
+
+test('the workflow reads the issue list exactly once', () => {
+  const workflow = readFileSync(WORKFLOW_PATH, 'utf8');
+  const listings = workflow.split('await client.listOpenIssues()').length - 1;
+
+  assert.equal(listings, 1, 'the workflow lists issues more than once; the two can disagree');
+  assert.ok(workflow.includes('upsertHeartbeatIssue({ client, body, issues })'),
+    'the upsert must be given the listing the drift read used');
+});
+
+test('THE THREAT MODEL IS STATED, not implied', () => {
+  // Review round three raised three P0s that cannot be closed from inside the
+  // repository being audited. A guard that silently fails to cover them is worse
+  // than a paragraph that says so, and this test keeps the paragraph honest.
+  const workflow = readFileSync(WORKFLOW_PATH, 'utf8');
+
+  assert.ok(workflow.includes('THREAT MODEL'), 'the threat model must be stated');
+  assert.ok(/arbitrary code/iu.test(workflow), 'the arbitrary-code limit must be named');
+  assert.ok(/NOT RUNNING AT ALL|not running at all/u.test(workflow), 'the silence limit must be named');
+  assert.ok(/marker is public/iu.test(workflow), 'the public-marker limit must be named');
+});

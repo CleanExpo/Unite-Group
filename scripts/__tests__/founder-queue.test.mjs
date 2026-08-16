@@ -24,8 +24,14 @@ test('age is computed in whole days from the opened date', () => {
   assert.equal(computeAgeDays('2026-07-17', NOW), 30);
 });
 
-test('age is never negative, and a future date is refused rather than silently clamped', () => {
-  assert.throws(() => computeAgeDays('2026-08-17', NOW), /future/i);
+test('age is never negative, and a genuinely future date is refused', () => {
+  // ONE day of tolerance is deliberate: the cron fires at 19:00 UTC, which is
+  // already the next day in Brisbane, so a row opened "today" locally is a day
+  // ahead of a UTC `now`. Refusing it rendered a false DEGRADED on a valid
+  // ledger. Two days ahead is a fabricated date and is still refused.
+  assert.equal(computeAgeDays('2026-08-17', NOW), 0);
+  assert.throws(() => computeAgeDays('2026-08-18', NOW), /future/i);
+  assert.throws(() => computeAgeDays('2027-01-01', NOW), /future/i);
 });
 
 test('an unparseable opened date is refused, not treated as age zero', () => {
@@ -244,11 +250,11 @@ test('prose between sections is not mistaken for a lost row', () => {
   assert.deepEqual(parseFounderQueue(markdown).malformed, []);
 });
 
-test('a table row appearing before any header is reported, not dropped', () => {
+test('a table row sitting outside any table body is reported, not dropped', () => {
   const markdown = ['| F9 | orphan | 2026-08-01 | 0 | x | y | open |', HEADER, RULE].join('\n');
   const parsed = parseFounderQueue(markdown);
 
-  assert.match(parsed.malformed.join('\n'), /before any header/);
+  assert.match(parsed.malformed.join('\n'), /outside any table body/);
 });
 
 test('AN IMPOSSIBLE DATE NAMES ITS ROW instead of killing the whole summary', () => {
@@ -289,4 +295,94 @@ test('--render cannot be made to splice its own match into the file', () => {
   const headers = written[0].split('| ID | Decision | Opened | Age (days)').length - 1;
   assert.equal(headers, 1, `the table was spliced into itself:\n${written[0]}`);
   assert.ok(written[0].includes('pay $& and $`'), written[0]);
+});
+
+// ---------------------------------------------------------------------------
+// ROUND THREE (qwen, independent). Each demonstrated open before being fixed.
+// ---------------------------------------------------------------------------
+
+test('EXTRA PIPES SHIFT EVERY CELL, so a wrong cell count is malformed both ways', () => {
+  // `see | notes` in the Context cell became the Status column and the real
+  // status was dropped, with no malformed flag. Too FEW cells was caught; too
+  // many was not.
+  const markdown = [HEADER, RULE, '| F1 | d | 2026-08-16 | 0 | b | see | notes | open |'].join('\n');
+  const parsed = parseFounderQueue(markdown);
+
+  assert.equal(parsed.open.length, 0);
+  assert.match(parsed.malformed.join('\n'), /has 8 cells, expected exactly 7/);
+});
+
+test('THE LOST-PIPES HEURISTIC IS GONE: a two-letter id is caught and prose is not', () => {
+  // `/^\s*[A-Z]\d+\s/` was a detect-the-bad-thing guess and lost both ways:
+  // it MISSED `SEC1 ...` and FIRED on `F1 is waiting on legal.` The table body is
+  // now the contiguous block after the separator — positive proof, no guessing.
+  const missed = parseFounderQueue([HEADER, RULE, 'SEC1 decide 2026-08-16 0 x y open'].join('\n'));
+  assert.match(missed.malformed.join('\n'), /no cell separators/);
+
+  const prose = parseFounderQueue([
+    HEADER, RULE, '| F1 | d | 2026-08-16 | 0 | b | c | open |', '', 'F1 is waiting on legal.',
+  ].join('\n'));
+  assert.deepEqual(prose.malformed, [], 'prose after a blank line is not a row');
+
+  const pipedProse = parseFounderQueue([
+    HEADER, RULE, '| F1 | d | 2026-08-16 | 0 | b | c | open |', '', 'Context: see | notes',
+  ].join('\n'));
+  assert.deepEqual(pipedProse.malformed, [], 'a stray pipe in prose is not a row');
+});
+
+test('--RENDER MUST NOT DELETE THE RESOLVED SECTION ON A CRLF FILE', () => {
+  // The lookahead never matched `\r\n\r\n`, so the match ran to end-of-file and
+  // the rewrite deleted everything after the Open table — including Resolved,
+  // which the ledger's own rules promise is never removed.
+  const crlf = [
+    '# FOUNDER QUEUE', '', '## Open', '', HEADER, RULE,
+    '| F1 | d | 2026-08-01 | 0 | b | c | open |', '',
+    '## Resolved', '', '| ID | Decision | Opened | Resolved | Decision text |',
+    '| --- | --- | --- | --- | --- |', '| F0 | old | 2026-05-01 | 2026-05-02 | did it |',
+  ].join('\r\n');
+
+  const written = [];
+  const io = { logs: [], errors: [], log(m) { this.logs.push(m); }, error(m) { this.errors.push(m); } };
+  const code = main(['--render'], {
+    io, now: NOW, readFile: () => crlf, writeFile: (path, contents) => written.push(contents),
+  });
+
+  assert.equal(code, 0, io.errors.join('\n'));
+  assert.equal(written.length, 1);
+  assert.ok(written[0].includes('## Resolved'), `Resolved was deleted:\n${written[0]}`);
+  assert.ok(written[0].includes('F0'), `the resolved row was deleted:\n${written[0]}`);
+});
+
+test('A ROW MARKED RESOLVED IN THE OPEN TABLE IS NOT AN ACTIVE BLOCKER', () => {
+  // The Status column was ignored, so a decided row was still counted open and
+  // could be reported as the oldest founder blocker.
+  const markdown = [
+    HEADER, RULE,
+    '| F1 | decided already | 2026-01-01 | 0 | x | y | resolved |',
+    '| F2 | still waiting | 2026-08-01 | 0 | x | y | open |',
+  ].join('\n');
+
+  const summary = summarise(parseFounderQueue(markdown), NOW);
+  assert.equal(summary.openCount, 1);
+  assert.equal(summary.oldest.id, 'F2');
+});
+
+test('a single-hyphen separator is a separator, and an ID data row is not a header', () => {
+  const single = parseFounderQueue([
+    HEADER, '| - | - | - | - | - | - | - |', '| F1 | d | 2026-08-01 | 0 | b | c | open |',
+  ].join('\n'));
+  assert.deepEqual(single.malformed, []);
+  assert.deepEqual(single.open.map((r) => r.id), ['F1']);
+
+  const idRow = parseFounderQueue([
+    HEADER, RULE, '| ID | legit | 2026-08-01 | 0 | x | y | open |',
+  ].join('\n'));
+  assert.deepEqual(idRow.open.map((r) => r.id), ['ID'], 'the data row was swallowed as a header');
+});
+
+test('the shipped ledger still parses clean after all of this', () => {
+  const parsed = parseFounderQueue(readFileSync(QUEUE_PATH, 'utf8'));
+  assert.deepEqual(parsed.malformed, []);
+  assert.equal(summarise(parsed, NOW).integrity, 'OK');
+  assert.equal(parsed.open.length, 9);
 });
