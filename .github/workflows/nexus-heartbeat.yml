@@ -7,20 +7,32 @@ name: Nexus Heartbeat
 # deploy, merge, or arm anything: merge is not deploy (UNI-2542) and there is one
 # release authority (UNI-2562).
 #
-# THE WRITE TOKEN IS ISOLATED IN ITS OWN JOB. Permissions are granted per job, so
-# the `observe` job — the one that runs `npm ci` and three repository-controlled
-# npm scripts — holds `contents: read` and nothing else. Only `report` holds
-# `issues: write`, and it installs nothing, runs no repository script, and checks
-# out exactly one file. Both checkouts set `persist-credentials: false` so no
-# ambient credential is left in the workspace for repository code to pick up.
-# Round one of the independent review was right that a workflow-wide `issues:
-# write` cannot support the claim that the only write is one issue.
+# THE WRITE TOKEN'S BLAST RADIUS IS REDUCED, NOT ELIMINATED. Permissions are
+# granted per job, so `observe` — the job that runs `npm ci` and three
+# repository-controlled npm scripts — holds `contents: read` and nothing else.
+# Only `report` holds `issues: write`, and it installs nothing and sparse-checks-out
+# a single file. Both checkouts set `persist-credentials: false`.
 #
-# HONEST DEGRADATION. Every gate runs with its exit code captured, so one red gate
-# cannot hide the others. `report` runs with `if: always()`, so a dead observe job
-# updates the issue with NOT RUN rows and a DEGRADED banner instead of leaving
-# yesterday's PASS standing as though it were today's. All of that logic lives in
-# scripts/nexus-heartbeat.mjs where tests can reach it — the YAML decides nothing.
+# State the limit exactly, because round two was right to push on it: `report`
+# still EXECUTES one repository-controlled file (scripts/nexus-heartbeat.mjs)
+# while holding that token, and sparse checkout restricts files, not API reach.
+# Anyone able to land arbitrary code in that file can call the issues API with it.
+# What the split buys is that `npm ci` and the gate scripts — the large,
+# dependency-laden surface — no longer run under the token at all. That is a real
+# reduction and it is not the same as containment.
+#
+# HONEST DEGRADATION, AND ITS CEILING. Every gate runs with its exit code
+# captured, so one red gate cannot hide the others, and `report` runs with
+# `if: always()` so a dead observe job publishes NOT RUN rows under a DEGRADED
+# banner instead of leaving yesterday's PASS standing. The ceiling: if the report
+# job itself cannot run — checkout fails, the import throws, the API rejects the
+# write — NOTHING updates the issue, and the previous body stays live. No workflow
+# can report its own total failure from inside itself. That is why every body is
+# stamped with its run id and generation time and says so: a reader checks the
+# timestamp, and an external watchdog is the only real answer.
+#
+# All decision logic lives in scripts/nexus-heartbeat.mjs where tests can reach
+# it. The capture step records EXIT CODES ONLY — it does not decide PASS or FAIL.
 
 on:
   schedule:
@@ -57,21 +69,25 @@ jobs:
       - name: Install root dependencies
         run: npm ci
 
-      - name: Run gates and capture every result
+      # The shell records EXIT CODES ONLY. It used to decide `status=PASS` itself,
+      # which put a verdict back inside the YAML where no test could reach it —
+      # the same shape as the round-one P0, one layer down. reconcileGates derives
+      # PASS/FAIL from the exit code now, and a test asserts the YAML never
+      # mentions PASS again.
+      - name: Run gates and capture every exit code
         run: |
           set +e
           mkdir -p /tmp/heartbeat
           results='[]'
           for gate in verify:readiness verify:docs-watch verify:docs-review; do
-            npm run "$gate" > "/tmp/${gate//:/-}.log" 2>&1
+            npm run "$gate" > "/tmp/heartbeat/${gate//:/-}.log" 2>&1
             code=$?
-            if [ "$code" -eq 0 ]; then status=PASS; else status=FAIL; fi
             results=$(node -e '
-              const [existing, name, status, code] = process.argv.slice(1);
+              const [existing, name, code] = process.argv.slice(1);
               const list = JSON.parse(existing);
-              list.push({ name, status, exitCode: Number(code) });
+              list.push({ name, exitCode: Number(code) });
               console.log(JSON.stringify(list));
-            ' "$results" "$gate" "$status" "$code")
+            ' "$results" "$gate" "$code")
           done
           printf '%s' "$results" > /tmp/heartbeat/gate-results.json
           cat /tmp/heartbeat/gate-results.json
@@ -124,8 +140,8 @@ jobs:
         with:
           script: |
             const {
-              HEARTBEAT_TITLE, DECLARED_GATES, OWNER_MARKER,
-              composeHeartbeat, readEvidence, upsertHeartbeatIssue,
+              DECLARED_GATES,
+              composeHeartbeat, findOwnedIssue, readEvidence, upsertHeartbeatIssue,
             } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/nexus-heartbeat.mjs`);
 
             const client = {
@@ -135,7 +151,14 @@ jobs:
                 const data = await github.paginate(github.rest.issues.listForRepo, {
                   owner: context.repo.owner, repo: context.repo.repo, state: 'open', per_page: 100,
                 });
-                return data.map((issue) => ({ number: issue.number, title: issue.title, body: issue.body }));
+                // pull_request is carried through: this endpoint returns PRs too,
+                // and findOwnedIssue must be able to tell them apart.
+                return data.map((issue) => ({
+                  number: issue.number,
+                  title: issue.title,
+                  body: issue.body,
+                  pull_request: issue.pull_request,
+                }));
               },
               createIssue: async ({ title, body }) => {
                 const { data } = await github.rest.issues.create({
@@ -151,11 +174,9 @@ jobs:
               },
             };
 
-            const issues = await client.listOpenIssues();
-            const previous = issues.find(
-              (issue) => issue.title === HEARTBEAT_TITLE
-                && typeof issue.body === 'string' && issue.body.includes(OWNER_MARKER),
-            );
+            // Same selector the upsert uses. Picking the previous body with a
+            // different rule read one issue's gates while rewriting another's.
+            const previous = findOwnedIssue(await client.listOpenIssues());
 
             const { body, degraded, anomalies } = composeHeartbeat({
               date: new Date().toISOString().slice(0, 10),

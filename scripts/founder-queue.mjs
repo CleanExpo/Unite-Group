@@ -92,7 +92,22 @@ export function parseFounderQueue(markdown) {
       section = /^resolved$/iu.test(heading[1]) ? 'resolved' : 'open';
       continue;
     }
-    if (!looksLikeRow(line)) continue;
+    if (!looksLikeRow(line)) {
+      /*
+       * A NON-EMPTY LINE INSIDE A TABLE THAT HAS NO PIPES AT ALL. `| F1 | ... |`
+       * with the pipes lost to an editor is not a row this parser can read, and
+       * skipping it silently is how "No open founder decisions" gets printed over
+       * a real blocker. Only lines that follow a header and look like content are
+       * flagged; prose between sections is not a table row.
+       */
+      if (headersSeen.has(section) && /^\s*[A-Z]\d+\s/u.test(line)) {
+        malformed.push(
+          `Line ${lineNumber} of the ${section} table looks like a row but has no cell `
+          + `separators: ${line.trim()}`,
+        );
+      }
+      continue;
+    }
 
     const cells = splitRow(line);
     if (isSeparator(cells)) continue;
@@ -100,7 +115,14 @@ export function parseFounderQueue(markdown) {
       headersSeen.add(section);
       continue;
     }
-    if (!headersSeen.has(section)) continue;
+    if (!headersSeen.has(section)) {
+      // A table row BEFORE any header cannot be attributed to a section. Skipping
+      // it silently loses it; the row is real even if its placement is wrong.
+      malformed.push(
+        `Line ${lineNumber} is a table row appearing before any header: ${line.trim()}`,
+      );
+      continue;
+    }
 
     const required = section === 'resolved' ? 5 : 7;
     if (cells.length < required) {
@@ -134,13 +156,27 @@ export function parseFounderQueue(markdown) {
   return { open, resolved, malformed };
 }
 
+/**
+ * Returns `{ oldest, unaged }`. A row whose date does not compute is NAMED rather
+ * than thrown past: an uncaught throw here killed the whole summary, so the
+ * heartbeat got a generic JSON error instead of "row F9 has an impossible date".
+ * The refusal is kept — a fabricated age is worse than none — but it is now a
+ * reported row rather than a dead process.
+ */
 export function oldestOpen(rows, now) {
   let oldest = null;
+  const unaged = [];
   for (const row of rows) {
-    const ageDays = computeAgeDays(row.opened, now);
+    let ageDays;
+    try {
+      ageDays = computeAgeDays(row.opened, now);
+    } catch (error) {
+      unaged.push(`${row.id}: ${error.message}`);
+      continue;
+    }
     if (!oldest || ageDays > oldest.ageDays) oldest = { ...row, ageDays };
   }
-  return oldest;
+  return { oldest, unaged };
 }
 
 /** Rewrites the age column from `opened`, discarding whatever the file said. */
@@ -156,11 +192,12 @@ export function renderQueue(parsed, now) {
 }
 
 export function summarise(parsed, now) {
-  const malformed = parsed.malformed ?? [];
+  const { oldest, unaged } = oldestOpen(parsed.open, now);
+  const malformed = [...(parsed.malformed ?? []), ...unaged];
   return {
     openCount: parsed.open.length,
     resolvedCount: parsed.resolved.length,
-    oldest: oldestOpen(parsed.open, now),
+    oldest,
     integrity: malformed.length === 0 ? 'OK' : 'MALFORMED',
     malformed,
   };
@@ -191,7 +228,11 @@ export function main(argv = process.argv.slice(2), {
       io.error('Refusing to rewrite FOUNDER-QUEUE.md: the Open table header was not found.');
       return 2;
     }
-    writeFile(QUEUE_PATH, markdown.replace(pattern, table));
+    // A FUNCTION REPLACEMENT, NOT A STRING. String.replace expands `$&`, `$'`,
+    // `` $` `` and `$1` inside the replacement, so a Context cell containing `$&`
+    // would splice the matched table back into the file. A function returns the
+    // replacement verbatim.
+    writeFile(QUEUE_PATH, markdown.replace(pattern, () => table));
     io.log(`Rewrote ${parsed.open.length} age values.`);
     return 0;
   }

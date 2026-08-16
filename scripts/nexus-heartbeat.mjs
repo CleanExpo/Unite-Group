@@ -91,15 +91,87 @@ export function reconcileGates(declared, captured) {
       anomalies.push(`\`${name}\` is declared but absent from the capture.`);
       return { name, status: 'NOT_RUN', exitCode: null };
     }
-    if (!(entry.status in STATUS_LABEL)) {
-      anomalies.push(`\`${name}\` had unrecognised status ${JSON.stringify(entry.status)}.`);
+    /*
+     * THE VERDICT IS DERIVED HERE, NOT READ FROM THE CAPTURE. The capture step
+     * used to decide `status=PASS` in shell inside the workflow YAML, which is
+     * the round-one P0 one layer down: a verdict living where no test can reach
+     * it. The capture now records exit codes only, and an entry that carries a
+     * `status` at all is treated as untrusted rather than believed.
+     */
+    if (Object.hasOwn(entry, 'status')) {
+      anomalies.push(
+        `\`${name}\` arrived with a pre-decided status ${JSON.stringify(entry.status)}; `
+        + 'the capture records exit codes only and the verdict is derived here.',
+      );
       return { name, status: 'NOT_RUN', exitCode: null };
     }
-    const exitCode = Number.isInteger(entry.exitCode) ? entry.exitCode : null;
-    return { name, status: entry.status, exitCode };
+    if (!Number.isInteger(entry.exitCode)) {
+      anomalies.push(
+        `\`${name}\` has no integer exit code (${JSON.stringify(entry.exitCode)}), so whether `
+        + 'it ran cannot be told from whether it passed.',
+      );
+      return { name, status: 'NOT_RUN', exitCode: null };
+    }
+    return {
+      name,
+      status: entry.exitCode === 0 ? 'PASS' : 'FAIL',
+      exitCode: entry.exitCode,
+    };
   });
 
   return { gates, anomalies };
+}
+
+/**
+ * Validates the founder-queue evidence and reports what is wrong with it.
+ *
+ * Round two found two holes here, both of the same shape: a queue that could not
+ * be trusted still rendered "No open founder decisions. Nothing is blocked on
+ * Phill." An unvalidated `{}` spread into a default of `integrity: 'OK'`, and a
+ * MALFORMED integrity flag was printed in the body but never reached `anomalies`,
+ * so the run finished green. The flag has to travel with the anomaly or it is
+ * decoration.
+ */
+export function reconcileQueue(queueEvidence) {
+  const anomalies = [];
+  const unavailable = {
+    openCount: 0, oldest: null, integrity: 'UNAVAILABLE', malformed: [],
+  };
+
+  if (!queueEvidence.ok) {
+    anomalies.push(queueEvidence.reason);
+    return { queue: unavailable, anomalies };
+  }
+
+  const value = queueEvidence.value;
+  // Shape first. `{}` and `[]` both parse as JSON and neither is a queue summary.
+  if (value === null || typeof value !== 'object' || Array.isArray(value)
+    || !Number.isInteger(value.openCount)) {
+    anomalies.push(
+      '`/tmp/heartbeat/queue.json` parsed but is not a founder-queue summary, so the '
+      + 'number of open decisions is unknown.',
+    );
+    return { queue: unavailable, anomalies };
+  }
+
+  const integrity = typeof value.integrity === 'string' ? value.integrity : 'UNKNOWN';
+  const malformed = Array.isArray(value.malformed) ? value.malformed : [];
+  const queue = { ...value, integrity, malformed };
+
+  if (integrity !== 'OK') {
+    anomalies.push(
+      `\`FOUNDER-QUEUE.md\` did not parse cleanly (integrity ${integrity}); the open count `
+      + 'below is not trustworthy.',
+    );
+    for (const note of malformed) anomalies.push(note);
+  }
+  // A clean parse claiming zero open rows is possible, but a clean parse that
+  // ALSO lists malformed rows is self-contradictory evidence.
+  if (integrity === 'OK' && malformed.length > 0) {
+    anomalies.push('The queue reports integrity OK while also listing malformed rows.');
+  }
+
+  return { queue, anomalies };
 }
 
 /**
@@ -134,24 +206,38 @@ function escapeForRegExp(value) {
  * open issue — the caller paginates — because a heartbeat sitting on page two
  * would otherwise be invisible and a duplicate would be opened every run.
  */
+export function findOwnedIssue(issues, title = HEARTBEAT_TITLE) {
+  const owned = issues.filter(
+    (issue) => issue.title === title
+      // A PULL REQUEST IS AN ISSUE to this API: `issues.listForRepo` returns PRs,
+      // and `issues.update` will happily rewrite a PR's body. An open PR titled
+      // like the heartbeat, carrying the marker copied out of the public issue,
+      // was adoptable — and if its number were lower it became canonical.
+      && issue.pull_request === undefined
+      && typeof issue.body === 'string'
+      && issue.body.includes(OWNER_MARKER),
+  );
+  if (owned.length === 0) return null;
+  // Deterministic when duplicates exist: oldest wins, so repeated runs converge
+  // on one issue instead of alternating between them. THE CALLER MUST USE THIS
+  // FUNCTION for the drift read too — picking the previous body with `find` while
+  // updating the lowest-numbered issue read one issue and rewrote another,
+  // manufacturing regressions that never happened.
+  return owned.reduce((low, issue) => (issue.number < low.number ? issue : low));
+}
+
 export async function upsertHeartbeatIssue({ client, body, title = HEARTBEAT_TITLE }) {
   if (!body.includes(OWNER_MARKER)) {
     throw new Error('Refusing to write a heartbeat body with no ownership marker.');
   }
 
-  const issues = await client.listOpenIssues();
-  const owned = issues.filter(
-    (issue) => issue.title === title && typeof issue.body === 'string' && issue.body.includes(OWNER_MARKER),
-  );
+  const target = findOwnedIssue(await client.listOpenIssues(), title);
 
-  if (owned.length === 0) {
+  if (target === null) {
     const created = await client.createIssue({ title, body });
     return { action: 'created', number: created.number };
   }
 
-  // Deterministic when duplicates exist: oldest wins, so repeated runs converge
-  // on one issue instead of alternating between them.
-  const target = owned.reduce((low, issue) => (issue.number < low.number ? issue : low));
   await client.updateIssue(target.number, { title, body });
   return { action: 'updated', number: target.number };
 }
@@ -185,7 +271,7 @@ export function buildHeartbeatBody({ date, gates, queue, drift, anomalies = [], 
   lines.push('## Gates', '', '| Gate | Result | Exit |', '| --- | --- | --- |');
 
   for (const gate of gates) {
-    const label = STATUS_LABEL[gate.status] ?? 'NOT RUN';
+    const label = Object.hasOwn(STATUS_LABEL, gate.status) ? STATUS_LABEL[gate.status] : 'NOT RUN';
     const exit = gate.exitCode === null || gate.exitCode === undefined
       ? '—'
       : `exit ${gate.exitCode}`;
@@ -223,7 +309,7 @@ export function detectDrift(previousGates, currentGates) {
   const previous = new Map(previousGates.map((gate) => [gate.name, gate.status]));
   const regressed = currentGates
     .filter((gate) => previous.get(gate.name) === 'PASS' && gate.status !== 'PASS')
-    .map((gate) => `\`${gate.name}\` (${STATUS_LABEL[gate.status] ?? 'NOT RUN'})`);
+    .map((gate) => `\`${gate.name}\` (${Object.hasOwn(STATUS_LABEL, gate.status) ? STATUS_LABEL[gate.status] : 'NOT RUN'})`);
 
   if (regressed.length === 0) return null;
   return `Regressed since the previous run: ${regressed.join(', ')}.`;
@@ -253,7 +339,7 @@ export function readGateResults(path) {
   const parsed = JSON.parse(readFileSync(path, 'utf8'));
   if (!Array.isArray(parsed)) throw new Error(`${path} is not an array of gate results.`);
   for (const gate of parsed) {
-    if (typeof gate.name !== 'string' || !(gate.status in STATUS_LABEL)) {
+    if (typeof gate.name !== 'string' || !Object.hasOwn(STATUS_LABEL, gate.status)) {
       throw new Error(`${path} contains a gate with no name or an unknown status.`);
     }
   }
@@ -280,12 +366,8 @@ export function composeHeartbeat({
   const { gates, anomalies: gateAnomalies } = reconcileGates(declared, captured);
   anomalies.push(...gateAnomalies);
 
-  let queue = { openCount: 0, oldest: null, integrity: 'UNAVAILABLE', malformed: [] };
-  if (queueEvidence.ok) {
-    queue = { integrity: 'OK', malformed: [], ...queueEvidence.value };
-  } else {
-    anomalies.push(queueEvidence.reason);
-  }
+  const { queue, anomalies: queueAnomalies } = reconcileQueue(queueEvidence);
+  anomalies.push(...queueAnomalies);
 
   const previous = parsePreviousGates(previousBody, declared);
   const body = buildHeartbeatBody({

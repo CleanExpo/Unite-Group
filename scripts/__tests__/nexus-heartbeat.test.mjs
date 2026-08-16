@@ -11,15 +11,18 @@ import {
   buildHeartbeatBody,
   composeHeartbeat,
   detectDrift,
+  findOwnedIssue,
   parsePreviousGates,
   readEvidence,
   reconcileGates,
+  reconcileQueue,
   upsertHeartbeatIssue,
 } from '../nexus-heartbeat.mjs';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const WORKFLOW_PATH = join(repositoryRoot, '.github', 'workflows', 'nexus-heartbeat.yml');
 
+// Rendered gate lists (what reconcileGates PRODUCES).
 const GREEN = [
   { name: 'verify:readiness', status: 'PASS', exitCode: 0 },
   { name: 'verify:docs-watch', status: 'PASS', exitCode: 0 },
@@ -30,6 +33,10 @@ const RED = [
   { name: 'verify:docs-watch', status: 'PASS', exitCode: 0 },
   { name: 'verify:docs-review', status: 'PASS', exitCode: 0 },
 ];
+
+// Captures (what the workflow WRITES): exit codes only, never a verdict.
+const CAPTURE_GREEN = DECLARED_GATES.map((name) => ({ name, exitCode: 0 }));
+const CAPTURE_RED = DECLARED_GATES.map((name, index) => ({ name, exitCode: index === 0 ? 1 : 0 }));
 
 const QUEUE = {
   openCount: 9,
@@ -129,7 +136,7 @@ test('duplicate owned issues update the lowest-numbered one deterministically', 
 // ---------------------------------------------------------------------------
 
 test('THE UNI-2567 LESSON: a gate absent from the capture becomes NOT RUN, never PASS', () => {
-  const { gates, anomalies } = reconcileGates(DECLARED_GATES, [GREEN[0]]);
+  const { gates, anomalies } = reconcileGates(DECLARED_GATES, [CAPTURE_GREEN[0]]);
 
   assert.equal(gates.length, 3);
   assert.deepEqual(
@@ -147,7 +154,7 @@ test('an empty capture makes every declared gate NOT RUN and says so', () => {
 });
 
 test('a capture that is not an array is refused rather than trusted', () => {
-  const { gates, anomalies } = reconcileGates(DECLARED_GATES, { name: 'verify:readiness', status: 'PASS' });
+  const { gates, anomalies } = reconcileGates(DECLARED_GATES, { name: 'verify:readiness', exitCode: 0 });
 
   assert.ok(gates.every((g) => g.status === 'NOT_RUN'));
   assert.ok(anomalies.some((a) => /not a JSON array/i.test(a)), anomalies.join('\n'));
@@ -157,17 +164,17 @@ test('an unrecognised status is downgraded to NOT RUN, not rendered verbatim', (
   // A hand-edited or truncated capture must not put an unknown token in a table
   // a human scans for the word PASS.
   const { gates, anomalies } = reconcileGates(DECLARED_GATES, [
-    { name: 'verify:readiness', status: 'PASSED', exitCode: 0 },
+    { name: 'verify:readiness', status: 'PASS', exitCode: 1 },
   ]);
 
   assert.equal(gates[0].status, 'NOT_RUN');
-  assert.ok(anomalies.some((a) => a.includes('unrecognised status')), anomalies.join('\n'));
+  assert.ok(anomalies.some((a) => a.includes('pre-decided status')), anomalies.join('\n'));
 });
 
 test('a duplicated gate entry is flagged and the first result kept', () => {
   const { gates, anomalies } = reconcileGates(DECLARED_GATES, [
-    { name: 'verify:readiness', status: 'FAIL', exitCode: 1 },
-    { name: 'verify:readiness', status: 'PASS', exitCode: 0 },
+    { name: 'verify:readiness', exitCode: 1 },
+    { name: 'verify:readiness', exitCode: 0 },
   ]);
 
   assert.equal(gates[0].status, 'FAIL');
@@ -176,17 +183,19 @@ test('a duplicated gate entry is flagged and the first result kept', () => {
 
 test('a captured gate nobody declared is reported rather than silently accepted', () => {
   const { anomalies } = reconcileGates(DECLARED_GATES, [
-    ...GREEN, { name: 'verify:invented', status: 'PASS', exitCode: 0 },
+    ...CAPTURE_GREEN, { name: 'verify:invented', exitCode: 0 },
   ]);
 
   assert.ok(anomalies.some((a) => a.includes('verify:invented')), anomalies.join('\n'));
 });
 
 test('a non-integer exit code is normalised away instead of printed as data', () => {
-  const { gates } = reconcileGates(['verify:readiness'], [
-    { name: 'verify:readiness', status: 'FAIL', exitCode: 'boom' },
+  const { gates, anomalies } = reconcileGates(['verify:readiness'], [
+    { name: 'verify:readiness', exitCode: 'boom' },
   ]);
   assert.equal(gates[0].exitCode, null);
+  assert.equal(gates[0].status, 'NOT_RUN');
+  assert.ok(anomalies.some((a) => a.includes('no integer exit code')), anomalies.join('\n'));
 });
 
 // ---------------------------------------------------------------------------
@@ -243,7 +252,7 @@ test('THE STALE-PASS FAILURE: a dead observe job publishes NOT RUN and DEGRADED'
 test('a fully green run is not degraded and carries its provenance', () => {
   const result = composeHeartbeat({
     date: '2026-08-16',
-    gateEvidence: { ok: true, value: GREEN },
+    gateEvidence: { ok: true, value: CAPTURE_GREEN },
     queueEvidence: { ok: true, value: QUEUE },
     previousBody: null,
     provenance,
@@ -258,7 +267,7 @@ test('a fully green run is not degraded and carries its provenance', () => {
 test('drift is computed from the previous OWNED body, not from a bare string', () => {
   const result = composeHeartbeat({
     date: '2026-08-16',
-    gateEvidence: { ok: true, value: RED },
+    gateEvidence: { ok: true, value: CAPTURE_RED },
     queueEvidence: { ok: true, value: QUEUE },
     previousBody: `${OWNER_MARKER}\n| \`verify:readiness\` | PASS | exit 0 |`,
     provenance,
@@ -439,4 +448,158 @@ test('the issue lookup paginates rather than reading only the first page', () =>
     !/await github\.rest\.issues\.listForRepo/u.test(workflow),
     'a single-page listForRepo call remains; page two would read as absent',
   );
+});
+
+// ---------------------------------------------------------------------------
+// ROUND TWO (qwen, independent). Each demonstrated open before being fixed.
+// ---------------------------------------------------------------------------
+
+test('THE VERDICT IS DERIVED, NOT ACCEPTED: a capture carrying a status is distrusted', () => {
+  // The capture step used to decide `status=PASS` in shell inside the YAML —
+  // the round-one P0 one layer down, in a place no test could reach. The shell
+  // records exit codes only now, so an entry arriving WITH a verdict is evidence
+  // that something rewrote it.
+  const { gates, anomalies } = reconcileGates(DECLARED_GATES, [
+    { name: 'verify:readiness', status: 'PASS', exitCode: 1 },
+  ]);
+
+  assert.equal(gates[0].status, 'NOT_RUN');
+  assert.ok(anomalies.some((a) => a.includes('pre-decided status')), anomalies.join('\n'));
+});
+
+test('a non-zero exit code is FAIL and a zero is PASS, derived here', () => {
+  const { gates } = reconcileGates(DECLARED_GATES, [
+    { name: 'verify:readiness', exitCode: 0 },
+    { name: 'verify:docs-watch', exitCode: 2 },
+    { name: 'verify:docs-review', exitCode: 0 },
+  ]);
+  assert.deepEqual(gates.map((g) => g.status), ['PASS', 'FAIL', 'PASS']);
+});
+
+test('a prototype-chain status is not a known status', () => {
+  // `entry.status in STATUS_LABEL` was true for "toString" and "constructor".
+  // The identical hole was closed in the evidence checker and left open here.
+  for (const status of ['toString', 'constructor', '__proto__']) {
+    const { gates } = reconcileGates(['verify:readiness'], [
+      { name: 'verify:readiness', status, exitCode: 0 },
+    ]);
+    assert.equal(gates[0].status, 'NOT_RUN', status);
+  }
+});
+
+test('the workflow capture step no longer decides PASS or FAIL', () => {
+  const workflow = readFileSync(WORKFLOW_PATH, 'utf8');
+  const start = workflow.indexOf('Run gates and capture every exit code');
+  const end = workflow.indexOf('Compute founder-queue age');
+  assert.ok(start > -1 && end > start, 'capture step not found');
+  const capture = workflow.slice(start, end);
+
+  assert.ok(!capture.includes('status=PASS'), 'the shell still decides a verdict');
+  assert.ok(!/status/u.test(capture), `the capture mentions status:\n${capture}`);
+  assert.ok(capture.includes('exitCode'), 'the capture must record exit codes');
+});
+
+test('A PULL REQUEST IS NEVER ADOPTED AS THE HEARTBEAT ISSUE', () => {
+  // issues.listForRepo returns PRs, and issues.update rewrites a PR body just as
+  // happily. An open PR with this title and the marker copied out of the public
+  // issue was adoptable — and with a lower number it became canonical.
+  const issues = [
+    { number: 4, title: HEARTBEAT_TITLE, body: OWNED_BODY, pull_request: { url: 'x' } },
+    { number: 99, title: HEARTBEAT_TITLE, body: OWNED_BODY },
+  ];
+  assert.equal(findOwnedIssue(issues).number, 99);
+});
+
+test('drift reads the SAME issue the upsert rewrites', async () => {
+  // Selecting the previous body with `find` while updating the lowest-numbered
+  // issue read one issue's gates and rewrote another's, inventing regressions.
+  const issues = [
+    { number: 90, title: HEARTBEAT_TITLE, body: `${OWNER_MARKER}\nlater duplicate` },
+    { number: 12, title: HEARTBEAT_TITLE, body: `${OWNER_MARKER}\ncanonical` },
+  ];
+  const client = stubClient(issues);
+  const result = await upsertHeartbeatIssue({ client, body: body() });
+
+  assert.equal(findOwnedIssue(issues).number, 12);
+  assert.equal(result.number, 12);
+});
+
+test('AN UNVALIDATED QUEUE SHAPE IS NEVER "nothing is blocked"', () => {
+  // `{}` and `[]` both parse. Spreading either into a default of integrity OK
+  // rendered the all-clear with no anomaly and a green run.
+  for (const value of [{}, [], null, 'a string', { openCount: 'many' }]) {
+    const { queue, anomalies } = reconcileQueue({ ok: true, value });
+    assert.equal(queue.integrity, 'UNAVAILABLE', JSON.stringify(value));
+    assert.ok(anomalies.length > 0, JSON.stringify(value));
+  }
+});
+
+test('A MALFORMED QUEUE MAKES THE RUN DEGRADED, not merely annotated', () => {
+  // The integrity flag was printed in the body and never reached `anomalies`, so
+  // the banner was absent and the workflow exited green. A flag that does not
+  // travel with its anomaly is decoration.
+  const result = composeHeartbeat({
+    date: '2026-08-16',
+    gateEvidence: { ok: true, value: CAPTURE_GREEN },
+    queueEvidence: { ok: true, value: { openCount: 0, oldest: null, integrity: 'MALFORMED', malformed: ['Line 9'] } },
+    previousBody: null,
+    provenance,
+  });
+
+  assert.equal(result.degraded, true);
+  assert.ok(result.body.includes('DEGRADED'), result.body);
+  assert.ok(result.anomalies.some((a) => a.includes('Line 9')), result.anomalies.join('\n'));
+});
+
+test('a clean queue is still clean, so the guard does not cry wolf', () => {
+  const result = composeHeartbeat({
+    date: '2026-08-16',
+    gateEvidence: { ok: true, value: CAPTURE_GREEN },
+    queueEvidence: { ok: true, value: QUEUE },
+    previousBody: null,
+    provenance,
+  });
+  assert.equal(result.degraded, false, result.anomalies.join('\n'));
+});
+
+test('a queue claiming integrity OK while listing malformed rows is contradictory', () => {
+  const { anomalies } = reconcileQueue({
+    ok: true, value: { openCount: 1, oldest: null, integrity: 'OK', malformed: ['x'] },
+  });
+  assert.ok(anomalies.some((a) => a.includes('contradict') || a.includes('while also listing')), anomalies.join('\n'));
+});
+
+test('the workflow carries pull_request through so ownership can exclude PRs', () => {
+  const workflow = readFileSync(WORKFLOW_PATH, 'utf8');
+  assert.ok(workflow.includes('pull_request: issue.pull_request'), 'PRs cannot be told apart');
+  assert.ok(workflow.includes('findOwnedIssue'), 'the workflow must use the shared selector');
+  assert.ok(
+    !/issues\.find\(/u.test(workflow),
+    'the workflow selects the previous issue by its own rule again',
+  );
+});
+
+test('THE RENDER PATH also refuses a prototype-chain status', () => {
+  // reconcileGates downgrades unknown statuses first, but buildHeartbeatBody is
+  // exported and renders whatever it is handed. `STATUS_LABEL[status] ?? 'NOT RUN'`
+  // returns a FUNCTION for "toString", so `??` never fires and the body gets
+  // "function toString() { [native code] }" where a verdict belongs.
+  for (const status of ['toString', 'constructor', 'valueOf']) {
+    const rendered = buildHeartbeatBody({
+      date: '2026-08-16',
+      gates: [{ name: 'verify:readiness', status, exitCode: 0 }],
+      queue: QUEUE,
+      drift: null,
+    });
+    assert.ok(rendered.includes('NOT RUN'), `${status}: ${rendered}`);
+    assert.ok(!rendered.includes('native code'), `${status}: ${rendered}`);
+    assert.ok(!rendered.includes('function '), `${status}: ${rendered}`);
+  }
+
+  // Same lookup, drift side.
+  const drift = detectDrift(
+    [{ name: 'verify:readiness', status: 'PASS' }],
+    [{ name: 'verify:readiness', status: 'toString' }],
+  );
+  assert.ok(drift.includes('NOT RUN'), drift);
 });
