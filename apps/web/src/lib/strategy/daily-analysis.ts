@@ -6,6 +6,7 @@ import type Anthropic from '@anthropic-ai/sdk'
 import { getAIClient } from '@/lib/ai/client'
 import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 import { BUSINESSES } from '@/lib/businesses'
+import { recordAiUsage } from '@/lib/ai/usage-recorder'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -111,6 +112,20 @@ Focus on specific, concrete recommendations — not generic advice.`
   } as Anthropic.MessageCreateParamsNonStreaming
   ;(params as { thinking?: unknown }).thinking = { type: 'adaptive' }
   const response = (await ai.messages.create(params)) as Anthropic.Message
+
+  // This route calls the Anthropic SDK DIRECTLY, bypassing lib/ai/router, so the
+  // router's metering never sees it. It is also the single largest recurring AI
+  // cost in the app — Opus at max_tokens 16000, seven businesses a day — so
+  // instrumenting only the router would have measured everything except the item
+  // most worth measuring. Not awaited; recordAiUsage never throws.
+  void recordAiUsage({
+    taskType: 'strategy-daily',
+    model: response.model,
+    inputTokens: response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
+    requestId: response.id,
+    metadata: { via: 'direct', business: businessKey },
+  }).catch(() => {})
 
   // Extract text content (thinking blocks are separate and not included in text blocks)
   const textContent = (response.content as Anthropic.ContentBlock[])

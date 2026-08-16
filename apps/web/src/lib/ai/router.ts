@@ -9,6 +9,7 @@ import { zodToToolSchema, parseStructuredResponse } from './features/structured'
 import { createBatch, pollBatchUntilDone, buildBatchRequest } from './features/batch'
 import { recallMemories, formatMemoriesForContext } from './features/memory-store'
 import { calculateThinkingBudget } from './features/thinking'
+import { recordAiUsage } from './usage-recorder'
 import { buildWebSearchTool, parseWebSearchResults } from './features/web-search'
 import { extractCitations as extractTextCitations } from './features/citations'
 import { buildFileReference } from './features/files'
@@ -289,6 +290,20 @@ export async function execute(
       citations = [...(citations ?? []), ...textCitations]
     }
   }
+
+  // Meter the call. Every capability routed through execute() lands here, which
+  // makes this the one place worth instrumenting rather than each caller.
+  // Deliberately NOT awaited: metering must not add latency to, or be able to
+  // fail, an AI response. recordAiUsage never throws, so a bare catch is only
+  // belt-and-braces against a rejected import.
+  void recordAiUsage({
+    taskType: capabilityId,
+    model: response.model,
+    inputTokens: response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
+    requestId: response.id,
+    metadata: { via: 'router' },
+  }).catch(() => {})
 
   return {
     content: textContent,
