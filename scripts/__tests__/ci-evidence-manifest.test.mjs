@@ -30,6 +30,8 @@ const REPO = 'CleanExpo/Unite-Group';
 const JOB_ID = '95119197937';
 const REQUIRED_JOB_NAME = 'packages/spine — type-check and bounded tests';
 const RUN_ID = '31928303697';
+const ATTEMPT = '1';
+const ROOT = '/home/runner/work/Unite-Group/Unite-Group';
 
 const NULL_IO = { log: () => {}, error: () => {} };
 
@@ -213,7 +215,7 @@ test('non-JSON and non-vitest evidence is refused, not graded', () => {
 test('provenance resolves from API metadata and binds commit, job, run and attempt', () => {
   const provenance = resolveProvenance({
     check: shippedCheck(), repo: REPO, jobId: JOB_ID, expectedSha: REAL_SHA,
-    expectedRunId: RUN_ID, expectedRunAttempt: 1, fetcher: stubFetcher(),
+    expectedRunId: RUN_ID, expectedRunAttempt: ATTEMPT, fetcher: stubFetcher(),
   });
   assert.equal(provenance.sha, REAL_SHA);
   assert.equal(provenance.jobName, REQUIRED_JOB_NAME);
@@ -226,7 +228,7 @@ test('a job that ran on a different commit is refused', () => {
   assert.throws(
     () => resolveProvenance({
       check: shippedCheck(), repo: REPO, jobId: JOB_ID, expectedSha: REAL_SHA,
-      expectedRunId: RUN_ID, fetcher: stubFetcher({ head_sha: OTHER_SHA }),
+      expectedRunId: RUN_ID, expectedRunAttempt: ATTEMPT, fetcher: stubFetcher({ head_sha: OTHER_SHA }),
     }),
     /PROVENANCE_MISMATCH/,
   );
@@ -236,7 +238,7 @@ test('evidence from a different job does not satisfy this check', () => {
   assert.throws(
     () => resolveProvenance({
       check: shippedCheck(), repo: REPO, jobId: JOB_ID, expectedSha: REAL_SHA,
-      expectedRunId: RUN_ID, fetcher: stubFetcher({ name: 'apps/web — Playwright E2E' }),
+      expectedRunId: RUN_ID, expectedRunAttempt: ATTEMPT, fetcher: stubFetcher({ name: 'apps/web — Playwright E2E' }),
     }),
     /PROVENANCE_WRONG_JOB/,
   );
@@ -246,7 +248,7 @@ test('an in-progress job is refused rather than graded on partial output', () =>
   assert.throws(
     () => resolveProvenance({
       check: shippedCheck(), repo: REPO, jobId: JOB_ID, expectedSha: REAL_SHA,
-      expectedRunId: RUN_ID, fetcher: stubFetcher({ status: 'in_progress' }),
+      expectedRunId: RUN_ID, expectedRunAttempt: ATTEMPT, fetcher: stubFetcher({ status: 'in_progress' }),
     }),
     /PROVENANCE_INCOMPLETE/,
   );
@@ -256,7 +258,7 @@ test('a job with no usable head_sha is refused', () => {
   assert.throws(
     () => resolveProvenance({
       check: shippedCheck(), repo: REPO, jobId: JOB_ID, expectedSha: REAL_SHA,
-      expectedRunId: RUN_ID, fetcher: stubFetcher({ head_sha: null }),
+      expectedRunId: RUN_ID, expectedRunAttempt: ATTEMPT, fetcher: stubFetcher({ head_sha: null }),
     }),
     /PROVENANCE_ABSENT/,
   );
@@ -294,7 +296,7 @@ test('main: exit 1 on the real skipped evidence under --gate, exit 0 on the cont
   const io = { log: () => {}, error: (line) => errors.push(line) };
   const gated = (evidence) => main(
     ['--check', SPINE_CHECK_ID, '--evidence', evidence, '--sha', REAL_SHA,
-      '--job', JOB_ID, '--run', RUN_ID, '--repo', REPO, '--gate'],
+      '--job', JOB_ID, '--run', RUN_ID, '--attempt', ATTEMPT, '--repo', REPO, '--root', ROOT, '--gate'],
     { root: repositoryRoot, io, fetcher: stubFetcher() },
   );
 
@@ -306,7 +308,7 @@ test('main: exit 1 on the real skipped evidence under --gate, exit 0 on the cont
 test('--sha must be lowercase 40-hex', () => {
   assert.equal(
     main(['--check', SPINE_CHECK_ID, '--evidence', EXECUTED_EVIDENCE, '--sha', 'NOT-A-SHA',
-      '--job', JOB_ID, '--run', RUN_ID, '--repo', REPO, '--gate'],
+      '--job', JOB_ID, '--run', RUN_ID, '--attempt', ATTEMPT, '--repo', REPO, '--root', ROOT, '--gate'],
     { root: repositoryRoot, io: NULL_IO, fetcher: stubFetcher() }),
     2,
   );
@@ -315,7 +317,7 @@ test('--sha must be lowercase 40-hex', () => {
 test('--json emits a machine-readable record carrying full API provenance', () => {
   const outputs = [];
   main(['--check', SPINE_CHECK_ID, '--evidence', SKIPPED_EVIDENCE, '--sha', REAL_SHA,
-    '--job', JOB_ID, '--run', RUN_ID, '--repo', REPO, '--json'],
+    '--job', JOB_ID, '--run', RUN_ID, '--attempt', ATTEMPT, '--repo', REPO, '--root', ROOT, '--json'],
   { root: repositoryRoot, io: { log: (l) => outputs.push(l), error: () => {} }, fetcher: stubFetcher() });
 
   const record = JSON.parse(outputs.join('\n'));
@@ -466,7 +468,7 @@ test('a cancelled job is refused; its report is partial at best', () => {
     assert.throws(
       () => resolveProvenance({
         check: shippedCheck(), repo: REPO, jobId: JOB_ID, expectedSha: REAL_SHA,
-        expectedRunId: RUN_ID, fetcher: stubFetcher({ conclusion }),
+        expectedRunId: RUN_ID, expectedRunAttempt: ATTEMPT, fetcher: stubFetcher({ conclusion }),
       }),
       /PROVENANCE_UNUSABLE_CONCLUSION/,
       String(conclusion),
@@ -477,7 +479,7 @@ test('a cancelled job is refused; its report is partial at best', () => {
 test('a FAILED job is still evidence: the tests ran, some of them failed', () => {
   const provenance = resolveProvenance({
     check: shippedCheck(), repo: REPO, jobId: JOB_ID, expectedSha: REAL_SHA,
-    expectedRunId: RUN_ID, fetcher: stubFetcher({ conclusion: 'failure' }),
+    expectedRunId: RUN_ID, expectedRunAttempt: ATTEMPT, fetcher: stubFetcher({ conclusion: 'failure' }),
   });
   assert.equal(provenance.conclusion, 'failure');
 });
@@ -486,21 +488,26 @@ test('evidence from another run of the same job on the same commit is refused', 
   assert.throws(
     () => resolveProvenance({
       check: shippedCheck(), repo: REPO, jobId: JOB_ID, expectedSha: REAL_SHA,
-      expectedRunId: '99999999999', fetcher: stubFetcher(),
+      expectedRunId: '99999999999', expectedRunAttempt: ATTEMPT, fetcher: stubFetcher(),
     }),
     /PROVENANCE_WRONG_RUN/,
   );
 });
 
-test('--gate refuses without --run: a job name is not unique across runs', () => {
-  const errors = [];
-  const status = main(
-    ['--check', SPINE_CHECK_ID, '--evidence', EXECUTED_EVIDENCE, '--sha', REAL_SHA,
-      '--job', JOB_ID, '--repo', REPO, '--gate'],
-    { root: repositoryRoot, io: { log: () => {}, error: (l) => errors.push(l) }, fetcher: stubFetcher() },
-  );
-  assert.equal(status, 2);
-  assert.ok(errors.some((line) => line.includes('not unique across runs')));
+test('--gate names every binding it is missing, and refuses on any one of them', () => {
+  const base = ['--check', SPINE_CHECK_ID, '--evidence', EXECUTED_EVIDENCE, '--sha', REAL_SHA,
+    '--job', JOB_ID, '--run', RUN_ID, '--attempt', ATTEMPT, '--repo', REPO, '--root', ROOT, '--gate'];
+
+  for (const flag of ['--run', '--attempt', '--root', '--repo', '--job']) {
+    const index = base.indexOf(flag);
+    const argv = [...base.slice(0, index), ...base.slice(index + 2)];
+    const errors = [];
+    const status = main(argv, {
+      root: repositoryRoot, io: { log: () => {}, error: (l) => errors.push(l) }, fetcher: stubFetcher(),
+    });
+    assert.equal(status, 2, flag);
+    assert.ok(errors.some((line) => line.includes(flag)), `${flag}: ${errors.join(' | ')}`);
+  }
 });
 
 test('a path containing the package prefix twice is AMBIGUOUS, not silently resolved', () => {
@@ -527,9 +534,12 @@ test('the package prefix is matched at a directory boundary, not as a substring'
       name: '/w/not-pkg-decoy/tests/x.test.ts', status: 'passed', assertionResults: [{ status: 'passed' }],
     }],
   };
-  const parsed = parseVitestJsonReport(JSON.stringify(report), { workingDirectory: 'pkg' });
-  // No `/pkg` boundary, so the path is kept whole rather than shaved to tests/x.test.ts.
-  assert.equal(parsed.suites[0].suite, '/w/not-pkg-decoy/tests/x.test.ts');
+  // No `/pkg/` boundary anywhere, so nothing resolves through the package and the
+  // whole report is refused rather than graded on paths it cannot attribute.
+  assert.throws(
+    () => parseVitestJsonReport(JSON.stringify(report), { workingDirectory: 'pkg' }),
+    /UNROOTED_EVIDENCE/,
+  );
 });
 
 test('duplicate records are a conflict even when their headline counts agree', () => {
@@ -583,7 +593,7 @@ test('THE DEAD GUARD, CLOSED: a job from another workflow is refused', () => {
     assert.throws(
       () => resolveProvenance({
         check: shippedCheck(), repo: REPO, jobId: JOB_ID, expectedSha: REAL_SHA,
-        expectedRunId: RUN_ID, fetcher: stubFetcher({ workflow_name: workflowName }),
+        expectedRunId: RUN_ID, expectedRunAttempt: ATTEMPT, fetcher: stubFetcher({ workflow_name: workflowName }),
       }),
       /PROVENANCE_WRONG_WORKFLOW/,
       String(workflowName),
@@ -594,7 +604,7 @@ test('THE DEAD GUARD, CLOSED: a job from another workflow is refused', () => {
 test('the matching workflow is still accepted, so the guard is not simply always-on', () => {
   const provenance = resolveProvenance({
     check: shippedCheck(), repo: REPO, jobId: JOB_ID, expectedSha: REAL_SHA,
-    expectedRunId: RUN_ID, fetcher: stubFetcher({ workflow_name: 'Monorepo CI' }),
+    expectedRunId: RUN_ID, expectedRunAttempt: ATTEMPT, fetcher: stubFetcher({ workflow_name: 'Monorepo CI' }),
   });
   assert.equal(provenance.workflowName, 'Monorepo CI');
 });
@@ -738,7 +748,7 @@ test('an earlier attempt of the same run is refused when the attempt is bound', 
   assert.throws(
     () => resolveProvenance({
       check: shippedCheck(), repo: REPO, jobId: JOB_ID, expectedSha: REAL_SHA,
-      expectedRunId: RUN_ID, expectedRunAttempt: 2, fetcher: stubFetcher({ run_attempt: 1 }),
+      expectedRunId: RUN_ID, expectedRunAttempt: '2', fetcher: stubFetcher({ run_attempt: 1 }),
     }),
     /PROVENANCE_WRONG_ATTEMPT/,
   );
@@ -750,7 +760,7 @@ test('API targeting inputs are shape-checked at both boundaries', () => {
   const run = (overrides) => main([
     '--check', SPINE_CHECK_ID, '--evidence', EXECUTED_EVIDENCE, '--sha', REAL_SHA,
     '--job', overrides.job ?? JOB_ID, '--run', overrides.run ?? RUN_ID,
-    '--repo', overrides.repo ?? REPO, '--gate',
+    '--attempt', ATTEMPT, '--repo', overrides.repo ?? REPO, '--root', ROOT, '--gate',
   ], { root: repositoryRoot, io, fetcher: stubFetcher() });
 
   assert.equal(run({ repo: 'not-a-repo' }), 2);
@@ -758,4 +768,151 @@ test('API targeting inputs are shape-checked at both boundaries', () => {
   assert.equal(run({ run: 'abc' }), 2);
   assert.ok(errors.some((l) => l.includes('owner/name')));
   assert.ok(errors.some((l) => l.includes('--job must be numeric')));
+});
+
+// ---------------------------------------------------------------------------
+// Round-five findings (qwen3.8, independent). Each of these was DEMONSTRATED
+// open against the previous head before being fixed.
+// ---------------------------------------------------------------------------
+
+test('THE CORE HOLE, CLOSED: a partially-executed required suite proves nothing', () => {
+  // 1 assertion runs, 4 self-disable. Previously: PASS with 0 violations — the
+  // UNI-2567 defect alive inside the tool built to detect it.
+  const check = {
+    id: 'x', requiredCheck: 'x', requiredCapabilities: ['tenant-isolation'],
+    suites: [{ suite: 'tests/rls.test.ts', class: 'REQUIRED_EVIDENCE', capability: 'tenant-isolation' }],
+  };
+  const report = {
+    numTotalTests: 5, numPassedTests: 1, numFailedTests: 0, numPendingTests: 4, numTodoTests: 0,
+    testResults: [{
+      name: '/w/pkg/tests/rls.test.ts',
+      status: 'passed',
+      assertionResults: [
+        { status: 'passed' }, { status: 'skipped' }, { status: 'skipped' },
+        { status: 'skipped' }, { status: 'skipped' },
+      ],
+    }],
+  };
+
+  const result = checkEvidenceCompleteness({
+    check,
+    observed: parseVitestJsonReport(JSON.stringify(report), { workingDirectory: 'pkg' }),
+    provenance: { sha: REAL_SHA, conclusion: 'success' },
+  });
+
+  assert.equal(result.verdict, 'FAIL');
+  assert.equal(result.evidence[0].status, 'PARTIAL');
+  assert.ok(result.violations.some((v) => v.reason === 'REQUIRED_EVIDENCE_PARTIALLY_EXECUTED'));
+  assert.ok(result.violations.some(
+    (v) => v.reason === 'CAPABILITY_UNPROVEN' && v.capability === 'tenant-isolation',
+  ));
+});
+
+test('a fully-executed suite still proves its capability, so the floor is not always-on', () => {
+  const check = {
+    id: 'x', requiredCheck: 'x', requiredCapabilities: ['tenant-isolation'],
+    suites: [{ suite: 'tests/rls.test.ts', class: 'REQUIRED_EVIDENCE', capability: 'tenant-isolation' }],
+  };
+  const report = {
+    numTotalTests: 2, numPassedTests: 2, numFailedTests: 0, numPendingTests: 0, numTodoTests: 0,
+    testResults: [{
+      name: '/w/pkg/tests/rls.test.ts', status: 'passed',
+      assertionResults: [{ status: 'passed' }, { status: 'passed' }],
+    }],
+  };
+
+  const result = checkEvidenceCompleteness({
+    check,
+    observed: parseVitestJsonReport(JSON.stringify(report), { workingDirectory: 'pkg' }),
+    provenance: { sha: REAL_SHA, conclusion: 'success' },
+  });
+
+  assert.equal(result.verdict, 'PASS');
+  assert.equal(result.evidence[0].status, 'EXECUTED');
+});
+
+test('THE FALSE COMMENT, CLOSED: a leading marker counts toward ambiguity', () => {
+  // pkg/vendor/pkg/tests/x.test.ts previously resolved silently to tests/x.test.ts.
+  assert.throws(
+    () => parseVitestJsonReport(JSON.stringify({
+      numTotalTests: 1,
+      testResults: [{ name: 'pkg/vendor/pkg/tests/x.test.ts', status: 'passed', assertionResults: [{ status: 'passed' }] }],
+    }), { workingDirectory: 'pkg' }),
+    /AMBIGUOUS_SUITE_PATH/,
+  );
+});
+
+test('a consistently-wrong root is refused when the expected root is known', () => {
+  const report = {
+    numTotalTests: 1, numPassedTests: 1, numFailedTests: 0, numPendingTests: 0, numTodoTests: 0,
+    testResults: [{ name: '/w/vendor/pkg/tests/x.test.ts', status: 'passed', assertionResults: [{ status: 'passed' }] }],
+  };
+  // Consistent on its own — every record shares the root /w/vendor.
+  const permissive = parseVitestJsonReport(JSON.stringify(report), { workingDirectory: 'pkg' });
+  assert.equal(permissive.packageRoot, '/w/vendor');
+
+  assert.throws(
+    () => parseVitestJsonReport(JSON.stringify(report), { workingDirectory: 'pkg', expectedRoot: '/w' }),
+    /UNEXPECTED_PACKAGE_ROOT/,
+  );
+});
+
+test('a report where nothing resolves through the package is refused, not graded', () => {
+  assert.throws(
+    () => parseVitestJsonReport(JSON.stringify({
+      numTotalTests: 1,
+      testResults: [{ name: '/elsewhere/tests/x.test.ts', status: 'passed', assertionResults: [{ status: 'passed' }] }],
+    }), { workingDirectory: 'pkg' }),
+    /UNROOTED_EVIDENCE/,
+  );
+});
+
+test('a selectively-edited summary cannot evade the distribution check', () => {
+  const report = JSON.parse(readFileSync(EXECUTED_EVIDENCE, 'utf8'));
+  delete report.numPassedTests;
+  delete report.numPendingTests;
+
+  const result = checkEvidenceCompleteness({
+    check: shippedCheck(),
+    observed: parseVitestJsonReport(JSON.stringify(report), {
+      workingDirectory: shippedCheck().workingDirectory,
+    }),
+    provenance: { sha: REAL_SHA, conclusion: 'success' },
+  });
+
+  assert.equal(result.verdict, 'FAIL');
+  const unverifiable = result.violations.filter((v) => v.reason === 'REPORT_UNVERIFIABLE');
+  assert.equal(unverifiable.length, 2);
+  assert.ok(unverifiable.some((v) => v.detail.includes('numPassedTests')));
+});
+
+test('resolveProvenance refuses an unbound ATTEMPT, not just an unbound run', () => {
+  assert.throws(
+    () => resolveProvenance({
+      check: shippedCheck(), repo: REPO, jobId: JOB_ID, expectedSha: REAL_SHA,
+      expectedRunId: RUN_ID, fetcher: stubFetcher(),
+    }),
+    /PROVENANCE_UNBOUND: expectedRunAttempt/,
+  );
+});
+
+test('the real captured report satisfies the distribution invariant for this vitest', () => {
+  // The numPendingTests <-> (skipped - todo) mapping is asserted against real
+  // vitest 4.1.10 output rather than assumed across versions.
+  const real = observed(SKIPPED_EVIDENCE);
+  assert.equal(real.reported.pending, real.totals.skipped - real.totals.todo);
+  assert.equal(real.reported.total, real.totals.declared);
+  assert.equal(real.reported.pending, 19);
+});
+
+test('--repo rejects dot segments that could reshape the API path', () => {
+  for (const repo of ['owner/..', '../repo', './x']) {
+    assert.equal(
+      main(['--check', SPINE_CHECK_ID, '--evidence', EXECUTED_EVIDENCE, '--sha', REAL_SHA,
+        '--job', JOB_ID, '--run', RUN_ID, '--attempt', ATTEMPT, '--repo', repo, '--root', ROOT, '--gate'],
+      { root: repositoryRoot, io: NULL_IO, fetcher: stubFetcher() }),
+      2,
+      repo,
+    );
+  }
 });

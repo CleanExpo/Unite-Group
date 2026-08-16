@@ -16,6 +16,8 @@
  *
  *   - Provenance read out of the log text: one `sed` over a committed fixture
  *     produced a gated PASS for the real SHA. A file cannot vouch for itself.
+ *     (Stale or foreign evidence is now bound to a commit, run and attempt — but
+ *     see THE RESIDUAL GAP: the evidence FILE is still not bound to the job.)
  *   - Suite lines read out of the log body: a `console.log` from any test file in
  *     the package printed reporter-shaped bytes into genuine CI output and forged
  *     a complete green report.
@@ -41,12 +43,22 @@
  * would be the same overclaiming this file already had to correct once.
  *
  * THE RESIDUAL GAP, stated plainly and completely. EVERY input is supplied by
- * whoever invokes this: `--evidence`, `--repo`, `--job`, `--run`, `--sha`. The
- * API call authenticates that the named job exists, ran on the named commit in
- * the named run and workflow, and concluded usably — it does NOT prove that the
- * caller named the RIGHT job, the right repository, or that the evidence file
- * came out of that job. A caller free to choose all five can select foreign but
- * internally consistent provenance.
+ * whoever invokes this: `--evidence`, `--repo`, `--job`, `--run`, `--attempt`,
+ * `--sha`, `--root`, and `--check` — plus the manifest itself, which is a file in
+ * the same tree. The API call authenticates that the named job exists, ran on the
+ * named commit in the named run and attempt, and concluded usably — it does NOT
+ * prove that the caller named the RIGHT job or repository, or that the evidence
+ * file came out of that job. A caller free to choose all of them can select
+ * foreign but internally consistent provenance.
+ *
+ * Two narrower limits, so they are not mistaken for guarantees:
+ *   - Workflow binding compares a DISPLAY NAME (`job.workflow_name`) against the
+ *     manifest. Two workflow files may share a `name:`, so this narrows the set
+ *     but does not identify a file. `check.workflow` is documentation, not a
+ *     check.
+ *   - The manifest's `job`, `reporter`, `prerequisite` and per-suite `gate` fields
+ *     are likewise descriptive. They are not enforced, and a reader should not
+ *     infer that a declared `gate` is verified against the test source.
  *
  * That is tolerable only because of who the caller is meant to be. This is built
  * to run from inside the workflow it audits, where the values come from the
@@ -83,7 +95,18 @@ export const EVIDENCE_CLASSES = Object.freeze(['REQUIRED_EVIDENCE', 'ALLOWED_NON
 
 const SHA_PATTERN = /^[0-9a-f]{40}$/u;
 /** owner/name, GitHub's own character set. Interpolated into an API path. */
-const REPO_PATTERN = /^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/u;
+const REPO_SEGMENT = /^[A-Za-z0-9._-]+$/u;
+/**
+ * owner/name, validated per segment. A single regex with a lookahead only caught
+ * a TRAILING dot-segment: `../repo` walked straight through it, and this value is
+ * interpolated into an API path.
+ */
+function isValidRepo(value) {
+  if (typeof value !== 'string') return false;
+  const segments = value.split('/');
+  if (segments.length !== 2) return false;
+  return segments.every((segment) => REPO_SEGMENT.test(segment) && segment !== '.' && segment !== '..');
+}
 const NUMERIC_ID = /^[0-9]+$/u;
 
 // ---------------------------------------------------------------------------
@@ -193,7 +216,7 @@ export function resolveCheck(manifest, id) {
  * actually ran: passed and failed both did, pending and todo did not. A failing
  * test is evidence — of a defect — so it does not reduce the executed count.
  */
-export function parseVitestJsonReport(text, { workingDirectory = '' } = {}) {
+export function parseVitestJsonReport(text, { workingDirectory = '', expectedRoot = null } = {}) {
   let report;
   try {
     report = JSON.parse(text);
@@ -237,7 +260,11 @@ export function parseVitestJsonReport(text, { workingDirectory = '' } = {}) {
        */
       const boundary = `/${marker}/`;
       const leading = `${marker}/`;
-      const occurrences = posix.split(boundary).length - 1;
+      // Count the leading occurrence too. Counting only `/marker/` let
+      // `pkg/vendor/pkg/tests/x.test.ts` read as a single occurrence and strip
+      // silently, which made the refusal comment below false.
+      const occurrences = (posix.split(boundary).length - 1)
+        + (posix.startsWith(leading) ? 1 : 0);
       if (occurrences > 1) {
         throw new Error(
           `AMBIGUOUS_SUITE_PATH: "${posix}" contains "${boundary}" ${occurrences} times; `
@@ -332,8 +359,28 @@ export function parseVitestJsonReport(text, { workingDirectory = '' } = {}) {
       + 'cannot be told apart from the real package.',
     );
   }
+  /*
+   * Consistency alone is not proof of the RIGHT root: every record resolving
+   * through /w/vendor/<pkg> is perfectly consistent and entirely wrong. And when
+   * NOTHING matched the marker the root set is empty, which used to raise no
+   * error at all — the report simply failed later for unrelated reasons. Both are
+   * refusals now, so the root check is positive proof rather than a coincidence.
+   */
+  if (marker && suites.length > 0 && packageRoots.size === 0) {
+    throw new Error(
+      `UNROOTED_EVIDENCE: no file resolved through "${marker}", so nothing in this report `
+      + 'can be attributed to the package under test.',
+    );
+  }
+  const packageRoot = [...packageRoots][0] ?? null;
+  if (expectedRoot !== null && packageRoot !== null && packageRoot !== expectedRoot) {
+    throw new Error(
+      `UNEXPECTED_PACKAGE_ROOT: files resolve through "${packageRoot}", not the expected `
+      + `"${expectedRoot}". A vendored or nested copy resolves consistently too.`,
+    );
+  }
 
-  return { suites, totals, reported, packageRoot: [...packageRoots][0] ?? null };
+  return { suites, totals, reported, packageRoot };
 }
 
 // ---------------------------------------------------------------------------
@@ -344,7 +391,7 @@ export function parseVitestJsonReport(text, { workingDirectory = '' } = {}) {
 export function ghJobFetcher(repo, jobId) {
   // Both are interpolated into an API path, so they are shape-checked here as
   // well as at the CLI boundary — a library caller gets the same guarantee.
-  if (!REPO_PATTERN.test(repo)) throw new Error(`INVALID_REPO: "${repo}" is not owner/name.`);
+  if (!isValidRepo(repo)) throw new Error(`INVALID_REPO: "${repo}" is not owner/name.`);
   if (!NUMERIC_ID.test(String(jobId))) throw new Error(`INVALID_JOB_ID: "${jobId}" is not numeric.`);
   const raw = execFileSync(
     'gh',
@@ -359,14 +406,27 @@ export function ghJobFetcher(repo, jobId) {
  * Every mismatch is a refusal, never a downgrade to a graded result.
  */
 export function resolveProvenance({
-  check, repo, jobId, expectedSha, expectedRunId, expectedRunAttempt = null,
+  check, repo, jobId, expectedSha, expectedRunId, expectedRunAttempt,
   fetcher = ghJobFetcher,
 }) {
   // No default. A previous revision defaulted expectedRunId to null and then
   // skipped run binding when it was null, so a library caller who simply forgot
   // the argument silently got the weaker check.
+  /*
+   * Both are required. The previous revision closed this footgun for the run id
+   * and left the identical one open for the attempt: `expectedRunAttempt = null`
+   * defaulted, then the check below was skipped when null, so a caller who simply
+   * omitted it silently got the weaker guarantee while the refusal message
+   * claimed protection "across runs and re-run attempts".
+   */
   if (expectedRunId === undefined) {
     throw new Error('PROVENANCE_UNBOUND: expectedRunId is required; pass the run id explicitly.');
+  }
+  if (expectedRunAttempt === undefined) {
+    throw new Error(
+      'PROVENANCE_UNBOUND: expectedRunAttempt is required. A re-run reuses the run id, so '
+      + "binding the run alone lets an earlier attempt's evidence stand in for a later one.",
+    );
   }
   const job = fetcher(repo, jobId);
 
@@ -413,8 +473,7 @@ export function resolveProvenance({
    * A re-run reuses the run id and increments the attempt, so binding the run
    * alone still lets an earlier attempt's evidence stand in for a later one.
    */
-  if (expectedRunAttempt !== null
-    && String(job.run_attempt) !== String(expectedRunAttempt)) {
+  if (String(job.run_attempt) !== String(expectedRunAttempt)) {
     throw new Error(
       `PROVENANCE_WRONG_ATTEMPT: job ${jobId} is attempt ${job.run_attempt}, `
       + `not ${expectedRunAttempt}.`,
@@ -531,7 +590,19 @@ export function checkEvidenceCompleteness({ check, observed, provenance }) {
     ['numPendingTests', observed.reported.pending, observed.totals.skipped - observed.totals.todo],
   ];
   for (const [field, reported, computed] of distribution) {
-    if (typeof reported !== 'number' || reported === computed) continue;
+    if (typeof reported !== 'number') {
+      // Skipping a missing field let a selectively-edited summary evade the whole
+      // distribution check while keeping numTotalTests consistent.
+      violations.push({
+        suite: null,
+        reason: 'REPORT_UNVERIFIABLE',
+        status: 'INCOMPLETE',
+        detail: `The evidence carries no numeric ${field}, so the distribution cannot be `
+          + 'reconciled.',
+      });
+      continue;
+    }
+    if (reported === computed) continue;
     violations.push({
       suite: null,
       reason: 'SUMMARY_MISMATCH',
@@ -546,7 +617,8 @@ export function checkEvidenceCompleteness({ check, observed, provenance }) {
       suite: suite.suite,
       reason: 'CONFLICTING_SUITE_RECORDS',
       status: 'AMBIGUOUS',
-      detail: 'The report contains two disagreeing records for this path.',
+      detail: 'The report contains more than one record for this path. Even records whose '
+        + 'headline counts agree may cover different assertions, so neither is chosen.',
     });
   }
 
@@ -556,23 +628,48 @@ export function checkEvidenceCompleteness({ check, observed, provenance }) {
 
   for (const declared of check.suites) {
     const seen = observedBySuite.get(declared.suite);
+    /*
+     * PARTIAL EXECUTION IS PARTIAL EVIDENCE. `executed > 0` was enough to mark a
+     * suite EXECUTED and to satisfy the capability floor, so a suite running one
+     * trivial assertion while `describe.skipIf` disabled the RLS matrix scored as
+     * proof of tenant isolation — UNI-2567's own defect surviving inside the tool
+     * built to detect it. A REQUIRED_EVIDENCE suite must now execute every
+     * assertion it declares; anything less is PARTIAL and proves nothing.
+     */
+    const fullyExecuted = Boolean(seen)
+      && seen.declared > 0
+      && seen.executed === seen.declared;
+    const status = !seen
+      ? 'UNAVAILABLE'
+      : fullyExecuted ? 'EXECUTED' : seen.executed > 0 ? 'PARTIAL' : 'SKIPPED';
+
     const record = {
       suite: declared.suite,
       class: declared.class,
       capability: declared.capability,
-      status: seen ? seen.status : 'UNAVAILABLE',
+      status,
       executed: seen ? seen.executed : 0,
       skipped: seen ? seen.skipped : 0,
       declared: seen ? seen.declared : 0,
     };
     evidence.push(record);
 
-    if (record.status === 'EXECUTED' && !seen?.conflict) {
+    if (fullyExecuted && !seen?.conflict) {
       executedCapabilities.add(declared.capability);
     }
 
     if (declared.class !== 'REQUIRED_EVIDENCE') continue;
-    if (record.status === 'EXECUTED') continue;
+    if (status === 'EXECUTED') continue;
+
+    if (status === 'PARTIAL') {
+      violations.push({
+        ...record,
+        reason: 'REQUIRED_EVIDENCE_PARTIALLY_EXECUTED',
+        detail: `${record.executed} of ${record.declared} assertions ran; `
+          + `${record.skipped} self-disabled.`,
+      });
+      continue;
+    }
 
     violations.push({
       ...record,
@@ -625,7 +722,7 @@ export function checkEvidenceCompleteness({ check, observed, provenance }) {
 export function parseArguments(argv) {
   const options = {
     check: null, evidence: null, sha: null, job: null, run: null, attempt: null,
-    repo: null, json: false, gate: false,
+    repo: null, root: null, json: false, gate: false,
   };
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
@@ -636,7 +733,8 @@ export function parseArguments(argv) {
       case '--job':
       case '--run':
       case '--attempt':
-      case '--repo': {
+      case '--repo':
+      case '--root': {
         const value = argv[index + 1];
         if (value === undefined || value.startsWith('--')) {
           throw new Error(`${argument} requires a value.`);
@@ -691,22 +789,26 @@ export function main(argv = process.argv.slice(2), {
   if (!options.check || !options.evidence) {
     io.error(
       'Usage: ci-evidence-manifest.mjs --check <id> --evidence <vitest-json> '
-      + '[--job <id> --run <id> [--attempt <n>] --sha <40-hex> --repo <owner/name>] '
-      + '[--json] [--gate]',
+      + '[--job <id> --run <id> --attempt <n> --sha <40-hex> --repo <owner/name> '
+      + '--root <workspace path>] [--json] [--gate]',
     );
     return 2;
   }
 
   /*
-   * The gate accepts provenance ONLY from the API. A caller-supplied evidence
-   * file can be edited; a job id resolves against GitHub. Report-only mode still
-   * grades execution, but says UNVERIFIED and can never gate.
+   * The gate accepts provenance ONLY from the API. A caller-supplied evidence file
+   * can be edited; a job id resolves against GitHub. Report-only mode still grades
+   * execution and never gates. It prints UNVERIFIED only when no --job was given —
+   * supplying --job without --gate resolves and prints real provenance, which is
+   * the intended way to inspect a specific run by hand.
    */
-  if (options.gate && (!options.job || !options.sha || !options.repo || !options.run)) {
+  const missing = ['job', 'run', 'attempt', 'sha', 'repo', 'root']
+    .filter((key) => !options[key]);
+  if (options.gate && missing.length > 0) {
     io.error(
-      'REFUSED: --gate requires --job, --run, --sha and --repo so provenance is resolved '
-      + 'from the GitHub API. A local evidence file cannot vouch for its own commit, and a '
-      + 'job name alone is not unique across runs and re-run attempts.',
+      `REFUSED: --gate requires --${missing.join(', --')}. Provenance is resolved from the `
+      + 'GitHub API: a local evidence file cannot vouch for its own commit, and a job name '
+      + 'is unique to neither a run nor a re-run attempt.',
     );
     return 2;
   }
@@ -714,7 +816,7 @@ export function main(argv = process.argv.slice(2), {
     io.error(`--sha must be a 40-character lowercase hex commit SHA; received "${options.sha}".`);
     return 2;
   }
-  if (options.repo && !REPO_PATTERN.test(options.repo)) {
+  if (options.repo && !isValidRepo(options.repo)) {
     io.error(`--repo must be owner/name; received "${options.repo}".`);
     return 2;
   }
@@ -738,13 +840,14 @@ export function main(argv = process.argv.slice(2), {
         jobId: options.job,
         expectedSha: options.sha,
         expectedRunId: options.run,
-        expectedRunAttempt: options.attempt,
+        expectedRunAttempt: options.attempt ?? undefined,
         fetcher,
       })
       : null;
 
     const observed = parseVitestJsonReport(readFileSync(options.evidence, 'utf8'), {
       workingDirectory: check.workingDirectory,
+      expectedRoot: options.root,
     });
     result = checkEvidenceCompleteness({ check, observed, provenance });
   } catch (error) {
