@@ -617,6 +617,32 @@ test('POSITIVE CONTROL: the isolation guard fails on the exact round-four mutant
   );
 });
 
+test('THE WORKFLOW IS DORMANT ON MERGE: it declares no schedule', () => {
+  // Merging a capability arms nothing here (UNI-2542). Round four was right that
+  // shipping the cron in this PR would have armed a daily issues-write on the
+  // default branch BEFORE the watched first run that decides whether it deserves
+  // to run unattended. Adding the cron must be a visible, separate change.
+  const structure = readWorkflowStructure(readFileSync(WORKFLOW_PATH, 'utf8'));
+
+  assert.ok(
+    !Object.hasOwn(structure.triggers, 'schedule'),
+    'the heartbeat declares a schedule; it must be manual-dispatch only until separately armed',
+  );
+  assert.ok(
+    Object.hasOwn(structure.triggers, 'workflow_dispatch'),
+    'the heartbeat must still be dispatchable, or its first run cannot be watched',
+  );
+});
+
+test('THE WORKFLOW SUPPLIES THE READBACK: its client can get an issue', () => {
+  // upsertHeartbeatIssue refuses a client with no `getIssue`, so a workflow that
+  // forgets it fails every run. Catching that here rather than in production.
+  const workflow = readFileSync(WORKFLOW_PATH, 'utf8');
+
+  assert.ok(/getIssue:\s*async/u.test(workflow), 'the workflow client must provide getIssue');
+  assert.ok(/github\.rest\.issues\.get\(/u.test(workflow), 'getIssue must actually read the issue back');
+});
+
 test('THE WORKFLOW READER FAILS CLOSED: unreadable YAML throws rather than parsing to nothing', () => {
   // A parser that returned `{}` for a document it did not understand would make
   // every structural guard above pass vacuously — the exact shape of defect this
@@ -625,6 +651,54 @@ test('THE WORKFLOW READER FAILS CLOSED: unreadable YAML throws rather than parsi
   assert.throws(() => readWorkflowStructure('jobs:\n  a:\n    steps: []\n'), /triggers/u);
   assert.throws(() => readWorkflowStructure('on:\n  workflow_dispatch:\n'), /jobs/u);
   assert.throws(() => readWorkflowStructure('on:\n  workflow_dispatch:\njobs:\n\ta: 1\n'), /tab/u);
+
+  // A document that is not a mapping AT ALL. Without this case the top-level
+  // refusal could be replaced by `return {}` and every guard above would pass
+  // vacuously — the harness proved exactly that mutant survived.
+  assert.throws(() => readWorkflowStructure('- one\n- two\n'), /not a mapping/u);
+  assert.throws(() => readWorkflowStructure(''), /not a mapping/u);
+
+  // And a jobs block that parses but is not a jobs mapping.
+  assert.throws(
+    () => readWorkflowStructure('on:\n  workflow_dispatch:\njobs:\n  - a\n  - b\n'),
+    /no jobs mapping/u,
+  );
+  assert.throws(
+    () => readWorkflowStructure('on:\n  workflow_dispatch:\njobs:\n  a: not-a-mapping\n'),
+    /job `a` is not a mapping/u,
+  );
+});
+
+test('A JOB WITH NO PERMISSIONS BLOCK IS TREATED AS CAPABLE, not assumed safe', () => {
+  // A job that declares no `permissions:` inherits the workflow default, and the
+  // default is the permissive case. Reading that as "no permissions, therefore
+  // safe" is how an unannotated job would slip past the isolation guard. The
+  // harness proved this branch had no control until now.
+  const noWorkflowDefault = [
+    'on:', '  workflow_dispatch:', 'jobs:', '  a:', '    steps:', '      - run: npm ci', '',
+  ].join('\n');
+  assert.deepEqual(
+    jobsThatCanWriteIssues(readWorkflowStructure(noWorkflowDefault)).map((job) => job.name),
+    ['a'],
+    'a job with no permissions and no workflow default must be treated as capable',
+  );
+
+  // An explicit workflow default that does NOT grant issues:write does bound it.
+  const boundedDefault = [
+    'on:', '  workflow_dispatch:', 'permissions:', '  contents: read',
+    'jobs:', '  a:', '    steps:', '      - run: npm ci', '',
+  ].join('\n');
+  assert.deepEqual(jobsThatCanWriteIssues(readWorkflowStructure(boundedDefault)), []);
+
+  // And a permissive workflow default reaches every unannotated job.
+  const permissiveDefault = [
+    'on:', '  workflow_dispatch:', 'permissions:', '  issues: write',
+    'jobs:', '  a:', '    steps:', '      - run: npm ci', '',
+  ].join('\n');
+  assert.deepEqual(
+    jobsThatCanWriteIssues(readWorkflowStructure(permissiveDefault)).map((job) => job.name),
+    ['a'],
+  );
 });
 
 test('neither checkout leaves an ambient credential in the workspace', () => {
