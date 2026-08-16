@@ -54,8 +54,17 @@ classification is ambiguous — Tier 2 rather than Tier 3, Tier 2 rather than Ti
 
 ### Tier 1 — EXECUTE
 
-**Trigger:** the request names a known skill (a directory under `.claude/skills/`, or a
-skill exposed to the surface's runtime).
+**Trigger:** the request uses an **explicit invocation form** for a known skill (a
+directory under `.claude/skills/`, or a skill exposed to the surface's runtime). The
+invocation form is either the slash form (`/skill-name`) or an unambiguous imperative
+naming the skill ("run credential-triage", "do a credential-triage sweep").
+
+**A bare mention is not an invocation.** "What does credential-triage do?", "credential-triage
+found nothing last week", and "don't run credential-triage" all *name* a known skill and
+none of them is a request to execute it. Questions, quotations, negations, and
+descriptions route through normal classification — usually Tier 2. This matters most on
+the voice path, where the surface cannot see punctuation or formatting: when the form is
+not unmistakably an invocation, classify, do not execute.
 
 **Behaviour:** run that skill and report the result. No planning preamble, no dispatch, no
 lane. A skill invocation that itself would cross the Waterline (§5) is not exempt — the
@@ -95,14 +104,34 @@ carries the Phase-1 contract, not a bare shell command:
 - canonical run identity (`runId`, `laneId`, `machineId`, backend/tool identity);
 - acknowledged controls — stop means *process-tree termination acknowledged*, then
   worktree cleanup, never the reverse;
-- bounded, redacted event evidence;
+- bounded, redacted event evidence — the envelope (size and event bounds, field
+  allowlist, redaction ordering, oversized-event behaviour) is defined by the Phase-1
+  evidence contract, §11 and §13 of the spec, and is enforced at the adapter/event
+  boundary before persistence or transport. This contract adds no second evidence path
+  and does not restate those limits; a surface claiming compliance must point at the
+  spec's envelope, not at this sentence;
 - truthful backend admission — a lane is refused when its backend is genuinely
   unavailable, never admitted on an `isBackendAvailable: () => true` stub;
-- duplicate dispatch for one lane returns a conflict, not a second child process.
+- duplicate dispatch for one lane returns a conflict, not a second child process. The
+  claim mechanism that makes this atomic — what value identifies a lane, when the claim
+  is taken relative to spawn, and lease/reconciliation semantics — is owned by UNI-2403
+  and UNI-2410 (spec §11, Slice B), not by this document. A surface must not treat "we
+  check for a running lane before spawning" as satisfying this line: the check has to be
+  atomic with the claim, or two retries can both spawn before either conflict returns.
 
-**Failure mode:** if the lane cannot be created truthfully (backend down, quota exhausted,
-duplicate claim), the surface reports the refusal and the next safe action. It does not
-fall back to running the work inline.
+**Authority is computed before the lane is created.** The router resolves the highest
+Waterline class of any action the request contains *before* dispatch, not during the run.
+Class 2 or Class 3 work is refused or held pending approval for the exact target and
+effect — Class 3 requires Phill McGurk's explicit authority and neither a button press
+nor a spoken command supplies it. Ambiguous, stale, or conflicting authority fails closed
+to the higher class. "Migrate" and "sweep" are listed as Tier-3 triggers because they are
+*shaped* like deep work, not because dispatch is pre-authorised — they routinely carry
+Class 2/3 actions and are refused on that basis.
+
+**Failure mode:** if the lane cannot be created truthfully — backend down, quota
+exhausted, duplicate claim, **or missing authority for the action's class** — the surface
+reports the refusal and the next safe action. It does not fall back to running the work
+inline, and it does not downgrade the action's class to make the lane admissible.
 
 ## 4. The Tier-2 register set
 
@@ -161,6 +190,10 @@ gate"). This contract does not redefine them; it binds entry points to them.
 - **No third memory store.** The wrapper introduces none.
 - The vault is unreachable from remote/CI checkouts. Any surface that reads it degrades
   honestly ("vault unavailable on this host") rather than reporting an empty vault.
+- **Writes to the vault are governed by the `brain-capture` exception** in `CLAUDE.md`
+  ("Research-output contract"): founder-machine working tree only, the `brain-1` GitHub
+  freeze untouched, failure reported rather than redirected to `docs/brain/`. This
+  document grants no write authority of its own.
 
 ## 7. Adoption
 
