@@ -1,0 +1,241 @@
+﻿2026-08-16T05:08:34.4400651Z Current runner version: '2.336.0'
+2026-08-16T05:08:34.4427611Z ##[group]Runner Image Provisioner
+2026-08-16T05:08:34.4428471Z Hosted Compute Agent
+2026-08-16T05:08:34.4429161Z Version: 20260729.566
+2026-08-16T05:08:34.4430071Z Commit: cf7153fe6e25b664e8693c24944bf2b00355d109
+2026-08-16T05:08:34.4430867Z Build Date: 2026-07-29T19:17:02Z
+2026-08-16T05:08:34.4431556Z Worker ID: {b88d2b14-2989-4266-bf9b-a6c53a54ccba}
+2026-08-16T05:08:34.4432290Z Azure Region: eastus
+2026-08-16T05:08:34.4432901Z ##[endgroup]
+2026-08-16T05:08:34.4434402Z ##[group]Operating System
+2026-08-16T05:08:34.4435087Z Ubuntu
+2026-08-16T05:08:34.4435625Z 24.04.4
+2026-08-16T05:08:34.4436161Z LTS
+2026-08-16T05:08:34.4436706Z ##[endgroup]
+2026-08-16T05:08:34.4437240Z ##[group]Runner Image
+2026-08-16T05:08:34.4437826Z Image: ubuntu-24.04
+2026-08-16T05:08:34.4438447Z Version: 20260810.271.1
+2026-08-16T05:08:34.4440077Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260810.271/images/ubuntu/Ubuntu2404-Readme.md
+2026-08-16T05:08:34.4442200Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260810.271
+2026-08-16T05:08:34.4443144Z ##[endgroup]
+2026-08-16T05:08:34.4444306Z ##[group]GITHUB_TOKEN Permissions
+2026-08-16T05:08:34.4446459Z Contents: read
+2026-08-16T05:08:34.4447150Z Metadata: read
+2026-08-16T05:08:34.4447704Z ##[endgroup]
+2026-08-16T05:08:34.4450176Z Secret source: Actions
+2026-08-16T05:08:34.4451490Z Prepare workflow directory
+2026-08-16T05:08:34.5005140Z Prepare all required actions
+2026-08-16T05:08:34.5056739Z Getting action download info
+2026-08-16T05:08:34.6881955Z Download action repository 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+2026-08-16T05:08:34.8239216Z Download action repository 'actions/setup-node@820762786026740c76f36085b0efc47a31fe5020' (SHA:820762786026740c76f36085b0efc47a31fe5020)
+2026-08-16T05:08:35.0597147Z Complete job name: packages/spine — type-check and bounded tests
+2026-08-16T05:08:35.1324965Z ##[group]Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+2026-08-16T05:08:35.1326063Z with:
+2026-08-16T05:08:35.1326515Z   repository: CleanExpo/Unite-Group
+2026-08-16T05:08:35.1330546Z   token: ***
+2026-08-16T05:08:35.1330990Z   ssh-strict: true
+2026-08-16T05:08:35.1331429Z   ssh-user: git
+2026-08-16T05:08:35.1331869Z   persist-credentials: true
+2026-08-16T05:08:35.1332357Z   clean: true
+2026-08-16T05:08:35.1332797Z   sparse-checkout-cone-mode: true
+2026-08-16T05:08:35.1333320Z   fetch-depth: 1
+2026-08-16T05:08:35.1333747Z   fetch-tags: false
+2026-08-16T05:08:35.1334190Z   show-progress: true
+2026-08-16T05:08:35.1334633Z   lfs: false
+2026-08-16T05:08:35.1335038Z   submodules: false
+2026-08-16T05:08:35.1335481Z   set-safe-directory: true
+2026-08-16T05:08:35.1335985Z   allow-unsafe-pr-checkout: false
+2026-08-16T05:08:35.1336758Z env:
+2026-08-16T05:08:35.1337161Z   NODE_VERSION: 24
+2026-08-16T05:08:35.1337594Z   SPINE_DATABASE_URL: 
+2026-08-16T05:08:35.1338089Z ##[endgroup]
+2026-08-16T05:08:35.2387438Z Syncing repository: CleanExpo/Unite-Group
+2026-08-16T05:08:35.2389244Z ##[group]Getting Git version info
+2026-08-16T05:08:35.2390565Z Working directory is '/home/runner/work/Unite-Group/Unite-Group'
+2026-08-16T05:08:35.2391641Z [command]/usr/bin/git version
+2026-08-16T05:08:35.2468249Z git version 2.54.0
+2026-08-16T05:08:35.2491396Z ##[endgroup]
+2026-08-16T05:08:35.2503876Z Temporarily overriding HOME='/home/runner/work/_temp/f46ce739-df10-4541-8cd7-79e2f5624f77' before making global git config changes
+2026-08-16T05:08:35.2510680Z Adding repository directory to the temporary git global config as a safe directory
+2026-08-16T05:08:35.2512794Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Unite-Group/Unite-Group
+2026-08-16T05:08:35.2565142Z Deleting the contents of '/home/runner/work/Unite-Group/Unite-Group'
+2026-08-16T05:08:35.2568437Z ##[group]Determining repository object format
+2026-08-16T05:08:35.2570379Z ##[endgroup]
+2026-08-16T05:08:35.2571302Z ##[group]Initializing the repository
+2026-08-16T05:08:35.2574763Z [command]/usr/bin/git init /home/runner/work/Unite-Group/Unite-Group
+2026-08-16T05:08:35.2720060Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-08-16T05:08:35.2721674Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-08-16T05:08:35.2722662Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-08-16T05:08:35.2723413Z hint: call:
+2026-08-16T05:08:35.2723814Z hint:
+2026-08-16T05:08:35.2724332Z hint: 	git config --global init.defaultBranch <name>
+2026-08-16T05:08:35.2724953Z hint:
+2026-08-16T05:08:35.2725787Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-08-16T05:08:35.2727434Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-08-16T05:08:35.2728811Z hint:
+2026-08-16T05:08:35.2729819Z hint: 	git branch -m <name>
+2026-08-16T05:08:35.2730732Z hint:
+2026-08-16T05:08:35.2731921Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-08-16T05:08:35.2733852Z Initialized empty Git repository in /home/runner/work/Unite-Group/Unite-Group/.git/
+2026-08-16T05:08:35.2740078Z [command]/usr/bin/git remote add origin https://github.com/CleanExpo/Unite-Group
+2026-08-16T05:08:35.2788227Z ##[endgroup]
+2026-08-16T05:08:35.2789445Z ##[group]Disabling automatic garbage collection
+2026-08-16T05:08:35.2791285Z [command]/usr/bin/git config --local gc.auto 0
+2026-08-16T05:08:35.2823257Z ##[endgroup]
+2026-08-16T05:08:35.2824718Z ##[group]Setting up auth
+2026-08-16T05:08:35.2825552Z Removing SSH command configuration
+2026-08-16T05:08:35.2829469Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-08-16T05:08:35.2865381Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-08-16T05:08:35.3238795Z Removing HTTP extra header
+2026-08-16T05:08:35.3244541Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-08-16T05:08:35.3279912Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-08-16T05:08:35.3497630Z Removing includeIf entries pointing to credentials config files
+2026-08-16T05:08:35.3503292Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-08-16T05:08:35.3534264Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-08-16T05:08:35.3758594Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-d87a96a4-fd6f-4fe7-8710-de16f6a58fa9.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-08-16T05:08:35.3795616Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/Unite-Group/Unite-Group/.git.path /home/runner/work/_temp/git-credentials-d87a96a4-fd6f-4fe7-8710-de16f6a58fa9.config
+2026-08-16T05:08:35.3826063Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/Unite-Group/Unite-Group/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-d87a96a4-fd6f-4fe7-8710-de16f6a58fa9.config
+2026-08-16T05:08:35.3859990Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-d87a96a4-fd6f-4fe7-8710-de16f6a58fa9.config
+2026-08-16T05:08:35.3890787Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-d87a96a4-fd6f-4fe7-8710-de16f6a58fa9.config
+2026-08-16T05:08:35.3917771Z ##[endgroup]
+2026-08-16T05:08:35.3918930Z ##[group]Fetching the repository
+2026-08-16T05:08:35.3924255Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +d1d57b8e5745e90259f2799cb9086e4a62689318:refs/remotes/origin/main
+2026-08-16T05:08:37.3898352Z From https://github.com/CleanExpo/Unite-Group
+2026-08-16T05:08:37.3900579Z  * [new ref]         d1d57b8e5745e90259f2799cb9086e4a62689318 -> origin/main
+2026-08-16T05:08:37.3953845Z [command]/usr/bin/git branch --list --remote origin/main
+2026-08-16T05:08:37.3977196Z   origin/main
+2026-08-16T05:08:37.3987796Z [command]/usr/bin/git rev-parse refs/remotes/origin/main
+2026-08-16T05:08:37.4012612Z d1d57b8e5745e90259f2799cb9086e4a62689318
+2026-08-16T05:08:37.4026008Z ##[endgroup]
+2026-08-16T05:08:37.4027428Z ##[group]Determining the checkout info
+2026-08-16T05:08:37.4029037Z ##[endgroup]
+2026-08-16T05:08:37.4032013Z [command]/usr/bin/git sparse-checkout disable
+2026-08-16T05:08:37.4078424Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-08-16T05:08:37.4108061Z ##[group]Checking out the ref
+2026-08-16T05:08:37.4111338Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-08-16T05:08:37.9839184Z Switched to a new branch 'main'
+2026-08-16T05:08:37.9841179Z branch 'main' set up to track 'origin/main'.
+2026-08-16T05:08:37.9867765Z ##[endgroup]
+2026-08-16T05:08:37.9918858Z [command]/usr/bin/git log -1 --format=%H
+2026-08-16T05:08:37.9941680Z d1d57b8e5745e90259f2799cb9086e4a62689318
+2026-08-16T05:08:38.0211602Z ##[group]Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+2026-08-16T05:08:38.0212170Z with:
+2026-08-16T05:08:38.0212449Z   node-version: 24
+2026-08-16T05:08:38.0212762Z   cache: npm
+2026-08-16T05:08:38.0213197Z   cache-dependency-path: packages/spine/packages/spine/package-lock.json
+2026-08-16T05:08:38.0213703Z   check-latest: false
+2026-08-16T05:08:38.0216304Z   token: ***
+2026-08-16T05:08:38.0216621Z   package-manager-cache: true
+2026-08-16T05:08:38.0216956Z env:
+2026-08-16T05:08:38.0217211Z   NODE_VERSION: 24
+2026-08-16T05:08:38.0217505Z   SPINE_DATABASE_URL: 
+2026-08-16T05:08:38.0217816Z ##[endgroup]
+2026-08-16T05:08:38.1598445Z Found in cache @ /opt/hostedtoolcache/node/24.19.0/x64
+2026-08-16T05:08:38.1602222Z ##[group]Environment details
+2026-08-16T05:08:41.1326421Z node: v24.19.0
+2026-08-16T05:08:41.1326764Z npm: 11.17.0
+2026-08-16T05:08:41.1326964Z yarn: 1.22.22
+2026-08-16T05:08:41.1328243Z ##[endgroup]
+2026-08-16T05:08:41.1345196Z [command]/opt/hostedtoolcache/node/24.19.0/x64/bin/npm config get cache
+2026-08-16T05:08:41.4192892Z /home/runner/.npm
+2026-08-16T05:08:41.5282643Z Cache hit for: node-cache-Linux-x64-npm-537d83ea8212bb9f059bb51e917aff9f6641e18a129a7d7d99833dff87c1de7c
+2026-08-16T05:08:41.8751758Z Received 41236822 of 41236822 (100.0%), 134.7 MBs/sec
+2026-08-16T05:08:41.8752820Z Cache Size: ~39 MB (41236822 B)
+2026-08-16T05:08:41.8827935Z [command]/usr/bin/tar -xf /home/runner/work/_temp/d0b3aee2-6e91-4497-b312-f095c7222add/cache.tzst -P -C /home/runner/work/Unite-Group/Unite-Group --use-compress-program unzstd
+2026-08-16T05:08:41.9782973Z Cache restored successfully
+2026-08-16T05:08:41.9810485Z Cache restored from key: node-cache-Linux-x64-npm-537d83ea8212bb9f059bb51e917aff9f6641e18a129a7d7d99833dff87c1de7c
+2026-08-16T05:08:41.9962352Z ##[group]Run npm ci
+2026-08-16T05:08:41.9962674Z [36;1mnpm ci[0m
+2026-08-16T05:08:42.0066363Z shell: /usr/bin/bash -e {0}
+2026-08-16T05:08:42.0066671Z env:
+2026-08-16T05:08:42.0066874Z   NODE_VERSION: 24
+2026-08-16T05:08:42.0067097Z   SPINE_DATABASE_URL: 
+2026-08-16T05:08:42.0067322Z ##[endgroup]
+2026-08-16T05:08:44.8046927Z 
+2026-08-16T05:08:44.8056908Z added 54 packages, and audited 55 packages in 3s
+2026-08-16T05:08:44.8057451Z 
+2026-08-16T05:08:44.8057787Z 19 packages are looking for funding
+2026-08-16T05:08:44.8058385Z   run `npm fund` for details
+2026-08-16T05:08:44.8086699Z 
+2026-08-16T05:08:44.8087138Z 1 moderate severity vulnerability
+2026-08-16T05:08:44.8087527Z 
+2026-08-16T05:08:44.8087789Z To address all issues, run:
+2026-08-16T05:08:44.8088291Z   npm audit fix
+2026-08-16T05:08:44.8088551Z 
+2026-08-16T05:08:44.8088803Z Run `npm audit` for details.
+2026-08-16T05:08:44.8098131Z npm warn allow-scripts 1 package has install scripts not yet covered by allowScripts:
+2026-08-16T05:08:44.8099251Z npm warn allow-scripts   esbuild@0.28.1 (postinstall: node install.js)
+2026-08-16T05:08:44.8099882Z npm warn allow-scripts
+2026-08-16T05:08:44.8100560Z npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to review, or `npm approve-scripts <pkg>` to allow.
+2026-08-16T05:08:44.8606221Z ##[group]Run npm run typecheck
+2026-08-16T05:08:44.8606556Z [36;1mnpm run typecheck[0m
+2026-08-16T05:08:44.8644301Z shell: /usr/bin/bash -e {0}
+2026-08-16T05:08:44.8644573Z env:
+2026-08-16T05:08:44.8644763Z   NODE_VERSION: 24
+2026-08-16T05:08:44.8644979Z   SPINE_DATABASE_URL: 
+2026-08-16T05:08:44.8645201Z ##[endgroup]
+2026-08-16T05:08:44.9678634Z 
+2026-08-16T05:08:44.9679254Z > @unite-group/spine@0.0.1 typecheck
+2026-08-16T05:08:44.9679980Z > tsc --noEmit
+2026-08-16T05:08:44.9680124Z 
+2026-08-16T05:08:45.0960699Z ##[group]Run npm test
+2026-08-16T05:08:45.0961019Z [36;1mnpm test[0m
+2026-08-16T05:08:45.0996805Z shell: /usr/bin/bash -e {0}
+2026-08-16T05:08:45.0997086Z env:
+2026-08-16T05:08:45.0997279Z   NODE_VERSION: 24
+2026-08-16T05:08:45.0997500Z   SPINE_DATABASE_URL: 
+2026-08-16T05:08:45.0997726Z ##[endgroup]
+2026-08-16T05:08:45.2068591Z 
+2026-08-16T05:08:45.2069201Z > @unite-group/spine@0.0.1 test
+2026-08-16T05:08:45.2069837Z > vitest run
+2026-08-16T05:08:45.2069981Z 
+2026-08-16T05:08:45.6235085Z 
+2026-08-16T05:08:45.6240332Z [1m[30m[46m RUN [49m[39m[22m [36mv4.1.10 [39m[90m/home/runner/work/Unite-Group/Unite-Group/packages/spine/packages/spine[39m
+2026-08-16T05:08:45.6241260Z 
+2026-08-16T05:08:45.9245103Z  [2m[90m↓[39m[22m tests/integration/outbox_race.test.ts [2m([22m[2m6 tests[22m[2m | [22m[33m6 skipped[39m[2m)[22m
+2026-08-16T05:08:45.9405250Z  [2m[90m↓[39m[22m tests/integration/match_isolation.test.ts [2m([22m[2m2 tests[22m[2m | [22m[33m2 skipped[39m[2m)[22m
+2026-08-16T05:08:45.9436587Z  [2m[90m↓[39m[22m tests/integration/c3_completeness.test.ts [2m([22m[2m4 tests[22m[2m | [22m[33m4 skipped[39m[2m)[22m
+2026-08-16T05:08:46.1616489Z  [2m[90m↓[39m[22m tests/integration/rls.test.ts [2m([22m[2m4 tests[22m[2m | [22m[33m4 skipped[39m[2m)[22m
+2026-08-16T05:08:46.1641926Z  [2m[90m↓[39m[22m tests/integration/idempotency.test.ts [2m([22m[2m3 tests[22m[2m | [22m[33m3 skipped[39m[2m)[22m
+2026-08-16T05:08:46.1773259Z  [32m✓[39m tests/unit.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+2026-08-16T05:08:46.1802201Z 
+2026-08-16T05:08:46.1807999Z [2m Test Files [22m [1m[32m1 passed[39m[22m[2m | [22m[33m5 skipped[39m[90m (6)[39m
+2026-08-16T05:08:46.1809721Z [2m      Tests [22m [1m[32m3 passed[39m[22m[2m | [22m[33m19 skipped[39m[90m (22)[39m
+2026-08-16T05:08:46.1810743Z [2m   Start at [22m 05:08:45
+2026-08-16T05:08:46.1814507Z [2m   Duration [22m 550ms[2m (transform 196ms, setup 0ms, import 487ms, tests 5ms, environment 1ms)[22m
+2026-08-16T05:08:46.1815271Z 
+2026-08-16T05:08:46.2288882Z Post job cleanup.
+2026-08-16T05:08:46.3406796Z Cache hit occurred on the primary key node-cache-Linux-x64-npm-537d83ea8212bb9f059bb51e917aff9f6641e18a129a7d7d99833dff87c1de7c, not saving cache.
+2026-08-16T05:08:46.3550761Z Post job cleanup.
+2026-08-16T05:08:46.4370679Z [command]/usr/bin/git version
+2026-08-16T05:08:46.4406976Z git version 2.54.0
+2026-08-16T05:08:46.4444830Z Temporarily overriding HOME='/home/runner/work/_temp/ca5928eb-e949-4e7c-84b4-fa3f492b1455' before making global git config changes
+2026-08-16T05:08:46.4446423Z Adding repository directory to the temporary git global config as a safe directory
+2026-08-16T05:08:46.4451224Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Unite-Group/Unite-Group
+2026-08-16T05:08:46.4483007Z Removing SSH command configuration
+2026-08-16T05:08:46.4490038Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-08-16T05:08:46.4524140Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-08-16T05:08:46.4755233Z Removing HTTP extra header
+2026-08-16T05:08:46.4760920Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-08-16T05:08:46.4794373Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-08-16T05:08:46.5021203Z Removing includeIf entries pointing to credentials config files
+2026-08-16T05:08:46.5027667Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-08-16T05:08:46.5086595Z includeif.gitdir:/home/runner/work/Unite-Group/Unite-Group/.git.path
+2026-08-16T05:08:46.5087838Z includeif.gitdir:/home/runner/work/Unite-Group/Unite-Group/.git/worktrees/*.path
+2026-08-16T05:08:46.5088900Z includeif.gitdir:/github/workspace/.git.path
+2026-08-16T05:08:46.5090148Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-08-16T05:08:46.5096410Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/Unite-Group/Unite-Group/.git.path
+2026-08-16T05:08:46.5118217Z /home/runner/work/_temp/git-credentials-d87a96a4-fd6f-4fe7-8710-de16f6a58fa9.config
+2026-08-16T05:08:46.5128747Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/Unite-Group/Unite-Group/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-d87a96a4\-fd6f\-4fe7\-8710\-de16f6a58fa9\.config
+2026-08-16T05:08:46.5164925Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/Unite-Group/Unite-Group/.git/worktrees/*.path
+2026-08-16T05:08:46.5188160Z /home/runner/work/_temp/git-credentials-d87a96a4-fd6f-4fe7-8710-de16f6a58fa9.config
+2026-08-16T05:08:46.5197549Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/Unite-Group/Unite-Group/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-d87a96a4\-fd6f\-4fe7\-8710\-de16f6a58fa9\.config
+2026-08-16T05:08:46.5228302Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-08-16T05:08:46.5249064Z /github/runner_temp/git-credentials-d87a96a4-fd6f-4fe7-8710-de16f6a58fa9.config
+2026-08-16T05:08:46.5256562Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-d87a96a4\-fd6f\-4fe7\-8710\-de16f6a58fa9\.config
+2026-08-16T05:08:46.5287251Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-08-16T05:08:46.5308100Z /github/runner_temp/git-credentials-d87a96a4-fd6f-4fe7-8710-de16f6a58fa9.config
+2026-08-16T05:08:46.5317194Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-d87a96a4\-fd6f\-4fe7\-8710\-de16f6a58fa9\.config
+2026-08-16T05:08:46.5347652Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-08-16T05:08:46.5574070Z Removing credentials config '/home/runner/work/_temp/git-credentials-d87a96a4-fd6f-4fe7-8710-de16f6a58fa9.config'
+2026-08-16T05:08:46.5710770Z Cleaning up orphan processes
