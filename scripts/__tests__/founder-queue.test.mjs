@@ -328,6 +328,62 @@ test('the summary exit code refuses to call a malformed ledger clean', () => {
   assert.match(io.logs.join('\n'), /"integrity": "MALFORMED"/);
 });
 
+test('A SEMANTICALLY MALFORMED LEDGER ALSO EXITS NON-ZERO, not just an unparseable one', () => {
+  /*
+   * THE DEFECT THE TWO TESTS ABOVE COULD NOT SEE, and the reason they could not.
+   *
+   * Both of them feed `| F9 | broken |` — a row the table parser cannot read at
+   * all, which lands in `parsed.malformed`. The exit code consulted exactly that
+   * list, so those tests passed against a `main()` that ignored every SEMANTIC
+   * anomaly: an unknown status, an empty required cell, a date that cannot be
+   * aged. Round eleven ran a valid row with status `opne` and got
+   * `{integrity: "MALFORMED", openCount: 0}` printed alongside exit 0 — the run
+   * telling a human the blocker was excluded and telling a gate the queue was
+   * clean, in the same breath.
+   *
+   * Every input below parses perfectly. That is the point: the fixture must be
+   * valid in every respect except the one under test, or it proves nothing about
+   * which list the exit code reads.
+   */
+  const semantic = [
+    ['an unknown status', '| F1 | flip it | 2026-08-01 | — | UNI-1 | ctx | opne |', /neither/u],
+    ['a resolved row left in the Open table',
+      '| F1 | flip it | 2026-08-01 | — | UNI-1 | ctx | resolved |', /moves to the Resolved/u],
+    ['an empty Decision cell',
+      '| F1 |  | 2026-08-01 | — | UNI-1 | ctx | open |', /empty Decision cell/u],
+    ['an empty ID cell',
+      '|  | flip it | 2026-08-01 | — | UNI-1 | ctx | open |', /empty ID cell/u],
+    ['an unageable opened date',
+      '| F1 | flip it | not-a-date | — | UNI-1 | ctx | open |', /./u],
+  ];
+
+  for (const [label, row, note] of semantic) {
+    const io = { logs: [], errors: [], log(m) { this.logs.push(m); }, error(m) { this.errors.push(m); } };
+    const code = main([], { io, now: NOW, readFile: () => [HEADER, RULE, row].join('\n') });
+    assert.equal(code, 1, label);
+    assert.match(io.logs.join('\n'), /"integrity": "MALFORMED"/u, label);
+    // The printed reason and the exit code must be about the SAME anomaly, or
+    // the exit is right by accident.
+    assert.match(io.logs.join('\n'), note, label);
+
+    /*
+     * AND THE RENDER REFUSES THE SAME LEDGER. Its guard read the narrow list too,
+     * so it would have rewritten every Age cell in a ledger holding a row nobody
+     * could interpret — deriving a fact from a file it admits it cannot read.
+     */
+    const written = [];
+    const renderIo = { logs: [], errors: [], log() {}, error(m) { this.errors.push(m); } };
+    const renderCode = main(['--render'], {
+      io: renderIo,
+      now: NOW,
+      readFile: () => [HEADER, RULE, row].join('\n'),
+      writeFile: (path, contents) => written.push({ path, contents }),
+    });
+    assert.equal(renderCode, 2, `${label} (render)`);
+    assert.equal(written.length, 0, `${label} (render must not write)`);
+  }
+});
+
 test('a clean ledger still exits 0', () => {
   const io = { logs: [], errors: [], log(m) { this.logs.push(m); }, error(m) { this.errors.push(m); } };
   const code = main([], {

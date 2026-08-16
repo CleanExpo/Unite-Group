@@ -9,18 +9,20 @@ name: Nexus Heartbeat
 # release authority (UNI-2562).
 #
 # THE WRITE TOKEN'S BLAST RADIUS IS REDUCED, NOT ELIMINATED. Permissions are
-# granted per job, so `observe` — the job that runs `npm ci` and three
-# repository-controlled npm scripts — holds `contents: read` and nothing else.
-# Only `report` holds `issues: write`, and it installs nothing and sparse-checks-out
-# a single file. Both checkouts set `persist-credentials: false`.
+# granted per job, so `observe` — the job that runs the three repository-controlled
+# gate scripts — holds `contents: read` and nothing else. Only `report` holds
+# `issues: write`, and it sparse-checks-out a single file. Both checkouts set
+# `persist-credentials: false`. Neither job installs anything: the repository root
+# declares zero dependencies, and round eight proved an `npm ci` step here could
+# never have run at all, because there is no lockfile for it to read.
 #
 # State the limit exactly, because round two was right to push on it: `report`
 # still EXECUTES one repository-controlled file (scripts/nexus-heartbeat.mjs)
 # while holding that token, and sparse checkout restricts files, not API reach.
 # Anyone able to land arbitrary code in that file can call the issues API with it.
-# What the split buys is that `npm ci` and the gate scripts — the large,
-# dependency-laden surface — no longer run under the token at all. That is a real
-# reduction and it is not the same as containment.
+# What the split buys is that the three gate scripts — which read the whole tree
+# and are the far larger surface — do not run under the token at all. That is a
+# real reduction and it is not the same as containment.
 #
 # HONEST DEGRADATION, AND ITS CEILING. Every gate runs with its exit code
 # captured, so one red gate cannot hide the others, and `report` runs with

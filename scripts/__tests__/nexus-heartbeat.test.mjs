@@ -36,7 +36,11 @@ const WORKFLOW_PATH = join(repositoryRoot, '.github', 'workflows', 'nexus-heartb
  * review rounds were lost to YAML constructs the reader did not implement; a
  * hash implements all of them.
  */
-const PINNED_WORKFLOW_SHA256 = 'c97a2ff9b1ed1fb3eac946e64b658517b76abdb39da28a826ec957c1b0e1dae7';
+// Re-pinned in round eleven: the threat-model header described `npm ci` as part
+// of the observe job in the present tense, three rounds after that step was
+// removed for being unrunnable. The pin doing its job — a comment-only edit
+// failing this test until someone deliberately re-pins — is the whole point.
+const PINNED_WORKFLOW_SHA256 = 'bb1ec7322f19f14ee10f2f88e7000472b3b392e55c05814e3b8d4779c83425d0';
 
 // Rendered gate lists (what reconcileGates PRODUCES).
 const GREEN = [

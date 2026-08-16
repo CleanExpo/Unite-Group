@@ -378,15 +378,35 @@ export function main(argv = process.argv.slice(2), {
 } = {}) {
   const markdown = readFile(QUEUE_PATH);
   const parsed = parseFounderQueue(markdown);
-  const malformed = parsed.malformed ?? [];
+  /*
+   * ONE AUTHORITY ON WHETHER THE LEDGER IS CLEAN, AND IT IS THE ONE PRINTED.
+   *
+   * Both exits below used to consult `parsed.malformed` — the SYNTACTIC list, the
+   * rows the table parser could not read at all — while the summary they print
+   * calls the ledger MALFORMED on a wider basis: that list PLUS the semantic
+   * notes from `classifyOpenRows` and the unaged rows from `oldestOpen`. So a
+   * row whose status read `opne` printed `{integrity: "MALFORMED", openCount: 0}`
+   * and exited 0. A caller reading the process status was told the queue was
+   * clean by the same run whose own output said the blocker had been excluded —
+   * and the exit code is what a gate reads.
+   *
+   * Computing it once and deriving both the output and the exit from that single
+   * value is the structural fix. Two lists that must agree is a defect waiting
+   * to be reintroduced; one list cannot disagree with itself.
+   */
+  const summary = summarise(parsed, now);
+  const malformed = summary.malformed;
 
   if (argv.includes('--render')) {
-    // Never rewrite a file we could not fully read: the render drops whatever it
-    // did not parse, so rendering a malformed ledger would DELETE the row that
-    // failed to parse and leave the file looking clean.
+    // Never rewrite a file we could not fully read. This refusal was narrower
+    // than its own comment for the same reason the exit code was: it guarded
+    // against rows that failed to PARSE, and rendering happily rewrote a ledger
+    // holding a row whose status nobody could interpret. The render writes a
+    // derived Age over every row; deriving anything from a ledger we cannot
+    // fully read is the thing this is here to refuse.
     if (malformed.length > 0) {
       for (const note of malformed) io.error(note);
-      io.error('Refusing to rewrite FOUNDER-QUEUE.md while rows do not parse.');
+      io.error('Refusing to rewrite FOUNDER-QUEUE.md while the ledger does not read cleanly.');
       return 2;
     }
     const table = renderQueue(parsed, now);
@@ -415,10 +435,11 @@ export function main(argv = process.argv.slice(2), {
     return 0;
   }
 
-  // The summary is still printed when rows are malformed — the heartbeat reads it
-  // and reports the integrity failure — but the exit code refuses to call it clean.
-  io.log(JSON.stringify(summarise(parsed, now), null, 2));
-  return malformed.length === 0 ? 0 : 1;
+  // The summary is still printed when the ledger is malformed — the heartbeat
+  // reads it and reports the integrity failure — but the exit code refuses to
+  // call it clean, and it is the SAME summary that decides both.
+  io.log(JSON.stringify(summary, null, 2));
+  return summary.integrity === 'OK' ? 0 : 1;
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
