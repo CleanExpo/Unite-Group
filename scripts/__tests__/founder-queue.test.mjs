@@ -24,14 +24,32 @@ test('age is computed in whole days from the opened date', () => {
   assert.equal(computeAgeDays('2026-07-17', NOW), 30);
 });
 
-test('age is never negative, and a genuinely future date is refused', () => {
-  // ONE day of tolerance is deliberate: the cron fires at 19:00 UTC, which is
-  // already the next day in Brisbane, so a row opened "today" locally is a day
-  // ahead of a UTC `now`. Refusing it rendered a false DEGRADED on a valid
-  // ledger. Two days ahead is a fabricated date and is still refused.
-  assert.equal(computeAgeDays('2026-08-17', NOW), 0);
-  assert.throws(() => computeAgeDays('2026-08-18', NOW), /future/i);
-  assert.throws(() => computeAgeDays('2027-01-01', NOW), /future/i);
+test('A FUTURE BRISBANE DATE IS REFUSED — no tolerance, because none is needed', () => {
+  // The previous revision forgave one day, to absorb the gap between a UTC `now`
+  // and a Brisbane ledger date. Round four showed what the forgiveness cost: a
+  // genuinely future row, `2026-08-17` at 10:00 Brisbane on the 16th, was
+  // accepted and reported as "opened today, age 0" — the exact false
+  // reassurance the refusal exists to prevent. Comparing Brisbane calendar dates
+  // removes the gap, so the tolerance has nothing left to absorb.
+  assert.throws(() => computeAgeDays('2026-08-17', NOW), /after the current Brisbane date/u);
+  assert.throws(() => computeAgeDays('2026-08-18', NOW), /after the current Brisbane date/u);
+  assert.throws(() => computeAgeDays('2027-01-01', NOW), /after the current Brisbane date/u);
+});
+
+test('THE AGE IS A BRISBANE CALENDAR AGE at the moment the workflow actually runs', () => {
+  // 19:00 UTC is 05:00 the NEXT day in Brisbane (UTC+10, no DST) — the moment
+  // the cron is documented to fire. Flooring elapsed UTC milliseconds reported
+  // 41 days here for a row whose Brisbane age is 42, so every scheduled run
+  // published every age one day short.
+  const scheduled = '2026-08-16T19:00:00Z'; // 17/08/2026 05:00 Brisbane
+  assert.equal(computeAgeDays('2026-07-06', scheduled), 42);
+  assert.equal(computeAgeDays('2026-08-17', scheduled), 0, 'the Brisbane date has already rolled');
+  assert.throws(() => computeAgeDays('2026-08-18', scheduled), /after the current Brisbane date/u);
+
+  // And one second earlier it has NOT rolled: the boundary is a real boundary,
+  // not a rounding artefact.
+  assert.equal(computeAgeDays('2026-07-06', '2026-08-16T13:59:59Z'), 41);
+  assert.equal(computeAgeDays('2026-07-06', '2026-08-16T14:00:00Z'), 42);
 });
 
 test('an unparseable opened date is refused, not treated as age zero', () => {
@@ -156,6 +174,76 @@ test('a table written without the optional outer pipes still parses', () => {
   assert.deepEqual(parsed.open.map((r) => r.id), ['F1']);
   assert.equal(parsed.open[0].status, 'open');
   assert.equal(parsed.malformed.length, 0);
+});
+
+// ---------------------------------------------------------------------------
+// ROUND FOUR (codex, independent). Demonstrated open before being fixed.
+// ---------------------------------------------------------------------------
+
+const openTable = (status) => [
+  '## Open',
+  '',
+  '| ID | Decision | Opened | Age (days) | Blocks | Context | Status |',
+  '| --- | --- | --- | --- | --- | --- | --- |',
+  `| D19 | Secret vs ephemeral Postgres | 2026-07-06 | 0 | UNI-2567 arming | ctx | ${status} |`,
+  '',
+].join('\n');
+
+test('A STATUS TYPO NEVER PUBLISHES AN ALL-CLEAR: `opne` is malformed, not excluded', () => {
+  // THE round-four P0. The previous revision kept rows whose status read exactly
+  // `open` and silently dropped the rest, so one transposed letter removed a
+  // live founder blocker from the count, left `malformed` empty, reported
+  // integrity OK, and published "No open founder decisions."
+  const summary = summarise(parseFounderQueue(openTable('opne')), NOW);
+
+  assert.equal(summary.openCount, 0, 'a row with an unknown status is not counted as open');
+  assert.equal(summary.integrity, 'MALFORMED', 'and the queue may not be called clean');
+  assert.equal(summary.malformed.length, 1);
+  assert.match(summary.malformed[0], /D19/u);
+  assert.match(summary.malformed[0], /neither `open` nor `resolved`/u);
+});
+
+test('every non-`open` status is classified, never silently discarded', () => {
+  for (const status of ['opne', '', 'OPEN?', 'pending', 'closed']) {
+    const summary = summarise(parseFounderQueue(openTable(status)), NOW);
+    assert.equal(summary.integrity, 'MALFORMED', JSON.stringify(status));
+    assert.ok(summary.malformed.length > 0, JSON.stringify(status));
+  }
+
+  // `resolved` is excluded from the count — a decided row is not a blocker — but
+  // it is still reported, because the ledger's rules say it should have MOVED to
+  // the Resolved section rather than being marked in place.
+  const resolved = summarise(parseFounderQueue(openTable('resolved')), NOW);
+  assert.equal(resolved.openCount, 0);
+  assert.equal(resolved.integrity, 'MALFORMED');
+  assert.match(resolved.malformed[0], /moves to the Resolved section/u);
+
+  // And the good value is still good, so the guard does not cry wolf.
+  const clean = summarise(parseFounderQueue(openTable('open')), NOW);
+  assert.equal(clean.openCount, 1);
+  assert.equal(clean.integrity, 'OK');
+  assert.equal(clean.malformed.length, 0);
+});
+
+test('an open row with no ID or no Decision cannot be reported, so it is flagged', () => {
+  const noId = [
+    '## Open', '',
+    '| ID | Decision | Opened | Age (days) | Blocks | Context | Status |',
+    '| --- | --- | --- | --- | --- | --- | --- |',
+    '|  | Secret vs ephemeral Postgres | 2026-07-06 | 0 | UNI-2567 | ctx | open |',
+    '',
+  ].join('\n');
+  const summary = summarise(parseFounderQueue(noId), NOW);
+  assert.equal(summary.integrity, 'MALFORMED');
+  assert.match(summary.malformed.join('\n'), /empty ID cell/u);
+});
+
+test('the real FOUNDER-QUEUE.md parses clean, so these guards do not block the ledger', () => {
+  // A guard that cannot pass the real file is a guard that gets switched off.
+  const summary = summarise(parseFounderQueue(readFileSync(QUEUE_PATH, 'utf8')), NOW);
+  assert.equal(summary.integrity, 'OK', summary.malformed.join('\n'));
+  assert.ok(summary.openCount > 0, 'the ledger has open founder decisions');
+  assert.equal(summary.oldest.ageDays >= 0, true);
 });
 
 test('a file with no Open table at all is an anomaly, not an empty queue', () => {

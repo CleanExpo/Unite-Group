@@ -18,6 +18,11 @@ import {
   reconcileQueue,
   upsertHeartbeatIssue,
 } from '../nexus-heartbeat.mjs';
+import {
+  executedCommands,
+  jobsThatCanWriteIssues,
+  readWorkflowStructure,
+} from '../lib/workflow-yaml.mjs';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const WORKFLOW_PATH = join(repositoryRoot, '.github', 'workflows', 'nexus-heartbeat.yml');
@@ -41,20 +46,47 @@ const CAPTURE_RED = DECLARED_GATES.map((name, index) => ({ name, exitCode: index
 const QUEUE = {
   openCount: 9,
   integrity: 'OK',
+  malformed: [],
   oldest: { id: 'F2', decision: 'Google OAuth', ageDays: 42, blocks: 'UNI-2329' },
 };
 
 const OWNED_BODY = `${OWNER_MARKER}\nsome previous report`;
 
-/** Minimal stand-in for the issues API; the real client is never used in tests. */
-function stubClient(existing = []) {
+/**
+ * Stand-in for the issues API. It is a real little STORE, not a set of functions
+ * that return plausible numbers.
+ *
+ * Round four broke the previous version with one line: a `createIssue` that
+ * returned `{number: 123}` and persisted nothing still produced
+ * `{action: 'created', number: 123}` and a green run. A double that cannot drop a
+ * write cannot test a readback, so this one actually holds the issues it is told
+ * about and serves them back through `getIssue`.
+ */
+function stubClient(existing = [], { dropWrites = false, omitGetIssue = false } = {}) {
   const calls = [];
-  return {
+  const store = new Map(existing.map((issue) => [issue.number, { ...issue }]));
+  let nextNumber = 101;
+  const client = {
     calls,
-    async listOpenIssues() { return existing; },
-    async createIssue(payload) { calls.push({ action: 'create', ...payload }); return { number: 101 }; },
-    async updateIssue(number, payload) { calls.push({ action: 'update', number, ...payload }); return { number }; },
+    store,
+    async listOpenIssues() { return [...store.values()]; },
+    async createIssue(payload) {
+      calls.push({ action: 'create', ...payload });
+      const number = nextNumber;
+      nextNumber += 1;
+      if (!dropWrites) store.set(number, { number, ...payload });
+      return { number };
+    },
+    async updateIssue(number, payload) {
+      calls.push({ action: 'update', number, ...payload });
+      if (!dropWrites) store.set(number, { number, ...payload });
+      return { number };
+    },
   };
+  if (!omitGetIssue) {
+    client.getIssue = async (number) => (store.has(number) ? { ...store.get(number) } : null);
+  }
+  return client;
 }
 
 const ownedIssue = (number) => ({ number, title: HEARTBEAT_TITLE, body: OWNED_BODY });
@@ -319,8 +351,18 @@ test('a gate that did not run is reported as NOT RUN, not omitted and not PASS',
   assert.ok(!rendered.includes('PASS'), rendered);
 });
 
+/**
+ * The renderer is fed VALIDATED queues, because that is the only kind the
+ * composer produces. Handing it a raw object would test a call that cannot occur
+ * and would quietly re-establish the defect these tests exist to close: an
+ * unvalidated summary reaching the render.
+ */
+const validatedQueue = (value) => reconcileQueue({ ok: true, value }).queue;
+
 test('the body always names the oldest founder decision and its age', () => {
-  const rendered = buildHeartbeatBody({ date: '2026-08-16', gates: GREEN, queue: QUEUE, drift: null });
+  const rendered = buildHeartbeatBody({
+    date: '2026-08-16', gates: GREEN, queue: validatedQueue(QUEUE), drift: null,
+  });
 
   assert.ok(rendered.includes('F2'), rendered);
   assert.ok(rendered.includes('42'), rendered);
@@ -329,7 +371,10 @@ test('the body always names the oldest founder decision and its age', () => {
 
 test('an empty founder queue is stated explicitly rather than left blank', () => {
   const rendered = buildHeartbeatBody({
-    date: '2026-08-16', gates: GREEN, queue: { openCount: 0, oldest: null, integrity: 'OK' }, drift: null,
+    date: '2026-08-16',
+    gates: GREEN,
+    queue: validatedQueue({ openCount: 0, oldest: null, integrity: 'OK', malformed: [] }),
+    drift: null,
   });
   assert.match(rendered, /no open founder decisions/i);
 });
@@ -340,13 +385,94 @@ test('AN UNPARSEABLE QUEUE IS NEVER RENDERED AS "nothing is blocked"', () => {
   const rendered = buildHeartbeatBody({
     date: '2026-08-16',
     gates: GREEN,
-    queue: { openCount: 0, oldest: null, integrity: 'MALFORMED', malformed: ['Line 9 has 3 cells'] },
+    queue: validatedQueue({
+      openCount: 0, oldest: null, integrity: 'MALFORMED', malformed: ['Line 9 has 3 cells'],
+    }),
     drift: null,
   });
 
   assert.ok(!rendered.includes('Nothing is blocked on Phill.'), rendered);
-  assert.ok(rendered.includes('Queue integrity MALFORMED'), rendered);
+  assert.ok(rendered.includes('Queue not trustworthy'), rendered);
   assert.ok(rendered.includes('Line 9 has 3 cells'), rendered);
+});
+
+// ---------------------------------------------------------------------------
+// ROUND FOUR (codex, independent). Each demonstrated open before being fixed.
+// ---------------------------------------------------------------------------
+
+test('AN IMPOSSIBLE SUMMARY NEVER PRINTS THE ALL-CLEAR, only flags it', () => {
+  // The round-four P1: `{openCount: 5, oldest: null}` was reported as an anomaly
+  // AND rendered "Nothing is blocked on Phill." in the same body, so one report
+  // stated both five open decisions and none.
+  const { queue, anomalies } = reconcileQueue({
+    ok: true, value: { openCount: 5, oldest: null, integrity: 'OK', malformed: [] },
+  });
+  assert.ok(anomalies.length > 0, 'an impossible summary must raise an anomaly');
+  assert.equal(queue.state, 'UNTRUSTWORTHY');
+
+  const rendered = buildHeartbeatBody({ date: '2026-08-16', gates: GREEN, queue, anomalies, drift: null });
+  assert.ok(!rendered.includes('Nothing is blocked on Phill.'), rendered);
+});
+
+test('A MALFORMED OLDEST RECORD IS NOT A USABLE ONE', () => {
+  // `{oldest: {}}` and a negative age both validated clean and rendered
+  // `undefined` and `-99 days` into a report a human reads for a number.
+  for (const oldest of [{}, { id: 'F1', decision: 'x', blocks: 'y', ageDays: -99 },
+    { id: '', decision: 'x', blocks: 'y', ageDays: 3 }]) {
+    const { queue, anomalies } = reconcileQueue({
+      ok: true, value: { openCount: 3, oldest, integrity: 'OK', malformed: [] },
+    });
+    assert.equal(queue.state, 'UNTRUSTWORTHY', JSON.stringify(oldest));
+    assert.ok(anomalies.length > 0, JSON.stringify(oldest));
+
+    // Assert on the FOUNDER SECTION, not the whole body: the DEGRADED banner
+    // quotes the bad value back on purpose, and a whole-body search for
+    // `undefined` would be satisfied by that quotation while the section below
+    // still rendered it as data.
+    const rendered = buildHeartbeatBody({ date: '2026-08-16', gates: GREEN, queue, anomalies, drift: null });
+    const section = rendered.slice(
+      rendered.indexOf('## Founder decisions'),
+      rendered.indexOf('## Drift'),
+    );
+    assert.ok(section.includes('Queue not trustworthy'), section);
+    assert.ok(!section.includes('undefined'), section);
+    assert.ok(!section.includes('-99 days'), section);
+    assert.ok(!section.includes('Oldest:'), section);
+  }
+});
+
+test('A DROPPED WRITE IS NOT A SUCCESSFUL ONE: the upsert reads the issue back', async () => {
+  // The round-four P1: a client whose createIssue returned `{number: 123}` while
+  // persisting nothing produced `{action: 'created', number: 123}` and a green run.
+  const dropping = stubClient([], { dropWrites: true });
+  await assert.rejects(
+    upsertHeartbeatIssue({ client: dropping, body: body('fresh'), issues: [] }),
+    /could not be read back/u,
+  );
+
+  // And the same for an update that does not land.
+  const droppingUpdate = stubClient([ownedIssue(77)], { dropWrites: true });
+  await assert.rejects(
+    upsertHeartbeatIssue({
+      client: droppingUpdate, body: body('fresh'), issues: [ownedIssue(77)],
+    }),
+    /differs from the body sent/u,
+  );
+});
+
+test('A CLIENT THAT CANNOT CONFIRM ITS WRITE IS REFUSED, not trusted', async () => {
+  const blind = stubClient([], { omitGetIssue: true });
+  await assert.rejects(
+    upsertHeartbeatIssue({ client: blind, body: body('fresh'), issues: [] }),
+    /no `getIssue`/u,
+  );
+});
+
+test('A CONFIRMED WRITE STILL SUCCEEDS, so the readback does not cry wolf', async () => {
+  const client = stubClient([]);
+  const result = await upsertHeartbeatIssue({ client, body: body('fresh'), issues: [] });
+  assert.equal(result.action, 'created');
+  assert.equal(client.store.get(result.number).body, body('fresh'));
 });
 
 // ---------------------------------------------------------------------------
@@ -394,19 +520,111 @@ test('THE YAML DECIDES NOTHING: no gate reconstruction is inlined in the workflo
   );
 });
 
-test('THE WRITE TOKEN IS ISOLATED: no job both installs code and can write issues', () => {
-  const workflow = readFileSync(WORKFLOW_PATH, 'utf8');
-  const jobs = workflow.split(/\n {2}(?=[a-z][a-z0-9-]*:\n)/u).slice(1);
+/*
+ * THE ISOLATION GUARD IS STRUCTURAL, NOT LEXICAL.
+ *
+ * Its previous form was `/npm ci|npm run |node scripts\/founder-queue/` over the
+ * workflow's raw text. Round four gave the issues-write job a full checkout and
+ * `npm  ci` — two spaces — and this suite stayed green at 55/55 with the test
+ * still named THE WRITE TOKEN IS ISOLATED. There is no regex that survives an
+ * author choosing different whitespace, a different install command, a shell
+ * variable, or `bash -c`. The document is structured; ask it structural
+ * questions.
+ *
+ * The allowlist below is deliberately positive. A denylist of forbidden commands
+ * is the same losing game one level up: the job may run NOTHING, and may invoke
+ * only the three actions named here.
+ */
+const ISSUES_WRITE_ACTION_ALLOWLIST = Object.freeze([
+  'actions/checkout',
+  'actions/download-artifact',
+  'actions/github-script',
+]);
 
-  assert.ok(jobs.length >= 2, `expected at least two jobs, parsed ${jobs.length}`);
-  for (const job of jobs) {
-    const canWriteIssues = /issues:\s*write/u.test(job);
-    const runsRepositoryCode = /npm ci|npm run |node scripts\/founder-queue/u.test(job);
-    assert.ok(
-      !(canWriteIssues && runsRepositoryCode),
-      `a job holds issues:write while running repository code:\n${job.slice(0, 400)}`,
+test('THE WRITE TOKEN IS ISOLATED: the issues-write job runs no commands at all', () => {
+  const structure = readWorkflowStructure(readFileSync(WORKFLOW_PATH, 'utf8'));
+  const writers = jobsThatCanWriteIssues(structure);
+
+  assert.equal(writers.length, 1, `expected exactly one issues:write job, found ${writers.length}`);
+  assert.ok(structure.jobs.length >= 2, `expected at least two jobs, parsed ${structure.jobs.length}`);
+
+  for (const job of writers) {
+    assert.deepEqual(
+      executedCommands(job),
+      [],
+      `job \`${job.name}\` holds issues:write and executes shell commands`,
     );
+    for (const step of job.steps) {
+      assert.notEqual(step.run, '', `job \`${job.name}\` has an empty run step`);
+      if (step.uses === null) continue;
+      const action = step.uses.split('@')[0];
+      assert.ok(
+        ISSUES_WRITE_ACTION_ALLOWLIST.includes(action),
+        `job \`${job.name}\` invokes \`${action}\`, which is not on the issues-write allowlist`,
+      );
+    }
   }
+});
+
+test('THE ISSUES-WRITE CHECKOUT IS ONE FILE: no full checkout under the token', () => {
+  const structure = readWorkflowStructure(readFileSync(WORKFLOW_PATH, 'utf8'));
+  const [writer] = jobsThatCanWriteIssues(structure);
+  const checkouts = writer.steps.filter((step) => step.uses?.startsWith('actions/checkout@'));
+
+  assert.equal(checkouts.length, 1, 'the issues-write job must check out exactly once');
+  const options = checkouts[0].with ?? {};
+  assert.equal(
+    options['sparse-checkout'],
+    'scripts/nexus-heartbeat.mjs',
+    'the issues-write checkout must fetch exactly scripts/nexus-heartbeat.mjs',
+  );
+  assert.equal(
+    String(options['sparse-checkout-cone-mode']),
+    'false',
+    'cone mode would widen the sparse checkout beyond the single file',
+  );
+  assert.equal(
+    String(options['persist-credentials']),
+    'false',
+    'the issues-write checkout must not leave an ambient credential in the workspace',
+  );
+});
+
+test('POSITIVE CONTROL: the isolation guard fails on the exact round-four mutant', () => {
+  // The mutant that beat the regex: a full checkout plus `npm  ci` in the
+  // issues-write job. Run against the guard's own predicates rather than the
+  // file, so the check is proven able to fail without touching the workflow.
+  const mutant = readFileSync(WORKFLOW_PATH, 'utf8')
+    .replace(
+      /(\n      - uses: actions\/checkout@[^\n]*\n)(        with:\n          persist-credentials: false\n          sparse-checkout: scripts\/nexus-heartbeat\.mjs\n          sparse-checkout-cone-mode: false\n)/u,
+      '$1        with:\n          persist-credentials: false\n\n      - name: Install\n        run: npm  ci\n',
+    );
+  assert.notEqual(mutant, readFileSync(WORKFLOW_PATH, 'utf8'), 'the mutant edit did not apply');
+
+  const structure = readWorkflowStructure(mutant);
+  const [writer] = jobsThatCanWriteIssues(structure);
+  assert.deepEqual(
+    executedCommands(writer),
+    ['npm  ci'],
+    'the mutant should have introduced exactly one executed command',
+  );
+
+  const checkouts = writer.steps.filter((step) => step.uses?.startsWith('actions/checkout@'));
+  assert.equal(
+    checkouts[0].with?.['sparse-checkout'],
+    undefined,
+    'the mutant should have removed the sparse checkout',
+  );
+});
+
+test('THE WORKFLOW READER FAILS CLOSED: unreadable YAML throws rather than parsing to nothing', () => {
+  // A parser that returned `{}` for a document it did not understand would make
+  // every structural guard above pass vacuously — the exact shape of defect this
+  // whole file exists to prevent.
+  assert.throws(() => readWorkflowStructure('on: {push: {}}\njobs:\n  a:\n    steps: []\n'));
+  assert.throws(() => readWorkflowStructure('jobs:\n  a:\n    steps: []\n'), /triggers/u);
+  assert.throws(() => readWorkflowStructure('on:\n  workflow_dispatch:\n'), /jobs/u);
+  assert.throws(() => readWorkflowStructure('on:\n  workflow_dispatch:\njobs:\n\ta: 1\n'), /tab/u);
 });
 
 test('neither checkout leaves an ambient credential in the workspace', () => {
@@ -646,13 +864,12 @@ test('THE DRIFT READ AND THE WRITE USE ONE LISTING, so they cannot race', async 
   // them, and the report is then written to a new issue while claiming a
   // regression measured against the old one.
   const first = [ownedIssue(12)];
+  // The store starts holding #12 so the readback can succeed; `listOpenIssues`
+  // is overridden to return an EMPTY page, so a second listing would lose the
+  // target and create instead of update — which is the race being asserted away.
+  const client = stubClient(first);
   let listCalls = 0;
-  const client = {
-    calls: [],
-    async listOpenIssues() { listCalls += 1; return []; },
-    async createIssue(p) { this.calls.push({ action: 'create', ...p }); return { number: 500 }; },
-    async updateIssue(n, p) { this.calls.push({ action: 'update', number: n, ...p }); return { number: n }; },
-  };
+  client.listOpenIssues = async () => { listCalls += 1; return []; };
 
   const result = await upsertHeartbeatIssue({ client, body: body(), issues: first });
 

@@ -1,7 +1,8 @@
 name: Nexus Heartbeat
 
-# The scheduled pulse (UNI-2523): proves the gates daily and reports the distance
-# to the North Star while nobody is watching.
+# The pulse (UNI-2523): proves the gates and reports the distance to the North
+# Star. Manual-dispatch only until the cron is separately approved — see the
+# DORMANT note on the trigger below.
 #
 # AUTHORITY. This workflow OBSERVES AND REPORTS — Waterline Class 0/1. It must not
 # deploy, merge, or arm anything: merge is not deploy (UNI-2542) and there is one
@@ -56,11 +57,16 @@ name: Nexus Heartbeat
 #      is closed — will be adopted. The lowest-numbered owned issue wins, so this
 #      cannot hijack an existing pin, only pre-empt a missing one.
 
+# DORMANT ON MERGE — MANUAL DISPATCH ONLY. There is deliberately no `schedule:`
+# trigger here. Merging a capability arms nothing in this repository (UNI-2542,
+# merge is not deploy), and round four was right that shipping the cron in this
+# PR would have armed a daily issues-write the moment it landed on the default
+# branch — before the watched first run that is supposed to decide whether it
+# deserves to run unattended. The cron is a separate, separately-approved change,
+# added only after a dispatched run has been observed writing the issue correctly.
+#
+# When it is added it belongs at 19:00 UTC = 05:00 Brisbane (AEST, UTC+10, no DST).
 on:
-  schedule:
-    # 19:00 UTC = 05:00 Brisbane (AEST, UTC+10, no DST).
-    - cron: '0 19 * * *'
-  # Manual dispatch exists so the issue can be seen once before the cron is trusted.
   workflow_dispatch:
 
 permissions:
@@ -193,6 +199,15 @@ jobs:
                   owner: context.repo.owner, repo: context.repo.repo, issue_number, title, body,
                 });
                 return { number: data.number };
+              },
+              // The readback. A create/update response is a claim about a
+              // request; this is the observation that it landed. upsert throws
+              // unless the live body matches what was sent.
+              getIssue: async (issue_number) => {
+                const { data } = await github.rest.issues.get({
+                  owner: context.repo.owner, repo: context.repo.repo, issue_number,
+                });
+                return { number: data.number, title: data.title, body: data.body };
               },
             };
 

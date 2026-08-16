@@ -22,37 +22,72 @@ export const QUEUE_PATH = join(repositoryRoot, 'FOUNDER-QUEUE.md');
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/u;
 const MS_PER_DAY = 86_400_000;
 
-export function computeAgeDays(opened, now) {
-  if (typeof opened !== 'string' || !ISO_DATE.test(opened.trim())) {
-    throw new Error(`Unparseable opened date: ${JSON.stringify(opened)}`);
+/**
+ * The ledger's dates are Brisbane calendar dates, so the age is a difference of
+ * Brisbane calendar dates. Round four demonstrated why that distinction is not
+ * pedantry: flooring elapsed UTC milliseconds reported 41 days at the workflow's
+ * own scheduled moment (19:00 UTC = 05:00 the next Brisbane day) for a row whose
+ * Brisbane age was 42. Every scheduled run published an age one day short.
+ *
+ * The previous revision met the same symptom with a one-day tolerance and a floor
+ * at zero. A tolerance is a parameter, and a parameter invites the next reviewer
+ * to observe that any tolerance can be exceeded — it also silently accepted a
+ * genuinely future date as "opened today". Converting both sides to a Brisbane
+ * calendar date removes the skew instead of forgiving it, so no tolerance is
+ * needed and a future date is refused outright.
+ */
+const BRISBANE_TZ = 'Australia/Brisbane';
+const BRISBANE_PARTS = new Intl.DateTimeFormat('en-US', {
+  timeZone: BRISBANE_TZ, year: 'numeric', month: '2-digit', day: '2-digit',
+});
+
+/** `Date` -> the `YYYY-MM-DD` a wall clock in Brisbane would read. */
+export function brisbaneCalendarDate(instant) {
+  const parts = Object.fromEntries(
+    BRISBANE_PARTS.formatToParts(instant).map((part) => [part.type, part.value]),
+  );
+  if (!parts.year || !parts.month || !parts.day) {
+    throw new Error('Could not resolve a Brisbane calendar date for the current instant.');
   }
-  const trimmed = opened.trim();
-  const openedMs = Date.parse(`${trimmed}T00:00:00Z`);
-  if (Number.isNaN(openedMs)) {
-    throw new Error(`Unparseable opened date: ${JSON.stringify(opened)}`);
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
+/** `YYYY-MM-DD` -> its UTC-midnight epoch, refusing anything that is not a real date. */
+function calendarDateToEpoch(value, label) {
+  if (typeof value !== 'string' || !ISO_DATE.test(value.trim())) {
+    throw new Error(`Unparseable ${label} date: ${JSON.stringify(value)}`);
+  }
+  const trimmed = value.trim();
+  const ms = Date.parse(`${trimmed}T00:00:00Z`);
+  if (Number.isNaN(ms)) {
+    throw new Error(`Unparseable ${label} date: ${JSON.stringify(value)}`);
   }
   // ISO shape is not calendar validity: Date.parse silently rolls 2026-02-31
   // forward to 3 March and hands back a plausible age for a date that does not
   // exist. Round-tripping is the only check that catches it.
-  if (new Date(openedMs).toISOString().slice(0, 10) !== trimmed) {
-    throw new Error(`Not a real calendar date: ${JSON.stringify(opened)}`);
+  if (new Date(ms).toISOString().slice(0, 10) !== trimmed) {
+    throw new Error(`Not a real calendar date: ${JSON.stringify(value)}`);
   }
+  return ms;
+}
+
+export function computeAgeDays(opened, now) {
+  const openedMs = calendarDateToEpoch(opened, 'opened');
+
   const nowMs = Date.parse(now);
   if (Number.isNaN(nowMs)) throw new Error(`Unparseable now: ${JSON.stringify(now)}`);
+  const todayMs = calendarDateToEpoch(brisbaneCalendarDate(new Date(nowMs)), 'current');
 
-  /*
-   * ONE DAY OF TOLERANCE, BECAUSE THE DATES ARE BRISBANE AND `now` IS UTC. The
-   * cron fires at 19:00 UTC, which is already 05:00 the next day in Brisbane
-   * (UTC+10, no DST). A row a founder opens "today" in local time is therefore
-   * up to a day ahead of a UTC `now`, and refusing it rendered a false DEGRADED
-   * on a perfectly valid ledger. A genuinely fabricated future date is still
-   * refused; only the timezone's own width is forgiven, and the age floors at 0.
-   */
-  const days = Math.floor((nowMs - openedMs) / MS_PER_DAY);
-  if (days < -1) {
-    throw new Error(`Opened date ${opened} is in the future relative to ${now}.`);
+  // Both operands are UTC midnights of calendar dates, so the division is exact
+  // whole days and no flooring artefact can appear.
+  const days = (todayMs - openedMs) / MS_PER_DAY;
+  if (days < 0) {
+    throw new Error(
+      `Opened date ${opened} is after the current Brisbane date `
+      + `${brisbaneCalendarDate(new Date(nowMs))}.`,
+    );
   }
-  return Math.max(0, days);
+  return days;
 }
 
 /**
@@ -238,15 +273,65 @@ export function renderQueue(parsed, now) {
   return [header, rule, ...rows].join('\n');
 }
 
+/**
+ * Every open row is checked against the ledger's own rules; nothing is excluded
+ * by failing to match.
+ *
+ * THE DIFFERENCE MATTERS AND ROUND FOUR PROVED IT. The previous revision kept the
+ * rows whose status read exactly `open` and dropped the rest. A single typo —
+ * `opne` — therefore removed a live blocker from the count, left `malformed`
+ * empty, reported integrity OK, and published "No open founder decisions.
+ * Nothing is blocked on Phill." over a founder-held decision. A filter that
+ * selects the good value silently discards every unrecognised one; a validator
+ * that classifies each value cannot.
+ *
+ * `resolved` in the Open table is itself an anomaly, not a quiet exclusion: the
+ * ledger's rules say a resolved row MOVES to the Resolved section with its
+ * decision text. Counting it as open would report a decided item as a blocker;
+ * dropping it silently would hide a row that is in the wrong place. It is
+ * excluded from the count AND reported.
+ */
+const OPEN_STATUS = 'open';
+const MISPLACED_STATUS = 'resolved';
+
+export function classifyOpenRows(rows) {
+  const stillOpen = [];
+  const notes = [];
+  for (const row of rows) {
+    const id = typeof row.id === 'string' ? row.id.trim() : '';
+    const label = id === '' ? '(a row with no ID)' : id;
+    const status = typeof row.status === 'string' ? row.status.trim().toLowerCase() : '';
+
+    if (id === '') {
+      notes.push('An Open-table row has an empty ID cell, so it cannot be named in a report.');
+    }
+    if (typeof row.decision !== 'string' || row.decision.trim() === '') {
+      notes.push(`Row ${label} has an empty Decision cell, so there is nothing to report.`);
+    }
+
+    if (status === OPEN_STATUS) {
+      stillOpen.push(row);
+      continue;
+    }
+    if (status === MISPLACED_STATUS) {
+      notes.push(
+        `Row ${label} is marked \`resolved\` inside the Open table; the ledger's rules say a `
+        + 'resolved row moves to the Resolved section with its decision text.',
+      );
+      continue;
+    }
+    notes.push(
+      `Row ${label} has status ${JSON.stringify(row.status)}, which is neither \`open\` nor `
+      + '`resolved`; it is not counted and the queue cannot be called clean.',
+    );
+  }
+  return { stillOpen, notes };
+}
+
 export function summarise(parsed, now) {
-  /*
-   * THE STATUS COLUMN IS DATA, NOT DECORATION. A row in the Open table marked
-   * `resolved` was still counted as open and could be reported as the oldest
-   * founder blocker — an active blocker that had already been decided.
-   */
-  const stillOpen = parsed.open.filter((row) => row.status.trim().toLowerCase() === 'open');
+  const { stillOpen, notes } = classifyOpenRows(parsed.open);
   const { oldest, unaged } = oldestOpen(stillOpen, now);
-  const malformed = [...(parsed.malformed ?? []), ...unaged];
+  const malformed = [...(parsed.malformed ?? []), ...notes, ...unaged];
   return {
     openCount: stillOpen.length,
     resolvedCount: parsed.resolved.length,

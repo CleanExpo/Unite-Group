@@ -132,10 +132,51 @@ export function reconcileGates(declared, captured) {
  * so the run finished green. The flag has to travel with the anomaly or it is
  * decoration.
  */
+/**
+ * THE STATE IS THE VERDICT, AND EVERY RENDER SWITCHES ON IT.
+ *
+ * `UNTRUSTWORTHY` is the default and the only value that needs no proof. The
+ * other two are earned: `CLEAN_EMPTY` requires a summary that positively proves
+ * there is nothing open, and `CLEAN_OPEN` requires a fully-formed oldest record.
+ *
+ * Round four found three separate ways an untrustworthy summary still reached the
+ * founder all-clear, and they were all the same defect: the renderer re-derived
+ * its own answer from `openCount` and `oldest` instead of consulting the
+ * validation that had just run. `{openCount: 5, oldest: null}` was flagged as an
+ * anomaly and then printed "Nothing is blocked on Phill" in the same body;
+ * `{oldest: {}}` and `{ageDays: -99}` were never flagged at all. One verdict,
+ * computed once, consulted everywhere, makes that class unreachable rather than
+ * unlikely.
+ */
+export const QUEUE_STATE = Object.freeze({
+  CLEAN_EMPTY: 'CLEAN_EMPTY',
+  CLEAN_OPEN: 'CLEAN_OPEN',
+  UNTRUSTWORTHY: 'UNTRUSTWORTHY',
+});
+
+const OLDEST_TEXT_FIELDS = Object.freeze(['id', 'decision', 'blocks']);
+
+/** Returns the reasons `oldest` is not a usable record — empty means it is. */
+function faultsInOldest(oldest) {
+  const faults = [];
+  if (oldest === null || typeof oldest !== 'object' || Array.isArray(oldest)) {
+    return ['the oldest entry is not an object'];
+  }
+  for (const field of OLDEST_TEXT_FIELDS) {
+    if (typeof oldest[field] !== 'string' || oldest[field].trim() === '') {
+      faults.push(`its \`${field}\` is missing or empty`);
+    }
+  }
+  if (!Number.isInteger(oldest.ageDays) || oldest.ageDays < 0) {
+    faults.push(`its \`ageDays\` is ${JSON.stringify(oldest.ageDays)}, not a whole number of days`);
+  }
+  return faults;
+}
+
 export function reconcileQueue(queueEvidence) {
   const anomalies = [];
   const unavailable = {
-    openCount: 0, oldest: null, integrity: 'UNAVAILABLE', malformed: [],
+    openCount: 0, oldest: null, integrity: 'UNAVAILABLE', malformed: [], state: QUEUE_STATE.UNTRUSTWORTHY,
   };
 
   if (!queueEvidence.ok) {
@@ -156,21 +197,24 @@ export function reconcileQueue(queueEvidence) {
 
   const integrity = typeof value.integrity === 'string' ? value.integrity : 'UNKNOWN';
   const malformed = Array.isArray(value.malformed) ? value.malformed : [];
-  const queue = { ...value, integrity, malformed };
+  if (!Array.isArray(value.malformed)) {
+    anomalies.push('The queue summary carries no `malformed` list, so a clean parse cannot be proven.');
+  }
 
   // A SHAPE CHECK THAT ACCEPTS AN IMPOSSIBLE SUMMARY IS NOT A SHAPE CHECK.
-  // `{openCount: 5, oldest: null}` and a negative count both passed and rendered
-  // "No open founder decisions. Nothing is blocked on Phill."
   if (value.openCount < 0) {
     anomalies.push(`The queue reports a negative open count (${value.openCount}).`);
   }
-  if (value.openCount > 0 && (value.oldest === null || value.oldest === undefined)) {
-    anomalies.push(
-      `The queue reports ${value.openCount} open decisions but names no oldest one, so the `
-      + 'count and the detail disagree.',
-    );
+  if (value.openCount > 0) {
+    const faults = faultsInOldest(value.oldest ?? null);
+    if (faults.length > 0) {
+      anomalies.push(
+        `The queue reports ${value.openCount} open decisions but ${faults.join(', ')}, so the `
+        + 'count and the detail disagree.',
+      );
+    }
   }
-  if (value.openCount === 0 && value.oldest) {
+  if (value.openCount === 0 && value.oldest !== null && value.oldest !== undefined) {
     anomalies.push('The queue reports zero open decisions while naming an oldest one.');
   }
 
@@ -187,7 +231,20 @@ export function reconcileQueue(queueEvidence) {
     anomalies.push('The queue reports integrity OK while also listing malformed rows.');
   }
 
-  return { queue, anomalies };
+  /*
+   * The state is derived from THIS run's anomaly list, not from a second reading
+   * of the same fields. If anything above objected, nothing below is clean.
+   */
+  let state = QUEUE_STATE.UNTRUSTWORTHY;
+  if (anomalies.length === 0 && integrity === 'OK' && malformed.length === 0) {
+    if (value.openCount === 0 && (value.oldest === null || value.oldest === undefined)) {
+      state = QUEUE_STATE.CLEAN_EMPTY;
+    } else if (value.openCount > 0 && faultsInOldest(value.oldest ?? null).length === 0) {
+      state = QUEUE_STATE.CLEAN_OPEN;
+    }
+  }
+
+  return { queue: { ...value, integrity, malformed, state }, anomalies };
 }
 
 /**
@@ -261,11 +318,69 @@ export async function upsertHeartbeatIssue({ client, body, title = HEARTBEAT_TIT
 
   if (target === null) {
     const created = await client.createIssue({ title, body });
+    await confirmWrite(client, created?.number, { title, body }, 'created');
     return { action: 'created', number: created.number };
   }
 
   await client.updateIssue(target.number, { title, body });
+  await confirmWrite(client, target.number, { title, body }, 'updated');
   return { action: 'updated', number: target.number };
+}
+
+/**
+ * Reads the issue back and proves the body that is now live is the body we sent.
+ *
+ * A mutation response is a claim about a request, not an observation of state.
+ * Round four demonstrated the gap with a client whose `createIssue` returned
+ * `{number: 123}` while persisting nothing: the run reported `created #123` and
+ * the workflow exited green over an issue that did not exist. That is precisely
+ * the failure this heartbeat exists to detect in other systems, so it may not
+ * ship with it.
+ *
+ * The readback is REQUIRED. A client that cannot supply `getIssue` is a client
+ * that cannot confirm its own writes, and a heartbeat that cannot confirm its
+ * write must fail loudly rather than report success it did not observe.
+ */
+async function confirmWrite(client, number, expected, action) {
+  if (typeof client.getIssue !== 'function') {
+    throw new Error(
+      `Heartbeat issue ${action} cannot be confirmed: the client provides no \`getIssue\`, so `
+      + 'the write was never read back.',
+    );
+  }
+  if (!Number.isInteger(number)) {
+    throw new Error(
+      `Heartbeat issue ${action} returned no issue number (${JSON.stringify(number)}), so there `
+      + 'is nothing to read back.',
+    );
+  }
+
+  const live = await client.getIssue(number);
+  if (!live || typeof live !== 'object') {
+    throw new Error(`Heartbeat issue #${number} was ${action} but could not be read back.`);
+  }
+  if (live.number !== number) {
+    throw new Error(
+      `Heartbeat readback asked for #${number} and received #${JSON.stringify(live.number)}.`,
+    );
+  }
+  if (live.title !== expected.title) {
+    throw new Error(
+      `Heartbeat issue #${number} was ${action} but its live title is `
+      + `${JSON.stringify(live.title)}, not ${JSON.stringify(expected.title)}.`,
+    );
+  }
+  if (typeof live.body !== 'string' || !live.body.includes(OWNER_MARKER)) {
+    throw new Error(
+      `Heartbeat issue #${number} was ${action} but its live body carries no ownership marker.`,
+    );
+  }
+  if (live.body !== expected.body) {
+    throw new Error(
+      `Heartbeat issue #${number} was ${action} but its live body differs from the body sent; `
+      + 'the write did not land as written.',
+    );
+  }
 }
 
 export function buildHeartbeatBody({ date, gates, queue, drift, anomalies = [], provenance }) {
@@ -304,22 +419,30 @@ export function buildHeartbeatBody({ date, gates, queue, drift, anomalies = [], 
     lines.push(`| \`${gate.name}\` | ${label} | ${exit} |`);
   }
 
+  /*
+   * ONE SWITCH ON THE VALIDATED STATE. Not on `openCount`, not on the truthiness
+   * of `oldest`, and above all not on a second opinion formed here — those are
+   * how an already-flagged impossible summary still printed the all-clear.
+   * `UNTRUSTWORTHY` is the default arm, so a state this function does not
+   * recognise degrades rather than reassures.
+   */
   lines.push('', '## Founder decisions', '');
-  if (queue?.integrity && queue.integrity !== 'OK') {
-    lines.push(
-      `**Queue integrity ${queue.integrity}.** \`FOUNDER-QUEUE.md\` did not parse cleanly, `
-      + 'so the count is not trustworthy and an empty queue must not be inferred from it.',
-    );
-    for (const note of queue.malformed ?? []) lines.push(`- ${note}`);
-  } else if (!queue?.oldest || queue.openCount === 0) {
+  if (queue?.state === QUEUE_STATE.CLEAN_EMPTY) {
     lines.push('No open founder decisions. Nothing is blocked on Phill.');
-  } else {
+  } else if (queue?.state === QUEUE_STATE.CLEAN_OPEN) {
     lines.push(
       `**${queue.openCount} open.** Oldest: **${queue.oldest.id}** — `
       + `${queue.oldest.decision} — **${queue.oldest.ageDays} days**, blocking `
       + `${queue.oldest.blocks}.`,
     );
     lines.push('', 'See `FOUNDER-QUEUE.md`.');
+  } else {
+    lines.push(
+      `**Queue not trustworthy (integrity ${queue?.integrity ?? 'UNKNOWN'}).** `
+      + '`FOUNDER-QUEUE.md` could not be read as a clean summary, so the open count is not '
+      + 'reported and an empty queue must not be inferred from this section. Read the file.',
+    );
+    for (const note of queue?.malformed ?? []) lines.push(`- ${note}`);
   }
 
   lines.push('', '## Drift', '');
