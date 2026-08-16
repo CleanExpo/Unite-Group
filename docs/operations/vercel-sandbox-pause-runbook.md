@@ -86,9 +86,25 @@ Production Deployment**."
 
 - `[INFERENCE]` All 31 cron schedules on this project — the ~12,879/month and
   the duplicate `bookkeeper` / `social-publisher` / `drip-process` writes.
-- `[VERIFIED]` Its three domains stop serving:
-  `unite-group-sandbox.vercel.app`, `unite-group-sandbox-unite-group.vercel.app`,
+- Its domains stop serving. **Read the current list at execution time rather
+  than trusting this one** — it moved underneath this document while it was
+  being written:
+
+  ```
+  Vercel MCP → get_project
+    projectId: prj_NigC5gA17UvX46n7YBUYSxM1vOh9
+    teamId:    team_KMZACI5rIltoCRhAtGCXlxUf
+  ```
+
+  `[VERIFIED]` Present at both readings on 16/08/2026:
+  `unite-group-sandbox-unite-group.vercel.app` and
   `unite-group-sandbox-git-main-unite-group.vercel.app`.
+  `[UNCONFIRMED]` The bare `unite-group-sandbox.vercel.app` was listed at
+  00:42 UTC and absent at 04:50 UTC. Either it was removed, or the field is
+  deployment-scoped and reports differently while a preview build is in flight
+  (`latestDeployment.target` was `production` at the first reading and `null` at
+  the second). Not resolved — which is exactly why the list is read live in
+  Gate 4 rather than copied from here.
 - `[VERIFIED]` Side benefit: its `strategy-daily` currently returns HTTP 500 on
   all seven businesses (`authentication_error` — stale `ANTHROPIC_API_KEY`).
   Those recurring 500s leave the error logs.
@@ -114,8 +130,12 @@ Production Deployment**."
 - [ ] Nobody is using `unite-group-sandbox.vercel.app` as a working preview URL
 - [ ] The `/auth/login` traffic above is accounted for (a bot or a stale
       bookmark is fine; an active human workflow is not)
-- [ ] No external monitor, uptime check, webhook or OAuth redirect URI points at
-      any of the three sandbox domains
+- [ ] Domain list re-read live per §3, and no external monitor, uptime check,
+      webhook or OAuth redirect URI points at any domain it returns
+- [ ] `prj_NigC5gA17UvX46n7YBUYSxM1vOh9` still resolves to name
+      `unite-group-sandbox`, and `prj_IfUuJNLjXTE8VXqEGwLAleIGhiA0` to
+      `unite-group` (both confirmed 16/08/2026 — re-confirm before pressing,
+      because the whole procedure turns on not transposing them)
 - [ ] The live project `unite-group` is currently healthy and serving production
 
 **If any gate fails → stop.** Nothing here is urgent enough to skip a gate.
