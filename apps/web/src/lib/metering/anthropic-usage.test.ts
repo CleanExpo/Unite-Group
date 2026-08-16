@@ -6,10 +6,10 @@
  * looking complete, and the stable externalId that makes re-ingestion an upsert
  * rather than a duplicate.
  */
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { anthropicAdapter, type AnthropicUsageLine } from './adapters/anthropic';
-import { aggregateUsageRows } from './fetchers/anthropic';
+import { aggregateUsageRows, fetchAnthropicUsage } from './fetchers/anthropic';
 
 const period = { start: '2026-08-01', end: '2026-08-31' };
 
@@ -89,6 +89,109 @@ describe('aggregateUsageRows', () => {
     // makes the ledger amount non-reproducible between runs.
     const lines = aggregateUsageRows(Array.from({ length: 10_000 }, () => row({ cost_usd: 0.000001 })), period);
     expect(lines[0].amountUsd).toBe(0.01);
+  });
+});
+
+describe('fetchAnthropicUsage — pagination safety', () => {
+  /**
+   * Records the query chain so the ORDER BY can be asserted. `.range()` is the
+   * terminal await; everything before it returns `this`.
+   */
+  function fakeDb(pages: Record<string, unknown>[][]) {
+    const calls: { order: [string, { ascending: boolean }][]; ranges: [number, number][] } = {
+      order: [],
+      ranges: [],
+    };
+    let page = 0;
+    const qb: Record<string, unknown> = {
+      from: () => qb,
+      select: () => qb,
+      eq: () => qb,
+      gte: () => qb,
+      lt: () => qb,
+      order: (col: string, opts: { ascending: boolean }) => {
+        calls.order.push([col, opts]);
+        return qb;
+      },
+      range: (a: number, b: number) => {
+        calls.ranges.push([a, b]);
+        return Promise.resolve({ data: pages[page++] ?? [], error: null });
+      },
+    };
+    return { qb, calls };
+  }
+
+  const mockService = (qb: unknown) =>
+    vi.doMock('@/lib/supabase/service', () => ({ createServiceClient: () => qb }));
+
+  it('orders by a TOTAL key before paginating', async () => {
+    // Regression for a High finding on PR #1009. `.range()` is OFFSET
+    // pagination and Postgres guarantees no order without ORDER BY, so
+    // unordered pages can repeat or skip rows — silently mis-stating the
+    // ledger. created_at alone is insufficient: a cron fires several calls in
+    // the same millisecond and ties can order differently per query.
+    vi.resetModules();
+    const { qb, calls } = fakeDb([[]]);
+    mockService(qb);
+    const { fetchAnthropicUsage: fetchIsolated } = await import('./fetchers/anthropic');
+
+    await fetchIsolated({ start: '2026-08-01', end: '2026-08-31' });
+
+    expect(calls.order.map(([col]) => col)).toEqual(['created_at', 'id']);
+    expect(calls.order.every(([, o]) => o.ascending)).toBe(true);
+  });
+
+  it('aggregates rows sharing an identical created_at exactly once', async () => {
+    // The tie case the ordering exists to make deterministic: three calls
+    // stamped in the same millisecond must each be counted once, not dropped
+    // or double-counted across the page boundary.
+    vi.resetModules();
+    const tie = Array.from({ length: 3 }, () => ({
+      task_type: 'coach',
+      model_id: 'claude-haiku-4-5-20251001',
+      tokens_input: 100,
+      tokens_output: 50,
+      cost_usd: 0.00035,
+      cost_per_input_mtok: 1,
+    }));
+    const { qb } = fakeDb([tie]);
+    mockService(qb);
+    const { fetchAnthropicUsage: fetchIsolated } = await import('./fetchers/anthropic');
+
+    const lines = await fetchIsolated({ start: '2026-08-01', end: '2026-08-31' });
+
+    expect(lines).toHaveLength(1);
+    expect(lines[0].calls).toBe(3);
+    expect(lines[0].inputTokens).toBe(300);
+  });
+
+  it('stops paginating on a short page rather than looping forever', async () => {
+    vi.resetModules();
+    const { qb, calls } = fakeDb([[]]);
+    mockService(qb);
+    const { fetchAnthropicUsage: fetchIsolated } = await import('./fetchers/anthropic');
+
+    await fetchIsolated({ start: '2026-08-01', end: '2026-08-31' });
+
+    expect(calls.ranges).toEqual([[0, 999]]);
+  });
+
+  it('queries an end bound that includes the whole final day', async () => {
+    // created_at is timestamptz; `<= 'YYYY-MM-DD'` would drop every call made
+    // after midnight on the last day of the period.
+    vi.resetModules();
+    const bounds: string[] = [];
+    const { qb } = fakeDb([[]]);
+    (qb as Record<string, unknown>).lt = (_c: string, v: string) => {
+      bounds.push(v);
+      return qb;
+    };
+    mockService(qb);
+    const { fetchAnthropicUsage: fetchIsolated } = await import('./fetchers/anthropic');
+
+    await fetchIsolated({ start: '2026-08-01', end: '2026-08-31' });
+
+    expect(bounds[0]).toBe('2026-09-01T00:00:00.000Z');
   });
 });
 

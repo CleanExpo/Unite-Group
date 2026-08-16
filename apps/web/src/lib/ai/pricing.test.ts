@@ -29,6 +29,31 @@ describe('rateForModel', () => {
     expect(rateForModel('gpt-4o')).toBeNull();
     expect(rateForModel('claude-something-unreleased')).toBeNull();
   });
+
+  it('does not price an unknown model that merely starts with a known family', () => {
+    // Regression for a real defect found by review on PR #1009. The first
+    // implementation used a bare startsWith, so these resolved to their
+    // neighbouring family's rate and were recorded as PRICED — a wrong number
+    // with no unpriced_model flag. Mispriced is silent; unpriced is loud, and
+    // this must fail in the loud direction.
+    expect(rateForModel('claude-haiku-4-5-unreleased')).toBeNull();
+    expect(rateForModel('claude-opus-4-8-anything')).toBeNull();
+    expect(rateForModel('claude-sonnet-5-preview')).toBeNull();
+  });
+
+  it('still accepts the dated snapshot form', () => {
+    // The positive control for the guard above: over-tightening would leave
+    // every real Haiku call unpriced, which is the failure the guard is
+    // supposed to avoid causing.
+    expect(rateForModel('claude-haiku-4-5-20251001')).not.toBeNull();
+    expect(rateForModel('claude-opus-4-8-20260101')).not.toBeNull();
+  });
+
+  it('rejects a malformed date suffix', () => {
+    expect(rateForModel('claude-haiku-4-5-2025')).toBeNull();      // too short
+    expect(rateForModel('claude-haiku-4-5-202510011')).toBeNull(); // too long
+    expect(rateForModel('claude-haiku-4-5-')).toBeNull();          // empty
+  });
 });
 
 describe('priceUsage', () => {

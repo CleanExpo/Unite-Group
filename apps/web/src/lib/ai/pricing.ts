@@ -48,14 +48,33 @@ export const MODEL_RATES: Record<string, ModelRate> = {
 };
 
 /**
- * Resolve a model id to its rate by longest matching family prefix.
- * Returns null for anything unrecognised — never a zero rate.
+ * Does `model` name this exact family, or a dated snapshot of it?
+ *
+ * Accepts `claude-haiku-4-5` and `claude-haiku-4-5-20251001` (the form the repo
+ * actually pins), and rejects `claude-haiku-4-5-unreleased`.
+ *
+ * A bare `startsWith` was the first implementation and it was wrong for the same
+ * reason a zero rate is wrong: it prices an UNKNOWN model at a plausible
+ * neighbouring rate and never sets the unpriced flag, so the error is invisible.
+ * A future non-dated variant will be unpriced until it is added here — that is
+ * the intended direction to fail, because unpriced is loud and mispriced is not.
+ */
+function matchesFamily(model: string, family: string): boolean {
+  if (model === family) return true;
+  if (!model.startsWith(`${family}-`)) return false;
+  return /^\d{8}$/.test(model.slice(family.length + 1));
+}
+
+/**
+ * Resolve a model id to its rate, preferring the most specific family.
+ * Returns null for anything unrecognised — never a zero, and never a
+ * neighbouring family's rate.
  */
 export function rateForModel(model: string): ModelRate | null {
-  let best: { prefix: string; rate: ModelRate } | null = null;
-  for (const [prefix, rate] of Object.entries(MODEL_RATES)) {
-    if (model.startsWith(prefix) && (!best || prefix.length > best.prefix.length)) {
-      best = { prefix, rate };
+  let best: { family: string; rate: ModelRate } | null = null;
+  for (const [family, rate] of Object.entries(MODEL_RATES)) {
+    if (matchesFamily(model, family) && (!best || family.length > best.family.length)) {
+      best = { family, rate };
     }
   }
   return best?.rate ?? null;
