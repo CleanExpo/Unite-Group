@@ -29,6 +29,7 @@ const SPINE_CHECK_ID = 'spine-required-tests';
 const REPO = 'CleanExpo/Unite-Group';
 const JOB_ID = '95119197937';
 const REQUIRED_JOB_NAME = 'packages/spine — type-check and bounded tests';
+const RUN_ID = '31928303697';
 
 const NULL_IO = { log: () => {}, error: () => {} };
 
@@ -45,6 +46,7 @@ function stubFetcher(overrides = {}) {
     conclusion: 'success',
     run_id: 31928303697,
     run_attempt: 1,
+    workflow_name: 'Monorepo CI',
     ...overrides,
   });
 }
@@ -287,7 +289,7 @@ test('main: exit 1 on the real skipped evidence under --gate, exit 0 on the cont
   const io = { log: () => {}, error: (line) => errors.push(line) };
   const gated = (evidence) => main(
     ['--check', SPINE_CHECK_ID, '--evidence', evidence, '--sha', REAL_SHA,
-      '--job', JOB_ID, '--repo', REPO, '--gate'],
+      '--job', JOB_ID, '--run', RUN_ID, '--repo', REPO, '--gate'],
     { root: repositoryRoot, io, fetcher: stubFetcher() },
   );
 
@@ -299,7 +301,7 @@ test('main: exit 1 on the real skipped evidence under --gate, exit 0 on the cont
 test('--sha must be lowercase 40-hex', () => {
   assert.equal(
     main(['--check', SPINE_CHECK_ID, '--evidence', EXECUTED_EVIDENCE, '--sha', 'NOT-A-SHA',
-      '--job', JOB_ID, '--repo', REPO, '--gate'],
+      '--job', JOB_ID, '--run', RUN_ID, '--repo', REPO, '--gate'],
     { root: repositoryRoot, io: NULL_IO, fetcher: stubFetcher() }),
     2,
   );
@@ -308,7 +310,7 @@ test('--sha must be lowercase 40-hex', () => {
 test('--json emits a machine-readable record carrying full API provenance', () => {
   const outputs = [];
   main(['--check', SPINE_CHECK_ID, '--evidence', SKIPPED_EVIDENCE, '--sha', REAL_SHA,
-    '--job', JOB_ID, '--repo', REPO, '--json'],
+    '--job', JOB_ID, '--run', RUN_ID, '--repo', REPO, '--json'],
   { root: repositoryRoot, io: { log: (l) => outputs.push(l), error: () => {} }, fetcher: stubFetcher() });
 
   const record = JSON.parse(outputs.join('\n'));
@@ -441,4 +443,120 @@ test('an undeclared executed suite fails: the manifest may not go stale', () => 
   assert.ok(result.violations.some(
     (v) => v.reason === 'UNDECLARED_SUITE' && v.suite === 'tests/unit.test.ts',
   ));
+});
+
+// ---------------------------------------------------------------------------
+// Round-three findings (independent review, qwen3.8): provenance completeness,
+// path ambiguity, duplicate records, unverifiable reports.
+// ---------------------------------------------------------------------------
+
+test('a cancelled job is refused; its report is partial at best', () => {
+  for (const conclusion of ['cancelled', 'skipped', null]) {
+    assert.throws(
+      () => resolveProvenance({
+        check: shippedCheck(), repo: REPO, jobId: JOB_ID, expectedSha: REAL_SHA,
+        expectedRunId: RUN_ID, fetcher: stubFetcher({ conclusion }),
+      }),
+      /PROVENANCE_UNUSABLE_CONCLUSION/,
+      String(conclusion),
+    );
+  }
+});
+
+test('a FAILED job is still evidence: the tests ran, some of them failed', () => {
+  const provenance = resolveProvenance({
+    check: shippedCheck(), repo: REPO, jobId: JOB_ID, expectedSha: REAL_SHA,
+    expectedRunId: RUN_ID, fetcher: stubFetcher({ conclusion: 'failure' }),
+  });
+  assert.equal(provenance.conclusion, 'failure');
+});
+
+test('evidence from another run of the same job on the same commit is refused', () => {
+  assert.throws(
+    () => resolveProvenance({
+      check: shippedCheck(), repo: REPO, jobId: JOB_ID, expectedSha: REAL_SHA,
+      expectedRunId: '99999999999', fetcher: stubFetcher(),
+    }),
+    /PROVENANCE_WRONG_RUN/,
+  );
+});
+
+test('--gate refuses without --run: a job name is not unique across runs', () => {
+  const errors = [];
+  const status = main(
+    ['--check', SPINE_CHECK_ID, '--evidence', EXECUTED_EVIDENCE, '--sha', REAL_SHA,
+      '--job', JOB_ID, '--repo', REPO, '--gate'],
+    { root: repositoryRoot, io: { log: () => {}, error: (l) => errors.push(l) }, fetcher: stubFetcher() },
+  );
+  assert.equal(status, 2);
+  assert.ok(errors.some((line) => line.includes('not unique across runs')));
+});
+
+test('a path containing the package prefix twice is AMBIGUOUS, not silently resolved', () => {
+  const report = {
+    numTotalTests: 1,
+    testResults: [{
+      name: '/w/packages/spine/packages/spine/vendor/packages/spine/packages/spine/tests/integration/rls.test.ts',
+      status: 'passed',
+      assertionResults: [{ status: 'passed' }],
+    }],
+  };
+  assert.throws(
+    () => parseVitestJsonReport(JSON.stringify(report), {
+      workingDirectory: 'packages/spine/packages/spine',
+    }),
+    /AMBIGUOUS_SUITE_PATH/,
+  );
+});
+
+test('the package prefix is matched at a directory boundary, not as a substring', () => {
+  const report = {
+    numTotalTests: 1,
+    testResults: [{
+      name: '/w/not-pkg-decoy/tests/x.test.ts', status: 'passed', assertionResults: [{ status: 'passed' }],
+    }],
+  };
+  const parsed = parseVitestJsonReport(JSON.stringify(report), { workingDirectory: 'pkg' });
+  // No `/pkg` boundary, so the path is kept whole rather than shaved to tests/x.test.ts.
+  assert.equal(parsed.suites[0].suite, '/w/not-pkg-decoy/tests/x.test.ts');
+});
+
+test('duplicate records are a conflict even when their headline counts agree', () => {
+  const report = {
+    numTotalTests: 2,
+    testResults: [
+      { name: '/w/pkg/tests/x.test.ts', status: 'passed', assertionResults: [{ status: 'passed', title: 'a' }] },
+      { name: '/w/pkg/tests/x.test.ts', status: 'passed', assertionResults: [{ status: 'passed', title: 'b' }] },
+    ],
+  };
+  const parsed = parseVitestJsonReport(JSON.stringify(report), { workingDirectory: 'pkg' });
+  assert.equal(parsed.suites[0].conflict, true);
+});
+
+test('evidence with no numeric numTotalTests is REPORT_UNVERIFIABLE, not a free pass', () => {
+  const report = JSON.parse(readFileSync(EXECUTED_EVIDENCE, 'utf8'));
+  delete report.numTotalTests;
+
+  const result = checkEvidenceCompleteness({
+    check: shippedCheck(),
+    observed: parseVitestJsonReport(JSON.stringify(report), {
+      workingDirectory: shippedCheck().workingDirectory,
+    }),
+    provenance: { sha: REAL_SHA },
+  });
+
+  assert.equal(result.verdict, 'FAIL');
+  assert.ok(result.violations.some((v) => v.reason === 'REPORT_UNVERIFIABLE'));
+});
+
+test('an evidence file with no testResults entries cannot pass', () => {
+  const result = checkEvidenceCompleteness({
+    check: shippedCheck(),
+    observed: parseVitestJsonReport('{"numTotalTests":0,"testResults":[]}', {
+      workingDirectory: shippedCheck().workingDirectory,
+    }),
+    provenance: { sha: REAL_SHA },
+  });
+  assert.equal(result.verdict, 'FAIL');
+  assert.equal(result.violations.filter((v) => v.reason === 'REQUIRED_EVIDENCE_UNAVAILABLE').length, 6);
 });

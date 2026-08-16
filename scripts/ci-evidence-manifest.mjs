@@ -22,15 +22,30 @@
  *
  * The second is not patchable. Anything that can write to stdout can write bytes
  * that look like a reporter line, so tightening the pattern is a denylist and
- * denylists lose. Both inputs here are therefore chosen because a test cannot
- * author them:
+ * denylists lose. Two changes follow:
  *
- *   1. EXECUTION comes from vitest's JSON reporter. Test stdout is a captured
- *      field inside that structure, never a sibling of it, so a test printing
- *      reporter-shaped text cannot add or alter a suite record.
+ *   1. EXECUTION comes from vitest's JSON reporter. A test's stdout is a captured
+ *      field inside that structure, never a sibling of it, so reporter-shaped text
+ *      printed by a test can no longer add or alter a suite record.
  *   2. PROVENANCE comes from the GitHub Actions API, keyed by job id — head_sha,
- *      conclusion, workflow and run identity. It is never read from any file the
- *      caller supplies.
+ *      job name, status, conclusion and run identity. It is never read from any
+ *      file the caller supplies.
+ *
+ * THREAT MODEL — read this before trusting the gate further than it goes.
+ * This defends against the defect UNI-2567 actually describes: suites silently
+ * self-disabling while the job stays green, and stale or foreign evidence being
+ * replayed for a commit it does not belong to. It does NOT defend against an
+ * author who can land arbitrary code in the repository. Such an author can
+ * overwrite `vitest-report.json` before the upload step, or simply delete the
+ * assertions — no in-repo test gate can survive that, and claiming otherwise
+ * would be the same overclaiming this file already had to correct once.
+ *
+ * The residual gap, stated plainly: `--evidence` is a path the caller supplies,
+ * and provenance authenticates the JOB, not the FILE. Binding the two requires
+ * downloading the run's artefact through the API and is deliberately left to the
+ * arming step, which is out of scope here. Until then a gated PASS proves the
+ * named job ran on the named commit AND that this report shows full execution —
+ * it does not prove the report came out of that job.
  *
  * COVERAGE IS PROVEN POSITIVELY. Earlier revisions protected a hardcoded list of
  * category names and suite-path substrings; a security suite named outside that
@@ -185,9 +200,27 @@ export function parseVitestJsonReport(text, { workingDirectory = '' } = {}) {
     if (typeof file.name !== 'string') {
       throw new Error('Test evidence contains a file record with no name.');
     }
+    /*
+     * Anchored at a directory boundary and required to be unambiguous. An
+     * unanchored lastIndexOf let any path merely CONTAINING the package prefix
+     * collapse onto a required suite's key, so a nested or crafted file could
+     * masquerade as one. Two occurrences means we cannot say which file this is,
+     * and a guess is exactly what a completeness gate must not make.
+     */
     const posix = file.name.split('\\').join('/');
-    const index = marker ? posix.lastIndexOf(marker) : -1;
-    const suite = index >= 0 ? posix.slice(index + marker.length) : posix;
+    let suite = posix;
+    if (marker) {
+      const boundary = `/${marker}`;
+      const occurrences = posix.split(boundary).length - 1;
+      if (occurrences > 1) {
+        throw new Error(
+          `AMBIGUOUS_SUITE_PATH: "${posix}" contains "${boundary}" ${occurrences} times; `
+          + 'the suite it refers to cannot be determined.',
+        );
+      }
+      const index = posix.indexOf(boundary);
+      if (index >= 0) suite = posix.slice(index + boundary.length);
+    }
 
     const assertions = Array.isArray(file.assertionResults) ? file.assertionResults : [];
     const counts = { passed: 0, failed: 0, pending: 0, skipped: 0, todo: 0, other: 0 };
@@ -218,11 +251,14 @@ export function parseVitestJsonReport(text, { workingDirectory = '' } = {}) {
     };
 
     // Two records for one path is ambiguous evidence; refuse to pick a winner.
+    /*
+     * ANY repeated path is ambiguous, not just one whose headline counts differ.
+     * Two records agreeing on executed/declared can still disagree on which
+     * assertions ran, and picking the first is a silent guess.
+     */
     const previous = seen.get(suite);
     if (previous) {
-      if (previous.executed !== record.executed || previous.declared !== record.declared) {
-        previous.conflict = true;
-      }
+      previous.conflict = true;
       continue;
     }
     seen.set(suite, record);
@@ -267,7 +303,9 @@ export function ghJobFetcher(repo, jobId) {
  * Binds a job id to its commit, conclusion and identity using API metadata only.
  * Every mismatch is a refusal, never a downgrade to a graded result.
  */
-export function resolveProvenance({ check, repo, jobId, expectedSha, fetcher = ghJobFetcher }) {
+export function resolveProvenance({
+  check, repo, jobId, expectedSha, expectedRunId = null, fetcher = ghJobFetcher,
+}) {
   const job = fetcher(repo, jobId);
 
   const headSha = job?.head_sha;
@@ -288,6 +326,37 @@ export function resolveProvenance({ check, repo, jobId, expectedSha, fetcher = g
   if (job.status !== 'completed') {
     throw new Error(`PROVENANCE_INCOMPLETE: job ${jobId} is "${job.status}", not completed.`);
   }
+  /*
+   * A cancelled or skipped job produced partial output at best, so its report is
+   * not evidence of anything. A FAILED job is still evidence — the tests ran and
+   * some of them failed — so failure is deliberately allowed through.
+   */
+  if (!['success', 'failure'].includes(job.conclusion)) {
+    throw new Error(
+      `PROVENANCE_UNUSABLE_CONCLUSION: job ${jobId} concluded "${job.conclusion}". `
+      + 'Only success or failure produce a complete report.',
+    );
+  }
+  /*
+   * A job NAME is not unique: the same required check runs on every push, and a
+   * re-run creates a new attempt. Without binding the run, evidence from any
+   * other run of the same job on the same commit would satisfy this one.
+   */
+  if (expectedRunId !== null && String(job.run_id) !== String(expectedRunId)) {
+    throw new Error(
+      `PROVENANCE_WRONG_RUN: job ${jobId} belongs to run ${job.run_id}, not ${expectedRunId}.`,
+    );
+  }
+  if (job.workflow_name !== undefined && !check.workflow.endsWith(`${job.workflow_name}.yml`)
+    && job.workflow_name !== check.workflowName) {
+    // Advisory only when the manifest does not declare a workflow display name.
+    if (check.workflowName) {
+      throw new Error(
+        `PROVENANCE_WRONG_WORKFLOW: job ${jobId} ran in "${job.workflow_name}", not `
+        + `"${check.workflowName}".`,
+      );
+    }
+  }
 
   return {
     sha: headSha,
@@ -296,6 +365,7 @@ export function resolveProvenance({ check, repo, jobId, expectedSha, fetcher = g
     runId: job.run_id ?? null,
     runAttempt: job.run_attempt ?? null,
     conclusion: job.conclusion ?? null,
+    workflowName: job.workflow_name ?? null,
   };
 }
 
@@ -308,7 +378,17 @@ export function checkEvidenceCompleteness({ check, observed, provenance }) {
   const evidence = [];
 
   const declaredTotal = observed.totals.declared;
-  if (typeof observed.reported.total === 'number' && observed.reported.total !== declaredTotal) {
+  if (typeof observed.reported.total !== 'number') {
+    // Without the reporter's own total there is nothing to reconcile against, so
+    // a truncated report is indistinguishable from a complete one. Refuse.
+    violations.push({
+      suite: null,
+      reason: 'REPORT_UNVERIFIABLE',
+      status: 'INCOMPLETE',
+      detail: 'The evidence carries no numeric numTotalTests, so per-file records '
+        + 'cannot be reconciled and truncation cannot be ruled out.',
+    });
+  } else if (observed.reported.total !== declaredTotal) {
     violations.push({
       suite: null,
       reason: 'SUMMARY_MISMATCH',
@@ -402,7 +482,8 @@ export function checkEvidenceCompleteness({ check, observed, provenance }) {
 
 export function parseArguments(argv) {
   const options = {
-    check: null, evidence: null, sha: null, job: null, repo: null, json: false, gate: false,
+    check: null, evidence: null, sha: null, job: null, run: null, repo: null,
+    json: false, gate: false,
   };
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
@@ -411,6 +492,7 @@ export function parseArguments(argv) {
       case '--evidence':
       case '--sha':
       case '--job':
+      case '--run':
       case '--repo': {
         const value = argv[index + 1];
         if (value === undefined || value.startsWith('--')) {
@@ -466,7 +548,7 @@ export function main(argv = process.argv.slice(2), {
   if (!options.check || !options.evidence) {
     io.error(
       'Usage: ci-evidence-manifest.mjs --check <id> --evidence <vitest-json> '
-      + '[--job <id> --sha <40-hex> --repo <owner/name>] [--json] [--gate]',
+      + '[--job <id> --run <id> --sha <40-hex> --repo <owner/name>] [--json] [--gate]',
     );
     return 2;
   }
@@ -476,10 +558,11 @@ export function main(argv = process.argv.slice(2), {
    * file can be edited; a job id resolves against GitHub. Report-only mode still
    * grades execution, but says UNVERIFIED and can never gate.
    */
-  if (options.gate && (!options.job || !options.sha || !options.repo)) {
+  if (options.gate && (!options.job || !options.sha || !options.repo || !options.run)) {
     io.error(
-      'REFUSED: --gate requires --job, --sha and --repo so provenance is resolved from the '
-      + 'GitHub API. A local evidence file cannot vouch for its own commit.',
+      'REFUSED: --gate requires --job, --run, --sha and --repo so provenance is resolved '
+      + 'from the GitHub API. A local evidence file cannot vouch for its own commit, and a '
+      + 'job name alone is not unique across runs and re-run attempts.',
     );
     return 2;
   }
@@ -495,7 +578,12 @@ export function main(argv = process.argv.slice(2), {
 
     const provenance = options.job
       ? resolveProvenance({
-        check, repo: options.repo, jobId: options.job, expectedSha: options.sha, fetcher,
+        check,
+        repo: options.repo,
+        jobId: options.job,
+        expectedSha: options.sha,
+        expectedRunId: options.run,
+        fetcher,
       })
       : null;
 
