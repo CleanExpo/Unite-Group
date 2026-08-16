@@ -471,10 +471,33 @@ test('a timed-out scanner becomes an error while later locks run and the report 
   const root = await makeFixture(t, {
     locks: ['stalled/package-lock.json', 'later/package-lock.json'],
   })
+  /*
+   * EVERY MARGIN HERE IS WIDE ON PURPOSE, AND THE FIRST DIAGNOSIS WAS WRONG.
+   *
+   * This test ran a 250ms scanner timeout against a 1000ms stall and asserted
+   * `elapsedMs < 750`. It passed for months alongside six sibling files, then
+   * failed 1 run in 5 once UNI-2567 added ~120 tests to the same `node --test`
+   * process. Measured, not guessed: 0/10 failures on origin/main, 1/5 at that
+   * head. Nothing about the behaviour changed — the machine got busier.
+   *
+   * I first widened only the STALL, and it failed again. Reading the assertion
+   * instead of assuming showed the real one: `results[1].status` — the HEALTHY
+   * scanner, the one that writes immediately — came back `error`. Every scanner
+   * here is a real spawned Node process, and spawning one on a loaded machine
+   * can exceed 250ms by itself. The timeout was firing on a scanner that had
+   * done nothing wrong, so the test was measuring process-start latency.
+   *
+   * The property is "the timeout fires and we do NOT wait out the scanner", and
+   * widening the TOLERANCE would weaken it. Widening every GAP keeps it exactly
+   * as strong and makes it decidable in both directions: 1500ms is far above any
+   * plausible spawn and far below the 8000ms stall, and the 4000ms bound is
+   * unreachable by a run that waited the stall out. No scheduler jitter moves a
+   * result across those lines.
+   */
   const injection = await installStubScanner(t, join(root, 'bin'), `#!/usr/bin/env node
 const clean = ${JSON.stringify(CLEAN_AUDIT)}
 if (process.cwd().split(/[\\\\/]/).at(-1) === 'stalled') {
-  setTimeout(() => process.stdout.write(clean), 1000)
+  setTimeout(() => process.stdout.write(clean), 8000)
 } else {
   process.stdout.write(clean)
 }
@@ -491,17 +514,34 @@ if (process.cwd().split(/[\\\\/]/).at(-1) === 'stalled') {
     ],
     root,
     stdout: { write() {} },
-    runAudit: (entry, options) => executeAudit(entry, { ...options, ...injection, timeoutMs: 250 }),
+    /*
+     * 1500ms, NOT 250ms, AND THE 250 WAS THE ACTUAL FLAKE.
+     *
+     * The failure under load was `results[1].status` — the HEALTHY scanner, the
+     * one that writes immediately — coming back `error` instead of `passed`.
+     * Every scanner here is a real spawned Node process, and spawning one on a
+     * busy machine can take longer than 250ms on its own. So the timeout was
+     * firing on a scanner that had done nothing wrong, and the test was
+     * measuring process-start latency rather than timeout behaviour.
+     *
+     * Widening the stall alone did not fix it, because the stall is the OTHER
+     * side of this test. Both margins have to hold at once: 1500ms is far above
+     * any plausible spawn under load and far below the 8000ms stall, so the
+     * healthy scanner always finishes and the stalled one always times out.
+     */
+    runAudit: (entry, options) => executeAudit(entry, { ...options, ...injection, timeoutMs: 1500 }),
   })
   const elapsedMs = Date.now() - startedAt
   const stored = JSON.parse(await readFile(reportPath, 'utf8'))
 
   assert.equal(exitCode, 1)
-  assert.ok(elapsedMs < 750, `scanner timeout took ${elapsedMs}ms`)
+  // Half the 8000ms stall: unreachable by a run that waited it out, and far
+  // above the 1500ms timeout plus any spawn overhead in a run that did not.
+  assert.ok(elapsedMs < 4000, `scanner timeout took ${elapsedMs}ms`)
   assert.equal(stored.results.length, 2)
   assert.equal(stored.results[0].status, 'error')
   assert.match(stored.results[0].error, /timed out/i)
-  assert.equal(stored.results[0].timeoutMs, 250)
+  assert.equal(stored.results[0].timeoutMs, 1500)
   assert.equal(stored.results[1].status, 'passed')
 })
 

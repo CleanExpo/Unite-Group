@@ -621,8 +621,27 @@ const SUPPORTED_ZIP_FLAG_BITS = 0x080e;
  *                         until the harness reported that dropping it changed
  *                         nothing — a passing test over an unreachable guard.
  */
+/*
+ * AGREEMENT IS NOT THE SAME AS SUPPORT, and the table only checked agreement.
+ *
+ * `version needed to extract` says which ZIP feature level a reader must
+ * implement. Both copies saying 63 agree perfectly — and `unzip` refuses the
+ * entry outright ("need PK compat. v6.3 (can do v4.5)") while this reader
+ * happily returned its bytes. Two readers, two answers, from a field the sweep
+ * had just been extended to cover: the duplicated-field table closed the
+ * "do the copies match" question and left "is the value one we implement"
+ * entirely open.
+ *
+ * 20 is the level this reader implements: version 2.0, stored and deflate, no
+ * Zip64, no encryption. Anything above it declares a feature that is either
+ * refused elsewhere in this walk or not implemented at all, so accepting it
+ * would mean grading an archive by ignoring its own statement of what reading it
+ * requires. The real artefact declares 20 in both headers.
+ */
+const MAX_SUPPORTED_ZIP_VERSION = 20;
+
 const DUPLICATED_HEADER_FIELDS = Object.freeze([
-  { label: 'version needed to extract', local: 4, central: 6, size: 2 },
+  { label: 'version needed to extract', local: 4, central: 6, size: 2, maximum: MAX_SUPPORTED_ZIP_VERSION },
   { label: 'compression method', local: 8, central: 10, size: 2 },
   { label: 'last modified time', local: 10, central: 12, size: 2 },
   { label: 'last modified date', local: 12, central: 14, size: 2 },
@@ -1065,6 +1084,20 @@ export function readZipEntries(buffer) {
         throw new Error(
           `CORRUPT_ZIP: "${name}" declares ${field.label} ${localValue} in its local header and `
           + `${centralValue} in the central directory; the two disagree about how to read it.`,
+        );
+      }
+      /*
+       * AND THE AGREED VALUE MUST BE ONE THIS READER SUPPORTS. Two headers
+       * agreeing on a value neither this reader nor `unzip` can honour is still
+       * an archive with two meanings — ours returns bytes, theirs refuses the
+       * entry. Agreement was the only question the table asked, and it was half
+       * the question.
+       */
+      if (field.maximum !== undefined && centralValue > field.maximum) {
+        throw new Error(
+          `UNSUPPORTED_ZIP: "${name}" declares ${field.label} ${centralValue}, above the `
+          + `${field.maximum} this reader implements. A reader that cannot honour the declared `
+          + 'feature level and returns the bytes anyway disagrees with every reader that can.',
         );
       }
     }

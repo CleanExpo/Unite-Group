@@ -1872,6 +1872,25 @@ test('EVERY DUPLICATED HEADER FIELD IS SWEPT, from a table rather than from memo
     assert.throws(() => readZipEntries(mutant), new RegExp(`declares ${label} `, 'u'), label);
   }
 
+  /*
+   * AGREEMENT IS NOT SUPPORT. Both headers declaring version-needed 63 agree
+   * perfectly, and `unzip` refuses the entry ("need PK compat. v6.3") while this
+   * reader returned its bytes — two readers, two answers, from the field the
+   * table had just been extended to cover. The table asked "do the copies
+   * match" and never "is this a value we implement", which is half the question.
+   */
+  const futureVersion = Buffer.from(zip);
+  futureVersion.writeUInt16LE(63, 4);
+  futureVersion.writeUInt16LE(63, centralAt + 6);
+  assert.throws(() => readZipEntries(futureVersion),
+    /declares version needed to extract 63, above the 20 this reader implements/u);
+
+  // 20 is accepted, so this is a ceiling and not a refusal of the field.
+  const supportedVersion = Buffer.from(zip);
+  supportedVersion.writeUInt16LE(20, 4);
+  supportedVersion.writeUInt16LE(20, centralAt + 6);
+  assert.equal(readZipEntries(supportedVersion)[0].name, 'vitest-report.json');
+
   // The name length is duplicated too, and is the one shared field whose
   // mismatch is caught by the byte comparison rather than the table.
   const shortName = Buffer.from(zip);

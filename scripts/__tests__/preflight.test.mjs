@@ -252,3 +252,40 @@ test('an identical range skips', () => {
     'an empty diff between two present commits has nothing to rebuild',
   );
 });
+
+test('THE LOCAL READINESS GATE RUNS EVERY TEST CI RUNS', () => {
+  /*
+   * `verify:readiness` is what a developer runs before pushing, and CI's "Test
+   * readiness kernel" step is what actually decides the branch. They were
+   * different lists: CI ran `dependency-audit.test.mjs` and the local gate did
+   * not, so a failure in that file was invisible until an external reviewer ran
+   * the workflow command by hand. Green locally, red in CI, for a whole class of
+   * test — and the local gate reported "188 passed" while omitting one file.
+   *
+   * This is the same claim the job table above makes, one level down: it is not
+   * enough that every CI JOB has a preflight entry if the entry runs less than
+   * the job does.
+   *
+   * CI may run MORE than the local gate only by deliberate exception; today
+   * there is none, so the two lists must match exactly. A local list that is a
+   * superset is fine — running extra locally cannot cause a CI surprise.
+   */
+  const testFiles = (text) => new Set(text.match(/scripts\/__tests__\/[\w.-]+\.test\.mjs/gu) ?? []);
+
+  const packageJson = JSON.parse(readFileSync(resolve(repoRoot, 'package.json'), 'utf8'));
+  const local = testFiles(packageJson.scripts['verify:readiness']);
+  assert.ok(local.size > 0, 'verify:readiness must run test files');
+
+  const ci = readFileSync(CI_PATH, 'utf8');
+  const kernel = /Test readiness kernel\n\s+run: ([^\n]+)/u.exec(ci);
+  assert.notEqual(kernel, null, 'ci.yml must still declare a "Test readiness kernel" step');
+  const remote = testFiles(kernel[1]);
+  assert.ok(remote.size > 0, 'the readiness kernel step must run test files');
+
+  const missingLocally = [...remote].filter((file) => !local.has(file)).sort();
+  assert.deepEqual(
+    missingLocally,
+    [],
+    `CI's readiness kernel runs test files the local gate does not: ${missingLocally.join(', ')}`,
+  );
+});
