@@ -16,6 +16,8 @@
       "workflowName": "Monorepo CI",
       "job": "spine",
       "reporter": "vitest-json",
+      "artifact": "spine-test-evidence-{sha}",
+      "reportEntry": "vitest-report.json",
       "workingDirectory": "packages/spine/packages/spine",
       "requiredCapabilities": [
         "tenant-isolation",

@@ -16,8 +16,6 @@
  *
  *   - Provenance read out of the log text: one `sed` over a committed fixture
  *     produced a gated PASS for the real SHA. A file cannot vouch for itself.
- *     (Stale or foreign evidence is now bound to a commit, run and attempt — but
- *     see THE RESIDUAL GAP: the evidence FILE is still not bound to the job.)
  *   - Suite lines read out of the log body: a `console.log` from any test file in
  *     the package printed reporter-shaped bytes into genuine CI output and forged
  *     a complete green report.
@@ -32,6 +30,12 @@
  *   2. PROVENANCE comes from the GitHub Actions API, keyed by job id — head_sha,
  *      job name, status, conclusion and run identity. It is never read from any
  *      file the caller supplies.
+ *   3. THE EVIDENCE ITSELF comes out of the run's own artefact, downloaded through
+ *      the API and re-bound to the resolved run and commit. Round six proved why:
+ *      pointed at the fixture this repository's own README labels SYNTHETIC, the
+ *      gate returned PASS for a real job on a real SHA, because binding the JOB
+ *      never bound the FILE. `--gate` now refuses `--evidence` outright, so no
+ *      caller-supplied byte reaches a gated verdict.
  *
  * THREAT MODEL — read this before trusting the gate further than it goes.
  * This defends against the defect UNI-2567 actually describes: suites silently
@@ -42,14 +46,15 @@
  * assertions — no in-repo test gate can survive that, and claiming otherwise
  * would be the same overclaiming this file already had to correct once.
  *
- * THE RESIDUAL GAP, stated plainly and completely. EVERY input is supplied by
- * whoever invokes this: `--evidence`, `--repo`, `--job`, `--run`, `--attempt`,
- * `--sha`, `--root`, and `--check` — plus the manifest itself, which is a file in
- * the same tree. The API call authenticates that the named job exists, ran on the
- * named commit in the named run and attempt, and concluded usably — it does NOT
- * prove that the caller named the RIGHT job or repository, or that the evidence
- * file came out of that job. A caller free to choose all of them can select
- * foreign but internally consistent provenance.
+ * THE RESIDUAL GAP, stated plainly and completely. Under `--gate` the evidence is
+ * no longer among the caller's inputs, but these still are: `--repo`, `--job`,
+ * `--run`, `--attempt`, `--sha`, `--root` and `--check`, plus the manifest itself,
+ * which is a file in the same tree. The API authenticates that the named job
+ * exists, ran on the named commit in the named run and attempt, and concluded
+ * usably, and the artefact is then re-checked against that run and commit — it
+ * does NOT prove the caller named the RIGHT job or repository. A caller free to
+ * choose all of them can still select a foreign but internally consistent run,
+ * and get a truthful answer about the wrong thing.
  *
  * Two narrower limits, so they are not mistaken for guarantees:
  *   - Workflow binding compares a DISPLAY NAME (`job.workflow_name`) against the
@@ -57,16 +62,16 @@
  *     but does not identify a file. `check.workflow` is documentation, not a
  *     check.
  *   - The manifest's `job`, `reporter`, `prerequisite` and per-suite `gate` fields
- *     are likewise descriptive. They are not enforced, and a reader should not
- *     infer that a declared `gate` is verified against the test source.
+ *     are descriptive. They are not enforced, and a reader should not infer that a
+ *     declared `gate` is verified against the test source. `artifact` and
+ *     `reportEntry` ARE enforced — they name what the gate downloads.
  *
  * That is tolerable only because of who the caller is meant to be. This is built
  * to run from inside the workflow it audits, where the values come from the
  * `github` context rather than from a person, and to be read by a human
- * inspecting a specific run. Closing the gap properly means downloading the run's
- * artefact through the API and taking repo/sha/run from the CI context rather
- * than argv — that belongs to the arming step, which is out of scope here and is
- * why nothing consumes this yet.
+ * inspecting a specific run. What remains of the gap closes at the arming step,
+ * where repo/sha/run come from the CI context rather than argv — out of scope
+ * here, and part of why nothing consumes this yet.
  *
  * COVERAGE IS PROVEN POSITIVELY. Earlier revisions protected a hardcoded list of
  * category names and suite-path substrings; a security suite named outside that
@@ -86,6 +91,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { crc32, inflateRawSync } from 'node:zlib';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -136,6 +142,21 @@ export function validateManifest(manifest) {
     for (const field of ['requiredCheck', 'workflow', 'workflowName', 'job', 'workingDirectory']) {
       if (typeof check[field] !== 'string' || check[field] === '') {
         throw new Error(`Check "${check.id}" declares no ${field}.`);
+      }
+    }
+    /*
+     * `artifact` and `reporter` are no longer documentation. They name the
+     * artefact the gate downloads and the entry inside it, so a check missing
+     * either cannot be gated at all — and a manifest that omits them would leave
+     * the gate falling back to a caller-supplied path, which is the forged-
+     * evidence hole round six demonstrated.
+     */
+    for (const field of ['artifact', 'reportEntry']) {
+      if (typeof check[field] !== 'string' || check[field] === '') {
+        throw new Error(
+          `Check "${check.id}" declares no ${field}. The gate fetches its evidence from the `
+          + "run's own artefacts; without this it has no evidence it can trust.",
+        );
       }
     }
 
@@ -305,6 +326,22 @@ export function parseVitestJsonReport(text, { workingDirectory = '', expectedRoo
     const executed = counts.passed + counts.failed;
     const skipped = counts.pending + counts.skipped + counts.todo;
 
+    /*
+     * A SUITE CAN FAIL WITHOUT A SINGLE ASSERTION FAILING. An afterAll hook that
+     * throws, a global setup error, an unhandled rejection after the last test —
+     * vitest records these at the FILE level (`status: "failed"`, a `message`)
+     * while every assertionResult still says "passed". Round six demonstrated it:
+     * flipping the file status and adding a failure message to an otherwise
+     * complete report returned PASS with zero violations. Counting assertions is
+     * necessary and not sufficient; the file's own verdict has to be read too.
+     */
+    const failureMessage = typeof file.message === 'string' && file.message.trim() !== ''
+      ? file.message.trim()
+      : (typeof file.failureMessage === 'string' && file.failureMessage.trim() !== ''
+        ? file.failureMessage.trim()
+        : null);
+    const fileStatus = typeof file.status === 'string' ? file.status : null;
+
     const record = {
       suite,
       declared,
@@ -314,6 +351,8 @@ export function parseVitestJsonReport(text, { workingDirectory = '', expectedRoo
       passed: counts.passed,
       failed: counts.failed,
       unrecognised: counts.other,
+      fileStatus,
+      failureMessage,
       status: executed > 0 ? 'EXECUTED' : 'SKIPPED',
     };
 
@@ -352,6 +391,16 @@ export function parseVitestJsonReport(text, { workingDirectory = '', expectedRoo
     todo: report.numTodoTests,
   };
 
+  /*
+   * The report's own verdict on itself. `success` is not derivable from the
+   * assertion records — that is the whole point: a run can be unsuccessful for a
+   * reason no assertion expresses. Missing is UNVERIFIABLE, never assumed true.
+   */
+  const declaredSuccess = typeof report.success === 'boolean' ? report.success : null;
+  const failedSuites = Number.isInteger(report.numFailedTestSuites)
+    ? report.numFailedTestSuites
+    : null;
+
   if (packageRoots.size > 1) {
     throw new Error(
       `INCONSISTENT_PACKAGE_ROOTS: files resolve through ${packageRoots.size} different `
@@ -380,7 +429,7 @@ export function parseVitestJsonReport(text, { workingDirectory = '', expectedRoo
     );
   }
 
-  return { suites, totals, reported, packageRoot };
+  return { suites, totals, reported, packageRoot, declaredSuccess, failedSuites };
 }
 
 // ---------------------------------------------------------------------------
@@ -399,6 +448,223 @@ export function ghJobFetcher(repo, jobId) {
     { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
   );
   return JSON.parse(raw);
+}
+
+// ---------------------------------------------------------------------------
+// Evidence custody — the report comes OUT of the run, not off the caller's disk
+// ---------------------------------------------------------------------------
+
+/**
+ * Minimal ZIP reader. Actions artefacts are ZIPs, and pulling in a dependency for
+ * this would widen the supply chain of a security gate to save sixty lines.
+ * Supports stored (0) and deflate (8), which is everything actions/upload-artifact
+ * emits; anything else is refused rather than guessed at. Verified against two
+ * real artefacts from this repository before being wired in.
+ */
+export function readZipEntries(buffer) {
+  let eocd = -1;
+  const floor = Math.max(0, buffer.length - 22 - 65535);
+  for (let index = buffer.length - 22; index >= floor; index -= 1) {
+    if (buffer.readUInt32LE(index) === 0x06054b50) { eocd = index; break; }
+  }
+  if (eocd < 0) throw new Error('NOT_A_ZIP: the artefact has no end-of-central-directory record.');
+
+  const count = buffer.readUInt16LE(eocd + 10);
+  let offset = buffer.readUInt32LE(eocd + 16);
+  const entries = [];
+
+  for (let n = 0; n < count; n += 1) {
+    if (buffer.readUInt32LE(offset) !== 0x02014b50) {
+      throw new Error('CORRUPT_ZIP: central directory header signature is wrong.');
+    }
+    const method = buffer.readUInt16LE(offset + 10);
+    const expectedCrc = buffer.readUInt32LE(offset + 16);
+    const compressedSize = buffer.readUInt32LE(offset + 20);
+    const uncompressedSize = buffer.readUInt32LE(offset + 24);
+    const nameLength = buffer.readUInt16LE(offset + 28);
+    const extraLength = buffer.readUInt16LE(offset + 30);
+    const commentLength = buffer.readUInt16LE(offset + 32);
+    const localOffset = buffer.readUInt32LE(offset + 42);
+    const name = buffer.toString('utf8', offset + 46, offset + 46 + nameLength);
+
+    // The local header's name/extra lengths differ from the central copy; using
+    // the central ones lands mid-data.
+    if (buffer.readUInt32LE(localOffset) !== 0x04034b50) {
+      throw new Error(`CORRUPT_ZIP: local header signature is wrong for "${name}".`);
+    }
+    const dataStart = localOffset + 30
+      + buffer.readUInt16LE(localOffset + 26) + buffer.readUInt16LE(localOffset + 28);
+    const raw = buffer.subarray(dataStart, dataStart + compressedSize);
+
+    let contents;
+    if (method === 0) contents = raw;
+    else if (method === 8) contents = inflateRawSync(raw);
+    else throw new Error(`UNSUPPORTED_ZIP_METHOD: ${method} for "${name}".`);
+
+    if (contents.length !== uncompressedSize) {
+      throw new Error(
+        `CORRUPT_ZIP: "${name}" inflated to ${contents.length} bytes, the header says ${uncompressedSize}.`,
+      );
+    }
+    // The CRC is the archive's own integrity claim about this entry. Reading the
+    // bytes without checking it would accept a truncated or altered payload whose
+    // length happened to match.
+    const actualCrc = crc32(contents);
+    if (actualCrc !== expectedCrc) {
+      throw new Error(
+        `CORRUPT_ZIP: "${name}" has CRC ${actualCrc.toString(16)}, the header says `
+        + `${expectedCrc.toString(16)}.`,
+      );
+    }
+    entries.push({ name, contents });
+    offset += 46 + nameLength + extraLength + commentLength;
+  }
+  return entries;
+}
+
+/** Lists a run's artefacts. Injectable so tests never reach the network. */
+export function ghArtifactLister(repo, runId) {
+  if (!isValidRepo(repo)) throw new Error(`INVALID_REPO: "${repo}" is not owner/name.`);
+  if (!NUMERIC_ID.test(String(runId))) throw new Error(`INVALID_RUN_ID: "${runId}" is not numeric.`);
+  const raw = execFileSync(
+    'gh',
+    ['api', '--paginate', `repos/${repo}/actions/runs/${runId}/artifacts?per_page=100`],
+    { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] },
+  );
+  return JSON.parse(raw);
+}
+
+/** Downloads one artefact's ZIP. Injectable so tests never reach the network. */
+export function ghArtifactDownloader(repo, artifactId) {
+  if (!isValidRepo(repo)) throw new Error(`INVALID_REPO: "${repo}" is not owner/name.`);
+  if (!NUMERIC_ID.test(String(artifactId))) {
+    throw new Error(`INVALID_ARTIFACT_ID: "${artifactId}" is not numeric.`);
+  }
+  return execFileSync(
+    'gh',
+    ['api', `repos/${repo}/actions/artifacts/${artifactId}/zip`],
+    { encoding: 'buffer', maxBuffer: 256 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] },
+  );
+}
+
+/**
+ * THE FIX FOR THE FORGED-EVIDENCE P0. Round six pointed the checker at a fixture
+ * the repository's own README declares SYNTHETIC and got a gated PASS for a real
+ * job on a real SHA. Provenance bound the JOB; nothing bound the FILE to it, so
+ * "neither fixture can be replayed as evidence for a real SHA" was simply false.
+ *
+ * The evidence is now fetched from the run's own artefacts through the API and
+ * re-bound to the resolved run and commit. `--gate` no longer accepts a path at
+ * all, so there is no caller-supplied byte in the graded evidence.
+ */
+export function resolveEvidenceArtifact({
+  check, repo, runId, expectedSha,
+  lister = ghArtifactLister, downloader = ghArtifactDownloader,
+}) {
+  if (!check.artifact || !check.reportEntry) {
+    throw new Error(
+      `ARTIFACT_UNDECLARED: check "${check.id}" declares no artifact/reportEntry, so its `
+      + 'evidence cannot be fetched from the run and cannot be gated.',
+    );
+  }
+  const artifactName = resolveArtifactName(check, expectedSha);
+  const listing = lister(repo, runId);
+  const all = Array.isArray(listing?.artifacts) ? listing.artifacts : [];
+  const named = all.filter((artifact) => artifact?.name === artifactName);
+
+  if (named.length === 0) {
+    throw new Error(
+      `ARTIFACT_ABSENT: run ${runId} uploaded no artefact named "${artifactName}". `
+      + 'A run that produced no evidence has not proven anything, so this is a refusal '
+      + 'rather than an empty report.',
+    );
+  }
+  if (named.length > 1) {
+    throw new Error(
+      `ARTIFACT_AMBIGUOUS: run ${runId} has ${named.length} artefacts named "${artifactName}"; `
+      + 'which one is the evidence cannot be determined.',
+    );
+  }
+
+  const [artifact] = named;
+  if (artifact.expired === true) {
+    throw new Error(
+      `ARTIFACT_EXPIRED: "${artifactName}" from run ${runId} has expired. Expired evidence `
+      + 'is absent evidence.',
+    );
+  }
+  // The artefact carries its own run identity. Re-checking it here means a caller
+  // who passed a run id that does not match the job cannot smuggle in another
+  // run's artefact through a listing they chose.
+  const owningRun = artifact.workflow_run?.id;
+  if (owningRun !== undefined && String(owningRun) !== String(runId)) {
+    throw new Error(
+      `ARTIFACT_FOREIGN_RUN: artefact ${artifact.id} belongs to run ${owningRun}, not ${runId}.`,
+    );
+  }
+  const owningSha = artifact.workflow_run?.head_sha;
+  if (expectedSha && owningSha !== undefined && owningSha !== expectedSha) {
+    throw new Error(
+      `ARTIFACT_FOREIGN_SHA: artefact ${artifact.id} was produced on ${owningSha}, not ${expectedSha}.`,
+    );
+  }
+
+  const entries = readZipEntries(downloader(repo, artifact.id));
+  /*
+   * actions/upload-artifact roots the archive at the common ancestor of the files
+   * it matched, so a single-file upload yields a bare "vitest-report.json" while a
+   * directory upload yields "some/nested/path/results.sarif" — both shapes were
+   * observed in this repository's real artefacts. The spine artefact has never
+   * been produced (its workflow change ships on this branch), so which shape it
+   * will take is NOT verified. Accepting either and refusing when more than one
+   * entry answers is the honest handling; guessing one layout would be a silent
+   * assumption inside a gate.
+   */
+  const wanted = entries.filter(
+    (entry) => entry.name === check.reportEntry
+      || entry.name.split('/').pop() === check.reportEntry,
+  );
+  if (wanted.length === 0) {
+    throw new Error(
+      `ARTIFACT_MISSING_REPORT: "${artifactName}" contains `
+      + `${entries.length} entr${entries.length === 1 ? 'y' : 'ies'} `
+      + `(${entries.map((e) => e.name).join(', ') || 'none'}) but not "${check.reportEntry}".`,
+    );
+  }
+  if (wanted.length > 1) {
+    throw new Error(
+      `ARTIFACT_DUPLICATE_REPORT: "${artifactName}" contains "${check.reportEntry}" `
+      + `${wanted.length} times.`,
+    );
+  }
+
+  return {
+    text: wanted[0].contents.toString('utf8'),
+    source: {
+      artifactId: artifact.id,
+      artifactName: artifact.name,
+      digest: artifact.digest ?? null,
+      sizeInBytes: artifact.size_in_bytes ?? null,
+      entry: check.reportEntry,
+    },
+  };
+}
+
+/**
+ * The artefact name may carry the commit, as this repository's does
+ * (`spine-test-evidence-${{ github.sha }}`). Substituting the SHA the API
+ * resolved — never one the caller typed — makes the NAME itself a binding: an
+ * artefact from another commit does not answer to it.
+ */
+export function resolveArtifactName(check, sha) {
+  if (!check.artifact.includes('{sha}')) return check.artifact;
+  if (!sha || !SHA_PATTERN.test(sha)) {
+    throw new Error(
+      `ARTIFACT_NAME_UNBOUND: check "${check.id}" names its artefact with {sha}, but no `
+      + 'resolved 40-hex commit was available to substitute.',
+    );
+  }
+  return check.artifact.split('{sha}').join(sha);
 }
 
 /**
@@ -554,6 +820,69 @@ export function checkEvidenceCompleteness({ check, observed, provenance }) {
       status: 'FAILED',
       executed: suite.executed,
       detail: `${suite.failed} of ${suite.declared} assertions failed.`,
+    });
+  }
+
+  /*
+   * THE FILE'S OWN VERDICT. A suite whose assertions all passed can still have
+   * failed — an afterAll hook that throws, a setup error, an unhandled rejection.
+   * Round six built exactly that report and the checker returned PASS with zero
+   * violations, because nothing read below the assertion level.
+   */
+  for (const suite of observed.suites) {
+    if (suite.fileStatus !== null && suite.fileStatus !== 'passed') {
+      violations.push({
+        suite: suite.suite,
+        reason: 'SUITE_FILE_NOT_PASSED',
+        status: 'FAILED',
+        executed: suite.executed,
+        detail: `The file reports status "${suite.fileStatus}" regardless of its `
+          + `${suite.passed} passing assertions.`,
+      });
+    }
+    if (suite.failureMessage) {
+      violations.push({
+        suite: suite.suite,
+        reason: 'SUITE_REPORTED_FAILURE_MESSAGE',
+        status: 'FAILED',
+        executed: suite.executed,
+        detail: `The file carries a failure message: ${suite.failureMessage.slice(0, 200)}`,
+      });
+    }
+  }
+
+  if (observed.declaredSuccess === false) {
+    violations.push({
+      suite: null,
+      reason: 'REPORT_DECLARES_FAILURE',
+      status: 'FAILED',
+      detail: 'The report sets success=false. Whatever the assertion counts say, the run '
+        + 'that produced this evidence did not succeed.',
+    });
+  }
+  if (observed.declaredSuccess === null) {
+    violations.push({
+      suite: null,
+      reason: 'REPORT_UNVERIFIABLE',
+      status: 'UNKNOWN',
+      detail: 'The report has no boolean `success` field, so its own verdict on itself '
+        + 'cannot be read. A missing field is not a passing one.',
+    });
+  }
+  if (observed.failedSuites === null) {
+    violations.push({
+      suite: null,
+      reason: 'REPORT_UNVERIFIABLE',
+      status: 'UNKNOWN',
+      detail: 'The report has no integer `numFailedTestSuites`, so a suite that failed '
+        + 'outside its assertions cannot be counted.',
+    });
+  } else if (observed.failedSuites > 0) {
+    violations.push({
+      suite: null,
+      reason: 'REPORT_DECLARES_FAILED_SUITES',
+      status: 'FAILED',
+      detail: `${observed.failedSuites} test suite(s) failed at the file level.`,
     });
   }
 
@@ -763,6 +1092,12 @@ function formatHuman(result) {
       ? `  sha: ${result.sha} (GitHub API, job ${result.provenance.jobId}, `
         + `run ${result.provenance.runId} attempt ${result.provenance.runAttempt})`
       : '  sha: UNVERIFIED (report-only mode; --gate refuses this)',
+    result.evidenceSource
+      ? `  evidence: artefact ${result.evidenceSource.artifactId} `
+        + `"${result.evidenceSource.artifactName}" entry ${result.evidenceSource.entry} `
+        + `(${result.evidenceSource.digest ?? 'no digest'})`
+      : '  evidence: UNBOUND — a caller-supplied file, not fetched from the run. '
+        + 'Advisory only; --gate refuses this.',
     `  tests: ${result.totals.executed} executed, ${result.totals.skipped} skipped, `
       + `${result.totals.declared} declared`,
   ];
@@ -777,6 +1112,7 @@ function formatHuman(result) {
 
 export function main(argv = process.argv.slice(2), {
   root = repositoryRoot, io = console, fetcher = ghJobFetcher,
+  lister = ghArtifactLister, downloader = ghArtifactDownloader,
 } = {}) {
   let options;
   try {
@@ -786,11 +1122,28 @@ export function main(argv = process.argv.slice(2), {
     return 2;
   }
 
-  if (!options.check || !options.evidence) {
+  if (!options.check || (!options.evidence && !options.gate)) {
     io.error(
-      'Usage: ci-evidence-manifest.mjs --check <id> --evidence <vitest-json> '
+      'Usage: ci-evidence-manifest.mjs --check <id> '
+      + '(--evidence <vitest-json> | --gate) '
       + '[--job <id> --run <id> --attempt <n> --sha <40-hex> --repo <owner/name> '
       + '--root <workspace path>] [--json] [--gate]',
+    );
+    return 2;
+  }
+
+  /*
+   * THE FORGED-EVIDENCE REFUSAL. Round six pointed --gate at the repository's own
+   * declared-synthetic fixture and got a PASS for a real job on a real SHA,
+   * because provenance bound the JOB while the evidence was whatever path the
+   * caller typed. Under --gate there is now no caller-supplied evidence at all:
+   * the report is downloaded from the resolved run's own artefact.
+   */
+  if (options.gate && options.evidence) {
+    io.error(
+      'UNBOUND_EVIDENCE_SOURCE: --gate does not accept --evidence. A local file cannot be '
+      + 'shown to have come out of the job being certified, so the gate downloads the '
+      + "run's own artefact instead. Use --evidence without --gate to inspect a file by hand.",
     );
     return 2;
   }
@@ -845,11 +1198,29 @@ export function main(argv = process.argv.slice(2), {
       })
       : null;
 
-    const observed = parseVitestJsonReport(readFileSync(options.evidence, 'utf8'), {
+    let evidenceText;
+    let evidenceSource;
+    if (options.gate) {
+      const fetched = resolveEvidenceArtifact({
+        check,
+        repo: options.repo,
+        runId: provenance.runId,
+        expectedSha: provenance.sha,
+        lister,
+        downloader,
+      });
+      evidenceText = fetched.text;
+      evidenceSource = fetched.source;
+    } else {
+      evidenceText = readFileSync(options.evidence, 'utf8');
+      evidenceSource = null;
+    }
+
+    const observed = parseVitestJsonReport(evidenceText, {
       workingDirectory: check.workingDirectory,
       expectedRoot: options.root,
     });
-    result = checkEvidenceCompleteness({ check, observed, provenance });
+    result = { ...checkEvidenceCompleteness({ check, observed, provenance }), evidenceSource };
   } catch (error) {
     io.error(error instanceof Error ? error.message : String(error));
     return 2;

@@ -12,11 +12,23 @@ Two earlier revisions parsed the human-readable log and both were forged in adve
 
 ## Why neither fixture can forge a gated PASS
 
-Provenance is not read from these files at all. Under `--gate` the checker requires `--job`,
-`--sha` and `--repo`, resolves the commit from the **GitHub Actions API**, and refuses if the job's
-`head_sha` disagrees, if the job is not the manifest's `requiredCheck`, or if it has not completed.
-A local evidence file therefore cannot vouch for its own commit, and neither fixture can be
-replayed as evidence for a real SHA.
+**This section was false when first written, and the correction is the point.** It claimed
+"neither fixture can be replayed as evidence for a real SHA" on the strength of API-resolved
+provenance. Round six of independent review pointed `--gate` at
+`spine-all-executed.synthetic.vitest.json` — the file the table above labels *synthetic, not
+observed output* — for real job `95119197937` on real commit `d1d57b8e5`, and got
+`evidence-completeness PASS` with zero violations. Provenance bound the **job**. Nothing bound
+the **file** to that job, and the two are not the same claim.
+
+What is true now: under `--gate` the checker takes **no evidence path at all**. `--evidence`
+alongside `--gate` is refused (`UNBOUND_EVIDENCE_SOURCE`). The report is downloaded from the
+resolved run's own artefact through the API, the artefact's `workflow_run.id` and
+`head_sha` are re-checked against the resolved run and commit, and the artefact name itself
+carries the commit (`spine-test-evidence-{sha}`). These fixtures can therefore only ever be
+graded in report-only mode, whose output labels the evidence `UNBOUND` and which never gates.
+
+Both fixtures remain useful for exactly what they are: inputs to unit tests of the parser and
+the completeness rules. Neither is, or ever was, evidence about a commit.
 
 ## Two things the real report proved, both worth keeping
 
@@ -24,8 +36,13 @@ replayed as evidence for a real SHA.
    `executed` positively (passed + failed) rather than `declared - skipped`, so an unrecognised
    status is simply not evidence instead of silently inflating the executed count.
 2. **The file-level `status` for `rls.test.ts` is `"passed"` while all four of its tests were
-   skipped.** That is the whole UNI-2567 defect in miniature. Never trust a file-level or job-level
-   status; count assertions.
+   skipped.** That is the whole UNI-2567 defect in miniature. A file-level status can be green
+   while nothing ran, so it can never stand in for counting assertions.
+
+   The converse also holds, and round six found it: a file-level status can be `"failed"` while
+   every assertion passed — an `afterAll` hook that throws, a setup error, an unhandled
+   rejection. Counting assertions alone certified that as complete green evidence. The checker
+   now reads both, and disagreement in either direction is a violation.
 
 ## History
 

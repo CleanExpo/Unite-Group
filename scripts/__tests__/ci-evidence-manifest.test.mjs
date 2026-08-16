@@ -4,12 +4,17 @@ import { dirname, join, relative, resolve } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import { crc32, deflateRawSync } from 'node:zlib';
+
 import {
   checkEvidenceCompleteness,
   loadManifest,
   main,
   parseVitestJsonReport,
+  readZipEntries,
+  resolveArtifactName,
   resolveCheck,
+  resolveEvidenceArtifact,
   resolveProvenance,
   validateManifest,
 } from '../ci-evidence-manifest.mjs';
@@ -58,6 +63,87 @@ function observed(path) {
     workingDirectory: shippedCheck().workingDirectory,
   });
 }
+
+// ---------------------------------------------------------------------------
+// Artefact stubs. These build a REAL ZIP rather than mocking the reader, so the
+// reader is exercised by every gated test rather than trusted.
+// ---------------------------------------------------------------------------
+
+/**
+ * Minimal writer: deflate entries, central directory, EOCD.
+ * `corruptCrc` writes a CRC that does not match the payload — the only way to
+ * exercise the reader's CRC check, because any byte flip inside a deflate stream
+ * makes inflate itself throw first.
+ */
+function buildZip(files, { corruptCrc = false } = {}) {
+  const locals = [];
+  const centrals = [];
+  let offset = 0;
+
+  for (const [name, text] of Object.entries(files)) {
+    const raw = Buffer.from(text, 'utf8');
+    const deflated = deflateRawSync(raw);
+    const nameBytes = Buffer.from(name, 'utf8');
+    const checksum = corruptCrc ? (crc32(raw) ^ 0xffffffff) >>> 0 : crc32(raw);
+
+    const local = Buffer.alloc(30);
+    local.writeUInt32LE(0x04034b50, 0);
+    local.writeUInt16LE(20, 4);
+    local.writeUInt16LE(8, 8); // deflate
+    local.writeUInt32LE(checksum, 14);
+    local.writeUInt32LE(deflated.length, 18);
+    local.writeUInt32LE(raw.length, 22);
+    local.writeUInt16LE(nameBytes.length, 26);
+    locals.push(local, nameBytes, deflated);
+
+    const central = Buffer.alloc(46);
+    central.writeUInt32LE(0x02014b50, 0);
+    central.writeUInt16LE(20, 6);
+    central.writeUInt16LE(8, 10);
+    central.writeUInt32LE(checksum, 16);
+    central.writeUInt32LE(deflated.length, 20);
+    central.writeUInt32LE(raw.length, 24);
+    central.writeUInt16LE(nameBytes.length, 28);
+    central.writeUInt32LE(offset, 42);
+    centrals.push(central, nameBytes);
+
+    offset += local.length + nameBytes.length + deflated.length;
+  }
+
+  const localBlock = Buffer.concat(locals);
+  const centralBlock = Buffer.concat(centrals);
+  const eocd = Buffer.alloc(22);
+  eocd.writeUInt32LE(0x06054b50, 0);
+  eocd.writeUInt16LE(Object.keys(files).length, 8);
+  eocd.writeUInt16LE(Object.keys(files).length, 10);
+  eocd.writeUInt32LE(centralBlock.length, 12);
+  eocd.writeUInt32LE(localBlock.length, 16);
+  return Buffer.concat([localBlock, centralBlock, eocd]);
+}
+
+const ARTIFACT_NAME = `spine-test-evidence-${REAL_SHA}`;
+const ARTIFACT_ID = 9264142624;
+
+function stubLister(overrides = {}) {
+  return () => ({
+    artifacts: [{
+      id: ARTIFACT_ID,
+      name: ARTIFACT_NAME,
+      expired: false,
+      size_in_bytes: 934,
+      digest: 'sha256:62e360b53e2b340cdca7df5e20b921209b0a4ec7be587bebfbedc1f91f8c2c27',
+      workflow_run: { id: Number(RUN_ID), head_sha: REAL_SHA },
+      ...overrides,
+    }],
+  });
+}
+
+function stubDownloader(evidencePath = SKIPPED_EVIDENCE, entry = 'vitest-report.json') {
+  return () => buildZip({ [entry]: readFileSync(evidencePath, 'utf8') });
+}
+
+const GATE_ARGS = ['--check', SPINE_CHECK_ID, '--sha', REAL_SHA, '--job', JOB_ID,
+  '--run', RUN_ID, '--attempt', ATTEMPT, '--repo', REPO, '--root', ROOT, '--gate'];
 
 // ---------------------------------------------------------------------------
 // Execution evidence
@@ -264,16 +350,35 @@ test('a job with no usable head_sha is refused', () => {
   );
 });
 
-test('THE FORGERY, CLOSED: --gate refuses without API-resolved provenance', () => {
+test('THE FORGERY, CLOSED: --gate refuses a caller-supplied evidence file outright', () => {
   const errors = [];
   const io = { log: () => {}, error: (line) => errors.push(line) };
 
-  // Exactly the attack that defeated the previous revision: hand the gate a
-  // local all-green file and assert the real SHA. There is now no argument
-  // combination that lets a file speak for a commit.
+  // Round six's attack: point --gate at the fixture this repository's own README
+  // labels SYNTHETIC, with fully-bound provenance for a real job on a real SHA.
+  // It returned PASS, because provenance bound the JOB while the evidence was
+  // whatever path the caller typed. There is now no path argument to give it.
   const status = main(
-    ['--check', SPINE_CHECK_ID, '--evidence', EXECUTED_EVIDENCE, '--sha', REAL_SHA, '--gate'],
-    { root: repositoryRoot, io, fetcher: stubFetcher() },
+    [...GATE_ARGS, '--evidence', EXECUTED_EVIDENCE],
+    {
+      root: repositoryRoot,
+      io,
+      fetcher: stubFetcher(),
+      lister: stubLister(),
+      downloader: stubDownloader(),
+    },
+  );
+
+  assert.equal(status, 2);
+  assert.ok(errors.some((line) => line.includes('UNBOUND_EVIDENCE_SOURCE')), errors.join('\n'));
+});
+
+test('--gate still refuses without API-resolved provenance', () => {
+  const errors = [];
+  const io = { log: () => {}, error: (line) => errors.push(line) };
+  const status = main(
+    ['--check', SPINE_CHECK_ID, '--sha', REAL_SHA, '--gate'],
+    { root: repositoryRoot, io, fetcher: stubFetcher(), lister: stubLister(), downloader: stubDownloader() },
   );
 
   assert.equal(status, 2);
@@ -294,15 +399,44 @@ test('report-only mode grades execution but marks the SHA UNVERIFIED', () => {
 test('main: exit 1 on the real skipped evidence under --gate, exit 0 on the control', () => {
   const errors = [];
   const io = { log: () => {}, error: (line) => errors.push(line) };
-  const gated = (evidence) => main(
-    ['--check', SPINE_CHECK_ID, '--evidence', evidence, '--sha', REAL_SHA,
-      '--job', JOB_ID, '--run', RUN_ID, '--attempt', ATTEMPT, '--repo', REPO, '--root', ROOT, '--gate'],
-    { root: repositoryRoot, io, fetcher: stubFetcher() },
-  );
+  const gated = (evidence) => main(GATE_ARGS, {
+    root: repositoryRoot,
+    io,
+    fetcher: stubFetcher(),
+    lister: stubLister(),
+    downloader: stubDownloader(evidence),
+  });
 
   assert.equal(gated(SKIPPED_EVIDENCE), 1);
   assert.ok(errors.some((line) => line.includes('tests/integration/rls.test.ts')));
   assert.equal(gated(EXECUTED_EVIDENCE), 0);
+});
+
+test('a gated PASS names the artefact its evidence came out of', () => {
+  const outputs = [];
+  main([...GATE_ARGS, '--json'], {
+    root: repositoryRoot,
+    io: { log: (l) => outputs.push(l), error: () => {} },
+    fetcher: stubFetcher(),
+    lister: stubLister(),
+    downloader: stubDownloader(EXECUTED_EVIDENCE),
+  });
+
+  const record = JSON.parse(outputs.join('\n'));
+  assert.equal(record.evidenceSource.artifactId, ARTIFACT_ID);
+  assert.equal(record.evidenceSource.artifactName, ARTIFACT_NAME);
+  assert.equal(record.evidenceSource.entry, 'vitest-report.json');
+});
+
+test('report-only mode labels its evidence UNBOUND rather than implying otherwise', () => {
+  const outputs = [];
+  main(['--check', SPINE_CHECK_ID, '--evidence', EXECUTED_EVIDENCE], {
+    root: repositoryRoot,
+    io: { log: (l) => outputs.push(l), error: () => {} },
+    fetcher: stubFetcher(),
+  });
+
+  assert.ok(outputs.some((line) => line.includes('evidence: UNBOUND')), outputs.join('\n'));
 });
 
 test('--sha must be lowercase 40-hex', () => {
@@ -338,6 +472,8 @@ const MINIMAL_CHECK = {
   workflow: 'w',
   workflowName: 'W',
   job: 'j',
+  artifact: 'a',
+  reportEntry: 'r.json',
   workingDirectory: 'd',
   requiredCapabilities: ['unit'],
   suites: [MINIMAL_SUITE],
@@ -495,7 +631,12 @@ test('evidence from another run of the same job on the same commit is refused', 
 });
 
 test('--gate names every binding it is missing, and refuses on any one of them', () => {
-  const base = ['--check', SPINE_CHECK_ID, '--evidence', EXECUTED_EVIDENCE, '--sha', REAL_SHA,
+  // NOTE: no --evidence here, and that matters. The UNBOUND_EVIDENCE_SOURCE
+  // refusal added in round six sits EARLIER in main() than this check, so leaving
+  // --evidence in the base args made every case exit 2 for the wrong reason —
+  // the status assertion still passed and only the message differed. A new rule
+  // inserted ahead of an existing one silently disarms its positive controls.
+  const base = ['--check', SPINE_CHECK_ID, '--sha', REAL_SHA,
     '--job', JOB_ID, '--run', RUN_ID, '--attempt', ATTEMPT, '--repo', REPO, '--root', ROOT, '--gate'];
 
   for (const flag of ['--run', '--attempt', '--root', '--repo', '--job']) {
@@ -503,7 +644,11 @@ test('--gate names every binding it is missing, and refuses on any one of them',
     const argv = [...base.slice(0, index), ...base.slice(index + 2)];
     const errors = [];
     const status = main(argv, {
-      root: repositoryRoot, io: { log: () => {}, error: (l) => errors.push(l) }, fetcher: stubFetcher(),
+      root: repositoryRoot,
+      io: { log: () => {}, error: (l) => errors.push(l) },
+      fetcher: stubFetcher(),
+      lister: stubLister(),
+      downloader: stubDownloader(),
     });
     assert.equal(status, 2, flag);
     assert.ok(errors.some((line) => line.includes(flag)), `${flag}: ${errors.join(' | ')}`);
@@ -758,10 +903,12 @@ test('API targeting inputs are shape-checked at both boundaries', () => {
   const errors = [];
   const io = { log: () => {}, error: (l) => errors.push(l) };
   const run = (overrides) => main([
-    '--check', SPINE_CHECK_ID, '--evidence', EXECUTED_EVIDENCE, '--sha', REAL_SHA,
+    '--check', SPINE_CHECK_ID, '--sha', REAL_SHA,
     '--job', overrides.job ?? JOB_ID, '--run', overrides.run ?? RUN_ID,
     '--attempt', ATTEMPT, '--repo', overrides.repo ?? REPO, '--root', ROOT, '--gate',
-  ], { root: repositoryRoot, io, fetcher: stubFetcher() });
+  ], {
+    root: repositoryRoot, io, fetcher: stubFetcher(), lister: stubLister(), downloader: stubDownloader(),
+  });
 
   assert.equal(run({ repo: 'not-a-repo' }), 2);
   assert.equal(run({ job: '12; rm -rf /' }), 2);
@@ -814,6 +961,8 @@ test('a fully-executed suite still proves its capability, so the floor is not al
     suites: [{ suite: 'tests/rls.test.ts', class: 'REQUIRED_EVIDENCE', capability: 'tenant-isolation' }],
   };
   const report = {
+    success: true,
+    numFailedTestSuites: 0,
     numTotalTests: 2, numPassedTests: 2, numFailedTests: 0, numPendingTests: 0, numTodoTests: 0,
     testResults: [{
       name: '/w/pkg/tests/rls.test.ts', status: 'passed',
@@ -908,11 +1057,242 @@ test('the real captured report satisfies the distribution invariant for this vit
 test('--repo rejects dot segments that could reshape the API path', () => {
   for (const repo of ['owner/..', '../repo', './x']) {
     assert.equal(
-      main(['--check', SPINE_CHECK_ID, '--evidence', EXECUTED_EVIDENCE, '--sha', REAL_SHA,
+      main(['--check', SPINE_CHECK_ID, '--sha', REAL_SHA,
         '--job', JOB_ID, '--run', RUN_ID, '--attempt', ATTEMPT, '--repo', repo, '--root', ROOT, '--gate'],
-      { root: repositoryRoot, io: NULL_IO, fetcher: stubFetcher() }),
+      {
+        root: repositoryRoot, io: NULL_IO, fetcher: stubFetcher(),
+        lister: stubLister(), downloader: stubDownloader(),
+      }),
       2,
       repo,
     );
   }
+});
+
+// ---------------------------------------------------------------------------
+// ROUND SIX: a suite can fail without an assertion failing
+// ---------------------------------------------------------------------------
+
+/** The synthetic all-green report, optionally sabotaged. */
+function executedReport(mutate = () => {}) {
+  const report = JSON.parse(readFileSync(EXECUTED_EVIDENCE, 'utf8'));
+  mutate(report);
+  return parseVitestJsonReport(JSON.stringify(report), {
+    workingDirectory: shippedCheck().workingDirectory,
+  });
+}
+
+const GOOD_PROVENANCE = { sha: REAL_SHA, jobId: JOB_ID, runId: 1, runAttempt: 1, conclusion: 'success' };
+const graded = (obs) => checkEvidenceCompleteness({
+  check: shippedCheck(), observed: obs, provenance: GOOD_PROVENANCE,
+});
+
+test('the untouched synthetic control still PASSes, so the guards below are not always-on', () => {
+  const result = graded(executedReport());
+  assert.equal(result.verdict, 'PASS', JSON.stringify(result.violations));
+});
+
+test('A SUITE THAT ERRORED OUTSIDE ITS ASSERTIONS IS NOT COMPLETE EVIDENCE', () => {
+  // Round six's second P0: every assertionResult says "passed" while the file
+  // itself failed — an afterAll hook that throws, a setup error, an unhandled
+  // rejection. Counting assertions alone certified it as green.
+  const result = graded(executedReport((report) => {
+    report.testResults[0].status = 'failed';
+    report.testResults[0].message = 'afterAll hook threw: connection reset';
+  }));
+
+  assert.equal(result.verdict, 'FAIL');
+  const reasons = result.violations.map((v) => v.reason);
+  assert.ok(reasons.includes('SUITE_FILE_NOT_PASSED'), reasons.join(', '));
+  assert.ok(reasons.includes('SUITE_REPORTED_FAILURE_MESSAGE'), reasons.join(', '));
+});
+
+test("a report declaring its own failure is refused however its assertions read", () => {
+  const result = graded(executedReport((report) => { report.success = false; }));
+
+  assert.equal(result.verdict, 'FAIL');
+  assert.ok(result.violations.some((v) => v.reason === 'REPORT_DECLARES_FAILURE'));
+});
+
+test('numFailedTestSuites > 0 fails even when every assertion passed', () => {
+  const result = graded(executedReport((report) => { report.numFailedTestSuites = 1; }));
+
+  assert.equal(result.verdict, 'FAIL');
+  assert.ok(result.violations.some((v) => v.reason === 'REPORT_DECLARES_FAILED_SUITES'));
+});
+
+test('a missing success or numFailedTestSuites field is UNVERIFIABLE, not passing', () => {
+  for (const field of ['success', 'numFailedTestSuites']) {
+    const result = graded(executedReport((report) => { delete report[field]; }));
+    assert.equal(result.verdict, 'FAIL', field);
+    assert.ok(result.violations.some((v) => v.reason === 'REPORT_UNVERIFIABLE'), field);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// ROUND SIX: the evidence file must come OUT of the run
+// ---------------------------------------------------------------------------
+
+test('the ZIP reader round-trips a real deflate archive and verifies its CRC', () => {
+  const zip = buildZip({ 'vitest-report.json': '{"ok":true}', 'nested/other.txt': 'hello' });
+  const entries = readZipEntries(zip);
+
+  assert.equal(entries.length, 2);
+  assert.equal(entries[0].contents.toString('utf8'), '{"ok":true}');
+  assert.equal(entries[1].name, 'nested/other.txt');
+});
+
+test('a corrupted archive is refused rather than partially read', () => {
+  // A long, highly compressible payload so the deflate stream is several bytes
+  // and a flip lands inside it. The uncompressed LENGTH still matches, so only
+  // the CRC can tell — without that check this returned altered bytes as evidence.
+  const name = 'vitest-report.json';
+  const zip = buildZip({ [name]: `{"testResults":[],"filler":"${'a'.repeat(4000)}"}` });
+  const payloadStart = 30 + Buffer.byteLength(name) + 4;
+
+  let refused = 0;
+  for (const offset of [0, 1, 2, 3]) {
+    const corrupt = Buffer.from(zip);
+    corrupt[payloadStart + offset] ^= 0xff;
+    try {
+      readZipEntries(corrupt);
+    } catch {
+      refused += 1;
+    }
+  }
+  assert.equal(refused, 4, 'a byte flip inside the payload was accepted');
+});
+
+test("an archive whose CRC disagrees with its payload is refused", () => {
+  // The control the byte-flip test could NOT provide. A flip inside a deflate
+  // stream makes inflate throw before the CRC is ever consulted, so that test
+  // passed with the CRC check deleted — it proved nothing about it. Here the
+  // payload inflates perfectly and only the recorded CRC is wrong, which is
+  // exactly the archive a truncated-then-repadded upload would produce.
+  const zip = buildZip({ 'vitest-report.json': '{"testResults":[]}' }, { corruptCrc: true });
+  assert.throws(() => readZipEntries(zip), /CORRUPT_ZIP: .*has CRC/);
+});
+
+test('a buffer that is not a ZIP at all is refused', () => {
+  assert.throws(() => readZipEntries(Buffer.from('not a zip, just bytes')), /NOT_A_ZIP/);
+});
+
+test('the artefact name carries the API-resolved commit, not one the caller typed', () => {
+  const check = { ...shippedCheck(), artifact: 'spine-test-evidence-{sha}' };
+  assert.equal(resolveArtifactName(check, REAL_SHA), `spine-test-evidence-${REAL_SHA}`);
+  assert.throws(() => resolveArtifactName(check, null), /ARTIFACT_NAME_UNBOUND/);
+  assert.throws(() => resolveArtifactName(check, 'HEAD'), /ARTIFACT_NAME_UNBOUND/);
+});
+
+test('AN ARTEFACT FROM ANOTHER RUN IS REFUSED, not graded', () => {
+  assert.throws(
+    () => resolveEvidenceArtifact({
+      check: shippedCheck(), repo: REPO, runId: RUN_ID, expectedSha: REAL_SHA,
+      lister: stubLister({ workflow_run: { id: 424242, head_sha: REAL_SHA } }),
+      downloader: stubDownloader(),
+    }),
+    /ARTIFACT_FOREIGN_RUN/,
+  );
+});
+
+test('an artefact produced on another commit is refused', () => {
+  assert.throws(
+    () => resolveEvidenceArtifact({
+      check: shippedCheck(), repo: REPO, runId: RUN_ID, expectedSha: REAL_SHA,
+      lister: stubLister({ workflow_run: { id: Number(RUN_ID), head_sha: OTHER_SHA } }),
+      downloader: stubDownloader(),
+    }),
+    /ARTIFACT_FOREIGN_SHA/,
+  );
+});
+
+test('an expired artefact is absent evidence, not empty evidence', () => {
+  assert.throws(
+    () => resolveEvidenceArtifact({
+      check: shippedCheck(), repo: REPO, runId: RUN_ID, expectedSha: REAL_SHA,
+      lister: stubLister({ expired: true }), downloader: stubDownloader(),
+    }),
+    /ARTIFACT_EXPIRED/,
+  );
+});
+
+test('a run that uploaded no evidence is a refusal, never a vacuous pass', () => {
+  assert.throws(
+    () => resolveEvidenceArtifact({
+      check: shippedCheck(), repo: REPO, runId: RUN_ID, expectedSha: REAL_SHA,
+      lister: () => ({ artifacts: [] }), downloader: stubDownloader(),
+    }),
+    /ARTIFACT_ABSENT/,
+  );
+});
+
+test('two artefacts of the same name cannot be silently disambiguated', () => {
+  const twice = () => ({
+    artifacts: [
+      { id: 1, name: ARTIFACT_NAME, expired: false, workflow_run: { id: Number(RUN_ID), head_sha: REAL_SHA } },
+      { id: 2, name: ARTIFACT_NAME, expired: false, workflow_run: { id: Number(RUN_ID), head_sha: REAL_SHA } },
+    ],
+  });
+  assert.throws(
+    () => resolveEvidenceArtifact({
+      check: shippedCheck(), repo: REPO, runId: RUN_ID, expectedSha: REAL_SHA,
+      lister: twice, downloader: stubDownloader(),
+    }),
+    /ARTIFACT_AMBIGUOUS/,
+  );
+});
+
+test('an artefact without the declared report entry is refused', () => {
+  assert.throws(
+    () => resolveEvidenceArtifact({
+      check: shippedCheck(), repo: REPO, runId: RUN_ID, expectedSha: REAL_SHA,
+      lister: stubLister(), downloader: () => buildZip({ 'something-else.json': '{}' }),
+    }),
+    /ARTIFACT_MISSING_REPORT/,
+  );
+});
+
+test('the report entry is found whether upload-artifact nested it or not', () => {
+  // Both layouts were observed in this repository's real artefacts and which one
+  // the spine artefact will take is not yet verified, so both must resolve.
+  for (const entry of ['vitest-report.json', 'packages/spine/vitest-report.json']) {
+    const fetched = resolveEvidenceArtifact({
+      check: shippedCheck(), repo: REPO, runId: RUN_ID, expectedSha: REAL_SHA,
+      lister: stubLister(), downloader: stubDownloader(SKIPPED_EVIDENCE, entry),
+    });
+    assert.ok(fetched.text.includes('testResults'), entry);
+  }
+});
+
+test('two entries answering to the same report name are refused, not picked between', () => {
+  assert.throws(
+    () => resolveEvidenceArtifact({
+      check: shippedCheck(), repo: REPO, runId: RUN_ID, expectedSha: REAL_SHA,
+      lister: stubLister(),
+      downloader: () => buildZip({
+        'vitest-report.json': '{"testResults":[]}',
+        'nested/vitest-report.json': '{"testResults":[]}',
+      }),
+    }),
+    /ARTIFACT_DUPLICATE_REPORT/,
+  );
+});
+
+test('a manifest check declaring no artifact or reportEntry cannot be gated', () => {
+  for (const field of ['artifact', 'reportEntry']) {
+    const broken = { ...MINIMAL_CHECK };
+    delete broken[field];
+    assert.throws(() => validateManifest({ checks: [broken] }), new RegExp(`declares no ${field}`));
+  }
+});
+
+test('the shipped manifest names the artefact ci.yml actually uploads', () => {
+  // Anti-stale: renaming the artefact in ci.yml without updating the manifest
+  // would leave the gate looking for something no run produces.
+  const check = shippedCheck();
+  const workflow = readFileSync(join(repositoryRoot, check.workflow), 'utf8');
+  const expected = check.artifact.split('{sha}').join('${{ github.sha }}');
+
+  assert.ok(workflow.includes(`name: ${expected}`), `ci.yml does not upload "${expected}"`);
+  assert.ok(workflow.includes(check.reportEntry), `ci.yml never mentions "${check.reportEntry}"`);
 });
