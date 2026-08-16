@@ -1255,9 +1255,22 @@ test('A LYING EOCD COUNT CANNOT HIDE A SECOND EVIDENCE MEMBER', () => {
   });
   assert.throws(() => readZipEntries(lying), /CORRUPT_ZIP: the central directory declares/u);
 
-  // The mirror case: a count that over-declares must not walk past the EOCD.
+  /*
+   * The mirror case: a count that over-declares must not walk past the EOCD.
+   *
+   * THE MATCHER IS SPECIFIC ON PURPOSE. This assertion read `/CORRUPT_ZIP/`,
+   * and round eight deleted `if (offset >= eocd)` and watched it still pass —
+   * the next central-header signature check threw a different CORRUPT_ZIP and
+   * satisfied the broad pattern. That is the third time in this file an
+   * assertion has been satisfied by the wrong refusal, so every ZIP assertion
+   * here now names the message it expects.
+   */
   const overCounted = buildZip(duplicated, { countOverride: 3 });
-  assert.throws(() => readZipEntries(overCounted), /CORRUPT_ZIP/u);
+  assert.throws(
+    () => readZipEntries(overCounted),
+    /the directory ended after/u,
+    'the over-count guard must be what refuses this, not a later signature check',
+  );
 });
 
 test('a count that leaves unread directory bytes is refused', () => {
@@ -1336,7 +1349,15 @@ test('THE OPERANDS ARE VALIDATED, not only the relation between them', () => {
     () => resolveEvidenceArtifact({
       ...base, runId: RUN_ID, expectedSha: REAL_SHA, expectedRunAttempt: '', lister: stubLister(),
     }),
+    /ARTIFACT_ATTEMPT_UNSHAPED/u,
+    'an empty attempt is present-but-unshaped',
+  );
+  assert.throws(
+    () => resolveEvidenceArtifact({
+      ...base, runId: RUN_ID, expectedSha: REAL_SHA, expectedRunAttempt: undefined, lister: stubLister(),
+    }),
     /ARTIFACT_ATTEMPT_UNBOUND/u,
+    'an ABSENT attempt keeps its own message — collapsing the two lost this guard once',
   );
   assert.throws(
     () => resolveEvidenceArtifact({
@@ -1467,9 +1488,12 @@ test('AN ENTRY MAY NOT RUN INTO THE CENTRAL DIRECTORY', () => {
   const zip = buildZip({ 'vitest-report.json': '{"a":1}' }, { stored: true });
   const overrun = Buffer.from(zip);
   const dataLength = '{"a":1}'.length;
-  // Inflate the declared compressed size past the directory boundary.
-  overrun.writeUInt32LE(dataLength + 64, 30 + Buffer.byteLength('vitest-report.json')
-    + dataLength + 20);
+  const nameLength = Buffer.byteLength('vitest-report.json');
+  // BOTH headers, or the local/central size-disagreement check refuses it first
+  // and this assertion passes without ever reaching the boundary rule — the
+  // same wrong-throw trap that has now caught three assertions in this file.
+  overrun.writeUInt32LE(dataLength + 64, 30 + nameLength + dataLength + 20); // central
+  overrun.writeUInt32LE(dataLength + 64, 18); // local
 
   assert.throws(() => readZipEntries(overrun), /extends into the central directory/u);
 });
@@ -1491,6 +1515,131 @@ test('EVERY ABSOLUTE SPELLING IS REFUSED, including the Windows one', () => {
     readZipEntries(buildZip({ 'report:2026.json': '{"a":1}' }))[0].name,
     'report:2026.json',
   );
+});
+
+// ---------------------------------------------------------------------------
+// ROUND TEN (codex, independent). Two classes, each already swept twice.
+// ---------------------------------------------------------------------------
+
+test('EVERY EXPORTED RESOLVER SHAPES ITS IDENTIFIERS, not just the one that was named', () => {
+  /*
+   * Round nine shaped the operands at `resolveEvidenceArtifact`. Round ten then
+   * called `resolveProvenance` — the sibling boundary doing the same job — with
+   * `repo: 'not/a/valid/repo'` and empty job/run/attempt ids, and got back an
+   * accepted record of `{jobId:"", runId:"", runAttempt:""}`. Two copies of one
+   * rule is one copy that will be missed, so both boundaries now share a helper.
+   */
+  const fetcher = () => ({
+    head_sha: REAL_SHA, run_id: '', run_attempt: '', conclusion: 'success', status: 'completed',
+  });
+  const base = {
+    check: shippedCheck(), expectedSha: REAL_SHA, fetcher,
+  };
+
+  assert.throws(
+    () => resolveProvenance({
+      ...base, repo: 'not/a/valid/repo', jobId: JOB_ID, expectedRunId: RUN_ID,
+      expectedRunAttempt: ATTEMPT,
+    }),
+    /INVALID_REPO/u,
+  );
+  for (const [field, code] of [
+    ['jobId', /PROVENANCE_JOB_UNSHAPED/u],
+    ['expectedRunId', /PROVENANCE_RUN_UNSHAPED/u],
+    ['expectedRunAttempt', /PROVENANCE_ATTEMPT_UNSHAPED/u],
+  ]) {
+    assert.throws(
+      () => resolveProvenance({
+        ...base,
+        repo: REPO,
+        jobId: JOB_ID,
+        expectedRunId: RUN_ID,
+        expectedRunAttempt: ATTEMPT,
+        [field]: '',
+      }),
+      code,
+      field,
+    );
+  }
+  assert.throws(
+    () => resolveProvenance({
+      ...base, repo: REPO, jobId: JOB_ID, expectedRunId: RUN_ID, expectedRunAttempt: ATTEMPT,
+      expectedSha: 'not-a-commit',
+    }),
+    /PROVENANCE_SHA_UNSHAPED/u,
+  );
+
+  // ABSENT is a different guarantee from UNSHAPED and keeps its own message.
+  // The harness proved the run-id half of it had no control at all: deleting
+  // `expectedRunId === undefined` left every test green, because every case
+  // above passes a value and only ever exercises the shaping branch.
+  assert.throws(
+    () => resolveProvenance({
+      ...base, repo: REPO, jobId: JOB_ID, expectedRunAttempt: ATTEMPT,
+    }),
+    /PROVENANCE_UNBOUND: expectedRunId is required/u,
+  );
+  assert.throws(
+    () => resolveProvenance({
+      ...base, repo: REPO, jobId: JOB_ID, expectedRunId: RUN_ID,
+    }),
+    /PROVENANCE_UNBOUND: expectedRunAttempt is required/u,
+  );
+});
+
+test('THE ARTEFACT ID IS AN ID, even through the injectable seam', () => {
+  // The default downloader validates it before building a URL. Round ten passed
+  // `id: 'not-an-id'` through the seam and got an accepted source record naming
+  // it — a guarantee that holds only for the default caller is a guarantee
+  // about that caller, not about this function.
+  assert.throws(
+    () => resolveEvidenceArtifact({
+      check: shippedCheck(), repo: REPO, runId: RUN_ID, expectedSha: REAL_SHA,
+      expectedRunAttempt: ATTEMPT, attemptFetcher: stubAttempt(),
+      lister: stubLister({ id: 'not-an-id' }),
+      downloader: stubDownloader(),
+    }),
+    /ARTIFACT_ARTIFACT_ID_UNSHAPED/u,
+  );
+});
+
+test('THE TWO HEADERS MUST AGREE ON EVERY FIELD THEY BOTH CARRY, not just the name', () => {
+  /*
+   * Round ten flipped ONLY the local header's compression method to stored
+   * while the central said deflate, and the archive was accepted: this reader
+   * follows the central copy, another reader follows the local one, and the two
+   * decode the same bytes to different content. Checking the name and stopping
+   * was the same instance-not-class mistake — the name is one of four
+   * duplicated fields, so the other three were unguarded.
+   */
+  const zip = buildZip({ 'vitest-report.json': '{"a":1}' });
+  const nameLength = Buffer.byteLength('vitest-report.json');
+
+  const fields = [
+    ['compression method', 8, 0, /compression method/u],
+    ['CRC', 14, 0xdeadbeef, /CRC/u],
+    ['compressed size', 18, 999, /compressed size/u],
+    ['uncompressed size', 22, 999, /uncompressed size/u],
+  ];
+  for (const [label, offset, value, pattern] of fields) {
+    const mutant = Buffer.from(zip);
+    if (offset === 8) mutant.writeUInt16LE(value, offset);
+    else mutant.writeUInt32LE(value, offset);
+    assert.throws(() => readZipEntries(mutant), pattern, label);
+  }
+
+  // The honest archive still reads, so the agreement check is not always-on.
+  assert.equal(readZipEntries(zip)[0].name, 'vitest-report.json');
+
+  // A STREAMED entry legitimately zeroes crc/sizes locally and sets flag bit 3.
+  // Refusing it would be over-firing on a construct the format allows.
+  const streamed = Buffer.from(zip);
+  streamed.writeUInt16LE(0x08, 6);
+  streamed.writeUInt32LE(0, 14);
+  streamed.writeUInt32LE(0, 18);
+  streamed.writeUInt32LE(0, 22);
+  assert.equal(readZipEntries(streamed)[0].name, 'vitest-report.json');
+  void nameLength;
 });
 
 test('A NEGATIVE FAILED-SUITE COUNT IS UNVERIFIABLE, never a pass', () => {

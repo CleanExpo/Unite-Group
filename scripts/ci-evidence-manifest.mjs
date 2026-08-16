@@ -524,6 +524,49 @@ export function ghJobFetcher(repo, jobId) {
  * emits; anything else is refused rather than guessed at. Verified against two
  * real artefacts from this repository before being wired in.
  */
+/**
+ * Every identifier an exported resolver compares must first BE an identifier.
+ *
+ * ONE HELPER, TWO BOUNDARIES, BECAUSE THE INSTANCE-BY-INSTANCE VERSION FAILED.
+ * Round eight shaped the operands at `resolveEvidenceArtifact`; round nine then
+ * called `resolveProvenance` — the sibling boundary, doing the same job — with
+ * `repo: 'not/a/valid/repo'` and empty job/run/attempt ids and got back an
+ * accepted provenance record of `{jobId:"", runId:"", runAttempt:""}`. Two
+ * copies of a rule is one copy that will be missed, so there is now one.
+ *
+ * Absent arguments are the CALLER's contract and stay where they are: each
+ * resolver has its own message about which argument it needs and why. This is
+ * only about whether the values that did arrive are identifiers at all.
+ */
+function assertShapedIdentity({
+  repo, jobId, expectedSha, expectedRunId, expectedRunAttempt, artifactId, prefix,
+}) {
+  if (repo !== undefined && !isValidRepo(repo)) {
+    throw new Error(`INVALID_REPO: "${repo}" is not owner/name.`);
+  }
+  const numeric = [
+    ['run id', expectedRunId, `${prefix}_RUN_UNSHAPED`],
+    ['attempt', expectedRunAttempt, `${prefix}_ATTEMPT_UNSHAPED`],
+    ['job id', jobId, `${prefix}_JOB_UNSHAPED`],
+    ['artefact id', artifactId, `${prefix}_ARTIFACT_ID_UNSHAPED`],
+  ];
+  for (const [label, value, code] of numeric) {
+    if (value === undefined) continue;
+    if (!NUMERIC_ID.test(String(value ?? ''))) {
+      throw new Error(
+        `${code}: "${value}" is not a numeric ${label}, so nothing it is compared against can `
+        + 'bind evidence to it.',
+      );
+    }
+  }
+  if (expectedSha !== undefined && expectedSha !== null && !SHA_PATTERN.test(String(expectedSha))) {
+    throw new Error(
+      `${prefix}_SHA_UNSHAPED: "${expectedSha}" is not a 40-hex commit, so evidence cannot be `
+      + 'bound to it.',
+    );
+  }
+}
+
 const ZIP64_SENTINEL_16 = 0xffff;
 const ZIP64_SENTINEL_32 = 0xffffffff;
 
@@ -675,6 +718,39 @@ export function readZipEntries(buffer) {
         + `calls it "${localName}".`,
       );
     }
+    /*
+     * EVERY FIELD THE TWO HEADERS BOTH CARRY MUST AGREE, not just the name.
+     *
+     * Round eight flipped ONLY the local header's compression method to stored
+     * while the central said deflate, and the archive was accepted — this
+     * reader follows the central copy, another reader follows the local one,
+     * and the two decode the same bytes to different content. Checking the name
+     * and stopping there was the same instance-not-class mistake as everywhere
+     * else in this file: the name is one of four duplicated fields, so the
+     * other three were unguarded.
+     */
+    const localMethod = zipUInt(buffer, localOffset + 8, 2, 'local method');
+    const localCrc = zipUInt(buffer, localOffset + 14, 4, 'local CRC');
+    const localCompressed = zipUInt(buffer, localOffset + 18, 4, 'local compressed size');
+    const localUncompressed = zipUInt(buffer, localOffset + 22, 4, 'local uncompressed size');
+    // A streamed entry legitimately zeroes crc/sizes in the local header and
+    // sets bit 3 of the general-purpose flags; anything else must match.
+    const localFlags = zipUInt(buffer, localOffset + 6, 2, 'local flags');
+    const streamed = (localFlags & 0x08) !== 0;
+    const disagreements = [
+      ['compression method', localMethod, method, true],
+      ['CRC', localCrc, expectedCrc, !streamed],
+      ['compressed size', localCompressed, compressedSize, !streamed],
+      ['uncompressed size', localUncompressed, uncompressedSize, !streamed],
+    ];
+    for (const [label, local, central, checked] of disagreements) {
+      if (checked && local !== central) {
+        throw new Error(
+          `CORRUPT_ZIP: "${name}" declares ${label} ${local} in its local header and `
+          + `${central} in the central directory; the two disagree about how to read it.`,
+        );
+      }
+    }
     const dataStart = localOffset + 30 + localNameLength + localExtraLength;
     const dataEnd = dataStart + compressedSize;
     if (dataEnd > buffer.length) {
@@ -822,28 +898,19 @@ export function resolveEvidenceArtifact({
    * holds for one caller is a guarantee about that caller. The boundary that
    * enforces a rule has to be the boundary that states it.
    */
-  if (!NUMERIC_ID.test(String(runId ?? ''))) {
+  // ABSENT is the caller's contract and keeps its own message; UNSHAPED is about
+  // the values that did arrive. Collapsing the two lost this refusal for one
+  // commit — `assertShapedIdentity` skips `undefined` by design, so replacing
+  // the inline block with it silently removed the absent-attempt guard.
+  if (expectedRunAttempt === undefined) {
     throw new Error(
-      `ARTIFACT_RUN_UNSHAPED: "${runId}" is not a numeric run id, so nothing it is compared `
-      + 'against can bind an artefact to a run.',
+      'ARTIFACT_ATTEMPT_UNBOUND: expectedRunAttempt is required. A re-run reuses the run id, '
+      + "so binding the run alone lets an earlier attempt's artefact stand in for a later one.",
     );
   }
-  if (!NUMERIC_ID.test(String(expectedRunAttempt ?? ''))) {
-    throw new Error(
-      `ARTIFACT_ATTEMPT_UNBOUND: expectedRunAttempt "${expectedRunAttempt}" is not a numeric `
-      + 'attempt. A re-run reuses the run id, so binding the run alone lets an earlier '
-      + "attempt's artefact stand in for a later one.",
-    );
-  }
-  if (expectedSha !== null && expectedSha !== undefined && !SHA_PATTERN.test(String(expectedSha))) {
-    throw new Error(
-      `ARTIFACT_SHA_UNSHAPED: "${expectedSha}" is not a 40-hex commit, so an artefact cannot `
-      + 'be bound to it.',
-    );
-  }
-  if (!isValidRepo(repo)) {
-    throw new Error(`INVALID_REPO: "${repo}" is not owner/name.`);
-  }
+  assertShapedIdentity({
+    repo, expectedSha, expectedRunId: runId, expectedRunAttempt, prefix: 'ARTIFACT',
+  });
   if (!check.artifact || !check.reportEntry) {
     throw new Error(
       `ARTIFACT_UNDECLARED: check "${check.id}" declares no artifact/reportEntry, so its `
@@ -870,6 +937,11 @@ export function resolveEvidenceArtifact({
   }
 
   const [artifact] = named;
+  // The artefact's OWN id, from the listing. The default downloader validates it
+  // before building a URL, but round nine passed `id: 'not-an-id'` through the
+  // injectable seam and got an accepted source record naming it — a guarantee
+  // that holds only for the default caller is a guarantee about that caller.
+  assertShapedIdentity({ artifactId: artifact.id, prefix: 'ARTIFACT' });
   if (artifact.expired === true) {
     throw new Error(
       `ARTIFACT_EXPIRED: "${artifactName}" from run ${runId} has expired. Expired evidence `
@@ -1056,6 +1128,19 @@ export function resolveProvenance({
       + "binding the run alone lets an earlier attempt's evidence stand in for a later one.",
     );
   }
+  /*
+   * SHAPED, NOT MERELY PRESENT — the same class as the artefact resolver, at the
+   * sibling boundary it was not applied to.
+   *
+   * Round eight called this with `repo: 'not/a/valid/repo'` and empty
+   * job/run/attempt ids, and a fetcher returning matching empty fields, and got
+   * an accepted provenance record of `{jobId:"", runId:"", runAttempt:""}`.
+   * Requiring a value and requiring an identifier are different requirements,
+   * and `'' !== undefined`.
+   */
+  assertShapedIdentity({
+    repo, jobId, expectedSha, expectedRunId, expectedRunAttempt, prefix: 'PROVENANCE',
+  });
   const job = fetcher(repo, jobId);
 
   const headSha = job?.head_sha;
