@@ -76,6 +76,44 @@ sync scripts read.
 the existing `prebuild` already reads `../../.portfolio` and `../../.claude`, and
 production builds succeed. So `../../scripts/` will resolve the same way.
 
+#### Measured in production, 16/08/2026
+
+`[VERIFIED]` **It works on `main`, which is where the production builds are.**
+The #1004 merge (`a1259dd`, 29 files, none under `apps/web`) logged
+`[ignore-build] SKIP — none of 29 changed file(s) affect apps/web`, followed by
+`The Deployment has been canceled as a result of running the command defined in
+the "Ignored Build Step" setting` (`dpl_njPPsQEf…`). A real production build was
+skipped. The control is not a no-op.
+
+`[VERIFIED]` **It fails open on the FIRST push after a branch is restarted.**
+`dpl_3b2M2eh…` logged `BUILD — previous commit 5bdf89c7 is not in this shallow
+clone`, and `dpl_Gg68RQC…` (this document's own PR) logged the same for
+`6e763f0d`.
+
+`[VERIFIED]` **The very next push on the same branch skipped, on both
+projects.** `dpl_kdknr44…` (`unite-group`) logged `SKIP — none of 1 changed
+file(s) affect apps/web`, and `unite-group-sandbox` reported `Ignored` for the
+same commit. So preview builds are protected too; only the first push after a
+restart misses, because that is the only push whose predecessor sits on
+discarded history.
+
+`[INFERENCE]` Both misses share one cause, and it is a workflow artefact rather
+than a defect in the check. `VERCEL_GIT_PREVIOUS_SHA` is the last *deployed*
+commit on that branch name. After each merge this branch is restarted from
+`main` (`git checkout -B <branch> origin/main`), so the previously deployed
+commit sits on orphaned history and cannot be in a shallow clone of the new
+head. Pushes to `main` do not have this shape — there the previous deployment is
+a genuine ancestor, which is why the `main` case skips correctly.
+
+`[UNCONFIRMED]` A fallback baseline would recover these. The obvious candidate —
+diff against `HEAD^` when the previous SHA is missing — is **rejected**: a push
+carrying more than one commit would then be judged on its last commit alone, and
+an earlier commit touching `apps/web` would be silently skipped. That is exactly
+the stale-production failure the fail-open rule exists to prevent. A safe
+fallback needs the merge-base with the production branch, which needs a deeper
+clone than Vercel currently makes — a project setting, not a script change. Left
+alone deliberately; the cost is a needless preview build on restarted branches.
+
 ### 2b. Cron invocations — the recurring cost
 
 Run `npm run cron:audit` for the live figures.
@@ -92,6 +130,11 @@ arithmetic. **A 51.5% reduction — 13,680 invocations/month removed.**
 read from a Vercel bill. It is exact arithmetic over the schedule, but it is a
 projection of invocation COUNT, not a measured charge. Confirm against live
 usage after a full billing period.
+
+> **Both figures are per-project, and the schedule runs on two projects.**
+> Across `unite-group` and `unite-group-sandbox` the real totals are ~53,000/month
+> before and ~25,758/month after. See §2c — that duplication is a larger lever
+> than the schedule change documented here.
 
 | Path | Before | After | Per month |
 |---|---|---|---|
@@ -160,6 +203,58 @@ caught before it runs for a month.
 `[VERIFIED]` Every configured cron path resolves to a real route file — there
 are no scheduled 404s. Asserted by `scripts/__tests__/cron-cost-audit.test.mjs`.
 
+### 2c. Everything above is billed TWICE — `unite-group-sandbox`
+
+`[VERIFIED]` Two Vercel projects build from `CleanExpo/Unite-Group` and both
+treat `main` as their **production** branch: `unite-group`
+(`prj_IfUuJNLjXTE8VXqEGwLAleIGhiA0`) and `unite-group-sandbox`
+(`prj_NigC5gA17UvX46n7YBUYSxM1vOh9`). The last 20 deployments on each match
+pair-for-pair, same commit SHAs, seconds apart — e.g. `#1006`'s merge commit
+`0a2d3bf` produced `dpl_AfEe9zx…` at `1786840309475` and `dpl_2u1iWe5…` at
+`1786840309692`, 217 ms apart, both `target: "production"`.
+
+`[VERIFIED]` The duplicate is not idle. Vercel runtime logs for
+`unite-group-sandbox`, production environment, last 24 h: **879 cron requests,
+869 of them HTTP 200**, with per-path counts identical to the live project —
+`video-status` 285, `social-publisher` / `synthex-monitor` / `drip-process` /
+`brand-video-dispatch` 96 each, `os-health-rollup` 95, `engagement-monitor` and
+`linear-queue-health` 47 each, plus every daily cron once.
+
+`[INFERENCE]` **Every figure in §2b is therefore half the real number.** The
+cron total for this repo is ~25,758 invocations/month across the two projects,
+not ~12,879, and the pre-change figure was ~53,000, not ~26,559. Likewise every
+build in §2a is paid for twice — build execution and the ~519 MB cache upload
+alike. The `ignoreCommand` does apply to both, so the skip logic is not lost.
+
+`[VERIFIED]` **It also writes to production data.** `unite-group-sandbox`'s
+`bookkeeper` cron logged `Starting nightly run for founder
+c3f32c79-0d4a-4607-a906-ba8ca08e83b6`, completed in 6,111 ms, recorded a run
+(`runId 09c5f41a-…`) and emitted a `bookkeeper_summary` notification. That is
+the real founder against the real database, from a second deployment. The
+`social-publisher` claim-then-finalise hazard in §2b is materially worse under
+two concurrent workers selecting the same `status = 'scheduled'` rows.
+
+`[VERIFIED]` One route does fail closed there: `strategy-daily` returns 500 on
+all seven businesses with `authentication_error / Invalid authentication
+credentials` from the Anthropic API, so the duplicate is **not** doubling AI
+spend on that route. `[INFERENCE]` The project holds a stale `ANTHROPIC_API_KEY`.
+
+`[UNCONFIRMED]` Whether `unite-group-sandbox` serves any purpose. It has its own
+`unite-group-sandbox.vercel.app` domain but deploys `main`, not a sandbox
+branch, so it is a second copy of production rather than a staging surface.
+Changing or removing a Vercel project needs the runbook gates and Phill's typed
+approval, so nothing has been altered.
+
+`[INFERENCE]` The reversible fix, cheapest first: repoint the project's
+production branch away from `main` (crons only run on production deployments,
+so they stop), or disconnect its Git integration, before considering deletion.
+
+`[UNCONFIRMED]` Five other `*-sandbox` projects exist on the team
+(`ccw-crm-sandbox`, `synthex-sandbox`, `dr-nrpg-sandbox`,
+`restoreassist-sandbox`, `dimitri-itr-sandbox`). Whether they carry the same
+duplicate-production wiring has not been checked — their repos are outside this
+session's scope.
+
 ## 3. Pre-testing PRs locally
 
 `npm run preflight` runs the CI gates your diff actually trips, on your own
@@ -206,7 +301,53 @@ pre-existing and unrelated to this change. `[UNCONFIRMED]` The cause is likely
 running as root in a container affecting the symlink/permission assertions;
 that has not been confirmed and they pass in CI.
 
-`[UNCONFIRMED]` There are 21 Vercel projects on the `unite-group` team,
-including six `*-sandbox` projects. Idle projects do not bill for builds, but
-any carrying their own crons or ISR would. Not audited here — `cron:audit`
-currently covers `apps/web` only.
+`[VERIFIED]` There are 21 Vercel projects on the `unite-group` team, including
+six `*-sandbox` projects. One of them — `unite-group-sandbox` — is the duplicate
+production deployment documented in §2c. `unite-hub`
+(`prj_itIVI65mEaKlCtCnkjyrDq7k3Mvu`) has `latestDeployment: null` and no
+domains: genuinely idle, so it bills nothing, but it is registry noise.
+`[UNCONFIRMED]` The remaining projects have not been checked for their own crons
+or ISR. `cron:audit` reads `apps/web/vercel.json` only, so it cannot see a cron
+belonging to another project.
+
+`[VERIFIED]` `apps/web/.portfolio/PORTFOLIO.yaml` has drifted from live Vercel
+state: it records `unite-hub` as `prj_y8hsRwhZHe6ewe6wCbwMbBYx20yp` and
+`carsi-web` as `prj_hIQAdXiHQGGec6nNKEGzn7SyMh9p`; the live IDs are
+`prj_itIVI65mEaKlCtCnkjyrDq7k3Mvu` and `prj_Z1kVQZBIhFAR4JrGZ6rMrJ5zKvNF`. It
+also lists `ato-app-sandbox`, `carsi-web-sandbox`, `pi-dev-ops-sandbox` and
+`disaster-recovery-sandbox`, none of which exist on the team today. Not a cost
+in itself — a reason not to trust the registry when sizing one.
+
+## 5. AI spend — currently unmeasurable
+
+`[VERIFIED]` Nothing in this codebase can report what the Claude API actually
+costs. `apps/web/src/lib/ai/cost-tracker.ts` accumulates into a module-level
+`const usageMap = new Map<string, UsageEntry>()`, which does not survive a
+serverless invocation, and `/api/cron/cost-ingest` returns `{ dormant: true }`
+while `COST_METERING_ENABLED` is unset, with `COST_FETCHERS` empty.
+
+`[INFERENCE]` Every AI cost statement below is therefore sized from
+configuration — model, `max_tokens`, call frequency — not from a bill. Arming
+metering is the prerequisite for any AI cost decision worth making.
+
+`[VERIFIED]` The largest identifiable recurring lever is `strategy-daily`.
+`apps/web/src/lib/strategy/daily-analysis.ts:107` requests
+`ANTHROPIC_MODELS.OPUS` (`claude-opus-4-8`) with `max_tokens: 16000` and
+`thinking: { type: 'adaptive' }`, and `vercel.json` schedules it seven times a
+day, one per business — **210 Opus calls/month**.
+
+`[VERIFIED]` Anthropic list pricing, per million tokens: Opus 5 and Opus 4.8
+$5 in / $25 out; Sonnet 5 $3 / $15 ($2 / $10 introductory through 31/08/2026);
+Haiku 4.5 $1 / $5. Verified live 16/08/2026 — https://claude.com/pricing
+
+`[UNCONFIRMED]` Whether Sonnet 5 is sufficient for daily strategy analysis is a
+product judgement, not a cost one, and is left to the founder. No model has been
+changed.
+
+`[VERIFIED]` The coaches are already tuned and are **not** a lever: all four in
+`apps/web/src/lib/coaches/types.ts` use `ANTHROPIC_MODELS.HAIKU` with
+`maxTokens` between 1000 and 1500.
+
+`[VERIFIED]` The Opus `coach` capability (12k tokens, adaptive thinking) is
+called by `/api/coaches/ask` — on demand from the UI, not by a cron — so it is
+not recurring scheduled spend.
