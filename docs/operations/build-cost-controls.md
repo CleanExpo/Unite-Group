@@ -93,6 +93,11 @@ read from a Vercel bill. It is exact arithmetic over the schedule, but it is a
 projection of invocation COUNT, not a measured charge. Confirm against live
 usage after a full billing period.
 
+> **Both figures are per-project, and the schedule runs on two projects.**
+> Across `unite-group` and `unite-group-sandbox` the real totals are ~53,000/month
+> before and ~25,758/month after. See §2c — that duplication is a larger lever
+> than the schedule change documented here.
+
 | Path | Before | After | Per month |
 |---|---|---|---|
 | `/api/cron/video-status` | `*/5` | `*/15` | 8,640 → 2,880 |
@@ -160,6 +165,58 @@ caught before it runs for a month.
 `[VERIFIED]` Every configured cron path resolves to a real route file — there
 are no scheduled 404s. Asserted by `scripts/__tests__/cron-cost-audit.test.mjs`.
 
+### 2c. Everything above is billed TWICE — `unite-group-sandbox`
+
+`[VERIFIED]` Two Vercel projects build from `CleanExpo/Unite-Group` and both
+treat `main` as their **production** branch: `unite-group`
+(`prj_IfUuJNLjXTE8VXqEGwLAleIGhiA0`) and `unite-group-sandbox`
+(`prj_NigC5gA17UvX46n7YBUYSxM1vOh9`). The last 20 deployments on each match
+pair-for-pair, same commit SHAs, seconds apart — e.g. `#1006`'s merge commit
+`0a2d3bf` produced `dpl_AfEe9zx…` at `1786840309475` and `dpl_2u1iWe5…` at
+`1786840309692`, 217 ms apart, both `target: "production"`.
+
+`[VERIFIED]` The duplicate is not idle. Vercel runtime logs for
+`unite-group-sandbox`, production environment, last 24 h: **879 cron requests,
+869 of them HTTP 200**, with per-path counts identical to the live project —
+`video-status` 285, `social-publisher` / `synthex-monitor` / `drip-process` /
+`brand-video-dispatch` 96 each, `os-health-rollup` 95, `engagement-monitor` and
+`linear-queue-health` 47 each, plus every daily cron once.
+
+`[INFERENCE]` **Every figure in §2b is therefore half the real number.** The
+cron total for this repo is ~25,758 invocations/month across the two projects,
+not ~12,879, and the pre-change figure was ~53,000, not ~26,559. Likewise every
+build in §2a is paid for twice — build execution and the ~519 MB cache upload
+alike. The `ignoreCommand` does apply to both, so the skip logic is not lost.
+
+`[VERIFIED]` **It also writes to production data.** `unite-group-sandbox`'s
+`bookkeeper` cron logged `Starting nightly run for founder
+c3f32c79-0d4a-4607-a906-ba8ca08e83b6`, completed in 6,111 ms, recorded a run
+(`runId 09c5f41a-…`) and emitted a `bookkeeper_summary` notification. That is
+the real founder against the real database, from a second deployment. The
+`social-publisher` claim-then-finalise hazard in §2b is materially worse under
+two concurrent workers selecting the same `status = 'scheduled'` rows.
+
+`[VERIFIED]` One route does fail closed there: `strategy-daily` returns 500 on
+all seven businesses with `authentication_error / Invalid authentication
+credentials` from the Anthropic API, so the duplicate is **not** doubling AI
+spend on that route. `[INFERENCE]` The project holds a stale `ANTHROPIC_API_KEY`.
+
+`[UNCONFIRMED]` Whether `unite-group-sandbox` serves any purpose. It has its own
+`unite-group-sandbox.vercel.app` domain but deploys `main`, not a sandbox
+branch, so it is a second copy of production rather than a staging surface.
+Changing or removing a Vercel project needs the runbook gates and Phill's typed
+approval, so nothing has been altered.
+
+`[INFERENCE]` The reversible fix, cheapest first: repoint the project's
+production branch away from `main` (crons only run on production deployments,
+so they stop), or disconnect its Git integration, before considering deletion.
+
+`[UNCONFIRMED]` Five other `*-sandbox` projects exist on the team
+(`ccw-crm-sandbox`, `synthex-sandbox`, `dr-nrpg-sandbox`,
+`restoreassist-sandbox`, `dimitri-itr-sandbox`). Whether they carry the same
+duplicate-production wiring has not been checked — their repos are outside this
+session's scope.
+
 ## 3. Pre-testing PRs locally
 
 `npm run preflight` runs the CI gates your diff actually trips, on your own
@@ -206,7 +263,53 @@ pre-existing and unrelated to this change. `[UNCONFIRMED]` The cause is likely
 running as root in a container affecting the symlink/permission assertions;
 that has not been confirmed and they pass in CI.
 
-`[UNCONFIRMED]` There are 21 Vercel projects on the `unite-group` team,
-including six `*-sandbox` projects. Idle projects do not bill for builds, but
-any carrying their own crons or ISR would. Not audited here — `cron:audit`
-currently covers `apps/web` only.
+`[VERIFIED]` There are 21 Vercel projects on the `unite-group` team, including
+six `*-sandbox` projects. One of them — `unite-group-sandbox` — is the duplicate
+production deployment documented in §2c. `unite-hub`
+(`prj_itIVI65mEaKlCtCnkjyrDq7k3Mvu`) has `latestDeployment: null` and no
+domains: genuinely idle, so it bills nothing, but it is registry noise.
+`[UNCONFIRMED]` The remaining projects have not been checked for their own crons
+or ISR. `cron:audit` reads `apps/web/vercel.json` only, so it cannot see a cron
+belonging to another project.
+
+`[VERIFIED]` `apps/web/.portfolio/PORTFOLIO.yaml` has drifted from live Vercel
+state: it records `unite-hub` as `prj_y8hsRwhZHe6ewe6wCbwMbBYx20yp` and
+`carsi-web` as `prj_hIQAdXiHQGGec6nNKEGzn7SyMh9p`; the live IDs are
+`prj_itIVI65mEaKlCtCnkjyrDq7k3Mvu` and `prj_Z1kVQZBIhFAR4JrGZ6rMrJ5zKvNF`. It
+also lists `ato-app-sandbox`, `carsi-web-sandbox`, `pi-dev-ops-sandbox` and
+`disaster-recovery-sandbox`, none of which exist on the team today. Not a cost
+in itself — a reason not to trust the registry when sizing one.
+
+## 5. AI spend — currently unmeasurable
+
+`[VERIFIED]` Nothing in this codebase can report what the Claude API actually
+costs. `apps/web/src/lib/ai/cost-tracker.ts` accumulates into a module-level
+`const usageMap = new Map<string, UsageEntry>()`, which does not survive a
+serverless invocation, and `/api/cron/cost-ingest` returns `{ dormant: true }`
+while `COST_METERING_ENABLED` is unset, with `COST_FETCHERS` empty.
+
+`[INFERENCE]` Every AI cost statement below is therefore sized from
+configuration — model, `max_tokens`, call frequency — not from a bill. Arming
+metering is the prerequisite for any AI cost decision worth making.
+
+`[VERIFIED]` The largest identifiable recurring lever is `strategy-daily`.
+`apps/web/src/lib/strategy/daily-analysis.ts:107` requests
+`ANTHROPIC_MODELS.OPUS` (`claude-opus-4-8`) with `max_tokens: 16000` and
+`thinking: { type: 'adaptive' }`, and `vercel.json` schedules it seven times a
+day, one per business — **210 Opus calls/month**.
+
+`[VERIFIED]` Anthropic list pricing, per million tokens: Opus 5 and Opus 4.8
+$5 in / $25 out; Sonnet 5 $3 / $15 ($2 / $10 introductory through 31/08/2026);
+Haiku 4.5 $1 / $5. Verified live 16/08/2026 — https://claude.com/pricing
+
+`[UNCONFIRMED]` Whether Sonnet 5 is sufficient for daily strategy analysis is a
+product judgement, not a cost one, and is left to the founder. No model has been
+changed.
+
+`[VERIFIED]` The coaches are already tuned and are **not** a lever: all four in
+`apps/web/src/lib/coaches/types.ts` use `ANTHROPIC_MODELS.HAIKU` with
+`maxTokens` between 1000 and 1500.
+
+`[VERIFIED]` The Opus `coach` capability (12k tokens, adaptive thinking) is
+called by `/api/coaches/ask` — on demand from the UI, not by a cron — so it is
+not recurring scheduled spend.

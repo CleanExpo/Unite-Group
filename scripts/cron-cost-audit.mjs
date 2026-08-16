@@ -158,6 +158,12 @@ console.log('─'.repeat(96));
 console.log(`${crons.length} cron jobs`);
 console.log(`TOTAL: ~${Math.round(totalPerDay)} invocations/day  ·  ~${totalPerMonth.toLocaleString()}/month`);
 console.log('');
+console.log('PER PROJECT, NOT PER REPO. This reads one vercel.json and cannot see how many');
+console.log('Vercel projects deploy it. On 16/08/2026 two did — `unite-group` and');
+console.log('`unite-group-sandbox`, both with `main` as their production branch — so the');
+console.log('real spend was double the number above, and the audit had no way to say so.');
+console.log('Check the project list before quoting this total. See docs/operations/build-cost-controls.md §2c.');
+console.log('');
 
 // ── Where the volume actually is ─────────────────────────────────────────────
 const subHourlyPerMonth = Math.round(subHourly.reduce((n, r) => n + r.perDay, 0) * 30);
