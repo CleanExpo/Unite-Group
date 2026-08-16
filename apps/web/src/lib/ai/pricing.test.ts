@@ -139,14 +139,25 @@ describe('prompt-cache pricing', () => {
   });
 
   it('sums base, cache read and cache write on one call', () => {
-    // 100k in ($0.50) + 10k out ($0.25) + 1M cache read ($0.50) = $1.25
+    // The first version of this test was named for three components and passed
+    // only two, so it would have passed even if cache writes were dropped from
+    // the sum entirely. Caught in review on PR #1009 — the third test in this
+    // change whose name claimed more than it exercised.
+    //
+    // Opus at $5/$25:
+    //   100k in           0.100 * 5           = $0.50
+    //    10k out          0.010 * 25          = $0.25
+    //     1M cache read   1 * 5 * 0.1         = $0.50
+    //     1M cache write  1 * 5 * 1.25        = $6.25
+    //                                   TOTAL = $7.50
     const priced = priceUsage({
       model: 'claude-opus-4-8',
       inputTokens: 100_000,
       outputTokens: 10_000,
       cacheReadTokens: 1_000_000,
+      cacheWriteTokens: 1_000_000,
     });
-    expect(priced?.costUsd).toBeCloseTo(1.25, 6);
+    expect(priced?.costUsd).toBeCloseTo(7.5, 6);
   });
 
   it('treats absent cache fields as zero, not NaN', () => {

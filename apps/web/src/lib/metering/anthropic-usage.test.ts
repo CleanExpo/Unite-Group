@@ -13,7 +13,11 @@ import { aggregateUsageRows, fetchAnthropicUsage } from './fetchers/anthropic';
 
 const period = { start: '2026-08-01', end: '2026-08-31' };
 
+let seq = 0;
 const row = (over: Partial<Parameters<typeof aggregateUsageRows>[0][number]> = {}) => ({
+  // Distinct by default: these fixtures represent SEPARATE calls, and a shared
+  // id would now be deduped and silently halve every count below.
+  request_id: `msg_${++seq}`,
   task_type: 'strategy-daily',
   model_id: 'claude-opus-4-8',
   tokens_input: 1_000,
@@ -78,6 +82,39 @@ describe('aggregateUsageRows', () => {
     );
     expect(lines[0].inputTokens).toBe(0);
     expect(lines[0].amountUsd).toBe(0);
+  });
+
+  it('counts a repeated request_id only once', () => {
+    // ai_usage_logs has no unique constraint on request_id, and this aggregation
+    // SUMS cost_usd — so without read-side dedupe a double-recorded response
+    // would inflate the ledger rather than be caught. Raised in review on #1009.
+    const lines = aggregateUsageRows(
+      [row({ request_id: 'msg_dup' }), row({ request_id: 'msg_dup' })],
+      period,
+    );
+    expect(lines[0].calls).toBe(1);
+    expect(lines[0].inputTokens).toBe(1_000);
+    expect(lines[0].amountUsd).toBeCloseTo(0.0175, 6);
+  });
+
+  it('still counts every row when request_id is null', () => {
+    // A null id means the id was unavailable at record time, NOT that the rows
+    // are duplicates. Collapsing them would undercount — the opposite failure,
+    // and the one this whole feature exists to prevent.
+    const lines = aggregateUsageRows(
+      [row({ request_id: null }), row({ request_id: null }), row({ request_id: null })],
+      period,
+    );
+    expect(lines[0].calls).toBe(3);
+    expect(lines[0].inputTokens).toBe(3_000);
+  });
+
+  it('dedupes across page boundaries, not just within a page', () => {
+    // The rows arrive already concatenated from several pages, so the seen-set
+    // must span the whole period rather than reset per page.
+    const dup = () => row({ request_id: 'msg_same' });
+    const lines = aggregateUsageRows([dup(), row(), dup(), row(), dup()], period);
+    expect(lines[0].calls).toBe(3); // 1 deduped + 2 distinct
   });
 
   it('returns nothing for no rows', () => {
@@ -148,7 +185,8 @@ describe('fetchAnthropicUsage — pagination safety', () => {
     // multi-page test below. The original comment here claimed to cover the
     // boundary and did not.
     vi.resetModules();
-    const tie = Array.from({ length: 3 }, () => ({
+    const tie = Array.from({ length: 3 }, (_, i) => ({
+      request_id: `msg_tie_${i}`,
       task_type: 'coach',
       model_id: 'claude-haiku-4-5-20251001',
       tokens_input: 100,
@@ -173,7 +211,9 @@ describe('fetchAnthropicUsage — pagination safety', () => {
     // were never executed — the pagination this fetcher exists for was, in
     // effect, untested. A first FULL page forces a second round-trip.
     vi.resetModules();
+    let n = 0;
     const mk = () => ({
+      request_id: `msg_page_${++n}`,
       task_type: 'coach',
       model_id: 'claude-haiku-4-5-20251001',
       tokens_input: 100,
