@@ -228,7 +228,7 @@ alike. The `ignoreCommand` does apply to both, so the skip logic is not lost.
 
 `[VERIFIED]` **It also writes to production data.** `unite-group-sandbox`'s
 `bookkeeper` cron logged `Starting nightly run for founder
-c3f32c79-0d4a-4607-a906-ba8ca08e83b6`, completed in 6,111 ms, recorded a run
+c3f32c79-…`, completed in 6,111 ms, recorded a run
 (`runId 09c5f41a-…`) and emitted a `bookkeeper_summary` notification. That is
 the real founder against the real database, from a second deployment. The
 `social-publisher` claim-then-finalise hazard in §2b is materially worse under

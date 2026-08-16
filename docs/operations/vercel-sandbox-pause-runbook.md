@@ -22,10 +22,15 @@ directory `apps/web`. Full evidence in
 
 `[VERIFIED]` It is not idle. Vercel runtime logs, production, 16/08/2026:
 
-| Window | Cron invocations |
+| Window | Requests to cron paths |
 |---|---|
 | Last 2 h | 34 |
 | Last 24 h | 879 (869 × HTTP 200) |
+
+Labelled precisely: these are requests to `/api/cron/*`, which is what the tool
+can measure (see the caveat in §6). Nothing but Vercel's scheduler calls those
+paths on this project, and the counts match the schedules exactly, so they are
+cron invocations in practice — but the measurement is of path traffic.
 
 `[VERIFIED]` It tracks `main` live. The 2-hour counts match the **post-#1006**
 schedules exactly — `video-status` and `social-publisher` 8 each (`*/15`),
@@ -34,7 +39,7 @@ schedules exactly — `video-status` and `social-publisher` 8 each (`*/15`),
 (hourly). It redeployed after #1006 merged and is running current code.
 
 `[VERIFIED]` It writes to the production database. Its `bookkeeper` cron logged
-`Starting nightly run for founder c3f32c79-0d4a-4607-a906-ba8ca08e83b6`,
+`Starting nightly run for founder c3f32c79-…`,
 completed in 6,111 ms, recorded `runId 09c5f41a-…` and emitted a
 `bookkeeper_summary` notification.
 
@@ -100,7 +105,7 @@ to keep waiting.
   than trusting this one** — it moved underneath this document while it was
   being written:
 
-  ```
+  ```text
   Vercel MCP → get_project
     projectId: prj_NigC5gA17UvX46n7YBUYSxM1vOh9
     teamId:    team_KMZACI5rIltoCRhAtGCXlxUf
@@ -137,7 +142,10 @@ to keep waiting.
 ## 4. Gate — all must be true before executing
 
 - [ ] Phill present and executing, or explicitly supervising
-- [ ] Nobody is using `unite-group-sandbox.vercel.app` as a working preview URL
+- [ ] Nobody is using **any** domain returned by the live `get_project` lookup
+      in §3 as a working URL (not just the bare `unite-group-sandbox.vercel.app`
+      — the list has already changed once, and gating only the domain you
+      remember is how you interrupt someone on one of the others)
 - [ ] The `/auth/login` traffic above is accounted for (a bot or a stale
       bookmark is fine; an active human workflow is not)
 - [ ] Domain list re-read live per §3, and no external monitor, uptime check,
@@ -163,18 +171,54 @@ confirming. `unite-group` is one row away and is production.
 REST equivalent, if you would rather script it:
 
 ```bash
-# Pausing the WRONG project takes production down. Echo it first.
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Pausing the WRONG project takes production down.
 PROJECT_ID=prj_NigC5gA17UvX46n7YBUYSxM1vOh9   # unite-group-sandbox
 TEAM_ID=team_KMZACI5rIltoCRhAtGCXlxUf
+: "${VERCEL_TOKEN:?VERCEL_TOKEN must be set}"
 
-curl --request POST \
+# 1. Prove the ID is the sandbox BEFORE mutating anything.
+name=$(curl --fail-with-body --silent --show-error \
+  --connect-timeout 10 --max-time 30 \
+  --url "https://api.vercel.com/v9/projects/${PROJECT_ID}?teamId=${TEAM_ID}" \
+  --header "Authorization: Bearer ${VERCEL_TOKEN}" | jq -r '.name')
+[ "$name" = "unite-group-sandbox" ] || { echo "REFUSING: ${PROJECT_ID} is '${name}'"; exit 1; }
+
+# 2. Pause. --fail-with-body turns any non-2xx into a non-zero exit.
+curl --fail-with-body --silent --show-error \
+  --connect-timeout 10 --max-time 30 \
+  --request POST \
   --url "https://api.vercel.com/v1/projects/${PROJECT_ID}/pause?teamId=${TEAM_ID}" \
-  --header "Authorization: Bearer $VERCEL_TOKEN"
+  --header "Authorization: Bearer ${VERCEL_TOKEN}" \
+  --header "Content-Type: application/json"
+
+# 3. Confirm the STATE, not the response body. A 200 with an empty body is
+#    indistinguishable from several failure modes; `paused` is the ground truth.
+curl --fail-with-body --silent --show-error \
+  --connect-timeout 10 --max-time 30 \
+  --url "https://api.vercel.com/v9/projects/${PROJECT_ID}?teamId=${TEAM_ID}" \
+  --header "Authorization: Bearer ${VERCEL_TOKEN}" \
+  | jq '{id, name, paused, live}'
 ```
 
-Expected: HTTP 200, empty body.
+**Do not record the decision until step 3 prints `"name": "unite-group-sandbox"`
+and `"paused": true`.** The pause endpoint returns an empty body on success, and
+an empty body is also what a silently failed request looks like — so the empty
+body proves nothing on its own. `[VERIFIED]` `GET /v9/projects/{id}` exposes a
+`paused` boolean; that is the check that actually confirms the mutation landed.
 
-Record in the decision log: `[16/08/2026] DECISION: paused Vercel project
+`[UNCONFIRMED]` The Vercel MCP's `get_project` returns a trimmed object
+(`id`, `name`, `framework`, `live`, `latestDeployment`, `domains`) with **no
+`paused` field** in the responses observed on 16/08/2026, and `live` was already
+`false` on BOTH projects while neither was paused — so **`live` is not a pause
+indicator**. Read `paused` from the REST endpoint above, or from the dashboard,
+not from the MCP.
+
+Record in the decision log only after that confirmation, stamping the real
+execution time rather than the date this runbook was written:
+`[<DD/MM/YYYY HH:MM AEST/AEDT>] DECISION: paused Vercel project
 unite-group-sandbox | REASON: duplicate production deployment of
 CleanExpo/Unite-Group — ~12,879 duplicate cron invocations/month and a second
 writer racing social_posts | ALTERNATIVES REJECTED: repoint production branch
@@ -186,9 +230,31 @@ billed), hard delete (premature — D7 after soak)`.
 Wait **70 minutes** after pausing so that at least one hourly schedule and four
 `*/15` schedules would have fired.
 
+**6-zero. The state check is step 3 of §5**, and it is the strongest evidence
+available: `"paused": true` on the sandbox project. Everything below corroborates
+that the *consequence* followed. If step 3 did not print `paused: true`, stop —
+there is nothing to verify yet.
+
+> **What the log queries below can and cannot prove.** `group_by: requestPath`
+> counts **every** request to a path, not only cron-triggered ones. Vercel does
+> tag cron invocations (`User-Agent: vercel-cron/1.0`, an
+> `x-vercel-cron-schedule` header, and `requestType: cron` in the dashboard log
+> filters), but `[VERIFIED]` the MCP `get_runtime_logs` tool exposes none of
+> them: its filters are `environment`, `level`, `statusCode`, `source`,
+> `requestId` and a full-text `query`, and a `query: "vercel-cron"` over a
+> 2-hour window in which crons demonstrably fired returned **"No logs found"** —
+> the full-text search covers log bodies, not request headers.
+>
+> So treat a path count as *traffic to a cron path*, not as proof of a cron
+> invocation. That asymmetry is fine for 6a, where **zero** traffic is
+> conclusive, and weak for 6b, where non-zero traffic is only strong evidence
+> because nothing but Vercel's scheduler calls `/api/cron/*` on this project.
+> For a decisive 6b, use the dashboard's Cron Jobs page (Project → Settings →
+> Cron Jobs → View Logs), which applies the real cron filter.
+
 **6a. The duplicate has stopped.** Expect an empty result, or non-cron paths only:
 
-```
+```text
 Vercel MCP → get_runtime_logs
   projectId: prj_NigC5gA17UvX46n7YBUYSxM1vOh9
   teamId:    team_KMZACI5rIltoCRhAtGCXlxUf
@@ -197,14 +263,16 @@ Vercel MCP → get_runtime_logs
   group_by: requestPath
 ```
 
-Baseline for comparison — the same query returned **34 cron invocations over
-2 h** on 16/08/2026 before the pause.
+Baseline for comparison — the same query returned **34 requests to cron paths
+over 2 h** on 16/08/2026 before the pause. Keep the window (`since: 1h`) shorter
+than the elapsed time since the pause, or it will include pre-pause traffic and
+look like a failure.
 
 **6b. NEGATIVE CONTROL — the live project still runs.** This is the step that
 catches "paused the wrong project", and a green 6a alone cannot distinguish the
 two outcomes:
 
-```
+```text
 Vercel MCP → get_runtime_logs
   projectId: prj_IfUuJNLjXTE8VXqEGwLAleIGhiA0   # unite-group — LIVE
   teamId:    team_KMZACI5rIltoCRhAtGCXlxUf
@@ -213,8 +281,8 @@ Vercel MCP → get_runtime_logs
   group_by: requestPath
 ```
 
-**Expect crons still firing here.** An empty result means production is down —
-go straight to rollback.
+**Expect cron-path traffic still here.** An empty result means production is
+down — go straight to rollback.
 
 **6c. Production still serves.** Load the live production URL and confirm the
 founder login renders.
@@ -232,13 +300,46 @@ against the 879 baseline.
 "enables auto assigning custom production domains and unblocks the active
 Production Deployment."
 
+**Self-contained on purpose** — rollback gets run in a fresh shell, under
+pressure, possibly by someone who did not run §5. It redefines its own
+identifiers rather than inheriting them: an unset `PROJECT_ID` would otherwise
+build `.../projects//unpause`, and a stale one would target whatever the last
+person exported.
+
 ```bash
-curl --request POST \
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROJECT_ID=prj_NigC5gA17UvX46n7YBUYSxM1vOh9   # unite-group-sandbox
+TEAM_ID=team_KMZACI5rIltoCRhAtGCXlxUf
+: "${VERCEL_TOKEN:?VERCEL_TOKEN must be set}"
+
+name=$(curl --fail-with-body --silent --show-error \
+  --connect-timeout 10 --max-time 30 \
+  --url "https://api.vercel.com/v9/projects/${PROJECT_ID}?teamId=${TEAM_ID}" \
+  --header "Authorization: Bearer ${VERCEL_TOKEN}" | jq -r '.name')
+[ "$name" = "unite-group-sandbox" ] || { echo "REFUSING: ${PROJECT_ID} is '${name}'"; exit 1; }
+
+curl --fail-with-body --silent --show-error \
+  --connect-timeout 10 --max-time 30 \
+  --request POST \
   --url "https://api.vercel.com/v1/projects/${PROJECT_ID}/unpause?teamId=${TEAM_ID}" \
-  --header "Authorization: Bearer $VERCEL_TOKEN"
+  --header "Authorization: Bearer ${VERCEL_TOKEN}" \
+  --header "Content-Type: application/json"
+
+curl --fail-with-body --silent --show-error \
+  --connect-timeout 10 --max-time 30 \
+  --url "https://api.vercel.com/v9/projects/${PROJECT_ID}?teamId=${TEAM_ID}" \
+  --header "Authorization: Bearer ${VERCEL_TOKEN}" \
+  | jq '{id, name, paused, live}'
 ```
 
-Or Settings → General → Resume Project.
+Confirm `"paused": false`. Or Settings → General → Resume Project.
+
+`[UNCONFIRMED]` Vercel's own documentation notes that `live` can remain `false`
+after unpausing, and suggests triggering a new production deployment or using the
+dashboard if the state does not settle. Judge the rollback on `paused`, and on
+6b-style traffic returning — not on `live`.
 
 No data migration, no state to unwind: pause blocks a deployment, it does not
 destroy one. The project, its env vars, its domains and its deployment history
