@@ -1804,6 +1804,30 @@ test('A STREAMED ENTRY IS READ PROPERLY, or refused for a stated reason', () => 
   }
 });
 
+test('THE STREAMED PATH HOLDS FOR SHAPES THE ONE REAL FIXTURE DOES NOT COVER', () => {
+  /*
+   * The real artefact is a sample of ONE: a single entry, deflated, non-empty.
+   * Every previous round of this reader was beaten by a shape nobody had built,
+   * so the shapes adjacent to the fixture get built here rather than waiting for
+   * a reviewer to build them. Each is a legal archive that a real writer could
+   * emit, so a refusal of any of them would be a live defect in production.
+   */
+  const shapes = [
+    ['two streamed entries', [['a.json', '{"a":1}'], ['b.json', '{"b":22}']], {}],
+    ['streamed and STORED (method 0)', [['a.json', '{"a":1}']], { stored: true }],
+    ['a zero-length streamed entry', [['empty.json', '']], {}],
+    ['a zero-length streamed STORED entry', [['empty.json', '']], { stored: true }],
+  ];
+  for (const [label, files, options] of shapes) {
+    const entries = readZipEntries(buildZip(files, { ...options, streamed: true }));
+    assert.equal(entries.length, files.length, label);
+    for (const [index, [name, text]] of files.entries()) {
+      assert.equal(entries[index].name, name, label);
+      assert.equal(entries[index].contents.toString('utf8'), text, label);
+    }
+  }
+});
+
 test('EVERY general-purpose flag bit gets a verdict, not just the one a reviewer named', () => {
   /*
    * Bit 3 was the bit that was named. It is one of sixteen, and this reader has
@@ -1838,6 +1862,21 @@ test('EVERY general-purpose flag bit gets a verdict, not just the one a reviewer
     benign.writeUInt16LE(bit, 6);
     benign.writeUInt16LE(bit, centralAt + 8);
     assert.equal(readZipEntries(benign)[0].name, 'vitest-report.json', `bit 0x${bit.toString(16)}`);
+  }
+
+  /*
+   * AND ACCEPTING BIT 11 MUST NOT RELAX THE MEMBER-NAME RULES. The UTF-8 flag is
+   * about how the name is DECODED, and this reader decodes UTF-8 regardless — so
+   * an archive that sets it is not thereby allowed a dot-segment or a
+   * drive-qualified member. Worth pinning because "accepted bit" and "unchecked
+   * path" is exactly the shape of the three findings before it.
+   */
+  for (const unsafe of ['../vitest-report.json', 'C:/vitest-report.json', '/vitest-report.json']) {
+    const named = buildZip({ [unsafe]: '{"ok":true}' });
+    const namedCentral = named.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02]));
+    named.writeUInt16LE(0x0800, 6);
+    named.writeUInt16LE(0x0800, namedCentral + 8);
+    assert.throws(() => readZipEntries(named), /is not a plain archive member name/u, unsafe);
   }
 });
 
