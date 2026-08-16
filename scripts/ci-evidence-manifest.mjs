@@ -239,6 +239,25 @@ export function resolveCheck(manifest, id) {
 // ---------------------------------------------------------------------------
 
 /**
+ * A count from the report, or `null` when it is not one.
+ *
+ * `Number.isInteger` was the whole check, and it accepts negatives. Round eight
+ * set `numFailedTestSuites` to `-1` and the decision path — which refuses `null`
+ * and refuses `> 0`, and had no third case — graded the report PASS with no
+ * violations. A number that cannot be a count is unknown metadata, and unknown
+ * metadata is UNVERIFIABLE rather than zero.
+ *
+ * Applied to EVERY count read out of the report, not only the one that was
+ * demonstrated. The cross-total comparison happens to catch a negative in the
+ * `reported` set today, but that is a property of the comparison, not of the
+ * parse, and the next field added would inherit the hole rather than the fix.
+ */
+function reportedCount(value) {
+  if (!Number.isSafeInteger(value) || value < 0) return null;
+  return value;
+}
+
+/**
  * Reads vitest's JSON reporter output into per-suite execution counts.
  *
  * vitest marks a skipped assertion `pending`. `executed` counts assertions that
@@ -392,11 +411,11 @@ export function parseVitestJsonReport(text, { workingDirectory = '', expectedRoo
   );
 
   const reported = {
-    total: report.numTotalTests,
-    passed: report.numPassedTests,
-    failed: report.numFailedTests,
-    pending: report.numPendingTests,
-    todo: report.numTodoTests,
+    total: reportedCount(report.numTotalTests),
+    passed: reportedCount(report.numPassedTests),
+    failed: reportedCount(report.numFailedTests),
+    pending: reportedCount(report.numPendingTests),
+    todo: reportedCount(report.numTodoTests),
   };
 
   /*
@@ -405,9 +424,7 @@ export function parseVitestJsonReport(text, { workingDirectory = '', expectedRoo
    * reason no assertion expresses. Missing is UNVERIFIABLE, never assumed true.
    */
   const declaredSuccess = typeof report.success === 'boolean' ? report.success : null;
-  const failedSuites = Number.isInteger(report.numFailedTestSuites)
-    ? report.numFailedTestSuites
-    : null;
+  const failedSuites = reportedCount(report.numFailedTestSuites);
 
   if (packageRoots.size > 1) {
     throw new Error(
@@ -469,6 +486,17 @@ export function ghJobFetcher(repo, jobId) {
  * emits; anything else is refused rather than guessed at. Verified against two
  * real artefacts from this repository before being wired in.
  */
+const ZIP64_SENTINEL_16 = 0xffff;
+const ZIP64_SENTINEL_32 = 0xffffffff;
+
+/** Reads a fixed-width field only when the whole field is inside the buffer. */
+function zipUInt(buffer, at, width, what) {
+  if (at < 0 || at + width > buffer.length) {
+    throw new Error(`CORRUPT_ZIP: ${what} at offset ${at} runs past the end of the archive.`);
+  }
+  return width === 2 ? buffer.readUInt16LE(at) : buffer.readUInt32LE(at);
+}
+
 export function readZipEntries(buffer) {
   let eocd = -1;
   const floor = Math.max(0, buffer.length - 22 - 65535);
@@ -477,31 +505,113 @@ export function readZipEntries(buffer) {
   }
   if (eocd < 0) throw new Error('NOT_A_ZIP: the artefact has no end-of-central-directory record.');
 
-  const count = buffer.readUInt16LE(eocd + 10);
-  let offset = buffer.readUInt32LE(eocd + 16);
+  /*
+   * THE EOCD'S OWN DECLARATIONS ARE CHECKED AGAINST EACH OTHER, NOT TRUSTED
+   * SEPARATELY.
+   *
+   * Round eight built an archive holding two members both named
+   * `vitest-report.json` and changed only the EOCD entry count from 2 to 1. The
+   * reader walked one record, returned one entry, and the duplicate-name refusal
+   * downstream never saw the second copy — so an ambiguous archive graded as
+   * unambiguous evidence. A count is a claim; the only way to catch a false one
+   * is to require that walking the directory ends exactly where the EOCD says it
+   * does, and that every declaration agrees.
+   */
+  const diskNumber = zipUInt(buffer, eocd + 4, 2, 'EOCD disk number');
+  const directoryDisk = zipUInt(buffer, eocd + 6, 2, 'EOCD directory-start disk');
+  const countOnDisk = zipUInt(buffer, eocd + 8, 2, 'EOCD entries-on-disk');
+  const count = zipUInt(buffer, eocd + 10, 2, 'EOCD entry count');
+  const directorySize = zipUInt(buffer, eocd + 12, 4, 'EOCD directory size');
+  const directoryStart = zipUInt(buffer, eocd + 16, 4, 'EOCD directory offset');
+
+  if (diskNumber !== 0 || directoryDisk !== 0) {
+    throw new Error('UNSUPPORTED_ZIP: a multi-disk archive is not evidence this reader accepts.');
+  }
+  if (countOnDisk !== count) {
+    throw new Error(
+      `CORRUPT_ZIP: the EOCD claims ${count} entries in total but ${countOnDisk} on this disk.`,
+    );
+  }
+  // Any Zip64 sentinel means the real values live in a record this reader does
+  // not parse. Reading the sentinel as a literal count or offset would silently
+  // grade a fraction of the archive.
+  if (count === ZIP64_SENTINEL_16 || countOnDisk === ZIP64_SENTINEL_16
+    || directorySize === ZIP64_SENTINEL_32 || directoryStart === ZIP64_SENTINEL_32) {
+    throw new Error('UNSUPPORTED_ZIP: Zip64 fields are present and this reader does not parse them.');
+  }
+  if (directoryStart + directorySize !== eocd) {
+    throw new Error(
+      `CORRUPT_ZIP: the central directory declares bytes ${directoryStart}..`
+      + `${directoryStart + directorySize} but the EOCD begins at ${eocd}.`,
+    );
+  }
+
+  let offset = directoryStart;
   const entries = [];
 
   for (let n = 0; n < count; n += 1) {
-    if (buffer.readUInt32LE(offset) !== 0x02014b50) {
+    if (offset >= eocd) {
+      throw new Error(
+        `CORRUPT_ZIP: the EOCD claims ${count} entries but the directory ended after ${n}.`,
+      );
+    }
+    if (zipUInt(buffer, offset, 4, 'central header signature') !== 0x02014b50) {
       throw new Error('CORRUPT_ZIP: central directory header signature is wrong.');
     }
-    const method = buffer.readUInt16LE(offset + 10);
-    const expectedCrc = buffer.readUInt32LE(offset + 16);
-    const compressedSize = buffer.readUInt32LE(offset + 20);
-    const uncompressedSize = buffer.readUInt32LE(offset + 24);
-    const nameLength = buffer.readUInt16LE(offset + 28);
-    const extraLength = buffer.readUInt16LE(offset + 30);
-    const commentLength = buffer.readUInt16LE(offset + 32);
-    const localOffset = buffer.readUInt32LE(offset + 42);
+    const method = zipUInt(buffer, offset + 10, 2, 'compression method');
+    const expectedCrc = zipUInt(buffer, offset + 16, 4, 'central CRC');
+    const compressedSize = zipUInt(buffer, offset + 20, 4, 'compressed size');
+    const uncompressedSize = zipUInt(buffer, offset + 24, 4, 'uncompressed size');
+    const nameLength = zipUInt(buffer, offset + 28, 2, 'name length');
+    const extraLength = zipUInt(buffer, offset + 30, 2, 'extra length');
+    const commentLength = zipUInt(buffer, offset + 32, 2, 'comment length');
+    const localOffset = zipUInt(buffer, offset + 42, 4, 'local header offset');
+    if (compressedSize === ZIP64_SENTINEL_32 || uncompressedSize === ZIP64_SENTINEL_32
+      || localOffset === ZIP64_SENTINEL_32) {
+      throw new Error('UNSUPPORTED_ZIP: a Zip64 sentinel appears in a central directory entry.');
+    }
+    if (offset + 46 + nameLength > eocd) {
+      throw new Error('CORRUPT_ZIP: a central directory entry name runs past the directory.');
+    }
     const name = buffer.toString('utf8', offset + 46, offset + 46 + nameLength);
+
+    /*
+     * THE MEMBER NAME IS A NAME, NOT A PATH. `../vitest-report.json` and
+     * `a/../../vitest-report.json` both resolve to the declared entry for a
+     * reader that only compares strings, and round eight showed the dot-segment
+     * form was accepted. Nothing legitimate that
+     * actions/upload-artifact emits needs a dot segment, an absolute path, or a
+     * backslash, so all three are refused rather than normalised — normalising
+     * would mean deciding what the author meant.
+     */
+    if (name === '' || name.startsWith('/') || name.includes('\\')
+      || name.split('/').some((segment) => segment === '.' || segment === '..')) {
+      throw new Error(`UNSAFE_ZIP_ENTRY: "${name}" is not a plain archive member name.`);
+    }
 
     // The local header's name/extra lengths differ from the central copy; using
     // the central ones lands mid-data.
-    if (buffer.readUInt32LE(localOffset) !== 0x04034b50) {
+    if (zipUInt(buffer, localOffset, 4, 'local header signature') !== 0x04034b50) {
       throw new Error(`CORRUPT_ZIP: local header signature is wrong for "${name}".`);
     }
-    const dataStart = localOffset + 30
-      + buffer.readUInt16LE(localOffset + 26) + buffer.readUInt16LE(localOffset + 28);
+    const localNameLength = zipUInt(buffer, localOffset + 26, 2, 'local name length');
+    const localExtraLength = zipUInt(buffer, localOffset + 28, 2, 'local extra length');
+    // The two copies of the name must agree. A central directory naming
+    // `vitest-report.json` over a local header naming something else is one
+    // archive that reads as two different things depending on the tool.
+    const localName = buffer.toString(
+      'utf8', localOffset + 30, localOffset + 30 + localNameLength,
+    );
+    if (localName !== name) {
+      throw new Error(
+        `CORRUPT_ZIP: central directory calls this entry "${name}" but its local header `
+        + `calls it "${localName}".`,
+      );
+    }
+    const dataStart = localOffset + 30 + localNameLength + localExtraLength;
+    if (dataStart + compressedSize > buffer.length) {
+      throw new Error(`CORRUPT_ZIP: "${name}" declares more bytes than the archive holds.`);
+    }
     const raw = buffer.subarray(dataStart, dataStart + compressedSize);
 
     let contents;
@@ -526,6 +636,12 @@ export function readZipEntries(buffer) {
     }
     entries.push({ name, contents });
     offset += 46 + nameLength + extraLength + commentLength;
+  }
+  if (offset !== eocd) {
+    throw new Error(
+      `CORRUPT_ZIP: the central directory declared ${count} entries but ${eocd - offset} `
+      + 'bytes remain unread before the EOCD; the archive holds records the count hides.',
+    );
   }
   return entries;
 }
@@ -632,17 +748,51 @@ export function resolveEvidenceArtifact({
       + 'is absent evidence.',
     );
   }
-  // The artefact carries its own run identity. Re-checking it here means a caller
-  // who passed a run id that does not match the job cannot smuggle in another
-  // run's artefact through a listing they chose.
-  const owningRun = artifact.workflow_run?.id;
-  if (owningRun !== undefined && String(owningRun) !== String(runId)) {
+  /*
+   * THE OWNERSHIP CHECK IS UNCONDITIONAL, BECAUSE ABSENT IS NOT MATCHED.
+   *
+   * Both checks used to read `x !== undefined && x !== expected`, so an artefact
+   * whose `workflow_run` was missing or partial skipped them entirely and was
+   * accepted — while this file's header claimed the evidence is "re-bound to the
+   * resolved run and commit". Round eight demonstrated it with an artefact
+   * carrying no `workflow_run` at all. A guarantee with a conditional is a
+   * guarantee about the inputs that happen to carry the field.
+   *
+   * This is the same defect class the previous commit on this branch was named
+   * for — "absent is not passed" — recurring one layer out, which is why the
+   * refusal is now stated once for the whole record rather than per field.
+   */
+  const owner = artifact.workflow_run;
+  if (owner === null || typeof owner !== 'object' || Array.isArray(owner)) {
+    throw new Error(
+      `ARTIFACT_OWNERSHIP_UNVERIFIABLE: artefact ${artifact.id} carries no workflow_run, so it `
+      + 'cannot be bound to a run or a commit. Unverifiable ownership is refused, not assumed.',
+    );
+  }
+  const owningRun = owner.id;
+  if (owningRun === undefined || owningRun === null) {
+    throw new Error(
+      `ARTIFACT_OWNERSHIP_UNVERIFIABLE: artefact ${artifact.id} names no owning run id.`,
+    );
+  }
+  if (String(owningRun) !== String(runId)) {
     throw new Error(
       `ARTIFACT_FOREIGN_RUN: artefact ${artifact.id} belongs to run ${owningRun}, not ${runId}.`,
     );
   }
-  const owningSha = artifact.workflow_run?.head_sha;
-  if (expectedSha && owningSha !== undefined && owningSha !== expectedSha) {
+  if (!expectedSha) {
+    throw new Error(
+      `ARTIFACT_SHA_UNBOUND: no resolved commit was supplied, so artefact ${artifact.id} `
+      + 'cannot be bound to the commit under test.',
+    );
+  }
+  const owningSha = owner.head_sha;
+  if (typeof owningSha !== 'string' || owningSha === '') {
+    throw new Error(
+      `ARTIFACT_OWNERSHIP_UNVERIFIABLE: artefact ${artifact.id} names no owning head_sha.`,
+    );
+  }
+  if (owningSha !== expectedSha) {
     throw new Error(
       `ARTIFACT_FOREIGN_SHA: artefact ${artifact.id} was produced on ${owningSha}, not ${expectedSha}.`,
     );

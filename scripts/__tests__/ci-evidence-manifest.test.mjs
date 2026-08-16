@@ -75,17 +75,33 @@ function observed(path) {
  * exercise the reader's CRC check, because any byte flip inside a deflate stream
  * makes inflate itself throw first.
  */
-function buildZip(files, { corruptCrc = false } = {}) {
+function buildZip(files, {
+  corruptCrc = false,
+  // ROUND EIGHT. The reviewer's archive held two members both named
+  // `vitest-report.json` and simply LIED about how many there were, so the
+  // reader walked one record and the duplicate-name refusal downstream never saw
+  // the second copy. An object literal cannot express two identical keys, and
+  // the EOCD fields were computed rather than settable, so the writer could not
+  // build the archive that beat the reader. Both are now expressible.
+  countOverride = null,
+  directorySizeOverride = null,
+  zip64Count = false,
+  localNameOverride = null,
+} = {}) {
   const locals = [];
   const centrals = [];
   let offset = 0;
+  const pairs = Array.isArray(files) ? files : Object.entries(files);
 
-  for (const [name, text] of Object.entries(files)) {
+  for (const [name, text] of pairs) {
     const raw = Buffer.from(text, 'utf8');
     const deflated = deflateRawSync(raw);
     const nameBytes = Buffer.from(name, 'utf8');
     const checksum = corruptCrc ? (crc32(raw) ^ 0xffffffff) >>> 0 : crc32(raw);
 
+    const localNameBytes = localNameOverride === null
+      ? nameBytes
+      : Buffer.from(localNameOverride, 'utf8');
     const local = Buffer.alloc(30);
     local.writeUInt32LE(0x04034b50, 0);
     local.writeUInt16LE(20, 4);
@@ -93,8 +109,8 @@ function buildZip(files, { corruptCrc = false } = {}) {
     local.writeUInt32LE(checksum, 14);
     local.writeUInt32LE(deflated.length, 18);
     local.writeUInt32LE(raw.length, 22);
-    local.writeUInt16LE(nameBytes.length, 26);
-    locals.push(local, nameBytes, deflated);
+    local.writeUInt16LE(localNameBytes.length, 26);
+    locals.push(local, localNameBytes, deflated);
 
     const central = Buffer.alloc(46);
     central.writeUInt32LE(0x02014b50, 0);
@@ -107,19 +123,23 @@ function buildZip(files, { corruptCrc = false } = {}) {
     central.writeUInt32LE(offset, 42);
     centrals.push(central, nameBytes);
 
-    offset += local.length + nameBytes.length + deflated.length;
+    offset += local.length + localNameBytes.length + deflated.length;
   }
 
   const localBlock = Buffer.concat(locals);
   const centralBlock = Buffer.concat(centrals);
+  const declaredCount = zip64Count ? 0xffff : (countOverride ?? pairs.length);
   const eocd = Buffer.alloc(22);
   eocd.writeUInt32LE(0x06054b50, 0);
-  eocd.writeUInt16LE(Object.keys(files).length, 8);
-  eocd.writeUInt16LE(Object.keys(files).length, 10);
-  eocd.writeUInt32LE(centralBlock.length, 12);
+  eocd.writeUInt16LE(declaredCount, 8);
+  eocd.writeUInt16LE(declaredCount, 10);
+  eocd.writeUInt32LE(directorySizeOverride ?? centralBlock.length, 12);
   eocd.writeUInt32LE(localBlock.length, 16);
   return Buffer.concat([localBlock, centralBlock, eocd]);
 }
+
+/** The byte length of one central-directory record for a given member name. */
+const centralRecordLength = (name) => 46 + Buffer.byteLength(name, 'utf8');
 
 const ARTIFACT_NAME = `spine-test-evidence-${REAL_SHA}`;
 const ARTIFACT_ID = 9264142624;
@@ -1197,6 +1217,116 @@ test('a buffer that is not a ZIP at all is refused', () => {
   assert.throws(() => readZipEntries(Buffer.from('not a zip, just bytes')), /NOT_A_ZIP/);
 });
 
+// ---------------------------------------------------------------------------
+// ROUND EIGHT (codex, independent). Each demonstrated open before being fixed.
+// ---------------------------------------------------------------------------
+
+test('A LYING EOCD COUNT CANNOT HIDE A SECOND EVIDENCE MEMBER', () => {
+  // THE round-eight P1. Two members both named `vitest-report.json`, with the
+  // EOCD count changed from 2 to 1 and its directory size cut to the first
+  // record. The reader walked one entry and returned one name, so the
+  // duplicate-name refusal downstream never saw the second copy and an ambiguous
+  // archive graded as unambiguous evidence.
+  const duplicated = [
+    ['vitest-report.json', '{"first":true}'],
+    ['vitest-report.json', '{"second":true}'],
+  ];
+
+  // The honest archive is already refused downstream — that is the control that
+  // proves the check being bypassed is real.
+  const honest = readZipEntries(buildZip(duplicated));
+  assert.equal(honest.length, 2, 'both members must be visible when the count is honest');
+
+  // And the lying one is refused HERE, before anything downstream can be misled.
+  const lying = buildZip(duplicated, {
+    countOverride: 1,
+    directorySizeOverride: centralRecordLength('vitest-report.json'),
+  });
+  assert.throws(() => readZipEntries(lying), /CORRUPT_ZIP: the central directory declares/u);
+
+  // The mirror case: a count that over-declares must not walk past the EOCD.
+  const overCounted = buildZip(duplicated, { countOverride: 3 });
+  assert.throws(() => readZipEntries(overCounted), /CORRUPT_ZIP/u);
+});
+
+test('a count that leaves unread directory bytes is refused', () => {
+  // Under-declaring by one, WITHOUT adjusting the directory size, must not be
+  // read as a shorter archive — the trailing record is still there.
+  const zip = buildZip([
+    ['vitest-report.json', '{"a":1}'],
+    ['other.json', '{"b":2}'],
+  ], { countOverride: 1 });
+  assert.throws(() => readZipEntries(zip), /bytes remain unread before the EOCD/u);
+});
+
+test('ZIP64 SENTINELS ARE REFUSED, not read as literal counts', () => {
+  const zip = buildZip({ 'vitest-report.json': '{"a":1}' }, { zip64Count: true });
+  assert.throws(() => readZipEntries(zip), /UNSUPPORTED_ZIP: Zip64/u);
+});
+
+test('A MEMBER NAME IS A NAME: dot segments and absolute paths are refused', () => {
+  for (const name of ['../vitest-report.json', 'a/../../vitest-report.json',
+    './vitest-report.json', '/vitest-report.json', 'a\\b.json']) {
+    assert.throws(
+      () => readZipEntries(buildZip({ [name]: '{"a":1}' })),
+      /UNSAFE_ZIP_ENTRY/u,
+      name,
+    );
+  }
+  // And a plain nested name is still fine, so the guard does not cry wolf.
+  assert.equal(readZipEntries(buildZip({ 'nested/report.json': '{"a":1}' }))[0].name,
+    'nested/report.json');
+});
+
+test('AN ENTRY THAT IS NAMED TWO DIFFERENT THINGS IS REFUSED', () => {
+  // One archive that reads as two different things depending on which copy of
+  // the name a tool consults.
+  const zip = buildZip({ 'vitest-report.json': '{"a":1}' }, { localNameOverride: 'other.json' });
+  assert.throws(() => readZipEntries(zip), /its local header\s+calls it "other\.json"/u);
+});
+
+test('A NEGATIVE FAILED-SUITE COUNT IS UNVERIFIABLE, never a pass', () => {
+  // The round-eight P1: `Number.isInteger` accepts negatives, and the decision
+  // path refused only `null` and `> 0`, so `-1` reached PASS with no violations.
+  const base = JSON.parse(readFileSync(EXECUTED_EVIDENCE, 'utf8'));
+
+  for (const value of [-1, 1.5, Number.NaN, Number.MAX_SAFE_INTEGER + 2, '0', null]) {
+    const parsed = parseVitestJsonReport(
+      JSON.stringify({ ...base, numFailedTestSuites: value }),
+      { expectedRoot: null },
+    );
+    assert.equal(parsed.failedSuites, null, JSON.stringify(value));
+  }
+
+  // Zero is still zero, and a real failure count is still read.
+  assert.equal(
+    parseVitestJsonReport(JSON.stringify({ ...base, numFailedTestSuites: 0 }), { expectedRoot: null })
+      .failedSuites,
+    0,
+  );
+  assert.equal(
+    parseVitestJsonReport(JSON.stringify({ ...base, numFailedTestSuites: 3 }), { expectedRoot: null })
+      .failedSuites,
+    3,
+  );
+});
+
+test('every reported count is validated, not only the one that was demonstrated', () => {
+  const base = JSON.parse(readFileSync(EXECUTED_EVIDENCE, 'utf8'));
+  const fields = ['numTotalTests', 'numPassedTests', 'numFailedTests', 'numPendingTests',
+    'numTodoTests'];
+
+  for (const field of fields) {
+    const parsed = parseVitestJsonReport(
+      JSON.stringify({ ...base, [field]: -1 }),
+      { expectedRoot: null },
+    );
+    const key = { numTotalTests: 'total', numPassedTests: 'passed', numFailedTests: 'failed',
+      numPendingTests: 'pending', numTodoTests: 'todo' }[field];
+    assert.equal(parsed.reported[key], null, field);
+  }
+});
+
 test('the artefact name carries the API-resolved commit, not one the caller typed', () => {
   const check = { ...shippedCheck(), artifact: 'spine-test-evidence-{sha}' };
   assert.equal(resolveArtifactName(check, REAL_SHA), `spine-test-evidence-${REAL_SHA}`);
@@ -1225,6 +1355,59 @@ test('an artefact produced on another commit is refused', () => {
       downloader: stubDownloader(),
     }),
     /ARTIFACT_FOREIGN_SHA/,
+  );
+});
+
+test('ABSENT OWNERSHIP IS REFUSED, not skipped past (round-eight P1)', () => {
+  // Both ownership checks read `x !== undefined && x !== expected`, so an
+  // artefact carrying no `workflow_run` at all skipped both and was accepted —
+  // while this file's header claimed the evidence is re-bound to the resolved
+  // run and commit. The mutation harness then proved the fix had no test: R23,
+  // R24 and R25 all survived until these three cases existed.
+  const cases = [
+    [{ workflow_run: undefined }, /ARTIFACT_OWNERSHIP_UNVERIFIABLE.*no workflow_run/su],
+    [{ workflow_run: null }, /ARTIFACT_OWNERSHIP_UNVERIFIABLE.*no workflow_run/su],
+    [{ workflow_run: [] }, /ARTIFACT_OWNERSHIP_UNVERIFIABLE.*no workflow_run/su],
+    [{ workflow_run: { head_sha: REAL_SHA } }, /ARTIFACT_OWNERSHIP_UNVERIFIABLE.*no owning run id/su],
+    [{ workflow_run: { id: Number(RUN_ID) } }, /ARTIFACT_OWNERSHIP_UNVERIFIABLE.*no owning head_sha/su],
+    [{ workflow_run: { id: Number(RUN_ID), head_sha: '' } },
+      /ARTIFACT_OWNERSHIP_UNVERIFIABLE.*no owning head_sha/su],
+  ];
+
+  for (const [override, pattern] of cases) {
+    assert.throws(
+      () => resolveEvidenceArtifact({
+        check: shippedCheck(), repo: REPO, runId: RUN_ID, expectedSha: REAL_SHA,
+        expectedRunAttempt: ATTEMPT, attemptFetcher: stubAttempt(),
+        lister: stubLister(override),
+        downloader: stubDownloader(),
+      }),
+      pattern,
+      JSON.stringify(override),
+    );
+  }
+});
+
+test('an artefact cannot be bound to a commit that was never resolved', () => {
+  // The sha check used to be `expectedSha && ...`, so calling without a resolved
+  // commit skipped commit binding entirely rather than refusing.
+  const check = { ...shippedCheck(), artifact: 'spine-test-evidence' };
+  assert.throws(
+    () => resolveEvidenceArtifact({
+      check, repo: REPO, runId: RUN_ID, expectedSha: null,
+      expectedRunAttempt: ATTEMPT, attemptFetcher: stubAttempt(),
+      lister: () => ({
+        artifacts: [{
+          id: ARTIFACT_ID,
+          name: 'spine-test-evidence',
+          expired: false,
+          created_at: ARTIFACT_CREATED,
+          workflow_run: { id: Number(RUN_ID), head_sha: REAL_SHA },
+        }],
+      }),
+      downloader: stubDownloader(),
+    }),
+    /ARTIFACT_SHA_UNBOUND/u,
   );
 });
 
