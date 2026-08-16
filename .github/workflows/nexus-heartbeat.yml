@@ -249,7 +249,7 @@ jobs:
             const issues = await client.listOpenIssues();
             const previous = findOwnedIssue(issues);
 
-            const { body, degraded, anomalies } = composeHeartbeat({
+            const { body, failed, failureReasons } = composeHeartbeat({
               // Brisbane wall clock, DD/MM/YYYY. A UTC date stamps the PREVIOUS
               // day on a 19:00Z run whose queue ages were computed in Brisbane.
               date: brisbaneReportDate(),
@@ -267,9 +267,16 @@ jobs:
             const result = await upsertHeartbeatIssue({ client, body, issues });
             core.info(`Heartbeat issue ${result.action}: #${result.number}`);
 
-            // A degraded report is published, THEN the run is failed. Publishing
-            // first is what keeps the issue honest; failing after is what makes
-            // the incompleteness visible in the Actions list.
-            if (degraded) {
-              core.setFailed(`Heartbeat is degraded:\n${anomalies.map((a) => `- ${a}`).join('\n')}`);
+            // The report is published, THEN the run is failed. Publishing first
+            // is what keeps the issue honest; failing after is what makes the
+            // problem visible in the Actions list.
+            //
+            // `failed`, NOT `degraded`. `degraded` means the report is
+            // untrustworthy; a gate that ran and FAILED produces a perfectly
+            // trustworthy report and raised no anomaly, so gating on `degraded`
+            // published a body saying FAIL while this run went green. `failed`
+            // covers both, and is derived from the same gate rows the body
+            // renders so the two cannot disagree.
+            if (failed) {
+              core.setFailed(`Heartbeat is not green:\n${failureReasons.map((r) => `- ${r}`).join('\n')}`);
             }

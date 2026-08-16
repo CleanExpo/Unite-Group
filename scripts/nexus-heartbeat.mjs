@@ -510,17 +510,23 @@ export function readEvidence(path, { readFile = (p) => readFileSync(p, 'utf8') }
   }
 }
 
-/** Reads the gate results a CI step wrote out, refusing a malformed file. */
-export function readGateResults(path) {
-  const parsed = JSON.parse(readFileSync(path, 'utf8'));
-  if (!Array.isArray(parsed)) throw new Error(`${path} is not an array of gate results.`);
-  for (const gate of parsed) {
-    if (typeof gate.name !== 'string' || !Object.hasOwn(STATUS_LABEL, gate.status)) {
-      throw new Error(`${path} contains a gate with no name or an unknown status.`);
-    }
-  }
-  return parsed;
-}
+/*
+ * `readGateResults` WAS DELETED HERE, and its absence is the point.
+ *
+ * It read the gate artefact and required every entry to carry a `status`. The
+ * capture step stopped emitting `status` when the shell was forbidden from
+ * deciding PASS or FAIL — it writes `{name, exitCode}` now and the derivation
+ * happens in `reconcileGates`, where a test can reach it. Nothing ever updated
+ * this function, and nothing called it: a repository search found it only at its
+ * own declaration, and feeding it the CURRENT artefact shape threw.
+ *
+ * So it was a second, exported authority on the same question, disagreeing with
+ * the live one and provably unreachable. Dead code that encodes a retired
+ * contract is worse than no code: the next reader finds two answers and the
+ * export makes the wrong one look supported. The live path is `readEvidence`
+ * (which fails soft, because a missing file must publish NOT RUN rather than
+ * crash the report) followed by `reconcileGates`.
+ */
 
 /**
  * The whole report, assembled from evidence files. The workflow calls exactly
@@ -550,7 +556,41 @@ export function composeHeartbeat({
     date, gates, queue, drift: detectDrift(previous, gates), anomalies, provenance,
   });
 
-  return { body, gates, anomalies, degraded: anomalies.length > 0 };
+  /*
+   * `degraded` AND `failed` ARE DIFFERENT QUESTIONS, AND ONLY ONE WAS BEING ASKED.
+   *
+   * `degraded` means THE REPORT IS UNTRUSTWORTHY — evidence missing, malformed,
+   * self-contradictory. It drives the DEGRADED banner.
+   *
+   * A gate that RAN and FAILED produces a perfectly trustworthy report. It raises
+   * no anomaly, because nothing about the evidence is wrong. So `degraded` was
+   * false, the workflow called `core.setFailed` only when degraded, and a red
+   * gate published a body saying FAIL while the run went GREEN.
+   *
+   * That is the exact false-assurance class this whole epic exists to kill — a
+   * required signal green while the thing it certifies is not — living inside the
+   * instrument built to detect it. Round twelve found it with a four-line probe.
+   *
+   * `failed` is derived from THE SAME `gates` array the body renders, so the
+   * published rows and the run's verdict cannot disagree. Anything that is not
+   * PASS fails the run: FAIL because the gate is red, NOT_RUN because a gate that
+   * did not run is not evidence that it passed.
+   */
+  const notPassing = gates.filter((gate) => gate.status !== 'PASS');
+  const failureReasons = [
+    ...anomalies,
+    ...notPassing.map((gate) => `\`${gate.name}\` is ${gate.status}`
+      + `${gate.exitCode === null ? '' : ` (exit ${gate.exitCode})`}.`),
+  ];
+
+  return {
+    body,
+    gates,
+    anomalies,
+    degraded: anomalies.length > 0,
+    failed: failureReasons.length > 0,
+    failureReasons,
+  };
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

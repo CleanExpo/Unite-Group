@@ -353,8 +353,28 @@ test('A SEMANTICALLY MALFORMED LEDGER ALSO EXITS NON-ZERO, not just an unparseab
       '| F1 |  | 2026-08-01 | — | UNI-1 | ctx | open |', /empty Decision cell/u],
     ['an empty ID cell',
       '|  | flip it | 2026-08-01 | — | UNI-1 | ctx | open |', /empty ID cell/u],
+    /*
+     * `/./u` LIVED HERE, AND IT MATCHES ANYTHING.
+     *
+     * The commit that added this table said every case "asserts that the printed
+     * REASON matches the anomaly under test". For this one row that was false: a
+     * pattern of a single unescaped dot is satisfied by the first character of
+     * any output at all. The reviewer proved it by changing the source to push
+     * the literal string 'wrong unrelated reason' — the test still passed, 1/1,
+     * exit 0.
+     *
+     * I wrote a control, wrote down what it controlled, and the control was
+     * vacuous — in the very table added to demonstrate that a fixture must be
+     * wrong in exactly one respect and assert the reason for it. It names the id,
+     * the fault and the offending value now, so the wrong-reason mutant fails.
+     */
     ['an unageable opened date',
-      '| F1 | flip it | not-a-date | — | UNI-1 | ctx | open |', /./u],
+      '| F1 | flip it | not-a-date | — | UNI-1 | ctx | open |',
+      // The reason is read out of the JSON the CLI prints, so the quotes around
+      // the offending value arrive backslash-escaped. Matching the raw spelling
+      // silently never matched — which is how a vacuous pattern gets written in
+      // the first place.
+      /F1: Unparseable opened date: \\"not-a-date\\"/u],
   ];
 
   for (const [label, row, note] of semantic) {

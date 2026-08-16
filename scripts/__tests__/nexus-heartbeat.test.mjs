@@ -40,7 +40,7 @@ const WORKFLOW_PATH = join(repositoryRoot, '.github', 'workflows', 'nexus-heartb
 // of the observe job in the present tense, three rounds after that step was
 // removed for being unrunnable. The pin doing its job — a comment-only edit
 // failing this test until someone deliberately re-pins — is the whole point.
-const PINNED_WORKFLOW_SHA256 = 'c7d25ae7d8d0df89204cac76de8ec7255173a702012e9cc67b21dbd42d9417be';
+const PINNED_WORKFLOW_SHA256 = '82c5dfe3ba2b5847a999965d1153d5dedb4dea19d0bee6fc697ad721ce1dc315';
 
 // Rendered gate lists (what reconcileGates PRODUCES).
 const GREEN = [
@@ -309,6 +309,83 @@ test('a fully green run is not degraded and carries its provenance', () => {
   assert.ok(!result.body.includes('DEGRADED'), result.body);
   assert.ok(result.body.includes('https://example.invalid/42'), result.body);
   assert.ok(result.body.includes('25 hours'), result.body);
+});
+
+test('A RED GATE FAILS THE RUN, not merely the paragraph nobody reads', () => {
+  /*
+   * ROUND-TWELVE P1, AND IT WAS THIS EPIC'S OWN DEFECT LIVING INSIDE THE
+   * INSTRUMENT BUILT TO DETECT IT.
+   *
+   * The workflow called `core.setFailed` only when `degraded` was true, and
+   * `degraded` is `anomalies.length > 0`. A gate that RAN and FAILED raises no
+   * anomaly — nothing about the evidence is wrong, the evidence is a correct
+   * report of a red gate. So the body printed FAIL and the run went GREEN: a
+   * required signal green while the thing it certifies is false, which is the
+   * one sentence UNI-2567 and UNI-2523 both exist to make impossible.
+   *
+   * `failed` is derived from the same `gates` array the body renders, so the
+   * published rows and the run's verdict cannot drift apart — the structural
+   * lesson from the founder-queue exit code, applied at the second site before
+   * it could bite.
+   */
+  const oneRed = DECLARED_GATES.map((name, index) => ({ name, exitCode: index === 0 ? 1 : 0 }));
+  const red = composeHeartbeat({
+    date: '2026-08-16',
+    gateEvidence: { ok: true, value: oneRed },
+    queueEvidence: { ok: true, value: QUEUE },
+    previousBody: null,
+    provenance,
+  });
+
+  // The report is honest — this was never the bug.
+  assert.ok(/\|\s*FAIL\s*\|/u.test(red.body), red.body);
+  // And it raises no anomaly, which is exactly why `degraded` could not see it.
+  assert.equal(red.degraded, false);
+  // The run must still fail, and say which gate and with what exit code.
+  assert.equal(red.failed, true);
+  assert.match(red.failureReasons.join('\n'), new RegExp(`${DECLARED_GATES[0]}.*exit 1`, 'u'));
+
+  // A DECLARED GATE THAT NEVER RAN IS NOT A PASS EITHER. Absence raises an
+  // anomaly too, so this case would have failed the old check as well — it is
+  // here so the NOT_PASS rule is pinned for every status, not just FAIL.
+  const missing = composeHeartbeat({
+    date: '2026-08-16',
+    gateEvidence: { ok: true, value: CAPTURE_GREEN.slice(1) },
+    queueEvidence: { ok: true, value: QUEUE },
+    previousBody: null,
+    provenance,
+  });
+  assert.equal(missing.failed, true);
+  assert.match(missing.failureReasons.join('\n'), /NOT_RUN/u);
+
+  /*
+   * THE POSITIVE CONTROL. Without it every assertion above is satisfied by a
+   * `failed` that is hard-coded true, and the workflow would fail every run —
+   * which is a different way of carrying no signal at all.
+   */
+  const green = composeHeartbeat({
+    date: '2026-08-16',
+    gateEvidence: { ok: true, value: CAPTURE_GREEN },
+    queueEvidence: { ok: true, value: QUEUE },
+    previousBody: null,
+    provenance,
+  });
+  assert.equal(green.failed, false);
+  assert.deepEqual(green.failureReasons, []);
+});
+
+test('THE WORKFLOW FAILS THE RUN ON `failed`, not on `degraded`', () => {
+  /*
+   * The check above proves the library computes the right verdict. This proves
+   * the workflow CONSUMES it — the two are separate claims, and the defect lived
+   * in the gap between them: a correct `degraded` value, correctly consumed, for
+   * a question that was never the right one.
+   */
+  const workflow = readFileSync(WORKFLOW_PATH, 'utf8');
+  assert.match(workflow, /const \{ body, failed, failureReasons \} = composeHeartbeat\(/u);
+  assert.match(workflow, /if \(failed\) \{\s*\n\s*core\.setFailed\(/u);
+  assert.ok(!/if \(degraded\) \{/u.test(workflow),
+    'the workflow still gates its failure on `degraded`, which cannot see a red gate');
 });
 
 test('drift is computed from the previous OWNED body, not from a bare string', () => {
@@ -768,7 +845,16 @@ test('THE WORKFLOW READER FAILS CLOSED: unreadable YAML throws rather than parsi
   // A parser that returned `{}` for a document it did not understand would make
   // every structural guard above pass vacuously — the exact shape of defect this
   // whole file exists to prevent.
-  assert.throws(() => readWorkflowStructure('on: {push: {}}\njobs:\n  a:\n    steps: []\n'));
+  /*
+   * EVERY ONE OF THESE NAMES ITS REFUSAL. The first had NO matcher at all, which
+   * accepts any throw — a TypeError from a typo in the reader would have
+   * satisfied it just as well as the flow-mapping refusal it was written for.
+   * Found while sweeping the class behind the round-twelve P0 (`/./u` as a
+   * "reason matches" pattern): a matcher that cannot distinguish the intended
+   * failure from an unintended one is not a control, and this file had two.
+   */
+  assert.throws(() => readWorkflowStructure('on: {push: {}}\njobs:\n  a:\n    steps: []\n'),
+    /flow mappings are not supported/u);
   assert.throws(() => readWorkflowStructure('jobs:\n  a:\n    steps: []\n'), /triggers/u);
   assert.throws(() => readWorkflowStructure('on:\n  workflow_dispatch:\n'), /jobs/u);
   assert.throws(() => readWorkflowStructure('on:\n  workflow_dispatch:\njobs:\n\ta: 1\n'), /tab/u);
