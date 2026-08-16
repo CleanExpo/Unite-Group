@@ -124,6 +124,9 @@ function buildZip(files, { corruptCrc = false } = {}) {
 const ARTIFACT_NAME = `spine-test-evidence-${REAL_SHA}`;
 const ARTIFACT_ID = 9264142624;
 
+const ATTEMPT_STARTED = '2026-08-16T00:00:00Z';
+const ARTIFACT_CREATED = '2026-08-16T00:05:00Z';
+
 function stubLister(overrides = {}) {
   return () => ({
     artifacts: [{
@@ -132,9 +135,21 @@ function stubLister(overrides = {}) {
       expired: false,
       size_in_bytes: 934,
       digest: 'sha256:62e360b53e2b340cdca7df5e20b921209b0a4ec7be587bebfbedc1f91f8c2c27',
+      created_at: ARTIFACT_CREATED,
       workflow_run: { id: Number(RUN_ID), head_sha: REAL_SHA },
       ...overrides,
     }],
+  });
+}
+
+/** Stands in for the run-attempt endpoint. The real one is never called in tests. */
+function stubAttempt(overrides = {}) {
+  return () => ({
+    id: Number(RUN_ID),
+    run_attempt: Number(ATTEMPT),
+    run_started_at: ATTEMPT_STARTED,
+    head_sha: REAL_SHA,
+    ...overrides,
   });
 }
 
@@ -366,6 +381,7 @@ test('THE FORGERY, CLOSED: --gate refuses a caller-supplied evidence file outrig
       fetcher: stubFetcher(),
       lister: stubLister(),
       downloader: stubDownloader(),
+      attemptFetcher: stubAttempt(),
     },
   );
 
@@ -378,7 +394,7 @@ test('--gate still refuses without API-resolved provenance', () => {
   const io = { log: () => {}, error: (line) => errors.push(line) };
   const status = main(
     ['--check', SPINE_CHECK_ID, '--sha', REAL_SHA, '--gate'],
-    { root: repositoryRoot, io, fetcher: stubFetcher(), lister: stubLister(), downloader: stubDownloader() },
+    { root: repositoryRoot, io, fetcher: stubFetcher(), lister: stubLister(), downloader: stubDownloader(), attemptFetcher: stubAttempt() },
   );
 
   assert.equal(status, 2);
@@ -405,6 +421,7 @@ test('main: exit 1 on the real skipped evidence under --gate, exit 0 on the cont
     fetcher: stubFetcher(),
     lister: stubLister(),
     downloader: stubDownloader(evidence),
+    attemptFetcher: stubAttempt(),
   });
 
   assert.equal(gated(SKIPPED_EVIDENCE), 1);
@@ -420,6 +437,7 @@ test('a gated PASS names the artefact its evidence came out of', () => {
     fetcher: stubFetcher(),
     lister: stubLister(),
     downloader: stubDownloader(EXECUTED_EVIDENCE),
+    attemptFetcher: stubAttempt(),
   });
 
   const record = JSON.parse(outputs.join('\n'));
@@ -649,6 +667,7 @@ test('--gate names every binding it is missing, and refuses on any one of them',
       fetcher: stubFetcher(),
       lister: stubLister(),
       downloader: stubDownloader(),
+      attemptFetcher: stubAttempt(),
     });
     assert.equal(status, 2, flag);
     assert.ok(errors.some((line) => line.includes(flag)), `${flag}: ${errors.join(' | ')}`);
@@ -907,7 +926,8 @@ test('API targeting inputs are shape-checked at both boundaries', () => {
     '--job', overrides.job ?? JOB_ID, '--run', overrides.run ?? RUN_ID,
     '--attempt', ATTEMPT, '--repo', overrides.repo ?? REPO, '--root', ROOT, '--gate',
   ], {
-    root: repositoryRoot, io, fetcher: stubFetcher(), lister: stubLister(), downloader: stubDownloader(),
+    root: repositoryRoot, io, fetcher: stubFetcher(), lister: stubLister(),
+    downloader: stubDownloader(), attemptFetcher: stubAttempt(),
   });
 
   assert.equal(run({ repo: 'not-a-repo' }), 2);
@@ -1061,7 +1081,7 @@ test('--repo rejects dot segments that could reshape the API path', () => {
         '--job', JOB_ID, '--run', RUN_ID, '--attempt', ATTEMPT, '--repo', repo, '--root', ROOT, '--gate'],
       {
         root: repositoryRoot, io: NULL_IO, fetcher: stubFetcher(),
-        lister: stubLister(), downloader: stubDownloader(),
+        lister: stubLister(), downloader: stubDownloader(), attemptFetcher: stubAttempt(),
       }),
       2,
       repo,
@@ -1188,6 +1208,7 @@ test('AN ARTEFACT FROM ANOTHER RUN IS REFUSED, not graded', () => {
   assert.throws(
     () => resolveEvidenceArtifact({
       check: shippedCheck(), repo: REPO, runId: RUN_ID, expectedSha: REAL_SHA,
+      expectedRunAttempt: ATTEMPT, attemptFetcher: stubAttempt(),
       lister: stubLister({ workflow_run: { id: 424242, head_sha: REAL_SHA } }),
       downloader: stubDownloader(),
     }),
@@ -1199,6 +1220,7 @@ test('an artefact produced on another commit is refused', () => {
   assert.throws(
     () => resolveEvidenceArtifact({
       check: shippedCheck(), repo: REPO, runId: RUN_ID, expectedSha: REAL_SHA,
+      expectedRunAttempt: ATTEMPT, attemptFetcher: stubAttempt(),
       lister: stubLister({ workflow_run: { id: Number(RUN_ID), head_sha: OTHER_SHA } }),
       downloader: stubDownloader(),
     }),
@@ -1210,6 +1232,7 @@ test('an expired artefact is absent evidence, not empty evidence', () => {
   assert.throws(
     () => resolveEvidenceArtifact({
       check: shippedCheck(), repo: REPO, runId: RUN_ID, expectedSha: REAL_SHA,
+      expectedRunAttempt: ATTEMPT, attemptFetcher: stubAttempt(),
       lister: stubLister({ expired: true }), downloader: stubDownloader(),
     }),
     /ARTIFACT_EXPIRED/,
@@ -1220,6 +1243,7 @@ test('a run that uploaded no evidence is a refusal, never a vacuous pass', () =>
   assert.throws(
     () => resolveEvidenceArtifact({
       check: shippedCheck(), repo: REPO, runId: RUN_ID, expectedSha: REAL_SHA,
+      expectedRunAttempt: ATTEMPT, attemptFetcher: stubAttempt(),
       lister: () => ({ artifacts: [] }), downloader: stubDownloader(),
     }),
     /ARTIFACT_ABSENT/,
@@ -1236,6 +1260,7 @@ test('two artefacts of the same name cannot be silently disambiguated', () => {
   assert.throws(
     () => resolveEvidenceArtifact({
       check: shippedCheck(), repo: REPO, runId: RUN_ID, expectedSha: REAL_SHA,
+      expectedRunAttempt: ATTEMPT, attemptFetcher: stubAttempt(),
       lister: twice, downloader: stubDownloader(),
     }),
     /ARTIFACT_AMBIGUOUS/,
@@ -1246,6 +1271,7 @@ test('an artefact without the declared report entry is refused', () => {
   assert.throws(
     () => resolveEvidenceArtifact({
       check: shippedCheck(), repo: REPO, runId: RUN_ID, expectedSha: REAL_SHA,
+      expectedRunAttempt: ATTEMPT, attemptFetcher: stubAttempt(),
       lister: stubLister(), downloader: () => buildZip({ 'something-else.json': '{}' }),
     }),
     /ARTIFACT_MISSING_REPORT/,
@@ -1258,6 +1284,7 @@ test('the report entry is found whether upload-artifact nested it or not', () =>
   for (const entry of ['vitest-report.json', 'packages/spine/vitest-report.json']) {
     const fetched = resolveEvidenceArtifact({
       check: shippedCheck(), repo: REPO, runId: RUN_ID, expectedSha: REAL_SHA,
+      expectedRunAttempt: ATTEMPT, attemptFetcher: stubAttempt(),
       lister: stubLister(), downloader: stubDownloader(SKIPPED_EVIDENCE, entry),
     });
     assert.ok(fetched.text.includes('testResults'), entry);
@@ -1268,6 +1295,7 @@ test('two entries answering to the same report name are refused, not picked betw
   assert.throws(
     () => resolveEvidenceArtifact({
       check: shippedCheck(), repo: REPO, runId: RUN_ID, expectedSha: REAL_SHA,
+      expectedRunAttempt: ATTEMPT, attemptFetcher: stubAttempt(),
       lister: stubLister(),
       downloader: () => buildZip({
         'vitest-report.json': '{"testResults":[]}',
@@ -1295,4 +1323,123 @@ test('the shipped manifest names the artefact ci.yml actually uploads', () => {
 
   assert.ok(workflow.includes(`name: ${expected}`), `ci.yml does not upload "${expected}"`);
   assert.ok(workflow.includes(check.reportEntry), `ci.yml never mentions "${check.reportEntry}"`);
+});
+
+// ---------------------------------------------------------------------------
+// ROUND SEVEN. Each demonstrated open against 406572db0 before being fixed.
+// ---------------------------------------------------------------------------
+
+test('A MISSING FILE VERDICT IS NOT A PASSING ONE', () => {
+  // Round six added a guard for the wrong VALUE and round seven walked past it by
+  // deleting `status` from all six file records: `fileStatus !== null` skipped the
+  // check and the report was certified with zero violations. Guarding a bad value
+  // without guarding an absent one just moves the hole.
+  const result = graded(executedReport((report) => {
+    for (const file of report.testResults) delete file.status;
+  }));
+
+  assert.equal(result.verdict, 'FAIL');
+  const absent = result.violations.filter((v) => v.reason === 'SUITE_FILE_VERDICT_ABSENT');
+  assert.equal(absent.length, 6, JSON.stringify(result.violations.map((v) => v.reason)));
+});
+
+test('one file missing its verdict is enough to fail', () => {
+  const result = graded(executedReport((report) => { delete report.testResults[0].status; }));
+  assert.equal(result.verdict, 'FAIL');
+  assert.ok(result.violations.some((v) => v.reason === 'SUITE_FILE_VERDICT_ABSENT'));
+});
+
+test("ATTEMPT 1'S ARTEFACT CANNOT CERTIFY ATTEMPT 2", () => {
+  // GitHub exposes no attempt field on an artefact and has no attempt-scoped
+  // listing (both verified live against the API), so a partial re-run carries the
+  // earlier attempt's artefacts forward. Round seven certified attempt 2 with
+  // attempt 1's bytes. Creation time is the binding that is actually available.
+  assert.throws(
+    () => resolveEvidenceArtifact({
+      check: shippedCheck(),
+      repo: REPO,
+      runId: RUN_ID,
+      expectedSha: REAL_SHA,
+      expectedRunAttempt: '2',
+      lister: stubLister({ created_at: '2026-08-16T00:00:00Z' }),
+      downloader: stubDownloader(),
+      attemptFetcher: stubAttempt({ run_attempt: 2, run_started_at: '2026-08-16T09:00:00Z' }),
+    }),
+    /ARTIFACT_PRECEDES_ATTEMPT/,
+  );
+});
+
+test('an artefact created DURING its attempt is accepted, so reruns still gate', () => {
+  // The other direction: a guard that refused every rerun would be disabled by
+  // the first engineer it blocked.
+  const fetched = resolveEvidenceArtifact({
+    check: shippedCheck(),
+    repo: REPO,
+    runId: RUN_ID,
+    expectedSha: REAL_SHA,
+    expectedRunAttempt: '2',
+    lister: stubLister({ created_at: '2026-08-16T09:30:00Z' }),
+    downloader: stubDownloader(),
+    attemptFetcher: stubAttempt({ run_attempt: 2, run_started_at: '2026-08-16T09:00:00Z' }),
+  });
+  assert.ok(fetched.text.includes('testResults'));
+  assert.equal(fetched.source.runAttempt, '2');
+});
+
+test('resolveEvidenceArtifact refuses an unbound attempt rather than defaulting', () => {
+  assert.throws(
+    () => resolveEvidenceArtifact({
+      check: shippedCheck(), repo: REPO, runId: RUN_ID, expectedSha: REAL_SHA,
+      lister: stubLister(), downloader: stubDownloader(), attemptFetcher: stubAttempt(),
+    }),
+    /ARTIFACT_ATTEMPT_UNBOUND/,
+  );
+});
+
+test('an attempt endpoint answering for a different attempt is refused', () => {
+  assert.throws(
+    () => resolveEvidenceArtifact({
+      check: shippedCheck(), repo: REPO, runId: RUN_ID, expectedSha: REAL_SHA,
+      expectedRunAttempt: '2',
+      lister: stubLister(), downloader: stubDownloader(),
+      attemptFetcher: stubAttempt({ run_attempt: 1 }),
+    }),
+    /ATTEMPT_MISMATCH/,
+  );
+});
+
+test('missing timestamps are UNVERIFIABLE, not assumed in order', () => {
+  for (const [listerOverride, attemptOverride] of [
+    [{ created_at: null }, {}],
+    [{}, { run_started_at: undefined }],
+    [{ created_at: 'not-a-date' }, {}],
+  ]) {
+    assert.throws(
+      () => resolveEvidenceArtifact({
+        check: shippedCheck(), repo: REPO, runId: RUN_ID, expectedSha: REAL_SHA,
+        expectedRunAttempt: ATTEMPT,
+        lister: stubLister(listerOverride),
+        downloader: stubDownloader(),
+        attemptFetcher: stubAttempt(attemptOverride),
+      }),
+      /ARTIFACT_TIME_UNVERIFIABLE/,
+      JSON.stringify(listerOverride),
+    );
+  }
+});
+
+test('THE EVIDENCE RECORD NAMES THE MEMBER IT ACTUALLY GRADED', () => {
+  // Reporting the declared name labelled `nested/vitest-report.json` as
+  // `vitest-report.json`. A provenance record that names a different file from
+  // the one it describes is worse than no record, and the previous nested-layout
+  // test asserted the false label.
+  const fetched = resolveEvidenceArtifact({
+    check: shippedCheck(), repo: REPO, runId: RUN_ID, expectedSha: REAL_SHA,
+    expectedRunAttempt: ATTEMPT, attemptFetcher: stubAttempt(),
+    lister: stubLister(),
+    downloader: stubDownloader(SKIPPED_EVIDENCE, 'nested/vitest-report.json'),
+  });
+
+  assert.equal(fetched.source.entry, 'nested/vitest-report.json');
+  assert.equal(fetched.source.declaredEntry, 'vitest-report.json');
 });

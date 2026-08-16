@@ -56,7 +56,15 @@
  * choose all of them can still select a foreign but internally consistent run,
  * and get a truthful answer about the wrong thing.
  *
- * Two narrower limits, so they are not mistaken for guarantees:
+ * Three narrower limits, so they are not mistaken for guarantees:
+ *   - ATTEMPT BINDING IS BY TIME, NOT BY IDENTITY. GitHub exposes no attempt
+ *     field on an artefact and offers no attempt-scoped artefact listing (both
+ *     verified live), so a partial re-run carries the earlier attempt's artefacts
+ *     into the new one. The gate refuses any artefact created before the
+ *     attempt's `run_started_at`, which excludes exactly those carried-forward
+ *     bytes. It cannot distinguish two artefacts created within one attempt's
+ *     window — the duplicate-name refusal covers the case that matters — and it
+ *     inherits whatever clock skew exists between the two API timestamps.
  *   - Workflow binding compares a DISPLAY NAME (`job.workflow_name`) against the
  *     manifest. Two workflow files may share a `name:`, so this narrows the set
  *     but does not identify a file. `check.workflow` is documentation, not a
@@ -534,6 +542,30 @@ export function ghArtifactLister(repo, runId) {
   return JSON.parse(raw);
 }
 
+/**
+ * Fetches one run ATTEMPT. Injectable so tests never reach the network.
+ *
+ * Verified live 2026-08-16 against the GitHub API, with positive controls:
+ * `/runs/{id}/attempts/{n}` returns `run_attempt` and `run_started_at`;
+ * `/runs/{id}/attempts/{n}/jobs` exists (15 jobs on the control run); and
+ * `/runs/{id}/attempts/{n}/artifacts` returns 404 — there is NO attempt-scoped
+ * artefact listing. That 404 was checked against a working sibling path so it
+ * means "no such endpoint" rather than "wrong run".
+ */
+export function ghRunAttemptFetcher(repo, runId, attempt) {
+  if (!isValidRepo(repo)) throw new Error(`INVALID_REPO: "${repo}" is not owner/name.`);
+  if (!NUMERIC_ID.test(String(runId))) throw new Error(`INVALID_RUN_ID: "${runId}" is not numeric.`);
+  if (!NUMERIC_ID.test(String(attempt))) {
+    throw new Error(`INVALID_RUN_ATTEMPT: "${attempt}" is not numeric.`);
+  }
+  const raw = execFileSync(
+    'gh',
+    ['api', `repos/${repo}/actions/runs/${runId}/attempts/${attempt}`],
+    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
+  );
+  return JSON.parse(raw);
+}
+
 /** Downloads one artefact's ZIP. Injectable so tests never reach the network. */
 export function ghArtifactDownloader(repo, artifactId) {
   if (!isValidRepo(repo)) throw new Error(`INVALID_REPO: "${repo}" is not owner/name.`);
@@ -558,9 +590,16 @@ export function ghArtifactDownloader(repo, artifactId) {
  * all, so there is no caller-supplied byte in the graded evidence.
  */
 export function resolveEvidenceArtifact({
-  check, repo, runId, expectedSha,
+  check, repo, runId, expectedSha, expectedRunAttempt,
   lister = ghArtifactLister, downloader = ghArtifactDownloader,
+  attemptFetcher = ghRunAttemptFetcher,
 }) {
+  if (expectedRunAttempt === undefined) {
+    throw new Error(
+      'ARTIFACT_ATTEMPT_UNBOUND: expectedRunAttempt is required. A re-run reuses the run id, '
+      + "so binding the run alone lets an earlier attempt's artefact stand in for a later one.",
+    );
+  }
   if (!check.artifact || !check.reportEntry) {
     throw new Error(
       `ARTIFACT_UNDECLARED: check "${check.id}" declares no artifact/reportEntry, so its `
@@ -609,6 +648,42 @@ export function resolveEvidenceArtifact({
     );
   }
 
+  /*
+   * WHICH ATTEMPT PRODUCED THESE BYTES. GitHub exposes no attempt field on an
+   * artefact — verified live: `workflow_run` carries exactly head_branch,
+   * head_repository_id, head_sha, id and repository_id, and there is no
+   * `/attempts/{n}/artifacts` endpoint. A partial re-run therefore CARRIES
+   * attempt 1's artefacts into attempt 2, and round seven certified attempt 2
+   * with attempt 1's bytes on exactly that basis.
+   *
+   * What the API does give is the artefact's `created_at` and the attempt's
+   * `run_started_at`. An artefact created before the attempt began cannot have
+   * come out of it. That is a real binding rather than a name check, and it is
+   * the strongest one available; where it stops is stated in the header.
+   */
+  const attempt = attemptFetcher(repo, runId, expectedRunAttempt);
+  if (String(attempt?.run_attempt) !== String(expectedRunAttempt)) {
+    throw new Error(
+      `ATTEMPT_MISMATCH: the API returned attempt ${attempt?.run_attempt} for the requested `
+      + `attempt ${expectedRunAttempt}.`,
+    );
+  }
+  const attemptStarted = Date.parse(attempt?.run_started_at ?? '');
+  const artifactCreated = Date.parse(artifact.created_at ?? '');
+  if (Number.isNaN(attemptStarted) || Number.isNaN(artifactCreated)) {
+    throw new Error(
+      'ARTIFACT_TIME_UNVERIFIABLE: the artefact has no usable created_at, or the attempt has '
+      + 'no usable run_started_at, so which attempt produced these bytes cannot be established.',
+    );
+  }
+  if (artifactCreated < attemptStarted) {
+    throw new Error(
+      `ARTIFACT_PRECEDES_ATTEMPT: artefact ${artifact.id} was created at ${artifact.created_at}, `
+      + `before attempt ${expectedRunAttempt} started at ${attempt.run_started_at}. It is an `
+      + 'earlier attempt\'s evidence carried forward by a partial re-run.',
+    );
+  }
+
   const entries = readZipEntries(downloader(repo, artifact.id));
   /*
    * actions/upload-artifact roots the archive at the common ancestor of the files
@@ -645,7 +720,14 @@ export function resolveEvidenceArtifact({
       artifactName: artifact.name,
       digest: artifact.digest ?? null,
       sizeInBytes: artifact.size_in_bytes ?? null,
-      entry: check.reportEntry,
+      // The member ACTUALLY graded, not the name the manifest asked for. Nested
+      // and bare layouts both resolve, so reporting the declared name labelled
+      // `nested/vitest-report.json` as `vitest-report.json` — a provenance record
+      // that names a different file from the one it describes is worse than none.
+      entry: wanted[0].name,
+      declaredEntry: check.reportEntry,
+      createdAt: artifact.created_at ?? null,
+      runAttempt: expectedRunAttempt,
     },
   };
 }
@@ -830,7 +912,25 @@ export function checkEvidenceCompleteness({ check, observed, provenance }) {
    * violations, because nothing read below the assertion level.
    */
   for (const suite of observed.suites) {
-    if (suite.fileStatus !== null && suite.fileStatus !== 'passed') {
+    /*
+     * A MISSING FILE VERDICT IS NOT A PASSING ONE. Round six added this guard and
+     * round seven walked straight past it by DELETING `status` from every file
+     * record: `fileStatus !== null` skipped the check and the report was
+     * certified. That is the same missing-field-reads-as-success shape the
+     * `success` guard already refuses, relocated one level down — and the lesson
+     * is that adding a guard for a wrong VALUE without one for an absent value
+     * just moves the hole.
+     */
+    if (suite.fileStatus === null) {
+      violations.push({
+        suite: suite.suite,
+        reason: 'SUITE_FILE_VERDICT_ABSENT',
+        status: 'UNKNOWN',
+        executed: suite.executed,
+        detail: 'The file record carries no `status`, so whether the suite itself passed '
+          + 'cannot be read. Absent is not passed.',
+      });
+    } else if (suite.fileStatus !== 'passed') {
       violations.push({
         suite: suite.suite,
         reason: 'SUITE_FILE_NOT_PASSED',
@@ -1113,6 +1213,7 @@ function formatHuman(result) {
 export function main(argv = process.argv.slice(2), {
   root = repositoryRoot, io = console, fetcher = ghJobFetcher,
   lister = ghArtifactLister, downloader = ghArtifactDownloader,
+  attemptFetcher = ghRunAttemptFetcher,
 } = {}) {
   let options;
   try {
@@ -1206,8 +1307,10 @@ export function main(argv = process.argv.slice(2), {
         repo: options.repo,
         runId: provenance.runId,
         expectedSha: provenance.sha,
+        expectedRunAttempt: provenance.runAttempt,
         lister,
         downloader,
+        attemptFetcher,
       });
       evidenceText = fetched.text;
       evidenceSource = fetched.source;
