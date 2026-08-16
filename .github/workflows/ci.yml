@@ -4,6 +4,19 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Manual escape hatch. Added 16/08/2026 after GitHub Actions silently failed to
+  # dispatch on PR #1009: two pushes to the PR branch produced no workflow run at
+  # all — not queued, not failed, absent — while Vercel built the same commits
+  # normally. With only push/pull_request triggers there was no way to ask for a
+  # run, and `POST /actions/workflows/ci.yml/dispatches` returned
+  # `422 Workflow does not have 'workflow_dispatch' trigger`. Re-running an
+  # existing run was no substitute: a re-run replays its OWN commit, so it would
+  # have produced a green tick against code that was not the PR head.
+  #
+  # Note for whoever needs this next: workflow_dispatch is only offered for
+  # workflow files present on the DEFAULT branch, so this becomes usable once
+  # merged to main — it cannot rescue the PR that introduces it.
+  workflow_dispatch:
 
 permissions:
   contents: read
