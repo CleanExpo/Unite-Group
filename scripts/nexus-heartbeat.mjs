@@ -88,6 +88,43 @@ const STATUS_LABEL = Object.freeze({
  */
 export function reconcileGates(declared, captured) {
   const anomalies = [];
+
+  /*
+   * ZERO DECLARED GATES IS NOT A GREEN RUN.
+   *
+   * Everything below reconciles the capture AGAINST the declaration, so with an
+   * empty declaration there is nothing to disagree with: no gate rows, no
+   * anomalies, `failed` false. A report whose Gates table is a bare header,
+   * published as a success. Vacuous green — the same defect class as a required
+   * CI job passing with every suite skipped, which is the entire subject of the
+   * sibling branch.
+   *
+   * The declaration is the one input that cannot be allowed to fail soft,
+   * because it is what every other check is measured against. Duplicates matter
+   * too: `byName` is keyed by name, so a duplicated declaration silently reports
+   * one gate under two rows and the count stops meaning anything.
+   */
+  const declaredList = Array.isArray(declared) ? declared : [];
+  const usableNames = declaredList.filter(
+    (name) => typeof name === 'string' && name.trim() !== '',
+  );
+  if (!Array.isArray(declared) || declaredList.length === 0) {
+    anomalies.push(
+      'No gates are declared, so this run certifies nothing. An empty declaration cannot be '
+      + 'reported as a pass.',
+    );
+  } else if (usableNames.length !== declaredList.length) {
+    anomalies.push(
+      `${declaredList.length - usableNames.length} declared gate(s) have no usable name, so the `
+      + 'declaration cannot be reconciled against the capture.',
+    );
+  } else if (new Set(usableNames).size !== usableNames.length) {
+    anomalies.push(
+      'The same gate is declared more than once, so one result would be reported under two rows.',
+    );
+  }
+  declared = usableNames;
+
   const list = Array.isArray(captured) ? captured : [];
   if (!Array.isArray(captured)) {
     anomalies.push('The gate capture was not a JSON array; every gate is reported NOT RUN.');

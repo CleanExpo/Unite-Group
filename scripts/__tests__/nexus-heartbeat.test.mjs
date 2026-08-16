@@ -374,6 +374,67 @@ test('A RED GATE FAILS THE RUN, not merely the paragraph nobody reads', () => {
   assert.deepEqual(green.failureReasons, []);
 });
 
+test('ZERO DECLARED GATES IS NOT A GREEN RUN', () => {
+  /*
+   * ROUND-THIRTEEN P1, and I asked this exact question in my own reviewer brief
+   * — "can a run reach a state where `failed` is false but something real is
+   * wrong … an empty declared list?" — and then did not answer it in code. That
+   * is the second time this session that writing an attack question into a brief
+   * substituted for handling it. The reviewer's job became reading my own
+   * question back to me.
+   *
+   * With nothing declared there is nothing for the capture to disagree with: no
+   * rows, no anomalies, `failed` false. A Gates table that is a bare header,
+   * published as a success. Vacuous green — the same class as a required CI job
+   * passing with every suite skipped, which is the whole subject of the sibling
+   * branch.
+   */
+  const empty = composeHeartbeat({
+    date: '2026-08-16',
+    gateEvidence: { ok: true, value: [] },
+    queueEvidence: { ok: true, value: QUEUE },
+    previousBody: null,
+    provenance,
+    declared: [],
+  });
+  assert.equal(empty.failed, true);
+  assert.equal(empty.degraded, true);
+  assert.match(empty.failureReasons.join('\n'), /certifies nothing/u);
+
+  // The declaration is the one input every other check is measured against, so
+  // each way of making it unusable is pinned rather than just the empty case.
+  const malformed = [
+    ['not an array at all', 'verify:readiness', /certifies nothing/u],
+    ['a nameless entry', ['verify:readiness', ''], /no usable name/u],
+    ['a non-string entry', ['verify:readiness', 42], /no usable name/u],
+    ['the same gate twice', ['verify:readiness', 'verify:readiness'], /declared more than once/u],
+  ];
+  for (const [label, declared, reason] of malformed) {
+    const result = composeHeartbeat({
+      date: '2026-08-16',
+      gateEvidence: { ok: true, value: CAPTURE_GREEN },
+      queueEvidence: { ok: true, value: QUEUE },
+      previousBody: null,
+      provenance,
+      declared,
+    });
+    assert.equal(result.failed, true, label);
+    assert.match(result.failureReasons.join('\n'), reason, label);
+  }
+
+  // POSITIVE CONTROL: the real declaration, fully captured, is still green — or
+  // every assertion above is satisfied by a function that refuses everything.
+  const real = composeHeartbeat({
+    date: '2026-08-16',
+    gateEvidence: { ok: true, value: CAPTURE_GREEN },
+    queueEvidence: { ok: true, value: QUEUE },
+    previousBody: null,
+    provenance,
+  });
+  assert.equal(real.failed, false);
+  assert.equal(real.gates.length, DECLARED_GATES.length);
+});
+
 test('THE WORKFLOW FAILS THE RUN ON `failed`, not on `degraded`', () => {
   /*
    * The check above proves the library computes the right verdict. This proves
@@ -858,6 +919,24 @@ test('THE WORKFLOW READER FAILS CLOSED: unreadable YAML throws rather than parsi
   assert.throws(() => readWorkflowStructure('jobs:\n  a:\n    steps: []\n'), /triggers/u);
   assert.throws(() => readWorkflowStructure('on:\n  workflow_dispatch:\n'), /jobs/u);
   assert.throws(() => readWorkflowStructure('on:\n  workflow_dispatch:\njobs:\n\ta: 1\n'), /tab/u);
+
+  /*
+   * A FOLDED SCALAR IS REFUSED, not read as a literal one. `>` folds line breaks
+   * into spaces and `|` keeps them, and both were routed to the literal reader —
+   * so a folded `run: >` step yielded a command carrying newlines this reader
+   * believes are there and the runner does not. Same two-readers-one-document
+   * class as the quoted keys, tags and escapes already refused here, and refused
+   * for the same reason: implementing YAML piecemeal lost four rounds.
+   */
+  assert.throws(
+    () => readWorkflowStructure('on:\n  workflow_dispatch:\njobs:\n  a:\n    name: >\n      one\n      two\n'),
+    /folded block scalar/u,
+  );
+  // The literal form still parses, so this is a refusal of one construct rather
+  // than of block scalars generally.
+  assert.doesNotThrow(
+    () => readWorkflowStructure('on:\n  workflow_dispatch:\njobs:\n  a:\n    name: |\n      one\n      two\n'),
+  );
 
   // A document that is not a mapping AT ALL. Without this case the top-level
   // refusal could be replaced by `return {}` and every guard above would pass

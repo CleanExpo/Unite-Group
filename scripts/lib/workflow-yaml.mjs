@@ -261,7 +261,27 @@ function parseBlock(lines, cursor, indent) {
     if (Object.hasOwn(mapping, key)) fail(line.number, `duplicate key \`${key}\``);
 
     const scalarPart = stripComment(rest).trim();
-    if (scalarPart === '|' || scalarPart === '>' || /^[|>][-+]?\d*$/u.test(scalarPart)) {
+    /*
+     * A FOLDED SCALAR IS NOT A LITERAL ONE, AND READING IT AS ONE IS THE SAME
+     * HALF-HONOURING THIS READER HAS ALREADY BEEN BURNED BY.
+     *
+     * `>` folds line breaks into spaces; `|` keeps them. Both were routed to the
+     * literal reader, so a folded `run: >` step produced a command with newlines
+     * this reader believes are there and the runner does not — the same
+     * two-readers-one-document defect as the quoted keys, tags and escapes this
+     * file already refuses.
+     *
+     * Refused rather than implemented, for the reason established four rounds
+     * ago: implementing YAML piecemeal is how this reader lost four consecutive
+     * rounds, and the controlled workflow uses no folded scalar. A legitimate
+     * edit that needs one rewrites it as `|` or changes this reader deliberately.
+     */
+    if (scalarPart === '>' || /^>[-+]?\d*$/u.test(scalarPart)) {
+      fail(line.number,
+        `key \`${key}\` uses a folded block scalar (\`>\`), which folds line breaks into `
+        + 'spaces. This reader implements only the literal form (`|`) and will not guess');
+    }
+    if (scalarPart === '|' || /^\|[-+]?\d*$/u.test(scalarPart)) {
       const block = readBlockScalar(lines, index + 1, lineIndent);
       mapping[key] = block.value;
       index = block.next;
