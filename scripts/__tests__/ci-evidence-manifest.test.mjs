@@ -75,6 +75,9 @@ function observed(path) {
  * exercise the reader's CRC check, because any byte flip inside a deflate stream
  * makes inflate itself throw first.
  */
+/** Buffers pushed per entry into `centrals`: header, name, extra field. */
+const CENTRALS_PER_ENTRY = 3;
+
 function buildZip(files, {
   corruptCrc = false,
   // ROUND EIGHT. The reviewer's archive held two members both named
@@ -103,6 +106,18 @@ function buildZip(files, {
   // this shape was never built here — the writer could only produce the layout
   // the reader already accepted, so the suite could not see the refusal.
   streamed = false,
+  // Raw member-name bytes, for names that are not valid UTF-8 or carry a NUL —
+  // neither of which an object key can express.
+  nameBytesOverride = null,
+  // Extra-field records as [id, payloadLength]. The extra field is where the
+  // Unicode Path record lives, and a member name is only unambiguous if nothing
+  // in the extra field is offering a second one.
+  extraRecords = [],
+  // Extra records written ONLY into the central header. The two extra regions
+  // legitimately differ (APPNOTE 4.4.28), so this is a valid archive — and it is
+  // the only way to prove the CENTRAL inspection fires on its own rather than
+  // riding on the local one.
+  centralExtraRecords = null,
 } = {}) {
   const locals = [];
   const centrals = [];
@@ -112,7 +127,15 @@ function buildZip(files, {
   for (const [name, text] of pairs) {
     const raw = Buffer.isBuffer(text) ? text : Buffer.from(text, 'utf8');
     const deflated = stored ? raw : deflateRawSync(raw);
-    const nameBytes = Buffer.from(name, 'utf8');
+    const nameBytes = nameBytesOverride ?? Buffer.from(name, 'utf8');
+    const buildExtra = (records) => Buffer.concat(records.map(([id, payloadLength]) => {
+      const record = Buffer.alloc(4 + payloadLength);
+      record.writeUInt16LE(id, 0);
+      record.writeUInt16LE(payloadLength, 2);
+      return record;
+    }));
+    const extra = buildExtra(extraRecords);
+    const centralExtra = centralExtraRecords === null ? extra : buildExtra(centralExtraRecords);
     const checksum = corruptCrc ? (crc32(raw) ^ 0xffffffff) >>> 0 : crc32(raw);
 
     const localNameBytes = localNameOverride === null
@@ -127,7 +150,8 @@ function buildZip(files, {
     local.writeUInt32LE(streamed ? 0 : deflated.length, 18);
     local.writeUInt32LE(streamed ? 0 : raw.length, 22);
     local.writeUInt16LE(localNameBytes.length, 26);
-    locals.push(local, localNameBytes, deflated);
+    local.writeUInt16LE(extra.length, 28);
+    locals.push(local, localNameBytes, extra, deflated);
 
     let descriptorLength = 0;
     if (streamed) {
@@ -149,17 +173,27 @@ function buildZip(files, {
     central.writeUInt32LE(deflated.length, 20);
     central.writeUInt32LE(raw.length, 24);
     central.writeUInt16LE(nameBytes.length, 28);
+    central.writeUInt16LE(centralExtra.length, 30);
     central.writeUInt32LE(offset, 42);
-    centrals.push(central, nameBytes);
+    centrals.push(central, nameBytes, centralExtra);
+    // Kept honest against CENTRALS_PER_ENTRY, which `omitFromDirectory` strides
+    // by. A silent drift here selects the wrong records rather than failing.
+    assert.equal(centrals.length % CENTRALS_PER_ENTRY, 0);
 
-    offset += local.length + localNameBytes.length + deflated.length + descriptorLength;
+    offset += local.length + localNameBytes.length + extra.length
+      + deflated.length + descriptorLength;
   }
 
   const localBlock = Buffer.concat(locals);
   const keptCentrals = [];
   for (let index = 0; index < pairs.length; index += 1) {
     if (omitFromDirectory.includes(pairs[index][0])) continue;
-    keptCentrals.push(centrals[index * 2], centrals[index * 2 + 1]);
+    // THREE buffers per entry — header, name, extra. This read `index * 2` while
+    // the writer pushed three, so every omission selected the wrong records the
+    // moment extra fields existed. The stride is derived from the writer rather
+    // than restated, so the two cannot drift apart again.
+    keptCentrals.push(...centrals.slice(index * CENTRALS_PER_ENTRY,
+      (index + 1) * CENTRALS_PER_ENTRY));
   }
   const centralBlock = Buffer.concat(omitFromDirectory.length > 0 ? keptCentrals : centrals);
   const entryCount = omitFromDirectory.length > 0
@@ -1802,6 +1836,166 @@ test('A STREAMED ENTRY IS READ PROPERLY, or refused for a stated reason', () => 
       label,
     );
   }
+});
+
+test('EVERY DUPLICATED HEADER FIELD IS SWEPT, from a table rather than from memory', () => {
+  /*
+   * FOUR ROUNDS LOST TO ONE CLASS, and the fourth was a fix that CLAIMED to
+   * close it. The previous revision hand-wrote four comparisons under a comment
+   * reading "both copies of EVERYTHING the two headers share are now compared".
+   * Version-needed, modification time and modification date were all duplicated
+   * and all unread — the reviewer flipped the committed real artefact's local
+   * version-needed from 20 to 63 and it was accepted.
+   *
+   * This test is driven by the same offsets the reader is, so a field the table
+   * forgets is a field this test cannot pretend to cover.
+   */
+  const zip = buildZip({ 'vitest-report.json': '{"ok":true}' }, { stored: true });
+  const centralAt = zip.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02]));
+  assert.ok(centralAt > 0, 'no central header signature found');
+
+  const fields = [
+    ['version needed to extract', 4, 2, 63],
+    ['compression method', 8, 2, 8],
+    ['last modified time', 10, 2, 0x4321],
+    ['last modified date', 12, 2, 0x5678],
+    ['CRC', 14, 4, 0xdeadbeef],
+    ['compressed size', 18, 4, 4321],
+    ['uncompressed size', 22, 4, 8765],
+  ];
+  for (const [label, localOffset, size, value] of fields) {
+    const mutant = Buffer.from(zip);
+    if (size === 2) mutant.writeUInt16LE(value, localOffset);
+    else mutant.writeUInt32LE(value, localOffset);
+    // Each assertion names ITS OWN field, so a mutant killed by an unrelated
+    // earlier guard reads as a failure rather than a pass.
+    assert.throws(() => readZipEntries(mutant), new RegExp(`declares ${label} `, 'u'), label);
+  }
+
+  // The name length is duplicated too, and is the one shared field whose
+  // mismatch is caught by the byte comparison rather than the table.
+  const shortName = Buffer.from(zip);
+  shortName.writeUInt16LE(4, 26);
+  assert.throws(() => readZipEntries(shortName), /calls it "/u);
+
+  /*
+   * THE FIELDS THE TABLE DELIBERATELY OMITS ARE STILL COVERED, or "not in the
+   * table" quietly becomes "unchecked" — which is the exact hole this test
+   * exists to close. Flags are compared BEFORE the table because `streamed` is
+   * derived from them; the comparison is real, it just lives earlier and says so
+   * in its own words.
+   */
+  const flagMismatch = Buffer.from(zip);
+  flagMismatch.writeUInt16LE(0x0002, 6);
+  assert.throws(() => readZipEntries(flagMismatch),
+    /declares flags 0x2 in its local header and 0x0 in the central directory/u);
+
+  // And the honest archive still reads, so none of the above is satisfied by a
+  // reader that refuses everything.
+  assert.equal(readZipEntries(zip)[0].name, 'vitest-report.json');
+});
+
+test('A MEMBER NAME MUST MEAN THE SAME THING TO EVERY READER', () => {
+  /*
+   * Two archives the reviewer built, both accepted, both graded by this reader
+   * as `vitest-report.json` while a standard reader saw something else:
+   *
+   *   a Unicode Path extra field (0x7075) naming `other.json` — the extra field
+   *   REPLACES the name for any reader that honours it
+   *
+   *   `dir\0ignored/vitest-report.json` with bit 11 — `bsdtar` listed `dir`,
+   *   because C string handling stops at the NUL, while the basename selector
+   *   here picked `vitest-report.json` out of the tail
+   *
+   * Same two-reader class as the local/central name mismatch, at the sites the
+   * name check did not know about.
+   */
+  const unicodePath = buildZip({ 'vitest-report.json': '{"ok":true}' },
+    { stored: true, extraRecords: [[0x7075, 12]] });
+  assert.throws(() => readZipEntries(unicodePath),
+    /extra field 0x7075 \(Unicode Path, which replaces the member name\)/u);
+
+  const withNul = buildZip({ 'placeholder': '{"ok":true}' }, {
+    stored: true,
+    nameBytesOverride: Buffer.concat([
+      Buffer.from('dir', 'utf8'), Buffer.from([0]),
+      Buffer.from('ignored/vitest-report.json', 'utf8'),
+    ]),
+  });
+  assert.throws(() => readZipEntries(withNul),
+    /contains a control character \(0x00 at byte 3\)/u);
+
+  const badUtf8 = buildZip({ 'placeholder': '{"ok":true}' }, {
+    stored: true,
+    nameBytesOverride: Buffer.from([0x76, 0x2e, 0xff, 0xfe, 0x2e, 0x6a, 0x73]),
+  });
+  assert.throws(() => readZipEntries(badUtf8), /is not valid UTF-8/u);
+
+  /*
+   * WHY THE NAME COMPARISON IS ON BYTES AND NOT ON THE DECODED STRING, with the
+   * archive that proves it. The harness caught this: swapping the byte
+   * comparison for a string one changed nothing in any test, because every
+   * fixture used identical bytes on both sides — a guard that could not fail.
+   *
+   * `0xff` and `0xfe` are both invalid UTF-8 and both decode to U+FFFD, so these
+   * two DIFFERENT names are one identical string to a string comparison. The
+   * headers disagree about the member; the decoded view does not.
+   */
+  const sameStringDifferentBytes = buildZip({ 'placeholder': '{"ok":true}' }, {
+    stored: true,
+    nameBytesOverride: Buffer.from([0x61, 0xff, 0x2e, 0x6a, 0x73]),
+  });
+  const localNameAt = 30;
+  assert.equal(sameStringDifferentBytes[localNameAt + 1], 0xff);
+  sameStringDifferentBytes[localNameAt + 1] = 0xfe;
+  assert.throws(() => readZipEntries(sameStringDifferentBytes), /calls it "/u);
+
+  /*
+   * EXTRA FIELDS ARE ALLOWED BY ID, NOT REFUSED BY ID. An unknown record is one
+   * whose effect on the entry is unknown, so it fails closed — and the three
+   * pure-metadata ids that a future upload-artifact might legitimately emit are
+   * accepted, which is the positive control proving this is a judgement and not
+   * a blanket refusal of all extra fields.
+   */
+  const unknownExtra = buildZip({ 'vitest-report.json': '{"ok":true}' },
+    { stored: true, extraRecords: [[0xdead, 4]] });
+  assert.throws(() => readZipEntries(unknownExtra), /extra field 0xdead .* does not implement/su);
+
+  /*
+   * BOTH COPIES, AND THE HARNESS PROVED THIS ONE WAS RIDING ON THE OTHER.
+   *
+   * The tests above put the record in both headers, so disabling the CENTRAL
+   * inspection changed nothing and its mutant SURVIVED — a guard that could not
+   * fail, passing tests. The two extra regions legitimately differ (APPNOTE
+   * 4.4.28), so an archive carrying a Unicode Path record centrally and nothing
+   * locally is well-formed, and it is exactly the archive a reader that only
+   * inspects one side would grade wrongly.
+   */
+  const centralOnly = buildZip({ 'vitest-report.json': '{"ok":true}' },
+    { stored: true, extraRecords: [], centralExtraRecords: [[0x7075, 12]] });
+  assert.throws(() => readZipEntries(centralOnly),
+    /extra field 0x7075 .* in its central header/su);
+
+  const localOnly = buildZip({ 'vitest-report.json': '{"ok":true}' },
+    { stored: true, extraRecords: [[0x7075, 12]], centralExtraRecords: [] });
+  assert.throws(() => readZipEntries(localOnly),
+    /extra field 0x7075 .* in its local header/su);
+
+  for (const [id, label] of [[0x5455, 'extended timestamp'], [0x7855, 'Unix legacy'],
+    [0x7875, 'Unix uid/gid']]) {
+    const allowed = buildZip({ 'vitest-report.json': '{"ok":true}' },
+      { stored: true, extraRecords: [[id, 5]] });
+    assert.equal(readZipEntries(allowed)[0].name, 'vitest-report.json', label);
+  }
+
+  // A record declaring more bytes than the region holds is refused rather than
+  // read past — the extra region tiles exactly, like everything else here.
+  const overlong = buildZip({ 'vitest-report.json': '{"ok":true}' },
+    { stored: true, extraRecords: [[0x5455, 5]] });
+  const at = overlong.indexOf(Buffer.from([0x55, 0x54]));
+  assert.ok(at > 0);
+  overlong.writeUInt16LE(400, at + 2);
+  assert.throws(() => readZipEntries(overlong), /declares 400 bytes but only/u);
 });
 
 test('THE STREAMED PATH HOLDS FOR SHAPES THE ONE REAL FIXTURE DOES NOT COVER', () => {

@@ -578,12 +578,148 @@ const ZIP64_SENTINEL_32 = 0xffffffff;
  */
 const SUPPORTED_ZIP_FLAG_BITS = 0x080e;
 
+/*
+ * EVERY FIELD THE LOCAL AND CENTRAL HEADERS BOTH CARRY, ENUMERATED.
+ *
+ * Four rounds were lost to this one class — name checked but not method, method
+ * but not crc/sizes, local flags but not central, and then a sweep that CLAIMED
+ * to close the class while leaving version-needed, modification time and
+ * modification date unread. The claim was in a comment saying "both copies of
+ * EVERYTHING the two headers share are now compared", and it was false when
+ * written.
+ *
+ * A comment cannot close a class. A table can: the loop below is driven by this
+ * list, so adding a field here is the only way to check one, and a field that is
+ * missing is visible as a gap in a table rather than invisible as an absence of
+ * code. Offsets are from PKWARE APPNOTE 4.3.7 (local) and 4.3.12 (central).
+ *
+ * Deliberately ABSENT, with reasons, because "not in the table" must mean
+ * "decided" and not "forgotten":
+ *   signature          the two headers carry DIFFERENT signatures by definition
+ *   version made by    central only
+ *   comment length,
+ *   disk number start,
+ *   internal attrs,
+ *   external attrs,
+ *   local header offset   central only
+ *   extra field length    duplicated in NAME only. The local and central extra
+ *                         fields legitimately hold different records — APPNOTE
+ *                         4.4.28 — so their lengths legitimately differ. Their
+ *                         CONTENTS are validated separately, by allowlist.
+ *   file name             compared as raw BYTES below, not through this table,
+ *                         because two different byte sequences can decode to one
+ *                         string and the bytes are what another reader sees.
+ *   general-purpose flags compared BEFORE this table, because `streamed` is
+ *                         derived from bit 3 and three rows below key off it.
+ *                         Comparing it twice would leave the second comparison
+ *                         permanently unreachable, which is a guard that cannot
+ *                         fail — the thing this file's mutation harness exists
+ *                         to catch. Checked exactly once, early.
+ *   file name length      subsumed by the byte comparison: unequal lengths make
+ *                         unequal byte slices, so the name check refuses it
+ *                         first and a row here could never fire. It HAD a row
+ *                         until the harness reported that dropping it changed
+ *                         nothing — a passing test over an unreachable guard.
+ */
+const DUPLICATED_HEADER_FIELDS = Object.freeze([
+  { label: 'version needed to extract', local: 4, central: 6, size: 2 },
+  { label: 'compression method', local: 8, central: 10, size: 2 },
+  { label: 'last modified time', local: 10, central: 12, size: 2 },
+  { label: 'last modified date', local: 12, central: 14, size: 2 },
+  { label: 'CRC', local: 14, central: 16, size: 4, zeroWhenStreamed: true },
+  { label: 'compressed size', local: 18, central: 20, size: 4, zeroWhenStreamed: true },
+  { label: 'uncompressed size', local: 22, central: 24, size: 4, zeroWhenStreamed: true },
+]);
+
+/*
+ * EXTRA FIELDS ARE NAME METADATA UNTIL PROVEN OTHERWISE.
+ *
+ * An entry's extra field is a TLV list, and one of its records — 0x7075, Unicode
+ * Path — REPLACES the member name. A reader that ignores extra fields and a
+ * reader that honours them disagree about which file an archive contains: the
+ * reviewer built exactly that, and `bsdtar -tf` listed `other.json` while this
+ * gate graded the same bytes as `vitest-report.json`.
+ *
+ * So this is an allowlist, not a denylist. Refusing the ids known to be
+ * dangerous is detect-the-bad-thing, and an unknown id is by definition one
+ * whose effect on the name is unknown. Everything not named here is refused with
+ * its id in the message, so adding one is a deliberate act — the same shape as
+ * the workflow content-pin one branch over.
+ *
+ * The artefacts this gate actually reads carry NO extra fields at all (the real
+ * committed fixture has extraLength 0 in both headers). These three are allowed
+ * because they are pure metadata that no reader interprets as identity, so a
+ * future upload-artifact that starts emitting them does not break the gate.
+ */
+const SUPPORTED_EXTRA_FIELD_IDS = Object.freeze(new Map([
+  [0x5455, 'extended timestamp'],
+  [0x7855, 'Unix (uid/gid, legacy)'],
+  [0x7875, 'Unix (uid/gid)'],
+]));
+/** Named separately so the refusal can say WHY rather than only "unsupported". */
+const NAME_BEARING_EXTRA_FIELD_IDS = Object.freeze(new Map([
+  [0x7075, 'Unicode Path, which replaces the member name'],
+  [0x6375, 'Unicode Comment'],
+]));
+
 /** Reads a fixed-width field only when the whole field is inside the buffer. */
 function zipUInt(buffer, at, width, what) {
   if (at < 0 || at + width > buffer.length) {
     throw new Error(`CORRUPT_ZIP: ${what} at offset ${at} runs past the end of the archive.`);
   }
   return width === 2 ? buffer.readUInt16LE(at) : buffer.readUInt32LE(at);
+}
+
+/**
+ * Walks an entry's extra-field region as the TLV list it is, refusing anything
+ * this reader does not implement.
+ *
+ * The region must TILE exactly — the same rule the entry walk applies to the
+ * archive, for the same reason. A trailing byte the records do not account for
+ * is a record another reader may well parse, and then the two readers disagree
+ * about what the archive contains.
+ */
+function assertSupportedExtraFields(buffer, start, length, name, which) {
+  let at = start;
+  const end = start + length;
+  if (end > buffer.length) {
+    throw new Error(
+      `CORRUPT_ZIP: the ${which} extra field of "${name}" runs past the end of the archive.`,
+    );
+  }
+  while (at < end) {
+    if (at + 4 > end) {
+      throw new Error(
+        `CORRUPT_ZIP: the ${which} extra field of "${name}" ends mid-record; `
+        + `${end - at} byte(s) cannot hold a header.`,
+      );
+    }
+    const id = buffer.readUInt16LE(at);
+    const size = buffer.readUInt16LE(at + 2);
+    if (at + 4 + size > end) {
+      throw new Error(
+        `CORRUPT_ZIP: extra field 0x${id.toString(16).padStart(4, '0')} of "${name}" declares `
+        + `${size} bytes but only ${end - at - 4} remain in the ${which} extra region.`,
+      );
+    }
+    if (NAME_BEARING_EXTRA_FIELD_IDS.has(id)) {
+      throw new Error(
+        `UNSUPPORTED_ZIP: "${name}" carries extra field 0x${id.toString(16).padStart(4, '0')} `
+        + `(${NAME_BEARING_EXTRA_FIELD_IDS.get(id)}) in its ${which} header. This reader grades `
+        + 'the member by its header name, so an archive carrying a second name reads as two '
+        + 'different files depending on which reader opens it.',
+      );
+    }
+    if (!SUPPORTED_EXTRA_FIELD_IDS.has(id)) {
+      throw new Error(
+        `UNSUPPORTED_ZIP: "${name}" carries extra field 0x${id.toString(16).padStart(4, '0')} in `
+        + `its ${which} header, which this reader does not implement. Extra fields are allowed by `
+        + 'id, not refused by id, because an unknown record is one whose effect on the entry is '
+        + 'unknown.',
+      );
+    }
+    at += 4 + size;
+  }
 }
 
 export function readZipEntries(buffer) {
@@ -726,29 +862,66 @@ export function readZipEntries(buffer) {
     }
     const localNameLength = zipUInt(buffer, localOffset + 26, 2, 'local name length');
     const localExtraLength = zipUInt(buffer, localOffset + 28, 2, 'local extra length');
-    // The two copies of the name must agree. A central directory naming
-    // `vitest-report.json` over a local header naming something else is one
-    // archive that reads as two different things depending on the tool.
-    const localName = buffer.toString(
-      'utf8', localOffset + 30, localOffset + 30 + localNameLength,
+    /*
+     * THE NAME IS COMPARED AS BYTES, NOT AS A DECODED STRING.
+     *
+     * `buffer.toString('utf8', …)` maps every invalid sequence to U+FFFD, so two
+     * DIFFERENT byte sequences decode to one identical string and a string
+     * comparison passes over an archive whose two headers hold different names.
+     * The bytes are what another reader sees; the decoded string is this
+     * reader's interpretation of them.
+     */
+    const centralNameBytes = buffer.subarray(offset + 46, offset + 46 + nameLength);
+    const localNameBytes = buffer.subarray(
+      localOffset + 30, localOffset + 30 + localNameLength,
     );
-    if (localName !== name) {
+    if (!centralNameBytes.equals(localNameBytes)) {
       throw new Error(
         `CORRUPT_ZIP: central directory calls this entry "${name}" but its local header `
-        + `calls it "${localName}".`,
+        + `calls it "${localNameBytes.toString('utf8')}".`,
       );
     }
     /*
-     * EVERY FIELD THE TWO HEADERS BOTH CARRY MUST AGREE, not just the name.
+     * A NUL OR A CONTROL CHARACTER IN A NAME IS TWO NAMES.
      *
-     * Round eight flipped ONLY the local header's compression method to stored
-     * while the central said deflate, and the archive was accepted — this
-     * reader follows the central copy, another reader follows the local one,
-     * and the two decode the same bytes to different content. Checking the name
-     * and stopping there was the same instance-not-class mistake as everywhere
-     * else in this file: the name is one of four duplicated fields, so the
-     * other three were unguarded.
+     * `dir\0ignored/vitest-report.json` was accepted, and the basename selector
+     * downstream chose `vitest-report.json` from it — while `bsdtar` listed the
+     * entry as `dir`, because C string handling stops at the NUL. One archive,
+     * two members, depending on the reader. Nothing legitimate needs a control
+     * character in a member name.
      */
+    const controlAt = centralNameBytes.findIndex((byte) => byte < 0x20 || byte === 0x7f);
+    if (controlAt !== -1) {
+      throw new Error(
+        `UNSAFE_ZIP_ENTRY: the member name contains a control character (0x`
+        + `${centralNameBytes[controlAt].toString(16).padStart(2, '0')} at byte ${controlAt}), `
+        + 'so different readers will disagree about where the name ends.',
+      );
+    }
+    /*
+     * AND THE NAME MUST SURVIVE THE ROUND TRIP. If re-encoding the decoded name
+     * does not reproduce the original bytes, this reader replaced something it
+     * could not decode — and every check below runs on the replacement while
+     * another reader works on the bytes.
+     */
+    if (!Buffer.from(name, 'utf8').equals(centralNameBytes)) {
+      throw new Error(
+        `UNSAFE_ZIP_ENTRY: the member name is not valid UTF-8, so this reader's view of it `
+        + 'differs from the bytes the archive actually carries.',
+      );
+    }
+    /*
+     * EXTRA FIELDS, BOTH COPIES. 0x7075 (Unicode Path) REPLACES the name, so an
+     * archive can name `vitest-report.json` in its header and `other.json` in its
+     * extra field — the reviewer built that and `bsdtar -tf` listed `other.json`
+     * while this gate graded `vitest-report.json`. Allowlisted, not denylisted:
+     * an unknown record is one whose effect is unknown.
+     */
+    assertSupportedExtraFields(buffer, offset + 46 + nameLength, extraLength, name, 'central');
+    assertSupportedExtraFields(
+      buffer, localOffset + 30 + localNameLength, localExtraLength, name, 'local',
+    );
+
     const localMethod = zipUInt(buffer, localOffset + 8, 2, 'local method');
     const localCrc = zipUInt(buffer, localOffset + 14, 4, 'local CRC');
     const localCompressed = zipUInt(buffer, localOffset + 18, 4, 'local compressed size');
@@ -832,28 +1005,36 @@ export function readZipEntries(buffer) {
           + `${localUncompressed}.`,
         );
       }
-    } else {
-      const disagreements = [
-        ['CRC', localCrc, expectedCrc],
-        ['compressed size', localCompressed, compressedSize],
-        ['uncompressed size', localUncompressed, uncompressedSize],
-      ];
-      for (const [label, local, central] of disagreements) {
-        if (local !== central) {
-          throw new Error(
-            `CORRUPT_ZIP: "${name}" declares ${label} ${local} in its local header and `
-            + `${central} in the central directory; the two disagree about how to read it.`,
-          );
-        }
-      }
     }
-    // The method is duplicated whether or not the entry streams, so it is
-    // checked outside the branch — round eight flipped only the local copy.
-    if (localMethod !== method) {
-      throw new Error(
-        `CORRUPT_ZIP: "${name}" declares compression method ${localMethod} in its local header `
-        + `and ${method} in the central directory; the two disagree about how to read it.`,
-      );
+    /*
+     * THE SWEEP, DRIVEN BY THE TABLE RATHER THAN BY MEMORY.
+     *
+     * The previous revision hand-wrote four comparisons and a comment claiming
+     * every shared field was covered. Three were not: version-needed,
+     * modification time and modification date are all duplicated and all were
+     * unread, so an archive declaring version-needed 63 locally and 20 centrally
+     * was accepted — one entry, two claims about what it takes to read it.
+     *
+     * Four rounds have now been lost to this one class, each fixing the field
+     * that was named. Enumerating the table is the only version of this fix that
+     * is not another instance of the same mistake.
+     */
+    for (const field of DUPLICATED_HEADER_FIELDS) {
+      const localValue = zipUInt(buffer, localOffset + field.local, field.size,
+        `local ${field.label}`);
+      const centralValue = zipUInt(buffer, offset + field.central, field.size,
+        `central ${field.label}`);
+      // The three fields bit 3 zeroes locally are checked against zero above and
+      // against the descriptor below; comparing them to the central copy here
+      // would refuse every streamed entry, which is how this reader spent a round
+      // rejecting every real artefact.
+      if (field.zeroWhenStreamed && streamed) continue;
+      if (localValue !== centralValue) {
+        throw new Error(
+          `CORRUPT_ZIP: "${name}" declares ${field.label} ${localValue} in its local header and `
+          + `${centralValue} in the central directory; the two disagree about how to read it.`,
+        );
+      }
     }
     const dataStart = localOffset + 30 + localNameLength + localExtraLength;
     const dataEnd = dataStart + compressedSize;
