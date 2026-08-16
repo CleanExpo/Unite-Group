@@ -899,15 +899,47 @@ export function readZipEntries(buffer) {
       );
     }
     /*
-     * AND THE NAME MUST SURVIVE THE ROUND TRIP. If re-encoding the decoded name
-     * does not reproduce the original bytes, this reader replaced something it
-     * could not decode — and every check below runs on the replacement while
-     * another reader works on the bytes.
+     * BIT 11 SAYS WHICH ENCODING THE NAME IS IN, AND I WAS NOT ASKING.
+     *
+     * This reader calls `toString('utf8')` on every member name. APPNOTE 4.4.4
+     * says the name is UTF-8 only when general-purpose bit 11 is SET; with the
+     * bit clear it is the legacy IBM code page 437. So the bytes `c3 a9` are
+     * `é` here and `├⌐` to a standards-based reader — one archive, two member
+     * names, which is the same class as the Unicode Path extra field and the
+     * NUL, at the site that decides the encoding rather than the site that
+     * carries the name.
+     *
+     * A NON-ASCII BYTE IS REFUSED WHEN BIT 11 IS CLEAR rather than decoded as
+     * CP437. Implementing a second encoding to grade a build artefact is a
+     * larger surface than the problem deserves, and the two encodings agree
+     * exactly on 0x00-0x7f — so refusing above that is the whole ambiguity,
+     * removed without guessing. Verified against the committed real artefact
+     * BEFORE writing this: its flags are 0x0008 (bit 11 clear) and its name is
+     * pure ASCII, so nothing production emits is refused. That check came first
+     * this time, which is the lesson of the two rounds this reader lost to
+     * claims about what production emits.
      */
-    if (!Buffer.from(name, 'utf8').equals(centralNameBytes)) {
+    if ((centralFlags & 0x0800) === 0) {
+      const nonAsciiAt = centralNameBytes.findIndex((byte) => byte > 0x7f);
+      if (nonAsciiAt !== -1) {
+        throw new Error(
+          `UNSAFE_ZIP_ENTRY: the member name carries byte 0x`
+          + `${centralNameBytes[nonAsciiAt].toString(16)} at position ${nonAsciiAt} while `
+          + 'general-purpose bit 11 is clear, which declares the name to be code page 437 and '
+          + 'not UTF-8. This reader decodes UTF-8 only, so the name it grades would differ from '
+          + 'the name a standards-based reader sees.',
+        );
+      }
+    } else if (!Buffer.from(name, 'utf8').equals(centralNameBytes)) {
+      /*
+       * BIT 11 IS SET, SO THE NAME MUST SURVIVE THE ROUND TRIP. If re-encoding
+       * the decoded name does not reproduce the original bytes, this reader
+       * replaced something it could not decode — and every check below runs on
+       * the replacement while another reader works on the bytes.
+       */
       throw new Error(
-        `UNSAFE_ZIP_ENTRY: the member name is not valid UTF-8, so this reader's view of it `
-        + 'differs from the bytes the archive actually carries.',
+        `UNSAFE_ZIP_ENTRY: the member name declares UTF-8 (general-purpose bit 11) but is not `
+        + "valid UTF-8, so this reader's view of it differs from the bytes the archive carries.",
       );
     }
     /*

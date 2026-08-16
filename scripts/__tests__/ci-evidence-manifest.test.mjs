@@ -1925,11 +1925,70 @@ test('A MEMBER NAME MUST MEAN THE SAME THING TO EVERY READER', () => {
   assert.throws(() => readZipEntries(withNul),
     /contains a control character \(0x00 at byte 3\)/u);
 
-  const badUtf8 = buildZip({ 'placeholder': '{"ok":true}' }, {
+  /*
+   * BIT 11 DECIDES THE ENCODING, and this reader was not asking. APPNOTE 4.4.4:
+   * the name is UTF-8 only when bit 11 is SET; clear, it is code page 437. So
+   * `c3 a9` is `é` here and `├⌐` to a standards reader — the reviewer proved it
+   * with Python's `zipfile(metadata_encoding='cp437')`. One archive, two member
+   * names, at the site that decides the encoding rather than the one that
+   * carries the name.
+   *
+   * The SAME BYTES in both cases, differing only in the flag, so the assertion
+   * is about the flag and nothing else.
+   */
+  const nonAsciiName = Buffer.from([0xc3, 0xa9, 0x2f, 0x76, 0x2e, 0x6a, 0x73]);
+  const cp437Claim = buildZip({ placeholder: '{"ok":true}' },
+    { stored: true, nameBytesOverride: nonAsciiName });
+  assert.throws(() => readZipEntries(cp437Claim),
+    /while general-purpose bit 11 is clear, which declares the name to be code page 437/u);
+
+  /*
+   * THE BOUNDARY ITSELF, both sides. The harness caught this: moving the test
+   * from `> 0x7f` to `> 0x80` changed nothing, because no fixture used the one
+   * byte that distinguishes them. 0x7f is the last ASCII byte and the two
+   * encodings agree on it; 0x80 is the first they disagree about — CP437 reads
+   * it as `Ç` and it is not even valid UTF-8 on its own.
+   */
+  const atBoundary = buildZip({ placeholder: '{"ok":true}' },
+    { stored: true, nameBytesOverride: Buffer.from([0x76, 0x80, 0x2e, 0x6a, 0x73]) });
+  assert.throws(() => readZipEntries(atBoundary), /carries byte 0x80 at position 1/u);
+
+  /*
+   * The accepted side is 0x7e (`~`), not 0x7f. 0x7f is DEL — ASCII, but a
+   * CONTROL character, so the earlier guard refuses it first and using it here
+   * would have made this "boundary is not a blanket" control pass for a reason
+   * that has nothing to do with the encoding rule. Found by writing it and
+   * reading which message came back.
+   */
+  const belowBoundary = buildZip({ placeholder: '{"ok":true}' },
+    { stored: true, nameBytesOverride: Buffer.from([0x76, 0x7e, 0x2e, 0x6a, 0x73]) });
+  assert.equal(readZipEntries(belowBoundary).length, 1);
+
+  // And 0x7f is refused, but as a CONTROL character rather than an encoding
+  // ambiguity — the two rules are adjacent and must not be confused for each
+  // other, so the message is asserted rather than merely the throw.
+  const del = buildZip({ placeholder: '{"ok":true}' },
+    { stored: true, nameBytesOverride: Buffer.from([0x76, 0x7f, 0x2e, 0x6a, 0x73]) });
+  assert.throws(() => readZipEntries(del), /contains a control character \(0x7f at byte 1\)/u);
+
+  // Bit 11 set: the same bytes are a legitimate UTF-8 name and are accepted.
+  const utf8Declared = buildZip({ placeholder: '{"ok":true}' },
+    { stored: true, nameBytesOverride: nonAsciiName });
+  const utf8Central = utf8Declared.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02]));
+  utf8Declared.writeUInt16LE(0x0800, 6);
+  utf8Declared.writeUInt16LE(0x0800, utf8Central + 8);
+  assert.equal(readZipEntries(utf8Declared)[0].name, 'é/v.js');
+
+  // And bit 11 set over bytes that are NOT valid UTF-8 is still refused, so the
+  // round-trip guard did not get lost in the branch.
+  const badUtf8 = buildZip({ placeholder: '{"ok":true}' }, {
     stored: true,
     nameBytesOverride: Buffer.from([0x76, 0x2e, 0xff, 0xfe, 0x2e, 0x6a, 0x73]),
   });
-  assert.throws(() => readZipEntries(badUtf8), /is not valid UTF-8/u);
+  const badCentral = badUtf8.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02]));
+  badUtf8.writeUInt16LE(0x0800, 6);
+  badUtf8.writeUInt16LE(0x0800, badCentral + 8);
+  assert.throws(() => readZipEntries(badUtf8), /declares UTF-8 .* but is not\s+valid UTF-8/su);
 
   /*
    * WHY THE NAME COMPARISON IS ON BYTES AND NOT ON THE DECODED STRING, with the
