@@ -1,6 +1,6 @@
 // src/app/api/cron/engagement-monitor/route.ts
 // GET /api/cron/engagement-monitor
-// Runs every 30 minutes — fetches new social comments, generates AI replies,
+// Runs hourly — fetches new social comments, generates AI replies,
 // auto-posts positive/neutral replies and flags negative ones for review.
 
 import { sanitiseError } from '@/lib/error-reporting'

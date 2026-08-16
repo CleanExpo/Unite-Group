@@ -27,7 +27,7 @@
     },
     {
       "path": "/api/cron/synthex-monitor",
-      "schedule": "*/15 * * * *"
+      "schedule": "*/30 * * * *"
     },
     {
       "path": "/api/cron/content-engine",
@@ -35,19 +35,19 @@
     },
     {
       "path": "/api/cron/social-publisher",
-      "schedule": "*/15 * * * *"
+      "schedule": "*/30 * * * *"
     },
     {
       "path": "/api/cron/video-status",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/cron/brand-video-dispatch",
       "schedule": "*/15 * * * *"
     },
     {
-      "path": "/api/cron/engagement-monitor",
+      "path": "/api/cron/brand-video-dispatch",
       "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/engagement-monitor",
+      "schedule": "0 * * * *"
     },
     {
       "path": "/api/cron/analytics-sync",
@@ -75,11 +75,11 @@
     },
     {
       "path": "/api/cron/linear-queue-health",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 * * * *"
     },
     {
       "path": "/api/cron/os-health-rollup",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 * * * *"
     },
     {
       "path": "/api/cron/ceo-board-meeting",
@@ -123,7 +123,7 @@
     },
     {
       "path": "/api/cron/drip-process",
-      "schedule": "*/15 * * * *"
+      "schedule": "*/30 * * * *"
     },
     {
       "path": "/api/cron/cost-ingest",

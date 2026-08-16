@@ -14,7 +14,7 @@ type ActiveCampaignRow = {
 }
 
 /**
- * Drives the drip lifecycle (UNI-2356): every 15 minutes, live-process the due
+ * Drives the drip lifecycle (UNI-2356): every 30 minutes, live-process the due
  * enrollments of each ACTIVE drip campaign. Campaigns stay 'draft' until the
  * founder activates them (POST /api/campaigns/drip action=set_status), so this
  * cron can never send from an unapproved sequence.

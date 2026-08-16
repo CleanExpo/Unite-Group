@@ -7,7 +7,7 @@
 //
 // Arming: BRAND_VIDEO_DISPATCH_LIVE=1 AND GITHUB_TOKEN set. Without arming,
 // the route still authenticates and reports honest queue depth (never fake
-// "rendered"). Schedule: every 15 minutes (vercel.json).
+// "rendered"). Schedule: every 30 minutes (vercel.json).
 
 import { NextResponse } from 'next/server'
 import { assertCronAuth } from '@/lib/cron-auth'
