@@ -95,6 +95,66 @@ describe('priceUsage', () => {
   it('prices zero tokens as zero without erroring', () => {
     expect(priceUsage({ model: 'claude-sonnet-5', inputTokens: 0, outputTokens: 0 })?.costUsd).toBe(0);
   });
+
+  it('prices Sonnet 5 at $2/$10, not the cancelled $3/$15 increase', () => {
+    // Regression for a real defect found by review on PR #1009. The original
+    // table encoded $3/$15 — an increase scheduled for 01/09/2026 that was
+    // cancelled, leaving $2/$10 as the standard rate. Every Sonnet line was
+    // therefore overstated by 50%. Verified live against
+    // platform.claude.com/docs/en/about-claude/pricing on 16/08/2026.
+    expect(priceUsage({ model: 'claude-sonnet-5', inputTokens: 1_000_000, outputTokens: 1_000_000 }))
+      .toEqual({ costUsd: 12, inputPerMTok: 2, outputPerMTok: 10 });
+  });
+
+  it('keeps Sonnet 4.6 on its own $3/$15 rate', () => {
+    // The negative control for the fix above: 4.6 genuinely IS $3/$15, so a
+    // blanket find-and-replace of the old numbers would have broken it.
+    expect(rateForModel('claude-sonnet-4-6')).toEqual({ inputPerMTok: 3, outputPerMTok: 15 });
+  });
+});
+
+describe('prompt-cache pricing', () => {
+  it('prices a cache hit at a tenth of the input rate', () => {
+    // Folding cached reads into inputTokens would overcharge them tenfold —
+    // and cache hits dominate exactly the crons with big reusable prompts.
+    // 1M cache reads on Opus: 1M * $5 * 0.1 = $0.50
+    const priced = priceUsage({
+      model: 'claude-opus-4-8',
+      inputTokens: 0,
+      outputTokens: 0,
+      cacheReadTokens: 1_000_000,
+    });
+    expect(priced?.costUsd).toBeCloseTo(0.5, 6);
+  });
+
+  it('prices a 5-minute cache write at 1.25x the input rate', () => {
+    // 1M cache writes on Opus: 1M * $5 * 1.25 = $6.25
+    const priced = priceUsage({
+      model: 'claude-opus-4-8',
+      inputTokens: 0,
+      outputTokens: 0,
+      cacheWriteTokens: 1_000_000,
+    });
+    expect(priced?.costUsd).toBeCloseTo(6.25, 6);
+  });
+
+  it('sums base, cache read and cache write on one call', () => {
+    // 100k in ($0.50) + 10k out ($0.25) + 1M cache read ($0.50) = $1.25
+    const priced = priceUsage({
+      model: 'claude-opus-4-8',
+      inputTokens: 100_000,
+      outputTokens: 10_000,
+      cacheReadTokens: 1_000_000,
+    });
+    expect(priced?.costUsd).toBeCloseTo(1.25, 6);
+  });
+
+  it('treats absent cache fields as zero, not NaN', () => {
+    // The router passes 0 for models/calls without caching; older callers omit
+    // the fields entirely. Neither may poison the total.
+    expect(priceUsage({ model: 'claude-haiku-4-5', inputTokens: 1_000, outputTokens: 0 })?.costUsd)
+      .toBeCloseTo(0.001, 6);
+  });
 });
 
 describe('rate table', () => {

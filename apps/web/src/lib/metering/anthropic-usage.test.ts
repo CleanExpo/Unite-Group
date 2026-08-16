@@ -142,9 +142,11 @@ describe('fetchAnthropicUsage — pagination safety', () => {
   });
 
   it('aggregates rows sharing an identical created_at exactly once', async () => {
-    // The tie case the ordering exists to make deterministic: three calls
-    // stamped in the same millisecond must each be counted once, not dropped
-    // or double-counted across the page boundary.
+    // Three calls stamped in the same millisecond each count once. This asserts
+    // the aggregation side only — the ordering that makes ties deterministic is
+    // asserted separately above, and the page-boundary behaviour by the
+    // multi-page test below. The original comment here claimed to cover the
+    // boundary and did not.
     vi.resetModules();
     const tie = Array.from({ length: 3 }, () => ({
       task_type: 'coach',
@@ -163,6 +165,34 @@ describe('fetchAnthropicUsage — pagination safety', () => {
     expect(lines).toHaveLength(1);
     expect(lines[0].calls).toBe(3);
     expect(lines[0].inputTokens).toBe(300);
+  });
+
+  it('concatenates every page and advances the offset', async () => {
+    // Review on PR #1009 correctly noted that no test supplied more than one
+    // page, so the `from += PAGE_SIZE` advance and the multi-page concatenation
+    // were never executed — the pagination this fetcher exists for was, in
+    // effect, untested. A first FULL page forces a second round-trip.
+    vi.resetModules();
+    const mk = () => ({
+      task_type: 'coach',
+      model_id: 'claude-haiku-4-5-20251001',
+      tokens_input: 100,
+      tokens_output: 50,
+      cost_usd: 0.00035,
+      cost_per_input_mtok: 1,
+    });
+    const { qb, calls } = fakeDb([
+      Array.from({ length: 1000 }, mk),
+      Array.from({ length: 7 }, mk),
+    ]);
+    mockService(qb);
+    const { fetchAnthropicUsage: fetchIsolated } = await import('./fetchers/anthropic');
+
+    const lines = await fetchIsolated({ start: '2026-08-01', end: '2026-08-31' });
+
+    expect(calls.ranges).toEqual([[0, 999], [1000, 1999]]);
+    expect(lines[0].calls).toBe(1007);
+    expect(lines[0].inputTokens).toBe(100_700);
   });
 
   it('stops paginating on a short page rather than looping forever', async () => {

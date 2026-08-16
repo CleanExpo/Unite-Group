@@ -17,12 +17,35 @@
  * apply. Treat it as a well-founded estimate that is finally attributable per
  * capability and per business — something a billing API cannot give us.
  *
- * Verified live 16/08/2026 — https://claude.com/pricing
- * Re-verify when adding a model, and move VERIFIED_ON with it.
+ * Verified live 16/08/2026 against https://platform.claude.com/docs/en/about-claude/pricing
+ * Re-verify when adding a model, and move VERIFIED_ON with it — by actually
+ * fetching the page. The first version of this file carried a "verified live"
+ * header that had NOT been fetched, and priced Sonnet 5 at $3/$15: a scheduled
+ * increase that was subsequently cancelled. Caught in review on PR #1009. An
+ * unfetched verification claim is worse than no claim, because it stops anyone
+ * else checking.
  */
 
 /** ISO date the rates below were last checked against the published price list. */
 export const RATES_VERIFIED_ON = '2026-08-16';
+
+/**
+ * Prompt-caching multipliers, relative to the base input rate.
+ * Verified 16/08/2026 from the pricing page's caching table.
+ *
+ * Caching is the single largest reason a token-derived cost diverges from the
+ * invoice: a cache hit costs a tenth of a normal input token, so treating
+ * cached reads as full-price input overstates spend on exactly the workloads
+ * that use big reusable system prompts — which is most of this app's crons.
+ */
+export const CACHE_MULTIPLIERS = {
+  /** Cache hit / refresh — 0.1x base input. */
+  read: 0.1,
+  /** 5-minute cache write — 1.25x base input. The default write duration. */
+  write5m: 1.25,
+  /** 1-hour cache write — 2x base input. */
+  write1h: 2,
+} as const;
 
 export interface ModelRate {
   /** USD per million input tokens. */
@@ -41,7 +64,11 @@ export const MODEL_RATES: Record<string, ModelRate> = {
   'claude-opus-4-8': { inputPerMTok: 5, outputPerMTok: 25 },
   'claude-opus-4-7': { inputPerMTok: 5, outputPerMTok: 25 },
   'claude-opus-4-6': { inputPerMTok: 5, outputPerMTok: 25 },
-  'claude-sonnet-5': { inputPerMTok: 3, outputPerMTok: 15 },
+  'claude-opus-4-5': { inputPerMTok: 5, outputPerMTok: 25 },
+  // $2/$10, NOT $3/$15. The increase to $3/$15 scheduled for 01/09/2026 was
+  // cancelled and the introductory rate became standard. Encoding the cancelled
+  // increase overstated every Sonnet line by 50%.
+  'claude-sonnet-5': { inputPerMTok: 2, outputPerMTok: 10 },
   'claude-sonnet-4-6': { inputPerMTok: 3, outputPerMTok: 15 },
   'claude-haiku-4-5': { inputPerMTok: 1, outputPerMTok: 5 },
   'claude-fable-5': { inputPerMTok: 10, outputPerMTok: 50 },
@@ -99,12 +126,23 @@ export function priceUsage(usage: {
   model: string;
   inputTokens: number;
   outputTokens: number;
+  /** Cache hits — billed at 0.1x input. Anthropic reports these separately from inputTokens. */
+  cacheReadTokens?: number;
+  /** Cache writes — billed at 1.25x input for the 5-minute default. */
+  cacheWriteTokens?: number;
 }): PricedUsage | null {
   const rate = rateForModel(usage.model);
   if (!rate) return null;
+  const perInputToken = rate.inputPerMTok / 1_000_000;
   const costUsd =
     (usage.inputTokens / 1_000_000) * rate.inputPerMTok +
-    (usage.outputTokens / 1_000_000) * rate.outputPerMTok;
+    (usage.outputTokens / 1_000_000) * rate.outputPerMTok +
+    // Priced at the published multipliers rather than folded into inputTokens,
+    // which would overcharge a cache hit tenfold. Writes assume the 5-minute
+    // duration; a 1-hour write (2x) needs the usage.cache_creation breakdown,
+    // and the raw counts are recorded so that stays reconcilable.
+    (usage.cacheReadTokens ?? 0) * perInputToken * CACHE_MULTIPLIERS.read +
+    (usage.cacheWriteTokens ?? 0) * perInputToken * CACHE_MULTIPLIERS.write5m;
   return {
     // 6 dp: a single Haiku call can cost well under a cent, and rounding to
     // cents per call would floor most of the ledger to zero.

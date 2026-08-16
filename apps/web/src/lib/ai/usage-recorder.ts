@@ -30,6 +30,16 @@ export interface RecordUsageInput {
   /** Anthropic response id, when available — dedupes at-least-once writes. */
   requestId?: string | null;
   latencyMs?: number;
+  /** Cache hits — billed at 0.1x input, reported separately by Anthropic. */
+  cacheReadTokens?: number;
+  /** Cache writes — billed at 1.25x input for the 5-minute default. */
+  cacheWriteTokens?: number;
+  /**
+   * Defaults to true. Both current callers meter only completed responses, but
+   * the column exists to separate successes from failures — a hardcoded true
+   * would silently mislabel the first caller that meters a failed call.
+   */
+  success?: boolean;
   /** Extra context for the ledger (e.g. { business: 'dr' }). */
   metadata?: Record<string, unknown>;
 }
@@ -57,21 +67,29 @@ export async function recordAiUsage(input: RecordUsageInput): Promise<void> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = createServiceClient() as any;
 
+    // workspace_id is deliberately ABSENT, not set to null: the column is
+    // nullable, so omitting it produces an identical row while keeping the
+    // retired tenancy column out of new code entirely.
     const { error } = await db.from('ai_usage_logs').insert({
-      workspace_id: null, // retired tenancy column — never populated, never queried
       provider: 'anthropic',
       model_id: input.model,
       task_type: input.taskType,
       tokens_input: input.inputTokens,
       tokens_output: input.outputTokens,
+      tokens_cached: input.cacheReadTokens ?? 0,
       cost_usd: priced?.costUsd ?? 0,
       cost_per_input_mtok: priced?.inputPerMTok ?? null,
       cost_per_output_mtok: priced?.outputPerMTok ?? null,
       request_id: input.requestId ?? null,
       latency_ms: input.latencyMs ?? null,
-      success: true,
+      success: input.success ?? true,
       metadata: {
         ...(input.metadata ?? {}),
+        // Raw cache counts kept alongside the priced figure so a later
+        // reconciliation against the real invoice can tell a 5-minute write
+        // (1.25x) from a 1-hour write (2x), which the priced total assumes away.
+        ...(input.cacheReadTokens ? { cache_read_tokens: input.cacheReadTokens } : {}),
+        ...(input.cacheWriteTokens ? { cache_write_tokens: input.cacheWriteTokens } : {}),
         ...(priced ? {} : { unpriced_model: input.model }),
       },
     });

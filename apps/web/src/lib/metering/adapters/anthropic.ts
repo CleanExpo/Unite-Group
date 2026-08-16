@@ -37,7 +37,7 @@ export interface AnthropicUsageLine {
 
 export const anthropicAdapter: CostSourceAdapter<AnthropicUsageLine[]> = {
   id: 'anthropic',
-  reachability: 'key-gate',
+  reachability: 'first-party',
   nativeCurrency: 'USD',
   toEvents(lines) {
     return lines.map(

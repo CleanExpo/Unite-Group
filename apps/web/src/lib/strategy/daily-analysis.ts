@@ -118,14 +118,26 @@ Focus on specific, concrete recommendations — not generic advice.`
   // cost in the app — Opus at max_tokens 16000, seven businesses a day — so
   // instrumenting only the router would have measured everything except the item
   // most worth measuring. Not awaited; recordAiUsage never throws.
-  void recordAiUsage({
+  // AWAITED, unlike the router's waitUntil. This is a cron path, so nothing is
+  // waiting on latency, and one insert is negligible beside an Opus call at
+  // max_tokens 16000. Awaiting is the strongest guarantee the write lands
+  // before the invocation ends — and this is the largest recurring AI cost in
+  // the app, so it is the row least affordable to lose. recordAiUsage never
+  // throws, so awaiting cannot fail the analysis.
+  const usage = response.usage as Anthropic.Message['usage'] & {
+    cache_read_input_tokens?: number | null
+    cache_creation_input_tokens?: number | null
+  }
+  await recordAiUsage({
     taskType: 'strategy-daily',
     model: response.model,
-    inputTokens: response.usage.input_tokens,
-    outputTokens: response.usage.output_tokens,
+    inputTokens: usage.input_tokens,
+    outputTokens: usage.output_tokens,
+    cacheReadTokens: usage.cache_read_input_tokens ?? 0,
+    cacheWriteTokens: usage.cache_creation_input_tokens ?? 0,
     requestId: response.id,
     metadata: { via: 'direct', business: businessKey },
-  }).catch(() => {})
+  })
 
   // Extract text content (thinking blocks are separate and not included in text blocks)
   const textContent = (response.content as Anthropic.ContentBlock[])

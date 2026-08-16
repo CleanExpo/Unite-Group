@@ -21,8 +21,16 @@ export type CostSourceId =
   | 'twilio'
   | 'domains';
 
-/** How we reach the source's data. 'token' = an already-connected credential; 'key-gate' = needs a founder-provisioned scoped key. */
-export type Reachability = 'token' | 'key-gate';
+/**
+ * How we reach the source's data.
+ * - 'token' — an already-connected credential.
+ * - 'key-gate' — needs a founder-provisioned scoped key.
+ * - 'first-party' — no provider credential at all: the usage was measured by us
+ *   at call time and is read back from our own database. Distinct from
+ *   'key-gate' so a future key-availability gate cannot silently skip a source
+ *   that never needed a key.
+ */
+export type Reachability = 'token' | 'key-gate' | 'first-party';
 
 /** A normalised cost line from any source, before attribution to a business. */
 export interface RawCostEvent {
