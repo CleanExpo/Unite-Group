@@ -40,7 +40,7 @@ const WORKFLOW_PATH = join(repositoryRoot, '.github', 'workflows', 'nexus-heartb
 // of the observe job in the present tense, three rounds after that step was
 // removed for being unrunnable. The pin doing its job — a comment-only edit
 // failing this test until someone deliberately re-pins — is the whole point.
-const PINNED_WORKFLOW_SHA256 = 'bb1ec7322f19f14ee10f2f88e7000472b3b392e55c05814e3b8d4779c83425d0';
+const PINNED_WORKFLOW_SHA256 = 'c7d25ae7d8d0df89204cac76de8ec7255173a702012e9cc67b21dbd42d9417be';
 
 // Rendered gate lists (what reconcileGates PRODUCES).
 const GREEN = [
@@ -427,6 +427,71 @@ test('AN IMPOSSIBLE SUMMARY NEVER PRINTS THE ALL-CLEAR, only flags it', () => {
 
   const rendered = buildHeartbeatBody({ date: '2026-08-16', gates: GREEN, queue, anomalies, drift: null });
   assert.ok(!rendered.includes('Nothing is blocked on Phill.'), rendered);
+});
+
+test('THE TWO CONSUMERS OF THE LEDGER CANNOT DISAGREE ABOUT WHETHER IT IS CLEAN', () => {
+  /*
+   * THE CLASS, NOT THE INSTANCE. Round nine found `founder-queue.mjs` printing
+   * `integrity: MALFORMED` while returning exit 0 — one script, two answers. The
+   * fix made that script derive both from one value; this test asserts the SECOND
+   * consumer cannot drift from it either.
+   *
+   * The heartbeat reads the summary JSON, not the exit code (the workflow
+   * discards it deliberately — a reporter must publish "unreadable" rather than
+   * die). So the binding that matters is: whatever integrity the queue script
+   * computed, the heartbeat's queue state must agree about cleanliness. If
+   * `integrity !== 'OK'` ever renders as a CLEAN state, the report tells a human
+   * the queue is fine while the script that produced it says otherwise — which
+   * is the round-nine defect wearing a different hat.
+   */
+  const realisticSummaries = [
+    ['unknown status', {
+      openCount: 8,
+      oldest: { id: 'F1', decision: 'flip it', blocks: 'UNI-1', ageDays: 3 },
+      integrity: 'MALFORMED',
+      malformed: ['Row F2 has status "opne", which is neither `open` nor `resolved`.'],
+    }],
+    ['empty decision cell, row still counted open', {
+      openCount: 9,
+      oldest: { id: 'F1', decision: 'flip it', blocks: 'UNI-1', ageDays: 3 },
+      integrity: 'MALFORMED',
+      malformed: ['Row F3 has an empty Decision cell, so there is nothing to report.'],
+    }],
+    ['integrity absent entirely', {
+      openCount: 2,
+      oldest: { id: 'F1', decision: 'flip it', blocks: 'UNI-1', ageDays: 3 },
+      malformed: [],
+    }],
+  ];
+
+  for (const [label, value] of realisticSummaries) {
+    const { queue, anomalies } = reconcileQueue({ ok: true, value });
+    assert.equal(queue.state, 'UNTRUSTWORTHY', label);
+    assert.ok(anomalies.length > 0, label);
+
+    // And the rendered body must not print the all-clear over it. `openCount` is
+    // deliberately non-zero in two of these: a row can be BOTH counted open and
+    // reported broken, and the count is only meaningful when integrity is OK.
+    const rendered = buildHeartbeatBody({
+      date: '2026-08-16', gates: GREEN, queue, anomalies, drift: null,
+    });
+    assert.ok(!rendered.includes('Nothing is blocked on Phill.'), label);
+  }
+
+  // The positive control: a genuinely clean summary must still reach a CLEAN
+  // state, or every assertion above is satisfied by a function that can only
+  // ever return UNTRUSTWORTHY.
+  const clean = reconcileQueue({
+    ok: true,
+    value: {
+      openCount: 9,
+      oldest: { id: 'F1', decision: 'flip it', blocks: 'UNI-1', ageDays: 3 },
+      integrity: 'OK',
+      malformed: [],
+    },
+  });
+  assert.equal(clean.queue.state, 'CLEAN_OPEN');
+  assert.equal(clean.anomalies.length, 0);
 });
 
 test('A MALFORMED OLDEST RECORD IS NOT A USABLE ONE', () => {
@@ -1041,9 +1106,38 @@ test('the workflow capture step no longer decides PASS or FAIL', () => {
   assert.ok(start > -1 && end > start, 'capture step not found');
   const capture = workflow.slice(start, end);
 
-  assert.ok(!capture.includes('status=PASS'), 'the shell still decides a verdict');
-  assert.ok(!/status/u.test(capture), `the capture mentions status:\n${capture}`);
+  /*
+   * ANCHORED TO THE EXECUTABLE LINES, NOT THE PROSE.
+   *
+   * This assertion used to test the whole slice, comments included, and it fired
+   * on a COMMENT that explained why the neighbouring step discards its exit code
+   * — prose containing the word "status" in an ordinary English sentence. A
+   * control that cannot tell shell from commentary makes documenting the step
+   * impossible, and the pressure it creates is to delete the explanation rather
+   * than fix the control.
+   *
+   * Narrowed, not weakened: full-line comments are dropped and everything else is
+   * held to a STRICTER bar than before — no `status` at all, and no bare PASS or
+   * FAIL literal either, so a shell line deciding a verdict by any spelling
+   * fails. The two positive controls below prove both halves can still fire.
+   */
+  const executable = capture
+    .split('\n')
+    .filter((line) => line.trim() !== '' && !line.trim().startsWith('#'))
+    .join('\n');
+
+  assert.ok(!executable.includes('status=PASS'), 'the shell still decides a verdict');
+  assert.ok(!/status/u.test(executable), `the capture mentions status:\n${executable}`);
+  assert.ok(!/\b(PASS|FAIL)\b/u.test(executable), `the capture names a verdict:\n${executable}`);
   assert.ok(capture.includes('exitCode'), 'the capture must record exit codes');
+
+  // POSITIVE CONTROLS. Without these the filter above could strip everything and
+  // the three refusals would pass over an empty string.
+  assert.ok(executable.length > 0, 'the comment filter removed the whole step');
+  const withVerdict = `${executable}\n            status=PASS`;
+  assert.ok(/status/u.test(withVerdict), 'the status check cannot fire');
+  assert.ok(/\b(PASS|FAIL)\b/u.test(`${executable}\n            echo FAIL`),
+    'the verdict check cannot fire');
 });
 
 test('A PULL REQUEST IS NEVER ADOPTED AS THE HEARTBEAT ISSUE', () => {

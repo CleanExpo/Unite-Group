@@ -138,8 +138,21 @@ jobs:
           printf '%s' "$results" > /tmp/heartbeat/gate-results.json
           cat /tmp/heartbeat/gate-results.json
 
-      # Exit 1 means rows did not parse; the JSON is still written and the report
-      # renders the integrity failure, so the step must not abort the upload.
+      # `|| true` IS A DECISION, NOT A SHRUG, and it is the one place in this
+      # workflow where an exit code is deliberately discarded.
+      #
+      # Exit 1 means the ledger does not read cleanly — either rows the parser
+      # could not read at all, or rows that parse and are semantically wrong (an
+      # unknown status, an empty required cell, a date that cannot be aged). The
+      # summary JSON is written to stdout either way and carries
+      # `integrity: MALFORMED`, which the report turns into an UNTRUSTWORTHY
+      # queue block with every note listed.
+      #
+      # So failing this step would DESTROY the report rather than protect it: the
+      # heartbeat exists to say "the queue could not be read", and a dead step
+      # says nothing at all. A gate reading this exit code must still treat it as
+      # blocking — that is `founder-queue.mjs`'s contract with its callers, and
+      # this workflow is a reporter, not a gate.
       - name: Compute founder-queue age
         run: node scripts/founder-queue.mjs > /tmp/heartbeat/queue.json || true
 
