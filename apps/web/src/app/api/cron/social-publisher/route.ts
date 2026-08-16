@@ -1,6 +1,6 @@
 // src/app/api/cron/social-publisher/route.ts
 // GET /api/cron/social-publisher
-// Runs every 15 minutes — publishes scheduled social posts whose scheduled_at <= now().
+// Runs every 30 minutes — publishes scheduled social posts whose scheduled_at <= now().
 // Authenticates via CRON_SECRET (set by Vercel CRON).
 
 import { NextResponse } from 'next/server'

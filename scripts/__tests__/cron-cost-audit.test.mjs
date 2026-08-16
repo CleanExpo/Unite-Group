@@ -15,6 +15,8 @@ import { dirname, resolve } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import { invocationsPerDay } from '../lib/cron-schedule.mjs';
+
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SCRIPT = resolve(repoRoot, 'scripts/cron-cost-audit.mjs');
 
@@ -45,36 +47,43 @@ test('every schedule is costed — none silently unsupported', () => {
   );
 });
 
-test('every-5-minutes counts as 288/day', () => {
-  // 12 matching minutes × 24 hours = 288. Hand-checkable anchor for the model.
-  const row = byPath.get('/api/cron/video-status');
-  assert.ok(row, 'expected /api/cron/video-status in the config');
-  assert.equal(row.schedule, '*/5 * * * *');
-  assert.equal(row.perDay, 288);
-  assert.equal(row.perMonth, 8640);
-});
+// ── Arithmetic, against FIXED expressions ────────────────────────────────────
+// Deliberately synthetic. Pinning these to live vercel.json entries is what
+// broke them the first time a schedule legitimately changed.
 
-test('every-15-minutes counts as 96/day and every-30 as 48/day', () => {
-  assert.equal(byPath.get('/api/cron/synthex-monitor').perDay, 96);
-  assert.equal(byPath.get('/api/cron/engagement-monitor').perDay, 48);
+test('step schedules count correctly', () => {
+  // 12 matching minutes x 24 hours = 288. Hand-checkable anchor for the model.
+  assert.equal(invocationsPerDay('*/5 * * * *'), 288);
+  assert.equal(invocationsPerDay('*/15 * * * *'), 96);
+  assert.equal(invocationsPerDay('*/30 * * * *'), 48);
+  assert.equal(invocationsPerDay('0 * * * *'), 24);
 });
 
 test('a plain daily schedule counts as exactly 1/day', () => {
-  assert.equal(byPath.get('/api/cron/bookkeeper').perDay, 1);
+  assert.equal(invocationsPerDay('0 16 * * *'), 1);
+  assert.equal(invocationsPerDay('30 19 * * *'), 1);
 });
 
 test('a weekly schedule counts as 1/7 per day, not 1', () => {
-  // The failure this guards: treating day-of-week as unrestricted would score
-  // a weekly cron at 30/month instead of 4, inflating the daily-cron total by
-  // ~7x and pointing the whole analysis at the wrong crons.
-  const weekly = byPath.get('/api/cron/campaign-engine');
-  assert.ok(weekly, 'expected a weekly cron in the config');
-  assert.equal(weekly.schedule, '0 20 * * 0');
-  assert.ok(
-    Math.abs(weekly.perDay - 1 / 7) < 1e-9,
-    `weekly cron scored ${weekly.perDay}/day, expected ~0.143`,
-  );
-  assert.equal(weekly.perMonth, 4);
+  // The failure this guards: treating day-of-week as unrestricted would score a
+  // weekly cron at 30/month instead of 4, inflating the daily-cron total ~7x and
+  // pointing the whole analysis at the wrong crons.
+  assert.ok(Math.abs(invocationsPerDay('0 20 * * 0') - 1 / 7) < 1e-9);
+  assert.ok(Math.abs(invocationsPerDay('0 15 * * 1') - 1 / 7) < 1e-9);
+});
+
+test('lists and ranges count correctly', () => {
+  assert.equal(invocationsPerDay('0,30 * * * *'), 48);
+  assert.equal(invocationsPerDay('0 9-17 * * *'), 9);
+  assert.equal(invocationsPerDay('0 0 * * 1-5'), 5 / 7);
+});
+
+test('schedules that cannot be costed return null rather than a wrong number', () => {
+  // Silently mis-costing a restricted schedule would understate spend, so the
+  // model refuses and the audit reports the refusal.
+  assert.equal(invocationsPerDay('0 0 1 * *'), null, 'day-of-month restricted');
+  assert.equal(invocationsPerDay('0 0 * 6 *'), null, 'month restricted');
+  assert.equal(invocationsPerDay('0 0 * *'), null, 'malformed — 4 fields');
 });
 
 test('the total equals the sum of the parts', () => {

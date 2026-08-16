@@ -78,33 +78,53 @@ production builds succeed. So `../../scripts/` will resolve the same way.
 
 ### 2b. Cron invocations — the recurring cost
 
-Run `npm run cron:audit` for the live figures. As at 15/08/2026:
+Run `npm run cron:audit` for the live figures.
 
-`[VERIFIED]` 31 cron jobs, ~885 invocations/day, ~26,559/month.
+`[VERIFIED]` **Before (15/08/2026):** 31 crons, ~885 invocations/day,
+~26,559/month, with 8 sub-hourly schedules producing ~25,920 of those —
+**97.6% of all invocations**. The other 23, all daily or weekly, contributed
+~639 between them.
 
-`[VERIFIED]` The distribution is extremely lopsided — 8 sub-hourly schedules
-produce ~25,920/month, i.e. **97.6% of all invocations**. The other 23 crons,
-all daily or weekly, contribute ~639 between them.
+`[VERIFIED]` **After (16/08/2026):** ~381 invocations/day, ~11,439/month.
+**A 57% reduction — 15,120 invocations/month removed.** All eight were stepped
+down on Phill's instruction:
 
-| Path | Schedule | Per month |
-|---|---|---|
-| `/api/cron/video-status` | `*/5` | 8,640 |
-| `/api/cron/synthex-monitor` | `*/15` | 2,880 |
-| `/api/cron/social-publisher` | `*/15` | 2,880 |
-| `/api/cron/brand-video-dispatch` | `*/15` | 2,880 |
-| `/api/cron/os-health-rollup` | `*/15` | 2,880 |
-| `/api/cron/drip-process` | `*/15` | 2,880 |
-| `/api/cron/engagement-monitor` | `*/30` | 1,440 |
-| `/api/cron/linear-queue-health` | `*/30` | 1,440 |
+| Path | Before | After | Per month |
+|---|---|---|---|
+| `/api/cron/video-status` | `*/5` | `*/15` | 8,640 → 2,880 |
+| `/api/cron/synthex-monitor` | `*/15` | `*/30` | 2,880 → 1,440 |
+| `/api/cron/social-publisher` | `*/15` | `*/30` | 2,880 → 1,440 |
+| `/api/cron/brand-video-dispatch` | `*/15` | `*/30` | 2,880 → 1,440 |
+| `/api/cron/drip-process` | `*/15` | `*/30` | 2,880 → 1,440 |
+| `/api/cron/os-health-rollup` | `*/15` | `0 * * * *` | 2,880 → 720 |
+| `/api/cron/engagement-monitor` | `*/30` | `0 * * * *` | 1,440 → 720 |
+| `/api/cron/linear-queue-health` | `*/30` | `0 * * * *` | 1,440 → 720 |
 
-`[INFERENCE]` Any reduction that does not touch this table is rounding error.
-Stepping each down one notch (5→15, 15→30, 30→60) removes ~12,960
-invocations/month, ~48.8% of total volume, without touching a single daily cron.
+### Why this was safe — check this again before slowing anything further
 
-`[UNCONFIRMED]` **Whether each can tolerate the added latency is a product call,
-not a cost call, and needs Phill's decision per row.** A social publisher queue
-or a video-status poller may genuinely need the tight loop; an OS health rollup
-or a Linear queue health check probably does not. Nothing here has been changed.
+`[VERIFIED]` Two properties were confirmed in the route source before changing
+any schedule. Both must hold for a cron to be safe to stretch:
+
+1. **No interval-coupled lookback.** None of the eight selects work by a time
+   window tied to its own cadence. They drain by STATE — `status = 'scheduled'
+   AND scheduled_at <= now()` (social-publisher), `status = 'generating'`
+   (video-status), `status = 'queued'` (brand-video-dispatch), `status =
+   'active'` (drip-process). The only time window found anywhere is
+   os-health-rollup's `MARGOT_WINDOW_DAYS`, measured in days and independent of
+   cadence.
+2. **No per-run throughput cap.** None caps how many items it processes per
+   run, so each drains its full backlog every time.
+
+`[INFERENCE]` Together these mean slowing a cron **delays** work but cannot
+**drop** it, and cannot grow an unbounded backlog. A route that later gained a
+`.limit()` on its work queue, or a "since last run" window, would NOT be safe to
+stretch — halving its cadence would halve throughput or silently skip items.
+
+`[UNCONFIRMED]` The user-visible cost is latency. The one worth watching is
+**social-publisher**: a post scheduled for 9:00 am may now go out as late as
+9:29. If posting precision matters more than ~1,440 invocations/month, revert
+that single line to `*/15`. The monitoring crons (os-health-rollup,
+linear-queue-health, synthex-monitor) carry no user-visible cost.
 
 `[VERIFIED]` Two routes are dormant-gated and still invoked on schedule:
 `/api/cron/email-draft` (`MARGOT_DRAFTS_ENABLED`) and `/api/cron/cost-ingest`

@@ -9,11 +9,24 @@
  * gate.
  *
  * WHAT THE FIRST RUN FOUND (15/08/2026): 31 crons, ~885 invocations/day,
- * ~26,600/month — and the distribution is extremely lopsided. Eight sub-hourly
- * schedules produce ~25,900 of those, i.e. 97.6%. The remaining 23 crons, all
- * daily or weekly, contribute ~640 between them. Any reduction that does not
- * touch the sub-hourly eight is rounding error, which is why the report ranks
+ * ~26,600/month — and the distribution was extremely lopsided. Eight sub-hourly
+ * schedules produced ~25,900 of those, i.e. 97.6%. The remaining 23 crons, all
+ * daily or weekly, contributed ~640 between them. Any reduction that did not
+ * touch the sub-hourly eight was rounding error, which is why the report ranks
  * by volume and calls out the concentration explicitly.
+ *
+ * ACTED ON (16/08/2026): all eight were stepped down — video-status 5→15 min,
+ * synthex-monitor / social-publisher / brand-video-dispatch / drip-process
+ * 15→30 min, os-health-rollup 15 min→hourly, engagement-monitor and
+ * linear-queue-health 30 min→hourly. ~26,559 → ~11,439/month, a 57% cut.
+ *
+ * That was safe to do because none of the eight selects work by a time window
+ * tied to its own interval, and none caps how much it processes per run: they
+ * drain by STATE (`status = 'scheduled' AND scheduled_at <= now()`,
+ * `status = 'generating'`, `status = 'queued'`). Slowing such a cron delays
+ * work; it cannot drop it or grow an unbounded backlog. Check that property
+ * again before slowing anything further — a route that grew a per-run `.limit()`
+ * or a "since last run" window would not be safe to stretch.
  *
  * A secondary check, worth far less than expected: some routes return
  * `{ dormant: true }` unless an env flag is set. A dormant route is still
@@ -30,56 +43,13 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { invocationsPerDay } from './lib/cron-schedule.mjs';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const VERCEL_JSON = resolve(repoRoot, 'apps/web/vercel.json');
 const API_ROOT = resolve(repoRoot, 'apps/web/src/app');
 
 const asJson = process.argv.includes('--json');
-
-// ── Cron arithmetic ──────────────────────────────────────────────────────────
-
-/** Expand one cron field ("*", "*\/15", "1,3", "2-5") to its set of values. */
-function expandField(field, min, max) {
-  const out = new Set();
-  for (const part of field.split(',')) {
-    const [range, stepRaw] = part.split('/');
-    const step = stepRaw ? Number(stepRaw) : 1;
-    let lo = min;
-    let hi = max;
-    if (range !== '*') {
-      if (range.includes('-')) {
-        const [a, b] = range.split('-').map(Number);
-        lo = a;
-        hi = b;
-      } else {
-        lo = Number(range);
-        hi = stepRaw ? max : lo;
-      }
-    }
-    for (let v = lo; v <= hi; v += step) out.add(v);
-  }
-  return out;
-}
-
-/**
- * Invocations per day for a 5-field cron expression.
- *
- * Assumes day-of-month is unrestricted, which holds for every schedule
- * currently in vercel.json (all use `*` there). A schedule that restricts
- * day-of-month is flagged as unsupported rather than silently mis-costed.
- */
-function invocationsPerDay(expr) {
-  const [minute, hour, dom, month, dow] = expr.trim().split(/\s+/);
-  if (dom !== '*' || month !== '*') return null; // don't guess
-
-  const minutes = expandField(minute, 0, 59).size;
-  const hours = expandField(hour, 0, 23).size;
-  const days = expandField(dow, 0, 6).size; // 7 when '*'
-
-  // Matching minutes per week, averaged to a day.
-  return (minutes * hours * days) / 7;
-}
 
 // ── Dormancy detection ───────────────────────────────────────────────────────
 

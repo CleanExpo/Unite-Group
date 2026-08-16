@@ -1,5 +1,5 @@
 // GET /api/cron/video-status — Poll HeyGen for pending video jobs
-// Runs every 5 minutes via Vercel CRON. Authenticates via CRON_SECRET.
+// Runs every 15 minutes via Vercel CRON. Authenticates via CRON_SECRET.
 
 import { NextResponse } from 'next/server'
 import { assertCronAuth } from '@/lib/cron-auth'

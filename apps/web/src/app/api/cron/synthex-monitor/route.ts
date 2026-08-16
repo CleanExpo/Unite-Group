@@ -1,5 +1,5 @@
 // src/app/api/cron/synthex-monitor/route.ts
-// Vercel CRON — runs every 15 minutes
+// Vercel CRON — runs every 30 minutes
 // Checks for SYN Linear issues in 'In Review' (Synthex created a PR) and notifies via Slack
 
 import { sanitiseError } from '@/lib/error-reporting'

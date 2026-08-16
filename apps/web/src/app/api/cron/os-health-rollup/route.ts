@@ -12,7 +12,7 @@
 // is caught per-source and upserted as AMBER with `detail.error` rather than
 // crashing the whole rollup or fabricating GREEN.
 //
-// Schedule: every 15 minutes (vercel.json).
+// Schedule: hourly (vercel.json).
 
 import { MISSION_PROVENANCE_SECRET_ENV } from '@/lib/command-centre/voice-mission-bridge'
 import { NextResponse } from 'next/server'
