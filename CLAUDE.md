@@ -133,7 +133,9 @@ Steps 1 and 2 are unconditional. Step 3 applies only when no task was given.
 1. Read `SOURCE-OF-TRUTH.md`, then `NORTH-STAR.md`, then `FOUNDER-QUEUE.md`.
 2. **State the top FOUNDER-QUEUE blocker and its age in the first reply.** Not a
    summary of the queue — the single oldest open decision and how many days it
-   has been waiting.
+   has been waiting. **Read the age from `node scripts/founder-queue.mjs`, never
+   from the file's Age column**, which reads `—` because a committed age decays
+   every midnight and was found a day stale within a day of being written.
 3. With no assigned task, take **the single top unblocked ticket from Linear
    (team UNI)** as the only queue. `.spm/` and `docs/specs/` are **read-only
    registers** — history and context, never task sources. Six places to look for

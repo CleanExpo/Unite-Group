@@ -5,6 +5,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import {
+  AGE_IS_COMPUTED,
   computeAgeDays,
   main,
   oldestOpen,
@@ -128,9 +129,15 @@ test('resolved rows are excluded from the open set and from oldestOpen', () => {
   assert.equal(oldestOpen(parsed.open, NOW).oldest.id, 'F1');
 });
 
-test('renderQueue recomputes the age column rather than trusting the file', () => {
-  // Age is computed, not hand-edited: a stale or fabricated number in the file
-  // must be overwritten, never carried through.
+test('THE FILE DOES NOT HOLD AN AGE AT ALL: render writes the computed marker', () => {
+  /*
+   * This test used to assert that render wrote the RIGHT number. Round six
+   * showed that storing any number is the defect: F2 and F6 read 41 in the
+   * committed register while the computed answer was 42, one day after the
+   * numbers were written, and `CLAUDE.md` tells every session to read this file
+   * and state the age. An age is neither state nor event — it is derived, and
+   * derived values are recomputed on read, never stored.
+   */
   const markdown = [
     '| ID | Decision | Opened | Age (days) | Blocks | Context | Status |',
     '| --- | --- | --- | --- | --- | --- | --- |',
@@ -138,8 +145,30 @@ test('renderQueue recomputes the age column rather than trusting the file', () =
   ].join('\n');
 
   const rendered = renderQueue(parseFounderQueue(markdown), NOW);
-  assert.ok(rendered.includes('| 10 |'), rendered);
-  assert.ok(!rendered.includes('999'), rendered);
+  assert.ok(rendered.includes(`| ${AGE_IS_COMPUTED} |`), rendered);
+  assert.ok(!rendered.includes('999'), 'a hand-typed age must be erased');
+  assert.ok(!/\|\s*\d+\s*\|/u.test(rendered.split('\n')[2]), `a number survived: ${rendered}`);
+
+  // Rendering twice changes nothing — the marker is a fixed point, so no run
+  // can reintroduce a decaying value.
+  assert.equal(renderQueue(parseFounderQueue(rendered), NOW), rendered);
+
+  // The age is still COMPUTED during render, so an impossible date is still
+  // refused rather than quietly normalised into a clean-looking row.
+  const future = markdown.replace('2026-08-06', '2027-01-01');
+  assert.throws(() => renderQueue(parseFounderQueue(future), NOW), /Brisbane date/u);
+});
+
+test('the committed register carries no age number for a session to misread', () => {
+  // The real file, not a fixture. CLAUDE.md sends every session here.
+  const open = readFileSync(QUEUE_PATH, 'utf8').split('## Resolved')[0];
+  const rows = open.split('\n').filter((line) => /^\|\s*[A-Z]/u.test(line) && !line.includes('ID |'));
+
+  assert.ok(rows.length > 0, 'no open rows found — the check would be vacuous');
+  for (const row of rows) {
+    const age = row.split('|')[4]?.trim();
+    assert.equal(age, AGE_IS_COMPUTED, `row carries a stored age: ${row.slice(0, 80)}`);
+  }
 });
 
 // ---------------------------------------------------------------------------

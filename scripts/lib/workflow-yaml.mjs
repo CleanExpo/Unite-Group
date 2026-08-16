@@ -152,7 +152,11 @@ function parseBlock(lines, cursor, indent) {
        * its members are indented by the dash's own width. Re-parsing from this
        * line with that indent keeps one code path for every mapping.
        */
-      const keyed = /^[^\s:][^:]*:(\s|$)/u.test(rest);
+      // THE SAME KEY FORMS AS THE MAPPING BRANCH. Two places in this file decide
+      // "is this line a key", and fixing only the one a reviewer named would
+      // leave a sequence item like `- "uses": x` read as a scalar — a step that
+      // is not a mapping, which is a different wrong answer to the same question.
+      const keyed = /^("[^"]*"|'[^']*'|[^\s:][^:]*):(\s|$)/u.test(rest);
       if (keyed) {
         const rewritten = lines.slice();
         rewritten[index] = {
@@ -169,12 +173,40 @@ function parseBlock(lines, cursor, indent) {
       continue;
     }
 
-    const separator = /^([^\s:#][^:]*):(\s.*|)$/u.exec(content);
+    /*
+     * A QUOTED KEY IS THE SAME KEY.
+     *
+     * Round six defeated every structural guard in this file with one
+     * character: `"uses": actions/setup-node@...` is valid YAML naming the key
+     * `uses`, but this parser kept the quote marks, so `step.uses` came back
+     * null, the allowlist saw no action to check, and both isolation tests
+     * passed while the issues-write job invoked an unallowlisted action. A
+     * parser that reads a key differently from the runtime it is modelling is
+     * measuring a different document — which is exactly the failure the
+     * fail-closed design was supposed to make impossible.
+     *
+     * Both quoted forms are decoded, and a key that is quoted but unterminated
+     * is refused rather than guessed at.
+     */
+    const separator = /^("[^"]*"|'[^']*'|[^\s:#][^:]*):(\s.*|)$/u.exec(content);
     if (!separator) fail(line.number, `not a mapping entry or sequence item: ${content}`);
     if (kind === 'sequence') fail(line.number, 'a mapping entry inside a sequence block');
     kind = 'mapping';
 
-    const key = separator[1].trim();
+    const rawKey = separator[1].trim();
+    if ((rawKey.startsWith('"') && !rawKey.endsWith('"'))
+      || (rawKey.startsWith("'") && !rawKey.endsWith("'"))) {
+      fail(line.number, `unterminated quoted key: ${rawKey}`);
+    }
+    const key = (rawKey.length > 1 && ((rawKey.startsWith('"') && rawKey.endsWith('"'))
+      || (rawKey.startsWith("'") && rawKey.endsWith("'"))))
+      ? rawKey.slice(1, -1)
+      : rawKey;
+    // A key that arrives via the prototype chain is not a key this document
+    // declared. `__proto__` in particular would mutate every mapping at once.
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+      fail(line.number, `refusing the reserved key \`${key}\``);
+    }
     const rest = separator[2] ?? '';
     if (Object.hasOwn(mapping, key)) fail(line.number, `duplicate key \`${key}\``);
 
@@ -260,17 +292,36 @@ export function readWorkflowStructure(source) {
 }
 
 /** Jobs whose granted permissions include `issues: write`. */
+/**
+ * Does this permissions value grant issues:write?
+ *
+ * GitHub allows the whole block to be the shorthand string `write-all` or
+ * `read-all` as well as a mapping. Round six pointed out that a shorthand
+ * arrived here as a plain string and fell into the "not an object" arm, which
+ * then consulted the workflow default and could conclude "safe" about a job
+ * holding every permission there is. A shape this function does not recognise
+ * is treated as capable, never as safe.
+ */
+function grantsIssuesWrite(permissions) {
+  if (typeof permissions === 'string') {
+    if (permissions === 'write-all') return true;
+    if (permissions === 'read-all') return false;
+    return true; // an unrecognised shorthand is not a proven-safe one
+  }
+  if (permissions === null || typeof permissions !== 'object' || Array.isArray(permissions)) {
+    return null; // "not declared here" — the caller falls back to the default
+  }
+  return permissions.issues === 'write';
+}
+
 export function jobsThatCanWriteIssues(structure) {
   return structure.jobs.filter((job) => {
-    const permissions = job.permissions;
-    if (permissions === null || typeof permissions !== 'object' || Array.isArray(permissions)) {
-      // A job with no `permissions:` block inherits the workflow default, which
-      // is the permissive case — treat it as capable rather than assume safety.
-      const workflowDefault = structure.document.permissions;
-      if (workflowDefault === null || typeof workflowDefault !== 'object') return true;
-      return workflowDefault.issues === 'write';
-    }
-    return permissions.issues === 'write';
+    const own = grantsIssuesWrite(job.permissions);
+    if (own !== null) return own;
+    // A job with no `permissions:` block inherits the workflow default, which
+    // is the permissive case — treat it as capable rather than assume safety.
+    const inherited = grantsIssuesWrite(structure.document.permissions);
+    return inherited === null ? true : inherited;
   });
 }
 

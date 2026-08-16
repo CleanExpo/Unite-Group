@@ -168,7 +168,7 @@ jobs:
         with:
           script: |
             const {
-              DECLARED_GATES,
+              DECLARED_GATES, brisbaneReportDate,
               composeHeartbeat, findOwnedIssue, readEvidence, upsertHeartbeatIssue,
             } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/nexus-heartbeat.mjs`);
 
@@ -219,7 +219,9 @@ jobs:
             const previous = findOwnedIssue(issues);
 
             const { body, degraded, anomalies } = composeHeartbeat({
-              date: new Date().toISOString().slice(0, 10),
+              // Brisbane wall clock, DD/MM/YYYY. A UTC date stamps the PREVIOUS
+              // day on a 19:00Z run whose queue ages were computed in Brisbane.
+              date: brisbaneReportDate(),
               gateEvidence: readEvidence('/tmp/heartbeat/gate-results.json'),
               queueEvidence: readEvidence('/tmp/heartbeat/queue.json'),
               previousBody: previous?.body ?? null,

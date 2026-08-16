@@ -29,6 +29,33 @@ import { fileURLToPath } from 'node:url';
 export const HEARTBEAT_TITLE = 'Heartbeat — distance to North Star';
 
 /**
+ * The report's date, as a Brisbane wall clock would read it, in en-AU order.
+ *
+ * The workflow used `new Date().toISOString().slice(0, 10)`. At the schedule's
+ * own documented moment — 19:00 UTC, which is 05:00 the next Brisbane day — that
+ * stamps the PREVIOUS calendar date on a body whose queue ages were computed in
+ * Brisbane. One report, two timezones, and the header disagreeing with the
+ * content it heads. It was also ISO where the repo's locale is DD/MM/YYYY.
+ *
+ * Exported and used by the workflow rather than inlined there, for the same
+ * reason every other decision lives in this file: logic in YAML is logic no
+ * test can reach.
+ */
+const BRISBANE_REPORT_DATE = new Intl.DateTimeFormat('en-AU', {
+  timeZone: 'Australia/Brisbane', year: 'numeric', month: '2-digit', day: '2-digit',
+});
+
+export function brisbaneReportDate(instant = new Date()) {
+  const parts = Object.fromEntries(
+    BRISBANE_REPORT_DATE.formatToParts(instant).map((part) => [part.type, part.value]),
+  );
+  if (!parts.year || !parts.month || !parts.day) {
+    throw new Error('Could not resolve a Brisbane report date.');
+  }
+  return `${parts.day}/${parts.month}/${parts.year}`;
+}
+
+/**
  * Ownership marker. An exact title match is NOT proof of ownership — a human can
  * open an issue with the same title, and the review demonstrated the upsert
  * overwriting one. Only an issue whose body carries this marker was written by

@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import {
   DECLARED_GATES,
+  brisbaneReportDate,
   HEARTBEAT_TITLE,
   OWNER_MARKER,
   buildHeartbeatBody,
@@ -666,6 +667,111 @@ test('THE WORKFLOW READER FAILS CLOSED: unreadable YAML throws rather than parsi
   assert.throws(
     () => readWorkflowStructure('on:\n  workflow_dispatch:\njobs:\n  a: not-a-mapping\n'),
     /job `a` is not a mapping/u,
+  );
+});
+
+test('A QUOTED KEY IS THE SAME KEY (round-six P0)', () => {
+  /*
+   * One character defeated every structural guard in this file:
+   * `"uses": actions/setup-node@v4` is valid YAML naming the key `uses`, but
+   * the parser kept the quote marks, so `step.uses` came back null, the
+   * allowlist saw no action to check, and both isolation tests passed while the
+   * issues-write job invoked an unallowlisted action. A parser that reads a key
+   * differently from the runtime it models is measuring a different document.
+   */
+  const source = readFileSync(WORKFLOW_PATH, 'utf8');
+  const mutant = source.replace(
+    /( {6}- name: Create or update the pinned heartbeat issue\n {8}if: always\(\)\n) {8}uses: actions\/github-script@[^\n]*/u,
+    '$1        "uses": actions/setup-node@v4',
+  );
+  assert.notEqual(mutant, source, 'the quoted-key mutant did not apply');
+
+  const [writer] = jobsThatCanWriteIssues(readWorkflowStructure(mutant));
+  const actions = writer.steps.filter((s) => s.uses !== null).map((s) => s.uses.split('@')[0]);
+  assert.ok(
+    actions.includes('actions/setup-node'),
+    `the quoted key must decode to \`uses\`; saw ${JSON.stringify(actions)}`,
+  );
+  assert.ok(
+    !ISSUES_WRITE_ACTION_ALLOWLIST.includes('actions/setup-node'),
+    'the allowlist must still reject it',
+  );
+
+  // Both quote styles, and an unterminated quote is refused rather than guessed.
+  const doc = readWorkflowStructure(
+    'on:\n  workflow_dispatch:\njobs:\n  a:\n    steps:\n      - \'uses\': actions/checkout@v4\n',
+  );
+  assert.equal(doc.jobs[0].steps[0].uses, 'actions/checkout@v4');
+  assert.throws(
+    () => readWorkflowStructure('on:\n  workflow_dispatch:\njobs:\n  a:\n    "b: 1\n'),
+    /unterminated quoted key|not a mapping entry/u,
+  );
+
+  /*
+   * A QUOTED KEY MAY CONTAIN A COLON, and that is what the key pattern itself
+   * buys — separate from the decode above.
+   *
+   * The harness taught this distinction the expensive way. The first M57 mutant
+   * reverted the key REGEX and survived, because reverting it changes nothing
+   * for `"uses":` — the decode strips the quotes either way. The regex only
+   * earns its place on a key whose quoted text contains a colon, where the naive
+   * pattern stops at the inner colon and yields the key `"a`. A mutant aimed at
+   * the wrong line proves nothing about the line that does the work.
+   */
+  const colonKey = readWorkflowStructure(
+    'on:\n  workflow_dispatch:\njobs:\n  a:\n    steps:\n      - "run:step": echo hi\n',
+  );
+  assert.deepEqual(Object.keys(colonKey.jobs[0].raw.steps[0]), ['run:step']);
+});
+
+test('A RESERVED KEY IS REFUSED, not written onto every mapping', () => {
+  for (const key of ['__proto__', 'constructor', 'prototype']) {
+    assert.throws(
+      () => readWorkflowStructure(`on:\n  workflow_dispatch:\njobs:\n  a:\n    ${key}: x\n`),
+      /reserved key/u,
+      key,
+    );
+  }
+});
+
+test('THE PERMISSION SHORTHANDS ARE READ, not treated as "not declared"', () => {
+  // `permissions: write-all` is a string, not a mapping, and fell into the
+  // "not declared here" arm — which then consulted the workflow default and
+  // could conclude "safe" about a job holding every permission there is.
+  const job = (perms) => 'on:\n  workflow_dispatch:\npermissions:\n  contents: read\n'
+    + `jobs:\n  a:\n    permissions: ${perms}\n    steps:\n      - run: echo hi\n`;
+
+  assert.deepEqual(
+    jobsThatCanWriteIssues(readWorkflowStructure(job('write-all'))).map((j) => j.name),
+    ['a'],
+    'write-all grants issues: write',
+  );
+  assert.deepEqual(
+    jobsThatCanWriteIssues(readWorkflowStructure(job('read-all'))),
+    [],
+    'read-all does not',
+  );
+  assert.deepEqual(
+    jobsThatCanWriteIssues(readWorkflowStructure(job('something-new'))).map((j) => j.name),
+    ['a'],
+    'an unrecognised shorthand is not a proven-safe one',
+  );
+});
+
+test('THE REPORT DATE IS A BRISBANE DATE IN en-AU ORDER (round-six P1)', () => {
+  // At the schedule's own moment — 19:00 UTC, 05:00 the next Brisbane day — a
+  // UTC date stamps the PREVIOUS calendar date on a body whose queue ages were
+  // computed in Brisbane. One report, two timezones.
+  assert.equal(brisbaneReportDate(new Date('2026-08-16T19:00:00Z')), '17/08/2026');
+  assert.equal(brisbaneReportDate(new Date('2026-08-16T13:59:59Z')), '16/08/2026');
+  assert.equal(brisbaneReportDate(new Date('2026-08-16T14:00:00Z')), '17/08/2026');
+
+  // And the workflow must actually use it, or the fix lives where nothing runs.
+  const workflow = readFileSync(WORKFLOW_PATH, 'utf8');
+  assert.ok(/date: brisbaneReportDate\(\)/u.test(workflow), 'the workflow must call it');
+  assert.ok(
+    !/toISOString\(\)\.slice\(0, 10\)/u.test(workflow),
+    'a UTC date derivation remains in the workflow',
   );
 });
 

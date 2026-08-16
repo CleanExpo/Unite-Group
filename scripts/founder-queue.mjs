@@ -261,14 +261,43 @@ export function oldestOpen(rows, now) {
   return { oldest, unaged };
 }
 
-/** Rewrites the age column from `opened`, discarding whatever the file said. */
+/**
+ * The marker that stands where a committed age used to.
+ *
+ * AN AGE IS NOT A FACT A FILE CAN HOLD. Round six found F2 and F6 reading 41 in
+ * the committed register while the computed answer was 42 — one day after the
+ * numbers were written. Nothing was broken: the value simply decays every
+ * midnight, and only the explicit mutating `--render` path ever refreshed it.
+ * `CLAUDE.md` tells every session to read this file and state the age, so a
+ * register that stores the number is a register that lies for 23 hours out of
+ * every 24.
+ *
+ * This is the state-versus-event rule applied to its hardest case. An age is
+ * neither: it is DERIVED, and derived values are recomputed on read, never
+ * stored. `opened` is the state — one date, changing only if it was wrong — and
+ * it is what the file keeps.
+ */
+export const AGE_IS_COMPUTED = '—';
+
+/**
+ * Writes the Open table with the age column blanked to the computed marker.
+ *
+ * `--render` used to write the numbers in. It now writes the marker in, which
+ * makes running it idempotent and makes a stale number impossible to reintroduce
+ * by hand: the next render erases it.
+ */
 export function renderQueue(parsed, now) {
   const header = '| ID | Decision | Opened | Age (days) | Blocks | Context | Status |';
   const rule = '| --- | --- | --- | --- | --- | --- | --- |';
-  const rows = parsed.open.map((row) => [
-    '', row.id, row.decision, row.opened, String(computeAgeDays(row.opened, now)),
-    row.blocks, row.context, row.status, '',
-  ].join(' | ').trim());
+  const rows = parsed.open.map((row) => {
+    // Still computed, and still refused if the date is impossible — the render
+    // must not quietly normalise a row whose age cannot be derived at all.
+    computeAgeDays(row.opened, now);
+    return [
+      '', row.id, row.decision, row.opened, AGE_IS_COMPUTED,
+      row.blocks, row.context, row.status, '',
+    ].join(' | ').trim();
+  });
 
   return [header, rule, ...rows].join('\n');
 }
