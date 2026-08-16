@@ -670,58 +670,72 @@ test('THE WORKFLOW READER FAILS CLOSED: unreadable YAML throws rather than parsi
   );
 });
 
-test('A QUOTED KEY IS THE SAME KEY (round-six P0)', () => {
+test('A QUOTED KEY IS REFUSED, not decoded (rounds six and seven, one class)', () => {
   /*
-   * One character defeated every structural guard in this file:
-   * `"uses": actions/setup-node@v4` is valid YAML naming the key `uses`, but
-   * the parser kept the quote marks, so `step.uses` came back null, the
-   * allowlist saw no action to check, and both isolation tests passed while the
-   * issues-write job invoked an unallowlisted action. A parser that reads a key
-   * differently from the runtime it models is measuring a different document.
+   * THREE ROUNDS ON ONE CLASS, AND THE THIRD CHANGES THE APPROACH.
+   *
+   * Round six: `"uses": actions/setup-node@v4` kept its quote marks, so
+   * `step.uses` came back null, the allowlist saw no action to check, and both
+   * isolation tests passed at 2/2 while the issues-write job invoked an
+   * unallowlisted action. Fixed by stripping the quotes.
+   *
+   * Round seven: `"u\u0073es":` — a double-quoted key whose escape real YAML
+   * decodes to `uses` — walked straight through the stripping.
+   *
+   * Decoding is a race this reader cannot win: after `\u` come `\x`, octal,
+   * single-quote doubling, explicit `? :` keys, flow mappings, block-scalar
+   * keys. Closing one spelling per round is the detect-the-bad-thing shape that
+   * always loses. So the reader now refuses EVERY quoted key. The workflow this
+   * repo controls uses plain keys exclusively, so refusing costs nothing real,
+   * and anyone who adds one gets a hard parse failure visible in the diff.
    */
   const source = readFileSync(WORKFLOW_PATH, 'utf8');
-  const mutant = source.replace(
+  const mutate = (key) => source.replace(
     /( {6}- name: Create or update the pinned heartbeat issue\n {8}if: always\(\)\n) {8}uses: actions\/github-script@[^\n]*/u,
-    '$1        "uses": actions/setup-node@v4',
-  );
-  assert.notEqual(mutant, source, 'the quoted-key mutant did not apply');
-
-  const [writer] = jobsThatCanWriteIssues(readWorkflowStructure(mutant));
-  const actions = writer.steps.filter((s) => s.uses !== null).map((s) => s.uses.split('@')[0]);
-  assert.ok(
-    actions.includes('actions/setup-node'),
-    `the quoted key must decode to \`uses\`; saw ${JSON.stringify(actions)}`,
-  );
-  assert.ok(
-    !ISSUES_WRITE_ACTION_ALLOWLIST.includes('actions/setup-node'),
-    'the allowlist must still reject it',
+    `$1        ${key}: actions/setup-node@v4`,
   );
 
-  // Both quote styles, and an unterminated quote is refused rather than guessed.
-  const doc = readWorkflowStructure(
-    'on:\n  workflow_dispatch:\njobs:\n  a:\n    steps:\n      - \'uses\': actions/checkout@v4\n',
-  );
-  assert.equal(doc.jobs[0].steps[0].uses, 'actions/checkout@v4');
+  for (const key of ['"uses"', "'uses'", '"u\\u0073es"', '"run:step"']) {
+    const mutant = mutate(key);
+    assert.notEqual(mutant, source, `mutant ${key} did not apply`);
+    assert.throws(
+      () => readWorkflowStructure(mutant),
+      /quoted keys are not implemented/u,
+      `${key} must be refused rather than interpreted`,
+    );
+  }
+
+  // Refusal reaches the top level and the sequence branch alike — one rule,
+  // not one rule per position.
   assert.throws(
-    () => readWorkflowStructure('on:\n  workflow_dispatch:\njobs:\n  a:\n    "b: 1\n'),
-    /unterminated quoted key|not a mapping entry/u,
+    () => readWorkflowStructure('"on":\n  workflow_dispatch:\njobs:\n  a:\n    steps: []\n'),
+    /quoted keys are not implemented/u,
   );
 
   /*
-   * A QUOTED KEY MAY CONTAIN A COLON, and that is what the key pattern itself
-   * buys — separate from the decode above.
-   *
-   * The harness taught this distinction the expensive way. The first M57 mutant
-   * reverted the key REGEX and survived, because reverting it changes nothing
-   * for `"uses":` — the decode strips the quotes either way. The regex only
-   * earns its place on a key whose quoted text contains a colon, where the naive
-   * pattern stops at the inner colon and yields the key `"a`. A mutant aimed at
-   * the wrong line proves nothing about the line that does the work.
+   * ON THE DASH LINE, which is the only place the sequence-item key detector
+   * decides anything. Every test above mutates a key on its own indented line,
+   * so all of them reach the mapping branch and none of them exercised the
+   * detector — the harness proved it by deleting the detector's quoted
+   * alternative and surviving. A quoted key CONTAINING A COLON is the single
+   * construct the plain pattern misses (`"` satisfies `[^\s:]`, so every other
+   * quoted key already routes), and without the alternative it degrades to
+   * "step is not a mapping" instead of naming the real reason.
    */
-  const colonKey = readWorkflowStructure(
-    'on:\n  workflow_dispatch:\njobs:\n  a:\n    steps:\n      - "run:step": echo hi\n',
+  for (const line of ['- "run:step": echo hi', '- "uses": actions/setup-node@v4']) {
+    assert.throws(
+      () => readWorkflowStructure(`on:\n  workflow_dispatch:\njobs:\n  a:\n    steps:\n      ${line}\n`),
+      /quoted keys are not implemented/u,
+      line,
+    );
+  }
+  assert.throws(
+    () => readWorkflowStructure('on:\n  workflow_dispatch:\njobs:\n  a:\n    "b": 1\n'),
+    /quoted keys are not implemented/u,
   );
-  assert.deepEqual(Object.keys(colonKey.jobs[0].raw.steps[0]), ['run:step']);
+
+  // And the real workflow still parses, so the refusal is not always-on.
+  assert.ok(readWorkflowStructure(source).jobs.length >= 2);
 });
 
 test('A RESERVED KEY IS REFUSED, not written onto every mapping', () => {

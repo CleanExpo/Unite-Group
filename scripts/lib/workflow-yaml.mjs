@@ -152,11 +152,17 @@ function parseBlock(lines, cursor, indent) {
        * its members are indented by the dash's own width. Re-parsing from this
        * line with that indent keeps one code path for every mapping.
        */
-      // THE SAME KEY FORMS AS THE MAPPING BRANCH. Two places in this file decide
-      // "is this line a key", and fixing only the one a reviewer named would
-      // leave a sequence item like `- "uses": x` read as a scalar — a step that
-      // is not a mapping, which is a different wrong answer to the same question.
-      const keyed = /^("[^"]*"|'[^']*'|[^\s:][^:]*):(\s|$)/u.test(rest);
+      // THE SAME KEY RULE AS THE MAPPING BRANCH. Two places in this file decide
+      // "is this line a key", and they must agree — otherwise `- "uses": x`
+      // reads as a scalar here while the mapping branch refuses it, which is
+      // two different wrong answers to one question. A quoted sequence key
+      // reaches the mapping branch below and is refused there.
+      // The quoted alternative must run to the CLOSING QUOTE, not to the first
+      // colon — `"run:step":` has a colon inside the quotes, and a pattern that
+      // stops there leaves the line looking like a scalar. That was the whole
+      // construct this alternative exists for, and getting it wrong made the
+      // alternative dead code that a mutant could delete unnoticed.
+      const keyed = /^(["'][^"']*["']\s*:|[^\s:][^:]*:)(\s|$)/u.test(rest);
       if (keyed) {
         const rewritten = lines.slice();
         rewritten[index] = {
@@ -174,34 +180,51 @@ function parseBlock(lines, cursor, indent) {
     }
 
     /*
-     * A QUOTED KEY IS THE SAME KEY.
+     * A QUOTED KEY IS REFUSED, NOT DECODED. This is the third round on one
+     * class, and the third round is where the approach changes rather than the
+     * instance.
      *
-     * Round six defeated every structural guard in this file with one
-     * character: `"uses": actions/setup-node@...` is valid YAML naming the key
-     * `uses`, but this parser kept the quote marks, so `step.uses` came back
-     * null, the allowlist saw no action to check, and both isolation tests
-     * passed while the issues-write job invoked an unallowlisted action. A
-     * parser that reads a key differently from the runtime it is modelling is
-     * measuring a different document — which is exactly the failure the
-     * fail-closed design was supposed to make impossible.
+     * Round six: `"uses":` kept its quote marks, `step.uses` came back null,
+     * and both isolation tests passed while the issues-write job invoked an
+     * unallowlisted action. That was fixed by stripping the quotes. Round seven
+     * then sent `"uses":` — a double-quoted key whose escape real YAML
+     * decodes to `uses` — and walked straight through the stripping.
      *
-     * Both quoted forms are decoded, and a key that is quoted but unterminated
-     * is refused rather than guessed at.
+     * Decoding is an arms race this reader cannot win: after `\u` come `\x`,
+     * octal, single-quote `''` doubling, explicit `? :` keys, flow mappings,
+     * block-scalar keys. Every round would close one spelling and leave the
+     * rest, which is the detect-the-bad-thing shape that always loses.
+     *
+     * So the guard stops trying to be a correct YAML implementation and becomes
+     * what it should always have been: a reader that refuses to grade a document
+     * containing any construct it does not fully implement. The workflow this
+     * repository controls uses plain unquoted keys exclusively — verified, zero
+     * quoted keys — so refusing them costs nothing real and ends the class.
+     * Anyone who adds one gets a hard parse failure in the diff, which is the
+     * outcome the isolation guard wanted all along.
      */
-    const separator = /^("[^"]*"|'[^']*'|[^\s:#][^:]*):(\s.*|)$/u.exec(content);
-    if (!separator) fail(line.number, `not a mapping entry or sequence item: ${content}`);
+    const separator = /^([^\s:#][^:]*):(\s.*|)$/u.exec(content);
+    if (!separator) {
+      if (/^["']/u.test(content)) {
+        fail(
+          line.number,
+          'quoted keys are not implemented by this reader, so this workflow cannot be graded. '
+          + 'Use a plain key, or extend the reader deliberately.',
+        );
+      }
+      fail(line.number, `not a mapping entry or sequence item: ${content}`);
+    }
     if (kind === 'sequence') fail(line.number, 'a mapping entry inside a sequence block');
     kind = 'mapping';
 
-    const rawKey = separator[1].trim();
-    if ((rawKey.startsWith('"') && !rawKey.endsWith('"'))
-      || (rawKey.startsWith("'") && !rawKey.endsWith("'"))) {
-      fail(line.number, `unterminated quoted key: ${rawKey}`);
+    const key = separator[1].trim();
+    if (/^["']/u.test(key) || /["']$/u.test(key)) {
+      fail(
+        line.number,
+        `quoted keys are not implemented by this reader (${key}), so this workflow cannot be `
+        + 'graded.',
+      );
     }
-    const key = (rawKey.length > 1 && ((rawKey.startsWith('"') && rawKey.endsWith('"'))
-      || (rawKey.startsWith("'") && rawKey.endsWith("'"))))
-      ? rawKey.slice(1, -1)
-      : rawKey;
     // A key that arrives via the prototype chain is not a key this document
     // declared. `__proto__` in particular would mutate every mapping at once.
     if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
