@@ -1367,6 +1367,20 @@ test('THE WHOLE SUITE-SUMMARY FAMILY IS READ, not only the field that was report
   for (const overrides of [
     { numTotalTestSuites: -1 }, { numPassedTestSuites: -1 }, { numPendingTestSuites: -1 },
     { numTotalTestSuites: 0 }, { numTotalTestSuites: 99 },
+    /*
+     * THE ZERO-SUITE CASE HAS TO BE INTERNALLY COHERENT OR IT PROVES NOTHING.
+     *
+     * `{ numTotalTestSuites: 0 }` alone leaves passed at 12, so the sum
+     * mismatch refuses it and the `total > 0` clause is never consulted — round
+     * ten deleted that clause and this test still passed. A report claiming
+     * zero suites, zero passed, zero failed and zero pending adds up perfectly
+     * and is still a report of a run that did not happen, so only positivity
+     * can refuse it.
+     */
+    {
+      numTotalTestSuites: 0, numPassedTestSuites: 0, numFailedTestSuites: 0,
+      numPendingTestSuites: 0,
+    },
   ]) {
     const result = graded(overrides);
     assert.equal(result.verdict, 'FAIL', JSON.stringify(overrides));
