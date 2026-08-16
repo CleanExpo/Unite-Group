@@ -35,7 +35,7 @@
     },
     {
       "path": "/api/cron/social-publisher",
-      "schedule": "*/30 * * * *"
+      "schedule": "*/15 * * * *"
     },
     {
       "path": "/api/cron/video-status",

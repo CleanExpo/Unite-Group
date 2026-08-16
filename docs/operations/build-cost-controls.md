@@ -85,46 +85,70 @@ Run `npm run cron:audit` for the live figures.
 **97.6% of all invocations**. The other 23, all daily or weekly, contributed
 ~639 between them.
 
-`[VERIFIED]` **After (16/08/2026):** ~381 invocations/day, ~11,439/month.
-**A 57% reduction — 15,120 invocations/month removed.** All eight were stepped
-down on Phill's instruction:
+`[VERIFIED]` **After:** ~429 invocations/day, ~12,879/month by the audit's
+arithmetic. **A 51.5% reduction — 13,680 invocations/month removed.**
+
+`[UNCONFIRMED]` That after-figure is computed from the cron expressions, not
+read from a Vercel bill. It is exact arithmetic over the schedule, but it is a
+projection of invocation COUNT, not a measured charge. Confirm against live
+usage after a full billing period.
 
 | Path | Before | After | Per month |
 |---|---|---|---|
 | `/api/cron/video-status` | `*/5` | `*/15` | 8,640 → 2,880 |
 | `/api/cron/synthex-monitor` | `*/15` | `*/30` | 2,880 → 1,440 |
-| `/api/cron/social-publisher` | `*/15` | `*/30` | 2,880 → 1,440 |
 | `/api/cron/brand-video-dispatch` | `*/15` | `*/30` | 2,880 → 1,440 |
 | `/api/cron/drip-process` | `*/15` | `*/30` | 2,880 → 1,440 |
 | `/api/cron/os-health-rollup` | `*/15` | `0 * * * *` | 2,880 → 720 |
 | `/api/cron/engagement-monitor` | `*/30` | `0 * * * *` | 1,440 → 720 |
 | `/api/cron/linear-queue-health` | `*/30` | `0 * * * *` | 1,440 → 720 |
+| `/api/cron/social-publisher` | `*/15` | **unchanged** | 2,880 — see below |
 
-### Why this was safe — check this again before slowing anything further
+### Why seven were safe, and why social-publisher was not
 
-`[VERIFIED]` Two properties were confirmed in the route source before changing
-any schedule. Both must hold for a cron to be safe to stretch:
+`[VERIFIED]` The first version of this section claimed two properties made all
+eight safe: no interval-coupled lookback, and no per-run throughput cap. The
+first holds. **The second was wrong, and review on PR #1005 caught it.**
 
-1. **No interval-coupled lookback.** None of the eight selects work by a time
-   window tied to its own cadence. They drain by STATE — `status = 'scheduled'
-   AND scheduled_at <= now()` (social-publisher), `status = 'generating'`
-   (video-status), `status = 'queued'` (brand-video-dispatch), `status =
-   'active'` (drip-process). The only time window found anywhere is
-   os-health-rollup's `MARGOT_WINDOW_DAYS`, measured in days and independent of
-   cadence.
-2. **No per-run throughput cap.** None caps how many items it processes per
-   run, so each drains its full backlog every time.
+`[VERIFIED]` **1. No interval-coupled lookback (holds for all eight).** None
+selects work by a time window tied to its own cadence. They drain by STATE —
+`status = 'scheduled' AND scheduled_at <= now()`, `status = 'generating'`,
+`status = 'queued'`, `status = 'active'`. The only time window anywhere is
+os-health-rollup's `MARGOT_WINDOW_DAYS`, measured in days and cadence-independent.
 
-`[INFERENCE]` Together these mean slowing a cron **delays** work but cannot
-**drop** it, and cannot grow an unbounded backlog. A route that later gained a
-`.limit()` on its work queue, or a "since last run" window, would NOT be safe to
-stretch — halving its cadence would halve throughput or silently skip items.
+`[VERIFIED]` **2. The absence of a `.limit()` does NOT mean unbounded-safe.**
+`maxDuration` is itself an effective per-run cap, and the real hazard is not
+throughput — it is **claim-then-finalise state**. `social-publisher` iterates
+posts SERIALLY, sets each row to `status = 'publishing'` BEFORE attempting its
+platforms, and only writes the terminal status afterwards. `maxDuration` is 60s.
+A batch killed at that limit strands every already-claimed row: the next run
+selects `status = 'scheduled'` and will never see it again, and **nothing in the
+codebase re-claims stale `'publishing'` rows** (`bookkeeper` has such a sweep;
+social_posts has none). Halving the cadence doubles the batch, so it *raises*
+that risk rather than lowering it. It stays at `*/15`.
 
-`[UNCONFIRMED]` The user-visible cost is latency. The one worth watching is
-**social-publisher**: a post scheduled for 9:00 am may now go out as late as
-9:29. If posting precision matters more than ~1,440 invocations/month, revert
-that single line to `*/15`. The monitoring crons (os-health-rollup,
-linear-queue-health, synthex-monitor) carry no user-visible cost.
+`[VERIFIED]` The other seven do not have that shape. `video-status` writes only
+TERMINAL states (`ready`, `failed`) after polling, so a killed batch leaves rows
+in `generating` to be re-polled. `drip-process` and `brand-video-dispatch` hold
+their selection state (`active`, `queued`) throughout. No claim, no strand.
+
+### The test to apply before slowing any cron
+
+`[INFERENCE]` Ask, in order:
+
+1. Does it select work by a window tied to its own interval? → do not slow it.
+2. **Does it write a transient status that removes the row from its own
+   selection query, without a recovery sweep for rows stuck in that status?**
+   → do not slow it; a bigger batch means more stranded rows.
+3. Otherwise slowing it delays work but cannot drop it.
+
+Question 2 is the one that is easy to miss, and the one that was missed here.
+"No `.limit()`" is not the same as "safe to stretch".
+
+`[UNCONFIRMED]` The remaining user-visible cost is latency on the seven that did
+change — all monitoring, dispatch or polling loops. None publishes to an external
+audience on a schedule a human is watching, which is why social-publisher was the
+only one worth protecting.
 
 `[VERIFIED]` Two routes are dormant-gated and still invoked on schedule:
 `/api/cron/email-draft` (`MARGOT_DRAFTS_ENABLED`) and `/api/cron/cost-ingest`
