@@ -3,36 +3,50 @@
 /**
  * UNI-2567 items 7 and 8 — the test-evidence manifest and its completeness check.
  *
- * A required CI check reports the exit code of a test process. It does not report
- * whether the tests that justify the check's name actually ran. On main at
- * d1d57b8e5745e90259f2799cb9086e4a62689318 the required job
- * "packages/spine — type-check and bounded tests" concluded `success` with 3 of
- * 22 tests executed; the RLS matrix and the cross-tenant isolation suites were
- * among the 19 that self-skipped because SPINE_DATABASE_URL was absent.
+ * THE DEFECT. A required CI check reports the exit code of a test process. It does
+ * not report whether the tests that justify the check's name actually ran. On main
+ * at d1d57b8e5745e90259f2799cb9086e4a62689318 the required job "packages/spine —
+ * type-check and bounded tests" concluded `success` with 3 of 22 tests executed;
+ * the RLS matrix and the cross-tenant isolation suites were among the 19 that
+ * self-skipped because SPINE_DATABASE_URL was absent.
  *
- * Input is a RAW GitHub Actions job log, exactly as `gh api
- * repos/{owner}/{repo}/actions/jobs/{id}/logs` returns it. Normalisation happens
- * here, not in the caller's shell — a checker that only reads hand-cleaned input
- * cannot read the artefact it exists to read.
+ * WHY THIS READS STRUCTURED DATA AND NOT THE CONSOLE LOG. Two earlier revisions
+ * parsed the reporter's human-readable output. Both were defeated in adversarial
+ * review, the second one twice over:
  *
- * Three properties this refuses to give up:
+ *   - Provenance read out of the log text: one `sed` over a committed fixture
+ *     produced a gated PASS for the real SHA. A file cannot vouch for itself.
+ *   - Suite lines read out of the log body: a `console.log` from any test file in
+ *     the package printed reporter-shaped bytes into genuine CI output and forged
+ *     a complete green report.
  *
- *   1. Provenance is DERIVED from the log, never accepted from the caller. The
- *      log proves which SHA was checked out; --sha is an assertion checked
- *      against that proof. A log with no provenance is rejected outright, so a
- *      committed all-green file cannot be replayed as evidence for another SHA.
- *   2. Silence is never success. The reporter's own summary line must be present
- *      and must reconcile with the per-suite lines, so a truncated or crashed run
- *      is distinguishable from a clean one.
- *   3. Suite lines are read only INSIDE the reporter's own section, so a
- *      console.log, an assertion diff or a quoted inner log cannot forge a suite.
+ * The second is not patchable. Anything that can write to stdout can write bytes
+ * that look like a reporter line, so tightening the pattern is a denylist and
+ * denylists lose. Both inputs here are therefore chosen because a test cannot
+ * author them:
  *
- * It ships DISARMED as a gate: no CI job runs this against live job output, and
- * it is not a required check. Without --gate it reports and exits 0. Note that
- * its SELF-TESTS do run in the existing project-readiness job, which makes the
- * manifest's freshness assertion binding on that job — see MANIFEST_PATH below.
+ *   1. EXECUTION comes from vitest's JSON reporter. Test stdout is a captured
+ *      field inside that structure, never a sibling of it, so a test printing
+ *      reporter-shaped text cannot add or alter a suite record.
+ *   2. PROVENANCE comes from the GitHub Actions API, keyed by job id — head_sha,
+ *      conclusion, workflow and run identity. It is never read from any file the
+ *      caller supplies.
+ *
+ * COVERAGE IS PROVEN POSITIVELY. Earlier revisions protected a hardcoded list of
+ * category names and suite-path substrings; a security suite named outside that
+ * list walked straight through. Instead the manifest declares the capabilities a
+ * required check must prove, and the gate demands that each one be carried by at
+ * least one suite that actually executed. Deleting, renaming or relabelling a
+ * suite then fails for absence of proof rather than for failing to match a string.
+ *
+ * DISARMED. No CI job runs this against live job output and it is not a required
+ * check. Without --gate it reports and exits 0. Its SELF-TESTS do run in the
+ * project-readiness job, which makes the manifest's freshness assertion binding on
+ * that job — adding, renaming or deleting a spine test fails it until the manifest
+ * is updated. That constraint is intended and is stated here rather than denied.
  */
 
+import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -43,178 +57,17 @@ export const MANIFEST_PATH = join('config', 'ci-evidence-manifest.json');
 
 export const EVIDENCE_CLASSES = Object.freeze(['REQUIRED_EVIDENCE', 'ALLOWED_NON_BLOCKING']);
 
-/**
- * Categories whose proof is the reason the required check exists. Declaring one
- * of these ALLOWED_NON_BLOCKING would disarm the gate with a one-word manifest
- * edit, in the same PR, by the same author — so the code refuses it outright.
- */
-export const PROTECTED_CATEGORIES = Object.freeze([
-  'tenant-isolation',
-  'migration-integrity',
-  'auth',
-  'security',
-  'release-integrity',
-]);
+const SHA_PATTERN = /^[0-9a-f]{40}$/u;
+
+// ---------------------------------------------------------------------------
+// Manifest
+// ---------------------------------------------------------------------------
 
 /**
- * Suite paths whose subject matter is security-critical regardless of how the
- * manifest labels them. Without this, PROTECTED_CATEGORIES is circular: the same
- * author, in the same PR, could relabel `rls.test.ts` from `tenant-isolation` to
- * something unprotected and then mark it non-blocking. Path -> category is bound
- * here, in code, so the relabel is what fails.
+ * Rejects every manifest shape that could disarm the gate by construction.
+ * `requiredCapabilities` is the positive-proof floor: it names what the check
+ * must prove, independently of how any individual suite happens to be labelled.
  */
-export const PROTECTED_SUITE_PATTERNS = Object.freeze([
-  /(^|\/)rls[._-]/u,
-  /isolation/u,
-  /(^|\/)auth[._-]/u,
-  /tenant/u,
-  /idempotency/u,
-]);
-
-const ANSI = /\[[0-9;]*[A-Za-z]/gu;
-const ACTIONS_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z\s?/u;
-
-/** `git ... fetch ... +<sha>:refs/remotes/origin/<branch>` in the checkout step. */
-const CHECKOUT_FETCH_SHA = /\+([0-9a-f]{40}):refs\/remotes\//u;
-/** The bare 40-hex line emitted by `git rev-parse refs/remotes/origin/<branch>`. */
-const REV_PARSE_SHA = /^([0-9a-f]{40})$/u;
-
-/** Vitest's own run banner and final summary bracket the reporter's section. */
-const RUN_BANNER = /^\s*RUN\s+v\d/u;
-const SUMMARY_TESTS = /^\s*Tests\s+(.+?)\s*$/u;
-const SUMMARY_FILES = /^\s*Test Files\s+/u;
-
-/**
- * A per-file result line. The count block is `(N tests)` optionally followed by
- * `| N passed`, `| N failed`, `| N skipped`, `| N todo` in any order. The status
- * glyph is deliberately not trusted; the counts decide the status.
- */
-const SUITE_LINE = /(?:^|\s)([\w./-]+\.test\.[cm]?[jt]sx?)\s+\((\d+)\s+tests?((?:\s*\|\s*\d+\s+\w+)*)\)/u;
-const COUNT_MODIFIER = /\|\s*(\d+)\s+(\w+)/gu;
-
-/** Strips the Actions timestamp prefix and ANSI colouring from a raw job log. */
-export function normaliseJobLog(raw) {
-  return raw
-    .replace(/^﻿/u, '')
-    .replace(/\r\n/gu, '\n')
-    .split('\n')
-    .map((line) => line.replace(ANSI, '').replace(ACTIONS_TIMESTAMP, ''))
-    .join('\n');
-}
-
-/**
- * The SHA the runner actually checked out, read out of the log itself. Returns
- * null when the log carries no checkout evidence — which is a refusal, not a pass.
- */
-export function extractProvenanceSha(normalised) {
-  const lines = normalised.split('\n');
-  for (const line of lines) {
-    const fetched = CHECKOUT_FETCH_SHA.exec(line);
-    if (fetched) return fetched[1];
-  }
-  for (const line of lines) {
-    const revParsed = REV_PARSE_SHA.exec(line.trim());
-    if (revParsed) return revParsed[1];
-  }
-  return null;
-}
-
-function parseCountModifiers(tail) {
-  const counts = {};
-  for (const [, value, label] of tail.matchAll(COUNT_MODIFIER)) {
-    counts[label] = Number.parseInt(value, 10);
-  }
-  return counts;
-}
-
-/**
- * Reads the reporter's section of a normalised log into per-suite execution
- * counts plus the summary the reporter itself printed.
- *
- * `executed` excludes skipped and todo. A FAILED test executed — it is evidence,
- * just evidence of a defect — so failures do not reduce the executed count.
- */
-export function parseVitestEvidence(rawOrNormalised) {
-  const normalised = normaliseJobLog(rawOrNormalised);
-  const lines = normalised.split('\n');
-
-  let inSection = false;
-  let summary = null;
-  const suites = [];
-  const seen = new Set();
-  const malformed = [];
-
-  for (const line of lines) {
-    if (!inSection) {
-      if (RUN_BANNER.test(line)) inSection = true;
-      continue;
-    }
-
-    if (SUMMARY_FILES.test(line)) continue;
-
-    const summaryMatch = SUMMARY_TESTS.exec(line);
-    if (summaryMatch) {
-      const totalMatch = /\((\d+)\)\s*$/u.exec(summaryMatch[1]);
-      const counts = {};
-      for (const [, value, label] of summaryMatch[1].matchAll(/(\d+)\s+(passed|failed|skipped|todo)/gu)) {
-        counts[label] = Number.parseInt(value, 10);
-      }
-      summary = {
-        total: totalMatch
-          ? Number.parseInt(totalMatch[1], 10)
-          : Object.values(counts).reduce((sum, value) => sum + value, 0),
-        passed: counts.passed ?? 0,
-        failed: counts.failed ?? 0,
-        skipped: counts.skipped ?? 0,
-        todo: counts.todo ?? 0,
-      };
-      inSection = false;
-      continue;
-    }
-
-    const match = SUITE_LINE.exec(line);
-    if (!match) continue;
-
-    const [, suite, declaredRaw, tail] = match;
-    if (seen.has(suite)) continue;
-
-    const declared = Number.parseInt(declaredRaw, 10);
-    const counts = parseCountModifiers(tail ?? '');
-    const skipped = counts.skipped ?? 0;
-    const todo = counts.todo ?? 0;
-    const executed = declared - skipped - todo;
-
-    if (executed < 0 || skipped < 0 || todo < 0) {
-      malformed.push({ suite, declared, skipped, todo, line: line.trim() });
-      continue;
-    }
-
-    seen.add(suite);
-    suites.push({
-      suite,
-      declared,
-      executed,
-      skipped,
-      todo,
-      failed: counts.failed ?? 0,
-      status: executed > 0 ? 'EXECUTED' : 'SKIPPED',
-    });
-  }
-
-  const totals = suites.reduce(
-    (accumulator, suite) => ({
-      executed: accumulator.executed + suite.executed,
-      skipped: accumulator.skipped + suite.skipped,
-      todo: accumulator.todo + suite.todo,
-      declared: accumulator.declared + suite.declared,
-    }),
-    { executed: 0, skipped: 0, todo: 0, declared: 0 },
-  );
-
-  return { suites, totals, summary, malformed };
-}
-
-/** Throws on any manifest that could disarm the gate by construction. */
 export function validateManifest(manifest) {
   if (!Array.isArray(manifest.checks) || manifest.checks.length === 0) {
     throw new Error(`${MANIFEST_PATH} declares no checks.`);
@@ -230,11 +83,24 @@ export function validateManifest(manifest) {
     }
     checkIds.add(check.id);
 
+    for (const field of ['requiredCheck', 'workflow', 'job', 'workingDirectory']) {
+      if (typeof check[field] !== 'string' || check[field] === '') {
+        throw new Error(`Check "${check.id}" declares no ${field}.`);
+      }
+    }
+
     if (!Array.isArray(check.suites) || check.suites.length === 0) {
       throw new Error(`Check "${check.id}" declares no suites; an empty check passes vacuously.`);
     }
+    if (!Array.isArray(check.requiredCapabilities) || check.requiredCapabilities.length === 0) {
+      throw new Error(
+        `Check "${check.id}" declares no requiredCapabilities. Without a coverage floor a `
+        + 'check whose suites are all ALLOWED_NON_BLOCKING passes while proving nothing.',
+      );
+    }
 
     const suiteNames = new Set();
+    const carried = new Set();
     for (const suite of check.suites) {
       if (typeof suite.suite !== 'string' || suite.suite === '') {
         throw new Error(`Check "${check.id}" declares a suite with no path.`);
@@ -250,22 +116,17 @@ export function validateManifest(manifest) {
           + `Expected one of: ${EVIDENCE_CLASSES.join(', ')}.`,
         );
       }
-      if (typeof suite.category !== 'string' || suite.category === '') {
-        throw new Error(`Suite ${suite.suite} declares no category.`);
+      if (typeof suite.capability !== 'string' || suite.capability === '') {
+        throw new Error(`Suite ${suite.suite} declares no capability.`);
       }
-      const protectedByPath = PROTECTED_SUITE_PATTERNS.some((pattern) => pattern.test(suite.suite));
-      if ((PROTECTED_CATEGORIES.includes(suite.category) || protectedByPath)
-        && suite.class !== 'REQUIRED_EVIDENCE') {
+      if (suite.class === 'REQUIRED_EVIDENCE') carried.add(suite.capability);
+    }
+
+    for (const capability of check.requiredCapabilities) {
+      if (!carried.has(capability)) {
         throw new Error(
-          `Suite ${suite.suite} declares protected category "${suite.category}" as `
-          + `${suite.class}. Protected categories must be REQUIRED_EVIDENCE.`,
-        );
-      }
-      if (protectedByPath && !PROTECTED_CATEGORIES.includes(suite.category)) {
-        throw new Error(
-          `Suite ${suite.suite} is security-critical by path but declares unprotected `
-          + `category "${suite.category}". Relabelling cannot remove a suite from `
-          + `protection; use one of: ${PROTECTED_CATEGORIES.join(', ')}.`,
+          `Check "${check.id}" requires capability "${capability}" but no REQUIRED_EVIDENCE `
+          + 'suite carries it. A required capability cannot be left without a proof.',
         );
       }
     }
@@ -294,80 +155,199 @@ export function resolveCheck(manifest, id) {
   return matches[0];
 }
 
+// ---------------------------------------------------------------------------
+// Execution evidence — vitest JSON reporter
+// ---------------------------------------------------------------------------
+
 /**
- * Compares declared expectation against observed execution for one SHA.
+ * Reads vitest's JSON reporter output into per-suite execution counts.
  *
- * Report-integrity failures come FIRST and are not per-suite: a report that
- * cannot be trusted must never be graded suite by suite, because a truncated log
- * is a report in which every remaining suite is simply missing.
+ * vitest marks a skipped assertion `pending`. `executed` counts assertions that
+ * actually ran: passed and failed both did, pending and todo did not. A failing
+ * test is evidence — of a defect — so it does not reduce the executed count.
  */
-export function checkEvidenceCompleteness({ check, observed, sha }) {
+export function parseVitestJsonReport(text, { workingDirectory = '' } = {}) {
+  let report;
+  try {
+    report = JSON.parse(text);
+  } catch (error) {
+    throw new Error(`Test evidence is not valid JSON: ${error.message}`);
+  }
+  if (!Array.isArray(report.testResults)) {
+    throw new Error('Test evidence has no testResults array; this is not a vitest JSON report.');
+  }
+
+  const marker = workingDirectory ? `${workingDirectory}/` : '';
+  const suites = [];
+  const seen = new Map();
+
+  for (const file of report.testResults) {
+    if (typeof file.name !== 'string') {
+      throw new Error('Test evidence contains a file record with no name.');
+    }
+    const posix = file.name.split('\\').join('/');
+    const index = marker ? posix.lastIndexOf(marker) : -1;
+    const suite = index >= 0 ? posix.slice(index + marker.length) : posix;
+
+    const assertions = Array.isArray(file.assertionResults) ? file.assertionResults : [];
+    const counts = { passed: 0, failed: 0, pending: 0, skipped: 0, todo: 0, other: 0 };
+    for (const assertion of assertions) {
+      const status = assertion?.status;
+      if (status in counts) counts[status] += 1;
+      else counts.other += 1;
+    }
+
+    /*
+     * `executed` is counted POSITIVELY — only statuses that prove a test ran.
+     * Never `declared - skipped`: vitest 4 reports a skipped assertion as
+     * "skipped" where vitest 3 said "pending", and an unrecognised status under
+     * subtraction would silently inflate the executed count into a false pass.
+     * Counting up means an unknown status is simply not evidence.
+     */
+    const declared = assertions.length;
+    const executed = counts.passed + counts.failed;
+    const skipped = counts.pending + counts.skipped + counts.todo;
+
+    const record = {
+      suite,
+      declared,
+      executed,
+      skipped,
+      failed: counts.failed,
+      status: executed > 0 ? 'EXECUTED' : 'SKIPPED',
+    };
+
+    // Two records for one path is ambiguous evidence; refuse to pick a winner.
+    const previous = seen.get(suite);
+    if (previous) {
+      if (previous.executed !== record.executed || previous.declared !== record.declared) {
+        previous.conflict = true;
+      }
+      continue;
+    }
+    seen.set(suite, record);
+    suites.push(record);
+  }
+
+  const totals = suites.reduce(
+    (accumulator, suite) => ({
+      executed: accumulator.executed + suite.executed,
+      skipped: accumulator.skipped + suite.skipped,
+      declared: accumulator.declared + suite.declared,
+    }),
+    { executed: 0, skipped: 0, declared: 0 },
+  );
+
+  const reported = {
+    total: report.numTotalTests,
+    passed: report.numPassedTests,
+    failed: report.numFailedTests,
+    pending: report.numPendingTests,
+    todo: report.numTodoTests,
+  };
+
+  return { suites, totals, reported };
+}
+
+// ---------------------------------------------------------------------------
+// Provenance — GitHub Actions API, never a caller-supplied file
+// ---------------------------------------------------------------------------
+
+/** Default fetcher. Injectable so tests never reach the network. */
+export function ghJobFetcher(repo, jobId) {
+  const raw = execFileSync(
+    'gh',
+    ['api', `repos/${repo}/actions/jobs/${jobId}`],
+    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
+  );
+  return JSON.parse(raw);
+}
+
+/**
+ * Binds a job id to its commit, conclusion and identity using API metadata only.
+ * Every mismatch is a refusal, never a downgrade to a graded result.
+ */
+export function resolveProvenance({ check, repo, jobId, expectedSha, fetcher = ghJobFetcher }) {
+  const job = fetcher(repo, jobId);
+
+  const headSha = job?.head_sha;
+  if (typeof headSha !== 'string' || !SHA_PATTERN.test(headSha)) {
+    throw new Error(`PROVENANCE_ABSENT: job ${jobId} returned no usable head_sha.`);
+  }
+  if (headSha !== expectedSha) {
+    throw new Error(
+      `PROVENANCE_MISMATCH: --sha asserts ${expectedSha} but job ${jobId} ran on ${headSha}.`,
+    );
+  }
+  if (job.name !== check.requiredCheck) {
+    throw new Error(
+      `PROVENANCE_WRONG_JOB: job ${jobId} is "${job.name}", not the required check `
+      + `"${check.requiredCheck}". Evidence from another job does not satisfy this one.`,
+    );
+  }
+  if (job.status !== 'completed') {
+    throw new Error(`PROVENANCE_INCOMPLETE: job ${jobId} is "${job.status}", not completed.`);
+  }
+
+  return {
+    sha: headSha,
+    jobId: String(jobId),
+    jobName: job.name,
+    runId: job.run_id ?? null,
+    runAttempt: job.run_attempt ?? null,
+    conclusion: job.conclusion ?? null,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// The completeness check
+// ---------------------------------------------------------------------------
+
+export function checkEvidenceCompleteness({ check, observed, provenance }) {
   const violations = [];
   const evidence = [];
 
-  if (observed.malformed.length > 0) {
-    for (const bad of observed.malformed) {
-      violations.push({
-        suite: bad.suite,
-        class: null,
-        category: null,
-        status: 'MALFORMED',
-        reason: 'MALFORMED_SUITE_LINE',
-        detail: bad.line,
-      });
-    }
-  }
-
-  if (!observed.summary) {
+  const declaredTotal = observed.totals.declared;
+  if (typeof observed.reported.total === 'number' && observed.reported.total !== declaredTotal) {
     violations.push({
       suite: null,
-      class: null,
-      category: null,
-      status: 'INCOMPLETE',
-      reason: 'INCOMPLETE_REPORT',
-      detail: 'The reporter printed no "Tests …" summary; the run did not complete.',
+      reason: 'SUMMARY_MISMATCH',
+      status: 'INCONSISTENT',
+      detail: `Per-file records account for ${declaredTotal} tests; the reporter's own `
+        + `numTotalTests says ${observed.reported.total}.`,
     });
-  } else {
-    const observedTotal = observed.totals.declared;
-    if (observedTotal !== observed.summary.total) {
-      violations.push({
-        suite: null,
-        class: null,
-        category: null,
-        status: 'INCONSISTENT',
-        reason: 'SUMMARY_MISMATCH',
-        detail: `Per-suite lines account for ${observedTotal} tests; the reporter's own `
-          + `summary says ${observed.summary.total}.`,
-      });
-    }
-    if (observed.totals.skipped !== observed.summary.skipped) {
-      violations.push({
-        suite: null,
-        class: null,
-        category: null,
-        status: 'INCONSISTENT',
-        reason: 'SUMMARY_MISMATCH',
-        detail: `Per-suite lines account for ${observed.totals.skipped} skipped; the `
-          + `reporter's own summary says ${observed.summary.skipped}.`,
-      });
-    }
+  }
+
+  for (const suite of observed.suites) {
+    if (!suite.conflict) continue;
+    violations.push({
+      suite: suite.suite,
+      reason: 'CONFLICTING_SUITE_RECORDS',
+      status: 'AMBIGUOUS',
+      detail: 'The report contains two disagreeing records for this path.',
+    });
   }
 
   const observedBySuite = new Map(observed.suites.map((suite) => [suite.suite, suite]));
   const declaredSuites = new Set(check.suites.map((suite) => suite.suite));
+  const executedCapabilities = new Set();
 
   for (const declared of check.suites) {
     const seen = observedBySuite.get(declared.suite);
     const record = {
       suite: declared.suite,
       class: declared.class,
-      category: declared.category,
+      capability: declared.capability,
       status: seen ? seen.status : 'UNAVAILABLE',
       executed: seen ? seen.executed : 0,
       skipped: seen ? seen.skipped : 0,
       declared: seen ? seen.declared : 0,
     };
     evidence.push(record);
+
+    if (record.status === 'EXECUTED' && !seen?.conflict) {
+      executedCapabilities.add(declared.capability);
+    }
 
     if (declared.class !== 'REQUIRED_EVIDENCE') continue;
     if (record.status === 'EXECUTED') continue;
@@ -380,40 +360,58 @@ export function checkEvidenceCompleteness({ check, observed, sha }) {
     });
   }
 
+  // The coverage floor. This is what survives a rename or a relabel.
+  for (const capability of check.requiredCapabilities) {
+    if (executedCapabilities.has(capability)) continue;
+    violations.push({
+      suite: null,
+      capability,
+      reason: 'CAPABILITY_UNPROVEN',
+      status: 'UNPROVEN',
+      detail: `No suite executed that proves "${capability}".`,
+    });
+  }
+
   for (const seen of observed.suites) {
     if (declaredSuites.has(seen.suite)) continue;
     violations.push({
       suite: seen.suite,
-      class: null,
-      category: null,
+      reason: 'UNDECLARED_SUITE',
       status: seen.status,
       executed: seen.executed,
-      skipped: seen.skipped,
       declared: seen.declared,
-      reason: 'UNDECLARED_SUITE',
     });
   }
 
   return {
     check: check.id,
     requiredCheck: check.requiredCheck,
-    sha,
+    provenance,
+    sha: provenance?.sha ?? null,
     verdict: violations.length === 0 ? 'PASS' : 'FAIL',
     totals: observed.totals,
-    summary: observed.summary,
+    reported: observed.reported,
     evidence,
     violations,
   };
 }
 
+// ---------------------------------------------------------------------------
+// CLI
+// ---------------------------------------------------------------------------
+
 export function parseArguments(argv) {
-  const options = { check: null, report: null, sha: null, json: false, gate: false };
+  const options = {
+    check: null, evidence: null, sha: null, job: null, repo: null, json: false, gate: false,
+  };
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
     switch (argument) {
       case '--check':
-      case '--report':
-      case '--sha': {
+      case '--evidence':
+      case '--sha':
+      case '--job':
+      case '--repo': {
         const value = argv[index + 1];
         if (value === undefined || value.startsWith('--')) {
           throw new Error(`${argument} requires a value.`);
@@ -438,20 +436,25 @@ export function parseArguments(argv) {
 function formatHuman(result) {
   const lines = [
     `evidence-completeness ${result.verdict} — ${result.requiredCheck}`,
-    `  sha: ${result.sha} (proven by the job log's checkout step)`,
+    result.provenance
+      ? `  sha: ${result.sha} (GitHub API, job ${result.provenance.jobId}, `
+        + `run ${result.provenance.runId} attempt ${result.provenance.runAttempt})`
+      : '  sha: UNVERIFIED (report-only mode; --gate refuses this)',
     `  tests: ${result.totals.executed} executed, ${result.totals.skipped} skipped, `
       + `${result.totals.declared} declared`,
   ];
   for (const record of result.evidence) {
     lines.push(
-      `  ${record.status.padEnd(11)} ${record.class} ${record.category} ${record.suite}`
+      `  ${record.status.padEnd(11)} ${record.class} ${record.capability} ${record.suite}`
       + ` (${record.executed}/${record.declared} executed)`,
     );
   }
   return lines;
 }
 
-export function main(argv = process.argv.slice(2), { root = repositoryRoot, io = console } = {}) {
+export function main(argv = process.argv.slice(2), {
+  root = repositoryRoot, io = console, fetcher = ghJobFetcher,
+} = {}) {
   let options;
   try {
     options = parseArguments(argv);
@@ -460,16 +463,28 @@ export function main(argv = process.argv.slice(2), { root = repositoryRoot, io =
     return 2;
   }
 
-  if (!options.check || !options.report || !options.sha) {
+  if (!options.check || !options.evidence) {
     io.error(
-      'Usage: ci-evidence-manifest.mjs --check <id> --report <raw-job-log> --sha <40-hex> '
-      + '[--json] [--gate]',
+      'Usage: ci-evidence-manifest.mjs --check <id> --evidence <vitest-json> '
+      + '[--job <id> --sha <40-hex> --repo <owner/name>] [--json] [--gate]',
     );
     return 2;
   }
 
-  if (!/^[0-9a-f]{40}$/u.test(options.sha)) {
-    io.error(`--sha must be a 40-character hex commit SHA; received "${options.sha}".`);
+  /*
+   * The gate accepts provenance ONLY from the API. A caller-supplied evidence
+   * file can be edited; a job id resolves against GitHub. Report-only mode still
+   * grades execution, but says UNVERIFIED and can never gate.
+   */
+  if (options.gate && (!options.job || !options.sha || !options.repo)) {
+    io.error(
+      'REFUSED: --gate requires --job, --sha and --repo so provenance is resolved from the '
+      + 'GitHub API. A local evidence file cannot vouch for its own commit.',
+    );
+    return 2;
+  }
+  if (options.sha && !SHA_PATTERN.test(options.sha)) {
+    io.error(`--sha must be a 40-character lowercase hex commit SHA; received "${options.sha}".`);
     return 2;
   }
 
@@ -477,28 +492,17 @@ export function main(argv = process.argv.slice(2), { root = repositoryRoot, io =
   try {
     const manifest = loadManifest(root);
     const check = resolveCheck(manifest, options.check);
-    const raw = readFileSync(options.report, 'utf8');
-    const normalised = normaliseJobLog(raw);
 
-    const provenSha = extractProvenanceSha(normalised);
-    if (!provenSha) {
-      io.error(
-        'PROVENANCE_ABSENT: the report carries no checkout evidence, so it cannot be bound '
-        + 'to a commit. Supply the raw job log from '
-        + '`gh api repos/{owner}/{repo}/actions/jobs/{id}/logs`.',
-      );
-      return 2;
-    }
-    if (provenSha !== options.sha) {
-      io.error(
-        `PROVENANCE_MISMATCH: --sha asserts ${options.sha} but the report proves the runner `
-        + `checked out ${provenSha}. This report is not evidence for the asserted commit.`,
-      );
-      return 2;
-    }
+    const provenance = options.job
+      ? resolveProvenance({
+        check, repo: options.repo, jobId: options.job, expectedSha: options.sha, fetcher,
+      })
+      : null;
 
-    const observed = parseVitestEvidence(normalised);
-    result = checkEvidenceCompleteness({ check, observed, sha: provenSha });
+    const observed = parseVitestJsonReport(readFileSync(options.evidence, 'utf8'), {
+      workingDirectory: check.workingDirectory,
+    });
+    result = checkEvidenceCompleteness({ check, observed, provenance });
   } catch (error) {
     io.error(error instanceof Error ? error.message : String(error));
     return 2;
@@ -511,7 +515,7 @@ export function main(argv = process.argv.slice(2), { root = repositoryRoot, io =
   }
 
   for (const violation of result.violations) {
-    io.error(`  ${violation.reason}: ${violation.suite ?? violation.detail}`);
+    io.error(`  ${violation.reason}: ${violation.suite ?? violation.capability ?? violation.detail}`);
   }
 
   if (result.verdict === 'FAIL' && !options.gate) {

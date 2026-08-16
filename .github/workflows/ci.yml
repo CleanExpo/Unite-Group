@@ -365,8 +365,26 @@ jobs:
       - name: Type-check
         run: npm run typecheck
 
+      # The JSON reporter is the machine-readable evidence artefact for UNI-2567.
+      # A test's stdout is a captured field inside that structure rather than a
+      # sibling of it, so a test printing reporter-shaped text cannot forge a
+      # suite record the way it can in the human-readable console log. Emitting
+      # it changes nothing about whether this job passes.
       - name: Test
-        run: npm test
+        run: npm test -- --reporter=default --reporter=json --outputFile=vitest-report.json
+
+      # Deliberately NOT `if: always()`. The readiness P0 gate treats any job
+      # carrying an `if:` as conditional and stops counting it as CI coverage for
+      # this package, so the guard and the artefact cannot both have their way.
+      # Coverage wins: this checker exists to catch suites that SKIPPED inside a
+      # job that PASSED, and in that case the test step succeeds and the artefact
+      # is produced. A failing test step already fails CI loudly on its own.
+      - name: Upload test-evidence report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: spine-test-evidence-${{ github.sha }}
+          path: packages/spine/packages/spine/vitest-report.json
+          if-no-files-found: error
 
   e2e:
     name: apps/web — Playwright E2E

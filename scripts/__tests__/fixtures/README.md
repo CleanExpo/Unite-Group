@@ -1,23 +1,35 @@
 # CI evidence fixtures
 
-Both fixtures are **raw GitHub Actions job logs** — Actions timestamp prefixes and ANSI colouring
-intact, exactly as `gh api repos/{owner}/{repo}/actions/jobs/{id}/logs` returns them. Nothing is
-hand-cleaned. `scripts/ci-evidence-manifest.mjs` normalises internally, so these fixtures exercise
-the same code path a real log takes.
+Both fixtures are **vitest JSON reporter output** (`vitest run --reporter=json`), not console
+text. That substrate is deliberate: a test's stdout is a captured field *inside* this structure,
+never a sibling of it, so a test printing reporter-shaped bytes cannot add or alter a suite record.
+Two earlier revisions parsed the human-readable log and both were forged in adversarial review.
 
 | File | Provenance |
 |---|---|
-| `spine-required-job-95119197937.raw.log` | **Real CI output**, byte-for-byte from `Monorepo CI` run 31928303697, job 95119197937. The log's own checkout step proves SHA `d1d57b8e5745e90259f2799cb9086e4a62689318`. The job concluded `success` while 19 of 22 tests were skipped — the UNI-2567 false-assurance evidence. |
-| `spine-all-executed.synthetic.log` | **Synthetic**, hand-written. Not observed CI output. It is the positive control: it proves the completeness checker can return `PASS`, so a `FAIL` on the real log is a finding rather than a checker that can only ever fail. |
+| `spine-skipped.vitest.json` | **Real vitest output**, produced locally by running `vitest run --reporter=json` in `packages/spine/packages/spine` with `SPINE_DATABASE_URL` unset — the same condition CI runs under. Counts match live CI job 95119197937 exactly: 22 total, 3 passed, 19 skipped. Absolute paths were rewritten to the runner's prefix; assertion records are untouched. |
+| `spine-all-executed.synthetic.vitest.json` | **Synthetic**, derived from the file above by flipping every skipped assertion to `passed`. Not observed output. It is the positive control: it proves the checker can return `PASS`, so a `FAIL` on the real report is a finding rather than a checker that can only ever fail. |
 
-## Why the synthetic fixture cannot forge a green verdict
+## Why neither fixture can forge a gated PASS
 
-It carries a deliberately fake provenance SHA (`0123456789abcdef…01234567`) that matches no commit
-in this repository. The checker derives the SHA from the log's checkout step and refuses when the
-caller's `--sha` disagrees, so this file can only ever produce a `PASS` for a commit that does not
-exist. Replaying it as evidence for a real SHA fails closed with `PROVENANCE_MISMATCH`.
+Provenance is not read from these files at all. Under `--gate` the checker requires `--job`,
+`--sha` and `--repo`, resolves the commit from the **GitHub Actions API**, and refuses if the job's
+`head_sha` disagrees, if the job is not the manifest's `requiredCheck`, or if it has not completed.
+A local evidence file therefore cannot vouch for its own commit, and neither fixture can be
+replayed as evidence for a real SHA.
 
-An earlier revision of this directory shipped a synthetic all-green log with **no** provenance and a
-checker that accepted any `--sha` string. That combination let a committed file produce a gated
-`PASS` for an arbitrary commit — the exact false-assurance class UNI-2567 exists to close. It was
-caught in adversarial review before merge. Do not reintroduce a fixture without provenance.
+## Two things the real report proved, both worth keeping
+
+1. **Vitest 4 reports a skipped assertion as `"skipped"`, not `"pending"`.** The checker counts
+   `executed` positively (passed + failed) rather than `declared - skipped`, so an unrecognised
+   status is simply not evidence instead of silently inflating the executed count.
+2. **The file-level `status` for `rls.test.ts` is `"passed"` while all four of its tests were
+   skipped.** That is the whole UNI-2567 defect in miniature. Never trust a file-level or job-level
+   status; count assertions.
+
+## History
+
+An earlier revision shipped a synthetic all-green log with no provenance and a checker that
+accepted any `--sha` string, so a committed file produced a gated `PASS` for an arbitrary commit.
+A later revision derived the SHA from the log text, which fell to one `sed`. Do not reintroduce
+provenance that comes from a file the caller supplies.

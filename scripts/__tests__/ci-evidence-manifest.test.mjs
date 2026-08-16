@@ -5,14 +5,12 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import {
-  PROTECTED_CATEGORIES,
   checkEvidenceCompleteness,
-  extractProvenanceSha,
   loadManifest,
   main,
-  normaliseJobLog,
-  parseVitestEvidence,
+  parseVitestJsonReport,
   resolveCheck,
+  resolveProvenance,
   validateManifest,
 } from '../ci-evidence-manifest.mjs';
 
@@ -20,110 +18,60 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = resolve(here, '..', '..');
 const fixtures = join(here, 'fixtures');
 
-/**
- * Real CI output, byte-for-byte. Monorepo CI run 31928303697, job 95119197937.
- * The log's own checkout step proves the SHA below; the job concluded `success`.
- */
-const REAL_RAW_LOG = join(fixtures, 'spine-required-job-95119197937.raw.log');
+/** Real vitest output; counts match live CI job 95119197937. See fixtures/README.md. */
+const SKIPPED_EVIDENCE = join(fixtures, 'spine-skipped.vitest.json');
+/** Synthetic positive control. */
+const EXECUTED_EVIDENCE = join(fixtures, 'spine-all-executed.synthetic.vitest.json');
+
 const REAL_SHA = 'd1d57b8e5745e90259f2799cb9086e4a62689318';
-
-/** Synthetic. Positive control only — see fixtures/README.md. */
-const SYNTHETIC_LOG = join(fixtures, 'spine-all-executed.synthetic.log');
-const SYNTHETIC_SHA = '0123456789abcdef0123456789abcdef01234567';
-
+const OTHER_SHA = '0123456789abcdef0123456789abcdef01234567';
 const SPINE_CHECK_ID = 'spine-required-tests';
-const NULL_IO = { log: () => {}, error: () => {} };
+const REPO = 'CleanExpo/Unite-Group';
+const JOB_ID = '95119197937';
+const REQUIRED_JOB_NAME = 'packages/spine — type-check and bounded tests';
 
-function readFixture(path) {
-  return readFileSync(path, 'utf8');
-}
+const NULL_IO = { log: () => {}, error: () => {} };
 
 function shippedCheck() {
   return resolveCheck(loadManifest(repositoryRoot), SPINE_CHECK_ID);
 }
 
-// ---------------------------------------------------------------------------
-// Normalisation — the defect that made the first revision unusable.
-// ---------------------------------------------------------------------------
+/** Stands in for `gh api`; the real fetcher is never called in tests. */
+function stubFetcher(overrides = {}) {
+  return () => ({
+    head_sha: REAL_SHA,
+    name: REQUIRED_JOB_NAME,
+    status: 'completed',
+    conclusion: 'success',
+    run_id: 31928303697,
+    run_attempt: 1,
+    ...overrides,
+  });
+}
 
-test('THE REGRESSION: an untouched raw CI log parses, ANSI and timestamps and all', () => {
-  const raw = readFixture(REAL_RAW_LOG);
-
-  // Prove the fixture really is un-normalised, so this test cannot silently
-  // start asserting against pre-cleaned input.
-  assert.ok(raw.includes('\u001b['), 'fixture must still contain ANSI escapes');
-  assert.match(raw, /\n\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z /u);
-  assert.ok(raw.charCodeAt(0) === 0xfeff, 'fixture must retain the raw log BOM');
-
-  const observed = parseVitestEvidence(raw);
-
-  assert.equal(observed.suites.length, 6);
-  assert.deepEqual(observed.totals, { executed: 3, skipped: 19, todo: 0, declared: 22 });
-});
-
-test('normaliseJobLog strips the Actions timestamp prefix and ANSI colouring', () => {
-  const raw = '2026-08-16T05:08:46.1616489Z  \u001b[2m\u001b[90m\u2193\u001b[39m\u001b[22m x.test.ts \u001b[2m(\u001b[22m4 tests\u001b[2m)\u001b[22m';
-  assert.equal(normaliseJobLog(raw), ' \u2193 x.test.ts (4 tests)');
-});
+function observed(path) {
+  return parseVitestJsonReport(readFileSync(path, 'utf8'), {
+    workingDirectory: shippedCheck().workingDirectory,
+  });
+}
 
 // ---------------------------------------------------------------------------
-// Provenance — a report may not be replayed as evidence for another commit.
+// Execution evidence
 // ---------------------------------------------------------------------------
 
-test('the SHA is derived from the log, not taken from the caller', () => {
-  assert.equal(extractProvenanceSha(normaliseJobLog(readFixture(REAL_RAW_LOG))), REAL_SHA);
-  assert.equal(extractProvenanceSha(normaliseJobLog(readFixture(SYNTHETIC_LOG))), SYNTHETIC_SHA);
-});
-
-test('a log with no checkout evidence is refused rather than graded', () => {
-  assert.equal(extractProvenanceSha(' RUN  v4.1.10 /x\n x.test.ts (1 test)\n Tests  1 passed (1)'), null);
-});
-
-test('THE FORGERY, CLOSED: the committed green fixture cannot pass for another SHA', () => {
-  const errors = [];
-  const status = main(
-    ['--check', SPINE_CHECK_ID, '--report', SYNTHETIC_LOG, '--sha', REAL_SHA, '--gate'],
-    { root: repositoryRoot, io: { log: () => {}, error: (line) => errors.push(line) } },
-  );
-
-  assert.equal(status, 2);
-  assert.ok(errors.some((line) => line.includes('PROVENANCE_MISMATCH')));
-  assert.ok(errors.some((line) => line.includes(SYNTHETIC_SHA)));
-});
-
-test('a non-SHA --sha is refused outright', () => {
-  const errors = [];
-  const status = main(
-    ['--check', SPINE_CHECK_ID, '--report', SYNTHETIC_LOG, '--sha', 'TOTALLY-MADE-UP', '--gate'],
-    { root: repositoryRoot, io: { log: () => {}, error: (line) => errors.push(line) } },
-  );
-
-  assert.equal(status, 2);
-  assert.ok(errors.some((line) => line.includes('40-character hex')));
-});
-
-test('--sha is mandatory; it cannot be omitted to skip the provenance bind', () => {
-  const status = main(
-    ['--check', SPINE_CHECK_ID, '--report', REAL_RAW_LOG, '--gate'],
-    { root: repositoryRoot, io: NULL_IO },
-  );
-  assert.equal(status, 2);
-});
-
-// ---------------------------------------------------------------------------
-// The finding, and its positive control.
-// ---------------------------------------------------------------------------
-
-test('THE FINDING: the real required job is GREEN while tenant-isolation evidence never executed', () => {
-  const observed = parseVitestEvidence(readFixture(REAL_RAW_LOG));
-  const result = checkEvidenceCompleteness({ check: shippedCheck(), observed, sha: REAL_SHA });
+test('THE FINDING: a green job with zero tenant-isolation execution is FAIL', () => {
+  const result = checkEvidenceCompleteness({
+    check: shippedCheck(),
+    observed: observed(SKIPPED_EVIDENCE),
+    provenance: { sha: REAL_SHA, jobId: JOB_ID, runId: 1, runAttempt: 1 },
+  });
 
   assert.equal(result.verdict, 'FAIL');
+  assert.deepEqual(result.totals, { executed: 3, skipped: 19, declared: 22 });
 
   const notExecuted = result.violations
-    .filter((violation) => violation.reason === 'REQUIRED_EVIDENCE_NOT_EXECUTED')
-    .map((violation) => violation.suite)
-    .sort();
+    .filter((v) => v.reason === 'REQUIRED_EVIDENCE_NOT_EXECUTED')
+    .map((v) => v.suite).sort();
   assert.deepEqual(notExecuted, [
     'tests/integration/c3_completeness.test.ts',
     'tests/integration/idempotency.test.ts',
@@ -132,273 +80,330 @@ test('THE FINDING: the real required job is GREEN while tenant-isolation evidenc
     'tests/integration/rls.test.ts',
   ]);
 
-  const isolation = result.violations.find((v) => v.suite === 'tests/integration/rls.test.ts');
-  assert.equal(isolation.category, 'tenant-isolation');
-  assert.equal(isolation.class, 'REQUIRED_EVIDENCE');
+  // The coverage floor fires independently of the per-suite records.
+  const unproven = result.violations
+    .filter((v) => v.reason === 'CAPABILITY_UNPROVEN')
+    .map((v) => v.capability).sort();
+  assert.deepEqual(unproven, [
+    'data-completeness', 'migration-integrity', 'relay-concurrency', 'tenant-isolation',
+  ]);
 });
 
 test('POSITIVE CONTROL: PASS is reachable when every declared suite executed', () => {
-  const observed = parseVitestEvidence(readFixture(SYNTHETIC_LOG));
-  const result = checkEvidenceCompleteness({ check: shippedCheck(), observed, sha: SYNTHETIC_SHA });
+  const result = checkEvidenceCompleteness({
+    check: shippedCheck(),
+    observed: observed(EXECUTED_EVIDENCE),
+    provenance: { sha: REAL_SHA, jobId: JOB_ID, runId: 1, runAttempt: 1 },
+  });
 
   assert.equal(result.verdict, 'PASS');
   assert.deepEqual(result.violations, []);
-  assert.equal(result.evidence.length, 6);
+  assert.equal(result.totals.executed, 22);
 });
 
-test('main: exit 1 on the real skipped run under --gate, exit 0 on the executed control', () => {
-  const errors = [];
-  const io = { log: () => {}, error: (line) => errors.push(line) };
+test("a file whose own status is 'passed' while every test skipped is still SKIPPED", () => {
+  // This is the UNI-2567 defect in miniature, and it is real: in the captured
+  // report rls.test.ts carries status "passed" with 4 skipped assertions.
+  const report = JSON.parse(readFileSync(SKIPPED_EVIDENCE, 'utf8'));
+  const rls = report.testResults.find((f) => f.name.endsWith('rls.test.ts'));
+  assert.equal(rls.status, 'passed');
+  assert.equal(rls.assertionResults.filter((a) => a.status === 'skipped').length, 4);
 
-  assert.equal(
-    main(['--check', SPINE_CHECK_ID, '--report', REAL_RAW_LOG, '--sha', REAL_SHA, '--gate'],
-      { root: repositoryRoot, io }),
-    1,
-  );
-  assert.ok(errors.some((line) => line.includes('tests/integration/rls.test.ts')));
-
-  assert.equal(
-    main(['--check', SPINE_CHECK_ID, '--report', SYNTHETIC_LOG, '--sha', SYNTHETIC_SHA, '--gate'],
-      { root: repositoryRoot, io }),
-    0,
-  );
+  const record = observed(SKIPPED_EVIDENCE).suites
+    .find((s) => s.suite === 'tests/integration/rls.test.ts');
+  assert.equal(record.status, 'SKIPPED');
+  assert.equal(record.executed, 0);
+  assert.equal(record.skipped, 4);
 });
 
-test('main without --gate reports the finding but does not fail: DISARMED as a gate', () => {
-  assert.equal(
-    main(['--check', SPINE_CHECK_ID, '--report', REAL_RAW_LOG, '--sha', REAL_SHA],
-      { root: repositoryRoot, io: NULL_IO }),
-    0,
-  );
+test("executed is counted positively, so an unknown assertion status is not evidence", () => {
+  const report = {
+    numTotalTests: 2,
+    testResults: [{
+      name: '/w/pkg/tests/x.test.ts',
+      status: 'passed',
+      assertionResults: [{ status: 'quarantined' }, { status: 'disabled' }],
+    }],
+  };
+  const parsed = parseVitestJsonReport(JSON.stringify(report), { workingDirectory: 'pkg' });
+
+  assert.equal(parsed.suites[0].executed, 0);
+  assert.equal(parsed.suites[0].status, 'SKIPPED');
 });
 
-test('--json emits a machine-readable record carrying the proven SHA', () => {
-  const outputs = [];
-  main(['--check', SPINE_CHECK_ID, '--report', REAL_RAW_LOG, '--sha', REAL_SHA, '--json'],
-    { root: repositoryRoot, io: { log: (line) => outputs.push(line), error: () => {} } });
+test('a failing test counts as executed; it is evidence of a defect, not absence of a run', () => {
+  const report = {
+    numTotalTests: 2,
+    testResults: [{
+      name: '/w/pkg/tests/x.test.ts',
+      status: 'failed',
+      assertionResults: [{ status: 'failed' }, { status: 'passed' }],
+    }],
+  };
+  const parsed = parseVitestJsonReport(JSON.stringify(report), { workingDirectory: 'pkg' });
 
-  const record = JSON.parse(outputs.join('\n'));
-  assert.equal(record.sha, REAL_SHA);
-  assert.equal(record.verdict, 'FAIL');
-  assert.equal(record.summary.skipped, 19);
-  assert.equal(record.evidence.length, 6);
+  assert.equal(parsed.suites[0].executed, 2);
+  assert.equal(parsed.suites[0].failed, 1);
+  assert.equal(parsed.suites[0].status, 'EXECUTED');
 });
 
-// ---------------------------------------------------------------------------
-// Silence is never success.
-// ---------------------------------------------------------------------------
-
-test('a run truncated before the summary is INCOMPLETE, not a clean pass', () => {
-  const full = normaliseJobLog(readFixture(SYNTHETIC_LOG));
-  const truncated = full.slice(0, full.indexOf(' Test Files'));
-
-  const observed = parseVitestEvidence(truncated);
-  assert.equal(observed.summary, null);
-
-  const result = checkEvidenceCompleteness({ check: shippedCheck(), observed, sha: SYNTHETIC_SHA });
-  assert.equal(result.verdict, 'FAIL');
-  assert.ok(result.violations.some((v) => v.reason === 'INCOMPLETE_REPORT'));
+test('bracketed and nested paths survive; the whole relative path is kept', () => {
+  const report = {
+    numTotalTests: 1,
+    testResults: [{
+      name: '/runner/pkg/src/app/api/[id]/__tests__/route.test.ts',
+      status: 'passed',
+      assertionResults: [{ status: 'passed' }],
+    }],
+  };
+  const parsed = parseVitestJsonReport(JSON.stringify(report), { workingDirectory: 'pkg' });
+  assert.equal(parsed.suites[0].suite, 'src/app/api/[id]/__tests__/route.test.ts');
 });
 
-test('per-suite lines that disagree with the reporter summary fail as SUMMARY_MISMATCH', () => {
-  const doctored = normaliseJobLog(readFixture(SYNTHETIC_LOG))
-    .replace('      Tests  22 passed (22)', '      Tests  40 passed (40)');
+test('numTotalTests disagreeing with the per-file records is SUMMARY_MISMATCH', () => {
+  const report = JSON.parse(readFileSync(EXECUTED_EVIDENCE, 'utf8'));
+  report.numTotalTests = 40;
 
   const result = checkEvidenceCompleteness({
     check: shippedCheck(),
-    observed: parseVitestEvidence(doctored),
-    sha: SYNTHETIC_SHA,
+    observed: parseVitestJsonReport(JSON.stringify(report), {
+      workingDirectory: shippedCheck().workingDirectory,
+    }),
+    provenance: { sha: REAL_SHA, jobId: JOB_ID },
   });
 
   assert.equal(result.verdict, 'FAIL');
   assert.ok(result.violations.some((v) => v.reason === 'SUMMARY_MISMATCH'));
 });
 
-test('an empty report is FAIL, and is distinguishable from a clean pass', () => {
-  const result = checkEvidenceCompleteness({
-    check: shippedCheck(),
-    observed: parseVitestEvidence(''),
-    sha: SYNTHETIC_SHA,
-  });
-
-  assert.equal(result.verdict, 'FAIL');
-  assert.ok(result.violations.some((v) => v.reason === 'INCOMPLETE_REPORT'));
-  assert.equal(result.violations.filter((v) => v.reason === 'REQUIRED_EVIDENCE_UNAVAILABLE').length, 6);
-});
-
-// ---------------------------------------------------------------------------
-// Only the reporter's own section counts as evidence.
-// ---------------------------------------------------------------------------
-
-test('a suite line forged outside the reporter section is not evidence', () => {
-  const forged = [
-    '[command]/usr/bin/git -c protocol.version=2 fetch origin +0123456789abcdef0123456789abcdef01234567:refs/remotes/origin/main',
-    'stdout | some.test.ts > logs a line',
-    ' \u2713 tests/integration/rls.test.ts (4 tests) 604ms',
-    ' RUN  v4.1.10 /home/runner/work/x',
-    ' \u2713 tests/unit.test.ts (3 tests) 5ms',
-    ' Test Files  1 passed (1)',
-    '      Tests  3 passed (3)',
-  ].join('\n');
-
-  const observed = parseVitestEvidence(forged);
-  assert.deepEqual(observed.suites.map((s) => s.suite), ['tests/unit.test.ts']);
-});
-
-test('lines after the summary are outside the section too', () => {
-  const trailing = [
-    ' RUN  v4.1.10 /x',
-    ' \u2713 tests/unit.test.ts (3 tests) 5ms',
-    '      Tests  3 passed (3)',
-    ' \u2713 tests/integration/rls.test.ts (4 tests) 604ms',
-  ].join('\n');
-
-  assert.deepEqual(parseVitestEvidence(trailing).suites.map((s) => s.suite), ['tests/unit.test.ts']);
-});
-
-// ---------------------------------------------------------------------------
-// Count parsing.
-// ---------------------------------------------------------------------------
-
-test('failed and todo suites parse; failures count as executed, todo does not', () => {
-  const observed = parseVitestEvidence([
-    ' RUN  v4.1.10 /x',
-    ' \u00d7 a.test.ts (4 tests | 2 failed)',
-    ' \u2713 b.test.ts (5 tests | 1 todo)',
-    ' \u00d7 c.test.ts (6 tests | 2 failed | 1 skipped)',
-    ' \u2713 d.test.ts (1 test)',
-    '      Tests  16 passed (16)',
-  ].join('\n'));
-
-  const byName = new Map(observed.suites.map((s) => [s.suite, s]));
-  assert.equal(byName.get('a.test.ts').executed, 4);
-  assert.equal(byName.get('a.test.ts').failed, 2);
-  assert.equal(byName.get('b.test.ts').executed, 4);
-  assert.equal(byName.get('b.test.ts').todo, 1);
-  assert.equal(byName.get('c.test.ts').executed, 5);
-  assert.equal(byName.get('d.test.ts').executed, 1);
-  assert.equal(byName.get('d.test.ts').status, 'EXECUTED');
-});
-
-test('a line claiming more skipped than declared is MALFORMED, never a negative count', () => {
-  const observed = parseVitestEvidence(' RUN  v4.1.10 /x\n \u2193 a.test.ts (2 tests | 5 skipped)\n      Tests  0 passed (0)');
-
-  assert.deepEqual(observed.suites, []);
-  assert.equal(observed.malformed.length, 1);
-  assert.equal(observed.totals.executed, 0);
+test('two disagreeing records for one path are AMBIGUOUS, not silently first-wins', () => {
+  const report = {
+    numTotalTests: 5,
+    testResults: [
+      { name: '/w/pkg/tests/x.test.ts', status: 'passed', assertionResults: [{ status: 'skipped' }] },
+      { name: '/w/pkg/tests/x.test.ts', status: 'passed', assertionResults: [{ status: 'passed' }, { status: 'passed' }] },
+    ],
+  };
+  const parsed = parseVitestJsonReport(JSON.stringify(report), { workingDirectory: 'pkg' });
+  assert.equal(parsed.suites.length, 1);
+  assert.equal(parsed.suites[0].conflict, true);
 
   const result = checkEvidenceCompleteness({
-    check: { id: 'x', requiredCheck: 'x', suites: [{ suite: 'a.test.ts', class: 'REQUIRED_EVIDENCE', category: 'unit' }] },
-    observed,
-    sha: SYNTHETIC_SHA,
+    check: { id: 'x', requiredCheck: 'x', requiredCapabilities: ['unit'], suites: [{ suite: 'tests/x.test.ts', class: 'REQUIRED_EVIDENCE', capability: 'unit' }] },
+    observed: parsed,
+    provenance: { sha: REAL_SHA },
   });
   assert.equal(result.verdict, 'FAIL');
-  assert.ok(result.violations.some((v) => v.reason === 'MALFORMED_SUITE_LINE'));
+  assert.ok(result.violations.some((v) => v.reason === 'CONFLICTING_SUITE_RECORDS'));
 });
 
-test('the suite path is captured whole, not shaved by the preceding glyph column', () => {
-  const withGlyph = parseVitestEvidence(' RUN  v4.1.10 /x\n \u2713 tests/integration/rls.test.ts (4 tests) 604ms\n      Tests  4 passed (4)');
-  const withoutGlyph = parseVitestEvidence(' RUN  v4.1.10 /x\ntests/integration/rls.test.ts (4 tests) 604ms\n      Tests  4 passed (4)');
-
-  assert.equal(withGlyph.suites[0].suite, 'tests/integration/rls.test.ts');
-  assert.equal(withoutGlyph.suites[0].suite, 'tests/integration/rls.test.ts');
+test('non-JSON and non-vitest evidence is refused, not graded', () => {
+  assert.throws(() => parseVitestJsonReport('not json'), /not valid JSON/);
+  assert.throws(() => parseVitestJsonReport('{"foo":1}'), /not a vitest JSON report/);
 });
 
 // ---------------------------------------------------------------------------
-// The manifest is the gate's own attack surface.
+// Provenance — the property both previous revisions failed on
 // ---------------------------------------------------------------------------
 
-test('a check declaring no suites is rejected: an empty check would pass vacuously', () => {
+test('provenance resolves from API metadata and binds job identity', () => {
+  const provenance = resolveProvenance({
+    check: shippedCheck(), repo: REPO, jobId: JOB_ID, expectedSha: REAL_SHA, fetcher: stubFetcher(),
+  });
+  assert.equal(provenance.sha, REAL_SHA);
+  assert.equal(provenance.jobName, REQUIRED_JOB_NAME);
+  assert.equal(provenance.runAttempt, 1);
+});
+
+test('a job that ran on a different commit is refused', () => {
   assert.throws(
-    () => validateManifest({ checks: [{ id: 'empty', requiredCheck: 'x', suites: [] }] }),
+    () => resolveProvenance({
+      check: shippedCheck(), repo: REPO, jobId: JOB_ID, expectedSha: REAL_SHA,
+      fetcher: stubFetcher({ head_sha: OTHER_SHA }),
+    }),
+    /PROVENANCE_MISMATCH/,
+  );
+});
+
+test('evidence from a different job does not satisfy this check', () => {
+  assert.throws(
+    () => resolveProvenance({
+      check: shippedCheck(), repo: REPO, jobId: JOB_ID, expectedSha: REAL_SHA,
+      fetcher: stubFetcher({ name: 'apps/web — Playwright E2E' }),
+    }),
+    /PROVENANCE_WRONG_JOB/,
+  );
+});
+
+test('an in-progress job is refused rather than graded on partial output', () => {
+  assert.throws(
+    () => resolveProvenance({
+      check: shippedCheck(), repo: REPO, jobId: JOB_ID, expectedSha: REAL_SHA,
+      fetcher: stubFetcher({ status: 'in_progress' }),
+    }),
+    /PROVENANCE_INCOMPLETE/,
+  );
+});
+
+test('a job with no usable head_sha is refused', () => {
+  assert.throws(
+    () => resolveProvenance({
+      check: shippedCheck(), repo: REPO, jobId: JOB_ID, expectedSha: REAL_SHA,
+      fetcher: stubFetcher({ head_sha: null }),
+    }),
+    /PROVENANCE_ABSENT/,
+  );
+});
+
+test('THE FORGERY, CLOSED: --gate refuses without API-resolved provenance', () => {
+  const errors = [];
+  const io = { log: () => {}, error: (line) => errors.push(line) };
+
+  // Exactly the attack that defeated the previous revision: hand the gate a
+  // local all-green file and assert the real SHA. There is now no argument
+  // combination that lets a file speak for a commit.
+  const status = main(
+    ['--check', SPINE_CHECK_ID, '--evidence', EXECUTED_EVIDENCE, '--sha', REAL_SHA, '--gate'],
+    { root: repositoryRoot, io, fetcher: stubFetcher() },
+  );
+
+  assert.equal(status, 2);
+  assert.ok(errors.some((line) => line.includes('REFUSED')));
+  assert.ok(errors.some((line) => line.includes('cannot vouch for its own commit')));
+});
+
+test('report-only mode grades execution but marks the SHA UNVERIFIED', () => {
+  const outputs = [];
+  const status = main(
+    ['--check', SPINE_CHECK_ID, '--evidence', SKIPPED_EVIDENCE],
+    { root: repositoryRoot, io: { log: (l) => outputs.push(l), error: () => {} }, fetcher: stubFetcher() },
+  );
+  assert.equal(status, 0);
+  assert.ok(outputs.some((line) => line.includes('UNVERIFIED')));
+});
+
+test('main: exit 1 on the real skipped evidence under --gate, exit 0 on the control', () => {
+  const errors = [];
+  const io = { log: () => {}, error: (line) => errors.push(line) };
+  const gated = (evidence) => main(
+    ['--check', SPINE_CHECK_ID, '--evidence', evidence, '--sha', REAL_SHA,
+      '--job', JOB_ID, '--repo', REPO, '--gate'],
+    { root: repositoryRoot, io, fetcher: stubFetcher() },
+  );
+
+  assert.equal(gated(SKIPPED_EVIDENCE), 1);
+  assert.ok(errors.some((line) => line.includes('tests/integration/rls.test.ts')));
+  assert.equal(gated(EXECUTED_EVIDENCE), 0);
+});
+
+test('--sha must be lowercase 40-hex', () => {
+  assert.equal(
+    main(['--check', SPINE_CHECK_ID, '--evidence', EXECUTED_EVIDENCE, '--sha', 'NOT-A-SHA',
+      '--job', JOB_ID, '--repo', REPO, '--gate'],
+    { root: repositoryRoot, io: NULL_IO, fetcher: stubFetcher() }),
+    2,
+  );
+});
+
+test('--json emits a machine-readable record carrying full API provenance', () => {
+  const outputs = [];
+  main(['--check', SPINE_CHECK_ID, '--evidence', SKIPPED_EVIDENCE, '--sha', REAL_SHA,
+    '--job', JOB_ID, '--repo', REPO, '--json'],
+  { root: repositoryRoot, io: { log: (l) => outputs.push(l), error: () => {} }, fetcher: stubFetcher() });
+
+  const record = JSON.parse(outputs.join('\n'));
+  assert.equal(record.verdict, 'FAIL');
+  assert.equal(record.provenance.sha, REAL_SHA);
+  assert.equal(record.provenance.jobId, JOB_ID);
+  assert.equal(record.provenance.conclusion, 'success');
+});
+
+// ---------------------------------------------------------------------------
+// The manifest is the gate's own attack surface
+// ---------------------------------------------------------------------------
+
+const MINIMAL_SUITE = { suite: 'a.test.ts', class: 'REQUIRED_EVIDENCE', capability: 'unit' };
+const MINIMAL_CHECK = {
+  id: 'x',
+  requiredCheck: 'x',
+  workflow: 'w',
+  job: 'j',
+  workingDirectory: 'd',
+  requiredCapabilities: ['unit'],
+  suites: [MINIMAL_SUITE],
+};
+
+test('the shipped manifest validates', () => {
+  assert.ok(loadManifest(repositoryRoot).checks.length > 0);
+});
+
+test('a check with no suites is rejected: it would pass vacuously', () => {
+  assert.throws(
+    () => validateManifest({ checks: [{ ...MINIMAL_CHECK, suites: [] }] }),
     /no suites/,
   );
 });
 
 test('duplicate check ids are rejected rather than silently shadowed', () => {
   assert.throws(
-    () => validateManifest({
-      checks: [
-        { id: 'dup', requiredCheck: 'x', suites: [{ suite: 'a.test.ts', class: 'REQUIRED_EVIDENCE', category: 'unit' }] },
-        { id: 'dup', requiredCheck: 'y', suites: [{ suite: 'b.test.ts', class: 'REQUIRED_EVIDENCE', category: 'unit' }] },
-      ],
-    }),
+    () => validateManifest({ checks: [MINIMAL_CHECK, { ...MINIMAL_CHECK, requiredCheck: 'y' }] }),
     /duplicate check id/,
   );
 });
 
 test('a suite declared twice in one check is rejected', () => {
   assert.throws(
-    () => validateManifest({
-      checks: [{
-        id: 'x',
-        requiredCheck: 'x',
-        suites: [
-          { suite: 'a.test.ts', class: 'REQUIRED_EVIDENCE', category: 'unit' },
-          { suite: 'a.test.ts', class: 'ALLOWED_NON_BLOCKING', category: 'unit' },
-        ],
-      }],
-    }),
+    () => validateManifest({ checks: [{ ...MINIMAL_CHECK, suites: [MINIMAL_SUITE, { ...MINIMAL_SUITE, class: 'ALLOWED_NON_BLOCKING' }] }] }),
     /duplicate suite/,
   );
 });
 
-test('THE ONE-WORD BYPASS, CLOSED: a protected category cannot be ALLOWED_NON_BLOCKING', () => {
-  for (const category of PROTECTED_CATEGORIES) {
-    assert.throws(
-      () => validateManifest({
-        checks: [{
-          id: 'x',
-          requiredCheck: 'x',
-          suites: [{ suite: 'a.test.ts', class: 'ALLOWED_NON_BLOCKING', category }],
-        }],
-      }),
-      /must be REQUIRED_EVIDENCE/,
-      `category ${category} must be protected`,
-    );
-  }
-});
-
-test('RELABELLING, CLOSED: a security-critical suite cannot escape via its category', () => {
-  for (const suite of ['tests/integration/rls.test.ts', 'tests/integration/match_isolation.test.ts']) {
-    // Relabel to something unprotected, then try to mark it non-blocking.
-    assert.throws(
-      () => validateManifest({
-        checks: [{ id: 'x', requiredCheck: 'x', suites: [{ suite, class: 'ALLOWED_NON_BLOCKING', category: 'misc' }] }],
-      }),
-      /must be REQUIRED_EVIDENCE|security-critical by path/,
-      suite,
-    );
-    // Even kept REQUIRED_EVIDENCE, an unprotected label is refused.
-    assert.throws(
-      () => validateManifest({
-        checks: [{ id: 'x', requiredCheck: 'x', suites: [{ suite, class: 'REQUIRED_EVIDENCE', category: 'misc' }] }],
-      }),
-      /security-critical by path/,
-      suite,
-    );
-  }
-});
-
-test('ALLOWED_NON_BLOCKING still works for an unprotected category', () => {
-  const check = {
-    id: 'x',
-    requiredCheck: 'x',
-    suites: [{ suite: 'tests/unit.test.ts', class: 'ALLOWED_NON_BLOCKING', category: 'lint-smoke' }],
-  };
-  validateManifest({ checks: [check] });
-
-  const observed = parseVitestEvidence(
-    ' RUN  v4.1.10 /x\n \u2193 tests/unit.test.ts (3 tests | 3 skipped)\n      Tests  0 passed | 3 skipped (3)',
+test('THE VACUOUS-PASS CLASS, CLOSED: all-non-blocking suites cannot satisfy a capability', () => {
+  assert.throws(
+    () => validateManifest({
+      checks: [{ ...MINIMAL_CHECK, suites: [{ ...MINIMAL_SUITE, class: 'ALLOWED_NON_BLOCKING' }] }],
+    }),
+    /no REQUIRED_EVIDENCE suite carries it/,
   );
-  const result = checkEvidenceCompleteness({ check, observed, sha: SYNTHETIC_SHA });
-
-  assert.equal(result.verdict, 'PASS');
-  assert.equal(result.evidence[0].status, 'SKIPPED');
 });
 
-test('malformed manifest JSON is reported, not swallowed', () => {
-  assert.throws(() => loadManifest(join(here, 'fixtures')), /ENOENT|not valid JSON/);
+test('a check declaring no requiredCapabilities is rejected', () => {
+  assert.throws(
+    () => validateManifest({ checks: [{ ...MINIMAL_CHECK, requiredCapabilities: [] }] }),
+    /no requiredCapabilities/,
+  );
+});
+
+test('THE RENAME, CLOSED: deleting the only suite proving a capability fails validation', () => {
+  const manifest = loadManifest(repositoryRoot);
+  const check = structuredClone(resolveCheck(manifest, SPINE_CHECK_ID));
+
+  // Remove both tenant-isolation suites, as a rename-and-forget would.
+  check.suites = check.suites.filter((s) => s.capability !== 'tenant-isolation');
+  assert.throws(
+    () => validateManifest({ checks: [check] }),
+    /requires capability "tenant-isolation"/,
+  );
+});
+
+test('relabelling a suite to an unprotected capability fails the floor, not a name pattern', () => {
+  const check = structuredClone(shippedCheck());
+  for (const suite of check.suites) {
+    if (suite.capability === 'tenant-isolation') suite.capability = 'misc';
+  }
+  assert.throws(() => validateManifest({ checks: [check] }), /requires capability "tenant-isolation"/);
+});
+
+test('a required capability left unexecuted fails the gate even when suites are declared', () => {
+  const check = structuredClone(shippedCheck());
+  const result = checkEvidenceCompleteness({
+    check,
+    observed: observed(SKIPPED_EVIDENCE),
+    provenance: { sha: REAL_SHA },
+  });
+  assert.ok(result.violations.some(
+    (v) => v.reason === 'CAPABILITY_UNPROVEN' && v.capability === 'tenant-isolation',
+  ));
 });
 
 test('resolveCheck refuses an unknown check id rather than returning an empty pass', () => {
@@ -406,32 +411,34 @@ test('resolveCheck refuses an unknown check id rather than returning an empty pa
 });
 
 // ---------------------------------------------------------------------------
-// Staleness: the manifest must track the tree, recursively and across extensions.
+// Freshness
 // ---------------------------------------------------------------------------
 
 test('the shipped manifest declares every spine test file on disk, at any depth', () => {
   const check = shippedCheck();
-  // Resolved from the manifest, not hardcoded: workingDirectory is a live field,
-  // so a wrong value fails here instead of sitting in the file as decoration.
   assert.equal(typeof check.workingDirectory, 'string');
-  const spineTests = join(repositoryRoot, ...check.workingDirectory.split('/'), 'tests');
+  const packageRoot = join(repositoryRoot, ...check.workingDirectory.split('/'));
 
   const walk = (directory) => readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const full = join(directory, entry.name);
     if (entry.isDirectory()) return walk(full);
     return /\.test\.[cm]?[jt]sx?$/u.test(entry.name)
-      ? [relative(join(spineTests, '..'), full).split('\\').join('/')]
+      ? [relative(packageRoot, full).split('\\').join('/')]
       : [];
   });
 
-  assert.deepEqual(check.suites.map((s) => s.suite).sort(), walk(spineTests).sort());
+  assert.deepEqual(check.suites.map((s) => s.suite).sort(), walk(join(packageRoot, 'tests')).sort());
 });
 
-test('every shipped manifest entry survives full validation', () => {
-  const manifest = loadManifest(repositoryRoot);
-  assert.ok(manifest.checks.length > 0);
-  for (const check of manifest.checks) {
-    assert.ok(check.suites.length > 0);
-    assert.equal(typeof check.requiredCheck, 'string');
-  }
+test('an undeclared executed suite fails: the manifest may not go stale', () => {
+  const check = structuredClone(shippedCheck());
+  check.suites = check.suites.filter((s) => s.suite !== 'tests/unit.test.ts');
+  check.requiredCapabilities = check.requiredCapabilities.filter((c) => c !== 'unit');
+
+  const result = checkEvidenceCompleteness({
+    check, observed: observed(EXECUTED_EVIDENCE), provenance: { sha: REAL_SHA },
+  });
+  assert.ok(result.violations.some(
+    (v) => v.reason === 'UNDECLARED_SUITE' && v.suite === 'tests/unit.test.ts',
+  ));
 });

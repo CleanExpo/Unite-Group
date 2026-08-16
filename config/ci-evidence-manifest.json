@@ -1,9 +1,12 @@
 {
-  "version": 1,
-  "description": "UNI-2567 items 7 and 8. Declares, per required CI check, which test suites constitute REQUIRED_EVIDENCE. A suite that exists but executed zero tests is not evidence, however green the job concluded. Consumed by scripts/ci-evidence-manifest.mjs.",
+  "version": 2,
+  "description": "UNI-2567 items 7 and 8. Declares, per required CI check, which test suites constitute REQUIRED_EVIDENCE and which capabilities the check must positively prove. A suite that exists but executed zero tests is not evidence, however green the job concluded. Consumed by scripts/ci-evidence-manifest.mjs, which reads vitest JSON reporter output and resolves commit provenance from the GitHub Actions API.",
   "classes": {
-    "REQUIRED_EVIDENCE": "Zero execution fails the completeness check. Use for security, tenant-isolation, auth, migration and release integration proofs.",
-    "ALLOWED_NON_BLOCKING": "Zero execution is recorded in the evidence record but does not fail the completeness check."
+    "REQUIRED_EVIDENCE": "Zero execution fails the completeness check.",
+    "ALLOWED_NON_BLOCKING": "Zero execution is recorded but does not fail the completeness check."
+  },
+  "notes": {
+    "requiredCapabilities": "The coverage floor, and the part that survives a rename. Each listed capability must be carried by at least one REQUIRED_EVIDENCE suite that actually executed. Deleting or relabelling a suite fails for absence of proof rather than for failing to match a name pattern."
   },
   "checks": [
     {
@@ -11,47 +14,53 @@
       "requiredCheck": "packages/spine — type-check and bounded tests",
       "workflow": ".github/workflows/ci.yml",
       "job": "spine",
-      "reporter": "vitest",
+      "reporter": "vitest-json",
       "workingDirectory": "packages/spine/packages/spine",
+      "requiredCapabilities": [
+        "tenant-isolation",
+        "migration-integrity",
+        "data-completeness",
+        "relay-concurrency"
+      ],
       "prerequisite": {
         "env": "SPINE_DATABASE_URL",
-        "note": "Absent in the repository secret store as at 16/08/2026, which is why every integration suite below self-skips. UNI-2567 item 5 (fail-closed preflight) and the SPINE_DATABASE_URL provisioning decision are both out of scope for this check and remain open."
+        "note": "Absent from the repository secret store as at 16/08/2026, which is why every integration suite below self-skips. UNI-2567 item 5 (fail-closed preflight) and the SPINE_DATABASE_URL provisioning decision are both out of scope for this check and remain open."
       },
       "suites": [
         {
           "suite": "tests/integration/c3_completeness.test.ts",
           "class": "REQUIRED_EVIDENCE",
-          "category": "data-completeness",
+          "capability": "data-completeness",
           "gate": "describe.skipIf(!hasDb)"
         },
         {
           "suite": "tests/integration/idempotency.test.ts",
           "class": "REQUIRED_EVIDENCE",
-          "category": "migration-integrity",
+          "capability": "migration-integrity",
           "gate": "describe.skipIf(!hasDb)"
         },
         {
           "suite": "tests/integration/match_isolation.test.ts",
           "class": "REQUIRED_EVIDENCE",
-          "category": "tenant-isolation",
+          "capability": "tenant-isolation",
           "gate": "describe.skipIf(!hasDb)"
         },
         {
           "suite": "tests/integration/outbox_race.test.ts",
           "class": "REQUIRED_EVIDENCE",
-          "category": "relay-concurrency",
+          "capability": "relay-concurrency",
           "gate": "describe.skipIf(!hasDb || !hasOutbox)"
         },
         {
           "suite": "tests/integration/rls.test.ts",
           "class": "REQUIRED_EVIDENCE",
-          "category": "tenant-isolation",
+          "capability": "tenant-isolation",
           "gate": "describe.skipIf(!hasDb)"
         },
         {
           "suite": "tests/unit.test.ts",
           "class": "REQUIRED_EVIDENCE",
-          "category": "unit",
+          "capability": "unit",
           "gate": "none"
         }
       ]
