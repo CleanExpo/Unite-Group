@@ -1,6 +1,13 @@
 // src/app/api/cron/social-publisher/route.ts
 // GET /api/cron/social-publisher
-// Runs every 30 minutes — publishes scheduled social posts whose scheduled_at <= now().
+// Runs every 15 minutes — publishes scheduled social posts whose scheduled_at <= now().
+// KEPT AT 15 MIN DELIBERATELY (PR #1005). Every other sub-hourly cron was stepped
+// down for cost; this one was not. It claims each row (status -> 'publishing') BEFORE
+// attempting the platforms, and maxDuration is 60s. A batch killed at the limit strands
+// any claimed row: the next run selects status = 'scheduled' and will never see it
+// again, and nothing re-claims stale 'publishing' rows. Halving the cadence doubles the
+// batch, so it raises that risk instead of lowering it. Before slowing this route, give
+// it a bounded claim with recovery (or a per-run limit) — not a bigger batch.
 // Authenticates via CRON_SECRET (set by Vercel CRON).
 
 import { NextResponse } from 'next/server'

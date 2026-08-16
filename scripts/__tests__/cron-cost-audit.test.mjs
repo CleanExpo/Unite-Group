@@ -78,6 +78,32 @@ test('lists and ranges count correctly', () => {
   assert.equal(invocationsPerDay('0 0 * * 1-5'), 5 / 7);
 });
 
+test('malformed fields return null instead of hanging or lying', () => {
+  // Regression for three live defects found by review on PR #1005. Each was
+  // reproduced before the guard was written:
+  //   zero step      -> loop never incremented; the audit HUNG (had to be killed)
+  //   non-numeric    -> NaN exited the loop early and reported 24/day, silently wrong
+  //   reversed range -> ran away until Node threw "Set maximum size exceeded"
+  assert.equal(invocationsPerDay('*/0 * * * *'), null, 'zero step must not hang');
+  assert.equal(invocationsPerDay('*/abc * * * *'), null, 'non-numeric step must not report 24');
+  assert.equal(invocationsPerDay('5-1 * * * *'), null, 'reversed range must not run away');
+  assert.equal(invocationsPerDay('*/-5 * * * *'), null, 'negative step');
+  assert.equal(invocationsPerDay('99 * * * *'), null, 'minute out of range');
+  assert.equal(invocationsPerDay('0 99 * * *'), null, 'hour out of range');
+  assert.equal(invocationsPerDay('0 0 * * 9'), null, 'day-of-week out of range');
+  assert.equal(invocationsPerDay('xyz * * * *'), null, 'non-numeric value');
+  assert.equal(invocationsPerDay('*/1/2 * * * *'), null, 'double step');
+});
+
+test('the malformed guard does not reject valid expressions', () => {
+  // Negative control. A guard that rejected everything would pass the test above
+  // and quietly make every schedule uncostable — understating spend to zero.
+  for (const ok of ['* * * * *', '*/5 * * * *', '0,30 * * * *', '0 9-17 * * *',
+                    '0 0 * * 1-5', '59 23 * * 6', '0 0 * * 0']) {
+    assert.notEqual(invocationsPerDay(ok), null, `${ok} must stay costable`);
+  }
+});
+
 test('schedules that cannot be costed return null rather than a wrong number', () => {
   // Silently mis-costing a restricted schedule would understate spend, so the
   // model refuses and the audit reports the refusal.

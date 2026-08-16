@@ -15,18 +15,34 @@
  * touch the sub-hourly eight was rounding error, which is why the report ranks
  * by volume and calls out the concentration explicitly.
  *
- * ACTED ON (16/08/2026): all eight were stepped down — video-status 5→15 min,
- * synthex-monitor / social-publisher / brand-video-dispatch / drip-process
- * 15→30 min, os-health-rollup 15 min→hourly, engagement-monitor and
- * linear-queue-health 30 min→hourly. ~26,559 → ~11,439/month, a 57% cut.
+ * ACTED ON: seven of the eight were stepped down — video-status 5→15 min,
+ * synthex-monitor / brand-video-dispatch / drip-process 15→30 min,
+ * os-health-rollup 15 min→hourly, engagement-monitor and linear-queue-health
+ * 30 min→hourly. ~26,559 → ~12,879/month, a 51.5% cut.
  *
- * That was safe to do because none of the eight selects work by a time window
- * tied to its own interval, and none caps how much it processes per run: they
- * drain by STATE (`status = 'scheduled' AND scheduled_at <= now()`,
- * `status = 'generating'`, `status = 'queued'`). Slowing such a cron delays
- * work; it cannot drop it or grow an unbounded backlog. Check that property
- * again before slowing anything further — a route that grew a per-run `.limit()`
- * or a "since last run" window would not be safe to stretch.
+ * social-publisher was DELIBERATELY LEFT at 15 minutes. The first pass slowed it
+ * too, on the reasoning that it has no per-run `.limit()` and therefore drains
+ * its whole backlog. Review on PR #1005 showed that reasoning is wrong, and the
+ * correction is the durable lesson here:
+ *
+ *   The absence of a `.limit()` does not mean a cron is safe to slow.
+ *   `maxDuration` is itself an effective per-run cap, and the real hazard is
+ *   CLAIM-THEN-FINALISE state. social-publisher sets each row to 'publishing'
+ *   BEFORE attempting it and writes the terminal status afterwards, with
+ *   maxDuration 60s and no sweep anywhere that re-claims stale 'publishing'
+ *   rows. A batch killed at the limit strands every claimed row, because the
+ *   next run selects status = 'scheduled'. Halving the cadence doubles the
+ *   batch and RAISES that risk.
+ *
+ * So before slowing any cron, ask in order:
+ *   1. Does it select work by a window tied to its own interval? -> do not slow.
+ *   2. Does it write a transient status that removes the row from its own
+ *      selection query, with no recovery sweep? -> do not slow.
+ *   3. Otherwise slowing it delays work but cannot drop it.
+ *
+ * Question 2 is the one that is easy to miss. video-status is the contrast that
+ * makes it concrete: it writes only TERMINAL states after polling, so a killed
+ * batch leaves rows in 'generating' to be picked up again.
  *
  * A secondary check, worth far less than expected: some routes return
  * `{ dormant: true }` unless an env flag is set. A dormant route is still
