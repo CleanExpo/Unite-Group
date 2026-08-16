@@ -569,6 +569,14 @@ function assertShapedIdentity({
 
 const ZIP64_SENTINEL_16 = 0xffff;
 const ZIP64_SENTINEL_32 = 0xffffffff;
+/*
+ * The only general-purpose flag bits this reader knows how to honour: 1 and 2
+ * (deflate level hints, which change nothing it reads), 3 (data descriptor,
+ * implemented in the entry walk), and 11 (UTF-8 member name, which is how it
+ * decodes names anyway). Every other bit is refused — see the per-bit verdicts
+ * at the check itself.
+ */
+const SUPPORTED_ZIP_FLAG_BITS = 0x080e;
 
 /** Reads a fixed-width field only when the whole field is inside the buffer. */
 function zipUInt(buffer, at, width, what) {
@@ -746,53 +754,106 @@ export function readZipEntries(buffer) {
     const localCompressed = zipUInt(buffer, localOffset + 18, 4, 'local compressed size');
     const localUncompressed = zipUInt(buffer, localOffset + 22, 4, 'local uncompressed size');
     /*
-     * THE STREAMED EXCEPTION IS GONE. I ADDED IT AND IT WAS IMMEDIATELY THE HOLE.
+     * STREAMED ENTRIES ARE THE LAYOUT THIS GATE ACTUALLY READS. I REFUSED THEM.
      *
-     * Bit 3 of the general-purpose flags says "crc and sizes are zero here and
-     * follow the data in a descriptor". I honoured the first half and never
-     * checked the second, and never required the CENTRAL flags to agree — so
-     * round nine set localFlags=8, centralFlags=0, zeroed the local crc and
-     * sizes, wrote no descriptor at all, and the archive was accepted. PKWARE
-     * APPNOTE 4.3.9.1 requires the descriptor immediately after the data; the
-     * four bytes there were the next central header.
+     * I wrote "actions/upload-artifact does not stream — every artefact this
+     * gate has ever read carries its sizes in the local header" and never once
+     * opened an artefact to look. The reviewer did, in one command: repository
+     * artefact 9264287002, produced by the same pinned upload-artifact SHA this
+     * workflow uses, is 932 bytes with flags 0x0008 in BOTH headers, a zeroed
+     * local crc and sizes, and a signed 16-byte descriptor at 819..835. My
+     * refusal rejected it outright, and the tiling rule rejected the descriptor
+     * as unaccounted bytes even with the refusal disabled. The gate could not
+     * have read a single real artefact.
      *
-     * The exception existed to avoid over-firing on a construct the format
-     * allows. But actions/upload-artifact does not stream — every artefact this
-     * gate has ever read carries its sizes in the local header — so the
-     * exception bought nothing real and cost a bypass. Refused outright, the
-     * same conclusion the workflow parser reached one branch over: implement it
-     * properly or refuse it, never half-honour it.
+     * That is the same defect as `npm ci` with no lockfile one branch over, and
+     * the same one twice in a session: a claim about what production emits,
+     * asserted from the armchair, never executed. The rule that would have
+     * caught both: before refusing a construct because "ours never uses it",
+     * fetch one of ours and look.
+     *
+     * So it is implemented, not half-honoured and not refused. Bit 3 means the
+     * crc and sizes are zero in the local header and the real values follow the
+     * data. Both halves are now enforced: the local values MUST be zero, and a
+     * descriptor MUST be there carrying values that match the central record.
      */
     const localFlags = zipUInt(buffer, localOffset + 6, 2, 'local flags');
-    if ((localFlags & 0x08) !== 0 || (centralFlags & 0x08) !== 0) {
-      throw new Error(
-        `UNSUPPORTED_ZIP: "${name}" is a streamed entry (data-descriptor flag set in the `
-        + `${(localFlags & 0x08) !== 0 ? 'local' : 'central'} header), which this reader does `
-        + 'not implement. Evidence artefacts are not streamed.',
-      );
-    }
-    // And the two copies of the flags must agree at all, for the same reason
-    // every other duplicated field must: two headers describing one entry
-    // differently is an archive with two meanings.
+    // The two copies of the flags must agree at all, for the same reason every
+    // other duplicated field must: two headers describing one entry differently
+    // is an archive with two meanings. Round nine set localFlags=8 and
+    // centralFlags=0 and was accepted, because only the local copy was read.
     if (localFlags !== centralFlags) {
       throw new Error(
         `CORRUPT_ZIP: "${name}" declares flags 0x${localFlags.toString(16)} in its local header `
         + `and 0x${centralFlags.toString(16)} in the central directory.`,
       );
     }
-    const disagreements = [
-      ['compression method', localMethod, method, true],
-      ['CRC', localCrc, expectedCrc, true],
-      ['compressed size', localCompressed, compressedSize, true],
-      ['uncompressed size', localUncompressed, uncompressedSize, true],
-    ];
-    for (const [label, local, central, checked] of disagreements) {
-      if (checked && local !== central) {
+    /*
+     * THE CLASS, NOT THE BIT. Bit 3 was the bit the reviewer named; it is one of
+     * sixteen, and the others change how a record reads just as much. Every bit
+     * gets a verdict here rather than waiting to be named individually:
+     *
+     *   0     encrypted                  REFUSED — the payload is not the file
+     *   1,2   deflate level hint         accepted, changes nothing we read
+     *   3     data descriptor            IMPLEMENTED below
+     *   4     enhanced deflating         REFUSED — not raw deflate
+     *   5     compressed patched data    REFUSED — payload is a patch, not content
+     *   6     strong encryption          REFUSED — as bit 0
+     *   7-10  unused                     REFUSED — an unused bit that is set is
+     *                                    a writer we do not understand
+     *   11    UTF-8 name                 accepted, this reader decodes UTF-8
+     *   12    reserved (PKWARE)          REFUSED
+     *   13    masked local header values REFUSED — this bit exists to make the
+     *                                    local crc and sizes lie
+     *   14,15 reserved                   REFUSED
+     */
+    const unsupportedFlags = localFlags & ~SUPPORTED_ZIP_FLAG_BITS & 0xffff;
+    if (unsupportedFlags !== 0) {
+      throw new Error(
+        `UNSUPPORTED_ZIP: "${name}" sets general-purpose flag bit(s) `
+        + `0x${unsupportedFlags.toString(16).padStart(4, '0')}, which change how the record is `
+        + 'read in ways this reader does not implement.',
+      );
+    }
+    const streamed = (localFlags & 0x08) !== 0;
+    if (streamed) {
+      /*
+       * The other half of bit 3. The flag's whole meaning is "these three fields
+       * are zero here"; a non-zero value in one of them is a second, contradictory
+       * claim about the entry sitting beside the descriptor's claim, which is
+       * precisely the two-meanings archive every other check in this walk exists
+       * to refuse.
+       */
+      if (localCrc !== 0 || localCompressed !== 0 || localUncompressed !== 0) {
         throw new Error(
-          `CORRUPT_ZIP: "${name}" declares ${label} ${local} in its local header and `
-          + `${central} in the central directory; the two disagree about how to read it.`,
+          `CORRUPT_ZIP: "${name}" sets the data-descriptor flag, which means its local crc and `
+          + `sizes are zero and the real values follow the data, but the local header carries `
+          + `crc ${localCrc}, compressed size ${localCompressed}, uncompressed size `
+          + `${localUncompressed}.`,
         );
       }
+    } else {
+      const disagreements = [
+        ['CRC', localCrc, expectedCrc],
+        ['compressed size', localCompressed, compressedSize],
+        ['uncompressed size', localUncompressed, uncompressedSize],
+      ];
+      for (const [label, local, central] of disagreements) {
+        if (local !== central) {
+          throw new Error(
+            `CORRUPT_ZIP: "${name}" declares ${label} ${local} in its local header and `
+            + `${central} in the central directory; the two disagree about how to read it.`,
+          );
+        }
+      }
+    }
+    // The method is duplicated whether or not the entry streams, so it is
+    // checked outside the branch — round eight flipped only the local copy.
+    if (localMethod !== method) {
+      throw new Error(
+        `CORRUPT_ZIP: "${name}" declares compression method ${localMethod} in its local header `
+        + `and ${method} in the central directory; the two disagree about how to read it.`,
+      );
     }
     const dataStart = localOffset + 30 + localNameLength + localExtraLength;
     const dataEnd = dataStart + compressedSize;
@@ -807,7 +868,57 @@ export function readZipEntries(buffer) {
         + 'layout is inconsistent.',
       );
     }
-    extents.push({ name, start: localOffset, end: dataEnd });
+    /*
+     * The record does not end at the data when the entry streams. PKWARE APPNOTE
+     * 4.3.9 puts the descriptor immediately after the compressed bytes, and it is
+     * part of the entry — so it belongs in the extent, or the tiling rule reports
+     * it as unindexed bytes and refuses the archive. That is exactly what
+     * happened to the real artefact once the blanket refusal was lifted.
+     *
+     * Only the SIGNED 16-byte form is accepted. The unsigned 12-byte form is
+     * equally legal, and telling the two apart means guessing whether the first
+     * four bytes are a signature or a CRC that happens to equal 0x08074b50 —
+     * a heuristic, in a reader whose entire job is to not guess. upload-artifact
+     * emits the signature (verified against artefact 9264287002), so requiring it
+     * costs nothing real and keeps the extent arithmetic exact.
+     */
+    let recordEnd = dataEnd;
+    if (streamed) {
+      recordEnd = dataEnd + 16;
+      if (recordEnd > directoryStart) {
+        throw new Error(
+          `CORRUPT_ZIP: "${name}" streams, so a 16-byte data descriptor must follow its data, `
+          + `but only ${directoryStart - dataEnd} byte(s) remain before the central directory.`,
+        );
+      }
+      if (zipUInt(buffer, dataEnd, 4, 'data descriptor signature') !== 0x08074b50) {
+        throw new Error(
+          `CORRUPT_ZIP: "${name}" streams but no signed data descriptor follows its data. `
+          + 'This reader requires the 16-byte signed form; the unsigned form cannot be told '
+          + 'from a CRC without guessing.',
+        );
+      }
+      const descriptorFields = [
+        ['CRC', zipUInt(buffer, dataEnd + 4, 4, 'descriptor CRC'), expectedCrc],
+        ['compressed size', zipUInt(buffer, dataEnd + 8, 4, 'descriptor compressed size'),
+          compressedSize],
+        ['uncompressed size', zipUInt(buffer, dataEnd + 12, 4, 'descriptor uncompressed size'),
+          uncompressedSize],
+      ];
+      // The descriptor is the streamed entry's only local claim about its own
+      // bytes. If it disagrees with the directory, the archive means two things
+      // again — the same rule as the non-streamed branch, applied to the copy
+      // that actually exists.
+      for (const [label, descriptor, central] of descriptorFields) {
+        if (descriptor !== central) {
+          throw new Error(
+            `CORRUPT_ZIP: "${name}" declares ${label} ${descriptor} in its data descriptor and `
+            + `${central} in the central directory; the two disagree about how to read it.`,
+          );
+        }
+      }
+    }
+    extents.push({ name, start: localOffset, end: recordEnd });
     const raw = buffer.subarray(dataStart, dataEnd);
 
     let contents;

@@ -97,6 +97,12 @@ function buildZip(files, {
   // built: a complete, unindexed local record sitting in the gap between two
   // indexed extents, which no overlap check can see.
   omitFromDirectory = [],
+  // Write entries the way actions/upload-artifact actually writes them: flag bit
+  // 3 set in both headers, zeroed local crc and sizes, and a signed 16-byte
+  // descriptor after the data. Round ten refused the real thing outright because
+  // this shape was never built here — the writer could only produce the layout
+  // the reader already accepted, so the suite could not see the refusal.
+  streamed = false,
 } = {}) {
   const locals = [];
   const centrals = [];
@@ -115,16 +121,29 @@ function buildZip(files, {
     const local = Buffer.alloc(30);
     local.writeUInt32LE(0x04034b50, 0);
     local.writeUInt16LE(20, 4);
+    local.writeUInt16LE(streamed ? 0x08 : 0, 6);
     local.writeUInt16LE(stored ? 0 : 8, 8); // 0 = stored, 8 = deflate
-    local.writeUInt32LE(checksum, 14);
-    local.writeUInt32LE(deflated.length, 18);
-    local.writeUInt32LE(raw.length, 22);
+    local.writeUInt32LE(streamed ? 0 : checksum, 14);
+    local.writeUInt32LE(streamed ? 0 : deflated.length, 18);
+    local.writeUInt32LE(streamed ? 0 : raw.length, 22);
     local.writeUInt16LE(localNameBytes.length, 26);
     locals.push(local, localNameBytes, deflated);
+
+    let descriptorLength = 0;
+    if (streamed) {
+      const descriptor = Buffer.alloc(16);
+      descriptor.writeUInt32LE(0x08074b50, 0);
+      descriptor.writeUInt32LE(checksum, 4);
+      descriptor.writeUInt32LE(deflated.length, 8);
+      descriptor.writeUInt32LE(raw.length, 12);
+      locals.push(descriptor);
+      descriptorLength = descriptor.length;
+    }
 
     const central = Buffer.alloc(46);
     central.writeUInt32LE(0x02014b50, 0);
     central.writeUInt16LE(20, 6);
+    central.writeUInt16LE(streamed ? 0x08 : 0, 8);
     central.writeUInt16LE(stored ? 0 : 8, 10);
     central.writeUInt32LE(checksum, 16);
     central.writeUInt32LE(deflated.length, 20);
@@ -133,7 +152,7 @@ function buildZip(files, {
     central.writeUInt32LE(offset, 42);
     centrals.push(central, nameBytes);
 
-    offset += local.length + localNameBytes.length + deflated.length;
+    offset += local.length + localNameBytes.length + deflated.length + descriptorLength;
   }
 
   const localBlock = Buffer.concat(locals);
@@ -1645,33 +1664,10 @@ test('THE TWO HEADERS MUST AGREE ON EVERY FIELD THEY BOTH CARRY, not just the na
   assert.equal(readZipEntries(zip)[0].name, 'vitest-report.json');
 
   /*
-   * A STREAMED ENTRY IS REFUSED, and this assertion is the reverse of what it
-   * said one round ago.
-   *
-   * It used to assert that a streamed entry was ACCEPTED, on the reasoning that
-   * refusing it would over-fire on a construct the format allows. Round nine
-   * then set localFlags=8 with centralFlags=0, zeroed the local crc and sizes,
-   * wrote no data descriptor at all, and walked through the exception — the
-   * four bytes where APPNOTE 4.3.9.1 requires a descriptor were the next
-   * central header.
-   *
-   * Honouring half of a format feature is worse than not implementing it. The
-   * exception is gone, and actions/upload-artifact does not stream, so nothing
-   * real is refused.
-   */
-  const streamed = Buffer.from(zip);
-  streamed.writeUInt16LE(0x08, 6);
-  streamed.writeUInt32LE(0, 14);
-  streamed.writeUInt32LE(0, 18);
-  streamed.writeUInt32LE(0, 22);
-  assert.throws(() => readZipEntries(streamed), /streamed entry/u);
-
-  /*
-   * AND THE CENTRAL COPY OF THE FLAG. The first fix read bit 3 of the LOCAL
-   * flags only, so an archive declaring the entry streamed in the DIRECTORY and
-   * not locally walked past the refusal — the same pair-of-duplicated-fields
-   * mistake this reader has now made three times (name but not method, method
-   * but not crc/sizes, local flags but not central).
+   * THE TWO COPIES OF THE FLAGS MUST AGREE. Round nine set localFlags=8 with
+   * centralFlags=0 and was accepted, because only the local copy was ever read —
+   * the same pair-of-duplicated-fields mistake as name-but-not-method and
+   * method-but-not-crc above.
    */
   // Locate the central header by its signature rather than by arithmetic — the
   // payload is deflated, so its length is not the source string's length, and
@@ -1679,15 +1675,170 @@ test('THE TWO HEADERS MUST AGREE ON EVERY FIELD THEY BOTH CARRY, not just the na
   // throw that never came.
   const centralAt = zip.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02]));
   assert.ok(centralAt > 0, 'no central header signature found');
-  const centralStreamed = Buffer.from(zip);
-  centralStreamed.writeUInt16LE(0x08, centralAt + 8);
-  assert.throws(() => readZipEntries(centralStreamed), /streamed entry.*central/su);
+  const localOnlyStreamed = Buffer.from(zip);
+  localOnlyStreamed.writeUInt16LE(0x08, 6);
+  assert.throws(() => readZipEntries(localOnlyStreamed),
+    /declares flags 0x8 in its local header and 0x0 in the central directory/u);
+  const centralOnlyStreamed = Buffer.from(zip);
+  centralOnlyStreamed.writeUInt16LE(0x08, centralAt + 8);
+  assert.throws(() => readZipEntries(centralOnlyStreamed),
+    /declares flags 0x0 in its local header and 0x8 in the central directory/u);
 
-  // Flags that simply disagree are refused too, streamed or not.
+  // Flags that disagree about anything else are refused for the same reason.
   const flagMismatch = Buffer.from(zip);
   flagMismatch.writeUInt16LE(0x02, centralAt + 8);
   assert.throws(() => readZipEntries(flagMismatch), /declares flags/u);
   void nameLength;
+});
+
+test('A REAL upload-artifact ZIP is ACCEPTED, which it was not one round ago', () => {
+  /*
+   * THE FINDING THIS TEST EXISTS FOR. The previous round refused streamed
+   * entries outright, on my written reasoning that "actions/upload-artifact does
+   * not stream — every artefact this gate has ever read carries its sizes in the
+   * local header". I never opened one. The reviewer downloaded repository
+   * artefact 9264287002 — produced by the same pinned upload-artifact SHA this
+   * workflow uses — and it streams: flags 0x0008 in both headers, a zeroed local
+   * crc and sizes, and a signed 16-byte descriptor. The gate could not have read
+   * a single real artefact, and 176 passing tests said otherwise because every
+   * archive in this suite was built by a writer that only emitted the layout the
+   * reader already accepted.
+   *
+   * So the fixture is a real one, bytes unmodified, and this assertion is the
+   * one that could not have passed before. `fixtures/README.md` records its
+   * provenance.
+   */
+  const real = readFileSync(join(fixtures, 'real-upload-artifact.zip'));
+  const entries = readZipEntries(real);
+  assert.equal(entries.length, 1);
+  assert.equal(entries[0].name, 'dependency-audit-results.json');
+  // The payload is the artefact's real content, not merely bytes of the right
+  // length: it parses, and its uncompressed length matches the central record.
+  assert.equal(entries[0].contents.length, 4695);
+  assert.doesNotThrow(() => JSON.parse(entries[0].contents.toString('utf8')));
+
+  // And the fixture really is the shape the finding describes, so this test
+  // cannot quietly become a test of a non-streamed archive if the file is ever
+  // replaced.
+  assert.equal(real.readUInt16LE(6) & 0x08, 0x08, 'fixture local flags must set bit 3');
+  assert.equal(real.readUInt32LE(14), 0, 'fixture local CRC must be the zero placeholder');
+  assert.equal(real.indexOf(Buffer.from([0x50, 0x4b, 0x07, 0x08])) > 0, true,
+    'fixture must carry a signed data descriptor');
+});
+
+test('A STREAMED ENTRY IS READ PROPERLY, or refused for a stated reason', () => {
+  /*
+   * Bit 3 says two things: the local crc and sizes are zero, AND the real values
+   * follow the data in a descriptor. The round that half-honoured it enforced
+   * the first and never looked for the second, so an archive with zeroed local
+   * fields and no descriptor at all was accepted — the four bytes where APPNOTE
+   * 4.3.9 requires one were the next central header. Both halves now.
+   */
+  const zip = buildZip({ 'vitest-report.json': '{"ok":true}' }, { streamed: true });
+  assert.equal(readZipEntries(zip)[0].name, 'vitest-report.json');
+
+  const descriptorAt = zip.indexOf(Buffer.from([0x50, 0x4b, 0x07, 0x08]));
+  assert.ok(descriptorAt > 0, 'the writer must emit a signed descriptor');
+
+  // No descriptor where one must be. This is the round-nine archive.
+  const unsigned = Buffer.from(zip);
+  unsigned.writeUInt32LE(0x01020304, descriptorAt);
+  assert.throws(() => readZipEntries(unsigned), /no signed data descriptor follows/u);
+
+  /*
+   * The descriptor is the streamed entry's only local claim about its own bytes,
+   * so it must agree with the directory field by field — the same rule the
+   * non-streamed branch applies to the local header. Each assertion names its
+   * own field, because a shared `/disagree/` matcher would be satisfied by
+   * whichever check fired first and would have let two of these three mutants
+   * live.
+   */
+  const fields = [
+    ['CRC', 4, 0xdeadbeef, /declares CRC \d+ in its data descriptor/u],
+    ['compressed size', 8, 4321, /declares compressed size 4321 in its data descriptor/u],
+    ['uncompressed size', 12, 8765, /declares uncompressed size 8765 in its data descriptor/u],
+  ];
+  for (const [label, delta, value, pattern] of fields) {
+    const mutant = Buffer.from(zip);
+    mutant.writeUInt32LE(value, descriptorAt + delta);
+    assert.throws(() => readZipEntries(mutant), pattern, label);
+  }
+
+  /*
+   * A DESCRIPTOR THAT DOES NOT FIT. The bound check on `dataEnd + 16` survived
+   * its first mutation round because nothing built an archive whose streamed
+   * entry ends too close to the directory — the reads would have run into the
+   * central header and silently compared four bytes of a signature against a
+   * CRC. Built by declaring a compressed size that consumes the descriptor's
+   * own bytes, so the entry ends exactly at the directory.
+   */
+  const squeezed = Buffer.from(zip);
+  const centralOfZip = squeezed.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02]));
+  const dataStartOfZip = 30 + Buffer.byteLength('vitest-report.json', 'utf8');
+  const overlongSize = centralOfZip - dataStartOfZip;
+  squeezed.writeUInt32LE(overlongSize, centralOfZip + 20); // central compressed size
+  squeezed.writeUInt32LE(overlongSize, descriptorAt + 8); // and the descriptor's copy
+  assert.throws(
+    () => readZipEntries(squeezed),
+    /streams, so a 16-byte data descriptor must follow its data, but only 0 byte\(s\) remain/u,
+  );
+
+  /*
+   * And the flag's first half. A streamed entry carrying a non-zero local crc or
+   * size is making a second claim beside the descriptor's, which is the
+   * two-meanings archive every other check here refuses.
+   */
+  const populated = [
+    ['CRC', 14, 0x11223344],
+    ['compressed size', 18, 4321],
+    ['uncompressed size', 22, 8765],
+  ];
+  for (const [label, offset, value] of populated) {
+    const mutant = Buffer.from(zip);
+    mutant.writeUInt32LE(value, offset);
+    assert.throws(
+      () => readZipEntries(mutant),
+      /sets the data-descriptor flag, which means its local crc and sizes are zero/u,
+      label,
+    );
+  }
+});
+
+test('EVERY general-purpose flag bit gets a verdict, not just the one a reviewer named', () => {
+  /*
+   * Bit 3 was the bit that was named. It is one of sixteen, and this reader has
+   * now lost three rounds in a row to "fixed the field the reviewer pointed at,
+   * left the ones beside it". Encryption (bit 0), enhanced deflating (4),
+   * patched data (5), strong encryption (6) and — worst — masked header values
+   * (13), whose entire purpose is to make the local crc and sizes lie, all
+   * change how a record must be read.
+   */
+  const zip = buildZip({ 'vitest-report.json': '{"ok":true}' });
+  const centralAt = zip.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02]));
+  assert.ok(centralAt > 0, 'no central header signature found');
+
+  for (const bit of [0x0001, 0x0010, 0x0020, 0x0040, 0x0080, 0x0100, 0x0200, 0x0400,
+    0x1000, 0x2000, 0x4000, 0x8000]) {
+    const mutant = Buffer.from(zip);
+    // Both copies, so the refusal under test is the flag-bit one and not the
+    // local/central disagreement check firing first.
+    mutant.writeUInt16LE(bit, 6);
+    mutant.writeUInt16LE(bit, centralAt + 8);
+    assert.throws(
+      () => readZipEntries(mutant),
+      new RegExp(`sets general-purpose flag bit\\(s\\) 0x${bit.toString(16).padStart(4, '0')}`, 'u'),
+      `bit 0x${bit.toString(16)}`,
+    );
+  }
+
+  // The two bits that genuinely change nothing this reader looks at are accepted,
+  // so the mask is a judgement and not a blanket refusal that happens to pass.
+  for (const bit of [0x0002, 0x0004, 0x0800]) {
+    const benign = Buffer.from(zip);
+    benign.writeUInt16LE(bit, 6);
+    benign.writeUInt16LE(bit, centralAt + 8);
+    assert.equal(readZipEntries(benign)[0].name, 'vitest-report.json', `bit 0x${bit.toString(16)}`);
+  }
 });
 
 test('THE INDEXED ENTRIES MUST ACCOUNT FOR EVERY BYTE, so nothing can hide in a gap', () => {

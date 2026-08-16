@@ -9,6 +9,24 @@ Two earlier revisions parsed the human-readable log and both were forged in adve
 |---|---|
 | `spine-skipped.vitest.json` | **Real vitest output**, produced locally by running `vitest run --reporter=json` in `packages/spine/packages/spine` with `SPINE_DATABASE_URL` unset — the same condition CI runs under. Counts match live CI job 95119197937 exactly: 22 total, 3 passed, 19 skipped. Absolute paths were rewritten to the runner's prefix; assertion records are untouched. |
 | `spine-all-executed.synthetic.vitest.json` | **Synthetic**, derived from the file above by flipping every skipped assertion to `passed`. Not observed output. It is the positive control: it proves the checker can return `PASS`, so a `FAIL` on the real report is a finding rather than a checker that can only ever fail. |
+| `real-upload-artifact.zip` | **A real repository artefact, bytes unmodified.** Artefact `9264287002` (`dependency-audit-results`) from run `31949682645`, downloaded via `gh api repos/CleanExpo/Unite-Group/actions/artifacts/9264287002/zip` on 17/08/2026; sha256 `2bbee3ea9897a26a3bae7a129e990622eeca5a01dd155ee6a460deecd3423db0`. Produced by the same pinned `actions/upload-artifact` SHA this repository's workflows use. Its content is irrelevant — it is here for its **container layout**. |
+
+### Why the ZIP fixture is real and not built by the test writer
+
+Every archive in the ZIP tests is constructed by `buildZip` in the test file, and for nine
+rounds that writer only ever emitted the layout the reader already accepted. So the suite could
+not see that the reader **refused the layout GitHub actually produces**: real artefacts are
+written streamed — general-purpose flag bit 3 set in both headers, a zeroed local CRC and sizes,
+and a signed 16-byte data descriptor after the compressed data. The round-nine hardening refused
+that outright, and the tiling rule rejected the descriptor as unaccounted bytes even with the
+refusal lifted. The gate could not have read a single real artefact, through 176 passing tests.
+
+The commit that introduced the refusal argued in its own comment that "actions/upload-artifact
+does not stream — every artefact this gate has ever read carries its sizes in the local header."
+Nobody had opened one. One `gh api` call settled it.
+
+A fixture the test suite writes itself can only ever prove the reader agrees with the writer.
+This one is the counterparty's output, so it proves the reader agrees with production.
 
 ## Why neither fixture can forge a gated PASS
 
