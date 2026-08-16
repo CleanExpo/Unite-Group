@@ -40,12 +40,21 @@
  * assertions — no in-repo test gate can survive that, and claiming otherwise
  * would be the same overclaiming this file already had to correct once.
  *
- * The residual gap, stated plainly: `--evidence` is a path the caller supplies,
- * and provenance authenticates the JOB, not the FILE. Binding the two requires
- * downloading the run's artefact through the API and is deliberately left to the
- * arming step, which is out of scope here. Until then a gated PASS proves the
- * named job ran on the named commit AND that this report shows full execution —
- * it does not prove the report came out of that job.
+ * THE RESIDUAL GAP, stated plainly and completely. EVERY input is supplied by
+ * whoever invokes this: `--evidence`, `--repo`, `--job`, `--run`, `--sha`. The
+ * API call authenticates that the named job exists, ran on the named commit in
+ * the named run and workflow, and concluded usably — it does NOT prove that the
+ * caller named the RIGHT job, the right repository, or that the evidence file
+ * came out of that job. A caller free to choose all five can select foreign but
+ * internally consistent provenance.
+ *
+ * That is tolerable only because of who the caller is meant to be. This is built
+ * to run from inside the workflow it audits, where the values come from the
+ * `github` context rather than from a person, and to be read by a human
+ * inspecting a specific run. Closing the gap properly means downloading the run's
+ * artefact through the API and taking repo/sha/run from the CI context rather
+ * than argv — that belongs to the arming step, which is out of scope here and is
+ * why nothing consumes this yet.
  *
  * COVERAGE IS PROVEN POSITIVELY. Earlier revisions protected a hardcoded list of
  * category names and suite-path substrings; a security suite named outside that
@@ -73,6 +82,9 @@ export const MANIFEST_PATH = join('config', 'ci-evidence-manifest.json');
 export const EVIDENCE_CLASSES = Object.freeze(['REQUIRED_EVIDENCE', 'ALLOWED_NON_BLOCKING']);
 
 const SHA_PATTERN = /^[0-9a-f]{40}$/u;
+/** owner/name, GitHub's own character set. Interpolated into an API path. */
+const REPO_PATTERN = /^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/u;
+const NUMERIC_ID = /^[0-9]+$/u;
 
 // ---------------------------------------------------------------------------
 // Manifest
@@ -192,9 +204,17 @@ export function parseVitestJsonReport(text, { workingDirectory = '' } = {}) {
     throw new Error('Test evidence has no testResults array; this is not a vitest JSON report.');
   }
 
-  const marker = workingDirectory ? `${workingDirectory}/` : '';
+  const marker = workingDirectory || '';
   const suites = [];
   const seen = new Map();
+  /*
+   * Every file must resolve through the SAME parent of the package directory.
+   * Stripping at a boundary alone still let a vendored or nested copy — say
+   * /w/vendor/<pkg>/tests/integration/rls.test.ts — collapse onto a required
+   * suite's key. Requiring one consistent root is positive proof rather than a
+   * denylist of directory names that would always lose.
+   */
+  const packageRoots = new Set();
 
   for (const file of report.testResults) {
     if (typeof file.name !== 'string') {
@@ -210,7 +230,13 @@ export function parseVitestJsonReport(text, { workingDirectory = '' } = {}) {
     const posix = file.name.split('\\').join('/');
     let suite = posix;
     if (marker) {
-      const boundary = `/${marker}`;
+      /*
+       * Match at a directory boundary, and accept the marker at the very start so
+       * a relative path is handled too. More than one occurrence is refused rather
+       * than guessed at.
+       */
+      const boundary = `/${marker}/`;
+      const leading = `${marker}/`;
       const occurrences = posix.split(boundary).length - 1;
       if (occurrences > 1) {
         throw new Error(
@@ -219,14 +245,25 @@ export function parseVitestJsonReport(text, { workingDirectory = '' } = {}) {
         );
       }
       const index = posix.indexOf(boundary);
-      if (index >= 0) suite = posix.slice(index + boundary.length);
+      if (index >= 0) {
+        suite = posix.slice(index + boundary.length);
+        packageRoots.add(posix.slice(0, index));
+      } else if (posix.startsWith(leading)) {
+        suite = posix.slice(leading.length);
+        packageRoots.add('');
+      }
     }
 
     const assertions = Array.isArray(file.assertionResults) ? file.assertionResults : [];
-    const counts = { passed: 0, failed: 0, pending: 0, skipped: 0, todo: 0, other: 0 };
+    // Null prototype + hasOwn: `status in counts` was true for inherited keys, so
+    // an assertion reporting status "constructor" or "__proto__" was counted as a
+    // known bucket instead of being classified as unrecognised.
+    const counts = Object.assign(Object.create(null), {
+      passed: 0, failed: 0, pending: 0, skipped: 0, todo: 0, other: 0,
+    });
     for (const assertion of assertions) {
       const status = assertion?.status;
-      if (status in counts) counts[status] += 1;
+      if (typeof status === 'string' && Object.hasOwn(counts, status)) counts[status] += 1;
       else counts.other += 1;
     }
 
@@ -246,7 +283,10 @@ export function parseVitestJsonReport(text, { workingDirectory = '' } = {}) {
       declared,
       executed,
       skipped,
+      todo: counts.todo,
+      passed: counts.passed,
       failed: counts.failed,
+      unrecognised: counts.other,
       status: executed > 0 ? 'EXECUTED' : 'SKIPPED',
     };
 
@@ -270,8 +310,11 @@ export function parseVitestJsonReport(text, { workingDirectory = '' } = {}) {
       executed: accumulator.executed + suite.executed,
       skipped: accumulator.skipped + suite.skipped,
       declared: accumulator.declared + suite.declared,
+      passed: accumulator.passed + suite.passed,
+      failed: accumulator.failed + suite.failed,
+      todo: accumulator.todo + suite.todo,
     }),
-    { executed: 0, skipped: 0, declared: 0 },
+    { executed: 0, skipped: 0, declared: 0, passed: 0, failed: 0, todo: 0 },
   );
 
   const reported = {
@@ -282,7 +325,15 @@ export function parseVitestJsonReport(text, { workingDirectory = '' } = {}) {
     todo: report.numTodoTests,
   };
 
-  return { suites, totals, reported };
+  if (packageRoots.size > 1) {
+    throw new Error(
+      `INCONSISTENT_PACKAGE_ROOTS: files resolve through ${packageRoots.size} different `
+      + `parents of "${marker}" (${[...packageRoots].join(', ')}). A vendored or nested copy `
+      + 'cannot be told apart from the real package.',
+    );
+  }
+
+  return { suites, totals, reported, packageRoot: [...packageRoots][0] ?? null };
 }
 
 // ---------------------------------------------------------------------------
@@ -291,6 +342,10 @@ export function parseVitestJsonReport(text, { workingDirectory = '' } = {}) {
 
 /** Default fetcher. Injectable so tests never reach the network. */
 export function ghJobFetcher(repo, jobId) {
+  // Both are interpolated into an API path, so they are shape-checked here as
+  // well as at the CLI boundary — a library caller gets the same guarantee.
+  if (!REPO_PATTERN.test(repo)) throw new Error(`INVALID_REPO: "${repo}" is not owner/name.`);
+  if (!NUMERIC_ID.test(String(jobId))) throw new Error(`INVALID_JOB_ID: "${jobId}" is not numeric.`);
   const raw = execFileSync(
     'gh',
     ['api', `repos/${repo}/actions/jobs/${jobId}`],
@@ -304,8 +359,15 @@ export function ghJobFetcher(repo, jobId) {
  * Every mismatch is a refusal, never a downgrade to a graded result.
  */
 export function resolveProvenance({
-  check, repo, jobId, expectedSha, expectedRunId = null, fetcher = ghJobFetcher,
+  check, repo, jobId, expectedSha, expectedRunId, expectedRunAttempt = null,
+  fetcher = ghJobFetcher,
 }) {
+  // No default. A previous revision defaulted expectedRunId to null and then
+  // skipped run binding when it was null, so a library caller who simply forgot
+  // the argument silently got the weaker check.
+  if (expectedRunId === undefined) {
+    throw new Error('PROVENANCE_UNBOUND: expectedRunId is required; pass the run id explicitly.');
+  }
   const job = fetcher(repo, jobId);
 
   const headSha = job?.head_sha;
@@ -342,9 +404,20 @@ export function resolveProvenance({
    * re-run creates a new attempt. Without binding the run, evidence from any
    * other run of the same job on the same commit would satisfy this one.
    */
-  if (expectedRunId !== null && String(job.run_id) !== String(expectedRunId)) {
+  if (String(job.run_id) !== String(expectedRunId)) {
     throw new Error(
       `PROVENANCE_WRONG_RUN: job ${jobId} belongs to run ${job.run_id}, not ${expectedRunId}.`,
+    );
+  }
+  /*
+   * A re-run reuses the run id and increments the attempt, so binding the run
+   * alone still lets an earlier attempt's evidence stand in for a later one.
+   */
+  if (expectedRunAttempt !== null
+    && String(job.run_attempt) !== String(expectedRunAttempt)) {
+    throw new Error(
+      `PROVENANCE_WRONG_ATTEMPT: job ${jobId} is attempt ${job.run_attempt}, `
+      + `not ${expectedRunAttempt}.`,
     );
   }
   /*
@@ -381,6 +454,50 @@ export function checkEvidenceCompleteness({ check, observed, provenance }) {
   const violations = [];
   const evidence = [];
 
+  /*
+   * COMPLETENESS IS NOT SUCCESS. A failed job's report is still evidence that the
+   * tests RAN, which is why resolveProvenance accepts conclusion "failure" — but
+   * a gate that answers PASS over a red job is worse than useless. Both the job's
+   * own conclusion and any failing assertion are violations here, so the verdict
+   * can never be greener than the run it describes.
+   */
+  if (provenance && provenance.conclusion === 'failure') {
+    violations.push({
+      suite: null,
+      reason: 'JOB_CONCLUDED_FAILURE',
+      status: 'FAILED',
+      detail: `Job ${provenance.jobId} concluded "failure"; its evidence is complete but red.`,
+    });
+  }
+  /*
+   * An assertion status this build does not understand is an evidence problem,
+   * not a silent bucket. Surfacing it is also what makes the prototype-safe
+   * counting above observable: without it, `status in counts` and
+   * `Object.hasOwn(counts, status)` are indistinguishable from the outside,
+   * because an inherited key can only pollute a counter nothing reads.
+   */
+  for (const suite of observed.suites) {
+    if (!suite.unrecognised) continue;
+    violations.push({
+      suite: suite.suite,
+      reason: 'UNRECOGNISED_ASSERTION_STATUS',
+      status: 'UNKNOWN',
+      detail: `${suite.unrecognised} of ${suite.declared} assertions report a status this `
+        + 'checker does not understand, so they cannot be counted as evidence either way.',
+    });
+  }
+
+  for (const suite of observed.suites) {
+    if (!suite.failed) continue;
+    violations.push({
+      suite: suite.suite,
+      reason: 'SUITE_HAS_FAILURES',
+      status: 'FAILED',
+      executed: suite.executed,
+      detail: `${suite.failed} of ${suite.declared} assertions failed.`,
+    });
+  }
+
   const declaredTotal = observed.totals.declared;
   if (typeof observed.reported.total !== 'number') {
     // Without the reporter's own total there is nothing to reconcile against, so
@@ -399,6 +516,27 @@ export function checkEvidenceCompleteness({ check, observed, provenance }) {
       status: 'INCONSISTENT',
       detail: `Per-file records account for ${declaredTotal} tests; the reporter's own `
         + `numTotalTests says ${observed.reported.total}.`,
+    });
+  }
+
+  /*
+   * A consistent TOTAL with an inconsistent distribution is still a broken
+   * report: 22 tests where the summary claims 22 passed while the files show 3
+   * passed and 19 skipped reconciles on the headline and nowhere else.
+   */
+  const distribution = [
+    ['numPassedTests', observed.reported.passed, observed.totals.passed],
+    ['numFailedTests', observed.reported.failed, observed.totals.failed],
+    ['numTodoTests', observed.reported.todo, observed.totals.todo],
+    ['numPendingTests', observed.reported.pending, observed.totals.skipped - observed.totals.todo],
+  ];
+  for (const [field, reported, computed] of distribution) {
+    if (typeof reported !== 'number' || reported === computed) continue;
+    violations.push({
+      suite: null,
+      reason: 'SUMMARY_MISMATCH',
+      status: 'INCONSISTENT',
+      detail: `Per-file records account for ${computed} ${field}; the reporter says ${reported}.`,
     });
   }
 
@@ -486,8 +624,8 @@ export function checkEvidenceCompleteness({ check, observed, provenance }) {
 
 export function parseArguments(argv) {
   const options = {
-    check: null, evidence: null, sha: null, job: null, run: null, repo: null,
-    json: false, gate: false,
+    check: null, evidence: null, sha: null, job: null, run: null, attempt: null,
+    repo: null, json: false, gate: false,
   };
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
@@ -497,6 +635,7 @@ export function parseArguments(argv) {
       case '--sha':
       case '--job':
       case '--run':
+      case '--attempt':
       case '--repo': {
         const value = argv[index + 1];
         if (value === undefined || value.startsWith('--')) {
@@ -552,7 +691,8 @@ export function main(argv = process.argv.slice(2), {
   if (!options.check || !options.evidence) {
     io.error(
       'Usage: ci-evidence-manifest.mjs --check <id> --evidence <vitest-json> '
-      + '[--job <id> --run <id> --sha <40-hex> --repo <owner/name>] [--json] [--gate]',
+      + '[--job <id> --run <id> [--attempt <n>] --sha <40-hex> --repo <owner/name>] '
+      + '[--json] [--gate]',
     );
     return 2;
   }
@@ -574,6 +714,17 @@ export function main(argv = process.argv.slice(2), {
     io.error(`--sha must be a 40-character lowercase hex commit SHA; received "${options.sha}".`);
     return 2;
   }
+  if (options.repo && !REPO_PATTERN.test(options.repo)) {
+    io.error(`--repo must be owner/name; received "${options.repo}".`);
+    return 2;
+  }
+  for (const [flag, value] of [['--job', options.job], ['--run', options.run],
+    ['--attempt', options.attempt]]) {
+    if (value !== null && !NUMERIC_ID.test(value)) {
+      io.error(`${flag} must be numeric; received "${value}".`);
+      return 2;
+    }
+  }
 
   let result;
   try {
@@ -587,6 +738,7 @@ export function main(argv = process.argv.slice(2), {
         jobId: options.job,
         expectedSha: options.sha,
         expectedRunId: options.run,
+        expectedRunAttempt: options.attempt,
         fetcher,
       })
       : null;
