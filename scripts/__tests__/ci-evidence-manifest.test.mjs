@@ -87,6 +87,11 @@ function buildZip(files, {
   directorySizeOverride = null,
   zip64Count = false,
   localNameOverride = null,
+  // Stored (method 0) rather than deflated, so an entry's payload can be chosen
+  // byte-for-byte. Needed to build the overlap case honestly: two entries can
+  // only overlap while both still parse if one entry's data literally contains
+  // the other's local record.
+  stored = false,
 } = {}) {
   const locals = [];
   const centrals = [];
@@ -94,8 +99,8 @@ function buildZip(files, {
   const pairs = Array.isArray(files) ? files : Object.entries(files);
 
   for (const [name, text] of pairs) {
-    const raw = Buffer.from(text, 'utf8');
-    const deflated = deflateRawSync(raw);
+    const raw = Buffer.isBuffer(text) ? text : Buffer.from(text, 'utf8');
+    const deflated = stored ? raw : deflateRawSync(raw);
     const nameBytes = Buffer.from(name, 'utf8');
     const checksum = corruptCrc ? (crc32(raw) ^ 0xffffffff) >>> 0 : crc32(raw);
 
@@ -105,7 +110,7 @@ function buildZip(files, {
     const local = Buffer.alloc(30);
     local.writeUInt32LE(0x04034b50, 0);
     local.writeUInt16LE(20, 4);
-    local.writeUInt16LE(8, 8); // deflate
+    local.writeUInt16LE(stored ? 0 : 8, 8); // 0 = stored, 8 = deflate
     local.writeUInt32LE(checksum, 14);
     local.writeUInt32LE(deflated.length, 18);
     local.writeUInt32LE(raw.length, 22);
@@ -115,7 +120,7 @@ function buildZip(files, {
     const central = Buffer.alloc(46);
     central.writeUInt32LE(0x02014b50, 0);
     central.writeUInt16LE(20, 6);
-    central.writeUInt16LE(8, 10);
+    central.writeUInt16LE(stored ? 0 : 8, 10);
     central.writeUInt32LE(checksum, 16);
     central.writeUInt32LE(deflated.length, 20);
     central.writeUInt32LE(raw.length, 24);
@@ -1002,7 +1007,13 @@ test('a fully-executed suite still proves its capability, so the floor is not al
   };
   const report = {
     success: true,
-    numFailedTestSuites: 0,
+    // The WHOLE suite-summary family, because round nine showed the three
+    // siblings of numFailedTestSuites were never read and a report could claim
+    // zero total suites or one pending suite and still be certified. Real vitest
+    // output emits all four — both fixtures in this repo carry them — so a
+    // hand-built report that omits them is now correctly refused as
+    // unreadable rather than quietly graded.
+    numTotalTestSuites: 1, numPassedTestSuites: 1, numFailedTestSuites: 0, numPendingTestSuites: 0,
     numTotalTests: 2, numPassedTests: 2, numFailedTests: 0, numPendingTests: 0, numTodoTests: 0,
     testResults: [{
       name: '/w/pkg/tests/rls.test.ts', status: 'passed',
@@ -1285,6 +1296,189 @@ test('AN ENTRY THAT IS NAMED TWO DIFFERENT THINGS IS REFUSED', () => {
   assert.throws(() => readZipEntries(zip), /its local header\s+calls it "other\.json"/u);
 });
 
+// ---------------------------------------------------------------------------
+// ROUND NINE (codex, independent). Every one adjacent to a round-eight fix —
+// the instance was closed and the class generator left running.
+// ---------------------------------------------------------------------------
+
+test('THE OPERANDS ARE VALIDATED, not only the relation between them', () => {
+  // Round nine called the exported resolver with runId: '', workflow_run.id: ''
+  // and expectedSha: 'not-a-commit' with a matching head_sha, and got back an
+  // accepted source record. Every ownership comparison passed honestly:
+  // '' === '' is true. Comparing two values nobody proved were identifiers is
+  // the defect; the comparison never was.
+  const base = {
+    check: shippedCheck(), repo: REPO, expectedRunAttempt: ATTEMPT,
+    attemptFetcher: stubAttempt(), downloader: stubDownloader(),
+  };
+
+  assert.throws(
+    () => resolveEvidenceArtifact({
+      ...base, runId: '', expectedSha: REAL_SHA, lister: stubLister(),
+    }),
+    /ARTIFACT_RUN_UNSHAPED/u,
+    'an empty run id is not a run id',
+  );
+  assert.throws(
+    () => resolveEvidenceArtifact({
+      ...base, runId: 'abc', expectedSha: REAL_SHA, lister: stubLister(),
+    }),
+    /ARTIFACT_RUN_UNSHAPED/u,
+  );
+  assert.throws(
+    () => resolveEvidenceArtifact({
+      ...base, runId: RUN_ID, expectedSha: 'not-a-commit', lister: stubLister(),
+    }),
+    /ARTIFACT_SHA_UNSHAPED/u,
+    'a truthy non-commit is not a commit',
+  );
+  assert.throws(
+    () => resolveEvidenceArtifact({
+      ...base, runId: RUN_ID, expectedSha: REAL_SHA, expectedRunAttempt: '', lister: stubLister(),
+    }),
+    /ARTIFACT_ATTEMPT_UNBOUND/u,
+  );
+  assert.throws(
+    () => resolveEvidenceArtifact({
+      ...base, repo: 'not-a-repo', runId: RUN_ID, expectedSha: REAL_SHA, lister: stubLister(),
+    }),
+    /INVALID_REPO/u,
+  );
+
+  // And the well-shaped call still resolves, so the guard does not cry wolf.
+  const ok = resolveEvidenceArtifact({
+    ...base, runId: RUN_ID, expectedSha: REAL_SHA, lister: stubLister(),
+  });
+  assert.ok(ok.text.includes('testResults'));
+});
+
+test('THE WHOLE SUITE-SUMMARY FAMILY IS READ, not only the field that was reported', () => {
+  // Round eight fixed numFailedTestSuites: -1. Round nine then set each of its
+  // three siblings to -1, total to 0, and pending to 1 — every one still
+  // printed PASS with zero violations, because those fields were never read.
+  const base = JSON.parse(readFileSync(EXECUTED_EVIDENCE, 'utf8'));
+  const graded = (overrides) => checkEvidenceCompleteness({
+    check: shippedCheck(),
+    observed: parseVitestJsonReport(JSON.stringify({ ...base, ...overrides }), {
+      workingDirectory: shippedCheck().workingDirectory,
+    }),
+  });
+
+  for (const overrides of [
+    { numTotalTestSuites: -1 }, { numPassedTestSuites: -1 }, { numPendingTestSuites: -1 },
+    { numTotalTestSuites: 0 }, { numTotalTestSuites: 99 },
+  ]) {
+    const result = graded(overrides);
+    assert.equal(result.verdict, 'FAIL', JSON.stringify(overrides));
+    assert.ok(
+      result.violations.some((v) => v.reason === 'SUITE_SUMMARY_INCOHERENT'),
+      JSON.stringify(overrides),
+    );
+  }
+
+  // A pending suite never ran, which is the whole point of this checker.
+  const pending = graded({ numPassedTestSuites: 11, numPendingTestSuites: 1 });
+  assert.equal(pending.verdict, 'FAIL');
+  assert.ok(pending.violations.some((v) => v.reason === 'REPORT_DECLARES_PENDING_SUITES'));
+
+  // The untouched control still passes — over-firing is a defect too, and this
+  // check was written wrong once already (it compared suites to file records,
+  // which the real captured evidence proves are different units: 12 vs 6).
+  assert.equal(graded({}).verdict, 'PASS');
+});
+
+test('THE ARCHIVE IS ONE CANONICAL WHOLE: no tail, no overlap', () => {
+  const good = buildZip({ 'vitest-report.json': '{"a":1}' });
+
+  // Bytes after the EOCD. Another reader may or may not see them; a gate that
+  // grades an archive two tools describe differently is grading an opinion.
+  assert.throws(
+    () => readZipEntries(Buffer.concat([good, Buffer.from('GARBAGE')])),
+    /does not end where it says/u,
+  );
+
+  // An EOCD declaring a comment that is not there.
+  const lyingComment = Buffer.from(good);
+  lyingComment.writeUInt16LE(4096, lyingComment.length - 2);
+  assert.throws(() => readZipEntries(lyingComment), /does not end where it says/u);
+
+  // And the honest archive still reads, so the bound is not always-on.
+  assert.equal(readZipEntries(good)[0].name, 'vitest-report.json');
+});
+
+test('TWO ENTRIES MAY NOT CLAIM THE SAME BYTES', () => {
+  /*
+   * Round nine nested one entry's local header inside another entry's data, so
+   * `vitest-report.json` was simultaneously a member of the archive and an
+   * opaque region of `outer.bin` — and `resolveEvidenceArtifact` returned a
+   * source record for it. Which of the two an arbitrary ZIP reader sees is not
+   * determined by the format, so the archive has no single meaning.
+   *
+   * BUILT HONESTLY, because the first version of this test did not reach the
+   * check it was named for. It pointed an offset into the middle of a deflate
+   * stream, the local-header signature check threw first, and the assertion
+   * `/CORRUPT_ZIP/` was satisfied by the wrong refusal — the mutation harness
+   * caught it: the overlap branch could be deleted and this test still passed.
+   * Both entries must PARSE for the overlap check to be the thing that fires,
+   * so the outer entry is STORED and its payload is literally the inner entry's
+   * local record.
+   */
+  const inner = buildZip({ 'vitest-report.json': '{"a":1}' }, { stored: true });
+  const innerLocalLength = 30 + Buffer.byteLength('vitest-report.json') + '{"a":1}'.length;
+  const innerLocal = inner.subarray(0, innerLocalLength);
+
+  const zip = buildZip([
+    ['outer.bin', Buffer.concat([Buffer.from('PAD'), innerLocal])],
+    ['vitest-report.json', '{"a":1}'],
+  ], { stored: true });
+
+  // Repoint the report's local-header offset at the copy embedded in outer.bin.
+  const directoryStart = 30 + Buffer.byteLength('outer.bin') + (3 + innerLocal.length)
+    + 30 + Buffer.byteLength('vitest-report.json') + '{"a":1}'.length;
+  const secondCentral = directoryStart + centralRecordLength('outer.bin');
+  const overlapping = Buffer.from(zip);
+  const embeddedAt = 30 + Buffer.byteLength('outer.bin') + 3;
+  overlapping.writeUInt32LE(embeddedAt, secondCentral + 42);
+
+  assert.throws(
+    () => readZipEntries(overlapping),
+    /claim the same bytes/u,
+    'the overlap check must be what refuses this, not an earlier signature check',
+  );
+});
+
+test('AN ENTRY MAY NOT RUN INTO THE CENTRAL DIRECTORY', () => {
+  // The local-records region ends where the directory begins. An entry whose
+  // declared bytes cross that line is describing a different archive.
+  const zip = buildZip({ 'vitest-report.json': '{"a":1}' }, { stored: true });
+  const overrun = Buffer.from(zip);
+  const dataLength = '{"a":1}'.length;
+  // Inflate the declared compressed size past the directory boundary.
+  overrun.writeUInt32LE(dataLength + 64, 30 + Buffer.byteLength('vitest-report.json')
+    + dataLength + 20);
+
+  assert.throws(() => readZipEntries(overrun), /extends into the central directory/u);
+});
+
+test('EVERY ABSOLUTE SPELLING IS REFUSED, including the Windows one', () => {
+  // The refusal's own name claimed absolute members were refused while
+  // `C:/vitest-report.json` sailed through, and the downstream basename match
+  // then selected it as the report.
+  for (const name of ['C:/vitest-report.json', 'c:/vitest-report.json',
+    'Z:/nested/vitest-report.json']) {
+    assert.throws(
+      () => readZipEntries(buildZip({ [name]: '{"a":1}' })),
+      /UNSAFE_ZIP_ENTRY/u,
+      name,
+    );
+  }
+  // A colon that is not a drive letter is still a legal member name.
+  assert.equal(
+    readZipEntries(buildZip({ 'report:2026.json': '{"a":1}' }))[0].name,
+    'report:2026.json',
+  );
+});
+
 test('A NEGATIVE FAILED-SUITE COUNT IS UNVERIFIABLE, never a pass', () => {
   // The round-eight P1: `Number.isInteger` accepts negatives, and the decision
   // path refused only `null` and `> 0`, so `-1` reached PASS with no violations.
@@ -1368,10 +1562,18 @@ test('ABSENT OWNERSHIP IS REFUSED, not skipped past (round-eight P1)', () => {
     [{ workflow_run: undefined }, /ARTIFACT_OWNERSHIP_UNVERIFIABLE.*no workflow_run/su],
     [{ workflow_run: null }, /ARTIFACT_OWNERSHIP_UNVERIFIABLE.*no workflow_run/su],
     [{ workflow_run: [] }, /ARTIFACT_OWNERSHIP_UNVERIFIABLE.*no workflow_run/su],
-    [{ workflow_run: { head_sha: REAL_SHA } }, /ARTIFACT_OWNERSHIP_UNVERIFIABLE.*no owning run id/su],
-    [{ workflow_run: { id: Number(RUN_ID) } }, /ARTIFACT_OWNERSHIP_UNVERIFIABLE.*no owning head_sha/su],
+    [{ workflow_run: { head_sha: REAL_SHA } }, /ARTIFACT_OWNERSHIP_UNVERIFIABLE.*owning run id/su],
+    [{ workflow_run: { id: Number(RUN_ID) } }, /ARTIFACT_OWNERSHIP_UNVERIFIABLE.*owning head_sha/su],
     [{ workflow_run: { id: Number(RUN_ID), head_sha: '' } },
-      /ARTIFACT_OWNERSHIP_UNVERIFIABLE.*no owning head_sha/su],
+      /ARTIFACT_OWNERSHIP_UNVERIFIABLE.*owning head_sha/su],
+    // ROUND NINE: the relation was checked, the operands never were. An empty
+    // owning run id compared equal to an empty runId.
+    [{ workflow_run: { id: '', head_sha: REAL_SHA } },
+      /ARTIFACT_OWNERSHIP_UNVERIFIABLE.*numeric owning run id/su],
+    [{ workflow_run: { id: 'abc', head_sha: REAL_SHA } },
+      /ARTIFACT_OWNERSHIP_UNVERIFIABLE.*numeric owning run id/su],
+    [{ workflow_run: { id: Number(RUN_ID), head_sha: 'not-a-commit' } },
+      /ARTIFACT_OWNERSHIP_UNVERIFIABLE.*40-hex owning head_sha/su],
   ];
 
   for (const [override, pattern] of cases) {

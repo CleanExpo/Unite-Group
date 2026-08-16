@@ -424,7 +424,45 @@ export function parseVitestJsonReport(text, { workingDirectory = '', expectedRoo
    * reason no assertion expresses. Missing is UNVERIFIABLE, never assumed true.
    */
   const declaredSuccess = typeof report.success === 'boolean' ? report.success : null;
-  const failedSuites = reportedCount(report.numFailedTestSuites);
+
+  /*
+   * THE SUITE-SUMMARY FAMILY, NOT JUST THE ONE FIELD THAT WAS REPORTED.
+   *
+   * Round eight found `numFailedTestSuites: -1` reaching PASS and it was fixed.
+   * Round nine then set `numTotalTestSuites`, `numPassedTestSuites` or
+   * `numPendingTestSuites` to -1, or total suites to 0, or pending suites to 1,
+   * and every one still printed `PASS; violations=0` — because those three
+   * fields were never read at all. Fixing the field the reviewer named while
+   * leaving its siblings unread is how a review loop returns one adjacent
+   * finding per round.
+   *
+   * The checker already relies on this family to see failures that leave no
+   * assertion record. So the whole family is parsed, and its internal
+   * arithmetic is checked: a suite count that contradicts itself is evidence
+   * about a report nobody should certify.
+   */
+  const suites_ = {
+    total: reportedCount(report.numTotalTestSuites),
+    passed: reportedCount(report.numPassedTestSuites),
+    failed: reportedCount(report.numFailedTestSuites),
+    pending: reportedCount(report.numPendingTestSuites),
+  };
+  const failedSuites = suites_.failed;
+  /*
+   * `numTotalTestSuites` counts SUITES, and `testResults` carries FILES — the
+   * real captured evidence declares 12 suites across 6 file records, so an
+   * equality check between them fires on a perfectly good report. That mistake
+   * was made here and caught by the fixture: over-firing is a defect too, and
+   * the control that stopped it was the untouched positive-control fixture.
+   * Only the family's own arithmetic is checked.
+   */
+  const suiteSummary = {
+    ...suites_,
+    fileRecords: suites.length,
+    coherent: Object.values(suites_).every((value) => value !== null)
+      && suites_.passed + suites_.failed + suites_.pending === suites_.total
+      && suites_.total > 0,
+  };
 
   if (packageRoots.size > 1) {
     throw new Error(
@@ -454,7 +492,7 @@ export function parseVitestJsonReport(text, { workingDirectory = '', expectedRoo
     );
   }
 
-  return { suites, totals, reported, packageRoot, declaredSuccess, failedSuites };
+  return { suites, totals, reported, packageRoot, declaredSuccess, failedSuites, suiteSummary };
 }
 
 // ---------------------------------------------------------------------------
@@ -524,6 +562,24 @@ export function readZipEntries(buffer) {
   const directorySize = zipUInt(buffer, eocd + 12, 4, 'EOCD directory size');
   const directoryStart = zipUInt(buffer, eocd + 16, 4, 'EOCD directory offset');
 
+  /*
+   * ONE CANONICAL ARCHIVE, OR NONE.
+   *
+   * Round nine accepted a valid ZIP with `GARBAGE` appended, and an EOCD
+   * declaring a 4096-byte comment that was not there. Both are archives that
+   * this reader and another reader would describe differently — and evidence
+   * two tools disagree about is not evidence. The EOCD is the last structure in
+   * a well-formed ZIP, so its declared comment must be exactly the bytes that
+   * remain, and nothing may follow them.
+   */
+  const commentLength_ = zipUInt(buffer, eocd + 20, 2, 'EOCD comment length');
+  if (eocd + 22 + commentLength_ !== buffer.length) {
+    throw new Error(
+      `CORRUPT_ZIP: the EOCD declares a ${commentLength_}-byte comment but `
+      + `${buffer.length - eocd - 22} bytes follow it. The archive does not end where it says.`,
+    );
+  }
+
   if (diskNumber !== 0 || directoryDisk !== 0) {
     throw new Error('UNSUPPORTED_ZIP: a multi-disk archive is not evidence this reader accepts.');
   }
@@ -548,6 +604,11 @@ export function readZipEntries(buffer) {
 
   let offset = directoryStart;
   const entries = [];
+  // Each entry's byte extent in the local-records region, for the overlap check
+  // after the walk. Round nine nested one entry's local header inside another
+  // entry's data and both were accepted, so `vitest-report.json` could be a
+  // region another reader sees as opaque bytes belonging to `outer.bin`.
+  const extents = [];
 
   for (let n = 0; n < count; n += 1) {
     if (offset >= eocd) {
@@ -585,6 +646,12 @@ export function readZipEntries(buffer) {
      * would mean deciding what the author meant.
      */
     if (name === '' || name.startsWith('/') || name.includes('\\')
+      // A DRIVE LETTER IS ALSO AN ABSOLUTE PATH. Round nine slipped
+      // `C:/vitest-report.json` past a check whose name claimed to refuse
+      // absolute members, because it only knew the POSIX spelling — and the
+      // downstream basename match then selected it as the report. Refusing
+      // `\` and `/` while accepting `C:/` is refusing two of three spellings.
+      || /^[A-Za-z]:/u.test(name)
       || name.split('/').some((segment) => segment === '.' || segment === '..')) {
       throw new Error(`UNSAFE_ZIP_ENTRY: "${name}" is not a plain archive member name.`);
     }
@@ -609,10 +676,20 @@ export function readZipEntries(buffer) {
       );
     }
     const dataStart = localOffset + 30 + localNameLength + localExtraLength;
-    if (dataStart + compressedSize > buffer.length) {
+    const dataEnd = dataStart + compressedSize;
+    if (dataEnd > buffer.length) {
       throw new Error(`CORRUPT_ZIP: "${name}" declares more bytes than the archive holds.`);
     }
-    const raw = buffer.subarray(dataStart, dataStart + compressedSize);
+    // The local records region ends where the central directory begins. An entry
+    // whose bytes run into the directory is describing a different archive.
+    if (dataEnd > directoryStart) {
+      throw new Error(
+        `CORRUPT_ZIP: "${name}" extends into the central directory, so the archive's own `
+        + 'layout is inconsistent.',
+      );
+    }
+    extents.push({ name, start: localOffset, end: dataEnd });
+    const raw = buffer.subarray(dataStart, dataEnd);
 
     let contents;
     if (method === 0) contents = raw;
@@ -643,6 +720,26 @@ export function readZipEntries(buffer) {
       + 'bytes remain unread before the EOCD; the archive holds records the count hides.',
     );
   }
+
+  /*
+   * NO TWO ENTRIES MAY CLAIM THE SAME BYTES. One entry's local header sitting
+   * inside another entry's data means the same region is a header to this
+   * reader and opaque payload to the next one — the archive means two different
+   * things depending on who opens it, and this gate would be certifying whichever
+   * one it happened to see.
+   */
+  const ordered = [...extents].sort((a, b) => a.start - b.start);
+  for (let index = 1; index < ordered.length; index += 1) {
+    const previous = ordered[index - 1];
+    const current = ordered[index];
+    if (current.start < previous.end) {
+      throw new Error(
+        `CORRUPT_ZIP: "${current.name}" starts inside "${previous.name}", so two entries claim `
+        + 'the same bytes and the archive has no single meaning.',
+      );
+    }
+  }
+
   return entries;
 }
 
@@ -710,11 +807,42 @@ export function resolveEvidenceArtifact({
   lister = ghArtifactLister, downloader = ghArtifactDownloader,
   attemptFetcher = ghRunAttemptFetcher,
 }) {
-  if (expectedRunAttempt === undefined) {
+  /*
+   * VALIDATE THE OPERANDS, NOT ONLY THE RELATION BETWEEN THEM.
+   *
+   * Round nine called `resolveEvidenceArtifact` directly with `runId: ''`,
+   * `workflow_run.id: ''` and `expectedSha: 'not-a-commit'` with a matching
+   * `head_sha`, and got back an accepted source record. Every ownership check
+   * above passed honestly: `'' === ''` is true and `'not-a-commit'` is truthy.
+   * The comparisons were never the weak point — comparing two values nobody had
+   * proved were identifiers was.
+   *
+   * The CLI validates these shapes before it calls in. That is not a defence:
+   * this function is exported, tests call it directly, and a guarantee that only
+   * holds for one caller is a guarantee about that caller. The boundary that
+   * enforces a rule has to be the boundary that states it.
+   */
+  if (!NUMERIC_ID.test(String(runId ?? ''))) {
     throw new Error(
-      'ARTIFACT_ATTEMPT_UNBOUND: expectedRunAttempt is required. A re-run reuses the run id, '
-      + "so binding the run alone lets an earlier attempt's artefact stand in for a later one.",
+      `ARTIFACT_RUN_UNSHAPED: "${runId}" is not a numeric run id, so nothing it is compared `
+      + 'against can bind an artefact to a run.',
     );
+  }
+  if (!NUMERIC_ID.test(String(expectedRunAttempt ?? ''))) {
+    throw new Error(
+      `ARTIFACT_ATTEMPT_UNBOUND: expectedRunAttempt "${expectedRunAttempt}" is not a numeric `
+      + 'attempt. A re-run reuses the run id, so binding the run alone lets an earlier '
+      + "attempt's artefact stand in for a later one.",
+    );
+  }
+  if (expectedSha !== null && expectedSha !== undefined && !SHA_PATTERN.test(String(expectedSha))) {
+    throw new Error(
+      `ARTIFACT_SHA_UNSHAPED: "${expectedSha}" is not a 40-hex commit, so an artefact cannot `
+      + 'be bound to it.',
+    );
+  }
+  if (!isValidRepo(repo)) {
+    throw new Error(`INVALID_REPO: "${repo}" is not owner/name.`);
   }
   if (!check.artifact || !check.reportEntry) {
     throw new Error(
@@ -770,9 +898,10 @@ export function resolveEvidenceArtifact({
     );
   }
   const owningRun = owner.id;
-  if (owningRun === undefined || owningRun === null) {
+  if (!NUMERIC_ID.test(String(owningRun ?? ''))) {
     throw new Error(
-      `ARTIFACT_OWNERSHIP_UNVERIFIABLE: artefact ${artifact.id} names no owning run id.`,
+      `ARTIFACT_OWNERSHIP_UNVERIFIABLE: artefact ${artifact.id} names no numeric owning run id `
+      + `(${JSON.stringify(owningRun)}).`,
     );
   }
   if (String(owningRun) !== String(runId)) {
@@ -787,9 +916,10 @@ export function resolveEvidenceArtifact({
     );
   }
   const owningSha = owner.head_sha;
-  if (typeof owningSha !== 'string' || owningSha === '') {
+  if (typeof owningSha !== 'string' || !SHA_PATTERN.test(owningSha)) {
     throw new Error(
-      `ARTIFACT_OWNERSHIP_UNVERIFIABLE: artefact ${artifact.id} names no owning head_sha.`,
+      `ARTIFACT_OWNERSHIP_UNVERIFIABLE: artefact ${artifact.id} names no 40-hex owning head_sha `
+      + `(${JSON.stringify(owningSha)}).`,
     );
   }
   if (owningSha !== expectedSha) {
@@ -1133,6 +1263,35 @@ export function checkEvidenceCompleteness({ check, observed, provenance }) {
       reason: 'REPORT_DECLARES_FAILED_SUITES',
       status: 'FAILED',
       detail: `${observed.failedSuites} test suite(s) failed at the file level.`,
+    });
+  }
+
+  /*
+   * A SUITE SUMMARY THAT CONTRADICTS ITSELF IS NOT EVIDENCE.
+   *
+   * The three siblings of `numFailedTestSuites` were parsed but never read, so
+   * a report claiming zero total suites, or a negative passed count, or one
+   * pending suite that no file record shows, was certified. Each of those says
+   * something different about whether the run happened, and none of them can be
+   * reconciled with the per-file records the rest of this checker grades.
+   */
+  const summary = observed.suiteSummary;
+  if (!summary || !summary.coherent) {
+    violations.push({
+      suite: null,
+      reason: 'SUITE_SUMMARY_INCOHERENT',
+      status: 'UNKNOWN',
+      detail: 'The reporter\'s own suite counts do not add up ('
+        + `total ${summary?.total}, passed ${summary?.passed}, failed ${summary?.failed}, `
+        + `pending ${summary?.pending}), so what it claims about suites cannot be read.`,
+    });
+  } else if (summary.pending > 0) {
+    violations.push({
+      suite: null,
+      reason: 'REPORT_DECLARES_PENDING_SUITES',
+      status: 'FAILED',
+      detail: `${summary.pending} test suite(s) never ran. A suite that was pending did not `
+        + 'execute, which is the defect this checker exists to catch.',
     });
   }
 
