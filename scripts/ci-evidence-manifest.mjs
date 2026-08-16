@@ -733,15 +733,36 @@ export function readZipEntries(buffer) {
     const localCrc = zipUInt(buffer, localOffset + 14, 4, 'local CRC');
     const localCompressed = zipUInt(buffer, localOffset + 18, 4, 'local compressed size');
     const localUncompressed = zipUInt(buffer, localOffset + 22, 4, 'local uncompressed size');
-    // A streamed entry legitimately zeroes crc/sizes in the local header and
-    // sets bit 3 of the general-purpose flags; anything else must match.
+    /*
+     * THE STREAMED EXCEPTION IS GONE. I ADDED IT AND IT WAS IMMEDIATELY THE HOLE.
+     *
+     * Bit 3 of the general-purpose flags says "crc and sizes are zero here and
+     * follow the data in a descriptor". I honoured the first half and never
+     * checked the second, and never required the CENTRAL flags to agree — so
+     * round nine set localFlags=8, centralFlags=0, zeroed the local crc and
+     * sizes, wrote no descriptor at all, and the archive was accepted. PKWARE
+     * APPNOTE 4.3.9.1 requires the descriptor immediately after the data; the
+     * four bytes there were the next central header.
+     *
+     * The exception existed to avoid over-firing on a construct the format
+     * allows. But actions/upload-artifact does not stream — every artefact this
+     * gate has ever read carries its sizes in the local header — so the
+     * exception bought nothing real and cost a bypass. Refused outright, the
+     * same conclusion the workflow parser reached one branch over: implement it
+     * properly or refuse it, never half-honour it.
+     */
     const localFlags = zipUInt(buffer, localOffset + 6, 2, 'local flags');
-    const streamed = (localFlags & 0x08) !== 0;
+    if ((localFlags & 0x08) !== 0) {
+      throw new Error(
+        `UNSUPPORTED_ZIP: "${name}" is a streamed entry (data-descriptor flag set), which this `
+        + 'reader does not implement. Evidence artefacts are not streamed.',
+      );
+    }
     const disagreements = [
       ['compression method', localMethod, method, true],
-      ['CRC', localCrc, expectedCrc, !streamed],
-      ['compressed size', localCompressed, compressedSize, !streamed],
-      ['uncompressed size', localUncompressed, uncompressedSize, !streamed],
+      ['CRC', localCrc, expectedCrc, true],
+      ['compressed size', localCompressed, compressedSize, true],
+      ['uncompressed size', localUncompressed, uncompressedSize, true],
     ];
     for (const [label, local, central, checked] of disagreements) {
       if (checked && local !== central) {
@@ -804,16 +825,42 @@ export function readZipEntries(buffer) {
    * things depending on who opens it, and this gate would be certifying whichever
    * one it happened to see.
    */
+  /*
+   * THE INDEXED ENTRIES MUST TILE THE WHOLE LOCAL-RECORDS REGION.
+   *
+   * Overlap alone was not enough, and round nine showed why: it put a SECOND
+   * complete local record named `vitest-report.json` in the GAP between two
+   * indexed extents. Nothing overlapped, the central directory declared only
+   * the first, and the reader accepted the indexed payload while a second
+   * record with the same name sat unread in the archive — a file that another
+   * ZIP reader may well hand back instead.
+   *
+   * Checking for overlap is detect-the-bad-thing; requiring the extents to
+   * account for every byte from zero to the directory is positive proof. There
+   * is then nowhere for an unindexed record to be.
+   */
   const ordered = [...extents].sort((a, b) => a.start - b.start);
-  for (let index = 1; index < ordered.length; index += 1) {
-    const previous = ordered[index - 1];
-    const current = ordered[index];
-    if (current.start < previous.end) {
+  let cursor = 0;
+  for (const entry of ordered) {
+    if (entry.start < cursor) {
       throw new Error(
-        `CORRUPT_ZIP: "${current.name}" starts inside "${previous.name}", so two entries claim `
+        `CORRUPT_ZIP: "${entry.name}" starts inside the preceding entry, so two entries claim `
         + 'the same bytes and the archive has no single meaning.',
       );
     }
+    if (entry.start > cursor) {
+      throw new Error(
+        `CORRUPT_ZIP: ${entry.start - cursor} unindexed byte(s) sit before "${entry.name}". `
+        + 'The central directory does not account for every record in the archive.',
+      );
+    }
+    cursor = entry.end;
+  }
+  if (cursor !== directoryStart) {
+    throw new Error(
+      `CORRUPT_ZIP: ${directoryStart - cursor} byte(s) between the last indexed entry and the `
+      + 'central directory are not accounted for by any entry.',
+    );
   }
 
   return entries;

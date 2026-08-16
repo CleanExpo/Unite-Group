@@ -92,6 +92,11 @@ function buildZip(files, {
   // only overlap while both still parse if one entry's data literally contains
   // the other's local record.
   stored = false,
+  // Write every local record but emit central records only for the entries NOT
+  // named here, with a self-consistent EOCD. This is the archive round nine
+  // built: a complete, unindexed local record sitting in the gap between two
+  // indexed extents, which no overlap check can see.
+  omitFromDirectory = [],
 } = {}) {
   const locals = [];
   const centrals = [];
@@ -132,8 +137,16 @@ function buildZip(files, {
   }
 
   const localBlock = Buffer.concat(locals);
-  const centralBlock = Buffer.concat(centrals);
-  const declaredCount = zip64Count ? 0xffff : (countOverride ?? pairs.length);
+  const keptCentrals = [];
+  for (let index = 0; index < pairs.length; index += 1) {
+    if (omitFromDirectory.includes(pairs[index][0])) continue;
+    keptCentrals.push(centrals[index * 2], centrals[index * 2 + 1]);
+  }
+  const centralBlock = Buffer.concat(omitFromDirectory.length > 0 ? keptCentrals : centrals);
+  const entryCount = omitFromDirectory.length > 0
+    ? pairs.length - omitFromDirectory.length
+    : pairs.length;
+  const declaredCount = zip64Count ? 0xffff : (countOverride ?? entryCount);
   const eocd = Buffer.alloc(22);
   eocd.writeUInt32LE(0x06054b50, 0);
   eocd.writeUInt16LE(declaredCount, 8);
@@ -1631,15 +1644,78 @@ test('THE TWO HEADERS MUST AGREE ON EVERY FIELD THEY BOTH CARRY, not just the na
   // The honest archive still reads, so the agreement check is not always-on.
   assert.equal(readZipEntries(zip)[0].name, 'vitest-report.json');
 
-  // A STREAMED entry legitimately zeroes crc/sizes locally and sets flag bit 3.
-  // Refusing it would be over-firing on a construct the format allows.
+  /*
+   * A STREAMED ENTRY IS REFUSED, and this assertion is the reverse of what it
+   * said one round ago.
+   *
+   * It used to assert that a streamed entry was ACCEPTED, on the reasoning that
+   * refusing it would over-fire on a construct the format allows. Round nine
+   * then set localFlags=8 with centralFlags=0, zeroed the local crc and sizes,
+   * wrote no data descriptor at all, and walked through the exception — the
+   * four bytes where APPNOTE 4.3.9.1 requires a descriptor were the next
+   * central header.
+   *
+   * Honouring half of a format feature is worse than not implementing it. The
+   * exception is gone, and actions/upload-artifact does not stream, so nothing
+   * real is refused.
+   */
   const streamed = Buffer.from(zip);
   streamed.writeUInt16LE(0x08, 6);
   streamed.writeUInt32LE(0, 14);
   streamed.writeUInt32LE(0, 18);
   streamed.writeUInt32LE(0, 22);
-  assert.equal(readZipEntries(streamed)[0].name, 'vitest-report.json');
+  assert.throws(() => readZipEntries(streamed), /streamed entry/u);
   void nameLength;
+});
+
+test('THE INDEXED ENTRIES MUST ACCOUNT FOR EVERY BYTE, so nothing can hide in a gap', () => {
+  /*
+   * Overlap alone was not enough. Round nine put a SECOND complete local record
+   * named `vitest-report.json` in the GAP between two indexed extents: nothing
+   * overlapped, the directory declared only the first, and the reader accepted
+   * the indexed payload while a same-named record sat unread in the archive —
+   * a file another ZIP reader may hand back instead.
+   */
+  const honest = buildZip([
+    ['a.json', '{"a":1}'],
+    ['b.json', '{"b":2}'],
+  ], { stored: true });
+
+  /*
+   * THE TRAILING CASE: the last entry is unindexed, so the gap sits between the
+   * final indexed extent and the central directory. The EOCD is entirely
+   * self-consistent — this is a well-formed archive that simply does not
+   * mention one of its own records.
+   *
+   * The assertions name their messages. The first version of this test asserted
+   * `/CORRUPT_ZIP/` and was satisfied by the directory-span check firing first,
+   * so both tiling mutants survived it. That is the FOURTH assertion in this
+   * file caught by the wrong throw, which is why none of them are broad now.
+   */
+  const trailing = buildZip([
+    ['a.json', '{"a":1}'],
+    ['b.json', '{"b":2}'],
+  ], { stored: true, omitFromDirectory: ['b.json'] });
+  assert.throws(
+    () => readZipEntries(trailing),
+    /between the last indexed entry and the\s+central directory/u,
+    'the trailing-gap rule must be what refuses this',
+  );
+
+  // THE INTERIOR CASE: the unindexed record sits between two indexed ones.
+  const interior = buildZip([
+    ['a.json', '{"a":1}'],
+    ['hidden.json', '{"h":3}'],
+    ['b.json', '{"b":2}'],
+  ], { stored: true, omitFromDirectory: ['hidden.json'] });
+  assert.throws(
+    () => readZipEntries(interior),
+    /unindexed byte\(s\) sit before/u,
+    'the interior-gap rule must be what refuses this',
+  );
+
+  // The honest archive still reads both, so the tiling rule is not always-on.
+  assert.deepEqual(readZipEntries(honest).map((e) => e.name), ['a.json', 'b.json']);
 });
 
 test('A NEGATIVE FAILED-SUITE COUNT IS UNVERIFIABLE, never a pass', () => {
