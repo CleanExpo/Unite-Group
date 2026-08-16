@@ -579,3 +579,55 @@ test('the shipped ledger still parses clean after all of this', () => {
   assert.equal(summarise(parsed, NOW).integrity, 'OK');
   assert.equal(parsed.open.length, 9);
 });
+
+test('A RESOLVED ROW THAT RESOLVES NOTHING IS NOT RESOLVED', () => {
+  /*
+   * ROUND-FOURTEEN P1. Only the OPEN table was ever validated. Resolved rows
+   * were checked for cell COUNT and then trusted, so
+   * `| F9 | Still needs a decision | 2026-08-01 |  |  |` — five cells, therefore
+   * "well-formed" — sat in the Resolved section with no resolution date and no
+   * decision text, and the summary reported integrity OK while the heartbeat
+   * printed "Nothing is blocked on Phill."
+   *
+   * The Resolved section is where decisions go to be FORGOTTEN, so an unchecked
+   * row there is worse than an unchecked row in Open: nobody looks at it again.
+   */
+  const ledger = (resolvedRow) => [
+    '# FOUNDER QUEUE', '', '## Open', '', HEADER, RULE, '',
+    '## Resolved', '', '| ID | Decision | Opened | Resolved | Decision text |',
+    '| --- | --- | --- | --- | --- |', resolvedRow,
+  ].join('\n');
+
+  const broken = [
+    ['no resolution date and no decision text',
+      '| F9 | Still needs a decision | 2026-08-01 |  |  |', /empty Resolved cell/u],
+    ['no decision text',
+      '| F9 | Ship it | 2026-08-01 | 2026-08-02 |  |', /empty decision text cell/u],
+    ['no ID', '|  | Ship it | 2026-08-01 | 2026-08-02 | shipped |', /empty ID cell/u],
+    // The reason is read out of printed JSON, so the quotes around the offending
+    // value arrive backslash-escaped. Second time this exact spelling has bitten
+    // in this file; matching the raw form silently never matches.
+    ['an unreadable resolved date',
+      '| F9 | Ship it | 2026-08-01 | someday | shipped |', /Resolved date \\"someday\\"/u],
+  ];
+  for (const [label, row, reason] of broken) {
+    const io = { logs: [], errors: [], log(m) { this.logs.push(m); }, error(m) { this.errors.push(m); } };
+    const code = main([], { io, now: NOW, readFile: () => ledger(row) });
+    assert.equal(code, 1, label);
+    assert.match(io.logs.join('\n'), /"integrity": "MALFORMED"/u, label);
+    assert.match(io.logs.join('\n'), reason, label);
+  }
+
+  /*
+   * THE POSITIVE CONTROL MATTERS MORE THAN USUAL HERE: the shipped ledger has
+   * ZERO resolved rows, so it cannot prove this validator does not simply refuse
+   * every resolved row it sees. A complete one must pass.
+   */
+  const io = { logs: [], errors: [], log(m) { this.logs.push(m); }, error(m) { this.errors.push(m); } };
+  const code = main([], {
+    io, now: NOW, readFile: () => ledger('| F0 | Ship it | 2026-05-01 | 2026-05-02 | shipped it |'),
+  });
+  assert.equal(code, 0, io.logs.join('\n'));
+  assert.match(io.logs.join('\n'), /"integrity": "OK"/u);
+  assert.match(io.logs.join('\n'), /"resolvedCount": 1/u);
+});

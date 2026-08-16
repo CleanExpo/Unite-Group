@@ -40,7 +40,7 @@ const WORKFLOW_PATH = join(repositoryRoot, '.github', 'workflows', 'nexus-heartb
 // of the observe job in the present tense, three rounds after that step was
 // removed for being unrunnable. The pin doing its job — a comment-only edit
 // failing this test until someone deliberately re-pins — is the whole point.
-const PINNED_WORKFLOW_SHA256 = '82c5dfe3ba2b5847a999965d1153d5dedb4dea19d0bee6fc697ad721ce1dc315';
+const PINNED_WORKFLOW_SHA256 = '9f651bf5dc9c73edbf759a437ff423fe35040b0ebf8ef6b1f979043f9fe8d8e3';
 
 // Rendered gate lists (what reconcileGates PRODUCES).
 const GREEN = [
@@ -77,9 +77,15 @@ const OWNED_BODY = `${OWNER_MARKER}\nsome previous report`;
  * write cannot test a readback, so this one actually holds the issues it is told
  * about and serves them back through `getIssue`.
  */
-function stubClient(existing = [], { dropWrites = false, omitGetIssue = false } = {}) {
+function stubClient(existing = [], {
+  dropWrites = false, omitGetIssue = false, closeOnWrite = false,
+} = {}) {
   const calls = [];
-  const store = new Map(existing.map((issue) => [issue.number, { ...issue }]));
+  // `state: 'open'` by default, because a real issue HAS a state and a double
+  // that omits it cannot test the state check. Round fourteen found the readback
+  // confirming a CLOSED issue as a successful publish; a stub with no `state`
+  // would have made that check unfalsifiable rather than merely unwritten.
+  const store = new Map(existing.map((issue) => [issue.number, { state: 'open', ...issue }]));
   let nextNumber = 101;
   const client = {
     calls,
@@ -89,12 +95,12 @@ function stubClient(existing = [], { dropWrites = false, omitGetIssue = false } 
       calls.push({ action: 'create', ...payload });
       const number = nextNumber;
       nextNumber += 1;
-      if (!dropWrites) store.set(number, { number, ...payload });
+      if (!dropWrites) store.set(number, { number, state: closeOnWrite ? 'closed' : 'open', ...payload });
       return { number };
     },
     async updateIssue(number, payload) {
       calls.push({ action: 'update', number, ...payload });
-      if (!dropWrites) store.set(number, { number, ...payload });
+      if (!dropWrites) store.set(number, { number, state: closeOnWrite ? 'closed' : 'open', ...payload });
       return { number };
     },
   };
@@ -422,8 +428,47 @@ test('ZERO DECLARED GATES IS NOT A GREEN RUN', () => {
     assert.match(result.failureReasons.join('\n'), reason, label);
   }
 
-  // POSITIVE CONTROL: the real declaration, fully captured, is still green — or
-  // every assertion above is satisfied by a function that refuses everything.
+  /*
+   * A DECLARATION THE CALLER CAN SYNTHESISE ANSWERS FOR IS NOT A DECLARATION.
+   *
+   * `Array.isArray` is true for a Proxy over an array, and `.filter` is an own
+   * property anyone can override — so the guard above was reading values the
+   * caller made up for it. Both of these reached a green run with one PASS gate
+   * while the real array held nothing valid.
+   */
+  const ownFilter = [42];
+  ownFilter.filter = () => ['verify:readiness'];
+  const proxied = new Proxy([], {
+    get(target, key) {
+      if (key === 'length') return 1;
+      if (key === '0') return 'verify:readiness';
+      return Reflect.get(target, key);
+    },
+  });
+  const tampered = [
+    ['an own `filter` that answers for the array', ownFilter],
+    ['a Proxy reporting a length its target does not have', proxied],
+    ['a String object rather than a string primitive', [new String('verify:readiness')]],
+    // eslint-disable-next-line no-sparse-arrays
+    ['a sparse array whose hole reads as undefined', [, 'verify:readiness']],
+  ];
+  for (const [label, declared] of tampered) {
+    const result = composeHeartbeat({
+      date: '2026-08-16',
+      gateEvidence: { ok: true, value: [{ name: 'verify:readiness', exitCode: 0 }] },
+      queueEvidence: { ok: true, value: QUEUE },
+      previousBody: null,
+      provenance,
+      declared,
+    });
+    assert.equal(result.failed, true, label);
+  }
+
+  /*
+   * POSITIVE CONTROLS, and there are two because the guard has two ways to be
+   * wrong. Without them every assertion above is satisfied by a `failed` that is
+   * hard-coded true — which fails every run and carries no signal at all.
+   */
   const real = composeHeartbeat({
     date: '2026-08-16',
     gateEvidence: { ok: true, value: CAPTURE_GREEN },
@@ -433,6 +478,20 @@ test('ZERO DECLARED GATES IS NOT A GREEN RUN', () => {
   });
   assert.equal(real.failed, false);
   assert.equal(real.gates.length, DECLARED_GATES.length);
+
+  // A frozen literal array is the shape the workflow actually passes, and it
+  // must survive the trusted copy rather than being refused as "not a plain
+  // array" — the normalisation must reject tampering, not immutability.
+  const frozen = composeHeartbeat({
+    date: '2026-08-16',
+    gateEvidence: { ok: true, value: [{ name: 'verify:readiness', exitCode: 0 }] },
+    queueEvidence: { ok: true, value: QUEUE },
+    previousBody: null,
+    provenance,
+    declared: Object.freeze(['verify:readiness']),
+  });
+  assert.equal(frozen.failed, false);
+  assert.equal(frozen.gates.length, 1);
 });
 
 test('THE WORKFLOW FAILS THE RUN ON `failed`, not on `degraded`', () => {
@@ -1485,4 +1544,52 @@ test('THE THREAT MODEL IS STATED, not implied', () => {
   assert.ok(/arbitrary code/iu.test(workflow), 'the arbitrary-code limit must be named');
   assert.ok(/NOT RUNNING AT ALL|not running at all/u.test(workflow), 'the silence limit must be named');
   assert.ok(/marker is public/iu.test(workflow), 'the public-marker limit must be named');
+});
+
+test('A CLOSED HEARTBEAT ISSUE IS NOT A PUBLISHED ONE', () => {
+  /*
+   * ROUND-FOURTEEN P1. The readback compared number, title, ownership marker and
+   * body — everything about the CONTENT — and never asked whether the issue was
+   * still open. An issue closed between the listing and the update passes every
+   * one of those: the body is exactly what was sent, to an issue nobody sees.
+   * The run then reported success with no open heartbeat in the repository.
+   *
+   * Same shape as the red gate two rounds ago — a true statement about the wrong
+   * question — and the same shape as the whole epic: a green signal over a thing
+   * that is not there.
+   */
+  const title = HEARTBEAT_TITLE;
+  const body = `${OWNER_MARKER}\nbody`;
+  const closedClient = {
+    listOpenIssues: async () => [{ number: 7, title, body }],
+    updateIssue: async () => ({ number: 7 }),
+    createIssue: async () => { throw new Error('must not create'); },
+    // Closed between the listing and the update. Content is byte-identical.
+    getIssue: async (number) => ({ number, title, body, state: 'closed' }),
+  };
+  return assert.rejects(
+    () => upsertHeartbeatIssue({
+      client: closedClient, body, issues: [{ number: 7, title, body }],
+    }),
+    /live state is "closed", not "open"/u,
+  ).then(() => {
+    // POSITIVE CONTROL: the identical flow with an OPEN issue must succeed, or
+    // the assertion above is satisfied by a function that rejects everything.
+    const openClient = { ...closedClient, getIssue: async (number) => ({ number, title, body, state: 'open' }) };
+    return upsertHeartbeatIssue({ client: openClient, body, issues: [{ number: 7, title, body }] })
+      .then((result) => {
+        assert.equal(result.action, 'updated');
+        assert.equal(result.number, 7);
+      });
+  });
+});
+
+test('THE WORKFLOW CLIENT CARRIES `state` BACK, or the check above cannot fire', () => {
+  // The library check is worthless if the client never supplies the field: every
+  // readback would compare `undefined !== 'open'` and fail every run, or — worse,
+  // had it been written the other way — pass every run. The workflow is the only
+  // producer of that field in production.
+  const workflow = readFileSync(WORKFLOW_PATH, 'utf8');
+  assert.match(workflow, /state:\s*data\.state/u,
+    'the workflow getIssue must return the live issue state');
 });

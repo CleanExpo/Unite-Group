@@ -234,11 +234,18 @@ jobs:
               // The readback. A create/update response is a claim about a
               // request; this is the observation that it landed. upsert throws
               // unless the live body matches what was sent.
+              // `state` IS PART OF THE OBSERVATION, not metadata. The readback
+              // compared number, title, marker and body and never asked whether
+              // the issue was still open — so an issue closed between the
+              // listing and the update passed every check, and the run reported
+              // success with the report written where nobody reads it.
               getIssue: async (issue_number) => {
                 const { data } = await github.rest.issues.get({
                   owner: context.repo.owner, repo: context.repo.repo, issue_number,
                 });
-                return { number: data.number, title: data.title, body: data.body };
+                return {
+                  number: data.number, title: data.title, body: data.body, state: data.state,
+                };
               },
             };
 

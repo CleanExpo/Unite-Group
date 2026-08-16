@@ -357,10 +357,63 @@ export function classifyOpenRows(rows) {
   return { stillOpen, notes };
 }
 
+/**
+ * Every Resolved row is checked too, for the same reason every Open row is.
+ *
+ * ONLY THE OPEN TABLE WAS EVER VALIDATED. Resolved rows were parsed for cell
+ * COUNT and then trusted, so
+ * `| F9 | Still needs a decision | 2026-08-01 |  |  |` — five cells, therefore
+ * well-formed — sat in the Resolved section with no resolution date and no
+ * decision text, and the summary reported `integrity: OK` with the heartbeat
+ * printing "Nothing is blocked on Phill."
+ *
+ * A decision filed as resolved with nothing recorded about how it was resolved
+ * is exactly the state the founder queue exists to make visible. The Resolved
+ * section is where decisions go to be FORGOTTEN, so an unchecked row there is
+ * worse than an unchecked row in Open: nobody looks at it again.
+ */
+export function classifyResolvedRows(rows) {
+  const notes = [];
+  for (const row of rows) {
+    const id = typeof row.id === 'string' ? row.id.trim() : '';
+    const label = id === '' ? '(a resolved row with no ID)' : id;
+    if (id === '') {
+      notes.push('A Resolved-table row has an empty ID cell, so it cannot be named in a report.');
+    }
+    const required = [
+      ['Decision', row.decision],
+      ['Opened', row.opened],
+      ['Resolved', row.resolved],
+      // The whole point of moving a row here: what was actually decided.
+      ['decision text', row.text],
+    ];
+    for (const [cell, value] of required) {
+      if (typeof value !== 'string' || value.trim() === '') {
+        notes.push(
+          `Resolved row ${label} has an empty ${cell} cell, so it records a decision nobody can `
+          + 'read; a row filed as resolved with no resolution is still open.',
+        );
+      }
+    }
+    // The dates must be dates, on the same rule the Open table uses — a resolved
+    // row whose dates cannot be read cannot be checked for ordering either.
+    for (const [cell, value] of [['Opened', row.opened], ['Resolved', row.resolved]]) {
+      if (typeof value === 'string' && value.trim() !== '' && !ISO_DATE.test(value.trim())) {
+        notes.push(
+          `Resolved row ${label} has ${cell} date ${JSON.stringify(value)}, which is not an `
+          + 'ISO date.',
+        );
+      }
+    }
+  }
+  return { notes };
+}
+
 export function summarise(parsed, now) {
   const { stillOpen, notes } = classifyOpenRows(parsed.open);
+  const { notes: resolvedNotes } = classifyResolvedRows(parsed.resolved);
   const { oldest, unaged } = oldestOpen(stillOpen, now);
-  const malformed = [...(parsed.malformed ?? []), ...notes, ...unaged];
+  const malformed = [...(parsed.malformed ?? []), ...notes, ...resolvedNotes, ...unaged];
   return {
     openCount: stillOpen.length,
     resolvedCount: parsed.resolved.length,

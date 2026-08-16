@@ -104,11 +104,47 @@ export function reconcileGates(declared, captured) {
    * too: `byName` is keyed by name, so a duplicated declaration silently reports
    * one gate under two rows and the count stops meaning anything.
    */
-  const declaredList = Array.isArray(declared) ? declared : [];
-  const usableNames = declaredList.filter(
+  /*
+   * THE DECLARATION IS COPIED THROUGH A CHANNEL THE CALLER CANNOT INTERPOSE ON.
+   *
+   * `Array.isArray` returns TRUE for a Proxy over an array, and `.filter` is an
+   * own property anyone can override — so `[42]` with its own `filter` returning
+   * `['verify:readiness']`, and a Proxy over `[]` whose traps report length 1,
+   * both reached a green run with one PASS gate while the underlying array held
+   * nothing valid. Every check below was reading values the caller synthesised
+   * for it.
+   *
+   * `structuredClone` cannot be interposed on: it walks internal slots, throws
+   * DataCloneError on a Proxy (verified, not assumed), and returns a genuine
+   * plain array otherwise — so own-property overrides do not survive the copy.
+   * Everything downstream reads the CLONE, never the argument.
+   *
+   * A clone failure is an anomaly rather than a crash, because this is a
+   * reporter: it must publish "the declaration could not be read" rather than
+   * die and publish nothing.
+   */
+  let declaredList = [];
+  let cloneFailed = false;
+  try {
+    const cloned = structuredClone(declared);
+    declaredList = Array.isArray(cloned) ? cloned : [];
+    if (!Array.isArray(cloned)) cloneFailed = !Array.isArray(declared) ? false : true;
+  } catch {
+    cloneFailed = true;
+  }
+  if (cloneFailed) {
+    anomalies.push(
+      'The declared gate list could not be copied into a trusted array, so what it really '
+      + 'contains is unknown and nothing can be certified against it.',
+    );
+  }
+  // `Array.prototype.filter.call` rather than `declaredList.filter`, so an own
+  // `filter` on a plain array cannot choose its own answer either.
+  const usableNames = Array.prototype.filter.call(
+    declaredList,
     (name) => typeof name === 'string' && name.trim() !== '',
   );
-  if (!Array.isArray(declared) || declaredList.length === 0) {
+  if (cloneFailed || !Array.isArray(declared) || declaredList.length === 0) {
     anomalies.push(
       'No gates are declared, so this run certifies nothing. An empty declaration cannot be '
       + 'reported as a pass.',
@@ -443,6 +479,27 @@ async function confirmWrite(client, number, expected, action) {
     throw new Error(
       `Heartbeat issue #${number} was ${action} but its live body differs from the body sent; `
       + 'the write did not land as written.',
+    );
+  }
+  /*
+   * AND IT MUST STILL BE OPEN.
+   *
+   * The readback compared number, title, marker and body — everything about the
+   * CONTENT — and never asked whether the issue anyone would read still exists
+   * as a live one. An issue closed between the listing and the update passes
+   * every check above: the body is exactly what was sent, to an issue nobody
+   * will see. The run reports success with no open heartbeat in the repository.
+   *
+   * That is the same shape as the gate failure two rounds ago — a true statement
+   * about the wrong question — and the same shape as the whole epic: a green
+   * signal over a thing that is not there. `state` is the cheapest field to
+   * carry and the one that decides whether the report exists for its reader.
+   */
+  if (live.state !== 'open') {
+    throw new Error(
+      `Heartbeat issue #${number} was ${action} but its live state is `
+      + `${JSON.stringify(live.state)}, not "open". A closed issue carries the report where `
+      + 'nobody reads it, so this run published nothing.',
     );
   }
 }
