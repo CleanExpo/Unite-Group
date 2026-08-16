@@ -26,9 +26,16 @@ export function computeAgeDays(opened, now) {
   if (typeof opened !== 'string' || !ISO_DATE.test(opened.trim())) {
     throw new Error(`Unparseable opened date: ${JSON.stringify(opened)}`);
   }
-  const openedMs = Date.parse(`${opened.trim()}T00:00:00Z`);
+  const trimmed = opened.trim();
+  const openedMs = Date.parse(`${trimmed}T00:00:00Z`);
   if (Number.isNaN(openedMs)) {
     throw new Error(`Unparseable opened date: ${JSON.stringify(opened)}`);
+  }
+  // ISO shape is not calendar validity: Date.parse silently rolls 2026-02-31
+  // forward to 3 March and hands back a plausible age for a date that does not
+  // exist. Round-tripping is the only check that catches it.
+  if (new Date(openedMs).toISOString().slice(0, 10) !== trimmed) {
+    throw new Error(`Not a real calendar date: ${JSON.stringify(opened)}`);
   }
   const nowMs = Date.parse(now);
   if (Number.isNaN(nowMs)) throw new Error(`Unparseable now: ${JSON.stringify(now)}`);
@@ -40,31 +47,69 @@ export function computeAgeDays(opened, now) {
   return days;
 }
 
+/**
+ * Splits a GFM table row. The outer pipes are optional in GFM, so they are
+ * stripped only when present — slicing them off unconditionally ate the first and
+ * last real cell of every borderless table and returned zero rows, which the
+ * heartbeat then rendered as "nothing is blocked on Phill".
+ */
 function splitRow(line) {
-  return line.split('|').slice(1, -1).map((cell) => cell.trim());
+  const trimmed = line.trim().replace(/^\|/u, '').replace(/\|$/u, '');
+  return trimmed.split('|').map((cell) => cell.trim());
 }
 
 function isSeparator(cells) {
-  return cells.every((cell) => /^-{2,}$/u.test(cell));
+  return cells.length > 0 && cells.every((cell) => /^:?-{2,}:?$/u.test(cell));
 }
 
+function looksLikeRow(line) {
+  return line.includes('|');
+}
+
+/**
+ * Parses the ledger, FAILING CLOSED.
+ *
+ * A row that is inside a table but does not have enough cells is NOT skipped —
+ * it is recorded in `malformed`. Silently discarding it turned a typo into the
+ * reassuring message "No open founder decisions", which is the exact
+ * false-success shape this ledger exists to remove. Absence of the header row is
+ * itself an anomaly: an empty queue must be PROVEN empty (header found, no data
+ * rows), never inferred from a parse that matched nothing.
+ */
 export function parseFounderQueue(markdown) {
   const lines = markdown.split(/\r?\n/u);
   const open = [];
   const resolved = [];
+  const malformed = [];
+  const headersSeen = new Set();
   let section = 'open';
+  let lineNumber = 0;
 
   for (const line of lines) {
+    lineNumber += 1;
     const heading = /^##\s+(.+?)\s*$/u.exec(line);
     if (heading) {
       section = /^resolved$/iu.test(heading[1]) ? 'resolved' : 'open';
       continue;
     }
-    if (!line.trim().startsWith('|')) continue;
+    if (!looksLikeRow(line)) continue;
 
     const cells = splitRow(line);
-    if (cells.length < 5 || isSeparator(cells)) continue;
-    if (/^id$/iu.test(cells[0])) continue;
+    if (isSeparator(cells)) continue;
+    if (/^id$/iu.test(cells[0])) {
+      headersSeen.add(section);
+      continue;
+    }
+    if (!headersSeen.has(section)) continue;
+
+    const required = section === 'resolved' ? 5 : 7;
+    if (cells.length < required) {
+      malformed.push(
+        `Line ${lineNumber} of the ${section} table has ${cells.length} cells, `
+        + `expected at least ${required}: ${line.trim()}`,
+      );
+      continue;
+    }
 
     if (section === 'resolved') {
       resolved.push({
@@ -82,7 +127,11 @@ export function parseFounderQueue(markdown) {
     }
   }
 
-  return { open, resolved };
+  if (!headersSeen.has('open')) {
+    malformed.push('The Open table header was never found; no row could be attributed to it.');
+  }
+
+  return { open, resolved, malformed };
 }
 
 export function oldestOpen(rows, now) {
@@ -107,30 +156,50 @@ export function renderQueue(parsed, now) {
 }
 
 export function summarise(parsed, now) {
+  const malformed = parsed.malformed ?? [];
   return {
     openCount: parsed.open.length,
     resolvedCount: parsed.resolved.length,
     oldest: oldestOpen(parsed.open, now),
+    integrity: malformed.length === 0 ? 'OK' : 'MALFORMED',
+    malformed,
   };
 }
 
-export function main(argv = process.argv.slice(2), { io = console, now = new Date().toISOString() } = {}) {
-  const markdown = readFileSync(QUEUE_PATH, 'utf8');
+export function main(argv = process.argv.slice(2), {
+  io = console,
+  now = new Date().toISOString(),
+  readFile = (path) => readFileSync(path, 'utf8'),
+  writeFile = (path, contents) => writeFileSync(path, contents),
+} = {}) {
+  const markdown = readFile(QUEUE_PATH);
   const parsed = parseFounderQueue(markdown);
+  const malformed = parsed.malformed ?? [];
 
   if (argv.includes('--render')) {
+    // Never rewrite a file we could not fully read: the render drops whatever it
+    // did not parse, so rendering a malformed ledger would DELETE the row that
+    // failed to parse and leave the file looking clean.
+    if (malformed.length > 0) {
+      for (const note of malformed) io.error(note);
+      io.error('Refusing to rewrite FOUNDER-QUEUE.md while rows do not parse.');
+      return 2;
+    }
     const table = renderQueue(parsed, now);
-    const rebuilt = markdown.replace(
-      /\| ID \| Decision \| Opened \| Age \(days\)[\s\S]*?(?=\n\n|\n## |$)/u,
-      table,
-    );
-    writeFileSync(QUEUE_PATH, rebuilt);
+    const pattern = /\| ID \| Decision \| Opened \| Age \(days\)[\s\S]*?(?=\n\n|\n## |$)/u;
+    if (!pattern.test(markdown)) {
+      io.error('Refusing to rewrite FOUNDER-QUEUE.md: the Open table header was not found.');
+      return 2;
+    }
+    writeFile(QUEUE_PATH, markdown.replace(pattern, table));
     io.log(`Rewrote ${parsed.open.length} age values.`);
     return 0;
   }
 
+  // The summary is still printed when rows are malformed — the heartbeat reads it
+  // and reports the integrity failure — but the exit code refuses to call it clean.
   io.log(JSON.stringify(summarise(parsed, now), null, 2));
-  return 0;
+  return malformed.length === 0 ? 0 : 1;
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

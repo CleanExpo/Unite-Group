@@ -5,15 +5,22 @@ name: Nexus Heartbeat
 #
 # AUTHORITY. This workflow OBSERVES AND REPORTS — Waterline Class 0/1. It must not
 # deploy, merge, or arm anything: merge is not deploy (UNI-2542) and there is one
-# release authority (UNI-2562). Its only write is a single pinned issue, which is
-# why `permissions` grants `issues: write` and nothing else.
+# release authority (UNI-2562).
 #
-# HONEST DEGRADATION. Every gate runs with `continue-on-error` so one red gate
-# cannot hide the others behind a cancelled job, and each result is captured
-# explicitly. A gate that failed is reported FAIL with its exit code; a gate that
-# never ran is reported NOT RUN. Neither is ever allowed to read as PASS — that is
-# the UNI-2567 lesson applied here (a required check went green while the evidence
-# it certified never executed).
+# THE WRITE TOKEN IS ISOLATED IN ITS OWN JOB. Permissions are granted per job, so
+# the `observe` job — the one that runs `npm ci` and three repository-controlled
+# npm scripts — holds `contents: read` and nothing else. Only `report` holds
+# `issues: write`, and it installs nothing, runs no repository script, and checks
+# out exactly one file. Both checkouts set `persist-credentials: false` so no
+# ambient credential is left in the workspace for repository code to pick up.
+# Round one of the independent review was right that a workflow-wide `issues:
+# write` cannot support the claim that the only write is one issue.
+#
+# HONEST DEGRADATION. Every gate runs with its exit code captured, so one red gate
+# cannot hide the others. `report` runs with `if: always()`, so a dead observe job
+# updates the issue with NOT RUN rows and a DEGRADED banner instead of leaving
+# yesterday's PASS standing as though it were today's. All of that logic lives in
+# scripts/nexus-heartbeat.mjs where tests can reach it — the YAML decides nothing.
 
 on:
   schedule:
@@ -24,19 +31,22 @@ on:
 
 permissions:
   contents: read
-  issues: write
 
 concurrency:
   group: nexus-heartbeat
   cancel-in-progress: false
 
 jobs:
-  heartbeat:
-    name: Observe gates and report distance to North Star
+  observe:
+    name: Run the gates and capture every result
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -48,9 +58,9 @@ jobs:
         run: npm ci
 
       - name: Run gates and capture every result
-        id: gates
         run: |
           set +e
+          mkdir -p /tmp/heartbeat
           results='[]'
           for gate in verify:readiness verify:docs-watch verify:docs-review; do
             npm run "$gate" > "/tmp/${gate//:/-}.log" 2>&1
@@ -63,44 +73,66 @@ jobs:
               console.log(JSON.stringify(list));
             ' "$results" "$gate" "$status" "$code")
           done
-          printf '%s' "$results" > /tmp/gate-results.json
-          cat /tmp/gate-results.json
+          printf '%s' "$results" > /tmp/heartbeat/gate-results.json
+          cat /tmp/heartbeat/gate-results.json
 
+      # Exit 1 means rows did not parse; the JSON is still written and the report
+      # renders the integrity failure, so the step must not abort the upload.
       - name: Compute founder-queue age
-        id: queue
-        run: node scripts/founder-queue.mjs > /tmp/queue.json && cat /tmp/queue.json
+        run: node scripts/founder-queue.mjs > /tmp/heartbeat/queue.json || true
+
+      - name: Upload the evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: heartbeat-evidence
+          path: /tmp/heartbeat
+          if-no-files-found: warn
+          retention-days: 7
+
+  report:
+    name: Create or update the pinned heartbeat issue
+    needs: [observe]
+    # ALWAYS. A skipped report is the failure mode this workflow exists to prevent:
+    # it leaves the previous run's PASS body live as the newest thing anyone reads.
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      # Exactly one file, no history, no credentials, no install. Nothing in this
+      # job executes repository code other than scripts/nexus-heartbeat.mjs.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/nexus-heartbeat.mjs
+          sparse-checkout-cone-mode: false
+
+      - name: Download the evidence
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: heartbeat-evidence
+          path: /tmp/heartbeat
 
       - name: Create or update the pinned heartbeat issue
+        if: always()
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
-            const { readFileSync } = require('node:fs');
             const {
-              HEARTBEAT_TITLE, buildHeartbeatBody, detectDrift, upsertHeartbeatIssue,
+              HEARTBEAT_TITLE, DECLARED_GATES, OWNER_MARKER,
+              composeHeartbeat, readEvidence, upsertHeartbeatIssue,
             } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/nexus-heartbeat.mjs`);
 
-            const declared = ['verify:readiness', 'verify:docs-watch', 'verify:docs-review'];
-            let captured = [];
-            try {
-              captured = JSON.parse(readFileSync('/tmp/gate-results.json', 'utf8'));
-            } catch { captured = []; }
-
-            // A gate missing from the capture never ran. Report it as NOT RUN
-            // rather than dropping it, so silence can never read as success.
-            const byName = new Map(captured.map((gate) => [gate.name, gate]));
-            const gates = declared.map((name) => byName.get(name)
-              ?? { name, status: 'NOT_RUN', exitCode: null });
-
-            let queue = { openCount: 0, oldest: null };
-            try {
-              queue = JSON.parse(readFileSync('/tmp/queue.json', 'utf8'));
-            } catch {
-              queue = { openCount: 0, oldest: null };
-            }
-
             const client = {
+              // paginate, not per_page: a heartbeat sitting past the first page
+              // reads as absent and opens a duplicate every single run.
               listOpenIssues: async () => {
-                const { data } = await github.rest.issues.listForRepo({
+                const data = await github.paginate(github.rest.issues.listForRepo, {
                   owner: context.repo.owner, repo: context.repo.repo, state: 'open', per_page: 100,
                 });
                 return data.map((issue) => ({ number: issue.number, title: issue.title, body: issue.body }));
@@ -119,25 +151,31 @@ jobs:
               },
             };
 
-            // Drift is measured against the previous run's own report, which is
-            // the only record of it that survives.
-            const existing = (await client.listOpenIssues())
-              .find((issue) => issue.title === HEARTBEAT_TITLE);
-            const previous = existing
-              ? declared.map((name) => ({
-                name,
-                status: new RegExp(`\`${name}\`\\s*\\|\\s*PASS`).test(existing.body ?? '')
-                  ? 'PASS'
-                  : 'FAIL',
-              }))
-              : null;
+            const issues = await client.listOpenIssues();
+            const previous = issues.find(
+              (issue) => issue.title === HEARTBEAT_TITLE
+                && typeof issue.body === 'string' && issue.body.includes(OWNER_MARKER),
+            );
 
-            const body = buildHeartbeatBody({
+            const { body, degraded, anomalies } = composeHeartbeat({
               date: new Date().toISOString().slice(0, 10),
-              gates,
-              queue,
-              drift: detectDrift(previous, gates),
+              gateEvidence: readEvidence('/tmp/heartbeat/gate-results.json'),
+              queueEvidence: readEvidence('/tmp/heartbeat/queue.json'),
+              previousBody: previous?.body ?? null,
+              provenance: {
+                runId: context.runId,
+                runUrl: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+                generatedAt: new Date().toISOString(),
+              },
+              declared: DECLARED_GATES,
             });
 
             const result = await upsertHeartbeatIssue({ client, body });
             core.info(`Heartbeat issue ${result.action}: #${result.number}`);
+
+            // A degraded report is published, THEN the run is failed. Publishing
+            // first is what keeps the issue honest; failing after is what makes
+            // the incompleteness visible in the Actions list.
+            if (degraded) {
+              core.setFailed(`Heartbeat is degraded:\n${anomalies.map((a) => `- ${a}`).join('\n')}`);
+            }

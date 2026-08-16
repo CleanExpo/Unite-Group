@@ -1,8 +1,23 @@
 # FOUNDER QUEUE
 
-The decisions only Phill can make, with their age in public. Latency here is the
-most expensive thing in the build — most of these are minutes of founder time
-holding up days of machine time.
+The decisions held by Phill, with their age in public. Latency here is the most
+expensive thing in the build — most of these are minutes of founder time holding
+up days of machine time.
+
+## What belongs here
+
+A row is founder-held for one of two reasons, and the row must say which:
+
+- **By class** — a credential only Phill holds, a spend commitment, a strategic
+  or constitutional choice. No agent can make these, by construction.
+- **By explicit reservation** — Phill has typed that a specific decision is his
+  even though an engineer could otherwise make it. These carry the date of the
+  reservation in Context.
+
+Everything else belongs to engineering under the decision-rights matrix, and
+parking it here manufactures a founder blocker that does not exist. The
+independent review caught exactly that: D19 is a CI substrate choice, which is
+engineering's call by class, and it sits here only because Phill reserved it.
 
 ## Rules
 
@@ -28,7 +43,7 @@ holding up days of machine time.
 | F6 | Retrieve/create the three social platform app secrets | 2026-07-06 | 41 | UNI-2331 | Connectors already built; only FACEBOOK_APP_SECRET, LINKEDIN_*, TIKTOK_* are missing | open |
 | F7 | Stripe connection | 2026-08-16 | 0 | billing, and therefore the metric of record | Blocks paying customers directly | open |
 | P9 | Sign off the arming checklist | 2026-08-07 | 9 | P9 go-live | Per `.spm/2026-08-07-p9-board-meetings-collision.md` | open |
-| D19 | SPINE_DATABASE_URL vs ephemeral Postgres in CI | 2026-08-16 | 0 | UNI-2567 arming | Ephemeral Postgres is hermetic and kills the dependency permanently; a stored secret manages it forever | open |
+| D19 | SPINE_DATABASE_URL vs ephemeral Postgres in CI | 2026-08-16 | 0 | UNI-2567 arming | RESERVED BY PHILL 2026-08-16 — a CI substrate choice engineering would otherwise own. Ephemeral Postgres is hermetic and kills the dependency permanently; a stored secret manages it forever | open |
 
 ## Resolved
 

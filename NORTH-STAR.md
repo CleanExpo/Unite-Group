@@ -34,6 +34,11 @@ goal, and a handoff that reports only gates is reporting a proxy.
 
 ## Authority
 
-Subordinate to `CONSTITUTION.md` and `SOURCE-OF-TRUTH.md`. Registered in the
-portfolio SSOT (`.portfolio/PORTFOLIO.yaml`) per the UNI-2561 direction. Where
-this file and either of those disagree, they win and this file is wrong.
+Subordinate to `CONSTITUTION.md` and `SOURCE-OF-TRUTH.md`. Where this file and
+either of those disagree, they win and this file is wrong.
+
+**Not yet registered in `.portfolio/PORTFOLIO.yaml`.** An earlier draft of this
+section claimed it was; the independent review checked, and no such entry exists.
+The portfolio registry is a separate SSOT and amending it is a separate change
+with its own review — a document that asserts its own registration is precisely
+the unearned-authority claim the UNI-2565..2579 family exists to remove.

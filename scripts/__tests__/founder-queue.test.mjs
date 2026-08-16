@@ -6,9 +6,11 @@ import { fileURLToPath } from 'node:url';
 
 import {
   computeAgeDays,
+  main,
   oldestOpen,
   parseFounderQueue,
   renderQueue,
+  summarise,
 } from '../founder-queue.mjs';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -31,6 +33,19 @@ test('an unparseable opened date is refused, not treated as age zero', () => {
   // reassurance this ledger exists to prevent.
   assert.throws(() => computeAgeDays('not-a-date', NOW), /opened date/i);
   assert.throws(() => computeAgeDays('', NOW), /opened date/i);
+});
+
+test('AN ISO-SHAPED DATE THAT DOES NOT EXIST IS REFUSED, not rolled forward', () => {
+  // Date.parse normalises 2026-02-31 to 3 March and hands back a plausible age.
+  // ISO shape is not calendar validity, and a fabricated age is worse than none.
+  assert.throws(() => computeAgeDays('2026-02-31', '2026-03-05T00:00:00Z'), /real calendar date/i);
+  assert.throws(() => computeAgeDays('2026-13-01', NOW), /real calendar date|opened date/i);
+  assert.throws(() => computeAgeDays('2025-02-29', NOW), /real calendar date/i);
+});
+
+test('a real leap day is still accepted', () => {
+  // Guard the other direction: refusing valid dates would be its own defect.
+  assert.equal(computeAgeDays('2024-02-29', '2024-03-01T00:00:00Z'), 1);
 });
 
 test('the shipped FOUNDER-QUEUE.md parses and carries the seeded decisions', () => {
@@ -101,4 +116,103 @@ test('renderQueue recomputes the age column rather than trusting the file', () =
   const rendered = renderQueue(parseFounderQueue(markdown), NOW);
   assert.ok(rendered.includes('| 10 |'), rendered);
   assert.ok(!rendered.includes('999'), rendered);
+});
+
+// ---------------------------------------------------------------------------
+// Fail closed: a row that does not parse must never become reassurance
+// ---------------------------------------------------------------------------
+
+const HEADER = '| ID | Decision | Opened | Age (days) | Blocks | Context | Status |';
+const RULE = '| --- | --- | --- | --- | --- | --- | --- |';
+
+test('A MALFORMED ROW IS REPORTED, never silently discarded', () => {
+  // Dropping it turned a typo into "No open founder decisions. Nothing is
+  // blocked on Phill." — a false all-clear produced by a parse miss.
+  const markdown = [HEADER, RULE, '| F9 | decide something | 2026-08-01 |'].join('\n');
+  const parsed = parseFounderQueue(markdown);
+
+  assert.equal(parsed.open.length, 0);
+  assert.equal(parsed.malformed.length, 1);
+  assert.match(parsed.malformed[0], /3 cells/);
+  assert.equal(summarise(parsed, NOW).integrity, 'MALFORMED');
+});
+
+test('a table written without the optional outer pipes still parses', () => {
+  // GFM makes the outer pipes optional. Slicing them off unconditionally ate the
+  // first and last cell of every borderless row and returned an empty queue.
+  const markdown = [
+    'ID | Decision | Opened | Age (days) | Blocks | Context | Status',
+    '--- | --- | --- | --- | --- | --- | ---',
+    'F1 | flip it | 2026-06-01 | — | UNI-1 | ctx | open',
+  ].join('\n');
+
+  const parsed = parseFounderQueue(markdown);
+  assert.deepEqual(parsed.open.map((r) => r.id), ['F1']);
+  assert.equal(parsed.open[0].status, 'open');
+  assert.equal(parsed.malformed.length, 0);
+});
+
+test('a file with no Open table at all is an anomaly, not an empty queue', () => {
+  // An empty queue must be PROVEN empty — header present, no data rows — never
+  // inferred from a parse that simply matched nothing.
+  const parsed = parseFounderQueue('# FOUNDER QUEUE\n\nnothing tabular here\n');
+
+  assert.equal(parsed.open.length, 0);
+  assert.equal(summarise(parsed, NOW).integrity, 'MALFORMED');
+  assert.match(parsed.malformed.join('\n'), /header was never found/i);
+});
+
+test('a genuinely empty table is clean, so the guard does not cry wolf', () => {
+  const parsed = parseFounderQueue([HEADER, RULE].join('\n'));
+
+  assert.equal(parsed.open.length, 0);
+  assert.equal(summarise(parsed, NOW).integrity, 'OK');
+});
+
+test('the shipped ledger parses with zero malformed rows', () => {
+  const parsed = parseFounderQueue(readFileSync(QUEUE_PATH, 'utf8'));
+  assert.deepEqual(parsed.malformed, []);
+});
+
+test('--render REFUSES to rewrite a ledger it could not fully read', () => {
+  // The render emits only what it parsed, so rewriting a malformed file would
+  // DELETE the row that failed to parse and leave the file looking clean.
+  const io = { logs: [], errors: [], log(m) { this.logs.push(m); }, error(m) { this.errors.push(m); } };
+  const written = [];
+  const code = main(['--render'], {
+    io,
+    now: NOW,
+    readFile: () => [HEADER, RULE, '| F9 | broken |'].join('\n'),
+    writeFile: (path, contents) => written.push({ path, contents }),
+  });
+
+  assert.equal(code, 2);
+  assert.equal(written.length, 0);
+  assert.match(io.errors.join('\n'), /refusing to rewrite/i);
+});
+
+test('the summary exit code refuses to call a malformed ledger clean', () => {
+  const io = { logs: [], errors: [], log(m) { this.logs.push(m); }, error(m) { this.errors.push(m); } };
+  const code = main([], {
+    io,
+    now: NOW,
+    readFile: () => [HEADER, RULE, '| F9 | broken |'].join('\n'),
+  });
+
+  // The JSON is still printed — the heartbeat reads it and renders the integrity
+  // failure — but exit 0 would tell every other caller the ledger was fine.
+  assert.equal(code, 1);
+  assert.match(io.logs.join('\n'), /"integrity": "MALFORMED"/);
+});
+
+test('a clean ledger still exits 0', () => {
+  const io = { logs: [], errors: [], log(m) { this.logs.push(m); }, error(m) { this.errors.push(m); } };
+  const code = main([], {
+    io,
+    now: NOW,
+    readFile: () => [HEADER, RULE, '| F1 | flip it | 2026-08-01 | — | UNI-1 | ctx | open |'].join('\n'),
+  });
+
+  assert.equal(code, 0);
+  assert.match(io.logs.join('\n'), /"integrity": "OK"/);
 });
