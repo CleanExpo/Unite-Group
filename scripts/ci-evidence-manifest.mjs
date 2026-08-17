@@ -844,6 +844,60 @@ export function readZipEntries(buffer) {
     const nameLength = zipUInt(buffer, offset + 28, 2, 'name length');
     const extraLength = zipUInt(buffer, offset + 30, 2, 'extra length');
     const commentLength = zipUInt(buffer, offset + 32, 2, 'comment length');
+    /*
+     * THE MULTI-DISK REFUSAL WAS ONLY HALF A REFUSAL.
+     *
+     * The EOCD's two disk fields were checked and the PER-ENTRY one was not.
+     * An entry declaring `disk number start` 1 while the EOCD says 0 was
+     * accepted: this reader ignored the field and followed the local-header
+     * offset into the buffer it already had, while a reader that honours it goes
+     * looking for a second volume and refuses. Same shape as every other
+     * one-copy-checked finding on this file.
+     */
+    const entryDisk = zipUInt(buffer, offset + 34, 2, 'entry disk number start');
+    if (entryDisk !== 0) {
+      throw new Error(
+        `UNSUPPORTED_ZIP: a central directory entry declares disk number ${entryDisk}, so its `
+        + 'record lives on a volume this reader does not have. A reader honouring that field '
+        + 'would refuse rather than read the bytes in this file.',
+      );
+    }
+    /*
+     * AND THE ENTRY MUST BE A REGULAR FILE.
+     *
+     * `version made by` names the creator system and `external attributes`
+     * carries that system's file mode. With the Unix creator (high byte 3) and
+     * mode `0120777`, the member IS A SYMLINK: its "content" is a path, and
+     * `bsdtar -x` creates a link rather than the report. This reader graded the
+     * bytes as the report and passed.
+     *
+     * The gate never extracts to disk, so nothing here follows a link — but the
+     * archive still means two different things to two readers, which is the
+     * property this whole walk defends. Refused rather than interpreted, and the
+     * MS-DOS directory and volume-label bits with it.
+     */
+    const creatorSystem = zipUInt(buffer, offset + 4, 2, 'version made by') >> 8;
+    const externalAttrs = zipUInt(buffer, offset + 38, 4, 'external attributes');
+    const UNIX_CREATORS = new Set([3, 7, 19]); // Unix, Macintosh, OS X
+    if (UNIX_CREATORS.has(creatorSystem)) {
+      const mode = (externalAttrs >>> 16) & 0xffff;
+      const fileType = mode & 0o170000;
+      // 0 means the creator recorded no mode at all, which is common and safe.
+      if (fileType !== 0 && fileType !== 0o100000) {
+        throw new Error(
+          `UNSUPPORTED_ZIP: the member's external attributes describe file type 0`
+          + `${fileType.toString(8)} (not a regular file). A reader honouring them would create `
+          + 'something other than the file whose bytes this gate graded.',
+        );
+      }
+    }
+    // The MS-DOS attribute byte is the low 8 bits regardless of creator.
+    if ((externalAttrs & 0x10) !== 0 || (externalAttrs & 0x08) !== 0) {
+      throw new Error(
+        'UNSUPPORTED_ZIP: the member is flagged as a directory or volume label in its MS-DOS '
+        + 'attributes, so it is not the evidence file it claims to be.',
+      );
+    }
     const localOffset = zipUInt(buffer, offset + 42, 4, 'local header offset');
     if (compressedSize === ZIP64_SENTINEL_32 || uncompressedSize === ZIP64_SENTINEL_32
       || localOffset === ZIP64_SENTINEL_32) {
@@ -1169,7 +1223,47 @@ export function readZipEntries(buffer) {
 
     let contents;
     if (method === 0) contents = raw;
-    else if (method === 8) contents = inflateRawSync(raw);
+    else if (method === 8) {
+      contents = inflateRawSync(raw);
+      /*
+       * THE DEFLATE STREAM MUST CONSUME EVERY BYTE THE ENTRY DECLARES.
+       *
+       * `inflateRawSync` STOPS at the end of the deflate stream and silently
+       * ignores whatever follows — verified: 13 bytes of real stream followed by
+       * 400 bytes of anything inflates cleanly and returns the 13 bytes' output.
+       *
+       * So an entry could declare `compressedSize` 1000, carry a 50-byte stream,
+       * and hold 950 unexamined bytes INSIDE ITS OWN EXTENT. The tiling rule does
+       * not see it: tiling proves every byte belongs to SOME entry, and these
+       * bytes do — they are just not payload. A complete unindexed local record
+       * fits there, and a reader that scans for local headers rather than
+       * following the directory finds a file this gate never graded.
+       *
+       * That is the same two-meanings archive as every other refusal here, at the
+       * one place the tiling argument could not reach. Found by an independent
+       * reviewer; the tiling comment two screens down claims "there is then
+       * nowhere for an unindexed record to be", and this was where.
+       *
+       * Node exposes no consumed-byte count on the sync API, so the length is
+       * recovered by binary search: inflating a PREFIX throws while the stream is
+       * truncated and succeeds once it is complete, and that success is monotonic
+       * in the prefix length (verified). The smallest prefix that inflates is
+       * therefore exactly the stream's length. ~20 inflates for a 1MB entry.
+       */
+      let low = 1;
+      let high = raw.length;
+      while (low < high) {
+        const mid = Math.floor((low + high) / 2);
+        try { inflateRawSync(raw.subarray(0, mid)); high = mid; } catch { low = mid + 1; }
+      }
+      if (low !== raw.length) {
+        throw new Error(
+          `CORRUPT_ZIP: "${name}" declares ${raw.length} compressed bytes but its deflate stream `
+          + `ends after ${low}. The remaining ${raw.length - low} byte(s) are inside the entry `
+          + 'and are not its payload, so another reader may find a record there.',
+        );
+      }
+    }
     else throw new Error(`UNSUPPORTED_ZIP_METHOD: ${method} for "${name}".`);
 
     if (contents.length !== uncompressedSize) {

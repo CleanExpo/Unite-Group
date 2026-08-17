@@ -113,6 +113,14 @@ function buildZip(files, {
   // Unicode Path record lives, and a member name is only unambiguous if nothing
   // in the extra field is offering a second one.
   extraRecords = [],
+  // Bytes appended INSIDE the entry's declared compressedSize, after the real
+  // deflate stream. `inflateRawSync` ignores them, so nothing sees them without
+  // an explicit consumed-length check.
+  dataPadding = null,
+  // Three central-header fields nobody read until an independent panel asked.
+  versionMadeBy = 20,
+  externalAttrs = 0,
+  entryDiskStart = 0,
   // Extra records written ONLY into the central header. The two extra regions
   // legitimately differ (APPNOTE 4.4.28), so this is a valid archive — and it is
   // the only way to prove the CENTRAL inspection fires on its own rather than
@@ -126,7 +134,8 @@ function buildZip(files, {
 
   for (const [name, text] of pairs) {
     const raw = Buffer.isBuffer(text) ? text : Buffer.from(text, 'utf8');
-    const deflated = stored ? raw : deflateRawSync(raw);
+    const body = stored ? raw : deflateRawSync(raw);
+    const deflated = dataPadding === null ? body : Buffer.concat([body, dataPadding]);
     const nameBytes = nameBytesOverride ?? Buffer.from(name, 'utf8');
     const buildExtra = (records) => Buffer.concat(records.map(([id, payloadLength]) => {
       const record = Buffer.alloc(4 + payloadLength);
@@ -167,6 +176,9 @@ function buildZip(files, {
     const central = Buffer.alloc(46);
     central.writeUInt32LE(0x02014b50, 0);
     central.writeUInt16LE(20, 6);
+    central.writeUInt16LE(versionMadeBy, 4);
+    central.writeUInt16LE(entryDiskStart, 34);
+    central.writeUInt32LE(externalAttrs >>> 0, 38);
     central.writeUInt16LE(streamed ? 0x08 : 0, 8);
     central.writeUInt16LE(stored ? 0 : 8, 10);
     central.writeUInt32LE(checksum, 16);
@@ -2550,4 +2562,88 @@ test('THE EVIDENCE RECORD NAMES THE MEMBER IT ACTUALLY GRADED', () => {
 
   assert.equal(fetched.source.entry, 'nested/vitest-report.json');
   assert.equal(fetched.source.declaredEntry, 'vitest-report.json');
+});
+
+test('AN ENTRY MUST NOT CARRY BYTES THAT ARE NOT ITS PAYLOAD', () => {
+  /*
+   * FOUND BY AN INDEPENDENT PANEL, AND IT IS THE HOLE IN THE TILING ARGUMENT.
+   *
+   * The tiling comment in the reader says "there is then nowhere for an
+   * unindexed record to be". This was where. `inflateRawSync` STOPS at the end
+   * of the deflate stream and silently ignores whatever follows — verified: 13
+   * bytes of real stream plus 400 bytes of anything inflates cleanly and returns
+   * the 13 bytes' output.
+   *
+   * So an entry could declare a large `compressedSize`, carry a short stream, and
+   * hold the remainder unexamined INSIDE ITS OWN EXTENT. Tiling cannot see it:
+   * tiling proves every byte belongs to some entry, and these bytes do — they are
+   * simply not payload. A complete local record fits there, and a reader that
+   * scans for local headers rather than following the directory finds a file this
+   * gate never graded.
+   */
+  const padded = buildZip({ 'vitest-report.json': '{"ok":true}' },
+    { dataPadding: Buffer.alloc(400, 0x42) });
+  assert.throws(() => readZipEntries(padded),
+    /its deflate stream ends after \d+\. The remaining 400 byte\(s\) are inside the entry/u);
+
+  // One byte is enough — the rule is exactness, not a tolerance.
+  const oneByte = buildZip({ 'vitest-report.json': '{"ok":true}' },
+    { dataPadding: Buffer.alloc(1, 0x42) });
+  assert.throws(() => readZipEntries(oneByte), /The remaining 1 byte\(s\) are inside the entry/u);
+
+  // POSITIVE CONTROLS: an exact deflate stream still reads, and so does a stored
+  // entry, whose length is its own — the check must not fire on either.
+  assert.equal(readZipEntries(buildZip({ 'vitest-report.json': '{"ok":true}' }))[0].name,
+    'vitest-report.json');
+  assert.equal(readZipEntries(buildZip({ 'vitest-report.json': '{"ok":true}' },
+    { stored: true }))[0].name, 'vitest-report.json');
+  // And the REAL artefact, which is streamed deflate, so the check runs on
+  // production bytes rather than only on ones this file wrote.
+  assert.equal(readZipEntries(readFileSync(join(fixtures, 'real-upload-artifact.zip')))[0].name,
+    'dependency-audit-results.json');
+});
+
+test('THE MEMBER MUST BE A REGULAR FILE ON A DISK WE HAVE', () => {
+  /*
+   * Two central-directory fields this reader had never read, both found by an
+   * independent panel, both the same one-copy-checked shape as everything else
+   * on this file.
+   *
+   * `external attributes` + `version made by`: with the Unix creator and mode
+   * 0120777 the member IS A SYMLINK — its content is a path, and `bsdtar -x`
+   * creates a link rather than the report. This gate graded the bytes as the
+   * report and passed. Nothing here extracts to disk, so no link is ever
+   * followed; the defect is that the archive means two different things to two
+   * readers, which is the property this whole walk defends.
+   *
+   * `disk number start`: the EOCD's two disk fields were checked and the
+   * PER-ENTRY one was not, so an entry could claim to live on a second volume
+   * while this reader read the bytes in front of it.
+   */
+  const symlink = buildZip({ 'vitest-report.json': '{"ok":true}' },
+    { stored: true, versionMadeBy: 0x0314, externalAttrs: 0xA1FF0000 });
+  assert.throws(() => readZipEntries(symlink), /file type 0120000 \(not a regular file\)/u);
+
+  const directoryMode = buildZip({ 'vitest-report.json': '{"ok":true}' },
+    { stored: true, versionMadeBy: 0x0314, externalAttrs: 0x41FF0000 });
+  assert.throws(() => readZipEntries(directoryMode), /file type 040000 \(not a regular file\)/u);
+
+  const dosDirectory = buildZip({ 'vitest-report.json': '{"ok":true}' },
+    { stored: true, externalAttrs: 0x10 });
+  assert.throws(() => readZipEntries(dosDirectory), /directory or volume label/u);
+
+  const otherDisk = buildZip({ 'vitest-report.json': '{"ok":true}' },
+    { stored: true, entryDiskStart: 1 });
+  assert.throws(() => readZipEntries(otherDisk), /declares disk number 1/u);
+
+  /*
+   * POSITIVE CONTROLS. A Unix creator recording mode 0 is common and safe, and a
+   * regular-file mode must pass — otherwise this refuses every archive some
+   * producers emit, which is a worse defect than the one being fixed.
+   */
+  for (const [label, attrs] of [['no mode recorded', 0], ['regular file 0100644', 0x81A40000]]) {
+    const ok = buildZip({ 'vitest-report.json': '{"ok":true}' },
+      { stored: true, versionMadeBy: 0x0314, externalAttrs: attrs });
+    assert.equal(readZipEntries(ok)[0].name, 'vitest-report.json', label);
+  }
 });
