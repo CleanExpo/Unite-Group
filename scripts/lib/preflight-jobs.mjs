@@ -25,6 +25,15 @@ export const JOBS = [
     cmd: ['node', ['scripts/check-au-english.mjs']],
   },
   {
+    id: 'nul-bytes',
+    ciJob: 'nul-bytes',
+    label: 'NUL-byte guard (binary-looking source files)',
+    // Always: the file it would catch is one whose diff is INVISIBLE in review,
+    // so path-scoping this would mean trusting the very diff that is hidden.
+    always: true,
+    cmd: ['npm', ['run', 'check:nul-bytes']],
+  },
+  {
     id: 'readiness',
     ciJob: 'project-readiness',
     label: 'Nexus project-readiness P0 gate',
