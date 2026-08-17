@@ -1,0 +1,330 @@
+{
+ "numTotalTestSuites": 12,
+ "numPassedTestSuites": 12,
+ "numFailedTestSuites": 0,
+ "numPendingTestSuites": 0,
+ "numTotalTests": 22,
+ "numPassedTests": 22,
+ "numFailedTests": 0,
+ "numPendingTests": 0,
+ "numTodoTests": 0,
+ "snapshot": {
+  "added": 0,
+  "failure": false,
+  "filesAdded": 0,
+  "filesRemoved": 0,
+  "filesRemovedList": [],
+  "filesUnmatched": 0,
+  "filesUpdated": 0,
+  "matched": 0,
+  "total": 0,
+  "unchecked": 0,
+  "uncheckedKeysByFile": [],
+  "unmatched": 0,
+  "updated": 0,
+  "didUpdate": false
+ },
+ "startTime": 1786880655821,
+ "success": true,
+ "testResults": [
+  {
+   "assertionResults": [
+    {
+     "ancestorTitles": [
+      "spine internals (pure, no DB)"
+     ],
+     "fullName": "spine internals (pure, no DB) formats a pgvector literal",
+     "status": "passed",
+     "title": "formats a pgvector literal",
+     "duration": 0.5812919999999906,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "spine internals (pure, no DB)"
+     ],
+     "fullName": "spine internals (pure, no DB) builds RLS claims from context",
+     "status": "passed",
+     "title": "builds RLS claims from context",
+     "duration": 0.2558750000000032,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "spine internals (pure, no DB)"
+     ],
+     "fullName": "spine internals (pure, no DB) builds claims with nulls when unauthenticated",
+     "status": "passed",
+     "title": "builds claims with nulls when unauthenticated",
+     "duration": 0.06912499999999966,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    }
+   ],
+   "startTime": 1786880655918,
+   "endTime": 1786880655919.069,
+   "status": "passed",
+   "message": "",
+   "name": "/home/runner/work/Unite-Group/Unite-Group/packages/spine/packages/spine/tests/unit.test.ts"
+  },
+  {
+   "assertionResults": [
+    {
+     "ancestorTitles": [
+      "C3 match_evidence cap + completeness through the DAL (integration)"
+     ],
+     "fullName": "C3 match_evidence cap + completeness through the DAL (integration) clamps match_count to 200 and returns the TRUE nearest 200 (recall vs brute force)",
+     "status": "passed",
+     "title": "clamps match_count to 200 and returns the TRUE nearest 200 (recall vs brute force)",
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "C3 match_evidence cap + completeness through the DAL (integration)"
+     ],
+     "fullName": "C3 match_evidence cap + completeness through the DAL (integration) count above the function ef_search does not truncate: 150 asked, the true 150 returned",
+     "status": "passed",
+     "title": "count above the function ef_search does not truncate: 150 asked, the true 150 returned",
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "C3 match_evidence cap + completeness through the DAL (integration)"
+     ],
+     "fullName": "C3 match_evidence cap + completeness through the DAL (integration) threshold is a strict bound: a cutoff between the 100th and 101st distances yields exactly 100",
+     "status": "passed",
+     "title": "threshold is a strict bound: a cutoff between the 100th and 101st distances yields exactly 100",
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "C3 match_evidence cap + completeness through the DAL (integration)"
+     ],
+     "fullName": "C3 match_evidence cap + completeness through the DAL (integration) orders by descending similarity",
+     "status": "passed",
+     "title": "orders by descending similarity",
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    }
+   ],
+   "startTime": 1786880655821,
+   "endTime": 1786880655821,
+   "status": "passed",
+   "message": "",
+   "name": "/home/runner/work/Unite-Group/Unite-Group/packages/spine/packages/spine/tests/integration/c3_completeness.test.ts"
+  },
+  {
+   "assertionResults": [
+    {
+     "ancestorTitles": [
+      "migrations: reproducible apply + clean teardown"
+     ],
+     "fullName": "migrations: reproducible apply + clean teardown teardown → apply rebuilds the full spine (20 tables)",
+     "status": "passed",
+     "title": "teardown → apply rebuilds the full spine (20 tables)",
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "migrations: reproducible apply + clean teardown"
+     ],
+     "fullName": "migrations: reproducible apply + clean teardown teardown leaves zero spine objects",
+     "status": "passed",
+     "title": "teardown leaves zero spine objects",
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "migrations: reproducible apply + clean teardown"
+     ],
+     "fullName": "migrations: reproducible apply + clean teardown the teardown→apply cycle is re-runnable (reproducible)",
+     "status": "passed",
+     "title": "the teardown→apply cycle is re-runnable (reproducible)",
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    }
+   ],
+   "startTime": 1786880655821,
+   "endTime": 1786880655821,
+   "status": "passed",
+   "message": "",
+   "name": "/home/runner/work/Unite-Group/Unite-Group/packages/spine/packages/spine/tests/integration/idempotency.test.ts"
+  },
+  {
+   "assertionResults": [
+    {
+     "ancestorTitles": [
+      "semantic recall cross-tenant isolation (interleaved)"
+     ],
+     "fullName": "semantic recall cross-tenant isolation (interleaved) org A sees only org A rows — no leak despite interleaved org B",
+     "status": "passed",
+     "title": "org A sees only org A rows — no leak despite interleaved org B",
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "semantic recall cross-tenant isolation (interleaved)"
+     ],
+     "fullName": "semantic recall cross-tenant isolation (interleaved) org B sees only org B rows — no leak despite interleaved org A",
+     "status": "passed",
+     "title": "org B sees only org B rows — no leak despite interleaved org A",
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    }
+   ],
+   "startTime": 1786880655821,
+   "endTime": 1786880655821,
+   "status": "passed",
+   "message": "",
+   "name": "/home/runner/work/Unite-Group/Unite-Group/packages/spine/packages/spine/tests/integration/match_isolation.test.ts"
+  },
+  {
+   "assertionResults": [
+    {
+     "ancestorTitles": [
+      "outbox two-relayer concurrency race (integration)"
+     ],
+     "fullName": "outbox two-relayer concurrency race (integration) drains every event to done — no wedge, no dead-letter",
+     "status": "passed",
+     "title": "drains every event to done — no wedge, no dead-letter",
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "outbox two-relayer concurrency race (integration)"
+     ],
+     "fullName": "outbox two-relayer concurrency race (integration) both relayers actually claimed events — the race was exercised, not vacuous",
+     "status": "passed",
+     "title": "both relayers actually claimed events — the race was exercised, not vacuous",
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "outbox two-relayer concurrency race (integration)"
+     ],
+     "fullName": "outbox two-relayer concurrency race (integration) exactly-once: one receipt per event, none missing, none duplicated",
+     "status": "passed",
+     "title": "exactly-once: one receipt per event, none missing, none duplicated",
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "outbox two-relayer concurrency race (integration)"
+     ],
+     "fullName": "outbox two-relayer concurrency race (integration) no orphan re-mint or identity split: each key → exactly one party, 12 total",
+     "status": "passed",
+     "title": "no orphan re-mint or identity split: each key → exactly one party, 12 total",
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "outbox two-relayer concurrency race (integration)"
+     ],
+     "fullName": "outbox two-relayer concurrency race (integration) per-entity in-order apply held under contention: the LAST version wins every key",
+     "status": "passed",
+     "title": "per-entity in-order apply held under contention: the LAST version wins every key",
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "outbox two-relayer concurrency race (integration)"
+     ],
+     "fullName": "outbox two-relayer concurrency race (integration) parity gate is GREEN after the race (no unexplained diff, no orphan, nothing pending/dead)",
+     "status": "passed",
+     "title": "parity gate is GREEN after the race (no unexplained diff, no orphan, nothing pending/dead)",
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    }
+   ],
+   "startTime": 1786880655821,
+   "endTime": 1786880655821,
+   "status": "passed",
+   "message": "",
+   "name": "/home/runner/work/Unite-Group/Unite-Group/packages/spine/packages/spine/tests/integration/outbox_race.test.ts"
+  },
+  {
+   "assertionResults": [
+    {
+     "ancestorTitles": [
+      "RLS matrix (integration)"
+     ],
+     "fullName": "RLS matrix (integration) member of org B is walled off from org A leads/jobs",
+     "status": "passed",
+     "title": "member of org B is walled off from org A leads/jobs",
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "RLS matrix (integration)"
+     ],
+     "fullName": "RLS matrix (integration) org B cannot resolve org A lead-contact PII (condition 2)",
+     "status": "passed",
+     "title": "org B cannot resolve org A lead-contact PII (condition 2)",
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "RLS matrix (integration)"
+     ],
+     "fullName": "RLS matrix (integration) org A sees exactly its slice, incl. PII via the routed-lead tie",
+     "status": "passed",
+     "title": "org A sees exactly its slice, incl. PII via the routed-lead tie",
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "RLS matrix (integration)"
+     ],
+     "fullName": "RLS matrix (integration) internal staff is cross-tenant",
+     "status": "passed",
+     "title": "internal staff is cross-tenant",
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    }
+   ],
+   "startTime": 1786880655821,
+   "endTime": 1786880655821,
+   "status": "passed",
+   "message": "",
+   "name": "/home/runner/work/Unite-Group/Unite-Group/packages/spine/packages/spine/tests/integration/rls.test.ts"
+  }
+ ]
+}
