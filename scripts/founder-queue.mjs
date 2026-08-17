@@ -231,6 +231,25 @@ export function parseFounderQueue(markdown) {
        * meant a row that lost either was invisible. Prose still fails both:
        * `Decision pending | escalate to Phill | see thread` is three cells and
        * undelimited.
+       *
+       * WHERE THIS RULE STOPS, AND WHY IT IS NOT A GAP TO BE FIXED.
+       *
+       * A row that has lost BOTH its delimiters AND most of its cells —
+       * `D-1 | Choose a vendor | 2026-08-02` — is structurally IDENTICAL to
+       * `Decision pending | escalate to Phill | see thread`. Three cells, no
+       * delimiters, both. No test on structure can separate them, because
+       * structurally they are the same line.
+       *
+       * This has been raised four times by four reviewers, and each earlier
+       * attempt to close it lost: a `/^\s*[A-Z]\d+\s/` heuristic fired on
+       * `F1 is waiting on legal.`, and widening the cell threshold to two fires
+       * on every piped sentence in the file. A gate that cries wolf on ordinary
+       * notes gets switched off, and then it protects nothing at all.
+       *
+       * So the boundary is deliberate: a row is recoverable while it retains
+       * EITHER its delimiters or its full width. Below that it is prose, and the
+       * ledger's protection against it is that `--render` refuses to rewrite a
+       * file it cannot fully read, not that this parser guesses.
        */
       if (/^\|.*\|$/u.test(line.trim()) || cells.length === 7 || cells.length === 5) {
         malformed.push(

@@ -1768,3 +1768,54 @@ test('AN ABSENT `oldest` IS NOT PROOF OF AN EMPTY QUEUE', () => {
   assert.equal(stated.queue.state, 'CLEAN_EMPTY');
   assert.equal(stated.anomalies.length, 0);
 });
+
+test('THE CAPTURE IS TRUSTED NO MORE THAN THE DECLARATION', () => {
+  /*
+   * ROUND-NINETEEN FINDING, confirmed by running it before a line changed.
+   *
+   * Round fourteen wrapped `declared` in `structuredClone` because
+   * `Array.isArray` is true for a Proxy and array methods are overridable. The
+   * CAPTURE is the other half of the same reconciliation and got none of it.
+   *
+   * An EMPTY array with an overridden `Symbol.iterator` yielded three fabricated
+   * PASS gates and a green run: `failed` false, three PASS rows, and
+   * `captured.length === 0`. A fully green heartbeat from zero evidence, by the
+   * mechanism I had already found and fixed one input over.
+   */
+  const synthesised = [];
+  synthesised[Symbol.iterator] = function* iter() {
+    for (const name of DECLARED_GATES) yield { name, exitCode: 0 };
+  };
+  const forged = composeHeartbeat({
+    date: '2026-08-16',
+    gateEvidence: { ok: true, value: synthesised },
+    queueEvidence: { ok: true, value: QUEUE },
+    previousBody: null,
+    provenance,
+  });
+  assert.equal(forged.failed, true);
+  assert.equal(forged.gates.filter((g) => g.status === 'PASS').length, 0);
+
+  // A Proxy capture is refused outright, the same as a Proxy declaration.
+  const proxied = composeHeartbeat({
+    date: '2026-08-16',
+    gateEvidence: { ok: true, value: new Proxy(CAPTURE_GREEN, {}) },
+    queueEvidence: { ok: true, value: QUEUE },
+    previousBody: null,
+    provenance,
+  });
+  assert.equal(proxied.failed, true);
+  assert.match(proxied.failureReasons.join('\n'), /capture could not be copied/u);
+
+  // POSITIVE CONTROL: an ordinary capture array is still green, or this refuses
+  // every honest run.
+  const honest = composeHeartbeat({
+    date: '2026-08-16',
+    gateEvidence: { ok: true, value: CAPTURE_GREEN },
+    queueEvidence: { ok: true, value: QUEUE },
+    previousBody: null,
+    provenance,
+  });
+  assert.equal(honest.failed, false);
+  assert.equal(honest.gates.filter((g) => g.status === 'PASS').length, DECLARED_GATES.length);
+});

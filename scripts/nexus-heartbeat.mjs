@@ -192,9 +192,42 @@ export function reconcileGates(declared, captured) {
   }
   declared = usableNames;
 
-  const list = Array.isArray(captured) ? captured : [];
+  /*
+   * THE CAPTURE IS COPIED THROUGH THE SAME TRUSTED CHANNEL AS THE DECLARATION,
+   * AND I ONLY HARDENED THE DECLARATION.
+   *
+   * Round fourteen wrapped `declared` in `structuredClone` because
+   * `Array.isArray` is true for a Proxy and array methods are overridable. The
+   * CAPTURE is the other half of the same reconciliation and got none of it — so
+   * an EMPTY array carrying an overridden `Symbol.iterator` yielded three
+   * fabricated PASS gates and a green run. Confirmed by running it: `failed`
+   * false, three PASS rows, `captured.length === 0`.
+   *
+   * A fully green heartbeat from zero evidence, by the same mechanism I had
+   * already found and fixed one input over. Fixing the input that was
+   * demonstrated and leaving its twin is the mistake this branch keeps making.
+   *
+   * `structuredClone` walks internal slots: it throws on a Proxy and ignores an
+   * overridden iterator, so the copy is what the array really holds.
+   */
+  let list = [];
+  let captureUntrusted = false;
+  if (Array.isArray(captured)) {
+    try {
+      const cloned = structuredClone(captured);
+      list = Array.isArray(cloned) ? cloned : [];
+      captureUntrusted = !Array.isArray(cloned);
+    } catch {
+      captureUntrusted = true;
+    }
+  }
   if (!Array.isArray(captured)) {
     anomalies.push('The gate capture was not a JSON array; every gate is reported NOT RUN.');
+  } else if (captureUntrusted) {
+    anomalies.push(
+      'The gate capture could not be copied into a trusted array, so what it really contains '
+      + 'is unknown and every gate is reported NOT RUN.',
+    );
   }
 
   const byName = new Map();
