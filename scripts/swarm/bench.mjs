@@ -68,15 +68,26 @@ export const isFree = (m) => {
 
 // ── prompting ───────────────────────────────────────────────────────────────
 
+/**
+ * Two halves, deliberately distinguished — see claimPayload().
+ *
+ * The STRUCTURE (three labels, that order, nothing around them) is validated
+ * and caps the score when broken. The BREVITY guidance is a request that keeps
+ * replies short and cheap; it is NOT validated. Review on PR #1017 was right
+ * that the two must not be conflated, or a reply is reported as "fully
+ * compliant" against a contract only half of which was ever checked.
+ */
 const SYSTEM = `You are a senior code reviewer. You are shown ONE code snippet that may contain exactly one significant defect.
 
 Report only a defect that is actually present in the code shown. If the code is correct, say so.
 
-Answer in this exact format, nothing else:
+Use exactly these three lines, in this order, with nothing before or after them:
 
-DEFECT: <one sentence naming the specific bug>
-WHY: <two sentences maximum on how it fails in practice>
-FIX: <one sentence>`;
+DEFECT: <name the specific bug>
+WHY: <how it fails in practice>
+FIX: <what to change>
+
+Keep each line short — one sentence for DEFECT and FIX, at most two for WHY.`;
 
 const userPrompt = (c) => `Language: ${c.language}
 Context: ${c.context}
@@ -208,6 +219,28 @@ export function claimPayload(text) {
 
   const [claim, why, fix] = [contentOf(0), contentOf(1), contentOf(2)];
   if (!claim || !why || !fix) return null;
+
+  // WHAT IS NOT ENFORCED, AND WHY — sentence counts.
+  //
+  // The prompt asks for one sentence in DEFECT and FIX and at most two in WHY.
+  // That is guidance to keep replies short and cheap; it is NOT validated here,
+  // and the prompt is worded so it does not claim to be. Review on PR #1017
+  // raised the mismatch and offered both resolutions; this is the second one,
+  // because enforcement is the worse option on two counts, both measured:
+  //
+  //   1. The corpus would fail its own contract. Every `groundTruth` in
+  //      defects.json is 2-4 sentences of documentation prose. A one-sentence
+  //      DEFECT rule makes the reference answers non-compliant, so the thing
+  //      the benchmark measures against could not score full marks.
+  //   2. Segmentation is unreliable on this content. Splitting on `[.!?]\s`
+  //      counts "Rows land in the same ms. e.g. a cron burst. So id breaks
+  //      ties." as four sentences, not three — and this corpus is full of
+  //      abbreviations, decimals ($1.25), and dotted identifiers. A miscounting
+  //      format check penalises CORRECT answers, which is the same failure
+  //      direction that made the contamination rule wrong.
+  //
+  // So an over-long field scores normally, and selftest.mjs pins that as an
+  // accepted outcome rather than leaving it an unstated gap.
 
   // FIX is the last field, so anything appended to the reply lands inside it.
   // The prompt asks for one sentence; requiring a single line is what stops

@@ -82,6 +82,31 @@ check(
   corpus.cases.every((c) => score(`DEFECT: something is off\nWHY: something is off\nFIX: ${c.groundTruth} ${c.acceptAny.join('. ')}`, c).score < 1.0),
 );
 
+// ── WHAT IS DELIBERATELY *NOT* ENFORCED ────────────────────────────────────
+// Sentence counts. The prompt asks for one sentence in DEFECT and FIX and two
+// at most in WHY, but that is brevity guidance, not a validated constraint —
+// see the reasoning in bench.mjs. These assertions pin the ACCEPTED outcome so
+// it is a recorded decision rather than an unnoticed gap, and so that anyone
+// later adding enforcement is told which tests they are changing.
+//
+// The decisive evidence is right here in the corpus: every groundTruth is 2-4
+// sentences, so a one-sentence DEFECT rule would make the reference answers
+// unable to score full marks against their own benchmark.
+console.log('\nscore() — sentence limits are advisory, and provably so');
+const overLong = (c) => ({
+  'two-sentence DEFECT': `DEFECT: ${c.groundTruth} This is an extra defect sentence.\nWHY: ${c.groundTruth}\nFIX: apply the correction`,
+  'three-sentence WHY': `DEFECT: ${c.groundTruth}\nWHY: ${c.groundTruth} An extra explanation sentence. A second extra one.\nFIX: apply the correction`,
+  'two-sentence FIX': `DEFECT: ${c.groundTruth}\nWHY: ${c.groundTruth}\nFIX: apply the correction. Add a regression test.`,
+});
+for (const [label] of Object.entries(overLong(corpus.cases[0]))) {
+  const accepted = corpus.cases.filter((c) => score(overLong(c)[label], c).score === 1.0);
+  check(`"${label}" still scores 1.0 — accepted by design, not overlooked`, accepted.length === corpus.cases.length, `${accepted.length}/${corpus.cases.length}`);
+}
+check(
+  'every groundTruth is longer than one sentence — why the limit cannot be enforced',
+  corpus.cases.every((c) => c.groundTruth.split(/(?<=[.!?])\s+/).filter(Boolean).length > 1),
+);
+
 // ── scoring: NEGATIVE CONTROLS ─────────────────────────────────────────────
 console.log('\nscore() — wrong answers must NOT score');
 const WRONG = [

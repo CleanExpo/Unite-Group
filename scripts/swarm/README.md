@@ -133,6 +133,27 @@ load-bearing downstream anyway, since `swarm.mjs` parses structured JSON
 findings. A model that cannot follow an output contract is genuinely less useful
 here, not merely differently styled.
 
+### What the contract does *not* enforce
+
+The prompt asks for one sentence in `DEFECT:` and `FIX:` and at most two in
+`WHY:`. That is **brevity guidance, not a validated constraint**, and the prompt
+is worded so it does not claim otherwise. An over-long field scores normally, and
+`selftest.mjs` pins that as an accepted outcome so it stays a recorded decision
+rather than a gap nobody noticed.
+
+Enforcing it would be worse, on two counts that are measured rather than assumed:
+
+- **The corpus would fail its own contract.** Every `groundTruth` in
+  `defects.json` is 2–4 sentences of documentation prose. A one-sentence
+  `DEFECT:` rule makes the reference answers unable to score full marks against
+  their own benchmark.
+- **Segmentation is unreliable on this content.** Splitting on `[.!?]\s` counts
+  *"Rows land in the same ms. e.g. a cron burst. So id breaks ties."* as four
+  sentences rather than three, and this corpus is full of abbreviations,
+  decimals (`$1.25`) and dotted identifiers. A miscounting format check
+  penalises **correct** answers — the same failure direction that made the
+  contamination rule wrong.
+
 **Open question, to settle with data rather than guesswork.** Nobody has yet run
 this against live models (`openrouter.ai` is unreachable from the container it
 was written in), so how many real replies are chatty is unmeasured. If a whole
@@ -207,7 +228,7 @@ than requested.
 ## 3. Self-test
 
 ```bash
-node scripts/swarm/selftest.mjs     # 93 assertions, no network, no key
+node scripts/swarm/selftest.mjs     # 97 assertions, no network, no key
 ```
 
 Every assertion has a negative control. The scorer must reject four generic
