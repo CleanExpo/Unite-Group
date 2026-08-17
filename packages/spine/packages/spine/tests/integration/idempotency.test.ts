@@ -78,9 +78,20 @@ describe.skipIf(!hasDb)('migrations: reproducible apply + clean teardown', () =>
   // textually while naming one database. Same cluster (system identifier) AND same
   // datname is what "the same database" actually means, so that is what is asserted.
   it('GUARD: the destructive suite is not pointed at the shared fixture', async () => {
+    // Both variables are required together, and this is the louder half of saying
+    // so. The two misconfigurations fail differently, and both are caught:
+    //   * MIGRATION set, SHARED unset  -> this suite runs while every other
+    //     integration suite self-skips. It fails HERE, immediately, rather than
+    //     letting the destructive suite proceed with nothing to compare against.
+    //   * SHARED set, MIGRATION unset  -> this whole suite skips (hasDb keys on
+    //     MIGRATION), and the evidence check fails the job with
+    //     REQUIRED_EVIDENCE_NOT_EXECUTED for migration-integrity.
+    // Neither can reach a green job, which is the property that matters.
     expect(
       SHARED_URL,
-      'SPINE_DATABASE_URL must be set for this comparison to mean anything',
+      'CONFIGURATION ERROR: SPINE_MIGRATION_DATABASE_URL is set but SPINE_DATABASE_URL is not. ' +
+        'They are required together — this suite has nothing to compare its target against, ' +
+        'and every other integration suite is self-skipping right now.',
     ).toBeTruthy();
 
     const shared = postgres(SHARED_URL!, { max: 1, prepare: false, onnotice: () => {} });
