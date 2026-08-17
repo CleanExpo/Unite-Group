@@ -15,7 +15,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { score, isFree, claimPayload, isContaminated, tally } from './bench.mjs';
-import { cluster, parseFindings, chunk, parseVerdict, survivesRefutation } from './swarm.mjs';
+import { cluster, parseFindings, chunk, parseVerdict, survivesRefutation, chunkOf } from './swarm.mjs';
 import { baseModelId, familyOf, distinctFamilies, validateRoster } from './lib/lineage.mjs';
 import { backoffMs, parseRetryAfter, usageOf, ledger, callModel } from './lib/openrouter.mjs';
 import { ROLES, REFUTE, REVIEW_ROLES, isQuestion } from './lib/roles.mjs';
@@ -546,6 +546,37 @@ check('a TIE refutes', survivesRefutation([V(true), V(false)]).survives === fals
 check('no usable verdicts → the finding SURVIVES', survivesRefutation([null, null]).survives === true);
 check('unparseable verdicts are ignored, not counted as refusals', survivesRefutation([null, V(false)]).survives === true);
 check('vote counts report only usable verdicts', survivesRefutation([null, V(true), V(true)]).votes === 2);
+// Zero eligible challengers is NOT a passed challenge. The output must say so
+// rather than printing "survived 0/0", which reads as endorsement.
+check('zero challengers reports zero votes, so the caller can label it honestly', survivesRefutation([]).votes === 0);
+
+// ── refutation judges a finding against ITS OWN chunk ──────────────────────
+// Stage one reviews every chunk; stage two originally passed chunks[0] to every
+// refuter. A finding from chunk 3 was therefore challenged against chunk 1's
+// diff — which does not contain its code — and the refuter is told to refute
+// when the diff is insufficient. That deleted valid findings from every chunk
+// after the first, worst on the largest reviews, where a second opinion is
+// worth most. Found in review on PR #1018.
+console.log('\nchunkOf() — a refuter must see the code the finding is about');
+const CH = ['diff --git a/one\n+one', 'diff --git a/two\n+two', 'diff --git a/three\n+three'];
+check('a finding from chunk 2 is judged against chunk 2', chunkOf({ _chunk: 2 }, CH) === CH[2]);
+check('a finding from chunk 0 is judged against chunk 0', chunkOf({ _chunk: 0 }, CH) === CH[0]);
+// NEGATIVE CONTROL — the bug itself. Before the fix this returned CH[0].
+check('a later-chunk finding is NOT judged against the first chunk', chunkOf({ _chunk: 1 }, CH) !== CH[0]);
+check('a finding with no origin falls back to chunk 0 rather than throwing', chunkOf({}, CH) === CH[0]);
+check('an out-of-range chunk index falls back rather than returning undefined', chunkOf({ _chunk: 99 }, CH) === CH[0]);
+check('a non-integer chunk index falls back', chunkOf({ _chunk: '2' }, CH) === CH[0]);
+// The origin has to survive clustering, or chunkOf() has nothing to read.
+{
+  const at = (model, _chunk) => ({
+    _model: model, _role: 'defect', _chunk, file: 'f.ts', severity: 'high',
+    claim: 'Pagination lacks ORDER BY so pages may repeat rows',
+    why: 'offset pagination without ordering is unstable',
+  });
+  const c = cluster([at('qwen/a', 2), at('mistralai/b', 2)])[0];
+  check('cluster members keep the chunk they were found in', c.members.every((m) => m._chunk === 2));
+  check('...so chunkOf can route the refuter to it', chunkOf(c.members[0], CH) === CH[2]);
+}
 
 // ── lineage-aware clustering ───────────────────────────────────────────────
 // The integration point where the whole thing could still be wrong: cluster()

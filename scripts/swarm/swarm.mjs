@@ -219,6 +219,26 @@ export function parseVerdict(content) {
  * bolted onto corroboration, and a filter that cannot run must not silently
  * delete the corroborated findings underneath it.
  */
+/**
+ * The chunk a finding was found in — the ONLY diff a refuter may judge it against.
+ *
+ * Stage one reviews every chunk; stage two originally passed `chunks[0]` to
+ * every refuter. So a finding from chunk 3 was challenged against chunk 1's
+ * diff, which does not contain the code it describes — and the refuter prompt
+ * explicitly says "if the diff does not contain enough to judge, say refuted".
+ * The refutation stage therefore DELETED valid findings from every chunk after
+ * the first, and did it most reliably on the largest reviews, where chunking
+ * kicks in and where a second opinion is worth most.
+ *
+ * Found in review on PR #1018. Falls back to chunk 0 only when a finding
+ * carries no origin, which cannot happen for findings that came through
+ * review() but keeps this total for hand-built input.
+ */
+export function chunkOf(finding, chunks) {
+  const i = finding?._chunk;
+  return Number.isInteger(i) && i >= 0 && i < chunks.length ? chunks[i] : chunks[0];
+}
+
 export function survivesRefutation(verdicts) {
   const usable = verdicts.filter((v) => v && typeof v.refuted === 'boolean');
   if (usable.length === 0) return { survives: true, refuted: 0, votes: 0, reason: 'no usable verdicts' };
@@ -391,6 +411,13 @@ async function main() {
   }
   models = roster.models;
 
+  // `--roles ,` parses to [], which produced ZERO jobs and then printed
+  // "No findings or questions returned by any model" with exit 0 — a clean
+  // review of nothing. Same silent-success shape as the NaN quorum.
+  if (ROLE_KEYS.length === 0) {
+    console.error(`--roles is empty. Known roles: ${Object.keys(ROLES).join(', ')}`);
+    process.exit(1);
+  }
   const badRole = ROLE_KEYS.find((r) => !ROLES[r]);
   if (badRole) {
     console.error(`Unknown role "${badRole}". Known: ${Object.keys(ROLES).join(', ')}`);
@@ -432,12 +459,36 @@ async function main() {
     console.log();
   }
 
-  const all = results.flatMap((r) => r.findings.map((f) => ({ ...f, _model: r.model })));
+  // `_chunk` is load-bearing, not bookkeeping: stage two must judge a finding
+  // against the chunk it was found in. See chunkOf().
+  // NOBODY ANSWERED is not a clean review.
+  //
+  // Found by checking this script's EXIT CODE rather than its message: with an
+  // unusable key every call failed, and the run printed "No findings or
+  // questions returned by any model" followed by "COST — zero, as intended",
+  // then exited 0. Both statements were true and the conclusion was a lie —
+  // the swarm had not reviewed anything. Wired into a gate, a wrong key, a
+  // network outage or an exhausted free tier would read as "found nothing
+  // wrong" and pass. That is the exact failure this tool exists to catch,
+  // occurring inside the tool.
+  //
+  // A review where models DID answer and found nothing is a real result and
+  // still exits 0. The distinction is whether anyone spoke, not whether they
+  // had anything to say.
+  const spoke = results.filter((r) => !r.error).length;
+  if (spoke === 0) {
+    reportLedger(results, { anySucceeded: false });
+    console.error('\nNO MODEL RETURNED A USABLE RESPONSE — this is a failed run, not a clean review.');
+    console.error('Check the key, the roster ids, and whether the free tiers are exhausted.');
+    process.exit(1);
+  }
+
+  const all = results.flatMap((r) => r.findings.map((f) => ({ ...f, _model: r.model, _chunk: r.idx })));
   const questions = all.filter(isQuestion);
   const claims = all.filter((f) => !isQuestion(f));
 
   if (all.length === 0) {
-    console.log('No findings or questions returned by any model.');
+    console.log(`No findings or questions — ${spoke} of ${results.length} calls answered and reported nothing.`);
     reportLedger(results);
     return;
   }
@@ -467,7 +518,7 @@ async function main() {
     });
     let rdone = 0;
     const verdicts = await pool(tasks, CONCURRENCY, async ({ c, m }) => {
-      const r = await refute(m, c.best, chunks[0]);
+      const r = await refute(m, c.best, chunkOf(c.best, chunks));
       rdone++;
       process.stdout.write(`\r  refute ${rdone}/${tasks.length}   `);
       return { c, ...r };
@@ -492,10 +543,19 @@ async function main() {
   }
 
   // ── output ────────────────────────────────────────────────────────────────
-  console.log(`CORROBORATED — ${corroborated.length} finding(s) from ${QUORUM}+ independent lineages${NO_REFUTE ? '' : ', surviving refutation'}`);
+  const challenged = corroborated.filter((c) => (c.refutation?.votes ?? 0) > 0).length;
+  console.log(
+    `CORROBORATED — ${corroborated.length} finding(s) from ${QUORUM}+ independent lineages` +
+    (NO_REFUTE ? '' : `; ${challenged} of them survived a challenge, ${corroborated.length - challenged} had no eligible challenger`),
+  );
   console.log('─'.repeat(100));
   for (const c of corroborated) {
-    const surv = c.refutation ? `, survived ${c.refutation.votes - c.refutation.refuted}/${c.refutation.votes}` : '';
+    // "survived 0/0" implied a challenge that never happened — with a small
+    // roster every lineage may have raised the finding, leaving no eligible
+    // challenger. Say so rather than dressing silence up as endorsement.
+    const surv = !c.refutation ? ''
+      : c.refutation.votes === 0 ? ', NOT challenged (no eligible refuter)'
+        : `, survived ${c.refutation.votes - c.refutation.refuted}/${c.refutation.votes}`;
     console.log(`\n[${c.best.severity ?? '?'}] ${c.best.file ?? '?'}${c.best.line ? `:${c.best.line}` : ''}   ${c.votes} lineage(s), ${c.ids} model(s)${surv}`);
     console.log(`  roles: ${[...c.roles].join(', ')}   models: ${[...c.models].join(', ')}`);
     console.log(`  ${c.best.claim}`);
@@ -545,10 +605,15 @@ async function main() {
  * would be the most embarrassing possible outcome. The ledger names every model
  * that charged rather than reporting one comforting total.
  */
-function reportLedger(results) {
+function reportLedger(results, { anySucceeded = true } = {}) {
   const l = ledger(results);
   const retries = l.rows.reduce((n, r) => n + r.retries, 0);
-  console.log(`\n\nCOST — ${l.wasFree ? 'zero, as intended' : `$${l.totalUsd.toFixed(6)} USD`}${retries ? `   (${retries} retr${retries === 1 ? 'y' : 'ies'} after rate limits)` : ''}`);
+  // "zero, as intended" is technically true when every call failed, and deeply
+  // misleading — it reads as a successful free run. Say which zero this is.
+  const headline = !anySucceeded ? 'zero — but nothing succeeded, so this proves nothing'
+    : l.wasFree ? 'zero, as intended'
+      : `$${l.totalUsd.toFixed(6)} USD`;
+  console.log(`\n\nCOST — ${headline}${retries ? `   (${retries} retr${retries === 1 ? 'y' : 'ies'} after rate limits)` : ''}`);
   console.log('─'.repeat(100));
   if (!l.wasFree) {
     console.log('  These models BILLED — they are not free any more, or never were:');
