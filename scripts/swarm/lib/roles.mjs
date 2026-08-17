@@ -12,15 +12,29 @@
  * fail differently, which is the point. REFUTE is separate: it runs in the
  * second stage, against findings rather than against code.
  *
- * All roles share ONE output schema so the existing clusterer works unchanged.
- * `severity: "question"` is how a question rides the same pipeline as a defect
- * without needing a parallel one.
+ * All roles share one output SHAPE so the existing clusterer works unchanged;
+ * only the permitted `severity` values differ, so the question role can emit the
+ * value its own classifier looks for. Routing is by ROLE, not by that value —
+ * see isQuestion.
  */
 
-const SCHEMA = `Return STRICT JSON, no prose, no markdown fence:
-{"findings":[{"file":"path","line":123,"severity":"critical|high|medium|low","claim":"one sentence","why":"how it fails concretely"}]}
+const schemaFor = (severities) => `Return STRICT JSON, no prose, no markdown fence:
+{"findings":[{"file":"path","line":123,"severity":"${severities}","claim":"one sentence","why":"how it fails concretely"}]}
 
 Return {"findings":[]} if you have nothing real. An empty list is a valid and useful answer.`;
+
+const SCHEMA = schemaFor('critical|high|medium|low');
+
+/**
+ * The question role's schema must permit the severity its own handler looks for.
+ *
+ * The shared schema listed only defect severities, so a model that followed the
+ * prompt CORRECTLY emitted `severity: "high"` for a question — and the question
+ * filter, which keys off `severity === "question"`, then let it through to the
+ * claims pile where it could count towards quorum. Two questions could become a
+ * corroborated finding. The prompt contradicted its own classifier.
+ */
+const QUESTION_SCHEMA = schemaFor('question');
 
 export const ROLES = {
   /**
@@ -94,9 +108,9 @@ Ask about:
 
 Ask only questions where a wrong answer means a real problem. Do not ask questions whose answer is visible in the diff.
 
-Use "severity":"question" for every item. Put the question in "claim" and what goes wrong if the answer is bad in "why".
+Put the question in "claim" and what goes wrong if the answer is bad in "why".
 
-${SCHEMA}`,
+${QUESTION_SCHEMA}`,
   },
 };
 
@@ -137,4 +151,10 @@ export const REVIEW_ROLES = ['defect', 'weakness', 'question'];
  * exactly one definition. A question promoted to a finding by an off-by-one in
  * a filter would let "I don't know" become "two models agree".
  */
-export const isQuestion = (f) => String(f?.severity ?? '').toLowerCase() === 'question';
+export const isQuestion = (f) =>
+  // The ROLE is authoritative; the severity is model-supplied. Relying on the
+  // severity alone meant a question-role reply that ignored (or, before the
+  // schema fix, correctly followed) the prompt landed in the claims pile and
+  // could count towards quorum. Provenance is known; compliance is hoped for.
+  f?._role === 'question' ||
+  String(f?.severity ?? '').toLowerCase() === 'question';

@@ -490,6 +490,11 @@ async function main() {
   if (all.length === 0) {
     console.log(`No findings or questions — ${spoke} of ${results.length} calls answered and reported nothing.`);
     reportLedger(results);
+    // Overwrite the artefact rather than returning early. Leaving the previous
+    // run's file on disk means a downstream reader opening swarm-findings.json
+    // after a clean run sees STALE findings and a stale ranAt — a genuinely
+    // clean review reported as the last one's problems.
+    writeFindings({ models, roster, chunks, errored, corroborated: [], single: [], qClusters: [], cost: ledger(results) });
     return;
   }
 
@@ -576,7 +581,10 @@ async function main() {
   console.log(`\n\nQUESTIONS — ${qClusters.length} distinct, from the questioner role (never counted towards quorum)`);
   console.log('─'.repeat(100));
   for (const q of qClusters.slice(0, 15)) {
-    console.log(`  ${q.best?.claim ?? q.members[0].claim}  (${q.models.size} model(s))`);
+    // cluster() does not assign `best`; only claim clusters get it, from the
+    // .map above. Reading q.best here was always undefined and the fallback did
+    // all the work — a dead branch that read like a ranking.
+    console.log(`  ${q.members[0].claim}  (${q.models.size} model(s))`);
     const why = q.members[0].why;
     if (why) console.log(`      ↳ ${why}`);
   }
@@ -584,6 +592,18 @@ async function main() {
 
   const cost = reportLedger([...results, ...refuteResults]);
 
+  writeFindings({ models, roster, chunks, errored, corroborated, single, qClusters, cost });
+}
+
+/**
+ * Write the run artefact.
+ *
+ * Extracted so the zero-findings path can call it too. Returning early there
+ * left the PREVIOUS run's swarm-findings.json on disk, so anything reading the
+ * file after a clean run saw stale findings under a stale `ranAt` — a clean
+ * review reported as the last run's problems.
+ */
+function writeFindings({ models, roster, chunks, errored, corroborated, single, qClusters, cost }) {
   const out = join(HERE, 'swarm-findings.json');
   writeFileSync(out, JSON.stringify({
     ranAt: new Date().toISOString(),

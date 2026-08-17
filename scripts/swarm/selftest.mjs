@@ -530,6 +530,33 @@ check('severity case does not matter', isQuestion({ severity: 'Question' }) === 
 check('a real finding is NOT a question', isQuestion({ severity: 'high' }) === false);
 check('a missing severity is not a question', isQuestion({}) === false);
 
+// ── the prompt must not contradict its own classifier ──────────────────────
+// The shared schema listed only defect severities, so a model FOLLOWING THE
+// PROMPT CORRECTLY emitted `severity: "high"` for a question — and the filter,
+// which keyed off severity alone, sent it to the claims pile where two of them
+// could form a quorum. Uncertainty becoming consensus, via the schema.
+// Raised in review on PR #1018 and reproduced before fixing.
+check('the question schema permits the severity its classifier looks for', /"question"/.test(ROLES.question.system));
+check('the question schema does NOT offer defect severities instead', !/critical\|high\|medium\|low/.test(ROLES.question.system));
+check('the defect schema still offers defect severities', /critical\|high\|medium\|low/.test(ROLES.defect.system));
+check('the weakness schema still offers defect severities', /critical\|high\|medium\|low/.test(ROLES.weakness.system));
+// Belt and braces: provenance is KNOWN, compliance is only hoped for. Even a
+// model that ignores the schema entirely cannot get a question into the quorum.
+check(
+  'a question-role finding is a question whatever severity the model chose',
+  isQuestion({ _role: 'question', severity: 'critical' }) === true,
+);
+check(
+  'and a defect-role finding is never reclassified as a question by its role',
+  isQuestion({ _role: 'defect', severity: 'high' }) === false,
+);
+// The end-to-end consequence, asserted directly rather than inferred.
+{
+  const asQ = (model) => ({ _model: model, _role: 'question', severity: 'high', file: 'f.ts', claim: 'What happens to in-flight rows', why: 'existing work may be lost' });
+  const claims = [asQ('a/x'), asQ('b/y')].filter((f) => !isQuestion(f));
+  check('two non-compliant questions can no longer reach the claims pile', claims.length === 0);
+}
+
 // ── refutation ─────────────────────────────────────────────────────────────
 console.log('\nrefutation — a majority of challengers can drop a corroborated finding');
 check('bare JSON verdict parses', parseVerdict('{"refuted":true,"reason":"not in diff"}')?.refuted === true);

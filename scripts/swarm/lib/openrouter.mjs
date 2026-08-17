@@ -109,6 +109,17 @@ export async function callModel({
           max_tokens: maxTokens,
           // Ask the provider to report usage so the cost ledger has real numbers
           // rather than our assumptions about them.
+          //
+          // KEPT DELIBERATELY. Review on PR #1018 suggested removing this as
+          // deprecated, on the grounds that OpenRouter returns usage by default.
+          // That may well be right, but it cannot be verified from the container
+          // this was written in (openrouter.ai:443 is 403 to CONNECT), and the
+          // trade is one-sided: if the option is redundant, sending it costs
+          // nothing; if it is still required on some route, removing it makes
+          // `usage.cost` absent, `costUsd` fall back to 0, and the ledger report
+          // "zero, as intended" for a run that actually billed. That is the same
+          // silent-zero failure this PR spent four fixes eliminating. Remove it
+          // once someone has confirmed against the live API.
           usage: { include: true },
         }),
         signal: AbortSignal.timeout(timeoutMs),

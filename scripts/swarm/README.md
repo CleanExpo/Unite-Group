@@ -299,7 +299,7 @@ that errored are listed explicitly, because a model that errored did not vote.
 ## 3. Self-test
 
 ```bash
-node scripts/swarm/selftest.mjs     # 157 assertions, no network, no key
+node scripts/swarm/selftest.mjs     # 181 assertions, no network, no key
 ```
 
 Every assertion has a negative control. The scorer must reject four generic
