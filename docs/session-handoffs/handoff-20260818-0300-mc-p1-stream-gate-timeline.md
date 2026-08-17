@@ -1,9 +1,9 @@
 # Handoff — MC-P1: event stream, autonomy gate, evidence timeline
 
-**When:** 2026-08-18, ~00:55–03:00
-**Branch:** `feat/uni-2403-control-plane-contract` — **10 commits ahead of `origin/main`, NOT pushed**
-**HEAD:** `2e1fdf8a4`
-**Tickets:** UNI-2403 (verified complete), UNI-2406 (complete), UNI-2409 (partial), UNI-2411 (partial), UNI-2412 (one slice)
+**When:** 2026-08-18, ~00:55–03:00 and 08:20–08:35
+**Branch:** `feat/uni-2403-control-plane-contract` — **12 commits ahead of `origin/main`, NOT pushed**
+**HEAD:** `a0192a75a`
+**Tickets:** UNI-2403 (verified complete), UNI-2406 (complete), UNI-2409 (enforcing for Claude Code), UNI-2411 (partial), UNI-2412 (one slice)
 
 ---
 
@@ -28,12 +28,16 @@ node -v   # must be 24.x
 |---|---|---|
 | UNI-2403 | **Complete (was already)** | Verified green on arrival; extended so the audit resolves `extends` |
 | UNI-2406 | **Complete** | All five acceptance criteria, proven live over HTTP |
-| UNI-2409 | **Partial — NOT enforcing** | Classifier built + adversarially tested; **not wired to any permission callback** |
+| UNI-2409 | **Enforcing for Claude Code** | Classifier + PreToolUse hook, verified blocking a real `claude -p` run. Codex and the gateway are still ungated |
 | UNI-2411 | **Partial** | Timeline builder complete; only 2 of 10 stages have live producers; not rendered in the UI |
 | UNI-2412 | **One slice** | The lane card now streams its run; the full single-monitor cockpit is untouched |
 
-**Do not read UNI-2409 as a live control.** It classifies and decides; nothing
-calls it before a tool runs. Wiring it is the risky half.
+**UNI-2409 is now a live control for Claude Code lanes** — a `PreToolUse` hook
+classifies every tool call and exits 2 to deny, verified against a real
+`claude -p` run (allowed a `Read`, blocked a secret read, blocked every bypass
+the model then proposed). Codex and the Hermes gateway remain ungated by design,
+not by oversight: Codex does not read Claude Code settings, and the gateway
+adapter does not execute tools locally.
 
 ---
 
@@ -65,7 +69,7 @@ The bottom two predate this session.
 | `apps/workspace/src/server/lanes/event-sse.ts` | SSE framing + cursor pump |
 | `apps/workspace/src/routes/api/lanes/events.ts` | `GET /api/lanes/events?runId=…` |
 | `apps/workspace/src/screens/command-center/lane-run-stream.tsx` | The live view on the lane card |
-| `apps/workspace/src/server/lanes/autonomy-gate.ts` | L0–L3 classifier (**not wired**) |
+| `apps/workspace/src/server/lanes/autonomy-gate.ts` | L0–L3 classifier — the ladder itself |
 | `apps/workspace/src/server/lanes/evidence-timeline.ts` | Ten-stage timeline that reports its own holes |
 | `docs/mission-control/lane-event-stream.md` | Full write-up incl. live evidence and known gaps |
 
@@ -75,7 +79,7 @@ The bottom two predate this session.
 
 ```bash
 cd apps/workspace && npx tsc --noEmit          # exit 0
-cd apps/workspace && npx vitest run            # 1066 passed
+cd apps/workspace && npx vitest run            # 1116 passed
 cd apps/workspace && npm run build             # exit 0
 node scripts/control-plane-contract.mjs        # PASS
 npm run verify:readiness                       # exit 0, 411/411
@@ -122,17 +126,18 @@ in dev, so `requireLocalOrAuth` fails closed against a plain localhost request.
 
 ## Deferred / open
 
-1. **Wire the autonomy gate to a real PreToolUse boundary** (UNI-2409's actual
-   acceptance). Needs the Claude Code permission callback, the Codex equivalent,
-   and a gateway interception point. Highest-value next step, and the one that
-   most deserves care — a mis-wired gate that silently permits is worse than none.
-2. **Feed the other 8 timeline stages.** Only `lane_run` and `tool_calls` have
+1. **Gate Codex and the Hermes gateway.** Claude Code is done. Codex has its own
+   approval/sandbox policy and a different hook contract; the gateway adapter
+   does not execute tools locally, so the boundary is a different shape there.
+2. **Surface gate decisions in Mission Control.** The hook writes
+   `decisions.jsonl` per run; nothing renders it yet.
+3. **Feed the other 8 timeline stages.** Only `lane_run` and `tool_calls` have
    live producers.
-3. **Browser screenshot smoke** for UNI-2406. Blocked by the dev-harness auth
+4. **Browser screenshot smoke** for UNI-2406. Blocked by the dev-harness auth
    behaviour above; needs a session cookie.
-4. **Codex `stream-json` parser** — flag deliberately ignored rather than
+5. **Codex `stream-json` parser** — flag deliberately ignored rather than
    half-wired.
-5. **Push + PR.** Ten commits sit locally. No push authorisation was given this
+6. **Push + PR.** Twelve commits sit locally. No push authorisation was given this
    session, and the release law requires independent review bound to the exact
    final commit.
 
@@ -141,9 +146,9 @@ in dev, so `requireLocalOrAuth` fails closed against a plain localhost request.
 ## Pick up here
 
 ```bash
-cd ~/Unite-Group && git log --oneline -10
+cd ~/Unite-Group && git log --oneline -12
 node -v                                   # MUST be 24.x
-cd apps/workspace && npx vitest run       # expect 1066 passed
+cd apps/workspace && npx vitest run       # expect 1116 passed
 ```
 
 Then read `docs/mission-control/lane-event-stream.md` §9 (Known gaps) and decide
