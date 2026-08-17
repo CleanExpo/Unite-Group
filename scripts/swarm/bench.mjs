@@ -114,27 +114,23 @@ const MIN_CONTENT_WORDS = 8;
  * leaderboard — the worst possible outcome for a benchmark hiring a second
  * opinion.
  *
- * WHY PATTERNS, NOT A PHRASE LIST. The first attempt was a list of literals.
- * Review immediately broke it with four phrasings nobody had listed ("This is
- * expected behavior, not an error", "requires no modification", "I cannot
- * identify a problem", "not problematic"). That is not a gap in the list, it is
- * the wrong shape: a finite literal list is bypassable by paraphrase forever,
- * and extending it four strings at a time is a race with no end. These match
- * the GRAMMAR of a no-defect verdict — negation attached to a defect noun,
- * inability to find one, or an assertion of correctness — so unlisted wordings
- * are covered by construction rather than by having been anticipated.
+ * PATTERNS, NOT A PHRASE LIST — AND THAT IS STILL NOT ENOUGH. The first attempt
+ * was a list of literals; review broke it with four phrasings nobody had listed
+ * ("This is expected behavior, not an error", "requires no modification", "I
+ * cannot identify a problem", "not problematic"). These patterns match the
+ * GRAMMAR of a no-defect verdict instead — negation attached to a defect noun,
+ * inability to find one, an assertion of correctness — which is a better shape
+ * but is NOT complete, and it would be dishonest to claim otherwise. Attacking
+ * them with 29 plausible denials found 17 that still slipped through:
+ * "The snippet is bug-free", "Everything checks out", "This passes review",
+ * "No action is required", "All paths are handled properly". Enumerating grammar
+ * is still enumerating.
  *
- * THE LIMIT THAT REMAINS, stated plainly. Containment scoring is monotone:
- * adding text can only raise a score. Every rule of the form "unless it also
- * contains X" is therefore a patch on a monotone base, and a sufficiently
- * inventive denial will eventually slip through. Two things bound the damage.
- * First, the penalty is a CAP at 0.5, not a zero — a false positive on a real
- * finding costs half a mark, and selftest.mjs proves all 8 ground truths still
- * score 1.0. Second, the threat model is narrower than it looks: models are
- * shown only `context` and `code` (see userPrompt), never `mustMention` or
- * `acceptAny`, so an answer that quotes an accepted explanation verbatim is not
- * reachable by a benchmarked model. The realistic failure is the plain denial,
- * and that is what these patterns are for.
+ * So this list is one of THREE defences, and the weakest of them. See
+ * `score()`: answers are scored on the DEFECT/WHY payload rather than the whole
+ * blob (so framing outside the claim cannot inflate anything), and verbatim
+ * reproduction of an accepted explanation is treated as contamination. Those two
+ * are structural; this one is a heuristic backstop for unformatted answers.
  */
 const NO_DEFECT_VERDICTS = [
   // "no defect", "no issues", "requires no modification", "no changes needed"
@@ -156,9 +152,65 @@ const NO_DEFECT_VERDICTS = [
   /\bnothing\s+(wrong|to\s+fix|to\s+change|of\s+concern)\b/,
 ];
 
+/**
+ * The part of an answer that actually makes the claim.
+ *
+ * The SYSTEM prompt mandates `DEFECT: … WHY: … FIX: …`. When a model honours it,
+ * scoring the DEFECT+WHY payload rather than the whole reply makes the score
+ * NON-MONOTONE in the right way: framing wrapped around the claim — a preamble
+ * denying the defect, a trailing caveat, a restatement of the prompt — stops
+ * counting entirely, because it is not part of what the model asserted. That
+ * closes the whole family of prefix attacks at once, rather than one phrasing at
+ * a time.
+ *
+ * Returns null when the model ignored the format, which cheap models often do;
+ * `score()` then falls back to the whole reply plus the denial patterns.
+ */
+export function claimPayload(text) {
+  const m = /\bdefect\s*:\s*([\s\S]*?)(?=\bfix\s*:|$)/i.exec(text);
+  if (!m) return null;
+  const payload = m[1].trim();
+  // "DEFECT: none" is a denial in the format's own vocabulary.
+  if (/^(none|n\/?a|no\b|nothing\b|-|—)/i.test(payload)) return '';
+  return payload;
+}
+
+/**
+ * Verbatim reproduction of an accepted explanation, with NO claim of its own.
+ *
+ * Every constructed bypass found in review works the same way: paste an
+ * `acceptAny` phrase in to satisfy the paraphrase test, then wrap whatever
+ * framing you like around it. Those phrases exist only in defects.json, so
+ * reproducing one is weak evidence the text came from the answer key rather than
+ * from reviewing the code.
+ *
+ * WEAK evidence, which is why this only applies when the answer offers no
+ * `DEFECT:` claim at all. The first version of this rule applied it always, and
+ * probing it immediately showed the cost: a genuine, correctly formatted answer
+ * — "DEFECT: .range() offset pagination with no ORDER BY / WHY: … pages can skip
+ * or duplicate rows …" — was demoted to 0.5, because "pages can skip or
+ * duplicate rows" is exactly the phrase a competent reviewer writes. The
+ * `acceptAny` entries were authored as natural descriptions of each defect, so
+ * treating natural wording as proof of cheating punishes the best answers, which
+ * is worse than the attack it prevents.
+ *
+ * A model that files a claim AND explains it in accepted terms has done the job,
+ * whatever the provenance of its wording. A model that files no claim and merely
+ * contains corpus strings has offered nothing else to judge, and those strings
+ * are all the evidence there is — so there, they are not trusted.
+ */
+export function isContaminated(text, c) {
+  return (c.acceptAny ?? []).some((p) => text.includes(p.toLowerCase()));
+}
+
 export function score(answer, c) {
-  const text = (answer ?? '').toLowerCase();
-  if (!text.trim()) return { score: 0, hits: [], verdict: 'empty' };
+  const full = (answer ?? '').toLowerCase();
+  if (!full.trim()) return { score: 0, hits: [], verdict: 'empty' };
+
+  // Score the claim when the model gave us one; fall back to the whole reply.
+  const payload = claimPayload(full);
+  if (payload === '') return { score: 0, hits: [], verdict: 'no-claim' };
+  const text = payload ?? full;
 
   const hits = c.mustMention.filter((k) => text.includes(k.toLowerCase()));
   const mustRatio = hits.length / c.mustMention.length;
@@ -192,27 +244,38 @@ export function score(answer, c) {
   // than 0 — a stuffer ranks mid-table, never top — and defects.json carries a
   // `negativeControl` per case so that ceiling is pinned by selftest.mjs instead
   // of merely asserted here.
+  //
+  // Measured on the WHOLE reply, not the extracted payload. This floor exists to
+  // reject a bare word list, and probing caught it doing the opposite once the
+  // payload split landed: a correctly formatted answer whose DEFECT line was
+  // terse got rejected as "too-short" even though the full reply was
+  // substantial. The floor is about whether an answer was written at all; the
+  // payload is about what it asserted. Different questions, different inputs.
   const contentWords = new Set(
-    text.replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter((w) => w.length > 3),
+    full.replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter((w) => w.length > 3),
   );
   if (contentWords.size < MIN_CONTENT_WORDS) {
     return { score: 0, hits, verdict: 'too-short' };
   }
 
   // An answer that states the code is fine has not found the defect, however
-  // many of the right nouns it happens to contain.
-  const disclaimed = NO_DEFECT_VERDICTS.some((re) => re.test(text));
+  // many of the right nouns it happens to contain. Checked against the WHOLE
+  // reply, not just the payload — a model that files a claim and then retracts
+  // it in the FIX line has not found anything either.
+  const disclaimed = NO_DEFECT_VERDICTS.some((re) => re.test(full));
+  // Only when the model filed no claim of its own — see isContaminated.
+  const contaminated = payload == null && isContaminated(full, c);
 
   let s = 0;
-  if (mustRatio === 1 && paraphrase && !disclaimed) s = 1.0; // names it AND explains it
-  else if (mustRatio === 1 || paraphrase) s = 0.5;           // one without the other
+  if (mustRatio === 1 && paraphrase && !disclaimed && !contaminated) s = 1.0;
+  else if (mustRatio === 1 || paraphrase) s = 0.5;
 
   return {
     score: s,
     hits,
     verdict:
       s === 1 ? 'found'
-        : s > 0 ? (disclaimed ? 'disclaimed' : 'partial')
+        : s > 0 ? (contaminated ? 'contaminated' : disclaimed ? 'disclaimed' : 'partial')
           : 'missed',
   };
 }

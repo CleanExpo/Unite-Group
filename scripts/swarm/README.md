@@ -85,44 +85,62 @@ is not a contrived risk: the system prompt tells models *"if the code is correct
 say so"*, so denials are routine output. A model that reliably says "looks fine"
 while restating the context would have topped the leaderboard.
 
-An explicit "nothing wrong here" verdict now caps the score at 0.5. The first
-attempt at that was a list of literal phrases, and a third review pass broke it
-straight away with four wordings nobody had listed (*"expected behavior, not an
-error"*, *"requires no modification"*, *"I cannot identify a problem"*, *"not
-problematic"*). That wasn't a gap in the list — it was the wrong shape. A finite
-list of literals is bypassable by paraphrase forever, and extending it four
-strings at a time is a race with no end. The detector now matches the **grammar**
-of a no-defect verdict: negation attached to a defect noun, inability to find
-one, or an assertion of correctness. Unlisted wordings are covered by
-construction rather than by having been anticipated.
+Getting this right took three attempts, and the first two failed the same way.
 
-Each case carries two controls — a `negativeControl` (every anchor, no claim at
+1. **A list of literal phrases.** Review broke it immediately with four wordings
+   nobody had listed (*"expected behavior, not an error"*, *"requires no
+   modification"*, *"I cannot identify a problem"*, *"not problematic"*).
+2. **Patterns matching the grammar** of a no-defect verdict — negation on a
+   defect noun, inability to find one, assertions of correctness. Better shape,
+   still an enumeration: attacking it with 29 plausible denials found **17 still
+   leaking** (*"The snippet is bug-free"*, *"Everything checks out"*, *"This
+   passes review"*, *"No action is required"*).
+3. **Scoring the claim instead of the blob.** The system prompt already mandates
+   `DEFECT: … WHY: … FIX: …`. Scoring the DEFECT+WHY payload makes the score
+   **non-monotone**: framing wrapped *around* a claim stops counting, because it
+   is not part of what the model asserted. `DEFECT: none` scores 0 outright.
+
+Step 3 is what actually closed the family — all 29 framings, including the 17
+that leaked. Steps 1–2 survive only as a backstop for replies that ignore the
+format, which cheap models often do.
+
+Each case carries two controls: a `negativeControl` (every anchor, no claim at
 all) and a `refutationControl` (every anchor, an accepted explanation, an
-explicit denial). `selftest.mjs` pins those plus eight denial framings and two
-stuffing attacks below 1.0, while requiring each case's own ground truth to
+explicit denial). `selftest.mjs` pins those plus 29 denial framings × 8 cases and
+two stuffing attacks below 1.0, while requiring each case's own ground truth to
 score exactly 1.0.
 
 ### The limit that remains
 
-Stated plainly, because a benchmark that hides its own weakness is worthless:
+Stated plainly, because a benchmark that hides its own weakness is worthless.
 
-**Containment scoring is monotone** — adding text can only raise a score. Every
-rule of the form *"unless it also contains X"* is therefore a patch on a monotone
-base, and a sufficiently inventive denial will eventually slip through. Two
-things bound the damage:
+**Containment scoring is monotone.** Within the payload, adding text can still
+only raise a score. Payload scoping bounds *where* that applies; it does not
+repeal it. A denial written *inside* the `DEFECT:` line in wording the patterns
+miss will still score.
 
-- The penalty is a **cap at 0.5, not a zero**. A false positive on a genuine
-  finding costs half a mark, not everything, and all 8 ground truths are pinned
-  at 1.0 under it.
-- The **threat model is narrower than it looks**. Models are shown only `context`
-  and `code` — never `mustMention` or `acceptAny` — so an answer quoting an
-  accepted explanation verbatim is not reachable by a benchmarked model. The
-  realistic failure is the plain denial, which is what the patterns target.
+**A verbatim accepted phrase is only weak evidence of cheating.** Reproducing an
+`acceptAny` string suggests the answer came from the corpus rather than the code
+— models are shown only `context` and `code`, never the answer key. But applying
+that unconditionally was worse than the attack: it demoted a genuine, correctly
+formatted answer to 0.5, because *"pages can skip or duplicate rows"* is simply
+what a competent reviewer writes. The `acceptAny` entries were authored as
+natural descriptions, so natural wording is not proof of anything. The rule now
+applies only when the reply files no claim at all, where those strings are the
+only evidence there is.
 
-Anchors-without-explanation scores **0.5, not 0** for the same reason: separating
-a shallow-but-real finding from a fluent non-claim needs semantics, which is the
-LLM judge this benchmark declines to hire. 0.5 is the proven ceiling for
-stuffing — a stuffer ranks mid-table, never top.
+**The penalty is a cap at 0.5, not a zero**, throughout. A false positive on a
+real finding costs half a mark rather than everything, and all 8 ground truths
+are pinned at 1.0 under every rule above.
+
+**Anchors-without-explanation scores 0.5, not 0**, for the same reason:
+separating a shallow-but-real finding from a fluent non-claim needs semantics,
+which is the LLM judge this benchmark declines to hire. 0.5 is the proven ceiling
+for stuffing — a stuffer ranks mid-table, never top.
+
+This is a heuristic screen, not a judge. Treat a ranking as a shortlist and read
+`bench-results.json` before acting on it — which is why every raw response is
+kept.
 
 ## 2. Run the swarm
 
@@ -144,7 +162,7 @@ than requested.
 ## 3. Self-test
 
 ```bash
-node scripts/swarm/selftest.mjs     # 71 assertions, no network, no key
+node scripts/swarm/selftest.mjs     # 70 assertions, no network, no key
 ```
 
 Every assertion has a negative control. The scorer must reject four generic

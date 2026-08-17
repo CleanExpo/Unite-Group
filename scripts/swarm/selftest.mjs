@@ -14,7 +14,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { score, isFree } from './bench.mjs';
+import { score, isFree, claimPayload, isContaminated } from './bench.mjs';
 import { cluster, parseFindings, chunk } from './swarm.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -75,31 +75,81 @@ for (const c of corpus.cases) {
 }
 check('every case carries a refutationControl', corpus.cases.every((c) => typeof c.refutationControl === 'string' && c.refutationControl.length > 0));
 
-// The FIRST denial fix was a list of literal phrases, and review broke it
-// immediately with four wordings nobody had listed. The lesson is not "add
-// those four" — a finite literal list is bypassable by paraphrase forever — so
-// the detector matches the GRAMMAR of a no-defect verdict instead. These eight
-// framings deliberately include wordings absent from any list: the first four
-// are the exact strings review used to break the literal version.
+// The FIRST denial fix was a list of literal phrases; review broke it with four
+// wordings nobody had listed. The SECOND was a set of grammar patterns, which is
+// a better shape — but attacking it with 29 plausible denials found 17 still
+// leaking ("The snippet is bug-free", "Everything checks out", "This passes
+// review"). Enumerating grammar is still enumerating.
+//
+// What closed the family was structural, not lexical: score() reads the
+// DEFECT/WHY payload rather than the whole reply, so framing wrapped AROUND a
+// claim stops counting. All 29 are pinned here, including the 17 that once
+// leaked and the 4 review supplied.
 const DENIAL_FRAMINGS = [
+  // supplied by review to break the literal-phrase version
   'This is expected behavior, not an error.',
   'The implementation is valid and requires no modification.',
   'I cannot identify a problem in this code.',
   'This behavior is intentional and not problematic.',
-  'This code has no defect.',
-  'The code looks correct to me.',
-  'Everything here works as intended.',
-  'I could not spot anything wrong.',
+  // caught by the grammar patterns
+  'This code has no defect.', 'No defect found.', 'This is fine.',
+  'The code looks correct to me.', 'Everything here works as intended.',
+  'I could not spot anything wrong.', 'There is no issue with this snippet.',
+  'The snippet is safe as written.',
+  // leaked past the grammar patterns; closed by payload scoping
+  'DEFECT: none.', 'The snippet is bug-free.', 'Nothing here needs attention.',
+  'The logic holds in all cases.', 'The code performs its stated function accurately.',
+  'I find the implementation acceptable as written.',
+  'The behaviour matches the documented contract.', 'This is a false positive.',
+  'The concern raised does not apply.', 'All paths are handled properly.',
+  'This implementation follows best practice.', 'The code is production-ready.',
+  'Everything checks out.', 'The reviewer concern is unfounded.',
+  'No action is required.', 'This passes review.', 'I see nothing that would fail.',
 ];
+const denialLeaks = [];
 for (const framing of DENIAL_FRAMINGS) {
-  const leaked = corpus.cases.filter((c) => {
+  for (const c of corpus.cases) {
     // Everything a full-credit answer needs, prefixed by a denial: all anchors,
     // an accepted explanation, and enough content words to clear the floor.
     const answer = `${framing} It handles ${c.mustMention.join(' and ')}. Review note: ${c.acceptAny[0]}. Further implementation details are documented.`;
-    return score(answer, c).score >= 1.0;
-  });
-  check(`denial "${framing}" never scores full marks`, leaked.length === 0, `leaked on ${leaked.map((c) => c.id).join(', ')}`);
+    if (score(answer, c).score >= 1.0) denialLeaks.push(`${framing} @ ${c.id}`);
+  }
 }
+check(
+  `no denial framing scores full marks (${DENIAL_FRAMINGS.length} framings x ${corpus.cases.length} cases)`,
+  denialLeaks.length === 0,
+  `${denialLeaks.length} leaks, first: ${denialLeaks[0]}`,
+);
+
+// ── STRUCTURAL PROPERTIES ──────────────────────────────────────────────────
+// These are what actually closed the denial family; the pattern list is only a
+// backstop for answers that ignore the mandated format.
+console.log('\nscore() — claim-payload scoping');
+const pag = corpus.cases.find((c) => c.id === 'offset-pagination-no-order');
+check('DEFECT: none is a denial in the format\'s own vocabulary', claimPayload('defect: none\nwhy: x\nfix: y') === '');
+check('a missing DEFECT: line falls back to whole-text scoring', claimPayload('the pagination lacks an order by') === null);
+check(
+  'a correct, well-formatted answer scores 1.0',
+  score(
+    'DEFECT: .range() offset pagination with no ORDER BY\nWHY: no ORDER BY means non-deterministic row order, so pages can skip or duplicate rows across round trips and the summed ledger is wrong\nFIX: add a total order on created_at plus id',
+    pag,
+  ).score === 1.0,
+);
+check(
+  'DEFECT: none scores 0, not partial credit for its surrounding prose',
+  score('DEFECT: none\nWHY: the pagination and order are handled correctly here\nFIX: none', pag).score === 0,
+);
+// Contamination is WEAK evidence, applied only when no claim was filed. Applying
+// it unconditionally demoted the correct answer above to 0.5, because "pages can
+// skip or duplicate rows" is simply what a competent reviewer writes.
+check(
+  'a verbatim accepted phrase does NOT penalise an answer that files a claim',
+  score(`DEFECT: pagination is unordered\nWHY: ${pag.acceptAny[1]}\nFIX: add an order by`, pag).score === 1.0,
+);
+check(
+  'no ground truth reproduces an accepted phrase verbatim',
+  corpus.cases.every((c) => !isContaminated(c.groundTruth.toLowerCase(), c)),
+);
 // A refutation control only tests the negation rule if it would OTHERWISE have
 // scored 1.0 — it must carry every anchor and a recognised explanation, so the
 // only thing standing between it and full marks is the "no defect" verdict.
