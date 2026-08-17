@@ -10,6 +10,7 @@ import {
   formatAgo,
   formatDuration,
   LaneRunStream,
+  summariseGate,
   MAX_RENDERED_EVENTS,
   STALE_AFTER_MS,
   toEventRow,
@@ -319,5 +320,182 @@ describe('<LaneRunStream />', () => {
   it('reports an environment with no EventSource instead of pretending to connect', () => {
     const node = mount(<LaneRunStream runId="run_1" eventSourceFactory={undefined} />)
     expect(node.textContent).toContain('could not be read')
+  })
+})
+
+// ── UNI-2409: the gate panel ────────────────────────────────────────────────
+
+describe('summariseGate', () => {
+  const allowed = {
+    tier: 'L0',
+    allowed: true,
+    safeSummary: 'L0 · Read',
+    reason: 'only reads',
+    failedClosed: false,
+  }
+  const blocked = {
+    tier: 'L3',
+    allowed: false,
+    safeSummary: 'L3 · Bash',
+    reason: 'pushes to a remote',
+    failedClosed: false,
+  }
+
+  it('leads with the blocked count, not the total', () => {
+    // A tally that mixes allowed reads into the same number buries the one fact
+    // a founder is scanning for.
+    expect(summariseGate([allowed, allowed, blocked]).label).toBe('gate: 1 blocked')
+    expect(summariseGate([allowed, allowed]).label).toBe('gate: 2 allowed, 0 blocked')
+  })
+
+  it('distinguishes "none recorded" from "none blocked"', () => {
+    // A run that recorded nothing is not a clean run. Collapsing the two would
+    // let a lane that never reached the gate render as gated and green.
+    expect(summariseGate(null).label).toMatch(/no decisions recorded/)
+    expect(summariseGate(null).tone).toBe('neutral')
+    expect(summariseGate([]).label).toMatch(/0 blocked/)
+    expect(summariseGate([]).tone).toBe('good')
+  })
+
+  it('calls out a fail-closed block separately', () => {
+    // "Blocked because it was dangerous" and "blocked because the gate could
+    // not classify it" need different follow-up from the founder.
+    expect(summariseGate([{ ...blocked, failedClosed: true }]).label).toMatch(
+      /1 blocked \(1 failed closed\)/,
+    )
+  })
+
+  it('never reports a blocked run as good', () => {
+    expect(summariseGate([blocked]).tone).toBe('warn')
+  })
+})
+
+describe('<LaneRunStream /> gate panel', () => {
+  const factory = (url: string) => new FakeEventSource(url) as unknown as EventSource
+
+  /** Resolve pending promises so the gate fetch lands before assertions. */
+  async function settle() {
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+  }
+
+  it('renders each blocked action with its safe reason', async () => {
+    const node = mount(
+      <LaneRunStream
+        runId="run_1"
+        eventSourceFactory={factory}
+        fetchGate={async () => [
+          {
+            tier: 'L3',
+            allowed: false,
+            safeSummary: 'L3 · Bash · claude-code',
+            reason: 'command references credential material',
+            failedClosed: false,
+          },
+        ]}
+      />,
+    )
+    await settle()
+    const gate = node.querySelector('[data-testid="lane-run-stream-gate"]')
+    expect(gate?.textContent).toContain('1 blocked')
+    expect(gate?.textContent).toContain('L3 · Bash · claude-code')
+    expect(gate?.textContent).toContain('credential material')
+  })
+
+  it('does not render the arguments that caused the block', async () => {
+    // The gate strips them upstream; this asserts the panel does not
+    // reintroduce them from some other field.
+    const node = mount(
+      <LaneRunStream
+        runId="run_1"
+        eventSourceFactory={factory}
+        fetchGate={async () => [
+          {
+            tier: 'L3',
+            allowed: false,
+            safeSummary: 'L3 · Read · claude-code',
+            reason: 'tool targets credential material',
+            failedClosed: false,
+          },
+        ]}
+      />,
+    )
+    await settle()
+    expect(node.textContent).not.toContain('.env')
+    expect(node.textContent).not.toContain('id_rsa')
+  })
+
+  it('says nothing was recorded rather than implying a clean run', async () => {
+    const node = mount(
+      <LaneRunStream runId="run_1" eventSourceFactory={factory} fetchGate={async () => null} />,
+    )
+    await settle()
+    expect(node.querySelector('[data-testid="lane-run-stream-gate"]')?.textContent).toMatch(
+      /no decisions recorded/,
+    )
+  })
+
+  it('treats a failed gate read as unrecorded, not as a stream error', async () => {
+    const node = mount(
+      <LaneRunStream
+        runId="run_1"
+        eventSourceFactory={factory}
+        fetchGate={async () => {
+          throw new Error('network down')
+        }}
+      />,
+    )
+    await settle()
+    // The run itself is unaffected by an unreadable audit log.
+    expect(node.querySelector('[data-testid="lane-run-stream-gate"]')?.textContent).toMatch(
+      /no decisions recorded/,
+    )
+    expect(node.querySelector('[data-testid="lane-run-stream-state"]')?.textContent).not.toMatch(
+      /error/,
+    )
+  })
+
+  it('shows no gate panel at all when no run is selected', async () => {
+    const node = mount(<LaneRunStream eventSourceFactory={factory} fetchGate={async () => []} />)
+    await settle()
+    expect(node.querySelector('[data-testid="lane-run-stream-gate"]')).toBeNull()
+  })
+
+  it('re-reads the gate as events arrive, so a block appears during the run', async () => {
+    let calls = 0
+    const node = mount(
+      <LaneRunStream
+        runId="run_1"
+        eventSourceFactory={factory}
+        fetchGate={async () => {
+          calls += 1
+          return calls > 1
+            ? [
+                {
+                  tier: 'L3',
+                  allowed: false,
+                  safeSummary: 'L3 · Bash',
+                  reason: 'pushes to a remote',
+                  failedClosed: false,
+                },
+              ]
+            : []
+        }}
+      />,
+    )
+    await settle()
+    expect(node.textContent).toContain('0 blocked')
+
+    const source = FakeEventSource.instances[0]!
+    act(() => {
+      source.emit('tool_call', event(1, { kind: 'tool_call' }))
+    })
+    await settle()
+
+    // Waiting until the run ends would show the block after it stopped
+    // mattering.
+    expect(node.textContent).toContain('1 blocked')
   })
 })

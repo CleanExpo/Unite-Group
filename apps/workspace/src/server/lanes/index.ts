@@ -33,6 +33,22 @@ let taskQueueRecovery: Promise<number> | null = null
  * quietly proceeds ungated because setup failed is exactly the fail-open this
  * ticket exists to prevent.
  */
+/** Base directory holding per-run gate state. */
+function laneBase(): string {
+  return path.join(os.homedir(), '.hermes', 'lanes')
+}
+
+/**
+ * Where the hook records its decisions for a run.
+ *
+ * Derived from the same layout `prepareLaneGate` writes, so the reader and the
+ * writer cannot drift to different paths — the failure that would make the
+ * panel permanently, silently empty.
+ */
+export function gateDecisionsPath(runId: string, base: string = laneBase()): string {
+  return path.join(base, 'gate', runId, 'decisions.jsonl')
+}
+
 export async function prepareLaneGate(
   base: string,
   input: { runId: string; laneId: string },
@@ -49,7 +65,10 @@ export async function prepareLaneGate(
     requestId: input.runId,
     settingsPath,
     approvalsPath: path.join(dir, 'approvals.json'),
-    auditPath: path.join(dir, 'decisions.jsonl'),
+    // Derived from the same helper the reader uses, so the two cannot drift to
+    // different paths — the failure that would make the panel permanently and
+    // silently empty while the gate was working perfectly.
+    auditPath: gateDecisionsPath(input.runId, base),
   }
 }
 

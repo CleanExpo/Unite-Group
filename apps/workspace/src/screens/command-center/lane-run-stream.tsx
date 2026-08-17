@@ -168,12 +168,63 @@ const STATE_CLASS: Record<ConnectionDescription['tone'], string> = {
 
 export type EventSourceFactory = (url: string) => EventSource
 
+/** One gate decision, as `/api/lanes/gate` returns it. */
+export interface GateDecisionView {
+  tier: string
+  allowed: boolean
+  safeSummary: string
+  reason: string
+  failedClosed: boolean
+}
+
+/**
+ * Summarise the gate's decisions for a run (UNI-2409).
+ *
+ * Reports the BLOCKED count, not the total. A founder scanning a lane needs to
+ * know whether the agent was stopped from doing something, and a tally that
+ * mixes allowed reads into the same number buries the one fact that matters.
+ * "None recorded" is kept distinct from "none blocked": the first means the
+ * gate wrote nothing for this run, which is not the same as a clean run and
+ * must not be rendered as one.
+ */
+export function summariseGate(
+  decisions: readonly GateDecisionView[] | null,
+): { label: string; tone: ConnectionDescription['tone'] } {
+  if (decisions === null) return { label: 'gate: no decisions recorded', tone: 'neutral' }
+  const blocked = decisions.filter((decision) => !decision.allowed)
+  if (blocked.length === 0) {
+    return { label: `gate: ${decisions.length} allowed, 0 blocked`, tone: 'good' }
+  }
+  const failedClosed = blocked.filter((decision) => decision.failedClosed).length
+  return {
+    label:
+      failedClosed > 0
+        ? `gate: ${blocked.length} blocked (${failedClosed} failed closed)`
+        : `gate: ${blocked.length} blocked`,
+    tone: 'warn',
+  }
+}
+
 export interface LaneRunStreamProps {
   runId?: string
   /** Injectable for tests; defaults to the browser's EventSource. */
   eventSourceFactory?: EventSourceFactory
   /** Injectable clock so freshness assertions are deterministic. */
   now?: () => number
+  /** Injectable fetch so the gate panel is testable without a network. */
+  fetchGate?: (runId: string) => Promise<GateDecisionView[] | null>
+}
+
+/** Default gate reader. Returns null when the run recorded no decisions. */
+async function defaultFetchGate(runId: string): Promise<GateDecisionView[] | null> {
+  const response = await fetch(`/api/lanes/gate?runId=${encodeURIComponent(runId)}`)
+  if (!response.ok) return null
+  const body = (await response.json()) as {
+    recorded?: boolean
+    decisions?: GateDecisionView[]
+  }
+  if (body.recorded === false) return null
+  return body.decisions ?? null
 }
 
 /**
@@ -197,10 +248,12 @@ export function LaneRunStream({
   runId,
   eventSourceFactory,
   now = () => Date.now(),
+  fetchGate = defaultFetchGate,
 }: LaneRunStreamProps) {
   const [events, setEvents] = useState<LaneStreamEvent[]>([])
   const [state, setState] = useState<ConnectionState>('idle')
   const [lastEventAt, setLastEventAt] = useState<number | null>(null)
+  const [gate, setGate] = useState<GateDecisionView[] | null>(null)
   const [tick, setTick] = useState(0)
   const sourceRef = useRef<EventSource | null>(null)
 
@@ -212,6 +265,33 @@ export function LaneRunStream({
   nowRef.current = now
   const factoryRef = useRef(eventSourceFactory)
   factoryRef.current = eventSourceFactory
+  const fetchGateRef = useRef(fetchGate)
+  fetchGateRef.current = fetchGate
+
+  // Gate decisions are re-read whenever an event lands, so a block appears
+  // alongside the tool call that caused it rather than only after the run ends.
+  // `events.length` rather than `events`: the array identity changes on every
+  // append, and depending on it would refetch for each of 500 output lines.
+  useEffect(() => {
+    if (!runId) {
+      setGate(null)
+      return
+    }
+    let alive = true
+    void fetchGateRef
+      .current(runId)
+      .then((decisions) => {
+        if (alive) setGate(decisions)
+      })
+      .catch(() => {
+        // A gate read that fails is reported as "no decisions recorded" rather
+        // than as a stream error: the run itself is unaffected.
+        if (alive) setGate(null)
+      })
+    return () => {
+      alive = false
+    }
+  }, [runId, events.length])
 
   useEffect(() => {
     setEvents([])
@@ -291,6 +371,11 @@ export function LaneRunStream({
     [effectiveState, lastEventAgoMs, tick],
   )
   const rows = useMemo(() => events.map(toEventRow), [events])
+  const gateSummary = useMemo(() => summariseGate(gate), [gate])
+  const blockedDecisions = useMemo(
+    () => (gate ?? []).filter((decision) => !decision.allowed),
+    [gate],
+  )
 
   return (
     <section
@@ -314,6 +399,35 @@ export function LaneRunStream({
       <p className="sr-only" role="status" aria-live="polite">
         {description.announcement}
       </p>
+
+      {/* UNI-2409 — what the autonomy gate stopped. A block the founder never
+          sees is indistinguishable from a lane that simply did less work, so
+          blocked actions get their own visible rows rather than a count. */}
+      {runId ? (
+        <div
+          className="border-b border-neutral-800 px-2 py-1"
+          data-testid="lane-run-stream-gate"
+        >
+          <span className={cn('text-[10px] font-mono', STATE_CLASS[gateSummary.tone])}>
+            {gateSummary.label}
+          </span>
+          {blockedDecisions.length > 0 ? (
+            <ul className="mt-1 flex flex-col gap-0.5">
+              {blockedDecisions.map((decision, index) => (
+                <li
+                  key={`${decision.safeSummary}:${index}`}
+                  className="font-mono text-[10px] text-amber-400"
+                >
+                  {/* safeSummary and reason are produced by the gate with the
+                      arguments already stripped — a blocked call is often
+                      blocked BECAUSE it touched credential material. */}
+                  ✋ {decision.safeSummary} — {decision.reason}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
 
       <div
         role="log"

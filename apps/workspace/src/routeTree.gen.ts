@@ -131,6 +131,7 @@ import { Route as ApiLanesTasksRouteImport } from './routes/api/lanes/tasks'
 import { Route as ApiLanesStopRouteImport } from './routes/api/lanes/stop'
 import { Route as ApiLanesRunRouteImport } from './routes/api/lanes/run'
 import { Route as ApiLanesListRouteImport } from './routes/api/lanes/list'
+import { Route as ApiLanesGateRouteImport } from './routes/api/lanes/gate'
 import { Route as ApiLanesEventsRouteImport } from './routes/api/lanes/events'
 import { Route as ApiLanesDispatchRouteImport } from './routes/api/lanes/dispatch'
 import { Route as ApiLanesCreateRouteImport } from './routes/api/lanes/create'
@@ -763,6 +764,11 @@ const ApiLanesListRoute = ApiLanesListRouteImport.update({
   path: '/api/lanes/list',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiLanesGateRoute = ApiLanesGateRouteImport.update({
+  id: '/api/lanes/gate',
+  path: '/api/lanes/gate',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiLanesEventsRoute = ApiLanesEventsRouteImport.update({
   id: '/api/lanes/events',
   path: '/api/lanes/events',
@@ -971,6 +977,7 @@ export interface FileRoutesByFullPath {
   '/api/lanes/create': typeof ApiLanesCreateRoute
   '/api/lanes/dispatch': typeof ApiLanesDispatchRoute
   '/api/lanes/events': typeof ApiLanesEventsRoute
+  '/api/lanes/gate': typeof ApiLanesGateRoute
   '/api/lanes/list': typeof ApiLanesListRoute
   '/api/lanes/run': typeof ApiLanesRunRoute
   '/api/lanes/stop': typeof ApiLanesStopRoute
@@ -1114,6 +1121,7 @@ export interface FileRoutesByTo {
   '/api/lanes/create': typeof ApiLanesCreateRoute
   '/api/lanes/dispatch': typeof ApiLanesDispatchRoute
   '/api/lanes/events': typeof ApiLanesEventsRoute
+  '/api/lanes/gate': typeof ApiLanesGateRoute
   '/api/lanes/list': typeof ApiLanesListRoute
   '/api/lanes/run': typeof ApiLanesRunRoute
   '/api/lanes/stop': typeof ApiLanesStopRoute
@@ -1259,6 +1267,7 @@ export interface FileRoutesById {
   '/api/lanes/create': typeof ApiLanesCreateRoute
   '/api/lanes/dispatch': typeof ApiLanesDispatchRoute
   '/api/lanes/events': typeof ApiLanesEventsRoute
+  '/api/lanes/gate': typeof ApiLanesGateRoute
   '/api/lanes/list': typeof ApiLanesListRoute
   '/api/lanes/run': typeof ApiLanesRunRoute
   '/api/lanes/stop': typeof ApiLanesStopRoute
@@ -1405,6 +1414,7 @@ export interface FileRouteTypes {
     | '/api/lanes/create'
     | '/api/lanes/dispatch'
     | '/api/lanes/events'
+    | '/api/lanes/gate'
     | '/api/lanes/list'
     | '/api/lanes/run'
     | '/api/lanes/stop'
@@ -1548,6 +1558,7 @@ export interface FileRouteTypes {
     | '/api/lanes/create'
     | '/api/lanes/dispatch'
     | '/api/lanes/events'
+    | '/api/lanes/gate'
     | '/api/lanes/list'
     | '/api/lanes/run'
     | '/api/lanes/stop'
@@ -1692,6 +1703,7 @@ export interface FileRouteTypes {
     | '/api/lanes/create'
     | '/api/lanes/dispatch'
     | '/api/lanes/events'
+    | '/api/lanes/gate'
     | '/api/lanes/list'
     | '/api/lanes/run'
     | '/api/lanes/stop'
@@ -1832,6 +1844,7 @@ export interface RootRouteChildren {
   ApiLanesCreateRoute: typeof ApiLanesCreateRoute
   ApiLanesDispatchRoute: typeof ApiLanesDispatchRoute
   ApiLanesEventsRoute: typeof ApiLanesEventsRoute
+  ApiLanesGateRoute: typeof ApiLanesGateRoute
   ApiLanesListRoute: typeof ApiLanesListRoute
   ApiLanesRunRoute: typeof ApiLanesRunRoute
   ApiLanesStopRoute: typeof ApiLanesStopRoute
@@ -2707,6 +2720,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiLanesListRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/lanes/gate': {
+      id: '/api/lanes/gate'
+      path: '/api/lanes/gate'
+      fullPath: '/api/lanes/gate'
+      preLoaderRoute: typeof ApiLanesGateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/lanes/events': {
       id: '/api/lanes/events'
       path: '/api/lanes/events'
@@ -3110,6 +3130,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiLanesCreateRoute: ApiLanesCreateRoute,
   ApiLanesDispatchRoute: ApiLanesDispatchRoute,
   ApiLanesEventsRoute: ApiLanesEventsRoute,
+  ApiLanesGateRoute: ApiLanesGateRoute,
   ApiLanesListRoute: ApiLanesListRoute,
   ApiLanesRunRoute: ApiLanesRunRoute,
   ApiLanesStopRoute: ApiLanesStopRoute,
