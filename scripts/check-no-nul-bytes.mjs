@@ -25,10 +25,38 @@ import { execSync } from 'node:child_process';
 import { readFileSync, statSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
-const EXTENSIONS = new Set([
-  '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs',
-  '.json', '.md', '.css', '.scss', '.html',
-  '.yml', '.yaml', '.sql', '.sh', '.toml',
+/**
+ * Binary formats, which legitimately contain NUL and are not review surface.
+ *
+ * DENYLIST, NOT AN ALLOWLIST — and that inversion is the whole point. The first
+ * two versions of this guard listed the extensions to *include*, and both were
+ * wrong in the same way: whatever was not on the list was skipped in silence.
+ * Version one missed every extensionless file (3 Dockerfiles, 4 CODEOWNERS, the
+ * git hooks); version two still skipped 273 tracked files, among them 28 Python
+ * files, 21 PowerShell scripts, `apps/web/vitest.config.mts` and a `.prisma`
+ * schema. All real source. A NUL in any of them hides its diff exactly as well
+ * as a NUL in a .ts file. Both gaps were found in review on PR #1017, not by
+ * the guard.
+ *
+ * Inverted, the failure mode inverts with it: a binary format nobody listed
+ * gets REPORTED rather than skipped. That is a loud, one-line fix (add the
+ * extension here, or the file to ALLOWLIST) instead of a gate that quietly
+ * inspects nothing and prints "clean".
+ */
+const BINARY_EXTENSIONS = new Set([
+  // images
+  '.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif', '.bmp', '.tiff', '.ico', '.icns',
+  // fonts
+  '.woff', '.woff2', '.ttf', '.otf', '.eot',
+  // archives and documents
+  '.pdf', '.zip', '.gz', '.tgz', '.bz2', '.xz', '.7z', '.rar', '.jar',
+  // audio and video
+  '.mp3', '.mp4', '.m4a', '.mov', '.avi', '.webm', '.wav', '.ogg',
+  // compiled and packed artefacts
+  '.wasm', '.exe', '.dll', '.so', '.dylib', '.node', '.bin', '.class',
+  '.pyc', '.pyo', '.db', '.sqlite', '.sqlite3',
+  // key material
+  '.p12', '.pfx', '.keystore',
 ]);
 
 /**
@@ -53,30 +81,22 @@ const ALLOWLIST = new Map([
 ]);
 
 /**
- * Should this tracked path be scanned?
+ * Should this tracked path be scanned? Everything except a known binary format.
  *
- * Two rules, because one is not enough:
+ * The extension is taken from the BASENAME, not the whole path — `foo.d/Makefile`
+ * has no extension even though the path contains a dot. Getting that wrong is
+ * not hypothetical: the original selection computed `f.slice(f.lastIndexOf('.'))`
+ * over the whole path, which returns "e" for `Dockerfile` (`lastIndexOf` gives
+ * -1 and `slice(-1)` is the last character), and every extensionless file in the
+ * repo was excluded while the guard reported clean.
  *
- *   1. A recognised text extension — the common case.
- *   2. NO extension at all — Dockerfile, CODEOWNERS, LICENSE, git hooks. The
- *      first version of this guard missed every one of them: it computed the
- *      extension as `f.slice(f.lastIndexOf('.'))`, which for `Dockerfile`
- *      returns "e" (lastIndexOf gives -1, and slice(-1) is the last character),
- *      so three real Dockerfiles were silently excluded. Raised in review on
- *      PR #1017. Extensionless files in a source repo are essentially never
- *      binary — binaries carry .png/.woff/.pdf — so scanning them by default is
- *      both safe and immune to the next Dockerfile-shaped file nobody adds to a
- *      list.
- *
- * The extension is taken from the BASENAME, not the whole path: `foo.d/Makefile`
- * has no extension even though the path contains a dot.
+ * A leading dot is a hidden file (`.gitignore`), not an extension.
  */
 export function shouldScan(path) {
   const base = path.slice(path.lastIndexOf('/') + 1);
   const dot = base.lastIndexOf('.');
-  // A leading dot is a hidden file (.gitignore), not an extension.
   if (dot <= 0) return true;
-  return EXTENSIONS.has(base.slice(dot));
+  return !BINARY_EXTENSIONS.has(base.slice(dot).toLowerCase());
 }
 
 /** Scan the given paths, returning one entry per offending file. */

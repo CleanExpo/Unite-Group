@@ -21,7 +21,8 @@
         "should match exact family or a dated snapshot suffix",
         "silently returns a wrong price instead of null"
       ],
-      "negativeControl": "The lookup uses startsWith, considers an unknown model, and can produce null. Overall the structure reads clearly and the naming follows the surrounding conventions."
+      "negativeControl": "The lookup uses startsWith, considers an unknown model, and can produce null. Overall the structure reads clearly and the naming follows the surrounding conventions.",
+      "refutationControl": "This code has no defect. It correctly handles startsWith and unknown model and null. Some reviewers claim: matches unintended/unknown model ids. That concern does not apply here and the implementation is correct."
     },
     {
       "id": "offset-pagination-no-order",
@@ -40,7 +41,8 @@
         "needs a unique tiebreaker as well as created_at",
         "offset pagination over a table being written to is unstable"
       ],
-      "negativeControl": "This pagination code sets a page size and reads rows in order until a short page is returned. It looks like a standard loop and the naming is clear enough."
+      "negativeControl": "This pagination code sets a page size and reads rows in order until a short page is returned. It looks like a standard loop and the naming is clear enough.",
+      "refutationControl": "This code has no defect. It correctly handles order and pagination. Some reviewers claim: no ORDER BY means non-deterministic row order. That concern does not apply here and the implementation is correct."
     },
     {
       "id": "unawaited-serverless-write",
@@ -59,7 +61,8 @@
         "the insert can be lost after the response is returned",
         "await it on cron/background paths"
       ],
-      "negativeControl": "The handler runs on serverless infrastructure and the code does not await this call. The comment explains the reasoning and the overall structure reads clearly."
+      "negativeControl": "The handler runs on serverless infrastructure and the code does not await this call. The comment explains the reasoning and the overall structure reads clearly.",
+      "refutationControl": "This code has no defect. It correctly handles await and serverless. Some reviewers claim: floating promise may not complete before the function freezes. That concern does not apply here and the implementation is correct."
     },
     {
       "id": "test-asserts-less-than-name",
@@ -77,7 +80,8 @@
         "would pass even if cache-write pricing were removed",
         "expected total should be 7.5 with a cache write included"
       ],
-      "negativeControl": "This test covers pricing and mentions cacheWriteTokens in the surrounding module. The assertion uses toBeCloseTo which seems like a reasonable choice here."
+      "negativeControl": "This test covers pricing and mentions cacheWriteTokens in the surrounding module. The assertion uses toBeCloseTo which seems like a reasonable choice here.",
+      "refutationControl": "This code has no defect. It correctly handles cacheWriteTokens and test. Some reviewers claim: the test does not exercise cache writes despite its name. That concern does not apply here and the implementation is correct."
     },
     {
       "id": "cron-star-slash-zero",
@@ -97,7 +101,8 @@
         "NaN step silently yields zero",
         "needs validation that step is a positive integer"
       ],
-      "negativeControl": "The parser handles the star form and the step form. There is no infinite loop concern that stands out, and returning 0 for other shapes seems consistent with the rest."
+      "negativeControl": "The parser handles the star form and the step form. There is no infinite loop concern that stands out, and returning 0 for other shapes seems consistent with the rest.",
+      "refutationControl": "This code has no defect. It correctly handles infinite loop and 0. Some reviewers claim: */0 causes a non-terminating loop. That concern does not apply here and the implementation is correct."
     },
     {
       "id": "claim-then-finalise-strand",
@@ -116,7 +121,8 @@
         "needs a stale-claim sweep or visibility timeout",
         "claim is not atomic against a concurrent worker"
       ],
-      "negativeControl": "The worker moves rows through publishing and nothing here looks stranded. Reading it end to end, the control flow seems straightforward and easy to follow."
+      "negativeControl": "The worker moves rows through publishing and nothing here looks stranded. Reading it end to end, the control flow seems straightforward and easy to follow.",
+      "refutationControl": "This code has no defect. It correctly handles publishing and stranded. Some reviewers claim: rows stuck in publishing are never retried. That concern does not apply here and the implementation is correct."
     },
     {
       "id": "timestamptz-end-bound",
@@ -134,7 +140,8 @@
         "midnight boundary excludes most of the last day",
         "use an exclusive next-day upper bound"
       ],
-      "negativeControl": "The query filters on a start and an end value, which covers the day range the caller asked for. The builder syntax matches the rest of this module."
+      "negativeControl": "The query filters on a start and an end value, which covers the day range the caller asked for. The builder syntax matches the rest of this module.",
+      "refutationControl": "This code has no defect. It correctly handles end and day. Some reviewers claim: lte against a date drops rows later on the final day. That concern does not apply here and the implementation is correct."
     },
     {
       "id": "summing-without-dedupe",
@@ -153,7 +160,8 @@
         "needs a unique constraint or read-side seen-set",
         "null ids must not be collapsed together"
       ],
-      "negativeControl": "The aggregate groups rows by key and a request_id column is available, and no duplicate handling is strictly needed for a simple sum like this one."
+      "negativeControl": "The aggregate groups rows by key and a request_id column is available, and no duplicate handling is strictly needed for a simple sum like this one.",
+      "refutationControl": "This code has no defect. It correctly handles duplicate and request_id. Some reviewers claim: double-counted rows inflate the total. That concern does not apply here and the implementation is correct."
     }
   ]
 }

@@ -102,6 +102,38 @@ What is the defect?`;
 /** An answer shorter than this cannot be a defect claim, only a word list. */
 const MIN_CONTENT_WORDS = 8;
 
+/**
+ * Explicit "there is nothing wrong here" verdicts.
+ *
+ * The second review pass on PR #1017 found that requiring anchors AND a
+ * recognised explanation was still not requiring a CLAIM. This scored 1.0 on
+ * 8 of 8 cases:
+ *
+ *   "This code has no defect. It mentions <all anchors>. The documentation
+ *    says: <an acceptAny phrase>. The implementation is correct and should not
+ *    change."
+ *
+ * Every anchor present, an accepted explanation present, and the model's actual
+ * verdict is that the code is fine — the exact opposite of finding the bug. A
+ * model that reliably says "looks fine" while quoting the surrounding docs would
+ * have topped the leaderboard.
+ *
+ * Lexical negation detection is fragile, so the penalty is bounded: a
+ * disclaimed answer is capped at 0.5 rather than zeroed. A false positive
+ * (a real finding that happens to contain one of these strings) costs half a
+ * mark instead of everything, and selftest.mjs proves all 8 ground truths still
+ * score 1.0 under it.
+ */
+const NO_DEFECT_VERDICTS = [
+  'no defect', 'no defects', 'no bug', 'no bugs', 'no issue', 'no issues',
+  'not a defect', 'not a bug', 'nothing wrong', 'no problem',
+  'looks correct', 'looks fine', 'looks good',
+  'appears correct', 'appears fine', 'seems correct', 'seems fine',
+  'code is correct', 'code is fine', 'implementation is correct',
+  'should not change', 'no changes needed', 'no change is needed',
+  'works as intended', 'behaves correctly',
+];
+
 export function score(answer, c) {
   const text = (answer ?? '').toLowerCase();
   if (!text.trim()) return { score: 0, hits: [], verdict: 'empty' };
@@ -145,14 +177,21 @@ export function score(answer, c) {
     return { score: 0, hits, verdict: 'too-short' };
   }
 
+  // An answer that states the code is fine has not found the defect, however
+  // many of the right nouns it happens to contain.
+  const disclaimed = NO_DEFECT_VERDICTS.some((v) => text.includes(v));
+
   let s = 0;
-  if (mustRatio === 1 && paraphrase) s = 1.0;      // names it AND explains it
-  else if (mustRatio === 1 || paraphrase) s = 0.5; // one without the other
+  if (mustRatio === 1 && paraphrase && !disclaimed) s = 1.0; // names it AND explains it
+  else if (mustRatio === 1 || paraphrase) s = 0.5;           // one without the other
 
   return {
     score: s,
     hits,
-    verdict: s === 1 ? 'found' : s > 0 ? 'partial' : 'missed',
+    verdict:
+      s === 1 ? 'found'
+        : s > 0 ? (disclaimed ? 'disclaimed' : 'partial')
+          : 'missed',
   };
 }
 

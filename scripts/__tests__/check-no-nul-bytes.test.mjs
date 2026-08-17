@@ -44,9 +44,32 @@ test('shouldScan takes the extension from the BASENAME, not the path', () => {
   assert.equal(shouldScan('assets/v1.2/logo.png'), false);
 });
 
-test('shouldScan skips binary extensions', () => {
-  for (const p of ['a.png', 'fonts/x.woff2', 'docs/spec.pdf', 'bin/tool.exe']) {
+test('shouldScan skips binary extensions, case-insensitively', () => {
+  for (const p of ['a.png', 'fonts/x.woff2', 'docs/spec.pdf', 'bin/tool.exe', 'img/PHOTO.JPG']) {
     assert.equal(shouldScan(p), false, p);
+  }
+});
+
+test('shouldScan covers source extensions the ALLOWLIST version silently skipped', () => {
+  // Version two of this guard listed extensions to INCLUDE and therefore skipped
+  // 273 tracked files — among them 28 Python files, 21 PowerShell scripts,
+  // apps/web/vitest.config.mts and a .prisma schema. Found in review on PR #1017.
+  // These four are the concrete regressions that review named.
+  for (const p of [
+    'scripts/tool.py',
+    'scripts/health-check.ps1',
+    'apps/web/vitest.config.mts',
+    'apps/spec-board/projects/nexus-concierge-os/migrations/core_schema.prisma',
+  ]) {
+    assert.equal(shouldScan(p), true, p);
+  }
+});
+
+test('shouldScan defaults UNKNOWN extensions to scanned, not skipped', () => {
+  // The load-bearing property of inverting to a denylist: a format nobody
+  // anticipated is reported (a one-line fix) rather than silently ignored.
+  for (const p of ['a.rune', 'b.ejs', 'c.graphql', 'd.tf', 'e.rs', 'f.go']) {
+    assert.equal(shouldScan(p), true, p);
   }
 });
 
@@ -96,4 +119,20 @@ test('the real repo selection actually includes the Dockerfiles', () => {
     dockerfiles.length >= 3,
     `expected the repo's Dockerfiles to be scanned, got ${dockerfiles.length}: ${dockerfiles.join(', ')}`,
   );
+});
+
+test('the real repo selection includes its Python, PowerShell and .mts sources', () => {
+  const paths = trackedScannablePaths();
+  for (const ext of ['.py', '.ps1', '.mts']) {
+    assert.ok(
+      paths.some((p) => p.endsWith(ext)),
+      `no tracked ${ext} file is being scanned — the guard is skipping real source again`,
+    );
+  }
+});
+
+test('the real repo selection still excludes binary assets', () => {
+  const paths = trackedScannablePaths();
+  const binary = paths.filter((p) => /\.(png|jpe?g|webp|woff2?|ico)$/i.test(p));
+  assert.deepEqual(binary, [], 'binary assets must not be scanned');
 });

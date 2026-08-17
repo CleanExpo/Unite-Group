@@ -62,6 +62,26 @@ for (const c of corpus.cases) {
   const worst = Math.max(join, padded, control);
   check(`${c.id} caps all three stuffing attacks below 1.0`, worst < 1.0, `best stuffed answer scored ${worst}`);
 }
+// ── REFUTATION CONTROLS ────────────────────────────────────────────────────
+// Requiring anchors AND an explanation was still not requiring a CLAIM. The
+// second review pass on PR #1017 showed this scoring 1.0 on 8 of 8 cases:
+// every anchor, an accepted explanation, and a verdict of "the code is fine".
+// A model that says "looks correct" while quoting the surrounding docs would
+// otherwise have topped the leaderboard.
+console.log('\nscore() — an answer that REFUTES the defect must never score full marks');
+for (const c of corpus.cases) {
+  const r = score(c.refutationControl, c);
+  check(`${c.id} denies full marks to an explicit non-claim`, r.score < 1.0, `scored ${r.score} (${r.verdict})`);
+}
+check('every case carries a refutationControl', corpus.cases.every((c) => typeof c.refutationControl === 'string' && c.refutationControl.length > 0));
+// A refutation control only tests the negation rule if it would OTHERWISE have
+// scored 1.0 — it must carry every anchor and a recognised explanation, so the
+// only thing standing between it and full marks is the "no defect" verdict.
+check(
+  'every refutationControl contains all of its mustMention anchors',
+  corpus.cases.every((c) => c.mustMention.every((k) => c.refutationControl.toLowerCase().includes(k.toLowerCase()))),
+);
+
 // The corpus is only a control if every case actually has one.
 check('every case carries a negativeControl', corpus.cases.every((c) => typeof c.negativeControl === 'string' && c.negativeControl.length > 0));
 // A negativeControl that misses an anchor would pass the check above for the

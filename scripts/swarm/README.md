@@ -74,12 +74,21 @@ showed the break: simply joining the `mustMention` terms scored full marks on
 defect. That ranks a model which extracts nouns from the prompt above one that
 explains the bug, inverting the benchmark's purpose.
 
-Full marks now need **both** the anchors and a recognised explanation, and an
-answer too short to constitute a claim scores zero. Each case carries a
-`negativeControl` — a fluent sentence containing every anchor that makes no
-defect claim — and `selftest.mjs` pins three attacks per case (bare join, padded
-join, negative control) below 1.0 while requiring the case's own ground truth to
-score exactly 1.0.
+Requiring the anchors **and** a recognised explanation fixed that, and was still
+not enough — a second review pass found that this scored 1.0 on 8 of 8 cases too:
+
+> This code has no defect. It mentions *&lt;all anchors&gt;*. The documentation says:
+> *&lt;an acceptAny phrase&gt;*. The implementation is correct and should not change.
+
+Every anchor, an accepted explanation, and a verdict that the code is fine. So
+an explicit "nothing wrong here" verdict now caps the score at 0.5. That penalty
+is bounded rather than absolute on purpose: lexical negation detection is
+fragile, and a false positive should cost half a mark, not everything.
+
+Each case therefore carries two controls — a `negativeControl` (every anchor, no
+claim at all) and a `refutationControl` (every anchor, an accepted explanation,
+and an explicit denial). `selftest.mjs` pins five attacks per case below 1.0
+while requiring the case's own ground truth to score exactly 1.0.
 
 Anchors-without-explanation scores **0.5, not 0**. Separating a shallow-but-real
 finding from a fluent non-claim needs semantics — the LLM judge this benchmark
@@ -106,7 +115,7 @@ than requested.
 ## 3. Self-test
 
 ```bash
-node scripts/swarm/selftest.mjs     # 53 assertions, no network, no key
+node scripts/swarm/selftest.mjs     # 63 assertions, no network, no key
 ```
 
 Every assertion has a negative control. The scorer must reject four generic
