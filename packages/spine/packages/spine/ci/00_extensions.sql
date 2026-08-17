@@ -69,3 +69,25 @@ grant set on parameter
   hnsw.max_scan_tuples,
   hnsw.scan_mem_multiplier
 to postgres;
+
+-- ── Let `postgres` load the seed ─────────────────────────────────────────────
+--
+-- core.party and six siblings are FORCE ROW LEVEL SECURITY, which binds even
+-- the table owner, and seed/0001_seed.sql inserts rows with no JWT context to
+-- satisfy the policies — its own header says "Run as service role (RLS
+-- bypassed)". The CI job seeds as supabase_admin, but
+-- tests/integration/idempotency.test.ts also re-seeds in afterAll (it drops the
+-- schemas, so it must put the fixtures back for the suites that follow), and
+-- that runs on the ordinary test connection.
+--
+-- Stated explicitly rather than relying on whatever the image happens to give
+-- postgres, because "it probably already has it" is the kind of assumption that
+-- has cost this job several CI rounds already.
+--
+-- THIS DOES NOT WEAKEN THE RLS SUITES. Verified on PostgreSQL 16: BYPASSRLS
+-- belongs to the role in effect, and every suite runs its queries after
+-- `set local role authenticated` (data-access/client.ts). With the login role
+-- holding BYPASSRLS, a direct select returned 4 rows while the same select
+-- after `set local role authenticated` with no JWT returned 0 — the policies
+-- still bind exactly where the tests exercise them.
+alter role postgres bypassrls;
