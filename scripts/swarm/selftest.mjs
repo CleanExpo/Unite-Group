@@ -15,7 +15,10 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { score, isFree, claimPayload, isContaminated, tally } from './bench.mjs';
-import { cluster, parseFindings, chunk } from './swarm.mjs';
+import { cluster, parseFindings, chunk, parseVerdict, survivesRefutation, chunkOf } from './swarm.mjs';
+import { baseModelId, familyOf, distinctFamilies, validateRoster } from './lib/lineage.mjs';
+import { backoffMs, parseRetryAfter, usageOf, ledger, callModel } from './lib/openrouter.mjs';
+import { ROLES, REFUTE, REVIEW_ROLES, isQuestion } from './lib/roles.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const corpus = JSON.parse(readFileSync(join(HERE, 'defects.json'), 'utf8'));
@@ -366,6 +369,273 @@ console.log('\ncorpus');
 check('at least 8 cases', corpus.cases.length >= 8);
 check('records which cases Claude missed', corpus.cases.some((c) => c.claudeMissed));
 check('every case cites a real source', corpus.cases.every((c) => c.source?.includes('PR #')));
+
+// ════════════════════════════════════════════════════════════════════════════
+// PHASE 2 — lineage-aware quorum, free-tier resilience, roles, refutation, cost
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── lineage: what makes two votes INDEPENDENT ──────────────────────────────
+// The quorum is the entire premise of this tool, so the thing it counts has to
+// be right. Phase 1 counted distinct model IDS, which meant a roster of
+// `x`, `x:free`, `x:nitro` looked like three independent reviewers and was one
+// model polled three times.
+console.log('\nlineage — quorum must count independent lineages, not ids');
+check('routing variants collapse to one model', baseModelId('qwen/qwen3.8-27b:free') === baseModelId('qwen/qwen3.8-27b'));
+check(':nitro / :extended / :batch all collapse too', new Set(['a/b:nitro', 'a/b:extended', 'a/b:batch', 'a/b'].map(baseModelId)).size === 1);
+check('ids are case-insensitive', baseModelId('Qwen/Qwen3.8-27B') === 'qwen/qwen3.8-27b');
+check('family is the vendor prefix', familyOf('meta-llama/llama-3.3-70b:free') === 'meta-llama');
+check('two vendors are two lineages', distinctFamilies(['qwen/a', 'mistralai/b']) === 2);
+// NEGATIVE CONTROL — the failure this exists to prevent.
+check('two checkpoints from ONE vendor are ONE lineage', distinctFamilies(['qwen/a', 'qwen/b-instruct', 'qwen/c:free']) === 1);
+check(
+  'a single-vendor roster is REJECTED at quorum 2',
+  validateRoster(['qwen/a', 'qwen/b', 'qwen/c'], 2).ok === false,
+);
+check(
+  'and the rejection says why, not just no',
+  /lineage/i.test(validateRoster(['qwen/a', 'qwen/b'], 2).reason ?? ''),
+);
+check('a two-vendor roster is accepted at quorum 2', validateRoster(['qwen/a', 'mistralai/b'], 2).ok === true);
+check(
+  'a roster that is one model in three costumes is rejected',
+  validateRoster(['qwen/a', 'qwen/a:free', 'qwen/a:nitro'], 2).ok === false,
+);
+check(
+  'and reports how many entries collapsed',
+  validateRoster(['qwen/a', 'qwen/a:free', 'mistralai/b'], 2).collapsed === 1,
+);
+// Found by attacking this module, not by review. NaN comparisons are always
+// false, so a NaN quorum validated fine and then made `votes >= NaN` false for
+// every cluster: the swarm corroborated NOTHING and printed a clean review.
+// A silent zero-findings result is indistinguishable from success, which makes
+// it the worst failure mode available here.
+check('a NaN quorum is REJECTED, not silently accepted', validateRoster(['a/x', 'b/y'], Number('abc')).ok === false);
+check('a zero quorum is rejected — it removes the premise while keeping the label', validateRoster(['a/x', 'b/y'], 0).ok === false);
+check('a fractional quorum is rejected', validateRoster(['a/x', 'b/y'], 1.5).ok === false);
+check('an empty roster is rejected at every quorum', validateRoster([], 1).ok === false);
+// Degenerate ids must not manufacture lineages. Both collapse to '' — one
+// lineage, which is the SAFE direction (harder quorum, never easier).
+check('unparseable ids collapse rather than inventing lineages', distinctFamilies(['', null, undefined]) === 1);
+check('a vendorless id is its own lineage', familyOf('gpt-4') === 'gpt-4');
+check('a vendorless id and its :free variant are ONE model', baseModelId('gpt-4:free') === baseModelId('gpt-4'));
+check('a three-segment id takes the first segment as vendor', familyOf('a/b/c') === 'a');
+
+// ── free-tier resilience ───────────────────────────────────────────────────
+// "Run free models in parallel" is mostly a rate-limit problem. A 429 that
+// removes a model's vote silently lowers the effective quorum.
+console.log('\nbackoff — free tiers 429 hard, and a lost vote lowers the quorum silently');
+check('Retry-After in seconds wins over the guess', backoffMs(1, 7) === 7000);
+check('an absurd Retry-After is capped so one model cannot stall the run', backoffMs(1, 99999) === 60_000);
+check('Retry-After of 0 is honoured, not treated as absent', backoffMs(3, 0) === 0);
+check('without Retry-After, backoff grows with the attempt', backoffMs(4, null, () => 1) > backoffMs(1, null, () => 1));
+check('backoff is capped', backoffMs(50, null, () => 1) === 30_000);
+// FULL JITTER is the point: without it a synchronised fleet retries in lockstep.
+check('jitter can be near zero', backoffMs(5, null, () => 0) === 0);
+check('jitter never exceeds the ceiling', backoffMs(3, null, () => 0.999) <= 4000);
+check('parseRetryAfter reads seconds', parseRetryAfter('12') === 12);
+// Fixed clock, not Date.now(). The first version built the header from
+// Date.now()+5000 and compared against 5 — but toUTCString() truncates to whole
+// seconds, so the real delta was anywhere in (4,5] and the assertion flaked on
+// sub-second timing. A test that fails on the clock teaches nothing about the
+// code, and would have burned a CI run to say so.
+check(
+  'parseRetryAfter reads an HTTP date',
+  parseRetryAfter('Sun, 17 Aug 2026 02:00:05 GMT', Date.parse('Sun, 17 Aug 2026 02:00:00 GMT')) === 5,
+);
+check(
+  'an HTTP date already in the past clamps to 0, never negative',
+  parseRetryAfter('Sun, 17 Aug 2026 01:59:50 GMT', Date.parse('Sun, 17 Aug 2026 02:00:00 GMT')) === 0,
+);
+check('parseRetryAfter rejects garbage rather than guessing', parseRetryAfter('soon') === null);
+check('parseRetryAfter on an absent header is null', parseRetryAfter(null) === null);
+
+console.log('\ncallModel — a rate-limited model must retry, not vanish');
+const fakeRes = (status, body = {}, headers = {}) => ({
+  ok: status >= 200 && status < 300,
+  status,
+  headers: { get: (k) => headers[k.toLowerCase()] ?? null },
+  json: async () => body,
+});
+const OKBODY = { choices: [{ message: { content: '{"findings":[]}' } }], usage: { prompt_tokens: 10, completion_tokens: 2, cost: 0 } };
+{
+  let calls = 0;
+  const r = await callModel({
+    model: 'a/b', system: 's', user: 'u', key: 'k', sleep: async () => {},
+    fetchImpl: async () => (++calls < 3 ? fakeRes(429, {}, { 'retry-after': '0' }) : fakeRes(200, OKBODY)),
+  });
+  check('two 429s then success → ok', r.ok === true, JSON.stringify(r));
+  check('and the retries are counted, not hidden', r.attempts === 3, `attempts=${r.attempts}`);
+}
+{
+  const r = await callModel({
+    model: 'a/b', system: 's', user: 'u', key: 'k', maxAttempts: 3, sleep: async () => {},
+    fetchImpl: async () => fakeRes(429, {}, { 'retry-after': '0' }),
+  });
+  check('a model that 429s forever reports an error rather than a silent empty review', r.ok === false && r.error === 'HTTP 429');
+}
+{
+  // NEGATIVE CONTROL: a 200 carrying an error body must NOT read as "found nothing".
+  const r = await callModel({
+    model: 'a/b', system: 's', user: 'u', key: 'k', sleep: async () => {},
+    fetchImpl: async () => fakeRes(200, { error: { message: 'upstream refused' } }),
+  });
+  check('a 200 with an error body is an error, not an empty review', r.ok === false && r.error === 'api_error');
+}
+{
+  let calls = 0;
+  const r = await callModel({
+    model: 'a/b', system: 's', user: 'u', key: 'k', maxAttempts: 4, sleep: async () => {},
+    fetchImpl: async () => { calls++; return fakeRes(400, {}); },
+  });
+  check('a 400 is NOT retried — retrying a bad request just burns quota', calls === 1 && r.ok === false);
+}
+
+// ── cost ledger ────────────────────────────────────────────────────────────
+// This whole programme is about spend. A swarm that quietly started billing is
+// the most embarrassing possible outcome.
+console.log('\nledger — prove "free" was actually free');
+const LED = [
+  { model: 'a/x', usage: { promptTokens: 100, completionTokens: 10, costUsd: 0 }, attempts: 1 },
+  { model: 'a/x', usage: { promptTokens: 100, completionTokens: 10, costUsd: 0 }, attempts: 3 },
+  { model: 'b/y', usage: { promptTokens: 50, completionTokens: 5, costUsd: 0 }, attempts: 1 },
+];
+{
+  const l = ledger(LED);
+  check('an all-zero run reports free', l.wasFree === true && l.totalUsd === 0);
+  check('retries are counted from attempts', l.rows.find((r) => r.model === 'a/x').retries === 2);
+  check('calls are counted per model', l.rows.find((r) => r.model === 'a/x').calls === 2);
+}
+{
+  // NEGATIVE CONTROL — the case the ledger exists for.
+  const l = ledger([...LED, { model: 'c/z', usage: { promptTokens: 1, completionTokens: 1, costUsd: 0.0004 }, attempts: 1 }]);
+  check('a model that BILLED is caught', l.wasFree === false);
+  check('and is named, not buried in a total', l.billed.length === 1 && l.billed[0].model === 'c/z');
+}
+{
+  // Float noise from summing 6-dp values must not be reported as spend.
+  const l = ledger([{ model: 'a/x', usage: { promptTokens: 0, completionTokens: 0, costUsd: 1e-12 }, attempts: 1 }]);
+  check('float noise is not reported as billing', l.wasFree === true);
+}
+check('usageOf tolerates a response with no usage block', usageOf({}).promptTokens === 0 && usageOf(null).costUsd === 0);
+
+// ── roles ──────────────────────────────────────────────────────────────────
+console.log('\nroles — perspective diversity, and questions that never become votes');
+check('three review roles are defined', REVIEW_ROLES.length === 3);
+check('every review role has a system prompt', REVIEW_ROLES.every((r) => ROLES[r]?.system?.length > 100));
+check('the roles are genuinely different prompts', new Set(REVIEW_ROLES.map((r) => ROLES[r].system)).size === 3);
+check('the refuter is told to default to refuted when unsure', /default to \{"refuted": true\}/i.test(REFUTE.system));
+check('a question is recognised', isQuestion({ severity: 'question' }) === true);
+check('severity case does not matter', isQuestion({ severity: 'Question' }) === true);
+// NEGATIVE CONTROL — this is the rule that stops uncertainty becoming consensus.
+check('a real finding is NOT a question', isQuestion({ severity: 'high' }) === false);
+check('a missing severity is not a question', isQuestion({}) === false);
+
+// ── the prompt must not contradict its own classifier ──────────────────────
+// The shared schema listed only defect severities, so a model FOLLOWING THE
+// PROMPT CORRECTLY emitted `severity: "high"` for a question — and the filter,
+// which keyed off severity alone, sent it to the claims pile where two of them
+// could form a quorum. Uncertainty becoming consensus, via the schema.
+// Raised in review on PR #1018 and reproduced before fixing.
+check('the question schema permits the severity its classifier looks for', /"question"/.test(ROLES.question.system));
+check('the question schema does NOT offer defect severities instead', !/critical\|high\|medium\|low/.test(ROLES.question.system));
+check('the defect schema still offers defect severities', /critical\|high\|medium\|low/.test(ROLES.defect.system));
+check('the weakness schema still offers defect severities', /critical\|high\|medium\|low/.test(ROLES.weakness.system));
+// Belt and braces: provenance is KNOWN, compliance is only hoped for. Even a
+// model that ignores the schema entirely cannot get a question into the quorum.
+check(
+  'a question-role finding is a question whatever severity the model chose',
+  isQuestion({ _role: 'question', severity: 'critical' }) === true,
+);
+check(
+  'and a defect-role finding is never reclassified as a question by its role',
+  isQuestion({ _role: 'defect', severity: 'high' }) === false,
+);
+// The end-to-end consequence, asserted directly rather than inferred.
+{
+  const asQ = (model) => ({ _model: model, _role: 'question', severity: 'high', file: 'f.ts', claim: 'What happens to in-flight rows', why: 'existing work may be lost' });
+  const claims = [asQ('a/x'), asQ('b/y')].filter((f) => !isQuestion(f));
+  check('two non-compliant questions can no longer reach the claims pile', claims.length === 0);
+}
+
+// ── refutation ─────────────────────────────────────────────────────────────
+console.log('\nrefutation — a majority of challengers can drop a corroborated finding');
+check('bare JSON verdict parses', parseVerdict('{"refuted":true,"reason":"not in diff"}')?.refuted === true);
+check('fenced verdict parses', parseVerdict('```json\n{"refuted":false,"reason":"real"}\n```')?.refuted === false);
+check('prose then JSON parses', parseVerdict('Sure:\n{"refuted":true,"reason":"x"}')?.refuted === true);
+check('unparseable verdict is null, NOT a refutation', parseVerdict('I think it is probably fine') === null);
+check('a non-boolean refuted field is rejected', parseVerdict('{"refuted":"yes"}') === null);
+const V = (b) => ({ refuted: b, reason: '' });
+check('majority refuted drops the finding', survivesRefutation([V(true), V(true), V(false)]).survives === false);
+check('minority refuted keeps it', survivesRefutation([V(true), V(false), V(false)]).survives === true);
+// A tie must drop: the cost of a surviving false finding is a human's attention.
+check('a TIE refutes', survivesRefutation([V(true), V(false)]).survives === false);
+// ...but a filter that cannot run must not silently delete what it cannot judge.
+check('no usable verdicts → the finding SURVIVES', survivesRefutation([null, null]).survives === true);
+check('unparseable verdicts are ignored, not counted as refusals', survivesRefutation([null, V(false)]).survives === true);
+check('vote counts report only usable verdicts', survivesRefutation([null, V(true), V(true)]).votes === 2);
+// Zero eligible challengers is NOT a passed challenge. The output must say so
+// rather than printing "survived 0/0", which reads as endorsement.
+check('zero challengers reports zero votes, so the caller can label it honestly', survivesRefutation([]).votes === 0);
+
+// ── refutation judges a finding against ITS OWN chunk ──────────────────────
+// Stage one reviews every chunk; stage two originally passed chunks[0] to every
+// refuter. A finding from chunk 3 was therefore challenged against chunk 1's
+// diff — which does not contain its code — and the refuter is told to refute
+// when the diff is insufficient. That deleted valid findings from every chunk
+// after the first, worst on the largest reviews, where a second opinion is
+// worth most. Found in review on PR #1018.
+console.log('\nchunkOf() — a refuter must see the code the finding is about');
+const CH = ['diff --git a/one\n+one', 'diff --git a/two\n+two', 'diff --git a/three\n+three'];
+check('a finding from chunk 2 is judged against chunk 2', chunkOf({ _chunk: 2 }, CH) === CH[2]);
+check('a finding from chunk 0 is judged against chunk 0', chunkOf({ _chunk: 0 }, CH) === CH[0]);
+// NEGATIVE CONTROL — the bug itself. Before the fix this returned CH[0].
+check('a later-chunk finding is NOT judged against the first chunk', chunkOf({ _chunk: 1 }, CH) !== CH[0]);
+check('a finding with no origin falls back to chunk 0 rather than throwing', chunkOf({}, CH) === CH[0]);
+check('an out-of-range chunk index falls back rather than returning undefined', chunkOf({ _chunk: 99 }, CH) === CH[0]);
+check('a non-integer chunk index falls back', chunkOf({ _chunk: '2' }, CH) === CH[0]);
+// The origin has to survive clustering, or chunkOf() has nothing to read.
+{
+  const at = (model, _chunk) => ({
+    _model: model, _role: 'defect', _chunk, file: 'f.ts', severity: 'high',
+    claim: 'Pagination lacks ORDER BY so pages may repeat rows',
+    why: 'offset pagination without ordering is unstable',
+  });
+  const c = cluster([at('qwen/a', 2), at('mistralai/b', 2)])[0];
+  check('cluster members keep the chunk they were found in', c.members.every((m) => m._chunk === 2));
+  check('...so chunkOf can route the refuter to it', chunkOf(c.members[0], CH) === CH[2]);
+}
+
+// ── lineage-aware clustering ───────────────────────────────────────────────
+// The integration point where the whole thing could still be wrong: cluster()
+// must track lineages so main() can require independent ones.
+console.log('\ncluster() — votes are lineages, so one vendor cannot form a quorum');
+const sameDefect = (model) => ({
+  _model: model, _role: 'defect', file: 'f.ts', severity: 'high',
+  claim: 'Pagination lacks ORDER BY so pages may repeat rows',
+  why: 'offset pagination without ordering is unstable',
+});
+{
+  const c = cluster([sameDefect('qwen/a'), sameDefect('qwen/b')])[0];
+  check('two models from one vendor merge into one cluster', c.members.length === 2);
+  check('...and count as 2 model ids', c.models.size === 2);
+  // THE control. Without this, a single-vendor roster manufactures a quorum.
+  check('...but only ONE lineage, so quorum 2 is NOT met', c.families.size === 1, `families=${c.families.size}`);
+}
+{
+  const c = cluster([sameDefect('qwen/a'), sameDefect('mistralai/b')])[0];
+  check('two vendors reporting the same defect DO make 2 lineages', c.families.size === 2);
+}
+{
+  const c = cluster([sameDefect('qwen/a'), sameDefect('qwen/a:free')])[0];
+  check('a model and its :free variant are one lineage', c.families.size === 1);
+}
+{
+  const mixed = cluster([
+    { ...sameDefect('qwen/a'), _role: 'defect' },
+    { ...sameDefect('mistralai/b'), _role: 'weakness' },
+  ])[0];
+  check('a cluster records which roles found it', mixed.roles.size === 2);
+}
 
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);

@@ -26,8 +26,11 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { familyOf, validateRoster } from './lib/lineage.mjs';
+import { callModel, ledger } from './lib/openrouter.mjs';
+import { REFUTE, REVIEW_ROLES, ROLES, isQuestion } from './lib/roles.mjs';
+
 const HERE = dirname(fileURLToPath(import.meta.url));
-const API = 'https://openrouter.ai/api/v1';
 const KEY = process.env.OPENROUTER_API_KEY;
 
 const argv = process.argv.slice(2);
@@ -37,10 +40,41 @@ const val = (f, d) => {
   return i >= 0 && argv[i + 1] ? argv[i + 1] : d;
 };
 
-const QUORUM = Number(val('--quorum', '2'));
-const CONCURRENCY = Number(val('--concurrency', '6'));
-const TIMEOUT_MS = Number(val('--timeout', '120000'));
-const MAX_CHARS = Number(val('--max-chars', '24000'));
+/**
+ * A numeric flag that must be a positive integer, or the run stops.
+ *
+ * `Number('abc')` is NaN, and NaN poisons every comparison it touches by
+ * returning false. Found by attacking this file rather than by review: a typo
+ * in `--quorum` made `votes >= NaN` false for every cluster, so NOTHING was
+ * ever corroborated and the swarm printed "CORROBORATED — 0 finding(s)". That
+ * is indistinguishable from a clean review, which makes it the worst failure
+ * this tool can have — the same silent-success shape as the Jaccard bug that
+ * the clusterer's comment already records.
+ *
+ * `--quorum 0` is rejected for a different reason: it is parseable and would
+ * "work", promoting every single-model finding to corroborated while still
+ * printing the CORROBORATED heading. The quorum is the entire premise; zero
+ * does not relax it, it removes it while keeping the label.
+ */
+function positiveInt(flag, dflt) {
+  const raw = val(flag, dflt);
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 1) {
+    console.error(`${flag} must be a positive integer; got "${raw}".`);
+    process.exit(1);
+  }
+  return n;
+}
+
+const QUORUM = positiveInt('--quorum', '2');
+const CONCURRENCY = positiveInt('--concurrency', '6');
+const TIMEOUT_MS = positiveInt('--timeout', '120000');
+const MAX_CHARS = positiveInt('--max-chars', '24000');
+const ATTEMPTS = positiveInt('--attempts', '4');
+const REFUTERS = positiveInt('--refuters', '3');
+const ROLE_KEYS = val('--roles', REVIEW_ROLES.join(','))
+  .split(',').map((s) => s.trim()).filter(Boolean);
+const NO_REFUTE = has('--no-refute');
 
 /**
  * Default roster.
@@ -107,55 +141,109 @@ export function chunk(text, max) {
   return chunks;
 }
 
-// ── prompting ───────────────────────────────────────────────────────────────
-
-const SYSTEM = `You are a rigorous code reviewer giving a SECOND OPINION on a change another reviewer has already approved.
-
-Report only defects you can point at in the diff shown. Do not report style preferences, naming, or missing tests unless the absence causes a concrete failure.
-
-Prioritise:
-- logic that silently produces a WRONG value rather than an error
-- concurrency, retries, and partial failure
-- database queries: ordering, pagination, boundaries, uniqueness
-- serverless lifecycle: work that may not complete after a response is sent
-- tests that assert less than their name claims
-
-Return STRICT JSON, no prose, no markdown fence:
-{"findings":[{"file":"path","line":123,"severity":"critical|high|medium|low","claim":"one sentence","why":"how it fails concretely"}]}
-
-Return {"findings":[]} if you find nothing real. An empty list is a valid and useful answer.`;
-
 // ── calling ─────────────────────────────────────────────────────────────────
 
-async function review(model, text, idx) {
-  try {
-    const res = await fetch(`${API}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://github.com/CleanExpo/Unite-Group',
-        'X-Title': 'Unite-Group review swarm',
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: SYSTEM },
-          { role: 'user', content: `Review this change:\n\n${text}` },
-        ],
-        temperature: 0,
-        max_tokens: 1500,
-      }),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    });
-    if (!res.ok) return { model, idx, error: `HTTP ${res.status}`, findings: [] };
-    const json = await res.json();
-    if (json.error) return { model, idx, error: 'api_error', findings: [] };
-    const content = json.choices?.[0]?.message?.content ?? '';
-    return { model, idx, findings: parseFindings(content), rawLen: content.length };
-  } catch (err) {
-    return { model, idx, error: err.name === 'TimeoutError' ? 'timeout' : 'exception', findings: [] };
-  }
+/** One model, one role, one chunk. Prompts live in lib/roles.mjs. */
+async function review(model, role, text, idx) {
+  const r = await callModel({
+    model,
+    system: ROLES[role].system,
+    user: `Review this change:\n\n${text}`,
+    key: KEY,
+    timeoutMs: TIMEOUT_MS,
+    maxAttempts: ATTEMPTS,
+  });
+  if (!r.ok) return { model, role, idx, error: r.error, attempts: r.attempts, usage: r.usage, findings: [] };
+  return {
+    model, role, idx,
+    attempts: r.attempts,
+    usage: r.usage,
+    findings: parseFindings(r.content).map((f) => ({ ...f, _role: role })),
+  };
+}
+
+/**
+ * Stage two: ask a model to REFUTE a finding another model made.
+ *
+ * The refuter is shown the same diff, so it can check the claim against the code
+ * rather than judging it on plausibility — which is what a model asked to grade
+ * a confident assertion will otherwise do.
+ */
+async function refute(model, finding, text) {
+  const r = await callModel({
+    model,
+    system: REFUTE.system,
+    user: `Finding to refute:\nfile: ${finding.file ?? '?'}\nclaim: ${finding.claim}\nwhy: ${finding.why ?? ''}\n\nThe diff:\n\n${text}`,
+    key: KEY,
+    timeoutMs: TIMEOUT_MS,
+    maxAttempts: ATTEMPTS,
+    maxTokens: 400,
+  });
+  if (!r.ok) return { model, error: r.error, attempts: r.attempts, usage: r.usage, verdict: null };
+  return { model, attempts: r.attempts, usage: r.usage, verdict: parseVerdict(r.content) };
+}
+
+/**
+ * Parse a refutation verdict.
+ *
+ * Returns null when the reply cannot be understood, and null is NOT treated as
+ * a refutation by the caller — an unparseable verdict is an absent vote, not a
+ * "no". Conflating the two would let a model that merely formats badly delete
+ * real findings.
+ */
+export function parseVerdict(content) {
+  const tryParse = (s) => {
+    try {
+      const o = JSON.parse(s);
+      if (typeof o?.refuted === 'boolean') return { refuted: o.refuted, reason: String(o.reason ?? '') };
+    } catch { /* fall through */ }
+    return null;
+  };
+  const raw = String(content ?? '').trim();
+  return (
+    tryParse(raw) ??
+    tryParse(raw.match(/```(?:json)?\s*([\s\S]*?)```/)?.[1]?.trim() ?? '') ??
+    tryParse(raw.match(/\{[\s\S]*\}/)?.[0] ?? '')
+  );
+}
+
+/**
+ * Does a finding survive its refuters?
+ *
+ * Majority rule over the verdicts that actually parsed. A tie refutes: the cost
+ * of a surviving false finding is a human's attention, which is the resource
+ * this whole tool exists to conserve, so an even split should fall towards
+ * dropping it.
+ *
+ * With no usable verdicts at all the finding SURVIVES — refutation is a filter
+ * bolted onto corroboration, and a filter that cannot run must not silently
+ * delete the corroborated findings underneath it.
+ */
+/**
+ * The chunk a finding was found in — the ONLY diff a refuter may judge it against.
+ *
+ * Stage one reviews every chunk; stage two originally passed `chunks[0]` to
+ * every refuter. So a finding from chunk 3 was challenged against chunk 1's
+ * diff, which does not contain the code it describes — and the refuter prompt
+ * explicitly says "if the diff does not contain enough to judge, say refuted".
+ * The refutation stage therefore DELETED valid findings from every chunk after
+ * the first, and did it most reliably on the largest reviews, where chunking
+ * kicks in and where a second opinion is worth most.
+ *
+ * Found in review on PR #1018. Falls back to chunk 0 only when a finding
+ * carries no origin, which cannot happen for findings that came through
+ * review() but keeps this total for hand-built input.
+ */
+export function chunkOf(finding, chunks) {
+  const i = finding?._chunk;
+  return Number.isInteger(i) && i >= 0 && i < chunks.length ? chunks[i] : chunks[0];
+}
+
+export function survivesRefutation(verdicts) {
+  const usable = verdicts.filter((v) => v && typeof v.refuted === 'boolean');
+  if (usable.length === 0) return { survives: true, refuted: 0, votes: 0, reason: 'no usable verdicts' };
+  const refuted = usable.filter((v) => v.refuted).length;
+  return { survives: refuted * 2 < usable.length, refuted, votes: usable.length };
 }
 
 /**
@@ -265,12 +353,24 @@ export function cluster(all) {
     if (hit) {
       hit.members.push(f);
       hit.models.add(f._model);
+      hit.families.add(familyOf(f._model));
+      hit.roles.add(f._role ?? 'defect');
       // Deliberately NOT merging shingles into the cluster: a growing set makes
       // the min() denominator drift upward as members join, so later findings
       // face a harder test than earlier ones purely by arrival order. The
       // cluster keeps its first member's vocabulary as a stable representative.
     } else {
-      clusters.push({ file, shingle: sh, members: [f], models: new Set([f._model]) });
+      clusters.push({
+        file,
+        shingle: sh,
+        members: [f],
+        models: new Set([f._model]),
+        // Lineages, not ids. Two checkpoints from one vendor are correlated
+        // reviewers, so counting them as two independent votes would make the
+        // quorum easier to satisfy than it claims to be — see lib/lineage.mjs.
+        families: new Set([familyOf(f._model)]),
+        roles: new Set([f._role ?? 'defect']),
+      });
     }
   }
   return clusters;
@@ -298,8 +398,29 @@ async function main() {
     }
     console.log(`Roster from bench-results.json: ${models.join(', ')}`);
   }
-  if (models.length < QUORUM) {
-    console.error(`Quorum ${QUORUM} needs at least ${QUORUM} models; got ${models.length}.`);
+  // Checked BEFORE any request. Discovering that five reviewers were one model
+  // wearing five hats is cheap now and expensive after you have acted on their
+  // agreement.
+  const roster = validateRoster(models, QUORUM);
+  if (!roster.ok) {
+    console.error(roster.reason);
+    process.exit(1);
+  }
+  if (roster.collapsed > 0) {
+    console.log(`Note: ${roster.collapsed} roster entr(y/ies) collapsed as routing variants of a model already listed.`);
+  }
+  models = roster.models;
+
+  // `--roles ,` parses to [], which produced ZERO jobs and then printed
+  // "No findings or questions returned by any model" with exit 0 — a clean
+  // review of nothing. Same silent-success shape as the NaN quorum.
+  if (ROLE_KEYS.length === 0) {
+    console.error(`--roles is empty. Known roles: ${Object.keys(ROLES).join(', ')}`);
+    process.exit(1);
+  }
+  const badRole = ROLE_KEYS.find((r) => !ROLES[r]);
+  if (badRole) {
+    console.error(`Unknown role "${badRole}". Known: ${Object.keys(ROLES).join(', ')}`);
     process.exit(1);
   }
 
@@ -308,14 +429,21 @@ async function main() {
     : gatherDiff();
 
   const chunks = chunk(text, MAX_CHARS);
-  console.log(`Reviewing ${text.length} chars in ${chunks.length} chunk(s) across ${models.length} models, quorum ${QUORUM}\n`);
+  console.log(
+    `Reviewing ${text.length} chars in ${chunks.length} chunk(s)\n` +
+    `  models  : ${models.length} across ${roster.families} lineage(s)\n` +
+    `  roles   : ${ROLE_KEYS.join(', ')}\n` +
+    `  quorum  : ${QUORUM} independent lineages\n` +
+    `  refute  : ${NO_REFUTE ? 'off' : `${REFUTERS} challenger(s) per finding`}\n`,
+  );
 
-  const jobs = models.flatMap((m) => chunks.map((c, i) => ({ m, c, i })));
+  // ── stage one: review ─────────────────────────────────────────────────────
+  const jobs = models.flatMap((m) => ROLE_KEYS.flatMap((role) => chunks.map((c, i) => ({ m, role, c, i }))));
   let done = 0;
-  const results = await pool(jobs, CONCURRENCY, async ({ m, c, i }) => {
-    const r = await review(m, c, i);
+  const results = await pool(jobs, CONCURRENCY, async ({ m, role, c, i }) => {
+    const r = await review(m, role, c, i);
     done++;
-    process.stdout.write(`\r  ${done}/${jobs.length}   `);
+    process.stdout.write(`\r  review ${done}/${jobs.length}   `);
     return r;
   });
   process.stdout.write('\n\n');
@@ -326,52 +454,195 @@ async function main() {
     // was effectively lower than requested and the reader must know that.
     const byModel = {};
     for (const e of errored) byModel[e.model] = (byModel[e.model] ?? 0) + 1;
-    console.log('Errors (these models did not vote):');
+    console.log('Errors (these models did not vote — effective quorum was lower here):');
     for (const [m, n] of Object.entries(byModel)) console.log(`  ${m}: ${n}`);
     console.log();
   }
 
-  const all = results.flatMap((r) => r.findings.map((f) => ({ ...f, _model: r.model })));
+  // `_chunk` is load-bearing, not bookkeeping: stage two must judge a finding
+  // against the chunk it was found in. See chunkOf().
+  // NOBODY ANSWERED is not a clean review.
+  //
+  // Found by checking this script's EXIT CODE rather than its message: with an
+  // unusable key every call failed, and the run printed "No findings or
+  // questions returned by any model" followed by "COST — zero, as intended",
+  // then exited 0. Both statements were true and the conclusion was a lie —
+  // the swarm had not reviewed anything. Wired into a gate, a wrong key, a
+  // network outage or an exhausted free tier would read as "found nothing
+  // wrong" and pass. That is the exact failure this tool exists to catch,
+  // occurring inside the tool.
+  //
+  // A review where models DID answer and found nothing is a real result and
+  // still exits 0. The distinction is whether anyone spoke, not whether they
+  // had anything to say.
+  const spoke = results.filter((r) => !r.error).length;
+  if (spoke === 0) {
+    reportLedger(results, { anySucceeded: false });
+    console.error('\nNO MODEL RETURNED A USABLE RESPONSE — this is a failed run, not a clean review.');
+    console.error('Check the key, the roster ids, and whether the free tiers are exhausted.');
+    process.exit(1);
+  }
+
+  const all = results.flatMap((r) => r.findings.map((f) => ({ ...f, _model: r.model, _chunk: r.idx })));
+  const questions = all.filter(isQuestion);
+  const claims = all.filter((f) => !isQuestion(f));
+
   if (all.length === 0) {
-    console.log('No findings returned by any model.');
+    console.log(`No findings or questions — ${spoke} of ${results.length} calls answered and reported nothing.`);
+    reportLedger(results);
+    // Overwrite the artefact rather than returning early. Leaving the previous
+    // run's file on disk means a downstream reader opening swarm-findings.json
+    // after a clean run sees STALE findings and a stale ranAt — a genuinely
+    // clean review reported as the last one's problems.
+    writeFindings({ models, roster, chunks, errored, corroborated: [], single: [], qClusters: [], cost: ledger(results) });
     return;
   }
 
-  const clusters = cluster(all)
+  const clusters = cluster(claims)
     .map((c) => {
       const best = c.members.slice().sort((a, b) => (RANK[a.severity] ?? 9) - (RANK[b.severity] ?? 9))[0];
-      return { ...c, votes: c.models.size, best };
+      // Votes are LINEAGES, not ids — see lib/lineage.mjs.
+      return { ...c, votes: c.families.size, ids: c.models.size, best };
     })
     .sort((a, b) => b.votes - a.votes || (RANK[a.best.severity] ?? 9) - (RANK[b.best.severity] ?? 9));
 
-  const corroborated = clusters.filter((c) => c.votes >= QUORUM);
+  let corroborated = clusters.filter((c) => c.votes >= QUORUM);
   const single = clusters.filter((c) => c.votes < QUORUM);
 
-  console.log(`CORROBORATED — ${corroborated.length} finding(s) reported by ${QUORUM}+ models independently`);
+  // ── stage two: refutation ─────────────────────────────────────────────────
+  const refuteResults = [];
+  if (!NO_REFUTE && corroborated.length) {
+    // Challengers exclude the lineages that RAISED the finding. A model grading
+    // its own family's claim is not an independent check, and it is the one
+    // most likely to agree.
+    const tasks = corroborated.flatMap((c) => {
+      const challengers = models
+        .filter((m) => !c.families.has(familyOf(m)))
+        .slice(0, REFUTERS);
+      return challengers.map((m) => ({ c, m }));
+    });
+    let rdone = 0;
+    const verdicts = await pool(tasks, CONCURRENCY, async ({ c, m }) => {
+      const r = await refute(m, c.best, chunkOf(c.best, chunks));
+      rdone++;
+      process.stdout.write(`\r  refute ${rdone}/${tasks.length}   `);
+      return { c, ...r };
+    });
+    process.stdout.write(tasks.length ? '\n\n' : '');
+    refuteResults.push(...verdicts);
+
+    for (const c of corroborated) {
+      const mine = verdicts.filter((v) => v.c === c).map((v) => v.verdict);
+      c.refutation = survivesRefutation(mine);
+    }
+    const dropped = corroborated.filter((c) => !c.refutation.survives);
+    corroborated = corroborated.filter((c) => c.refutation.survives);
+    if (dropped.length) {
+      console.log(`REFUTED — ${dropped.length} corroborated finding(s) dropped by challengers`);
+      console.log('─'.repeat(100));
+      for (const c of dropped) {
+        console.log(`  [${c.best.severity ?? '?'}] ${c.best.file ?? '?'} — ${c.best.claim}  (${c.refutation.refuted}/${c.refutation.votes} refuted)`);
+      }
+      console.log();
+    }
+  }
+
+  // ── output ────────────────────────────────────────────────────────────────
+  const challenged = corroborated.filter((c) => (c.refutation?.votes ?? 0) > 0).length;
+  console.log(
+    `CORROBORATED — ${corroborated.length} finding(s) from ${QUORUM}+ independent lineages` +
+    (NO_REFUTE ? '' : `; ${challenged} of them survived a challenge, ${corroborated.length - challenged} had no eligible challenger`),
+  );
   console.log('─'.repeat(100));
   for (const c of corroborated) {
-    console.log(`\n[${c.best.severity ?? '?'}] ${c.best.file ?? '?'}${c.best.line ? `:${c.best.line}` : ''}   ${c.votes} votes (${[...c.models].join(', ')})`);
+    // "survived 0/0" implied a challenge that never happened — with a small
+    // roster every lineage may have raised the finding, leaving no eligible
+    // challenger. Say so rather than dressing silence up as endorsement.
+    const surv = !c.refutation ? ''
+      : c.refutation.votes === 0 ? ', NOT challenged (no eligible refuter)'
+        : `, survived ${c.refutation.votes - c.refutation.refuted}/${c.refutation.votes}`;
+    console.log(`\n[${c.best.severity ?? '?'}] ${c.best.file ?? '?'}${c.best.line ? `:${c.best.line}` : ''}   ${c.votes} lineage(s), ${c.ids} model(s)${surv}`);
+    console.log(`  roles: ${[...c.roles].join(', ')}   models: ${[...c.models].join(', ')}`);
     console.log(`  ${c.best.claim}`);
     if (c.best.why) console.log(`  why: ${c.best.why}`);
   }
   if (!corroborated.length) console.log('  (none)');
 
-  console.log(`\n\nSINGLE-MODEL — ${single.length} finding(s) below quorum, shown for completeness`);
+  console.log(`\n\nSINGLE-LINEAGE — ${single.length} finding(s) below quorum, shown for completeness`);
   console.log('─'.repeat(100));
   for (const c of single.slice(0, 20)) {
     console.log(`  [${c.best.severity ?? '?'}] ${c.best.file ?? '?'} — ${c.best.claim}  (${[...c.models][0]})`);
   }
   if (single.length > 20) console.log(`  … and ${single.length - 20} more`);
 
+  // Questions are listed, never counted. Deduped so five models asking the same
+  // thing reads as one question, not five.
+  const qClusters = cluster(questions).sort((a, b) => b.models.size - a.models.size);
+  console.log(`\n\nQUESTIONS — ${qClusters.length} distinct, from the questioner role (never counted towards quorum)`);
+  console.log('─'.repeat(100));
+  for (const q of qClusters.slice(0, 15)) {
+    // cluster() does not assign `best`; only claim clusters get it, from the
+    // .map above. Reading q.best here was always undefined and the fallback did
+    // all the work — a dead branch that read like a ranking.
+    console.log(`  ${q.members[0].claim}  (${q.models.size} model(s))`);
+    const why = q.members[0].why;
+    if (why) console.log(`      ↳ ${why}`);
+  }
+  if (qClusters.length > 15) console.log(`  … and ${qClusters.length - 15} more`);
+
+  const cost = reportLedger([...results, ...refuteResults]);
+
+  writeFindings({ models, roster, chunks, errored, corroborated, single, qClusters, cost });
+}
+
+/**
+ * Write the run artefact.
+ *
+ * Extracted so the zero-findings path can call it too. Returning early there
+ * left the PREVIOUS run's swarm-findings.json on disk, so anything reading the
+ * file after a clean run saw stale findings under a stale `ranAt` — a clean
+ * review reported as the last run's problems.
+ */
+function writeFindings({ models, roster, chunks, errored, corroborated, single, qClusters, cost }) {
   const out = join(HERE, 'swarm-findings.json');
   writeFileSync(out, JSON.stringify({
     ranAt: new Date().toISOString(),
-    models, quorum: QUORUM, chunks: chunks.length,
-    errors: errored.map((e) => ({ model: e.model, error: e.error })),
-    corroborated: corroborated.map((c) => ({ votes: c.votes, models: [...c.models], ...c.best })),
-    single: single.map((c) => ({ votes: c.votes, models: [...c.models], ...c.best })),
+    models, roles: ROLE_KEYS, quorum: QUORUM, lineages: roster.families, chunks: chunks.length,
+    refutation: NO_REFUTE ? null : { challengersPerFinding: REFUTERS },
+    cost: { totalUsd: cost.totalUsd, wasFree: cost.wasFree, billed: cost.billed },
+    errors: errored.map((e) => ({ model: e.model, role: e.role, error: e.error, attempts: e.attempts })),
+    corroborated: corroborated.map((c) => ({ lineages: c.votes, models: [...c.models], roles: [...c.roles], refutation: c.refutation ?? null, ...c.best })),
+    single: single.map((c) => ({ lineages: c.votes, models: [...c.models], ...c.best })),
+    questions: qClusters.map((q) => ({ models: [...q.models], claim: q.members[0].claim, why: q.members[0].why })),
   }, null, 2));
   console.log(`\nFull output → ${out}`);
+}
+
+/**
+ * Print the cost ledger.
+ *
+ * This programme exists to reduce spend, so a swarm that quietly started billing
+ * would be the most embarrassing possible outcome. The ledger names every model
+ * that charged rather than reporting one comforting total.
+ */
+function reportLedger(results, { anySucceeded = true } = {}) {
+  const l = ledger(results);
+  const retries = l.rows.reduce((n, r) => n + r.retries, 0);
+  // "zero, as intended" is technically true when every call failed, and deeply
+  // misleading — it reads as a successful free run. Say which zero this is.
+  const headline = !anySucceeded ? 'zero — but nothing succeeded, so this proves nothing'
+    : l.wasFree ? 'zero, as intended'
+      : `$${l.totalUsd.toFixed(6)} USD`;
+  console.log(`\n\nCOST — ${headline}${retries ? `   (${retries} retr${retries === 1 ? 'y' : 'ies'} after rate limits)` : ''}`);
+  console.log('─'.repeat(100));
+  if (!l.wasFree) {
+    console.log('  These models BILLED — they are not free any more, or never were:');
+    for (const r of l.billed) console.log(`    ${r.model}: $${r.costUsd.toFixed(6)} over ${r.calls} call(s)`);
+    console.log('  Re-run bench.mjs --list to refresh what is genuinely zero-cost.');
+  }
+  const tokens = l.rows.reduce((n, r) => n + r.promptTokens + r.completionTokens, 0);
+  console.log(`  ${l.rows.length} model(s), ${l.rows.reduce((n, r) => n + r.calls, 0)} call(s), ${tokens.toLocaleString()} tokens`);
+  return l;
 }
 
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop())) {
