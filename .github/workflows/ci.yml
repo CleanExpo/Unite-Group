@@ -190,7 +190,7 @@ jobs:
       # scripts/lib/preflight-jobs.mjs fails here, rather than silently letting
       # the local gate go stale and start green-lighting pushes it cannot check.
       - name: Test readiness kernel
-        run: node --test scripts/__tests__/check-env.test.mjs scripts/__tests__/ci-evidence-manifest.test.mjs scripts/__tests__/founder-queue.test.mjs scripts/__tests__/nexus-heartbeat.test.mjs scripts/__tests__/dependency-audit.test.mjs scripts/__tests__/nexus-project-readiness.test.mjs scripts/__tests__/verify-web-ci-build.test.mjs scripts/__tests__/workflow-supply-chain.test.mjs scripts/__tests__/preflight.test.mjs scripts/__tests__/cron-cost-audit.test.mjs
+        run: node --test scripts/__tests__/check-env.test.mjs scripts/__tests__/ci-evidence-manifest.test.mjs scripts/__tests__/founder-queue.test.mjs scripts/__tests__/nexus-heartbeat.test.mjs scripts/__tests__/dependency-audit.test.mjs scripts/__tests__/nexus-project-readiness.test.mjs scripts/__tests__/verify-web-ci-build.test.mjs scripts/__tests__/workflow-supply-chain.test.mjs scripts/__tests__/preflight.test.mjs scripts/__tests__/cron-cost-audit.test.mjs scripts/__tests__/canonical-naming.test.mjs
 
       - name: Enforce configured P0 findings
         run: node scripts/nexus-project-readiness.mjs --root . --json --gate
