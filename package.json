@@ -2,7 +2,7 @@
   "name": "unite-group",
   "version": "2.0.0",
   "private": true,
-  "description": "Unite-Group — the single canonical monorepo for the entire Unite-Group product and ecosystem. apps/web is the product; everything else supports it.",
+  "description": "Unite-Group \u2014 the single canonical monorepo for the entire Unite-Group product and ecosystem. apps/web is the product; everything else supports it.",
   "packageManager": "pnpm@9.15.0",
   "scripts": {
     "verify:web": "cd apps/web && corepack pnpm@9.15.0 install --frozen-lockfile && corepack pnpm@9.15.0 run type-check && corepack pnpm@9.15.0 run lint && corepack pnpm@9.15.0 run test && node ../../scripts/verify-web-ci-build.mjs",
@@ -17,6 +17,8 @@
     "nexus:docs:watch": "node scripts/nexus-docs-watch.mjs --root . --baseline config/nexus-official-sources.baseline.json --gate-material",
     "verify": "npm run verify:readiness && npm run verify:docs-watch && npm run verify:docs-review && npm run verify:web && npm run verify:workspace && npm run verify:autopilot && npm run verify:mcp && npm run verify:spine && npm run verify:spec-board",
     "check:nul-bytes": "node --test scripts/__tests__/check-no-nul-bytes.test.mjs && node scripts/check-no-nul-bytes.mjs",
+    "swarm:selftest": "node scripts/swarm/selftest.mjs",
+    "swarm:review": "node scripts/swarm/swarm.mjs --diff --base origin/main && node scripts/swarm/report.mjs",
     "preflight": "node scripts/preflight.mjs",
     "preflight:list": "node scripts/preflight.mjs --list",
     "preflight:all": "node scripts/preflight.mjs --all",

@@ -19,6 +19,7 @@ import { cluster, parseFindings, chunk, parseVerdict, survivesRefutation, chunkO
 import { baseModelId, familyOf, distinctFamilies, validateRoster } from './lib/lineage.mjs';
 import { backoffMs, parseRetryAfter, usageOf, ledger, callModel } from './lib/openrouter.mjs';
 import { ROLES, REFUTE, REVIEW_ROLES, isQuestion } from './lib/roles.mjs';
+import { renderMarkdown } from './report.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const corpus = JSON.parse(readFileSync(join(HERE, 'defects.json'), 'utf8'));
@@ -635,6 +636,68 @@ const sameDefect = (model) => ({
     { ...sameDefect('mistralai/b'), _role: 'weakness' },
   ])[0];
   check('a cluster records which roles found it', mixed.roles.size === 2);
+}
+
+// ── the PR comment ─────────────────────────────────────────────────────────
+// This posts on every PR, so it has two jobs that pull against each other: be
+// short enough that people keep reading it, and never make a run that did not
+// happen look like a clean one.
+console.log('\nrenderMarkdown() — the report must not flatter the run');
+const RUN = {
+  models: ['qwen/a', 'mistralai/b'], lineages: 2, roles: ['defect'], quorum: 2,
+  cost: { wasFree: true, totalUsd: 0, billed: [] },
+  corroborated: [{ severity: 'high', file: 'a.ts', line: 12, claim: 'Pagination lacks ORDER BY', why: 'pages repeat', lineages: 2, models: ['qwen/a', 'mistralai/b'], roles: ['defect'], refutation: { votes: 2, refuted: 0 } }],
+  single: [], questions: [], errors: [],
+};
+{
+  const md = renderMarkdown(RUN);
+  check('a corroborated finding is rendered', md.includes('Pagination lacks ORDER BY'));
+  // Above the fold: a real finding hidden in a <details> is a finding nobody
+  // reads, which is the same outcome as not reporting it.
+  check('...above the fold, not inside <details>', md.indexOf('Pagination lacks ORDER BY') < (md.indexOf('<details>') === -1 ? Infinity : md.indexOf('<details>')));
+  check('the challenge result is shown', md.includes('survived 2/2'));
+  check('a free run says so', md.includes('$0.00'));
+  check('the advisory framing is always present', /advisory only/i.test(md));
+}
+{
+  const md = renderMarkdown({ ...RUN, corroborated: [] });
+  check('zero findings is stated explicitly, not left blank', md.includes('No corroborated findings'));
+}
+// NEGATIVE CONTROLS — the report must never imply a review that did not happen.
+{
+  check('a missing artefact does NOT render as a clean review', /did not complete/i.test(renderMarkdown(null)));
+  check('...nor does a garbage artefact', /did not complete/i.test(renderMarkdown('nonsense')));
+}
+{
+  const md = renderMarkdown({ ...RUN, corroborated: [], errors: [{ model: 'qwen/a', error: 'HTTP 429' }, { model: 'qwen/a', error: 'timeout' }] });
+  check('failed calls are surfaced, because a model that errored did not vote', /did not vote/.test(md));
+  check('...with the count, so the reader can judge the effective quorum', md.includes('2 failed call'));
+}
+{
+  const md = renderMarkdown({ ...RUN, cost: { wasFree: false, totalUsd: 0.0031, billed: [{ model: 'c/z', costUsd: 0.0031 }] } });
+  check('a run that BILLED says so loudly', md.includes('0.003100') && /💸/.test(md));
+  check('...and names the model that charged', md.includes('c/z'));
+}
+{
+  // Questions ride the same artefact but must never read as findings.
+  const md = renderMarkdown({ ...RUN, corroborated: [], questions: [{ claim: 'What happens to in-flight rows?', why: 'work may be lost' }] });
+  check('questions are folded away, not presented as findings', md.includes('<details>') && md.includes('never counted towards quorum'));
+  check('...and the finding count still reads zero', md.includes('No corroborated findings'));
+}
+{
+  // Severity ordering: a reader scanning the top should meet the worst first.
+  const md = renderMarkdown({
+    ...RUN,
+    corroborated: [
+      { severity: 'low', file: 'l.ts', claim: 'LOWCLAIM', lineages: 2, models: [], roles: [] },
+      { severity: 'critical', file: 'c.ts', claim: 'CRITCLAIM', lineages: 2, models: [], roles: [] },
+    ],
+  });
+  check('critical sorts above low', md.indexOf('CRITCLAIM') < md.indexOf('LOWCLAIM'));
+}
+{
+  const md = renderMarkdown({ ...RUN, corroborated: [{ ...RUN.corroborated[0], refutation: { votes: 0, refuted: 0 } }] });
+  check('an unchallenged finding says so rather than claiming it survived', md.includes('not challenged'));
 }
 
 console.log(`\n${pass} passed, ${fail} failed\n`);

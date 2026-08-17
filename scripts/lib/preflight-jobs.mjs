@@ -34,6 +34,15 @@ export const JOBS = [
     cmd: ['npm', ['run', 'check:nul-bytes']],
   },
   {
+    id: 'swarm',
+    ciJob: 'swarm',
+    label: 'scripts/swarm — self-test',
+    // Pure logic, ~1s, no network or key. Cheap enough that path-scoping it
+    // would save nothing and risk missing a change to the shared lib/.
+    always: true,
+    cmd: ['npm', ['run', 'swarm:selftest']],
+  },
+  {
     id: 'readiness',
     ciJob: 'project-readiness',
     label: 'Nexus project-readiness P0 gate',
