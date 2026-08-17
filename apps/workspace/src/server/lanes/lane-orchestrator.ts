@@ -12,21 +12,12 @@ import path from 'node:path'
 import { assertBackendAvailable } from './backend-registry'
 import { cliAccountAvailable } from './lane-availability'
 import { StopNotAcknowledgedError, sanitiseLaneOutput } from './adapter'
-import {
-  isLane,
-  isLaneRun,
-  isLaneRunEvent,
-  parseLaneMissionInput,
-} from './types'
+import { createLaneEventStream, parseEventLedger } from './event-stream'
+import { isLane, isLaneRun, parseLaneMissionInput } from './types'
 import type { LaneAdapter } from './adapter'
+import type { LaneStreamEvent } from './event-stream'
 import type { WorktreeManager } from './worktree-manager'
-import type {
-  CreateLaneInput,
-  Lane,
-  LaneBackend,
-  LaneRun,
-  LaneRunEvent,
-} from './types'
+import type { CreateLaneInput, Lane, LaneBackend, LaneRun } from './types'
 
 type OrchestratorAvailabilityCheck = (
   backend: LaneBackend,
@@ -58,7 +49,7 @@ export interface LaneOrchestrator {
   stop: (id: string) => Promise<Lane>
   runMission: (id: string, mission: string) => Promise<Lane>
   getRun: (id: string) => Promise<LaneRun | null>
-  listRunEvents: (runId: string) => Promise<Array<LaneRunEvent>>
+  listRunEvents: (runId: string) => Promise<Array<LaneStreamEvent>>
 }
 
 export class LaneConflictError extends Error {
@@ -209,10 +200,19 @@ async function readRuns(runsPath: string): Promise<Map<string, LaneRun>> {
   return runs
 }
 
+/**
+ * Read one run's events in the canonical `control-plane/v1` shape.
+ *
+ * Records written before UNI-2406 carry the legacy `LaneRunEvent` shape, so
+ * `parseEventLedger` upgrades them on read rather than rejecting them — a
+ * machine that ran the previous build must not lose its history to a deploy.
+ * Anything that is neither shape still fails closed: silently dropping a line
+ * would shorten a replay and make the gap-free cursor guarantee a lie.
+ */
 async function readRunEvents(
   eventsPath: string,
   runId: string,
-): Promise<Array<LaneRunEvent>> {
+): Promise<Array<LaneStreamEvent>> {
   let raw = ''
   try {
     raw = await fs.readFile(eventsPath, 'utf8')
@@ -220,19 +220,15 @@ async function readRunEvents(
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return []
     throw error
   }
-  const events: Array<LaneRunEvent> = []
-  for (const line of raw.split('\n')) {
-    const trimmed = line.trim()
-    if (!trimmed) continue
-    try {
-      const event: unknown = JSON.parse(trimmed)
-      if (!isLaneRunEvent(event)) throw new Error('invalid event record')
-      if (event.runId === runId) events.push(event)
-    } catch {
-      throw new Error('Lane event ledger contains a malformed JSONL record')
-    }
+  let events: Array<LaneStreamEvent>
+  try {
+    events = parseEventLedger(raw)
+  } catch {
+    throw new Error('Lane event ledger contains a malformed JSONL record')
   }
-  return events.sort((left, right) => left.sequence - right.sequence)
+  return events
+    .filter((event) => event.runId === runId)
+    .sort((left, right) => left.sequence - right.sequence)
 }
 
 export function createLaneOrchestrator(
@@ -601,14 +597,22 @@ export function createLaneOrchestrator(
             attempt: running.attempt ?? 1,
             startedAt: runStartedAt,
           }
-          const startedEvent: LaneRunEvent = {
-            runId,
-            laneId: id,
-            sequence: 1,
-            occurredAt: runStartedAt,
-            type: 'lifecycle',
-            message: 'Run started',
-          }
+          // One allocator for the whole run (UNI-2406). Before this, lifecycle
+          // events hardcoded sequences 1 and 2, which streamed output would
+          // have collided with the moment it landed between them.
+          const stream = createLaneEventStream({
+            identity: {
+              runId,
+              laneId: id,
+              machineId,
+              agent:
+                claimLane.backend.kind === 'cli'
+                  ? claimLane.backend.tool
+                  : claimLane.backend.provider,
+            },
+            now,
+            sink: (event) => appendRecord(eventsPath, event),
+          })
           activeRuns.set(id, { runId, controller, done })
           let laneClaimPersisted = false
           let runClaimPersisted = false
@@ -617,7 +621,7 @@ export function createLaneOrchestrator(
             laneClaimPersisted = true
             await appendRecord(runsPath, run)
             runClaimPersisted = true
-            await appendRecord(eventsPath, startedEvent)
+            await stream.lifecycle('Run started', { toState: 'running' })
           } catch (error) {
             const failedAt = now()
             const failureCode = errorCode(error)
@@ -660,11 +664,13 @@ export function createLaneOrchestrator(
             runId,
             controller,
             acknowledge,
+            stream,
           }
         })
       })
       if (admission.kind === 'blocked') return admission.lane
-      const { adapter, running, run, runId, controller, acknowledge } = admission
+      const { adapter, running, run, runId, controller, acknowledge, stream } =
+        admission
       let unacknowledgedStop: StopNotAcknowledgedError | undefined
       const persistSettlementFailure = async (error: unknown): Promise<Lane> => {
         const code = errorCode(error)
@@ -707,13 +713,21 @@ export function createLaneOrchestrator(
         try {
           result = await adapter.run(running, mission, {
             signal: controller.signal,
+            // Raw chunks in, redacted events out: `write` is the only path
+            // process output takes, and it redacts before the sink.
+            onOutput: (channel, chunk) => stream.write(channel, chunk),
           })
         } catch (error) {
           if (error instanceof StopNotAcknowledgedError) {
             unacknowledgedStop = error
           }
+          // Drain whatever the child produced before it died. A failed run's
+          // output is the most useful output there is, so losing it here would
+          // defeat the point of streaming.
+          await stream.settle().catch(() => {})
           throw error
         }
+        await stream.settle()
         if (controller.signal.aborted) throw new Error('CLI run aborted')
         const finishedAt = now()
         const completedLane: Lane = {
@@ -738,14 +752,10 @@ export function createLaneOrchestrator(
               status: 'succeeded',
               finishedAt,
             } satisfies LaneRun)
-            await appendRecord(eventsPath, {
-              runId,
-              laneId: id,
-              sequence: 2,
-              occurredAt: finishedAt,
-              type: 'lifecycle',
-              message: 'Run succeeded',
-            } satisfies LaneRunEvent)
+            await stream.lifecycle('Run succeeded', {
+              fromState: 'running',
+              toState: 'done',
+            })
             if (current.status === 'stopping' || stoppingLanes.has(id)) {
               return current
             }
@@ -791,14 +801,11 @@ export function createLaneOrchestrator(
               status: stopped ? 'stopped' : 'failed',
               finishedAt,
             } satisfies LaneRun)
-            await appendRecord(eventsPath, {
-              runId,
-              laneId: id,
-              sequence: 2,
-              occurredAt: finishedAt,
-              type: stopped ? 'control' : 'error',
-              message: stopped ? 'Run stopped' : 'Run failed',
-            } satisfies LaneRunEvent)
+            if (stopped) {
+              await stream.control('Run stopped')
+            } else {
+              await stream.error('Run failed')
+            }
             if (current.status !== 'stopping' && !stoppingLanes.has(id)) {
               const terminalLane: Lane =
                 stopped && current.status === 'error'

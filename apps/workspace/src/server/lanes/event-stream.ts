@@ -235,6 +235,15 @@ export interface LaneEventStream {
   annotation: (message: string) => Promise<void>
   /** Feed raw process output. Redaction and splitting happen inside. */
   output: (channel: OutputChannel, chunk: string) => Promise<void>
+  /**
+   * Fire-and-forget ingestion for a synchronous producer — a child process
+   * `data` handler cannot await. Chunks are processed strictly in arrival order
+   * on one internal chain, so a slow sink can never interleave two chunks and
+   * reorder a run's output. Errors surface from `settle()`.
+   */
+  write: (channel: OutputChannel, chunk: string) => void
+  /** Await every queued `write`, then flush. Rethrows the first queued error. */
+  settle: () => Promise<void>
   toolCall: (call: LaneToolCall) => Promise<void>
   /**
    * Drain buffered partial output and report any shed events. Safe to call
@@ -269,6 +278,12 @@ export function createLaneEventStream(
     stdout: createRedactingSplitter(),
     stderr: createRedactingSplitter(),
   }
+
+  // Single serialisation point for the fire-and-forget `write` path. Without
+  // it, two `data` handlers firing in the same tick would race the splitter and
+  // interleave their lines, reordering a run's output for every reader.
+  let chain: Promise<void> = Promise.resolve()
+  let queuedError: unknown
 
   async function emit(
     kind: RunEventKind,
@@ -312,6 +327,33 @@ export function createLaneEventStream(
     )
   }
 
+  /** Emit already-split lines, shedding beyond the budget rather than growing. */
+  async function emitLines(channel: OutputChannel, lines: string[]): Promise<void> {
+    for (const line of lines) {
+      if (outputEmitted >= outputBudget) {
+        droppedOutput += 1
+        droppedSinceReport += 1
+        continue
+      }
+      outputEmitted += 1
+      await emit('output', line, { channel })
+    }
+  }
+
+  async function pushOutput(
+    channel: OutputChannel,
+    chunk: string,
+  ): Promise<void> {
+    await emitLines(channel, splitters[channel].push(chunk))
+  }
+
+  async function flushAll(): Promise<void> {
+    for (const channel of ['stdout', 'stderr'] as const) {
+      await emitLines(channel, splitters[channel].flush())
+    }
+    await reportDrops()
+  }
+
   return {
     async lifecycle(message, states = {}) {
       await reportDrops()
@@ -333,36 +375,30 @@ export function createLaneEventStream(
       await reportDrops()
       await emit('annotation', message)
     },
-    async output(channel, chunk) {
-      const lines = splitters[channel].push(chunk)
-      for (const line of lines) {
-        if (outputEmitted >= outputBudget) {
-          droppedOutput += 1
-          droppedSinceReport += 1
-          continue
+    output: pushOutput,
+    write(channel, chunk) {
+      chain = chain.then(async () => {
+        try {
+          await pushOutput(channel, chunk)
+        } catch (error) {
+          queuedError ??= error
         }
-        outputEmitted += 1
-        await emit('output', line, { channel })
+      })
+    },
+    async settle() {
+      await chain
+      await flushAll()
+      if (queuedError !== undefined) {
+        const error = queuedError
+        queuedError = undefined
+        throw error
       }
     },
     async toolCall(call) {
       await reportDrops()
       await emit('tool_call', `${call.name} ${call.status}`, { tool: call })
     },
-    async flush() {
-      for (const channel of ['stdout', 'stderr'] as const) {
-        for (const line of splitters[channel].flush()) {
-          if (outputEmitted >= outputBudget) {
-            droppedOutput += 1
-            droppedSinceReport += 1
-            continue
-          }
-          outputEmitted += 1
-          await emit('output', line, { channel })
-        }
-      }
-      await reportDrops()
-    },
+    flush: flushAll,
     stats() {
       return { emitted, droppedOutput, nextSequence: sequence }
     },
@@ -418,8 +454,71 @@ export function readEventsAfter(
   }
 }
 
+/** Source recorded on an event upgraded from the pre-UNI-2406 ledger shape. */
+export const LEGACY_EVENT_SOURCE = 'apps/workspace:lanes/lane-orchestrator(legacy)'
+
+const LEGACY_KIND_BY_TYPE: Readonly<Record<string, RunEventKind>> = {
+  lifecycle: 'lifecycle',
+  control: 'control',
+  error: 'error',
+  stdout: 'output',
+  stderr: 'output',
+}
+
 /**
- * Parse a JSONL ledger into lane stream events.
+ * Upgrade a pre-UNI-2406 `LaneRunEvent` to the canonical envelope, or return
+ * null when the value is not one.
+ *
+ * A machine that ran the previous build has `events.jsonl` files full of the
+ * old shape — numeric `occurredAt`, `type` instead of `kind`, no
+ * `schemaVersion` or `source`. Refusing to read them would turn a deploy into
+ * data loss and would break UNI-2403 acceptance 4 (existing events remain
+ * backward compatible), so they are upgraded on read. The result is marked with
+ * a legacy `source`, because attributing these to the streaming producer would
+ * be a fabrication.
+ */
+export function upgradeLegacyLaneRunEvent(value: unknown): LaneStreamEvent | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null
+  const e = value as Record<string, unknown>
+  if (
+    typeof e.runId !== 'string' ||
+    e.runId === '' ||
+    typeof e.laneId !== 'string' ||
+    e.laneId === '' ||
+    typeof e.sequence !== 'number' ||
+    !Number.isInteger(e.sequence) ||
+    e.sequence < 1 ||
+    typeof e.occurredAt !== 'number' ||
+    !Number.isFinite(e.occurredAt) ||
+    typeof e.type !== 'string' ||
+    typeof e.message !== 'string'
+  ) {
+    return null
+  }
+  const kind = LEGACY_KIND_BY_TYPE[e.type]
+  if (kind === undefined) return null
+  const upgraded: LaneStreamEvent = {
+    schemaVersion: CONTRACT_SCHEMA_VERSION,
+    source: LEGACY_EVENT_SOURCE,
+    occurredAt: new Date(e.occurredAt).toISOString(),
+    sequence: e.sequence,
+    runId: e.runId,
+    kind,
+    message: truncateUtf8(e.message, MAX_STREAM_MESSAGE_LENGTH, ''),
+    laneId: e.laneId,
+    // The legacy shape carried neither. An empty string fails the guard and a
+    // hostname guess would be a fabrication, so both are named as unknown.
+    machineId: 'unknown',
+    agent: 'unknown',
+    ...(kind === 'output'
+      ? { channel: e.type === 'stderr' ? ('stderr' as const) : ('stdout' as const) }
+      : {}),
+  }
+  return isLaneStreamEvent(upgraded) ? upgraded : null
+}
+
+/**
+ * Parse a JSONL ledger into lane stream events, upgrading legacy records.
  *
  * A malformed line is a corrupt ledger, not a recoverable hiccup: skipping it
  * would silently shorten a replay and make the gap-free guarantee a lie, so it
@@ -439,12 +538,17 @@ export function parseEventLedger(raw: string): LaneStreamEvent[] {
         `Lane event ledger line ${index + 1} is not valid JSON`,
       )
     }
-    if (!isLaneStreamEvent(parsed)) {
+    if (isLaneStreamEvent(parsed)) {
+      events.push(parsed)
+      continue
+    }
+    const upgraded = upgradeLegacyLaneRunEvent(parsed)
+    if (upgraded === null) {
       throw new Error(
         `Lane event ledger line ${index + 1} is not a conforming control-plane event`,
       )
     }
-    events.push(parsed)
+    events.push(upgraded)
   }
   return events
 }

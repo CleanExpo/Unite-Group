@@ -7,11 +7,13 @@ import {
   createLaneEventStream,
   createRedactingSplitter,
   EVENT_STREAM_SOURCE,
+  LEGACY_EVENT_SOURCE,
   MAX_LINE_BYTES,
   isLaneStreamEvent,
   parseEventLedger,
   readEventsAfter,
   summariseToolArguments,
+  upgradeLegacyLaneRunEvent,
 } from './event-stream'
 import type { LaneStreamEvent } from './event-stream'
 
@@ -375,6 +377,127 @@ describe('cursor replay', () => {
   it('does not bleed events from another run', async () => {
     const events = await runWithEvents(5)
     expect(readEventsAfter(events, 'run_other', 0).events).toEqual([])
+  })
+})
+
+describe('fire-and-forget ingestion', () => {
+  it('preserves arrival order across a slow sink', async () => {
+    const seen: string[] = []
+    let tick = 0
+    const stream = createLaneEventStream({
+      identity: IDENTITY,
+      now: () => Date.UTC(2026, 0, 1) + tick++ * 1000,
+      // A sink slow enough that an unserialised writer would interleave.
+      sink: async (event) => {
+        await new Promise((resolve) => setTimeout(resolve, 1))
+        if (event.kind === 'output') seen.push(event.message)
+      },
+    })
+    // A child process `data` handler cannot await, so these all fire in one tick.
+    for (let index = 0; index < 20; index += 1) {
+      stream.write('stdout', `line ${index}\n`)
+    }
+    await stream.settle()
+    expect(seen).toEqual(Array.from({ length: 20 }, (_, index) => `line ${index}`))
+  })
+
+  it('reassembles a line split across two writes', async () => {
+    const { stream, events } = streamWith()
+    stream.write('stdout', 'first ')
+    stream.write('stdout', 'half\n')
+    await stream.settle()
+    expect(events.filter((event) => event.kind === 'output').map((e) => e.message)).toEqual([
+      'first half',
+    ])
+  })
+
+  it('redacts a secret split across two writes before it reaches the sink', async () => {
+    const { stream, events } = streamWith()
+    stream.write('stdout', 'export TOKEN=sk_live_ab')
+    stream.write('stdout', 'cdefghijklmnop123456\n')
+    await stream.settle()
+    const persisted = JSON.stringify(events)
+    expect(persisted).not.toContain('sk_live_abcdefghijklmnop123456')
+    expect(persisted).toContain('[REDACTED]')
+  })
+
+  it('surfaces a queued sink failure from settle rather than swallowing it', async () => {
+    const stream = createLaneEventStream({
+      identity: IDENTITY,
+      now: () => Date.UTC(2026, 0, 1),
+      sink: () => {
+        throw new Error('ledger write failed')
+      },
+    })
+    stream.write('stdout', 'anything\n')
+    await expect(stream.settle()).rejects.toThrow(/ledger write failed/)
+  })
+
+  it('settle flushes a trailing line that never got its newline', async () => {
+    const { stream, events } = streamWith()
+    stream.write('stdout', 'no trailing newline')
+    await stream.settle()
+    expect(events.map((event) => event.message)).toEqual(['no trailing newline'])
+  })
+})
+
+describe('legacy ledger compatibility', () => {
+  const legacy = {
+    runId: 'run_abc123',
+    laneId: 'lane_1',
+    sequence: 1,
+    occurredAt: Date.UTC(2026, 0, 1),
+    type: 'lifecycle',
+    message: 'Run started',
+  }
+
+  it('upgrades a pre-UNI-2406 record to the canonical envelope', () => {
+    const upgraded = upgradeLegacyLaneRunEvent(legacy)
+    expect(upgraded).not.toBeNull()
+    expect(findEnvelopeViolations(upgraded)).toEqual([])
+    expect(upgraded?.kind).toBe('lifecycle')
+    expect(upgraded?.occurredAt).toBe('2026-01-01T00:00:00.000Z')
+    expect(upgraded?.source).toBe(LEGACY_EVENT_SOURCE)
+  })
+
+  it('names the fields the legacy shape never carried instead of inventing them', () => {
+    const upgraded = upgradeLegacyLaneRunEvent(legacy)
+    // A hostname guess here would be a fabrication attributed to a real machine.
+    expect(upgraded?.machineId).toBe('unknown')
+    expect(upgraded?.agent).toBe('unknown')
+  })
+
+  it('maps the legacy stdout/stderr types onto the canonical output kind', () => {
+    expect(upgradeLegacyLaneRunEvent({ ...legacy, type: 'stdout' })).toMatchObject({
+      kind: 'output',
+      channel: 'stdout',
+    })
+    expect(upgradeLegacyLaneRunEvent({ ...legacy, type: 'stderr' })).toMatchObject({
+      kind: 'output',
+      channel: 'stderr',
+    })
+  })
+
+  it('reads a mixed ledger of legacy and canonical records', async () => {
+    const { stream, events } = streamWith({ startSequence: 2 })
+    await stream.lifecycle('Run succeeded', { toState: 'done' })
+    const raw = [JSON.stringify(legacy), ...events.map((e) => JSON.stringify(e))].join('\n')
+    const parsed = parseEventLedger(raw)
+    expect(parsed).toHaveLength(2)
+    expect(parsed.map((event) => event.sequence)).toEqual([1, 2])
+    expect(parsed.map((event) => event.source)).toEqual([
+      LEGACY_EVENT_SOURCE,
+      EVENT_STREAM_SOURCE,
+    ])
+  })
+
+  it('rejects a legacy record whose type has no canonical kind', () => {
+    expect(upgradeLegacyLaneRunEvent({ ...legacy, type: 'not-a-kind' })).toBeNull()
+  })
+
+  it('rejects a legacy record missing its identity', () => {
+    expect(upgradeLegacyLaneRunEvent({ ...legacy, laneId: '' })).toBeNull()
+    expect(upgradeLegacyLaneRunEvent({ ...legacy, occurredAt: 'not-a-number' })).toBeNull()
   })
 })
 

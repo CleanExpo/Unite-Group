@@ -428,6 +428,58 @@ describe('CliLaneAdapter', () => {
     ).resolves.toMatchObject({ stdout: '😀' })
   })
 
+  // ── UNI-2406: live output forwarding ──────────────────────────────────────
+
+  it('forwards process output to the live sink as it is written', async () => {
+    const chunks: Array<[string, string]> = []
+    const script =
+      'process.stdout.write("first\\n"); process.stderr.write("problem\\n"); process.stdout.write("second\\n")'
+    const result = await supervisedSpawn(process.execPath, ['-e', script], {
+      cwd: process.cwd(),
+      env: process.env,
+      onOutput: (channel, chunk) => chunks.push([channel, chunk]),
+    })
+
+    expect(result.code).toBe(0)
+    const joined = chunks.map(([, chunk]) => chunk).join('')
+    expect(joined).toContain('first')
+    expect(joined).toContain('second')
+    expect(chunks.some(([channel]) => channel === 'stderr')).toBe(true)
+    // The live sink must not replace the buffered result the orchestrator
+    // still settles the lane's `lastOutput` from.
+    expect(result.stdout).toContain('first')
+    expect(result.stdout).toContain('second')
+  })
+
+  it('survives a live sink that throws, rather than taking the child down with it', async () => {
+    const result = await supervisedSpawn(
+      process.execPath,
+      ['-e', 'process.stdout.write("still ran\\n")'],
+      {
+        cwd: process.cwd(),
+        env: process.env,
+        onOutput: () => {
+          throw new Error('consumer exploded')
+        },
+      },
+    )
+    expect(result.code).toBe(0)
+    expect(result.stdout).toContain('still ran')
+  })
+
+  it('passes the live sink through the adapter to the spawn', async () => {
+    const seen: Array<[string, string]> = []
+    const spawn: SpawnFn = vi.fn(async (_command, _args, opts) => {
+      opts.onOutput?.('stdout', 'from the child')
+      return { code: 0, stdout: 'done', stderr: '' }
+    })
+    const adapter = createCliAdapter({ spawn, accountsDir: '/tmp/accounts' })
+    await adapter.run(cliLane('claude-code'), 'mission', {
+      onOutput: (channel, chunk) => seen.push([channel, chunk]),
+    })
+    expect(seen).toEqual([['stdout', 'from the child']])
+  })
+
   it('does not spawn when the run was already aborted', async () => {
     const controller = new AbortController()
     controller.abort()

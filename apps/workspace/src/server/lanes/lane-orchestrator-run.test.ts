@@ -178,6 +178,143 @@ describe('LaneOrchestrator.runMission', () => {
     expect(lane.lastOutput).toBe('cli-done')
   })
 
+  // ── UNI-2406: live output reaches the ledger, redacted and in order ───────
+
+  it('persists streamed process output between the lifecycle events', async () => {
+    const cli: LaneAdapter = {
+      async run(_lane, _mission, options) {
+        options?.onOutput?.('stdout', 'building step one\n')
+        options?.onOutput?.('stderr', 'a warning\n')
+        options?.onOutput?.('stdout', 'building step two\n')
+        return { output: 'done' }
+      },
+    }
+    const o = createLaneOrchestrator({
+      registryPath: path.join(tempRoot, 'lanes.jsonl'),
+      worktrees: noopWorktrees,
+      adapters: { cli },
+      idgen: () => 'stream-lane',
+      runIdgen: () => 'run-stream-1',
+      now: () => 1_000,
+      isBackendAvailable: () => true,
+    })
+    await o.create(cliInput)
+    await o.runMission('stream-lane', 'build')
+
+    const events = await o.listRunEvents('run-stream-1')
+    expect(events.map((event) => event.kind)).toEqual([
+      'lifecycle',
+      'output',
+      'output',
+      'output',
+      'lifecycle',
+    ])
+    // Gap-free and monotonic: this is what makes a cursor resume provable.
+    expect(events.map((event) => event.sequence)).toEqual([1, 2, 3, 4, 5])
+    expect(events.map((event) => event.message)).toEqual([
+      'Run started',
+      'building step one',
+      'a warning',
+      'building step two',
+      'Run succeeded',
+    ])
+    expect(events[2]?.channel).toBe('stderr')
+    // Identity every Mission Control tile needs, carried on each event.
+    expect(events[1]?.agent).toBe('claude-code')
+    expect(events[1]?.machineId).toBeTruthy()
+  })
+
+  it('redacts streamed output before it is written to the ledger', async () => {
+    const eventsPath = path.join(tempRoot, 'events.jsonl')
+    const cli: LaneAdapter = {
+      async run(_lane, _mission, options) {
+        // Split across two writes: the case a per-chunk redactor misses.
+        options?.onOutput?.('stdout', 'AWS_SECRET_ACCESS_KEY=AKIAIOS')
+        options?.onOutput?.('stdout', 'FODNN7EXAMPLE\n')
+        return { output: 'done' }
+      },
+    }
+    const o = createLaneOrchestrator({
+      registryPath: path.join(tempRoot, 'lanes.jsonl'),
+      eventsPath,
+      worktrees: noopWorktrees,
+      adapters: { cli },
+      idgen: () => 'secret-lane',
+      runIdgen: () => 'run-secret-1',
+      now: () => 1_000,
+      isBackendAvailable: () => true,
+    })
+    await o.create(cliInput)
+    await o.runMission('secret-lane', 'build')
+
+    // Assert against the FILE, not the in-memory events: "redacted before
+    // persistence" is only proven by what actually landed on disk.
+    const raw = await fs.readFile(eventsPath, 'utf8')
+    expect(raw).not.toContain('AKIAIOSFODNN7EXAMPLE')
+    expect(raw).toContain('[REDACTED]')
+  })
+
+  it('keeps the output of a run that failed', async () => {
+    const cli: LaneAdapter = {
+      async run(_lane, _mission, options) {
+        options?.onOutput?.('stdout', 'got this far\n')
+        throw new Error('mission failed')
+      },
+    }
+    const o = createLaneOrchestrator({
+      registryPath: path.join(tempRoot, 'lanes.jsonl'),
+      worktrees: noopWorktrees,
+      adapters: { cli },
+      idgen: () => 'failing-lane',
+      runIdgen: () => 'run-failing-1',
+      now: () => 1_000,
+      isBackendAvailable: () => true,
+    })
+    await o.create(cliInput)
+    await o.runMission('failing-lane', 'build')
+
+    const events = await o.listRunEvents('run-failing-1')
+    // A failed run's output is the most useful output there is.
+    expect(events.map((event) => event.message)).toEqual([
+      'Run started',
+      'got this far',
+      'Run failed',
+    ])
+    expect(events.map((event) => event.kind)).toEqual([
+      'lifecycle',
+      'output',
+      'error',
+    ])
+  })
+
+  it('reads a legacy ledger written by the previous build', async () => {
+    const eventsPath = path.join(tempRoot, 'events.jsonl')
+    await fs.writeFile(
+      eventsPath,
+      `${JSON.stringify({
+        runId: 'run-legacy-1',
+        laneId: 'legacy-lane',
+        sequence: 1,
+        occurredAt: 1_000,
+        type: 'lifecycle',
+        message: 'Run started',
+      })}\n`,
+    )
+    const o = createLaneOrchestrator({
+      registryPath: path.join(tempRoot, 'lanes.jsonl'),
+      eventsPath,
+      worktrees: noopWorktrees,
+    })
+
+    const events = await o.listRunEvents('run-legacy-1')
+    expect(events).toHaveLength(1)
+    expect(events[0]).toMatchObject({
+      kind: 'lifecycle',
+      message: 'Run started',
+      occurredAt: '1970-01-01T00:00:01.000Z',
+    })
+  })
+
   it('persists completed run identity and monotonic lifecycle events', async () => {
     const cli: LaneAdapter = {
       async run() {
@@ -210,7 +347,7 @@ describe('LaneOrchestrator.runMission', () => {
     })
     expect(run?.machineId).toBeTruthy()
     expect(events.map((event) => event.sequence)).toEqual([1, 2])
-    expect(events.map((event) => event.type)).toEqual([
+    expect(events.map((event) => event.kind)).toEqual([
       'lifecycle',
       'lifecycle',
     ])
@@ -744,7 +881,7 @@ describe('LaneOrchestrator.runMission', () => {
     })
     const events = await o.listRunEvents('controlled-run')
     expect(events.map((event) => event.sequence)).toEqual([1, 2])
-    expect(events.map((event) => event.type)).toEqual([
+    expect(events.map((event) => event.kind)).toEqual([
       'lifecycle',
       'control',
     ])
@@ -1074,7 +1211,7 @@ describe('LaneOrchestrator.runMission', () => {
     })
     expect(
       (await o.listRunEvents(erroredLane!.lastRunId!)).map(
-        (event) => event.type,
+        (event) => event.kind,
       ),
     ).toEqual(['lifecycle', 'control'])
     expect(cleanupCalls).toBe(0)

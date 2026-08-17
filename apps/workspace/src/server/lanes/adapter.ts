@@ -96,6 +96,16 @@ export interface RunResult {
 export interface LaneRunOptions {
   /** Aborting must terminate the supervised child before the run settles. */
   signal?: AbortSignal
+  /**
+   * Live output sink, called as the child writes (UNI-2406).
+   *
+   * The chunk is RAW and may contain a secret: redaction happens in the
+   * receiving stream, not here, because a per-chunk redactor cannot see a token
+   * split across two writes. The only production caller is the orchestrator,
+   * which routes this straight into `LaneEventStream.write` — never persist,
+   * log or render a chunk taken from this callback directly.
+   */
+  onOutput?: (channel: 'stdout' | 'stderr', chunk: string) => void
 }
 
 export interface LaneAdapter {

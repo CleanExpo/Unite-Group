@@ -74,6 +74,13 @@ export interface SpawnOptions {
   input?: string
   signal?: AbortSignal
   timeoutMs?: number
+  /**
+   * Live, per-write output sink (UNI-2406). Raw and unredacted — see
+   * `LaneRunOptions.onOutput`. Deliberately separate from the buffered
+   * `stdout`/`stderr` in `SpawnResult`, so the existing final-output contract
+   * is untouched: a caller that ignores this gets exactly what it got before.
+   */
+  onOutput?: (channel: 'stdout' | 'stderr', chunk: string) => void
 }
 
 export type SpawnFn = (
@@ -155,10 +162,25 @@ export function createSupervisedSpawn(
       })
       if (opts.input) child.stdin.end(opts.input)
       else child.stdin.end()
+      // The live sink is notified before the bounded buffer is updated, and is
+      // deliberately not subject to RAW_CAPTURE_LIMIT: the buffer exists to cap
+      // what the FINAL result carries, whereas the stream has its own budget
+      // and would otherwise go silent the moment a long run filled the buffer.
+      const forward = (channel: 'stdout' | 'stderr', chunk: unknown) => {
+        if (!opts.onOutput) return
+        try {
+          opts.onOutput(channel, String(chunk))
+        } catch {
+          // A failing consumer must never take down the supervised child; the
+          // stream reports its own errors when the run settles.
+        }
+      }
       child.stdout.on('data', (d) => {
+        forward('stdout', d)
         stdout = appendBounded(stdout, d)
       })
       child.stderr.on('data', (d) => {
+        forward('stderr', d)
         stderr = appendBounded(stderr, d)
       })
 
@@ -347,6 +369,7 @@ export function createCliAdapter(deps: CliAdapterDeps = {}): LaneAdapter {
         env,
         input: mission,
         signal: options.signal,
+        onOutput: options.onOutput,
       })
       if (result.code !== 0) {
         const detail = redactCliOutput(
