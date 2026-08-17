@@ -1,0 +1,6 @@
+{
+  "name": "@unite-group/contracts",
+  "private": true,
+  "type": "module",
+  "description": "Declaration-only contracts shared across apps. No build step: consumed via Node type stripping (contracts/control-plane/v1.ts) or direct TypeScript import."
+}
