@@ -167,12 +167,28 @@ const NO_DEFECT_VERDICTS = [
  * `score()` then falls back to the whole reply plus the denial patterns.
  */
 export function claimPayload(text) {
-  const m = /\bdefect\s*:\s*([\s\S]*?)(?=\bfix\s*:|$)/i.exec(text);
-  if (!m) return null;
-  const payload = m[1].trim();
-  // "DEFECT: none" is a denial in the format's own vocabulary.
-  if (/^(none|n\/?a|no\b|nothing\b|-|—)/i.test(payload)) return '';
-  return payload;
+  const defect = /\bdefect\s*:\s*([\s\S]*?)(?=\bwhy\s*:|\bfix\s*:|$)/i.exec(text);
+  if (!defect) return null;
+  const claim = defect[1].trim();
+  // "DEFECT: none" is a denial in the format's own vocabulary, and a denial
+  // beats an incomplete format: it is scored 0, not merely capped.
+  if (/^(none|n\/?a|no\b|nothing\b|-|—)/i.test(claim)) return '';
+
+  // ALL THREE fields, not just DEFECT:.
+  //
+  // The first version required only `DEFECT:`, which made the justification for
+  // the unformatted cap incoherent — review put it exactly right: a model could
+  // omit two mandated fields and still rank as fully compliant. If the penalty
+  // is for ignoring the output contract, then the contract is all of it.
+  const why = /\bwhy\s*:\s*([\s\S]*?)(?=\bfix\s*:|$)/i.exec(text);
+  const fix = /\bfix\s*:\s*(\S[\s\S]*)$/i.exec(text);
+  if (!why?.[1].trim() || !fix?.[1].trim()) return null;
+
+  // DEFECT + WHY is the assertion. FIX is a remedy, not a claim about the
+  // defect, so it is required for compliance but excluded from what is scored —
+  // otherwise a model could earn paraphrase credit from its suggested fix
+  // without ever having stated what is wrong.
+  return `${claim} ${why[1].trim()}`;
 }
 
 /**
@@ -306,6 +322,43 @@ export function score(answer, c) {
   };
 }
 
+/**
+ * Roll per-case results up into one scoreboard row per model.
+ *
+ * Exported ONLY so selftest.mjs can test it, and it is exported because it
+ * shipped a lying column while it was inline and untested. It tallied on the
+ * `verdict` string — `verdict === 'partial'` — so every 0.5 that carried a more
+ * specific verdict ('unformatted', 'disclaimed', 'contaminated') was counted in
+ * the MISS column instead. The SCORE total stayed correct, which is what made it
+ * dangerous: the row looked internally consistent enough that nobody would think
+ * to distrust the breakdown. Tallying on the score itself cannot drift from the
+ * total it sits next to.
+ */
+export function tally(raw, caseCount) {
+  const byModel = new Map();
+  for (const r of raw) {
+    const e = byModel.get(r.model) ?? { model: r.model, total: 0, found: 0, partial: 0, missed: 0, unformatted: 0, errors: 0, ms: [] };
+    e.total += r.score ?? 0;
+    if (r.error) e.errors++;
+    else if ((r.score ?? 0) >= 1) e.found++;
+    else if ((r.score ?? 0) > 0) e.partial++;
+    else e.missed++;
+    // Format compliance is its own axis now that it caps the score, so it gets
+    // its own column rather than hiding inside PART.
+    if (!r.error && r.verdict === 'unformatted') e.unformatted++;
+    if (!r.error) e.ms.push(r.ms);
+    byModel.set(r.model, e);
+  }
+
+  return [...byModel.values()]
+    .map((e) => ({
+      ...e,
+      pct: Math.round((e.total / caseCount) * 100),
+      medMs: e.ms.length ? e.ms.sort((a, b) => a - b)[Math.floor(e.ms.length / 2)] : null,
+    }))
+    .sort((a, b) => b.total - a.total || (a.medMs ?? 1e9) - (b.medMs ?? 1e9));
+}
+
 // ── the call ────────────────────────────────────────────────────────────────
 
 async function ask(model, c) {
@@ -421,37 +474,20 @@ async function main() {
   process.stdout.write('\n\n');
 
   // ── scoreboard ────────────────────────────────────────────────────────────
-  const byModel = new Map();
-  for (const r of raw) {
-    const e = byModel.get(r.model) ?? { model: r.model, total: 0, found: 0, partial: 0, missed: 0, errors: 0, ms: [] };
-    e.total += r.score ?? 0;
-    if (r.error) e.errors++;
-    else if (r.verdict === 'found') e.found++;
-    else if (r.verdict === 'partial') e.partial++;
-    else e.missed++;
-    if (!r.error) e.ms.push(r.ms);
-    byModel.set(r.model, e);
-  }
-
-  const rows = [...byModel.values()]
-    .map((e) => ({
-      ...e,
-      pct: Math.round((e.total / cases.length) * 100),
-      medMs: e.ms.length ? e.ms.sort((a, b) => a - b)[Math.floor(e.ms.length / 2)] : null,
-    }))
-    .sort((a, b) => b.total - a.total || (a.medMs ?? 1e9) - (b.medMs ?? 1e9));
+  const rows = tally(raw, cases.length);
 
   const pad = (s, n) => String(s).padEnd(n);
-  console.log(pad('MODEL', 46), pad('SCORE', 12), pad('FOUND', 7), pad('PART', 6), pad('MISS', 6), pad('ERR', 5), 'MED ms');
+  console.log(pad('MODEL', 46), pad('SCORE', 12), pad('FOUND', 7), pad('PART', 6), pad('MISS', 6), pad('UNFMT', 6), pad('ERR', 5), 'MED ms');
   console.log('─'.repeat(100));
   for (const r of rows) {
     console.log(
       pad(r.model.slice(0, 45), 46),
       pad(`${r.total.toFixed(1)}/${cases.length} (${r.pct}%)`, 12),
-      pad(r.found, 7), pad(r.partial, 6), pad(r.missed, 6), pad(r.errors, 5),
+      pad(r.found, 7), pad(r.partial, 6), pad(r.missed, 6), pad(r.unformatted, 6), pad(r.errors, 5),
       r.medMs ?? '—',
     );
   }
+  console.log('\nUNFMT = ignored the mandated DEFECT/WHY/FIX contract, so capped at 0.5 regardless of content.');
 
   // Per-defect difficulty: which real bugs does the whole field miss? Those are
   // the ones a swarm cannot be trusted with, no matter how good the averages.

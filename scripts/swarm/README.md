@@ -106,12 +106,18 @@ Getting this right took three attempts, and the first two failed the same way.
    missed, and all 29 framings went back to 1.0 on 8 of 8 cases. Reordering the
    words does the same. So an unformatted reply now caps at 0.5, reported as
    `verdict: 'unformatted'`.
+5. **The contract is all three fields.** Step 4 first required only `DEFECT:`,
+   which made its own justification incoherent — a model could omit two mandated
+   fields and still rank as fully compliant. `DEFECT:`, `WHY:` and `FIX:` must
+   all be present and non-empty. `FIX:` is required for compliance but excluded
+   from what is scored, so a model cannot earn paraphrase credit from its
+   suggested remedy without ever stating what is wrong.
 
-Step 4 is what finally closed the fallback, and it closed it without another
+Steps 4–5 are what finally closed the fallback, and it closed it without another
 lexical rule. Steps 1–3 still do useful work; step 4 means none of them has to be
 complete.
 
-**The cost of step 4, stated rather than hidden**: a cheap model that identifies
+**The cost, stated rather than hidden**: a cheap model that identifies
 the defect correctly in plain prose is capped at 0.5 and ranks below one that
 follows the format. That is a real penalty. It is the right direction of error —
 this benchmark exists to decide whether cheap models can be *trusted*, so it
@@ -187,7 +193,7 @@ than requested.
 ## 3. Self-test
 
 ```bash
-node scripts/swarm/selftest.mjs     # 72 assertions, no network, no key
+node scripts/swarm/selftest.mjs     # 87 assertions, no network, no key
 ```
 
 Every assertion has a negative control. The scorer must reject four generic

@@ -14,7 +14,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { score, isFree, claimPayload, isContaminated } from './bench.mjs';
+import { score, isFree, claimPayload, isContaminated, tally } from './bench.mjs';
 import { cluster, parseFindings, chunk } from './swarm.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -33,7 +33,7 @@ const check = (name, cond, detail = '') => {
 // and score() caps anything unformatted at 0.5. `groundTruth` is prose written
 // to document the defect for a human reading defects.json, so wrapping it in a
 // DEFECT: line is what turns it into the answer it is standing in for.
-const asAnswer = (c) => `DEFECT: ${c.groundTruth}`;
+const asAnswer = (c) => `DEFECT: ${c.groundTruth}\nWHY: ${c.groundTruth}\nFIX: apply the correction described above`;
 console.log('\nscore() — a correct answer must score 1.0');
 for (const c of corpus.cases) {
   const r = score(asAnswer(c), c);
@@ -42,6 +42,31 @@ for (const c of corpus.cases) {
 check(
   'the same ground truth WITHOUT the mandated format caps at 0.5',
   corpus.cases.every((c) => score(c.groundTruth, c).score <= 0.5),
+);
+
+// ── FORMAT CONTRACT ────────────────────────────────────────────────────────
+// The cap is justified by ignoring the output contract, so the contract has to
+// be all three fields. Requiring only DEFECT: let a model omit two mandated
+// fields and still rank as fully compliant — an incoherence review named
+// exactly. One control per omitted field.
+console.log('\nscore() — full credit requires ALL of DEFECT/WHY/FIX');
+const partialFormats = (c) => ({
+  'DEFECT: only': `DEFECT: ${c.groundTruth}`,
+  'DEFECT + WHY, no FIX': `DEFECT: ${c.groundTruth}\nWHY: ${c.groundTruth}`,
+  'DEFECT + FIX, no WHY': `DEFECT: ${c.groundTruth}\nFIX: apply the correction described above`,
+  'WHY + FIX, no DEFECT': `WHY: ${c.groundTruth}\nFIX: apply the correction described above`,
+  'empty FIX': `DEFECT: ${c.groundTruth}\nWHY: ${c.groundTruth}\nFIX:`,
+  'empty WHY': `DEFECT: ${c.groundTruth}\nWHY:\nFIX: apply the correction described above`,
+});
+for (const [label] of Object.entries(partialFormats(corpus.cases[0]))) {
+  const leaked = corpus.cases.filter((c) => score(partialFormats(c)[label], c).score >= 1.0);
+  check(`"${label}" never reaches full credit`, leaked.length === 0, `leaked on ${leaked.map((c) => c.id).join(', ')}`);
+}
+// FIX is required for compliance but excluded from what is scored, so a model
+// cannot earn paraphrase credit from its remedy without stating the defect.
+check(
+  'FIX: content does not contribute to the score',
+  corpus.cases.every((c) => score(`DEFECT: something is off\nWHY: something is off\nFIX: ${c.groundTruth} ${c.acceptAny.join('. ')}`, c).score < 1.0),
 );
 
 // ── scoring: NEGATIVE CONTROLS ─────────────────────────────────────────────
@@ -209,6 +234,35 @@ check('whitespace scores 0', score('   \n  ', corpus.cases[0]).score === 0);
 // by a model that merely repeats the prompt's own context back.
 const stuffed = corpus.cases[0].context;
 check('echoing the prompt context does not score full marks', score(stuffed, corpus.cases[0]).score < 1.0);
+
+// ── scoreboard tally ───────────────────────────────────────────────────────
+// This shipped a lying column: it counted on the `verdict` string, so every 0.5
+// carrying a specific verdict ('unformatted', 'disclaimed', 'contaminated') was
+// reported under MISS. The SCORE total stayed correct, which is exactly what
+// made it dangerous — the row looked self-consistent. Review caught it. The
+// invariant below is the one that cannot drift: the columns must add up.
+console.log('\ntally() — the breakdown must agree with the score beside it');
+const RAW = [
+  { model: 'm', score: 1, verdict: 'found', ms: 10 },
+  { model: 'm', score: 0.5, verdict: 'partial', ms: 20 },
+  { model: 'm', score: 0.5, verdict: 'unformatted', ms: 30 },
+  { model: 'm', score: 0.5, verdict: 'disclaimed', ms: 40 },
+  { model: 'm', score: 0.5, verdict: 'contaminated', ms: 50 },
+  { model: 'm', score: 0, verdict: 'missed', ms: 60 },
+  { model: 'm', score: 0, verdict: 'no-claim', ms: 70 },
+  { model: 'm', error: 'timeout', ms: 0 },
+];
+const [row] = tally(RAW, 7);
+check('every 0.5 counts as PARTIAL, whatever its verdict', row.partial === 4, `got ${row.partial}`);
+check('only real zeroes count as MISS', row.missed === 2, `got ${row.missed}`);
+check('full marks count as FOUND', row.found === 1, `got ${row.found}`);
+check('errors are counted separately, not as misses', row.errors === 1, `got ${row.errors}`);
+check('unformatted gets its own column', row.unformatted === 1, `got ${row.unformatted}`);
+check('found + partial + missed + errors == total responses', row.found + row.partial + row.missed + row.errors === RAW.length);
+check('score total is unchanged by the tally', row.total === 3, `got ${row.total}`);
+// An errored response contributes no latency sample — a timeout would otherwise
+// masquerade as the model's typical speed.
+check('errored responses contribute no latency sample', row.ms.length === RAW.length - 1);
 
 // ── isFree ─────────────────────────────────────────────────────────────────
 console.log('\nisFree() — a model is free only if EVERY price is zero');
