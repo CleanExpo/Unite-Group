@@ -398,12 +398,18 @@ jobs:
       # TEARDOWN and is deliberately skipped. ON_ERROR_STOP is what makes a
       # failed migration fail the job instead of silently leaving a half-built
       # schema for the tests to misreport on.
+      #
+      # ci/00_extensions.sql runs first: no migration declares `create
+      # extension`, so pgvector — which 0002 needs for `public.vector(384)` and
+      # its hnsw index — exists on the hosted databases only because it was
+      # enabled out of band. See that file for why the schema it lands in matters.
       - name: Apply spine migrations and seed
         env:
           PGPASSWORD: postgres
         run: |
           set -euo pipefail
           for f in \
+            ci/00_extensions.sql \
             migrations/0001_core_identity.sql \
             migrations/0002_modules.sql \
             migrations/0003_match_and_lineage_rls.sql \
