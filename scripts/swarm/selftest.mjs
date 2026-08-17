@@ -19,6 +19,7 @@ import { cluster, parseFindings, chunk, parseVerdict, survivesRefutation, chunkO
 import { baseModelId, familyOf, distinctFamilies, validateRoster } from './lib/lineage.mjs';
 import { backoffMs, parseRetryAfter, usageOf, ledger, callModel } from './lib/openrouter.mjs';
 import { ROLES, REFUTE, REVIEW_ROLES, isQuestion } from './lib/roles.mjs';
+import { ARRAY_FIELDS, NUMBER_FIELDS, SCALAR_FIELDS, contractViolation, renderMarkdown } from './report.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const corpus = JSON.parse(readFileSync(join(HERE, 'defects.json'), 'utf8'));
@@ -635,6 +636,258 @@ const sameDefect = (model) => ({
     { ...sameDefect('mistralai/b'), _role: 'weakness' },
   ])[0];
   check('a cluster records which roles found it', mixed.roles.size === 2);
+}
+
+// ── the PR comment ─────────────────────────────────────────────────────────
+// This posts on every PR, so it has two jobs that pull against each other: be
+// short enough that people keep reading it, and never make a run that did not
+// happen look like a clean one.
+console.log('\nrenderMarkdown() — the report must not flatter the run');
+const RUN = {
+  ranAt: '2026-08-17T00:00:00.000Z',
+  models: ['qwen/a', 'mistralai/b'], lineages: 2, roles: ['defect'], quorum: 2,
+  cost: { wasFree: true, totalUsd: 0, billed: [] },
+  corroborated: [{ severity: 'high', file: 'a.ts', line: 12, claim: 'Pagination lacks ORDER BY', why: 'pages repeat', lineages: 2, models: ['qwen/a', 'mistralai/b'], roles: ['defect'], refutation: { votes: 2, refuted: 0 } }],
+  single: [], questions: [], errors: [],
+};
+{
+  const md = renderMarkdown(RUN);
+  check('a corroborated finding is rendered', md.includes('Pagination lacks ORDER BY'));
+  // Above the fold: a real finding hidden in a <details> is a finding nobody
+  // reads, which is the same outcome as not reporting it.
+  check('...above the fold, not inside <details>', md.indexOf('Pagination lacks ORDER BY') < (md.indexOf('<details>') === -1 ? Infinity : md.indexOf('<details>')));
+  check('the challenge result is shown', md.includes('survived 2/2'));
+  check('a free run says so', md.includes('$0.00'));
+  check('the advisory framing is always present', /advisory only/i.test(md));
+}
+{
+  const md = renderMarkdown({ ...RUN, corroborated: [] });
+  check('zero findings is stated explicitly, not left blank', md.includes('No corroborated findings'));
+}
+// NEGATIVE CONTROLS — the report must never imply a review that did not happen.
+{
+  check('a missing artefact does NOT render as a clean review', /did not complete/i.test(renderMarkdown(null)));
+  check('...nor does a garbage artefact', /did not complete/i.test(renderMarkdown('nonsense')));
+}
+{
+  // THE defect this block exists for: `{}` is an object, so a null-check alone
+  // waves it through, and every collection defaulted to [] — producing a normal
+  // heading and "No corroborated findings". An empty file rendered as a clean
+  // review. A truncated write is the realistic way to get here.
+  const md = renderMarkdown({});
+  check('an EMPTY object does not render as a clean review', /did not complete/i.test(md));
+  check('...and never claims there were no findings', !md.includes('No corroborated findings'));
+  check('...and does not print a reassuring $0.00 cost line', !md.includes('$0.00'));
+  check('...and says outright that nothing was checked', /not a clean review/i.test(md));
+  check('an ARRAY is not a valid artefact either', /did not complete/i.test(renderMarkdown([])));
+
+  // The good fixture must pass the contract, or the guard is just breaking the
+  // renderer rather than catching malformed input.
+  check('the valid fixture satisfies the contract', contractViolation(RUN) === null,
+    String(contractViolation(RUN)));
+
+  // Every required collection, dropped one at a time. A field added to
+  // writeFindings() and forgotten in the contract shows up as a gap here.
+  for (const field of ['models', 'roles', 'corroborated', 'single', 'questions', 'errors']) {
+    const { [field]: _dropped, ...missing } = RUN;
+    check(`a missing \`${field}\` is caught, not defaulted away`,
+      /did not complete/i.test(renderMarkdown(missing)));
+    check(`...and the reason names \`${field}\``,
+      String(contractViolation(missing)).includes(field));
+    check(`a non-array \`${field}\` is caught`,
+      contractViolation({ ...RUN, [field]: { length: 0 } }) !== null);
+  }
+
+  // Cost is the field most likely to mislead: absent, the old code printed
+  // "$0.00 — every model reported zero", which is an assertion about spend that
+  // nothing in the artefact supported.
+  const { cost: _c, ...noCost } = RUN;
+  check('a missing `cost` block is caught', /did not complete/i.test(renderMarkdown(noCost)));
+  check('...rather than being reported as a free run', !renderMarkdown(noCost).includes('$0.00'));
+  check('a cost block with no wasFree flag is caught',
+    contractViolation({ ...RUN, cost: { totalUsd: 0, billed: [] } }) !== null);
+  check('a cost block with a non-numeric total is caught',
+    contractViolation({ ...RUN, cost: { wasFree: false, totalUsd: 'lots', billed: [] } }) !== null);
+  check('a billed list that is not a list is caught',
+    contractViolation({ ...RUN, cost: { wasFree: false, totalUsd: 1, billed: 'c/z' } }) !== null);
+
+  // quorum/lineages are printed as numbers in the header; NaN or a string there
+  // reads as a real header describing a run that did not produce one.
+  check('a missing `quorum` is caught', contractViolation({ ...RUN, quorum: undefined }) !== null);
+  check('a NaN `lineages` is caught', contractViolation({ ...RUN, lineages: NaN }) !== null);
+  check('a missing `ranAt` is caught', contractViolation({ ...RUN, ranAt: undefined }) !== null);
+}
+{
+  const md = renderMarkdown({ ...RUN, corroborated: [], errors: [{ model: 'qwen/a', error: 'HTTP 429' }, { model: 'qwen/a', error: 'timeout' }] });
+  check('failed calls are surfaced, because a model that errored did not vote', /did not vote/.test(md));
+  check('...with the count, so the reader can judge the effective quorum', md.includes('2 failed call'));
+}
+{
+  const md = renderMarkdown({ ...RUN, cost: { wasFree: false, totalUsd: 0.0031, billed: [{ model: 'c/z', costUsd: 0.0031 }] } });
+  check('a run that BILLED says so loudly', md.includes('0.003100') && /💸/.test(md));
+  check('...and names the model that charged', md.includes('c/z'));
+}
+{
+  // Questions ride the same artefact but must never read as findings.
+  const md = renderMarkdown({ ...RUN, corroborated: [], questions: [{ claim: 'What happens to in-flight rows?', why: 'work may be lost' }] });
+  check('questions are folded away, not presented as findings', md.includes('<details>') && md.includes('never counted towards quorum'));
+  check('...and the finding count still reads zero', md.includes('No corroborated findings'));
+}
+{
+  // Severity ordering: a reader scanning the top should meet the worst first.
+  const md = renderMarkdown({
+    ...RUN,
+    corroborated: [
+      { severity: 'low', file: 'l.ts', claim: 'LOWCLAIM', lineages: 2, models: [], roles: [] },
+      { severity: 'critical', file: 'c.ts', claim: 'CRITCLAIM', lineages: 2, models: [], roles: [] },
+    ],
+  });
+  check('critical sorts above low', md.indexOf('CRITCLAIM') < md.indexOf('LOWCLAIM'));
+}
+{
+  const md = renderMarkdown({ ...RUN, corroborated: [{ ...RUN.corroborated[0], refutation: { votes: 0, refuted: 0 } }] });
+  check('an unchallenged finding says so rather than claiming it survived', md.includes('not challenged'));
+}
+
+{
+  // THE MIRROR. contractViolation() describes what writeFindings() in swarm.mjs
+  // emits, and the two can drift in both directions — each breaking a different
+  // way. A field required here but never written rejects EVERY real run, so the
+  // guard destroys the thing it protects. A field written but not required is
+  // the next `{}` bug waiting. Neither shows up in a fixture I typed by hand,
+  // because I would type it to match whichever side I was looking at.
+  //
+  // So build the artefact from the REAL ledger() and validateRoster() outputs,
+  // shaped exactly as writeFindings() shapes it.
+  const roster = validateRoster(['qwen/a', 'mistralai/b'], 2);
+  const cost = ledger([
+    { model: 'qwen/a', usage: { promptTokens: 10, completionTokens: 5, costUsd: 0 }, attempts: 1 },
+    { model: 'mistralai/b', usage: { promptTokens: 8, completionTokens: 4, costUsd: 0 }, attempts: 2 },
+  ]);
+  const artefact = {
+    ranAt: '2026-08-17T00:00:00.000Z',
+    models: roster.models, roles: REVIEW_ROLES, quorum: 2, lineages: roster.families, chunks: 1,
+    refutation: { challengersPerFinding: 3 },
+    cost: { totalUsd: cost.totalUsd, wasFree: cost.wasFree, billed: cost.billed },
+    errors: [], corroborated: [], single: [], questions: [],
+  };
+  check('an artefact built from the REAL roster and ledger satisfies the contract',
+    contractViolation(artefact) === null, String(contractViolation(artefact)));
+  check('...and renders as a report rather than "did not complete"',
+    !/did not complete/i.test(renderMarkdown(artefact)));
+  // The two fields whose types are produced elsewhere and merely trusted here.
+  // `families` is a COUNT, not the Set that clusters carry — had it been a Set,
+  // Number.isFinite() would have rejected every genuine run.
+  check('roster.families is a count, so `lineages` passes the number check',
+    Number.isFinite(roster.families), `got ${typeof roster.families}`);
+  check('ledger() yields a boolean wasFree, a finite total and an array billed',
+    typeof cost.wasFree === 'boolean' && Number.isFinite(cost.totalUsd) && Array.isArray(cost.billed));
+
+  // Cost COHERENCE. Well-typed but self-contradictory cost data renders a
+  // confident headline over an artefact that says the opposite.
+  check('a free run that also lists billed models is rejected',
+    contractViolation({ ...artefact, cost: { wasFree: true, totalUsd: 0.0031, billed: [{ model: 'c/z' }] } }) !== null);
+  check('...and does NOT render as $0.00',
+    !renderMarkdown({ ...artefact, cost: { wasFree: true, totalUsd: 0.0031, billed: [{ model: 'c/z' }] } }).includes('$0.00'));
+  check('a billed run that lists nothing as billed is rejected',
+    contractViolation({ ...artefact, cost: { wasFree: false, totalUsd: 0.0031, billed: [] } }) !== null);
+  check('a billed run reporting a zero total is rejected',
+    contractViolation({ ...artefact, cost: { wasFree: false, totalUsd: 0, billed: [{ model: 'c/z' }] } }) !== null);
+  // The over-tightening control. ledger() only counts a row as billed above
+  // 1e-9, so sub-threshold calls legitimately sum to a tiny non-zero total with
+  // an empty billed list. A rule demanding an exact zero would reject this real
+  // output — rejecting valid data is a defect too, just a louder one.
+  check('a free run with float-noise total and no billed rows is still ACCEPTED',
+    contractViolation({ ...artefact, cost: { wasFree: true, totalUsd: 5e-9, billed: [] } }) === null);
+}
+
+{
+  // THE STATIC MIRROR. The block above proves the contract accepts one artefact
+  // built from real values — but the key set is still one I typed, so it cannot
+  // notice a field ADDED to writeFindings() and never taught to the validator.
+  // That is the drift that matters: the writer is the source of truth, and the
+  // validator silently falls behind it.
+  //
+  // So read swarm.mjs and extract the actual top-level keys of the object it
+  // serialises, rather than trusting a fixture to represent them.
+  const src = readFileSync(join(HERE, 'swarm.mjs'), 'utf8');
+  const marker = 'JSON.stringify({';
+  const start = src.indexOf(marker);
+  const written = [];
+  if (start !== -1) {
+    let depth = 0, expectingKey = true, buf = '';
+    const take = () => {
+      const k = buf.trim();
+      if (expectingKey && /^[A-Za-z_$][\w$]*$/.test(k)) written.push(k);
+    };
+    for (let i = start + marker.length; i < src.length; i++) {
+      const ch = src[i];
+      if (depth === 0 && ch === '}') { take(); break; }
+      if (ch === '{' || ch === '[' || ch === '(') { depth++; buf = ''; continue; }
+      if (ch === '}' || ch === ']' || ch === ')') { depth--; buf = ''; continue; }
+      if (depth !== 0) continue;
+      // A ':' in value position is a ternary, not a key separator.
+      if (ch === ':') { take(); expectingKey = false; buf = ''; continue; }
+      if (ch === ',') { take(); expectingKey = true; buf = ''; continue; }
+      buf += ch;
+    }
+  }
+  const writtenSet = new Set(written);
+  check('the writer\'s artefact keys could be extracted from swarm.mjs', written.length > 0,
+    'if this fails the mirror below proves nothing');
+
+  // Direction 1 — the one that breaks EVERY real run: the validator demands a
+  // field the writer never emits, so no genuine artefact can ever pass.
+  const required = [...ARRAY_FIELDS, ...NUMBER_FIELDS, ...SCALAR_FIELDS];
+  for (const field of required) {
+    check(`the writer actually emits \`${field}\`, which the contract requires`,
+      writtenSet.has(field), `contract requires it; writeFindings() emits [${written.join(', ')}]`);
+  }
+
+  // Direction 2 — the one that lets the next `{}` bug through: the writer gains
+  // a field and nobody decides whether the renderer must be able to trust it.
+  // `chunks` and `refutation` are listed because the renderer does not read
+  // them; anything NEW lands here and forces that decision explicitly.
+  const KNOWN_UNVALIDATED = new Set(['chunks', 'refutation']);
+  for (const field of written) {
+    check(`\`${field}\` is either validated by the contract or knowingly exempt`,
+      required.includes(field) || KNOWN_UNVALIDATED.has(field),
+      'a new artefact field must be added to the contract, or listed as deliberately unvalidated');
+  }
+}
+
+// ── the workflow's own skip contract ───────────────────────────────────────
+// Guarding the YAML, not just the JS, because the defect that shipped here was
+// entirely in the YAML: a job-level `if` for forked PRs. GitHub skips such a job
+// BEFORE any step runs, so no step could write the ::notice or the summary the
+// comment promised — the check just read "skipped" with no reason. A green
+// pipeline hid it, because a skipped job is not a failing job.
+console.log('\nswarm-review.yml — a review that did not happen must never be silent');
+{
+  const yml = readFileSync(join(HERE, '..', '..', '.github', 'workflows', 'swarm-review.yml'), 'utf8');
+  const job = yml.slice(yml.indexOf('  swarm:'), yml.indexOf('    steps:'));
+
+  check('the swarm job has NO job-level `if`', !/^ {4}if:/m.test(job),
+    'a job-level if skips every step, so nothing can report the reason');
+
+  const forkAt = yml.indexOf('HEAD_REPO}" != "${THIS_REPO}');
+  const keyAt = yml.indexOf('[ -n "${KEY}" ]');
+  check('the fork case is handled in the preconditions step', forkAt !== -1);
+  // Order is the finding, not decoration: a fork gets an EMPTY secrets context,
+  // so a key check running first would blame a missing secret that is in fact
+  // present — a wrong reason is worse than a terse one.
+  check('...and is checked BEFORE the key, so a fork is never blamed on a missing secret',
+    forkAt !== -1 && keyAt !== -1 && forkAt < keyAt);
+
+  check('every skip routes through the reporting step',
+    yml.includes("if: steps.pre.outputs.run != 'true'"));
+  check('...which writes a ::notice', yml.includes('::notice title=Swarm review skipped'));
+  check('...and a step summary saying it was not a clean review',
+    yml.includes('The swarm did NOT review this PR. This is not a clean review.'));
+  // Match the YAML KEY, not the word: the header comment explains why
+  // continue-on-error is not used, and a bare substring test flags that prose.
+  check('the workflow never uses continue-on-error to force green',
+    !/^\s*continue-on-error\s*:/m.test(yml));
 }
 
 console.log(`\n${pass} passed, ${fail} failed\n`);

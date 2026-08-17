@@ -208,7 +208,7 @@ This is a heuristic screen, not a judge. Treat a ranking as a shortlist and read
 `bench-results.json` before acting on it — which is why every raw response is
 kept.
 
-## 2. Run the swarm
+## 2. Run the swarm by hand
 
 ```bash
 node scripts/swarm/swarm.mjs --diff                        # working tree vs HEAD
@@ -296,10 +296,56 @@ Output separates **corroborated** findings (quorum met, refutation survived)
 from **single-lineage** findings (shown, below the bar) and **questions**. Models
 that errored are listed explicitly, because a model that errored did not vote.
 
-## 3. Self-test
+## 3. In the loop (phase 3)
+
+The swarm only reduces spend if it runs without being remembered.
+
+`.github/workflows/swarm-review.yml` runs it on every PR and posts the
+corroborated findings as a comment. It is **advisory** and deliberately not a
+required check.
+
+### Turning it on
+
+Three switches, all off by default. Any one missing skips the review **loudly** —
+the job says it did not run, because "did not run" and "ran and found nothing"
+look identical in a summary line and mean opposite things.
+
+| Switch | Where | Value |
+|---|---|---|
+| `SWARM_REVIEW_ENABLED` | repo **variable** | `true` — the kill switch |
+| `OPENROUTER_API_KEY` | repo **secret** | the key (canonical name — see `env-var-canon`) |
+| `OPENROUTER_MODEL` | repo **variable** | comma-separated roster from your own `bench.mjs --free` run |
+
+`OPENROUTER_MODEL` is the canonical roster variable already used by
+`apps/spec-board/lib/llm.ts` ("first is primary"). It is deliberately **not** a
+new `SWARM_MODELS` synonym — minting one would break the canon rule that a
+secret or config value has exactly one name in this monorepo.
+
+### Why it is not a required check
+
+It has never been measured against live models. Making an unvalidated reviewer
+block merges would either stop real work on false findings, or — worse, given
+the failure modes this tool has already had — pass silently and be trusted.
+Promote it only on evidence.
+
+It reports its **true** status rather than using `continue-on-error`: if the run
+fails, the check goes red. A red advisory check that nobody made required is
+honest; a green check that hid a failed run is the exact lie the rest of this
+programme has been removing.
+
+Forked PRs are skipped — they receive no secrets, so the run could only ever be
+a no-op posted as a review. That skip happens **inside** the preconditions step,
+not as a job-level `if`, and the distinction is the whole point: a job-level
+condition makes GitHub skip every step, so nothing writes the `::notice` or the
+step summary and the check shows "skipped" with no reason. It is also checked
+*before* the key, because a fork sees an empty secrets context — checking the key
+first would report "OPENROUTER_API_KEY is not set on this repo" about a repo
+where it is set, sending the reader to fix something that is not broken.
+
+## 4. Self-test
 
 ```bash
-node scripts/swarm/selftest.mjs     # 181 assertions, no network, no key
+node scripts/swarm/selftest.mjs     # 236 assertions, no network, no key
 ```
 
 Every assertion has a negative control. The scorer must reject four generic

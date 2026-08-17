@@ -53,6 +53,20 @@ jobs:
       - run: node --test scripts/__tests__/check-no-nul-bytes.test.mjs
       - run: node scripts/check-no-nul-bytes.mjs
 
+  swarm:
+    # The swarm's own logic gate. Added in the phase-3 PR after noticing that
+    # 197 assertions had shipped across two merged PRs with NOTHING running
+    # them — the exact defect review raised about check-no-nul-bytes.mjs on
+    # #1017, repeated. Pure logic: no network, no API key, ~1 second.
+    name: scripts/swarm — self-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: npm run swarm:selftest
+
   web:
     name: apps/web — lint, type-check, test, build
     runs-on: ubuntu-latest

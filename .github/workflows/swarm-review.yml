@@ -1,0 +1,137 @@
+name: Swarm review (advisory)
+
+# A free second opinion on every PR, from scripts/swarm.
+#
+# DELIBERATELY A SEPARATE WORKFLOW, not a job in ci.yml. Two reasons:
+#   - ci.yml declares `permissions: contents: read` and every job in it is a
+#     GATE. This one needs `pull-requests: write` to post, and must never gate.
+#   - scripts/__tests__/preflight.test.mjs requires every ci.yml job to be
+#     mirrored by a locally-runnable preflight job. This one makes network calls
+#     to a third party and cannot be part of a local pre-push gate.
+#
+# NOT A REQUIRED CHECK. Do not add it to branch protection until there is
+# evidence it has earned it — as of this commit the swarm has never been run
+# against a live model, so its precision is unmeasured. It reports its true
+# status (a failure shows red) rather than using continue-on-error, because a
+# check that goes green when it did not run is the exact lie this whole
+# programme has been removing.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  # One review per PR. A push mid-review makes the in-flight one stale, and two
+  # comments describing different commits is worse than one describing the head.
+  group: swarm-review-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  swarm:
+    name: Free-model second opinion
+    runs-on: ubuntu-latest
+    # NO job-level `if` here, deliberately. A job-level condition makes GitHub
+    # skip the whole job before any step runs, so nothing writes a ::notice or a
+    # step summary — the check just shows "skipped" with no reason attached.
+    # That is silent, and this workflow's entire contract is that a review which
+    # did not happen never looks like a review that found nothing. The fork
+    # check therefore lives in `Check preconditions` with the others, where it
+    # can say why.
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The swarm diffs against the base branch, so shallow history is not
+          # enough — `git diff origin/main...HEAD` needs both sides.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+
+      # ── kill switch and preconditions ───────────────────────────────────
+      #
+      # Each of these SKIPS the review and says why. None of them fakes a
+      # successful review. The distinction matters: "did not run" and "ran and
+      # found nothing" look identical in a summary line and mean opposite things.
+      - name: Check preconditions
+        id: pre
+        env:
+          EVENT: ${{ github.event_name }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          THIS_REPO: ${{ github.repository }}
+          ENABLED: ${{ vars.SWARM_REVIEW_ENABLED }}
+          KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          # Canonical roster variable — see `env-var-canon`. NOT a new
+          # SWARM_MODELS synonym; OPENROUTER_MODEL already means
+          # "comma-separated roster, first is primary" everywhere else in this
+          # monorepo (apps/spec-board/lib/llm.ts).
+          MODELS: ${{ vars.OPENROUTER_MODEL }}
+        run: |
+          skip() { echo "reason=$1" >> "$GITHUB_OUTPUT"; echo "run=false" >> "$GITHUB_OUTPUT"; echo "SKIPPED: $1"; exit 0; }
+
+          # FORK CHECK FIRST, and the order is load-bearing. A forked PR gets an
+          # EMPTY secrets context, so if the key check ran first it would report
+          # "secret OPENROUTER_API_KEY is not set on this repo" — which is false
+          # and sends the reader to add a secret that is already there. Naming
+          # the real reason is the whole point of these skips.
+          if [ "${EVENT}" = "pull_request" ] && [ "${HEAD_REPO}" != "${THIS_REPO}" ]; then
+            skip "pull request is from a fork (${HEAD_REPO}) — forked PRs receive no secrets, so the swarm cannot run. This says nothing about whether the repo's OPENROUTER_API_KEY is set; it is simply not exposed to fork runs."
+          fi
+
+          [ "${ENABLED}" = "true" ] || skip "repo variable SWARM_REVIEW_ENABLED is not 'true' (kill switch)"
+          [ -n "${KEY}" ]           || skip "secret OPENROUTER_API_KEY is not set on this repo"
+          [ -n "${MODELS}" ]        || skip "repo variable OPENROUTER_MODEL is empty — run 'node scripts/swarm/bench.mjs --free' and set the roster from the measured winners"
+          echo "run=true" >> "$GITHUB_OUTPUT"
+
+      - name: Skipped
+        if: steps.pre.outputs.run != 'true'
+        run: |
+          echo "::notice title=Swarm review skipped::${{ steps.pre.outputs.reason }}"
+          echo "The swarm did NOT review this PR. This is not a clean review." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Reason: ${{ steps.pre.outputs.reason }}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Run the swarm
+        if: steps.pre.outputs.run == 'true'
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          BASE: ${{ github.event.pull_request.base.ref || github.event.repository.default_branch }}
+        run: |
+          git fetch origin "$BASE" --depth=0
+          # --quorum 2 is the default and is deliberately not raised here: with a
+          # small free roster a higher bar produces zero corroborated findings,
+          # which reads as "clean" and is the failure mode this tool exists to
+          # avoid reproducing.
+          node scripts/swarm/swarm.mjs \
+            --diff --base "origin/$BASE" \
+            --models "${{ vars.OPENROUTER_MODEL }}" \
+            --concurrency 4
+
+      # swarm.mjs exits 1 when NO model returned a usable response — a failed
+      # run, not a clean review. That failure is allowed to surface as a red
+      # advisory check; it must not be swallowed, and it must not post a comment
+      # implying a review happened.
+      - name: Render the report
+        if: steps.pre.outputs.run == 'true'
+        run: node scripts/swarm/report.mjs > swarm-comment.md
+
+      - name: Post the report
+        if: steps.pre.outputs.run == 'true' && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          cat swarm-comment.md >> "$GITHUB_STEP_SUMMARY"
+          gh pr comment "$PR" --body-file swarm-comment.md
+
+      - name: Keep the raw findings
+        if: always() && steps.pre.outputs.run == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: swarm-findings
+          path: scripts/swarm/swarm-findings.json
+          if-no-files-found: warn

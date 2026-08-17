@@ -62,6 +62,48 @@ The former standalone CRM repository and its Vercel project were fully wound dow
   the latest `main` → one PR into `main`.
 - Locale: en-AU | DD/MM/YYYY | AUD | AEST/AEDT.
 
+## AI providers — what already exists (READ BEFORE BUILDING ANY LLM PLUMBING)
+
+This monorepo already has multi-provider LLM plumbing. It has been rebuilt from
+scratch at least once by an agent that did not look — see the standing lesson
+below.
+
+| What | Where | Notes |
+|---|---|---|
+| OpenRouter client (multi-model fallback, stub guard, streaming) | `apps/spec-board/lib/llm.ts` | Provider chain `minimax → openrouter → anthropic`, flipped by `LLM_PROVIDER`. Also defines the **critic** — a second-opinion model — via `CRITIC_MODEL`. |
+| OpenRouter research calls | `apps/spec-board/lib/research.ts` | Raw `fetch` against `openrouter.ai/api/v1`. |
+| Provider presence / usage tracking | `apps/web/src/lib/command-centre/provider-usage.ts`, `apps/empire/src/lib/mission-control/provider-usage.ts` | Reports which provider credentials are actually set. |
+| Anthropic cost metering | `apps/web/src/lib/ai/{pricing,usage-recorder}.ts` → `ai_usage_logs` → `lib/metering/` | Rates SSOT + per-call recorder + aggregation. |
+| Free-model review swarm (benchmark, quorum, refutation, cost ledger) | `scripts/swarm/` | Repo-root tooling, no dependencies. `README.md` there is the operator guide. |
+
+**Canonical env names** (per `env-var-canon` — grep before minting, never invent
+a synonym): `OPENROUTER_API_KEY` (and `OPENROUTER_API_KEY_2`),
+`OPENROUTER_MODEL` (comma-separated roster, first is primary),
+`OPENROUTER_BASE_URL`, `CRITIC_MODEL`, `LLM_PROVIDER`, `ANTHROPIC_API_KEY`.
+
+**Container scoping is not absence.** Claude Code remote containers have no
+`OPENROUTER_API_KEY` in `process.env` and `openrouter.ai:443` is denied by the
+network policy (403 to CONNECT). That is a fact about *the container*, not about
+the system: the key is provisioned on the Vercel/prod and fleet planes. Say
+"unavailable from here", never "not configured" — the two send the reader to
+completely different places.
+
+### The standing lesson from the swarm build (PRs #1017, #1018)
+
+Twenty defects were found across those two PRs. Essentially all of them were one
+shape: **a check that validated the part it cared about while ignoring the
+whole.** The scorer counted keywords but not whether the answer claimed
+anything; quorum counted model ids but not lineages; refutation picked the right
+challenger but the wrong diff chunk; the run printed the right message but the
+wrong exit code; the question classifier read a severity its own schema forbade.
+
+Two habits that actually caught them, both cheap:
+
+1. **Check the exit code, not the message.** Three silent-success bugs survived
+   review precisely because the human-readable output looked fine.
+2. **Attack your own work before asking for review.** Constructing the bypass
+   yourself finds it faster than waiting for someone else to.
+
 ## Claude skills — Nexus operating doctrine
 
 The skills in `.claude/skills/` are the operating doctrine for this repo.
