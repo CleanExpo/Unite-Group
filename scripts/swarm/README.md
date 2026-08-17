@@ -80,20 +80,49 @@ not enough — a second review pass found that this scored 1.0 on 8 of 8 cases t
 > This code has no defect. It mentions *&lt;all anchors&gt;*. The documentation says:
 > *&lt;an acceptAny phrase&gt;*. The implementation is correct and should not change.
 
-Every anchor, an accepted explanation, and a verdict that the code is fine. So
-an explicit "nothing wrong here" verdict now caps the score at 0.5. That penalty
-is bounded rather than absolute on purpose: lexical negation detection is
-fragile, and a false positive should cost half a mark, not everything.
+Every anchor, an accepted explanation, and a verdict that the code is fine. This
+is not a contrived risk: the system prompt tells models *"if the code is correct,
+say so"*, so denials are routine output. A model that reliably says "looks fine"
+while restating the context would have topped the leaderboard.
 
-Each case therefore carries two controls — a `negativeControl` (every anchor, no
-claim at all) and a `refutationControl` (every anchor, an accepted explanation,
-and an explicit denial). `selftest.mjs` pins five attacks per case below 1.0
-while requiring the case's own ground truth to score exactly 1.0.
+An explicit "nothing wrong here" verdict now caps the score at 0.5. The first
+attempt at that was a list of literal phrases, and a third review pass broke it
+straight away with four wordings nobody had listed (*"expected behavior, not an
+error"*, *"requires no modification"*, *"I cannot identify a problem"*, *"not
+problematic"*). That wasn't a gap in the list — it was the wrong shape. A finite
+list of literals is bypassable by paraphrase forever, and extending it four
+strings at a time is a race with no end. The detector now matches the **grammar**
+of a no-defect verdict: negation attached to a defect noun, inability to find
+one, or an assertion of correctness. Unlisted wordings are covered by
+construction rather than by having been anticipated.
 
-Anchors-without-explanation scores **0.5, not 0**. Separating a shallow-but-real
-finding from a fluent non-claim needs semantics — the LLM judge this benchmark
-declines to hire. 0.5 is therefore the proven ceiling for stuffing: a stuffer
-ranks mid-table, never top.
+Each case carries two controls — a `negativeControl` (every anchor, no claim at
+all) and a `refutationControl` (every anchor, an accepted explanation, an
+explicit denial). `selftest.mjs` pins those plus eight denial framings and two
+stuffing attacks below 1.0, while requiring each case's own ground truth to
+score exactly 1.0.
+
+### The limit that remains
+
+Stated plainly, because a benchmark that hides its own weakness is worthless:
+
+**Containment scoring is monotone** — adding text can only raise a score. Every
+rule of the form *"unless it also contains X"* is therefore a patch on a monotone
+base, and a sufficiently inventive denial will eventually slip through. Two
+things bound the damage:
+
+- The penalty is a **cap at 0.5, not a zero**. A false positive on a genuine
+  finding costs half a mark, not everything, and all 8 ground truths are pinned
+  at 1.0 under it.
+- The **threat model is narrower than it looks**. Models are shown only `context`
+  and `code` — never `mustMention` or `acceptAny` — so an answer quoting an
+  accepted explanation verbatim is not reachable by a benchmarked model. The
+  realistic failure is the plain denial, which is what the patterns target.
+
+Anchors-without-explanation scores **0.5, not 0** for the same reason: separating
+a shallow-but-real finding from a fluent non-claim needs semantics, which is the
+LLM judge this benchmark declines to hire. 0.5 is the proven ceiling for
+stuffing — a stuffer ranks mid-table, never top.
 
 ## 2. Run the swarm
 
@@ -115,7 +144,7 @@ than requested.
 ## 3. Self-test
 
 ```bash
-node scripts/swarm/selftest.mjs     # 63 assertions, no network, no key
+node scripts/swarm/selftest.mjs     # 71 assertions, no network, no key
 ```
 
 Every assertion has a negative control. The scorer must reject four generic

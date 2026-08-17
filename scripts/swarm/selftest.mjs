@@ -74,6 +74,32 @@ for (const c of corpus.cases) {
   check(`${c.id} denies full marks to an explicit non-claim`, r.score < 1.0, `scored ${r.score} (${r.verdict})`);
 }
 check('every case carries a refutationControl', corpus.cases.every((c) => typeof c.refutationControl === 'string' && c.refutationControl.length > 0));
+
+// The FIRST denial fix was a list of literal phrases, and review broke it
+// immediately with four wordings nobody had listed. The lesson is not "add
+// those four" — a finite literal list is bypassable by paraphrase forever — so
+// the detector matches the GRAMMAR of a no-defect verdict instead. These eight
+// framings deliberately include wordings absent from any list: the first four
+// are the exact strings review used to break the literal version.
+const DENIAL_FRAMINGS = [
+  'This is expected behavior, not an error.',
+  'The implementation is valid and requires no modification.',
+  'I cannot identify a problem in this code.',
+  'This behavior is intentional and not problematic.',
+  'This code has no defect.',
+  'The code looks correct to me.',
+  'Everything here works as intended.',
+  'I could not spot anything wrong.',
+];
+for (const framing of DENIAL_FRAMINGS) {
+  const leaked = corpus.cases.filter((c) => {
+    // Everything a full-credit answer needs, prefixed by a denial: all anchors,
+    // an accepted explanation, and enough content words to clear the floor.
+    const answer = `${framing} It handles ${c.mustMention.join(' and ')}. Review note: ${c.acceptAny[0]}. Further implementation details are documented.`;
+    return score(answer, c).score >= 1.0;
+  });
+  check(`denial "${framing}" never scores full marks`, leaked.length === 0, `leaked on ${leaked.map((c) => c.id).join(', ')}`);
+}
 // A refutation control only tests the negation rule if it would OTHERWISE have
 // scored 1.0 — it must carry every anchor and a recognised explanation, so the
 // only thing standing between it and full marks is the "no defect" verdict.

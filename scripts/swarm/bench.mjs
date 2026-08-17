@@ -105,33 +105,55 @@ const MIN_CONTENT_WORDS = 8;
 /**
  * Explicit "there is nothing wrong here" verdicts.
  *
- * The second review pass on PR #1017 found that requiring anchors AND a
- * recognised explanation was still not requiring a CLAIM. This scored 1.0 on
- * 8 of 8 cases:
+ * WHY THIS MATTERS. The SYSTEM prompt above tells models "If the code is
+ * correct, say so", so denials are a routine model output, not a hypothetical.
+ * Requiring anchors AND a recognised explanation was still not requiring a
+ * CLAIM: an answer naming every anchor, offering an accepted explanation, and
+ * concluding the code is fine scored full marks on 8 of 8 cases. A model that
+ * reliably says "looks fine" while restating the context would have topped the
+ * leaderboard — the worst possible outcome for a benchmark hiring a second
+ * opinion.
  *
- *   "This code has no defect. It mentions <all anchors>. The documentation
- *    says: <an acceptAny phrase>. The implementation is correct and should not
- *    change."
+ * WHY PATTERNS, NOT A PHRASE LIST. The first attempt was a list of literals.
+ * Review immediately broke it with four phrasings nobody had listed ("This is
+ * expected behavior, not an error", "requires no modification", "I cannot
+ * identify a problem", "not problematic"). That is not a gap in the list, it is
+ * the wrong shape: a finite literal list is bypassable by paraphrase forever,
+ * and extending it four strings at a time is a race with no end. These match
+ * the GRAMMAR of a no-defect verdict — negation attached to a defect noun,
+ * inability to find one, or an assertion of correctness — so unlisted wordings
+ * are covered by construction rather than by having been anticipated.
  *
- * Every anchor present, an accepted explanation present, and the model's actual
- * verdict is that the code is fine — the exact opposite of finding the bug. A
- * model that reliably says "looks fine" while quoting the surrounding docs would
- * have topped the leaderboard.
- *
- * Lexical negation detection is fragile, so the penalty is bounded: a
- * disclaimed answer is capped at 0.5 rather than zeroed. A false positive
- * (a real finding that happens to contain one of these strings) costs half a
- * mark instead of everything, and selftest.mjs proves all 8 ground truths still
- * score 1.0 under it.
+ * THE LIMIT THAT REMAINS, stated plainly. Containment scoring is monotone:
+ * adding text can only raise a score. Every rule of the form "unless it also
+ * contains X" is therefore a patch on a monotone base, and a sufficiently
+ * inventive denial will eventually slip through. Two things bound the damage.
+ * First, the penalty is a CAP at 0.5, not a zero — a false positive on a real
+ * finding costs half a mark, and selftest.mjs proves all 8 ground truths still
+ * score 1.0. Second, the threat model is narrower than it looks: models are
+ * shown only `context` and `code` (see userPrompt), never `mustMention` or
+ * `acceptAny`, so an answer that quotes an accepted explanation verbatim is not
+ * reachable by a benchmarked model. The realistic failure is the plain denial,
+ * and that is what these patterns are for.
  */
 const NO_DEFECT_VERDICTS = [
-  'no defect', 'no defects', 'no bug', 'no bugs', 'no issue', 'no issues',
-  'not a defect', 'not a bug', 'nothing wrong', 'no problem',
-  'looks correct', 'looks fine', 'looks good',
-  'appears correct', 'appears fine', 'seems correct', 'seems fine',
-  'code is correct', 'code is fine', 'implementation is correct',
-  'should not change', 'no changes needed', 'no change is needed',
-  'works as intended', 'behaves correctly',
+  // "no defect", "no issues", "requires no modification", "no changes needed"
+  /\bno\s+(\w+\s+){0,3}(defect|defects|bug|bugs|issue|issues|problem|problems|error|errors|flaw|flaws|fault|faults|change|changes|modification|modifications|fix|fixes)\b/,
+  // "not a bug", "not an error", "not problematic", "not incorrect"
+  /\bnot\s+(a|an|the)?\s*(defect|bug|issue|problem|problematic|error|erroneous|flaw|flawed|broken|incorrect|wrong|buggy)\b/,
+  // "cannot identify a problem", "I don't see any issue", "unable to find a bug"
+  /\b(cannot|can not|can't|could not|couldn't|do not|don't|does not|doesn't|unable to|failed to)\s+(\w+\s+){0,2}(identify|find|see|spot|detect|locate|observe)\b/,
+  // "is correct", "looks fine", "appears valid", "seems intentional"
+  /\b(is|are|looks?|appears?|seems?)\s+(\w+\s+){0,2}(correct|correctly|fine|valid|safe|sound|okay|intentional|deliberate|expected|acceptable|harmless|reasonable and correct)\b/,
+  // "expected behaviour", "intended behaviour", "by design"
+  /\b(expected|intended|intentional|normal|standard)\s+behaviou?r\b/,
+  /\bby\s+design\b/,
+  // "works as intended", "behaves correctly", "functions correctly"
+  /\b(works?|working|behaves?|functions?|performs?)\s+(as\s+(intended|expected|designed|documented)|correctly|properly|fine)\b/,
+  // "should not change", "no need to change", "requires no changes"
+  /\b(should|need|needs|has|have)\s+not\s+(be\s+)?(change|changed|modified|fixed|altered)\b/,
+  /\b(requires?|needs?)\s+no\s+\w+\b/,
+  /\bnothing\s+(wrong|to\s+fix|to\s+change|of\s+concern)\b/,
 ];
 
 export function score(answer, c) {
@@ -179,7 +201,7 @@ export function score(answer, c) {
 
   // An answer that states the code is fine has not found the defect, however
   // many of the right nouns it happens to contain.
-  const disclaimed = NO_DEFECT_VERDICTS.some((v) => text.includes(v));
+  const disclaimed = NO_DEFECT_VERDICTS.some((re) => re.test(text));
 
   let s = 0;
   if (mustRatio === 1 && paraphrase && !disclaimed) s = 1.0; // names it AND explains it
