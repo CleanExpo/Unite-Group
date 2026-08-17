@@ -703,6 +703,23 @@ export const ENVELOPE_LEDGER: readonly EnvelopeCompliance[] = [
     redactsMessages: true,
     notes: 'Closest shape to the canonical envelope; redaction lives in the CLI adapter.',
   },
+  {
+    id: 'lane-stream-event',
+    file: 'apps/workspace/src/server/lanes/event-stream.ts',
+    interfaceName: 'LaneStreamEvent',
+    fields: {
+      schemaVersion: 'schemaVersion',
+      source: 'source',
+      occurredAt: 'occurredAt',
+      sequence: 'sequence',
+      runId: 'runId',
+      kind: 'kind',
+      message: 'message',
+    },
+    redactsMessages: true,
+    notes:
+      'UNI-2406. The first shape to satisfy the envelope in full, and it does so by extending RunEventEnvelope rather than re-declaring it. Redaction runs in the splitter before the sink is called, and the producer refuses to emit anything findEnvelopeViolations rejects.',
+  },
 ]
 
 // ─── Audit scope ──────────────────────────────────────────────────────────────
@@ -719,6 +736,7 @@ export const CONTROL_PLANE_SOURCES: readonly string[] = [
   'apps/web/src/lib/command-centre/sessions.ts',
   'apps/web/src/lib/crm/mission-control-execution.ts',
   'apps/workspace/src/server/lanes/types.ts',
+  'apps/workspace/src/server/lanes/event-stream.ts',
   'apps/autopilot-runner/src/ownest/types.ts',
 ]
 

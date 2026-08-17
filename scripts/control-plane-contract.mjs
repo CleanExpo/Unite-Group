@@ -41,6 +41,9 @@ import {
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
+/** The contract's own source, loaded so inherited envelope fields resolve. */
+export const CONTRACT_SOURCE_FILE = 'contracts/control-plane/v1.ts'
+
 /** Strip line and block comments so a comment can never supply a member. */
 export function stripComments(line) {
   return line.replace(/\/\*.*?\*\//g, '').replace(/\/\/.*$/, '')
@@ -253,6 +256,74 @@ export function auditTransitions({
   return { ok: violations.length === 0, violations }
 }
 
+/** Field names a single interface body declares directly. */
+export function declaredFieldsInBody(body) {
+  return new Set(
+    String(body)
+      .split('\n')
+      .map((line) => /^\s*([A-Za-z0-9_]+)\s*[?:]/.exec(stripComments(line)))
+      .filter(Boolean)
+      .map((match) => match[1]),
+  )
+}
+
+/** The `extends A, B` list on a top-level interface declaration, or []. */
+export function extractInterfaceExtends(source, interfaceName) {
+  const escaped = interfaceName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const header = new RegExp(`^export interface ${escaped}\\b[^{]*`, 'm')
+  const declaration = header.exec(String(source))?.[0]
+  if (!declaration) return []
+  const clause = /\bextends\s+([^{]+)/.exec(stripComments(declaration))?.[1]
+  if (!clause) return []
+  return clause
+    .split(',')
+    .map((name) => name.trim().replace(/<.*$/, ''))
+    .filter((name) => /^[A-Za-z_][A-Za-z0-9_]*$/.test(name))
+}
+
+/**
+ * Every field an interface offers, following `extends` across the loaded
+ * sources.
+ *
+ * Inheritance is a legitimate way to satisfy the envelope — arguably the only
+ * one that cannot drift — so an audit that could not see through `extends`
+ * would reject the correct producer and reward the hand-copy this contract
+ * exists to eliminate. Unresolvable bases are reported rather than assumed
+ * satisfied, so a typo in an `extends` clause cannot buy a silent pass.
+ */
+export function resolveDeclaredFields(sources, file, interfaceName, seen = new Set()) {
+  const key = `${file}:${interfaceName}`
+  // `null`, never an empty set: an empty set reads as "resolved, declares
+  // nothing" and would end the candidate search at the first already-visited
+  // file, silently crediting the ledger with zero inherited fields.
+  if (seen.has(key)) return { fields: null, missingBases: [] }
+  seen.add(key)
+
+  const source = sources.get(file)
+  if (source === undefined) return { fields: null, missingBases: [] }
+  const body = extractInterfaceBody(source, interfaceName)
+  if (body === null) return { fields: null, missingBases: [] }
+
+  const fields = declaredFieldsInBody(body)
+  const missingBases = []
+  for (const base of extractInterfaceExtends(source, interfaceName)) {
+    // A base may live in this file or in any other file the audit loaded —
+    // most often `contracts/control-plane/v1.ts` itself.
+    const candidates = [file, ...sources.keys()]
+    let resolved = false
+    for (const candidate of candidates) {
+      const nested = resolveDeclaredFields(sources, candidate, base, seen)
+      if (nested.fields === null) continue
+      for (const field of nested.fields) fields.add(field)
+      missingBases.push(...nested.missingBases)
+      resolved = true
+      break
+    }
+    if (!resolved) missingBases.push(base)
+  }
+  return { fields, missingBases }
+}
+
 /** The envelope ledger may only name fields the source interface declares. */
 export function auditEnvelopeLedger({
   sources,
@@ -266,18 +337,17 @@ export function auditEnvelopeLedger({
       violations.push(`${entry.file}: envelope ledger entry is not readable`)
       continue
     }
-    const body = extractInterfaceBody(source, entry.interfaceName)
-    if (body === null) {
+    const resolved = resolveDeclaredFields(sources, entry.file, entry.interfaceName)
+    if (resolved.fields === null) {
       violations.push(`${entry.file}:${entry.interfaceName}: interface no longer exists`)
       continue
     }
-    const declared = new Set(
-      body
-        .split('\n')
-        .map((line) => /^\s*([A-Za-z0-9_]+)\s*[?:]/.exec(stripComments(line)))
-        .filter(Boolean)
-        .map((match) => match[1]),
-    )
+    for (const base of resolved.missingBases) {
+      violations.push(
+        `${entry.id}: ${entry.interfaceName} extends '${base}', which the audit cannot resolve in scope`,
+      )
+    }
+    const declared = resolved.fields
     for (const field of requiredFields) {
       if (!(field in entry.fields)) {
         violations.push(`${entry.id}: no ledger entry for required field '${field}'`)
@@ -332,6 +402,10 @@ export async function runAudit(root = ROOT) {
   for (const entry of [...REGISTERED_STATE_MACHINES, ...REGISTERED_EVENT_TYPES, ...ENVELOPE_LEDGER]) {
     files.add(entry.file)
   }
+  // The contract itself is loaded so `extends RunEventEnvelope` resolves. A
+  // producer that inherits the canonical envelope is the outcome this contract
+  // wants; the audit has to be able to see it to credit it.
+  files.add(CONTRACT_SOURCE_FILE)
   const sources = await loadSources(root, [...files])
   const registry = auditRegistry({ sources })
   const transitions = auditTransitions()

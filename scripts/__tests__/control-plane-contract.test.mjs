@@ -18,8 +18,10 @@ import {
   auditRegistry,
   auditTransitions,
   extractInterfaceBody,
+  extractInterfaceExtends,
   listExportedTypeNames,
   parseStringUnion,
+  resolveDeclaredFields,
   runAudit,
   stripComments,
 } from '../control-plane-contract.mjs'
@@ -303,6 +305,135 @@ test('auditEnvelopeLedger fires when a required field has no ledger entry', () =
 
 test('extractInterfaceBody returns null for a missing interface', () => {
   assert.equal(extractInterfaceBody(ledgerSource, 'Nope'), null)
+})
+
+// ─── Inherited envelope fields (UNI-2406 producer) ───────────────────────────
+//
+// A producer may satisfy the envelope by extending `RunEventEnvelope` instead
+// of re-declaring its seven fields. That is the outcome this contract wants —
+// an inherited field cannot drift from its base — so the audit has to see
+// through `extends`, or it would reject the correct shape and reward the
+// hand-copy. These tests hold that resolution to the same standard as the rest
+// of the audit: it must credit a real inheritance, and must NOT credit an
+// unresolvable one.
+
+const baseSource = [
+  'export interface BaseEnvelope {',
+  '  schemaVersion: string',
+  '  occurredAt: string',
+  '}',
+  '',
+].join('\n')
+
+const derivedSource = [
+  'export interface DerivedEvent extends BaseEnvelope {',
+  '  laneId: string',
+  '}',
+  '',
+].join('\n')
+
+const derivedLedgerEntry = {
+  id: 'derived-event',
+  file: 'derived.ts',
+  interfaceName: 'DerivedEvent',
+  fields: {
+    schemaVersion: 'schemaVersion',
+    source: false,
+    occurredAt: 'occurredAt',
+    sequence: false,
+    runId: false,
+    kind: false,
+    message: false,
+  },
+  redactsMessages: true,
+}
+
+test('extractInterfaceExtends reads the base list off the declaration', () => {
+  assert.deepEqual(extractInterfaceExtends(derivedSource, 'DerivedEvent'), ['BaseEnvelope'])
+  assert.deepEqual(extractInterfaceExtends(ledgerSource, 'E'), [])
+  assert.deepEqual(extractInterfaceExtends(derivedSource, 'Missing'), [])
+})
+
+test('resolveDeclaredFields unions a base interface from another file', () => {
+  const sources = new Map([
+    ['derived.ts', derivedSource],
+    ['base.ts', baseSource],
+  ])
+  const resolved = resolveDeclaredFields(sources, 'derived.ts', 'DerivedEvent')
+  assert.deepEqual([...resolved.fields].sort(), ['laneId', 'occurredAt', 'schemaVersion'])
+  assert.deepEqual(resolved.missingBases, [])
+})
+
+test('resolveDeclaredFields keeps searching past an already-visited file', () => {
+  // Regression: the cycle guard once returned an EMPTY SET, which reads as
+  // "resolved, declares nothing" and ended the candidate search at the first
+  // already-visited file. The ledger was then credited with zero inherited
+  // fields and the audit reported a false violation. `derived.ts` is
+  // deliberately first in iteration order so the guard is hit before the real
+  // base is reached.
+  const sources = new Map([
+    ['derived.ts', derivedSource],
+    ['base.ts', baseSource],
+  ])
+  const resolved = resolveDeclaredFields(sources, 'derived.ts', 'DerivedEvent')
+  assert.ok(
+    resolved.fields.has('schemaVersion'),
+    'inherited fields must survive the cycle guard',
+  )
+})
+
+test('resolveDeclaredFields reports a base it cannot resolve rather than assuming it', () => {
+  const resolved = resolveDeclaredFields(
+    new Map([['derived.ts', derivedSource]]),
+    'derived.ts',
+    'DerivedEvent',
+  )
+  assert.deepEqual(resolved.missingBases, ['BaseEnvelope'])
+  assert.deepEqual([...resolved.fields], ['laneId'])
+})
+
+test('auditEnvelopeLedger credits an inherited field', () => {
+  const result = auditEnvelopeLedger({
+    sources: new Map([
+      ['derived.ts', derivedSource],
+      ['base.ts', baseSource],
+    ]),
+    ledger: [derivedLedgerEntry],
+  })
+  assert.deepEqual(result.violations, [])
+})
+
+test('auditEnvelopeLedger still fires when the base is out of scope', () => {
+  // Positive control for the test above: same ledger entry, base file removed.
+  // If this passed, the inheritance credit would be unconditional and the audit
+  // would have stopped proving anything about inherited claims.
+  const result = auditEnvelopeLedger({
+    sources: new Map([['derived.ts', derivedSource]]),
+    ledger: [derivedLedgerEntry],
+  })
+  assert.equal(result.ok, false)
+  assert.ok(
+    result.violations.some((v) => v.includes('cannot resolve in scope')),
+    result.violations,
+  )
+  assert.ok(
+    result.violations.some((v) => v.includes('does not declare')),
+    result.violations,
+  )
+})
+
+test('the shipped lane stream producer is registered and satisfies the envelope in full', async () => {
+  const entry = ENVELOPE_LEDGER.find((row) => row.id === 'lane-stream-event')
+  assert.ok(entry, 'the UNI-2406 producer must carry an envelope ledger entry')
+  assert.equal(entry.file, 'apps/workspace/src/server/lanes/event-stream.ts')
+  assert.equal(entry.redactsMessages, true)
+  assert.ok(
+    Object.values(entry.fields).every((claim) => claim !== false),
+    'the lane stream event is the first shape to satisfy every envelope field',
+  )
+  const result = await runAudit()
+  assert.equal(result.ok, true, JSON.stringify(result, null, 2))
+  assert.ok(result.scope.includes(entry.file), result.scope)
 })
 
 // ─── Contract helpers ────────────────────────────────────────────────────────

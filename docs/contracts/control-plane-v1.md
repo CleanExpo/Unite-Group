@@ -94,17 +94,25 @@ carries today, rather than asserting compliance. As of `control-plane/v1`:
 | `OperatorEvent` (`apps/web` operator-gateway) | missing | missing | missing | no |
 | `TaskEvent` (`apps/web` command-centre) | missing | `actor` (who, not which surface) | missing | no |
 | `LaneRunEvent` (`apps/workspace` lanes) | missing | missing | `sequence` | yes (CLI adapter) |
+| `LaneStreamEvent` (`apps/workspace` lanes/event-stream, UNI-2406) | `schemaVersion` | `source` | `sequence` | yes (before the sink) |
 
 That is a debt ledger, and the audit keeps it honest in both directions: a new
 event shape with no ledger entry fails, and a ledger entry that claims a field
 its interface does not declare also fails.
 
+`LaneStreamEvent` is the first shape to satisfy every field, and it does so by
+`extends RunEventEnvelope` rather than re-declaring the seven fields. An
+inherited field cannot drift from its base, so this is the shape the other three
+should converge on. The audit resolves `extends` across the files it has loaded
+(`resolveDeclaredFields`); a base it cannot resolve is reported, never assumed
+satisfied — otherwise a typo in an `extends` clause would buy a silent pass.
+
 **Other declared gaps at v1:**
 
 - `claimed` has exactly one producer (`OwnestCompletionPhase`) and `paused` has
   exactly one (`SessionStatus`). Both are single points of truth today.
-- No producer emits `tool_call` or `evidence` events yet; those kinds exist in
-  the contract ahead of the producers, by design.
+- `tool_call` and `evidence` have exactly one producer each
+  (`LaneStreamEvent`, UNI-2406). The other three shapes still emit neither.
 - `apps/web` and `apps/workspace` both export a type named `LaneStatus` with
   entirely different meanings (installation state vs runtime state). v1 records
   the collision rather than renaming either — a rename is a separate change with
@@ -122,8 +130,12 @@ apps/web/src/lib/command-centre/tasks.ts
 apps/web/src/lib/command-centre/sessions.ts
 apps/web/src/lib/crm/mission-control-execution.ts
 apps/workspace/src/server/lanes/types.ts
+apps/workspace/src/server/lanes/event-stream.ts
 apps/autopilot-runner/src/ownest/types.ts
 ```
+
+It additionally loads `contracts/control-plane/v1.ts` itself, so a producer that
+inherits the canonical envelope can be credited for the fields it inherits.
 
 Within those files it fails on any exported union whose name ends in `Status`,
 `State`, `Phase` or `EventType` that is neither registered nor listed in
@@ -132,7 +144,7 @@ Within those files it fails on any exported union whose name ends in `Status`,
 **It does not sweep the whole monorepo.** `apps/web` alone exports dozens of
 unrelated status unions — campaign status, deploy state, approval status — and
 pulling them in would make the contract meaningless. Claims from this audit are
-bounded to the eight files above. Extending the boundary is a deliberate edit to
+bounded to the nine files above. Extending the boundary is a deliberate edit to
 `CONTROL_PLANE_SOURCES`, and the audit will immediately demand registrations for
 whatever the new file declares.
 
