@@ -403,6 +403,19 @@ jobs:
       # extension`, so pgvector — which 0002 needs for `public.vector(384)` and
       # its hnsw index — exists on the hosted databases only because it was
       # enabled out of band. See that file for why the schema it lands in matters.
+      #
+      # Applied as supabase_admin, NOT postgres. migrations/0005 creates
+      # functions carrying `set hnsw.iterative_scan = 'strict_order'` (and three
+      # more hnsw GUCs) in their definition, and as postgres that is:
+      #
+      #   ERROR: permission denied to set parameter "hnsw.iterative_scan"
+      #
+      # The Supabase image runs supautils, which deliberately strips superuser
+      # from postgres; the hosted databases had these functions created by a
+      # role that still had it. Only the SCHEMA is built with the elevated role
+      # — the tests still connect as postgres via SPINE_DATABASE_URL and drop to
+      # `set local role authenticated`, so nothing about what the RLS suites
+      # actually exercise is loosened.
       - name: Apply spine migrations and seed
         env:
           PGPASSWORD: postgres
@@ -418,8 +431,18 @@ jobs:
             seed/0001_seed.sql
           do
             echo "── applying $f"
-            psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U postgres -d postgres -f "$f"
+            psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U supabase_admin -d postgres -f "$f"
           done
+
+          # Prove the schema is actually usable by the role the TESTS use, not
+          # just by the role that built it. Without this an ownership or grant
+          # problem introduced by applying as supabase_admin would surface much
+          # later as suites failing on assertions, which reads like a defect in
+          # the RLS policies rather than in this job's setup.
+          psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U postgres -d postgres -c "
+            set local role authenticated;
+            select count(*) as visible_courses from carsi.course;
+          "
 
       # The JSON reporter is the machine-readable evidence artefact for UNI-2567.
       # A test's stdout is a captured field inside that structure rather than a
