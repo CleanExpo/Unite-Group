@@ -57,6 +57,13 @@ const partialFormats = (c) => ({
   'WHY + FIX, no DEFECT': `WHY: ${c.groundTruth}\nFIX: apply the correction described above`,
   'empty FIX': `DEFECT: ${c.groundTruth}\nWHY: ${c.groundTruth}\nFIX:`,
   'empty WHY': `DEFECT: ${c.groundTruth}\nWHY:\nFIX: apply the correction described above`,
+  // Order and multiplicity are part of the contract, not decoration. Two
+  // versions of the parser searched for each field independently and so
+  // accepted both of these at full credit.
+  'fields out of order (DEFECT/FIX/WHY)': `DEFECT: ${c.groundTruth}\nFIX: apply the correction described above\nWHY: ${c.groundTruth}`,
+  'duplicate WHY after FIX': `DEFECT: ${c.groundTruth}\nWHY: ${c.groundTruth}\nFIX: apply the correction described above\nWHY: trailing unrelated text`,
+  'duplicate DEFECT': `DEFECT: ${c.groundTruth}\nDEFECT: ${c.groundTruth}\nWHY: ${c.groundTruth}\nFIX: apply the correction described above`,
+  'labels inline rather than line-anchored': `DEFECT: ${c.groundTruth} WHY: ${c.groundTruth} FIX: do it`,
 });
 for (const [label] of Object.entries(partialFormats(corpus.cases[0]))) {
   const leaked = corpus.cases.filter((c) => score(partialFormats(c)[label], c).score >= 1.0);

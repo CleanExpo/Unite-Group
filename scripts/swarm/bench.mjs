@@ -167,28 +167,46 @@ const NO_DEFECT_VERDICTS = [
  * `score()` then falls back to the whole reply plus the denial patterns.
  */
 export function claimPayload(text) {
-  const defect = /\bdefect\s*:\s*([\s\S]*?)(?=\bwhy\s*:|\bfix\s*:|$)/i.exec(text);
-  if (!defect) return null;
-  const claim = defect[1].trim();
-  // "DEFECT: none" is a denial in the format's own vocabulary, and a denial
-  // beats an incomplete format: it is scored 0, not merely capped.
-  if (/^(none|n\/?a|no\b|nothing\b|-|—)/i.test(claim)) return '';
-
-  // ALL THREE fields, not just DEFECT:.
+  // ONE ordered parse, not three independent searches.
   //
-  // The first version required only `DEFECT:`, which made the justification for
-  // the unformatted cap incoherent — review put it exactly right: a model could
-  // omit two mandated fields and still rank as fully compliant. If the penalty
-  // is for ignoring the output contract, then the contract is all of it.
-  const why = /\bwhy\s*:\s*([\s\S]*?)(?=\bfix\s*:|$)/i.exec(text);
-  const fix = /\bfix\s*:\s*(\S[\s\S]*)$/i.exec(text);
-  if (!why?.[1].trim() || !fix?.[1].trim()) return null;
+  // Two earlier versions got this wrong in the same direction — each checked
+  // for the pieces it cared about and ignored the shape. v1 required only
+  // `DEFECT:`, so a model could drop two mandated fields and still rank as
+  // fully compliant. v2 required all three but located them with independent
+  // regexes, so `DEFECT: … FIX: … WHY: …` — the contract's fields in the wrong
+  // order — scored 1.0 on 8 of 8, as did a reply with a second `WHY:` tacked on
+  // after `FIX:`. Both found in review.
+  //
+  // The labels are line-anchored and read in document order, then compared
+  // against the contract as a SEQUENCE. Anything that is not exactly
+  // DEFECT → WHY → FIX, once each, is not the mandated format.
+  const labels = [...text.matchAll(/^[ \t]*(defect|why|fix)[ \t]*:[ \t]*/gim)].map((m) => ({
+    key: m[1].toLowerCase(),
+    start: m.index + m[0].length,
+    labelStart: m.index,
+  }));
+  if (labels.length === 0) return null;
+
+  const contentOf = (i) => text
+    .slice(labels[i].start, i + 1 < labels.length ? labels[i + 1].labelStart : text.length)
+    .trim();
+
+  // A denial is scored 0 rather than merely capped, and it outranks a format
+  // complaint: a model that says "DEFECT: none" has answered, just wrongly.
+  const first = labels[0];
+  if (first.key === 'defect' && /^(none|n\/?a|no\b|nothing\b|-|—)/i.test(contentOf(0))) return '';
+
+  const order = labels.map((l) => l.key).join(',');
+  if (order !== 'defect,why,fix') return null;
+
+  const [claim, why, fix] = [contentOf(0), contentOf(1), contentOf(2)];
+  if (!claim || !why || !fix) return null;
 
   // DEFECT + WHY is the assertion. FIX is a remedy, not a claim about the
   // defect, so it is required for compliance but excluded from what is scored —
   // otherwise a model could earn paraphrase credit from its suggested fix
   // without ever having stated what is wrong.
-  return `${claim} ${why[1].trim()}`;
+  return `${claim} ${why}`;
 }
 
 /**
