@@ -64,6 +64,12 @@ const partialFormats = (c) => ({
   'duplicate WHY after FIX': `DEFECT: ${c.groundTruth}\nWHY: ${c.groundTruth}\nFIX: apply the correction described above\nWHY: trailing unrelated text`,
   'duplicate DEFECT': `DEFECT: ${c.groundTruth}\nDEFECT: ${c.groundTruth}\nWHY: ${c.groundTruth}\nFIX: apply the correction described above`,
   'labels inline rather than line-anchored': `DEFECT: ${c.groundTruth} WHY: ${c.groundTruth} FIX: do it`,
+  // "Answer in this exact format, nothing else" — so nothing may precede
+  // DEFECT:, and nothing may follow the FIX sentence. Both were accepted at
+  // full credit until review pointed out that the parser validated only the
+  // labels it found, never the whole response.
+  'preamble before DEFECT': `Here is my assessment:\nDEFECT: ${c.groundTruth}\nWHY: ${c.groundTruth}\nFIX: apply the correction`,
+  'trailing prose after FIX': `DEFECT: ${c.groundTruth}\nWHY: ${c.groundTruth}\nFIX: apply the correction\nAdditional context follows.`,
 });
 for (const [label] of Object.entries(partialFormats(corpus.cases[0]))) {
   const leaked = corpus.cases.filter((c) => score(partialFormats(c)[label], c).score >= 1.0);

@@ -106,25 +106,39 @@ Getting this right took three attempts, and the first two failed the same way.
    missed, and all 29 framings went back to 1.0 on 8 of 8 cases. Reordering the
    words does the same. So an unformatted reply now caps at 0.5, reported as
    `verdict: 'unformatted'`.
-5. **The contract is all three fields.** Step 4 first required only `DEFECT:`,
-   which made its own justification incoherent — a model could omit two mandated
-   fields and still rank as fully compliant. `DEFECT:`, `WHY:` and `FIX:` must
-   all be present and non-empty. `FIX:` is required for compliance but excluded
-   from what is scored, so a model cannot earn paraphrase credit from its
-   suggested remedy without ever stating what is wrong.
+5. **The contract is all three fields, in order, and nothing else.** Step 4
+   first required only `DEFECT:`, which made its own justification incoherent —
+   a model could omit two mandated fields and still rank as fully compliant.
+   Then it required all three but found them with independent searches, so
+   `DEFECT: … FIX: … WHY: …` and a duplicate trailing `WHY:` both scored 1.0.
+   Then it validated only the labels it found, so a *"Here is my assessment:"*
+   preamble and trailing prose after the `FIX:` sentence both scored 1.0 too.
+   The parser now reads the reply as one ordered structure: `DEFECT:` must start
+   it, the labels must run `DEFECT → WHY → FIX` once each and non-empty, and
+   nothing may follow the `FIX:` sentence. `FIX:` is required for compliance but
+   excluded from what is scored, so a model cannot earn paraphrase credit from
+   its suggested remedy without ever stating what is wrong.
 
 Steps 4–5 are what finally closed the fallback, and it closed it without another
 lexical rule. Steps 1–3 still do useful work; step 4 means none of them has to be
 complete.
 
 **The cost, stated rather than hidden**: a cheap model that identifies
-the defect correctly in plain prose is capped at 0.5 and ranks below one that
-follows the format. That is a real penalty. It is the right direction of error —
+the defect correctly but wraps it in a chatty preamble, or adds a closing
+remark, is capped at 0.5 and ranks below one that answers in the exact format.
+That is a real penalty, and a strict one. It is the right direction of error —
 this benchmark exists to decide whether cheap models can be *trusted*, so it
 should understate rather than overstate them — and format compliance is
 load-bearing downstream anyway, since `swarm.mjs` parses structured JSON
 findings. A model that cannot follow an output contract is genuinely less useful
 here, not merely differently styled.
+
+**Open question, to settle with data rather than guesswork.** Nobody has yet run
+this against live models (`openrouter.ai` is unreachable from the container it
+was written in), so how many real replies are chatty is unmeasured. If a whole
+field lands on 0.5, the `UNFMT` column says so explicitly and the bar can be
+revisited *then* — loosening a stated contract now, on speculation about model
+behaviour, would be guessing in the direction that flatters the tool.
 
 Each case carries two controls: a `negativeControl` (every anchor, no claim at
 all) and a `refutationControl` (every anchor, an accepted explanation, an
@@ -193,7 +207,7 @@ than requested.
 ## 3. Self-test
 
 ```bash
-node scripts/swarm/selftest.mjs     # 87 assertions, no network, no key
+node scripts/swarm/selftest.mjs     # 93 assertions, no network, no key
 ```
 
 Every assertion has a negative control. The scorer must reject four generic

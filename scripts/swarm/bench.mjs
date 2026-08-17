@@ -191,6 +191,13 @@ export function claimPayload(text) {
     .slice(labels[i].start, i + 1 < labels.length ? labels[i + 1].labelStart : text.length)
     .trim();
 
+  // "nothing else" is part of the contract, so nothing may precede DEFECT:.
+  // A chatty lead-in ("Here is my assessment:") is not a formatting nicety here;
+  // the prompt asks for the three fields and nothing more, and a model that
+  // cannot hold to that is the same model whose JSON swarm.mjs has to parse.
+  const preamble = text.slice(0, labels[0].labelStart).trim();
+  if (preamble !== '') return null;
+
   // A denial is scored 0 rather than merely capped, and it outranks a format
   // complaint: a model that says "DEFECT: none" has answered, just wrongly.
   const first = labels[0];
@@ -201,6 +208,14 @@ export function claimPayload(text) {
 
   const [claim, why, fix] = [contentOf(0), contentOf(1), contentOf(2)];
   if (!claim || !why || !fix) return null;
+
+  // FIX is the last field, so anything appended to the reply lands inside it.
+  // The prompt asks for one sentence; requiring a single line is what stops
+  // "…FIX: add an order by\nAdditional context follows." from counting as a
+  // compliant three-field answer. It cannot inflate the score directly — FIX is
+  // excluded from scoring — but it would let a model violate the contract and
+  // still be reported as fully compliant, which is the thing the cap measures.
+  if (/\n\s*\S/.test(fix)) return null;
 
   // DEFECT + WHY is the assertion. FIX is a remedy, not a claim about the
   // defect, so it is required for compliance but excluded from what is scored —
