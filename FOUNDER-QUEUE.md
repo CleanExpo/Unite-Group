@@ -16,8 +16,9 @@ A row is founder-held for one of two reasons, and the row must say which:
 
 Everything else belongs to engineering under the decision-rights matrix, and
 parking it here manufactures a founder blocker that does not exist. The
-independent review caught exactly that: D19 is a CI substrate choice, which is
-engineering's call by class, and it sits here only because Phill reserved it.
+independent review caught exactly that: D19 was a CI substrate choice, which is
+engineering's call by class, and it sat here only because Phill reserved it.
+He resolved it on 17/08/2026 — see Resolved.
 
 ## Rules
 
@@ -51,9 +52,9 @@ engineering's call by class, and it sits here only because Phill reserved it.
 | F6 | Retrieve/create the three social platform app secrets | 2026-07-06 | — | UNI-2331 | Connectors already built; only FACEBOOK_APP_SECRET, LINKEDIN_*, TIKTOK_* are missing | open |
 | F7 | Stripe connection | 2026-08-16 | — | billing, and therefore the metric of record | Blocks paying customers directly | open |
 | P9 | Sign off the arming checklist | 2026-08-07 | — | P9 go-live | Per `.spm/2026-08-07-p9-board-meetings-collision.md` | open |
-| D19 | SPINE_DATABASE_URL vs ephemeral Postgres in CI | 2026-08-16 | — | UNI-2567 arming | RESERVED BY PHILL 2026-08-16 — a CI substrate choice engineering would otherwise own. Ephemeral Postgres is hermetic and kills the dependency permanently; a stored secret manages it forever | open |
 
 ## Resolved
 
 | ID | Decision | Opened | Resolved | Decision text |
 | --- | --- | --- | --- | --- |
+| D19 | SPINE_DATABASE_URL vs ephemeral Postgres in CI | 2026-08-16 | 2026-08-17 | **Ephemeral Postgres in CI.** Phill, 17/08/2026: the spine gate spins its own throwaway database inside the workflow. `SPINE_DATABASE_URL` never enters CI or any workflow — it is not a secret to be stored, rotated or scoped, because CI never holds one. This closes the dependency permanently rather than managing it forever. Implemented in #1022 via an ephemeral Supabase started in-job; no workflow reads `secrets.SPINE_DATABASE_URL` — its only occurrences in `.github/` are comments recording that deliberate absence |
