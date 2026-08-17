@@ -142,7 +142,32 @@ Each mutation was applied and reverted.
 | approval ignores the action hash | 2 tests red |
 | unknown tool → L0 | 1 test red |
 
-## 7. What is NOT gated
+## 7. Surfacing what was blocked
+
+The hook records every decision to a per-run `decisions.jsonl`, read by
+`GET /api/lanes/gate?runId=…` and rendered inside the existing run-stream panel
+on the lane card. A block the founder never sees is indistinguishable from a
+lane that simply did less work, which makes enforcement unfalsifiable.
+
+Four distinctions the panel keeps, each pinned by a test:
+
+- **"none recorded" ≠ "none blocked".** A run that wrote no decisions is not a
+  clean run; collapsing them would let a lane that never reached the gate render
+  as gated and green.
+- **The headline is the blocked count, not the total.** Mixing allowed reads into
+  one number buries the fact being scanned for.
+- **A fail-closed block is called out separately.** "Blocked because dangerous"
+  and "blocked because unclassifiable" need different follow-up.
+- **A failed gate read is reported as unrecorded, not as a stream error.** The
+  run is unaffected by an unreadable audit log, and colouring the stream red for
+  it trains the reader to ignore red. A *genuine* read failure (EISDIR, not
+  ENOENT) is still a 500 rather than an empty list.
+
+Reader and writer derive the path from one `gateDecisionsPath` helper. They
+previously agreed by coincidence; a drift would have left the panel permanently
+and silently empty while the gate worked perfectly.
+
+## 8. What is NOT gated
 
 - **Codex.** It does not read Claude Code settings, has its own
   approval/sandbox policy and a different hook contract. It is deliberately not
