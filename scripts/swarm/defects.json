@@ -20,7 +20,8 @@
         "prefix match is too permissive",
         "should match exact family or a dated snapshot suffix",
         "silently returns a wrong price instead of null"
-      ]
+      ],
+      "negativeControl": "The lookup uses startsWith, considers an unknown model, and can produce null. Overall the structure reads clearly and the naming follows the surrounding conventions."
     },
     {
       "id": "offset-pagination-no-order",
@@ -38,7 +39,8 @@
         "pages can skip or duplicate rows",
         "needs a unique tiebreaker as well as created_at",
         "offset pagination over a table being written to is unstable"
-      ]
+      ],
+      "negativeControl": "This pagination code sets a page size and reads rows in order until a short page is returned. It looks like a standard loop and the naming is clear enough."
     },
     {
       "id": "unawaited-serverless-write",
@@ -49,14 +51,15 @@
       "language": "typescript",
       "context": "Runs inside a Next.js API route deployed to Vercel serverless functions. recordAiUsage performs a Supabase insert and is written so it can never throw. The comment explains the author's intent.",
       "code": "const response = await createWithRetry(client, params)\n\n// Deliberately NOT awaited: metering must not add latency to, or be able to\n// fail, an AI response. recordAiUsage never throws.\nvoid recordAiUsage({\n  taskType: capabilityId,\n  model: response.model,\n  inputTokens: response.usage.input_tokens,\n  outputTokens: response.usage.output_tokens,\n}).catch(() => {})\n\nreturn {\n  content: textContent,\n  usage: { inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens },\n  model: response.model,\n}",
-      "groundTruth": "On Vercel the invocation can be suspended or torn down as soon as the handler responds, so a floating promise is not guaranteed to complete. The metering insert can therefore be silently dropped, undercounting spend — the exact failure the feature exists to prevent. It needs waitUntil (or an await on a non-latency-sensitive path) to keep the work alive past the response.",
+      "groundTruth": "On Vercel the serverless invocation can be suspended or torn down as soon as the handler responds, so a floating promise is not guaranteed to complete. The metering insert can therefore be silently dropped, undercounting spend — the exact failure the feature exists to prevent. It needs waitUntil (or an await on a non-latency-sensitive path) to keep the work alive past the response.",
       "mustMention": ["await", "serverless"],
       "acceptAny": [
         "floating promise may not complete before the function freezes",
         "use waitUntil to keep background work alive",
         "the insert can be lost after the response is returned",
         "await it on cron/background paths"
-      ]
+      ],
+      "negativeControl": "The handler runs on serverless infrastructure and the code does not await this call. The comment explains the reasoning and the overall structure reads clearly."
     },
     {
       "id": "test-asserts-less-than-name",
@@ -73,7 +76,8 @@
         "the test does not exercise cache writes despite its name",
         "would pass even if cache-write pricing were removed",
         "expected total should be 7.5 with a cache write included"
-      ]
+      ],
+      "negativeControl": "This test covers pricing and mentions cacheWriteTokens in the surrounding module. The assertion uses toBeCloseTo which seems like a reasonable choice here."
     },
     {
       "id": "cron-star-slash-zero",
@@ -88,10 +92,12 @@
       "mustMention": ["infinite loop", "0"],
       "acceptAny": [
         "*/0 causes a non-terminating loop",
+        "the for-loop never terminates when the step is zero",
         "step of zero never increments m",
         "NaN step silently yields zero",
         "needs validation that step is a positive integer"
-      ]
+      ],
+      "negativeControl": "The parser handles the star form and the step form. There is no infinite loop concern that stands out, and returning 0 for other shapes seems consistent with the rest."
     },
     {
       "id": "claim-then-finalise-strand",
@@ -109,7 +115,8 @@
         "no recovery for a crash between claim and finalise",
         "needs a stale-claim sweep or visibility timeout",
         "claim is not atomic against a concurrent worker"
-      ]
+      ],
+      "negativeControl": "The worker moves rows through publishing and nothing here looks stranded. Reading it end to end, the control flow seems straightforward and easy to follow."
     },
     {
       "id": "timestamptz-end-bound",
@@ -126,7 +133,8 @@
         "lte against a date drops rows later on the final day",
         "midnight boundary excludes most of the last day",
         "use an exclusive next-day upper bound"
-      ]
+      ],
+      "negativeControl": "The query filters on a start and an end value, which covers the day range the caller asked for. The builder syntax matches the rest of this module."
     },
     {
       "id": "summing-without-dedupe",
@@ -144,7 +152,8 @@
         "no dedupe on the provider request id",
         "needs a unique constraint or read-side seen-set",
         "null ids must not be collapsed together"
-      ]
+      ],
+      "negativeControl": "The aggregate groups rows by key and a request_id column is available, and no duplicate handling is strictly needed for a simple sum like this one."
     }
   ]
 }

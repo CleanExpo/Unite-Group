@@ -23,6 +23,7 @@
 
 import { execSync } from 'node:child_process';
 import { readFileSync, statSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 
 const EXTENSIONS = new Set([
   '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs',
@@ -51,40 +52,85 @@ const ALLOWLIST = new Map([
   ],
 ]);
 
-// Only files git actually tracks — node_modules and build output are not ours
-// to police, and scanning them would make this slow enough to get skipped.
-const files = execSync('git ls-files', { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
-  .split('\n')
-  .filter(Boolean)
-  .filter((f) => EXTENSIONS.has(f.slice(f.lastIndexOf('.'))))
-  .filter((f) => !ALLOWLIST.has(f));
+/**
+ * Should this tracked path be scanned?
+ *
+ * Two rules, because one is not enough:
+ *
+ *   1. A recognised text extension — the common case.
+ *   2. NO extension at all — Dockerfile, CODEOWNERS, LICENSE, git hooks. The
+ *      first version of this guard missed every one of them: it computed the
+ *      extension as `f.slice(f.lastIndexOf('.'))`, which for `Dockerfile`
+ *      returns "e" (lastIndexOf gives -1, and slice(-1) is the last character),
+ *      so three real Dockerfiles were silently excluded. Raised in review on
+ *      PR #1017. Extensionless files in a source repo are essentially never
+ *      binary — binaries carry .png/.woff/.pdf — so scanning them by default is
+ *      both safe and immune to the next Dockerfile-shaped file nobody adds to a
+ *      list.
+ *
+ * The extension is taken from the BASENAME, not the whole path: `foo.d/Makefile`
+ * has no extension even though the path contains a dot.
+ */
+export function shouldScan(path) {
+  const base = path.slice(path.lastIndexOf('/') + 1);
+  const dot = base.lastIndexOf('.');
+  // A leading dot is a hidden file (.gitignore), not an extension.
+  if (dot <= 0) return true;
+  return EXTENSIONS.has(base.slice(dot));
+}
 
-const offenders = [];
-for (const f of files) {
-  let buf;
-  try {
-    // A deleted-but-tracked path is not an error for this check.
-    if (!statSync(f).isFile()) continue;
-    buf = readFileSync(f);
-  } catch {
-    continue;
+/** Scan the given paths, returning one entry per offending file. */
+export function findOffenders(paths) {
+  const offenders = [];
+  for (const f of paths) {
+    let buf;
+    try {
+      // A deleted-but-tracked path is not an error for this check.
+      if (!statSync(f).isFile()) continue;
+      buf = readFileSync(f);
+    } catch {
+      continue;
+    }
+    const idx = buf.indexOf(0);
+    if (idx !== -1) {
+      const line = buf.subarray(0, idx).toString('utf8').split('\n').length;
+      offenders.push({ file: f, line, count: buf.filter((b) => b === 0).length });
+    }
   }
-  const idx = buf.indexOf(0);
-  if (idx !== -1) {
-    const line = buf.subarray(0, idx).toString('utf8').split('\n').length;
-    offenders.push({ file: f, line, count: buf.filter((b) => b === 0).length });
+  return offenders;
+}
+
+/** Tracked paths this guard is responsible for. */
+export function trackedScannablePaths() {
+  // Only files git actually tracks — node_modules and build output are not ours
+  // to police, and scanning them would make this slow enough to get skipped.
+  return execSync('git ls-files', { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
+    .split('\n')
+    .filter(Boolean)
+    .filter(shouldScan)
+    .filter((f) => !ALLOWLIST.has(f));
+}
+
+function main() {
+  const files = trackedScannablePaths();
+  const offenders = findOffenders(files);
+
+  if (offenders.length === 0) {
+    console.log(`NUL-byte guard: clean (${files.length} tracked source files)`);
+    return 0;
   }
+
+  console.error('NUL BYTES FOUND — git will treat these files as binary and hide their diffs in review:\n');
+  for (const o of offenders) {
+    console.error(`  ${o.file}:${o.line}  (${o.count} NUL byte${o.count === 1 ? '' : 's'})`);
+  }
+  console.error('\nFind the exact position with:');
+  console.error("  python3 -c \"d=open('FILE','rb').read(); i=d.index(b'\\\\x00'); print(repr(d[i-80:i+80]))\"");
+  return 1;
 }
 
-if (offenders.length === 0) {
-  console.log(`NUL-byte guard: clean (${files.length} tracked source files)`);
-  process.exit(0);
+// Only run when invoked directly. Without this, importing the module for a test
+// would execute the whole scan and call process.exit out from under the runner.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  process.exit(main());
 }
-
-console.error('NUL BYTES FOUND — git will treat these files as binary and hide their diffs in review:\n');
-for (const o of offenders) {
-  console.error(`  ${o.file}:${o.line}  (${o.count} NUL byte${o.count === 1 ? '' : 's'})`);
-}
-console.error('\nFind the exact position with:');
-console.error("  python3 -c \"d=open('FILE','rb').read(); i=d.index(b'\\\\x00'); print(repr(d[i-80:i+80]))\"");
-process.exit(1);

@@ -65,6 +65,27 @@ Scoring is keyword-based, crude, and transparent by choice. An LLM judge would
 score better but costs money and hides its own errors inside a benchmark whose
 whole purpose is establishing trust cheaply. Raw responses are always kept.
 
+### What full marks require
+
+The first version of the scorer awarded 1.0 whenever every `mustMention` term
+appeared, with no requirement that the answer claim anything. Review on PR #1017
+showed the break: simply joining the `mustMention` terms scored full marks on
+**8 of 8 cases** — `"end day"` was a perfect answer for the timestamptz boundary
+defect. That ranks a model which extracts nouns from the prompt above one that
+explains the bug, inverting the benchmark's purpose.
+
+Full marks now need **both** the anchors and a recognised explanation, and an
+answer too short to constitute a claim scores zero. Each case carries a
+`negativeControl` — a fluent sentence containing every anchor that makes no
+defect claim — and `selftest.mjs` pins three attacks per case (bare join, padded
+join, negative control) below 1.0 while requiring the case's own ground truth to
+score exactly 1.0.
+
+Anchors-without-explanation scores **0.5, not 0**. Separating a shallow-but-real
+finding from a fluent non-claim needs semantics — the LLM judge this benchmark
+declines to hire. 0.5 is therefore the proven ceiling for stuffing: a stuffer
+ranks mid-table, never top.
+
 ## 2. Run the swarm
 
 ```bash
@@ -85,7 +106,7 @@ than requested.
 ## 3. Self-test
 
 ```bash
-node scripts/swarm/selftest.mjs     # 43 assertions, no network, no key
+node scripts/swarm/selftest.mjs     # 53 assertions, no network, no key
 ```
 
 Every assertion has a negative control. The scorer must reject four generic

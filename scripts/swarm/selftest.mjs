@@ -46,6 +46,32 @@ for (const c of corpus.cases) {
   check(`${c.id} rejects all 4 generic wrong answers`, worst === 0, `best wrong answer scored ${worst}`);
 }
 
+// ── scoring: ANTI-STUFFING NEGATIVE CONTROLS ───────────────────────────────
+// The first version of this scorer awarded 1.0 for merely containing every
+// mustMention term, with no requirement that the answer claim anything. Joining
+// the terms scored full marks on 8 of 8 cases — "end day" was a perfect answer
+// for the timestamptz bound. Review on PR #1017 found it; these three attacks
+// are pinned so it cannot come back.
+console.log('\nscore() — keyword stuffing must never reach full marks');
+// Long enough to clear the content-word floor without asserting anything.
+const PADDING = ' The implementation is written in typescript and lives inside this repository module today.';
+for (const c of corpus.cases) {
+  const join = score(c.mustMention.join(' '), c).score;
+  const padded = score(c.mustMention.join(' ') + PADDING, c).score;
+  const control = score(c.negativeControl, c).score;
+  const worst = Math.max(join, padded, control);
+  check(`${c.id} caps all three stuffing attacks below 1.0`, worst < 1.0, `best stuffed answer scored ${worst}`);
+}
+// The corpus is only a control if every case actually has one.
+check('every case carries a negativeControl', corpus.cases.every((c) => typeof c.negativeControl === 'string' && c.negativeControl.length > 0));
+// A negativeControl that misses an anchor would pass the check above for the
+// wrong reason — it has to be the HARD case: all anchors present, no claim made.
+check(
+  'every negativeControl contains all of its mustMention anchors',
+  corpus.cases.every((c) => c.mustMention.every((k) => c.negativeControl.toLowerCase().includes(k.toLowerCase()))),
+  corpus.cases.filter((c) => !c.mustMention.every((k) => c.negativeControl.toLowerCase().includes(k.toLowerCase()))).map((c) => c.id).join(','),
+);
+
 console.log('\nscore() — degenerate inputs');
 check('empty string scores 0', score('', corpus.cases[0]).score === 0);
 check('null scores 0', score(null, corpus.cases[0]).score === 0);

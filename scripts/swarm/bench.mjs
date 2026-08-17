@@ -99,6 +99,9 @@ What is the defect?`;
  * credit for finding it in different words. Raw responses are always written to
  * disk so any disputed score can be re-read by a human.
  */
+/** An answer shorter than this cannot be a defect claim, only a word list. */
+const MIN_CONTENT_WORDS = 8;
+
 export function score(answer, c) {
   const text = (answer ?? '').toLowerCase();
   if (!text.trim()) return { score: 0, hits: [], verdict: 'empty' };
@@ -106,8 +109,8 @@ export function score(answer, c) {
   const hits = c.mustMention.filter((k) => text.includes(k.toLowerCase()));
   const mustRatio = hits.length / c.mustMention.length;
 
-  // Partial credit: any accepted paraphrase, matched on its content words so
-  // that word order and connectives do not decide a model's score.
+  // A paraphrase, matched on content words so word order and connectives do
+  // not decide a model's score.
   const paraphrase = (c.acceptAny ?? []).some((p) => {
     const words = p.toLowerCase().split(/\s+/).filter((w) => w.length > 4);
     if (words.length === 0) return false;
@@ -115,11 +118,36 @@ export function score(answer, c) {
     return found / words.length >= 0.6;
   });
 
+  // ── ANTI-STUFFING ────────────────────────────────────────────────────────
+  // The first version of this scorer awarded 1.0 whenever every mustMention
+  // term appeared, with no requirement that the answer CLAIM anything. Review
+  // on PR #1017 demonstrated the break: simply joining the mustMention terms
+  // scored full marks on 8 of 8 cases — "end day" was a perfect answer for the
+  // timestamptz boundary defect. That ranks a model which extracts nouns from
+  // the prompt above one that actually explains the bug, which inverts the
+  // benchmark's entire purpose.
+  //
+  // Two independent requirements now:
+  //   1. enough content words to constitute a claim rather than a word list
+  //   2. full credit needs the anchors AND a recognised explanation
+  //
+  // What this does NOT do, deliberately: distinguish a shallow-but-real finding
+  // from a fluent non-claim that happens to contain every anchor. Both land on
+  // 0.5. Telling them apart needs semantics, which is exactly the LLM judge this
+  // benchmark refuses to hire. So 0.5 is the proven CEILING for stuffing rather
+  // than 0 — a stuffer ranks mid-table, never top — and defects.json carries a
+  // `negativeControl` per case so that ceiling is pinned by selftest.mjs instead
+  // of merely asserted here.
+  const contentWords = new Set(
+    text.replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter((w) => w.length > 3),
+  );
+  if (contentWords.size < MIN_CONTENT_WORDS) {
+    return { score: 0, hits, verdict: 'too-short' };
+  }
+
   let s = 0;
-  if (mustRatio === 1) s = 1.0;
-  else if (mustRatio >= 0.5 && paraphrase) s = 1.0;
-  else if (mustRatio >= 0.5) s = 0.5;
-  else if (paraphrase) s = 0.5;
+  if (mustRatio === 1 && paraphrase) s = 1.0;      // names it AND explains it
+  else if (mustRatio === 1 || paraphrase) s = 0.5; // one without the other
 
   return {
     score: s,

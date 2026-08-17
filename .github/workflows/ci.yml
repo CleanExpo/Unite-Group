@@ -35,6 +35,24 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
       - run: node scripts/check-au-english.mjs
 
+  nul-bytes:
+    # A NUL byte makes git classify a file as BINARY, so its diff renders as
+    # `Bin 0 -> 5804 bytes` and its contents are invisible in a pull request.
+    # One reached main on 16/08/2026 inside a metering fetcher: TypeScript
+    # compiled it, every test passed, lint passed, all 17 CI checks passed, and
+    # the file went through both human and automated review with nobody able to
+    # read a single line of it. This job is the only gate that would have caught
+    # it. Runs in about a second.
+    name: NUL-byte guard (binary-looking source files)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: node --test scripts/__tests__/check-no-nul-bytes.test.mjs
+      - run: node scripts/check-no-nul-bytes.mjs
+
   web:
     name: apps/web — lint, type-check, test, build
     runs-on: ubuntu-latest
