@@ -404,25 +404,31 @@ jobs:
       # its hnsw index — exists on the hosted databases only because it was
       # enabled out of band. See that file for why the schema it lands in matters.
       #
-      # Applied as supabase_admin, NOT postgres. migrations/0005 creates
-      # functions carrying `set hnsw.iterative_scan = 'strict_order'` (and three
-      # more hnsw GUCs) in their definition, and as postgres that is:
+      # TWO ROLES, deliberately. ci/00_extensions.sql runs as supabase_admin
+      # because enabling an extension and granting a parameter both need
+      # superuser — but EVERYTHING ELSE runs as postgres, the same role the
+      # tests use.
       #
-      #   ERROR: permission denied to set parameter "hnsw.iterative_scan"
-      #
-      # The Supabase image runs supautils, which deliberately strips superuser
-      # from postgres; the hosted databases had these functions created by a
-      # role that still had it. Only the SCHEMA is built with the elevated role
-      # — the tests still connect as postgres via SPINE_DATABASE_URL and drop to
-      # `set local role authenticated`, so nothing about what the RLS suites
-      # actually exercise is loosened.
+      # Building the schema as supabase_admin was tried and is wrong:
+      # tests/integration/idempotency.test.ts drops the eight spine schemas and
+      # re-applies every migration itself through the ordinary connection, so a
+      # schema owned by anyone else fails with "must be owner of schema core".
+      # The bootstrap grants postgres the four hnsw parameters it needs, and
+      # then postgres builds — and can rebuild — everything.
+      - name: Bootstrap database prerequisites (as superuser)
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U supabase_admin -d postgres \
+            -f ci/00_extensions.sql
+
       - name: Apply spine migrations and seed
         env:
           PGPASSWORD: postgres
         run: |
           set -euo pipefail
           for f in \
-            ci/00_extensions.sql \
             migrations/0001_core_identity.sql \
             migrations/0002_modules.sql \
             migrations/0003_match_and_lineage_rls.sql \
@@ -431,17 +437,31 @@ jobs:
             seed/0001_seed.sql
           do
             echo "── applying $f"
-            psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U supabase_admin -d postgres -f "$f"
+            psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U postgres -d postgres -f "$f"
           done
 
-          # Prove the schema is actually usable by the role the TESTS use, not
-          # just by the role that built it. Without this an ownership or grant
-          # problem introduced by applying as supabase_admin would surface much
-          # later as suites failing on assertions, which reads like a defect in
-          # the RLS policies rather than in this job's setup.
+          # Prove postgres can do what idempotency.test.ts will ask of it —
+          # OWN the schemas, not merely read them. The previous version of this
+          # check only did a read, which passed while the teardown/re-apply
+          # cycle was broken; a check that cannot fail the way the test fails is
+          # not a check.
           psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U postgres -d postgres -c "
-            set local role authenticated;
-            select count(*) as visible_courses from carsi.course;
+            select nspname, pg_get_userbyid(nspowner) as owner
+            from pg_namespace
+            where nspname in ('core','marketing','leadgen','onboarding','nrpg','carsi','field','sales')
+              and pg_get_userbyid(nspowner) <> 'postgres';
+          " -c "
+            do \$\$
+            begin
+              if exists (
+                select 1 from pg_namespace
+                where nspname in ('core','marketing','leadgen','onboarding','nrpg','carsi','field','sales')
+                  and pg_get_userbyid(nspowner) <> 'postgres'
+              ) then
+                raise exception 'spine schemas are not owned by postgres — idempotency teardown will fail';
+              end if;
+            end
+            \$\$;
           "
 
       # The JSON reporter is the machine-readable evidence artefact for UNI-2567.

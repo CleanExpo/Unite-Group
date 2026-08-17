@@ -42,3 +42,30 @@ begin
   end if;
 end
 $$;
+
+-- ── Let `postgres` set pgvector's scan GUCs ──────────────────────────────────
+--
+-- migrations/0005 creates functions carrying `set hnsw.iterative_scan =
+-- 'strict_order'` (and three more) in the function definition. As postgres that
+-- is "permission denied to set parameter": the Supabase image runs supautils,
+-- which strips superuser from postgres, and the hosted databases had these
+-- functions created by a role that still had it.
+--
+-- The alternative was to build the whole schema as supabase_admin. That was
+-- tried and is WRONG, for a reason worth recording: tests/integration/
+-- idempotency.test.ts drops the eight spine schemas and re-applies every
+-- migration ITSELF, through the ordinary connection. If a different role built
+-- them, that test dies with "must be owner of schema core" — and the role that
+-- rebuilds them still needs these same GUC rights anyway. So the privilege has
+-- to land on the role the tests actually use.
+--
+-- GRANT SET ON PARAMETER (PostgreSQL 15+) grants exactly that and nothing else:
+-- four named parameters, no superuser, no ownership change. This must run after
+-- `create extension vector` above, because a parameter cannot be granted until
+-- the library defining it is loaded and the name is recognised.
+grant set on parameter
+  hnsw.iterative_scan,
+  hnsw.ef_search,
+  hnsw.max_scan_tuples,
+  hnsw.scan_mem_multiplier
+to postgres;
