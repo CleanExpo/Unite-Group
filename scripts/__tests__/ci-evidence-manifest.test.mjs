@@ -2647,3 +2647,50 @@ test('THE MEMBER MUST BE A REGULAR FILE ON A DISK WE HAVE', () => {
     assert.equal(readZipEntries(ok)[0].name, 'vitest-report.json', label);
   }
 });
+
+test('THE FILE-TYPE CHECK COVERS EVERY CREATOR, not the three I allowlisted', () => {
+  /*
+   * MY OWN PREVIOUS FIX WAS HALF A FIX. It allowlisted creator systems
+   * {3, 7, 19} and checked the mode only for those — so `0120777` under creator
+   * 1, 5, 16 or 30 walked past a guard whose comment claimed it refused
+   * symlinks. Found by the standing review lane, confirmed on all four before
+   * this test was written.
+   *
+   * The allowlist WAS the defect: there is no creator id for which "the high
+   * word says symlink" should read as "regular file".
+   */
+  for (const creator of [1, 3, 5, 7, 16, 19, 30]) {
+    const symlink = buildZip({ 'vitest-report.json': '{"ok":true}' },
+      { stored: true, versionMadeBy: (creator << 8) | 20, externalAttrs: 0xA1FF0000 });
+    assert.throws(() => readZipEntries(symlink),
+      new RegExp(`file type 0120000 .*creator system ${creator}`, 'su'), `creator ${creator}`);
+  }
+
+  // POSITIVE CONTROLS: a zero mode (the ordinary MS-DOS case) and an explicit
+  // regular-file mode must both still read, or this refuses real archives.
+  for (const [label, creator, attrs] of [
+    ['MS-DOS, no mode recorded', 0, 0],
+    ['Unix, regular file 0100644', 3, 0x81A40000],
+    ['creator 16, regular file', 16, 0x81A40000],
+  ]) {
+    const ok = buildZip({ 'vitest-report.json': '{"ok":true}' },
+      { stored: true, versionMadeBy: (creator << 8) | 20, externalAttrs: attrs });
+    assert.equal(readZipEntries(ok)[0].name, 'vitest-report.json', label);
+  }
+});
+
+test('A NAME ENDING IN "/" IS A DIRECTORY, not the evidence file', () => {
+  /*
+   * APPNOTE 4.4.17.1: a member whose name ends in `/` IS a directory entry.
+   * `report.json/` was accepted and graded as the report — this reader saw a
+   * name it liked and read the bytes, while every extractor creates a folder and
+   * finds no report. The MS-DOS directory BIT was already refused; the naming
+   * convention that means the same thing was not.
+   */
+  const trailing = buildZip({ 'vitest-report.json/': '{"ok":true}' }, { stored: true });
+  assert.throws(() => readZipEntries(trailing), /ends in "\/", which declares it a directory/u);
+
+  // A slash INSIDE the name is a legitimate path segment and still reads.
+  const nested = buildZip({ 'reports/vitest-report.json': '{"ok":true}' }, { stored: true });
+  assert.equal(readZipEntries(nested)[0].name, 'reports/vitest-report.json');
+});

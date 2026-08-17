@@ -878,18 +878,31 @@ export function readZipEntries(buffer) {
      */
     const creatorSystem = zipUInt(buffer, offset + 4, 2, 'version made by') >> 8;
     const externalAttrs = zipUInt(buffer, offset + 38, 4, 'external attributes');
-    const UNIX_CREATORS = new Set([3, 7, 19]); // Unix, Macintosh, OS X
-    if (UNIX_CREATORS.has(creatorSystem)) {
-      const mode = (externalAttrs >>> 16) & 0xffff;
-      const fileType = mode & 0o170000;
-      // 0 means the creator recorded no mode at all, which is common and safe.
-      if (fileType !== 0 && fileType !== 0o100000) {
-        throw new Error(
-          `UNSUPPORTED_ZIP: the member's external attributes describe file type 0`
-          + `${fileType.toString(8)} (not a regular file). A reader honouring them would create `
-          + 'something other than the file whose bytes this gate graded.',
-        );
-      }
+    /*
+     * MY LAST FIX HERE WAS HALF A FIX, AND IT IS THE SAME HALF-FIX AS EVERY
+     * OTHER ONE ON THIS FILE.
+     *
+     * It allowlisted creator systems {3, 7, 19} — Unix, Macintosh, OS X — and
+     * checked the mode only for those. Every OTHER creator id encodes the mode in
+     * the same sixteen bits, so `0120777` under creator 1, 5, 16 or 30 sailed
+     * straight past a guard whose comment claimed it refused symlinks. Verified
+     * on all four before writing this.
+     *
+     * The allowlist was the mistake. There is no creator id for which "the high
+     * word says symlink" should be read as "regular file", so the mode is checked
+     * whenever it is non-zero, whoever wrote the archive. A zero high word means
+     * the creator recorded no mode at all — the common MS-DOS case — and stays
+     * accepted.
+     */
+    const mode = (externalAttrs >>> 16) & 0xffff;
+    const fileType = mode & 0o170000;
+    if (mode !== 0 && fileType !== 0 && fileType !== 0o100000) {
+      throw new Error(
+        `UNSUPPORTED_ZIP: the member's external attributes describe file type 0`
+        + `${fileType.toString(8)} (not a regular file), recorded by creator system `
+        + `${creatorSystem}. A reader honouring them would create something other than the `
+        + 'file whose bytes this gate graded.',
+      );
     }
     // The MS-DOS attribute byte is the low 8 bits regardless of creator.
     if ((externalAttrs & 0x10) !== 0 || (externalAttrs & 0x08) !== 0) {
@@ -917,6 +930,21 @@ export function readZipEntries(buffer) {
      * backslash, so all three are refused rather than normalised — normalising
      * would mean deciding what the author meant.
      */
+    /*
+     * A TRAILING SLASH MAKES IT A DIRECTORY, and the name rules never said so.
+     *
+     * APPNOTE 4.4.17.1: a member whose name ends in `/` IS a directory entry.
+     * `report.json/` was accepted and graded as the evidence file — this reader
+     * saw a name it liked and read the bytes, while every extractor creates a
+     * folder and finds no report at all. The MS-DOS directory bit is refused a
+     * few lines down; the naming convention that means the same thing was not.
+     */
+    if (name.endsWith('/')) {
+      throw new Error(
+        `UNSAFE_ZIP_ENTRY: "${name}" ends in "/", which declares it a directory rather than the `
+        + 'evidence file this gate grades.',
+      );
+    }
     if (name === '' || name.startsWith('/') || name.includes('\\')
       // A DRIVE LETTER IS ALSO AN ABSOLUTE PATH. Round nine slipped
       // `C:/vitest-report.json` past a check whose name claimed to refuse
