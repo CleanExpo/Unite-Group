@@ -21,8 +21,9 @@ const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3 };
 // The artefact contract, mirroring writeFindings() in swarm.mjs. Kept as data so
 // a field added there and forgotten here fails loudly rather than rendering as
 // an absence.
-const ARRAY_FIELDS = ['models', 'roles', 'corroborated', 'single', 'questions', 'errors'];
-const NUMBER_FIELDS = ['quorum', 'lineages'];
+export const ARRAY_FIELDS = ['models', 'roles', 'corroborated', 'single', 'questions', 'errors'];
+export const NUMBER_FIELDS = ['quorum', 'lineages'];
+export const SCALAR_FIELDS = ['ranAt', 'cost'];
 
 /**
  * Check the artefact against the contract, returning the reason it fails or
@@ -60,6 +61,28 @@ export function contractViolation(run) {
   if (typeof cost.wasFree !== 'boolean') return '`cost.wasFree` is missing or not a boolean';
   if (!Number.isFinite(cost.totalUsd)) return '`cost.totalUsd` is missing or not a number';
   if (!Array.isArray(cost.billed)) return '`cost.billed` is missing or not an array';
+
+  // COHERENCE, not just types. Well-typed but self-contradictory cost data is
+  // the same false-clean bug wearing a different hat: `wasFree: true` beside a
+  // populated `billed` list renders "Cost: $0.00 — every model reported zero"
+  // over an artefact that says money changed hands, and the reader believes the
+  // headline, not the field they cannot see.
+  //
+  // The rule is exactly ledger()'s own invariant — `wasFree === (billed.length
+  // === 0)` — and deliberately NOT the tighter "a free run must have totalUsd
+  // of 0". ledger() only treats a row as billed above 1e-9, so a run of many
+  // sub-threshold calls legitimately sums to a tiny non-zero total with an
+  // empty billed list. Demanding an exact zero there would reject real runs —
+  // over-tightening a check is the same failure as under-tightening it, just
+  // louder.
+  if (cost.wasFree !== (cost.billed.length === 0)) {
+    return cost.wasFree
+      ? '`cost` contradicts itself: wasFree is true but billed is not empty'
+      : '`cost` contradicts itself: wasFree is false but nothing is listed as billed';
+  }
+  if (!cost.wasFree && !(cost.totalUsd > 0)) {
+    return '`cost` contradicts itself: a billed run reports a total of zero or less';
+  }
   return null;
 }
 

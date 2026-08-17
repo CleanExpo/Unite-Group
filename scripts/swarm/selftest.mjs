@@ -19,7 +19,7 @@ import { cluster, parseFindings, chunk, parseVerdict, survivesRefutation, chunkO
 import { baseModelId, familyOf, distinctFamilies, validateRoster } from './lib/lineage.mjs';
 import { backoffMs, parseRetryAfter, usageOf, ledger, callModel } from './lib/openrouter.mjs';
 import { ROLES, REFUTE, REVIEW_ROLES, isQuestion } from './lib/roles.mjs';
-import { contractViolation, renderMarkdown } from './report.mjs';
+import { ARRAY_FIELDS, NUMBER_FIELDS, SCALAR_FIELDS, contractViolation, renderMarkdown } from './report.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const corpus = JSON.parse(readFileSync(join(HERE, 'defects.json'), 'utf8'));
@@ -747,6 +747,113 @@ const RUN = {
 {
   const md = renderMarkdown({ ...RUN, corroborated: [{ ...RUN.corroborated[0], refutation: { votes: 0, refuted: 0 } }] });
   check('an unchallenged finding says so rather than claiming it survived', md.includes('not challenged'));
+}
+
+{
+  // THE MIRROR. contractViolation() describes what writeFindings() in swarm.mjs
+  // emits, and the two can drift in both directions — each breaking a different
+  // way. A field required here but never written rejects EVERY real run, so the
+  // guard destroys the thing it protects. A field written but not required is
+  // the next `{}` bug waiting. Neither shows up in a fixture I typed by hand,
+  // because I would type it to match whichever side I was looking at.
+  //
+  // So build the artefact from the REAL ledger() and validateRoster() outputs,
+  // shaped exactly as writeFindings() shapes it.
+  const roster = validateRoster(['qwen/a', 'mistralai/b'], 2);
+  const cost = ledger([
+    { model: 'qwen/a', usage: { promptTokens: 10, completionTokens: 5, costUsd: 0 }, attempts: 1 },
+    { model: 'mistralai/b', usage: { promptTokens: 8, completionTokens: 4, costUsd: 0 }, attempts: 2 },
+  ]);
+  const artefact = {
+    ranAt: '2026-08-17T00:00:00.000Z',
+    models: roster.models, roles: REVIEW_ROLES, quorum: 2, lineages: roster.families, chunks: 1,
+    refutation: { challengersPerFinding: 3 },
+    cost: { totalUsd: cost.totalUsd, wasFree: cost.wasFree, billed: cost.billed },
+    errors: [], corroborated: [], single: [], questions: [],
+  };
+  check('an artefact built from the REAL roster and ledger satisfies the contract',
+    contractViolation(artefact) === null, String(contractViolation(artefact)));
+  check('...and renders as a report rather than "did not complete"',
+    !/did not complete/i.test(renderMarkdown(artefact)));
+  // The two fields whose types are produced elsewhere and merely trusted here.
+  // `families` is a COUNT, not the Set that clusters carry — had it been a Set,
+  // Number.isFinite() would have rejected every genuine run.
+  check('roster.families is a count, so `lineages` passes the number check',
+    Number.isFinite(roster.families), `got ${typeof roster.families}`);
+  check('ledger() yields a boolean wasFree, a finite total and an array billed',
+    typeof cost.wasFree === 'boolean' && Number.isFinite(cost.totalUsd) && Array.isArray(cost.billed));
+
+  // Cost COHERENCE. Well-typed but self-contradictory cost data renders a
+  // confident headline over an artefact that says the opposite.
+  check('a free run that also lists billed models is rejected',
+    contractViolation({ ...artefact, cost: { wasFree: true, totalUsd: 0.0031, billed: [{ model: 'c/z' }] } }) !== null);
+  check('...and does NOT render as $0.00',
+    !renderMarkdown({ ...artefact, cost: { wasFree: true, totalUsd: 0.0031, billed: [{ model: 'c/z' }] } }).includes('$0.00'));
+  check('a billed run that lists nothing as billed is rejected',
+    contractViolation({ ...artefact, cost: { wasFree: false, totalUsd: 0.0031, billed: [] } }) !== null);
+  check('a billed run reporting a zero total is rejected',
+    contractViolation({ ...artefact, cost: { wasFree: false, totalUsd: 0, billed: [{ model: 'c/z' }] } }) !== null);
+  // The over-tightening control. ledger() only counts a row as billed above
+  // 1e-9, so sub-threshold calls legitimately sum to a tiny non-zero total with
+  // an empty billed list. A rule demanding an exact zero would reject this real
+  // output — rejecting valid data is a defect too, just a louder one.
+  check('a free run with float-noise total and no billed rows is still ACCEPTED',
+    contractViolation({ ...artefact, cost: { wasFree: true, totalUsd: 5e-9, billed: [] } }) === null);
+}
+
+{
+  // THE STATIC MIRROR. The block above proves the contract accepts one artefact
+  // built from real values — but the key set is still one I typed, so it cannot
+  // notice a field ADDED to writeFindings() and never taught to the validator.
+  // That is the drift that matters: the writer is the source of truth, and the
+  // validator silently falls behind it.
+  //
+  // So read swarm.mjs and extract the actual top-level keys of the object it
+  // serialises, rather than trusting a fixture to represent them.
+  const src = readFileSync(join(HERE, 'swarm.mjs'), 'utf8');
+  const marker = 'JSON.stringify({';
+  const start = src.indexOf(marker);
+  const written = [];
+  if (start !== -1) {
+    let depth = 0, expectingKey = true, buf = '';
+    const take = () => {
+      const k = buf.trim();
+      if (expectingKey && /^[A-Za-z_$][\w$]*$/.test(k)) written.push(k);
+    };
+    for (let i = start + marker.length; i < src.length; i++) {
+      const ch = src[i];
+      if (depth === 0 && ch === '}') { take(); break; }
+      if (ch === '{' || ch === '[' || ch === '(') { depth++; buf = ''; continue; }
+      if (ch === '}' || ch === ']' || ch === ')') { depth--; buf = ''; continue; }
+      if (depth !== 0) continue;
+      // A ':' in value position is a ternary, not a key separator.
+      if (ch === ':') { take(); expectingKey = false; buf = ''; continue; }
+      if (ch === ',') { take(); expectingKey = true; buf = ''; continue; }
+      buf += ch;
+    }
+  }
+  const writtenSet = new Set(written);
+  check('the writer\'s artefact keys could be extracted from swarm.mjs', written.length > 0,
+    'if this fails the mirror below proves nothing');
+
+  // Direction 1 — the one that breaks EVERY real run: the validator demands a
+  // field the writer never emits, so no genuine artefact can ever pass.
+  const required = [...ARRAY_FIELDS, ...NUMBER_FIELDS, ...SCALAR_FIELDS];
+  for (const field of required) {
+    check(`the writer actually emits \`${field}\`, which the contract requires`,
+      writtenSet.has(field), `contract requires it; writeFindings() emits [${written.join(', ')}]`);
+  }
+
+  // Direction 2 — the one that lets the next `{}` bug through: the writer gains
+  // a field and nobody decides whether the renderer must be able to trust it.
+  // `chunks` and `refutation` are listed because the renderer does not read
+  // them; anything NEW lands here and forces that decision explicitly.
+  const KNOWN_UNVALIDATED = new Set(['chunks', 'refutation']);
+  for (const field of written) {
+    check(`\`${field}\` is either validated by the contract or knowingly exempt`,
+      required.includes(field) || KNOWN_UNVALIDATED.has(field),
+      'a new artefact field must be added to the contract, or listed as deliberately unvalidated');
+  }
 }
 
 // ── the workflow's own skip contract ───────────────────────────────────────
