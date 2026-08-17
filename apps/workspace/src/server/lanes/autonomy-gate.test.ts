@@ -180,6 +180,40 @@ describe('adversarial matrix — secret reads', () => {
       'L0',
     )
   })
+
+  it('escalates a content-returning tool that targets a secret by PATTERN', () => {
+    // Found by a live probe: once blocked from `Read`, the model's very first
+    // proposed workaround was to grep the same file. Grep takes its target as a
+    // glob/pattern, not a path, so a path-only check missed it entirely — and
+    // grep returns the matching LINES, which is the disclosure being prevented.
+    for (const input of [
+      { pattern: 'API_KEY', glob: '**/.env' },
+      { pattern: 'API_KEY', path: '/app/.env.production' },
+      { pattern: 'x', paths: ['/app/src/a.ts', '/app/.npmrc'] },
+    ]) {
+      expect(classifyToolCall(call({ tool: 'Grep', input })).tier).toBe('L3')
+    }
+  })
+
+  it('still allows a grep that targets ordinary source', () => {
+    expect(
+      classifyToolCall(call({ tool: 'Grep', input: { pattern: 'TODO', glob: 'src/**/*.ts' } })).tier,
+    ).toBe('L0')
+  })
+
+  it('does not escalate a name-only tool for a secret-shaped pattern', () => {
+    // Deliberate, not an oversight. Glob returns file NAMES; learning that a
+    // .env exists is reconnaissance, not disclosure, and escalating it would
+    // block ordinary repo navigation for no gain in protection.
+    expect(classifyToolCall(call({ tool: 'Glob', input: { pattern: '**/.env' } })).tier).toBe('L0')
+  })
+
+  it('escalates a write aimed at credential material', () => {
+    // Writing a secret file is not a read, but it is still credential custody.
+    expect(
+      classifyToolCall(call({ tool: 'Write', input: { file_path: '/app/.env' } })).tier,
+    ).toBe('L3')
+  })
 })
 
 describe('malformed input fails closed', () => {

@@ -21,6 +21,7 @@ import {
   processTreeContainmentSupported,
   terminateProcessTree,
 } from './process-tree'
+import { autonomyEnv } from './autonomy-settings'
 import { createToolCallParser } from './tool-call-parser'
 import { isValidCliAccount } from './types'
 import type { LaneAdapter, LaneRunOptions, RunResult } from './adapter'
@@ -346,13 +347,24 @@ export function createCliAdapter(deps: CliAdapterDeps = {}): LaneAdapter {
       const structured =
         tool === 'claude-code' && lane.backend.structuredEvents === true
 
+      // UNI-2409: attach the autonomy gate as a PreToolUse hook. `gate` is
+      // resolved by the composition root, which owns the temp settings file
+      // and the approvals location; the adapter only passes it through.
+      const gate = options.gate
+
       const command = tool === 'codex' ? 'codex' : 'claude'
-      const args =
+      const baseArgs =
         tool === 'codex'
           ? ['exec', '-']
           : structured
             ? ['-p', '--output-format', 'stream-json', '--verbose']
             : ['-p']
+      // `--settings` merges ADDITIONAL settings, so the hook narrows what the
+      // lane may do without replacing the account's own configuration.
+      const args =
+        gate && tool === 'claude-code'
+          ? [...baseArgs, '--settings', gate.settingsPath]
+          : baseArgs
 
       // Isolate the account's auth via its own config dir, and ensure the
       // common CLI install locations are on PATH.
@@ -376,6 +388,17 @@ export function createCliAdapter(deps: CliAdapterDeps = {}): LaneAdapter {
                   }
                 : {}),
             }),
+        // The hook reads its request identity, adapter and approvals location
+        // from the environment. CLI_ENV_ALLOWLIST strips everything else, so
+        // these must be added after it rather than inherited.
+        ...(gate && tool === 'claude-code'
+          ? autonomyEnv({
+              requestId: gate.requestId,
+              adapter: 'claude-code',
+              ...(gate.approvalsPath ? { approvalsFile: gate.approvalsPath } : {}),
+              ...(gate.auditPath ? { auditFile: gate.auditPath } : {}),
+            })
+          : {}),
       }
 
       // In structured mode stdout is JSONL, not prose. Streaming those braces

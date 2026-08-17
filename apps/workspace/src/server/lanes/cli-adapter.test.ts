@@ -596,6 +596,74 @@ describe('CliLaneAdapter', () => {
     ])
   })
 
+  // ── UNI-2409: the gate is actually attached to the spawn ──────────────────
+
+  const gate = {
+    requestId: 'run-1',
+    settingsPath: '/tmp/gate/settings.json',
+    approvalsPath: '/tmp/gate/approvals.json',
+    auditPath: '/tmp/gate/decisions.jsonl',
+  }
+
+  it('passes the gate settings to the CLI', async () => {
+    const spawn: SpawnFn = vi.fn(async () => ({ code: 0, stdout: '', stderr: '' }))
+    const adapter = createCliAdapter({ spawn, accountsDir: '/tmp/accounts' })
+    await adapter.run(cliLane('claude-code'), 'mission', { gate })
+    // Without `--settings` reaching the CLI the hook is never installed, and
+    // the lane runs ungated while every unit test still passes.
+    expect(vi.mocked(spawn).mock.calls[0]?.[1]).toEqual([
+      '-p',
+      '--settings',
+      '/tmp/gate/settings.json',
+    ])
+  })
+
+  it('gives the hook its request identity, adapter and file paths', async () => {
+    const spawn: SpawnFn = vi.fn(async () => ({ code: 0, stdout: '', stderr: '' }))
+    const adapter = createCliAdapter({ spawn, accountsDir: '/tmp/accounts' })
+    await adapter.run(cliLane('claude-code'), 'mission', { gate })
+    const env = vi.mocked(spawn).mock.calls[0]?.[2].env ?? {}
+    // CLI_ENV_ALLOWLIST strips everything it does not know, so these must be
+    // added after it or the hook starts with no identity and blocks everything.
+    expect(env.NEXUS_LANE_REQUEST_ID).toBe('run-1')
+    expect(env.NEXUS_LANE_ADAPTER).toBe('claude-code')
+    expect(env.NEXUS_APPROVALS_FILE).toBe('/tmp/gate/approvals.json')
+    expect(env.NEXUS_GATE_AUDIT_FILE).toBe('/tmp/gate/decisions.jsonl')
+  })
+
+  it('keeps the gate settings alongside structured mode', async () => {
+    const spawn: SpawnFn = vi.fn(async () => ({ code: 0, stdout: '', stderr: '' }))
+    const adapter = createCliAdapter({ spawn, accountsDir: '/tmp/accounts' })
+    await adapter.run(structuredLane(), 'mission', { gate })
+    expect(vi.mocked(spawn).mock.calls[0]?.[1]).toEqual([
+      '-p',
+      '--output-format',
+      'stream-json',
+      '--verbose',
+      '--settings',
+      '/tmp/gate/settings.json',
+    ])
+  })
+
+  it('does not claim to gate a codex lane it cannot gate', async () => {
+    // Codex does not read Claude Code settings. Passing `--settings` there
+    // would be inert, and a lane that looks gated but is not is worse than one
+    // that is honestly ungated.
+    const spawn: SpawnFn = vi.fn(async () => ({ code: 0, stdout: '', stderr: '' }))
+    const adapter = createCliAdapter({ spawn, accountsDir: '/tmp/accounts' })
+    await adapter.run(cliLane('codex'), 'mission', { gate })
+    expect(vi.mocked(spawn).mock.calls[0]?.[1]).toEqual(['exec', '-'])
+    const env = vi.mocked(spawn).mock.calls[0]?.[2].env ?? {}
+    expect(env.NEXUS_LANE_REQUEST_ID).toBeUndefined()
+  })
+
+  it('runs ungated only when no gate was supplied at all', async () => {
+    const spawn: SpawnFn = vi.fn(async () => ({ code: 0, stdout: '', stderr: '' }))
+    const adapter = createCliAdapter({ spawn, accountsDir: '/tmp/accounts' })
+    await adapter.run(cliLane('claude-code'), 'mission')
+    expect(vi.mocked(spawn).mock.calls[0]?.[1]).toEqual(['-p'])
+  })
+
   it('does not spawn when the run was already aborted', async () => {
     const controller = new AbortController()
     controller.abort()

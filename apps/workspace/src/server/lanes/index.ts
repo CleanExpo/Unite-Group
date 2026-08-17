@@ -3,9 +3,11 @@
  * for the API routes. Slice 1 assumes backends are authed; real availability
  * checks arrive with the adapters (Slices 2-3).
  */
+import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { BEARER_TOKEN, CLAUDE_API } from '../gateway-capabilities'
+import { buildAutonomySettings } from './autonomy-settings'
 import { createCliAdapter } from './cli-adapter'
 import { createNexusDispatcher } from './dispatcher'
 import { createGatewayAdapter } from './gateway-adapter'
@@ -14,6 +16,7 @@ import { createLaneOrchestrator } from './lane-orchestrator'
 import { createNexusTaskQueue } from './task-queue'
 import { createWorktreeManager } from './worktree-manager'
 import { probeWorkerRegistry } from './worker-registry'
+import type { LaneGateWiring } from './adapter'
 import type { LaneOrchestrator } from './lane-orchestrator'
 import type { NexusTaskQueue } from './task-queue'
 
@@ -21,12 +24,42 @@ let singleton: LaneOrchestrator | null = null
 let taskQueueSingleton: NexusTaskQueue | null = null
 let taskQueueRecovery: Promise<number> | null = null
 
+/**
+ * Per-run autonomy gate wiring (UNI-2409).
+ *
+ * The settings file is written fresh for every run and the approvals path is
+ * scoped to that run, so an approval granted for one run can never be picked up
+ * by another. A failure to write it throws, which aborts the run: a lane that
+ * quietly proceeds ungated because setup failed is exactly the fail-open this
+ * ticket exists to prevent.
+ */
+export async function prepareLaneGate(
+  base: string,
+  input: { runId: string; laneId: string },
+): Promise<LaneGateWiring> {
+  const dir = path.join(base, 'gate', input.runId)
+  await fs.mkdir(dir, { recursive: true, mode: 0o700 })
+  const settingsPath = path.join(dir, 'settings.json')
+  await fs.writeFile(
+    settingsPath,
+    JSON.stringify(buildAutonomySettings(), null, 2),
+    { encoding: 'utf8', mode: 0o600 },
+  )
+  return {
+    requestId: input.runId,
+    settingsPath,
+    approvalsPath: path.join(dir, 'approvals.json'),
+    auditPath: path.join(dir, 'decisions.jsonl'),
+  }
+}
+
 export function getLaneOrchestrator(): LaneOrchestrator {
   if (!singleton) {
     const base = path.join(os.homedir(), '.hermes', 'lanes')
     singleton = createLaneOrchestrator({
       registryPath: path.join(base, 'lanes.jsonl'),
       worktrees: createWorktreeManager({ baseDir: base }),
+      prepareGate: (input) => prepareLaneGate(base, input),
       isBackendAvailable: async (backend) =>
         backend.kind === 'gateway'
           ? probeGatewayBackend(CLAUDE_API, backend, BEARER_TOKEN)

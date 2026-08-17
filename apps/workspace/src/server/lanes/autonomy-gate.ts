@@ -261,15 +261,55 @@ function readCommand(input: unknown): unknown {
   return (input as Record<string, unknown>).command
 }
 
-function readPath(input: unknown): string {
-  if (typeof input !== 'object' || input === null) return ''
+/**
+ * Every field of a tool input that can name a file the tool will READ.
+ *
+ * `glob` and `pattern` are here because a content-returning tool takes its
+ * target as a pattern, not a path: `Grep {glob: '**‍/.env'}` reads exactly the
+ * files a path check would have caught, and returns their matching lines. A
+ * live probe found that hole — the model, once blocked from `Read`, proposed a
+ * grep of the same file as its first workaround.
+ */
+const TARGET_FIELDS = [
+  'file_path',
+  'path',
+  'notebook_path',
+  'filePath',
+  'glob',
+  'pattern',
+  'paths',
+] as const
+
+function readTargets(input: unknown): string[] {
+  if (typeof input !== 'object' || input === null) return []
   const record = input as Record<string, unknown>
-  for (const key of ['file_path', 'path', 'notebook_path', 'filePath']) {
+  const targets: string[] = []
+  for (const key of TARGET_FIELDS) {
     const value = record[key]
-    if (typeof value === 'string') return value
+    if (typeof value === 'string') targets.push(value)
+    else if (Array.isArray(value)) {
+      for (const entry of value) if (typeof entry === 'string') targets.push(entry)
+    }
   }
-  return ''
+  return targets
 }
+
+/**
+ * Tools that return file CONTENT rather than merely file names.
+ *
+ * The distinction matters: `Glob` pointed at a secret pattern discloses that a
+ * file exists, which is reconnaissance; `Grep` pointed at the same pattern
+ * discloses the lines inside it, which is the disclosure the gate exists to
+ * stop. Only the second is escalated on a secret-shaped target.
+ */
+const CONTENT_RETURNING_TOOLS = new Set([
+  'Read',
+  'Grep',
+  'NotebookRead',
+  'Edit',
+  'Write',
+  'NotebookEdit',
+])
 
 /** Classify any tool call. Unknown tools fail closed to L3. */
 export function classifyToolCall(request: ToolCallRequest): CommandClassification {
@@ -284,11 +324,12 @@ export function classifyToolCall(request: ToolCallRequest): CommandClassificatio
     return classifyShellCommand(readCommand(request.input))
   }
 
-  const path = readPath(request.input)
-  if (path !== '') {
-    for (const marker of SECRET_MARKERS) {
-      if (marker.test(path)) {
-        return { tier: 'L3', reason: 'tool targets credential material' }
+  if (CONTENT_RETURNING_TOOLS.has(tool)) {
+    for (const target of readTargets(request.input)) {
+      for (const marker of SECRET_MARKERS) {
+        if (marker.test(target)) {
+          return { tier: 'L3', reason: 'tool targets credential material' }
+        }
       }
     }
   }

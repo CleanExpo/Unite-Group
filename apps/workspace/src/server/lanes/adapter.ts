@@ -113,6 +113,27 @@ export interface LaneRunOptions {
    * by the time it arrives here.
    */
   onToolCall?: (call: LaneToolCall) => void
+  /**
+   * Autonomy gate wiring (UNI-2409). When present, the lane runs with a
+   * PreToolUse hook that classifies every tool call before it executes.
+   *
+   * Its absence means the lane runs UNGATED. That is deliberate rather than a
+   * silent default: the composition root decides, and a test asserts the
+   * production root always supplies one, so "gate missing" can never be the
+   * quiet outcome of a refactor.
+   */
+  gate?: LaneGateWiring
+}
+
+export interface LaneGateWiring {
+  /** Scopes any approval; in practice the run id. */
+  requestId: string
+  /** Settings file passed to the CLI with `--settings`. */
+  settingsPath: string
+  /** Optional operator-controlled approvals file. */
+  approvalsPath?: string
+  /** Optional path the hook appends its decisions to. */
+  auditPath?: string
 }
 
 export interface LaneAdapter {

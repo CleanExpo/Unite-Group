@@ -14,7 +14,7 @@ import { cliAccountAvailable } from './lane-availability'
 import { StopNotAcknowledgedError, sanitiseLaneOutput } from './adapter'
 import { createLaneEventStream, parseEventLedger } from './event-stream'
 import { isLane, isLaneRun, parseLaneMissionInput } from './types'
-import type { LaneAdapter } from './adapter'
+import type { LaneAdapter, LaneGateWiring } from './adapter'
 import type { LaneStreamEvent } from './event-stream'
 import type { WorktreeManager } from './worktree-manager'
 import type { CreateLaneInput, Lane, LaneBackend, LaneRun } from './types'
@@ -40,6 +40,15 @@ export interface OrchestratorDeps {
   machineId?: string
   /** Injectable lane writer for deterministic persistence-failure drills. */
   appendLaneRecord?: (registryPath: string, lane: Lane) => Promise<void>
+  /**
+   * Prepare the per-run autonomy gate (UNI-2409). Supplied by the composition
+   * root. Throwing here aborts the run, which is the intended behaviour: a lane
+   * that cannot be gated must not run.
+   */
+  prepareGate?: (input: {
+    runId: string
+    laneId: string
+  }) => Promise<LaneGateWiring> | LaneGateWiring
 }
 
 export interface LaneOrchestrator {
@@ -671,6 +680,13 @@ export function createLaneOrchestrator(
       if (admission.kind === 'blocked') return admission.lane
       const { adapter, running, run, runId, controller, acknowledge, stream } =
         admission
+      // Prepared per run so an approval can never be scoped wider than one run.
+      // A failure to prepare the gate is a failure to run: a lane that silently
+      // proceeds ungated because the gate could not be set up is the exact
+      // fail-open this ticket exists to prevent.
+      const gateWiring = deps.prepareGate
+        ? await deps.prepareGate({ runId, laneId: id })
+        : undefined
       let unacknowledgedStop: StopNotAcknowledgedError | undefined
       const persistSettlementFailure = async (error: unknown): Promise<Lane> => {
         const code = errorCode(error)
@@ -719,6 +735,9 @@ export function createLaneOrchestrator(
             // Queued on the same chain as output, so a tool event cannot
             // overtake the output that produced it.
             onToolCall: (call) => stream.writeToolCall(call),
+            // UNI-2409. `prepareGate` is injected; when the composition root
+            // supplies one the lane runs behind a PreToolUse hook.
+            ...(gateWiring ? { gate: gateWiring } : {}),
           })
         } catch (error) {
           if (error instanceof StopNotAcknowledgedError) {

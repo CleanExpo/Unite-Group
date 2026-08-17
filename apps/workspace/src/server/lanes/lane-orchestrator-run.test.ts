@@ -178,6 +178,68 @@ describe('LaneOrchestrator.runMission', () => {
     expect(lane.lastOutput).toBe('cli-done')
   })
 
+  // ── UNI-2409: the gate reaches the adapter, or the run does not happen ────
+
+  it('hands the prepared gate to the adapter', async () => {
+    let seenGate: unknown
+    const cli: LaneAdapter = {
+      async run(_lane, _mission, options) {
+        seenGate = options?.gate
+        return { output: 'done' }
+      },
+    }
+    const o = createLaneOrchestrator({
+      registryPath: path.join(tempRoot, 'lanes.jsonl'),
+      worktrees: noopWorktrees,
+      adapters: { cli },
+      idgen: () => 'gated-lane',
+      runIdgen: () => 'run-gated-1',
+      now: () => 1_000,
+      isBackendAvailable: () => true,
+      prepareGate: ({ runId }) => ({
+        requestId: runId,
+        settingsPath: `/tmp/${runId}/settings.json`,
+      }),
+    })
+    await o.create(cliInput)
+    await o.runMission('gated-lane', 'build')
+
+    // Scoped to the run: an approval can never be wider than one run.
+    expect(seenGate).toEqual({
+      requestId: 'run-gated-1',
+      settingsPath: '/tmp/run-gated-1/settings.json',
+    })
+  })
+
+  it('does not run the mission at all when the gate cannot be prepared', async () => {
+    // A lane that proceeds ungated because setup failed is the fail-open the
+    // whole ticket exists to prevent.
+    let adapterRan = false
+    const cli: LaneAdapter = {
+      async run() {
+        adapterRan = true
+        return { output: 'done' }
+      },
+    }
+    const o = createLaneOrchestrator({
+      registryPath: path.join(tempRoot, 'lanes.jsonl'),
+      worktrees: noopWorktrees,
+      adapters: { cli },
+      idgen: () => 'ungatable-lane',
+      runIdgen: () => 'run-ungatable-1',
+      now: () => 1_000,
+      isBackendAvailable: () => true,
+      prepareGate: () => {
+        throw new Error('cannot write gate settings')
+      },
+    })
+    await o.create(cliInput)
+    await expect(o.runMission('ungatable-lane', 'build')).rejects.toThrow(
+      /cannot write gate settings/,
+    )
+    expect(adapterRan).toBe(false)
+  })
+
   // ── UNI-2406: live output reaches the ledger, redacted and in order ───────
 
   it('persists streamed process output between the lifecycle events', async () => {
