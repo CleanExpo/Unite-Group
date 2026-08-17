@@ -9,7 +9,16 @@ import { db } from '../../data-access/index.js';
 const hasDb = !!process.env.SPINE_DATABASE_URL;
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const migrationsDir = join(root, 'migrations');
+const stranglerDir = join(root, 'strangler');
 const seedFile = join(root, 'seed', '0001_seed.sql');
+
+/** Non-test strangler files, in order — the harness that provides migrate.outbox. */
+function stranglerFiles(): string[] {
+  return readdirSync(stranglerDir)
+    .filter((f) => f.endsWith('.sql') && !f.endsWith('.test.sql'))
+    .sort()
+    .map((f) => join(stranglerDir, f));
+}
 const SCHEMAS = ['core', 'marketing', 'leadgen', 'onboarding', 'nrpg', 'carsi', 'field', 'sales'];
 
 async function teardown(): Promise<void> {
@@ -42,9 +51,17 @@ describe.skipIf(!hasDb)('migrations: reproducible apply + clean teardown', () =>
   // Without the hook, suites ordered after this one query empty tables and fail
   // with "relation core.person does not exist" or silently see zero rows —
   // which reads exactly like an RLS defect and is not one.
+  // The strangler harness is restored too, not just migrations and seed. Its
+  // objects (migrate.relay_batch and friends) reference the core tables, so a
+  // `drop schema core cascade` above takes them with it — and outbox_race runs
+  // AFTER this file, gating itself on `to_regclass('migrate.outbox')`. Without
+  // this it would find the harness gone and self-skip, which the evidence check
+  // reports as REQUIRED_EVIDENCE_NOT_EXECUTED rather than as a failure, so the
+  // job would go red for a reason that looks nothing like its cause.
   afterAll(async () => {
     await teardown();
     await applyAll();
+    for (const f of stranglerFiles()) await db().unsafe(readFileSync(f, 'utf8'));
     await db().unsafe(readFileSync(seedFile, 'utf8'));
   }, 60_000);
 

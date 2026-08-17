@@ -404,6 +404,15 @@ jobs:
       # its hnsw index — exists on the hosted databases only because it was
       # enabled out of band. See that file for why the schema it lands in matters.
       #
+      # The strangler/ files are applied too. They are described in-tree as
+      # "optional rehearsal machinery, not part of migrations/0001..0005", and
+      # tests/integration/outbox_race.test.ts self-skips without
+      # migrate.outbox — but config/ci-evidence-manifest.json lists that suite
+      # as REQUIRED_EVIDENCE for the relay-concurrency capability. Optional to
+      # the schema, mandatory to the gate: if the evidence is required, the
+      # environment has to provide what produces it. The *.test.sql files beside
+      # them are raw-SQL suites, not schema, and are deliberately excluded.
+      #
       # TWO ROLES, deliberately. ci/00_extensions.sql runs as supabase_admin
       # because enabling an extension and granting a parameter both need
       # superuser — but EVERYTHING ELSE runs as postgres, the same role the
@@ -433,7 +442,10 @@ jobs:
             migrations/0002_modules.sql \
             migrations/0003_match_and_lineage_rls.sql \
             migrations/0004_grants.sql \
-            migrations/0005_match_iterative_scan.sql
+            migrations/0005_match_iterative_scan.sql \
+            strangler/0001_resolver.sql \
+            strangler/0003_dual_write_outbox.sql \
+            strangler/0004_shadow_read_diff.sql
           do
             echo "── applying $f (as postgres)"
             psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U postgres -d postgres -f "$f"
