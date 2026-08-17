@@ -44,11 +44,20 @@ enabled = false
 enabled = false
 
 [auth]
-# The auth SCHEMA (auth.jwt(), auth.uid(), the authenticated role) ships with
-# the database image and is what the migrations need. The GoTrue SERVICE is not
-# needed: the DAL authenticates by setting request.jwt.claims directly in the
-# transaction (data-access/client.ts), never by issuing real tokens.
-enabled = false
+# MUST stay true. This was first written `false` on the reasoning that the DAL
+# never issues real tokens — it sets request.jwt.claims directly in the
+# transaction (data-access/client.ts) — so the GoTrue service looked redundant.
+# CI disproved it:
+#
+#   psql:migrations/0001_core_identity.sql:94:
+#     ERROR: function auth.jwt() does not exist
+#
+# auth.jwt() and auth.uid() are created by the auth service's own migrations,
+# not baked into the database image. migrations/0001 defines
+# core.current_org_id() over auth.jwt() and 0002 gates policies on auth.uid(),
+# so with auth disabled the schema cannot even be built. Disabling this to save
+# a few seconds of startup costs the entire RLS suite.
+enabled = true
 
 [realtime]
 enabled = false
