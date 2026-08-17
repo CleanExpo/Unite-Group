@@ -117,6 +117,21 @@ describe('aggregateUsageRows', () => {
     expect(lines[0].calls).toBe(3); // 1 deduped + 2 distinct
   });
 
+  it('does not merge two capabilities whose names collide under a naive separator', () => {
+    // The composite key must be unambiguous. With a plain space separator,
+    // ('a b','c') and ('a','b c') both produce "a b c" and two distinct
+    // capability/model pairs silently collapse into one ledger line. task_type
+    // is free text from the database, so this is reachable, not hypothetical.
+    const lines = aggregateUsageRows(
+      [
+        row({ task_type: 'a b', model_id: 'c' }),
+        row({ task_type: 'a', model_id: 'b c' }),
+      ],
+      period,
+    );
+    expect(lines).toHaveLength(2);
+  });
+
   it('returns nothing for no rows', () => {
     expect(aggregateUsageRows([], period)).toEqual([]);
   });
