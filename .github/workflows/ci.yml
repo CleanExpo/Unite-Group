@@ -368,6 +368,10 @@ jobs:
       # seed/0001_seed.sql pins fixed UUIDs. The port is the one set in
       # packages/spine/packages/spine/supabase/config.toml.
       SPINE_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      # UNI-2597. Same cluster, different database — the destructive migration
+      # suite's own, so its `drop schema … cascade` cannot reach the fixtures the
+      # other suites read. Created by the bootstrap step below.
+      SPINE_MIGRATION_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/spine_migrations
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -431,6 +435,31 @@ jobs:
           set -euo pipefail
           psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U supabase_admin -d postgres \
             -f ci/00_extensions.sql
+
+      # UNI-2597. A SECOND database in the SAME ephemeral cluster, owned by the
+      # destructive migration suite. idempotency.test.ts runs `drop schema … cascade`
+      # on every run — that is what it tests — and sharing one database with the
+      # suites that read the seeded fixtures deletes their tables mid-query.
+      #
+      # Deliberately NOT migrated or seeded here: the suite builds the spine from
+      # empty itself, which is the property under test. It gets the extensions
+      # (per-database, so 00_extensions.sql must run again) and an auth schema
+      # (Supabase creates `auth` only in the default database, and migrations/0001
+      # calls auth.jwt() in a function body that PostgreSQL validates at CREATE
+      # time). Roles are cluster-wide, so postgres keeps the grants above.
+      - name: Create the destructive suite's own database
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U supabase_admin -d postgres \
+            -c "create database spine_migrations owner postgres"
+          for f in ci/00_extensions.sql ci/01_migration_db.sql
+          do
+            echo "── applying $f to spine_migrations (as supabase_admin)"
+            psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U supabase_admin \
+              -d spine_migrations -f "$f"
+          done
 
       - name: Apply spine migrations and seed
         env:

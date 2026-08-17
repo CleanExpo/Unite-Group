@@ -1,38 +1,64 @@
 // Idempotency + teardown: proves the migration set rebuilds the full spine from empty,
-// tears down clean, and is re-runnable. Runs in CI against an ephemeral DB.
-import { describe, it, expect, afterAll } from 'vitest';
+// tears down clean, and is re-runnable.
+//
+// THIS SUITE IS DESTRUCTIVE, AND IT OWNS ITS OWN DATABASE (UNI-2597).
+// It runs `drop schema core, marketing, … cascade` — that is the thing it tests.
+// Pointed at the database the other integration suites read, it deletes their tables
+// mid-query: observed as `relation "field.job" does not exist`, `relation
+// "core.person" does not exist`, plus a deadlock inside this suite. The collision is
+// older than either suite and was invisible for one reason only — with no database
+// configured, every one of them skipped, so they could never run at the same time.
+//
+// It connects to SPINE_MIGRATION_DATABASE_URL, a separate database in the SAME
+// ephemeral cluster, and never touches SPINE_DATABASE_URL.
+//
+// The two alternatives were tried and rejected, and neither should be reinstated:
+//   * ordering the files (fileParallelism:false) — this suite still sorts ahead of
+//     the data-dependent ones and leaves the schemas rebuilt but UNSEEDED, so they
+//     then fail on empty tables. Ordering is not isolation.
+//   * restoring schema + strangler + seed in afterAll — needs a role that bypasses
+//     RLS (the tables are FORCE ROW LEVEL SECURITY) AND the ordering above, i.e. the
+//     rejected option plus more machinery, with a durable dependency on what runs
+//     next. Deleted by this change.
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { db } from '../../data-access/index.js';
+import postgres from 'postgres';
 
-const hasDb = !!process.env.SPINE_DATABASE_URL;
+const SHARED_URL = process.env.SPINE_DATABASE_URL;
+const MIGRATION_URL = process.env.SPINE_MIGRATION_DATABASE_URL;
+const hasDb = !!MIGRATION_URL;
+
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const migrationsDir = join(root, 'migrations');
-const stranglerDir = join(root, 'strangler');
-const seedFile = join(root, 'seed', '0001_seed.sql');
-
-/** Non-test strangler files, in order — the harness that provides migrate.outbox. */
-function stranglerFiles(): string[] {
-  return readdirSync(stranglerDir)
-    .filter((f) => f.endsWith('.sql') && !f.endsWith('.test.sql'))
-    .sort()
-    .map((f) => join(stranglerDir, f));
-}
 const SCHEMAS = ['core', 'marketing', 'leadgen', 'onboarding', 'nrpg', 'carsi', 'field', 'sales'];
 
+// This suite's OWN connection. Deliberately not the DAL's db() singleton: db()
+// reads SPINE_DATABASE_URL, so reaching for it here is exactly the mistake the
+// separation prevents, and it would fail silently rather than loudly.
+let sql: postgres.Sql;
+
+beforeAll(() => {
+  if (!hasDb) return;
+  sql = postgres(MIGRATION_URL!, { max: 1, prepare: false, onnotice: () => {} });
+});
+
+afterAll(async () => {
+  if (sql) await sql.end({ timeout: 5 });
+});
+
 async function teardown(): Promise<void> {
-  await db().unsafe(`drop schema if exists ${SCHEMAS.join(', ')} cascade;`);
+  await sql.unsafe(`drop schema if exists ${SCHEMAS.join(', ')} cascade;`);
 }
 async function applyAll(): Promise<string[]> {
   const files = readdirSync(migrationsDir)
     .filter((f) => f.endsWith('.sql') && !f.startsWith('0000'))
     .sort();
-  for (const f of files) await db().unsafe(readFileSync(join(migrationsDir, f), 'utf8'));
+  for (const f of files) await sql.unsafe(readFileSync(join(migrationsDir, f), 'utf8'));
   return files;
 }
 async function tableCount(): Promise<number> {
-  const sql = db();
   const rows = await sql<{ n: number }[]>`
     select count(*)::int as n
     from pg_class c join pg_namespace n on n.oid = c.relnamespace
@@ -41,29 +67,48 @@ async function tableCount(): Promise<number> {
 }
 
 describe.skipIf(!hasDb)('migrations: reproducible apply + clean teardown', () => {
-  // THIS SUITE IS DESTRUCTIVE — it drops all eight spine schemas. Every other
-  // integration suite reads the seeded fixtures, so it must leave the database
-  // as it found it, and must never run beside them.
+  // REQUIRED GUARD (UNI-2597 step 3). Without it, a future config change that points
+  // both variables at one database silently re-merges them, the drops land back on
+  // the shared fixture, and this suite still reports green — a suite passing for the
+  // wrong reason, which is the exact false-success class UNI-2580 exists to remove.
   //
-  // Both halves matter, and the second is not optional: vitest.config.ts sets
-  // fileParallelism:false so nothing runs concurrently with this, and this hook
-  // restores schema + seed so whatever runs AFTER still finds its fixtures.
-  // Without the hook, suites ordered after this one query empty tables and fail
-  // with "relation core.person does not exist" or silently see zero rows —
-  // which reads exactly like an RLS defect and is not one.
-  // The strangler harness is restored too, not just migrations and seed. Its
-  // objects (migrate.relay_batch and friends) reference the core tables, so a
-  // `drop schema core cascade` above takes them with it — and outbox_race runs
-  // AFTER this file, gating itself on `to_regclass('migrate.outbox')`. Without
-  // this it would find the harness gone and self-skip, which the evidence check
-  // reports as REQUIRED_EVIDENCE_NOT_EXECUTED rather than as a failure, so the
-  // job would go red for a reason that looks nothing like its cause.
-  afterAll(async () => {
-    await teardown();
-    await applyAll();
-    for (const f of stranglerFiles()) await db().unsafe(readFileSync(f, 'utf8'));
-    await db().unsafe(readFileSync(seedFile, 'utf8'));
-  }, 60_000);
+  // It compares what the SERVER reports, not the two URL strings. String inequality
+  // is defeated without any intent to cheat: `localhost` vs `127.0.0.1`, a trailing
+  // slash, a different password or an added `?sslmode=` all make two URLs that differ
+  // textually while naming one database. Same cluster (system identifier) AND same
+  // datname is what "the same database" actually means, so that is what is asserted.
+  it('GUARD: the destructive suite is not pointed at the shared fixture', async () => {
+    expect(
+      SHARED_URL,
+      'SPINE_DATABASE_URL must be set for this comparison to mean anything',
+    ).toBeTruthy();
+
+    const shared = postgres(SHARED_URL!, { max: 1, prepare: false, onnotice: () => {} });
+    try {
+      const [mine] = await sql<{ db: string; cluster: string }[]>`
+        select current_database() as db, system_identifier::text as cluster from pg_control_system()`;
+      const [theirs] = await shared<{ db: string; cluster: string }[]>`
+        select current_database() as db, system_identifier::text as cluster from pg_control_system()`;
+
+      expect(
+        mine!.cluster === theirs!.cluster && mine!.db === theirs!.db,
+        `the destructive migration suite is pointed at the SHARED fixture ` +
+          `(cluster ${mine!.cluster}, database "${mine!.db}"). It drops every spine schema; ` +
+          `running it there destroys the fixtures the RLS, isolation and outbox suites read. ` +
+          `Point SPINE_MIGRATION_DATABASE_URL at a separate database.`,
+      ).toBe(false);
+
+      // Same cluster is the intent — one ephemeral service, two databases. Asserting
+      // it makes a silent drift onto some unrelated server visible, rather than
+      // merely satisfying the inequality above.
+      expect(
+        mine!.cluster,
+        'both databases should live in the one ephemeral cluster',
+      ).toBe(theirs!.cluster);
+    } finally {
+      await shared.end({ timeout: 5 });
+    }
+  });
 
   it('teardown → apply rebuilds the full spine (20 tables)', async () => {
     await teardown();

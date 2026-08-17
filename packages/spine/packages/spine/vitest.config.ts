@@ -6,22 +6,19 @@ export default defineConfig({
     environment: 'node',
     // Integration suites self-skip when SPINE_DATABASE_URL is unset (see tests/integration/*).
     //
-    // NO FILE PARALLELISM. Every integration suite shares ONE database, and
-    // tests/integration/idempotency.test.ts drops all eight spine schemas to
-    // prove the migration set rebuilds from empty. Run in parallel, that drop
-    // lands while the other suites are mid-query, and CI reports things like
-    // `relation "field.job" does not exist`, `schema "field" does not exist`
-    // and `deadlock detected` — failures that look like defects in the RLS
-    // policies and are actually just the destructive suite racing its
-    // neighbours.
+    // File parallelism is back at the DEFAULT (UNI-2597). The destructive
+    // migration suite is now isolated STRUCTURALLY — idempotency.test.ts owns a
+    // separate database, SPINE_MIGRATION_DATABASE_URL — rather than by scheduling.
     //
-    // This was invisible until UNI-2580 gave the job a real database: with
-    // SPINE_DATABASE_URL unset, all of these suites skipped, so a destructive
-    // migration test has coexisted with data-dependent tests unnoticed.
+    // The previous arrangement here (fileParallelism:false plus a restore hook in
+    // that suite) was serialisation standing in for isolation, and it did not hold:
+    // sequentially, idempotency still sorts ahead of the data-dependent suites and
+    // leaves the schemas rebuilt but UNSEEDED, so they fail on empty tables unless
+    // the restore hook also runs — and that hook needs a role bypassing RLS, since
+    // the tables are FORCE ROW LEVEL SECURITY. Two coupled mechanisms and a durable
+    // dependency on file order, where a second database is one `create database`.
     //
-    // Serialising is half the fix; idempotency.test.ts also restores the schema
-    // and seed in afterAll, so files ordered after it still find their
-    // fixtures. Removing either half reintroduces the failures above.
-    fileParallelism: false,
+    // Removing the shared state removes the reason to serialise, so the
+    // non-destructive suites run concurrently again and wall-clock does not regress.
   },
 });
