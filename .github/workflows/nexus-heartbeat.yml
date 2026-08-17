@@ -1,0 +1,289 @@
+name: Nexus Heartbeat
+
+# The pulse (UNI-2523): proves the gates and reports the distance to the North
+# Star. Manual-dispatch only until the cron is separately approved — see the
+# DORMANT note on the trigger below.
+#
+# AUTHORITY. This workflow OBSERVES AND REPORTS — Waterline Class 0/1. It must not
+# deploy, merge, or arm anything: merge is not deploy (UNI-2542) and there is one
+# release authority (UNI-2562).
+#
+# THE WRITE TOKEN'S BLAST RADIUS IS REDUCED, NOT ELIMINATED. Permissions are
+# granted per job, so `observe` — the job that runs the three repository-controlled
+# gate scripts — holds `contents: read` and nothing else. Only `report` holds
+# `issues: write`, and it sparse-checks-out a single file. Both checkouts set
+# `persist-credentials: false`. Neither job installs anything: the repository root
+# declares zero dependencies, and round eight proved an `npm ci` step here could
+# never have run at all, because there is no lockfile for it to read.
+#
+# State the limit exactly, because round two was right to push on it: `report`
+# still EXECUTES one repository-controlled file (scripts/nexus-heartbeat.mjs)
+# while holding that token, and sparse checkout restricts files, not API reach.
+# Anyone able to land arbitrary code in that file can call the issues API with it.
+# What the split buys is that the three gate scripts — which read the whole tree
+# and are the far larger surface — do not run under the token at all. That is a
+# real reduction and it is not the same as containment.
+#
+# HONEST DEGRADATION, AND ITS CEILING. Every gate runs with its exit code
+# captured, so one red gate cannot hide the others, and `report` runs with
+# `if: always()` so a dead observe job publishes NOT RUN rows under a DEGRADED
+# banner instead of leaving yesterday's PASS standing. The ceiling: if the report
+# job itself cannot run — checkout fails, the import throws, the API rejects the
+# write — NOTHING updates the issue, and the previous body stays live. No workflow
+# can report its own total failure from inside itself. That is why every body is
+# stamped with its run id and generation time and says so: a reader checks the
+# timestamp, and an external watchdog is the only real answer.
+#
+# All decision logic lives in scripts/nexus-heartbeat.mjs where tests can reach
+# it. The capture step records EXIT CODES ONLY — it does not decide PASS or FAIL.
+#
+# THREAT MODEL — three things this does NOT defend against, named so nobody
+# mistakes the guards above for them. Review round three raised all three as P0
+# and it was right to; they are stated rather than closed because they cannot be
+# closed from inside the repository they audit.
+#
+#   1. AN AUTHOR WHO CAN LAND ARBITRARY CODE HERE. Changing `code=$?` to `code=0`
+#      in the capture, or `npm run "$gate"` to `true`, or editing
+#      scripts/nexus-heartbeat.mjs to call the issues client directly, all produce
+#      a green report. No in-repo gate survives an author who can edit the gate.
+#      What the tests below DO enforce is that such a change must be visible in
+#      the diff rather than emergent from a subtle refactor.
+#   2. THE REPORT JOB NOT RUNNING AT ALL. If checkout fails, the import throws, or
+#      the issues API rejects the write, no body is published and the previous
+#      run's PASS stays live. Every body is stamped with its run id and generation
+#      time precisely so a reader can see that; only an external watchdog can
+#      actually detect the silence.
+#   3. AN ISSUE CARRYING THE OWNERSHIP MARKER THAT THIS WORKFLOW DID NOT WRITE.
+#      The marker is public. Someone who opens an issue with this exact title and
+#      the marker in its body before the first run — or after the canonical issue
+#      is closed — will be adopted. The lowest-numbered owned issue wins, so this
+#      cannot hijack an existing pin, only pre-empt a missing one.
+
+# DORMANT ON MERGE — MANUAL DISPATCH ONLY. There is deliberately no `schedule:`
+# trigger here. Merging a capability arms nothing in this repository (UNI-2542,
+# merge is not deploy), and round four was right that shipping the cron in this
+# PR would have armed a daily issues-write the moment it landed on the default
+# branch — before the watched first run that is supposed to decide whether it
+# deserves to run unattended. The cron is a separate, separately-approved change,
+# added only after a dispatched run has been observed writing the issue correctly.
+#
+# When it is added it belongs at 19:00 UTC = 05:00 Brisbane (AEST, UTC+10, no DST).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nexus-heartbeat
+  cancel-in-progress: false
+
+jobs:
+  observe:
+    name: Run the gates and capture every result
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          # engines require >=24.14.1 <25. The root is NOT a pnpm workspace
+          # (apps/web is one itself; pnpm cannot nest), so the root uses npm.
+          node-version: '24.14.1'
+
+      # NO INSTALL STEP, AND THIS IS THE FINDING THAT MATTERED MOST.
+      #
+      # This step used to be `npm ci`, and it could never have succeeded: the
+      # repository root has no `package-lock.json` and no `npm-shrinkwrap.json`,
+      # so `npm ci` exits 1 with EUSAGE before doing anything. The observe job
+      # would have died here, before running a single gate, and every dispatch
+      # would have reported all three gates as NOT RUN — a heartbeat that only
+      # ever published its own failure.
+      #
+      # Nothing was wrong with the tests. They were all green, the mutation
+      # harness was clean, and the workflow was broken anyway, because nothing
+      # here had ever been executed. That is the whole of "shipped is not
+      # observed" in one step.
+      #
+      # No install is needed at all: the root declares zero dependencies and
+      # zero devDependencies, and the three gates run on `node --test` alone.
+      # Adding a lockfile to satisfy a command we do not need would be fixing
+      # the symptom.
+
+      # The shell records EXIT CODES ONLY. It used to decide `status=PASS` itself,
+      # which put a verdict back inside the YAML where no test could reach it —
+      # the same shape as the round-one P0, one layer down. reconcileGates derives
+      # PASS/FAIL from the exit code now, and a test asserts the YAML never
+      # mentions PASS again.
+      - name: Run gates and capture every exit code
+        run: |
+          set +e
+          mkdir -p /tmp/heartbeat
+          results='[]'
+          for gate in verify:readiness verify:docs-watch verify:docs-review; do
+            npm run "$gate" > "/tmp/heartbeat/${gate//:/-}.log" 2>&1
+            code=$?
+            results=$(node -e '
+              const [existing, name, code] = process.argv.slice(1);
+              const list = JSON.parse(existing);
+              list.push({ name, exitCode: Number(code) });
+              console.log(JSON.stringify(list));
+            ' "$results" "$gate" "$code")
+          done
+          printf '%s' "$results" > /tmp/heartbeat/gate-results.json
+          cat /tmp/heartbeat/gate-results.json
+
+      # `|| true` IS A DECISION, NOT A SHRUG, and it is the one place in this
+      # workflow where an exit code is deliberately discarded.
+      #
+      # Exit 1 means the ledger does not read cleanly — either rows the parser
+      # could not read at all, or rows that parse and are semantically wrong (an
+      # unknown status, an empty required cell, a date that cannot be aged). The
+      # summary JSON is written to stdout either way and carries
+      # `integrity: MALFORMED`, which the report turns into an UNTRUSTWORTHY
+      # queue block with every note listed.
+      #
+      # So failing this step would DESTROY the report rather than protect it: the
+      # heartbeat exists to say "the queue could not be read", and a dead step
+      # says nothing at all. A gate reading this exit code must still treat it as
+      # blocking — that is `founder-queue.mjs`'s contract with its callers, and
+      # this workflow is a reporter, not a gate.
+      - name: Compute founder-queue age
+        run: node scripts/founder-queue.mjs > /tmp/heartbeat/queue.json || true
+
+      - name: Upload the evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: heartbeat-evidence
+          path: /tmp/heartbeat
+          if-no-files-found: warn
+          retention-days: 7
+
+  report:
+    name: Create or update the pinned heartbeat issue
+    needs: [observe]
+    # ALWAYS. A skipped report is the failure mode this workflow exists to prevent:
+    # it leaves the previous run's PASS body live as the newest thing anyone reads.
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      # Exactly one file, no history, no credentials, no install. Nothing in this
+      # job executes repository code other than scripts/nexus-heartbeat.mjs.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/nexus-heartbeat.mjs
+          sparse-checkout-cone-mode: false
+
+      - name: Download the evidence
+        if: always()
+        continue-on-error: true
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: heartbeat-evidence
+          path: /tmp/heartbeat
+
+      - name: Create or update the pinned heartbeat issue
+        if: always()
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const {
+              DECLARED_GATES, brisbaneReportDate,
+              composeHeartbeat, findOwnedIssue, readEvidence, upsertHeartbeatIssue,
+            } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/nexus-heartbeat.mjs`);
+
+            const client = {
+              // paginate, not per_page: a heartbeat sitting past the first page
+              // reads as absent and opens a duplicate every single run.
+              listOpenIssues: async () => {
+                const data = await github.paginate(github.rest.issues.listForRepo, {
+                  owner: context.repo.owner, repo: context.repo.repo, state: 'open', per_page: 100,
+                });
+                // pull_request is carried through: this endpoint returns PRs too,
+                // and findOwnedIssue must be able to tell them apart.
+                return data.map((issue) => ({
+                  number: issue.number,
+                  title: issue.title,
+                  body: issue.body,
+                  pull_request: issue.pull_request,
+                }));
+              },
+              createIssue: async ({ title, body }) => {
+                const { data } = await github.rest.issues.create({
+                  owner: context.repo.owner, repo: context.repo.repo, title, body,
+                });
+                return { number: data.number };
+              },
+              updateIssue: async (issue_number, { title, body }) => {
+                const { data } = await github.rest.issues.update({
+                  owner: context.repo.owner, repo: context.repo.repo, issue_number, title, body,
+                });
+                return { number: data.number };
+              },
+              // The readback. A create/update response is a claim about a
+              // request; this is the observation that it landed. upsert throws
+              // unless the live body matches what was sent.
+              // `state` IS PART OF THE OBSERVATION, not metadata. The readback
+              // compared number, title, marker and body and never asked whether
+              // the issue was still open — so an issue closed between the
+              // listing and the update passed every check, and the run reported
+              // success with the report written where nobody reads it.
+              getIssue: async (issue_number) => {
+                const { data } = await github.rest.issues.get({
+                  owner: context.repo.owner, repo: context.repo.repo, issue_number,
+                });
+                return {
+                  number: data.number, title: data.title, body: data.body, state: data.state,
+                };
+              },
+            };
+
+            // ONE listing, used for both the drift read and the write target.
+            // Two lookups race: the issue drift was measured against can be closed
+            // between them, and the report is then written somewhere else while
+            // claiming a regression it measured elsewhere.
+            const issues = await client.listOpenIssues();
+            const previous = findOwnedIssue(issues);
+
+            const { body, failed, failureReasons } = composeHeartbeat({
+              // Brisbane wall clock, DD/MM/YYYY. A UTC date stamps the PREVIOUS
+              // day on a 19:00Z run whose queue ages were computed in Brisbane.
+              date: brisbaneReportDate(),
+              gateEvidence: readEvidence('/tmp/heartbeat/gate-results.json'),
+              queueEvidence: readEvidence('/tmp/heartbeat/queue.json'),
+              previousBody: previous?.body ?? null,
+              provenance: {
+                runId: context.runId,
+                runUrl: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+                generatedAt: new Date().toISOString(),
+              },
+              declared: DECLARED_GATES,
+            });
+
+            const result = await upsertHeartbeatIssue({ client, body, issues });
+            core.info(`Heartbeat issue ${result.action}: #${result.number}`);
+
+            // The report is published, THEN the run is failed. Publishing first
+            // is what keeps the issue honest; failing after is what makes the
+            // problem visible in the Actions list.
+            //
+            // `failed`, NOT `degraded`. `degraded` means the report is
+            // untrustworthy; a gate that ran and FAILED produces a perfectly
+            // trustworthy report and raised no anomaly, so gating on `degraded`
+            // published a body saying FAIL while this run went green. `failed`
+            // covers both, and is derived from the same gate rows the body
+            // renders so the two cannot disagree.
+            if (failed) {
+              core.setFailed(`Heartbeat is not green:\n${failureReasons.map((r) => `- ${r}`).join('\n')}`);
+            }

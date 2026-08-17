@@ -118,3 +118,33 @@ that trigger such sessions: `docs/mission-control/harness-wrapper-contract.md`.
 The freeze-versus-canonical-vault tension predates this section (`brain-1` is named both
 as frozen and as the canonical knowledge store) — this narrows it to a stated exception
 rather than resolving it. FLAGGED for founder confirmation.
+
+## Session boot contract (UNI-2523)
+
+**An explicit instruction from Phill outranks this contract.** This is what a
+session does when it arrives with no task of its own — it is not a licence to
+abandon the job you were actually given. The first draft said "every session"
+without that qualifier, and the independent review demonstrated the consequence:
+a session commissioned to review a fixed commit would have walked away from the
+review to pick up an unrelated Linear ticket.
+
+Steps 1 and 2 are unconditional. Step 3 applies only when no task was given.
+
+1. Read `SOURCE-OF-TRUTH.md`, then `NORTH-STAR.md`, then `FOUNDER-QUEUE.md`.
+2. **State the top FOUNDER-QUEUE blocker and its age in the first reply.** Not a
+   summary of the queue — the single oldest open decision and how many days it
+   has been waiting. **Read the age from `node scripts/founder-queue.mjs`, never
+   from the file's Age column**, which reads `—` because a committed age decays
+   every midnight and was found a day stale within a day of being written.
+3. With no assigned task, take **the single top unblocked ticket from Linear
+   (team UNI)** as the only queue. `.spm/` and `docs/specs/` are **read-only
+   registers** — history and context, never task sources. Six places to look for
+   work is why sessions re-orient instead of building.
+4. End with **a PR URL or a named blocker with terminal evidence**. For a build
+   session a zero-code ending is not a valid handoff state. A session
+   commissioned to review, verify or investigate discharges this by delivering
+   its report with the evidence in it — its deliverable was never code.
+
+`NORTH-STAR.md` opens with a disambiguation block: "NorthStar" already names the
+honest-sources rule and the `apps/web` completion spec, and those are three
+different things.

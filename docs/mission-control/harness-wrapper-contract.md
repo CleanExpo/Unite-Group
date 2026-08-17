@@ -149,9 +149,9 @@ router must not be written against a register that does not exist.
 | Portfolio registry SSOT | `.portfolio/PORTFOLIO.yaml` | PRESENT |
 | NorthStar spec | `apps/web/docs/NORTHSTAR-SPEC.md` | PRESENT |
 | Repo issues (open work) | GitHub `CleanExpo/Unite-Group` issues | PRESENT — 5 open, 4 closed |
-| Root `NORTH-STAR.md` | — | **ABSENT** — no such file in this repo |
-| `FOUNDER-QUEUE.md` | — | **ABSENT** — no such file in this repo |
-| Standing "heartbeat issue" | — | **ABSENT** — no issue matching it exists |
+| Root `NORTH-STAR.md` | `NORTH-STAR.md` | PRESENT — landed by UNI-2523 |
+| `FOUNDER-QUEUE.md` | `FOUNDER-QUEUE.md` | PRESENT — landed by UNI-2523; ages are computed by `scripts/founder-queue.mjs`, never typed |
+| Standing "heartbeat issue" | — | **ABSENT** — the workflow that creates it exists but has never run. It becomes PRESENT only when a watched `workflow_dispatch` has been observed creating it |
 | Vault wiki (`brain-1`) | `~/2nd Brain/2nd Brain` | Founder machines only — not present in remote/CI checkouts |
 
 A Tier-2 answer that depends on an ABSENT register must say the register is absent. It
@@ -208,21 +208,25 @@ it.
 
 | # | Item | Disposition |
 | --- | --- | --- |
-| 1 | `NORTH-STAR.md` and `FOUNDER-QUEUE.md` do not exist | Either create them as real registers or drop them from the Tier-2 set. Until then Tier 2 cannot cite them. |
-| 2 | No standing heartbeat issue exists | A vault-growth metric has nowhere to report. See §9. |
+| 1 | ~~`NORTH-STAR.md` and `FOUNDER-QUEUE.md` do not exist~~ | **CLOSED by UNI-2523.** Both are real registers now and Tier 2 may cite them. |
+| 2 | No standing heartbeat issue exists | **STILL OPEN.** `.github/workflows/nexus-heartbeat.yml` exists and would create it, but the workflow has never run. See §9. |
 | 3 | Per-surface compliance is unimplemented | Tracked per surface, not here. |
 
-## 9. Vault-growth metric — not implemented, and why
+## 9. Vault-growth metric — still not implemented, and why
 
 The build order proposed reporting `brain-1` commits in the last 24h as a heartbeat
-metric. It is not implemented:
+metric. It is still not implemented, but one of its three prerequisites has changed:
 
-- there is no `nexus-heartbeat.yml` (or any heartbeat workflow) in `.github/workflows/`;
-- there is no standing heartbeat issue to report into;
+- ~~there is no `nexus-heartbeat.yml` (or any heartbeat workflow) in `.github/workflows/`~~
+  — UNI-2523 landed one. It is **manual-dispatch only and carries no `schedule:` trigger**:
+  merging a capability arms nothing here (UNI-2542), so the cron is a separate,
+  separately-approved change made only after a dispatched run has been watched;
+- there is still no standing heartbeat issue to report into — the workflow creates it on
+  its first successful run, and that run has not happened;
 - `brain-1` is a separate private repository, outside this repo's automation scope, and
-  `CLAUDE.md` forbids writes to it.
+  `CLAUDE.md` forbids writes to it. Unchanged.
 
-Three missing prerequisites is not "trivially safe". Recorded here as an honest skip
+Two remaining prerequisites is still not "trivially safe". Recorded here as an honest skip
 rather than shipped as a workflow line that would fail closed on every run.
 
 ---
