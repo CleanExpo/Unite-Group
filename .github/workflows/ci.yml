@@ -433,12 +433,27 @@ jobs:
             migrations/0002_modules.sql \
             migrations/0003_match_and_lineage_rls.sql \
             migrations/0004_grants.sql \
-            migrations/0005_match_iterative_scan.sql \
-            seed/0001_seed.sql
+            migrations/0005_match_iterative_scan.sql
           do
-            echo "── applying $f"
+            echo "── applying $f (as postgres)"
             psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U postgres -d postgres -f "$f"
           done
+
+          # The SEED, unlike the migrations, needs a role that bypasses RLS.
+          # core.party and six sibling tables are created with FORCE ROW LEVEL
+          # SECURITY, which binds even the table owner, and the seed inserts
+          # rows with no JWT context to satisfy the policies. Its own header
+          # says so: "Run as service role (RLS bypassed)". Reproduced locally on
+          # Postgres 16 — as the owner it is
+          # `ERROR: new row violates row-level security policy for table "party"`,
+          # as a superuser it loads 7 parties.
+          #
+          # This does NOT weaken the RLS suites: seeding is a one-off data load,
+          # and every test still connects as postgres and drops to
+          # `set local role authenticated`, where the policies do apply.
+          echo "── applying seed/0001_seed.sql (as supabase_admin: RLS is forced)"
+          psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U supabase_admin -d postgres \
+            -f seed/0001_seed.sql
 
           # Prove postgres can do what idempotency.test.ts will ask of it —
           # OWN the schemas, not merely read them. The previous version of this
