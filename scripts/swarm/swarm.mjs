@@ -40,12 +40,38 @@ const val = (f, d) => {
   return i >= 0 && argv[i + 1] ? argv[i + 1] : d;
 };
 
-const QUORUM = Number(val('--quorum', '2'));
-const CONCURRENCY = Number(val('--concurrency', '6'));
-const TIMEOUT_MS = Number(val('--timeout', '120000'));
-const MAX_CHARS = Number(val('--max-chars', '24000'));
-const ATTEMPTS = Number(val('--attempts', '4'));
-const REFUTERS = Number(val('--refuters', '3'));
+/**
+ * A numeric flag that must be a positive integer, or the run stops.
+ *
+ * `Number('abc')` is NaN, and NaN poisons every comparison it touches by
+ * returning false. Found by attacking this file rather than by review: a typo
+ * in `--quorum` made `votes >= NaN` false for every cluster, so NOTHING was
+ * ever corroborated and the swarm printed "CORROBORATED — 0 finding(s)". That
+ * is indistinguishable from a clean review, which makes it the worst failure
+ * this tool can have — the same silent-success shape as the Jaccard bug that
+ * the clusterer's comment already records.
+ *
+ * `--quorum 0` is rejected for a different reason: it is parseable and would
+ * "work", promoting every single-model finding to corroborated while still
+ * printing the CORROBORATED heading. The quorum is the entire premise; zero
+ * does not relax it, it removes it while keeping the label.
+ */
+function positiveInt(flag, dflt) {
+  const raw = val(flag, dflt);
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 1) {
+    console.error(`${flag} must be a positive integer; got "${raw}".`);
+    process.exit(1);
+  }
+  return n;
+}
+
+const QUORUM = positiveInt('--quorum', '2');
+const CONCURRENCY = positiveInt('--concurrency', '6');
+const TIMEOUT_MS = positiveInt('--timeout', '120000');
+const MAX_CHARS = positiveInt('--max-chars', '24000');
+const ATTEMPTS = positiveInt('--attempts', '4');
+const REFUTERS = positiveInt('--refuters', '3');
 const ROLE_KEYS = val('--roles', REVIEW_ROLES.join(','))
   .split(',').map((s) => s.trim()).filter(Boolean);
 const NO_REFUTE = has('--no-refute');

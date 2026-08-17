@@ -68,6 +68,16 @@ export function distinctFamilies(ids) {
  * Returns `{ ok, reason, models }` with duplicates collapsed to their base id.
  */
 export function validateRoster(models, quorum) {
+  // Defensive, and not theoretical: a NaN quorum passes every `<` comparison
+  // below (NaN comparisons are always false), so the roster validates and then
+  // `votes >= NaN` is false for every cluster — the swarm corroborates nothing
+  // and prints a clean review. The CLI now rejects a bad --quorum before
+  // reaching here, but this function is exported and must not depend on its
+  // only current caller having done that.
+  if (!Number.isInteger(quorum) || quorum < 1) {
+    return { ok: false, models: [], collapsed: 0, families: 0, reason: `Quorum must be a positive integer; got ${quorum}.` };
+  }
+
   const seen = new Map();
   for (const m of models) {
     const base = baseModelId(m);

@@ -404,6 +404,21 @@ check(
   'and reports how many entries collapsed',
   validateRoster(['qwen/a', 'qwen/a:free', 'mistralai/b'], 2).collapsed === 1,
 );
+// Found by attacking this module, not by review. NaN comparisons are always
+// false, so a NaN quorum validated fine and then made `votes >= NaN` false for
+// every cluster: the swarm corroborated NOTHING and printed a clean review.
+// A silent zero-findings result is indistinguishable from success, which makes
+// it the worst failure mode available here.
+check('a NaN quorum is REJECTED, not silently accepted', validateRoster(['a/x', 'b/y'], Number('abc')).ok === false);
+check('a zero quorum is rejected — it removes the premise while keeping the label', validateRoster(['a/x', 'b/y'], 0).ok === false);
+check('a fractional quorum is rejected', validateRoster(['a/x', 'b/y'], 1.5).ok === false);
+check('an empty roster is rejected at every quorum', validateRoster([], 1).ok === false);
+// Degenerate ids must not manufacture lineages. Both collapse to '' — one
+// lineage, which is the SAFE direction (harder quorum, never easier).
+check('unparseable ids collapse rather than inventing lineages', distinctFamilies(['', null, undefined]) === 1);
+check('a vendorless id is its own lineage', familyOf('gpt-4') === 'gpt-4');
+check('a vendorless id and its :free variant are ONE model', baseModelId('gpt-4:free') === baseModelId('gpt-4'));
+check('a three-segment id takes the first segment as vendor', familyOf('a/b/c') === 'a');
 
 // ── free-tier resilience ───────────────────────────────────────────────────
 // "Run free models in parallel" is mostly a rate-limit problem. A 429 that
