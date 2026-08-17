@@ -158,6 +158,37 @@ export function reconcileGates(declared, captured) {
     anomalies.push(
       'The same gate is declared more than once, so one result would be reported under two rows.',
     );
+  } else {
+    /*
+     * A SUBSET OF THE REQUIRED GATES IS NOT A GREEN RUN EITHER.
+     *
+     * Two rounds ago I refused an EMPTY declaration and stopped there. Declaring
+     * ONE of the three required gates then produced a perfectly green heartbeat
+     * certifying a third of what the report claims — no anomaly, `failed` false,
+     * a Gates table with one PASS row and no sign the other two exist.
+     *
+     * That is the vacuous-green defect one level up from where I fixed it, and
+     * it is the same sentence as the CI job that passed while 19 of 22 tests
+     * skipped: a signal that certifies less than it appears to. Refusing zero
+     * gates while accepting one of three was fixing the instance and leaving the
+     * class, on a branch whose entire subject is that class.
+     *
+     * DECLARED_GATES is the required set. A caller may not quietly narrow it.
+     */
+    const missing = DECLARED_GATES.filter((name) => !usableNames.includes(name));
+    const extra = usableNames.filter((name) => !DECLARED_GATES.includes(name));
+    if (missing.length > 0) {
+      anomalies.push(
+        `The declaration omits ${missing.length} required gate(s) (${missing.join(', ')}), so `
+        + 'this run certifies less than the report claims.',
+      );
+    }
+    if (extra.length > 0) {
+      anomalies.push(
+        `The declaration names ${extra.join(', ')}, which are not required gates, so the report `
+        + 'would grade something nobody asked for.',
+      );
+    }
   }
   declared = usableNames;
 

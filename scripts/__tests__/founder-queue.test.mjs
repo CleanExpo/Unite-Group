@@ -631,3 +631,56 @@ test('A RESOLVED ROW THAT RESOLVES NOTHING IS NOT RESOLVED', () => {
   assert.match(io.logs.join('\n'), /"integrity": "OK"/u);
   assert.match(io.logs.join('\n'), /"resolvedCount": 1/u);
 });
+
+test('A DRIFTED ROW IS SEEN AT ANY WIDTH, and prose still is not', () => {
+  /*
+   * ROUND-SIXTEEN FINDING, confirmed by running it. The outside-body check only
+   * reported lines with EXACTLY 7 or 5 cells, so a blocker that drifted out of
+   * its table AND lost a separator — six cells — was invisible in both
+   * directions at once. It produced integrity OK and zero malformed notes.
+   *
+   * A wrong width is precisely what a DAMAGED row has, so requiring the right
+   * width to notice one was backwards.
+   */
+  const widths = [4, 6, 8];
+  for (const width of widths) {
+    const cells = Array.from({ length: width }, (_, i) => ` c${i} `).join('|');
+    const parsed = parseFounderQueue([
+      HEADER, RULE, '| F1 | d | 2026-08-01 | — | b | c | open |', '', `|${cells}|`,
+    ].join('\n'));
+    assert.match(parsed.malformed.join('\n'), /outside any table body/u, `width ${width}`);
+  }
+
+  /*
+   * AND THE PROSE CASES STILL PASS — the reason the previous heuristic was
+   * removed. Two cells or fewer is prose with a stray pipe; no pipe at all is
+   * just prose. Both must stay out, or this gate cries wolf on ordinary notes
+   * and gets switched off.
+   */
+  for (const prose of ['F1 is waiting on legal.', 'Context: see | notes', 'a | b']) {
+    const parsed = parseFounderQueue([
+      HEADER, RULE, '| F1 | d | 2026-08-01 | — | b | c | open |', '', prose,
+    ].join('\n'));
+    assert.deepEqual(parsed.malformed, [], prose);
+  }
+});
+
+test('A HEADER WITH NO SEPARATOR IS NOT A PROVEN-EMPTY QUEUE', () => {
+  /*
+   * `inBody` only becomes true when a separator follows the header, so a table
+   * whose separator was deleted parsed zero rows and reported a CLEAN EMPTY
+   * QUEUE — integrity OK, openCount 0, "Nothing is blocked on Phill" — over a
+   * file whose structure nobody could read.
+   *
+   * An empty queue must be PROVEN empty, and the proof is a well-formed table
+   * with no data rows, not a table the parser gave up on.
+   */
+  const noSeparator = parseFounderQueue([HEADER].join('\n'));
+  assert.match(noSeparator.malformed.join('\n'), /header row but no separator/u);
+
+  // POSITIVE CONTROL: a well-formed empty table is still a clean empty queue,
+  // or this refuses the legitimate state it exists to certify.
+  const properlyEmpty = parseFounderQueue([HEADER, RULE].join('\n'));
+  assert.deepEqual(properlyEmpty.malformed, []);
+  assert.equal(summarise(properlyEmpty, NOW).integrity, 'OK');
+});

@@ -479,19 +479,27 @@ test('ZERO DECLARED GATES IS NOT A GREEN RUN', () => {
   assert.equal(real.failed, false);
   assert.equal(real.gates.length, DECLARED_GATES.length);
 
-  // A frozen literal array is the shape the workflow actually passes, and it
-  // must survive the trusted copy rather than being refused as "not a plain
-  // array" — the normalisation must reject tampering, not immutability.
+  /*
+   * A frozen array is the shape the workflow actually passes, and it must
+   * survive the trusted copy rather than being refused as "not a plain array" —
+   * the normalisation must reject tampering, not immutability.
+   *
+   * THIS CONTROL USED TO DECLARE ONE GATE AND ASSERT IT PASSED. That made it an
+   * assertion that a SUBSET of the required gates is a green run, which the
+   * round-sixteen finding proved is the vacuous-green defect one level up. The
+   * property under test was immutability; the one-gate declaration was
+   * incidental, and it was quietly pinning the defect in place.
+   */
   const frozen = composeHeartbeat({
     date: '2026-08-16',
-    gateEvidence: { ok: true, value: [{ name: 'verify:readiness', exitCode: 0 }] },
+    gateEvidence: { ok: true, value: CAPTURE_GREEN },
     queueEvidence: { ok: true, value: QUEUE },
     previousBody: null,
     provenance,
-    declared: Object.freeze(['verify:readiness']),
+    declared: Object.freeze([...DECLARED_GATES]),
   });
   assert.equal(frozen.failed, false);
-  assert.equal(frozen.gates.length, 1);
+  assert.equal(frozen.gates.length, DECLARED_GATES.length);
 });
 
 test('THE WORKFLOW FAILS THE RUN ON `failed`, not on `degraded`', () => {
@@ -1592,4 +1600,80 @@ test('THE WORKFLOW CLIENT CARRIES `state` BACK, or the check above cannot fire',
   const workflow = readFileSync(WORKFLOW_PATH, 'utf8');
   assert.match(workflow, /state:\s*data\.state/u,
     'the workflow getIssue must return the live issue state');
+});
+
+test('A SUBSET OF THE REQUIRED GATES IS NOT A GREEN RUN', () => {
+  /*
+   * ROUND-SIXTEEN FINDING, from the standing review lane, confirmed by running
+   * it. Two rounds ago I refused an EMPTY declaration and stopped there.
+   * Declaring ONE of three required gates then produced a perfectly green
+   * heartbeat certifying a third of what the report claims: no anomaly, `failed`
+   * false, a Gates table with one PASS row and no sign the other two exist.
+   *
+   * Fixing "zero gates" and leaving "one of three" was fixing the instance and
+   * leaving the class — on a branch whose entire subject IS that class. It is
+   * the same sentence as the CI job that passed while 19 of 22 tests skipped.
+   */
+  const partial = composeHeartbeat({
+    date: '2026-08-16',
+    gateEvidence: { ok: true, value: [{ name: DECLARED_GATES[0], exitCode: 0 }] },
+    queueEvidence: { ok: true, value: QUEUE },
+    previousBody: null,
+    provenance,
+    declared: [DECLARED_GATES[0]],
+  });
+  assert.equal(partial.failed, true);
+  assert.match(partial.failureReasons.join('\n'), /omits 2 required gate\(s\)/u);
+
+  // A declaration naming something that is not required is equally wrong: the
+  // report would grade a gate nobody asked for and call the run certified.
+  const foreign = composeHeartbeat({
+    date: '2026-08-16',
+    gateEvidence: { ok: true, value: [...CAPTURE_GREEN, { name: 'verify:invented', exitCode: 0 }] },
+    queueEvidence: { ok: true, value: QUEUE },
+    previousBody: null,
+    provenance,
+    declared: [...DECLARED_GATES, 'verify:invented'],
+  });
+  assert.equal(foreign.failed, true);
+  assert.match(foreign.failureReasons.join('\n'), /not required gates/u);
+
+  /*
+   * A PROXY IS REFUSED EVEN WHEN IT REPORTS THE CORRECT LIST.
+   *
+   * The subset check added this round independently catches a declaration that
+   * UNDER-reports, which covers the Proxy cases the trusted copy was written for
+   * — and that made the trusted-copy mutant survivable, nearly costing me a
+   * guard I could no longer prove was load-bearing.
+   *
+   * This is the case only `structuredClone` can refuse: a Proxy whose reported
+   * contents are exactly right, so nothing downstream has anything to object to.
+   * It throws DataCloneError on any Proxy before a single element is read —
+   * verified by probe, zero length reads occurred before the refusal — which is
+   * both earlier and stronger than inspecting what the object claims.
+   */
+  const correctLooking = new Proxy([...DECLARED_GATES], {
+    get(target, key) { return Reflect.get(target, key); },
+  });
+  const proxied = composeHeartbeat({
+    date: '2026-08-16',
+    gateEvidence: { ok: true, value: CAPTURE_GREEN },
+    queueEvidence: { ok: true, value: QUEUE },
+    previousBody: null,
+    provenance,
+    declared: correctLooking,
+  });
+  assert.equal(proxied.failed, true, 'a Proxy declaration must be refused whatever it reports');
+  assert.match(proxied.failureReasons.join('\n'), /could not be copied into a trusted array/u);
+
+  // POSITIVE CONTROL: the exact required set, fully captured, is still green.
+  const exact = composeHeartbeat({
+    date: '2026-08-16',
+    gateEvidence: { ok: true, value: CAPTURE_GREEN },
+    queueEvidence: { ok: true, value: QUEUE },
+    previousBody: null,
+    provenance,
+    declared: [...DECLARED_GATES],
+  });
+  assert.equal(exact.failed, false);
 });

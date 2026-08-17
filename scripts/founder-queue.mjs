@@ -139,6 +139,7 @@ export function parseFounderQueue(markdown) {
   const resolved = [];
   const malformed = [];
   const headersSeen = new Set();
+  const separatorsSeen = new Set();
   let section = 'open';
   let lineNumber = 0;
 
@@ -173,6 +174,7 @@ export function parseFounderQueue(markdown) {
     const cells = splitRow(line);
     if (looksLikeRow(line) && isSeparator(cells)) {
       inBody = headersSeen.has(section);
+      if (inBody) separatorsSeen.add(section);
       continue;
     }
     if (looksLikeRow(line) && isHeaderRow(cells, section)) {
@@ -187,7 +189,21 @@ export function parseFounderQueue(markdown) {
        * that has drifted out of its table, and dropping it loses a decision.
        * Cell count is a precise test, not a guess at what a row looks like.
        */
-      if (looksLikeRow(line) && (cells.length === 7 || cells.length === 5)) {
+      /*
+       * ANY DRIFTED ROW, NOT ONLY ONE OF THE RIGHT WIDTH.
+       *
+       * This reported lines with EXACTLY 7 or 5 cells, so a blocker that drifted
+       * out of its table AND lost a separator — six cells — was invisible in
+       * both directions at once. Confirmed: a `| F-1 | urgent blocker | ... |`
+       * row with six cells produced integrity OK and zero malformed notes.
+       *
+       * Three or more cells is still a structural test rather than a guess about
+       * content: `Context: see | notes` yields two, and prose with no pipe at all
+       * yields none, so both stay out. What changed is that the width no longer
+       * has to be RIGHT for the row to be seen — a wrong width is exactly what a
+       * damaged row has.
+       */
+      if (looksLikeRow(line) && cells.length >= 3) {
         malformed.push(
           `Line ${lineNumber} looks like a table row but sits outside any table body: `
           + `${line.trim()}`,
@@ -228,6 +244,25 @@ export function parseFounderQueue(markdown) {
         context: cells[5] ?? '',
         status: cells[6] ?? 'open',
       });
+    }
+  }
+
+  /*
+   * A HEADER WITH NO SEPARATOR IS NOT AN EMPTY TABLE.
+   *
+   * `inBody` only becomes true when a separator follows the header, so a table
+   * whose separator was deleted parsed zero rows and reported a CLEAN EMPTY
+   * QUEUE — integrity OK, openCount 0, "Nothing is blocked on Phill" — over a
+   * file whose structure nobody could read. An empty queue must be PROVEN empty,
+   * and the proof is a well-formed table with no data rows, not a table this
+   * parser gave up on.
+   */
+  for (const seen of headersSeen) {
+    if (!separatorsSeen.has(seen)) {
+      malformed.push(
+        `The ${seen} table has a header row but no separator beneath it, so no row under it `
+        + 'could be attributed to the table; an empty result here is not proof of an empty queue.',
+      );
     }
   }
 
