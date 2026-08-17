@@ -190,7 +190,7 @@ jobs:
       # scripts/lib/preflight-jobs.mjs fails here, rather than silently letting
       # the local gate go stale and start green-lighting pushes it cannot check.
       - name: Test readiness kernel
-        run: node --test scripts/__tests__/check-env.test.mjs scripts/__tests__/ci-evidence-manifest.test.mjs scripts/__tests__/founder-queue.test.mjs scripts/__tests__/nexus-heartbeat.test.mjs scripts/__tests__/dependency-audit.test.mjs scripts/__tests__/nexus-project-readiness.test.mjs scripts/__tests__/verify-web-ci-build.test.mjs scripts/__tests__/workflow-supply-chain.test.mjs scripts/__tests__/preflight.test.mjs scripts/__tests__/cron-cost-audit.test.mjs scripts/__tests__/canonical-naming.test.mjs
+        run: node --test scripts/__tests__/check-env.test.mjs scripts/__tests__/ci-evidence-manifest.test.mjs scripts/__tests__/spine-evidence-selfcheck.test.mjs scripts/__tests__/founder-queue.test.mjs scripts/__tests__/nexus-heartbeat.test.mjs scripts/__tests__/dependency-audit.test.mjs scripts/__tests__/nexus-project-readiness.test.mjs scripts/__tests__/verify-web-ci-build.test.mjs scripts/__tests__/workflow-supply-chain.test.mjs scripts/__tests__/preflight.test.mjs scripts/__tests__/cron-cost-audit.test.mjs scripts/__tests__/canonical-naming.test.mjs
 
       - name: Enforce configured P0 findings
         run: node scripts/nexus-project-readiness.mjs --root . --json --gate
@@ -386,6 +386,23 @@ jobs:
       # it changes nothing about whether this job passes.
       - name: Test
         run: npm test -- --reporter=default --reporter=json --outputFile=vitest-report.json
+
+      # UNI-2580. SPINE_DATABASE_URL does not exist as a repository secret, so
+      # every integration suite above self-skips via `describe.skipIf(!hasDb)`
+      # and the Test step above still exits 0 — this required check used to
+      # conclude `success` with 19 of the 22 declared tests never executed,
+      # including the RLS and cross-tenant isolation suites. This step reads
+      # the report the Test step just wrote and fails the job closed when a
+      # REQUIRED_EVIDENCE suite in config/ci-evidence-manifest.json did not
+      # fully execute. Reuses scripts/ci-evidence-manifest.mjs's own parsing
+      # and completeness rules (UNI-2567) via spine-evidence-selfcheck.mjs; see
+      # that file's header for why it does not go through --gate.
+      - name: Evidence completeness — required spine suites actually executed
+        run: >-
+          node ../../../../scripts/spine-evidence-selfcheck.mjs
+          --check spine-required-tests
+          --evidence vitest-report.json
+          --expected-root ${{ github.workspace }}
 
       # Deliberately NOT `if: always()`. The readiness P0 gate treats any job
       # carrying an `if:` as conditional and stops counting it as CI coverage for
