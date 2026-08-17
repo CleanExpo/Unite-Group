@@ -397,13 +397,31 @@ export function classifyResolvedRows(rows) {
     }
     // The dates must be dates, on the same rule the Open table uses — a resolved
     // row whose dates cannot be read cannot be checked for ordering either.
+    let bothDatesReadable = true;
     for (const [cell, value] of [['Opened', row.opened], ['Resolved', row.resolved]]) {
       if (typeof value === 'string' && value.trim() !== '' && !ISO_DATE.test(value.trim())) {
         notes.push(
           `Resolved row ${label} has ${cell} date ${JSON.stringify(value)}, which is not an `
           + 'ISO date.',
         );
+        bothDatesReadable = false;
+      } else if (typeof value !== 'string' || value.trim() === '') {
+        bothDatesReadable = false;
       }
+    }
+    /*
+     * AND THE ORDER MUST BE POSSIBLE. Checking that both dates PARSE says
+     * nothing about whether they describe a real sequence: a row resolved on
+     * 2026-05-01 that was opened on 2026-08-10 passed every check and reported
+     * integrity OK. A decision cannot be resolved before it was raised, so that
+     * row is either a typo or a fabrication, and either way the ledger's own
+     * history is wrong. Found by an independent panel.
+     */
+    if (bothDatesReadable && row.resolved.trim() < row.opened.trim()) {
+      notes.push(
+        `Resolved row ${label} was resolved on ${row.resolved.trim()} but opened on `
+        + `${row.opened.trim()}, which is impossible; the ledger's own history is wrong.`,
+      );
     }
   }
   return { notes };
