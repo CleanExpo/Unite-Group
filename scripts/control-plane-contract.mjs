@@ -53,18 +53,33 @@ export function stripComments(line) {
  */
 export function parseStringUnion(source, typeName) {
   const lines = String(source).split('\n')
-  const header = new RegExp(`^export type ${typeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*=`)
+  const header = new RegExp(`^export type ${typeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`)
   const start = lines.findIndex((line) => header.test(line))
   if (start === -1) return null
 
-  const members = []
+  // The `=` may sit on the declaration line, after a generic parameter list, or
+  // on a continuation line. Anchoring on `export type NAME\s*=` missed both of
+  // the latter, which let an unregistered state machine pass the sweep unseen.
+  let eqLine = -1
+  let eqCol = -1
   for (let i = start; i < lines.length; i += 1) {
-    const raw = i === start ? lines[i].slice(lines[i].indexOf('=') + 1) : lines[i]
-    const text = stripComments(raw)
-    if (i > start && !text.trim().startsWith('|')) break
+    const col = stripComments(lines[i]).indexOf('=')
+    if (col !== -1) {
+      eqLine = i
+      eqCol = col
+      break
+    }
+    if (i > start && stripComments(lines[i]).trim() !== '') break
+  }
+  if (eqLine === -1) return null
+
+  const members = []
+  for (let i = eqLine; i < lines.length; i += 1) {
+    const text = stripComments(i === eqLine ? lines[i].slice(eqCol + 1) : lines[i])
+    if (i > eqLine && !text.trim().startsWith('|')) break
     for (const match of text.matchAll(/'([^']*)'/g)) members.push(match[1])
     // A single-line declaration ends at its own line.
-    if (i === start && text.trim() !== '' && !text.trimEnd().endsWith('|')) {
+    if (i === eqLine && text.trim() !== '' && !text.trimEnd().endsWith('|')) {
       const next = lines[i + 1]
       if (!next || !stripComments(next).trim().startsWith('|')) break
     }
@@ -72,11 +87,16 @@ export function parseStringUnion(source, typeName) {
   return members
 }
 
-/** Every top-level `export type` name in a source, in declaration order. */
+/**
+ * Every top-level `export type` name in a source, in declaration order.
+ * Deliberately does NOT require `=` on the same line: a declaration written as
+ * `export type FooStatus\n  = 'a' | 'b'`, or a generic `export type FooStatus<T> =`,
+ * must still be seen by the duplicate-control-system sweep.
+ */
 export function listExportedTypeNames(source) {
   const names = []
   for (const line of String(source).split('\n')) {
-    const match = /^export type ([A-Za-z0-9_]+)\s*=/.exec(line)
+    const match = /^export type ([A-Za-z0-9_]+)/.exec(line)
     if (match) names.push(match[1])
   }
   return names

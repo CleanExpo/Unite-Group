@@ -58,6 +58,34 @@ test('stripComments removes line and block comments', () => {
   assert.equal(stripComments("| 'a' /* 'b' */ // 'c'").trim(), "| 'a'")
 })
 
+test('parseStringUnion reads a declaration whose `=` sits on the next line', () => {
+  assert.deepEqual(parseStringUnion("export type A\n  = 'x' | 'y'\n", 'A'), ['x', 'y'])
+})
+
+test('parseStringUnion reads a generic declaration', () => {
+  assert.deepEqual(parseStringUnion("export type A<T> = 'x' | 'y'\n", 'A'), ['x', 'y'])
+})
+
+test('the sweep sees a state machine whose `=` sits on the next line', () => {
+  // Under-reporting here is a FALSE GREEN: a second state machine written this
+  // way would pass the duplicate-control-system audit unseen.
+  const sources = new Map([
+    ['demo.ts', "export type Demo =\n  | 'queued'\n  | 'running'\n\nexport type SneakyStatus\n  = 'a' | 'b'\n"],
+  ])
+  const result = auditRegistry({ ...baseOpts, sources })
+  assert.equal(result.ok, false)
+  assert.ok(result.violations.some((v) => v.includes('SneakyStatus')), result.violations)
+})
+
+test('the sweep sees a generic state machine declaration', () => {
+  const sources = new Map([
+    ['demo.ts', "export type Demo =\n  | 'queued'\n  | 'running'\n\nexport type WrapStatus<T> = 'a' | 'b'\n"],
+  ])
+  const result = auditRegistry({ ...baseOpts, sources })
+  assert.equal(result.ok, false)
+  assert.ok(result.violations.some((v) => v.includes('WrapStatus')), result.violations)
+})
+
 test('listExportedTypeNames finds only top-level exported aliases', () => {
   const source = "export type A = 'x'\n  export type Indented = 'y'\nexport interface B { a: string }\n"
   assert.deepEqual(listExportedTypeNames(source), ['A'])
