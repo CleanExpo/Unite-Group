@@ -66,8 +66,16 @@ describe.skipIf(!hasDb || !hasOutbox)('outbox two-relayer concurrency race (inte
     await asService(async (tx) => {
       for (let k = 0; k < KEYS; k++) {
         for (let v = 1; v <= VERSIONS; v++) {
+          // The payload is passed as an OBJECT, not JSON.stringify(...)::jsonb.
+          // postgres.js JSON-encodes a value bound to a jsonb parameter, so a
+          // pre-stringified object arrived DOUBLE-encoded — jsonb_typeof was
+          // 'string', not 'object'. Every `payload->>'…'` then returned NULL, so
+          // the relay built parties with display_name '(unknown)' and a null
+          // email, and this suite's last assertion failed on `expected null to
+          // be 'p0-v5@race.test'`. Invisible until UNI-2580 gave this suite a
+          // database: it had never once executed.
           await tx`select migrate.enqueue(${SYSTEM}, ${'k' + k}, 'upsert',
-            ${JSON.stringify({ kind: 'person', display_name: 'Race P' + k, email: `p${k}-v${v}@race.test` })}::jsonb,
+            ${{ kind: 'person', display_name: 'Race P' + k, email: `p${k}-v${v}@race.test` }},
             ${`race-${k}-${v}`})`;
         }
       }

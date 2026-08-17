@@ -190,7 +190,7 @@ jobs:
       # scripts/lib/preflight-jobs.mjs fails here, rather than silently letting
       # the local gate go stale and start green-lighting pushes it cannot check.
       - name: Test readiness kernel
-        run: node --test scripts/__tests__/check-env.test.mjs scripts/__tests__/ci-evidence-manifest.test.mjs scripts/__tests__/founder-queue.test.mjs scripts/__tests__/nexus-heartbeat.test.mjs scripts/__tests__/dependency-audit.test.mjs scripts/__tests__/nexus-project-readiness.test.mjs scripts/__tests__/verify-web-ci-build.test.mjs scripts/__tests__/workflow-supply-chain.test.mjs scripts/__tests__/preflight.test.mjs scripts/__tests__/cron-cost-audit.test.mjs scripts/__tests__/canonical-naming.test.mjs
+        run: node --test scripts/__tests__/check-env.test.mjs scripts/__tests__/ci-evidence-manifest.test.mjs scripts/__tests__/spine-evidence-selfcheck.test.mjs scripts/__tests__/founder-queue.test.mjs scripts/__tests__/nexus-heartbeat.test.mjs scripts/__tests__/dependency-audit.test.mjs scripts/__tests__/nexus-project-readiness.test.mjs scripts/__tests__/verify-web-ci-build.test.mjs scripts/__tests__/workflow-supply-chain.test.mjs scripts/__tests__/preflight.test.mjs scripts/__tests__/cron-cost-audit.test.mjs scripts/__tests__/canonical-naming.test.mjs
 
       - name: Enforce configured P0 findings
         run: node scripts/nexus-project-readiness.mjs --root . --json --gate
@@ -361,9 +361,13 @@ jobs:
       run:
         working-directory: packages/spine/packages/spine
     env:
-      # Integration tests fail closed or self-report a skip when this dedicated
-      # non-production connection is absent. Production credentials are never a fallback.
-      SPINE_DATABASE_URL: ${{ secrets.SPINE_DATABASE_URL }}
+      # UNI-2580. Points at the ephemeral Supabase started below, NOT a hosted
+      # database. Production credentials are never a fallback, and this is
+      # deliberately not `secrets.SPINE_DATABASE_URL`: a single shared instance
+      # would have concurrent PRs overwriting each other's fixtures, because
+      # seed/0001_seed.sql pins fixed UUIDs. The port is the one set in
+      # packages/spine/packages/spine/supabase/config.toml.
+      SPINE_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -379,6 +383,114 @@ jobs:
       - name: Type-check
         run: npm run typecheck
 
+      # UNI-2580. Without a database every integration suite self-skips via
+      # `describe.skipIf(!hasDb)` and the evidence check below fails the job
+      # closed — so this step is what makes the required suites runnable at all.
+      # Installed via npx rather than a marketplace action so no new third-party
+      # action enters the supply chain; the version is pinned for the same reason
+      # every `uses:` in this file is pinned to a SHA.
+      - name: Start an ephemeral Supabase database
+        run: npx --yes supabase@2.114.0 start
+
+      # Applied with psql in explicit dependency order rather than through
+      # `supabase db reset`, because these migrations are numbered 0001..0005
+      # and do not follow the CLI's <timestamp>_name.sql convention. 0000 is a
+      # TEARDOWN and is deliberately skipped. ON_ERROR_STOP is what makes a
+      # failed migration fail the job instead of silently leaving a half-built
+      # schema for the tests to misreport on.
+      #
+      # ci/00_extensions.sql runs first: no migration declares `create
+      # extension`, so pgvector — which 0002 needs for `public.vector(384)` and
+      # its hnsw index — exists on the hosted databases only because it was
+      # enabled out of band. See that file for why the schema it lands in matters.
+      #
+      # The strangler/ files are applied too. They are described in-tree as
+      # "optional rehearsal machinery, not part of migrations/0001..0005", and
+      # tests/integration/outbox_race.test.ts self-skips without
+      # migrate.outbox — but config/ci-evidence-manifest.json lists that suite
+      # as REQUIRED_EVIDENCE for the relay-concurrency capability. Optional to
+      # the schema, mandatory to the gate: if the evidence is required, the
+      # environment has to provide what produces it. The *.test.sql files beside
+      # them are raw-SQL suites, not schema, and are deliberately excluded.
+      #
+      # TWO ROLES, deliberately. ci/00_extensions.sql runs as supabase_admin
+      # because enabling an extension and granting a parameter both need
+      # superuser — but EVERYTHING ELSE runs as postgres, the same role the
+      # tests use.
+      #
+      # Building the schema as supabase_admin was tried and is wrong:
+      # tests/integration/idempotency.test.ts drops the eight spine schemas and
+      # re-applies every migration itself through the ordinary connection, so a
+      # schema owned by anyone else fails with "must be owner of schema core".
+      # The bootstrap grants postgres the four hnsw parameters it needs, and
+      # then postgres builds — and can rebuild — everything.
+      - name: Bootstrap database prerequisites (as superuser)
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U supabase_admin -d postgres \
+            -f ci/00_extensions.sql
+
+      - name: Apply spine migrations and seed
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          for f in \
+            migrations/0001_core_identity.sql \
+            migrations/0002_modules.sql \
+            migrations/0003_match_and_lineage_rls.sql \
+            migrations/0004_grants.sql \
+            migrations/0005_match_iterative_scan.sql \
+            strangler/0001_resolver.sql \
+            strangler/0003_dual_write_outbox.sql \
+            strangler/0004_shadow_read_diff.sql
+          do
+            echo "── applying $f (as postgres)"
+            psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U postgres -d postgres -f "$f"
+          done
+
+          # The SEED, unlike the migrations, needs a role that bypasses RLS.
+          # core.party and six sibling tables are created with FORCE ROW LEVEL
+          # SECURITY, which binds even the table owner, and the seed inserts
+          # rows with no JWT context to satisfy the policies. Its own header
+          # says so: "Run as service role (RLS bypassed)". Reproduced locally on
+          # Postgres 16 — as the owner it is
+          # `ERROR: new row violates row-level security policy for table "party"`,
+          # as a superuser it loads 7 parties.
+          #
+          # This does NOT weaken the RLS suites: seeding is a one-off data load,
+          # and every test still connects as postgres and drops to
+          # `set local role authenticated`, where the policies do apply.
+          echo "── applying seed/0001_seed.sql (as supabase_admin: RLS is forced)"
+          psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U supabase_admin -d postgres \
+            -f seed/0001_seed.sql
+
+          # Prove postgres can do what idempotency.test.ts will ask of it —
+          # OWN the schemas, not merely read them. The previous version of this
+          # check only did a read, which passed while the teardown/re-apply
+          # cycle was broken; a check that cannot fail the way the test fails is
+          # not a check.
+          psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U postgres -d postgres -c "
+            select nspname, pg_get_userbyid(nspowner) as owner
+            from pg_namespace
+            where nspname in ('core','marketing','leadgen','onboarding','nrpg','carsi','field','sales')
+              and pg_get_userbyid(nspowner) <> 'postgres';
+          " -c "
+            do \$\$
+            begin
+              if exists (
+                select 1 from pg_namespace
+                where nspname in ('core','marketing','leadgen','onboarding','nrpg','carsi','field','sales')
+                  and pg_get_userbyid(nspowner) <> 'postgres'
+              ) then
+                raise exception 'spine schemas are not owned by postgres — idempotency teardown will fail';
+              end if;
+            end
+            \$\$;
+          "
+
       # The JSON reporter is the machine-readable evidence artefact for UNI-2567.
       # A test's stdout is a captured field inside that structure rather than a
       # sibling of it, so a test printing reporter-shaped text cannot forge a
@@ -386,6 +498,23 @@ jobs:
       # it changes nothing about whether this job passes.
       - name: Test
         run: npm test -- --reporter=default --reporter=json --outputFile=vitest-report.json
+
+      # UNI-2580. SPINE_DATABASE_URL does not exist as a repository secret, so
+      # every integration suite above self-skips via `describe.skipIf(!hasDb)`
+      # and the Test step above still exits 0 — this required check used to
+      # conclude `success` with 19 of the 22 declared tests never executed,
+      # including the RLS and cross-tenant isolation suites. This step reads
+      # the report the Test step just wrote and fails the job closed when a
+      # REQUIRED_EVIDENCE suite in config/ci-evidence-manifest.json did not
+      # fully execute. Reuses scripts/ci-evidence-manifest.mjs's own parsing
+      # and completeness rules (UNI-2567) via spine-evidence-selfcheck.mjs; see
+      # that file's header for why it does not go through --gate.
+      - name: Evidence completeness — required spine suites actually executed
+        run: >-
+          node ../../../../scripts/spine-evidence-selfcheck.mjs
+          --check spine-required-tests
+          --evidence vitest-report.json
+          --expected-root ${{ github.workspace }}
 
       # Deliberately NOT `if: always()`. The readiness P0 gate treats any job
       # carrying an `if:` as conditional and stops counting it as CI coverage for
