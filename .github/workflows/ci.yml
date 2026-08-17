@@ -452,8 +452,17 @@ jobs:
           PGPASSWORD: postgres
         run: |
           set -euo pipefail
-          psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U supabase_admin -d postgres \
-            -c "create database spine_migrations owner postgres"
+          # PostgreSQL has no CREATE DATABASE IF NOT EXISTS, and it cannot run inside
+          # a DO block, so the existence check is here. In CI the cluster is always
+          # fresh and this is simply a create — but `supabase start` reuses a running
+          # stack locally, and a step that only works the first time is the same class
+          # of defect as a gate that only runs on one machine.
+          if ! psql -tAX -h 127.0.0.1 -p 54322 -U supabase_admin -d postgres \
+                 -c "select 1 from pg_database where datname = 'spine_migrations'" | grep -q 1
+          then
+            psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U supabase_admin -d postgres \
+              -c "create database spine_migrations owner postgres"
+          fi
           for f in ci/00_extensions.sql ci/01_migration_db.sql
           do
             echo "── applying $f to spine_migrations (as supabase_admin)"
