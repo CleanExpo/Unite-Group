@@ -18,6 +18,51 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 
 const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3 };
 
+// The artefact contract, mirroring writeFindings() in swarm.mjs. Kept as data so
+// a field added there and forgotten here fails loudly rather than rendering as
+// an absence.
+const ARRAY_FIELDS = ['models', 'roles', 'corroborated', 'single', 'questions', 'errors'];
+const NUMBER_FIELDS = ['quorum', 'lineages'];
+
+/**
+ * Check the artefact against the contract, returning the reason it fails or
+ * null when it holds.
+ *
+ * WHY THIS IS NOT JUST A NULL CHECK. `{}` is an object, and every collection
+ * read below used to fall back to `[]` — so an empty or truncated artefact
+ * rendered a normal heading and "No corroborated findings", i.e. a run that
+ * never happened presented as a clean review. That is the precise lie this
+ * whole programme has been removing, reintroduced by a defaulting operator.
+ * A partially-written file (killed runner, full disk, half-flushed JSON) is
+ * exactly the case that produces it, so the check has to cover the SHAPE, not
+ * just the null.
+ *
+ * It names the offending field because "malformed artefact" sends a reader to
+ * read the whole JSON, and `corroborated is not an array` sends them to the line.
+ */
+export function contractViolation(run) {
+  if (!run || typeof run !== 'object' || Array.isArray(run)) {
+    return 'the artefact is not a JSON object';
+  }
+  for (const f of ARRAY_FIELDS) {
+    if (!Array.isArray(run[f])) return `\`${f}\` is missing or not an array`;
+  }
+  for (const f of NUMBER_FIELDS) {
+    if (!Number.isFinite(run[f])) return `\`${f}\` is missing or not a number`;
+  }
+  if (typeof run.ranAt !== 'string' || run.ranAt === '') {
+    return '`ranAt` is missing or empty';
+  }
+  const cost = run.cost;
+  if (!cost || typeof cost !== 'object' || Array.isArray(cost)) {
+    return '`cost` is missing or not an object';
+  }
+  if (typeof cost.wasFree !== 'boolean') return '`cost.wasFree` is missing or not a boolean';
+  if (!Number.isFinite(cost.totalUsd)) return '`cost.totalUsd` is missing or not a number';
+  if (!Array.isArray(cost.billed)) return '`cost.billed` is missing or not an array';
+  return null;
+}
+
 /**
  * Render the artefact as markdown.
  *
@@ -29,22 +74,30 @@ const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3 };
  * there is nothing to report.
  */
 export function renderMarkdown(run) {
-  if (!run || typeof run !== 'object') {
-    return '**Swarm review** — no artefact was produced. The run did not complete.';
+  const violation = contractViolation(run);
+  if (violation) {
+    // No heading, no counts, no cost line — nothing that pattern-matches to a
+    // finished review. A reader skimming must not be able to mistake this for
+    // one, so it states the negative outright rather than leaving it implied.
+    return [
+      '## ⚠️ Free-model review swarm — DID NOT COMPLETE',
+      '',
+      `The findings artefact is missing or malformed: ${violation}.`,
+      '',
+      '**This is not a clean review.** Nothing was checked. Do not read the absence of findings below as the absence of problems — there is no "below".',
+      '',
+      '<sub>Usually means the run was killed before it finished writing, or the artefact was truncated. Check the workflow logs for the run itself.</sub>',
+    ].join('\n');
   }
 
-  const corroborated = run.corroborated ?? [];
-  const single = run.single ?? [];
-  const questions = run.questions ?? [];
-  const errors = run.errors ?? [];
-  const models = run.models ?? [];
+  const { corroborated, single, questions, errors, models } = run;
 
   const out = [];
   out.push('## 🐝 Free-model review swarm');
   out.push('');
   out.push(
-    `${models.length} model(s) across ${run.lineages ?? '?'} lineage(s) · roles: ${(run.roles ?? []).join(', ') || '?'} · ` +
-    `quorum ${run.quorum ?? '?'} independent lineage(s)`,
+    `${models.length} model(s) across ${run.lineages} lineage(s) · roles: ${run.roles.join(', ') || '?'} · ` +
+    `quorum ${run.quorum} independent lineage(s)`,
   );
   out.push('');
 
@@ -100,12 +153,15 @@ export function renderMarkdown(run) {
     ));
   }
 
-  const cost = run.cost ?? {};
+  // contractViolation() has already guaranteed cost is an object with a boolean
+  // wasFree, a finite totalUsd and an array billed — so no defaulting here. The
+  // defaulting is what let a malformed artefact render as a free, clean run.
+  const cost = run.cost;
   out.push('');
   out.push(
-    cost.wasFree === false
-      ? `> 💸 **This run cost $${Number(cost.totalUsd ?? 0).toFixed(6)}.** Billed: ${(cost.billed ?? []).map((b) => `\`${b.model}\``).join(', ')}. Re-run \`bench.mjs --list\` — these are not free any more.`
-      : '> Cost: **$0.00** — every model reported zero.',
+    cost.wasFree
+      ? '> Cost: **$0.00** — every model reported zero.'
+      : `> 💸 **This run cost $${cost.totalUsd.toFixed(6)}.** Billed: ${cost.billed.map((b) => `\`${b.model}\``).join(', ')}. Re-run \`bench.mjs --list\` — these are not free any more.`,
   );
   out.push('');
   out.push('<sub>Advisory only. This is a filter for attention, not a gate — it says *look here*, and a human decides. Never make it a required check without evidence it has earned it.</sub>');

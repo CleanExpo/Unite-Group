@@ -19,7 +19,7 @@ import { cluster, parseFindings, chunk, parseVerdict, survivesRefutation, chunkO
 import { baseModelId, familyOf, distinctFamilies, validateRoster } from './lib/lineage.mjs';
 import { backoffMs, parseRetryAfter, usageOf, ledger, callModel } from './lib/openrouter.mjs';
 import { ROLES, REFUTE, REVIEW_ROLES, isQuestion } from './lib/roles.mjs';
-import { renderMarkdown } from './report.mjs';
+import { contractViolation, renderMarkdown } from './report.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const corpus = JSON.parse(readFileSync(join(HERE, 'defects.json'), 'utf8'));
@@ -644,6 +644,7 @@ const sameDefect = (model) => ({
 // happen look like a clean one.
 console.log('\nrenderMarkdown() — the report must not flatter the run');
 const RUN = {
+  ranAt: '2026-08-17T00:00:00.000Z',
   models: ['qwen/a', 'mistralai/b'], lineages: 2, roles: ['defect'], quorum: 2,
   cost: { wasFree: true, totalUsd: 0, billed: [] },
   corroborated: [{ severity: 'high', file: 'a.ts', line: 12, claim: 'Pagination lacks ORDER BY', why: 'pages repeat', lineages: 2, models: ['qwen/a', 'mistralai/b'], roles: ['defect'], refutation: { votes: 2, refuted: 0 } }],
@@ -667,6 +668,54 @@ const RUN = {
 {
   check('a missing artefact does NOT render as a clean review', /did not complete/i.test(renderMarkdown(null)));
   check('...nor does a garbage artefact', /did not complete/i.test(renderMarkdown('nonsense')));
+}
+{
+  // THE defect this block exists for: `{}` is an object, so a null-check alone
+  // waves it through, and every collection defaulted to [] — producing a normal
+  // heading and "No corroborated findings". An empty file rendered as a clean
+  // review. A truncated write is the realistic way to get here.
+  const md = renderMarkdown({});
+  check('an EMPTY object does not render as a clean review', /did not complete/i.test(md));
+  check('...and never claims there were no findings', !md.includes('No corroborated findings'));
+  check('...and does not print a reassuring $0.00 cost line', !md.includes('$0.00'));
+  check('...and says outright that nothing was checked', /not a clean review/i.test(md));
+  check('an ARRAY is not a valid artefact either', /did not complete/i.test(renderMarkdown([])));
+
+  // The good fixture must pass the contract, or the guard is just breaking the
+  // renderer rather than catching malformed input.
+  check('the valid fixture satisfies the contract', contractViolation(RUN) === null,
+    String(contractViolation(RUN)));
+
+  // Every required collection, dropped one at a time. A field added to
+  // writeFindings() and forgotten in the contract shows up as a gap here.
+  for (const field of ['models', 'roles', 'corroborated', 'single', 'questions', 'errors']) {
+    const { [field]: _dropped, ...missing } = RUN;
+    check(`a missing \`${field}\` is caught, not defaulted away`,
+      /did not complete/i.test(renderMarkdown(missing)));
+    check(`...and the reason names \`${field}\``,
+      String(contractViolation(missing)).includes(field));
+    check(`a non-array \`${field}\` is caught`,
+      contractViolation({ ...RUN, [field]: { length: 0 } }) !== null);
+  }
+
+  // Cost is the field most likely to mislead: absent, the old code printed
+  // "$0.00 — every model reported zero", which is an assertion about spend that
+  // nothing in the artefact supported.
+  const { cost: _c, ...noCost } = RUN;
+  check('a missing `cost` block is caught', /did not complete/i.test(renderMarkdown(noCost)));
+  check('...rather than being reported as a free run', !renderMarkdown(noCost).includes('$0.00'));
+  check('a cost block with no wasFree flag is caught',
+    contractViolation({ ...RUN, cost: { totalUsd: 0, billed: [] } }) !== null);
+  check('a cost block with a non-numeric total is caught',
+    contractViolation({ ...RUN, cost: { wasFree: false, totalUsd: 'lots', billed: [] } }) !== null);
+  check('a billed list that is not a list is caught',
+    contractViolation({ ...RUN, cost: { wasFree: false, totalUsd: 1, billed: 'c/z' } }) !== null);
+
+  // quorum/lineages are printed as numbers in the header; NaN or a string there
+  // reads as a real header describing a run that did not produce one.
+  check('a missing `quorum` is caught', contractViolation({ ...RUN, quorum: undefined }) !== null);
+  check('a NaN `lineages` is caught', contractViolation({ ...RUN, lineages: NaN }) !== null);
+  check('a missing `ranAt` is caught', contractViolation({ ...RUN, ranAt: undefined }) !== null);
 }
 {
   const md = renderMarkdown({ ...RUN, corroborated: [], errors: [{ model: 'qwen/a', error: 'HTTP 429' }, { model: 'qwen/a', error: 'timeout' }] });
@@ -698,6 +747,40 @@ const RUN = {
 {
   const md = renderMarkdown({ ...RUN, corroborated: [{ ...RUN.corroborated[0], refutation: { votes: 0, refuted: 0 } }] });
   check('an unchallenged finding says so rather than claiming it survived', md.includes('not challenged'));
+}
+
+// ── the workflow's own skip contract ───────────────────────────────────────
+// Guarding the YAML, not just the JS, because the defect that shipped here was
+// entirely in the YAML: a job-level `if` for forked PRs. GitHub skips such a job
+// BEFORE any step runs, so no step could write the ::notice or the summary the
+// comment promised — the check just read "skipped" with no reason. A green
+// pipeline hid it, because a skipped job is not a failing job.
+console.log('\nswarm-review.yml — a review that did not happen must never be silent');
+{
+  const yml = readFileSync(join(HERE, '..', '..', '.github', 'workflows', 'swarm-review.yml'), 'utf8');
+  const job = yml.slice(yml.indexOf('  swarm:'), yml.indexOf('    steps:'));
+
+  check('the swarm job has NO job-level `if`', !/^ {4}if:/m.test(job),
+    'a job-level if skips every step, so nothing can report the reason');
+
+  const forkAt = yml.indexOf('HEAD_REPO}" != "${THIS_REPO}');
+  const keyAt = yml.indexOf('[ -n "${KEY}" ]');
+  check('the fork case is handled in the preconditions step', forkAt !== -1);
+  // Order is the finding, not decoration: a fork gets an EMPTY secrets context,
+  // so a key check running first would blame a missing secret that is in fact
+  // present — a wrong reason is worse than a terse one.
+  check('...and is checked BEFORE the key, so a fork is never blamed on a missing secret',
+    forkAt !== -1 && keyAt !== -1 && forkAt < keyAt);
+
+  check('every skip routes through the reporting step',
+    yml.includes("if: steps.pre.outputs.run != 'true'"));
+  check('...which writes a ::notice', yml.includes('::notice title=Swarm review skipped'));
+  check('...and a step summary saying it was not a clean review',
+    yml.includes('The swarm did NOT review this PR. This is not a clean review.'));
+  // Match the YAML KEY, not the word: the header comment explains why
+  // continue-on-error is not used, and a bare substring test flags that prose.
+  check('the workflow never uses continue-on-error to force green',
+    !/^\s*continue-on-error\s*:/m.test(yml));
 }
 
 console.log(`\n${pass} passed, ${fail} failed\n`);

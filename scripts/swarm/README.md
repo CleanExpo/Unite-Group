@@ -334,12 +334,18 @@ honest; a green check that hid a failed run is the exact lie the rest of this
 programme has been removing.
 
 Forked PRs are skipped — they receive no secrets, so the run could only ever be
-a no-op posted as a review.
+a no-op posted as a review. That skip happens **inside** the preconditions step,
+not as a job-level `if`, and the distinction is the whole point: a job-level
+condition makes GitHub skip every step, so nothing writes the `::notice` or the
+step summary and the check shows "skipped" with no reason. It is also checked
+*before* the key, because a fork sees an empty secrets context — checking the key
+first would report "OPENROUTER_API_KEY is not set on this repo" about a repo
+where it is set, sending the reader to fix something that is not broken.
 
 ## 4. Self-test
 
 ```bash
-node scripts/swarm/selftest.mjs     # 197 assertions, no network, no key
+node scripts/swarm/selftest.mjs     # 236 assertions, no network, no key
 ```
 
 Every assertion has a negative control. The scorer must reject four generic

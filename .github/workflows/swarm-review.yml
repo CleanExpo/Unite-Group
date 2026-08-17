@@ -34,9 +34,13 @@ jobs:
   swarm:
     name: Free-model second opinion
     runs-on: ubuntu-latest
-    # Forked PRs do not receive secrets, so the run could only ever be a no-op.
-    # Skipping loudly beats posting "no findings" for a review that never happened.
-    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'workflow_dispatch'
+    # NO job-level `if` here, deliberately. A job-level condition makes GitHub
+    # skip the whole job before any step runs, so nothing writes a ::notice or a
+    # step summary — the check just shows "skipped" with no reason attached.
+    # That is silent, and this workflow's entire contract is that a review which
+    # did not happen never looks like a review that found nothing. The fork
+    # check therefore lives in `Check preconditions` with the others, where it
+    # can say why.
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -56,6 +60,9 @@ jobs:
       - name: Check preconditions
         id: pre
         env:
+          EVENT: ${{ github.event_name }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          THIS_REPO: ${{ github.repository }}
           ENABLED: ${{ vars.SWARM_REVIEW_ENABLED }}
           KEY: ${{ secrets.OPENROUTER_API_KEY }}
           # Canonical roster variable — see `env-var-canon`. NOT a new
@@ -65,6 +72,16 @@ jobs:
           MODELS: ${{ vars.OPENROUTER_MODEL }}
         run: |
           skip() { echo "reason=$1" >> "$GITHUB_OUTPUT"; echo "run=false" >> "$GITHUB_OUTPUT"; echo "SKIPPED: $1"; exit 0; }
+
+          # FORK CHECK FIRST, and the order is load-bearing. A forked PR gets an
+          # EMPTY secrets context, so if the key check ran first it would report
+          # "secret OPENROUTER_API_KEY is not set on this repo" — which is false
+          # and sends the reader to add a secret that is already there. Naming
+          # the real reason is the whole point of these skips.
+          if [ "${EVENT}" = "pull_request" ] && [ "${HEAD_REPO}" != "${THIS_REPO}" ]; then
+            skip "pull request is from a fork (${HEAD_REPO}) — forked PRs receive no secrets, so the swarm cannot run. This says nothing about whether the repo's OPENROUTER_API_KEY is set; it is simply not exposed to fork runs."
+          fi
+
           [ "${ENABLED}" = "true" ] || skip "repo variable SWARM_REVIEW_ENABLED is not 'true' (kill switch)"
           [ -n "${KEY}" ]           || skip "secret OPENROUTER_API_KEY is not set on this repo"
           [ -n "${MODELS}" ]        || skip "repo variable OPENROUTER_MODEL is empty — run 'node scripts/swarm/bench.mjs --free' and set the roster from the measured winners"
