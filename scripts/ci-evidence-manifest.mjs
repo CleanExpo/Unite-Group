@@ -952,7 +952,18 @@ export function readZipEntries(buffer) {
       // downstream basename match then selected it as the report. Refusing
       // `\` and `/` while accepting `C:/` is refusing two of three spellings.
       || /^[A-Za-z]:/u.test(name)
-      || name.split('/').some((segment) => segment === '.' || segment === '..')) {
+      /*
+       * AN EMPTY SEGMENT IS AN ALIAS. `dir/report.json` and `dir//report.json`
+       * are DIFFERENT ZIP names — the duplicate-name refusal compares strings
+       * and sees two distinct members — that resolve to the SAME path when
+       * anything extracts them. So an archive can carry two entries, this gate
+       * grades one, and whichever lands second is the file on disk.
+       *
+       * Same two-meanings class as the dot segments beside it, which is why it
+       * belongs in the same test rather than a new one: `.` and `..` were
+       * refused because they alias a path, and `` aliases one too.
+       */
+      || name.split('/').some((segment) => segment === '.' || segment === '..' || segment === '')) {
       throw new Error(`UNSAFE_ZIP_ENTRY: "${name}" is not a plain archive member name.`);
     }
 

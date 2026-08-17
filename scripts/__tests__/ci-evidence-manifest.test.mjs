@@ -2679,6 +2679,29 @@ test('THE FILE-TYPE CHECK COVERS EVERY CREATOR, not the three I allowlisted', ()
   }
 });
 
+test('AN EMPTY PATH SEGMENT IS AN ALIAS, so two names become one file', () => {
+  /*
+   * ROUND-SEVENTEEN FINDING, confirmed by building the archive.
+   *
+   * `dir/report.json` and `dir//report.json` are DIFFERENT ZIP names — the
+   * duplicate-name refusal compares strings and sees two distinct members — that
+   * resolve to the SAME path when anything extracts them. So an archive carries
+   * two entries, this gate grades one, and whichever lands second is the file on
+   * disk.
+   *
+   * Same class as the dot segments already refused: `.` and `..` alias a path,
+   * and an empty segment aliases one too.
+   */
+  for (const aliased of ['dir//report.json', '//report.json', 'a//b/report.json']) {
+    const buf = buildZip({ [aliased]: '{"ok":true}' }, { stored: true });
+    assert.throws(() => readZipEntries(buf), /is not a plain archive member name/u, aliased);
+  }
+
+  // A single slash between real segments is an ordinary path and still reads.
+  const nested = buildZip({ 'dir/report.json': '{"ok":true}' }, { stored: true });
+  assert.equal(readZipEntries(nested)[0].name, 'dir/report.json');
+});
+
 test('A NAME ENDING IN "/" IS A DIRECTORY, not the evidence file', () => {
   /*
    * APPNOTE 4.4.17.1: a member whose name ends in `/` IS a directory entry.
