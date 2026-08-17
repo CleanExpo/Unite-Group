@@ -1,0 +1,60 @@
+# Ephemeral local Supabase for the spine integration suites (UNI-2580).
+#
+# WHY THIS EXISTS. The spine RLS suites need a database, and until now CI had
+# none: SPINE_DATABASE_URL was unset, `describe.skipIf(!hasDb)` skipped 19 of 22
+# suites, and the required check still went green — certifying tenant isolation
+# that never ran.
+#
+# WHY SUPABASE AND NOT A PLAIN POSTGRES CONTAINER. migrations/0001 defines
+# core.current_org_id() over `auth.jwt()`, 0002 gates policies on `auth.uid()`,
+# and 0004 grants to the `authenticated` role. None of those exist in stock
+# Postgres. They could be hand-shimmed, but then the tenant-isolation gate would
+# be validating an approximation of Supabase's auth semantics rather than the
+# real ones — and passing against a shim while production RLS differs is exactly
+# the false assurance this whole gate was written to remove. The Supabase image
+# ships the genuine auth schema and roles.
+#
+# WHY NOT A HOSTED BRANCH. This database is created and destroyed inside the
+# job, so concurrent PRs cannot collide — seed/0001_seed.sql pins fixed UUIDs
+# (0a000000-…), so any shared instance would have runs overwriting each other's
+# fixtures. It also needs no secret and costs nothing.
+#
+# This config is deliberately minimal: the job only needs the database. Anything
+# not set here takes the CLI's default.
+project_id = "unite-spine"
+
+[db]
+port = 54322
+# Match the major version of the hosted projects this schema targets.
+major_version = 17
+
+[db.pooler]
+enabled = false
+
+[api]
+enabled = false
+
+[studio]
+enabled = false
+
+[inbucket]
+enabled = false
+
+[storage]
+enabled = false
+
+[auth]
+# The auth SCHEMA (auth.jwt(), auth.uid(), the authenticated role) ships with
+# the database image and is what the migrations need. The GoTrue SERVICE is not
+# needed: the DAL authenticates by setting request.jwt.claims directly in the
+# transaction (data-access/client.ts), never by issuing real tokens.
+enabled = false
+
+[realtime]
+enabled = false
+
+[edge_runtime]
+enabled = false
+
+[analytics]
+enabled = false
