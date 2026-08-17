@@ -523,18 +523,26 @@ renamed_repos:
     renamed_at: 2026-05-24
     reason: Broken name (URL pasted as repo name)
 disambiguation:
+  # SUPERSEDED 12/06/2026 (convergence): this block used to redirect
+  # 'Unite-Group' to the former standalone CRM repository, back when that
+  # repository and Authority-Site were separate live products under separate
+  # names. That repository was merged into apps/web of this monorepo and its
+  # GitHub repo + Vercel project were deleted 20/06/2026 — it is not live
+  # infrastructure to redirect to. 'Unite-Group' no longer needs
+  # disambiguation for that reason; entries kept only to record what
+  # 'Unite-Group' now unambiguously resolves to. See SOURCE-OF-TRUTH.md.
   - ambiguous_term: Unite-Group
-    likely_canonical: Unite-Hub
-    reason: GitHub repo CleanExpo/Unite-Hub is described as 'Unite Group CRM'. Most casual uses of 'Unite-Group' by the user mean the CRM (Unite-Hub), not the standalone Authority-Site product. If unsure, check if the request involves CRM/contacts/marketing -> Unite-Hub; or executive dashboard/Pi-CEO/portfolio metrics -> Authority-Site.
-    secondary_canonical: Authority-Site
+    likely_canonical: Unite-Group
+    reason: CleanExpo/Unite-Group is the single canonical monorepo; apps/web is its product surface. Authority-Site material is retained for reference only at apps/empire (no new feature work there).
+    secondary_canonical: null
   - ambiguous_term: Unite Group
-    likely_canonical: Unite-Hub
+    likely_canonical: Unite-Group
     reason: Same as above (spelled with space instead of hyphen)
-    secondary_canonical: Authority-Site
+    secondary_canonical: null
   - ambiguous_term: the Unite-Group repo
-    likely_canonical: Unite-Hub
-    reason: Despite the literal GitHub repo CleanExpo/Unite-Group existing for Authority-Site, when the user says 'the Unite-Group repo' they usually mean Unite-Hub (the CRM). Ask if context is unclear.
-    secondary_canonical: Authority-Site
+    likely_canonical: Unite-Group
+    reason: The literal GitHub repo CleanExpo/Unite-Group is this canonical monorepo — no redirect applies.
+    secondary_canonical: null
 
 retired_vercel_projects:
   - team: unite-group
