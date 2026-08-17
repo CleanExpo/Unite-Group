@@ -89,3 +89,32 @@ which return distilled verdicts. Standing specialist domains for this monorepo:
 `ci-infra` (workflows, gates, deploys). Name = `<type>-<durable-mission>`, frozen at
 spawn, must still be true on resume #8. Retire a specialist near ~300k context with a
 written handoff; domain change = fresh agent, always.
+
+## Research-output contract
+
+Research-producing sessions **on founder machines** also capture their findings to the
+canonical vault working tree at `~/2nd Brain/2nd Brain` via the `brain-capture` skill, so
+the 2nd Brain grows as a by-product of the work rather than as a separate chore. Captures
+are raw entries with their source and an ISO capture date; synthesis into the wiki is a
+separate, later step.
+
+**Scope against the no-writes rule above.** `brain-capture` is the single, narrow
+exception to "No writes to other repos", and it is bounded as follows:
+
+- it writes **only** to the founder-machine vault working tree at `~/2nd Brain/2nd Brain`,
+  and only under the vault's own capture paths;
+- the exception covers the **local working tree**, not the freeze. Pushing, merging,
+  deleting or otherwise mutating the `CleanExpo/brain-1` GitHub repository stays governed
+  by the runbook gates and Phill's typed approval — unchanged by this contract;
+- no other repo named in the no-writes rule gains any exception;
+- **failure is reported, never redirected.** If the vault is absent, unreachable, or the
+  write fails, the session says so and continues. It does not retarget the capture to
+  `docs/brain/` (residual, must not grow), to `docs/` generally, or to any other store.
+
+Remote and CI checkouts have no vault, so this binds only where the vault is actually
+present — they report it unavailable and carry on. Routing rules for the entry points
+that trigger such sessions: `docs/mission-control/harness-wrapper-contract.md`.
+
+The freeze-versus-canonical-vault tension predates this section (`brain-1` is named both
+as frozen and as the canonical knowledge store) — this narrows it to a stated exception
+rather than resolving it. FLAGGED for founder confirmation.
