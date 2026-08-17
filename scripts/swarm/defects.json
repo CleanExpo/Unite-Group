@@ -1,0 +1,167 @@
+{
+  "$comment": "Benchmark corpus of REAL defects from CleanExpo/Unite-Group, 16/08/2026. Every case below actually shipped into a PR and was actually caught in review — none are invented. `foundBy` records who caught it, because the cases Claude missed are the ones worth measuring a second-opinion swarm against. Ground truth is what the fix turned out to be, verified by a merged commit.",
+  "version": 1,
+  "generatedOn": "2026-08-16",
+  "sourcePrs": [1005, 1006, 1009],
+  "cases": [
+    {
+      "id": "prefix-mispricing",
+      "severity": "medium",
+      "foundBy": "reviewer",
+      "claudeMissed": true,
+      "source": "PR #1009 apps/web/src/lib/ai/pricing.ts",
+      "language": "typescript",
+      "context": "This module is the single source of truth for AI cost. Its own docblock states that an unknown model must return null rather than a price, because a wrong number that looks valid is worse than no number.",
+      "code": "const MODEL_RATES: Record<string, ModelRate> = {\n  'claude-opus-4-8': { inputPerMTok: 5, outputPerMTok: 25 },\n  'claude-sonnet-5': { inputPerMTok: 2, outputPerMTok: 10 },\n  'claude-haiku-4-5': { inputPerMTok: 1, outputPerMTok: 5 },\n};\n\n/** Resolve a model id to its rate. Returns null for anything unrecognised. */\nexport function rateForModel(model: string): ModelRate | null {\n  let best: { prefix: string; rate: ModelRate } | null = null;\n  for (const [prefix, rate] of Object.entries(MODEL_RATES)) {\n    if (model.startsWith(prefix) && (!best || prefix.length > best.prefix.length)) {\n      best = { prefix, rate };\n    }\n  }\n  return best?.rate ?? null;\n}",
+      "groundTruth": "startsWith matches any string beginning with a known family, so an UNKNOWN model such as 'claude-haiku-4-5-unreleased' or 'claude-opus-4-8-anything' resolves to a real rate and is recorded as priced. That contradicts the module's own rule that unknown models return null, and produces a silently wrong cost with no unpriced flag.",
+      "mustMention": ["startsWith", "unknown model", "null"],
+      "acceptAny": [
+        "matches unintended/unknown model ids",
+        "prefix match is too permissive",
+        "should match exact family or a dated snapshot suffix",
+        "silently returns a wrong price instead of null"
+      ],
+      "negativeControl": "The lookup uses startsWith, considers an unknown model, and can produce null. Overall the structure reads clearly and the naming follows the surrounding conventions.",
+      "refutationControl": "This code has no defect. It correctly handles startsWith and unknown model and null. Some reviewers claim: matches unintended/unknown model ids. That concern does not apply here and the implementation is correct."
+    },
+    {
+      "id": "offset-pagination-no-order",
+      "severity": "high",
+      "foundBy": "reviewer",
+      "claudeMissed": true,
+      "source": "PR #1009 apps/web/src/lib/metering/fetchers/anthropic.ts",
+      "language": "typescript",
+      "context": "This pagination was added deliberately to avoid PostgREST's silent 1000-row cap understating a cost ledger. Rows are being inserted into this same table continuously by the application.",
+      "code": "const PAGE_SIZE = 1000;\nconst rows = [];\nfor (let from = 0; ; from += PAGE_SIZE) {\n  const { data, error } = await db\n    .from('ai_usage_logs')\n    .select('task_type, model_id, tokens_input, tokens_output, cost_usd')\n    .eq('provider', 'anthropic')\n    .gte('created_at', `${period.start}T00:00:00Z`)\n    .lt('created_at', endExclusive.toISOString())\n    .range(from, from + PAGE_SIZE - 1);\n  if (error) throw new Error(`read: ${error.message}`);\n  const page = data ?? [];\n  rows.push(...page);\n  if (page.length < PAGE_SIZE) break;\n}\nreturn aggregateUsageRows(rows, period);",
+      "groundTruth": "`.range()` is OFFSET pagination but there is no ORDER BY. PostgreSQL does not guarantee row order without an explicit ORDER BY, so successive pages can repeat or skip rows, silently over- or under-stating the summed ledger. It needs a TOTAL order — created_at is not unique when several calls land in the same millisecond, so a unique tiebreaker such as id is required as well.",
+      "mustMention": ["order", "pagination"],
+      "acceptAny": [
+        "no ORDER BY means non-deterministic row order",
+        "pages can skip or duplicate rows",
+        "needs a unique tiebreaker as well as created_at",
+        "offset pagination over a table being written to is unstable"
+      ],
+      "negativeControl": "This pagination code sets a page size and reads rows in order until a short page is returned. It looks like a standard loop and the naming is clear enough.",
+      "refutationControl": "This code has no defect. It correctly handles order and pagination. Some reviewers claim: no ORDER BY means non-deterministic row order. That concern does not apply here and the implementation is correct."
+    },
+    {
+      "id": "unawaited-serverless-write",
+      "severity": "high",
+      "foundBy": "reviewer",
+      "claudeMissed": true,
+      "source": "PR #1009 apps/web/src/lib/ai/router.ts",
+      "language": "typescript",
+      "context": "Runs inside a Next.js API route deployed to Vercel serverless functions. recordAiUsage performs a Supabase insert and is written so it can never throw. The comment explains the author's intent.",
+      "code": "const response = await createWithRetry(client, params)\n\n// Deliberately NOT awaited: metering must not add latency to, or be able to\n// fail, an AI response. recordAiUsage never throws.\nvoid recordAiUsage({\n  taskType: capabilityId,\n  model: response.model,\n  inputTokens: response.usage.input_tokens,\n  outputTokens: response.usage.output_tokens,\n}).catch(() => {})\n\nreturn {\n  content: textContent,\n  usage: { inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens },\n  model: response.model,\n}",
+      "groundTruth": "On Vercel the serverless invocation can be suspended or torn down as soon as the handler responds, so a floating promise is not guaranteed to complete. The metering insert can therefore be silently dropped, undercounting spend — the exact failure the feature exists to prevent. It needs waitUntil (or an await on a non-latency-sensitive path) to keep the work alive past the response.",
+      "mustMention": ["await", "serverless"],
+      "acceptAny": [
+        "floating promise may not complete before the function freezes",
+        "use waitUntil to keep background work alive",
+        "the insert can be lost after the response is returned",
+        "await it on cron/background paths"
+      ],
+      "negativeControl": "The handler runs on serverless infrastructure and the code does not await this call. The comment explains the reasoning and the overall structure reads clearly.",
+      "refutationControl": "This code has no defect. It correctly handles await and serverless. Some reviewers claim: floating promise may not complete before the function freezes. That concern does not apply here and the implementation is correct."
+    },
+    {
+      "id": "test-asserts-less-than-name",
+      "severity": "medium",
+      "foundBy": "reviewer",
+      "claudeMissed": true,
+      "source": "PR #1009 apps/web/src/lib/ai/pricing.test.ts",
+      "language": "typescript",
+      "context": "priceUsage accepts inputTokens, outputTokens, cacheReadTokens and cacheWriteTokens. Cache reads bill at 0.1x the input rate; cache writes bill at 1.25x. Opus is $5/MTok in, $25/MTok out.",
+      "code": "it('sums base, cache read and cache write on one call', () => {\n  // 100k in ($0.50) + 10k out ($0.25) + 1M cache read ($0.50) = $1.25\n  const priced = priceUsage({\n    model: 'claude-opus-4-8',\n    inputTokens: 100_000,\n    outputTokens: 10_000,\n    cacheReadTokens: 1_000_000,\n  });\n  expect(priced?.costUsd).toBeCloseTo(1.25, 6);\n});",
+      "groundTruth": "The test is named for three components but never passes cacheWriteTokens, so it exercises only two. It would still pass if cache-write pricing were deleted from the implementation entirely. Adding 1M cache writes makes the correct total $7.50 (0.50 + 0.25 + 0.50 + 6.25).",
+      "mustMention": ["cacheWriteTokens", "test"],
+      "acceptAny": [
+        "the test does not exercise cache writes despite its name",
+        "would pass even if cache-write pricing were removed",
+        "expected total should be 7.5 with a cache write included"
+      ],
+      "negativeControl": "This test covers pricing and mentions cacheWriteTokens in the surrounding module. The assertion uses toBeCloseTo which seems like a reasonable choice here.",
+      "refutationControl": "This code has no defect. It correctly handles cacheWriteTokens and test. Some reviewers claim: the test does not exercise cache writes despite its name. That concern does not apply here and the implementation is correct."
+    },
+    {
+      "id": "cron-star-slash-zero",
+      "severity": "critical",
+      "foundBy": "claude",
+      "claudeMissed": false,
+      "source": "PR #1006 cron schedule validation",
+      "language": "javascript",
+      "context": "Parses a crontab-style minute field to count how many times per hour a schedule fires. Input comes from a config file that humans edit.",
+      "code": "function invocationsPerHour(minuteField) {\n  if (minuteField === '*') return 60;\n  if (minuteField.startsWith('*/')) {\n    const step = parseInt(minuteField.slice(2), 10);\n    let count = 0;\n    for (let m = 0; m < 60; m += step) count++;\n    return count;\n  }\n  return minuteField.split(',').length;\n}",
+      "groundTruth": "A step of 0 ('*/0') makes `m += step` never advance, so the for-loop never terminates — an infinite loop that hangs the process. parseInt also returns NaN for a non-numeric step, which makes the loop condition false immediately and silently returns 0 invocations. Both need explicit validation.",
+      "mustMention": ["infinite loop", "0"],
+      "acceptAny": [
+        "*/0 causes a non-terminating loop",
+        "the for-loop never terminates when the step is zero",
+        "step of zero never increments m",
+        "NaN step silently yields zero",
+        "needs validation that step is a positive integer"
+      ],
+      "negativeControl": "The parser handles the star form and the step form. There is no infinite loop concern that stands out, and returning 0 for other shapes seems consistent with the rest.",
+      "refutationControl": "This code has no defect. It correctly handles infinite loop and 0. Some reviewers claim: */0 causes a non-terminating loop. That concern does not apply here and the implementation is correct."
+    },
+    {
+      "id": "claim-then-finalise-strand",
+      "severity": "high",
+      "foundBy": "claude",
+      "claudeMissed": false,
+      "source": "PR #1006 social-publisher worker",
+      "language": "typescript",
+      "context": "A scheduled worker that publishes queued social posts. It runs on a timer, and more than one instance of the deployment can be running at once.",
+      "code": "const { data: due } = await db\n  .from('social_posts')\n  .select('id, payload')\n  .eq('status', 'queued')\n  .lte('scheduled_for', new Date().toISOString());\n\nfor (const post of due ?? []) {\n  await db.from('social_posts').update({ status: 'publishing' }).eq('id', post.id);\n  const result = await publishToProvider(post.payload);\n  await db.from('social_posts')\n    .update({ status: result.ok ? 'published' : 'failed' })\n    .eq('id', post.id);\n}",
+      "groundTruth": "Rows are claimed by setting status='publishing' BEFORE the provider call, but nothing ever re-claims a row left in 'publishing'. If the worker times out, crashes, or the invocation is killed mid-publish, that row is stranded in 'publishing' forever — never retried, never surfaced. The risk compounds when two workers run concurrently, because neither is the only claimant. It needs a sweep that reclaims stale 'publishing' rows past a timeout, and ideally an atomic conditional claim.",
+      "mustMention": ["publishing", "stranded"],
+      "acceptAny": [
+        "rows stuck in publishing are never retried",
+        "no recovery for a crash between claim and finalise",
+        "needs a stale-claim sweep or visibility timeout",
+        "claim is not atomic against a concurrent worker"
+      ],
+      "negativeControl": "The worker moves rows through publishing and nothing here looks stranded. Reading it end to end, the control flow seems straightforward and easy to follow.",
+      "refutationControl": "This code has no defect. It correctly handles publishing and stranded. Some reviewers claim: rows stuck in publishing are never retried. That concern does not apply here and the implementation is correct."
+    },
+    {
+      "id": "timestamptz-end-bound",
+      "severity": "medium",
+      "foundBy": "claude",
+      "claudeMissed": false,
+      "source": "PR #1009 period bound handling",
+      "language": "typescript",
+      "context": "period.start and period.end are inclusive ISO dates ('2026-08-01', '2026-08-31'). created_at is a Postgres timestamptz.",
+      "code": "const { data } = await db\n  .from('ai_usage_logs')\n  .select('cost_usd')\n  .gte('created_at', period.start)\n  .lte('created_at', period.end);",
+      "groundTruth": "Comparing a timestamptz against the bare date string '2026-08-31' is equivalent to 2026-08-31T00:00:00Z, so every row created during the final day after midnight is excluded. The upper bound must be exclusive-of-the-next-day (< 2026-09-01T00:00:00Z) to include the full end date.",
+      "mustMention": ["end", "day"],
+      "acceptAny": [
+        "lte against a date drops rows later on the final day",
+        "midnight boundary excludes most of the last day",
+        "use an exclusive next-day upper bound"
+      ],
+      "negativeControl": "The query filters on a start and an end value, which covers the day range the caller asked for. The builder syntax matches the rest of this module.",
+      "refutationControl": "This code has no defect. It correctly handles end and day. Some reviewers claim: lte against a date drops rows later on the final day. That concern does not apply here and the implementation is correct."
+    },
+    {
+      "id": "summing-without-dedupe",
+      "severity": "medium",
+      "foundBy": "reviewer",
+      "claudeMissed": true,
+      "source": "PR #1009 aggregation",
+      "language": "typescript",
+      "context": "Rows come from a table with no unique constraint on request_id. This aggregate is the number reported as AI spend.",
+      "code": "export function aggregateUsageRows(rows, period) {\n  const byKey = new Map();\n  for (const r of rows) {\n    const key = `${r.task_type} ${r.model_id}`;\n    const line = byKey.get(key) ?? { calls: 0, amountUsd: 0 };\n    line.calls += 1;\n    line.amountUsd += Number(r.cost_usd ?? 0);\n    byKey.set(key, line);\n  }\n  return [...byKey.values()];\n}",
+      "groundTruth": "Because the aggregate SUMS cost_usd and request_id carries no unique constraint, the same provider response recorded twice inflates the reported spend rather than being caught. A duplicate is invisible in the output. It needs dedupe on the provider request id — at the database via a unique index, or at read time via a seen-set — while still counting rows whose request id is null, since null means the id was unavailable, not that the rows are duplicates.",
+      "mustMention": ["duplicate", "request_id"],
+      "acceptAny": [
+        "double-counted rows inflate the total",
+        "no dedupe on the provider request id",
+        "needs a unique constraint or read-side seen-set",
+        "null ids must not be collapsed together"
+      ],
+      "negativeControl": "The aggregate groups rows by key and a request_id column is available, and no duplicate handling is strictly needed for a simple sum like this one.",
+      "refutationControl": "This code has no defect. It correctly handles duplicate and request_id. Some reviewers claim: double-counted rows inflate the total. That concern does not apply here and the implementation is correct."
+    }
+  ]
+}
