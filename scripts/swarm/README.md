@@ -99,16 +99,39 @@ Getting this right took three attempts, and the first two failed the same way.
    `DEFECT: … WHY: … FIX: …`. Scoring the DEFECT+WHY payload makes the score
    **non-monotone**: framing wrapped *around* a claim stops counting, because it
    is not part of what the model asserted. `DEFECT: none` scores 0 outright.
+4. **No claim structure, no full credit.** Step 3 only protects replies that
+   *use* the format. For replies that ignore it there is no payload to scope to,
+   and review broke the fallback by **doubling one space** inside a quoted
+   explanation — every paraphrase word survived, the exact-substring check
+   missed, and all 29 framings went back to 1.0 on 8 of 8 cases. Reordering the
+   words does the same. So an unformatted reply now caps at 0.5, reported as
+   `verdict: 'unformatted'`.
 
-Step 3 is what actually closed the family — all 29 framings, including the 17
-that leaked. Steps 1–2 survive only as a backstop for replies that ignore the
-format, which cheap models often do.
+Step 4 is what finally closed the fallback, and it closed it without another
+lexical rule. Steps 1–3 still do useful work; step 4 means none of them has to be
+complete.
+
+**The cost of step 4, stated rather than hidden**: a cheap model that identifies
+the defect correctly in plain prose is capped at 0.5 and ranks below one that
+follows the format. That is a real penalty. It is the right direction of error —
+this benchmark exists to decide whether cheap models can be *trusted*, so it
+should understate rather than overstate them — and format compliance is
+load-bearing downstream anyway, since `swarm.mjs` parses structured JSON
+findings. A model that cannot follow an output contract is genuinely less useful
+here, not merely differently styled.
 
 Each case carries two controls: a `negativeControl` (every anchor, no claim at
 all) and a `refutationControl` (every anchor, an accepted explanation, an
-explicit denial). `selftest.mjs` pins those plus 29 denial framings × 8 cases and
-two stuffing attacks below 1.0, while requiring each case's own ground truth to
-score exactly 1.0.
+explicit denial). `selftest.mjs` pins those plus 29 denial framings × 8 cases ×
+3 evasions and two stuffing attacks below 1.0, while requiring each case's own
+ground truth — scored through the mandated format — to score exactly 1.0.
+
+> The evasions matter. An earlier version of that sweep used only the verbatim
+> accepted phrase, which meant the exact-substring check was doing all the work:
+> the loop passed while proving nothing about the fallback path. A test that
+> passes for a reason other than the one in its name is precisely the defect this
+> file exists to prevent, so whitespace-altered and word-reordered variants are
+> now first-class controls.
 
 ### The limit that remains
 
@@ -117,7 +140,9 @@ Stated plainly, because a benchmark that hides its own weakness is worthless.
 **Containment scoring is monotone.** Within the payload, adding text can still
 only raise a score. Payload scoping bounds *where* that applies; it does not
 repeal it. A denial written *inside* the `DEFECT:` line in wording the patterns
-miss will still score.
+miss will still score — that is the one remaining route to an undeserved 1.0,
+and it requires the model to file a formal defect claim and then contradict it
+inside the claim itself.
 
 **A verbatim accepted phrase is only weak evidence of cheating.** Reproducing an
 `acceptAny` string suggests the answer came from the corpus rather than the code
@@ -162,7 +187,7 @@ than requested.
 ## 3. Self-test
 
 ```bash
-node scripts/swarm/selftest.mjs     # 70 assertions, no network, no key
+node scripts/swarm/selftest.mjs     # 72 assertions, no network, no key
 ```
 
 Every assertion has a negative control. The scorer must reject four generic

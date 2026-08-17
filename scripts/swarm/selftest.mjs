@@ -27,11 +27,22 @@ const check = (name, cond, detail = '') => {
 };
 
 // ── scoring: does ground truth score full marks? ────────────────────────────
+//
+// Scored THROUGH the mandated answer format, because that is what a correct
+// model reply looks like: the SYSTEM prompt demands `DEFECT: … WHY: … FIX: …`,
+// and score() caps anything unformatted at 0.5. `groundTruth` is prose written
+// to document the defect for a human reading defects.json, so wrapping it in a
+// DEFECT: line is what turns it into the answer it is standing in for.
+const asAnswer = (c) => `DEFECT: ${c.groundTruth}`;
 console.log('\nscore() — a correct answer must score 1.0');
 for (const c of corpus.cases) {
-  const r = score(c.groundTruth, c);
+  const r = score(asAnswer(c), c);
   check(`${c.id} scores 1.0 on its own ground truth`, r.score === 1.0, `got ${r.score}, hits=${r.hits.join('|')}`);
 }
+check(
+  'the same ground truth WITHOUT the mandated format caps at 0.5',
+  corpus.cases.every((c) => score(c.groundTruth, c).score <= 0.5),
+);
 
 // ── scoring: NEGATIVE CONTROLS ─────────────────────────────────────────────
 console.log('\nscore() — wrong answers must NOT score');
@@ -106,19 +117,41 @@ const DENIAL_FRAMINGS = [
   'Everything checks out.', 'The reviewer concern is unfounded.',
   'No action is required.', 'This passes review.', 'I see nothing that would fail.',
 ];
+// Each framing is tried THREE ways. The first two exist because the earlier
+// version of this loop used only the verbatim `acceptAny[0]`, which meant the
+// exact-substring contamination check was doing all the work — the loop passed
+// while proving nothing about the fallback path. Review found that by doubling
+// a single space: every paraphrase word survived, the substring check missed,
+// and all 29 framings went back to 1.0 on 8 of 8 cases. A test that passes for
+// a reason other than the one in its name is the exact defect this file exists
+// to prevent, so both evasions are now first-class controls.
+const EVASIONS = [
+  ['verbatim', (p) => p],
+  ['whitespace-altered', (p) => p.replace(' ', '  ')],
+  ['word-reordered', (p) => p.split(' ').reverse().join(' ')],
+];
 const denialLeaks = [];
 for (const framing of DENIAL_FRAMINGS) {
   for (const c of corpus.cases) {
-    // Everything a full-credit answer needs, prefixed by a denial: all anchors,
-    // an accepted explanation, and enough content words to clear the floor.
-    const answer = `${framing} It handles ${c.mustMention.join(' and ')}. Review note: ${c.acceptAny[0]}. Further implementation details are documented.`;
-    if (score(answer, c).score >= 1.0) denialLeaks.push(`${framing} @ ${c.id}`);
+    for (const [label, mangle] of EVASIONS) {
+      // Everything a full-credit answer needs, prefixed by a denial: all anchors,
+      // an accepted explanation, and enough content words to clear the floor.
+      const answer = `${framing} It handles ${c.mustMention.join(' and ')}. Review note: ${mangle(c.acceptAny[0])}. Further implementation details are documented.`;
+      if (score(answer, c).score >= 1.0) denialLeaks.push(`${framing} [${label}] @ ${c.id}`);
+    }
   }
 }
 check(
-  `no denial framing scores full marks (${DENIAL_FRAMINGS.length} framings x ${corpus.cases.length} cases)`,
+  `no denial framing scores full marks (${DENIAL_FRAMINGS.length} framings x ${corpus.cases.length} cases x ${EVASIONS.length} evasions)`,
   denialLeaks.length === 0,
   `${denialLeaks.length} leaks, first: ${denialLeaks[0]}`,
+);
+// The load-bearing property, asserted directly rather than inferred from the
+// sweep above: an unformatted reply can never reach full credit, whatever it
+// contains. This is what makes the fallback path safe without lexical patching.
+check(
+  'an unformatted reply containing EVERYTHING a perfect answer needs still caps at 0.5',
+  corpus.cases.every((c) => score(`${c.groundTruth} ${c.acceptAny.join('. ')}`, c).score <= 0.5),
 );
 
 // ── STRUCTURAL PROPERTIES ──────────────────────────────────────────────────

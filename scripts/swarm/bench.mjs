@@ -266,8 +266,33 @@ export function score(answer, c) {
   // Only when the model filed no claim of its own — see isContaminated.
   const contaminated = payload == null && isContaminated(full, c);
 
+  // ── NO CLAIM STRUCTURE, NO FULL CREDIT ───────────────────────────────────
+  // A reply that ignores the mandated DEFECT/WHY/FIX format gives nothing to
+  // scope the score to, so the fallback path is pure monotone containment and
+  // every defence on it is lexical. Review proved that concretely: doubling ONE
+  // space inside a quoted `acceptAny` phrase defeated the exact-substring
+  // contamination check while preserving every paraphrase word, and the attack
+  // went back to 1.0 on 8 of 8 cases. Reordering the words does the same.
+  //
+  // Patching the comparison (normalise whitespace, then fuzzy-match, then…) is
+  // the same losing race that the literal phrase list and the grammar patterns
+  // already lost twice. So: an unformatted reply caps at 0.5.
+  //
+  // THE COST, stated rather than hidden: a cheap model that identifies the
+  // defect correctly in plain prose is capped at 0.5 and ranks below one that
+  // follows the format. That is a real penalty, and it is the right direction
+  // of error — the benchmark exists to decide whether cheap models can be
+  // TRUSTED, so it should understate rather than overstate them. Format
+  // compliance is also directly load-bearing downstream: swarm.mjs parses
+  // structured JSON findings, so a model that cannot follow an output contract
+  // is genuinely less useful here, not merely differently styled.
+  //
+  // `verdict: 'unformatted'` makes the penalty visible in bench-results.json
+  // rather than silently depressing a score.
+  const unformatted = payload == null;
+
   let s = 0;
-  if (mustRatio === 1 && paraphrase && !disclaimed && !contaminated) s = 1.0;
+  if (mustRatio === 1 && paraphrase && !disclaimed && !contaminated && !unformatted) s = 1.0;
   else if (mustRatio === 1 || paraphrase) s = 0.5;
 
   return {
@@ -275,7 +300,8 @@ export function score(answer, c) {
     hits,
     verdict:
       s === 1 ? 'found'
-        : s > 0 ? (contaminated ? 'contaminated' : disclaimed ? 'disclaimed' : 'partial')
+        : s > 0
+          ? (contaminated ? 'contaminated' : disclaimed ? 'disclaimed' : unformatted ? 'unformatted' : 'partial')
           : 'missed',
   };
 }
