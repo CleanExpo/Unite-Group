@@ -215,20 +215,91 @@ node scripts/swarm/swarm.mjs --diff                        # working tree vs HEA
 node scripts/swarm/swarm.mjs --diff --base origin/main     # the whole branch
 node scripts/swarm/swarm.mjs --files a.ts b.ts
 node scripts/swarm/swarm.mjs --diff --quorum 3             # stricter
+node scripts/swarm/swarm.mjs --diff --roles defect         # phase 1 behaviour
+node scripts/swarm/swarm.mjs --diff --no-refute            # skip stage two
 ```
 
 With no `--models`, the roster is taken from your own `bench-results.json` — top
 scorers, zero errors. If you have not benchmarked, it refuses to guess.
 
-Output separates **corroborated** findings (quorum met) from **single-model**
-findings (shown, but below the bar). Models that errored are listed explicitly,
-because a model that errored did not vote and the effective quorum was lower
-than requested.
+### Three roles, not five copies of one reviewer
+
+Phase 1 sent every model the same prompt, so a five-model swarm was five draws
+from one distribution. Redundancy raises confidence in what the prompt already
+looks for and cannot find what it never thought to ask. The roles fail
+differently, which is the point:
+
+| Role | Job | Prompted to |
+|---|---|---|
+| `defect` | double-check | find bugs it can point at in the diff |
+| `weakness` | attack | assume the happy path is fine, find the input/timing/scale that breaks it anyway |
+| `question` | surface unknowns | ask what the change assumes without saying, and never assert |
+
+**Questions never count towards quorum.** They ride the same schema
+(`severity: "question"`) so the clusterer dedupes them, but they are listed in
+their own section. Counting them as votes would let uncertainty masquerade as
+consensus.
+
+### Quorum counts LINEAGES, not model ids
+
+This is the correctness fix that matters most. Phase 1 counted distinct model
+ids, so a roster of `qwen/a`, `qwen/a:free`, `qwen/a:nitro` looked like three
+independent reviewers and was **one model polled three times** — the exact
+failure the self-test already guarded against inside the loop, reintroduced
+through the roster.
+
+- Routing/price/throughput suffixes (`:free`, `:nitro`, `:batch`, …) select a
+  route, not different weights, so they collapse to one model.
+- Checkpoints sharing a vendor prefix share training data and post-training
+  recipe. They are **correlated** reviewers; two of them inventing the same false
+  finding is far likelier than two unrelated families doing so.
+
+A roster that cannot produce independent agreement is rejected **before any
+request**, because learning it after acting on the agreement is the expensive
+way. The vendor prefix is a crude proxy — it over-groups a vendor's unrelated
+architectures and under-groups third-party fine-tunes — but it errs towards
+making the quorum *harder*, and a quorum that is accidentally too easy is a
+quorum that lies.
+
+### Stage two: refutation
+
+Corroboration alone still lets two cheap models agree on nonsense. Every
+corroborated finding is challenged by up to `--refuters` models **from lineages
+that did not raise it**, prompted to refute rather than to assess and told to
+default to refuted when unsure. A majority — or a tie — drops the finding.
+
+If no challenger returns a parseable verdict the finding **survives**:
+refutation is a filter bolted onto corroboration, and a filter that cannot run
+must not silently delete what it cannot judge.
+
+### Free tiers 429 hard
+
+"Run free models in parallel" is mostly a rate-limit engineering problem. Phase 1
+turned any non-2xx into an error, so a rate-limited model simply didn't vote and
+the **effective quorum silently dropped below the requested one**. Calls now
+retry with exponential backoff and full jitter, honouring `Retry-After` when the
+server sends one (capped, so one sulking model cannot stall the run). Jitter
+matters: without it a synchronised fan-out retries in lockstep and every model
+burns its quota against every other.
+
+A `400` is never retried — retrying a bad request just burns quota.
+
+### The cost ledger
+
+The whole programme is about spend, so the run ends by proving it was free. Cost
+is read from the **provider's** reported usage, not computed from our own price
+table: a benchmark that prices calls from its own assumptions cannot notice the
+case it exists to catch — a model that was free when the roster was chosen and
+is not free today. Any model that billed is **named**, not buried in a total.
+
+Output separates **corroborated** findings (quorum met, refutation survived)
+from **single-lineage** findings (shown, below the bar) and **questions**. Models
+that errored are listed explicitly, because a model that errored did not vote.
 
 ## 3. Self-test
 
 ```bash
-node scripts/swarm/selftest.mjs     # 97 assertions, no network, no key
+node scripts/swarm/selftest.mjs     # 181 assertions, no network, no key
 ```
 
 Every assertion has a negative control. The scorer must reject four generic
@@ -247,7 +318,10 @@ true pair against 0.10 for unrelated findings. Both are pinned as tests.
 
 | Flag | Default | Notes |
 |---|---|---|
-| `--quorum` | 2 | Models that must agree before a finding is promoted |
+| `--quorum` | 2 | Independent **lineages** that must agree before a finding is promoted |
+| `--roles` | defect,weakness,question | Which review lenses to run |
+| `--refuters` | 3 | Challengers per corroborated finding (`--no-refute` to skip) |
+| `--attempts` | 4 | Tries per call before giving up on a rate-limited model |
 | `--concurrency` | 6 | Free tiers rate-limit hard; lower it if you see 429s |
 | `--max-chars` | 24000 | Diff chunk size; chunk count is always printed |
 | `--timeout` | 120000 | Per-request, ms |
