@@ -203,7 +203,23 @@ export function parseFounderQueue(markdown) {
        * has to be RIGHT for the row to be seen — a wrong width is exactly what a
        * damaged row has.
        */
-      if (looksLikeRow(line) && cells.length >= 3) {
+      /*
+       * OUTER PIPES, NOT CELL COUNT. The threshold was the wrong test.
+       *
+       * Last round this required three or more cells, chosen to keep
+       * `Context: see | notes` out. But `| D-1 | urgent blocker |` is a blocker
+       * row truncated to two cells, and it was ignored for the same reason —
+       * the count says how DAMAGED a row is, not whether it is one.
+       *
+       * GFM delimits a row with a leading and trailing pipe. Prose with a stray
+       * pipe has neither. That is the actual structural signal, it does not care
+       * how many cells survived, and it keeps both prose cases out:
+       *   `| D-1 | urgent blocker |`   -> delimited, reported
+       *   `Context: see | notes`       -> not delimited, ignored
+       *   `F1 is waiting on legal.`    -> no pipe at all, ignored
+       * Verified on all three before this replaced the threshold.
+       */
+      if (/^\|.*\|$/u.test(line.trim())) {
         malformed.push(
           `Line ${lineNumber} looks like a table row but sits outside any table body: `
           + `${line.trim()}`,
@@ -433,14 +449,28 @@ export function classifyResolvedRows(rows) {
     // The dates must be dates, on the same rule the Open table uses — a resolved
     // row whose dates cannot be read cannot be checked for ordering either.
     let bothDatesReadable = true;
+    /*
+     * ISO SHAPE IS NOT CALENDAR VALIDITY, and this checked only the shape.
+     *
+     * `2026-02-31` matches the ISO pattern and is not a day that exists.
+     * `calendarDateToEpoch` already round-trips through `Date` to catch exactly
+     * that — the Open table has used it since round three, because `Date.parse`
+     * silently rolls 31 February forward to 3 March and hands back a plausible
+     * age for a date nobody lived through. The Resolved table was given the
+     * weaker regex check and reported integrity OK on an impossible date.
+     *
+     * Two validators for one concept, and the newer one was the weaker one.
+     */
     for (const [cell, value] of [['Opened', row.opened], ['Resolved', row.resolved]]) {
-      if (typeof value === 'string' && value.trim() !== '' && !ISO_DATE.test(value.trim())) {
-        notes.push(
-          `Resolved row ${label} has ${cell} date ${JSON.stringify(value)}, which is not an `
-          + 'ISO date.',
-        );
+      if (typeof value !== 'string' || value.trim() === '') {
         bothDatesReadable = false;
-      } else if (typeof value !== 'string' || value.trim() === '') {
+        continue;
+      }
+      try {
+        calendarDateToEpoch(value, cell.toLowerCase());
+      } catch (error) {
+        notes.push(`Resolved row ${label} has ${cell} date ${JSON.stringify(value)}: `
+          + `${error.message}`);
         bothDatesReadable = false;
       }
     }

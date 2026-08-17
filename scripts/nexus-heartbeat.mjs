@@ -453,9 +453,34 @@ export async function upsertHeartbeatIssue({ client, body, title = HEARTBEAT_TIT
     return { action: 'created', number: created.number };
   }
 
-  await client.updateIssue(target.number, { title, body });
-  await confirmWrite(client, target.number, { title, body }, 'updated');
-  return { action: 'updated', number: target.number };
+  /*
+   * EVERY OWNED ISSUE IS REWRITTEN, NOT ONLY THE CANONICAL ONE.
+   *
+   * This updated the lowest-numbered owned issue and left any others untouched.
+   * With two owned issues open and yesterday's all-PASS body in both, a run that
+   * published FAIL rewrote one and LEFT THE OTHER GREEN — a live issue carrying
+   * a stale pass, sitting in the same repository under the same title, which is
+   * the stale-PASS failure this file's `if: always()` design exists to prevent.
+   * Confirmed by running it: one updated, one left open with a PASS body.
+   *
+   * Duplicates should not exist, and refusing outright was the alternative — but
+   * that publishes NOTHING, and a heartbeat that goes silent is the failure mode
+   * ranked worst here. Rewriting all of them removes the lying signal instead,
+   * and the lowest number is still returned as canonical so the determinism
+   * contract is unchanged.
+   */
+  const owned = (issues ?? await client.listOpenIssues())
+    .filter((issue) => issue && issue.title === title && typeof issue.body === 'string'
+      && issue.body.includes(OWNER_MARKER) && !issue.pull_request)
+    .map((issue) => issue.number)
+    .filter((number) => Number.isInteger(number))
+    .sort((a, b) => a - b);
+
+  for (const number of owned) {
+    await client.updateIssue(number, { title, body });
+    await confirmWrite(client, number, { title, body }, 'updated');
+  }
+  return { action: 'updated', number: target.number, updated: owned };
 }
 
 /**

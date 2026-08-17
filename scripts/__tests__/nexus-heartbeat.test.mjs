@@ -1677,3 +1677,37 @@ test('A SUBSET OF THE REQUIRED GATES IS NOT A GREEN RUN', () => {
   });
   assert.equal(exact.failed, false);
 });
+
+test('EVERY OWNED ISSUE IS REWRITTEN, so no duplicate keeps yesterday green', () => {
+  /*
+   * ROUND-SEVENTEEN FINDING, confirmed by running it. `upsertHeartbeatIssue`
+   * updated the lowest-numbered owned issue and left any others untouched. With
+   * two owned issues open carrying yesterday's all-PASS body, a run publishing
+   * FAIL rewrote one and LEFT THE OTHER GREEN — a live issue under the same
+   * title in the same repository, still claiming a pass.
+   *
+   * That is the stale-PASS failure the `if: always()` design exists to prevent,
+   * surviving in the one place it was never checked.
+   *
+   * Refusing outright was the alternative and is worse: it publishes NOTHING,
+   * and a silent heartbeat is the failure mode this file ranks worst. Rewriting
+   * all of them removes the lying signal instead; the lowest number is still
+   * returned as canonical so the determinism contract is unchanged.
+   */
+  const stale = `${OWNER_MARKER}\n| \`verify:readiness\` | PASS | exit 0 |`;
+  const client = stubClient([
+    { number: 12, title: HEARTBEAT_TITLE, body: stale },
+    { number: 90, title: HEARTBEAT_TITLE, body: stale },
+  ]);
+  const failing = `${OWNER_MARKER}\n| \`verify:readiness\` | FAIL | exit 1 |`;
+
+  return upsertHeartbeatIssue({ client, body: failing }).then((result) => {
+    // Determinism preserved: the lowest-numbered owned issue is canonical.
+    assert.equal(result.number, 12);
+    assert.deepEqual(result.updated, [12, 90]);
+    // And NO owned issue is left carrying a pass.
+    for (const number of [12, 90]) {
+      assert.equal(client.store.get(number).body, failing, `issue #${number}`);
+    }
+  });
+});

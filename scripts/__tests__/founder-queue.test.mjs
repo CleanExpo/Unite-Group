@@ -684,3 +684,78 @@ test('A HEADER WITH NO SEPARATOR IS NOT A PROVEN-EMPTY QUEUE', () => {
   assert.deepEqual(properlyEmpty.malformed, []);
   assert.equal(summarise(properlyEmpty, NOW).integrity, 'OK');
 });
+
+test('A DELIMITED ROW IS SEEN AT ANY WIDTH, and prose still is not', () => {
+  /*
+   * ROUND-SEVENTEEN FINDING, and it corrected the fix I made one round earlier.
+   *
+   * Last round the outside-body check required THREE OR MORE cells, a threshold
+   * chosen to keep `Context: see | notes` out. But `| D-1 | urgent blocker |` is
+   * a blocker row truncated to two cells and it was ignored for the same reason:
+   * the cell count says how DAMAGED a row is, not whether it is one.
+   *
+   * GFM delimits a row with a leading AND trailing pipe; prose with a stray pipe
+   * has neither. That is the real structural signal and it does not care how
+   * many cells survived.
+   */
+  for (const fragment of [
+    '| D-1 | urgent blocker |',
+    '| F9 |',
+    '| A | B | C | D | E | F | G | H |',
+  ]) {
+    const parsed = parseFounderQueue([
+      HEADER, RULE, '| F1 | d | 2026-08-01 | — | b | c | open |', '', fragment,
+    ].join('\n'));
+    assert.match(parsed.malformed.join('\n'), /outside any table body/u, fragment);
+  }
+
+  /*
+   * THE PROSE CASES ARE WHY AN EARLIER HEURISTIC HERE WAS REMOVED, so they are
+   * asserted every time this rule changes. A gate that cries wolf on ordinary
+   * notes gets switched off, and then it protects nothing.
+   */
+  for (const prose of [
+    'F1 is waiting on legal.',
+    'Context: see | notes',
+    'a | b',
+    'Decision pending | escalate to Phill | see thread',
+  ]) {
+    const parsed = parseFounderQueue([
+      HEADER, RULE, '| F1 | d | 2026-08-01 | — | b | c | open |', '', prose,
+    ].join('\n'));
+    assert.deepEqual(parsed.malformed, [], prose);
+  }
+});
+
+test('A RESOLVED DATE MUST BE A DAY THAT EXISTS, not merely ISO-shaped', () => {
+  /*
+   * `2026-02-31` matches the ISO pattern and is not a day anyone lived through.
+   * The Open table has round-tripped its dates through `Date` since round three,
+   * because `Date.parse` silently rolls 31 February forward to 3 March and hands
+   * back a plausible age. The Resolved validator I added two rounds ago used the
+   * weaker regex — two validators for one concept, and the newer one was worse.
+   */
+  const ledger = (row) => [
+    '# Q', '', '## Open', '', HEADER, RULE, '',
+    '## Resolved', '', '| ID | Decision | Opened | Resolved | Decision text |',
+    '| --- | --- | --- | --- | --- |', row,
+  ].join('\n');
+
+  /*
+   * Anchored on the OFFENDING VALUE, not on one message. An impossible date
+   * fails two different ways and both are correct: `2026-02-31` parses and
+   * round-trips to 3 March, while `2026-13-01` does not parse at all. Demanding
+   * one wording would fail on a refusal that is right — and demanding merely
+   * "some note appeared" would pass on a refusal about a different row.
+   */
+  for (const bad of ['2026-02-31', '2026-13-01', '2026-04-31']) {
+    const parsed = parseFounderQueue(ledger(`| F9 | Ship it | ${bad} | 2026-03-01 | shipped |`));
+    const notes = summarise(parsed, NOW).malformed.join('\n');
+    assert.match(notes, new RegExp(`Resolved row F9 has Opened date .*${bad}`, 'u'), bad);
+    assert.match(notes, /not a real calendar date|Unparseable/iu, bad);
+  }
+
+  // POSITIVE CONTROL: a real leap day must still pass, or this refuses valid dates.
+  const leap = parseFounderQueue(ledger('| F9 | Ship it | 2024-02-29 | 2024-03-01 | shipped |'));
+  assert.equal(summarise(leap, NOW).integrity, 'OK');
+});
