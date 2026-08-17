@@ -1,6 +1,7 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it, vi } from 'vitest'
 import {
   CLI_OUTPUT_LIMIT,
@@ -478,6 +479,121 @@ describe('CliLaneAdapter', () => {
       onOutput: (channel, chunk) => seen.push([channel, chunk]),
     })
     expect(seen).toEqual([['stdout', 'from the child']])
+  })
+
+  // ── UNI-2406: opt-in structured (stream-json) mode ────────────────────────
+
+  const STREAM_JSON_FIXTURE = readFileSync(
+    path.join(
+      path.dirname(fileURLToPath(import.meta.url)),
+      '__fixtures__',
+      'claude-stream-json.jsonl',
+    ),
+    'utf8',
+  )
+
+  function structuredLane(): Lane {
+    const lane = cliLane('claude-code')
+    return { ...lane, backend: { ...lane.backend, kind: 'cli', tool: 'claude-code', account: 'max-1', structuredEvents: true } }
+  }
+
+  it('leaves the default prose invocation exactly as it was', async () => {
+    const spawn: SpawnFn = vi.fn(async () => ({ code: 0, stdout: 'prose', stderr: '' }))
+    const adapter = createCliAdapter({ spawn, accountsDir: '/tmp/accounts' })
+    const result = await adapter.run(cliLane('claude-code'), 'mission')
+    // Not `--output-format stream-json`: a lane that did not opt in must be
+    // byte-for-byte the behaviour it had before this ticket.
+    expect(vi.mocked(spawn).mock.calls[0]?.[1]).toEqual(['-p'])
+    expect(result.output).toBe('prose')
+  })
+
+  it('asks for stream-json only when the lane opted in', async () => {
+    const spawn: SpawnFn = vi.fn(async () => ({ code: 0, stdout: '', stderr: '' }))
+    const adapter = createCliAdapter({ spawn, accountsDir: '/tmp/accounts' })
+    await adapter.run(structuredLane(), 'mission')
+    expect(vi.mocked(spawn).mock.calls[0]?.[1]).toEqual([
+      '-p',
+      '--output-format',
+      'stream-json',
+      '--verbose',
+    ])
+  })
+
+  it('never enables structured mode for codex, whose stream is a different shape', async () => {
+    const spawn: SpawnFn = vi.fn(async () => ({ code: 0, stdout: '', stderr: '' }))
+    const adapter = createCliAdapter({ spawn, accountsDir: '/tmp/accounts' })
+    const lane = cliLane('codex')
+    await adapter.run(
+      { ...lane, backend: { ...lane.backend, kind: 'cli', tool: 'codex', account: 'max-1', structuredEvents: true } },
+      'mission',
+    )
+    expect(vi.mocked(spawn).mock.calls[0]?.[1]).toEqual(['exec', '-'])
+  })
+
+  it('turns the real captured stream into tool events and readable text', async () => {
+    const toolCalls: Array<{ name: string; status: string }> = []
+    const output: string[] = []
+    const spawn: SpawnFn = vi.fn(async (_command, _args, opts) => {
+      // Split mid-line, as a real child process would.
+      const half = Math.floor(STREAM_JSON_FIXTURE.length / 2)
+      opts.onOutput?.('stdout', STREAM_JSON_FIXTURE.slice(0, half))
+      opts.onOutput?.('stdout', STREAM_JSON_FIXTURE.slice(half))
+      return { code: 0, stdout: STREAM_JSON_FIXTURE, stderr: '' }
+    })
+    const adapter = createCliAdapter({ spawn, accountsDir: '/tmp/accounts' })
+    const result = await adapter.run(structuredLane(), 'mission', {
+      onOutput: (_channel, chunk) => output.push(chunk),
+      onToolCall: (call) => toolCalls.push({ name: call.name, status: call.status }),
+    })
+
+    expect(toolCalls).toEqual([
+      { name: 'Read', status: 'started' },
+      { name: 'Read', status: 'succeeded' },
+    ])
+    // Readable prose, not a wall of JSON braces.
+    expect(output.join('')).toContain('hello world')
+    expect(output.join('')).not.toContain('"type":"assistant"')
+    expect(result.output).toContain('hello world')
+  })
+
+  it('passes stderr through untouched in structured mode', async () => {
+    const output: Array<[string, string]> = []
+    const spawn: SpawnFn = vi.fn(async (_command, _args, opts) => {
+      opts.onOutput?.('stderr', 'a crash message\n')
+      return { code: 0, stdout: '', stderr: 'a crash message\n' }
+    })
+    const adapter = createCliAdapter({ spawn, accountsDir: '/tmp/accounts' })
+    await adapter.run(structuredLane(), 'mission', {
+      onOutput: (channel, chunk) => output.push([channel, chunk]),
+    })
+    // stderr is never JSONL. Feeding it to the parser would swallow the one
+    // message that explains why a run died.
+    expect(output).toEqual([['stderr', 'a crash message\n']])
+  })
+
+  it('reports a tool the CLI abandoned mid-call as failed', async () => {
+    const toolCalls: Array<{ name: string; status: string }> = []
+    const started = JSON.stringify({
+      type: 'assistant',
+      timestamp: '2026-01-01T00:00:00.000Z',
+      message: {
+        content: [
+          { type: 'tool_use', id: 'toolu_1', name: 'Bash', input: { command: 'sleep 999' } },
+        ],
+      },
+    })
+    const spawn: SpawnFn = vi.fn(async (_command, _args, opts) => {
+      opts.onOutput?.('stdout', `${started}\n`)
+      return { code: 0, stdout: '', stderr: '' }
+    })
+    const adapter = createCliAdapter({ spawn, accountsDir: '/tmp/accounts' })
+    await adapter.run(structuredLane(), 'mission', {
+      onToolCall: (call) => toolCalls.push({ name: call.name, status: call.status }),
+    })
+    expect(toolCalls).toEqual([
+      { name: 'Bash', status: 'started' },
+      { name: 'Bash', status: 'failed' },
+    ])
   })
 
   it('does not spawn when the run was already aborted', async () => {

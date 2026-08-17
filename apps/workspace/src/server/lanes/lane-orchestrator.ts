@@ -716,6 +716,9 @@ export function createLaneOrchestrator(
             // Raw chunks in, redacted events out: `write` is the only path
             // process output takes, and it redacts before the sink.
             onOutput: (channel, chunk) => stream.write(channel, chunk),
+            // Queued on the same chain as output, so a tool event cannot
+            // overtake the output that produced it.
+            onToolCall: (call) => stream.writeToolCall(call),
           })
         } catch (error) {
           if (error instanceof StopNotAcknowledgedError) {

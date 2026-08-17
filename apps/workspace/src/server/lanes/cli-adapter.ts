@@ -21,8 +21,10 @@ import {
   processTreeContainmentSupported,
   terminateProcessTree,
 } from './process-tree'
+import { createToolCallParser } from './tool-call-parser'
 import { isValidCliAccount } from './types'
 import type { LaneAdapter, LaneRunOptions, RunResult } from './adapter'
+import type { ToolCallParserResult } from './tool-call-parser'
 import type { ProcessTreeOptions } from './process-tree'
 import type { Lane } from './types'
 
@@ -337,8 +339,20 @@ export function createCliAdapter(deps: CliAdapterDeps = {}): LaneAdapter {
       const { tool, account } = lane.backend
       const configDir = accountConfigDir(accountsDir, account)
 
+      // Structured mode is claude-code only and opt-in. Codex's JSON stream is
+      // a different shape and has no parser here yet; silently enabling a flag
+      // it does not share would produce a lane that reports no tools at all
+      // while looking like it works.
+      const structured =
+        tool === 'claude-code' && lane.backend.structuredEvents === true
+
       const command = tool === 'codex' ? 'codex' : 'claude'
-      const args = tool === 'codex' ? ['exec', '-'] : ['-p']
+      const args =
+        tool === 'codex'
+          ? ['exec', '-']
+          : structured
+            ? ['-p', '--output-format', 'stream-json', '--verbose']
+            : ['-p']
 
       // Isolate the account's auth via its own config dir, and ensure the
       // common CLI install locations are on PATH.
@@ -364,19 +378,47 @@ export function createCliAdapter(deps: CliAdapterDeps = {}): LaneAdapter {
             }),
       }
 
+      // In structured mode stdout is JSONL, not prose. Streaming those braces
+      // to Mission Control would be worse than the final-only view it replaces,
+      // so the parser turns them into text and tool events on the way past.
+      const parser = structured ? createToolCallParser() : null
+      let structuredText = ''
+      const drain = (result: ToolCallParserResult) => {
+        for (const call of result.toolCalls) options.onToolCall?.(call)
+        for (const line of result.text) {
+          structuredText += `${line}\n`
+          options.onOutput?.('stdout', `${line}\n`)
+        }
+        if (result.outcome?.finalText) structuredText = result.outcome.finalText
+      }
+
       const result = await spawnFn(command, args, {
         cwd: lane.worktree,
         env,
         input: mission,
         signal: options.signal,
-        onOutput: options.onOutput,
+        onOutput: parser
+          ? (channel, chunk) => {
+              // stderr is never JSONL — pass it straight through so a crash
+              // message is not swallowed by the parser.
+              if (channel === 'stderr') options.onOutput?.(channel, chunk)
+              else drain(parser.push(chunk))
+            }
+          : options.onOutput,
       })
+      if (parser) {
+        drain(parser.flush())
+        // A tool that never produced a result means the CLI died mid-call.
+        // Reporting it as failed beats leaving a spinner running forever.
+        for (const call of parser.unsettled()) options.onToolCall?.(call)
+      }
       if (result.code !== 0) {
         const detail = redactCliOutput(
           result.stderr || result.stdout || '',
         ).slice(0, 400)
         throw new Error(`${command} exited ${result.code}: ${detail}`)
       }
+      if (parser) return { output: redactCliOutput(structuredText) }
       return { output: redactCliOutput(result.stdout) }
     },
   }

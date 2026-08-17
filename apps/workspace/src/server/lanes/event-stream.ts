@@ -242,6 +242,11 @@ export interface LaneEventStream {
    * reorder a run's output. Errors surface from `settle()`.
    */
   write: (channel: OutputChannel, chunk: string) => void
+  /**
+   * Fire-and-forget tool event, queued on the SAME chain as `write` so a tool
+   * event can never overtake the output that produced it.
+   */
+  writeToolCall: (call: LaneToolCall) => void
   /** Await every queued `write`, then flush. Rethrows the first queued error. */
   settle: () => Promise<void>
   toolCall: (call: LaneToolCall) => Promise<void>
@@ -380,6 +385,16 @@ export function createLaneEventStream(
       chain = chain.then(async () => {
         try {
           await pushOutput(channel, chunk)
+        } catch (error) {
+          queuedError ??= error
+        }
+      })
+    },
+    writeToolCall(call) {
+      chain = chain.then(async () => {
+        try {
+          await reportDrops()
+          await emit('tool_call', `${call.name} ${call.status}`, { tool: call })
         } catch (error) {
           queuedError ??= error
         }

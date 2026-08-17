@@ -4,6 +4,7 @@
  * the orchestrator drives both identically.
  */
 import { stripVTControlCharacters } from 'node:util'
+import type { LaneToolCall } from './event-stream'
 import type { Lane } from './types'
 
 export const LANE_OUTPUT_LIMIT = 64 * 1024
@@ -106,6 +107,12 @@ export interface LaneRunOptions {
    * log or render a chunk taken from this callback directly.
    */
   onOutput?: (channel: 'stdout' | 'stderr', chunk: string) => void
+  /**
+   * Structured tool lifecycle, emitted only by a lane that opted into
+   * `structuredEvents` (UNI-2406). The summary is already redacted and bounded
+   * by the time it arrives here.
+   */
+  onToolCall?: (call: LaneToolCall) => void
 }
 
 export interface LaneAdapter {
