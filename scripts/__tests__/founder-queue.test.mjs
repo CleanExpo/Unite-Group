@@ -11,6 +11,7 @@ import {
   oldestOpen,
   parseFounderQueue,
   renderQueue,
+  brisbaneCalendarDate,
   summarise,
 } from '../founder-queue.mjs';
 
@@ -758,4 +759,63 @@ test('A RESOLVED DATE MUST BE A DAY THAT EXISTS, not merely ISO-shaped', () => {
   // POSITIVE CONTROL: a real leap day must still pass, or this refuses valid dates.
   const leap = parseFounderQueue(ledger('| F9 | Ship it | 2024-02-29 | 2024-03-01 | shipped |'));
   assert.equal(summarise(leap, NOW).integrity, 'OK');
+});
+
+test('A ROW THAT LOST ITS DELIMITERS **OR** ITS WIDTH IS STILL SEEN', () => {
+  /*
+   * ROUND-EIGHTEEN FINDING, and it is the second correction to this one line.
+   *
+   * Round sixteen used a cell-count threshold and missed `| D-1 | urgent |`.
+   * Round seventeen replaced it with an outer-pipe test and missed
+   * `F2 | urgent | 2026-08-02 | — | UNI-9 | ctx | open` — a COMPLETE seven-cell
+   * row that lost only its delimiters.
+   *
+   * Each test alone was a proxy for "is this a row", and each missed the damage
+   * the other caught. A row can lose its width or its delimiters; requiring both
+   * to survive made a row that lost either invisible. The rule is now the union.
+   */
+  const damaged = [
+    ['lost delimiters, full width', 'F2 | urgent | 2026-08-02 | — | UNI-9 | ctx | open'],
+    ['lost width, delimited', '| D-1 | urgent blocker |'],
+    ['lost both ends, resolved width', 'F0 | done | 2026-05-01 | 2026-05-02 | shipped'],
+  ];
+  for (const [label, line] of damaged) {
+    const parsed = parseFounderQueue([
+      HEADER, RULE, '| F1 | d | 2026-08-01 | — | b | c | open |', '', line,
+    ].join('\n'));
+    assert.match(parsed.malformed.join('\n'), /outside any table body/u, label);
+  }
+
+  // Prose fails BOTH tests and must stay out — the reason a heuristic here was
+  // removed two rounds ago, re-asserted every time this rule changes.
+  for (const prose of [
+    'F1 is waiting on legal.',
+    'Context: see | notes',
+    'Decision pending | escalate to Phill | see thread',
+  ]) {
+    const parsed = parseFounderQueue([
+      HEADER, RULE, '| F1 | d | 2026-08-01 | — | b | c | open |', '', prose,
+    ].join('\n'));
+    assert.deepEqual(parsed.malformed, [], prose);
+  }
+});
+
+test('A RESOLUTION CANNOT BE DATED IN THE FUTURE', () => {
+  // `2099-01-01` is a real date, after the opened date, and passed every check.
+  // A decision cannot be resolved on a day that has not happened.
+  const ledger = (resolvedOn) => [
+    '# Q', '', '## Open', '', HEADER, RULE, '',
+    '## Resolved', '', '| ID | Decision | Opened | Resolved | Decision text |',
+    '| --- | --- | --- | --- | --- |',
+    `| F9 | Ship it | 2026-08-01 | ${resolvedOn} | shipped |`,
+  ].join('\n');
+
+  const future = summarise(parseFounderQueue(ledger('2099-01-01')), NOW);
+  assert.equal(future.integrity, 'MALFORMED');
+  assert.match(future.malformed.join('\n'), /in the future/u);
+
+  // POSITIVE CONTROL: today's date is not the future, and must pass — an
+  // off-by-one here would refuse every decision resolved this morning.
+  const today = brisbaneCalendarDate(new Date(Date.parse(NOW)));
+  assert.equal(summarise(parseFounderQueue(ledger(today)), NOW).integrity, 'OK');
 });

@@ -368,7 +368,20 @@ export function reconcileQueue(queueEvidence) {
    */
   let state = QUEUE_STATE.UNTRUSTWORTHY;
   if (anomalies.length === 0 && integrity === 'OK' && malformed.length === 0) {
-    if (value.openCount === 0 && (value.oldest === null || value.oldest === undefined)) {
+    /*
+     * `oldest: null` IS A STATEMENT. AN ABSENT KEY IS NOT.
+     *
+     * This accepted `undefined` as equivalent to null, so a summary with NO
+     * `oldest` key at all — a producer that never ran that code, an older
+     * version, a truncated write — reached CLEAN_EMPTY with no anomaly. The
+     * report then printed "Nothing is blocked on Phill" on the strength of a
+     * field nobody wrote.
+     *
+     * `summarise` always emits the key, so requiring it costs nothing real and
+     * distinguishes "I looked and there is none" from "I never said". That is
+     * the same distinction as NOT_RUN versus PASS one file over.
+     */
+    if (value.openCount === 0 && Object.hasOwn(value, 'oldest') && value.oldest === null) {
       state = QUEUE_STATE.CLEAN_EMPTY;
     } else if (value.openCount > 0 && faultsInOldest(value.oldest ?? null).length === 0) {
       state = QUEUE_STATE.CLEAN_OPEN;
@@ -445,7 +458,8 @@ export async function upsertHeartbeatIssue({ client, body, title = HEARTBEAT_TIT
    * between them, and the report would then be written to a NEW issue while
    * claiming a regression measured against the old one.
    */
-  const target = findOwnedIssue(issues ?? await client.listOpenIssues(), title);
+  const resolved = issues ?? await client.listOpenIssues();
+  const target = findOwnedIssue(resolved, title);
 
   if (target === null) {
     const created = await client.createIssue({ title, body });
@@ -469,12 +483,38 @@ export async function upsertHeartbeatIssue({ client, body, title = HEARTBEAT_TIT
    * and the lowest number is still returned as canonical so the determinism
    * contract is unchanged.
    */
-  const owned = (issues ?? await client.listOpenIssues())
+  /*
+   * ONE LISTING, AND I BROKE THAT RULE WITH THE FIX ABOVE.
+   *
+   * The comment fifteen lines up says two lookups race and explains why the
+   * caller passes its listing in. My duplicate-issue fix then wrote
+   * `issues ?? await client.listOpenIssues()` — a SECOND listing — and when it
+   * came back without the owned issue, the loop did nothing and the function
+   * still returned `{action: 'updated', number: 7}`. Zero writes, zero
+   * readbacks, reported as a successful publish. Confirmed by running it.
+   *
+   * A fix for a stale-green defect that introduced a silent no-write, in the
+   * same function, one round later. `resolved` is the listing that produced
+   * `target`, so every issue rewritten is one this run actually observed.
+   */
+  const owned = resolved
     .filter((issue) => issue && issue.title === title && typeof issue.body === 'string'
       && issue.body.includes(OWNER_MARKER) && !issue.pull_request)
     .map((issue) => issue.number)
     .filter((number) => Number.isInteger(number))
     .sort((a, b) => a - b);
+
+  /*
+   * `target` came from this same listing, so it MUST be in the set. If it is
+   * not, the filter above disagrees with `findOwnedIssue` about what this run
+   * owns, and writing under that disagreement is how one of them ends up lying.
+   */
+  if (!owned.includes(target.number)) {
+    throw new Error(
+      `Heartbeat ownership is inconsistent: #${target.number} was selected as the canonical `
+      + `issue but is not in the owned set [${owned.join(', ')}].`,
+    );
+  }
 
   for (const number of owned) {
     await client.updateIssue(number, { title, body });

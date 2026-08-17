@@ -219,7 +219,20 @@ export function parseFounderQueue(markdown) {
        *   `F1 is waiting on legal.`    -> no pipe at all, ignored
        * Verified on all three before this replaced the threshold.
        */
-      if (/^\|.*\|$/u.test(line.trim())) {
+      /*
+       * OUTER PIPES **OR** AN EXACT ROW WIDTH. Neither test alone is enough, and
+       * I have now shipped each of them alone and had the other half found.
+       *
+       *   outer pipes catch `| D-1 | urgent |` — damaged, so the width is wrong
+       *   exact width catches `F2 | urgent | 2026-08-02 | — | UNI-9 | ctx | open`
+       *     — complete, so the delimiters are what it lost
+       *
+       * A row can lose its width or its delimiters; requiring both to survive
+       * meant a row that lost either was invisible. Prose still fails both:
+       * `Decision pending | escalate to Phill | see thread` is three cells and
+       * undelimited.
+       */
+      if (/^\|.*\|$/u.test(line.trim()) || cells.length === 7 || cells.length === 5) {
         malformed.push(
           `Line ${lineNumber} looks like a table row but sits outside any table body: `
           + `${line.trim()}`,
@@ -423,7 +436,7 @@ export function classifyOpenRows(rows) {
  * section is where decisions go to be FORGOTTEN, so an unchecked row there is
  * worse than an unchecked row in Open: nobody looks at it again.
  */
-export function classifyResolvedRows(rows) {
+export function classifyResolvedRows(rows, now) {
   const notes = [];
   for (const row of rows) {
     const id = typeof row.id === 'string' ? row.id.trim() : '';
@@ -482,6 +495,19 @@ export function classifyResolvedRows(rows) {
      * row is either a typo or a fabrication, and either way the ledger's own
      * history is wrong. Found by an independent panel.
      */
+    /*
+     * AND NOT IN THE FUTURE. A row resolved on 2099-01-01 passed every check:
+     * the date is real, it is after the opened date, and the ledger reported
+     * integrity OK. A decision cannot have been resolved on a day that has not
+     * happened, so the row is a typo or a fabrication and either way the entry
+     * is not the record it claims to be.
+     */
+    if (bothDatesReadable && row.resolved.trim() > brisbaneCalendarDate(new Date(Date.parse(now)))) {
+      notes.push(
+        `Resolved row ${label} claims a resolution date of ${row.resolved.trim()}, which is in `
+        + 'the future; a decision cannot be resolved on a day that has not happened.',
+      );
+    }
     if (bothDatesReadable && row.resolved.trim() < row.opened.trim()) {
       notes.push(
         `Resolved row ${label} was resolved on ${row.resolved.trim()} but opened on `
@@ -494,7 +520,7 @@ export function classifyResolvedRows(rows) {
 
 export function summarise(parsed, now) {
   const { stillOpen, notes } = classifyOpenRows(parsed.open);
-  const { notes: resolvedNotes } = classifyResolvedRows(parsed.resolved);
+  const { notes: resolvedNotes } = classifyResolvedRows(parsed.resolved, now);
   const { oldest, unaged } = oldestOpen(stillOpen, now);
   const malformed = [...(parsed.malformed ?? []), ...notes, ...resolvedNotes, ...unaged];
   return {

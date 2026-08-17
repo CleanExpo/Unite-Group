@@ -1711,3 +1711,60 @@ test('EVERY OWNED ISSUE IS REWRITTEN, so no duplicate keeps yesterday green', ()
     }
   });
 });
+
+test('THE REWRITE USES THE LISTING IT SELECTED FROM, not a second one', () => {
+  /*
+   * ROUND-EIGHTEEN FINDING, and it is a bug MY OWN FIX INTRODUCED one round
+   * earlier — in the same function, under a comment explaining why not to.
+   *
+   * The duplicate-issue fix wrote `issues ?? await client.listOpenIssues()`, a
+   * SECOND listing. When it came back without the owned issue, the loop wrote
+   * nothing, read nothing back, and the function still returned
+   * `{action: 'updated', number: 7}`. A silent no-write reported as a publish —
+   * introduced by a fix for a stale-green defect.
+   *
+   * The comment fifteen lines above it already says two lookups race and that is
+   * why the caller passes its listing in. I read that comment, wrote the fix,
+   * and broke the rule it states.
+   */
+  const marker = OWNER_MARKER;
+  let listCalls = 0;
+  const writes = [];
+  const shifting = {
+    listOpenIssues: async () => {
+      listCalls += 1;
+      return listCalls === 1 ? [{ number: 7, title: HEARTBEAT_TITLE, body: `${marker}\nold` }] : [];
+    },
+    createIssue: async () => { throw new Error('must not create'); },
+    updateIssue: async (n, p) => { writes.push(n); return { number: n }; },
+    getIssue: async (n) => ({ number: n, title: HEARTBEAT_TITLE, body: `${marker}\nnew`, state: 'open' }),
+  };
+
+  return upsertHeartbeatIssue({ client: shifting, body: `${marker}\nnew` }).then((result) => {
+    assert.equal(listCalls, 1, 'the listing must be read exactly once');
+    assert.deepEqual(writes, [7], 'the issue selected must actually be written');
+    assert.deepEqual(result.updated, [7]);
+  });
+});
+
+test('AN ABSENT `oldest` IS NOT PROOF OF AN EMPTY QUEUE', () => {
+  /*
+   * `oldest: null` is a statement — "I looked and there is none". An ABSENT key
+   * is not: a producer that never ran that code, an older version, a truncated
+   * write. This accepted `undefined` as equivalent to null, so a summary with no
+   * `oldest` key reached CLEAN_EMPTY with no anomaly, and the report printed
+   * "Nothing is blocked on Phill" on the strength of a field nobody wrote.
+   *
+   * Same distinction as NOT_RUN versus PASS one file over.
+   */
+  const absent = reconcileQueue({ ok: true, value: { openCount: 0, integrity: 'OK', malformed: [] } });
+  assert.notEqual(absent.queue.state, 'CLEAN_EMPTY');
+
+  // POSITIVE CONTROL: an explicit null IS the statement, and must be accepted —
+  // `summarise` always emits the key, so this is the shape production sends.
+  const stated = reconcileQueue({
+    ok: true, value: { openCount: 0, oldest: null, integrity: 'OK', malformed: [] },
+  });
+  assert.equal(stated.queue.state, 'CLEAN_EMPTY');
+  assert.equal(stated.anomalies.length, 0);
+});
