@@ -105,9 +105,15 @@ test('the shipped FOUNDER-QUEUE.md parses and carries the seeded decisions', () 
 });
 
 test('every seeded row computes a real age against the shipped file', () => {
+  // The shipped ledger is checked against the REAL clock, not the frozen test
+  // clock: rows are legitimately appended after any pinned date, and a frozen
+  // NOW here is exactly the stored-derived-value decay this suite exists to
+  // catch (it failed on the first append after 16/08). The synthetic cases
+  // above keep the frozen clock; the live file gets the live now — the same
+  // clock scripts/founder-queue.mjs runs with.
   const parsed = parseFounderQueue(readFileSync(QUEUE_PATH, 'utf8'));
   for (const row of parsed.open) {
-    const age = computeAgeDays(row.opened, NOW);
+    const age = computeAgeDays(row.opened, LIVE_NOW);
     assert.ok(Number.isInteger(age) && age >= 0, `${row.id} -> ${age}`);
   }
 });
@@ -594,7 +600,7 @@ test('the shipped ledger still parses clean after all of this', () => {
   const parsed = parseFounderQueue(readFileSync(QUEUE_PATH, 'utf8'));
   assert.deepEqual(parsed.malformed, []);
   assert.equal(summarise(parsed, LIVE_NOW).integrity, 'OK');
-  assert.equal(parsed.open.length, 8);
+  assert.equal(parsed.open.length, 9);
 });
 
 test('A RESOLVED ROW THAT RESOLVES NOTHING IS NOT RESOLVED', () => {

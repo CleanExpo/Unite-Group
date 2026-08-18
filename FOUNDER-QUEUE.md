@@ -52,6 +52,7 @@ He resolved it on 17/08/2026 — see Resolved.
 | F6 | Retrieve/create the three social platform app secrets | 2026-07-06 | — | UNI-2331 | Connectors already built; only FACEBOOK_APP_SECRET, LINKEDIN_*, TIKTOK_* are missing | open |
 | F7 | Stripe connection | 2026-08-16 | — | billing, and therefore the metric of record | Blocks paying customers directly | open |
 | P9 | Sign off the arming checklist | 2026-08-07 | — | P9 go-live | Per `.spm/2026-08-07-p9-board-meetings-collision.md` | open |
+| F8 | Rotate ANTHROPIC_API_KEY on Vercel prod | 2026-08-18 | — | strategy-daily ×7 businesses, coaches, content-engine, Margot, email AI | By class — founder-held credential. Prod key rejected 401 "API key is invalid" daily since 12/08, still failing 18/08 16:30Z (Vercel runtime errors, project unite-group, verified live 18/08/2026). Key is PRESENT but INVALID — rotate in the Anthropic console, set on Vercel prod, redeploy | open |
 
 ## Resolved
 
