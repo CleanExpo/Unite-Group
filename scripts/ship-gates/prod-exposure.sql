@@ -70,6 +70,15 @@ ORDER BY c.relname;
 -- PUBLIC. Demonstrated against Postgres 17: the old predicate returns false for
 -- both a NULL acl and a non-leading PUBLIC grant, and the new one returns true
 -- for both while still returning false for an owner-only grant.
+--
+-- The role arm compares the grantee's RENDERED NAME, not to_regrole('anon')::oid.
+-- to_regrole returns NULL for a role that does not exist, and `grantee = NULL`
+-- is NULL rather than false, so an oid comparison silently deletes its own arm
+-- on any database lacking the role — reintroducing the exact silent-false-
+-- negative class this query was rewritten to remove. Raised as P1 by the second
+-- review round and confirmed on Postgres 17: to_regrole on a missing role IS
+-- NULL, and the comparison against it IS NULL. grantee::regrole::text renders
+-- PUBLIC as '-' and a real role as its name, so it cannot be NULL-swallowed.
 SELECT 'anon_executable_security_definer' AS rule,
        p.proname                          AS target,
        COALESCE(p.proacl::text, '(default: EXECUTE TO PUBLIC)') AS acl
@@ -81,7 +90,7 @@ WHERE n.nspname = 'public'
         SELECT 1
         FROM aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) a
         WHERE a.privilege_type = 'EXECUTE'
-          AND (a.grantee = 0 OR a.grantee = to_regrole('anon')::oid)
+          AND (a.grantee = 0 OR a.grantee::regrole::text = 'anon')
       )
 ORDER BY p.proname;
 
@@ -105,6 +114,6 @@ WHERE n.nspname = 'public'
         SELECT 1
         FROM aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) a
         WHERE a.privilege_type = 'EXECUTE'
-          AND (a.grantee = 0 OR a.grantee = to_regrole('authenticated')::oid)
+          AND (a.grantee = 0 OR a.grantee::regrole::text = 'authenticated')
       )
 ORDER BY p.proname;
