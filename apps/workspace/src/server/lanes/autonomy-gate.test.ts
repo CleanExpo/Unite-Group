@@ -415,3 +415,178 @@ describe('coverage of the classifier itself', () => {
     expect(classifyShellCommand('echo hi && npm publish').reason).toMatch(/publishes a package/i)
   })
 })
+
+/*
+ * Secret disclosure through bare parameter expansion.
+ *
+ * Found by review on #1027 and reproduced against the merged gate before this
+ * fix: `echo $ANTHROPIC_API_KEY` classified L0 and ran unreviewed. Three
+ * independent checks each let it through — no L3_MARKER matched, SECRET_MARKERS
+ * could not match an underscore-joined name because `\b` does not fire between
+ * `_` and a letter, and SHELL_METACHARACTERS covered `${VAR}` but not `$VAR` —
+ * and `echo` is a SAFE_EXECUTABLE. The braced spelling escalated, so the gate
+ * blocked the expensive form of the attack and allowed the cheap one.
+ */
+describe('shell classification — secret disclosure via expansion', () => {
+  it('escalates a bare $VAR expansion of a credential-shaped name', () => {
+    for (const command of [
+      'echo $ANTHROPIC_API_KEY',
+      'echo $GITHUB_TOKEN',
+      'echo $OPENROUTER_API_KEY',
+      'echo $SUPABASE_SERVICE_ROLE_KEY',
+      'cat $HOME/.config/token',
+    ]) {
+      expect(classifyShellCommand(command).tier, command).toBe('L3')
+    }
+  })
+
+  it('escalates every expansion spelling, not just the braced one', () => {
+    for (const command of [
+      'echo $ANTHROPIC_API_KEY',
+      'echo ${ANTHROPIC_API_KEY}',
+      'echo "$ANTHROPIC_API_KEY"',
+      'echo $1',
+      'echo $@',
+    ]) {
+      expect(classifyShellCommand(command).tier, command).toBe('L3')
+    }
+  })
+
+  it('matches credential markers inside underscore- and hyphen-joined names', () => {
+    for (const command of [
+      'cat anthropic_api_key.txt',
+      'cat api-key.json',
+      'grep secret config.yaml',
+      'cat passwords.txt',
+    ]) {
+      expect(classifyShellCommand(command).tier, command).toBe('L3')
+    }
+  })
+
+  it('does not fire on longer words that merely contain a marker', () => {
+    // The trailing class requires a non-alphanumeric or end-of-string, so
+    // `tokenizer` and `passwordless` are ordinary words, not credential
+    // references. Without this the fix would escalate ordinary work and get
+    // switched off — the real failure mode of an over-eager gate.
+    for (const command of ['cat tokenizer.ts', 'grep passwordless auth.ts', 'ls tokenised/']) {
+      expect(classifyShellCommand(command).tier, command).not.toBe('L3')
+    }
+  })
+
+  it('DOES fire when the marker is a discrete component of a joined name', () => {
+    // `tokens_backup` and `api_key` are the same shape: the marker followed by
+    // a separator. No boundary rule can admit ANTHROPIC_API_KEY and reject
+    // tokens_backup, and that is the right trade for this gate — a directory
+    // literally named `tokens` plausibly holds tokens, and escalation asks for
+    // approval rather than blocking. Pinned so the asymmetry is a deliberate,
+    // visible choice rather than an accident someone later "fixes".
+    for (const command of ['ls tokens_backup_dir_name', 'cat my-secret-notes.md']) {
+      expect(classifyShellCommand(command).tier, command).toBe('L3')
+    }
+  })
+
+  it('still allows the safe commands the gate exists to let through', () => {
+    for (const command of ['ls', 'ls -la', 'pwd', 'cat README.md', 'git status']) {
+      expect(classifyShellCommand(command).tier, command).toBe('L0')
+    }
+  })
+})
+
+/*
+ * Worktree containment for lane-local writes.
+ *
+ * Found by review on #1027: the L1 branch returned the reason "writes inside
+ * the lane worktree" while no path check existed anywhere in the module, and
+ * GateOptions carried no root to check against. The reason string asserted a
+ * control that was never implemented, and the audit trail recorded that
+ * assertion for every allowed write.
+ */
+describe('lane-local writes — worktree containment', () => {
+  const ROOT = '/home/agent/.hermes/worktrees/lane-42'
+
+  it('escalates a write to the gate’s own control surface, root or no root', () => {
+    // The hook is re-spawned from a fixed path per call, so overwriting it
+    // disables the gate for the rest of the run. This must hold even when no
+    // worktree root is configured.
+    for (const file_path of [
+      '/home/agent/.hermes/lanes/gate/run-1/settings.json',
+      '/home/agent/.claude/settings.json',
+      '/repo/.git/hooks/pre-commit',
+      '/home/agent/.bashrc',
+      '/app/src/server/lanes/autonomy-hook.mjs',
+    ]) {
+      for (const opts of [{}, { worktreeRoot: ROOT }]) {
+        const result = classifyToolCall(call({ tool: 'Write', input: { file_path } }), opts)
+        expect(result.tier, `${file_path} ${JSON.stringify(opts)}`).toBe('L3')
+        expect(result.reason).toMatch(/controls it runs under/i)
+      }
+    }
+    // `.ssh` is also refused, but by the credential-material check that runs
+    // earlier — a different reason for the same correct answer, asserted
+    // separately rather than loosening the message above.
+    expect(
+      classifyToolCall(call({ tool: 'Write', input: { file_path: '/home/agent/.ssh/id_rsa' } })).tier,
+    ).toBe('L3')
+  })
+
+  it('escalates a write outside the configured worktree root', () => {
+    for (const file_path of [
+      '/etc/passwd',
+      '/home/agent/other-lane/src/index.ts',
+      `${ROOT}/../lane-43/src/index.ts`,
+    ]) {
+      const result = classifyToolCall(
+        call({ tool: 'Write', input: { file_path } }),
+        { worktreeRoot: ROOT },
+      )
+      expect(result.tier, file_path).toBe('L3')
+    }
+  })
+
+  it('allows a write inside the configured worktree root', () => {
+    for (const file_path of [`${ROOT}/src/index.ts`, `${ROOT}/nested/dir/a.md`]) {
+      const result = classifyToolCall(
+        call({ tool: 'Write', input: { file_path } }),
+        { worktreeRoot: ROOT },
+      )
+      expect(result.tier, file_path).toBe('L1')
+      expect(result.reason).toMatch(/containment checked/i)
+    }
+  })
+
+  it('escalates a write whose path is in no recognised field, once a root exists', () => {
+    // Otherwise containment passes by finding nothing to check — vacuously
+    // green in the one place that must not be.
+    const result = classifyToolCall(
+      call({ tool: 'Write', input: { destination: `${ROOT}/x.ts` } }),
+      { worktreeRoot: ROOT },
+    )
+    expect(result.tier).toBe('L3')
+    expect(result.reason).toMatch(/cannot be checked/i)
+  })
+
+  it('still allows TodoWrite, which writes a task list and not a path', () => {
+    expect(
+      classifyToolCall(call({ tool: 'TodoWrite', input: { todos: [] } }), { worktreeRoot: ROOT }).tier,
+    ).toBe('L1')
+  })
+
+  it('says containment was NOT enforced when no root is configured', () => {
+    // The tier is unchanged — escalating every write on every un-wired lane is
+    // how a gate gets switched off wholesale — but the reason must stop
+    // asserting a check that did not run.
+    const result = classifyToolCall(call({ tool: 'Write', input: { file_path: '/anywhere/x.ts' } }))
+    expect(result.tier).toBe('L1')
+    expect(result.reason).toMatch(/NOT enforced/i)
+  })
+
+  it('threads the root from evaluateToolCall, not just classifyToolCall', () => {
+    // The check is worthless if the decision path does not pass the root down.
+    const decision = evaluateToolCall(
+      call({ tool: 'Write', input: { file_path: '/etc/passwd' } }),
+      { worktreeRoot: ROOT },
+    )
+    expect(decision.tier).toBe('L3')
+    expect(decision.allowed).toBe(false)
+  })
+})
