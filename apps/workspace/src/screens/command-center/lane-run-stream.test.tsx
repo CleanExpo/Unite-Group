@@ -290,6 +290,40 @@ describe('<LaneRunStream />', () => {
     expect(node.textContent).toContain('still going')
   })
 
+  it('does not claim live forever on a stream that connects and never emits', () => {
+    // The `connected` control frame proves the transport works and nothing
+    // about the run producing output. Keying staleness on lastEventAt alone
+    // meant this case could never downgrade: lastEventAt stays null, the
+    // stale check requires it to be non-null, and the panel reported a green
+    // 'live' indefinitely. Reachable in practice — the panel mounts off
+    // lane.lastRunId, which stays set after a run whose ledger is empty or
+    // rotated, and after one that died before its first event was written.
+    vi.useFakeTimers()
+    let clock = 1_000_000
+    const node = mount(
+      <LaneRunStream runId="run_1" eventSourceFactory={factory} now={() => clock} />,
+    )
+    const source = FakeEventSource.instances[0]!
+    act(() => {
+      source.emit('connected', { runId: 'run_1' })
+    })
+    const stateNode = () =>
+      node.querySelector('[data-testid="lane-run-stream-state"]')?.textContent ?? ''
+    expect(stateNode()).toContain('live')
+
+    // Past the staleness window with still NO event. The clock is advanced and
+    // the component's own 1s freshness tick is fired; emitting any frame here
+    // would defeat the test, because every subscribed frame sets lastEventAt
+    // and would make the stream genuinely fresh.
+    act(() => {
+      clock += STALE_AFTER_MS + 1_000
+      vi.advanceTimersByTime(1_000)
+    })
+    expect(stateNode()).toContain('stale')
+    // And it says WHICH kind of stale, rather than "last event never".
+    expect(stateNode()).toContain('no events yet')
+  })
+
   it('surfaces a server-reported stream error instead of an empty log', () => {
     const node = mount(<LaneRunStream runId="run_1" eventSourceFactory={factory} />)
     act(() => {

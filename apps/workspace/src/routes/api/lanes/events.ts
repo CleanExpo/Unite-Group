@@ -98,6 +98,14 @@ export const Route = createFileRoute('/api/lanes/events')({
             }
 
             await drain()
+            // `cancel()` can arrive DURING the await above — the catch-up loop
+            // does real ledger I/O and may run several pages. It sets `closed`
+            // and clears whichever timers exist, but at that moment both are
+            // still null, so it clears nothing; without this guard the arming
+            // below then runs anyway and the intervals outlive the connection
+            // for the life of the process (a 500 ms poll and a 15 s keepalive
+            // per abandoned stream). Re-check the flag the cancel already set.
+            if (closed) return
             pollTimer = setInterval(() => void drain(), SSE_POLL_INTERVAL_MS)
             keepaliveTimer = setInterval(
               () => send(': keepalive\n\n'),

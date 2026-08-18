@@ -81,7 +81,15 @@ export function describeConnection(
       }
     case 'stale':
       return {
-        label: `stale · last event ${formatAgo(lastEventAgoMs)}`,
+        // Two different situations, and conflating them hides the worse one: a
+        // run that produced output and then went quiet, versus one that
+        // connected and never produced anything at all. The second reads
+        // "last event never" if phrased as the first, which is true but tells
+        // the operator nothing about which case they are looking at.
+        label:
+          lastEventAgoMs === null
+            ? 'stale · connected, no events yet'
+            : `stale · last event ${formatAgo(lastEventAgoMs)}`,
         announcement: 'The run stream has gone quiet',
         tone: 'warn',
       }
@@ -253,6 +261,15 @@ export function LaneRunStream({
   const [events, setEvents] = useState<LaneStreamEvent[]>([])
   const [state, setState] = useState<ConnectionState>('idle')
   const [lastEventAt, setLastEventAt] = useState<number | null>(null)
+  // When the stream connected, kept separately from when an EVENT last landed.
+  // The `connected` control frame proves the transport works; it proves nothing
+  // about the run producing output. Without this, a stream that connects and
+  // never emits reported 'live' forever — the staleness check below could not
+  // fire because it keyed off lastEventAt, which stays null in exactly that
+  // case. That is a reachable state, not a contrived one: the panel mounts off
+  // `lane.lastRunId`, which stays set after a run whose ledger is empty or
+  // rotated, and after one that failed before writing its first event.
+  const [connectedAt, setConnectedAt] = useState<number | null>(null)
   const [gate, setGate] = useState<GateDecisionView[] | null>(null)
   const [tick, setTick] = useState(0)
   const sourceRef = useRef<EventSource | null>(null)
@@ -336,7 +353,10 @@ export function LaneRunStream({
     ]) {
       source.addEventListener(kind, onEvent as EventListener)
     }
-    source.addEventListener('connected', () => setState('live'))
+    source.addEventListener('connected', () => {
+      setConnectedAt(nowRef.current())
+      setState('live')
+    })
     source.addEventListener('stream_error', () => setState('error'))
     source.onerror = () => {
       // EventSource retries on its own and resumes from Last-Event-ID, so this
@@ -360,8 +380,16 @@ export function LaneRunStream({
   }, [state])
 
   const lastEventAgoMs = lastEventAt === null ? null : nowRef.current() - lastEventAt
+  // Freshness is measured from the last event when there has been one, and
+  // otherwise from the moment we connected. Keying staleness on lastEventAt
+  // alone let a silent stream claim 'live' indefinitely, contradicting this
+  // component's own invariant that 'live' is only claimed when something
+  // actually arrived recently.
+  const freshnessAnchor = lastEventAt ?? connectedAt
+  const freshnessAgoMs =
+    freshnessAnchor === null ? null : nowRef.current() - freshnessAnchor
   const effectiveState: ConnectionState =
-    state === 'live' && lastEventAgoMs !== null && lastEventAgoMs > STALE_AFTER_MS
+    state === 'live' && freshnessAgoMs !== null && freshnessAgoMs > STALE_AFTER_MS
       ? 'stale'
       : state
   const description = useMemo(
