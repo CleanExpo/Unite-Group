@@ -1,6 +1,6 @@
 ---
 name: humanizer
-description: Strip AI-writing tells from FOUNDER-FACING PROSE — marketing copy, landing pages, emails, social posts, blog and course content, client-facing documents — while keeping every fact, claim and the writer's voice. Use when asked to humanise, de-slop, de-AI, or make copy sound less like a chatbot, and when reviewing brand copy for inflated claims, sales language, vague sources, stock AI words, filler, or leftover chatbot artefacts. Do NOT use on code, commit messages, PR bodies, CI output, or anything under .claude/rules/ or docs/constitution/ — those carry deliberately formulaic required lines that must stay byte-exact.
+description: Strip AI-writing tells from FOUNDER-FACING PROSE — marketing copy, landing pages, emails, social posts, blog and course content, client-facing documents — while keeping every fact, claim and the writer's voice. Use when asked to humanise, de-slop, de-AI, or make copy sound less like a chatbot, and when reviewing brand copy for inflated claims, sales language, vague sources, stock AI words, filler, or leftover chatbot artefacts. Do NOT use on code, commit messages, PR bodies, CI output, or anything under .claude/rules/, .claude/skills/, docs/constitution/, CLAUDE.md or AGENTS.md — those carry deliberately formulaic required lines and operating doctrine that must stay byte-exact.
 ---
 
 # Humanizer — remove AI writing patterns
@@ -8,8 +8,9 @@ description: Strip AI-writing tells from FOUNDER-FACING PROSE — marketing copy
 ## House adaptation (read before applying anything below)
 
 This skill is a vendored copy of `blader/humanizer` v2.11.1 (MIT, see Licence at
-the end). The upstream body is reproduced faithfully. These house rules sit ON
-TOP of it and win on conflict.
+the end). The upstream PATTERN CATALOGUE is reproduced faithfully; the House
+modifications outside it are marked inline and listed in Provenance at the end.
+These house rules sit ON TOP of the upstream text and win on conflict.
 
 **1. Scope — content lanes only. This is the inversion of upstream.**
 Upstream ships an "embedded mode" that offers to rewrite *"a pull request, commit
@@ -35,7 +36,7 @@ dash rate rather than stripping dashes. Apply §14 only when the source copy doe
 not use them.
 
 **3. The no-fabrication rule is absolute and outranks every style rule.**
-Upstream §3 already forbids inventing a fact, name, number, date, quote or
+Upstream's no-fabrication rule already forbids inventing a fact, name, number, date, quote or
 citation. In this repo that compounds with the per-brand claims guardrails
 (`restore`, `dr`, `nrpg`, `ccw`, `carsi`, `ato`) and with
 `.claude/rules/fabel-evidence-standard.md`. Never invent a capability,
@@ -44,7 +45,9 @@ with a number you do not have, leave the sentence weaker and say so.
 
 **4. Australian English.** Output en-AU (colour, organise, centre), DD/MM/YYYY
 dates, AUD. Five spellings in the upstream examples below were adapted for this;
-nothing else in the body was altered.
+nothing else in the pattern catalogue was altered. Two further House
+modifications sit outside the catalogue — in File mode and Embedded mode — and
+are marked at the point of change.
 
 ---
 

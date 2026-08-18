@@ -1,6 +1,6 @@
 ---
 name: marketing
-description: Marketing METHOD — the frameworks behind conversion optimisation, AI-search visibility (AEO/GEO), programmatic SEO, buyer psychology, and pricing/packaging. Use when the question is how a marketing mechanism works or how to approach one: "why isn't this page converting", "how do we get cited by ChatGPT/Perplexity", "should we build location pages at scale", "what should we charge", "how do we structure tiers", "which psychological principle applies here". This skill supplies the method only — it never writes brand copy. For voice, claims and brand facts, the per-brand skills (restore, dr, nrpg, ccw, carsi, ato) always win; load one of those alongside this when the output is copy for a specific business.
+description: 'Marketing METHOD — the frameworks behind conversion optimisation, AI-search visibility (AEO/GEO), programmatic SEO, buyer psychology, and pricing/packaging. Use when the question is how a marketing mechanism works or how to approach one: "why isn''t this page converting", "how do we get cited by ChatGPT/Perplexity", "should we build location pages at scale", "what should we charge", "how do we structure tiers", "which psychological principle applies here". This skill supplies the method only — it never writes brand copy. For voice, claims and brand facts, the per-brand skills (restore, dr, nrpg, ccw, carsi, ato) always win; load one of those alongside this when the output is copy for a specific business.'
 ---
 
 # Marketing method — CRO, AI search, programmatic SEO, psychology, pricing
@@ -79,7 +79,9 @@ stopping early still leaves the biggest wins captured.
    mobile breakage, slow loads. Remove before adding anything.
 
 **Deliverable shape:** quick wins (do now) · high-impact changes (prioritise) ·
-hypotheses worth testing rather than assuming · two or three copy alternatives
+hypotheses worth testing rather than assuming · two or three headline and CTA
+test hypotheses with the reasoning — never final brand copy, which belongs to
+the per-brand skills
 for headline and CTA with the reasoning.
 
 **By page type:** homepage serves both ready-to-buy and still-researching, so
@@ -117,16 +119,29 @@ default to: **write for people, organise for clarity** — that satisfies both.
   updated" dates, and clear author identity. Upstream cites Princeton GEO
   research (KDD 2024) ranking these lifts — cite sources ≈ +40%, statistics
   ≈ +37%, quotations ≈ +30%, while keyword stuffing *reduces* AI visibility.
-  Treat those figures per non-negotiable 3.
+  [UNCONFIRMED] The measured quantity is visibility of a source inside
+  generative-engine responses, not clicks or rankings, and these figures could
+  not be checked against the paper from this container. Treat them as direction
+  of effect only, per non-negotiable 3 — never quote the percentages to a
+  client.
 - **Presence — be where AI looks.** Citations often come from third-party
   surfaces rather than your own domain: Wikipedia, Reddit, industry roundups,
   review sites (G2/Capterra for B2B), YouTube. Participate authentically; never
   fabricate mentions or astroturf.
 
-**Machine readability.** Check `robots.txt` actually allows the bots you want to
-be cited by — GPTBot and ChatGPT-User, PerplexityBot, ClaudeBot, Google-Extended,
-Bingbot. Blocking them means those engines cannot cite you; that is a business
-decision, not an oversight to leave undiscovered. Consider a plain-text or
+**Machine readability.** Check `robots.txt` against each provider's CURRENT
+documentation before changing anything, and treat the tokens as different in
+kind rather than one list: some govern search/citation crawling, some govern
+model TRAINING, some are fetched only on a live user request, and at least one
+(`Google-Extended`) is a robots.txt control token rather than a crawler — it
+does not affect Google Search ranking, which Googlebot governs. Blocking a
+citation crawler means those engines cannot cite you; blocking a training
+crawler is a different decision with different consequences. Either way it is a
+business decision, not an oversight to leave undiscovered. [UNCONFIRMED from
+this container — developers.google.com and the other vendor docs are blocked by
+the agent proxy (CONNECT 403), so verify each token against its primary source
+before acting; the earlier version of this paragraph listed Google-Extended as a
+crawler to allow, which is wrong.] Consider a plain-text or
 markdown pricing file and an `llms.txt`, and keep prices in text rather than
 images or behind "contact sales" — agents increasingly shortlist tools before a
 human ever visits, and they cannot quote what they cannot parse.
