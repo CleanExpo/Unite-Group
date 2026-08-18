@@ -491,3 +491,102 @@ describe('shell classification — secret disclosure via expansion', () => {
     }
   })
 })
+
+/*
+ * Worktree containment for lane-local writes.
+ *
+ * Found by review on #1027: the L1 branch returned the reason "writes inside
+ * the lane worktree" while no path check existed anywhere in the module, and
+ * GateOptions carried no root to check against. The reason string asserted a
+ * control that was never implemented, and the audit trail recorded that
+ * assertion for every allowed write.
+ */
+describe('lane-local writes — worktree containment', () => {
+  const ROOT = '/home/agent/.hermes/worktrees/lane-42'
+
+  it('escalates a write to the gate’s own control surface, root or no root', () => {
+    // The hook is re-spawned from a fixed path per call, so overwriting it
+    // disables the gate for the rest of the run. This must hold even when no
+    // worktree root is configured.
+    for (const file_path of [
+      '/home/agent/.hermes/lanes/gate/run-1/settings.json',
+      '/home/agent/.claude/settings.json',
+      '/repo/.git/hooks/pre-commit',
+      '/home/agent/.bashrc',
+      '/app/src/server/lanes/autonomy-hook.mjs',
+    ]) {
+      for (const opts of [{}, { worktreeRoot: ROOT }]) {
+        const result = classifyToolCall(call({ tool: 'Write', input: { file_path } }), opts)
+        expect(result.tier, `${file_path} ${JSON.stringify(opts)}`).toBe('L3')
+        expect(result.reason).toMatch(/controls it runs under/i)
+      }
+    }
+    // `.ssh` is also refused, but by the credential-material check that runs
+    // earlier — a different reason for the same correct answer, asserted
+    // separately rather than loosening the message above.
+    expect(
+      classifyToolCall(call({ tool: 'Write', input: { file_path: '/home/agent/.ssh/id_rsa' } })).tier,
+    ).toBe('L3')
+  })
+
+  it('escalates a write outside the configured worktree root', () => {
+    for (const file_path of [
+      '/etc/passwd',
+      '/home/agent/other-lane/src/index.ts',
+      `${ROOT}/../lane-43/src/index.ts`,
+    ]) {
+      const result = classifyToolCall(
+        call({ tool: 'Write', input: { file_path } }),
+        { worktreeRoot: ROOT },
+      )
+      expect(result.tier, file_path).toBe('L3')
+    }
+  })
+
+  it('allows a write inside the configured worktree root', () => {
+    for (const file_path of [`${ROOT}/src/index.ts`, `${ROOT}/nested/dir/a.md`]) {
+      const result = classifyToolCall(
+        call({ tool: 'Write', input: { file_path } }),
+        { worktreeRoot: ROOT },
+      )
+      expect(result.tier, file_path).toBe('L1')
+      expect(result.reason).toMatch(/containment checked/i)
+    }
+  })
+
+  it('escalates a write whose path is in no recognised field, once a root exists', () => {
+    // Otherwise containment passes by finding nothing to check — vacuously
+    // green in the one place that must not be.
+    const result = classifyToolCall(
+      call({ tool: 'Write', input: { destination: `${ROOT}/x.ts` } }),
+      { worktreeRoot: ROOT },
+    )
+    expect(result.tier).toBe('L3')
+    expect(result.reason).toMatch(/cannot be checked/i)
+  })
+
+  it('still allows TodoWrite, which writes a task list and not a path', () => {
+    expect(
+      classifyToolCall(call({ tool: 'TodoWrite', input: { todos: [] } }), { worktreeRoot: ROOT }).tier,
+    ).toBe('L1')
+  })
+
+  it('says containment was NOT enforced when no root is configured', () => {
+    // The tier is unchanged — escalating every write on every un-wired lane is
+    // how a gate gets switched off wholesale — but the reason must stop
+    // asserting a check that did not run.
+    const result = classifyToolCall(call({ tool: 'Write', input: { file_path: '/anywhere/x.ts' } }))
+    expect(result.tier).toBe('L1')
+    expect(result.reason).toMatch(/NOT enforced/i)
+  })
+
+  it('threads the root from evaluateToolCall, not just classifyToolCall', () => {
+    // The check is worthless if the decision path does not pass the root down.
+    const decision = evaluateToolCall(
+      call({ tool: 'Write', input: { file_path: '/etc/passwd' } }),
+      { worktreeRoot: ROOT },
+    )
+    expect(decision.tier).toBe('L3')
+    expect(decision.allowed).toBe(false)
+  })
+})
