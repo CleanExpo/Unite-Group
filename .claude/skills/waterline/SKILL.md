@@ -11,9 +11,11 @@ description: Audit any piece of work — the current session, a PR, a branch, or
 > **UNI-2517** (Linear, founder-authored SSOT). The Ladder mapping, AAA semantics
 > and the required report line are defined once, in
 > `.claude/rules/ground-truth-standard.md`. This skill binds to all three and
-> redefines none — redefinition is a Class 3 constitutional amendment. It computes
-> and reports. Evidence, evaluation, or model consensus cannot lower a class, and
-> only receipts — never labels — advance a stage.
+> redefines none — redefining the constitution's classes is a Class 3
+> constitutional amendment; redefining UNI-2517's lifecycle is a founder-only
+> change made in the ticket itself. It computes and reports. Evidence,
+> evaluation, or model consensus cannot lower a class, and only receipts — never
+> labels — advance a stage.
 
 ## Invocation
 
@@ -26,6 +28,11 @@ description: Audit any piece of work — the current session, a PR, a branch, or
 
 ## Procedure
 
+0. **Name what is audited — and what is not.** Enumerate every deliverable the
+   session will claim; name the one this audit covers; list every other as
+   `UNAUDITED: <name>` in the report. A handoff that claims un-listed work
+   against this report is a red flag — one audited deliverable never haloes the
+   rest.
 1. **Pin the SHA.** Resolve the target to the exact commit SHA (and, for released
    work, the deployment/version identifier). Every receipt below binds to that
    SHA — evidence for another SHA is `AA` at best (binding incomplete). If the
@@ -34,8 +41,11 @@ description: Audit any piece of work — the current session, a PR, a branch, or
 2. **Re-fetch the spine.** Read the Ladder table from
    `.claude/rules/ground-truth-standard.md` and, when Linear is reachable, fetch
    UNI-2517 fresh (`mcp__Linear__get_issue`) — never from memory or a paraphrase.
-   If Linear is unreachable, say "UNI-2517 unavailable from here — using the rule
-   file's mapping table" and carry on; do not stop, do not guess at changes.
+   If Linear is unreachable, quote the failed call's actual error, say "UNI-2517
+   unavailable from here — using the rule file's mapping table", and tag every
+   resulting Stage value `[UNCONFIRMED]` (a stored copy of the lifecycle is
+   exactly the derive-never-store shape P8 bans; the audit still completes, its
+   stages just carry their honest tag).
 3. **Walk the rungs, 1 → 12.** For each rung, enumerate the APPLICABLE UNI-2517
    evidence classes (structural · implementation · behavioural ·
    integration/security · visual · review · release · outcome), then assemble
@@ -43,8 +53,10 @@ description: Audit any piece of work — the current session, a PR, a branch, or
    - **git** — `git log`/`git show` for the SHA; PR state via the GitHub MCP
      (`pull_request_read`), never a summary doc.
    - **CI** — check runs for THAT SHA, plus `config/ci-evidence-manifest.json`
-     completeness rules via `scripts/ci-evidence-manifest.mjs`: a suite that
-     executed zero tests is not evidence, however green the job concluded.
+     completeness rules via `scripts/ci-evidence-manifest.mjs` for the checks the
+     manifest declares (currently spine only); suites outside the manifest need
+     vitest JSON receipts + check runs for the SHA. A suite that executed zero
+     tests is not evidence, however green the job concluded.
    - **Gate logs** — `.handoff-logs/*.log` where present (note: this register
      stopped on 09/07/2026; per-SHA `gates-*.log` files live on founder machines
      and are usually ABSENT here).
@@ -95,7 +107,9 @@ work, the FAIL ratings cover claimed-but-unevidenced work.
 ## Failure honesty
 
 - Linear / Vercel / Supabase MCP unavailable → the affected classes are reported
-  "unavailable from here" and rated accordingly. The audit still completes.
+  "unavailable from here" **with the failed call's actual error quoted as the
+  receipt** — an unreachability claim without its error is itself an untagged
+  claim — and rated accordingly. The audit still completes.
 - The skill never degrades to memory, a handoff's prose, or a paraphrase of
   UNI-2517 — it re-fetches each run (P1, P8 of the Ground-Truth Standard).
 - If the target's own claims (a PR body, a ticket) disagree with the receipts,
@@ -104,7 +118,14 @@ work, the FAIL ratings cover claimed-but-unevidenced work.
 ## Red flags that mean the audit was skipped or gamed
 
 - A `Waterline:` line whose Stage exceeds its receipts.
-- A rating above the minimum rung ("AAA overall" with a FAIL rung claimed).
-- A receipt quoted for a different SHA than the pinned one.
+- A rating above the minimum across claimed rungs ("AAA overall" with a FAIL
+  rung claimed).
+- A "(not reached)" entry BELOW the claimed rung — rung claims are cumulative.
+- A receipt quoted for a different SHA than the pinned one, or an `@ <sha>`
+  receipt with no same-run `git rev-parse HEAD` + clean-status capture.
 - A Linear status, a doc, or a commit message offered as a receipt.
+- A `Grounded` line whose source is a prose document, or a search for the
+  claim's own text.
+- A `Bypass attempt` unrelated to the diff's risk surface.
 - An absent register silently replaced by the nearest-looking file.
+- A session handoff claiming deliverables this report listed as `UNAUDITED`.
