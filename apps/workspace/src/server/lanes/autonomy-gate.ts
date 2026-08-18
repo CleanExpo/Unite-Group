@@ -132,7 +132,16 @@ const SHELL_METACHARACTERS: ReadonlyArray<{ pattern: RegExp; name: string }> = [
   { pattern: /\|/, name: 'pipe' },
   { pattern: /&(?!&)/, name: 'background execution' },
   { pattern: /\$\(|`/, name: 'command substitution' },
-  { pattern: /\$\{[^}]*\}/, name: 'parameter expansion' },
+  // ANY dollar, not just `${...}`. The braced form was covered and the bare
+  // form was not, so `echo $ANTHROPIC_API_KEY` classified L0 and ran
+  // unreviewed while `echo ${ANTHROPIC_API_KEY}` escalated — the same
+  // disclosure through the cheaper spelling. Positional (`$1`), special
+  // (`$@`, `$*`, `$?`) and ANSI-C (`$'...'`) forms expand too, so the control
+  // is "a dollar means expansion" rather than a list of expansion shapes that
+  // must stay ahead of the shell. A literal dollar in a message escalates as
+  // collateral; escalation asks for approval, it does not block, and that is
+  // the correct direction for a gate whose stated job is stopping disclosure.
+  { pattern: /\$/, name: 'parameter expansion' },
   { pattern: />|</, name: 'redirection' },
   { pattern: /\n|\r/, name: 'newline' },
   { pattern: /\\\s*$/, name: 'line continuation' },
@@ -175,7 +184,14 @@ const SECRET_MARKERS: ReadonlyArray<RegExp> = [
   /\.aws\/credentials\b/,
   /\.npmrc\b/,
   /\bcredentials?\.json\b/i,
-  /\b(secret|token|apikey|api_key|password)s?\b/i,
+  // `\b` does NOT fire between `_` and a letter — both are word characters — so
+  // the previous `\b(...)\b` form never matched the names secrets actually have:
+  // ANTHROPIC_API_KEY, GITHUB_TOKEN, SUPABASE_SERVICE_ROLE_KEY. It matched only
+  // a bare `token` or `api_key` standing alone, which is the spelling nobody
+  // uses. Underscore and hyphen are treated as separators here, so the marker
+  // fires on the real names while `tokenizer` and `passwordless` still do not
+  // (the trailing class requires a non-alphanumeric or end-of-string).
+  /(^|[^A-Za-z0-9])(secret|token|apikey|api[_-]?key|password)s?([^A-Za-z0-9]|$)/i,
 ]
 
 export interface CommandClassification {

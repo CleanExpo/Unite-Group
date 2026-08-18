@@ -415,3 +415,79 @@ describe('coverage of the classifier itself', () => {
     expect(classifyShellCommand('echo hi && npm publish').reason).toMatch(/publishes a package/i)
   })
 })
+
+/*
+ * Secret disclosure through bare parameter expansion.
+ *
+ * Found by review on #1027 and reproduced against the merged gate before this
+ * fix: `echo $ANTHROPIC_API_KEY` classified L0 and ran unreviewed. Three
+ * independent checks each let it through — no L3_MARKER matched, SECRET_MARKERS
+ * could not match an underscore-joined name because `\b` does not fire between
+ * `_` and a letter, and SHELL_METACHARACTERS covered `${VAR}` but not `$VAR` —
+ * and `echo` is a SAFE_EXECUTABLE. The braced spelling escalated, so the gate
+ * blocked the expensive form of the attack and allowed the cheap one.
+ */
+describe('shell classification — secret disclosure via expansion', () => {
+  it('escalates a bare $VAR expansion of a credential-shaped name', () => {
+    for (const command of [
+      'echo $ANTHROPIC_API_KEY',
+      'echo $GITHUB_TOKEN',
+      'echo $OPENROUTER_API_KEY',
+      'echo $SUPABASE_SERVICE_ROLE_KEY',
+      'cat $HOME/.config/token',
+    ]) {
+      expect(classifyShellCommand(command).tier, command).toBe('L3')
+    }
+  })
+
+  it('escalates every expansion spelling, not just the braced one', () => {
+    for (const command of [
+      'echo $ANTHROPIC_API_KEY',
+      'echo ${ANTHROPIC_API_KEY}',
+      'echo "$ANTHROPIC_API_KEY"',
+      'echo $1',
+      'echo $@',
+    ]) {
+      expect(classifyShellCommand(command).tier, command).toBe('L3')
+    }
+  })
+
+  it('matches credential markers inside underscore- and hyphen-joined names', () => {
+    for (const command of [
+      'cat anthropic_api_key.txt',
+      'cat api-key.json',
+      'grep secret config.yaml',
+      'cat passwords.txt',
+    ]) {
+      expect(classifyShellCommand(command).tier, command).toBe('L3')
+    }
+  })
+
+  it('does not fire on longer words that merely contain a marker', () => {
+    // The trailing class requires a non-alphanumeric or end-of-string, so
+    // `tokenizer` and `passwordless` are ordinary words, not credential
+    // references. Without this the fix would escalate ordinary work and get
+    // switched off — the real failure mode of an over-eager gate.
+    for (const command of ['cat tokenizer.ts', 'grep passwordless auth.ts', 'ls tokenised/']) {
+      expect(classifyShellCommand(command).tier, command).not.toBe('L3')
+    }
+  })
+
+  it('DOES fire when the marker is a discrete component of a joined name', () => {
+    // `tokens_backup` and `api_key` are the same shape: the marker followed by
+    // a separator. No boundary rule can admit ANTHROPIC_API_KEY and reject
+    // tokens_backup, and that is the right trade for this gate — a directory
+    // literally named `tokens` plausibly holds tokens, and escalation asks for
+    // approval rather than blocking. Pinned so the asymmetry is a deliberate,
+    // visible choice rather than an accident someone later "fixes".
+    for (const command of ['ls tokens_backup_dir_name', 'cat my-secret-notes.md']) {
+      expect(classifyShellCommand(command).tier, command).toBe('L3')
+    }
+  })
+
+  it('still allows the safe commands the gate exists to let through', () => {
+    for (const command of ['ls', 'ls -la', 'pwd', 'cat README.md', 'git status']) {
+      expect(classifyShellCommand(command).tier, command).toBe('L0')
+    }
+  })
+})
