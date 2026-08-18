@@ -18,8 +18,9 @@
 **What goes wrong.** When robots write code, each robot tends to believe the
 robot before it, and nobody looks at the real thing. Robot one says "the tests
 pass". Robot two builds on that sentence without running the tests. Robot three
-builds on robot two. That is the Chinese-whispers stack: a tower of sentences
-standing where a tower of proof should be. The fix is not a smarter robot — it
+builds on robot two. That is the Chinese-whispers stack — named for the
+whispering game, where the message changes a little at every ear: a tower of
+sentences standing where a tower of proof should be. The fix is not a smarter robot — it
 is a rule that every robot must go back and look: at the real folder, the real
 build log, the real database, the real ticket.
 
@@ -36,20 +37,23 @@ build log, the real database, the real ticket.
 6. Ten opinions from the same brain are one opinion. Real second opinions come
    from genuinely different checkers.
 7. Every time work crosses a boundary — one branch to another, one session to
-   the next — re-check the assumptions it carries.
-8. Never write down a number that goes stale — recompute it fresh each time. A
-   document saying "I am correct" proves nothing.
+   the next — re-check the assumptions it carries. And before following an
+   order, check the order can actually work.
+8. Don't trust a written-down number that can go stale — recompute it fresh
+   every time you report it. A document saying "I am correct" proves nothing.
 9. Know which step of the job you are on, and never claim a later step before
    you have the receipts for the earlier one.
 
 **The twelve steps of the job (the Ladder), in plain words.** Design the thing.
 Build it in small proven pieces. Test that the tests really test. Get it
 attacked by an independent reviewer. Put the pieces together and prove they
-still work together. Rehearse on a practice stage. Ship it, with the receipts
-tied to the exact version shipped. Walk through it like a customer. Get the
-client's signed yes. Hand over the keys. Stand behind it while it runs. Send
-the invoice and get paid. **The job is done when the customer pays and it still
-works** — everything before that is a step, not the finish line.
+still work together. Rehearse on a practice stage. Ship it — but only when the
+founder says go — with the receipts tied to the exact version shipped. Walk
+through it like a customer. Get the client's signed yes. Hand over the keys.
+Stand behind it while it runs. Send the invoice and get paid. **For work a
+client pays for, the job is done when the customer pays and it still works; for
+everything else, it is done when the outcome UNI-2517 names for it is proven** —
+everything before that is a step, not the finish line.
 
 ## 2. The historical evidence chain
 
@@ -81,7 +85,7 @@ https://www.ias.edu/sites/default/files/library/pdfs/ecp/planningcodingof0103ins
 
 **Wilkes 1949 — debugging dominates, from day one.**
 In plain words: the man who ran the first practical stored-program computer
-learnt within weeks that finding his own errors would be most of the work.
+learnt early that finding his own errors would be a good part of the work.
 > "a good part of the remainder of my life was going to be spent in finding the
 > errors in my own programs"
 Verified live 18/08/2026: Wilkes as quoted by Campbell-Kelly, CACM 54(9), 2011
@@ -90,8 +94,9 @@ Verified live 18/08/2026: Wilkes as quoted by Campbell-Kelly, CACM 54(9), 2011
 the verified source.)
 
 **Codd 1970 — derive, never store.**
-In plain words: a stored copy of something computable goes stale and lies.
-> "strongly redundant if it contains at least one relation that possesses a
+In plain words: a stored copy of something you could recompute is redundant —
+and a redundant copy can drift from the truth.
+> "… strongly redundant if it contains at least one relation that possesses a
 > projection which is derivable from other projections of relations in the set"
 Verified live 18/08/2026: Codd, CACM 13(6) 1970, §2.2.1 —
 https://www.seas.upenn.edu/~zives/03f/cis550/codd.pdf
@@ -103,7 +108,8 @@ In plain words: the field admitted, out loud, that building software was in
 crisis, and demanded engineering discipline.
 > "participants came to realize the degree of common concern about what some
 > were even willing to term the 'software crisis'"
-Verified live 18/08/2026: Randell's archive page for the NATO reports —
+Verified live 18/08/2026: Randell's archive page for the NATO reports (the
+sentence sits in Randell's 1996 introduction on that page) —
 http://homepages.cs.ncl.ac.uk/brian.randell/NATO/NATOReports/index.html
 
 **McIlroy 1968 — look on the shelf before you build.**
@@ -118,7 +124,8 @@ https://www.cs.dartmouth.edu/~doug/components.txt
 In plain words: a passing check proves only what it checked.
 > "Program testing can be used to show the presence of bugs, but never to show
 > their absence!"
-Verified live 18/08/2026: EWD249, "On the reliability of mechanisms" —
+Verified live 18/08/2026: EWD249, Notes on Structured Programming, §"On the
+reliability of mechanisms" —
 https://www.cs.utexas.edu/~EWD/transcriptions/EWD02xx/EWD249/EWD249.html
 
 **Dijkstra 1972 — the humble programmer.**
@@ -137,7 +144,7 @@ Verified live 18/08/2026: Conway, "How Do Committees Invent?", Conclusion —
 http://www.melconway.com/Home/Committees_Paper.html
 
 **Hoare 1969 — correctness is a claim about all inputs.**
-In plain words: what a program does is provable, not vibes.
+In plain words: what a program does is provable, not a feeling.
 > "the elucidation of sets of axioms and rules of inference which can be used
 > in proofs of the properties of computer programs"
 Verified live 18/08/2026: Hoare, CACM 1969, abstract —
@@ -195,7 +202,7 @@ Verified live 18/08/2026: Knuth's own FAQ (drafted 22/03/1977) —
 https://www-cs-faculty.stanford.edu/~knuth/faq.html
 
 **Hoare 1980 — simplicity is the precondition of verifiability.**
-> "so simple that there are obviously no deficiencies and the other way is to
+> "… so simple that there are obviously no deficiencies and the other way is to
 > make it so complicated that there are no obvious deficiencies"
 Verified live 18/08/2026: "The Emperor's Old Clothes", CACM 1981 scan —
 https://people.eecs.berkeley.edu/~prabal/resources/osprelim/Hoa81.pdf
@@ -258,7 +265,8 @@ https://www.cs.columbia.edu/~junfeng/08fa-e6998/sched/readings/therac25.pdf
 
 **Ariane 5 Flight 501 (1996) — the canonical whispers-stack disaster.**
 In plain words: working Ariane 4 code was reused without re-checking its
-assumptions against the new rocket. Thirty-seven seconds.
+assumptions against the new rocket. The rocket destroyed itself about 37
+seconds after lift-off (per the Inquiry Board report).
 > "This time sequence is based on a requirement of Ariane 4 and is not required
 > for Ariane 5."
 Verified live 18/08/2026: Inquiry Board report (ESA), archived full text —
@@ -299,7 +307,7 @@ Ground-Truth Standard (P1–P9).
 | 4 | False green — message vs exit code | `CLAUDE.md:102` — "Three silent-success bugs survived review precisely because the human-readable output looked fine" | Wilkes 1949; Knuth 1977 | P4 |
 | 5 | The gate that never ran; the empty evidence sink | `.harness/learning/` — five 0-byte `.jsonl` files (ls verified); `scripts/ci-evidence-manifest.mjs:7-10` — required check green with 3 of 22 tests executed (UNI-2567) | Fagan 1976 | P4 |
 | 6 | Hallucinated delivery claim | `.spm/2026-07-16-audit-reconciliation.md:93` — "run2's coverage note is a hallucinated delivery claim" (UNI-2288) | Knuth 1977 | P9 |
-| 7 | Self-attestation as evidence | `.spm/2026-07-17-strategic-architecture-review.md` §C8 — "armed in prod" was a one-line doc commit; 183 Done tickets, zero merge evidence | Thompson 1984 | P1, P9 |
+| 7 | Self-attestation as evidence | `.spm/2026-07-17-strategic-architecture-review.md` §C8 — "armed in prod" was a one-line doc commit; and 183 Done tickets with zero merge evidence, 61 confirmed falsely marked (DR estate — `docs/decisions/ARR-005-strategic-roadmap.md:29`) | Thompson 1984 | P1, P9 |
 | 8 | Container-scoped absence reported as system absence | `CLAUDE.md:83-90` — "Container scoping is not absence … say 'unavailable from here', never 'not configured'" | Saltzer 1984 | P3 |
 | 9 | Failed read rendered as honest-empty, then written on | `.spm/2026-07-16-audit-reconciliation.md` D002–D063 family — "failed POST still clears+closes form … false success" | Hamilton-era fail-loud doctrine; positive controls (ARR-006 §2) | P4 |
 | 10 | Stacked PRs stranded off `main` | `AGENTS.md:13-16` — PRs #281/#282/#283 based on a feature branch; recovered via #285 | Brooks 1975 (integration) | P7 |
@@ -353,9 +361,12 @@ SHA, not a green badge (a suite that executed zero tests is not evidence,
 `config/ci-evidence-manifest.json:3`). If the vitest receipts are from
 yesterday's SHA: AA. If the claim rests on "CI looked green": A. If the
 required suite self-skipped: FAIL — that is UNI-2567, the incident that built
-the manifest. The overall rating of a multi-rung claim is the minimum rung —
-an AAA build with a FAIL acceptance rung is a FAIL claim, because the customer
-outcome is the point (NORTH-STAR: green gates are the means, not the goal).
+the manifest. The overall rating of a multi-rung claim is the minimum rating
+across the claimed rungs — an AAA build with a FAIL acceptance rung is a FAIL
+claim, because the customer outcome is the point (NORTH-STAR: green gates are
+the means, not the goal). For non-billable work, rung 12's receipt is the
+outcome-specific DoD UNI-2517 names, not an invoice — the Ladder never narrows
+UNI-2517's finish line.
 
 ## 6. Doctrine reconciliation — consumed, corrected, not duplicated
 
@@ -373,6 +384,25 @@ exists); `design-lint.yml` (cited by `.claude/DESIGN.md`, never created);
 `.review-metrics.jsonl` (absent); `.harness/learning/` capture hooks (never
 shipped — the five sinks are 0-byte). The Ground-Truth Standard names its own
 unenforced surface honestly (its §"What this rule does not enforce").
+
+**The gap register, enumerated** (defined by the 18/08/2026 doctrine audit;
+this list is the register the rule cites):
+- **G1** — the PRs #1017/#1018 one-shape lesson had no binding artefact (prose
+  only). Owned by this rule (P3, P4, P5).
+- **G2** — silent success was solved once (`ci-evidence-manifest`) and never
+  generalised. Owned (P4).
+- **G3** — diff-level LLM code smells were ungoverned monorepo-wide. Owned
+  (§How it binds the build).
+- **G4** — test quality (assertions vs counts) was ungoverned. Owned (§How it
+  binds the build).
+- **G5** — search-before-building existed only for env vars. Owned (P2).
+- **G6** — "attack your own work" had no method. Owned (P5 + the Bypass line).
+- **G7** — no dead-doctrine detector exists. NOT owned; recommended below.
+- **G8** — no precedence rule between doctrine layers. NOT owned; recommended.
+- **G9** — nothing at root required confirming an API exists before calling it.
+  Owned (P2).
+- **G10** — the required lines have no mechanical enforcement and root has no
+  hooks. NOT owned; recommended below.
 
 **Recommended mechanisms, not built here:** a dead-doctrine detector (G7); a
 doctrine-layer precedence rule (G8); mechanical enforcement of the required
