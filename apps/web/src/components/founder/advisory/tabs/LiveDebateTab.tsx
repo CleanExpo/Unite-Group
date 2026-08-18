@@ -72,7 +72,7 @@ export function LiveDebateTab() {
             setCaseData(d.case)
             setProposals(d.proposals ?? [])
           })
-          .catch(() => {})
+          .catch((err) => { console.error('[advisory:LiveDebateTab] realtime case fetch failed', err) })
       }
     })
 

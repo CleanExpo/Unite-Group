@@ -155,7 +155,7 @@ export async function GET(request: Request) {
         (hasFailures ? ` Failures: ${failures.join('; ')}` : ''),
       severity: allFailed ? 'critical' : hasFailures ? 'warning' : 'info',
       metadata: { totalNewComments, totalAutoReplied, totalFlagged, durationMs, failures },
-    }).catch(() => {})
+    }).catch((err) => { console.error('[cron:engagement-monitor:notify] activity log write failed', err) })
 
     return NextResponse.json({
       success: !allFailed,
@@ -176,7 +176,7 @@ export async function GET(request: Request) {
       body: `Fatal error after ${durationMs}ms: ${error instanceof Error ? error.message : 'Unknown error'}`,
       severity: 'critical',
       metadata: { durationMs },
-    }).catch(() => {})
+    }).catch((err) => { console.error('[cron:engagement-monitor:notify] activity log write failed', err) })
 
     return NextResponse.json(
       { success: false, error: sanitiseError(error, 'Unknown error'), durationMs },

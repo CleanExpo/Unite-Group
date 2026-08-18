@@ -103,7 +103,7 @@ export async function GET(request: Request) {
         flaggedForReview: result.flaggedForReview,
         durationMs,
       },
-    }).catch(() => {})
+    }).catch((err) => { console.error('[cron:bookkeeper:notify] activity log write failed', err) })
 
     const responseStatus = result.status === 'failed'
       ? 500
@@ -143,7 +143,7 @@ export async function GET(request: Request) {
       body: `Fatal error after ${durationMs}ms: ${error instanceof Error ? error.message : 'Unknown error'}`,
       severity: 'critical',
       metadata: { durationMs },
-    }).catch(() => {})
+    }).catch((err) => { console.error('[cron:bookkeeper:notify] activity log write failed', err) })
 
     return NextResponse.json(
       {

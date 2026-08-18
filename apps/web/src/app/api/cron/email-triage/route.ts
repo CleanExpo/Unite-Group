@@ -145,7 +145,7 @@ export async function GET(request: Request) {
       accountSummaries.join('\n'),
     severity: 'info',
     metadata: { totalTriaged, totalAutoArchived, totalTasksCreated, durationMs },
-  }).catch(() => {})
+  }).catch((err) => { console.error('[cron:email-triage:notify] activity log write failed', err) })
 
   return NextResponse.json({
     // Honest: not every account silently "succeeded" — reflect failures (e.g. a

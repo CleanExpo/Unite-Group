@@ -107,7 +107,7 @@ export async function runCoach({
       key: `last_brief_${new Date().toISOString().slice(0, 10)}`,
       memoryType: 'outcome',
       value: briefMarkdown.slice(0, 1000), // store first 1k chars as summary
-    }).catch(() => {})
+    }).catch((err) => { console.error('[coaches:runner] memory write failed', err) })
 
     // 5. Extract any numeric metrics from the context data for quick access
     const metrics = extractMetrics(context)

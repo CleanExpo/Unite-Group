@@ -1,5 +1,6 @@
 // src/lib/webhooks/dedup.ts
 import { createServiceClient } from '@/lib/supabase/service'
+import type { Json } from '@/types/database'
 
 type Provider = 'whatsapp'
 
@@ -32,7 +33,7 @@ export async function insertEvent(
       provider,
       event_id: eventId,
       event_type: eventType,
-      payload,
+      payload: payload as Json,
       status: 'processing',
     })
     .select('id')

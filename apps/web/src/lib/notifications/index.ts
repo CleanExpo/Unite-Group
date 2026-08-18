@@ -5,6 +5,7 @@
 import { sendSlack, formatSlackNotification } from './slack'
 import { getFounderUserId } from '@/lib/auth/founder-user-id'
 import { createServiceClient, hasSupabaseServiceConfig } from '@/lib/supabase/service'
+import type { Json } from '@/types/database'
 
 /**
  * Persist a notification into the founder_notifications inbox.
@@ -25,7 +26,7 @@ export async function saveNotification(
     const supabase = createServiceClient()
     const { error } = await supabase
       .from('founder_notifications')
-      .insert({ founder_id: founderId, type, payload })
+      .insert({ founder_id: founderId, type, payload: payload as Json })
     if (error) {
       console.error('[saveNotification] Insert failed:', error.message)
     }

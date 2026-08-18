@@ -23,7 +23,7 @@ async function answerCallback(token: string, callbackId: string, text: string) {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ callback_query_id: callbackId, text }),
-  }).catch(() => {});
+  }).catch((err) => { console.error('[telegram:answerCallback] Telegram answerCallbackQuery failed', err) });
 }
 
 export async function POST(req: NextRequest) {

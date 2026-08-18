@@ -196,7 +196,7 @@ export async function GET(request: Request) {
       body: `Daily briefing ready. ${completed.length} issues shipped, ${githubPRs.length} PRs open, ${overdueIssues.length} overdue. ${briefing.decisionsRequired.length} decisions require your input.`,
       severity: overdueIssues.length > 3 ? 'warning' : 'info',
       metadata: { durationSec },
-    }).catch(() => {})
+    }).catch((err) => { console.error('[cron:ceo-board-meeting:notify] activity log write failed', err) })
 
     return NextResponse.json({
       success: true,
