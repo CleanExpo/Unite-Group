@@ -1,6 +1,6 @@
 # Ship board — Unite-Group production
 
-Live progress page for the `/gauntlet-ship` run started 2026-08-18.
+Live progress page for the `/gauntlet-ship` run started 18/08/2026.
 
 Ranked by what blocks **selling**, not by what is pleasant to work on. Every bar
 is a gate a hostile auditor could run against production; the gate lives in
@@ -90,7 +90,7 @@ work rather than agent work.
 
 Re-run `scripts/ship-gates/prod-exposure.sql` against production. All three
 queries must return **zero rows**. It returned 2, 3 and 4 rows respectively on
-2026-08-18 — that red result is what makes a later green meaningful.
+18/08/2026 — that red result is what makes a later green meaningful.
 
 ---
 
