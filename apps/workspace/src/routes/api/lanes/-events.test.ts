@@ -172,3 +172,44 @@ describe('GET /api/lanes/events', () => {
     }
   })
 })
+
+describe('disconnect during the initial catch-up drain', () => {
+  it('arms no timers at all when cancel arrives before they exist', async () => {
+    // The sibling test above cancels AFTER the intervals are armed, so it
+    // observes clearInterval. It cannot see THIS leak: `start()` awaits the
+    // initial drain (real ledger I/O, possibly several catch-up pages) before
+    // arming anything, so a cancel landing inside that window finds both timer
+    // handles still null, clears nothing, and then start() resumes and arms
+    // them anyway. Nothing ever clears them afterwards.
+    //
+    // Asserting on setInterval rather than clearInterval is deliberate: the
+    // defect is timers being CREATED after the connection is gone, and
+    // "clearInterval was not called" is equally true of a correct run that
+    // never armed anything.
+    let releaseLedger: (events: unknown[]) => void = () => {}
+    listRunEventsMock.mockImplementation(
+      () => new Promise((resolve) => {
+        releaseLedger = resolve as (events: unknown[]) => void
+      }),
+    )
+    const armed = vi.spyOn(globalThis, 'setInterval')
+    try {
+      const response = await get(
+        new Request('http://localhost/api/lanes/events?runId=run_1'),
+      )
+      const reader = response.body!.getReader()
+      await reader.read() // the `connected` control frame, sent before the drain
+      armed.mockClear()
+
+      // Cancel while the drain is still suspended on the ledger read.
+      const cancelled = reader.cancel()
+      releaseLedger([])
+      await cancelled
+      await new Promise((resolve) => setTimeout(resolve, 20))
+
+      expect(armed).not.toHaveBeenCalled()
+    } finally {
+      armed.mockRestore()
+    }
+  })
+})

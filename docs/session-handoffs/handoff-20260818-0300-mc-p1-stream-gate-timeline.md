@@ -1,6 +1,6 @@
 # Handoff — MC-P1: event stream, autonomy gate, evidence timeline
 
-**When:** 2026-08-18, ~00:55–03:00 and 08:20–08:35
+**When:** 18/08/2026, ~00:55–03:00 and 08:20–08:35
 **Branch:** `feat/uni-2403-control-plane-contract` — **12 commits ahead of `origin/main`, NOT pushed**
 **HEAD:** `a0192a75a`
 **Tickets:** UNI-2403 (verified complete), UNI-2406 (complete), UNI-2409 (enforcing for Claude Code), UNI-2411 (partial), UNI-2412 (one slice)
@@ -147,7 +147,7 @@ in dev, so `requireLocalOrAuth` fails closed against a plain localhost request.
 
    | Reviewer | State | Evidence |
    |---|---|---|
-   | Codex | plan quota exhausted until 2026-08-20 13:33 | `ERROR: You've hit your usage limit`. An `OPENAI_API_KEY` does NOT bypass it — the CLI uses the stored `codex login` plan auth, so a trivial smoke prompt succeeds while a real review still hits the limit. Verified both. |
+   | Codex | plan quota exhausted until 20/08/2026 13:33 | `ERROR: You've hit your usage limit`. An `OPENAI_API_KEY` does NOT bypass it — the CLI uses the stored `codex login` plan auth, so a trivial smoke prompt succeeds while a real review still hits the limit. Verified both. |
    | Gemini | credential dead | `GEMINI_API_KEY` in `~/Unite-Group/.env.local` returns HTTP 400. The auth path and the headless trust flags (`--skip-trust`, `GEMINI_CLI_TRUST_WORKSPACE=true`) are both correct; the key itself is invalid. |
    | Claude | refused by the recorder | `reviewer must be a different independent agent` — correct behaviour, since Claude implemented this branch. |
 
