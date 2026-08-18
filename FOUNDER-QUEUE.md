@@ -52,6 +52,7 @@ He resolved it on 17/08/2026 — see Resolved.
 | F6 | Retrieve/create the three social platform app secrets | 2026-07-06 | — | UNI-2331 | Connectors already built; only FACEBOOK_APP_SECRET, LINKEDIN_*, TIKTOK_* are missing | open |
 | F7 | Stripe connection | 2026-08-16 | — | billing, and therefore the metric of record | Blocks paying customers directly | open |
 | P9 | Sign off the arming checklist | 2026-08-07 | — | P9 go-live | Per `.spm/2026-08-07-p9-board-meetings-collision.md` | open |
+| F9 | Apply the privileged-function exposure lock to prod `lksfwktwtmyznckodsau` | 2026-08-18 | — | ship-board Rank 1 items 1-7, all at AA and unable to advance | By class — production DDL. Opened 18/08/2026, the date the gate was watched failing (`scripts/ship-gates/prod-exposure.sql`), not the date this row was written. One paste of `docs/specs/sql/2026-08-19-privileged-function-exposure-lock.sql` into the prod SQL editor, then `scripts/ship-gates/run-prod-exposure.sh "<prod-uri>"` must exit 0. Rollback tested: `…-lock.down.sql`. Lockout risk (`supabase_auth_admin` losing EXECUTE on the auth hooks) is handled in-file and asserted by `scripts/ship-gates/repro-prod-exposure.sh` | open |
 
 ## Resolved
 

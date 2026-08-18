@@ -600,7 +600,20 @@ test('the shipped ledger still parses clean after all of this', () => {
   const parsed = parseFounderQueue(readFileSync(QUEUE_PATH, 'utf8'));
   assert.deepEqual(parsed.malformed, []);
   assert.equal(summarise(parsed, LIVE_NOW).integrity, 'OK');
-  assert.equal(parsed.open.length, 8);
+  /*
+   * The count is load-bearing and stays. `malformed: []` and `integrity: OK` are
+   * both satisfied by a parser that silently returns NOTHING, so without a count
+   * this test would pass against an empty parse — the exact vacuous-green shape
+   * the rest of this file exists to refuse.
+   *
+   * It is a literal, so it must be bumped whenever a row is legitimately
+   * APPENDED or RESOLVED. That is deliberate: FOUNDER-QUEUE.md lets a session
+   * append a row, and this line makes that edit visible in a diff rather than
+   * silent. Bumped 8 -> 9 on 19/08/2026 for F9 (prod privileged-function
+   * exposure lock), which is the handover the 18/08 ship board recorded as
+   * "hand over" without ever creating a queue row for it.
+   */
+  assert.equal(parsed.open.length, 9);
 });
 
 test('A RESOLVED ROW THAT RESOLVES NOTHING IS NOT RESOLVED', () => {
