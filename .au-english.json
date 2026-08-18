@@ -4,6 +4,8 @@
     ".claude/rules/ground-truth-standard.md",
     ".claude/skills/waterline/SKILL.md",
     ".claude/skills/keeper-gate/SKILL.md",
+    ".claude/skills/humanizer/SKILL.md",
+    ".claude/skills/marketing/SKILL.md",
     "docs/research/llm-code-generation-roots.md"
   ],
   "exclude": ["**/DECISION-PACKET.md", "**/EXTEND-ROUTE-HANDLER.md", "**/*TEMPLATE*", "**/_template*"]
