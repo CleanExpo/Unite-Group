@@ -40,7 +40,7 @@ const WORKFLOW_PATH = join(repositoryRoot, '.github', 'workflows', 'nexus-heartb
 // of the observe job in the present tense, three rounds after that step was
 // removed for being unrunnable. The pin doing its job — a comment-only edit
 // failing this test until someone deliberately re-pins — is the whole point.
-const PINNED_WORKFLOW_SHA256 = '1f1e518841f0bed59cbd7bf5931cd28f7d16e0e7bcecdfd443c1c8fb150f4e6e';
+const PINNED_WORKFLOW_SHA256 = '79aad48a22f9a8645e25661fafd82753aceda72029f1d6b80fb2a00851e857e7';
 
 // Rendered gate lists (what reconcileGates PRODUCES).
 const GREEN = [
