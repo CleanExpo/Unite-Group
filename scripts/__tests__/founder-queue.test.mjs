@@ -20,6 +20,14 @@ const QUEUE_PATH = join(repositoryRoot, 'FOUNDER-QUEUE.md');
 
 const NOW = '2026-08-16T00:00:00Z';
 
+// The synthetic fixtures need a frozen clock to assert exact ages. The SHIPPED ledger
+// does not: it is a live document, and freezing time against it means the first
+// decision resolved after 16/08/2026 reads as "resolved in the future" and reds the
+// kernel. D19's resolution on 17/08 did exactly that. Judging the real file against
+// the real clock is what the guard actually means, and it removes a trap that would
+// otherwise re-arm on every future resolution.
+const LIVE_NOW = new Date().toISOString();
+
 test('age is computed in whole days from the opened date', () => {
   assert.equal(computeAgeDays('2026-08-16', NOW), 0);
   assert.equal(computeAgeDays('2026-08-15', NOW), 1);
@@ -78,9 +86,17 @@ test('the shipped FOUNDER-QUEUE.md parses and carries the seeded decisions', () 
   const parsed = parseFounderQueue(readFileSync(QUEUE_PATH, 'utf8'));
   const ids = parsed.open.map((row) => row.id);
 
-  for (const expected of ['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'P9', 'D19']) {
+  for (const expected of ['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'P9']) {
     assert.ok(ids.includes(expected), `${expected} missing from ${ids.join(', ')}`);
   }
+
+  // D19 was open here until Phill resolved it on 17/08/2026 (ephemeral Postgres in
+  // CI; SPINE_DATABASE_URL never enters CI). Assert where it WENT rather than just
+  // dropping it from the list above — a decided row MOVES to Resolved and is never
+  // deleted, so an id that has quietly vanished from both tables must still fail.
+  const resolvedIds = parsed.resolved.map((row) => row.id);
+  assert.ok(!ids.includes('D19'), 'D19 is decided; it must not sit in the Open table');
+  assert.ok(resolvedIds.includes('D19'), `D19 missing from Resolved: ${resolvedIds.join(', ')}`);
   for (const row of parsed.open) {
     assert.match(row.opened, /^\d{4}-\d{2}-\d{2}$/, row.id);
     assert.notEqual(row.blocks.trim(), '', row.id);
@@ -89,9 +105,15 @@ test('the shipped FOUNDER-QUEUE.md parses and carries the seeded decisions', () 
 });
 
 test('every seeded row computes a real age against the shipped file', () => {
+  // The shipped ledger is checked against the REAL clock, not the frozen test
+  // clock: rows are legitimately appended after any pinned date, and a frozen
+  // NOW here is exactly the stored-derived-value decay this suite exists to
+  // catch (it failed on the first append after 16/08). The synthetic cases
+  // above keep the frozen clock; the live file gets the live now — the same
+  // clock scripts/founder-queue.mjs runs with.
   const parsed = parseFounderQueue(readFileSync(QUEUE_PATH, 'utf8'));
   for (const row of parsed.open) {
-    const age = computeAgeDays(row.opened, NOW);
+    const age = computeAgeDays(row.opened, LIVE_NOW);
     assert.ok(Number.isInteger(age) && age >= 0, `${row.id} -> ${age}`);
   }
 });
@@ -270,7 +292,7 @@ test('an open row with no ID or no Decision cannot be reported, so it is flagged
 
 test('the real FOUNDER-QUEUE.md parses clean, so these guards do not block the ledger', () => {
   // A guard that cannot pass the real file is a guard that gets switched off.
-  const summary = summarise(parseFounderQueue(readFileSync(QUEUE_PATH, 'utf8')), NOW);
+  const summary = summarise(parseFounderQueue(readFileSync(QUEUE_PATH, 'utf8')), LIVE_NOW);
   assert.equal(summary.integrity, 'OK', summary.malformed.join('\n'));
   assert.ok(summary.openCount > 0, 'the ledger has open founder decisions');
   assert.equal(summary.oldest.ageDays >= 0, true);
@@ -577,7 +599,7 @@ test('a single-hyphen separator is a separator, and an ID data row is not a head
 test('the shipped ledger still parses clean after all of this', () => {
   const parsed = parseFounderQueue(readFileSync(QUEUE_PATH, 'utf8'));
   assert.deepEqual(parsed.malformed, []);
-  assert.equal(summarise(parsed, NOW).integrity, 'OK');
+  assert.equal(summarise(parsed, LIVE_NOW).integrity, 'OK');
   assert.equal(parsed.open.length, 9);
 });
 

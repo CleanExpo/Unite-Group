@@ -121,3 +121,11 @@ outputs/sandbox_voice_migration/
 # claim about code that has since moved.
 scripts/swarm/swarm-findings.json
 scripts/swarm/bench-results.json
+
+# Byproducts of running the spine job's own steps locally (UNI-2580/UNI-2597).
+# `supabase start` writes .branches/; the vitest JSON reporter writes the evidence
+# file the gate then grades. Both are evidence OF a run, never source — and while
+# untracked they make `git status` dirty, which the release gate reads as an unclean
+# tree and refuses to issue against.
+/packages/spine/packages/spine/supabase/.branches/
+/packages/spine/packages/spine/vitest-report.json

@@ -21,6 +21,8 @@ can't act; both without verification drift stale. Together they compound.
 | `supabase-schema-gate` | Intelligence gating the Supabase integration | Any code touching a table, before it ships |
 | `credential-triage` | Intelligence wrapping the Vercel MCP | Any integration failure, or the weekly health check |
 | `live-verify` | Verification wrapping Exa / web search | Any time-sensitive fact: versions, model IDs, limits, pricing, status, "latest" anything |
+| `waterline` | Verification — delivery-stage and authority audit | `/waterline`, or before any done/complete/shipped/live claim; binds to the constitution's classes, UNI-2517's lifecycle, and the Ground-Truth Standard's Ladder |
+| `keeper-gate` | Verification — the mandatory pre-PR gate | Before opening ANY PR (drafts included), un-drafting, or pushing to a PR branch; full gauntlet on the committed SHA or the PR does not open |
 
 Each skill is a folder with a `SKILL.md` (YAML frontmatter + instructions).
 Claude loads only the name + description until a task matches, then pulls in
