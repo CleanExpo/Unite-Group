@@ -398,10 +398,19 @@ describe('coverage of the classifier itself', () => {
     // A positive control on the ordering rule: if the metacharacter check ran
     // before the L3 markers, `ls && git push` would report chaining and this
     // suite would still be green while the reason was wrong.
+    //
+    // The `allowed` assertion is the point of the test NAME and was missing —
+    // the body only checked `tier`, and `classifyShellCommand` has no `allowed`
+    // field at all, so the name promised a check that could not have run.
+    // Caught by the OpenRouter review swarm, and it is the same defect class as
+    // `test-asserts-less-than-name` in that swarm's own benchmark corpus.
+    // `allowed` lives on `evaluateToolCall`, so the claim has to be made there.
     const cases = ['git push', 'ls && git push', 'echo hi && npm publish']
     for (const command of cases) {
-      const result = classifyShellCommand(command)
-      expect(result.tier).toBe('L3')
+      expect(classifyShellCommand(command).tier).toBe('L3')
+      expect(
+        evaluateToolCall(call({ input: { command } })),
+      ).toMatchObject({ tier: 'L3', allowed: false })
     }
     expect(classifyShellCommand('echo hi && npm publish').reason).toMatch(/publishes a package/i)
   })
