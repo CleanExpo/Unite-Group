@@ -87,6 +87,11 @@ function setupSupabaseMocks(opts: {
   existingSatellitesError?: { message: string }
   /** Override what the upsert readback returns, to simulate divergent state. */
   readbackRows?: Array<Record<string, unknown>>
+  /**
+   * Transform the echoed payload on readback. Lets a test re-spell dynamic
+   * values (e.g. timestamps, as Postgres does) without knowing them upfront.
+   */
+  readbackTransform?: (payload: Record<string, unknown>) => Record<string, unknown>
 } = {}) {
   // advisory_cases query
   const advisoryChain = {
@@ -139,7 +144,8 @@ function setupSupabaseMocks(opts: {
       // echoes the whole payload. A mock echoing a subset would make each sweep
       // look divergent on the fields it omitted.
       select: vi.fn().mockResolvedValue({
-        data: opts.readbackRows ?? [{ ...payload }],
+        data: opts.readbackRows
+          ?? [opts.readbackTransform ? opts.readbackTransform({ ...payload }) : { ...payload }],
         error: null,
       }),
     })),
@@ -218,6 +224,73 @@ describe('GET /api/cron/hub-sweep', () => {
     expect(body.success).toBe(true)
     // Every owned business is swept (CCW is client-type and excluded).
     expect(body.satellitesSwept).toBe(OWNED_COUNT)
+  })
+
+  it('treats a Postgres-respelled timestamp readback as confirmed, not divergent', async () => {
+    // Production shape 13/08–17/08/2026 (35 errors, synthex/dr/nrpg): the route
+    // sent last_swept_at as "…T13:01:43.521Z" and Postgres echoed
+    // "…T13:01:43.521+00:00" — the same instant — and every sweep errored
+    // "write readback mismatch" over a write that had landed. The readback here
+    // re-spells every *_at value exactly as Postgres does; the sweep must be ok.
+    setupSupabaseMocks({
+      readbackTransform: (payload) => {
+        const out = { ...payload }
+        for (const [k, v] of Object.entries(out)) {
+          if (k.endsWith('_at') && typeof v === 'string' && v.endsWith('Z')) {
+            out[k] = `${v.slice(0, -1)}+00:00`
+          }
+        }
+        return out
+      },
+    })
+    mockListUsers.mockResolvedValue({
+      data: {
+        users: [
+          { id: 'founder-uuid', email: 'founder@example.com', last_sign_in_at: new Date().toISOString() },
+        ],
+      },
+      error: null,
+    })
+
+    const req = makeRequest()
+    const res = await GET(req)
+
+    expect(res.status).toBe(200)
+    const body = await res.json() as { success: boolean; errors: number }
+    expect(body.success).toBe(true)
+    expect(body.errors).toBe(0)
+  })
+
+  it('still fails the sweep when a readback timestamp is a genuinely different instant', async () => {
+    // Mutation control for the respelling test above: without it, that test
+    // could pass because the comparison stopped looking at *_at fields at all.
+    // A one-second shift is a REAL divergence and must still error loudly.
+    setupSupabaseMocks({
+      readbackTransform: (payload) => {
+        const swept = payload.last_swept_at
+        return {
+          ...payload,
+          last_swept_at:
+            typeof swept === 'string' ? new Date(Date.parse(swept) + 1000).toISOString() : swept,
+        }
+      },
+    })
+    mockListUsers.mockResolvedValue({
+      data: {
+        users: [
+          { id: 'founder-uuid', email: 'founder@example.com', last_sign_in_at: new Date().toISOString() },
+        ],
+      },
+      error: null,
+    })
+
+    const req = makeRequest()
+    const res = await GET(req)
+
+    expect(res.status).toBe(500)
+    const body = await res.json() as { success: boolean; errors: number }
+    expect(body.success).toBe(false)
+    expect(body.errors).toBeGreaterThan(0)
   })
 
   it('fetches Linear issue counts and includes them in the upsert', async () => {
