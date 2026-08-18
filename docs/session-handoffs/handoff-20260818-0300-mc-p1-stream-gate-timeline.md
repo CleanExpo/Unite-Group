@@ -137,9 +137,44 @@ in dev, so `requireLocalOrAuth` fails closed against a plain localhost request.
    behaviour above; needs a session cookie.
 5. **Codex `stream-json` parser** — flag deliberately ignored rather than
    half-wired.
-6. **Push + PR.** Twelve commits sit locally. No push authorisation was given this
-   session, and the release law requires independent review bound to the exact
-   final commit.
+6. **Push + PR — BLOCKED ON A REVIEWER, not on the work.**
+
+   The branch is release-ready. Gates green at the final HEAD, delta proven
+   (44 files, none already on `main`, `main` has not moved), PR body written at
+   `scratchpad/pr-body.md`. The gate stops at step 4: independent review.
+
+   Every independent reviewer of a different agent family is unavailable:
+
+   | Reviewer | State | Evidence |
+   |---|---|---|
+   | Codex | plan quota exhausted until 2026-08-20 13:33 | `ERROR: You've hit your usage limit`. An `OPENAI_API_KEY` does NOT bypass it — the CLI uses the stored `codex login` plan auth, so a trivial smoke prompt succeeds while a real review still hits the limit. Verified both. |
+   | Gemini | credential dead | `GEMINI_API_KEY` in `~/Unite-Group/.env.local` returns HTTP 400. The auth path and the headless trust flags (`--skip-trust`, `GEMINI_CLI_TRUST_WORKSPACE=true`) are both correct; the key itself is invalid. |
+   | Claude | refused by the recorder | `reviewer must be a different independent agent` — correct behaviour, since Claude implemented this branch. |
+
+   A Claude reviewer did PASS the branch twice with zero blocking findings, and
+   its adversarial claims were independently reproduced 8/8 (including the
+   non-obvious `git -c core.sshCommand` case, which could only be known by
+   executing the classifier). That evidence is genuine but does NOT satisfy the
+   gate, and self-certifying is an absolute stop.
+
+   **Unblock, cheapest first:** replace the dead `GEMINI_API_KEY`, then re-run
+   `scratchpad/run-gemini-review.sh`. Otherwise top up Codex, or the founder
+   authorises a same-family exception for this one branch.
+
+   Then issue the receipt and push as a SINGLE unchained command — the hook
+   rejects compound release commands:
+
+   ```bash
+   python3 ~/.claude/skills/pr-release-gate/scripts/pr_release_gate.py issue \
+     --primary-agent claude --review-report <report.json> \
+     --test 'cd apps/workspace && npx tsc --noEmit' \
+     --test 'cd apps/workspace && npx vitest run' \
+     --test 'npm run verify:readiness'
+   git -C ~/Unite-Group push -u origin feat/uni-2403-control-plane-contract
+   ```
+
+   Run the recorder with Node 24 on PATH, or its `verify:readiness` invocation
+   uses system Node.
 
 ---
 
