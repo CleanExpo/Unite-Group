@@ -79,6 +79,17 @@ ORDER BY c.relname;
 -- review round and confirmed on Postgres 17: to_regrole on a missing role IS
 -- NULL, and the comparison against it IS NULL. grantee::regrole::text renders
 -- PUBLIC as '-' and a real role as its name, so it cannot be NULL-swallowed.
+--
+-- Two findings against THIS line were raised by a later review round and are
+-- REFUTED, with evidence, so nobody spends another round on them:
+--   * "a stale grantee oid makes the cast raise an error" — it does not.
+--     regrole OUTPUT conversion renders an unmatched oid as its number:
+--     999999::oid::regrole::text => '999999', which simply fails to equal a
+--     role name. Only INPUT conversion ('foo'::regrole) can raise.
+--   * PUBLIC cannot collide with a role name: grantee 0 renders as '-'.
+-- One real caveat, harmless here: a mixed-case role renders QUOTED
+-- ("zz_Mixed_Case"), so a name comparison against such a role would need the
+-- quotes. 'anon' and 'authenticated' are lowercase and render bare.
 SELECT 'anon_executable_security_definer' AS rule,
        p.proname                          AS target,
        COALESCE(p.proacl::text, '(default: EXECUTE TO PUBLIC)') AS acl
