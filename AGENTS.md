@@ -41,4 +41,9 @@ Correct flow:
   `apps/web` is the canonical product surface.
 - **Deletion** of any repo/Supabase/Vercel resource: runbook gates + typed
   approval only. Never autonomous.
+- **Ground truth over hearsay**: re-derive inherited claims from the real
+  repo/logs/schema before building on them; never claim a delivery stage beyond
+  its evidence. Every build report/PR body carries at least one
+  `Grounded <date>: <fact> — <source>` line and a `Waterline:` stage line. Full
+  rule: `.claude/rules/ground-truth-standard.md`.
 - Do not read or print secrets. Locale: en-AU | DD/MM/YYYY | AUD | AEST/AEDT.
