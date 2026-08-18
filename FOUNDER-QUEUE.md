@@ -52,10 +52,10 @@ He resolved it on 17/08/2026 — see Resolved.
 | F6 | Retrieve/create the three social platform app secrets | 2026-07-06 | — | UNI-2331 | Connectors already built; only FACEBOOK_APP_SECRET, LINKEDIN_*, TIKTOK_* are missing | open |
 | F7 | Stripe connection | 2026-08-16 | — | billing, and therefore the metric of record | Blocks paying customers directly | open |
 | P9 | Sign off the arming checklist | 2026-08-07 | — | P9 go-live | Per `.spm/2026-08-07-p9-board-meetings-collision.md` | open |
-| F8 | Rotate ANTHROPIC_API_KEY on Vercel prod | 2026-08-18 | — | strategy-daily ×7 businesses, coaches, content-engine, Margot, email AI | By class — founder-held credential. Prod key rejected 401 "API key is invalid" daily since 12/08, still failing 18/08 16:30Z (Vercel runtime errors, project unite-group, verified live 18/08/2026). Key is PRESENT but INVALID — rotate in the Anthropic console, set on Vercel prod, redeploy | open |
 
 ## Resolved
 
 | ID | Decision | Opened | Resolved | Decision text |
 | --- | --- | --- | --- | --- |
+| F8 | Rotate ANTHROPIC_API_KEY on Vercel prod | 2026-08-18 | 2026-08-18 | **New Anthropic key added by Phill, 18/08/2026, with a US$20 hard limit — and it must be used LAST.** Provider priority is now OpenRouter FIRST with `OPENROUTER_MODEL` roster head `qwen/qwen3.8-27b` (model ID verified live on OpenRouter 18/08/2026); Anthropic is the fallback of last resort under the $20 cap. Opened same day as the census that found the 401 outage (daily since 12/08). Outcome receipt pending: the next strategy-daily run (16:00Z) clearing the 401 cluster proves the key; the OpenRouter-first rewiring is engineering work tracked in Linear |
 | D19 | SPINE_DATABASE_URL vs ephemeral Postgres in CI | 2026-08-16 | 2026-08-17 | **Ephemeral Postgres in CI.** Phill, 17/08/2026: the spine gate spins its own throwaway database inside the workflow. `SPINE_DATABASE_URL` never enters CI or any workflow — it is not a secret to be stored, rotated or scoped, because CI never holds one. This closes the dependency permanently rather than managing it forever. Implemented in #1022 via an ephemeral Supabase started in-job; no workflow reads `secrets.SPINE_DATABASE_URL` — its only occurrences in `.github/` are comments recording that deliberate absence |
