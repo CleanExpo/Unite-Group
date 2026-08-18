@@ -1,9 +1,9 @@
 ---
 type: index
 name: research
-description: OKF index — 6 concepts, 0 subfolders
+description: OKF index — 7 concepts, 0 subfolders
 okf_version: "0.1"
-updated: 2026-07-06
+updated: 2026-08-18
 ---
 
 <!-- okf:generated -->
@@ -13,6 +13,7 @@ _Read this first. Lists every concept + subfolder here so an agent loads only wh
 
 ## Concepts
 - [[autonomous-operating-model]] — Autonomous Operating Model — how the system runs FOR Phill, without Phill
+- [[llm-code-generation-roots]] — LLM Code-Generation Roots — the evidence record behind the Ground-Truth Standard
 - [[local-agentic-harness-ornith-lmstudio]] — Local Agentic-Harness Assessment — Mac mini M4 (10-core, 24 GB)
 - [[openshell-agentic-blueprint]] — Unite-Group Nexus → A Self-Improving Software-Engineering Company
 - [[spec-agentic-harness-pilot]] — SPM Spec — Pilot Agentic Harness (HARDENED v3.2)

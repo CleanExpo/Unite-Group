@@ -104,6 +104,12 @@ Two habits that actually caught them, both cheap:
 2. **Attack your own work before asking for review.** Constructing the bypass
    yourself finds it faster than waiting for someone else to.
 
+This lesson is generalised and made binding by
+`.claude/rules/ground-truth-standard.md` (always-on: nine principles, the 12-rung
+delivery Ladder bound to UNI-2517, and the `Grounded` / `Waterline:` required
+lines); the full evidence record from Turing to the whispers stack is
+`docs/research/llm-code-generation-roots.md`.
+
 ## Claude skills — Nexus operating doctrine
 
 The skills in `.claude/skills/` are the operating doctrine for this repo.
@@ -117,6 +123,12 @@ Consult and follow them:
 - **live-verify** — before pinning or reporting any time-sensitive fact
   (model IDs, package versions, API limits, pricing, provider status). End
   such outputs with: Verified live <date>: <fact> — <source URL>.
+- **waterline** — before claiming done/complete/shipped/live, or to settle any
+  stage dispute: audits authority class, Ladder rung, and AAA evidence rating.
+
+The always-on rules in `.claude/rules/` bind every session alongside these
+skills: `fabel-evidence-standard.md` (claims carry evidence tags) and
+`ground-truth-standard.md` (build on ground truth only; know your rung).
 
 ## Sub-agent doctrine (persistent specialists)
 
