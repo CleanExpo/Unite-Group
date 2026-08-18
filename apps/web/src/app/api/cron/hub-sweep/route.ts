@@ -503,8 +503,23 @@ export async function GET(request: Request) {
           health_status: healthStatus,
           last_swept_at: now,
         }
+        // Postgres spells the same instant differently on readback — timestamptz
+        // echoes a sent "…T14:22:22Z" as "…T14:22:22+00:00" — so *_at fields
+        // compare as instants, not strings. Every other field still compares
+        // strictly: a text field must never pass on a coincidental date parse.
+        // Before this, every sweep since 13/08/2026 errored "write readback
+        // mismatch" while the write had actually landed.
+        const sameStoredValue = (key: string, stored: unknown, sent: unknown): boolean => {
+          if (stored === sent) return true
+          if (key.endsWith('_at') && typeof stored === 'string' && typeof sent === 'string') {
+            const storedMs = Date.parse(stored)
+            const sentMs = Date.parse(sent)
+            return Number.isFinite(storedMs) && Number.isFinite(sentMs) && storedMs === sentMs
+          }
+          return false
+        }
         const divergent = written
-          ? Object.keys(expected).filter((k) => written[k] !== expected[k])
+          ? Object.keys(expected).filter((k) => !sameStoredValue(k, written[k], expected[k]))
           : []
         const mismatch = !written || divergent.length > 0
 

@@ -125,6 +125,9 @@ Consult and follow them:
   such outputs with: Verified live <date>: <fact> — <source URL>.
 - **waterline** — before claiming done/complete/shipped/live, or to settle any
   stage dispute: audits authority class, Ladder rung, and AAA evidence rating.
+- **keeper-gate** — before opening, un-drafting, or pushing to ANY pull request
+  (drafts included — drafts get merged): the six-gate pre-PR procedure; the full
+  gauntlet runs on the committed SHA first, or the PR does not open.
 
 The always-on rules in `.claude/rules/` bind every session alongside these
 skills: `fabel-evidence-standard.md` (claims carry evidence tags) and
