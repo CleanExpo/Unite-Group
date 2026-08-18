@@ -1,9 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createNexusDispatcher } from './dispatcher'
 import { createBoundedTaskAuthority } from './task-queue'
+import { CONTRACT_SCHEMA_VERSION } from '../../../../../contracts/control-plane/v1'
+import { EVENT_STREAM_SOURCE } from './event-stream'
+import type { LaneStreamEvent } from './event-stream'
 import type { LaneOrchestrator } from './lane-orchestrator'
 import type { NexusTask, NexusTaskQueue } from './task-queue'
-import type { Lane, LaneRun, LaneRunEvent } from './types'
+import type { Lane, LaneRun } from './types'
 
 function task(overrides: Partial<NexusTask> = {}): NexusTask {
   return {
@@ -72,22 +75,30 @@ function lanes(overrides: Partial<LaneOrchestrator> = {}): LaneOrchestrator {
     listRunEvents: vi.fn(() =>
       Promise.resolve([
         {
+          schemaVersion: CONTRACT_SCHEMA_VERSION,
+          source: EVENT_STREAM_SOURCE,
           runId: 'run-1',
           laneId: 'lane-1',
+          machineId: 'test-machine',
+          agent: 'claude-code',
           sequence: 1,
-          occurredAt: 3,
-          type: 'lifecycle',
+          occurredAt: '2026-01-01T00:00:03.000Z',
+          kind: 'lifecycle',
           message: 'Run started',
         },
         {
+          schemaVersion: CONTRACT_SCHEMA_VERSION,
+          source: EVENT_STREAM_SOURCE,
           runId: 'run-1',
           laneId: 'lane-1',
+          machineId: 'test-machine',
+          agent: 'claude-code',
           sequence: 2,
-          occurredAt: 4,
-          type: 'lifecycle',
+          occurredAt: '2026-01-01T00:00:04.000Z',
+          kind: 'lifecycle',
           message: 'Run succeeded',
         },
-      ] satisfies Array<LaneRunEvent>),
+      ] satisfies Array<LaneStreamEvent>),
     ),
     ...overrides,
   }

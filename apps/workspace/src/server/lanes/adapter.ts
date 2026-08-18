@@ -4,6 +4,7 @@
  * the orchestrator drives both identically.
  */
 import { stripVTControlCharacters } from 'node:util'
+import type { LaneToolCall } from './event-stream'
 import type { Lane } from './types'
 
 export const LANE_OUTPUT_LIMIT = 64 * 1024
@@ -96,6 +97,43 @@ export interface RunResult {
 export interface LaneRunOptions {
   /** Aborting must terminate the supervised child before the run settles. */
   signal?: AbortSignal
+  /**
+   * Live output sink, called as the child writes (UNI-2406).
+   *
+   * The chunk is RAW and may contain a secret: redaction happens in the
+   * receiving stream, not here, because a per-chunk redactor cannot see a token
+   * split across two writes. The only production caller is the orchestrator,
+   * which routes this straight into `LaneEventStream.write` — never persist,
+   * log or render a chunk taken from this callback directly.
+   */
+  onOutput?: (channel: 'stdout' | 'stderr', chunk: string) => void
+  /**
+   * Structured tool lifecycle, emitted only by a lane that opted into
+   * `structuredEvents` (UNI-2406). The summary is already redacted and bounded
+   * by the time it arrives here.
+   */
+  onToolCall?: (call: LaneToolCall) => void
+  /**
+   * Autonomy gate wiring (UNI-2409). When present, the lane runs with a
+   * PreToolUse hook that classifies every tool call before it executes.
+   *
+   * Its absence means the lane runs UNGATED. That is deliberate rather than a
+   * silent default: the composition root decides, and a test asserts the
+   * production root always supplies one, so "gate missing" can never be the
+   * quiet outcome of a refactor.
+   */
+  gate?: LaneGateWiring
+}
+
+export interface LaneGateWiring {
+  /** Scopes any approval; in practice the run id. */
+  requestId: string
+  /** Settings file passed to the CLI with `--settings`. */
+  settingsPath: string
+  /** Optional operator-controlled approvals file. */
+  approvalsPath?: string
+  /** Optional path the hook appends its decisions to. */
+  auditPath?: string
 }
 
 export interface LaneAdapter {

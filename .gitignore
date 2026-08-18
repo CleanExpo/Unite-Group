@@ -115,6 +115,13 @@ outputs/sandbox_voice_migration/
 # store-dir. Never a source artefact; 1.4GB and individual files exceed GitHub 100MB.
 /.pnpm-store/
 
+# Swarm review run artefacts — regenerated per run, never a source of truth.
+# swarm.mjs writes findings and bench.mjs writes scores on every invocation; both
+# are outputs of a run against one SHA, so committing them would age into a stale
+# claim about code that has since moved.
+scripts/swarm/swarm-findings.json
+scripts/swarm/bench-results.json
+
 # Byproducts of running the spine job's own steps locally (UNI-2580/UNI-2597).
 # `supabase start` writes .branches/; the vitest JSON reporter writes the evidence
 # file the gate then grades. Both are evidence OF a run, never source — and while

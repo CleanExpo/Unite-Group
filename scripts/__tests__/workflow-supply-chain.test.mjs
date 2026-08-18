@@ -31,6 +31,30 @@ const NO_GIT_SHELL = GIT_SHELL
   ? false
   : 'no shell here resolves /usr/bin/git — Git Bash ships git as /mingw64/bin/git, and no WSL distribution qualified'
 
+/**
+ * Three tests below hand `start-operator.sh` a fake `node` on PATH that forwards
+ * `-e` to `process.execPath`. That makes the launcher's Node-range check test
+ * THIS runner's Node rather than the machine's — and the launcher requires
+ * `>=24.14.1 <25`, which package.json also declares as the repo's engine.
+ *
+ * Run them on Node 22 and all three fail with "Node >=24.14.1 <25 is required",
+ * which reads as three broken SECURITY tests rather than a wrong interpreter.
+ * That misdirection has already cost real debugging time here, and it blocks the
+ * PR release gate, whose hook runs the readiness suite with whatever `node` is
+ * on the default PATH.
+ *
+ * Same idiom as NO_SHELL above: node:test prints the reason beside the skip, so
+ * an unrunnable guard can never be mistaken for a green one. CI pins Node 24, so
+ * these still execute where the guarantee has to hold — this only stops a wrong
+ * local interpreter from fabricating a security failure.
+ */
+const [NODE_MAJOR, NODE_MINOR, NODE_PATCH] = process.versions.node.split('.').map(Number)
+const NODE_IN_RANGE =
+  NODE_MAJOR === 24 && (NODE_MINOR > 14 || (NODE_MINOR === 14 && NODE_PATCH >= 1))
+const WRONG_NODE = NODE_IN_RANGE
+  ? false
+  : `this runner is Node ${process.versions.node}; start-operator.sh requires >=24.14.1 <25 (package.json engines) and the fake node shim forwards its version check to THIS runner — a failure here would be the interpreter, not the launcher`
+
 /** Run a committed .sh under `shell`, in that shell's own path dialect. */
 function runIn(shell, scriptPath, env) {
   return execFileAsync(...shell.spawnArgs(scriptPath, env))
@@ -196,7 +220,7 @@ test('operator launcher rejects an invalid Node before starting the trusted entr
   assert.equal(await readFile(ranMarker, 'utf8'), 'ran')
 })
 
-test('operator launcher scrubs unrelated ambient secrets', { skip: NO_SHELL }, async (t) => {
+test('operator launcher scrubs unrelated ambient secrets', { skip: NO_SHELL || WRONG_NODE }, async (t) => {
   const root = await mkdtemp(join(tmpdir(), 'nexus-operator-env-'))
   t.after(() => rm(root, { recursive: true, force: true }))
   const bin = join(root, 'bin')
@@ -223,7 +247,7 @@ test('operator launcher scrubs unrelated ambient secrets', { skip: NO_SHELL }, a
   await assert.rejects(readFile(fakeEnvMarker), { code: 'ENOENT' })
 })
 
-test('operator launcher resolves a symlink before exposing the gateway key', { skip: NO_SHELL }, async (t) => {
+test('operator launcher resolves a symlink before exposing the gateway key', { skip: NO_SHELL || WRONG_NODE }, async (t) => {
   const root = await mkdtemp(join(tmpdir(), 'nexus-operator-symlink-'))
   t.after(() => rm(root, { recursive: true, force: true }))
   const bin = join(root, 'bin')
@@ -303,7 +327,7 @@ test('workspace gateway tokens live outside process.env before server modules lo
   )
 })
 
-test('workspace installer resolves its own symlink before invoking the pinned helper', { skip: NO_SHELL }, async (t) => {
+test('workspace installer resolves its own symlink before invoking the pinned helper', { skip: NO_SHELL || WRONG_NODE }, async (t) => {
   const root = await mkdtemp(join(tmpdir(), 'nexus-workspace-install-symlink-'))
   t.after(() => rm(root, { recursive: true, force: true }))
   const attacker = join(root, 'attacker')

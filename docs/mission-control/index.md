@@ -1,9 +1,9 @@
 ---
 type: index
 name: mission-control
-description: OKF index — 1 concepts, 0 subfolders
+description: OKF index — 4 concepts, 0 subfolders
 okf_version: "0.1"
-updated: 2026-08-16
+updated: 2026-08-18
 ---
 
 <!-- okf:generated -->
@@ -13,3 +13,6 @@ _Read this first. Lists every concept + subfolder here so an agent loads only wh
 
 ## Concepts
 - [[harness-wrapper-contract]] — Harness Wrapper — the three-tier routing contract (UNI-2246)
+- [[lane-event-stream]] — Live, redacted, resumable lane run activity (UNI-2406)
+- [[autonomy-gate]] — L0–L3 enforcement at the tool-call boundary (UNI-2409)
+- [[ship-board]] — Ranked production ship-blockers and their gates (gauntlet-ship, 18/08)

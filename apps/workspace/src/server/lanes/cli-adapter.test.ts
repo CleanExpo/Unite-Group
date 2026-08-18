@@ -1,6 +1,7 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it, vi } from 'vitest'
 import {
   CLI_OUTPUT_LIMIT,
@@ -426,6 +427,241 @@ describe('CliLaneAdapter', () => {
         env: process.env,
       }),
     ).resolves.toMatchObject({ stdout: '😀' })
+  })
+
+  // ── UNI-2406: live output forwarding ──────────────────────────────────────
+
+  it('forwards process output to the live sink as it is written', async () => {
+    const chunks: Array<[string, string]> = []
+    const script =
+      'process.stdout.write("first\\n"); process.stderr.write("problem\\n"); process.stdout.write("second\\n")'
+    const result = await supervisedSpawn(process.execPath, ['-e', script], {
+      cwd: process.cwd(),
+      env: process.env,
+      onOutput: (channel, chunk) => chunks.push([channel, chunk]),
+    })
+
+    expect(result.code).toBe(0)
+    const joined = chunks.map(([, chunk]) => chunk).join('')
+    expect(joined).toContain('first')
+    expect(joined).toContain('second')
+    expect(chunks.some(([channel]) => channel === 'stderr')).toBe(true)
+    // The live sink must not replace the buffered result the orchestrator
+    // still settles the lane's `lastOutput` from.
+    expect(result.stdout).toContain('first')
+    expect(result.stdout).toContain('second')
+  })
+
+  it('survives a live sink that throws, rather than taking the child down with it', async () => {
+    const result = await supervisedSpawn(
+      process.execPath,
+      ['-e', 'process.stdout.write("still ran\\n")'],
+      {
+        cwd: process.cwd(),
+        env: process.env,
+        onOutput: () => {
+          throw new Error('consumer exploded')
+        },
+      },
+    )
+    expect(result.code).toBe(0)
+    expect(result.stdout).toContain('still ran')
+  })
+
+  it('passes the live sink through the adapter to the spawn', async () => {
+    const seen: Array<[string, string]> = []
+    const spawn: SpawnFn = vi.fn(async (_command, _args, opts) => {
+      opts.onOutput?.('stdout', 'from the child')
+      return { code: 0, stdout: 'done', stderr: '' }
+    })
+    const adapter = createCliAdapter({ spawn, accountsDir: '/tmp/accounts' })
+    await adapter.run(cliLane('claude-code'), 'mission', {
+      onOutput: (channel, chunk) => seen.push([channel, chunk]),
+    })
+    expect(seen).toEqual([['stdout', 'from the child']])
+  })
+
+  // ── UNI-2406: opt-in structured (stream-json) mode ────────────────────────
+
+  const STREAM_JSON_FIXTURE = readFileSync(
+    path.join(
+      path.dirname(fileURLToPath(import.meta.url)),
+      '__fixtures__',
+      'claude-stream-json.jsonl',
+    ),
+    'utf8',
+  )
+
+  function structuredLane(): Lane {
+    const lane = cliLane('claude-code')
+    return { ...lane, backend: { ...lane.backend, kind: 'cli', tool: 'claude-code', account: 'max-1', structuredEvents: true } }
+  }
+
+  it('leaves the default prose invocation exactly as it was', async () => {
+    const spawn: SpawnFn = vi.fn(async () => ({ code: 0, stdout: 'prose', stderr: '' }))
+    const adapter = createCliAdapter({ spawn, accountsDir: '/tmp/accounts' })
+    const result = await adapter.run(cliLane('claude-code'), 'mission')
+    // Not `--output-format stream-json`: a lane that did not opt in must be
+    // byte-for-byte the behaviour it had before this ticket.
+    expect(vi.mocked(spawn).mock.calls[0]?.[1]).toEqual(['-p'])
+    expect(result.output).toBe('prose')
+  })
+
+  it('asks for stream-json only when the lane opted in', async () => {
+    const spawn: SpawnFn = vi.fn(async () => ({ code: 0, stdout: '', stderr: '' }))
+    const adapter = createCliAdapter({ spawn, accountsDir: '/tmp/accounts' })
+    await adapter.run(structuredLane(), 'mission')
+    expect(vi.mocked(spawn).mock.calls[0]?.[1]).toEqual([
+      '-p',
+      '--output-format',
+      'stream-json',
+      '--verbose',
+    ])
+  })
+
+  it('never enables structured mode for codex, whose stream is a different shape', async () => {
+    const spawn: SpawnFn = vi.fn(async () => ({ code: 0, stdout: '', stderr: '' }))
+    const adapter = createCliAdapter({ spawn, accountsDir: '/tmp/accounts' })
+    const lane = cliLane('codex')
+    await adapter.run(
+      { ...lane, backend: { ...lane.backend, kind: 'cli', tool: 'codex', account: 'max-1', structuredEvents: true } },
+      'mission',
+    )
+    expect(vi.mocked(spawn).mock.calls[0]?.[1]).toEqual(['exec', '-'])
+  })
+
+  it('turns the real captured stream into tool events and readable text', async () => {
+    const toolCalls: Array<{ name: string; status: string }> = []
+    const output: string[] = []
+    const spawn: SpawnFn = vi.fn(async (_command, _args, opts) => {
+      // Split mid-line, as a real child process would.
+      const half = Math.floor(STREAM_JSON_FIXTURE.length / 2)
+      opts.onOutput?.('stdout', STREAM_JSON_FIXTURE.slice(0, half))
+      opts.onOutput?.('stdout', STREAM_JSON_FIXTURE.slice(half))
+      return { code: 0, stdout: STREAM_JSON_FIXTURE, stderr: '' }
+    })
+    const adapter = createCliAdapter({ spawn, accountsDir: '/tmp/accounts' })
+    const result = await adapter.run(structuredLane(), 'mission', {
+      onOutput: (_channel, chunk) => output.push(chunk),
+      onToolCall: (call) => toolCalls.push({ name: call.name, status: call.status }),
+    })
+
+    expect(toolCalls).toEqual([
+      { name: 'Read', status: 'started' },
+      { name: 'Read', status: 'succeeded' },
+    ])
+    // Readable prose, not a wall of JSON braces.
+    expect(output.join('')).toContain('hello world')
+    expect(output.join('')).not.toContain('"type":"assistant"')
+    expect(result.output).toContain('hello world')
+  })
+
+  it('passes stderr through untouched in structured mode', async () => {
+    const output: Array<[string, string]> = []
+    const spawn: SpawnFn = vi.fn(async (_command, _args, opts) => {
+      opts.onOutput?.('stderr', 'a crash message\n')
+      return { code: 0, stdout: '', stderr: 'a crash message\n' }
+    })
+    const adapter = createCliAdapter({ spawn, accountsDir: '/tmp/accounts' })
+    await adapter.run(structuredLane(), 'mission', {
+      onOutput: (channel, chunk) => output.push([channel, chunk]),
+    })
+    // stderr is never JSONL. Feeding it to the parser would swallow the one
+    // message that explains why a run died.
+    expect(output).toEqual([['stderr', 'a crash message\n']])
+  })
+
+  it('reports a tool the CLI abandoned mid-call as failed', async () => {
+    const toolCalls: Array<{ name: string; status: string }> = []
+    const started = JSON.stringify({
+      type: 'assistant',
+      timestamp: '2026-01-01T00:00:00.000Z',
+      message: {
+        content: [
+          { type: 'tool_use', id: 'toolu_1', name: 'Bash', input: { command: 'sleep 999' } },
+        ],
+      },
+    })
+    const spawn: SpawnFn = vi.fn(async (_command, _args, opts) => {
+      opts.onOutput?.('stdout', `${started}\n`)
+      return { code: 0, stdout: '', stderr: '' }
+    })
+    const adapter = createCliAdapter({ spawn, accountsDir: '/tmp/accounts' })
+    await adapter.run(structuredLane(), 'mission', {
+      onToolCall: (call) => toolCalls.push({ name: call.name, status: call.status }),
+    })
+    expect(toolCalls).toEqual([
+      { name: 'Bash', status: 'started' },
+      { name: 'Bash', status: 'failed' },
+    ])
+  })
+
+  // ── UNI-2409: the gate is actually attached to the spawn ──────────────────
+
+  const gate = {
+    requestId: 'run-1',
+    settingsPath: '/tmp/gate/settings.json',
+    approvalsPath: '/tmp/gate/approvals.json',
+    auditPath: '/tmp/gate/decisions.jsonl',
+  }
+
+  it('passes the gate settings to the CLI', async () => {
+    const spawn: SpawnFn = vi.fn(async () => ({ code: 0, stdout: '', stderr: '' }))
+    const adapter = createCliAdapter({ spawn, accountsDir: '/tmp/accounts' })
+    await adapter.run(cliLane('claude-code'), 'mission', { gate })
+    // Without `--settings` reaching the CLI the hook is never installed, and
+    // the lane runs ungated while every unit test still passes.
+    expect(vi.mocked(spawn).mock.calls[0]?.[1]).toEqual([
+      '-p',
+      '--settings',
+      '/tmp/gate/settings.json',
+    ])
+  })
+
+  it('gives the hook its request identity, adapter and file paths', async () => {
+    const spawn: SpawnFn = vi.fn(async () => ({ code: 0, stdout: '', stderr: '' }))
+    const adapter = createCliAdapter({ spawn, accountsDir: '/tmp/accounts' })
+    await adapter.run(cliLane('claude-code'), 'mission', { gate })
+    const env = vi.mocked(spawn).mock.calls[0]?.[2].env ?? {}
+    // CLI_ENV_ALLOWLIST strips everything it does not know, so these must be
+    // added after it or the hook starts with no identity and blocks everything.
+    expect(env.NEXUS_LANE_REQUEST_ID).toBe('run-1')
+    expect(env.NEXUS_LANE_ADAPTER).toBe('claude-code')
+    expect(env.NEXUS_APPROVALS_FILE).toBe('/tmp/gate/approvals.json')
+    expect(env.NEXUS_GATE_AUDIT_FILE).toBe('/tmp/gate/decisions.jsonl')
+  })
+
+  it('keeps the gate settings alongside structured mode', async () => {
+    const spawn: SpawnFn = vi.fn(async () => ({ code: 0, stdout: '', stderr: '' }))
+    const adapter = createCliAdapter({ spawn, accountsDir: '/tmp/accounts' })
+    await adapter.run(structuredLane(), 'mission', { gate })
+    expect(vi.mocked(spawn).mock.calls[0]?.[1]).toEqual([
+      '-p',
+      '--output-format',
+      'stream-json',
+      '--verbose',
+      '--settings',
+      '/tmp/gate/settings.json',
+    ])
+  })
+
+  it('does not claim to gate a codex lane it cannot gate', async () => {
+    // Codex does not read Claude Code settings. Passing `--settings` there
+    // would be inert, and a lane that looks gated but is not is worse than one
+    // that is honestly ungated.
+    const spawn: SpawnFn = vi.fn(async () => ({ code: 0, stdout: '', stderr: '' }))
+    const adapter = createCliAdapter({ spawn, accountsDir: '/tmp/accounts' })
+    await adapter.run(cliLane('codex'), 'mission', { gate })
+    expect(vi.mocked(spawn).mock.calls[0]?.[1]).toEqual(['exec', '-'])
+    const env = vi.mocked(spawn).mock.calls[0]?.[2].env ?? {}
+    expect(env.NEXUS_LANE_REQUEST_ID).toBeUndefined()
+  })
+
+  it('runs ungated only when no gate was supplied at all', async () => {
+    const spawn: SpawnFn = vi.fn(async () => ({ code: 0, stdout: '', stderr: '' }))
+    const adapter = createCliAdapter({ spawn, accountsDir: '/tmp/accounts' })
+    await adapter.run(cliLane('claude-code'), 'mission')
+    expect(vi.mocked(spawn).mock.calls[0]?.[1]).toEqual(['-p'])
   })
 
   it('does not spawn when the run was already aborted', async () => {
