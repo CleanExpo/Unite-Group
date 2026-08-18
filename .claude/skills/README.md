@@ -23,6 +23,8 @@ can't act; both without verification drift stale. Together they compound.
 | `live-verify` | Verification wrapping Exa / web search | Any time-sensitive fact: versions, model IDs, limits, pricing, status, "latest" anything |
 | `waterline` | Verification — delivery-stage and authority audit | `/waterline`, or before any done/complete/shipped/live claim; binds to the constitution's classes, UNI-2517's lifecycle, and the Ground-Truth Standard's Ladder |
 | `keeper-gate` | Verification — the mandatory pre-PR gate | Before opening ANY PR (drafts included), un-drafting, or pushing to a PR branch; full gauntlet on the committed SHA or the PR does not open |
+| `humanizer` | Intelligence — output quality on founder-facing prose | Humanising, de-slopping, or reviewing marketing/email/social/course copy. NEVER on code, commits, PR bodies, or `.claude/rules/` — those required lines are byte-exact by design |
+| `marketing` | Intelligence — marketing method (not brand voice) | CRO, AI-search visibility (AEO/GEO), programmatic SEO, buyer psychology, pricing/packaging. Method only; the per-brand skills below always win on voice, claims and brand facts |
 
 Each skill is a folder with a `SKILL.md` (YAML frontmatter + instructions).
 Claude loads only the name + description until a task matches, then pulls in
