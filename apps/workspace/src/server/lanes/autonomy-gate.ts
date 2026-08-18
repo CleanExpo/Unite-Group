@@ -77,8 +77,119 @@ const READ_ONLY_TOOLS = new Set([
   'ListMcpResources',
 ])
 
-/** Tools that write inside the lane's own worktree — reversible, single-domain. */
+/**
+ * Tools whose writes are reversible and single-domain *provided they land inside
+ * the lane's own worktree*. That proviso is enforced by `classifyLaneWrite`
+ * below — it used to be asserted in a reason string and checked nowhere.
+ */
 const LANE_LOCAL_WRITE_TOOLS = new Set(['Edit', 'Write', 'NotebookEdit', 'TodoWrite'])
+
+/**
+ * Paths a lane write may never touch, worktree root configured or not.
+ *
+ * The gate re-spawns its hook from a fixed path on every tool call, so a write
+ * that replaces the hook script — or the settings the hook reads — switches the
+ * gate off for the remainder of the run. A control that can be disabled by the
+ * thing it controls is not a control. These are matched before any containment
+ * check, because a worktree that happens to contain one of them must not make
+ * it writable.
+ */
+const SELF_PROTECTED_WRITE_PATTERNS: ReadonlyArray<{ pattern: RegExp; what: string }> = [
+  // The hook entry itself (`autonomyHookPath()` resolves it from the lanes
+  // module directory) and the per-run gate settings the hook reads.
+  { pattern: /(^|\/)autonomy-hook\.mjs$/, what: "the gate's own hook entry" },
+  { pattern: /(^|\/)lanes\/gate(\/|$)/, what: "the gate's own per-run settings" },
+  { pattern: /(^|\/)\.claude(\/|$)/, what: 'agent configuration' },
+  // Hooks only, NOT all of `.git`: a lane legitimately writes inside its own
+  // worktree, and an early draft of this list blocked `.git` and `.hermes`
+  // wholesale — which escalated every write in a worktree that lives under
+  // `~/.hermes/worktrees/`, i.e. all of them. A guard that blocks the ordinary
+  // case gets switched off, and then guards nothing.
+  { pattern: /(^|\/)\.git\/hooks(\/|$)/, what: 'git hooks' },
+  { pattern: /(^|\/)\.(bashrc|zshrc|profile|bash_profile|zshenv)$/, what: 'a shell startup file' },
+  { pattern: /(^|\/)\.ssh(\/|$)/, what: 'SSH material' },
+]
+
+/**
+ * Is `target` inside `root`?
+ *
+ * Lexical containment after normalisation, which resolves `..` traversal. It
+ * does NOT resolve symlinks: the target of a write frequently does not exist
+ * yet, so there is nothing to `realpath`, and a check that silently degrades on
+ * missing files would be worse than one whose limit is stated. A symlink
+ * already inside the worktree pointing out of it is therefore not caught here —
+ * recorded honestly rather than implied away, and the reason this returns a
+ * qualified reason string rather than claiming full containment.
+ */
+function isInsideRoot(target: string, root: string): boolean {
+  const normalise = (p: string) => p.replace(/\\/g, '/').replace(/\/+$/, '')
+  const segments = (p: string): string[] => {
+    const out: string[] = []
+    for (const part of normalise(p).split('/')) {
+      if (part === '' || part === '.') continue
+      if (part === '..') out.pop()
+      else out.push(part)
+    }
+    return out
+  }
+  const rootParts = segments(root)
+  const targetParts = segments(target)
+  if (targetParts.length < rootParts.length) return false
+  return rootParts.every((part, i) => targetParts[i] === part)
+}
+
+/**
+ * Classify a write by WHERE it lands, not merely by which tool asked.
+ *
+ * Absent a configured root the tier is unchanged (L1) but the reason says so,
+ * because the alternative — escalating every write on every lane that has not
+ * been wired yet — is how a gate gets switched off wholesale.
+ */
+function classifyLaneWrite(
+  tool: string,
+  targets: readonly string[],
+  worktreeRoot: string | undefined,
+): CommandClassification {
+  for (const target of targets) {
+    for (const guard of SELF_PROTECTED_WRITE_PATTERNS) {
+      if (guard.pattern.test(target)) {
+        return {
+          tier: 'L3',
+          reason: `'${tool}' would write to ${guard.what}; a lane may not rewrite the controls it runs under`,
+        }
+      }
+    }
+  }
+  if (typeof worktreeRoot !== 'string' || worktreeRoot.trim() === '') {
+    return {
+      tier: 'L1',
+      reason: `'${tool}' writes a file; worktree containment NOT enforced (no lane worktree root configured)`,
+    }
+  }
+  // A root is configured but no target was recognisable. `TodoWrite` writes a
+  // task list rather than a path and legitimately has none; every other write
+  // tool having none means the path sits in a field TARGET_FIELDS does not know,
+  // so containment would pass by finding nothing to check — a vacuous green in
+  // the one place that must not have one.
+  if (targets.length === 0 && tool !== 'TodoWrite') {
+    return {
+      tier: 'L3',
+      reason: `'${tool}' has no recognisable target path, so worktree containment cannot be checked`,
+    }
+  }
+  for (const target of targets) {
+    if (!isInsideRoot(target, worktreeRoot)) {
+      return {
+        tier: 'L3',
+        reason: `'${tool}' targets a path outside the lane worktree; a lane-local write is only lane-local inside its own root`,
+      }
+    }
+  }
+  return {
+    tier: 'L1',
+    reason: `'${tool}' writes inside the lane worktree (path containment checked; symlinks not resolved)`,
+  }
+}
 
 /** Tools that reach outside the machine but commit to nothing. */
 const OUTWARD_READ_TOOLS = new Set(['WebFetch', 'WebSearch'])
@@ -132,7 +243,16 @@ const SHELL_METACHARACTERS: ReadonlyArray<{ pattern: RegExp; name: string }> = [
   { pattern: /\|/, name: 'pipe' },
   { pattern: /&(?!&)/, name: 'background execution' },
   { pattern: /\$\(|`/, name: 'command substitution' },
-  { pattern: /\$\{[^}]*\}/, name: 'parameter expansion' },
+  // ANY dollar, not just `${...}`. The braced form was covered and the bare
+  // form was not, so `echo $ANTHROPIC_API_KEY` classified L0 and ran
+  // unreviewed while `echo ${ANTHROPIC_API_KEY}` escalated — the same
+  // disclosure through the cheaper spelling. Positional (`$1`), special
+  // (`$@`, `$*`, `$?`) and ANSI-C (`$'...'`) forms expand too, so the control
+  // is "a dollar means expansion" rather than a list of expansion shapes that
+  // must stay ahead of the shell. A literal dollar in a message escalates as
+  // collateral; escalation asks for approval, it does not block, and that is
+  // the correct direction for a gate whose stated job is stopping disclosure.
+  { pattern: /\$/, name: 'parameter expansion' },
   { pattern: />|</, name: 'redirection' },
   { pattern: /\n|\r/, name: 'newline' },
   { pattern: /\\\s*$/, name: 'line continuation' },
@@ -175,7 +295,14 @@ const SECRET_MARKERS: ReadonlyArray<RegExp> = [
   /\.aws\/credentials\b/,
   /\.npmrc\b/,
   /\bcredentials?\.json\b/i,
-  /\b(secret|token|apikey|api_key|password)s?\b/i,
+  // `\b` does NOT fire between `_` and a letter — both are word characters — so
+  // the previous `\b(...)\b` form never matched the names secrets actually have:
+  // ANTHROPIC_API_KEY, GITHUB_TOKEN, SUPABASE_SERVICE_ROLE_KEY. It matched only
+  // a bare `token` or `api_key` standing alone, which is the spelling nobody
+  // uses. Underscore and hyphen are treated as separators here, so the marker
+  // fires on the real names while `tokenizer` and `passwordless` still do not
+  // (the trailing class requires a non-alphanumeric or end-of-string).
+  /(^|[^A-Za-z0-9])(secret|token|apikey|api[_-]?key|password)s?([^A-Za-z0-9]|$)/i,
 ]
 
 export interface CommandClassification {
@@ -312,7 +439,10 @@ const CONTENT_RETURNING_TOOLS = new Set([
 ])
 
 /** Classify any tool call. Unknown tools fail closed to L3. */
-export function classifyToolCall(request: ToolCallRequest): CommandClassification {
+export function classifyToolCall(
+  request: ToolCallRequest,
+  options: Pick<GateOptions, 'worktreeRoot'> = {},
+): CommandClassification {
   const tool = typeof request.tool === 'string' ? request.tool.trim() : ''
   if (tool === '') {
     return { tier: 'L3', reason: 'tool name is missing; cannot classify' }
@@ -336,7 +466,7 @@ export function classifyToolCall(request: ToolCallRequest): CommandClassificatio
 
   if (READ_ONLY_TOOLS.has(tool)) return { tier: 'L0', reason: `'${tool}' only reads` }
   if (LANE_LOCAL_WRITE_TOOLS.has(tool)) {
-    return { tier: 'L1', reason: `'${tool}' writes inside the lane worktree` }
+    return classifyLaneWrite(tool, readTargets(request.input), options.worktreeRoot)
   }
   if (OUTWARD_READ_TOOLS.has(tool)) {
     return { tier: 'L2', reason: `'${tool}' reaches outside the machine` }
@@ -396,6 +526,12 @@ export interface GateOptions {
   approvals?: readonly ApprovalGrant[]
   /** True when an L2 verification stamp is present for this action. */
   verificationStamp?: boolean
+  /**
+   * Absolute path of the lane's worktree. When present, a lane-local write
+   * outside it escalates to L3. When absent, containment is not enforced and
+   * the decision reason says so rather than asserting a check that did not run.
+   */
+  worktreeRoot?: string
   now?: () => number
 }
 
@@ -421,7 +557,7 @@ export function evaluateToolCall(
       }
     }
 
-    const { tier, reason } = classifyToolCall(request)
+    const { tier, reason } = classifyToolCall(request, { worktreeRoot: options.worktreeRoot })
     const summary = safeSummary(request, tier)
 
     if (tier === 'L0' || tier === 'L1') {
