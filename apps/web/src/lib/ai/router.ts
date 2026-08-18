@@ -319,7 +319,7 @@ export async function execute(
       requestId: response.id,
       latencyMs,
       metadata: { via: 'router' },
-    }).catch(() => {}),
+    }).catch((err) => { console.error('[ai:router] usage record write failed', err) }),
   )
 
   return {

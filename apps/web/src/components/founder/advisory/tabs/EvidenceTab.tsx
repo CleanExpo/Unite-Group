@@ -24,7 +24,7 @@ export function EvidenceTab() {
     fetch(`/api/advisory/cases/${caseId}/evidence?pageSize=100`)
       .then(r => r.json())
       .then(d => setEvidence(d.evidence ?? []))
-      .catch(() => {})
+      .catch((err) => { console.error('[advisory:EvidenceTab] evidence fetch failed', err) })
       .finally(() => setLoading(false))
   }, [caseId])
 

@@ -32,7 +32,7 @@ export async function checkSynthexProgress(): Promise<{ inReviewCount: number }>
         linearIssueId: issue.id,
         linearUrl,
       },
-    }).catch(() => {})
+    }).catch((err) => { console.error('[linear-monitor:notify] activity log write failed', err) })
   }
 
   return { inReviewCount: inReview.length }

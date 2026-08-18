@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
       body: `Idea processed: "${issueInput.title}" — ${issue.url ?? issue.id}`,
       severity: 'info',
       metadata: { messageId, linearIssueId: issue.id, linearUrl: issue.url },
-    }).catch(() => {})
+    }).catch((err) => { console.error('[whatsapp:notify] activity log write failed', err) })
 
     return NextResponse.json({
       status: 'processed',

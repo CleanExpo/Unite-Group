@@ -417,7 +417,7 @@ export async function GET(request: Request) {
       // not fall through to 'info' as though the week scored fine.
       severity: velocityScore === null || velocityScore < 40 ? 'warning' : 'info',
       metadata: { durationSec },
-    }).catch(() => {})
+    }).catch((err) => { console.error('[cron:pi-ceo-weekly-review:notify] activity log write failed', err) })
 
     return NextResponse.json({ success: true, armed: true, persisted: true, meetingId, brief })
   } catch (error) {

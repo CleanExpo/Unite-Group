@@ -59,7 +59,7 @@ export async function GET(request: Request) {
       body: `Status: ${result.status}. Tokens: ${result.inputTokens} in / ${result.outputTokens} out. Duration: ${durationMs}ms.`,
       severity: result.status === 'completed' ? 'info' : 'warning',
       metadata: { reportId: result.reportId, durationMs },
-    }).catch(() => {})
+    }).catch((err) => { console.error('[cron:coaches/marketing:notify] activity log write failed', err) })
 
     return NextResponse.json({
       success: result.status === 'completed',
@@ -80,7 +80,7 @@ export async function GET(request: Request) {
       body: `Fatal error after ${durationMs}ms: ${error instanceof Error ? error.message : 'Unknown error'}`,
       severity: 'critical',
       metadata: { durationMs },
-    }).catch(() => {})
+    }).catch((err) => { console.error('[cron:coaches/marketing:notify] activity log write failed', err) })
 
     return NextResponse.json(
       { success: false, error: sanitiseError(error, 'Unknown error'), durationMs },
