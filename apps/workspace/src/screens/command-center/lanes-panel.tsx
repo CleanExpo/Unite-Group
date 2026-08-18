@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
+import { LaneRunStream } from './lane-run-stream'
 
 /**
  * Lanes panel — the "generate a new IDE" surface in Mission Control.
@@ -21,6 +22,8 @@ type Lane = {
   branch: string
   status: string
   lastOutput?: string
+  /** Present once the lane has run at least once; keys the live event stream. */
+  lastRunId?: string
   blockedReason?: string
 }
 
@@ -102,6 +105,25 @@ export function buildLaneCreateInput(
     role,
     repo: trimmedRepo,
   }
+}
+
+export type LaneRunView =
+  | { mode: 'stream'; runId: string }
+  | { mode: 'final'; output: string }
+  | { mode: 'none' }
+
+/**
+ * Decide how to show a lane's last run (UNI-2406).
+ *
+ * A lane that has run since the event stream landed gets the live stream. The
+ * final-only `lastOutput` block is kept for a lane whose last run predates it —
+ * dropping that branch would blank the visible history of every lane that
+ * already exists, which is a regression dressed as a feature.
+ */
+export function selectLaneRunView(lane: Lane): LaneRunView {
+  if (lane.lastRunId) return { mode: 'stream', runId: lane.lastRunId }
+  if (lane.lastOutput) return { mode: 'final', output: lane.lastOutput }
+  return { mode: 'none' }
 }
 
 export function formatWorkerStatus(worker: NexusWorker): string {
@@ -254,6 +276,7 @@ export function LanesPanel() {
 
 function LaneCard({ lane }: { lane: Lane }) {
   const qc = useQueryClient()
+  const runView = selectLaneRunView(lane)
   const [mission, setMission] = useState('')
   const [approved, setApproved] = useState(false)
   const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null)
@@ -360,9 +383,11 @@ function LaneCard({ lane }: { lane: Lane }) {
           {queueMutation.error.message}
         </p>
       ) : null}
-      {lane.lastOutput ? (
+      {runView.mode === 'stream' ? (
+        <LaneRunStream runId={runView.runId} />
+      ) : runView.mode === 'final' ? (
         <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded bg-neutral-900 p-2 text-[11px] text-neutral-300">
-          {lane.lastOutput}
+          {runView.output}
         </pre>
       ) : null}
     </div>

@@ -142,18 +142,21 @@ export function createNexusDispatcher(deps: DispatcherDeps) {
             deps.lanes.listRunEvents(runId),
             resolveWorktreeState(completedLane.worktree),
           ])
+          // `kind`, not `type`: the ledger now speaks control-plane/v1
+          // (UNI-2406). Legacy records are upgraded on read, so this proof
+          // still holds for a run recorded by the previous build.
           const hasStartedEvent = events.some(
             (event) =>
               event.runId === runId &&
               event.laneId === completedLane.id &&
-              event.type === 'lifecycle' &&
+              event.kind === 'lifecycle' &&
               event.message === 'Run started',
           )
           const hasSucceededEvent = events.some(
             (event) =>
               event.runId === runId &&
               event.laneId === completedLane.id &&
-              event.type === 'lifecycle' &&
+              event.kind === 'lifecycle' &&
               event.message === 'Run succeeded',
           )
           const hasRunProof =

@@ -62,6 +62,13 @@ export type CliBackend = {
   kind: 'cli'
   tool: 'claude-code' | 'codex'
   account: string // e.g. 'max-1' | 'max-2' | 'max-3' | 'openai-pro'
+  /**
+   * Opt in to `--output-format stream-json` so the lane emits structured
+   * tool-call events (UNI-2406). Off by default, because it changes what the
+   * CLI writes to stdout: every lane that does not ask for it keeps exactly the
+   * prose behaviour it had before. claude-code only.
+   */
+  structuredEvents?: boolean
 }
 
 const CLI_ACCOUNT_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/

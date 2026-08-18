@@ -21,8 +21,11 @@ import {
   processTreeContainmentSupported,
   terminateProcessTree,
 } from './process-tree'
+import { autonomyEnv } from './autonomy-settings'
+import { createToolCallParser } from './tool-call-parser'
 import { isValidCliAccount } from './types'
 import type { LaneAdapter, LaneRunOptions, RunResult } from './adapter'
+import type { ToolCallParserResult } from './tool-call-parser'
 import type { ProcessTreeOptions } from './process-tree'
 import type { Lane } from './types'
 
@@ -74,6 +77,13 @@ export interface SpawnOptions {
   input?: string
   signal?: AbortSignal
   timeoutMs?: number
+  /**
+   * Live, per-write output sink (UNI-2406). Raw and unredacted — see
+   * `LaneRunOptions.onOutput`. Deliberately separate from the buffered
+   * `stdout`/`stderr` in `SpawnResult`, so the existing final-output contract
+   * is untouched: a caller that ignores this gets exactly what it got before.
+   */
+  onOutput?: (channel: 'stdout' | 'stderr', chunk: string) => void
 }
 
 export type SpawnFn = (
@@ -155,10 +165,25 @@ export function createSupervisedSpawn(
       })
       if (opts.input) child.stdin.end(opts.input)
       else child.stdin.end()
+      // The live sink is notified before the bounded buffer is updated, and is
+      // deliberately not subject to RAW_CAPTURE_LIMIT: the buffer exists to cap
+      // what the FINAL result carries, whereas the stream has its own budget
+      // and would otherwise go silent the moment a long run filled the buffer.
+      const forward = (channel: 'stdout' | 'stderr', chunk: unknown) => {
+        if (!opts.onOutput) return
+        try {
+          opts.onOutput(channel, String(chunk))
+        } catch {
+          // A failing consumer must never take down the supervised child; the
+          // stream reports its own errors when the run settles.
+        }
+      }
       child.stdout.on('data', (d) => {
+        forward('stdout', d)
         stdout = appendBounded(stdout, d)
       })
       child.stderr.on('data', (d) => {
+        forward('stderr', d)
         stderr = appendBounded(stderr, d)
       })
 
@@ -315,8 +340,31 @@ export function createCliAdapter(deps: CliAdapterDeps = {}): LaneAdapter {
       const { tool, account } = lane.backend
       const configDir = accountConfigDir(accountsDir, account)
 
+      // Structured mode is claude-code only and opt-in. Codex's JSON stream is
+      // a different shape and has no parser here yet; silently enabling a flag
+      // it does not share would produce a lane that reports no tools at all
+      // while looking like it works.
+      const structured =
+        tool === 'claude-code' && lane.backend.structuredEvents === true
+
+      // UNI-2409: attach the autonomy gate as a PreToolUse hook. `gate` is
+      // resolved by the composition root, which owns the temp settings file
+      // and the approvals location; the adapter only passes it through.
+      const gate = options.gate
+
       const command = tool === 'codex' ? 'codex' : 'claude'
-      const args = tool === 'codex' ? ['exec', '-'] : ['-p']
+      const baseArgs =
+        tool === 'codex'
+          ? ['exec', '-']
+          : structured
+            ? ['-p', '--output-format', 'stream-json', '--verbose']
+            : ['-p']
+      // `--settings` merges ADDITIONAL settings, so the hook narrows what the
+      // lane may do without replacing the account's own configuration.
+      const args =
+        gate && tool === 'claude-code'
+          ? [...baseArgs, '--settings', gate.settingsPath]
+          : baseArgs
 
       // Isolate the account's auth via its own config dir, and ensure the
       // common CLI install locations are on PATH.
@@ -340,6 +388,31 @@ export function createCliAdapter(deps: CliAdapterDeps = {}): LaneAdapter {
                   }
                 : {}),
             }),
+        // The hook reads its request identity, adapter and approvals location
+        // from the environment. CLI_ENV_ALLOWLIST strips everything else, so
+        // these must be added after it rather than inherited.
+        ...(gate && tool === 'claude-code'
+          ? autonomyEnv({
+              requestId: gate.requestId,
+              adapter: 'claude-code',
+              ...(gate.approvalsPath ? { approvalsFile: gate.approvalsPath } : {}),
+              ...(gate.auditPath ? { auditFile: gate.auditPath } : {}),
+            })
+          : {}),
+      }
+
+      // In structured mode stdout is JSONL, not prose. Streaming those braces
+      // to Mission Control would be worse than the final-only view it replaces,
+      // so the parser turns them into text and tool events on the way past.
+      const parser = structured ? createToolCallParser() : null
+      let structuredText = ''
+      const drain = (result: ToolCallParserResult) => {
+        for (const call of result.toolCalls) options.onToolCall?.(call)
+        for (const line of result.text) {
+          structuredText += `${line}\n`
+          options.onOutput?.('stdout', `${line}\n`)
+        }
+        if (result.outcome?.finalText) structuredText = result.outcome.finalText
       }
 
       const result = await spawnFn(command, args, {
@@ -347,13 +420,28 @@ export function createCliAdapter(deps: CliAdapterDeps = {}): LaneAdapter {
         env,
         input: mission,
         signal: options.signal,
+        onOutput: parser
+          ? (channel, chunk) => {
+              // stderr is never JSONL — pass it straight through so a crash
+              // message is not swallowed by the parser.
+              if (channel === 'stderr') options.onOutput?.(channel, chunk)
+              else drain(parser.push(chunk))
+            }
+          : options.onOutput,
       })
+      if (parser) {
+        drain(parser.flush())
+        // A tool that never produced a result means the CLI died mid-call.
+        // Reporting it as failed beats leaving a spinner running forever.
+        for (const call of parser.unsettled()) options.onToolCall?.(call)
+      }
       if (result.code !== 0) {
         const detail = redactCliOutput(
           result.stderr || result.stdout || '',
         ).slice(0, 400)
         throw new Error(`${command} exited ${result.code}: ${detail}`)
       }
+      if (parser) return { output: redactCliOutput(structuredText) }
       return { output: redactCliOutput(result.stdout) }
     },
   }

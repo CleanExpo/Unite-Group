@@ -4,6 +4,7 @@ import {
   buildQueuedTaskInput,
   formatBackendOptionLabel,
   formatWorkerStatus,
+  selectLaneRunView,
 } from './lanes-panel'
 
 const gatewayDescriptor = {
@@ -80,5 +81,45 @@ describe('buildLaneCreateInput', () => {
       approved: true,
       idempotencyKey: 'idem-task-0001',
     })
+  })
+})
+
+describe('selectLaneRunView', () => {
+  const lane = {
+    id: 'lane-1',
+    kind: 'cli' as const,
+    backend: { kind: 'cli' as const, tool: 'claude-code' as const, account: 'max-1' },
+    role: 'builder',
+    repo: '/repo',
+    branch: 'lane/lane-1',
+    status: 'idle',
+  }
+
+  it('streams the run once the lane has one', () => {
+    // Without this, the stream component never mounts and the whole UNI-2406
+    // chain is invisible — green tests, dead feature.
+    expect(selectLaneRunView({ ...lane, lastRunId: 'run_1' })).toEqual({
+      mode: 'stream',
+      runId: 'run_1',
+    })
+  })
+
+  it('prefers the live stream over the stale final output', () => {
+    expect(
+      selectLaneRunView({ ...lane, lastRunId: 'run_1', lastOutput: 'old text' }),
+    ).toEqual({ mode: 'stream', runId: 'run_1' })
+  })
+
+  it('keeps the final-only view for a lane whose run predates the stream', () => {
+    // Dropping this branch would blank the visible history of every lane that
+    // already exists — a regression dressed as a feature.
+    expect(selectLaneRunView({ ...lane, lastOutput: 'legacy output' })).toEqual({
+      mode: 'final',
+      output: 'legacy output',
+    })
+  })
+
+  it('shows nothing for a lane that has never run', () => {
+    expect(selectLaneRunView(lane)).toEqual({ mode: 'none' })
   })
 })
