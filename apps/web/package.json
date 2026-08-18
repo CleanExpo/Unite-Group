@@ -2,7 +2,7 @@
   "name": "unite-group",
   "version": "1.0.0",
   "private": true,
-  "description": "Unite Hub — AI-Powered CRM & Marketing Automation. Next.js 16 + Supabase PostgreSQL.",
+  "description": "Unite-Group — AI-Powered Business Platform. Next.js 16 + Supabase PostgreSQL.",
   "author": "Unite Group",
   "license": "ISC",
   "scripts": {

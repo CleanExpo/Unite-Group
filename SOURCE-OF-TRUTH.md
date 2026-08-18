@@ -10,7 +10,7 @@
 - Retired product names and superseded identity narratives must not be loaded as current truth or reused in active prompts, tasks, statuses, dashboards, memory or newly-authored documentation.
 - Historical lineage belongs in Git history or explicit legacy/history material, not in the active identity contract.
 
-A former standalone CRM repository was absorbed as a one-time history snapshot during convergence and later fully wound down. Its GitHub repository and Vercel project were deleted on 20/06/2026 after the required environment configuration was confirmed in `apps/web`. It is not active infrastructure and must not be targeted, recreated, queried as current, or treated as a parallel product.
+A former standalone CRM repository was absorbed as a one-time history snapshot during convergence and later fully wound down. Its GitHub repository and Vercel project were deleted on 20/06/2026 after the required environment configuration was confirmed in `apps/web`. It is not active infrastructure and must not be targeted, recreated, queried as current, or treated as a parallel product. **SUPERSEDED 2026-06-20** — the standalone CRM/Unite-Hub live-product instruction is retired; `apps/web` is the sole product surface.
 
 ## Convergence lineage
 

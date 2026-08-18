@@ -44,7 +44,7 @@ export function chooseNextOnePercentImprovement(
 ): OnePercentImprovement {
   if (snapshot.deployState !== 'READY' || !snapshot.sandboxEnvReady) {
     return {
-      title: 'Stabilize unite-hub-sandbox deploy gate',
+      title: 'Stabilize deploy gate',
       priority: 'P0',
       actionClass: 'ask_board',
       requiresApproval: true,
