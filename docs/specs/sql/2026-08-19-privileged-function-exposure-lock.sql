@@ -100,6 +100,104 @@ BEGIN
 END
 $$;
 
+-- ── 0b: PRE-STATE RECEIPT — record what is actually here, before touching it. ─
+--
+--    WHY. The rollback used to restore a HARD-CODED presumed pre-state: it
+--    unconditionally granted EXECUTE to anon, authenticated and PUBLIC on the
+--    functions it names. An independent review (codex, 19/08/2026) seeded an
+--    owner-only custom_access_token_hook with anon EXECUTE FALSE, ran this file
+--    and then the rollback, and anon EXECUTE came back TRUE. A break-glass path
+--    that can CREATE an exposure that never existed is not a recovery path — it
+--    is a second incident, run by someone who believes they are recovering.
+--
+--    A rollback can only restore the prior state if the prior state was
+--    OBSERVED. So it is captured here, in the same transaction that changes it,
+--    and the .down.sql replays exactly these rows and REFUSES if they are absent.
+--
+--    Captured ONCE. If this file is applied a second time the receipt already
+--    holds the true pre-lock state; re-capturing would overwrite it with the
+--    locked state and silently destroy the only record of what to restore.
+CREATE TABLE IF NOT EXISTS public.privileged_function_exposure_lock_receipt_20260819 (
+  captured_at timestamptz NOT NULL DEFAULT now(),
+  object_kind text        NOT NULL CHECK (object_kind IN ('function', 'table')),
+  object_id   text        NOT NULL,
+  grantee     text,
+  has_execute boolean,
+  rls_enabled boolean
+);
+
+--    This table is created in `public`, which is precisely the surface this file
+--    exists to lock. Items 4 and 5 on the ship board ARE two RLS-disabled tables
+--    in public left behind by a dated migration — shipping a third would be the
+--    fix introducing the defect it repairs, and prod-exposure.sql's first query
+--    would flag it on the very next run. It is locked in the same breath as its
+--    creation: RLS on, and no grant to any untrusted role. Nothing but the table
+--    owner reads a record of who could execute what.
+ALTER TABLE public.privileged_function_exposure_lock_receipt_20260819 ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.privileged_function_exposure_lock_receipt_20260819 FROM PUBLIC;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+    EXECUTE 'REVOKE ALL ON TABLE public.privileged_function_exposure_lock_receipt_20260819 FROM anon';
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+    EXECUTE 'REVOKE ALL ON TABLE public.privileged_function_exposure_lock_receipt_20260819 FROM authenticated';
+  END IF;
+END $$;
+
+DO $$
+DECLARE
+  _rows int;
+BEGIN
+  SELECT count(*) INTO _rows FROM public.privileged_function_exposure_lock_receipt_20260819;
+
+  IF _rows > 0 THEN
+    RAISE NOTICE 'pre-state receipt: already captured (% row(s)) — keeping the ORIGINAL capture, not overwriting it', _rows;
+    RETURN;
+  END IF;
+
+  -- One row per (function, grantee) for the three roles this file can revoke.
+  -- PUBLIC is recorded as the empty-string grantee, matching aclitem's own
+  -- convention, because "granted to PUBLIC" is exactly what the old rollback
+  -- assumed rather than checked.
+  INSERT INTO public.privileged_function_exposure_lock_receipt_20260819
+    (object_kind, object_id, grantee, has_execute)
+  SELECT 'function',
+         p.oid::regprocedure::text,
+         g.grantee,
+         CASE WHEN g.grantee = '' THEN
+                -- PUBLIC holds EXECUTE only via a bare `=X/...` aclitem entry.
+                EXISTS (SELECT 1 FROM aclexplode(p.proacl) a
+                         WHERE a.grantee = 0 AND a.privilege_type = 'EXECUTE')
+              ELSE has_function_privilege(g.grantee, p.oid, 'EXECUTE')
+         END
+  FROM pg_proc p
+  JOIN pg_namespace n ON n.oid = p.pronamespace
+  CROSS JOIN (VALUES ('anon'), ('authenticated'), ('supabase_auth_admin'), ('')) AS g(grantee)
+  WHERE n.nspname = 'public'
+    AND p.proname IN (
+      'custom_access_token_hook',
+      'before_user_created_hook',
+      'prune_integration_history',
+      'get_my_org_ids'
+    )
+    AND (g.grantee = '' OR EXISTS (SELECT 1 FROM pg_roles r WHERE r.rolname = g.grantee));
+
+  INSERT INTO public.privileged_function_exposure_lock_receipt_20260819
+    (object_kind, object_id, rls_enabled)
+  SELECT 'table', c.oid::regclass::text, c.relrowsecurity
+  FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+  WHERE n.nspname = 'public'
+    AND c.relname IN ('founder_uid_migration_20260810', 'founder_uid_conflict_resolution_20260810');
+
+  SELECT count(*) INTO _rows FROM public.privileged_function_exposure_lock_receipt_20260819;
+  IF _rows = 0 THEN
+    RAISE EXCEPTION
+      'apply aborted: the pre-state receipt captured 0 rows, so the rollback would have nothing to restore and would fall back to guessing. Nothing has been changed.';
+  END IF;
+  RAISE NOTICE 'pre-state receipt: captured % row(s) — the rollback will restore exactly this state', _rows;
+END
+$$;
+
 -- ── 1-3, 7: privileged functions no untrusted role may call. anon AND
 --            authenticated both lose EXECUTE. supabase_auth_admin MUST keep
 --            EXECUTE on the two auth hooks or every login breaks — it is
