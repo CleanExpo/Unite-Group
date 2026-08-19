@@ -30,6 +30,9 @@
 #      case 1 could be green because the grant silently did nothing at all.
 #   4. ACL SHAPE: a pre-state where PUBLIC holds EXECUTE and anon holds nothing
 #      directly must NOT come back as a direct grant to anon.
+#   5. NO LEFTOVERS: a grant the FORWARD file created must be taken back by down.
+#   6. NO STALE REPLAY: a second apply+down cycle must not resurrect a pre-state an
+#      operator deliberately changed between cycles.
 set -uo pipefail
 
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -257,6 +260,76 @@ DA_AFTER="$(direct_anon "$DB4")"
 [[ "$DA_AFTER" == "0" ]] \
   || fail "THE ROLLBACK CHANGED THE ACL SHAPE: prune_integration_history was executable by PUBLIC and by anon only through PUBLIC before the pair; afterwards anon holds ${DA_AFTER} DIRECT grant(s). Revoking PUBLIC will no longer remove anon's access."
 echo "  case 4  PUBLIC-only pre-state -> anon still holds 0 DIRECT grants after the pair"
+
+# ── 5. THE ROLLBACK MUST TAKE BACK WHAT IT CREATED ───────────────────────────
+# The mirror of case 1. Case 1 asks "did the rollback invent an exposure it should
+# not have"; this asks "did it leave behind a grant the FORWARD file created". The
+# forward file issues direct grants of its own — authenticated on get_my_org_ids,
+# supabase_auth_admin on both hooks — so against a database where those were absent,
+# an add-only rollback leaves them standing. Reproduced 19/08/2026: authenticated's
+# DIRECT grants on get_my_org_ids went 0 -> 1 -> 1 across apply+down, and the
+# anon-only post-condition passed throughout, because it counts anon and this grant
+# is to authenticated. A rollback that only adds is a second forward migration.
+DB5="$(newdb rbback)"
+seed_unexposed "$DB5"
+
+direct_authed() { # DIRECT aclitems only — inherited-via-PUBLIC must not count
+  pg_scalar "$1" "SELECT count(*)::text FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace, aclexplode(p.proacl) a WHERE n.nspname='public' AND p.proname='get_my_org_ids' AND a.grantee=(SELECT oid FROM pg_roles WHERE rolname='authenticated') AND a.privilege_type='EXECUTE'"
+}
+
+DA5_BEFORE="$(direct_authed "$DB5")"
+[[ "$DA5_BEFORE" == "0" ]] \
+  || fail "the fixture is wrong: authenticated already holds ${DA5_BEFORE} DIRECT grant(s) on get_my_org_ids before the pair, so this case could not detect one being left behind."
+
+run_pair "$DB5" "$DOWN"
+RC5=$?
+[[ $RC5 -eq 0 ]] || fail "the forward+rollback pair did not commit against the owner-only fixture (rc=${RC5}). apply: $(head -2 "$WORK/apply.err") down: $(head -2 "$WORK/down.err")"
+
+DA5_AFTER="$(direct_authed "$DB5")"
+[[ "$DA5_AFTER" == "0" ]] \
+  || fail "THE ROLLBACK LEFT BEHIND A GRANT IT CREATED: authenticated held 0 DIRECT grants on get_my_org_ids before the pair and ${DA5_AFTER} after it. The forward file issued that grant and the rollback did not take it back, so the pre-state was not restored."
+echo "  case 5  add-only rollback     -> forward-created grant taken back (0 before, 0 after)"
+
+# ── 6. A SECOND CYCLE MUST NOT REPLAY A STALE PRE-STATE ──────────────────────
+# The forward file captures the pre-state ONCE and keeps the original. If the
+# rollback does not CONSUME that receipt, every later rollback replays the FIRST
+# pre-state — so a deliberate security change made between cycles is silently undone
+# by a procedure the operator believes is a rollback. The exact lifecycle an
+# independent review (openrouter, 19/08/2026) described:
+#   anon executable -> apply -> down -> operator MANUALLY revokes anon -> apply -> down
+# A stale receipt grants anon EXECUTE again at the end. It must not.
+DB6="$(newdb rbcycle)"
+seed_unexposed "$DB6"
+# Start EXPOSED, which is the production shape and what makes the stale receipt bite.
+psql "$DB6" -X -q -v ON_ERROR_STOP=1 \
+  -c "GRANT EXECUTE ON FUNCTION public.prune_integration_history() TO anon" \
+  >/dev/null 2>"$WORK/c6.err" \
+  || fail "could not shape the exposed fixture for the cycle test: $(head -3 "$WORK/c6.err")"
+
+anon_direct_prune() {
+  pg_scalar "$1" "SELECT count(*)::text FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace, aclexplode(p.proacl) a WHERE n.nspname='public' AND p.proname='prune_integration_history' AND a.grantee=(SELECT oid FROM pg_roles WHERE rolname='anon') AND a.privilege_type='EXECUTE'"
+}
+
+[[ "$(anon_direct_prune "$DB6")" == "1" ]] || fail "cycle fixture wrong: anon should hold a direct grant before cycle 1"
+
+run_pair "$DB6" "$DOWN"
+[[ $? -eq 0 ]] || fail "cycle 1 (apply+down) did not commit. apply: $(head -2 "$WORK/apply.err") down: $(head -2 "$WORK/down.err")"
+[[ "$(anon_direct_prune "$DB6")" == "1" ]] \
+  || fail "cycle 1 did not restore the exposure it recorded, so cycle 2 would prove nothing"
+
+# The operator makes a DELIBERATE security change between cycles.
+psql "$DB6" -X -q -v ON_ERROR_STOP=1 \
+  -c "REVOKE EXECUTE ON FUNCTION public.prune_integration_history() FROM anon" \
+  >/dev/null 2>&1
+[[ "$(anon_direct_prune "$DB6")" == "0" ]] || fail "the manual revoke between cycles did not take"
+
+run_pair "$DB6" "$DOWN"
+[[ $? -eq 0 ]] || fail "cycle 2 (apply+down) did not commit. apply: $(head -2 "$WORK/apply.err") down: $(head -2 "$WORK/down.err")"
+
+C6_AFTER="$(anon_direct_prune "$DB6")"
+[[ "$C6_AFTER" == "0" ]] \
+  || fail "A STALE RECEIPT WAS REPLAYED: an operator revoked anon between cycles, and after the second apply+down anon holds ${C6_AFTER} DIRECT grant(s) again. The rollback resurrected a pre-state that had been deliberately changed."
+echo "  case 6  second cycle          -> the manual revoke SURVIVES (receipt consumed, not replayed)"
 
 echo "PASS  prove-rollback-fidelity"
 echo "  the rollback restores the pre-state the forward migration OBSERVED,"

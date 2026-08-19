@@ -104,20 +104,43 @@ BEGIN
       'rollback aborted: the pre-state receipt table exists but is EMPTY, so there is nothing to restore and no way to tell a clean pre-state from an unrecorded one. Nothing has been changed.';
   END IF;
 
-  -- Functions: re-grant EXECUTE ONLY where the receipt recorded it held.
+  -- Functions: drive EVERY recorded (function, grantee) pair BACK to its recorded
+  -- value — grant where it held, REVOKE where it did not.
+  --
+  --    WHY BOTH DIRECTIONS. An earlier revision iterated only `WHERE has_execute`,
+  --    so it restored what the lock removed but never removed what the lock ADDED.
+  --    The forward file itself issues direct grants — `authenticated` on
+  --    get_my_org_ids, `supabase_auth_admin` on both hooks — so against a database
+  --    where those were absent beforehand, apply+down left them behind. Reproduced
+  --    19/08/2026 on an owner-only fixture: authenticated's DIRECT grants on
+  --    get_my_org_ids went 0 -> 1 -> 1. "Restores the exact pre-state" was false in
+  --    the one direction nobody was looking, and the anon-only post-condition still
+  --    passed, because it counts anon and this grant is to authenticated.
+  --
+  --    A rollback that only adds is not a rollback; it is a second forward migration
+  --    wearing the name.
   FOR _r IN
     SELECT object_id, grantee, has_execute
     FROM public.privileged_function_exposure_lock_receipt_20260819
-    WHERE object_kind = 'function' AND has_execute
+    WHERE object_kind = 'function'
   LOOP
     IF to_regprocedure(_r.object_id) IS NULL THEN
       RAISE NOTICE 'rollback: % is in the receipt but no longer exists — skipped', _r.object_id;
       CONTINUE;
     END IF;
-    IF _r.grantee = '' THEN
-      EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO PUBLIC', _r.object_id);
+    IF _r.has_execute THEN
+      IF _r.grantee = '' THEN
+        EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO PUBLIC', _r.object_id);
+      ELSE
+        EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO %I', _r.object_id, _r.grantee);
+      END IF;
     ELSE
-      EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO %I', _r.object_id, _r.grantee);
+      -- Recorded as NOT held before the lock. If the lock created it, take it back.
+      IF _r.grantee = '' THEN
+        EXECUTE format('REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC', _r.object_id);
+      ELSE
+        EXECUTE format('REVOKE EXECUTE ON FUNCTION %s FROM %I', _r.object_id, _r.grantee);
+      END IF;
     END IF;
     _restored := _restored + 1;
   END LOOP;
@@ -189,5 +212,29 @@ BEGIN
   END IF;
 END
 $$;
+
+-- ── CONSUME THE RECEIPT — it describes a lock that no longer exists ──────────
+--
+--    The receipt records the state before THIS lock. Once the lock is rolled back
+--    that record is spent, and keeping it is actively dangerous: the forward file
+--    captures ONCE and keeps the original, so a stale receipt is replayed by every
+--    later rollback.
+--
+--    The concrete hazard an independent review (openrouter, 19/08/2026) described:
+--    anon EXECUTE true initially -> apply -> down -> an operator MANUALLY revokes
+--    anon -> apply -> down. The second down replays the FIRST pre-state and grants
+--    anon EXECUTE again, silently undoing a deliberate security change with a
+--    procedure the operator believes is a rollback.
+--
+--    Deleting the rows here makes the lifecycle honest and self-describing:
+--      rows present = a lock is in effect, and this is the state to restore
+--      rows absent  = no lock in effect, so the next apply captures fresh
+--    The TABLE is kept so the pair stays idempotent and the next apply's
+--    empty-receipt check still has something to read.
+DELETE FROM public.privileged_function_exposure_lock_receipt_20260819;
+
+DO $$ BEGIN
+  RAISE NOTICE 'rollback: pre-state receipt consumed — the next apply will capture the CURRENT state, not this one';
+END $$;
 
 COMMIT;

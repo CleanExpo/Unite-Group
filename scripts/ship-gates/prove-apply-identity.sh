@@ -21,6 +21,7 @@
 #   1. EMPTY database        -> the apply ABORTS, naming its own identity guard
 #   2. PARTIAL database (1/4)-> the apply ABORTS, naming its own identity guard
 #   3. COMPLETE database(4/4)-> the apply is ALLOWED PAST the guard
+#   3b. FOUR OVERLOADS of ONE name -> REFUSED (identities, not row counts)
 #   4. MUTATION CONTROL: with the guard block removed, case 1 COMMITS again.
 #      Without 4, cases 1-2 could be passing because of some unrelated error and
 #      this gate would be certifying a guard that never ran.
@@ -121,6 +122,25 @@ fi
 grep -q 'apply identity guard: all 4 target functions present' "$WORK/err" \
   || fail "the apply did not report passing its identity guard on a complete database, so case 3 proves nothing. stderr: $(head -3 "$WORK/err")"
 echo "  case 3  complete database 4/4 -> allowed past the identity guard"
+
+# ── 3b. OVERLOADS MUST NOT SATISFY THE GUARD ─────────────────────────────────
+# The guard used to `count(*)`, which counts ROWS. Four OVERLOADS of one name and
+# none of the other three satisfied "= 4" and were admitted as this project — found
+# by an independent review (openrouter, 19/08/2026). The name-driven revoke loops
+# would then have stripped privileges from four unrelated functions and committed.
+# It now counts DISTINCT names, so this database must be refused.
+OVERLOAD="$(newdb applyid_overload)"
+for _sig in "a int" "a text" "a bool" "a numeric"; do
+  pg_exec "$OVERLOAD" "$WORK/err" \
+    "CREATE FUNCTION public.custom_access_token_hook(${_sig}) RETURNS void LANGUAGE sql SECURITY DEFINER AS \$fn\$ SELECT NULL::void \$fn\$" \
+    || fail "could not seed the overload fixture (${_sig})"
+done
+if run_apply "$OVERLOAD" "$APPLY"; then
+  fail "the apply COMMITTED against a database holding FOUR OVERLOADS of one name and none of the other three. Overloads are not identities — this is the wrong-project hazard the guard exists to close."
+fi
+grep -qF "$GUARD_TEXT" "$WORK/err" \
+  || fail "the overload database was refused, but NOT by the identity guard. stderr: $(head -3 "$WORK/err")"
+echo "  case 3b overloads of one name -> refused (counts DISTINCT names, not rows)"
 
 # ── 4. MUTATION CONTROL: remove the guard, case 1 must COMMIT again ──────────
 # Without this, cases 1-2 could be green because of any unrelated error.

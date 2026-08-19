@@ -78,7 +78,14 @@ DECLARE
   _fns   int;
   _found text;
 BEGIN
-  SELECT count(*), coalesce(string_agg(p.proname, ', ' ORDER BY p.proname), '<none>')
+  -- COUNT DISTINCT NAMES, not rows. `count(*)` counts OVERLOADS: a database holding
+  -- four overloads of custom_access_token_hook and none of the other three names
+  -- satisfied `= 4` and was admitted as this project — an independent review
+  -- (openrouter, 19/08/2026) found it. The name-driven revoke loops below would then
+  -- have stripped privileges from four unrelated functions and committed. Counting
+  -- the wrong thing is how an identity check becomes a coincidence check.
+  SELECT count(DISTINCT p.proname),
+         coalesce(string_agg(DISTINCT p.proname, ', ' ORDER BY p.proname), '<none>')
     INTO _fns, _found
   FROM pg_proc p
   JOIN pg_namespace n ON n.oid = p.pronamespace
