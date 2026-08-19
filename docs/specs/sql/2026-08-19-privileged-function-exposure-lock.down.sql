@@ -1,12 +1,26 @@
--- ROLLBACK for 20260819010000_revoke_privileged_function_exposure.sql
+-- ROLLBACK for docs/specs/sql/2026-08-19-privileged-function-exposure-lock.sql
+--
+-- (An earlier header named `20260819010000_revoke_privileged_function_exposure.sql`,
+--  a path that exists nowhere in this repo. A break-glass file that names the wrong
+--  artefact is a hazard under time pressure.)
 --
 -- BREAK-GLASS ONLY. Running this deliberately REOPENS the exposures the fix
 -- closed: it makes the JWT-minting hook, the user-creation hook and a destructive
 -- prune function callable by anon again, and switches row-level security back off
 -- on two public tables. It exists because the constitution requires a production
 -- change to have a TESTED rollback before it may be applied, and because an
--- untested rollback is a rumour. repro-prod-exposure.sh step 7 executes this file
--- and asserts the gate returns to red — that assertion is the test.
+-- untested rollback is a rumour.
+--
+-- ⚠ AT THIS REVISION THIS ROLLBACK IS NOT TESTED, AND SAYING SO IS THE POINT.
+-- The test was repro-prod-exposure.sh step 7, which executes this file and
+-- asserts the gate returns to red. Step 7 DOES NOT RUN: the repro exits 1 at
+-- step 4 on the deliberate get_my_org_ids row. This file is also unchanged since
+-- 44c44368f, so it has never run against the fix in its current form — which now
+-- includes a supabase_auth_admin re-grant that did not exist then.
+--
+-- Consequence, stated plainly: the constitution's "tested rollback before a
+-- production change" precondition is NOT met. That is part of founder item F9,
+-- and it is a reason not to apply the fix yet — not a footnote.
 --
 -- Use it only if the revoke is shown to have broken a caller that legitimately
 -- needed anon or authenticated EXECUTE. The correct follow-up is then a narrow

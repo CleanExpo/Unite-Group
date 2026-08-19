@@ -80,7 +80,9 @@ It is in `docs/specs/sql/` and not `apps/web/supabase/migrations/` on purpose:
 migrations of drift), so a file in the migrations directory adds drift and never
 reaches production.
 
-**The lockout risk is handled and tested.** `supabase_auth_admin` must keep
+**The lockout risk is handled, and tested by
+`scripts/ship-gates/prove-auth-admin-regrant.sh` (exit 0, 19/08/2026) — NOT by
+repro step 8, which does not run at this head.** `supabase_auth_admin` must keep
 EXECUTE on the two auth hooks or every login breaks. The file revokes first and
 re-grants `supabase_auth_admin` afterwards, so ordering cannot strand it, and it
 refuses to commit unless a post-condition inside the same transaction finds zero
@@ -96,6 +98,16 @@ reaching the hooks via PUBLIC alone, which is exactly how production renders
 `prune_integration_history` (PUBLIC held a non-leading grant when the gate was
 run on 18/08/2026; that is a dated observation, not a claim about production now) — and there the
 mutant is killed.
+
+**Where that is proven, at this head.** Repro step 8 builds this case but is
+unreachable (the run exits 1 at step 4).
+`scripts/ship-gates/prove-auth-admin-regrant.sh` reaches it independently: it
+seeds the PUBLIC-only shape (0 direct grants to `supabase_auth_admin`), applies
+the real file and confirms EXECUTE on 2/2 hooks, then deletes the re-grant block
+and confirms the apply **aborts** on `post-condition failed: supabase_auth_admin
+lost EXECUTE`. The gate refuses to pass if the seed carries a direct grant (which
+would make the mutant survivable for the wrong reason) or if the mutant aborts on
+any OTHER post-condition. Exit 0, 19/08/2026, Postgres 17.6.
 
 **Items 4 and 5 are closed by `ENABLE ROW LEVEL SECURITY`, not `DROP`.** RLS with
 no policy denies all access, which removes the exposure without destroying data
