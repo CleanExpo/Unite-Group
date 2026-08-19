@@ -275,8 +275,9 @@ if [[ -n "$CONTROL" ]]; then
     exit 2
   fi
 
+  # _rand_ident [short|long] — the band is DELIBERATE, see the note at the cap below.
   _rand_ident() {
-    local _a _b _n
+    local _a _b _n _band="${1:-any}"
     _n=$(( $(od -An -tu2 -N2 /dev/urandom | tr -d ' \n') % ${#_TARGET_NAMES[@]} ))
     _a="${_TARGET_NAMES[$_n]}"
     _n=$(( $(od -An -tu2 -N2 /dev/urandom | tr -d ' \n') % ${#_TARGET_NAMES[@]} ))
@@ -294,8 +295,39 @@ if [[ -n "$CONTROL" ]]; then
     if [[ "${_a}${_b}" == *_* ]] || (( $(od -An -tu1 -N1 /dev/urandom | tr -d ' \n') % 2 )); then
       _join="_"
     fi
-    _cap=$(( 24 + $(od -An -tu1 -N1 /dev/urandom | tr -d ' \n') % 38 ))   # 24..61
-    printf '%.*s' "$_cap" "${_a}${_join}${_b}"
+    # THE TWO INSTANCES DELIBERATELY STRADDLE THE LENGTH RANGE.
+    #
+    # A single random cap made every length mutant PROBABILISTIC: with both objects
+    # drawn from one band, `length(relname) <= 61` usually matched both and the control
+    # passed by luck. A control whose verdict depends on a coin flip is not a control.
+    #
+    # So one instance is SHORT (3-12 chars) and the other is at the LIMIT (62-63), with
+    # which is which chosen at random. Any single-bounded length predicate now misses
+    # one of them deterministically: `<= 61` misses the long one, `>= 24` misses the
+    # short one, `= 63` misses the short one. Postgres truncates identifiers at 63, so
+    # this spans the whole legal range.
+    #
+    # A two-sided mutant (`length <= 12 OR length >= 62`) would match both and evade
+    # this, and that is stated rather than hidden — but such a predicate excludes the
+    # middle of the range, which is where most real identifiers live, so it would miss
+    # most production defects and is a poor disguise for a rule pretending to work.
+    local _cap
+    case "$_band" in
+      short) _cap=$((  3 + $(od -An -tu1 -N1 /dev/urandom | tr -d ' \n') % 10 )) ;;  #  3..12
+      long)  _cap=$(( 62 + $(od -An -tu1 -N1 /dev/urandom | tr -d ' \n') %  2 )) ;;  # 62..63
+      *)     _cap=$((  3 + $(od -An -tu1 -N1 /dev/urandom | tr -d ' \n') % 61 )) ;;  #  3..63
+    esac
+    # BUILD UP TO THE CAP, then truncate TO it — so the result is EXACTLY _cap long.
+    # `printf '%.*s'` only shortens: with a cap of 62 and a 30-character concatenation
+    # the name came out 30 characters, so the "long" band never reached the limit and
+    # the length mutants passed or failed by luck (observed: `length <= 61` survived
+    # three runs out of three). Real names are appended until the string is long enough.
+    local _built="${_a}${_join}${_b}"
+    while (( ${#_built} < _cap )); do
+      _n=$(( $(od -An -tu2 -N2 /dev/urandom | tr -d ' \n') % ${#_TARGET_NAMES[@]} ))
+      _built="${_built}_${_TARGET_NAMES[$_n]}"
+    done
+    printf '%.*s' "$_cap" "$_built"
   }
 
   _idx=0
@@ -322,11 +354,31 @@ if [[ -n "$CONTROL" ]]; then
     printf '%s\n' "$_RDB" >> "$CONTROL_REG"
 
     # Two unpredictable names, generated independently so they share no prefix.
-    _o1="$(_rand_ident)"
-    _o2="$(_rand_ident)"
+    if (( $(od -An -tu1 -N1 /dev/urandom | tr -d ' \n') % 2 )); then
+      _o1="$(_rand_ident short)"; _o2="$(_rand_ident long)"
+    else
+      _o1="$(_rand_ident long)";  _o2="$(_rand_ident short)"
+    fi
     # Two draws can share a leading letter; harmless (the hex bodies differ) but they
     # must never be the SAME identifier, or "found both" degenerates into "found one".
     while [[ "$_o1" == "$_o2" ]]; do _o2="$(_rand_ident)"; done
+
+    # THE STRADDLE IS ASSERTED, NOT ASSUMED. The bands are supposed to guarantee one
+    # short name and one at the identifier limit, so that any single-bounded length
+    # predicate misses one of them. Measured over repeated runs the `length >= 24`
+    # mutant was killed 4 times in 5 — so the guarantee did NOT always hold, and a
+    # control that works most of the time reports a mutant as dead when it is alive.
+    # Rather than trust the generator, the property it exists to provide is checked
+    # here and the run stops if it is absent.
+    _len1=${#_o1}; _len2=${#_o2}
+    _short=$(( _len1 < _len2 ? _len1 : _len2 ))
+    _long=$((  _len1 > _len2 ? _len1 : _len2 ))
+    if (( _short > 12 || _long < 62 )); then
+      echo "FAIL(setup): the control's two seeded names for '${_rule}' do not straddle the" >&2
+      echo "  identifier length range (got ${_short} and ${_long}; need <=12 and >=62)." >&2
+      echo "  Without the straddle, a length-bounded mutant can match both and survive." >&2
+      exit 2
+    fi
 
     case "$_rule" in
       rls_disabled_in_public)
@@ -366,9 +418,17 @@ SQL
     if ! grep -q "^${_rule}|" "$WORK/c.out"; then
       MISSING+=("$_rule")
     else
+      # EXACT FIELDS. `grep "^rule|name"` is a PREFIX match, and the two seeded names
+      # are built from the same pool — so a SHORT name is frequently a prefix of the
+      # LONG one, and one row satisfied both hit tests. That made the both-instances
+      # requirement silently vacuous: the `length >= 24` mutant survived roughly one run
+      # in five because the long row alone answered for both. Same substring-versus-field
+      # defect just fixed in repro-prod-exposure step 4, living in the control that is
+      # supposed to catch defects like it. The gate emits `rule|object|acl`, so awk
+      # compares whole fields.
       _hit1=0; _hit2=0
-      grep -q "^${_rule}|${_o1}" "$WORK/c.out" && _hit1=1
-      grep -q "^${_rule}|${_o2}" "$WORK/c.out" && _hit2=1
+      awk -F'|' -v r="$_rule" -v o="$_o1" 'NF>=2 && $1==r && $2==o {f=1} END{exit !f}' "$WORK/c.out" && _hit1=1
+      awk -F'|' -v r="$_rule" -v o="$_o2" 'NF>=2 && $1==r && $2==o {f=1} END{exit !f}' "$WORK/c.out" && _hit2=1
       if (( _hit1 == 0 || _hit2 == 0 )); then
         PARTIAL+=("${_rule} found $(( _hit1 + _hit2 )) of 2 seeded instances (${_o1}, ${_o2})")
       fi
