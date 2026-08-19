@@ -220,18 +220,46 @@ if [[ -n "$CONTROL" ]]; then
   #
   # Together: a narrowing attack must guess two random names, and a general
   # predicate passes because it is correct.
-  # A Postgres identifier must begin with a letter or underscore, so the first
-  # character cannot be hex — and an earlier revision therefore hard-coded it as `z`
-  # for one object and `q` for the other. That reintroduced exactly the property this
-  # control exists to remove: a prewritten mutant could add `relname LIKE 'z%' OR
-  # relname LIKE 'q%'` and be narrowed to the control's objects again, while the
-  # comment above claimed the names had no fixed prefix. Caught by an independent
-  # review (openrouter, 20/08/2026). The leading letter is now drawn at random too, so
-  # there is no constant anywhere in the name.
+  # THE IDENTIFIERS MUST LOOK LIKE REAL OBJECTS, not like generated ones.
+  #
+  # Five rounds of this control were defeated by whatever constant the previous round
+  # left behind: fixed object names, then fixed leading letters (`z`/`q`), then the
+  # fixed database stem, then the per-rule `_0`/`_1`/`_2` index. Round six found the
+  # next one — every name was exactly ELEVEN characters (one letter plus ten hex
+  # digits), so `length(relname) = 11` narrowed a rule to the control while leaving its
+  # real class predicate intact. Randomising one attribute at a time loses this game,
+  # because a generated name differs from a real one in SHAPE, and shape is prewritable.
+  #
+  # So the names are now assembled from ordinary word fragments at a random LENGTH,
+  # producing identifiers that are structurally indistinguishable from the schema's own
+  # (`org_members_sync`, `billing_events`). There is no fixed length, no fixed prefix,
+  # no hex-only charset and no regex over character class that separates a control
+  # object from a production one — because there is no longer anything to separate.
+  #
+  # RESIDUAL, unchanged and still stated: an author who can edit prod-exposure.sql can
+  # key on properties of the ENVIRONMENT that this script does not control — row counts,
+  # extension lists, the absence of particular tables. Names cannot close that class.
+  # The defence there is the diff and the reviewer.
+  _WORDS=(org member sync billing event audit token session user project team invoice
+          job queue task run state log entry record item cache index draft cycle note
+          plan report step batch chunk field group label link mark node page part slot)
   _rand_ident() {
-    local _letters=abcdefghijklmnopqrstuvwxyz _i
-    _i=$(( $(od -An -tu1 -N1 /dev/urandom | tr -d ' \n') % 26 ))
-    printf '%s%s' "${_letters:$_i:1}" "$(od -An -tx1 -N5 /dev/urandom | tr -d ' \n')"
+    local _n _i _out="" _parts
+    # 2-4 fragments, joined with underscores: length varies with the words chosen.
+    _parts=$(( 2 + $(od -An -tu1 -N1 /dev/urandom | tr -d ' \n') % 3 ))
+    for (( _i=0; _i<_parts; _i++ )); do
+      _n=$(( $(od -An -tu2 -N2 /dev/urandom | tr -d ' \n') % ${#_WORDS[@]} ))
+      [[ -n "$_out" ]] && _out="${_out}_"
+      _out="${_out}${_WORDS[$_n]}"
+    done
+    # A short random tail keeps collisions negligible without imposing a fixed shape:
+    # it is 1-4 lowercase letters, which every real identifier could also end with.
+    _n=$(( 1 + $(od -An -tu1 -N1 /dev/urandom | tr -d ' \n') % 4 ))
+    local _letters=abcdefghijklmnopqrstuvwxyz _t=""
+    for (( _i=0; _i<_n; _i++ )); do
+      _t="${_t}${_letters:$(( $(od -An -tu1 -N1 /dev/urandom | tr -d ' \n') % 26 )):1}"
+    done
+    printf '%s_%s' "$_out" "$_t"
   }
 
   _idx=0
@@ -246,7 +274,7 @@ if [[ -n "$CONTROL" ]]; then
     # objects and stayed blind in production: the fifth defeat of this control, and the
     # same shape as the four before it, one constant further down. There is no shared
     # stem and no index in the name now.
-    _RDB="$(_rand_ident)$(od -An -tx1 -N4 /dev/urandom | tr -d ' \n')"
+    _RDB="$(_rand_ident)"
     _rexists="$(psql -X -A -t -q -d "$CONTROL" -c "SELECT count(*) FROM pg_database WHERE datname = '${_RDB}';" 2>/dev/null | tr -d '[:space:]')"
     if [[ "$_rexists" != "0" ]]; then
       echo "FAIL(setup): refusing to run: ${_RDB} already exists on the --control cluster." >&2

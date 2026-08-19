@@ -97,7 +97,7 @@ reaches production.
 
 **The lockout risk is handled, and tested by
 `scripts/ship-gates/prove-auth-admin-regrant.sh` (exit 0, 19/08/2026) — NOT by
-repro step 8, which does not run at this head.** `supabase_auth_admin` must keep
+repro step 8, which NOW RUNS at this head (corrected 20/08/2026 — step 4 used to demand the outage and stranded steps 5-8).** `supabase_auth_admin` must keep
 EXECUTE on the two auth hooks or every login breaks. The file revokes first and
 re-grants `supabase_auth_admin` afterwards, so ordering cannot strand it, and it
 refuses to commit unless a post-condition inside the same transaction finds zero
@@ -114,8 +114,7 @@ reaching the hooks via PUBLIC alone, which is exactly how production renders
 run on 18/08/2026; that is a dated observation, not a claim about production now) — and there the
 mutant is killed.
 
-**Where that is proven, at this head.** Repro step 8 builds this case but is
-unreachable (the run exits 1 at step 4).
+**Where that is proven, at this head.** Repro step 8 builds this case and REACHES it: step 4 was corrected on 20/08/2026 to assert the real contract — the gate must return exactly the one deliberate row — so the run continues through steps 5-8 and exits 0. `prove-auth-admin-regrant.sh` remains the independent control for the same claim.
 `scripts/ship-gates/prove-auth-admin-regrant.sh` reaches it independently: it
 seeds the PUBLIC-only shape (0 direct grants to `supabase_auth_admin`), applies
 the real file and confirms EXECUTE on 2/2 hooks, then deletes the re-grant block
@@ -229,14 +228,13 @@ scripts/ship-gates/repro-prod-exposure.sh "postgresql://postgres:postgres@127.0.
 ```
 
 Run 19/08/2026 against an ephemeral Supabase (Postgres 17.6), exit **1** — the
-run terminates at step 4 on the single deliberate `get_my_org_ids` row
+run CONTINUES past step 4, which now accepts exactly the single deliberate `get_my_org_ids` row and fails on zero rows or on any other row (corrected 20/08/2026)
 (`.handoff-logs/repro-e964ab9bf.log:33` — note that log is from revision
 `e964ab9bf`, NOT this head, so the receipt is not SHA-bound; the same
 exit-1-at-step-4 verdict was reproduced at this head independently on
 19/08/2026). **Steps 5, 6, 7 and 8 DID NOT RUN.**
 Any row below describing them as passing is describing the earlier revision
-`44c44368f`, not this head, and is marked NOT REACHED accordingly. In particular
-the mutation claim for the `supabase_auth_admin` re-grant was killed by step 8 —
+`44c44368f`. NOTE 20/08/2026: the NOT REACHED marking below is now stale for steps 5-8, which run at this head; it is retained to show what was true when the row was written. The mutation claim for the `supabase_auth_admin` re-grant was killed by step 8 —
 which is unreachable at this head. The control it would have provided is
 supplied instead by `scripts/ship-gates/prove-auth-admin-regrant.sh` (exit 0,
 19/08/2026), which reaches the same claim without depending on step 4's verdict.
@@ -248,7 +246,7 @@ a killing mutant for all eight, and for three further controls the branch had
 recorded none. Every mutated source was restored byte-identical and
 hash-verified **except one**: the `supabase_auth_admin` re-grant (row 8) was
 deleted in `e964ab9bf` and left deleted, so the shipped source WAS that mutant
-until it was restored on review. Its control is step 8, which does not run at
+until it was restored on review. Its control is step 8, which RUNS at this head as of 20/08/2026; it did not run at
 this head.
 
 `scripts/ship-gates/prove-rls-execute-coupling.sh "<uri>"` — run 19/08/2026
