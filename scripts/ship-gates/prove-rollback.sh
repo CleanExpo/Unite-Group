@@ -43,16 +43,26 @@ done
 # Unique per run. An independent review (codex, 19/08/2026) pre-created a
 # database with the old fixed name, holding a sentinel table, and this gate
 # force-dropped it and exited 0. A gate must never destroy data it did not
-# create merely because a name matches a constant. The PID suffix makes a
-# collision practically impossible, and mkdb below REFUSES a name that is
-# already taken rather than dropping it.
-DB="ship_gate_rollback_$$"
-WRONG="ship_gate_rollback_wrong_$$"
+# create merely because a name matches a constant. Names now carry a random
+# suffix and mkdb REFUSES a name that is already taken rather than dropping it.
+#
+# THE REFUSAL USED TO TRIGGER THE DELETION. An earlier revision named both scratch
+# databases after the PID, had mkdb REFUSE a name that already existed, and hung an
+# UNCONDITIONAL drop_all on the EXIT trap. So on the very collision path advertised as
+# safe, mkdb called fail -> exit 1 -> the EXIT trap fired -> both names were
+# force-dropped, including the pre-existing database the gate had just declined to
+# touch. Found by an independent review (openrouter, 19/08/2026); the mechanism is
+# reproducible in five lines of bash. A cleanup must only ever drop what it REGISTERED,
+# and registration must happen after creation succeeds — never before.
 BASE="${ADMIN%/*}"
 WORK="$(mktemp -d)"
+DBS_FILE="$WORK/created-databases"
+: > "$DBS_FILE"
 drop_all() {
-  psql -X -q -d "$ADMIN" -c "DROP DATABASE IF EXISTS $DB (FORCE)" >/dev/null 2>&1 || true
-  psql -X -q -d "$ADMIN" -c "DROP DATABASE IF EXISTS $WRONG (FORCE)" >/dev/null 2>&1 || true
+  local _d
+  while IFS= read -r _d; do
+    [[ -n "$_d" ]] && psql -X -q -d "$ADMIN" -c "DROP DATABASE IF EXISTS \"$_d\" WITH (FORCE)" >/dev/null 2>&1
+  done < "$DBS_FILE"
   rm -rf "$WORK"
 }
 trap drop_all EXIT
@@ -60,14 +70,17 @@ trap drop_all EXIT
 fail() { echo "FAIL  prove-rollback: $*"; exit 1; }
 
 mkdb() {
-  # Refuse to touch a database that already exists — we did not create it.
+  # Refuse to touch a database that already exists — we did not create it. Nothing is
+  # registered for cleanup until CREATE has actually succeeded, so this refusal path
+  # cannot drop anything.
   local _exists
   _exists="$(psql -X -A -t -q -d "$ADMIN" -c "SELECT count(*) FROM pg_database WHERE datname='$1';" 2>/dev/null | tr -d '[:space:]')"
   if [[ "$_exists" != "0" ]]; then
-    fail "refusing to run: a database named $1 already exists. This gate only ever drops databases it created itself; it will not force-drop yours. Remove it deliberately, or re-run (the name carries this process's PID)."
+    fail "refusing to run: a database named $1 already exists. This gate only ever drops databases it created itself; it will not force-drop yours. Remove it deliberately, or re-run."
   fi
   psql -X -q -v ON_ERROR_STOP=1 -d "$ADMIN" -c "CREATE DATABASE $1" >/dev/null 2>&1 \
     || fail "could not create scratch database $1"
+  printf '%s\n' "$1" >> "$DBS_FILE"
 }
 
 rls_on() { # $1 = db -> how many of the two dated tables have RLS enabled
@@ -86,6 +99,7 @@ anon_definers() { # $1 = db
 }
 
 # ── seed the observed production exposure ────────────────────────────────────
+DB="ship_gate_rollback_$(od -An -tx1 -N6 /dev/urandom | tr -d ' \n')"
 mkdb "$DB"
 psql -X -q -v ON_ERROR_STOP=1 -d "$BASE/$DB" >"$WORK/seed.out" 2>&1 <<'SQL'
 DO $$ BEGIN
@@ -145,6 +159,7 @@ RLS_AFTER_DOWN="$(rls_on "$DB")"
   || fail "THE ROLLBACK DID NOT RESTORE THE RLS STATE: expected RLS OFF on both dated tables after it, got '${RLS_AFTER_DOWN}' of 2 still enabled. Board rows 4 and 5 are not reversible."
 
 # ── and it must REFUSE a database that is not the target ─────────────────────
+WRONG="ship_gate_rollback_wrong_$(od -An -tx1 -N6 /dev/urandom | tr -d ' \n')"
 mkdb "$WRONG"
 if psql -X -q -v ON_ERROR_STOP=1 -d "$BASE/$WRONG" -f "$DOWN" >"$WORK/wrong.out" 2>&1; then
   fail "the rollback COMMITTED against an empty database standing in for the wrong project. During an outage that is a silent no-op presented as successful recovery."
