@@ -91,16 +91,55 @@ CONTROL_VERDICT="NOT RUN"
 if [[ -n "$CONTROL" ]]; then
   # Unique per run — see the note in prove-rollback.sh. The old fixed name was
   # force-dropped by this gate even when it held unrelated data.
-  CDB="prod_exposure_selftest_$$"
+  # THE CONTROL DATABASE NAME MUST BE UNPREDICTABLE TOO. Randomising the seeded
+  # OBJECT names closed the `relname LIKE 'z%'` attack but not the one under it: an
+  # independent review (openrouter, 20/08/2026) pointed out that the control DATABASE
+  # was still `prod_exposure_selftest_<pid>`, so a prewritten mutant could keep every
+  # rule label AND its real class predicate and simply add
+  #     AND current_database() LIKE 'prod_exposure_selftest_%'
+  # Every randomly-named seeded object stays visible, both-instance checks pass, no
+  # cross-rule fire occurs — and the rule is blind everywhere else, including
+  # production. Keying on the environment defeats a control whose objects are random,
+  # so the environment must be random as well. Nothing in the control's naming is a
+  # constant now.
+  #
+  # RESIDUAL, STATED HONESTLY. A mutant author who can edit prod-exposure.sql can key
+  # on any property that distinguishes a control database from production — row counts,
+  # extension lists, the absence of particular tables. Randomising names raises the
+  # cost and removes every constant this script supplies; it does not make the class
+  # impossible. The remaining defence is the diff and the reviewer, which is the same
+  # residual every gate here carries and is stated rather than implied.
+  CDB="c$(od -An -tx1 -N6 /dev/urandom | tr -d ' \n')"
   CBASE="${CONTROL%/*}"
-  declare -a CONTROL_DBS=()
+  # The register is a FILE, and failures are ANNOUNCED. Written as an array with
+  # `|| true`, every DROP failure was suppressed and the array died with the shell,
+  # so a persistent connection or privilege error left all three control databases
+  # behind while the wrapper printed PASS and exited 0 — a silent leak in the gate
+  # that runs against PRODUCTION. Reported by an independent review (openrouter,
+  # 20/08/2026); the same class had already been fixed in four other gates, and this
+  # was the fifth. A file survives the subshell and the process; an array does not.
+  CONTROL_REG="$WORK/control-databases"
+  : > "$CONTROL_REG"
   cleanup_control() {
-    local _d
-    for _d in "${CONTROL_DBS[@]:-}"; do
-      [[ -n "$_d" ]] && psql -X -q -d "$CONTROL" -c "DROP DATABASE IF EXISTS $_d (FORCE)" >/dev/null 2>&1 || true
-    done
+    local _d _failed=0
+    [[ -f "$CONTROL_REG" ]] || return 0
+    while IFS= read -r _d; do
+      [[ -n "$_d" ]] || continue
+      if psql -X -q -d "$CONTROL" -c "DROP DATABASE IF EXISTS \"$_d\" WITH (FORCE)" >/dev/null 2>&1; then
+        continue
+      fi
+      echo "WARNING: could not drop control database ${_d} — it is LEAKED on the --control cluster." >&2
+      _failed=1
+    done < "$CONTROL_REG"
+    if [[ $_failed -eq 1 ]]; then
+      echo "WARNING: the register of control databases is kept at ${CONTROL_REG}." >&2
+      return 1
+    fi
+    : > "$CONTROL_REG"
+    return 0
   }
-  trap 'cleanup_control; rm -rf "$WORK"' EXIT
+  # cleanup_control's status must not be discarded by the rm that follows it.
+  trap 'cleanup_control || CONTROL_LEAKED=1; [[ ${CONTROL_LEAKED:-0} -eq 1 ]] || rm -rf "$WORK"' EXIT
 
   # ── the NON-PROD boundary must be CHECKED, not merely documented ───────────
   # An independent review (codex, 19/08/2026) passed the SAME admin URI as both
@@ -186,7 +225,7 @@ if [[ -n "$CONTROL" ]]; then
     _RDB="${CDB}_${_idx}"
     psql -X -q -v ON_ERROR_STOP=1 -d "$CONTROL" -c "CREATE DATABASE $_RDB" >/dev/null 2>&1 \
       || { echo "FAIL(setup): could not create control database $_RDB" >&2; exit 2; }
-    CONTROL_DBS+=("$_RDB")
+    printf '%s\n' "$_RDB" >> "$CONTROL_REG"
 
     # Two unpredictable names, generated independently so they share no prefix.
     _o1="$(_rand_ident)"
