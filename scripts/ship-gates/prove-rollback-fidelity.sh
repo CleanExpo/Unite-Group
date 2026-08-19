@@ -50,6 +50,12 @@
 #      the function branch fatal. A dropped recorded table must abort and be NAMED.
 #      Controlled by 10b, which restores the NOTICE and shows the rollback committing
 #      while consuming the receipt.
+#  11. ROLE IDENTITY, NOT ROLE NAME: the receipt records the role OID, and a recorded
+#      row whose role has been dropped and recreated under the same name must ABORT
+#      rather than grant the observed role's privilege to a new principal. Split into
+#      11a (the forward file really captures the live oid) and 11b (the rollback
+#      refuses a changed one); controlled by 11c, which removes the comparison and
+#      shows the same rollback committing.
 set -uo pipefail
 
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -626,6 +632,90 @@ if ! psql "$DB10M" -X -q -v ON_ERROR_STOP=1 -f "$MUT10" >/dev/null 2>"$WORK/c10m
   fail "MUTATION CONTROL FAILED: with the table branch back to a NOTICE, the rollback STILL refused the dropped-table database — so case 10 is not attributable to that branch. stderr: $(head -3 "$WORK/c10m.err")"
 fi
 echo "  case 10b table-notice control -> the mutant commits the same lost restoration (control is live)"
+
+# ── 11. A ROLE NAME IS NOT A ROLE IDENTITY ──────────────────────────────────
+# The rollback replays receipt rows by name. If a role is dropped and a different
+# role is created with the same name between apply and rollback, a name-resolved
+# GRANT hands the recorded privilege to a principal nobody observed. The file used
+# to carry a comment claiming that hazard was "announced on the operator's
+# terminal"; nothing was announced — the skip fired only when the name was ABSENT,
+# and a same-name replacement resolved and was granted in silence. Reported by an
+# independent review (openrouter, 20/08/2026). The forward file now records the
+# role OID and the rollback compares against it.
+#
+# SCOPE OF THIS CASE, STATED. The real drop-and-recreate is NOT exercised here:
+# anon/authenticated/supabase_auth_admin are CLUSTER-WIDE on the target this gate
+# runs against, and dropping one to stage the fixture would break the live local
+# Supabase stack. So the case is split in two, and the first half is what stops it
+# from being a fixture testing itself:
+#   (a) PRODUCER — after a real apply, every recorded role row carries the LIVE oid
+#       of that role. Without this, (b) could pass over a column that is always
+#       NULL or always garbage.
+#   (b) CONSUMER — with a recorded oid changed to a different live role's oid, the
+#       rollback must ABORT and name the role. 11b removes the comparison and shows
+#       the same rollback committing.
+DB11="$(newdb rbident)"
+seed_unexposed "$DB11"
+psql "$DB11" -X -q -v ON_ERROR_STOP=1 -f "$APPLY" >/dev/null 2>"$WORK/c11a.err" \
+  || fail "the forward migration did not commit against the case 11 fixture: $(head -3 "$WORK/c11a.err")"
+
+# (a) PRODUCER: recorded oids must equal the live oids, for every non-PUBLIC row.
+C11_ROWS="$(pg_scalar "$DB11" "SELECT count(*)::text FROM public.privileged_function_exposure_lock_receipt_20260819 WHERE object_kind='function' AND grantee <> ''")"
+[[ "$C11_ROWS" != "0" ]] \
+  || fail "the case 11 fixture is wrong: the receipt holds no role-granted function rows, so the identity capture could not be checked."
+C11_BAD="$(pg_scalar "$DB11" "SELECT count(*)::text FROM public.privileged_function_exposure_lock_receipt_20260819 r WHERE r.object_kind='function' AND r.grantee <> '' AND r.grantee_oid IS DISTINCT FROM (SELECT g.oid FROM pg_roles g WHERE g.rolname = r.grantee)")"
+[[ "$C11_BAD" == "0" ]] \
+  || fail "THE FORWARD FILE DID NOT CAPTURE ROLE IDENTITY: ${C11_BAD} of ${C11_ROWS} recorded role rows carry an oid that is not the live oid of that role. The rollback's identity check would then be comparing against nothing."
+C11_NULL="$(pg_scalar "$DB11" "SELECT count(*)::text FROM public.privileged_function_exposure_lock_receipt_20260819 WHERE object_kind='function' AND grantee <> '' AND grantee_oid IS NULL")"
+[[ "$C11_NULL" == "0" ]] \
+  || fail "THE FORWARD FILE RECORDED A NULL ROLE IDENTITY on ${C11_NULL} row(s); an always-NULL column would make the rollback's identity check vacuous."
+echo "  case 11a role identity captured -> ${C11_ROWS} recorded role row(s), all carrying the live oid"
+
+# (b) CONSUMER: the recorded principal is no longer the one the name resolves to.
+psql "$DB11" -X -q -v ON_ERROR_STOP=1 \
+  -c "UPDATE public.privileged_function_exposure_lock_receipt_20260819 SET grantee_oid = (SELECT oid FROM pg_roles WHERE rolname = 'postgres') WHERE object_kind='function' AND grantee = 'authenticated'" \
+  >/dev/null 2>"$WORK/c11u.err" \
+  || fail "could not stage the replaced-role fixture for case 11: $(head -3 "$WORK/c11u.err")"
+
+if psql "$DB11" -X -q -v ON_ERROR_STOP=1 -f "$DOWN" >/dev/null 2>"$WORK/c11r.err"; then
+  fail "THE ROLLBACK GRANTED TO AN UNOBSERVED PRINCIPAL: the role recorded in the receipt is not the role the name now resolves to, and the rollback replayed the recorded privilege onto it and committed — exactly the hazard the file claimed to announce."
+fi
+grep -q 'DROPPED and RECREATED' "$WORK/c11r.err" \
+  || fail "the rollback refused the replaced-role database, but NOT on the role-identity check. stderr: $(head -3 "$WORK/c11r.err")"
+grep -q 'authenticated' "$WORK/c11r.err" \
+  || fail "the role-identity check fired but did not NAME the role whose identity changed. stderr: $(head -3 "$WORK/c11r.err")"
+echo "  case 11b replaced role        -> refused, and the role is named"
+
+# ── 11c. MUTATION CONTROL for case 11 ───────────────────────────────────────
+MUT11="$WORK/down-name-only.sql"
+python3 - "$DOWN" "$MUT11" <<'PY_MUT11'
+import sys
+src, dst = sys.argv[1], sys.argv[2]
+s = open(src).read()
+anchor = "    IF _r.grantee <> '' THEN\n      SELECT r.oid INTO _live_oid"
+start = s.find(anchor)
+assert start != -1, "could not locate the role-identity check to mutate"
+end = s.find("      END IF;\n    END IF;\n", start)
+assert end != -1, "could not locate the end of the role-identity check"
+open(dst, 'w').write(s[:start] + s[end + len("      END IF;\n    END IF;\n"):])
+print("case 11 mutant built")
+PY_MUT11
+[[ -s "$MUT11" ]] || fail "case 11 mutation control could not be built"
+grep -q 'DROPPED and RECREATED' "$MUT11" \
+  && fail "case 11 mutation control is vacuous: the role-identity check is still present in the mutant."
+
+DB11M="$(newdb rbidentm)"
+seed_unexposed "$DB11M"
+psql "$DB11M" -X -q -v ON_ERROR_STOP=1 -f "$APPLY" >/dev/null 2>"$WORK/c11ma.err" \
+  || fail "the forward migration did not commit against the case 11 control fixture: $(head -3 "$WORK/c11ma.err")"
+psql "$DB11M" -X -q -v ON_ERROR_STOP=1 \
+  -c "UPDATE public.privileged_function_exposure_lock_receipt_20260819 SET grantee_oid = (SELECT oid FROM pg_roles WHERE rolname = 'postgres') WHERE object_kind='function' AND grantee = 'authenticated'" \
+  >/dev/null 2>&1 || fail "could not stage the replaced-role fixture for the case 11 control"
+
+if ! psql "$DB11M" -X -q -v ON_ERROR_STOP=1 -f "$MUT11" >/dev/null 2>"$WORK/c11m.err"; then
+  fail "MUTATION CONTROL FAILED: with the role-identity check removed, the rollback STILL refused the replaced-role database — so case 11 is not attributable to that check. stderr: $(head -3 "$WORK/c11m.err")"
+fi
+echo "  case 11c name-only control    -> the mutant grants to the replacement and commits (control is live)"
 
 echo "PASS  prove-rollback-fidelity"
 echo "  the rollback restores the pre-state the forward migration OBSERVED,"

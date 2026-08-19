@@ -53,6 +53,8 @@
 --     cannot put back (dropped function or role)   — prove-rollback-fidelity.sh case 9
 --   * refuses, and NAMES, a recorded TABLE it
 --     cannot put back — the same guard, swept       — prove-rollback-fidelity.sh case 10
+--   * compares role IDENTITY (oid), not role name,
+--     so a same-name replacement is refused         — prove-rollback-fidelity.sh case 11
 --
 -- STILL NOT TESTED, and it is F9's remaining scope: intermediate partial matches
 -- of two or three present functions, and identity beyond names and argument
@@ -62,7 +64,16 @@
 -- does not record it, so a function that gains or loses SECURITY DEFINER between
 -- apply and rollback is not detected — case 8 fixes only the post-condition's
 -- internal asymmetry, by applying the same definer predicate to both sides of the
--- equality. Treat recovery as proven for the cases above and unproven outside them.
+-- equality.
+--
+-- Role identity IS now compared, by oid (case 11) — but note precisely what that
+-- case exercises: the forward file is proven to capture the LIVE oid of every
+-- recorded role, and the rollback is proven to refuse a recorded oid that no longer
+-- matches. The literal DROP ROLE / CREATE ROLE sequence is NOT staged, because
+-- anon/authenticated/supabase_auth_admin are cluster-wide on the database this gate
+-- runs against and dropping one would break the live local stack.
+--
+-- Treat recovery as proven for the cases above and unproven outside them.
 --
 -- Use it only if the revoke is shown to have broken a caller that legitimately
 -- needed anon or authenticated EXECUTE. The correct follow-up is then a narrow
@@ -136,6 +147,7 @@ DECLARE
   -- Entries the receipt records as HELD that this rollback cannot put back.
   -- Counted, named, and fatal — see the guard at the end of this block.
   _unrestorable text[] := '{}';
+  _live_oid     oid;
 BEGIN
   IF to_regclass('public.privileged_function_exposure_lock_receipt_20260819') IS NULL THEN
     RAISE EXCEPTION
@@ -164,7 +176,7 @@ BEGIN
   --    A rollback that only adds is not a rollback; it is a second forward migration
   --    wearing the name.
   FOR _r IN
-    SELECT object_id, grantee, has_execute
+    SELECT object_id, grantee, grantee_oid, has_execute
     FROM public.privileged_function_exposure_lock_receipt_20260819
     WHERE object_kind = 'function'
   LOOP
@@ -190,12 +202,17 @@ BEGIN
     -- A role NAME is not a role IDENTITY. If a role present at apply time is dropped
     -- and a DIFFERENT role is created with the same name before the rollback runs, a
     -- name-resolved GRANT hands the old role's recorded privilege to a new principal.
-    -- Missing roles already fail closed (the lookup finds nothing); same-name
-    -- REPLACEMENT does not, because the name still resolves. Flagged by an independent
-    -- review (openrouter, 19/08/2026). Postgres has no stable cross-drop role
-    -- identifier to compare against, so this is announced rather than silently
-    -- resolved: a rollback that may be granting to a different principal than the one
-    -- observed must say so on the operator's terminal.
+    --
+    --    WHAT WAS WRONG, and it was wrong in the comment as much as in the code. This
+    --    block used to claim Postgres "has no stable cross-drop role identifier", so
+    --    the hazard was "announced rather than silently resolved … on the operator's
+    --    terminal". Nothing was announced. The only skip fired when the name was
+    --    ABSENT; a same-name REPLACEMENT resolves, so it took the GRANT branch and
+    --    committed in silence — the file asserted a safeguard it did not implement, in
+    --    a break-glass procedure. Reported by an independent review (openrouter,
+    --    20/08/2026). Postgres does keep a stable identifier: the role OID, which a
+    --    drop-and-recreate does not preserve. The forward file now records it, and the
+    --    comparison below is against that, not against the name.
     IF _r.grantee <> '' AND NOT EXISTS (
          SELECT 1 FROM pg_roles r WHERE r.rolname = _r.grantee) THEN
       IF _r.has_execute THEN
@@ -205,6 +222,26 @@ BEGIN
         RAISE NOTICE 'rollback: role % from the receipt no longer exists — it held NO privilege on %, so there is nothing to take back; skipped', _r.grantee, _r.object_id;
       END IF;
       CONTINUE;
+    END IF;
+
+    -- IDENTITY, NOT NAME. Fatal in BOTH directions, and deliberately so: a recorded
+    -- GRANT would hand the observed role's privilege to a principal nobody observed,
+    -- and a recorded REVOKE would strip a privilege from that same unobserved
+    -- principal. Neither is the state this receipt describes.
+    IF _r.grantee <> '' THEN
+      SELECT r.oid INTO _live_oid FROM pg_roles r WHERE r.rolname = _r.grantee;
+      IF _r.grantee_oid IS NULL THEN
+        -- Captured by an EARLIER revision that recorded no OID, so identity cannot be
+        -- checked at all. Refusing is the honest reading: this rollback cannot tell
+        -- whether the role it is about to touch is the one that was observed.
+        _unrestorable := _unrestorable || format('%s (recorded for role %s by an earlier revision that did not capture the role identity; it cannot be verified)',
+                                                 _r.object_id, _r.grantee);
+        CONTINUE;
+      ELSIF _live_oid <> _r.grantee_oid THEN
+        _unrestorable := _unrestorable || format('%s (role %s was DROPPED and RECREATED since the lock — recorded identity %s, current %s; the recorded privilege belongs to a principal that no longer exists)',
+                                                 _r.object_id, _r.grantee, _r.grantee_oid, _live_oid);
+        CONTINUE;
+      END IF;
     END IF;
     IF _r.has_execute THEN
       IF _r.grantee = '' THEN

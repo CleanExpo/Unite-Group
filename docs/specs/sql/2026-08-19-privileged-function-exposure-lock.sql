@@ -154,9 +154,26 @@ CREATE TABLE IF NOT EXISTS public.privileged_function_exposure_lock_receipt_2026
   object_kind text        NOT NULL CHECK (object_kind IN ('function', 'table')),
   object_id   text        NOT NULL,
   grantee     text,
+  -- A ROLE NAME IS NOT A ROLE IDENTITY. The rollback replays these rows by NAME,
+  -- so if a role is dropped and a different role is created with the same name
+  -- between apply and rollback, a name-resolved GRANT hands the recorded privilege
+  -- to a principal nobody observed. The rollback used to carry a comment saying
+  -- that hazard was "announced on the operator's terminal" — it was not: the skip
+  -- fired only when the name was ABSENT, and a same-name replacement resolved and
+  -- was granted silently. Reported by an independent review (openrouter,
+  -- 20/08/2026). The OID is the identity Postgres actually keeps, so it is
+  -- captured here and compared there.
+  grantee_oid oid,
   has_execute boolean,
   rls_enabled boolean
 );
+
+-- A receipt table created by an EARLIER revision of this file has no grantee_oid
+-- column, and `CREATE TABLE IF NOT EXISTS` above would leave it that way — the
+-- INSERT below would then fail mid-migration. Added explicitly so the pair stays
+-- applicable to a database that already carries the older table.
+ALTER TABLE public.privileged_function_exposure_lock_receipt_20260819
+  ADD COLUMN IF NOT EXISTS grantee_oid oid;
 
 --    This table is created in `public`, which is precisely the surface this file
 --    exists to lock. Items 4 and 5 on the ship board ARE two RLS-disabled tables
@@ -213,10 +230,12 @@ BEGIN
   --    function carries the built-in default, which grants EXECUTE to PUBLIC and
   --    to nobody else directly.
   INSERT INTO public.privileged_function_exposure_lock_receipt_20260819
-    (object_kind, object_id, grantee, has_execute)
+    (object_kind, object_id, grantee, grantee_oid, has_execute)
   SELECT 'function',
          p.oid::regprocedure::text,
          g.grantee,
+         -- NULL for PUBLIC, which is not a role and has no identity to confuse.
+         (SELECT r3.oid FROM pg_roles r3 WHERE r3.rolname = g.grantee),
          CASE
            WHEN g.grantee = '' THEN
              p.proacl IS NULL
