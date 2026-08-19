@@ -76,6 +76,9 @@ cleanup() {
       _failed=1
     fi
   done < "$DBS_FILE"
+  # ROLES LAST (after every database is gone, or DROP ROLE fails on dependent grants)
+  # but BEFORE the verdict test, or a leaked role sets a flag nobody reads.
+  pg_drop_seeded_roles "$ADMIN" || _failed=1
   if [[ $_failed -eq 1 ]]; then
     echo "WARNING: the list of databases this run created is kept at ${DBS_FILE} for retry; $WORK was NOT removed." >&2
     return 1
@@ -83,7 +86,6 @@ cleanup() {
   # ROLES LAST. Dropping a role while it still holds grants in an existing database
   # fails ("objects depend on it"), so this must come AFTER every scratch database is
   # gone. A first attempt ran it first and the roles leaked silently on a clean cluster.
-  pg_drop_seeded_roles "$ADMIN" || true
   rm -rf "$WORK"
 }
 # AN EXIT TRAP THAT RETURNS DOES NOT CHANGE THE EXIT STATUS. bash keeps the status that

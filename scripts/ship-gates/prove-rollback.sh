@@ -75,14 +75,18 @@ drop_all() {
       _failed=1
     fi
   done < "$DBS_FILE"
+  # ROLES LAST, but BEFORE the verdict. Dropping a role while it still holds grants in
+  # an existing database fails ("objects depend on it"), so it must come AFTER every
+  # scratch database is gone — and BEFORE the `_failed` test, or its result cannot
+  # reach the exit status. An earlier arrangement had the test first and the role drop
+  # after it, so a leaked role set a flag nobody read.
+  # NOT `|| true`: the helper reports a leaked role and that failure must be the exit
+  # status, or the warning is the only thing that changed.
+  pg_drop_seeded_roles "$ADMIN" || _failed=1
   if [[ $_failed -eq 1 ]]; then
     echo "WARNING: the register of databases this run created is kept at ${DBS_FILE}; ${WORK} was NOT removed." >&2
     return 1
   fi
-  # ROLES LAST. Dropping a role while it still holds grants in an existing database
-  # fails ("objects depend on it"), so this must come AFTER every scratch database is
-  # gone. A first attempt ran it first and the roles leaked silently on a clean cluster.
-  pg_drop_seeded_roles "$ADMIN" || true
   rm -rf "$WORK"
 }
 # CLASS SWEEP, 20/08/2026. An EXIT trap that RETURNS non-zero does NOT change the

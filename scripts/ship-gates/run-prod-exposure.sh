@@ -35,6 +35,8 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/pgprobe.sh
+. "$HERE/lib/pgprobe.sh"
 GATE="$HERE/prod-exposure.sql"
 
 CONN=""
@@ -131,6 +133,8 @@ if [[ -n "$CONTROL" ]]; then
       echo "WARNING: could not drop control database ${_d} — it is LEAKED on the --control cluster." >&2
       _failed=1
     done < "$CONTROL_REG"
+    # Roles LAST: a role holding grants in a live database cannot be dropped.
+    pg_drop_seeded_roles "$CONTROL" || _failed=1
     if [[ $_failed -eq 1 ]]; then
       echo "WARNING: the register of control databases is kept at ${CONTROL_REG}." >&2
       return 1
@@ -343,11 +347,15 @@ if [[ -n "$CONTROL" ]]; then
         ;;
     esac
 
+    # Roles go through the shared helper so ONLY what this process creates is dropped.
+    # An inline `IF NOT EXISTS ... CREATE ROLE` here left anon and authenticated behind
+    # permanently on a vanilla control cluster — the same class swept from four other
+    # gates, still live in the wrapper that runs against PRODUCTION. Found by an
+    # independent review (openrouter, 20/08/2026) after the previous sweep missed this
+    # file.
+    pg_seed_roles "$CONTROL" anon authenticated \
+      || { echo "FAIL(setup): could not ensure anon/authenticated on the --control cluster" >&2; exit 2; }
     psql -X -q -v ON_ERROR_STOP=1 -d "$CBASE/$_RDB" >"$WORK/seed.out" 2>&1 <<SQL
-DO \$\$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN CREATE ROLE anon NOLOGIN; END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN CREATE ROLE authenticated NOLOGIN; END IF;
-END \$\$;
 ${_SEED}
 SQL
     [[ $? -eq 0 ]] || { echo "FAIL(setup): could not seed the control for '${_rule}'. psql said:" >&2; head -5 "$WORK/seed.out" >&2; exit 2; }

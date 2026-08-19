@@ -183,7 +183,18 @@ DELIBERATE='authenticated_executable_security_definer|get_my_org_ids'
 # the producer's formatting.
 ROWLINES="$(sed 's/^[[:space:]]*//' "$GATE4_DIR/out" | grep -E '^[a-z_]+\|' || true)"
 ROWS="$(printf '%s' "$ROWLINES" | grep -c . || true)"
-OTHER="$(printf '%s\n' "$ROWLINES" | grep -vF "$DELIBERATE" | grep -E '^[a-z_]+\|' || true)"
+# EXACT FIELDS, not a substring. `grep -vF "$DELIBERATE"` treats ANY row CONTAINING the
+# deliberate string as deliberate, so a row naming a different object whose name merely
+# contains `get_my_org_ids` — say `get_my_org_ids_admin` — was silently accepted as the
+# expected one, and the later `grep -qF` had the same hole. Reported by an independent
+# review (openrouter, 20/08/2026). The gate emits `rule|object|acl`, so rule and object
+# are compared as WHOLE FIELDS via awk.
+DELIB_RULE="${DELIBERATE%%|*}"
+DELIB_OBJ="${DELIBERATE##*|}"
+OTHER="$(printf '%s\n' "$ROWLINES" | awk -F'|' -v r="$DELIB_RULE" -v o="$DELIB_OBJ" \
+           'NF>=2 && !($1==r && $2==o)' || true)"
+DELIB_SEEN="$(printf '%s\n' "$ROWLINES" | awk -F'|' -v r="$DELIB_RULE" -v o="$DELIB_OBJ" \
+           'NF>=2 && $1==r && $2==o' | grep -c . || true)"
 
 if [[ $GREEN_RC -eq 0 ]]; then
   fail "the gate returned ZERO rows after the fix. That is only reachable by revoking \`authenticated\` EXECUTE on get_my_org_ids, which TAKES PRODUCTION DOWN. Do not drive this gate to exit 0."
@@ -191,8 +202,8 @@ fi
 if [[ -n "$OTHER" ]]; then
   fail "the gate returned a row that is NOT the deliberate retention — a real exposure survived the fix: $(echo "$OTHER" | head -3)"
 fi
-grep -qF "$DELIBERATE" "$GATE4_DIR/out" \
-  || fail "the gate exited ${GREEN_RC} but did not report the deliberate authenticated/get_my_org_ids row, so it failed for some other reason: $(head -3 "$GATE4_DIR/err")"
+[[ "$DELIB_SEEN" == "1" ]] \
+  || fail "the gate exited ${GREEN_RC} but reported the deliberate rule/object pair ${DELIB_RULE}|${DELIB_OBJ} exactly ${DELIB_SEEN} time(s), not once. A near-miss object name is not the deliberate row. stderr: $(head -3 "$GATE4_DIR/err")"
 # EXACTLY one. Counting closes the last gap: a run could name the deliberate row AND
 # carry others, and the OTHER check above is the guard for that — this asserts the
 # count independently so a formatting change cannot silently disarm both at once.
