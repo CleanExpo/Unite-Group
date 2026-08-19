@@ -77,10 +77,25 @@ command -v psql >/dev/null 2>&1 || { echo "cannot run: psql not on PATH" >&2; ex
 
 WORK="$(mktemp -d)"
 cleanup() {
-  pg_drop_disposable_db "$ADMIN"
-  rm -rf "$WORK"
+  local _rc=0
+  pg_drop_disposable_db "$ADMIN" || _rc=1
+  [[ $_rc -eq 0 ]] && rm -rf "$WORK"
+  return $_rc
 }
-trap cleanup EXIT
+# CLASS SWEEP, 20/08/2026. An EXIT trap that RETURNS non-zero does NOT change the
+# process exit status — bash restores the status that triggered the trap unless the
+# handler exits explicitly. Fixed in two gates two rounds ago and left in three, which
+# is this branch's signature defect committed while fixing an instance of it. An
+# independent review found all three.
+_on_exit() {
+  local _rc=$?
+  if ! cleanup; then
+    echo "FAIL(cleanup): prove-rls-execute-coupling left scratch state behind; refusing to report a clean run." >&2
+    [[ $_rc -eq 0 ]] && _rc=2
+  fi
+  exit "$_rc"
+}
+trap _on_exit EXIT
 
 fail() {
   echo "FAIL  prove-rls-execute-coupling: $1"
@@ -103,11 +118,19 @@ ROLE="rlsproof_auth_${CREATED_DB##*_}"
 pg_exec "$DB" "$WORK/err" "CREATE ROLE ${ROLE} NOLOGIN" \
   || fail "setup failed: could not create role ${ROLE}"
 # Dropping the disposable database does not drop a cluster-wide role.
+# The role is CLUSTER-WIDE, so dropping the database does not remove it — and an
+# earlier revision suppressed every failure here with `|| true`, so a leaked role or
+# database was invisible. Failures are now collected and reported; _on_exit re-raises.
 cleanup() {
+  local _rc=0
   psql "$DB" -X -q -c "DROP OWNED BY ${ROLE}" >/dev/null 2>&1 || true
-  pg_drop_disposable_db "$ADMIN"
-  psql "$ADMIN" -X -q -c "DROP ROLE IF EXISTS ${ROLE}" >/dev/null 2>&1 || true
-  rm -rf "$WORK"
+  pg_drop_disposable_db "$ADMIN" || _rc=1
+  if ! psql "$ADMIN" -X -q -c "DROP ROLE IF EXISTS ${ROLE}" >/dev/null 2>&1; then
+    echo "WARNING: could not drop cluster-wide role ${ROLE} — it is LEAKED." >&2
+    _rc=1
+  fi
+  [[ $_rc -eq 0 ]] && rm -rf "$WORK"
+  return $_rc
 }
 
 pg_exec "$DB" "$WORK/err" "GRANT ${ROLE} TO current_user" \

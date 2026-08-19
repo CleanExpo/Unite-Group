@@ -79,7 +79,22 @@ drop_all() {
   fi
   rm -rf "$WORK"
 }
-trap drop_all EXIT
+# CLASS SWEEP, 20/08/2026. An EXIT trap that RETURNS non-zero does NOT change the
+# process exit status — bash restores the status that triggered the trap unless the
+# handler exits explicitly. Two rounds ago I fixed this in two gates and left it in
+# three, which is this branch's signature defect (patch the cited file, skip the class)
+# committed while fixing an instance of it. An independent review found all three.
+# Every cleanup handler in scripts/ship-gates now saves $?, runs its cleanup, and
+# re-raises as 2 when a scratch database was left behind.
+_on_exit() {
+  local _rc=$?
+  if ! drop_all; then
+    echo "FAIL(cleanup): prove-rollback left scratch state behind; refusing to report a clean run." >&2
+    [[ $_rc -eq 0 ]] && _rc=2
+  fi
+  exit "$_rc"
+}
+trap _on_exit EXIT
 
 fail() { echo "FAIL  prove-rollback: $*"; exit 1; }
 

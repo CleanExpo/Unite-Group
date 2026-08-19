@@ -277,9 +277,21 @@ if [[ -n "$CONTROL" ]]; then
     _a="${_TARGET_NAMES[$_n]}"
     _n=$(( $(od -An -tu2 -N2 /dev/urandom | tr -d ' \n') % ${#_TARGET_NAMES[@]} ))
     _b="${_TARGET_NAMES[$_n]}"
-    # Two real names joined: the result is indistinguishable in shape from either.
-    # Truncated to Postgres' 63-byte identifier limit.
-    printf '%.63s' "${_a}_${_b}"
+    # TWO REMAINING SCRIPT-SUPPLIED CONSTANTS, both found by review (openrouter,
+    # 20/08/2026), both closed here:
+    #   * the JOIN was always an underscore, so every control name contained one;
+    #   * names longer than the limit were truncated to EXACTLY 63 characters, which
+    #     is itself a prewritable predicate (`length(relname) = 63`).
+    # The join is now sampled from the target's own naming — some real identifiers
+    # contain underscores and some do not, so the control follows whatever the target
+    # does — and the length is capped at a random value below the limit so no single
+    # length is characteristic.
+    local _join="" _cap
+    if [[ "${_a}${_b}" == *_* ]] || (( $(od -An -tu1 -N1 /dev/urandom | tr -d ' \n') % 2 )); then
+      _join="_"
+    fi
+    _cap=$(( 24 + $(od -An -tu1 -N1 /dev/urandom | tr -d ' \n') % 38 ))   # 24..61
+    printf '%.*s' "$_cap" "${_a}${_join}${_b}"
   }
 
   _idx=0
