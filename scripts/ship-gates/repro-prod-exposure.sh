@@ -26,8 +26,10 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$HERE/../.." && pwd)"
 FIX="$REPO/docs/specs/sql/2026-08-19-privileged-function-exposure-lock.sql"
 ROLLBACK="$REPO/docs/specs/sql/2026-08-19-privileged-function-exposure-lock.down.sql"
-# The run exits 1 at step 4 by design, so a trailing cleanup statement is never
-# reached and the scratch database would survive the run. An EXIT trap makes the
+# CORRECTED 20/08/2026: this used to say the run exits 1 at step 4 by design. It does
+# not — step 4 now asserts the real contract (exactly the one deliberate row) and the
+# run continues to REPRO PASS, exit 0. The EXIT trap below is still required, because a
+# FAILING run can stop anywhere and a trailing cleanup statement would not be reached. An EXIT trap makes the
 # "builds and drops its own scratch database" contract true on every path.
 #
 # NO FIXED SCRATCH NAME. This gate used to force-drop `ship_gate_repro` before it had

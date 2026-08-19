@@ -4,9 +4,12 @@
 # — not merely present.
 #
 # WHY THIS EXISTS SEPARATELY. repro-prod-exposure.sh makes the same claim at its
-# step 8, but the repro exits 1 at step 4 on the deliberate get_my_org_ids row, so
-# steps 5-8 never run. The claim was therefore documented as proven while its only
-# control was unreachable — and the re-grant was in fact deleted in e964ab9bf and
+# step 8. HISTORY, corrected 20/08/2026: the repro USED to exit 1 at step 4 on the
+# deliberate get_my_org_ids row, so steps 5-8 never ran and the claim was documented as
+# proven while its only control was unreachable. Step 4 now asserts the real contract
+# (exactly the one deliberate row) and the repro runs end to end, so step 8 DOES reach
+# this claim. This gate remains valuable as an INDEPENDENT control that does not depend
+# on the repro at all. The re-grant was in fact deleted in e964ab9bf and
 # shipped that way until an independent review caught it. This gate reaches the
 # claim without depending on step 4's verdict.
 #
@@ -52,14 +55,26 @@ HERE_LIB="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 . "$HERE_LIB/lib/pgprobe.sh"
 
 WORK="$(mktemp -d)"
+DBS_FILE="$WORK/created-databases"
+: > "$DBS_FILE"
 # The helper's failure status must SURVIVE. Written as a one-liner, `rm -rf` ran last
 # and became the function's status, so a failed DROP was invisible: the gate printed
 # PASS, exited 0, and the process-local registration vanished with the shell — a leak
 # the helper's own fail-visible design was supposed to make impossible. Reported by an
 # independent review (openrouter, 20/08/2026). $WORK is also preserved on failure so
 # there is something left to act on.
+# EVERY disposable database this run creates is registered, because seed() now asks for
+# a FRESH one each time. pg_drop_disposable_db only ever knows about the most recent,
+# so relying on it alone would leak every earlier seed.
 cleanup() {
-  local _rc=0
+  local _rc=0 _d
+  if [[ -n "${DBS_FILE:-}" && -f "$DBS_FILE" ]]; then
+    while IFS= read -r _d; do
+      [[ -n "$_d" ]] || continue
+      psql "$ADMIN" -X -q -c "DROP DATABASE IF EXISTS \"$_d\" WITH (FORCE)" >/dev/null 2>&1 \
+        || { echo "WARNING: could not drop scratch database ${_d} — it is LEAKED." >&2; _rc=1; }
+    done < "$DBS_FILE"
+  fi
   pg_drop_disposable_db "$ADMIN" || _rc=1
   if [[ $_rc -eq 0 ]]; then
     # ROLES LAST. Dropping a role while it still holds grants in an existing database
@@ -92,6 +107,7 @@ trap _on_exit EXIT
 pg_make_disposable_db "$ADMIN" "ship_gate_regrant" || exit 2
 DB="$DISPOSABLE_DB"
 SCRATCH="$DISPOSABLE_URI"
+printf '%s\n' "$DB" >> "$DBS_FILE"
 
 fail() { echo "FAIL  prove-auth-admin-regrant: $*"; exit 1; }
 
@@ -106,11 +122,19 @@ pg_seed_roles "$ADMIN" anon authenticated supabase_auth_admin \
 
 # ── seed: the PUBLIC-only shape, with NO direct grant to supabase_auth_admin ──
 seed() {
-  # The database was created above by pg_make_disposable_db, which refused to touch a
-  # pre-existing name. Re-seeding drops only what THIS process created.
-  psql -X -q -v ON_ERROR_STOP=1 -d "$ADMIN" -c "DROP DATABASE IF EXISTS $DB WITH (FORCE)" >/dev/null 2>&1
-  psql -X -q -v ON_ERROR_STOP=1 -d "$ADMIN" -c "CREATE DATABASE $DB" >/dev/null 2>&1 \
-    || fail "could not create scratch database $DB"
+  # A FRESH DISPOSABLE DATABASE PER SEED, never a drop-and-recreate of the same name.
+  # This used to DROP $DB and CREATE it again while the old name stayed registered for
+  # cleanup. Between the DROP and the CREATE the name is unowned, so another cluster
+  # user could take it: this gate's CREATE would then fail, fail() would exit, and the
+  # EXIT trap would force-drop a database belonging to someone else — the exact
+  # "never destroy what you did not create" guarantee this file claims, lost in the
+  # reseed. Reported by an independent review (openrouter, 20/08/2026). Asking for a new
+  # random name each time removes the window entirely; both databases are registered and
+  # both are dropped at the end.
+  pg_make_disposable_db "$ADMIN" "ship_gate_regrant" || exit 2
+  DB="$DISPOSABLE_DB"
+  SCRATCH="$DISPOSABLE_URI"
+  printf '%s\n' "$DB" >> "$DBS_FILE"
   psql -X -q -v ON_ERROR_STOP=1 -d "$SCRATCH" >"$WORK/seed.out" 2>&1 <<'SQL'
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN CREATE ROLE anon NOLOGIN; END IF;

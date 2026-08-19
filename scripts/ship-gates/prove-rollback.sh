@@ -3,7 +3,8 @@
 #
 # WHY THIS EXISTS. The constitution requires a production change to have a TESTED
 # rollback before it may be applied. The rollback's only test was
-# repro-prod-exposure.sh step 7, which never runs — the repro exits 1 at step 4 on
+# repro-prod-exposure.sh step 7. HISTORY, corrected 20/08/2026: step 7 never ran,
+# because the repro exited 1 at step 4 on
 # the deliberate get_my_org_ids row — so the precondition was NOT met and F9 said
 # so. This gate reaches the test without depending on step 4's verdict.
 #
