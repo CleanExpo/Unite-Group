@@ -2,12 +2,12 @@
   "_readme": [
     "Ready-to-apply permission allowlist. Reduces prompts for SAFE operations only.",
     "",
-    "HOW TO APPLY (per machine — settings files are gitignored and do NOT propagate):",
+    "HOW TO APPLY (per machine \u2014 settings files are gitignored and do NOT propagate):",
     "  Merge the permissions.allow array below into ~/.claude/settings.json",
     "  (all projects on that machine) or into a project .claude/settings.local.json.",
     "  Append to the existing allow array; do not replace it.",
     "",
-    "WHAT IS DELIBERATELY NOT HERE — leave these in your `ask` list, they are the",
+    "WHAT IS DELIBERATELY NOT HERE \u2014 leave these in your `ask` list, they are the",
     "gates that stop an agent taking production down:",
     "  git push / git reset --hard / rm -rf",
     "  gh pr create|merge|ready, gh api POST|PUT|PATCH|DELETE",
@@ -16,15 +16,24 @@
     "",
     "Generated 19/08/2026 from the operations that actually caused prompts in a long",
     "autonomous session. Read-only inspection, local-only git, the build/test loop,",
-    "and sibling reviewer CLIs — nothing that mutates production or pushes code.",
+    "and sibling reviewer CLIs \u2014 nothing that mutates production or pushes code.",
     "",
     "REMOVED 19/08/2026: Bash(psql:*). An independent review (openrouter) found it",
     "contradicted the line above: the permission language matches a command PREFIX and",
     "cannot see the connection URI, so a blanket psql grant authorises arbitrary DDL and",
-    "DML against ANY database the machine can reach — including the production project",
+    "DML against ANY database the machine can reach \u2014 including the production project",
     "this very branch exists to stop an agent mutating. The ship-gates will now prompt",
     "for psql, which is the correct default. Re-add only as a narrower rule that cannot",
-    "reach production, and never as psql:*."
+    "reach production, and never as psql:*.",
+    "",
+    "REMOVED 20/08/2026, same round, same class: Bash(scripts/:*), Bash(./scripts/:*)",
+    "and Bash(bash scripts/:*). A blanket grant over a DIRECTORY authorises every",
+    "executable in it with arbitrary arguments - and this repo's ship-gate scripts",
+    "take an admin connection URI and issue CREATE DATABASE, DROP DATABASE and DDL.",
+    "Pointing one at a production URI therefore mutated production with no prompt, by",
+    "a path that never mentions psql. Removing the psql rule alone did not restore the",
+    "boundary this file claims. Grant individual scripts that cannot reach production,",
+    "never a directory."
   ],
   "permissions": {
     "allow": [
@@ -182,10 +191,7 @@
       "Bash(codex login:*)",
       "Bash(codex logout:*)",
       "Bash(claude -p:*)",
-      "Bash(gemini:*)",
-      "Bash(./scripts/:*)",
-      "Bash(scripts/:*)",
-      "Bash(bash scripts/:*)"
+      "Bash(gemini:*)"
     ]
   }
 }

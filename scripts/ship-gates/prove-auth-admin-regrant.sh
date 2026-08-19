@@ -52,7 +52,22 @@ HERE_LIB="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 . "$HERE_LIB/lib/pgprobe.sh"
 
 WORK="$(mktemp -d)"
-cleanup() { pg_drop_disposable_db "$ADMIN"; rm -rf "$WORK"; }
+# The helper's failure status must SURVIVE. Written as a one-liner, `rm -rf` ran last
+# and became the function's status, so a failed DROP was invisible: the gate printed
+# PASS, exited 0, and the process-local registration vanished with the shell — a leak
+# the helper's own fail-visible design was supposed to make impossible. Reported by an
+# independent review (openrouter, 20/08/2026). $WORK is also preserved on failure so
+# there is something left to act on.
+cleanup() {
+  local _rc=0
+  pg_drop_disposable_db "$ADMIN" || _rc=1
+  if [[ $_rc -eq 0 ]]; then
+    rm -rf "$WORK"
+  else
+    echo "WARNING: scratch database was NOT dropped; ${WORK} kept for retry." >&2
+  fi
+  return $_rc
+}
 trap cleanup EXIT
 
 pg_make_disposable_db "$ADMIN" "ship_gate_regrant" || exit 2

@@ -152,7 +152,8 @@ if [[ -n "$CONTROL" ]]; then
   # ROUND 3, here. Two changes, and the first is the load-bearing one:
   #
   #   1. THE CONTROL OBJECTS ARE UNPREDICTABLE. Their names are random per run
-  #      with NO fixed prefix, so there is no literal and no LIKE pattern a mutant
+  #      with NO constant anywhere in them — not even the leading letter, which is
+  #      itself drawn at random — so there is no literal and no LIKE pattern a mutant
   #      author can write in advance that matches them. To detect a name it cannot
   #      predict, a predicate has to be general — which is the property under test.
   #
@@ -163,7 +164,19 @@ if [[ -n "$CONTROL" ]]; then
   #
   # Together: a narrowing attack must guess two random names, and a general
   # predicate passes because it is correct.
-  _rand() { od -An -tx1 -N5 /dev/urandom | tr -d ' \n'; }
+  # A Postgres identifier must begin with a letter or underscore, so the first
+  # character cannot be hex — and an earlier revision therefore hard-coded it as `z`
+  # for one object and `q` for the other. That reintroduced exactly the property this
+  # control exists to remove: a prewritten mutant could add `relname LIKE 'z%' OR
+  # relname LIKE 'q%'` and be narrowed to the control's objects again, while the
+  # comment above claimed the names had no fixed prefix. Caught by an independent
+  # review (openrouter, 20/08/2026). The leading letter is now drawn at random too, so
+  # there is no constant anywhere in the name.
+  _rand_ident() {
+    local _letters=abcdefghijklmnopqrstuvwxyz _i
+    _i=$(( $(od -An -tu1 -N1 /dev/urandom | tr -d ' \n') % 26 ))
+    printf '%s%s' "${_letters:$_i:1}" "$(od -An -tx1 -N5 /dev/urandom | tr -d ' \n')"
+  }
 
   _idx=0
   MISSING=()
@@ -176,8 +189,11 @@ if [[ -n "$CONTROL" ]]; then
     CONTROL_DBS+=("$_RDB")
 
     # Two unpredictable names, generated independently so they share no prefix.
-    _o1="z$(_rand)"
-    _o2="q$(_rand)"
+    _o1="$(_rand_ident)"
+    _o2="$(_rand_ident)"
+    # Two draws can share a leading letter; harmless (the hex bodies differ) but they
+    # must never be the SAME identifier, or "found both" degenerates into "found one".
+    while [[ "$_o1" == "$_o2" ]]; do _o2="$(_rand_ident)"; done
 
     case "$_rule" in
       rls_disabled_in_public)
