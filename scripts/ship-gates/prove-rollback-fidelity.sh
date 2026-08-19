@@ -56,6 +56,16 @@
 #      11a (the forward file really captures the live oid) and 11b (the rollback
 #      refuses a changed one); controlled by 11c, which removes the comparison and
 #      shows the same rollback committing.
+#  12. AN OBJECT, NOT A SEARCH_PATH LOOKUP: `regprocedure::text` drops the schema when
+#      the schema is visible, so a recorded identity meant whatever a later session's
+#      search_path said it meant, and the restore loop would mutate a same-signature
+#      function in another schema while every other guard still passed. Split three
+#      ways: 12a (the forward file records schema-qualified identities), 12b (a
+#      recorded identity resolving outside public is refused AND the object it points
+#      at is left untouched), 12c (the transaction's pinned search_path makes an
+#      UNqualified identity — the form earlier revisions wrote — still resolve to
+#      public even when the database prefers another schema). Controlled by 12d, which
+#      removes the namespace check and shows the mutant granting on the decoy.
 set -uo pipefail
 
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -464,10 +474,16 @@ legacy = """  SELECT count(DISTINCT object_id) INTO _expected
   WHERE object_kind = 'function'
     AND has_execute
     AND grantee IN ('anon', '')
-    AND object_id LIKE ANY (ARRAY['custom_access_token_hook%', 'before_user_created_hook%', 'prune_integration_history%'])"""
+    AND object_id LIKE ANY (ARRAY['public.custom_access_token_hook%', 'public.before_user_created_hook%', 'public.prune_integration_history%'])"""
 open(dst, 'w').write(s[:start] + legacy + s[end:])
 print("case 8 mutant built")
 PY_MUT8
+# THE MUTANT MUST EXPRESS THE DEFECT, NOT MISS THE ROWS. The receipt now records
+# SCHEMA-QUALIFIED identities, so the historical bare-name prefixes (`prune_...%`)
+# match nothing at all and the mutant committed for the wrong reason — a control that
+# cannot express the defect cannot demonstrate the fix, the same lesson case 3's
+# comment records. The prefixes here are the qualified form: still unanchored, still
+# with no SECURITY DEFINER test, which is the defect under test.
 [[ -s "$MUT8" ]] || fail "case 8 mutation control could not be built"
 grep -q 'to_regprocedure(r.object_id)' "$MUT8" \
   && fail "case 8 mutation control is vacuous: the identity-resolved expected query is still present in the mutant."
@@ -601,17 +617,15 @@ python3 - "$DOWN" "$MUT10" <<'PY_MUT10'
 import sys
 src, dst = sys.argv[1], sys.argv[2]
 s = open(src).read()
-anchor = "    IF to_regclass(_r.object_id) IS NULL THEN"
-start = s.find(anchor)
-assert start != -1, "could not locate the table branch to mutate"
-assert s.count(anchor) == 1, "the table-branch anchor is not unique"
-end = s.find("    END IF;\n", start)
-assert end != -1, "could not locate the end of the table branch"
-legacy = """    IF to_regclass(_r.object_id) IS NULL THEN
-      RAISE NOTICE 'rollback: % is in the receipt but no longer exists — skipped', _r.object_id;
-      CONTINUE;
-"""
-open(dst, 'w').write(s[:start] + legacy + s[end:])
+# Surgical: replace ONLY the table branch's fatal collection with the NOTICE it used
+# to emit. Anchored on the message text, which appears exactly once, so a later edit
+# to the surrounding block cannot silently turn this control into a no-op.
+anchor = """      _unrestorable := _unrestorable || format('%s (recorded RLS %s; the table no longer exists)',
+                                               _r.object_id,
+                                               CASE WHEN _r.rls_enabled THEN 'ENABLED' ELSE 'DISABLED' END);"""
+assert s.count(anchor) == 1, "could not locate the table branch's fatal collection to mutate"
+legacy = """      RAISE NOTICE 'rollback: % is in the receipt but no longer exists - skipped', _r.object_id;"""
+open(dst, 'w').write(s.replace(anchor, legacy))
 print("case 10 mutant built")
 PY_MUT10
 [[ -s "$MUT10" ]] || fail "case 10 mutation control could not be built"
@@ -716,6 +730,125 @@ if ! psql "$DB11M" -X -q -v ON_ERROR_STOP=1 -f "$MUT11" >/dev/null 2>"$WORK/c11m
   fail "MUTATION CONTROL FAILED: with the role-identity check removed, the rollback STILL refused the replaced-role database — so case 11 is not attributable to that check. stderr: $(head -3 "$WORK/c11m.err")"
 fi
 echo "  case 11c name-only control    -> the mutant grants to the replacement and commits (control is live)"
+
+# ── 12. THE RECEIPT MUST NAME AN OBJECT, NOT A SEARCH_PATH LOOKUP ───────────
+# `regprocedure::text` omits the schema whenever that schema is visible, so the
+# receipt recorded `prune_integration_history()` — a name whose meaning depends on
+# the search_path of whoever runs the rollback later. With another schema earlier in
+# the path holding the same signature, the restore loop would GRANT and REVOKE on
+# THAT function: the public-name identity guard still passes, the post-condition
+# still balances, and the rollback commits, consumes the receipt and reports a
+# recovery it performed on the wrong object. Reported by an independent review
+# (openrouter, 20/08/2026). Three defences, and each half below tests a different
+# one rather than assuming the other two.
+DB12="$(newdb rbsp)"
+seed_unexposed "$DB12"
+psql "$DB12" -X -q -v ON_ERROR_STOP=1 >"$WORK/c12seed.out" 2>&1 <<'SQL'
+CREATE SCHEMA decoy;
+-- The same signature, in a schema that could sit earlier on a session's search_path.
+CREATE FUNCTION decoy.prune_integration_history()
+  RETURNS void LANGUAGE sql SECURITY DEFINER AS $fn$ SELECT NULL::void $fn$;
+REVOKE ALL ON FUNCTION decoy.prune_integration_history() FROM PUBLIC, anon, authenticated;
+SQL
+[[ $? -eq 0 ]] || fail "could not build the decoy schema for case 12: $(head -3 "$WORK/c12seed.out")"
+
+decoy_anon() { # DIRECT anon grants on the decoy function
+  pg_scalar "$1" "SELECT count(*)::text FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace, aclexplode(p.proacl) a WHERE n.nspname='decoy' AND p.proname='prune_integration_history' AND a.grantee=(SELECT oid FROM pg_roles WHERE rolname='anon') AND a.privilege_type='EXECUTE'"
+}
+
+psql "$DB12" -X -q -v ON_ERROR_STOP=1 -f "$APPLY" >/dev/null 2>"$WORK/c12a.err" \
+  || fail "the forward migration did not commit against the case 12 fixture: $(head -3 "$WORK/c12a.err")"
+
+# (a) PRODUCER: every recorded identity is schema-qualified, and resolves into public.
+C12_UNQUAL="$(pg_scalar "$DB12" "SELECT count(*)::text FROM public.privileged_function_exposure_lock_receipt_20260819 WHERE object_id NOT LIKE 'public.%'")"
+[[ "$C12_UNQUAL" == "0" ]] \
+  || fail "THE FORWARD FILE RECORDED ${C12_UNQUAL} UNQUALIFIED IDENTITIES: the receipt then names a search_path lookup rather than an object, and the rollback's namespace check would be guarding text that never said which schema it meant."
+echo "  case 12a qualified identities -> every recorded object_id names its schema"
+
+# (b) CONSUMER: a recorded identity that resolves OUTSIDE public must be refused,
+#     and the object it points at must be left alone.
+psql "$DB12" -X -q -v ON_ERROR_STOP=1 \
+  -c "UPDATE public.privileged_function_exposure_lock_receipt_20260819 SET object_id='decoy.prune_integration_history()', has_execute=true WHERE object_kind='function' AND object_id LIKE 'public.prune_integration_history%' AND grantee='anon'" \
+  >/dev/null 2>"$WORK/c12u.err" \
+  || fail "could not stage the foreign-schema receipt row for case 12: $(head -3 "$WORK/c12u.err")"
+[[ "$(decoy_anon "$DB12")" == "0" ]] || fail "the case 12 fixture is wrong: anon already holds a grant on the decoy function."
+
+if psql "$DB12" -X -q -v ON_ERROR_STOP=1 -f "$DOWN" >/dev/null 2>"$WORK/c12r.err"; then
+  fail "THE ROLLBACK MUTATED AN OBJECT THE RECEIPT DID NOT NAME: a recorded identity resolving outside public was replayed and the transaction committed."
+fi
+grep -q 'NOT one of the four functions in public' "$WORK/c12r.err" \
+  || fail "the rollback refused the foreign-schema row, but NOT on the resolved-namespace check. stderr: $(head -3 "$WORK/c12r.err")"
+[[ "$(decoy_anon "$DB12")" == "0" ]] \
+  || fail "the rollback aborted but the decoy function was granted to anon anyway — the abort came too late to prevent the wrong-object mutation."
+echo "  case 12b foreign-schema row   -> refused, and the decoy function is untouched"
+
+# (c) THE SEARCH_PATH PIN, tested on its own. An UNQUALIFIED identity — what an
+#     earlier revision of the forward file recorded — must still resolve to public
+#     even when the database's own search_path prefers another schema holding the
+#     same signature. This is the defence that protects receipts already written.
+DB12C="$(newdb rbsppin)"
+seed_unexposed "$DB12C"
+psql "$DB12C" -X -q -v ON_ERROR_STOP=1 >"$WORK/c12cseed.out" 2>&1 <<'SQL'
+CREATE SCHEMA decoy;
+CREATE FUNCTION decoy.prune_integration_history()
+  RETURNS void LANGUAGE sql SECURITY DEFINER AS $fn$ SELECT NULL::void $fn$;
+REVOKE ALL ON FUNCTION decoy.prune_integration_history() FROM PUBLIC, anon, authenticated;
+SQL
+[[ $? -eq 0 ]] || fail "could not build the decoy schema for case 12c: $(head -3 "$WORK/c12cseed.out")"
+psql "$DB12C" -X -q -v ON_ERROR_STOP=1 -f "$APPLY" >/dev/null 2>"$WORK/c12ca.err" \
+  || fail "the forward migration did not commit against the case 12c fixture: $(head -3 "$WORK/c12ca.err")"
+# Rewrite the recorded identity to the unqualified form an earlier revision produced,
+# then make the SESSION prefer the decoy schema.
+psql "$DB12C" -X -q -v ON_ERROR_STOP=1 \
+  -c "UPDATE public.privileged_function_exposure_lock_receipt_20260819 SET object_id='prune_integration_history()' WHERE object_kind='function' AND object_id LIKE 'public.prune_integration_history%'" \
+  -c "ALTER DATABASE ${DB12C##*/} SET search_path = decoy, public" \
+  >/dev/null 2>"$WORK/c12cu.err" \
+  || fail "could not stage the unqualified/decoy-search_path fixture: $(head -3 "$WORK/c12cu.err")"
+
+psql "$DB12C" -X -q -v ON_ERROR_STOP=1 -f "$DOWN" >/dev/null 2>"$WORK/c12cr.err" \
+  || fail "THE SEARCH_PATH PIN DID NOT HOLD: with the database's search_path preferring a schema that holds the same signature, an unqualified recorded identity no longer resolved to public and the rollback refused a database it should have restored. stderr: $(head -3 "$WORK/c12cr.err")"
+[[ "$(decoy_anon "$DB12C")" == "0" ]] \
+  || fail "THE ROLLBACK RESOLVED THROUGH THE SESSION SEARCH_PATH: the decoy schema's function was granted to anon. The pin at the top of the file is not doing what it claims."
+echo "  case 12c search_path pin      -> unqualified identity still resolves to public, decoy untouched"
+
+# ── 12d. MUTATION CONTROL for case 12b ──────────────────────────────────────
+MUT12="$WORK/down-no-namespace-check.sql"
+python3 - "$DOWN" "$MUT12" <<'PY_MUT12'
+import sys
+src, dst = sys.argv[1], sys.argv[2]
+s = open(src).read()
+anchor = "    IF _obj_schema <> 'public'\n       OR _obj_name NOT IN ('custom_access_token_hook'"
+start = s.find(anchor)
+assert start != -1, "could not locate the function namespace check to mutate"
+end = s.find("    END IF;\n", start)
+assert end != -1, "could not locate the end of the function namespace check"
+open(dst, 'w').write(s[:start] + s[end + len("    END IF;\n"):])
+print("case 12 mutant built")
+PY_MUT12
+[[ -s "$MUT12" ]] || fail "case 12 mutation control could not be built"
+grep -q 'NOT one of the four functions in public' "$MUT12" \
+  && fail "case 12 mutation control is vacuous: the resolved-namespace check is still present in the mutant."
+
+DB12M="$(newdb rbspm)"
+seed_unexposed "$DB12M"
+psql "$DB12M" -X -q -v ON_ERROR_STOP=1 >/dev/null 2>&1 <<'SQL'
+CREATE SCHEMA decoy;
+CREATE FUNCTION decoy.prune_integration_history()
+  RETURNS void LANGUAGE sql SECURITY DEFINER AS $fn$ SELECT NULL::void $fn$;
+REVOKE ALL ON FUNCTION decoy.prune_integration_history() FROM PUBLIC, anon, authenticated;
+SQL
+psql "$DB12M" -X -q -v ON_ERROR_STOP=1 -f "$APPLY" >/dev/null 2>"$WORK/c12ma.err" \
+  || fail "the forward migration did not commit against the case 12 control fixture: $(head -3 "$WORK/c12ma.err")"
+psql "$DB12M" -X -q -v ON_ERROR_STOP=1 \
+  -c "UPDATE public.privileged_function_exposure_lock_receipt_20260819 SET object_id='decoy.prune_integration_history()', has_execute=true WHERE object_kind='function' AND object_id LIKE 'public.prune_integration_history%' AND grantee='anon'" \
+  >/dev/null 2>&1 || fail "could not stage the foreign-schema row for the case 12 control"
+
+if ! psql "$DB12M" -X -q -v ON_ERROR_STOP=1 -f "$MUT12" >/dev/null 2>"$WORK/c12m.err"; then
+  fail "MUTATION CONTROL FAILED: with the resolved-namespace check removed, the rollback STILL refused the foreign-schema row — so case 12b is not attributable to that check. stderr: $(head -3 "$WORK/c12m.err")"
+fi
+[[ "$(decoy_anon "$DB12M")" == "1" ]] \
+  || fail "MUTATION CONTROL FAILED: the mutant committed but did NOT actually grant on the decoy function, so case 12b's finding — a wrong-object mutation — was never exercised."
+echo "  case 12d no-namespace control -> the mutant grants on the DECOY function and commits (control is live)"
 
 echo "PASS  prove-rollback-fidelity"
 echo "  the rollback restores the pre-state the forward migration OBSERVED,"

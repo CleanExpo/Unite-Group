@@ -55,6 +55,9 @@
 --     cannot put back — the same guard, swept       — prove-rollback-fidelity.sh case 10
 --   * compares role IDENTITY (oid), not role name,
 --     so a same-name replacement is refused         — prove-rollback-fidelity.sh case 11
+--   * names an OBJECT rather than a search_path
+--     lookup, and refuses anything resolving
+--     outside public without touching it            — prove-rollback-fidelity.sh case 12
 --
 -- STILL NOT TESTED, and it is F9's remaining scope: intermediate partial matches
 -- of two or three present functions, and identity beyond names and argument
@@ -80,6 +83,17 @@
 -- GRANT to the one role that needs it, not leaving this state in place.
 
 BEGIN;
+
+-- DETERMINISTIC NAME RESOLUTION FOR THE WHOLE TRANSACTION. Every unqualified
+-- identifier below — and every identifier this file WRITES into or READS OUT OF the
+-- pre-state receipt — resolves against search_path. Left to the session's default, a
+-- schema earlier in the path holding a same-signature function makes the pair operate
+-- on an object nobody named. Reported by an independent review (openrouter,
+-- 20/08/2026). Pinned here for the transaction; the receipt additionally stores
+-- SCHEMA-QUALIFIED identities, and the rollback verifies the namespace of whatever it
+-- resolves before it mutates anything. Three independent defences, because this one is
+-- silent when it fails.
+SET LOCAL search_path = public, pg_catalog;
 
 -- ── IDENTITY GUARD — refuse to run against the wrong project ────────────────
 -- Independent review (codex, 19/08/2026) demonstrated the failure this closes:
@@ -148,6 +162,10 @@ DECLARE
   -- Counted, named, and fatal — see the guard at the end of this block.
   _unrestorable text[] := '{}';
   _live_oid     oid;
+  _obj_oid      oid;
+  _obj_schema   text;
+  _obj_name     text;
+  _obj_ident    text;
 BEGIN
   IF to_regclass('public.privileged_function_exposure_lock_receipt_20260819') IS NULL THEN
     RAISE EXCEPTION
@@ -190,13 +208,49 @@ BEGIN
     -- with nothing louder than a NOTICE on a terminal nobody reads during an
     -- outage. Collected here and made FATAL at the end of the block, inside the
     -- same transaction, so nothing is changed rather than partially changed.
-    IF to_regprocedure(_r.object_id) IS NULL THEN
+    _obj_oid := to_regprocedure(_r.object_id);
+    IF _obj_oid IS NULL THEN
       IF _r.has_execute THEN
         _unrestorable := _unrestorable || format('%s (recorded EXECUTE for %s; the function no longer exists)',
                                                  _r.object_id, coalesce(nullif(_r.grantee, ''), 'PUBLIC'));
       ELSE
         RAISE NOTICE 'rollback: % is in the receipt but no longer exists — it recorded NO privilege, so there is nothing to take back; skipped', _r.object_id;
       END IF;
+      CONTINUE;
+    END IF;
+
+    -- VERIFY WHAT THE NAME RESOLVED TO, BEFORE MUTATING IT.
+    --
+    --    The receipt holds TEXT, and text resolves against search_path. An earlier
+    --    revision recorded `p.oid::regprocedure::text`, which omits the schema whenever
+    --    the schema is visible — so `prune_integration_history()` meant whatever a later
+    --    session's search_path said it meant. With another schema earlier in the path
+    --    holding the same signature, this loop would GRANT and REVOKE on THAT function:
+    --    the public-name identity guard still passes (the real targets are present), and
+    --    the post-condition still balances (its receipt side filters to public and finds
+    --    nothing, its live side sees the still-locked public function), so the rollback
+    --    commits, consumes the receipt, and reports a recovery it performed on the wrong
+    --    object. Reported by an independent review (openrouter, 20/08/2026).
+    --
+    --    Three defences, because a silent wrong-object mutation deserves more than one:
+    --    search_path is pinned for this transaction, the forward file now records
+    --    schema-qualified identities, and this block re-reads the catalogue for whatever
+    --    it actually resolved and refuses anything that is not one of the four functions
+    --    this file locks, in public. The EXECUTEs below then use the identity built from
+    --    THAT oid, not the receipt's text, so nothing can re-resolve differently.
+    SELECT n.nspname, p.proname,
+           -- oidvectortypes, for the same reason the forward file uses it: identity
+           -- arguments carry argument NAMES, which are not a valid type list.
+           format('%I.%I(%s)', n.nspname, p.proname, pg_catalog.oidvectortypes(p.proargtypes))
+      INTO _obj_schema, _obj_name, _obj_ident
+    FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE p.oid = _obj_oid;
+
+    IF _obj_schema <> 'public'
+       OR _obj_name NOT IN ('custom_access_token_hook', 'before_user_created_hook',
+                            'prune_integration_history', 'get_my_org_ids') THEN
+      _unrestorable := _unrestorable || format('%s (resolves to %I.%I, which is NOT one of the four functions in public this rollback restores — refusing to mutate an object the receipt did not name)',
+                                               _r.object_id, _obj_schema, _obj_name);
       CONTINUE;
     END IF;
     -- A role NAME is not a role IDENTITY. If a role present at apply time is dropped
@@ -245,16 +299,16 @@ BEGIN
     END IF;
     IF _r.has_execute THEN
       IF _r.grantee = '' THEN
-        EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO PUBLIC', _r.object_id);
+        EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO PUBLIC', _obj_ident);
       ELSE
-        EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO %I', _r.object_id, _r.grantee);
+        EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO %I', _obj_ident, _r.grantee);
       END IF;
     ELSE
       -- Recorded as NOT held before the lock. If the lock created it, take it back.
       IF _r.grantee = '' THEN
-        EXECUTE format('REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC', _r.object_id);
+        EXECUTE format('REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC', _obj_ident);
       ELSE
-        EXECUTE format('REVOKE EXECUTE ON FUNCTION %s FROM %I', _r.object_id, _r.grantee);
+        EXECUTE format('REVOKE EXECUTE ON FUNCTION %s FROM %I', _obj_ident, _r.grantee);
       END IF;
     END IF;
     _restored := _restored + 1;
@@ -274,16 +328,32 @@ BEGIN
     -- principal that may have gone away — the recorded object itself is missing, so
     -- NEITHER recorded value can be re-established, and committing would consume the
     -- receipt and destroy the only record of what the pre-state was.
-    IF to_regclass(_r.object_id) IS NULL THEN
+    _obj_oid := to_regclass(_r.object_id);
+    IF _obj_oid IS NULL THEN
       _unrestorable := _unrestorable || format('%s (recorded RLS %s; the table no longer exists)',
                                                _r.object_id,
                                                CASE WHEN _r.rls_enabled THEN 'ENABLED' ELSE 'DISABLED' END);
       CONTINUE;
     END IF;
+
+    -- The same wrong-object hazard, through regclass rather than regprocedure, and
+    -- swept in the same breath rather than after the next review round finds it.
+    SELECT n.nspname, c.relname, format('%I.%I', n.nspname, c.relname)
+      INTO _obj_schema, _obj_name, _obj_ident
+    FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE c.oid = _obj_oid;
+
+    IF _obj_schema <> 'public'
+       OR _obj_name NOT IN ('founder_uid_migration_20260810', 'founder_uid_conflict_resolution_20260810') THEN
+      _unrestorable := _unrestorable || format('%s (resolves to %I.%I, which is NOT one of the two dated tables in public this rollback restores — refusing to change row-level security on an object the receipt did not name)',
+                                               _r.object_id, _obj_schema, _obj_name);
+      CONTINUE;
+    END IF;
+
     IF _r.rls_enabled THEN
-      EXECUTE format('ALTER TABLE %s ENABLE ROW LEVEL SECURITY', _r.object_id);
+      EXECUTE format('ALTER TABLE %s ENABLE ROW LEVEL SECURITY', _obj_ident);
     ELSE
-      EXECUTE format('ALTER TABLE %s DISABLE ROW LEVEL SECURITY', _r.object_id);
+      EXECUTE format('ALTER TABLE %s DISABLE ROW LEVEL SECURITY', _obj_ident);
     END IF;
     _restored := _restored + 1;
   END LOOP;

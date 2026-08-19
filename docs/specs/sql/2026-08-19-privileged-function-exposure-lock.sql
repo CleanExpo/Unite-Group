@@ -76,6 +76,17 @@
 
 BEGIN;
 
+-- DETERMINISTIC NAME RESOLUTION FOR THE WHOLE TRANSACTION. Every unqualified
+-- identifier below — and every identifier this file WRITES into or READS OUT OF the
+-- pre-state receipt — resolves against search_path. Left to the session's default, a
+-- schema earlier in the path holding a same-signature function makes the pair operate
+-- on an object nobody named. Reported by an independent review (openrouter,
+-- 20/08/2026). Pinned here for the transaction; the receipt additionally stores
+-- SCHEMA-QUALIFIED identities, and the rollback verifies the namespace of whatever it
+-- resolves before it mutates anything. Three independent defences, because this one is
+-- silent when it fails.
+SET LOCAL search_path = public, pg_catalog;
+
 -- ── 0: IDENTITY GUARD — refuse a database that is not this project. ─────────
 --
 --    WHY THIS EXISTS. Two independent cross-agent reviews (codex, 19/08/2026)
@@ -232,7 +243,18 @@ BEGIN
   INSERT INTO public.privileged_function_exposure_lock_receipt_20260819
     (object_kind, object_id, grantee, grantee_oid, has_execute)
   SELECT 'function',
-         p.oid::regprocedure::text,
+         -- SCHEMA-QUALIFIED, ALWAYS. `p.oid::regprocedure::text` omits the schema
+         -- whenever the schema is visible on search_path, so the receipt recorded
+         -- `prune_integration_history()` — a name whose meaning depends on the
+         -- search_path of whoever runs the rollback later. Built explicitly here so the
+         -- receipt says which object it means.
+         format('%I.%I(%s)', n.nspname, p.proname, pg_catalog.oidvectortypes(p.proargtypes)),
+         -- oidvectortypes, NOT pg_get_function_identity_arguments: the latter renders
+         -- `event jsonb` — argument NAMES included — and `to_regprocedure` rejects that
+         -- with `invalid type name "event jsonb"`, so the rollback could not resolve a
+         -- single row it had just written. Caught by running the pair, not by reading it.
+         -- proargtypes is the IN-argument vector, which is exactly the identity
+         -- signature GRANT and REVOKE take.
          g.grantee,
          -- NULL for PUBLIC, which is not a role and has no identity to confuse.
          (SELECT r3.oid FROM pg_roles r3 WHERE r3.rolname = g.grantee),
@@ -261,7 +283,7 @@ BEGIN
 
   INSERT INTO public.privileged_function_exposure_lock_receipt_20260819
     (object_kind, object_id, rls_enabled)
-  SELECT 'table', c.oid::regclass::text, c.relrowsecurity
+  SELECT 'table', format('%I.%I', n.nspname, c.relname), c.relrowsecurity
   FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
   WHERE n.nspname = 'public'
     AND c.relname IN ('founder_uid_migration_20260810', 'founder_uid_conflict_resolution_20260810');
