@@ -28,6 +28,8 @@
 #   3. MUTATION CONTROL: with the receipt-driven restore replaced by the old
 #      hard-coded GRANT, case 1 FAILS again (anon becomes true). Without this,
 #      case 1 could be green because the grant silently did nothing at all.
+#   4. ACL SHAPE: a pre-state where PUBLIC holds EXECUTE and anon holds nothing
+#      directly must NOT come back as a direct grant to anon.
 set -uo pipefail
 
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -215,6 +217,40 @@ if [[ "$MUT_AFTER" == "0" ]]; then
   fail "MUTATION CONTROL FAILED: with the old hard-coded GRANT restored, anon STILL could not execute any privileged definer. Case 1 is therefore not attributable to the receipt-driven restore — the grants may be failing for an unrelated reason, and this gate would be certifying fidelity it never exercised."
 fi
 echo "  case 3  hard-coded restore    -> invents ${MUT_AFTER} exposure(s) again (control is live)"
+
+# ── 4. ACL SHAPE: a PUBLIC-only pre-state must not return as a DIRECT anon grant ─
+# has_function_privilege() reports the EFFECTIVE privilege, which includes
+# anything inherited through PUBLIC. Capturing with it recorded anon as a holder
+# when only PUBLIC ever held the grant, and the rollback then issued a direct
+# GRANT ... TO anon that never existed. Effective access is identical the moment
+# it runs, which is why this hides — but the next person to revoke PUBLIC,
+# expecting anon's access to go with it, finds anon still executing. That is this
+# repo's own root cause (revoking from PUBLIC is not revoking from anon) turned
+# around: granting to PUBLIC is not granting to anon.
+DB4="$(newdb rbacl)"
+seed_unexposed "$DB4"
+# Re-shape the fixture: PUBLIC holds EXECUTE, anon holds NOTHING directly.
+psql "$DB4" -X -q -v ON_ERROR_STOP=1 \
+  -c "GRANT EXECUTE ON FUNCTION public.prune_integration_history() TO PUBLIC" \
+  >/dev/null 2>"$WORK/acl.err" \
+  || fail "could not shape the PUBLIC-only fixture: $(head -3 "$WORK/acl.err")"
+
+direct_anon() { # direct aclitem for anon, ignoring anything inherited via PUBLIC
+  pg_scalar "$1" "SELECT count(*)::text FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace, aclexplode(p.proacl) a WHERE n.nspname='public' AND p.proname='prune_integration_history' AND a.grantee=(SELECT oid FROM pg_roles WHERE rolname='anon') AND a.privilege_type='EXECUTE'"
+}
+
+DA_BEFORE="$(direct_anon "$DB4")"
+[[ "$DA_BEFORE" == "0" ]] \
+  || fail "the fixture is wrong: anon already holds a DIRECT grant (${DA_BEFORE}) before the pair, so this case could not detect one being invented."
+
+run_pair "$DB4" "$DOWN"
+RC4=$?
+[[ $RC4 -eq 0 ]] || fail "the forward+rollback pair did not commit against the PUBLIC-only fixture (rc=${RC4}). apply: $(head -2 "$WORK/apply.err") down: $(head -2 "$WORK/down.err")"
+
+DA_AFTER="$(direct_anon "$DB4")"
+[[ "$DA_AFTER" == "0" ]] \
+  || fail "THE ROLLBACK CHANGED THE ACL SHAPE: prune_integration_history was executable by PUBLIC and by anon only through PUBLIC before the pair; afterwards anon holds ${DA_AFTER} DIRECT grant(s). Revoking PUBLIC will no longer remove anon's access."
+echo "  case 4  PUBLIC-only pre-state -> anon still holds 0 DIRECT grants after the pair"
 
 echo "PASS  prove-rollback-fidelity"
 echo "  the rollback restores the pre-state the forward migration OBSERVED,"

@@ -155,20 +155,46 @@ BEGIN
     RETURN;
   END IF;
 
-  -- One row per (function, grantee) for the three roles this file can revoke.
-  -- PUBLIC is recorded as the empty-string grantee, matching aclitem's own
-  -- convention, because "granted to PUBLIC" is exactly what the old rollback
-  -- assumed rather than checked.
+  -- One row per (function, grantee) for the roles this file can revoke, PUBLIC
+  -- recorded as the empty-string grantee to match aclitem's own convention.
+  --
+  --    THE PRIVILEGE TEST MUST BE **DIRECT**, NOT EFFECTIVE. An adversarial
+  --    review pass flagged this and it reproduces exactly:
+  --      GRANT EXECUTE ON FUNCTION f() TO PUBLIC;  -- no grant to anon at all
+  --      has_function_privilege('anon', f, 'EXECUTE')  -> TRUE
+  --      direct aclitem for anon                       -> ABSENT
+  --      proacl                                        -> {owner=X/owner,=X/owner}
+  --    has_function_privilege reports the EFFECTIVE privilege, which includes
+  --    anything inherited through PUBLIC. Capturing with it records anon as a
+  --    holder when only PUBLIC ever held the grant, and the rollback then issues
+  --    a DIRECT `GRANT ... TO anon` that never existed. Effective access is
+  --    unchanged the instant it runs, which is why it is easy to miss — but the
+  --    ACL shape is now wrong, and the next person who revokes PUBLIC expecting
+  --    anon's access to go with it will find anon still executing.
+  --
+  --    That is this branch's own root cause, reappearing inside the fix:
+  --    revoking from PUBLIC is not revoking from anon, and by the same token a
+  --    grant to PUBLIC is not a grant to anon. Read the aclitem, not the answer
+  --    Postgres computes from it.
+  --
+  --    Default privileges are handled explicitly: proacl IS NULL means the
+  --    function carries the built-in default, which grants EXECUTE to PUBLIC and
+  --    to nobody else directly.
   INSERT INTO public.privileged_function_exposure_lock_receipt_20260819
     (object_kind, object_id, grantee, has_execute)
   SELECT 'function',
          p.oid::regprocedure::text,
          g.grantee,
-         CASE WHEN g.grantee = '' THEN
-                -- PUBLIC holds EXECUTE only via a bare `=X/...` aclitem entry.
-                EXISTS (SELECT 1 FROM aclexplode(p.proacl) a
+         CASE
+           WHEN g.grantee = '' THEN
+             p.proacl IS NULL
+             OR EXISTS (SELECT 1 FROM aclexplode(p.proacl) a
                          WHERE a.grantee = 0 AND a.privilege_type = 'EXECUTE')
-              ELSE has_function_privilege(g.grantee, p.oid, 'EXECUTE')
+           ELSE
+             p.proacl IS NOT NULL
+             AND EXISTS (SELECT 1 FROM aclexplode(p.proacl) a
+                          WHERE a.grantee = (SELECT r2.oid FROM pg_roles r2 WHERE r2.rolname = g.grantee)
+                            AND a.privilege_type = 'EXECUTE')
          END
   FROM pg_proc p
   JOIN pg_namespace n ON n.oid = p.pronamespace
