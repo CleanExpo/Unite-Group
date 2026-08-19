@@ -1,0 +1,33 @@
+
+── 0. scratch database ────────────────────────────────────────────
+created ship_gate_repro
+roles present: anon, authenticated, supabase_auth_admin
+
+── 1. seed the observed production exposure ────────────────────────────────────────────
+seeded
+
+── 2. gate must go RED on the seeded defect (positive control) ────────────────────────────────────────────
+FAIL  prod-exposure: 9 row(s) — every row is a live exposure
+  rls_disabled_in_public|founder_uid_conflict_resolution_20260810
+  rls_disabled_in_public|founder_uid_migration_20260810
+  anon_executable_security_definer|before_user_created_hook|{postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,supabase_auth_admin=X/postgres}
+  anon_executable_security_definer|custom_access_token_hook|{postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,supabase_auth_admin=X/postgres}
+  anon_executable_security_definer|prune_integration_history|{postgres=X/postgres,=X/postgres}
+  authenticated_executable_security_definer|before_user_created_hook|{postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,supabase_auth_admin=X/postgres}
+  authenticated_executable_security_definer|custom_access_token_hook|{postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,supabase_auth_admin=X/postgres}
+  authenticated_executable_security_definer|get_my_org_ids|{postgres=X/postgres,authenticated=X/postgres}
+  authenticated_executable_security_definer|prune_integration_history|{postgres=X/postgres,=X/postgres}
+observed red: q1=2 q2=3 q3=4   (production 18/08/2026: 2 3 4)
+row counts match the observed production red exactly
+
+── 3. apply the fix migration ────────────────────────────────────────────
+  psql:/Users/phillmcgurk/Unite-Group/docs/specs/sql/2026-08-19-privileged-function-exposure-lock.sql:71: NOTICE:  revoke_privileged_function_exposure: revoked on 3 function(s)
+  psql:/Users/phillmcgurk/Unite-Group/docs/specs/sql/2026-08-19-privileged-function-exposure-lock.sql:107: NOTICE:  revoke_privileged_function_exposure: get_my_org_ids() locked to authenticated only
+  psql:/Users/phillmcgurk/Unite-Group/docs/specs/sql/2026-08-19-privileged-function-exposure-lock.sql:131: NOTICE:  revoke_privileged_function_exposure: RLS enabled on public.founder_uid_migration_20260810
+  psql:/Users/phillmcgurk/Unite-Group/docs/specs/sql/2026-08-19-privileged-function-exposure-lock.sql:131: NOTICE:  revoke_privileged_function_exposure: RLS enabled on public.founder_uid_conflict_resolution_20260810
+  psql:/Users/phillmcgurk/Unite-Group/docs/specs/sql/2026-08-19-privileged-function-exposure-lock.sql:202: NOTICE:  post-condition OK: 0 anon-executable definers; 0 unexpected authenticated-executable definers; supabase_auth_admin retains EXECUTE on every auth hook present
+
+── 4. gate must go GREEN ────────────────────────────────────────────
+FAIL  prod-exposure: 1 row(s) — every row is a live exposure
+  authenticated_executable_security_definer|get_my_org_ids|{postgres=X/postgres,authenticated=X/postgres}
+REPRO FAIL: expected gate exit 0 after the fix, got 1
