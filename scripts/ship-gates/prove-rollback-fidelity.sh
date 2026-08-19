@@ -35,6 +35,16 @@
 #      operator deliberately changed between cycles.
 #   7. THE DOWN FILE'S OWN identity guard must reject overloads too — the class must
 #      be swept across BOTH files, not patched in the one that was cited.
+#   8. LIKE-FOR-LIKE POST-CONDITION: the receipt side and the live side must measure
+#      the same predicate over the same identities, so a CORRECT rollback of a
+#      recorded non-definer grant is not rejected as "the rollback did not take".
+#      Controlled by 8b, which restores the unanchored text-prefix form and shows
+#      the same correct rollback being refused again.
+#   9. NO PARTIAL RESTORE PASSING AS RECOVERY: a receipt entry recorded as HELD whose
+#      function or grantee role has since been dropped must ABORT and be NAMED, not
+#      be skipped with a NOTICE that the anon-only post-condition cannot see.
+#      Controlled by 9b, which removes the guard and shows the same partial restore
+#      committing.
 set -uo pipefail
 
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -393,6 +403,152 @@ fi
 grep -q 'expected all 4 privileged functions this file restores' "$WORK/c7d.err" \
   || fail "the rollback refused the overload database, but NOT on its identity guard. stderr: $(head -3 "$WORK/c7d.err")"
 echo "  case 7  down-file overloads   -> refused (both guards count DISTINCT names)"
+
+# ── 8. THE POST-CONDITION MUST COMPARE LIKE WITH LIKE ────────────────────────
+# `_exposed` resolves live catalogue entries and requires SECURITY DEFINER;
+# `_expected` used to select receipt rows by unanchored TEXT PREFIX with no definer
+# test. A function recorded as anon-executable but NOT security definer therefore
+# counted on the expected side and could never count on the exposed side, so a
+# CORRECT rollback — one that put that grant back exactly as recorded — aborted
+# with "the rollback did not take". This case is the rollback SUCCEEDING; the
+# control below is it failing again with the prefix form restored.
+DB8="$(newdb rbpred)"
+seed_unexposed "$DB8"
+psql "$DB8" -X -q -v ON_ERROR_STOP=1 >"$WORK/c8seed.out" 2>&1 <<'SQL'
+DROP FUNCTION public.prune_integration_history();
+-- NOT security definer, and anon may execute it. Legal, and outside the exposure
+-- this lock exists to close.
+CREATE FUNCTION public.prune_integration_history()
+  RETURNS void LANGUAGE sql AS $fn$ SELECT NULL::void $fn$;
+GRANT EXECUTE ON FUNCTION public.prune_integration_history() TO anon;
+SQL
+[[ $? -eq 0 ]] || fail "could not shape the non-definer fixture for case 8: $(head -3 "$WORK/c8seed.out")"
+
+[[ "$(anon_exec_count "$DB8")" == "0" ]] \
+  || fail "the case 8 fixture is wrong: anon can execute a privileged DEFINER before the pair, so this case would be testing the wrong asymmetry."
+[[ "$(anon_direct_prune "$DB8")" == "1" ]] \
+  || fail "the case 8 fixture is wrong: anon does not hold the direct grant the receipt must record."
+
+run_pair "$DB8" "$DOWN"
+RC8=$?
+[[ $RC8 -ne 1 ]] || fail "the forward migration did not commit against the non-definer fixture. stderr: $(head -3 "$WORK/apply.err")"
+[[ $RC8 -ne 2 ]] \
+  || fail "THE POST-CONDITION REJECTED A CORRECT ROLLBACK: the recorded pre-state was restored and the rollback still aborted, because the expected side counted a function the exposed side cannot count. stderr: $(head -3 "$WORK/down.err")"
+[[ "$(anon_direct_prune "$DB8")" == "1" ]] \
+  || fail "the rollback committed but did NOT put anon's recorded grant back, so case 8 would be green on a rollback that did nothing."
+echo "  case 8  non-definer recorded  -> correct rollback COMMITS, grant restored (1 before, 1 after)"
+
+# ── 8b. MUTATION CONTROL for case 8 ──────────────────────────────────────────
+MUT8="$WORK/down-prefix-expected.sql"
+python3 - "$DOWN" "$MUT8" <<'PY_MUT8'
+import sys
+src, dst = sys.argv[1], sys.argv[2]
+s = open(src).read()
+start = s.find("  SELECT count(DISTINCT r.object_id) INTO _expected")
+assert start != -1, "could not locate the identity-resolved _expected query to mutate"
+end = s.find(";\n", start)
+assert end != -1, "could not locate the end of the _expected query"
+legacy = """  SELECT count(DISTINCT object_id) INTO _expected
+  FROM public.privileged_function_exposure_lock_receipt_20260819
+  WHERE object_kind = 'function'
+    AND has_execute
+    AND grantee IN ('anon', '')
+    AND object_id LIKE ANY (ARRAY['custom_access_token_hook%', 'before_user_created_hook%', 'prune_integration_history%'])"""
+open(dst, 'w').write(s[:start] + legacy + s[end:])
+print("case 8 mutant built")
+PY_MUT8
+[[ -s "$MUT8" ]] || fail "case 8 mutation control could not be built"
+grep -q 'to_regprocedure(r.object_id)' "$MUT8" \
+  && fail "case 8 mutation control is vacuous: the identity-resolved expected query is still present in the mutant."
+
+DB8M="$(newdb rbpredm)"
+seed_unexposed "$DB8M"
+psql "$DB8M" -X -q -v ON_ERROR_STOP=1 >"$WORK/c8mseed.out" 2>&1 <<'SQL'
+DROP FUNCTION public.prune_integration_history();
+CREATE FUNCTION public.prune_integration_history()
+  RETURNS void LANGUAGE sql AS $fn$ SELECT NULL::void $fn$;
+GRANT EXECUTE ON FUNCTION public.prune_integration_history() TO anon;
+SQL
+[[ $? -eq 0 ]] || fail "could not shape the case 8 control fixture: $(head -3 "$WORK/c8mseed.out")"
+
+run_pair "$DB8M" "$MUT8"
+RC8M=$?
+[[ $RC8M -eq 2 ]] \
+  || fail "MUTATION CONTROL FAILED: with the unanchored text-prefix expected query restored, the rollback still committed against the non-definer fixture (rc=${RC8M}). Case 8 is therefore not attributable to the identity-resolved comparison."
+grep -q 'does not match the recorded pre-state' "$WORK/down.err" \
+  || fail "MUTATION CONTROL FAILED for the wrong reason: the mutant aborted, but not on the pre-state equality check. stderr: $(head -3 "$WORK/down.err")"
+echo "  case 8b prefix-match control  -> the mutant rejects the same correct rollback (control is live)"
+
+# ── 9. A PRIVILEGE THAT CANNOT BE RESTORED MUST NOT PASS AS RECOVERY ─────────
+# The restore loop skips a receipt entry whose function or grantee role has since
+# been dropped. Where the entry recorded a HELD privilege, that skip means the
+# rollback returns a state different from the one it promised — and the only
+# post-condition measures anon on the three definers, so a skipped grant on a
+# dropped OVERLOAD (or a grant to authenticated/supabase_auth_admin) left nothing
+# behind but a NOTICE on a terminal nobody reads during an outage.
+DB9="$(newdb rblost)"
+seed_unexposed "$DB9"
+psql "$DB9" -X -q -v ON_ERROR_STOP=1 >"$WORK/c9seed.out" 2>&1 <<'SQL'
+CREATE FUNCTION public.prune_integration_history(a int)
+  RETURNS void LANGUAGE sql SECURITY DEFINER AS $fn$ SELECT NULL::void $fn$;
+REVOKE ALL ON FUNCTION public.prune_integration_history(int) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.prune_integration_history(int) TO anon;
+SQL
+[[ $? -eq 0 ]] || fail "could not shape the dropped-overload fixture for case 9: $(head -3 "$WORK/c9seed.out")"
+
+psql "$DB9" -X -q -v ON_ERROR_STOP=1 -f "$APPLY" >"$WORK/c9a.out" 2>"$WORK/c9a.err" \
+  || fail "the forward migration did not commit against the case 9 fixture: $(head -3 "$WORK/c9a.err")"
+# The recorded grant's object disappears between apply and rollback. The identity
+# guard still passes — all four DISTINCT names are present — so this case cannot be
+# satisfied by that earlier throw.
+psql "$DB9" -X -q -v ON_ERROR_STOP=1 -c "DROP FUNCTION public.prune_integration_history(int)" \
+  >/dev/null 2>"$WORK/c9d.err" \
+  || fail "could not drop the recorded overload for case 9: $(head -3 "$WORK/c9d.err")"
+
+if psql "$DB9" -X -q -v ON_ERROR_STOP=1 -f "$DOWN" >"$WORK/c9r.out" 2>"$WORK/c9r.err"; then
+  fail "THE ROLLBACK REPORTED RECOVERY WITHOUT PERFORMING IT: a grant the receipt recorded as HELD could not be restored — its function was gone — and the rollback committed anyway, because the only post-condition measures anon on the three definers."
+fi
+grep -q 'cannot be restored' "$WORK/c9r.err" \
+  || fail "the rollback refused the dropped-overload database, but NOT on the unrestorable-entry guard, so that guard is unproven. stderr: $(head -3 "$WORK/c9r.err")"
+grep -q 'prune_integration_history(integer)' "$WORK/c9r.err" \
+  || fail "the unrestorable-entry guard fired but did not NAME the entry it could not restore, which is what an operator needs during a break-glass. stderr: $(head -3 "$WORK/c9r.err")"
+echo "  case 9  unrestorable entry    -> refused, and the lost grant is named"
+
+# ── 9b. MUTATION CONTROL for case 9 ──────────────────────────────────────────
+MUT9="$WORK/down-no-unrestorable.sql"
+python3 - "$DOWN" "$MUT9" <<'PY_MUT9'
+import sys
+src, dst = sys.argv[1], sys.argv[2]
+s = open(src).read()
+start = s.find("  IF array_length(_unrestorable, 1) > 0 THEN")
+assert start != -1, "could not locate the unrestorable-entry guard to mutate"
+end = s.find("  END IF;\n", start)
+assert end != -1, "could not locate the end of the unrestorable-entry guard"
+open(dst, 'w').write(s[:start] + s[end + len("  END IF;\n"):])
+print("case 9 mutant built")
+PY_MUT9
+[[ -s "$MUT9" ]] || fail "case 9 mutation control could not be built"
+grep -q 'cannot be restored' "$MUT9" \
+  && fail "case 9 mutation control is vacuous: the unrestorable-entry guard is still present in the mutant."
+
+DB9M="$(newdb rblostm)"
+seed_unexposed "$DB9M"
+psql "$DB9M" -X -q -v ON_ERROR_STOP=1 >"$WORK/c9mseed.out" 2>&1 <<'SQL'
+CREATE FUNCTION public.prune_integration_history(a int)
+  RETURNS void LANGUAGE sql SECURITY DEFINER AS $fn$ SELECT NULL::void $fn$;
+REVOKE ALL ON FUNCTION public.prune_integration_history(int) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.prune_integration_history(int) TO anon;
+SQL
+[[ $? -eq 0 ]] || fail "could not shape the case 9 control fixture: $(head -3 "$WORK/c9mseed.out")"
+psql "$DB9M" -X -q -v ON_ERROR_STOP=1 -f "$APPLY" >/dev/null 2>"$WORK/c9ma.err" \
+  || fail "the forward migration did not commit against the case 9 control fixture: $(head -3 "$WORK/c9ma.err")"
+psql "$DB9M" -X -q -v ON_ERROR_STOP=1 -c "DROP FUNCTION public.prune_integration_history(int)" \
+  >/dev/null 2>&1 || fail "could not drop the recorded overload for the case 9 control"
+
+if ! psql "$DB9M" -X -q -v ON_ERROR_STOP=1 -f "$MUT9" >/dev/null 2>"$WORK/c9m.err"; then
+  fail "MUTATION CONTROL FAILED: with the unrestorable-entry guard removed, the rollback STILL refused the dropped-overload database — so case 9 is not attributable to that guard. stderr: $(head -3 "$WORK/c9m.err")"
+fi
+echo "  case 9b missing-guard control -> the mutant commits the same partial restore (control is live)"
 
 echo "PASS  prove-rollback-fidelity"
 echo "  the rollback restores the pre-state the forward migration OBSERVED,"

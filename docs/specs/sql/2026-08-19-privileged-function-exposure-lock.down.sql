@@ -47,11 +47,20 @@
 --   * takes back grants the forward file created   — prove-rollback-fidelity.sh case 5
 --   * consumes its receipt, so a second cycle
 --     cannot replay a stale pre-state              — prove-rollback-fidelity.sh case 6
+--   * does not reject a CORRECT restore of a grant
+--     on a function that is not SECURITY DEFINER   — prove-rollback-fidelity.sh case 8
+--   * refuses, and NAMES, a recorded privilege it
+--     cannot put back (dropped function or role)   — prove-rollback-fidelity.sh case 9
 --
 -- STILL NOT TESTED, and it is F9's remaining scope: intermediate partial matches
--- of two or three present functions, and identity beyond names in a schema (owners,
--- argument signatures and SECURITY DEFINER status are not checked). Treat recovery
--- as proven for the cases above and unproven outside them.
+-- of two or three present functions, and identity beyond names and argument
+-- signatures. Function OWNERS are still not compared, so a function dropped and
+-- recreated under a different owner between apply and rollback is treated as the
+-- same object. Nor is SECURITY DEFINER status compared ACROSS TIME: the receipt
+-- does not record it, so a function that gains or loses SECURITY DEFINER between
+-- apply and rollback is not detected — case 8 fixes only the post-condition's
+-- internal asymmetry, by applying the same definer predicate to both sides of the
+-- equality. Treat recovery as proven for the cases above and unproven outside them.
 --
 -- Use it only if the revoke is shown to have broken a caller that legitimately
 -- needed anon or authenticated EXECUTE. The correct follow-up is then a narrow
@@ -119,9 +128,12 @@ $$;
 --    that happens to be wrong is indistinguishable from a successful recovery.
 DO $$
 DECLARE
-  _r        record;
-  _restored int := 0;
-  _rows     int;
+  _r            record;
+  _restored     int := 0;
+  _rows         int;
+  -- Entries the receipt records as HELD that this rollback cannot put back.
+  -- Counted, named, and fatal — see the guard at the end of this block.
+  _unrestorable text[] := '{}';
 BEGIN
   IF to_regclass('public.privileged_function_exposure_lock_receipt_20260819') IS NULL THEN
     RAISE EXCEPTION
@@ -154,8 +166,23 @@ BEGIN
     FROM public.privileged_function_exposure_lock_receipt_20260819
     WHERE object_kind = 'function'
   LOOP
+    -- A SKIP IS NOT A RESTORATION. Where the receipt recorded the privilege as
+    -- NOT held there is nothing to take back from an object that is gone, and the
+    -- skip is genuinely benign. Where it recorded the privilege as HELD, skipping
+    -- means this rollback is returning a state that differs from the one it
+    -- promised to return, and the only post-condition below measures anon on the
+    -- three definers — so a recorded `authenticated` or `supabase_auth_admin`
+    -- grant, or a grant on an overload that has since been dropped, went missing
+    -- with nothing louder than a NOTICE on a terminal nobody reads during an
+    -- outage. Collected here and made FATAL at the end of the block, inside the
+    -- same transaction, so nothing is changed rather than partially changed.
     IF to_regprocedure(_r.object_id) IS NULL THEN
-      RAISE NOTICE 'rollback: % is in the receipt but no longer exists — skipped', _r.object_id;
+      IF _r.has_execute THEN
+        _unrestorable := _unrestorable || format('%s (recorded EXECUTE for %s; the function no longer exists)',
+                                                 _r.object_id, coalesce(nullif(_r.grantee, ''), 'PUBLIC'));
+      ELSE
+        RAISE NOTICE 'rollback: % is in the receipt but no longer exists — it recorded NO privilege, so there is nothing to take back; skipped', _r.object_id;
+      END IF;
       CONTINUE;
     END IF;
     -- A role NAME is not a role IDENTITY. If a role present at apply time is dropped
@@ -169,7 +196,12 @@ BEGIN
     -- observed must say so on the operator's terminal.
     IF _r.grantee <> '' AND NOT EXISTS (
          SELECT 1 FROM pg_roles r WHERE r.rolname = _r.grantee) THEN
-      RAISE NOTICE 'rollback: role % from the receipt no longer exists — its recorded grant on % is SKIPPED', _r.grantee, _r.object_id;
+      IF _r.has_execute THEN
+        _unrestorable := _unrestorable || format('%s (recorded EXECUTE for role %s; that role no longer exists)',
+                                                 _r.object_id, _r.grantee);
+      ELSE
+        RAISE NOTICE 'rollback: role % from the receipt no longer exists — it held NO privilege on %, so there is nothing to take back; skipped', _r.grantee, _r.object_id;
+      END IF;
       CONTINUE;
     END IF;
     IF _r.has_execute THEN
@@ -207,6 +239,17 @@ BEGIN
     _restored := _restored + 1;
   END LOOP;
 
+  -- FAIL CLOSED ON A PARTIAL RESTORE. Everything above runs inside the single
+  -- transaction this file opens, so raising here changes nothing at all — which is
+  -- the point. The operator is told exactly which recorded privileges could not be
+  -- put back and can recreate the dropped role or function and re-run, instead of
+  -- being handed a "recovery complete" for a state that was never recovered.
+  IF array_length(_unrestorable, 1) > 0 THEN
+    RAISE EXCEPTION
+      'rollback aborted: % recorded privilege(s) cannot be restored, so this would return a state DIFFERENT from the one the receipt recorded: %. Recreate the missing role(s)/function(s) and re-run, or restore the ACLs by hand from a backup. Nothing has been changed.',
+      array_length(_unrestorable, 1), array_to_string(_unrestorable, '; ');
+  END IF;
+
   RAISE NOTICE 'rollback: restored % recorded pre-state entr(ies) from the receipt', _restored;
 END
 $$;
@@ -236,12 +279,41 @@ BEGIN
     AND p.proname IN ('custom_access_token_hook', 'before_user_created_hook', 'prune_integration_history')
     AND has_function_privilege('anon', p.oid, 'EXECUTE');
 
-  SELECT count(DISTINCT object_id) INTO _expected
-  FROM public.privileged_function_exposure_lock_receipt_20260819
-  WHERE object_kind = 'function'
-    AND has_execute
-    AND grantee IN ('anon', '')
-    AND object_id LIKE ANY (ARRAY['custom_access_token_hook%', 'before_user_created_hook%', 'prune_integration_history%']);
+  -- BOTH SIDES MUST MEASURE THE SAME PREDICATE OVER THE SAME IDENTITIES.
+  --
+  --    WHAT WAS WRONG. `_exposed` above resolves live catalogue entries and
+  --    requires `p.prosecdef`; `_expected` selected receipt rows by unanchored
+  --    TEXT PREFIX (`object_id LIKE 'prune_integration_history%'`) and applied no
+  --    definer test at all. Two asymmetries followed, and neither is theoretical:
+  --
+  --      * A recorded function that is NOT SECURITY DEFINER counts in `_expected`
+  --        and can never count in `_exposed`. A CORRECT rollback — one that put
+  --        that function's anon grant back exactly as recorded — then aborted with
+  --        "the rollback did not take", refusing a recovery that had worked. Pinned
+  --        by prove-rollback-fidelity.sh case 8.
+  --      * `object_id` is `regprocedure::text`, whose rendering depends on
+  --        search_path: the same function is `prune_integration_history()` or
+  --        `public.prune_integration_history()`. A prefix anchored at the bare name
+  --        silently matches ZERO rows in the qualified form, so `_expected`
+  --        collapses to 0 and the equality test rubber-stamps whatever the restore
+  --        did — the failure mode this post-condition exists to prevent.
+  --
+  --    Resolving each receipt row through `to_regprocedure` and re-asking the SAME
+  --    three predicates (`public`, `prosecdef`, the three names) removes both. It
+  --    also means a receipt row whose function no longer exists cannot inflate
+  --    `_expected` — that entry is not silently dropped, it is caught upstream by
+  --    the unrestorable-entry guard in the restore block, which aborts before this
+  --    check is ever reached.
+  SELECT count(DISTINCT r.object_id) INTO _expected
+  FROM public.privileged_function_exposure_lock_receipt_20260819 r
+  JOIN pg_proc p ON p.oid = to_regprocedure(r.object_id)
+  JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE r.object_kind = 'function'
+    AND r.has_execute
+    AND r.grantee IN ('anon', '')
+    AND n.nspname = 'public'
+    AND p.prosecdef
+    AND p.proname IN ('custom_access_token_hook', 'before_user_created_hook', 'prune_integration_history');
 
   IF _exposed <> _expected THEN
     RAISE EXCEPTION
