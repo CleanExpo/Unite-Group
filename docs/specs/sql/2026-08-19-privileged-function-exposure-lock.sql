@@ -38,7 +38,19 @@
 --           scripts/ship-gates/prove-rls-execute-coupling.sh is separately proven
 --           (exit 0, mutation-checked) and demonstrates why the deliberate row stays.
 --
--- Closes ship-board Rank 1 items 1-7 (docs/mission-control/ship-board.md), the
+-- SCOPE, stated precisely (corrected 20/08/2026). This file addresses ship-board Rank 1
+-- items 1-7 (docs/mission-control/ship-board.md), BUT IT DOES NOT CLOSE THEM ALL:
+--   * items 1-5 and 7 are closed by applying this file;
+--   * ITEM 6 IS DELIBERATELY NOT CLOSED — `authenticated` KEEPS EXECUTE on
+--     get_my_org_ids, because revoking it takes production down. Whether that
+--     retention is an exposure or a required RLS pattern is FOUNDER-QUEUE item F9 and
+--     is UNRESOLVED. Until F9 is answered, item 6 is CONTESTED, not fixed.
+-- The previous wording said this file "closes items 1-7" full stop, which told an
+-- operator the retained row was handled when the whole point is that it is not. An
+-- independent review caught it in the file the founder actually pastes, which is the
+-- worst place for that particular overstatement. The original sentence follows for
+-- context:
+-- Closes ship-board Rank 1 items 1-5 and 7 (docs/mission-control/ship-board.md), the
 -- live exposures found by scripts/ship-gates/prod-exposure.sql on 18/08/2026.
 --
 -- ROOT CAUSE. 20260620010000_auth_signup_allowlist.sql already ends each hook

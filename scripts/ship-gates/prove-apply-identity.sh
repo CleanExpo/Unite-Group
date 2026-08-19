@@ -22,9 +22,15 @@
 #   2. PARTIAL database (1/4)-> the apply ABORTS, naming its own identity guard
 #   3. COMPLETE database(4/4)-> the apply is ALLOWED PAST the guard
 #   3b. FOUR OVERLOADS of ONE name -> REFUSED (identities, not row counts)
-#   4. MUTATION CONTROL: with the guard block removed, case 1 COMMITS again.
-#      Without 4, cases 1-2 could be passing because of some unrelated error and
-#      this gate would be certifying a guard that never ran.
+#   4. MUTATION CONTROL (ATTRIBUTION, not commit): with the identity guard block
+#      removed, that guard's DISTINCTIVE MESSAGE must disappear from the failure.
+#      The database is still refused — by the receipt block's own "captured 0 rows"
+#      guard, which is defence in depth and correct — so requiring a COMMIT here would
+#      be requiring the second guard to be absent too. This header previously claimed
+#      "case 1 COMMITS again", which the implementation below does not and must not
+#      assert; corrected 20/08/2026 after an independent review read the code against
+#      the header. What case 4 establishes is that the refusal in cases 1-2 is
+#      ATTRIBUTABLE to the identity guard rather than incidental.
 #
 # Nothing here touches a database it did not create: names carry a random
 # suffix and the gate REFUSES a name that already exists rather than dropping it.
