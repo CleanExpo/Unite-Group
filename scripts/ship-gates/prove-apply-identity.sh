@@ -47,12 +47,20 @@ APPLY="$REPO/docs/specs/sql/2026-08-19-privileged-function-exposure-lock.sql"
 GUARD_TEXT='apply aborted: this file expects all 4 privileged functions'
 
 WORK="$(mktemp -d)"
-DBS=()
+# The register of databases to drop is a FILE, not an array, and that is the whole
+# point. `newdb` is called as `X="$(newdb foo)"` so its body runs in a COMMAND
+# SUBSTITUTION SUBSHELL: an array append there mutates a copy the parent never sees,
+# so cleanup iterated an empty array and every database this gate created survived it.
+# An independent review (openrouter, 19/08/2026) reported it and a catalog query found
+# 37 leaked databases on the local cluster. A write to a file crosses the subshell
+# boundary; an array assignment does not.
+DBS_FILE="$WORK/created-databases"
+: > "$DBS_FILE"
 cleanup() {
   local d
-  for d in "${DBS[@]:-}"; do
+  while IFS= read -r d; do
     [[ -n "$d" ]] && psql "$ADMIN" -X -q -c "DROP DATABASE IF EXISTS ${d} WITH (FORCE)" >/dev/null 2>&1
-  done
+  done < "$DBS_FILE"
   rm -rf "$WORK"
 }
 trap cleanup EXIT
@@ -61,7 +69,7 @@ fail() { echo "FAIL  prove-apply-identity: $1"; exit 1; }
 
 newdb() { # newdb <prefix> -> echoes the uri, records the name for cleanup
   pg_make_disposable_db "$ADMIN" "$1" || exit 2
-  DBS+=("$DISPOSABLE_DB")
+  printf '%s\n' "$DISPOSABLE_DB" >> "$DBS_FILE"
   echo "$DISPOSABLE_URI"
 }
 
@@ -117,23 +125,46 @@ echo "  case 3  complete database 4/4 -> allowed past the identity guard"
 # ── 4. MUTATION CONTROL: remove the guard, case 1 must COMMIT again ──────────
 # Without this, cases 1-2 could be green because of any unrelated error.
 MUTANT="$WORK/apply-no-guard.sql"
+# The range STOPS at block 0b, not at block 1-3. An independent review (openrouter,
+# 19/08/2026) found the earlier range ran to "1-3, 7:" and therefore deleted the
+# pre-state receipt block TOO — including its own independent empty-receipt refusal.
+# That mutant removed TWO guards, so a commit could not be attributed to the identity
+# guard being absent, and case 4 was certifying a guard it had not isolated. One mutant,
+# one guard: anything else proves only that SOME line mattered.
 awk '
   /^-- ── 0: IDENTITY GUARD/ { skipping = 1 }
-  skipping && /^-- ── 1-3, 7:/ { skipping = 0 }
+  skipping && /^-- ── 0b: PRE-STATE RECEIPT/ { skipping = 0 }
   !skipping { print }
 ' "$APPLY" >"$MUTANT"
+
+# Prove the mutant is the INTENDED one: the receipt block must survive it, or the
+# control has silently widened again.
+grep -q 'PRE-STATE RECEIPT' "$MUTANT" \
+  || fail "mutation control is too coarse: the pre-state receipt block was deleted along with the identity guard, so a commit could not be attributed to the guard alone."
 
 if grep -qF "$GUARD_TEXT" "$MUTANT"; then
   fail "mutation control could not be built: the identity guard is still present in the mutant, so the control would be vacuous."
 fi
 
+# ATTRIBUTION, NOT COMMIT. The narrow mutant revealed something the coarse one hid:
+# the empty database is refused by TWO independent guards — the identity guard, and the
+# receipt block's own "captured 0 rows" refusal. That is defence in depth and it is
+# correct, so demanding a COMMIT here would be demanding the second guard be absent too,
+# which is what the over-wide range was silently doing.
+#
+# What case 4 must actually establish is ATTRIBUTION: that the message cases 1-2 matched
+# was produced BY the identity guard. Remove that guard and its distinctive text must
+# vanish — whatever else still refuses the database.
 MUTDB="$(newdb applyid_mutant)"
-if run_apply "$MUTDB" "$MUTANT"; then
-  echo "  case 4  guard removed         -> the empty database COMMITS again (control is live)"
-else
-  fail "MUTATION CONTROL FAILED: with the identity guard removed, the apply still refused an empty database. Cases 1-2 are therefore NOT attributable to the guard — something else is rejecting it, and this gate would be certifying a guard that never ran. stderr: $(head -3 "$WORK/err")"
+run_apply "$MUTDB" "$MUTANT"
+if grep -qF "$GUARD_TEXT" "$WORK/err"; then
+  fail "MUTATION CONTROL FAILED: the identity guard was deleted from the mutant, yet its message still appeared. Cases 1-2 are therefore NOT attributable to it — something else emits that text, and this gate would be certifying a guard that never ran."
 fi
-
+if grep -q 'pre-state receipt captured 0 rows' "$WORK/err"; then
+  echo "  case 4  guard removed         -> its message is GONE; the receipt guard still refuses (attributed, defence in depth)"
+else
+  echo "  case 4  guard removed         -> its message is GONE (attributed)"
+fi
 echo "PASS  prove-apply-identity"
 echo "  the production apply file refuses an empty or partial database before mutating anything,"
 echo "  admits a complete one, and the refusal is attributable to the identity guard by mutation."

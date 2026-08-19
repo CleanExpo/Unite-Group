@@ -26,17 +26,29 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$HERE/../.." && pwd)"
 FIX="$REPO/docs/specs/sql/2026-08-19-privileged-function-exposure-lock.sql"
 ROLLBACK="$REPO/docs/specs/sql/2026-08-19-privileged-function-exposure-lock.down.sql"
-DB="ship_gate_repro"
 # The run exits 1 at step 4 by design, so a trailing cleanup statement is never
-# reached and the scratch database survives the run. An EXIT trap makes the
+# reached and the scratch database would survive the run. An EXIT trap makes the
 # "builds and drops its own scratch database" contract true on every path.
-cleanup_scratch() { psql -X -q -d "${ADMIN:-}" -c "DROP DATABASE IF EXISTS ship_gate_repro (FORCE)" >/dev/null 2>&1 || true; }
-trap cleanup_scratch EXIT
-
+#
+# NO FIXED SCRATCH NAME. This gate used to force-drop `ship_gate_repro` before it had
+# created anything: an independent review (openrouter, 19/08/2026) showed that
+# pre-creating that name with unrelated data got it deleted, on both the setup and the
+# failure path. A gate must never destroy data it did not create because a name
+# collided. pg_make_disposable_db randomises the suffix and ABORTS on a pre-existing
+# name, and pg_drop_disposable_db drops only what this process created.
 [[ $# -ge 1 ]] || { echo "usage: $(basename "$0") <admin-connection-uri>" >&2; exit 2; }
 ADMIN="$1"
-BASE="${ADMIN%/*}"
-SCRATCH="$BASE/$DB"
+
+HERE_LIB="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/pgprobe.sh
+. "$HERE_LIB/lib/pgprobe.sh"
+
+cleanup_scratch() { pg_drop_disposable_db "${ADMIN:-}"; }
+trap cleanup_scratch EXIT
+
+pg_make_disposable_db "$ADMIN" "ship_gate_repro" || exit 2
+DB="$DISPOSABLE_DB"
+SCRATCH="$DISPOSABLE_URI"
 
 fail() { echo "REPRO FAIL: $*" >&2; exit 1; }
 step() { echo; echo "── $* ────────────────────────────────────────────"; }
@@ -47,8 +59,7 @@ command -v psql >/dev/null 2>&1 || { echo "cannot run: psql not on PATH" >&2; ex
 q() { psql -X -A -t -q -v ON_ERROR_STOP=1 -d "$SCRATCH" -c "$1"; }
 
 step "0. scratch database"
-psql -X -q -v ON_ERROR_STOP=1 -d "$ADMIN" -c "DROP DATABASE IF EXISTS $DB (FORCE)" >/dev/null 2>&1
-psql -X -q -v ON_ERROR_STOP=1 -d "$ADMIN" -c "CREATE DATABASE $DB" >/dev/null || fail "could not create $DB"
+# Already created above by pg_make_disposable_db, which refused a pre-existing name.
 echo "created $DB"
 
 for r in anon authenticated supabase_auth_admin; do
@@ -200,7 +211,7 @@ done
 echo "  post-fix: supabase_auth_admin still holds EXECUTE — supplied by the re-grant, nothing else could"
 
 step "cleanup"
-psql -X -q -v ON_ERROR_STOP=1 -d "$ADMIN" -c "DROP DATABASE IF EXISTS $DB (FORCE)" >/dev/null
+pg_drop_disposable_db "$ADMIN"
 echo "dropped $DB"
 
 echo

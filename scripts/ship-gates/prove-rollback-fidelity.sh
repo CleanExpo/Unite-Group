@@ -51,12 +51,18 @@ for f in "$APPLY" "$DOWN"; do
 done
 
 WORK="$(mktemp -d)"
-DBS=()
+# The register is a FILE, not an array. `newdb` is called as `X="$(newdb foo)"`, so its
+# body runs in a command-substitution SUBSHELL and an array append there mutates a copy
+# the parent never sees — cleanup then iterated an empty array and left every database
+# behind. Reported by an independent review (openrouter, 19/08/2026); 37 leaked databases
+# were found on the local cluster. A file write crosses the subshell boundary.
+DBS_FILE="$WORK/created-databases"
+: > "$DBS_FILE"
 cleanup() {
   local d
-  for d in "${DBS[@]:-}"; do
+  while IFS= read -r d; do
     [[ -n "$d" ]] && psql "$ADMIN" -X -q -c "DROP DATABASE IF EXISTS ${d} WITH (FORCE)" >/dev/null 2>&1
-  done
+  done < "$DBS_FILE"
   rm -rf "$WORK"
 }
 trap cleanup EXIT
@@ -65,7 +71,7 @@ fail() { echo "FAIL  prove-rollback-fidelity: $1"; exit 1; }
 
 newdb() {
   pg_make_disposable_db "$ADMIN" "$1" || exit 2
-  DBS+=("$DISPOSABLE_DB")
+  printf '%s\n' "$DISPOSABLE_DB" >> "$DBS_FILE"
   echo "$DISPOSABLE_URI"
 }
 

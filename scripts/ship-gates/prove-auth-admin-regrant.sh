@@ -42,17 +42,30 @@ REPO="$(cd "$HERE/../.." && pwd)"
 FIX="$REPO/docs/specs/sql/2026-08-19-privileged-function-exposure-lock.sql"
 [[ -f "$FIX" ]] || { echo "cannot run: fix not found at $FIX" >&2; exit 2; }
 
-DB="ship_gate_regrant"
-BASE="${ADMIN%/*}"
-SCRATCH="$BASE/$DB"
+# NO FIXED SCRATCH NAME. This gate used to force-drop `ship_gate_regrant` before it
+# created anything: an independent review (openrouter, 19/08/2026) pre-created that name
+# with a sentinel table and watched the gate delete it and exit 0. A gate must never
+# destroy data it did not create merely because a name collided. pg_make_disposable_db
+# generates a random suffix and ABORTS if the name already exists.
+HERE_LIB="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/pgprobe.sh
+. "$HERE_LIB/lib/pgprobe.sh"
+
 WORK="$(mktemp -d)"
-trap 'psql -X -q -d "$ADMIN" -c "DROP DATABASE IF EXISTS $DB (FORCE)" >/dev/null 2>&1; rm -rf "$WORK"' EXIT
+cleanup() { pg_drop_disposable_db "$ADMIN"; rm -rf "$WORK"; }
+trap cleanup EXIT
+
+pg_make_disposable_db "$ADMIN" "ship_gate_regrant" || exit 2
+DB="$DISPOSABLE_DB"
+SCRATCH="$DISPOSABLE_URI"
 
 fail() { echo "FAIL  prove-auth-admin-regrant: $*"; exit 1; }
 
 # ── seed: the PUBLIC-only shape, with NO direct grant to supabase_auth_admin ──
 seed() {
-  psql -X -q -v ON_ERROR_STOP=1 -d "$ADMIN" -c "DROP DATABASE IF EXISTS $DB (FORCE)" >/dev/null 2>&1
+  # The database was created above by pg_make_disposable_db, which refused to touch a
+  # pre-existing name. Re-seeding drops only what THIS process created.
+  psql -X -q -v ON_ERROR_STOP=1 -d "$ADMIN" -c "DROP DATABASE IF EXISTS $DB WITH (FORCE)" >/dev/null 2>&1
   psql -X -q -v ON_ERROR_STOP=1 -d "$ADMIN" -c "CREATE DATABASE $DB" >/dev/null 2>&1 \
     || fail "could not create scratch database $DB"
   psql -X -q -v ON_ERROR_STOP=1 -d "$SCRATCH" >"$WORK/seed.out" 2>&1 <<'SQL'
