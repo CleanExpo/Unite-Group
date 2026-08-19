@@ -84,7 +84,17 @@ reaches production.
 EXECUTE on the two auth hooks or every login breaks. The file revokes first and
 re-grants `supabase_auth_admin` afterwards, so ordering cannot strand it, and it
 refuses to commit unless a post-condition inside the same transaction finds zero
-exposed definers. The harness asserts the grant survived rather than assuming it.
+exposed definers.
+
+The harness proves that re-grant is *load-bearing*, which is a stronger claim
+than checking the grant is present afterwards. Where `supabase_auth_admin` holds
+an explicit grant, the fix never revokes it, so a post-fix presence check passes
+even with the re-grant deleted — measured, not assumed: that mutant survived the
+original step 5. Step 8 builds the state where the re-grant is the only thing
+standing between the fix and a total login outage — `supabase_auth_admin`
+reaching the hooks via PUBLIC alone, which is exactly how production renders
+`prune_integration_history` (`{postgres=X/postgres,=X/postgres}`) — and there the
+mutant is killed.
 
 **Items 4 and 5 are closed by `ENABLE ROW LEVEL SECURITY`, not `DROP`.** RLS with
 no policy denies all access, which removes the exposure without destroying data
@@ -134,7 +144,10 @@ Receipts, not adjectives. Re-runnable:
 scripts/ship-gates/repro-prod-exposure.sh "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
 ```
 
-Run 19/08/2026 against an ephemeral Supabase (Postgres 17.6), exit **0**:
+Run 19/08/2026 against an ephemeral Supabase (Postgres 17.6), exit **0**.
+Every row below was mutation-checked: the claim's control was demonstrated
+failing under a mutant that reintroduces the defect it names, then the source
+restored byte-identical.
 
 | Step | Assertion | Result |
 |---|---|---|
@@ -145,6 +158,7 @@ Run 19/08/2026 against an ephemeral Supabase (Postgres 17.6), exit **0**:
 | 5 | `anon` / `authenticated` hold EXECUTE on none of the four | confirmed |
 | 6 | unrelated anon-callable `harmless_rpc()` untouched | yes — fix is not over-broad |
 | 7 | rollback restores the exposure | gate returns to red — reversible, proven |
+| 8 | re-grant is load-bearing: `supabase_auth_admin` reaching the hooks via PUBLIC **alone** still holds EXECUTE after the fix | yes — and deleting the re-grant fails this step |
 
 **Root cause, and why it was invisible.** `20260620010000_auth_signup_allowlist.sql`
 already ends each hook with `REVOKE EXECUTE … FROM PUBLIC`. That revoke is real

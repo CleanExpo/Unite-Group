@@ -3,9 +3,11 @@
 #
 # WHAT THIS PROVES, AND WHAT IT DOES NOT.
 #   Proves : the gate detects the exposure; the fix migration closes it; the fix
-#            keeps supabase_auth_admin's EXECUTE (login survives); the fix does
-#            not over-reach onto unrelated anon-callable functions; the rollback
-#            restores the pre-fix state.
+#            keeps supabase_auth_admin's EXECUTE (login survives) EVEN when that
+#            EXECUTE came via PUBLIC alone, which is the only arrangement in
+#            which the re-grant is load-bearing; the fix does not over-reach onto
+#            unrelated anon-callable functions; the rollback restores the pre-fix
+#            state.
 #   Does NOT prove : that production is clean. Production is a different database
 #            and only a run of run-prod-exposure.sh against it can say.
 #
@@ -124,6 +126,9 @@ set -e
 [[ $GREEN_RC -eq 0 ]] || fail "expected gate exit 0 after the fix, got $GREEN_RC"
 
 step "5. login must survive — supabase_auth_admin keeps EXECUTE"
+# NOTE: in THIS scenario supabase_auth_admin holds an explicit grant, which the
+# fix never revokes, so this step passes whether or not the fix re-grants. It is
+# a state check, not a control on the re-grant. Step 8 is that control.
 for fn in "public.custom_access_token_hook(jsonb)" "public.before_user_created_hook(jsonb)"; do
   HAS=$(q "SELECT has_function_privilege('supabase_auth_admin','$fn','EXECUTE')")
   [[ "$HAS" == "t" ]] || fail "supabase_auth_admin LOST EXECUTE on $fn — this fix would lock out every login"
@@ -155,11 +160,46 @@ else
   fail "rollback file missing: $ROLLBACK"
 fi
 
+step "8. the re-grant must be LOAD-BEARING, not decorative"
+# Step 5 cannot fail when the re-grant is deleted: the seed gives
+# supabase_auth_admin an EXPLICIT grant and the fix only revokes from PUBLIC,
+# anon and authenticated, so its EXECUTE survives on its own. A control that
+# cannot fail under the defect it names proves nothing.
+#
+# This step builds the state where the re-grant is the ONLY thing standing
+# between the fix and a total login outage: supabase_auth_admin reaches the
+# hooks via PUBLIC alone. That is not hypothetical — production renders
+# prune_integration_history as {postgres=X/postgres,=X/postgres}, i.e. PUBLIC
+# is the only non-owner path, so a hook in the same shape is a live scenario.
+# With this state seeded, `REVOKE ALL ... FROM PUBLIC` strips supabase_auth_admin
+# too, and only the re-grant puts it back.
+psql -X -q -v ON_ERROR_STOP=1 -d "$SCRATCH" >/dev/null <<'PUBONLY' || fail "public-only re-seed failed"
+REVOKE ALL ON FUNCTION public.custom_access_token_hook(jsonb) FROM supabase_auth_admin;
+REVOKE ALL ON FUNCTION public.before_user_created_hook(jsonb) FROM supabase_auth_admin;
+GRANT EXECUTE ON FUNCTION public.custom_access_token_hook(jsonb) TO PUBLIC;
+GRANT EXECUTE ON FUNCTION public.before_user_created_hook(jsonb) TO PUBLIC;
+PUBONLY
+for fn in "public.custom_access_token_hook(jsonb)" "public.before_user_created_hook(jsonb)"; do
+  HAS=$(q "SELECT has_function_privilege('supabase_auth_admin','$fn','EXECUTE')")
+  [[ "$HAS" == "t" ]] || fail "public-only re-seed is wrong: supabase_auth_admin cannot reach $fn before the fix"
+  DIRECT=$(q "SELECT count(*) FROM pg_proc p, aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) a WHERE p.oid = '$fn'::regprocedure AND a.grantee = 'supabase_auth_admin'::regrole")
+  [[ "$DIRECT" == "0" ]] || fail "public-only re-seed is wrong: supabase_auth_admin still holds a DIRECT grant on $fn ($DIRECT)"
+done
+echo "  pre-fix: supabase_auth_admin reaches both hooks via PUBLIC only, no direct grant"
+
+psql -X -q -v ON_ERROR_STOP=1 -d "$SCRATCH" -f "$FIX" >/dev/null 2>&1 || fail "fix migration failed on the public-only scenario"
+for fn in "public.custom_access_token_hook(jsonb)" "public.before_user_created_hook(jsonb)"; do
+  HAS=$(q "SELECT has_function_privilege('supabase_auth_admin','$fn','EXECUTE')")
+  [[ "$HAS" == "t" ]] || fail "supabase_auth_admin LOST EXECUTE on $fn — the re-grant is missing or ineffective, and this fix would lock out every login"
+done
+echo "  post-fix: supabase_auth_admin still holds EXECUTE — supplied by the re-grant, nothing else could"
+
 step "cleanup"
 psql -X -q -v ON_ERROR_STOP=1 -d "$ADMIN" -c "DROP DATABASE IF EXISTS $DB (FORCE)" >/dev/null
 echo "dropped $DB"
 
 echo
-echo "REPRO PASS — gate detects the defect, fix closes it, login survives, fix is"
+echo "REPRO PASS — gate detects the defect, fix closes it, login survives even when"
+echo "             the auth service reached the hooks via PUBLIC alone, fix is"
 echo "             not over-broad, rollback is reversible. Local only: this says"
 echo "             nothing about production until the gate is run against it."
