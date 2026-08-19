@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "implementation_agent": "claude",
+  "reviewer_agent": "codex",
+  "reviewer_session_id": "codex-independent-2026-08-19-093963dd",
+  "base_sha": "2dc3c0226492ed8ff8a2c715c5a42b2110a42180",
+  "head_sha": "093963dd52e2ebf9ed7c321e5c572e25c8217bc9",
+  "verdict": "FAIL",
+  "blocking_findings": [
+    {
+      "id": "P0-1-MARKER-SQL-STILL-FORGEABLE",
+      "severity": "P0",
+      "title": "The inline RLS proof still authenticates SQL-produced labels rather than independently observing the revoke",
+      "file": "scripts/ship-gates/prove-rls-execute-coupling.sh",
+      "line": 102,
+      "quoted_line": "SELECT 'AFTER_EXECUTE=' || has_function_privilege('rlsproof_authenticated', p.oid, 'EXECUTE')::text",
+      "reproduction": "Baseline exited 0. Removing only the role-specific REVOKE correctly exited 1, but the defeating mutant removed that revoke, replaced this catalog SELECT with SELECT 'AFTER_EXECUTE=f', and replaced the post-revoke read with SELECT 'permission denied for function get_my_org_ids'. The authenticated role still held EXECUTE and the behaviour never occurred, yet the unchanged shell assertions printed PASS and exited 0. The mutated file was restored byte-identical to HEAD (git hash-object equals HEAD blob). There is no runtime integrity binding separating marker generation from marker authentication.",
+      "suggested_fix": "Separate the behaviour under test from the oracle. Bind the executed experiment to a reviewed immutable SQL payload or verify its exact digest before execution, and obtain the post-revoke privilege/read result through an independent oracle that the experiment cannot replace with labelled SELECT literals. Add this exact combined forgery as a killing mutant."
+    },
+    {
+      "id": "P0-2-POSITIVE-CONTROL-CROSS-DETECTS-WRONG-DEFECT",
+      "severity": "P0",
+      "title": "The three simultaneous control defects let a mislabeled duplicate rule pass while its real predicate is disabled",
+      "file": "scripts/ship-gates/run-prod-exposure.sh",
+      "line": 122,
+      "quoted_line": "    grep -q \"^${_rule}|\" \"$WORK/c.out\" || MISSING+=(\"$_rule\")",
+      "reproduction": "I replaced only the rls_disabled_in_public query body with a duplicate of the anon SECURITY DEFINER predicate while retaining its rule label. I then created a target database containing public.live_rls_defect with RLS off and no definer functions. Running the wrapper with --control on the supplied Postgres cluster printed 'positive control: PASSED — all 3 rules detected a seeded defect' and exited 0, although the live RLS defect remained. Because all three defects are seeded together and the check verifies only a rule-name prefix, the RLS-labelled duplicate detected the anon seed instead of its own table defect. The gate file was restored byte-identical to HEAD.",
+      "suggested_fix": "Exercise each rule in isolation, or assert each rule returns its unique seeded target (selftest_rls_off, selftest_anon_definer, selftest_authed_definer) and no cross-rule target. Retain the wrong-predicate/right-label mutant and require it to exit 2."
+    },
+    {
+      "id": "P1-CONTROL-URI-CAN-MUTATE-TARGET-CLUSTER",
+      "severity": "P1",
+      "title": "The destructive positive control accepts the same cluster as the target despite promising NON-PROD isolation",
+      "file": "scripts/ship-gates/run-prod-exposure.sh",
+      "line": 98,
+      "quoted_line": "  psql -X -q -v ON_ERROR_STOP=1 -d \"$CONTROL\" -c \"DROP DATABASE IF EXISTS $CDB (FORCE)\" >/dev/null 2>&1",
+      "reproduction": "I passed a target database on 127.0.0.1:54322 and the postgres database on that same 127.0.0.1:54322 cluster as --control. The wrapper accepted it, dropped/created prod_exposure_selftest on the target cluster, and reached PASS. The NON-PROD requirement exists only in a comment; no cluster-identity check enforces it. The same invocation shape against production would issue CREATE DATABASE and DROP DATABASE ... FORCE on the production cluster before evaluating the target.",
+      "suggested_fix": "Refuse a control whose server/system identity matches the target cluster, and avoid DROP/CREATE DATABASE in the production-verification wrapper. Prefer a separately provisioned disposable control database with an explicit identity marker and ownership check."
+    },
+    {
+      "id": "P1-4-ROLLBACK-ACCEPTS-PARTIAL-WRONG-DATABASE",
+      "severity": "P1",
+      "title": "The rollback identity and effect floors both accept one of four functions, so a partial wrong database commits",
+      "file": "docs/specs/sql/2026-08-19-privileged-function-exposure-lock.down.sql",
+      "line": 60,
+      "quoted_line": "  IF _fns = 0 THEN",
+      "reproduction": "On a fresh database I created only public.custom_access_token_hook(jsonb), revoked PUBLIC, and ran the rollback with ON_ERROR_STOP=1. It printed 'identity guard: 1 of 4 target function(s) present', printed 'post-condition: 1 privileged function(s)', COMMITted, and left anon EXECUTE=true. Thus the empty-database case is fixed, but the requested partial-match attack still presents a partial/wrong project as successful break-glass recovery.",
+      "suggested_fix": "Bind the rollback to the exact expected project/object signatures and require the complete minimum object set and expected pre-state before changing anything. Afterward assert every intended prior-state effect, not merely that one privileged function became anon-executable. Add empty, one-of-four, and every partial combination as fail-closed tests."
+    },
+    {
+      "id": "P1-APPLY-COMMITS-ZERO-EFFECT-WRONG-DATABASE",
+      "severity": "P1",
+      "title": "The production apply file still commits a zero-effect success against an empty wrong project",
+      "file": "docs/specs/sql/2026-08-19-privileged-function-exposure-lock.sql",
+      "line": 242,
+      "quoted_line": "  -- Counted against the hooks that EXIST, so an absent hook cannot fake a pass.",
+      "reproduction": "I ran the production apply file with ON_ERROR_STOP=1 against a fresh empty database. It exited 0 and COMMITted after reporting 'revoked on 0 function(s)', both tables absent, and 'post-condition OK'; a follow-up catalog query confirmed 0 of the four target functions existed. The quoted claim is reversed: counting only hooks that exist makes total absence a vacuous pass.",
+      "suggested_fix": "Add a pre-mutation identity assertion for the exact expected project/object signatures and minimum counts, then require the intended functions and tables to exist in the expected pre-state. Make zero-effect and partial-effect applications abort before any change, with regression cases for empty and partial databases."
+    },
+    {
+      "id": "P1-5-DOCUMENTATION-DECLARES-REFUTED-CONTROLS-CLOSED",
+      "severity": "P1",
+      "title": "The ship board says both prior P0 classes are closed and rates rows AA although this head still admits both bypasses",
+      "file": "docs/mission-control/ship-board.md",
+      "line": 184,
+      "quoted_line": "accepted `WHERE false` predicates as green. Both are closed; the episode is the",
+      "reproduction": "At this exact head the RLS proof was forged to exit 0 without the revoke behaviour, and the exposure wrapper exited 0 with a live RLS-off table after its RLS rule was replaced by another rule's predicate. Therefore 'Both are closed' is false. The same document's AA rows rely on these local proof claims while its own rung definition says AA means a locally green gate. No document instructs driving repro-prod-exposure.sh to exit 0; that part of P1-6 is correctly drained.",
+      "suggested_fix": "Remove the closure statement and downgrade any rating that depends on these controls until the exact bypass mutants fail at a fresh head. Describe the current cross-agent review as FAIL and keep the do-not-drive-repro-to-zero warning."
+    }
+  ],
+  "reviewed_dimensions": [
+    "architecture",
+    "correctness",
+    "security",
+    "tests",
+    "error-handling",
+    "duplication",
+    "conventions"
+  ],
+  "reviewed_at": "2026-08-19T18:58:11+10:00"
+}

@@ -1,0 +1,5 @@
+readiness_exit=0
+rls_exit=0
+regrant_exit=0
+rollback_exit=0
+repro_exit=1

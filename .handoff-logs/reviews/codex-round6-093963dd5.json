@@ -1,0 +1,126 @@
+{
+  "schema": 1,
+  "implementation_agent": "claude",
+  "reviewer_agent": "codex",
+  "reviewer_session_id": "e320e451-1f86-4d39-9d92-bc0cdd2ae587",
+  "base_sha": "2dc3c0226492ed8ff8a2c715c5a42b2110a42180",
+  "head_sha": "093963dd52e2ebf9ed7c321e5c572e25c8217bc9",
+  "verdict": "FAIL",
+  "blocking_findings": [
+    {
+      "severity": "P0",
+      "file": "scripts/ship-gates/prove-rls-execute-coupling.sh",
+      "line": 115,
+      "quoted_line": "has() { grep -qF \"$1\" <<<\"$OUT\"; }",
+      "finding": "A1 remains forgeable because the shell authenticates seven strings, not the experiment that produced them. I wrapped the real heredoc body in psql \\if false and appended seven literal SELECTs emitting the expected markers and permission-denied text. No schema, role, function, table, policy, grant, revoke, failing read, or transaction ran; the unmodified shell assertions printed PASS and exited 0. A second mutant replaced ROLLBACK with explicit DROP SCHEMA/DROP ROLE plus COMMIT and also exited 0 while claiming the transaction rolled back. Removing only the revoke correctly exited 1, but that does not close either successful label-forgery bypass."
+    },
+    {
+      "severity": "P0",
+      "file": "scripts/ship-gates/run-prod-exposure.sh",
+      "line": 122,
+      "quoted_line": "    grep -q \"^${_rule}|\" \"$WORK/c.out\" || MISSING+=(\"$_rule\")",
+      "finding": "A2's positive control proves only that each seeded object's exact name can produce its expected label. I restricted each real predicate to its corresponding selftest_* object, then pointed the wrapper at another database containing a differently named live defect in all three classes. The control printed PASSED, the target printed zero rows, and the wrapper exited 0. The all-WHERE-false mutant is killed, but a rule blind to every other instance of its own defect class still licenses a false green."
+    },
+    {
+      "severity": "P0",
+      "file": "scripts/ship-gates/prove-rollback.sh",
+      "line": 123,
+      "quoted_line": "grep -q 'rollback aborted' \"$WORK/wrong.out\" \\",
+      "finding": "A4's mutation control cannot prove that the identity guard fired. I deleted the entire identity-guard DO block from the real down SQL. The empty wrong database then failed later on the minimum-effect post-condition, whose message also contains 'rollback aborted'; this generic grep accepted it, prove-rollback printed 'refused on the identity guard', and exited 0. A regression test that stays green when the guard it certifies is deleted is a P0 under the supplied rubric."
+    },
+    {
+      "severity": "P1",
+      "file": "docs/specs/sql/2026-08-19-privileged-function-exposure-lock.down.sql",
+      "line": 60,
+      "quoted_line": "  IF _fns = 0 THEN",
+      "finding": "The unmodified rollback's identity guard rejects only zero matching names, not a wrong project. I created a fresh database containing only one colliding custom_access_token_hook and none of the other three functions or either dated table. The guard reported 1 of 4, the down migration committed with exit 0, and anon gained EXECUTE. The claimed wrong-project refusal therefore does not hold outside the one empty-database fixture."
+    },
+    {
+      "severity": "P1",
+      "file": "scripts/ship-gates/prove-rollback.sh",
+      "line": 114,
+      "quoted_line": "AFTER_DOWN=\"$(anon_definers \"$DB\")\"",
+      "finding": "The rollback proof checks only three function grants and never reads either dated table's relrowsecurity state. I deleted the complete RLS-disable block from the real down migration; prove-rollback still printed 'prior state restored' and TESTED and exited 0. Thus ship-board items 4 and 5 have no mutation-sensitive rollback receipt."
+    },
+    {
+      "severity": "P1",
+      "file": "docs/specs/sql/2026-08-19-privileged-function-exposure-lock.sql",
+      "line": 258,
+      "quoted_line": "  RAISE NOTICE 'post-condition OK: 0 anon-executable definers; 0 unexpected authenticated-executable definers; supabase_auth_admin retains EXECUTE on every auth hook present';",
+      "finding": "The forward migration has no identity or minimum-effect assertion. Applied to a fresh empty database, it reported revoked on 0 functions, both tables absent, then printed this post-condition OK notice, COMMITted, and exited 0. An operator can paste it into the wrong project and receive an affirmative success message while it changed nothing. The post-condition also does not read relrowsecurity, contrary to the ship-board receipt."
+    },
+    {
+      "severity": "P1",
+      "file": "docs/specs/sql/2026-08-19-privileged-function-exposure-lock.down.sql",
+      "line": 80,
+      "quoted_line": "    EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO anon, authenticated', _fn);",
+      "finding": "The down migration does not restore exactly what the forward migration removed; it unconditionally grants a hard-coded presumed pre-state. I seeded an owner-only custom_access_token_hook with anon EXECUTE false, applied the forward migration, then applied the down migration. Both committed, and anon EXECUTE changed from false before the pair to true after it. The rollback can therefore create a privilege exposure absent from the pre-migration state."
+    },
+    {
+      "severity": "P1",
+      "file": "scripts/ship-gates/run-prod-exposure.sh",
+      "line": 93,
+      "quoted_line": "  CBASE=\"${CONTROL%/*}\"",
+      "finding": "The mandatory non-production control boundary is prose only. I supplied the exact same admin URI for the target and --control; the wrapper created its selftest database on that same cluster, printed PASS, and exited 0. There is no server/cluster identity comparison, so the production target cluster itself can satisfy the supposed NON-PROD control requirement."
+    },
+    {
+      "severity": "P1",
+      "file": "scripts/ship-gates/run-prod-exposure.sh",
+      "line": 98,
+      "quoted_line": "  psql -X -q -v ON_ERROR_STOP=1 -d \"$CONTROL\" -c \"DROP DATABASE IF EXISTS $CDB (FORCE)\" >/dev/null 2>&1",
+      "finding": "The control uses a fixed database name and force-drops it without proving ownership. I pre-created prod_exposure_selftest with a sentinel table, ran the unmodified wrapper, and it exited 0 after deleting the pre-existing database; pg_database then returned count 0. This is destructive to unrelated data on the nominated cluster."
+    },
+    {
+      "severity": "P1",
+      "file": "scripts/ship-gates/prove-rollback.sh",
+      "line": 57,
+      "quoted_line": "  psql -X -q -d \"$ADMIN\" -c \"DROP DATABASE IF EXISTS $1 (FORCE)\" >/dev/null 2>&1",
+      "finding": "The rollback proof makes the same destructive fixed-name assumption despite claiming it never touches an existing database. I pre-created ship_gate_rollback with a sentinel table, ran the unmodified proof, and it exited 0 after deleting the pre-existing database; pg_database then returned count 0."
+    },
+    {
+      "severity": "P1",
+      "file": "scripts/ship-gates/prove-auth-admin-regrant.sh",
+      "line": 55,
+      "quoted_line": "  psql -X -q -v ON_ERROR_STOP=1 -d \"$ADMIN\" -c \"DROP DATABASE IF EXISTS $DB (FORCE)\" >/dev/null 2>&1",
+      "finding": "The auth-admin proof also force-drops a fixed database despite claiming it never touches an existing one. I pre-created ship_gate_regrant with a sentinel table, ran the unmodified proof, and it exited 0 after deleting the pre-existing database; pg_database then returned count 0."
+    },
+    {
+      "severity": "P1",
+      "file": "docs/mission-control/ship-board.md",
+      "line": 32,
+      "quoted_line": "after, and the fix's in-transaction post-condition additionally asserts RLS is",
+      "finding": "The AA receipt for rows 4 and 5 is false. The forward post-condition contains no relrowsecurity assertion, prove-rollback contains no table-state read-back, and deleting the down migration's entire table block left prove-rollback green. The board's own AA definition is 'fixed, gate green locally', while the cited evidence does not test either table and repro remains red."
+    },
+    {
+      "severity": "P1",
+      "file": "docs/mission-control/ship-board.md",
+      "line": 242,
+      "quoted_line": "the earlier revision `44c44368f`**; two independent reviewers subsequently found",
+      "finding": "A5's independence correction is incomplete. The same board says at lines 178-181 that those Claude-on-Claude rounds were not independent under the release law, but this surviving evidence paragraph still calls them two independent reviewers. The operating record remains internally contradictory."
+    },
+    {
+      "severity": "P1",
+      "file": "docs/session-handoffs/handoff-20260819-1145.md",
+      "line": 19,
+      "quoted_line": "| **Completed** | Dispatched two independent executing reviewers; both returned FAIL; confirmed the P0 independently; redesigned the revoke model and the post-condition; corrected two production-state overclaims |",
+      "finding": "The dated handoff retains the same overstated independence claim after the current board correctly records that both reviewers were Claude and did not satisfy the cross-agent release law. Line 183 additionally calls that review discharged for its SHA. This is the exact claim-corrected-in-one-document/left-standing-in-an-operating-handoff class A5 requested swept."
+    },
+    {
+      "severity": "P1",
+      "file": "docs/specs/sql/2026-08-19-privileged-function-exposure-lock.down.sql",
+      "line": 29,
+      "quoted_line": "-- production change\" precondition is NOT met. That is part of founder item F9,",
+      "finding": "The break-glass file contradicts itself about operator readiness: lines 14-16 say the rollback was tested on 19/08/2026 and refused the wrong project, while this still-active consequence says the tested-rollback precondition is NOT met. The paragraph is not grammatically scoped to the earlier revision and conflicts with the header an operator reads during recovery."
+    }
+  ],
+  "reviewed_dimensions": [
+    "architecture",
+    "correctness",
+    "security",
+    "tests",
+    "error-handling",
+    "duplication",
+    "conventions"
+  ],
+  "reviewed_at": "2026-08-19T09:04:00Z"
+}

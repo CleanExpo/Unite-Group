@@ -149,8 +149,16 @@ mkdb "$WRONG"
 if psql -X -q -v ON_ERROR_STOP=1 -d "$BASE/$WRONG" -f "$DOWN" >"$WORK/wrong.out" 2>&1; then
   fail "the rollback COMMITTED against an empty database standing in for the wrong project. During an outage that is a silent no-op presented as successful recovery."
 fi
-grep -q 'rollback aborted' "$WORK/wrong.out" \
-  || fail "the rollback failed against the wrong project, but not on its own identity guard — the abort may be incidental. Output: $(head -3 "$WORK/wrong.out")"
+# The string 'rollback aborted' is emitted by BOTH guards in the down migration —
+# the identity guard (…down.sql:66) and the minimum-effect post-condition
+# (…down.sql:139). Round 6 of the cross-agent review defeated the earlier grep on
+# that shared prefix by deleting the identity-guard DO block entirely: the empty
+# database then failed LATER, on minimum-effect, whose message also matched, and
+# this gate printed "refused on the identity guard" and exited 0. A control that
+# accepts a different guard's abort cannot prove the guard it names ever ran.
+# Match the identity guard's OWN text, which no other exception in the file emits.
+grep -q 'expected all 4 privileged functions this file restores' "$WORK/wrong.out" \
+  || fail "the rollback failed against the wrong project, but NOT on its identity guard — the abort came from somewhere else, so the guard is unproven. Output: $(head -3 "$WORK/wrong.out")"
 
 echo "PASS  prove-rollback"
 echo "  seeded exposure:      3 anon-executable SECURITY DEFINER function(s)"
