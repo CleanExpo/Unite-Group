@@ -82,7 +82,21 @@ cleanup() {
   fi
   rm -rf "$WORK"
 }
-trap cleanup EXIT
+# AN EXIT TRAP THAT RETURNS DOES NOT CHANGE THE EXIT STATUS. bash keeps the status that
+# triggered the trap unless the handler EXITS with a replacement, so `cleanup` returning
+# 1 printed its warnings and the gate still exited 0 on the PASS path — the "cleanup
+# failure makes the gate fail" claim was false in exactly the way the warnings made it
+# look true. Reported by an independent review (openrouter, 20/08/2026). The handler now
+# saves $?, runs cleanup, and re-raises as 2 when a database leaked.
+_on_exit() {
+  local _rc=$?
+  if ! cleanup; then
+    echo "FAIL(cleanup): scratch databases were left behind; refusing to report a clean run." >&2
+    [[ $_rc -eq 0 ]] && _rc=2
+  fi
+  exit "$_rc"
+}
+trap _on_exit EXIT
 
 fail() { echo "FAIL  prove-rollback-fidelity: $1"; exit 1; }
 
