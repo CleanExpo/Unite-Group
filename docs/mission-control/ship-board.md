@@ -210,8 +210,10 @@ run terminates at step 4 on the single deliberate `get_my_org_ids` row
 Any row below describing them as passing is describing the earlier revision
 `44c44368f`, not this head, and is marked NOT REACHED accordingly. In particular
 the mutation claim for the `supabase_auth_admin` re-grant was killed by step 8 —
-which is unreachable at this head, so that control is currently unproven even
-though the mechanism it guards has been restored.
+which is unreachable at this head. The control it would have provided is
+supplied instead by `scripts/ship-gates/prove-auth-admin-regrant.sh` (exit 0,
+19/08/2026), which reaches the same claim without depending on step 4's verdict.
+The mechanism has been restored and its control runs.
 Rows 2, 5, 7 and 8 were mutation-checked by the implementing agent **against
 the earlier revision `44c44368f`**; two independent reviewers subsequently found
 a killing mutant for all eight, and for three further controls the branch had
@@ -238,7 +240,7 @@ byte-identical, `shasum -c` OK. Runs in one transaction, ROLLBACK'd.
 | 5 | `anon` / `authenticated` hold EXECUTE on none of the four | **NOT REACHED** |
 | 6 | unrelated anon-callable `harmless_rpc()` untouched | **NOT REACHED** |
 | 7 | rollback restores the exposure | **NOT REACHED** |
-| 8 | re-grant is load-bearing: `supabase_auth_admin` reaching the hooks via PUBLIC **alone** still holds EXECUTE after the fix | **NOT REACHED** — and this is the control for the re-grant that `e964ab9bf` deleted, so it is unproven at this head |
+| 8 | re-grant is load-bearing: `supabase_auth_admin` reaching the hooks via PUBLIC **alone** still holds EXECUTE after the fix | **NOT REACHED** by the repro — but **PROVEN** by `scripts/ship-gates/prove-auth-admin-regrant.sh` (exit 0, 19/08/2026), which seeds that exact shape, confirms 2/2 hooks after the real fix, and confirms the apply ABORTS with the re-grant deleted |
 
 Rows marked NOT REACHED were recorded as passing against `44c44368f`. They are
 not evidence for this head. Making step 4 tolerate the single expected residual
