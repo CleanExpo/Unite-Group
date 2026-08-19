@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Proves the identity guard on the file the founder PASTES INTO PRODUCTION:
+# Proves the OBJECT-SET guard on the file the founder PASTES INTO PRODUCTION — what
+# it refuses, what it admits, and that the refusals are attributable to it:
 #   docs/specs/sql/2026-08-19-privileged-function-exposure-lock.sql
 #
 # THE DEFECT THIS EXISTS FOR. Two independent cross-agent reviews (codex,
@@ -22,6 +23,9 @@
 #   2. PARTIAL database (1/4)-> the apply ABORTS, naming its own identity guard
 #   3. COMPLETE database(4/4)-> the apply is ALLOWED PAST the guard
 #   3b. FOUR OVERLOADS of ONE name -> REFUSED (identities, not row counts)
+#   6. THE RESIDUAL, DEMONSTRATED: a database that merely carries the four NAMES is
+#      ADMITTED and mutated. The guard proves an object set, not a project identity,
+#      and the file's header says so — this case keeps the two from drifting apart.
 #   4. MUTATION CONTROL (ATTRIBUTION, not commit): with the identity guard block
 #      removed, that guard's DISTINCTIVE MESSAGE must disappear from the failure.
 #      The database is still refused — by the receipt block's own "captured 0 rows"
@@ -76,6 +80,11 @@ cleanup() {
       _failed=1
     fi
   done < "$DBS_FILE"
+  # ROLES LAST — after every database is gone, or DROP ROLE fails on dependent grants,
+  # and BEFORE the verdict test, or a leaked role sets a flag nobody reads. Case 6 is
+  # the first case here to need cluster-wide roles, and adding a seed without adding
+  # this would have leaked exactly the way four other gates on this branch already did.
+  pg_drop_seeded_roles "$ADMIN" || _failed=1
   if [[ $_failed -eq 1 ]]; then
     echo "WARNING: the list of databases this run created is kept at ${DBS_FILE} for retry; $WORK was NOT removed." >&2
     return 1
@@ -120,6 +129,13 @@ seed_functions() {
 run_apply() { # run_apply <uri> <file> -> writes stdout/stderr, returns psql status
   psql "$1" -X -q -v ON_ERROR_STOP=1 -f "$2" >"$WORK/out" 2>"$WORK/err"
 }
+
+# Cluster-wide roles are seeded in the MAIN shell, never inside a command
+# substitution, or PG_SEEDED_ROLES is set in a subshell and lost — the class that
+# leaked roles from prove-rollback-fidelity.sh earlier on this branch. Only what this
+# process creates is ever dropped.
+pg_seed_roles "$ADMIN" anon authenticated supabase_auth_admin \
+  || { echo "cannot run: could not ensure anon/authenticated/supabase_auth_admin" >&2; exit 2; }
 
 # ── 1. EMPTY database must abort ─────────────────────────────────────────────
 EMPTY="$(newdb applyid_empty)"
@@ -177,6 +193,12 @@ echo "  case 3b overloads of one name -> refused (counts DISTINCT names, not row
 # ── 4. MUTATION CONTROL: remove the guard, case 1 must COMMIT again ──────────
 # Without this, cases 1-2 could be green because of any unrelated error.
 MUTANT="$WORK/apply-no-guard.sql"
+# The start anchor is the guard's own heading, and renaming that heading broke this
+# control loudly rather than silently — the run stopped with "the identity guard is
+# still present in the mutant" the moment the block was retitled OBJECT-SET GUARD on
+# 20/08/2026. That is the behaviour to keep: an anchor that no longer matches must
+# fail the gate, never quietly produce an unmutated file.
+#
 # The range STOPS at block 0b, not at block 1-3. An independent review (openrouter,
 # 19/08/2026) found the earlier range ran to "1-3, 7:" and therefore deleted the
 # pre-state receipt block TOO — including its own independent empty-receipt refusal.
@@ -184,7 +206,7 @@ MUTANT="$WORK/apply-no-guard.sql"
 # guard being absent, and case 4 was certifying a guard it had not isolated. One mutant,
 # one guard: anything else proves only that SOME line mattered.
 awk '
-  /^-- ── 0: IDENTITY GUARD/ { skipping = 1 }
+  /^-- ── 0: OBJECT-SET GUARD/ { skipping = 1 }
   skipping && /^-- ── 0b: PRE-STATE RECEIPT/ { skipping = 0 }
   !skipping { print }
 ' "$APPLY" >"$MUTANT"
@@ -217,6 +239,47 @@ if grep -q 'pre-state receipt captured 0 rows' "$WORK/err"; then
 else
   echo "  case 4  guard removed         -> its message is GONE (attributed)"
 fi
+# ── 6. THE DOCUMENTED RESIDUAL, DEMONSTRATED ────────────────────────────────
+# The guard's header used to say it "refuses a database that is not this project".
+# It does not: it proves four NAMES are present in public. A different database
+# carrying one function under each of those names is ADMITTED, and the name-driven
+# loops then revoke on it. An independent review (openrouter, 20/08/2026) flagged the
+# claim as stronger than the code, and the header now states the limit — so the limit
+# is exercised HERE, rather than left as a paragraph that can drift away from the
+# behaviour it describes. This case FAILS if the residual ever silently disappears,
+# which is the signal to correct the header rather than let it become an overclaim in
+# the other direction.
+FOREIGN="$(newdb applyid_foreign)"
+psql "$FOREIGN" -X -q -v ON_ERROR_STOP=1 >"$WORK/c6seed.out" 2>&1 <<'SQL'
+CREATE FUNCTION public.custom_access_token_hook(event jsonb)
+  RETURNS jsonb LANGUAGE sql SECURITY DEFINER AS $fn$ SELECT event $fn$;
+CREATE FUNCTION public.before_user_created_hook(event jsonb)
+  RETURNS jsonb LANGUAGE sql SECURITY DEFINER AS $fn$ SELECT event $fn$;
+CREATE FUNCTION public.prune_integration_history()
+  RETURNS void LANGUAGE sql SECURITY DEFINER AS $fn$ SELECT NULL::void $fn$;
+CREATE FUNCTION public.get_my_org_ids()
+  RETURNS SETOF uuid LANGUAGE sql SECURITY DEFINER STABLE AS $fn$ SELECT NULL::uuid WHERE false $fn$;
+GRANT EXECUTE ON FUNCTION public.custom_access_token_hook(jsonb) TO anon, supabase_auth_admin;
+GRANT EXECUTE ON FUNCTION public.before_user_created_hook(jsonb) TO anon, supabase_auth_admin;
+GRANT EXECUTE ON FUNCTION public.prune_integration_history()      TO anon;
+SQL
+[[ $? -eq 0 ]] || fail "could not seed the foreign-database fixture for case 6: $(head -3 "$WORK/c6seed.out")"
+
+FOREIGN_BEFORE="$(pg_scalar "$FOREIGN" "SELECT count(*)::text FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.prosecdef AND has_function_privilege('anon', p.oid, 'EXECUTE')")"
+# FOUR, not three: get_my_org_ids is created with the built-in default, which grants
+# EXECUTE to PUBLIC — so anon reaches it without any explicit grant. Counting the
+# three explicit grants and forgetting the default is the same PUBLIC-versus-anon
+# confusion this whole branch exists to fix, reproduced in my own fixture and caught
+# by the fixture assertion rather than by the case passing for the wrong reason.
+[[ "$FOREIGN_BEFORE" == "4" ]] || fail "the case 6 fixture is wrong: expected 4 anon-executable definers before the apply (3 explicit grants plus get_my_org_ids via the PUBLIC default), found ${FOREIGN_BEFORE}."
+
+if ! run_apply "$FOREIGN" "$APPLY"; then
+  fail "case 6 no longer holds: the apply REFUSED a database that merely carries the four names. That may be an improvement, but the file's header states this database IS admitted — correct the header before this gate can pass. stderr: $(head -3 "$WORK/err")"
+fi
+FOREIGN_AFTER="$(pg_scalar "$FOREIGN" "SELECT count(*)::text FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.prosecdef AND has_function_privilege('anon', p.oid, 'EXECUTE')")"
+[[ "$FOREIGN_AFTER" == "0" ]]   || fail "case 6 is not demonstrating the residual: the apply committed but did not actually revoke (${FOREIGN_BEFORE} -> ${FOREIGN_AFTER})."
+echo "  case 6  residual, demonstrated -> a foreign database carrying the 4 NAMES is admitted and mutated (${FOREIGN_BEFORE} -> ${FOREIGN_AFTER} anon-executable definers); the guard proves an OBJECT SET, not a project"
+
 echo "PASS  prove-apply-identity"
 echo "  the production apply file refuses an empty or partial database before mutating anything,"
 echo "  admits a complete one, and the refusal is attributable to the identity guard by mutation."

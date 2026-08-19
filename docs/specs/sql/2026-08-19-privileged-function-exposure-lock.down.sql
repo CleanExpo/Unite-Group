@@ -95,7 +95,12 @@ BEGIN;
 -- silent when it fails.
 SET LOCAL search_path = public, pg_catalog;
 
--- ── IDENTITY GUARD — refuse to run against the wrong project ────────────────
+-- ── OBJECT-SET GUARD — refuse a database that does not carry the objects this
+--    rollback restores. NOT a project-identity check — the same narrowing applied
+--    to the forward file's guard on 20/08/2026, swept here in the same commit
+--    rather than left for the next review round to find. It proves the four names
+--    are present in public; it does NOT bind the database to a Supabase project,
+--    nor compare signatures, owners or definer status. ─────────────────────────
 -- Independent review (codex, 19/08/2026) demonstrated the failure this closes:
 -- on an empty database standing in for the wrong Supabase project, every loop
 -- below ran ZERO times and the transaction COMMITted, printing nothing wrong.

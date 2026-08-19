@@ -87,7 +87,23 @@ BEGIN;
 -- silent when it fails.
 SET LOCAL search_path = public, pg_catalog;
 
--- ── 0: IDENTITY GUARD — refuse a database that is not this project. ─────────
+-- ── 0: OBJECT-SET GUARD — refuse a database that does not carry the objects
+--      this file locks. NOT a project-identity check; see the limits below. ────
+--
+--    NAMED HONESTLY, 20/08/2026. This block was headed "refuse a database that is
+--    not this project", which is stronger than what it establishes and was flagged
+--    by an independent review (openrouter) as an operator-facing claim the code does
+--    not support. What it actually proves is that `public` holds all four of the
+--    names this file locks. WHAT IT DOES NOT ESTABLISH: it does not bind the
+--    database to the Supabase project `lksfwktwtmyznckodsau`, does not compare
+--    argument signatures, bodies, owners or SECURITY DEFINER status, and does not
+--    require either dated table (they are legitimately absent on some databases, and
+--    the block below says so). A DIFFERENT database that happens to carry one
+--    function under each of those four names IS ADMITTED, and the name-driven loops
+--    then revoke on it — that residual is demonstrated, not asserted, by
+--    prove-apply-identity.sh case 6, so this paragraph cannot quietly drift away
+--    from the behaviour. The operator-side defence for it is the connection string,
+--    which no in-database check can audit.
 --
 --    WHY THIS EXISTS. Two independent cross-agent reviews (codex, 19/08/2026)
 --    and a concurrent session all reproduced the same defect by different

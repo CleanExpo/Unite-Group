@@ -64,8 +64,10 @@
 #      recorded identity resolving outside public is refused AND the object it points
 #      at is left untouched), 12c (the transaction's pinned search_path makes an
 #      UNqualified identity — the form earlier revisions wrote — still resolve to
-#      public even when the database prefers another schema). Controlled by 12d, which
-#      removes the namespace check and shows the mutant granting on the decoy.
+#      public even when the session prefers another schema). Controlled TWICE, because
+#      12b and 12c must not ride on each other: 12d removes the namespace check and
+#      shows the mutant granting on the decoy, and 12e removes the search_path pin and
+#      shows the same unqualified identity resolving into the decoy schema.
 set -uo pipefail
 
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -801,11 +803,21 @@ psql "$DB12C" -X -q -v ON_ERROR_STOP=1 -f "$APPLY" >/dev/null 2>"$WORK/c12ca.err
 # then make the SESSION prefer the decoy schema.
 psql "$DB12C" -X -q -v ON_ERROR_STOP=1 \
   -c "UPDATE public.privileged_function_exposure_lock_receipt_20260819 SET object_id='prune_integration_history()' WHERE object_kind='function' AND object_id LIKE 'public.prune_integration_history%'" \
-  -c "ALTER DATABASE ${DB12C##*/} SET search_path = decoy, public" \
   >/dev/null 2>"$WORK/c12cu.err" \
-  || fail "could not stage the unqualified/decoy-search_path fixture: $(head -3 "$WORK/c12cu.err")"
+  || fail "could not rewrite the recorded identity to its unqualified form: $(head -3 "$WORK/c12cu.err")"
 
-psql "$DB12C" -X -q -v ON_ERROR_STOP=1 -f "$DOWN" >/dev/null 2>"$WORK/c12cr.err" \
+# THE HOSTILE SEARCH_PATH IS SET ON THE SESSION, AND THE STAGING IS PROVEN.
+# A first attempt used `ALTER DATABASE ... SET search_path`, which this cluster
+# silently overrides: Supabase sets search_path at ROLE level, and role settings beat
+# database settings, so every new session still opened on `"$user", public, extensions`.
+# The fixture staged NOTHING and 12c passed while testing nothing — caught only because
+# 12e, its mutation control, then failed. A fixture that cannot be shown to have taken
+# is not a fixture, so the session GUC is set through PGOPTIONS and READ BACK here.
+C12C_PATH="$(PGOPTIONS='-c search_path=decoy,public' psql "$DB12C" -X -A -t -c 'show search_path' 2>/dev/null | tr -d '[:space:]')"
+[[ "$C12C_PATH" == "decoy,public" ]] \
+  || fail "the case 12c fixture did not take: a session opened with the hostile search_path reports '${C12C_PATH}', so the pin would not be under test."
+
+PGOPTIONS='-c search_path=decoy,public' psql "$DB12C" -X -q -v ON_ERROR_STOP=1 -f "$DOWN" >/dev/null 2>"$WORK/c12cr.err" \
   || fail "THE SEARCH_PATH PIN DID NOT HOLD: with the database's search_path preferring a schema that holds the same signature, an unqualified recorded identity no longer resolved to public and the rollback refused a database it should have restored. stderr: $(head -3 "$WORK/c12cr.err")"
 [[ "$(decoy_anon "$DB12C")" == "0" ]] \
   || fail "THE ROLLBACK RESOLVED THROUGH THE SESSION SEARCH_PATH: the decoy schema's function was granted to anon. The pin at the top of the file is not doing what it claims."
@@ -849,6 +861,48 @@ fi
 [[ "$(decoy_anon "$DB12M")" == "1" ]] \
   || fail "MUTATION CONTROL FAILED: the mutant committed but did NOT actually grant on the decoy function, so case 12b's finding — a wrong-object mutation — was never exercised."
 echo "  case 12d no-namespace control -> the mutant grants on the DECOY function and commits (control is live)"
+
+# ── 12e. MUTATION CONTROL for case 12c ──────────────────────────────────────
+# 12b and 12c must be attributable to DIFFERENT defences, or one of them is riding on
+# the other. 12b's fixture carries a QUALIFIED foreign identity, which the pin cannot
+# affect; 12c's carries an UNqualified one, which only the pin resolves correctly. An
+# independent review asked exactly this question, so it is answered with a run: remove
+# the pin, and 12c's database — the one a correct rollback must restore — is refused,
+# because the unqualified identity now resolves into the decoy schema.
+MUT12C="$WORK/down-no-searchpath-pin.sql"
+python3 - "$DOWN" "$MUT12C" <<'PY_MUT12C'
+import sys
+src, dst = sys.argv[1], sys.argv[2]
+s = open(src).read()
+anchor = "SET LOCAL search_path = public, pg_catalog;\n"
+assert s.count(anchor) == 1, "could not locate the search_path pin to mutate"
+open(dst, 'w').write(s.replace(anchor, ""))
+print("case 12c mutant built")
+PY_MUT12C
+[[ -s "$MUT12C" ]] || fail "case 12c mutation control could not be built"
+grep -q 'SET LOCAL search_path' "$MUT12C" \
+  && fail "case 12c mutation control is vacuous: the search_path pin is still present in the mutant."
+
+DB12CM="$(newdb rbsppinm)"
+seed_unexposed "$DB12CM"
+psql "$DB12CM" -X -q -v ON_ERROR_STOP=1 >/dev/null 2>&1 <<'SQL'
+CREATE SCHEMA decoy;
+CREATE FUNCTION decoy.prune_integration_history()
+  RETURNS void LANGUAGE sql SECURITY DEFINER AS $fn$ SELECT NULL::void $fn$;
+REVOKE ALL ON FUNCTION decoy.prune_integration_history() FROM PUBLIC, anon, authenticated;
+SQL
+psql "$DB12CM" -X -q -v ON_ERROR_STOP=1 -f "$APPLY" >/dev/null 2>"$WORK/c12cma.err" \
+  || fail "the forward migration did not commit against the case 12c control fixture: $(head -3 "$WORK/c12cma.err")"
+psql "$DB12CM" -X -q -v ON_ERROR_STOP=1 \
+  -c "UPDATE public.privileged_function_exposure_lock_receipt_20260819 SET object_id='prune_integration_history()' WHERE object_kind='function' AND object_id LIKE 'public.prune_integration_history%'" \
+  >/dev/null 2>&1 || fail "could not stage the case 12c control fixture"
+
+if PGOPTIONS='-c search_path=decoy,public' psql "$DB12CM" -X -q -v ON_ERROR_STOP=1 -f "$MUT12C" >/dev/null 2>"$WORK/c12cm.err"; then
+  fail "MUTATION CONTROL FAILED: with the search_path pin removed, the unqualified identity STILL resolved to public — so case 12c is not attributable to the pin, and the pin may be doing nothing."
+fi
+grep -q 'NOT one of the four functions in public' "$WORK/c12cm.err" \
+  || fail "MUTATION CONTROL FAILED for the wrong reason: the pin-less mutant aborted, but not because the identity resolved outside public. stderr: $(head -3 "$WORK/c12cm.err")"
+echo "  case 12e pin-removed control  -> without the pin the same identity resolves into the decoy schema (control is live)"
 
 echo "PASS  prove-rollback-fidelity"
 echo "  the rollback restores the pre-state the forward migration OBSERVED,"
