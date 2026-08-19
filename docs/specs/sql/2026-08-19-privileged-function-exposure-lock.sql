@@ -51,6 +51,55 @@
 
 BEGIN;
 
+-- ── 0: IDENTITY GUARD — refuse a database that is not this project. ─────────
+--
+--    WHY THIS EXISTS. Two independent cross-agent reviews (codex, 19/08/2026)
+--    and a concurrent session all reproduced the same defect by different
+--    routes: run this file against a FRESH EMPTY database under
+--    ON_ERROR_STOP=1 and it revokes on 0 functions, finds both dated tables
+--    absent, prints "post-condition OK", COMMITs and exits 0. The founder
+--    pastes this by hand into a SQL editor, and pasting into the wrong project
+--    is the exact operator error an identity assertion exists to catch. A
+--    vacuous success is worse than a failure here, because it is reported as
+--    recovery.
+--
+--    The post-condition below could not catch it: it counts violations among
+--    the hooks that EXIST, so an absent hook contributes zero violations and
+--    the total is trivially satisfied. Absence of a violation is not presence
+--    of the fix. That is a floor on the wrong quantity, and it is why this
+--    guard checks the OBJECT SET before anything is mutated rather than the
+--    violation count afterwards.
+--
+--    The matching guard in the .down.sql requires all four functions. This one
+--    requires the same four, for the same reason: a partial match is a name
+--    collision, not this project.
+DO $$
+DECLARE
+  _fns   int;
+  _found text;
+BEGIN
+  SELECT count(*), coalesce(string_agg(p.proname, ', ' ORDER BY p.proname), '<none>')
+    INTO _fns, _found
+  FROM pg_proc p
+  JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public'
+    AND p.proname IN (
+      'custom_access_token_hook',
+      'before_user_created_hook',
+      'prune_integration_history',
+      'get_my_org_ids'
+    );
+
+  IF _fns <> 4 THEN
+    RAISE EXCEPTION
+      'apply aborted: this file expects all 4 privileged functions it locks (custom_access_token_hook, before_user_created_hook, prune_integration_history, get_my_org_ids) in schema public, found % (%). A partial or empty match is NOT this project — you are very likely connected to the wrong database. NOTHING has been changed.',
+      _fns, _found;
+  END IF;
+
+  RAISE NOTICE 'apply identity guard: all 4 target functions present';
+END
+$$;
+
 -- ── 1-3, 7: privileged functions no untrusted role may call. anon AND
 --            authenticated both lose EXECUTE. supabase_auth_admin MUST keep
 --            EXECUTE on the two auth hooks or every login breaks — it is

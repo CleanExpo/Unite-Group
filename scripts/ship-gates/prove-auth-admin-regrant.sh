@@ -68,6 +68,13 @@ CREATE OR REPLACE FUNCTION public.before_user_created_hook(event jsonb)
 RETURNS jsonb LANGUAGE sql SECURITY DEFINER AS $fn$ SELECT event $fn$;
 CREATE OR REPLACE FUNCTION public.get_my_org_ids()
 RETURNS SETOF uuid LANGUAGE sql SECURITY DEFINER STABLE AS $fn$ SELECT NULL::uuid WHERE false $fn$;
+-- Seeded because the apply file now carries a pre-mutation identity guard that
+-- requires ALL FOUR of the privileged functions it locks. Without this the
+-- fixture is a 3-of-4 partial match, which the guard correctly refuses as "not
+-- this project" — and the gate would fail for the fixture's shape rather than
+-- for anything about the re-grant it exists to prove.
+CREATE OR REPLACE FUNCTION public.prune_integration_history()
+RETURNS void LANGUAGE sql SECURITY DEFINER AS $fn$ SELECT NULL::void $fn$;
 
 -- PUBLIC-only: supabase_auth_admin reaches the hooks through PUBLIC and holds
 -- NO direct grant. This is the state the re-grant exists to survive.
