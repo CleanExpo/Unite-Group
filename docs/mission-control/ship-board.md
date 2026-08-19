@@ -206,7 +206,10 @@ scripts/ship-gates/repro-prod-exposure.sh "postgresql://postgres:postgres@127.0.
 
 Run 19/08/2026 against an ephemeral Supabase (Postgres 17.6), exit **1** — the
 run terminates at step 4 on the single deliberate `get_my_org_ids` row
-(`.handoff-logs/repro-e964ab9bf.log:33`). **Steps 5, 6, 7 and 8 DID NOT RUN.**
+(`.handoff-logs/repro-e964ab9bf.log:33` — note that log is from revision
+`e964ab9bf`, NOT this head, so the receipt is not SHA-bound; the same
+exit-1-at-step-4 verdict was reproduced at this head independently on
+19/08/2026). **Steps 5, 6, 7 and 8 DID NOT RUN.**
 Any row below describing them as passing is describing the earlier revision
 `44c44368f`, not this head, and is marked NOT REACHED accordingly. In particular
 the mutation claim for the `supabase_auth_admin` re-grant was killed by step 8 —

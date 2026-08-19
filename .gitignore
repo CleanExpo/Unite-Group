@@ -130,5 +130,11 @@ scripts/swarm/bench-results.json
 /packages/spine/packages/spine/supabase/.branches/
 /packages/spine/packages/spine/vitest-report.json
 
-# Session-handoff gate logs (large, machine-generated; the .md report is the durable artefact)
+# Session-handoff gate logs (large, machine-generated; the .md report is the durable artefact).
+# NOTE: .gitignore does not apply to already-tracked paths. Two logs under this
+# directory ARE tracked and cited as evidence (repro-e964ab9bf.log,
+# verify-e964ab9bf.log); this rule does not untrack them and they keep accruing
+# diffs. It only stops NEW logs being added. Untracking the two is a work item
+# attached to F9 — they are cited by docs/mission-control/ship-board.md, so they
+# cannot simply be deleted.
 .handoff-logs/*.log

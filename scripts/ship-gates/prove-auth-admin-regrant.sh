@@ -55,7 +55,7 @@ seed() {
   psql -X -q -v ON_ERROR_STOP=1 -d "$ADMIN" -c "DROP DATABASE IF EXISTS $DB (FORCE)" >/dev/null 2>&1
   psql -X -q -v ON_ERROR_STOP=1 -d "$ADMIN" -c "CREATE DATABASE $DB" >/dev/null 2>&1 \
     || fail "could not create scratch database $DB"
-  psql -X -q -v ON_ERROR_STOP=1 -d "$SCRATCH" >/dev/null 2>&1 <<'SQL'
+  psql -X -q -v ON_ERROR_STOP=1 -d "$SCRATCH" >"$WORK/seed.out" 2>&1 <<'SQL'
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN CREATE ROLE anon NOLOGIN; END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN CREATE ROLE authenticated NOLOGIN; END IF;
@@ -76,6 +76,9 @@ REVOKE ALL ON FUNCTION public.before_user_created_hook(jsonb) FROM supabase_auth
 GRANT EXECUTE ON FUNCTION public.custom_access_token_hook(jsonb) TO PUBLIC;
 GRANT EXECUTE ON FUNCTION public.before_user_created_hook(jsonb) TO PUBLIC;
 SQL
+  # A partially-applied seed is caught downstream by direct_grants/hooks_executable,
+  # but a seed that failed outright must not be allowed to look like a clean run.
+  [[ $? -eq 0 ]] || fail "seed failed to apply — this gate proves nothing against a broken seed. psql said: $(head -3 "$WORK/seed.out")"
 }
 
 direct_grants() {

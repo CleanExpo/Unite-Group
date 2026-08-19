@@ -27,6 +27,11 @@ REPO="$(cd "$HERE/../.." && pwd)"
 FIX="$REPO/docs/specs/sql/2026-08-19-privileged-function-exposure-lock.sql"
 ROLLBACK="$REPO/docs/specs/sql/2026-08-19-privileged-function-exposure-lock.down.sql"
 DB="ship_gate_repro"
+# The run exits 1 at step 4 by design, so a trailing cleanup statement is never
+# reached and the scratch database survives the run. An EXIT trap makes the
+# "builds and drops its own scratch database" contract true on every path.
+cleanup_scratch() { psql -X -q -d "${ADMIN:-}" -c "DROP DATABASE IF EXISTS ship_gate_repro (FORCE)" >/dev/null 2>&1 || true; }
+trap cleanup_scratch EXIT
 
 [[ $# -ge 1 ]] || { echo "usage: $(basename "$0") <admin-connection-uri>" >&2; exit 2; }
 ADMIN="$1"

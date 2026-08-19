@@ -14,9 +14,11 @@
 -- ⚠ AT THIS REVISION THIS ROLLBACK IS NOT TESTED, AND SAYING SO IS THE POINT.
 -- The test was repro-prod-exposure.sh step 7, which executes this file and
 -- asserts the gate returns to red. Step 7 DOES NOT RUN: the repro exits 1 at
--- step 4 on the deliberate get_my_org_ids row. This file is also unchanged since
--- 44c44368f, so it has never run against the fix in its current form — which now
--- includes a supabase_auth_admin re-grant that did not exist then.
+-- step 4 on the deliberate get_my_org_ids row. This file's SQL BODY is also
+-- unchanged since 44c44368f (the header was rewritten in ab092ace0, so a git
+-- diff against that commit is non-empty; the body is the part that would have
+-- been tested), so it has never executed against the fix in its current form —
+-- which now includes a supabase_auth_admin re-grant that did not exist then.
 --
 -- Consequence, stated plainly: the constitution's "tested rollback before a
 -- production change" precondition is NOT met. That is part of founder item F9,
