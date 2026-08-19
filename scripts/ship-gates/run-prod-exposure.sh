@@ -359,6 +359,20 @@ if [[ -n "$CONTROL" ]]; then
     else
       _o1="$(_rand_ident long)";  _o2="$(_rand_ident short)"
     fi
+    # ONE OF THE TWO BREAKS THE lower_snake_case SHAPE. The sampling pipeline filters
+    # target names through `grep -E '^[a-z_][a-z0-9_]*$'`, so every seeded object matched
+    # that pattern and a mutant could add `relname ~ '^[a-z_][a-z0-9_]*$'` — passing this
+    # control while missing any production object created as a QUOTED mixed-case
+    # identifier ("MyTable"), which Postgres permits and real schemas contain. Reported
+    # by an independent review (openrouter, 20/08/2026). Upper-casing one character of
+    # one name defeats that predicate; the name is quoted at creation so Postgres keeps
+    # the case. Which of the two is altered is random, so neither position is safe to
+    # key on.
+    if (( $(od -An -tu1 -N1 /dev/urandom | tr -d ' \n') % 2 )); then
+      _o1="$(printf '%s' "$_o1" | awk '{ print toupper(substr($0,1,1)) substr($0,2) }')"
+    else
+      _o2="$(printf '%s' "$_o2" | awk '{ print toupper(substr($0,1,1)) substr($0,2) }')"
+    fi
     # Two draws can share a leading letter; harmless (the hex bodies differ) but they
     # must never be the SAME identifier, or "found both" degenerates into "found one".
     while [[ "$_o1" == "$_o2" ]]; do _o2="$(_rand_ident)"; done
@@ -382,15 +396,15 @@ if [[ -n "$CONTROL" ]]; then
 
     case "$_rule" in
       rls_disabled_in_public)
-        _SEED="CREATE TABLE public.${_o1} (id int); CREATE TABLE public.${_o2} (id int);"
+        _SEED="CREATE TABLE public.\"${_o1}\" (id int); CREATE TABLE public.\"${_o2}\" (id int);"
         ;;
       anon_executable_security_definer)
-        _SEED="CREATE FUNCTION public.${_o1}() RETURNS int LANGUAGE sql SECURITY DEFINER AS \$fn\$ SELECT 1 \$fn\$; REVOKE ALL ON FUNCTION public.${_o1}() FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.${_o1}() TO anon;
-                 CREATE FUNCTION public.${_o2}() RETURNS int LANGUAGE sql SECURITY DEFINER AS \$fn\$ SELECT 1 \$fn\$; REVOKE ALL ON FUNCTION public.${_o2}() FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.${_o2}() TO anon;"
+        _SEED="CREATE FUNCTION public.\"${_o1}\"() RETURNS int LANGUAGE sql SECURITY DEFINER AS \$fn\$ SELECT 1 \$fn\$; REVOKE ALL ON FUNCTION public.\"${_o1}\"() FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.\"${_o1}\"() TO anon;
+                 CREATE FUNCTION public.\"${_o2}\"() RETURNS int LANGUAGE sql SECURITY DEFINER AS \$fn\$ SELECT 1 \$fn\$; REVOKE ALL ON FUNCTION public.\"${_o2}\"() FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.\"${_o2}\"() TO anon;"
         ;;
       authenticated_executable_security_definer)
-        _SEED="CREATE FUNCTION public.${_o1}() RETURNS int LANGUAGE sql SECURITY DEFINER AS \$fn\$ SELECT 1 \$fn\$; REVOKE ALL ON FUNCTION public.${_o1}() FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.${_o1}() TO authenticated;
-                 CREATE FUNCTION public.${_o2}() RETURNS int LANGUAGE sql SECURITY DEFINER AS \$fn\$ SELECT 1 \$fn\$; REVOKE ALL ON FUNCTION public.${_o2}() FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.${_o2}() TO authenticated;"
+        _SEED="CREATE FUNCTION public.\"${_o1}\"() RETURNS int LANGUAGE sql SECURITY DEFINER AS \$fn\$ SELECT 1 \$fn\$; REVOKE ALL ON FUNCTION public.\"${_o1}\"() FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.\"${_o1}\"() TO authenticated;
+                 CREATE FUNCTION public.\"${_o2}\"() RETURNS int LANGUAGE sql SECURITY DEFINER AS \$fn\$ SELECT 1 \$fn\$; REVOKE ALL ON FUNCTION public.\"${_o2}\"() FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.\"${_o2}\"() TO authenticated;"
         ;;
       *)
         echo "FAIL(setup): no control seed defined for rule '${_rule}'. A rule with no" >&2

@@ -201,6 +201,13 @@ DELIB_SEEN="$(printf '%s\n' "$ROWLINES" | awk -F'|' -v r="$DELIB_RULE" -v o="$DE
 if [[ $GREEN_RC -eq 0 ]]; then
   fail "the gate returned ZERO rows after the fix. That is only reachable by revoking \`authenticated\` EXECUTE on get_my_org_ids, which TAKES PRODUCTION DOWN. Do not drive this gate to exit 0."
 fi
+# EXIT 1 EXACTLY, not merely non-zero. run-prod-exposure distinguishes 1 (findings) from
+# 2 (could not run / control unverified), and that distinction is load-bearing: 2 means
+# the gate never proved it can detect anything. Accepting "any non-zero" let a mutation
+# that turns findings-exit-1 into setup-exit-2 survive this proof while stdout still
+# carried the expected row. Reported by an independent review (openrouter, 20/08/2026).
+[[ $GREEN_RC -eq 1 ]] \
+  || fail "the gate exited ${GREEN_RC}; this step requires EXACTLY 1 (findings). 2 means it could not run or its positive control was unverified, which is not the same as a clean detection and must not be read as one. stderr: $(head -3 "$GATE4_DIR/err")"
 if [[ -n "$OTHER" ]]; then
   fail "the gate returned a row that is NOT the deliberate retention — a real exposure survived the fix: $(echo "$OTHER" | head -3)"
 fi
