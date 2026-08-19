@@ -11,7 +11,12 @@
 -- change to have a TESTED rollback before it may be applied, and because an
 -- untested rollback is a rumour.
 --
--- ⚠ AT THIS REVISION THIS ROLLBACK IS NOT TESTED, AND SAYING SO IS THE POINT.
+-- ✅ TESTED 19/08/2026 by scripts/ship-gates/prove-rollback.sh (exit 0): seeded
+-- exposure 3 anon-executable definers -> fix -> 0 -> this file -> back to 3, and
+-- this file refuses an empty database standing in for the wrong project. The
+-- note below records why it was previously untested and is kept for the record.
+--
+-- ⚠ AT EARLIER REVISIONS THIS ROLLBACK WAS NOT TESTED.
 -- The test was repro-prod-exposure.sh step 7, which executes this file and
 -- asserts the gate returns to red. Step 7 DOES NOT RUN: the repro exits 1 at
 -- step 4 on the deliberate get_my_org_ids row. This file's SQL BODY is also
@@ -29,6 +34,37 @@
 -- GRANT to the one role that needs it, not leaving this state in place.
 
 BEGIN;
+
+-- ── IDENTITY GUARD — refuse to run against the wrong project ────────────────
+-- Independent review (codex, 19/08/2026) demonstrated the failure this closes:
+-- on an empty database standing in for the wrong Supabase project, every loop
+-- below ran ZERO times and the transaction COMMITted, printing nothing wrong.
+-- During an outage that reads as "recovery succeeded" while nothing was
+-- recovered. A break-glass file that cannot tell it did nothing is worse than no
+-- file. This aborts unless the objects this rollback exists to restore are
+-- actually here.
+DO $$
+DECLARE
+  _fns int;
+BEGIN
+  SELECT count(*) INTO _fns
+  FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public'
+    AND p.proname IN (
+      'custom_access_token_hook',
+      'before_user_created_hook',
+      'prune_integration_history',
+      'get_my_org_ids'
+    );
+
+  IF _fns = 0 THEN
+    RAISE EXCEPTION
+      'rollback aborted: none of the four privileged functions this file restores exist in schema public. This is almost certainly the WRONG DATABASE. Nothing has been changed.';
+  END IF;
+
+  RAISE NOTICE 'rollback identity guard: % of 4 target function(s) present', _fns;
+END
+$$;
 
 DO $$
 DECLARE
@@ -76,6 +112,30 @@ BEGIN
       EXECUTE format('ALTER TABLE %s DISABLE ROW LEVEL SECURITY', _tbl);
     END IF;
   END LOOP;
+END
+$$;
+
+-- ── POST-CONDITION — a rollback that changed nothing must not look successful ─
+DO $$
+DECLARE
+  _exposed int;
+BEGIN
+  -- After a real rollback the exposure is deliberately BACK: anon can execute
+  -- the privileged definers again. If nothing is exposed, this file did not do
+  -- what it claims, and the operator must not walk away believing it did.
+  SELECT count(*) INTO _exposed
+  FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public'
+    AND p.prosecdef
+    AND p.proname IN ('custom_access_token_hook', 'before_user_created_hook', 'prune_integration_history')
+    AND has_function_privilege('anon', p.oid, 'EXECUTE');
+
+  IF _exposed = 0 THEN
+    RAISE EXCEPTION
+      'rollback aborted: completed without re-exposing a single privileged function. The rollback did not take — do NOT report recovery. Nothing has been changed.';
+  END IF;
+
+  RAISE NOTICE 'rollback post-condition: % privileged function(s) are anon-executable again, as this rollback intends', _exposed;
 END
 $$;
 

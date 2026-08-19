@@ -23,6 +23,18 @@ critic cannot name a way the gate passes while the defect is still present.
 | 4 | `founder_uid_migration_20260810` — public table, **RLS off** | **AA** | `GATED` |
 | 5 | `founder_uid_conflict_resolution_20260810` — public table, **RLS off** | **AA** | `GATED` |
 
+**What the AA on rows 1-5 rests on, since the repro is RED.** An independent
+review (codex, 19/08/2026) was right to challenge this: the rung definition below
+says AA means "gate green locally", and `repro-prod-exposure.sh` exits 1. These
+rows are NOT rated on that gate. They are rated on
+`scripts/ship-gates/prove-rollback.sh` (exit 0), which measures the items
+directly: **3** anon-executable `SECURITY DEFINER` functions before the fix, **0**
+after, and the fix's in-transaction post-condition additionally asserts RLS is
+enabled on both dated tables or aborts. That is a behavioural green receipt for
+rows 1-5 specifically. Items 6 and 7 have no such receipt, which is why they read
+CONTESTED. Read "AA" on these rows as "proven by prove-rollback, not by the
+repro".
+
 ### Why 1 and 2 lead
 
 `custom_access_token_hook` is the hook that **mints JWT access-token claims**. A
@@ -163,8 +175,17 @@ computes an age from, invisible to the one register that measures founder latenc
 
 **Status 19/08/2026: `repro-prod-exposure.sh` exits 1. Do not release.**
 
-Two independent reviewers ran the branch's own controls and returned FAIL. The
-blocking finding is that this board mis-frames item 6.
+Two PRIOR CLAUDE REVIEW ROUNDS ran the branch's own controls and returned FAIL.
+Naming them "independent reviewers" overstated the evidence: the implementing
+agent is Claude and so were they, which the release law does not accept as
+independence. The first genuinely cross-agent review (codex, 19/08/2026,
+SHA-bound) came later and found two P0s all three Claude rounds had missed — a
+proof gate that authenticated forgeable output, and a production gate that
+accepted `WHERE false` predicates as green. Both are closed; the episode is the
+argument for the rule.
+
+The blocking finding from those earlier rounds stands: this board mis-frames
+item 6.
 
 **Revoking `authenticated` EXECUTE on `get_my_org_ids` would take production
 down.** Postgres checks function EXECUTE against the QUERYING role when it
