@@ -102,6 +102,30 @@ if [[ -n "$CONTROL" ]]; then
   }
   trap 'cleanup_control; rm -rf "$WORK"' EXIT
 
+  # ── the NON-PROD boundary must be CHECKED, not merely documented ───────────
+  # An independent review (codex, 19/08/2026) passed the SAME admin URI as both
+  # the target and --control. The wrapper accepted it, created and dropped
+  # databases on the production cluster, and reached PASS. The NON-PROD
+  # requirement existed only in a comment, and a comment is not a boundary.
+  # pg_control_system().system_identifier differs between any two independently
+  # initdb'd clusters, so it distinguishes "another database on the same server"
+  # from "another server" — which is the distinction that matters, because this
+  # control CREATEs and DROPs databases and must never do that on production.
+  _tid="$(psql -X -A -t -q -d "$CONN" -c "SELECT system_identifier::text FROM pg_control_system()" 2>/dev/null | tr -d '[:space:]')"
+  _cid="$(psql -X -A -t -q -d "$CONTROL" -c "SELECT system_identifier::text FROM pg_control_system()" 2>/dev/null | tr -d '[:space:]')"
+  if [[ -z "$_tid" || -z "$_cid" ]]; then
+    echo "FAIL(setup): could not read the cluster identity of the target and/or the --control URI." >&2
+    echo "  This gate refuses to run a destructive positive control without proving the two are different clusters." >&2
+    exit 2
+  fi
+  if [[ "$_tid" == "$_cid" ]]; then
+    echo "FAIL(setup): --control names the SAME CLUSTER as the target (system_identifier ${_tid})." >&2
+    echo "  The positive control CREATEs and DROPs databases. Running it against the production cluster is exactly" >&2
+    echo "  what the NON-PROD requirement forbids, and a different database on the same server is not a different cluster." >&2
+    echo "  Point --control at a separately provisioned Postgres instance." >&2
+    exit 2
+  fi
+
   _exists="$(psql -X -A -t -q -d "$CONTROL" -c "SELECT count(*) FROM pg_database WHERE datname LIKE '${CDB}%';" 2>/dev/null | tr -d '[:space:]')"
   if [[ "$_exists" != "0" ]]; then
     echo "FAIL(setup): refusing to run: a database matching ${CDB}% already exists on the --control cluster." >&2
