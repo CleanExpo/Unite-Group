@@ -89,47 +89,90 @@ trap 'rm -rf "$WORK"' EXIT
 # ── behavioural positive control ─────────────────────────────────────────────
 CONTROL_VERDICT="NOT RUN"
 if [[ -n "$CONTROL" ]]; then
-  CDB="prod_exposure_selftest"
+  # Unique per run — see the note in prove-rollback.sh. The old fixed name was
+  # force-dropped by this gate even when it held unrelated data.
+  CDB="prod_exposure_selftest_$$"
   CBASE="${CONTROL%/*}"
-  CSCRATCH="$CBASE/$CDB"
-  cleanup_control() { psql -X -q -d "$CONTROL" -c "DROP DATABASE IF EXISTS $CDB (FORCE)" >/dev/null 2>&1 || true; }
+  declare -a CONTROL_DBS=()
+  cleanup_control() {
+    local _d
+    for _d in "${CONTROL_DBS[@]:-}"; do
+      [[ -n "$_d" ]] && psql -X -q -d "$CONTROL" -c "DROP DATABASE IF EXISTS $_d (FORCE)" >/dev/null 2>&1 || true
+    done
+  }
   trap 'cleanup_control; rm -rf "$WORK"' EXIT
 
-  psql -X -q -v ON_ERROR_STOP=1 -d "$CONTROL" -c "DROP DATABASE IF EXISTS $CDB (FORCE)" >/dev/null 2>&1
-  psql -X -q -v ON_ERROR_STOP=1 -d "$CONTROL" -c "CREATE DATABASE $CDB" >/dev/null 2>&1 \
-    || { echo "FAIL(setup): --control cluster would not create the scratch database $CDB" >&2; exit 2; }
+  _exists="$(psql -X -A -t -q -d "$CONTROL" -c "SELECT count(*) FROM pg_database WHERE datname LIKE '${CDB}%';" 2>/dev/null | tr -d '[:space:]')"
+  if [[ "$_exists" != "0" ]]; then
+    echo "FAIL(setup): refusing to run: a database matching ${CDB}% already exists on the --control cluster." >&2
+    echo "  This gate only drops databases it created itself; it will not force-drop yours." >&2
+    exit 2
+  fi
 
-  psql -X -q -v ON_ERROR_STOP=1 -d "$CSCRATCH" >"$WORK/seed.out" 2>&1 <<'SQL'
-DO $$ BEGIN
+  # ── one defect at a time, each in its OWN database ─────────────────────────
+  # An independent review (codex) defeated the earlier all-defects-at-once
+  # control: it swapped the anon-definer query for a second RLS-table query that
+  # kept the anon LABEL, and because an RLS defect was also present the label
+  # still appeared, so the control passed while the anon rule was gone. Seeding
+  # every defect together only proves each label shows up SOMEWHERE. Binding a
+  # rule to its own defect means giving it a database where its defect is the
+  # ONLY one — then a rule that fires is a rule that found what it names.
+  declare -a _SEED_SQL=(
+    "CREATE TABLE public.selftest_rls_off (id int);"
+    "CREATE FUNCTION public.selftest_anon_definer() RETURNS int LANGUAGE sql SECURITY DEFINER AS \$fn\$ SELECT 1 \$fn\$; REVOKE ALL ON FUNCTION public.selftest_anon_definer() FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.selftest_anon_definer() TO anon;"
+    "CREATE FUNCTION public.selftest_authed_definer() RETURNS int LANGUAGE sql SECURITY DEFINER AS \$fn\$ SELECT 1 \$fn\$; REVOKE ALL ON FUNCTION public.selftest_authed_definer() FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.selftest_authed_definer() TO authenticated;"
+  )
+
+  _idx=0
+  MISSING=()
+  WRONGFIRE=()
+  for _rule in "${EXPECTED_RULES[@]}"; do
+    _RDB="${CDB}_${_idx}"
+    psql -X -q -v ON_ERROR_STOP=1 -d "$CONTROL" -c "CREATE DATABASE $_RDB" >/dev/null 2>&1 \
+      || { echo "FAIL(setup): could not create control database $_RDB" >&2; exit 2; }
+    CONTROL_DBS+=("$_RDB")
+
+    psql -X -q -v ON_ERROR_STOP=1 -d "$CBASE/$_RDB" >"$WORK/seed.out" 2>&1 <<SQL
+DO \$\$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN CREATE ROLE anon NOLOGIN; END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN CREATE ROLE authenticated NOLOGIN; END IF;
-END $$;
-
--- one defect per rule, so each rule has something of its own to find
-CREATE TABLE public.selftest_rls_off (id int);                       -- rls_disabled_in_public
-CREATE FUNCTION public.selftest_anon_definer() RETURNS int
-  LANGUAGE sql SECURITY DEFINER AS $fn$ SELECT 1 $fn$;               -- anon_executable_security_definer
-GRANT EXECUTE ON FUNCTION public.selftest_anon_definer() TO anon;
-CREATE FUNCTION public.selftest_authed_definer() RETURNS int
-  LANGUAGE sql SECURITY DEFINER AS $fn$ SELECT 1 $fn$;               -- authenticated_executable_security_definer
-GRANT EXECUTE ON FUNCTION public.selftest_authed_definer() TO authenticated;
+END \$\$;
+${_SEED_SQL[$_idx]}
 SQL
-  [[ $? -eq 0 ]] || { echo "FAIL(setup): could not seed the positive control. psql said:" >&2; head -5 "$WORK/seed.out" >&2; exit 2; }
+    [[ $? -eq 0 ]] || { echo "FAIL(setup): could not seed the control for '${_rule}'. psql said:" >&2; head -5 "$WORK/seed.out" >&2; exit 2; }
 
-  run_gate "$CSCRATCH" "$WORK/c.out" "$WORK/c.err"
-  MISSING=()
-  for _rule in "${EXPECTED_RULES[@]}"; do
+    run_gate "$CBASE/$_RDB" "$WORK/c.out" "$WORK/c.err"
+
+    # its own rule MUST fire
     grep -q "^${_rule}|" "$WORK/c.out" || MISSING+=("$_rule")
+
+    # and no OTHER rule may fire on a database seeded only for this one
+    for _other in "${EXPECTED_RULES[@]}"; do
+      [[ "$_other" == "$_rule" ]] && continue
+      grep -q "^${_other}|" "$WORK/c.out" && WRONGFIRE+=("${_other} fired on the '${_rule}' control")
+    done
+
+    _idx=$(( _idx + 1 ))
   done
+
   if (( ${#MISSING[@]} > 0 )); then
     echo "FAIL(setup): the gate FAILED ITS OWN POSITIVE CONTROL." >&2
-    echo "  These rules did not detect a defect seeded specifically for them:" >&2
+    echo "  These rules did not detect the defect seeded specifically for them:" >&2
     printf '    %s\n' "${MISSING[@]}" >&2
     echo "  A green from this gate would be a false green — its predicates are not working." >&2
     echo "  (A rule can keep its name and still be disabled, e.g. by a WHERE false.)" >&2
     exit 2
   fi
-  CONTROL_VERDICT="PASSED — all ${#EXPECTED_RULES[@]} rules detected a seeded defect"
+
+  if (( ${#WRONGFIRE[@]} > 0 )); then
+    echo "FAIL(setup): a rule fired on a defect that is NOT its own." >&2
+    printf '    %s\n' "${WRONGFIRE[@]}" >&2
+    echo "  Rule labels are not bound to their predicates, so a passing control does not" >&2
+    echo "  prove the named rule works. Refusing to trust a green." >&2
+    exit 2
+  fi
+
+  CONTROL_VERDICT="PASSED — each of ${#EXPECTED_RULES[@]} rules detected ITS OWN defect, in its own database, and no rule fired on another rule's defect"
   cleanup_control
 fi
 

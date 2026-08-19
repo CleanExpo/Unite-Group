@@ -24,6 +24,17 @@
 # experiment. The SQL now lives in this file, so there is no separate artefact to
 # swap, and the assertions below check catalog state rather than echoed text.
 #
+# WHAT THIS GATE CANNOT DEFEND AGAINST, STATED HONESTLY. A second review pass
+# (codex, 19/08/2026) rewrote the SQL heredoc BELOW to emit the expected markers
+# with literal SELECTs and no experiment, and the gate passed. That is true, and
+# it is true of every gate ever written: a check cannot prove it was not itself
+# edited. The defence for that threat is the diff and the reviewer, not another
+# layer of assertions inside the thing being edited. What the assertions below DO
+# buy is that the gate cannot pass while the EXPERIMENT is wrong — a missing
+# policy, an ungranted role, a revoke that did not take, a read that still
+# succeeds, or a transaction that did not roll back all fail it. Treat an edit to
+# this heredoc as an edit to a control, and review it as one.
+#
 # Exits 0 only if ALL of the following hold, each read back from the database:
 #   - the helper really is SECURITY DEFINER and the table really has RLS enabled
 #   - before the revoke, the authenticated read returns exactly 1 row

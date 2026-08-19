@@ -28,10 +28,13 @@ review (codex, 19/08/2026) was right to challenge this: the rung definition belo
 says AA means "gate green locally", and `repro-prod-exposure.sh` exits 1. These
 rows are NOT rated on that gate. They are rated on
 `scripts/ship-gates/prove-rollback.sh` (exit 0), which measures the items
-directly: **3** anon-executable `SECURITY DEFINER` functions before the fix, **0**
-after, and the fix's in-transaction post-condition additionally asserts RLS is
-enabled on both dated tables or aborts. That is a behavioural green receipt for
-rows 1-5 specifically. Items 6 and 7 have no such receipt, which is why they read
+directly and separately: rows 1-3 by **3** anon-executable `SECURITY DEFINER`
+functions before the fix and **0** after; rows 4-5 by reading `relrowsecurity`
+on both dated tables — **2/2 ON** after the fix and **0/2** after the rollback.
+An earlier revision of this claim was false: the gate measured only the functions
+and the fix's post-condition contains no `relrowsecurity` assertion, so rows 4-5
+had no receipt at all. An independent review (codex) proved it by deleting the
+rollback's entire RLS block and watching the gate still pass. It no longer does. Items 6 and 7 have no such receipt, which is why they read
 CONTESTED. Read "AA" on these rows as "proven by prove-rollback, not by the
 repro".
 
@@ -239,7 +242,8 @@ supplied instead by `scripts/ship-gates/prove-auth-admin-regrant.sh` (exit 0,
 19/08/2026), which reaches the same claim without depending on step 4's verdict.
 The mechanism has been restored and its control runs.
 Rows 2, 5, 7 and 8 were mutation-checked by the implementing agent **against
-the earlier revision `44c44368f`**; two independent reviewers subsequently found
+the earlier revision `44c44368f`**; two PRIOR CLAUDE REVIEW ROUNDS (not
+independent under the release law — see the correction above) subsequently found
 a killing mutant for all eight, and for three further controls the branch had
 recorded none. Every mutated source was restored byte-identical and
 hash-verified **except one**: the `supabase_auth_admin` re-grant (row 8) was

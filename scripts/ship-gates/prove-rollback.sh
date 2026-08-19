@@ -40,8 +40,14 @@ for f in "$FIX" "$DOWN"; do
   [[ -f "$f" ]] || { echo "cannot run: not found: $f" >&2; exit 2; }
 done
 
-DB="ship_gate_rollback"
-WRONG="ship_gate_rollback_wrong"
+# Unique per run. An independent review (codex, 19/08/2026) pre-created a
+# database with the old fixed name, holding a sentinel table, and this gate
+# force-dropped it and exited 0. A gate must never destroy data it did not
+# create merely because a name matches a constant. The PID suffix makes a
+# collision practically impossible, and mkdb below REFUSES a name that is
+# already taken rather than dropping it.
+DB="ship_gate_rollback_$$"
+WRONG="ship_gate_rollback_wrong_$$"
 BASE="${ADMIN%/*}"
 WORK="$(mktemp -d)"
 drop_all() {
@@ -54,9 +60,21 @@ trap drop_all EXIT
 fail() { echo "FAIL  prove-rollback: $*"; exit 1; }
 
 mkdb() {
-  psql -X -q -d "$ADMIN" -c "DROP DATABASE IF EXISTS $1 (FORCE)" >/dev/null 2>&1
+  # Refuse to touch a database that already exists — we did not create it.
+  local _exists
+  _exists="$(psql -X -A -t -q -d "$ADMIN" -c "SELECT count(*) FROM pg_database WHERE datname='$1';" 2>/dev/null | tr -d '[:space:]')"
+  if [[ "$_exists" != "0" ]]; then
+    fail "refusing to run: a database named $1 already exists. This gate only ever drops databases it created itself; it will not force-drop yours. Remove it deliberately, or re-run (the name carries this process's PID)."
+  fi
   psql -X -q -v ON_ERROR_STOP=1 -d "$ADMIN" -c "CREATE DATABASE $1" >/dev/null 2>&1 \
     || fail "could not create scratch database $1"
+}
+
+rls_on() { # $1 = db -> how many of the two dated tables have RLS enabled
+  psql -X -A -t -q -d "$BASE/$1" -c "
+    SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname='public' AND c.relrowsecurity
+      AND c.relname IN ('founder_uid_migration_20260810','founder_uid_conflict_resolution_20260810');" 2>/dev/null | tr -d '[:space:]'
 }
 
 anon_definers() { # $1 = db
@@ -107,6 +125,13 @@ AFTER_FIX="$(anon_definers "$DB")"
 [[ "$AFTER_FIX" == "0" ]] \
   || fail "the fix did not close the exposure: ${AFTER_FIX} definer(s) still anon-executable. The rollback test would be meaningless."
 
+# Board rows 4 and 5 are RLS items, and an earlier revision of this gate measured
+# only the functions — an independent review deleted the entire RLS-disable block
+# from the rollback and this script still exited 0 calling the rollback TESTED.
+RLS_AFTER_FIX="$(rls_on "$DB")"
+[[ "$RLS_AFTER_FIX" == "2" ]] \
+  || fail "the fix did not enable RLS on both dated tables (got '${RLS_AFTER_FIX}' of 2). Board rows 4 and 5 are not closed."
+
 # ── THE TEST: the rollback must re-open it ───────────────────────────────────
 psql -X -q -v ON_ERROR_STOP=1 -d "$BASE/$DB" -f "$DOWN" >"$WORK/down.out" 2>&1 \
   || fail "the rollback failed to apply. psql said: $(head -5 "$WORK/down.out")"
@@ -114,6 +139,10 @@ psql -X -q -v ON_ERROR_STOP=1 -d "$BASE/$DB" -f "$DOWN" >"$WORK/down.out" 2>&1 \
 AFTER_DOWN="$(anon_definers "$DB")"
 [[ "$AFTER_DOWN" == "3" ]] \
   || fail "THE ROLLBACK DID NOT RESTORE THE PRIOR STATE: expected 3 anon-executable definers after it, got '${AFTER_DOWN}'. This rollback cannot be relied on in a break-glass."
+
+RLS_AFTER_DOWN="$(rls_on "$DB")"
+[[ "$RLS_AFTER_DOWN" == "0" ]] \
+  || fail "THE ROLLBACK DID NOT RESTORE THE RLS STATE: expected RLS OFF on both dated tables after it, got '${RLS_AFTER_DOWN}' of 2 still enabled. Board rows 4 and 5 are not reversible."
 
 # ── and it must REFUSE a database that is not the target ─────────────────────
 mkdb "$WRONG"
@@ -125,6 +154,6 @@ grep -q 'rollback aborted' "$WORK/wrong.out" \
 
 echo "PASS  prove-rollback"
 echo "  seeded exposure:      3 anon-executable SECURITY DEFINER function(s)"
-echo "  after the fix:        0"
-echo "  after the rollback:   3  — prior state restored, so the rollback is TESTED"
+echo "  after the fix:        0 definers, RLS ON for 2/2 dated tables"
+echo "  after the rollback:   3 definers, RLS OFF for 2/2 — prior state restored, so the rollback is TESTED"
 echo "  wrong project:        refused on the identity guard, nothing committed"

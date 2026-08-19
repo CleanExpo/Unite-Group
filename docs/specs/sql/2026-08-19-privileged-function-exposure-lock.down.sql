@@ -57,12 +57,16 @@ BEGIN
       'get_my_org_ids'
     );
 
-  IF _fns = 0 THEN
+  -- An independent review defeated an earlier `_fns = 0` test with a database
+  -- holding ONE colliding function: the guard reported "1 of 4" and committed.
+  -- A partial match is not this project; it is a coincidence, and acting on a
+  -- coincidence during a break-glass is how the wrong database gets mutated.
+  IF _fns <> 4 THEN
     RAISE EXCEPTION
-      'rollback aborted: none of the four privileged functions this file restores exist in schema public. This is almost certainly the WRONG DATABASE. Nothing has been changed.';
+      'rollback aborted: expected all 4 privileged functions this file restores (custom_access_token_hook, before_user_created_hook, prune_integration_history, get_my_org_ids) in schema public, found %. A partial match is NOT this project. Nothing has been changed.', _fns;
   END IF;
 
-  RAISE NOTICE 'rollback identity guard: % of 4 target function(s) present', _fns;
+  RAISE NOTICE 'rollback identity guard: all 4 target functions present';
 END
 $$;
 
