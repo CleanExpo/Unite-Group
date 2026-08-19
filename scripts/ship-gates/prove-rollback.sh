@@ -33,6 +33,8 @@ fi
 command -v psql >/dev/null 2>&1 || { echo "cannot run: psql not on PATH" >&2; exit 2; }
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/pgprobe.sh
+. "$HERE/lib/pgprobe.sh"   # pg_seed_roles / pg_drop_seeded_roles live here
 REPO="$(cd "$HERE/../.." && pwd)"
 FIX="$REPO/docs/specs/sql/2026-08-19-privileged-function-exposure-lock.sql"
 DOWN="$REPO/docs/specs/sql/2026-08-19-privileged-function-exposure-lock.down.sql"
@@ -77,6 +79,10 @@ drop_all() {
     echo "WARNING: the register of databases this run created is kept at ${DBS_FILE}; ${WORK} was NOT removed." >&2
     return 1
   fi
+  # ROLES LAST. Dropping a role while it still holds grants in an existing database
+  # fails ("objects depend on it"), so this must come AFTER every scratch database is
+  # gone. A first attempt ran it first and the roles leaked silently on a clean cluster.
+  pg_drop_seeded_roles "$ADMIN" || true
   rm -rf "$WORK"
 }
 # CLASS SWEEP, 20/08/2026. An EXIT trap that RETURNS non-zero does NOT change the
@@ -130,6 +136,12 @@ anon_definers() { # $1 = db
 # ── seed the observed production exposure ────────────────────────────────────
 DB="ship_gate_rollback_$(od -An -tx1 -N6 /dev/urandom | tr -d ' \n')"
 mkdb "$DB"
+
+# Cluster-wide roles are created through the shared helper so that ONLY the ones this
+# process actually creates are dropped afterwards. CREATE ROLE is not database-local,
+# and dropping the disposable database does not remove them.
+pg_seed_roles "$ADMIN" anon authenticated supabase_auth_admin \
+  || { echo "cannot run: could not ensure the anon/authenticated/supabase_auth_admin roles" >&2; exit 2; }
 psql -X -q -v ON_ERROR_STOP=1 -d "$BASE/$DB" >"$WORK/seed.out" 2>&1 <<'SQL'
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN CREATE ROLE anon NOLOGIN; END IF;

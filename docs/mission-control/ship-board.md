@@ -235,7 +235,7 @@ exit-1-at-step-4 verdict was reproduced at this head independently on
 19/08/2026). **Steps 5, 6, 7 and 8 DID NOT RUN.**
 Any row below describing them as passing is describing the earlier revision
 `44c44368f`. NOTE 20/08/2026: the NOT REACHED marking below is now stale for steps 5-8, which run at this head; it is retained to show what was true when the row was written. The mutation claim for the `supabase_auth_admin` re-grant was killed by step 8 —
-which is unreachable at this head. The control it would have provided is
+which REACHES it at this head as of 20/08/2026. The independent control is
 supplied instead by `scripts/ship-gates/prove-auth-admin-regrant.sh` (exit 0,
 19/08/2026), which reaches the same claim without depending on step 4's verdict.
 The mechanism has been restored and its control runs.
@@ -262,13 +262,13 @@ byte-identical, `shasum -c` OK. Runs in one transaction, ROLLBACK'd.
 | 2 | gate red on the seeded defect, **counts exactly 2 / 3 / 4** | matches the observed production red |
 | 3 | fix applies, in-transaction post-condition holds | `0 exposed definers` |
 | 4 | gate green | **FAIL — 1 row** (`authenticated_executable_security_definer` / `get_my_org_ids`), deliberate; run exits 1 here |
-| 5 | `supabase_auth_admin` keeps EXECUTE on both hooks | **NOT REACHED** |
-| 5 | `anon` / `authenticated` hold EXECUTE on none of the four | **NOT REACHED** |
-| 6 | unrelated anon-callable `harmless_rpc()` untouched | **NOT REACHED** |
-| 7 | rollback restores the exposure | **NOT REACHED** |
-| 8 | re-grant is load-bearing: `supabase_auth_admin` reaching the hooks via PUBLIC **alone** still holds EXECUTE after the fix | **NOT REACHED** by the repro — but **PROVEN** by `scripts/ship-gates/prove-auth-admin-regrant.sh` (exit 0, 19/08/2026), which seeds that exact shape, confirms 2/2 hooks after the real fix, and confirms the apply ABORTS with the re-grant deleted |
+| 5 | `supabase_auth_admin` keeps EXECUTE on both hooks | **REACHED and PASSING** (20/08/2026) |
+| 5 | `anon` / `authenticated` hold EXECUTE on none of the four, EXCEPT the deliberate `authenticated` → `get_my_org_ids` retention, which is REQUIRED | **REACHED and PASSING** (20/08/2026) |
+| 6 | unrelated anon-callable `harmless_rpc()` untouched | **REACHED and PASSING** (20/08/2026) |
+| 7 | rollback restores the exposure | **REACHED and PASSING** (20/08/2026) |
+| 8 | re-grant is load-bearing: `supabase_auth_admin` reaching the hooks via PUBLIC **alone** still holds EXECUTE after the fix | **REACHED and PASSING** by the repro as of 20/08/2026 — and independently **PROVEN** by `scripts/ship-gates/prove-auth-admin-regrant.sh` (exit 0, 19/08/2026), which seeds that exact shape, confirms 2/2 hooks after the real fix, and confirms the apply ABORTS with the re-grant deleted |
 
-Rows marked NOT REACHED were recorded as passing against `44c44368f`. They are
+CORRECTED 20/08/2026: the rows above previously read NOT REACHED, because repro step 4 demanded an outcome only an outage could produce and stranded steps 5-8. Step 4 now asserts the real contract (exactly the one deliberate row) and the repro runs end to end, exit 0. The history below is retained rather than deleted. Rows formerly marked NOT REACHED were recorded as passing against `44c44368f`. They are
 not evidence for this head. Making step 4 tolerate the single expected residual
 row — so steps 5-8 can run again — is a work item attached to the F9 decision.
 

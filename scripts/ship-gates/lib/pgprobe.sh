@@ -108,3 +108,49 @@ pg_cluster_identity() {
   local uri="$1"
   pg_scalar "$uri" "SELECT system_identifier::text FROM pg_control_system()"
 }
+
+# ── cluster-wide roles: create only what is missing, drop only what we created ──
+#
+# CREATE ROLE is NOT database-local. Five gates seeded anon / authenticated /
+# supabase_auth_admin with `IF NOT EXISTS ... CREATE ROLE` and then dropped only their
+# disposable DATABASE, so against a vanilla PostgreSQL cluster every run left three
+# roles behind permanently. An independent review (openrouter, 20/08/2026) found it in
+# two gates; a sweep found it in five, which is why it lives here now rather than being
+# repaired per file.
+#
+# Dropping the three unconditionally would be worse than the leak: on a real Supabase
+# cluster they are load-bearing and pre-existing. So the state is RECORDED — which of
+# them this process actually created — and only those are dropped.
+#
+#   pg_seed_roles <uri> <role>...      creates the missing ones, records them
+#   pg_drop_seeded_roles <uri>         drops only what pg_seed_roles created
+PG_SEEDED_ROLES=""
+
+pg_seed_roles() {
+  local uri="$1"; shift
+  local _r _exists
+  for _r in "$@"; do
+    _exists="$(pg_scalar "$uri" "SELECT count(*) FROM pg_roles WHERE rolname = '${_r}'")" || return 1
+    if [[ "$_exists" == "0" ]]; then
+      pg_exec "$uri" /dev/null "CREATE ROLE ${_r} NOLOGIN" || return 1
+      PG_SEEDED_ROLES="${PG_SEEDED_ROLES}${_r} "
+    fi
+  done
+  return 0
+}
+
+pg_drop_seeded_roles() {
+  local uri="$1" _r _rc=0
+  [[ -n "${PG_SEEDED_ROLES// /}" ]] || return 0
+  for _r in $PG_SEEDED_ROLES; do
+    # Objects owned by the role must go first or the DROP is refused. Any database the
+    # role owned things in is already gone by this point in every caller.
+    psql "$uri" -X -q -c "DROP OWNED BY ${_r}" >/dev/null 2>&1 || true
+    if ! psql "$uri" -X -q -c "DROP ROLE IF EXISTS ${_r}" >/dev/null 2>&1; then
+      echo "WARNING: could not drop cluster-wide role ${_r} that this run created — it is LEAKED." >&2
+      _rc=1
+    fi
+  done
+  PG_SEEDED_ROLES=""
+  return $_rc
+}

@@ -62,7 +62,11 @@ cleanup() {
   local _rc=0
   pg_drop_disposable_db "$ADMIN" || _rc=1
   if [[ $_rc -eq 0 ]]; then
-    rm -rf "$WORK"
+    # ROLES LAST. Dropping a role while it still holds grants in an existing database
+  # fails ("objects depend on it"), so this must come AFTER every scratch database is
+  # gone. A first attempt ran it first and the roles leaked silently on a clean cluster.
+  pg_drop_seeded_roles "$ADMIN" || _rc=1
+  rm -rf "$WORK"
   else
     echo "WARNING: scratch database was NOT dropped; ${WORK} kept for retry." >&2
   fi
@@ -90,6 +94,15 @@ DB="$DISPOSABLE_DB"
 SCRATCH="$DISPOSABLE_URI"
 
 fail() { echo "FAIL  prove-auth-admin-regrant: $*"; exit 1; }
+
+# Cluster-wide roles are seeded HERE, in the main shell — NOT inside newdb()/seed(),
+# which run in command-substitution subshells. A first attempt put this call there, and
+# PG_SEEDED_ROLES was set in the subshell and lost, so the roles leaked with no warning:
+# the same subshell class that made the database register lose its contents earlier on
+# this branch, reintroduced by me while fixing the role leak. CREATE ROLE is not
+# database-local, so only what this process creates may be dropped.
+pg_seed_roles "$ADMIN" anon authenticated supabase_auth_admin \
+  || { echo "cannot run: could not ensure the anon/authenticated/supabase_auth_admin roles" >&2; exit 2; }
 
 # ── seed: the PUBLIC-only shape, with NO direct grant to supabase_auth_admin ──
 seed() {
