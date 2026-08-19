@@ -138,8 +138,29 @@ if [[ -n "$CONTROL" ]]; then
     : > "$CONTROL_REG"
     return 0
   }
-  # cleanup_control's status must not be discarded by the rm that follows it.
-  trap 'cleanup_control || CONTROL_LEAKED=1; [[ ${CONTROL_LEAKED:-0} -eq 1 ]] || rm -rf "$WORK"' EXIT
+  # A LEAK MUST CHANGE THE EXIT CODE, not merely print a warning. The previous form
+  # was `cleanup_control || CONTROL_LEAKED=1; [[ ... ]] || rm -rf "$WORK"`, and an
+  # independent review (openrouter, 20/08/2026) pointed out that BOTH halves succeed:
+  # `|| assignment` converts the failure to success, the `[[ ]]` test then also
+  # succeeds, and the trap's final status is 0. So the "cleanup status is drained"
+  # claim was false and a leak still exited 0 under a printed PASS. The trap now
+  # re-raises: if the process was going to exit 0 and control databases were leaked,
+  # it exits 2 instead, because a gate that cannot clean up its own control has not
+  # earned the trust its green implies.
+  _on_exit() {
+    local _rc=$?
+    if ! cleanup_control; then
+      CONTROL_LEAKED=1
+    fi
+    if [[ ${CONTROL_LEAKED:-0} -eq 1 ]]; then
+      echo "FAIL(cleanup): control databases were left behind; refusing to report a clean run." >&2
+      [[ $_rc -eq 0 ]] && _rc=2
+    else
+      rm -rf "$WORK"
+    fi
+    exit "$_rc"
+  }
+  trap _on_exit EXIT
 
   # ── the NON-PROD boundary must be CHECKED, not merely documented ───────────
   # An independent review (codex, 19/08/2026) passed the SAME admin URI as both
@@ -165,12 +186,8 @@ if [[ -n "$CONTROL" ]]; then
     exit 2
   fi
 
-  _exists="$(psql -X -A -t -q -d "$CONTROL" -c "SELECT count(*) FROM pg_database WHERE datname LIKE '${CDB}%';" 2>/dev/null | tr -d '[:space:]')"
-  if [[ "$_exists" != "0" ]]; then
-    echo "FAIL(setup): refusing to run: a database matching ${CDB}% already exists on the --control cluster." >&2
-    echo "  This gate only drops databases it created itself; it will not force-drop yours." >&2
-    exit 2
-  fi
+  # Each control database is checked for pre-existence individually at creation time
+  # (below), because there is deliberately no shared prefix left to match on here.
 
   # ── one defect class per database, TWO unpredictable instances of it ───────
   #
@@ -222,7 +239,20 @@ if [[ -n "$CONTROL" ]]; then
   PARTIAL=()
   WRONGFIRE=()
   for _rule in "${EXPECTED_RULES[@]}"; do
-    _RDB="${CDB}_${_idx}"
+    # INDEPENDENTLY RANDOM PER RULE. `${CDB}_${_idx}` gave each rule a deterministic
+    # suffix — the RLS control always ended `_0`, anon `_1`, authenticated `_2` —
+    # so a prewritten mutant could keep each real class predicate and add the matching
+    # `current_database() LIKE '%\_0'`. Every rule then reported both of its random
+    # objects and stayed blind in production: the fifth defeat of this control, and the
+    # same shape as the four before it, one constant further down. There is no shared
+    # stem and no index in the name now.
+    _RDB="$(_rand_ident)$(od -An -tx1 -N4 /dev/urandom | tr -d ' \n')"
+    _rexists="$(psql -X -A -t -q -d "$CONTROL" -c "SELECT count(*) FROM pg_database WHERE datname = '${_RDB}';" 2>/dev/null | tr -d '[:space:]')"
+    if [[ "$_rexists" != "0" ]]; then
+      echo "FAIL(setup): refusing to run: ${_RDB} already exists on the --control cluster." >&2
+      echo "  This gate only drops databases it created itself; it will not force-drop yours." >&2
+      exit 2
+    fi
     psql -X -q -v ON_ERROR_STOP=1 -d "$CONTROL" -c "CREATE DATABASE $_RDB" >/dev/null 2>&1 \
       || { echo "FAIL(setup): could not create control database $_RDB" >&2; exit 2; }
     printf '%s\n' "$_RDB" >> "$CONTROL_REG"
@@ -313,7 +343,10 @@ SQL
   fi
 
   CONTROL_VERDICT="PASSED — each of ${#EXPECTED_RULES[@]} rules detected BOTH unpredictably-named instances of ITS OWN defect class, in its own database, and no rule fired on another rule's defect"
-  cleanup_control
+  # Checked here too: the mid-run cleanup happens BEFORE the production query and this
+  # script does not enable errexit, so an unchecked failure here would have continued
+  # all the way to a printed PASS.
+  cleanup_control || CONTROL_LEAKED=1
 fi
 
 # ── run against the real target ──────────────────────────────────────────────
