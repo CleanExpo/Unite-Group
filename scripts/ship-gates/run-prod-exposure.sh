@@ -133,22 +133,41 @@ if [[ -n "$CONTROL" ]]; then
     exit 2
   fi
 
-  # ── one defect at a time, each in its OWN database ─────────────────────────
-  # An independent review (codex) defeated the earlier all-defects-at-once
-  # control: it swapped the anon-definer query for a second RLS-table query that
-  # kept the anon LABEL, and because an RLS defect was also present the label
-  # still appeared, so the control passed while the anon rule was gone. Seeding
-  # every defect together only proves each label shows up SOMEWHERE. Binding a
-  # rule to its own defect means giving it a database where its defect is the
-  # ONLY one — then a rule that fires is a rule that found what it names.
-  declare -a _SEED_SQL=(
-    "CREATE TABLE public.selftest_rls_off (id int);"
-    "CREATE FUNCTION public.selftest_anon_definer() RETURNS int LANGUAGE sql SECURITY DEFINER AS \$fn\$ SELECT 1 \$fn\$; REVOKE ALL ON FUNCTION public.selftest_anon_definer() FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.selftest_anon_definer() TO anon;"
-    "CREATE FUNCTION public.selftest_authed_definer() RETURNS int LANGUAGE sql SECURITY DEFINER AS \$fn\$ SELECT 1 \$fn\$; REVOKE ALL ON FUNCTION public.selftest_authed_definer() FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.selftest_authed_definer() TO authenticated;"
-  )
+  # ── one defect class per database, TWO unpredictable instances of it ───────
+  #
+  # ROUND 1 of this control seeded every defect in ONE database and only checked
+  # that each rule LABEL appeared somewhere. A reviewer swapped the anon-definer
+  # query for a second RLS query that kept the anon label; the label still showed
+  # up, so the control passed with the anon rule gone.
+  #
+  # ROUND 2 gave each rule its own database, so a rule that fires is a rule that
+  # found the defect it names. That closed the label attack — and a later review
+  # (openrouter, 19/08/2026) defeated it anyway, because the seeded objects had
+  # FIXED names. A mutant could keep every rule label AND its class of predicate
+  # and simply add `AND relname = 'selftest_rls_off'` (or the matching proname).
+  # Every rule then detected its own seeded defect perfectly while being blind to
+  # every other instance of the same class — a gate that finds exactly the one
+  # defect you show it and nothing in production.
+  #
+  # ROUND 3, here. Two changes, and the first is the load-bearing one:
+  #
+  #   1. THE CONTROL OBJECTS ARE UNPREDICTABLE. Their names are random per run
+  #      with NO fixed prefix, so there is no literal and no LIKE pattern a mutant
+  #      author can write in advance that matches them. To detect a name it cannot
+  #      predict, a predicate has to be general — which is the property under test.
+  #
+  #   2. EACH RULE MUST FIND *BOTH* INSTANCES. Two independently-named objects of
+  #      the same defect class are seeded, and the rule must report both. A
+  #      predicate narrowed to any single object finds one and fails here, so
+  #      "detects a defect" is upgraded to "detects the CLASS of defect".
+  #
+  # Together: a narrowing attack must guess two random names, and a general
+  # predicate passes because it is correct.
+  _rand() { od -An -tx1 -N5 /dev/urandom | tr -d ' \n'; }
 
   _idx=0
   MISSING=()
+  PARTIAL=()
   WRONGFIRE=()
   for _rule in "${EXPECTED_RULES[@]}"; do
     _RDB="${CDB}_${_idx}"
@@ -156,19 +175,51 @@ if [[ -n "$CONTROL" ]]; then
       || { echo "FAIL(setup): could not create control database $_RDB" >&2; exit 2; }
     CONTROL_DBS+=("$_RDB")
 
+    # Two unpredictable names, generated independently so they share no prefix.
+    _o1="z$(_rand)"
+    _o2="q$(_rand)"
+
+    case "$_rule" in
+      rls_disabled_in_public)
+        _SEED="CREATE TABLE public.${_o1} (id int); CREATE TABLE public.${_o2} (id int);"
+        ;;
+      anon_executable_security_definer)
+        _SEED="CREATE FUNCTION public.${_o1}() RETURNS int LANGUAGE sql SECURITY DEFINER AS \$fn\$ SELECT 1 \$fn\$; REVOKE ALL ON FUNCTION public.${_o1}() FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.${_o1}() TO anon;
+                 CREATE FUNCTION public.${_o2}() RETURNS int LANGUAGE sql SECURITY DEFINER AS \$fn\$ SELECT 1 \$fn\$; REVOKE ALL ON FUNCTION public.${_o2}() FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.${_o2}() TO anon;"
+        ;;
+      authenticated_executable_security_definer)
+        _SEED="CREATE FUNCTION public.${_o1}() RETURNS int LANGUAGE sql SECURITY DEFINER AS \$fn\$ SELECT 1 \$fn\$; REVOKE ALL ON FUNCTION public.${_o1}() FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.${_o1}() TO authenticated;
+                 CREATE FUNCTION public.${_o2}() RETURNS int LANGUAGE sql SECURITY DEFINER AS \$fn\$ SELECT 1 \$fn\$; REVOKE ALL ON FUNCTION public.${_o2}() FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.${_o2}() TO authenticated;"
+        ;;
+      *)
+        echo "FAIL(setup): no control seed defined for rule '${_rule}'. A rule with no" >&2
+        echo "  positive control cannot license a green; add its seed or retire the rule." >&2
+        exit 2
+        ;;
+    esac
+
     psql -X -q -v ON_ERROR_STOP=1 -d "$CBASE/$_RDB" >"$WORK/seed.out" 2>&1 <<SQL
 DO \$\$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN CREATE ROLE anon NOLOGIN; END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN CREATE ROLE authenticated NOLOGIN; END IF;
 END \$\$;
-${_SEED_SQL[$_idx]}
+${_SEED}
 SQL
     [[ $? -eq 0 ]] || { echo "FAIL(setup): could not seed the control for '${_rule}'. psql said:" >&2; head -5 "$WORK/seed.out" >&2; exit 2; }
 
     run_gate "$CBASE/$_RDB" "$WORK/c.out" "$WORK/c.err"
 
-    # its own rule MUST fire
-    grep -q "^${_rule}|" "$WORK/c.out" || MISSING+=("$_rule")
+    # its own rule MUST fire, on BOTH unpredictable instances
+    if ! grep -q "^${_rule}|" "$WORK/c.out"; then
+      MISSING+=("$_rule")
+    else
+      _hit1=0; _hit2=0
+      grep -q "^${_rule}|${_o1}" "$WORK/c.out" && _hit1=1
+      grep -q "^${_rule}|${_o2}" "$WORK/c.out" && _hit2=1
+      if (( _hit1 == 0 || _hit2 == 0 )); then
+        PARTIAL+=("${_rule} found $(( _hit1 + _hit2 )) of 2 seeded instances (${_o1}, ${_o2})")
+      fi
+    fi
 
     # and no OTHER rule may fire on a database seeded only for this one
     for _other in "${EXPECTED_RULES[@]}"; do
@@ -178,6 +229,16 @@ SQL
 
     _idx=$(( _idx + 1 ))
   done
+
+  if (( ${#PARTIAL[@]} > 0 )); then
+    echo "FAIL(setup): a rule detected SOME instances of its defect class but not all." >&2
+    printf '    %s\n' "${PARTIAL[@]}" >&2
+    echo "  Two independently-named objects of one class were seeded and the rule found" >&2
+    echo "  only one, so its predicate is narrowed to particular objects rather than" >&2
+    echo "  matching the class. Against production it would miss real exposures while" >&2
+    echo "  passing this control. Refusing to trust a green." >&2
+    exit 2
+  fi
 
   if (( ${#MISSING[@]} > 0 )); then
     echo "FAIL(setup): the gate FAILED ITS OWN POSITIVE CONTROL." >&2
@@ -196,7 +257,7 @@ SQL
     exit 2
   fi
 
-  CONTROL_VERDICT="PASSED — each of ${#EXPECTED_RULES[@]} rules detected ITS OWN defect, in its own database, and no rule fired on another rule's defect"
+  CONTROL_VERDICT="PASSED — each of ${#EXPECTED_RULES[@]} rules detected BOTH unpredictably-named instances of ITS OWN defect class, in its own database, and no rule fired on another rule's defect"
   cleanup_control
 fi
 
