@@ -51,6 +51,8 @@
 --     on a function that is not SECURITY DEFINER   — prove-rollback-fidelity.sh case 8
 --   * refuses, and NAMES, a recorded privilege it
 --     cannot put back (dropped function or role)   — prove-rollback-fidelity.sh case 9
+--   * refuses, and NAMES, a recorded TABLE it
+--     cannot put back — the same guard, swept       — prove-rollback-fidelity.sh case 10
 --
 -- STILL NOT TESTED, and it is F9's remaining scope: intermediate partial matches
 -- of two or three present functions, and identity beyond names and argument
@@ -227,8 +229,18 @@ BEGIN
     FROM public.privileged_function_exposure_lock_receipt_20260819
     WHERE object_kind = 'table'
   LOOP
+    -- THE SAME CLASS, SWEPT. The function branch above was made fatal first and this
+    -- one was left emitting a NOTICE — patching the cited line and not the class is
+    -- this branch's signature defect, and an independent review (openrouter,
+    -- 20/08/2026) caught it here within one round. There is no benign half for a
+    -- table: unlike a privilege, an RLS setting is not "held or not held" by a
+    -- principal that may have gone away — the recorded object itself is missing, so
+    -- NEITHER recorded value can be re-established, and committing would consume the
+    -- receipt and destroy the only record of what the pre-state was.
     IF to_regclass(_r.object_id) IS NULL THEN
-      RAISE NOTICE 'rollback: % is in the receipt but no longer exists — skipped', _r.object_id;
+      _unrestorable := _unrestorable || format('%s (recorded RLS %s; the table no longer exists)',
+                                               _r.object_id,
+                                               CASE WHEN _r.rls_enabled THEN 'ENABLED' ELSE 'DISABLED' END);
       CONTINUE;
     END IF;
     IF _r.rls_enabled THEN

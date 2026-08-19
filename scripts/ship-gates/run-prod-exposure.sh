@@ -307,13 +307,36 @@ if [[ -n "$CONTROL" ]]; then
     # short one, `= 63` misses the short one. Postgres truncates identifiers at 63, so
     # this spans the whole legal range.
     #
-    # A two-sided mutant (`length <= 12 OR length >= 62`) would match both and evade
-    # this, and that is stated rather than hidden — but such a predicate excludes the
-    # middle of the range, which is where most real identifiers live, so it would miss
-    # most production defects and is a poor disguise for a rule pretending to work.
+    # A two-sided mutant (`length <= 12 OR length >= 62`) matches both a short and a
+    # long instance and would evade a control that seeds only those two. This file
+    # used to ADMIT that bypass in a comment and argue it away — such a predicate
+    # excludes the middle of the range, so it would miss most production defects and
+    # is a poor disguise. An independent review (openrouter, 20/08/2026) called that
+    # what it is: a deterministic, documented bypass handed to the next author, and an
+    # argument is not a control. A THIRD instance is now seeded in the MIDDLE band
+    # (13-61), so the excluded-middle predicate deterministically misses one of the
+    # three and the rule reports 2 of 3 — which is a PARTIAL failure, not a green.
+    #
+    # RUN, NOT ARGUED (20/08/2026). The mutant adds
+    # `AND (length(<name>) <= 12 OR length(<name>) >= 62)` to all three rules of a copy
+    # of prod-exposure.sql, keeping every label and class predicate:
+    #   * against THIS control        -> exit 2, "found 2 of 3 seeded instances" on all three rules
+    #   * against the PREVIOUS control (two instances, same mutant) -> exit 0, PASS
+    # So the kill is attributable to the third instance and not to something else that
+    # changed. The old control is the negative control here: it is the version that
+    # printed PASS while every middle-length exposure in production would be missed.
+    #
+    # WHAT REMAINS, stated rather than argued away: a predicate that unions all three
+    # seeded bands still matches all three. That predicate is `length <= 12 OR (>= 13
+    # AND <= 61) OR >= 62`, which is every legal identifier length, so it no longer
+    # narrows anything and cannot blind the rule in production. The residual is
+    # narrower than the bypass it replaces: an author who reads THIS file can still
+    # key on the two gaps between the bands, and only the diff and the reviewer close
+    # that — see the environmental residual note at the head of this function.
     local _cap
     case "$_band" in
       short) _cap=$((  3 + $(od -An -tu1 -N1 /dev/urandom | tr -d ' \n') % 10 )) ;;  #  3..12
+      mid)   _cap=$(( 20 + $(od -An -tu1 -N1 /dev/urandom | tr -d ' \n') % 30 )) ;;  # 20..49
       long)  _cap=$(( 62 + $(od -An -tu1 -N1 /dev/urandom | tr -d ' \n') %  2 )) ;;  # 62..63
       *)     _cap=$((  3 + $(od -An -tu1 -N1 /dev/urandom | tr -d ' \n') % 61 )) ;;  #  3..63
     esac
@@ -353,12 +376,15 @@ if [[ -n "$CONTROL" ]]; then
       || { echo "FAIL(setup): could not create control database $_RDB" >&2; exit 2; }
     printf '%s\n' "$_RDB" >> "$CONTROL_REG"
 
-    # Two unpredictable names, generated independently so they share no prefix.
+    # THREE unpredictable names, generated independently so they share no prefix:
+    # one short, one middle, one at the identifier limit. Which position holds which
+    # band is random, so no position is safe to key on.
     if (( $(od -An -tu1 -N1 /dev/urandom | tr -d ' \n') % 2 )); then
       _o1="$(_rand_ident short)"; _o2="$(_rand_ident long)"
     else
       _o1="$(_rand_ident long)";  _o2="$(_rand_ident short)"
     fi
+    _o3="$(_rand_ident mid)"
     # ONE OF THE TWO BREAKS THE lower_snake_case SHAPE. The sampling pipeline filters
     # target names through `grep -E '^[a-z_][a-z0-9_]*$'`, so every seeded object matched
     # that pattern and a mutant could add `relname ~ '^[a-z_][a-z0-9_]*$'` — passing this
@@ -368,14 +394,15 @@ if [[ -n "$CONTROL" ]]; then
     # one name defeats that predicate; the name is quoted at creation so Postgres keeps
     # the case. Which of the two is altered is random, so neither position is safe to
     # key on.
-    if (( $(od -An -tu1 -N1 /dev/urandom | tr -d ' \n') % 2 )); then
-      _o1="$(printf '%s' "$_o1" | awk '{ print toupper(substr($0,1,1)) substr($0,2) }')"
-    else
-      _o2="$(printf '%s' "$_o2" | awk '{ print toupper(substr($0,1,1)) substr($0,2) }')"
-    fi
-    # Two draws can share a leading letter; harmless (the hex bodies differ) but they
-    # must never be the SAME identifier, or "found both" degenerates into "found one".
+    case $(( $(od -An -tu1 -N1 /dev/urandom | tr -d ' \n') % 3 )) in
+      0) _o1="$(printf '%s' "$_o1" | awk '{ print toupper(substr($0,1,1)) substr($0,2) }')" ;;
+      1) _o2="$(printf '%s' "$_o2" | awk '{ print toupper(substr($0,1,1)) substr($0,2) }')" ;;
+      *) _o3="$(printf '%s' "$_o3" | awk '{ print toupper(substr($0,1,1)) substr($0,2) }')" ;;
+    esac
+    # Draws can share a leading letter; harmless (the hex bodies differ) but no two may
+    # be the SAME identifier, or "found all three" degenerates into "found fewer".
     while [[ "$_o1" == "$_o2" ]]; do _o2="$(_rand_ident)"; done
+    while [[ "$_o3" == "$_o1" || "$_o3" == "$_o2" ]]; do _o3="$(_rand_ident mid)"; done
 
     # THE STRADDLE IS ASSERTED, NOT ASSUMED. The bands are supposed to guarantee one
     # short name and one at the identifier limit, so that any single-bounded length
@@ -384,27 +411,39 @@ if [[ -n "$CONTROL" ]]; then
     # control that works most of the time reports a mutant as dead when it is alive.
     # Rather than trust the generator, the property it exists to provide is checked
     # here and the run stops if it is absent.
-    _len1=${#_o1}; _len2=${#_o2}
+    _len1=${#_o1}; _len2=${#_o2}; _len3=${#_o3}
     _short=$(( _len1 < _len2 ? _len1 : _len2 ))
     _long=$((  _len1 > _len2 ? _len1 : _len2 ))
     if (( _short > 12 || _long < 62 )); then
-      echo "FAIL(setup): the control's two seeded names for '${_rule}' do not straddle the" >&2
+      echo "FAIL(setup): the control's seeded names for '${_rule}' do not straddle the" >&2
       echo "  identifier length range (got ${_short} and ${_long}; need <=12 and >=62)." >&2
       echo "  Without the straddle, a length-bounded mutant can match both and survive." >&2
+      exit 2
+    fi
+    # The middle instance is the one that kills the excluded-middle mutant, so its band
+    # is asserted too — a "middle" name that drifted into either outer band would leave
+    # `length <= 12 OR length >= 62` matching all three again, silently.
+    if (( _len3 < 13 || _len3 > 61 )); then
+      echo "FAIL(setup): the control's MIDDLE seeded name for '${_rule}' is ${_len3} characters," >&2
+      echo "  which is not strictly between the short and long bands (need 13..61). A two-sided" >&2
+      echo "  length predicate excluding the middle of the range would then match every seeded" >&2
+      echo "  instance and survive this control." >&2
       exit 2
     fi
 
     case "$_rule" in
       rls_disabled_in_public)
-        _SEED="CREATE TABLE public.\"${_o1}\" (id int); CREATE TABLE public.\"${_o2}\" (id int);"
+        _SEED="CREATE TABLE public.\"${_o1}\" (id int); CREATE TABLE public.\"${_o2}\" (id int); CREATE TABLE public.\"${_o3}\" (id int);"
         ;;
       anon_executable_security_definer)
         _SEED="CREATE FUNCTION public.\"${_o1}\"() RETURNS int LANGUAGE sql SECURITY DEFINER AS \$fn\$ SELECT 1 \$fn\$; REVOKE ALL ON FUNCTION public.\"${_o1}\"() FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.\"${_o1}\"() TO anon;
-                 CREATE FUNCTION public.\"${_o2}\"() RETURNS int LANGUAGE sql SECURITY DEFINER AS \$fn\$ SELECT 1 \$fn\$; REVOKE ALL ON FUNCTION public.\"${_o2}\"() FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.\"${_o2}\"() TO anon;"
+                 CREATE FUNCTION public.\"${_o2}\"() RETURNS int LANGUAGE sql SECURITY DEFINER AS \$fn\$ SELECT 1 \$fn\$; REVOKE ALL ON FUNCTION public.\"${_o2}\"() FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.\"${_o2}\"() TO anon;
+                 CREATE FUNCTION public.\"${_o3}\"() RETURNS int LANGUAGE sql SECURITY DEFINER AS \$fn\$ SELECT 1 \$fn\$; REVOKE ALL ON FUNCTION public.\"${_o3}\"() FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.\"${_o3}\"() TO anon;"
         ;;
       authenticated_executable_security_definer)
         _SEED="CREATE FUNCTION public.\"${_o1}\"() RETURNS int LANGUAGE sql SECURITY DEFINER AS \$fn\$ SELECT 1 \$fn\$; REVOKE ALL ON FUNCTION public.\"${_o1}\"() FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.\"${_o1}\"() TO authenticated;
-                 CREATE FUNCTION public.\"${_o2}\"() RETURNS int LANGUAGE sql SECURITY DEFINER AS \$fn\$ SELECT 1 \$fn\$; REVOKE ALL ON FUNCTION public.\"${_o2}\"() FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.\"${_o2}\"() TO authenticated;"
+                 CREATE FUNCTION public.\"${_o2}\"() RETURNS int LANGUAGE sql SECURITY DEFINER AS \$fn\$ SELECT 1 \$fn\$; REVOKE ALL ON FUNCTION public.\"${_o2}\"() FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.\"${_o2}\"() TO authenticated;
+                 CREATE FUNCTION public.\"${_o3}\"() RETURNS int LANGUAGE sql SECURITY DEFINER AS \$fn\$ SELECT 1 \$fn\$; REVOKE ALL ON FUNCTION public.\"${_o3}\"() FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.\"${_o3}\"() TO authenticated;"
         ;;
       *)
         echo "FAIL(setup): no control seed defined for rule '${_rule}'. A rule with no" >&2
@@ -428,7 +467,7 @@ SQL
 
     run_gate "$CBASE/$_RDB" "$WORK/c.out" "$WORK/c.err"
 
-    # its own rule MUST fire, on BOTH unpredictable instances
+    # its own rule MUST fire, on ALL THREE unpredictable instances (short, mid, long)
     if ! grep -q "^${_rule}|" "$WORK/c.out"; then
       MISSING+=("$_rule")
     else
@@ -440,11 +479,12 @@ SQL
       # defect just fixed in repro-prod-exposure step 4, living in the control that is
       # supposed to catch defects like it. The gate emits `rule|object|acl`, so awk
       # compares whole fields.
-      _hit1=0; _hit2=0
+      _hit1=0; _hit2=0; _hit3=0
       awk -F'|' -v r="$_rule" -v o="$_o1" 'NF>=2 && $1==r && $2==o {f=1} END{exit !f}' "$WORK/c.out" && _hit1=1
       awk -F'|' -v r="$_rule" -v o="$_o2" 'NF>=2 && $1==r && $2==o {f=1} END{exit !f}' "$WORK/c.out" && _hit2=1
-      if (( _hit1 == 0 || _hit2 == 0 )); then
-        PARTIAL+=("${_rule} found $(( _hit1 + _hit2 )) of 2 seeded instances (${_o1}, ${_o2})")
+      awk -F'|' -v r="$_rule" -v o="$_o3" 'NF>=2 && $1==r && $2==o {f=1} END{exit !f}' "$WORK/c.out" && _hit3=1
+      if (( _hit1 == 0 || _hit2 == 0 || _hit3 == 0 )); then
+        PARTIAL+=("${_rule} found $(( _hit1 + _hit2 + _hit3 )) of 3 seeded instances (${_o1}, ${_o2}, ${_o3})")
       fi
     fi
 
@@ -460,8 +500,9 @@ SQL
   if (( ${#PARTIAL[@]} > 0 )); then
     echo "FAIL(setup): a rule detected SOME instances of its defect class but not all." >&2
     printf '    %s\n' "${PARTIAL[@]}" >&2
-    echo "  Two independently-named objects of one class were seeded and the rule found" >&2
-    echo "  only one, so its predicate is narrowed to particular objects rather than" >&2
+    echo "  Three independently-named objects of one class were seeded — one short, one" >&2
+    echo "  mid-length, one at the identifier limit — and the rule found fewer than all" >&2
+    echo "  three, so its predicate is narrowed to particular objects rather than" >&2
     echo "  matching the class. Against production it would miss real exposures while" >&2
     echo "  passing this control. Refusing to trust a green." >&2
     exit 2
@@ -484,7 +525,7 @@ SQL
     exit 2
   fi
 
-  CONTROL_VERDICT="PASSED — each of ${#EXPECTED_RULES[@]} rules detected BOTH unpredictably-named instances of ITS OWN defect class, in its own database, and no rule fired on another rule's defect"
+  CONTROL_VERDICT="PASSED — each of ${#EXPECTED_RULES[@]} rules detected ALL THREE unpredictably-named instances of ITS OWN defect class — one short, one mid-length, one at the identifier limit — in its own database, and no rule fired on another rule's defect"
   # Checked here too: the mid-run cleanup happens BEFORE the production query and this
   # script does not enable errexit, so an unchecked failure here would have continued
   # all the way to a printed PASS.

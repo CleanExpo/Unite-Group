@@ -45,6 +45,11 @@
 #      be skipped with a NOTICE that the anon-only post-condition cannot see.
 #      Controlled by 9b, which removes the guard and shows the same partial restore
 #      committing.
+#  10. THE SAME GUARD OVER RECORDED TABLES: the receipt also records RLS state for the
+#      two dated tables, and that branch was left emitting a NOTICE when case 9 made
+#      the function branch fatal. A dropped recorded table must abort and be NAMED.
+#      Controlled by 10b, which restores the NOTICE and shows the rollback committing
+#      while consuming the receipt.
 set -uo pipefail
 
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -549,6 +554,78 @@ if ! psql "$DB9M" -X -q -v ON_ERROR_STOP=1 -f "$MUT9" >/dev/null 2>"$WORK/c9m.er
   fail "MUTATION CONTROL FAILED: with the unrestorable-entry guard removed, the rollback STILL refused the dropped-overload database — so case 9 is not attributable to that guard. stderr: $(head -3 "$WORK/c9m.err")"
 fi
 echo "  case 9b missing-guard control -> the mutant commits the same partial restore (control is live)"
+
+# ── 10. THE SAME GUARD MUST COVER RECORDED TABLES, NOT ONLY FUNCTIONS ────────
+# Case 9 closed the partial-restore hole for functions and roles. The receipt also
+# records RLS state for the two dated tables, and that branch was left emitting a
+# NOTICE — the identical defect, one loop further down, found by an independent
+# review (openrouter, 20/08/2026) in the round that reviewed case 9. Patching the
+# cited line and not the class is this branch's signature defect, so the class is
+# swept here and pinned so it cannot drift apart again.
+DB10="$(newdb rbtbl)"
+seed_unexposed "$DB10"
+psql "$DB10" -X -q -v ON_ERROR_STOP=1 \
+  -c "CREATE TABLE public.founder_uid_migration_20260810 (id int)" \
+  >/dev/null 2>"$WORK/c10.err" \
+  || fail "could not seed the dated table for case 10: $(head -3 "$WORK/c10.err")"
+
+psql "$DB10" -X -q -v ON_ERROR_STOP=1 -f "$APPLY" >/dev/null 2>"$WORK/c10a.err" \
+  || fail "the forward migration did not commit against the case 10 fixture: $(head -3 "$WORK/c10a.err")"
+[[ "$(pg_scalar "$DB10" "SELECT count(*)::text FROM public.privileged_function_exposure_lock_receipt_20260819 WHERE object_kind='table'")" == "1" ]] \
+  || fail "the case 10 fixture is wrong: the receipt recorded no table, so this case could not detect a lost table restoration."
+
+# The recorded table disappears between apply and rollback. Every function the
+# identity guard checks is still present, so the refusal cannot come from there.
+psql "$DB10" -X -q -v ON_ERROR_STOP=1 -c "DROP TABLE public.founder_uid_migration_20260810" \
+  >/dev/null 2>"$WORK/c10d.err" \
+  || fail "could not drop the recorded table for case 10: $(head -3 "$WORK/c10d.err")"
+
+if psql "$DB10" -X -q -v ON_ERROR_STOP=1 -f "$DOWN" >/dev/null 2>"$WORK/c10r.err"; then
+  fail "THE ROLLBACK REPORTED RECOVERY WITHOUT PERFORMING IT: a table whose RLS state the receipt recorded no longer exists, and the rollback committed anyway — consuming the receipt and destroying the only record of that pre-state. The function-only post-condition cannot see this."
+fi
+grep -q 'cannot be restored' "$WORK/c10r.err" \
+  || fail "the rollback refused the dropped-table database, but NOT on the unrestorable-entry guard. stderr: $(head -3 "$WORK/c10r.err")"
+grep -q 'founder_uid_migration_20260810' "$WORK/c10r.err" \
+  || fail "the unrestorable-entry guard fired but did not NAME the table it could not restore. stderr: $(head -3 "$WORK/c10r.err")"
+echo "  case 10 unrestorable table    -> refused, and the lost table is named"
+
+# ── 10b. MUTATION CONTROL for case 10 ────────────────────────────────────────
+MUT10="$WORK/down-table-notice.sql"
+python3 - "$DOWN" "$MUT10" <<'PY_MUT10'
+import sys
+src, dst = sys.argv[1], sys.argv[2]
+s = open(src).read()
+anchor = "    IF to_regclass(_r.object_id) IS NULL THEN"
+start = s.find(anchor)
+assert start != -1, "could not locate the table branch to mutate"
+assert s.count(anchor) == 1, "the table-branch anchor is not unique"
+end = s.find("    END IF;\n", start)
+assert end != -1, "could not locate the end of the table branch"
+legacy = """    IF to_regclass(_r.object_id) IS NULL THEN
+      RAISE NOTICE 'rollback: % is in the receipt but no longer exists — skipped', _r.object_id;
+      CONTINUE;
+"""
+open(dst, 'w').write(s[:start] + legacy + s[end:])
+print("case 10 mutant built")
+PY_MUT10
+[[ -s "$MUT10" ]] || fail "case 10 mutation control could not be built"
+grep -q 'the table no longer exists' "$MUT10" \
+  && fail "case 10 mutation control is vacuous: the table branch's fatal handling is still present in the mutant."
+
+DB10M="$(newdb rbtblm)"
+seed_unexposed "$DB10M"
+psql "$DB10M" -X -q -v ON_ERROR_STOP=1 \
+  -c "CREATE TABLE public.founder_uid_migration_20260810 (id int)" \
+  >/dev/null 2>&1 || fail "could not seed the dated table for the case 10 control"
+psql "$DB10M" -X -q -v ON_ERROR_STOP=1 -f "$APPLY" >/dev/null 2>"$WORK/c10ma.err" \
+  || fail "the forward migration did not commit against the case 10 control fixture: $(head -3 "$WORK/c10ma.err")"
+psql "$DB10M" -X -q -v ON_ERROR_STOP=1 -c "DROP TABLE public.founder_uid_migration_20260810" \
+  >/dev/null 2>&1 || fail "could not drop the recorded table for the case 10 control"
+
+if ! psql "$DB10M" -X -q -v ON_ERROR_STOP=1 -f "$MUT10" >/dev/null 2>"$WORK/c10m.err"; then
+  fail "MUTATION CONTROL FAILED: with the table branch back to a NOTICE, the rollback STILL refused the dropped-table database — so case 10 is not attributable to that branch. stderr: $(head -3 "$WORK/c10m.err")"
+fi
+echo "  case 10b table-notice control -> the mutant commits the same lost restoration (control is live)"
 
 echo "PASS  prove-rollback-fidelity"
 echo "  the rollback restores the pre-state the forward migration OBSERVED,"
