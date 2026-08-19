@@ -459,7 +459,8 @@ $$;
 --    a name-matching check reports zero exposures over a live one.
 --
 --    It also names the offenders rather than raising a bare count, so a file
---    pasted against the wrong project fails with something diagnosable.
+--    pasted against a database that does not hold the expected objects fails with
+--    something diagnosable. (It names offenders; it does not identify a project.)
 DO $$
 DECLARE
   _anon_exposed  text[];

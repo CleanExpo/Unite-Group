@@ -4,16 +4,30 @@
 --  a path that exists nowhere in this repo. A break-glass file that names the wrong
 --  artefact is a hazard under time pressure.)
 --
--- BREAK-GLASS ONLY. Running this deliberately REOPENS the exposures the fix
--- closed: it makes the JWT-minting hook, the user-creation hook and a destructive
--- prune function callable by anon again, and switches row-level security back off
--- on two public tables. It exists because the constitution requires a production
--- change to have a TESTED rollback before it may be applied, and because an
--- untested rollback is a rumour.
+-- BREAK-GLASS ONLY. Running this restores the state the forward migration OBSERVED
+-- and recorded, in whichever direction that is. On PRODUCTION, whose recorded
+-- pre-state is the exposed one, that means it REOPENS what the fix closed: the
+-- JWT-minting hook, the user-creation hook and a destructive prune function become
+-- callable by anon again, and row-level security goes back off on two public tables.
+-- Treat it as doing exactly that when you run it against production.
+--
+-- CORRECTED 20/08/2026 — the paragraph above said it reopens those exposures
+-- UNCONDITIONALLY, which stopped being true when the rollback began replaying an
+-- observed receipt instead of a presumed pre-state. Against a database whose recorded
+-- pre-state was NOT exposed, this file correctly leaves it unexposed
+-- (prove-rollback-fidelity.sh case 1 asserts exactly that), and table RLS is likewise
+-- returned to its RECORDED value rather than switched off. An operator reading the old
+-- wording during an outage would have believed this file had just granted anon access
+-- and disabled RLS when it had done neither. Reported by an independent review
+-- (openrouter, 20/08/2026).
+--
+-- It exists because the constitution requires a production change to have a TESTED
+-- rollback before it may be applied, and because an untested rollback is a rumour.
 --
 -- ✅ TESTED 19/08/2026 by scripts/ship-gates/prove-rollback.sh (exit 0): seeded
 -- exposure 3 anon-executable definers -> fix -> 0 -> this file -> back to 3, and
--- this file refuses an empty database standing in for the wrong project. The
+-- this file refuses an EMPTY database (an object-set refusal, not proof of project
+-- identity — see the guard's own heading below). The
 -- note below records why it was previously untested and is kept for the record.
 --
 -- ⚠ AT EARLIER REVISIONS THIS ROLLBACK WAS NOT TESTED.
@@ -39,7 +53,8 @@
 -- CURRENT STATE. The rollback IS tested, for these cases, each pinned by a
 -- control that was broken on purpose to prove it can fail:
 --   * restores the observed production shape       — prove-rollback.sh
---   * refuses an empty database (wrong project)    — prove-rollback.sh
+--   * refuses an empty database — an object-set
+--     refusal, NOT a project-identity check          — prove-rollback.sh
 --   * refuses a partial or overloaded match        — prove-rollback-fidelity.sh case 7
 --   * does not invent an exposure that never was   — prove-rollback-fidelity.sh case 1
 --   * does not convert a PUBLIC-derived grant into

@@ -20,8 +20,16 @@
 #   2. the fix applies and closes it    (0 anon-executable definers)
 #   3. the rollback applies and RE-OPENS it (exposure back) — this is the test
 #      the constitution asks for
-#   4. the rollback REFUSES an empty database (wrong project) instead of
-#      committing a no-op
+#   4. the rollback REFUSES a database that does not carry the objects it restores
+#      — here, an EMPTY one — instead of committing a no-op.
+#
+#      NAMED HONESTLY, 20/08/2026. This read "an empty database (wrong project)",
+#      and the success line below announced "wrong project: refused". Neither this
+#      test nor the guard establishes project identity: the guard proves the four
+#      names are present in public, and prove-apply-identity.sh case 6 demonstrates
+#      that a FOREIGN database carrying those names is admitted. What is proven here
+#      is the object-set refusal, and that is now what is claimed. Reported by an
+#      independent review (openrouter, 20/08/2026).
 #
 # Builds and drops its own scratch databases. Never touches an existing one.
 set -uo pipefail
@@ -204,11 +212,11 @@ RLS_AFTER_DOWN="$(rls_on "$DB")"
 [[ "$RLS_AFTER_DOWN" == "0" ]] \
   || fail "THE ROLLBACK DID NOT RESTORE THE RLS STATE: expected RLS OFF on both dated tables after it, got '${RLS_AFTER_DOWN}' of 2 still enabled. Board rows 4 and 5 are not reversible."
 
-# ── and it must REFUSE a database that is not the target ─────────────────────
+# ── and it must REFUSE a database that does not carry the objects it restores ──
 WRONG="ship_gate_rollback_wrong_$(od -An -tx1 -N6 /dev/urandom | tr -d ' \n')"
 mkdb "$WRONG"
 if psql -X -q -v ON_ERROR_STOP=1 -d "$BASE/$WRONG" -f "$DOWN" >"$WORK/wrong.out" 2>&1; then
-  fail "the rollback COMMITTED against an empty database standing in for the wrong project. During an outage that is a silent no-op presented as successful recovery."
+  fail "the rollback COMMITTED against an EMPTY database — one that carries none of the objects it restores. During an outage that is a silent no-op presented as successful recovery."
 fi
 # The string 'rollback aborted' is emitted by BOTH guards in the down migration —
 # the identity guard (…down.sql:66) and the minimum-effect post-condition
@@ -219,10 +227,10 @@ fi
 # accepts a different guard's abort cannot prove the guard it names ever ran.
 # Match the identity guard's OWN text, which no other exception in the file emits.
 grep -q 'expected all 4 privileged functions this file restores' "$WORK/wrong.out" \
-  || fail "the rollback failed against the wrong project, but NOT on its identity guard — the abort came from somewhere else, so the guard is unproven. Output: $(head -3 "$WORK/wrong.out")"
+  || fail "the rollback failed against the empty database, but NOT on its object-set guard — the abort came from somewhere else, so the guard is unproven. Output: $(head -3 "$WORK/wrong.out")"
 
 echo "PASS  prove-rollback"
 echo "  seeded exposure:      3 anon-executable SECURITY DEFINER function(s)"
 echo "  after the fix:        0 definers, RLS ON for 2/2 dated tables"
 echo "  after the rollback:   3 definers, RLS OFF for 2/2 — prior state restored, so the rollback is TESTED"
-echo "  wrong project:        refused on the identity guard, nothing committed"
+echo "  empty database:       refused on the object-set guard, nothing committed — note this proves an OBJECT SET, not project identity"
