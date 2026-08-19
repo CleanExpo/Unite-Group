@@ -39,8 +39,8 @@ visible by reading the ACL rather than the advisory title.
 
 | # | Item | Rung | Owner |
 |---|---|---|---|
-| 6 | `get_my_org_ids` executable by `authenticated` (tenancy boundary) | **AA** | `GATED` |
-| 7 | Same three hooks also executable by `authenticated` | **AA** | `GATED` |
+| 6 | `get_my_org_ids` executable by `authenticated` (tenancy boundary) | **CONTESTED** | `GATED` |
+| 7 | Same three hooks also executable by `authenticated` | **CONTESTED** | `GATED` |
 | 8 | Leaked-password protection **off** (HaveIBeenPwned check) | — | `GATED` |
 
 ## Explicitly NOT on this board

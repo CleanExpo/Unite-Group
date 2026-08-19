@@ -9,10 +9,21 @@
 -- there would add drift and never reach production.
 --
 -- ROLLBACK: docs/specs/sql/2026-08-19-privileged-function-exposure-lock.down.sql
--- VERIFY  : scripts/ship-gates/run-prod-exposure.sh "<prod-uri>"  -> must exit 0
+-- VERIFY  : scripts/ship-gates/run-prod-exposure.sh "<prod-uri>"
+--           -> expect exit 1 with EXACTLY ONE row:
+--              authenticated_executable_security_definer | get_my_org_ids
+--           **DO NOT DRIVE THIS TO EXIT 0.** The only way to clear that row is
+--           to revoke `authenticated` EXECUTE on get_my_org_ids, which takes
+--           production down — see the block at "6: RLS HELPERS" below, and
+--           FOUNDER-QUEUE.md item F9. Any OTHER row is a real failure: roll back.
 -- PROVEN  : scripts/ship-gates/repro-prod-exposure.sh reproduces the observed
---           production red (2/3/4 rows), applies this file, and asserts green,
---           login survival, no over-reach, and a reversible rollback.
+--           production red (2/3/4 rows) and applies this file with its
+--           post-condition holding. It then STOPS: it exits 1 at step 4 on the
+--           deliberate row above, so its later assertions (login survival, no
+--           over-reach, reversible rollback) are NOT REACHED and are NOT proven
+--           at this revision. scripts/ship-gates/prove-rls-execute-coupling.sh
+--           IS proven (exit 0, mutation-checked) and demonstrates why the
+--           deliberate row must stay.
 --
 -- Closes ship-board Rank 1 items 1-7 (docs/mission-control/ship-board.md), the
 -- live exposures found by scripts/ship-gates/prod-exposure.sql on 18/08/2026.
