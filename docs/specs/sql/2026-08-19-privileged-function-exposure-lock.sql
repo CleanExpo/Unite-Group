@@ -123,8 +123,9 @@ SET LOCAL search_path = public, pg_catalog;
 --    violation count afterwards.
 --
 --    The matching guard in the .down.sql requires all four functions. This one
---    requires the same four, for the same reason: a partial match is a name
---    collision, not this project.
+--    requires the same four, for the same reason: a partial match does not
+--    establish the object set this file operates on, whether the shortfall is a
+--    name collision elsewhere or drift on the intended database.
 DO $$
 DECLARE
   _fns   int;
@@ -151,7 +152,7 @@ BEGIN
 
   IF _fns <> 4 THEN
     RAISE EXCEPTION
-      'apply aborted: this file expects all 4 privileged functions it locks (custom_access_token_hook, before_user_created_hook, prune_integration_history, get_my_org_ids) in schema public, found % (%). A partial or empty match is NOT this project — you are very likely connected to the wrong database. NOTHING has been changed.',
+      'apply aborted: this file expects all 4 privileged functions it locks (custom_access_token_hook, before_user_created_hook, prune_integration_history, get_my_org_ids) in schema public, found % (%). Check the connection FIRST — a partial or empty match is what pasting into the wrong database looks like. It can also mean drift or object loss on the RIGHT database, so this is a mismatch of the object set, not proof of either. NOTHING has been changed.',
       _fns, _found;
   END IF;
 

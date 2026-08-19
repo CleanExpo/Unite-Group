@@ -129,7 +129,7 @@ DECLARE
 BEGIN
   -- DISTINCT NAMES, not rows. `count(*)` counts OVERLOADS, so four overloads of
   -- custom_access_token_hook and none of the other three names satisfied "= 4" and
-  -- admitted a database that is not this project. Caught here by a SECOND independent
+  -- admitted a database carrying none of the other three names. Caught here by a SECOND independent
   -- reviewer (gemini, 19/08/2026) after the first found the same defect in the forward
   -- file only — the forward fix was applied and this identical guard was left standing,
   -- which is this branch's recurring shape: the class was not swept.
@@ -145,11 +145,12 @@ BEGIN
 
   -- An independent review defeated an earlier `_fns = 0` test with a database
   -- holding ONE colliding function: the guard reported "1 of 4" and committed.
-  -- A partial match is not this project; it is a coincidence, and acting on a
-  -- coincidence during a break-glass is how the wrong database gets mutated.
+  -- A partial match does not establish that this IS the project either way: it is a
+  -- coincidence at best, and acting on a coincidence during a break-glass is how the
+  -- wrong database gets mutated.
   IF _fns <> 4 THEN
     RAISE EXCEPTION
-      'rollback aborted: expected all 4 privileged functions this file restores (custom_access_token_hook, before_user_created_hook, prune_integration_history, get_my_org_ids) in schema public, found %. A partial match is NOT this project. Nothing has been changed.', _fns;
+      'rollback aborted: expected all 4 privileged functions this file restores (custom_access_token_hook, before_user_created_hook, prune_integration_history, get_my_org_ids) in schema public, found %. Check the connection FIRST — this is what running against the wrong database looks like — but it can equally mean drift or object loss on the right one, so it is a mismatch of the object set and not proof of either. Nothing has been changed.', _fns;
   END IF;
 
   RAISE NOTICE 'rollback identity guard: all 4 target functions present';

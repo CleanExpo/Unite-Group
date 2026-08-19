@@ -150,7 +150,7 @@ echo "  case 1  empty database        -> aborted on the identity guard"
 PARTIAL="$(newdb applyid_partial)"
 seed_functions "$PARTIAL" 1
 if run_apply "$PARTIAL" "$APPLY"; then
-  fail "the apply COMMITTED against a database holding only 1 of its 4 target functions. A partial match is a name collision, not this project."
+  fail "the apply COMMITTED against a database holding only 1 of its 4 target functions. A partial match does not establish the object set this file operates on — it is a name collision elsewhere, or drift on the intended database, and neither may be mutated silently."
 fi
 grep -qF "$GUARD_TEXT" "$WORK/err" \
   || fail "the apply failed on the 1-of-4 database, but NOT on its identity guard. stderr: $(head -3 "$WORK/err")"
