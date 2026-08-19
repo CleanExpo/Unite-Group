@@ -47,7 +47,13 @@ DO $$
 DECLARE
   _fns int;
 BEGIN
-  SELECT count(*) INTO _fns
+  -- DISTINCT NAMES, not rows. `count(*)` counts OVERLOADS, so four overloads of
+  -- custom_access_token_hook and none of the other three names satisfied "= 4" and
+  -- admitted a database that is not this project. Caught here by a SECOND independent
+  -- reviewer (gemini, 19/08/2026) after the first found the same defect in the forward
+  -- file only — the forward fix was applied and this identical guard was left standing,
+  -- which is this branch's recurring shape: the class was not swept.
+  SELECT count(DISTINCT p.proname) INTO _fns
   FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
   WHERE n.nspname = 'public'
     AND p.proname IN (

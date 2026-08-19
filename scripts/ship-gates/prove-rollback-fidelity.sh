@@ -33,6 +33,8 @@
 #   5. NO LEFTOVERS: a grant the FORWARD file created must be taken back by down.
 #   6. NO STALE REPLAY: a second apply+down cycle must not resurrect a pre-state an
 #      operator deliberately changed between cycles.
+#   7. THE DOWN FILE'S OWN identity guard must reject overloads too — the class must
+#      be swept across BOTH files, not patched in the one that was cited.
 set -uo pipefail
 
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -330,6 +332,26 @@ C6_AFTER="$(anon_direct_prune "$DB6")"
 [[ "$C6_AFTER" == "0" ]] \
   || fail "A STALE RECEIPT WAS REPLAYED: an operator revoked anon between cycles, and after the second apply+down anon holds ${C6_AFTER} DIRECT grant(s) again. The rollback resurrected a pre-state that had been deliberately changed."
 echo "  case 6  second cycle          -> the manual revoke SURVIVES (receipt consumed, not replayed)"
+
+# ── 7. THE DOWN MIGRATION'S IDENTITY GUARD MUST ALSO REJECT OVERLOADS ────────
+# The forward file's guard was fixed for this first, and the IDENTICAL guard in the
+# down file was left standing — a second independent reviewer (gemini, 19/08/2026)
+# found it. That is this branch's recurring shape: the cited line is patched and the
+# class is not swept. This case covers the down file specifically, so the two guards
+# cannot drift apart again.
+DB7="$(newdb rbovl)"
+for _sig in "a int" "a text" "a bool" "a numeric"; do
+  psql "$DB7" -X -q -v ON_ERROR_STOP=1 \
+    -c "CREATE FUNCTION public.custom_access_token_hook(${_sig}) RETURNS void LANGUAGE sql SECURITY DEFINER AS \$fn\$ SELECT NULL::void \$fn\$" \
+    >/dev/null 2>"$WORK/c7.err" \
+    || fail "could not seed the overload fixture for the down guard (${_sig}): $(head -2 "$WORK/c7.err")"
+done
+if psql "$DB7" -X -q -v ON_ERROR_STOP=1 -f "$DOWN" >/dev/null 2>"$WORK/c7d.err"; then
+  fail "the ROLLBACK committed against a database holding FOUR OVERLOADS of one name and none of the other three. Overloads are not identities, and this is a break-glass file."
+fi
+grep -q 'expected all 4 privileged functions this file restores' "$WORK/c7d.err" \
+  || fail "the rollback refused the overload database, but NOT on its identity guard. stderr: $(head -3 "$WORK/c7d.err")"
+echo "  case 7  down-file overloads   -> refused (both guards count DISTINCT names)"
 
 echo "PASS  prove-rollback-fidelity"
 echo "  the rollback restores the pre-state the forward migration OBSERVED,"
