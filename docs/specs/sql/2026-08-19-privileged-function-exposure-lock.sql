@@ -40,10 +40,10 @@
 
 BEGIN;
 
--- ── 1-3, 6-7: privileged functions must not be callable by anon or by any
---              logged-in account. supabase_auth_admin MUST keep EXECUTE on the
---              two auth hooks or every login breaks — it is re-granted below,
---              after the revoke, so ordering cannot strand it.
+-- ── 1-3, 7: privileged functions no untrusted role may call. anon AND
+--            authenticated both lose EXECUTE. supabase_auth_admin MUST keep
+--            EXECUTE on the two auth hooks or every login breaks — it is
+--            re-granted below, after the revoke, so ordering cannot strand it.
 DO $$
 DECLARE
   _fn      regprocedure;
@@ -57,8 +57,7 @@ BEGIN
       AND p.proname IN (
         'custom_access_token_hook',
         'before_user_created_hook',
-        'prune_integration_history',
-        'get_my_org_ids'
+        'prune_integration_history'
       )
   LOOP
     EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC', _fn);
@@ -71,9 +70,24 @@ BEGIN
 END
 $$;
 
--- ── Restore the ONE grant that must survive. Removing supabase_auth_admin's
---    EXECUTE on these two hooks locks every user out of login — the single way
---    this migration could cause a worse outcome than the exposure it closes.
+-- ── 6: RLS HELPERS — anon revoked, `authenticated` DELIBERATELY RETAINED.
+--
+-- Postgres checks function EXECUTE against the QUERYING role when it evaluates a
+-- row-level-security policy expression. SECURITY DEFINER on the callee does not
+-- exempt it. `public.organizations` carries orgs_all / orgs_select /
+-- service_orgs policies that are org-membership-scoped via get_my_org_ids()
+-- (apps/empire/supabase/migrations/20260513180500_notifications_projects_organizations.sql:60),
+-- so revoking EXECUTE from `authenticated` would make every authenticated read of
+-- that table fail outright with "permission denied for function get_my_org_ids" —
+-- an outage strictly worse than the exposure this file closes, and one whose only
+-- recovery path is the rollback, which re-opens the anon-callable JWT hook.
+--
+-- Demonstrated, not assumed: repro-prod-exposure.sh step 9 seeds exactly that
+-- arrangement and fails if an authenticated read stops working after this file runs.
+--
+-- `anon` is still revoked: an unauthenticated caller has no legitimate use for a
+-- tenancy helper. The EXECUTE for `authenticated` is re-granted EXPLICITLY after
+-- the PUBLIC revoke, so the PUBLIC revoke cannot strand it.
 DO $$
 DECLARE
   _fn regprocedure;
@@ -82,10 +96,12 @@ BEGIN
     SELECT p.oid::regprocedure
     FROM pg_proc p
     JOIN pg_namespace n ON n.oid = p.pronamespace
-    WHERE n.nspname = 'public'
-      AND p.proname IN ('custom_access_token_hook', 'before_user_created_hook')
+    WHERE n.nspname = 'public' AND p.proname = 'get_my_org_ids'
   LOOP
-    EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO supabase_auth_admin', _fn);
+    EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC', _fn);
+    EXECUTE format('REVOKE ALL ON FUNCTION %s FROM anon', _fn);
+    EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO authenticated', _fn);
+    RAISE NOTICE 'revoke_privileged_function_exposure: % locked to authenticated only', _fn;
   END LOOP;
 END
 $$;
@@ -117,38 +133,71 @@ $$;
 -- ── Post-condition, enforced in the same transaction that made the change.
 --    Without this the migration reports success on the strength of having run,
 --    which is not the same as having worked.
+--
+--    It asks has_function_privilege rather than matching grantee NAMES in proacl.
+--    A name match misses privilege reached through role INHERITANCE: with
+--    `GRANT app_helper TO anon` and the definer granted to app_helper, anon can
+--    execute the function while no `anon=X` entry exists anywhere in proacl, and
+--    a name-matching check reports zero exposures over a live one.
+--
+--    It also names the offenders rather than raising a bare count, so a file
+--    pasted against the wrong project fails with something diagnosable.
 DO $$
 DECLARE
-  _exposed int;
-  _authadmin int;
+  _anon_exposed  text[];
+  _authed_extra  text[];
+  _authadmin     int;
+  -- Definers `authenticated` is ALLOWED to execute. RLS helpers must be here or
+  -- their policies break; see the get_my_org_ids block above.
+  _rls_helpers   text[] := ARRAY['get_my_org_ids'];
 BEGIN
-  SELECT count(*) INTO _exposed
+  SELECT coalesce(array_agg(p.oid::regprocedure::text ORDER BY 1), '{}')
+    INTO _anon_exposed
   FROM pg_proc p
   JOIN pg_namespace n ON n.oid = p.pronamespace
   WHERE n.nspname = 'public'
     AND p.prosecdef
-    AND EXISTS (
-      SELECT 1 FROM aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) a
-      WHERE a.privilege_type = 'EXECUTE'
-        AND (a.grantee = 0 OR a.grantee::regrole::text IN ('anon', 'authenticated'))
-    );
+    AND has_function_privilege('anon', p.oid, 'EXECUTE');
 
-  IF _exposed <> 0 THEN
+  IF array_length(_anon_exposed, 1) > 0 THEN
     RAISE EXCEPTION
-      'post-condition failed: % SECURITY DEFINER function(s) in public still executable by anon/authenticated/PUBLIC',
-      _exposed;
+      'post-condition failed: SECURITY DEFINER function(s) in public still executable by anon: %',
+      array_to_string(_anon_exposed, ', ');
   END IF;
 
-  -- The auth hooks must still be callable by the auth service. If the hooks are
-  -- absent entirely this is 0 and the check is skipped rather than passed.
+  SELECT coalesce(array_agg(p.oid::regprocedure::text ORDER BY 1), '{}')
+    INTO _authed_extra
+  FROM pg_proc p
+  JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public'
+    AND p.prosecdef
+    AND has_function_privilege('authenticated', p.oid, 'EXECUTE')
+    AND NOT (p.proname = ANY (_rls_helpers));
+
+  IF array_length(_authed_extra, 1) > 0 THEN
+    RAISE EXCEPTION
+      'post-condition failed: SECURITY DEFINER function(s) in public still executable by authenticated and not on the RLS-helper allowlist: %',
+      array_to_string(_authed_extra, ', ');
+  END IF;
+
+  -- The auth hooks must still be callable by the auth service. This is an
+  -- ASSERTION, not a notice: a migration that silently strands supabase_auth_admin
+  -- takes every login down, so it must refuse to commit rather than report.
+  -- Counted against the hooks that EXIST, so an absent hook cannot fake a pass.
   SELECT count(*) INTO _authadmin
   FROM pg_proc p
   JOIN pg_namespace n ON n.oid = p.pronamespace
   WHERE n.nspname = 'public'
     AND p.proname IN ('custom_access_token_hook', 'before_user_created_hook')
-    AND has_function_privilege('supabase_auth_admin', p.oid, 'EXECUTE');
+    AND NOT has_function_privilege('supabase_auth_admin', p.oid, 'EXECUTE');
 
-  RAISE NOTICE 'post-condition OK: 0 exposed definers; supabase_auth_admin retains EXECUTE on % auth hook(s)', _authadmin;
+  IF _authadmin > 0 THEN
+    RAISE EXCEPTION
+      'post-condition failed: supabase_auth_admin lost EXECUTE on % auth hook(s) — this would lock out every login',
+      _authadmin;
+  END IF;
+
+  RAISE NOTICE 'post-condition OK: 0 anon-executable definers; 0 unexpected authenticated-executable definers; supabase_auth_admin retains EXECUTE on every auth hook present';
 END
 $$;
 

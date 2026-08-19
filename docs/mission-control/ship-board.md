@@ -93,7 +93,8 @@ even with the re-grant deleted — measured, not assumed: that mutant survived t
 original step 5. Step 8 builds the state where the re-grant is the only thing
 standing between the fix and a total login outage — `supabase_auth_admin`
 reaching the hooks via PUBLIC alone, which is exactly how production renders
-`prune_integration_history` (`{postgres=X/postgres,=X/postgres}`) — and there the
+`prune_integration_history` (PUBLIC held a non-leading grant when the gate was
+run on 18/08/2026; that is a dated observation, not a claim about production now) — and there the
 mutant is killed.
 
 **Items 4 and 5 are closed by `ENABLE ROW LEVEL SECURITY`, not `DROP`.** RLS with
@@ -136,6 +137,43 @@ That row is the substantive change in this pass: the 18/08 board said "hand over
 but no handover row was ever created, so the item sat `GATED` on a page nobody
 computes an age from, invisible to the one register that measures founder latency.
 
+## BLOCKED — items 6 and 7 are contested, and the branch is RED
+
+**Status 19/08/2026: `repro-prod-exposure.sh` exits 1. Do not release.**
+
+Two independent reviewers ran the branch's own controls and returned FAIL. The
+blocking finding is that this board mis-frames item 6.
+
+**Revoking `authenticated` EXECUTE on `get_my_org_ids` would take production
+down.** Postgres checks function EXECUTE against the QUERYING role when it
+evaluates an RLS policy expression; `SECURITY DEFINER` on the callee does not
+exempt it. `public.organizations` is org-membership-scoped via `get_my_org_ids()`
+(`20260513180500_notifications_projects_organizations.sql:60`), so the revoke
+makes every authenticated read of that table fail with `permission denied for
+function get_my_org_ids`. Reproduced on Postgres 17.6: 1 row before, hard error
+after. The only recovery is the rollback, which re-opens the anon-callable
+JWT-minting hook.
+
+The fix has been changed to revoke `anon` and retain `authenticated` on that one
+function. That is safe — and it puts the gate and the board in direct conflict:
+
+- `prod-exposure.sql` query 3 flags **any** definer executable by `authenticated`,
+  so with the helper retained the gate can never exit 0, and items 1-5 and 7
+  cannot reach AAA through a single green run.
+- The post-condition now allowlists `get_my_org_ids` for `authenticated` and
+  passes; the gate does not, and reports exactly that one row.
+
+**The open question is a security-model decision, not a code fix.** Either
+"`authenticated` may execute a SECURITY DEFINER function" is an exposure — in
+which case the RLS design must change — or it is a required pattern, in which case
+query 3 needs a narrow, named allowlist and item 6 is ACCEPTED-BY-DESIGN rather
+than fixed. Answering it needs production's real set of RLS helper functions,
+which only a gate run against production can enumerate. Queued with F9.
+
+Items 1-5 are unaffected by this and their fix is unchanged. Item 7 shares the
+question, since it is the same `authenticated` rule applied to the auth hooks —
+though no policy calls those, so revoking them is not contested.
+
 ## Evidence — what moved these to AA
 
 Receipts, not adjectives. Re-runnable:
@@ -145,9 +183,10 @@ scripts/ship-gates/repro-prod-exposure.sh "postgresql://postgres:postgres@127.0.
 ```
 
 Run 19/08/2026 against an ephemeral Supabase (Postgres 17.6), exit **0**.
-Every row below was mutation-checked: the claim's control was demonstrated
-failing under a mutant that reintroduces the defect it names, then the source
-restored byte-identical.
+Rows 2, 5, 7 and 8 were mutation-checked by the implementing agent; two
+independent reviewers subsequently found a killing mutant for all eight, and
+for three further controls the branch had recorded none. Every mutated source
+was restored byte-identical and hash-verified.
 
 | Step | Assertion | Result |
 |---|---|---|
