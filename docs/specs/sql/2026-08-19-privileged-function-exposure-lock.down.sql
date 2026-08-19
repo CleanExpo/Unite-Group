@@ -158,6 +158,20 @@ BEGIN
       RAISE NOTICE 'rollback: % is in the receipt but no longer exists — skipped', _r.object_id;
       CONTINUE;
     END IF;
+    -- A role NAME is not a role IDENTITY. If a role present at apply time is dropped
+    -- and a DIFFERENT role is created with the same name before the rollback runs, a
+    -- name-resolved GRANT hands the old role's recorded privilege to a new principal.
+    -- Missing roles already fail closed (the lookup finds nothing); same-name
+    -- REPLACEMENT does not, because the name still resolves. Flagged by an independent
+    -- review (openrouter, 19/08/2026). Postgres has no stable cross-drop role
+    -- identifier to compare against, so this is announced rather than silently
+    -- resolved: a rollback that may be granting to a different principal than the one
+    -- observed must say so on the operator's terminal.
+    IF _r.grantee <> '' AND NOT EXISTS (
+         SELECT 1 FROM pg_roles r WHERE r.rolname = _r.grantee) THEN
+      RAISE NOTICE 'rollback: role % from the receipt no longer exists — its recorded grant on % is SKIPPED', _r.grantee, _r.object_id;
+      CONTINUE;
+    END IF;
     IF _r.has_execute THEN
       IF _r.grantee = '' THEN
         EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO PUBLIC', _r.object_id);

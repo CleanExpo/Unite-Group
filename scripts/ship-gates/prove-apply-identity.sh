@@ -58,10 +58,22 @@ WORK="$(mktemp -d)"
 DBS_FILE="$WORK/created-databases"
 : > "$DBS_FILE"
 cleanup() {
-  local d
+  local d _failed=0
   while IFS= read -r d; do
-    [[ -n "$d" ]] && psql "$ADMIN" -X -q -c "DROP DATABASE IF EXISTS ${d} WITH (FORCE)" >/dev/null 2>&1
+    [[ -n "$d" ]] || continue
+    if ! psql "$ADMIN" -X -q -c "DROP DATABASE IF EXISTS ${d} WITH (FORCE)" >/dev/null 2>&1; then
+      # ANNOUNCE, do not swallow. An earlier revision suppressed every DROP failure and
+      # then removed $WORK — and with it the ONLY record of what was created — so a
+      # transient connection or privilege error leaked a database silently while the
+      # gate still exited 0. Reported by an independent review (openrouter, 19/08/2026).
+      echo "WARNING: could not drop scratch database ${d} — it is LEAKED." >&2
+      _failed=1
+    fi
   done < "$DBS_FILE"
+  if [[ $_failed -eq 1 ]]; then
+    echo "WARNING: the list of databases this run created is kept at ${DBS_FILE} for retry; $WORK was NOT removed." >&2
+    return 1
+  fi
   rm -rf "$WORK"
 }
 trap cleanup EXIT

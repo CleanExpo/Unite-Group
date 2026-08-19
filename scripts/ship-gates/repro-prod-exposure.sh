@@ -157,8 +157,18 @@ set -e
 sed 's/^/  /' "$GATE4_DIR/out"
 
 DELIBERATE='authenticated_executable_security_definer|get_my_org_ids'
-ROWS="$(grep -cE '^[a-z_]+\|' "$GATE4_DIR/out" 2>/dev/null || true)"
-OTHER="$(grep -E '^[a-z_]+\|' "$GATE4_DIR/out" 2>/dev/null | grep -vF "$DELIBERATE" || true)"
+# run-prod-exposure.sh INDENTS every finding by two spaces (its line 223,
+# `printf '%s\n' "$FINDINGS" | sed 's/^/  /'`). An earlier revision of this check
+# anchored the rule name at column 1, so it matched NOTHING: OTHER was empty even with
+# extra exposure rows present, and the "exactly one row" contract this step advertises
+# was half vacuous — the deliberate-row grep alone would accept a run with additional
+# exposures beside it. Found by an independent review (openrouter, 19/08/2026);
+# confirmed by `grep -cE '^[a-z_]+\|'` returning 0 against a real indented row.
+# Leading whitespace is stripped before matching, so the check no longer depends on
+# the producer's formatting.
+ROWLINES="$(sed 's/^[[:space:]]*//' "$GATE4_DIR/out" | grep -E '^[a-z_]+\|' || true)"
+ROWS="$(printf '%s' "$ROWLINES" | grep -c . || true)"
+OTHER="$(printf '%s\n' "$ROWLINES" | grep -vF "$DELIBERATE" | grep -E '^[a-z_]+\|' || true)"
 
 if [[ $GREEN_RC -eq 0 ]]; then
   fail "the gate returned ZERO rows after the fix. That is only reachable by revoking \`authenticated\` EXECUTE on get_my_org_ids, which TAKES PRODUCTION DOWN. Do not drive this gate to exit 0."
@@ -168,7 +178,12 @@ if [[ -n "$OTHER" ]]; then
 fi
 grep -qF "$DELIBERATE" "$GATE4_DIR/out" \
   || fail "the gate exited ${GREEN_RC} but did not report the deliberate authenticated/get_my_org_ids row, so it failed for some other reason: $(head -3 "$GATE4_DIR/err")"
-echo "  gate exit ${GREEN_RC} with exactly the one deliberate row — correct by design"
+# EXACTLY one. Counting closes the last gap: a run could name the deliberate row AND
+# carry others, and the OTHER check above is the guard for that — this asserts the
+# count independently so a formatting change cannot silently disarm both at once.
+[[ "$ROWS" == "1" ]] \
+  || fail "the gate returned ${ROWS} exposure row(s); this step requires EXACTLY ONE, the deliberate authenticated/get_my_org_ids retention. Rows seen: $(printf '%s' "$ROWLINES" | head -5)"
+echo "  gate exit ${GREEN_RC} with exactly ${ROWS} row — the deliberate one — correct by design"
 
 step "5. login must survive — supabase_auth_admin keeps EXECUTE"
 # NOTE: in THIS scenario supabase_auth_admin holds an explicit grant, which the

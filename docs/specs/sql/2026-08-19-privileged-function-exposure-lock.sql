@@ -16,14 +16,27 @@
 --           to revoke `authenticated` EXECUTE on get_my_org_ids, which takes
 --           production down — see the block at "6: RLS HELPERS" below, and
 --           FOUNDER-QUEUE.md item F9. Any OTHER row is a real failure: roll back.
--- PROVEN  : scripts/ship-gates/repro-prod-exposure.sh reproduces the observed
---           production red (2/3/4 rows) and applies this file with its
---           post-condition holding. It then STOPS: it exits 1 at step 4 on the
---           deliberate row above, so its later assertions (login survival, no
---           over-reach, reversible rollback) are NOT REACHED and are NOT proven
---           at this revision. scripts/ship-gates/prove-rls-execute-coupling.sh
---           IS proven (exit 0, mutation-checked) and demonstrates why the
---           deliberate row must stay.
+-- PROVEN  : scripts/ship-gates/repro-prod-exposure.sh runs END TO END (exit 0). It
+--           reproduces the observed production red (2/3/4 rows), applies this file
+--           with its post-condition holding, and then asserts at step 4 that the gate
+--           returns EXACTLY ONE row — the deliberate retention above. Zero rows fails
+--           it (that state is only reachable by revoking the retention, an outage) and
+--           any other row fails it (a real exposure survived).
+--
+--           CORRECTED 19/08/2026. This block previously said the repro STOPS at step 4
+--           and that login survival, no-over-reach and reversible rollback are "NOT
+--           REACHED and NOT proven". That was true, and it was true because step 4
+--           itself demanded the outage — so steps 5-8 never executed and their own
+--           stale assertions stayed invisible. Step 4 now asserts the real contract,
+--           and steps 5-8 run: login survives (supabase_auth_admin keeps EXECUTE on
+--           both hooks), the fix does not over-reach (an unrelated anon-executable
+--           function is untouched), the rollback restores the recorded pre-state and
+--           consumes its receipt, and the re-grant is shown load-bearing at step 8.
+--           Leaving this paragraph would have understated what is proven in the file
+--           the founder actually pastes.
+--
+--           scripts/ship-gates/prove-rls-execute-coupling.sh is separately proven
+--           (exit 0, mutation-checked) and demonstrates why the deliberate row stays.
 --
 -- Closes ship-board Rank 1 items 1-7 (docs/mission-control/ship-board.md), the
 -- live exposures found by scripts/ship-gates/prod-exposure.sql on 18/08/2026.
