@@ -70,6 +70,37 @@ BEGIN
 END
 $$;
 
+-- ── Restore the ONE grant that must survive. The REVOKE ALL ... FROM PUBLIC
+--    above strips PUBLIC, and on production `prune_integration_history` is
+--    observed holding its grant through PUBLIC alone ({postgres=X/postgres,
+--    =X/postgres}, gate run 18/08/2026). If `supabase_auth_admin` reaches an
+--    auth hook the same way, the PUBLIC revoke strands it and EVERY login
+--    breaks. Re-granting explicitly AFTER the revoke makes ordering
+--    irrelevant. Scoped to the two auth hooks only: supabase_auth_admin has no
+--    business executing prune_integration_history.
+--
+--    This block was present in 44c44368f, deleted without mention in e964ab9bf
+--    when the second DO block was repurposed for get_my_org_ids, and restored
+--    here after an independent review found three documents still asserting it
+--    existed. The post-condition below is the assertion that catches its
+--    absence; this block is the mechanism that prevents it.
+DO $$
+DECLARE
+  _fn regprocedure;
+BEGIN
+  FOR _fn IN
+    SELECT p.oid::regprocedure
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.proname IN ('custom_access_token_hook', 'before_user_created_hook')
+  LOOP
+    EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO supabase_auth_admin', _fn);
+    RAISE NOTICE 'revoke_privileged_function_exposure: supabase_auth_admin re-granted EXECUTE on %', _fn;
+  END LOOP;
+END
+$$;
+
 -- ── 6: RLS HELPERS — anon revoked, `authenticated` DELIBERATELY RETAINED.
 --
 -- Postgres checks function EXECUTE against the QUERYING role when it evaluates a
@@ -82,8 +113,22 @@ $$;
 -- an outage strictly worse than the exposure this file closes, and one whose only
 -- recovery path is the rollback, which re-opens the anon-callable JWT hook.
 --
--- Demonstrated, not assumed: repro-prod-exposure.sh step 9 seeds exactly that
--- arrangement and fails if an authenticated read stops working after this file runs.
+-- DEMONSTRATED, and here is the run. scripts/ship-gates/prove-rls-execute-coupling.sh
+-- builds exactly this arrangement — a SECURITY DEFINER tenancy helper, an
+-- org-scoped table, an RLS policy that calls the helper — and reads it as the
+-- authenticated role before and after the revoke:
+--
+--   before revoke: authenticated read returned 1 row
+--   after  revoke: ERROR: permission denied for function get_my_org_ids
+--
+-- Run 19/08/2026 against Postgres 17.6, exit 0. The gate is mutation-checked:
+-- with the revoke removed it exits 1 ("claim NOT reproduced"), and the source
+-- was restored byte-identical (shasum verified). Everything runs in one
+-- transaction and is ROLLBACK'd.
+--
+-- An earlier revision of this comment cited "repro-prod-exposure.sh step 9",
+-- which has never existed; that script has steps 0-8 and none of them tests
+-- this. The citation is now a script you can run.
 --
 -- `anon` is still revoked: an unauthenticated caller has no legitimate use for a
 -- tenancy helper. The EXECUTE for `authenticated` is re-granted EXPLICITLY after

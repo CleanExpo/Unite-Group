@@ -73,7 +73,7 @@ artefact. Do not hand-type the statements — apply the file.
 |---|---|
 | Apply (prod SQL editor, `lksfwktwtmyznckodsau`) | [`docs/specs/sql/2026-08-19-privileged-function-exposure-lock.sql`](../specs/sql/2026-08-19-privileged-function-exposure-lock.sql) |
 | Roll back | [`…-lock.down.sql`](../specs/sql/2026-08-19-privileged-function-exposure-lock.down.sql) |
-| Verify | `scripts/ship-gates/run-prod-exposure.sh "<prod-uri>"` → must exit **0** |
+| Verify | `scripts/ship-gates/run-prod-exposure.sh "<prod-uri>"` → expect exit **1** with EXACTLY ONE row, `authenticated_executable_security_definer` / `get_my_org_ids`. **Do NOT drive this to exit 0.** The only way to clear that row is to revoke `authenticated` EXECUTE on `get_my_org_ids`, which takes production down (see BLOCKED section below). Any OTHER row is a real failure — roll back. |
 
 It is in `docs/specs/sql/` and not `apps/web/supabase/migrations/` on purpose:
 `supabase db push` is unsafe on this project (57 local-only vs 95 prod-only
@@ -108,7 +108,7 @@ Re-run the gate against production. It returned 2, 3 and 4 rows on 18/08/2026 �
 that red result is what makes a later green meaningful.
 
 ```bash
-scripts/ship-gates/run-prod-exposure.sh "<prod-uri>"   # exit 0 = clean
+scripts/ship-gates/run-prod-exposure.sh "<prod-uri>"   # expect exit 1 + the single get_my_org_ids row; do NOT chase exit 0
 ```
 
 The wrapper exists because "every query must return zero rows" was a prose
@@ -120,12 +120,22 @@ and letting those collapse into one another is how a false green is manufactured
 
 ## Status
 
-Rank 1 and items 6-7 are at rung **AA**: the defect is reproduced, the fix is
-written, and the gate is green against that reproduction. They cannot advance to
-**AAA** from here — AAA requires the gate green *in production*, confirmed by an
-agent that did not build the fix, and both halves are founder-gated. The fix is
-one paste and one command away from AAA; nothing further can be done on this side
-of the gate.
+Items 1-5 are at rung **AA**: the defect is reproduced (step 2, exact 2/3/4
+counts) and the fix applies with its post-condition holding (step 3). They cannot
+advance to **AAA** from here — AAA requires the gate green *in production*,
+confirmed by an agent that did not build the fix, and both halves are
+founder-gated.
+
+**Items 6 and 7 are NOT at AA.** Item 6 is contested and unproven: the gate is
+**RED** against the reproduction — it exits 1 on the deliberate `get_my_org_ids`
+row — and the retain-`authenticated` decision it rests on is supported by
+documented PostgreSQL semantics, not by any test on this branch. Item 7 shares
+the same unresolved rule. Under the Ground-Truth Standard the rating is the
+minimum across claimed rungs and a receipt reading exit 1 cannot carry AA.
+
+This is **not** "one paste and one command away". F9 requires a founder
+security-model decision BEFORE the paste; only after that decision does the apply
+become a single action.
 
 Item 8 stays at **—** deliberately. Leaked-password protection is an Auth
 dashboard setting, not a database object, so `prod-exposure.sql` cannot see it
@@ -182,22 +192,45 @@ Receipts, not adjectives. Re-runnable:
 scripts/ship-gates/repro-prod-exposure.sh "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
 ```
 
-Run 19/08/2026 against an ephemeral Supabase (Postgres 17.6), exit **0**.
-Rows 2, 5, 7 and 8 were mutation-checked by the implementing agent; two
-independent reviewers subsequently found a killing mutant for all eight, and
-for three further controls the branch had recorded none. Every mutated source
-was restored byte-identical and hash-verified.
+Run 19/08/2026 against an ephemeral Supabase (Postgres 17.6), exit **1** — the
+run terminates at step 4 on the single deliberate `get_my_org_ids` row
+(`.handoff-logs/repro-e964ab9bf.log:33`). **Steps 5, 6, 7 and 8 DID NOT RUN.**
+Any row below describing them as passing is describing the earlier revision
+`44c44368f`, not this head, and is marked NOT REACHED accordingly. In particular
+the mutation claim for the `supabase_auth_admin` re-grant was killed by step 8 —
+which is unreachable at this head, so that control is currently unproven even
+though the mechanism it guards has been restored.
+Rows 2, 5, 7 and 8 were mutation-checked by the implementing agent **against
+the earlier revision `44c44368f`**; two independent reviewers subsequently found
+a killing mutant for all eight, and for three further controls the branch had
+recorded none. Every mutated source was restored byte-identical and
+hash-verified **except one**: the `supabase_auth_admin` re-grant (row 8) was
+deleted in `e964ab9bf` and left deleted, so the shipped source WAS that mutant
+until it was restored on review. Its control is step 8, which does not run at
+this head.
+
+`scripts/ship-gates/prove-rls-execute-coupling.sh "<uri>"` — run 19/08/2026
+against Postgres 17.6, **exit 0**. Proves the claim item 6 turns on: with the
+SECURITY DEFINER helper called from an RLS policy, the authenticated read returns
+1 row while EXECUTE is held and fails with `permission denied for function
+get_my_org_ids` once it is revoked. Mutation-checked — with the revoke removed
+the gate exits 1 ("claim NOT reproduced") — and the source restored
+byte-identical, `shasum -c` OK. Runs in one transaction, ROLLBACK'd.
 
 | Step | Assertion | Result |
 |---|---|---|
 | 2 | gate red on the seeded defect, **counts exactly 2 / 3 / 4** | matches the observed production red |
 | 3 | fix applies, in-transaction post-condition holds | `0 exposed definers` |
-| 4 | gate green | `PASS — 0 rows` |
-| 5 | `supabase_auth_admin` keeps EXECUTE on both hooks | yes — login survives |
-| 5 | `anon` / `authenticated` hold EXECUTE on none of the four | confirmed |
-| 6 | unrelated anon-callable `harmless_rpc()` untouched | yes — fix is not over-broad |
-| 7 | rollback restores the exposure | gate returns to red — reversible, proven |
-| 8 | re-grant is load-bearing: `supabase_auth_admin` reaching the hooks via PUBLIC **alone** still holds EXECUTE after the fix | yes — and deleting the re-grant fails this step |
+| 4 | gate green | **FAIL — 1 row** (`authenticated_executable_security_definer` / `get_my_org_ids`), deliberate; run exits 1 here |
+| 5 | `supabase_auth_admin` keeps EXECUTE on both hooks | **NOT REACHED** |
+| 5 | `anon` / `authenticated` hold EXECUTE on none of the four | **NOT REACHED** |
+| 6 | unrelated anon-callable `harmless_rpc()` untouched | **NOT REACHED** |
+| 7 | rollback restores the exposure | **NOT REACHED** |
+| 8 | re-grant is load-bearing: `supabase_auth_admin` reaching the hooks via PUBLIC **alone** still holds EXECUTE after the fix | **NOT REACHED** — and this is the control for the re-grant that `e964ab9bf` deleted, so it is unproven at this head |
+
+Rows marked NOT REACHED were recorded as passing against `44c44368f`. They are
+not evidence for this head. Making step 4 tolerate the single expected residual
+row — so steps 5-8 can run again — is a work item attached to the F9 decision.
 
 **Root cause, and why it was invisible.** `20260620010000_auth_signup_allowlist.sql`
 already ends each hook with `REVOKE EXECUTE … FROM PUBLIC`. That revoke is real
