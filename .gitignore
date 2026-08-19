@@ -129,3 +129,6 @@ scripts/swarm/bench-results.json
 # tree and refuses to issue against.
 /packages/spine/packages/spine/supabase/.branches/
 /packages/spine/packages/spine/vitest-report.json
+
+# Session-handoff gate logs (large, machine-generated; the .md report is the durable artefact)
+.handoff-logs/*.log
