@@ -16,7 +16,15 @@
     "",
     "Generated 19/08/2026 from the operations that actually caused prompts in a long",
     "autonomous session. Read-only inspection, local-only git, the build/test loop,",
-    "and sibling reviewer CLIs — nothing that mutates production or pushes code."
+    "and sibling reviewer CLIs — nothing that mutates production or pushes code.",
+    "",
+    "REMOVED 19/08/2026: Bash(psql:*). An independent review (openrouter) found it",
+    "contradicted the line above: the permission language matches a command PREFIX and",
+    "cannot see the connection URI, so a blanket psql grant authorises arbitrary DDL and",
+    "DML against ANY database the machine can reach — including the production project",
+    "this very branch exists to stop an agent mutating. The ship-gates will now prompt",
+    "for psql, which is the correct default. Re-add only as a narrower rule that cannot",
+    "reach production, and never as psql:*."
   ],
   "permissions": {
     "allow": [
@@ -156,7 +164,6 @@
       "Bash(go:*)",
       "Bash(bash -n:*)",
       "Bash(shellcheck:*)",
-      "Bash(psql:*)",
       "Bash(pg_dump:*)",
       "Bash(docker ps:*)",
       "Bash(docker logs:*)",

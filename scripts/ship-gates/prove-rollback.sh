@@ -59,10 +59,24 @@ WORK="$(mktemp -d)"
 DBS_FILE="$WORK/created-databases"
 : > "$DBS_FILE"
 drop_all() {
-  local _d
+  local _d _failed=0
   while IFS= read -r _d; do
-    [[ -n "$_d" ]] && psql -X -q -d "$ADMIN" -c "DROP DATABASE IF EXISTS \"$_d\" WITH (FORCE)" >/dev/null 2>&1
+    [[ -n "$_d" ]] || continue
+    if ! psql -X -q -d "$ADMIN" -c "DROP DATABASE IF EXISTS \"$_d\" WITH (FORCE)" >/dev/null 2>&1; then
+      # Announce, never swallow. Suppressing the status and then removing $WORK deletes
+      # the ONLY register of what this run created, so a transient connection or
+      # privilege failure leaks a database while the proof still reports success.
+      # Third instance of this class; reported by an independent review (openrouter,
+      # 19/08/2026) after the same defect was fixed in pgprobe and in the two gates
+      # that keep their own register.
+      echo "WARNING: could not drop scratch database ${_d} — it is LEAKED." >&2
+      _failed=1
+    fi
   done < "$DBS_FILE"
+  if [[ $_failed -eq 1 ]]; then
+    echo "WARNING: the register of databases this run created is kept at ${DBS_FILE}; ${WORK} was NOT removed." >&2
+    return 1
+  fi
   rm -rf "$WORK"
 }
 trap drop_all EXIT
