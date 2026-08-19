@@ -25,9 +25,33 @@
 -- been tested), so it has never executed against the fix in its current form —
 -- which now includes a supabase_auth_admin re-grant that did not exist then.
 --
--- Consequence, stated plainly: the constitution's "tested rollback before a
--- production change" precondition is NOT met. That is part of founder item F9,
--- and it is a reason not to apply the fix yet — not a footnote.
+-- Consequence, stated plainly, and CORRECTED 19/08/2026: the paragraph above
+-- describes an EARLIER REVISION of this file and is retained only as history. It
+-- said the constitution's "tested rollback before a production change"
+-- precondition was NOT met, in the present tense, in the file an operator opens
+-- during a break-glass — while this file's own header and FOUNDER-QUEUE F9 both
+-- said the opposite. An independent review flagged the contradiction as making
+-- the release instruction ambiguous under exactly the conditions where ambiguity
+-- costs the most. It is resolved here rather than in a third document, because
+-- correcting the document that was cited and leaving the file that OPERATES is
+-- this branch's signature defect.
+--
+-- CURRENT STATE. The rollback IS tested, for these cases, each pinned by a
+-- control that was broken on purpose to prove it can fail:
+--   * restores the observed production shape       — prove-rollback.sh
+--   * refuses an empty database (wrong project)    — prove-rollback.sh
+--   * refuses a partial or overloaded match        — prove-rollback-fidelity.sh case 7
+--   * does not invent an exposure that never was   — prove-rollback-fidelity.sh case 1
+--   * does not convert a PUBLIC-derived grant into
+--     a direct anon grant                          — prove-rollback-fidelity.sh case 4
+--   * takes back grants the forward file created   — prove-rollback-fidelity.sh case 5
+--   * consumes its receipt, so a second cycle
+--     cannot replay a stale pre-state              — prove-rollback-fidelity.sh case 6
+--
+-- STILL NOT TESTED, and it is F9's remaining scope: intermediate partial matches
+-- of two or three present functions, and identity beyond names in a schema (owners,
+-- argument signatures and SECURITY DEFINER status are not checked). Treat recovery
+-- as proven for the cases above and unproven outside them.
 --
 -- Use it only if the revoke is shown to have broken a caller that legitimately
 -- needed anon or authenticated EXECUTE. The correct follow-up is then a narrow

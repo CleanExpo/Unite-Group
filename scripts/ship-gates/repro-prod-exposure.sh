@@ -134,12 +134,41 @@ echo "row counts match the observed production red exactly"
 step "3. apply the fix migration"
 psql -X -q -v ON_ERROR_STOP=1 -d "$SCRATCH" -f "$FIX" 2>&1 | sed 's/^/  /' || fail "fix migration failed"
 
-step "4. gate must go GREEN"
+step "4. gate must reach the ONE deliberate row — and no other"
+# THE EXPECTATION HERE WAS AN OUTAGE INSTRUCTION AND IS RETRACTED. This step used to
+# demand `exit 0` after the fix. It cannot be 0: the fix deliberately RETAINS
+# `authenticated` EXECUTE on get_my_org_ids, because Postgres checks function EXECUTE
+# against the QUERYING role when it evaluates an RLS policy expression and
+# SECURITY DEFINER does not exempt it — revoking it takes production down, proven by
+# prove-rls-execute-coupling.sh. So the old assertion could only ever be satisfied by
+# causing an outage, and because it failed here every time, steps 5-8 NEVER RAN while
+# this file's header claimed the properties they check were proven.
+#
+# The corrected contract, matching FOUNDER-QUEUE F9 and the SQL header: after the fix
+# the gate must exit 1 with EXACTLY ONE row, the deliberate one. Zero rows would mean
+# the deliberate retention had been revoked (an outage). Any OTHER row is a real
+# exposure. Both are failures here, for opposite reasons, and the run CONTINUES so the
+# later steps finally execute.
 set +e
-"$HERE/run-prod-exposure.sh" "$SCRATCH"
+GATE4_DIR="$(mktemp -d)"
+"$HERE/run-prod-exposure.sh" "$SCRATCH" >"$GATE4_DIR/out" 2>"$GATE4_DIR/err"
 GREEN_RC=$?
 set -e
-[[ $GREEN_RC -eq 0 ]] || fail "expected gate exit 0 after the fix, got $GREEN_RC"
+sed 's/^/  /' "$GATE4_DIR/out"
+
+DELIBERATE='authenticated_executable_security_definer|get_my_org_ids'
+ROWS="$(grep -cE '^[a-z_]+\|' "$GATE4_DIR/out" 2>/dev/null || true)"
+OTHER="$(grep -E '^[a-z_]+\|' "$GATE4_DIR/out" 2>/dev/null | grep -vF "$DELIBERATE" || true)"
+
+if [[ $GREEN_RC -eq 0 ]]; then
+  fail "the gate returned ZERO rows after the fix. That is only reachable by revoking \`authenticated\` EXECUTE on get_my_org_ids, which TAKES PRODUCTION DOWN. Do not drive this gate to exit 0."
+fi
+if [[ -n "$OTHER" ]]; then
+  fail "the gate returned a row that is NOT the deliberate retention — a real exposure survived the fix: $(echo "$OTHER" | head -3)"
+fi
+grep -qF "$DELIBERATE" "$GATE4_DIR/out" \
+  || fail "the gate exited ${GREEN_RC} but did not report the deliberate authenticated/get_my_org_ids row, so it failed for some other reason: $(head -3 "$GATE4_DIR/err")"
+echo "  gate exit ${GREEN_RC} with exactly the one deliberate row — correct by design"
 
 step "5. login must survive — supabase_auth_admin keeps EXECUTE"
 # NOTE: in THIS scenario supabase_auth_admin holds an explicit grant, which the
@@ -150,13 +179,25 @@ for fn in "public.custom_access_token_hook(jsonb)" "public.before_user_created_h
   [[ "$HAS" == "t" ]] || fail "supabase_auth_admin LOST EXECUTE on $fn — this fix would lock out every login"
   echo "  supabase_auth_admin EXECUTE on $fn: yes"
 done
+# THE ONE DELIBERATE EXCEPTION. `authenticated` KEEPS EXECUTE on get_my_org_ids —
+# revoking it takes production down, proven by prove-rls-execute-coupling.sh. This
+# loop demanded 'f' for every pair, so it encoded the same retracted outage
+# expectation as step 4 did, and it was INVISIBLE because step 4 always failed first
+# and this step never ran. Both halves of the assertion matter now: the retention must
+# be present (its absence is an outage) and every other pair must be revoked.
 for role in anon authenticated; do
   for fn in "public.custom_access_token_hook(jsonb)" "public.before_user_created_hook(jsonb)" "public.prune_integration_history()" "public.get_my_org_ids()"; do
     HAS=$(q "SELECT has_function_privilege('$role','$fn','EXECUTE')")
-    [[ "$HAS" == "f" ]] || fail "$role STILL has EXECUTE on $fn after the fix"
+    if [[ "$role" == "authenticated" && "$fn" == "public.get_my_org_ids()" ]]; then
+      [[ "$HAS" == "t" ]] \
+        || fail "authenticated LOST EXECUTE on get_my_org_ids. That is the deliberate retention, and without it every authenticated read of an org-scoped table fails — this fix would take production down."
+    else
+      [[ "$HAS" == "f" ]] || fail "$role STILL has EXECUTE on $fn after the fix"
+    fi
   done
 done
-echo "  anon and authenticated hold EXECUTE on none of the four"
+echo "  anon and authenticated hold EXECUTE on none of the four, except the"
+echo "  deliberate authenticated -> get_my_org_ids retention, which is REQUIRED"
 
 step "6. fix must not over-reach (negative control)"
 HAS=$(q "SELECT has_function_privilege('anon','public.harmless_rpc()','EXECUTE')")

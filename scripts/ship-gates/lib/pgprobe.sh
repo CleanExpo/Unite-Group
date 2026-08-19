@@ -80,11 +80,24 @@ pg_make_disposable_db() {
 }
 
 # Drops ONLY a database this process created via pg_make_disposable_db.
+#
+# THE REGISTRATION SURVIVES A FAILED DROP. An earlier revision suppressed the drop's
+# status with `|| true` and cleared DISPOSABLE_DB on the very next line, so a transient
+# connection error, a missing privilege or a refused FORCE left the scratch database
+# behind AND erased the only record needed to retry it — a silent leak, in the helper
+# whose entire job is guaranteeing there are none. Reported by an independent review
+# (openrouter, 19/08/2026). The name is now cleared only when the drop actually
+# succeeded, and a failure is announced on stderr rather than swallowed: a caller that
+# ignores the status still gets a visible line, and one that checks it can retry.
 pg_drop_disposable_db() {
-  local admin_uri="$1"
-  [[ -n "${DISPOSABLE_DB:-}" ]] || return 0
-  pg_exec "$admin_uri" /dev/null "DROP DATABASE IF EXISTS ${DISPOSABLE_DB} WITH (FORCE)" || true
-  DISPOSABLE_DB=""
+  local admin_uri="$1" _db="${DISPOSABLE_DB:-}"
+  [[ -n "$_db" ]] || return 0
+  if pg_exec "$admin_uri" /dev/null "DROP DATABASE IF EXISTS ${_db} WITH (FORCE)"; then
+    DISPOSABLE_DB=""
+    return 0
+  fi
+  echo "WARNING: could not drop scratch database ${_db} — it is LEAKED and still registered for retry." >&2
+  return 1
 }
 
 # ── cluster identity, for the NON-PROD control boundary ─────────────────────
