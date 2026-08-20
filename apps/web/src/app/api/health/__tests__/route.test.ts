@@ -72,6 +72,44 @@ describe('GET /api/health', () => {
     expect(body.connections.supabase).toBe('ok');
   });
 
+  // Regression: /api/health sat at a permanent 503 in production because the probe
+  // read `nexus_pages`, one of only 10 tables of 1,771 that withhold the SELECT
+  // grant from `anon`. The fix is the probe target — `businesses`, which this
+  // anonymous client may actually read.
+  it('probes a table the anon client is entitled to read, not nexus_pages', async () => {
+    await GET();
+    expect(mockFrom).toHaveBeenCalledWith('businesses');
+    expect(mockFrom).not.toHaveBeenCalledWith('nexus_pages');
+  });
+
+  // Allowlisting 42501 as "healthy" was rejected on review: it would mask grants
+  // being revoked or tampered with, reporting "ok" while real queries failed.
+  // A permission error must stay an error.
+  it('returns 503 when Postgres denies permission (42501) — not masked as healthy', async () => {
+    mockMaybySingle.mockResolvedValue({
+      error: { code: '42501', message: 'permission denied for table businesses' },
+    });
+
+    const response = await GET();
+    const body = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(body.status).toBe('degraded');
+    expect(body.connections.supabase).toBe('error');
+  });
+
+  it('still returns 503 when the error carries no code (transport-level failure)', async () => {
+    mockMaybySingle.mockResolvedValue({
+      error: { message: 'fetch failed' },
+    });
+
+    const response = await GET();
+    const body = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(body.connections.supabase).toBe('error');
+  });
+
   it('returns 503 with degraded status when Supabase query returns an error', async () => {
     mockMaybySingle.mockResolvedValue({
       error: { code: '42P01', message: 'relation "nexus_pages" does not exist' },
