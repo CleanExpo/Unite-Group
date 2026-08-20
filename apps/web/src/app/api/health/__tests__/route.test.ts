@@ -73,21 +73,29 @@ describe('GET /api/health', () => {
   });
 
   // Regression: /api/health sat at a permanent 503 in production because the probe
-  // reads `nexus_pages` with an ANONYMOUS client, and the ten `nexus_*` tables are
-  // the only tables of 1,771 that deliberately withhold the SELECT grant from
-  // `anon`. Postgres answers 42501 before RLS is consulted, so the probe could
-  // never succeed. Being told "permission denied" proves the database replied.
-  it('returns 200 when Postgres denies permission (42501) — the DB still answered', async () => {
+  // read `nexus_pages`, one of only 10 tables of 1,771 that withhold the SELECT
+  // grant from `anon`. The fix is the probe target — `businesses`, which this
+  // anonymous client may actually read.
+  it('probes a table the anon client is entitled to read, not nexus_pages', async () => {
+    await GET();
+    expect(mockFrom).toHaveBeenCalledWith('businesses');
+    expect(mockFrom).not.toHaveBeenCalledWith('nexus_pages');
+  });
+
+  // Allowlisting 42501 as "healthy" was rejected on review: it would mask grants
+  // being revoked or tampered with, reporting "ok" while real queries failed.
+  // A permission error must stay an error.
+  it('returns 503 when Postgres denies permission (42501) — not masked as healthy', async () => {
     mockMaybySingle.mockResolvedValue({
-      error: { code: '42501', message: 'permission denied for table nexus_pages' },
+      error: { code: '42501', message: 'permission denied for table businesses' },
     });
 
     const response = await GET();
     const body = await response.json();
 
-    expect(response.status).toBe(200);
-    expect(body.status).toBe('ok');
-    expect(body.connections.supabase).toBe('ok');
+    expect(response.status).toBe(503);
+    expect(body.status).toBe('degraded');
+    expect(body.connections.supabase).toBe('error');
   });
 
   it('still returns 503 when the error carries no code (transport-level failure)', async () => {

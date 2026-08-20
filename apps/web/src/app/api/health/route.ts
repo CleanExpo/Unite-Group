@@ -9,13 +9,6 @@ import { SOCIAL_PLATFORMS, isPlatformConfigured } from "@/lib/integrations/socia
 
 export const dynamic = "force-dynamic";
 
-// Error codes that prove Postgres received the query and replied. Any of these
-// means the connection is healthy, whatever the answer was.
-//   PGRST116 — PostgREST: zero rows matched (table reachable, simply empty)
-//   42501    — Postgres:  permission denied (the server evaluated grants and said no)
-// Anything else, or a thrown exception, is treated as unreachable.
-const DB_ANSWERED_CODES = new Set(["PGRST116", "42501"]);
-
 // Provider OAuth *config* presence — booleans/keys only, never secrets. Lets the
 // operator verify "is GOOGLE_CLIENT_ID / XERO_CLIENT_* / social creds set?" in one
 // unauthenticated call (mirrors the existing /api/health/google check). Does NOT
@@ -66,27 +59,34 @@ export async function GET() {
       }
     );
 
-    // Ping Supabase. This is a *connection* probe, so the question is only ever
-    // "did Postgres answer?" — not "was the answer permissive?".
+    // Ping Supabase against a table this anonymous client is actually entitled
+    // to read.
     //
-    // `nexus_pages` is owner-scoped and, along with the other nine `nexus_*`
-    // tables, is one of only 10 tables out of 1,771 that deliberately withhold
-    // the SELECT grant from `anon`. This route uses an anonymous client, so the
-    // probe could never succeed: Postgres returns 42501 before RLS is consulted.
-    // Treating that as a connection failure pinned /api/health at a permanent
-    // 503 and made the endpoint useless to the uptime monitors it exists for.
+    // This previously probed `nexus_pages`, which pinned /api/health at a
+    // permanent 503 on a perfectly healthy database. `nexus_pages` is
+    // owner-scoped and — with the other nine `nexus_*` tables — is one of only
+    // 10 tables out of 1,771 that deliberately withhold the SELECT grant from
+    // `anon`. Postgres evaluates that grant before RLS, so the probe always
+    // returned 42501 "permission denied" and could never have succeeded.
     //
-    // A definitive Postgres/PostgREST error code proves the round trip
-    // completed. Only transport, DNS, TLS or auth failures — which surface as a
-    // thrown exception or an uncoded error — mean the database is unreachable.
+    // The fix is the probe target, not the error handling. Allowlisting 42501 as
+    // "healthy" was considered and rejected on review: because that table is
+    // denied to `anon` permanently, a 42501 there carries no information, so the
+    // check could no longer tell an expected denial from grants being revoked or
+    // tampered with — it would report "ok" while real queries failed.
+    //
+    // `businesses` is anon-grantable and RLS-protected, so rows stay filtered
+    // while the round trip still exercises a genuine read path. A real
+    // permission failure now correctly reports `error`. apps/empire's health
+    // route probes the same table for the same reason.
     const { error } = await supabase
-      .from("nexus_pages")
+      .from("businesses")
       .select("id")
       .limit(1)
       .maybeSingle();
 
-    connections.supabase =
-      !error || DB_ANSWERED_CODES.has(error.code ?? "") ? "ok" : "error";
+    // PGRST116 = the table was reached and matched zero rows, which is healthy.
+    connections.supabase = !error || error.code === "PGRST116" ? "ok" : "error";
   } catch (error) {
     captureApiError(error, { route: '/api/health', method: 'GET' });
     connections.supabase = "error";
