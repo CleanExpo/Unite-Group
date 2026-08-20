@@ -72,6 +72,36 @@ describe('GET /api/health', () => {
     expect(body.connections.supabase).toBe('ok');
   });
 
+  // Regression: /api/health sat at a permanent 503 in production because the probe
+  // reads `nexus_pages` with an ANONYMOUS client, and the ten `nexus_*` tables are
+  // the only tables of 1,771 that deliberately withhold the SELECT grant from
+  // `anon`. Postgres answers 42501 before RLS is consulted, so the probe could
+  // never succeed. Being told "permission denied" proves the database replied.
+  it('returns 200 when Postgres denies permission (42501) — the DB still answered', async () => {
+    mockMaybySingle.mockResolvedValue({
+      error: { code: '42501', message: 'permission denied for table nexus_pages' },
+    });
+
+    const response = await GET();
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.status).toBe('ok');
+    expect(body.connections.supabase).toBe('ok');
+  });
+
+  it('still returns 503 when the error carries no code (transport-level failure)', async () => {
+    mockMaybySingle.mockResolvedValue({
+      error: { message: 'fetch failed' },
+    });
+
+    const response = await GET();
+    const body = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(body.connections.supabase).toBe('error');
+  });
+
   it('returns 503 with degraded status when Supabase query returns an error', async () => {
     mockMaybySingle.mockResolvedValue({
       error: { code: '42P01', message: 'relation "nexus_pages" does not exist' },
