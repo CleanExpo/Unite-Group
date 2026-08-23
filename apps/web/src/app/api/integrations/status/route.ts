@@ -10,7 +10,7 @@ import { getUser, createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
-type Source = 'vault' | 'social' | 'env'
+type Source = 'vault' | 'social' | 'env' | 'manual'
 
 interface ProviderDef {
   id: string
@@ -20,6 +20,7 @@ interface ProviderDef {
   vaultService?: string   // source 'vault'
   socialPlatform?: string // source 'social'
   envKeys: string[]       // all must be present for `configured`
+  note?: string
 }
 
 // Each row is one honest provider. Multiple display rows may share a vault
@@ -41,6 +42,9 @@ const PROVIDERS: ProviderDef[] = [
   { id: 'reddit',    label: 'Reddit',          category: 'social',     source: 'env',    envKeys: ['REDDIT_CLIENT_ID', 'REDDIT_CLIENT_SECRET'] },
   { id: 'github',    label: 'GitHub',          category: 'dev',        source: 'env',    envKeys: ['GITHUB_TOKEN'] },
   { id: 'heygen',    label: 'HeyGen',          category: 'video',      source: 'env',    envKeys: ['HEYGEN_API_KEY'] },
+  { id: 'remotion',  label: 'Remotion Worker', category: 'video',      source: 'env',    envKeys: ['REMOTION_WORKER_URL'], note: 'Recommended: Docker worker on the Mac Mini' },
+  { id: 'higgsfield', label: 'Higgsfield',      category: 'video',      source: 'manual', envKeys: [], note: 'Connect the official Higgsfield MCP and authenticate the controlled worker' },
+  { id: 'notebooklm', label: 'NotebookLM',      category: 'video',      source: 'manual', envKeys: [], note: 'Manual source-pack handoff until Gemini Notebook Enterprise API access is confirmed' },
   { id: 'telegram',  label: 'Telegram',        category: 'messaging',  source: 'env',    envKeys: ['TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID'] },
   // 1Password: env-key presence (service-account token) IS the wiring signal. Reads
   // remain grant-gated at call time (UNI-2310) — being "configured" here does not
@@ -83,7 +87,7 @@ export async function GET() {
   const socialRows = (socialRes.data ?? []) as Array<{ platform: string; is_connected: boolean; updated_at: string }>
 
   const providers = PROVIDERS.map((p) => {
-    const configured = p.envKeys.every((k) => !!process.env[k]?.trim())
+    const configured = p.source !== 'manual' && p.envKeys.every((k) => !!process.env[k]?.trim())
 
     let connected = false
     let tokenCount = 0
@@ -99,9 +103,12 @@ export async function GET() {
       tokenCount = rows.length
       connected = rows.length > 0
       lastSync = latest(rows.map((r) => r.updated_at))
-    } else {
+    } else if (p.source === 'env') {
       // env source: env-key presence IS the connection (no per-founder token)
       connected = configured
+    } else {
+      // Manual providers must never appear connected from empty env keys.
+      connected = false
     }
 
     return {
@@ -113,6 +120,7 @@ export async function GET() {
       connected,
       tokenCount,
       lastSync,
+      note: p.note ?? null,
     }
   })
 

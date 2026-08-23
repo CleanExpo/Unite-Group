@@ -30,14 +30,20 @@ export function verifyWhatsAppSignature(
  */
 export function verifyHeyGenSignature(
   rawBody: string,
-  signatureHeader: string | null
+  signatureHeader: string | null,
+  timestampHeader: string | null,
+  nowMs = Date.now(),
 ): boolean {
   const secret = process.env.HEYGEN_WEBHOOK_SECRET?.trim()
-  if (!secret || !signatureHeader) return false
+  if (!secret || !signatureHeader || !timestampHeader) return false
+
+  const timestampSeconds = Number(timestampHeader)
+  if (!Number.isFinite(timestampSeconds)) return false
+  if (Math.abs(nowMs / 1000 - timestampSeconds) > 300) return false
 
   const expected = createHmac('sha256', secret).update(rawBody).digest('hex')
-  const receivedBuffer = Buffer.from(signatureHeader.trim())
-  const expectedBuffer = Buffer.from(expected)
+  const receivedBuffer = Buffer.from(signatureHeader.trim(), 'hex')
+  const expectedBuffer = Buffer.from(expected, 'hex')
 
   if (receivedBuffer.length !== expectedBuffer.length) return false
   return timingSafeEqual(receivedBuffer, expectedBuffer)

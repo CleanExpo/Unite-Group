@@ -6,6 +6,7 @@ import { getUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { captureApiError } from '@/lib/error-reporting'
 import type { Campaign, CampaignAsset } from '@/lib/campaigns/types'
+import { getCampaignApprovalState } from '@/lib/campaigns/approval'
 
 export const dynamic = 'force-dynamic'
 
@@ -89,9 +90,13 @@ export async function GET(
     .order('platform')
     .order('variant')
 
+  const mappedCampaign = mapCampaignRow(campaign as Record<string, unknown>)
+  const mappedAssets = (assets ?? []).map(a => mapAssetRow(a as Record<string, unknown>))
+
   return NextResponse.json({
-    campaign: mapCampaignRow(campaign as Record<string, unknown>),
-    assets: (assets ?? []).map(a => mapAssetRow(a as Record<string, unknown>)),
+    campaign: mappedCampaign,
+    assets: mappedAssets,
+    approval: getCampaignApprovalState(mappedCampaign.metadata, mappedAssets),
   })
 }
 

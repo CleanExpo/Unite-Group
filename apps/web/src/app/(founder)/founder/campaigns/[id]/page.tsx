@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { AssetPreview } from '@/components/founder/campaigns/AssetPreview'
 import type { Campaign, CampaignAsset } from '@/lib/campaigns/types'
+import type { CampaignApprovalState } from '@/lib/campaigns/approval'
 
 type IconProps = { size?: number; className?: string } & React.SVGProps<SVGSVGElement>
 
@@ -63,6 +64,10 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [approval, setApproval] = useState<CampaignApprovalState | null>(null)
+  const [approvalBusy, setApprovalBusy] = useState(false)
+  const [preparing, setPreparing] = useState(false)
+  const [actionMessage, setActionMessage] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -71,9 +76,10 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
       const res = await fetch(`/api/campaigns/${id}`)
       if (res.status === 404) { setError('Campaign not found.'); return }
       if (!res.ok) { setError('Failed to load campaign.'); return }
-      const data = await res.json() as { campaign: Campaign; assets: CampaignAsset[] }
+      const data = await res.json() as { campaign: Campaign; assets: CampaignAsset[]; approval: CampaignApprovalState }
       setCampaign(data.campaign)
       setAssets(data.assets ?? [])
+      setApproval(data.approval)
     } catch {
       setError('Network error. Please try again.')
     } finally {
@@ -94,18 +100,50 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
     }
   }
 
-  function handlePublished(assetId: string, postId: string) {
-    setAssets(prev => prev.map(a => a.id === assetId ? { ...a, socialPostId: postId, status: 'published' } : a))
-  }
-
   function handleRegenerateImage(assetId: string) {
     setAssets(prev => prev.map(a => a.id === assetId ? { ...a, status: 'generating_image' } : a))
+    setApproval((current) => current ? { ...current, status: 'stale' } : current)
     // Reload after a short delay to pick up the new image
     setTimeout(() => void load(), 5000)
   }
 
   function handleApprove(assetId: string) {
     setAssets(prev => prev.map(a => a.id === assetId ? { ...a, status: 'ready' } : a))
+    setApproval((current) => current ? { ...current, status: 'stale' } : current)
+  }
+
+  async function handleCampaignApproval() {
+    setApprovalBusy(true)
+    setActionMessage(null)
+    try {
+      const res = await fetch(`/api/campaigns/${id}/approval`, { method: 'POST' })
+      const body = await res.json().catch(() => ({})) as { error?: string; approval?: CampaignApprovalState }
+      if (!res.ok || !body.approval) throw new Error(body.error ?? 'Approval could not be recorded')
+      setApproval(body.approval)
+      setActionMessage('Exact campaign version approved. It is ready to become channel drafts.')
+    } catch (err) {
+      setActionMessage(err instanceof Error ? err.message : 'Approval failed')
+    } finally {
+      setApprovalBusy(false)
+    }
+  }
+
+  async function handlePrepareDrafts() {
+    setPreparing(true)
+    setActionMessage(null)
+    try {
+      const res = await fetch(`/api/campaigns/${id}/publish`, { method: 'POST' })
+      const body = await res.json().catch(() => ({})) as { error?: string; draftsCreated?: number; alreadyPrepared?: boolean }
+      if (!res.ok) throw new Error(body.error ?? 'Channel drafts could not be prepared')
+      setActionMessage(body.alreadyPrepared
+        ? 'Channel drafts were already prepared. Nothing was duplicated.'
+        : `${body.draftsCreated ?? 0} channel draft(s) prepared. Nothing was published externally.`)
+      await load()
+    } catch (err) {
+      setActionMessage(err instanceof Error ? err.message : 'Draft preparation failed')
+    } finally {
+      setPreparing(false)
+    }
   }
 
   // Loading skeleton
@@ -140,6 +178,8 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
   const platforms = campaign.platforms.map(p => PLATFORM_LABEL[p] ?? p).join(' · ')
   const published = assets.filter(a => a.status === 'published').length
   const ready = assets.filter(a => a.status === 'ready').length
+  const allReady = assets.length > 0 && ready === assets.length
+  const campaignApproved = approval?.status === 'approved'
 
   return (
     <div className="p-6 flex flex-col gap-6">
@@ -195,6 +235,48 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
         </div>
       </div>
 
+      <section className="rounded-sm border border-[#16a34a]/20 bg-[#16a34a]/5 p-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-[12px] font-semibold text-[#0A0A0A]">Synthex approval gate</p>
+            <p className="mt-1 text-[11px] text-[#5f5f66]">
+              {campaignApproved
+                ? 'This exact copy and image set is approved. Any change makes the approval stale.'
+                : approval?.status === 'stale'
+                  ? 'The campaign changed after approval. Review it and approve the new version.'
+                  : 'Review every asset, then approve the exact campaign before creating channel drafts.'}
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void handleCampaignApproval()}
+              disabled={!allReady || approvalBusy}
+              className="rounded-sm border border-[#16a34a]/40 px-3 py-2 text-[11px] font-semibold text-[#15803d] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {approvalBusy ? 'Recording…' : campaignApproved ? 'Re-approve exact version' : 'Approve exact campaign'}
+            </button>
+            <button
+              type="button"
+              onClick={() => void handlePrepareDrafts()}
+              disabled={!campaignApproved || preparing}
+              className="rounded-sm bg-[#16a34a] px-3 py-2 text-[11px] font-semibold text-black disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {preparing ? 'Preparing…' : 'Prepare channel drafts'}
+            </button>
+          </div>
+        </div>
+        {actionMessage && <p className="mt-3 text-[11px] text-[#52525b]" role="status">{actionMessage}</p>}
+      </section>
+
+      <div className="flex flex-wrap gap-2" aria-label="Synthex optimisation controls">
+        {['SEO', 'AEO / GEO', 'Schema', 'E-E-A-T', 'Evidence', 'Captions + alt text'].map((control) => (
+          <span key={control} className="rounded-sm border border-white/10 px-2 py-1 text-[10px] text-[#5f5f66]">
+            {control}
+          </span>
+        ))}
+      </div>
+
       {/* Asset grid */}
       {assets.length === 0 ? (
         <div className="rounded-sm border py-16 flex flex-col items-center gap-3" style={{ borderColor: 'var(--color-border)' }}>
@@ -213,8 +295,6 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
             <AssetPreview
               key={asset.id}
               asset={asset}
-              businessKey={campaign.businessKey}
-              onPublished={(postId) => handlePublished(asset.id, postId)}
               onRegenerateImage={() => handleRegenerateImage(asset.id)}
               onApprove={() => handleApprove(asset.id)}
             />

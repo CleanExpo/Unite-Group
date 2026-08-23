@@ -25,7 +25,6 @@ describe("BrandProfileSelector", () => {
       profiles: [
         {
           id: "brand-dr",
-          organization_id: "org-dr",
           client_name: "Disaster Recovery",
           website_url: "https://dr.example",
           industry: "Recovery",
@@ -45,7 +44,6 @@ describe("BrandProfileSelector", () => {
     expect(fetch).toHaveBeenCalledWith("/api/campaigns");
     expect(onSelect).toHaveBeenCalledWith({
       id: "brand-dr",
-      organizationId: "org-dr",
       clientName: "Disaster Recovery",
       websiteUrl: "https://dr.example",
       industry: "Recovery",

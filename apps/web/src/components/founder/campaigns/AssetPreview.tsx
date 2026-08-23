@@ -7,8 +7,6 @@ import type { SocialPlatform } from '@/lib/integrations/social/types'
 
 interface AssetPreviewProps {
   asset: CampaignAsset
-  businessKey: string | null
-  onPublished?: (postId: string) => void
   onRegenerateImage?: (assetId: string) => void
   onApprove?: (assetId: string) => void
 }
@@ -72,50 +70,14 @@ function QualityScorePill({ score }: { score: number }) {
   )
 }
 
-export function AssetPreview({ asset, businessKey, onPublished, onRegenerateImage, onApprove }: AssetPreviewProps) {
+export function AssetPreview({ asset, onRegenerateImage, onApprove }: AssetPreviewProps) {
   const [expanded, setExpanded] = useState(false)
-  const [publishing, setPublishing] = useState(false)
   const [approving, setApproving] = useState(false)
-  const [publishError, setPublishError] = useState<string | null>(null)
   const [approveError, setApproveError] = useState<string | null>(null)
 
   const copyTruncated = asset.copy.length > 150 && !expanded
     ? asset.copy.slice(0, 150) + '…'
     : asset.copy
-
-  async function handlePublish() {
-    if (!businessKey) {
-      setPublishError('Selected brand is missing a business key. Publish from the campaign-level publish action after fixing brand metadata.')
-      return
-    }
-
-    setPublishing(true)
-    setPublishError(null)
-    try {
-      const mediaUrls: string[] = asset.imageUrl ? [asset.imageUrl] : []
-      const res = await fetch('/api/social/posts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          businessKey,
-          content: asset.copy,
-          mediaUrls,
-          platforms: [asset.platform],
-          title: asset.headline ?? undefined,
-        }),
-      })
-      if (!res.ok) {
-        const body = await res.json() as { error?: string }
-        throw new Error(body.error ?? `HTTP ${res.status}`)
-      }
-      const body = await res.json() as { post: { id: string } }
-      onPublished?.(body.post.id)
-    } catch (err) {
-      setPublishError(err instanceof Error ? err.message : 'Failed to publish')
-    } finally {
-      setPublishing(false)
-    }
-  }
 
   async function handleApprove() {
     if (!onApprove) return
@@ -247,13 +209,7 @@ export function AssetPreview({ asset, businessKey, onPublished, onRegenerateImag
         )}
 
         {asset.status === 'ready' && (
-          <button
-            onClick={handlePublish}
-            disabled={publishing}
-            className="bg-[#16a34a] text-black text-sm font-medium rounded-sm px-3 py-1.5 hover:bg-[#16a34a]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
-          >
-            {publishing ? 'Publishing…' : 'Promote →'}
-          </button>
+          <span className="text-xs text-[#15803d]">Ready for campaign approval</span>
         )}
       </div>
 
@@ -264,12 +220,6 @@ export function AssetPreview({ asset, businessKey, onPublished, onRegenerateImag
         </p>
       )}
 
-      {/* Publish error */}
-      {publishError && (
-        <p className="text-red-700 text-xs">
-          {publishError}
-        </p>
-      )}
     </div>
   )
 }

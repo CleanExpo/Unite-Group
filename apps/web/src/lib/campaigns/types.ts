@@ -142,7 +142,6 @@ export interface ScanRequest {
 
 export interface CreateCampaignRequest {
   brandProfileId: string
-  organizationId?: string
   theme: string
   objective: CampaignObjective
   platforms: SocialPlatform[]

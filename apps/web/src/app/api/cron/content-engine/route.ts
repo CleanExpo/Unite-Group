@@ -10,7 +10,7 @@ import { assertCronAuth } from '@/lib/cron-auth'
 import { getFounderUserId } from '@/lib/auth/founder-user-id'
 import { createServiceClient } from '@/lib/supabase/service'
 import { generateContent } from '@/lib/content/generator'
-import { getContentGapsForWeek, getNextScheduledSlot } from '@/lib/content/calendar'
+import { getContentGapsForWeek } from '@/lib/content/calendar'
 import { notify } from '@/lib/notifications'
 import type { ContentGenerationRequest, BrandIdentity } from '@/lib/content/types'
 import type { SocialPlatform } from '@/lib/integrations/social/types'
@@ -242,10 +242,8 @@ async function processBusinessContent(
 
         result.generated++
 
-        // Get next available scheduled slot for this platform
-        const nextSlot = await getNextScheduledSlot(brand.businessKey, platform)
-
-        // Create social_posts row with scheduled status
+        // Create a draft only. Synthex may recommend a slot, but an external
+        // schedule must never be armed without the founder approval flow.
         const postContent =
           item.body +
           (item.hashtags.length
@@ -262,8 +260,8 @@ async function processBusinessContent(
           content: postContent,
           media_urls: [],
           platforms: [platform],
-          status: 'scheduled',
-          scheduled_at: nextSlot.toISOString(),
+          status: 'draft',
+          scheduled_at: null,
         })
 
         if (postError) {
