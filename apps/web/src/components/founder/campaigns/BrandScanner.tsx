@@ -39,6 +39,9 @@ type ScanState = 'idle' | 'scanning' | 'complete' | 'error'
 
 interface BrandScannerProps {
   onScanComplete: (profileId: string, clientName: string) => void
+  initialClientName?: string
+  initialWebsiteUrl?: string
+  businessKey?: string
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -145,9 +148,14 @@ function DataRow({ label, value, highlight = false }: DataRowProps) {
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
-export function BrandScanner({ onScanComplete }: BrandScannerProps) {
-  const [websiteUrl, setWebsiteUrl]     = useState('')
-  const [clientName, setClientName]     = useState('')
+export function BrandScanner({
+  onScanComplete,
+  initialClientName = '',
+  initialWebsiteUrl = '',
+  businessKey,
+}: BrandScannerProps) {
+  const [websiteUrl, setWebsiteUrl]     = useState(initialWebsiteUrl)
+  const [clientName, setClientName]     = useState(initialClientName)
   const [scanState, setScanState]       = useState<ScanState>('idle')
   const [result, setResult]             = useState<ScanResult | null>(null)
   const [errorMessage, setErrorMessage] = useState<string>('')
@@ -175,7 +183,7 @@ export function BrandScanner({ onScanComplete }: BrandScannerProps) {
       const response = await fetch('/api/campaigns/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ websiteUrl: url, clientName: name }),
+        body: JSON.stringify({ websiteUrl: url, clientName: name, businessKey }),
       })
 
       if (!response.ok) {
@@ -202,7 +210,7 @@ export function BrandScanner({ onScanComplete }: BrandScannerProps) {
       setErrorMessage(message)
       setScanState('error')
     }
-  }, [websiteUrl, clientName])
+  }, [websiteUrl, clientName, businessKey])
 
   const handleReset = useCallback(() => {
     setScanState('idle')
@@ -226,6 +234,11 @@ export function BrandScanner({ onScanComplete }: BrandScannerProps) {
         <p className="text-[12px] text-[#5f5f66]">
           Enter a website URL to extract Brand DNA — colours, tone, audience, and imagery.
         </p>
+        {businessKey && (
+          <p className="text-[11px] text-[#15803d]">
+            Protected Synthex lane: {businessKey}
+          </p>
+        )}
       </div>
 
       {/* Inputs */}

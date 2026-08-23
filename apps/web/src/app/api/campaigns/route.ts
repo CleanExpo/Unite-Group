@@ -6,6 +6,7 @@ import { getUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { captureApiError } from '@/lib/error-reporting'
 import type { CreateCampaignRequest } from '@/lib/campaigns/types'
+import { buildSynthexOptimisationStandard } from '@/lib/campaigns/optimisation-standard'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,7 +20,7 @@ export async function GET() {
 
   const { data: profiles, error } = await supabase
     .from('brand_profiles')
-    .select('id, organization_id, client_name, website_url, logo_url, industry, business_key, status, created_at')
+    .select('id, client_name, website_url, logo_url, industry, business_key, status, created_at')
     .eq('founder_id', user.id)
     .eq('status', 'ready')
     .order('created_at', { ascending: false })
@@ -45,29 +46,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const { brandProfileId, organizationId, theme, objective, platforms, postCount, dateRangeStart, dateRangeEnd } = body
-  if (!brandProfileId || !organizationId || !theme || !objective || !platforms?.length) {
+  const { brandProfileId, theme, objective, platforms, postCount, dateRangeStart, dateRangeEnd } = body
+  if (!brandProfileId || !theme || !objective || !platforms?.length) {
     return NextResponse.json(
-      { error: 'brandProfileId, organizationId, theme, objective and platforms are required' },
+      { error: 'brandProfileId, theme, objective and platforms are required' },
       { status: 400 }
     )
   }
 
   const supabase = createServiceClient()
 
-  // Authorization is founder-scoped: the brand-profile ownership check below
-  // (founder_id = user.id AND organization_id) is the access boundary. The
-  // previous user_organizations membership gate referenced a table that has no
-  // applied migration and is never populated, so it returned Forbidden for
-  // every founder (UNI-2218).
-
-  // Verify brand profile belongs to this founder and selected child organisation
+  // The ready founder-owned brand profile is the access boundary. Campaign and
+  // brand_profiles do not have organization_id in the applied schema.
   const { data: profile } = await supabase
     .from('brand_profiles')
-    .select('id, organization_id, business_key, client_name')
+    .select('id, business_key, client_name')
     .eq('id', brandProfileId)
     .eq('founder_id', user.id)
-    .eq('organization_id', organizationId)
     .eq('status', 'ready')
     .single()
 
@@ -75,11 +70,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Brand profile not found or not ready' }, { status: 404 })
   }
 
+  if (!profile.business_key) {
+    return NextResponse.json(
+      { error: 'Brand profile is missing business_key; campaign creation stopped to prevent cross-brand data mixing' },
+      { status: 409 },
+    )
+  }
+
   const { data: newCampaign, error: createError } = await supabase
     .from('campaigns')
     .insert({
       founder_id: user.id,
-      organization_id: organizationId,
       brand_profile_id: brandProfileId,
       theme,
       objective,
@@ -88,6 +89,19 @@ export async function POST(request: Request) {
       date_range_start: dateRangeStart ?? null,
       date_range_end: dateRangeEnd ?? null,
       status: 'draft',
+      metadata: {
+        routing: {
+          serviceOwner: 'synthex',
+          dataOwner: profile.business_key,
+        },
+        optimisationStandard: buildSynthexOptimisationStandard(profile.business_key),
+        evidence: {
+          status: 'required',
+          sources: [],
+          reviewedBy: null,
+          reviewedAt: null,
+        },
+      },
     })
     .select('id, theme, objective, status, created_at')
     .single()
@@ -98,7 +112,6 @@ export async function POST(request: Request) {
       method: 'POST',
       founderId: user.id,
       brandProfileId,
-      organizationId,
     })
     return NextResponse.json({ error: 'Failed to create campaign' }, { status: 500 })
   }
@@ -106,7 +119,6 @@ export async function POST(request: Request) {
   return NextResponse.json({
     ...newCampaign,
     brandProfileId: profile.id,
-    organizationId: profile.organization_id,
     businessKey: profile.business_key,
     brandName: profile.client_name,
   }, { status: 201 })

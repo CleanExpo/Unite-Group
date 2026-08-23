@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { BrandProfileSelector, type BrandProfileOption } from '@/components/founder/campaigns/BrandProfileSelector'
 import { BrandScanner } from '@/components/founder/campaigns/BrandScanner'
 import { CampaignGenerator } from '@/components/founder/campaigns/CampaignGenerator'
+import { SYNTHEX_LAUNCH_LANES, type SynthexLaunchLane } from '@/lib/campaigns/launch-lanes'
 
 function ArrowLeft({ size = 14, className, ...props }: { size?: number; className?: string } & React.SVGProps<SVGSVGElement>) {
   return (
@@ -25,7 +26,6 @@ type Step = 'select' | 'scan' | 'generate'
 
 interface ScanResult {
   profileId: string
-  organizationId: string
   clientName: string
 }
 
@@ -33,14 +33,16 @@ export default function NewCampaignPage() {
   const router = useRouter()
   const [step, setStep] = useState<Step>('select')
   const [scan, setScan] = useState<ScanResult | null>(null)
+  const [launchLane, setLaunchLane] = useState<SynthexLaunchLane | null>(null)
 
   function handleScanComplete(profileId: string, clientName?: string) {
-    setScan({ profileId, organizationId: '', clientName: clientName ?? 'Your Brand' })
+    setScan({ profileId, clientName: clientName ?? 'Your Brand' })
     setStep('generate')
   }
 
   function handleBrandSelected(profile: BrandProfileOption) {
-    setScan({ profileId: profile.id, organizationId: profile.organizationId, clientName: profile.clientName })
+    setLaunchLane(SYNTHEX_LAUNCH_LANES.find((lane) => lane.businessKey === profile.businessKey) ?? null)
+    setScan({ profileId: profile.id, clientName: profile.clientName })
     setStep('generate')
   }
 
@@ -51,11 +53,19 @@ export default function NewCampaignPage() {
   function handleBack() {
     setStep('select')
     setScan(null)
+    setLaunchLane(null)
   }
 
   function handleScanNew() {
     setStep('scan')
     setScan(null)
+    setLaunchLane(null)
+  }
+
+  function handleLaunchLane(lane: SynthexLaunchLane) {
+    setLaunchLane(lane)
+    setScan(null)
+    setStep('scan')
   }
 
   const subtitle = step === 'select'
@@ -110,18 +120,46 @@ export default function NewCampaignPage() {
 
       {/* Step content */}
       {step === 'select' && (
-        <BrandProfileSelector onSelect={handleBrandSelected} onScanNew={handleScanNew} />
+        <div className="flex flex-col gap-5">
+          <section className="rounded-sm border border-[#16a34a]/20 bg-[#16a34a]/5 p-5">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-[#15803d]">
+              Protected Synthex launch lanes
+            </p>
+            <div className="mt-3 grid gap-3 md:grid-cols-3">
+              {SYNTHEX_LAUNCH_LANES.map((lane) => (
+                <button
+                  key={lane.businessKey}
+                  type="button"
+                  onClick={() => handleLaunchLane(lane)}
+                  className="rounded-sm border border-white/10 bg-[#fff7ec] p-4 text-left transition-colors hover:border-[#16a34a]/40"
+                >
+                  <span className="block text-[13px] font-semibold text-[#0A0A0A]">{lane.brandName}</span>
+                  <span className="mt-1 block text-[11px] leading-relaxed text-[#5f5f66]">{lane.purpose}</span>
+                  <span className="mt-3 block text-[10px] uppercase tracking-wider text-[#15803d]">Connect Brand DNA →</span>
+                </button>
+              ))}
+            </div>
+          </section>
+          <BrandProfileSelector onSelect={handleBrandSelected} onScanNew={handleScanNew} />
+        </div>
       )}
 
       {step === 'scan' && (
-        <BrandScanner onScanComplete={(profileId, clientName) => handleScanComplete(profileId, clientName)} />
+        <BrandScanner
+          onScanComplete={(profileId, clientName) => handleScanComplete(profileId, clientName)}
+          initialClientName={launchLane?.brandName}
+          initialWebsiteUrl={launchLane?.websiteUrl}
+          businessKey={launchLane?.businessKey}
+        />
       )}
 
       {step === 'generate' && scan && (
         <CampaignGenerator
           brandProfileId={scan.profileId}
-          organizationId={scan.organizationId}
           brandName={scan.clientName}
+          initialTheme={launchLane?.pilotTheme}
+          initialObjective={launchLane?.objective}
+          initialPlatforms={launchLane ? [...launchLane.platforms] : undefined}
           onGenerated={handleGenerated}
           onBack={handleBack}
         />

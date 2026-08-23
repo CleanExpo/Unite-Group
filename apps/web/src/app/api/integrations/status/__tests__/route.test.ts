@@ -128,6 +128,19 @@ describe('GET /api/integrations/status', () => {
     expect(heygen.configured).toBe(false)
   })
 
+  it('reports manual media providers honestly until their worker connection exists', async () => {
+    const { client } = makeSupabase([], [])
+    vi.mocked(createClient).mockResolvedValue(client)
+
+    const res = await GET()
+    const body = await res.json()
+    const by = (id: string) => body.providers.find((p: { id: string }) => p.id === id)
+
+    expect(by('higgsfield')).toMatchObject({ configured: false, connected: false })
+    expect(by('notebooklm')).toMatchObject({ configured: false, connected: false })
+    expect(by('higgsfield').note).toContain('MCP')
+  })
+
   it('Telegram (env source): connected/configured when bot token + chat id present', async () => {
     process.env.TELEGRAM_BOT_TOKEN = 'bot-token'
     process.env.TELEGRAM_CHAT_ID = 'chat-id'

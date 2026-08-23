@@ -40,23 +40,27 @@ type UIState = 'config' | 'generating' | 'complete'
 
 export interface CampaignGeneratorProps {
   brandProfileId: string
-  organizationId: string
   brandName: string
+  initialTheme?: string
+  initialObjective?: Objective
+  initialPlatforms?: Platform[]
   onGenerated: (campaignId: string) => void
   onBack: () => void
 }
 
 export function CampaignGenerator({
   brandProfileId,
-  organizationId,
   brandName,
+  initialTheme = '',
+  initialObjective = 'awareness',
+  initialPlatforms = [],
   onGenerated,
   onBack,
 }: CampaignGeneratorProps) {
   const [uiState, setUiState] = useState<UIState>('config')
-  const [theme, setTheme] = useState('')
-  const [objective, setObjective] = useState<Objective>('awareness')
-  const [platforms, setPlatforms] = useState<Platform[]>([])
+  const [theme, setTheme] = useState(initialTheme)
+  const [objective, setObjective] = useState<Objective>(initialObjective)
+  const [platforms, setPlatforms] = useState<Platform[]>(initialPlatforms)
   const [postCount, setPostCount] = useState(5)
   const [dateRangeStart, setDateRangeStart] = useState('')
   const [dateRangeEnd, setDateRangeEnd] = useState('')
@@ -84,7 +88,6 @@ export function CampaignGenerator({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           brandProfileId,
-          organizationId,
           theme: theme.trim(),
           objective,
           platforms,
@@ -124,7 +127,6 @@ export function CampaignGenerator({
   }, [
     canSubmit,
     brandProfileId,
-    organizationId,
     theme,
     objective,
     platforms,

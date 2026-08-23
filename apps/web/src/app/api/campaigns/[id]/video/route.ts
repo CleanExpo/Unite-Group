@@ -7,6 +7,8 @@ import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { createTalkingHeadVideo, getVideoStatus } from '@/lib/integrations/heygen'
+import { getCampaignApprovalState } from '@/lib/campaigns/approval'
+import type { CampaignAsset } from '@/lib/campaigns/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,10 +38,10 @@ export async function POST(
     // all fields optional
   }
 
-  // Load campaign + brand profile for client name
+  // Load campaign + brand profile for client name and exact-version approval.
   const { data: campaign, error: campaignError } = await supabase
     .from('campaigns')
-    .select('id, title, brand_profile_id, brand_profiles(client_name, business_key)')
+    .select('id, theme, metadata, brand_profile_id, brand_profiles(client_name, business_key)')
     .eq('id', id)
     .eq('founder_id', user.id)
     .single()
@@ -48,17 +50,41 @@ export async function POST(
     return NextResponse.json({ error: 'Campaign not found' }, { status: 404 })
   }
 
-  // Load the primary ready asset (first video_script or social_post type with copy)
+  // Load the complete exact asset set. HeyGen consumes paid credits, so an
+  // unapproved or changed campaign must not start a render.
   const { data: assets } = await supabase
     .from('campaign_assets')
-    .select('id, copy, platform')
+    .select('*')
     .eq('campaign_id', id)
     .eq('founder_id', user.id)
-    .eq('status', 'ready')
-    .limit(5)
 
   if (!assets || assets.length === 0) {
     return NextResponse.json({ error: 'No ready assets to generate video from' }, { status: 400 })
+  }
+
+  if (assets.some((asset) => asset.status !== 'ready')) {
+    return NextResponse.json({ error: 'Every campaign asset must be ready before video generation' }, { status: 409 })
+  }
+
+  const approvalAssets = assets.map((asset) => ({
+    id: asset.id, campaignId: asset.campaign_id, founderId: asset.founder_id,
+    platform: asset.platform, copy: asset.copy, headline: asset.headline, cta: asset.cta,
+    hashtags: asset.hashtags ?? [], imageUrl: asset.image_url, imagePrompt: asset.image_prompt,
+    width: asset.width, height: asset.height, variant: asset.variant,
+    socialPostId: asset.social_post_id, status: asset.status,
+    visualType: asset.visual_type ?? 'photo', imageEngine: asset.image_engine,
+    qualityScore: asset.quality_score, qualityStatus: asset.quality_status,
+    createdAt: asset.created_at, updatedAt: asset.updated_at,
+  })) as CampaignAsset[]
+  const metadata = campaign.metadata && typeof campaign.metadata === 'object' && !Array.isArray(campaign.metadata)
+    ? campaign.metadata as Record<string, unknown>
+    : {}
+  const approval = getCampaignApprovalState(metadata, approvalAssets)
+  if (approval.status !== 'approved') {
+    return NextResponse.json(
+      { error: 'Approve this exact campaign before using paid video generation' },
+      { status: 409 },
+    )
   }
 
   // Prefer a video_script asset, fall back to first asset with copy
@@ -81,7 +107,8 @@ export async function POST(
       script,
       voiceId,
       aspectRatio,
-      title: campaign.title ?? (clientName ? `${clientName} — Video` : 'Campaign Video'),
+      title: campaign.theme ?? (clientName ? `${clientName} — Video` : 'Campaign Video'),
+      idempotencyKey: `campaign:${id}:${approval.assetFingerprint}`,
     })
 
     return NextResponse.json({

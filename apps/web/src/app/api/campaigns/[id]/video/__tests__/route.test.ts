@@ -11,7 +11,30 @@ import { getUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { createTalkingHeadVideo, getVideoStatus } from '@/lib/integrations/heygen'
 import { makeServiceChain } from '@/test/founder-scope-chain'
+import { fingerprintCampaignAssets } from '@/lib/campaigns/approval'
+import type { CampaignAsset } from '@/lib/campaigns/types'
 import { POST, GET } from '../route'
+
+const readyAsset = {
+  id: 'asset-1', campaign_id: 'camp-1', founder_id: 'user-123', copy: 'Hello, this is the script.',
+  platform: 'youtube', headline: null, cta: null, hashtags: [], image_url: null,
+  image_prompt: 'presenter', width: 1280, height: 720, variant: 1,
+  social_post_id: null, status: 'ready', visual_type: 'photo', image_engine: null,
+  quality_score: null, quality_status: null, created_at: '2026-08-23', updated_at: '2026-08-23',
+}
+
+function metadataFor(asset = readyAsset) {
+  const mapped = {
+    id: asset.id, campaignId: asset.campaign_id, founderId: asset.founder_id,
+    platform: asset.platform, copy: asset.copy, headline: asset.headline, cta: asset.cta,
+    hashtags: asset.hashtags, imageUrl: asset.image_url, imagePrompt: asset.image_prompt,
+    width: asset.width, height: asset.height, variant: asset.variant,
+    socialPostId: asset.social_post_id, status: asset.status, visualType: asset.visual_type,
+    imageEngine: asset.image_engine, qualityScore: asset.quality_score,
+    qualityStatus: asset.quality_status, createdAt: asset.created_at, updatedAt: asset.updated_at,
+  } as CampaignAsset
+  return { approval: { status: 'approved', assetFingerprint: fingerprintCampaignAssets([mapped]) } }
+}
 
 describe('POST /api/campaigns/[id]/video', () => {
   beforeEach(() => {
@@ -52,7 +75,7 @@ describe('POST /api/campaigns/[id]/video', () => {
   it('returns 400 when no ready assets exist', async () => {
     const chain = makeServiceChain([
       // campaign select .single()
-      { data: { id: 'camp-1', title: 'Test Campaign', brand_profile_id: 'bp-1', brand_profiles: { client_name: 'Acme', business_key: 'acme' } }, error: null },
+      { data: { id: 'camp-1', theme: 'Test Campaign', metadata: {}, brand_profile_id: 'bp-1', brand_profiles: { client_name: 'Acme', business_key: 'acme' } }, error: null },
       // campaign_assets select — empty
       { data: [], error: null },
     ])
@@ -71,9 +94,9 @@ describe('POST /api/campaigns/[id]/video', () => {
   it('returns 200 with videoId on successful generation', async () => {
     const chain = makeServiceChain([
       // campaign select .single()
-      { data: { id: 'camp-1', title: 'Test Campaign', brand_profile_id: 'bp-1', brand_profiles: { client_name: 'Acme', business_key: 'acme' } }, error: null },
+      { data: { id: 'camp-1', theme: 'Test Campaign', metadata: metadataFor(), brand_profile_id: 'bp-1', brand_profiles: { client_name: 'Acme', business_key: 'acme' } }, error: null },
       // campaign_assets select (thenable, not .single())
-      { data: [{ id: 'asset-1', copy: 'Hello, this is the script.', platform: 'video_script' }], error: null },
+      { data: [readyAsset], error: null },
     ])
     vi.mocked(createServiceClient).mockReturnValue(chain as never)
     vi.mocked(createTalkingHeadVideo).mockResolvedValue('test-video-id')

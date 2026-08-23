@@ -35,6 +35,7 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
   const [scheduledAt, setScheduledAt] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [statusMessage, setStatusMessage] = useState('')
 
   // AI Generate state
   const [showAI, setShowAI] = useState(false)
@@ -106,6 +107,7 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
 
     setSaving(true)
     setError('')
+    setStatusMessage('')
 
     const body: CreatePostInput = {
       businessKey,
@@ -127,9 +129,21 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
       return
     }
 
-    if (action === 'publish') {
-      const { post } = await res.json() as { post: { id: string } }
-      await fetch(`/api/social/publish/${post.id}`, { method: 'POST' })
+    const { post } = await res.json() as { post: { id: string } }
+
+    if (action !== 'draft') {
+      const approvalRes = await fetch(`/api/social/publish/${post.id}`, { method: 'POST' })
+      const approvalBody = await approvalRes.json().catch(() => ({})) as { error?: string; status?: string }
+      if (!approvalRes.ok && approvalRes.status !== 202) {
+        setError(approvalBody.error ?? 'Approval request failed')
+        setSaving(false)
+        return
+      }
+      if (approvalRes.status === 202) {
+        setStatusMessage('Saved safely. External publishing is waiting in your approval queue.')
+        setSaving(false)
+        return
+      }
     }
 
     onCreated()
@@ -367,6 +381,7 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
         </div>
 
         {error && <p className="text-[13px] text-[#ef4444]">{error}</p>}
+        {statusMessage && <p className="text-[13px] text-[#15803d]" role="status">{statusMessage}</p>}
 
         <div className="flex gap-2 pt-2">
           <button
@@ -383,7 +398,7 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
               disabled={saving}
               className="px-4 py-2 text-[10px] uppercase tracking-wider text-[#15803d] border border-[#16a34a]/30 rounded-sm hover:bg-[#16a34a]/5 transition-colors disabled:opacity-50"
             >
-              {saving ? 'Scheduling...' : 'Schedule'}
+              {saving ? 'Saving...' : 'Request Schedule'}
             </button>
           ) : (
             <button
@@ -391,7 +406,7 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
               disabled={saving || connectedPlatforms.length === 0}
               className="px-4 py-2 text-[10px] uppercase tracking-wider text-[#fffdf7] bg-[#16a34a] rounded-sm hover:bg-[#16a34a]/90 transition-colors disabled:opacity-50"
             >
-              {saving ? 'Publishing...' : 'Post Now'}
+              {saving ? 'Saving...' : 'Request Publish'}
             </button>
           )}
         </div>

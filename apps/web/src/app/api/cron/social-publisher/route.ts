@@ -17,6 +17,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { decodeToken } from '@/lib/integrations/social/channels'
 import { publishToPlatform } from '@/lib/integrations/social/publisher'
 import { notify } from '@/lib/notifications'
+import { fingerprintSocialPost, findMatchingSocialApproval } from '@/lib/campaigns/social-approval'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -80,14 +81,33 @@ export async function GET(request: Request) {
 
   let publishedCount = 0
   let failedCount = 0
+  let skippedCount = 0
 
   // 3. Process each scheduled post
   for (const post of scheduledPosts) {
+    const fingerprint = fingerprintSocialPost(post)
+    const { data: approvalRows, error: approvalError } = await supabase
+      .from('approval_queue')
+      .select('id, status, payload')
+      .eq('founder_id', post.founder_id)
+      .eq('type', 'social_publish')
+      .eq('status', 'approved')
+
+    const approved = approvalError
+      ? null
+      : findMatchingSocialApproval(approvalRows ?? [], post.id, fingerprint, 'approved')
+    if (!approved) {
+      skippedCount++
+      console.warn(`[Social CRON] Skipping post ${post.id}: exact-version founder approval required`)
+      continue
+    }
+
     // 3a. Update status to 'publishing'
     await supabase
       .from('social_posts')
       .update({ status: 'publishing', updated_at: new Date().toISOString() })
       .eq('id', post.id)
+      .eq('founder_id', post.founder_id)
 
     const platformPostIds: Record<string, string> = { ...post.platform_post_ids }
     const errors: string[] = []
@@ -155,6 +175,7 @@ export async function GET(request: Request) {
         updated_at: new Date().toISOString(),
       })
       .eq('id', post.id)
+      .eq('founder_id', post.founder_id)
 
     // 4. Update linked generated_content rows to 'published'
     if (finalStatus === 'published') {
@@ -165,6 +186,14 @@ export async function GET(request: Request) {
         .eq('founder_id', post.founder_id)
 
       publishedCount++
+
+      const now = new Date().toISOString()
+      await supabase
+        .from('approval_queue')
+        .update({ status: 'executed', executed_at: now, updated_at: now })
+        .eq('id', approved.id)
+        .eq('founder_id', post.founder_id)
+        .eq('status', 'approved')
     } else {
       failedCount++
     }
@@ -176,11 +205,12 @@ export async function GET(request: Request) {
   await notify({
     type: 'cron_complete',
     title: 'Social Publisher CRON',
-    body: `Published ${publishedCount}, failed ${failedCount} of ${scheduledPosts.length} scheduled posts (${durationMs}ms)`,
+    body: `Published ${publishedCount}, failed ${failedCount}, skipped ${skippedCount} of ${scheduledPosts.length} scheduled posts (${durationMs}ms)`,
     severity: failedCount > 0 ? 'warning' : 'info',
     metadata: {
       published: publishedCount,
       failed: failedCount,
+      skipped: skippedCount,
       total: scheduledPosts.length,
       duration_ms: durationMs,
     },
@@ -189,6 +219,7 @@ export async function GET(request: Request) {
   return NextResponse.json({
     published: publishedCount,
     failed: failedCount,
+    skipped: skippedCount,
     total: scheduledPosts.length,
     duration_ms: durationMs,
   })

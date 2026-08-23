@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 
 export interface BrandProfileOption {
   id: string;
-  organizationId: string;
   clientName: string;
   websiteUrl: string | null;
   industry: string | null;
@@ -13,7 +12,6 @@ export interface BrandProfileOption {
 
 interface BrandProfileApiRow {
   id: string;
-  organization_id: string;
   client_name: string;
   website_url: string | null;
   industry: string | null;
@@ -35,7 +33,6 @@ type LoadState = "loading" | "ready" | "empty" | "error";
 function mapProfile(row: BrandProfileApiRow): BrandProfileOption {
   return {
     id: row.id,
-    organizationId: row.organization_id,
     clientName: row.client_name,
     websiteUrl: row.website_url,
     industry: row.industry,
@@ -91,8 +88,8 @@ export function BrandProfileSelector({
             Select Brand
           </h2>
           <p className="text-[12px] text-[#5f5f66]">
-            Choose the active child organisation this campaign should use. The
-            selected organisation will be saved on the draft campaign.
+            Choose the brand identity Synthex should use. Its business key keeps
+            channels, content and reporting separate.
           </p>
         </div>
         <button

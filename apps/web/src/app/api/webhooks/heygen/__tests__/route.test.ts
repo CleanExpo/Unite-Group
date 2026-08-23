@@ -41,8 +41,12 @@ function sign(body: string): string {
 
 function req(body: object, opts: { signed?: boolean } = { signed: true }) {
   const raw = JSON.stringify(body)
-  const headers: Record<string, string> = { 'content-type': 'application/json' }
-  if (opts.signed) headers['x-heygen-signature'] = sign(raw)
+  const headers: Record<string, string> = {
+    'content-type': 'application/json',
+    'heygen-timestamp': String(Math.floor(Date.now() / 1000)),
+    'heygen-event-id': 'evt-test-1',
+  }
+  if (opts.signed) headers['heygen-signature'] = sign(raw)
   return new NextRequest('https://app.test/api/webhooks/heygen', {
     method: 'POST',
     headers,
@@ -69,10 +73,28 @@ describe('POST /api/webhooks/heygen', () => {
     const res = await POST(
       new NextRequest('https://app.test/api/webhooks/heygen', {
         method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-heygen-signature': 'deadbeef'.repeat(8) },
+        headers: {
+          'content-type': 'application/json',
+          'heygen-signature': 'deadbeef'.repeat(8),
+          'heygen-timestamp': String(Math.floor(Date.now() / 1000)),
+        },
         body: raw,
       })
     )
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 401 for a replayed delivery with a stale timestamp', async () => {
+    const raw = JSON.stringify({ video_id: 'vid-1', status: 'completed' })
+    const res = await POST(new NextRequest('https://app.test/api/webhooks/heygen', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'heygen-signature': sign(raw),
+        'heygen-timestamp': String(Math.floor(Date.now() / 1000) - 301),
+      },
+      body: raw,
+    }))
     expect(res.status).toBe(401)
   })
 
@@ -83,7 +105,10 @@ describe('POST /api/webhooks/heygen', () => {
 
   it('returns 200 with matched:false when no job found', async () => {
     mockJobResult = { data: null }
-    const res = await POST(req({ video_id: 'vid-1', status: 'completed', url: 'https://cdn.example.com/vid.mp4' }))
+    const res = await POST(req({
+      event_type: 'avatar_video.success',
+      event_data: { video_id: 'vid-1', url: 'https://cdn.example.com/vid.mp4' },
+    }))
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.received).toBe(true)
