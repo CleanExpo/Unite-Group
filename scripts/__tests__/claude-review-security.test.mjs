@@ -220,9 +220,32 @@ test('every reachable Claude step grants exactly the permitted tools', () => {
   for (const { step, trail } of allReachableClaudeSteps()) {
     const granted = allowedToolsFrom((step.with ?? {}).claude_args)
 
-    // A step declaring no tools inherits the action's defaults — that is the
-    // @claude-mention workflow's shape. Only declared grants are policed here.
-    if (granted.length === 0) continue
+    // A step declaring NO tools does not inherit something harmless. At the
+    // pinned SHA, create-prompt/index.ts starts from
+    // BASE_ALLOWED_TOOLS = ["Glob","Grep","LS","Read"] and then pushes
+    // "Bash(git add:*)", "Bash(git commit:*)", "Bash(git rm:*)" and the push
+    // wrapper. So an undeclared step inherits WRITE capability.
+    //
+    // An earlier version of this guard skipped such steps, reasoning they
+    // "inherit the defaults" — which was true and precisely the problem. The
+    // review workflow must declare its tools explicitly; the @claude-mention
+    // workflow is allowed to omit them because it is gated on a human writing
+    // @claude rather than on arbitrary PR content, so it is exempted BY NAME
+    // rather than by the shape of its configuration.
+    const MENTION_GATED = ['claude.yml']
+    const fromMentionWorkflow = trail.some((t) =>
+      MENTION_GATED.some((name) => t.endsWith(name)))
+
+    if (granted.length === 0) {
+      assert.ok(
+        fromMentionWorkflow,
+        `reachable via ${trail.join(' -> ')}: this step declares no claude_args ` +
+          `tools, so at the pinned SHA it inherits git add/commit/rm and the push ` +
+          `wrapper. A job that ingests attacker-controlled diff text must declare ` +
+          `its tool set explicitly.`,
+      )
+      continue
+    }
 
     const unexpected = granted.filter((t) => !REQUIRED_TOOLS.includes(t))
     const missing = REQUIRED_TOOLS.filter((t) => !granted.includes(t))
