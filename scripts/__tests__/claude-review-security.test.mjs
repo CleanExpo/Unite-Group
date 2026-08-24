@@ -90,7 +90,30 @@ function parseYaml(path) {
  * existing combination.
  */
 export function matrixJobCount(matrix) {
-  if (!matrix || typeof matrix !== 'object') return 1
+  if (!matrix) return 1
+
+  // FAIL CLOSED on a matrix this parser cannot evaluate.
+  //
+  // Round 7, P0: `matrix: ${{ fromJSON('{"shard":[1,2]}') }}` expands to two
+  // jobs at run time, but YAML parses it as a STRING, so the old
+  // `typeof matrix !== 'object'` branch returned 1 and the exactly-once
+  // assertion passed while the repo-scoped reviewer ran twice. The expression is
+  // only resolvable by GitHub, so guessing is not available — and returning 1 is
+  // the guess that happens to be safe-looking and wrong. Infinity makes any
+  // reachable Claude step under it fail the count, which is the correct default
+  // for a value that could be anything.
+  if (typeof matrix === 'string') {
+    return matrix.includes('${{') ? Number.POSITIVE_INFINITY : 1
+  }
+  if (typeof matrix !== 'object') return 1
+
+  // The same hazard one level down: an axis whose VALUE is an expression.
+  for (const [key, value] of Object.entries(matrix)) {
+    if (typeof value === 'string' && value.includes('${{')) {
+      void key
+      return Number.POSITIVE_INFINITY
+    }
+  }
 
   const axes = Object.entries(matrix).filter(([k]) => k !== 'include' && k !== 'exclude')
   const include = Array.isArray(matrix.include) ? matrix.include : []
@@ -187,13 +210,21 @@ export function allowedToolsFrom(claudeArgs) {
     }
   }
 
+  // NO `--flag=value` HANDLING, deliberately.
+  //
+  // Round 7, P0, and this one is my error in the opposite direction: I taught
+  // the parser a spelling the production action does not accept, and then wrote
+  // a mutation case asserting the spelling works. At the pinned SHA,
+  // src/modes/agent/parse-tools.ts strips the leading `--` and compares the
+  // WHOLE remaining token against "allowedTools"/"allowed-tools", so
+  // `--allowedTools=x` is not a flag at all — it is ignored, no tools are
+  // granted, and the inline-comment MCP server never installs. Accepting it here
+  // meant the guard would certify a workflow whose reviewer is silently
+  // disarmed. A guard must model the parser that actually runs, not a more
+  // generous one; being lenient about input is a virtue in a parser and a defect
+  // in a checker.
   for (let i = 0; i < tokens.length; i += 1) {
     const token = tokens[i]
-    const eq = token.indexOf('=')
-    if (eq > 0 && ALLOWED_TOOLS_FLAGS.has(token.slice(0, eq))) {
-      push(token.slice(eq + 1))
-      continue
-    }
     if (!ALLOWED_TOOLS_FLAGS.has(token)) continue
     // The action consumes every following value until the next flag.
     for (let j = i + 1; j < tokens.length && !tokens[j].startsWith('--'); j += 1) {
@@ -359,15 +390,114 @@ function splitTopLevel(text, operator) {
 const HUMAN_TEXT =
   /^github\.event\.(comment\.body|review\.body|issue\.body|issue\.title|pull_request\.body|pull_request\.title)$/
 
-function requiresMention(branch) {
-  for (const m of branch.matchAll(/(!?)\s*contains\s*\(\s*([^,]+?)\s*,\s*([^)]+?)\s*\)/g)) {
-    const [, negated, haystack, needle] = m
-    if (negated) continue   // `!contains(...)` requires the mention to be ABSENT
+/**
+ * Constructs that turn a mention check into something other than "the mention
+ * must be present". Round 7 planted every one of these and the guard passed 6/6:
+ *
+ *   !(contains(...))              — requires the mention to be ABSENT
+ *   contains(...) == false        — same, spelled as a comparison
+ *   case(contains(...), false, …) — GitHub's boolean-returning form, inverted
+ *   ((tautology) || (real))       — redundant parentheses hid the tautology from
+ *                                   a top-level `||` split
+ *
+ * Rather than enumerate inversions — the losing game this session keeps
+ * relearning — the branch is rejected unless its mention check appears in a
+ * plainly positive position: no negation, no comparison operator, no wrapping
+ * function call. Anything cleverer than that is refused rather than analysed.
+ */
+/**
+ * Is this contains() call in a plainly positive position?
+ *
+ * Only what is IMMEDIATELY adjacent counts. My first attempt scanned a 24-char
+ * window, which swallowed the `==` in `github.event_name == 'issue_comment' &&
+ * contains(...)` and rejected the real workflow — a guard that fails on correct
+ * config gets deleted, so over-rejection is a defect too, not merely caution.
+ */
+function positivePosition(text, start, end) {
+  const before = text.slice(0, start).replace(/\s+$/, '')
+  const after = text.slice(end).replace(/^\s+/, '')
+
+  // Checked BEFORE unwrapping, because the call name is what sits adjacent.
+  if (/\b(case|fromJSON|not)\s*\($/.test(before)) return false
+
+  // `!(contains(...))` puts the negation one grouping level out, so open parens
+  // are stripped before looking for it. Without this the `!` hid behind the `(`
+  // and the guard accepted an inverted gate — which is the same class of near
+  // miss as the 24-char window that rejected the real workflow: adjacency has to
+  // be judged through grouping, not around it.
+  const unwrapped = before.replace(/[(\s]+$/, '')
+
+  if (unwrapped.endsWith('!')) return false                 // !contains / !(contains
+  if (/(==|!=|<>)$/.test(unwrapped)) return false           // false == contains(...)
+  if (/^(==|!=|<>)/.test(after)) return false               // contains(...) == false
+  return true
+}
+
+function requiresMention(branch, context = branch) {
+  // Strip redundant grouping so `((A) || (B))` splits the same as `A || B`.
+  let text = branch.trim()
+  while (/^\((.*)\)$/s.test(text) && balanced(text.slice(1, -1))) {
+    text = text.slice(1, -1).trim()
+  }
+
+  // A branch that still contains a top-level `||` after unwrapping is itself a
+  // disjunction — recurse, requiring EVERY sub-branch. `context` carries the
+  // ENCLOSING text so the event binding is still visible: the real workflow
+  // writes `github.event_name == 'issues' && (contains(issue.body) ||
+  // contains(issue.title))`, where the binding sits outside the inner `||`.
+  const sub = splitTopLevel(text, '||')
+  if (sub.length > 1) return sub.every((s) => requiresMention(s, context))
+
+  for (const m of text.matchAll(/contains\s*\(\s*([^,]+?)\s*,\s*([^)]+?)\s*\)/g)) {
+    const [whole, haystack, needle] = m
     const subject = haystack.trim()
     const literal = needle.trim().replace(/^['"]|['"]$/g, '')
-    if (HUMAN_TEXT.test(subject) && literal === '@claude') return true
+    if (!HUMAN_TEXT.test(subject) || literal !== '@claude') continue
+    if (!positivePosition(text, m.index, m.index + whole.length)) continue
+    // The field must belong to the event that actually triggered the run.
+    if (!eventBindingHolds(context, subject)) continue
+    return true
   }
   return false
+}
+
+function balanced(s) {
+  let depth = 0
+  for (const ch of s) {
+    if (ch === '(') depth += 1
+    if (ch === ')') depth -= 1
+    if (depth < 0) return false
+  }
+  return depth === 0
+}
+
+/**
+ * Which event does each mention field belong to?
+ *
+ * Round 7, P0: HUMAN_TEXT was not tied to the event. claude.yml triggers on
+ * `issues: [opened, assigned]`, and the condition accepts an @claude in
+ * issue.title/body — text written by whoever OPENED the issue. Assigning that
+ * issue later re-triggers the workflow and the stale mention still satisfies the
+ * gate, so the run is caused by someone who never asked for it. Reducing the
+ * real trigger to assigned-only still passed 6/6, and my own positive assertion
+ * blessed issue.title in isolation.
+ *
+ * A branch is only bound when it pins github.event_name alongside the field, so
+ * the text being read is the text the triggering event carried.
+ */
+const FIELD_EVENTS = {
+  'github.event.comment.body': ['issue_comment', 'pull_request_review_comment'],
+  'github.event.review.body': ['pull_request_review'],
+  'github.event.issue.body': ['issues'],
+  'github.event.issue.title': ['issues'],
+  'github.event.pull_request.body': ['pull_request', 'pull_request_target'],
+  'github.event.pull_request.title': ['pull_request', 'pull_request_target'],
+}
+
+function eventBindingHolds(branch, field) {
+  const events = FIELD_EVENTS[field] ?? []
+  return events.some((e) =>
+    new RegExp(`github\\.event_name\\s*==\\s*['"]${e}['"]`).test(branch))
 }
 
 /**
@@ -424,10 +554,46 @@ test('mentionGate rejects a tautological gate and accepts a real one', () => {
   assert.equal(mentionGate('').gated, false)
   assert.equal(mentionGate("${{ github.actor == 'phill' }}").gated, false)
 
-  // Positive control: the shape the real workflow uses must still pass, or this
-  // check is just a way of failing everything.
-  assert.equal(mentionGate("contains(github.event.comment.body, '@claude')").gated, true)
-  assert.equal(mentionGate("contains(github.event.issue.title, '@claude')").gated, true)
+  // ROUND 7, P0 — these two used to assert `true`, and that was variant (a)
+  // again: a bare field with no event binding, blessed as a gate. claude.yml
+  // triggers on `issues: [opened, assigned]`, so an @claude written by whoever
+  // OPENED an issue still satisfies a title/body check when someone ELSE later
+  // assigns it. The run is then caused by a person who never asked for it, using
+  // stale text as consent. The field must be pinned to the event that carried it.
+  assert.equal(mentionGate("contains(github.event.comment.body, '@claude')").gated, false)
+  assert.equal(mentionGate("contains(github.event.issue.title, '@claude')").gated, false)
+
+  // Bound to the wrong event is equally no gate.
+  assert.equal(
+    mentionGate("github.event_name == 'issues' && contains(github.event.comment.body, '@claude')").gated,
+    false,
+  )
+
+  // Positive control: bound correctly, it passes — otherwise this check is just
+  // a way of failing everything.
+  assert.equal(
+    mentionGate("github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')").gated,
+    true,
+  )
+
+  // Round 7 inversions: grouping, negation, comparison and case() all defeated
+  // the previous version while it passed 6/6.
+  assert.equal(
+    mentionGate("((contains('@claude','@claude')) || (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')))").gated,
+    false,
+  )
+  assert.equal(
+    mentionGate("github.event_name == 'issue_comment' && !(contains(github.event.comment.body, '@claude'))").gated,
+    false,
+  )
+  assert.equal(
+    mentionGate("github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude') == false").gated,
+    false,
+  )
+  assert.equal(
+    mentionGate("github.event_name == 'issue_comment' && case(contains(github.event.comment.body, '@claude'), false, true)").gated,
+    false,
+  )
 
   // ROUND 6, P0 — and this assertion used to say `true`, with a comment claiming
   // "the real one is what governs". It does not. `A || B` with an always-true A

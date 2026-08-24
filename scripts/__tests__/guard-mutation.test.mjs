@@ -239,9 +239,23 @@ test('catches an UNQUOTED extra tool value', () => {
     s.replace('Bash(gh pr view:*)"', 'Bash(gh pr view:*)" --allowedTools Bash(gh-pr-comment:*)'), BECAUSE.extraTool)
 })
 
-test('catches an --allowedTools=value form', () => {
-  run('--allowedTools=value', (s) =>
-    s.replace('Bash(gh pr view:*)"', 'Bash(gh pr view:*)" --allowedTools="Bash(gh pr comment:*)"'), BECAUSE.extraTool)
+// Round 7, P0, and this case previously asserted the WRONG thing. I had taught
+// the parser that `--allowedTools=value` grants tools, and written this case to
+// confirm it. At the pinned SHA parse-tools.ts strips the leading `--` and
+// compares the whole remaining token against "allowedTools"/"allowed-tools", so
+// that form is not a flag at all: it grants NOTHING, the inline-comment MCP
+// server never installs, and the reviewer is silently disarmed.
+//
+// So the defect the `=` form represents is a MISSING required tool, not an extra
+// one — and the case now says so. Certifying a spelling the production parser
+// rejects is the same error as missing one it accepts, in the opposite
+// direction.
+test('catches the whole tool set written in the =form the action ignores', () => {
+  run('--allowedTools="<the three required tools>"', (s) =>
+    s.replace(
+      '--allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*)"',
+      '--allowedTools="mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*)"',
+    ), BECAUSE.undeclaredTools)
 })
 
 test('catches a SECOND consecutive value after one flag', () => {
@@ -422,8 +436,27 @@ test('the registration guard catches a flag hidden behind npm-run delegation', (
       status = typeof err.status === 'number' ? err.status : 1
     }
     assert.notEqual(status, 0, `the guard exited 0 under delegated evasion:\n${out.slice(0, 800)}`)
-    assert.match(out, /reaches test-selection flags/, `unexpected reason:\n${out.slice(0, 800)}`)
-    assert.match(out, /verify:guards-delegated/, 'the report must name WHERE the flag hides')
+    // The runtime check fires first now and reports what the process was
+    // actually launched with, which is the stronger of the two signals — the
+    // package.json scan is secondary and can be defeated by sh -c or by a
+    // pre-step that rewrites the file.
+    assert.match(out, /running under test-selection flags/, `unexpected reason:\n${out.slice(0, 800)}`)
+    assert.match(out, /--test-name-pattern/, 'the report must name the flag it found')
+
+    // And WITHOUT the filter applied, the secondary static scan must still name
+    // the delegated script — so a reviewer reading a clean local run is told
+    // where the flag hides, not merely that something is wrong.
+    let staticOut = ''
+    try {
+      staticOut = execFileSync('node', ['--test', '--test-reporter=tap', REG_GUARD], {
+        cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
+        env: { ...process.env, NODE_TEST_CONTEXT: undefined },
+      })
+    } catch (err) {
+      staticOut = String(err.stdout ?? '') + String(err.stderr ?? '')
+    }
+    assert.match(staticOut, /reaches test-selection flags/, `static scan did not fire:\n${staticOut.slice(0, 800)}`)
+    assert.match(staticOut, /verify:guards-delegated/, 'the static report must name WHERE the flag hides')
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }

@@ -197,15 +197,38 @@ export function selectionFlagsReachableFrom(scripts, name, seen = new Set()) {
   return found
 }
 
-;(function assertReadinessRunsUnfiltered() {
-  const scripts = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).scripts ?? {}
-  const offending = selectionFlagsReachableFrom(scripts, 'verify:readiness')
-  if (offending.length > 0) {
+;(function assertNotRunningFiltered() {
+  // THE AUTHORITATIVE CHECK: ask the runtime what it was actually given.
+  //
+  // Round 7 defeated every version of this that reasoned about package.json.
+  // `sh -c "node --test --test-name-pattern='a^' …"` collapses the inner command
+  // into one argv token that no script parser can see; and a pre-step that
+  // rewrites package.json back to the clean spelling before the already-expanded
+  // command runs means the file this check reads is not the command that ran.
+  // Both left 16 file wrappers passing with zero assertions and exit 0.
+  //
+  // Both attacks share a root: the file is a claim ABOUT the command, and the
+  // command is what matters. `process.execArgv` is the command — Node's own
+  // record of the options it was launched with, populated before any user code
+  // runs and unreachable by anything that edits a script. A filtered run cannot
+  // hide from it, because the filtering IS the thing being reported.
+  const runtimeFlags = process.execArgv.filter(isSelectionFlag)
+  if (runtimeFlags.length > 0) {
     throw new Error(
-      `verify:readiness reaches test-selection flags (${offending.join(', ')}). ` +
-        'These can skip every named guard while the command still exits 0, which ' +
-        'is indistinguishable from the guards passing. A guard runner filters ' +
-        'nothing: it runs everything or it is not the runner.',
+      `this guard is running under test-selection flags (${runtimeFlags.join(', ')}). ` +
+        'They can skip every named guard while the command still exits 0, which is ' +
+        'indistinguishable from the guards passing. A guard runner filters nothing: ' +
+        'it runs everything or it is not the runner.',
+    )
+  }
+
+  // Secondary, and kept only because it catches the mistake in review rather
+  // than at run time — it is NOT the boundary, for the reasons above.
+  const scripts = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).scripts ?? {}
+  const declared = selectionFlagsReachableFrom(scripts, 'verify:readiness')
+  if (declared.length > 0) {
+    throw new Error(
+      `verify:readiness reaches test-selection flags (${declared.join(', ')}).`,
     )
   }
 })()
