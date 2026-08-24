@@ -116,8 +116,20 @@ function write(dir, relPath, contents) {
   writeFileSync(path, contents)
 }
 
-/** Plant a mutant, run a guard, and require it to go red. */
-function expectCaught(name, plant, guardPath = GUARD) {
+/**
+ * Plant a mutant, run a guard, and require it to go red FOR THE RIGHT REASON.
+ *
+ * `reason` is not optional decoration. Review's challenge — a fair one I could
+ * not answer — was that "the suite reported 1 failed" is not evidence the
+ * intended control fired: a mutant that breaks YAML parsing, or trips an
+ * unrelated assertion, produces exactly the same count. Every case here now
+ * names the diagnostic its control emits, so a mutant caught by the wrong
+ * assertion fails this harness instead of passing it.
+ *
+ * A missing `reason` is itself a failure, so a case cannot be added without one.
+ */
+function expectCaught(name, plant, guardPath = GUARD, reason = null) {
+  assert.ok(reason instanceof RegExp, `case "${name}" was added without an expected failure reason`)
   const dir = sandbox()
   try {
     plant(dir)
@@ -135,14 +147,32 @@ function expectCaught(name, plant, guardPath = GUARD) {
       `the guard reported ${r.failed} failures but exited 0 under: ${name} — ` +
         `the parsed summary and the exit status disagree, so one of them is lying`,
     )
+    assert.match(
+      r.out, reason,
+      `the guard went red under "${name}" but NOT for the expected reason. ` +
+        `Going red is not the same as catching the defect — check whether the ` +
+        `mutant broke something incidental instead.\n${r.out.slice(0, 1200)}`,
+    )
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }
 }
 
 /** The old shorthand: mutate the review workflow's text. */
-function run(name, transform) {
-  expectCaught(name, (dir) => edit(dir, REVIEW_WF, transform))
+function run(name, transform, reason) {
+  expectCaught(name, (dir) => edit(dir, REVIEW_WF, transform), GUARD, reason)
+}
+
+// The diagnostics each policy assertion emits, so a case names the control it
+// expects rather than a substring someone has to keep in their head.
+const BECAUSE = {
+  trackProgress: /track_progress forces tag mode/,
+  extraTool: /any tool beyond the permitted set/,
+  missingTool: /cannot fulfil its reporting/,
+  unpinned: /unpinned Claude action/,
+  invocationCount: /expected one effective Claude invocation/,
+  undeclaredTools: /this step declares no claude_args/,
+  notExecuted: /not EXECUTED by any npm script/,
 }
 
 test('the sandbox itself is clean (positive control)', () => {
@@ -177,23 +207,23 @@ test('the registration guard is clean on the real package.json (positive control
 test('catches an unquoted track_progress', () => {
   run('track_progress: true', (s) =>
     s.replace('          claude_code_oauth_token:',
-              '          track_progress: true\n          claude_code_oauth_token:'))
+              '          track_progress: true\n          claude_code_oauth_token:'), BECAUSE.trackProgress)
 })
 
 test('catches a QUOTED track_progress key', () => {
   run('"track_progress": true', (s) =>
     s.replace('          claude_code_oauth_token:',
-              '          "track_progress": true\n          claude_code_oauth_token:'))
+              '          "track_progress": true\n          claude_code_oauth_token:'), BECAUSE.trackProgress)
 })
 
 test('catches a second --allowedTools flag', () => {
   run('accumulated allowedTools', (s) =>
-    s.replace('Bash(gh pr view:*)"', 'Bash(gh pr view:*)" --allowedTools "Bash(gh pr comment:*)"'))
+    s.replace('Bash(gh pr view:*)"', 'Bash(gh pr view:*)" --allowedTools "Bash(gh pr comment:*)"'), BECAUSE.extraTool)
 })
 
 test('catches the kebab-case --allowed-tools spelling', () => {
   run('--allowed-tools', (s) =>
-    s.replace('Bash(gh pr view:*)"', 'Bash(gh pr view:*)" --allowed-tools "Bash(gh pr comment:*)"'))
+    s.replace('Bash(gh pr view:*)"', 'Bash(gh pr view:*)" --allowed-tools "Bash(gh pr comment:*)"'), BECAUSE.extraTool)
 })
 
 // The pinned action tokenises claude_args with shell-quote, so a value may be
@@ -201,38 +231,38 @@ test('catches the kebab-case --allowed-tools spelling', () => {
 // double-quoted form granted every one of these silently.
 test('catches a SINGLE-quoted extra tool value', () => {
   run("single-quoted allowedTools", (s) =>
-    s.replace('Bash(gh pr view:*)"', 'Bash(gh pr view:*)" --allowedTools \'Bash(gh pr comment:*)\''))
+    s.replace('Bash(gh pr view:*)"', 'Bash(gh pr view:*)" --allowedTools \'Bash(gh pr comment:*)\''), BECAUSE.extraTool)
 })
 
 test('catches an UNQUOTED extra tool value', () => {
   run('bare allowedTools value', (s) =>
-    s.replace('Bash(gh pr view:*)"', 'Bash(gh pr view:*)" --allowedTools Bash(gh-pr-comment:*)'))
+    s.replace('Bash(gh pr view:*)"', 'Bash(gh pr view:*)" --allowedTools Bash(gh-pr-comment:*)'), BECAUSE.extraTool)
 })
 
 test('catches an --allowedTools=value form', () => {
   run('--allowedTools=value', (s) =>
-    s.replace('Bash(gh pr view:*)"', 'Bash(gh pr view:*)" --allowedTools="Bash(gh pr comment:*)"'))
+    s.replace('Bash(gh pr view:*)"', 'Bash(gh pr view:*)" --allowedTools="Bash(gh pr comment:*)"'), BECAUSE.extraTool)
 })
 
 test('catches a SECOND consecutive value after one flag', () => {
   run('two values, one flag', (s) =>
-    s.replace('Bash(gh pr view:*)"', 'Bash(gh pr view:*)" "Bash(gh pr comment:*)"'))
+    s.replace('Bash(gh pr view:*)"', 'Bash(gh pr view:*)" "Bash(gh pr comment:*)"'), BECAUSE.extraTool)
 })
 
 test('catches removal of the required inline-comment tool', () => {
   run('required tool removed', (s) =>
-    s.replace('mcp__github_inline_comment__create_inline_comment,', ''))
+    s.replace('mcp__github_inline_comment__create_inline_comment,', ''), BECAUSE.missingTool)
 })
 
 test('catches an unpinned action reference', () => {
   run('@v1 instead of a SHA', (s) =>
-    s.replace(/claude-code-action@[a-f0-9]{40}/, 'claude-code-action@v1'))
+    s.replace(/claude-code-action@[a-f0-9]{40}/, 'claude-code-action@v1'), BECAUSE.unpinned)
 })
 
 test('catches a matrix that doubles the invocation', () => {
   run('two-entry strategy.matrix', (s) =>
     s.replace('    runs-on: ubuntu-latest',
-              '    strategy:\n      matrix:\n        shard: [1, 2]\n    runs-on: ubuntu-latest'))
+              '    strategy:\n      matrix:\n        shard: [1, 2]\n    runs-on: ubuntu-latest'), BECAUSE.invocationCount)
 })
 
 // GitHub applies exclude entries by partial match. An exclusion naming a value
@@ -242,7 +272,7 @@ test('catches a matrix whose exclude entry matches nothing', () => {
   run('unmatched exclude still runs two jobs', (s) =>
     s.replace('    runs-on: ubuntu-latest',
               '    strategy:\n      matrix:\n        shard: [1, 2]\n' +
-              '        exclude:\n          - shard: 3\n    runs-on: ubuntu-latest'))
+              '        exclude:\n          - shard: 3\n    runs-on: ubuntu-latest'), BECAUSE.invocationCount)
 })
 
 // The mirror-image error: an include entry that merely adds a key to an
@@ -281,7 +311,7 @@ test('catches a review step that declares no tools at all', () => {
   // harness reported that rather than passing, which is the whole point of
   // asserting the mutation actually changed the file.
   run('claude_args removed entirely', (s) =>
-    s.replace('          claude_args: |', '          claude_args_removed: |'))
+    s.replace('          claude_args: |', '          claude_args_removed: |'), BECAUSE.undeclaredTools)
 })
 
 // Workflow execution is a MULTISET. One composite referenced twice from the
@@ -302,7 +332,7 @@ test('catches one composite referenced TWICE from the same workflow', () => {
       '    steps:\n' +
       '      - uses: ./.github/actions/review\n' +
       '      - uses: ./.github/actions/review\n')
-  })
+  }, GUARD, BECAUSE.invocationCount)
 })
 
 // The default-tools exemption must follow the GATE, not the filename. A second
@@ -319,7 +349,7 @@ test('catches an ungated write-capable job added to the mention workflow', () =>
       '      - uses: anthropics/claude-code-action@459ad358ae43fea66bfefd0a1f8d840b4b9791fb\n' +
       '        with:\n' +
       '          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}\n')
-  })
+  }, GUARD, BECAUSE.undeclaredTools)
 })
 
 // The registration control's own defect: it asked whether each filename appeared
@@ -341,7 +371,7 @@ test('the registration guard catches a guard demoted to an inert env value', () 
         pkg.scripts['verify:readiness']
       return JSON.stringify(pkg, null, 2)
     })
-  }, REG_GUARD)
+  }, REG_GUARD, BECAUSE.notExecuted)
 })
 
 // Round 5, P0: the mention-gate exemption checked only that the condition
@@ -360,7 +390,7 @@ test('catches an always-true mention gate on a write-capable default-tools job',
       '      - uses: anthropics/claude-code-action@459ad358ae43fea66bfefd0a1f8d840b4b9791fb\n' +
       '        with:\n' +
       '          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}\n')
-  })
+  }, GUARD, BECAUSE.undeclaredTools)
 })
 
 test('catches a mention gate pointed at a field no human authors', () => {
@@ -374,7 +404,7 @@ test('catches a mention gate pointed at a field no human authors', () => {
       '      - uses: anthropics/claude-code-action@459ad358ae43fea66bfefd0a1f8d840b4b9791fb\n' +
       '        with:\n' +
       '          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}\n')
-  })
+  }, GUARD, BECAUSE.undeclaredTools)
 })
 
 // Round 5, P0: `node --test --test-name-pattern='a^' <every guard>` exits 0 with
@@ -425,5 +455,5 @@ test('the registration guard catches a guard with no runner at all', () => {
       }
       return JSON.stringify(pkg, null, 2)
     })
-  }, REG_GUARD)
+  }, REG_GUARD, BECAUSE.notExecuted)
 })
