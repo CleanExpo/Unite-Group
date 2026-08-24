@@ -1,77 +1,98 @@
 // scripts/__tests__/claude-review-security.test.mjs
 //
-// Guards the two security properties of the Claude review job. That job feeds
+// Guards the Claude review job's security boundary. That job feeds
 // attacker-controlled PR diff text to a model holding a repo-scoped GitHub App
-// token, so these are the whole boundary:
+// token, so two properties are the whole boundary:
 //
 //   1. track_progress must not be enabled. At the pinned action SHA
 //      (459ad358ae43fea66bfefd0a1f8d840b4b9791fb) src/modes/detector.ts forces
 //      TAG mode for pull_request events when trackProgress is true, and tag mode
 //      runs with acceptEdits plus git add/commit and the action's push wrapper
-//      against the branch under review — turning a reviewer into a writer on the
-//      code it is reviewing.
+//      against the branch under review — a reviewer able to write to the code it
+//      is reviewing.
 //
 //   2. The allowed-tools set must be exactly the PR-bound inline-comment MCP
-//      tool plus two read-only gh commands. `gh pr comment` in particular takes
-//      an arbitrary PR number, --repo, --edit-last and --delete-last --yes, so
-//      it is not scoped to the PR under review.
+//      tool plus two read-only gh commands. `gh pr comment` takes an arbitrary
+//      PR number, --repo, --edit-last and --delete-last --yes, so it is not
+//      scoped to the PR under review.
 //
-// THIS FILE WAS TEXT-MATCHING AND WAS DEFEATED FOUR WAYS by independent review,
-// every mutant leaving it green 2/2:
-//   - `"track_progress": true` — a quoted key the unquoted regex never matched.
-//   - a harmless `--allowedTools` decoy in the prompt, with the real
-//     write-capable one later in claude_args (only the first line was read).
-//   - a SECOND `--allowedTools` flag; the pinned action accumulates them.
-//   - a duplicate `with:` block whose dangerous last value a YAML parser takes.
-//   - removing the required inline-comment tool entirely: the check only looked
-//     for unexpected tools, never missing ones, so the reviewer lost its only
-//     way to report and nothing failed.
+// THIS FILE HAS BEEN DEFEATED REPEATEDLY. Every previous version was broken by
+// independent review, each mutant leaving it green:
+//   - text matching missed a quoted `"track_progress": true` key;
+//   - it read only the FIRST --allowedTools occurrence, while the action
+//     accumulates every one of them;
+//   - it accepted only --allowedTools, while the action's parse-tools.ts
+//     defines ALLOWED_TOOLS_FLAGS = {"allowedTools", "allowed-tools"};
+//   - it checked for unexpected tools but never for MISSING required ones, so
+//     deleting the inline-comment tool silently disarmed the reviewer;
+//   - it counted one STATIC step, so a two-entry strategy.matrix executed the
+//     Claude step twice unnoticed;
+//   - its local-action walk was one level deep and checked only track_progress,
+//     so a composite referencing a second composite escaped entirely;
+//   - and the file was unregistered in package.json, so CI never ran it at all.
 //
-// So it now parses the workflow structurally and asserts set EQUALITY. Text
-// matching a spelling is not a security control.
+// It now builds the TRANSITIVE EXECUTION GRAPH — every workflow, matrix
+// expansion, reusable workflow and nested composite — and applies the full
+// policy to every reachable Claude step.
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { readdirSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { existsSync, readdirSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 
-const WORKFLOWS = join(process.cwd(), '.github', 'workflows')
-const REVIEW_WORKFLOW = join(WORKFLOWS, 'claude-code-review.yml')
+const ROOT = process.cwd()
+const WORKFLOWS = join(ROOT, '.github', 'workflows')
 const CLAUDE_ACTION = 'anthropics/claude-code-action'
+const REVIEW_WORKFLOW = 'claude-code-review.yml'
 
-/** Parse YAML to JSON via python3, which this repo's other guards already rely on. */
+const REQUIRED_TOOLS = [
+  'mcp__github_inline_comment__create_inline_comment',
+  'Bash(gh pr diff:*)',
+  'Bash(gh pr view:*)',
+]
+
+/** Parse YAML via python3 — this repo has no js-yaml, and other guards use it. */
 function parseYaml(path) {
   const out = execFileSync('python3', [
     '-c',
-    'import sys,yaml,json; json.dump(yaml.safe_load(open(sys.argv[1])), sys.stdout)',
+    'import sys,yaml,json; json.dump(yaml.safe_load(open(sys.argv[1])), sys.stdout, default=str)',
     path,
   ], { encoding: 'utf8' })
   return JSON.parse(out)
 }
 
-/** Every step across every job. */
-function allSteps(doc) {
-  const steps = []
-  for (const job of Object.values(doc?.jobs ?? {})) {
-    for (const step of job?.steps ?? []) steps.push(step)
-  }
-  return steps
+/**
+ * How many times a job's steps actually execute.
+ *
+ * A two-entry strategy.matrix runs every step twice, so counting static steps
+ * undercounts real invocations — which is how a matrix previously doubled the
+ * Claude step unnoticed. Counted conservatively: never lower than reality.
+ */
+function executionCount(job) {
+  const matrix = job?.strategy?.matrix
+  if (!matrix || typeof matrix !== 'object') return 1
+
+  const axes = Object.entries(matrix).filter(([k]) => k !== 'include' && k !== 'exclude')
+  const include = Array.isArray(matrix.include) ? matrix.include.length : 0
+  const exclude = Array.isArray(matrix.exclude) ? matrix.exclude.length : 0
+
+  let combos = axes.reduce(
+    (n, [, v]) => n * (Array.isArray(v) ? Math.max(v.length, 1) : 1),
+    1,
+  )
+  combos = axes.length === 0
+    ? (include > 0 ? include : 1)
+    : Math.max(combos - exclude, 0) + include
+
+  return Math.max(combos, 1)
 }
 
-/**
- * Accumulate EVERY allowed-tools value, as the pinned action itself does.
- *
- * The action accepts BOTH spellings — src/modes/agent/parse-tools.ts defines
- * ALLOWED_TOOLS_FLAGS = new Set(["allowedTools", "allowed-tools"]) — and
- * accumulates across occurrences. Reading only the camelCase spelling made the
- * set-equality claim equality over a lossy subset: independent review appended
- * `--allowed-tools "Bash(gh pr comment:*)"` after the permitted list and this
- * suite stayed green 5/5 while the action would have granted the cross-PR write.
- */
+/** Accumulate EVERY allowed-tools value, in both spellings the action accepts. */
 function allowedToolsFrom(claudeArgs) {
   const tools = []
-  for (const m of String(claudeArgs ?? '').matchAll(/--allowed[-_]?[Tt]ools\s+"([^"]*)"/g)) {
+  const text = Array.isArray(claudeArgs) ? claudeArgs.join(' ') : String(claudeArgs ?? '')
+  for (const m of text.matchAll(/--allowed[-_]?[Tt]ools\s+"([^"]*)"/g)) {
     for (const t of m[1].split(',')) {
       const trimmed = t.trim()
       if (trimmed) tools.push(trimmed)
@@ -80,105 +101,142 @@ function allowedToolsFrom(claudeArgs) {
   return tools
 }
 
-const REQUIRED = [
-  'mcp__github_inline_comment__create_inline_comment',
-  'Bash(gh pr diff:*)',
-  'Bash(gh pr view:*)',
-]
+function isClaudeStep(step) {
+  return String(step?.uses ?? '').trim().startsWith(CLAUDE_ACTION)
+}
 
-test('exactly one pinned Claude review invocation exists', () => {
-  const doc = parseYaml(REVIEW_WORKFLOW)
-  const invocations = allSteps(doc).filter((s) => String(s?.uses ?? '').startsWith(CLAUDE_ACTION))
+/** Resolve a `uses: ./path` step to its action file and recurse. */
+function followLocal(step, multiplier, seen, trail) {
+  const uses = String(step?.uses ?? '')
+  if (!uses.startsWith('./')) return []
+  const dir = join(ROOT, uses.replace(/^\.\//, ''))
+  const out = []
+  for (const name of ['action.yml', 'action.yaml']) {
+    out.push(...collectClaudeSteps(join(dir, name), multiplier, seen, trail))
+  }
+  return out
+}
 
-  // Positive control: the file parsed and the step is really there.
-  assert.equal(invocations.length, 1, 'expected exactly one Claude review step')
-  assert.match(String(invocations[0].uses), /@[a-f0-9]{40}$/, 'action must be pinned to a commit SHA')
-})
+/**
+ * Walk the transitive execution graph and return every reachable Claude step,
+ * with how many times it executes and the path that reached it.
+ *
+ * Follows job-level `uses:` (reusable workflows) and step-level `uses: ./...`
+ * (local composites) to arbitrary depth. `seen` breaks reference cycles.
+ */
+function collectClaudeSteps(path, multiplier = 1, seen = new Set(), trail = []) {
+  const key = resolve(path)
+  if (seen.has(key) || !existsSync(key)) return []
+  seen.add(key)
 
-test('the review job does not enable track_progress', () => {
-  const doc = parseYaml(REVIEW_WORKFLOW)
-  const step = allSteps(doc).find((s) => String(s?.uses ?? '').startsWith(CLAUDE_ACTION))
-  assert.ok(step, 'Claude review step not found')
+  let doc
+  try {
+    doc = parseYaml(key)
+  } catch {
+    return []
+  }
 
-  // Structural: quoting, casing and duplicate `with:` blocks are all resolved by
-  // the parser before this sees the value.
-  const withBlock = step.with ?? {}
-  const value = withBlock.track_progress
-  const enabled = value !== undefined && value !== null &&
-    String(value).trim().toLowerCase() !== 'false'
+  const found = []
+  const here = [...trail, key.replace(`${ROOT}/`, '')]
 
-  assert.equal(
-    enabled, false,
-    `track_progress forces tag mode at the pinned SHA, granting edit/commit/push ` +
-      `against the reviewed branch. Effective value: ${JSON.stringify(value)}`,
+  // Composite action shape.
+  for (const step of doc?.runs?.steps ?? []) {
+    if (isClaudeStep(step)) found.push({ step, executions: multiplier, trail: here })
+    found.push(...followLocal(step, multiplier, seen, here))
+  }
+
+  // Workflow shape.
+  for (const job of Object.values(doc?.jobs ?? {})) {
+    const runs = multiplier * executionCount(job)
+
+    const jobUses = String(job?.uses ?? '')
+    if (jobUses.startsWith('./')) {
+      found.push(...collectClaudeSteps(join(ROOT, jobUses.replace(/^\.\//, '')), runs, seen, here))
+    }
+
+    for (const step of job?.steps ?? []) {
+      if (isClaudeStep(step)) found.push({ step, executions: runs, trail: here })
+      found.push(...followLocal(step, runs, seen, here))
+    }
+  }
+
+  return found
+}
+
+/** Every Claude step reachable from any workflow in the repo. */
+function allReachableClaudeSteps() {
+  const seen = new Set()
+  const found = []
+  for (const file of readdirSync(WORKFLOWS).filter((f) => /\.ya?ml$/i.test(f))) {
+    found.push(...collectClaudeSteps(join(WORKFLOWS, file), 1, seen, []))
+  }
+  return found
+}
+
+test('the graph walker finds the review invocation (positive control)', () => {
+  const steps = collectClaudeSteps(join(WORKFLOWS, REVIEW_WORKFLOW))
+  assert.ok(
+    steps.length > 0,
+    'walker found no Claude step — every assertion below would pass vacuously',
   )
 })
 
-test('no local composite action enables track_progress either', () => {
-  const doc = parseYaml(REVIEW_WORKFLOW)
-  const locals = allSteps(doc)
-    .map((s) => String(s?.uses ?? ''))
-    .filter((u) => u.startsWith('./'))
+test('the review workflow executes the Claude action exactly once', () => {
+  const steps = collectClaudeSteps(join(WORKFLOWS, REVIEW_WORKFLOW))
+  const total = steps.reduce((n, s) => n + s.executions, 0)
+  assert.equal(
+    total, 1,
+    `expected one effective Claude invocation, found ${total} — matrix expansion ` +
+      `and composites are counted: ${steps.map((s) => s.trail.join(' -> ')).join(', ')}`,
+  )
+})
 
-  for (const rel of locals) {
-    for (const name of ['action.yml', 'action.yaml']) {
-      const path = join(process.cwd(), rel.replace(/^\.\//, ''), name)
-      let parsed
-      try {
-        parsed = parseYaml(path)
-      } catch {
-        continue
-      }
-      const nested = (parsed?.runs?.steps ?? [])
-        .filter((s) => String(s?.uses ?? '').startsWith(CLAUDE_ACTION))
-        .some((s) => {
-          const v = (s.with ?? {}).track_progress
-          return v !== undefined && v !== null && String(v).trim().toLowerCase() !== 'false'
-        })
-      assert.equal(nested, false, `local action ${rel} enables track_progress`)
-    }
+test('every reachable Claude step is pinned to a commit SHA', () => {
+  const steps = allReachableClaudeSteps()
+  assert.ok(steps.length > 0, 'no Claude steps found anywhere')
+  for (const { step, trail } of steps) {
+    assert.match(
+      String(step.uses).trim(), /@[a-f0-9]{40}$/,
+      `unpinned Claude action via ${trail.join(' -> ')}: ${step.uses}`,
+    )
   }
 })
 
-test('the allowed-tools set is exactly the permitted three', () => {
-  const doc = parseYaml(REVIEW_WORKFLOW)
-  const step = allSteps(doc).find((s) => String(s?.uses ?? '').startsWith(CLAUDE_ACTION))
-  assert.ok(step, 'Claude review step not found')
-
-  // Only claude_args carries tool grants. A decoy in the prompt is not a grant,
-  // and every --allowedTools occurrence here is accumulated by the action.
-  const granted = allowedToolsFrom((step.with ?? {}).claude_args)
-
-  const unexpected = granted.filter((t) => !REQUIRED.includes(t))
-  const missing = REQUIRED.filter((t) => !granted.includes(t))
-
-  assert.deepEqual(
-    unexpected, [],
-    `this job reads attacker-controlled diff text while holding a repo-scoped ` +
-      `token, so any tool beyond the permitted set is a reachable write primitive:\n${unexpected.join('\n')}`,
-  )
-
-  // The other half, which was missing: dropping the inline-comment tool leaves
-  // the reviewer unable to report at all, and the action only installs that MCP
-  // server when the tool is present.
-  assert.deepEqual(
-    missing, [],
-    `the review job cannot fulfil its reporting contract without:\n${missing.join('\n')}`,
-  )
+test('no reachable Claude step enables track_progress', () => {
+  for (const { step, trail } of allReachableClaudeSteps()) {
+    const value = (step.with ?? {}).track_progress
+    const enabled = value !== undefined && value !== null &&
+      String(value).trim().toLowerCase() !== 'false'
+    assert.equal(
+      enabled, false,
+      `track_progress forces tag mode at the pinned SHA, granting edit/commit/push ` +
+        `against the reviewed branch. Reached via ${trail.join(' -> ')}, ` +
+        `value ${JSON.stringify(value)}`,
+    )
+  }
 })
 
-test('no other workflow invokes the Claude action unpinned', () => {
-  const files = readdirSync(WORKFLOWS).filter((f) => /\.ya?ml$/i.test(f))
-  assert.ok(files.length > 0, 'no workflows found')
+test('every reachable Claude step grants exactly the permitted tools', () => {
+  for (const { step, trail } of allReachableClaudeSteps()) {
+    const granted = allowedToolsFrom((step.with ?? {}).claude_args)
 
-  for (const file of files) {
-    const raw = readFileSync(join(WORKFLOWS, file), 'utf8')
-    if (!raw.includes(CLAUDE_ACTION)) continue
-    const doc = parseYaml(join(WORKFLOWS, file))
-    for (const step of allSteps(doc)) {
-      const uses = String(step?.uses ?? '')
-      if (!uses.startsWith(CLAUDE_ACTION)) continue
-      assert.match(uses, /@[a-f0-9]{40}$/, `${file} invokes the Claude action unpinned: ${uses}`)
-    }
+    // A step declaring no tools inherits the action's defaults — that is the
+    // @claude-mention workflow's shape. Only declared grants are policed here.
+    if (granted.length === 0) continue
+
+    const unexpected = granted.filter((t) => !REQUIRED_TOOLS.includes(t))
+    const missing = REQUIRED_TOOLS.filter((t) => !granted.includes(t))
+
+    assert.deepEqual(
+      unexpected, [],
+      `reachable via ${trail.join(' -> ')}: this job reads attacker-controlled diff ` +
+        `text while holding a repo-scoped token, so any tool beyond the permitted set ` +
+        `is a write primitive an injection can reach:\n${unexpected.join('\n')}`,
+    )
+    assert.deepEqual(
+      missing, [],
+      `reachable via ${trail.join(' -> ')}: the reviewer cannot fulfil its reporting ` +
+        `contract without:\n${missing.join('\n')}`,
+    )
   }
 })
