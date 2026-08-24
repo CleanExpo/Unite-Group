@@ -93,12 +93,41 @@ export function executedTestFiles(scripts, name, seen = new Set()) {
     if (argv[i] !== 'node') continue
     const rest = argv.slice(i + 1)
     if (!rest.includes('--test')) continue
+
+    // Being PASSED to `node --test` is not the same as being RUN by it.
+    //
+    // Round 5: `node --test --test-name-pattern='a^' <both guards>` exits
+    // successfully with every test skipped, and the previous parser registered
+    // both files — so the readiness command stays green while its guards execute
+    // no assertions. That is the orphaned-guard defect wearing a different hat.
+    //
+    // Rather than reasoning about which patterns match nothing (undecidable in
+    // general, and `a^` is only the most obvious of them), any test-SELECTION
+    // flag disqualifies the invocation. A guard runner has no legitimate reason
+    // to filter: it runs everything or it is not the runner.
+    if (rest.some(isSelectionFlag)) continue
+
     for (const arg of rest) {
       if (arg.startsWith('-')) continue
       if (arg.endsWith('.test.mjs')) executed.add(basename(arg))
     }
   }
   return executed
+}
+
+/**
+ * Node test-runner flags that can stop a named file's tests from running while
+ * the command still exits 0.
+ */
+const SELECTION_FLAGS = [
+  '--test-name-pattern',
+  '--test-skip-pattern',
+  '--test-only',
+  '--test-shard',
+]
+
+export function isSelectionFlag(arg) {
+  return SELECTION_FLAGS.some((f) => arg === f || arg.startsWith(`${f}=`))
 }
 
 /** Every test file executed by any script in package.json. */
@@ -128,6 +157,64 @@ test('the argv parser finds the readiness guards (positive control)', () => {
     `parser extracted ${executed.size} executed files from verify:readiness and ` +
       `the security guard was not among them: ${[...executed].join(', ')}`,
   )
+})
+
+// ── Runs at MODULE TOP LEVEL, deliberately outside any test() ────────────────
+//
+// Round 5's evasion has a nasty property the finding did not spell out and I
+// only saw by running it: `node --test --test-name-pattern='a^' <every guard>`
+// neutralises the guard that would catch the flag. Planted, the readiness gate
+// reported `tests 16, pass 16, fail 0`, exit 0 — sixteen files loaded, every
+// assertion inside them filtered away. A check written as a test() cannot catch
+// a flag whose whole effect is to skip test()s.
+//
+// `--test-name-pattern` filters by test NAME; it does not stop the module being
+// imported. So this check runs on import, and a throw here fails the file no
+// matter what selection flags are in play.
+;(function assertReadinessRunsUnfiltered() {
+  const scripts = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).scripts ?? {}
+  const readiness = String(scripts['verify:readiness'] ?? '')
+  const offending = tokenize(readiness).filter(isSelectionFlag)
+  if (offending.length > 0) {
+    throw new Error(
+      `verify:readiness carries test-selection flags (${offending.join(', ')}). ` +
+        'These can skip every named guard while the command still exits 0, which ' +
+        'is indistinguishable from the guards passing. A guard runner filters ' +
+        'nothing: it runs everything or it is not the runner.',
+    )
+  }
+})()
+
+test('a filtered node --test invocation does not count as executing anything', () => {
+  // Round 5's exact evasion. Both files are named on the command line and the
+  // command exits 0, but `a^` matches no test name so nothing runs.
+  const filtered = {
+    'verify:readiness':
+      "node --test --test-name-pattern='a^' scripts/__tests__/claude-review-security.test.mjs " +
+      'scripts/__tests__/guard-registration.test.mjs',
+  }
+  assert.deepEqual(
+    [...executedTestFiles(filtered, 'verify:readiness')], [],
+    'a test-selection flag can skip every named file while the command still ' +
+      'exits 0, so being passed to node --test is not evidence of being run',
+  )
+
+  // Positive control: the same command without the flag DOES count, so the
+  // rejection above is the flag and not a parser that fails on everything.
+  const unfiltered = {
+    'verify:readiness':
+      'node --test scripts/__tests__/claude-review-security.test.mjs ' +
+      'scripts/__tests__/guard-registration.test.mjs',
+  }
+  assert.equal(executedTestFiles(unfiltered, 'verify:readiness').size, 2)
+
+  for (const flag of ['--test-skip-pattern=.', '--test-only', '--test-shard=1/2']) {
+    const variant = { s: `node --test ${flag} scripts/__tests__/claude-review-security.test.mjs` }
+    assert.deepEqual(
+      [...executedTestFiles(variant, 's')], [],
+      `${flag} can prevent the named file's tests from running`,
+    )
+  }
 })
 
 test('every guard file is executed by at least one npm script', () => {

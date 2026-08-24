@@ -344,6 +344,77 @@ test('the registration guard catches a guard demoted to an inert env value', () 
   }, REG_GUARD)
 })
 
+// Round 5, P0: the mention-gate exemption checked only that the condition
+// lexically contained `contains(` and `@claude`. A tautology satisfies that
+// while the job runs on every triggering event, and the undeclared-tools step
+// inside it inherits git add/commit/rm and the push wrapper. Planted against the
+// real gate it passed 439/439, exit 0.
+test('catches an always-true mention gate on a write-capable default-tools job', () => {
+  expectCaught('tautological if: contains(\'@claude\', \'@claude\')', (dir) => {
+    edit(dir, MENTION_WF, (s) => `${s.trimEnd()}\n` +
+      '  unattended:\n' +
+      "    if: ${{ contains('@claude', '@claude') }}\n" +
+      '    runs-on: ubuntu-latest\n' +
+      '    permissions:\n      contents: read\n' +
+      '    steps:\n' +
+      '      - uses: anthropics/claude-code-action@459ad358ae43fea66bfefd0a1f8d840b4b9791fb\n' +
+      '        with:\n' +
+      '          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}\n')
+  })
+})
+
+test('catches a mention gate pointed at a field no human authors', () => {
+  expectCaught('if: contains(github.event.repository.name, \'@claude\')', (dir) => {
+    edit(dir, MENTION_WF, (s) => `${s.trimEnd()}\n` +
+      '  unattended:\n' +
+      "    if: ${{ contains(github.event.repository.name, '@claude') }}\n" +
+      '    runs-on: ubuntu-latest\n' +
+      '    permissions:\n      contents: read\n' +
+      '    steps:\n' +
+      '      - uses: anthropics/claude-code-action@459ad358ae43fea66bfefd0a1f8d840b4b9791fb\n' +
+      '        with:\n' +
+      '          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}\n')
+  })
+})
+
+// Round 5, P0: `node --test --test-name-pattern='a^' <every guard>` exits 0 with
+// every assertion filtered away — the readiness gate reported tests 16, pass 16,
+// fail 0. The check that catches it lives at guard-registration's MODULE TOP
+// LEVEL precisely because a test() cannot catch a flag that skips test()s, and
+// this case proves that placement works: the mutant is planted, the reporter is
+// name-filtered, and the file still fails.
+test('the registration guard catches a neutralising --test-name-pattern', () => {
+  const dir = sandbox()
+  try {
+    edit(dir, 'package.json', (s) => {
+      const pkg = JSON.parse(s)
+      pkg.scripts['verify:readiness'] = pkg.scripts['verify:readiness']
+        .replace('node --test ', "node --test --test-name-pattern='a^' ")
+      return JSON.stringify(pkg, null, 2)
+    })
+    // Run the guard under the SAME filter the mutant installs, so this proves
+    // detection survives the evasion rather than merely detecting it in the
+    // clear.
+    let out = ''
+    let status = 0
+    try {
+      out = execFileSync(
+        'node',
+        ['--test', '--test-reporter=tap', '--test-name-pattern=a^', REG_GUARD],
+        { cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
+          env: { ...process.env, NODE_TEST_CONTEXT: undefined } },
+      )
+    } catch (err) {
+      out = String(err.stdout ?? '') + String(err.stderr ?? '')
+      status = typeof err.status === 'number' ? err.status : 1
+    }
+    assert.notEqual(status, 0, `the guard exited 0 under its own evasion:\n${out.slice(0, 800)}`)
+    assert.match(out, /test-selection flags/, `unexpected failure reason:\n${out.slice(0, 800)}`)
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
 test('the registration guard catches a guard with no runner at all', () => {
   expectCaught('guard removed from every script', (dir) => {
     edit(dir, 'package.json', (s) => {

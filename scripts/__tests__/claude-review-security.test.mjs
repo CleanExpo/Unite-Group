@@ -281,6 +281,56 @@ function allReachableClaudeSteps() {
 }
 
 /**
+ * Does this `if:` condition actually make a human mention control execution?
+ *
+ * Round 5 broke the previous version, which asked only whether the condition
+ * lexically contained `contains(` and `@claude`. That is satisfied by
+ * `if: ${{ contains('@claude', '@claude') }}` — a tautology. A job carrying it
+ * runs on every triggering event while reading as mention-gated, and an
+ * undeclared-tools step inside it inherits the action's git add/commit/rm and
+ * push wrapper. Planted, the readiness gate passed 439/439, exit 0.
+ *
+ * The property that actually matters is not "the text @claude appears" but
+ * "execution depends on attacker-visible-but-human-authored event text". So the
+ * FIRST argument of the contains() call must be a `github.event.*` reference —
+ * the body or title a person typed — and the second must be the literal
+ * '@claude'. Two literals is a tautology; a `github.event.*` needle with a
+ * literal haystack is backwards and equally inert.
+ */
+export function mentionGate(condition) {
+  const text = String(condition ?? '')
+  if (!text.trim()) return { gated: false, reason: 'has no `if:` condition at all' }
+
+  const calls = [...text.matchAll(/contains\s*\(\s*([^,]+?)\s*,\s*([^)]+?)\s*\)/g)]
+  if (calls.length === 0) {
+    return { gated: false, reason: 'has no contains() call in its `if:` condition' }
+  }
+
+  // Fields a human writes. `github.event.repository.name` and friends are NOT
+  // here on purpose: they are attacker-influenceable or constant, not authored
+  // by the person requesting the run.
+  const HUMAN_TEXT = /^github\.event\.(comment\.body|review\.body|issue\.body|issue\.title|pull_request\.body|pull_request\.title)$/
+
+  const real = calls.filter(([, haystack, needle]) => {
+    const subject = haystack.trim()
+    const literal = needle.trim().replace(/^['"]|['"]$/g, '')
+    return HUMAN_TEXT.test(subject) && literal === '@claude'
+  })
+
+  if (real.length === 0) {
+    return {
+      gated: false,
+      reason:
+        'has a contains() that does not test human-authored event text against ' +
+        "'@claude' — a tautology such as contains('@claude', '@claude') reads as a " +
+        'mention gate while the job runs on every triggering event',
+    }
+  }
+
+  return { gated: true, reason: 'gated on human-authored mention text' }
+}
+
+/**
  * May this step omit its tool declaration?
  *
  * Only when the job that runs it is genuinely gated on a human typing @claude
@@ -294,12 +344,12 @@ export function defaultToolsExemption(jobCtx) {
   if (!job) return { exempt: false, reason: 'no containing job could be resolved' }
 
   const condition = String(job.if ?? '')
-  const gated = /contains\s*\(/.test(condition) && /@claude/.test(condition)
-  if (!gated) {
+  const gate = mentionGate(condition)
+  if (!gate.gated) {
     return {
       exempt: false,
-      reason: `job "${jobCtx.jobName}" has no @claude mention gate in its \`if:\` ` +
-        `condition, so it is reachable from unattended events`,
+      reason: `job "${jobCtx.jobName}" ${gate.reason}, so it is reachable from ` +
+        `unattended events`,
     }
   }
 
@@ -323,6 +373,29 @@ export function defaultToolsExemption(jobCtx) {
 
   return { exempt: true, reason: 'mention-gated and read-only' }
 }
+
+test('mentionGate rejects a tautological gate and accepts a real one', () => {
+  // Round 5's evasion: two literals. Reads as a mention gate, runs on every event.
+  assert.equal(mentionGate("${{ contains('@claude', '@claude') }}").gated, false)
+  // Backwards — literal haystack, event needle — is equally inert.
+  assert.equal(mentionGate("${{ contains('@claude', github.event.comment.body) }}").gated, false)
+  // A field a human does not author is not a mention.
+  assert.equal(mentionGate("${{ contains(github.event.repository.name, '@claude') }}").gated, false)
+  assert.equal(mentionGate('').gated, false)
+  assert.equal(mentionGate("${{ github.actor == 'phill' }}").gated, false)
+
+  // Positive control: the shape the real workflow uses must still pass, or this
+  // check is just a way of failing everything.
+  assert.equal(mentionGate("contains(github.event.comment.body, '@claude')").gated, true)
+  assert.equal(mentionGate("contains(github.event.issue.title, '@claude')").gated, true)
+
+  // And a tautology sitting ALONGSIDE a real gate is still gated — the real one
+  // is what governs.
+  assert.equal(
+    mentionGate("contains('@claude','@claude') || contains(github.event.review.body, '@claude')").gated,
+    true,
+  )
+})
 
 test('the graph walker finds the review invocation (positive control)', () => {
   const steps = collectClaudeSteps(join(WORKFLOWS, REVIEW_WORKFLOW))
