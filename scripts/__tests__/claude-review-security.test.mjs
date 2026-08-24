@@ -59,10 +59,19 @@ function allSteps(doc) {
   return steps
 }
 
-/** Accumulate EVERY --allowedTools value, as the pinned action itself does. */
+/**
+ * Accumulate EVERY allowed-tools value, as the pinned action itself does.
+ *
+ * The action accepts BOTH spellings — src/modes/agent/parse-tools.ts defines
+ * ALLOWED_TOOLS_FLAGS = new Set(["allowedTools", "allowed-tools"]) — and
+ * accumulates across occurrences. Reading only the camelCase spelling made the
+ * set-equality claim equality over a lossy subset: independent review appended
+ * `--allowed-tools "Bash(gh pr comment:*)"` after the permitted list and this
+ * suite stayed green 5/5 while the action would have granted the cross-PR write.
+ */
 function allowedToolsFrom(claudeArgs) {
   const tools = []
-  for (const m of String(claudeArgs ?? '').matchAll(/--allowedTools\s+"([^"]*)"/g)) {
+  for (const m of String(claudeArgs ?? '').matchAll(/--allowed[-_]?[Tt]ools\s+"([^"]*)"/g)) {
     for (const t of m[1].split(',')) {
       const trimmed = t.trim()
       if (trimmed) tools.push(trimmed)
