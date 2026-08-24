@@ -298,36 +298,76 @@ function allReachableClaudeSteps() {
  * literal haystack is backwards and equally inert.
  */
 export function mentionGate(condition) {
-  const text = String(condition ?? '')
+  const text = String(condition ?? '').replace(/\$\{\{|\}\}/g, ' ')
   if (!text.trim()) return { gated: false, reason: 'has no `if:` condition at all' }
 
-  const calls = [...text.matchAll(/contains\s*\(\s*([^,]+?)\s*,\s*([^)]+?)\s*\)/g)]
-  if (calls.length === 0) {
-    return { gated: false, reason: 'has no contains() call in its `if:` condition' }
-  }
+  // EVERY disjunct must require a mention, not merely some of them.
+  //
+  // Round 6 broke the previous version, and worse, it broke an assertion I had
+  // written on purpose: I claimed a tautology sitting ALONGSIDE a real gate was
+  // still gated, "because the real one is what governs". That is backwards.
+  // `contains('@claude','@claude') || contains(github.event.review.body,'@claude')`
+  // is true unconditionally — the tautology DOMINATES, and the job runs on every
+  // triggering event while the guard called it mention-gated. The bypass was
+  // encoded as a positive test, which is the most durable way to hide one.
+  //
+  // So the condition is split at top-level `||` and each branch must
+  // independently require the mention. An `&&` inside a branch is fine: every
+  // conjunct has to hold, so a mention check anywhere in the branch is required.
+  const branches = splitTopLevel(text, '||')
 
-  // Fields a human writes. `github.event.repository.name` and friends are NOT
-  // here on purpose: they are attacker-influenceable or constant, not authored
-  // by the person requesting the run.
-  const HUMAN_TEXT = /^github\.event\.(comment\.body|review\.body|issue\.body|issue\.title|pull_request\.body|pull_request\.title)$/
-
-  const real = calls.filter(([, haystack, needle]) => {
-    const subject = haystack.trim()
-    const literal = needle.trim().replace(/^['"]|['"]$/g, '')
-    return HUMAN_TEXT.test(subject) && literal === '@claude'
-  })
-
-  if (real.length === 0) {
+  const ungated = branches.filter((branch) => !requiresMention(branch))
+  if (ungated.length > 0) {
     return {
       gated: false,
       reason:
-        'has a contains() that does not test human-authored event text against ' +
-        "'@claude' — a tautology such as contains('@claude', '@claude') reads as a " +
-        'mention gate while the job runs on every triggering event',
+        'has an `if:` branch that does not require a human-authored @claude ' +
+        `mention (${ungated[0].trim().slice(0, 80)}) — with \`||\`, one branch that ` +
+        'can be true without a mention makes the whole condition unconditional, ' +
+        "so a tautology such as contains('@claude', '@claude') reads as a mention " +
+        'gate while the job runs on every triggering event',
     }
   }
 
-  return { gated: true, reason: 'gated on human-authored mention text' }
+  return { gated: true, reason: 'every branch requires human-authored mention text' }
+}
+
+/** Split on an operator at paren depth 0, so nested calls stay intact. */
+function splitTopLevel(text, operator) {
+  const parts = []
+  let depth = 0
+  let current = ''
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i]
+    if (ch === '(') depth += 1
+    if (ch === ')') depth -= 1
+    if (depth === 0 && text.startsWith(operator, i)) {
+      parts.push(current)
+      current = ''
+      i += operator.length - 1
+      continue
+    }
+    current += ch
+  }
+  parts.push(current)
+  return parts.filter((p) => p.trim())
+}
+
+// Fields a human writes. `github.event.repository.name` and friends are NOT here
+// on purpose: they are attacker-influenceable or constant, not authored by the
+// person requesting the run.
+const HUMAN_TEXT =
+  /^github\.event\.(comment\.body|review\.body|issue\.body|issue\.title|pull_request\.body|pull_request\.title)$/
+
+function requiresMention(branch) {
+  for (const m of branch.matchAll(/(!?)\s*contains\s*\(\s*([^,]+?)\s*,\s*([^)]+?)\s*\)/g)) {
+    const [, negated, haystack, needle] = m
+    if (negated) continue   // `!contains(...)` requires the mention to be ABSENT
+    const subject = haystack.trim()
+    const literal = needle.trim().replace(/^['"]|['"]$/g, '')
+    if (HUMAN_TEXT.test(subject) && literal === '@claude') return true
+  }
+  return false
 }
 
 /**
@@ -389,10 +429,31 @@ test('mentionGate rejects a tautological gate and accepts a real one', () => {
   assert.equal(mentionGate("contains(github.event.comment.body, '@claude')").gated, true)
   assert.equal(mentionGate("contains(github.event.issue.title, '@claude')").gated, true)
 
-  // And a tautology sitting ALONGSIDE a real gate is still gated — the real one
-  // is what governs.
+  // ROUND 6, P0 — and this assertion used to say `true`, with a comment claiming
+  // "the real one is what governs". It does not. `A || B` with an always-true A
+  // is true unconditionally; the tautology DOMINATES and the job runs on every
+  // triggering event. Encoding the bypass as a positive assertion is the most
+  // durable way to hide one, because every later reader takes it as settled.
   assert.equal(
     mentionGate("contains('@claude','@claude') || contains(github.event.review.body, '@claude')").gated,
+    false,
+  )
+  // Any ungated branch does it, not just a tautology.
+  assert.equal(
+    mentionGate("github.actor == 'dependabot[bot]' || contains(github.event.comment.body, '@claude')").gated,
+    false,
+  )
+  // A negated mention check requires the mention to be ABSENT, so it gates nothing.
+  assert.equal(mentionGate("!contains(github.event.comment.body, '@claude')").gated, false)
+
+  // Positive control: the real workflow's shape is a chain of disjuncts where
+  // EVERY branch carries its own mention check, and it must still pass.
+  assert.equal(
+    mentionGate(
+      "(github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||\n" +
+      "(github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||\n" +
+      "(github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))",
+    ).gated,
     true,
   )
 })

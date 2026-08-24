@@ -171,13 +171,38 @@ test('the argv parser finds the readiness guards (positive control)', () => {
 // `--test-name-pattern` filters by test NAME; it does not stop the module being
 // imported. So this check runs on import, and a throw here fails the file no
 // matter what selection flags are in play.
+// Round 6: the first version of this read only the LITERAL verify:readiness
+// string. Move the guard invocation into a delegated script that carries the
+// flag and have verify:readiness call it with `npm run`, and the flag is absent
+// from the parent — this check stayed green while every test() in the delegated
+// run was filtered away. Delegation is followed transitively, so the flag is
+// found wherever in the chain it hides.
+export function selectionFlagsReachableFrom(scripts, name, seen = new Set()) {
+  const found = []
+  const body = String(scripts?.[name] ?? '')
+  if (!body || seen.has(name)) return found
+  seen.add(name)
+
+  for (const segment of splitCommands(body)) {
+    const argv = tokenize(segment)
+    for (const arg of argv) {
+      if (isSelectionFlag(arg)) found.push(`${name}: ${arg}`)
+    }
+    let i = 0
+    while (i < argv.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(argv[i])) i += 1
+    if (/^(npm|pnpm|yarn)$/.test(argv[i] ?? '') && argv[i + 1] === 'run' && argv[i + 2]) {
+      found.push(...selectionFlagsReachableFrom(scripts, argv[i + 2], seen))
+    }
+  }
+  return found
+}
+
 ;(function assertReadinessRunsUnfiltered() {
   const scripts = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).scripts ?? {}
-  const readiness = String(scripts['verify:readiness'] ?? '')
-  const offending = tokenize(readiness).filter(isSelectionFlag)
+  const offending = selectionFlagsReachableFrom(scripts, 'verify:readiness')
   if (offending.length > 0) {
     throw new Error(
-      `verify:readiness carries test-selection flags (${offending.join(', ')}). ` +
+      `verify:readiness reaches test-selection flags (${offending.join(', ')}). ` +
         'These can skip every named guard while the command still exits 0, which ' +
         'is indistinguishable from the guards passing. A guard runner filters ' +
         'nothing: it runs everything or it is not the runner.',

@@ -357,6 +357,78 @@ test('catches an ungated write-capable job added to the mention workflow', () =>
 // guards from the `node --test` argv, left their names as inert environment
 // assignments, and both the registration control and the readiness gate stayed
 // green while the live guard was never run.
+// Round 6, P0: a tautology ORed with a REAL gate. `A || B` with an always-true A
+// is true unconditionally — the tautology dominates and the job runs on every
+// triggering event. The previous mentionGate looked for any valid contains()
+// anywhere in the condition and ignored the surrounding Boolean, so this passed;
+// worse, I had asserted it was gated ON PURPOSE, which is the most durable way
+// to hide a bypass.
+test('catches a tautology ORed with a real mention gate', () => {
+  expectCaught('if: contains(\'@claude\',\'@claude\') || contains(comment.body, \'@claude\')', (dir) => {
+    edit(dir, MENTION_WF, (s) => `${s.trimEnd()}\n` +
+      '  unattended:\n' +
+      "    if: ${{ contains('@claude', '@claude') || contains(github.event.comment.body, '@claude') }}\n" +
+      '    runs-on: ubuntu-latest\n' +
+      '    permissions:\n      contents: read\n' +
+      '    steps:\n' +
+      '      - uses: anthropics/claude-code-action@459ad358ae43fea66bfefd0a1f8d840b4b9791fb\n' +
+      '        with:\n' +
+      '          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}\n')
+  }, GUARD, BECAUSE.undeclaredTools)
+})
+
+test('catches a non-mention branch ORed with a real mention gate', () => {
+  // Not only tautologies: any branch reachable without a mention does it.
+  expectCaught('if: github.actor == \'bot\' || contains(comment.body, \'@claude\')', (dir) => {
+    edit(dir, MENTION_WF, (s) => `${s.trimEnd()}\n` +
+      '  unattended:\n' +
+      "    if: ${{ github.actor == 'dependabot[bot]' || contains(github.event.comment.body, '@claude') }}\n" +
+      '    runs-on: ubuntu-latest\n' +
+      '    permissions:\n      contents: read\n' +
+      '    steps:\n' +
+      '      - uses: anthropics/claude-code-action@459ad358ae43fea66bfefd0a1f8d840b4b9791fb\n' +
+      '        with:\n' +
+      '          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}\n')
+  }, GUARD, BECAUSE.undeclaredTools)
+})
+
+// Round 6, P0: the top-level flag check read only the LITERAL verify:readiness
+// string. Moving the guards into a delegated script that carries the flag left
+// the parent clean, so the check stayed green while every test() in the
+// delegated run was filtered away.
+test('the registration guard catches a flag hidden behind npm-run delegation', () => {
+  const dir = sandbox()
+  try {
+    edit(dir, 'package.json', (s) => {
+      const pkg = JSON.parse(s)
+      const [guards, rest] = pkg.scripts['verify:readiness'].split(' && ')
+      pkg.scripts['verify:guards-delegated'] =
+        guards.replace('node --test ', "node --test --test-name-pattern='a^' ")
+      pkg.scripts['verify:readiness'] = `npm run verify:guards-delegated && ${rest}`
+      return JSON.stringify(pkg, null, 2)
+    })
+    // Run the guard UNDER the evasion, so this proves detection survives it.
+    let out = ''
+    let status = 0
+    try {
+      out = execFileSync(
+        'node',
+        ['--test', '--test-reporter=tap', '--test-name-pattern=a^', REG_GUARD],
+        { cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
+          env: { ...process.env, NODE_TEST_CONTEXT: undefined } },
+      )
+    } catch (err) {
+      out = String(err.stdout ?? '') + String(err.stderr ?? '')
+      status = typeof err.status === 'number' ? err.status : 1
+    }
+    assert.notEqual(status, 0, `the guard exited 0 under delegated evasion:\n${out.slice(0, 800)}`)
+    assert.match(out, /reaches test-selection flags/, `unexpected reason:\n${out.slice(0, 800)}`)
+    assert.match(out, /verify:guards-delegated/, 'the report must name WHERE the flag hides')
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
 test('the registration guard catches a guard demoted to an inert env value', () => {
   expectCaught('guard name kept only as an env assignment', (dir) => {
     edit(dir, 'package.json', (s) => {
