@@ -103,6 +103,10 @@ jobs:
             line of the most significant finding, or — when you find nothing —
             on any line of the diff.
 
+          # Allow Dependabot and other bots to trigger this review. Without this,
+          # Dependabot PRs fail with "Workflow initiated by non-human actor".
+          allowed_bots: dependabot
+
           # Read-only tools plus one PR-bound write.
           #
           # `Bash(gh pr comment:*)` was considered and rejected: the glob
