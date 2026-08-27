@@ -75,10 +75,9 @@ describe('harness adapter', () => {
     expect(session.tokenCount).toBe(1234)
   })
 
-  it('gives anonymous sessions unique fallback identities within one snapshot', () => {
-    const now = Date.parse('2026-08-27T10:00:00Z')
-    const first = normaliseHermesSession({ status: 'idle' }, now, 0)
-    const second = normaliseHermesSession({ status: 'idle' }, now, 1)
-    expect(first.id).not.toBe(second.id)
+  it('rejects a session that cannot be addressed again on the next poll', () => {
+    expect(() => normaliseHermesSession({ status: 'idle' })).toThrow(
+      'no stable key or friendlyId',
+    )
   })
 })
