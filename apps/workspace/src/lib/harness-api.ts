@@ -1,6 +1,11 @@
 import { fetchSessions, type GatewaySession } from './gateway-api'
 
-export type HarnessProvider = 'hermes' | 'langgraph' | 'openai-agents' | 'claude-agent' | 'unknown'
+export type HarnessProvider =
+  | 'hermes'
+  | 'langgraph'
+  | 'openai-agents'
+  | 'claude-agent'
+  | 'unknown'
 
 export type HarnessSessionState =
   | 'active'
@@ -22,7 +27,7 @@ export type HarnessSession = {
   startedAt: number
   tokenCount: number
   cost: number
-  raw: GatewaySession
+  raw: unknown
 }
 
 export type HarnessSnapshot = {
@@ -51,13 +56,55 @@ function numeric(value: unknown): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0
 }
 
-export function normaliseHarnessState(session: GatewaySession, now = Date.now()): HarnessSessionState {
-  const status = `${text(session.status)} ${text(session.kind)}`.toLowerCase()
-  if (/error|failed|crash/.test(status)) return 'error'
-  if (/pause|suspend/.test(status)) return 'paused'
-  if (/wait|input|required|approval/.test(status)) return 'waiting'
-  if (/complete|completed|done|success/.test(status)) return 'complete'
-  if (/run|active|thinking|processing|streaming|in-progress|in_progress/.test(status)) return 'active'
+function statusTokens(session: GatewaySession): Set<string> {
+  const value = `${text(session.status)} ${text(session.kind)}`
+    .toLowerCase()
+    .replace(/[_-]+/g, ' ')
+    .replace(/[^a-z0-9\s]+/g, ' ')
+    .trim()
+  return new Set(value.split(/\s+/).filter(Boolean))
+}
+
+function hasAny(tokens: Set<string>, values: Array<string>): boolean {
+  return values.some((value) => tokens.has(value))
+}
+
+export function normaliseHarnessState(
+  session: GatewaySession,
+  now = Date.now(),
+): HarnessSessionState {
+  const tokens = statusTokens(session)
+
+  if (hasAny(tokens, ['error', 'failed', 'failure', 'crash', 'crashed']))
+    return 'error'
+  if (hasAny(tokens, ['pause', 'paused', 'suspend', 'suspended']))
+    return 'paused'
+  if (
+    hasAny(tokens, [
+      'wait',
+      'waiting',
+      'input',
+      'approval',
+      'required',
+      'needsinput',
+    ])
+  )
+    return 'waiting'
+  if (hasAny(tokens, ['complete', 'completed', 'done', 'success', 'succeeded']))
+    return 'complete'
+  if (
+    hasAny(tokens, [
+      'run',
+      'running',
+      'active',
+      'thinking',
+      'processing',
+      'streaming',
+      'inprogress',
+    ])
+  )
+    return 'active'
+  if (hasAny(tokens, ['idle', 'inactive', 'stopped', 'offline'])) return 'idle'
 
   const updatedAt = timestamp(session.updatedAt)
   if (updatedAt && now - updatedAt < 120_000) return 'active'
@@ -65,14 +112,26 @@ export function normaliseHarnessState(session: GatewaySession, now = Date.now())
   return 'unknown'
 }
 
-export function normaliseHermesSession(session: GatewaySession, now = Date.now()): HarnessSession {
-  const id = text(session.key) || text(session.friendlyId) || `hermes-${now}`
-  const label =
+export function normaliseHermesSession(
+  session: GatewaySession,
+  now = Date.now(),
+  index = 0,
+): HarnessSession {
+  const provisionalLabel =
     text(session.label) ||
     text(session.title) ||
     text(session.derivedTitle) ||
+    text(session.friendlyId)
+  const identityTime =
+    timestamp(session.startedAt) ||
+    timestamp(session.createdAt) ||
+    timestamp(session.updatedAt) ||
+    now
+  const id =
+    text(session.key) ||
     text(session.friendlyId) ||
-    id
+    `${provisionalLabel || 'hermes'}:${identityTime}:${index}`
+  const label = provisionalLabel || id
 
   return {
     id,
@@ -107,6 +166,8 @@ export async function fetchHarnessSnapshot(): Promise<HarnessSnapshot> {
     provider: 'hermes',
     connected: true,
     checkedAt,
-    sessions: sessions.map((session) => normaliseHermesSession(session, checkedAt)),
+    sessions: sessions.map((session, index) =>
+      normaliseHermesSession(session, checkedAt, index),
+    ),
   }
 }
