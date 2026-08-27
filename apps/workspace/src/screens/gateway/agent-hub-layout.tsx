@@ -46,9 +46,14 @@ function mapState(state: HarnessSessionState): AgentWorkingStatus {
 }
 
 function sessionMatchesAgent(session: HarnessSession, agentName: string): boolean {
-  const label = session.label.toLowerCase()
-  const name = agentName.toLowerCase()
-  return label === name || label.startsWith(`${name} `) || label.includes(`:${name}`)
+  const label = session.label.trim().toLowerCase()
+  const name = agentName.trim().toLowerCase()
+  if (!name) return false
+  if (label === name || label.startsWith(`${name} `)) return true
+  return label
+    .split(':')
+    .map((segment) => segment.trim())
+    .some((segment) => segment === name)
 }
 
 function deriveAgentRows(
