@@ -1,12 +1,18 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { OfficeView } from './components/office-view'
+import { OfficeView, type RemoteSession } from './components/office-view'
 import type { CSSProperties } from 'react'
-import type { AgentWorkingRow } from './components/agents-working-panel'
+import type {
+  AgentWorkingRow,
+  AgentWorkingStatus,
+} from './components/agents-working-panel'
 import type { AgentHubLayoutProps } from './components/hub-constants'
-import type { GatewaySession } from '@/lib/gateway-api'
-import { fetchSessions } from '@/lib/gateway-api'
+import {
+  fetchHarnessSnapshot,
+  type HarnessSession,
+  type HarnessSessionState,
+} from '@/lib/harness-api'
 
 export { AgentAvatar } from './components/agent-avatar'
 
@@ -21,158 +27,139 @@ const THEME_STYLE: CSSProperties = {
   ['--theme-accent-strong' as string]: 'var(--color-accent-600)',
 }
 
-function readText(value: unknown): string {
-  return typeof value === 'string' ? value.trim() : ''
-}
-
-function readTimestamp(value: unknown): number {
-  if (typeof value === 'number' && Number.isFinite(value)) return value
-  if (typeof value === 'string') {
-    const parsed = new Date(value).getTime()
-    if (Number.isFinite(parsed)) return parsed
+function mapState(state: HarnessSessionState): AgentWorkingStatus {
+  switch (state) {
+    case 'active':
+      return 'active'
+    case 'paused':
+      return 'paused'
+    case 'error':
+      return 'error'
+    case 'waiting':
+      return 'waiting_for_input'
+    case 'idle':
+    case 'complete':
+      return 'idle'
+    default:
+      return 'none'
   }
-  return 0
 }
 
-function getSessionLabel(session: GatewaySession): string {
-  return (
-    readText(session.label) ||
-    readText(session.title) ||
-    readText(session.friendlyId) ||
-    readText(session.key) ||
-    'Untitled'
-  )
+function sessionMatchesAgent(session: HarnessSession, agentName: string): boolean {
+  const label = session.label.toLowerCase()
+  const name = agentName.toLowerCase()
+  return label === name || label.startsWith(`${name} `) || label.includes(`:${name}`)
 }
 
 function deriveAgentRows(
   agents: AgentHubLayoutProps['agents'],
-  sessions: Array<GatewaySession>,
+  sessions: Array<HarnessSession>,
 ): Array<AgentWorkingRow> {
   if (agents.length > 0) {
     return agents.map((agent) => {
-      const session = sessions.find((s) => {
-        const label = getSessionLabel(s).toLowerCase()
-        return (
-          label === agent.name.toLowerCase() ||
-          label.startsWith(`${agent.name.toLowerCase()} `)
-        )
-      })
-      const updatedAt = readTimestamp(session?.updatedAt)
-      const statusText =
-        `${readText(session?.status)} ${readText(session?.kind)}`.toLowerCase()
-      const status = !session
-        ? 'idle'
-        : /error|failed/.test(statusText)
-          ? 'error'
-          : /pause/.test(statusText)
-            ? 'paused'
-            : Date.now() - updatedAt < 120_000
-              ? 'active'
-              : 'idle'
+      const session = sessions.find((candidate) =>
+        sessionMatchesAgent(candidate, agent.name),
+      )
 
       return {
         id: agent.id,
         name: agent.name,
-        modelId: readText(session?.model) || 'auto',
-        status,
-        lastLine: readText(session?.task) || 'Waiting for work…',
-        lastAt: updatedAt || undefined,
-        taskCount: 0,
+        modelId: session?.model || 'unknown',
+        status: session ? mapState(session.state) : 'none',
+        lastLine: session?.task || 'No live session',
+        lastAt: session?.updatedAt || undefined,
+        taskCount: session ? 1 : 0,
+        currentTask: session?.task,
         roleDescription: agent.role,
-        sessionKey: readText(session?.key) || undefined,
+        sessionKey: session?.id,
       }
     })
   }
 
-  // No configured agents — show recent sessions as agents in the office
-  const recent = [...sessions]
-    .sort((a, b) => readTimestamp(b.updatedAt) - readTimestamp(a.updatedAt))
-    .slice(0, 6)
+  // No configured roster: render only actual runtime sessions. Never invent
+  // workers to make Mission Control look busy.
+  return [...sessions]
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .slice(0, 12)
+    .map((session) => ({
+      id: session.id,
+      name: session.label,
+      modelId: session.model,
+      status: mapState(session.state),
+      lastLine: session.task,
+      lastAt: session.updatedAt || undefined,
+      taskCount: 1,
+      currentTask: session.task,
+      roleDescription: `${session.provider} runtime`,
+      sessionKey: session.id,
+    }))
+}
 
-  if (recent.length === 0) {
-    return [
-      {
-        id: 'placeholder-1',
-        name: 'Nova',
-        modelId: 'auto',
-        status: 'idle' as const,
-        lastLine: 'Waiting for first mission…',
-        taskCount: 0,
-        roleDescription: 'Worker',
-      },
-      {
-        id: 'placeholder-2',
-        name: 'Pixel',
-        modelId: 'auto',
-        status: 'idle' as const,
-        lastLine: 'Standing by…',
-        taskCount: 0,
-        roleDescription: 'Worker',
-      },
-      {
-        id: 'placeholder-3',
-        name: 'Blaze',
-        modelId: 'auto',
-        status: 'idle' as const,
-        lastLine: 'Ready to build.',
-        taskCount: 0,
-        roleDescription: 'Worker',
-      },
-    ]
-  }
-
-  const NAMES = ['Nova', 'Pixel', 'Blaze', 'Echo', 'Sage', 'Drift']
-  return recent.map((session, i) => {
-    const updatedAt = readTimestamp(session.updatedAt)
-    const statusText =
-      `${readText(session.status)} ${readText(session.kind)}`.toLowerCase()
-    const status = /error|failed/.test(statusText)
-      ? ('error' as const)
-      : /pause/.test(statusText)
-        ? ('paused' as const)
-        : Date.now() - updatedAt < 120_000
-          ? ('active' as const)
-          : ('idle' as const)
-
-    return {
-      id: readText(session.key) || `session-${i}`,
-      name: NAMES[i % NAMES.length],
-      modelId: readText(session.model) || 'auto',
-      status,
-      lastLine: readText(session.task) || getSessionLabel(session),
-      lastAt: updatedAt || undefined,
-      taskCount: 0,
-      roleDescription: readText(session.label) || 'Worker',
-      sessionKey: readText(session.key) || undefined,
-    }
-  })
+function deriveRemoteSessions(sessions: Array<HarnessSession>): Array<RemoteSession> {
+  return sessions.map((session) => ({
+    sessionKey: session.id,
+    label: session.label,
+    model: session.model,
+    status:
+      session.state === 'active'
+        ? 'active'
+        : session.state === 'complete'
+          ? 'done'
+          : 'idle',
+    startedAt: session.startedAt || session.updatedAt || Date.now(),
+    kind: session.provider,
+    lastMessage: session.task,
+    tokenCount: session.tokenCount,
+  }))
 }
 
 export function AgentHubLayout({ agents }: AgentHubLayoutProps) {
   const navigate = useNavigate()
-  const sessionsQuery = useQuery({
-    queryKey: ['gateway', 'sessions', 'agent-hub'],
-    queryFn: async () => (await fetchSessions()).sessions ?? [],
-    refetchInterval: 10_000,
+  const harnessQuery = useQuery({
+    queryKey: ['mission-control', 'harness-snapshot'],
+    queryFn: fetchHarnessSnapshot,
+    refetchInterval: 5_000,
+    retry: 1,
   })
 
-  const sessions = sessionsQuery.data ?? []
+  const sessions = harnessQuery.data?.sessions ?? []
   const agentRows = useMemo(
     () => deriveAgentRows(agents, sessions),
     [agents, sessions],
   )
-  // Always show the office as "alive" — agents idle but present
-  const hasActive = true
+  const remoteSessions = useMemo(
+    () => deriveRemoteSessions(sessions),
+    [sessions],
+  )
+  const hasActive = sessions.some((session) => session.state === 'active')
 
   return (
     <div
       className="flex min-h-dvh flex-col bg-[var(--theme-bg)] text-[var(--theme-text)]"
       style={THEME_STYLE}
     >
-      <main className="mx-auto flex w-full max-w-[960px] flex-1 flex-col items-stretch justify-center gap-6 px-4 pb-24 md:px-6">
+      <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col items-stretch justify-center gap-4 px-4 pb-24 md:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card)] px-4 py-3 text-xs">
+          <div>
+            <span className="font-semibold text-[var(--theme-text)]">
+              Mission Control · Pixel Office
+            </span>
+            <span className="ml-2 text-[var(--theme-muted)]">
+              Harness: {harnessQuery.data?.provider ?? 'unavailable'}
+            </span>
+          </div>
+          <div className="flex items-center gap-3 text-[var(--theme-muted)]">
+            <span>{sessions.length} real session{sessions.length === 1 ? '' : 's'}</span>
+            <span>{hasActive ? 'Live work observed' : 'No active work observed'}</span>
+            {harnessQuery.isError ? (
+              <span className="font-medium text-red-600">Harness disconnected</span>
+            ) : null}
+          </div>
+        </div>
+
         <section
           className="overflow-hidden rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-card)] shadow-sm"
-          style={{ height: 520 }}
+          style={{ height: 560 }}
         >
           <OfficeView
             agentRows={agentRows}
@@ -180,8 +167,10 @@ export function AgentHubLayout({ agents }: AgentHubLayoutProps) {
             onViewOutput={() => void navigate({ to: '/conductor' })}
             onNewMission={() => void navigate({ to: '/conductor' })}
             processType="parallel"
-            companyName="Agent Office"
-            containerHeight={520}
+            companyName="Mission Control · Pixel Office"
+            remoteSessions={remoteSessions}
+            onViewRemoteOutput={() => void navigate({ to: '/conductor' })}
+            containerHeight={560}
           />
         </section>
       </main>
