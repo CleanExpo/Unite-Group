@@ -69,6 +69,10 @@ function hasAny(tokens: Set<string>, values: Array<string>): boolean {
   return values.some((value) => tokens.has(value))
 }
 
+function stableSessionId(session: GatewaySession): string {
+  return text(session.key) || text(session.friendlyId)
+}
+
 export function normaliseHarnessState(
   session: GatewaySession,
   now = Date.now(),
@@ -115,23 +119,15 @@ export function normaliseHarnessState(
 export function normaliseHermesSession(
   session: GatewaySession,
   now = Date.now(),
-  index = 0,
 ): HarnessSession {
-  const provisionalLabel =
+  const id = stableSessionId(session)
+  if (!id) throw new Error('Hermes session has no stable key or friendlyId')
+  const label =
     text(session.label) ||
     text(session.title) ||
     text(session.derivedTitle) ||
-    text(session.friendlyId)
-  const identityTime =
-    timestamp(session.startedAt) ||
-    timestamp(session.createdAt) ||
-    timestamp(session.updatedAt) ||
-    now
-  const id =
-    text(session.key) ||
     text(session.friendlyId) ||
-    `${provisionalLabel || 'hermes'}:${identityTime}:${index}`
-  const label = provisionalLabel || id
+    id
 
   return {
     id,
@@ -161,13 +157,14 @@ export async function fetchHarnessSnapshot(): Promise<HarnessSnapshot> {
   const checkedAt = Date.now()
   const response = await fetchSessions()
   const sessions = Array.isArray(response.sessions) ? response.sessions : []
+  const addressable = sessions.filter((session) => Boolean(stableSessionId(session)))
 
   return {
     provider: 'hermes',
     connected: true,
     checkedAt,
-    sessions: sessions.map((session, index) =>
-      normaliseHermesSession(session, checkedAt, index),
+    sessions: addressable.map((session) =>
+      normaliseHermesSession(session, checkedAt),
     ),
   }
 }
