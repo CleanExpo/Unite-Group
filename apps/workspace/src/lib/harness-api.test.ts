@@ -19,6 +19,20 @@ describe('harness adapter', () => {
     ).toBe('idle')
   })
 
+  it('never treats inactive as active just because the word contains active', () => {
+    const now = Date.parse('2026-08-27T10:00:00Z')
+    expect(
+      normaliseHarnessState(
+        {
+          key: 'inactive-worker',
+          status: 'inactive',
+          updatedAt: now - 5_000,
+        },
+        now,
+      ),
+    ).toBe('idle')
+  })
+
   it('treats recent runtime activity as active when status is ambiguous', () => {
     const now = Date.parse('2026-08-27T10:00:00Z')
     expect(
@@ -59,5 +73,12 @@ describe('harness adapter', () => {
     expect(session.state).toBe('active')
     expect(session.task).toBe('Repair production build')
     expect(session.tokenCount).toBe(1234)
+  })
+
+  it('gives anonymous sessions unique fallback identities within one snapshot', () => {
+    const now = Date.parse('2026-08-27T10:00:00Z')
+    const first = normaliseHermesSession({ status: 'idle' }, now, 0)
+    const second = normaliseHermesSession({ status: 'idle' }, now, 1)
+    expect(first.id).not.toBe(second.id)
   })
 })
