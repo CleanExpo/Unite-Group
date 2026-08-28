@@ -53,7 +53,7 @@ describe('harness adapter', () => {
     ).toBe('error')
   })
 
-  it('normalises Hermes into the vendor-neutral Mission Control contract', () => {
+  it('normalises Hermes into the vendor-neutral Unite-Group contract', () => {
     const now = Date.parse('2026-08-27T10:00:00Z')
     const session = normaliseHermesSession(
       {

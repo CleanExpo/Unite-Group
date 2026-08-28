@@ -149,9 +149,9 @@ export function normaliseHermesSession(
 }
 
 /**
- * Mission Control reads this contract, not Hermes directly. Hermes is the
+ * Unite-Group reads this contract, not Hermes directly. Hermes is the
  * current provider adapter only. LangGraph/OpenAI/Claude adapters can be added
- * without changing Pixel Office or the rest of Mission Control.
+ * without changing Unite-Group or the rest of the platform.
  */
 export async function fetchHarnessSnapshot(): Promise<HarnessSnapshot> {
   const checkedAt = Date.now()

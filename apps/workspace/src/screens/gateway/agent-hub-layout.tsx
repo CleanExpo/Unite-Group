@@ -147,7 +147,7 @@ export function AgentHubLayout({ agents }: AgentHubLayoutProps) {
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card)] px-4 py-3 text-xs">
           <div>
             <span className="font-semibold text-[var(--theme-text)]">
-              Mission Control · Pixel Office
+              Unite-Group
             </span>
             <span className="ml-2 text-[var(--theme-muted)]">
               Harness: {harnessQuery.data?.provider ?? 'unavailable'}
@@ -172,7 +172,7 @@ export function AgentHubLayout({ agents }: AgentHubLayoutProps) {
             onViewOutput={() => void navigate({ to: '/conductor' })}
             onNewMission={() => void navigate({ to: '/conductor' })}
             processType="parallel"
-            companyName="Mission Control · Pixel Office"
+            companyName="Unite-Group"
             remoteSessions={remoteSessions}
             onViewRemoteOutput={() => void navigate({ to: '/conductor' })}
             containerHeight={560}
