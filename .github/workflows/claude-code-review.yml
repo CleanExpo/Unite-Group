@@ -105,7 +105,7 @@ jobs:
 
           # Allow Dependabot and other bots to trigger this review. Without this,
           # Dependabot PRs fail with "Workflow initiated by non-human actor".
-          allowed_bots: dependabot
+          allowed_bots: '*'
 
           # Read-only tools plus one PR-bound write.
           #
