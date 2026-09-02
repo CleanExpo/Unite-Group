@@ -18,6 +18,9 @@ const UPSTREAM_TIMEOUT_MS = 8000
 const PAGE_SIZE = 250
 /** 4 pages × 250 = 1,000 open issues per team before the row is marked `capped`. */
 const MAX_PAGES = 4
+const TEAMS_PAGE_SIZE = 50
+/** 4 pages × 50 = 200 teams. Beyond that the read FAILS: a truncated board reads as "those teams have nothing open". */
+const MAX_TEAM_PAGES = 4
 
 export type StageWord = 'Planning' | 'Research' | 'Develop' | 'Production' | 'Done'
 export type ActiveStageWord = Exclude<StageWord, 'Done'>
@@ -162,7 +165,12 @@ async function postGraphQL<T>(
   }
 }
 
-export const TEAMS_QUERY = `query StageTeams { teams(first: 50) { nodes { key name } } }`
+export const TEAMS_QUERY = `query StageTeams($after: String) {
+  teams(first: ${TEAMS_PAGE_SIZE}, after: $after) {
+    pageInfo { hasNextPage endCursor }
+    nodes { key name }
+  }
+}`
 
 export const TEAM_OPEN_ISSUES_QUERY = `query StageTeamOpenIssues($team: String!, $after: String) {
   issues(
@@ -187,8 +195,22 @@ interface RawIssueNode {
   priority?: unknown
   url?: unknown
   updatedAt?: unknown
-  state?: { name?: unknown; type?: unknown } | null
+  state?: unknown
   labels?: { nodes?: Array<{ name?: unknown } | null> } | null
+}
+
+/**
+ * pageInfo is a contract, not a hint: hasNextPage must be a boolean, and true
+ * must carry a non-empty cursor. Anything else fails the read — treating a
+ * malformed page as the last one is how counts go silently short.
+ */
+function readPageInfo(info: unknown): { ok: true; next: string | null } | { ok: false; error: string } {
+  if (typeof info !== 'object' || info === null) return { ok: false, error: 'malformed response: missing pageInfo' }
+  const p = info as { hasNextPage?: unknown; endCursor?: unknown }
+  if (typeof p.hasNextPage !== 'boolean') return { ok: false, error: 'malformed response: pageInfo.hasNextPage is not a boolean' }
+  if (!p.hasNextPage) return { ok: true, next: null }
+  if (typeof p.endCursor !== 'string' || p.endCursor === '') return { ok: false, error: 'malformed response: hasNextPage without an endCursor' }
+  return { ok: true, next: p.endCursor }
 }
 
 export function toStageIssue(node: unknown): StageIssue | null {
@@ -203,6 +225,10 @@ export function toStageIssue(node: unknown): StageIssue | null {
   ) {
     return null
   }
+  // An open issue with no readable state cannot be classified; defaulting it to
+  // empty strings made it "unmapped" and let a team with active work read Done.
+  const state = n.state as { name?: unknown; type?: unknown } | null | undefined
+  if (typeof state !== 'object' || state === null || typeof state.name !== 'string' || typeof state.type !== 'string') return null
   const labelNodes = Array.isArray(n.labels?.nodes) ? n.labels.nodes : []
   return {
     id: n.id,
@@ -211,8 +237,8 @@ export function toStageIssue(node: unknown): StageIssue | null {
     priority: n.priority,
     url: typeof n.url === 'string' ? n.url : '',
     updatedAt: n.updatedAt,
-    stateName: typeof n.state?.name === 'string' ? n.state.name : '',
-    stateType: typeof n.state?.type === 'string' ? n.state.type : '',
+    stateName: state.name,
+    stateType: state.type,
     labelNames: labelNodes.map((l) => (l && typeof l.name === 'string' ? l.name : null)).filter((x): x is string => x !== null),
   }
 }
@@ -241,12 +267,45 @@ async function fetchTeamOpenIssues(
       if (!issue) return { ok: false, error: `${teamKey}: malformed issue node in Linear response` }
       issues.push(issue)
     }
-    const info = result.data.issues?.pageInfo
-    const hasNext = info?.hasNextPage === true && typeof info.endCursor === 'string'
-    if (!hasNext) return { ok: true, issues, capped: false }
-    after = info!.endCursor as string
+    const page = readPageInfo(result.data.issues?.pageInfo)
+    if (!page.ok) return { ok: false, error: `${teamKey}: ${page.error}` }
+    if (page.next === null) return { ok: true, issues, capped: false }
+    after = page.next
   }
   return { ok: true, issues, capped: true }
+}
+
+interface RawTeamsPage {
+  teams?: { pageInfo?: unknown; nodes?: unknown[] }
+}
+
+/** Every team, across pages. Above MAX_TEAM_PAGES the read fails rather than presenting a partial board as complete. */
+async function fetchTeams(
+  apiKey: string,
+  fetchImpl: MinimalFetch,
+): Promise<{ ok: true; teams: Array<{ key: string; name: string }> } | { ok: false; error: string }> {
+  const teams: Array<{ key: string; name: string }> = []
+  let after: string | null = null
+  for (let page = 0; page < MAX_TEAM_PAGES; page += 1) {
+    const result = await postGraphQL<RawTeamsPage>(apiKey, TEAMS_QUERY, { after }, fetchImpl)
+    if (!result.ok) return result
+    const nodes = result.data.teams?.nodes
+    if (!Array.isArray(nodes)) return { ok: false, error: 'malformed response: missing teams.nodes' }
+    for (const node of nodes) {
+      const t = node as { key?: unknown; name?: unknown } | null
+      // One row per team is the contract; a team node without a key or name would
+      // vanish from the board and read as "nothing open". Fail the whole read.
+      if (typeof t?.key !== 'string' || typeof t?.name !== 'string') {
+        return { ok: false, error: 'malformed response: a team node lacks key or name' }
+      }
+      teams.push({ key: t.key, name: t.name })
+    }
+    const info = readPageInfo(result.data.teams?.pageInfo)
+    if (!info.ok) return { ok: false, error: `teams: ${info.error}` }
+    if (info.next === null) return { ok: true, teams }
+    after = info.next
+  }
+  return { ok: false, error: `more than ${MAX_TEAM_PAGES * TEAMS_PAGE_SIZE} Linear teams: the board would be incomplete` }
 }
 
 /**
@@ -260,19 +319,11 @@ export async function fetchTeamStages(deps: ProjectStagesDeps = {}): Promise<Tea
   const fetchImpl = deps.fetchImpl ?? (fetch as unknown as MinimalFetch)
   const now = deps.now ?? (() => new Date())
 
-  const teams = await postGraphQL<{ teams?: { nodes?: unknown[] } }>(apiKey, TEAMS_QUERY, {}, fetchImpl)
+  const teams = await fetchTeams(apiKey, fetchImpl)
   if (!teams.ok) return teams
-  const teamNodes = teams.data.teams?.nodes
-  if (!Array.isArray(teamNodes)) return { ok: false, error: 'malformed response: missing teams.nodes' }
 
   const rows: TeamStage[] = []
-  for (const node of teamNodes) {
-    const t = node as { key?: unknown; name?: unknown }
-    // One row per team is the contract; a team node without a key or name would
-    // vanish from the board and read as "nothing open". Fail the whole read.
-    if (typeof t.key !== 'string' || typeof t.name !== 'string') {
-      return { ok: false, error: 'malformed response: a team node lacks key or name' }
-    }
+  for (const t of teams.teams) {
     const fetched = await fetchTeamOpenIssues(apiKey, t.key, fetchImpl)
     if (!fetched.ok) return fetched
     rows.push(summariseTeam(t.key, t.name, fetched.issues, fetched.capped))

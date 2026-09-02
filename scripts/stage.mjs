@@ -31,6 +31,9 @@ export const STAGE_MAP_PATH = join(repositoryRoot, 'apps', 'web', 'data', 'comma
 const LINEAR_GQL = 'https://api.linear.app/graphql'
 const PAGE_SIZE = 250
 const MAX_PAGES = 4
+const TEAMS_PAGE_SIZE = 50
+/** Beyond 4 × 50 teams the read fails: a truncated board reads as "those teams have nothing open". */
+const MAX_TEAM_PAGES = 4
 
 export function loadStageMap(path = STAGE_MAP_PATH) {
   return JSON.parse(readFileSync(path, 'utf8'))
@@ -89,6 +92,9 @@ export function toStageIssue(n) {
   ) {
     return null
   }
+  // No readable state → no classification. Same rule as project-stages.ts.
+  const state = n.state
+  if (typeof state !== 'object' || state === null || typeof state.name !== 'string' || typeof state.type !== 'string') return null
   const labelNodes = Array.isArray(n.labels?.nodes) ? n.labels.nodes : []
   return {
     id: n.id,
@@ -97,15 +103,20 @@ export function toStageIssue(n) {
     priority: n.priority,
     url: typeof n.url === 'string' ? n.url : '',
     updatedAt: n.updatedAt,
-    stateName: typeof n.state?.name === 'string' ? n.state.name : '',
-    stateType: typeof n.state?.type === 'string' ? n.state.type : '',
+    stateName: state.name,
+    stateType: state.type,
     labelNames: labelNodes.map((l) => (l && typeof l.name === 'string' ? l.name : null)).filter((x) => x !== null),
   }
 }
 
 // ─── Linear fetch ───────────────────────────────────────────────────────────
 
-const TEAMS_QUERY = `query StageTeams { teams(first: 50) { nodes { key name } } }`
+const TEAMS_QUERY = `query StageTeams($after: String) {
+  teams(first: ${TEAMS_PAGE_SIZE}, after: $after) {
+    pageInfo { hasNextPage endCursor }
+    nodes { key name }
+  }
+}`
 const TEAM_OPEN_ISSUES_QUERY = `query StageTeamOpenIssues($team: String!, $after: String) {
   issues(
     first: ${PAGE_SIZE}
@@ -139,6 +150,19 @@ export function resolveApiKey(env = process.env, hermesEnvPath = join(homedir(),
   return undefined
 }
 
+/**
+ * pageInfo is a contract (mirror of project-stages.ts): hasNextPage must be a
+ * boolean and true must carry a non-empty cursor. Returns the next cursor, or
+ * null on the last page; throws on anything else.
+ */
+export function readPageInfo(info, label) {
+  if (typeof info !== 'object' || info === null) throw new Error(`Linear malformed response: ${label}: missing pageInfo`)
+  if (typeof info.hasNextPage !== 'boolean') throw new Error(`Linear malformed response: ${label}: pageInfo.hasNextPage is not a boolean`)
+  if (!info.hasNextPage) return null
+  if (typeof info.endCursor !== 'string' || info.endCursor === '') throw new Error(`Linear malformed response: ${label}: hasNextPage without an endCursor`)
+  return info.endCursor
+}
+
 async function postGraphQL(apiKey, query, variables, fetchImpl) {
   const res = await fetchImpl(LINEAR_GQL, {
     method: 'POST',
@@ -154,14 +178,26 @@ async function postGraphQL(apiKey, query, variables, fetchImpl) {
 
 export async function fetchTeamStages({ apiKey, fetchImpl = fetch, map = loadStageMap(), now = () => new Date() } = {}) {
   if (!apiKey) return { ok: 'not_configured' }
-  const teams = (await postGraphQL(apiKey, TEAMS_QUERY, {}, fetchImpl)).teams.nodes
+  const teams = []
+  let teamsAfter = null
+  let complete = false
+  for (let page = 0; page < MAX_TEAM_PAGES && !complete; page += 1) {
+    const data = await postGraphQL(apiKey, TEAMS_QUERY, { after: teamsAfter }, fetchImpl)
+    if (!Array.isArray(data.teams?.nodes)) throw new Error('Linear malformed response: missing teams.nodes')
+    for (const team of data.teams.nodes) {
+      // Same rule as project-stages.ts: a team or issue node the validator cannot
+      // read fails the whole read. A dropped row reads as "nothing open".
+      if (typeof team?.key !== 'string' || typeof team?.name !== 'string') {
+        throw new Error('Linear malformed response: a team node lacks key or name')
+      }
+      teams.push(team)
+    }
+    teamsAfter = readPageInfo(data.teams.pageInfo, 'teams')
+    complete = teamsAfter === null
+  }
+  if (!complete) throw new Error(`Linear returned more than ${MAX_TEAM_PAGES * TEAMS_PAGE_SIZE} Linear teams: the board would be incomplete`)
   const rows = []
   for (const team of teams) {
-    // Same rule as project-stages.ts: a team or issue node the validator cannot
-    // read fails the whole read. A dropped row reads as "nothing open".
-    if (typeof team?.key !== 'string' || typeof team?.name !== 'string') {
-      throw new Error('Linear malformed response: a team node lacks key or name')
-    }
     const issues = []
     let after = null
     let capped = true
@@ -172,12 +208,12 @@ export async function fetchTeamStages({ apiKey, fetchImpl = fetch, map = loadSta
         if (!issue) throw new Error(`Linear malformed response: ${team.key}: malformed issue node`)
         issues.push(issue)
       }
-      const info = data.issues.pageInfo
-      if (!(info?.hasNextPage === true && typeof info.endCursor === 'string')) {
+      const next = readPageInfo(data.issues.pageInfo, team.key)
+      if (next === null) {
         capped = false
         break
       }
-      after = info.endCursor
+      after = next
     }
     rows.push(summariseTeam(team.key, team.name, issues, capped, map))
   }
