@@ -3,11 +3,11 @@
   "criterion_evidence": "PROVEN",
   "verification_status": "PASS",
   "delivery_status": "NOT_STARTED",
-  "verified_head": "206e952292323a66c72fdb8269f62adb5f0e1e73",
-  "updated_at_utc": "2026-09-02T18:34:04Z",
+  "verified_head": "f30e628d9bc952ab0325fe427ba4e9010d648dcc",
+  "updated_at_utc": "2026-09-02T18:35:46Z",
   "last_verify": {
-    "head": "206e952292323a66c72fdb8269f62adb5f0e1e73",
-    "at_utc": "2026-09-02T18:34:04Z",
+    "head": "f30e628d9bc952ab0325fe427ba4e9010d648dcc",
+    "at_utc": "2026-09-02T18:35:46Z",
     "matrix": [
       {
         "id": "C1",
@@ -15,7 +15,7 @@
         "evidence": "PROVEN",
         "recipe": "export PATH=\"$HOME/.nvm/versions/node/v24.14.1/bin:$HOME/.local/bin:/usr/bin:/bin\" && node scripts/audit-active-lockfiles.mjs --output \"$TMPDIR/audit-2640.json\"",
         "exit_code": 0,
-        "output_digest": "446b4ff7be07ff167300a48968b88d5c172cb0f3c5f9d30cabbb0a61d3424a0f",
+        "output_digest": "7cb61fa5f2fef30c392b589a13e79441f088fa1864fad8819cd5f9ce74582b55",
         "output_tail": "   \"workspace\": \"packages/unite-control-module\",\n      \"lockfile\": \"packages/unite-control-module/package-lock.json\",\n      \"status\": \"passed\",\n      \"exitCode\": 0,\n      \"timeoutMs\": 60000,\n      \"vulnerabilities\": {\n        \"info\": 0,\n        \"low\": 1,\n        \"moderate\": 0,\n        \"high\": 0,\n        \"critical\": 0,\n        \"total\": 1\n      },\n      \"findings\": [],\n      \"stderr\": \"\"\n    }\n  ]\n}"
       },
       {
