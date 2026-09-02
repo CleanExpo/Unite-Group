@@ -82,14 +82,21 @@ for f in files:
     observed = [line for line in git('diff', '-U0', 'origin/main', '--', f).split('\n')
                 if line and line[0] in '+-' and not line.startswith(('+++', '---'))]
     total += len(observed)
-    want, got = Counter(EXPECTED[f]), Counter(observed)
-    if want != got:
+    expected = EXPECTED[f]
+    # Ordered comparison on purpose: round 3 (codex, 0098c71b0) reordered the three npm
+    # fields inside the fast-uri block and a Counter-based check called it byte-exact.
+    if observed != expected:
         failed = True
         print(f'FAIL: {f} is not exactly the fast-uri {OLD} -> {NEW} bump')
+        want, got = Counter(expected), Counter(observed)
         for line in sorted((got - want).elements()):
             print(f'  unexpected: {line[:160]!r}')
         for line in sorted((want - got).elements()):
             print(f'  missing   : {line[:160]!r}')
+        if want == got:
+            first = next(i for i, (a, b) in enumerate(zip(observed, expected)) if a != b)
+            print(f'  reordered : same lines, different order; first difference at changed line {first + 1}: '
+                  f'{observed[first][:120]!r} where {expected[first][:120]!r} was expected')
 
 if failed:
     sys.exit(1)
