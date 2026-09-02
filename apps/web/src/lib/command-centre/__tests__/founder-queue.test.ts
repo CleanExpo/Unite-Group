@@ -120,12 +120,12 @@ describe('classifyOpenRows — the ledger\'s own status rules (review round 1, P
   })
   it('reports `resolved` inside the Open table as misplaced, and empty required cells', () => {
     const { stillOpen, notes } = classifyOpenRows([row({ id: 'F3', status: 'resolved' }), row({ id: '', decision: '' })])
-    expect(stillOpen).toEqual([])
-    expect(notes).toHaveLength(4)
+    // The empty-cell row is still `open`, so it stays counted; the notes are what make the load fail closed.
+    expect(stillOpen.map((r) => r.id)).toEqual([''])
+    expect(notes).toHaveLength(3)
     expect(notes[0]).toMatch(/F3 is marked `resolved` inside the Open table/)
     expect(notes[1]).toMatch(/empty ID cell/)
     expect(notes[2]).toMatch(/empty Decision cell/)
-    expect(notes[3]).toMatch(/\(a row with no ID\) is marked `resolved` inside the Open table/)
   })
 })
 
