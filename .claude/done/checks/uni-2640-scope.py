@@ -61,7 +61,9 @@ EXPECTED = {
 
 
 def git(*args):
-    return subprocess.run(['git', *args], capture_output=True, text=True, check=True).stdout
+    # Bytes, decoded without newline translation: text mode turns "\r\n" into "\n" and a
+    # CRLF mutant then compares equal to the expected line (caught by the builder, 03/09).
+    return subprocess.run(['git', *args], capture_output=True, check=True).stdout.decode('utf-8')
 
 
 # The Done harness's own evidence (contract, lock, state, this oracle) lives under
