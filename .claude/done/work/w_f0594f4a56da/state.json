@@ -3,11 +3,11 @@
   "criterion_evidence": "PROVEN",
   "verification_status": "PASS",
   "delivery_status": "NOT_STARTED",
-  "verified_head": "2e162cfb7efb32128d9e6dcb4a39a826560d4ff6",
-  "updated_at_utc": "2026-09-02T17:11:53Z",
+  "verified_head": "917223fa2bcc86b0b3a51f822b72de7993b21087",
+  "updated_at_utc": "2026-09-02T17:31:10Z",
   "last_verify": {
-    "head": "2e162cfb7efb32128d9e6dcb4a39a826560d4ff6",
-    "at_utc": "2026-09-02T17:11:53Z",
+    "head": "917223fa2bcc86b0b3a51f822b72de7993b21087",
+    "at_utc": "2026-09-02T17:31:10Z",
     "matrix": [
       {
         "id": "C1",
@@ -15,8 +15,8 @@
         "evidence": "PROVEN",
         "recipe": "cd apps/web && export PATH=\"$HOME/.nvm/versions/node/v24.14.1/bin:$HOME/.local/bin:$PATH\" && pnpm vitest run src/lib/command-centre/__tests__/founder-queue.test.ts",
         "exit_code": 0,
-        "output_digest": "b7e7c92530c651ebade8ed3a4f1d9bec8e4efe279045d6ffdbbf13873b7b7f40",
-        "output_tail": "remove the plugin and set resolve.tsconfigPaths: true in your Vite config instead.\n\n RUN  v3.2.7 /Users/phillmcgurk/Unite-Group/apps/web\n\n ✓ |node| src/lib/command-centre/__tests__/founder-queue.test.ts (16 tests) 13ms\n\n Test Files  1 passed (1)\n      Tests  16 passed (16)\n   Start at  03:11:46\n   Duration  221ms (transform 21ms, setup 39ms, collect 21ms, tests 13ms, environment 0ms, prepare 33ms)"
+        "output_digest": "86cb39232d697e8d592e852b8768dd8c304e28c8b51538ff92ede9f0a5f9c81f",
+        "output_tail": "remove the plugin and set resolve.tsconfigPaths: true in your Vite config instead.\n\n RUN  v3.2.7 /Users/phillmcgurk/Unite-Group/apps/web\n\n ✓ |node| src/lib/command-centre/__tests__/founder-queue.test.ts (16 tests) 12ms\n\n Test Files  1 passed (1)\n      Tests  16 passed (16)\n   Start at  03:31:01\n   Duration  272ms (transform 23ms, setup 76ms, collect 23ms, tests 12ms, environment 0ms, prepare 30ms)"
       },
       {
         "id": "C2",
@@ -24,8 +24,8 @@
         "evidence": "PROVEN",
         "recipe": "cd apps/web && export PATH=\"$HOME/.nvm/versions/node/v24.14.1/bin:$HOME/.local/bin:$PATH\" && pnpm vitest run src/lib/command-centre/__tests__/project-stages.test.ts",
         "exit_code": 0,
-        "output_digest": "32fca907fac92a80124a8fdb19b5ea36ba5effd2345c5230da00dd6a3fec499a",
-        "output_tail": "emove the plugin and set resolve.tsconfigPaths: true in your Vite config instead.\n\n RUN  v3.2.7 /Users/phillmcgurk/Unite-Group/apps/web\n\n ✓ |node| src/lib/command-centre/__tests__/project-stages.test.ts (28 tests) 16ms\n\n Test Files  1 passed (1)\n      Tests  28 passed (28)\n   Start at  03:11:47\n   Duration  228ms (transform 27ms, setup 39ms, collect 23ms, tests 16ms, environment 0ms, prepare 32ms)"
+        "output_digest": "bb4538a6c9504106c760ff5906b5d516b4a1a5bb8484c8290d93db96a21ba94f",
+        "output_tail": "emove the plugin and set resolve.tsconfigPaths: true in your Vite config instead.\n\n RUN  v3.2.7 /Users/phillmcgurk/Unite-Group/apps/web\n\n ✓ |node| src/lib/command-centre/__tests__/project-stages.test.ts (32 tests) 17ms\n\n Test Files  1 passed (1)\n      Tests  32 passed (32)\n   Start at  03:31:01\n   Duration  235ms (transform 27ms, setup 38ms, collect 24ms, tests 17ms, environment 0ms, prepare 32ms)"
       },
       {
         "id": "C3",
@@ -33,8 +33,8 @@
         "evidence": "PROVEN",
         "recipe": "cd apps/web && export PATH=\"$HOME/.nvm/versions/node/v24.14.1/bin:$HOME/.local/bin:$PATH\" && pnpm vitest run 'src/app/(founder)/founder/command-centre/BlockedOnMeTile.test.ts' 'src/app/(founder)/founder/command-centre/BlockedOnMeTile.render.test.tsx' 'src/app/(founder)/founder/command-centre/StageBoardTile.test.ts'",
         "exit_code": 0,
-        "output_digest": "6410040d09348d9b2971febc7308c0cbe33b8de8be978ae31710078d425101e9",
-        "output_tail": "dTile.test.ts (5 tests) 2ms\n ✓ |node| src/app/(founder)/founder/command-centre/BlockedOnMeTile.test.ts (5 tests) 3ms\n ✓ |jsdom| src/app/(founder)/founder/command-centre/BlockedOnMeTile.render.test.tsx (3 tests) 32ms\n\n Test Files  3 passed (3)\n      Tests  13 passed (13)\n   Start at  03:11:48\n   Duration  476ms (transform 52ms, setup 118ms, collect 90ms, tests 36ms, environment 218ms, prepare 86ms)"
+        "output_digest": "227b084164cd223fe8308018a71b30a7d680e549b52467bfbec39d94dbbd91c9",
+        "output_tail": "ile.test.ts (5 tests) 2ms\n ✓ |node| src/app/(founder)/founder/command-centre/BlockedOnMeTile.test.ts (5 tests) 3ms\n ✓ |jsdom| src/app/(founder)/founder/command-centre/BlockedOnMeTile.render.test.tsx (3 tests) 32ms\n\n Test Files  3 passed (3)\n      Tests  13 passed (13)\n   Start at  03:31:02\n   Duration  666ms (transform 65ms, setup 134ms, collect 109ms, tests 37ms, environment 382ms, prepare 113ms)"
       },
       {
         "id": "C4",
