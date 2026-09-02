@@ -214,6 +214,7 @@ export async function fetchTeamStages({ apiKey, fetchImpl = fetch, map = loadSta
   const rows = []
   for (const team of teams) {
     const issues = []
+    const ids = new Set()
     let after = null
     const cursors = new Set()
     let capped = true
@@ -222,6 +223,9 @@ export async function fetchTeamStages({ apiKey, fetchImpl = fetch, map = loadSta
       for (const node of data.issues.nodes) {
         const issue = toStageIssue(node)
         if (!issue) throw new Error(`Linear malformed response: ${team.key}: malformed issue node`)
+        // An advancing cursor does not make issues unique: an overlapping page would count one issue twice.
+        if (ids.has(issue.id)) throw new Error(`Linear malformed response: ${team.key}: issue ${issue.identifier} appears more than once`)
+        ids.add(issue.id)
         issues.push(issue)
       }
       const next = readPageInfo(data.issues.pageInfo, team.key, cursors)

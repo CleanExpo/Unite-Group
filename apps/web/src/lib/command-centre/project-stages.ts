@@ -262,6 +262,7 @@ async function fetchTeamOpenIssues(
   fetchImpl: MinimalFetch,
 ): Promise<{ ok: true; issues: StageIssue[]; capped: boolean } | { ok: false; error: string }> {
   const issues: StageIssue[] = []
+  const ids = new Set<string>()
   let after: string | null = null
   const cursors = new Set<string>()
   for (let page = 0; page < MAX_PAGES; page += 1) {
@@ -275,6 +276,9 @@ async function fetchTeamOpenIssues(
       // it can turn a team with open work into Done or pick the wrong next issue
       // while the read still reports ok. Fail the whole read and name the team.
       if (!issue) return { ok: false, error: `${teamKey}: malformed issue node in Linear response` }
+      // An advancing cursor does not make issues unique: an overlapping page would count one issue twice.
+      if (ids.has(issue.id)) return { ok: false, error: `${teamKey}: malformed response: issue ${issue.identifier} appears more than once` }
+      ids.add(issue.id)
       issues.push(issue)
     }
     const page = readPageInfo(result.data.issues?.pageInfo)

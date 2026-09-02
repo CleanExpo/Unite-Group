@@ -139,8 +139,8 @@ describe('fetchTeamStages', () => {
   })
 
   it('marks a team capped after four pages instead of reporting a floor as a total', async () => {
-    const page = Array.from({ length: 3 }, (_, i) => rawNode(`RA-${i}`, 'Backlog', 'backlog'))
-    const fetchImpl = linearMock({ RA: [page, page, page, page, page] })
+    const pages = Array.from({ length: 5 }, (_, p) => Array.from({ length: 3 }, (_, i) => rawNode(`RA-${p}-${i}`, 'Backlog', 'backlog')))
+    const fetchImpl = linearMock({ RA: pages })
     const result = await fetchTeamStages({ apiKey: 'k', fetchImpl })
     if (result.ok !== true) throw new Error('expected ok')
     expect(result.teams[0].capped).toBe(true)
@@ -283,7 +283,13 @@ describe('fetchTeamStages — review round 3 findings', () => {
   const oneTeam = [{ nodes: [{ key: 'RA', name: 'RA' }], pageInfo: LAST_PAGE }]
 
   it('fails the whole read when an issue cursor does not advance — one issue can never count four times (P1-STAGE-BOARD-REPEATED-ISSUE-CURSOR-INFLATES-COUNTS)', async () => {
-    const fetchImpl = pagedTeamsMock(oneTeam, { pageInfo: { hasNextPage: true, endCursor: 'same' }, nodes: [rawNode('RA-1', 'Backlog', 'backlog')] })
+    let call = 0
+    const fetchImpl = vi.fn(async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(String(init.body)) as { query: string }
+      if (body.query.includes('StageTeams')) return { ok: true, status: 200, json: async () => ({ data: { teams: oneTeam[0] } }) }
+      const i = call++
+      return { ok: true, status: 200, json: async () => ({ data: { issues: { pageInfo: { hasNextPage: true, endCursor: 'same' }, nodes: [rawNode(`RA-${i}`, 'Backlog', 'backlog')] } } }) }
+    })
     expect(await fetchTeamStages({ apiKey: 'k', fetchImpl })).toEqual({ ok: false, error: 'RA: malformed response: pagination cursor did not advance' })
   })
 
@@ -320,6 +326,29 @@ describe('fetchTeamStages — review round 3 findings', () => {
   it('fails the whole read through fetchTeamStages on malformed labels — Planning is never published in place of Research', async () => {
     const fetchImpl = pagedTeamsMock(oneTeam, { pageInfo: LAST_PAGE, nodes: [{ ...rawNode('RA-1', 'Todo', 'unstarted'), labels: null }] })
     expect(await fetchTeamStages({ apiKey: 'k', fetchImpl })).toEqual({ ok: false, error: 'RA: malformed issue node in Linear response' })
+  })
+})
+
+// ─── Review round 4 (codex, head 7131580ee): one P1, watched red first ───
+
+describe('fetchTeamStages — review round 4 finding', () => {
+  const oneTeam = [{ nodes: [{ key: 'RA', name: 'RA' }], pageInfo: LAST_PAGE }]
+
+  it('fails the whole read when one issue id appears twice across advancing pages — counts never inflate (P1-STAGE-BOARD-DUPLICATE-ISSUE-IDENTITY-INFLATES-COUNTS)', async () => {
+    const fetchImpl = linearMock({ RA: [[rawNode('RA-1', 'Backlog', 'backlog')], [rawNode('RA-1', 'Backlog', 'backlog')]] })
+    expect(await fetchTeamStages({ apiKey: 'k', fetchImpl })).toEqual({ ok: false, error: 'RA: malformed response: issue RA-1 appears more than once' })
+  })
+
+  it('fails the whole read when one issue id appears twice within a single page', async () => {
+    const fetchImpl = pagedTeamsMock(oneTeam, { pageInfo: LAST_PAGE, nodes: [rawNode('RA-1', 'Backlog', 'backlog'), rawNode('RA-1', 'Todo', 'unstarted')] })
+    expect(await fetchTeamStages({ apiKey: 'k', fetchImpl })).toEqual({ ok: false, error: 'RA: malformed response: issue RA-1 appears more than once' })
+  })
+
+  it('still reads two pages of distinct issues as two open issues', async () => {
+    const fetchImpl = linearMock({ RA: [[rawNode('RA-1', 'Backlog', 'backlog')], [rawNode('RA-2', 'Backlog', 'backlog')]] })
+    const result = await fetchTeamStages({ apiKey: 'k', fetchImpl })
+    if (result.ok !== true) throw new Error(`expected ok, got ${JSON.stringify(result)}`)
+    expect(result.teams[0].open).toBe(2)
   })
 })
 
@@ -399,7 +428,14 @@ describe('PARITY with scripts/stage.mjs (the CLI)', () => {
       }) as unknown as typeof fetch
     const oneTeam = [{ nodes: [{ key: 'RA', name: 'RA' }], pageInfo: LAST_PAGE }]
 
-    await expect(cli.fetchTeamStages({ apiKey: 'k', fetchImpl: paged(oneTeam, { pageInfo: { hasNextPage: true, endCursor: 'same' }, nodes: [rawNode('RA-1', 'Backlog', 'backlog')] }), map: STAGE_MAP })).rejects.toThrow(/RA: pagination cursor did not advance/)
+    let call = 0
+    const sameCursor = (async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(String(init.body)) as { query: string }
+      if (body.query.includes('StageTeams')) return { ok: true, status: 200, json: async () => ({ data: { teams: oneTeam[0] } }) }
+      const i = call++
+      return { ok: true, status: 200, json: async () => ({ data: { issues: { pageInfo: { hasNextPage: true, endCursor: 'same' }, nodes: [rawNode(`RA-${i}`, 'Backlog', 'backlog')] } } }) }
+    }) as unknown as typeof fetch
+    await expect(cli.fetchTeamStages({ apiKey: 'k', fetchImpl: sameCursor, map: STAGE_MAP })).rejects.toThrow(/RA: pagination cursor did not advance/)
     await expect(cli.fetchTeamStages({ apiKey: 'k', fetchImpl: paged([{ nodes: [{ key: 'A', name: 'A' }], pageInfo: { hasNextPage: true, endCursor: '1' } }, { nodes: [{ key: 'B', name: 'B' }], pageInfo: { hasNextPage: true, endCursor: '1' } }]), map: STAGE_MAP })).rejects.toThrow(/teams: pagination cursor did not advance/)
     await expect(cli.fetchTeamStages({ apiKey: 'k', fetchImpl: paged([{ nodes: [{ key: 'RA', name: 'RA' }], pageInfo: { hasNextPage: true, endCursor: '1' } }, { nodes: [{ key: 'RA', name: 'RA' }], pageInfo: LAST_PAGE }]), map: STAGE_MAP })).rejects.toThrow(/team RA appears more than once/)
     await expect(cli.fetchTeamStages({ apiKey: 'k', fetchImpl: paged(oneTeam, { pageInfo: LAST_PAGE, nodes: [{ ...rawNode('RA-1', 'Todo', 'unstarted'), labels: null }] }), map: STAGE_MAP })).rejects.toThrow(/RA: malformed issue node/)
@@ -410,5 +446,20 @@ describe('PARITY with scripts/stage.mjs (the CLI)', () => {
       expect(cli.toStageIssue({ ...base, labels })).toBe(toStageIssue({ ...base, labels }))
     }
     expect(cli.toStageIssue({ ...base, labels: { nodes: [{ name: 'Research' }] } })).toEqual(toStageIssue({ ...base, labels: { nodes: [{ name: 'Research' }] } }))
+  })
+  it('the CLI mirrors round 4: a repeated issue id across or within pages refuses', async () => {
+    const cli = await import(pathToFileURL(path.resolve(process.cwd(), '..', '..', 'scripts', 'stage.mjs')).href)
+    const pages = (issuePages: unknown[][]) =>
+      (async (_url: string, init: RequestInit) => {
+        const body = JSON.parse(String(init.body)) as { query: string; variables: { after?: string | null } }
+        if (body.query.includes('StageTeams')) return { ok: true, status: 200, json: async () => ({ data: { teams: { nodes: [{ key: 'RA', name: 'RA' }], pageInfo: LAST_PAGE } } }) }
+        const index = body.variables.after ? Number(body.variables.after) : 0
+        const hasNextPage = index + 1 < issuePages.length
+        return { ok: true, status: 200, json: async () => ({ data: { issues: { pageInfo: { hasNextPage, endCursor: hasNextPage ? String(index + 1) : null }, nodes: issuePages[index] } } }) }
+      }) as unknown as typeof fetch
+    await expect(cli.fetchTeamStages({ apiKey: 'k', fetchImpl: pages([[rawNode('RA-1', 'Backlog', 'backlog')], [rawNode('RA-1', 'Backlog', 'backlog')]]), map: STAGE_MAP })).rejects.toThrow(/RA: issue RA-1 appears more than once/)
+    await expect(cli.fetchTeamStages({ apiKey: 'k', fetchImpl: pages([[rawNode('RA-1', 'Backlog', 'backlog'), rawNode('RA-1', 'Todo', 'unstarted')]]), map: STAGE_MAP })).rejects.toThrow(/RA: issue RA-1 appears more than once/)
+    const two = await cli.fetchTeamStages({ apiKey: 'k', fetchImpl: pages([[rawNode('RA-1', 'Backlog', 'backlog')], [rawNode('RA-2', 'Backlog', 'backlog')]]), map: STAGE_MAP })
+    expect(two.teams[0].open).toBe(2)
   })
 })
