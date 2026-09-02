@@ -3,11 +3,11 @@
   "criterion_evidence": "PROVEN",
   "verification_status": "PASS",
   "delivery_status": "NOT_STARTED",
-  "verified_head": "1cd4086a906e2b45d6e432d719a283da7619adba",
-  "updated_at_utc": "2026-09-02T18:45:58Z",
+  "verified_head": "9bd44855df1c6b261ef6e0af0a716bfe0752671e",
+  "updated_at_utc": "2026-09-02T18:58:06Z",
   "last_verify": {
-    "head": "1cd4086a906e2b45d6e432d719a283da7619adba",
-    "at_utc": "2026-09-02T18:45:58Z",
+    "head": "9bd44855df1c6b261ef6e0af0a716bfe0752671e",
+    "at_utc": "2026-09-02T18:58:06Z",
     "matrix": [
       {
         "id": "C1",
@@ -15,7 +15,7 @@
         "evidence": "PROVEN",
         "recipe": "export PATH=\"$HOME/.nvm/versions/node/v24.14.1/bin:$HOME/.local/bin:/usr/bin:/bin\" && node scripts/audit-active-lockfiles.mjs --output \"$TMPDIR/audit-2640.json\"",
         "exit_code": 0,
-        "output_digest": "4c2a9a5a35294775641d1d06f105aa22b3e2af0e5c8ee7f54662ac450e463c7e",
+        "output_digest": "6913b73075ad2a6d8a4574020f6c4f2fd1c4d259fc85280fcc7dbec3d01f9f44",
         "output_tail": "   \"workspace\": \"packages/unite-control-module\",\n      \"lockfile\": \"packages/unite-control-module/package-lock.json\",\n      \"status\": \"passed\",\n      \"exitCode\": 0,\n      \"timeoutMs\": 60000,\n      \"vulnerabilities\": {\n        \"info\": 0,\n        \"low\": 1,\n        \"moderate\": 0,\n        \"high\": 0,\n        \"critical\": 0,\n        \"total\": 1\n      },\n      \"findings\": [],\n      \"stderr\": \"\"\n    }\n  ]\n}"
       },
       {
@@ -33,8 +33,8 @@
         "evidence": "PROVEN",
         "recipe": "export PATH=\"$HOME/.nvm/versions/node/v24.14.1/bin:$HOME/.local/bin:/usr/bin:/bin\" && python3 .claude/done/checks/uni-2640-scope.py",
         "exit_code": 0,
-        "output_digest": "27f9a310f33c61ee7fcbbb9d7fc4bbd6e2f39a1e914e45cf4140978706983b15",
-        "output_tail": "OK: 8 files, 40 changed lines, the diff is exactly the fast-uri 4.1.2 -> 4.1.4 bump"
+        "output_digest": "cdb5eb229b1f2aa874843418f8003722326a56e0b2f7339736fb1515cb282368",
+        "output_tail": "OK: 8 files, 40 changed lines, every diff equals the expected fast-uri 4.1.2 -> 4.1.4 bump, hunk headers included"
       }
     ],
     "blockers": []
