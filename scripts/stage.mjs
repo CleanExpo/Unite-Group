@@ -157,6 +157,11 @@ export async function fetchTeamStages({ apiKey, fetchImpl = fetch, map = loadSta
   const teams = (await postGraphQL(apiKey, TEAMS_QUERY, {}, fetchImpl)).teams.nodes
   const rows = []
   for (const team of teams) {
+    // Same rule as project-stages.ts: a team or issue node the validator cannot
+    // read fails the whole read. A dropped row reads as "nothing open".
+    if (typeof team?.key !== 'string' || typeof team?.name !== 'string') {
+      throw new Error('Linear malformed response: a team node lacks key or name')
+    }
     const issues = []
     let after = null
     let capped = true
@@ -164,7 +169,8 @@ export async function fetchTeamStages({ apiKey, fetchImpl = fetch, map = loadSta
       const data = await postGraphQL(apiKey, TEAM_OPEN_ISSUES_QUERY, { team: team.key, after }, fetchImpl)
       for (const node of data.issues.nodes) {
         const issue = toStageIssue(node)
-        if (issue) issues.push(issue)
+        if (!issue) throw new Error(`Linear malformed response: ${team.key}: malformed issue node`)
+        issues.push(issue)
       }
       const info = data.issues.pageInfo
       if (!(info?.hasNextPage === true && typeof info.endCursor === 'string')) {

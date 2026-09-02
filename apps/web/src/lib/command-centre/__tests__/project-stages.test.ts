@@ -156,6 +156,22 @@ describe('fetchTeamStages', () => {
     expect(await fetchTeamStages({ apiKey: 'k', fetchImpl })).toEqual({ ok: false, error: 'B: HTTP 502' })
   })
 
+  it('fails the whole read when a team node lacks key or name — a dropped row reads as "nothing open" (review round 1, P1)', async () => {
+    const fetchImpl = vi.fn(async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(String(init.body)) as { query: string }
+      if (body.query.includes('StageTeams')) {
+        return { ok: true, status: 200, json: async () => ({ data: { teams: { nodes: [{ key: 'A', name: 'A' }, { key: 'B' }] } } }) }
+      }
+      return { ok: true, status: 200, json: async () => ({ data: { issues: { pageInfo: { hasNextPage: false, endCursor: null }, nodes: [] } } }) }
+    })
+    expect(await fetchTeamStages({ apiKey: 'k', fetchImpl })).toEqual({ ok: false, error: 'malformed response: a team node lacks key or name' })
+  })
+
+  it('fails the whole read when an issue node cannot be validated, naming the team (review round 1, P1)', async () => {
+    const fetchImpl = linearMock({ RA: [[rawNode('RA-1', 'In Progress', 'started'), { id: 'x', identifier: 'RA-2' }]] })
+    expect(await fetchTeamStages({ apiKey: 'k', fetchImpl })).toEqual({ ok: false, error: 'RA: malformed issue node in Linear response' })
+  })
+
   it('surfaces HTTP and GraphQL errors honestly', async () => {
     const http = vi.fn(async () => ({ ok: false, status: 401, json: async () => ({}) }))
     expect(await fetchTeamStages({ apiKey: 'k', fetchImpl: http })).toEqual({ ok: false, error: 'HTTP 401' })
@@ -181,5 +197,19 @@ describe('PARITY with scripts/stage.mjs (the CLI)', () => {
     for (const i of fixture) expect(cli.classifyIssue(i, cliMap)).toBe(classifyIssue(i))
     expect(cli.summariseTeam('X', 'X', fixture, true, cliMap)).toEqual(summariseTeam('X', 'X', fixture, true))
     expect(cli.summariseTeam('X', 'X', [], false, cliMap)).toEqual(summariseTeam('X', 'X', [], false))
+  })
+
+  it('the CLI also refuses a malformed team or issue node instead of dropping it', async () => {
+    const cli = await import(pathToFileURL(path.resolve(process.cwd(), '..', '..', 'scripts', 'stage.mjs')).href)
+    const teamsOnly = (teams: unknown[], nodes: unknown[] = []) =>
+      (async (_url: string, init: RequestInit) => {
+        const body = JSON.parse(String(init.body)) as { query: string }
+        if (body.query.includes('StageTeams')) return { ok: true, status: 200, json: async () => ({ data: { teams: { nodes: teams } } }) }
+        return { ok: true, status: 200, json: async () => ({ data: { issues: { pageInfo: { hasNextPage: false, endCursor: null }, nodes } } }) }
+      }) as unknown as typeof fetch
+    await expect(cli.fetchTeamStages({ apiKey: 'k', fetchImpl: teamsOnly([{ key: 'B' }]), map: STAGE_MAP })).rejects.toThrow(/team node lacks key or name/)
+    await expect(
+      cli.fetchTeamStages({ apiKey: 'k', fetchImpl: teamsOnly([{ key: 'RA', name: 'RA' }], [{ id: 'x', identifier: 'RA-2' }]), map: STAGE_MAP }),
+    ).rejects.toThrow(/RA: malformed issue node/)
   })
 })

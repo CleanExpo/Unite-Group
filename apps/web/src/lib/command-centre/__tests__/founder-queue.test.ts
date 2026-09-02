@@ -8,7 +8,14 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { ageOpenRows, computeAgeDays, loadFounderQueue, parseFounderQueue } from '@/lib/command-centre/founder-queue'
+import {
+  ageOpenRows,
+  classifyOpenRows,
+  computeAgeDays,
+  evaluateFounderQueue,
+  loadFounderQueue,
+  parseFounderQueue,
+} from '@/lib/command-centre/founder-queue'
 
 const NOW = '2026-09-03T00:00:00Z'
 
@@ -102,6 +109,46 @@ describe('ageOpenRows', () => {
   })
 })
 
+describe('classifyOpenRows — the ledger\'s own status rules (review round 1, P1)', () => {
+  const row = (over: Partial<Parameters<typeof classifyOpenRows>[0][number]>) => ({
+    id: 'F1', decision: 'Decide', opened: '2026-08-16', blocks: '', context: '', status: 'open', ...over,
+  })
+  it('keeps `open` rows and names every other status instead of dropping it', () => {
+    const { stillOpen, notes } = classifyOpenRows([row({}), row({ id: 'F9', status: 'opne' })])
+    expect(stillOpen.map((r) => r.id)).toEqual(['F1'])
+    expect(notes).toEqual(['Row F9 has status "opne", which is neither `open` nor `resolved`; it is not counted and the queue cannot be called clean.'])
+  })
+  it('reports `resolved` inside the Open table as misplaced, and empty required cells', () => {
+    const { stillOpen, notes } = classifyOpenRows([row({ id: 'F3', status: 'resolved' }), row({ id: '', decision: '' })])
+    expect(stillOpen).toEqual([])
+    expect(notes).toHaveLength(4)
+    expect(notes[0]).toMatch(/F3 is marked `resolved` inside the Open table/)
+    expect(notes[1]).toMatch(/empty ID cell/)
+    expect(notes[2]).toMatch(/empty Decision cell/)
+    expect(notes[3]).toMatch(/\(a row with no ID\) is marked `resolved` inside the Open table/)
+  })
+})
+
+describe('evaluateFounderQueue fails closed on rule-breaking rows (review round 1, P1)', () => {
+  it.each([
+    ['status typo `opne`', `| F9 | Decide | 2026-08-16 | — | x | y | opne |`, /status "opne"/],
+    ['`resolved` in the Open table', `| F3 | Decide | 2026-08-16 | — | x | y | resolved |`, /marked `resolved` inside the Open table/],
+    ['empty Decision cell', `| F4 |  | 2026-08-16 | — | x | y | open |`, /empty Decision cell/],
+  ])('%s → ok:false, zero rows', (_name, line, pattern) => {
+    const result = evaluateFounderQueue(ledger(line), 'fixture', NOW)
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.error).toMatch(/break its own rules/)
+    expect(result.error).toMatch(pattern)
+  })
+  it('still returns ok:true for a well-formed open row', () => {
+    const result = evaluateFounderQueue(ledger(`| F1 | Decide | 2026-08-16 | — | x | y | open |`), 'fixture', NOW)
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.rows.map((r) => [r.id, r.age_days])).toEqual([['F1', 18]])
+  })
+})
+
 describe('loadFounderQueue against the live ledger', () => {
   it('reads FOUNDER-QUEUE.md from the repo root (dev fallback) and ages every open row', async () => {
     const result = await loadFounderQueue()
@@ -122,6 +169,12 @@ describe('loadFounderQueue against the live ledger', () => {
     expect(ours.open).toEqual(theirs.open)
     expect(ours.resolved).toEqual(theirs.resolved)
     expect(ours.malformed).toEqual(theirs.malformed)
+    const oursClass = classifyOpenRows(ours.open)
+    const theirsClass = mjs.classifyOpenRows(theirs.open)
+    expect(oursClass.stillOpen).toEqual(theirsClass.stillOpen)
+    expect(oursClass.notes).toEqual(theirsClass.notes)
+    const bad = [{ id: 'F9', decision: 'x', opened: '2026-08-16', blocks: '', context: '', status: 'opne' }, { id: '', decision: '', opened: '2026-08-16', blocks: '', context: '', status: 'resolved' }]
+    expect(classifyOpenRows(bad)).toEqual(mjs.classifyOpenRows(bad))
     for (const row of ours.open) {
       expect(computeAgeDays(row.opened, NOW)).toBe(mjs.computeAgeDays(row.opened, NOW))
     }

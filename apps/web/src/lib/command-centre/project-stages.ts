@@ -235,7 +235,11 @@ async function fetchTeamOpenIssues(
     if (!Array.isArray(nodes)) return { ok: false, error: `${teamKey}: malformed response: missing issues.nodes` }
     for (const node of nodes) {
       const issue = toStageIssue(node)
-      if (issue) issues.push(issue)
+      // A node the validator cannot read is a shape drift, not a skip: dropping
+      // it can turn a team with open work into Done or pick the wrong next issue
+      // while the read still reports ok. Fail the whole read and name the team.
+      if (!issue) return { ok: false, error: `${teamKey}: malformed issue node in Linear response` }
+      issues.push(issue)
     }
     const info = result.data.issues?.pageInfo
     const hasNext = info?.hasNextPage === true && typeof info.endCursor === 'string'
@@ -264,7 +268,11 @@ export async function fetchTeamStages(deps: ProjectStagesDeps = {}): Promise<Tea
   const rows: TeamStage[] = []
   for (const node of teamNodes) {
     const t = node as { key?: unknown; name?: unknown }
-    if (typeof t.key !== 'string' || typeof t.name !== 'string') continue
+    // One row per team is the contract; a team node without a key or name would
+    // vanish from the board and read as "nothing open". Fail the whole read.
+    if (typeof t.key !== 'string' || typeof t.name !== 'string') {
+      return { ok: false, error: 'malformed response: a team node lacks key or name' }
+    }
     const fetched = await fetchTeamOpenIssues(apiKey, t.key, fetchImpl)
     if (!fetched.ok) return fetched
     rows.push(summariseTeam(t.key, t.name, fetched.issues, fetched.capped))

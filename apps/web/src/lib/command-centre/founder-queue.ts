@@ -206,6 +206,44 @@ export function parseFounderQueue(markdown: string): ParsedFounderQueue {
   return { open, resolved, malformed }
 }
 
+const OPEN_STATUS = 'open'
+const MISPLACED_STATUS = 'resolved'
+
+/**
+ * Port of scripts/founder-queue.mjs `classifyOpenRows`. Every Open-table row is
+ * checked against the ledger's own rules; nothing is excluded by failing to
+ * match. A filter that selects `open` silently discards `opne`; a validator
+ * that classifies each value cannot. `resolved` inside the Open table is an
+ * anomaly (the row should have moved), reported rather than counted or dropped.
+ */
+export function classifyOpenRows(rows: FounderQueueOpenRow[]): { stillOpen: FounderQueueOpenRow[]; notes: string[] } {
+  const stillOpen: FounderQueueOpenRow[] = []
+  const notes: string[] = []
+  for (const row of rows) {
+    const id = typeof row.id === 'string' ? row.id.trim() : ''
+    const label = id === '' ? '(a row with no ID)' : id
+    const status = typeof row.status === 'string' ? row.status.trim().toLowerCase() : ''
+    if (id === '') notes.push('An Open-table row has an empty ID cell, so it cannot be named in a report.')
+    if (typeof row.decision !== 'string' || row.decision.trim() === '') {
+      notes.push(`Row ${label} has an empty Decision cell, so there is nothing to report.`)
+    }
+    if (status === OPEN_STATUS) {
+      stillOpen.push(row)
+      continue
+    }
+    if (status === MISPLACED_STATUS) {
+      notes.push(
+        `Row ${label} is marked \`resolved\` inside the Open table; the ledger's rules say a resolved row moves to the Resolved section with its decision text.`,
+      )
+      continue
+    }
+    notes.push(
+      `Row ${label} has status ${JSON.stringify(row.status)}, which is neither \`open\` nor \`resolved\`; it is not counted and the queue cannot be called clean.`,
+    )
+  }
+  return { stillOpen, notes }
+}
+
 /** Ages every open row; a row whose date does not compute is NAMED in `unaged`, not thrown past. */
 export function ageOpenRows(rows: FounderQueueOpenRow[], now: string): { aged: AgedFounderQueueRow[]; unaged: string[] } {
   const aged: AgedFounderQueueRow[] = []
@@ -250,18 +288,27 @@ export async function loadFounderQueue(now: () => Date = () => new Date()): Prom
   try {
     const read = await readQueueSource()
     source = read.source
-    const parsed = parseFounderQueue(read.raw)
-    if (parsed.malformed.length > 0) {
-      return {
-        ok: false,
-        source,
-        checkedAt,
-        error: `ledger has ${parsed.malformed.length} unreadable line(s): ${parsed.malformed[0]}`,
-      }
-    }
-    const { aged, unaged } = ageOpenRows(parsed.open, checkedAt)
-    return { ok: true, source, checkedAt, rows: aged, unaged, malformed: [] }
+    return evaluateFounderQueue(read.raw, source, checkedAt)
   } catch (err: unknown) {
     return { ok: false, source, checkedAt, error: err instanceof Error ? err.message : String(err) }
   }
+}
+
+/**
+ * Pure evaluation of ledger text: parse (structure), classify (the ledger's own
+ * status rules), age. Any malformed line or rule-breaking row returns ok:false —
+ * a half-read queue rendered as a whole one is the false-reassurance shape this
+ * reader exists to remove.
+ */
+export function evaluateFounderQueue(raw: string, source: string, checkedAt: string): FounderQueueLoadResult {
+  const parsed = parseFounderQueue(raw)
+  if (parsed.malformed.length > 0) {
+    return { ok: false, source, checkedAt, error: `ledger has ${parsed.malformed.length} unreadable line(s): ${parsed.malformed[0]}` }
+  }
+  const { stillOpen, notes } = classifyOpenRows(parsed.open)
+  if (notes.length > 0) {
+    return { ok: false, source, checkedAt, error: `ledger has ${notes.length} row(s) that break its own rules: ${notes[0]}` }
+  }
+  const { aged, unaged } = ageOpenRows(stillOpen, checkedAt)
+  return { ok: true, source, checkedAt, rows: aged, unaged, malformed: [] }
 }
