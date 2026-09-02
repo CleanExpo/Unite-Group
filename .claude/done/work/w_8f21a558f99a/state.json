@@ -1,8 +1,42 @@
 {
   "schema": "done/1",
-  "criterion_evidence": "UNPROVEN",
-  "verification_status": "NOT_RUN",
+  "criterion_evidence": "FAILED",
+  "verification_status": "FAIL",
   "delivery_status": "NOT_STARTED",
-  "verified_head": null,
-  "updated_at_utc": "2026-09-02T18:12:01Z"
+  "verified_head": "7edff536757443857229722706303145a3a5e755",
+  "updated_at_utc": "2026-09-02T18:14:33Z",
+  "last_verify": {
+    "head": "7edff536757443857229722706303145a3a5e755",
+    "at_utc": "2026-09-02T18:14:33Z",
+    "matrix": [
+      {
+        "id": "C1",
+        "required": true,
+        "evidence": "PROVEN",
+        "recipe": "export PATH=\"$HOME/.nvm/versions/node/v24.14.1/bin:$HOME/.local/bin:/usr/bin:/bin\" && node scripts/audit-active-lockfiles.mjs --output \"$TMPDIR/audit-2640.json\"",
+        "exit_code": 0,
+        "output_digest": "eb329758b61e3b4527ff47163b3bd25a904250810767e55c89afcd49a36c2a08",
+        "output_tail": "   \"workspace\": \"packages/unite-control-module\",\n      \"lockfile\": \"packages/unite-control-module/package-lock.json\",\n      \"status\": \"passed\",\n      \"exitCode\": 0,\n      \"timeoutMs\": 60000,\n      \"vulnerabilities\": {\n        \"info\": 0,\n        \"low\": 1,\n        \"moderate\": 0,\n        \"high\": 0,\n        \"critical\": 0,\n        \"total\": 1\n      },\n      \"findings\": [],\n      \"stderr\": \"\"\n    }\n  ]\n}"
+      },
+      {
+        "id": "C2",
+        "required": true,
+        "evidence": "PROVEN",
+        "recipe": "export PATH=\"$HOME/.nvm/versions/node/v24.14.1/bin:$HOME/.local/bin:/usr/bin:/bin\" && npm audit --package-lock-only --ignore-scripts --audit-level=high --prefix packages/pi-ceo-operator-mcp",
+        "exit_code": 0,
+        "output_digest": "0a8fba5035ac243446870b874ae50ecae831c6105392550d4b75ef0f74498561",
+        "output_tail": "\nnode_modules/hono\n\nqs  2.2.5 - 6.15.3\nSeverity: moderate\nqs array-limit bypass via bracket-key comma parsing - https://github.com/advisories/GHSA-x5fp-wj9c-mxmx\nqs: Denial of Service via Attacker Controlled isBuffer - https://github.com/advisories/GHSA-4mjr-xmp4-gh2g\nfix available via `npm audit fix`\nnode_modules/qs\n\n2 moderate severity vulnerabilities\n\nTo address all issues, run:\n  npm audit fix"
+      },
+      {
+        "id": "C3",
+        "required": true,
+        "evidence": "FAILED",
+        "recipe": "export PATH=\"$HOME/.nvm/versions/node/v24.14.1/bin:$HOME/.local/bin:/usr/bin:/bin\" && python3 .claude/done/checks/uni-2640-scope.py",
+        "exit_code": 1,
+        "output_digest": "4ae7315de94e5a4f89bf20b07b1eaed564356f4f8d192314330fc807d2e8a031",
+        "output_tail": "FAIL: changed files differ from the expected eight\n  extra  : ['.claude/done/checks/uni-2640-scope.py', '.claude/done/work/w_8f21a558f99a/contract.json', '.claude/done/work/w_8f21a558f99a/lock.json', '.claude/done/work/w_8f21a558f99a/state.json']\n  missing: []"
+      }
+    ],
+    "blockers": []
+  }
 }

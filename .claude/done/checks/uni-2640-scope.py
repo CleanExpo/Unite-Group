@@ -25,7 +25,10 @@ def git(*args):
     return subprocess.run(['git', *args], capture_output=True, text=True, check=True).stdout
 
 
-files = sorted(f for f in git('diff', '--name-only', 'origin/main').splitlines() if f)
+# The Done harness's own evidence (contract, lock, state, this oracle) lives under
+# .claude/done and is committed alongside; it is not product scope.
+files = sorted(f for f in git('diff', '--name-only', 'origin/main').splitlines()
+               if f and not f.startswith('.claude/done/'))
 if files != EXPECTED:
     print('FAIL: changed files differ from the expected eight')
     print('  extra  :', sorted(set(files) - set(EXPECTED)))
