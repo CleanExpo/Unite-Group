@@ -1,0 +1,31 @@
+{
+  "schema": "done/1",
+  "work_id": "w_8f21a558f99a",
+  "version": 1,
+  "supersedes": null,
+  "goal": "UNI-2640: fast-uri bumped past the 02/09 high advisories in all four active lockfiles; the tracked-lockfile audit and the pi-ceo-operator-mcp package audit both exit 0 with nothing else changed",
+  "created_at_utc": "2026-09-02T18:12:01Z",
+  "identity_key": "fix/uni-2640-fast-uri-4.1.4@/Users/phillmcgurk/Unite-Group/.git",
+  "baseline_observed": {
+    "head": "17ca0168a72489f8373b7df106bfc5bd40ac4e60",
+    "branch": "fix/uni-2640-fast-uri-4.1.4",
+    "dirty_count": 25
+  },
+  "criteria": [
+    {
+      "id": "C1",
+      "text": "Every tracked JavaScript lockfile passes the repo's high-severity audit (the same script CI runs): exit 0.",
+      "recipe": "export PATH=\"$HOME/.nvm/versions/node/v24.14.1/bin:$HOME/.local/bin:/usr/bin:/bin\" && node scripts/audit-active-lockfiles.mjs --output \"$TMPDIR/audit-2640.json\""
+    },
+    {
+      "id": "C2",
+      "text": "packages/pi-ceo-operator-mcp's own package audit at the high threshold (the step that failed in its build job) exits 0 against the committed lock.",
+      "recipe": "export PATH=\"$HOME/.nvm/versions/node/v24.14.1/bin:$HOME/.local/bin:/usr/bin:/bin\" && npm audit --package-lock-only --ignore-scripts --audit-level=high --prefix packages/pi-ceo-operator-mcp"
+    },
+    {
+      "id": "C3",
+      "text": "All four fast-uri pins read 4.1.4 and no other package version changed: the diff against origin/main touches only the four package.json override lines and fast-uri's version and integrity in the four locks.",
+      "recipe": "export PATH=\"$HOME/.nvm/versions/node/v24.14.1/bin:$HOME/.local/bin:/usr/bin:/bin\" && python3 .claude/done/checks/uni-2640-scope.py"
+    }
+  ]
+}

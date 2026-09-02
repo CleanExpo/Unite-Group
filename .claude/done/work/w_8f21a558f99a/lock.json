@@ -1,0 +1,9 @@
+{
+  "schema": "done/1",
+  "work_id": "w_8f21a558f99a",
+  "contract_digest": "9665187f858612a38b5a5e9d85e4be3eb509aafcbc8e7712c991e4b837de78ae",
+  "baseline_head": "17ca0168a72489f8373b7df106bfc5bd40ac4e60",
+  "identity_key": "fix/uni-2640-fast-uri-4.1.4@/Users/phillmcgurk/Unite-Group/.git",
+  "locked_at_utc": "2026-09-02T18:13:34Z",
+  "criteria_count": 3
+}
