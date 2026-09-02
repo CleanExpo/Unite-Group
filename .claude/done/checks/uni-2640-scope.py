@@ -1,68 +1,126 @@
-"""UNI-2640 scope oracle: the diff against origin/main IS the fast-uri bump, byte for byte.
+"""UNI-2640 scope oracle: the diff against origin/main IS the fast-uri bump, byte for byte, hunk
+headers included.
 
-For each of the eight files this oracle holds the exact signed diff lines the bump produces
-(leading whitespace and trailing punctuation included) and requires the observed `git diff
--U0 origin/main -- <file>` to equal that multiset: no extra line, no missing line, no
-whitespace variation. Any file outside the eight, or any deviation inside them, fails and
-is printed.
+For each of the eight files, the complete output of `git diff -U0 origin/main -- <file>` (every
+line except the blob-hash `index` line) must equal the expected text below, in order. The `@@`
+hunk headers carry line numbers and context, so a required line that moves to a different place
+in the file — the round-4 attack: fast-uri's version/resolved/integrity relocated into another
+package's object — changes the header and fails, even though the +/- lines are identical.
 
-Why exact and why presence: review round 1 (codex, 001b24b5e) planted a hostile tarball URL
-and a substring rule accepted it. Round 2 (codex, 72433b7a4) reverted the pnpm 4.1.4
-integrity to the 4.1.2 hash — the line then equalled base, vanished from the diff, and a
-membership-only check never noticed it was missing — and added trailing spaces, which
-`.strip()` erased. A control that only asks "is every changed line allowed?" cannot see an
-omitted change or a whitespace change; this one asks "is the diff exactly this?".
+History, each shape beaten by an independent reviewer or the builder before the next:
+  round 1 (001b24b5e)  substring "fast-uri" in a changed line       -> hostile tarball URL passed
+  round 2 (72433b7a4)  allow-list of stripped changed lines         -> omitted line invisible; trailing spaces passed
+  builder (f30e628d9)  byte-exact via text-mode subprocess          -> CRLF translated away
+  round 3 (0098c71b0)  per-file multiset equality                   -> reordered npm fields passed
+  round 4 (2aaee2b2e)  per-file ordered equality of +/- lines only  -> same lines relocated to another object passed
+  now                  per-file ordered equality of the whole diff, hunk headers included
+
+The expected text was captured from the verified head and reviewed by the same rounds that
+confirmed the product diff; regenerating it is a change of scope and must be reviewed as one.
 """
 import subprocess
 import sys
-from collections import Counter
-
-OLD, NEW = '4.1.2', '4.1.4'
-OLD_HASH = 'sha512-TyGmBcbDTZXcb2cj5MV89DrF42DKvb3y5DDUNh95iO+IMeAzMkVSxK1PZRrRIpc9yg8U2GhGdbofNa0LS/a4Bw=='
-NEW_HASH = 'sha512-dODXrIxlS9JSdgAnhIUKOosKV1oMtU2VtVw87QRaHzyl5jxO290Ii5tEZfCfzfWNHi3jKWwBSdQj0qIyshdZdQ=='
-
-
-def override(indent, comma):
-    c = ',' if comma else ''
-    return [f'-{indent}"fast-uri": "{OLD}"{c}', f'+{indent}"fast-uri": "{NEW}"{c}']
-
-
-def pnpm_lock():
-    return [
-        f'-  fast-uri: {OLD}', f'+  fast-uri: {NEW}',                       # overrides header
-        f'-  fast-uri@{OLD}:', f'-    resolution: {{integrity: {OLD_HASH}}}',  # package block
-        f'+  fast-uri@{NEW}:', f'+    resolution: {{integrity: {NEW_HASH}}}',
-        f'-      fast-uri: {OLD}', f'+      fast-uri: {NEW}',               # ajv snapshot edge
-        f'-  fast-uri@{OLD}: {{}}', f'+  fast-uri@{NEW}: {{}}',             # snapshot block
-    ]
-
-
-def npm_lock():
-    return [
-        f'-      "version": "{OLD}",',
-        f'-      "resolved": "https://registry.npmjs.org/fast-uri/-/fast-uri-{OLD}.tgz",',
-        f'-      "integrity": "{OLD_HASH}",',
-        f'+      "version": "{NEW}",',
-        f'+      "resolved": "https://registry.npmjs.org/fast-uri/-/fast-uri-{NEW}.tgz",',
-        f'+      "integrity": "{NEW_HASH}",',
-    ]
-
 
 EXPECTED = {
-    'apps/web/package.json': override('      ', True),
-    'apps/workspace/package.json': override('      ', True),
-    'packages/pi-ceo-operator-mcp/package.json': override('    ', True),
-    'apps/web/.portfolio/package.json': override('    ', False),   # last entry, no comma
-    'apps/web/pnpm-lock.yaml': pnpm_lock(),
-    'apps/workspace/pnpm-lock.yaml': pnpm_lock(),
-    'packages/pi-ceo-operator-mcp/package-lock.json': npm_lock(),
-    'apps/web/.portfolio/package-lock.json': npm_lock(),
+    "apps/web/package.json": [
+        "diff --git a/apps/web/package.json b/apps/web/package.json",
+        "--- a/apps/web/package.json",
+        "+++ b/apps/web/package.json",
+        "@@ -188 +188 @@",
+        "-      \"fast-uri\": \"4.1.2\",",
+        "+      \"fast-uri\": \"4.1.4\","
+    ],
+    "apps/workspace/package.json": [
+        "diff --git a/apps/workspace/package.json b/apps/workspace/package.json",
+        "--- a/apps/workspace/package.json",
+        "+++ b/apps/workspace/package.json",
+        "@@ -110 +110 @@",
+        "-      \"fast-uri\": \"4.1.2\",",
+        "+      \"fast-uri\": \"4.1.4\","
+    ],
+    "packages/pi-ceo-operator-mcp/package.json": [
+        "diff --git a/packages/pi-ceo-operator-mcp/package.json b/packages/pi-ceo-operator-mcp/package.json",
+        "--- a/packages/pi-ceo-operator-mcp/package.json",
+        "+++ b/packages/pi-ceo-operator-mcp/package.json",
+        "@@ -42 +42 @@",
+        "-    \"fast-uri\": \"4.1.2\",",
+        "+    \"fast-uri\": \"4.1.4\","
+    ],
+    "apps/web/.portfolio/package.json": [
+        "diff --git a/apps/web/.portfolio/package.json b/apps/web/.portfolio/package.json",
+        "--- a/apps/web/.portfolio/package.json",
+        "+++ b/apps/web/.portfolio/package.json",
+        "@@ -18 +18 @@",
+        "-    \"fast-uri\": \"4.1.2\"",
+        "+    \"fast-uri\": \"4.1.4\""
+    ],
+    "apps/web/pnpm-lock.yaml": [
+        "diff --git a/apps/web/pnpm-lock.yaml b/apps/web/pnpm-lock.yaml",
+        "--- a/apps/web/pnpm-lock.yaml",
+        "+++ b/apps/web/pnpm-lock.yaml",
+        "@@ -18 +18 @@ overrides:",
+        "-  fast-uri: 4.1.2",
+        "+  fast-uri: 4.1.4",
+        "@@ -4314,2 +4314,2 @@ packages:",
+        "-  fast-uri@4.1.2:",
+        "-    resolution: {integrity: sha512-TyGmBcbDTZXcb2cj5MV89DrF42DKvb3y5DDUNh95iO+IMeAzMkVSxK1PZRrRIpc9yg8U2GhGdbofNa0LS/a4Bw==}",
+        "+  fast-uri@4.1.4:",
+        "+    resolution: {integrity: sha512-dODXrIxlS9JSdgAnhIUKOosKV1oMtU2VtVw87QRaHzyl5jxO290Ii5tEZfCfzfWNHi3jKWwBSdQj0qIyshdZdQ==}",
+        "@@ -9964 +9964 @@ snapshots:",
+        "-      fast-uri: 4.1.2",
+        "+      fast-uri: 4.1.4",
+        "@@ -11276 +11276 @@ snapshots:",
+        "-  fast-uri@4.1.2: {}",
+        "+  fast-uri@4.1.4: {}"
+    ],
+    "apps/workspace/pnpm-lock.yaml": [
+        "diff --git a/apps/workspace/pnpm-lock.yaml b/apps/workspace/pnpm-lock.yaml",
+        "--- a/apps/workspace/pnpm-lock.yaml",
+        "+++ b/apps/workspace/pnpm-lock.yaml",
+        "@@ -10 +10 @@ overrides:",
+        "-  fast-uri: 4.1.2",
+        "+  fast-uri: 4.1.4",
+        "@@ -3460,2 +3460,2 @@ packages:",
+        "-  fast-uri@4.1.2:",
+        "-    resolution: {integrity: sha512-TyGmBcbDTZXcb2cj5MV89DrF42DKvb3y5DDUNh95iO+IMeAzMkVSxK1PZRrRIpc9yg8U2GhGdbofNa0LS/a4Bw==}",
+        "+  fast-uri@4.1.4:",
+        "+    resolution: {integrity: sha512-dODXrIxlS9JSdgAnhIUKOosKV1oMtU2VtVw87QRaHzyl5jxO290Ii5tEZfCfzfWNHi3jKWwBSdQj0qIyshdZdQ==}",
+        "@@ -8655 +8655 @@ snapshots:",
+        "-      fast-uri: 4.1.2",
+        "+      fast-uri: 4.1.4",
+        "@@ -9740 +9740 @@ snapshots:",
+        "-  fast-uri@4.1.2: {}",
+        "+  fast-uri@4.1.4: {}"
+    ],
+    "packages/pi-ceo-operator-mcp/package-lock.json": [
+        "diff --git a/packages/pi-ceo-operator-mcp/package-lock.json b/packages/pi-ceo-operator-mcp/package-lock.json",
+        "--- a/packages/pi-ceo-operator-mcp/package-lock.json",
+        "+++ b/packages/pi-ceo-operator-mcp/package-lock.json",
+        "@@ -3471,3 +3471,3 @@",
+        "-      \"version\": \"4.1.2\",",
+        "-      \"resolved\": \"https://registry.npmjs.org/fast-uri/-/fast-uri-4.1.2.tgz\",",
+        "-      \"integrity\": \"sha512-TyGmBcbDTZXcb2cj5MV89DrF42DKvb3y5DDUNh95iO+IMeAzMkVSxK1PZRrRIpc9yg8U2GhGdbofNa0LS/a4Bw==\",",
+        "+      \"version\": \"4.1.4\",",
+        "+      \"resolved\": \"https://registry.npmjs.org/fast-uri/-/fast-uri-4.1.4.tgz\",",
+        "+      \"integrity\": \"sha512-dODXrIxlS9JSdgAnhIUKOosKV1oMtU2VtVw87QRaHzyl5jxO290Ii5tEZfCfzfWNHi3jKWwBSdQj0qIyshdZdQ==\","
+    ],
+    "apps/web/.portfolio/package-lock.json": [
+        "diff --git a/apps/web/.portfolio/package-lock.json b/apps/web/.portfolio/package-lock.json",
+        "--- a/apps/web/.portfolio/package-lock.json",
+        "+++ b/apps/web/.portfolio/package-lock.json",
+        "@@ -39,3 +39,3 @@",
+        "-      \"version\": \"4.1.2\",",
+        "-      \"resolved\": \"https://registry.npmjs.org/fast-uri/-/fast-uri-4.1.2.tgz\",",
+        "-      \"integrity\": \"sha512-TyGmBcbDTZXcb2cj5MV89DrF42DKvb3y5DDUNh95iO+IMeAzMkVSxK1PZRrRIpc9yg8U2GhGdbofNa0LS/a4Bw==\",",
+        "+      \"version\": \"4.1.4\",",
+        "+      \"resolved\": \"https://registry.npmjs.org/fast-uri/-/fast-uri-4.1.4.tgz\",",
+        "+      \"integrity\": \"sha512-dODXrIxlS9JSdgAnhIUKOosKV1oMtU2VtVw87QRaHzyl5jxO290Ii5tEZfCfzfWNHi3jKWwBSdQj0qIyshdZdQ==\","
+    ]
 }
 
 
 def git(*args):
-    # Bytes, decoded without newline translation: text mode turns "\r\n" into "\n" and a
-    # CRLF mutant then compares equal to the expected line (caught by the builder, 03/09).
+    # Bytes, decoded without newline translation, so a CRLF stays visible as "\\r".
     return subprocess.run(['git', *args], capture_output=True, check=True).stdout.decode('utf-8')
 
 
@@ -80,28 +138,27 @@ failed = False
 total = 0
 for f in files:
     observed = [line for line in git('diff', '-U0', 'origin/main', '--', f).split('\n')
-                if line and line[0] in '+-' and not line.startswith(('+++', '---'))]
-    total += len(observed)
+                if line and not line.startswith('index ')]
     expected = EXPECTED[f]
-    # Ordered comparison on purpose: round 3 (codex, 0098c71b0) reordered the three npm
-    # fields inside the fast-uri block and a Counter-based check called it byte-exact.
+    total += sum(1 for line in observed if line[0] in '+-' and not line.startswith(('+++', '---')))
     if observed != expected:
         failed = True
-        print(f'FAIL: {f} is not exactly the fast-uri {OLD} -> {NEW} bump')
-        want, got = Counter(expected), Counter(observed)
-        for line in sorted((got - want).elements()):
-            print(f'  unexpected: {line[:160]!r}')
-        for line in sorted((want - got).elements()):
-            print(f'  missing   : {line[:160]!r}')
-        if want == got:
-            first = next(i for i, (a, b) in enumerate(zip(observed, expected)) if a != b)
-            print(f'  reordered : same lines, different order; first difference at changed line {first + 1}: '
-                  f'{observed[first][:120]!r} where {expected[first][:120]!r} was expected')
+        print(f'FAIL: {f}: the diff against origin/main is not exactly the expected fast-uri bump')
+        for i, (a, b) in enumerate(zip(observed, expected)):
+            if a != b:
+                print(f'  first difference at diff line {i + 1}:')
+                print(f'    observed: {a[:160]!r}')
+                print(f'    expected: {b[:160]!r}')
+                break
+        else:
+            print(f'  observed has {len(observed)} diff lines, expected {len(expected)}')
+        if len(observed) != len(expected):
+            print(f'  line count: observed {len(observed)}, expected {len(expected)}')
 
 if failed:
     sys.exit(1)
-if total != sum(len(v) for v in EXPECTED.values()):
-    print(f'FAIL: counted {total} changed lines, expected {sum(len(v) for v in EXPECTED.values())}')
+if total != 40:
+    print(f'FAIL: counted {total} changed lines, expected 40')
     sys.exit(1)
 
-print(f'OK: {len(files)} files, {total} changed lines, the diff is exactly the fast-uri {OLD} -> {NEW} bump')
+print(f'OK: {len(files)} files, {total} changed lines, every diff equals the expected fast-uri 4.1.2 -> 4.1.4 bump, hunk headers included')
