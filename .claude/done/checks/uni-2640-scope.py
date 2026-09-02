@@ -1,8 +1,14 @@
 """UNI-2640 scope oracle: the diff against origin/main is the fast-uri bump and nothing else.
 
-Exit 0 only when (a) exactly the eight expected files differ, (b) every package.json hunk is the
-fast-uri override line, and (c) every lockfile hunk names fast-uri or one of its two integrity
-hashes (the 4.1.2 one going, the 4.1.4 one arriving). Any other changed line fails, printed.
+Exit 0 only when (a) exactly the eight expected files differ, and (b) every changed line, in
+every one of them, is one of the sixteen exact lines the bump produces (the four override
+lines, and in each lock the version, the official registry tarball URL and the integrity
+hash, 4.1.2 leaving and 4.1.4 arriving). Any other line fails, printed with its file.
+
+Exact-match on purpose: review round 1 (codex, 001b24b5e) planted
+https://evil.invalid/fast-uri-4.1.4.tgz as the resolved URL and the earlier substring rule
+("the line mentions fast-uri") accepted it. A supply-chain change hides inside the package's
+own name; only an allow-list of whole lines catches it.
 """
 import subprocess
 import sys
@@ -17,8 +23,34 @@ EXPECTED = sorted([
     'packages/pi-ceo-operator-mcp/package-lock.json',
     'packages/pi-ceo-operator-mcp/package.json',
 ])
-OLD_HASH = 'TyGmBcbDTZXcb2cj5MV89DrF42DKvb3y5DDUNh95iO+IMeAzMkVSxK1PZRrRIpc9yg8U2GhGdbofNa0LS/a4Bw=='
-NEW_HASH = 'dODXrIxlS9JSdgAnhIUKOosKV1oMtU2VtVw87QRaHzyl5jxO290Ii5tEZfCfzfWNHi3jKWwBSdQj0qIyshdZdQ=='
+OLD, NEW = '4.1.2', '4.1.4'
+OLD_HASH = 'sha512-TyGmBcbDTZXcb2cj5MV89DrF42DKvb3y5DDUNh95iO+IMeAzMkVSxK1PZRrRIpc9yg8U2GhGdbofNa0LS/a4Bw=='
+NEW_HASH = 'sha512-dODXrIxlS9JSdgAnhIUKOosKV1oMtU2VtVw87QRaHzyl5jxO290Ii5tEZfCfzfWNHi3jKWwBSdQj0qIyshdZdQ=='
+REGISTRY = 'https://registry.npmjs.org/fast-uri/-/fast-uri-{v}.tgz'
+
+
+def allowed_lines(sign, version, digest):
+    """Every whole line (whitespace-stripped) the bump may add (+) or remove (-)."""
+    return {
+        # package.json override pin (the last entry in a block carries no trailing comma)
+        f'"fast-uri": "{version}",',
+        f'"fast-uri": "{version}"',
+        # pnpm-lock.yaml: overrides header, package block, importer/snapshot edges
+        f'fast-uri: {version}',
+        f'fast-uri@{version}:',
+        f'fast-uri@{version}: {{}}',
+        f'resolution: {{integrity: {digest}}}',
+        # package-lock.json: the fast-uri node
+        f'"version": "{version}",',
+        f'"resolved": "{REGISTRY.format(v=version)}",',
+        f'"integrity": "{digest}",',
+    }
+
+
+ALLOWED = {
+    '-': allowed_lines('-', OLD, OLD_HASH),
+    '+': allowed_lines('+', NEW, NEW_HASH),
+}
 
 
 def git(*args):
@@ -36,23 +68,21 @@ if files != EXPECTED:
     sys.exit(1)
 
 bad = []
+seen = 0
 for f in files:
     for line in git('diff', '-U0', 'origin/main', '--', f).splitlines():
         if not line or line[0] not in '+-' or line.startswith(('+++', '---')):
             continue
-        body = line[1:]
-        if f.endswith('package.json'):
-            ok = '"fast-uri":' in body and ('"4.1.2"' in body or '"4.1.4"' in body)
-        else:
-            # npm locks put the package name in the block header, so the version hunk is bare.
-            ok = ('fast-uri' in body or OLD_HASH in body or NEW_HASH in body
-                  or body.strip() in ('"version": "4.1.2",', '"version": "4.1.4",'))
-        if not ok:
+        seen += 1
+        if line[1:].strip() not in ALLOWED[line[0]]:
             bad.append(f'{f}: {line[:160]}')
 
 if bad:
     print('FAIL: hunks outside the fast-uri bump:')
     print('\n'.join(bad))
     sys.exit(1)
+if seen == 0:
+    print('FAIL: no changed lines seen; the diff command returned nothing to measure')
+    sys.exit(1)
 
-print(f'OK: {len(files)} files, every hunk is the fast-uri 4.1.2 -> 4.1.4 bump')
+print(f'OK: {len(files)} files, {seen} changed lines, every one an exact line of the fast-uri {OLD} -> {NEW} bump')
