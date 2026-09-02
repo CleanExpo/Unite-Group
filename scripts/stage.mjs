@@ -1,0 +1,221 @@
+#!/usr/bin/env node
+
+/**
+ * /stage — the Mission Control "Projects by stage" board, in the CLI.
+ *
+ * One row per Linear team, carrying exactly one of the founder's five words —
+ * Planning · Research · Develop · Production · Done — the open-issue count
+ * behind every word, and the next issue in the team's current stage. The deck
+ * tile (apps/web/src/app/(founder)/founder/command-centre/StageBoardTile.tsx)
+ * shows the same table; both read the mapping from
+ * apps/web/data/command-centre/stage-map.json, and a parity test in apps/web
+ * asserts this file's rules agree with the TypeScript ones.
+ *
+ * Usage:
+ *   node scripts/stage.mjs          # table
+ *   node scripts/stage.mjs --json   # machine-readable
+ *
+ * LINEAR_API_KEY comes from the environment. If unset, the key is resolved
+ * from ~/.hermes/.env and attached to the request header only — it is never
+ * printed. No key → exit 2 with a plain message, never an empty board.
+ */
+
+import { readFileSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+export const STAGE_MAP_PATH = join(repositoryRoot, 'apps', 'web', 'data', 'command-centre', 'stage-map.json')
+
+const LINEAR_GQL = 'https://api.linear.app/graphql'
+const PAGE_SIZE = 250
+const MAX_PAGES = 4
+
+export function loadStageMap(path = STAGE_MAP_PATH) {
+  return JSON.parse(readFileSync(path, 'utf8'))
+}
+
+// ─── Pure stage rules (mirror of project-stages.ts) ────────────────────────
+
+export function classifyIssue(issue, map) {
+  const word = map.byStateName[issue.stateName] ?? map.byStateType[issue.stateType] ?? null
+  if (word === 'Planning') {
+    const re = new RegExp(map.researchLabelPattern, 'i')
+    if (issue.labelNames.some((label) => re.test(label))) return 'Research'
+  }
+  return word
+}
+
+function priorityRank(priority) {
+  return priority === 0 ? 5 : priority
+}
+
+export function sortByPriority(issues) {
+  return [...issues].sort((a, b) => {
+    const rank = priorityRank(a.priority) - priorityRank(b.priority)
+    if (rank !== 0) return rank
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+  })
+}
+
+export function summariseTeam(key, name, issues, capped, map) {
+  const counts = { Planning: 0, Research: 0, Develop: 0, Production: 0 }
+  const byStage = { Planning: [], Research: [], Develop: [], Production: [] }
+  const unmapped = new Set()
+  for (const issue of issues) {
+    const word = classifyIssue(issue, map)
+    if (word === null) {
+      unmapped.add(issue.stateName)
+      continue
+    }
+    counts[word] += 1
+    byStage[word].push(issue)
+  }
+  const active = map.activeOrder.find((word) => counts[word] > 0) ?? null
+  const stage = active ?? 'Done'
+  const next = active ? (sortByPriority(byStage[active])[0] ?? null) : null
+  return { key, name, stage, open: issues.length, counts, next, unmapped: [...unmapped].sort(), capped }
+}
+
+export function toStageIssue(n) {
+  if (typeof n !== 'object' || n === null) return null
+  if (
+    typeof n.id !== 'string' ||
+    typeof n.identifier !== 'string' ||
+    typeof n.title !== 'string' ||
+    typeof n.priority !== 'number' ||
+    typeof n.updatedAt !== 'string'
+  ) {
+    return null
+  }
+  const labelNodes = Array.isArray(n.labels?.nodes) ? n.labels.nodes : []
+  return {
+    id: n.id,
+    identifier: n.identifier,
+    title: n.title,
+    priority: n.priority,
+    url: typeof n.url === 'string' ? n.url : '',
+    updatedAt: n.updatedAt,
+    stateName: typeof n.state?.name === 'string' ? n.state.name : '',
+    stateType: typeof n.state?.type === 'string' ? n.state.type : '',
+    labelNames: labelNodes.map((l) => (l && typeof l.name === 'string' ? l.name : null)).filter((x) => x !== null),
+  }
+}
+
+// ─── Linear fetch ───────────────────────────────────────────────────────────
+
+const TEAMS_QUERY = `query StageTeams { teams(first: 50) { nodes { key name } } }`
+const TEAM_OPEN_ISSUES_QUERY = `query StageTeamOpenIssues($team: String!, $after: String) {
+  issues(
+    first: ${PAGE_SIZE}
+    after: $after
+    filter: { team: { key: { eq: $team } }, completedAt: { null: true }, canceledAt: { null: true } }
+    orderBy: updatedAt
+  ) {
+    pageInfo { hasNextPage endCursor }
+    nodes {
+      id identifier title priority url updatedAt
+      state { name type }
+      labels { nodes { name } }
+    }
+  }
+}`
+
+/** The key is read for the request header only. It is never logged or returned. */
+export function resolveApiKey(env = process.env, hermesEnvPath = join(homedir(), '.hermes', '.env')) {
+  const fromEnv = env.LINEAR_API_KEY?.trim()
+  if (fromEnv) return fromEnv
+  let raw
+  try {
+    raw = readFileSync(hermesEnvPath, 'utf8')
+  } catch {
+    return undefined
+  }
+  for (const line of raw.split(/\r?\n/u)) {
+    const m = /^\s*(?:export\s+)?LINEAR_API_KEY\s*=\s*"?([^"\s#]+)"?/u.exec(line)
+    if (m) return m[1]
+  }
+  return undefined
+}
+
+async function postGraphQL(apiKey, query, variables, fetchImpl) {
+  const res = await fetchImpl(LINEAR_GQL, {
+    method: 'POST',
+    headers: { authorization: apiKey, 'content-type': 'application/json' },
+    body: JSON.stringify({ query, variables }),
+    signal: AbortSignal.timeout(20_000),
+  })
+  if (!res.ok) throw new Error(`Linear HTTP ${res.status}`)
+  const json = await res.json()
+  if (json.errors || !json.data) throw new Error(`Linear graphql error: ${JSON.stringify(json.errors ?? json).slice(0, 200)}`)
+  return json.data
+}
+
+export async function fetchTeamStages({ apiKey, fetchImpl = fetch, map = loadStageMap(), now = () => new Date() } = {}) {
+  if (!apiKey) return { ok: 'not_configured' }
+  const teams = (await postGraphQL(apiKey, TEAMS_QUERY, {}, fetchImpl)).teams.nodes
+  const rows = []
+  for (const team of teams) {
+    const issues = []
+    let after = null
+    let capped = true
+    for (let page = 0; page < MAX_PAGES; page += 1) {
+      const data = await postGraphQL(apiKey, TEAM_OPEN_ISSUES_QUERY, { team: team.key, after }, fetchImpl)
+      for (const node of data.issues.nodes) {
+        const issue = toStageIssue(node)
+        if (issue) issues.push(issue)
+      }
+      const info = data.issues.pageInfo
+      if (!(info?.hasNextPage === true && typeof info.endCursor === 'string')) {
+        capped = false
+        break
+      }
+      after = info.endCursor
+    }
+    rows.push(summariseTeam(team.key, team.name, issues, capped, map))
+  }
+  rows.sort((a, b) => a.name.localeCompare(b.name))
+  return { ok: true, checkedAt: now().toISOString(), teams: rows }
+}
+
+export function renderTable(result) {
+  const lines = []
+  const pad = (s, n) => String(s).padEnd(n)
+  lines.push(`${pad('TEAM', 6)}${pad('NAME', 16)}${pad('STAGE', 12)}${pad('PLANNING', 10)}${pad('RESEARCH', 10)}${pad('DEVELOP', 9)}${pad('PRODUCTION', 12)}NEXT`)
+  for (const t of result.teams) {
+    const next = t.next ? `${t.next.identifier} ${t.next.title}` : 'nothing open'
+    const cap = t.capped ? '+' : ''
+    lines.push(
+      `${pad(t.key, 6)}${pad(t.name.slice(0, 15), 16)}${pad(t.stage, 12)}${pad(t.counts.Planning + cap, 10)}${pad(t.counts.Research, 10)}${pad(t.counts.Develop, 9)}${pad(t.counts.Production, 12)}${next.slice(0, 70)}`,
+    )
+    if (t.unmapped.length > 0) lines.push(`      unmapped states: ${t.unmapped.join(', ')}`)
+  }
+  lines.push(`checked ${result.checkedAt} · word = furthest-along stage with open work · map: ${STAGE_MAP_PATH}`)
+  return lines.join('\n')
+}
+
+export async function main(argv = process.argv.slice(2)) {
+  const apiKey = resolveApiKey()
+  const result = await fetchTeamStages({ apiKey })
+  if (result.ok === 'not_configured') {
+    console.error('LINEAR_API_KEY is not set in this shell and was not found in ~/.hermes/.env. No stage can be read.')
+    return 2
+  }
+  if (argv.includes('--json')) {
+    console.log(JSON.stringify(result, null, 2))
+  } else {
+    console.log(renderTable(result))
+  }
+  return 0
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().then(
+    (code) => process.exit(code),
+    (error) => {
+      console.error(`stage: ${error.message}`)
+      process.exit(1)
+    },
+  )
+}
