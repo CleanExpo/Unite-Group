@@ -1,8 +1,71 @@
 {
   "schema": "done/1",
-  "criterion_evidence": "UNPROVEN",
-  "verification_status": "NOT_RUN",
+  "criterion_evidence": "FAILED",
+  "verification_status": "FAIL",
   "delivery_status": "NOT_STARTED",
   "verified_head": null,
-  "updated_at_utc": "2026-09-02T16:01:55Z"
+  "updated_at_utc": "2026-09-02T16:10:32Z",
+  "last_verify": {
+    "head": "b36ea03720435d7ec230d3016057c9d33adcbb0b",
+    "at_utc": "2026-09-02T16:10:32Z",
+    "matrix": [
+      {
+        "id": "C1",
+        "required": true,
+        "evidence": "FAILED",
+        "recipe": "cd apps/web && export PATH=\"$HOME/.nvm/versions/node/v24.14.1/bin:$PATH\" && pnpm vitest run src/lib/command-centre/__tests__/founder-queue.test.ts",
+        "exit_code": 127,
+        "output_digest": "84d6929ece40ac2610f237c1ae07b255019c3dee38ce22f1c81510193e1dc954",
+        "output_tail": "/bin/sh: pnpm: command not found"
+      },
+      {
+        "id": "C2",
+        "required": true,
+        "evidence": "FAILED",
+        "recipe": "cd apps/web && export PATH=\"$HOME/.nvm/versions/node/v24.14.1/bin:$PATH\" && pnpm vitest run src/lib/command-centre/__tests__/project-stages.test.ts",
+        "exit_code": 127,
+        "output_digest": "84d6929ece40ac2610f237c1ae07b255019c3dee38ce22f1c81510193e1dc954",
+        "output_tail": "/bin/sh: pnpm: command not found"
+      },
+      {
+        "id": "C3",
+        "required": true,
+        "evidence": "FAILED",
+        "recipe": "cd apps/web && export PATH=\"$HOME/.nvm/versions/node/v24.14.1/bin:$PATH\" && pnpm vitest run 'src/app/(founder)/founder/command-centre/BlockedOnMeTile.test.ts' 'src/app/(founder)/founder/command-centre/BlockedOnMeTile.render.test.tsx' 'src/app/(founder)/founder/command-centre/StageBoardTile.test.ts'",
+        "exit_code": 127,
+        "output_digest": "84d6929ece40ac2610f237c1ae07b255019c3dee38ce22f1c81510193e1dc954",
+        "output_tail": "/bin/sh: pnpm: command not found"
+      },
+      {
+        "id": "C4",
+        "required": true,
+        "evidence": "PROVEN",
+        "recipe": "export PATH=\"$HOME/.nvm/versions/node/v24.14.1/bin:$PATH\" && node scripts/stage.mjs --json > /tmp/stage.json && node -e 'const r=require(\"/tmp/stage.json\"); const w=new Set([\"Planning\",\"Research\",\"Develop\",\"Production\",\"Done\"]); if(r.ok!==true||r.teams.length<1) process.exit(1); for(const t of r.teams){ if(!w.has(t.stage)) process.exit(2) } console.log(r.teams.length+\" teams, all words valid\")'",
+        "exit_code": 0,
+        "output_digest": "870fc0d7db2d256e08a34139395f96d1abe7f41458d36c98892c3e195cca57cc",
+        "output_tail": "5 teams, all words valid"
+      },
+      {
+        "id": "C5",
+        "required": true,
+        "evidence": "FAILED",
+        "recipe": "cd apps/web && export PATH=\"$HOME/.nvm/versions/node/v24.14.1/bin:$PATH\" && pnpm type-check && pnpm exec eslint src/lib/command-centre/founder-queue.ts src/lib/command-centre/project-stages.ts 'src/app/(founder)/founder/command-centre/BlockedOnMeTile.tsx' 'src/app/(founder)/founder/command-centre/StageBoardTile.tsx' 'src/app/(founder)/founder/command-centre/page.tsx' && node scripts/sync-founder-queue.mjs && test -s data/command-centre/founder-queue.md",
+        "exit_code": 127,
+        "output_digest": "84d6929ece40ac2610f237c1ae07b255019c3dee38ce22f1c81510193e1dc954",
+        "output_tail": "/bin/sh: pnpm: command not found"
+      },
+      {
+        "id": "C6",
+        "required": true,
+        "evidence": "PROVEN",
+        "recipe": "grep -q 'loadBlockedOnMeData()' 'apps/web/src/app/(founder)/founder/command-centre/page.tsx' && grep -q 'loadStageBoardData()' 'apps/web/src/app/(founder)/founder/command-centre/page.tsx' && grep -q 'data-testid=\"builds-link\"' 'apps/web/src/app/(founder)/founder/command-centre/page.tsx' && grep -q 'pi-dev-ops.vercel.app/builds' 'apps/web/src/app/(founder)/founder/command-centre/page.tsx'",
+        "exit_code": 0,
+        "output_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_tail": ""
+      }
+    ],
+    "blockers": [
+      "working tree is dirty (16 entries outside .claude/done) - evidence cannot bind to a revision that is not committed"
+    ]
+  }
 }
