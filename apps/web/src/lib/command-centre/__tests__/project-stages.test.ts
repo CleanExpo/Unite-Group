@@ -215,10 +215,13 @@ describe('fetchTeamStages — review round 2 findings', () => {
   })
 
   it('fails closed above the team page cap instead of presenting a partial board as complete', async () => {
-    const more = { hasNextPage: true, endCursor: 'next' }
+    let call = 0
     const fetchImpl = vi.fn(async (_url: string, init: RequestInit) => {
       const body = JSON.parse(String(init.body)) as { query: string }
-      if (body.query.includes('StageTeams')) return { ok: true, status: 200, json: async () => ({ data: { teams: teamPage(0, 50, more) } }) }
+      if (body.query.includes('StageTeams')) {
+        const i = call++
+        return { ok: true, status: 200, json: async () => ({ data: { teams: teamPage(i * 50, 50, { hasNextPage: true, endCursor: String(i + 1) }) } }) }
+      }
       return { ok: true, status: 200, json: async () => ({ data: { issues: { pageInfo: LAST_PAGE, nodes: [] } } }) }
     })
     const result = await fetchTeamStages({ apiKey: 'k', fetchImpl })
@@ -270,6 +273,52 @@ describe('fetchTeamStages — review round 2 findings', () => {
 
   it('fails the whole read when an active issue has state=null — it must never read as Done', async () => {
     const fetchImpl = linearMock({ RA: [[{ ...rawNode('RA-1', 'In Progress', 'started'), state: null }]] })
+    expect(await fetchTeamStages({ apiKey: 'k', fetchImpl })).toEqual({ ok: false, error: 'RA: malformed issue node in Linear response' })
+  })
+})
+
+// ─── Review round 3 (codex, head ddc138c5e): three P1s, each watched red first ───
+
+describe('fetchTeamStages — review round 3 findings', () => {
+  const oneTeam = [{ nodes: [{ key: 'RA', name: 'RA' }], pageInfo: LAST_PAGE }]
+
+  it('fails the whole read when an issue cursor does not advance — one issue can never count four times (P1-STAGE-BOARD-REPEATED-ISSUE-CURSOR-INFLATES-COUNTS)', async () => {
+    const fetchImpl = pagedTeamsMock(oneTeam, { pageInfo: { hasNextPage: true, endCursor: 'same' }, nodes: [rawNode('RA-1', 'Backlog', 'backlog')] })
+    expect(await fetchTeamStages({ apiKey: 'k', fetchImpl })).toEqual({ ok: false, error: 'RA: malformed response: pagination cursor did not advance' })
+  })
+
+  it('fails the whole read when a teams cursor does not advance', async () => {
+    let call = 0
+    const fetchImpl = vi.fn(async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(String(init.body)) as { query: string }
+      if (body.query.includes('StageTeams')) {
+        const i = call++
+        return { ok: true, status: 200, json: async () => ({ data: { teams: { nodes: [{ key: `T${i}`, name: `T${i}` }], pageInfo: { hasNextPage: true, endCursor: 'same' } } } }) }
+      }
+      return { ok: true, status: 200, json: async () => ({ data: { issues: { pageInfo: LAST_PAGE, nodes: [] } } }) }
+    })
+    expect(await fetchTeamStages({ apiKey: 'k', fetchImpl })).toEqual({ ok: false, error: 'teams: malformed response: pagination cursor did not advance' })
+  })
+
+  it('fails the whole read when a team key repeats across pages — one row per team is the contract (P1-STAGE-BOARD-DUPLICATE-TEAM-PAGES-RETURN-DUPLICATE-ROWS)', async () => {
+    const fetchImpl = pagedTeamsMock([
+      { nodes: [{ key: 'RA', name: 'RA' }], pageInfo: { hasNextPage: true, endCursor: '1' } },
+      { nodes: [{ key: 'RA', name: 'RA' }], pageInfo: LAST_PAGE },
+    ])
+    expect(await fetchTeamStages({ apiKey: 'k', fetchImpl })).toEqual({ ok: false, error: 'malformed response: team RA appears more than once' })
+  })
+
+  it('toStageIssue refuses malformed labels — a lost label would turn Research into Planning (P1-STAGE-BOARD-MALFORMED-LABELS-SILENTLY-LOSE-RESEARCH)', () => {
+    const base = rawNode('RA-1', 'Todo', 'unstarted')
+    expect(toStageIssue({ ...base, labels: { nodes: [{ name: 'Research' }] } })?.labelNames).toEqual(['Research'])
+    expect(toStageIssue({ ...base, labels: { nodes: [] } })?.labelNames).toEqual([])
+    for (const labels of [undefined, null, {}, { nodes: 'bad' }, { nodes: [{}] }, { nodes: [null] }, { nodes: [{ name: 3 }] }]) {
+      expect(toStageIssue({ ...base, labels }), JSON.stringify(labels)).toBeNull()
+    }
+  })
+
+  it('fails the whole read through fetchTeamStages on malformed labels — Planning is never published in place of Research', async () => {
+    const fetchImpl = pagedTeamsMock(oneTeam, { pageInfo: LAST_PAGE, nodes: [{ ...rawNode('RA-1', 'Todo', 'unstarted'), labels: null }] })
     expect(await fetchTeamStages({ apiKey: 'k', fetchImpl })).toEqual({ ok: false, error: 'RA: malformed issue node in Linear response' })
   })
 })
@@ -336,5 +385,30 @@ describe('PARITY with scripts/stage.mjs (the CLI)', () => {
       expect(cli.toStageIssue({ ...base, state })).toBe(toStageIssue({ ...base, state }))
       expect(cli.toStageIssue({ ...base, state })).toBeNull()
     }
+  })
+  it('the CLI mirrors round 3: a non-advancing cursor, a repeated team key, and malformed labels all refuse', async () => {
+    const cli = await import(pathToFileURL(path.resolve(process.cwd(), '..', '..', 'scripts', 'stage.mjs')).href)
+    const paged = (teamPages: Array<{ nodes: unknown[]; pageInfo: unknown }>, issuePage: unknown = { pageInfo: LAST_PAGE, nodes: [] }) =>
+      (async (_url: string, init: RequestInit) => {
+        const body = JSON.parse(String(init.body)) as { query: string; variables: { after?: string | null } }
+        if (body.query.includes('StageTeams')) {
+          const index = body.variables.after ? Number(body.variables.after) : 0
+          return { ok: true, status: 200, json: async () => ({ data: { teams: teamPages[index] ?? teamPages[0] } }) }
+        }
+        return { ok: true, status: 200, json: async () => ({ data: { issues: issuePage } }) }
+      }) as unknown as typeof fetch
+    const oneTeam = [{ nodes: [{ key: 'RA', name: 'RA' }], pageInfo: LAST_PAGE }]
+
+    await expect(cli.fetchTeamStages({ apiKey: 'k', fetchImpl: paged(oneTeam, { pageInfo: { hasNextPage: true, endCursor: 'same' }, nodes: [rawNode('RA-1', 'Backlog', 'backlog')] }), map: STAGE_MAP })).rejects.toThrow(/RA: pagination cursor did not advance/)
+    await expect(cli.fetchTeamStages({ apiKey: 'k', fetchImpl: paged([{ nodes: [{ key: 'A', name: 'A' }], pageInfo: { hasNextPage: true, endCursor: '1' } }, { nodes: [{ key: 'B', name: 'B' }], pageInfo: { hasNextPage: true, endCursor: '1' } }]), map: STAGE_MAP })).rejects.toThrow(/teams: pagination cursor did not advance/)
+    await expect(cli.fetchTeamStages({ apiKey: 'k', fetchImpl: paged([{ nodes: [{ key: 'RA', name: 'RA' }], pageInfo: { hasNextPage: true, endCursor: '1' } }, { nodes: [{ key: 'RA', name: 'RA' }], pageInfo: LAST_PAGE }]), map: STAGE_MAP })).rejects.toThrow(/team RA appears more than once/)
+    await expect(cli.fetchTeamStages({ apiKey: 'k', fetchImpl: paged(oneTeam, { pageInfo: LAST_PAGE, nodes: [{ ...rawNode('RA-1', 'Todo', 'unstarted'), labels: null }] }), map: STAGE_MAP })).rejects.toThrow(/RA: malformed issue node/)
+
+    const base = rawNode('RA-1', 'Todo', 'unstarted')
+    for (const labels of [undefined, null, {}, { nodes: 'bad' }, { nodes: [{}] }, { nodes: [null] }, { nodes: [{ name: 3 }] }]) {
+      expect(cli.toStageIssue({ ...base, labels }), JSON.stringify(labels)).toBeNull()
+      expect(cli.toStageIssue({ ...base, labels })).toBe(toStageIssue({ ...base, labels }))
+    }
+    expect(cli.toStageIssue({ ...base, labels: { nodes: [{ name: 'Research' }] } })).toEqual(toStageIssue({ ...base, labels: { nodes: [{ name: 'Research' }] } }))
   })
 })

@@ -95,7 +95,14 @@ export function toStageIssue(n) {
   // No readable state → no classification. Same rule as project-stages.ts.
   const state = n.state
   if (typeof state !== 'object' || state === null || typeof state.name !== 'string' || typeof state.type !== 'string') return null
-  const labelNodes = Array.isArray(n.labels?.nodes) ? n.labels.nodes : []
+  // Labels decide Research vs Planning; an unreadable label list refuses the node.
+  const labels = n.labels
+  if (typeof labels !== 'object' || labels === null || !Array.isArray(labels.nodes)) return null
+  const labelNames = []
+  for (const l of labels.nodes) {
+    if (typeof l?.name !== 'string') return null
+    labelNames.push(l.name)
+  }
   return {
     id: n.id,
     identifier: n.identifier,
@@ -105,7 +112,7 @@ export function toStageIssue(n) {
     updatedAt: n.updatedAt,
     stateName: state.name,
     stateType: state.type,
-    labelNames: labelNodes.map((l) => (l && typeof l.name === 'string' ? l.name : null)).filter((x) => x !== null),
+    labelNames,
   }
 }
 
@@ -155,11 +162,14 @@ export function resolveApiKey(env = process.env, hermesEnvPath = join(homedir(),
  * boolean and true must carry a non-empty cursor. Returns the next cursor, or
  * null on the last page; throws on anything else.
  */
-export function readPageInfo(info, label) {
+export function readPageInfo(info, label, seenCursors) {
   if (typeof info !== 'object' || info === null) throw new Error(`Linear malformed response: ${label}: missing pageInfo`)
   if (typeof info.hasNextPage !== 'boolean') throw new Error(`Linear malformed response: ${label}: pageInfo.hasNextPage is not a boolean`)
   if (!info.hasNextPage) return null
   if (typeof info.endCursor !== 'string' || info.endCursor === '') throw new Error(`Linear malformed response: ${label}: hasNextPage without an endCursor`)
+  // A cursor that repeats re-reads the same page: one issue would count once per page.
+  if (seenCursors.has(info.endCursor)) throw new Error(`Linear malformed response: ${label}: pagination cursor did not advance`)
+  seenCursors.add(info.endCursor)
   return info.endCursor
 }
 
@@ -179,7 +189,9 @@ async function postGraphQL(apiKey, query, variables, fetchImpl) {
 export async function fetchTeamStages({ apiKey, fetchImpl = fetch, map = loadStageMap(), now = () => new Date() } = {}) {
   if (!apiKey) return { ok: 'not_configured' }
   const teams = []
+  const keys = new Set()
   let teamsAfter = null
+  const teamCursors = new Set()
   let complete = false
   for (let page = 0; page < MAX_TEAM_PAGES && !complete; page += 1) {
     const data = await postGraphQL(apiKey, TEAMS_QUERY, { after: teamsAfter }, fetchImpl)
@@ -190,9 +202,12 @@ export async function fetchTeamStages({ apiKey, fetchImpl = fetch, map = loadSta
       if (typeof team?.key !== 'string' || typeof team?.name !== 'string') {
         throw new Error('Linear malformed response: a team node lacks key or name')
       }
+      // A key seen twice means overlapping pages: two rows for one team breaks the contract.
+      if (keys.has(team.key)) throw new Error(`Linear malformed response: team ${team.key} appears more than once`)
+      keys.add(team.key)
       teams.push(team)
     }
-    teamsAfter = readPageInfo(data.teams.pageInfo, 'teams')
+    teamsAfter = readPageInfo(data.teams.pageInfo, 'teams', teamCursors)
     complete = teamsAfter === null
   }
   if (!complete) throw new Error(`Linear returned more than ${MAX_TEAM_PAGES * TEAMS_PAGE_SIZE} Linear teams: the board would be incomplete`)
@@ -200,6 +215,7 @@ export async function fetchTeamStages({ apiKey, fetchImpl = fetch, map = loadSta
   for (const team of teams) {
     const issues = []
     let after = null
+    const cursors = new Set()
     let capped = true
     for (let page = 0; page < MAX_PAGES; page += 1) {
       const data = await postGraphQL(apiKey, TEAM_OPEN_ISSUES_QUERY, { team: team.key, after }, fetchImpl)
@@ -208,7 +224,7 @@ export async function fetchTeamStages({ apiKey, fetchImpl = fetch, map = loadSta
         if (!issue) throw new Error(`Linear malformed response: ${team.key}: malformed issue node`)
         issues.push(issue)
       }
-      const next = readPageInfo(data.issues.pageInfo, team.key)
+      const next = readPageInfo(data.issues.pageInfo, team.key, cursors)
       if (next === null) {
         capped = false
         break

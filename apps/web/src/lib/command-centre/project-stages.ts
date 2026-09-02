@@ -196,7 +196,7 @@ interface RawIssueNode {
   url?: unknown
   updatedAt?: unknown
   state?: unknown
-  labels?: { nodes?: Array<{ name?: unknown } | null> } | null
+  labels?: unknown
 }
 
 /**
@@ -229,7 +229,16 @@ export function toStageIssue(node: unknown): StageIssue | null {
   // empty strings made it "unmapped" and let a team with active work read Done.
   const state = n.state as { name?: unknown; type?: unknown } | null | undefined
   if (typeof state !== 'object' || state === null || typeof state.name !== 'string' || typeof state.type !== 'string') return null
-  const labelNodes = Array.isArray(n.labels?.nodes) ? n.labels.nodes : []
+  // Labels decide Research vs Planning; a label list that cannot be read is
+  // shape drift, not "no labels". Refuse the node rather than publish Planning.
+  const labels = n.labels as { nodes?: unknown } | null | undefined
+  if (typeof labels !== 'object' || labels === null || !Array.isArray(labels.nodes)) return null
+  const labelNames: string[] = []
+  for (const l of labels.nodes as unknown[]) {
+    const name = (l as { name?: unknown } | null)?.name
+    if (typeof name !== 'string') return null
+    labelNames.push(name)
+  }
   return {
     id: n.id,
     identifier: n.identifier,
@@ -239,7 +248,7 @@ export function toStageIssue(node: unknown): StageIssue | null {
     updatedAt: n.updatedAt,
     stateName: state.name,
     stateType: state.type,
-    labelNames: labelNodes.map((l) => (l && typeof l.name === 'string' ? l.name : null)).filter((x): x is string => x !== null),
+    labelNames,
   }
 }
 
@@ -254,6 +263,7 @@ async function fetchTeamOpenIssues(
 ): Promise<{ ok: true; issues: StageIssue[]; capped: boolean } | { ok: false; error: string }> {
   const issues: StageIssue[] = []
   let after: string | null = null
+  const cursors = new Set<string>()
   for (let page = 0; page < MAX_PAGES; page += 1) {
     const result = await postGraphQL<RawIssuesPage>(apiKey, TEAM_OPEN_ISSUES_QUERY, { team: teamKey, after }, fetchImpl)
     if (!result.ok) return { ok: false, error: `${teamKey}: ${result.error}` }
@@ -270,6 +280,9 @@ async function fetchTeamOpenIssues(
     const page = readPageInfo(result.data.issues?.pageInfo)
     if (!page.ok) return { ok: false, error: `${teamKey}: ${page.error}` }
     if (page.next === null) return { ok: true, issues, capped: false }
+    // A cursor that repeats re-reads the same page: one issue would count once per page.
+    if (cursors.has(page.next)) return { ok: false, error: `${teamKey}: malformed response: pagination cursor did not advance` }
+    cursors.add(page.next)
     after = page.next
   }
   return { ok: true, issues, capped: true }
@@ -285,7 +298,9 @@ async function fetchTeams(
   fetchImpl: MinimalFetch,
 ): Promise<{ ok: true; teams: Array<{ key: string; name: string }> } | { ok: false; error: string }> {
   const teams: Array<{ key: string; name: string }> = []
+  const keys = new Set<string>()
   let after: string | null = null
+  const cursors = new Set<string>()
   for (let page = 0; page < MAX_TEAM_PAGES; page += 1) {
     const result = await postGraphQL<RawTeamsPage>(apiKey, TEAMS_QUERY, { after }, fetchImpl)
     if (!result.ok) return result
@@ -298,11 +313,16 @@ async function fetchTeams(
       if (typeof t?.key !== 'string' || typeof t?.name !== 'string') {
         return { ok: false, error: 'malformed response: a team node lacks key or name' }
       }
+      // A key seen twice means overlapping pages: two rows for one team breaks the contract.
+      if (keys.has(t.key)) return { ok: false, error: `malformed response: team ${t.key} appears more than once` }
+      keys.add(t.key)
       teams.push({ key: t.key, name: t.name })
     }
     const info = readPageInfo(result.data.teams?.pageInfo)
     if (!info.ok) return { ok: false, error: `teams: ${info.error}` }
     if (info.next === null) return { ok: true, teams }
+    if (cursors.has(info.next)) return { ok: false, error: 'teams: malformed response: pagination cursor did not advance' }
+    cursors.add(info.next)
     after = info.next
   }
   return { ok: false, error: `more than ${MAX_TEAM_PAGES * TEAMS_PAGE_SIZE} Linear teams: the board would be incomplete` }
