@@ -34,6 +34,17 @@ export function stdoutSample(stdout, limit = MAX_STDOUT_SAMPLE_CHARS) {
     : head
 }
 
+// Bounding the sample while leaving the error message unbounded protects nothing: a crafted
+// stdout can make JSON.parse (or a coercion on the way into it) throw a message of arbitrary
+// length, and that message is stored in the same artifact. Every string that reaches the report
+// from scanner-controlled data has to be capped, not just the one named "sample".
+export function boundedMessage(message, limit = MAX_STDOUT_SAMPLE_CHARS) {
+  const text = typeof message === 'string' ? message : String(message ?? '')
+  return text.length <= limit
+    ? text
+    : `${text.slice(0, limit)}...[truncated ${text.length - limit} of ${text.length} chars]`
+}
+
 // A scanner budget that silently falls back to a default when it is misconfigured
 // is the same failure this file exists to fix: a number nobody chose, producing a
 // result nobody can interpret. Garbage in the environment must stop the run.
@@ -416,7 +427,7 @@ export async function runActiveLockfileAudits({
         timedOut: false,
         vulnerabilities: { ...ZERO_VULNERABILITIES },
         findings: [],
-        error: error.message,
+        error: boundedMessage(error.message),
         // Only on this path. A scan that parsed needs no sample, and a timeout has no output
         // worth keeping — carrying it everywhere would bloat the artifact for no diagnostic gain.
         stdoutSample: stdoutSample(execution.stdout),

@@ -796,10 +796,18 @@ test('unparseable scanner output is captured, bounded, and only on the parse-fai
   assert.equal(stdoutSample(''), null)
   assert.equal(stdoutSample(undefined), null)
   assert.equal(stdoutSample('{"a":1}'), '{"a":1}')
-  const long = 'x'.repeat(MAX_STDOUT_SAMPLE_CHARS + 500)
+  // The cap is asserted as a LITERAL, deliberately. Deriving the input from
+  // MAX_STDOUT_SAMPLE_CHARS made this test pass for any value of that constant — it compared the
+  // constant against itself and proved nothing. Changing the cap must now break this test.
+  assert.equal(MAX_STDOUT_SAMPLE_CHARS, 2048, 'the cap is a contract; changing it is a decision')
+  const long = 'x'.repeat(5000)
   const sample = stdoutSample(long)
-  assert.ok(sample.length < long.length, 'a long sample must be shorter than its input')
-  assert.match(sample, /truncated 500 of/)
+  assert.equal(sample.slice(0, 2048), 'x'.repeat(2048))
+  assert.equal(sample.startsWith('x'.repeat(2049)), false, 'the raw prefix must stop at 2048')
+  assert.match(sample, /truncated 2952 of 5000 chars/)
+  // The truncation note is additive, so the field is longer than the raw cap. That is intended;
+  // pin it so the total can never drift unbounded.
+  assert.ok(sample.length < 2048 + 64, `field must stay near the cap, was ${sample.length}`)
 
   const unparseable = '{"advisories":{},"metadata":{"totalDependencies":42}}'
   const report = await runActiveLockfileAudits({
@@ -829,6 +837,30 @@ test('unparseable scanner output is captured, bounded, and only on the parse-fai
   assert.equal(Object.hasOwn(clean, 'stdoutSample'), false)
   assert.equal(timedOut.timedOut, true)
   assert.equal(Object.hasOwn(timedOut, 'stdoutSample'), false)
+  assert.equal(report.passed, false)
+})
+
+test('a scanner-controlled parse error cannot put an unbounded string in the report', async () => {
+  const { runActiveLockfileAudits } = await loadRunner()
+
+  // Bounding the sample and leaving the error message unbounded protects nothing — both land in
+  // the same uploaded artifact. A stdout whose coercion throws a huge message is the reachable
+  // shape: `JSON.parse` stringifies its input, so the thrown text is attacker-influenced.
+  const huge = 'E'.repeat(100_000)
+  const hostileStdout = { toString() { throw new Error(huge) } }
+
+  const report = await runActiveLockfileAudits({
+    entries: EXPECTED_ENTRIES,
+    runAudit: async (entry) => (entry.lockfile === 'apps/web/pnpm-lock.yaml'
+      ? { exitCode: 0, stdout: hostileStdout, stderr: '', timedOut: false }
+      : { exitCode: 0, stdout: CLEAN_AUDIT, stderr: '', timedOut: false }),
+  })
+
+  const failed = report.results.find(({ lockfile }) => lockfile === 'apps/web/pnpm-lock.yaml')
+  assert.equal(failed.status, 'error')
+  assert.ok(failed.error.length < 2048 + 64, `error field unbounded at ${failed.error.length} chars`)
+  const serialised = JSON.stringify(report)
+  assert.ok(serialised.length < 60_000, `report unbounded at ${serialised.length} chars`)
   assert.equal(report.passed, false)
 })
 
