@@ -709,7 +709,7 @@ test('concurrent scans preserve inventory order and actually overlap', async () 
   assert.ok(peakInFlight <= 5, `concurrency cap breached, peak in-flight was ${peakInFlight}`)
 })
 
-test('a worker that leaves its slot unfilled fails the aggregate closed', async () => {
+test('a scanner returning no usable result becomes a recorded error, not an aborted run', async () => {
   const { runActiveLockfileAudits } = await loadRunner()
   const report = await runActiveLockfileAudits({
     entries: EXPECTED_ENTRIES,
@@ -719,8 +719,50 @@ test('a worker that leaves its slot unfilled fails the aggregate closed', async 
       : { exitCode: 0, stdout: CLEAN_AUDIT, stderr: '', timedOut: false }),
   })
 
-  // `Array.prototype.every` skips holes, so a sparse or undefined-bearing results array
-  // would satisfy a naive predicate vacuously. This must never read as a pass.
+  // Throwing here would escape Promise.all and abort the run, leaving no report for the CI
+  // artifact to upload — fail-closed, but with the evidence destroyed. Record it instead.
+  const broken = report.results.find(({ lockfile }) => lockfile === 'apps/empire/package-lock.json')
+  assert.equal(broken.status, 'error')
+  assert.equal(broken.timedOut, false)
+  assert.match(broken.error, /returned no usable result/)
+  assert.equal(report.results.length, EXPECTED_LOCKS.length)
+  assert.equal(report.passed, false)
+})
+
+test('a sparse results array fails the aggregate closed', async () => {
+  const { runActiveLockfileAudits } = await loadRunner()
+
+  // `auditOne` catches everything and always returns an object, so no injected `runAudit`
+  // can produce a hole — which is exactly why the mapper itself is the seam. Substituting
+  // it is the only way to reach the guard, and a guard no test can reach is not a guard.
+  const sparseMapper = async (items) => {
+    const out = new Array(items.length)
+    for (let index = 1; index < items.length; index += 1) {
+      out[index] = {
+        ...items[index].entry,
+        status: 'passed',
+        exitCode: 0,
+        timeoutMs: null,
+        timedOut: false,
+        vulnerabilities: { info: 0, low: 0, moderate: 0, high: 0, critical: 0, total: 0 },
+        findings: [],
+        stderr: '',
+      }
+    }
+    return out // index 0 is a genuine hole, never assigned
+  }
+
+  const report = await runActiveLockfileAudits({
+    entries: EXPECTED_ENTRIES,
+    runAudit: async () => ({ exitCode: 0, stdout: CLEAN_AUDIT, stderr: '', timedOut: false }),
+    mapResults: sparseMapper,
+  })
+
+  // The hole is real: length still matches, and `every` would skip it.
+  assert.equal(report.results.length, EXPECTED_LOCKS.length)
+  assert.equal(Object.hasOwn(report.results, 0), false)
+  assert.equal(report.results.every(({ status }) => status === 'passed'), true,
+    'precondition: a bare every() cannot see the hole, which is the defect being guarded')
   assert.equal(report.passed, false)
 })
 

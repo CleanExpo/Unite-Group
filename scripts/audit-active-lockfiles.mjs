@@ -304,6 +304,11 @@ export async function runActiveLockfileAudits({
   root = process.cwd(),
   evidence,
   concurrency = readPositiveIntegerEnv('AUDIT_SCANNER_CONCURRENCY', DEFAULT_SCANNER_CONCURRENCY),
+  // Seam, and it exists for exactly one reason: `auditOne` catches everything and always
+  // returns an object, so no injected `runAudit` can produce a sparse `results`. Without a
+  // way to substitute the mapper, the hole guard below is unreachable from any test and is
+  // therefore unproven — which is indistinguishable from absent.
+  mapResults = mapWithConcurrency,
 } = {}) {
   const activeEntries = entries ?? await discoverTrackedLockfiles({ root })
   const evidenceFields = evidence ?? await collectEvidence({ root })
@@ -403,7 +408,7 @@ export async function runActiveLockfileAudits({
 
   // Scans run concurrently but land in inventory order: the report is diffed between
   // runs, and completion order is not stable. Indexed slots, never push-as-completed.
-  const results = await mapWithConcurrency(validations, concurrency, auditOne)
+  const results = await mapResults(validations, concurrency, auditOne)
 
   return {
     schema: 'unite-active-lockfile-audit-v2',
