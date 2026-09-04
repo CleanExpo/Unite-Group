@@ -38,8 +38,23 @@ export function stdoutSample(stdout, limit = MAX_STDOUT_SAMPLE_CHARS) {
 // stdout can make JSON.parse (or a coercion on the way into it) throw a message of arbitrary
 // length, and that message is stored in the same artifact. Every string that reaches the report
 // from scanner-controlled data has to be capped, not just the one named "sample".
+// `String(value)` is not a total function: it calls `toString`/`valueOf`/`Symbol.toPrimitive`,
+// and any of those can throw on a scanner-controlled object. The previous version called it
+// bare, so a value of that shape threw out of the bounding helper itself and rejected the whole
+// run — losing the entire matrix and artifact rather than recording one bad field. A helper that
+// throws on the input it exists to tame is worse than no helper.
+function coerceToString(value) {
+  if (typeof value === 'string') return value
+  if (value === null || value === undefined) return ''
+  try {
+    return String(value)
+  } catch {
+    return '[unrepresentable]'
+  }
+}
+
 export function boundedMessage(message, limit = MAX_STDOUT_SAMPLE_CHARS) {
-  const text = typeof message === 'string' ? message : String(message ?? '')
+  const text = coerceToString(message)
   return text.length <= limit
     ? text
     : `${text.slice(0, limit)}...[truncated ${text.length - limit} of ${text.length} chars]`
@@ -237,42 +252,85 @@ function normaliseVulnerabilities(report) {
   return values
 }
 
+// Every leaf below is copied straight out of scanner JSON, so every one is scanner-controlled
+// and attacker-length: the package NAME is an object key, and ranges and advisory URLs are free
+// text. Capping `error` and `stderr` while leaving these raw moved the bloat rather than removing
+// it — a VALID high-severity report carrying three 100,000-char strings produced a 300,525-char
+// artifact while the two "bounded" fields were dutifully short. Bounding here is safe because
+// findings are diagnostic only: `passed` is computed from `metadata.vulnerabilities` and the exit
+// code and never reads this list, so no cap can turn a failing scan green.
+export const MAX_FINDING_FIELD_CHARS = 256
+export const MAX_ADVISORIES_PER_FINDING = 8
+export const MAX_FINDINGS_PER_SCAN = 100
+
+function boundedField(value) {
+  if (value === null || value === undefined) return null
+  const text = boundedMessage(value, MAX_FINDING_FIELD_CHARS)
+  return text === '' ? null : text
+}
+
+function boundedAdvisories(items, pick) {
+  const advisories = []
+  for (const item of Array.isArray(items) ? items : []) {
+    if (advisories.length >= MAX_ADVISORIES_PER_FINDING) break
+    if (!item || typeof item !== 'object') continue
+    const value = boundedField(pick(item))
+    if (value !== null) advisories.push(value)
+  }
+  return advisories
+}
+
 function normaliseFindings(report) {
   const findings = []
+  // Dropping findings silently would be the failure this repo exists to prevent: a report
+  // listing 100 of 3000 reads exactly like a report of 100. The count is carried out so a
+  // truncated list can never be mistaken for a complete one.
+  let findingsTruncated = 0
+  const add = (finding) => {
+    if (findings.length >= MAX_FINDINGS_PER_SCAN) {
+      findingsTruncated += 1
+      return
+    }
+    findings.push(finding)
+  }
+
   for (const [name, finding] of Object.entries(report?.vulnerabilities ?? {})) {
     if (!['high', 'critical'].includes(finding?.severity)) continue
-    findings.push({
-      package: name,
+    add({
+      package: boundedField(name),
       severity: finding.severity,
-      range: finding.range ?? null,
-      advisories: (finding.via ?? [])
-        .filter((item) => item && typeof item === 'object')
-        .map((item) => item.url ?? item.title ?? String(item.source))
-        .filter(Boolean),
+      range: boundedField(finding.range),
+      advisories: boundedAdvisories(finding.via, (item) => item.url ?? item.title ?? item.source),
     })
   }
   for (const finding of Object.values(report?.advisories ?? {})) {
     if (!['high', 'critical'].includes(finding?.severity)) continue
-    findings.push({
-      package: finding.module_name ?? finding.name ?? null,
+    add({
+      package: boundedField(finding.module_name ?? finding.name),
       severity: finding.severity,
-      range: finding.vulnerable_versions ?? null,
-      advisories: [finding.url].filter(Boolean),
+      range: boundedField(finding.vulnerable_versions),
+      advisories: boundedAdvisories([finding], (item) => item.url),
     })
   }
-  return findings
+  return { findings, findingsTruncated }
 }
 
 export function parseAuditReport(stdout) {
   let report
   try {
-    report = JSON.parse(stdout)
+    // `JSON.parse` coerces its argument, so a hostile stdout throws from inside the parse and
+    // lands in the catch below — where interpolating a non-string `error.message` would throw
+    // AGAIN, out of the handler, taking the run with it. Coerce on the way in and bound on the
+    // way out: the only two places this function touches scanner-controlled data.
+    report = JSON.parse(coerceToString(stdout))
   } catch (error) {
-    throw new Error(`Audit scanner did not return valid JSON: ${error.message}`)
+    throw new Error(`Audit scanner did not return valid JSON: ${boundedMessage(error?.message)}`)
   }
+  const { findings, findingsTruncated } = normaliseFindings(report)
   return {
     vulnerabilities: normaliseVulnerabilities(report),
-    findings: normaliseFindings(report),
+    findings,
+    findingsTruncated,
   }
 }
 
@@ -416,6 +474,7 @@ export async function runActiveLockfileAudits({
         timedOut: false,
         vulnerabilities: parsed.vulnerabilities,
         findings: parsed.findings,
+        findingsTruncated: parsed.findingsTruncated,
         stderr: boundedMessage(execution.stderr).trim(),
       }
     } catch (error) {

@@ -913,3 +913,122 @@ test('worst-case wall clock fits the CI job budget at the shipped defaults', asy
   // test, not surface as a killed job three weeks later.
   assert.ok(DEFAULT_SCANNER_TIMEOUT_MS > 60_000, 'the budget that failed on 04/09 must not be restored')
 })
+
+test('a throwing coercion cannot reject the run on any executed-scan path', async () => {
+  const { runActiveLockfileAudits, boundedMessage } = await loadRunner()
+
+  // `String(value)` calls toString/valueOf/Symbol.toPrimitive, any of which a scanner-controlled
+  // object can throw from. boundedMessage called it bare, so this exact value threw out of the
+  // bounding helper and rejected the WHOLE run — the matrix and artifact lost to protect one
+  // field. The helper must be total on every input it is pointed at.
+  const throwingToString = { toString() { throw new Error('coercion refused') } }
+  const throwingValueOf = { valueOf() { throw new Error('valueOf refused') }, toString: undefined }
+
+  assert.equal(boundedMessage(throwingToString), '[unrepresentable]')
+  assert.equal(boundedMessage(throwingValueOf), '[unrepresentable]')
+  assert.equal(boundedMessage(null), '')
+  assert.equal(boundedMessage(undefined), '')
+  assert.equal(boundedMessage(42), '42')
+
+  // `JSON.parse` coerces its argument too, so the same hostile value reaches the parser. The
+  // recorded error must be a real JSON syntax error, not text the scanner chose by throwing from
+  // its own toString — otherwise the coercion is a side-channel into the artifact, and a
+  // non-string thrown `message` would throw again from inside the catch handler.
+  const { parseAuditReport } = await loadRunner()
+  assert.throws(
+    () => parseAuditReport(throwingToString),
+    (error) => /did not return valid JSON/.test(error.message)
+      && !/coercion refused/.test(error.message),
+    'a hostile coercion must not dictate the recorded parse error',
+  )
+
+  // Planted on the clean, timeout AND parse-failure paths in one run: a per-path fix that
+  // misses a path is the exact shape this defect has taken twice already on this branch.
+  const report = await runActiveLockfileAudits({
+    entries: EXPECTED_ENTRIES,
+    runAudit: async (entry) => {
+      if (entry.lockfile === 'apps/empire/package-lock.json') {
+        return { exitCode: 2, stdout: '', stderr: throwingToString, timedOut: true, timeoutMs: 300_000 }
+      }
+      if (entry.lockfile === 'apps/web/pnpm-lock.yaml') {
+        return { exitCode: 0, stdout: throwingToString, stderr: throwingToString, timedOut: false }
+      }
+      return { exitCode: 0, stdout: CLEAN_AUDIT, stderr: throwingToString, timedOut: false }
+    },
+  })
+
+  // The run COMPLETED — that is the whole assertion. Before the fix this rejected.
+  assert.equal(report.results.length, EXPECTED_ENTRIES.length)
+  for (const result of report.results) {
+    assert.equal(typeof result.stderr, 'string', `${result.workspace} lost its stderr field`)
+    assert.ok(result.stderr.length < 2048 + 64, `${result.workspace} stderr unbounded`)
+  }
+  // A scan whose output could not even be coerced is not a clean scan.
+  const hostile = report.results.find(({ lockfile }) => lockfile === 'apps/web/pnpm-lock.yaml')
+  assert.equal(hostile.status, 'error')
+  assert.equal(report.passed, false)
+})
+
+test('findings are bounded per field, per advisory and in count, without changing the verdict', async () => {
+  const {
+    runActiveLockfileAudits,
+    MAX_FINDING_FIELD_CHARS,
+    MAX_ADVISORIES_PER_FINDING,
+    MAX_FINDINGS_PER_SCAN,
+  } = await loadRunner()
+
+  // Pinned as literals, deliberately. Deriving the expected bound from the constant it claims to
+  // check is what made the previous cap assertion pass for any value of that constant.
+  assert.equal(MAX_FINDING_FIELD_CHARS, 256, 'the field cap is a contract; changing it is a decision')
+  assert.equal(MAX_ADVISORIES_PER_FINDING, 8, 'the advisory cap is a contract')
+  assert.equal(MAX_FINDINGS_PER_SCAN, 100, 'the finding cap is a contract')
+
+  const huge = 'P'.repeat(100_000)
+  // VALID, well-formed, high-severity audit JSON. Nothing here is malformed — this is the shape
+  // that slipped past two rounds of "every scanner string is bounded now".
+  const vulnerabilities = { [huge]: {
+    severity: 'critical',
+    range: 'R'.repeat(100_000),
+    via: Array.from({ length: 50 }, (_, i) => ({ url: `U${i}`.repeat(50_000) })),
+  } }
+  for (let i = 0; i < 500; i += 1) {
+    vulnerabilities[`pkg-${i}`] = { severity: 'high', range: '<1.0.0', via: [{ title: 'T'.repeat(9_000) }] }
+  }
+  const hostileValid = JSON.stringify({
+    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 500, critical: 1, total: 501 } },
+    vulnerabilities,
+  })
+
+  const report = await runActiveLockfileAudits({
+    entries: EXPECTED_ENTRIES,
+    runAudit: async (entry) => (entry.lockfile === 'apps/web/pnpm-lock.yaml'
+      ? { exitCode: 1, stdout: hostileValid, stderr: '', timedOut: false }
+      : { exitCode: 0, stdout: CLEAN_AUDIT, stderr: '', timedOut: false }),
+  })
+
+  const hostile = report.results.find(({ lockfile }) => lockfile === 'apps/web/pnpm-lock.yaml')
+
+  // Every leaf, not just the ones that were easy to name.
+  assert.ok(hostile.findings.length <= 100, `finding count unbounded at ${hostile.findings.length}`)
+  for (const finding of hostile.findings) {
+    assert.ok(finding.package.length < 256 + 64, `package unbounded at ${finding.package.length}`)
+    assert.ok(finding.range.length < 256 + 64, `range unbounded at ${finding.range.length}`)
+    assert.ok(finding.advisories.length <= 8, `advisories unbounded at ${finding.advisories.length}`)
+    for (const advisory of finding.advisories) {
+      assert.ok(advisory.length < 256 + 64, `advisory unbounded at ${advisory.length}`)
+    }
+  }
+
+  // Dropped findings are COUNTED, never silently absent: 501 in, 100 kept, 401 declared.
+  assert.equal(hostile.findingsTruncated, 401)
+
+  // The verdict is computed from metadata counts and the exit code, so no cap can green a
+  // failing scan. This is the property that makes bounding safe at all.
+  assert.equal(hostile.status, 'failed')
+  assert.equal(hostile.vulnerabilities.critical, 1)
+  assert.equal(hostile.vulnerabilities.high, 500)
+  assert.equal(report.passed, false)
+
+  const serialised = JSON.stringify(report)
+  assert.ok(serialised.length < 400_000, `report unbounded at ${serialised.length} chars`)
+})
