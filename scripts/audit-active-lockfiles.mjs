@@ -424,6 +424,7 @@ export async function runActiveLockfileAudits({
         timedOut: false,
         vulnerabilities: { ...ZERO_VULNERABILITIES },
         findings: [],
+        findingsTruncated: 0,
         error: errors.join('; '),
         stderr: '',
       }
@@ -442,6 +443,7 @@ export async function runActiveLockfileAudits({
         timedOut: false,
         vulnerabilities: { ...ZERO_VULNERABILITIES },
         findings: [],
+        findingsTruncated: 0,
         error: `Audit scanner returned no usable result (${typeof execution})`,
         stderr: '',
       }
@@ -459,6 +461,7 @@ export async function runActiveLockfileAudits({
         timedOut: true,
         vulnerabilities: { ...ZERO_VULNERABILITIES },
         findings: [],
+        findingsTruncated: 0,
         error: `Audit scanner timed out after ${execution.timeoutMs}ms`,
         stderr: boundedMessage(execution.stderr).trim(),
       }
@@ -486,6 +489,7 @@ export async function runActiveLockfileAudits({
         timedOut: false,
         vulnerabilities: { ...ZERO_VULNERABILITIES },
         findings: [],
+        findingsTruncated: 0,
         error: boundedMessage(error.message),
         // Only on this path. A scan that parsed needs no sample, and a timeout has no output
         // worth keeping — carrying it everywhere would bloat the artifact for no diagnostic gain.

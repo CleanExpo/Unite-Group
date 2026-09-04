@@ -962,6 +962,13 @@ test('a throwing coercion cannot reject the run on any executed-scan path', asyn
   for (const result of report.results) {
     assert.equal(typeof result.stderr, 'string', `${result.workspace} lost its stderr field`)
     assert.ok(result.stderr.length < 2048 + 64, `${result.workspace} stderr unbounded`)
+    // This run covers the clean, timeout and parse-failure paths, so the field must be a number
+    // on all of them: a consumer summing truncation across the matrix would otherwise get NaN
+    // from the paths that never parsed anything.
+    assert.equal(
+      typeof result.findingsTruncated, 'number',
+      `${result.workspace} (${result.status}) has no findingsTruncated`,
+    )
   }
   // A scan whose output could not even be coerced is not a clean scan.
   const hostile = report.results.find(({ lockfile }) => lockfile === 'apps/web/pnpm-lock.yaml')
@@ -999,18 +1006,40 @@ test('findings are bounded per field, per advisory and in count, without changin
     vulnerabilities,
   })
 
+  // normaliseFindings has TWO loops: npm v7+ (`vulnerabilities`) and npm v6 (`advisories`,
+  // module_name/vulnerable_versions/url). A control that only ever sends the v7 shape cannot
+  // tell a bounded second loop from an unbounded one — verified by mutation: reverting the v6
+  // loop alone left this suite 35/35 green until this shape was added. Both loops, one test.
+  const hostileV6 = JSON.stringify({
+    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 1, critical: 0, total: 1 } },
+    advisories: { 1: {
+      severity: 'high',
+      module_name: 'M'.repeat(100_000),
+      vulnerable_versions: 'V'.repeat(100_000),
+      url: 'U'.repeat(100_000),
+    } },
+  })
+
   const report = await runActiveLockfileAudits({
     entries: EXPECTED_ENTRIES,
-    runAudit: async (entry) => (entry.lockfile === 'apps/web/pnpm-lock.yaml'
-      ? { exitCode: 1, stdout: hostileValid, stderr: '', timedOut: false }
-      : { exitCode: 0, stdout: CLEAN_AUDIT, stderr: '', timedOut: false }),
+    runAudit: async (entry) => {
+      if (entry.lockfile === 'apps/web/pnpm-lock.yaml') {
+        return { exitCode: 1, stdout: hostileValid, stderr: '', timedOut: false }
+      }
+      if (entry.lockfile === 'apps/workspace/pnpm-lock.yaml') {
+        return { exitCode: 1, stdout: hostileV6, stderr: '', timedOut: false }
+      }
+      return { exitCode: 0, stdout: CLEAN_AUDIT, stderr: '', timedOut: false }
+    },
   })
 
   const hostile = report.results.find(({ lockfile }) => lockfile === 'apps/web/pnpm-lock.yaml')
+  const hostileLegacy = report.results.find(({ lockfile }) => lockfile === 'apps/workspace/pnpm-lock.yaml')
 
-  // Every leaf, not just the ones that were easy to name.
+  // Every leaf of BOTH shapes, not just the ones that were easy to name.
   assert.ok(hostile.findings.length <= 100, `finding count unbounded at ${hostile.findings.length}`)
-  for (const finding of hostile.findings) {
+  assert.equal(hostileLegacy.findings.length, 1, 'the v6 shape must produce a finding to bound')
+  for (const finding of [...hostile.findings, ...hostileLegacy.findings]) {
     assert.ok(finding.package.length < 256 + 64, `package unbounded at ${finding.package.length}`)
     assert.ok(finding.range.length < 256 + 64, `range unbounded at ${finding.range.length}`)
     assert.ok(finding.advisories.length <= 8, `advisories unbounded at ${finding.advisories.length}`)
@@ -1018,6 +1047,7 @@ test('findings are bounded per field, per advisory and in count, without changin
       assert.ok(advisory.length < 256 + 64, `advisory unbounded at ${advisory.length}`)
     }
   }
+  assert.equal(hostileLegacy.status, 'failed')
 
   // Dropped findings are COUNTED, never silently absent: 501 in, 100 kept, 401 declared.
   assert.equal(hostile.findingsTruncated, 401)
