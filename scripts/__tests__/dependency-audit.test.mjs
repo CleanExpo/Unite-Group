@@ -998,6 +998,15 @@ test('findings are bounded per field, per advisory and in count, without changin
     range: 'R'.repeat(100_000),
     via: Array.from({ length: 50 }, (_, i) => ({ url: `U${i}`.repeat(50_000) })),
   } }
+  // A fixture that always supplies `url` never selects the `?? item.source` arm, so a regression
+  // that bounds url/title and leaves source raw ships green. Proven: a mutant doing exactly that
+  // kept this suite 35/35. Declared BEFORE the bulk filler so it survives the finding cap — a
+  // fallback fixture truncated away is a fixture that checks nothing.
+  vulnerabilities['fallback-via-source'] = {
+    severity: 'high',
+    range: '<1.0.0',
+    via: [{ source: 'S'.repeat(100_000) }],
+  }
   for (let i = 0; i < 500; i += 1) {
     vulnerabilities[`pkg-${i}`] = { severity: 'high', range: '<1.0.0', via: [{ title: 'T'.repeat(9_000) }] }
   }
@@ -1011,13 +1020,23 @@ test('findings are bounded per field, per advisory and in count, without changin
   // tell a bounded second loop from an unbounded one — verified by mutation: reverting the v6
   // loop alone left this suite 35/35 green until this shape was added. Both loops, one test.
   const hostileV6 = JSON.stringify({
-    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 1, critical: 0, total: 1 } },
-    advisories: { 1: {
-      severity: 'high',
-      module_name: 'M'.repeat(100_000),
-      vulnerable_versions: 'V'.repeat(100_000),
-      url: 'U'.repeat(100_000),
-    } },
+    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 2, critical: 0, total: 2 } },
+    advisories: {
+      1: {
+        severity: 'high',
+        module_name: 'M'.repeat(100_000),
+        vulnerable_versions: 'V'.repeat(100_000),
+        url: 'U'.repeat(100_000),
+      },
+      // Same blindness, other loop: always supplying `module_name` never selects the `?? name`
+      // arm. A mutant bounding module_name and leaving name raw also kept this suite green.
+      2: {
+        severity: 'high',
+        name: 'N'.repeat(100_000),
+        vulnerable_versions: '<2.0.0',
+        url: 'https://example.invalid/advisory',
+      },
+    },
   })
 
   const report = await runActiveLockfileAudits({
@@ -1038,7 +1057,23 @@ test('findings are bounded per field, per advisory and in count, without changin
 
   // Every leaf of BOTH shapes, not just the ones that were easy to name.
   assert.ok(hostile.findings.length <= 100, `finding count unbounded at ${hostile.findings.length}`)
-  assert.equal(hostileLegacy.findings.length, 1, 'the v6 shape must produce a finding to bound')
+  assert.equal(hostileLegacy.findings.length, 2, 'the v6 shape must produce findings to bound')
+
+  // The two FALLBACK arms, asserted by identity rather than by hoping the loop above reached
+  // them. A fallback fixture that silently vanished (truncated, or never selected) would leave
+  // the bound unchecked while the suite stayed green - which is precisely what happened here.
+  const viaSourceOnly = hostile.findings.find(({ package: p }) => p === 'fallback-via-source')
+  assert.ok(viaSourceOnly, 'the source-only via fixture must survive the finding cap to be checked')
+  assert.equal(viaSourceOnly.advisories.length, 1, 'via[].source must yield an advisory')
+  assert.ok(viaSourceOnly.advisories[0].startsWith('S'), 'the advisory must come from via[].source')
+  assert.ok(
+    viaSourceOnly.advisories[0].length < 256 + 64,
+    `via[].source unbounded at ${viaSourceOnly.advisories[0].length}`,
+  )
+
+  const nameOnly = hostileLegacy.findings.find(({ package: p }) => p?.startsWith('N'))
+  assert.ok(nameOnly, 'the name-only advisory fixture must be present to be checked')
+  assert.ok(nameOnly.package.length < 256 + 64, `advisories[].name unbounded at ${nameOnly.package.length}`)
   for (const finding of [...hostile.findings, ...hostileLegacy.findings]) {
     assert.ok(finding.package.length < 256 + 64, `package unbounded at ${finding.package.length}`)
     assert.ok(finding.range.length < 256 + 64, `range unbounded at ${finding.range.length}`)
@@ -1049,8 +1084,8 @@ test('findings are bounded per field, per advisory and in count, without changin
   }
   assert.equal(hostileLegacy.status, 'failed')
 
-  // Dropped findings are COUNTED, never silently absent: 501 in, 100 kept, 401 declared.
-  assert.equal(hostile.findingsTruncated, 401)
+  // Dropped findings are COUNTED, never silently absent: 502 in, 100 kept, 402 declared.
+  assert.equal(hostile.findingsTruncated, 402)
 
   // The verdict is computed from metadata counts and the exit code, so no cap can green a
   // failing scan. This is the property that makes bounding safe at all.
