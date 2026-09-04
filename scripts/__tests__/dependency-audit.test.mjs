@@ -840,6 +840,37 @@ test('unparseable scanner output is captured, bounded, and only on the parse-fai
   assert.equal(report.passed, false)
 })
 
+test('stderr is bounded on every executed-scan path, not just the parse-failure one', async () => {
+  const { runActiveLockfileAudits } = await loadRunner()
+
+  // executeAudit permits a 10 MiB child-process buffer per scan, so stderr is scanner-controlled
+  // and unbounded at source. Capping the sample and the error message while leaving stderr free
+  // would have moved the bloat rather than removed it — the artifact is the thing being protected.
+  const huge = 'S'.repeat(100_000)
+  const report = await runActiveLockfileAudits({
+    entries: EXPECTED_ENTRIES,
+    runAudit: async (entry) => {
+      if (entry.lockfile === 'apps/empire/package-lock.json') {
+        return { exitCode: 2, stdout: '', stderr: huge, timedOut: true, timeoutMs: 300_000 }
+      }
+      if (entry.lockfile === 'apps/web/pnpm-lock.yaml') {
+        return { exitCode: 0, stdout: 'not json', stderr: huge, timedOut: false }
+      }
+      return { exitCode: 0, stdout: CLEAN_AUDIT, stderr: huge, timedOut: false }
+    },
+  })
+
+  // All three result classes: clean, timeout, parse-failure.
+  for (const result of report.results) {
+    assert.ok(
+      result.stderr.length < 2048 + 64,
+      `${result.workspace} (${result.status}) stderr unbounded at ${result.stderr.length} chars`,
+    )
+  }
+  const serialised = JSON.stringify(report)
+  assert.ok(serialised.length < 80_000, `report unbounded at ${serialised.length} chars`)
+})
+
 test('a scanner-controlled parse error cannot put an unbounded string in the report', async () => {
   const { runActiveLockfileAudits } = await loadRunner()
 

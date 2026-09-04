@@ -402,7 +402,7 @@ export async function runActiveLockfileAudits({
         vulnerabilities: { ...ZERO_VULNERABILITIES },
         findings: [],
         error: `Audit scanner timed out after ${execution.timeoutMs}ms`,
-        stderr: execution.stderr.trim(),
+        stderr: boundedMessage(execution.stderr).trim(),
       }
     }
     try {
@@ -416,7 +416,7 @@ export async function runActiveLockfileAudits({
         timedOut: false,
         vulnerabilities: parsed.vulnerabilities,
         findings: parsed.findings,
-        stderr: execution.stderr.trim(),
+        stderr: boundedMessage(execution.stderr).trim(),
       }
     } catch (error) {
       return {
@@ -431,7 +431,7 @@ export async function runActiveLockfileAudits({
         // Only on this path. A scan that parsed needs no sample, and a timeout has no output
         // worth keeping — carrying it everywhere would bloat the artifact for no diagnostic gain.
         stdoutSample: stdoutSample(execution.stdout),
-        stderr: execution.stderr.trim(),
+        stderr: boundedMessage(execution.stderr).trim(),
       }
     }
   }
