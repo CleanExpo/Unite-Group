@@ -789,6 +789,49 @@ test('scanner budget and concurrency come from the environment and reject garbag
   }
 })
 
+test('unparseable scanner output is captured, bounded, and only on the parse-failure path', async () => {
+  const { runActiveLockfileAudits, stdoutSample, MAX_STDOUT_SAMPLE_CHARS } = await loadRunner()
+
+  // The helper: short output survives whole, long output is truncated and says so.
+  assert.equal(stdoutSample(''), null)
+  assert.equal(stdoutSample(undefined), null)
+  assert.equal(stdoutSample('{"a":1}'), '{"a":1}')
+  const long = 'x'.repeat(MAX_STDOUT_SAMPLE_CHARS + 500)
+  const sample = stdoutSample(long)
+  assert.ok(sample.length < long.length, 'a long sample must be shorter than its input')
+  assert.match(sample, /truncated 500 of/)
+
+  const unparseable = '{"advisories":{},"metadata":{"totalDependencies":42}}'
+  const report = await runActiveLockfileAudits({
+    entries: EXPECTED_ENTRIES,
+    runAudit: async (entry) => {
+      if (entry.lockfile === 'apps/web/pnpm-lock.yaml') {
+        return { exitCode: 0, stdout: unparseable, stderr: '', timedOut: false }
+      }
+      if (entry.lockfile === 'apps/empire/package-lock.json') {
+        return { exitCode: 2, stdout: 'never parsed', stderr: 'killed', timedOut: true, timeoutMs: 300_000 }
+      }
+      return { exitCode: 0, stdout: CLEAN_AUDIT, stderr: '', timedOut: false }
+    },
+  })
+
+  // This is the whole point: the bytes that would not parse are recoverable from the report,
+  // so the NEXT CI run answers the schema question with output instead of inference.
+  const failed = report.results.find(({ lockfile }) => lockfile === 'apps/web/pnpm-lock.yaml')
+  assert.equal(failed.status, 'error')
+  assert.equal(failed.stdoutSample, unparseable)
+  assert.match(failed.error, /missing metadata\.vulnerabilities/)
+
+  // And nowhere else: a clean scan and a timeout both carry no sample.
+  const clean = report.results.find(({ lockfile }) => lockfile === 'apps/workspace/pnpm-lock.yaml')
+  const timedOut = report.results.find(({ lockfile }) => lockfile === 'apps/empire/package-lock.json')
+  assert.equal(clean.status, 'passed')
+  assert.equal(Object.hasOwn(clean, 'stdoutSample'), false)
+  assert.equal(timedOut.timedOut, true)
+  assert.equal(Object.hasOwn(timedOut, 'stdoutSample'), false)
+  assert.equal(report.passed, false)
+})
+
 test('worst-case wall clock fits the CI job budget at the shipped defaults', async () => {
   const {
     DEFAULT_SCANNER_TIMEOUT_MS, DEFAULT_SCANNER_CONCURRENCY, CI_JOB_BUDGET_MS,

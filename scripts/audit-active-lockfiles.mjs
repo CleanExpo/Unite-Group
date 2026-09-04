@@ -18,6 +18,22 @@ export const DEFAULT_SCANNER_CONCURRENCY = 5
 // nothing re-reads when either number changes.
 export const CI_JOB_BUDGET_MS = 20 * 60 * 1000
 
+// When a scanner's output will not parse, the message alone cannot say why: a different schema,
+// a broken scanner build and a banner on stdout all produce the same "missing
+// metadata.vulnerabilities". Recording the message and discarding the bytes that caused it left
+// the 04/09/2026 pnpm failures undiagnosable from CI — the uploaded artifact holds the PARSED
+// report, so the raw output existed nowhere. Bounded because audit output is unbounded; the
+// prefix is where the shape lives.
+export const MAX_STDOUT_SAMPLE_CHARS = 2048
+
+export function stdoutSample(stdout, limit = MAX_STDOUT_SAMPLE_CHARS) {
+  if (typeof stdout !== 'string' || stdout === '') return null
+  const head = stdout.slice(0, limit)
+  return head.length < stdout.length
+    ? `${head}\n...[truncated ${stdout.length - head.length} of ${stdout.length} chars]`
+    : head
+}
+
 // A scanner budget that silently falls back to a default when it is misconfigured
 // is the same failure this file exists to fix: a number nobody chose, producing a
 // result nobody can interpret. Garbage in the environment must stop the run.
@@ -401,6 +417,9 @@ export async function runActiveLockfileAudits({
         vulnerabilities: { ...ZERO_VULNERABILITIES },
         findings: [],
         error: error.message,
+        // Only on this path. A scan that parsed needs no sample, and a timeout has no output
+        // worth keeping — carrying it everywhere would bloat the artifact for no diagnostic gain.
+        stdoutSample: stdoutSample(execution.stdout),
         stderr: execution.stderr.trim(),
       }
     }
