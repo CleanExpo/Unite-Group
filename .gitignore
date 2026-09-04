@@ -107,6 +107,31 @@ outputs/sandbox_voice_migration/
 .claude/worktrees/
 .worktrees/
 
+# Done-harness RUN STATE is machine-owned and leaks the founder's filesystem layout.
+# Every work item is keyed by `identity_key = <branch>@<absolute worktree path>`, so
+# committing these publishes a local home path — and this repo is PUBLIC. Branch
+# fix/uni-2640-fast-uri-4.1.4 did exactly that: `contract.json` and `lock.json` there
+# each carry `/Users/<founder>/Unite-Group/.git` (UNI-2659). Until now the only thing
+# stopping this was `.git/info/exclude`, which is local-only and does not propagate —
+# which is why it recurred on a second machine.
+#
+# `.claude/done/bin/` and `.claude/done/checks/` stay TRACKED on purpose: those are the
+# actual controls, they are portable, and they are useless to a reviewer if hidden.
+# Verified on the branch above — its check script contains no absolute path.
+#
+# No trailing slash on `work` — deliberate. A trailing slash matches DIRECTORIES ONLY,
+# so `.claude/done/work` created as a SYMLINK is not ignored and `git add -A` commits
+# the link with its target path verbatim. The harness accepts a symlink there
+# (`os.path.isdir` follows it) and writes through it, so that is a reachable shape,
+# not a theoretical one. Verified: with the slash, a symlink to a home path stages;
+# without it, it does not.
+# `**/` prefix, matching `**/.claude/settings.local.json` above and for the same
+# reason: nested `.claude/` directories exist (`apps/web/.claude/`), so a harness run
+# with cwd inside a workspace writes `apps/web/.claude/done/…`. Verified: root-anchored
+# rules returned NO MATCH on that path and both files staged.
+**/.claude/done/ACTIVE.json
+**/.claude/done/work
+
 # Firecrawl scrape output: third-party pages pulled for research. Transient,
 # re-fetchable, and not ours to redistribute — keep it out of the repo.
 .firecrawl/
