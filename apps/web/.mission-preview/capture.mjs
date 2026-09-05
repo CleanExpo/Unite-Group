@@ -9,6 +9,32 @@ await mkdir(output, { recursive: true });
 const browser = await chromium.launch({ headless: true });
 const results = [];
 const errors = [];
+const boardSamples = [
+  { verdict: "HOLD", rationale: "Confirm who owns customer data before building.", title: "Sample HOLD · Customer data ownership", taskId: "00000000-0000-4000-8000-000000000004", specVersion: "c".repeat(64) },
+  { verdict: "REJECTED", rationale: "Replace the unsupported release promise with an independently verified preview.", title: "Sample REJECTED · Release evidence", taskId: "00000000-0000-4000-8000-000000000005", specVersion: "d".repeat(64) },
+];
+
+async function checkSampleConsent(page, selected, mission) {
+  assert.equal(new URL(page.url()).origin, "http://127.0.0.1:4178", "Consent checks are local-sample-only");
+  await page.evaluate(() => {
+    window.__previewConsentRequests = [];
+    const fixtureFetch = window.fetch;
+    window.fetch = async (input, init) => {
+      const url = new URL(input instanceof Request ? input.url : String(input), window.location.href);
+      if (url.pathname === "/api/command-centre/missions" && init?.method === "POST") window.__previewConsentRequests.push(JSON.parse(String(init.body)));
+      return fixtureFetch(input, init);
+    };
+  });
+  const consent = selected.getByRole("button", { name: "Approve this build", exact: true });
+  assert(await consent.isEnabled(), "The existing explicit branch-consent action remains available");
+  await consent.click();
+  await selected.getByText("Build approved. Waiting for an assigned delivery worker.", { exact: true }).waitFor();
+  const requests = await page.evaluate(() => window.__previewConsentRequests);
+  assert.deepEqual(requests, [{ action: "approve", taskId: mission.taskId, specVersion: mission.specVersion }], "One explicit click submits only this mission and exact specification version");
+  assert.equal(await selected.getByRole("button", { name: "Approve this build", exact: true }).count(), 0);
+  return requests[0];
+}
+
 let completed = false;
 try {
   const page = await browser.newPage({
@@ -140,7 +166,46 @@ try {
     await selected.evaluate(element => element.scrollIntoView({ block: "start" }));
     await page.screenshot({ path: fileURLToPath(new URL(`mission-walkthrough-${width}.png`, output)) });
     await selected.screenshot({ path: fileURLToPath(new URL(`mission-detail-${width}.png`, output)) });
-    results.push({ check: "Owner mission walkthrough", width, capabilitiesVisibleBeforeExpansion: true, selectedCapabilities: chosen.map(preset => preset.id), sampleMission: true, nextActionOwner: mission.nextAction.owner, displayedOwner: await owner.innerText(), detailWidth: detailBounds.width, mainWidth, overflow: false, pass: true });
+    const displayedOwner = await owner.innerText();
+    assert.equal(await selected.getByRole("region", { name: "Board concerns" }).count(), 0);
+    const consentRequest = await checkSampleConsent(page, selected, mission);
+    results.push({ check: "Owner mission walkthrough", width, capabilitiesVisibleBeforeExpansion: true, selectedCapabilities: chosen.map(preset => preset.id), sampleMission: true, nextActionOwner: mission.nextAction.owner, displayedOwner, detailWidth: detailBounds.width, mainWidth, overflow: false, consentRequest, pass: true });
+
+    for (const boardSample of boardSamples) {
+      await page.goto(home);
+      await page.getByText("Local design preview · sample missions", { exact: true }).waitFor();
+      const card = page.getByRole("button").filter({ has: page.getByText(boardSample.title, { exact: true }) });
+      await card.click();
+      await selected.getByRole("heading", { name: boardSample.title, exact: true }).waitFor();
+      assert.equal(new URL(page.url()).searchParams.get("mission"), boardSample.taskId);
+      const concerns = selected.getByRole("region", { name: "Board concerns", exact: true });
+      await concerns.waitFor();
+      const message = `Board ${boardSample.verdict}: ${boardSample.rationale}`;
+      assert(await concerns.getByText(message, { exact: true }).isVisible());
+      assert.equal(await selected.getByText(message, { exact: true }).count(), 1, "The actual Board rationale is shown once");
+      const notice = "Branch build consent does not resolve these Board concerns.";
+      assert(await concerns.getByText(notice, { exact: true }).isVisible());
+      const consent = selected.getByRole("button", { name: "Approve this build", exact: true });
+      assert(await concerns.evaluate((element, button) => Boolean(element.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING), await consent.elementHandle()), "Board verdict and unresolved notice precede branch consent in reading order");
+      const next = selected.getByRole("status").filter({ hasText: "Next step" });
+      assert((await next.innerText()).includes("Review Board concerns before deciding on a branch build"));
+      assert((await next.innerText()).includes("Responsible: You"));
+      assert.equal(await selected.getByRole("button", { name: /override|re-review|revise/i }).count(), 0, "No unsupported override action appears");
+      assert(await selected.evaluate(element => element.scrollWidth <= element.clientWidth));
+      assert(await page.locator("main").first().evaluate(element => element.scrollWidth <= element.clientWidth));
+      const concernBounds = await concerns.boundingBox();
+      const consentBounds = await consent.boundingBox();
+      assert(concernBounds.y + concernBounds.height <= consentBounds.y, "Board notice is visually above branch consent");
+      await concerns.scrollIntoViewIfNeeded();
+      await page.screenshot({ path: fileURLToPath(new URL(`board-${boardSample.verdict.toLowerCase()}-walkthrough-${width}.png`, output)) });
+      await concerns.screenshot({ path: fileURLToPath(new URL(`board-${boardSample.verdict.toLowerCase()}-detail-${width}.png`, output)) });
+      await consent.scrollIntoViewIfNeeded();
+      await page.screenshot({ path: fileURLToPath(new URL(`board-${boardSample.verdict.toLowerCase()}-consent-${width}.png`, output)) });
+      const request = await checkSampleConsent(page, selected, boardSample);
+      assert(await concerns.getByText(message, { exact: true }).isVisible(), "Sample branch consent does not erase unresolved Board concerns");
+      assert(await concerns.getByText(notice, { exact: true }).isVisible());
+      results.push({ check: "Board concerns before branch consent", width, sampleMission: true, verdict: boardSample.verdict, rationale: boardSample.rationale, unresolvedNotice: notice, concernBeforeConsent: true, nextActionOwner: "You", overflow: false, consentRequest: request, concernsRetainedAfterSampleConsent: true, screenshots: ["walkthrough", "detail", "consent"].map(view => `board-${boardSample.verdict.toLowerCase()}-${view}-${width}.png`), pass: true });
+    }
   }
   const before = await page
     .getByTestId("deck-feel-toggle")

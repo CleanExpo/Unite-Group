@@ -810,6 +810,30 @@ describe("durable Margot preparation and build consent", () => {
 });
 
 describe("presets and projection honesty", () => {
+  it.each(["HOLD", "REJECTED"] as const)("projects the actual Board %s before asking the founder to decide on a branch build", async verdict => {
+    const h = harness();
+    vi.mocked(h.deps.runBoardReview).mockResolvedValue({
+      verdict,
+      rationale: "Confirm customer data ownership before building.",
+      personas: BOARD_PERSONAS.map(persona => ({ persona: persona.id, stance: verdict, comment: "Data ownership needs review." })),
+    });
+    await prepareDeliveryMission(founder, initial, h.deps);
+    const view = toDeliveryMissionView(h.row);
+    expect(view.stage).toBe("ready_for_review");
+    expect(view.nextAction).toEqual({ kind: "approve", owner: "You", label: "Review Board concerns before deciding on a branch build" });
+    expect(view.blockers).toContainEqual({ code: "board_concern", message: `Board ${verdict}: Confirm customer data ownership before building.` });
+    expect(readDeliveryMetadata(h.row)!.approval).toBeNull();
+    expect(h.receipts).toHaveLength(0);
+    expect(toDeliveryMissionView({ ...h.row, status: "queued" }).nextAction).toEqual({ kind: "wait", owner: "Build runner", label: "Waiting for build acceptance" });
+    expect(toDeliveryMissionView({ ...h.row, status: "failed" }).nextAction).toEqual({ kind: "resume", owner: "Margot", label: "Continue preparation" });
+  });
+  it("preserves the ordinary ready decision and queued owner when Board review has no concerns", async () => {
+    const h = harness();
+    await prepareDeliveryMission(founder, initial, h.deps);
+    expect(toDeliveryMissionView(h.row).nextAction).toEqual({ kind: "approve", owner: "You", label: "Approve this specification for a branch build" });
+    expect(toDeliveryMissionView(h.row).blockers.some(blocker => blocker.code === "board_concern")).toBe(false);
+    expect(toDeliveryMissionView({ ...h.row, status: "queued" }).nextAction).toEqual({ kind: "wait", owner: "Build runner", label: "Waiting for build acceptance" });
+  });
   it("deduplicates shared dependencies and removes them when no remaining selection needs them", () => {
     expect(
       resolveDeliveryPresets(["customer-portal", "approvals"]).map((p) => p.id),
