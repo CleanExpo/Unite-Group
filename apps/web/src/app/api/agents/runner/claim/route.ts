@@ -502,6 +502,12 @@ export async function POST(request: Request) {
             claimed_by: parsed.data.runnerId,
             platform: parsed.data.platform ?? null,
             containment: parsed.data.containment ?? null,
+            ...(task.approvedDelivery ? {
+              execution_role: 'build_spm',
+              scope: task.approvedDelivery.scope,
+              spec_revision: task.approvedDelivery.revision,
+              spec_fingerprint: task.approvedDelivery.specVersion,
+            } : {}),
           },
         },
         client as unknown as SupabaseLike,

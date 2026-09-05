@@ -130,6 +130,25 @@ describe('POST /api/agents/runner/release', () => {
     )
   })
 
+  it('audits a software draft PR as review handoff, never completed', async () => {
+    vi.mocked(releaseClaimedTask).mockResolvedValue({
+      task: { id: TASK_ID, status: 'awaiting_approval', claimed_by: null },
+      effectiveOutcome: 'done',
+    } as never)
+    const res = await POST(req(doneBody, `Bearer ${SECRET}`))
+    expect(res.status).toBe(200)
+    expect(appendTaskEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'status_changed',
+        payload: expect.objectContaining({ outcome: 'draft_pr_opened', status: 'awaiting_approval' }),
+      }),
+      expect.anything(),
+    )
+    expect(appendTaskEvent).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'completed' }), expect.anything(),
+    )
+  })
+
   // UNI-2398 — a capped requeue is released as 'failed' (UNI-2396); the audit
   // event must carry the EFFECTIVE outcome, never a ghost 'requeue'.
   it('audits the effective outcome when a capped requeue is downgraded to failed', async () => {

@@ -53,6 +53,31 @@ describe('POST /api/command-centre/queue/[id]/approve', () => {
     expect(body.decision).toBe('approve')
   })
 
+  it.each(['approve', 'reject', 'edit', 'defer'])(
+    'refuses generic %s for delivery missions without writing another consent receipt',
+    async (decision) => {
+      vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as never)
+      vi.mocked(getTaskById).mockResolvedValue({
+        id: 'task-1', status: 'awaiting_approval', external_ref: 'delivery:request-1',
+        metadata: { delivery: { kind: 'software_delivery', build: { status: 'awaiting_review' } } },
+      } as never)
+      const res = await POST(req({ decision }), params)
+      expect(res.status).toBe(409)
+      expect((await res.json()).error).toMatch(/mission decision/i)
+      expect(applyApproval).not.toHaveBeenCalled()
+    },
+  )
+
+  it('keeps the delivery guard when the saved metadata is damaged or removed', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as never)
+    vi.mocked(getTaskById).mockResolvedValue({
+      id: 'task-1', status: 'queued', external_ref: 'delivery:request-1', metadata: {},
+    } as never)
+    const res = await POST(req({ decision: 'edit', note: 'Do not revoke consent by another route' }), params)
+    expect(res.status).toBe(409)
+    expect(applyApproval).not.toHaveBeenCalled()
+  })
+
   it('approves a proposed task (matrix-legal proposed → queued)', async () => {
     vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
     vi.mocked(getTaskById).mockResolvedValue({ id: 'task-1', status: 'proposed' } as any)

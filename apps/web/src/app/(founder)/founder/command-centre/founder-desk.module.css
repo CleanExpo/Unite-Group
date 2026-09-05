@@ -1,0 +1,163 @@
+.shell {
+  --mission-canvas: #171a1f;
+  --mission-surface: #22262d;
+  --mission-raised: #292e37;
+  --mission-border: #434b57;
+  --mission-ink: #f2f5f8;
+  --mission-muted: #b3becd;
+  --mission-blue: #8ab8ff;
+  --mission-blue-ink: #13253f;
+  --mission-attention: #f1c58b;
+  min-height: 100%;
+  background: var(--mission-canvas);
+  color: var(--mission-ink);
+  padding: 28px clamp(18px, 3vw, 48px) 80px;
+}
+.shell:global(.cc-daylight) {
+  --mission-canvas: #f5f7fa;
+  --mission-surface: #fff;
+  --mission-raised: #edf1f6;
+  --mission-border: #c5ceda;
+  --mission-ink: #182331;
+  --mission-muted: #516174;
+  --mission-blue: #315eab;
+  --mission-blue-ink: #fff;
+  --mission-attention: #865309;
+}
+.founderDesk { max-width: 1480px; margin: 0 auto; font-family: Arial, sans-serif; font-size: 15px; line-height: 1.55; }
+.founderDesk *, .shell * { box-sizing: border-box; }
+.founderDesk h1, .founderDesk h2, .founderDesk h3, .founderDesk p { margin: 0; }
+.founderDesk h1 { font-family: var(--font-syne), sans-serif; font-size: clamp(27px, 2.6vw, 36px); line-height: 1.15; font-weight: 650; letter-spacing: -.035em; }
+.founderDesk h2 { font-size: 20px; line-height: 1.3; font-weight: 650; }
+.founderDesk h3 { font-size: 15px; font-weight: 650; }
+.founderDesk p { max-width: 72ch; }
+.founderDesk button, .founderDesk input, .founderDesk select, .founderDesk textarea { font: inherit; }
+.founderDesk button, .founderDesk a, .founderDesk summary { -webkit-tap-highlight-color: transparent; }
+.founderDesk button { cursor: pointer; }
+.founderDesk button:disabled { opacity: .55; cursor: wait; }
+.founderDesk :is(button, a, textarea, select, input, summary):focus-visible, .shell summary:focus-visible { outline: 3px solid var(--mission-blue); outline-offset: 4px; }
+.founderDesk a { color: var(--mission-blue); text-underline-offset: 3px; }
+.deskHeader { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 18px 0 20px; }
+.deskHeader p { color: var(--mission-muted); margin-top: 8px; }
+.deskHeader > div { max-width: 820px; }
+.primaryButton, .secondaryButton, .textButton { border-radius: 3px; padding: 12px 18px; font-weight: 600 !important; border: 1px solid transparent; white-space: nowrap; min-height: 44px; }
+.primaryButton { background: var(--mission-blue); color: var(--mission-blue-ink); }
+.secondaryButton { border-color: var(--mission-border); background: transparent; color: var(--mission-ink); }
+.textButton { color: var(--mission-blue); padding: 6px 10px; background: transparent; }
+.capabilityLinks { display: flex; flex-wrap: wrap; gap: 8px 26px; padding: 0 0 24px; }
+.capabilityLinks a { font-size: 14px; text-decoration: none; padding: 5px 0; color: var(--mission-muted); }
+.capabilityLinks a:hover { color: var(--mission-blue); text-decoration: underline; }
+.composerGrid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(280px, 1fr); border: 1px solid var(--mission-border); border-radius: 4px; overflow: hidden; background: var(--mission-surface); }
+.composerGrid[data-has-draft="false"] { grid-template-columns: 1fr; }
+.composerGrid[data-has-draft="false"] .composer { padding: 22px 26px; }
+.composerGrid[data-has-draft="false"] .composerFooter { margin-top: 12px; }
+.composerGrid[data-has-draft="false"] .projectField { flex: 0 1 360px; }
+.composer { min-width: 0; padding: clamp(20px, 2vw, 28px); }
+.margotHeading { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 16px; }
+.margotHeading p { margin-top: 8px; color: var(--mission-muted); font-size: 14px; }
+.margotMark { display: grid; place-items: center; width: 42px; height: 42px; flex: 0 0 42px; border: 1px solid var(--mission-blue); color: var(--mission-blue); font-family: var(--font-syne), sans-serif; font-size: 25px; border-radius: 3px; }
+.fieldLabel { display: block; margin-bottom: 8px; font-weight: 600; }
+.ideaInput { width: 100%; min-height: 110px; resize: vertical; background: var(--mission-canvas); color: var(--mission-ink); border: 1px solid var(--mission-border); border-radius: 3px; padding: 16px; line-height: 1.65; }
+.ideaInput::placeholder { color: var(--mission-muted); opacity: .9; }
+.composerFooter { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 18px; margin-top: 18px; }
+.projectField { flex: 1 1 220px; }
+.projectField label { display: block; margin-bottom: 6px; font-size: 13px; }
+.projectField label span { color: var(--mission-muted); }
+.projectField select { width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid var(--mission-border); border-radius: 3px; color: var(--mission-ink); background: var(--mission-canvas); }
+.presets { margin: 16px 0 0; padding: 0; border: 0; min-width: 0; }
+.capabilityDisclosure { margin-top: 16px; }
+.capabilityDisclosure > summary { color: var(--mission-blue); cursor: pointer; padding: 5px 0; font-size: 14px; }
+.capabilityDisclosure > summary span { color: var(--mission-muted); margin-left: 12px; font-size: 12px; }
+.presets legend { padding: 0; margin-bottom: 12px; font-weight: 600; }
+.presets legend span { display: block; color: var(--mission-muted); font-weight: 400; font-size: 13px; margin-top: 3px; }
+.presetButtons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.preset { border: 1px solid var(--mission-border); background: transparent; color: var(--mission-ink); border-radius: 3px; text-align: left; padding: 11px 12px; min-width: 0; }
+.preset[aria-pressed="true"] { border-color: var(--mission-blue); box-shadow: inset 3px 0 var(--mission-blue); background: var(--mission-raised); }
+.preset span { display: block; font-size: 13px; font-weight: 600; }
+.preset small { display: block; font-size: 11px; color: var(--mission-muted); margin-top: 4px; }
+.draftSpec { padding: clamp(20px, 2.4vw, 34px); background: var(--mission-raised); border-left: 1px solid var(--mission-border); }
+.sectionHeading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.draftSpec h2 { font-size: 17px; }
+.draftIntro { margin-bottom: 24px !important; overflow-wrap: anywhere; white-space: pre-wrap; }
+.draftNext { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--mission-border); }
+.draftNext p { margin-top: 8px; font-size: 14px; }
+.helper, .meta { color: var(--mission-muted); font-size: 13px; }
+.helper { margin-top: 8px !important; }
+.requirements { padding-left: 20px; margin: 12px 0 20px; }
+.requirements li { margin: 8px 0; overflow-wrap: anywhere; }
+.draftSpec .requirements { font-size: 14px; }
+.status { display: inline-flex; align-items: center; width: fit-content; border: 1px solid var(--mission-border); border-radius: 3px; padding: 3px 8px; font-size: 12px; color: var(--mission-muted); }
+.status[data-stage="ready_for_review"], .status[data-stage="needs_clarification"] { color: var(--mission-blue); border-color: var(--mission-blue); }
+.status[data-stage="failed"], .status[data-stage="release_blocked"] { color: var(--mission-attention); }
+.missionWorkspace { display: grid; grid-template-columns: minmax(240px, 320px) minmax(0, 1fr); gap: 24px; margin-top: 32px; align-items: start; }
+.missionList { min-width: 0; }
+.missionWorkspace[data-selected="false"] { grid-template-columns: 1fr; }
+.missionWorkspace[data-selected="false"] .missionList { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.missionWorkspace[data-selected="false"] .missionList > :is(.sectionHeading, .error, .empty, .helper) { grid-column: 1 / -1; }
+.missionWorkspace[data-selected="false"] .missionCard { margin: 0; }
+.missionCard { display: flex; flex-direction: column; align-items: flex-start; gap: 9px; width: 100%; padding: 18px; margin-bottom: 10px; text-align: left; border: 1px solid var(--mission-border); border-radius: 3px; background: var(--mission-surface); color: var(--mission-ink); }
+.missionCard[data-selected="true"] { border-color: var(--mission-blue); box-shadow: inset 3px 0 var(--mission-blue); }
+.missionCard strong { font-size: 16px; overflow-wrap: anywhere; }
+.missionProject, .missionNext { color: var(--mission-muted); font-size: 12px; }
+.missionNext { font-size: 13px; }
+.missionDetail { background: var(--mission-surface); border: 1px solid var(--mission-border); border-radius: 4px; padding: clamp(20px, 2.5vw, 36px); min-width: 0; }
+.detailHeader { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+.detailHeader h2 { font-size: 27px; margin: 6px 0 12px; overflow-wrap: anywhere; }
+.detailHeader p { color: var(--mission-muted); }
+.detailHeader > .status { flex-shrink: 0; }
+.ownership { display: flex; flex-wrap: wrap; gap: 10px 24px; padding: 20px 0; color: var(--mission-muted); font-size: 13px; }
+.resultLink { font-weight: 600; }
+.nextAction { background: var(--mission-raised); border-left: 3px solid var(--mission-blue); padding: 16px 18px; display: flex; flex-direction: column; gap: 5px; margin-bottom: 24px; }
+.nextAction strong { font-size: 13px; }
+.reviewSpec { margin: 24px 0; }
+.checklist { list-style: none; padding: 0; margin: 12px 0 20px; }
+.checklist li { display: flex; align-items: baseline; gap: 10px; margin: 9px 0; }
+.checklist li > span { color: var(--mission-muted); }
+.details { border-top: 1px solid var(--mission-border); padding: 16px 0; font-size: 14px; }
+.details summary { cursor: pointer; color: var(--mission-muted); min-height: 24px; }
+.details p, .details ol { margin-top: 14px; }
+.details li { margin: 9px 0; }
+.approval { padding: 22px 0; border-top: 1px solid var(--mission-border); display: flex; flex-wrap: wrap; align-items: center; gap: 18px; }
+.approval > div { flex: 1 1 280px; }
+.approval p { color: var(--mission-muted); font-size: 13px; margin-top: 6px; }
+.teamSection { margin: 24px 0; }
+.roleList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 18px; }
+.role { display: flex; flex-direction: column; gap: 5px; padding-left: 12px; border-left: 1px solid var(--mission-border); }
+.role span { font-size: 13px; color: var(--mission-muted); }
+.role small { font-size: 11px; color: var(--mission-blue); }
+.blockers { margin: 24px 0; color: var(--mission-attention); }
+.blockers ul { padding-left: 20px; font-size: 13px; }
+.blockers li { margin: 6px 0; }
+.error { border: 1px solid var(--mission-attention); padding: 14px 16px; margin-bottom: 18px; color: var(--mission-attention); border-radius: 3px; overflow-wrap: anywhere; }
+.error p { font-size: 13px; margin-top: 8px; }
+.empty, .selectionHint { padding: 24px; border: 1px dashed var(--mission-border); color: var(--mission-muted); font-size: 14px; }
+.selectionHint { padding: 40px; }
+.selectionHint h2 { color: var(--mission-ink); margin-bottom: 12px; }
+.questions { margin: 24px 0; }
+.answerField { margin: 18px 0; }
+.answerField label { display: block; margin-bottom: 8px; }
+.answerField textarea { display: block; width: 100%; min-height: 88px; resize: vertical; border: 1px solid var(--mission-border); border-radius: 3px; padding: 12px; color: var(--mission-ink); background: var(--mission-canvas); }
+.viewSwitch { display: flex; gap: 8px; align-items: center; margin: 22px 0 0; }
+.viewSwitch button { padding: 9px 16px; border: 1px solid var(--mission-border); border-radius: 3px; background: transparent; color: var(--mission-muted); min-height: 44px; }
+.viewSwitch button[aria-pressed="true"] { background: var(--mission-raised); color: var(--mission-blue); border-color: var(--mission-blue); }
+.floor { margin-top: 24px; }
+.floorGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-bottom: 24px; }
+.floorLane { min-width: 0; border-top: 2px solid var(--mission-border); padding-top: 14px; }
+.floorLane h3 { margin-bottom: 16px; }
+.floorLane h3 span { color: var(--mission-muted); font-weight: 400; }
+.portfolioSummary { max-width: 1480px; margin: 28px auto 0; padding-top: 20px; border-top: 1px solid var(--mission-border); color: var(--mission-muted); font-size: 14px; }
+.portfolioSummary summary { cursor: pointer; padding: 10px 0; }
+.portfolioSummary p { margin: 12px 0; }
+.portfolioSummary a { color: var(--mission-blue); }
+.brandRow { display: flex; align-items: center; justify-content: space-between; max-width: 1480px; margin: 0 auto; color: var(--mission-muted); font-size: 13px; }
+.brandRow strong { color: var(--mission-ink); font-size: 15px; }
+.brandRow button { color: var(--mission-muted); background: transparent; border: 1px solid var(--mission-border); padding: 8px 12px; border-radius: 3px; cursor: pointer; }
+.observations { border-top: 1px solid var(--mission-border); padding: 22px 0; }
+.observationGrid { margin-top: 18px; font-size: 13px; }
+.observationGrid h4 { margin: 18px 0 6px; font-size: 14px; }
+.observationGrid ul { padding-left: 20px; }
+.observationGrid[data-stale="true"] { opacity: .65; }
+@media (max-width: 1100px) { .composerGrid { grid-template-columns: minmax(0, 1.25fr) minmax(250px, 1fr); } .presetButtons { grid-template-columns: repeat(2, minmax(0, 1fr)); } .detailHeader { flex-direction: column; gap: 10px; } }
+@media (max-width: 800px) { .composerGrid { grid-template-columns: 1fr; } .draftSpec { border-left: 0; border-top: 1px solid var(--mission-border); } .missionWorkspace, .missionWorkspace[data-selected="false"] .missionList { grid-template-columns: 1fr; } .deskHeader { align-items: flex-start; } .deskHeader p { font-size: 14px; } .floorGrid { grid-template-columns: 1fr; } }
+@media (max-width: 480px) { .shell { padding: 18px 14px 80px; } .deskHeader { flex-direction: column; gap: 16px; } .deskHeader h1 { font-size: 29px; } .composer, .draftSpec, .missionDetail { padding: 20px; } .margotHeading { gap: 10px; } .margotHeading h2 { font-size: 18px; } .margotMark { width: 34px; height: 34px; flex-basis: 34px; font-size: 21px; } .primaryButton { width: 100%; white-space: normal; } .roleList { grid-template-columns: 1fr; } .capabilityLinks { gap: 6px 18px; } }
+@media (prefers-reduced-motion: reduce) { .founderDesk *, .founderDesk *::before, .founderDesk *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }

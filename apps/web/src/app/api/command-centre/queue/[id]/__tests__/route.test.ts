@@ -87,6 +87,19 @@ describe('PATCH /api/command-centre/queue/[id]', () => {
     expect(body.failed).toContain('type-check')
   })
 
+  it('refuses manual software-delivery completion even when local validation is green', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as never)
+    vi.mocked(getTaskById).mockResolvedValue({
+      id: 'task-1', status: 'running',
+      metadata: { delivery: { schemaVersion: 1, kind: 'software_delivery' } },
+    } as never)
+    vi.mocked(getValidationSummary).mockResolvedValue({ canComplete: true } as never)
+    const res = await PATCH(patchReq({ status: 'done' }), { params })
+    expect(res.status).toBe(409)
+    expect(updateTaskStatusGuarded).not.toHaveBeenCalled()
+    expect(getValidationSummary).not.toHaveBeenCalled()
+  })
+
   it('returns 404 when task not found', async () => {
     vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
     vi.mocked(getTaskById).mockResolvedValue(null)
