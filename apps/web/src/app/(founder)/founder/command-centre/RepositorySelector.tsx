@@ -29,6 +29,7 @@ export function RepositorySelector({ value, onChange, projects, disabled }: {
   const [loading, setLoading] = useState(false)
   const [incomplete, setIncomplete] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [connectionFailure, setConnectionFailure] = useState<'auth_error' | 'not_connected' | null>(null)
   const [retryCursor, setRetryCursor] = useState<string | null>(null)
   const sequence = useRef(0)
   const trigger = useRef<HTMLButtonElement>(null)
@@ -38,11 +39,13 @@ export function RepositorySelector({ value, onChange, projects, disabled }: {
     const request = ++sequence.current
     setLoading(true)
     setError(null)
+    setConnectionFailure(null)
     setRetryCursor(cursor)
     try {
       const response = await fetch(`/api/command-centre/missions/repositories${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`)
       const data = await response.json() as Catalogue & { error?: string }
       if (request !== sequence.current) return
+      if (data.status === 'auth_error' || data.status === 'not_connected') setConnectionFailure(data.status)
       const retryHint = typeof data.retryAfterSeconds === 'number' && Number.isFinite(data.retryAfterSeconds) && data.retryAfterSeconds > 0
         ? ` Wait ${Math.ceil(data.retryAfterSeconds)} seconds before retrying.` : ''
       if (!response.ok || !Array.isArray(data.repositories)) throw new Error((data.message || data.error || 'GitHub repositories could not be loaded.') + retryHint)
@@ -78,7 +81,7 @@ export function RepositorySelector({ value, onChange, projects, disabled }: {
       <label htmlFor={`${id}-search`}>Search loaded GitHub repositories</label>
       <input id={`${id}-search`} type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search owner or repository name" disabled={disabled} />
       <p className={styles.repositoryHint} role="status">{loading ? 'Loading GitHub repositories…' : `${repositories.length} repositories loaded${complete ? ' · connected account list complete' : ' · list may be incomplete'}`}{search.trim() ? ` · ${matches.length} matching` : ''}</p>
-      {error && <div className={styles.repositoryError} role="alert"><p>{error}</p><button type="button" className={styles.secondaryButton} disabled={loading || disabled} onClick={() => void load(retryCursor)}>Retry repositories</button></div>}
+      {error && <div className={styles.repositoryError} role="alert"><p>{error}</p>{connectionFailure && <p>The Mission Control GitHub connection needs attention from your system operator.</p>}<p>{projects.length > 0 ? 'You can still prepare your idea. Choose a registered business below, or let Margot help you place it.' : 'You can still prepare your idea. Let Margot help you place it without choosing a repository.'}</p><button type="button" className={styles.secondaryButton} disabled={loading || disabled} onClick={() => void load(retryCursor)}>Retry repositories</button></div>}
       {catalogue?.coverage && <p className={styles.repositoryHint}>{catalogue.coverage}</p>}
       {incomplete && <p className={styles.repositoryHint}>Some repositories could not be included. This list is incomplete.</p>}
       {catalogue?.status === 'partial' && catalogue.message && <p className={styles.repositoryHint}>{catalogue.message}</p>}

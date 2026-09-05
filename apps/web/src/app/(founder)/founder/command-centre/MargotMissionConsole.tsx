@@ -46,12 +46,13 @@ export function MargotMissionConsole({ projects, presets, busy, onPrepare }: {
           <RepositorySelector value={project} onChange={setProject} projects={projects} disabled={busy} />
           <button className={styles.primaryButton} disabled={busy || !idea.trim()} type="submit">{busy ? 'Preparing your mission…' : 'Prepare my mission'}</button>
         </div>
-        {presets.length > 0 && <details className={styles.capabilityDisclosure}><summary>Add capabilities <span>{selected.length ? `${selected.length} selected` : 'Optional'}</span></summary><fieldset className={styles.presets} disabled={busy}>
-          <legend>Include a capability <span>Optional — choose what helps your idea.</span></legend>
+        {presets.length > 0 && <fieldset className={styles.presets} disabled={busy}>
+          <legend>Add capabilities <span>Optional — choose what helps your idea.{selected.length > 0 && ` ${selected.length} selected.`}</span></legend>
           <div className={styles.presetButtons}>{presets.map(p => <button key={p.id} type="button" aria-pressed={selected.includes(p.id)} className={styles.preset} onClick={() => setSelected(ids => ids.includes(p.id) ? ids.filter(id => id !== p.id) : [...ids, p.id])} title={p.description}>
             <span>{p.label}</span>{' '}<small>{AVAILABILITY[p.availability]}</small>
           </button>)}</div>
-        </fieldset></details>}
+          <p className={styles.helper}>Choosing a capability adds requirements. It does not connect an account or start work.</p>
+        </fieldset>}
       </form>
       {hasDraft && <aside className={styles.draftSpec} aria-label="Your draft specification" aria-live="polite">
         <div className={styles.sectionHeading}><h2>Your brief, taking shape</h2><span className={styles.status}>Draft</span></div>
@@ -59,7 +60,7 @@ export function MargotMissionConsole({ projects, presets, busy, onPrepare }: {
         {project && <p className={styles.meta}>For {project}</p>}
         {requirements.length > 0 && <><h3>Included in your specification</h3><ul className={styles.requirements}>{requirements.map(r => <li key={r}>{r}</li>)}</ul></>}
         {included.some(p => !selected.includes(p.id)) && <p className={styles.helper}>Supporting capabilities: {included.filter(p => !selected.includes(p.id)).map(p => p.label).join(', ')}.</p>}
-        <div className={styles.draftNext}><h3>What happens next</h3><p>Margot prepares a clear brief and recommends the expertise this mission needs. Any unresolved business questions come back here.</p><p className={styles.helper}>Choosing a capability adds requirements. It does not connect an account or start work.</p></div>
+        <div className={styles.draftNext}><h3>What happens next</h3><p>Margot prepares a clear brief and recommends the expertise this mission needs. Any unresolved business questions come back here.</p></div>
       </aside>}
     </section>
   )

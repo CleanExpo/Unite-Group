@@ -19,6 +19,8 @@ import type { CommandCentreDecision } from "../decisions";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { mapPortfolioYamlToProjects } from "../registry";
+import { classifyIdea } from "../classify-idea";
+import { resetAIClient } from "@/lib/ai/client";
 
 const founder = "b0000000-0000-4000-8000-000000000001";
 const id = "b0000000-0000-4000-8000-000000000002";
@@ -189,9 +191,81 @@ function harness() {
     },
   };
 }
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.restoreAllMocks();
+  resetAIClient();
+});
 
 describe("durable Margot preparation and build consent", () => {
+  it("assigns missing AI configuration to the operator and preserves the mission for repair", async () => {
+    const h = harness();
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.stubEnv("ANTHROPIC_API_KEY", "");
+    resetAIClient();
+    vi.mocked(h.deps.classifyIdea).mockImplementationOnce(classifyIdea);
+
+    await expect(prepareDeliveryMission(founder, initial, h.deps)).rejects.toThrow(/delivery operator/);
+
+    const saved = readDeliveryMetadata(h.row)!;
+    expect(saved.error?.code).toBe("preparation_provider_configuration");
+    expect(saved.originalIdea).toBe(initial.idea);
+    expect(saved.presetIds).toEqual(["access-control", "customer-portal"]);
+    expect(saved.lease).toBeNull();
+    expect(saved.approval).toBeNull();
+    expect(h.row.status).toBe("proposed");
+    expect(h.receipts).toHaveLength(0);
+    expect(h.deps.generateBuildPlan).not.toHaveBeenCalled();
+    expect(toDeliveryMissionView(h.row).nextAction).toMatchObject({
+      kind: "connect", owner: "Delivery operator", label: "Repair Margot’s AI connection, then continue preparation",
+    });
+    expect(log).toHaveBeenCalledExactlyOnceWith("[mission-preparation]", {
+      stage: "classification", errorName: "AIConfigurationError",
+    });
+    expect(JSON.stringify([saved.error, log.mock.calls])).not.toContain("ANTHROPIC_API_KEY");
+
+    await prepareDeliveryMission(founder, { action: "resume", taskId: id, answers: {} }, h.deps);
+    expect(readDeliveryMetadata(h.row)?.error).toBeNull();
+    expect(h.row.status).toBe("proposed");
+    expect(h.receipts).toHaveLength(0);
+  });
+  it("keeps classifier authentication failures actionable and logs only safe diagnostics", async () => {
+    const h = harness();
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.mocked(h.deps.classifyIdea).mockRejectedValueOnce(Object.assign(
+      new Error("private provider response, prompt and credential must not escape"),
+      { name: "AuthenticationError", status: 401, request_id: "req_0123456789abcdef", headers: { authorization: "private" } },
+    ));
+    await expect(prepareDeliveryMission(founder, initial, h.deps)).rejects.toThrow(/connection needs attention/);
+    const saved = readDeliveryMetadata(h.row)!;
+    expect(saved.error?.code).toBe("preparation_provider_authentication");
+    expect(saved.lane).toBe("unknown");
+    expect(saved.lease).toBeNull();
+    expect(h.row.status).toBe("proposed");
+    expect(saved.approval).toBeNull();
+    expect(h.deps.generateBuildPlan).not.toHaveBeenCalled();
+    expect(h.deps.classifyIdea).toHaveBeenCalledWith(expect.any(Object), undefined, { strict: true });
+    expect(toDeliveryMissionView(h.row).nextAction).toMatchObject({ kind: "connect", owner: "Delivery operator" });
+    expect(log).toHaveBeenCalledExactlyOnceWith("[mission-preparation]", {
+      stage: "classification", errorName: "AuthenticationError", status: 401, requestId: "req_0123456789abcdef",
+    });
+    expect(JSON.stringify([saved.error, log.mock.calls])).not.toContain("private");
+  });
+  it("offers an explicit preparation retry for rate limits without queueing work", async () => {
+    const h = harness();
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.mocked(h.deps.classifyIdea).mockRejectedValueOnce(Object.assign(new Error("private"), {
+      name: "RateLimitError", status: 429, request_id: "unsafe request id with private content",
+    }));
+    await expect(prepareDeliveryMission(founder, initial, h.deps)).rejects.toThrow(/temporarily limited/);
+    expect(readDeliveryMetadata(h.row)?.error?.code).toBe("preparation_provider_rate_limited");
+    expect(toDeliveryMissionView(h.row).nextAction).toMatchObject({ kind: "resume", owner: "Margot" });
+    expect(h.row.status).toBe("proposed");
+    expect(h.receipts).toHaveLength(0);
+    expect(log).toHaveBeenCalledExactlyOnceWith("[mission-preparation]", {
+      stage: "classification", errorName: "RateLimitError", status: 429,
+    });
+  });
   it("prepares and resumes an accessible unregistered owner/repository without losing its identity", async () => {
     const h = harness();
     vi.mocked(h.deps.generateClarifyingQuestions).mockResolvedValueOnce([
