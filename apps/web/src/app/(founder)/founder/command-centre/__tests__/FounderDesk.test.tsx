@@ -23,6 +23,18 @@ beforeEach(() => {
 })
 
 describe('FounderDesk mission journey', () => {
+  it('shows capability choices before any disclosure interaction and keeps them non-executing', async () => {
+    const fetchMock = vi.fn(async () => response({ missions: [], presets: DELIVERY_PRESETS, source: 'supabase' }))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<FounderDesk projects={[]} />)
+    const capability = await screen.findByRole('button', { name: 'Review & approval Ready to reuse' })
+    expect(capability).toBeVisible()
+    expect(screen.getByText('Choosing a capability adds requirements. It does not connect an account or start work.')).toBeVisible()
+    fireEvent.click(capability)
+    expect(capability).toHaveAttribute('aria-pressed', 'true')
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
   it('sends an explicitly selected GitHub owner/repository as the persisted project key', async () => {
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
       if (url.includes('/repositories')) return response({ repositories: [{ fullName: 'OtherOwner/uncommon-project', private: true, archived: false }], status: 'complete', nextCursor: null, incomplete: false, message: '', observedAt: '2026-09-05T00:00:00Z', coverage: 'Connected GitHub account.' })
@@ -105,9 +117,7 @@ describe('FounderDesk mission journey', () => {
     const fetchMock = vi.fn(async () => response({ missions: [], presets: DELIVERY_PRESETS, source: 'supabase' }))
     vi.stubGlobal('fetch', fetchMock)
     render(<FounderDesk projects={[]} />)
-    await waitFor(() => screen.getByText('Add capabilities'))
-    fireEvent.click(screen.getByText('Add capabilities'))
-    const portal = screen.getByRole('button', { name: 'Customer portal Requires new work' })
+    const portal = await screen.findByRole('button', { name: 'Customer portal Requires new work' })
     const approval = screen.getByRole('button', { name: 'Review & approval Ready to reuse' })
     fireEvent.click(portal)
     fireEvent.click(approval)

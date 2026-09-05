@@ -7,11 +7,12 @@
 //
 // classifyIdea: best-effort async caller — sends the idea to the model and returns a
 // RoutingDecision. Returns an 'unknown' RoutingDecision on any model or parse failure —
-// never throws to the caller.
+// never throws by default. Strict delivery callers retain sanitised failure details.
 
 import { getAIClient } from '@/lib/ai/client'
 import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 import type { ModelClientLike } from './clarify'
+import { preparationFailure } from './preparation-failure'
 import { type Lane, type RoutingDecision, type IdeaContext, getLaneAdapter } from './lanes'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -71,7 +72,8 @@ export function toRoutingDecision(
  *
  * Returns an 'unknown' RoutingDecision with empty plans on any failure (model error,
  * network error, unparseable JSON). Never throws to the caller — classification is
- * advisory and must not block the pipeline.
+ * advisory and must not block the pipeline. Strict delivery mode instead throws a
+ * sanitised preparation failure so the saved mission can show a useful recovery.
  *
  * The `client` argument is injected for testing; production callers omit it and the
  * singleton Anthropic client is used (matching clarify.ts convention).
@@ -79,6 +81,7 @@ export function toRoutingDecision(
 export async function classifyIdea(
   ctx: IdeaContext,
   client?: ModelClientLike,
+  options?: { strict?: boolean },
 ): Promise<RoutingDecision> {
   try {
     const model = client ?? (getAIClient() as unknown as ModelClientLike)
@@ -94,8 +97,11 @@ export async function classifyIdea(
       confidence?: unknown
       rationale?: unknown
     }
-    return toRoutingDecision(parsed.lane, parsed.confidence, parsed.rationale, ctx)
-  } catch {
+    const routing = toRoutingDecision(parsed?.lane, parsed?.confidence, parsed?.rationale, ctx)
+    if (options?.strict && routing.lane === 'unknown') throw new SyntaxError('Invalid classification')
+    return routing
+  } catch (error) {
+    if (options?.strict) throw preparationFailure(error, 'classification')
     return toRoutingDecision(
       undefined,
       undefined,

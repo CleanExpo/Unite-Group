@@ -20,6 +20,7 @@ import {
 } from "./delivery-repositories";
 import { readDeliveryContext } from "./delivery-context";
 import { classifyIdea } from "./classify-idea";
+import { preparationFailure, type PreparationStep } from "./preparation-failure";
 import { generateClarifyingQuestions } from "./clarify";
 import { generateBuildPlan } from "./lanes/software-plan";
 import { runBoardReview, BOARD_PERSONAS } from "./board-review";
@@ -318,6 +319,7 @@ export async function prepareDeliveryMission(
     });
     d = next;
   };
+  let step: PreparationStep = "context";
   try {
     const requestedProject = d.answers.project ?? d.projectKey;
     const explicitRepository = requestedProject?.includes("/") === true;
@@ -434,10 +436,11 @@ export async function prepareDeliveryMission(
         "Project registry and up to five recent founder-scoped tasks only, plus the explicitly scoped saved-note search. Other conversations were not searched.",
     });
     if (d.lane === "unknown") {
+      step = "classification";
       const routing = await deps.classifyIdea({
         idea: context,
         clarifications: { questions: [], answers: d.answers },
-      });
+      }, undefined, { strict: true });
       if (routing.lane === "unknown")
         throw new Error("classification_unavailable");
       await persist({
@@ -462,6 +465,7 @@ export async function prepareDeliveryMission(
       d.phase === "clarify" ||
       (d.phase === "failed" && !d.spec && d.questions.length === 0)
     ) {
+      step = "clarification";
       const questions = await deps.generateClarifyingQuestions(
         context,
         undefined,
@@ -482,6 +486,7 @@ export async function prepareDeliveryMission(
     }
     if (!d.spec) {
       await persist({ phase: "plan" });
+      step = "specification";
       const plan = await deps.generateBuildPlan(context, undefined, {
         strict: true,
       });
@@ -520,6 +525,7 @@ export async function prepareDeliveryMission(
         await deps.listDecisions({ founderId, taskId: task.id, limit: 100 }, db)
       ).find((row) => row.subject === subject);
       if (!decision) {
+        step = "board";
         const board = await deps.runBoardReview({
           subject: d.spec!.title,
           brief: JSON.stringify(d.spec),
@@ -553,12 +559,13 @@ export async function prepareDeliveryMission(
     return { task, deduplicated };
   } catch (error) {
     if (error instanceof DeliveryConflict) throw error;
-    const message =
-      "Margot could not finish this preparation step. Your idea and saved progress remain available; resume to retry.";
+    const failure = preparationFailure(error, step);
+    console.error("[mission-preparation]", failure.diagnostic);
+    const message = failure.message;
     await persist({
       phase: "failed",
       lease: null,
-      error: { code: "preparation_unavailable", message },
+      error: { code: failure.code, message },
     });
     throw new DeliveryPreparationFailure(task, message);
   }

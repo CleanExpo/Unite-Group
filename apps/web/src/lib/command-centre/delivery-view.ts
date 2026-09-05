@@ -110,6 +110,9 @@ export function toDeliveryMissionView(
       owner: "SPM",
       label: "Connect the appropriate specialist workflow",
     };
+  if (stage === "failed" && ["preparation_provider_authentication", "preparation_provider_configuration"].includes(d?.error?.code ?? "")) {
+    nextAction = { kind: "connect", owner: "Delivery operator", label: "Repair Margot’s AI connection, then continue preparation" };
+  }
   if (
     d?.error?.code === "approval_signing_unavailable" &&
     d.phase === "ready" &&

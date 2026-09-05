@@ -15,6 +15,28 @@ function questioning(questions: DeliveryMissionView['questions']): DeliveryMissi
 }
 
 describe('MissionDetail question identity', () => {
+  it('can resume the same failed mission after an operator repairs its AI connection', () => {
+    const onAction = vi.fn()
+    const mission: DeliveryMissionView = { ...questioning([]), stage: 'failed', nextAction: { kind: 'connect', owner: 'Delivery operator', label: 'Repair the AI connection' }, blockers: [{ code: 'preparation_provider_authentication', message: 'Connection needs attention' }] }
+    const { rerender } = render(<MissionDetail mission={mission} busy={false} stale={false} onAction={onAction} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Continue after connection repair' }))
+    expect(onAction).toHaveBeenCalledExactlyOnceWith({ action: 'resume', taskId: 'mission-1' })
+    rerender(<MissionDetail mission={mission} busy={false} stale={true} onAction={onAction} />)
+    expect(screen.getByRole('button', { name: 'Continue after connection repair' })).toBeDisabled()
+    rerender(<MissionDetail mission={{ ...mission, blockers: [{ code: 'delivery_spm_unassigned', message: 'SPM required' }] }} busy={false} stale={false} onAction={onAction} />)
+    expect(screen.queryByRole('button', { name: 'Continue after connection repair' })).not.toBeInTheDocument()
+  })
+  it('shows the actual next-step owner and updates it when responsibility changes', () => {
+    const mission = questioning([])
+    const { rerender } = render(<MissionDetail mission={mission} busy={false} stale={false} onAction={vi.fn()} />)
+    expect(screen.getByRole('status')).toHaveTextContent('Next step')
+    expect(screen.getByRole('status')).toHaveTextContent('Responsible: You')
+    rerender(<MissionDetail mission={{ ...mission, nextAction: { kind: 'wait', owner: 'Margot', label: 'Preparing the brief' } }} busy={false} stale={false} onAction={vi.fn()} />)
+    expect(screen.getByRole('status')).toHaveTextContent('Responsible: Margot')
+    expect(screen.getByRole('status')).not.toHaveTextContent('Responsible: You')
+    expect(screen.getByText('SPM assignment pending')).toBeInTheDocument()
+  })
+
   it('preserves relevant unsaved answers and discards a changed question even when its ID is reused', () => {
     const onAction = vi.fn()
     const { rerender } = render(<MissionDetail mission={questioning([{ id: 'q1', label: 'Who will use this?' }, { id: 'q2', label: 'What deadline matters?' }])} busy={false} stale={false} onAction={onAction} />)

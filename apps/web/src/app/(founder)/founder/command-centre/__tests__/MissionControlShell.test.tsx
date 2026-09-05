@@ -20,13 +20,38 @@ describe('one Mission Control shell', () => {
     expect(screen.getByText(`Actual ${route.section} content`)).toBeInTheDocument()
     expect(screen.queryByLabelText('Your idea')).not.toBeInTheDocument()
     const nav = within(screen.getByRole('navigation', { name: 'Mission Control workspaces' }))
-    expect(nav.getAllByRole('link')).toHaveLength(12)
-    expect(nav.getByRole('link', { current: 'page' })).toHaveAttribute('href', route.href)
+    expect(nav.getAllByRole('link', { hidden: true })).toHaveLength(12)
+    expect(nav.getByRole('link', { current: 'page', hidden: true })).toHaveAttribute('href', route.href)
     expect(nav.getByRole('link', { name: 'Home', exact: true })).toHaveAttribute('href', '/founder/command-centre')
     expect(screen.getByRole('button', { name: 'Toggle sidebar' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Capture idea' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Notifications' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Help' })).toBeInTheDocument()
+  })
+  it('keeps the five primary workspaces visible and discloses all other destinations', () => {
+    render(<MissionControlShell section="home"><p>Founder desk</p></MissionControlShell>)
+    const nav = within(screen.getByRole('navigation', { name: 'Mission Control workspaces' }))
+    for (const name of ['Home', 'Operations', 'Businesses', 'Library & memory', 'Connections']) {
+      expect(nav.getByRole('link', { name, exact: true })).toBeVisible()
+    }
+    const summary = screen.getByText('More workspaces', { exact: true })
+    const disclosure = summary.closest('details')!
+    expect(disclosure.open).toBe(false)
+    expect(nav.getByRole('link', { name: 'Agent controls', hidden: true })).not.toBeVisible()
+    fireEvent.click(summary)
+    expect(disclosure.open).toBe(true)
+    for (const route of MISSION_CONTROL_ROUTES) {
+      expect(nav.getByRole('link', { name: route.label, exact: true })).toBeVisible()
+      expect(nav.getByRole('link', { name: route.label, exact: true })).toHaveAttribute('href', route.href)
+    }
+  })
+  it('identifies the active secondary workspace even while More workspaces is closed', () => {
+    render(<MissionControlShell section="operator-gateway"><p>Actual operator content</p></MissionControlShell>)
+    const summary = screen.getByText('More workspaces', { exact: true }).closest('summary')!
+    expect(summary).toBeVisible()
+    expect(summary).toHaveTextContent('Operator gateway')
+    expect(summary.closest('details')).not.toHaveAttribute('open')
+    expect(screen.getByRole('link', { name: 'Operator gateway', hidden: true })).toHaveAttribute('aria-current', 'page')
   })
   it('preserves the home palette anchors and opens its palette from the shared search button', () => {
     const openPalette = vi.fn()
