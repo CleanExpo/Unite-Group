@@ -4,7 +4,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { generateBuildPlan } from '../software-plan'
 
 function modelReturning(text: string) {
-  return { messages: { create: vi.fn().mockResolvedValue({ content: [{ type: 'text', text }] }) } }
+  return { messages: { create: vi.fn().mockResolvedValue({ content: [{ type: 'text', text }], stop_reason: 'end_turn' }) } }
 }
 
 const VALID_PLAN = JSON.stringify({
@@ -51,5 +51,38 @@ describe('generateBuildPlan', () => {
     const longIdea = 'A'.repeat(200)
     const plan = await generateBuildPlan(longIdea, client as never)
     expect(plan.title.length).toBeLessThanOrEqual(120)
+  })
+})
+
+const planAtLimits = (titleLength: number, criteriaCount: number, stepCount: number) => ({
+  title: 'A'.repeat(titleLength),
+  summary: 'Build the customer portal.',
+  acceptanceCriteria: Array.from({ length: criteriaCount }, (_, index) => `Criterion ${index + 1}`),
+  steps: Array.from({ length: stepCount }, (_, index) => `Step ${index + 1}`),
+})
+
+describe('strict build-plan bounds', () => {
+  it.each([
+    { titleLength: 81, criteriaCount: 2, stepCount: 3 },
+    { titleLength: 80, criteriaCount: 1, stepCount: 3 },
+    { titleLength: 80, criteriaCount: 6, stepCount: 3 },
+    { titleLength: 80, criteriaCount: 2, stepCount: 2 },
+    { titleLength: 80, criteriaCount: 2, stepCount: 7 },
+  ])('rejects out-of-bounds strict plans without changing advisory acceptance: %j', async ({ titleLength, criteriaCount, stepCount }) => {
+    const plan = planAtLimits(titleLength, criteriaCount, stepCount)
+    const client = modelReturning(JSON.stringify(plan))
+    await expect(generateBuildPlan('A customer portal', client, { strict: true })).rejects.toMatchObject({
+      name: 'PreparationResponseError', reason: 'invalid_values',
+    })
+    expect(client.messages.create).toHaveBeenCalledTimes(1)
+    expect(await generateBuildPlan('A customer portal', modelReturning(JSON.stringify(plan)))).toEqual(plan)
+  })
+
+  it.each([
+    { titleLength: 1, criteriaCount: 2, stepCount: 3 },
+    { titleLength: 80, criteriaCount: 5, stepCount: 6 },
+  ])('accepts the declared strict boundaries without truncating the plan: %j', async ({ titleLength, criteriaCount, stepCount }) => {
+    const plan = planAtLimits(titleLength, criteriaCount, stepCount)
+    expect(await generateBuildPlan('A customer portal', modelReturning(JSON.stringify(plan)), { strict: true })).toEqual(plan)
   })
 })

@@ -4,7 +4,7 @@ import { toRoutingDecision, classifyIdea } from '../classify-idea'
 import { resetAIClient } from '@/lib/ai/client'
 
 const ctx = { idea: 'Run a winter promo on social', clarifications: { questions: [], answers: {} } }
-const model = (text: string) => ({ messages: { create: vi.fn().mockResolvedValue({ content: [{ type: 'text', text }] }) } })
+const model = (text: string) => ({ messages: { create: vi.fn().mockResolvedValue({ content: [{ type: 'text', text }], stop_reason: 'end_turn' }) } })
 
 afterEach(() => {
   vi.unstubAllEnvs()
