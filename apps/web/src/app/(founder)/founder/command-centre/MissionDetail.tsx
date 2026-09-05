@@ -41,6 +41,8 @@ export function MissionDetail({ mission, busy, stale, onAction }: {
   const answers = Object.fromEntries(mission.questions.map(question => [question.id, answerDrafts[answerKey(question)] ?? mission.answers[question.id] ?? '']))
   const preview = safeMissionUrl(mission.previewUrl)
   const disabled = busy || stale
+  const boardConcerns = mission.blockers.filter(blocker => blocker.code === 'board_concern')
+  const deliveryBlockers = mission.blockers.filter(blocker => blocker.code !== 'board_concern')
   const connectionRetry = mission.stage === 'failed' && mission.nextAction.kind === 'connect' && mission.blockers.some(blocker => ['preparation_provider_authentication', 'preparation_provider_configuration'].includes(blocker.code))
   return <article className={styles.missionDetail} aria-label="Selected mission">
     <header className={styles.detailHeader}>
@@ -54,6 +56,7 @@ export function MissionDetail({ mission, busy, stale, onAction }: {
       {preview && <a className={styles.resultLink} href={preview} target="_blank" rel="noopener noreferrer">Open build result</a>}
     </div>
     <div className={styles.nextAction} role="status"><div className={styles.nextActionHeading}><strong>Next step</strong><span>Responsible: <b>{mission.nextAction.owner}</b></span></div><span>{mission.nextAction.label}</span></div>
+    {boardConcerns.length > 0 && <section className={styles.blockers} aria-label="Board concerns"><h3>Board concerns to review</h3><ul>{boardConcerns.map(blocker => <li key={blocker.code}>{blocker.message}</li>)}</ul><p>Branch build consent does not resolve these Board concerns.</p></section>}
     {mission.questions.length > 0 && mission.nextAction.kind === 'answer' && <form className={styles.questions} onSubmit={e => { e.preventDefault(); if (!disabled) onAction({ action: 'resume', taskId: mission.taskId, answers }) }}>
       <h3>A little business context</h3>
       {mission.questions.map(question => <div key={question.id} className={styles.answerField}>
@@ -76,7 +79,7 @@ export function MissionDetail({ mission, busy, stale, onAction }: {
     {mission.nextAction.kind === 'resume' && <button className={styles.primaryButton} disabled={disabled} onClick={() => onAction({ action: 'resume', taskId: mission.taskId })}>{busy ? 'Continuing preparation…' : 'Continue with Margot'}</button>}
     {connectionRetry && <button className={styles.primaryButton} disabled={disabled} onClick={() => onAction({ action: 'resume', taskId: mission.taskId })}>{busy ? 'Continuing preparation…' : 'Continue after connection repair'}</button>}
     {mission.harness.length > 0 && <section className={styles.teamSection} aria-label="Recommended expertise"><h3>Expertise for this mission</h3><p className={styles.helper}>Recommended roles. An assignment is confirmed only when a worker accepts the mission.</p><div className={styles.roleList}>{mission.harness.map(role => <div className={styles.role} key={role.id}><strong>{role.label}</strong><span>{role.purpose}</span><small>Recommended</small></div>)}</div></section>}
-    {mission.blockers.length > 0 && <section className={styles.blockers} aria-label="Delivery blockers"><h3>What still needs attention</h3><ul>{mission.blockers.map(blocker => <li key={blocker.code}>{blocker.message}</li>)}</ul></section>}
+    {deliveryBlockers.length > 0 && <section className={styles.blockers} aria-label="Delivery blockers"><h3>What still needs attention</h3><ul>{deliveryBlockers.map(blocker => <li key={blocker.code}>{blocker.message}</li>)}</ul></section>}
     {preview && ['review', 'release_blocked'].includes(mission.stage) && <MissionObservations taskId={mission.taskId} specVersion={mission.specVersion} />}
     <details className={styles.details}><summary>Sources and delivery evidence</summary>
       {mission.knowledgeContext && <section aria-label="Knowledge search coverage">
