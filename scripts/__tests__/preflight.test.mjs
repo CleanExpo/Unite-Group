@@ -316,22 +316,17 @@ test('THE LOCAL READINESS GATE RUNS EVERY TEST CI RUNS', () => {
   );
 });
 
-test('the release contract cannot omit local preflight or remote check continuation', () => {
+test('the release contract cannot omit local preflight or authoritative remote readback', () => {
   const packageJson = JSON.parse(readFileSync(resolve(repoRoot, 'package.json'), 'utf8'));
   assert.equal(
     packageJson.scripts['verify:pr-candidate'],
     'node scripts/preflight.mjs --keep-going',
     'every release candidate must run the complete locally reproducible CI mirror',
   );
-  assert.equal(
-    packageJson.scripts['pr:closure:status'],
-    'node scripts/pr-check-continuation.mjs',
-    'remote PR-check readback must use the fail-closed continuation classifier',
-  );
-
   const keeper = readFileSync(resolve(repoRoot, '.claude/skills/keeper-gate/SKILL.md'), 'utf8');
   assert.match(keeper, /npm run verify:pr-candidate/u);
-  assert.match(keeper, /npm run pr:closure:status/u);
-  assert.match(keeper, /pending stays pending/u);
+  assert.match(keeper, /repository-required check runs from\n  GitHub for the exact pushed SHA/u);
+  assert.match(keeper, /caller-supplied check\n  list, resettable attempt counter/u);
+  assert.match(keeper, /Pending, absent, skipped, unknown, or\n  mismatched required evidence is not green/u);
   assert.match(keeper, /approval_pending/u);
 });

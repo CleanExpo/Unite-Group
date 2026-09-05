@@ -70,21 +70,18 @@ Run in order. Any failure → STOP, fix or name the blocker; there is no
 
 ## After pushing
 
-- Read back CI on the EXACT pushed SHA with
-  `npm run pr:closure:status -- --repo <owner/name> --pr <number> --expected-sha <sha> --attempt <n>`.
-  The classifier is read-only: pending stays pending; failed checks produce the
-  bounded continuation `logs → branch/platform classification → repair → local
-  preflight → independent same-SHA review → release receipt → existing-PR push
-  → readback`; skipped, missing, unknown or mismatched evidence stays unproven.
-  It never reruns a check, edits a PR, merges or deploys.
-- Verify CI check runs land green on the exact pushed SHA (the merge arbiter is
-  the Monorepo CI workflow, not the Vercel bot). A new push resets the clock —
-  gates 1–6 apply again to every subsequent commit on the branch. After one
-  failed bounded repair attempt, stop automatic resubmission and request an independent
-  failure diagnosis; never push the same failure blindly.
-- An all-green readback stops at `approval_pending`. Merge and deployment still
-  require their own explicit authority and later runtime readback; neither is
-  implied by a draft PR or positive model language.
+- Read back the Monorepo CI workflow and repository-required check runs from
+  GitHub for the exact pushed SHA. Do not substitute a caller-supplied check
+  list, resettable attempt counter, Vercel status, or positive prose for that
+  authoritative remote evidence. Pending, absent, skipped, unknown, or
+  mismatched required evidence is not green.
+- A new push resets the clock: gates 1–6 apply again to every subsequent commit
+  on the branch. After one failed bounded repair attempt, stop automatic
+  resubmission and request an independent failure diagnosis; never push the
+  same failure blindly.
+- An all-green required-check readback stops at `approval_pending`. Merge and
+  deployment still require their own explicit authority and later runtime
+  readback; neither is implied by a draft PR or positive model language.
 - Un-drafting is a second keeper moment: re-confirm the head SHA's checks are
   all green and the body's receipts still match the head before flipping.
 
