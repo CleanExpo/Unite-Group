@@ -25,7 +25,7 @@ Türkçe
 Get API key
 Cookbook
 Community
-The Interactions API is now generally available. We recommend using this API for access to all the latest features and models.
+Gemini 3.8 Flash is now available. Try it out .
 Home
 Gemini API
 Docs
@@ -45,8 +45,11 @@ Model
 Release date
 Shutdown date
 Recommended replacement
+gemini-3.8-flash
+September 2, 2026
+No shutdown date announced
 gemini-3.7-flash
-August 2026
+August 13, 2026
 No shutdown date announced
 gemini-3.6-flash
 July 21, 2026
@@ -183,11 +186,17 @@ Model
 Release date
 Shutdown date
 Recommended replacement
+gemini-3.5-transcribe-live
+August 2026
+No shutdown date announced
 gemini-2.0-flash-live-001
 April 9, 2025
 December 9, 2025
 gemini-3.1-flash-live-preview
 Preview models
+gemini-3.5-live-translate-preview
+June 2026
+No shutdown date announced
 gemini-3.1-flash-live-preview
 March 11, 2026
 No shutdown date announced
@@ -204,6 +213,9 @@ Model
 Release date
 Shutdown date
 Recommended replacement
+gemini-3.5-transcribe
+August 2026
+No shutdown date announced
 Preview models
 gemini-3.1-flash-tts-preview
 April 13, 2026
@@ -318,17 +330,34 @@ veo-3.0-fast-generate-preview
 July 31, 2025
 November 12, 2025
 veo-3.1-fast-generate-preview
+Gemini Omni Flash models
+Model
+Release date
+Shutdown date
+Recommended replacement
+gemini-omni-1.1-flash
+August 27, 2026
+No shutdown date announced
+Deprecated models
+gemini-omni-flash-preview
+June 30, 2026
+September 30, 2026
+gemini-omni-1.1-flash
 Lyria models
 Model
 Release date
 Shutdown date
 Recommended replacement
+lyria-3.5
+September 3, 2026
+No shutdown date announced
 lyria-3-clip-preview
 March 25, 2026
 No shutdown date announced
 lyria-3-pro-preview
 March 25, 2026
 No shutdown date announced
+lyria-3.5
 lyria-realtime-exp
 May 20, 2025
 No shutdown date announced
@@ -348,4 +377,4 @@ April 30, 2026
 gemini-robotics-er-1.6-preview
 Send feedback
 Except as otherwise noted, the content of this page is licensed under the Creative Commons Attribution 4.0 License , and code samples are licensed under the Apache 2.0 License . For details, see the Google Developers Site Policies . Java is a registered trademark of Oracle and/or its affiliates.
-Last updated 2026-08-13 UTC.
+Last updated 2026-09-05 UTC.

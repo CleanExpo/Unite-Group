@@ -25,7 +25,7 @@ Türkçe
 Get API key
 Cookbook
 Community
-The Interactions API is now generally available. We recommend using this API for access to all the latest features and models.
+Gemini 3.8 Flash is now available. Try it out .
 Home
 Gemini API
 Docs
@@ -34,9 +34,12 @@ Models
 This guide introduces all the models available through the Gemini API.
 Gemini 3
 Stable
-Gemini 3.7 Flash
-Our latest and most capable Flash model, built for complex coding, agentic workflows, and reliable multi-step execution.
+Gemini 3.8 Flash
+Our most intelligent Flash model, engineered for long-horizon software engineering, autonomous agents, and complex enterprise workflows.
 New Stable
+Gemini 3.7 Flash
+Our previous-generation Flash model for complex coding, agentic workflows, and reliable multi-step execution.
+Stable
 Gemini 3.6 Flash
 Our previous-generation Flash model, balancing speed and multimodal capabilities across general agentic and everyday tasks.
 Stable
@@ -58,6 +61,9 @@ Stable
 Nano Banana Pro
 State-of-the-art image generation and editing models for highly contextual native image creation.
 Stable
+Gemini 3.5 Transcribe
+Low-latency speech-to-text model with utterance-based language detection, speaker diarization, and word timestamps.
+New Stable
 Preview
 Gemini 3.1 Pro
 Advanced intelligence, complex problem-solving skills, and powerful agentic and vibe coding capabilities.
@@ -67,19 +73,21 @@ Frontier-class performance rivaling larger models at a fraction of the cost.
 Preview
 Gemini 3.5 Live Translate
 Low-latency, real-time speech to speech translation model that supports 70+ languages.
-New Preview
+New
 Gemini 3.1 Flash Live
 High-quality, low-latency Live API model for real-time dialogue and voice-first AI applications.
-New Preview
+New
 Gemini 3.1 Flash TTS
 Powerful, low-latency speech generation.
-New Preview
+New
 Gemini Omni Flash
-Fast, conversational video generation and editing. Turn text and images into video, and refine results through natural language.
-New Preview
+Fast video generation, editing, keyframe interpolation, and extension with native audio.
+New
 All Gemini 3 models
 Model
 Endpoint
+Gemini 3.8 Flash
+gemini-3.8-flash
 Gemini 3.7 Flash
 gemini-3.7-flash
 Gemini 3.6 Flash
@@ -107,7 +115,10 @@ gemini-3.1-flash-live-preview
 Gemini 3.1 Flash TTS
 gemini-3.1-flash-tts-preview
 Gemini Omni Flash
-gemini-omni-flash
+gemini-omni-1.1-flash
+Gemini 3.5 Transcribe
+gemini-3.5-transcribe
+gemini-3.5-transcribe-live
 Gemini 2.5 Flash
 Model
 Description
@@ -153,6 +164,10 @@ gemini-3.1-flash-live-preview
 Gemini 3.1 Flash TTS
 Powerful, low-latency speech generation, with natural outputs, steerable prompts, and new expressive audio tags for precise narration control.
 gemini-3.1-flash-tts-preview
+Gemini 3.5 Transcribe
+Low-latency speech-to-text model with utterance-based language detection, speaker diarization, word-level timestamps, and custom vocabulary biasing.
+gemini-3.5-transcribe
+gemini-3.5-transcribe-live
 Gemini 2.5 Flash Live
 Our flagship Live API model for low-latency, bidirectional voice and video agents with native audio reasoning.
 gemini-2.5-flash-native-audio-preview-12-2025
@@ -184,8 +199,8 @@ Veo 3.1 Lite
 High-efficiency, low-cost, developer-first video generation, editing, and cinematic control from the Veo 3.1 family.
 veo-3.1-lite-generate-preview
 Gemini Omni Flash
-Fast, conversational video generation and editing. Turn text and images into video, and refine results through natural language.
-gemini-omni-flash
+Fast video generation, editing, keyframe interpolation, and extension with native audio.
+gemini-omni-1.1-flash
 Nano Banana
 State-of-the-art native image generation and editing designed for fast, creative workflows.
 gemini-2.5-flash-image
@@ -198,12 +213,15 @@ including ones that may already be listed in other sections
 Model
 Description
 Endpoint
-Lyria 3 Pro
+Lyria 3.5
 Our flagship music generation model, optimized for full-length songs with complex structural coherence.
-lyria-3-pro-preview
+lyria-3.5
 Lyria 3 Clip
 Optimized for generating short musical clips, loops, and previews up to 30 seconds.
 lyria-3-clip-preview
+Lyria 3 Pro
+Previous generation music generation model for full-length songs.
+lyria-3-pro-preview
 Lyria RealTime
 High-fidelity music generation model providing granular creative control and real-time streaming capabilities.
 lyria-realtime-exp
@@ -285,4 +303,4 @@ Model deprecations
 For information about model deprecations, visit the Gemini deprecations page.
 Send feedback
 Except as otherwise noted, the content of this page is licensed under the Creative Commons Attribution 4.0 License , and code samples are licensed under the Apache 2.0 License . For details, see the Google Developers Site Policies . Java is a registered trademark of Oracle and/or its affiliates.
-Last updated 2026-08-14 UTC.
+Last updated 2026-09-04 UTC.

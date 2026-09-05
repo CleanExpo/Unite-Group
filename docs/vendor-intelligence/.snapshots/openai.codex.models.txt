@@ -15,7 +15,7 @@ Overview Models Agents Tools Voice & Audio Production API reference Overview
 Home
 Get started
 Quickstart
-Using GPT-5.6
+Using GPT-6 Astra
 Key concepts
 Core concepts
 Responses API
@@ -23,6 +23,7 @@ Conversation state
 Background mode
 Streaming
 WebSocket mode
+Mid-turn steering
 Multi-agent
 Webhooks
 File inputs
@@ -56,8 +57,6 @@ Reinforcement fine-tuning
 RFT use cases
 Best practices
 Assistants API Migration guide
-Deep dive
-Tools
 Choose a model
 Pricing
 Model selection
@@ -76,7 +75,7 @@ Reasoning
 Reasoning models
 Reasoning best practices
 Images and video
-Images and vision
+Images and vision Image input cost calculator
 Image generation
 Video generation
 Realtime and audio
@@ -115,6 +114,7 @@ Build tool workflows
 Skills
 Tool search
 Programmatic tool calling
+Async tool calling
 Computer and code
 Shell
 Computer use
@@ -156,8 +156,11 @@ Flex processing
 Safety and governance
 Safety best practices
 Red teaming
-Safety checks Cybersecurity checks
-Under 18 API Guidance
+Safety checks Safety classifiers
+Cybersecurity checks
+Misalignment monitoring
+Under-18 guidance
+CSAM guidance
 Content provenance
 Your data
 Permissions
@@ -170,7 +173,11 @@ Model, tool, and data controls
 Import and reconciliation
 Private Link
 IP allowlist
-Workload identity federation X.509 certificates (beta)
+Mutual TLS
+Workload identity federation Codex setup
+Federation rules
+Admin API
+X.509 certificates
 Kubernetes
 AWS
 Microsoft Azure
@@ -250,6 +257,7 @@ Product Feeds
 Delta Feeds API
 Campaign Targeting
 Conversion-Optimized Campaigns
+Custom Audiences
 API Reference
 Authentication
 Ad Account
@@ -306,7 +314,7 @@ Web search
 Image generation
 Image inputs
 Appshots
-Chrome extension
+Browser extension
 Work with files
 Reference
 Commands
@@ -343,6 +351,7 @@ Integrated terminal
 Extend and automate
 Build skills
 Build plugins
+Site tools (WebMCP)
 Hooks
 Environments
 Modes
@@ -357,6 +366,7 @@ GitHub Action
 Non-interactive mode
 Third-party integrations
 GitHub
+GitLab (Beta)
 Slack
 Linear
 Reference
@@ -385,6 +395,7 @@ Changelog
 Codex Security CLI Quickstart
 Run bulk scans
 Run scans in CI
+GitLab CI/CD
 Reference
 FAQ
 TypeScript SDK
@@ -397,14 +408,20 @@ Models & Trusted Access
 Recommended configuration
 Getting started
 Admin rollout guide
+ChatGPT Work
 ChatGPT Work Overview
+ChatGPT Work cloud security
+ChatGPT Work local security
 ChatGPT Work admin FAQ
+ChatGPT Work: usage and cost
 Identity and authentication
 Authentication overview
+Workload identity
 Personal Access Tokens
 Service accounts
 Workspace access, policy, and models
 Groups and provisioning
+User lifecycle management
 Roles and workspace permissions
 GPTs and Sharing
 Managed configuration
@@ -413,9 +430,11 @@ HIPAA configuration
 Workspace model availability
 Plugin and connector controls
 Plugin controls
+Plugin management
 Skill controls
 Usage, governance, and compliance
 Governance
+Admin plugin
 Workspace analytics
 Analytics API
 Compliance API and audit events
@@ -442,17 +461,18 @@ Company blog
 Developer blog
 Showcase Blog Cookbook Learn Community Select...
 Recent
-Custom Code Review rules for Codex
-Mastering remote engineering work from your phone
-Making private MCP servers reachable without making them public
-How Perplexity Brought Voice Search to Millions Using the Realtime API
-Designing delightful frontends with GPT-5.4
+Architectural visualization with Astra
+Building games with Astra
+Meet Rosalind Workbench: Empowering every scientist to be their own research team
+Automating repetitive work at OpenAI with Codex
+Meet the winners of OpenAI Build Week
 Topics
 General
 API
 Apps SDK
 Audio
 Codex
+Life sciences
 Topics
 Agents
 Evals
@@ -532,8 +552,21 @@ Ultra (current) Maximum reasoning with automatic task delegation
 Press enter to confirm or esc to go back
 5.6 Sol Extra High Selections in this preview don't change your ChatGPT settings. 5.6 Sol Extra High, 5 of 6. Use Left and Right arrow keys to adjust power.
 Recommended models
+Astra
+Our most capable model for complex work across code, apps, and research, combining advanced reasoning, computer use, and stronger judgment.
+codex -m gpt-6-astra
+Copy command
+Capability
+Speed
+ChatGPT desktop app
+ChatGPT web
+Codex CLI
+Codex IDE extension
+Codex cloud
+ChatGPT Credits
+API Access
 5.6 Sol
-Flagship GPT-5.6 model with the strongest capability for complex coding, computer use, research, and cybersecurity.
+The most capable GPT-5.6 model for complex coding, computer use, research, and cybersecurity.
 codex -m gpt-5.6-sol
 Copy command
 Capability
@@ -584,21 +617,44 @@ Codex IDE extension
 Codex cloud
 ChatGPT Credits
 API Access
-Start with the default Power setting, which uses gpt-5.6-sol with medium
-reasoning. Move toward Smarter for deeper reasoning or Faster for
-faster, lower-cost work. Open Advanced when you want gpt-5.6-luna or a
-specific model, reasoning effort, or speed.
-Choosing Sol, Terra, and Luna
-Codex offers three GPT-5.6 models: Sol for detail and polish, Terra as the
-everyday workhorse, and Luna for clear, repeatable work. If you are unsure,
-start with Sol.
+Availability depends on the rollout, your sign-in method, and your client.
+See pricing for plan access and usage, and
+workspace model availability
+for Enterprise access.
+Start with the default Power setting available to your account. Move toward
+Smarter for deeper reasoning or Faster for faster, lower-cost work.
+Open Advanced when you want gpt-5.6-luna or a specific model, reasoning
+effort, or speed.
+The picker illustrations show GPT-5.6 controls. For eligible Pro, Business
+($100), and Enterprise accounts, the Astra rollout updates the Power options
+to Terra Light, Sol Light, Sol Medium, Astra Light, Astra Medium, and Astra
+Extra High. Options can differ by plan and rollout stage.
+Experimental context management
+On supported Codex clients, users signed in with ChatGPT Plus or Pro can opt
+in to experimental context management. Astra keeps notes across context
+windows and can search earlier messages and tool results from the same task.
+This experiment is off by default and isn't available with Business, Enterprise, or
+API-key sign-in at launch.
+To opt in, set features.context_management.experimental_mode = true in your
+config.toml , then start a new task. See the configuration reference
+for the setting and configuration basics
+for the file location. Workspace requirements still apply.
+Choosing Astra, Sol, Terra, and Luna
+Choose Astra when a task needs the strongest capability across multiple
+steps and tools. Sol offers depth and polish, Terra suits everyday work,
+and Luna suits clear, repeatable tasks.
 Where each model shines
+Astra, for the hardest end-to-end work. Choose Astra for complete workflows
+across code, apps, and research that need sustained reasoning and judgment.
+Give it the sources, templates, constraints, and checks that define a useful
+result. Astra is better at asking focused questions and incorporating your
+guidance while keeping the original goal and constraints in view.
 Sol, for complex, open-ended work. Choose Sol for ambiguous, difficult, or
 high-value tasks that need extra analysis, judgment, or polish, such as
 complex code changes, deep research, or polished documents. For narrower
 tasks, define what done looks like to keep the work focused.
 Terra, the pragmatic all-rounder. Choose Terra for everyday work that
-needs strong reasoning and tool use when you do not need Sol’s full depth. It
+needs strong reasoning and tool use when you do not need Sol's full depth. It
 is a natural starting point for work you previously gave GPT-5.5.
 Luna, for clear, repeatable tasks. Choose Luna for specific, high-volume
 tasks when you know what a good result looks like, such as extraction,
@@ -616,11 +672,11 @@ familiar task at a lower setting and adjust based on the result.
 Know when to use Max or Ultra
 Max gives the selected model more time to reason about a single task. Use it
 for the hardest problems, when depth matters more than speed or usage. If you
-don’t see Max in your options, you’ll have to enable it in your app settings.
+don't see Max in your options, you'll have to enable it in your app settings.
 Ultra uses subagents to handle
 separate parts of a complex task in parallel. Choose it when you can divide the
 work into meaningful parts. Most tasks do not need Max or Ultra.
-If Ultra doesn’t appear in the desktop app’s model slider, go to
+If Ultra doesn't appear in the desktop app's model slider, go to
 Settings > Configuration , then turn on Ultra in model picker slider .
 Other models
 When you sign in with ChatGPT, Codex works best with the recommended models listed above.
@@ -628,10 +684,10 @@ GPT-5.4 and GPT-5.4 mini retire from Codex on August 31, 2026.
 If you sign in with ChatGPT, replace gpt-5.4 with gpt-5.6-terra and
 gpt-5.4-mini with gpt-5.6-luna in saved configurations, custom agents, and
 scheduled tasks. The OpenAI API and Codex authenticated with your own API key
-aren’t affected.
+aren't affected.
 View other models
 5.5
-Previous-generation frontier model for complex coding, computer use, knowledge work, and research workflows.
+Previous-generation flagship model for complex coding, computer use, knowledge work, and research workflows.
 codex -m gpt-5.5
 Copy command
 Capability
@@ -644,7 +700,7 @@ Codex cloud
 ChatGPT Credits
 API Access
 5.4
-Frontier model for professional work with strong coding, reasoning, tool use, and agentic workflow capabilities.
+Flagship model for professional work with strong coding, reasoning, tool use, and agentic workflow capabilities.
 codex -m gpt-5.4
 Copy command
 Capability
@@ -680,17 +736,17 @@ settings, managed configurations, custom agents, and scheduled tasks.
 The gpt-5.2 and gpt-5.3-codex models are already deprecated in Codex when
 you sign in with ChatGPT. Update scripts, configuration files, and
 codex exec --model commands that still reference those models.
-The OpenAI API and Codex authenticated with your own API key aren’t affected
+The OpenAI API and Codex authenticated with your own API key aren't affected
 by the GPT-5.4 retirement. For current API model availability, see the
 API models page .
 Configure your default local model
 The ChatGPT desktop app, Codex CLI, and IDE extension use the same config.toml
 configuration file . To specify a model, add a
-model entry to your configuration file. If you don’t specify a model, the
+model entry to your configuration file. If you don't specify a model, the
 ChatGPT desktop app, Codex CLI, or IDE extension uses a recommended model.
 model = "gpt-5.6"
 Choose a model for cloud chats
-Currently, you can’t change the default model for Codex cloud chats.
+Currently, you can't change the default model for Codex cloud chats.
 Ask AI
 Docs agent
 Loading docs agent...

@@ -25,7 +25,7 @@ Türkçe
 Get API key
 Cookbook
 Community
-The Interactions API is now generally available. We recommend using this API for access to all the latest features and models.
+Gemini 3.8 Flash is now available. Try it out .
 Home
 Gemini API
 Docs
@@ -67,7 +67,7 @@ N/A
 Tier 1
 $10
 Tier 2
-$200
+$50
 Tier 3
 $200
 If you hit a spend-based rate limit, the API returns a 429 RESOURCE_EXHAUSTED
@@ -131,6 +131,8 @@ Gemini 3.1 Pro Preview
 5,000,000
 Gemini 3.5 Flash-Lite
 10,000,000
+Gemini 3.8 Flash
+3,000,000
 Gemini 3.7 Flash
 3,000,000
 Gemini 3.1 Flash Lite
@@ -185,6 +187,10 @@ Gemini 3.1 Flash Lite
 500,000,000
 Gemini 3.1 Flash Lite Preview
 500,000,000
+Gemini 3.8 Flash
+400,000,000
+Gemini 3.7 Flash
+400,000,000
 Gemini 3.6 Flash
 400,000,000
 Gemini 3.5 Flash
@@ -232,6 +238,10 @@ Gemini 3.5 Flash-Lite
 Gemini 3.1 Flash Lite
 1,000,000,000
 Gemini 3.1 Flash Lite Preview
+1,000,000,000
+Gemini 3.8 Flash
+1,000,000,000
+Gemini 3.7 Flash
 1,000,000,000
 Gemini 3.6 Flash
 1,000,000,000
@@ -285,4 +295,4 @@ We offer no guarantees about increasing your rate limit, but we'll do our best
 to review your request.
 Send feedback
 Except as otherwise noted, the content of this page is licensed under the Creative Commons Attribution 4.0 License , and code samples are licensed under the Apache 2.0 License . For details, see the Google Developers Site Policies . Java is a registered trademark of Oracle and/or its affiliates.
-Last updated 2026-08-13 UTC.
+Last updated 2026-09-02 UTC.

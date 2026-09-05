@@ -75,9 +75,26 @@ You can also request structured summaries by providing a JSON schema. This is `/
 The API will return the summary as a JSON string that matches your schema structure, which you can parse to access the structured data.
 ## Highlights
 Delivers key excerpts from the text that are most relevant to your search query, emphasizing important information within the content. This is also extractive content from the source.
-You can configure highlights in two ways:
-1. **Simple boolean** (`highlights=True` in SDKs): Returns default highlights based on the search query
-2. **Detailed configuration** (pass as an object): include `query` to guide selection and `maxCharacters` to cap highlight length
+### Dynamic Highlights
+<Note>
+Dynamic Highlights is available as a research preview on `/search` and `/contents`. Include the `Exa-Beta: dynamic-highlights-2026-08-28` header on every request that sets `dynamic: true`.
+</Note>
+Regular highlights select excerpts from each page independently. Dynamic Highlights allocates context across all requested pages, giving more space to useful information and less to redundant results.
+Enable it with `dynamic: true`:
+```json theme={null}
+{
+"ids": [
+"https://www.baseten.co/blog/how-to-optimize-llm-inference-speed-and-reduce-costs-in-production/",
+"https://blog.cloudflare.com/smaller-faster-safer-models/"
+],
+"highlights": {"dynamic": true}
+}
+```
+The model sizes and distributes the output automatically, so `dynamic: true` is incompatible with `maxCharacters`.
+You can configure highlights in three ways:
+1. **Simple boolean** (`highlights=True` in SDKs): use the request query to select highlights
+2. **Per-page configuration**: use `query` to guide selection or `maxCharacters` for a page-level limit
+3. **Dynamic configuration**: set `dynamic: true` to allocate context across the result set
 `/search` nested form:
 ```json theme={null}
 {
