@@ -45,7 +45,7 @@ test('positive prose cannot override a failed exact-SHA check', () => {
 
 test('pending remains pending and does not start a repair', () => {
   const result = classifyPrCheckReadback(payload([
-    check('web', 'COMPLETED', 'SUCCESS'),
+    check('Nexus project-readiness P0 gate', 'COMPLETED', 'SUCCESS'),
     check('workspace', 'QUEUED'),
   ]), { expectedSha: SHA });
 
@@ -57,6 +57,7 @@ test('pending remains pending and does not start a repair', () => {
 
 test('all-green checks stop at protected merge approval', () => {
   const result = classifyPrCheckReadback(payload([
+    check('Nexus project-readiness P0 gate', 'COMPLETED', 'SUCCESS'),
     check('web', 'COMPLETED', 'SUCCESS'),
     { __typename: 'StatusContext', context: 'Vercel Preview', state: 'SUCCESS' },
   ]), { expectedSha: SHA });
@@ -70,12 +71,14 @@ test('all-green checks stop at protected merge approval', () => {
 
 test('skipped and unknown checks remain unproven', () => {
   const skipped = classifyPrCheckReadback(payload([
+    check('Nexus project-readiness P0 gate', 'COMPLETED', 'SUCCESS'),
     check('e2e', 'COMPLETED', 'SKIPPED'),
   ]), { expectedSha: SHA });
   assert.equal(skipped.state, 'remote_checks_unproven');
   assert.equal(skipped.blocker, 'configuration_or_scope_gap');
 
   const unknown = classifyPrCheckReadback(payload([
+    check('Nexus project-readiness P0 gate', 'COMPLETED', 'SUCCESS'),
     check('mystery', 'COMPLETED', 'LOUDLY_GREEN'),
   ]), { expectedSha: SHA });
   assert.equal(unknown.state, 'remote_checks_unproven');
@@ -96,8 +99,8 @@ test('missing checks and mismatched SHA fail closed', () => {
 
 test('bounded repair prevents an infinite resubmission loop', () => {
   const result = classifyPrCheckReadback(payload([
-    check('web', 'COMPLETED', 'FAILURE'),
-  ]), { expectedSha: SHA, attempt: 3, maxRepairAttempts: 3 });
+    check('Nexus project-readiness P0 gate', 'COMPLETED', 'FAILURE'),
+  ]), { expectedSha: SHA, attempt: 1, maxRepairAttempts: 1 });
 
   assert.equal(result.state, 'repair_limit_reached');
   assert.equal(result.blocker, 'bounded_repair_exhausted');
@@ -112,4 +115,47 @@ test('invalid repair counters cannot create a release state', () => {
 
   assert.equal(result.state, 'unproven');
   assert.equal(result.blocker, 'invalid_repair_budget');
+});
+
+test('a green non-required check cannot hide an absent required check', () => {
+  const result = classifyPrCheckReadback(payload([
+    { __typename: 'StatusContext', context: 'Vercel Preview', state: 'SUCCESS' },
+  ]), { expectedSha: SHA });
+
+  assert.equal(result.state, 'remote_checks_unproven');
+  assert.equal(result.blocker, 'required_checks_missing');
+  assert.deepEqual(result.missingRequiredChecks, ['Nexus project-readiness P0 gate']);
+});
+
+test('unknown check record types fail closed even when labelled successful', () => {
+  const result = classifyPrCheckReadback(payload([
+    check('Nexus project-readiness P0 gate', 'COMPLETED', 'SUCCESS'),
+    { __typename: 'UnexpectedCheckKind', name: 'mystery', status: 'COMPLETED', conclusion: 'SUCCESS' },
+  ]), { expectedSha: SHA });
+
+  assert.equal(result.state, 'remote_checks_unproven');
+  assert.equal(result.blocker, 'malformed_check_record');
+});
+
+test('pending CLI readback exits non-zero', async () => {
+  const { mkdtempSync, rmSync, writeFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const { spawnSync } = await import('node:child_process');
+  const dir = mkdtempSync(join(tmpdir(), 'pr-check-continuation-'));
+  const input = join(dir, 'readback.json');
+  try {
+    writeFileSync(input, JSON.stringify(payload([
+      check('Nexus project-readiness P0 gate', 'IN_PROGRESS'),
+    ])));
+    const run = spawnSync(process.execPath, [
+      new URL('../pr-check-continuation.mjs', import.meta.url).pathname,
+      '--input', input,
+      '--expected-sha', SHA,
+    ], { encoding: 'utf8' });
+    assert.equal(run.status, 1);
+    assert.equal(JSON.parse(run.stdout).state, 'remote_checks_pending');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

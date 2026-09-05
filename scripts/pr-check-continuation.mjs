@@ -14,21 +14,38 @@ const SHA = /^[0-9a-f]{40}$/;
 const FAILURE = new Set(['FAILURE', 'ERROR', 'CANCELLED', 'TIMED_OUT', 'ACTION_REQUIRED', 'STARTUP_FAILURE', 'STALE']);
 const PENDING = new Set(['QUEUED', 'PENDING', 'IN_PROGRESS', 'WAITING', 'REQUESTED', 'EXPECTED']);
 const PASS = new Set(['SUCCESS', 'NEUTRAL']);
+const CHECK_RUN_STATUS = new Set(['QUEUED', 'IN_PROGRESS', 'COMPLETED', 'WAITING', 'PENDING', 'REQUESTED']);
+const STATUS_CONTEXT_STATE = new Set(['EXPECTED', 'ERROR', 'FAILURE', 'PENDING', 'SUCCESS']);
+export const DEFAULT_REQUIRED_CHECKS = Object.freeze(['Nexus project-readiness P0 gate']);
 
 function upper(value) {
   return typeof value === 'string' ? value.toUpperCase() : '';
 }
 
 export function normaliseCheck(check) {
-  const kind = check?.__typename === 'StatusContext' ? 'status_context' : 'check_run';
+  const typename = check?.__typename;
+  const kind = typename === 'StatusContext'
+    ? 'status_context'
+    : typename === 'CheckRun'
+      ? 'check_run'
+      : 'unknown';
   const name = kind === 'status_context' ? check?.context : check?.name;
   const status = kind === 'status_context' ? upper(check?.state) : upper(check?.status);
   const conclusion = kind === 'status_context' ? status : upper(check?.conclusion);
+  const valid = typeof name === 'string'
+    && name.trim().length > 0
+    && (
+      (kind === 'status_context' && STATUS_CONTEXT_STATE.has(status))
+      || (kind === 'check_run'
+        && CHECK_RUN_STATUS.has(status)
+        && (status !== 'COMPLETED' || conclusion.length > 0))
+    );
   return {
     kind,
     name: typeof name === 'string' && name.trim() ? name.trim() : 'unnamed check',
     status,
     conclusion,
+    valid,
     detailsUrl: typeof check?.detailsUrl === 'string'
       ? check.detailsUrl
       : typeof check?.targetUrl === 'string'
@@ -55,7 +72,12 @@ function projection(state, payload, checks, fields) {
   };
 }
 
-export function classifyPrCheckReadback(payload, { expectedSha, attempt = 0, maxRepairAttempts = 3 } = {}) {
+export function classifyPrCheckReadback(payload, {
+  expectedSha,
+  attempt = 0,
+  maxRepairAttempts = 1,
+  requiredChecks = DEFAULT_REQUIRED_CHECKS,
+} = {}) {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
     return projection('unproven', payload, [], {
       currentWork: 'Validate the remote PR-check readback.',
@@ -72,7 +94,7 @@ export function classifyPrCheckReadback(payload, { expectedSha, attempt = 0, max
       nextAutomaticAction: 'read_back_exact_pr_head',
     });
   }
-  if (!Number.isInteger(attempt) || attempt < 0 || !Number.isInteger(maxRepairAttempts) || maxRepairAttempts < 1) {
+  if (!Number.isInteger(attempt) || attempt < 0 || !Number.isInteger(maxRepairAttempts) || maxRepairAttempts !== 1) {
     return projection('unproven', payload, [], {
       currentWork: 'Validate bounded repair counters.',
       evidence: 'Repair attempt metadata is missing or invalid.',
@@ -89,6 +111,40 @@ export function classifyPrCheckReadback(payload, { expectedSha, attempt = 0, max
       evidence: 'The remote readback contains no check records.',
       blocker: 'no_remote_checks',
       nextAutomaticAction: 'poll_same_sha_check_readback',
+    });
+  }
+
+  if (!Array.isArray(requiredChecks)
+    || requiredChecks.length === 0
+    || requiredChecks.some((name) => typeof name !== 'string' || name.trim().length === 0)) {
+    return projection('unproven', payload, checks, {
+      currentWork: 'Load the required-check contract.',
+      evidence: 'The required-check list is absent or malformed.',
+      blocker: 'required_check_contract_invalid',
+      nextAutomaticAction: 'repair_required_check_contract',
+    });
+  }
+
+  const malformed = checks.filter((check) => !check.valid);
+  if (malformed.length > 0) {
+    return projection('remote_checks_unproven', payload, checks, {
+      currentWork: 'Reject malformed or unsupported check evidence.',
+      evidence: `${malformed.length} check record(s) have an unsupported type or invalid shape.`,
+      blocker: 'malformed_check_record',
+      nextAutomaticAction: 'read_back_pr_checks_again',
+      malformedChecks: malformed.map((check) => check.name),
+    });
+  }
+
+  const observedNames = new Set(checks.map((check) => check.name));
+  const missingRequiredChecks = [...new Set(requiredChecks)].filter((name) => !observedNames.has(name));
+  if (missingRequiredChecks.length > 0) {
+    return projection('remote_checks_unproven', payload, checks, {
+      currentWork: 'Wait for every required check on the exact PR head.',
+      evidence: `${missingRequiredChecks.length} required check(s) are absent from the remote readback.`,
+      blocker: 'required_checks_missing',
+      nextAutomaticAction: 'poll_same_sha_check_readback',
+      missingRequiredChecks,
     });
   }
 
@@ -185,10 +241,10 @@ function readPayload(args) {
 export function main(args = process.argv.slice(2)) {
   const expectedSha = valueOf(args, '--expected-sha');
   const attempt = Number(valueOf(args, '--attempt') ?? 0);
-  const maxRepairAttempts = Number(valueOf(args, '--max-repair-attempts') ?? 3);
+  const maxRepairAttempts = Number(valueOf(args, '--max-repair-attempts') ?? 1);
   const result = classifyPrCheckReadback(readPayload(args), { expectedSha, attempt, maxRepairAttempts });
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
-  return result.state === 'repair_required' || result.state === 'repair_limit_reached' || result.state === 'remote_checks_unproven' || result.state === 'unproven' ? 1 : 0;
+  return result.state === 'approval_pending' ? 0 : 1;
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
