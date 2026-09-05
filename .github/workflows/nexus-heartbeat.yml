@@ -1,8 +1,8 @@
 name: Nexus Heartbeat
 
 # The pulse (UNI-2523): proves the gates and reports the distance to the North
-# Star. Manual-dispatch only until the cron is separately approved — see the
-# DORMANT note on the trigger below.
+# Star. Runs daily on a cron and is also dispatchable by hand — see the ARMED
+# note on the trigger below.
 #
 # AUTHORITY. This workflow OBSERVES AND REPORTS — Waterline Class 0/1. It must not
 # deploy, merge, or arm anything: merge is not deploy (UNI-2542) and there is one
@@ -59,16 +59,29 @@ name: Nexus Heartbeat
 #      is closed — will be adopted. The lowest-numbered owned issue wins, so this
 #      cannot hijack an existing pin, only pre-empt a missing one.
 
-# DORMANT ON MERGE — MANUAL DISPATCH ONLY. There is deliberately no `schedule:`
-# trigger here. Merging a capability arms nothing in this repository (UNI-2542,
-# merge is not deploy), and round four was right that shipping the cron in this
-# PR would have armed a daily issues-write the moment it landed on the default
-# branch — before the watched first run that is supposed to decide whether it
-# deserves to run unattended. The cron is a separate, separately-approved change,
-# added only after a dispatched run has been observed writing the issue correctly.
+# ARMED 05/09/2026. The cron below is the separately-approved change this file's
+# previous note reserved. Both of its stated preconditions are met:
 #
-# When it is added it belongs at 19:00 UTC = 05:00 Brisbane (AEST, UTC+10, no DST).
+#   1. FOUNDER APPROVAL. Phill, 05/09/2026: "turn the heartbeat cron on".
+#   2. A DISPATCHED RUN OBSERVED FIRST. Run 33949077396 on `main` — the first
+#      execution this workflow has ever had. Until that run, `gh run list
+#      --workflow=nexus-heartbeat.yml` returned an empty array while the same
+#      query against claude-code-review.yml returned rows, so the workflow had
+#      genuinely never executed, not merely gone unlisted.
+#
+# 19:00 UTC = 05:00 Brisbane (AEST, UTC+10, no DST), the time this file already
+# specified. Daily.
+#
+# WHY THIS IS BEING ARMED, in one line: `claude-review` failed 22 consecutive
+# times across all 10 open pull requests for 16 days and nothing raised it,
+# because the repository's only health monitor had never run. A control that is
+# built but never armed reads as coverage while providing none (UNI-2610).
+#
+# TO DISARM: comment out the two `schedule:` lines. `workflow_dispatch` stays, so
+# the workflow remains runnable by hand either way.
 on:
+  schedule:
+    - cron: '0 19 * * *'
   workflow_dispatch:
 
 permissions:

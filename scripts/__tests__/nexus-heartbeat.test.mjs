@@ -40,7 +40,14 @@ const WORKFLOW_PATH = join(repositoryRoot, '.github', 'workflows', 'nexus-heartb
 // of the observe job in the present tense, three rounds after that step was
 // removed for being unrunnable. The pin doing its job — a comment-only edit
 // failing this test until someone deliberately re-pins — is the whole point.
-const PINNED_WORKFLOW_SHA256 = '79aad48a22f9a8645e25661fafd82753aceda72029f1d6b80fb2a00851e857e7';
+// Re-pinned 05/09/2026 for the cron arming (UNI-2610). The only change to the
+// workflow is the trigger block: `schedule: - cron: '0 19 * * *'` added above the
+// existing `workflow_dispatch:`, plus the comment recording founder approval and
+// the watched first run (33949077396, both jobs success, issue #1073 written).
+// The hash was recomputed independently with `shasum -a 256`, not copied from
+// this test's own failure message — the pin must not be re-derived from the
+// thing it exists to pin.
+const PINNED_WORKFLOW_SHA256 = 'dffbee02d49d517c8a09c162e0eefeb287ff429e7c49a85d2a997e2212bb2067';
 
 // Rendered gate lists (what reconcileGates PRODUCES).
 const GREEN = [
@@ -902,20 +909,40 @@ test('POSITIVE CONTROL: the isolation guard fails on the exact round-four mutant
   );
 });
 
-test('THE WORKFLOW IS DORMANT ON MERGE: it declares no schedule', () => {
-  // Merging a capability arms nothing here (UNI-2542). Round four was right that
-  // shipping the cron in this PR would have armed a daily issues-write on the
-  // default branch BEFORE the watched first run that decides whether it deserves
-  // to run unattended. Adding the cron must be a visible, separate change.
-  const structure = readWorkflowStructure(readFileSync(WORKFLOW_PATH, 'utf8'));
+test('THE WORKFLOW IS ARMED: it declares the approved daily schedule', () => {
+  // INVERTED 05/09/2026, deliberately, and NOT deleted.
+  //
+  // This assertion used to require the ABSENCE of a schedule, so that arming the
+  // cron could only ever happen as a visible, separate change. It did its job:
+  // adding the cron turned this test red, which is exactly the forcing function
+  // round four asked for. Both preconditions it was guarding are now satisfied —
+  // founder approval ("turn the heartbeat cron on", 05/09/2026) and a watched
+  // first run (33949077396 on `main`, both jobs success, issue #1073 written with
+  // all three gates PASS).
+  //
+  // Deleting the assertion would have left the trigger unguarded. Inverting it
+  // keeps a control: it now fails if the cron is silently removed, if the time
+  // drifts from the 19:00 UTC this file specifies, or if workflow_dispatch is
+  // dropped and the next first run cannot be watched by hand.
+  //
+  // Why it matters that this is armed at all: claude-review failed 22 consecutive
+  // times across all 10 open PRs for 16 days and nothing raised it, because this
+  // monitor had never run once (UNI-2610).
+  const raw = readFileSync(WORKFLOW_PATH, 'utf8');
+  const structure = readWorkflowStructure(raw);
 
   assert.ok(
-    !Object.hasOwn(structure.triggers, 'schedule'),
-    'the heartbeat declares a schedule; it must be manual-dispatch only until separately armed',
+    Object.hasOwn(structure.triggers, 'schedule'),
+    'the heartbeat declares no schedule; an unarmed monitor reads as coverage while providing none',
+  );
+  assert.match(
+    raw,
+    /^\s*-\s*cron:\s*'0 19 \* \* \*'\s*$/mu,
+    "the heartbeat's cron is not 19:00 UTC (05:00 Brisbane), the time this workflow specifies",
   );
   assert.ok(
     Object.hasOwn(structure.triggers, 'workflow_dispatch'),
-    'the heartbeat must still be dispatchable, or its first run cannot be watched',
+    'the heartbeat must still be dispatchable, or a first run can never be watched by hand',
   );
 });
 
