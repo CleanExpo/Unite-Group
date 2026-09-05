@@ -1,6 +1,6 @@
 # Mission Control owner walkthrough
 
-05/09/2026 · Observations and recovery work packet. This report does not authorise new provider, credential, build or release actions and does not claim the unfinished fixes are deployed.
+05/09/2026 · Observations, shipped interface repairs and remaining recovery work. This report records evidence; it does not authorise generated-mission builds or credential changes.
 
 ## Request and observed outcome
 
@@ -13,7 +13,13 @@ The parent session's authenticated live walkthrough at **05/09/2026 05:49 UTC (1
 | GitHub repository catalogue returned `auth_error` | The server connection could not read the accessible repository list. This is distinct from the founder being signed out of Unite-Group. The catalogue groups upstream 401 and non-rate-limit 403; that status alone does not prove an expired token. |
 | The preparation API returned HTTP 502; the saved classification remained unknown | The idea was persisted as the mission above. Classification did not establish a plan, build or release. Avoid resubmitting the idea merely to recover the failed step. |
 | Original classification cause was swallowed | At the time of the walkthrough, the generic failure was insufficient to identify the provider/runtime cause. Do not label it a missing key, provider outage or invalid model without diagnostic evidence. |
-| Owner UI and diagnostic corrections are implemented locally | Capability buttons are visible; five primary workspaces and seven additional destinations remain reachable; constrained mission layouts stack; the next action shows its actual owner. Strict classification preserves sanitised errors and offers same-mission recovery. Full validation, independent review and live deployment remain separate gates. |
+| Owner UI and diagnostic corrections shipped in PR #1075 | Capability buttons are visible; five primary workspaces and seven additional destinations remain reachable; constrained mission layouts stack; the next action shows its actual owner. Strict classification preserves sanitised errors and offers same-mission recovery. Main `83c8de9` was verified on the production domain after deployment. |
+
+At **06:45 UTC (16:45 AEST)**, continuing the same saved mission on that release returned `preparation_response_invalid`. Sanitised runtime evidence identifies `classification` / `SyntaxError`; classification remained unknown and the idea was preserved. The raw model output was not inspected, so its exact malformed or rejected shape remains unknown. This evidence does not establish a credential failure.
+
+The follow-up repair addresses a verified source weakness: classification, clarification and software planning depend on prompt-only JSON and read only the first content block. Strict preparation will request schema-constrained output, read the response's text blocks and reject incomplete or refused responses while retaining local validation. Anthropic documents this contract and its exceptions in [Structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs). This follow-up is not yet a live success receipt.
+
+Strict specification generation also needs room for both reasoning and the final JSON: [Sonnet 5's migration guide](https://platform.claude.com/docs/en/models/sonnet-5/migration-guide) confirms that adaptive thinking is on by default and shares the output limit. The follow-up sets a bounded 4,096-token ceiling for this step; it does not add retries or change model IDs.
 
 The root session is using the local SPM process. No Pi planning-service invocation, accepted remote SPM assignment or autonomous Pi browser walkthrough is claimed. See [the Pi delivery linkage contract](mission-control-pi-delivery-bridge.md) for the actual functions, missing HTTP seam and repository-binding limits.
 
@@ -45,8 +51,10 @@ Acceptance criteria:
 
 The local browser harness passed 41 checks across 1440, 1024 and 390 pixel widths, including all twelve destinations, visible capabilities and the sample mission's actual next-action owner, with no browser errors. Sample data does not prove provider access or a production SPM assignment.
 
-**Still open:** GitHub operational repair; identification of the Margot classification root cause; full application verification and independent review of the UI/diagnostic changes; real SPM assignment acceptance; deployment and the repeated authenticated owner journey. No plan, build or release success is inferred from the saved idea.
+PR #1075 validation: 660 test files / 4,652 tests, lint, typecheck, production-equivalent build, static checks, nine preview startup checks and the 41 browser checks passed. Independent review passed after correcting missing-provider configuration handling. All twelve required GitHub checks and overall CI passed before normal merge. CodeRabbit reported a quota limit; its green status is not counted as a completed review.
+
+**Still open:** GitHub operational repair; verification and release of the strict response-contract follow-up; successful specification generation on the saved mission; real SPM assignment acceptance. No plan, generated build or product delivery is inferred from the saved idea or the shipped interface repair.
 
 Grounded 05/09/2026: parent authenticated walkthrough recorded saved mission `0d6a120c-69ff-4963-ac4a-c5345b36a1ff`, main `e62cc715`, repository `auth_error` and classification 502 at 05:49 UTC; source mapping confirms the catalogue credential and Pi bridge limits above.
 
-Waterline: Observed failure and proposed recovery packet; corrections in progress, live acceptance pending. This document is evidence and a work packet, not a delivery-success receipt.
+Waterline: Interface repairs are live. The saved owner mission remains in preparation recovery; generated-product delivery is not complete.

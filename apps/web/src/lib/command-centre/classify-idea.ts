@@ -11,8 +11,10 @@
 
 import { getAIClient } from '@/lib/ai/client'
 import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
+import type { JSONOutputFormat } from '@anthropic-ai/sdk/resources/messages'
 import type { ModelClientLike } from './clarify'
 import { preparationFailure } from './preparation-failure'
+import { PreparationResponseError, readPreparationObject } from './model-response'
 import { type Lane, type RoutingDecision, type IdeaContext, getLaneAdapter } from './lanes'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -23,6 +25,20 @@ const CLASSIFY_SYSTEM =
   'Classify a founder idea into exactly one lane: "marketing" (campaigns/content/social), ' +
   '"software" (features/code/APIs), or "content" (articles/guides/knowledge). Return ONLY JSON: ' +
   '{"lane": "...", "confidence": 0..1, "rationale": "one sentence"}. No markdown.'
+
+const CLASSIFY_FORMAT = {
+  type: 'json_schema',
+  schema: {
+    type: 'object',
+    properties: {
+      lane: { type: 'string', enum: VALID },
+      confidence: { type: 'number', description: 'A finite confidence from 0 to 1 inclusive.' },
+      rationale: { type: 'string', description: 'One non-empty sentence explaining the classification.' },
+    },
+    required: ['lane', 'confidence', 'rationale'],
+    additionalProperties: false,
+  },
+} satisfies JSONOutputFormat
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -91,14 +107,22 @@ export async function classifyIdea(
       max_tokens: 300,
       system: CLASSIFY_SYSTEM,
       messages: [{ role: 'user', content: userContent }],
+      ...(options?.strict ? { output_config: { format: CLASSIFY_FORMAT } } : {}),
     })
-    const parsed = JSON.parse(extractText(res.content)) as {
+    const parsed = (options?.strict ? readPreparationObject(res, CLASSIFY_FORMAT.schema.required)
+      : JSON.parse(extractText(res.content))) as {
       lane?: unknown
       confidence?: unknown
       rationale?: unknown
     }
-    const routing = toRoutingDecision(parsed?.lane, parsed?.confidence, parsed?.rationale, ctx)
-    if (options?.strict && routing.lane === 'unknown') throw new SyntaxError('Invalid classification')
+    const lane = options?.strict && typeof parsed.lane === 'string' ? parsed.lane.trim().toLowerCase() : parsed?.lane
+    if (options?.strict && (!(VALID as unknown[]).includes(lane) ||
+      typeof parsed.confidence !== 'number' || !Number.isFinite(parsed.confidence) || parsed.confidence < 0 || parsed.confidence > 1 ||
+      typeof parsed.rationale !== 'string' || !parsed.rationale.trim())) {
+      throw new PreparationResponseError('invalid_values')
+    }
+    const routing = toRoutingDecision(lane, parsed?.confidence, parsed?.rationale, ctx)
+    if (options?.strict && routing.lane === 'unknown') throw new PreparationResponseError('invalid_values')
     return routing
   } catch (error) {
     if (options?.strict) throw preparationFailure(error, 'classification')

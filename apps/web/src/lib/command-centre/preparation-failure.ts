@@ -1,4 +1,5 @@
 import { AIConfigurationError } from '@/lib/ai/client'
+import { PREPARATION_RESPONSE_REASONS, PreparationResponseError, type PreparationResponseReason } from './model-response'
 
 export type PreparationStep = 'context' | 'classification' | 'clarification' | 'specification' | 'board'
 
@@ -7,7 +8,7 @@ export class PreparationFailure extends Error {
   constructor(
     readonly code: string,
     message: string,
-    readonly diagnostic: { stage: PreparationStep; errorName: string; status?: number; requestId?: string },
+    readonly diagnostic: { stage: PreparationStep; errorName: string; status?: number; requestId?: string; reason?: PreparationResponseReason },
   ) {
     super(message)
     this.name = 'PreparationFailure'
@@ -22,8 +23,10 @@ export function preparationFailure(error: unknown, stage: PreparationStep): Prep
   const diagnostic: PreparationFailure['diagnostic'] = {
     stage,
     errorName: error instanceof AIConfigurationError ? 'AIConfigurationError'
+      : error instanceof PreparationResponseError ? 'PreparationResponseError'
       : typeof source.name === 'string' && ERROR_NAMES.has(source.name) ? source.name : 'Error',
   }
+  if (error instanceof PreparationResponseError && PREPARATION_RESPONSE_REASONS.includes(error.reason)) diagnostic.reason = error.reason
   if (typeof source.status === 'number' && Number.isInteger(source.status) && source.status >= 400 && source.status <= 599) diagnostic.status = source.status
   if (typeof source.request_id === 'string' && /^req_[A-Za-z0-9]{16,64}$/.test(source.request_id)) diagnostic.requestId = source.request_id
   if (stage !== 'context' && [401, 403].includes(diagnostic.status ?? 0)) return new PreparationFailure(
