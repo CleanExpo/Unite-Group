@@ -8,14 +8,19 @@ import Anthropic from '@anthropic-ai/sdk'
 
 let instance: Anthropic | null = null
 
+export class AIConfigurationError extends Error {
+  constructor() {
+    super('ANTHROPIC_API_KEY is required for the metered server route; Claude plan session credentials are not accepted')
+    this.name = 'AIConfigurationError'
+  }
+}
+
 export function getAIClient(): Anthropic {
   if (instance) return instance
 
   const apiKey = process.env.ANTHROPIC_API_KEY?.trim()
   if (!apiKey) {
-    throw new Error(
-      'ANTHROPIC_API_KEY is required for the metered server route; Claude plan session credentials are not accepted',
-    )
+    throw new AIConfigurationError()
   }
 
   instance = new Anthropic({

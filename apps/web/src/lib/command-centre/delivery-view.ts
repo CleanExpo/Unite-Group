@@ -42,7 +42,7 @@ export function toDeliveryMissionView(
         "This mission is paused. Continue to prepare a fresh build decision; it will not restart automatically.",
     });
   if (d?.board?.verdict === "HOLD" || d?.board?.verdict === "REJECTED")
-    blockers.push({ code: "board_concern", message: d.board.rationale });
+    blockers.push({ code: "board_concern", message: `Board ${d.board.verdict}: ${d.board.rationale}` });
   if (d?.projectKey && !isCanonicalDeliveryTarget(d.projectKey))
     blockers.push({
       code: "target_unavailable",
@@ -82,7 +82,9 @@ export function toDeliveryMissionView(
       ? {
           kind: "approve",
           owner: "You",
-          label: "Approve this specification for a branch build",
+          label: blockers.some(blocker => blocker.code === "board_concern")
+            ? "Review Board concerns before deciding on a branch build"
+            : "Approve this specification for a branch build",
         }
       : {
           kind: "connect",
@@ -110,6 +112,9 @@ export function toDeliveryMissionView(
       owner: "SPM",
       label: "Connect the appropriate specialist workflow",
     };
+  if (stage === "failed" && ["preparation_provider_authentication", "preparation_provider_configuration"].includes(d?.error?.code ?? "")) {
+    nextAction = { kind: "connect", owner: "Delivery operator", label: "Repair Margot’s AI connection, then continue preparation" };
+  }
   if (
     d?.error?.code === "approval_signing_unavailable" &&
     d.phase === "ready" &&

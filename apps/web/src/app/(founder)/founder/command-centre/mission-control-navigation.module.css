@@ -1,0 +1,29 @@
+.more { min-width: 0; max-width: 100%; }
+.more > summary {
+  cursor: pointer;
+  color: var(--mission-muted);
+  font-size: 13px;
+  padding: 7px 10px;
+  min-height: 36px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  overflow-wrap: anywhere;
+}
+.more > summary:hover, .more[data-active='true'] > summary {
+  color: var(--mission-blue);
+  border-color: var(--mission-border);
+  background: var(--mission-raised);
+}
+.activeWorkspace { color: var(--mission-blue); }
+.more[open] { flex-basis: 100%; }
+.more[open] > summary { width: fit-content; max-width: 100%; }
+.secondaryLinks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr));
+  gap: 6px;
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid var(--mission-border);
+  border-radius: 3px;
+  background: var(--mission-surface);
+}

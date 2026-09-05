@@ -16,6 +16,20 @@ function mount() {
 beforeEach(() => vi.restoreAllMocks())
 
 describe('GitHub repository selection', () => {
+  it('explains the usable fallback after authorisation failure and prepares the selected registered business', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => response({ ...page([]), status: 'auth_error', message: 'GitHub authorisation failed.', incomplete: true }, false)))
+    const prepare = mount()
+    fireEvent.click(trigger())
+    const error = await screen.findByRole('alert')
+    expect(error).toHaveTextContent('GitHub authorisation failed.')
+    expect(error).toHaveTextContent('You can still prepare your idea. Choose a registered business below, or let Margot help you place it.')
+    expect(screen.queryByRole('list', { name: 'GitHub repositories' })).not.toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Or choose a registered business'), { target: { value: 'Registered business' } })
+    fireEvent.change(screen.getByLabelText('Your idea'), { target: { value: 'Improve the customer handover' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Prepare my mission' }))
+    expect(prepare).toHaveBeenCalledWith('Improve the customer handover', 'Registered business', [])
+  })
+
   it('loads only when opened, searches full owner/name, and prepares the selected repository unchanged', async () => {
     const fetchMock = vi.fn(async () => response(page([repo('OwnerA/shared'), repo('OwnerB/shared', true)])))
     vi.stubGlobal('fetch', fetchMock)
