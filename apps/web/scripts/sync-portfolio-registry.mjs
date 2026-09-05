@@ -13,21 +13,52 @@
  * without the registry would silently blank the Mission Control deck.
  */
 
-import { copyFileSync, existsSync, mkdirSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { copyFileSync, existsSync, mkdirSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const source = resolve(appRoot, '..', '..', '.portfolio', 'PORTFOLIO.yaml')
-const target = join(appRoot, 'data', 'command-centre', 'portfolio.yaml')
+const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const source = resolve(appRoot, "..", "..", ".portfolio", "PORTFOLIO.yaml");
+const target = join(appRoot, "data", "command-centre", "portfolio.yaml");
+const controlPlaneSource = resolve(
+  appRoot,
+  "..",
+  "..",
+  ".portfolio",
+  "CONTROL-PLANE.v1.json",
+);
+const controlPlaneTarget = join(
+  appRoot,
+  "data",
+  "command-centre",
+  "control-plane.v1.json",
+);
 
 if (!existsSync(source)) {
-  console.error(`✖ sync-portfolio-registry: SSOT not found at ${source}`)
-  console.error('  The command-centre registry derives from .portfolio/PORTFOLIO.yaml (UNI-2297).')
-  console.error('  Refusing to build without it — the deck would ship with an empty registry.')
-  process.exit(1)
+  console.error(`✖ sync-portfolio-registry: SSOT not found at ${source}`);
+  console.error(
+    "  The command-centre registry derives from .portfolio/PORTFOLIO.yaml (UNI-2297).",
+  );
+  console.error(
+    "  Refusing to build without it — the deck would ship with an empty registry.",
+  );
+  process.exit(1);
 }
 
-mkdirSync(dirname(target), { recursive: true })
-copyFileSync(source, target)
-console.log(`✓ sync-portfolio-registry: copied ${source} → ${target}`)
+if (!existsSync(controlPlaneSource)) {
+  console.error(
+    `✖ sync-portfolio-registry: control-plane registry not found at ${controlPlaneSource}`,
+  );
+  console.error(
+    "  Refusing to build without the fail-closed repository and device identity contract.",
+  );
+  process.exit(1);
+}
+
+mkdirSync(dirname(target), { recursive: true });
+copyFileSync(source, target);
+copyFileSync(controlPlaneSource, controlPlaneTarget);
+console.log(`✓ sync-portfolio-registry: copied ${source} → ${target}`);
+console.log(
+  `✓ sync-portfolio-registry: copied ${controlPlaneSource} → ${controlPlaneTarget}`,
+);

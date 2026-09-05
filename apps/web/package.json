@@ -34,6 +34,7 @@
     "linear": "node scripts/linear-update.mjs",
     "mobile-voice:approve-board-packet": "tsx scripts/mobile-voice-approve-board-packet.ts",
     "mobile-voice:terminal-exchange": "tsx scripts/mobile-voice-terminal-exchange.ts",
+    "portfolio:drift:preflight": "tsx scripts/portfolio-drift-preflight.ts",
     "nexus:semantic-backfill": "tsx scripts/nexus-semantic-backfill.ts",
     "test:nexus-semantic-sql": "bash scripts/verify-nexus-semantic-sql.sh",
     "test:e2e": "playwright test",

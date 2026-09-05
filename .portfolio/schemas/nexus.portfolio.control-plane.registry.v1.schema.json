@@ -1,0 +1,182 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nexus.portfolio.control-plane.registry.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "registryId",
+    "registryVersion",
+    "issuedAt",
+    "controlPlaneAttestationKeyRef",
+    "precedence",
+    "freshness",
+    "modelCapabilities",
+    "repositories",
+    "devices"
+  ],
+  "properties": {
+    "schema": { "const": "nexus.portfolio.control-plane.registry.v1" },
+    "registryId": { "type": "string", "minLength": 1 },
+    "registryVersion": { "type": "string", "minLength": 1 },
+    "issuedAt": { "type": "string", "format": "date-time" },
+    "controlPlaneAttestationKeyRef": {
+      "const": "NEXUS_CONTROL_PLANE_ATTESTATION_KEY"
+    },
+    "precedence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["authority", "scope", "rule"],
+      "properties": {
+        "authority": { "const": ".portfolio/CONTROL-PLANE.v1.json" },
+        "scope": { "type": "string", "minLength": 1 },
+        "rule": { "type": "string", "minLength": 1 }
+      }
+    },
+    "freshness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fetchFreshForMs",
+        "evidenceFreshForMs",
+        "heartbeatFreshForMs",
+        "heartbeatStaleAfterMs",
+        "leaseMaximumMs"
+      ],
+      "properties": {
+        "fetchFreshForMs": { "type": "integer", "minimum": 1 },
+        "evidenceFreshForMs": { "type": "integer", "minimum": 1 },
+        "heartbeatFreshForMs": { "type": "integer", "minimum": 1 },
+        "heartbeatStaleAfterMs": { "type": "integer", "minimum": 1 },
+        "leaseMaximumMs": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "modelCapabilities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "capabilityId",
+          "provider",
+          "officialName",
+          "modelId",
+          "officialSource",
+          "state",
+          "effectiveRuntimeProbe",
+          "entitlement",
+          "cost",
+          "quota"
+        ],
+        "properties": {
+          "capabilityId": { "type": "string", "minLength": 1 },
+          "provider": { "type": "string", "minLength": 1 },
+          "officialName": { "type": "string", "minLength": 1 },
+          "modelId": { "type": "string", "minLength": 1 },
+          "officialSource": { "type": "string", "format": "uri" },
+          "state": { "const": "unverified" },
+          "effectiveRuntimeProbe": { "type": "null" },
+          "entitlement": { "const": "unverified" },
+          "cost": { "const": "unverified" },
+          "quota": { "const": "unverified" }
+        }
+      }
+    },
+    "repositories": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "projectId",
+          "repositoryId",
+          "defaultBranch",
+          "controlPlaneRole",
+          "allowedWorktreeRoles",
+          "allowedEvidenceSources"
+        ],
+        "properties": {
+          "projectId": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+          "repositoryId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+          },
+          "defaultBranch": { "type": "string", "minLength": 1 },
+          "controlPlaneRole": {
+            "enum": [
+              "mission_control",
+              "delivery_runtime",
+              "portfolio_product",
+              "client_product"
+            ]
+          },
+          "allowedWorktreeRoles": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": ["canonical_root", "isolated_worktree", "audit_clone"]
+            }
+          },
+          "allowedEvidenceSources": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "local_git_readback",
+                "signed_device_attestation",
+                "independent_exact_sha_review"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "devices": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "deviceId",
+          "label",
+          "platform",
+          "attestationKeyRef",
+          "allowedHarnesses",
+          "heartbeatAdapters"
+        ],
+        "properties": {
+          "deviceId": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+          "label": { "type": "string", "minLength": 1 },
+          "platform": { "enum": ["darwin", "windows", "linux"] },
+          "attestationKeyRef": {
+            "type": "string",
+            "pattern": "^NEXUS_DEVICE_ATTESTATION_KEY_[A-Z0-9_]+$"
+          },
+          "allowedHarnesses": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "heartbeatAdapters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["adapterId", "state", "evidenceScope"],
+              "properties": {
+                "adapterId": { "type": "string", "minLength": 1 },
+                "state": { "const": "unverified" },
+                "evidenceScope": { "const": "diagnostic_only" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

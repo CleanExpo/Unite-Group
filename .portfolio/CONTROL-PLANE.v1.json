@@ -1,0 +1,223 @@
+{
+  "schema": "nexus.portfolio.control-plane.registry.v1",
+  "registryId": "unite-group-portfolio-control-plane",
+  "registryVersion": "2026-09-06.1",
+  "issuedAt": "2026-09-06T06:00:00+10:00",
+  "controlPlaneAttestationKeyRef": "NEXUS_CONTROL_PLANE_ATTESTATION_KEY",
+  "precedence": {
+    "authority": ".portfolio/CONTROL-PLANE.v1.json",
+    "scope": "repository identity, worktree roles, evidence admission and device identity only",
+    "rule": "SOURCE-OF-TRUTH.md governs product identity. This registry governs control-plane evidence. PORTFOLIO.yaml is a legacy product catalogue and cannot override either source."
+  },
+  "freshness": {
+    "fetchFreshForMs": 900000,
+    "evidenceFreshForMs": 900000,
+    "heartbeatFreshForMs": 60000,
+    "heartbeatStaleAfterMs": 300000,
+    "leaseMaximumMs": 900000
+  },
+  "modelCapabilities": [
+    {
+      "capabilityId": "openai-gpt-6-astra",
+      "provider": "openai",
+      "officialName": "GPT-6 Astra",
+      "modelId": "gpt-6-astra",
+      "officialSource": "https://developers.openai.com/api/docs/models/gpt-6-astra",
+      "state": "unverified",
+      "effectiveRuntimeProbe": null,
+      "entitlement": "unverified",
+      "cost": "unverified",
+      "quota": "unverified"
+    },
+    {
+      "capabilityId": "anthropic-claude-fable-5-1",
+      "provider": "anthropic",
+      "officialName": "Claude Fable 5.1",
+      "modelId": "claude-fable-5-1",
+      "officialSource": "https://platform.claude.com/docs/en/models/fable-5-1/overview",
+      "state": "unverified",
+      "effectiveRuntimeProbe": null,
+      "entitlement": "unverified",
+      "cost": "unverified",
+      "quota": "unverified"
+    }
+  ],
+  "repositories": [
+    {
+      "projectId": "unite-group",
+      "repositoryId": "CleanExpo/Unite-Group",
+      "defaultBranch": "main",
+      "controlPlaneRole": "mission_control",
+      "allowedWorktreeRoles": [
+        "canonical_root",
+        "isolated_worktree",
+        "audit_clone"
+      ],
+      "allowedEvidenceSources": [
+        "local_git_readback",
+        "signed_device_attestation",
+        "independent_exact_sha_review"
+      ]
+    },
+    {
+      "projectId": "synthex",
+      "repositoryId": "CleanExpo/Synthex",
+      "defaultBranch": "main",
+      "controlPlaneRole": "portfolio_product",
+      "allowedWorktreeRoles": [
+        "canonical_root",
+        "isolated_worktree",
+        "audit_clone"
+      ],
+      "allowedEvidenceSources": [
+        "local_git_readback",
+        "signed_device_attestation",
+        "independent_exact_sha_review"
+      ]
+    },
+    {
+      "projectId": "restoreassist",
+      "repositoryId": "CleanExpo/RestoreAssist",
+      "defaultBranch": "main",
+      "controlPlaneRole": "portfolio_product",
+      "allowedWorktreeRoles": [
+        "canonical_root",
+        "isolated_worktree",
+        "audit_clone"
+      ],
+      "allowedEvidenceSources": [
+        "local_git_readback",
+        "signed_device_attestation",
+        "independent_exact_sha_review"
+      ]
+    },
+    {
+      "projectId": "disaster-recovery",
+      "repositoryId": "CleanExpo/Disaster-Recovery",
+      "defaultBranch": "main",
+      "controlPlaneRole": "portfolio_product",
+      "allowedWorktreeRoles": [
+        "canonical_root",
+        "isolated_worktree",
+        "audit_clone"
+      ],
+      "allowedEvidenceSources": [
+        "local_git_readback",
+        "signed_device_attestation",
+        "independent_exact_sha_review"
+      ]
+    },
+    {
+      "projectId": "dr-nrpg",
+      "repositoryId": "CleanExpo/DR-NRPG",
+      "defaultBranch": "main",
+      "controlPlaneRole": "portfolio_product",
+      "allowedWorktreeRoles": [
+        "canonical_root",
+        "isolated_worktree",
+        "audit_clone"
+      ],
+      "allowedEvidenceSources": [
+        "local_git_readback",
+        "signed_device_attestation",
+        "independent_exact_sha_review"
+      ]
+    },
+    {
+      "projectId": "ato",
+      "repositoryId": "CleanExpo/ATO",
+      "defaultBranch": "main",
+      "controlPlaneRole": "portfolio_product",
+      "allowedWorktreeRoles": [
+        "canonical_root",
+        "isolated_worktree",
+        "audit_clone"
+      ],
+      "allowedEvidenceSources": [
+        "local_git_readback",
+        "signed_device_attestation",
+        "independent_exact_sha_review"
+      ]
+    },
+    {
+      "projectId": "pi-dev-ops",
+      "repositoryId": "CleanExpo/Pi-Dev-Ops",
+      "defaultBranch": "main",
+      "controlPlaneRole": "delivery_runtime",
+      "allowedWorktreeRoles": [
+        "canonical_root",
+        "isolated_worktree",
+        "audit_clone"
+      ],
+      "allowedEvidenceSources": [
+        "local_git_readback",
+        "signed_device_attestation",
+        "independent_exact_sha_review"
+      ]
+    },
+    {
+      "projectId": "carsi",
+      "repositoryId": "CleanExpo/CARSI",
+      "defaultBranch": "main",
+      "controlPlaneRole": "portfolio_product",
+      "allowedWorktreeRoles": [
+        "canonical_root",
+        "isolated_worktree",
+        "audit_clone"
+      ],
+      "allowedEvidenceSources": [
+        "local_git_readback",
+        "signed_device_attestation",
+        "independent_exact_sha_review"
+      ]
+    },
+    {
+      "projectId": "ccw-crm",
+      "repositoryId": "CleanExpo/CCW-CRM",
+      "defaultBranch": "main",
+      "controlPlaneRole": "client_product",
+      "allowedWorktreeRoles": [
+        "canonical_root",
+        "isolated_worktree",
+        "audit_clone"
+      ],
+      "allowedEvidenceSources": [
+        "local_git_readback",
+        "signed_device_attestation",
+        "independent_exact_sha_review"
+      ]
+    }
+  ],
+  "devices": [
+    {
+      "deviceId": "macbook",
+      "label": "MacBook",
+      "platform": "darwin",
+      "attestationKeyRef": "NEXUS_DEVICE_ATTESTATION_KEY_MACBOOK",
+      "allowedHarnesses": ["codex", "claude-code", "hermes"],
+      "heartbeatAdapters": []
+    },
+    {
+      "deviceId": "mac-mini",
+      "label": "Mac Mini",
+      "platform": "darwin",
+      "attestationKeyRef": "NEXUS_DEVICE_ATTESTATION_KEY_MAC_MINI",
+      "allowedHarnesses": ["codex", "claude-code", "hermes"],
+      "heartbeatAdapters": [
+        {
+          "adapterId": "pi-dev-ops-mesh-heartbeat",
+          "state": "unverified",
+          "evidenceScope": "diagnostic_only"
+        }
+      ]
+    },
+    {
+      "deviceId": "pc",
+      "label": "PC",
+      "platform": "windows",
+      "attestationKeyRef": "NEXUS_DEVICE_ATTESTATION_KEY_PC",
+      "allowedHarnesses": ["claude-code", "gemini-cli", "hermes", "qwen-cli"],
+      "heartbeatAdapters": []
+    }
+  ]
+}
