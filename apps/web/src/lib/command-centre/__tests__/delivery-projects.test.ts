@@ -8,14 +8,11 @@ import {
 } from "../delivery-projects";
 
 describe("delivery project identity against the checked-in portfolio", () => {
-  it.each([
-    "data/command-centre/portfolio.yaml",
-    "../../.portfolio/PORTFOLIO.yaml",
-  ])(
-    "resolves current and historical founder input using %s without changing inventory",
-    (source) => {
+  it(
+    "resolves current and historical founder input using the checked-in portfolio without changing inventory",
+    () => {
       const inventory = mapPortfolioYamlToProjects(
-        readFileSync(resolve(source), "utf8"),
+        readFileSync(resolve("../../.portfolio/PORTFOLIO.yaml"), "utf8"),
       );
       const before = structuredClone(inventory);
       const actual = inventory.find(
@@ -55,7 +52,7 @@ describe("delivery project identity against the checked-in portfolio", () => {
 
   it("refuses multiple nonretired canonical-repository candidates", () => {
     const inventory = mapPortfolioYamlToProjects(
-      readFileSync(resolve("data/command-centre/portfolio.yaml"), "utf8"),
+      readFileSync(resolve("../../.portfolio/PORTFOLIO.yaml"), "utf8"),
     );
     const active = inventory.find(
       (project) =>

@@ -352,12 +352,12 @@ describe("durable Margot preparation and build consent", () => {
     },
   );
   it.each(["Unite-Group", "Unite Group"])(
-    "prepares canonical %s input against the actual bundled registry",
+    "prepares canonical %s input against the checked-in portfolio",
     async (projectKey) => {
       const h = harness();
       vi.mocked(h.deps.getProjects).mockResolvedValue(
         mapPortfolioYamlToProjects(
-          readFileSync(resolve("data/command-centre/portfolio.yaml"), "utf8"),
+          readFileSync(resolve("../../.portfolio/PORTFOLIO.yaml"), "utf8"),
         ),
       );
       await prepareDeliveryMission(founder, { ...initial, projectKey }, h.deps);
