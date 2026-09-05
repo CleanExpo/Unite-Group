@@ -1,0 +1,46 @@
+{
+  "schema": "done/1",
+  "work_id": "w_d81487fed451",
+  "version": 1,
+  "supersedes": null,
+  "goal": "Mission Control Day 1: after one founder login at /founder/command-centre, the deck home shows (1) a Blocked-on-me tile listing every open FOUNDER-QUEUE.md row with its computed age, oldest on top; (2) a Projects-by-stage board with one row per Linear team carrying exactly one of Planning/Research/Develop/Production/Done plus the next issue; (3) a Builds button linking to Pi-Dev-Ops; and node scripts/stage.mjs prints the same stage table in the CLI. Every read shows checkedAt and renders unavailable instead of a fallback when its source fails.",
+  "created_at_utc": "2026-09-02T16:01:55Z",
+  "identity_key": "feat/mission-control-day1@/Users/phillmcgurk/Unite-Group/.git",
+  "baseline_observed": {
+    "head": "17ca0168a72489f8373b7df106bfc5bd40ac4e60",
+    "branch": "feat/mission-control-day1",
+    "dirty_count": 17
+  },
+  "criteria": [
+    {
+      "id": "C1",
+      "text": "Founder-queue reader: parses the live ledger fail-closed, ages rows oldest-first, and matches scripts/founder-queue.mjs on the live file (parity).",
+      "recipe": "cd apps/web && export PATH=\"$HOME/.nvm/versions/node/v24.14.1/bin:$PATH\" && pnpm vitest run src/lib/command-centre/__tests__/founder-queue.test.ts"
+    },
+    {
+      "id": "C2",
+      "text": "Stage rules: every Linear state name maps to one of the five words, the furthest-along stage wins, pagination caps are reported, one failing team fails the read, and the CLI rules agree with the deck rules (parity).",
+      "recipe": "cd apps/web && export PATH=\"$HOME/.nvm/versions/node/v24.14.1/bin:$PATH\" && pnpm vitest run src/lib/command-centre/__tests__/project-stages.test.ts"
+    },
+    {
+      "id": "C3",
+      "text": "Deck tiles: Blocked-on-me renders the oldest row first with its age and a checked-at stamp, renders no rows when the ledger is unreadable; Stage board reports not_configured without a key. Source contracts hold (server components, no secrets, no fetch in the tile).",
+      "recipe": "cd apps/web && export PATH=\"$HOME/.nvm/versions/node/v24.14.1/bin:$PATH\" && pnpm vitest run 'src/app/(founder)/founder/command-centre/BlockedOnMeTile.test.ts' 'src/app/(founder)/founder/command-centre/BlockedOnMeTile.render.test.tsx' 'src/app/(founder)/founder/command-centre/StageBoardTile.test.ts'"
+    },
+    {
+      "id": "C4",
+      "text": "The CLI prints one row per Linear team, each with exactly one of the five words, against live Linear.",
+      "recipe": "export PATH=\"$HOME/.nvm/versions/node/v24.14.1/bin:$PATH\" && node scripts/stage.mjs --json > /tmp/stage.json && node -e 'const r=require(\"/tmp/stage.json\"); const w=new Set([\"Planning\",\"Research\",\"Develop\",\"Production\",\"Done\"]); if(r.ok!==true||r.teams.length<1) process.exit(1); for(const t of r.teams){ if(!w.has(t.stage)) process.exit(2) } console.log(r.teams.length+\" teams, all words valid\")'"
+    },
+    {
+      "id": "C5",
+      "text": "apps/web type-checks and the changed files lint clean; prebuild copies FOUNDER-QUEUE.md in-tree so the tile can read it on Vercel.",
+      "recipe": "cd apps/web && export PATH=\"$HOME/.nvm/versions/node/v24.14.1/bin:$PATH\" && pnpm type-check && pnpm exec eslint src/lib/command-centre/founder-queue.ts src/lib/command-centre/project-stages.ts 'src/app/(founder)/founder/command-centre/BlockedOnMeTile.tsx' 'src/app/(founder)/founder/command-centre/StageBoardTile.tsx' 'src/app/(founder)/founder/command-centre/page.tsx' && node scripts/sync-founder-queue.mjs && test -s data/command-centre/founder-queue.md"
+    },
+    {
+      "id": "C6",
+      "text": "The deck home wires both tiles and the Builds link: page.tsx loads BlockedOnMe and StageBoard data and renders the builds-link test id pointing at Pi-Dev-Ops.",
+      "recipe": "grep -q 'loadBlockedOnMeData()' 'apps/web/src/app/(founder)/founder/command-centre/page.tsx' && grep -q 'loadStageBoardData()' 'apps/web/src/app/(founder)/founder/command-centre/page.tsx' && grep -q 'data-testid=\"builds-link\"' 'apps/web/src/app/(founder)/founder/command-centre/page.tsx' && grep -q 'pi-dev-ops.vercel.app/builds' 'apps/web/src/app/(founder)/founder/command-centre/page.tsx'"
+    }
+  ]
+}

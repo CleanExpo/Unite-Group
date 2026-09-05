@@ -9,7 +9,7 @@ const nextConfig = {
   // import), so force it into the lambda bundle for every surface that calls
   // getProjects(). Without this the read ENOENTs in production.
   outputFileTracingIncludes: {
-    '/founder/command-centre': ['./data/command-centre/portfolio.yaml'],
+    '/founder/command-centre': ['./data/command-centre/portfolio.yaml', './data/command-centre/founder-queue.md'],
     '/api/command-centre/**': ['./data/command-centre/portfolio.yaml'],
   },
 

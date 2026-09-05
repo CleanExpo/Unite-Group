@@ -1,0 +1,69 @@
+{
+  "schema": "done/1",
+  "criterion_evidence": "PROVEN",
+  "verification_status": "PASS",
+  "delivery_status": "NOT_STARTED",
+  "verified_head": "917223fa2bcc86b0b3a51f822b72de7993b21087",
+  "updated_at_utc": "2026-09-02T17:31:10Z",
+  "last_verify": {
+    "head": "917223fa2bcc86b0b3a51f822b72de7993b21087",
+    "at_utc": "2026-09-02T17:31:10Z",
+    "matrix": [
+      {
+        "id": "C1",
+        "required": true,
+        "evidence": "PROVEN",
+        "recipe": "cd apps/web && export PATH=\"$HOME/.nvm/versions/node/v24.14.1/bin:$HOME/.local/bin:$PATH\" && pnpm vitest run src/lib/command-centre/__tests__/founder-queue.test.ts",
+        "exit_code": 0,
+        "output_digest": "86cb39232d697e8d592e852b8768dd8c304e28c8b51538ff92ede9f0a5f9c81f",
+        "output_tail": "remove the plugin and set resolve.tsconfigPaths: true in your Vite config instead.\n\n RUN  v3.2.7 /Users/phillmcgurk/Unite-Group/apps/web\n\n ✓ |node| src/lib/command-centre/__tests__/founder-queue.test.ts (16 tests) 12ms\n\n Test Files  1 passed (1)\n      Tests  16 passed (16)\n   Start at  03:31:01\n   Duration  272ms (transform 23ms, setup 76ms, collect 23ms, tests 12ms, environment 0ms, prepare 30ms)"
+      },
+      {
+        "id": "C2",
+        "required": true,
+        "evidence": "PROVEN",
+        "recipe": "cd apps/web && export PATH=\"$HOME/.nvm/versions/node/v24.14.1/bin:$HOME/.local/bin:$PATH\" && pnpm vitest run src/lib/command-centre/__tests__/project-stages.test.ts",
+        "exit_code": 0,
+        "output_digest": "bb4538a6c9504106c760ff5906b5d516b4a1a5bb8484c8290d93db96a21ba94f",
+        "output_tail": "emove the plugin and set resolve.tsconfigPaths: true in your Vite config instead.\n\n RUN  v3.2.7 /Users/phillmcgurk/Unite-Group/apps/web\n\n ✓ |node| src/lib/command-centre/__tests__/project-stages.test.ts (32 tests) 17ms\n\n Test Files  1 passed (1)\n      Tests  32 passed (32)\n   Start at  03:31:01\n   Duration  235ms (transform 27ms, setup 38ms, collect 24ms, tests 17ms, environment 0ms, prepare 32ms)"
+      },
+      {
+        "id": "C3",
+        "required": true,
+        "evidence": "PROVEN",
+        "recipe": "cd apps/web && export PATH=\"$HOME/.nvm/versions/node/v24.14.1/bin:$HOME/.local/bin:$PATH\" && pnpm vitest run 'src/app/(founder)/founder/command-centre/BlockedOnMeTile.test.ts' 'src/app/(founder)/founder/command-centre/BlockedOnMeTile.render.test.tsx' 'src/app/(founder)/founder/command-centre/StageBoardTile.test.ts'",
+        "exit_code": 0,
+        "output_digest": "227b084164cd223fe8308018a71b30a7d680e549b52467bfbec39d94dbbd91c9",
+        "output_tail": "ile.test.ts (5 tests) 2ms\n ✓ |node| src/app/(founder)/founder/command-centre/BlockedOnMeTile.test.ts (5 tests) 3ms\n ✓ |jsdom| src/app/(founder)/founder/command-centre/BlockedOnMeTile.render.test.tsx (3 tests) 32ms\n\n Test Files  3 passed (3)\n      Tests  13 passed (13)\n   Start at  03:31:02\n   Duration  666ms (transform 65ms, setup 134ms, collect 109ms, tests 37ms, environment 382ms, prepare 113ms)"
+      },
+      {
+        "id": "C4",
+        "required": true,
+        "evidence": "PROVEN",
+        "recipe": "export PATH=\"$HOME/.nvm/versions/node/v24.14.1/bin:$HOME/.local/bin:$PATH\" && node scripts/stage.mjs --json > /tmp/stage.json && node -e 'const r=require(\"/tmp/stage.json\"); const w=new Set([\"Planning\",\"Research\",\"Develop\",\"Production\",\"Done\"]); if(r.ok!==true||r.teams.length<1) process.exit(1); for(const t of r.teams){ if(!w.has(t.stage)) process.exit(2) } console.log(r.teams.length+\" teams, all words valid\")'",
+        "exit_code": 0,
+        "output_digest": "870fc0d7db2d256e08a34139395f96d1abe7f41458d36c98892c3e195cca57cc",
+        "output_tail": "5 teams, all words valid"
+      },
+      {
+        "id": "C5",
+        "required": true,
+        "evidence": "PROVEN",
+        "recipe": "cd apps/web && export PATH=\"$HOME/.nvm/versions/node/v24.14.1/bin:$HOME/.local/bin:$PATH\" && pnpm type-check && pnpm exec eslint src/lib/command-centre/founder-queue.ts src/lib/command-centre/project-stages.ts 'src/app/(founder)/founder/command-centre/BlockedOnMeTile.tsx' 'src/app/(founder)/founder/command-centre/StageBoardTile.tsx' 'src/app/(founder)/founder/command-centre/page.tsx' && node scripts/sync-founder-queue.mjs && test -s data/command-centre/founder-queue.md",
+        "exit_code": 0,
+        "output_digest": "51e34a2eb3e5d130a4e8f5b81949e23549a1f995b370bf9313f85e14ac9f239f",
+        "output_tail": "> unite-group@1.0.0 type-check /Users/phillmcgurk/Unite-Group/apps/web\n> tsc --noEmit\n\n✓ sync-founder-queue: copied /Users/phillmcgurk/Unite-Group/FOUNDER-QUEUE.md → /Users/phillmcgurk/Unite-Group/apps/web/data/command-centre/founder-queue.md"
+      },
+      {
+        "id": "C6",
+        "required": true,
+        "evidence": "PROVEN",
+        "recipe": "grep -q 'loadBlockedOnMeData()' 'apps/web/src/app/(founder)/founder/command-centre/page.tsx' && grep -q 'loadStageBoardData()' 'apps/web/src/app/(founder)/founder/command-centre/page.tsx' && grep -q 'data-testid=\"builds-link\"' 'apps/web/src/app/(founder)/founder/command-centre/page.tsx' && grep -q 'pi-dev-ops.vercel.app/builds' 'apps/web/src/app/(founder)/founder/command-centre/page.tsx'",
+        "exit_code": 0,
+        "output_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "output_tail": ""
+      }
+    ],
+    "blockers": []
+  }
+}
