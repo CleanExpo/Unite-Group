@@ -43,6 +43,7 @@ function boardVerdictOf(task: QueueTask): string | null {
 }
 
 type Decision = 'approve' | 'defer' | 'reject'
+type GovernedIntent = 'redirect' | 'merge' | 'deploy'
 
 type GateState = 'pass' | 'fail' | 'skip' | 'pending'
 interface ValidationSummary {
@@ -115,6 +116,8 @@ export function QueueBoard() {
   const [sessOpen, setSessOpen] = useState<string | null>(null)
   const [sessData, setSessData] = useState<Record<string, SessionCell>>({})
   const [sessBusy, setSessBusy] = useState(false)
+  const [redirecting, setRedirecting] = useState<string | null>(null)
+  const [redirectNote, setRedirectNote] = useState('')
   // Realtime state is three-valued so the cold path is honest: 'connecting'
   // until the subscription resolves, never a false 'Offline' while the first
   // handshake is still in flight (UNI-2378 E2E finding 5).
@@ -192,6 +195,53 @@ export function QueueBoard() {
       await loadQueue()
     } catch {
       setError(`Network error — could not ${decision} the task.`)
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  async function recordIntent(taskId: string, intent: GovernedIntent) {
+    if (busyId) return
+    if (intent === 'redirect' && !redirectNote.trim()) {
+      setError('Add the new direction before requesting a redirect.')
+      return
+    }
+    setBusyId(taskId)
+    setError(null)
+    const note = intent === 'redirect'
+      ? `Founder redirect requested: ${redirectNote.trim()}`
+      : `Founder requests ${intent} approval. DORMANT INTENT ONLY — exact-version evidence and passing checks are required before any ${intent} action.`
+    try {
+      // `edit` records the request in cc_approvals without promoting the task.
+      // This UI has no merge or deploy execution path.
+      const res = await fetch(`/api/command-centre/queue/${taskId}/approve`, {
+        method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ decision: 'edit', note }),
+      })
+      if (!res.ok) return setError(await readError(res, `Could not record ${intent} request`))
+      setRedirecting(null)
+      setRedirectNote('')
+      await loadQueue()
+    } catch {
+      setError(`Network error — could not record the ${intent} request.`)
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  async function retryTask(taskId: string) {
+    if (busyId) return
+    setBusyId(taskId)
+    try {
+      // Existing legal edge: failed → proposed. Approval is required again.
+      const res = await fetch(`/api/command-centre/queue/${taskId}`, {
+        method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'proposed' }),
+      })
+      if (!res.ok) return setError(await readError(res, 'Could not retry task'))
+      await loadQueue()
+    } catch {
+      setError('Network error — could not retry the task.')
     } finally {
       setBusyId(null)
     }
@@ -300,6 +350,29 @@ export function QueueBoard() {
       await loadSessions(taskId)
     } catch {
       setSessData((d) => ({ ...d, [taskId]: { ...d[taskId], error: `Network error — could not ${action} session.` } }))
+    } finally {
+      setSessBusy(false)
+    }
+  }
+
+  async function pauseRunningSession(taskId: string) {
+    if (sessBusy) return
+    setSessBusy(true)
+    try {
+      const read = await fetch(`/api/command-centre/sessions?taskId=${encodeURIComponent(taskId)}`, { credentials: 'include' })
+      if (!read.ok) return setError(await readError(read, 'Could not locate the active session'))
+      const active = ((await read.json()) as { sessions?: ExecutionSession[] }).sessions?.find((s) => s.status === 'running')
+      if (!active) return setError('No running session was found. Refresh and check the task state.')
+      const res = await fetch(`/api/command-centre/sessions/${active.id}`, {
+        method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'pause' }),
+      })
+      if (!res.ok) return setError(await readError(res, 'Could not pause session'))
+      setSessOpen(taskId)
+      await loadSessions(taskId)
+      await loadQueue()
+    } catch {
+      setError('Network error — could not pause the active session.')
     } finally {
       setSessBusy(false)
     }
@@ -468,6 +541,26 @@ export function QueueBoard() {
                     onAction={(sid, a) => void sessionAction(task.id, sid, a)}
                   />
                 )}
+                <section className={styles.mobileControls} aria-label={`Mobile controls for ${task.title}`}>
+                  <strong>Founder controls</strong>
+                  <span>Requests are logged. Release actions stay gated.</span>
+                  <div className={styles.mobileControlGrid}>
+                    {task.status === 'queued' && <button className={`${styles.action} ${styles.approve}`} disabled={sessBusy || staleRead} onClick={() => void startSession(task.id)}>Start</button>}
+                    {task.status === 'running' && <button className={styles.valToggle} disabled={sessBusy || staleRead} onClick={() => void pauseRunningSession(task.id)}>Pause</button>}
+                    {task.status === 'failed' && <button className={styles.valToggle} disabled={busyId !== null || staleRead} onClick={() => void retryTask(task.id)}>Retry</button>}
+                    {ACTIONABLE.has(task.status) && <button className={`${styles.action} ${styles.approve}`} disabled={busyId !== null || staleRead} onClick={() => void decide(task.id, 'approve')}>Approve</button>}
+                    {ACTIONABLE.has(task.status) && <button className={`${styles.action} ${styles.reject}`} disabled={busyId !== null || staleRead} onClick={() => void decide(task.id, 'reject')}>Reject</button>}
+                    <button className={styles.valToggle} disabled={busyId !== null || staleRead} onClick={() => setRedirecting(redirecting === task.id ? null : task.id)}>Redirect</button>
+                    <button className={styles.releaseRequest} disabled={busyId !== null || staleRead} onClick={() => void recordIntent(task.id, 'merge')}>Request merge approval</button>
+                    <button className={styles.releaseRequest} disabled={busyId !== null || staleRead} onClick={() => void recordIntent(task.id, 'deploy')}>Request deploy approval</button>
+                  </div>
+                  {redirecting === task.id && <div className={styles.redirectForm}>
+                    <label htmlFor={`redirect-${task.id}`}>New direction</label>
+                    <textarea id={`redirect-${task.id}`} value={redirectNote} onChange={(e) => setRedirectNote(e.target.value)} placeholder="What should change, and why?" />
+                    <button className={styles.valToggle} disabled={busyId !== null || staleRead} onClick={() => void recordIntent(task.id, 'redirect')}>Record redirect request</button>
+                  </div>}
+                  <p className={styles.releaseWarning}>Merge and deploy requests do not execute. Exact-version evidence, passing checks and a separate governed release step are still required.</p>
+                </section>
               </li>
             ))}
           </ul>
@@ -585,7 +678,7 @@ function SessionsView({
         </div>
       )}
       {canStart && (
-        <button type="button" className={`${styles.action} ${styles.approve}`} disabled={busy} onClick={onStart}>
+        <button type="button" className={`${styles.action} ${styles.approve} ${styles.desktopSessionStart}`} disabled={busy} onClick={onStart}>
           Start session
         </button>
       )}
