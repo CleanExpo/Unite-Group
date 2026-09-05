@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Unite-Group · Pixel Office concept</title>
+<style>
+:root{--paper:#f1f5f4;--white:#fff;--ink:#233f46;--muted:#5d7277;--line:#d6e1de;--green:#0c766e;--blue:#287f98;--plum:#90638c;--amber:#925913;--soft-green:#e0f0eb;--soft-blue:#e5f1f5;--soft-plum:#efe7f0}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,sans-serif}button,input,textarea,select{font:inherit;color:inherit}button,select{cursor:pointer}button{border:1px solid var(--line);background:var(--white)}button:hover{border-color:var(--green)}button:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:3px solid var(--blue);outline-offset:4px}h1,h2,h3,p{margin:0}h1,h2,h3{font-family:"Trebuchet MS","Segoe UI",sans-serif}h1{font-size:38px;line-height:1.15;letter-spacing:-1.4px}h2{font-size:19px}h3{font-size:16px}small,.small{font-size:12px}a{color:var(--green)}[hidden]{display:none!important}
+.masthead{border-bottom:1px solid var(--line);background:#fff;display:flex;align-items:center;justify-content:space-between;padding:17px 30px;gap:16px}.brand{display:flex;align-items:center;gap:12px;font-weight:700;letter-spacing:.5px}.brand-mark{width:32px;height:32px;display:grid;grid-template-columns:repeat(3,8px);gap:3px}.brand-mark i{background:var(--green)}.brand-mark i:nth-child(3),.brand-mark i:nth-child(7){background:#b6d5c7}.brand small{display:block;color:var(--muted);font-weight:500;letter-spacing:1.3px;font-size:10px}.sample-notice{padding:7px 12px;background:var(--soft-blue);border-left:3px solid var(--blue);font-size:12px;max-width:450px}.sample-notice strong{display:block}
+main{max-width:1510px;margin:auto;padding:30px}.intro{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:25px}.intro p{color:var(--muted);margin-top:9px}.filters{display:flex;gap:12px}.filter label{display:block;font-size:11px;font-weight:700;margin-bottom:5px;letter-spacing:.6px;text-transform:uppercase}.filter select{max-width:240px;width:100%;min-height:41px;padding:8px 30px 8px 10px;border:1px solid var(--line);background:white;border-radius:5px}.workspace{display:grid;grid-template-columns:214px minmax(380px,1fr) 285px;gap:22px;align-items:start}.eyebrow{font-size:10px;text-transform:uppercase;font-weight:700;letter-spacing:1.6px;color:var(--muted)}.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px}.count{background:#e4ebe8;border-radius:50%;min-width:25px;text-align:center;font-size:12px;line-height:25px}.decisions{padding-top:8px}.decision{display:block;text-align:left;padding:16px;width:100%;border-left:3px solid var(--amber);margin-bottom:12px;border-radius:0 6px 6px 0}.decision strong{display:block;line-height:1.35;margin:7px 0}.decision p{font-size:12px;color:var(--muted)}.decision .arrow{display:block;margin-top:12px;color:var(--green);font-size:12px;font-weight:700}.priority{font-size:10px;letter-spacing:1px;font-weight:700;color:var(--amber)}.desk-note{margin-top:25px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}.desk-note strong{color:var(--ink);display:block;margin-bottom:7px}.empty{padding:18px 0;color:var(--muted);font-size:13px}
+.office-panel{border:1px solid #c8d8d2;background:#e4eeea;border-radius:9px;overflow:hidden}.office-heading{padding:15px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid #c8d8d2;background:#f9fbfa}.office-heading small{color:var(--muted)}.office{position:relative;width:100%;aspect-ratio:640/480;background:#dce9e3}.floor{width:100%;height:100%;display:block;image-rendering:pixelated}.person{position:absolute;width:106px;padding:0;border:0;background:transparent;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:4px;z-index:1;border-radius:5px}.person svg{width:43px;height:58px;filter:drop-shadow(0 3px 0 #365a4125);image-rendering:pixelated;transition:transform .15s}.person:hover svg{transform:translateY(-4px)}.person .name{padding:3px 8px;background:#fff;border:1px solid #b9cdc4;border-radius:3px;font-weight:700;font-size:12px;white-space:nowrap;box-shadow:0 2px 0 #365a4114}.person[aria-pressed=true] .name{background:var(--green);color:#fff;border-color:var(--green)}.person[aria-pressed=true]:after{content:"Selected";font-size:9px;font-weight:700;letter-spacing:.6px;color:var(--green);background:#f5fff9;padding:1px 6px}.person:disabled{cursor:default;opacity:.18;filter:grayscale(1)}.person:disabled svg{transform:none}.room-label{font-size:11px;font-weight:700;letter-spacing:1.4px;fill:#446258}.office-key{padding:12px 18px;display:flex;gap:17px;flex-wrap:wrap;background:#f9fbfa;font-size:11px;color:var(--muted)}.office-key span:before{content:"";display:inline-block;width:7px;height:7px;background:var(--green);margin-right:6px}.office-key span:nth-child(2):before{background:var(--plum)}.office-key span:nth-child(3):before{background:var(--blue)}.office-key span:nth-child(4):before{background:var(--amber)}
+.ribbon{margin-top:17px;padding:16px 0;border-bottom:1px solid var(--line)}.ribbon .small{color:var(--muted);margin-top:3px}.stages{list-style:none;margin:14px 0 0;padding:0;display:flex;gap:3px}.stages li{flex:1;font-size:10px;color:var(--muted);position:relative;padding-top:13px;text-align:center}.stages li:before{content:"";height:4px;background:#d5e0db;position:absolute;top:0;left:0;right:0}.stages li[aria-current=step]{color:var(--green);font-weight:700}.stages li[aria-current=step]:before{background:var(--green)}.stages li.prior:before{background:#93beb0}.inspector{padding:20px;background:#fff;border:1px solid var(--line);border-radius:8px;min-width:0}.inspector-top{display:flex;justify-content:space-between;align-items:center;margin:12px 0 4px}.inspector h2{font-size:27px;letter-spacing:-.5px}.role{color:var(--muted);font-size:12px}.state{display:inline-block;margin:16px 0;padding:4px 8px;background:var(--soft-green);color:var(--green);font-size:11px;font-weight:700;border-radius:3px}.mission{font-size:17px;margin-bottom:15px}.meta{margin:0}.meta div{border-top:1px solid #e8edeb;padding:12px 0}.meta dt{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:700}.meta dd{margin:4px 0 0;font-size:13px;overflow-wrap:anywhere}.next-action{background:#edf5f1;border-left:3px solid var(--green);padding:13px;margin:5px 0 18px}.next-action p{font-size:13px;margin-top:5px}.evidence{font-size:12px;padding-left:17px;margin:8px 0 0;color:var(--muted)}.evidence li{margin-bottom:7px}.decision-detail{margin-top:16px;padding:12px;background:#fff5e8;border-left:3px solid var(--amber);font-size:12px}.inspector-foot{margin-top:20px;padding-top:13px;border-top:1px solid var(--line);font-size:11px;color:var(--muted)}
+.brief{margin-top:23px}.brief-head{display:flex;justify-content:space-between;align-items:baseline;gap:14px;margin-bottom:10px}.brief-head small{color:var(--muted)}textarea{width:100%;min-height:100px;border:1px solid #cbdad4;background:#fff;padding:13px;border-radius:6px;resize:vertical;line-height:1.5}label.idea-label{font-size:12px;display:block;margin-bottom:6px;font-weight:600}.chips{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0 16px}.chip{padding:7px 10px;font-size:12px;border-radius:4px}.chip[aria-pressed=true]{background:var(--soft-green);color:#075b54;border-color:#7eb5a3}.spec-preview{border-left:3px solid #93beb0;padding:2px 0 2px 13px;font-size:12px}.spec-preview p{margin:5px 0;color:var(--muted);white-space:pre-wrap;overflow-wrap:anywhere}.spec-preview ul{margin:7px 0;padding-left:19px}.spec-preview li{margin:4px 0}.brief footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:13px}.reset{padding:7px 10px;border-radius:4px;font-size:12px}.local-note{font-size:11px;color:var(--muted)}.page-foot{margin-top:35px;border-top:1px solid var(--line);padding-top:16px;display:flex;justify-content:space-between;gap:18px;color:var(--muted);font-size:12px}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media(min-width:1500px){.workspace{grid-template-columns:230px minmax(380px,1fr) 310px;gap:27px}}
+@media(max-width:1150px){main{padding:24px}.workspace{grid-template-columns:minmax(360px,1fr) 280px;gap:20px}.decisions{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:12px}.decisions .section-head,.desk-note{grid-column:1/-1}.decisions .section-head{margin-bottom:0}.decision{margin:0}.desk-note{display:none}.intro{align-items:flex-start}h1{font-size:34px}.filters{flex-direction:column;gap:8px}.filter select{max-width:none;min-width:220px}}
+@media(max-width:720px){.masthead{padding:15px 18px;align-items:flex-start;flex-direction:column;gap:12px}.sample-notice{width:100%;max-width:none}.brand{font-size:14px}main{padding:23px 18px}.intro{display:block;margin-bottom:20px}h1{font-size:34px}.intro p{font-size:13px}.filters{margin-top:20px;display:grid;grid-template-columns:1fr;gap:10px}.filter select{min-width:0;max-width:100%;width:100%}.workspace{display:flex;flex-direction:column;gap:22px}.decisions{width:100%;display:block;padding:0}.decisions .section-head{margin-bottom:12px}.decision{margin-bottom:9px;padding:12px 14px}.decision strong{margin:4px 0}.decision .arrow{margin-top:5px}.centre{display:contents}.office-panel{order:2;width:100%}.ribbon{order:3;width:100%;margin:0}.inspector{order:4;width:100%}.brief{order:5;width:100%;margin:0}.decisions{order:1}.office-heading{padding:12px}.office-heading h2{font-size:17px}.office-heading small{font-size:10px}.person{width:85px;gap:2px}.person svg{width:29px;height:40px}.person .name{font-size:10px;padding:2px 5px}.person[aria-pressed=true]:after{font-size:8px}.office-key{gap:9px;padding:10px 12px;font-size:9px}.room-label{font-size:12px}.brief-head{display:block}.brief-head small{display:block;margin-top:3px}.brief footer{align-items:flex-start}.inspector{padding:18px}.page-foot{display:block}.page-foot p+p{margin-top:8px}.stages li{font-size:9px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<header class="masthead">
+  <div class="brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span>UNITE-GROUP<small>MISSION CONTROL / OFFICE</small></span></div>
+  <div class="sample-notice" id="sample-notice"><strong>Interactive design preview</strong>Fictional missions · No agents connected · Changes stay on this page</div>
+</header>
+<main>
+<section class="intro" aria-labelledby="page-title">
+  <div><div class="eyebrow" style="margin-bottom:9px">The owner’s view</div><h1 id="page-title">Your office.</h1><p>See who owns the next step. Give your ideas a place to start.</p></div>
+  <div class="filters">
+    <div class="filter"><label for="business">Sample business</label><select id="business"><option value="all">All sample businesses</option><option value="unite">Unite-Group</option><option value="services">Service business</option></select></div>
+    <div class="filter"><label for="project">Sample project</label><select id="project"></select></div>
+  </div>
+</section>
+<div class="workspace">
+  <aside class="decisions" aria-labelledby="decisions-title">
+    <div class="section-head"><h2 id="decisions-title">Your decisions</h2><span class="count" id="decision-count">2</span></div>
+    <button class="decision" type="button" data-decision="spm"><span class="priority">SAMPLE · SCOPE</span><strong>Who is the first release for?</strong><p>SPM needs a clear audience before work is assigned.</p><span class="arrow">See the decision →</span></button>
+    <button class="decision" type="button" data-decision="reviewer"><span class="priority">SAMPLE · REVIEW</span><strong>Resolve the customer-data concern</strong><p>The Board has a question about access to customer records.</p><span class="arrow">See the concern →</span></button>
+    <p id="no-decisions" class="empty" hidden>No sample decisions for this selection.</p>
+    <div class="desk-note"><strong>The office follows the mission.</strong>Characters show ownership. The mission record supplies progress, decisions and evidence.<br><br>Walking and a finished agent turn would never count as a shipped product.</div>
+  </aside>
+  <section class="centre" aria-labelledby="office-title">
+    <div class="office-panel">
+      <div class="office-heading"><h2 id="office-title">Unite Office</h2><small>Illustrated sample team</small></div>
+      <div class="office">
+        <svg class="floor" viewBox="0 0 640 480" role="img" aria-label="Illustrated office with Briefing, Delivery, Board and Engineering departments. Select the named character buttons for details.">
+          <defs>
+            <pattern id="tiles" width="24" height="24" patternUnits="userSpaceOnUse"><rect width="24" height="24" fill="#e8dfce"/><path d="M0 24V0H24" fill="none" stroke="#d8cbb7" stroke-width="1"/></pattern>
+            <pattern id="carpet" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#d8e7df"/><rect width="2" height="2" fill="#c8dbcf"/></pattern>
+            <g id="desk"><rect x="5" y="42" width="8" height="15" fill="#8c6f4f"/><rect x="83" y="42" width="8" height="15" fill="#8c6f4f"/><rect y="14" width="96" height="31" fill="#b99165"/><rect y="10" width="96" height="29" fill="#dfc195"/><rect x="27" y="0" width="38" height="26" fill="#365558"/><rect x="31" y="4" width="30" height="17" fill="#96ccba"/><path d="M35 9h17m-17 5h10" stroke="#f3faf6" stroke-width="2"/><rect x="42" y="26" width="8" height="6" fill="#365558"/><rect x="34" y="32" width="25" height="3" fill="#8c9e95"/><rect x="74" y="23" width="8" height="10" fill="#fff7e7"/></g>
+            <g id="plant"><rect x="8" y="25" width="19" height="15" fill="#b4886c"/><rect x="5" y="23" width="25" height="6" fill="#d6b394"/><path d="M15 25V5h8v20M6 19V8h10v15M22 19V9h10v12" fill="#507e61"/><rect x="8" y="4" width="8" height="8" fill="#87aa77"/><rect x="22" width="7" height="12" fill="#679368"/></g>
+            <g id="chair"><rect x="7" y="4" width="32" height="28" fill="#6f9486"/><rect x="3" y="28" width="40" height="18" fill="#a0b8a5"/><rect x="7" y="44" width="6" height="8" fill="#58726a"/><rect x="33" y="44" width="6" height="8" fill="#58726a"/></g>
+            <g id="books"><rect width="79" height="40" fill="#a17c59"/><rect x="4" y="4" width="71" height="30" fill="#705d4d"/><path d="M10 9v22m9-22v22m10-25v25m11-21v21m10-24v24m11-20v20m9-22v22" stroke="#b7c7a4" stroke-width="6"/><rect y="36" width="79" height="6" fill="#caa87b"/></g>
+          </defs>
+          <rect x="24" y="24" width="596" height="438" fill="#bfd1c6"/>
+          <rect x="20" y="16" width="596" height="438" fill="#68897e"/>
+          <rect x="28" y="30" width="580" height="414" fill="url(#tiles)"/>
+          <rect x="42" y="46" width="252" height="177" fill="url(#carpet)"/>
+          <rect x="331" y="46" width="259" height="177" fill="#dbe8ed"/>
+          <rect x="42" y="268" width="252" height="155" fill="#e6dfe7"/>
+          <rect x="331" y="268" width="259" height="155" fill="#dbe5d7"/>
+          <path d="M310 30v165m0 99v150M28 245h227m110 0h243" stroke="#68897e" stroke-width="8"/>
+          <path d="M37 38h560" stroke="#faf6e9" stroke-width="7"/>
+          <rect x="124" y="24" width="120" height="12" fill="#bfdde2"/><rect x="410" y="24" width="120" height="12" fill="#bfdde2"/>
+          <text x="56" y="70" class="room-label">01 / BRIEFING</text><text x="345" y="70" class="room-label">02 / DELIVERY</text>
+          <text x="56" y="292" class="room-label">03 / BOARD</text><text x="345" y="292" class="room-label">04 / ENGINEERING</text>
+          <use href="#desk" x="75" y="100"/><use href="#desk" x="384" y="100"/>
+          <use href="#books" x="195" y="95"/><use href="#books" x="494" y="90"/>
+          <use href="#plant" x="248" y="173"/><use href="#plant" x="551" y="177"/>
+          <use href="#plant" x="41" y="181"/><use href="#plant" x="551" y="359"/>
+          <use href="#chair" x="65" y="320"/><use href="#chair" x="225" y="320"/>
+          <rect x="118" y="312" width="94" height="62" fill="#b59778"/><rect x="118" y="306" width="94" height="59" fill="#e2c9a3"/>
+          <rect x="134" y="322" width="24" height="16" fill="#faf9ef"/><rect x="172" y="337" width="23" height="15" fill="#faf9ef"/>
+          <use href="#desk" x="374" y="317"/><use href="#desk" x="480" y="317"/>
+          <rect x="275" y="233" width="67" height="25" fill="#f5f0e2"/><text x="308" y="249" text-anchor="middle" font-size="9" font-weight="700" fill="#507e61">UNITE</text>
+        </svg>
+        <button type="button" class="person" data-person="margot" style="left:30%;top:37%" aria-label="Margot, vision and briefing, sample agent" aria-pressed="true"></button>
+        <button type="button" class="person" data-person="spm" style="left:72%;top:37%" aria-label="SPM, delivery manager, sample agent" aria-pressed="false"></button>
+        <button type="button" class="person" data-person="reviewer" style="left:29%;top:82%" aria-label="Reviewer, Board assurance, sample agent" aria-pressed="false"></button>
+        <button type="button" class="person" data-person="engineer" style="left:70%;top:82%" aria-label="Engineer, implementation, sample agent" aria-pressed="false"></button>
+      </div>
+      <div class="office-key"><span>Briefing</span><span>Board</span><span>Delivery</span><span>Engineering</span></div>
+    </div>
+    <div class="ribbon" aria-label="Selected sample mission stage"><strong id="stage-mission" class="small"></strong><p class="small">Illustrative progress · not a live delivery record</p><ol class="stages" id="stages"></ol></div>
+    <section class="brief" aria-labelledby="brief-title">
+      <div class="brief-head"><h2 id="brief-title">Give Margot an idea</h2><small>Local brief preview</small></div>
+      <label class="idea-label" for="idea">What would you like to make possible?</label>
+      <textarea id="idea" placeholder="For example: give customers one place to request a job and see its progress."></textarea>
+      <div class="chips" aria-label="Add requirements to the sample brief">
+        <button type="button" class="chip" data-preset="mobile" aria-pressed="false">+ Works on mobile</button><button type="button" class="chip" data-preset="access" aria-pressed="false">+ Private customer access</button><button type="button" class="chip" data-preset="review" aria-pressed="false">+ Board review</button><button type="button" class="chip" data-preset="evidence" aria-pressed="false">+ Release evidence</button>
+      </div>
+      <div class="spec-preview"><strong>Requirements in this brief</strong><p id="brief-context"></p><p id="brief-idea">Your idea will appear here.</p><ul id="requirements"></ul><p id="no-requirements">Select a preset to add its requirement.</p></div>
+      <footer><span class="local-note">Nothing is submitted or saved. Reloading clears this draft.</span><button class="reset" id="reset" type="button">Clear draft</button></footer>
+    </section>
+  </section>
+  <aside class="inspector" aria-labelledby="agent-name">
+    <div class="eyebrow">Selected teammate / sample</div>
+    <div class="inspector-top"><h2 id="agent-name"></h2><span aria-hidden="true" id="agent-symbol" style="font-size:24px;color:var(--green)">✦</span></div>
+    <p class="role" id="agent-role"></p><span class="state" id="agent-state"></span>
+    <h3 class="mission" id="mission-name"></h3>
+    <dl class="meta"><div><dt>Sample project</dt><dd id="mission-project"></dd></div><div><dt>Accountable owner</dt><dd id="mission-owner"></dd></div></dl>
+    <div class="next-action"><span class="eyebrow">Next step</span><p id="next-action"></p></div>
+    <h3 style="font-size:13px">Evidence expected</h3><ul class="evidence" id="evidence"></ul>
+    <div class="decision-detail" id="decision-detail" hidden></div>
+    <p class="inspector-foot">Connection: not connected.<br>All assignments and evidence descriptions on this screen are fictional examples.</p>
+  </aside>
+</div>
+<footer class="page-foot"><p>A proposed owner layer for Pixel Agents. Original concept artwork.</p><p>Live missions, GitHub access and agent dispatch require integration.</p></footer>
+<p class="sr-only" role="status" aria-live="polite" id="announcement"></p>
+</main>
+<script>
+'use strict';
+const people={
+ margot:{name:'Margot',role:'Vision & briefing',colour:'#0c766e',hair:'#6a5343',project:'mission',business:'unite',state:'Sample · clarifying the idea',mission:'Shape the owner’s Mission Control',owner:'Margot · brief preparation',next:'Turn the owner’s idea into a clear brief with explicit requirements.',evidence:['A brief the owner can read in plain language','Requirements selected by the owner','Open questions and assumptions'],stage:0},
+ spm:{name:'SPM',role:'Delivery manager',colour:'#287f98',hair:'#3d4549',project:'mission',business:'unite',state:'Sample · needs a decision',mission:'Plan the first Mission Control release',owner:'SPM · delivery planning',next:'Confirm the audience, then propose a work plan and accountable specialists.',evidence:['An agreed audience and release scope','A reviewed specification','A recorded, accepted worker assignment'],stage:2,decision:'Sample decision: should the first release serve the internal team or customers? This preview opens the question only; it cannot approve a scope or assign workers.'},
+ reviewer:{name:'Reviewer',role:'Board assurance',colour:'#90638c',hair:'#b59978',project:'portal',business:'services',state:'Sample · review concern',mission:'Review the customer job portal',owner:'Board reviewer · access review',next:'Clarify which customer records each signed-in person may see.',evidence:['An explicit access model','Tests covering isolated customer records','A recorded Board verdict'],stage:1,decision:'Sample concern: the brief must say which records each customer may access. The owner would resolve this in the real review workflow; no approval happens here.'},
+ engineer:{name:'Engineer',role:'Implementation',colour:'#a06930',hair:'#554b49',project:'portal',business:'services',state:'Sample · implementing',mission:'Build the customer job timeline',owner:'Engineer · assigned work',next:'Complete the timeline and attach test results for review.',evidence:['A reviewable code change','Relevant passing checks','Deployment and smoke-test receipts before any shipped claim'],stage:3}
+};
+const projects={mission:{label:'Mission Control · sample',business:'unite'},portal:{label:'Customer portal · sample',business:'services'}};
+const presetText={mobile:'Support phone and desktop layouts with accessible controls.',access:'Keep customer records private to authorised users.',review:'Capture a Board review and resolve its concerns before build approval.',evidence:'Require deployment and smoke-test evidence before marking delivery complete.'};
+const stageNames=['Brief','Review','Plan','Build','Verify','Release'];
+let selected='margot';const chosen=new Set();
+const byId=id=>document.getElementById(id);
+function sprite(person){return '<svg viewBox="0 0 32 44" aria-hidden="true" shape-rendering="crispEdges"><ellipse cx="16" cy="42" rx="12" ry="2" fill="#53746633"/><path d="M7 29h7v11H7m11-11h7v11h-7" fill="#365159"/><path d="M4 18h24v15H4" fill="'+person.colour+'"/><path d="M1 21h5v11H1m25-11h5v11h-5" fill="#d9b593"/><path d="M7 5h18v16H7" fill="#e3c3a1"/><path d="M5 4h22v8h-5V8H10v4H5" fill="'+person.hair+'"/><path d="M11 13h2v3h-2m8-3h2v3h-2" fill="#233f46"/><path d="M13 19h6v2h-6" fill="#b28675"/><path d="M8 40h7v3H5v-3m13 0h9v3h-9" fill="#233f46"/></svg>'}
+function visiblePerson(person){return(byId('business').value==='all'||person.business===byId('business').value)&&(byId('project').value==='all'||person.project===byId('project').value)}
+function announce(message){byId('announcement').textContent=message}
+function selectPerson(id,decision=false){
+ if(!visiblePerson(people[id]))return;
+ selected=id;const person=people[id];
+ document.querySelectorAll('[data-person]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.person===id)));
+ const text={'agent-name':person.name,'agent-role':person.role,'agent-state':person.state,'mission-name':person.mission,'mission-project':projects[person.project].label,'mission-owner':person.owner,'next-action':person.next,'stage-mission':person.mission};
+ Object.entries(text).forEach(([key,value])=>byId(key).textContent=value);
+ byId('agent-symbol').style.color=person.colour;
+ byId('evidence').replaceChildren(...person.evidence.map(value=>{const li=document.createElement('li');li.textContent=value;return li}));
+ byId('stages').replaceChildren(...stageNames.map((name,index)=>{const li=document.createElement('li');li.textContent=name;if(index===person.stage)li.setAttribute('aria-current','step');if(index<person.stage)li.className='prior';return li}));
+ byId('decision-detail').hidden=!decision;byId('decision-detail').textContent=decision?person.decision:'';
+ announce(person.name+' selected. '+(decision?person.decision:person.next));
+}
+function refreshProjects(){const previous=byId('project').value;byId('project').replaceChildren(new Option('All sample projects','all'),...Object.entries(projects).filter(([,project])=>byId('business').value==='all'||project.business===byId('business').value).map(([id,project])=>new Option(project.label,id)));if([...byId('project').options].some(option=>option.value===previous))byId('project').value=previous;refreshFilter()}
+function refreshFilter(){
+ document.querySelectorAll('[data-person]').forEach(button=>button.disabled=!visiblePerson(people[button.dataset.person]));
+ let count=0;document.querySelectorAll('[data-decision]').forEach(button=>{button.hidden=!visiblePerson(people[button.dataset.decision]);if(!button.hidden)count++});
+ byId('decision-count').textContent=String(count);byId('no-decisions').hidden=count!==0;
+ if(!visiblePerson(people[selected]))selected=Object.keys(people).find(id=>visiblePerson(people[id]));
+ selectPerson(selected);updateBrief();
+}
+function updateBrief(){
+ const project=byId('project').value;const business=byId('business').selectedOptions[0].textContent;
+ byId('brief-context').textContent='Sample context: '+business+' / '+(project==='all'?'project not chosen':projects[project].label);
+ byId('brief-idea').textContent=byId('idea').value.trim()||'Your idea will appear here.';
+ byId('requirements').replaceChildren(...[...chosen].map(key=>{const li=document.createElement('li');li.textContent=presetText[key];return li}));byId('no-requirements').hidden=chosen.size>0;
+ document.querySelectorAll('[data-preset]').forEach(button=>button.setAttribute('aria-pressed',String(chosen.has(button.dataset.preset))));
+}
+document.querySelectorAll('[data-person]').forEach(button=>{const person=people[button.dataset.person];button.innerHTML=sprite(person)+'<span class="name">'+person.name+'</span>';button.addEventListener('click',()=>selectPerson(button.dataset.person))});
+document.querySelectorAll('[data-decision]').forEach(button=>button.addEventListener('click',()=>{selectPerson(button.dataset.decision,true);byId('agent-name').setAttribute('tabindex','-1');byId('agent-name').focus({preventScroll:false})}));
+document.querySelectorAll('[data-preset]').forEach(button=>button.addEventListener('click',()=>{const key=button.dataset.preset;chosen.has(key)?chosen.delete(key):chosen.add(key);updateBrief();announce(chosen.size+' requirements selected for the local brief.')}));
+byId('business').addEventListener('change',refreshProjects);byId('project').addEventListener('change',refreshFilter);byId('idea').addEventListener('input',updateBrief);byId('reset').addEventListener('click',()=>{byId('idea').value='';chosen.clear();updateBrief();announce('Local draft cleared.');byId('idea').focus()});refreshProjects();
+</script>
+</body>
+</html>
