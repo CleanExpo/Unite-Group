@@ -120,7 +120,8 @@ export async function generateBuildPlan(
       if (options?.strict) throw new PreparationResponseError('invalid_values')
       return fallback(idea)
     }
-    if (options?.strict && (criteria.some((c) => !c.trim()) || steps.some((s) => !s.trim()) ||
+    if (options?.strict && (title.length > 80 || criteria.length < 2 || criteria.length > 5 || steps.length < 3 || steps.length > 6 ||
+      criteria.some((c) => !c.trim()) || steps.some((s) => !s.trim()) ||
       criteria.length !== (parsed.acceptanceCriteria as unknown[]).length || steps.length !== (parsed.steps as unknown[]).length)) {
       throw new PreparationResponseError('invalid_values')
     }
