@@ -19,6 +19,8 @@ import type { CommandCentreDecision } from "../decisions";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { mapPortfolioYamlToProjects } from "../registry";
+import { classifyIdea } from "../classify-idea";
+import { resetAIClient } from "@/lib/ai/client";
 
 const founder = "b0000000-0000-4000-8000-000000000001";
 const id = "b0000000-0000-4000-8000-000000000002";
@@ -192,9 +194,41 @@ function harness() {
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.restoreAllMocks();
+  resetAIClient();
 });
 
 describe("durable Margot preparation and build consent", () => {
+  it("assigns missing AI configuration to the operator and preserves the mission for repair", async () => {
+    const h = harness();
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.stubEnv("ANTHROPIC_API_KEY", "");
+    resetAIClient();
+    vi.mocked(h.deps.classifyIdea).mockImplementationOnce(classifyIdea);
+
+    await expect(prepareDeliveryMission(founder, initial, h.deps)).rejects.toThrow(/delivery operator/);
+
+    const saved = readDeliveryMetadata(h.row)!;
+    expect(saved.error?.code).toBe("preparation_provider_configuration");
+    expect(saved.originalIdea).toBe(initial.idea);
+    expect(saved.presetIds).toEqual(["access-control", "customer-portal"]);
+    expect(saved.lease).toBeNull();
+    expect(saved.approval).toBeNull();
+    expect(h.row.status).toBe("proposed");
+    expect(h.receipts).toHaveLength(0);
+    expect(h.deps.generateBuildPlan).not.toHaveBeenCalled();
+    expect(toDeliveryMissionView(h.row).nextAction).toMatchObject({
+      kind: "connect", owner: "Delivery operator", label: "Repair Margot’s AI connection, then continue preparation",
+    });
+    expect(log).toHaveBeenCalledExactlyOnceWith("[mission-preparation]", {
+      stage: "classification", errorName: "AIConfigurationError",
+    });
+    expect(JSON.stringify([saved.error, log.mock.calls])).not.toContain("ANTHROPIC_API_KEY");
+
+    await prepareDeliveryMission(founder, { action: "resume", taskId: id, answers: {} }, h.deps);
+    expect(readDeliveryMetadata(h.row)?.error).toBeNull();
+    expect(h.row.status).toBe("proposed");
+    expect(h.receipts).toHaveLength(0);
+  });
   it("keeps classifier authentication failures actionable and logs only safe diagnostics", async () => {
     const h = harness();
     const log = vi.spyOn(console, "error").mockImplementation(() => {});

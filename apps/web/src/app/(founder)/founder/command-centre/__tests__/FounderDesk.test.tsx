@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { FounderDesk } from '../FounderDesk'
 import { DELIVERY_PRESETS } from '@/lib/command-centre/delivery-presets'
 
@@ -26,13 +26,18 @@ describe('FounderDesk mission journey', () => {
   it('shows capability choices before any disclosure interaction and keeps them non-executing', async () => {
     const fetchMock = vi.fn(async () => response({ missions: [], presets: DELIVERY_PRESETS, source: 'supabase' }))
     vi.stubGlobal('fetch', fetchMock)
-    render(<FounderDesk projects={[]} />)
-    const capability = await screen.findByRole('button', { name: 'Review & approval Ready to reuse' })
+    // Flush the resolved history response and React updates before checking
+    // the initial controls; this assertion must not race a polling deadline.
+    await act(async () => {
+      render(<FounderDesk projects={[]} />)
+    })
+    const capability = screen.getByRole('button', { name: 'Review & approval Ready to reuse' })
     expect(capability).toBeVisible()
     expect(screen.getByText('Choosing a capability adds requirements. It does not connect an account or start work.')).toBeVisible()
     fireEvent.click(capability)
     expect(capability).toHaveAttribute('aria-pressed', 'true')
     expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ method: 'POST' }))
   })
 
   it('sends an explicitly selected GitHub owner/repository as the persisted project key', async () => {

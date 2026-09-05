@@ -1,3 +1,5 @@
+import { AIConfigurationError } from '@/lib/ai/client'
+
 export type PreparationStep = 'context' | 'classification' | 'clarification' | 'specification' | 'board'
 
 /** Never retain original exceptions, messages, headers, prompts or model output. */
@@ -19,7 +21,8 @@ export function preparationFailure(error: unknown, stage: PreparationStep): Prep
   const source = error && typeof error === 'object' ? error as Record<string, unknown> : {}
   const diagnostic: PreparationFailure['diagnostic'] = {
     stage,
-    errorName: typeof source.name === 'string' && ERROR_NAMES.has(source.name) ? source.name : 'Error',
+    errorName: error instanceof AIConfigurationError ? 'AIConfigurationError'
+      : typeof source.name === 'string' && ERROR_NAMES.has(source.name) ? source.name : 'Error',
   }
   if (typeof source.status === 'number' && Number.isInteger(source.status) && source.status >= 400 && source.status <= 599) diagnostic.status = source.status
   if (typeof source.request_id === 'string' && /^req_[A-Za-z0-9]{16,64}$/.test(source.request_id)) diagnostic.requestId = source.request_id
@@ -31,9 +34,11 @@ export function preparationFailure(error: unknown, stage: PreparationStep): Prep
     'preparation_provider_rate_limited',
     'Margot’s AI provider has temporarily limited requests. Your idea and saved progress remain available; wait a little, then continue preparation.', diagnostic,
   )
-  if (stage !== 'context' && [400, 404].includes(diagnostic.status ?? 0)) return new PreparationFailure(
+  if (stage !== 'context' && (error instanceof AIConfigurationError || [400, 404].includes(diagnostic.status ?? 0))) return new PreparationFailure(
     'preparation_provider_configuration',
-    'Margot’s AI request could not be accepted. Your delivery operator needs to check the model connection. Your idea and saved progress remain available.', diagnostic,
+    error instanceof AIConfigurationError
+      ? 'Margot’s AI connection needs configuration by your delivery operator. Your idea and saved progress remain available. Continue preparation after the connection is repaired.'
+      : 'Margot’s AI request could not be accepted. Your delivery operator needs to check the model connection. Your idea and saved progress remain available.', diagnostic,
   )
   if (error instanceof SyntaxError) return new PreparationFailure(
     'preparation_response_invalid',

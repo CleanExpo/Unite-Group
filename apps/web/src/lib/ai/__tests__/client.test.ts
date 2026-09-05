@@ -45,6 +45,17 @@ describe('getAIClient server credential boundary', () => {
     expect(sdk).not.toHaveBeenCalled()
   })
 
+  it.each([undefined, '   '])('identifies an absent or blank API credential as configuration failure: %s', (apiKey) => {
+    if (apiKey === undefined) delete process.env.ANTHROPIC_API_KEY
+    else process.env.ANTHROPIC_API_KEY = apiKey
+
+    expect(() => getAIClient()).toThrowError(expect.objectContaining({
+      name: 'AIConfigurationError',
+      message: 'ANTHROPIC_API_KEY is required for the metered server route; Claude plan session credentials are not accepted',
+    }))
+    expect(sdk).not.toHaveBeenCalled()
+  })
+
   it('never forwards consumer tokens when an API key is configured', () => {
     process.env.CLAUDE_CODE_OAUTH_TOKEN = 'consumer-session-token'
     process.env.ANTHROPIC_AUTH_TOKEN = 'alternate-consumer-token'

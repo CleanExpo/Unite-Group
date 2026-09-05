@@ -1,9 +1,15 @@
 // src/lib/command-centre/__tests__/classify-idea.test.ts
-import { describe, it, expect, vi } from 'vitest'
+import { afterEach, describe, it, expect, vi } from 'vitest'
 import { toRoutingDecision, classifyIdea } from '../classify-idea'
+import { resetAIClient } from '@/lib/ai/client'
 
 const ctx = { idea: 'Run a winter promo on social', clarifications: { questions: [], answers: {} } }
 const model = (text: string) => ({ messages: { create: vi.fn().mockResolvedValue({ content: [{ type: 'text', text }] }) } })
+
+afterEach(() => {
+  vi.unstubAllEnvs()
+  resetAIClient()
+})
 
 describe('toRoutingDecision', () => {
   it('accepts a valid lane and attaches that lane’s plans', () => {
@@ -29,6 +35,19 @@ describe('classifyIdea', () => {
   it('returns unknown when the model fails', async () => {
     const client = { messages: { create: vi.fn().mockRejectedValue(new Error('boom')) } }
     expect((await classifyIdea(ctx, client as never)).lane).toBe('unknown')
+  })
+  it('keeps a missing client credential advisory by default', async () => {
+    vi.stubEnv('ANTHROPIC_API_KEY', '')
+    resetAIClient()
+    expect(await classifyIdea(ctx)).toMatchObject({ lane: 'unknown', planBuild: [], planDistribute: [] })
+  })
+  it('identifies missing client configuration safely in strict delivery mode', async () => {
+    vi.stubEnv('ANTHROPIC_API_KEY', '')
+    resetAIClient()
+    await expect(classifyIdea(ctx, undefined, { strict: true })).rejects.toMatchObject({
+      code: 'preparation_provider_configuration',
+      diagnostic: { stage: 'classification', errorName: 'AIConfigurationError' },
+    })
   })
   it('preserves a safe provider authentication failure in strict delivery mode', async () => {
     const client = { messages: { create: vi.fn().mockRejectedValue(Object.assign(new Error('private provider response'), { name: 'AuthenticationError', status: 401, request_id: 'req_0123456789abcdef' })) } }
