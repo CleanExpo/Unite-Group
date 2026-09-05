@@ -173,7 +173,7 @@ export function AIAnalysisTab() {
     <div className="space-y-6 max-w-3xl">
       {/* Header */}
       <div className="flex items-center gap-2">
-        <Brain size={16} style={{ color: '#15803d' }} />
+        <Brain size={16} style={{ color: 'var(--mission-blue)' }} />
         <span className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--color-text-disabled)' }}>
           AI Financial Analysis
         </span>
@@ -187,7 +187,7 @@ export function AIAnalysisTab() {
             onClick={() => { setMode(m); reset() }}
             className="flex-1 py-1.5 text-[12px] font-medium rounded-sm transition-colors"
             style={mode === m
-              ? { background: '#16a34a', color: '#fffdf7' }
+              ? { background: 'var(--mission-blue)', color: 'var(--mission-blue-ink)' }
               : { color: 'var(--color-text-secondary)' }}
           >
             {m === 'analyze' ? 'Direct Analysis' : 'Full Advisory Pipeline'}
@@ -219,7 +219,7 @@ export function AIAnalysisTab() {
           type="checkbox"
           checked={includeData}
           onChange={e => setIncludeData(e.target.checked)}
-          className="rounded-sm accent-[#16a34a]"
+          className="rounded-sm accent-[var(--mission-blue)]"
         />
         <span className="text-[13px]" style={{ color: 'var(--color-text-secondary)' }}>
           Include financial snapshot
@@ -235,7 +235,7 @@ export function AIAnalysisTab() {
           onClick={run}
           disabled={!question.trim() || loading}
           className="flex items-center gap-2 px-4 h-9 rounded-sm text-[13px] font-medium transition-colors disabled:opacity-40"
-          style={{ background: '#16a34a', color: '#fffdf7' }}
+          style={{ background: 'var(--mission-blue)', color: 'var(--mission-blue-ink)' }}
         >
           {loading ? <Loader2 size={14} className="animate-spin" /> : <Brain size={14} />}
           {loading ? PHASE_LABELS[phase] : 'Run Analysis'}
@@ -249,7 +249,7 @@ export function AIAnalysisTab() {
 
       {/* Error */}
       {error && (
-        <p className="text-sm text-red-700/80">{error}</p>
+        <p className="text-sm text-[var(--color-danger)]/80">{error}</p>
       )}
 
       {/* Direct mode results */}
@@ -268,7 +268,7 @@ export function AIAnalysisTab() {
           </div>
 
           {sandboxResult && (
-            <div className="border-t border-white/5 pt-3">
+            <div className="border-t border-[var(--mission-border)] pt-3">
               <button
                 onClick={() => setShowSandbox(!showSandbox)}
                 className="text-[11px] uppercase tracking-widest flex items-center gap-2"
@@ -278,7 +278,7 @@ export function AIAnalysisTab() {
               </button>
               {showSandbox && (
                 <pre className="mt-2 text-[12px] font-mono p-3 rounded-sm overflow-x-auto"
-                  style={{ background: 'rgba(0,0,0,0.4)', color: sandboxResult.success ? '#86efac' : '#f87171' }}>
+                  style={{ background: 'var(--mission-raised)', color: sandboxResult.success ? 'var(--color-success)' : 'var(--color-danger)' }}>
                   {sandboxResult.output}
                 </pre>
               )}
@@ -311,11 +311,11 @@ export function AIAnalysisTab() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
             className="rounded-sm border p-5"
-            style={{ borderColor: 'rgba(22, 163, 74,0.2)', background: 'var(--surface-card)' }}
+            style={{ borderColor: 'color-mix(in srgb, var(--mission-blue) 20%, transparent)', background: 'var(--surface-card)' }}
           >
             <div className="flex items-center gap-2 mb-3">
-              <Brain size={13} style={{ color: 'rgba(22, 163, 74,0.6)' }} />
-              <p className="text-[11px] uppercase tracking-widest" style={{ color: 'rgba(22, 163, 74,0.6)' }}>
+              <Brain size={13} style={{ color: 'color-mix(in srgb, var(--mission-blue) 60%, transparent)' }} />
+              <p className="text-[11px] uppercase tracking-widest" style={{ color: 'color-mix(in srgb, var(--mission-blue) 60%, transparent)' }}>
                 Strategic Advisory Brief
               </p>
             </div>

@@ -19,10 +19,17 @@ function mockClient(candidates: Array<{ id: string }>, updateResults: unknown[][
   const client: RunnerClaimClientLike = {
     from: () => ({
       select: () => {
+        let readingRunning = false
         const chain = {
-          eq: () => chain,
+          eq: (column: string, value: unknown) => {
+            if (column === 'status' && value === 'running') readingRunning = true
+            return chain
+          },
           order: () => chain,
-          limit: () => Promise.resolve({ data: candidates, error: null }),
+          limit: () => Promise.resolve({
+            data: readingRunning ? [{ id: 't1', status: 'running', metadata: {}, claimed_by: 'runner-a' }] : candidates,
+            error: null,
+          }),
         }
         return chain
       },
@@ -182,11 +189,12 @@ function capMockClient(opts: {
       select: () => {
         const chain = {
           eq: (column: string, value: unknown) => {
-            countFilters.push([column, value])
+            if (table === CC_TASK_EVENTS_TABLE) countFilters.push([column, value])
             return chain
           },
           order: () => chain,
           limit: () => {
+            if (table !== CC_TASK_EVENTS_TABLE) return Promise.resolve({ data: [{ id: 't1', status: 'running', metadata: {}, claimed_by: 'runner-a' }], error: null })
             countCall += 1
             if (opts.countErrorOnce && countCall === 1) {
               return Promise.resolve({ data: null, error: opts.countErrorOnce })

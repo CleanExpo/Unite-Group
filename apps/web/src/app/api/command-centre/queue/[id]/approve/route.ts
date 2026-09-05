@@ -17,6 +17,7 @@ import { getUser } from '@/lib/supabase/server'
 import { getTaskById } from '@/lib/command-centre/tasks'
 import { applyApproval, decisionToStatus, type ApprovalDecision } from '@/lib/command-centre/approvals'
 import { isLegalTransition } from '@/lib/command-centre/task-transitions'
+import { isDeliveryMission } from '@/lib/command-centre/delivery-types'
 
 export const dynamic = 'force-dynamic'
 
@@ -55,6 +56,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     )
   }
   if (!task) return NextResponse.json({ error: 'Task not found' }, { status: 404 })
+
+  // Delivery consent names an exact frozen spec and is saved with its guarded
+  // lifecycle mutation. This generic path cannot write even an edit receipt:
+  // that would change the latest authority without changing the guarded row.
+  // A review handoff must also never become a second build approval here.
+  if (isDeliveryMission(task)) {
+    return NextResponse.json(
+      { error: 'Use the mission decision flow for this delivery specification', nextAction: 'mission_decision' },
+      { status: 409 },
+    )
+  }
 
   // UNI-2417 governance guard: an approval decision may only be applied to a task
   // whose CURRENT status legally permits it under the matrix's `approval` edge

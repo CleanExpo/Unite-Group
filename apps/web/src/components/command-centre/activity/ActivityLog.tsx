@@ -40,7 +40,7 @@ export function ActivityLog({ events = ACTIVITY_DATA, maxRows = 20, sourceLiveAt
       aria-label="Live activity log"
     >
       <header
-        className="flex items-center justify-between px-5 h-10"
+        className="flex min-h-10 flex-wrap items-center justify-between gap-2 px-5 py-2"
         style={{ background: 'var(--cc-bg)', borderBottom: '1px solid var(--cc-grid)' }}
       >
         <span
@@ -50,7 +50,7 @@ export function ActivityLog({ events = ACTIVITY_DATA, maxRows = 20, sourceLiveAt
           Activity Log
         </span>
         <span
-          className="font-mono text-[10px] uppercase tracking-[0.18em] flex items-center gap-3"
+          className="font-mono text-[10px] uppercase tracking-[0.18em] flex min-w-0 flex-wrap items-center gap-3"
           style={{ color: 'var(--cc-ink-hush)' }}
         >
           {signalCount > 0 && (

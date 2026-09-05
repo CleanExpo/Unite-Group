@@ -33,7 +33,7 @@ function SkeletonRow() {
     <tr className="border-b border-border">
       {Array.from({ length: 7 }).map((_, i) => (
         <td key={i} className="px-3 py-3">
-          <div className="h-3 bg-white/5 rounded-sm animate-pulse" style={{ width: `${40 + i * 14}px` }} />
+          <div className="h-3 bg-[var(--mission-raised)]/5 rounded-sm animate-pulse" style={{ width: `${40 + i * 14}px` }} />
         </td>
       ))}
     </tr>
@@ -43,13 +43,13 @@ function SkeletonRow() {
 function SkeletonSummary() {
   return (
     <div className="bg-(--surface-card) border border-border rounded-sm p-4 animate-pulse">
-      <div className="h-3 w-32 bg-white/5 rounded-sm mb-3" />
-      <div className="h-6 w-24 bg-white/5 rounded-sm mb-4" />
+      <div className="h-3 w-32 bg-[var(--mission-raised)]/5 rounded-sm mb-3" />
+      <div className="h-6 w-24 bg-[var(--mission-raised)]/5 rounded-sm mb-4" />
       <div className="space-y-2">
         {Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="flex justify-between">
-            <div className="h-3 w-28 bg-white/5 rounded-sm" />
-            <div className="h-3 w-16 bg-white/5 rounded-sm" />
+            <div className="h-3 w-28 bg-[var(--mission-raised)]/5 rounded-sm" />
+            <div className="h-3 w-16 bg-[var(--mission-raised)]/5 rounded-sm" />
           </div>
         ))}
       </div>
@@ -233,7 +233,7 @@ export function ExpensesTab() {
                   <motion.tr
                     key={tx.id}
                     layout
-                    className="border-b border-border hover:bg-black/5 transition-colors"
+                    className="border-b border-border hover:bg-[var(--mission-raised)] transition-colors"
                   >
                     <td className="px-3 py-2.5 tabular-nums whitespace-nowrap" style={{ color: 'var(--color-text-secondary)' }}>
                       {formatDate(tx.transactionDate)}

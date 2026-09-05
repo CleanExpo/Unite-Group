@@ -6,6 +6,9 @@ import { usePathname } from 'next/navigation'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Topbar } from '@/components/layout/Topbar'
 import { useUIStore } from '@/store/ui'
+import { getMissionControlSection } from '@/lib/navigation/mission-control'
+import { useDeckTheme } from '@/app/(founder)/founder/command-centre/DeckThemeShell'
+import missionStyles from '@/app/(founder)/founder/command-centre/founder-desk.module.css'
 
 // Lazy-load overlay components — defers JS bundle until first render
 const IdeaCapture = dynamic(
@@ -30,10 +33,12 @@ export function FounderShell({ children, user }: FounderShellProps) {
   const pathname = usePathname()
   // UNI-2397/UNI-2398 — the command-centre HOME page registers its own ⌘K
   // palette (command-centre/CommandPalette.tsx), mounted only in its page.tsx.
-  // Exact-match the home route: on it the deck palette wins; the sub-decks
-  // (operations, portfolio, providers, …) have no palette of their own, so the
-  // shell CommandBar keeps ⌘K there and everywhere else.
+  // Exact-match the home route and its mounted palette marker. Loading/error
+  // boundaries lack that palette, so the shell CommandBar keeps search working
+  // there, on every subpage, and everywhere else in the founder app.
   const onCommandDeck = pathname === '/founder/command-centre'
+  const onMissionControl = getMissionControlSection(pathname) !== null
+  const { daylight } = useDeckTheme()
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -42,7 +47,7 @@ export function FounderShell({ children, user }: FounderShellProps) {
 
       if (e.key === '\\') { e.preventDefault(); toggleSidebar(); return }
       if (e.key === 'k')  {
-        if (onCommandDeck) return
+        if (onCommandDeck && document.querySelector('[data-mission-home-palette="true"]')) return
         e.preventDefault(); toggleCommandBar(); return
       }
       if (e.key === 'i')  { e.preventDefault(); toggleCapture(); return }
@@ -53,7 +58,7 @@ export function FounderShell({ children, user }: FounderShellProps) {
 
   return (
     <div
-      className="flex h-screen overflow-hidden"
+      className={`flex h-screen overflow-hidden ${onMissionControl ? `${missionStyles.missionTheme} ${daylight ? missionStyles.missionDaylight : ''}` : ''}`}
       style={{ background: 'var(--surface-canvas)' }}
     >
       {sidebarOpen && (
@@ -64,7 +69,7 @@ export function FounderShell({ children, user }: FounderShellProps) {
       )}
       <Sidebar user={user} />
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-        <Topbar />
+        {!onMissionControl && <Topbar />}
         <main className="flex-1 overflow-auto">
           {children}
         </main>

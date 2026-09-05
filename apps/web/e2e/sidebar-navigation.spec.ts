@@ -47,13 +47,13 @@ test.describe('Sidebar Navigation', () => {
       ]
 
       for (const { href, label } of expectedLinks) {
-        const link = page.locator(`a[href="${href}"]`)
+        const link = page.locator('aside').locator(`a[href="${href}"]`)
         await expect(link, `Sidebar link "${label}" should exist`).toBeVisible()
       }
     })
 
     test('sidebar navigation links are clickable', async ({ page }) => {
-      const kanbanLink = page.locator('a[href="/founder/kanban"]')
+      const kanbanLink = page.locator('aside').locator('a[href="/founder/kanban"]')
       await kanbanLink.click()
       // UNI-2278: /founder/kanban is not visited by any other test in this suite, so
       // against the Playwright webServer (`pnpm dev`) this is the first-ever hit and

@@ -24,6 +24,7 @@ export function IdeaCapture() {
   const [loading, setLoading] = useState(false)
   const [successId, setSuccessId] = useState<string | null>(null)
   const [userInput, setUserInput] = useState('')
+  const [error, setError] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // Reset on close
@@ -37,6 +38,7 @@ export function IdeaCapture() {
         setLoading(false)
         setSuccessId(null)
         setUserInput('')
+        setError(null)
       }, 300)
       return () => clearTimeout(timer)
     }
@@ -44,29 +46,36 @@ export function IdeaCapture() {
 
   async function sendToCapture(newMessages: ConversationMessage[]) {
     setLoading(true)
+    setError(null)
     try {
       const res = await fetch('/api/ideas/capture', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: newMessages, rawIdea }),
       })
-      const data = await res.json() as ClaudeResponse
+      const data = await res.json() as ClaudeResponse & { error?: string }
+      if (!res.ok) throw new Error(data?.error || 'Idea capture is currently unavailable. Please try again.')
 
-      if (data.type === 'spec') {
+      if (data?.type === 'spec' && data.spec && typeof data.spec.title === 'string' && typeof data.spec.teamKey === 'string' && typeof data.spec.priority === 'number' && typeof data.spec.description === 'string' && Array.isArray(data.spec.labels) && data.spec.labels.every(label => typeof label === 'string') && Array.isArray(data.spec.acceptanceCriteria) && data.spec.acceptanceCriteria.every(criterion => typeof criterion === 'string')) {
         setSpec(data.spec)
         setState('spec')
-      } else {
+      } else if (data?.type === 'question' && typeof data.question === 'string' && data.question.trim()) {
         const assistantMsg: ConversationMessage = { role: 'assistant', content: data.question }
         setMessages([...newMessages, assistantMsg])
         setState('conversation')
+      } else {
+        throw new Error('Idea capture returned an unreadable response. Please try again.')
       }
+      setUserInput('')
+    } catch (cause) {
+      setError(cause instanceof Error && !(cause instanceof SyntaxError) ? cause.message : 'Idea capture returned an unreadable response. Please try again.')
     } finally {
       setLoading(false)
     }
   }
 
   async function handleInitialSubmit() {
-    if (!rawIdea.trim()) return
+    if (!rawIdea.trim() || loading) return
     const initial: ConversationMessage[] = [{ role: 'user', content: rawIdea }]
     setMessages(initial)
     setState('conversation')
@@ -74,26 +83,30 @@ export function IdeaCapture() {
   }
 
   async function handleAnswer() {
-    if (!userInput.trim()) return
+    if (!userInput.trim() || loading || error) return
     const userMsg: ConversationMessage = { role: 'user', content: userInput }
     const newMessages = [...messages, userMsg]
     setMessages(newMessages)
-    setUserInput('')
     await sendToCapture(newMessages)
   }
 
   async function handleCreate() {
-    if (!spec) return
+    if (!spec || loading) return
     setLoading(true)
+    setError(null)
     try {
       const res = await fetch('/api/ideas/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ spec }),
       })
-      const data = await res.json() as { identifier: string }
+      const data = await res.json() as { identifier?: string; error?: string }
+      if (!res.ok) throw new Error(data?.error || 'The issue could not be created. Please try again.')
+      if (typeof data?.identifier !== 'string' || !data.identifier.trim()) throw new Error('Issue creation returned an unreadable response. Please try again.')
       setSuccessId(data.identifier)
       setState('success')
+    } catch (cause) {
+      setError(cause instanceof Error && !(cause instanceof SyntaxError) ? cause.message : 'Issue creation returned an unreadable response. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -132,6 +145,10 @@ export function IdeaCapture() {
 
             {/* Body */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {error && <div role="alert" className="rounded-sm border p-3 text-[12px]" style={{ borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}>
+                <p>{error}</p>
+                {state === 'conversation' && <button type="button" onClick={() => void sendToCapture(messages)} disabled={loading} className="mt-2 underline">Retry idea capture</button>}
+              </div>}
 
               {/* Input state */}
               {state === 'input' && (
@@ -262,6 +279,7 @@ export function IdeaCapture() {
                 <div className="flex gap-2">
                   <input
                     value={userInput}
+                    disabled={Boolean(error)}
                     onChange={e => setUserInput(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') handleAnswer() }}
                     placeholder="Your answer..."

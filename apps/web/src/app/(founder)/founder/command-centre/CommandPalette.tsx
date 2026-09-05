@@ -33,10 +33,12 @@ function scrollTo(id: string) {
 }
 
 function focusIdeaConsole() {
+  window.dispatchEvent(new Event('mission:focus-idea'))
   const el = document.getElementById('idea-console')
   el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   // Focus the first field once the smooth scroll is under way.
   requestAnimationFrame(() => {
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     el?.querySelector('textarea')?.focus()
   })
 }

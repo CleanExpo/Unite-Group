@@ -91,6 +91,11 @@ const nextConfig = {
 
   // Redirect policy PDF URLs to canonical HTML pages
   redirects: async () => [
+    ...['/founder', '/dashboard', '/command-centre', '/mission-control', '/founder/dashboard', '/founder/workspace', '/founder/nexus-status'].map(source => ({
+      source,
+      destination: '/founder/command-centre',
+      permanent: false,
+    })),
     {
       source: '/policies/unite-group-application-privacy-policy.pdf',
       destination: '/privacy-policy',

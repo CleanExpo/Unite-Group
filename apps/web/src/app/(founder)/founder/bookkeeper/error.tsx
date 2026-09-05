@@ -1,5 +1,7 @@
 'use client'
 
+import { MissionControlShell } from '@/app/(founder)/founder/command-centre/MissionControlShell'
+
 // src/app/(founder)/founder/bookkeeper/error.tsx
 // Route-level error boundary for the bookkeeper / Xero workbench
 
@@ -19,6 +21,7 @@ export default function BookkeeperError({
   }, [error])
 
   return (
+    <MissionControlShell section="finance" title="Bookkeeper">
     <div
       className="flex flex-col items-center justify-center min-h-[400px] gap-6 px-6"
       style={{ color: 'var(--color-text-primary)' }}
@@ -43,7 +46,7 @@ export default function BookkeeperError({
         <button
           onClick={reset}
           className="px-4 py-2 rounded-sm text-sm font-medium transition-colors duration-150"
-          style={{ background: 'var(--color-accent)', color: '#fffdf7' }}
+          style={{ background: 'var(--color-accent)', color: 'var(--mission-blue-ink)' }}
         >
           Try again
         </button>
@@ -59,6 +62,6 @@ export default function BookkeeperError({
           Reconnect Xero
         </Link>
       </div>
-    </div>
+    </div></MissionControlShell>
   )
 }

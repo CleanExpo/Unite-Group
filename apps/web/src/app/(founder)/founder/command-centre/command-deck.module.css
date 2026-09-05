@@ -621,3 +621,44 @@
   color: var(--deck-text);
   border-color: var(--deck-cyan);
 }
+
+/* Existing operational components inherit the canonical Mission Control theme. */
+.missionTokens {
+  --deck-cyan: var(--mission-blue);
+  --deck-go: var(--mission-success);
+  --deck-amber: var(--mission-attention);
+  --deck-abort: var(--mission-danger);
+  --deck-cyan-text: var(--mission-blue);
+  --deck-amber-text: var(--mission-attention);
+  --deck-abort-text: var(--mission-danger);
+  --deck-line: var(--mission-border);
+  --deck-line-soft: var(--mission-border);
+  --deck-panel: var(--mission-surface);
+  --deck-panel-hi: var(--mission-raised);
+  --deck-text: var(--mission-ink);
+  --deck-muted: var(--mission-muted);
+  --deck-glow: 138, 184, 255;
+  --cc-bg: var(--mission-surface);
+  --cc-bg-soft: var(--mission-raised);
+  --cc-grid: var(--mission-border);
+  --cc-ink: var(--mission-ink);
+  --cc-ink-dim: var(--mission-muted);
+  --cc-ink-hush: var(--mission-muted);
+  --cc-signal: var(--mission-blue);
+  --cc-signal-text: var(--mission-blue);
+  --cc-pulse-duration: 2.4s;
+  --tile-ink: var(--mission-ink);
+  --tile-ink-dim: var(--mission-muted);
+  --tile-ink-hush: var(--mission-muted);
+  --tile-card-bg: var(--mission-raised);
+  --tile-card-line: var(--mission-border);
+  --tile-amber-txt: var(--mission-attention);
+  --tile-green-txt: var(--mission-success);
+  --tile-red-txt: var(--mission-danger);
+}
+.missionTokens :is(.panel, .bus) { background: var(--mission-surface); border-color: var(--mission-border); }
+.missionTokens :is(.panel, .bus, .project, .integrationGrid) { min-width: 0; }
+.missionTokens :is(.toolGrid, .integrationGrid) { grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); }
+.missionTokens :is(.plink, .projectName) { color: var(--mission-blue); }
+.missionTokens .reveal { opacity: 1; animation: none; transform: none; }
+.missionTokens [data-source-mode] { min-width: 0; max-width: 100%; flex-wrap: wrap; overflow-wrap: anywhere; }

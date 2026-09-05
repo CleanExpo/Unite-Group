@@ -13,7 +13,7 @@ export async function loginAsFounder(page: Page) {
   await page.fill('[type=email]', email)
   await page.fill('[type=password]', password)
   await page.click('[type=submit]')
-  await page.waitForURL('/founder/dashboard')
+  await page.waitForURL('/founder/command-centre')
 }
 
 export const test = base

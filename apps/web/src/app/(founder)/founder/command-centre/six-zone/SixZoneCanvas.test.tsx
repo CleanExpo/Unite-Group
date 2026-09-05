@@ -16,6 +16,9 @@ beforeEach(() => {
 
 describe('SixZoneCanvas', () => {
   it('renders the host, each signal state verbatim and the observation freshness, and links the other five zones', async () => {
+    // Keep the fixture and render on the same clock even under a loaded CI worker.
+    // Only Date.now is fixed; waitFor and the component's timers remain real.
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now())
     mockStatus({
       configured: true,
       observedAt: new Date(Date.now() - 30_000).toISOString(),

@@ -13,9 +13,9 @@ export async function GET(request: Request) {
   const code = searchParams.get('code')
   const providerError = searchParams.get('error')
   const providerErrorDescription = searchParams.get('error_description')
-  const rawNext = searchParams.get('next') ?? '/founder/dashboard'
+  const rawNext = searchParams.get('next') ?? '/founder/command-centre'
   // Prevent open redirect: only allow relative paths (must start with / but not //)
-  const next = /^\/(?!\/)/.test(rawNext) ? rawNext : '/founder/dashboard'
+  const next = /^\/(?!\/)/.test(rawNext) ? rawNext : '/founder/command-centre'
 
   if (providerError) {
     const loginUrl = new URL('/auth/login', origin)

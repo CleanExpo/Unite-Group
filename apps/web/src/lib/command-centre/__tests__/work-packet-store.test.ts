@@ -156,6 +156,17 @@ function samplePacket(overrides: Partial<Parameters<typeof buildWorkPacket>[0]> 
 }
 
 describe('work-packet-store', () => {
+  it('refuses delivery mission completion through the legacy packet transition path', async () => {
+    const { client, tables } = makeFakeDb()
+    const packet = { ...samplePacket(), id: 'delivery:mission-1' }
+    await saveWorkPacket(client, FOUNDER, packet)
+    tables[CC_TASKS_TABLE][0].status = 'running'
+    const result = await applyPacketTransition(client, FOUNDER, packet.id, { type: 'complete' })
+    expect(result.ok).toBe(false)
+    expect(result.reason).toMatch(/delivery/i)
+    expect(tables[CC_TASKS_TABLE][0].status).toBe('running')
+    expect(tables[CC_TASK_EVENTS_TABLE]).toHaveLength(0)
+  })
   it('packetToCreateTaskInput maps stable fields to columns and the rest into metadata.packet', () => {
     const packet = samplePacket()
     const input = packetToCreateTaskInput(packet, FOUNDER)

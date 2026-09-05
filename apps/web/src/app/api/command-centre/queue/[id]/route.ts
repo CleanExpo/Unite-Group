@@ -12,6 +12,7 @@ import { getTaskById, updateTaskStatusGuarded, appendTaskEvent, type TaskStatus 
 import { listApprovalsForTask } from '@/lib/command-centre/approvals'
 import { getValidationSummary } from '@/lib/command-centre/validation'
 import { isLegalTransition } from '@/lib/command-centre/task-transitions'
+import { isDeliveryMission } from '@/lib/command-centre/delivery-types'
 
 export const dynamic = 'force-dynamic'
 
@@ -73,6 +74,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     )
   }
   if (!current) return NextResponse.json({ error: 'Task not found' }, { status: 404 })
+
+  // Local validation cannot establish independent review, release or a working
+  // live outcome. New delivery missions finish only through trusted evidence.
+  if (status === 'done' && isDeliveryMission(current)) {
+    return NextResponse.json(
+      { error: 'Delivery completion requires verified release and live outcome evidence' },
+      { status: 409 },
+    )
+  }
 
   if (!isLegalTransition(current.status, status, 'founder')) {
     return NextResponse.json(

@@ -115,7 +115,7 @@ export function PipelineBoard({
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 8 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 10, marginBottom: 8 }}>
         <h2 style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.01em' }}>Pipeline</h2>
         <span
           style={{

@@ -1,4 +1,5 @@
-import { StudioClient } from './StudioClient'
+import { StudioView } from './StudioView'
+import { chakra, syne, jbMono } from '../fonts'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,12 +9,5 @@ export default async function StudioPage({
   searchParams: Promise<{ taskId?: string }>
 }) {
   const { taskId } = await searchParams
-  if (!taskId) {
-    return (
-      <div className="p-6 text-sm text-[var(--color-text-muted)]">
-        Open the studio from a routed idea — a <code>taskId</code> is required.
-      </div>
-    )
-  }
-  return <StudioClient taskId={taskId} />
+  return <StudioView taskId={taskId} className={`${chakra.variable} ${syne.variable} ${jbMono.variable}`} />
 }

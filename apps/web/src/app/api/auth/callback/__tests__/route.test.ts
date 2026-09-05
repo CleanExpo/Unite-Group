@@ -20,7 +20,10 @@ function req(qs: string) {
 }
 
 describe('GET /api/auth/callback', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(createServerClient).mockReturnValue({ auth: { exchangeCodeForSession: vi.fn().mockResolvedValue({ error: null }) } } as any)
+  })
 
   it('redirects to login with error when provider returns error', async () => {
     const res = await GET(req('?error=access_denied&error_description=User+denied+access'))
@@ -32,7 +35,7 @@ describe('GET /api/auth/callback', () => {
   it('redirects to dashboard after successful code exchange', async () => {
     const res = await GET(req('?code=abc123'))
     expect(res.status).toBe(307)
-    expect(res.headers.get('location')).toContain('/founder/dashboard')
+    expect(res.headers.get('location')).toContain('/founder/command-centre')
   })
 
   it('redirects to login when code exchange fails', async () => {
@@ -48,5 +51,16 @@ describe('GET /api/auth/callback', () => {
     const res = await GET(req(''))
     expect(res.status).toBe(307)
     expect(res.headers.get('location')).toContain('/auth/login')
+  })
+
+  it('preserves a valid task deep link after login', async () => {
+    const next = '/founder/command-centre/studio?taskId=task-123#concept'
+    const res = await GET(req(`?code=abc123&next=${encodeURIComponent(next)}`))
+    expect(res.headers.get('location')).toBe(`https://app.test${next}`)
+  })
+
+  it.each(['https://outside.example/path', '//outside.example/path'])('uses canonical home instead of external return path %s', async next => {
+    const res = await GET(req(`?code=abc123&next=${encodeURIComponent(next)}`))
+    expect(res.headers.get('location')).toBe('https://app.test/founder/command-centre')
   })
 })

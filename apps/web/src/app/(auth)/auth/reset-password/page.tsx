@@ -51,7 +51,7 @@ export default function ResetPasswordPage() {
     setLoading(false);
 
     // Redirect to dashboard after a brief delay
-    setTimeout(() => router.push("/founder/dashboard"), 2000);
+    setTimeout(() => router.push("/founder/command-centre"), 2000);
   }
 
   return (

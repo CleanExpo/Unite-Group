@@ -9,14 +9,14 @@ import type { BookkeeperRun, RunsResponse } from '@/lib/bookkeeper/types'
 const PAGE_SIZE = 20
 
 const RUN_STATUS_CONFIG: Record<string, { color: string; bg: string; border: string; pulse?: boolean }> = {
-  completed: { color: '#15803d', bg: 'rgba(22, 163, 74,0.08)', border: 'rgba(22, 163, 74,0.2)' },
-  partial:   { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)' },
-  failed:    { color: '#ef4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)' },
-  running:   { color: '#15803d', bg: 'rgba(22, 163, 74,0.08)', border: 'rgba(22, 163, 74,0.2)', pulse: true },
+  completed: { color: 'var(--mission-blue)', bg: 'color-mix(in srgb, var(--mission-blue) 8%, transparent)', border: 'color-mix(in srgb, var(--mission-blue) 20%, transparent)' },
+  partial:   { color: 'var(--mission-attention)', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)' },
+  failed:    { color: 'var(--color-danger)', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)' },
+  running:   { color: 'var(--mission-blue)', bg: 'color-mix(in srgb, var(--mission-blue) 8%, transparent)', border: 'color-mix(in srgb, var(--mission-blue) 20%, transparent)', pulse: true },
 }
 
 function RunStatusBadge({ status }: { status: string }) {
-  const config = RUN_STATUS_CONFIG[status] ?? { color: '#888888', bg: 'rgba(136,136,136,0.08)', border: 'rgba(136,136,136,0.2)' }
+  const config = RUN_STATUS_CONFIG[status] ?? { color: 'var(--mission-muted)', bg: 'rgba(136,136,136,0.08)', border: 'rgba(136,136,136,0.2)' }
   return (
     <span
       className={`text-[10px] font-medium tracking-widest uppercase px-2 py-0.5 rounded-sm ${config.pulse ? 'animate-pulse' : ''}`}
@@ -41,7 +41,7 @@ function SkeletonRow() {
     <tr className="border-b border-border">
       {Array.from({ length: 7 }).map((_, i) => (
         <td key={i} className="px-3 py-3">
-          <div className="h-3 bg-white/5 rounded-sm animate-pulse" style={{ width: `${50 + i * 10}px` }} />
+          <div className="h-3 bg-[var(--mission-raised)]/5 rounded-sm animate-pulse" style={{ width: `${50 + i * 10}px` }} />
         </td>
       ))}
     </tr>
@@ -137,7 +137,7 @@ export function RunHistoryTab() {
             <button
               onClick={() => setPage(Math.max(1, page - 1))}
               disabled={page <= 1}
-              className="text-[11px] px-3 py-1 border rounded-sm disabled:opacity-30 hover:border-[#16a34a]/40 transition-colors"
+              className="text-[11px] px-3 py-1 border rounded-sm disabled:opacity-30 hover:border-[var(--mission-blue)]/40 transition-colors"
               style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
             >
               Previous
@@ -145,7 +145,7 @@ export function RunHistoryTab() {
             <button
               onClick={() => setPage(Math.min(totalPages, page + 1))}
               disabled={page >= totalPages}
-              className="text-[11px] px-3 py-1 border rounded-sm disabled:opacity-30 hover:border-[#16a34a]/40 transition-colors"
+              className="text-[11px] px-3 py-1 border rounded-sm disabled:opacity-30 hover:border-[var(--mission-blue)]/40 transition-colors"
               style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
             >
               Next
@@ -165,7 +165,7 @@ function RunRow({ run, expanded, onToggle }: { run: BookkeeperRun; expanded: boo
     <>
       <tr
         onClick={onToggle}
-        className="border-b border-border cursor-pointer hover:bg-black/5 transition-colors"
+        className="border-b border-border cursor-pointer hover:bg-[var(--mission-raised)] transition-colors"
       >
         <td className="px-3 py-2.5 tabular-nums" style={{ color: 'var(--color-text-secondary)' }}>
           {formatDate(run.startedAt)}
@@ -179,10 +179,10 @@ function RunRow({ run, expanded, onToggle }: { run: BookkeeperRun; expanded: boo
         <td className="px-3 py-2.5 text-right tabular-nums" style={{ color: 'var(--color-text-primary)' }}>
           {run.totalTransactions}
         </td>
-        <td className="px-3 py-2.5 text-right tabular-nums" style={{ color: '#15803d' }}>
+        <td className="px-3 py-2.5 text-right tabular-nums" style={{ color: 'var(--mission-blue)' }}>
           {run.autoReconciled}
         </td>
-        <td className="px-3 py-2.5 text-right tabular-nums" style={{ color: run.flaggedForReview > 0 ? '#f59e0b' : 'var(--color-text-disabled)' }}>
+        <td className="px-3 py-2.5 text-right tabular-nums" style={{ color: run.flaggedForReview > 0 ? 'var(--mission-attention)' : 'var(--color-text-disabled)' }}>
           {run.flaggedForReview}
         </td>
         <td className="px-3 py-2.5 text-right tabular-nums" style={{ color: isRefund ? 'var(--color-success)' : 'var(--color-danger)' }}>
@@ -200,14 +200,14 @@ function RunRow({ run, expanded, onToggle }: { run: BookkeeperRun; expanded: boo
                 transition={{ duration: 0.2 }}
                 className="overflow-hidden"
               >
-                <div className="px-4 py-3 space-y-2" style={{ backgroundColor: 'rgba(22, 163, 74,0.02)' }}>
+                <div className="px-4 py-3 space-y-2" style={{ backgroundColor: 'color-mix(in srgb, var(--mission-blue) 2%, transparent)' }}>
                   <p className="text-[10px] uppercase tracking-widest mb-2" style={{ color: 'var(--color-text-disabled)' }}>
                     Businesses processed
                   </p>
                   {run.businessesProcessed.map((bp) => (
                     <div
                       key={bp.businessKey}
-                      className="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0"
+                      className="flex items-center justify-between py-1.5 border-b border-[var(--mission-border)] last:border-0"
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-[12px]" style={{ color: 'var(--color-text-primary)' }}>

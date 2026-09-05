@@ -6,6 +6,34 @@ time, executes it headlessly with the claude CLI at the **L2 ceiling** (branch �
 the Matrix wall. Decisions of record: grill `2nd Brain/Grills/13-nexus-how-it-should-be-set-up.md`
 + Linear UNI-2379 map (UNI-2383 lifecycle, UNI-2384 taxonomy).
 
+## Software delivery contract — 05/09/2026
+
+New `delivery:` missions require a validated frozen specification and a matching,
+current durable founder approval before claim. The atomic claim records the real
+runner as **build-SPM**, scoped to `branch_preview_only`; the prompt includes the
+exact requirements, acceptance criteria and recommended specialist duties. This
+assignment ends at the review handoff. It does not establish an end-to-end release
+SPM, separately running Board members or a live verification service.
+
+The supported build target is `CleanExpo/Unite-Group`. Before invoking the existing
+CLI, the runner checks that the actual checkout's origin matches the approved
+repository. Other targets remain unavailable; no project name becomes a local path.
+
+A software draft PR releases the claim into `awaiting_approval` with an
+`awaiting_review` build receipt. It is never `done`, and build approval cannot
+requeue that review. Legacy tasks retain their existing completion semantics.
+Only a final valid GitHub PR marker is accepted from CLI output; this marker is a
+claimed artifact, not proof of review, deployment or customer acceptance.
+
+Existing containment registration, kill switch and retry limits remain required.
+This change does not register or activate any runner. The v1 arming notes below
+are historical setup context, not sufficient evidence of current host containment.
+
+Grounded 05/09/2026: the claim/release contract is implemented in
+`apps/web/src/lib/command-centre/runner-claim.ts`; prompt and target checks are in
+`scripts/nexus-runner/runner.mjs`.
+Waterline: Local implementation and focused contract tests; no live runner or release claimed.
+
 ## Architecture
 
 ```
@@ -60,8 +88,9 @@ Approve one task in the Command Centre UI and watch it go
 
 - [ ] `tmux capture-pane -pt nexus-runner` shows heartbeat polls, no 401s once armed.
 - [ ] Before arming: claim returns 401 (dormant) — the runner logs "not armed; idling".
-- [ ] After approving a task: `cc_tasks.status` walks queued → running → done, `claimed_by`
-      set, `preview_url` carries the draft-PR URL.
+- [ ] After approving a new software mission: `cc_tasks.status` walks queued → running →
+      awaiting_approval; the final claim is cleared and `preview_url` carries the draft-PR URL.
+      Legacy tasks may retain their historical `done` outcome.
 - [ ] `cc_agent_events` receives `claimed / started / draft_pr_opened` (or `aborted`/
       `requeued` with a short snake code) + heartbeats.
 - [ ] The draft PR exists on GitHub and was **not** merged by the runner.

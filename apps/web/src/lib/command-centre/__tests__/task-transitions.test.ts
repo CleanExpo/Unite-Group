@@ -60,6 +60,7 @@ describe('isLegalTransition — governance boundary (UNI-2417)', () => {
       expect(isLegalTransition('running', 'done', 'runner')).toBe(true)
       expect(isLegalTransition('running', 'failed', 'runner')).toBe(true)
       expect(isLegalTransition('running', 'queued', 'runner')).toBe(true)
+      expect(isLegalTransition('running', 'awaiting_approval', 'runner')).toBe(true)
     })
   })
 

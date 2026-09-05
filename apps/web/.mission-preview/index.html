@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en-AU">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mission Control — design preview</title>
+    <style>
+      body { margin: 0; }
+      .previewRecovery { box-sizing: border-box; min-height: 100dvh; padding: clamp(24px, 8vw, 96px); background: #f4f7fb; color: #192d49; font: 16px/1.6 Arial, sans-serif; }
+      .previewRecovery > div { max-width: 560px; }
+      .previewRecovery h1 { margin: 0 0 16px; font: 600 clamp(24px, 5vw, 36px)/1.2 Arial, sans-serif; color: #192d49; }
+      .previewRecovery p { margin: 0 0 20px; color: #3d526d; }
+      .previewRecovery button { margin: 0 0 20px; padding: 12px 18px; border: 1px solid #315fa6; border-radius: 4px; background: #315fa6; color: white; font: 600 15px Arial, sans-serif; cursor: pointer; }
+      .previewRecovery button:focus-visible { outline: 3px solid #192d49; outline-offset: 4px; }
+      .previewRecovery .previewRecoveryHint { font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <section class="previewRecovery" aria-labelledby="preview-start-title" data-preview-startup>
+        <div>
+          <h1 id="preview-start-title">Loading Mission Control</h1>
+          <p id="preview-start-message" role="status">Opening your local design preview. This can take a moment after a restart.</p>
+          <button type="button" onclick="window.location.reload()">Reload Mission Control</button>
+          <p class="previewRecoveryHint">Local design preview. Reloading may discard unsaved sample drafts.</p>
+          <noscript><p>JavaScript is required to open Mission Control. Enable it, then reload this page.</p></noscript>
+        </div>
+      </section>
+    </div>
+    <script type="module">
+      const showStartupFailure = (title, message) => {
+        if (!document.querySelector('[data-preview-startup]')) return;
+        document.getElementById('preview-start-title').textContent = title;
+        const status = document.getElementById('preview-start-message');
+        status.setAttribute('role', 'alert');
+        status.textContent = message;
+      };
+      const watchdog = window.setTimeout(() => {
+        showStartupFailure('Mission Control is taking longer to open', 'The preview has not finished loading. You can wait a little longer or reload this page to try again.');
+      }, 10000);
+      window.addEventListener('mission-preview:ready', () => window.clearTimeout(watchdog), { once: true });
+      import('/main.tsx').catch(() => {
+        window.clearTimeout(watchdog);
+        showStartupFailure('Mission Control could not start', 'The preview files could not be loaded. Check that the local preview is running, then reload this page to try again.');
+      });
+    </script>
+  </body>
+</html>

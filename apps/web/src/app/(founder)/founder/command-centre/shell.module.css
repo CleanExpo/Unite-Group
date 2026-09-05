@@ -292,3 +292,29 @@
 .daylight .canvasScope.hero {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(250, 249, 247, 0.66));
 }
+
+/* Shared Mission Control governs both graphite and Daylight subpages. */
+:global([data-mission-control]) .canvasScope {
+  --canvas: var(--mission-canvas);
+  --surface-1: var(--mission-raised);
+  --surface-2: var(--mission-surface);
+  --surface-3: var(--mission-raised);
+  --line: var(--mission-border);
+  --line-soft: var(--mission-border);
+  --glass-1: var(--mission-surface);
+  --glass-2: var(--mission-raised);
+  --glass-hi: transparent;
+  --glass-brd: var(--mission-border);
+  --ink: var(--mission-ink);
+  --ink-dim: var(--mission-muted);
+  --ink-hush: var(--mission-muted);
+  --green: var(--mission-success);
+  --green-txt: var(--mission-success);
+  --amber-txt: var(--mission-attention);
+  --sh-1: none;
+  --sh-2: none;
+  font-family: inherit;
+}
+:global([data-mission-control]) .glassSectionHead { flex-wrap: wrap; margin-top: 26px; }
+:global([data-mission-control]) .launchGrid { grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr)); }
+:global([data-mission-control]) :is(.glassPanel, .launchTile) { min-width: 0; }
