@@ -15,7 +15,7 @@ Overview Models Agents Tools Voice & Audio Production API reference
 Overview Models Agents Tools Voice & Audio Production API reference Models
 Get started
 Quickstart
-Using GPT-5.6
+Using GPT-6 Astra
 Key concepts
 Core concepts
 Responses API
@@ -23,6 +23,7 @@ Conversation state
 Background mode
 Streaming
 WebSocket mode
+Mid-turn steering
 Multi-agent
 Webhooks
 File inputs
@@ -56,8 +57,6 @@ Reinforcement fine-tuning
 RFT use cases
 Best practices
 Assistants API Migration guide
-Deep dive
-Tools
 Model catalog
 Choose a model
 Pricing
@@ -77,7 +76,7 @@ Reasoning
 Reasoning models
 Reasoning best practices
 Images and video
-Images and vision
+Images and vision Image input cost calculator
 Image generation
 Video generation
 Realtime and audio
@@ -116,6 +115,7 @@ Build tool workflows
 Skills
 Tool search
 Programmatic tool calling
+Async tool calling
 Computer and code
 Shell
 Computer use
@@ -157,8 +157,11 @@ Flex processing
 Safety and governance
 Safety best practices
 Red teaming
-Safety checks Cybersecurity checks
-Under 18 API Guidance
+Safety checks Safety classifiers
+Cybersecurity checks
+Misalignment monitoring
+Under-18 guidance
+CSAM guidance
 Content provenance
 Your data
 Permissions
@@ -171,7 +174,11 @@ Model, tool, and data controls
 Import and reconciliation
 Private Link
 IP allowlist
-Workload identity federation X.509 certificates (beta)
+Mutual TLS
+Workload identity federation Codex setup
+Federation rules
+Admin API
+X.509 certificates
 Kubernetes
 AWS
 Microsoft Azure
@@ -251,6 +258,7 @@ Product Feeds
 Delta Feeds API
 Campaign Targeting
 Conversion-Optimized Campaigns
+Custom Audiences
 API Reference
 Authentication
 Ad Account
@@ -306,7 +314,7 @@ Web search
 Image generation
 Image inputs
 Appshots
-Chrome extension
+Browser extension
 Work with files
 Reference
 Commands
@@ -343,6 +351,7 @@ Integrated terminal
 Extend and automate
 Build skills
 Build plugins
+Site tools (WebMCP)
 Hooks
 Environments
 Modes
@@ -357,6 +366,7 @@ GitHub Action
 Non-interactive mode
 Third-party integrations
 GitHub
+GitLab (Beta)
 Slack
 Linear
 Reference
@@ -385,6 +395,7 @@ Changelog
 Codex Security CLI Quickstart
 Run bulk scans
 Run scans in CI
+GitLab CI/CD
 Reference
 FAQ
 TypeScript SDK
@@ -397,14 +408,20 @@ Models & Trusted Access
 Recommended configuration
 Getting started
 Admin rollout guide
+ChatGPT Work
 ChatGPT Work Overview
+ChatGPT Work cloud security
+ChatGPT Work local security
 ChatGPT Work admin FAQ
+ChatGPT Work: usage and cost
 Identity and authentication
 Authentication overview
+Workload identity
 Personal Access Tokens
 Service accounts
 Workspace access, policy, and models
 Groups and provisioning
+User lifecycle management
 Roles and workspace permissions
 GPTs and Sharing
 Managed configuration
@@ -413,9 +430,11 @@ HIPAA configuration
 Workspace model availability
 Plugin and connector controls
 Plugin controls
+Plugin management
 Skill controls
 Usage, governance, and compliance
 Governance
+Admin plugin
 Workspace analytics
 Analytics API
 Compliance API and audit events
@@ -442,17 +461,18 @@ Company blog
 Developer blog
 Showcase Blog Cookbook Learn Community Select...
 Recent
-Custom Code Review rules for Codex
-Mastering remote engineering work from your phone
-Making private MCP servers reachable without making them public
-How Perplexity Brought Voice Search to Millions Using the Realtime API
-Designing delightful frontends with GPT-5.4
+Architectural visualization with Astra
+Building games with Astra
+Meet Rosalind Workbench: Empowering every scientist to be their own research team
+Automating repetitive work at OpenAI with Codex
+Meet the winners of OpenAI Build Week
 Topics
 General
 API
 Apps SDK
 Audio
 Codex
+Life sciences
 Topics
 Agents
 Evals
@@ -496,44 +516,46 @@ API Dashboard
 Try ChatGPT
 Models
 All models
-Browse all available models and compare their capabilities.
+Browse models and compare their capabilities.
 Compare models
-Frontier models
-OpenAI's most advanced models, recommended for most tasks.
+Flagship models
+Compare capabilities and specifications.
+GPT-6 Astra
+Our most capable model, built for the hardest end-to-end work
 GPT-5.6 Sol
-Frontier model for complex professional work
+Flagship model for complex professional work
 GPT-5.6 Terra
 GPT-5.6 model that balances intelligence and cost
 GPT-5.6 Luna
 GPT-5.6 model optimized for cost-sensitive workloads
 Image
 Models for image generation and editing.
-GPT Image 2
+GPT-Image-2
 State-of-the-art image generation model
 Realtime & audio
 Models for realtime, speech, and audio workflows.
 GPT-Realtime-2.1
 Reasoning model with tool use
-GPT-Realtime-2.1 mini
+GPT-Realtime-2.1 Mini
 Reasoning model with tool use
 GPT-Realtime-2
 Reasoning model with tool use
 GPT-Realtime-Translate
 Streaming speech-to-speech translation model
-GPT Live Transcribe
+GPT-Live-Transcribe
 Low-latency speech-to-text model for realtime transcription
 GPT-Realtime-Whisper
 Streaming speech-to-text model for realtime transcription
 GPT-Realtime-1.5
 The best voice model for audio in, audio out
-gpt-audio-1.5
+GPT-Audio-1.5
 The best voice model for audio in, audio out with Chat Completions.
-GPT Transcribe
+GPT-Transcribe
 High-accuracy speech-to-text model for file and Realtime input transcription
 GPT-4o Transcribe
 Speech-to-text model powered by GPT-4o
-GPT-4o mini Transcribe
-Speech-to-text model powered by GPT-4o mini
+GPT-4o Mini Transcribe
+Speech-to-text model powered by GPT-4o Mini
 GPT-4o Transcribe Diarize
 Transcription model that identifies who's speaking when
 TTS-1
@@ -542,16 +564,16 @@ TTS-1 HD
 Text-to-speech model optimized for quality
 Whisper
 General-purpose speech recognition model
-GPT-4o mini TTS
-Text-to-speech model powered by GPT-4o mini
+GPT-4o Mini TTS
+Text-to-speech model powered by GPT-4o Mini
 OpenAI Daybreak
-Frontier cyber models for defenders
+Advanced cyber models for defenders
 GPT-5.6 Cyber
 Our most advanced cybersecurity model for authorized vulnerability research and security testing.
 Daybreak Red
 An alias for advanced cybersecurity models for authorized vulnerability research and security testing.
 Daybreak Blue
-An alias for frontier general-purpose models with safeguards for defensive cybersecurity work.
+An alias for flagship general-purpose models with safeguards for defensive cybersecurity work.
 Open-weight models
 Open-weight models under a permissive Apache 2.0 license.
 gpt-oss-120b
@@ -576,22 +598,22 @@ GPT-5.4
 A more affordable model for coding and professional work.
 GPT-5.4 Pro
 Version of GPT-5.4 that produces smarter and more precise responses.
-GPT-5.4 mini
+GPT-5.4 Mini
 Our strongest mini model yet for coding, computer use, and subagents
 GPT-5.4 nano
 Our cheapest GPT-5.4-class model for simple high-volume tasks
 GPT-5.3-Codex
 The most capable agentic coding model to date.
 GPT-5.2
-Previous frontier model for professional work with configurable reasoning effort
+Previous flagship model for professional work with configurable reasoning effort
 GPT-5.2 Pro
 Previous pro model for professional work that produces smarter and more precise responses.
 GPT-5.1
 The best model for coding and agentic tasks with configurable reasoning effort
 GPT-5
 Previous intelligent reasoning model for coding and agentic tasks with configurable reasoning effort
-GPT-5 mini
-Near-frontier intelligence for cost sensitive, low latency, high volume workloads
+GPT-5 Mini
+Strong intelligence for cost sensitive, low latency, high volume workloads
 GPT-5 nano
 Fastest, most cost-efficient version of GPT-5
 GPT-5 Pro
@@ -602,18 +624,18 @@ o3
 Reasoning model for complex tasks, succeeded by GPT-5
 GPT-4.1
 Smartest non-reasoning model
-GPT-4.1 mini
+GPT-4.1 Mini
 Smaller, faster version of GPT-4.1
 omni-moderation
 Identify potentially harmful content in text and images
-GPT-4o mini
+GPT-4o Mini
 Fast, affordable small model for focused tasks
 GPT-4o
 Fast, intelligent, flexible GPT model
 GPT-Realtime
 Deprecated
 Model capable of realtime text and audio inputs and outputs
-gpt-audio
+GPT-Audio
 Deprecated
 For audio inputs and outputs with Chat Completions API
 GPT-5.3 Chat
@@ -631,16 +653,16 @@ Flagship video generation with synced audio
 Sora 2 Pro
 Deprecated
 Most advanced synced-audio video generation
-GPT Image 1.5
+GPT-Image-1.5
 Deprecated
 Our previous image generation model
 chatgpt-image-latest
 Deprecated
 Previous image model used in ChatGPT.
-gpt-image-1-mini
+GPT-Image-1 Mini
 Deprecated
 A cost-efficient version of GPT Image 1
-GPT Image 1
+GPT-Image-1
 Deprecated
 Our previous image generation model
 o3-deep-research
@@ -654,20 +676,20 @@ Deprecated
 Fastest, most cost-efficient version of GPT-4.1
 o4-mini
 Deprecated
-Fast, cost-efficient reasoning model, succeeded by GPT-5 mini
+Fast, cost-efficient reasoning model, succeeded by GPT-5 Mini
 o1-pro
 Deprecated
 Version of o1 with more compute for better responses
 computer-use-preview
 Deprecated
 Specialized model for computer use tool
-GPT-Realtime mini
+GPT-Realtime Mini
 Deprecated
 A cost-efficient version of GPT-Realtime
-gpt-audio-mini
+GPT-Audio Mini
 Deprecated
 A cost-efficient version of GPT Audio
-GPT-4o mini Search Preview
+GPT-4o Mini Search Preview
 Deprecated
 Fast, affordable small model for web search
 GPT-4o Search Preview
@@ -691,10 +713,10 @@ Preview of our first o-series reasoning model
 GPT-4o Audio
 Deprecated
 GPT-4o models capable of audio inputs and outputs
-GPT-4o mini Audio
+GPT-4o Mini Audio
 Deprecated
 Smaller model capable of audio inputs and outputs
-GPT-4o mini Realtime
+GPT-4o Mini Realtime
 Deprecated
 Smaller realtime model for text and audio inputs and outputs
 GPT-4o Realtime
@@ -715,7 +737,7 @@ A version of GPT-5.1 optimized for agentic coding in Codex.
 GPT-5.1-Codex-Max
 Deprecated
 A version of GPT-5.1-codex optimized for long running tasks.
-GPT-5.1-Codex mini
+GPT-5.1-Codex Mini
 Deprecated
 Smaller, more cost-effective, less-capable version of GPT-5.1-Codex
 GPT-5-Codex

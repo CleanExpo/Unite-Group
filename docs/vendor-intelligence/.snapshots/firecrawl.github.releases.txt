@@ -12,9 +12,9 @@ Public
 Notifications
 You must be signed in to change notification settings
 Fork
-9.4k
+9.7k
 Star
-168k
+177k
 Releases: firecrawl/firecrawl
 Release list
 Previous Next
@@ -270,7 +270,7 @@ abimaelmartell, madmikeross, and 20 other contributors
 Assets
 2
 Loading
-54 people reacted
+53 people reacted
 v2.8.0
 v2.8.0
 Compare

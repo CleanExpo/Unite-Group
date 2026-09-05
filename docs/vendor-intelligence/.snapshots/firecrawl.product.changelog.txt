@@ -1,7 +1,18 @@
 Changelog | Firecrawl
-Introducing our most accurate /search yet. Read the announcement →
-167.7K Sign up
+Introducing the Firecrawl Developer Index, built for supercharging coding agents. Read the announcement →
+176.8K Sign up
 Changelog
+Aug 20, 2026
+Firecrawl Developer Index
+The Firecrawl Developer Index is now available, a specialized index for coding agents. It covers 70M+ artifacts across READMEs, external documentation, issues, pull requests, and OpenAPI specs, with semantic retrieval and metadata filters. Your AI agents answer questions about code behavior, API contracts, error messages, and known bugs from primary sources instead of general web pages.
+Highlights
+Highest recall of any major coding-specific index. Scores 0.63 recall@10 across the 1,179 real developer queries in our open DevDex benchmark , ahead of every other provider we tested.
+70M+ artifacts. READMEs, docs, issues, PRs, and OpenAPI specs from the most popular public repos and documentation sites, refreshed continuously with most sources updated daily.
+Answers with passages. Every result carries a stable id, a url, and the matched passages in markdown, so your agents act on the answer without a second scrape.
+Rich filters in the API. Scope by result type, repository, documentation source, language, topic, license, minimum stars, and more. These are API-only; agents on the CLI and MCP perform best without them.
+Keyless to start. No API key needed to try it; add one for higher rate limits. A developer search costs 2 credits per 10 results.
+Available everywhere you build. Query it through the API at /search/developer , plus the CLI, MCP, and SDKs, or install the companion skill with npx -y firecrawl-cli@latest setup developer-index .
+Read the full blog here .
 Aug 13, 2026
 Life Sciences in Firecrawl Research Index
 The Life Sciences category is now available in Firecrawl Research Index . It covers 41M+ papers across the drug discovery, clinical trial, and biology literature. Your AI agents get citable papers back for a query and can pull the full text on demand. The whole index is also free to use now.
@@ -356,7 +367,6 @@ Crawl Entire Domain Param - Follow internal links to sibling or parent URLs, not
 Google Docs Scraping - We now officially support scraping Google Docs files
 Improved Activity Logs - Better support for FIRE-1 requests. See your logs here.
 /search Playground Enhanced - Location Params added. Check out the playground.
-Firestarter Example - Open Source Chatbot building platform. Repo here.
 Plus tons of performance improvements and bug fixes. 
 Jun 13, 2025
 Firecrawl v1.11.0 is here

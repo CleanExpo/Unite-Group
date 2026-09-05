@@ -33,6 +33,13 @@ $ref: '#/components/schemas/SearchRequest'
 responses:
 '200':
 description: OK
+headers:
+x-request-id:
+$ref: '#/components/headers/XRequestId'
+x-exa-queued:
+$ref: '#/components/headers/XExaQueued'
+x-exa-queue-ms:
+$ref: '#/components/headers/XExaQueueMs'
 content:
 application/json:
 example:
@@ -65,260 +72,32 @@ $ref: '#/components/schemas/SearchResponse'
 text/event-stream:
 schema:
 $ref: '#/components/schemas/SearchStreamChunk'
+'400':
+$ref: '#/components/responses/BadRequestResponse'
+'401':
+$ref: '#/components/responses/UnauthorizedResponse'
 '402':
-description: Payment Required
-x-codeSamples:
-- lang: bash
-label: Simple search with contents
-source: |-
-curl -X POST 'https://api.exa.ai/search' \
--H 'x-api-key: YOUR-EXA-API-KEY' \
--H 'Content-Type: application/json' \
--d '{
-"query": "Latest research in LLMs",
-"contents": {
-"highlights": true
-}
-}'
-- lang: python
-label: Simple search with contents
-source: |-
-# pip install exa-py
-from exa_py import Exa
-exa = Exa(api_key='YOUR_EXA_API_KEY')
-results = exa.search(
-"Latest research in LLMs",
-contents={"highlights": True}
-)
-print(results)
-- lang: javascript
-label: Simple search with contents
-source: |-
-// npm install exa-js
-import Exa from 'exa-js';
-const exa = new Exa('YOUR_EXA_API_KEY');
-const results = await exa.search(
-'Latest research in LLMs',
-{ contents: { highlights: true } }
-);
-console.log(results);
-- lang: bash
-label: Advanced search with filters
-source: |-
-curl --request POST \
---url https://api.exa.ai/search \
---header 'x-api-key: <token>' \
---header 'Content-Type: application/json' \
---data '{
-"query": "Latest research in LLMs",
-"type": "auto",
-"category": "publication",
-"numResults": 10,
-"moderation": true,
-"contents": {
-"text": true,
-"summary": {
-"query": "Main developments"
-},
-"subpages": 1,
-"subpageTarget": "sources",
-"extras": {
-"links": 1,
-"imageLinks": 1
-}
-}
-}'
-- lang: bash
-label: Deep search with query variations
-source: |-
-curl --request POST \
---url https://api.exa.ai/search \
---header 'x-api-key: <token>' \
---header 'Content-Type: application/json' \
---data '{
-"query": "Who is the CEO of OpenAI?",
-"additionalQueries": [
-"OpenAI CEO current",
-"OpenAI leadership official source"
-],
-"type": "deep",
-"systemPrompt": "Prefer official sources and avoid duplicate results",
-"outputSchema": {
-"type": "object",
-"properties": {
-"leader": { "type": "string" },
-"title": { "type": "string" },
-"sourceCount": { "type": "number" }
-},
-"required": ["leader", "title"]
-},
-"contents": {
-"text": true
-}
-}'
-- lang: python
-label: Advanced search with filters
-source: |-
-# pip install exa-py
-from exa_py import Exa
-exa = Exa(api_key='YOUR_EXA_API_KEY')
-results = exa.search(
-"Latest research in LLMs",
-type="auto",
-category="publication",
-num_results=10,
-moderation=True,
-contents={
-"text": True,
-"summary": {
-"query": "Main developments"
-},
-"subpages": 1,
-"subpage_target": "sources",
-"extras": {
-"links": 1,
-"image_links": 1
-}
-},
-)
-print(results)
-- lang: javascript
-label: Advanced search with filters
-source: |-
-// npm install exa-js
-import Exa from 'exa-js';
-const exa = new Exa('YOUR_EXA_API_KEY');
-const results = await exa.search('Latest research in LLMs', {
-type: 'auto',
-category: 'publication',
-numResults: 10,
-moderation: true,
-contents: {
-text: true,
-summary: {
-query: 'Main developments'
-},
-subpages: 1,
-subpageTarget: 'sources',
-extras: {
-links: 1,
-imageLinks: 1
-}
-}
-});
-console.log(results);
-- lang: python
-label: Deep search with query variations
-source: |-
-# pip install exa-py
-from exa_py import Exa
-exa = Exa(api_key='YOUR_EXA_API_KEY')
-results = exa.search(
-"Who is the CEO of OpenAI?",
-additional_queries=[
-"OpenAI CEO current",
-"OpenAI leadership official source"
-],
-type="deep",
-system_prompt="Prefer official sources and avoid duplicate results",
-output_schema={
-"type": "object",
-"properties": {
-"leader": {"type": "string"},
-"title": {"type": "string"},
-"source_count": {"type": "number"}
-},
-"required": ["leader", "title"]
-},
-contents={"text": True}
-)
-print(results)
-- lang: javascript
-label: Deep search with query variations
-source: |-
-// npm install exa-js
-import Exa from 'exa-js';
-const exa = new Exa('YOUR_EXA_API_KEY');
-const results = await exa.search('Who is the CEO of OpenAI?', {
-additionalQueries: [
-'OpenAI CEO current',
-'OpenAI leadership official source'
-],
-type: 'deep',
-systemPrompt: 'Prefer official sources and avoid duplicate results',
-outputSchema: {
-type: 'object',
-properties: {
-leader: { type: 'string' },
-title: { type: 'string' },
-sourceCount: { type: 'number' }
-},
-required: ['leader', 'title']
-},
-contents: {
-text: true
-}
-});
-console.log(results);
-- lang: bash
-label: Streaming synthesized output
-source: |-
-curl --no-buffer --request POST \
---url https://api.exa.ai/search \
---header 'x-api-key: <token>' \
---header 'Content-Type: application/json' \
---data '{
-"query": "Summarize the latest AI chip launches",
-"type": "fast",
-"stream": true,
-"outputSchema": {
-"type": "text",
-"description": "A short grounded summary in 3 bullets"
-}
-}'
-- lang: bash
-label: Instant search (lowest latency)
-source: |-
-curl --request POST \
---url https://api.exa.ai/search \
---header 'x-api-key: <token>' \
---header 'Content-Type: application/json' \
---data '{
-"query": "What is the capital of France?",
-"type": "instant",
-"numResults": 10,
-"contents": {
-"highlights": true
-}
-}'
-- lang: python
-label: Instant search (lowest latency)
-source: |-
-# pip install exa-py
-from exa_py import Exa
-exa = Exa(api_key='YOUR_EXA_API_KEY')
-results = exa.search(
-"What is the capital of France?",
-type="instant",
-num_results=10,
-contents={"highlights": True}
-)
-print(results)
-- lang: javascript
-label: Instant search (lowest latency)
-source: |-
-// npm install exa-js
-import Exa from 'exa-js';
-const exa = new Exa('YOUR_EXA_API_KEY');
-const results = await exa.search(
-'What is the capital of France?',
-{
-type: 'instant',
-numResults: 10,
-contents: { highlights: true }
-}
-);
-console.log(results);
+description: >-
+Payment required. For API-key requests this is the standard error
+envelope (out of credits or a budget exceeded). On x402-priced
+endpoints, requests without an API key instead receive an x402
+payment challenge with tag `X402_PAYMENT_REQUIRED`: the envelope
+extended with x402 payment metadata (`x402Version`, `resource`,
+`accepts`, and optional `extensions`) describing how to pay for the
+request.
+headers:
+x-request-id:
+$ref: '#/components/headers/XRequestId'
+content:
+application/json:
+schema:
+oneOf:
+- $ref: '#/components/schemas/ErrorResponse'
+- $ref: '#/components/schemas/X402PaymentChallenge'
+'429':
+$ref: '#/components/responses/TooManyRequestsResponse'
+'500':
+$ref: '#/components/responses/InternalServerErrorResponse'
 components:
 schemas:
 SearchRequest:
@@ -635,6 +414,14 @@ highlights or text instead.
 deprecated: true
 costDollars:
 $ref: '#/components/schemas/CostDollarsOutput'
+searchTime:
+type: number
+description: >-
+Server-side processing time in milliseconds, measured at the
+gateway. Covers retrieval but may exclude later phases such as
+structured output synthesis, so it can be lower than end-to-end
+request latency.
+example: 312.4
 output:
 $ref: '#/components/schemas/SearchSynthesisOutputOutput'
 required:
@@ -669,6 +456,14 @@ highlights or text instead.
 deprecated: true
 costDollars:
 $ref: '#/components/schemas/CostDollarsOutput'
+searchTime:
+type: number
+description: >-
+Server-side processing time in milliseconds, measured at the
+gateway. Covers retrieval but may exclude later phases such as
+structured output synthesis, so it can be lower than end-to-end
+request latency.
+example: 312.4
 required:
 - results
 additionalProperties: false
@@ -901,6 +696,12 @@ anyOf:
 - type: 'null'
 searchTime:
 type: number
+description: >-
+Server-side processing time in milliseconds, measured at the
+gateway. Covers retrieval but may exclude later phases such as
+structured output synthesis, so it can be lower than end-to-end
+request latency.
+example: 312.4
 costDollars:
 $ref: '#/components/schemas/CostDollarsOutput'
 choices:
@@ -981,6 +782,151 @@ stream. Each event is emitted as `data: <json>` and the stream
 terminates with `data: [DONE]`, which is not represented by this JSON
 schema.
 type: object
+ErrorResponse:
+type: object
+properties:
+requestId:
+type: string
+description: Unique identifier for the request.
+example: b5947044c4b78efa9552a7c89b306d95
+error:
+type: string
+description: Human-readable message describing the error.
+example: Invalid API key
+tag:
+type: string
+description: >-
+Machine-readable error tag identifying the failure. The set of tags
+is open-ended: new tags may be added at any time, so treat
+unrecognized tags as a generic error of the response's HTTP status.
+Known tags are listed as examples.
+examples:
+- DEFAULT_ERROR
+- INTERNAL_ERROR
+- INVALID_API_KEY
+- INVALID_REQUEST
+- INVALID_REQUEST_BODY
+- INVALID_REQUEST_QUERY
+- INVALID_JSON_SCHEMA
+- INVALID_NUM_RESULTS
+- NUM_RESULTS_EXCEEDED
+- NO_MORE_CREDITS
+- API_KEY_BUDGET_EXCEEDED
+- TEAM_BUDGET_EXCEEDED
+- NO_CONTENT_FOUND
+- PROHIBITED_CONTENT
+- INSUFFICIENT_SCOPE
+- UNABLE_TO_GENERATE_RESPONSE
+- UNSUPPORTED_PUBLICATION_INCLUDE_FILTER
+- SUBPAGES_LIMIT_EXCEEDED
+- FEATURE_DISABLED
+- INVALID_URLS
+- FETCH_DOCUMENT_ERROR
+- TEAM_BLOCKED
+- NOT_FOUND
+- RATE_LIMIT_EXCEEDED
+required:
+- requestId
+- error
+- tag
+additionalProperties: false
+description: Standard error envelope returned by the Exa API for failed requests.
+X402PaymentChallenge:
+type: object
+properties:
+requestId:
+type: string
+description: Unique identifier for the request.
+example: b5947044c4b78efa9552a7c89b306d95
+error:
+type: string
+description: Human-readable message describing the error.
+example: Payment required to access this resource
+tag:
+type: string
+description: >-
+Machine-readable error tag identifying the failure. The set of tags
+is open-ended: new tags may be added at any time, so treat
+unrecognized tags as a generic error of the response's HTTP status.
+Known tags are listed as examples.
+examples:
+- DEFAULT_ERROR
+- INTERNAL_ERROR
+- INVALID_API_KEY
+- INVALID_REQUEST
+- INVALID_REQUEST_BODY
+- INVALID_REQUEST_QUERY
+- INVALID_JSON_SCHEMA
+- INVALID_NUM_RESULTS
+- NUM_RESULTS_EXCEEDED
+- NO_MORE_CREDITS
+- API_KEY_BUDGET_EXCEEDED
+- TEAM_BUDGET_EXCEEDED
+- NO_CONTENT_FOUND
+- PROHIBITED_CONTENT
+- INSUFFICIENT_SCOPE
+- UNABLE_TO_GENERATE_RESPONSE
+- UNSUPPORTED_PUBLICATION_INCLUDE_FILTER
+- SUBPAGES_LIMIT_EXCEEDED
+- FEATURE_DISABLED
+- INVALID_URLS
+- FETCH_DOCUMENT_ERROR
+- TEAM_BLOCKED
+- NOT_FOUND
+- RATE_LIMIT_EXCEEDED
+x402Version:
+type: number
+description: Version of the x402 protocol used to build this challenge.
+example: 2
+resource:
+type: object
+properties:
+url:
+type: string
+description: URL of the priced resource being requested.
+description:
+type: string
+description: Human-readable resource description.
+mimeType:
+type: string
+description: MIME type of the priced resource.
+required:
+- url
+- description
+- mimeType
+additionalProperties: false
+description: The priced resource this challenge applies to.
+accepts:
+type: array
+items:
+type: object
+propertyNames:
+type: string
+additionalProperties: {}
+description: >-
+An accepted x402 payment requirement (scheme, network, amount,
+payTo, asset, maxTimeoutSeconds, and scheme-specific `extra`
+fields).
+description: Payment requirements the server accepts, one per supported rail.
+extensions:
+description: >-
+Optional x402 protocol extensions (e.g. Bazaar or AgentKit discovery
+metadata).
+type: object
+propertyNames:
+type: string
+additionalProperties: {}
+required:
+- requestId
+- error
+- tag
+- x402Version
+- resource
+- accepts
+additionalProperties: false
+description: >-
+x402 payment challenge: the standard error envelope extended with x402
+payment metadata.
 ContentsOptions:
 type: object
 properties:
@@ -1110,6 +1056,50 @@ Custom query that guides which highlights the LLM
 picks.
 example: Key advancements
 - type: 'null'
+verbosity:
+anyOf:
+- type: string
+enum:
+- low
+- medium
+- high
+description: >-
+Preset highlight length: `low`, `medium`, and `high`
+allocate progressively larger token budgets for the
+returned highlights. With highlights.dynamic, the
+preset sets a single shared budget across the whole
+result set instead of a per-URL budget. Exact
+budgets are tuned by Exa and may change. Not
+compatible with maxCharacters or numSentences. Beta:
+requires the `Exa-Beta:
+dynamic-highlights-2026-08-28` request header;
+requests setting `verbosity` without it are
+rejected.
+example: medium
+x-exa-lifecycle: beta
+x-exa-beta-flag: dynamic-highlights-2026-08-28
+x-mint:
+post:
+- Beta
+- type: 'null'
+dynamic:
+anyOf:
+- type: boolean
+description: >-
+Enable Dynamic Highlights (research preview):
+considers all results together and allocates a
+single shared context budget across the result set
+instead of a per-document budget. Not compatible
+with maxCharacters. Beta: requires the `Exa-Beta:
+dynamic-highlights-2026-08-28` request header;
+requests setting `dynamic` without it are rejected.
+example: true
+x-exa-lifecycle: beta
+x-exa-beta-flag: dynamic-highlights-2026-08-28
+x-mint:
+post:
+- Beta
+- type: 'null'
 maxCharacters:
 anyOf:
 - type: integer
@@ -1119,7 +1109,7 @@ description: >-
 Maximum number of characters to return for
 highlights. Controls the total length of highlight
 text returned per URL. Maximum supported value is
-10000.
+10000. Not compatible with highlights.dynamic.
 example: 2000
 - type: 'null'
 numSentences:
@@ -2204,7 +2194,9 @@ required:
 additionalProperties: false
 type: object
 extras:
-description: Results from extras.
+description: >-
+Results from extras. Each field is returned only when requested via
+contents.extras.
 example:
 links: []
 type: object
@@ -2215,6 +2207,71 @@ example: []
 type: array
 items:
 type: string
+imageLinks:
+description: Array of image URLs from the search result.
+example: []
+type: array
+items:
+type: string
+richImageLinks:
+description: >-
+Array of images with their alt text, in the order the images
+appear on the page.
+example:
+- url: https://exa.ai/images/illustrations/api_illustration4.webp
+alt: High rate limits, low latency and high reliability.
+type: array
+items:
+type: object
+properties:
+url:
+type: string
+description: The URL of the image.
+alt:
+description: The alt text of the image, when the page provides one.
+type: string
+required:
+- url
+additionalProperties: false
+richLinks:
+description: >-
+Array of links with their anchor text, in the order they appear
+on the page.
+example:
+- url: https://dashboard.exa.ai
+anchor: API Dashboard
+type: array
+items:
+type: object
+properties:
+url:
+type: string
+description: The URL of the link.
+anchor:
+description: The anchor text of the link, when the page provides one.
+type: string
+required:
+- url
+additionalProperties: false
+codeBlocks:
+description: Array of code blocks from the search result.
+example:
+- text: pip install exa-py
+source: bash
+type: array
+items:
+type: object
+properties:
+text:
+type: string
+description: The contents of the code block.
+source:
+type: string
+description: The language the code block is annotated with, if any.
+required:
+- text
+- source
+additionalProperties: false
 additionalProperties: false
 required:
 - title
@@ -2240,6 +2297,38 @@ properties:
 neural:
 description: Cost of neural search operations.
 example: 0.007
+format: float
+type: number
+keyword:
+description: Cost of keyword search operations.
+example: 0.0025
+format: float
+type: number
+additionalProperties: false
+summary:
+description: Cost of synthesized summary generation for search requests.
+example: 0.005
+format: float
+type: number
+contents:
+description: >-
+Estimated cost breakdown for standalone content retrieval (text,
+highlights, and summaries billed outside the bundled search price).
+type: object
+properties:
+text:
+description: Cost of text extraction.
+example: 0.001
+format: float
+type: number
+highlights:
+description: Cost of highlight extraction.
+example: 0.001
+format: float
+type: number
+summary:
+description: Cost of per-result summary generation.
+example: 0.001
 format: float
 type: number
 additionalProperties: false
@@ -2307,6 +2396,88 @@ required:
 - grounding
 additionalProperties: false
 description: Synthesized output. Returned when outputSchema is provided.
+headers:
+XRequestId:
+description: >-
+Unique identifier for the request. Matches the `requestId` field
+returned in response bodies that carry one.
+schema:
+type: string
+example: 07e29bb1f4f1dd05f0d4b57bbcf6e4b8
+XExaQueued:
+description: >-
+Whether the request waited in the customer rate-limit queue before being
+admitted.
+schema:
+type: string
+enum:
+- 'true'
+- 'false'
+example: 'false'
+XExaQueueMs:
+description: Total milliseconds the request waited in the customer rate-limit queue.
+schema:
+type: string
+example: '0'
+responses:
+BadRequestResponse:
+description: The request body or query parameters failed validation.
+headers:
+x-request-id:
+$ref: '#/components/headers/XRequestId'
+content:
+application/json:
+example:
+requestId: 0a1b2c3d4e5f60718293a4b5c6d7e8f9
+error: >-
+Invalid request body: query: Invalid input: expected string,
+received undefined
+tag: INVALID_REQUEST_BODY
+schema:
+$ref: '#/components/schemas/ErrorResponse'
+UnauthorizedResponse:
+description: The API key is missing or invalid.
+headers:
+x-request-id:
+$ref: '#/components/headers/XRequestId'
+content:
+application/json:
+example:
+requestId: f2a4c6e8b0d2f4a6c8e0b2d4f6a8c0e2
+error: Invalid API key
+tag: INVALID_API_KEY
+schema:
+$ref: '#/components/schemas/ErrorResponse'
+TooManyRequestsResponse:
+description: A rate limit was exceeded.
+headers:
+x-request-id:
+$ref: '#/components/headers/XRequestId'
+content:
+application/json:
+example:
+requestId: 7f9b1d3e5a0c2e4b6d8f0a2c4e6b8d0f
+error: >-
+You've exceeded the Exa rate limit for your network. If you
+believe this is in error, please email hello@exa.ai :)
+tag: RATE_LIMIT_EXCEEDED
+schema:
+$ref: '#/components/schemas/ErrorResponse'
+InternalServerErrorResponse:
+description: An unexpected error occurred while processing the request.
+headers:
+x-request-id:
+$ref: '#/components/headers/XRequestId'
+content:
+application/json:
+example:
+requestId: 9b1d3f5e7a0c2e4b6d8f0a2c4e6b8d0f
+error: >-
+Sorry, we encountered an error while processing your request.
+Please try again later
+tag: DEFAULT_ERROR
+schema:
+$ref: '#/components/schemas/ErrorResponse'
 securitySchemes:
 apiKey:
 type: apiKey
