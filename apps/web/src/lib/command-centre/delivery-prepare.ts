@@ -10,7 +10,14 @@ import { getProjects } from "./registry";
 import {
   resolveDeliveryProjects,
   matchDeliveryProject,
+  projectFromDeliveryRepository,
 } from "./delivery-projects";
+import {
+  readDeliveryRepository,
+  repositoryFullNameSchema,
+  repositoryReadFailure,
+  type DeliveryRepository,
+} from "./delivery-repositories";
 import { readDeliveryContext } from "./delivery-context";
 import { classifyIdea } from "./classify-idea";
 import { generateClarifyingQuestions } from "./clarify";
@@ -22,6 +29,7 @@ import {
   DELIVERY_EXTERNAL_REF_PREFIX,
   DELIVERY_SCOPE,
   readDeliveryMetadata,
+  isCanonicalDeliveryTarget,
   deliveryMetadataSchema,
   type DeliveryMetadata,
   type DeliveryRequest,
@@ -43,6 +51,7 @@ export interface DeliveryPreparationDeps {
   getTaskById: typeof getTaskById;
   listTasks: typeof listTasks;
   getProjects: typeof getProjects;
+  readDeliveryRepository: typeof readDeliveryRepository;
   readDeliveryContext: typeof readDeliveryContext;
   classifyIdea: typeof classifyIdea;
   generateClarifyingQuestions: typeof generateClarifyingQuestions;
@@ -63,6 +72,7 @@ const defaults: DeliveryPreparationDeps = {
   getTaskById,
   listTasks,
   getProjects,
+  readDeliveryRepository,
   readDeliveryContext,
   classifyIdea,
   generateClarifyingQuestions,
@@ -309,8 +319,26 @@ export async function prepareDeliveryMission(
     d = next;
   };
   try {
-    const resolvedProjects = resolveDeliveryProjects(await deps.getProjects());
-    if (resolvedProjects.error) {
+    const requestedProject = d.answers.project ?? d.projectKey;
+    const explicitRepository = requestedProject?.includes("/") === true;
+    let selectedRepository: DeliveryRepository | null = null;
+    if (explicitRepository) {
+      try {
+        selectedRepository = await deps.readDeliveryRepository(
+          requestedProject!,
+        );
+      } catch (error) {
+        await persist({
+          phase: "failed",
+          lease: null,
+          error: repositoryReadFailure(error),
+        });
+        return { task, deduplicated };
+      }
+    }
+    const registry = await deps.getProjects();
+    const resolvedProjects = resolveDeliveryProjects(registry);
+    if (!selectedRepository && resolvedProjects.error) {
       await persist({
         phase: "failed",
         lease: null,
@@ -321,12 +349,12 @@ export async function prepareDeliveryMission(
       });
       return { task, deduplicated };
     }
-    const projects = resolvedProjects.projects;
-    const requestedProject = d.answers.project ?? d.projectKey;
-    const project = matchDeliveryProject(
-      requestedProject ?? d.originalIdea,
-      projects,
-    );
+    const project = selectedRepository
+      ? projectFromDeliveryRepository(selectedRepository, registry)
+      : matchDeliveryProject(
+          requestedProject ?? d.originalIdea,
+          resolvedProjects.projects,
+        );
     if (!project) {
       await persist({
         phase: "awaiting_answers",
@@ -362,7 +390,12 @@ export async function prepareDeliveryMission(
     };
     await persist({ knowledgeContext });
     const sourceRefs = [
-      { reference: `project:${project.name}`, label: "Project registry" },
+      selectedRepository
+        ? {
+            reference: `https://github.com/${selectedRepository.fullName}`,
+            label: "Selected GitHub repository (access verified)",
+          }
+        : { reference: `project:${project.name}`, label: "Project registry" },
       ...prior.map((p) => ({ reference: `task:${p.id}`, label: p.title })),
       ...knowledge.notes.map((note) => ({
         reference: note.reference,
@@ -371,7 +404,17 @@ export async function prepareDeliveryMission(
     ];
     const context = JSON.stringify({
       idea: d.originalIdea,
-      project: { name: project.name, purpose: project.business_purpose },
+      project: {
+        name: project.name,
+        purpose: project.business_purpose,
+        ...(selectedRepository
+          ? {
+              repository: selectedRepository,
+              authority:
+                "Repository identity and visibility only; repository content was not read.",
+            }
+          : {}),
+      },
       answers: d.answers,
       selectedRequirements: resolveDeliveryPresets(d.presetIds).flatMap(
         (p) => p.requirements,
@@ -447,6 +490,11 @@ export async function prepareDeliveryMission(
         ...plan,
         requirements: [
           d.originalIdea,
+          ...(selectedRepository
+            ? [
+                `Selected repository: ${selectedRepository.fullName}.${selectedRepository.archived ? " This repository is archived; authorised unarchiving is required before changes can be made." : ""}`,
+              ]
+            : []),
           ...Object.entries(d.answers)
             .filter(([key]) => key !== "project")
             .map(
@@ -542,14 +590,33 @@ async function approve(
     d.specVersion !== specVersion ||
     deliveryFingerprint(d) !== specVersion ||
     d.lane !== "software" ||
-    d.projectKey?.toLowerCase() !== "unite-group"
+    !isCanonicalDeliveryTarget(d.projectKey)
   )
     throw new DeliveryConflict(
       "This exact specification is not ready for the connected build runner.",
     );
+  const explicitRepository = repositoryFullNameSchema.safeParse(d.projectKey);
+  if (explicitRepository.success) {
+    let selected: DeliveryRepository;
+    try {
+      selected = await deps.readDeliveryRepository(explicitRepository.data);
+    } catch (error) {
+      throw new DeliveryConflict(repositoryReadFailure(error).message);
+    }
+    if (
+      selected.fullName.toLowerCase() !== "cleanexpo/unite-group" ||
+      selected.archived
+    )
+      throw new DeliveryConflict(
+        "This repository has no active authorised build runner. Its mission remains saved.",
+      );
+  }
   const targetRegistry = resolveDeliveryProjects(await deps.getProjects());
-  const targets = targetRegistry.projects.filter(
-    (project) => project.name.toLowerCase() === d.projectKey?.toLowerCase(),
+  const targets = targetRegistry.projects.filter((project) =>
+    explicitRepository.success
+      ? project.github_repo?.toLowerCase() ===
+        explicitRepository.data.toLowerCase()
+      : project.name.toLowerCase() === d.projectKey?.toLowerCase(),
   );
   if (
     targetRegistry.error ||

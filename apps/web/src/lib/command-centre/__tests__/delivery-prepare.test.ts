@@ -71,6 +71,11 @@ function harness() {
         : null,
     ),
     listTasks: vi.fn(async () => []),
+    readDeliveryRepository: vi.fn(async (fullName) => ({
+      fullName,
+      private: true,
+      archived: false,
+    })),
     readDeliveryContext: vi.fn(async () => ({
       state: "empty",
       source: "knowledge_notes",
@@ -187,6 +192,140 @@ function harness() {
 afterEach(() => vi.unstubAllEnvs());
 
 describe("durable Margot preparation and build consent", () => {
+  it("prepares and resumes an accessible unregistered owner/repository without losing its identity", async () => {
+    const h = harness();
+    vi.mocked(h.deps.generateClarifyingQuestions).mockResolvedValueOnce([
+      "Who will use the portal?",
+    ]);
+    await prepareDeliveryMission(
+      founder,
+      { ...initial, projectKey: "Other-Organisation/Customer-App" },
+      h.deps,
+    );
+    const saved = readDeliveryMetadata(h.row)!;
+    expect(saved.projectKey).toBe("Other-Organisation/Customer-App");
+    expect(saved.questions[0].id).not.toBe("project");
+    await prepareDeliveryMission(
+      founder,
+      {
+        action: "resume",
+        taskId: id,
+        answers: { [saved.questions[0].id]: "Our trade customers" },
+      },
+      h.deps,
+    );
+    const final = readDeliveryMetadata(h.row)!;
+    expect(final.phase).toBe("ready");
+    expect(h.row.project_key).toBe("Other-Organisation/Customer-App");
+    expect(final.spec?.requirements).toContain(
+      "Selected repository: Other-Organisation/Customer-App.",
+    );
+    expect(h.deps.readDeliveryRepository).toHaveBeenNthCalledWith(
+      1,
+      "Other-Organisation/Customer-App",
+    );
+    expect(h.deps.readDeliveryRepository).toHaveBeenNthCalledWith(
+      2,
+      "Other-Organisation/Customer-App",
+    );
+    expect(toDeliveryMissionView(h.row).nextAction.kind).toBe("connect");
+    await expect(
+      prepareDeliveryMission(
+        founder,
+        { action: "approve", taskId: id, specVersion: final.specVersion! },
+        h.deps,
+      ),
+    ).rejects.toThrow(/connected build runner/);
+    expect(h.receipts).toHaveLength(0);
+  });
+  it("retains explicit repository when the portfolio is unavailable instead of substituting a business", async () => {
+    const h = harness();
+    vi.mocked(h.deps.getProjects).mockResolvedValue([]);
+    await prepareDeliveryMission(
+      founder,
+      { ...initial, projectKey: "Another/Shared" },
+      h.deps,
+    );
+    expect(readDeliveryMetadata(h.row)?.phase).toBe("ready");
+    expect(h.row.project_key).toBe("Another/Shared");
+  });
+  it("keeps an inaccessible selection saved and retries that exact repository", async () => {
+    const h = harness();
+    vi.mocked(h.deps.readDeliveryRepository).mockRejectedValueOnce(
+      new Error("provider error with private details"),
+    );
+    await prepareDeliveryMission(
+      founder,
+      { ...initial, projectKey: "Another/Shared" },
+      h.deps,
+    );
+    expect(h.row.project_key).toBe("Another/Shared");
+    expect(readDeliveryMetadata(h.row)?.error?.code).toBe(
+      "repository_unavailable",
+    );
+    expect(readDeliveryMetadata(h.row)?.error?.message).not.toContain(
+      "private details",
+    );
+    expect(h.deps.generateBuildPlan).not.toHaveBeenCalled();
+    await prepareDeliveryMission(
+      founder,
+      { action: "resume", taskId: id },
+      h.deps,
+    );
+    expect(readDeliveryMetadata(h.row)?.phase).toBe("ready");
+    expect(h.row.project_key).toBe("Another/Shared");
+  });
+  it("allows the exact canonical fullName only through existing signed branch-build consent", async () => {
+    vi.stubEnv("MISSION_PROVENANCE_SECRET", "test-delivery-provenance");
+    const h = harness();
+    await prepareDeliveryMission(
+      founder,
+      { ...initial, projectKey: "CleanExpo/Unite-Group" },
+      h.deps,
+    );
+    expect(toDeliveryMissionView(h.row).nextAction.kind).toBe("approve");
+    await prepareDeliveryMission(
+      founder,
+      {
+        action: "approve",
+        taskId: id,
+        specVersion: readDeliveryMetadata(h.row)!.specVersion!,
+      },
+      h.deps,
+    );
+    expect(h.row.project_key).toBe("CleanExpo/Unite-Group");
+    expect(getApprovedDelivery(h.row)).toMatchObject({
+      repository: "CleanExpo/Unite-Group",
+      projectKey: "CleanExpo/Unite-Group",
+      scope: "branch_preview_only",
+    });
+    expect(h.deps.readDeliveryRepository).toHaveBeenCalledTimes(2);
+  });
+  it("does not grant a canonical build for an archived repository", async () => {
+    const h = harness();
+    vi.mocked(h.deps.readDeliveryRepository).mockResolvedValue({
+      fullName: "CleanExpo/Unite-Group",
+      private: true,
+      archived: true,
+    });
+    await prepareDeliveryMission(
+      founder,
+      { ...initial, projectKey: "CleanExpo/Unite-Group" },
+      h.deps,
+    );
+    await expect(
+      prepareDeliveryMission(
+        founder,
+        {
+          action: "approve",
+          taskId: id,
+          specVersion: readDeliveryMetadata(h.row)!.specVersion!,
+        },
+        h.deps,
+      ),
+    ).rejects.toThrow(/no active authorised build runner/);
+    expect(h.receipts).toHaveLength(0);
+  });
   it.each(["Someone/Other-Repo", null])(
     "refuses consent when the current Unite-Group registry label points to %s",
     async (github_repo) => {

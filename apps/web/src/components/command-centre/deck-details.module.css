@@ -78,3 +78,10 @@
   font-size: 0.7rem;
   letter-spacing: 0.03em;
 }
+
+/* Long summaries wrap; wide evidence tables scroll within their disclosure. */
+:global([data-mission-control]) .deckDetails { min-width: 0; max-width: 100%; }
+:global([data-mission-control]) .deckSummary { flex-wrap: wrap; }
+:global([data-mission-control]) :is(.title, .stats) { white-space: normal; overflow-wrap: anywhere; min-width: 0; }
+:global([data-mission-control]) .body { min-width: 0; max-width: 100%; overflow-x: auto; }
+:global([data-mission-control]) .badge { min-width: 0; max-width: 100%; }

@@ -1,4 +1,4 @@
-.shell {
+.shell, .missionTheme {
   --mission-canvas: #171a1f;
   --mission-surface: #22262d;
   --mission-raised: #292e37;
@@ -8,12 +8,16 @@
   --mission-blue: #8ab8ff;
   --mission-blue-ink: #13253f;
   --mission-attention: #f1c58b;
+  --mission-success: #82d4ac;
+  --mission-danger: #ff9b9b;
+}
+.shell {
   min-height: 100%;
   background: var(--mission-canvas);
   color: var(--mission-ink);
   padding: 28px clamp(18px, 3vw, 48px) 80px;
 }
-.shell:global(.cc-daylight) {
+.shell:global(.cc-daylight), .missionTheme.missionDaylight {
   --mission-canvas: #f5f7fa;
   --mission-surface: #fff;
   --mission-raised: #edf1f6;
@@ -23,7 +27,45 @@
   --mission-blue: #315eab;
   --mission-blue-ink: #fff;
   --mission-attention: #865309;
+  --mission-success: #226b45;
+  --mission-danger: #a52c35;
 }
+.shell, .shell:global(.cc-daylight), .missionTheme, .missionTheme.missionDaylight {
+  --surface-canvas: var(--mission-canvas);
+  --surface-card: var(--mission-surface);
+  --surface-elevated: var(--mission-raised);
+  --surface-overlay: var(--mission-surface);
+  --surface-sidebar: var(--mission-canvas);
+  --color-border: var(--mission-border);
+  --color-text-primary: var(--mission-ink);
+  --color-text-secondary: var(--mission-muted);
+  --color-text-muted: var(--mission-muted);
+  --color-text-disabled: var(--mission-muted);
+  --color-accent: var(--mission-blue);
+  --color-accent-text: var(--mission-blue);
+  --color-success: var(--mission-success);
+  --color-danger: var(--mission-danger);
+  font-family: Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+}
+.shell :is(button, input, select, textarea) { font: inherit; }
+.shell :is(button, a, input, select, textarea, summary):focus-visible { outline: 3px solid var(--mission-blue); outline-offset: 4px; }
+.workspace { max-width: 1480px; margin: 0 auto; min-width: 0; }
+.workspaceChrome { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; min-height: 48px; height: auto; padding: 0 0 14px; border: 0; }
+.workspaceChrome > a { color: var(--mission-muted); text-decoration: none; font-size: 13px; }
+.workspaceChrome strong { color: var(--mission-ink); }
+.workspaceChrome > [data-topbar-actions] { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; max-width: 100%; }
+.workspaceThemeToggle { position: static; white-space: nowrap; font-size: 12px !important; }
+.workspaceChrome button { min-width: 34px; min-height: 36px; cursor: pointer; border-radius: 3px; }
+.workspaceChrome > button { background: transparent; border: 1px solid var(--mission-border); display: grid; place-items: center; }
+.workspaceChrome [data-topbar-actions] > button { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--mission-muted); border: 1px solid var(--mission-border); background: transparent; padding: 6px 10px; }
+.workspaceNav { display: flex; flex-wrap: wrap; gap: 4px 8px; padding: 12px 0 16px; border-top: 1px solid var(--mission-border); border-bottom: 1px solid var(--mission-border); margin-bottom: 20px; }
+.workspaceNav a { color: var(--mission-muted); font-size: 13px; text-decoration: none; padding: 7px 10px; min-height: 36px; border: 1px solid transparent; border-radius: 3px; }
+.workspaceNav a:hover, .workspaceNav a[aria-current="page"] { color: var(--mission-blue); border-color: var(--mission-border); background: var(--mission-raised); }
+.workspaceHeading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 18px; margin: 26px 0; }
+.workspaceHeading h1 { font-family: var(--font-syne), sans-serif; font-size: clamp(27px, 2.6vw, 36px); line-height: 1.15; font-weight: 650; letter-spacing: -.035em; margin: 0; }
+.workspaceHeading p { color: var(--mission-muted); max-width: 72ch; margin: 10px 0 0; }
 .founderDesk { max-width: 1480px; margin: 0 auto; font-family: Arial, sans-serif; font-size: 15px; line-height: 1.55; }
 .founderDesk *, .shell * { box-sizing: border-box; }
 .founderDesk h1, .founderDesk h2, .founderDesk h3, .founderDesk p { margin: 0; }
@@ -44,9 +86,6 @@
 .primaryButton { background: var(--mission-blue); color: var(--mission-blue-ink); }
 .secondaryButton { border-color: var(--mission-border); background: transparent; color: var(--mission-ink); }
 .textButton { color: var(--mission-blue); padding: 6px 10px; background: transparent; }
-.capabilityLinks { display: flex; flex-wrap: wrap; gap: 8px 26px; padding: 0 0 24px; }
-.capabilityLinks a { font-size: 14px; text-decoration: none; padding: 5px 0; color: var(--mission-muted); }
-.capabilityLinks a:hover { color: var(--mission-blue); text-decoration: underline; }
 .composerGrid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(280px, 1fr); border: 1px solid var(--mission-border); border-radius: 4px; overflow: hidden; background: var(--mission-surface); }
 .composerGrid[data-has-draft="false"] { grid-template-columns: 1fr; }
 .composerGrid[data-has-draft="false"] .composer { padding: 22px 26px; }
@@ -149,15 +188,25 @@
 .portfolioSummary summary { cursor: pointer; padding: 10px 0; }
 .portfolioSummary p { margin: 12px 0; }
 .portfolioSummary a { color: var(--mission-blue); }
-.brandRow { display: flex; align-items: center; justify-content: space-between; max-width: 1480px; margin: 0 auto; color: var(--mission-muted); font-size: 13px; }
-.brandRow strong { color: var(--mission-ink); font-size: 15px; }
-.brandRow button { color: var(--mission-muted); background: transparent; border: 1px solid var(--mission-border); padding: 8px 12px; border-radius: 3px; cursor: pointer; }
 .observations { border-top: 1px solid var(--mission-border); padding: 22px 0; }
+.repositoryTrigger { width: 100%; min-height: 44px; display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 10px 12px; text-align: left; border: 1px solid var(--mission-border); border-radius: 3px; color: var(--mission-ink); background: var(--mission-canvas); }
+.repositoryTrigger span:first-child { overflow-wrap: anywhere; min-width: 0; }
+.founderDesk .repositoryHint { color: var(--mission-muted); font-size: 12px; margin: 8px 0; overflow-wrap: anywhere; }
+.repositoryPanel { margin-top: 10px; padding: 14px; border: 1px solid var(--mission-border); border-radius: 3px; background: var(--mission-canvas); }
+.repositoryPanel input { width: 100%; min-height: 44px; padding: 9px 10px; border: 1px solid var(--mission-border); border-radius: 3px; color: var(--mission-ink); background: var(--mission-surface); }
+.textButton { padding: 4px 0 12px; color: var(--mission-blue); background: transparent; border: 0; text-align: left; }
+.repositoryList { list-style: none; padding: 0; margin: 12px 0; max-height: 260px; overflow-y: auto; overscroll-behavior: contain; }
+.repositoryList button { width: 100%; min-height: 52px; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; padding: 10px; border: 1px solid transparent; border-bottom-color: var(--mission-border); background: transparent; color: var(--mission-ink); overflow-wrap: anywhere; }
+.repositoryList button:hover, .repositoryList button[aria-pressed="true"] { background: var(--mission-raised); border-color: var(--mission-blue); }
+.repositoryList small { color: var(--mission-muted); font-size: 11px; }
+.repositoryError { color: var(--mission-attention); font-size: 13px; margin: 12px 0; }
+.repositoryError p { margin-bottom: 10px; overflow-wrap: anywhere; }
+.registeredProjects { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--mission-border); }
 .observationGrid { margin-top: 18px; font-size: 13px; }
 .observationGrid h4 { margin: 18px 0 6px; font-size: 14px; }
 .observationGrid ul { padding-left: 20px; }
 .observationGrid[data-stale="true"] { opacity: .65; }
 @media (max-width: 1100px) { .composerGrid { grid-template-columns: minmax(0, 1.25fr) minmax(250px, 1fr); } .presetButtons { grid-template-columns: repeat(2, minmax(0, 1fr)); } .detailHeader { flex-direction: column; gap: 10px; } }
 @media (max-width: 800px) { .composerGrid { grid-template-columns: 1fr; } .draftSpec { border-left: 0; border-top: 1px solid var(--mission-border); } .missionWorkspace, .missionWorkspace[data-selected="false"] .missionList { grid-template-columns: 1fr; } .deskHeader { align-items: flex-start; } .deskHeader p { font-size: 14px; } .floorGrid { grid-template-columns: 1fr; } }
-@media (max-width: 480px) { .shell { padding: 18px 14px 80px; } .deskHeader { flex-direction: column; gap: 16px; } .deskHeader h1 { font-size: 29px; } .composer, .draftSpec, .missionDetail { padding: 20px; } .margotHeading { gap: 10px; } .margotHeading h2 { font-size: 18px; } .margotMark { width: 34px; height: 34px; flex-basis: 34px; font-size: 21px; } .primaryButton { width: 100%; white-space: normal; } .roleList { grid-template-columns: 1fr; } .capabilityLinks { gap: 6px 18px; } }
+@media (max-width: 480px) { .shell { padding: 18px 14px 80px; } .deskHeader { flex-direction: column; gap: 16px; } .deskHeader h1 { font-size: 29px; } .composer, .draftSpec, .missionDetail { padding: 20px; } .margotHeading { gap: 10px; } .margotHeading h2 { font-size: 18px; } .margotMark { width: 34px; height: 34px; flex-basis: 34px; font-size: 21px; } .primaryButton { width: 100%; white-space: normal; } .roleList { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .founderDesk *, .founderDesk *::before, .founderDesk *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }

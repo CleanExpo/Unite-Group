@@ -17,8 +17,8 @@ import { join } from 'node:path'
 
 const dir = join(process.cwd(), 'src/app/(founder)/founder/command-centre')
 const pageSrc = readFileSync(join(dir, 'page.tsx'), 'utf8')
-const founderDeskSrc = readFileSync(join(dir, 'FounderDesk.tsx'), 'utf8')
-const operationsSrc = readFileSync(join(dir, 'operations/page.tsx'), 'utf8')
+const founderDeskSrc = readFileSync(join(dir, 'FounderDesk.tsx'), 'utf8') + readFileSync(join(dir, 'MissionControlShell.tsx'), 'utf8')
+const operationsSrc = readFileSync(join(dir, 'operations/page.tsx'), 'utf8') + readFileSync(join(dir, 'operations/OperationsView.tsx'), 'utf8')
 const paletteSrc = readFileSync(join(dir, 'CommandPalette.tsx'), 'utf8')
 const shellCss = readFileSync(join(dir, 'shell.module.css'), 'utf8')
 const fontsSrc = readFileSync(join(dir, 'fonts/index.ts'), 'utf8')
@@ -43,7 +43,8 @@ const FONT_FILES = [
 
 describe('command-centre shell slice 1 — reshell regression gate', () => {
   it('binds the distilled canvas to the home route and removes the retired chrome imports', () => {
-    expect(pageSrc).toContain('<header className={styles.brandRow}>')
+    expect(pageSrc).toContain('<MissionControlShell section="home"')
+    expect(pageSrc).not.toContain('<header className={styles.brandRow}>')
     expect(pageSrc).toContain("import { FounderDesk } from './FounderDesk'")
     expect(pageSrc).toContain('CommandPaletteTrigger')
     expect(pageSrc).toContain('<CommandPaletteTrigger')
@@ -51,7 +52,7 @@ describe('command-centre shell slice 1 — reshell regression gate', () => {
     expect(pageSrc).not.toContain("import { HeroBand } from './HeroBand'")
     expect(pageSrc).not.toContain('<HeroBand')
     expect(pageSrc).not.toContain('DECK_ROUTES')
-    expect(pageSrc).toContain('DeckThemeShell')
+    expect(pageSrc).toContain('MissionControlShell')
     expect(pageSrc).not.toContain('<h1')
   })
 
@@ -60,7 +61,7 @@ describe('command-centre shell slice 1 — reshell regression gate', () => {
     expect(anchorIds).toEqual(expect.arrayContaining(['portfolio', 'capability-bus']))
     expect(paletteSrc).toContain("getElementById('idea-console')")
     expect(pageSrc).toContain('<FounderDesk')
-    for (const id of anchorIds) expect(founderDeskSrc).toContain(`id="${id}"`)
+    for (const id of anchorIds) expect(founderDeskSrc).toContain(`'${id}'`)
   })
 
   it('passes live queue and lane reads into the mounted canvas so degraded sources stay visible', () => {

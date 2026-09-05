@@ -6,10 +6,7 @@ const root = process.cwd()
 
 describe('command centre project DoD coverage UI source', () => {
   it('shows Project Definition of Done coverage and false-done prevention', () => {
-    const source = readFileSync(
-      join(root, 'src/app/(founder)/founder/command-centre/operator-gateway/page.tsx'),
-      'utf8',
-    )
+    const source = ['page.tsx', 'OperatorGatewayView.tsx'].map(file => readFileSync(join(root, 'src/app/(founder)/founder/command-centre/operator-gateway', file), 'utf8')).join('\n')
 
     expect(source).toContain('Project Definition of Done Engine')
     expect(source).toContain('Project coverage')

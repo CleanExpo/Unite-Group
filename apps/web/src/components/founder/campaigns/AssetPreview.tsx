@@ -12,11 +12,11 @@ interface AssetPreviewProps {
 }
 
 const PLATFORM_BADGE: Record<SocialPlatform, string> = {
-  instagram: 'bg-pink-500/20 text-pink-700',
-  facebook:  'bg-blue-500/20 text-blue-700',
-  linkedin:  'bg-sky-600/20 text-sky-700',
-  tiktok:    'bg-white/10 text-[#3f3f46]',
-  youtube:   'bg-red-500/20 text-red-700',
+  instagram: 'bg-pink-500/20 text-[var(--mission-blue)]',
+  facebook:  'bg-blue-500/20 text-[var(--mission-blue)]',
+  linkedin:  'bg-sky-600/20 text-[var(--mission-blue)]',
+  tiktok:    'bg-[var(--mission-raised)]/10 text-[var(--mission-ink)]',
+  youtube:   'bg-red-500/20 text-[var(--color-danger)]',
 }
 
 const PLATFORM_LABEL: Record<SocialPlatform, string> = {
@@ -28,11 +28,11 @@ const PLATFORM_LABEL: Record<SocialPlatform, string> = {
 }
 
 const STATUS_BADGE: Record<CampaignAsset['status'], string> = {
-  pending_image:    'bg-amber-500/20 text-amber-700',
-  generating_image: 'bg-cyan-500/20 text-cyan-700 animate-pulse',
-  ready:            'bg-green-500/20 text-green-700',
-  review:           'bg-amber-500/20 text-amber-700',
-  published:        'bg-blue-500/20 text-blue-700',
+  pending_image:    'bg-amber-500/20 text-[var(--mission-attention)]',
+  generating_image: 'bg-cyan-500/20 text-[var(--mission-blue)] animate-pulse',
+  ready:            'bg-green-500/20 text-[var(--color-success)]',
+  review:           'bg-amber-500/20 text-[var(--mission-attention)]',
+  published:        'bg-blue-500/20 text-[var(--mission-blue)]',
 }
 
 const STATUS_LABEL: Record<CampaignAsset['status'], string> = {
@@ -44,11 +44,11 @@ const STATUS_LABEL: Record<CampaignAsset['status'], string> = {
 }
 
 const VISUAL_TYPE_BADGE: Record<VisualType, string> = {
-  photo:        'bg-white/5 text-[#52525b]',
-  infographic:  'bg-violet-500/20 text-violet-700',
-  diagram:      'bg-emerald-500/20 text-emerald-700',
-  data_viz:     'bg-sky-500/20 text-sky-700',
-  process_flow: 'bg-amber-500/20 text-amber-700',
+  photo:        'bg-[var(--mission-raised)]/5 text-[var(--color-text-secondary)]',
+  infographic:  'bg-violet-500/20 text-[var(--mission-blue)]',
+  diagram:      'bg-emerald-500/20 text-[var(--color-success)]',
+  data_viz:     'bg-sky-500/20 text-[var(--mission-blue)]',
+  process_flow: 'bg-amber-500/20 text-[var(--mission-attention)]',
 }
 
 const VISUAL_TYPE_LABEL: Record<VisualType, string> = {
@@ -61,8 +61,8 @@ const VISUAL_TYPE_LABEL: Record<VisualType, string> = {
 
 function QualityScorePill({ score }: { score: number }) {
   const colour = score >= 70
-    ? 'bg-green-500/20 text-green-700'
-    : 'bg-amber-500/20 text-amber-700'
+    ? 'bg-green-500/20 text-[var(--color-success)]'
+    : 'bg-amber-500/20 text-[var(--mission-attention)]'
   return (
     <span className={`text-xs font-mono px-1.5 py-0.5 rounded-sm ${colour}`}>
       Q:{score}
@@ -102,7 +102,7 @@ export function AssetPreview({ asset, onRegenerateImage, onApprove }: AssetPrevi
   }
 
   return (
-    <div className="bg-[#fff7ec] border border-white/6 rounded-sm p-4 flex flex-col gap-3">
+    <div className="bg-[var(--surface-card)] border border-[var(--mission-border)] rounded-sm p-4 flex flex-col gap-3">
       {/* Header row — platform + visual type + status badges */}
       <div className="flex items-center gap-2 flex-wrap">
         <span className={`text-xs font-medium px-2 py-0.5 rounded-sm ${PLATFORM_BADGE[asset.platform]}`}>
@@ -131,8 +131,8 @@ export function AssetPreview({ asset, onRegenerateImage, onApprove }: AssetPrevi
           className="w-full aspect-square object-cover rounded-sm"
         />
       ) : (
-        <div className="w-full aspect-square bg-white/3 border border-white/6 rounded-sm flex items-center justify-center">
-          <span className="text-[#5f5f66] text-sm">
+        <div className="w-full aspect-square bg-[var(--mission-raised)]/3 border border-[var(--mission-border)] rounded-sm flex items-center justify-center">
+          <span className="text-[var(--color-text-secondary)] text-sm">
             {asset.status === 'generating_image' ? 'Image generating…' : 'No image'}
           </span>
         </div>
@@ -140,20 +140,20 @@ export function AssetPreview({ asset, onRegenerateImage, onApprove }: AssetPrevi
 
       {/* Headline */}
       {asset.headline && (
-        <p className="text-[#0A0A0A] text-sm font-semibold leading-snug">
+        <p className="text-[var(--color-text-primary)] text-sm font-semibold leading-snug">
           {asset.headline}
         </p>
       )}
 
       {/* Copy text */}
       <div className="flex flex-col gap-1">
-        <p className="text-[#3f3f46] text-sm leading-relaxed whitespace-pre-line">
+        <p className="text-[var(--mission-ink)] text-sm leading-relaxed whitespace-pre-line">
           {copyTruncated}
         </p>
         {asset.copy.length > 150 && (
           <button
             onClick={() => setExpanded(prev => !prev)}
-            className="text-xs text-[#5f5f66] hover:text-[#52525b] transition-colors text-left"
+            className="text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-secondary)] transition-colors text-left"
           >
             {expanded ? 'Show less' : 'Show more'}
           </button>
@@ -162,7 +162,7 @@ export function AssetPreview({ asset, onRegenerateImage, onApprove }: AssetPrevi
 
       {/* CTA */}
       {asset.cta && (
-        <p className="text-[#15803d] text-xs font-medium">
+        <p className="text-[var(--mission-blue)] text-xs font-medium">
           {asset.cta}
         </p>
       )}
@@ -173,7 +173,7 @@ export function AssetPreview({ asset, onRegenerateImage, onApprove }: AssetPrevi
           {asset.hashtags.map(tag => (
             <span
               key={tag}
-              className="bg-white/5 text-[#52525b] text-xs px-2 py-0.5 rounded-sm"
+              className="bg-[var(--mission-raised)]/5 text-[var(--color-text-secondary)] text-xs px-2 py-0.5 rounded-sm"
             >
               {tag.startsWith('#') ? tag : `#${tag}`}
             </span>
@@ -182,7 +182,7 @@ export function AssetPreview({ asset, onRegenerateImage, onApprove }: AssetPrevi
       )}
 
       {/* Dimensions + engine */}
-      <p className="font-mono text-[#5f5f66] text-xs">
+      <p className="font-mono text-[var(--color-text-secondary)] text-xs">
         {asset.width}×{asset.height}
         {asset.imageEngine && ` · ${asset.imageEngine === 'paper_banana' ? 'PaperBanana' : 'Gemini'}`}
       </p>
@@ -192,7 +192,7 @@ export function AssetPreview({ asset, onRegenerateImage, onApprove }: AssetPrevi
         {(asset.status === 'pending_image' || asset.status === 'review') && onRegenerateImage && (
           <button
             onClick={() => onRegenerateImage(asset.id)}
-            className="border border-white/10 text-[#52525b] hover:border-white/20 hover:text-[#3f3f46] text-xs px-3 py-1.5 rounded-sm transition-colors"
+            className="border border-[var(--mission-border)] text-[var(--color-text-secondary)] hover:border-[var(--mission-border)] hover:text-[var(--mission-ink)] text-xs px-3 py-1.5 rounded-sm transition-colors"
           >
             Regenerate
           </button>
@@ -202,20 +202,20 @@ export function AssetPreview({ asset, onRegenerateImage, onApprove }: AssetPrevi
           <button
             onClick={() => void handleApprove()}
             disabled={approving}
-            className="bg-green-600 text-white text-xs font-medium rounded-sm px-3 py-1.5 hover:bg-green-500 disabled:opacity-50 transition-colors"
+            className="bg-[var(--mission-blue)] text-[var(--mission-blue-ink)] text-xs font-medium rounded-sm px-3 py-1.5 hover:opacity-90 disabled:opacity-50 transition-colors"
           >
             {approving ? 'Approving…' : 'Approve'}
           </button>
         )}
 
         {asset.status === 'ready' && (
-          <span className="text-xs text-[#15803d]">Ready for campaign approval</span>
+          <span className="text-xs text-[var(--mission-blue)]">Ready for campaign approval</span>
         )}
       </div>
 
       {/* Approve error */}
       {approveError && (
-        <p className="text-red-700 text-xs" role="alert">
+        <p className="text-[var(--color-danger)] text-xs" role="alert">
           {approveError}
         </p>
       )}

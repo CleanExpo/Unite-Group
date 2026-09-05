@@ -1,4 +1,5 @@
 import { getProjects, type CommandCentreProject } from "./registry";
+import type { DeliveryRepository } from "./delivery-repositories";
 
 const CANONICAL_REPOSITORY = "CleanExpo/Unite-Group";
 type DeliveryProject = CommandCentreProject & { deliveryNames?: string[] };
@@ -66,7 +67,41 @@ export async function getDeliveryProjectByName(
   const resolved = resolveDeliveryProjects(await getProjects());
   if (resolved.error) throw new Error(resolved.error);
   const target = name.trim().toLowerCase();
-  return resolved.projects.find(
+  const named = resolved.projects.find(
     (project) => project.name.toLowerCase() === target,
   );
+  if (named) return named;
+  const byRepository = resolved.projects.filter(
+    (project) => project.github_repo?.toLowerCase() === target,
+  );
+  return byRepository.length === 1 ? { ...byRepository[0], name } : undefined;
+}
+
+/** Enrich by exact repository identity only; same short names are never interchangeable. */
+export function projectFromDeliveryRepository(
+  repository: DeliveryRepository,
+  projects: CommandCentreProject[],
+): CommandCentreProject {
+  const matching = projects.filter(
+    (project) =>
+      project.github_repo?.toLowerCase() ===
+        repository.fullName.toLowerCase() && project.status !== "retired",
+  );
+  if (matching.length === 1)
+    return { ...matching[0], name: repository.fullName };
+  return {
+    name: repository.fullName,
+    github_repo: repository.fullName,
+    repo_path: "",
+    business_purpose:
+      "A GitHub repository selected by the founder. Additional business context has not been registered.",
+    brand_rules_ref: "",
+    deployment_target: "unconfigured",
+    owner: repository.fullName.split("/")[0],
+    status: repository.archived ? "archived" : "unregistered",
+    evidence_vault_path: "",
+    validation_commands: [],
+    linear_prefix: "",
+    production_url: null,
+  };
 }

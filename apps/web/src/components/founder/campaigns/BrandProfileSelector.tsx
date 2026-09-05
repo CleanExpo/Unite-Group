@@ -81,13 +81,13 @@ export function BrandProfileSelector({
   }, [loadProfiles]);
 
   return (
-    <div className="bg-[#fff7ec] border border-white/6 rounded-sm p-6 flex flex-col gap-5">
+    <div className="bg-[var(--surface-card)] border border-[var(--mission-border)] rounded-sm p-6 flex flex-col gap-5">
       <div className="flex items-start justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <h2 className="text-[15px] font-semibold text-[#0A0A0A] tracking-tight">
+          <h2 className="text-[15px] font-semibold text-[var(--color-text-primary)] tracking-tight">
             Select Brand
           </h2>
-          <p className="text-[12px] text-[#5f5f66]">
+          <p className="text-[12px] text-[var(--color-text-secondary)]">
             Choose the brand identity Synthex should use. Its business key keeps
             channels, content and reporting separate.
           </p>
@@ -95,15 +95,15 @@ export function BrandProfileSelector({
         <button
           type="button"
           onClick={onScanNew}
-          className="shrink-0 border border-white/10 text-[#52525b] hover:text-[#3f3f46] hover:border-white/20 rounded-sm px-3 py-1.5 text-[11px] transition-colors"
+          className="shrink-0 border border-[var(--mission-border)] text-[var(--color-text-secondary)] hover:text-[var(--mission-ink)] hover:border-[var(--mission-border)] rounded-sm px-3 py-1.5 text-[11px] transition-colors"
         >
           Scan new brand
         </button>
       </div>
 
       {loadState === "loading" && (
-        <div className="rounded-sm border border-white/6 bg-white/2 px-4 py-5">
-          <p className="text-[12px] text-[#5f5f66]">
+        <div className="rounded-sm border border-[var(--mission-border)] bg-[var(--mission-raised)]/2 px-4 py-5">
+          <p className="text-[12px] text-[var(--color-text-secondary)]">
             Loading eligible child brands…
           </p>
         </div>
@@ -111,11 +111,11 @@ export function BrandProfileSelector({
 
       {loadState === "error" && (
         <div className="rounded-sm border border-red-500/20 bg-red-500/10 px-4 py-3 flex items-start justify-between gap-3">
-          <p className="text-[12px] text-red-700 flex-1">{error}</p>
+          <p className="text-[12px] text-[var(--color-danger)] flex-1">{error}</p>
           <button
             type="button"
             onClick={() => void loadProfiles()}
-            className="shrink-0 text-[11px] font-medium text-[#5f5f66] hover:text-[#3f3f46] transition-colors"
+            className="shrink-0 text-[11px] font-medium text-[var(--color-text-secondary)] hover:text-[var(--mission-ink)] transition-colors"
           >
             Retry
           </button>
@@ -123,15 +123,15 @@ export function BrandProfileSelector({
       )}
 
       {loadState === "empty" && (
-        <div className="rounded-sm border border-white/6 bg-white/2 px-4 py-5 flex flex-col gap-3">
-          <p className="text-[12px] text-[#5f5f66]">
+        <div className="rounded-sm border border-[var(--mission-border)] bg-[var(--mission-raised)]/2 px-4 py-5 flex flex-col gap-3">
+          <p className="text-[12px] text-[var(--color-text-secondary)]">
             No ready child brands found yet. Scan a brand website to create the
             first campaign-ready identity.
           </p>
           <button
             type="button"
             onClick={onScanNew}
-            className="self-start bg-[#16a34a] text-black text-[12px] font-semibold rounded-sm px-4 py-2 hover:bg-[#16a34a]/90 transition-colors"
+            className="self-start bg-[var(--mission-blue)] text-[var(--mission-blue-ink)] text-[12px] font-semibold rounded-sm px-4 py-2 hover:bg-[var(--mission-blue)]/90 transition-colors"
           >
             Scan Brand DNA
           </button>
@@ -145,12 +145,12 @@ export function BrandProfileSelector({
               key={profile.id}
               type="button"
               onClick={() => onSelect(profile)}
-              className="text-left rounded-sm border border-white/8 bg-white/2 hover:border-[#16a34a]/40 hover:bg-[#16a34a]/4 px-4 py-3 transition-colors"
+              className="text-left rounded-sm border border-[var(--mission-border)] bg-[var(--mission-raised)]/2 hover:border-[var(--mission-blue)]/40 hover:bg-[var(--mission-blue)]/4 px-4 py-3 transition-colors"
             >
-              <span className="block text-[13px] font-medium text-[#3f3f46]">
+              <span className="block text-[13px] font-medium text-[var(--mission-ink)]">
                 {profile.clientName}
               </span>
-              <span className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-[#5f5f66]">
+              <span className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-[var(--color-text-secondary)]">
                 {profile.businessKey && <span>{profile.businessKey}</span>}
                 {profile.industry && <span>{profile.industry}</span>}
                 {profile.websiteUrl && (

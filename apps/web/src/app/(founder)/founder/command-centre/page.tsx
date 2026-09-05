@@ -13,7 +13,7 @@ import { loadActionQueueData } from './ActionQueueTile'
 import { loadBlockedLanesData } from './BlockedLanesTile'
 import { CommandPalette, CommandPaletteTrigger } from './CommandPalette'
 import { FounderDesk } from './FounderDesk'
-import { DeckThemeShell } from './DeckThemeShell'
+import { MissionControlShell } from './MissionControlShell'
 import { getOperationalSourceStatus } from './operational-source-status'
 import styles from './founder-desk.module.css'
 
@@ -31,7 +31,7 @@ export default async function CommandDeckPage() {
   const operationalStatus = getOperationalSourceStatus(actionQueue, blockedLanes)
 
   return (
-    <DeckThemeShell className={`${chakra.variable} ${syne.variable} ${jbMono.variable} ${styles.shell}`}>
+    <MissionControlShell section="home" className={`${chakra.variable} ${syne.variable} ${jbMono.variable}`} actions={<CommandPaletteTrigger className={styles.secondaryButton} />}>
       <CommandPalette
         projects={projects.map((project) => ({
           name: project.name,
@@ -45,10 +45,6 @@ export default async function CommandDeckPage() {
         }))}
       />
 
-      <header className={styles.brandRow}>
-        <strong>Unite-Group / Mission Control</strong>
-        <CommandPaletteTrigger className={styles.secondaryButton} />
-      </header>
       {deliveryProjects.error && <p role="status">{deliveryProjects.error}</p>}
       <FounderDesk projects={deliveryProjects.projects.map(project => ({ name: project.name }))} />
       <details className={styles.portfolioSummary}>
@@ -59,6 +55,6 @@ export default async function CommandDeckPage() {
         <p><Link href="/founder/command-centre/operations#task-queue">Open existing work and approvals</Link></p>
         <p><Link href="/founder/command-centre/providers">View provider connections and usage</Link></p>
       </details>
-    </DeckThemeShell>
+    </MissionControlShell>
   )
 }

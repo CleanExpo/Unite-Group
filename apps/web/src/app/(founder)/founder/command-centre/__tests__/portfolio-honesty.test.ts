@@ -10,7 +10,7 @@ import { join } from 'node:path'
 // UNI-2378 (calm cockpit): the registry section relocated wholesale to the
 // portfolio sub-route; the contract follows it there.
 const source = readFileSync(
-  join(process.cwd(), 'src/app/(founder)/founder/command-centre/portfolio/page.tsx'),
+  join(process.cwd(), 'src/app/(founder)/founder/command-centre/portfolio/PortfolioView.tsx'),
   'utf8',
 )
 

@@ -13,7 +13,7 @@ const path = join(
 )
 
 describe('BlockedLanesTile source contract', () => {
-  const src = readFileSync(path, 'utf8')
+  const src = readFileSync(path, 'utf8') + readFileSync(path.replace('BlockedLanesTile.tsx', 'BlockedLanesTileView.tsx'), 'utf8')
 
   it('is a server component (no "use client" directive)', () => {
     expect(src).not.toMatch(/^['"]use client['"]/m)

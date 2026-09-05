@@ -2,6 +2,7 @@
 
 import { useId, useMemo, useState } from 'react'
 import type { DeliveryPreset } from '@/lib/command-centre/delivery-types'
+import { RepositorySelector } from './RepositorySelector'
 import styles from './founder-desk.module.css'
 
 const AVAILABILITY: Record<DeliveryPreset['availability'], string> = {
@@ -42,13 +43,7 @@ export function MargotMissionConsole({ projects, presets, busy, onPrepare }: {
         <label className={styles.fieldLabel} htmlFor={`${fieldId}-idea`}>Your idea</label>
         <textarea id={`${fieldId}-idea`} className={styles.ideaInput} value={idea} onChange={e => setIdea(e.target.value)} disabled={busy} maxLength={12000} placeholder="I want our customers to see their job progress, approve quotes and know what happens next…" />
         <div className={styles.composerFooter}>
-          <div className={styles.projectField}>
-            <label htmlFor={`${fieldId}-project`}>Business or project <span>(optional)</span></label>
-            <select id={`${fieldId}-project`} value={project} onChange={e => setProject(e.target.value)} disabled={busy}>
-              <option value="">Let Margot help me place it</option>
-              {projects.map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
-            </select>
-          </div>
+          <RepositorySelector value={project} onChange={setProject} projects={projects} disabled={busy} />
           <button className={styles.primaryButton} disabled={busy || !idea.trim()} type="submit">{busy ? 'Preparing your mission…' : 'Prepare my mission'}</button>
         </div>
         {presets.length > 0 && <details className={styles.capabilityDisclosure}><summary>Add capabilities <span>{selected.length ? `${selected.length} selected` : 'Optional'}</span></summary><fieldset className={styles.presets} disabled={busy}>

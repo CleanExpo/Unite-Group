@@ -23,6 +23,23 @@ beforeEach(() => {
 })
 
 describe('FounderDesk mission journey', () => {
+  it('sends an explicitly selected GitHub owner/repository as the persisted project key', async () => {
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.includes('/repositories')) return response({ repositories: [{ fullName: 'OtherOwner/uncommon-project', private: true, archived: false }], status: 'complete', nextCursor: null, incomplete: false, message: '', observedAt: '2026-09-05T00:00:00Z', coverage: 'Connected GitHub account.' })
+      return response(init?.method === 'POST' ? { mission: { ...mission, projectKey: 'OtherOwner/uncommon-project' } } : { missions: [], presets: [], source: 'supabase' })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<FounderDesk projects={[]} />)
+    fireEvent.click(screen.getByRole('button', { name: /^Business or project/ }))
+    fireEvent.click(await screen.findByRole('button', { name: 'OtherOwner/uncommon-project Private' }))
+    fireEvent.change(screen.getByLabelText('Your idea'), { target: { value: 'Give customers a project workspace' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Prepare my mission' }))
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Customer portal' })).toBeInTheDocument())
+    const body = JSON.parse(fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')![1]!.body as string)
+    expect(body.projectKey).toBe('OtherOwner/uncommon-project')
+    expect(body.action).toBe('prepare')
+  })
+
   it('accepts plain language without presets and moves directly to the prepared spec', async () => {
     const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => response(init?.method === 'POST' ? { mission, deduplicated: false } : { missions: [], presets: [], source: 'supabase' }))
     vi.stubGlobal('fetch', fetchMock)

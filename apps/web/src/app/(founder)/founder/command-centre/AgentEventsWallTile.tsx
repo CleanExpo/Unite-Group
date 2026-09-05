@@ -14,7 +14,7 @@
 // 2px radii only).
 
 import type { AgentEventsWallResult } from '@/lib/command-centre/agent-events-wall'
-import { eventVerb, relativeAge } from '@/lib/command-centre/agent-events-wall'
+import { eventVerb, relativeAge } from '@/lib/command-centre/agent-events-presentation'
 
 const VERB_COLOURS: Record<string, string> = {
   draft_pr_opened: 'var(--tile-green-txt, #34d399)',

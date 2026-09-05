@@ -9,7 +9,7 @@ import { useUIStore } from '@/store/ui'
 import styles from './command-deck.module.css'
 import shell from './shell.module.css'
 
-export function DeckThemeShell({ className, children }: { className: string; children: ReactNode }) {
+export function useDeckTheme() {
   const deckTheme = useUIStore((s) => s.deckTheme)
   const setDeckTheme = useUIStore((s) => s.setDeckTheme)
   // The persisted store rehydrates from localStorage before the first client
@@ -20,21 +20,23 @@ export function DeckThemeShell({ className, children }: { className: string; chi
   const [hydrated, setHydrated] = useState(false)
   useEffect(() => setHydrated(true), [])
   const daylight = hydrated ? deckTheme === 'daylight' : true
+  return { daylight, setDeckTheme }
+}
+
+export function DeckThemeToggle({ className = styles.feelToggle }: { className?: string }) {
+  const { daylight, setDeckTheme } = useDeckTheme()
+  return <button type="button" className={className} onClick={() => setDeckTheme(daylight ? 'deck' : 'daylight')} aria-pressed={daylight} data-testid="deck-feel-toggle">Feel: {daylight ? 'Daylight' : 'Deck'}</button>
+}
+
+export function DeckThemeShell({ className, children, showToggle = true }: { className: string; children: ReactNode; showToggle?: boolean }) {
+  const { daylight } = useDeckTheme()
   // cc-daylight is a global (unhashed) marker so nested CSS modules that keep
   // their own token scopes (command-centre .scope, pipeline .board) can
   // bridge into the daylight register.
   return (
     <div className={daylight ? `${className} ${styles.daylight} ${shell.daylight} cc-daylight` : className}>
       {children}
-      <button
-        type="button"
-        className={styles.feelToggle}
-        onClick={() => setDeckTheme(daylight ? 'deck' : 'daylight')}
-        aria-pressed={daylight}
-        data-testid="deck-feel-toggle"
-      >
-        Feel: {daylight ? 'Daylight' : 'Deck'}
-      </button>
+      {showToggle && <DeckThemeToggle />}
     </div>
   )
 }

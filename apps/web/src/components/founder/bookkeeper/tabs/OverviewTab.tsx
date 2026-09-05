@@ -9,8 +9,8 @@ import type { BookkeeperOverview } from '@/lib/bookkeeper/types'
 function SkeletonCard() {
   return (
     <div className="bg-(--surface-card) border border-border rounded-sm p-4 animate-pulse">
-      <div className="h-3 w-20 bg-white/5 rounded-sm mb-3" />
-      <div className="h-6 w-28 bg-white/5 rounded-sm" />
+      <div className="h-3 w-20 bg-[var(--mission-raised)]/5 rounded-sm mb-3" />
+      <div className="h-6 w-28 bg-[var(--mission-raised)]/5 rounded-sm" />
     </div>
   )
 }
@@ -110,7 +110,7 @@ export function OverviewTab() {
           style={{
             color: totals.pendingReconciliation === null
               ? 'var(--color-text-disabled)'
-              : totals.pendingReconciliation > 0 ? '#eab308' : 'var(--color-text-primary)',
+              : totals.pendingReconciliation > 0 ? 'var(--mission-attention)' : 'var(--color-text-primary)',
           }}
         >
           {totals.pendingReconciliation === null ? '—' : totals.pendingReconciliation}
@@ -125,7 +125,7 @@ export function OverviewTab() {
           style={{
             color: totals.pendingApproval === null
               ? 'var(--color-text-disabled)'
-              : totals.pendingApproval > 0 ? '#eab308' : 'var(--color-text-primary)',
+              : totals.pendingApproval > 0 ? 'var(--mission-attention)' : 'var(--color-text-primary)',
           }}
         >
           {totals.pendingApproval === null ? '—' : totals.pendingApproval}
@@ -173,7 +173,7 @@ export function OverviewTab() {
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
           className="border rounded-sm px-4 py-2.5 text-[12px] flex items-center gap-2"
-          style={{ borderColor: 'rgba(234,179,8,0.3)', backgroundColor: 'rgba(234,179,8,0.06)', color: '#eab308' }}
+          style={{ borderColor: 'rgba(234,179,8,0.3)', backgroundColor: 'rgba(234,179,8,0.06)', color: 'var(--mission-attention)' }}
         >
           <span className="font-medium">{alertCount} alert{alertCount !== 1 ? 's' : ''}</span>
           <span style={{ color: 'var(--color-text-disabled)' }}>require attention</span>

@@ -3,6 +3,14 @@ import type { CommandCentreTask, TaskStatus } from "./tasks";
 
 export const DELIVERY_EXTERNAL_REF_PREFIX = "delivery:";
 export const DELIVERY_SCOPE = "branch_preview_only" as const;
+/** Labels accepted by the single configured runner; catalogue visibility grants no execution scope. */
+export function isCanonicalDeliveryTarget(
+  projectKey: string | null | undefined,
+): boolean {
+  return ["unite-group", "cleanexpo/unite-group"].includes(
+    projectKey?.toLowerCase() ?? "",
+  );
+}
 export type DeliveryStage =
   | "captured"
   | "needs_clarification"
@@ -50,7 +58,7 @@ export const deliveryMetadataSchema = z.object({
   lane: z.enum(["software", "content", "marketing", "unknown"]),
   revision: z.number().int().positive(),
   inputHash: z.string().length(64),
-  projectKey: z.string().max(80).nullable(),
+  projectKey: z.string().max(140).nullable(),
   originalIdea: boundedText,
   presetIds: z.array(z.string()).max(20),
   recipeVersions: z.record(z.string(), z.number().int().positive()),
@@ -192,7 +200,7 @@ export const deliveryRequestSchema = z.discriminatedUnion("action", [
       action: z.literal("prepare"),
       clientRequestId: z.string().uuid(),
       idea: boundedText,
-      projectKey: z.string().trim().min(1).max(80).optional(),
+      projectKey: z.string().trim().min(1).max(140).optional(),
       presetIds: z.array(z.string().max(80)).max(20).default([]),
     })
     .strict(),

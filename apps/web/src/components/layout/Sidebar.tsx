@@ -3,6 +3,7 @@
 
 import { motion } from 'framer-motion'
 import { Search } from 'lucide-react'
+import { usePathname } from 'next/navigation'
 import { useUIStore } from '@/store/ui'
 import { BUSINESSES } from '@/lib/businesses'
 import { SidebarNav } from './SidebarNav'
@@ -14,6 +15,8 @@ interface SidebarProps {
 
 export function Sidebar({ user }: SidebarProps) {
   const sidebarOpen = useUIStore((s) => s.sidebarOpen)
+  const toggleCommandBar = useUIStore((s) => s.toggleCommandBar)
+  const pathname = usePathname()
 
   return (
     <motion.aside
@@ -56,6 +59,8 @@ export function Sidebar({ user }: SidebarProps) {
         {sidebarOpen && (
           <div className="px-2">
             <button
+              onClick={() => { if (pathname === '/founder/command-centre' && document.querySelector('[data-mission-home-palette="true"]')) window.dispatchEvent(new Event('command-centre:open-palette')); else toggleCommandBar() }}
+              aria-label="Search workspaces"
               className="w-full flex items-center gap-2 px-2 h-7 rounded-sm text-[12px] transition-colors"
               style={{
                 background: 'var(--surface-card)',

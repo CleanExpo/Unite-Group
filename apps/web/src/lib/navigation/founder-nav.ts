@@ -23,7 +23,7 @@ export const FOUNDER_NAV_GROUPS = [
   {
     label: null,
     items: [
-      { href: '/founder/command-centre', label: 'Command Centre',  icon: Command },
+      { href: '/founder/command-centre', label: 'Mission Control',  icon: Command },
       { href: '/founder/agents',         label: 'Agents',          icon: Radar },
       { href: '/founder/chat',           label: 'Chat',            icon: MessagesSquare },
       { href: '/founder/nexus',          label: 'PR Approvals',    icon: GitPullRequest },

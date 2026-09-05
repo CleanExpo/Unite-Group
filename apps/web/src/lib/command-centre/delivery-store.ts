@@ -10,6 +10,7 @@ import {
 import {
   DELIVERY_SCOPE,
   readDeliveryMetadata,
+  isCanonicalDeliveryTarget,
   type DeliveryMetadata,
 } from "./delivery-types";
 import { MISSION_PROVENANCE_SECRET_ENV } from "./voice-mission-bridge";
@@ -104,7 +105,7 @@ export function getApprovedDelivery(
   const d = readDeliveryMetadata(task);
   if (
     !d ||
-    d.projectKey?.toLowerCase() !== "unite-group" ||
+    !isCanonicalDeliveryTarget(d.projectKey) ||
     d.lane !== "software" ||
     !d.spec ||
     !d.specVersion ||

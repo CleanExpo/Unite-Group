@@ -1,6 +1,7 @@
 import type { CommandCentreTask } from "./tasks";
 import {
   readDeliveryMetadata,
+  isCanonicalDeliveryTarget,
   type DeliveryMissionView,
   type DeliveryStage,
 } from "./delivery-types";
@@ -42,7 +43,7 @@ export function toDeliveryMissionView(
     });
   if (d?.board?.verdict === "HOLD" || d?.board?.verdict === "REJECTED")
     blockers.push({ code: "board_concern", message: d.board.rationale });
-  if (d?.projectKey && d.projectKey.toLowerCase() !== "unite-group")
+  if (d?.projectKey && !isCanonicalDeliveryTarget(d.projectKey))
     blockers.push({
       code: "target_unavailable",
       message:
@@ -77,18 +78,17 @@ export function toDeliveryMissionView(
       label: "Answer the business questions",
     };
   else if (stage === "ready_for_review")
-    nextAction =
-      d?.projectKey?.toLowerCase() === "unite-group"
-        ? {
-            kind: "approve",
-            owner: "You",
-            label: "Approve this specification for a branch build",
-          }
-        : {
-            kind: "connect",
-            owner: "Delivery operator",
-            label: "Connect the project’s build runner",
-          };
+    nextAction = isCanonicalDeliveryTarget(d?.projectKey)
+      ? {
+          kind: "approve",
+          owner: "You",
+          label: "Approve this specification for a branch build",
+        }
+      : {
+          kind: "connect",
+          owner: "Delivery operator",
+          label: "Connect the project’s build runner",
+        };
   else if (stage === "queued" || stage === "building" || stage === "preparing")
     nextAction = {
       kind: "wait",

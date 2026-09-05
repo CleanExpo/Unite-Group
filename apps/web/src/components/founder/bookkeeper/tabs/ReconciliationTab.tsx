@@ -41,7 +41,7 @@ function SkeletonRow() {
     <tr className="border-b border-border">
       {Array.from({ length: 8 }).map((_, i) => (
         <td key={i} className="px-3 py-3">
-          <div className="h-3 bg-white/5 rounded-sm animate-pulse" style={{ width: `${40 + i * 8}px` }} />
+          <div className="h-3 bg-[var(--mission-raised)]/5 rounded-sm animate-pulse" style={{ width: `${40 + i * 8}px` }} />
         </td>
       ))}
     </tr>
@@ -206,7 +206,7 @@ export function ReconciliationTab() {
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value as StatusFilter)}
-          className="text-[12px] bg-transparent border rounded-sm px-2 py-1.5 appearance-none cursor-pointer focus:outline-hidden focus:border-[#16a34a]/40"
+          className="text-[12px] bg-transparent border rounded-sm px-2 py-1.5 appearance-none cursor-pointer focus:outline-hidden focus:border-[var(--mission-blue)]/40"
           style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
         >
           {STATUS_OPTIONS.map(opt => (
@@ -225,9 +225,9 @@ export function ReconciliationTab() {
               disabled={bulkLoading}
               className="ml-auto text-[11px] px-3 py-1.5 rounded-sm border font-medium transition-colors disabled:opacity-50"
               style={{
-                borderColor: 'rgba(22, 163, 74,0.3)',
-                color: '#15803d',
-                backgroundColor: 'rgba(22, 163, 74,0.06)',
+                borderColor: 'color-mix(in srgb, var(--mission-blue) 30%, transparent)',
+                color: 'var(--mission-blue)',
+                backgroundColor: 'color-mix(in srgb, var(--mission-blue) 6%, transparent)',
               }}
             >
               {bulkLoading ? 'Approving...' : `Approve Selected (${selected.size})`}
@@ -252,7 +252,7 @@ export function ReconciliationTab() {
                   type="checkbox"
                   checked={allSelected}
                   onChange={toggleSelectAll}
-                  className="rounded-sm accent-[#16a34a]"
+                  className="rounded-sm accent-[var(--mission-blue)]"
                   disabled={approvableIds.length === 0}
                 />
               </th>
@@ -300,7 +300,7 @@ export function ReconciliationTab() {
             <button
               onClick={() => setPage(Math.max(1, page - 1))}
               disabled={page <= 1}
-              className="text-[11px] px-3 py-1 border rounded-sm disabled:opacity-30 hover:border-[#16a34a]/40 transition-colors"
+              className="text-[11px] px-3 py-1 border rounded-sm disabled:opacity-30 hover:border-[var(--mission-blue)]/40 transition-colors"
               style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
             >
               Previous
@@ -308,7 +308,7 @@ export function ReconciliationTab() {
             <button
               onClick={() => setPage(Math.min(totalPages, page + 1))}
               disabled={page >= totalPages}
-              className="text-[11px] px-3 py-1 border rounded-sm disabled:opacity-30 hover:border-[#16a34a]/40 transition-colors"
+              className="text-[11px] px-3 py-1 border rounded-sm disabled:opacity-30 hover:border-[var(--mission-blue)]/40 transition-colors"
               style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
             >
               Next
@@ -340,7 +340,7 @@ function TransactionRow({
   return (
     <motion.tr
       layout
-      className="border-b border-border hover:bg-black/5 transition-colors"
+      className="border-b border-border hover:bg-[var(--mission-raised)] transition-colors"
     >
       <td className="px-3 py-2.5 w-8">
         {isApprovable ? (
@@ -348,7 +348,7 @@ function TransactionRow({
             type="checkbox"
             checked={isSelected}
             onChange={onToggleSelect}
-            className="rounded-sm accent-[#16a34a]"
+            className="rounded-sm accent-[var(--mission-blue)]"
           />
         ) : (
           <span className="block w-3.5" />
@@ -379,10 +379,10 @@ function TransactionRow({
       </td>
       <td className="px-3 py-2.5">
         <div className="flex items-center gap-2">
-          <div className="w-16 h-1.5 rounded-sm bg-white/10 overflow-hidden">
+          <div className="w-16 h-1.5 rounded-sm bg-[var(--mission-raised)]/10 overflow-hidden">
             <div
               className="h-full rounded-sm"
-              style={{ width: `${confidence}%`, backgroundColor: '#16a34a' }}
+              style={{ width: `${confidence}%`, backgroundColor: 'var(--mission-blue)' }}
             />
           </div>
           <span className="text-[10px] tabular-nums" style={{ color: 'var(--color-text-disabled)' }}>
@@ -395,8 +395,8 @@ function TransactionRow({
           {isReconcilable && (
             <button
               onClick={onReconcile}
-              className="text-[11px] px-2 py-0.5 rounded-sm border hover:border-[#16a34a]/40 transition-colors"
-              style={{ borderColor: 'var(--color-border)', color: '#15803d' }}
+              className="text-[11px] px-2 py-0.5 rounded-sm border hover:border-[var(--mission-blue)]/40 transition-colors"
+              style={{ borderColor: 'var(--color-border)', color: 'var(--mission-blue)' }}
             >
               Reconcile
             </button>
@@ -404,8 +404,8 @@ function TransactionRow({
           {txn.reconciliationStatus === 'manual_review' && (
             <button
               onClick={onApprove}
-              className="text-[11px] px-2 py-0.5 rounded-sm border hover:border-[#16a34a]/40 transition-colors"
-              style={{ borderColor: 'var(--color-border)', color: '#15803d' }}
+              className="text-[11px] px-2 py-0.5 rounded-sm border hover:border-[var(--mission-blue)]/40 transition-colors"
+              style={{ borderColor: 'var(--color-border)', color: 'var(--mission-blue)' }}
             >
               Approve
             </button>

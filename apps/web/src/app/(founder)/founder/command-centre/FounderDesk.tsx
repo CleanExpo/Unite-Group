@@ -130,13 +130,6 @@ export function FounderDesk({ projects }: { projects: Array<{ name: string }> })
       <div><h1>Your vision. A clear path forward.</h1><p>Turn ideas into missions. See progress. Make the decisions that need you.</p></div>
       <button className={styles.secondaryButton} onClick={newIdea}>New idea</button>
     </header>
-    <nav className={styles.capabilityLinks} aria-label="Business workspaces">
-      <Link href="/founder/command-centre/operations">All work & system activity</Link>
-      <Link href="/founder/command-centre/portfolio" id="portfolio">Businesses</Link>
-      <Link href="/founder/command-centre/knowledge" id="capability-bus">Library & memory</Link>
-      <Link href="/founder/campaigns">Campaigns</Link>
-      <Link href="/founder/bookkeeper">Finance</Link>
-    </nav>
     {actionError && <div className={styles.error} role="alert">{actionError}</div>}
     <div hidden={!!selectedId || view !== 'desk'}><MargotMissionConsole key={draftKey} projects={projects} presets={presets} busy={busy} onPrepare={prepare} /></div>
     {selectedId && !selected && <div className={styles.empty}>{loading ? 'Loading your mission…' : 'This mission is unavailable in the current history. Refresh the list or start a new idea.'}</div>}

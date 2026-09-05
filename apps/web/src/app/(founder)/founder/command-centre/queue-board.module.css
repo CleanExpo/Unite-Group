@@ -334,3 +334,16 @@
 :global(.cc-daylight) .placeholder { color: #6b7280; }
 :global(.cc-daylight) .groupName { color: #16181d; }
 :global(.cc-daylight) .groupCount { color: #6b7280; }
+
+/* The queue is the same workspace in either Mission Control theme. */
+:global([data-mission-control]) :is(.count, .liveLabel, .placeholder, .groupCount, .rowMeta, .tag, .valMuted, .gateChip) { color: var(--mission-muted); }
+:global([data-mission-control]) :is(.groupName, .rowTitle) { color: var(--mission-ink); }
+:global([data-mission-control]) :is(.row, .valPanel, .sessPanel) { background: var(--mission-raised); border-color: var(--mission-border); border-radius: 3px; }
+:global([data-mission-control]) :is(.refresh, .valToggle, .defer) { color: var(--mission-blue); background: var(--mission-surface); border-color: var(--mission-border); border-radius: 3px; }
+:global([data-mission-control]) :is(.error, .valError, .reject, .tag[data-risk='critical'], .gateChip[data-state='fail']) { color: var(--mission-danger); }
+:global([data-mission-control]) :is(.tag[data-risk='high'], .gateChip[data-state='pending'], .gateChip[data-state='skip'], .completeBadge[data-ok='false']) { color: var(--mission-attention); }
+:global([data-mission-control]) .gateChip[data-state='pass'] { color: var(--mission-success); }
+:global([data-mission-control]) .toolbar { flex-wrap: wrap; }
+:global([data-mission-control]) .rowTop { flex-wrap: wrap; }
+:global([data-mission-control]) .toolbarRight { flex-wrap: wrap; min-width: 0; }
+:global([data-mission-control]) .count { overflow-wrap: anywhere; min-width: 0; }

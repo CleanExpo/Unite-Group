@@ -8,7 +8,7 @@ export default async function RootPage() {
   const user = await getUser();
 
   if (user) {
-    redirect("/founder/dashboard");
+    redirect("/founder/command-centre");
   }
 
   redirect("/auth/login");

@@ -17,11 +17,11 @@ import { join } from 'node:path'
 
 const dir = join(process.cwd(), 'src/app/(founder)/founder/command-centre')
 const pageSrc = readFileSync(join(dir, 'page.tsx'), 'utf8')
-const founderDeskSrc = readFileSync(join(dir, 'FounderDesk.tsx'), 'utf8')
-const operationsSrc = readFileSync(join(dir, 'operations/page.tsx'), 'utf8')
-const portfolioSrc = readFileSync(join(dir, 'portfolio/page.tsx'), 'utf8')
-const providersSrc = readFileSync(join(dir, 'providers/page.tsx'), 'utf8')
-const knowledgeSrc = readFileSync(join(dir, 'knowledge/page.tsx'), 'utf8')
+const founderDeskSrc = readFileSync(join(dir, 'FounderDesk.tsx'), 'utf8') + readFileSync(join(dir, 'MissionControlShell.tsx'), 'utf8')
+const operationsSrc = readFileSync(join(dir, 'operations/page.tsx'), 'utf8') + readFileSync(join(dir, 'operations/OperationsView.tsx'), 'utf8')
+const portfolioSrc = readFileSync(join(dir, 'portfolio/page.tsx'), 'utf8') + readFileSync(join(dir, 'portfolio/PortfolioView.tsx'), 'utf8')
+const providersSrc = readFileSync(join(dir, 'providers/page.tsx'), 'utf8') + readFileSync(join(dir, 'providers/ProvidersView.tsx'), 'utf8')
+const knowledgeSrc = readFileSync(join(dir, 'knowledge/page.tsx'), 'utf8') + readFileSync(join(dir, 'knowledge/KnowledgeView.tsx'), 'utf8')
 const shellCss = readFileSync(join(dir, 'shell.module.css'), 'utf8')
 const deckCss = readFileSync(join(dir, 'command-deck.module.css'), 'utf8')
 const stepsCss = readFileSync(join(dir, 'CommandSteps.module.css'), 'utf8')
@@ -39,6 +39,7 @@ const coachSrc = readFileSync(
 )
 
 const allPageSources = [pageSrc, operationsSrc, portfolioSrc, providersSrc, knowledgeSrc]
+const routeManifest = readFileSync(join(process.cwd(), 'src/lib/navigation/mission-control.ts'), 'utf8')
 
 describe('command-centre shell slice 2 — canvas migration regression gate', () => {
   it('renders the Operate launch-pad from the static BUSINESSES registry (no invented fields)', () => {
@@ -92,7 +93,7 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
     expect(pageSrc).toContain("import { FounderDesk } from './FounderDesk'")
     expect(pageSrc).toContain('<FounderDesk')
     for (const id of ['portfolio', 'capability-bus']) {
-      expect(founderDeskSrc).toContain(`id="${id}"`)
+      expect(founderDeskSrc).toContain(`'${id}'`)
     }
     // Operations deck.
     for (const id of [
@@ -118,15 +119,16 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
     }
   })
 
-  it('links every relocated deck from the calm home and back (domain links + back-links)', () => {
+  it('links every relocated deck through the shared Mission Control navigation', () => {
     expect(pageSrc).toContain('<FounderDesk')
     for (const route of ['operations', 'portfolio', 'providers', 'knowledge']) {
-      expect(founderDeskSrc + pageSrc).toContain(`/founder/command-centre/${route}`)
+      expect(routeManifest).toContain(`/${route}`)
     }
     for (const src of [operationsSrc, portfolioSrc, providersSrc, knowledgeSrc]) {
-      expect(src).toContain('href="/founder/command-centre"')
-      expect(src).toContain('Command deck')
+      expect(src).toContain('<MissionControlShell')
     }
+    expect(founderDeskSrc).toContain('MISSION_CONTROL_ROUTES.map')
+    expect(routeManifest).toContain("MISSION_CONTROL_HOME = '/founder/command-centre'")
   })
 
   it('keeps backdrop-filter guard/declaration parity in shell.module.css (perf auto-degrade)', () => {
