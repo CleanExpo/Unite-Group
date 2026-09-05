@@ -1,8 +1,41 @@
 name: Claude Code Review
 
+# NOT RUNNING ON PULL REQUESTS — deliberately, and temporarily. See UNI-2610.
+#
+# CLAUDE_CODE_OAUTH_TOKEN no longer authenticates. The action initialises, is
+# rejected on its first API call, and exits having reviewed nothing:
+# `is_error:true`, `total_cost_usd:0`, `modelUsage:{}`, `num_turns:1`, in under
+# two seconds. It failed 22 consecutive times and was the sole red check on all
+# 10 open pull requests, producing no review and blocking nothing — it is not
+# one of the 12 required status contexts.
+#
+# The harm was signal loss, not CI minutes: with every PR red, a real failure
+# looked identical to this one. #1068's genuine apps/web failure sat in the
+# middle of it wearing the same colour.
+#
+# WHY THE TRIGGER IS REMOVED RATHER THAN THE JOB SKIPPED.
+# The first attempt gated the job with `if: vars.CLAUDE_REVIEW_ENABLED`, on the
+# assumption that a skipped job reads as skipped and therefore never as a pass.
+# That assumption is FALSE, and independent review caught it: GitHub counts
+# `skipped` alongside `success` and `neutral` as a SUCCESSFUL conclusion for
+# required status checks. So a skipped job satisfies a required context without
+# doing anything — precisely the laundering this was meant to avoid.
+#   https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks
+#
+# With no `pull_request` trigger, no check run is produced at all. Today that
+# means clean pull requests. If anyone later adds `claude-review` to the
+# required contexts while it is still off, the missing check stays PENDING and
+# blocks the merge — loud and fail-closed, instead of silently green.
+#
+# TO TURN IT BACK ON, both together:
+#   1. Rotate the credential: `claude setup-token`, then update the
+#      CLAUDE_CODE_OAUTH_TOKEN secret.
+#   2. Uncomment the `pull_request:` trigger below.
+# Verify with one `workflow_dispatch` run before re-enabling the trigger.
 on:
-  pull_request:
-    types: [opened, synchronize, ready_for_review, reopened]
+  # pull_request:
+  #   types: [opened, synchronize, ready_for_review, reopened]
+  workflow_dispatch:
 
 jobs:
   claude-review:
