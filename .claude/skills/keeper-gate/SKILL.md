@@ -30,6 +30,9 @@ Run in order. Any failure → STOP, fix or name the blocker; there is no
    to packages, then run each package's FULL verify (the same jobs CI runs —
    root `package.json` `verify:*` scripts mirror `.github/workflows/ci.yml` via
    `scripts/lib/preflight-jobs.mjs`, with a test asserting the mirror):
+   - First run `npm run verify:pr-candidate`. This is the executable local CI
+     mirror and is mandatory for every PR candidate and every repair commit;
+     selecting package checks by hand is not an equivalent receipt.
    - `apps/web/**` → in apps/web: `pnpm run lint` AND `pnpm run type-check`
      AND `pnpm run test` (the full suite, not the one spec you changed) AND
      `pnpm run build` when config/deps/route wiring changed.
@@ -67,9 +70,21 @@ Run in order. Any failure → STOP, fix or name the blocker; there is no
 
 ## After pushing
 
-- Verify CI check runs land green on the EXACT pushed SHA (the merge arbiter is
+- Read back CI on the EXACT pushed SHA with
+  `npm run pr:closure:status -- --repo <owner/name> --pr <number> --expected-sha <sha> --attempt <n>`.
+  The classifier is read-only: pending stays pending; failed checks produce the
+  bounded continuation `logs → branch/platform classification → repair → local
+  preflight → independent same-SHA review → release receipt → existing-PR push
+  → readback`; skipped, missing, unknown or mismatched evidence stays unproven.
+  It never reruns a check, edits a PR, merges or deploys.
+- Verify CI check runs land green on the exact pushed SHA (the merge arbiter is
   the Monorepo CI workflow, not the Vercel bot). A new push resets the clock —
-  gates 1–6 apply again to every subsequent commit on the branch.
+  gates 1–6 apply again to every subsequent commit on the branch. After three
+  failed repair attempts, stop automatic resubmission and request an independent
+  failure diagnosis; never push the same failure blindly.
+- An all-green readback stops at `approval_pending`. Merge and deployment still
+  require their own explicit authority and later runtime readback; neither is
+  implied by a draft PR or positive model language.
 - Un-drafting is a second keeper moment: re-confirm the head SHA's checks are
   all green and the body's receipts still match the head before flipping.
 

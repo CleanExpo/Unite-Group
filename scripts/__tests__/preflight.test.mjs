@@ -123,15 +123,17 @@ test('the declared prebuild inputs match what the sync scripts actually read', (
   const sources = ['sync-portfolio-registry.mjs', 'sync-capability-registry.mjs']
     .map((f) => readFileSync(resolve(repoRoot, 'apps/web/scripts', f), 'utf8'))
     .join('\n');
-  for (const [needle, declared] of [
-    ["'.portfolio'", '.portfolio/'],
-    ["'.claude', 'agents'", '.claude/agents/'],
-    ["'.claude', 'skills'", '.claude/skills/'],
-    ["'.mcp.json'", '.mcp.json'],
+  for (const [needle, label, declared] of [
+    [/["']\.portfolio["']/, '.portfolio', '.portfolio/'],
+    [/["']\.claude["'], ["']agents["']/, '.claude/agents', '.claude/agents/'],
+    [/["']\.claude["'], ["']skills["']/, '.claude/skills', '.claude/skills/'],
+    [/["']\.mcp\.json["']/, '.mcp.json', '.mcp.json'],
   ]) {
-    assert.ok(sources.includes(needle), `expected a sync script to read ${needle} — has the prebuild changed?`);
+    assert.match(sources, needle, `expected a sync script to read ${label} — has the prebuild changed?`);
     assert.ok(WEB_BUILD_INPUTS.includes(declared), `${declared} must be declared in WEB_BUILD_INPUTS`);
   }
+  assert.match(sources, /["']PORTFOLIO\.yaml["']/, 'the portfolio registry must remain a declared prebuild input');
+  assert.match(sources, /["']CONTROL-PLANE\.v1\.json["']/, 'the control-plane registry must remain a declared prebuild input');
 });
 
 test('unrelated changes do not affect the apps/web build', () => {
@@ -288,4 +290,24 @@ test('THE LOCAL READINESS GATE RUNS EVERY TEST CI RUNS', () => {
     [],
     `CI's readiness kernel runs test files the local gate does not: ${missingLocally.join(', ')}`,
   );
+});
+
+test('the release contract cannot omit local preflight or remote check continuation', () => {
+  const packageJson = JSON.parse(readFileSync(resolve(repoRoot, 'package.json'), 'utf8'));
+  assert.equal(
+    packageJson.scripts['verify:pr-candidate'],
+    'node scripts/preflight.mjs --keep-going',
+    'every release candidate must run the complete locally reproducible CI mirror',
+  );
+  assert.equal(
+    packageJson.scripts['pr:closure:status'],
+    'node scripts/pr-check-continuation.mjs',
+    'remote PR-check readback must use the fail-closed continuation classifier',
+  );
+
+  const keeper = readFileSync(resolve(repoRoot, '.claude/skills/keeper-gate/SKILL.md'), 'utf8');
+  assert.match(keeper, /npm run verify:pr-candidate/u);
+  assert.match(keeper, /npm run pr:closure:status/u);
+  assert.match(keeper, /pending stays pending/u);
+  assert.match(keeper, /approval_pending/u);
 });
