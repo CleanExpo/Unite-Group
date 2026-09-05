@@ -1,15 +1,15 @@
 'use client'
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  auto_matched:    { label: 'Auto',       color: '#15803d', bg: 'rgba(22, 163, 74,0.08)', border: 'rgba(22, 163, 74,0.2)' },
-  suggested_match: { label: 'Suggested',  color: '#eab308', bg: 'rgba(234,179,8,0.08)', border: 'rgba(234,179,8,0.2)' },
-  unmatched:       { label: 'Unmatched',  color: '#ef4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)' },
-  manual_review:   { label: 'Review',     color: '#f97316', bg: 'rgba(249,115,22,0.08)', border: 'rgba(249,115,22,0.2)' },
-  reconciled:      { label: 'Reconciled', color: '#15803d', bg: 'rgba(22, 163, 74,0.12)', border: 'rgba(22, 163, 74,0.3)' },
+  auto_matched:    { label: 'Auto',       color: 'var(--mission-blue)', bg: 'color-mix(in srgb, var(--mission-blue) 8%, transparent)', border: 'color-mix(in srgb, var(--mission-blue) 20%, transparent)' },
+  suggested_match: { label: 'Suggested',  color: 'var(--mission-attention)', bg: 'rgba(234,179,8,0.08)', border: 'rgba(234,179,8,0.2)' },
+  unmatched:       { label: 'Unmatched',  color: 'var(--color-danger)', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)' },
+  manual_review:   { label: 'Review',     color: 'var(--mission-attention)', bg: 'rgba(249,115,22,0.08)', border: 'rgba(249,115,22,0.2)' },
+  reconciled:      { label: 'Reconciled', color: 'var(--mission-blue)', bg: 'color-mix(in srgb, var(--mission-blue) 12%, transparent)', border: 'color-mix(in srgb, var(--mission-blue) 30%, transparent)' },
 }
 
 export function StatusBadge({ status }: { status: string }) {
-  const config = STATUS_CONFIG[status] ?? { label: status, color: '#888888', bg: 'rgba(136,136,136,0.08)', border: 'rgba(136,136,136,0.2)' }
+  const config = STATUS_CONFIG[status] ?? { label: status, color: 'var(--mission-muted)', bg: 'rgba(136,136,136,0.08)', border: 'rgba(136,136,136,0.2)' }
   return (
     <span
       className="text-[10px] font-medium tracking-widest uppercase px-2 py-0.5 rounded-sm"

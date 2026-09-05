@@ -14,16 +14,16 @@ import type { AgentConnectionState } from '@/lib/operator-gateway/presence'
 // ---------------------------------------------------------------------------
 
 export const theme = {
-  text: '#f0f3f7', // --deck-text
-  muted: '#a6afbc', // --deck-muted
-  surface: '#1c2230', // --deck-panel
-  border: 'rgba(255, 255, 255, 0.10)', // --deck-line
-  borderSoft: 'rgba(255, 255, 255, 0.05)', // --deck-line-soft
-  ok: '#34d399', // --deck-cyan-text (go)
-  warn: '#f0a94c', // --deck-amber-text (caution)
-  warnAlt: '#f0a94c', // nearest deck token: --deck-amber-text (no orange text token)
-  bad: '#f87171', // --deck-abort-text
-  info: '#34d399', // nearest deck token: --deck-cyan-text
+  text: 'var(--mission-ink)', // --deck-text
+  muted: 'var(--mission-muted)', // --deck-muted
+  surface: 'var(--mission-surface)', // --deck-panel
+  border: 'var(--mission-border)', // --deck-line
+  borderSoft: 'var(--mission-border)', // --deck-line-soft
+  ok: 'var(--mission-success)', // positive status
+  warn: 'var(--mission-attention)', // --deck-amber-text (caution)
+  warnAlt: 'var(--mission-attention)', // nearest deck token: --deck-amber-text (no orange text token)
+  bad: 'var(--mission-danger)', // blocked/error status
+  info: 'var(--mission-blue)', // nearest deck token: --deck-cyan-text
 } as const
 
 export const monoFont = 'ui-monospace, SFMono-Regular, monospace'
@@ -34,11 +34,11 @@ export type Tone = 'ok' | 'warn' | 'bad' | 'muted' | 'info'
 // Fills are alpha washes of the deck LED fills (--deck-go / --deck-amber /
 // --deck-abort); text uses the AA --deck-*-text variants.
 const toneSwatch: Record<Tone, { bg: string; fg: string; bd: string }> = {
-  ok: { bg: 'rgba(45, 187, 87, 0.12)', fg: '#34d399', bd: 'rgba(45, 187, 87, 0.35)' },
-  bad: { bg: 'rgba(229, 72, 77, 0.12)', fg: '#f87171', bd: 'rgba(229, 72, 77, 0.4)' },
-  warn: { bg: 'rgba(244, 130, 15, 0.12)', fg: '#f0a94c', bd: 'rgba(244, 130, 15, 0.4)' },
-  info: { bg: 'rgba(45, 187, 87, 0.08)', fg: '#34d399', bd: 'rgba(45, 187, 87, 0.25)' },
-  muted: { bg: 'rgba(255, 255, 255, 0.04)', fg: '#a6afbc', bd: 'rgba(255, 255, 255, 0.10)' },
+  ok: { bg: 'rgba(45, 187, 87, 0.12)', fg: 'var(--mission-success)', bd: 'rgba(45, 187, 87, 0.35)' },
+  bad: { bg: 'rgba(229, 72, 77, 0.12)', fg: 'var(--mission-danger)', bd: 'rgba(229, 72, 77, 0.4)' },
+  warn: { bg: 'rgba(244, 130, 15, 0.12)', fg: 'var(--mission-attention)', bd: 'rgba(244, 130, 15, 0.4)' },
+  info: { bg: 'rgba(45, 187, 87, 0.08)', fg: 'var(--mission-blue)', bd: 'rgba(45, 187, 87, 0.25)' },
+  muted: { bg: 'rgba(255, 255, 255, 0.04)', fg: 'var(--mission-muted)', bd: 'var(--mission-border)' },
 }
 
 // ---------------------------------------------------------------------------
@@ -47,7 +47,7 @@ const toneSwatch: Record<Tone, { bg: string; fg: string; bd: string }> = {
 
 export const grid: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))',
   gap: '1rem',
 }
 
@@ -72,7 +72,7 @@ export const inputStyle: React.CSSProperties = {
   width: '100%',
   border: `1px solid ${theme.border}`,
   borderRadius: 2,
-  background: '#232b3a', // --deck-panel-hi (was an off-system near-white)
+  background: 'var(--mission-raised)', // --deck-panel-hi (was an off-system near-white)
   color: theme.muted,
   padding: '0.65rem 0.75rem',
 }

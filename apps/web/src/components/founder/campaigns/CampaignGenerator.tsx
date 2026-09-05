@@ -137,20 +137,20 @@ export function CampaignGenerator({
   ])
 
   return (
-    <div className="bg-[#fff7ec] border border-white/6 rounded-sm p-6 space-y-6">
+    <div className="bg-[var(--surface-card)] border border-[var(--mission-border)] rounded-sm p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
         <button
           onClick={onBack}
-          className="text-[#5f5f66] hover:text-[#3f3f46] transition-colors text-[11px] flex items-center gap-1.5"
+          className="text-[var(--color-text-secondary)] hover:text-[var(--mission-ink)] transition-colors text-[11px] flex items-center gap-1.5"
         >
           <ArrowLeft size={13} />
           Back
         </button>
-        <span className="text-[#6b6b6b] text-[11px]">/</span>
-        <span className="text-[#3f3f46] text-[13px] font-medium">{brandName}</span>
-        <span className="text-[#6b6b6b] text-[11px]">/</span>
-        <span className="text-[#52525b] text-[13px]">New Campaign</span>
+        <span className="text-[var(--color-text-muted)] text-[11px]">/</span>
+        <span className="text-[var(--mission-ink)] text-[13px] font-medium">{brandName}</span>
+        <span className="text-[var(--color-text-muted)] text-[11px]">/</span>
+        <span className="text-[var(--color-text-secondary)] text-[13px]">New Campaign</span>
       </div>
 
       {/* Error banner */}
@@ -160,7 +160,7 @@ export function CampaignGenerator({
           style={{
             background: 'rgba(239,68,68,0.08)',
             borderColor: 'rgba(239,68,68,0.25)',
-            color: '#ef4444',
+            color: 'var(--color-danger)',
           }}
         >
           {error}
@@ -170,15 +170,15 @@ export function CampaignGenerator({
       {/* Config state */}
       {uiState === 'config' && (
         <div className="space-y-5">
-          <h2 className="text-[#3f3f46] text-[15px] font-medium">Configure Campaign</h2>
+          <h2 className="text-[var(--mission-ink)] text-[15px] font-medium">Configure Campaign</h2>
 
           {/* Theme */}
           <div className="space-y-1.5">
             <label
               className="text-[10px] uppercase tracking-[0.15em] block"
-              style={{ color: 'rgba(255,255,255,0.35)' }}
+              style={{ color: 'var(--mission-muted)' }}
             >
-              Theme <span style={{ color: '#15803d' }}>*</span>
+              Theme <span style={{ color: 'var(--mission-blue)' }}>*</span>
             </label>
             <input
               type="text"
@@ -187,9 +187,9 @@ export function CampaignGenerator({
               placeholder="e.g. Summer Sale, Product Launch, Brand Awareness"
               className="w-full text-[12px] px-3 py-2.5 rounded-sm border outline-hidden transition-colors"
               style={{
-                background: '#111',
-                borderColor: theme.trim() ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.1)',
-                color: 'rgba(255,255,255,0.85)',
+                background: 'var(--mission-canvas)',
+                borderColor: theme.trim() ? 'var(--mission-border)' : 'var(--mission-border)',
+                color: 'var(--mission-ink)',
               }}
             />
           </div>
@@ -198,7 +198,7 @@ export function CampaignGenerator({
           <div className="space-y-1.5">
             <label
               className="text-[10px] uppercase tracking-[0.15em] block"
-              style={{ color: 'rgba(255,255,255,0.35)' }}
+              style={{ color: 'var(--mission-muted)' }}
             >
               Objective
             </label>
@@ -207,9 +207,9 @@ export function CampaignGenerator({
               onChange={(e) => setObjective(e.target.value as Objective)}
               className="w-full text-[12px] px-3 py-2.5 rounded-sm border outline-hidden appearance-none"
               style={{
-                background: '#111',
-                borderColor: 'rgba(255,255,255,0.1)',
-                color: 'rgba(255,255,255,0.85)',
+                background: 'var(--mission-canvas)',
+                borderColor: 'var(--mission-border)',
+                color: 'var(--mission-ink)',
               }}
             >
               {(Object.keys(OBJECTIVE_LABELS) as Objective[]).map((key) => (
@@ -224,9 +224,9 @@ export function CampaignGenerator({
           <div className="space-y-2">
             <label
               className="text-[10px] uppercase tracking-[0.15em] block"
-              style={{ color: 'rgba(255,255,255,0.35)' }}
+              style={{ color: 'var(--mission-muted)' }}
             >
-              Platforms <span style={{ color: '#15803d' }}>*</span>
+              Platforms <span style={{ color: 'var(--mission-blue)' }}>*</span>
             </label>
             <div className="flex flex-wrap gap-2">
               {PLATFORMS.map((platform) => {
@@ -238,17 +238,17 @@ export function CampaignGenerator({
                     onClick={() => togglePlatform(platform)}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-sm border text-[11px] transition-colors"
                     style={{
-                      background: checked ? 'rgba(22, 163, 74,0.08)' : 'rgba(255,255,255,0.03)',
-                      borderColor: checked ? 'rgba(22, 163, 74,0.35)' : 'rgba(255,255,255,0.08)',
-                      color: checked ? '#16a34a' : 'rgba(255,255,255,0.45)',
+                      background: checked ? 'color-mix(in srgb, var(--mission-blue) 8%, transparent)' : 'var(--mission-raised)',
+                      borderColor: checked ? 'color-mix(in srgb, var(--mission-blue) 35%, transparent)' : 'var(--mission-border)',
+                      color: checked ? 'var(--mission-blue)' : 'var(--mission-muted)',
                     }}
                   >
                     {/* Custom checkbox dot */}
                     <span
                       className="w-3 h-3 rounded-[2px] border flex items-center justify-center shrink-0"
                       style={{
-                        background: checked ? '#16a34a' : 'transparent',
-                        borderColor: checked ? '#16a34a' : 'rgba(255,255,255,0.2)',
+                        background: checked ? 'var(--mission-blue)' : 'transparent',
+                        borderColor: checked ? 'var(--mission-blue)' : 'var(--mission-border)',
                       }}
                     >
                       {checked && (
@@ -261,7 +261,7 @@ export function CampaignGenerator({
                         >
                           <path
                             d="M1 3L3 5L7 1"
-                            stroke="#050505"
+                            stroke="var(--mission-blue-ink)"
                             strokeWidth="1.5"
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -280,7 +280,7 @@ export function CampaignGenerator({
           <div className="space-y-1.5">
             <label
               className="text-[10px] uppercase tracking-[0.15em] block"
-              style={{ color: 'rgba(255,255,255,0.35)' }}
+              style={{ color: 'var(--mission-muted)' }}
             >
               Number of Posts
             </label>
@@ -294,9 +294,9 @@ export function CampaignGenerator({
               }
               className="w-24 text-[12px] px-3 py-2.5 rounded-sm border outline-hidden"
               style={{
-                background: '#111',
-                borderColor: 'rgba(255,255,255,0.1)',
-                color: 'rgba(255,255,255,0.85)',
+                background: 'var(--mission-canvas)',
+                borderColor: 'var(--mission-border)',
+                color: 'var(--mission-ink)',
               }}
             />
           </div>
@@ -305,7 +305,7 @@ export function CampaignGenerator({
           <div className="space-y-1.5">
             <label
               className="text-[10px] uppercase tracking-[0.15em] block"
-              style={{ color: 'rgba(255,255,255,0.35)' }}
+              style={{ color: 'var(--mission-muted)' }}
             >
               Date Range (optional)
             </label>
@@ -316,12 +316,12 @@ export function CampaignGenerator({
                 onChange={(e) => setDateRangeStart(e.target.value)}
                 className="text-[12px] px-3 py-2.5 rounded-sm border outline-hidden"
                 style={{
-                  background: '#111',
-                  borderColor: 'rgba(255,255,255,0.1)',
-                  color: dateRangeStart ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.3)',
+                  background: 'var(--mission-canvas)',
+                  borderColor: 'var(--mission-border)',
+                  color: dateRangeStart ? 'var(--mission-ink)' : 'var(--mission-muted)',
                 }}
               />
-              <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
+              <span className="text-[11px]" style={{ color: 'var(--mission-muted)' }}>
                 to
               </span>
               <input
@@ -330,9 +330,9 @@ export function CampaignGenerator({
                 onChange={(e) => setDateRangeEnd(e.target.value)}
                 className="text-[12px] px-3 py-2.5 rounded-sm border outline-hidden"
                 style={{
-                  background: '#111',
-                  borderColor: 'rgba(255,255,255,0.1)',
-                  color: dateRangeEnd ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.3)',
+                  background: 'var(--mission-canvas)',
+                  borderColor: 'var(--mission-border)',
+                  color: dateRangeEnd ? 'var(--mission-ink)' : 'var(--mission-muted)',
                 }}
               />
             </div>
@@ -343,12 +343,12 @@ export function CampaignGenerator({
             <button
               onClick={handleGenerate}
               disabled={!canSubmit}
-              className="bg-[#16a34a] text-black font-medium rounded-sm px-6 py-2.5 text-[13px] transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+              className="bg-[var(--mission-blue)] text-[var(--mission-blue-ink)] font-medium rounded-sm px-6 py-2.5 text-[13px] transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Generate Campaign
             </button>
             {!canSubmit && (
-              <p className="mt-2 text-[10px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
+              <p className="mt-2 text-[10px]" style={{ color: 'var(--mission-muted)' }}>
                 Enter a theme and select at least one platform to continue.
               </p>
             )}
@@ -359,12 +359,12 @@ export function CampaignGenerator({
       {/* Generating state */}
       {uiState === 'generating' && (
         <div className="flex flex-col items-center justify-center py-16 gap-4">
-          <Loader2 size={28} className="animate-spin" style={{ color: '#15803d' }} />
+          <Loader2 size={28} className="animate-spin" style={{ color: 'var(--mission-blue)' }} />
           <div className="text-center space-y-1">
-            <p className="text-[13px]" style={{ color: 'rgba(255,255,255,0.7)' }}>
+            <p className="text-[13px]" style={{ color: 'var(--mission-ink)' }}>
               Generating copy and images...
             </p>
-            <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            <p className="text-[11px]" style={{ color: 'var(--mission-muted)' }}>
               This may take up to 90 seconds. Please wait.
             </p>
           </div>
@@ -375,40 +375,40 @@ export function CampaignGenerator({
       {uiState === 'complete' && generateResult && (
         <div className="space-y-5">
           <div className="flex items-center gap-2">
-            <CheckCircle2 size={16} style={{ color: '#15803d' }} />
-            <h2 className="text-[#3f3f46] text-[15px] font-medium">Campaign Generated</h2>
+            <CheckCircle2 size={16} style={{ color: 'var(--mission-blue)' }} />
+            <h2 className="text-[var(--mission-ink)] text-[15px] font-medium">Campaign Generated</h2>
           </div>
 
           {/* Stats card */}
           <div
             className="rounded-sm border p-5 space-y-4"
             style={{
-              background: 'rgba(22, 163, 74,0.03)',
-              borderColor: 'rgba(22, 163, 74,0.15)',
+              background: 'color-mix(in srgb, var(--mission-blue) 3%, transparent)',
+              borderColor: 'color-mix(in srgb, var(--mission-blue) 15%, transparent)',
             }}
           >
-            <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.45)' }}>
+            <p className="text-[11px]" style={{ color: 'var(--mission-muted)' }}>
               Theme:{' '}
-              <span style={{ color: 'rgba(255,255,255,0.75)' }}>{theme}</span>
+              <span style={{ color: 'var(--mission-ink)' }}>{theme}</span>
             </p>
 
             <div className="grid grid-cols-3 gap-4">
               {/* Assets created */}
               <div className="space-y-1 text-center">
-                <p className="text-[22px] font-semibold tabular-nums" style={{ color: '#15803d' }}>
+                <p className="text-[22px] font-semibold tabular-nums" style={{ color: 'var(--mission-blue)' }}>
                   {generateResult.assetsCreated}
                 </p>
-                <p className="text-[10px] uppercase tracking-[0.12em]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                <p className="text-[10px] uppercase tracking-[0.12em]" style={{ color: 'var(--mission-muted)' }}>
                   Assets Created
                 </p>
               </div>
 
               {/* Assets with images */}
               <div className="space-y-1 text-center">
-                <p className="text-[22px] font-semibold tabular-nums" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                <p className="text-[22px] font-semibold tabular-nums" style={{ color: 'var(--mission-ink)' }}>
                   {generateResult.assetsWithImages}
                 </p>
-                <p className="text-[10px] uppercase tracking-[0.12em]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                <p className="text-[10px] uppercase tracking-[0.12em]" style={{ color: 'var(--mission-muted)' }}>
                   With Images
                 </p>
               </div>
@@ -418,12 +418,12 @@ export function CampaignGenerator({
                 <p
                   className="text-[22px] font-semibold tabular-nums"
                   style={{
-                    color: generateResult.assetsFailed > 0 ? '#ef4444' : 'rgba(255,255,255,0.3)',
+                    color: generateResult.assetsFailed > 0 ? 'var(--color-danger)' : 'var(--mission-muted)',
                   }}
                 >
                   {generateResult.assetsFailed}
                 </p>
-                <p className="text-[10px] uppercase tracking-[0.12em]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                <p className="text-[10px] uppercase tracking-[0.12em]" style={{ color: 'var(--mission-muted)' }}>
                   Failed
                 </p>
               </div>
@@ -434,13 +434,13 @@ export function CampaignGenerator({
           <div className="flex items-center gap-3">
             <button
               onClick={() => campaignId && onGenerated(campaignId)}
-              className="bg-[#16a34a] text-black font-medium rounded-sm px-6 py-2.5 text-[13px] transition-opacity"
+              className="bg-[var(--mission-blue)] text-[var(--mission-blue-ink)] font-medium rounded-sm px-6 py-2.5 text-[13px] transition-opacity"
             >
               View Campaign
             </button>
             <button
               onClick={onBack}
-              className="text-[#5f5f66] hover:text-[#3f3f46] transition-colors text-[12px]"
+              className="text-[var(--color-text-secondary)] hover:text-[var(--mission-ink)] transition-colors text-[12px]"
             >
               Back to Campaigns
             </button>

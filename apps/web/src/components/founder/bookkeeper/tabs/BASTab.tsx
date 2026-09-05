@@ -55,7 +55,7 @@ export function AccountantPackDownload({ business, quarter }: { business: Busine
           key={link.label}
           href={link.href}
           download
-          className="text-[11px] px-2 py-1 rounded-sm border transition-colors hover:bg-black/5"
+          className="text-[11px] px-2 py-1 rounded-sm border transition-colors hover:bg-[var(--mission-raised)]"
           style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
         >
           {link.label}
@@ -64,7 +64,7 @@ export function AccountantPackDownload({ business, quarter }: { business: Busine
       {source === 'mock' && (
         <span
           className="text-[9px] font-medium tracking-widest uppercase px-1.5 py-0.5 rounded-sm"
-          style={{ color: '#eab308', backgroundColor: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.2)' }}
+          style={{ color: 'var(--mission-attention)', backgroundColor: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.2)' }}
         >
           Preview data — mock, Xero not connected
         </span>
@@ -81,12 +81,12 @@ export function AccountantPackDownload({ business, quarter }: { business: Busine
 function SkeletonCard() {
   return (
     <div className="bg-(--surface-card) border border-border rounded-sm p-4 animate-pulse">
-      <div className="h-4 w-40 bg-white/5 rounded-sm mb-4" />
+      <div className="h-4 w-40 bg-[var(--mission-raised)]/5 rounded-sm mb-4" />
       <div className="space-y-3">
         {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="flex justify-between">
-            <div className="h-3 w-24 bg-white/5 rounded-sm" />
-            <div className="h-3 w-16 bg-white/5 rounded-sm" />
+            <div className="h-3 w-24 bg-[var(--mission-raised)]/5 rounded-sm" />
+            <div className="h-3 w-16 bg-[var(--mission-raised)]/5 rounded-sm" />
           </div>
         ))}
       </div>
@@ -100,9 +100,9 @@ function MiniTransactionTable({ transactions, loading }: { transactions: Bookkee
       <div className="space-y-2 py-2">
         {Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="flex gap-4 animate-pulse">
-            <div className="h-3 w-16 bg-white/5 rounded-sm" />
-            <div className="h-3 w-32 bg-white/5 rounded-sm" />
-            <div className="h-3 w-16 bg-white/5 rounded-sm" />
+            <div className="h-3 w-16 bg-[var(--mission-raised)]/5 rounded-sm" />
+            <div className="h-3 w-32 bg-[var(--mission-raised)]/5 rounded-sm" />
+            <div className="h-3 w-16 bg-[var(--mission-raised)]/5 rounded-sm" />
           </div>
         ))}
       </div>
@@ -121,7 +121,7 @@ function MiniTransactionTable({ transactions, loading }: { transactions: Bookkee
     <div className="overflow-x-auto border border-border rounded-sm mt-3">
       <table className="w-full text-[11px]">
         <thead>
-          <tr className="border-b border-border" style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}>
+          <tr className="border-b border-border" style={{ backgroundColor: 'var(--mission-raised)' }}>
             <th className="text-left px-2.5 py-2 font-medium" style={{ color: 'var(--color-text-disabled)' }}>Date</th>
             <th className="text-left px-2.5 py-2 font-medium" style={{ color: 'var(--color-text-disabled)' }}>Business</th>
             <th className="text-left px-2.5 py-2 font-medium" style={{ color: 'var(--color-text-disabled)' }}>Description</th>
@@ -134,7 +134,7 @@ function MiniTransactionTable({ transactions, loading }: { transactions: Bookkee
           {transactions.slice(0, 50).map((tx) => {
             const biz = BUSINESSES.find(b => b.key === tx.businessKey)
             return (
-              <tr key={tx.id} className="border-b border-border hover:bg-black/5 transition-colors">
+              <tr key={tx.id} className="border-b border-border hover:bg-[var(--mission-raised)] transition-colors">
                 <td className="px-2.5 py-1.5 tabular-nums whitespace-nowrap" style={{ color: 'var(--color-text-secondary)' }}>
                   {formatDate(tx.transactionDate)}
                 </td>
@@ -289,9 +289,9 @@ export function BASTab() {
           <motion.div
             key={q.label}
             layout
-            className="bg-(--surface-card) border rounded-sm p-4 cursor-pointer transition-colors hover:bg-black/5"
+            className="bg-(--surface-card) border rounded-sm p-4 cursor-pointer transition-colors hover:bg-[var(--mission-raised)]"
             style={{
-              borderColor: current ? 'rgba(22, 163, 74,0.3)' : 'var(--color-border)',
+              borderColor: current ? 'color-mix(in srgb, var(--mission-blue) 30%, transparent)' : 'var(--color-border)',
             }}
             onClick={() => handleToggle(q)}
           >
@@ -304,7 +304,7 @@ export function BASTab() {
                 {current && (
                   <span
                     className="text-[9px] font-medium tracking-widest uppercase px-1.5 py-0.5 rounded-sm"
-                    style={{ color: '#15803d', backgroundColor: 'rgba(22, 163, 74,0.08)', border: '1px solid rgba(22, 163, 74,0.2)' }}
+                    style={{ color: 'var(--mission-blue)', backgroundColor: 'color-mix(in srgb, var(--mission-blue) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--mission-blue) 20%, transparent)' }}
                   >
                     Current
                   </span>
@@ -312,7 +312,7 @@ export function BASTab() {
                 {due && (
                   <span
                     className="text-[9px] font-medium tracking-widest uppercase px-1.5 py-0.5 rounded-sm"
-                    style={{ color: '#eab308', backgroundColor: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.2)' }}
+                    style={{ color: 'var(--mission-attention)', backgroundColor: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.2)' }}
                   >
                     Due
                   </span>
@@ -365,7 +365,7 @@ export function BASTab() {
                       Contributing Transactions
                     </p>
                     {transactionsError ? (
-                      <p role="alert" className="text-[12px] py-2" style={{ color: '#FCA5A5' }}>
+                      <p role="alert" className="text-[12px] py-2" style={{ color: 'var(--color-danger)' }}>
                         Couldn&apos;t load transactions for this quarter — this is a load
                         error, not an empty quarter.
                       </p>

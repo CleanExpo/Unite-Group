@@ -9,6 +9,7 @@
 // All rows are founder-scoped by RLS (founder_id = auth.uid()).
 
 import { createHash } from 'node:crypto'
+import { isDeliveryMission } from './delivery-types'
 
 import { createClient } from '@/lib/supabase/server'
 
@@ -565,6 +566,7 @@ export async function mergeTaskMetadata(
   const db = client ?? ((await createClient()) as unknown as SupabaseLike)
   const existing = await getTaskById({ founderId: input.founderId, taskId: input.taskId }, db)
   if (!existing) return null
+  if (isDeliveryMission(existing)) throw new Error('Delivery mission metadata requires the guarded delivery store')
   const merged = { ...existing.metadata, ...input.patch }
   const { data, error } = await db
     .from(CC_TASKS_TABLE)

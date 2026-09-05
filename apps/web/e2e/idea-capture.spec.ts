@@ -9,5 +9,5 @@ test.beforeEach(async ({ page }) => {
 test('capture panel opens from topbar', async ({ page }) => {
   await page.click('[aria-label="Capture idea"]')
   await expect(page.getByRole('heading').filter({ hasText: /capture/i })).toBeVisible()
-  await expect(page.locator('textarea')).toBeVisible()
+  await expect(page.getByPlaceholder('I want to add...', { exact: true })).toBeVisible()
 })

@@ -40,7 +40,7 @@ type SimNode = WikiGraphNode & SimulationNodeDatum
 type SimLink = SimulationLinkDatum<SimNode>
 
 // Candy-deck palette (matches command-deck.module.css tokens).
-const COL = {
+const DEFAULT_COLOURS = {
   node: '#2dbb57',
   nodeDim: 'rgba(45,187,87,0.18)',
   link: 'rgba(90,107,98,0.28)',
@@ -118,6 +118,25 @@ export function WikiGraphCanvas({ nodes, edges }: Props) {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
+    // Canvas2D needs resolved colour values; CSS var() strings cannot be used
+    // as fillStyle. Resolve from this workspace once and on its theme changes.
+    function readColours() {
+      const css = getComputedStyle(wrap!)
+      const token = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback
+      return {
+        ...DEFAULT_COLOURS,
+        node: token('--mission-blue', DEFAULT_COLOURS.node),
+        focus: token('--mission-blue', DEFAULT_COLOURS.focus),
+        label: token('--mission-ink', DEFAULT_COLOURS.label),
+        labelDim: token('--mission-muted', DEFAULT_COLOURS.labelDim),
+        nodeDim: token('--mission-border', DEFAULT_COLOURS.nodeDim),
+        link: token('--mission-border', DEFAULT_COLOURS.link),
+        linkDim: token('--mission-raised', DEFAULT_COLOURS.linkDim),
+        linkHi: token('--mission-attention', DEFAULT_COLOURS.linkHi),
+      }
+    }
+    let colours = readColours()
+
     // Build simulation datasets (clone so d3 can mutate freely).
     const simNodes: SimNode[] = nodes.map((n) => ({ ...n }))
     const byId = new Map(simNodes.map((n) => [n.id, n]))
@@ -180,7 +199,7 @@ export function WikiGraphCanvas({ nodes, edges }: Props) {
         const tg = l.target as SimNode
         if (s.x === undefined || tg.x === undefined) continue
         const touchesHover = hover && (s.id === hover.id || tg.id === hover.id)
-        ctx!.strokeStyle = hover ? (touchesHover ? COL.linkHi : COL.linkDim) : COL.link
+        ctx!.strokeStyle = hover ? (touchesHover ? colours.linkHi : colours.linkDim) : colours.link
         ctx!.beginPath()
         ctx!.moveTo(s.x, s.y!)
         ctx!.lineTo(tg.x, tg.y!)
@@ -195,11 +214,11 @@ export function WikiGraphCanvas({ nodes, edges }: Props) {
         const active = !hover || isHover || isNeighbour
         ctx!.beginPath()
         ctx!.arc(n.x, n.y, nodeRadius(n.degree), 0, Math.PI * 2)
-        ctx!.fillStyle = active ? (isHover ? COL.focus : COL.node) : COL.nodeDim
+        ctx!.fillStyle = active ? (isHover ? colours.focus : colours.node) : colours.nodeDim
         ctx!.fill()
         if (isHover) {
           ctx!.lineWidth = 2 / t.k
-          ctx!.strokeStyle = COL.focus
+          ctx!.strokeStyle = colours.focus
           ctx!.stroke()
         }
       }
@@ -216,7 +235,7 @@ export function WikiGraphCanvas({ nodes, edges }: Props) {
           const isNeighbour = neighbours?.has(n.id) ?? false
           if (hover && !isHover && !isNeighbour) continue
           if (!hover && !showAllLabels) continue
-          ctx!.fillStyle = hover && !isHover && !isNeighbour ? COL.labelDim : COL.label
+          ctx!.fillStyle = hover && !isHover && !isNeighbour ? colours.labelDim : colours.label
           ctx!.fillText(n.title, n.x, n.y + nodeRadius(n.degree) + 1)
         }
       }
@@ -340,9 +359,17 @@ export function WikiGraphCanvas({ nodes, edges }: Props) {
     })
     ro.observe(wrap)
 
+    const themeRoot = wrap.closest('[data-mission-control]')?.parentElement
+    const themeObserver = new MutationObserver(() => {
+      colours = readColours()
+      draw()
+    })
+    if (themeRoot) themeObserver.observe(themeRoot, { attributes: true, attributeFilter: ['class'] })
+
     return () => {
       sim.stop()
       ro.disconnect()
+      themeObserver.disconnect()
       selection.on('.zoom', null)
       canvas.removeEventListener('pointerdown', onPointerDown)
       canvas.removeEventListener('pointerdown', onClickDown)
@@ -362,8 +389,8 @@ export function WikiGraphCanvas({ nodes, edges }: Props) {
         minHeight: 0,
         overflow: 'hidden',
         borderRadius: 2,
-        border: '1px solid rgba(45,187,87,0.20)',
-        background: '#fffdf7',
+        border: '1px solid var(--mission-border, rgba(45,187,87,0.20))',
+        background: 'var(--mission-surface, #fffdf7)',
       }}
     >
       <canvas ref={canvasRef} style={{ display: 'block', touchAction: 'none' }} />
@@ -377,16 +404,16 @@ export function WikiGraphCanvas({ nodes, edges }: Props) {
             maxWidth: 220,
             padding: '8px 10px',
             borderRadius: 2,
-            border: '1px solid rgba(45,187,87,0.25)',
-            background: '#ffffff',
+            border: '1px solid var(--mission-border, rgba(45,187,87,0.25))',
+            background: 'var(--mission-raised, #ffffff)',
             boxShadow: '0 6px 18px rgba(20,36,27,0.12)',
             fontSize: 12,
-            color: '#14241b',
+            color: 'var(--mission-ink, #14241b)',
             zIndex: 5,
           }}
         >
           <div style={{ fontWeight: 600, marginBottom: 2 }}>{tooltip.title}</div>
-          <div style={{ color: '#5a6b62', fontSize: 11 }}>
+          <div style={{ color: 'var(--mission-muted, #5a6b62)', fontSize: 11 }}>
             {tooltip.degree} {tooltip.degree === 1 ? 'link' : 'links'}
           </div>
           {tooltip.tags.length > 0 && (
@@ -399,7 +426,7 @@ export function WikiGraphCanvas({ nodes, edges }: Props) {
                     padding: '1px 5px',
                     borderRadius: 2,
                     background: 'rgba(45,187,87,0.10)',
-                    color: '#15803d',
+                    color: 'var(--mission-blue, #15803d)',
                     border: '1px solid rgba(45,187,87,0.18)',
                   }}
                 >

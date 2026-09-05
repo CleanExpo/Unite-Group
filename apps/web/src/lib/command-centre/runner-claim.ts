@@ -16,6 +16,8 @@
 import { appendTaskEvent, CC_TASK_EVENTS_TABLE, type CommandCentreTask, type SupabaseLike } from './tasks'
 import type { AgentEventInput } from './agent-events'
 import { RUNNER_AGENT_NAME } from './runner-identity'
+import { isDeliveryMission, readDeliveryMetadata } from './delivery-types'
+import { getApprovedDelivery, verifyDeliveryApproval } from './delivery-store'
 
 export const CC_TASKS_TABLE = 'cc_tasks'
 // Re-exported so existing importers keep working. The DEFINITION moved to
@@ -44,6 +46,8 @@ export type RunnerReleaseOutcome = 'done' | 'failed' | 'requeue'
 export type ClaimedTask = CommandCentreTask & {
   claimed_by: string | null
   claimed_at: string | null
+  /** Server-validated snapshot; never reconstructed by the worker from a draft. */
+  approvedDelivery?: NonNullable<ReturnType<typeof getApprovedDelivery>>
 }
 
 interface SupabaseErrorLike {
@@ -97,7 +101,7 @@ export async function claimNextQueuedTask(
 
   const { data, error } = await client
     .from(CC_TASKS_TABLE)
-    .select('id')
+    .select('*')
     .eq('founder_id', input.founderId)
     .eq('status', 'queued')
     .order('priority', { ascending: true })
@@ -105,24 +109,47 @@ export async function claimNextQueuedTask(
     .limit(limit)
   if (error) throw new Error(`claimNextQueuedTask candidates failed: ${error.message}`)
 
-  const candidates = (data as Array<{ id: string }>) ?? []
+  const candidates = (data as CommandCentreTask[]) ?? []
 
   for (const candidate of candidates) {
-    const { data: claimed, error: claimError } = await client
+    const deliveryMission = isDeliveryMission(candidate)
+    const delivery = deliveryMission ? readDeliveryMetadata(candidate) : null
+    const approvedDelivery = deliveryMission ? getApprovedDelivery(candidate) : null
+    // A queued status alone is insufficient: the exact frozen specification
+    // must have a durable, current consent receipt. Damaged marked missions
+    // stay unclaimed and cannot silently take the legacy path.
+    if (deliveryMission && (!delivery || delivery.build || !approvedDelivery ||
+      !await verifyDeliveryApproval(candidate, client as unknown as SupabaseLike))) continue
+
+    const claimedAt = new Date().toISOString()
+    const values: Record<string, unknown> = {
+      status: 'running', claimed_by: input.runnerId, claimed_at: claimedAt,
+    }
+    if (delivery && approvedDelivery) {
+      values.updated_at = new Date(Math.max(Date.now(), Date.parse(candidate.updated_at) + 1)).toISOString()
+      values.metadata = { ...candidate.metadata, delivery: {
+        ...delivery,
+        executionAssignment: {
+          role: 'build_spm', runnerId: input.runnerId, specRevision: delivery.revision,
+          specFingerprint: delivery.specVersion, scope: delivery.scope, acceptedAt: claimedAt,
+        },
+      } }
+    }
+    let claim = client
       .from(CC_TASKS_TABLE)
-      .update({
-        status: 'running',
-        claimed_by: input.runnerId,
-        claimed_at: new Date().toISOString(),
-      })
+      .update(values)
       .eq('founder_id', input.founderId)
       .eq('id', candidate.id)
       .eq('status', 'queued') // the atomic guard — zero rows means a lost race
-      .select('*')
+    if (delivery) {
+      claim = claim.eq('updated_at', candidate.updated_at)
+        .eq('metadata->delivery->>revision', String(delivery.revision))
+    }
+    const { data: claimed, error: claimError } = await claim.select('*')
     if (claimError) throw new Error(`claimNextQueuedTask claim failed: ${claimError.message}`)
 
     const rows = (claimed as ClaimedTask[]) ?? []
-    if (rows.length === 1) return rows[0]
+    if (rows.length === 1) return approvedDelivery ? { ...rows[0], approvedDelivery } : rows[0]
   }
 
   return null
@@ -212,6 +239,15 @@ export async function releaseClaimedTask(
   client: RunnerClaimClientLike,
   input: ReleaseClaimedTaskInput,
 ): Promise<ReleaseClaimedTaskResult> {
+  const currentResult = await client.from(CC_TASKS_TABLE).select('*')
+    .eq('founder_id', input.founderId).eq('id', input.taskId)
+    .eq('status', 'running').eq('claimed_by', input.runnerId).limit(1)
+  if (currentResult.error) throw new Error(`releaseClaimedTask read failed: ${currentResult.error.message}`)
+  if (!Array.isArray(currentResult.data)) throw new Error('releaseClaimedTask read returned no row data')
+  const current = currentResult.data[0] as ClaimedTask | undefined
+  if (!current) return { task: null, effectiveOutcome: input.outcome }
+  const deliveryMission = isDeliveryMission(current)
+  const delivery = deliveryMission ? readDeliveryMetadata(current) : null
   let outcome = input.outcome
   let priorRequeues: number | null = null
   if (input.outcome === 'requeue') {
@@ -220,24 +256,55 @@ export async function releaseClaimedTask(
   }
 
   const values: Record<string, unknown> = { status: OUTCOME_STATUS[outcome] }
+  if (deliveryMission) values.updated_at = new Date(Math.max(Date.now(), Date.parse(current.updated_at) + 1)).toISOString()
+  if (delivery && outcome !== 'done') {
+    // Claim is initially a reservation. A later lane refusal must not leave a
+    // persisted active build-SPM assignment. Historical attempts remain in the
+    // claim/lifecycle events; a retry creates its own new acceptance identity.
+    const releasedDelivery = { ...delivery }
+    delete releasedDelivery.executionAssignment
+    values.metadata = { ...current.metadata, delivery: releasedDelivery }
+  }
+  if (outcome === 'done' && deliveryMission) {
+    if (!delivery || !getApprovedDelivery(current)) throw new Error('Approved delivery specification is unavailable')
+    if (!input.prRef || !/^https:\/\/github\.com\/CleanExpo\/Unite-Group\/pull\/[1-9][0-9]*$/i.test(input.prRef)) {
+      throw new Error('A valid draft PR reference for the approved repository is required for delivery review')
+    }
+    values.status = 'awaiting_approval'
+    values.claimed_by = null
+    values.claimed_at = null
+    values.metadata = { ...current.metadata, delivery: { ...delivery, build: {
+      status: 'awaiting_review', prRef: input.prRef, runnerId: input.runnerId,
+      specRevision: delivery.revision, specFingerprint: delivery.specVersion,
+      completedAt: new Date().toISOString(),
+    } } }
+  }
   if (outcome === 'requeue') {
     values.claimed_by = null
     values.claimed_at = null
   }
-  if (input.prRef) values.preview_url = input.prRef
+  if (input.prRef && (!deliveryMission || outcome === 'done')) values.preview_url = input.prRef
 
-  const { data, error } = await client
+  let release = client
     .from(CC_TASKS_TABLE)
     .update(values)
     .eq('founder_id', input.founderId)
     .eq('id', input.taskId)
     .eq('status', 'running')
     .eq('claimed_by', input.runnerId)
-    .select('*')
+  if (deliveryMission) {
+    release = release.eq('updated_at', current.updated_at)
+    if (delivery) release = release.eq('metadata->delivery->>revision', String(delivery.revision))
+  }
+  const { data, error } = await release.select('*')
   if (error) throw new Error(`releaseClaimedTask failed: ${error.message}`)
 
   const rows = (data as ClaimedTask[]) ?? []
   const released = rows[0] ?? null
+  // A concurrent metadata write can lose this CAS while the runner still owns
+  // the running task. Let the existing bounded 5xx retry re-read it; treating
+  // this as terminal 404 would leave that claim stranded unnecessarily.
+  if (!released && deliveryMission) throw new Error('Delivery release changed concurrently; retry the release')
 
   // Record why a requeue came back as 'failed' — best-effort, the status
   // change above is the source of truth (matches the queue route's pattern).

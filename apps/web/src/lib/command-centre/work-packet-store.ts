@@ -45,6 +45,7 @@ import {
   type GuardedUpdateClientLike,
 } from './tasks'
 import { isLegalTransition } from './task-transitions'
+import { isDeliveryMission } from './delivery-types'
 
 // ─── Status mapping (PacketStatus <-> TaskStatus) ────────────────────────────
 
@@ -274,6 +275,9 @@ export async function applyPacketTransition(
   const task = await getTaskByExternalRef({ founderId, externalRef: id }, db)
   if (!task) {
     return { ok: false, packet: null, reason: `packet ${id} not found` }
+  }
+  if (isDeliveryMission(task)) {
+    return { ok: false, packet: null, reason: 'Delivery missions must use their versioned delivery workflow' }
   }
 
   const current = taskToPacket(task)

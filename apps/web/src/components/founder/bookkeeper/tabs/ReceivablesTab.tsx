@@ -12,7 +12,7 @@ function SkeletonRow() {
     <tr className="border-b border-border">
       {Array.from({ length: 6 }).map((_, i) => (
         <td key={i} className="px-3 py-3">
-          <div className="h-3 bg-white/5 rounded-sm animate-pulse" style={{ width: `${50 + i * 12}px` }} />
+          <div className="h-3 bg-[var(--mission-raised)]/5 rounded-sm animate-pulse" style={{ width: `${50 + i * 12}px` }} />
         </td>
       ))}
     </tr>
@@ -29,7 +29,7 @@ function InvoiceStatusBadge({ status, dueDate }: { status: string; dueDate: stri
     return (
       <span
         className="text-[10px] font-medium tracking-widest uppercase px-2 py-0.5 rounded-sm"
-        style={{ color: '#15803d', backgroundColor: 'rgba(22, 163, 74,0.08)', border: '1px solid rgba(22, 163, 74,0.2)' }}
+        style={{ color: 'var(--mission-blue)', backgroundColor: 'color-mix(in srgb, var(--mission-blue) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--mission-blue) 20%, transparent)' }}
       >
         Paid
       </span>
@@ -39,7 +39,7 @@ function InvoiceStatusBadge({ status, dueDate }: { status: string; dueDate: stri
     return (
       <span
         className="text-[10px] font-medium tracking-widest uppercase px-2 py-0.5 rounded-sm"
-        style={{ color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}
+        style={{ color: 'var(--color-danger)', backgroundColor: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}
       >
         Overdue
       </span>
@@ -48,7 +48,7 @@ function InvoiceStatusBadge({ status, dueDate }: { status: string; dueDate: stri
   return (
     <span
       className="text-[10px] font-medium tracking-widest uppercase px-2 py-0.5 rounded-sm"
-      style={{ color: '#eab308', backgroundColor: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.2)' }}
+      style={{ color: 'var(--mission-attention)', backgroundColor: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.2)' }}
     >
       Awaiting Payment
     </span>
@@ -167,7 +167,7 @@ export function ReceivablesTab() {
                     <motion.tr
                       key={inv.InvoiceID}
                       layout
-                      className="border-b border-border hover:bg-black/5 transition-colors"
+                      className="border-b border-border hover:bg-[var(--mission-raised)] transition-colors"
                     >
                       <td className="px-3 py-2.5" style={{ color: 'var(--color-text-primary)' }}>
                         {inv.Contact?.Name ?? '--'}

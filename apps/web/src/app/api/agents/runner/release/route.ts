@@ -101,14 +101,16 @@ export async function POST(request: Request) {
     // UNI-2398 — audit the EFFECTIVE outcome: a capped requeue is released as
     // 'failed' (UNI-2396), and recording the raw requested 'requeue' here would
     // write a ghost requeue event that never happened.
+    const reviewHandoff = effectiveOutcome === 'done' && task.status === 'awaiting_approval'
     await appendTaskEvent(
       {
         founderId,
         taskId: task.id,
-        type: OUTCOME_EVENT[effectiveOutcome],
+        type: reviewHandoff ? 'status_changed' : OUTCOME_EVENT[effectiveOutcome],
         actor: parsed.data.runnerId,
         payload: {
-          outcome: effectiveOutcome,
+          outcome: reviewHandoff ? 'draft_pr_opened' : effectiveOutcome,
+          ...(reviewHandoff ? { status: 'awaiting_approval' } : {}),
           ...(parsed.data.prRef ? { pr_ref: parsed.data.prRef } : {}),
           ...(parsed.data.code ? { code: parsed.data.code } : {}),
         },

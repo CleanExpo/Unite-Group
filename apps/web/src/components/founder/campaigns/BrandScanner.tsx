@@ -70,7 +70,7 @@ function ColourSwatch({ colour, label }: ColourSwatchProps) {
         style={{ backgroundColor: colour }}
         title={colour}
       />
-      <span className="text-[10px] font-mono text-[#5f5f66] uppercase">{label}</span>
+      <span className="text-[10px] font-mono text-[var(--color-text-secondary)] uppercase">{label}</span>
     </div>
   )
 }
@@ -84,11 +84,11 @@ interface BrandDNACardProps {
 
 function BrandDNACard({ result, onCreateCampaign }: BrandDNACardProps) {
   return (
-    <div className="flex flex-col gap-5 pt-5 border-t border-white/6">
+    <div className="flex flex-col gap-5 pt-5 border-t border-[var(--mission-border)]">
       {/* Section label */}
       <div className="flex items-center gap-2">
-        <div className="w-1.5 h-1.5 rounded-sm bg-[#16a34a]" />
-        <span className="text-[11px] font-semibold uppercase tracking-widest text-[#15803d]">
+        <div className="w-1.5 h-1.5 rounded-sm bg-[var(--mission-blue)]" />
+        <span className="text-[11px] font-semibold uppercase tracking-widest text-[var(--mission-blue)]">
           Brand DNA extracted
         </span>
       </div>
@@ -117,7 +117,7 @@ function BrandDNACard({ result, onCreateCampaign }: BrandDNACardProps) {
       <button
         type="button"
         onClick={onCreateCampaign}
-        className="w-full bg-[#16a34a] text-black text-[13px] font-semibold rounded-sm px-4 py-2.5 hover:bg-[#16a34a]/90 transition-colors duration-150"
+        className="w-full bg-[var(--mission-blue)] text-[var(--mission-blue-ink)] text-[13px] font-semibold rounded-sm px-4 py-2.5 hover:bg-[var(--mission-blue)]/90 transition-colors duration-150"
       >
         Create Campaign →
       </button>
@@ -134,11 +134,11 @@ interface DataRowProps {
 function DataRow({ label, value, highlight = false }: DataRowProps) {
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="text-[10px] font-medium uppercase tracking-widest text-[#6b6b6b]">
+      <span className="text-[10px] font-medium uppercase tracking-widest text-[var(--color-text-muted)]">
         {label}
       </span>
       <span
-        className={`text-[12px] font-mono ${highlight ? 'text-[#15803d]' : 'text-[#52525b]'}`}
+        className={`text-[12px] font-mono ${highlight ? 'text-[var(--mission-blue)]' : 'text-[var(--color-text-secondary)]'}`}
       >
         {value}
       </span>
@@ -225,17 +225,17 @@ export function BrandScanner({
   }, [result, onScanComplete])
 
   return (
-    <div className="bg-[#fff7ec] border border-white/6 rounded-sm p-6 flex flex-col gap-5">
+    <div className="bg-[var(--surface-card)] border border-[var(--mission-border)] rounded-sm p-6 flex flex-col gap-5">
       {/* Header */}
       <div className="flex flex-col gap-1">
-        <h2 className="text-[15px] font-semibold text-[#0A0A0A] tracking-tight">
+        <h2 className="text-[15px] font-semibold text-[var(--color-text-primary)] tracking-tight">
           Brand Scanner
         </h2>
-        <p className="text-[12px] text-[#5f5f66]">
+        <p className="text-[12px] text-[var(--color-text-secondary)]">
           Enter a website URL to extract Brand DNA — colours, tone, audience, and imagery.
         </p>
         {businessKey && (
-          <p className="text-[11px] text-[#15803d]">
+          <p className="text-[11px] text-[var(--mission-blue)]">
             Protected Synthex lane: {businessKey}
           </p>
         )}
@@ -244,7 +244,7 @@ export function BrandScanner({
       {/* Inputs */}
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="bs-client-name" className="text-[11px] font-medium uppercase tracking-widest text-[#5f5f66]">
+          <label htmlFor="bs-client-name" className="text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
             Client name
           </label>
           <input
@@ -254,12 +254,12 @@ export function BrandScanner({
             onChange={e => setClientName(e.target.value)}
             disabled={isDisabled}
             placeholder="Acme Pty Ltd"
-            className="bg-(--surface-card) border border-border rounded-sm px-3 py-2 text-[13px] text-(--color-text-primary) placeholder-(--color-text-muted) focus:border-[#16a34a]/50 focus:outline-hidden disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-100"
+            className="bg-(--surface-card) border border-border rounded-sm px-3 py-2 text-[13px] text-(--color-text-primary) placeholder-(--color-text-muted) focus:border-[var(--mission-blue)]/50 focus:outline-hidden disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-100"
           />
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="bs-website-url" className="text-[11px] font-medium uppercase tracking-widest text-[#5f5f66]">
+          <label htmlFor="bs-website-url" className="text-[11px] font-medium uppercase tracking-widest text-[var(--color-text-secondary)]">
             Website URL
           </label>
           <input
@@ -269,7 +269,7 @@ export function BrandScanner({
             onChange={e => setWebsiteUrl(e.target.value)}
             disabled={isDisabled}
             placeholder="https://example.com.au"
-            className="bg-(--surface-card) border border-border rounded-sm px-3 py-2 text-[13px] text-(--color-text-primary) placeholder-(--color-text-muted) focus:border-[#16a34a]/50 focus:outline-hidden disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-100"
+            className="bg-(--surface-card) border border-border rounded-sm px-3 py-2 text-[13px] text-(--color-text-primary) placeholder-(--color-text-muted) focus:border-[var(--mission-blue)]/50 focus:outline-hidden disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-100"
           />
         </div>
       </div>
@@ -280,7 +280,7 @@ export function BrandScanner({
           type="button"
           onClick={handleScan}
           disabled={!canSubmit}
-          className="bg-[#16a34a] text-black text-[13px] font-semibold rounded-sm px-4 py-2 hover:bg-[#16a34a]/90 transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="bg-[var(--mission-blue)] text-[var(--mission-blue-ink)] text-[13px] font-semibold rounded-sm px-4 py-2 hover:bg-[var(--mission-blue)]/90 transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {scanState === 'scanning' ? (
             <>
@@ -298,13 +298,13 @@ export function BrandScanner({
       {/* Error state */}
       {scanState === 'error' && (
         <div className="flex items-start justify-between gap-3 bg-red-500/10 border border-red-500/20 rounded-sm px-4 py-3">
-          <p className="text-[12px] text-red-700 flex-1">
+          <p className="text-[12px] text-[var(--color-danger)] flex-1">
             {errorMessage}
           </p>
           <button
             type="button"
             onClick={handleReset}
-            className="shrink-0 text-[11px] font-medium text-[#5f5f66] hover:text-[#3f3f46] transition-colors duration-100"
+            className="shrink-0 text-[11px] font-medium text-[var(--color-text-secondary)] hover:text-[var(--mission-ink)] transition-colors duration-100"
           >
             Reset
           </button>

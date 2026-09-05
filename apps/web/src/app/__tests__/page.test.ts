@@ -37,7 +37,7 @@ describe('root page redirect', () => {
   it('redirects authenticated users to the founder dashboard', async () => {
     vi.mocked(getUser).mockResolvedValue({ id: 'founder-123' } as any);
 
-    await expect(RootPage()).rejects.toThrow('REDIRECT:/founder/dashboard');
-    expect(redirect).toHaveBeenCalledWith('/founder/dashboard');
+    await expect(RootPage()).rejects.toThrow('REDIRECT:/founder/command-centre');
+    expect(redirect).toHaveBeenCalledWith('/founder/command-centre');
   });
 });

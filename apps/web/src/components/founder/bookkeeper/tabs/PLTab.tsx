@@ -54,8 +54,8 @@ function formatAxisTick(cents: number): string {
 function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ dataKey: string; value: number; color: string }>; label?: string }) {
   if (!active || !payload) return null
   return (
-    <div className="rounded-sm border p-3" style={{ backgroundColor: '#fff7ec', borderColor: 'var(--color-border)' }}>
-      <p className="text-[11px] text-[#52525b] mb-1">{label}</p>
+    <div className="rounded-sm border p-3" style={{ backgroundColor: 'var(--surface-card)', borderColor: 'var(--color-border)' }}>
+      <p className="text-[11px] text-[var(--color-text-secondary)] mb-1">{label}</p>
       {payload.map((p) => (
         <p key={p.dataKey} className="text-[12px]" style={{ color: p.color }}>
           {p.dataKey === 'revenue' ? 'Revenue' : 'Expenses'}: {formatAUD(p.value)}
@@ -71,8 +71,8 @@ function ChartSkeleton() {
       <div className="h-[320px] flex items-end gap-3 px-8 pb-6">
         {Array.from({ length: 12 }).map((_, i) => (
           <div key={i} className="flex-1 flex gap-1 items-end">
-            <div className="w-1/2 bg-white/5 rounded-sm" style={{ height: `${40 + Math.random() * 200}px` }} />
-            <div className="w-1/2 bg-white/5 rounded-sm" style={{ height: `${30 + Math.random() * 150}px` }} />
+            <div className="w-1/2 bg-[var(--mission-raised)]/5 rounded-sm" style={{ height: `${40 + Math.random() * 200}px` }} />
+            <div className="w-1/2 bg-[var(--mission-raised)]/5 rounded-sm" style={{ height: `${30 + Math.random() * 150}px` }} />
           </div>
         ))}
       </div>
@@ -187,23 +187,23 @@ export function PLTab() {
               </p>
               <ResponsiveContainer width="100%" height={320}>
                 <BarChart data={chartData} barGap={2}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--mission-border)" />
                   <XAxis
                     dataKey="month"
-                    tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }}
-                    axisLine={{ stroke: 'rgba(255,255,255,0.08)' }}
+                    tick={{ fill: 'var(--mission-muted)', fontSize: 11 }}
+                    axisLine={{ stroke: 'var(--mission-border)' }}
                     tickLine={false}
                   />
                   <YAxis
                     tickFormatter={formatAxisTick}
-                    tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }}
-                    axisLine={{ stroke: 'rgba(255,255,255,0.08)' }}
+                    tick={{ fill: 'var(--mission-muted)', fontSize: 11 }}
+                    axisLine={{ stroke: 'var(--mission-border)' }}
                     tickLine={false}
                     width={50}
                   />
-                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
-                  <Bar dataKey="revenue" fill="#16a34a" radius={[2, 2, 0, 0]} />
-                  <Bar dataKey="expenses" fill="#ef4444" radius={[2, 2, 0, 0]} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--mission-raised)' }} />
+                  <Bar dataKey="revenue" fill="var(--mission-blue)" radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="expenses" fill="var(--color-danger)" radius={[2, 2, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </motion.div>
@@ -221,7 +221,7 @@ export function PLTab() {
                 <p className="text-[10px] uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-disabled)' }}>
                   Total Revenue
                 </p>
-                <p className="text-[18px] font-semibold tabular-nums" style={{ color: '#15803d' }}>
+                <p className="text-[18px] font-semibold tabular-nums" style={{ color: 'var(--mission-blue)' }}>
                   {formatAUD(totals.revenue)}
                 </p>
               </div>
@@ -229,7 +229,7 @@ export function PLTab() {
                 <p className="text-[10px] uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-disabled)' }}>
                   Total Expenses
                 </p>
-                <p className="text-[18px] font-semibold tabular-nums" style={{ color: '#ef4444' }}>
+                <p className="text-[18px] font-semibold tabular-nums" style={{ color: 'var(--color-danger)' }}>
                   {formatAUD(totals.expenses)}
                 </p>
               </div>

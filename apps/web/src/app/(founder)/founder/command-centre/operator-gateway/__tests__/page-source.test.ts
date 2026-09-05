@@ -6,10 +6,7 @@ const root = process.cwd()
 
 describe('command centre operator gateway UI source', () => {
   it('renders the required safety and lane visibility language', () => {
-    const page = readFileSync(
-      join(root, 'src/app/(founder)/founder/command-centre/operator-gateway/page.tsx'),
-      'utf8',
-    )
+    const page = ['page.tsx', 'OperatorGatewayView.tsx'].map(file => readFileSync(join(root, 'src/app/(founder)/founder/command-centre/operator-gateway', file), 'utf8')).join('\n')
 
     expect(page).toContain('No API keys')
     expect(page).toContain('Operator-session lanes only')
@@ -22,10 +19,7 @@ describe('command centre operator gateway UI source', () => {
   })
 
   it('does not introduce browser automation, secret storage, or live runner calls', () => {
-    const page = readFileSync(
-      join(root, 'src/app/(founder)/founder/command-centre/operator-gateway/page.tsx'),
-      'utf8',
-    )
+    const page = ['page.tsx', 'OperatorGatewayView.tsx'].map(file => readFileSync(join(root, 'src/app/(founder)/founder/command-centre/operator-gateway', file), 'utf8')).join('\n')
 
     expect(page).not.toMatch(/process\.env\.[A-Z_]*(?:SECRET|KEY|TOKEN)/)
     expect(page).not.toContain('localStorage')
@@ -36,10 +30,7 @@ describe('command centre operator gateway UI source', () => {
   })
 
   it('shows sandbox-only job creation while keeping execution disabled', () => {
-    const source = readFileSync(
-      join(root, 'src/app/(founder)/founder/command-centre/operator-gateway/page.tsx'),
-      'utf8',
-    )
+    const source = ['page.tsx', 'OperatorGatewayView.tsx'].map(file => readFileSync(join(root, 'src/app/(founder)/founder/command-centre/operator-gateway', file), 'utf8')).join('\n')
 
     expect(source).toContain('Sandbox persistence')
     expect(source).toContain('Production connected')
@@ -50,10 +41,7 @@ describe('command centre operator gateway UI source', () => {
   })
 
   it('shows dry-run-only execution state without a real execute button', () => {
-    const source = readFileSync(
-      join(root, 'src/app/(founder)/founder/command-centre/operator-gateway/page.tsx'),
-      'utf8',
-    )
+    const source = ['page.tsx', 'OperatorGatewayView.tsx'].map(file => readFileSync(join(root, 'src/app/(founder)/founder/command-centre/operator-gateway', file), 'utf8')).join('\n')
 
     expect(source).toContain('Dry-run only')
     expect(source).toContain('/api/hermes/operator-gateway/jobs/dry-run')
@@ -63,10 +51,7 @@ describe('command centre operator gateway UI source', () => {
   })
 
   it('shows controlled real-local execution design status while keeping external/live execution disabled', () => {
-    const source = readFileSync(
-      join(root, 'src/app/(founder)/founder/command-centre/operator-gateway/page.tsx'),
-      'utf8',
-    )
+    const source = ['page.tsx', 'OperatorGatewayView.tsx'].map(file => readFileSync(join(root, 'src/app/(founder)/founder/command-centre/operator-gateway', file), 'utf8')).join('\n')
 
     expect(source).toContain('Controlled real-local execution')
     expect(source).toContain('local_foundation_ready')
@@ -78,10 +63,7 @@ describe('command centre operator gateway UI source', () => {
   })
 
   it('shows the multi-CLI runtime monitor without enabling dispatch or shared credentials', () => {
-    const source = readFileSync(
-      join(root, 'src/app/(founder)/founder/command-centre/operator-gateway/page.tsx'),
-      'utf8',
-    )
+    const source = ['page.tsx', 'OperatorGatewayView.tsx'].map(file => readFileSync(join(root, 'src/app/(founder)/founder/command-centre/operator-gateway', file), 'utf8')).join('\n')
 
     expect(source).toContain('Mission Control Runtime Monitor')
     expect(source).toContain('Multi-CLI topology')
@@ -103,10 +85,7 @@ describe('command centre operator gateway UI source', () => {
   })
 
   it('shows mobile voice intake from Plaud to the second brain without auto-dispatch', () => {
-    const source = readFileSync(
-      join(root, 'src/app/(founder)/founder/command-centre/operator-gateway/page.tsx'),
-      'utf8',
-    )
+    const source = ['page.tsx', 'OperatorGatewayView.tsx'].map(file => readFileSync(join(root, 'src/app/(founder)/founder/command-centre/operator-gateway', file), 'utf8')).join('\n')
 
     expect(source).toContain('Mobile Voice Intake')
     expect(source).toContain('Plaud to 2nd brain')
@@ -125,10 +104,7 @@ describe('command centre operator gateway UI source', () => {
   })
 
   it('shows specialized skill mesh and business mission router without live execution', () => {
-    const source = readFileSync(
-      join(root, 'src/app/(founder)/founder/command-centre/operator-gateway/page.tsx'),
-      'utf8',
-    )
+    const source = ['page.tsx', 'OperatorGatewayView.tsx'].map(file => readFileSync(join(root, 'src/app/(founder)/founder/command-centre/operator-gateway', file), 'utf8')).join('\n')
 
     expect(source).toContain('Specialised Skill Mesh')
     expect(source).toContain('Business Mission Router')
@@ -141,10 +117,7 @@ describe('command centre operator gateway UI source', () => {
   })
 
   it('shows self-evolving skill mesh status without auto-promotion or external eval calls', () => {
-    const source = readFileSync(
-      join(root, 'src/app/(founder)/founder/command-centre/operator-gateway/page.tsx'),
-      'utf8',
-    )
+    const source = ['page.tsx', 'OperatorGatewayView.tsx'].map(file => readFileSync(join(root, 'src/app/(founder)/founder/command-centre/operator-gateway', file), 'utf8')).join('\n')
 
     expect(source).toContain('Self-Evolving Skill Mesh')
     expect(source).toContain('Skills under evaluation')
@@ -159,10 +132,7 @@ describe('command centre operator gateway UI source', () => {
   })
 
   it('shows Compound Engineering connectors without install or external execution', () => {
-    const source = readFileSync(
-      join(root, 'src/app/(founder)/founder/command-centre/operator-gateway/page.tsx'),
-      'utf8',
-    )
+    const source = ['page.tsx', 'OperatorGatewayView.tsx'].map(file => readFileSync(join(root, 'src/app/(founder)/founder/command-centre/operator-gateway', file), 'utf8')).join('\n')
 
     expect(source).toContain('Compound Engineering Connectors')
     expect(source).toContain('Matt Van Horn / Every pattern')
@@ -175,10 +145,7 @@ describe('command centre operator gateway UI source', () => {
 
 
   it('shows Board Decision Mathematics Engine status without hard-gate bypass', () => {
-    const source = readFileSync(
-      join(root, 'src/app/(founder)/founder/command-centre/operator-gateway/page.tsx'),
-      'utf8',
-    )
+    const source = ['page.tsx', 'OperatorGatewayView.tsx'].map(file => readFileSync(join(root, 'src/app/(founder)/founder/command-centre/operator-gateway', file), 'utf8')).join('\n')
 
     expect(source).toContain('Board Decision Mathematics Engine')
     expect(source).toContain('Expected value')

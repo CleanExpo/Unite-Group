@@ -5,7 +5,7 @@
 // UNI-2397 fix used startsWith and killed ⌘K on the eight sub-decks (which
 // mount no palette of their own); the guard must exact-match the home route.
 
-import { render, fireEvent } from '@testing-library/react'
+import { render, fireEvent, screen } from '@testing-library/react'
 import { FounderShell } from '../FounderShell'
 
 let mockPathname = '/founder/dashboard'
@@ -19,7 +19,7 @@ vi.mock('next/dynamic', () => ({
 }))
 
 vi.mock('@/components/layout/Sidebar', () => ({ Sidebar: () => null }))
-vi.mock('@/components/layout/Topbar', () => ({ Topbar: () => null }))
+vi.mock('@/components/layout/Topbar', () => ({ Topbar: () => <header>Legacy topbar</header> }))
 
 const mockToggleSidebar = vi.fn()
 const mockToggleCommandBar = vi.fn()
@@ -43,16 +43,28 @@ function pressCommandK() {
   fireEvent.keyDown(window, { key: 'k', metaKey: true })
 }
 
-function renderShellAt(pathname: string) {
+function renderShellAt(pathname: string, homePalette = pathname === '/founder/command-centre') {
   mockPathname = pathname
   return render(
     <FounderShell user={user}>
-      <div>deck</div>
+      <div data-mission-home-palette={homePalette ? 'true' : undefined}>deck</div>
     </FounderShell>,
   )
 }
 
 describe('FounderShell ⌘K guard (UNI-2397/UNI-2398)', () => {
+  it.each(['/founder/command-centre', '/founder/command-centre/operations', '/founder/campaigns/new', '/founder/bookkeeper'])('leaves chrome ownership to the common Mission Control shell at %s', pathname => {
+    renderShellAt(pathname)
+    expect(screen.queryByText('Legacy topbar')).not.toBeInTheDocument()
+    expect(screen.getByText('deck')).toBeInTheDocument()
+  })
+  it('keeps global chrome on an unrelated route and an unknown Mission Control path', () => {
+    const { unmount } = renderShellAt('/founder/pi')
+    expect(screen.getByText('Legacy topbar')).toBeInTheDocument()
+    unmount()
+    renderShellAt('/founder/command-centre/unknown')
+    expect(screen.getByText('Legacy topbar')).toBeInTheDocument()
+  })
   beforeEach(() => {
     mockToggleSidebar.mockClear()
     mockToggleCommandBar.mockClear()
@@ -64,6 +76,11 @@ describe('FounderShell ⌘K guard (UNI-2397/UNI-2398)', () => {
     pressCommandK()
     expect(mockToggleCommandBar).not.toHaveBeenCalled()
     unmount()
+  })
+  it('uses global commands while the home loading/error boundary has no home palette', () => {
+    renderShellAt('/founder/command-centre', false)
+    pressCommandK()
+    expect(mockToggleCommandBar).toHaveBeenCalledTimes(1)
   })
 
   it.each([

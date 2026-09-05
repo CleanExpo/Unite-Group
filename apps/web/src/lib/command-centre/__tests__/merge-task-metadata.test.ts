@@ -12,6 +12,12 @@ function clientReturning(existing: unknown, updated: unknown) {
 }
 
 describe('mergeTaskMetadata', () => {
+  it('refuses legacy metadata writes for delivery missions, including a damaged envelope', async () => {
+    const existing = { id: 't1', founder_id: 'u1', external_ref: 'delivery:stable-id', metadata: {} }
+    const { chain } = clientReturning(existing, existing)
+    await expect(mergeTaskMetadata({ founderId: 'u1', taskId: 't1', patch: { delivery: null } }, chain as never)).rejects.toThrow(/delivery/i)
+    expect(chain.update).not.toHaveBeenCalled()
+  })
   it('shallow-merges patch into existing metadata and returns the row', async () => {
     const existing = { id: 't1', founder_id: 'u1', metadata: { a: 1 } }
     const updated = { id: 't1', founder_id: 'u1', metadata: { a: 1, b: 2 } }

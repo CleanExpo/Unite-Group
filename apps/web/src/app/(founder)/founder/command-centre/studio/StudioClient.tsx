@@ -73,8 +73,8 @@ export function StudioClient({ taskId }: { taskId: string }) {
   }
 
   return (
-    <div className="flex min-h-[70vh] flex-col bg-[var(--surface-canvas)] text-[var(--color-text-primary)]">
-      <div className="flex-1 p-4" aria-label="Concept canvas">
+    <div className="flex min-h-[70vh] min-w-0 flex-col bg-[var(--surface-canvas)] text-[var(--color-text-primary)]">
+      <div className="min-w-0 flex-1 p-4 [overflow-wrap:anywhere]" aria-label="Concept canvas">
         {notConnected ? (
           <div
             className="rounded-sm border border-[var(--color-accent-border)] bg-[var(--color-accent-dim)] p-4 text-sm"
@@ -87,7 +87,7 @@ export function StudioClient({ taskId }: { taskId: string }) {
             Describe your campaign below and the design agent will generate concept directions.
           </p>
         ) : (
-          <div className="grid grid-cols-3 gap-3" aria-label="Concepts">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3" aria-label="Concepts">
             {concepts.map((c) => (
               <button
                 key={c.id}
@@ -139,13 +139,13 @@ export function StudioClient({ taskId }: { taskId: string }) {
 
       <form
         onSubmit={send}
-        className="flex items-center gap-2 border-t border-[var(--color-border)] p-3"
+        className="grid min-w-0 grid-cols-1 items-center gap-2 border-t border-[var(--color-border)] p-3 sm:grid-cols-[auto_minmax(0,1fr)_auto]"
       >
         <select
           aria-label="Image engine"
           value={provider}
           onChange={(e) => setProvider(e.target.value as Provider)}
-          className="rounded-sm border border-[var(--color-border)] bg-[var(--surface-card)] px-2 py-2 text-xs"
+          className="min-w-0 rounded-sm border border-[var(--color-border)] bg-[var(--surface-card)] px-2 py-2 text-xs"
         >
           <option value="gemini">Gemini</option>
           <option value="openai">OpenAI (soon)</option>
@@ -155,16 +155,14 @@ export function StudioClient({ taskId }: { taskId: string }) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Describe your campaign…"
-          className="flex-1 rounded-sm border border-[var(--color-border)] bg-[var(--surface-card)] px-3 py-2 text-sm"
+          className="min-w-0 rounded-sm border border-[var(--color-border)] bg-[var(--surface-card)] px-3 py-2 text-sm"
         />
-        {/* Dark ink on the accent fill: 5.55:1. Plain white ink would be 3.30:1 and
-            fail AA — the pre-migration button was near-black on cyan, so going
-            light here would have been a contrast regression, not a port. */}
+        {/* The shared theme supplies contrasting ink for its accent fill. */}
         <button
           type="submit"
           disabled={busy}
           aria-label="Generate"
-          className="rounded-sm bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)] disabled:opacity-60"
+          className="rounded-sm bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[var(--mission-blue-ink)] disabled:opacity-60"
         >
           {busy ? 'Generating…' : 'Generate'}
         </button>

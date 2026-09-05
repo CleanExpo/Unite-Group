@@ -170,7 +170,7 @@ export function DailyCrmDigestPanel({
         )}
       </header>
 
-      <dl className="grid grid-cols-2 gap-2">
+      <dl className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(130px, 100%), 1fr))' }}>
         {COUNT_CARDS.map(({ key, label }) => (
           <div
             key={key}
@@ -182,7 +182,7 @@ export function DailyCrmDigestPanel({
           >
             <dt
               className="font-mono text-[10px] uppercase tracking-[0.16em]"
-              style={{ color: 'var(--cc-ink-hush)' }}
+              style={{ color: 'var(--cc-ink-hush)', overflowWrap: 'anywhere' }}
             >
               {label}
             </dt>

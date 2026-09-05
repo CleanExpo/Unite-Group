@@ -65,7 +65,7 @@ const TRANSITIONS: Record<TransitionActor, Partial<Record<TaskStatus, readonly T
   // runner uses atomic conditional updates. Present for lifecycle completeness.
   runner: {
     queued: ['running'],
-    running: ['done', 'failed', 'queued'], // done / failed / requeue
+    running: ['done', 'failed', 'queued', 'awaiting_approval'], // legacy done / failed / requeue / delivery review
   },
 }
 

@@ -1,0 +1,9 @@
+@font-face { font-family: Syne; src: url('../src/app/(founder)/founder/command-centre/fonts/syne-variable.woff2'); font-weight: 400 800; }
+:root { font-family: Arial, sans-serif; --font-syne: Syne; color-scheme: dark; }
+body { margin: 0; }
+.previewRoot { height: 100dvh; display: flex; flex-direction: column; }
+.previewRoot > .h-screen { height: auto; min-height: 0; flex: 1; }
+.previewRoot > .previewBanner { flex-shrink: 0; }
+.previewBanner { position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; padding: 12px 26px; background: #dde8f7; color: #1b3457; font-size: 13px; border-bottom: 1px solid #91abc9; }
+.previewBanner button { margin-left: auto; padding: 7px 12px; color: #17355f; background: white; border: 1px solid #829bc0; border-radius: 3px; cursor: pointer; }
+.cc-daylight { color-scheme: light; }

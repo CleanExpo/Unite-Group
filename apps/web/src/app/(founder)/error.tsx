@@ -54,7 +54,7 @@ export default function FounderError({
           Try again
         </button>
         <Link
-          href="/founder/dashboard"
+          href="/founder/command-centre"
           className="px-4 py-2 rounded-sm text-sm font-medium transition-colors duration-150"
           style={{
             background: 'var(--surface-card)',

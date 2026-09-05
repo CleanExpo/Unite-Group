@@ -2,10 +2,13 @@
 'use client'
 
 import { Menu, HelpCircle, Zap } from 'lucide-react'
+import type { ReactNode } from 'react'
+import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useUIStore } from '@/store/ui'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { NotificationBell } from '@/components/founder/notifications/NotificationBell'
+import { MISSION_CONTROL_HOME } from '@/lib/navigation/mission-control'
 
 const BREADCRUMB_MAP: Record<string, string> = {
   '/founder/dashboard':   'Dashboard',
@@ -44,7 +47,7 @@ function getBreadcrumb(pathname: string): string {
   return 'Nexus'
 }
 
-export function Topbar() {
+export function Topbar({ missionControl = false, home = false, className = '', searchAction, themeControl }: { missionControl?: boolean; home?: boolean; className?: string; searchAction?: ReactNode; themeControl?: ReactNode } = {}) {
   const pathname = usePathname()
   const toggleSidebar = useUIStore((s) => s.toggleSidebar)
   const toggleCapture = useUIStore((s) => s.toggleCapture)
@@ -54,13 +57,13 @@ export function Topbar() {
 
   return (
     <header
-      className="h-12 flex items-center px-4 gap-3 shrink-0 border-b"
+      className={`h-12 flex items-center px-4 gap-3 shrink-0 border-b ${className}`}
       style={{ background: 'var(--surface-canvas)', borderColor: 'var(--color-border)' }}
     >
       {/* Mobile hamburger */}
       <button
         onClick={toggleSidebar}
-        className="md:hidden transition-colors"
+        className={missionControl ? 'transition-colors' : 'md:hidden transition-colors'}
         style={{ color: 'var(--color-text-muted)' }}
         aria-label="Toggle sidebar"
       >
@@ -68,12 +71,12 @@ export function Topbar() {
       </button>
 
       {/* Breadcrumb */}
-      <span
+      {missionControl ? <Link href={MISSION_CONTROL_HOME}>Unite-Group / <strong>Mission Control</strong></Link> : <span
         className="text-[13px] font-medium"
         style={{ color: 'var(--color-text-primary)' }}
       >
         {breadcrumb}
-      </span>
+      </span>}
 
       {showPiEvidencePosture && (
         <div className="hidden lg:flex items-center gap-1.5" aria-label="Pi cockpit evidence posture">
@@ -94,7 +97,7 @@ export function Topbar() {
       )}
 
       {/* Right actions */}
-      <div className="ml-auto flex items-center gap-3">
+      <div className="ml-auto flex items-center gap-3" data-topbar-actions="true">
         <NotificationBell />
 
         <button
@@ -107,8 +110,8 @@ export function Topbar() {
           <Zap size={16} strokeWidth={1.75} />
         </button>
 
-        <button
-          onClick={toggleCommandBar}
+        {searchAction ?? <button
+          onClick={() => { if (missionControl && home) window.dispatchEvent(new Event('command-centre:open-palette')); else toggleCommandBar() }}
           className="flex items-center gap-2 px-3 h-7 rounded-sm text-[12px] border transition-colors"
           style={{
             borderColor: 'var(--color-border)',
@@ -119,7 +122,7 @@ export function Topbar() {
         >
           <span>Search</span>
           <span className="font-mono text-[10px]">⌘K</span>
-        </button>
+        </button>}
 
         <Popover>
           <PopoverTrigger asChild>
@@ -168,6 +171,7 @@ export function Topbar() {
             </div>
           </PopoverContent>
         </Popover>
+        {themeControl}
       </div>
     </header>
   )

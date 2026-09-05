@@ -25,7 +25,7 @@ const GoogleIcon = () => (
 
 function normaliseRedirectPath(value: string | null): string {
   if (!value || !/^\/(?!\/)/.test(value)) {
-    return "/founder/dashboard";
+    return "/founder/command-centre";
   }
 
   return value;

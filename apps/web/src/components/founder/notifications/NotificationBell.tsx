@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 
 interface NotificationItem {
   id: string
@@ -29,17 +29,40 @@ function timeAgo(iso: string): string {
 export function NotificationBell() {
   const [open, setOpen] = useState(false)
   const [data, setData] = useState<NotificationsResponse | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [popup, setPopup] = useState({ left: 0, width: 320, maxHeight: 400 })
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const requestSequence = useRef(0)
+  const popupId = useId()
+
+  const positionPopup = useCallback(() => {
+    const wrapper = dropdownRef.current
+    if (!wrapper) return
+    const rect = wrapper.getBoundingClientRect()
+    const main = wrapper.closest('main')?.getBoundingClientRect()
+    const leftEdge = Math.max(8, (main?.left ?? 0) + 8)
+    const rightEdge = Math.min(window.innerWidth - 8, main && main.right > leftEdge ? main.right - 8 : window.innerWidth - 8)
+    const width = Math.min(320, Math.max(0, rightEdge - leftEdge))
+    const left = Math.max(leftEdge, Math.min(rect.right - width, rightEdge - width))
+    setPopup({ left: left - rect.left, width, maxHeight: Math.max(100, window.innerHeight - rect.bottom - 24) })
+  }, [])
 
   const fetchNotifications = useCallback(async () => {
+    const request = ++requestSequence.current
+    setLoading(true)
+    setError(null)
     try {
       const res = await fetch('/api/notifications', { cache: 'no-store' })
-      if (!res.ok) return
-      const json: NotificationsResponse = await res.json()
-      setData(json)
-    } catch {
-      // fire-and-forget — silently ignore network errors
+      const json = await res.json() as NotificationsResponse & { error?: string }
+      if (!res.ok) throw new Error(json?.error || 'Notifications are currently unavailable. Please try again.')
+      if (!json || !Array.isArray(json.notifications) || !Number.isInteger(json.unreadCount) || json.unreadCount < 0 || !json.notifications.every(item => item && typeof item.id === 'string' && typeof item.type === 'string' && typeof item.read === 'boolean' && typeof item.created_at === 'string')) throw new Error('Notifications returned an unreadable response. Please try again.')
+      if (request === requestSequence.current) setData(json)
+    } catch (cause) {
+      if (request === requestSequence.current) setError(cause instanceof Error && !(cause instanceof SyntaxError) ? cause.message : 'Notifications could not be loaded. Please try again.')
+    } finally {
+      if (request === requestSequence.current) setLoading(false)
     }
   }, [])
 
@@ -49,6 +72,7 @@ export function NotificationBell() {
     intervalRef.current = setInterval(fetchNotifications, 60_000)
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
+      requestSequence.current += 1
     }
   }, [fetchNotifications])
 
@@ -61,15 +85,31 @@ export function NotificationBell() {
       }
     }
     document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [open])
+    function handleKey(event: KeyboardEvent) {
+      if (event.key === 'Escape') { setOpen(false); dropdownRef.current?.querySelector('button')?.focus() }
+    }
+    window.addEventListener('keydown', handleKey)
+    window.addEventListener('resize', positionPopup)
+    window.addEventListener('scroll', positionPopup, true)
+    return () => {
+      document.removeEventListener('mousedown', handleClick)
+      window.removeEventListener('keydown', handleKey)
+      window.removeEventListener('resize', positionPopup)
+      window.removeEventListener('scroll', positionPopup, true)
+    }
+  }, [open, positionPopup])
 
   async function markRead(id: string) {
+    setError(null)
     try {
-      await fetch(`/api/notifications/${id}/read`, { method: 'PATCH' })
+      const res = await fetch(`/api/notifications/${id}/read`, { method: 'PATCH' })
+      if (!res.ok) {
+        const result = await res.json().catch(() => null) as { error?: string } | null
+        throw new Error(result?.error || 'This notification could not be marked as read. Please try again.')
+      }
       await fetchNotifications()
-    } catch {
-      // fire-and-forget
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'This notification could not be marked as read. Please try again.')
     }
   }
 
@@ -79,8 +119,10 @@ export function NotificationBell() {
   return (
     <div ref={dropdownRef} style={{ position: 'relative', display: 'inline-flex' }}>
       <button
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => { if (!open) positionPopup(); setOpen((v) => !v) }}
         aria-label={`Notifications${unread > 0 ? ` — ${unread} unread` : ''}`}
+        aria-expanded={open}
+        aria-controls={popupId}
         style={{
           background: 'transparent',
           border: 'none',
@@ -141,12 +183,18 @@ export function NotificationBell() {
       {/* Dropdown */}
       {open && (
         <div
+          id={popupId}
+          role="dialog"
+          aria-label="Notifications"
           style={{
             position: 'absolute',
             top: 'calc(100% + 8px)',
-            right: 0,
-            width: 320,
-            background: '#fffdf7',
+            left: popup.left,
+            width: popup.width,
+            maxHeight: popup.maxHeight,
+            overflowY: 'auto',
+            boxSizing: 'border-box',
+            background: 'var(--surface-card)',
             border: '1px solid var(--color-border)',
             borderRadius: '2px',
             zIndex: 1000,
@@ -186,7 +234,9 @@ export function NotificationBell() {
             )}
           </div>
 
-          {recent.length === 0 ? (
+          {error && <div role="alert" style={{ padding: '14px', fontSize: 12, color: 'var(--color-danger)', overflowWrap: 'anywhere' }}><p>{error}</p>{data && <p>Last loaded notifications are shown below.</p>}<button type="button" disabled={loading} onClick={() => void fetchNotifications()} style={{ background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)', padding: '8px 10px', marginTop: 8, cursor: 'pointer' }}>Retry notifications</button></div>}
+          {loading && !data && <p role="status" style={{ padding: '14px', fontSize: 12, color: 'var(--color-text-muted)' }}>Loading notifications…</p>}
+          {data && !error && !loading && recent.length === 0 && (
             <div
               style={{
                 padding: '20px 14px',
@@ -197,7 +247,8 @@ export function NotificationBell() {
             >
               No notifications yet
             </div>
-          ) : (
+          )}
+          {recent.length > 0 && (
             <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
               {recent.map((n) => (
                 <li
@@ -229,7 +280,7 @@ export function NotificationBell() {
                       style={{
                         fontSize: 11,
                         fontWeight: 600,
-                        color: n.read ? 'var(--color-text-muted)' : '#fff',
+                        color: n.read ? 'var(--color-text-muted)' : 'var(--color-text-primary)',
                         textTransform: 'capitalize',
                         marginBottom: 2,
                       }}
