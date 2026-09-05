@@ -15,7 +15,7 @@ Overview Models Agents Tools Voice & Audio Production API reference Overview
 Home
 Get started
 Quickstart
-Using GPT-5.6
+Using GPT-6 Astra
 Key concepts
 Core concepts
 Responses API
@@ -23,6 +23,7 @@ Conversation state
 Background mode
 Streaming
 WebSocket mode
+Mid-turn steering
 Multi-agent
 Webhooks
 File inputs
@@ -56,8 +57,6 @@ Reinforcement fine-tuning
 RFT use cases
 Best practices
 Assistants API Migration guide
-Deep dive
-Tools
 Choose a model
 Pricing
 Model selection
@@ -76,7 +75,7 @@ Reasoning
 Reasoning models
 Reasoning best practices
 Images and video
-Images and vision
+Images and vision Image input cost calculator
 Image generation
 Video generation
 Realtime and audio
@@ -115,6 +114,7 @@ Build tool workflows
 Skills
 Tool search
 Programmatic tool calling
+Async tool calling
 Computer and code
 Shell
 Computer use
@@ -156,8 +156,11 @@ Flex processing
 Safety and governance
 Safety best practices
 Red teaming
-Safety checks Cybersecurity checks
-Under 18 API Guidance
+Safety checks Safety classifiers
+Cybersecurity checks
+Misalignment monitoring
+Under-18 guidance
+CSAM guidance
 Content provenance
 Your data
 Permissions
@@ -170,7 +173,11 @@ Model, tool, and data controls
 Import and reconciliation
 Private Link
 IP allowlist
-Workload identity federation X.509 certificates (beta)
+Mutual TLS
+Workload identity federation Codex setup
+Federation rules
+Admin API
+X.509 certificates
 Kubernetes
 AWS
 Microsoft Azure
@@ -250,6 +257,7 @@ Product Feeds
 Delta Feeds API
 Campaign Targeting
 Conversion-Optimized Campaigns
+Custom Audiences
 API Reference
 Authentication
 Ad Account
@@ -306,7 +314,7 @@ Web search
 Image generation
 Image inputs
 Appshots
-Chrome extension
+Browser extension
 Work with files
 Reference
 Commands
@@ -343,6 +351,7 @@ Integrated terminal
 Extend and automate
 Build skills
 Build plugins
+Site tools (WebMCP)
 Hooks
 Environments
 Modes
@@ -357,6 +366,7 @@ GitHub Action
 Non-interactive mode
 Third-party integrations
 GitHub
+GitLab (Beta)
 Slack
 Linear
 Reference
@@ -385,6 +395,7 @@ Changelog
 Codex Security CLI Quickstart
 Run bulk scans
 Run scans in CI
+GitLab CI/CD
 Reference
 FAQ
 TypeScript SDK
@@ -397,14 +408,20 @@ Models & Trusted Access
 Recommended configuration
 Getting started
 Admin rollout guide
+ChatGPT Work
 ChatGPT Work Overview
+ChatGPT Work cloud security
+ChatGPT Work local security
 ChatGPT Work admin FAQ
+ChatGPT Work: usage and cost
 Identity and authentication
 Authentication overview
+Workload identity
 Personal Access Tokens
 Service accounts
 Workspace access, policy, and models
 Groups and provisioning
+User lifecycle management
 Roles and workspace permissions
 GPTs and Sharing
 Managed configuration
@@ -413,9 +430,11 @@ HIPAA configuration
 Workspace model availability
 Plugin and connector controls
 Plugin controls
+Plugin management
 Skill controls
 Usage, governance, and compliance
 Governance
+Admin plugin
 Workspace analytics
 Analytics API
 Compliance API and audit events
@@ -442,17 +461,18 @@ Company blog
 Developer blog
 Showcase Blog Cookbook Learn Community Select...
 Recent
-Custom Code Review rules for Codex
-Mastering remote engineering work from your phone
-Making private MCP servers reachable without making them public
-How Perplexity Brought Voice Search to Millions Using the Realtime API
-Designing delightful frontends with GPT-5.4
+Architectural visualization with Astra
+Building games with Astra
+Meet Rosalind Workbench: Empowering every scientist to be their own research team
+Automating repetitive work at OpenAI with Codex
+Meet the winners of OpenAI Build Week
 Topics
 General
 API
 Apps SDK
 Audio
 Codex
+Life sciences
 Topics
 Agents
 Evals
@@ -497,9 +517,1348 @@ Try ChatGPT
 ChatGPT & Codex changelog
 Latest updates to ChatGPT and Codex
 All updates General ChatGPT desktop app Remote Codex CLI
-August 2026 July 2026 June 2026 May 2026 April 2026 March 2026 February 2026 January 2026 December 2025 November 2025 October 2025 September 2025 August 2025 June 2025 May 2025
+September 2026 August 2026 July 2026 June 2026 May 2026 April 2026 March 2026 February 2026 January 2026 December 2025 November 2025 October 2025 September 2025 August 2025 June 2025 May 2025
+September 2026
+li+li]:mt-12"> 2026-09-04
+Codex CLI 0.153.4
+pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.153.4
+View details Bug Fixes
+Fixed Astra’s visibility in the bundled model picker and made it the bundled default when no model is explicitly configured. ( #42874 )
+Updated Astra’s guidance to use asynchronous questions only when the tool is available in the session. ( #42878 )
+Changelog
+Full Changelog: rust-v0.153.3...rust-v0.153.4
+#42874 [0.153 hotfix] Show Astra in bundled model picker @rhan-oai
+#42878 [0.153 hotfix] Qualify Astra async-question guidance by tool availability @rhan-oai
+Full release on Github
+2026-09-04
+Codex CLI 0.153.3
+pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.153.3
+View details New Features
+Added GPT-6-Astra to the Amazon Bedrock model picker for Mantle and Runtime global/US routes. ( #42805 )
+Bug Fixes
+Corrected GPT-6-Astra’s guidance for asynchronous clarification questions to use the supported tool and recognize that it accepts text only. ( #42809 )
+Changelog
+Full Changelog: rust-v0.153.2...rust-v0.153.3
+#42805 [0.153 hotfix] Add GPT-6-Astra to Amazon Bedrock catalogs @celia-oai
+#42809 [0.153 hotfix] Update Astra async-question guidance @rhan-oai
+Full release on Github
+2026-09-03
+Codex CLI 0.153.2
+pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.153.2
+View details Bug Fixes
+Corrected the GPT-6-Astra Fast tier description to say “2x speed, increased usage” instead of “1.5x.” This changes only the displayed text, not how requests run. ( #42632 )
+Changelog
+Full Changelog: rust-v0.153.1...rust-v0.153.2
+#42632 Fix GPT-6-Astra Fast tier description for 0.153.2 @anp-oai
+Full release on Github
+2026-09-03
+Codex CLI 0.153.1
+pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.153.1
+View details New Features
+Added support for configuring GPT-6-Astra through the API without changing the default model or showing it in the model picker. ( #42605 )
+Changelog
+Full Changelog: rust-v0.153.0...rust-v0.153.1
+#42605 Backport GPT-6-Astra model catalog to 0.153 @anp-oai
+Full release on Github
+2026-09-03
+Codex CLI 0.153.0
+pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.153.0
+View details New Features
+Vim mode now supports undo with u and redo with Ctrl+R , preserving complete drafts including pasted content and attachments. ( #41941 , #42140 )
+The plugin CLI can list, install, and remove plugins from remote marketplaces. ( #42150 )
+Set tui.auto_recap = false to disable automatic recaps while keeping manual /recap available. ( #42101 )
+TUI history shows complete patches, input sent to background terminals, and individual completed commands. ( #41893 , #42107 )
+Plus and Team users receive an earlier warning when less than half of their allowance remains in an approximately five-hour usage window. ( #42142 )
+Bug Fixes
+TUI sessions reconnect after an external app-server connection drops, preserving drafts and transcripts while keeping uncertain or queued submissions paused for review. ( #41911 , #41916 , #41918 )
+Full Access skips Guardian reviews for confirmation-only actions. User approval mode skips background Guardian scoring and prewarming, while sensitive-action checks and requests for user input retain their existing handling. ( #42147 , #42256 )
+Guardian review history survives compaction, restarts, and user-created forks while respecting rollback boundaries and isolating subagent history. ( #41879 , #42065 )
+Remembered MCP tool approvals are scoped to the selected app account, and relative MCP executable paths start more reliably on macOS. ( #42133 , #42117 )
+Rollout compression includes shared histories, codex exec resume handles compressed rollouts when selecting by working directory, and thread forks work with symlinked session roots. ( #42039 , #42135 )
+Configuration and API Updates
+App-server thread metadata includes nullable model and reasoningEffort fields. Structured asynchronous questions are supported through request_user_input_async when enabled by the model catalog. ( #42151 , #42178 )
+tui.disable_paste_burst replaces the top-level setting, which remains supported as a fallback. ( #41976 )
+Adds the disabled-by-default features.context_management.experimental_mode configuration. When enabled for eligible ChatGPT Plus, Pro, or Pro Lite sessions using the Codex backend, it activates token-budget context, history notes, and the new_context tool. API-key sessions, custom providers, and temporary structured threads remain excluded. ( #42385 )
+Changelog
+Full Changelog
+#41870 Use shared transcript collection for Guardian reviews
+#41879 Preserve Guardian review evidence across compaction
+#41884 Add pinned native voice source preparation
+#41890 Add native voice dependency build recipe
+#41892 Retain the MCP client for event streams
+#41893 Show successful TUI commands individually
+#41894 Fix Windows native voice dependency builds
+#41897 Add the voice helper lifecycle foundation
+#41899 Keep MCP event subscriptions alive after task unloading
+#41901 Load bounded context after empty wake turns
+#41902 Add installed voice host lifecycle support
+#41906 Add a manager for MCP event streams
+#41908 Avoid scanning archived rollouts when archiving threads
+#41909 Make permission transforms aware of executor path context
+#41911 Preserve TUI drafts after app-server disconnects
+#41912 Persist response token usage in rollout history
+#41913 Preserve TUI status timing when the status row is hidden
+#41915 Move the config schema generator into a dedicated crate
+#41916 Reconnect TUI app-server sessions automatically
+#41917 Open the agents overview from an empty composer
+#41918 Restore agent navigation after TUI reconnects
+#41923 Allow per-call sideband endpoints for existing realtime calls
+#41924 Record realtime conversation history in Core
+#41925 Test repository-wide Rust formatter discovery
+#41928 Use executor path context for permission preapproval
+#41929 Open the agents overview directly in the reconnect test
+#41933 Report configured sandbox policy consistently
+#41934 Omit undersized WAV output from Code Mode
+#41936 Attach failed Guardian reviews to diagnostic reports
+#41937 Limit background terminal input previews
+#41938 Clarify resume guidance in exit summaries
+#41940 Preserve transcript layout caches during backtrack selection
+#41941 Add Vim undo to the TUI composer
+#41944 Emit turn cost telemetry for ChatGPT sessions
+#41946 Expand extension permission regression coverage
+#41949 Add plugin reconciliation app-server API
+#41950 Improve tracing for nested tool calls and exec processes
+#41953 Enforce marketplace source policy for curated plugins
+#41974 Track TUI starts by app server mode
+#41976 Move disable_paste_burst under [tui]
+#41980 Preserve raw response usage metadata
+#42003 Report turn trigger and source in turn analytics
+#42031 Share Guardian user-message retention logic
+#42033 Improve Guardian report diagnostics
+#42039 Include shared histories in rollout compression
+#42043 Tag Codex home size metrics with compression state
+#42047 Add per-account approval settings for apps
+#42054 Honor explicit account selectors for Apps tool calls
+#42056 Honor app link settings for MCP tool approvals
+#42065 Preserve Guardian history across thread reconstruction
+#42066 Remove selected core test cases
+#42068 Detect standalone installs from the macOS CLI bundle
+#42069 Remove redundant test coverage
+#42071 Detect Vite+-managed Codex installs
+#42076 Unify Guardian context section collection
+#42082 Attribute nested REPL reviews to their tool calls
+#42085 Centralize Guardian context composition
+#42086 Attribute Guardian reviews to OpenAI app tools
+#42094 Record Windows MXC availability
+#42096 Make diagnostic report uploads resilient to slow networks
+#42100 Prefer remote Sites over the bundled plugin
+#42101 Add a TUI setting to disable automatic recaps
+#42102 Extract OTEL trace WebSocket into a reusable crate
+#42104 Show recent sessions in the agent command center
+#42107 Show full patches and terminal input in TUI history
+#42109 Format Python scripts across the repository
+#42110 Treat bundled cleanup hooks as built-ins
+#42113 Apply remote platform semantics to exec safety checks
+#42114 Centralize remote plugin mutations in PluginsManager
+#42117 Fix relative MCP server spawning on macOS
+#42118 Refine hook activity rendering in the TUI
+#42121 Allow updating the approval reviewer for active turns
+#42123 Preserve descriptive labels on local file links
+#42126 Ignore non-JSON files in plugin catalog test helpers
+#42128 Prepare MCP connections for coordinated OAuth refresh
+#42132 Bound Git root discovery for metadata enrichment
+#42133 Scope session MCP approvals to app account links
+#42134 Include app link metadata in MCP approval elicitations
+#42135 Support thread forks from symlinked session roots
+#42137 Prewarm shell snapshots for eligible turns
+#42140 Add redo support to Vim composer history
+#42142 Add early rate-limit warnings for Plus and Team plans
+#42144 Add Guardian V2 analytics events
+#42146 Resolve permission requests in the executor context
+#42147 Skip Guardian reviews in Full Access
+#42149 Upgrade Git marketplaces from merged configuration
+#42150 Support remote marketplaces in the plugin CLI
+#42151 Expose model settings in app-server thread metadata
+#42161 Split tool JSON Schema code into focused modules
+#42164 Record result sources in app tool analytics
+#42173 Support header injections in network requirements
+#42174 Add a cacheable Bazel app-server schema bundle
+#42178 Add structured asynchronous user input requests
+#42256 Skip Guardian scoring in User approval mode
+#42385 Add experimental context management activation
+Full release on Github
+2026-09-01
+ChatGPT for iOS 1.2026.237
+New features
+Attachments now work across all connected hosts, including Windows and Linux, and support videos from the Photo Library.
+Press and hold the attachment button to attach recent photos.
+A new Priority view brings running tasks, unread updates, and tasks awaiting your response to the top of the task list.
+Queued prompts now sync with the connected host, remain editable, and send even when the app is in the background.
+Long-running tasks now show their live working time.
+Task menus now include an option to copy the thread ID.
+Improvements and bug fixes
+Task list loading and organization are faster and more reliable, with simpler date sections and fewer stalls or disappearing projects.
+Reconnects are more reliable, resolving stuck Send states, missing approvals, and stale task updates.
+Long responses now stream with fewer visual interruptions.
+Side chat messages remain available until you close them, even after the chat can no longer reconnect.
+2026-09-01
+Codex CLI 0.152.1
+pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.152.1
+View details Bug Fixes
+Guardian approval review now honors Node REPL policies provided through model metadata.
+Full Changelog : rust-v0.152.0...rust-v0.152.1
+Full release on Github
+2026-09-01
+Codex CLI 0.152.0
+pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.152.0
+View details New Features
+Vim mode supports / and ? searches within drafts, highlighted matches, and repeat navigation with n and N . ( #41586 )
+Rate-limit banners offer actions for checking usage, managing credits, resetting limits, and managing plans. ( #41742 )
+The terminal UI and codex exec show credential-refresh progress, including Amazon Bedrock reauthentication. ( #41239 )
+MCP server names can contain : , @ , / , and . , supporting package-style names throughout CLI commands and authentication. ( #41700 )
+Individual MCP tools support an output_token_limit setting, with consistent truncation across session resumes. ( #41421 )
+App-server clients can configure thread/shellCommand timeouts, including deadlines longer than one hour. ( #41384 )
+Bug Fixes
+Vim-enabled composers now start fresh drafts in Insert mode, including after submitting messages or dispatching slash commands. ( #41921 )
+Automatic approval reviews can retain longer messages and a larger conversation transcript. ( #41931 )
+Automatic approval reviews preserve user instructions, answers, and valid authorizations across history compaction. ( #41660 , #41846 , #41852 )
+Resumed threads restore their saved working directory when none is supplied, and client metadata updates preserve filesystem permissions. ( #41567 , #41464 )
+MCP tools remain available through cache refreshes and remote plugin changes; authentication retries use refreshed helper-provided headers. ( #41336 , #41344 , #41396 , #41400 )
+Opening the model picker refreshes available models without losing the highlighted choice. ( #41467 )
+Fixed Windows sandbox execution with Microsoft Store PowerShell, subprocess hangs on terminal queries, and cursor-related display corruption in older JediTerm terminals. ( #41227 , #41436 , #41673 )
+Cloud task requests reject untrusted backend URLs and disable redirects to protect saved credentials. ( #41403 )
+Chores
+The planning tool is disabled by default; enable it with tools.update_plan.enabled = true . ( #41744 )
+Plugin recommendations begin loading during startup, reducing delays before the first turn. ( #41375 )
+Changelog
+Full Changelog: rust-v0.151.0...rust-v0.152.0
+#41210 Enable clock tools from model metadata @copyberry
+#41215 Roll over Guardian context before follow-up reviews @copyberry
+#41218 Share linked tool mention parsing in the TUI @copyberry
+#41219 Retry confirmed remote registration conflicts @copyberry
+#41221 Honor turn token budgets in Guardian review rollover @copyberry
+#41223 Add recency sorting to project/list @copyberry
+#41226 Move Guardian review session tests to a separate file @copyberry
+#41227 Use compatible PowerShell for elevated Windows sandbox commands @copyberry
+#41230 Apply app routing policy to unauthenticated plugin reads @copyberry
+#41231 Instrument the loaded plugin cache @copyberry
+#41232 Expose the PowerShell version in environment context @copyberry
+#41235 Sanitize history notes backend errors @copyberry
+#41239 Surface model provider authentication recovery progress @copyberry
+#41243 Add configurable gating for the sleep tool @copyberry
+#41250 Include thread source in realtime connection metadata @copyberry
+#41260 Let the history backend enforce tool output budgets @copyberry
+#41285 Drive keymap conflict checks from the action registry @copyberry
+#41292 Forward history note images to the model @copyberry
+#41308 Make subagents follow the root service tier @copyberry
+#41309 Honor required reviews when reusing Guardian scores @copyberry
+#41313 Decouple HTTP retry backoff from overload integration testing @copyberry
+#41322 Isolate required-model Guardian approval coverage @copyberry
+#41328 Review terminal input against retained permissions @copyberry
+#41331 Classify clock tools as built-in control tools @copyberry
+#41336 Preserve cached MCP tools during binding capture @copyberry
+#41344 Use refreshed MCP tool caches during binding capture @copyberry
+#41349 Assign stable IDs to generated Responses input items @copyberry
+#41354 Reject NUL bytes in reviewed terminal input @copyberry
+#41357 Support compression for shared rollout lineages @copyberry
+#41360 Measure Codex home usage at app-server startup @copyberry
+#41364 Test resuming compressed shared rollouts @copyberry
+#41365 Restrict async user messages to questions @copyberry
+#41368 Match Windows shell guidance to the executor platform @copyberry
+#41375 Preload plugin recommendations during session startup @copyberry
+#41380 Clarify proactive multi-agent delegation guidance @copyberry
+#41384 Support configurable timeouts for thread shell commands @copyberry
+#41385 Give Guardian classifications distinct turn identities @copyberry
+#41392 Add shared Guardian context primitives @copyberry
+#41393 Preserve one-shot exec when unified exec is disabled @copyberry
+#41396 Refresh runtimes for remote plugin state changes @copyberry
+#41400 Refresh MCP HTTP helper headers after authorization failures @copyberry
+#41403 Restrict cloud task credentials to trusted origins @copyberry
+#41413 Optimize history item lookups @copyberry
+#41416 Add app-server notification media filtering @copyberry
+#41421 Support per-tool MCP output limits @copyberry
+#41422 Add shared Guardian transcript collection @copyberry
+#41424 Preserve context baselines across nested agent forks @copyberry
+#41427 Filter media from function call output notifications @copyberry
+#41429 Retain the last selected step context for each turn @copyberry
+#41432 Run executor hooks for interrupted turns @copyberry
+#41435 Allow bundled browser cleanup hooks on subagent stop @copyberry
+#41436 Respond to terminal queries from TTY subprocesses @copyberry
+#41447 Support openai/elicitation form requests @copyberry
+#41448 Clarify question handling in Default collaboration mode @copyberry
+#41449 Rename the read-only Seatbelt platform defaults policy @copyberry
+#41452 Report code mode host request durations @copyberry
+#41454 Block goals after repeated execution host failures @copyberry
+#41456 Support app targets in executor plugin hooks @copyberry
+#41457 Source proactive multi-agent instructions from the model catalog @copyberry
+#41461 Source async user message descriptions from the model catalog @copyberry
+#41464 Preserve permissions when updating session metadata @copyberry
+#41467 Refresh the TUI model picker from the app server @copyberry
+#41476 Use rules_rs platforms for release binaries @copyberry
+#41477 Organize bundled Rust resources under asset directories @copyberry
+#41562 Preserve turn lineage across goal continuations @copyberry
+#41567 Restore thread cwd from owned settings snapshots @copyberry
+#41569 Harden diagnostic report uploads @copyberry
+#41570 Fix proactive multi-agent instruction grammar @copyberry
+#41586 Add Vim search motions to the composer @copyberry
+#41613 Move Vim history tests into the history search module @copyberry
+#41630 Update tests for default-enabled update_plan @copyberry
+#41660 Preserve Guardian authorization across history compaction @copyberry
+#41666 Approve the first Node REPL execution without a Guardian wait @copyberry
+#41673 Repair cursor-style rendering on older JediTerm terminals @copyberry
+#41683 Set working directories for environment MCP tests @copyberry
+#41700 Support package-style MCP server names @copyberry
+#41742 Show actionable rate-limit banners in the TUI @copyberry
+#41743 Mark history ingestion requests in turn metadata @copyberry
+#41744 Make the update_plan tool opt-in @copyberry
+#41803 Allow models to enable token budgeting by default @copyberry
+#41840 Use the async stack budget for approval reviews @copyberry
+#41846 Preserve Guardian review evidence across compaction @copyberry
+#41852 Preserve Guardian user answers across compaction @copyberry
+#41853 Box the session startup future at its API boundary @copyberry
+#41857 Preserve Guardian user answers from current history @copyberry
+#41858 Preserve user text when Guardian history drops oversized images @copyberry
+#41861 Keep history extension tools out of Guardian reviews @copyberry
+#41921 Start fresh Vim drafts in Insert mode
+#41931 Increase Guardian message transcript limits
+Full release on Github
 August 2026
-li+li]:mt-12"> 2026-08-13
+li+li]:mt-12"> 2026-08-29
+Codex CLI 0.151.0
+pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.151.0
+View details New Features
+Added a configurable grace period for discovering tools from optional MCP servers. ( #41199 )
+Extensions can now inspect or replace MCP tool results before they reach the model. ( #41202 )
+Plugin catalogs now combine per-repository configuration and report invalid project marketplaces without hiding valid plugins. ( #41208 )
+Bug Fixes
+Preserved restored permission profiles across TUI turns and prevented /cd from weakening sandbox restrictions. ( #41192 )
+Kept tool availability and reasoning effort correct when switching models or falling back to another model. ( #41195 , #41206 )
+Improved remote sandbox enforcement using the executor’s actual home directory, operating system, and path conventions. ( #41196 , #41204 , #41207 , #41209 )
+Preserved structured MCP tool and resource errors in app-server responses. ( #41196 )
+Counted nested subagent token usage toward root goal budgets. ( #41183 )
+Prevented stale Guardian classifications from authorizing actions after permission state changes. ( #41196 )
+Chores
+Added telemetry for escalated stdin reviews and remote executor MCP discovery. ( #41189 , #41205 )
+Stabilized Guardian WebSocket and core fixture tests under slow or highly concurrent CI. ( #41191 , #41194 )
+Changelog
+Full Changelog: rust-v0.150.0...rust-v0.151.0
+#41183 Account subagent token usage toward root goals @copyberry
+#41189 Instrument stdin review size checks @copyberry
+#41191 Stabilize Guardian WebSocket tests @copyberry
+#41192 Preserve restored permission profiles in TUI sessions @copyberry
+#41193 Report affected capabilities from remote plugin syncs @copyberry
+#41194 Harden core test fixture startup assertions @copyberry
+#41195 Finalize model-specific tool plans in ToolRouter @copyberry
+#41196 Improve sandboxing, MCP errors, and cached approvals @copyberry
+#41199 Make the optional MCP startup grace configurable @copyberry
+#41202 Let extensions process MCP tool results @copyberry
+#41204 Propagate executor home directories into sandbox contexts @copyberry
+#41205 Track executor MCP discovery telemetry @copyberry
+#41206 Make Ultra reasoning fallback model-aware @copyberry
+#41207 Propagate executor OS into turn environments @copyberry
+#41208 Honor per-repository plugin configuration in catalog requests @copyberry
+#41209 Align deny-read matching with executor path semantics @copyberry
+Full release on Github
+2026-08-27
+Codex CLI 0.150.1
+pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.150.1
+View details Bug Fixes
+Remote compaction now counts retained images toward its token budget by default, trimming older images as needed. ( #41003 )
+Changelog
+Full Changelog: rust-v0.150.0...rust-v0.150.1
+#41003 Backport retained-image compaction budgeting to 0.150 @rhan-oai
+Full release on Github
+2026-08-26
+ChatGPT for iOS 1.2026.230
+New features
+Added task search across titles and conversation content on connected hosts.
+Added a compact composer gauge for viewing and adjusting reasoning effort.
+Added a full-screen editor for longer prompts.
+Added configurable Home Screen shortcuts for ChatGPT, Work, and Codex Remote.
+Added optional comments to selected response annotations.
+Improvements and bug fixes
+Improved loading for long threads, with older history fetched as needed.
+Refined task list layout, ordering, and pinning to better match desktop.
+Inline visualizations now follow iOS appearance and accent settings.
+2026-08-26
+Codex CLI 0.150.0
+pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.150.0
+View details New Features
+Reference other Codex tasks with @ mentions, and ask agents to read, create, or message tasks from the terminal. ( #40308 , #40315 )
+/copy now offers a picker for full responses, individual code blocks, and blockquotes. ( #39997 )
+Unnamed terminal tasks receive descriptive titles automatically, and /rename suggests an editable title based on the conversation. ( #40492 , #40495 )
+Markdown links appear as clickable labels in supported terminals, with visible URLs retained elsewhere. ( #40471 )
+Bind shortcuts to cycle permission modes, and use . in Vim mode to repeat your last edit. ( #39873 , #40521 )
+New Interrupt hooks can run commands or MCP handlers when an active top-level turn is interrupted. ( #40511 )
+Bug Fixes
+Untrusted projects no longer supply project-level AGENTS.md instructions, and managed deny-read rules remain enforced after permission changes. ( #39837 , #40004 )
+Improved credential redaction in app-server diagnostics, including provider, authentication refresh, and attestation fields. ( #39993 )
+Fixed remote MCP bearer-token lookup and required-server startup while preserving compatibility with older executors. ( #39926 , #39952 , #39979 )
+Fixed elevated Windows sandbox setup and launch aliases under Unicode user paths. ( #39971 , #40570 )
+Prevented Unix shutdown hangs caused by detached processes retaining a terminal or full terminal output buffers. ( #40460 )
+Fixed conversation compaction and multi-agent compatibility for Amazon Bedrock models. ( #39804 , #39825 )
+Changelog
+Full Changelog: rust-v0.149.0...rust-v0.150.0
+#39667 Trace MCP runtime refresh coordination @copyberry
+#39691 Make Guardian v2 parent compaction reuse configurable @copyberry
+#39700 Fail closed on unsafe config and sed parsing @copyberry
+#39702 Wait for turn completion events in multi-agent resume tests @copyberry
+#39703 Move the global scope check into the code-mode runtime @copyberry
+#39706 Harden Seatbelt writable root path binding @copyberry
+#39707 Remove redundant code mode image helper test @copyberry
+#39709 Log TUI app event variants without their payloads @copyberry
+#39712 Reduce unified exec output buffer allocations @copyberry
+#39717 Pass CI workflow inputs through environment variables @copyberry
+#39719 Stop persisting checkout credentials in V8 workflows @copyberry
+#39720 Expose managed policy for browser settings imports @copyberry
+#39722 Track multi-agent v2 spawn calls in analytics @copyberry
+#39726 Box the WebSocket dial future @copyberry
+#39731 Avoid rollout reads for configured TUI sessions @copyberry
+#39736 Remove private executor directory creation @copyberry
+#39738 Honor Guardian runtime settings from model defaults @copyberry
+#39741 Use model-specific auto-review outcome instructions @copyberry
+#39744 Skip postprocessing for short composer input @copyberry
+#39746 Refresh resumed thread capability roots from executors @copyberry
+#39749 Require filesystem backends to implement directory walks @copyberry
+#39752 Expose uncompiled permission profile selection @copyberry
+#39755 Add managed developer instructions to requirements @copyberry
+#39756 Cache shell snapshots in the exec server @copyberry
+#39757 Standardize shell execution on unified exec @copyberry
+#39761 Add app-server MCP event streaming @copyberry
+#39765 Include suggestion IDs in plugin install metadata @copyberry
+#39770 Refresh bundled model definitions @copyberry
+#39772 Standardize shell execution on unified exec @copyberry
+#39776 Verify Codex app signatures before launch or install @copyberry
+#39777 Retry transient registry failures during initial exec connection @copyberry
+#39779 Make tool-result telemetry limits configurable @copyberry
+#39782 Support standalone named function call outputs @copyberry
+#39784 Classify rollout migration failures @copyberry
+#39785 Support turn cost telemetry for custom model providers @copyberry
+#39786 Support host-accepted exec-server WebSockets @copyberry
+#39790 Deduplicate zsh fork test setup @copyberry
+#39791 Handle standalone tool outputs as external context @copyberry
+#39792 Reject settings updates for parent-owned subagents @copyberry
+#39794 Install build tools in full Rust CI @copyberry
+#39795 Add hostname to the configurable TUI status line @copyberry
+#39797 Enrich thread archive analytics with thread context @copyberry
+#39798 Update rmcp to 3.1.3 @copyberry
+#39802 Optimize case-insensitive thread history matching @copyberry
+#39804 Use multi-agent V1 for Amazon Bedrock models @copyberry
+#39807 Finalize reserved PDF uploads with creation context @copyberry
+#39809 Preserve WINDIR in core Windows shell environments @copyberry
+#39811 Restrict macOS preference reads to full-disk policies @copyberry
+#39812 Avoid materializing writable-root carveouts for presence checks @copyberry
+#39813 Defer legacy filesystem policy projection @copyberry
+#39822 Preserve uncapped Guardian classifier instructions @copyberry
+#39825 Use Responses compaction for Amazon Bedrock @copyberry
+#39827 Add history and notes tools for token-budget sessions @copyberry
+#39830 Rename the history notes extension config option @copyberry
+#39837 Ignore project instructions for untrusted projects @copyberry
+#39847 Include context window IDs in response metadata @copyberry
+#39852 Reset registry retries when refreshing Noise bundles @copyberry
+#39864 Limit pending input preview wrapping work @copyberry
+#39870 Allow session configuration with codex agents @copyberry
+#39873 Add keybindings for cycling TUI permission modes @copyberry
+#39876 Support attaching to existing realtime calls @copyberry
+#39917 Honor request PATH in exec-server shell snapshots @copyberry
+#39926 Resolve HTTP MCP bearer tokens in executor environments @copyberry
+#39930 Track remote MCP header environment variables @copyberry
+#39935 Enforce issuer binding for MCP OAuth endpoints @copyberry
+#39937 Bound unified exec output delta frames @copyberry
+#39940 Allow more time for local code-mode host startup @copyberry
+#39941 Discover HTTP MCP servers from selected executors @copyberry
+#39952 Honor required MCP servers from selected executors @copyberry
+#39953 Support voice-aware configuration and version-skew builds @copyberry
+#39957 Add in-memory shell snapshots to unified exec @copyberry
+#39958 Stop advertising shell snapshots from local exec servers @copyberry
+#39961 Test browser MCP bearer tokens over executor WebSockets @copyberry
+#39962 Keep Guardian reviews isolated from executor MCP servers @copyberry
+#39967 Upgrade pnpm to 10.34.5 @copyberry
+#39969 Consolidate code mode output helper tests @copyberry
+#39971 Fix elevated Windows sandbox setup activation @copyberry
+#39975 Preserve root user authorization in subagent Guardian reviews @copyberry
+#39976 Allow semaphore limit queries in the macOS sandbox @copyberry
+#39979 Preserve MCP compatibility with older executors @copyberry
+#39980 Enforce environment network policies for remote execution @copyberry
+#39981 Bypass risk scoring for models that require automatic review @copyberry
+#39985 Truncate Guardian instructions after rendering the policy @copyberry
+#39991 Preserve TUI event ordering during active-thread draining @copyberry
+#39992 Keep keymap action descriptions stable while navigating @copyberry
+#39993 Keep credentials out of app-server logs @copyberry
+#39994 Add Guardian internal session support @copyberry
+#39995 Expand browser and computer use requirements @copyberry
+#39997 Add a response target picker to /copy @copyberry
+#39999 Hide Fast mode status for unsupported models @copyberry
+#40000 Expose browser and computer-use requirements through app-server @copyberry
+#40004 Preserve managed deny-read rules across permission updates @copyberry
+#40005 Route escalated commands through synchronous Guardian review @copyberry
+#40006 Synchronize Git enrichment tests explicitly @copyberry
+#40007 Implement Amazon Bedrock setup in the app server @copyberry
+#40009 Run allowlisted executor plugin stop hooks @copyberry
+#40011 Synchronize concurrent Git enrichment test explicitly @copyberry
+#40012 Preserve executor context for MCP stop hooks @copyberry
+#40013 Reuse Guardian reviews in async risk scoring @copyberry
+#40015 Harden remote installed plugin cache reconciliation @copyberry
+#40017 Trace turn context creation and realtime state checks @copyberry
+#40018 Add browser and computer use configuration @copyberry
+#40020 Add end-to-end tests for executor Stop hooks @copyberry
+#40021 Cancel Guardian reviews with their tool calls @copyberry
+#40024 Honor granular sandbox approvals in unified exec @copyberry
+#40028 Log Guardian V2 classification results @copyberry
+#40031 Preserve strict MCP auto-review outcomes @copyberry
+#40038 Add unfinished root turn suspension @copyberry
+#40068 Report runtime MCP connection status @copyberry
+#40150 Use thread source metadata for Guardian classifiers @copyberry
+#40161 Allow exec callers to classify new threads @copyberry
+#40166 Move the TUI cursor before showing it @copyberry
+#40169 Add regression coverage for patch approval paging @copyberry
+#40174 Preserve content item kinds in message metadata @copyberry
+#40177 Require content kinds for extension prompt fragments @copyberry
+#40179 Shut down resumed descendants when archiving thread trees @copyberry
+#40180 Classify contextual fragments with content kinds @copyberry
+#40184 Preserve context annotations in merged messages @copyberry
+#40186 Identify detached memory requests as memory consolidation @copyberry
+#40196 Annotate user input and contextual fragments with content kinds @copyberry
+#40200 Remove the Plan mode composer nudge @copyberry
+#40221 Distinguish Guardian review threads from subagents @copyberry
+#40257 Support cua_repl as a Node REPL-backed MCP server @copyberry
+#40264 Preserve content metadata when truncating messages @copyberry
+#40266 Preserve content annotations when filtering forked agent history @copyberry
+#40271 Preserve content annotations when rolling back model switches @copyberry
+#40273 Normalize compacted user message annotations @copyberry
+#40275 Classify additional generated context fragments @copyberry
+#40277 Preserve annotations when omitting unsupported media @copyberry
+#40280 Budget retained images during remote compaction @copyberry
+#40281 Preserve content kinds during image preparation @copyberry
+#40292 Add smoke tests for assembled Codex packages @copyberry
+#40294 Classify internal model context by source @copyberry
+#40295 Classify permission instructions under the permissions namespace @copyberry
+#40296 Annotate Responses Lite base instructions @copyberry
+#40297 Preserve developer instruction annotations in subagent forks @copyberry
+#40301 Label Business Pro Lite plans as Business Premium @copyberry
+#40302 Harden bubblewrap synthetic mount registry isolation @copyberry
+#40308 Add TUI tools for managing Codex tasks @copyberry
+#40315 Add task mentions to the TUI composer @copyberry
+#40321 Update the frameless realtime default model @copyberry
+#40343 Cache executor metadata from initialization @copyberry
+#40363 Forward local env vars to Agent Plugin MCP servers @copyberry
+#40368 Use snapshot session sources for MCP projection @copyberry
+#40376 Advertise shell snapshot v2 support on Unix @copyberry
+#40381 Preserve sandbox errors during session initialization @copyberry
+#40382 Expose invocation sources to extension tools @copyberry
+#40393 Classify Guardian V2 risk with a single token @copyberry
+#40398 Stabilize the mismatched executor Stop hook test @copyberry
+#40403 Prewarm more Guardian sampling WebSockets @copyberry
+#40410 Strengthen Agent Plugin MCP environment overlay tests @copyberry
+#40413 Honor response budgets when listing skills @copyberry
+#40420 Represent Guardian policy as a contextual fragment @copyberry
+#40422 Harden Windows updater command execution @copyberry
+#40423 Harden Windows file URI conversion @copyberry
+#40431 Render Guardian review evidence with async scorer truncation @copyberry
+#40436 Add a managed gate for in-app local automation @copyberry
+#40437 Report completed sub-agent activity on parent turns @copyberry
+#40438 Use rust-lld for Bazel Windows MSVC Rust links @copyberry
+#40441 Preserve Windows root reads with deny-read rules @copyberry
+#40443 Batch sandboxed capability root discovery @copyberry
+#40447 Retry failed shell snapshot captures @copyberry
+#40449 Route peer agent completion activity to the initiating turn @copyberry
+#40450 Gate content item kinds behind a feature flag @copyberry
+#40460 Prevent Unix PTY I/O from blocking runtime shutdown @copyberry
+#40464 Enforce subagent ownership across app-server inputs @copyberry
+#40465 Record Guardian classifier input truncation metrics @copyberry
+#40466 Add credential brokering to network proxy feature config @copyberry
+#40471 Render Markdown links as clickable labels in supported terminals @copyberry
+#40472 Add structured full approval reviews to extensions @copyberry
+#40475 Request read control when updating Windows sandbox ACLs @copyberry
+#40477 Reload Multi-Agent V2 children through their parent @copyberry
+#40480 Add a computer-use-only Guardian v2 review scope @copyberry
+#40481 Support managed AWS access keys for Amazon Bedrock @copyberry
+#40484 Broker credential aliases in child environments @copyberry
+#40486 Add root turn IDs to turn and tool analytics @copyberry
+#40487 Extract agent role loading into a dedicated crate @copyberry
+#40488 Export turn cost as an OTEL metric @copyberry
+#40489 Honor disabled managed network configuration @copyberry
+#40490 Harden project config when credential brokering is active @copyberry
+#40491 Honor response budgets when reading skill resources @copyberry
+#40492 Generate descriptive TUI thread titles @copyberry
+#40494 Hide ephemeral system threads from TUI routing @copyberry
+#40495 Suggest conversation-based thread titles in /rename @copyberry
+#40496 Track history, notes, and async messages as control tools @copyberry
+#40497 Harden internal Guardian session isolation @copyberry
+#40498 Increase the app-server model refresh interval @copyberry
+#40499 Harden startup rollout migration against concurrent updates @copyberry
+#40501 Deduplicate plugin skills in unified mentions @copyberry
+#40502 Collapse home paths in AGENTS.md status summaries @copyberry
+#40504 Route cyber Trusted Access links by plan type @copyberry
+#40508 Persist realtime events in the thread timeline @copyberry
+#40509 Add persisted thread artifact models @copyberry
+#40511 Add hooks for interrupted turns @copyberry
+#40521 Add dot-repeat to Vim mode @copyberry
+#40523 Retry provider auth commands after initial failures @copyberry
+#40528 Represent terminal input in approval reviews @copyberry
+#40533 Route extension hints into context-window metadata @copyberry
+#40539 Inject history notes hints into context windows @copyberry
+#40544 Include transparent background in image generation analytics @copyberry
+#40551 Derive sandbox contexts from turn environments @copyberry
+#40554 Register the transcript v2 feature flag @copyberry
+#40570 Preserve Unicode paths in Windows batch aliases @copyberry
+#40585 Track remaining multi-agent v2 tools in analytics @copyberry
+#40587 Scope stop hooks for memory consolidation @copyberry
+#40594 Preserve conversation context in Guardian transcripts @copyberry
+Full release on Github
+2026-08-25
+Browser extensions, site tools, and cloud sign-in
+More browsers: Use the ChatGPT browser extension
+in Microsoft Edge, Brave, Opera, and Vivaldi, as well as Chrome. Set up
+your browser in Settings > Computer Use in the ChatGPT desktop app.
+All five support tab mentions and browser control; Opera doesn't support
+side chat.
+Site tools (WebMCP): In the desktop app's built-in browser, ChatGPT Work
+and Codex can use tools provided by a website to work with
+the page. Use GPT-5.6 Sol or GPT-5.6 Terra and update to the latest desktop
+app. Site tools aren't available with GPT-5.6 Luna or in Enterprise or Edu
+workspaces.
+Cloud browser sign-in: On eligible plans, ChatGPT Work on the web, iOS,
+and Android can ask you to sign in to a supported
+website through the cloud
+browser. Enter your details in the sign-in flow, not in the chat. Cloud
+browser sessions stay separate from your local browser. Website sign-in
+isn't available for Enterprise or Edu workspaces.
+Availability depends on rollout and workspace settings. Website-access and
+action-confirmation requirements still apply.
+2026-08-25
+Trigger scheduled tasks from Gmail, Slack, and GitHub events
+ChatGPT scheduled tasks can now run when supported events occur in Gmail, Slack,
+or GitHub. Filter Gmail messages by sender or subject, watch selected Slack
+channels, or respond to pull request activity such as reviews, comments, commit
+updates, and merges.
+Event-triggered tasks are available in ChatGPT on the web and mobile for
+eligible plans. Connect the relevant app and approve its requested access before
+creating a task.
+The ChatGPT Slack app must be a member of each watched channel, and the
+connected GitHub app must have access to each watched repository.
+An event-triggered task can't also use a time-based schedule. When matching
+events arrive close together, ChatGPT may combine them in one run.
+Open Scheduled to review pending events or choose Run now .
+Learn how to trigger scheduled tasks from app
+events .
+2026-08-24
+Codex MCP server command deprecated
+The codex mcp-server command is now deprecated. Use the Codex app
+server instead. To use Codex from Claude Code, use the Codex
+plugin for Claude Code .
+2026-08-24
+Codex CLI 0.149.1
+pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.149.1
+View details Changelog
+Full Changelog: rust-v0.149.0...rust-v0.149.1
+Full release on Github
+2026-08-20
+Codex and ChatGPT updates
+New features
+Apple Messages: Use the Apple Messages plugin to read and search Messages chats on your Mac and prepare or send messages. It's available on all plans in the ChatGPT desktop app for macOS. You can use the plugin in ChatGPT Work and Codex. By default, ChatGPT sends messages only after you approve the message and its recipients. See the plugin guide for persistent-approval risks, revocation steps, and the known issue with tasks that disable approval prompts.
+Site co-editing: Where Site collaboration is available, owners can invite active members of the same workspace as editors . Editors can read the Site's live database data, update the Site, save versions, and publish changes after the owner publishes the Site for the first time. Owners retain control of the audience, settings, analytics, ownership, version restoration, and editor access.
+Editable Site URLs: Where URL editing is available, owners can change an existing Site's ChatGPT-hosted address without creating another deployment. The previous address redirects to the new URL. Custom domains are a separate, existing feature and aren't changed by this setting.
+Computer History in Europe: Computer History is now available in the EEA, Switzerland, and the United Kingdom for ChatGPT Pro, Business, and Enterprise users in the ChatGPT desktop app on macOS. It's off by default and requires Memories. Business and Enterprise administrators must enable access before workspace members can choose to turn it on.
+Shared thread snapshots: On all Codex plans, share a read-only snapshot of a local Codex thread from the ChatGPT desktop app for macOS. The snapshot doesn't update when the original thread changes. Personal-account links can be opened by anyone with the link; workspace-account links are limited to members of the originating workspace. Codex redacts known secret patterns, but review the shared content because sensitive content may remain. View or revoke links in ChatGPT data controls , under Shared links .
+Unified pinned threads: Keep the same pinned chats across the ChatGPT desktop app and iOS.
+2026-08-20
+Codex CLI 0.149.0
+pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.149.0
+View details New Features
+Added an interactive codex agents dashboard for searching, starting, opening, renaming, and stopping tasks, with configurable shortcuts. ( #39094 , #39112 , #39114 , #39142 )
+Added /cd , /pwd , and /cwd commands for managing the working directory in TUI sessions. ( #38894 )
+Added codex queue for sending messages to existing local or remote sessions. ( #39092 )
+Expanded Vim editing with character replacement and more change motions such as cw , c$ , and cc . ( #39661 )
+codex doctor now diagnoses endpoint protection, network/proxy failures, desktop app state, and update connectivity. ( #38827 , #38918 , #39060 , #39074 )
+SDK users can now pass exact CLI config overrides and select max or ultra reasoning effort. ( #38817 , #39662 )
+Bug Fixes
+Queued messages now wake idle sessions reliably, resolve duplicate session names more usefully, and preserve pasted or deferred command semantics. ( #39034 , #39385 , #39604 )
+Resumed and forked threads now restore their active permission profile instead of silently falling back to current defaults. ( #39153 )
+Fixed duplicate sub-agent activity and tightened TUI routing for sub-agent notifications and approvals. ( #39049 , #39088 )
+Realtime WebRTC sideband connections now reconnect after unexpected transport loss without dropping pending output. ( #39257 )
+Inline TUI history now remains available in Windows Terminal scrollback. ( #39619 )
+Inactive TUI thread replay buffers are now bounded to prevent excessive retained streamed output. ( #39081 )
+Documentation
+Clarified that external contributions should go through issues and design discussion rather than pull requests. ( #39089 )
+Documented DNS exfiltration risks and trust limitations for secure devcontainers. ( #39283 )
+Changelog
+Full Changelog: rust-v0.148.0...rust-v0.149.0
+#38817 Add raw config overrides to the TypeScript SDK @copyberry
+#38819 Support metadata staging for reserved thread IDs @copyberry
+#38822 Avoid cloning TUI history span content @copyberry
+#38823 Avoid allocating per character when decorating hyperlinks @copyberry
+#38827 Add endpoint protection checks to codex doctor @copyberry
+#38830 Isolate external editor buffers from sandbox-writable paths @copyberry
+#38837 Share editor keymaps across TUI composer components @copyberry
+#38840 Identify Mac mini hosts in remote control handshakes @copyberry
+#38893 Restore thread timestamp maxima independently @copyberry
+#38894 Add working-directory commands to the TUI @copyberry
+#38899 Move requirements policy ownership to execpolicy @copyberry
+#38902 Honor per-environment shell variable policies @copyberry
+#38907 Edit queued messages with Vim history-up @copyberry
+#38913 Stop rendering columns after filling their area @copyberry
+#38916 Honor legacy :project_roots permission entries @copyberry
+#38918 Improve codex doctor network diagnostics @copyberry
+#38919 Reject obsolete app-server permission profile fields @copyberry
+#38921 Compact successful command activity in the TUI @copyberry
+#38940 Add experimental app-server project APIs @copyberry
+#38941 Prevent Noise auth tokens from reaching child processes @copyberry
+#38942 Enforce environment-specific command policies @copyberry
+#38947 Stop loading legacy managed config on Windows @copyberry
+#38978 Add a configurable skill catalog token budget @copyberry
+#38980 Bound Guardian v2 parent compaction context @copyberry
+#38987 Include images in Guardian v2 transcripts @copyberry
+#38990 Source Guardian v2 defaults from the model catalog @copyberry
+#38993 Evaluate recent and character-routed skill selection @copyberry
+#38994 Remove the workspace settings gate for apps and plugins @copyberry
+#38997 Retry transient Guardian sampling failures @copyberry
+#39001 Ignore stale Guardian tool risk scores @copyberry
+#39005 Disable Guardian V2 for managed automatic reviewers @copyberry
+#39006 Emit API-key turn cost telemetry from app-server @copyberry
+#39007 Wait for Guardian score progress in approval tests @copyberry
+#39008 Add task context to shadow skill selection @copyberry
+#39017 Move MCP policy types into codex-protocol @copyberry
+#39019 Isolate MCP resource headers during OAuth requests @copyberry
+#39020 Restrict Windows IDE pipe client impersonation @copyberry
+#39022 Hang soft-break whitespace in the TUI composer @copyberry
+#39023 Reduce retained MCP result data in TUI history @copyberry
+#39025 Speed up the large diff highlighting test @copyberry
+#39026 Use simulated time in the long typing test @copyberry
+#39028 Cache the test pet spritesheet encoding @copyberry
+#39030 Speed up the in-app resume cwd test @copyberry
+#39032 Encapsulate TUI shimmer under the motion module @copyberry
+#39033 Bound legacy resume preview scans @copyberry
+#39034 Dispatch queued messages written by other processes @copyberry
+#39035 Add app-server coverage for Guardian V2 approval routing @copyberry
+#39036 Allow config reads to join active app-server read batches @copyberry
+#39038 Restore Guardian risk scores across thread lifecycles @copyberry
+#39040 Preserve foreign paths in managed network approvals @copyberry
+#39043 Enforce managed authentication backend settings @copyberry
+#39045 Add managed gates for in-app chat and dictation @copyberry
+#39046 Restrict MCP HTTP redirects to the configured origin @copyberry
+#39047 Skip plugin hook loading when hooks are disabled @copyberry
+#39049 Avoid rendering sub-agent activity twice in the TUI @copyberry
+#39050 Prepare the telemetry shutdown worker during initialization @copyberry
+#39051 Use installed callable apps for TUI mentions @copyberry
+#39055 Add network policy metadata to environment configuration @copyberry
+#39056 Verify the pinned zsh manifest in release builds @copyberry
+#39057 Rate-limit TUI frames from their actual emission time @copyberry
+#39058 Tag Codex Apps protocol discovery metrics @copyberry
+#39060 Add desktop app diagnostics to codex doctor @copyberry
+#39061 Avoid rerendering streamed code fences @copyberry
+#39063 Render only visible rows in the transcript pager @copyberry
+#39064 Restrict queued-message editing to its dedicated binding @copyberry
+#39065 Limit terminal hyperlink layout to the visible viewport @copyberry
+#39067 Add desktop security enforcement diagnostics @copyberry
+#39068 Remove skill model delegation support @copyberry
+#39072 Persist generated images through turn executors @copyberry
+#39073 Propagate caller metadata to rendezvous connections @copyberry
+#39074 Add desktop update diagnostics to codex doctor @copyberry
+#39075 Avoid redundant terminal row clears @copyberry
+#39077 Build filesystem JSON params only for remote TUI sessions @copyberry
+#39078 Preserve tracing context for environment resolution @copyberry
+#39079 Apply user MCP policy to selected executor plugins @copyberry
+#39081 Bound TUI thread replay buffers by delta size @copyberry
+#39082 Prompt for project trust in remote TUI workspaces @copyberry
+#39083 Harden Windows sandbox provisioning against reparse points @copyberry
+#39084 Preserve filesystem permission path conventions @copyberry
+#39087 Read plugin authentication state from AuthManager @copyberry
+#39088 Harden TUI subagent navigation @copyberry
+#39089 Clarify the external contribution policy @copyberry
+#39092 Add a command to queue messages for existing sessions @copyberry
+#39094 Add an agents overview dashboard to the TUI @copyberry
+#39098 Trace exec-server requests from receipt through completion @copyberry
+#39100 Avoid redundant terminal size queries during history insertion @copyberry
+#39101 Update rmcp to 3.1.2 @copyberry
+#39102 Raise the GPT-5.6 maximum context window @copyberry
+#39103 Drop capabilities from Linux sandbox processes @copyberry
+#39112 Make the agents overview an interactive task dashboard @copyberry
+#39113 Surface interactive requests in realtime conversations @copyberry
+#39114 Add a dedicated codex agents dashboard command @copyberry
+#39115 Remove the experimental thread config endpoint @copyberry
+#39117 Reject lossy legacy permission projections @copyberry
+#39122 Fail closed on deeply nested command wrappers @copyberry
+#39131 Validate identifiers in plugin creator workflows @copyberry
+#39141 Redact auth tokens from app-server response logs @copyberry
+#39142 Add configurable shortcuts for the agents dashboard @copyberry
+#39143 Hydrate recommended plugin metadata on selection @copyberry
+#39145 Persist active permission profiles in turn context @copyberry
+#39147 Centralize persisted resume settings lookup @copyberry
+#39152 Update PyPI publish action to v1.14.2 @copyberry
+#39153 Restore permission profiles when resuming threads @copyberry
+#39154 Box the TUI future to bound CLI stack usage @copyberry
+#39155 Prepare Python SDK 0.147.0 stable release @copyberry
+#39157 Notify clients when Guardian requires strict review @copyberry
+#39159 Require approval for commands with dynamic shell words @copyberry
+#39163 Refresh collaboration instructions when their content changes @copyberry
+#39165 Prevent marketplace identity spoofing @copyberry
+#39174 Skip empty user messages for automatic idle turns @copyberry
+#39176 Drop descendant progress updates after remote compaction @copyberry
+#39187 Scope MCP app resource reads to their originating call @copyberry
+#39192 Preserve MCP resource origins across compaction @copyberry
+#39200 Add a symlink-safe reader for sensitive files @copyberry
+#39205 Reject symbolic links in memory workspaces @copyberry
+#39213 Add a fail-closed Tree-sitter PowerShell lowerer @copyberry
+#39214 Prevent custom providers from inheriting ambient auth @copyberry
+#39220 Reconnect Guardian sampling WebSockets after auth changes @copyberry
+#39221 Skip redirected external-agent migration destinations @copyberry
+#39224 Add Guardian v2 approval review metrics @copyberry
+#39227 Include node_repl screenshots in Guardian v2 reviews @copyberry
+#39235 Decouple Noise relay streams from JSON-RPC processing @copyberry
+#39240 Deduplicate remote plugin bundle syncs with shared semaphores @copyberry
+#39241 Record Guardian v2 classification metrics @copyberry
+#39242 Add safe permission profile intersection @copyberry
+#39244 Scope MCP resource reads by connector @copyberry
+#39246 Give Guardian classifier connections distinct thread identities @copyberry
+#39249 Add exec-server forwarding mode @copyberry
+#39256 Deduplicate rollout moves when archiving threads @copyberry
+#39257 Reconnect WebRTC Realtime sideband transports @copyberry
+#39259 Simplify unified exec output snapshots @copyberry
+#39261 Stop TUI chats on misalignment policy violations @copyberry
+#39262 Prevent ConPTY DLL loading from the current directory @copyberry
+#39264 Improve Guardian v2 risk classification @copyberry
+#39266 Require fresh approval beneath denied permission paths @copyberry
+#39267 Inject Node REPL policy into Guardian review sessions @copyberry
+#39273 Preserve thread names during rollout migration @copyberry
+#39274 Add provider-owned authentication recovery @copyberry
+#39277 Declare experimental Amazon Bedrock setup APIs @copyberry
+#39278 Preserve owner-provided environment configuration @copyberry
+#39279 Propagate Windows sandbox ACL update failures @copyberry
+#39281 Move shell snapshot scripts into codex-shell-command @copyberry
+#39283 Document secure devcontainer DNS exfiltration risk @copyberry
+#39284 Report network disconnects during approval @copyberry
+#39285 Show file destinations in TUI change approvals @copyberry
+#39287 Report diagnostic upload failures @copyberry
+#39288 Register the async message feature flag @copyberry
+#39290 Add Windows sandbox diagnostics to codex doctor @copyberry
+#39293 Remove app-server's direct reqwest dependency @copyberry
+#39294 Increase SQLite log sink batching @copyberry
+#39296 Enable MCP tool hooks in Codex sessions @copyberry
+#39298 Allow overriding Codex package versions @copyberry
+#39299 Restrict agent roles to bounded configuration overrides @copyberry
+#39301 Prevent Node REPL auth tokens from reaching child processes @copyberry
+#39303 Record Guardian v2 classification token usage @copyberry
+#39304 Keep Guardian v2 risk scores in memory @copyberry
+#39306 Honor managed config during project discovery @copyberry
+#39307 Fail closed on Guardian V2 risk scoring errors @copyberry
+#39309 Attribute executor skill invocations to plugins @copyberry
+#39311 Bind unified exec approvals to shell executables @copyberry
+#39312 Add async delivery metadata to agent messages @copyberry
+#39314 Run hooks with the captured session environment @copyberry
+#39315 Evict guardian transcript entries in cacheable chunks @copyberry
+#39316 Support Edu Plus and Edu Pro account plans @copyberry
+#39319 Add the async user message tool @copyberry
+#39320 Expand OAuth metadata redirect test coverage @copyberry
+#39322 Enforce workspace restrictions for header authentication @copyberry
+#39325 Stop migrating Cursor sandbox settings @copyberry
+#39331 Route hook MCP calls through current connections @copyberry
+#39335 Enforce environment MCP policies @copyberry
+#39372 Scope TUI approval requests to their threads @copyberry
+#39385 Prefer the most recent session when queueing by name @copyberry
+#39402 Remove npm package staging from repo checks @copyberry
+#39404 Support FD mounts with older system Bubblewrap versions @copyberry
+#39410 Refresh expired AWS credentials for Bedrock @copyberry
+#39452 Remove the feature gate for async user messages @copyberry
+#39474 Consolidate Guardian extensions into codex-guardian-v2 @copyberry
+#39480 Move shell snapshot tests into shell-command @copyberry
+#39493 Make head-tail buffer capacity const generic @copyberry
+#39494 Test panoramic Guardian transcript image resizing @copyberry
+#39496 Use default timeouts in cyber exec policy tests @copyberry
+#39497 Correct normalized dynamic tool coverage across response modes @copyberry
+#39501 Use a narrow fixture for the unified image resize test @copyberry
+#39505 Test text stringify errors in the code mode runtime @copyberry
+#39506 Test code mode notifications without a sync tool call @copyberry
+#39509 Test disabled enhanced Node REPL transcript images separately @copyberry
+#39510 Track built-in control tool calls in analytics @copyberry
+#39514 Use stored item types when materializing turn summaries @copyberry
+#39515 Use mem::take to drain unified exec output buffers @copyberry
+#39520 Isolate automatic plugin Git operations @copyberry
+#39523 Persist thread section moves before the first turn @copyberry
+#39524 Stop treating Git commands as inherently safe @copyberry
+#39584 Add a just recipe for assembling Codex packages @copyberry
+#39585 Test plugin sync isolation from repository Git config @copyberry
+#39586 Isolate IPC in Bubblewrap sandboxes @copyberry
+#39588 Preserve unparsed shell wrappers in exec policy @copyberry
+#39590 Harden plugin manifest handling during installation @copyberry
+#39592 Prevent SQLx warnings from feeding back into SQLite logs @copyberry
+#39594 Raise the MCP tool name limit to 128 bytes @copyberry
+#39595 Keep marketplace upgrade state out of config @copyberry
+#39597 Separate thread settings from environment configuration @copyberry
+#39599 Protect macOS Seatbelt writable root anchors @copyberry
+#39601 Keep async user messages on the direct tool surface @copyberry
+#39602 Use in-process parsing for PowerShell command classification @copyberry
+#39604 Preserve queued TUI input semantics @copyberry
+#39605 Hide approved automatic review warnings in the TUI @copyberry
+#39606 Enable user namespaces in shared CI setup @copyberry
+#39607 Resolve model-provided shells by type @copyberry
+#39608 Harden skill installation against unsafe symlinks @copyberry
+#39609 Limit Bazel integration test threads on macOS @copyberry
+#39611 Harden MCP OAuth fallback credential writes @copyberry
+#39614 Prevent apply_patch from widening write permissions @copyberry
+#39615 Bind MCP OAuth refresh tokens to their issuer @copyberry
+#39616 Validate linked worktrees before inheriting project trust @copyberry
+#39618 Apply composer editing preferences to TUI text prompts @copyberry
+#39619 Preserve inline TUI scrollback in Windows Terminal @copyberry
+#39620 Stream executor capability and skill file reads @copyberry
+#39623 Prevent protected-path rename bypasses in macOS Seatbelt @copyberry
+#39625 Add cwd-relative turn diff paths @copyberry
+#39629 Preserve parent repository discovery through sandbox metadata mounts @copyberry
+#39630 Retire the untrusted approval policy @copyberry
+#39631 Skip sandboxed shell commands in Guardian v2 by default @copyberry
+#39632 Expose permission profile resolution in the core API @copyberry
+#39635 Show strict review warnings in the TUI @copyberry
+#39637 Treat invalid_grant refresh failures as permanent @copyberry
+#39640 Prompt to unarchive sessions before resuming or forking @copyberry
+#39641 Sanitize developer context in full-history agent forks @copyberry
+#39645 Enforce managed residency for model providers @copyberry
+#39646 Exercise restricted-token sandboxing in cyber policy tests @copyberry
+#39649 Resolve bundled Windows helpers through bin junctions @copyberry
+#39653 Enforce filesystem permissions when loading AGENTS.md @copyberry
+#39655 Make core integration test permissions explicit @copyberry
+#39656 Advertise the Desktop app in graphical Linux sessions @copyberry
+#39657 Warn when launching the deprecated MCP server @copyberry
+#39658 Let Guardian V2 satisfy required model reviews @copyberry
+#39659 Harden unsandboxed patch filesystem access @copyberry
+#39661 Expand Vim change commands and add character replacement @copyberry
+#39662 Add max and ultra reasoning efforts to the SDKs @copyberry
+#39663 Restrict plugin migration to home scope @copyberry
+#39665 Add macOS Seatbelt filesystem integration tests @copyberry
+#39666 Improve no-follow filesystem behavior across platforms @copyberry
+Full release on Github
+2026-08-19
+GitLab support in Codex cloud (Beta)
+GitLab support is available in beta on all ChatGPT plans. Connect a GitLab
+project to Codex cloud, create an environment for it, start tasks from issues
+or merge requests with @codex , and request one-off or automatic merge request
+reviews.
+The integration runs in Codex cloud. A managed workspace admin can disable the
+connector. GitLab-triggered activity requires permission to configure the
+applicable webhook. For GitLab Self-Managed or GitLab Dedicated, a workspace admin must
+configure the connection, and webhook activity requires GitLab 19.0 or later.
+Codex cannot complete a review when GitLab omits a collapsed or oversize diff.
+Learn how to use Codex with GitLab .
+2026-08-18
+ChatGPT for iOS 1.2026.223
+New features
+Added a setting to open ChatGPT directly in Codex Remote on launch.
+Added support for standard MCP forms and editable message approvals.
+Linked folders now open directly in the files sheet.
+Improvements and bug fixes
+Improved the New Thread project picker to reflect the selected host's current projects.
+Voice now works directly from existing task composers, connects more reliably, and continues task actions in the background.
+Improved diff review stability and performance, especially in large workspaces.
+Added a Retry action when task messages fail to load.
+Fixed large task responses failing to load.
+Fixed tasks disappearing or remaining unavailable after being idle, reconnecting, or returning to the task list.
+Improved host pairing reliability and prevented enrollment checks from freezing the app.
+Improved response annotations and preserved streamed activity when tasks complete.
+Canceling or editing a steering message now prevents delivery.
+2026-08-18
+Codex CLI 0.148.0
+pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.148.0
+View details New Features
+Export complete TUI conversations to Markdown with /export , either to the clipboard or a new file. ( #37358 )
+Fork sessions with codex exec fork , and archive or restore sessions from the TUI resume picker. ( #37367 , #37369 , #37371 )
+Draft prompts while the TUI initializes, with resume and fork progress shown during startup. ( #38642 , #38788 )
+View estimated thread credits or cost in /status , status lines, and terminal titles for eligible workspaces. ( #38281 , #38282 )
+Use Amazon Bedrock Runtime as a built-in provider with AWS profile, region, and GPT-5.6 routing support. ( #38470 )
+Hooks can now run commands asynchronously and invoke MCP tools. ( #37533 , #38705 )
+Bug Fixes
+Model switches and settings updates no longer leave stale instructions behind or change an active turn midstream. ( #37260 , #38785 )
+Resumed sessions now restore their persisted working directory and approval policy, with more accurate transcript previews. ( #37198 , #37368 , #38605 )
+Turns reconnect through temporary provider outages, and MCP servers recover after OAuth reauthentication without restarting Codex. ( #37337 , #37485 , #38418 )
+TUI startup no longer lets buffered terminal input activate prompts accidentally, and onboarding appears when authentication is missing. ( #38641 , #38643 , #38644 )
+Composer and transcript rendering now handle CRLF pastes, wrapped whitespace, and long URLs correctly. ( #37709 , #38380 , #38704 )
+Sandbox restrictions now fail closed for denied or unreadable paths across Linux and Windows. ( #37875 , #38026 , #38416 , #38660 )
+Documentation
+The bundled skill-creator guide is more focused, and validation now rejects unfinished TODO placeholders. ( #38384 )
+Changelog
+Full Changelog: rust-v0.147.0...rust-v0.148.0
+#37190 Interrupt cyber model turns after one Guardian denial @copyberry
+#37191 Preserve legacy semantics during rollout migration @copyberry
+#37198 Prefer persisted cwd when reading local threads @copyberry
+#37199 Track thread archive analytics @copyberry
+#37204 Add durable user-message queue dispatch @copyberry
+#37206 Add a unified image budget @copyberry
+#37210 Fetch remote installed plugins across all scopes @copyberry
+#37211 Harden network proxy MITM authorization @copyberry
+#37248 Cover remote MCP discovery timeout cleanup @copyberry
+#37252 Allow agent roles on full-history forks @copyberry
+#37260 Fix first-turn model switching and rollback @copyberry
+#37261 Start cached MCP servers lazily for subagents @copyberry
+#37267 Support plugin roots in the host skill loader @copyberry
+#37273 Reuse MCP handlers across sampling steps @copyberry
+#37279 Avoid cloning immutable metadata on tool search cache hits @copyberry
+#37335 Fully repaint inline viewports after history overlap @copyberry
+#37336 Use step environments for extension turn input @copyberry
+#37337 Recover MCP servers after OAuth reauthentication @copyberry
+#37338 Honor the configured ChatGPT origin in connector install URLs @copyberry
+#37339 Reload app-server telemetry after account changes @copyberry
+#37340 Consolidate deferred environment provisioning APIs @copyberry
+#37341 Support content references for inline visualizations @copyberry
+#37342 Preserve foreign cwd URIs for turn-input contributors @copyberry
+#37343 Stage Bazel app-server test binaries in TEST_TMPDIR @copyberry
+#37344 Fix subagent MCP startup status settling @copyberry
+#37345 Send model routing hints to the Codex backend @copyberry
+#37347 Track context windows per agent @copyberry
+#37348 Add rollout migration tooling and background migration @copyberry
+#37349 Mount a minimal /dev in full-filesystem Bubblewrap sandboxes @copyberry
+#37350 Allow ThreadManager to customize thread ID generation @copyberry
+#37352 Configure the default code-mode exec yield timeout @copyberry
+#37354 Retry busy app-server test executable spawns @copyberry
+#37356 Support agent identity endpoint overrides @copyberry
+#37357 Clamp short wait_agent timeouts to the configured minimum @copyberry
+#37358 Add Markdown conversation export to the TUI @copyberry
+#37360 Use consistent TUI input placeholders @copyberry
+#37363 Recognize MCP tool hook configurations @copyberry
+#37366 Harden local MCP server process tree cleanup @copyberry
+#37367 Add session forking to codex exec @copyberry
+#37368 Restore approval policy when resuming threads @copyberry
+#37369 Add session archiving to the resume picker @copyberry
+#37371 Restore archived sessions from the resume picker @copyberry
+#37389 Add tool namespace metadata configuration @copyberry
+#37400 Rename the tool registry metadata setting @copyberry
+#37406 Add a loader for executor-local config layers @copyberry
+#37408 Add executor-local config reads to the exec server @copyberry
+#37424 Cap project instructions across environments @copyberry
+#37433 Expose multi-agent versions in model/list @copyberry
+#37434 Add process diagnostics snapshots @copyberry
+#37439 Add shared skill root loading interfaces @copyberry
+#37440 Load plugin skill roots through the host skills service @copyberry
+#37444 Unify plugin skill loading with the host skill service @copyberry
+#37446 Preserve base instruction provenance across sessions @copyberry
+#37447 Respect plugin skill availability in tool suggestions @copyberry
+#37452 Unify plugin skill loading through the shared loader @copyberry
+#37457 Remove the legacy core skill loader @copyberry
+#37461 Remove the unused remote skills client @copyberry
+#37466 Move skill config rule resolution into codex-config @copyberry
+#37470 Expose app-server diagnostics through the experimental API @copyberry
+#37477 Include call IDs in MCP requests and clarify metadata config @copyberry
+#37478 Shard state unit tests under Bazel @copyberry
+#37479 Report temporary directories in exec-server environment info @copyberry
+#37480 Delegate remote process sandboxing to the executor @copyberry
+#37483 Interrupt active code-mode cells with their turn @copyberry
+#37485 Keep response streams alive through connection failures @copyberry
+#37486 Expose runtime activity in server diagnostics @copyberry
+#37488 Generalize skill locator aliases across providers @copyberry
+#37489 Alias resource-backed skill locators under context pressure @copyberry
+#37492 Include tool namespace inventory in turn metadata @copyberry
+#37494 Add MCP event discovery and subscriptions @copyberry
+#37497 Limit payload traces in diagnostic logs @copyberry
+#37498 Preserve child waiters during process termination @copyberry
+#37500 Remove the legacy code-mode tool metadata inventory @copyberry
+#37503 Move host skill prompt injection into the skills extension @copyberry
+#37504 Disable Nagle's algorithm for code-mode WebSockets @copyberry
+#37505 Remove the codex-core-skills crate @copyberry
+#37507 Include sandbox mode in response metadata @copyberry
+#37510 Define the code-mode host gRPC protocol @copyberry
+#37511 Enforce automatic review for managed models @copyberry
+#37513 Reuse parent compactions in Guardian review sessions @copyberry
+#37516 Ignore reusable command approvals for cyber models @copyberry
+#37519 Expose auto-review ignore rules in config requirements @copyberry
+#37527 Terminate timed-out hook process trees @copyberry
+#37528 Keep external agent detection from blocking config requests @copyberry
+#37530 Implement the gRPC code-mode host service @copyberry
+#37533 Support asynchronous command hooks @copyberry
+#37538 Expose execution mode in hook listings @copyberry
+#37607 Prevent launch context from reaching child processes @copyberry
+#37610 Add workload identity token exchange support @copyberry
+#37618 Use step environments for Guardian approval reviews @copyberry
+#37622 Include buffered turns when editing prompts @copyberry
+#37641 Use the step context for command approval prefix rules @copyberry
+#37644 Generalize hook handler execution @copyberry
+#37645 Improve plugin install failure analytics @copyberry
+#37654 Advertise environment config read support @copyberry
+#37709 Keep wrapped composer whitespace with following text @copyberry
+#37723 Report I/O subtypes for session config import failures @copyberry
+#37745 Add gRPC TCP transport to the code-mode host @copyberry
+#37747 Bound Cursor project path resolution @copyberry
+#37757 Add a line-ending preservation mode to apply_patch @copyberry
+#37758 Add a feature flag to preserve apply_patch line endings @copyberry
+#37773 Forward install attempt IDs for remote plugins @copyberry
+#37788 Use native transparency in the imagegen skill @copyberry
+#37806 Initialize the install attempt ID in the plugin analytics test @copyberry
+#37807 Share model-visible tool specs across prompts @copyberry
+#37808 Simplify package-based skill reads @copyberry
+#37810 Support packaged defaults in config layering @copyberry
+#37812 Keep multi-workspace skill listings consistent @copyberry
+#37828 Track running unified exec processes at turn completion @copyberry
+#37832 Remove obsolete plugin skill discovery helpers @copyberry
+#37833 Encapsulate watchable skill root selection @copyberry
+#37836 Run plugin and skill tests on Windows @copyberry
+#37838 Tighten the skills extension API surface @copyberry
+#37842 Speed up MCP OAuth credential reads @copyberry
+#37843 Use the shared environment scrubber in git-utils @copyberry
+#37847 Preserve environments when reloading V2 agents @copyberry
+#37848 Expose the session ID to shell commands @copyberry
+#37850 Expose plugin ownership in MCP server status @copyberry
+#37851 Route intercepted exec approvals through shared review @copyberry
+#37860 Speed up MCP OAuth credential reads @copyberry
+#37862 Rename environment config for turn scope @copyberry
+#37864 Support MCP form input in full-access user threads @copyberry
+#37866 Add MCP OAuth credential contention regression tests @copyberry
+#37867 Reject duplicate resolved paths in apply_patch @copyberry
+#37871 Extract persisted history types into a dedicated crate @copyberry
+#37874 Keep runtime summary metrics out of Statsig exports @copyberry
+#37875 Honor the configured Windows sandbox level for managed networking @copyberry
+#37878 Add configurable goal token budget limits @copyberry
+#37882 Read safety buffering from response metadata @copyberry
+#37886 Extend bundled package discovery and expose its version @copyberry
+#37889 Ignore Unix socket proxy settings on Windows @copyberry
+#37891 Use thread configuration for app/read @copyberry
+#37892 Validate images before returning view_image output @copyberry
+#37895 Add configurable Responses API request metadata @copyberry
+#37896 Add hermetic Windows SDK and MSVC runtime repositories @copyberry
+#37898 Add appearance metadata to thread sections @copyberry
+#37901 Make submission operations move-only @copyberry
+#37902 Defer view_image processing to history insertion @copyberry
+#37906 Make gRPC code-mode notifications fire-and-forget @copyberry
+#37908 Apply refreshed cloud config bundles to later sessions @copyberry
+#37922 Extract reusable code-mode host test support @copyberry
+#37926 Distinguish turn-start thread persistence @copyberry
+#37929 Add shared runtime build information @copyberry
+#37939 Validate images before returning view_image output @copyberry
+#37970 Cache tool catalogs for streamable HTTP MCP servers @copyberry
+#37979 Honor per-directory bundled skill settings in skills/list @copyberry
+#37984 Stop re-exporting skill APIs from codex-core @copyberry
+#38011 Remove config lockfile support @copyberry
+#38020 Retry transient exec-server startup failures @copyberry
+#38024 Expose image generation usage-limit failures @copyberry
+#38026 Fail closed on unsafe Linux unreadable globs @copyberry
+#38032 Hide approved Guardian assessments from TUI history @copyberry
+#38033 Use session metadata to validate thread history paths @copyberry
+#38034 Filter live rollout items in place @copyberry
+#38035 Propagate MCP elicitation event delivery failures @copyberry
+#38036 Limit TUI streaming traces in SQLite logs @copyberry
+#38040 Propagate custom CA settings to local MCP servers @copyberry
+#38041 Add gRPC-backed code-mode sessions @copyberry
+#38043 Sandbox remote apply_patch operations @copyberry
+#38044 Compact code mode tool calls in TUI history @copyberry
+#38045 Store model history in response item envelopes @copyberry
+#38046 Include auto-review state in turn metadata @copyberry
+#38047 Add turn-aware response item injection @copyberry
+#38049 Harden network proxy credential brokerage @copyberry
+#38051 Run required CI against pull request merge commits @copyberry
+#38052 Add per-login MCP OAuth client registration selection @copyberry
+#38054 Add configuration-backed external authentication @copyberry
+#38056 Configure PSP routing through the feature system @copyberry
+#38057 Track artifact operations from trusted plugin markers @copyberry
+#38058 Preserve harness metadata across conversation history @copyberry
+#38060 Disable storage for Azure Responses requests @copyberry
+#38061 Preserve proxy settings for Windows sandbox debug sessions @copyberry
+#38064 Grant Windows sandbox access to the Codex app root @copyberry
+#38066 Track resource-backed skill invocations @copyberry
+#38067 Scope environment readiness config to thread attachments @copyberry
+#38072 Forward gRPC code-mode callbacks to session delegates @copyberry
+#38074 Track implicit executor skill invocations @copyberry
+#38075 Respect rendered width when adding TUI history @copyberry
+#38078 Reduce cloning in world-state patch handling @copyberry
+#38080 Allow nested Git repositories in the Windows sandbox @copyberry
+#38081 Use ReviewDecision for MCP tool approvals @copyberry
+#38083 Remove standard form input from app-server docs @copyberry
+#38084 Allow empty input to start a turn @copyberry
+#38086 Support execution-host context when resolving cloud config @copyberry
+#38087 Route gRPC code-mode sessions through the shared HTTP client @copyberry
+#38089 Add CIMD support to MCP OAuth registration @copyberry
+#38092 Simplify queued user message admission @copyberry
+#38094 Test Guardian context for code mode commands @copyberry
+#38101 Attach hosted app context to file uploads @copyberry
+#38103 Avoid cloning MCP invocations in TUI history @copyberry
+#38108 Route MCP tool calls through shared approval handling @copyberry
+#38127 Distinguish rollout IDs from thread IDs @copyberry
+#38165 Resolve subagent analytics connections lazily @copyberry
+#38167 Read executor skill packages directly @copyberry
+#38170 Notify running turn watchers only on count changes @copyberry
+#38172 Update lru and webbrowser dependencies @copyberry
+#38179 Embed defaults in the packaged config layer @copyberry
+#38183 Add conservative restriction helpers for tool policies @copyberry
+#38184 Run search tool integration tests on Windows @copyberry
+#38186 Stop overriding environments in the skills user-turn test @copyberry
+#38188 Integrate workload identity with Codex authentication @copyberry
+#38189 Run plugin app-server tests in automatic environments @copyberry
+#38197 Add an LRU baseline to skill shadow selection @copyberry
+#38204 Fuse recent and lexical skills in shadow selection @copyberry
+#38205 Enforce non-interactive approval policy for Codex delegates @copyberry
+#38214 Avoid allocations when sanitizing TUI user text @copyberry
+#38217 Start required cached MCP servers lazily for subagents @copyberry
+#38227 Add a flag to retain client developer messages @copyberry
+#38228 Detect implicit skill invocations from PowerShell reads @copyberry
+#38232 Track root turns across delegated Codex requests @copyberry
+#38238 Add manifest-defined metrics for trusted plugin scripts @copyberry
+#38239 Add bounded plugin measurement analytics @copyberry
+#38241 Include Node REPL policy in turn metadata @copyberry
+#38242 Cache stable active-cell layout measurements @copyberry
+#38243 Track client-authored developer messages in rollout history @copyberry
+#38244 Resolve paginated thread history by rollout ID @copyberry
+#38245 Add dynamic HTTP header helpers for MCP servers @copyberry
+#38251 Read model ETags from WebSocket metadata events @copyberry
+#38252 Collect metrics from plugin shell commands @copyberry
+#38253 Collect plugin metrics from unified exec commands @copyberry
+#38256 Report the latest rejection from multiple network reviews @copyberry
+#38257 Reconnect gRPC code-mode sessions after host restarts @copyberry
+#38258 Unify external authentication provider handling @copyberry
+#38261 Resolve skill package aliases in skills.read @copyberry
+#38265 Use bounded fallback ports for Windows managed proxies @copyberry
+#38268 Expose executor skill roots from skills.read @copyberry
+#38270 Add per-thread usage queries to the backend client @copyberry
+#38272 Stamp conversation history items with creation times @copyberry
+#38274 Represent persisted world state as JSON objects @copyberry
+#38275 Unify turn input submission and routing @copyberry
+#38276 Track plugin metrics for background unified exec commands @copyberry
+#38278 Add app-server coverage for plugin measurement analytics @copyberry
+#38280 Use protobuf's built-in Bazel proto rule @copyberry
+#38281 Show estimated thread usage in /status @copyberry
+#38282 Add thread usage to TUI status surfaces @copyberry
+#38283 Collect plugin metrics from remote executors @copyberry
+#38285 Move codex-execpolicy to protocol dev dependencies @copyberry
+#38288 Support gRPC code-mode hosts in app server @copyberry
+#38291 Remove unused apply_patch prompt fallback @copyberry
+#38292 Add durable reverts for paginated threads @copyberry
+#38299 Route network access through the shared approval pipeline @copyberry
+#38303 Add interrupted turn recovery @copyberry
+#38306 Protect inline visualization viewers from sandbox writes @copyberry
+#38321 Make gRPC code-mode yield tests deterministic @copyberry
+#38336 Add Guardian V2 extension scaffold @copyberry
+#38356 Support sandboxed file streaming in exec-server @copyberry
+#38358 Optimize orphan output normalization @copyberry
+#38361 Test hook rejection for explicitly started queue items @copyberry
+#38362 Stabilize exec-server byte-budget tests @copyberry
+#38363 Persist security risk scores in rollout history @copyberry
+#38368 Add the Guardian V2 Luna sampler @copyberry
+#38377 Constrain Guardian reviews to parent filesystem permissions @copyberry
+#38380 Preserve user message styling when wrapping long URLs @copyberry
+#38381 Prevent unread events from blocking in-process requests @copyberry
+#38383 Return Luna samples when streamed JSON completes @copyberry
+#38384 Refine skill creation guidance and validation @copyberry
+#38390 Use effective permissions when trusting app-server projects @copyberry
+#38394 Reject sessions with unloadable required managed hooks @copyberry
+#38396 Reap orphaned processes in Linux sandboxes @copyberry
+#38397 Include Node REPL results in Guardian reviews @copyberry
+#38399 Preserve floating-point values when decoding rollout lines @copyberry
+#38400 Refresh tracing interest in the token estimate test @copyberry
+#38403 Expose conversation history to tool lifecycle extensions @copyberry
+#38406 Pool Guardian sampling WebSocket connections @copyberry
+#38409 Classify tool calls in the Guardian V2 extension @copyberry
+#38413 Allow metadata updates without materializing threads @copyberry
+#38414 Add bounded transcript rendering for Guardian v2 @copyberry
+#38415 Recognize PowerShell Get-Content file reads @copyberry
+#38416 Honor filesystem permissions for app file uploads @copyberry
+#38418 Clarify MCP OAuth reauthentication errors @copyberry
+#38419 Apply Codex attribution to app-created commits @copyberry
+#38420 Recover capability discovery after executor disconnects @copyberry
+#38423 Centralize thread environment selection state @copyberry
+#38424 Fail closed when workload identity initialization fails @copyberry
+#38426 Protect workload identity auth in app-server account RPCs @copyberry
+#38427 Add Guardian guidance for Node REPL tool calls @copyberry
+#38429 Route curated plugin catalogs by authentication mode @copyberry
+#38432 Gate Node REPL Guardian guidance on model metadata @copyberry
+#38436 Add rustls fallback for local MCP HTTP requests @copyberry
+#38439 Preserve approval policies for auto-reviewed models @copyberry
+#38440 Add app-server support for reverting paginated threads @copyberry
+#38441 Give Guardian V2 full tool action context @copyberry
+#38443 Tag current time reminders in model context @copyberry
+#38445 Retain client developer messages across context compaction @copyberry
+#38446 Refresh current-time reminders for full-history subagents @copyberry
+#38447 Add running-task exit choices to local daemon sessions @copyberry
+#38448 Support per-server MCP OAuth callback ports @copyberry
+#38449 Expose model upgrade retirement times @copyberry
+#38450 Embed the Windows sandbox setup manifest in Bazel builds @copyberry
+#38452 Add structured telemetry for response retries @copyberry
+#38454 Include node_repl images in Guardian review evidence @copyberry
+#38456 Add experimental thread queue APIs to app server @copyberry
+#38460 Add an AbsolutePathBuf conversion for FileSystemPath @copyberry
+#38461 Centralize turn environment selection state @copyberry
+#38463 Preserve thread subscriptions across revert reloads @copyberry
+#38467 Parse model annotations from skill frontmatter @copyberry
+#38470 Add an Amazon Bedrock Runtime provider @copyberry
+#38473 Stop generating accepted-line fingerprints @copyberry
+#38475 Add bounded skill model delegation instructions @copyberry
+#38483 Include agent names in turn metadata @copyberry
+#38484 Search selected plugin apps before falling back @copyberry
+#38492 Enforce strict auto-review for MCP tool calls @copyberry
+#38493 Reuse pending MCP startups during reconciliation @copyberry
+#38494 Verify bundled bwrap in Bazel builds @copyberry
+#38499 Enable parallel tool calls for all model prompts @copyberry
+#38521 Carry environment config in turn selections @copyberry
+#38527 Configure Guardian sampling for responses lite @copyberry
+#38540 Record Guardian V2 risk scores on threads @copyberry
+#38553 Initialize Guardian V2 samplers per thread @copyberry
+#38555 Preserve Guardian transcript boundaries in sampling input @copyberry
+#38558 Improve Guardian transcript context selection @copyberry
+#38561 Restrict filesystem helper sandbox access @copyberry
+#38564 Reuse compatible parent compactions in Guardian V2 @copyberry
+#38567 Store security risk scores as a snapshot @copyberry
+#38568 Run tool start callbacks after pre-tool hooks @copyberry
+#38569 Require automatic review for high-risk Guardian v2 actions @copyberry
+#38579 Report thread storage changes after rollout migration @copyberry
+#38580 Keep the latest Guardian risk score during concurrent sampling @copyberry
+#38581 Honor cloud-managed requirements in feature listings @copyberry
+#38586 Bound Guardian V2 tool actions before risk classification @copyberry
+#38592 Let extensions resolve approval reviews before Guardian @copyberry
+#38596 Prioritize new Guardian classifications under load @copyberry
+#38597 Install Guardian V2 in the app server @copyberry
+#38601 Make unbounded connection retries configurable @copyberry
+#38602 Isolate Guardian reviewer sessions from parent extensions @copyberry
+#38604 Avoid paginated resume requests for verified legacy rollouts @copyberry
+#38605 Fix resume transcript preview line selection @copyberry
+#38606 Allow larger gRPC code mode tool descriptions @copyberry
+#38608 Fix the missing resume picker history mode import @copyberry
+#38610 Support workload identity in remote exec-server auth @copyberry
+#38612 Skip stale Guardian risk score persistence @copyberry
+#38615 Remove the gRPC code-mode enabled tool limit @copyberry
+#38616 Route escalated approval retries through Guardian @copyberry
+#38617 Prioritize global models in the Bedrock Runtime catalog @copyberry
+#38618 Apply Guardian policies to v2 risk classification @copyberry
+#38619 Source multi-agent instructions from the model catalog @copyberry
+#38621 Preserve large gRPC code-mode tool errors @copyberry
+#38623 Preserve MCP namespace descriptions in the tool catalog cache @copyberry
+#38624 Open notes when accepting the request input Other option @copyberry
+#38625 Enable unified exec by default on Windows @copyberry
+#38628 Make Guardian v2 risk classification configurable @copyberry
+#38630 Remove the gRPC code-mode open session limit @copyberry
+#38634 Add MCP protocol discovery metrics @copyberry
+#38635 Remove repository-local Codex skills @copyberry
+#38639 Render the initial TUI session header before input @copyberry
+#38641 Harden TUI startup input handling @copyberry
+#38642 Keep the composer editable during TUI startup @copyberry
+#38643 Delay the startup composer until first-login onboarding @copyberry
+#38644 Show onboarding when Codex home lacks authentication state @copyberry
+#38645 Deliver gRPC code-mode notifications without truncation @copyberry
+#38646 Read Apple notarization issuer ID from Key Vault @copyberry
+#38647 Add an override to skip project configuration @copyberry
+#38649 Reuse the TUI startup account response during bootstrap @copyberry
+#38650 Canonicalize default namespaces in gRPC subscription filters @copyberry
+#38651 Move permission profile snapshots into the protocol @copyberry
+#38657 Skip terminal hyperlink layout when no links are present @copyberry
+#38660 Enforce managed deny-read rules in the Windows sandbox @copyberry
+#38662 Delete Thai combining marks one at a time in the composer @copyberry
+#38664 Resolve local JSON Schema refs in Code Mode types @copyberry
+#38670 Forward executor network policy decisions for auditing @copyberry
+#38673 Honor per-environment permission profiles @copyberry
+#38675 Exclude shortcut-modified input from TUI paste bursts @copyberry
+#38678 Preserve environment configuration ownership @copyberry
+#38681 Preserve HTTP fallback for delegated sessions @copyberry
+#38682 Surface misalignment policy violations as typed errors @copyberry
+#38684 Support pending environment attachment configuration @copyberry
+#38690 Propagate request trace context through exec-server relays @copyberry
+#38701 Route permission requests through shared Guardian approvals @copyberry
+#38703 Refresh hook runtimes after plugin changes @copyberry
+#38704 Normalize CRLF line endings in pasted text @copyberry
+#38705 Add MCP tool handler support to the hooks engine @copyberry
+#38743 Scope TUI app directory state to the active context @copyberry
+#38746 Remove the TUI test dependency on codex-cli @copyberry
+#38767 Forward workload identity context during token exchange @copyberry
+#38774 Use paginated history for persistent exec threads @copyberry
+#38785 Keep active-turn model settings stable across updates @copyberry
+#38788 Show resume and fork status during TUI startup @copyberry
+#38795 Add storage diagnostics to codex doctor @copyberry
+#38800 Route executor policy audits through log-only telemetry @copyberry
+#38806 Add a health endpoint to the code-mode gRPC listener @copyberry
+Full release on Github
+2026-08-17
+Public plugin catalog CSV export
+Eligible ChatGPT Enterprise workspace owners and admins can download a CSV of
+the public plugins visible to their workspace. The export includes plugin, app,
+and Chat skill names and descriptions, along with developer, version, date
+added in UTC, and OpenAI verification metadata.
+Open Admin > Plugins , select Public , and
+then select the download icon ( Export CSV ). The export uses a public-catalog
+snapshot that can be up to 48 hours old and does not include plugins created for
+the workspace.
+It isn't available in FedRAMP workspaces.
+Learn more about plugin controls .
+2026-08-13
 Computer History
 Computer History is an opt-in feature
 in the ChatGPT desktop app on macOS that turns activity across apps and
@@ -540,7 +1899,7 @@ Access requires approval through
 Trusted Access for Cyber and
 applies only to the approved identity, workspace or API organization and
 project, model, and product surface. Daybreak Red requires separate approval
-and provisioning; Daybreak Blue access doesn’t grant access to Daybreak Red.
+and provisioning; Daybreak Blue access doesn't grant access to Daybreak Red.
 Work in an isolated environment, define your engagement scope, use
 least-privilege permission profiles , and configure
 Auto-review for eligible actions before they
@@ -548,6 +1907,16 @@ cross the sandbox boundary.
 Learn more about Cyber Safety ,
 Codex credit rates , and
 API token prices .
+2026-08-07
+ChatGPT for iOS 1.2026.209
+Improvements and bug fixes
+Improved task reconnection with visible progress while keeping existing tasks usable during connection checks.
+New tasks now preserve their first prompt and attachments while starting, preventing empty tasks that could not be reopened.
+Improved editing performance for long prompts.
+Voice conversations now follow your Background Conversations setting.
+Approvals and user-input requests now recover reliably after reconnecting, with cleaner approval details in the transcript.
+Fixed follow-up /goal prompts after completing a goal.
+Fixed task-list freezes, disappearing task titles, flashing thinking summaries, and transcript crashes.
 2026-08-07
 Codex CLI 0.147.0
 pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.147.0
@@ -952,8 +2321,8 @@ Browser upgrades, multi-repository review, and image editing 26.727
 The latest ChatGPT desktop app update makes browsing, reviewing code, and
 editing generated images faster and easier.
 Browse and find context faster
-Type in the built-in browser’s address bar to revisit pages from your
-browsing history or search Google when there’s no match.
+Type in the built-in browser's address bar to revisit pages from your
+browsing history or search Google when there's no match.
 Manage your browsing history in Settings, and let ChatGPT search that
 history when a task needs to find a page you visited before.
 Use the Chrome extension to mention open tabs or bring highlighted page
@@ -973,7 +2342,7 @@ and Canvas view . Add comments across images, choose the ones you want, and
 send targeted edits without leaving your conversation. Learn more about
 image generation .
 Other improvements and bug fixes
-Added a new “Activity view” in the sidebar to view which chats you engaged with recently and require attention. Click the bell or use Cmd / Ctrl + Opt + U to change to the new view.
+Added a new "Activity view" in the sidebar to view which chats you engaged with recently and require attention. Click the bell or use Cmd / Ctrl + Opt + U to change to the new view.
 Updated browser settings to show only supported browsers.
 Improved Windows installation reliability when package file paths are long.
 Other performance and bug fixes.
@@ -988,257 +2357,8 @@ steps. On participating partner sites, you can also select Sign in with
 ChatGPT to create or access your account.
 This makes it easier to start working with supported tools in ChatGPT and Codex.
 When you sign in, the partner receives only your name, email address, and profile
-picture, if available. You must still review and approve each plugin’s requested
+picture, if available. You must still review and approve each plugin's requested
 access as a separate step.
-2026-07-29
-Codex CLI 0.146.0
-pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.146.0
-View details New Features
-Name new sessions with /new or /clear , pin important threads, and switch between side conversations without closing them. ( #34605 , #34840 , #35011 )
-Support Agent Plugins manifests, workspace plugin publishing, and additional plugin marketplaces for Amazon Bedrock and Claude Code. ( #35105 , #35254 , #34931 , #34979 )
-Fork threads with paginated history, including temporary forks that do not appear in thread listings. ( #35220 , #35251 )
-Connect app-server to remote Code Mode hosts over WebSocket. ( #35078 , #35098 )
-Enable standalone web search for compatible custom model providers. ( #34846 )
-Discover executor-provided skills and securely read their associated resources, including explicitly selected skills. ( #35184 , #35198 )
-Bug Fixes
-Honor configured proxies across authentication, plugin downloads, MCP authorization, remote execution, WebSockets, redirects, and LM Studio connections. ( #34479 , #34509 , #34655 , #34678 , #35023 , #35056 , #35239 )
-Keep MCP connections and Apps tools current when authentication or configuration changes, reconnecting closed servers without restarting healthy connections. ( #34952 , #34957 , #35028 , #35144 , #35146 , #35151 )
-Preserve submitted messages, final responses, failed-turn errors, imported timestamps, and approval settings across interruptions, replay, imports, and forks. ( #34839 , #34777 , #35524 , #34989 , #34664 )
-Improve terminal responsiveness and rendering, including nonblocking interrupts, keyboard handling, narrow layouts, hyperlinks, and refreshed mention results. ( #35000 , #35021 , #34775 , #34778 , #35365 , #35375 )
-Fix Windows navigation keys, reliably terminate sandboxed process trees, and preserve proxy settings during security reviews. ( #34625 , #34624 , #35036 )
-Retain more available skills under tight context budgets and warn when skill catalogs must be truncated. ( #34732 , #34738 , #34997 )
-Documentation
-Document shared HTTP-client usage, proxy-aware connection pooling, and safe outbound request handling. ( #34669 )
-Clarify Windows drive-letter canonicalization for PathUri values. ( #34667 )
-Chores
-Publish release artifacts, channel metadata, and installer aliases through OpenAI-hosted release infrastructure, with GitHub fallback. ( #34505 , #34508 , #34729 , #34910 )
-Sign and notarize bundled macOS helper executables before packaging. ( #35264 )
-Reduce app-server serialization overhead and unnecessary request-building allocations. ( #34761 , #34766 , #34825 )
-Add enterprise-plan recognition and administrator controls for in-app updates. ( #35238 , #35537 )
-Changelog
-Full Changelog: rust-v0.145.0...rust-v0.146.0
-#34447 Add a route-aware HTTP client pool @copyberry
-#34449 Make external session detection limits configurable @copyberry
-#34451 Attribute external agent imports by provider @copyberry
-#34463 Support alpha hotfix release versions @copyberry
-#34469 Preserve thread settings for goal-first and forked threads @copyberry
-#34476 Separate HTTP execution from request logging @copyberry
-#34478 Honor CARGO_HTTP_CAINFO in managed proxy environments @copyberry
-#34479 Re-resolve system proxy routes across redirects @copyberry
-#34481 Add route-aware redirect test coverage @copyberry
-#34483 Expand route-aware proxy redirect coverage @copyberry
-#34490 Route backend requests through the HTTP client factory @copyberry
-#34491 Route cloud environment discovery through the HTTP client pool @copyberry
-#34495 Honor system proxy settings in the daemon updater @copyberry
-#34497 Preserve custom arg0 for sandboxed exec-server processes @copyberry
-#34505 Mirror Rust release artifacts to Cloudflare R2 @copyberry
-#34506 Respect system proxies during plugin startup sync @copyberry
-#34508 Publish release metadata to R2 channels @copyberry
-#34509 Honor system proxy settings for remote plugins @copyberry
-#34514 Add an optional releases.openai.com installer source @copyberry
-#34516 Allow numer in codespell checks @copyberry
-#34517 Pass empty inherited FDs in the Wine PTY test @copyberry
-#34522 Split MCP connection manager into focused modules @copyberry
-#34525 Add step-scoped data to extension contributors @copyberry
-#34533 Centralize compacted rollout item construction @copyberry
-#34540 Detach Git metadata commands from stdin @copyberry
-#34544 Size Noise handshake buffers to their messages @copyberry
-#34547 Add reciprocal rank fusion skill selection @copyberry
-#34550 Test thread-scoped MCP refresh behavior @copyberry
-#34551 Simplify TUI restoration for the external editor @copyberry
-#34552 Remove unused RtOptions setters @copyberry
-#34553 Remove the unused TUI shutdown app command @copyberry
-#34558 Remove obsolete ignored tests @copyberry
-#34559 Add backend client support for Codex user settings @copyberry
-#34561 Extract MCP binding clients from the connection manager @copyberry
-#34562 Record rollout boundaries for materialized turns @copyberry
-#34563 Page through inherited thread history @copyberry
-#34566 Protect fork history references during rollout cleanup @copyberry
-#34570 Highlight CUDA files as C++ in the TUI @copyberry
-#34573 Accept forceRefetch in plugin list requests @copyberry
-#34578 Gate the TUI suspend restore helper on Unix @copyberry
-#34581 Add routing-card lexical skill selection @copyberry
-#34588 Bind MCP calls to captured catalog revisions @copyberry
-#34590 Add keyed shell environment policy filters @copyberry
-#34597 Enforce exact values from managed config requirements @copyberry
-#34598 Skip missing paths in filesystem sandbox entries @copyberry
-#34601 Sanitize skill names in injection metrics @copyberry
-#34603 Allow explicitly permitted loopback proxy targets @copyberry
-#34605 Allow naming sessions with /new and /clear @copyberry
-#34611 Add compatibility policies for skill catalog rendering @copyberry
-#34612 Detach non-interactive subprocesses from stdin @copyberry
-#34613 Route Windows sandbox proxy traffic by restricting SID @copyberry
-#34615 Initialize missing-path behavior in exec-server sandbox test @copyberry
-#34620 Add exec-server network policy callback types @copyberry
-#34621 Load paginated model context across rollout lineages @copyberry
-#34622 Increase the auto-review model override test timeout @copyberry
-#34624 Terminate Windows process trees with job objects @copyberry
-#34625 Fix Windows TUI navigation key handling @copyberry
-#34626 Scale skill metadata budgets with model context windows @copyberry
-#34629 Harden Windows elevated sandbox startup @copyberry
-#34630 Add a policy-aware HTTP client builder @copyberry
-#34631 Migrate agent identity to the shared HTTP client @copyberry
-#34636 Keep the TUI open when starting a turn fails @copyberry
-#34637 Attribute review findings to repository rules @copyberry
-#34640 Update Windows process-tree tests for inherited FDs @copyberry
-#34641 Harden managed proxy setup for sandboxed executions @copyberry
-#34643 Migrate login HTTP construction to HttpClient @copyberry
-#34644 Verify Git plugin SHA checkouts @copyberry
-#34645 Always assign response item IDs @copyberry
-#34649 Propagate resolved proxy policy through auth routing @copyberry
-#34650 Require auth managers to receive routing configuration @copyberry
-#34651 Migrate core test support to the shared HTTP client @copyberry
-#34654 Render turn diffs for foreign environment paths @copyberry
-#34655 Honor configured proxy routes for auth refreshes @copyberry
-#34664 Preserve approvals reviewer when forking threads @copyberry
-#34667 Document PathUri drive letter canonicalization @copyberry
-#34669 Expand codex-http-client usage guidance @copyberry
-#34678 Route LM Studio requests through the shared HTTP client @copyberry
-#34681 Add session headers to realtime conversation starts @copyberry
-#34687 Configure Codex Auto Review model metadata @copyberry
-#34708 Rename the MCP connection manager to McpConnectionSet @copyberry
-#34713 Order unified exec lifecycle events reliably @copyberry
-#34728 Skip Git enrichment for prewarm and Guardian turns @copyberry
-#34729 Publish stable installer aliases to R2 @copyberry
-#34732 Preserve skill catalog entries under metadata pressure @copyberry
-#34733 Make MCP resource clients follow the latest runtime @copyberry
-#34734 Remove step-scoped data from extension contributors @copyberry
-#34738 Drop skill descriptions before omitting catalog entries @copyberry
-#34744 Update skills budget tests for extension API changes @copyberry
-#34746 Match core skill ordering in extension catalogs @copyberry
-#34747 Register the MCP 2026-07-28 feature flag @copyberry
-#34761 Reduce app-server JSON serialization overhead @copyberry
-#34763 Retry websocket requests when the previous response is missing @copyberry
-#34766 Reduce typed app-server request serialization overhead @copyberry
-#34769 Add the git attribution extension @copyberry
-#34770 Enable exec-server network policy callbacks @copyberry
-#34771 Size unified mention popups to visible results @copyberry
-#34772 Normalize whitespace-only lines in agent messages @copyberry
-#34775 Clamp session headers to narrow terminal widths @copyberry
-#34777 Include the final agent message in turn completion summaries @copyberry
-#34778 Coalesce wrapped OSC 8 hyperlinks in the TUI terminal @copyberry
-#34779 Use the live parent history mode when forking agents @copyberry
-#34781 Upgrade Bazel Rust and LLVM dependencies @copyberry
-#34784 Reject dynamic environments named local @copyberry
-#34785 Report skill catalog truncation during rendering @copyberry
-#34786 Simplify app-server integration test setup @copyberry
-#34789 Avoid unnecessary post-sampling token estimates @copyberry
-#34795 Remove obsolete step store from git attribution tests @copyberry
-#34796 Skip syntax highlighting for lines over 4 KiB @copyberry
-#34797 Suppress omission notices in core-compatible skill catalogs @copyberry
-#34806 Use path URIs in shell approval keys @copyberry
-#34808 Centralize SQLite connection configuration @copyberry
-#34811 Fix network access rendering in sandbox prompts @copyberry
-#34814 Consolidate thread startup around StartThreadOptions @copyberry
-#34816 Support configurable realtime BEM channel prefixes @copyberry
-#34819 Enable git attribution across Codex entry points @copyberry
-#34823 Run code-mode tests in non-Windows Bazel CI @copyberry
-#34824 Normalize Guardian review cwd reuse keys @copyberry
-#34825 Reduce cloning when building Responses requests @copyberry
-#34827 Remove Windows Bazel lint toolchain overrides @copyberry
-#34831 Flush analytics before in-process app server shutdown @copyberry
-#34835 Track compaction time in turn profiles @copyberry
-#34839 Preserve user input when MCP startup is interrupted @copyberry
-#34840 Add persisted thread pinning to the app server @copyberry
-#34844 Remove first-party type from app metadata @copyberry
-#34845 Track multi-agent mode in world state @copyberry
-#34846 Allow custom providers to opt into standalone web search @copyberry
-#34847 Use Guardian model limits for review sessions @copyberry
-#34849 Cache remote plugin catalogs by scope @copyberry
-#34850 Disable image generation for Free-plan accounts @copyberry
-#34851 Use batch metadata for plugin app summaries @copyberry
-#34852 Wake sleeping threads for queued agent mail @copyberry
-#34877 Wait for local plugin cache refreshes in plugin/list @copyberry
-#34883 Set a default user agent for MCP HTTP requests @copyberry
-#34887 Allow disabling the multi-agent wait tool @copyberry
-#34910 Prefer releases.openai.com in standalone installers @copyberry
-#34930 Centralize thread MCP state in McpRuntime @copyberry
-#34931 Use the API plugin marketplace for Amazon Bedrock @copyberry
-#34940 Keep session defaults static during config batch writes @copyberry
-#34952 Reuse MCP connections across runtime refreshes @copyberry
-#34957 Replace closed MCP connections during reconciliation @copyberry
-#34959 Handle @ in local marketplace paths @copyberry
-#34962 Move MCP connection helpers into the test module @copyberry
-#34969 Keep the sleep tool outside code mode @copyberry
-#34978 Honor disabled redirects in route-aware HTTP clients @copyberry
-#34979 Infer the bundled Claude Code plugin marketplace @copyberry
-#34981 Record externally completed agent config imports @copyberry
-#34986 Enforce single-writer ownership for paginated threads @copyberry
-#34989 Preserve timestamps when importing external agent sessions @copyberry
-#34991 Allow omitting MCP tool prefixes per server @copyberry
-#34994 Honor the configured SQLite home across state consumers @copyberry
-#34995 Initialize execution environments with the final HTTP policy @copyberry
-#34996 Separate Codex error details from retry metadata @copyberry
-#34997 Warn when skill catalogs exceed their context budget @copyberry
-#35000 Make TUI turn interrupts nonblocking @copyberry
-#35011 Keep side conversations open when switching threads @copyberry
-#35012 Expose remote skill icon URLs through app server @copyberry
-#35013 Support incremental replay of updated thread items @copyberry
-#35015 Align installed app duration metrics with the legacy baseline @copyberry
-#35016 Add trusted plugin script attribution @copyberry
-#35020 Attribute command executions to trusted plugin scripts @copyberry
-#35021 Adapt keyboard event reporting to the terminal @copyberry
-#35023 Route exec-server HTTP through configured proxy policy @copyberry
-#35028 Preserve refreshed Apps tools across MCP runtime updates @copyberry
-#35029 Preserve plugin attribution across command approvals @copyberry
-#35031 Enforce writer ownership for thread archive and deletion @copyberry
-#35033 Expose Browser Use requirements through the app server @copyberry
-#35034 Route environment registry requests through the shared HTTP client @copyberry
-#35036 Preserve Windows sandbox proxy settings in guardian sessions @copyberry
-#35048 Track app/read request duration @copyberry
-#35049 Register the Guardian V2 feature flag @copyberry
-#35054 Allow disabling the update_plan tool @copyberry
-#35056 Route exec-server WebSockets through configured proxies @copyberry
-#35059 Decouple exec-server HTTP from reqwest types @copyberry
-#35063 Track deferred tool namespaces in world state @copyberry
-#35065 Avoid duplicating deferred sources in tool search @copyberry
-#35067 Fix Bazel test configuration for platform-specific data @copyberry
-#35078 Add WebSocket transport to the code-mode host @copyberry
-#35098 Support remote code-mode hosts in app-server @copyberry
-#35105 Support Agent Plugins manifests @copyberry
-#35106 Allow hosts to customize wait_for_environment descriptions @copyberry
-#35144 Prewarm MCP runtime updates in the background @copyberry
-#35146 Refresh MCP runtimes when session auth changes @copyberry
-#35151 Reconnect MCP servers on explicit refresh @copyberry
-#35164 Encapsulate MCP refresh coordination @copyberry
-#35168 Route extension warnings to app-server threads @copyberry
-#35172 Compact host skill paths under metadata pressure @copyberry
-#35175 Wait for reloaded worker completion in the resume test @copyberry
-#35184 Expose executor skills through skill tools @copyberry
-#35194 Preserve output from hooks that exit before reading stdin @copyberry
-#35196 Make the Apps recovery exposure test deterministic @copyberry
-#35198 Enable resource reads for explicit executor skills @copyberry
-#35204 Refresh MCP runtimes across thread startup @copyberry
-#35205 Use current MCP authority for elicitation reviews @copyberry
-#35213 Refresh managed MCP requirements for active threads @copyberry
-#35216 Refresh MCP config independently across threads @copyberry
-#35220 Support paginated thread forks @copyberry
-#35221 Avoid persisting non-local threads for hook transcripts @copyberry
-#35238 Support the ent26 enterprise plan @copyberry
-#35239 Route MCP auth discovery through runtime HTTP clients @copyberry
-#35251 Support ephemeral forks of paginated threads @copyberry
-#35254 Expose workspace plugin publish capability @copyberry
-#35261 Propagate remote plugin IDs to skill metadata @copyberry
-#35262 Track remote plugin IDs in skill invocation analytics @copyberry
-#35264 Sign bundled macOS helper binaries @copyberry
-#35266 Allow disabling the in-process code-mode host fallback @copyberry
-#35267 Harden network approval cancellation and concurrency @copyberry
-#35271 Include code-mode tool names in Responses Lite metadata @copyberry
-#35275 Trace remote exec-server connection setup @copyberry
-#35280 Skip plugin MCP filtering when no allowlists are configured @copyberry
-#35359 Handle exec-server network policy requests in the client @copyberry
-#35363 Include item start times in completion events @copyberry
-#35364 Bound Code Mode metadata compatibility headers @copyberry
-#35365 Keep unified mention results fresh @copyberry
-#35375 Make the keymap action menu responsive @copyberry
-#35408 Ignore generated system skills in the skills watcher @copyberry
-#35414 Raise the MCP server recursion limit @copyberry
-#35523 Shut down the in-process outbound router explicitly @copyberry
-#35524 Preserve terminal turn errors in replayed history @copyberry
-#35525 Skip inactive TUI threads without pending user interaction @copyberry
-#35530 Track model and personality in world state @copyberry
-#35537 Add managed policy for in-app updates @copyberry
-Full release on Github
 2026-07-27
 ChatGPT for iOS 1.2026.202
 Improvements and bug fixes
@@ -1262,378 +2382,12 @@ appshot of your frontmost window.
 Voice is available with Plus, Pro, Business, Edu, and Enterprise plans in the
 desktop app and through Remote on iOS .
 Local projects in the ChatGPT desktop app can now include multiple related
-folders. From a project’s menu, select Edit project to add folders and choose
+folders. From a project's menu, select Edit project to add folders and choose
 the primary folder. New chats, Git operations, and automatic discovery of
 AGENTS.md , skills, and config.toml use the primary folder. Secondary
 folders remain available for file search, reading, and editing.
 Get started with ChatGPT Voice and multi-folder local
 projects .
-2026-07-21
-Codex CLI 0.145.0
-pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.145.0
-View details New Features
-Added experimental paginated thread history with efficient resume, search, persisted names, sub-agent support, and memories. ( #33364 , #33907 , #34085 , #34229 , #34386 )
-Expanded /import to migrate Cursor and Claude Code settings, MCP servers, plugins, sessions, commands, and project-scoped memories. ( #31672 , #33411 , #33426 , #33444 )
-Added experimental Amazon Bedrock login, custom endpoint and authentication support, and GPT-5.6 Sol as the default Bedrock model. ( #31327 , #33170 , #33175 , #32288 , #33695 )
-Added audio inputs and tool outputs, including common local audio formats, and introduced streaming realtime V3 conversations. ( #33261 , #33856 , #33932 , #34080 , #34385 )
-Stabilized the opt-in multi-agent V2 experience with configurable sub-agent models, reasoning levels, concurrency, restored roles, and improved agent navigation. ( #33550 , #33631 , #33657 , #33841 , #34383 )
-Added secure, clickable inline visualization links in the terminal UI. ( #33925 , #34217 , #34346 )
-Bug Fixes
-Editing an earlier prompt or retrying a safety-buffered turn now creates a contextual branch, preserving the original conversation, attachments, and mention bindings. ( #33201 , #33207 , #33211 )
-Improved terminal responsiveness for long conversations and streamed output through incremental Markdown rendering, fewer redraws, caching, and bounded command output. ( #34045 , #34049 , #34216 , #34223 , #34359 )
-Prevented slow or conflicting MCP startup and authentication flows by enforcing startup timeouts, avoiding blocking OAuth discovery, serializing refreshes, and reusing tool catalogs safely. ( #32229 , #32781 , #32825 , #33184 , #33297 )
-Improved Windows execution and sandbox reliability, including native exec-server sandboxing, network-proxy enforcement, hidden helper consoles, and correctly quoted hook commands. ( #32849 , #32857 , #33926 , #34423 )
-Fixed compact release-metadata parsing and macOS code-mode installation, with an in-process fallback when the external code-mode host is unavailable. ( #31667 , #31876 , #31899 )
-Strengthened safety and approval handling with better forced- rm detection, consistent full-access confirmation, and preserved rejection reasons across tools. ( #32989 , #33464 , #34400 )
-Documentation
-Updated the bundled OpenAI Docs skill with current GPT-5.6 model resolution, prompting, and migration guidance across macOS, Linux, and Windows. ( #31842 , #33121 )
-Chores
-Migrated bundled GPT-5.4 selections and internal uses to the corresponding GPT-5.6 Terra and Luna variants. ( #33173 )
-Reduced startup and large-context overhead with concurrent skill/plugin discovery and more efficient remote compaction. ( #31566 , #33369 , #33423 , #34431 )
-Updated the packaged ripgrep binary to 15.2.0. ( #34384 )
-Changelog
-Full Changelog: rust-v0.144.0...rust-v0.145.0
-#31667 fix: parse compact release metadata in installer @efrazer-oai
-#31362 core: route realtime and memories through HTTP client factory @bolinfest
-#31566 perf(skills): reuse walk inventory for host loading @jif-oai
-#31576 Bound exec-server process event reordering @jif-oai
-#31756 test(skills): assert symlinked metadata loading @jif-oai
-#31581 Resolve selected capability roots without starting executors @jif-oai
-#31789 Stop persisting RMCP service traces @jif-oai
-#31792 Summarize streamed response item logs @jif-oai
-#31791 Filter routine Hyper logs from SQLite @jif-oai
-#31790 Reduce MCP tool-list trace volume @jif-oai
-#31804 Stabilize the memories feature flag @jif-oai
-#31803 fix(mcp): default Apps product SKU to codex @alecbarber-oai
-#31745 code-mode: retain shared MCP types for deferred tools @sayan-oai
-#31672 Import enabled plugins from known marketplaces @charlesgong-openai
-#31652 fix(tui): hide empty reasoning summaries @fcoury-oai
-#31767 Remove the network proxy config wrapper @jif-oai
-#31481 fix: forward originator to Codex Apps MCP @raquel-openai
-#31363 codex-api: route file uploads through HTTP client factory @bolinfest
-#31813 tui: update safety buffering copy @etraut-openai
-#31830 fix(sandboxing): initialize network proxy config inline @fcoury-oai
-#31431 build: ratchet direct reqwest dependencies @bolinfest
-#31876 code-mode: fix installation on darwin @cconger
-#31842 Update bundled OpenAI Docs skill for GPT-5.6 @kkahadze-oai
-#31637 login: route raw auth flows through HTTP client @bolinfest
-#31686 [codex-apps] Filter optional file fields by tool schema @tsarlandie-oai
-#31899 code-mode: fall back to using in process v8 if we fail to resolve external process @cconger
-#31805 Bound remote MCP stdio lines @jif-oai
-#30293 Resolve and pin MCP OAuth credential stores @stevenlee-oai
-#31892 exec-server: materialize filesystem workspace roots @pakrym-oai
-#31327 feat: add managed Bedrock login API @celia-oai
-#31295 bench: add codex help e2e macrobenchmark @anp-oai
-#31428 bench: add e2e benchmark entrypoints @anp-oai
-#31937 exec-server: expose process helper to outer sandbox @pakrym-oai
-#32093 Remove the legacy exec policy engine @copyberry
-#32106 Reduce startup latency for ancestor discovery @copyberry
-#32112 Bound streamed exec-server HTTP response bodies @copyberry
-#32122 Test the shared exec-server HTTP response byte budget @copyberry
-#32123 Bound exec-server stdio JSON-RPC messages @copyberry
-#32126 Test bounded concurrency in ancestor discovery @copyberry
-#32134 Test stdio JSON-RPC size limits with LF and CRLF @copyberry
-#32135 Propagate tracing subscribers to exec start tasks @copyberry
-#32150 Keep unified exec output collection bounded @copyberry
-#32193 Validate memory consolidation artifacts before succeeding @copyberry
-#32197 Rebind memory consolidation workspace roots @copyberry
-#32200 Add a skill invocation extension contributor @copyberry
-#32206 Always send reasoning parameters in Responses requests @copyberry
-#32213 Generate unique IDs for review rollout messages @copyberry
-#32214 Propagate workspace roots to exec-server sandboxes @copyberry
-#32229 Serialize MCP OAuth credential refreshes @copyberry
-#32231 Support pending remote environment registration @copyberry
-#32232 Let permission hooks resolve strict auto-review requests @copyberry
-#32234 Add dedicated storage for paginated thread history @copyberry
-#32246 Extract reverse JSONL scanning from session indexing @copyberry
-#32256 Improve Responses WebSocket timing telemetry @copyberry
-#32261 Preserve local path conventions in automatic approvals @copyberry
-#32263 Include start times in terminal turn events @copyberry
-#32272 Expose scheduled tasks in plugin details @copyberry
-#32274 Remove the personality migration @copyberry
-#32276 Repair unterminated rollout files before appending @copyberry
-#32277 Honor personality = "none" in model instructions @copyberry
-#32280 Include terminal errors in turn completion events @copyberry
-#32286 Clarify waiting behavior in safety buffering prompts @copyberry
-#32288 Make GPT-5.6 Sol the default Bedrock model @copyberry
-#32289 Persist paginated items in the local thread store @copyberry
-#32290 Respect model support for reasoning summaries @copyberry
-#32301 Trust hooks from materialized workspace plugins @copyberry
-#32302 Prefer the Codex home socket for Unix IDE context @copyberry
-#32305 Improve file blob upload diagnostics @copyberry
-#32312 Require prefixes for outbound response item IDs @copyberry
-#32316 Stop falling back to older model availability announcements @copyberry
-#32326 Use canonical links in the moved config notice @copyberry
-#32332 Add ordinals to paginated rollout records @copyberry
-#32441 Preserve parent sandbox enforcement for memory consolidation @copyberry
-#32460 Emit thread-idle lifecycle after guardian interrupts @copyberry
-#32461 Expand tabs when rendering TUI diffs @copyberry
-#32485 Use available width for skill names in the toggle view @copyberry
-#32628 Improve composer completion target resolution @copyberry
-#32698 Extract connector runtime snapshot management @copyberry
-#32744 Log missing personality messages at trace level @copyberry
-#32746 Make advanced reasoning selection explicit in the TUI @copyberry
-#32747 Align Guardian reviews with session configuration @copyberry
-#32749 Expose model overrides for multi-agent v2 spawns @copyberry
-#32751 Restrict spawned-agent models to the active backend @copyberry
-#32761 Add shadow metrics for lexical skill selection @copyberry
-#32768 Align shadow skill selection with observable sources @copyberry
-#32780 Enable skill search shadow selection by default @copyberry
-#32781 Apply MCP startup timeouts during client creation @copyberry
-#32801 Refactor OAuth store lock contention tests @copyberry
-#32822 Make explicit multi-agent mode override proactive delegation @copyberry
-#32825 Avoid blocking thread startup on MCP OAuth discovery @copyberry
-#32835 Forward turn metadata in standalone web search @copyberry
-#32837 Restore V2 agent identities on root thread resume @copyberry
-#32838 Reap exited PID-managed app-server children @copyberry
-#32844 Expand millisecond duration histogram boundaries @copyberry
-#32849 Hide Windows filesystem helper console windows @copyberry
-#32857 Require the elevated Windows sandbox for network proxies @copyberry
-#32858 Persist slash-command popup dismissal @copyberry
-#32864 Coalesce concurrent Windows sandbox setup requests @copyberry
-#32866 Allow responses after image generation @copyberry
-#32867 Include connector IDs in MCP tool call analytics @copyberry
-#32875 Use model catalog policies for Guardian auto review @copyberry
-#32881 Broaden remote compaction model fallback @copyberry
-#32884 Prepare external agent migration for source adapters @copyberry
-#32887 Tag shell tool telemetry by command category @copyberry
-#32891 Attach connector caches to diagnostic uploads @copyberry
-#32894 Serialize plugin install requests @copyberry
-#32896 Load model context from a bounded rollout suffix @copyberry
-#32897 Route blocked network requests to their owning calls @copyberry
-#32898 Expose structured standalone web search results @copyberry
-#32899 Add exec-server environment status checks @copyberry
-#32900 Derive collaboration settings from turn context @copyberry
-#32903 Include session IDs in tool item analytics events @copyberry
-#32905 Timestamp app-server notifications at emission @copyberry
-#32911 Allow injecting the models manager into ThreadManager @copyberry
-#32920 Expose environment status through app-server @copyberry
-#32923 Materialize paginated thread history in SQLite @copyberry
-#32928 Resume thread history projection from its SQLite checkpoint @copyberry
-#32945 Restrict Guardian reviewer tools @copyberry
-#32949 Tighten recommended plugin install suggestions @copyberry
-#32952 Scope runtime workspace roots to execution environments @copyberry
-#32985 Expose exact per-response usage in raw app-server events @copyberry
-#32989 Always confirm before enabling full access @copyberry
-#33013 Bound exec-server JSON-RPC decoding complexity @copyberry
-#33026 Include raw response completions in TypeScript envelopes @copyberry
-#33030 Remove task messages from list_agents output @copyberry
-#33031 Preserve JSON number precision in exec-server RPC messages @copyberry
-#33035 Use session IDs for prompt cache keys @copyberry
-#33040 Send plugin analytics with API key authentication @copyberry
-#33076 Add an agent extension runner @copyberry
-#33093 Preserve streamed output during capped history replay @copyberry
-#33105 Fix TUI status visibility around streamed output @copyberry
-#33107 Preserve special filesystem subpaths as wire strings @copyberry
-#33109 Reject forks of paginated threads @copyberry
-#33113 Allow injecting the Codex Apps tools cache @copyberry
-#33121 Refine GPT-5.6 prompting and migration guidance @copyberry
-#33147 Support model catalog permission messages @copyberry
-#33149 Build MCP tool runtimes before router planning @copyberry
-#33150 Clarify exec yield timing on Windows @copyberry
-#33152 Support paginated thread history in app-server list APIs @copyberry
-#33155 Trace startup prewarm tasks @copyberry
-#33156 Run detached reviews as review-agent turns @copyberry
-#33159 Move sleep items to the extension-owned lifecycle path @copyberry
-#33166 Defer Noise environment connections until registration @copyberry
-#33167 Document the Windows exec yield time range @copyberry
-#33170 Support Amazon Bedrock login in the app server @copyberry
-#33173 Migrate GPT-5.4 uses to GPT-5.6 variants @copyberry
-#33175 Handle Amazon Bedrock credentials during logout @copyberry
-#33177 Support model catalog templates for Guardian policy prompts @copyberry
-#33180 Serialize concurrent MCP stdin writes @copyberry
-#33182 Preserve plugin install failure subtypes during imports @copyberry
-#33184 Reuse MCP tool catalogs across sessions @copyberry
-#33185 Keep approval test targets in the temporary home @copyberry
-#33187 Honor workspace spend controls in rate-limit handling @copyberry
-#33198 Keep interrupted prompts in conversation history @copyberry
-#33200 Separate exec permission paths from core models @copyberry
-#33201 Branch conversations when editing earlier TUI prompts @copyberry
-#33203 Preserve in-flight state when restoring thread input @copyberry
-#33207 Retry safety-buffered turns on a forked thread @copyberry
-#33209 Separate session state from session I/O @copyberry
-#33211 Preserve thread context when retrying or editing turns @copyberry
-#33213 Prepare Python SDK 0.144.4 stable release @copyberry
-#33223 Instrument environment and plugin resolution paths @copyberry
-#33232 Disambiguate skill mentions from shell parameters @copyberry
-#33237 Fix skill completion around bound mentions with suffixes @copyberry
-#33239 Render TUI composer tabs as single-column spaces @copyberry
-#33243 Add auto-compaction fallback token-budget settings @copyberry
-#33251 Report selected environment connection transitions @copyberry
-#33255 Add a fallback phase before automatic context rollover @copyberry
-#33261 Add Frameless Bidi support for realtime conversations @copyberry
-#33297 Allow MCP servers to opt out of tool catalog caching @copyberry
-#33308 Expand MCP tool catalog cache regression coverage @copyberry
-#33364 Enable paginated thread history in app-server @copyberry
-#33367 Respect final-answer boundaries for queued agent mail @copyberry
-#33369 Scan skill roots concurrently @copyberry
-#33373 Render TUI prompts before submitting user turns @copyberry
-#33411 Migrate plugin commands into skills on install @copyberry
-#33412 Refactor world-state rendering tests into snapshots @copyberry
-#33414 Expose connector candidates from imported sessions @copyberry
-#33421 Fetch workspace connectors concurrently @copyberry
-#33423 Load executor plugin declarations concurrently @copyberry
-#33424 Attribute OpenAI docs MCP requests to Codex @copyberry
-#33425 Refresh host skill catalogs through world state @copyberry
-#33426 Add Cursor support to setup import @copyberry
-#33427 Propagate deferred environment capability roots to MCP @copyberry
-#33430 Avoid creating metadata paths in the Windows sandbox @copyberry
-#33432 Preserve paginated history for spawned subagents @copyberry
-#33435 Warn on conflicting capability root locations @copyberry
-#33441 Shut down Codex threads after approval scenarios @copyberry
-#33444 Add external agent memory migration @copyberry
-#33445 Select the elevated Windows sandbox for network proxies @copyberry
-#33446 Remove the unused network proxy loader @copyberry
-#33454 Track prompt cache write token usage @copyberry
-#33456 Move external agent migration into its crate @copyberry
-#33457 Use final answers in turn history summaries @copyberry
-#33459 Allow more time for image generation in code mode @copyberry
-#33464 Strengthen forced rm command detection @copyberry
-#33467 Remove template IDs from MCP tool call metadata @copyberry
-#33500 Add cache-write tokens to the raw response schema @copyberry
-#33509 Preserve encrypted content in MCP tool outputs @copyberry
-#33550 Unify multi-agent settings under agents @copyberry
-#33572 Expose spawn agent types only when roles are configured @copyberry
-#33605 Add fielded BM25 to shadow skill selection @copyberry
-#33613 Add character n-gram skill selection @copyberry
-#33614 Add multi-query lexical skill selection @copyberry
-#33631 Honor configured model defaults for spawned agents @copyberry
-#33632 Remove generated-default filesystem path variants @copyberry
-#33633 Clarify when to wait for starting environments @copyberry
-#33636 Clarify when to wait for starting environments @copyberry
-#33639 Remove the unused realtime WebRTC crate @copyberry
-#33640 Avoid duplicate cached app list update notifications @copyberry
-#33645 Run write_stdin concurrently across terminal sessions @copyberry
-#33651 Add an app-server API for reading app metadata @copyberry
-#33656 Validate reasoning effort after applying spawn roles @copyberry
-#33657 Restore agent roles when reloading v2 sub-agents @copyberry
-#33658 Keep active-turn environments stable across settings updates @copyberry
-#33659 Require data URLs for code-mode image output @copyberry
-#33665 Refresh step world state for all sessions @copyberry
-#33677 Forward thread originators from standalone extensions @copyberry
-#33680 Reword the apply_patch tool description @copyberry
-#33683 Preserve scope and provenance for imported agent memory @copyberry
-#33684 Extract TUI approval request payloads into structs @copyberry
-#33687 Avoid unnecessary writes during migration repair @copyberry
-#33695 Support custom transports for Amazon Bedrock @copyberry
-#33841 Make parent-owned sub-agent threads read-only in the TUI @copyberry
-#33842 Give the zsh fork decline test more execution time @copyberry
-#33843 Add an API for reading installed app runtime state @copyberry
-#33845 Confirm usage-limit resets before redemption @copyberry
-#33848 Fix the managed Bedrock logout test assertion @copyberry
-#33851 Record web search result payload sizes @copyberry
-#33852 Add batched executor capability discovery @copyberry
-#33855 Tag realtime transcript tail flush delegations @copyberry
-#33856 Stream realtime V3 Codex handoff output @copyberry
-#33858 Isolate core tests from shell and rollout persistence @copyberry
-#33861 Test workspace write isolation across exec servers @copyberry
-#33862 Suppress empty multi-agent mode messages @copyberry
-#33863 Report detailed session import error types @copyberry
-#33864 Keep feature tests focused on behavior @copyberry
-#33866 Remove the redundant tool dispatch wrapper @copyberry
-#33867 Add grace period to code-mode yield timeouts @copyberry
-#33868 Remove stale ignored core tests @copyberry
-#33870 Remove the redundant borrowed line wrapping helper @copyberry
-#33872 Remove unused TUI collaboration mode indicators @copyberry
-#33876 Track collaboration mode instructions in world state @copyberry
-#33883 Report CLI as the external agent config import source @copyberry
-#33889 Centralize thread MCP connections in McpRuntime @copyberry
-#33892 Limit rollout metadata reads to headers @copyberry
-#33893 Track realtime conversation state in world state @copyberry
-#33895 Add SessionEnd hooks for thread teardown @copyberry
-#33896 Expose plugin installation interstitial requirements @copyberry
-#33901 Support ChatGPT-branded Desktop app builds @copyberry
-#33902 Add bounded batch lookups for message history @copyberry
-#33903 Route realtime V3 handoffs by response channel @copyberry
-#33905 Batch persistent history reads during reverse search @copyberry
-#33906 Launch managed network proxies on remote executors @copyberry
-#33907 Add occurrence search for paginated threads @copyberry
-#33908 Allow publishing plugins through share updates @copyberry
-#33921 Preserve sub-agent liveness in the agent picker @copyberry
-#33922 Allow selecting path-backed agents in the TUI picker @copyberry
-#33923 Add audio variants to user input protocols @copyberry
-#33925 Render inline visualization links in the TUI @copyberry
-#33926 Fix quoted hook commands on Windows @copyberry
-#33929 Handle audio inputs and Bazel unit test arguments @copyberry
-#33930 Track inherited paginated rollout prefixes @copyberry
-#33932 Forward audio inputs to the Responses API @copyberry
-#33938 Centralize SQLite connection configuration @copyberry
-#33944 Track permission instructions in world state @copyberry
-#33950 Let users remember the working directory for resumed sessions @copyberry
-#33961 Refresh bundled model metadata @copyberry
-#33963 Add context to sampling retry logs @copyberry
-#33982 Gate audio history by model input modalities @copyberry
-#34038 Handle compressed rollouts in doctor thread inventory @copyberry
-#34045 Render streamed Markdown incrementally @copyberry
-#34047 Avoid resending the model for reasoning shortcuts @copyberry
-#34049 Avoid redundant TUI redraws while streaming @copyberry
-#34067 Seed realtime V3 sessions with initial text items @copyberry
-#34080 Add audio output support to dynamic tools and code mode @copyberry
-#34085 Support legacy views for paginated thread history @copyberry
-#34194 Avoid cloning thread data when rendering transcripts @copyberry
-#34197 Use the Markdown collector as the streaming source of truth @copyberry
-#34198 Start side conversations without replaying inherited turns @copyberry
-#34199 Avoid liveness races when starting side conversations @copyberry
-#34204 Avoid cloning buffered TUI history lines @copyberry
-#34206 Avoid retaining decoded MCP images in history cells @copyberry
-#34216 Speed up TUI Markdown layout @copyberry
-#34217 Keep incremental rendering with visualization context @copyberry
-#34218 Track TUI command completion separately from output @copyberry
-#34222 Avoid buffering replay-irrelevant thread notifications @copyberry
-#34223 Cache finalized Markdown history rendering @copyberry
-#34224 Avoid cloning file changes in TUI diff rendering @copyberry
-#34226 Backfill completion items only for the active exec turn @copyberry
-#34229 Persist names for paginated threads @copyberry
-#34232 Remeasure dynamic cells in the transcript overlay @copyberry
-#34234 Avoid redundant TUI subagent metadata requests @copyberry
-#34271 Migrate legacy exec policy allow rules @copyberry
-#34293 Preserve zsh tied PATH exports in shell snapshots @copyberry
-#34344 Reject unsupported history modes when loading rollouts @copyberry
-#34345 Remove unused Rust helpers @copyberry
-#34346 Track inline visualization directives during streaming @copyberry
-#34347 Avoid cloning deferred TUI lifecycle payloads @copyberry
-#34348 Cache TUI flex heights across frame passes @copyberry
-#34355 Parallelize TUI bootstrap requests @copyberry
-#34357 Render streamed command output through preview iterators @copyberry
-#34359 Keep streamed command output bounded in the TUI @copyberry
-#34361 Avoid cloning thread history for token usage replay @copyberry
-#34365 Animate Max and Ultra reasoning effort changes @copyberry
-#34366 Avoid cloning hyperlink text during TUI rendering @copyberry
-#34368 Use app-server skill metadata directly in the TUI @copyberry
-#34371 Clear stale Guardian reviews when turns end @copyberry
-#34375 Extend second-based latency histogram buckets @copyberry
-#34378 Avoid rendering generated images twice @copyberry
-#34380 Stop retrying turns with invalid tool images @copyberry
-#34381 Avoid cloning Responses WebSocket payloads @copyberry
-#34382 Keep paginated thread Git metadata in SQLite @copyberry
-#34383 Mark multi-agent v2 as stable @copyberry
-#34384 Update packaged ripgrep to 15.2.0 @copyberry
-#34385 Preserve audio across history and tool outputs @copyberry
-#34386 Enable memories for paginated threads @copyberry
-#34387 Refresh bundled model metadata @copyberry
-#34389 Route Codex Apps MCP through plugin service @copyberry
-#34390 Use copy-on-write storage for history snapshots @copyberry
-#34392 Ignore inherited ACEs when refreshing Windows write roots @copyberry
-#34393 Add configurable hook context spill limits @copyberry
-#34396 Run compact session-start hooks before turn continuation @copyberry
-#34400 Propagate approval rejection reasons @copyberry
-#34403 Update tests for history and hook API changes @copyberry
-#34407 Resolve paginated rollout lineages @copyberry
-#34408 Support threadless MCP connections without event channels @copyberry
-#34409 Limit the Linux /proc preflight filesystem view @copyberry
-#34411 Require absolute paths for test SQLite configuration @copyberry
-#34413 Remove CSV-backed agent jobs @copyberry
-#34416 Show completed hook warnings in TUI headers @copyberry
-#34417 Enrich app/read connector metadata @copyberry
-#34423 Support Windows sandboxing in the exec server @copyberry
-#34429 Move shared skill models into codex-skills @copyberry
-#34431 Optimize remote compaction history handling @copyberry
-#34434 Support catalog messages for non-request approval policies @copyberry
-#34435 Resolve outbound proxy routes explicitly @copyberry
-#34436 Honor managed permission profiles in network proxy resolution @copyberry
-#34438 Increase the patch approval test timeout @copyberry
-#34441 Add buffered code-mode exec yields @copyberry
-Full release on Github
 2026-07-20
 ChatGPT for iOS 1.2026.195
 New features
@@ -1654,33 +2408,6 @@ appeared while starting a task.
 Fixed iOS 18 task actions and task-list styling.
 Fixed composer spacing, attachment menu padding, and duplicate transcription
 indicators.
-2026-07-18
-Codex CLI 0.144.6
-pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.144.6
-View details Bug Fixes
-Refreshed bundled instructions for GPT-5.6 Sol, Terra, and Luna, and corrected their context windows to 272,000 tokens. ( #33972 , #34009 )
-Changelog
-Full Changelog: rust-v0.144.5...rust-v0.144.6
-#33972 Backport refreshed bundled model metadata to 0.144 @sayan-oai
-#34009 Narrow 0.144 hotfix to GPT-5.6 prompts and context @sayan-oai
-Full release on Github
-2026-07-16
-Codex CLI 0.144.5
-pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.144.5
-View details Bug Fixes
-Improved dangerous-command detection, including more forced rm forms, and provides clearer rejection reasons when commands are denied. ( #33455 )
-Changelog
-Full Changelog: rust-v0.144.4...rust-v0.144.5
-#33455 [release/0.144] fix(core) expand is_dangerous_command @dylan-hurd-oai
-Full release on Github
-2026-07-14
-Codex CLI 0.144.4
-pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.144.4
-View details Chores
-No user-facing changes in this patch release.
-Changelog
-Full Changelog: rust-v0.144.3...rust-v0.144.4
-Full release on Github
 2026-07-13
 ChatGPT for iOS 1.2026.188
 New features
@@ -1696,23 +2423,6 @@ Fixed Fast mode selection and restoration for each task.
 Fixed initial prompts ignoring the selected approval preset.
 Fixed autocomplete backgrounds and task rows becoming unresponsive during
 swipe gestures.
-2026-07-13
-Codex CLI 0.144.3
-pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.144.3
-View details Chores
-Published a version-only release with no merged pull request changes since rust-v0.144.2 .
-Changelog
-Full Changelog: rust-v0.144.2...rust-v0.144.3
-Full release on Github
-2026-07-13
-Codex CLI 0.144.2
-pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.144.2
-View details Bug Fixes
-Restored the previous Guardian auto-review policy, request format, and tool behavior after rolling back a prompting regression. ( #32672 )
-Changelog
-Full Changelog: rust-v0.144.1...rust-v0.144.2
-#32672 [release/0.144] Revert "Update auto review prompting" @dylan-hurd-oai
-Full release on Github
 2026-07-09
 Codex joins the ChatGPT desktop app 26.707
 Codex is now part of the ChatGPT desktop app on macOS and Windows. Existing
@@ -1739,426 +2449,6 @@ Fixed scrolling in pull request reviews and expanded Mermaid diagram labels.
 Improved mobile connection reliability and fixed video rendering for SSH
 projects.
 Additional performance improvements and bug fixes.
-2026-07-09
-Codex CLI 0.144.1
-pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.144.1
-View details Bug Fixes
-Fixed standalone installs failing when GitHub returns compact or reordered release metadata. ( #31913 )
-Ensured macOS package installs expose the code-mode host alongside the codex executable. ( #31913 )
-Kept code mode working when the companion host binary is unavailable by falling back to the embedded runtime. ( #31913 )
-Changelog
-Full Changelog: rust-v0.144.0...rust-v0.144.1
-#31913 [0.144] Backport installer and code-mode reliability fixes @bolinfest
-Full release on Github
-2026-07-09
-Codex CLI 0.144.0
-pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.144.0
-View details New Features
-Usage-limit reset credits now show their type and expiration, and let you choose which credit to redeem. ( #30488 )
-Added a writes app-approval mode that allows declared read-only actions while prompting for writes. ( #30482 )
-MCP tools can now request authentication interactively without an experimental opt-in. ( #28772 )
-App-server hosts can provide Codex authentication at runtime and redirect successful logins to a hosted page. ( #28745 , #31274 )
-Global pnunen installs are now detected so diagnostics and updates use the correct package manager. ( #31503 )
-Selecting Ultra reasoning now warns when high multi-agent concurrency could increase usage quickly. ( #31621 )
-Bug Fixes
-Resumed ChatGPT threads recover when compaction references a retired model by retrying with the currently selected model. ( #30319 )
-Fixed Code Mode crashes in Intel macOS release binaries. ( #30953 )
-Windows sandbox sessions can delete files in writable roots and access the managed primary runtime. ( #31138 , #31574 )
-Pasted terminal control sequences can no longer corrupt TUI rendering or resumed conversation history. ( #31494 )
-Long-running app sessions now refresh expired authentication for the hosted codex_apps connector. ( #31486 )
-Responses WebSockets continue using the low-latency transport while respecting system proxies and custom certificate authorities. ( #31441 , #31622 )
-Documentation
-Device-code login warnings now explain how to recognize and stop phishing attempts. ( #31648 )
-Chores
-Reduced plugin skill-loading time on remote executors by resolving namespaces once per root. ( #31348 )
-Made the /review branch picker faster and more reliable in large repositories. ( #31464 )
-Improved automatic review behavior with clearer instructions and a focused tool set. ( #31480 )
-Made Amazon Bedrock model names clearly identify their GPT-5.6 family and variant. ( #31636 )
-Changelog
-Full Changelog: rust-v0.143.0...rust-v0.144.0
-#30292 Serialize shared MCP OAuth credential stores @stevenlee-oai
-#30488 [codex-cli] Show reset details in redemption picker @jayp-oai
-#31297 feat(core): emit canonical command execution items @owenlin0
-#31298 feat(core): emit canonical dynamic tool call items @owenlin0
-#31369 test(skills): cover plugin namespace loading @anp-oai
-#30953 fix(release): add missing Intel V8 signing entitlement @malsamiri-oai
-#31355 refactor: make ExternalAuth return CodexAuth @lt-oai
-#31352 ci: increase Windows Bazel local test jobs @anp-oai
-#30482 [codex-rs] Add writes app approval mode @zamoshchin-openai
-#31439 Handle bio policy errors in Codex @fc-oai
-#31319 [codex] add connector runtime latency metrics @mzeng-openai
-#31312 Use model catalog approval messages @dylan-hurd-oai
-#31422 test: generalize exec-server fixture @anp-oai
-#28772 [codex] Enable auth elicitation by default @mzeng-openai
-#28745 [login] support hosted success redirects @rafael-jac
-#31316 chore: extract remote compaction request attempts @celia-oai
-#31299 feat(core): emit canonical sub-agent activity items @owenlin0
-#31285 [1/5] [codex] sync managed-layer bundle schema @hefuc-oai
-#31300 feat(core): emit canonical collab tool call items @owenlin0
-#31301 feat(core): emit canonical collab wait items @owenlin0
-#30319 fix: retry rejected previous-model compaction with selected model @celia-oai
-#30879 Handle mixed-case URLs in Windows command safety @charliemarsh-oai
-#31191 Handle completion separators and popup dismissal @charliemarsh-oai
-#31425 test: add TestAppServer builder @anp-oai
-#31342 http-client: expose WebSocket proxy prerequisites @bolinfest
-#31348 perf(skills): resolve plugin namespaces per root @anp-oai
-#31289 Use canonical indexed web access field @winston-openai
-#31464 Speed up review branch picker via for-each-ref @charliemarsh-oai
-#31332 ci: parameterize Cargo target paths @anp-oai
-#31421 refactor: unify external auth resolution @pakrym-oai
-#31451 test: migrate TestAppServer callers to builder @anp-oai
-#31274 [codex] Add externally provided Codex auth @lt-oai
-#31501 trace hook command execution @wiltzius-openai
-#31356 ci: run V8 source builds on Windows 2025 @anp-oai
-#31283 core: support extension-owned turn items @owenlin0
-#31570 fs: support pruning hidden directories during walks @jif-oai
-#31465 Align empty branch list message with search @charliemarsh-oai
-#31586 Stabilize encrypted MAv2 spawn request test @jif-oai
-#31585 Stabilize remote compaction parity against dynamic skill catalogs @jif-oai
-#31518 Log plugin install failure subtypes @charlesgong-openai
-#31587 Stabilize shared rollout budget test @jif-oai
-#31503 Detect Codex installs managed by pnpm @charliemarsh-oai
-#31525 core: migrate standalone web search to extension-owned turn items @owenlin0
-#31473 feat(core): emit canonical review mode items @owenlin0
-#31452 test: remove TestAppServer constructors @anp-oai
-#31612 Round MCP timeout durations in error messages @jif-oai
-#31138 fix(windows-sandbox): allow deletion in writable roots @fcoury-oai
-#31500 code-mode: move to hosted mode by default @cconger
-#31494 tui: sanitize terminal controls in user messages @etraut-openai
-#31524 chore(protocol): use UUIDv7 for generated item IDs @owenlin0
-#31496 Fall back to HTTP when Apple Git is unavailable @fc-oai
-#31578 Bound exec-server pending RPCs @jif-oai
-#29875 [codex] Sanitize imported session fallback titles @stefanstokic-oai
-#31621 tui: warn on Ultra with high multi-agent concurrency @shijie-oai
-#31622 websocket-client: add proxy-aware connector @bolinfest
-#31574 [codex] Grant Windows sandbox access to primary runtime @abhinav-oai
-#31292 Reuse MCP tool snapshot within a sampling request @sayan-oai
-#31630 feat(core): emit canonical hook prompt items @owenlin0
-#31636 feat: change amazon Bedrock GPT-5.6 display names @celia-oai
-#31629 core: stop emitting legacy command events directly @owenlin0
-#31441 core: preserve Responses WebSockets with system proxy @bolinfest
-#31357 ci: route build IO through Dev Drives @anp-oai
-#31461 chore: remove inert cargo audit workflow @anp-oai
-#31614 test: migrate app-server v2 starts to auto env @anp-oai
-#31497 [codex] increase tool schema compaction threshold @fbauer33
-#31650 code-mode: make all approvals trigger elicitation pause @cconger
-#31648 Clarify device-code phishing warning @etraut-openai
-#31663 test(app-server): use native rollout fixture paths @fcoury-oai
-#31330 [codex-apps] Omit internal fields from file payloads @jacobzhou-oai
-#31480 Update auto review prompting @olliem-oai
-#21818 Update models.json @github-actions
-#31427 test: add delayed exec-server transport @anp-oai
-#30278 [codex] Preserve reviewer when resuming threads @viyatb-oai
-#31675 Expand agent core ownership @pakrym-oai
-#31486 [connectors] Refresh codex_apps /ps/mcp auth @stevenlee-oai
-#31361 model-provider: route model discovery through HTTP client factory @bolinfest
-#30188 feat(rollout): persist TurnItems for paginated thread rollouts @owenlin0
-#31596 Use the image generation extension by default @won-openai
-#31684 Update models.json @github-actions
-Full release on Github
-2026-07-08
-Codex CLI 0.143.0
-pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.143.0
-View details New Features
-Remote plugins are now enabled by default, with richer catalog rows, npm marketplace sources, and visible remote/local versions. ( #30297 , #26705 , #29375 , #30981 )
-Codex can route authentication and Responses API traffic through macOS and Windows system proxies, including PAC and WPAD configurations. ( #26708 , #26709 , #31335 )
-Added codex remote-control pair for generating manual pairing codes from a running daemon. ( #29913 )
-Added Amazon Bedrock GPT-5.6 Sol, Terra, and Luna models, with first-class support for max reasoning effort. ( #30285 , #30467 )
-MCP tools now use tool search by default, and ChatGPT-hosted MCP servers can explicitly use session authentication. ( #29486 , #29733 )
-App-server clients can inspect environments, list descendant threads, and fork history through a specific turn. ( #30291 , #29591 , #30277 )
-Bug Fixes
-Fixed Windows ConPTY input handling for line endings and backspace, plus sandbox credential retry edge cases. ( #29734 , #29624 , #29637 )
-Fixed stale TUI safety prompts and cancelled reviews that could leave MCP startup appearing busy. ( #30490 , #31189 )
-Improved recovery when exec servers are temporarily offline and prevented remote-control token refresh retry storms. ( #30098 , #30201 )
-Preserved trailing realtime transcript text and terminal rollout events during shutdown. ( #29918 , #30144 )
-Improved incremental WebSocket request success by ignoring response metadata during comparisons. ( #30770 )
-Reduced installer failures from GitHub API rate limits by reusing release metadata. ( #31056 )
-Documentation
-Documented UUID7 thread and turn IDs, plus recommended remote-executor integration-test workflows. ( #27714 , #29790 )
-Chores
-Updated OpenSSL, Hono, fast-uri, quick-xml, and crossbeam-epoch to address security advisories. ( #29487 , #29650 , #30941 , #31308 )
-Changelog
-Full Changelog: rust-v0.142.0...rust-v0.143.0
-#26708 PAC 3 - Add Windows system proxy resolver @canvrno-oai
-#28769 Register full CDP requirements feature @syuan-oai
-#29485 [codex] fetch featured IDs for remote plugins @ericning-o
-#29487 Upgrade bundled OpenSSL to 3.6.3 @jif-oai
-#29489 [codex] Update esbuild to 0.28.1 @pakrym-oai
-#29488 [plugins] Add dark-mode logo metadata @drewschuster-openai
-#29249 [codex] migrate environment context to model world state @pakrym-oai
-#29494 core: wrap token budget window context @bolinfest
-#29417 [codex] replace remote images with model-visible error text @rka-oai
-#28360 feat(core): store turn_id on ResponseItem metadata @owenlin0
-#29486 [codex] Use tool search for MCP tools by default @sayan-oai
-#29501 path-uri: clarify host-native path conversion @anp-oai
-#29504 fix: world state response item test @celia-oai
-#26704 TUI Plugin Sharing 4 - cover remote plugin catalog flows @canvrno-oai
-#29419 [codex] reject remote images at app-server ingress @rka-oai
-#28992 chore: improve expired Bedrock credential errors @celia-oai
-#29467 Make formatter output quiet on success @anp-oai
-#26709 PAC 4 - Add macOS system proxy resolver @canvrno-oai
-#29490 chore: warn when Code Mode lacks model metadata @celia-oai
-#29493 mcp: accept foreign absolute cwd for remote stdio @anp-oai
-#29473 Propagate safety buffering treatment metadata @fc-oai
-#24092 [codex] Reject unlowered PowerShell AST regions @bookholt-oai
-#29155 [codex] Expose service tier and reasoning effort in OTEL @daniel-oai
-#29068 [codex] stylistic changes @rka-oai
-#29518 Remove redundant Codex Apps manager flag @aibrahim-oai
-#27946 [codex] Use input items for Responses Lite tools @rka-oai
-#29528 Centralize Codex Apps client handling @aibrahim-oai
-#29577 Handle additional tools in image URL validation @aibrahim-oai
-#29575 Remove redundant Codex Apps cache guard @aibrahim-oai
-#29583 Group Codex Apps client setup @aibrahim-oai
-#29358 Allow codex sandbox to consume MCP sandbox state @jif-oai
-#29599 Stop persisting bridged log events @jif-oai
-#29615 Fix Codex Apps auth elicitation hang @jif-oai
-#29067 Namespace multi-agent v2 tools under collaboration @jif-oai
-#29614 path-uri: add lexical containment @jif-oai
-#28426 Share resumed rollout history @charliemarsh-oai
-#29634 Update rmcp to 1.8.0 @jif-oai
-#29650 Update vulnerable Hono and fast-uri dependencies @jif-oai
-#29498 [codex] Instrument rollout persistence bytes @wiltzius-openai
-#29659 [core] debounce current-time reminders by elapsed time @rka-oai
-#29608 Shut down superseded MCP managers on refresh @jif-oai
-#29527 core: use turn-owned world state for inline compaction @sayan-oai
-#29672 [codex] Handle additional tools in rollout persistence metrics @rka-oai
-#29669 Handle additional tools in rollout persistence metrics @winston-openai
-#29680 Revert "Handle additional tools in rollout persistence metrics" @rasmusrygaard
-#27714 app-server: document thread and turn IDs are UUID7 @owenlin0
-#29456 Prepare managed network sandbox context @jif-oai
-#28418 chore(core) rm AskForApproval::OnFailure @dylan-hurd-oai
-#29675 core: add extra metadata field to Thread struct @kumquatexpress
-#29013 Keep managed MITM CA private keys in proxy memory @winston-openai
-#29495 Separate local and remote plugin analytics IDs @jameswt-oai
-#29671 [codex] Preserve proxy state for filesystem sandbox helpers @iceweasel-oai
-#29513 [codex] allow image generation with provider auth @richardopenai
-#29526 core: resolve view_image paths in selected environment @anp-oai
-#29696 [codex] Fix stale approval policy in MCP test @sayan-oai
-#29704 [codex] Fix stale approval policy in MCP test @kumquatexpress
-#29547 core: use current step environments for tools @sayan-oai
-#28976 Add MCP tool call error metrics @stevenlee-oai
-#27045 feat(guardian): include connected account email in app reviews @viyatb-oai
-#29620 Decouple plugin manifest path resolution @jif-oai
-#29666 [codex] Report the exec-server working directory @rasmusrygaard
-#29705 feat(app-server): thread/turns/items/list -> thread/items/list @owenlin0
-#29716 code-mode: Rename codex_code_mode::CodeModeService @cconger
-#29712 test: branch on target OS instead of runner flavor @anp-oai
-#29728 core tests: rename automatic environment builder @anp-oai
-#29158 path-uri: remove legacy path deserialization @anp-oai
-#29519 core: persist initial context window metadata @bolinfest
-#28918 Make selected plugin roots URI-native @jif-oai
-#29515 [codex] define code mode host handshake protocol @cconger
-#29715 [codex] surface rollout budget exhaustion @rka-oai
-#29732 code-mode: Remove Session::is_alive() @cconger
-#29626 Load executor skills without host path conversion @jif-oai
-#29714 protocol: separate app and exec RPC ownership @anp-oai
-#29664 refactor: extract context window token status @bolinfest
-#29665 fix: scope context remaining to body window @bolinfest
-#29744 [codex] rename rollout budget error to session budget error @rka-oai
-#29739 Update new_context_window instructions @andmis
-#29743 core: reset context for token budget compaction @bolinfest
-#29477 Support thread-level originator overrides @alexsong-oai
-#29745 core: add wait_for_environment for starting environments @sayan-oai
-#28630 [codex] trace MCP startup latency @rphilizaire-openai
-#29750 chore: assign amsg_ IDs to agent messages @bolinfest
-#29746 test: add app-server auto environment helper @anp-oai
-#29711 Let image generation extension hosts control output persistence @won-openai
-#29762 [codex] Reuse compacted history replacement for new context windows @pakrym-oai
-#29768 [codex] Update bundled skill installer guidance @sayan-oai
-#29690 [plugins] Add marketplace source requirements @xl-openai
-#29765 [codex] Ignore local curated plugins when remote catalog is active @xl-openai
-#29767 [codex] Assign response item IDs in forked history @pakrym-oai
-#29721 auth: move domain mode below app wire types @anp-oai
-#29753 [plugins] Enforce marketplace source admission requirements @xl-openai
-#29722 config: own layer provenance types @anp-oai
-#29723 connectors: own app metadata types @anp-oai
-#29788 test: run app-server integration tests under Wine @anp-oai
-#29789 test: use automatic environments in app-server integration tests @anp-oai
-#29790 docs: document remote executor integration testing @anp-oai
-#29815 [codex] Remove auto-compaction opt-out @rhan-oai
-#29628 Keep executor plugin MCP paths URI-native @jif-oai
-#29731 [codex] Emit implicit skill usage for support reads @alexsong-oai
-#29829 Persist agent messages as response items @jif-oai
-#29841 Add a bounded filesystem walk RPC @jif-oai
-#29842 Use fs/walk for environment skill discovery @jif-oai
-#29567 [codex] show external import result counts @charlesgong-openai
-#29831 Cache plugin namespace during executor skill discovery @jif-oai
-#29720 ci: fail jobs that dirty the worktree @anp-oai
-#29887 Fix environment skill discovery after merge @jif-oai
-#29734 [codex] fix Windows ConPTY input handling @iceweasel-oai
-#28593 [codex] suppress low usage remaining warnings when credits are available @brooks-oai
-#29624 Preserve Windows sandbox identity during credential retry @jif-oai
-#27466 [codex] Trace exec-server JSON-RPC requests @richardopenai
-#29844 Follow directory symlinks in filesystem walks @jif-oai
-#29637 Skip credential refresh for WindowsApps launch failures @jif-oai
-#29591 feat(app-server): list descendant threads by ancestor @btraut-openai
-#28034 feat(network-proxy): experimental local credential broker @winston-openai
-#29736 [codex] Inject agent graph store into ThreadManager @wiltzius-openai
-#29889 [apps] Thread structured icon assets through app list @drewschuster-openai
-#29724 mcp: keep elicitation requests below app wire types @anp-oai
-#29684 [plugins] Track plugin install requests by ID @adaley-openai
-#29870 Pipeline bounded AGENTS.md and Git root probes @jif-oai
-#29893 [codex] dedupe remote control account header @shuo-openai
-#29851 Add a connector declaration snapshot @jif-oai
-#29903 path-uri: normalize parent segments in absolute joins @anp-oai
-#29852 Read connector declarations from executor plugins @jif-oai
-#29785 Isolate curated plugin sync Git environment @etraut-openai
-#29907 [codex] namespace sleep under clock @rka-oai
-#29910 [codex] nest sleep config under current time reminder @rka-oai
-#29913 feat(remote-control): add daemon pairing command @apanasenko-oai
-#29936 core: add configurable <context_window_guidance> message @bolinfest
-#26705 TUI Plugin Sharing 5 - polish remote plugin catalog rows @canvrno-oai
-#29733 Allow ChatGPT-hosted MCP servers to use session auth @aibrahim-oai
-#29833 [1/3] core: make world state snapshots serializable @sayan-oai
-#29919 TUI support for buffer experience @etraut-openai
-#29924 Represent MCP authentication with an enum @aibrahim-oai
-#29804 code-mode: define process host wire protocol @cconger
-#29956 [codex] Populate remote plugin local versions @abhinav-oai
-#29835 [2/3] core: persist world state in rollouts @sayan-oai
-#29899 [codex] Update reasoning effort @shijie-oai
-#29837 [3/3] core: replay persisted world state @sayan-oai
-#29969 Report MCP error codes with server attribution @aibrahim-oai
-#29970 core: raise token budget message limits @bolinfest
-#29973 [codex] route sleep through time providers @rka-oai
-#19051 feat: use run agent task auth for inference @adrian-openai
-#29810 core: make AGENTS.md react to environment changes @sayan-oai
-#29997 core: reconcile legacy WorldState sections @sayan-oai
-#29990 Parallelize environment skill loading @anp-oai
-#28522 Support HTTP MCP servers from selected executor plugins @jif-oai
-#28529 Support OAuth for HTTP MCP servers from selected executor plugins @jif-oai
-#29656 Test executor-routed MCP OAuth token exchange @jif-oai
-#29928 chore(app-server): mark thread/rollback as deprecated @owenlin0
-#29856 Persist selected capability roots and resolve availability per model step @jif-oai
-#27467 [codex] Record exec-server lifecycle metrics @richardopenai
-#29942 feat: add provider-aware model fallback to thread start @celia-oai
-#30095 cli: rename sandbox permission profile flag @bolinfest
-#30029 [codex] current time reminder interval to be set to 0 @rka-oai
-#29941 core: expose permission profile to shell tools @bolinfest
-#30031 [codex] add current time reminder delivery mode config @rka-oai
-#30098 [codex] Retry temporarily offline exec-server recovery @richardopenai
-#30033 [codex] impl delivery_mode: current time reminders on response boundaries @rka-oai
-#30108 [codex] extend code-mode host IPC transport @cconger
-#27470 [codex] Observe remote exec-server lifecycle @richardopenai
-#30113 [codex] poll external clock during sleep @rka-oai
-#29003 feat(core, mcp): cache codex_apps tools in memory @owenlin0
-#30114 release: publish standalone zsh artifacts @bolinfest
-#30116 release: consume standalone zsh artifacts @bolinfest
-#29648 [codex] Add managed MCP server matchers @felixxia-oai
-#30100 Let extensions contribute World State sections @jif-oai
-#30124 fix(app-server): suppress TUI rollback warning @fcoury-oai
-#29877 [codex] Surface MCP reauthentication-required startup failures @felixxia-oai
-#29988 Recognize Work web and mobile thread originators @chiam-oai
-#30110 [codex] add code-mode host failure supervision hooks @cconger
-#30088 Project executor skills through World State @jif-oai
-#30117 [codex] Propagate traces through exec-server HTTP @wiltzius-openai
-#30101 Pin MCP runtimes to model steps @jif-oai
-#30134 ci: narrow Windows test skips @anp-oai
-#30093 Project selected plugin runtime by environment availability @jif-oai
-#30145 Reuse walk inventory for environment skill metadata @jif-oai
-#30111 [codex] implement standalone code-mode process host @cconger
-#29935 [codex] Attribute app-server analytics by thread originator @alexsong-oai
-#30152 Reinject missing World State fragments on resume @jif-oai
-#30127 Keep MCP elicitation routable across runtime refreshes @jif-oai
-#29934 Expose MCP app identity in app context @martinauyeung-oai
-#29909 [codex] allow CCA image generation and web search extensions @won-openai
-#30157 Test selected capabilities across availability and resume @jif-oai
-#30144 [codex] fix terminal rollout event durability @wiltzius-openai
-#29920 Retry failed Codex Apps MCP startup @kbazzi
-#29516 Persist Cloudflare affinity cookies for MCP HTTP @stevenlee-oai
-#30112 [codex] add process-owned code-mode session client @cconger
-#30142 [codex] wire process-owned code mode host into core @cconger
-#30198 [codex] fix CreateThreadParams test initializer @anp-oai
-#30148 Reuse MCP runtimes when selected availability changes nothing @jif-oai
-#30215 Test selected capabilities across unavailable resume @jif-oai
-#29991 [codex] narrow unused skills intro export @aibrahim-oai
-#30229 Relax hooks.json top-level metadata validation @charlesgong-openai
-#29927 feat(app-server): add history_mode to thread @owenlin0
-#30276 fix main @owenlin0
-#29683 [codex] Add managed new-thread model settings @hefuc-oai
-#30225 Overlap executor skill reads with namespace discovery @jif-oai
-#30274 [codex] allow AGENTS.md and skills to authorize delegation @charlesdu-openai
-#30147 [codex] Use managed defaults for TUI threads @hefuc-oai
-#30261 ensure thread.history_mode is immutable @owenlin0
-#30277 feat(app-server): add optional turn_id to thread/fork @owenlin0
-#30143 Let Codex consult user-level code-review-* skills. @anp-oai
-#30285 feat: add GPT-5.6 variants to Bedrock catalog @celia-oai
-#30173 Close thread persistence when submission channel closes @alfozan
-#30257 [codex] Classify nested MCP authentication startup errors @felixxia-oai
-#29375 [codex] Support npm marketplace plugin sources @charlesgong-openai
-#30146 [codex] group blocking and postmerge CI workflows @anp-oai
-#30282 feat(protocol): define missing rollout turn items @owenlin0
-#30201 fix(remote-control): avoid server token refresh retry storms @apanasenko-oai
-#30273 [codex] consume pushed exec-server process events @richardopenai
-#30286 core: overlap diff root discovery with world state @anp-oai
-#30314 app-server: structure and test JSON shutdown logs @bolinfest
-#30317 Update security check wording @etraut-openai
-#30302 Preserve namespaces on custom tool calls @nhamidi-oai
-#30327 core: stabilize synthesized call output IDs @bolinfest
-#30291 [app-server] expose environment info RPC @maxj-oai
-#29691 [plugins] Enforce marketplace source policy at runtime @xl-openai
-#30384 [app-server] increase currentTime/read timeout @rka-oai
-#30297 [codex] Enable remote plugins by default @xl-openai
-#30490 fix(tui): clear completed safety buffering prompt @fcoury-oai
-#29740 [codex] Use model metadata for skills usage instructions @ani-oai
-#30511 [codex] Restore v1 delegation guidance @aibrahim-oai
-#30508 Revert "Make auto-review on-request prompt more proactive" @dylan-hurd-oai
-#30467 [codex] Treat max as a first-class reasoning effort @shijie-oai
-#30491 Update safety check links @etraut-openai
-#30607 [codex] auto-label AWS Bedrock issues @etraut-openai
-#30269 [codex] disable Nagle on Rendezvous WebSockets @richardopenai
-#30645 [codex] Update safety notice wording @etraut-openai
-#30757 fix(core) Remove full text websocket trace @dylan-hurd-oai
-#30851 docs: add tag to fenced code block @bolinfest
-#30643 [codex] bound Rendezvous WebSocket liveness @richardopenai
-#30867 Consolidate multi-agent v2 communication sends @bolinfest
-#30872 Log multi-agent communication lifecycle @bolinfest
-#30883 [codex] emit per-request TTFT completion telemetry @xli-oai
-#30897 Fix inherited availability metadata for Bedrock models @shijie-oai
-#30941 fix: address quick-xml security advisories @bolinfest
-#30770 fix(websockets) ignore metadata for incremental requests @dylan-hurd-oai
-#30334 telemetry: log structured direct tool-call timing @bolinfest
-#30493 [codex] Add configurable multi-agent mode hint text @shijie-oai
-#30796 Fix MIME types for path-backed feedback attachments @btraut-openai
-#31056 fix(install): reuse GitHub release metadata @bolinfest
-#30981 [codex] expose remote plugin versions @ericning-o
-#31066 chore: remove unused git-cliff configuration @bolinfest
-#31064 [codex] Read buffering metadata from response events @fc-oai
-#30223 Make plugin guidance react to environment readiness @sayan-oai
-#31189 Fix cancelled review leaving MCP startup busy @charliemarsh-oai
-#30876 [core] Support interleaved response items @alexi-openai
-#31262 [codex] Read retry model from buffering events @fc-oai
-#31261 Revert "[core] Support interleaved response items" @alexi-openai
-#31253 Emit exec-policy warnings for freshly loaded thread config @etraut-openai
-#31179 Remove TUI exec-policy core exports @etraut-openai
-#29959 Conditional codex_home dotenv @canvrno-oai
-#30627 elicitations: Move to shared ElicitationService @cconger
-#30318 core: trace executor skill discovery @anp-oai
-#31276 Revert "Conditional codex_home dotenv" @canvrno-oai
-#30956 refactor(protocol): isolate legacy item fanout @owenlin0
-#30395 [app-server] Include reset-credit details in rate limits @jayp-oai
-#31267 chore(approvals) consolidate guardian calls for shell tools @dylan-hurd-oai
-#31252 [tui] Truncate hook context in conversation history @abhinav-oai
-#29918 [codex] Flush trailing realtime transcript tail @guinness-oai
-#30226 Make Apps guidance react to MCP availability @sayan-oai
-#31190 Use popup token ranges for autocomplete insertion @charliemarsh-oai
-#29697 fix: attribut network requests to the exact exec on linux @jif-oai
-#31303 feat(code-mode): allow disabling V8 JIT @cconger
-#31271 chore: use .worktreeinclude for user Bazel config @anp-oai
-#31308 fix: update crossbeam-epoch for RUSTSEC-2026-0204 @cconger
-#30202 [codex] bundle code mode host in release packages @cconger
-#31293 [codex] app-server: expose plugin install policy source @ericning-o
-#31318 ci: share common workflow setup @anp-oai
-#29992 app-server: cover selected environments in integration tests @anp-oai
-#31284 Warn when configured service tiers are unsupported @etraut-openai
-#31323 Extract shared HTTP transport into codex-http-client @bolinfest
-#31331 Migrate direct HTTP consumers to codex-http-client @bolinfest
-#31337 fix: restore Codex environment setup table @anp-oai
-#31188 Preserve managed exec policy after rules parse errors @etraut-openai
-#31306 [codex] Support sequential cutoff reasoning summaries @ashwinnathan-openai
-#31344 exec-server: use virtual time in Noise relay test @bolinfest
-#31296 refactor(protocol): map canonical tool items to legacy events @owenlin0
-#31335 core: route Responses API through system proxy @bolinfest
-Full release on Github
 2026-07-06
 ChatGPT for iOS 1.2026.181
 New features
@@ -2189,15 +2479,6 @@ pairings across sign-out.
 Fixed stuck thread-list loading, prompt mode deadlocks, stale images, and
 microphone permission alerts.
 Fixed shake to undo and keyboard refocusing after sending a prompt.
-2026-07-01
-Codex CLI 0.142.5
-pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.142.5
-View details Bug Fixes
-Prevented full Responses WebSocket request payloads from being written to trace logs. ( #30771 )
-Changelog
-Full Changelog: rust-v0.142.4...rust-v0.142.5
-#30771 [codex] Backport websocket trace fix to release/0.142 @dylan-hurd-oai
-Full release on Github
 June 2026
 li+li]:mt-12"> 2026-06-25
 Codex Remote reaches general availability
@@ -2347,7 +2628,7 @@ Performance improvements and bug fixes
 Fixed goal timer overlap in narrow layouts.
 Reduced unread notifications while an active goal continues running.
 Kept review diff ordering consistent with the file tree.
-Improved window rendering on systems that don’t support translucent
+Improved window rendering on systems that don't support translucent
 backdrops, including Windows 10.
 Additional performance improvements and bug fixes.
 2026-06-09
@@ -2443,7 +2724,7 @@ Additional performance improvements and bug fixes.
 2026-05-26
 GPT-5.3-Codex and GPT-5.2 deprecated
 GPT-5.3-Codex and GPT-5.2 are now deprecated as user-selectable models in Codex
-for users signed in with ChatGPT. API-key workflows aren’t affected.
+for users signed in with ChatGPT. API-key workflows aren't affected.
 Use a current Codex model, such as GPT-5.5, GPT-5.4, or GPT-5.4 mini. See
 Codex models for model availability
 and Codex pricing for credit rates.
@@ -2574,11 +2855,11 @@ Additional performance improvements and bug fixes.
 2026-04-23
 GPT-5.5 and Codex app updates
 GPT-5.5 is now available in Codex
-as OpenAI’s newest frontier model for complex coding, computer use, knowledge
+as OpenAI's newest frontier model for complex coding, computer use, knowledge
 work, and research workflows.
 GPT-5.5 in Codex
 GPT-5.5 is the recommended choice for most Codex tasks when it appears in your
-model picker. It’s especially useful for implementation, refactors, debugging,
+model picker. It's especially useful for implementation, refactors, debugging,
 testing, validation, and knowledge-work artifacts.
 To switch to GPT-5.5:
 In the CLI, start a new thread with:
@@ -2586,7 +2867,7 @@ codex --model gpt-5.5
 Or use /model during a session.
 In the IDE extension, choose GPT-5.5 from the model selector in the composer.
 In the Codex app, choose GPT-5.5 from the model selector in the composer.
-If you don’t see GPT-5.5 yet, update the CLI, IDE extension, or Codex app to
+If you don't see GPT-5.5 yet, update the CLI, IDE extension, or Codex app to
 the latest version. During the rollout, continue using GPT-5.4 if GPT-5.5 is
 not yet available.
 Browser use in the Codex app
@@ -2617,17 +2898,17 @@ update makes it easier to start work with less setup, verify what Codex is
 building, create richer outputs, and keep momentum across longer-running tasks.
 Verify more of your work
 The Codex app now includes an early in-app browser . You
-can open local or public pages that don’t require sign-in, comment directly on
+can open local or public pages that don't require sign-in, comment directly on
 the rendered page, and ask Codex to address page-level feedback.
 Computer use lets Codex operate macOS apps by seeing,
 clicking, and typing, which helps with native app testing, simulator flows,
 low-risk app settings, and GUI-only bugs.
-The feature isn’t available in the European Economic Area, the United Kingdom, or
+The feature isn't available in the European Economic Area, the United Kingdom, or
 Switzerland at launch.
 Start, follow, and steer work
 Chats are threads you can start
-without choosing a project folder first. They’re useful for research, writing,
-planning, analysis, source gathering, and tool-driven work that doesn’t begin in
+without choosing a project folder first. They're useful for research, writing,
+planning, analysis, source gathering, and tool-driven work that doesn't begin in
 a codebase.
 For work that needs a later check-in,
 thread automations can wake up
@@ -2651,7 +2932,7 @@ where available, can also carry useful context from past tasks into future
 threads, including stable preferences, project conventions, and recurring work
 patterns.
 Other features
-Remote connections - We’re gradually rolling out SSH remote connections in alpha
+Remote connections - We're gradually rolling out SSH remote connections in alpha
 Support for multiple terminals
 macOS menu bar and Windows system tray support
 Multi-window support
@@ -2690,10 +2971,10 @@ Improved review refresh reliability, and fixed dictation loss, right-panel reset
 Additional performance improvements and bug fixes.
 2026-04-07
 Codex model availability update
-We’re updating model availability for users who sign in with ChatGPT. Starting
+We're updating model availability for users who sign in with ChatGPT. Starting
 April 7, the model picker no longer shows gpt-5.2-codex ,
 gpt-5.1-codex-mini , gpt-5.1-codex-max , gpt-5.1-codex , gpt-5.1 , or
-gpt-5 . On April 14, we’ll remove those models from Codex for ChatGPT sign-in.
+gpt-5 . On April 14, we'll remove those models from Codex for ChatGPT sign-in.
 Users can still choose from gpt-5.4 , gpt-5.4-mini , gpt-5.3-codex , and
 gpt-5.2 . ChatGPT Pro users can also choose gpt-5.3-codex-spark .
 To use another API-supported model in Codex, sign in with an API key or
@@ -2702,7 +2983,7 @@ configure a model provider.
 Codex app 26.325, 26.331, 26.401
 New features
 Added workspace settings to the app.
-Added “Don’t ask again” handling and polish for custom MCP approval panels.
+Added "Don't ask again" handling and polish for custom MCP approval panels.
 Added native Windows updater support, including MSIX support, plus a Windows system tray menu so Codex can stay resident after the last window closes.
 Added app and file @ mentions in the automation composer, surfaced subagent diff stats in the composer, and added artifact cards for generated file citations.
 Added a Quick Chat app-menu shortcut, a review file tree open menu, early heartbeat automation affordances in threads, and image support for remote connections.
@@ -2784,7 +3065,7 @@ Codex app 26.317
 New features
 You can now fork a conversation from an earlier message, not just the latest turn.
 Added slash commands for switching models and reasoning levels, and made slash commands work in the middle of a draft prompt.
-Added notifications for plan mode questions so it’s easier to notice when Codex needs input.
+Added notifications for plan mode questions so it's easier to notice when Codex needs input.
 Performance improvements and bug fixes
 Fixed thread handoff and subagent navigation issues across worktrees and the VS Code extension.
 Additional performance improvements and bug fixes.
@@ -2809,13 +3090,13 @@ In the IDE extension, choose GPT-5.4 mini from the model selector in the
 composer.
 In the Codex app, choose GPT-5.4 mini from the model selector in the
 composer.
-If you don’t see GPT-5.4 mini yet, update the CLI, IDE extension, or Codex app
+If you don't see GPT-5.4 mini yet, update the CLI, IDE extension, or Codex app
 to the latest version.
 2026-03-16
 Codex app 26.313
 New features
 Added back and forward buttons in the header so you can move between recent screens more quickly.
-Added an Open in Finder , Open in Explorer , or Open in File Manager action from thread menus to jump straight to a thread’s project folder.
+Added an Open in Finder , Open in Explorer , or Open in File Manager action from thread menus to jump straight to a thread's project folder.
 Performance improvements and bug fixes
 Improved resume and thread error toasts with clearer details when something goes wrong.
 Additional performance improvements and bug fixes.
@@ -2839,10 +3120,10 @@ Performance improvements and bug fixes
 Additional performance improvements and bug fixes.
 2026-03-05
 Introducing GPT-5.4 in Codex
-GPT-5.4 is now available in Codex as OpenAI’s most capable and efficient
+GPT-5.4 is now available in Codex as OpenAI's most capable and efficient
 frontier model for professional work.
 It combines recent advances in reasoning, coding, and agentic workflows in one
-model, and it’s the recommended choice for most Codex tasks.
+model, and it's the recommended choice for most Codex tasks.
 In Codex, GPT-5.4 is the first general-purpose model with native computer-use
 capabilities. GPT-5.4 in Codex includes experimental support for the 1M
 context window. It supports complex workflows across applications and
@@ -2858,7 +3139,7 @@ Or use /model during a session.
 In the IDE extension, choose GPT-5.4 from the model selector in the
 composer.
 In the Codex app, choose GPT-5.4 from the model selector in the composer.
-If you don’t see GPT-5.4 yet, update the CLI, IDE extension, or Codex app to
+If you don't see GPT-5.4 yet, update the CLI, IDE extension, or Codex app to
 the latest version.
 2026-03-05
 Codex app 26.305
@@ -2936,14 +3217,14 @@ Improved file workflows with fuzzy file search and better attachment recovery af
 Additional performance improvements and bug fixes.
 2026-02-12
 Introducing GPT-5.3-Codex-Spark
-Today, we’re releasing a research preview of GPT-5.3-Codex-Spark ,
+Today, we're releasing a research preview of GPT-5.3-Codex-Spark ,
 a smaller version of GPT-5.3-Codex and our first model designed for real-time
 coding. Codex-Spark is optimized to feel near-instant, delivering more than 1000 tokens per second while remaining highly capable for real-world coding tasks.
 Codex-Spark is available in research preview for ChatGPT Pro users in
 the latest Codex app, CLI, and IDE extension. This release also marks the first
 milestone in our partnership with Cerebras.
 At launch, Codex-Spark is text-only with a 128k context window. During
-the research preview, usage has separate model-specific limits and doesn’t
+the research preview, usage has separate model-specific limits and doesn't
 count against standard Codex limits. During high demand, access may slow down
 or queue while we balance reliability across users.
 To switch to GPT-5.3-Codex-Spark:
@@ -2954,9 +3235,9 @@ In the IDE extension, choose GPT-5.3-Codex-Spark from the model selector in
 the composer.
 In the Codex app, choose GPT-5.3-Codex-Spark from the model selector in the
 composer.
-If you don’t see GPT-5.3-Codex-Spark yet, update the CLI, IDE extension, or
+If you don't see GPT-5.3-Codex-Spark yet, update the CLI, IDE extension, or
 Codex app to the latest version.
-GPT-5.3-Codex-Spark isn’t available in the API at launch.
+GPT-5.3-Codex-Spark isn't available in the API at launch.
 For API-key workflows, continue using gpt-5.2-codex .
 2026-02-12
 Codex app 26.212
@@ -3000,12 +3281,12 @@ Improved handling of large reviews by removing the overall diff-size cap in the 
 Additional performance improvements and bug fixes.
 2026-02-05
 Introducing GPT-5.3-Codex
-Today we’re releasing GPT-5.3-Codex ,
+Today we're releasing GPT-5.3-Codex ,
 the most capable agentic coding model to date for complex, real-world software
 engineering.
 GPT-5.3-Codex combines the frontier coding performance of GPT-5.2-Codex with
 stronger reasoning and professional knowledge capabilities, and runs 25% faster
-for Codex users. It’s also better at collaboration while the agent is
+for Codex users. It's also better at collaboration while the agent is
 working—delivering more frequent progress updates and responding to steering in
 real time.
 GPT-5.3-Codex is available with paid ChatGPT plans everywhere you can use
@@ -3019,7 +3300,7 @@ In the IDE extension, make sure you are signed in with ChatGPT, then choose
 GPT-5.3-Codex from the model selector in the composer.
 In the Codex app, make sure you are signed in with ChatGPT, then choose
 GPT-5.3-Codex from the model selector in the composer.
-If you don’t see GPT-5.3-Codex, update the CLI, IDE extension, or Codex app
+If you don't see GPT-5.3-Codex, update the CLI, IDE extension, or Codex app
 to the latest version.
 For API-key workflows, continue using gpt-5.2-codex while API support rolls
 out.
@@ -3122,7 +3403,7 @@ November 2025
 li+li]:mt-12"> 2025-11-24
 Usage and credits fixes
 Minor updates to address a few issues with Codex usage and credits:
-Adjusted all usage dashboards to show “limits remaining” for consistency. The CLI previously displayed “limits used.”
+Adjusted all usage dashboards to show "limits remaining" for consistency. The CLI previously displayed "limits used."
 Fixed an issue preventing users from buying credits if their ChatGPT subscription was purchased via iOS or Google Play.
 Fixed an issue where the CLI could display stale usage information; it now refreshes without needing to send a message first.
 Optimized the backend to help smooth out usage throughout the day, irrespective of overall Codex load or how traffic is routed. Before, users could get unlucky and hit a few cache misses in a row, leading to much less usage.
@@ -3157,7 +3438,7 @@ Alternatively, you can change your default model to gpt-5-codex-mini by updating
 model = "gpt-5-codex-mini”
 2025-11-06
 GPT-5-Codex model update
-We’ve shipped a minor update to GPT-5-Codex:
+We've shipped a minor update to GPT-5-Codex:
 More reliable file edits with apply_patch .
 Fewer destructive actions such as git reset .
 More collaborative behavior when encountering user edits in files.
@@ -3165,10 +3446,10 @@ More collaborative behavior when encountering user edits in files.
 October 2025
 li+li]:mt-12"> 2025-10-30
 Credits on ChatGPT Pro and Plus
-Codex users on ChatGPT Plus and Pro can now use on-demand credits for more Codex usage beyond what’s included in your plan. Learn more.
+Codex users on ChatGPT Plus and Pro can now use on-demand credits for more Codex usage beyond what's included in your plan. Learn more.
 2025-10-22
 Tag @Codex on GitHub Issues and PRs
-You can now tag @codex on a teammate’s pull request to ask clarifying questions, request a follow-up, or ask Codex to make changes. GitHub Issues now also support @codex mentions, so you can kick off tasks from any issue, without leaving your workflow.
+You can now tag @codex on a teammate's pull request to ask clarifying questions, request a follow-up, or ask Codex to make changes. GitHub Issues now also support @codex mentions, so you can kick off tasks from any issue, without leaving your workflow.
 2025-10-06
 Codex is now GA
 Codex is now generally available with 3 new features — @Codex in Slack, Codex SDK, and new admin tools.
@@ -3198,7 +3479,7 @@ It is available at the same price as GPT-5. You can learn more about pricing and
 Introducing GPT-5-Codex
 New model: GPT-5-Codex
 GPT-5-Codex is a version of GPT-5 further optimized for agentic coding in Codex.
-It’s available in the IDE extension and CLI when you sign in with your ChatGPT account.
+It's available in the IDE extension and CLI when you sign in with your ChatGPT account.
 It also powers the cloud agent and Code Review in GitHub.
 To learn more about GPT-5-Codex and how it performs compared to GPT-5 on software engineering tasks, see our announcement blog post .
 Image outputs
@@ -3267,7 +3548,7 @@ Removed the mandatory two-factor authentication requirement for users using SSO 
 May 2025
 li+li]:mt-12"> 2025-05-22
 Reworked environment page
-It’s now easier and faster to set up code execution.
+It's now easier and faster to set up code execution.
 Fixes & improvements
 li+li]:mt-1 text-default [&_p]:m-0"> Added a button to retry failed tasks
 Added indicators to show that the agent runs without network access after setup
@@ -3289,7 +3570,7 @@ Tweaked the system prompt so that agent knows it’s working without network, an
 Updated the docs.
 2025-05-19
 Codex in the ChatGPT iOS app
-Start tasks, view diffs, and push PRs—while you’re away from your desk.
+Start tasks, view diffs, and push PRs—while you're away from your desk.
 Ask AI
 Docs agent
 Loading docs agent...

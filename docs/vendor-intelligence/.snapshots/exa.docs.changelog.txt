@@ -4,6 +4,25 @@
 # Changelog
 > Product updates and announcements from Exa.
 <Update
+label="August 2026"
+description={
+<div className="changelog-month-index">
+<div><a href="#dynamic-highlights-research-preview">Dynamic Highlights (research preview)</a></div>
+</div>
+}
+rss={{
+title: "August 2026",
+description: "Dynamic Highlights is a research preview that returns the most useful information across a result set for agents and RAG."
+}}
+>
+## Dynamic Highlights (research preview)
+Dynamic Highlights selects excerpts across the complete result set instead of treating each page independently. It gives more of the shared context budget to useful sources and gives less context to sources that only repeat information already returned.
+* **Single-turn RAG**: about 49% better token efficiency and 2.4% higher downstream quality with Exa Auto across coding and general QA evaluations.
+* **Agents**: about 30% fewer tokens across complete agent trajectories and 1% higher quality across BrowseComp, WideSearch, and internal company and people evaluations.
+Requests that set `dynamic: true` require the `Exa-Beta: dynamic-highlights-2026-08-28` header.
+[Read the Dynamic Highlights guide →](/docs/reference/contents-api-guide)
+</Update>
+<Update
 label="July 2026"
 description={
 <div className="changelog-month-index">

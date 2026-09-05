@@ -19,7 +19,7 @@ Simple text input
 import OpenAI from "openai";
 const client = new OpenAI();
 const response = await client.responses.inputTokens.count({
-model: "gpt-5.6",
+model: "gpt-6-astra",
 input: "Tell me a joke.",
 });
 console.log(response.input_tokens);
@@ -28,7 +28,7 @@ console.log(response.input_tokens);
 from openai import OpenAI
 client = OpenAI()
 response = client.responses.input_tokens.count(
-model="gpt-5.6", input="Tell me a joke."
+model="gpt-6-astra", input="Tell me a joke."
 )
 print(response.input_tokens)
 ```
@@ -43,7 +43,7 @@ import (
 func main() {
 client := openai.NewClient()
 count, err := client.Responses.InputTokens.Count(context.Background(), responses.InputTokenCountParams{
-Model: openai.String("gpt-5.6"),
+Model: openai.String("gpt-6-astra"),
 Input: responses.InputTokenCountParamsInputUnion{OfString: openai.String("Tell me a joke.")},
 })
 if err != nil {
@@ -52,11 +52,26 @@ panic(err)
 fmt.Println(count.InputTokens)
 }
 ```
+```java
+import com.openai.client.OpenAIClient;
+import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.models.responses.inputtokens.InputTokenCountParams;
+var count =
+client
+.responses()
+.inputTokens()
+.count(
+InputTokenCountParams.builder()
+.model("gpt-6-astra")
+.input("Tell me a joke.")
+.build());
+System.out.println(count.inputTokens());
+```
 ```ruby
 require "openai"
 client = OpenAI::Client.new
 count = client.responses.input_tokens.count(
-model: "gpt-5.6",
+model: "gpt-6-astra",
 input: "Tell me a joke."
 )
 puts(count.input_tokens)
@@ -66,13 +81,13 @@ curl https://api.openai.com/v1/responses/input_tokens \
 -H "Authorization: Bearer $OPENAI_API_KEY" \
 -H "Content-Type: application/json" \
 -d '{
-"model": "gpt-5.6",
+"model": "gpt-6-astra",
 "input": "Tell me a joke."
 }'
 ```
 ```bash
 openai responses:input-tokens count \
---model gpt-5.6 \
+--model gpt-6-astra \
 --input "Tell me a joke." \
 --raw-output \
 --transform input_tokens
@@ -83,7 +98,7 @@ Multi-turn conversation
 import OpenAI from "openai";
 const client = new OpenAI();
 const response = await client.responses.inputTokens.count({
-model: "gpt-5.6",
+model: "gpt-6-astra",
 input: [
 { role: "user", content: "What is 2 + 2?" },
 { role: "assistant", content: "2 + 2 equals 4." },
@@ -96,7 +111,7 @@ console.log(response.input_tokens);
 from openai import OpenAI
 client = OpenAI()
 response = client.responses.input_tokens.count(
-model="gpt-5.6",
+model="gpt-6-astra",
 input=[
 {"role": "user", "content": "What is 2 + 2?"},
 {"role": "assistant", "content": "2 + 2 equals 4."},
@@ -121,7 +136,7 @@ responses.ResponseInputItemParamOfMessage("2 + 2 equals 4.", responses.EasyInput
 responses.ResponseInputItemParamOfMessage("What about 3 + 3?", responses.EasyInputMessageRoleUser),
 }
 count, err := client.Responses.InputTokens.Count(context.Background(), responses.InputTokenCountParams{
-Model: openai.String("gpt-5.6"),
+Model: openai.String("gpt-6-astra"),
 Input: responses.InputTokenCountParamsInputUnion{OfResponseInputItemArray: input},
 })
 if err != nil {
@@ -129,6 +144,40 @@ panic(err)
 }
 fmt.Println(count.InputTokens)
 }
+```
+```java
+import com.openai.client.OpenAIClient;
+import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.models.responses.EasyInputMessage;
+import com.openai.models.responses.ResponseInputItem;
+import com.openai.models.responses.inputtokens.InputTokenCountParams;
+import java.util.List;
+var count =
+client
+.responses()
+.inputTokens()
+.count(
+InputTokenCountParams.builder()
+.model("gpt-6-astra")
+.inputOfResponseInputItems(
+List.of(
+ResponseInputItem.ofEasyInputMessage(
+EasyInputMessage.builder()
+.role(EasyInputMessage.Role.USER)
+.content("What is 2 + 2?")
+.build()),
+ResponseInputItem.ofEasyInputMessage(
+EasyInputMessage.builder()
+.role(EasyInputMessage.Role.ASSISTANT)
+.content("2 + 2 equals 4.")
+.build()),
+ResponseInputItem.ofEasyInputMessage(
+EasyInputMessage.builder()
+.role(EasyInputMessage.Role.USER)
+.content("What about 3 + 3?")
+.build())))
+.build());
+System.out.println(count.inputTokens());
 ```
 ```ruby
 require "openai"
@@ -139,7 +188,7 @@ conversation = [
 {role: :user, content: "What about 3 + 3?"}
 ]
 count = client.responses.input_tokens.count(
-model: "gpt-5.6",
+model: "gpt-6-astra",
 input: conversation
 )
 puts(count.input_tokens)
@@ -149,7 +198,7 @@ curl https://api.openai.com/v1/responses/input_tokens \
 -H "Authorization: Bearer $OPENAI_API_KEY" \
 -H "Content-Type: application/json" \
 -d '{
-"model": "gpt-5.6",
+"model": "gpt-6-astra",
 "input": [
 {"role": "user", "content": "What is 2 + 2?"},
 {"role": "assistant", "content": "2 + 2 equals 4."},
@@ -161,7 +210,7 @@ curl https://api.openai.com/v1/responses/input_tokens \
 openai responses:input-tokens count \
 --raw-output \
 --transform input_tokens <<'YAML'
-model: gpt-5.6
+model: gpt-6-astra
 input:
 - role: user
 content: What is 2 + 2?
@@ -177,7 +226,7 @@ Input with system instructions
 import OpenAI from "openai";
 const client = new OpenAI();
 const response = await client.responses.inputTokens.count({
-model: "gpt-5.6",
+model: "gpt-6-astra",
 instructions: "You are a helpful assistant that explains concepts simply.",
 input: "Explain quantum computing in one sentence.",
 });
@@ -187,7 +236,7 @@ console.log(response.input_tokens);
 from openai import OpenAI
 client = OpenAI()
 response = client.responses.input_tokens.count(
-model="gpt-5.6",
+model="gpt-6-astra",
 instructions="You are a helpful assistant that explains concepts simply.",
 input="Explain quantum computing in one sentence.",
 )
@@ -204,7 +253,7 @@ import (
 func main() {
 client := openai.NewClient()
 count, err := client.Responses.InputTokens.Count(context.Background(), responses.InputTokenCountParams{
-Model: openai.String("gpt-5.6"),
+Model: openai.String("gpt-6-astra"),
 Instructions: openai.String("You are a helpful assistant that explains concepts simply."),
 Input: responses.InputTokenCountParamsInputUnion{OfString: openai.String("Explain quantum computing in one sentence.")},
 })
@@ -214,11 +263,27 @@ panic(err)
 fmt.Println(count.InputTokens)
 }
 ```
+```java
+import com.openai.client.OpenAIClient;
+import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.models.responses.inputtokens.InputTokenCountParams;
+var count =
+client
+.responses()
+.inputTokens()
+.count(
+InputTokenCountParams.builder()
+.model("gpt-6-astra")
+.input("Explain quantum computing in one sentence.")
+.instructions("You are a helpful assistant that explains concepts simply.")
+.build());
+System.out.println(count.inputTokens());
+```
 ```ruby
 require "openai"
 client = OpenAI::Client.new
 count = client.responses.input_tokens.count(
-model: "gpt-5.6",
+model: "gpt-6-astra",
 instructions: "You are a helpful assistant that explains concepts simply.",
 input: "Explain quantum computing in one sentence."
 )
@@ -229,7 +294,7 @@ curl https://api.openai.com/v1/responses/input_tokens \
 -H "Authorization: Bearer $OPENAI_API_KEY" \
 -H "Content-Type: application/json" \
 -d '{
-"model": "gpt-5.6",
+"model": "gpt-6-astra",
 "instructions": "You are a helpful assistant that explains concepts simply.",
 "input": "Explain quantum computing in one sentence."
 }'
@@ -238,7 +303,7 @@ curl https://api.openai.com/v1/responses/input_tokens \
 openai responses:input-tokens count \
 --raw-output \
 --transform input_tokens <<'YAML'
-model: gpt-5.6
+model: gpt-6-astra
 instructions: You are a helpful assistant that explains concepts simply.
 input: Explain quantum computing in one sentence.
 YAML
@@ -250,7 +315,7 @@ Input with an image
 import OpenAI from "openai";
 const client = new OpenAI();
 const response = await client.responses.inputTokens.count({
-model: "gpt-5.6",
+model: "gpt-6-astra",
 input: [
 {
 role: "user",
@@ -272,7 +337,7 @@ from openai import OpenAI
 client = OpenAI()
 # Use file_id from uploaded file, or image_url for a URL
 response = client.responses.input_tokens.count(
-model="gpt-5.6",
+model="gpt-6-astra",
 input=[
 {
 "role": "user",
@@ -308,7 +373,7 @@ responses.EasyInputMessageRoleUser,
 ),
 }
 count, err := client.Responses.InputTokens.Count(context.Background(), responses.InputTokenCountParams{
-Model: openai.String("gpt-5.6"),
+Model: openai.String("gpt-6-astra"),
 Input: responses.InputTokenCountParamsInputUnion{OfResponseInputItemArray: input},
 })
 if err != nil {
@@ -317,11 +382,41 @@ panic(err)
 fmt.Println(count.InputTokens)
 }
 ```
+```java
+import com.openai.client.OpenAIClient;
+import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.models.responses.ResponseInputImage;
+import com.openai.models.responses.ResponseInputItem;
+import com.openai.models.responses.inputtokens.InputTokenCountParams;
+import java.util.List;
+var count =
+client
+.responses()
+.inputTokens()
+.count(
+InputTokenCountParams.builder()
+.model("gpt-6-astra")
+.inputOfResponseInputItems(
+List.of(
+ResponseInputItem.ofMessage(
+ResponseInputItem.Message.builder()
+.role(ResponseInputItem.Message.Role.USER)
+.addContent(
+ResponseInputImage.builder()
+.detail(ResponseInputImage.Detail.AUTO)
+.imageUrl(
+"https://api.nga.gov/iiif/a2e6da57-3cd1-4235-b20e-95dcaefed6c8/full/!800,800/0/default.jpg")
+.build())
+.addInputTextContent("Summarize this chart.")
+.build())))
+.build());
+System.out.println(count.inputTokens());
+```
 ```ruby
 require "openai"
 client = OpenAI::Client.new
 count = client.responses.input_tokens.count(
-model: "gpt-5.6",
+model: "gpt-6-astra",
 input: [
 {
 role: :user,
@@ -343,7 +438,7 @@ curl https://api.openai.com/v1/responses/input_tokens \
 -H "Authorization: Bearer $OPENAI_API_KEY" \
 -H "Content-Type: application/json" \
 -d '{
-"model": "gpt-5.6",
+"model": "gpt-6-astra",
 "input": [{
 "role": "user",
 "content": [
@@ -357,7 +452,7 @@ curl https://api.openai.com/v1/responses/input_tokens \
 openai responses:input-tokens count \
 --raw-output \
 --transform input_tokens <<'YAML'
-model: gpt-5.6
+model: gpt-6-astra
 input:
 - role: user
 content:
@@ -375,7 +470,7 @@ Input with function tools
 import OpenAI from "openai";
 const client = new OpenAI();
 const response = await client.responses.inputTokens.count({
-model: "gpt-5.6",
+model: "gpt-6-astra",
 tools: [
 {
 type: "function",
@@ -398,7 +493,7 @@ console.log(response.input_tokens);
 from openai import OpenAI
 client = OpenAI()
 response = client.responses.input_tokens.count(
-model="gpt-5.6",
+model="gpt-6-astra",
 tools=[
 {
 "type": "function",
@@ -436,7 +531,7 @@ parameters := map[string]any{
 tool := responses.ToolParamOfFunction("get_weather", parameters, true)
 tool.OfFunction.Description = openai.String("Get the current weather in a location")
 count, err := client.Responses.InputTokens.Count(context.Background(), responses.InputTokenCountParams{
-Model: openai.String("gpt-5.6"),
+Model: openai.String("gpt-6-astra"),
 Input: responses.InputTokenCountParamsInputUnion{OfString: openai.String("What is the weather in San Francisco?")},
 Tools: []responses.ToolUnionParam{tool},
 })
@@ -446,11 +541,48 @@ panic(err)
 fmt.Println(count.InputTokens)
 }
 ```
+```java
+import com.openai.client.OpenAIClient;
+import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.core.JsonValue;
+import com.openai.models.responses.FunctionTool;
+import com.openai.models.responses.inputtokens.InputTokenCountParams;
+import java.util.List;
+import java.util.Map;
+var count =
+client
+.responses()
+.inputTokens()
+.count(
+InputTokenCountParams.builder()
+.model("gpt-6-astra")
+.input("What is the weather in San Francisco?")
+.addTool(
+FunctionTool.builder()
+.name("get_weather")
+.description("Get the current weather in a location")
+.strict(true)
+.parameters(
+FunctionTool.Parameters.builder()
+.putAdditionalProperty("type", JsonValue.from("object"))
+.putAdditionalProperty(
+"properties",
+JsonValue.from(
+Map.of("location", Map.of("type", "string"))))
+.putAdditionalProperty(
+"required", JsonValue.from(List.of("location")))
+.putAdditionalProperty(
+"additionalProperties", JsonValue.from(false))
+.build())
+.build())
+.build());
+System.out.println(count.inputTokens());
+```
 ```ruby
 require "openai"
 client = OpenAI::Client.new
 count = client.responses.input_tokens.count(
-model: "gpt-5.6",
+model: "gpt-6-astra",
 input: "What is the weather in San Francisco?",
 tools: [
 {
@@ -474,7 +606,7 @@ curl https://api.openai.com/v1/responses/input_tokens \
 -H "Authorization: Bearer $OPENAI_API_KEY" \
 -H "Content-Type: application/json" \
 -d '{
-"model": "gpt-5.6",
+"model": "gpt-6-astra",
 "tools": [{
 "type": "function",
 "name": "get_weather",
@@ -492,7 +624,7 @@ curl https://api.openai.com/v1/responses/input_tokens \
 openai responses:input-tokens count \
 --raw-output \
 --transform input_tokens <<'YAML'
-model: gpt-5.6
+model: gpt-6-astra
 tools:
 - type: function
 name: get_weather
