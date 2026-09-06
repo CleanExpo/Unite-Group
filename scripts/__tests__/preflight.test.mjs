@@ -14,7 +14,15 @@
  */
 import { strict as assert } from 'node:assert';
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import {
+  copyFileSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -116,20 +124,51 @@ test('repo-root prebuild inputs are treated as apps/web build inputs', () => {
   }
 });
 
-test('the declared prebuild inputs match what the sync scripts actually read', () => {
+test('the portfolio sync reads both declared root inputs and writes byte-identical outputs', (t) => {
+  // Execute the real sync script in an isolated repository-shaped fixture.
+  // The previous source-text assertion depended on Prettier's quote style, so
+  // a semantically correct double-quoted path failed only after remote CI.
+  const fixture = mkdtempSync(resolve(tmpdir(), 'unite-prebuild-'));
+  t.after(() => rmSync(fixture, { recursive: true, force: true }));
+
+  const fixtureScript = resolve(fixture, 'apps/web/scripts/sync-portfolio-registry.mjs');
+  mkdirSync(dirname(fixtureScript), { recursive: true });
+  mkdirSync(resolve(fixture, '.portfolio'), { recursive: true });
+  copyFileSync(resolve(repoRoot, 'apps/web/scripts/sync-portfolio-registry.mjs'), fixtureScript);
+
+  const portfolio = 'portfolio-registry-fixture\n';
+  const controlPlane = '{"schema":"control-plane-fixture"}\n';
+  writeFileSync(resolve(fixture, '.portfolio/PORTFOLIO.yaml'), portfolio);
+  writeFileSync(resolve(fixture, '.portfolio/CONTROL-PLANE.v1.json'), controlPlane);
+
+  execFileSync(process.execPath, [fixtureScript], {
+    cwd: fixture,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+
+  assert.equal(
+    readFileSync(resolve(fixture, 'apps/web/data/command-centre/portfolio.yaml'), 'utf8'),
+    portfolio,
+  );
+  assert.equal(
+    readFileSync(resolve(fixture, 'apps/web/data/command-centre/control-plane.v1.json'), 'utf8'),
+    controlPlane,
+  );
+  assert.ok(WEB_BUILD_INPUTS.includes('.portfolio/'), '.portfolio/ must be a declared web build input');
+});
+
+test('the declared capability prebuild inputs match what the sync script actually reads', () => {
   // Guards the header claim rather than trusting it: if a sync script starts
   // reading a new repo-root path, this fails instead of silently widening the
   // set of edits Vercel would wrongly skip.
-  const sources = ['sync-portfolio-registry.mjs', 'sync-capability-registry.mjs']
-    .map((f) => readFileSync(resolve(repoRoot, 'apps/web/scripts', f), 'utf8'))
-    .join('\n');
+  const source = readFileSync(resolve(repoRoot, 'apps/web/scripts/sync-capability-registry.mjs'), 'utf8');
   for (const [needle, declared] of [
-    ["'.portfolio'", '.portfolio/'],
     ["'.claude', 'agents'", '.claude/agents/'],
     ["'.claude', 'skills'", '.claude/skills/'],
     ["'.mcp.json'", '.mcp.json'],
   ]) {
-    assert.ok(sources.includes(needle), `expected a sync script to read ${needle} — has the prebuild changed?`);
+    assert.ok(source.includes(needle), `expected the capability sync to read ${needle} — has the prebuild changed?`);
     assert.ok(WEB_BUILD_INPUTS.includes(declared), `${declared} must be declared in WEB_BUILD_INPUTS`);
   }
 });
@@ -255,37 +294,39 @@ test('an identical range skips', () => {
 
 test('THE LOCAL READINESS GATE RUNS EVERY TEST CI RUNS', () => {
   /*
-   * `verify:readiness` is what a developer runs before pushing, and CI's "Test
-   * readiness kernel" step is what actually decides the branch. They were
-   * different lists: CI ran `dependency-audit.test.mjs` and the local gate did
-   * not, so a failure in that file was invisible until an external reviewer ran
-   * the workflow command by hand. Green locally, red in CI, for a whole class of
-   * test — and the local gate reported "188 passed" while omitting one file.
-   *
-   * This is the same claim the job table above makes, one level down: it is not
-   * enough that every CI JOB has a preflight entry if the entry runs less than
-   * the job does.
-   *
-   * CI may run MORE than the local gate only by deliberate exception; today
-   * there is none, so the two lists must match exactly. A local list that is a
-   * superset is fine — running extra locally cannot cause a CI surprise.
+   * CI used to hand-copy the readiness test list. The comparison below then
+   * allowed the local list to be a superset, leaving locally enforced guards
+   * absent remotely. Delegating to one package script makes parity structural:
+   * changing that script changes both boundaries in the same commit.
    */
-  const testFiles = (text) => new Set(text.match(/scripts\/__tests__\/[\w.-]+\.test\.mjs/gu) ?? []);
-
   const packageJson = JSON.parse(readFileSync(resolve(repoRoot, 'package.json'), 'utf8'));
-  const local = testFiles(packageJson.scripts['verify:readiness']);
-  assert.ok(local.size > 0, 'verify:readiness must run test files');
+  assert.match(
+    packageJson.scripts['verify:readiness'],
+    /node --test scripts\/__tests__\//u,
+    'verify:readiness must still execute the readiness kernel',
+  );
 
   const ci = readFileSync(CI_PATH, 'utf8');
   const kernel = /Test readiness kernel\n\s+run: ([^\n]+)/u.exec(ci);
   assert.notEqual(kernel, null, 'ci.yml must still declare a "Test readiness kernel" step');
-  const remote = testFiles(kernel[1]);
-  assert.ok(remote.size > 0, 'the readiness kernel step must run test files');
-
-  const missingLocally = [...remote].filter((file) => !local.has(file)).sort();
-  assert.deepEqual(
-    missingLocally,
-    [],
-    `CI's readiness kernel runs test files the local gate does not: ${missingLocally.join(', ')}`,
+  assert.equal(
+    kernel[1].trim(),
+    'npm run verify:readiness',
+    'CI must call the local readiness SSOT instead of maintaining a partial copied command',
   );
+});
+
+test('the release contract cannot omit local preflight or authoritative remote readback', () => {
+  const packageJson = JSON.parse(readFileSync(resolve(repoRoot, 'package.json'), 'utf8'));
+  assert.equal(
+    packageJson.scripts['verify:pr-candidate'],
+    'node scripts/preflight.mjs --keep-going',
+    'every release candidate must run the complete locally reproducible CI mirror',
+  );
+  const keeper = readFileSync(resolve(repoRoot, '.claude/skills/keeper-gate/SKILL.md'), 'utf8');
+  assert.match(keeper, /npm run verify:pr-candidate/u);
+  assert.match(keeper, /repository-required check runs from\n  GitHub for the exact pushed SHA/u);
+  assert.match(keeper, /caller-supplied check\n  list, resettable attempt counter/u);
+  assert.match(keeper, /Pending, absent, skipped, unknown, or\n  mismatched required evidence is not green/u);
+  assert.match(keeper, /approval_pending/u);
 });

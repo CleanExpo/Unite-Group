@@ -30,6 +30,9 @@ Run in order. Any failure → STOP, fix or name the blocker; there is no
    to packages, then run each package's FULL verify (the same jobs CI runs —
    root `package.json` `verify:*` scripts mirror `.github/workflows/ci.yml` via
    `scripts/lib/preflight-jobs.mjs`, with a test asserting the mirror):
+   - First run `npm run verify:pr-candidate`. This is the executable local CI
+     mirror and is mandatory for every PR candidate and every repair commit;
+     selecting package checks by hand is not an equivalent receipt.
    - `apps/web/**` → in apps/web: `pnpm run lint` AND `pnpm run type-check`
      AND `pnpm run test` (the full suite, not the one spec you changed) AND
      `pnpm run build` when config/deps/route wiring changed.
@@ -67,11 +70,43 @@ Run in order. Any failure → STOP, fix or name the blocker; there is no
 
 ## After pushing
 
-- Verify CI check runs land green on the EXACT pushed SHA (the merge arbiter is
-  the Monorepo CI workflow, not the Vercel bot). A new push resets the clock —
-  gates 1–6 apply again to every subsequent commit on the branch.
+- Read back the Monorepo CI workflow and repository-required check runs from
+  GitHub for the exact pushed SHA. Do not substitute a caller-supplied check
+  list, resettable attempt counter, Vercel status, or positive prose for that
+  authoritative remote evidence. Pending, absent, skipped, unknown, or
+  mismatched required evidence is not green.
+- A new push resets the clock: gates 1–6 apply again to every subsequent commit
+  on the branch. After one failed bounded repair attempt, stop automatic
+  resubmission and request an independent failure diagnosis; never push the
+  same failure blindly.
+- An all-green required-check readback stops at `approval_pending`. Merge and
+  deployment still require their own explicit authority and later runtime
+  readback; neither is implied by a draft PR or positive model language.
 - Un-drafting is a second keeper moment: re-confirm the head SHA's checks are
   all green and the body's receipts still match the head before flipping.
+
+### Base-update and remote-readback loop
+
+An update-branch button, web merge, rebase, conflict resolution or any other
+operation that changes the pull request HEAD invalidates the earlier local gate
+and independent review, even when the feature files did not change.
+
+1. Read back the pull request's exact remote HEAD, fetch that revision into a
+   clean isolated worktree, and run `npm run verify:readiness` locally before
+   asking remote CI to judge it. Capture the clean status and HEAD in the same
+   receipt. A gate against either parent of a merge commit is stale evidence.
+2. After the push, read the Monorepo CI result and required check runs back from
+   GitHub for that exact 40-character HEAD. A green run for another SHA, a
+   Vercel preview, or the absence of a run is not a pass.
+3. If remote CI is red, reproduce that exact failing command locally and permit
+   one bounded repair cycle: diagnose the single defect class, make the
+   smallest repair, prove the relevant regression red then green, commit, and
+   repeat all six keeper gates. Do not retry blindly or widen the change.
+4. If the same remote defect survives that repair, or the cause expands beyond
+   the scoped class, stop with a named blocker and the exact log evidence.
+5. Once every required remote check is green, obtain a fresh independent review
+   of the whole diff bound to the exact final HEAD. Any later HEAD change
+   restarts this loop at step 1; no earlier review may be carried forward.
 
 ## Banned at this gate
 

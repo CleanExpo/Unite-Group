@@ -9,8 +9,14 @@ const nextConfig = {
   // import), so force it into the lambda bundle for every surface that calls
   // getProjects(). Without this the read ENOENTs in production.
   outputFileTracingIncludes: {
-    '/founder/command-centre': ['./data/command-centre/portfolio.yaml'],
-    '/api/command-centre/**': ['./data/command-centre/portfolio.yaml'],
+    '/founder/command-centre': [
+      './data/command-centre/portfolio.yaml',
+      './data/command-centre/control-plane.v1.json',
+    ],
+    '/api/command-centre/**': [
+      './data/command-centre/portfolio.yaml',
+      './data/command-centre/control-plane.v1.json',
+    ],
   },
 
   // Note: zustand and @clerk/nextjs removed from serverExternalPackages.
@@ -78,20 +84,29 @@ const nextConfig = {
         pathname: '/**',
       },
       ...(process.env.NEXT_PUBLIC_SUPABASE_URL
-        ? [{
-            protocol: 'https',
-            hostname: new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname,
-            pathname: '/storage/v1/object/**',
-          }]
-        : []
-      ),
+        ? [
+            {
+              protocol: 'https',
+              hostname: new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname,
+              pathname: '/storage/v1/object/**',
+            },
+          ]
+        : []),
     ],
     qualities: [75, 85],
   },
 
   // Redirect policy PDF URLs to canonical HTML pages
   redirects: async () => [
-    ...['/founder', '/dashboard', '/command-centre', '/mission-control', '/founder/dashboard', '/founder/workspace', '/founder/nexus-status'].map(source => ({
+    ...[
+      '/founder',
+      '/dashboard',
+      '/command-centre',
+      '/mission-control',
+      '/founder/dashboard',
+      '/founder/workspace',
+      '/founder/nexus-status',
+    ].map((source) => ({
       source,
       destination: '/founder/command-centre',
       permanent: false,

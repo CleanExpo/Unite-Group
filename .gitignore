@@ -3,6 +3,10 @@
 # dependencies
 node_modules/
 /node_modules
+# The root manifest is a command router with no dependencies. The portfolio
+# release gate still provisions its declared pnpm manager, which creates this
+# empty local lockfile; package workspaces keep their own committed lockfiles.
+/pnpm-lock.yaml
 # no-trailing-slash form: also match node_modules SYMLINKS (a worktree gate-running
 # symlink got committed 2026-07-09 and broke CI+Vercel installs with ENOTDIR)
 node_modules
@@ -157,3 +161,8 @@ scripts/swarm/bench-results.json
 
 # Local agent run state and verification receipts are not publishable source.
 /.omx/
+
+# Mission Control local observations and receipts are runtime evidence, not source.
+# Only reviewed schemas/contracts belong in Git; machine paths and live state do not.
+/.nexus/runtime/
+/apps/web/data/command-centre/control-plane.v1.json

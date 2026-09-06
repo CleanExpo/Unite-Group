@@ -30,7 +30,7 @@ As of 12/06/2026 the canonical monorepo absorbed, with full git history where ap
 1. **One current identity:** Unite-Group. Active control-plane material must use this name only.
 2. **One product surface:** `apps/web` (package `@unite-group/web`).
 3. **No agent, cron, or automation may write to retired/frozen external repositories.** Current work stays in this canonical monorepo unless a separately governed project explicitly says otherwise.
-4. **No nested clones, no new repos.** The portfolio registry is `.portfolio/PORTFOLIO.yaml` in this repo.
+4. **No nested clones, no new repos.** `.portfolio/CONTROL-PLANE.v1.json` is the narrow authority for repository identity, worktree roles, device identity and evidence admission. `.portfolio/PORTFOLIO.yaml` remains the legacy product/deployment catalogue until separately reconciled and cannot override this file or the product identity in this document.
 5. **Toolchain:** each package keeps its own lockfile and package manager (`apps/web` is itself a pnpm workspace; the monorepo root is deliberately not a pnpm workspace). Root `package.json` scripts orchestrate per-package verification.
 6. **External deletion is governed:** deletion of repositories, Supabase projects, Vercel projects or other external resources requires the documented runbook gates and explicit approval.
 7. **Supersession discipline:** when a current instruction replaces an older one, the active source of truth contains only the current rule. Historical contradictions are moved behind an explicit legacy/history boundary so retrieval cannot mistake them for live policy.

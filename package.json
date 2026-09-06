@@ -21,6 +21,7 @@
     "swarm:review": "node scripts/swarm/swarm.mjs --diff --base origin/main && node scripts/swarm/report.mjs",
     "preflight": "node scripts/preflight.mjs",
     "preflight:list": "node scripts/preflight.mjs --list",
+    "verify:pr-candidate": "node scripts/preflight.mjs --keep-going",
     "preflight:all": "node scripts/preflight.mjs --all",
     "cron:audit": "node scripts/cron-cost-audit.mjs",
     "env:check": "node scripts/check-env.mjs --package all"
