@@ -35,8 +35,9 @@ THREE THINGS THIS FILE GOT WRONG, EACH FOUND BY REVIEW RATHER THAN BY ITS AUTHOR
 
 A guard that silently skips a citation is the original defect wearing a check.
 
-SCOPE. Every markdown file in this directory and in `docs/session-handoffs/`, except those
-named in EXCLUDED. Fenced code blocks are skipped, because a code sample is not a claim.
+SCOPE. Every markdown file in this directory and in `docs/session-handoffs/`, at any depth,
+except those named in EXCLUDED. Fenced code blocks are skipped, because a code sample is not
+a claim. `citations-selftest.py` is the control that holds this sentence to account.
 """
 import json
 import os
@@ -45,6 +46,9 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 JSONL = os.path.join(HERE, "evidence-ledger.jsonl")
+# The common root of every scanned directory. Exclusions and message labels are both
+# expressed relative to it, so one document's exemption cannot travel to another.
+DOCS = os.path.dirname(HERE)
 
 # Directories scanned. Handoffs are included because they present ledger facts to a human
 # reader exactly as a memo does, and a reader cannot see a status field that is not there.
@@ -55,10 +59,12 @@ SCAN_DIRS = (
 
 # A file leaves the scan only by being named here, with the reason it is not a claim document.
 # Anything else ending in .md is scanned, so adding a document cannot silently escape.
+# Keys are paths relative to DOCS, never bare filenames: an exemption is granted to one
+# document, and a different document deeper in the tree must not inherit it by sharing a name.
 EXCLUDED = {
-    "evidence-ledger.md": "the ledger rendering; every entry already prints its own status",
-    "README.md": "rules and conventions; it discusses ids rather than asserting from them",
-    "lessons.md": "method record; it discusses ids rather than asserting from them",
+    "governance/evidence-ledger.md": "the ledger rendering; every entry already prints its own status",
+    "governance/README.md": "rules and conventions; it discusses ids rather than asserting from them",
+    "governance/lessons.md": "method record; it discusses ids rather than asserting from them",
 }
 
 GRADES = {"unverified-seed": "unverified", "conflict": "conflict", "stale": "stale"}
@@ -86,20 +92,39 @@ def discover():
 
     Returns a list of absolute paths. Discovery rather than a literal list is the point:
     a document added tomorrow is scanned tomorrow, with no edit to this file.
+
+    The walk recurses, because "under" includes a subdirectory. It did not until
+    2026-09-07: `os.listdir` reads one level, so a claim document one directory deeper
+    was never opened, and the run reported PASS with its citation uncounted. The counts
+    were identical with and without the file, which is what made it invisible.
+
+    Exclusion is matched on the DOCS-relative path for the same reason: `README.md` is
+    exempt in this directory, and a file of that name planted in a subdirectory is a
+    different document that was never granted the exemption.
     """
     found = []
     for d in SCAN_DIRS:
         if not os.path.isdir(d):
             continue
-        for name in sorted(os.listdir(d)):
-            if name.endswith(".md") and name not in EXCLUDED:
-                found.append(os.path.join(d, name))
+        for root, dirs, names in os.walk(d):
+            dirs.sort()
+            for name in sorted(names):
+                if not name.endswith(".md"):
+                    continue
+                path = os.path.join(root, name)
+                if label(path) in EXCLUDED:
+                    continue
+                found.append(path)
     return found
 
 
 def label(path):
-    """Repo-relative-ish label for messages, so a reader knows which directory it is."""
-    return os.path.join(os.path.basename(os.path.dirname(path)), os.path.basename(path))
+    """DOCS-relative path, so a reader knows exactly which file, at any depth.
+
+    Forward slashes on every platform, so the same string keys EXCLUDED and prints in a
+    message whether the run is on Windows or Linux.
+    """
+    return os.path.relpath(path, DOCS).replace(os.sep, "/")
 
 
 def expected_grade(status):
