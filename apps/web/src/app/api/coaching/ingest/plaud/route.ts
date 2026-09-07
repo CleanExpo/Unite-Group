@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
-import { createClient, getUser } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
+import { assertCronAuth } from '@/lib/cron-auth'
+import { getFounderUserId } from '@/lib/auth/founder-user-id'
 import { checkConsent } from '@/lib/coaching/consent'
 
 export const dynamic = 'force-dynamic'
@@ -10,23 +12,37 @@ export const dynamic = 'force-dynamic'
  * Receives a finished Plaud transcription via Zapier and stores it as a
  * coaching session.
  *
- * WHY ZAPIER AND NOT PLAUD DIRECTLY: Plaud has no public API — its own
- * support article (updated 07/09/2026) says there is no sign-up or waiting
- * list for one, and the private OAuth API is closed beta returning only the 20
- * most recent recordings. Its Zapier trigger, however, is a genuine instant
- * webhook (new_ai_generation_complete, isHook: true), so this is push rather
- * than poll. Plaud also cannot transcribe live (support, updated 19/08/2026:
- * "No, Plaud does not support real-time transcription"), so a session arrives
- * minutes after the pin is synced, never during the conversation.
+ * WHY ZAPIER AND NOT PLAUD DIRECTLY: Plaud has no public API — its own support
+ * article (updated 07/09/2026) says there is no sign-up or waiting list for one,
+ * and the private OAuth API is closed beta returning only the 20 most recent
+ * recordings. Its Zapier trigger, however, is a genuine instant webhook
+ * (new_ai_generation_complete, isHook: true), so this is push rather than poll.
+ * Plaud also cannot transcribe live (support, updated 19/08/2026: "No, Plaud
+ * does not support real-time transcription"), so a session arrives minutes after
+ * the pin is synced, never during the conversation.
+ *
+ * AUTHENTICATION — corrected after independent review (P1).
+ * This first shipped gated on `getUser()`, a browser session. Zapier calls
+ * server-to-server and carries no Supabase session cookie, so EVERY real
+ * delivery would have returned 401 and ingestion would never have run once.
+ * The route was documented as a webhook receiver and implemented as a
+ * session-only endpoint. It now follows the house pattern for trusted
+ * non-session callers (src/app/api/CLAUDE.md §5): CRON_SECRET for the caller,
+ * FOUNDER_USER_ID for the owner.
+ *
+ * Because the service client bypasses RLS, `founder_id` scoping here is the
+ * ONLY thing enforcing tenancy — it is written explicitly on every query.
  *
  * The transcript is stored but NOT extracted here. Extraction is a separate,
- * reviewed step — nothing reaches the client file without the founder
- * approving it.
+ * reviewed step; nothing reaches the client file without the founder approving it.
  */
 export async function POST(request: Request) {
-  const user = await getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'unauthorised' }, { status: 401 })
+  const denied = assertCronAuth(request)
+  if (denied) return denied
+
+  const founderId = getFounderUserId()
+  if (!founderId) {
+    return NextResponse.json({ error: 'FOUNDER_USER_ID not configured' }, { status: 500 })
   }
 
   let body: {
@@ -50,12 +66,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'transcript_required' }, { status: 400 })
   }
 
-  const supabase = await createClient()
+  const supabase = createServiceClient()
 
   const { data: engagement, error: lookupError } = await supabase
     .from('coaching_engagements')
     .select('id, client_id, consent_given, consent_date, consent_method')
-    .eq('founder_id', user.id)
+    .eq('founder_id', founderId)
     .eq('id', engagement_id)
     .maybeSingle()
 
@@ -64,22 +80,25 @@ export async function POST(request: Request) {
   }
 
   // THE CONSENT GATE. A transcript of a private conversation is not stored
-  // against a client who has not consented — see lib/coaching/consent.ts for
-  // why this is a legal precondition and not a preference.
+  // against a client who has not consented — see lib/coaching/consent.ts for why
+  // this is a legal precondition and not a preference. checkConsent(null)
+  // refuses with engagement_not_found, so a missing engagement cannot pass.
   const verdict = checkConsent(engagement)
   if (!verdict.allowed) {
-    return NextResponse.json(
-      { error: 'consent_required', reason: verdict.reason },
-      { status: 403 }
-    )
+    return NextResponse.json({ error: 'consent_required', reason: verdict.reason }, { status: 403 })
+  }
+  if (!engagement) {
+    // Unreachable: checkConsent refuses null. Explicit so the narrowing below
+    // does not rely on a non-null assertion (flagged in review).
+    return NextResponse.json({ error: 'engagement_not_found' }, { status: 404 })
   }
 
   const { data: inserted, error: insertError } = await supabase
     .from('coaching_sessions')
     .insert({
-      founder_id: user.id,
+      founder_id: founderId,
       engagement_id,
-      client_id: engagement!.client_id,
+      client_id: engagement.client_id,
       transcript,
       source: 'plaud',
       source_ref: body.source_ref ?? null,

@@ -48,7 +48,15 @@ export default async function EngagementPage({
   if (engagementError) throw new Error(`Couldn't load engagement: ${engagementError.message}`)
   if (!engagement) notFound()
 
-  const [{ data: extractions }, { data: sessions }] = await Promise.all([
+  // Errors are captured and thrown, never swallowed. Dropping them here and
+  // rendering `data ?? []` turns a FAILED read into "Nothing approved yet" —
+  // a failed read wearing the face of a successful empty one. That is the
+  // no-fake-as-real violation, and it was caught in independent review (P1)
+  // after the engagement lookup above already got this right.
+  const [
+    { data: extractions, error: extractionsError },
+    { data: sessions, error: sessionsError },
+  ] = await Promise.all([
     supabase
       .from('coaching_extractions')
       .select('id, kind, body, owner, due_date, metric_value, metric_unit, metric_period, transcript_quote, confidence, status, valid_from')
@@ -65,14 +73,20 @@ export default async function EngagementPage({
       .order('session_date', { ascending: false }),
   ])
 
-  const proposedCount = (
-    await supabase
-      .from('coaching_extractions')
-      .select('id', { count: 'exact', head: true })
-      .eq('founder_id', user.id)
-      .eq('engagement_id', engagementId)
-      .eq('status', 'proposed')
-  ).count ?? 0
+  if (extractionsError) throw new Error(`Couldn't load the client file: ${extractionsError.message}`)
+  if (sessionsError) throw new Error(`Couldn't load sessions: ${sessionsError.message}`)
+
+  // Same class as the two above: a failed count silently rendering as
+  // "0 awaiting review" would hide a review queue rather than report a fault.
+  const { count: proposedRaw, error: proposedError } = await supabase
+    .from('coaching_extractions')
+    .select('id', { count: 'exact', head: true })
+    .eq('founder_id', user.id)
+    .eq('engagement_id', engagementId)
+    .eq('status', 'proposed')
+
+  if (proposedError) throw new Error(`Couldn't count pending review items: ${proposedError.message}`)
+  const proposedCount = proposedRaw ?? 0
 
   const byKind = new Map<string, typeof extractions>()
   for (const row of extractions ?? []) {
