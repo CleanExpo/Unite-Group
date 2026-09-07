@@ -3,7 +3,7 @@
 GENERATED FILE. Source of truth is `evidence-ledger.jsonl`.
 Regenerate with `python ledger.py render`. Do not hand-edit this file.
 
-Rendered: 2026-09-07 | Entries: 88
+Rendered: 2026-09-07 | Entries: 92
 
 ## What each status means
 
@@ -21,12 +21,12 @@ A sub-agent report is lead-grade evidence until the coordinator reopens the sour
 ## Deliverables fed
 
 - **D1** Builder/restorer trial memo - 8 entries
-- **D2** ICA/Code landscape memo - 45 entries
-- **D3** Regulatory-hook matrix - 34 entries
+- **D2** ICA/Code landscape memo - 49 entries
+- **D3** Regulatory-hook matrix - 38 entries
 - **D4** Governance-vacuum map - 27 entries
-- **D5** Stakeholder + windows map - 25 entries
-- **D6** Positioning options pack - 34 entries
-- **D7** RIA partnership brief - 9 entries
+- **D5** Stakeholder + windows map - 26 entries
+- **D6** Positioning options pack - 37 entries
+- **D7** RIA partnership brief - 11 entries
 - **D8** Fresh-context citation audit - 0 entries
 
 ## Sweep: AFCA
@@ -173,6 +173,60 @@ A sub-agent report is lead-grade evidence until the coordinator reopens the sour
 - Feeds: D2, D3
 - CONFLICTS WITH: AFCA-01
 - Note: THE PRIMARY INSTRUMENT, UNREAD. Every fetch attempt (WebFetch direct, r.jina.ai proxy, Exa crawler) returned 403 or a crawl error. The 2026-08 path is the only support for the card's August 2026 date.
+
+## Sweep: AFCA-APPROACH
+
+### AFCA-13 - `conflict`
+
+**Claim.** The AFCA Approach to general insurance claims handling carries a cover date of August 2026, while its own document-control table records the version as July 2026.
+
+> Version 1 | AFCA Approach to General insurance complaints handling | July 2026 | Current
+
+- Source: [AFCA Approach to general insurance claims handling](https://www.afca.org.au/sites/default/files/2026-08/AFCA%20Approach%20to%20general%20insurance%20claims%20handling.pdf)
+- Accessed: 2026-09-07 | Check by: 2026-12-01
+- Sweep said: `verified` | Verified by: fresh-context-verifier-B/run1/2026-09-07
+- Feeds: D2, D3, D5
+- CONFLICTS WITH: CARD-07, AFCA-01
+- Note: THE DOCUMENT CONTRADICTS ITSELF ON ITS OWN DATE. Cover says August 2026; section 3.3 version record says July 2026; the file path says 2026-08. The card's 10 August 2026 is NOT confirmed by the document. Cite the cover date and flag the discrepancy.
+
+### AFCA-14 - `verified`
+
+**Claim.** The AFCA Approach has a dedicated section on claim denials involving expert evidence, at section 2.4, pages 14 to 17.
+
+> In many of these complaints, expert evidence is being relied upon by the insurer in denying the claim.
+
+- Source: [AFCA Approach to general insurance claims handling, section 2.4](https://www.afca.org.au/sites/default/files/2026-08/AFCA%20Approach%20to%20general%20insurance%20claims%20handling.pdf)
+- Accessed: 2026-09-07 | Check by: 2026-12-01
+- Sweep said: `verified` | Verified by: fresh-context-verifier-B/run1/2026-09-07
+- Feeds: D2, D3, D6
+- Hook: Expert evidence relied on to deny a claim is directly in scope of AFCA's claims-handling Approach | AFCA-member insurers via the external dispute resolution scheme | AFCA Approach to general insurance claims handling, section 2.4
+- Note: CONFIRMS THE SUBSTANCE OF CARD-07. The trade-press claim at AFCA-03 is now primary-sourced. Retrieved by loading AFCA's page in a real browser and fetching the PDF same-origin; every direct, proxied and crawler fetch had returned Cloudflare 403.
+
+### AFCA-15 - `verified`
+
+**Claim.** AFCA may treat reliance on expert evidence that gave little or no reasonable basis for its opinion as a breach of the insurer's claims-handling obligation.
+
+> If AFCA concludes the insurer's expert evidence provided little or no reasonable basis for the opinion, then it may also be considered a breach
+
+- Source: [AFCA Approach to general insurance claims handling, section 2.4](https://www.afca.org.au/sites/default/files/2026-08/AFCA%20Approach%20to%20general%20insurance%20claims%20handling.pdf)
+- Accessed: 2026-09-07 | Check by: 2026-12-01
+- Sweep said: `verified` | Verified by: fresh-context-verifier-B/run1/2026-09-07
+- Feeds: D2, D3, D6, D7
+- Hook: Make fair decisions supported by relevant information; a defective expert report breaches that obligation | AFCA-member insurers | AFCA Approach section 2.4
+- Note: REPORT QUALITY IS NOW AN EXPLICIT BREACH TRIGGER, not an inference from determinations. Remedies attach: the Approach names financial losses sustained by the complainant, giving temporary accommodation beyond the policy limit as its example.
+
+### AFCA-16 - `verified`
+
+**Claim.** An insurer breaches its obligations even where its expert evidence had some reasonable basis, if AFCA ultimately prefers a more persuasive report from the complainant.
+
+> the insurer would still be considered to have breached its obligations under the policy
+
+- Source: [AFCA Approach to general insurance claims handling, section 2.4](https://www.afca.org.au/sites/default/files/2026-08/AFCA%20Approach%20to%20general%20insurance%20claims%20handling.pdf)
+- Accessed: 2026-09-07 | Check by: 2026-12-01
+- Sweep said: `verified` | Verified by: fresh-context-verifier-B/run1/2026-09-07
+- Feeds: D2, D3, D6, D7
+- Hook: A better report from the policyholder's side defeats the insurer even where the insurer's own report was not unreasonable | AFCA-member insurers | AFCA Approach section 2.4
+- Note: THE STRATEGICALLY DECISIVE ENTRY OF RUN 1. It makes a well-evidenced policyholder-side report a winning instrument, not merely a defensive one. The Approach also states that where the insurer bears the onus on an exclusion and its expert evidence is insufficient, AFCA will likely decide for the complainant. This directly contradicts the ICA objection at AFCA-11.
 
 ## Sweep: ASIC
 
@@ -684,19 +738,19 @@ A sub-agent report is lead-grade evidence until the coordinator reopens the sour
 
 ## Sweep: NCC
 
-### NCC-01 - `unverified-seed`
+### NCC-01 - `verified`
 
-**Claim.** Building Ministers agreed in October 2025 that no further residential NCC changes will be made until mid-2029, except essential quality and safety measures.
+**Claim.** The Commonwealth announced on 24 August 2025 that no further residential NCC changes will be made until mid-2029 except essential quality and safety measures, and Building Ministers discussed that announcement at their October 2025 meeting.
 
 > no further residential changes to the NCC, except for essential quality and safety measures, will be made until mid-2029
 
 - Source: [Meeting communique: Building Ministers' Meeting, October 2025](https://treasury.gov.au/media-release/meeting-communique-building-ministers-meeting-october-2025)
 - Accessed: 2026-09-07 | Check by: 2026-10-07
-- Sweep said: `verified` | Verified by: NOT YET VERIFIED
+- Sweep said: `verified` | Verified by: fresh-context-verifier-B/run1/2026-09-07
 - Feeds: D4, D5
-- Note: MATERIAL FOR STRATEGY: the residential NCC is frozen for three years. Any governance opening in residential building is NOT via the Code text.
+- Note: CLAIM CORRECTED by verifier B: the original wording said Ministers AGREED this in October 2025. The page says they DISCUSSED a Commonwealth announcement made 24 August 2025. Citing this page for a Ministers' October decision would overstate it. MATERIAL FOR STRATEGY: the residential NCC is frozen for three years, so any governance opening in residential building is NOT via the Code text.
 
-### NCC-02 - `unverified-seed`
+### NCC-02 - `verified`
 
 **Claim.** Master Builders Australia made a submission to Treasury on NCC modernisation dated 27 February 2026.
 
@@ -704,7 +758,7 @@ A sub-agent report is lead-grade evidence until the coordinator reopens the sour
 
 - Source: [Modernising the National Construction Code: Simpler Rules, Better Buildings](https://masterbuilders.com.au/wp-content/uploads/2026/03/NCC-Submission-2026.pdf)
 - Accessed: 2026-09-07 | Check by: 2027-09-07
-- Sweep said: `verified` | Verified by: NOT YET VERIFIED
+- Sweep said: `verified` | Verified by: fresh-context-verifier-B/run1/2026-09-07
 - Feeds: D4, D5
 - Note: Primary PDF read in full by the sweep. Confirms the February 2026 date in CARD-11.
 
@@ -721,7 +775,7 @@ A sub-agent report is lead-grade evidence until the coordinator reopens the sour
 - CONFLICTS WITH: CARD-11
 - Note: WORDING CONFLICT with the card. Substance matches, the exact phrase does not appear. Any memo must quote the document's words, not the card's paraphrase.
 
-### NCC-04 - `unverified-seed`
+### NCC-04 - `verified`
 
 **Claim.** The Master Builders submission recommends a division of roles across Australia's building regulatory system, with the NCC kept narrow and stable.
 
@@ -729,22 +783,22 @@ A sub-agent report is lead-grade evidence until the coordinator reopens the sour
 
 - Source: [Modernising the National Construction Code, Submission to Treasury](https://masterbuilders.com.au/wp-content/uploads/2026/03/NCC-Submission-2026.pdf)
 - Accessed: 2026-09-07 | Check by: 2027-09-07
-- Sweep said: `verified` | Verified by: NOT YET VERIFIED
+- Sweep said: `verified` | Verified by: fresh-context-verifier-B/run1/2026-09-07
 - Feeds: D4, D6
 - Note: Page 12, response to Q5. Confirms CARD-12. A division of roles is precisely where an unowned function can be claimed.
 
-### NCC-05 - `unverified-seed`
+### NCC-05 - `verified`
 
 **Claim.** Treasury's public consultation Streamlining and modernising the National Construction Code opened 15 December 2025, closed 27 February 2026, and is now closed.
 
-> This consultation is now closed.
+> This consultation is closed
 
 - Source: [Streamlining and modernising the National Construction Code, Treasury Consultation Hub](https://consult.treasury.gov.au/c2025-722616)
 - Accessed: 2026-09-07 | Check by: 2026-10-07
-- Sweep said: `verified` | Verified by: NOT YET VERIFIED
+- Sweep said: `verified` | Verified by: fresh-context-verifier-B/run1/2026-09-07
 - Feeds: D5
 - Window: OPENED 2025-12-15 | CLOSED 2026-02-27 (PASSED) | RUN BY Treasury | submissions were by email to NCCmodernisation@treasury.gov.au
-- Note: WINDOW SHUT. The card's timing thesis rests partly on this being live. It is not.
+- Note: QUOTE CORRECTED by verifier B: the page says 'This consultation is closed', with no 'now'. Both dates verify on the page and are corroborated by the Master Builders PDF. WINDOW SHUT. Single successful read; the page is a JS-rendered Converlens app and a second reader returned only the shell.
 
 ### NCC-06 - `unverified-seed`
 
@@ -905,18 +959,18 @@ A sub-agent report is lead-grade evidence until the coordinator reopens the sour
 - Hook: Harmonises WHS duties nationally except Victoria | PCBUs in 8 of 9 jurisdictions; Victorian PCBUs bound by the OHS Act 2004 instead | MANDATORY once enacted per jurisdiction
 - Note: NO QUOTE. Direct fetch timed out twice at 60s. Content triangulated from search snippets only.
 
-### STD-05 - `unverified-seed`
+### STD-05 - `verified`
 
 **Claim.** A person conducting a business or undertaking must ensure, so far as reasonably practicable, the health and safety of workers.
 
-> A PCBU must ensure, so far as reasonably practicable, the health and safety of workers.
+> must ensure, so far as is reasonably practicable, the health and safety of
 
 - Source: [Work Health and Safety Act 2011 (Cth)](https://www.legislation.gov.au/C2011A00137/latest/text)
 - Accessed: 2026-09-07 | Check by: 2026-09-14
-- Sweep said: `verified` | Verified by: NOT YET VERIFIED
+- Sweep said: `verified` | Verified by: fresh-context-verifier-B/run1/2026-09-07
 - Feeds: D3, D4
-- Hook: Primary duty of care | every PCBU, including a restoration contractor's business | MANDATORY
-- Note: THE FIRMEST LEGAL GROUND IN THE PROGRAM. Commonwealth text; each non-Victorian jurisdiction mirrors it.
+- Hook: Primary duty of care | every person conducting a business or undertaking, including a restoration contractor's business | MANDATORY
+- Note: QUOTE CORRECTED by verifier B: the sweep's original quote was a PARAPHRASE, not statutory text. It dropped 'is' from 'so far as is reasonably practicable', used the abbreviation PCBU which s19 does not use, and truncated the paragraphs defining which workers are covered. Full s19(1): 'A person conducting a business or undertaking must ensure, so far as is reasonably practicable, the health and safety of: (a) workers engaged, or caused to be engaged by the person; and (b) workers whose activities in carrying out work are influenced or directed by the person; while the workers are at work in the business or undertaking.' s19(2) separately covers other persons. Verified via AustLII; the cited legislation.gov.au /text view returned only a table of contents.
 
 ### STD-06 - `unverified-seed`
 
