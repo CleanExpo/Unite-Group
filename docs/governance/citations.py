@@ -36,8 +36,15 @@ THREE THINGS THIS FILE GOT WRONG, EACH FOUND BY REVIEW RATHER THAN BY ITS AUTHOR
 A guard that silently skips a citation is the original defect wearing a check.
 
 SCOPE. Every markdown file in this directory and in `docs/session-handoffs/`, at any depth,
-except those named in EXCLUDED. Fenced code blocks are skipped, because a code sample is not
-a claim. `citations-selftest.py` is the control that holds this sentence to account.
+through a symlinked directory, and whatever the case or spelling of the extension (`.md`,
+`.MD`, `.markdown`), except those named in EXCLUDED. Fenced code blocks are skipped, because
+a code sample is not a claim.
+
+`citations-selftest.py` holds this sentence to account, and only for what it actually plants:
+depth, an excluded basename reused deeper, extension case, extension spelling, and a symlinked
+directory. It does NOT cover a citation split across two lines, which the per-line regex still
+cannot see. Adding a clause to this sentence without adding its probe is how the sentence was
+false before.
 """
 import json
 import os
@@ -67,6 +74,10 @@ EXCLUDED = {
     "governance/lessons.md": "method record; it discusses ids rather than asserting from them",
 }
 
+# Every extension that means "this is a markdown document". Compared lower-cased, so the
+# spelling and the case a file happens to use cannot decide whether it is checked.
+MD_SUFFIXES = (".md", ".markdown")
+
 GRADES = {"unverified-seed": "unverified", "conflict": "conflict", "stale": "stale"}
 GRADE_WORDS = "|".join(sorted(set(GRADES.values())))
 
@@ -87,6 +98,16 @@ def load_ledger():
     return rows
 
 
+def is_markdown(name):
+    """True for any spelling of a markdown extension, in any case.
+
+    Matching `.md` exactly was a hole of the same shape as F5: `NOTES.MD` was skipped in
+    silence and the run printed the same count as a clean tree. A guard that covers one
+    spelling of a thing does not cover the thing.
+    """
+    return name.lower().endswith(MD_SUFFIXES)
+
+
 def discover():
     """Every markdown file under SCAN_DIRS that is not explicitly excluded.
 
@@ -103,13 +124,23 @@ def discover():
     different document that was never granted the exemption.
     """
     found = []
+    seen = set()
     for d in SCAN_DIRS:
         if not os.path.isdir(d):
             continue
-        for root, dirs, names in os.walk(d):
+        for root, dirs, names in os.walk(d, followlinks=True):
+            # followlinks=True because a symlinked directory is still under the scan root.
+            # It defaults to False to avoid walking a cycle forever, so the cycle has to be
+            # handled here instead: a directory whose real path has been walked is skipped
+            # and not descended into.
+            real = os.path.realpath(root)
+            if real in seen:
+                dirs[:] = []
+                continue
+            seen.add(real)
             dirs.sort()
             for name in sorted(names):
-                if not name.endswith(".md"):
+                if not is_markdown(name):
                     continue
                 path = os.path.join(root, name)
                 if label(path) in EXCLUDED:

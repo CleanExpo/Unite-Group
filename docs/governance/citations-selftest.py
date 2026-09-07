@@ -21,6 +21,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CHECKER = os.path.join(HERE, "citations.py")
@@ -36,6 +37,9 @@ TOP_PROBE = os.path.join(HERE, "_selftest_probe.md")
 SUB_DIR = os.path.join(HERE, "_selftest_dir")
 SUB_PROBE = os.path.join(SUB_DIR, "claim.md")
 SUB_EXCLUDED_NAME = os.path.join(SUB_DIR, "README.md")
+SUB_UPPER_EXT = os.path.join(SUB_DIR, "CLAIM.MD")
+SUB_LONG_EXT = os.path.join(SUB_DIR, "claim.markdown")
+LINK_DIR = os.path.join(HERE, "_selftest_link")
 
 
 def run_check():
@@ -71,6 +75,12 @@ def write(path, text):
 def cleanup():
     if os.path.exists(TOP_PROBE):
         os.remove(TOP_PROBE)
+    # A symlink must be unlinked, never rmtree'd: rmtree would follow it and delete the
+    # directory it points at, which here lives outside the repo.
+    if os.path.islink(LINK_DIR):
+        os.unlink(LINK_DIR)
+    elif os.path.isdir(LINK_DIR):
+        shutil.rmtree(LINK_DIR)
     if os.path.isdir(SUB_DIR):
         shutil.rmtree(SUB_DIR)
 
@@ -111,6 +121,42 @@ def case(name, path, expect_named):
     return ok
 
 
+def case_symlink(name):
+    """A symlinked directory under the scan root. os.walk ignores one by default.
+
+    Returns True caught, False missed, None the control could not be run. None is NOT a
+    pass: a symlink needs Developer Mode or admin on Windows, and a case that could not
+    plant its defect proves nothing and must say so rather than stay silent.
+    """
+    target = tempfile.mkdtemp(prefix="citations-selftest-")
+    try:
+        write(os.path.join(target, "claim.md"), PROBE_LINE)
+        try:
+            os.symlink(target, LINK_DIR, target_is_directory=True)
+        except (OSError, NotImplementedError, AttributeError) as exc:
+            print("  %-34s SKIPPED cannot create a symlink here: %s" % (name, exc))
+            print("      This vector is UNTESTED on this machine. Do not read the run as covering it.")
+            return None
+        if not os.path.islink(LINK_DIR):
+            print("  %-34s SKIPPED the link was not created" % name)
+            return None
+        rc, out = run_check()
+        ok = rc == 1 and "_selftest_link" in out
+        print("  %-34s %-7s exit=%d  %s" % (name, "CAUGHT" if ok else "MISSED", rc,
+                                            out.splitlines()[0] if out.strip() else "(no output)"))
+        if ok:
+            for line in out.splitlines()[1:]:
+                if "_selftest_link" in line:
+                    print("      %s" % line.strip())
+                    break
+        else:
+            print("      required: exit 1 and a violation naming '_selftest_link'")
+        return ok
+    finally:
+        cleanup()
+        shutil.rmtree(target, ignore_errors=True)
+
+
 def main():
     print("CITATIONS SELFTEST - does the guard fire when the defect is present?")
 
@@ -130,6 +176,12 @@ def main():
         print("  PRECONDITION FAILED: the tree is not clean before planting.")
         print("  %s" % (out.splitlines()[0] if out.strip() else "(no output)"))
         return 2
+    if base[0] <= 0 or base[1] <= 0:
+        # A scan that read nothing prints the same shape as a scan that read everything and
+        # found no fault. Without this, `PASS (0 citations across 0 documents)` is a baseline.
+        print("  PRECONDITION FAILED: baseline scanned nothing (%d citations, %d documents)."
+              % base)
+        return 2
     print("  baseline:     PASS %d citations across %d documents, exit 0" % base)
 
     results = []
@@ -148,6 +200,16 @@ def main():
         # directory that was never granted the exemption.
         results.append(("subdir named README.md",
                         case("subdir named README.md", SUB_EXCLUDED_NAME, "README.md")))
+
+        # Extension spelling. The scan promises "every markdown file", and a case-sensitive
+        # or single-spelling match keeps that promise only for one way of writing it.
+        results.append(("uppercase .MD extension",
+                        case("uppercase .MD extension", SUB_UPPER_EXT, "CLAIM.MD")))
+        results.append((".markdown extension",
+                        case(".markdown extension", SUB_LONG_EXT, "claim.markdown")))
+
+        # A symlinked directory is still under the scan root. os.walk skips one by default.
+        results.append(("symlinked directory", case_symlink("symlinked directory")))
     finally:
         cleanup()
 
@@ -158,13 +220,24 @@ def main():
         return 1
     print("  restore:      PASS %d citations across %d documents, exit 0" % after)
 
-    failed = [n for n, ok in results if not ok]
+    failed = [n for n, ok in results if ok is False]
+    skipped = [n for n, ok in results if ok is None]
+    caught = [n for n, ok in results if ok is True]
     if failed:
         print("SELFTEST: FAIL (%d of %d cases missed)" % (len(failed), len(results)))
         for n in failed:
             print("  missed: %s" % n)
+        for n in skipped:
+            print("  skipped, so UNTESTED: %s" % n)
         return 1
-    print("SELFTEST: PASS (%d of %d cases caught)" % (len(results), len(results)))
+    if skipped:
+        # Not a failure and not a clean pass. A skipped case covers nothing, and saying
+        # PASS here would claim a vector was tested when it was not.
+        print("SELFTEST: PARTIAL (%d caught, %d could not be run)" % (len(caught), len(skipped)))
+        for n in skipped:
+            print("  skipped, so UNTESTED: %s" % n)
+        return 0
+    print("SELFTEST: PASS (%d of %d cases caught)" % (len(caught), len(results)))
     return 0
 
 
