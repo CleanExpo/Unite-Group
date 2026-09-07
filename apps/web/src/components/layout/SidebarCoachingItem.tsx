@@ -51,7 +51,15 @@ export function SidebarCoachingItem({ collapsed }: SidebarCoachingItemProps) {
     const rail = trigger.closest('aside')
     const rowRect = (row ?? trigger).getBoundingClientRect()
     const railRight = rail?.getBoundingClientRect().right ?? trigger.getBoundingClientRect().right
-    setAnchor({ top: rowRect.top, left: railRight + 4 })
+    // Clamp to the viewport. The panel is max-w-[320px], and moving the anchor
+    // out to the rail pushed it 28px further right — on a narrow window that
+    // would run it off the screen edge, where it cannot be read or clicked.
+    // Overlapping the rail is the better failure than being unreachable.
+    const MAX_PANEL = 320
+    const EDGE_GAP = 8
+    const rightmost = window.innerWidth - MAX_PANEL - EDGE_GAP
+    const left = Math.max(EDGE_GAP, Math.min(railRight + 4, rightmost))
+    setAnchor({ top: rowRect.top, left })
   }, [])
 
   // Fetch lazily — the sidebar renders on every founder page, the flyout does not.
