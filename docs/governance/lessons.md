@@ -113,3 +113,59 @@ suggestive and nothing more.
    negative, which is currently search-only for those bodies.
 5. **ASIC's approved-codes register** to settle whether the Code is enforceable yet
    [ASIC-03].
+
+
+---
+
+## Run 2, slice 1 - the deep-research lane (2026-09-07)
+
+Scope: only the two items run 1 marked BLOCKING. Model `perplexity/sonar-deep-research` via
+OpenRouter, on founder instruction and a $25 credit. Full write-up in `run2-deep-research.md`.
+
+### What the run 1 timeouts actually were
+
+Nothing was wrong with the sources. All five documents that had failed four times downloaded
+first try, largest 6,595,488 bytes, using plain `curl` with `--max-time 300`. The run 1 failures
+were a fetch-tool problem misread as evidence about the world. **A timeout tells you about your
+instrument. Run 1 spent its headline finding on four of them.**
+
+### The rule that held
+
+The two-reader rule survived contact with a very persuasive model. `sonar-deep-research` produced
+70 real citations across two queries and every quote it offered matched the primary document when
+checked. It was still treated as a locator, never a witness: six entries reached `verified` only
+because the coordinating context downloaded the PDF and matched the words itself. Three entries it
+reported alone stayed lead-grade and say so (`STD-21`, `ASIC-11`). One clean run does not retire
+the rule that run 1 needed, when two Sonnet sweeps fabricated quotes and self-certified them.
+
+### Positive controls, twice, and they earned it
+
+Before trusting a zero, the search was proven able to return a hit. In the Workplace Exposure
+Standards list, Benzene returned 30 hits and Formaldehyde 2 before mould, fungi, spore and
+bioaerosol returned 0. In the AFCA submission, the word *code* returned 87 hits before the
+specific sentence was searched for. Neither negative would have been worth writing down without
+them.
+
+### A heavy prompt is a failure mode
+
+The first Q2 prompt asked for five bodies with strict per-body reporting and returned HTTP 504,
+*Provider timed out after 300686ms*. Re-running with streaming gave the identical 301-second
+failure, which killed the gateway-idle theory rather than confirming it. A narrowed five-question
+prompt then ran 514 seconds and returned 50 citations. **Ask for less and you get an answer.**
+Neither failed call was charged.
+
+### Cost, measured
+
+$1.2222 for Q1, $1.0975 for the narrowed Q2, $2.3197 total against a $25 credit. About $1.15 a
+query. Run 1's recommendation against buying credits was reasonable on run 1's evidence; on run 2's
+it was wrong for this specific job, because the bottleneck really was source access.
+
+### Carried into run 3
+
+1. **66 of 102 entries are still `unverified-seed`.** D8 is barely started.
+2. **Six state and territory WHS regulators, and every state tenancy instrument except
+   Queensland, have been read by nobody in either run.** `STD-14` stays a seed until they are.
+3. **`ASIC-03` is settled on the evidence but stays `conflict`.** Rule D6 reserves that to Phill.
+   It is a one-line decision, not a research task.
+4. **`ASIC-11`'s dates decide the whole positioning window** - lodgement late 2026, effect 2028 -
+   and they are trade-press, one reader. Confirm against ICA or ASIC before they are used.
