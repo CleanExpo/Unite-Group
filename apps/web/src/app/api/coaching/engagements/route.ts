@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient, getUser } from '@/lib/supabase/server'
+import { sortEngagements } from '@/lib/coaching/sort'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,7 +47,9 @@ export async function GET() {
     )
   }
 
-  const engagements: CoachingEngagementRow[] = (data ?? []).map((row) => ({
+  // Re-sorted in application code so the rendered order does not depend on the
+  // database column's collation. See lib/coaching/sort.ts.
+  const engagements: CoachingEngagementRow[] = sortEngagements(data ?? []).map((row) => ({
     ...row,
     label: `${row.business_name} - ${row.client_name}`,
   }))

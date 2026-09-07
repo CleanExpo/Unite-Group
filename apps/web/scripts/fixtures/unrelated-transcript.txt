@@ -1,0 +1,71 @@
+CONTROL FIXTURE — not a real client session.
+
+This transcript exists to falsify the extraction check. It is deliberately the
+HARD case rather than the easy one: it is business talk, in the same register as
+a real coaching call, between two people who never agree to do anything. A
+control made of small talk would prove very little, because any extractor can
+tell a cricket score from a commitment. The question this fixture asks is
+narrower and much more useful: can the extractor tell "describing the work" from
+"committing to an action"?
+
+If any commitment comes back from this file, the extractor is pattern-matching
+on business vocabulary rather than reading for agreed actions.
+
+---
+
+SPEAKER A: So how long have you been in the game now?
+
+SPEAKER B: Coming up on eleven years. Started out doing carpet cleaning out of
+the back of a station wagon, and it just sort of grew from there. These days
+it's mostly commercial. Offices, a couple of shopping centres, some strata work
+here and there.
+
+SPEAKER A: And the team?
+
+SPEAKER B: Six full-time, plus casuals when it gets busy. Which is most of
+summer, honestly. Storm season is our whole year, really. You do sixty per cent
+of your turnover in about four months and then you sit around wondering where
+everyone went.
+
+SPEAKER A: That's the trap with this industry, isn't it. Everyone's flat out or
+everyone's starving.
+
+SPEAKER B: Exactly right. And the insurance work makes it worse, because you're
+waiting on assessors, waiting on approvals, and meanwhile your blokes are on the
+clock. I've had jobs sit for three weeks waiting for someone to tick a box.
+
+SPEAKER A: How do you handle the quoting side?
+
+SPEAKER B: Badly, if I'm honest. It's all in my head. I've been doing it long
+enough that I can walk into a job and know roughly what it's worth, but that
+doesn't help anyone else. If I'm away, the quotes just don't go out.
+
+SPEAKER A: A lot of operators are in that boat. The knowledge is real, it's just
+not written down anywhere.
+
+SPEAKER B: That's it. My old man was the same. He ran a plastering business for
+thirty years and when he retired the whole thing just evaporated, because none
+of it existed outside his head. There was nothing to sell.
+
+SPEAKER A: Did that change how you think about your own setup?
+
+SPEAKER B: I think about it. Whether I do anything about it is another question.
+You get busy. The urgent stuff wins every time.
+
+SPEAKER A: It usually does.
+
+SPEAKER B: The other thing is equipment. We've got about eighty grand tied up in
+dehus and air movers, and half of it sits in the shed nine months of the year.
+I've thought about hiring it out to the smaller operators, but then you're in the
+hire business, and I don't want to be in the hire business.
+
+SPEAKER A: Fair enough.
+
+SPEAKER B: Anyway. That's the state of things. Some of it works, some of it
+doesn't, and most days I'm too flat out to tell which is which.
+
+SPEAKER A: That sounds about right for this trade.
+
+SPEAKER B: It is what it is. Good to talk it through, anyway.
+
+SPEAKER A: Any time.
