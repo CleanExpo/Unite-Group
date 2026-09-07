@@ -82,9 +82,30 @@ python citations.py stats      # citation counts by status, per document
 ```
 
 `check` fails in both directions: a bare citation of a non-verified entry, and a grade left
-behind after an entry was promoted. Recorded control pair, run against the real documents:
-53 violations before annotation, 0 after, then 1 under a planted stale grade on a verified
-entry, restored to 0.
+behind after an entry was promoted.
+
+**The scanned set is discovered, not listed.** Every markdown file in `docs/governance/` and
+in `docs/session-handoffs/` is scanned unless it is named in `EXCLUDED` with a reason. A
+hardcoded list was the second defect review found here: it fails open the moment a document
+is added, which is how a session handoff full of ungraded citations went unchecked.
+
+**Matching is bracket-agnostic and case-insensitive.** Keying on `[ID]` missed combined
+citations like `[TRIAL-05, STD-12]` and bare ids in table cells. Matching uppercase only
+would have skipped `trial-05` in silence; a wrong-case id that resolves to a real entry is
+now reported rather than ignored. Visible citations went 69 → 167 → 188 across those two
+widenings, which is the measure of how much the first two versions could not see.
+
+Recorded control pairs, all run against the real documents and all restored byte-identical:
+
+| Mutant | Result |
+| --- | --- |
+| every citation un-annotated | `FAIL (53 violations)`, exit 1 |
+| combined citation loses its grade | `FAIL (2)`, exit 1 |
+| bare table-cell id loses its grade | `FAIL (1)`, exit 1 |
+| stale `unverified` on a verified entry | `FAIL (1)`, exit 1 |
+| lowercase id | `FAIL (1)`, exit 1, naming the case |
+| a handoff outside `docs/governance/` loses a grade | `FAIL (1)`, exit 1 |
+| restored, each time | `PASS`, exit 0 |
 
 ## The evidence-gap ratchet
 
@@ -102,12 +123,18 @@ python evidence-gap.py check     # exit 1 if the count exceeds the recorded base
 python evidence-gap.py baseline  # rewrite the baseline - only ever downward
 ```
 
-Baseline at the close of run 2: **10 entries**, recorded in `evidence-gap-baseline.json`.
-An entry leaves the set by getting a primary-source read, or by rewording its claim to
-describe the search rather than the world. Raising the baseline to make the check pass is
-the one thing that must never happen.
+Baseline at the close of run 2: **21 entries**, recorded in `evidence-gap-baseline.json`
+with its history. An entry leaves the set by getting a primary-source read.
 
-Control pair: baseline lowered to 9 → `FAIL (10 entries, baseline allows 9)`, exit 1;
+**The baseline rose from 10 to 21, and that was legitimate exactly once.** The first detector
+missed phrasings that are present in this ledger — `unread`, `not a direct read`, `403` — never
+looked at the `claim` field at all, and could be escaped by appending a bounding phrase like
+"was found" to a claim that still asserted the world. All three were found by review, not by
+the author. The number rose because the instrument improved. Raising it because a check went
+red is the one thing that must never happen, and the `history` array in the baseline file
+exists so that distinction cannot be quietly lost.
+
+Control pair: baseline lowered by one → `FAIL (21 entries, baseline allows 20)`, exit 1;
 restored → `PASS`, exit 0, file byte-identical.
 
 ## Negative claims

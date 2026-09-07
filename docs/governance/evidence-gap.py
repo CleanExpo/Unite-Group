@@ -18,12 +18,18 @@ promoted or renamed, and a stale allowlist fails open. A count cannot go stale. 
 deliberately crude: it will not tell you WHICH entry regressed, only that the total rose,
 and `list` then shows you.
 
-FALSE POSITIVES ARE HANDLED BY THE CLAIM, NOT BY AN EXCEPTION. An entry escapes this set by
-phrasing its claim as a statement about a search - "was located", "was found", "in the
-sources checked" - which is what every honest unverified claim in this ledger already is.
-Four run-2 entries were flagged by an earlier version of this heuristic because their notes
-narrate a run-1 timeout that run 2 then resolved; `verified` entries are excluded for that
-reason, since a verified entry has by definition had its source reopened.
+NO ESCAPE HATCH. An earlier version let an entry leave the set by containing a bounding
+phrase such as "was found" anywhere in its claim. A reviewer pointed out that this made the
+ratchet decorative: append four words to a claim that still asserts the world and it walks
+out of the set. The heuristic is gone. Membership now depends only on what the EVIDENCE
+admits, which the entry cannot reword its way around.
+
+Entries already `verified` are excluded: such an entry has by definition had its source
+reopened, so a timeout narrated in its note is history rather than a gap.
+
+RAISING THE BASELINE. Only ever legitimate when the DETECTOR widened and caught entries it
+had been missing, and the change must say so. Raising it because a check went red is the one
+thing that must never happen. Baseline history is kept in the baseline file.
 """
 import json
 import os
@@ -36,16 +42,11 @@ BASELINE = os.path.join(HERE, "evidence-gap-baseline.json")
 
 # The instrument did not run, or ran on something that is not the primary source.
 ADMITS = (
-    "404", "timed out", "timeout", "cors", "could not", "never completed", "not read",
+    "404", "403", "timed out", "timeout", "cors", "could not", "never completed", "not read",
     "was not fetched", "not successfully fetched", "guessed", "search-engine highlights",
     "not a raw full-document fetch", "blocked", "no primary", "returned only the shell",
-    "member-gated", "no quote",
-)
-# The claim describes the search rather than the world.
-BOUNDED = (
-    "was located", "was found", "no primary-source evidence", "in the sources",
-    "across the bodies named", "on the ica", "own public pages", "carries no release",
-    "contains no", "remains unestablished", "was read", "no state electrical",
+    "member-gated", "no quote", "unread", "not a direct read", "could not be extracted",
+    "snippets only", "search only", "trade press only", "not opened", "not fetched",
 )
 
 
@@ -61,12 +62,12 @@ def gap_entries():
         # in its note is history rather than a gap.
         if r["status"] == "verified":
             continue
-        hay = ((r.get("search_set") or "") + " " + (r.get("note") or "")).lower()
+        # The claim text is searched too: LOSS-12 admits "could not be extracted" in the
+        # claim itself, where the first version never looked.
+        hay = " ".join([r.get("search_set") or "", r.get("note") or "",
+                        r.get("claim") or ""]).lower()
         admits = [a for a in ADMITS if a in hay]
         if not admits:
-            continue
-        claim = r["claim"].lower()
-        if any(b in claim for b in BOUNDED):
             continue
         out.append((r, admits))
     return out

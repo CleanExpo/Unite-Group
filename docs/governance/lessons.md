@@ -244,3 +244,37 @@ on a verified entry → 1, exit 1. Each restored to `PASS`, exit 0.
 three internal passes had walked past, and the second round found the defect in the fix the
 first round produced. A reviewer that only ever confirms is not a reviewer; this one has now
 failed the work twice and been right twice.
+
+### Round 3: the fix for the fix had the same shape again
+
+Head `9f7f1c2a` went back to the reviewer. **FAIL, four more P0s.** Three were demonstrated
+against the files; one was theoretical and was fixed anyway because it was cheap.
+
+**Demonstrated.** The scanned document list was hardcoded, so a session handoff carrying
+fourteen ungraded citations was never looked at. The evidence-gap detector missed phrasings
+sitting in this very ledger — `unread` in four entries, `403` in four more — and never
+searched the `claim` field, where `LOSS-12` admits its own text could not be extracted. And
+the ratchet had an escape hatch: any claim containing a phrase like "was found" left the set,
+so four words appended to an assertion about the world would walk it out. That last one made
+the ratchet decorative, which is worse than absent, because it reports green.
+
+**Theoretical, fixed anyway.** The matcher was uppercase-only. No lowercase id occurs in
+these documents today, so nothing was actually escaping — but a matcher that skips a citation
+in silence is the failure mode this whole file exists to stop, and making it case-insensitive
+cost one line. It is recorded here as accepted-but-not-demonstrated so nobody later reads it
+as a defect that bit us.
+
+**The pattern across three rounds is the thing worth keeping.** Every round, the guard was
+written to close a class, and every round the reviewer found the class was bigger than the
+matcher. 69 citations visible, then 167, then 188. Each number felt complete when it was
+written. **The question that would have saved all three rounds is not "does my check catch
+the defect" but "what can my check not see".** A guard's blind spot is invisible from inside
+the guard, which is the entire argument for a reviewer that is not the author.
+
+**And the ratchet went up, on purpose, once.** 10 to 21, because the detector improved rather
+than because the work got worse. That distinction is recorded in the baseline file's history
+array rather than in prose, because prose cannot be checked and a future run will need to
+know which kind of rise this was.
+
+Six control pairs now, each restored byte-identical: combined citation, bare table cell,
+stale grade, lowercase id, a document outside `docs/governance/`, and the ratchet itself.
