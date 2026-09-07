@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient, getUser } from '@/lib/supabase/server'
 
@@ -116,9 +117,13 @@ export default async function EngagementPage({
         {proposedCount > 0 && (
           <>
             <span>·</span>
-            <span style={{ color: 'var(--color-accent-text, var(--color-text-primary))' }}>
+            <Link
+              href={`/founder/coaching/${engagementId}/review`}
+              className="hover:underline"
+              style={{ color: 'var(--color-accent-text, var(--color-text-primary))' }}
+            >
               {proposedCount} awaiting review
-            </span>
+            </Link>
           </>
         )}
       </div>
