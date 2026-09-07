@@ -40,10 +40,18 @@ export function SidebarCoachingItem({ collapsed }: SidebarCoachingItemProps) {
   const isActive = pathname.startsWith('/founder/coaching')
 
   const positionFlyout = useCallback(() => {
-    const rect = triggerRef.current?.getBoundingClientRect()
-    if (!rect) return
-    // Out to the side (right edge of the sidebar), then drops down from the row.
-    setAnchor({ top: rect.top, left: rect.right + 4 })
+    const trigger = triggerRef.current
+    if (!trigger) return
+    // Out to the side (right edge of the SIDEBAR), then drops down from the row.
+    // Anchoring to the trigger's own right edge put the panel 24px inside the
+    // aside, covering its border and scroll bar — the chevron sits well within
+    // the 240px rail. Measure the aside instead, and drop from the row so the
+    // panel's top lines up with the row rather than the 16px icon inside it.
+    const row = trigger.closest('div')
+    const rail = trigger.closest('aside')
+    const rowRect = (row ?? trigger).getBoundingClientRect()
+    const railRight = rail?.getBoundingClientRect().right ?? trigger.getBoundingClientRect().right
+    setAnchor({ top: rowRect.top, left: railRight + 4 })
   }, [])
 
   // Fetch lazily — the sidebar renders on every founder page, the flyout does not.
@@ -51,6 +59,14 @@ export function SidebarCoachingItem({ collapsed }: SidebarCoachingItemProps) {
     setState({ kind: 'loading' })
     try {
       const res = await fetch('/api/coaching/engagements')
+      // An expired session does NOT come back as 401 here: proxy.ts redirects
+      // every unauthenticated request, /api included, to /auth/login. fetch
+      // follows that 307, so res.ok is true and res.json() then throws on the
+      // login HTML — which surfaced as a bare "Couldn't load clients".
+      if (res.redirected && new URL(res.url).pathname.startsWith('/auth/login')) {
+        setState({ kind: 'error', message: 'Session expired — sign in again' })
+        return
+      }
       if (!res.ok) {
         setState({ kind: 'error', message: `Couldn't load clients (${res.status})` })
         return
