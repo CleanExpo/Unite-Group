@@ -1,13 +1,16 @@
 /**
  * Acceptance check for coaching transcript extraction.
  *
- *   npx tsx scripts/coaching-extraction-check.ts find     -> the four known
+ *   npx tsx scripts/coaching-extraction-check.ts find     -> the three known
  *       commitments from Klim session 1 must come back as kind=commitment.
  *   npx tsx scripts/coaching-extraction-check.ts falsify  -> an unrelated
  *       transcript must return ZERO commitments.
  *
- * Both halves are required. A check that always finds four is not a check; the
+ * Both halves are required. A check that always finds three is not a check; the
  * falsify run is what proves the find run means anything.
+ *
+ * THREE, not four — the count here must match KNOWN_COMMITMENTS below, which
+ * enumerates three. See the note about the removed fourth item further down.
  *
  * This is an acceptance script, deliberately NOT a *.test.ts — it makes a real,
  * paid model call and must not run in CI on every push.

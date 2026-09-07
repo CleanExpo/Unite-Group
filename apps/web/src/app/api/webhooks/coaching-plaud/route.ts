@@ -7,10 +7,20 @@ import { checkConsent } from '@/lib/coaching/consent'
 export const dynamic = 'force-dynamic'
 
 /**
- * POST /api/coaching/ingest/plaud
+ * POST /api/webhooks/coaching-plaud
  *
  * Receives a finished Plaud transcription via Zapier and stores it as a
  * coaching session.
+ *
+ * WHY IT LIVES UNDER /api/webhooks — corrected after independent review (P1,
+ * round 3). It was at /api/coaching/ingest/plaud, which is NOT a public path.
+ * proxy.ts:135 redirects every unauthenticated non-public request to
+ * /auth/login BEFORE the handler runs, so a genuine Zapier delivery carrying
+ * CRON_SECRET was 307'd away and never reached assertCronAuth() below. Fixing
+ * the handler's auth mechanism (round 1) could not fix that, because the
+ * rejection happens in middleware, one layer up. /api/webhooks is already in
+ * PUBLIC_PATHS for exactly this case — "External provider callbacks verify
+ * their own signatures/secrets" — which is what assertCronAuth does.
  *
  * WHY ZAPIER AND NOT PLAUD DIRECTLY: Plaud has no public API — its own support
  * article (updated 07/09/2026) says there is no sign-up or waiting list for one,
