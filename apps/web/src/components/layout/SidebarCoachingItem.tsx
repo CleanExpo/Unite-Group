@@ -21,7 +21,7 @@ type LoadState =
   | { kind: 'error'; message: string }
 
 /**
- * Business Coaching — sidebar entry with a flyout client picker.
+ * Coaching Clinic — sidebar entry with a flyout client picker.
  *
  * The flyout comes OUT to the side of the sidebar and then drops down, so it
  * cannot be an inline expander like SidebarBusinessItem. The sidebar <aside> is
@@ -138,7 +138,7 @@ export function SidebarCoachingItem({ collapsed }: SidebarCoachingItemProps) {
         {!collapsed ? (
           <>
             <Link href="/founder/coaching" className="flex-1 text-left truncate hover:underline">
-              Business Coaching
+              Coaching Clinic
             </Link>
             <button
               ref={triggerRef}
@@ -162,7 +162,7 @@ export function SidebarCoachingItem({ collapsed }: SidebarCoachingItemProps) {
             onClick={toggle}
             aria-expanded={open}
             aria-haspopup="menu"
-            aria-label="Business Coaching clients"
+            aria-label="Coaching Clinic clients"
             className="absolute inset-0"
           />
         )}

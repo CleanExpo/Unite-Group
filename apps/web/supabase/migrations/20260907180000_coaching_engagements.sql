@@ -1,4 +1,4 @@
--- Business Coaching panel — engagements, sessions, extractions.
+-- Coaching Clinic panel — engagements, sessions, extractions.
 --
 -- Scope: the founder's own coaching practice with trade operators. Clients are
 -- NOT stored here — they are referenced from public.crm_contacts, which is the

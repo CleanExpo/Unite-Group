@@ -3,7 +3,7 @@ import { createClient, getUser } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
-export const metadata = { title: 'Business Coaching' }
+export const metadata = { title: 'Coaching Clinic' }
 
 export default async function CoachingIndexPage() {
   const user = await getUser()
@@ -23,7 +23,7 @@ export default async function CoachingIndexPage() {
         className="text-[20px] font-semibold tracking-tight"
         style={{ color: 'var(--color-text-primary)' }}
       >
-        Business Coaching
+        Coaching Clinic
       </h1>
       <p className="mt-1 text-[13px]" style={{ color: 'var(--color-text-muted)' }}>
         Your coaching clients. Open one to review a session or build the next brief.

@@ -16,7 +16,7 @@ export default function CoachingError({
   return (
     <div className="px-8 py-6 max-w-2xl">
       <h2 className="text-[16px] font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-        Business Coaching failed to load
+        Coaching Clinic failed to load
       </h2>
       <p className="mt-2 text-[13px]" style={{ color: 'var(--color-text-muted)' }}>
         {error.message || 'An unexpected error occurred.'}
