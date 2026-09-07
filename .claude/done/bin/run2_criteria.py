@@ -24,6 +24,9 @@ def load():
 
 def md_sync():
     rows = load()
+    if not rows:
+        print("FAIL jsonl ledger is empty; zero-vs-zero is not a sync")
+        return 1
     with open(MD, encoding="utf-8") as f:
         md_entries = len(re.findall(r"^### ", f.read(), re.M))
     if md_entries != len(rows):
