@@ -59,6 +59,33 @@ itself. That two-context rule is the whole promotion mechanism, and it is delibe
 called proof of truth — it is proof that two separate readers, one of whom was trying to
 break it, agree on what the page says.
 
+## Citation grades in the memos
+
+An independent review on 2026-09-07 found the memos citing the ledger as though every entry
+were established. By count, 53 of 69 citations pointed at entries the ledger does not hold as
+`verified`. Silence about evidence grade is the same defect this ledger exists to prevent,
+one level up.
+
+So the grade is now visible at the point of use, and it is a check rather than a convention:
+
+| Citation | Means |
+| --- | --- |
+| `[ICA-01]` | `verified` - a second independent context reopened the primary source |
+| `[AFCA-04 unverified]` | `unverified-seed` - nobody has reopened the source |
+| `[ASIC-03 conflict]` | `conflict` - a second source contradicts it, and a person must settle it |
+| `[X-01 stale]` | past its `check_by` and not yet re-checked |
+
+```
+python citations.py check      # exit 1 if any grade disagrees with the ledger
+python citations.py annotate   # rewrite every citation to carry its current grade
+python citations.py stats      # citation counts by status, per document
+```
+
+`check` fails in both directions: a bare citation of a non-verified entry, and a grade left
+behind after an entry was promoted. Recorded control pair, run against the real documents:
+53 violations before annotation, 0 after, then 1 under a planted stale grade on a verified
+entry, restored to 0.
+
 ## Negative claims
 
 An entry with `claim_type: "negative"` must carry a `search_set` naming exactly where the

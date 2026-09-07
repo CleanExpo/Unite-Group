@@ -3,6 +3,8 @@
 Deliverable D2. Run 1, 2026-09-07. Every sentence carries a ledger ID. The ledger is
 `evidence-ledger.jsonl`; this memo is synthesis only.
 
+**Citation grades.** A bare `[ID]` cites a `verified` ledger entry - a second, independent context reopened the primary source. `[ID unverified]` cites an entry whose source has not been reopened, and `[ID conflict]` cites one a second source contradicts. Neither is established fact. Run `python citations.py check` - it fails if any grade here disagrees with the ledger.
+
 ## The one sentence that matters
 
 The redrafted General Insurance Code of Practice puts obligations on **External Experts**,
@@ -14,31 +16,31 @@ The redraft is designed to be legally enforceable in consumer insurance contract
 first time, once ASIC approves it [ICA-01]. Consultation ran 24 June to 21 July 2026 and is
 closed [ICA-02]. The redraft carries obligations on insurers and External Experts to comply
 with the ICA's Expert Report Best Practice Standard [ICA-04]. That Standard already requires
-insurers to ensure an expert holds relevant expertise and qualifications [AFCA-04].
+insurers to ensure an expert holds relevant expertise and qualifications [AFCA-04 unverified].
 
 ## What is not settled, and is load-bearing
 
 **Approval has not been confirmed.** ICA's own page targeted mid-2026 for lodgement with
-ASIC [ICA-03]. That target has passed. ASIC holds the approval power under section 1101A
-and has used it before, for the Banking Code [ASIC-03], but no ASIC page confirming approval
-of the general insurance Code was located [ASIC-03]. Until approval lands, "legally
+ASIC [ICA-03 unverified]. That target has passed. ASIC holds the approval power under section 1101A
+and has used it before, for the Banking Code [ASIC-03 conflict], but no ASIC page confirming approval
+of the general insurance Code was located [ASIC-03 conflict]. Until approval lands, "legally
 enforceable" [ICA-01] is a design intent, not a live fact. Every strategic statement built
 on enforceability inherits that gap.
 
 ## The dispute
 
 A consumer coalition says insurers have watered down or walked away from 65 consumer
-protections in the current Code [ICA-05]. The named coalition is Financial Rights, Consumer
+protections in the current Code [ICA-05 conflict]. The named coalition is Financial Rights, Consumer
 Action, CHOICE, Financial Counselling Australia, ARC Justice, Mob Strong Debt Help and the
-Australian Consumer Insurance Lobby [ICA-05]. ICA frames the same redraft as delivering
-clear rights in plain language [ICA-06].
+Australian Consumer Insurance Lobby [ICA-05 conflict]. ICA frames the same redraft as delivering
+clear rights in plain language [ICA-06 conflict].
 
 Both are recorded, neither overwrites the other, and both carry status `conflict`
-[ICA-05, ICA-06]. No ICA page fetched disputes the number 65 directly [ICA-06]. This is a
+[ICA-05, ICA-06]. No ICA page fetched disputes the number 65 directly [ICA-06 conflict]. This is a
 framing conflict, not a numeric rebuttal.
 
 The same pattern appears at AFCA. ICA objected in submission that disagreement with credible
-expert evidence should not automatically be treated as a breach [AFCA-11]. Industry is
+expert evidence should not automatically be treated as a breach [AFCA-11 unverified]. Industry is
 resisting the expert-evidence hook in both forums at once.
 
 ## Where the field-agent voice actually stands
@@ -59,23 +61,23 @@ That distinction changes the strategy. The gap is not representation. The gap is
 
 AFCA is where a bad expert report becomes a remedy. In determination FOSSIC/671657 a panel
 found an insurer had not discharged its onus on a flood exclusion because its hydrologist's
-report contained unresolved concessions [AFCA-05]. An AFCA-attributed source names
+report contained unresolved concessions [AFCA-05 unverified]. An AFCA-attributed source names
 independence, qualifications, physical inspection versus desktop review, and scope of
-instructions as the criteria for weighing competing reports [AFCA-06]. AFCA's senior general
+instructions as the criteria for weighing competing reports [AFCA-06 unverified]. AFCA's senior general
 insurance ombudsman said an engineer is generally better qualified than a builder for
-causation analysis [AFCA-07]. At a Member Forum AFCA reportedly said report quality, not
-qualification alone, is the critical factor [AFCA-08].
+causation analysis [AFCA-07 unverified]. At a Member Forum AFCA reportedly said report quality, not
+qualification alone, is the critical factor [AFCA-08 unverified].
 
 **But the primary instrument is unread.** The finalised AFCA claims-handling Approach is
-hyperlinked from AFCA's own consultation page at a path dated August 2026 [AFCA-12], and
-every fetch attempt returned Cloudflare 403 [AFCA-12]. AFCA's own consultation page still
-schedules the final Approach for "Late 2025" [AFCA-01]. AFCA's media-release index carries
-no announcement of a 10 August 2026 finalisation [AFCA-10]. The claim that the Approach
-covers claim denials involving expert evidence rests on trade press alone [AFCA-03].
+hyperlinked from AFCA's own consultation page at a path dated August 2026 [AFCA-12 conflict], and
+every fetch attempt returned Cloudflare 403 [AFCA-12 conflict]. AFCA's own consultation page still
+schedules the final Approach for "Late 2025" [AFCA-01 conflict]. AFCA's media-release index carries
+no announcement of a 10 August 2026 finalisation [AFCA-10 unverified]. The claim that the Approach
+covers claim denials involving expert evidence rests on trade press alone [AFCA-03 unverified].
 
-So the card's AFCA date [CARD-07] is **not confirmed**. Three signals disagree: the page
-says Late 2025 [AFCA-01], the file path says 2026-08 [AFCA-12], trade press says 10 August
-2026 [AFCA-03]. Nothing external should assert that date until the PDF is read.
+So the card's AFCA date [CARD-07 unverified] is **not confirmed**. Three signals disagree: the page
+says Late 2025 [AFCA-01 conflict], the file path says 2026-08 [AFCA-12 conflict], trade press says 10 August
+2026 [AFCA-03 unverified]. Nothing external should assert that date until the PDF is read.
 
 ## The pressure behind all of it
 
@@ -84,15 +86,15 @@ claims [LOSS-01, LOSS-02], more than $4.1 billion of it in Queensland [LOSS-04],
 average $16,471 per claim [LOSS-05]. ASIC named claims and complaint handling failures a
 2026 enforcement priority [ASIC-01] and announced new work on claims intermediaries in
 disaster-affected communities [ASIC-02]. ASIC has run this play before, reviewing home
-claims handling after the 2022 floods [ASIC-08].
+claims handling after the 2022 floods [ASIC-08 unverified].
 
 Two numeric cautions. The "six times" growth belongs to the claims count, not the dollars,
-which grew 727 per cent [LOSS-03]. And an earlier ICA release put the same year at $3.5
-billion from 264,000 claims [LOSS-06] — always date-stamp which release a figure came from.
+which grew 727 per cent [LOSS-03 conflict]. And an earlier ICA release put the same year at $3.5
+billion from 264,000 claims [LOSS-06 conflict] — always date-stamp which release a figure came from.
 
 ## What run 2 takes first
 
-1. Read the AFCA Approach PDF [AFCA-12]. It is the highest-value unread document in the
+1. Read the AFCA Approach PDF [AFCA-12 conflict]. It is the highest-value unread document in the
    program and it decides whether CARD-07 stands.
 2. Confirm the ASIC approval status of the Code [ASIC-03, ICA-03]. Enforceability rests on it.
 3. Read RIA Australasia's own Code submission [ICA-07]. What the field's own association

@@ -169,3 +169,40 @@ it was wrong for this specific job, because the bottleneck really was source acc
    It is a one-line decision, not a research task.
 4. **`ASIC-11`'s dates decide the whole positioning window** - lodgement late 2026, effect 2028 -
    and they are trade-press, one reader. Confirm against ICA or ASIC before they are used.
+
+### The independent review found a defect neither run had seen
+
+The release gate sent commit `671fcfc5` to an independent reviewer. Codex was out of quota
+and the Cursor lane returned a FAIL naming no blocker, which the runner correctly rejected as
+not a review. Gemini produced a real report: **FAIL, four P0 findings**, and it was right.
+
+**The finding.** The memos cite the ledger as though every entry were established fact. Three
+findings named single lines; a count then showed the real size: **53 of 69 citations across
+the three memos point at entries the ledger does not hold as `verified`.** One of them,
+`AFCA-04`, carries the note *Needs a direct read before quotation in any deliverable* - and a
+memo is a deliverable. The fourth finding was `STD-14` stating an absolute absence while its
+own `search_set` admitted the search was not exhaustive.
+
+**Why this is the same disease one level up.** The whole point of the ledger is that an
+unproven claim is labelled unproven. That discipline stopped at the ledger boundary. Once a
+fact moved into a memo it lost its grade, and a memo is the thing a human actually reads.
+
+**What was done, and why not the obvious thing.** The obvious fix was to edit the three lines
+the reviewer named. That would have been the spellings-not-actions failure: 50 more instances
+of the same defect would have survived, all green. Instead the class was closed with
+`citations.py`, which makes the grade visible at every citation and **fails when a grade
+disagrees with the ledger, in both directions** - a bare citation of an unverified entry, and
+a grade left behind after an entry is promoted. The second direction matters more over time,
+because promotion is the normal event and stale annotation is the drift that follows it.
+
+**Control pair, on the real documents rather than a fixture.** 53 violations before
+annotation, exit 1. 0 after, exit 0. Then a stale grade planted on a verified citation: 1
+violation, exit 1. Restored: 0, exit 0.
+
+**`STD-14`'s claim was reworded and the original preserved verbatim in its note.** Rule 3 says
+a correction sits beside the original, never over it. The reworded claim is bounded by its
+search set, which is what every negative in this ledger actually is.
+
+**The reviewer earned its place.** Run 1 recorded that a gate which only ever catches other
+people is not evidence. This is the first finding in the program that came from outside the
+agent that wrote the work, and it found a defect that two internal passes had walked past.

@@ -3,6 +3,8 @@
 Deliverable D3. Run 1, 2026-09-07. Every row carries a ledger ID. The ledger is
 `evidence-ledger.jsonl`; this memo is synthesis only.
 
+**Citation grades.** A bare `[ID]` cites a `verified` ledger entry - a second, independent context reopened the primary source. `[ID unverified]` cites an entry whose source has not been reopened, and `[ID conflict]` cites one a second source contradicts. Neither is established fact. Run `python citations.py check` - it fails if any grade here disagrees with the ledger.
+
 A **hook** is an obligation someone can be held to. Each row says what it obliges, who it
 binds, how hard it binds, and which estate product answers it. "Answers it" means the
 product produces the evidence the hook demands.
@@ -21,7 +23,7 @@ These bind a restoration business today, everywhere, with no argument.
 | Silica exposure limit | Keep respirable crystalline silica at or under 0.05 mg per cubic metre, 8-hour TWA | PCBUs generating silica dust | STD-07 | RestoreAssist Family 3: PPE and control events on cutting/demolition tasks. |
 | Breach reporting | Notify ASIC of reportable situations within statutory deadlines | AFS licensees, which includes insurers | ASIC-06 | Not a restorer obligation. It is the **lever**: documented claims failure becomes a notification the insurer must make. |
 | Internal dispute resolution | Run a compliant IDR system and meet response timeframes | AFS licensees including insurers | ASIC-05 | RestoreAssist Family 1: the timeline that shows who caused the delay. |
-| Claims handling as a financial service | Hold AFS licence authorisation to assess, settle or assist in claims | Insurers, claims managers, claimant intermediaries | ASIC-04 | Scope boundary. Tells the estate where a restorer stops and a regulated intermediary starts. **Quote not yet obtained** [ASIC-04]. |
+| Claims handling as a financial service | Hold AFS licence authorisation to assess, settle or assist in claims | Insurers, claims managers, claimant intermediaries | ASIC-04 | Scope boundary. Tells the estate where a restorer stops and a regulated intermediary starts. **Quote not yet obtained** [ASIC-04 unverified]. |
 
 ## Tier 2 — Called-up standards
 
@@ -29,7 +31,7 @@ Law points at a document. The document then binds.
 
 | Hook | Obliges | Binds | Ledger | Estate product |
 | --- | --- | --- | --- | --- |
-| AS/NZS 3000 Wiring Rules | Electrical installation safety | Licensed electricians and installers | STD-08, STD-09 | RestoreAssist Family 3: licensed-trade dispatch. **The calling-up clause is unverified** [STD-09] — no state register was read. |
+| AS/NZS 3000 Wiring Rules | Electrical installation safety | Licensed electricians and installers | STD-08, STD-09 | RestoreAssist Family 3: licensed-trade dispatch. **The calling-up clause is unverified** [STD-09 unverified] — no state register was read. |
 | NCC adequate air quality performance requirement | Achieve adequate air quality | Building designers and certifiers, not restorers directly | STD-10 | None yet. This is the nearest thing to an outcome standard, and it does not reach the restorer. |
 
 ## Tier 3 — Contractual, and this is where the money is
@@ -50,7 +52,7 @@ ombudsman. They decide who gets work and who gets paid.
 
 | The gap | Ledger | Who owns it today |
 | --- | --- | --- |
-| No binding numeric limit for mould or bioaerosols in occupied buildings | STD-14, STD-13 | **Nobody.** Safe Work Australia has a silica number [STD-07] and no mould number [STD-13]. The NCC asks for adequate air quality and verifies it with a non-binding handbook [STD-10]. enHealth is advisory [STD-11]. S520 governs the remediation **process** and sets no threshold for the **result** [STD-12]. |
+| No binding numeric limit for mould or bioaerosols in occupied buildings | STD-14, STD-13 | **Nobody.** Safe Work Australia has a silica number [STD-07 unverified] and no mould number [STD-13 unverified]. The NCC asks for adequate air quality and verifies it with a non-binding handbook [STD-10 unverified]. enHealth is advisory [STD-11 unverified]. S520 governs the remediation **process** and sets no threshold for the **result** [STD-12 unverified]. |
 
 **Australia regulates how you do a mould job. It does not regulate whether the job worked.**
 
@@ -64,7 +66,7 @@ not be said outside this repository until every timed-out fetch is re-run.
    [STD-05, STD-06, STD-07]. Nothing in Tier 1 governs restoration quality.
 2. **The restorer's commercial exposure is contractual.** Tier 3 decides work and payment,
    and one Tier 3 hook names the External Expert directly [ICA-04].
-3. **Quality of outcome is governed by nobody** [STD-14]. Between mandatory safety law and
+3. **Quality of outcome is governed by nobody** [STD-14 unverified]. Between mandatory safety law and
    contractual report standards there is an unowned space: did the building end up dry and
    safe.
 4. **Every hook demands evidence, and none of them supply it.** Each row's answer is a
@@ -75,7 +77,7 @@ not be said outside this repository until every timed-out fetch is re-run.
 1. Read one state's electrical safety regulation to close STD-09.
 2. Re-run every timed-out Safe Work Australia fetch to harden or break STD-13 and STD-14.
 3. Open INFO 253 for the ASIC-04 quote.
-4. Read the ICA Expert Report Best Practice Standard itself, not the fact sheet [AFCA-04].
+4. Read the ICA Expert Report Best Practice Standard itself, not the fact sheet [AFCA-04 unverified].
 
 ## Fence
 
