@@ -1,0 +1,1157 @@
+# Evidence Ledger - UNI-2673 industry governance
+
+GENERATED FILE. Source of truth is `evidence-ledger.jsonl`.
+Regenerate with `python ledger.py render`. Do not hand-edit this file.
+
+Rendered: 2026-09-07 | Entries: 92
+
+## What each status means
+
+| status | meaning |
+| --- | --- |
+| `verified` | a fresh-context pass reopened the primary source and confirmed it says this |
+| `unverified-seed` | a sweep or a chat claimed it; the primary source has NOT been reopened yet |
+| `conflict` | a second source contradicts another entry; both are kept, neither is overwritten |
+| `stale` | past its check_by date and not yet re-checked |
+
+`sweep_status` records what the collecting sweep claimed. `status` is what this ledger asserts.
+A sweep reporting `verified` does NOT make an entry verified. Only the fresh-context pass does.
+A sub-agent report is lead-grade evidence until the coordinator reopens the source itself.
+
+## Deliverables fed
+
+- **D1** Builder/restorer trial memo - 8 entries
+- **D2** ICA/Code landscape memo - 49 entries
+- **D3** Regulatory-hook matrix - 38 entries
+- **D4** Governance-vacuum map - 27 entries
+- **D5** Stakeholder + windows map - 26 entries
+- **D6** Positioning options pack - 37 entries
+- **D7** RIA partnership brief - 11 entries
+- **D8** Fresh-context citation audit - 0 entries
+
+## Sweep: AFCA
+
+### AFCA-01 - `conflict`
+
+**Claim.** AFCA's own consultation page schedules the final general insurance claims handling Approach for Late 2025, which conflicts with the seed date of 10 August 2026.
+
+> Late 2025 AFCA publishes final Approach document on general insurance claims handling, submissions and consultation report
+
+- Source: [Consultation on AFCA's general insurance claims handling approach](https://www.afca.org.au/news/consultation/consultation-on-afcas-general-insurance-claims-handling-approach)
+- Accessed: 2026-09-07 | Check by: 2026-09-21
+- Sweep said: `conflict` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D3
+- CONFLICTS WITH: CARD-07, AFCA-12
+- Note: THE CARD'S DATE IS NOT CONFIRMED. AFCA's page says Late 2025; the PDF path says 2026-08; trade press says 10 Aug 2026. Three different signals, none reconciled.
+
+### AFCA-02 - `unverified-seed`
+
+**Claim.** A prior AFCA Approach to general insurance claims handling exists, dated July 2025.
+
+- Source: [The AFCA Approach to general insurance claims handling July 2025](https://www.afca.org.au/media/2140/download)
+- Accessed: 2026-09-07 | Check by: 2026-12-01
+- Sweep said: `verified` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D3
+- Note: NO QUOTE. PDF fetched 200 OK at 269.7KB but text could not be extracted. Existence and title confirmed from AFCA's own search index only; contents unread.
+
+### AFCA-03 - `unverified-seed`
+
+**Claim.** The finalised AFCA Approach expressly covers claim denials involving expert evidence as an addressed complaint type.
+
+> claim delays, cash settlements, and claim denials involving expert evidence
+
+- Source: [General insurance claims handling just got a published rulebook](https://www.insurancebusinessmag.com/au/news/claims/general-insurance-claims-handling-just-got-a-published-rulebook-585495.aspx)
+- Accessed: 2026-09-07 | Check by: 2026-09-21
+- Sweep said: `lead` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D3, D6
+- Note: TRADE PRESS ONLY. The primary PDF was blocked by Cloudflare 403 on every direct, proxied and crawler attempt. This is the load-bearing claim of CARD-07 and it is NOT primary-sourced.
+
+### AFCA-04 - `unverified-seed`
+
+**Claim.** The ICA Expert Report Best Practice Standard requires insurers to ensure the expert drafting a report holds relevant expertise and qualifications.
+
+> Insurers must ensure that the expert drafting the Report has the relevant expertise and qualifications.
+
+- Source: [Understanding the use of Expert Reports](https://insurancecouncil.com.au/wp-content/uploads/2024/08/INCA018-ICA-Expert-Report-Fact-Sheet_v3.pdf)
+- Accessed: 2026-09-07 | Check by: 2026-12-01
+- Sweep said: `verified` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D3, D6, D7
+- Hook: Ensure the expert has relevant expertise and qualifications | ICA-member insurers, flowing through to the experts they engage | ICA Expert Report Best Practice Standard
+- Note: Quote came from search-engine highlights of the ICA PDF, not a raw full-document fetch. Needs a direct read before quotation in any deliverable.
+
+### AFCA-05 - `unverified-seed`
+
+**Claim.** In AFCA determination FOSSIC/671657 the panel found an insurer had not discharged its onus to establish a flood exclusion where its hydrologist report contained unresolved concessions.
+
+> the panel is not satisfied that the insurer has met its obligation to establish the application of the policy exclusion
+
+- Source: [AFCA Determination, Ombudsman Melanie Hallam](https://service02.afca.org.au/CaseFiles/FOSSIC/671657.pdf)
+- Accessed: 2026-09-07 | Check by: 2026-12-01
+- Sweep said: `verified` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D3, D6
+- Hook: Insurer bears the onus of establishing an exclusion, and a defective expert report can fail that onus | the respondent insurer only | AFCA determination, not precedent under AFCA rules
+- Note: A worked example of expert-report quality deciding a claim outcome. Single determination, binds only that insurer, but it demonstrates the mechanism.
+
+### AFCA-06 - `unverified-seed`
+
+**Claim.** An AFCA-attributed source names independence, qualifications, physical inspection versus desktop review, and scope of instructions as the criteria for weighing competing expert reports.
+
+> A report that simply provides an opinion is unlikely to be given much weight
+
+- Source: [Ask an Expert: How does AFCA use expert reports in insurance claim disputes](https://covered.anziif.com/professional-development/content-format/articles/ask-an-expert-how-does-afca-use-expert-reports-in-the-context-of-insurance-claim-disputes/)
+- Accessed: 2026-09-07 | Check by: 2026-09-21
+- Sweep said: `lead` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D6
+- Note: ANZIIF third-party publication attributed to an AFCA source; author identity not independently confirmed. Directionally the product spec for a defensible report.
+
+### AFCA-07 - `unverified-seed`
+
+**Claim.** AFCA senior ombudsman Chris Liamos said an engineer is generally, though not always, better qualified than a builder to provide causation analysis.
+
+> An engineer would generally be more qualified to provide a causation analysis than a builder
+
+- Source: [Cyclone Alfred: How can insurers up the level of expert reports?](https://www.insurancebusinessmag.com/au/news/catastrophe/cyclone-alfred-how-can-insurers-up-the-level-of-expert-reports-527556.aspx)
+- Accessed: 2026-09-07 | Check by: 2026-09-21
+- Sweep said: `lead` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D6, D7
+- Note: Remarks at an ANZIIF webinar, reported by trade press. Named and titled AFCA ombudsman, but not AFCA's own published text. Directly relevant to who may write a defensible report.
+
+### AFCA-08 - `unverified-seed`
+
+**Claim.** At an AFCA Member Forum, AFCA said report quality rather than formal qualification alone is the critical factor when weighing competing expert reports.
+
+> the quality of an expert report is 'the critical factor' when AFCA has to consider competing reports
+
+- Source: [How can insurers improve expert reports?](https://www.insurancebusinessmag.com/au/news/claims/how-can-insurers-improve-expert-reports-511601.aspx)
+- Accessed: 2026-09-07 | Check by: 2026-09-21
+- Sweep said: `lead` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D6
+- Note: Trade-press paraphrase of an official AFCA Member Forum, not AFCA minutes. If true it favours a receipted-evidence product over a credential-only one.
+
+### AFCA-09 - `unverified-seed`
+
+**Claim.** Financial Rights Legal Centre, Financial Counselling Australia and ACT Care made a joint submission on AFCA's draft general insurance claims handling Approach.
+
+> This submission is on behalf of Financial Rights legal Centre (Financial Rights), Financial Counselling Australia (FCA), and ACT Care.
+
+- Source: [AFCA Approach to General Insurance Claims Handling Consultation submission](https://financialrights.org.au/wp-content/uploads/2025/09/250829_afcaapproach_gi-claims-handling.pdf)
+- Accessed: 2026-09-07 | Check by: 2026-12-01
+- Sweep said: `verified` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D5
+- Note: Consumer-body submission on the DRAFT. Hosted on financialrights.org.au, not afca.org.au. Does not itself discuss expert reports.
+
+### AFCA-10 - `unverified-seed`
+
+**Claim.** AFCA's own media-releases index carries no release announcing a finalised General Insurance Claims Handling Approach on 10 August 2026.
+
+- Source: [AFCA media releases](https://www.afca.org.au/news/media-releases)
+- Accessed: 2026-09-07 | Check by: 2026-09-21
+- Sweep said: `not-found` | Verified by: NOT YET VERIFIED
+- Feeds: D2
+- Search set (negative claim): afca.org.au/news/media-releases index read through August 2026 via r.jina.ai proxy (direct fetch returned Cloudflare 403). Nearest August 2026 entry is 04 AUG 26 'Record complaints mark third consecutive year above 100,000', which is unrelated.
+- Note: NEGATIVE CLAIM. Absence of a media release is not absence of the Approach. It does mean the 10 August date has no AFCA announcement behind it.
+
+### AFCA-11 - `unverified-seed`
+
+**Claim.** ICA objected in its submission that disagreement with credible expert evidence should not automatically be treated as a breach of obligations.
+
+> a subsequent disagreement with that evidence should not be automatically treated as a breach of obligations
+
+- Source: [ICA Submission to AFCA Approach to Claims Handling, August 2025](https://insurancecouncil.com.au/wp-content/uploads/2025/09/Submission-to-AFCA-Approach-to-Claims-Handling-August-2025.pdf)
+- Accessed: 2026-09-07 | Check by: 2026-09-21
+- Sweep said: `lead` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D5, D6
+- Note: ICA's own PDF fetched 200 OK but returned unreadable binary. The quote is trade press's rendering of the submission, NOT a direct read. Shows industry resisting the expert-evidence hook.
+
+### AFCA-12 - `conflict`
+
+**Claim.** A finalised AFCA claims-handling Approach PDF is hyperlinked from AFCA's own consultation page at a path dated August 2026.
+
+- Source: [AFCA Approach to general insurance claims handling (URL filename only)](https://www.afca.org.au/sites/default/files/2026-08/AFCA%20Approach%20to%20general%20insurance%20claims%20handling.pdf)
+- Accessed: 2026-09-07 | Check by: 2026-09-14
+- Sweep said: `lead` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D3
+- CONFLICTS WITH: AFCA-01
+- Note: THE PRIMARY INSTRUMENT, UNREAD. Every fetch attempt (WebFetch direct, r.jina.ai proxy, Exa crawler) returned 403 or a crawl error. The 2026-08 path is the only support for the card's August 2026 date.
+
+## Sweep: AFCA-APPROACH
+
+### AFCA-13 - `conflict`
+
+**Claim.** The AFCA Approach to general insurance claims handling carries a cover date of August 2026, while its own document-control table records the version as July 2026.
+
+> Version 1 | AFCA Approach to General insurance complaints handling | July 2026 | Current
+
+- Source: [AFCA Approach to general insurance claims handling](https://www.afca.org.au/sites/default/files/2026-08/AFCA%20Approach%20to%20general%20insurance%20claims%20handling.pdf)
+- Accessed: 2026-09-07 | Check by: 2026-12-01
+- Sweep said: `verified` | Verified by: fresh-context-verifier-B/run1/2026-09-07
+- Feeds: D2, D3, D5
+- CONFLICTS WITH: CARD-07, AFCA-01
+- Note: THE DOCUMENT CONTRADICTS ITSELF ON ITS OWN DATE. Cover says August 2026; section 3.3 version record says July 2026; the file path says 2026-08. The card's 10 August 2026 is NOT confirmed by the document. Cite the cover date and flag the discrepancy.
+
+### AFCA-14 - `verified`
+
+**Claim.** The AFCA Approach has a dedicated section on claim denials involving expert evidence, at section 2.4, pages 14 to 17.
+
+> In many of these complaints, expert evidence is being relied upon by the insurer in denying the claim.
+
+- Source: [AFCA Approach to general insurance claims handling, section 2.4](https://www.afca.org.au/sites/default/files/2026-08/AFCA%20Approach%20to%20general%20insurance%20claims%20handling.pdf)
+- Accessed: 2026-09-07 | Check by: 2026-12-01
+- Sweep said: `verified` | Verified by: fresh-context-verifier-B/run1/2026-09-07
+- Feeds: D2, D3, D6
+- Hook: Expert evidence relied on to deny a claim is directly in scope of AFCA's claims-handling Approach | AFCA-member insurers via the external dispute resolution scheme | AFCA Approach to general insurance claims handling, section 2.4
+- Note: CONFIRMS THE SUBSTANCE OF CARD-07. The trade-press claim at AFCA-03 is now primary-sourced. Retrieved by loading AFCA's page in a real browser and fetching the PDF same-origin; every direct, proxied and crawler fetch had returned Cloudflare 403.
+
+### AFCA-15 - `verified`
+
+**Claim.** AFCA may treat reliance on expert evidence that gave little or no reasonable basis for its opinion as a breach of the insurer's claims-handling obligation.
+
+> If AFCA concludes the insurer's expert evidence provided little or no reasonable basis for the opinion, then it may also be considered a breach
+
+- Source: [AFCA Approach to general insurance claims handling, section 2.4](https://www.afca.org.au/sites/default/files/2026-08/AFCA%20Approach%20to%20general%20insurance%20claims%20handling.pdf)
+- Accessed: 2026-09-07 | Check by: 2026-12-01
+- Sweep said: `verified` | Verified by: fresh-context-verifier-B/run1/2026-09-07
+- Feeds: D2, D3, D6, D7
+- Hook: Make fair decisions supported by relevant information; a defective expert report breaches that obligation | AFCA-member insurers | AFCA Approach section 2.4
+- Note: REPORT QUALITY IS NOW AN EXPLICIT BREACH TRIGGER, not an inference from determinations. Remedies attach: the Approach names financial losses sustained by the complainant, giving temporary accommodation beyond the policy limit as its example.
+
+### AFCA-16 - `verified`
+
+**Claim.** An insurer breaches its obligations even where its expert evidence had some reasonable basis, if AFCA ultimately prefers a more persuasive report from the complainant.
+
+> the insurer would still be considered to have breached its obligations under the policy
+
+- Source: [AFCA Approach to general insurance claims handling, section 2.4](https://www.afca.org.au/sites/default/files/2026-08/AFCA%20Approach%20to%20general%20insurance%20claims%20handling.pdf)
+- Accessed: 2026-09-07 | Check by: 2026-12-01
+- Sweep said: `verified` | Verified by: fresh-context-verifier-B/run1/2026-09-07
+- Feeds: D2, D3, D6, D7
+- Hook: A better report from the policyholder's side defeats the insurer even where the insurer's own report was not unreasonable | AFCA-member insurers | AFCA Approach section 2.4
+- Note: THE STRATEGICALLY DECISIVE ENTRY OF RUN 1. It makes a well-evidenced policyholder-side report a winning instrument, not merely a defensive one. The Approach also states that where the insurer bears the onus on an exclusion and its expert evidence is insufficient, AFCA will likely decide for the complainant. This directly contradicts the ICA objection at AFCA-11.
+
+## Sweep: ASIC
+
+### ASIC-01 - `verified`
+
+**Claim.** ASIC named claims and complaint handling failures by insurers as one of its 2026 enforcement priorities.
+
+> Claims and complaint handling failures by insurers
+
+- Source: [25-273MR ASIC announces 2026 enforcement priorities](https://www.asic.gov.au/about-asic/news-centre/find-a-media-release/2025-releases/25-273mr-asic-announces-2026-enforcement-priorities/)
+- Accessed: 2026-09-07 | Check by: 2026-12-01
+- Sweep said: `verified` | Verified by: fresh-context-verifier-A/run1/2026-09-07
+- Feeds: D2, D3, D6
+- Note: One of five new enforcement priorities for 2026, also carried on ASIC's live enforcement-priorities page. Confirms CARD-01.
+
+### ASIC-02 - `verified`
+
+**Claim.** ASIC's 2026-27 Corporate Plan announces new work across insurance claims intermediaries in disaster-affected communities.
+
+> new work across insurance claims intermediaries in disaster-affected communities
+
+- Source: [26-200MR ASIC sets plan to be easier to deal with, harder to avoid](https://www.asic.gov.au/about-asic/news-centre/find-a-media-release/2026-releases/26-200mr-asic-sets-plan-to-be-easier-to-deal-with-harder-to-avoid)
+- Accessed: 2026-09-07 | Check by: 2027-08-26
+- Sweep said: `verified` | Verified by: fresh-context-verifier-A/run1/2026-09-07
+- Feeds: D2, D3, D6
+- Note: Quote is from the MEDIA RELEASE, not the Corporate Plan body. The 3MB Plan PDF could not be text-extracted. Confirms CARD-02 in substance.
+
+### ASIC-03 - `conflict`
+
+**Claim.** ASIC holds a statutory power to approve financial-sector codes of conduct under section 1101A, but the General Insurance Code of Practice is not currently ASIC-approved.
+
+> guidance for applicants seeking ASIC approval of a financial services or credit sector code of conduct under s1101A
+
+- Source: [RG 183 Codes of conduct for the financial services and credit sectors](https://www.asic.gov.au/regulatory-resources/find-a-document/regulatory-guides/rg-183-codes-of-conduct-for-the-financial-services-and-credit-sectors)
+- Accessed: 2026-09-07 | Check by: 2026-12-31
+- Sweep said: `conflict` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D3, D5
+- Hook: Code commitments become enforceable via AFCA and the courts once approved | code-preparing bodies such as ICA and their subscriber members | Corporations Act s1101A, RG 183
+- CONFLICTS WITH: ICA-01, ICA-03
+- Note: THE POWER EXISTS AND HAS BEEN USED (ASIC approved the Banking Code). Whether it has been used for the general insurance Code is the live unknown that ICA-01's enforceability claim depends on.
+
+### ASIC-04 - `unverified-seed`
+
+**Claim.** Claims handling and settling has been a regulated financial service requiring AFS licence authorisation since 1 January 2021.
+
+- Source: [Claims handling and settling: How to comply with your AFS licence obligations](https://www.asic.gov.au/for-finance-professionals/afs-licensees/applying-for-and-managing-an-afs-licence/licensing-certain-service-providers/claims-handling-and-settling-how-to-comply-with-your-afs-licence-obligations/)
+- Accessed: 2026-09-07 | Check by: 2026-09-14
+- Sweep said: `lead` | Verified by: NOT YET VERIFIED
+- Feeds: D3, D4
+- Hook: Hold an AFS licence authorisation to assess, settle or assist in claims | insurers, insurance claims managers, claimant intermediaries, brokers acting in claims handling | Corporations Act s766G as extended by the Hayne response Act 2020, INFO 253
+- Note: NO QUOTE. The landing page confirms the topic but the operative text sits in INFO 253, which was not opened. Reform date corroborated only by law-firm summaries.
+
+### ASIC-05 - `unverified-seed`
+
+**Claim.** RG 271 obliges financial firms including insurers to operate an internal dispute resolution system meeting ASIC's standards.
+
+> what these financial firms must do to have an internal dispute resolution (IDR) system in place that meets ASIC's standards
+
+- Source: [RG 271 Internal dispute resolution](https://www.asic.gov.au/regulatory-resources/find-a-document/regulatory-guides/rg-271-internal-dispute-resolution/)
+- Accessed: 2026-09-07 | Check by: 2026-12-31
+- Sweep said: `verified` | Verified by: NOT YET VERIFIED
+- Feeds: D3
+- Hook: Operate a compliant IDR system and meet complaint-response timeframes | AFS licensees, credit licensees, unlicensed product issuers, super trustees | Corporations Act s912A, ASIC Instrument 2020/98, RG 271
+- Note: Published 2 September 2021.
+
+### ASIC-06 - `unverified-seed`
+
+**Claim.** RG 78 obliges AFS licensees including insurers to report significant breaches to ASIC.
+
+> Div 3 of Pt 7.6 of the Corporations Act 2001
+
+- Source: [RG 78 Breach reporting by AFS licensees and credit licensees](https://www.asic.gov.au/regulatory-resources/find-a-document/regulatory-guides/rg-78-breach-reporting-by-afs-licensees-and-credit-licensees/)
+- Accessed: 2026-09-07 | Check by: 2026-12-31
+- Sweep said: `verified` | Verified by: NOT YET VERIFIED
+- Feeds: D3
+- Hook: Notify ASIC of reportable situations including significant breaches and serious fraud within statutory deadlines | AFS licensees and Australian credit licensees | Corporations Act Div 3 Pt 7.6, RG 78
+- Note: Published 19 December 2023. This is the hook that turns a documented claims failure into a regulator notification.
+
+### ASIC-07 - `unverified-seed`
+
+**Claim.** Design and distribution obligations require issuers and distributors of financial products including general insurance to define and monitor a target market.
+
+> issuers and distributors of financial products that must comply with the design and distribution obligations in Pt 7.8A
+
+- Source: [RG 274 Product design and distribution obligations](https://www.asic.gov.au/regulatory-resources/find-a-document/regulatory-guides/rg-274-product-design-and-distribution-obligations/)
+- Accessed: 2026-09-07 | Check by: 2026-12-31
+- Sweep said: `verified` | Verified by: NOT YET VERIFIED
+- Feeds: D3
+- Hook: Make a Target Market Determination, distribute within it, monitor and report significant dealings outside it | issuers and distributors of financial products including insurers | Corporations Act Part 7.8A, RG 274
+- Note: Published 10 September 2024. The fetched excerpt did not confirm insurance-specific scope or exemptions.
+
+### ASIC-08 - `unverified-seed`
+
+**Claim.** ASIC reviewed insurers' home claims handling after the February and March 2022 NSW and Queensland floods and found insurers can and should improve.
+
+> 43% of the claims ASIC examined related to severe weather events including the floods in New South Wales and Queensland in February and March 2022
+
+- Source: [23-221MR ASIC review finds insurers can and should improve claims handling](https://www.asic.gov.au/about-asic/news-centre/find-a-media-release/2023-releases/23-221mr-asic-review-finds-insurers-can-and-should-improve-claims-handling/)
+- Accessed: 2026-09-07 | Check by: 2027-09-07
+- Sweep said: `verified` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D3, D6
+- Note: Underlying document is Report 768, Navigating the storm, August 2023, covering six insurers and 63 per cent of the market. PRECEDENT: ASIC has already done this once after a catastrophe.
+
+## Sweep: CARD-SEED
+
+### CARD-01 - `unverified-seed`
+
+**Claim.** ASIC named insurance claims and complaint handling failures as a 2026 enforcement priority.
+
+> ASIC named insurance claims/complaint-handling failures a 2026 enforcement priority
+
+- Source: [UNI-2673 card description (chat-delivered seed)](https://linear.app/unite-group/issue/UNI-2673/goal-industry-governance-gold-rush-evidence-base-positioning)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `seed` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D3
+- Note: Seed from the Linear card. Sweep ASIC-01 addresses it.
+
+### CARD-02 - `unverified-seed`
+
+**Claim.** ASIC's 2026-27 Corporate Plan puts claims intermediaries operating in disaster areas under formal watch.
+
+> put disaster-area claims intermediaries under formal watch in its 2026-27 Corporate Plan
+
+- Source: [UNI-2673 card description (chat-delivered seed)](https://linear.app/unite-group/issue/UNI-2673/goal-industry-governance-gold-rush-evidence-base-positioning)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `seed` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D3
+- Note: Seed from the Linear card. Sweep ASIC-02 addresses it.
+
+### CARD-03 - `unverified-seed`
+
+**Claim.** Australian insured extreme-weather losses in 2025 totalled 4.8 billion dollars.
+
+> 2025 produced $4.8B insured extreme-weather losses
+
+- Source: [UNI-2673 card description (chat-delivered seed)](https://linear.app/unite-group/issue/UNI-2673/goal-industry-governance-gold-rush-evidence-base-positioning)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `seed` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D6
+- Note: Load-bearing number for the positioning pack. LOSS sweep addresses it.
+
+### CARD-04 - `unverified-seed`
+
+**Claim.** Those 2025 extreme-weather losses spanned approximately 294,000 claims.
+
+> across 294,000 claims
+
+- Source: [UNI-2673 card description (chat-delivered seed)](https://linear.app/unite-group/issue/UNI-2673/goal-industry-governance-gold-rush-evidence-base-positioning)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `seed` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D6
+- Note: Load-bearing number. LOSS sweep addresses it.
+
+### CARD-05 - `unverified-seed`
+
+**Claim.** 2025 Australian insured extreme-weather losses were approximately six times the prior year.
+
+> 6 times prior year
+
+- Source: [UNI-2673 card description (chat-delivered seed)](https://linear.app/unite-group/issue/UNI-2673/goal-industry-governance-gold-rush-evidence-base-positioning)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `seed` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D6
+- Note: Ratio claim, most fragile of the four LOSS numbers. LOSS sweep addresses it.
+
+### CARD-06 - `unverified-seed`
+
+**Claim.** 4.1 billion dollars of the 2025 Australian insured extreme-weather losses was in Queensland.
+
+> $4.1B in QLD alone
+
+- Source: [UNI-2673 card description (chat-delivered seed)](https://linear.app/unite-group/issue/UNI-2673/goal-industry-governance-gold-rush-evidence-base-positioning)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `seed` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D6
+- Note: Load-bearing number. LOSS sweep addresses it.
+
+### CARD-07 - `unverified-seed`
+
+**Claim.** AFCA finalised its claims-handling Approach on 10 August 2026, with remedies attaching to expert-evidence failures.
+
+> AFCA finalised its claims-handling Approach on 10 Aug 2026 with remedies attaching to expert-evidence failures
+
+- Source: [UNI-2673 card description (chat-delivered seed)](https://linear.app/unite-group/issue/UNI-2673/goal-industry-governance-gold-rush-evidence-base-positioning)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `seed` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D3
+- Note: Highest-value seed for the estate: expert-report quality becomes a remedy trigger. AFCA sweep addresses it.
+
+### CARD-08 - `unverified-seed`
+
+**Claim.** The ICA's redrafted General Insurance Code of Practice is contractually enforceable, consultation closed 21 July 2026, and it is pending ASIC approval.
+
+> redrafted, contractually-enforceable Code (consultation closed 21 July, pending ASIC approval)
+
+- Source: [UNI-2673 card description (chat-delivered seed)](https://linear.app/unite-group/issue/UNI-2673/goal-industry-governance-gold-rush-evidence-base-positioning)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `seed` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D3, D5
+- Note: Seed from the Linear card. ICA-01, ICA-02 and ICA-03 address it.
+
+### CARD-09 - `unverified-seed`
+
+**Claim.** The redrafted Code carries Expert Report Best Practice Standard obligations.
+
+> carries Expert Report Best Practice Standard obligations
+
+- Source: [UNI-2673 card description (chat-delivered seed)](https://linear.app/unite-group/issue/UNI-2673/goal-industry-governance-gold-rush-evidence-base-positioning)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `seed` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D3, D6
+- Note: The single most product-relevant hook in the program. ICA-04 addresses it.
+
+### CARD-10 - `unverified-seed`
+
+**Claim.** A consumer coalition claims the Code redraft weakens 65 existing consumer protections.
+
+> drew a consumer-coalition counterattack claiming 65 protections weakened
+
+- Source: [UNI-2673 card description (chat-delivered seed)](https://linear.app/unite-group/issue/UNI-2673/goal-industry-governance-gold-rush-evidence-base-positioning)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `seed` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D5
+- Note: Seed from the Linear card. ICA-05 addresses it.
+
+### CARD-11 - `unverified-seed`
+
+**Claim.** NCC modernisation is live, and Master Builders' February 2026 Treasury submission calls it a once-in-30-years restructure.
+
+> Master Builders' Feb 2026 Treasury submission calls it a once-in-30-years restructure
+
+- Source: [UNI-2673 card description (chat-delivered seed)](https://linear.app/unite-group/issue/UNI-2673/goal-industry-governance-gold-rush-evidence-base-positioning)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `seed` | Verified by: NOT YET VERIFIED
+- Feeds: D4, D5
+- Note: Seed from the Linear card. NCC-02 and NCC-03 address it; NCC-03 disputes the exact wording.
+
+### CARD-12 - `unverified-seed`
+
+**Claim.** Master Builders' NCC submission argues for a division of roles across the building regulatory system.
+
+> argues for a division of roles across the building regulatory system
+
+- Source: [UNI-2673 card description (chat-delivered seed)](https://linear.app/unite-group/issue/UNI-2673/goal-industry-governance-gold-rush-evidence-base-positioning)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `seed` | Verified by: NOT YET VERIFIED
+- Feeds: D4, D6
+- Note: Seed from the Linear card. NCC-04 addresses it.
+
+### CARD-13 - `unverified-seed`
+
+**Claim.** National trials are underway to split the builder/restorer model, so a contractor must be either a builder or a restorer, not both.
+
+> National trials to split the builder/restorer model (back to builder OR restorer)
+
+- Source: [UNI-2673 card description (founder-reported, RIA meeting 2026-09-07)](https://linear.app/unite-group/issue/UNI-2673/goal-industry-governance-gold-rush-evidence-base-positioning)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `founder-reported` | Verified by: NOT YET VERIFIED
+- Feeds: D1, D6, D7
+- Note: FOUNDER-REPORTED insider signal. Stays labelled as such until a primary source carries it. TRIAL sweep addresses it.
+
+## Sweep: ICA
+
+### ICA-01 - `verified`
+
+**Claim.** The ICA has redrafted the General Insurance Code of Practice so that, once ASIC approves it, it becomes legally enforceable in consumer insurance contracts for the first time.
+
+> pending ASIC approval, the Code will be, for the first time, legally enforceable in consumer insurance contracts
+
+- Source: [Code submissions - Insurance Council of Australia](https://insurancecouncil.com.au/code-of-practice/code-submissions/)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `verified` | Verified by: fresh-context-verifier-A/run1/2026-09-07
+- Feeds: D2, D3, D6
+- Note: CARVE-OUT, found by the verifier: the full source sentence ends '(except for the Principles and Section 10 on Enforcement)'. Enforceability is NOT total. Confirms CARD-08 in substance.
+
+### ICA-02 - `verified`
+
+**Claim.** Consultation on the redrafted General Insurance Code of Practice ran from 24 June to 21 July 2026 and is closed.
+
+> Submissions were accepted from 24 June to 21 July 2026.
+
+- Source: [Code submissions - Insurance Council of Australia](https://insurancecouncil.com.au/code-of-practice/code-submissions/)
+- Accessed: 2026-09-07 | Check by: 2026-12-06
+- Sweep said: `verified` | Verified by: fresh-context-verifier-A/run1/2026-09-07
+- Feeds: D2, D5
+- Note: WINDOW CLOSED. Confirms the 21 July date in CARD-08. No submission opportunity remains on this consultation.
+
+### ICA-03 - `unverified-seed`
+
+**Claim.** ICA publicly targeted mid-2026 for lodging the redrafted Code with ASIC for approval, and approval remains outstanding as at 2026-09-07.
+
+> expected to be lodged with ASIC for approval mid-2026
+
+- Source: [New insurance Code of Practice to deliver for consumers - Insurance Council of Australia](https://insurancecouncil.com.au/resource/new-insurance-code-to-deliver-for-consumers/)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `verified` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D5
+- Note: Source page is dated 30 May 2025, so this is the ORIGINAL target, now passed. A push to H2 2026 exists only as trade press. Approval status is the live unknown.
+
+### ICA-04 - `verified`
+
+**Claim.** The redrafted Code imposes obligations on insurers AND on External Experts to comply with the ICA's Expert Report Best Practice Standard.
+
+> new obligations for insurers and External Experts to comply with the Insurance Council's Expert Report Best Practice Standard
+
+- Source: [Code submissions - Insurance Council of Australia](https://insurancecouncil.com.au/code-of-practice/code-submissions/)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `verified` | Verified by: fresh-context-verifier-A/run1/2026-09-07
+- Feeds: D2, D3, D6, D7
+- Hook: Comply with the Expert Report Best Practice Standard | insurers AND External Experts (the field agents themselves) | redrafted General Insurance Code of Practice, contractually enforceable once ASIC approves
+- Note: HIGHEST-VALUE ENTRY IN RUN 1. The obligation reaches the External Expert directly, not only the insurer. Confirms CARD-09.
+
+### ICA-05 - `conflict`
+
+**Claim.** A consumer-advocate coalition publicly claims insurers have watered down or walked away from 65 consumer protections in the current Code.
+
+> insurers have either watered down or walked away from 65 consumer protections found in the current Code
+
+- Source: [Consumer groups put forward 10-point plan to improve general insurance claims handling](https://consumeraction.org.au/consumer-groups-put-forward-10-point-plan-to-improve-general-insurance-claims-handling/)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `conflict` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D5
+- CONFLICTS WITH: ICA-06
+- Note: Dated 28 Jul 2026. Named coalition: Financial Rights, Consumer Action, CHOICE, Financial Counselling Australia, ARC Justice, Mob Strong Debt Help, Australian Consumer Insurance Lobby. Confirms CARD-10.
+
+### ICA-06 - `conflict`
+
+**Claim.** ICA frames the same redraft as a consumer-protection improvement delivering clear rights in plain language.
+
+> the new Code should be contractually enforceable, with clear rights and obligations of insurers set out in easy-to-understand language
+
+- Source: [New insurance Code of Practice to deliver for consumers - Insurance Council of Australia](https://insurancecouncil.com.au/resource/new-insurance-code-to-deliver-for-consumers/)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `conflict` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D5
+- CONFLICTS WITH: ICA-05
+- Note: FRAMING CONFLICT, not a numeric rebuttal. No ICA page fetched disputes the number 65 directly. Both sides recorded; neither overwrites the other.
+
+### ICA-07 - `verified`
+
+**Claim.** Restoration Industry Association Australasia appears by name on the ICA's published Code submission list.
+
+> Restoration Industry Association Australasia
+
+- Source: [Code submissions - Insurance Council of Australia](https://insurancecouncil.com.au/code-of-practice/code-submissions/)
+- Accessed: 2026-09-07 | Check by: 2026-12-06
+- Sweep said: `verified` | Verified by: fresh-context-verifier-A/run1/2026-09-07
+- Feeds: D2, D7
+- Note: Quote is a list entry, not prose. List holds 31 submission cards: 24 distinct named organisations and 5 anonymised individuals, counted from the served HTML by the verifier.
+
+### ICA-08 - `verified`
+
+**Claim.** On the ICA's published Code submission list the field-agent voice appears only as trade associations, with no hygienist body and no individually named field practitioner.
+
+- Source: [Code submissions - Insurance Council of Australia](https://insurancecouncil.com.au/code-of-practice/code-submissions/)
+- Accessed: 2026-09-07 | Check by: 2026-12-06
+- Sweep said: `not-found` | Verified by: fresh-context-verifier-A/run1/2026-09-07
+- Feeds: D2, D6, D7
+- Search set (negative claim): The single published submission list at insurancecouncil.com.au/code-of-practice/code-submissions/, counted by the verifier from the served HTML rather than the visible fold: 31 submission cards total, being 24 distinct named organisations (25 cards, Financial Rights Legal Centre twice) and 5 anonymised individuals (6 cards). The Show More button unhides cards already in the DOM, so 31 is the complete set. Field-agent-adjacent bodies present: Restoration Industry Association Australasia, Association of Insurance Building and Engineering Consultants, Australasian Institute of Chartered Loss Adjusters.
+- Note: NEGATIVE CLAIM, bounded to that one list and COUNTED, not estimated. No occupational-hygienist or indoor-air-quality body appears; all five individuals are anonymised. Corrects the card: the field-agent voice is present as three trade bodies and absent as individual practitioners. That distinction changes the D7 partnership brief.
+
+## Sweep: LOSS
+
+### LOSS-01 - `verified`
+
+**Claim.** ICA published total Australian insured losses from declared extreme-weather events in calendar 2025 as 4.8 billion dollars, up 727 per cent on the previous year.
+
+> Extreme weather generated $4.8 billion in insured losses in 2025, up 727 per cent on the previous year
+
+- Source: [Hail events push extreme weather costs to $4.8 billion in 2025](https://insurancecouncil.com.au/resource/hail-events-push-extreme-weather-costs-to-4-8-billion-in-2025/)
+- Accessed: 2026-09-07 | Check by: 2026-12-01
+- Sweep said: `verified` | Verified by: fresh-context-verifier-A/run1/2026-09-07
+- Feeds: D2, D6
+- Note: BASIS: calendar year, nominal AUD, insured losses. NOT the $8.6bn total economic cost figure on the same page. Confirms CARD-03.
+
+### LOSS-02 - `verified`
+
+**Claim.** ICA published 294,000 claims from declared extreme-weather events in 2025, almost six times the prior year.
+
+> insurers handled 294,000 claims from declared extreme weather events, almost six times the prior year
+
+- Source: [Hail events push extreme weather costs to $4.8 billion in 2025](https://insurancecouncil.com.au/resource/hail-events-push-extreme-weather-costs-to-4-8-billion-in-2025/)
+- Accessed: 2026-09-07 | Check by: 2026-12-01
+- Sweep said: `verified` | Verified by: fresh-context-verifier-A/run1/2026-09-07
+- Feeds: D2, D6
+- Note: BASIS: calendar 2025, declared-event claims only, not all-peril claims. Confirms CARD-04.
+
+### LOSS-03 - `conflict`
+
+**Claim.** The six-times growth figure belongs to the claims count, not to the dollar figure, which grew 727 per cent or about 8.2 times.
+
+> 294,000 claims from declared extreme weather events, almost six times the prior year
+
+- Source: [Hail events push extreme weather costs to $4.8 billion in 2025](https://insurancecouncil.com.au/resource/hail-events-push-extreme-weather-costs-to-4-8-billion-in-2025/)
+- Accessed: 2026-09-07 | Check by: 2026-12-01
+- Sweep said: `conflict` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D6
+- CONFLICTS WITH: CARD-05
+- Note: THE CARD'S SIX-TIMES CLAIM IS AMBIGUOUS. True of claims, false of dollars. Any memo must attach the multiplier to the right number.
+
+### LOSS-04 - `verified`
+
+**Claim.** ICA published Queensland's share of 2025 insured extreme-weather losses as more than 4.1 billion dollars.
+
+> with more than $4.1 billion of that coming from Queensland alone
+
+- Source: [Hail events push extreme weather costs to $4.8 billion in 2025](https://insurancecouncil.com.au/resource/hail-events-push-extreme-weather-costs-to-4-8-billion-in-2025/)
+- Accessed: 2026-09-07 | Check by: 2026-12-01
+- Sweep said: `verified` | Verified by: fresh-context-verifier-A/run1/2026-09-07
+- Feeds: D2, D6
+- Note: Stated as a FLOOR (more than), not an exact figure. Queensland is roughly 85 per cent of the national total. Confirms CARD-06.
+
+### LOSS-05 - `verified`
+
+**Claim.** The average cost per claim for 2025 declared extreme-weather events was 16,471 dollars, up 39 per cent year on year.
+
+> average costs per claim jumping 39 per cent to $16,471
+
+- Source: [Hail events push extreme weather costs to $4.8 billion in 2025](https://insurancecouncil.com.au/resource/hail-events-push-extreme-weather-costs-to-4-8-billion-in-2025/)
+- Accessed: 2026-09-07 | Check by: 2026-12-01
+- Sweep said: `verified` | Verified by: fresh-context-verifier-A/run1/2026-09-07
+- Feeds: D2, D6
+- Note: NOT IN THE CARD. This is the benchmark the Restorer's Matrix cites. SCOPE: declared extreme-weather event claims only, not all claims. Label it precisely.
+
+### LOSS-06 - `conflict`
+
+**Claim.** An earlier ICA release dated 23 January 2026 put 2025 insured losses at almost 3.5 billion dollars from 264,000 claims, later revised up.
+
+> Extreme weather events cost almost $3.5 billion in insured losses from 264,000 claims in 2025
+
+- Source: [Extreme weather cost $3.5 billion in 2025](https://insurancecouncil.com.au/resource/extreme-weather-cost-3-5-billion-in-2025/)
+- Accessed: 2026-09-07 | Check by: 2026-12-01
+- Sweep said: `conflict` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D6
+- CONFLICTS WITH: LOSS-01, LOSS-02
+- Note: SAME YEAR, SAME BASIS, DIFFERENT NUMBERS. The gap is roughly three months of claims development, not a basis change. Always date-stamp which ICA release a figure came from.
+
+### LOSS-07 - `unverified-seed`
+
+**Claim.** Catastrophe 255, the November 2025 Queensland and NSW storm and hail event, generated almost 93,000 claims totalling 1.78 billion dollars as at the April 2026 release.
+
+> almost 93,000 claims totalling $1.78 billion
+
+- Source: [Hail events push extreme weather costs to $4.8 billion in 2025](https://insurancecouncil.com.au/resource/hail-events-push-extreme-weather-costs-to-4-8-billion-in-2025/)
+- Accessed: 2026-09-07 | Check by: 2026-10-01
+- Sweep said: `verified` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D6
+- Note: Costliest declared event of 2025. ICA's live data hub now shows 95.7 thousand claims and $2.22 billion incurred for the same event, so these figures keep moving.
+
+### LOSS-08 - `unverified-seed`
+
+**Claim.** Catastrophe 252, ex-Tropical Cyclone Alfred in March 2025, had more than 133,000 claims lodged totalling 1.5 billion dollars as at the April 2026 release.
+
+> more than 133,000 lodged totalling $1.5 billion
+
+- Source: [Hail events push extreme weather costs to $4.8 billion in 2025](https://insurancecouncil.com.au/resource/hail-events-push-extreme-weather-costs-to-4-8-billion-in-2025/)
+- Accessed: 2026-09-07 | Check by: 2026-10-01
+- Sweep said: `verified` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D6
+- Note: Three data points across three releases show the claims count still moving while the dollar figure stays roughly stable. Live hub now shows 131 thousand and $1.61 billion.
+
+### LOSS-09 - `unverified-seed`
+
+**Claim.** ICA declared five weather-related catastrophes or significant events in 2025, including Severe Spring Storms on 28 October 2025 with 41.4 thousand claims and 1.07 billion dollars incurred.
+
+> SE254: Severe Spring Storms | 28 October 2025 | 41.4 Thousand claims | 1.07 BILLION incurred
+
+- Source: [Significant Events, Insurance Council of Australia](https://insurancecouncil.com.au/news-hub/current-catastrophes/significant-events/)
+- Accessed: 2026-09-07 | Check by: 2026-10-01
+- Sweep said: `verified` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D5, D6
+- Note: 2025 events: SE251 North Queensland Flood, CAT252 Cyclone Alfred, CAT253 Mid-North Coast and Hunter floods, SE254 Severe Spring Storms, CAT255 Qld/NSW Storms and Hail. Per-event figures are incurred-to-date, not final.
+
+### LOSS-10 - `unverified-seed`
+
+**Claim.** In 2026 to date ICA has declared Catastrophe 261 Victoria Bushfire and significant events 262 Middle East Conflict, 263 NT Flooding and 264 Queensland Flooding.
+
+> SE262: Middle East Conflict | 3 March 2026 | 2.00 thousand claims | 4.10 Million incurred
+
+- Source: [Significant Events, Insurance Council of Australia](https://insurancecouncil.com.au/news-hub/current-catastrophes/significant-events/)
+- Accessed: 2026-09-07 | Check by: 2026-10-01
+- Sweep said: `verified` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D5
+- Note: ICA's declared-events register mixes weather and non-weather events. 2026 weather losses are far below 2025 so far. Do not present 2025 as a new baseline.
+
+### LOSS-11 - `unverified-seed`
+
+**Claim.** ICA declared the Bondi attack a significant event on 16 December 2025 with 38 claims and 571 thousand dollars incurred.
+
+> SE256: Bondi Event | 16 December 2025 | 38 claims | 571 THOUSAND incurred
+
+- Source: [Significant Events, Insurance Council of Australia](https://insurancecouncil.com.au/news-hub/current-catastrophes/significant-events/)
+- Accessed: 2026-09-07 | Check by: 2026-10-01
+- Sweep said: `verified` | Verified by: NOT YET VERIFIED
+- Feeds: D5
+- Note: Non-weather event, recorded because the declared-events register is one list. Shows the register is not weather-only.
+
+### LOSS-12 - `unverified-seed`
+
+**Claim.** ICA published an Insurance Catastrophe Resilience Report 2025-26 in August 2026 whose headline figures could not be extracted.
+
+> Insurance Catastrophe Resilience Report 2025-26
+
+- Source: [Insurance Catastrophe Resilience Report 2025-26](https://insurancecouncil.com.au/wp-content/uploads/2026/08/21529_ICA_CAT-Report_2026_Final-single-pages.pdf)
+- Accessed: 2026-09-07 | Check by: 2026-10-01
+- Sweep said: `not-found` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D5
+- Note: 6.1MB PDF returned unreadable binary via WebFetch. A multi-year aggregate (409,094 claims, $11.3bn, 2022-2026) appeared only in a search-engine AI summary and is DELIBERATELY EXCLUDED from this ledger as unsourced.
+
+## Sweep: NCC
+
+### NCC-01 - `verified`
+
+**Claim.** The Commonwealth announced on 24 August 2025 that no further residential NCC changes will be made until mid-2029 except essential quality and safety measures, and Building Ministers discussed that announcement at their October 2025 meeting.
+
+> no further residential changes to the NCC, except for essential quality and safety measures, will be made until mid-2029
+
+- Source: [Meeting communique: Building Ministers' Meeting, October 2025](https://treasury.gov.au/media-release/meeting-communique-building-ministers-meeting-october-2025)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `verified` | Verified by: fresh-context-verifier-B/run1/2026-09-07
+- Feeds: D4, D5
+- Note: CLAIM CORRECTED by verifier B: the original wording said Ministers AGREED this in October 2025. The page says they DISCUSSED a Commonwealth announcement made 24 August 2025. Citing this page for a Ministers' October decision would overstate it. MATERIAL FOR STRATEGY: the residential NCC is frozen for three years, so any governance opening in residential building is NOT via the Code text.
+
+### NCC-02 - `verified`
+
+**Claim.** Master Builders Australia made a submission to Treasury on NCC modernisation dated 27 February 2026.
+
+> SUBMISSION TO TREASURY 27 February 2026 MODERNISING THE NATIONAL CONSTRUCTION CODE (NCC)
+
+- Source: [Modernising the National Construction Code: Simpler Rules, Better Buildings](https://masterbuilders.com.au/wp-content/uploads/2026/03/NCC-Submission-2026.pdf)
+- Accessed: 2026-09-07 | Check by: 2027-09-07
+- Sweep said: `verified` | Verified by: fresh-context-verifier-B/run1/2026-09-07
+- Feeds: D4, D5
+- Note: Primary PDF read in full by the sweep. Confirms the February 2026 date in CARD-11.
+
+### NCC-03 - `conflict`
+
+**Claim.** The Master Builders submission calls the NCC reform a once-in-a-lifetime opportunity after 30 years without comprehensive reconsideration, not a once-in-30-years restructure.
+
+> the Code not having been comprehensively reconsidered in over 30 years. Master Builders sees this as a once in a lifetime opportunity
+
+- Source: [Modernising the National Construction Code, Submission to Treasury](https://masterbuilders.com.au/wp-content/uploads/2026/03/NCC-Submission-2026.pdf)
+- Accessed: 2026-09-07 | Check by: 2027-09-07
+- Sweep said: `conflict` | Verified by: NOT YET VERIFIED
+- Feeds: D4
+- CONFLICTS WITH: CARD-11
+- Note: WORDING CONFLICT with the card. Substance matches, the exact phrase does not appear. Any memo must quote the document's words, not the card's paraphrase.
+
+### NCC-04 - `verified`
+
+**Claim.** The Master Builders submission recommends a division of roles across Australia's building regulatory system, with the NCC kept narrow and stable.
+
+> Master Builders recommends a division of roles across Australia's building regulatory system. The NCC must remain a narrow, stable, and predictable instrument
+
+- Source: [Modernising the National Construction Code, Submission to Treasury](https://masterbuilders.com.au/wp-content/uploads/2026/03/NCC-Submission-2026.pdf)
+- Accessed: 2026-09-07 | Check by: 2027-09-07
+- Sweep said: `verified` | Verified by: fresh-context-verifier-B/run1/2026-09-07
+- Feeds: D4, D6
+- Note: Page 12, response to Q5. Confirms CARD-12. A division of roles is precisely where an unowned function can be claimed.
+
+### NCC-05 - `verified`
+
+**Claim.** Treasury's public consultation Streamlining and modernising the National Construction Code opened 15 December 2025, closed 27 February 2026, and is now closed.
+
+> This consultation is closed
+
+- Source: [Streamlining and modernising the National Construction Code, Treasury Consultation Hub](https://consult.treasury.gov.au/c2025-722616)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `verified` | Verified by: fresh-context-verifier-B/run1/2026-09-07
+- Feeds: D5
+- Window: OPENED 2025-12-15 | CLOSED 2026-02-27 (PASSED) | RUN BY Treasury | submissions were by email to NCCmodernisation@treasury.gov.au
+- Note: QUOTE CORRECTED by verifier B: the page says 'This consultation is closed', with no 'now'. Both dates verify on the page and are corroborated by the Master Builders PDF. WINDOW SHUT. Single successful read; the page is a JS-rendered Converlens app and a second reader returned only the shell.
+
+### NCC-06 - `unverified-seed`
+
+**Claim.** Building Ministers agreed on 22 October 2025 to pause further residential changes to the NCC.
+
+> Building Ministers agreed to pause further residential changes to the NCC
+
+- Source: [Meeting communique: Building Ministers' Meeting, October 2025](https://treasury.gov.au/media-release/meeting-communique-building-ministers-meeting-october-2025)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `verified` | Verified by: NOT YET VERIFIED
+- Feeds: D4, D5
+- Note: The pause follows finalisation of NCC 2025.
+
+### NCC-07 - `unverified-seed`
+
+**Claim.** NCC 2025 was to be published by 1 February 2026, with each jurisdiction deciding its own adoption from 1 May 2026.
+
+> NCC 2025 will be published by 1 February 2026
+
+- Source: [Meeting communique: Building Ministers' Meeting, October 2025](https://treasury.gov.au/media-release/meeting-communique-building-ministers-meeting-october-2025)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `verified` | Verified by: NOT YET VERIFIED
+- Feeds: D4
+- Note: Adoption is a matter for each jurisdiction, so the NCC lands differently per state. That variance is itself a governance gap.
+
+### NCC-08 - `unverified-seed`
+
+**Claim.** Treasury released an NCC Modernisation Project Interim Report on 30 April 2026, with a final report to follow later in 2026.
+
+> The final report will be released later this year
+
+- Source: [National Construction Code Modernisation Project, Interim report](https://treasury.gov.au/publication/p2026-764709)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `verified` | Verified by: NOT YET VERIFIED
+- Feeds: D4, D5
+- Note: Follows directly from the closed Dec 2025 to Feb 2026 consultation. The final report is the next live decision point.
+
+### NCC-09 - `unverified-seed`
+
+**Claim.** Treasury says it will continue consulting on NCC modernisation before the final report, but has published no dates or portal for that consultation.
+
+> The government will continue consulting while it reviews these issues
+
+- Source: [National Construction Code Modernisation Project, Interim report](https://treasury.gov.au/publication/p2026-764709)
+- Accessed: 2026-09-07 | Check by: 2026-09-21
+- Sweep said: `lead` | Verified by: NOT YET VERIFIED
+- Feeds: D5
+- Window: OPENS unstated and undated | CLOSES unstated, final report due 'later this year' | RUN BY Treasury feeding Building Ministers | HOW TO SUBMIT: no open portal found as at 2026-09-07
+- Note: An undated open door. Worth a short-interval re-check, because this is the only NCC route still open.
+
+### NCC-10 - `unverified-seed`
+
+**Claim.** The NCC is normally updated on a fixed three-year cycle.
+
+> The National Construction Code (NCC) is updated every 3 years
+
+- Source: [Lifecycle of the NCC, ABCB](https://www.abcb.gov.au/about-ncc/ncc-lifecycle)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `verified` | Verified by: NOT YET VERIFIED
+- Feeds: D4
+- Note: Master Builders argues to abolish this fixed-cycle model. The cycle itself is contested.
+
+### NCC-11 - `unverified-seed`
+
+**Claim.** The pause to mid-2029 pushes the next regular NCC edition, normally NCC 2028, back by about one year.
+
+> the next regular edition would have been NCC 2028. With this pause, that schedule will be pushed back by one year
+
+- Source: [ABCB Update: Progress on the Next Edition of the NCC (industry republication)](https://www.mbansw.asn.au/media/industry-news/abcb-update-progress-next-edition-ncc)
+- Accessed: 2026-09-07 | Check by: 2026-09-21
+- Sweep said: `lead` | Verified by: NOT YET VERIFIED
+- Feeds: D4, D5
+- Note: REPUBLICATION by a state industry body, not fetched from abcb.gov.au. Needs direct ABCB confirmation before use.
+
+### NCC-12 - `unverified-seed`
+
+**Claim.** As at its June 2026 CEO update, ABCB's work on the next NCC edition is early stage with no published public-comment dates.
+
+> Our early focus is on improving how the NCC works in practice to enable more efficient design and construction outcomes
+
+- Source: [June 2026 CEO update, NCC](https://ncc.abcb.gov.au/news/2026/june-2026-ceo-update)
+- Accessed: 2026-09-07 | Check by: 2026-09-21
+- Sweep said: `verified` | Verified by: NOT YET VERIFIED
+- Feeds: D5
+- Window: OPENS not yet scheduled | CLOSES n/a | RUN BY ABCB | HOW TO SUBMIT: not yet open; ABCB commits to continue engaging industry
+- Note: No Public Comment Draft date yet published for the next edition.
+
+### NCC-13 - `unverified-seed`
+
+**Claim.** The NCC modernisation discussion-paper consultation was administered by Treasury, not by the ABCB.
+
+> Submission Method: Email submissions to: NCCmodernisation@treasury.gov.au
+
+- Source: [Streamlining and modernising the National Construction Code, Treasury Consultation Hub](https://consult.treasury.gov.au/c2025-722616)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `verified` | Verified by: NOT YET VERIFIED
+- Feeds: D4, D5
+- Note: TWO DIFFERENT DOORS. Treasury runs the reform; ABCB owns the document and its three-year cycle. A stakeholder map must address both.
+
+### NCC-14 - `unverified-seed`
+
+**Claim.** No currently-open Treasury consultation targeting NCC or building-regulation reform was found as at 2026-09-07.
+
+- Source: [Consultations, Treasury.gov.au](https://treasury.gov.au/consultation)
+- Accessed: 2026-09-07 | Check by: 2026-09-14
+- Sweep said: `not-found` | Verified by: NOT YET VERIFIED
+- Feeds: D5
+- Search set (negative claim): Attempted treasury.gov.au/consultations-and-reviews/consultations with an open-status and construction keyword filter, which returned HTTP 404 (a guessed URL pattern, not a live endpoint), plus a WebSearch for a September 2026 Treasury final report. The canonical open-consultations list was NOT successfully read.
+- Note: WEAK NEGATIVE. The check that would have settled it returned 404. This says the check failed, not that nothing is open. Run 2 must read the real Treasury consultation index.
+
+## Sweep: STD
+
+### STD-01 - `unverified-seed`
+
+**Claim.** Standards Australia catalogues AS-IICRC S500:2025, an Australian adoption of ANSI/IICRC S500:2021.
+
+- Source: [AS-IICRC S500:2025 Standards Australia catalogue entry](https://www.standards.org.au/standards-catalogue/standard-details?designation=as-iicrc-s500-2025)
+- Accessed: 2026-09-07 | Check by: 2026-09-14
+- Sweep said: `lead` | Verified by: NOT YET VERIFIED
+- Feeds: D3, D4
+- Hook: Describes water-damage restoration procedures | binds nobody by statute | VOLUNTARY, contractually referenced
+- Note: NO QUOTE. WebFetch of this URL returned unrelated cached content (AS 4373-1996 on pruning trees). URL existence confirmed only via a site search. Must be re-fetched.
+
+### STD-02 - `unverified-seed`
+
+**Claim.** IICRC S500 5th Edition 2021 is a private ANSI-process consensus standard and leaves cause-of-intrusion responsibility with the property owner.
+
+> the determination and correction of the underlying source or cause of the water intrusion remains the property owner's responsibility
+
+- Source: [IICRC S500 Standard for Professional Water Damage Restoration](https://www.iicrc.org/page/S500)
+- Accessed: 2026-09-07 | Check by: 2026-09-14
+- Sweep said: `verified` | Verified by: NOT YET VERIFIED
+- Feeds: D3, D4
+- Hook: Restoration procedures and precautions | no statutory party, adopted voluntarily by certified firms | VOLUNTARY
+- Note: Confirms the voluntary origin at the standard's US root, before any Australian adoption.
+
+### STD-03 - `unverified-seed`
+
+**Claim.** S500 is not a regulatory requirement in Australia but functions as the industry reference standard for judging whether a restoration scope is reasonable.
+
+> S500 is not a regulatory requirement in Australia, but it is the industry reference standard
+
+- Source: [Restoration Standard In Australia, RIA and IICRC](https://reztor.com.au/as-iicrc-s500-australia-ria/)
+- Accessed: 2026-09-07 | Check by: 2026-09-14
+- Sweep said: `lead` | Verified by: NOT YET VERIFIED
+- Feeds: D3, D4, D6
+- Hook: Benchmark for a reasonable restoration scope | no statutory party, used contractually by insurers, ICA and AFCA | VOLUNTARY
+- Note: TRAINING-PROVIDER PAGE, not primary. Directionally consistent with STD-02. Needs an ICA or AFCA source saying the same thing.
+
+### STD-04 - `unverified-seed`
+
+**Claim.** Every Australian state and territory except Victoria has enacted the model Work Health and Safety Act; Victoria retains its Occupational Health and Safety Act 2004.
+
+- Source: [Model WHS laws, Safe Work Australia](https://www.safeworkaustralia.gov.au/law-and-regulation/model-whs-laws)
+- Accessed: 2026-09-07 | Check by: 2026-09-14
+- Sweep said: `lead` | Verified by: NOT YET VERIFIED
+- Feeds: D3, D4
+- Hook: Harmonises WHS duties nationally except Victoria | PCBUs in 8 of 9 jurisdictions; Victorian PCBUs bound by the OHS Act 2004 instead | MANDATORY once enacted per jurisdiction
+- Note: NO QUOTE. Direct fetch timed out twice at 60s. Content triangulated from search snippets only.
+
+### STD-05 - `verified`
+
+**Claim.** A person conducting a business or undertaking must ensure, so far as reasonably practicable, the health and safety of workers.
+
+> must ensure, so far as is reasonably practicable, the health and safety of
+
+- Source: [Work Health and Safety Act 2011 (Cth)](https://www.legislation.gov.au/C2011A00137/latest/text)
+- Accessed: 2026-09-07 | Check by: 2026-09-14
+- Sweep said: `verified` | Verified by: fresh-context-verifier-B/run1/2026-09-07
+- Feeds: D3, D4
+- Hook: Primary duty of care | every person conducting a business or undertaking, including a restoration contractor's business | MANDATORY
+- Note: QUOTE CORRECTED by verifier B: the sweep's original quote was a PARAPHRASE, not statutory text. It dropped 'is' from 'so far as is reasonably practicable', used the abbreviation PCBU which s19 does not use, and truncated the paragraphs defining which workers are covered. Full s19(1): 'A person conducting a business or undertaking must ensure, so far as is reasonably practicable, the health and safety of: (a) workers engaged, or caused to be engaged by the person; and (b) workers whose activities in carrying out work are influenced or directed by the person; while the workers are at work in the business or undertaking.' s19(2) separately covers other persons. Verified via AustLII; the cited legislation.gov.au /text view returned only a table of contents.
+
+### STD-06 - `unverified-seed`
+
+**Claim.** A PCBU commissioning asbestos removal must ensure it is done by an appropriately licensed removalist, with narrow unlicensed exemptions around 10 square metres of non-friable material.
+
+- Source: [Asbestos WHS duties, Safe Work Australia](https://www.safeworkaustralia.gov.au/safety-topic/hazards/asbestos/whs-duties)
+- Accessed: 2026-09-07 | Check by: 2026-09-14
+- Sweep said: `lead` | Verified by: NOT YET VERIFIED
+- Feeds: D3, D4
+- Hook: Licensed-removalist requirement above minor-disturbance thresholds | PCBU commissioning or performing removal | MANDATORY via state-enacted WHS Regulations
+- Note: NO QUOTE. WebFetch timed out. Directly relevant: restoration work routinely disturbs linings that may contain asbestos.
+
+### STD-07 - `unverified-seed`
+
+**Claim.** The workplace exposure standard for respirable crystalline silica is 0.05 mg per cubic metre as an 8-hour time-weighted average, halved from 0.1 on 1 July 2020.
+
+- Source: [Workplace exposure standard for respirable crystalline silica, Safe Work Australia](https://www.safeworkaustralia.gov.au/safety-topic/hazards/silica/whs-duties-silica/workplace-exposure-standard-respirable-crystalline-silica)
+- Accessed: 2026-09-07 | Check by: 2026-09-14
+- Sweep said: `lead` | Verified by: NOT YET VERIFIED
+- Feeds: D3, D4
+- Hook: 0.05 mg per cubic metre 8-hour TWA limit on silica dust | PCBUs generating silica dust | MANDATORY
+- Note: NO QUOTE. WebFetch timed out. A reported reclassification to a Workplace Exposure Limit from 1 Dec 2026 is UNVERIFIED and must be checked.
+
+### STD-08 - `unverified-seed`
+
+**Claim.** AS/NZS 3000:2018 is the current Wiring Rules edition, with Amendments 1 and 2 in 2020 and Amendment 3 in 2025.
+
+> help electricians design, construct and verify electrical installations
+
+- Source: [Wiring Rules, Standards Australia](https://www.standards.org.au/flagship-projects/wiring-rules)
+- Accessed: 2026-09-07 | Check by: 2026-09-14
+- Sweep said: `verified` | Verified by: NOT YET VERIFIED
+- Feeds: D3
+- Hook: Technical electrical-installation safety rules | licensed electricians and installers | edition confirmed; legal mechanism unresolved, see STD-09
+- Note: Page fetched cleanly but does not itself state how the standard becomes mandatory.
+
+### STD-09 - `unverified-seed`
+
+**Claim.** State and territory electrical safety legislation calls up AS/NZS 3000, making it mandatory by reference rather than in its own right.
+
+- Source: [AS/NZS 3000 calling-up mechanism (NOT located in any primary register)](https://www.standards.org.au/flagship-projects/wiring-rules)
+- Accessed: 2026-09-07 | Check by: 2026-09-14
+- Sweep said: `not-found` | Verified by: NOT YET VERIFIED
+- Feeds: D3
+- Search set (negative claim): One guessed Queensland legislation URL (legislation.gov.au sl-2013-0270) which returned 404. No state electrical safety regulation was successfully fetched. The claim repeats across vendor and training pages (Intertek, ECA WA) but no primary legislation register was read.
+- Note: NEGATIVE ON THE CHECK, NOT ON THE LAW. This is very likely true and simply unverified. Run 2 must read one state's electrical safety regulation directly.
+
+### STD-10 - `unverified-seed`
+
+**Claim.** The ABCB Indoor Air Quality Verification Method Handbook offers verification methods for the NCC's adequate air quality performance requirement but sets no binding mould or bioaerosol limit.
+
+- Source: [Handbook, Indoor Air Quality (ABCB)](https://www.abcb.gov.au/sites/default/files/resources/2021/Handbook-Indoor-Air-Quality.pdf)
+- Accessed: 2026-09-07 | Check by: 2026-09-14
+- Sweep said: `lead` | Verified by: NOT YET VERIFIED
+- Feeds: D3, D4
+- Hook: NCC adequate air quality performance requirement | building designers and certifiers, not restoration contractors | performance clause CALLED-UP, handbook methods VOLUNTARY
+- Note: NO QUOTE. Not directly fetched; URL and characterisation from search only.
+
+### STD-11 - `unverified-seed`
+
+**Claim.** enHealth publishes guidance on potential health effects of mould in the environment as non-binding public-health advice.
+
+- Source: [enHealth guidance, Potential health effects of mould in the environment](https://www.cdc.gov.au/system/files/2025-10/enhealth-guidance-potential-health-effects-of-mould-in-the-environment_0.pdf)
+- Accessed: 2026-09-07 | Check by: 2026-09-14
+- Sweep said: `lead` | Verified by: NOT YET VERIFIED
+- Feeds: D4
+- Hook: Health-effects and general management advice for mould | binds nobody, informational only | VOLUNTARY
+- Note: NO QUOTE. health.gov.au version timed out; located on cdc.gov.au via search. Now sits under the Australian Centre for Disease Control.
+
+### STD-12 - `unverified-seed`
+
+**Claim.** Standards Australia published AS-IICRC S520:2025 Standard for Professional Mould Remediation, an adoption with national modifications of ANSI/IICRC S520:2024.
+
+- Source: [AS-IICRC S520:2025 Standard for Professional Mould Remediation (library catalogue record)](https://collection.sl.nsw.gov.au/record/74VKL3BL6w83)
+- Accessed: 2026-09-07 | Check by: 2026-09-14
+- Sweep said: `lead` | Verified by: NOT YET VERIFIED
+- Feeds: D3, D4
+- Hook: Procedures and precautions for mould remediation work | binds nobody directly, private consensus standard | VOLUNTARY
+- Note: NO QUOTE, and the source is a State Library catalogue record, not Standards Australia. CRITICAL DISTINCTION: this governs the PROCESS of remediation, and sets no threshold for the RESULT.
+
+### STD-13 - `unverified-seed`
+
+**Claim.** No Safe Work Australia numeric workplace exposure standard for mould or fungal bioaerosols was located, unlike the silica limit at STD-07.
+
+- Source: [Safe Work Australia exposure standards (mould limit NOT located)](https://www.safeworkaustralia.gov.au/law-and-regulation/model-whs-laws)
+- Accessed: 2026-09-07 | Check by: 2026-09-14
+- Sweep said: `not-found` | Verified by: NOT YET VERIFIED
+- Feeds: D4
+- Search set (negative claim): Attempted direct WebFetch of safeworkaustralia.gov.au hazard pages, all of which TIMED OUT so the pages were never actually read, plus a WebSearch for 'Safe Work Australia workplace exposure standard mould bioaerosol'. The SWA exposure-standards register itself was NOT browsed.
+- Note: PROVISIONAL NEGATIVE ONLY. The instrument that would have settled this timed out. Do not state this externally until the register is read.
+
+### STD-14 - `unverified-seed`
+
+**Claim.** No mandatory Australian standard, regulation or WHS instrument sets a numeric acceptable limit for mould or bioaerosols in occupied buildings; the only Australian instruments located are a voluntary remediation-procedure standard and non-binding NCC and enHealth guidance.
+
+- Source: [Australian mould/bioaerosol limit for occupied buildings (NOT located in any body checked)](https://www.abcb.gov.au/sites/default/files/resources/2021/Handbook-Indoor-Air-Quality.pdf)
+- Accessed: 2026-09-07 | Check by: 2026-09-14
+- Sweep said: `not-found` | Verified by: NOT YET VERIFIED
+- Feeds: D3, D4, D6, D7
+- Search set (negative claim): Four bodies checked for a binding numeric limit: Safe Work Australia (hazard pages, all fetches timed out), ABCB and the NCC (Indoor Air Quality Handbook, search-sourced), enHealth via health.gov.au and cdc.gov.au (timed out, then search-sourced), Standards Australia catalogue (S500 and S520 located, both procedure standards). Corroborating but non-primary: a 2026 NSW Legislative Council Clean Indoor Air inquiry submission and a Consumers Federation of Australia article both describe this as an open policy gap.
+- Note: THE HEADLINE FINDING OF RUN 1, AND THE WEAKEST-EVIDENCED. Australia regulates the PROCESS of mould remediation and not the RESULT. Nobody owns the outcome. But three of four checks were timeouts, so the search set is not yet exhaustive. Run 2 must re-run every timed-out fetch before this is stated anywhere outside this repo.
+
+## Sweep: TRIAL
+
+### TRIAL-01 - `unverified-seed`
+
+**Claim.** RIA Australasia has published a Restoration Industry Code of Practice (RICOP) to unify professional restoration standards across the sector.
+
+> The Restoration Industry Code of Practice (RICOP) is now available - a critical step toward unifying and uplifting our sector.
+
+- Source: [Code of Practice (RICOP) - Restoration Industry Association Inc. (Australasia)](https://www.restorationindustry.org.au/about/code-of-practice/)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `verified` | Verified by: NOT YET VERIFIED
+- Feeds: D1, D4, D7
+- Note: Member-only subscription. Page names no builder/restorer split, no national trial, no effective date.
+
+### TRIAL-02 - `unverified-seed`
+
+**Claim.** At least one Australian insurer's claims process already treats builder/repairer and restorer as two distinct panel roles.
+
+> A restorer remediates and mitigates further losses to strata buildings affected by major water damage, fire and drug lab residue.
+
+- Source: [Builder and Restoration Panel | Claims | Flex Insurance](https://flexinsurance.com.au/claims/builder-and-restoration-panel)
+- Accessed: 2026-09-07 | Check by: 2026-12-06
+- Sweep said: `verified` | Verified by: NOT YET VERIFIED
+- Feeds: D1
+- Note: One insurer's internal panel taxonomy, not a regulatory split. Page is silent on whether one firm may hold both roles.
+
+### TRIAL-03 - `unverified-seed`
+
+**Claim.** ICA is asking governments to use the current mutual-recognition-scheme review to reduce state-based trade-licensing friction driving repair costs.
+
+> ICA is asking governments to use the current review of mutual recognition schemes for workers to ease frictions in trade licensing
+
+- Source: [ICA asks governments to cut licensing friction, repair costs](https://www.insurancebusinessmag.com/au/news/breaking-news/ica-asks-governments-to-cut-licensing-friction-repair-costs-570647.aspx)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `lead` | Verified by: NOT YET VERIFIED
+- Feeds: D1, D5
+- Note: TRADE PRESS, not an ICA page. Article contains no builder/restorer distinction at all. Needs an ICA primary source before use.
+
+### TRIAL-04 - `unverified-seed`
+
+**Claim.** Industry commentary is openly debating whether insurers should mandate formal accreditation of restoration-supply-chain contractors.
+
+> should insurers now require formal accreditation or recognised qualifications from the contractors they send into customers' homes?
+
+- Source: [Can Insurers Afford Not to Verify Competence in Their Restoration Supply Chain?](https://insurance-edge.net/2026/06/19/can-insurers-afford-not-to-verify-competence-in-their-restoration-supply-chain/)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `lead` | Verified by: NOT YET VERIFIED
+- Feeds: D1, D6
+- Note: Opinion piece by a restoration-franchise executive, 19 June 2026. Poses the question; documents no trial. Signal of direction only.
+
+### TRIAL-05 - `unverified-seed`
+
+**Claim.** Standards Australia adopted AS-IICRC S520:2025 as a national mould-remediation standard, approved 5 Nov 2025 and published 28 Nov 2025.
+
+- Source: [AS-IICRC S520:2025 (Standards Australia store listing)](https://store.standards.org.au/product/as-iicrc-s520-2025)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `lead` | Verified by: NOT YET VERIFIED
+- Feeds: D1, D3, D4
+- Note: NO QUOTE. Direct fetch of the store page returned empty; claim rests on search snippets only. Must be confirmed before any use.
+
+### TRIAL-06 - `unverified-seed`
+
+**Claim.** RIA Australasia's own public pages carry no reference to a national trial splitting builder and restorer roles.
+
+- Source: [RIA 2026 Conference and Trade Show](https://www.restorationindustry.org.au/eventdetails/34906/ria-2026-conference-trade-show)
+- Accessed: 2026-09-07 | Check by: 2026-09-21
+- Sweep said: `not-found` | Verified by: NOT YET VERIFIED
+- Feeds: D1
+- Search set (negative claim): restorationindustry.org.au homepage, /about/code-of-practice/, /resources/restoration-industry-standards/, /eventdetails/34906 conference page (/restorers/ returned 404); insurancecouncil.com.au/campaigns/future-proof-australia/building-standards/; nsw.gov.au Building Commission insurance-repairs landing page; searches for the exact mechanism phrases 'cannot be both' and 'either a builder or a restorer'
+- Note: NEGATIVE CLAIM. Bounded to the domains named in search_set. This is not evidence that no trial exists, only that RIA's public pages do not carry it.
+
+### TRIAL-07 - `unverified-seed`
+
+**Claim.** No primary-source evidence of a national builder/restorer split trial was found on any Australian regulator, standards body or industry-association domain checked.
+
+- Source: [TRIAL sweep verdict, UNI-2673 run 1](https://linear.app/unite-group/issue/UNI-2673/goal-industry-governance-gold-rush-evidence-base-positioning)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `not-found` | Verified by: NOT YET VERIFIED
+- Feeds: D1, D6, D7
+- Search set (negative claim): restorationindustry.org.au (5 paths); flexinsurance.com.au claims panel; insurancecouncil.com.au building-standards campaign; nsw.gov.au Building Commission; store.standards.org.au; abcb.gov.au and qbcc.qld.gov.au via search only, not direct fetch; 9 WebSearch query shapes covering 'builder restorer split Australia trial 2026', 'RIA Australasia builder restorer licensing', 'QBCC licence class remediation restoration', 'national licensing reform restoration trades'
+- Note: VERDICT: pre-announcement with signals. abcb.gov.au and qbcc.qld.gov.au were searched but NOT directly fetched, so this negative is weaker for those two bodies. Run 2 must fetch them directly.
+
