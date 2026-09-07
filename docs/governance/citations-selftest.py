@@ -14,6 +14,7 @@ Run:   python -B citations-selftest.py
 Exit:  0  every case behaved as required
        1  a case did not behave as required (the guard has a hole)
        2  a precondition failed, so no case could mean anything
+       3  a case could not be planted, so its vector is UNTESTED, not passed
 """
 
 import json
@@ -233,10 +234,15 @@ def main():
     if skipped:
         # Not a failure and not a clean pass. A skipped case covers nothing, and saying
         # PASS here would claim a vector was tested when it was not.
+        #
+        # Exit 3, NOT 0. A gate reads the exit code and nothing else, so returning 0 here
+        # would let "this vector was never tested" arrive as "this vector passed" — the
+        # precise substitution this whole file exists to prevent. 3 is distinct from 1 so a
+        # caller can tell "a hole was found" from "a hole was not looked for".
         print("SELFTEST: PARTIAL (%d caught, %d could not be run)" % (len(caught), len(skipped)))
         for n in skipped:
             print("  skipped, so UNTESTED: %s" % n)
-        return 0
+        return 3
     print("SELFTEST: PASS (%d of %d cases caught)" % (len(caught), len(results)))
     return 0
 
