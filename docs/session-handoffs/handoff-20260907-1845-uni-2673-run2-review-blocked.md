@@ -44,7 +44,7 @@ Resumed from `handoff-20260907-1620-uni-2673-governance-evidence.md` (run 1) wit
 founder directive: use `perplexity/sonar-deep-research` via OpenRouter for the deep research,
 funded by $25 of credit added that day.
 
-Run 1 named two BLOCKING items: `STD-14` (the mould/bioaerosol claim resting on four failed
+Run 1 named two BLOCKING items: `STD-14 unverified` (the mould/bioaerosol claim resting on four failed
 fetches) and the open question of whether the redrafted General Insurance Code is
 ASIC-approved. Both were settled in run 2 before this session's work began.
 
@@ -150,6 +150,20 @@ previous verdict was measured at `d77b7b59` and correctly invalidated).
 dirties the tree. `pr_release_gate.py issue` re-runs the tests itself and then re-checks
 that the tree is clean (line 1131), so bytecode files fail the receipt.
 
+**The counts above belong to `cec59774`. This document changed them.** Adding this handoff
+made it the 19th scanned document, and the guard immediately failed on it:
+
+```
+CITATION CHECK: FAIL (5 violations across 193 citations)                     exit 1
+  ...:47  STD-14: status is unverified-seed so the citation must read STD-14 unverified
+  ...:162 AFCA-04 (x2), ...:192 ASIC-11, ...:197 ASIC-03 (conflict)
+```
+
+`python -B citations.py annotate` fixed it (4 insertions, 4 deletions, this file only; the
+other 18 documents were rewritten byte-identical). Re-check: `PASS (193 citations across
+19 documents, 0 violations)`, exit 0. Worth keeping, because it is the guard catching the
+author rather than someone else, which is the test named at the end of the run-1 handoff.
+
 ---
 
 ## 7. Deferred and open questions
@@ -159,7 +173,7 @@ that the tree is clean (line 1131), so bytecode files fail the receipt.
 **F5 — `citations.py` does not scan subdirectories. Owner: next session. Blocking: yes.**
 
 Found by the Cursor reviewer, which planted `docs/governance/subdir-escape-test/claim.md`
-containing `See AFCA-04 for the approach.` `AFCA-04` is `unverified-seed`, so that citation
+containing `See AFCA-04 unverified for the approach.` `AFCA-04 unverified` is `unverified-seed`, so that citation
 must carry a grade. With the probe in place the guard still reported
 `PASS (188 citations across 18 documents, 0 violations)` at exit 0. The file was never
 looked at.
@@ -167,6 +181,18 @@ looked at.
 Cause, `citations.py:94`: `discover()` uses `os.listdir(d)`, which is one level deep. Its
 docstring claims "Every markdown file **under** SCAN_DIRS" and "a document added tomorrow is
 scanned tomorrow". Both are false for a subdirectory.
+
+Re-proved from scratch at 18:49, probe created and removed in one command:
+
+```
+probe absent   -> PASS (193 citations across 19 documents, 0 violations)  exit 0
+probe present  -> PASS (193 citations across 19 documents, 0 violations)  exit 0
+probe absent   -> ls: cannot access ... No such file or directory
+```
+
+The counts are IDENTICAL with and without the probe. That is the proof: its citation was
+never counted. The same bare `AFCA-04 unverified` citation IS caught in a top-level document,
+which the five violations against this very handoff demonstrate above.
 
 Fix: `os.walk` instead of `os.listdir`, plus a control pair proving the probe file is caught
 and that restoring it returns the count to 188/0. Note `EXCLUDED` is keyed by basename, so
@@ -189,12 +215,12 @@ a ticket against `independent_review.py`; do not fold it into this branch.
 
 - D4–D7 memos.
 - The remaining citation audit: 64 entries are still `unverified-seed`.
-- `ASIC-11` trade-press dates confirmed against a primary source.
+- `ASIC-11 unverified` trade-press dates confirmed against a primary source.
 - Reducing the evidence-gap ratchet below 21 by giving entries a primary-source read.
 
 ### Open question for Phill
 
-**Q1. `ASIC-03` is parked in `conflict` and only a person can clear it.** Ledger rule D6
+**Q1. `ASIC-03 conflict` is parked in `conflict` and only a person can clear it.** Ledger rule D6
 reserves conflict resolution to a human, and `promote.py` enforces it. The research settled
 the substance: the redrafted General Insurance Code is **not** approved under s1101A, per an
 ASIC-hosted AFCA submission. The entry's note records this and names it as a one-line
