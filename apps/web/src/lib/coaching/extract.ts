@@ -49,6 +49,8 @@ export interface Extraction {
 
 export interface ExtractionResult {
   extractions: Extraction[]
+  /** Malformed rows the model returned that were discarded. >0 is worth reading. */
+  dropped: number
   model: string
   input_tokens: number
   output_tokens: number
@@ -166,7 +168,7 @@ function normaliseExtractions(value: unknown): Extraction[] {
  */
 export async function extractFromTranscript(transcript: string): Promise<ExtractionResult> {
   if (!transcript.trim()) {
-    return { extractions: [], model: MODEL, input_tokens: 0, output_tokens: 0 }
+    return { extractions: [], dropped: 0, model: MODEL, input_tokens: 0, output_tokens: 0 }
   }
 
   const client = getAIClient()
@@ -211,10 +213,33 @@ export async function extractFromTranscript(transcript: string): Promise<Extract
     )
   }
 
+  // Drop rows that are malformed — but never drop them SILENTLY.
+  //
+  // Caught in independent review (P1), and it is the same defect class as the
+  // double-encoding bug above, one layer down: if every row fails the filter,
+  // returning [] is indistinguishable from a transcript that genuinely
+  // contained nothing. A parse failure must not wear the face of an empty
+  // session. So: total loss throws; partial loss is reported and counted.
+  const kept = extractions.filter(
+    (e) => EXTRACTION_KINDS.includes(e.kind) && typeof e.transcript_quote === 'string'
+  )
+  const dropped = extractions.length - kept.length
+
+  if (dropped > 0 && kept.length === 0) {
+    throw new Error(
+      `extraction_failed: all ${dropped} returned row(s) were malformed ` +
+        `(unrecognised kind, or missing transcript_quote)`
+    )
+  }
+  if (dropped > 0) {
+    console.warn(
+      `[extract] dropped ${dropped} malformed row(s) of ${extractions.length}; ${kept.length} kept`
+    )
+  }
+
   return {
-    extractions: extractions.filter(
-      (e) => EXTRACTION_KINDS.includes(e.kind) && typeof e.transcript_quote === 'string'
-    ),
+    extractions: kept,
+    dropped,
     model: MODEL,
     input_tokens: response.usage.input_tokens,
     output_tokens: response.usage.output_tokens,
