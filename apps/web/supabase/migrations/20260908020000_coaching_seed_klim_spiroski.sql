@@ -72,7 +72,14 @@ begin
       'manual',
       'Coaching Clinic — mentorship engagement, session 1 on 19/08/2026',
       'founder',
-      'private',
+      -- 'restricted', NOT 'private'. crm_contacts_privacy_scope_check
+      -- (20260612021000_crm_contacts_opportunities.sql:61-62) permits exactly
+      -- lead_scoped | client_scoped | business_scoped | restricted | global_crm.
+      -- 'private' was not among them, so this INSERT raised a check violation,
+      -- aborted the DO block and seeded nothing — proven by executing the
+      -- migration against a throwaway Postgres during independent audit.
+      -- 'restricted' is the correct value: no consent is on file.
+      'restricted',
       false,   -- no marketing consent sought
       'No recording or publication consent on file as at 08/09/2026. '
         || 'Nothing identifiable may be published until given in writing.'

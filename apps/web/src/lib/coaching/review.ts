@@ -72,7 +72,13 @@ export function buildReviewPatch(
     return { status: 'rejected', reviewed_at }
   }
 
-  const next = editedBody === undefined ? row.body : normalise(editedBody)
+  // Normalise BOTH sides. This previously read `? row.body :`, leaving the
+  // unchanged-approval path un-normalised while the comparison below normalised
+  // it — so a stored body with stray whitespace compared unequal to itself and
+  // an untouched approval was logged as a correction, with original_body equal
+  // to body. That poisons the eval dataset this log exists to build, and made
+  // buildReviewPatch disagree with isEdited. Found by independent audit.
+  const next = normalise(editedBody === undefined ? row.body : editedBody)
 
   if (next.length === 0) {
     throw new Error('an approved extraction cannot have an empty body')

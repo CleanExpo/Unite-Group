@@ -36,6 +36,30 @@ describe('buildReviewPatch', () => {
     expect(patch.body).toBeUndefined()
   })
 
+  it('does not log a correction when the STORED body carries stray whitespace', () => {
+    // Regression, found by independent audit. `next` took row.body unnormalised
+    // while the comparison normalised it, so approving untouched text with a
+    // trailing space was recorded as an edit — writing original_body identical
+    // to body. Every such row then looks like a founder correction and the eval
+    // dataset (the whole point of the correction log) is poisoned.
+    const r = row({ body: 'Draft SOPs by hand for each scenario  ' })
+    const patch = buildReviewPatch(r, 'approve', undefined, NOW)
+    expect(patch.original_body).toBeUndefined()
+    expect(patch.body).toBeUndefined()
+  })
+
+  it('never disagrees with isEdited about whether an edit happened', () => {
+    // The two are called from different places — component vs route. A
+    // disagreement means the UI says "unchanged" while the patch logs a
+    // correction, or vice versa.
+    for (const body of ['plain', ' leading', 'trailing ', '\ttabbed\n', '  both  ']) {
+      const r = row({ body })
+      const patch = buildReviewPatch(r, 'approve', undefined, NOW)
+      const loggedACorrection = patch.original_body !== undefined
+      expect(loggedACorrection).toBe(isEdited(r, r.body))
+    }
+  })
+
   it('logs the model text when the founder genuinely edits', () => {
     const r = row()
     const patch = buildReviewPatch(r, 'approve', 'Draft SOPs for water damage only', NOW)
