@@ -79,7 +79,7 @@ export function Sidebar({ user }: SidebarProps) {
         {/* Global nav */}
         <SidebarNav collapsed={!sidebarOpen} />
 
-        {/* BUSINESS COACHING — flyout client picker */}
+        {/* COACHING CLINIC — flyout client picker */}
         <div className="px-2">
           <SidebarCoachingItem collapsed={!sidebarOpen} />
         </div>

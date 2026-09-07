@@ -173,11 +173,22 @@ for (const table of TABLES) {
       checked++
 
       const base = expectedTsType(col.sqlType)
-      if (!f.type.startsWith(base)) {
-        problems.push(`${table}.${section}.${col.name}: SQL ${col.sqlType} => expected ${base}, TS has ${f.type}`)
+      const shouldBeNullable = !col.notNull
+
+      // EXACT match, not startsWith. `startsWith` accepted any superset:
+      // a column typed `string` in SQL passed with `string | number` in TS,
+      // so the check certified a type the database cannot produce. Found by
+      // independent review, which mutated Row.body to `string | number` and
+      // still got PASS. Build the one type this column may have and compare.
+      const expected = shouldBeNullable ? `${base} | null` : base
+      if (f.type !== expected) {
+        problems.push(
+          `${table}.${section}.${col.name}: SQL ${col.sqlType} ` +
+          `(${col.notNull ? 'NOT NULL' : 'nullable'}) => expected exactly ` +
+          `"${expected}", TS has "${f.type}"`,
+        )
       }
 
-      const shouldBeNullable = !col.notNull
       if (f.nullable !== shouldBeNullable) {
         problems.push(
           `${table}.${section}.${col.name}: column is ${col.notNull ? 'NOT NULL' : 'nullable'}, ` +

@@ -72,7 +72,7 @@ export async function PATCH(
     )
   }
 
-  const { error: writeError } = await supabase
+  const { data: written, error: writeError } = await supabase
     .from('coaching_extractions')
     .update(patch)
     .eq('founder_id', user.id)
@@ -81,10 +81,25 @@ export async function PATCH(
     // above is a race: two tabs could both pass the status guard and the second
     // would overwrite the first decision.
     .eq('status', 'proposed')
+    // The rows are SELECTED BACK because a 0-row update is not an error.
+    // PostgREST returns success with an empty set, so checking only
+    // `writeError` reported a decision as saved when the guard above had
+    // silently matched nothing — the client then showed an approval that
+    // never persisted. Found in independent review (P1).
+    .select('id')
 
   if (writeError) {
     console.error('[coaching/extractions] write failed:', writeError.message)
     return NextResponse.json({ error: 'write_failed' }, { status: 500 })
+  }
+
+  if (!written || written.length === 0) {
+    // Someone else decided it between our read and our write, or the page is
+    // stale. Say so rather than claiming a save that did not happen.
+    return NextResponse.json(
+      { error: 'not_reviewable', detail: 'already decided — reload' },
+      { status: 409 },
+    )
   }
 
   return NextResponse.json({ id, status: patch.status })
