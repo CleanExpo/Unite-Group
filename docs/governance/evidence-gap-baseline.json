@@ -1,0 +1,17 @@
+{
+  "count": 10,
+  "ids": [
+    "AFCA-02",
+    "AFCA-03",
+    "AFCA-04",
+    "ASIC-04",
+    "STD-01",
+    "STD-04",
+    "STD-06",
+    "STD-07",
+    "STD-12",
+    "TRIAL-05"
+  ],
+  "recorded_at": "2026-09-07",
+  "why": "The ratchet only ever moves down. Lower this number by giving an entry a primary-source read, or by rewording its claim to describe the search rather than the world. Never raise it to make the check pass."
+}

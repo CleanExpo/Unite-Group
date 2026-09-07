@@ -36,7 +36,7 @@ Australian Consumer Insurance Lobby [ICA-05 conflict]. ICA frames the same redra
 clear rights in plain language [ICA-06 conflict].
 
 Both are recorded, neither overwrites the other, and both carry status `conflict`
-[ICA-05, ICA-06]. No ICA page fetched disputes the number 65 directly [ICA-06 conflict]. This is a
+[ICA-05 conflict, ICA-06 conflict]. No ICA page fetched disputes the number 65 directly [ICA-06 conflict]. This is a
 framing conflict, not a numeric rebuttal.
 
 The same pattern appears at AFCA. ICA objected in submission that disagreement with credible
@@ -95,11 +95,11 @@ billion from 264,000 claims [LOSS-06 conflict] — always date-stamp which relea
 ## What run 2 takes first
 
 1. Read the AFCA Approach PDF [AFCA-12 conflict]. It is the highest-value unread document in the
-   program and it decides whether CARD-07 stands.
-2. Confirm the ASIC approval status of the Code [ASIC-03, ICA-03]. Enforceability rests on it.
+   program and it decides whether CARD-07 unverified stands.
+2. Confirm the ASIC approval status of the Code [ASIC-03 conflict, ICA-03 unverified]. Enforceability rests on it.
 3. Read RIA Australasia's own Code submission [ICA-07]. What the field's own association
    argued is the starting point for any partnership brief.
-4. Read the ICA Expert Report Best Practice Standard itself [AFCA-04, ICA-04], not the fact
+4. Read the ICA Expert Report Best Practice Standard itself [AFCA-04 unverified, ICA-04], not the fact
    sheet, and not via search highlights.
 
 ## Fence

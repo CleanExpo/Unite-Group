@@ -206,3 +206,41 @@ search set, which is what every negative in this ledger actually is.
 **The reviewer earned its place.** Run 1 recorded that a gate which only ever catches other
 people is not evidence. This is the first finding in the program that came from outside the
 agent that wrote the work, and it found a defect that two internal passes had walked past.
+
+### Round 2 of the same review: the guard I wrote had the defect it was written to catch
+
+The drain went back to the reviewer at head `ebc0c62b`. It returned **FAIL with two more
+P0s**, and both were things the brief had explicitly asked it to attack.
+
+**The citation guard matched the wrong thing.** `citations.py` keyed on `[ID]`. The reviewer
+showed it missed two shapes that are all over these documents: combined citations like
+`[TRIAL-05, STD-12]`, and bare ids in table cells like `STD-06` with no brackets at all. It
+had reported **69 citations clean while about ninety-eight more went unexamined**. Widening
+it to match a bare id anywhere raised the visible count from 69 to **167**, and 74 of those
+were misgraded. A guard that silently skips a citation is the original defect wearing a
+check - which is exactly what the previous entry in this file congratulated itself for
+closing. Closing a class means asking what the matcher CANNOT see, not what it catches.
+
+**And one entry still asserted the world.** `STD-09` said state and territory electrical
+safety legislation calls up AS/NZS 3000, on one guessed URL that 404'd. The round-1 drain had
+asserted STD-14 was the only absolute claim in the file; the reviewer tested that assertion
+and broke it. The detector used to make that assertion keyed on words like *timed out* and
+missed *no state electrical safety regulation was successfully fetched* - a narrow search
+that returned exactly what a genuine absence returns.
+
+**So the second fix is a ratchet, not a list.** `evidence-gap.py` counts the entries whose
+own evidence admits nobody read the source, and fails when the count rises. Baseline 10 at
+the close of run 2. Two entries left the set immediately, `STD-10` and `STD-11`, because run
+2 had already downloaded both documents - they only needed quoting from the file their own
+`url` names. That last clause matters: the first quote drafted for `STD-10` came from the
+2023 handbook while its url names the 2021 one, which would have been a quote attached to the
+wrong document, the same defect run 1 caught twice.
+
+**Three mutants, all restored byte-identical.** Combined citation loses its grade → 2
+violations, exit 1. Bare table-cell id loses its grade → 1, exit 1. Stale `unverified` left
+on a verified entry → 1, exit 1. Each restored to `PASS`, exit 0.
+
+**The lesson worth keeping.** Two rounds of independent review found four real defects that
+three internal passes had walked past, and the second round found the defect in the fix the
+first round produced. A reviewer that only ever confirms is not a reviewer; this one has now
+failed the work twice and been right twice.

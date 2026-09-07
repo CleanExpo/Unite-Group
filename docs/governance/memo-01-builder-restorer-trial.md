@@ -42,15 +42,15 @@ asking whether insurers should require formal accreditation of restoration contr
 [TRIAL-04 unverified]. That is an opinion piece by a restoration-franchise executive, documenting no
 trial [TRIAL-04 unverified].
 
-Separately, a national mould-remediation standard is reported as adopted [TRIAL-05,
-STD-12], but neither source was fetched directly and neither carries a usable quote
-[TRIAL-05, STD-12].
+Separately, a national mould-remediation standard is reported as adopted [TRIAL-05 unverified,
+STD-12 unverified], but neither source was fetched directly and neither carries a usable quote
+[TRIAL-05 unverified, STD-12 unverified].
 
 ## What this means
 
 The mechanism a split would need already exists in three places: insurer panel taxonomy
 [TRIAL-02 unverified], a live licensing-reform channel [TRIAL-03 unverified], and adopted procedure standards
-that define restoration work as its own discipline [STD-01, STD-12]. What is missing is any
+that define restoration work as its own discipline [STD-01 unverified, STD-12 unverified]. What is missing is any
 public instrument that says a contractor must choose.
 
 The founder's signal stays labelled founder-reported [CARD-13 unverified] until a primary source
@@ -59,13 +59,13 @@ carries it. It is not downgraded and it is not promoted.
 ## What run 2 takes first
 
 1. Fetch abcb.gov.au and qbcc.qld.gov.au directly, plus VBA, NSW Building Commission, WA
-   Building and Energy, and SA CBS licence-class pages. The TRIAL-07 negative is weakest
+   Building and Energy, and SA CBS licence-class pages. The TRIAL-07 unverified negative is weakest
    exactly there [TRIAL-07 unverified].
 2. Get RIA Australasia's RICOP itself. It is member-gated [TRIAL-01 unverified], and the founder is
    the member.
 3. Find ICA's own page behind the licensing-friction position [TRIAL-03 unverified]. Trade press is
    not enough for a memo that goes anywhere.
-4. Confirm AS-IICRC S520:2025 from Standards Australia directly [TRIAL-05, STD-12].
+4. Confirm AS-IICRC S520:2025 from Standards Australia directly [TRIAL-05 unverified, STD-12 unverified].
 
 ## Fence
 

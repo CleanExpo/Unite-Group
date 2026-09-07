@@ -86,6 +86,30 @@ behind after an entry was promoted. Recorded control pair, run against the real 
 53 violations before annotation, 0 after, then 1 under a planted stale grade on a verified
 entry, restored to 0.
 
+## The evidence-gap ratchet
+
+The same reviewer then found `STD-09` asserting what state electrical safety legislation does,
+on the strength of one guessed URL that returned 404. The `status` field already said
+`unverified-seed`, so nothing was hidden - but nothing counted it either, and an unmeasured
+set only grows.
+
+`evidence-gap.py` counts the entries that assert a fact while their own evidence admits no
+primary source was read, and **fails when that count rises**. It is a ratchet, not a report.
+
+```
+python evidence-gap.py list      # the current set, with why each one is in it
+python evidence-gap.py check     # exit 1 if the count exceeds the recorded baseline
+python evidence-gap.py baseline  # rewrite the baseline - only ever downward
+```
+
+Baseline at the close of run 2: **10 entries**, recorded in `evidence-gap-baseline.json`.
+An entry leaves the set by getting a primary-source read, or by rewording its claim to
+describe the search rather than the world. Raising the baseline to make the check pass is
+the one thing that must never happen.
+
+Control pair: baseline lowered to 9 → `FAIL (10 entries, baseline allows 9)`, exit 1;
+restored → `PASS`, exit 0, file byte-identical.
+
 ## Negative claims
 
 An entry with `claim_type: "negative"` must carry a `search_set` naming exactly where the

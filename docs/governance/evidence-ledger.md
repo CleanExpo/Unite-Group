@@ -1043,36 +1043,40 @@ A sub-agent report is lead-grade evidence until the coordinator reopens the sour
 
 ### STD-09 - `unverified-seed`
 
-**Claim.** State and territory electrical safety legislation calls up AS/NZS 3000, making it mandatory by reference rather than in its own right.
+**Claim.** No state or territory electrical safety regulation was read, so the widely repeated claim that they call up AS/NZS 3000 by reference remains unestablished here.
 
 - Source: [AS/NZS 3000 calling-up mechanism (NOT located in any primary register)](https://www.standards.org.au/flagship-projects/wiring-rules)
 - Accessed: 2026-09-07 | Check by: 2026-09-14
 - Sweep said: `not-found` | Verified by: NOT YET VERIFIED
 - Feeds: D3
 - Search set (negative claim): One guessed Queensland legislation URL (legislation.gov.au sl-2013-0270) which returned 404. No state electrical safety regulation was successfully fetched. The claim repeats across vendor and training pages (Intertek, ECA WA) but no primary legislation register was read.
-- Note: NEGATIVE ON THE CHECK, NOT ON THE LAW. This is very likely true and simply unverified. Run 2 must read one state's electrical safety regulation directly.
+- Note: CLAIM REWORDED IN RUN 2, drained from independent review finding F2 round 2 (gemini lane, P0). The reviewer was right: the entry asserted what the law does while its own search set recorded one guessed URL returning 404 and no primary register read at all. Original run 1 wording preserved verbatim: "State and territory electrical safety legislation calls up AS/NZS 3000, making it mandatory by reference rather than in its own right." NEGATIVE ON THE CHECK, NOT ON THE LAW. This is very likely true and simply unverified. Run 2 must read one state's electrical safety regulation directly.
 
-### STD-10 - `unverified-seed`
+### STD-10 - `verified`
 
 **Claim.** The ABCB Indoor Air Quality Verification Method Handbook offers verification methods for the NCC's adequate air quality performance requirement but sets no binding mould or bioaerosol limit.
 
+> Biological contaminants including house dust mites, moulds and fungi, allergens, bacterial and viral pollutants, are not covered by the IAQ Verification Methods
+
 - Source: [Handbook, Indoor Air Quality (ABCB)](https://www.abcb.gov.au/sites/default/files/resources/2021/Handbook-Indoor-Air-Quality.pdf)
-- Accessed: 2026-09-07 | Check by: 2026-09-14
-- Sweep said: `lead` | Verified by: NOT YET VERIFIED
+- Accessed: 2026-09-07 | Check by: 2027-09-07
+- Sweep said: `verified` | Verified by: primary-source-read/run2/2026-09-07
 - Feeds: D3, D4
 - Hook: NCC adequate air quality performance requirement | building designers and certifiers, not restoration contractors | performance clause CALLED-UP, handbook methods VOLUNTARY
-- Note: NO QUOTE. Not directly fetched; URL and characterisation from search only.
+- Note: RUN 2: the document this entry names was downloaded and read directly by the coordinating context, and the quote below was matched against it. ABCB Indoor Air Quality Handbook 2021, downloaded at 2,240,570 bytes. The quote is from that 2021 handbook, NOT from the 2023 Verification Methods handbook quoted at STD-17 and STD-18 - the two documents say the same thing and are easy to confuse, so each entry is quoted from the file its own url names. Original run 1 note follows. NO QUOTE. Not directly fetched; URL and characterisation from search only.
 
-### STD-11 - `unverified-seed`
+### STD-11 - `verified`
 
-**Claim.** enHealth publishes guidance on potential health effects of mould in the environment as non-binding public-health advice.
+**Claim.** The mould guidance is published by enHealth, the Environmental Health Standing Committee of the Australian Health Protection Principal Committee.
+
+> Environmental Health Standing Committee (enHealth) of the Australian Health Protection Principal Committee
 
 - Source: [enHealth guidance, Potential health effects of mould in the environment](https://www.cdc.gov.au/system/files/2025-10/enhealth-guidance-potential-health-effects-of-mould-in-the-environment_0.pdf)
-- Accessed: 2026-09-07 | Check by: 2026-09-14
-- Sweep said: `lead` | Verified by: NOT YET VERIFIED
+- Accessed: 2026-09-07 | Check by: 2027-09-07
+- Sweep said: `verified` | Verified by: primary-source-read/run2/2026-09-07
 - Feeds: D4
 - Hook: Health-effects and general management advice for mould | binds nobody, informational only | VOLUNTARY
-- Note: NO QUOTE. health.gov.au version timed out; located on cdc.gov.au via search. Now sits under the Australian Centre for Disease Control.
+- Note: RUN 2: the document this entry names was downloaded and read directly by the coordinating context, and the quote below was matched against it. enHealth mould guidance, downloaded at 230,415 bytes. CLAIM NARROWED to what the quote actually proves. The original wording was: "enHealth publishes guidance on potential health effects of mould in the environment as non-binding public-health advice." The words 'non-binding public-health advice' were dropped from the claim because the document's masthead proves authorship, not legal status. That the guidance is advisory rather than binding is an inference from enHealth being a standing committee, and it is separately supported by the document itself recommending rather than requiring - see STD-19 and STD-20. Original run 1 note follows. NO QUOTE. health.gov.au version timed out; located on cdc.gov.au via search. Now sits under the Australian Centre for Disease Control.
 
 ### STD-12 - `unverified-seed`
 

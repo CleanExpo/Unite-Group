@@ -12,7 +12,7 @@
 
 Run 1's headline finding rested on four fetches that never completed. A timeout is not an absence, so the finding was unusable outside the repository. This run re-ran those fetches and settled the second blocking question at the same time.
 
-**The two-reader rule was kept.** `perplexity/sonar-deep-research` LOCATED the sources. It did not verify anything. Every entry promoted to `verified` in this run was reopened by the coordinating context, which downloaded the primary document itself and matched the quote against it. Where only the model read a source, the entry stays `unverified-seed` with `sweep_status: lead` and says so in its note. Three entries are in that state on purpose: `STD-21`, `ASIC-11` and the trade-press dates inside it.
+**The two-reader rule was kept.** `perplexity/sonar-deep-research` LOCATED the sources. It did not verify anything. Every entry promoted to `verified` in this run was reopened by the coordinating context, which downloaded the primary document itself and matched the quote against it. Where only the model read a source, the entry stays `unverified-seed` with `sweep_status: lead` and says so in its note. Three entries are in that state on purpose: `STD-21 unverified`, `ASIC-11 unverified` and the trade-press dates inside it.
 
 ---
 
@@ -20,7 +20,7 @@ Run 1's headline finding rested on four fetches that never completed. A timeout 
 
 **Verdict: the claim SURVIVES on its narrow point, and its second sentence was wrong.**
 
-Run 1 recorded this as `STD-14`, the headline finding, on four failed checks. All four sources loaded this time, first try:
+Run 1 recorded this as `STD-14 unverified`, the headline finding, on four failed checks. All four sources loaded this time, first try:
 
 | Source | Bytes | Result |
 | --- | --- | --- |
@@ -37,9 +37,9 @@ Run 1 recorded this as `STD-14`, the headline finding, on four failed checks. Al
 - The building regulator says so in writing. ABCB: *Acceptable limits for many biological contaminants have not been established* (`STD-17`), and biological contaminants *are not covered by the IAQ Verification Methods* (`STD-18`).
 - The health authority says so in writing. enHealth: *There is no exposure limit or health guideline value for exposure to mould* (`STD-19`), and *there are no health guideline values for which to compare test results to* (`STD-20`).
 
-**The correction.** `STD-14`'s second sentence claimed the only Australian instruments located were a voluntary standard and non-binding guidance. That overstated the position. Mandatory instruments addressing mould do exist - Queensland's minimum housing standards require rental premises to be free from damp and mould - they simply impose qualitative duties instead of numeric limits (`STD-21`). The narrow claim survives; the sweeping phrasing must not leave this repository.
+**The correction.** `STD-14 unverified`'s second sentence claimed the only Australian instruments located were a voluntary standard and non-binding guidance. That overstated the position. Mandatory instruments addressing mould do exist - Queensland's minimum housing standards require rental premises to be free from damp and mould - they simply impose qualitative duties instead of numeric limits (`STD-21 unverified`). The narrow claim survives; the sweeping phrasing must not leave this repository.
 
-**`STD-14` is deliberately still `unverified-seed`.** The sweeping form of the claim spans seven bodies and the coordinating context reopened four of them. The proven parts are the six new verified entries. Six state and territory WHS regulators, and every state tenancy instrument other than Queensland, have been checked by nobody in either run.
+**`STD-14 unverified` is deliberately still `unverified-seed`.** The sweeping form of the claim spans seven bodies and the coordinating context reopened four of them. The proven parts are the six new verified entries. Six state and territory WHS regulators, and every state tenancy instrument other than Queensland, have been checked by nobody in either run.
 
 ### Q1 sources
 
@@ -78,11 +78,11 @@ Recorded as `ASIC-09` and `ASIC-10`, both verified.
 
 **Why this matters more than it looks.** Two different things were being blurred. A code can be *contractually binding on ICA members* while not being *ASIC-approved under s1101A*. Only the second brings enforceable code provisions, financial-services-law status and civil penalties. Every enforceability claim in the positioning pack rests on which of those is true, and today it is the first.
 
-**The ledger conflict is NOT resolved here, on purpose.** `ASIC-03` and `ICA-01` are marked as conflicting. Rule D6 says a conflict is settled by a person and never by a verifier, and `promote.py` enforces it. The evidence to settle it now exists and is cited in `ASIC-03`'s note.
+**The ledger conflict is NOT resolved here, on purpose.** `ASIC-03 conflict` and `ICA-01` are marked as conflicting. Rule D6 says a conflict is settled by a person and never by a verifier, and `promote.py` enforces it. The evidence to settle it now exists and is cited in `ASIC-03 conflict`'s note.
 
-**For Phill, a one-line decision:** on this evidence `ASIC-03` should be promoted to `verified` and its conflict with `ICA-01` discharged as not a real contradiction - `ICA-01` is phrased conditionally, *once ASIC approves it*, and a conditional claim does not contradict a statement that the condition has not been met.
+**For Phill, a one-line decision:** on this evidence `ASIC-03 conflict` should be promoted to `verified` and its conflict with `ICA-01` discharged as not a real contradiction - `ICA-01` is phrased conditionally, *once ASIC approves it*, and a conditional claim does not contradict a statement that the condition has not been met.
 
-**Timing, lead-grade only.** Trade press reports lodgement delayed to late October 2026 and an effective date expected in 2028 (`ASIC-11`). One reader, trade journalism, no primary source. If those dates are right, the enforceability window the positioning pack assumes is years away rather than months, so run 3 must confirm both against an ICA or ASIC document before either number appears in founder-facing material.
+**Timing, lead-grade only.** Trade press reports lodgement delayed to late October 2026 and an effective date expected in 2028 (`ASIC-11 unverified`). One reader, trade journalism, no primary source. If those dates are right, the enforceability window the positioning pack assumes is years away rather than months, so run 3 must confirm both against an ICA or ASIC document before either number appears in founder-facing material.
 
 ### Q2 sources
 

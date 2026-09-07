@@ -113,12 +113,12 @@ audited — they are the founder's to make.
 | Assertion in the matrix | Ledger | State | What this means for the build |
 | --- | --- | --- | --- |
 | Average claim figure of $16,471 | LOSS-05 | Number correct, **scope narrower than stated** | ICA's $16,471 is the 2025 average for *declared extreme-weather event* claims, not all claims. Label the benchmark precisely or it will be challenged. |
-| AFCA evidence packs matter because delay now carries remedies | AFCA-03, AFCA-12, AFCA-01 | **UNPROVEN** | The finalised AFCA Approach PDF could not be read (Cloudflare 403 on every attempt). AFCA's own page still says "Late 2025". The premise is trade-press only. Build the pack anyway; do not state the remedy claim externally yet. |
-| Expert-report quality is what a payer is judged on | ICA-04, AFCA-04, AFCA-05, AFCA-08 | Strongly supported, not yet verified | ICA-04 is the strongest hook in the whole program: the redrafted Code binds **External Experts**, not just insurers. That is the restorer, directly. |
+| AFCA evidence packs matter because delay now carries remedies | AFCA-03 unverified, AFCA-12 conflict, AFCA-01 conflict | **UNPROVEN** | The finalised AFCA Approach PDF could not be read (Cloudflare 403 on every attempt). AFCA's own page still says "Late 2025". The premise is trade-press only. Build the pack anyway; do not state the remedy claim externally yet. |
+| Expert-report quality is what a payer is judged on | ICA-04, AFCA-04 unverified, AFCA-05 unverified, AFCA-08 unverified | Strongly supported, not yet verified | ICA-04 is the strongest hook in the whole program: the redrafted Code binds **External Experts**, not just insurers. That is the restorer, directly. |
 | Nobody scores payers from the field side | ICA-08 | **Needs correction** | The field-agent voice is not absent from the ICA Code submissions. RIA Australasia, AIBEC and AICLA all appear on the published list. What is absent is the *individual practitioner* and any *field-sourced dataset*. Family 4 answers the second gap, not the first. |
-| S500:2025 equipment-planner maths as cost justification | STD-01, STD-02, STD-03 | Voluntary standard, not law | AS-IICRC S500:2025 binds nobody by statute. Its force is contractual — insurers and AFCA use it as the reasonableness benchmark. Cite it as the benchmark, never as a legal requirement. |
-| AS/NZS 3000 for licensed-trade dispatch | STD-08 | Edition confirmed, mechanism pending | AS/NZS 3000:2018 with Amendment 3 (2025) is current. How it becomes mandatory (state electrical safety regulations calling it up) is still being confirmed. |
-| WHS/PPE events as compliance evidence | STD-04, STD-05, STD-06, STD-07 | Mandatory, and the strongest legal hook | The PCBU primary duty is real law in every jurisdiction. Asbestos-licensing and silica-exposure limits bind restoration work directly. This family has the firmest legal ground of the six. |
+| S500:2025 equipment-planner maths as cost justification | STD-01 unverified, STD-02 unverified, STD-03 unverified | Voluntary standard, not law | AS-IICRC S500:2025 binds nobody by statute. Its force is contractual — insurers and AFCA use it as the reasonableness benchmark. Cite it as the benchmark, never as a legal requirement. |
+| AS/NZS 3000 for licensed-trade dispatch | STD-08 unverified | Edition confirmed, mechanism pending | AS/NZS 3000:2018 with Amendment 3 (2025) is current. How it becomes mandatory (state electrical safety regulations calling it up) is still being confirmed. |
+| WHS/PPE events as compliance evidence | STD-04 unverified, STD-05, STD-06 unverified, STD-07 unverified | Mandatory, and the strongest legal hook | The PCBU primary duty is real law in every jurisdiction. Asbestos-licensing and silica-exposure limits bind restoration work directly. This family has the firmest legal ground of the six. |
 | Published 27-line rate schedule, $2,750 minimum callout | none | Estate-internal | Not an industry figure and not audited here. It is a published RestoreAssist number, which is exactly what makes it defensible. |
 
 ### Two corrections the matrix should absorb
@@ -136,7 +136,7 @@ has read the submission list.
 ### Where this plugs into UNI-2673
 
 - Families 1 and 4 are the D3 hook-matrix answer to ICA-04 (Expert Report Best Practice
-  Standard) and to the AFCA expert-evidence line once AFCA-12 is read.
-- Family 3 is the D3 answer to STD-04 through STD-07 (WHS, asbestos, silica).
+  Standard) and to the AFCA expert-evidence line once AFCA-12 conflict is read.
+- Family 3 is the D3 answer to STD-04 unverified through STD-07 unverified (WHS, asbestos, silica).
 - Family 4's aggregate is the asset behind the D7 RIA partnership brief. It is also the
   thing that must never be published without a founder and legal decision.
