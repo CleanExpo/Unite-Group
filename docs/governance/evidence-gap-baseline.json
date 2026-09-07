@@ -1,0 +1,40 @@
+{
+  "count": 21,
+  "ids": [
+    "AFCA-02",
+    "AFCA-03",
+    "AFCA-04",
+    "AFCA-10",
+    "AFCA-11",
+    "AFCA-12",
+    "ASIC-04",
+    "LOSS-12",
+    "NCC-11",
+    "NCC-14",
+    "STD-01",
+    "STD-04",
+    "STD-06",
+    "STD-07",
+    "STD-09",
+    "STD-12",
+    "STD-13",
+    "STD-14",
+    "TRIAL-05",
+    "TRIAL-06",
+    "TRIAL-07"
+  ],
+  "recorded_at": "2026-09-07",
+  "why": "The ratchet only ever moves down from here. Lower it by giving an entry a primary-source read. Raising it is legitimate ONLY when the detector widened and the history entry says how; never to make a red check go green.",
+  "history": [
+    {
+      "count": 10,
+      "detector": "v1",
+      "note": "First baseline. The detector keyed on a narrow phrase list and let any claim escape if it contained a bounding phrase such as 'was found' anywhere in its text."
+    },
+    {
+      "count": 21,
+      "detector": "v2",
+      "note": "RAISED, and legitimately: an independent reviewer showed v1 missed phrasings present in this ledger ('unread', 'not a direct read', '403'), never looked at the claim field at all, and could be walked out of by appending four words. v2 widens the phrase list, searches the claim, and removes the escape entirely. The number rose because the instrument improved, not because the work got worse. This is the only reason a rise is ever acceptable."
+    }
+  ]
+}

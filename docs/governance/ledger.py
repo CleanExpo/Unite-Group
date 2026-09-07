@@ -55,6 +55,9 @@ def load():
 
 
 def check(rows):
+    if not rows:
+        print("LEDGER CHECK: FAIL (ledger is empty; a check over no entries is not a pass)")
+        return 1
     errs = []
     seen = {}
     for n, r in rows:

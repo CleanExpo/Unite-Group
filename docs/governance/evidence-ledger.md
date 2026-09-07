@@ -3,7 +3,7 @@
 GENERATED FILE. Source of truth is `evidence-ledger.jsonl`.
 Regenerate with `python ledger.py render`. Do not hand-edit this file.
 
-Rendered: 2026-09-07 | Entries: 92
+Rendered: 2026-09-07 | Entries: 102
 
 ## What each status means
 
@@ -21,12 +21,12 @@ A sub-agent report is lead-grade evidence until the coordinator reopens the sour
 ## Deliverables fed
 
 - **D1** Builder/restorer trial memo - 8 entries
-- **D2** ICA/Code landscape memo - 49 entries
-- **D3** Regulatory-hook matrix - 38 entries
-- **D4** Governance-vacuum map - 27 entries
+- **D2** ICA/Code landscape memo - 52 entries
+- **D3** Regulatory-hook matrix - 46 entries
+- **D4** Governance-vacuum map - 34 entries
 - **D5** Stakeholder + windows map - 26 entries
-- **D6** Positioning options pack - 37 entries
-- **D7** RIA partnership brief - 11 entries
+- **D6** Positioning options pack - 47 entries
+- **D7** RIA partnership brief - 17 entries
 - **D8** Fresh-context citation audit - 0 entries
 
 ## Sweep: AFCA
@@ -266,7 +266,7 @@ A sub-agent report is lead-grade evidence until the coordinator reopens the sour
 - Feeds: D2, D3, D5
 - Hook: Code commitments become enforceable via AFCA and the courts once approved | code-preparing bodies such as ICA and their subscriber members | Corporations Act s1101A, RG 183
 - CONFLICTS WITH: ICA-01, ICA-03
-- Note: THE POWER EXISTS AND HAS BEEN USED (ASIC approved the Banking Code). Whether it has been used for the general insurance Code is the live unknown that ICA-01's enforceability claim depends on.
+- Note: RUN 2: OUTCOME - the claim in this entry is now CONFIRMED by an ASIC-hosted primary source. AFCA, writing to ASIC in the RG 183 consultation, states that the Banking Code of Practice is the only code that currently has ASIC approval, and describes the ICA position as an intention to seek approval (ASIC-09, ASIC-10, both verified by direct read). STATUS DELIBERATELY LEFT conflict. Ledger rule D6 says a conflict is settled by a person and never by a verifier, and promote.py enforces that. The evidence to settle it now exists and is cited here. FOR PHILL: on this evidence ASIC-03 should be promoted to verified and the conflict with ICA-01 discharged as not a real contradiction, because ICA-01 is phrased conditionally - once ASIC approves it - and a conditional claim does not contradict a statement that the condition has not yet been met. That is a one-line decision, not a research task. The original run 1 note follows. THE POWER EXISTS AND HAS BEEN USED (ASIC approved the Banking Code). Whether it has been used for the general insurance Code is the live unknown that ICA-01's enforceability claim depends on.
 
 ### ASIC-04 - `unverified-seed`
 
@@ -329,6 +329,40 @@ A sub-agent report is lead-grade evidence until the coordinator reopens the sour
 - Sweep said: `verified` | Verified by: NOT YET VERIFIED
 - Feeds: D2, D3, D6
 - Note: Underlying document is Report 768, Navigating the storm, August 2023, covering six insurers and 63 per cent of the market. PRECEDENT: ASIC has already done this once after a catastrophe.
+
+### ASIC-09 - `verified`
+
+**Claim.** As at the ASIC RG 183 consultation, AFCA states that the Banking Code of Practice is the only code that currently has ASIC approval, which places the General Insurance Code of Practice outside the approved set.
+
+> Only one code, the Banking Code of Practice currently has ASIC approval
+
+- Source: [AFCA submission to ASIC Consultation CS 26 on RG 183, hosted on asic.gov.au - only the Banking Code is approved](https://download.asic.gov.au/media/dujfdaec/australian-financial-complaints-authority-afca-_redacted.pdf)
+- Accessed: 2026-09-07 | Check by: 2026-12-07
+- Sweep said: `verified` | Verified by: primary-source-read/run2/2026-09-07
+- Feeds: D2, D3, D6
+- Note: RUN 2: located by perplexity/sonar-deep-research via OpenRouter, then independently reopened and quote-checked against the primary document by the coordinating context. Two readers, two contexts, same words. THIS IS THE ENTRY THAT SETTLES THE ASIC-03 / ICA-01 QUESTION. It is an ASIC-hosted document, written by the external dispute resolution scheme that applies these codes daily, so it is about as close to an admission against interest as this subject offers. The body text repeats it: the Code of Banking Practice is the only code that currently has ASIC approval, alongside a range of other non-ASIC approved codes that still set important retail standards. Downloaded at 242,730 bytes and extracted to 23,963 characters; a positive control returned 87 hits for the word code before the specific search was trusted.
+
+### ASIC-10 - `verified`
+
+**Claim.** AFCA records that the Insurance Council of Australia has signalled an intention to seek ASIC approval for the updated General Insurance Code of Practice, which is an intention rather than a completed approval.
+
+> We welcome signals from other sectors, such as the Insurance Council of Australia, of their intention to seek ASIC approval
+
+- Source: [AFCA submission to ASIC - ICA intention to seek approval, not approval granted](https://download.asic.gov.au/media/dujfdaec/australian-financial-complaints-authority-afca-_redacted.pdf)
+- Accessed: 2026-09-07 | Check by: 2026-12-07
+- Sweep said: `verified` | Verified by: primary-source-read/run2/2026-09-07
+- Feeds: D2, D3, D6, D7
+- Note: RUN 2: located by perplexity/sonar-deep-research via OpenRouter, then independently reopened and quote-checked against the primary document by the coordinating context. Two readers, two contexts, same words. The distinction this entry protects is the one every enforceability claim in the pack rests on. Contractually binding on ICA members is NOT the same as approved by ASIC under s1101A, and only the second brings enforceable code provisions, financial-services-law status and civil penalties. ICA-01 is phrased conditionally and survives; any sentence that drops the condition does not.
+
+### ASIC-11 - `unverified-seed`
+
+**Claim.** Trade press reports that the Insurance Council of Australia has delayed lodging the redrafted General Insurance Code of Practice with ASIC to late October 2026, with an effective date now expected in 2028.
+
+- Source: [Insurance Business Australia - ICA delays Code lodgement](https://www.insurancebusinessmag.com/au/news/breaking-news/ica-delays-code-lodgement-as-industryconsumer-divide-deepens-584518.aspx)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `lead` | Verified by: NOT YET VERIFIED
+- Feeds: D2, D6, D7
+- Note: RUN 2: reported by perplexity/sonar-deep-research from trade press and NOT independently reopened by the coordinating context. Deliberately lead-grade twice over: one reader only, and the source is trade journalism rather than an ICA or ASIC primary document. The dates matter commercially - if lodgement is late 2026 and effect is 2028, the enforceability window the positioning pack assumes is years away, not months. Run 3 must confirm both dates against an ICA or ASIC primary source before either number is used in any founder-facing material.
 
 ## Sweep: CARD-SEED
 
@@ -1009,36 +1043,40 @@ A sub-agent report is lead-grade evidence until the coordinator reopens the sour
 
 ### STD-09 - `unverified-seed`
 
-**Claim.** State and territory electrical safety legislation calls up AS/NZS 3000, making it mandatory by reference rather than in its own right.
+**Claim.** No state or territory electrical safety regulation was read, so the widely repeated claim that they call up AS/NZS 3000 by reference remains unestablished here.
 
 - Source: [AS/NZS 3000 calling-up mechanism (NOT located in any primary register)](https://www.standards.org.au/flagship-projects/wiring-rules)
 - Accessed: 2026-09-07 | Check by: 2026-09-14
 - Sweep said: `not-found` | Verified by: NOT YET VERIFIED
 - Feeds: D3
 - Search set (negative claim): One guessed Queensland legislation URL (legislation.gov.au sl-2013-0270) which returned 404. No state electrical safety regulation was successfully fetched. The claim repeats across vendor and training pages (Intertek, ECA WA) but no primary legislation register was read.
-- Note: NEGATIVE ON THE CHECK, NOT ON THE LAW. This is very likely true and simply unverified. Run 2 must read one state's electrical safety regulation directly.
+- Note: CLAIM REWORDED IN RUN 2, drained from independent review finding F2 round 2 (gemini lane, P0). The reviewer was right: the entry asserted what the law does while its own search set recorded one guessed URL returning 404 and no primary register read at all. Original run 1 wording preserved verbatim: "State and territory electrical safety legislation calls up AS/NZS 3000, making it mandatory by reference rather than in its own right." NEGATIVE ON THE CHECK, NOT ON THE LAW. This is very likely true and simply unverified. Run 2 must read one state's electrical safety regulation directly.
 
-### STD-10 - `unverified-seed`
+### STD-10 - `verified`
 
 **Claim.** The ABCB Indoor Air Quality Verification Method Handbook offers verification methods for the NCC's adequate air quality performance requirement but sets no binding mould or bioaerosol limit.
 
+> Biological contaminants including house dust mites, moulds and fungi, allergens, bacterial and viral pollutants, are not covered by the IAQ Verification Methods
+
 - Source: [Handbook, Indoor Air Quality (ABCB)](https://www.abcb.gov.au/sites/default/files/resources/2021/Handbook-Indoor-Air-Quality.pdf)
-- Accessed: 2026-09-07 | Check by: 2026-09-14
-- Sweep said: `lead` | Verified by: NOT YET VERIFIED
+- Accessed: 2026-09-07 | Check by: 2027-09-07
+- Sweep said: `verified` | Verified by: primary-source-read/run2/2026-09-07
 - Feeds: D3, D4
 - Hook: NCC adequate air quality performance requirement | building designers and certifiers, not restoration contractors | performance clause CALLED-UP, handbook methods VOLUNTARY
-- Note: NO QUOTE. Not directly fetched; URL and characterisation from search only.
+- Note: RUN 2: the document this entry names was downloaded and read directly by the coordinating context, and the quote below was matched against it. ABCB Indoor Air Quality Handbook 2021, downloaded at 2,240,570 bytes. The quote is from that 2021 handbook, NOT from the 2023 Verification Methods handbook quoted at STD-17 and STD-18 - the two documents say the same thing and are easy to confuse, so each entry is quoted from the file its own url names. Original run 1 note follows. NO QUOTE. Not directly fetched; URL and characterisation from search only.
 
-### STD-11 - `unverified-seed`
+### STD-11 - `verified`
 
-**Claim.** enHealth publishes guidance on potential health effects of mould in the environment as non-binding public-health advice.
+**Claim.** The mould guidance is published by enHealth, the Environmental Health Standing Committee of the Australian Health Protection Principal Committee.
+
+> Environmental Health Standing Committee (enHealth) of the Australian Health Protection Principal Committee
 
 - Source: [enHealth guidance, Potential health effects of mould in the environment](https://www.cdc.gov.au/system/files/2025-10/enhealth-guidance-potential-health-effects-of-mould-in-the-environment_0.pdf)
-- Accessed: 2026-09-07 | Check by: 2026-09-14
-- Sweep said: `lead` | Verified by: NOT YET VERIFIED
+- Accessed: 2026-09-07 | Check by: 2027-09-07
+- Sweep said: `verified` | Verified by: primary-source-read/run2/2026-09-07
 - Feeds: D4
 - Hook: Health-effects and general management advice for mould | binds nobody, informational only | VOLUNTARY
-- Note: NO QUOTE. health.gov.au version timed out; located on cdc.gov.au via search. Now sits under the Australian Centre for Disease Control.
+- Note: RUN 2: the document this entry names was downloaded and read directly by the coordinating context, and the quote below was matched against it. enHealth mould guidance, downloaded at 230,415 bytes. CLAIM NARROWED to what the quote actually proves. The original wording was: "enHealth publishes guidance on potential health effects of mould in the environment as non-binding public-health advice." The words 'non-binding public-health advice' were dropped from the claim because the document's masthead proves authorship, not legal status. That the guidance is advisory rather than binding is an inference from enHealth being a standing committee, and it is separately supported by the document itself recommending rather than requiring - see STD-19 and STD-20. Original run 1 note follows. NO QUOTE. health.gov.au version timed out; located on cdc.gov.au via search. Now sits under the Australian Centre for Disease Control.
 
 ### STD-12 - `unverified-seed`
 
@@ -1060,18 +1098,99 @@ A sub-agent report is lead-grade evidence until the coordinator reopens the sour
 - Sweep said: `not-found` | Verified by: NOT YET VERIFIED
 - Feeds: D4
 - Search set (negative claim): Attempted direct WebFetch of safeworkaustralia.gov.au hazard pages, all of which TIMED OUT so the pages were never actually read, plus a WebSearch for 'Safe Work Australia workplace exposure standard mould bioaerosol'. The SWA exposure-standards register itself was NOT browsed.
-- Note: PROVISIONAL NEGATIVE ONLY. The instrument that would have settled this timed out. Do not state this externally until the register is read.
+- Note: RUN 2: SUPERSEDED IN THE NARROW by STD-16, which is verified. The Safe Work Australia Workplace Exposure Standards list amended November 2025 was downloaded and searched with a positive control, and contains no fungal or bioaerosol entry. This entry stays unverified-seed because its own wording is broader than the single document STD-16 covers. Original run 1 note follows. PROVISIONAL NEGATIVE ONLY. The instrument that would have settled this timed out. Do not state this externally until the register is read.
 
 ### STD-14 - `unverified-seed`
 
-**Claim.** No mandatory Australian standard, regulation or WHS instrument sets a numeric acceptable limit for mould or bioaerosols in occupied buildings; the only Australian instruments located are a voluntary remediation-procedure standard and non-binding NCC and enHealth guidance.
+**Claim.** Across the bodies named in this entry's search set, no mandatory Australian instrument setting a numeric acceptable limit for mould or bioaerosols in occupied buildings was located; six state and territory WHS regulators and every state tenancy instrument except Queensland remain unchecked.
 
 - Source: [Australian mould/bioaerosol limit for occupied buildings (NOT located in any body checked)](https://www.abcb.gov.au/sites/default/files/resources/2021/Handbook-Indoor-Air-Quality.pdf)
 - Accessed: 2026-09-07 | Check by: 2026-09-14
 - Sweep said: `not-found` | Verified by: NOT YET VERIFIED
 - Feeds: D3, D4, D6, D7
-- Search set (negative claim): Four bodies checked for a binding numeric limit: Safe Work Australia (hazard pages, all fetches timed out), ABCB and the NCC (Indoor Air Quality Handbook, search-sourced), enHealth via health.gov.au and cdc.gov.au (timed out, then search-sourced), Standards Australia catalogue (S500 and S520 located, both procedure standards). Corroborating but non-primary: a 2026 NSW Legislative Council Clean Indoor Air inquiry submission and a Consumers Federation of Australia article both describe this as an open policy gap.
-- Note: THE HEADLINE FINDING OF RUN 1, AND THE WEAKEST-EVIDENCED. Australia regulates the PROCESS of mould remediation and not the RESULT. Nobody owns the outcome. But three of four checks were timeouts, so the search set is not yet exhaustive. Run 2 must re-run every timed-out fetch before this is stated anywhere outside this repo.
+- Search set (negative claim): RUN 2 (2026-09-07), all fetches SUCCEEDED where run 1 timed out. Read directly by the coordinating context: Safe Work Australia model WHS Regulations 5 Dec 2025 (2,466,719 bytes); Safe Work Australia Workplace Exposure Standards amended Nov 2025 (235,143 bytes, positive control run before the negative was trusted - see STD-16); ABCB Indoor Air Quality Verification Methods Handbook NCC 2022 (6,595,488 bytes); ABCB Indoor Air Quality Handbook 2021 (2,240,570 bytes); enHealth mould guidance (230,415 bytes). Covered by the perplexity/sonar-deep-research pass but NOT independently reopened: state and territory WHS regulators (SafeWork NSW, WA Health guidelines), Standards Australia catalogue, Queensland minimum housing standards. NOT CHECKED BY ANYONE in either run: the remaining six state and territory WHS regulators individually, and every state residential tenancy instrument other than Queensland.
+- Note: CLAIM REWORDED IN RUN 2, drained from independent review finding F4 (gemini lane, P0). The reviewer was right: the claim asserted an absolute absence while its own search_set admitted the search was not exhaustive, which is the exact failure this ledger exists to prevent. The original run 1 wording is preserved here verbatim and is NOT lost: "No mandatory Australian standard, regulation or WHS instrument sets a numeric acceptable limit for mould or bioaerosols in occupied buildings; the only Australian instruments located are a voluntary remediation-procedure standard and non-binding NCC and enHealth guidance." Two things were wrong with it. The word ALL was implied and not earned, and the second clause about the only Australian instruments located was contradicted by STD-21. The reworded claim says what the evidence supports: a statement about a search, not about the world. RUN 2: OUTCOME - the claim SURVIVES on its narrow point and its second sentence is CORRECTED. Run 1 rested this on four failed fetches. All four now loaded, and every primary source read confirms no numeric limit exists - see the verified entries STD-15 through STD-20, which carry the quotes. Two named corrections. First, the phrase about the only Australian instruments located overstated the position: binding instruments addressing mould do exist and impose qualitative duties (STD-21). Second, the sharper and better-evidenced way to say this is not that no limit exists, but that the ABCB and enHealth have each stated in writing that acceptable limits have not been established (STD-17, STD-19). STATUS DELIBERATELY LEFT unverified-seed: the sweeping form of this claim spans seven bodies and the coordinating context reopened four of them. The proven parts are the verified entries. This row remains the broad seed they narrow. The original run 1 note follows. THE HEADLINE FINDING OF RUN 1, AND THE WEAKEST-EVIDENCED. Australia regulates the PROCESS of mould remediation and not the RESULT. Nobody owns the outcome. But three of four checks were timeouts, so the search set is not yet exhaustive. Run 2 must re-run every timed-out fetch before this is stated anywhere outside this repo.
+
+### STD-15 - `verified`
+
+**Claim.** The model WHS Regulations define an airborne contaminant to include micro-organisms, so fungal spores sit inside the regulatory concept of an airborne contaminant.
+
+> airborne contaminant means a contaminant in the form of a fume, mist, gas, vapour or dust, and includes micro-organisms
+
+- Source: [Model WHS Regulations, consolidated 5 December 2025 - definition of airborne contaminant](https://www.safeworkaustralia.gov.au/sites/default/files/2025-12/model-whs-regulations-5_december_2025.pdf)
+- Accessed: 2026-09-07 | Check by: 2027-09-07
+- Sweep said: `verified` | Verified by: primary-source-read/run2/2026-09-07
+- Feeds: D3, D4, D6
+- Note: RUN 2: located by perplexity/sonar-deep-research via OpenRouter, then independently reopened and quote-checked against the primary document by the coordinating context. Two readers, two contexts, same words. This is the hinge of the vacuum: the definition in law reaches micro-organisms, and the numeric list it points at does not. See STD-16. Run 1 could not load this PDF - four fetches timed out. It downloaded first try in run 2 at 2,466,719 bytes.
+
+### STD-16 - `verified`
+
+**Claim.** The Safe Work Australia Workplace Exposure Standards list amended November 2025 contains no exposure standard for mould, fungi, fungal spores or bioaerosols, while defining airborne contaminants to include microorganisms.
+
+- Source: [Workplace Exposure Standards for Airborne Contaminants, amended November 2025 - no fungal entry](https://www.safeworkaustralia.gov.au/sites/default/files/2025-11/workplace-exposure-standards-amended-november2025.docx)
+- Accessed: 2026-09-07 | Check by: 2026-12-07
+- Sweep said: `verified` | Verified by: primary-source-read/run2/2026-09-07
+- Feeds: D3, D4, D6, D7
+- Search set (negative claim): The Safe Work Australia WES document itself was downloaded (235,143 bytes) and its word/document.xml extracted to 62,803 characters of plain text. A POSITIVE CONTROL ran first to prove the search could return a hit: Benzene 30 hits, Formaldehyde 2, Ammonia 1. The biological search then returned: mould 0, mold 0, fungi 0, fungal 0, Aspergillus 0, spore 0, bioaerosol 0, bacteria 0, microorganism 1. That single microorganism hit is the definition of airborne contaminant in the interpretation section, not a listed substance. This is a statement about the November 2025 amended list only.
+- Note: RUN 2: located by perplexity/sonar-deep-research via OpenRouter, then independently reopened and quote-checked against the primary document by the coordinating context. Two readers, two contexts, same words. The negative here is instrument-backed, not a timeout: the file loaded, and the search was proven able to hit before it was trusted to miss. The run 1 version of this claim rested on a fetch that never completed.
+
+### STD-17 - `verified`
+
+**Claim.** The ABCB states that acceptable limits for many biological contaminants have not been established, and that the NCC indoor air quality Verification Methods set no maximum contaminant limit for mould spores.
+
+> Acceptable limits for many biological contaminants have not been established
+
+- Source: [ABCB Indoor Air Quality Verification Methods Handbook (NCC 2022) - no limits for biological contaminants](https://www.abcb.gov.au/sites/default/files/resources/2023/Handbook-Indoor-Air-Quality-Verification-Methods-NCC-2022.pdf)
+- Accessed: 2026-09-07 | Check by: 2027-09-07
+- Sweep said: `verified` | Verified by: primary-source-read/run2/2026-09-07
+- Feeds: D3, D4, D6, D7
+- Note: RUN 2: located by perplexity/sonar-deep-research via OpenRouter, then independently reopened and quote-checked against the primary document by the coordinating context. Two readers, two contexts, same words. The full sentence continues: and the NCC IAQ Verification Methods do not include maximum contaminant limits for biological contaminants such as airborne virus, bacteria or mould spores. Trimmed here only to satisfy the 25-word quote cap. This is the single strongest source for the vacuum finding, because the building regulator says it in its own words rather than being silent.
+
+### STD-18 - `verified`
+
+**Claim.** The NCC indoor air quality Verification Methods expressly exclude biological contaminants including moulds and fungi from their scope.
+
+> Biological contaminants including house dust mites, moulds and fungi, allergens, bacterial and viral pollutants, are not covered by the IAQ Verification Methods
+
+- Source: [ABCB Indoor Air Quality Verification Methods Handbook (NCC 2022) - scope exclusion](https://www.abcb.gov.au/sites/default/files/resources/2023/Handbook-Indoor-Air-Quality-Verification-Methods-NCC-2022.pdf)
+- Accessed: 2026-09-07 | Check by: 2027-09-07
+- Sweep said: `verified` | Verified by: primary-source-read/run2/2026-09-07
+- Feeds: D3, D4, D6
+- Note: RUN 2: located by perplexity/sonar-deep-research via OpenRouter, then independently reopened and quote-checked against the primary document by the coordinating context. Two readers, two contexts, same words. The exclusion is deliberate and reasoned, not an oversight: the handbook says the methodology for accurate modelling, sampling, testing and measurement of many biological species is not universally agreed, and flags that biological contaminants may be considered for a future edition of the NCC. That is a named, dated, official acknowledgement of the gap.
+
+### STD-19 - `verified`
+
+**Claim.** enHealth states there is no exposure limit or health guideline value for exposure to mould in Australia.
+
+> There is no exposure limit or health guideline value for exposure to mould
+
+- Source: [enHealth guidance: potential health effects of mould in the environment - no exposure limit](https://www.cdc.gov.au/system/files/2025-10/enhealth-guidance-potential-health-effects-of-mould-in-the-environment_0.pdf)
+- Accessed: 2026-09-07 | Check by: 2027-09-07
+- Sweep said: `verified` | Verified by: primary-source-read/run2/2026-09-07
+- Feeds: D3, D4, D6, D7
+- Note: RUN 2: located by perplexity/sonar-deep-research via OpenRouter, then independently reopened and quote-checked against the primary document by the coordinating context. Two readers, two contexts, same words. enHealth is the Environmental Health Standing Committee of the Australian Health Protection Principal Committee, so this is the national public-health position stated plainly. Run 1 recorded this via a search-sourced summary after health.gov.au and cdc.gov.au timed out. The PDF loaded in run 2 at 230,415 bytes.
+
+### STD-20 - `verified`
+
+**Claim.** enHealth advises against testing for mould in homes because there are no health guideline values to compare the results against.
+
+> there are no health guideline values for which to compare test results to
+
+- Source: [enHealth guidance - why mould testing is not recommended](https://www.cdc.gov.au/system/files/2025-10/enhealth-guidance-potential-health-effects-of-mould-in-the-environment_0.pdf)
+- Accessed: 2026-09-07 | Check by: 2027-09-07
+- Sweep said: `verified` | Verified by: primary-source-read/run2/2026-09-07
+- Feeds: D4, D6, D7
+- Note: RUN 2: located by perplexity/sonar-deep-research via OpenRouter, then independently reopened and quote-checked against the primary document by the coordinating context. Two readers, two contexts, same words. Commercially the sharpest line in the whole sweep. The national health committee tells the public that a mould test result cannot establish whether a health risk exists. A restorer therefore cannot prove an outcome with a number, because no number has been given a meaning. This is the vacuum stated by the regulator itself.
+
+### STD-21 - `unverified-seed`
+
+**Claim.** Queensland minimum housing standards mandate that rental premises be free from damp and mould, which is a binding instrument addressing mould without setting any numeric limit.
+
+- Source: [Queensland Residential Tenancies Authority - minimum housing standards fact sheet](https://www.rta.qld.gov.au/sites/default/files/2023-08/Fact-sheet-minimum-housing-standards-rooming-accommodation.pdf)
+- Accessed: 2026-09-07 | Check by: 2026-10-07
+- Sweep said: `lead` | Verified by: NOT YET VERIFIED
+- Feeds: D3, D4, D6
+- Note: RUN 2: reported by perplexity/sonar-deep-research and NOT independently reopened by the coordinating context, so it stays lead-grade. Recorded because it CORRECTS the second sentence of STD-14: mandatory Australian instruments addressing mould do exist, they simply impose qualitative duties rather than numeric limits. The narrow claim about numeric limits survives. The broad phrasing about the only Australian instruments located was an overstatement and must not be repeated outside this repository.
 
 ## Sweep: TRIAL
 

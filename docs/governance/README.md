@@ -59,6 +59,84 @@ itself. That two-context rule is the whole promotion mechanism, and it is delibe
 called proof of truth — it is proof that two separate readers, one of whom was trying to
 break it, agree on what the page says.
 
+## Citation grades in the memos
+
+An independent review on 2026-09-07 found the memos citing the ledger as though every entry
+were established. By count, 53 of 69 citations pointed at entries the ledger does not hold as
+`verified`. Silence about evidence grade is the same defect this ledger exists to prevent,
+one level up.
+
+So the grade is now visible at the point of use, and it is a check rather than a convention:
+
+| Citation | Means |
+| --- | --- |
+| `[ICA-01]` | `verified` - a second independent context reopened the primary source |
+| `[AFCA-04 unverified]` | `unverified-seed` - nobody has reopened the source |
+| `[ASIC-03 conflict]` | `conflict` - a second source contradicts it, and a person must settle it |
+| `[X-01 stale]` | past its `check_by` and not yet re-checked |
+
+```
+python citations.py check      # exit 1 if any grade disagrees with the ledger
+python citations.py annotate   # rewrite every citation to carry its current grade
+python citations.py stats      # citation counts by status, per document
+```
+
+`check` fails in both directions: a bare citation of a non-verified entry, and a grade left
+behind after an entry was promoted.
+
+**The scanned set is discovered, not listed.** Every markdown file in `docs/governance/` and
+in `docs/session-handoffs/` is scanned unless it is named in `EXCLUDED` with a reason. A
+hardcoded list was the second defect review found here: it fails open the moment a document
+is added, which is how a session handoff full of ungraded citations went unchecked.
+
+**Matching is bracket-agnostic and case-insensitive.** Keying on `[ID]` missed combined
+citations like `[TRIAL-05, STD-12]` and bare ids in table cells. Matching uppercase only
+would have skipped `trial-05` in silence; a wrong-case id that resolves to a real entry is
+now reported rather than ignored. Visible citations went 69 → 167 → 188 across those two
+widenings, which is the measure of how much the first two versions could not see.
+
+Recorded control pairs, all run against the real documents and all restored byte-identical:
+
+| Mutant | Result |
+| --- | --- |
+| every citation un-annotated | `FAIL (53 violations)`, exit 1 |
+| combined citation loses its grade | `FAIL (2)`, exit 1 |
+| bare table-cell id loses its grade | `FAIL (1)`, exit 1 |
+| stale `unverified` on a verified entry | `FAIL (1)`, exit 1 |
+| lowercase id | `FAIL (1)`, exit 1, naming the case |
+| a handoff outside `docs/governance/` loses a grade | `FAIL (1)`, exit 1 |
+| restored, each time | `PASS`, exit 0 |
+
+## The evidence-gap ratchet
+
+The same reviewer then found `STD-09` asserting what state electrical safety legislation does,
+on the strength of one guessed URL that returned 404. The `status` field already said
+`unverified-seed`, so nothing was hidden - but nothing counted it either, and an unmeasured
+set only grows.
+
+`evidence-gap.py` counts the entries that assert a fact while their own evidence admits no
+primary source was read, and **fails when that count rises**. It is a ratchet, not a report.
+
+```
+python evidence-gap.py list      # the current set, with why each one is in it
+python evidence-gap.py check     # exit 1 if the count exceeds the recorded baseline
+python evidence-gap.py baseline  # rewrite the baseline - only ever downward
+```
+
+Baseline at the close of run 2: **21 entries**, recorded in `evidence-gap-baseline.json`
+with its history. An entry leaves the set by getting a primary-source read.
+
+**The baseline rose from 10 to 21, and that was legitimate exactly once.** The first detector
+missed phrasings that are present in this ledger — `unread`, `not a direct read`, `403` — never
+looked at the `claim` field at all, and could be escaped by appending a bounding phrase like
+"was found" to a claim that still asserted the world. All three were found by review, not by
+the author. The number rose because the instrument improved. Raising it because a check went
+red is the one thing that must never happen, and the `history` array in the baseline file
+exists so that distinction cannot be quietly lost.
+
+Control pair: baseline lowered by one → `FAIL (21 entries, baseline allows 20)`, exit 1;
+restored → `PASS`, exit 0, file byte-identical.
+
 ## Negative claims
 
 An entry with `claim_type: "negative"` must carry a `search_set` naming exactly where the
