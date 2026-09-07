@@ -41,8 +41,14 @@ export async function GET() {
   if (error) {
     // Honest failure — the caller renders "couldn't load", never an empty list
     // that reads as "no clients". See No-Invaders #1 (no fake-as-real).
+    //
+    // The detail is LOGGED, not returned. `error.message` from PostgREST can
+    // carry column names, constraint names and fragments of the statement;
+    // a 500 body is not redacted the way a Server Component error is, so
+    // echoing it hands internals to the caller. The log keeps it diagnosable.
+    console.error('[coaching/engagements] query failed:', error.message)
     return NextResponse.json(
-      { error: 'query_failed', detail: error.message },
+      { error: 'query_failed' },
       { status: 500 }
     )
   }

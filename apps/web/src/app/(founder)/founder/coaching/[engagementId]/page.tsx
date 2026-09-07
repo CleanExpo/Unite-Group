@@ -16,6 +16,12 @@ const KIND_ORDER = [
   'open_question',
 ] as const
 
+/** A route param that is not a UUID can never match a row. Postgres rejects it
+ *  with 22P02 (invalid input syntax for type uuid), which surfaced as a thrown
+ *  error and a 500 — reporting a server fault for what is really a bad URL.
+ *  Checked before the query so it renders as 404, like any other missing id. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 const KIND_LABEL: Record<string, string> = {
   want: 'Wants',
   need: 'Needs',
@@ -35,6 +41,8 @@ export default async function EngagementPage({
   const { engagementId } = await params
   const user = await getUser()
   if (!user) return null
+
+  if (!UUID_RE.test(engagementId)) notFound()
 
   const supabase = await createClient()
 
