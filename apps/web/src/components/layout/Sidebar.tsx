@@ -8,6 +8,7 @@ import { useUIStore } from '@/store/ui'
 import { BUSINESSES } from '@/lib/businesses'
 import { SidebarNav } from './SidebarNav'
 import { SidebarBusinessItem } from './SidebarBusinessItem'
+import { SidebarCoachingItem } from './SidebarCoachingItem'
 
 interface SidebarProps {
   user: { name: string; email: string }
@@ -77,6 +78,11 @@ export function Sidebar({ user }: SidebarProps) {
 
         {/* Global nav */}
         <SidebarNav collapsed={!sidebarOpen} />
+
+        {/* BUSINESS COACHING — flyout client picker */}
+        <div className="px-2">
+          <SidebarCoachingItem collapsed={!sidebarOpen} />
+        </div>
 
         {/* MY BUSINESSES */}
         <div className="flex flex-col gap-0.5">
