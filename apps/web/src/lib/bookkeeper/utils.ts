@@ -36,6 +36,29 @@ export function parseXeroDate(dateStr: string): Date {
   return new Date(dateStr)
 }
 
+/** Return a stable display value for a provider date, including an explicit invalid fallback. */
+export function formatXeroDate(dateStr: string): string {
+  const date = parseXeroDate(dateStr)
+  if (!Number.isFinite(date.getTime())) return 'Date unavailable'
+  return date.toLocaleDateString('en-AU', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+/** Sort valid provider dates first and keep malformed dates visible at the end. */
+export function compareXeroDates(left: string, right: string): number {
+  const leftTime = parseXeroDate(left).getTime()
+  const rightTime = parseXeroDate(right).getTime()
+  const leftValid = Number.isFinite(leftTime)
+  const rightValid = Number.isFinite(rightTime)
+  if (!leftValid || !rightValid) return leftValid === rightValid ? 0 : leftValid ? -1 : 1
+  return leftTime - rightTime
+}
+
+/** Invalid dates are never treated as overdue. */
+export function isXeroDateOverdue(dateStr: string, now = Date.now()): boolean {
+  const timestamp = parseXeroDate(dateStr).getTime()
+  return Number.isFinite(timestamp) && timestamp < now
+}
+
 // ---------------------------------------------------------------------------
 // Bank transaction description builder
 // ---------------------------------------------------------------------------

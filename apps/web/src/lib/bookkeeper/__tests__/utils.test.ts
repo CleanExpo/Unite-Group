@@ -1,7 +1,14 @@
 // src/lib/bookkeeper/__tests__/utils.test.ts
 // Tests for shared bookkeeper utility helpers.
 
-import { toCents, parseXeroDate, getBankTransactionDescription } from '../utils'
+import {
+  toCents,
+  parseXeroDate,
+  formatXeroDate,
+  compareXeroDates,
+  isXeroDateOverdue,
+  getBankTransactionDescription,
+} from '../utils'
 import type { XeroBankTransaction } from '@/lib/integrations/xero/types'
 
 // ---------------------------------------------------------------------------
@@ -56,6 +63,17 @@ describe('parseXeroDate', () => {
     const result = parseXeroDate('/Date(1709251200000+1000)/')
     // The timezone offset in the /Date/ format is ignored — ms value is absolute
     expect(result.getTime()).toBe(1709251200000)
+  })
+
+  it('formats offset dates and gives malformed dates an explicit fallback', () => {
+    expect(formatXeroDate('/Date(1709251200000+1000)/')).toBe('01/03/2024')
+    expect(formatXeroDate('/Date(not-a-timestamp+1000)/')).toBe('Date unavailable')
+  })
+
+  it('sorts valid dates before malformed dates and never marks malformed dates overdue', () => {
+    expect(compareXeroDates('2026-03-01', '/Date(not-a-date)/')).toBeLessThan(0)
+    expect(compareXeroDates('/Date(not-a-date)/', '2026-03-01')).toBeGreaterThan(0)
+    expect(isXeroDateOverdue('/Date(not-a-date)/', Date.UTC(2027, 0, 1))).toBe(false)
   })
 
   it('parses plain date string', () => {
