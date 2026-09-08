@@ -112,7 +112,8 @@ export async function POST(request: Request) {
     .maybeSingle()
 
   if (lookupError) {
-    return NextResponse.json({ error: 'lookup_failed', detail: lookupError.message }, { status: 500 })
+    console.error('[coaching webhook] lookup failed:', lookupError.message)
+    return NextResponse.json({ error: 'lookup_failed' }, { status: 500 })
   }
 
   // THE CONSENT GATE. A transcript of a private conversation is not stored

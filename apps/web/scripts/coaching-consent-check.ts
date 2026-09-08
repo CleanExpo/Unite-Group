@@ -45,6 +45,11 @@ const CASES: Case[] = [
     input: { consent_given: true, consent_date: '2026-08-19', consent_method: 'email', consent_disclosure: '  ' },
     expectAllowed: false,
   },
+  {
+    name: 'consent given but disclosure is tab/newline whitespace',
+    input: { consent_given: true, consent_date: '2026-08-19', consent_method: 'email', consent_disclosure: '\t\n' },
+    expectAllowed: false,
+  },
   // Must be allowed — without this the gate could simply always refuse.
   {
     name: 'complete written consent',

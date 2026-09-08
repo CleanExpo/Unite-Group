@@ -49,7 +49,7 @@ create table if not exists public.coaching_engagements (
       or (
         consent_date is not null
         and consent_method is not null
-        and nullif(btrim(consent_disclosure), '') is not null
+        and consent_disclosure ~ '[^[:space:]]'
       )
     ),
   constraint coaching_engagements_client_founder_fkey

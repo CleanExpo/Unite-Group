@@ -25,13 +25,14 @@ function request(body: unknown): Request {
 
 function client(opts: {
   engagement?: unknown
+  engagementError?: unknown
   upsert?: unknown
   duplicate?: unknown
 }) {
   const engagementBuilder = {
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
-    maybeSingle: vi.fn().mockResolvedValue({ data: opts.engagement ?? ENGAGEMENT, error: null }),
+    maybeSingle: vi.fn().mockResolvedValue({ data: opts.engagement ?? ENGAGEMENT, error: opts.engagementError ?? null }),
   }
   const sessionBuilder = {
     upsert: vi.fn().mockReturnThis(),
@@ -65,6 +66,23 @@ describe('POST /api/webhooks/coaching-plaud', () => {
     const res = await POST(request({ engagement_id: 'engagement-1', transcript: 'words' }))
     expect(res.status).toBe(400)
     expect((await res.json()).error).toBe('source_ref_required')
+  })
+
+  it('redacts engagement lookup error details from the response', async () => {
+    const supabase = client({ engagementError: { message: 'column secret_internal_column does not exist' } })
+    vi.mocked(createServiceClient).mockReturnValue(supabase as never)
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const res = await POST(request({
+      engagement_id: 'engagement-1', transcript: 'words', source_ref: 'plaud-error',
+    }))
+
+    expect(res.status).toBe(500)
+    expect(await res.json()).toEqual({ error: 'lookup_failed' })
+    expect(errorSpy).toHaveBeenCalledWith(
+      '[coaching webhook] lookup failed:', 'column secret_internal_column does not exist',
+    )
+    errorSpy.mockRestore()
   })
 
   it.each([
