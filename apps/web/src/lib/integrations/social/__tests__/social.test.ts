@@ -8,6 +8,8 @@ afterEach(() => {
 describe('social readiness contract', () => {
   it('uses the dedicated Google OAuth pair for YouTube', () => {
     vi.stubEnv('YOUTUBE_API_KEY', 'api-key-only')
+    vi.stubEnv('GOOGLE_CLIENT_ID', '')
+    vi.stubEnv('GOOGLE_CLIENT_SECRET', '')
     expect(isPlatformConfigured('youtube')).toBe(false)
 
     vi.stubEnv('GOOGLE_CLIENT_ID', 'google-client-id')
@@ -18,6 +20,8 @@ describe('social readiness contract', () => {
   it('does not mark Meta connectable from the legacy alias alone', () => {
     vi.stubEnv('META_APP_ID', 'meta-app-id')
     vi.stubEnv('META_APP_SECRET', 'meta-app-secret')
+    vi.stubEnv('FACEBOOK_APP_ID', '')
+    vi.stubEnv('FACEBOOK_APP_SECRET', '')
     expect(isPlatformConfigured('meta')).toBe(false)
 
     vi.stubEnv('FACEBOOK_APP_ID', 'facebook-app-id')
