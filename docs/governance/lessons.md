@@ -113,3 +113,168 @@ suggestive and nothing more.
    negative, which is currently search-only for those bodies.
 5. **ASIC's approved-codes register** to settle whether the Code is enforceable yet
    [ASIC-03].
+
+
+---
+
+## Run 2, slice 1 - the deep-research lane (2026-09-07)
+
+Scope: only the two items run 1 marked BLOCKING. Model `perplexity/sonar-deep-research` via
+OpenRouter, on founder instruction and a $25 credit. Full write-up in `run2-deep-research.md`.
+
+### What the run 1 timeouts actually were
+
+Nothing was wrong with the sources. All five documents that had failed four times downloaded
+first try, largest 6,595,488 bytes, using plain `curl` with `--max-time 300`. The run 1 failures
+were a fetch-tool problem misread as evidence about the world. **A timeout tells you about your
+instrument. Run 1 spent its headline finding on four of them.**
+
+### The rule that held
+
+The two-reader rule survived contact with a very persuasive model. `sonar-deep-research` produced
+70 real citations across two queries and every quote it offered matched the primary document when
+checked. It was still treated as a locator, never a witness: six entries reached `verified` only
+because the coordinating context downloaded the PDF and matched the words itself. Three entries it
+reported alone stayed lead-grade and say so (`STD-21`, `ASIC-11`). One clean run does not retire
+the rule that run 1 needed, when two Sonnet sweeps fabricated quotes and self-certified them.
+
+### Positive controls, twice, and they earned it
+
+Before trusting a zero, the search was proven able to return a hit. In the Workplace Exposure
+Standards list, Benzene returned 30 hits and Formaldehyde 2 before mould, fungi, spore and
+bioaerosol returned 0. In the AFCA submission, the word *code* returned 87 hits before the
+specific sentence was searched for. Neither negative would have been worth writing down without
+them.
+
+### A heavy prompt is a failure mode
+
+The first Q2 prompt asked for five bodies with strict per-body reporting and returned HTTP 504,
+*Provider timed out after 300686ms*. Re-running with streaming gave the identical 301-second
+failure, which killed the gateway-idle theory rather than confirming it. A narrowed five-question
+prompt then ran 514 seconds and returned 50 citations. **Ask for less and you get an answer.**
+Neither failed call was charged.
+
+### Cost, measured
+
+$1.2222 for Q1, $1.0975 for the narrowed Q2, $2.3197 total against a $25 credit. About $1.15 a
+query. Run 1's recommendation against buying credits was reasonable on run 1's evidence; on run 2's
+it was wrong for this specific job, because the bottleneck really was source access.
+
+### Carried into run 3
+
+1. **66 of 102 entries are still `unverified-seed`.** D8 is barely started.
+2. **Six state and territory WHS regulators, and every state tenancy instrument except
+   Queensland, have been read by nobody in either run.** `STD-14` stays a seed until they are.
+3. **`ASIC-03` is settled on the evidence but stays `conflict`.** Rule D6 reserves that to Phill.
+   It is a one-line decision, not a research task.
+4. **`ASIC-11`'s dates decide the whole positioning window** - lodgement late 2026, effect 2028 -
+   and they are trade-press, one reader. Confirm against ICA or ASIC before they are used.
+
+### The independent review found a defect neither run had seen
+
+The release gate sent commit `671fcfc5` to an independent reviewer. Codex was out of quota
+and the Cursor lane returned a FAIL naming no blocker, which the runner correctly rejected as
+not a review. Gemini produced a real report: **FAIL, four P0 findings**, and it was right.
+
+**The finding.** The memos cite the ledger as though every entry were established fact. Three
+findings named single lines; a count then showed the real size: **53 of 69 citations across
+the three memos point at entries the ledger does not hold as `verified`.** One of them,
+`AFCA-04`, carries the note *Needs a direct read before quotation in any deliverable* - and a
+memo is a deliverable. The fourth finding was `STD-14` stating an absolute absence while its
+own `search_set` admitted the search was not exhaustive.
+
+**Why this is the same disease one level up.** The whole point of the ledger is that an
+unproven claim is labelled unproven. That discipline stopped at the ledger boundary. Once a
+fact moved into a memo it lost its grade, and a memo is the thing a human actually reads.
+
+**What was done, and why not the obvious thing.** The obvious fix was to edit the three lines
+the reviewer named. That would have been the spellings-not-actions failure: 50 more instances
+of the same defect would have survived, all green. Instead the class was closed with
+`citations.py`, which makes the grade visible at every citation and **fails when a grade
+disagrees with the ledger, in both directions** - a bare citation of an unverified entry, and
+a grade left behind after an entry is promoted. The second direction matters more over time,
+because promotion is the normal event and stale annotation is the drift that follows it.
+
+**Control pair, on the real documents rather than a fixture.** 53 violations before
+annotation, exit 1. 0 after, exit 0. Then a stale grade planted on a verified citation: 1
+violation, exit 1. Restored: 0, exit 0.
+
+**`STD-14`'s claim was reworded and the original preserved verbatim in its note.** Rule 3 says
+a correction sits beside the original, never over it. The reworded claim is bounded by its
+search set, which is what every negative in this ledger actually is.
+
+**The reviewer earned its place.** Run 1 recorded that a gate which only ever catches other
+people is not evidence. This is the first finding in the program that came from outside the
+agent that wrote the work, and it found a defect that two internal passes had walked past.
+
+### Round 2 of the same review: the guard I wrote had the defect it was written to catch
+
+The drain went back to the reviewer at head `ebc0c62b`. It returned **FAIL with two more
+P0s**, and both were things the brief had explicitly asked it to attack.
+
+**The citation guard matched the wrong thing.** `citations.py` keyed on `[ID]`. The reviewer
+showed it missed two shapes that are all over these documents: combined citations like
+`[TRIAL-05, STD-12]`, and bare ids in table cells like `STD-06` with no brackets at all. It
+had reported **69 citations clean while about ninety-eight more went unexamined**. Widening
+it to match a bare id anywhere raised the visible count from 69 to **167**, and 74 of those
+were misgraded. A guard that silently skips a citation is the original defect wearing a
+check - which is exactly what the previous entry in this file congratulated itself for
+closing. Closing a class means asking what the matcher CANNOT see, not what it catches.
+
+**And one entry still asserted the world.** `STD-09` said state and territory electrical
+safety legislation calls up AS/NZS 3000, on one guessed URL that 404'd. The round-1 drain had
+asserted STD-14 was the only absolute claim in the file; the reviewer tested that assertion
+and broke it. The detector used to make that assertion keyed on words like *timed out* and
+missed *no state electrical safety regulation was successfully fetched* - a narrow search
+that returned exactly what a genuine absence returns.
+
+**So the second fix is a ratchet, not a list.** `evidence-gap.py` counts the entries whose
+own evidence admits nobody read the source, and fails when the count rises. Baseline 10 at
+the close of run 2. Two entries left the set immediately, `STD-10` and `STD-11`, because run
+2 had already downloaded both documents - they only needed quoting from the file their own
+`url` names. That last clause matters: the first quote drafted for `STD-10` came from the
+2023 handbook while its url names the 2021 one, which would have been a quote attached to the
+wrong document, the same defect run 1 caught twice.
+
+**Three mutants, all restored byte-identical.** Combined citation loses its grade → 2
+violations, exit 1. Bare table-cell id loses its grade → 1, exit 1. Stale `unverified` left
+on a verified entry → 1, exit 1. Each restored to `PASS`, exit 0.
+
+**The lesson worth keeping.** Two rounds of independent review found four real defects that
+three internal passes had walked past, and the second round found the defect in the fix the
+first round produced. A reviewer that only ever confirms is not a reviewer; this one has now
+failed the work twice and been right twice.
+
+### Round 3: the fix for the fix had the same shape again
+
+Head `9f7f1c2a` went back to the reviewer. **FAIL, four more P0s.** Three were demonstrated
+against the files; one was theoretical and was fixed anyway because it was cheap.
+
+**Demonstrated.** The scanned document list was hardcoded, so a session handoff carrying
+fourteen ungraded citations was never looked at. The evidence-gap detector missed phrasings
+sitting in this very ledger — `unread` in four entries, `403` in four more — and never
+searched the `claim` field, where `LOSS-12` admits its own text could not be extracted. And
+the ratchet had an escape hatch: any claim containing a phrase like "was found" left the set,
+so four words appended to an assertion about the world would walk it out. That last one made
+the ratchet decorative, which is worse than absent, because it reports green.
+
+**Theoretical, fixed anyway.** The matcher was uppercase-only. No lowercase id occurs in
+these documents today, so nothing was actually escaping — but a matcher that skips a citation
+in silence is the failure mode this whole file exists to stop, and making it case-insensitive
+cost one line. It is recorded here as accepted-but-not-demonstrated so nobody later reads it
+as a defect that bit us.
+
+**The pattern across three rounds is the thing worth keeping.** Every round, the guard was
+written to close a class, and every round the reviewer found the class was bigger than the
+matcher. 69 citations visible, then 167, then 188. Each number felt complete when it was
+written. **The question that would have saved all three rounds is not "does my check catch
+the defect" but "what can my check not see".** A guard's blind spot is invisible from inside
+the guard, which is the entire argument for a reviewer that is not the author.
+
+**And the ratchet went up, on purpose, once.** 10 to 21, because the detector improved rather
+than because the work got worse. That distinction is recorded in the baseline file's history
+array rather than in prose, because prose cannot be checked and a future run will need to
+know which kind of rise this was.
+
+Six control pairs now, each restored byte-identical: combined citation, bare table cell,
+stale grade, lowercase id, a document outside `docs/governance/`, and the ratchet itself.

@@ -6,6 +6,16 @@ import { checkConsent } from '@/lib/coaching/consent'
 
 export const dynamic = 'force-dynamic'
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
+function isIsoDate(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const parsed = new Date(`${value}T00:00:00.000Z`)
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value
+}
+
 /**
  * POST /api/webhooks/coaching-plaud
  *
@@ -55,21 +65,37 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'FOUNDER_USER_ID not configured' }, { status: 500 })
   }
 
-  let body: {
-    engagement_id?: string
-    transcript?: string
-    session_date?: string
-    duration_minutes?: number
-    source_ref?: string
-  }
+  let body: Record<string, unknown>
   try {
-    body = await request.json()
+    const parsed: unknown = await request.json()
+    if (!isRecord(parsed)) {
+      return NextResponse.json({ error: 'invalid_body' }, { status: 400 })
+    }
+    body = parsed
   } catch {
     return NextResponse.json({ error: 'invalid_json' }, { status: 400 })
   }
 
-  const { engagement_id, transcript } = body
-  if (!engagement_id || typeof engagement_id !== 'string') {
+  const engagementId = body.engagement_id
+  const transcript = body.transcript
+  if (typeof body.source_ref !== 'string' || !body.source_ref.trim()) {
+    return NextResponse.json({ error: 'source_ref_required' }, { status: 400 })
+  }
+  const sourceRef = body.source_ref.trim()
+
+  if (body.session_date !== undefined && !isIsoDate(body.session_date)) {
+    return NextResponse.json({ error: 'session_date_invalid' }, { status: 400 })
+  }
+  if (
+    body.duration_minutes !== undefined &&
+    (typeof body.duration_minutes !== 'number' ||
+      !Number.isInteger(body.duration_minutes) ||
+      body.duration_minutes < 0)
+  ) {
+    return NextResponse.json({ error: 'duration_minutes_invalid' }, { status: 400 })
+  }
+
+  if (!engagementId || typeof engagementId !== 'string') {
     return NextResponse.json({ error: 'engagement_id_required' }, { status: 400 })
   }
   if (!transcript || typeof transcript !== 'string' || !transcript.trim()) {
@@ -80,13 +106,14 @@ export async function POST(request: Request) {
 
   const { data: engagement, error: lookupError } = await supabase
     .from('coaching_engagements')
-    .select('id, client_id, consent_given, consent_date, consent_method')
+    .select('id, client_id, consent_given, consent_date, consent_method, consent_disclosure')
     .eq('founder_id', founderId)
-    .eq('id', engagement_id)
+    .eq('id', engagementId)
     .maybeSingle()
 
   if (lookupError) {
-    return NextResponse.json({ error: 'lookup_failed', detail: lookupError.message }, { status: 500 })
+    console.error('[coaching webhook] lookup failed:', lookupError.message)
+    return NextResponse.json({ error: 'lookup_failed' }, { status: 500 })
   }
 
   // THE CONSENT GATE. A transcript of a private conversation is not stored
@@ -103,25 +130,48 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'engagement_not_found' }, { status: 404 })
   }
 
-  const { data: inserted, error: insertError } = await supabase
-    .from('coaching_sessions')
-    .insert({
-      founder_id: founderId,
-      engagement_id,
-      client_id: engagement.client_id,
-      transcript,
-      source: 'plaud',
-      source_ref: body.source_ref ?? null,
-      session_date: body.session_date ?? new Date().toISOString().slice(0, 10),
-      duration_minutes: body.duration_minutes ?? null,
-      status: 'captured',
-    })
-    .select('id')
-    .single()
-
-  if (insertError) {
-    return NextResponse.json({ error: 'insert_failed', detail: insertError.message }, { status: 500 })
+  const payload = {
+    founder_id: founderId,
+    engagement_id: engagementId,
+    client_id: engagement.client_id,
+    transcript,
+    source: 'plaud' as const,
+    source_ref: sourceRef,
+    session_date: body.session_date === undefined
+      ? new Date().toISOString().slice(0, 10)
+      : body.session_date,
+    duration_minutes: body.duration_minutes === undefined ? null : body.duration_minutes,
+    status: 'captured' as const,
   }
 
-  return NextResponse.json({ session_id: inserted.id, status: 'captured' }, { status: 201 })
+  // The database trigger re-checks consent under a row lock at insert time;
+  // this earlier check keeps the common refusal fast and readable.
+  const { data: inserted, error: insertError } = await supabase
+    .from('coaching_sessions')
+    .upsert(payload, { onConflict: 'founder_id,source_ref', ignoreDuplicates: true })
+    .select('id')
+    .maybeSingle()
+
+  if (insertError) {
+    console.error('[coaching webhook] insert failed:', insertError.message)
+    return NextResponse.json({ error: 'insert_failed' }, { status: 500 })
+  }
+
+  if (inserted) {
+    return NextResponse.json({ session_id: inserted.id, status: 'captured' }, { status: 201 })
+  }
+
+  const { data: existing, error: existingError } = await supabase
+    .from('coaching_sessions')
+    .select('id')
+    .eq('founder_id', founderId)
+    .eq('source_ref', sourceRef)
+    .maybeSingle()
+
+  if (existingError || !existing) {
+    console.error('[coaching webhook] duplicate lookup failed:', existingError?.message ?? 'row missing')
+    return NextResponse.json({ error: 'insert_failed' }, { status: 500 })
+  }
+
+  return NextResponse.json({ session_id: existing.id, status: 'captured', duplicate: true }, { status: 200 })
 }

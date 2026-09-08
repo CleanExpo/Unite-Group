@@ -52,7 +52,7 @@ none of them checked against a primary source.
   Putting industry-regulation research there would collide semantically.
 - **D2 — a separate worktree.** `D:/Unite-Group/Unite-Group` holds another lane's *staged*
   work on branch `docs/portfolio-registry-canonical-identity`. I did not touch that tree.
-- **D3 — the card's own claims are ledger entries.** `CARD-01`..`CARD-13`, status
+- **D3 — the card's own claims are ledger entries.** `CARD-01 unverified`..`CARD-13 unverified`, status
   `unverified-seed`. Every sweep finding confirms or contradicts a seed; nothing is silently
   replaced.
 - **D4 — a sub-agent report is lead-grade evidence, never verified.** `status` is promoted
@@ -61,7 +61,7 @@ none of them checked against a primary source.
 - **D5 — Sonnet collects, Opus verifies.** Kept for run 2. Evidence and its confound are in
   `lessons.md`.
 - **D6 — a conflict is never resolved by a verifier.** `promote.py` refuses to promote any
-  entry with status `conflict`. It fired once this session, on `AFCA-01`.
+  entry with status `conflict`. It fired once this session, on `AFCA-01 conflict`.
 
 **Shipped:** 3 commits, pushed to origin, 19 files, all under `docs/governance/`.
 
@@ -142,23 +142,23 @@ restored `PASS` exit 0.
 
 | Item | Owner | Blocking | Why deferred |
 | --- | --- | --- | --- |
-| D4 governance-vacuum map memo | Run 2 | No | Turn cap. The vacuum is found (`STD-14`); only the memo is missing |
+| D4 governance-vacuum map memo | Run 2 | No | Turn cap. The vacuum is found (`STD-14 unverified`); only the memo is missing |
 | D5 stakeholder + windows map memo | Run 2 | No | Turn cap. Windows captured in NCC entries |
 | D6 positioning options pack | Run 2 | No | Turn cap. Needs D4 + D5 first |
 | D7 RIA partnership brief | Run 2 | No | Turn cap. Reframed by `ICA-08` — see §9 R1 |
 | D8 finish citation audit, 73 entries | Run 2 | **Yes, for external use** | Turn cap. Nothing may be quoted outside the repo unverified |
-| Re-run every Safe Work Australia timeout | Run 2 | **Yes, for `STD-13`/`STD-14`** | Four failed checks so far; all were timeouts or CORS blocks |
-| Read one state's electrical safety regulation | Run 2 | No | Closes `STD-09`; a guessed URL 404'd |
-| Open INFO 253 for the `ASIC-04` quote | Run 2 | No | Now trivially doable — `pdftotext` exists |
+| Re-run every Safe Work Australia timeout | Run 2 | **Yes, for `STD-13 unverified`/`STD-14 unverified`** | Four failed checks so far; all were timeouts or CORS blocks |
+| Read one state's electrical safety regulation | Run 2 | No | Closes `STD-09 unverified`; a guessed URL 404'd |
+| Open INFO 253 for the `ASIC-04 unverified` quote | Run 2 | No | Now trivially doable — `pdftotext` exists |
 
 ### Open questions
 
 | Question | Owner | Blocking | Why |
 | --- | --- | --- | --- |
-| Resolve `AFCA-01` — is "Late 2025" an abandoned target? | **Phill** | No | `promote.py` refuses to resolve a conflict. Verifier B's read says publication slipped ~9 months, but resolving a conflict is a human decision by design |
-| Is the redrafted Code ASIC-approved yet? | Run 2 | **Yes** | `ASIC-03` vs `ICA-01`. Every enforceability claim rests on it |
-| Which AFCA date is right — cover says Aug 2026, version table says July 2026 | Run 2 | No | `AFCA-13`. The card's "10 August" appears nowhere in the document |
-| Does RIA Australasia's RICOP say anything about a builder/restorer split? | **Phill** | No | Member-gated (`TRIAL-01`). Phill is the member |
+| Resolve `AFCA-01 conflict` — is "Late 2025" an abandoned target? | **Phill** | No | `promote.py` refuses to resolve a conflict. Verifier B's read says publication slipped ~9 months, but resolving a conflict is a human decision by design |
+| Is the redrafted Code ASIC-approved yet? | Run 2 | **Yes** | `ASIC-03 conflict` vs `ICA-01`. Every enforceability claim rests on it |
+| Which AFCA date is right — cover says Aug 2026, version table says July 2026 | Run 2 | No | `AFCA-13 conflict`. The card's "10 August" appears nowhere in the document |
+| Does RIA Australasia's RICOP say anything about a builder/restorer split? | **Phill** | No | Member-gated (`TRIAL-01 unverified`). Phill is the member |
 | Apply OpenRouter credits? | **Phill** | No | My recommendation: no. The bottleneck was tooling and report truncation, not model quality. Credits earn their place only for cross-vendor independence, and free lanes come first |
 
 ## 8. Pick up here
@@ -215,7 +215,7 @@ count): RIA Australasia, AIBEC and AICLA are all on a 31-document list. What is 
 *individual practitioner* and any *field-sourced data*. The gap is evidence, not voice. Any
 RIA brief written on the old premise would be wrong in front of the people who submitted.
 
-**R2 — `STD-14` is the headline finding and the weakest evidence in the ledger.** "Nobody
+**R2 — `STD-14 unverified` is the headline finding and the weakest evidence in the ledger.** "Nobody
 governs the outcome of a mould job" now rests on **four failed checks**, not three. Every one
 was a timeout or a CORS block — the instrument never ran. The honest sentence is "I did not
 find a numeric limit in the sources I could load", never "no such limit exists". **This must
@@ -227,7 +227,7 @@ word "now". Both were marked `verified` by their own collector. **73 entries car
 risk and have not been independently checked.**
 
 **R4 — evidence lives outside the repo.** `afca.pdf` and `afca.txt` sit in
-`C:/Users/Disaster Recovery 4/`, untracked. The ledger entries `AFCA-13`..`AFCA-16` quote
+`C:/Users/Disaster Recovery 4/`, untracked. The ledger entries `AFCA-13 conflict`..`AFCA-16` quote
 that document. If those files are deleted the quotes stand but their local copy is gone; the
 retrieval recipe in `lessons.md` reproduces them.
 

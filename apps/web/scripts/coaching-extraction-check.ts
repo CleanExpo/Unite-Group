@@ -1,8 +1,11 @@
 /**
  * Acceptance check for coaching transcript extraction.
  *
- *   npx tsx scripts/coaching-extraction-check.ts find     -> the three known
+ *   COACHING_TRANSCRIPT_PATH=/path/to/transcript npx tsx scripts/coaching-extraction-check.ts find
+ *                                                        -> the three known
  *       commitments from Klim session 1 must come back as kind=commitment.
+ *   npx tsx scripts/coaching-extraction-check.ts find /path/to/transcript
+ *                                                        -> equivalent path argument
  *   npx tsx scripts/coaching-extraction-check.ts falsify  -> an unrelated
  *       transcript must return ZERO commitments.
  *
@@ -17,10 +20,10 @@
  */
 
 import { readFileSync } from 'node:fs'
+import { pathToFileURL, fileURLToPath } from 'node:url'
 import { extractFromTranscript } from '@/lib/coaching/extract'
 
-const TRANSCRIPT = '/Users/phill-mac/Documents/klim-mentorship/session-01-transcript.txt'
-const CONTROL = new URL('./fixtures/unrelated-transcript.txt', import.meta.url).pathname
+export const CONTROL = fileURLToPath(new URL('./fixtures/unrelated-transcript.txt', import.meta.url))
 
 /**
  * The commitments session 1 is known to contain, each verified against the
@@ -53,7 +56,12 @@ async function main() {
   const mode = process.argv[2]
   if (mode !== 'find' && mode !== 'falsify') fail('usage: coaching-extraction-check.ts find|falsify')
 
-  const path = mode === 'find' ? TRANSCRIPT : CONTROL
+  const suppliedTranscript = process.argv[3]?.trim() || process.env.COACHING_TRANSCRIPT_PATH?.trim()
+  if (mode === 'find' && !suppliedTranscript) {
+    fail('find mode requires a transcript path argument or COACHING_TRANSCRIPT_PATH')
+  }
+
+  const path = mode === 'find' ? suppliedTranscript : CONTROL
   let transcript: string
   try {
     transcript = readFileSync(path, 'utf8')
@@ -74,9 +82,11 @@ async function main() {
   )
 
   // Grounding rule: every extraction must carry the client's own words.
-  const unquoted = result.extractions.filter((e) => !e.transcript_quote?.trim())
-  if (unquoted.length > 0) {
-    fail(`${unquoted.length} extraction(s) carry no transcript_quote — ungrounded`)
+  const ungrounded = result.extractions.filter(
+    (e) => !e.transcript_quote?.trim() || !transcript.includes(e.transcript_quote),
+  )
+  if (ungrounded.length > 0) {
+    fail(`${ungrounded.length} extraction(s) carry an empty or absent transcript_quote — ungrounded`)
   }
 
   if (mode === 'falsify') {
@@ -103,4 +113,6 @@ async function main() {
   console.log(`PASS: all ${KNOWN_COMMITMENTS.length} known commitments found, all grounded in quotes`)
 }
 
-main().catch((e) => fail(e instanceof Error ? e.message : String(e)))
+if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
+  main().catch((e) => fail(e instanceof Error ? e.message : String(e)))
+}

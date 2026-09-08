@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient, getUser } from '@/lib/supabase/server'
 
@@ -15,6 +16,12 @@ const KIND_ORDER = [
   'decision',
   'open_question',
 ] as const
+
+/** A route param that is not a UUID can never match a row. Postgres rejects it
+ *  with 22P02 (invalid input syntax for type uuid), which surfaced as a thrown
+ *  error and a 500 — reporting a server fault for what is really a bad URL.
+ *  Checked before the query so it renders as 404, like any other missing id. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const KIND_LABEL: Record<string, string> = {
   want: 'Wants',
@@ -35,6 +42,8 @@ export default async function EngagementPage({
   const { engagementId } = await params
   const user = await getUser()
   if (!user) return null
+
+  if (!UUID_RE.test(engagementId)) notFound()
 
   const supabase = await createClient()
 
@@ -108,9 +117,13 @@ export default async function EngagementPage({
         {proposedCount > 0 && (
           <>
             <span>·</span>
-            <span style={{ color: 'var(--color-accent-text, var(--color-text-primary))' }}>
+            <Link
+              href={`/founder/coaching/${engagementId}/review`}
+              className="hover:underline"
+              style={{ color: 'var(--color-accent-text, var(--color-text-primary))' }}
+            >
               {proposedCount} awaiting review
-            </span>
+            </Link>
           </>
         )}
       </div>
@@ -157,7 +170,7 @@ export default async function EngagementPage({
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px]" style={{ color: 'var(--color-text-disabled)' }}>
                   {row.owner && <span className="capitalize">{row.owner}</span>}
                   {row.due_date && <span>due {row.due_date}</span>}
-                  {row.metric_value && (
+                  {row.metric_value !== null && (
                     <span>{row.metric_value}{row.metric_unit ? ` ${row.metric_unit}` : ''}{row.metric_period ? ` / ${row.metric_period}` : ''}</span>
                   )}
                   <span>from {row.valid_from}</span>

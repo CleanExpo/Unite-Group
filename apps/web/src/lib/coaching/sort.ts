@@ -1,5 +1,5 @@
 /**
- * Ordering for the Business Coaching flyout.
+ * Ordering for the Coaching Clinic flyout.
  *
  * The founder's requirement is explicit: clients appear as
  * "Business Name - Client Name" in alphabetical order.

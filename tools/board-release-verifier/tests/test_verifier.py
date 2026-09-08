@@ -79,17 +79,25 @@ def _collect_evidence_refs(receipt):
     itself; this helper exists only so test fixtures stay internally consistent."""
     refs = {}
 
-    def put(ref, kind, ts, check_id=None):
+    def put(ref, kind, ts, check_id=None, provenance=None):
         if ref:
             meta = {"kind": kind, "timestamp": ts}
             if check_id is not None:
                 meta["check_id"] = check_id
+            if provenance is not None:
+                meta["provenance"] = provenance
             refs[ref] = meta
 
     b = receipt.get("builder") or {}
-    put(b.get("evidence_ref"), "builder", b.get("event_timestamp"))
+    put(
+        b.get("evidence_ref"), "builder", b.get("event_timestamp"),
+        provenance={"tool": b.get("tool"), "family": b.get("family"), "model": b.get("model")},
+    )
     ir = receipt.get("independent_review") or {}
-    put(ir.get("evidence_ref"), "independent_review", ir.get("event_timestamp"))
+    put(
+        ir.get("evidence_ref"), "independent_review", ir.get("event_timestamp"),
+        provenance={"tool": ir.get("tool"), "family": ir.get("family"), "model": ir.get("model")},
+    )
     for d in receipt.get("decisions") or []:
         if isinstance(d, dict):
             put(d.get("evidence_ref"), "decisions", d.get("event_timestamp"))
@@ -135,6 +143,8 @@ def make_evidence_index(refs, repo=REPO, pr=PR, head=HEAD, timestamp=None):
         }
         if meta.get("check_id") is not None:
             rec["check_id"] = meta["check_id"]
+        if meta.get("provenance") is not None:
+            rec["provenance"] = meta["provenance"]
         records[ref] = rec
     return {
         "schema": EVIDENCE_INDEX_SCHEMA,
@@ -219,6 +229,7 @@ def make_receipt(**overrides):
         "builder": {
             "tool": "claude-cli",
             "family": "anthropic",
+            "model": "claude-sonnet-5-thinking-high",
             "head_sha": HEAD,
             "evidence_ref": _ref("builder-log-1"),
             "execution_identity": BUILDER_EXEC_ID,
@@ -227,6 +238,7 @@ def make_receipt(**overrides):
         "independent_review": {
             "tool": "codex-cli",
             "family": "openai",
+            "model": "gpt-5.6-sol",
             "head_sha": HEAD,
             "evidence_ref": _ref("codex-review-1"),
             "execution_identity": REVIEWER_EXEC_ID,
@@ -858,7 +870,7 @@ class TestRoleSeparation(unittest.TestCase):
 
     def test_builder_wrong_tool_fails(self):
         receipt = make_receipt()
-        receipt["builder"]["tool"] = "codex-cli"
+        receipt["builder"]["tool"] = "unknown-cli"
         result = run_verify(receipt)
         self.assertFalse(result.candidate_verified)
         self.assertTrue(any("builder.tool must be" in r for r in result.reasons), result.reasons)
@@ -872,11 +884,32 @@ class TestRoleSeparation(unittest.TestCase):
 
     def test_independent_review_wrong_tool_fails(self):
         receipt = make_receipt()
-        receipt["independent_review"]["tool"] = "claude-cli"
+        receipt["independent_review"]["tool"] = "unknown-cli"
         result = run_verify(receipt)
         self.assertFalse(result.candidate_verified)
         self.assertTrue(
             any("independent_review.tool must be" in r for r in result.reasons), result.reasons
+        )
+
+    def test_cursor_reviewer_is_accepted_as_the_temporary_cross_vendor_slot(self):
+        receipt = make_receipt()
+        receipt["independent_review"]["tool"] = "cursor-cli"
+        result = run_verify(receipt)
+        self.assertTrue(result.candidate_verified, result.reasons)
+        self.assertTrue(result.board_release_ready, result.reasons)
+
+    def test_fresh_context_claude_fallback_is_recorded_but_not_release_ready(self):
+        receipt = make_receipt()
+        receipt["independent_review"].update(
+            {
+                "tool": "claude-cli", "family": "anthropic", "model": "claude-sonnet-5-thinking-high",
+                "fresh_context": True, "degraded": True,
+            }
+        )
+        result = run_verify(receipt)
+        self.assertFalse(result.board_release_ready)
+        self.assertTrue(
+            any("independent_review family must differ" in r for r in result.reasons), result.reasons
         )
 
     def test_independent_review_wrong_family_fails(self):
@@ -890,8 +923,10 @@ class TestRoleSeparation(unittest.TestCase):
 
     def test_builder_and_reviewer_same_family_fails_even_if_literals_move(self):
         receipt = make_receipt()
-        receipt["builder"]["family"] = "openai"
-        receipt["independent_review"]["family"] = "openai"
+        receipt["builder"].update({"tool": "codex-cli", "family": "openai", "model": "gpt-5.6-sol"})
+        receipt["independent_review"].update(
+            {"tool": "cursor-cli", "family": "openai", "model": "gpt-5.6-sol"}
+        )
         result = run_verify(receipt)
         self.assertFalse(result.candidate_verified)
         self.assertTrue(
@@ -901,6 +936,64 @@ class TestRoleSeparation(unittest.TestCase):
             ),
             result.reasons,
         )
+
+    def test_honest_cursor_anthropic_reviewer_with_codex_builder_is_allowed(self):
+        receipt = make_receipt()
+        receipt["builder"].update({"tool": "codex-cli", "family": "openai", "model": "gpt-5.6-luna"})
+        receipt["independent_review"].update(
+            {"tool": "cursor-cli", "family": "anthropic", "model": "claude-sonnet-5-thinking-high"}
+        )
+        result = run_verify(receipt)
+        self.assertTrue(result.candidate_verified, result.reasons)
+        self.assertTrue(result.board_release_ready, result.reasons)
+
+    def test_cursor_anthropic_same_family_is_rejected(self):
+        receipt = make_receipt()
+        receipt["independent_review"].update(
+            {"tool": "cursor-cli", "family": "anthropic", "model": "claude-sonnet-5-thinking-high"}
+        )
+        result = run_verify(receipt)
+        self.assertFalse(result.candidate_verified)
+        self.assertTrue(
+            any("independent_review family must differ from builder family" in r for r in result.reasons),
+            result.reasons,
+        )
+
+    def test_missing_independent_review_provenance_fails_closed(self):
+        receipt = make_receipt()
+        refs = _collect_evidence_refs(receipt)
+        evidence_index = make_evidence_index(refs)
+        del evidence_index["records"][receipt["independent_review"]["evidence_ref"]]["provenance"]
+        evidence_sha = _dict_sha256(evidence_index)
+        receipt["evidence_index"]["sha256"] = evidence_sha
+        result = run_verify(
+            receipt,
+            sync_evidence_index=False,
+            evidence_index=evidence_index,
+            evidence_index_sha256=evidence_sha,
+        )
+        self.assertFalse(result.candidate_verified)
+        self.assertTrue(any("missing independently supplied provenance" in r for r in result.reasons))
+
+    def test_contradictory_independent_review_provenance_fails_closed(self):
+        receipt = make_receipt()
+        receipt["builder"].update({"tool": "codex-cli", "family": "openai", "model": "gpt-5.6-luna"})
+        receipt["independent_review"].update(
+            {"tool": "cursor-cli", "family": "anthropic", "model": "claude-sonnet-5-thinking-high"}
+        )
+        refs = _collect_evidence_refs(receipt)
+        evidence_index = make_evidence_index(refs)
+        evidence_index["records"][receipt["independent_review"]["evidence_ref"]]["provenance"]["family"] = "openai"
+        evidence_sha = _dict_sha256(evidence_index)
+        receipt["evidence_index"]["sha256"] = evidence_sha
+        result = run_verify(
+            receipt,
+            sync_evidence_index=False,
+            evidence_index=evidence_index,
+            evidence_index_sha256=evidence_sha,
+        )
+        self.assertFalse(result.candidate_verified)
+        self.assertTrue(any("provenance.family contradicts attestation" in r for r in result.reasons))
 
     def test_builder_head_sha_mismatch_fails(self):
         receipt = make_receipt()
