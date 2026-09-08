@@ -11,12 +11,15 @@ Every run produces four separate, non-aliased booleans:
 
 - **`candidate_verified`** — the artefact itself is technically sound: schema-valid receipt, an
   independently supplied trusted PR snapshot (repo/PR/`base=main`/exact lowercase-40-hex HEAD),
-  policy/roster/check-manifest bound by expected path+schema+version+hash, a Claude/`anthropic`
-  builder and a standalone Codex/`openai` independent reviewer with distinct execution identities
-  (the reviewer can never have authored or repaired the candidate), and every required check from
-  the frozen manifest rerun **outside** the builder with command identity, exit code, timestamp,
-  runner identity, trust domain, and an immutable evidence digest — `status: passed` alone is never
-  sufficient.
+  policy/roster/check-manifest bound by expected path+schema+version+hash, a supported
+  Claude/`anthropic` or Codex/`openai` builder and an independent reviewer using Codex/`openai`,
+  Cursor/`openai`, or Cursor/`anthropic`, with distinct execution identities (the reviewer can
+  never have authored or repaired the candidate), and every required check from the frozen
+  manifest rerun **outside** the builder with command identity, exit code, timestamp, runner
+  identity, trust domain, and an immutable evidence digest — `status: passed` alone is never
+  sufficient. The independently supplied evidence-index records for both attestations must also
+  carry exact `tool`, `family`, and `model` provenance matching the receipt; missing or
+  contradictory provenance fails closed.
 - **`board_release_ready`** — `candidate_verified` AND the eligible Board roster
   (`docs/constitution/board-release-roster.v1.json`) unanimously `APPROVE`d on the same exact HEAD,
   the rejection ledger is explicitly marked complete (an absent ledger is never treated as zero

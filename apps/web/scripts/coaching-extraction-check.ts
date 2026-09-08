@@ -20,9 +20,10 @@
  */
 
 import { readFileSync } from 'node:fs'
+import { pathToFileURL, fileURLToPath } from 'node:url'
 import { extractFromTranscript } from '@/lib/coaching/extract'
 
-const CONTROL = new URL('./fixtures/unrelated-transcript.txt', import.meta.url).pathname
+export const CONTROL = fileURLToPath(new URL('./fixtures/unrelated-transcript.txt', import.meta.url))
 
 /**
  * The commitments session 1 is known to contain, each verified against the
@@ -112,4 +113,6 @@ async function main() {
   console.log(`PASS: all ${KNOWN_COMMITMENTS.length} known commitments found, all grounded in quotes`)
 }
 
-main().catch((e) => fail(e instanceof Error ? e.message : String(e)))
+if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
+  main().catch((e) => fail(e instanceof Error ? e.message : String(e)))
+}
