@@ -13,9 +13,11 @@ Every run produces four separate, non-aliased booleans:
   independently supplied trusted PR snapshot (repo/PR/`base=main`/exact lowercase-40-hex HEAD),
   policy/roster/check-manifest bound by expected path+schema+version+hash, a supported
   Claude/`anthropic` or Codex/`openai` builder and an independent reviewer using Codex/`openai`,
-  Cursor/`openai`, or Cursor/`anthropic`, with distinct execution identities (the reviewer can
-  never have authored or repaired the candidate), and every required check from the frozen
-  manifest rerun **outside** the builder with command identity, exit code, timestamp, runner
+  Cursor/`openai`, or Cursor/`anthropic`, with a Claude/`anthropic` reviewer permitted only as an
+  explicitly degraded fresh-context fallback. That fallback remains same-family evidence and
+  cannot make the Board release-ready. All roles have distinct execution identities (the reviewer
+  can never have authored or repaired the candidate), and every required check from the frozen
+  manifest is rerun **outside** the builder with command identity, exit code, timestamp, runner
   identity, trust domain, and an immutable evidence digest — `status: passed` alone is never
   sufficient. The independently supplied evidence-index records for both attestations must also
   carry exact `tool`, `family`, and `model` provenance matching the receipt; missing or
