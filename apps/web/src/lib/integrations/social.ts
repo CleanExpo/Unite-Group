@@ -13,9 +13,17 @@ export interface SocialPlatform {
   description: string
   envVarId: string
   envVarSecret: string
-  /** Alias env names honoured when the primary is unset (e.g. FACEBOOK_APP_ID for META_APP_ID). */
+  /** Alias env names honoured by generic helpers when the primary is unset. */
   envVarIdFallback?: string
   envVarSecretFallback?: string
+  /** Environment pair read by the active dedicated OAuth route, when it differs from the legacy registry aliases. */
+  connectionEnvVarId?: string
+  connectionEnvVarSecret?: string
+  /** Additional environment values required by a non-OAuth connection check. */
+  requiredEnvVars?: string[]
+  /** Dedicated route used by the founder surface. */
+  connectPath?: string
+  connectionMode: 'oauth' | 'password'
   setupUrl: string
   docsUrl: string
   scope: string
@@ -30,10 +38,14 @@ export const SOCIAL_PLATFORMS: SocialPlatform[] = [
     key: 'meta',
     name: 'Meta',
     description: 'Facebook, Instagram, WhatsApp Business',
-    envVarId: 'META_APP_ID',
-    envVarSecret: 'META_APP_SECRET',
-    envVarIdFallback: 'FACEBOOK_APP_ID',
-    envVarSecretFallback: 'FACEBOOK_APP_SECRET',
+    envVarId: 'FACEBOOK_APP_ID',
+    envVarSecret: 'FACEBOOK_APP_SECRET',
+    envVarIdFallback: 'META_APP_ID',
+    envVarSecretFallback: 'META_APP_SECRET',
+    connectionEnvVarId: 'FACEBOOK_APP_ID',
+    connectionEnvVarSecret: 'FACEBOOK_APP_SECRET',
+    connectPath: '/api/auth/meta/authorize?business=synthex',
+    connectionMode: 'oauth',
     setupUrl: 'https://developers.facebook.com/apps/',
     docsUrl: 'https://developers.facebook.com/docs/apps/',
     scope: 'pages_read_engagement,pages_manage_posts,instagram_basic,instagram_content_publish,whatsapp_business_management',
@@ -48,6 +60,8 @@ export const SOCIAL_PLATFORMS: SocialPlatform[] = [
     description: 'Company page posts and analytics',
     envVarId: 'LINKEDIN_CLIENT_ID',
     envVarSecret: 'LINKEDIN_CLIENT_SECRET',
+    connectPath: '/api/auth/linkedin/authorize?business=synthex',
+    connectionMode: 'oauth',
     setupUrl: 'https://www.linkedin.com/developers/apps/',
     docsUrl: 'https://learn.microsoft.com/en-us/linkedin/',
     scope: 'r_liteprofile,r_basicprofile,r_organization_social,w_organization_social,rw_organization_admin',
@@ -62,6 +76,8 @@ export const SOCIAL_PLATFORMS: SocialPlatform[] = [
     description: 'Video uploads and analytics',
     envVarId: 'TIKTOK_CLIENT_KEY',
     envVarSecret: 'TIKTOK_CLIENT_SECRET',
+    connectPath: '/api/auth/tiktok/authorize?business=synthex',
+    connectionMode: 'oauth',
     setupUrl: 'https://developers.tiktok.com/apps/',
     docsUrl: 'https://developers.tiktok.com/doc/overview/',
     scope: 'user.info.basic,video.list,video.publish',
@@ -74,8 +90,10 @@ export const SOCIAL_PLATFORMS: SocialPlatform[] = [
     key: 'youtube',
     name: 'YouTube',
     description: 'Video uploads and channel management',
-    envVarId: 'YOUTUBE_API_KEY',
-    envVarSecret: '',
+    envVarId: 'GOOGLE_CLIENT_ID',
+    envVarSecret: 'GOOGLE_CLIENT_SECRET',
+    connectPath: '/api/auth/youtube/authorize?business=synthex',
+    connectionMode: 'oauth',
     setupUrl: 'https://console.cloud.google.com/apis/library/youtube.googleapis.com',
     docsUrl: 'https://developers.google.com/youtube/v3',
     scope: 'https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly',
@@ -90,6 +108,8 @@ export const SOCIAL_PLATFORMS: SocialPlatform[] = [
     description: 'Subreddit automation and posts',
     envVarId: 'REDDIT_CLIENT_ID',
     envVarSecret: 'REDDIT_CLIENT_SECRET',
+    requiredEnvVars: ['REDDIT_USERNAME', 'REDDIT_PASSWORD'],
+    connectionMode: 'password',
     setupUrl: 'https://www.reddit.com/prefs/apps/',
     docsUrl: 'https://www.reddit.com/dev/api/',
     scope: 'read,submit,identity',
@@ -115,14 +135,19 @@ export function isPlatformConfigured(key: string): boolean {
   const platform = SOCIAL_PLATFORMS.find(p => p.key === key)
   if (!platform) return false
 
-  const id = readEnvValue(platform.envVarId, platform.envVarIdFallback)
+  // The founder surface must reflect the env pair consumed by the active
+  // dedicated route. Legacy aliases remain available to the generic helpers,
+  // but an alias alone cannot make a dedicated route connectable.
+  const id = readEnvValue(platform.connectionEnvVarId ?? platform.envVarId)
   if (!id || id.length < 5) return false
 
-  // YouTube only needs API key
-  if (key === 'youtube') return true
+  const secret = readEnvValue(platform.connectionEnvVarSecret ?? platform.envVarSecret)
+  if (!secret || secret.length <= 5) return false
 
-  const secret = readEnvValue(platform.envVarSecret, platform.envVarSecretFallback)
-  return Boolean(secret && secret.length > 5)
+  return (platform.requiredEnvVars ?? []).every(name => {
+    const value = process.env[name]?.trim()
+    return Boolean(value)
+  })
 }
 
 export function getPlatformCredentials(key: string): { clientId: string; clientSecret: string } {
