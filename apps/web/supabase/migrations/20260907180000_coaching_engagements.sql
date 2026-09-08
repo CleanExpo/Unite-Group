@@ -12,10 +12,15 @@
 -- ---------------------------------------------------------------------------
 -- 1. Engagements — one per coaching client
 -- ---------------------------------------------------------------------------
+-- Every coaching association carries founder_id. These composite keys prevent
+-- a UUID copied from another founder's row from satisfying a child reference.
+create unique index if not exists crm_contacts_id_founder_key
+  on public.crm_contacts(id, founder_id);
+
 create table if not exists public.coaching_engagements (
   id uuid primary key default gen_random_uuid(),
   founder_id uuid not null references auth.users(id),
-  client_id uuid not null references public.crm_contacts(id) on delete restrict,
+  client_id uuid not null,
 
   -- Denormalised for the sidebar flyout, which sorts by business name and must
   -- not join on every render. Refreshed when the engagement is saved.
@@ -39,7 +44,17 @@ create table if not exists public.coaching_engagements (
 
   -- Consent must be complete or absent — never half-recorded.
   constraint coaching_engagements_consent_complete
-    check (consent_given = false or (consent_date is not null and consent_method is not null))
+    check (
+      consent_given = false
+      or (
+        consent_date is not null
+        and consent_method is not null
+        and nullif(btrim(consent_disclosure), '') is not null
+      )
+    ),
+  constraint coaching_engagements_client_founder_fkey
+    foreign key (client_id, founder_id)
+    references public.crm_contacts(id, founder_id) on delete restrict
 );
 
 alter table public.coaching_engagements enable row level security;
@@ -50,6 +65,8 @@ create policy "founder_only" on public.coaching_engagements
 
 create unique index if not exists idx_coaching_engagements_client
   on public.coaching_engagements(founder_id, client_id);
+create unique index if not exists coaching_engagements_id_founder_key
+  on public.coaching_engagements(id, founder_id);
 create index if not exists idx_coaching_engagements_sort
   on public.coaching_engagements(founder_id, business_name, client_name);
 
@@ -59,8 +76,8 @@ create index if not exists idx_coaching_engagements_sort
 create table if not exists public.coaching_sessions (
   id uuid primary key default gen_random_uuid(),
   founder_id uuid not null references auth.users(id),
-  engagement_id uuid not null references public.coaching_engagements(id) on delete cascade,
-  client_id uuid not null references public.crm_contacts(id) on delete restrict,
+  engagement_id uuid not null,
+  client_id uuid not null,
 
   session_date date not null default current_date,
   session_number integer,
@@ -83,7 +100,18 @@ create table if not exists public.coaching_sessions (
   output_tokens integer,
 
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+
+  constraint coaching_sessions_engagement_founder_fkey
+    foreign key (engagement_id, founder_id)
+    references public.coaching_engagements(id, founder_id) on delete cascade,
+  constraint coaching_sessions_client_founder_fkey
+    foreign key (client_id, founder_id)
+    references public.crm_contacts(id, founder_id) on delete restrict,
+  constraint coaching_sessions_source_ref_nonempty
+    check (source_ref is null or nullif(btrim(source_ref), '') is not null),
+  constraint coaching_sessions_founder_source_ref_key
+    unique (founder_id, source_ref)
 );
 
 alter table public.coaching_sessions enable row level security;
@@ -94,6 +122,8 @@ create policy "founder_only" on public.coaching_sessions
 
 create index if not exists idx_coaching_sessions_engagement
   on public.coaching_sessions(engagement_id, session_date desc);
+create unique index if not exists coaching_sessions_id_founder_key
+  on public.coaching_sessions(id, founder_id);
 
 -- ---------------------------------------------------------------------------
 -- 3. Extractions — the typed client record
@@ -104,9 +134,9 @@ create index if not exists idx_coaching_sessions_engagement
 create table if not exists public.coaching_extractions (
   id uuid primary key default gen_random_uuid(),
   founder_id uuid not null references auth.users(id),
-  engagement_id uuid not null references public.coaching_engagements(id) on delete cascade,
-  session_id uuid not null references public.coaching_sessions(id) on delete cascade,
-  client_id uuid not null references public.crm_contacts(id) on delete restrict,
+  engagement_id uuid not null,
+  session_id uuid not null,
+  client_id uuid not null,
 
   kind text not null check (kind in (
     'want', 'need', 'requirement', 'commitment',
@@ -142,7 +172,17 @@ create table if not exists public.coaching_extractions (
   superseded_by uuid references public.coaching_extractions(id) on delete set null,
 
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+
+  constraint coaching_extractions_engagement_founder_fkey
+    foreign key (engagement_id, founder_id)
+    references public.coaching_engagements(id, founder_id) on delete cascade,
+  constraint coaching_extractions_session_founder_fkey
+    foreign key (session_id, founder_id)
+    references public.coaching_sessions(id, founder_id) on delete cascade,
+  constraint coaching_extractions_client_founder_fkey
+    foreign key (client_id, founder_id)
+    references public.crm_contacts(id, founder_id) on delete restrict
 );
 
 alter table public.coaching_extractions enable row level security;
@@ -159,6 +199,37 @@ create index if not exists idx_coaching_extractions_session
 create index if not exists idx_coaching_extractions_open
   on public.coaching_extractions(engagement_id, valid_from)
   where status = 'approved' and superseded_by is null;
+
+-- Re-check consent while holding a share lock on the engagement row. A
+-- concurrent consent revocation therefore serialises with session creation:
+-- whichever transaction gets the lock first determines the honest outcome.
+create or replace function public.enforce_coaching_session_consent()
+returns trigger
+language plpgsql
+as $$
+declare
+  engagement_consent boolean;
+begin
+  select consent_given
+    into engagement_consent
+    from public.coaching_engagements
+   where id = new.engagement_id
+     and founder_id = new.founder_id
+   for share;
+
+  if not found or engagement_consent is not true then
+    raise exception 'coaching session requires active consent'
+      using errcode = '23514';
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists coaching_sessions_consent on public.coaching_sessions;
+create trigger coaching_sessions_consent
+  before insert on public.coaching_sessions
+  for each row execute function public.enforce_coaching_session_consent();
 
 -- ---------------------------------------------------------------------------
 -- updated_at triggers (house convention — update_updated_at_column already exists)

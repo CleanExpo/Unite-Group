@@ -23,6 +23,7 @@ export interface ConsentState {
   consent_given: boolean
   consent_date: string | null
   consent_method: string | null
+  consent_disclosure: string | null
 }
 
 export type ConsentVerdict =
@@ -54,6 +55,9 @@ export function checkConsent(engagement: ConsentState | null | undefined): Conse
   }
   if (!VALID_METHODS.includes(engagement.consent_method)) {
     return { allowed: false, reason: `consent_method_invalid:${engagement.consent_method}` }
+  }
+  if (!engagement.consent_disclosure?.trim()) {
+    return { allowed: false, reason: 'consent_incomplete_no_disclosure' }
   }
   return { allowed: true }
 }

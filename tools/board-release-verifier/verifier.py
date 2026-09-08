@@ -704,14 +704,34 @@ def verify(receipt, roster, check_manifest, *,
     if not isinstance(independent_review, dict):
         fail("independent_review attestation is missing", True)
     else:
-        if independent_review.get("tool") != "codex-cli":
+        reviewer_tool = independent_review.get("tool")
+        reviewer_family = independent_review.get("family")
+        if reviewer_tool not in {"codex-cli", "cursor-cli", "claude-cli"}:
             fail(
-                "independent_review.tool must be 'codex-cli', got %r" % (independent_review.get("tool"),),
+                "independent_review.tool must be one of 'codex-cli', 'cursor-cli', or 'claude-cli', got %r"
+                % (reviewer_tool,),
                 True,
             )
-        if independent_review.get("family") != "openai":
+        if reviewer_tool == "claude-cli":
+            # Temporary routing permits a fresh-context Claude fallback when
+            # Cursor is unavailable. It remains same-family evidence and cannot
+            # make a candidate release-ready (the check below enforces that).
+            if independent_review.get("fresh_context") is not True:
+                fail("independent_review.fresh_context must be true for claude-cli fallback", True)
+            if independent_review.get("degraded") is not True:
+                fail("independent_review.degraded must be true for claude-cli fallback", True)
+        elif independent_review.get("degraded") is True or independent_review.get("fresh_context") is True:
+            fail("independent_review degradation metadata is only valid for claude-cli fallback", True)
+        if reviewer_tool in {"codex-cli", "cursor-cli"} and reviewer_family != "openai":
             fail(
-                "independent_review.family must be 'openai', got %r" % (independent_review.get("family"),),
+                "independent_review.family must be 'openai' for codex-cli/cursor-cli, got %r"
+                % (reviewer_family,),
+                True,
+            )
+        if reviewer_tool == "claude-cli" and reviewer_family != "anthropic":
+            fail(
+                "independent_review.family must be 'anthropic' for claude-cli, got %r"
+                % (reviewer_family,),
                 True,
             )
         ir_ref = independent_review.get("evidence_ref")

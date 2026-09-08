@@ -872,11 +872,29 @@ class TestRoleSeparation(unittest.TestCase):
 
     def test_independent_review_wrong_tool_fails(self):
         receipt = make_receipt()
-        receipt["independent_review"]["tool"] = "claude-cli"
+        receipt["independent_review"]["tool"] = "unknown-cli"
         result = run_verify(receipt)
         self.assertFalse(result.candidate_verified)
         self.assertTrue(
             any("independent_review.tool must be" in r for r in result.reasons), result.reasons
+        )
+
+    def test_cursor_reviewer_is_accepted_as_the_temporary_cross_vendor_slot(self):
+        receipt = make_receipt()
+        receipt["independent_review"]["tool"] = "cursor-cli"
+        result = run_verify(receipt)
+        self.assertTrue(result.candidate_verified, result.reasons)
+        self.assertTrue(result.board_release_ready, result.reasons)
+
+    def test_fresh_context_claude_fallback_is_recorded_but_not_release_ready(self):
+        receipt = make_receipt()
+        receipt["independent_review"].update(
+            {"tool": "claude-cli", "family": "anthropic", "fresh_context": True, "degraded": True}
+        )
+        result = run_verify(receipt)
+        self.assertFalse(result.board_release_ready)
+        self.assertTrue(
+            any("independent_review family must differ" in r for r in result.reasons), result.reasons
         )
 
     def test_independent_review_wrong_family_fails(self):

@@ -1,7 +1,7 @@
 // src/components/layout/SidebarCoachingItem.tsx
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -59,8 +59,23 @@ export function SidebarCoachingItem({ collapsed }: SidebarCoachingItemProps) {
     const EDGE_GAP = 8
     const rightmost = window.innerWidth - MAX_PANEL - EDGE_GAP
     const left = Math.max(EDGE_GAP, Math.min(railRight + 4, rightmost))
-    setAnchor({ top: rowRect.top, left })
+    const maxHeight = Math.min(window.innerHeight * 0.6, window.innerHeight - EDGE_GAP * 2)
+    const flyoutHeight = flyoutRef.current?.getBoundingClientRect().height ?? maxHeight
+    const bottom = window.innerHeight - flyoutHeight - EDGE_GAP
+    const top = Math.max(EDGE_GAP, Math.min(rowRect.top, bottom))
+    setAnchor({ top, left })
   }, [])
+
+  // The first position is calculated before the portalled flyout mounts, so use
+  // its real rendered height once available. This keeps the entire menu in the
+  // viewport while leaving a client link reachable on short screens.
+  useLayoutEffect(() => {
+    if (!open || !anchor || !flyoutRef.current) return
+    const height = flyoutRef.current.getBoundingClientRect().height
+    const bottom = window.innerHeight - height - 8
+    const top = Math.max(8, Math.min(anchor.top, bottom))
+    if (top !== anchor.top) setAnchor({ ...anchor, top })
+  }, [open, anchor])
 
   // Fetch lazily — the sidebar renders on every founder page, the flyout does not.
   const load = useCallback(async () => {

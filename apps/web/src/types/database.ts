@@ -5521,11 +5521,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "coaching_engagements_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: "coaching_engagements_client_founder_fkey"
+            columns: ["client_id", "founder_id"]
             isOneToOne: false
             referencedRelation: "crm_contacts"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "founder_id"]
           },
         ]
       }
@@ -5604,25 +5604,25 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "coaching_extractions_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: "coaching_extractions_client_founder_fkey"
+            columns: ["client_id", "founder_id"]
             isOneToOne: false
             referencedRelation: "crm_contacts"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "founder_id"]
           },
           {
-            foreignKeyName: "coaching_extractions_engagement_id_fkey"
-            columns: ["engagement_id"]
+            foreignKeyName: "coaching_extractions_engagement_founder_fkey"
+            columns: ["engagement_id", "founder_id"]
             isOneToOne: false
             referencedRelation: "coaching_engagements"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "founder_id"]
           },
           {
-            foreignKeyName: "coaching_extractions_session_id_fkey"
-            columns: ["session_id"]
+            foreignKeyName: "coaching_extractions_session_founder_fkey"
+            columns: ["session_id", "founder_id"]
             isOneToOne: false
             referencedRelation: "coaching_sessions"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "founder_id"]
           },
           {
             foreignKeyName: "coaching_extractions_superseded_by_fkey"
@@ -5693,18 +5693,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "coaching_sessions_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: "coaching_sessions_client_founder_fkey"
+            columns: ["client_id", "founder_id"]
             isOneToOne: false
             referencedRelation: "crm_contacts"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "founder_id"]
           },
           {
-            foreignKeyName: "coaching_sessions_engagement_id_fkey"
-            columns: ["engagement_id"]
+            foreignKeyName: "coaching_sessions_engagement_founder_fkey"
+            columns: ["engagement_id", "founder_id"]
             isOneToOne: false
             referencedRelation: "coaching_engagements"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "founder_id"]
           },
         ]
       }

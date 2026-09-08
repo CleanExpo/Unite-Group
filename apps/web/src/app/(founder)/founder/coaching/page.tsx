@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createClient, getUser } from '@/lib/supabase/server'
+import { sortEngagements } from '@/lib/coaching/sort'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,6 +17,10 @@ export default async function CoachingIndexPage() {
     .eq('founder_id', user.id)
     .order('business_name', { ascending: true })
     .order('client_name', { ascending: true })
+
+  // Keep display ordering deterministic even when the database collation differs
+  // from the founder-facing en-AU order used by the sidebar.
+  const engagements = sortEngagements(data ?? [])
 
   return (
     <div className="px-8 py-6 max-w-4xl">
@@ -39,7 +44,7 @@ export default async function CoachingIndexPage() {
         </div>
       )}
 
-      {!error && (data ?? []).length === 0 && (
+      {!error && engagements.length === 0 && (
         <div
           className="mt-6 rounded-sm border px-4 py-6 text-[13px]"
           style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
@@ -49,9 +54,9 @@ export default async function CoachingIndexPage() {
         </div>
       )}
 
-      {!error && (data ?? []).length > 0 && (
+      {!error && engagements.length > 0 && (
         <ul className="mt-6 flex flex-col gap-1">
-          {(data ?? []).map((e) => (
+          {engagements.map((e) => (
             <li key={e.id}>
               <Link
                 href={`/founder/coaching/${e.id}`}

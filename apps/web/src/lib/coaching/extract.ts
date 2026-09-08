@@ -221,7 +221,11 @@ export async function extractFromTranscript(transcript: string): Promise<Extract
   // contained nothing. A parse failure must not wear the face of an empty
   // session. So: total loss throws; partial loss is reported and counted.
   const kept = extractions.filter(
-    (e) => EXTRACTION_KINDS.includes(e.kind) && typeof e.transcript_quote === 'string'
+    (e) =>
+      EXTRACTION_KINDS.includes(e.kind) &&
+      typeof e.transcript_quote === 'string' &&
+      e.transcript_quote.trim().length > 0 &&
+      transcript.includes(e.transcript_quote),
   )
   const dropped = extractions.length - kept.length
 

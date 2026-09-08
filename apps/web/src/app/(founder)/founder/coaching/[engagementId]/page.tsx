@@ -170,7 +170,7 @@ export default async function EngagementPage({
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px]" style={{ color: 'var(--color-text-disabled)' }}>
                   {row.owner && <span className="capitalize">{row.owner}</span>}
                   {row.due_date && <span>due {row.due_date}</span>}
-                  {row.metric_value && (
+                  {row.metric_value !== null && (
                     <span>{row.metric_value}{row.metric_unit ? ` ${row.metric_unit}` : ''}{row.metric_period ? ` / ${row.metric_period}` : ''}</span>
                   )}
                   <span>from {row.valid_from}</span>

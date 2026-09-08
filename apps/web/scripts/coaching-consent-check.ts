@@ -17,33 +17,38 @@ const CASES: Case[] = [
   { name: 'engagement missing', input: null, expectAllowed: false },
   {
     name: 'consent never given',
-    input: { consent_given: false, consent_date: null, consent_method: null },
+    input: { consent_given: false, consent_date: null, consent_method: null, consent_disclosure: null },
     expectAllowed: false,
   },
   {
     name: 'consent given but no date (half-recorded)',
-    input: { consent_given: true, consent_date: null, consent_method: 'email' },
+    input: { consent_given: true, consent_date: null, consent_method: 'email', consent_disclosure: 'AI use' },
     expectAllowed: false,
   },
   {
     name: 'consent given but no method (half-recorded)',
-    input: { consent_given: true, consent_date: '2026-08-19', consent_method: null },
+    input: { consent_given: true, consent_date: '2026-08-19', consent_method: null, consent_disclosure: 'AI use' },
     expectAllowed: false,
   },
   {
     name: 'consent method not one the schema permits',
-    input: { consent_given: true, consent_date: '2026-08-19', consent_method: 'assumed' },
+    input: { consent_given: true, consent_date: '2026-08-19', consent_method: 'assumed', consent_disclosure: 'AI use' },
     expectAllowed: false,
   },
   {
     name: 'consent_given falsy-but-not-false (guards a truthiness slip)',
-    input: { consent_given: 0 as unknown as boolean, consent_date: '2026-08-19', consent_method: 'email' },
+    input: { consent_given: 0 as unknown as boolean, consent_date: '2026-08-19', consent_method: 'email', consent_disclosure: 'AI use' },
+    expectAllowed: false,
+  },
+  {
+    name: 'consent given but disclosure is blank',
+    input: { consent_given: true, consent_date: '2026-08-19', consent_method: 'email', consent_disclosure: '  ' },
     expectAllowed: false,
   },
   // Must be allowed — without this the gate could simply always refuse.
   {
     name: 'complete written consent',
-    input: { consent_given: true, consent_date: '2026-08-19', consent_method: 'written' },
+    input: { consent_given: true, consent_date: '2026-08-19', consent_method: 'written', consent_disclosure: 'AI use' },
     expectAllowed: true,
   },
 ]
