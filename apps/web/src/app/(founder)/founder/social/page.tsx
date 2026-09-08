@@ -10,10 +10,23 @@ import { SOCIAL_PLATFORMS, isPlatformConfigured } from '@/lib/integrations/socia
 import { getChannels } from '@/lib/integrations/social/channels'
 import { PageHeader } from '@/components/ui/PageHeader'
 
+const BUSINESS_KEY = 'synthex'
+
+type ConnectionStatus = 'connected' | 'disconnected' | 'unknown'
+
 async function getPlatformStatus(founderId: string) {
   // Dedicated OAuth callbacks persist connected accounts in social_channels.
   // Read that table here so a successful connection is reflected on this page.
-  const channels = await getChannels(founderId)
+  let channels: Awaited<ReturnType<typeof getChannels>> = []
+  let connectionStatus: ConnectionStatus = 'unknown'
+
+  try {
+    channels = await getChannels(founderId, BUSINESS_KEY)
+    connectionStatus = 'disconnected'
+  } catch {
+    // A status read failure must stay visible as unknown rather than looking
+    // like a confirmed disconnect or taking down the whole founder page.
+  }
 
   return SOCIAL_PLATFORMS.map((platform) => {
     const configured = isPlatformConfigured(platform.key)
@@ -27,6 +40,7 @@ async function getPlatformStatus(founderId: string) {
       ...platform,
       configured,
       connected: !!channel,
+      connectionStatus: channel ? 'connected' : connectionStatus,
       connectedAt: channel?.lastSyncedAt ?? null,
     }
   })
@@ -52,6 +66,7 @@ export default async function SocialPage({
   const platforms = await getPlatformStatus(user.id)
   const configuredCount = platforms.filter(p => p.configured).length
   const connectedCount = platforms.filter(p => p.connected).length
+  const hasUnknownConnectionStatus = platforms.some(p => p.connectionStatus === 'unknown')
 
   return (
     <div className="p-6 space-y-6">
@@ -80,7 +95,9 @@ export default async function SocialPage({
         </div>
         <div className="border border-black/8 px-4 py-2 rounded-sm" style={{ background: 'var(--surface-card)' }}>
           <span className="text-muted-foreground">Connected:</span>{' '}
-          <span className="text-[#15803d]">{connectedCount}/{platforms.length}</span>
+          <span className={hasUnknownConnectionStatus ? 'text-muted-foreground' : 'text-[#15803d]'}>
+            {hasUnknownConnectionStatus ? 'Unable to verify' : `${connectedCount}/${platforms.length}`}
+          </span>
         </div>
       </div>
 
@@ -133,6 +150,10 @@ export default async function SocialPage({
                 <span className="text-[10px] uppercase tracking-widest text-[#15803d]/80 border border-[#16a34a]/30 px-2.5 py-1 rounded-sm">
                   Live
                 </span>
+              ) : platform.connectionStatus === 'unknown' ? (
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground border border-black/8 px-2.5 py-1 rounded-sm">
+                  Unable to verify
+                </span>
               ) : platform.connectPath ? (
                 <a
                   href={platform.connectPath}
@@ -169,7 +190,9 @@ export default async function SocialPage({
                 {platform.name}
               </span>
               <span className="text-[10px] ml-auto" style={{ color: 'var(--color-text-muted)' }}>
-                {platform.connected
+                {platform.connectionStatus === 'unknown'
+                  ? 'Unable to verify connection'
+                  : platform.connected
                   ? 'Ready'
                   : platform.configured
                   ? platform.connectPath
