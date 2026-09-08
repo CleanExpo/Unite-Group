@@ -5473,6 +5473,241 @@ export type Database = {
         }
         Relationships: []
       }
+      coaching_engagements: {
+        Row: {
+          business_name: string
+          client_id: string
+          client_name: string
+          consent_date: string | null
+          consent_disclosure: string | null
+          consent_given: boolean
+          consent_method: string | null
+          created_at: string
+          founder_id: string
+          id: string
+          notes: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          business_name: string
+          client_id: string
+          client_name: string
+          consent_date?: string | null
+          consent_disclosure?: string | null
+          consent_given?: boolean
+          consent_method?: string | null
+          created_at?: string
+          founder_id: string
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          business_name?: string
+          client_id?: string
+          client_name?: string
+          consent_date?: string | null
+          consent_disclosure?: string | null
+          consent_given?: boolean
+          consent_method?: string | null
+          created_at?: string
+          founder_id?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coaching_engagements_client_founder_fkey"
+            columns: ["client_id", "founder_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id", "founder_id"]
+          },
+        ]
+      }
+      coaching_extractions: {
+        Row: {
+          body: string
+          client_id: string
+          confidence: number | null
+          created_at: string
+          due_date: string | null
+          engagement_id: string
+          founder_id: string
+          id: string
+          kind: string
+          metric_period: string | null
+          metric_unit: string | null
+          metric_value: string | null
+          original_body: string | null
+          owner: string | null
+          reviewed_at: string | null
+          session_id: string
+          status: string
+          superseded_by: string | null
+          transcript_offset: number | null
+          transcript_quote: string | null
+          updated_at: string
+          valid_from: string
+        }
+        Insert: {
+          body: string
+          client_id: string
+          confidence?: number | null
+          created_at?: string
+          due_date?: string | null
+          engagement_id: string
+          founder_id: string
+          id?: string
+          kind: string
+          metric_period?: string | null
+          metric_unit?: string | null
+          metric_value?: string | null
+          original_body?: string | null
+          owner?: string | null
+          reviewed_at?: string | null
+          session_id: string
+          status?: string
+          superseded_by?: string | null
+          transcript_offset?: number | null
+          transcript_quote?: string | null
+          updated_at?: string
+          valid_from?: string
+        }
+        Update: {
+          body?: string
+          client_id?: string
+          confidence?: number | null
+          created_at?: string
+          due_date?: string | null
+          engagement_id?: string
+          founder_id?: string
+          id?: string
+          kind?: string
+          metric_period?: string | null
+          metric_unit?: string | null
+          metric_value?: string | null
+          original_body?: string | null
+          owner?: string | null
+          reviewed_at?: string | null
+          session_id?: string
+          status?: string
+          superseded_by?: string | null
+          transcript_offset?: number | null
+          transcript_quote?: string | null
+          updated_at?: string
+          valid_from?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coaching_extractions_client_founder_fkey"
+            columns: ["client_id", "founder_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id", "founder_id"]
+          },
+          {
+            foreignKeyName: "coaching_extractions_engagement_founder_fkey"
+            columns: ["engagement_id", "founder_id"]
+            isOneToOne: false
+            referencedRelation: "coaching_engagements"
+            referencedColumns: ["id", "founder_id"]
+          },
+          {
+            foreignKeyName: "coaching_extractions_session_founder_fkey"
+            columns: ["session_id", "founder_id"]
+            isOneToOne: false
+            referencedRelation: "coaching_sessions"
+            referencedColumns: ["id", "founder_id"]
+          },
+          {
+            foreignKeyName: "coaching_extractions_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "coaching_extractions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coaching_sessions: {
+        Row: {
+          client_id: string
+          created_at: string
+          duration_minutes: number | null
+          engagement_id: string
+          error_message: string | null
+          founder_id: string
+          id: string
+          input_tokens: number | null
+          model: string | null
+          output_tokens: number | null
+          session_date: string
+          session_number: number | null
+          source: string
+          source_ref: string | null
+          status: string
+          transcript: string | null
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          duration_minutes?: number | null
+          engagement_id: string
+          error_message?: string | null
+          founder_id: string
+          id?: string
+          input_tokens?: number | null
+          model?: string | null
+          output_tokens?: number | null
+          session_date?: string
+          session_number?: number | null
+          source?: string
+          source_ref?: string | null
+          status?: string
+          transcript?: string | null
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          duration_minutes?: number | null
+          engagement_id?: string
+          error_message?: string | null
+          founder_id?: string
+          id?: string
+          input_tokens?: number | null
+          model?: string | null
+          output_tokens?: number | null
+          session_date?: string
+          session_number?: number | null
+          source?: string
+          source_ref?: string | null
+          status?: string
+          transcript?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coaching_sessions_client_founder_fkey"
+            columns: ["client_id", "founder_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id", "founder_id"]
+          },
+          {
+            foreignKeyName: "coaching_sessions_engagement_founder_fkey"
+            columns: ["engagement_id", "founder_id"]
+            isOneToOne: false
+            referencedRelation: "coaching_engagements"
+            referencedColumns: ["id", "founder_id"]
+          },
+        ]
+      }
       competitor_analyses: {
         Row: {
           analyzed_at: string | null

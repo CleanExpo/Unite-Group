@@ -244,3 +244,9 @@ Append this block verbatim to this repo's CLAUDE.md under
 commit/PR, so every future session inherits the order without being told.
 
 *Persisted 2026-09-07 by founder directive. Already in force — do not re-append.*
+
+**Reading note for the release gate.** `independent_review.py` takes `--lane`; under this
+order the lane is **never `codex`**. Rule 5's fresh-context Claude fallback is a
+*degradation that must be recorded*, not an equivalent — a same-vendor reviewer does not
+give the cross-family independence the gate exists for, so say so on the scoreboard
+rather than letting a PASS imply cross-vendor review happened.

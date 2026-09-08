@@ -77,6 +77,13 @@ ROSTER_SUPPORTED_VERSION = "1.0"
 CHECK_MANIFEST_SUPPORTED_VERSION = "1.2"
 ACTIVATION_MANIFEST_SUPPORTED_VERSION = "1.0"
 EVIDENCE_RECORD_VERSION = "1.0"
+BUILDER_TOOL_FAMILIES = {"claude-cli": "anthropic", "codex-cli": "openai"}
+REVIEWER_TOOL_FAMILIES = {
+    "codex-cli": {"openai"},
+    "cursor-cli": {"openai", "anthropic"},
+    "claude-cli": {"anthropic"},
+}
+PROVENANCE_KEYS = frozenset({"tool", "family", "model"})
 # Closed enum of legitimate evidence categories. A record's declared "kind" must be a member of
 # this set -- an attacker-supplied kind (e.g. "board_vote") is rejected even if the record is
 # otherwise well-formed and keyed under the correct ref. Some refs are legitimately reused across
@@ -243,6 +250,38 @@ def _is_nonempty_str(value):
 
 def _is_sha256(value):
     return isinstance(value, str) and bool(SHA256_RE.match(value))
+
+
+def _evidence_record(ref, evidence_index):
+    records = evidence_index.get("records") if isinstance(evidence_index, dict) else None
+    record = records.get(ref) if isinstance(records, dict) else None
+    return record if isinstance(record, dict) else None
+
+
+def _validate_provenance(attestation, record, kind, add):
+    """Require model/tool provenance from the independently supplied evidence record."""
+    if not isinstance(record, dict):
+        return
+    provenance = record.get("provenance")
+    if not isinstance(provenance, dict):
+        add("%s evidence record is missing independently supplied provenance" % kind)
+        return
+    keys = set(provenance)
+    for missing in sorted(PROVENANCE_KEYS - keys):
+        add("%s evidence provenance is missing required field: %r" % (kind, missing))
+    for unknown in sorted(keys - PROVENANCE_KEYS):
+        add("%s evidence provenance has unexpected field: %r" % (kind, unknown))
+    if keys != PROVENANCE_KEYS:
+        return
+    for field in PROVENANCE_KEYS:
+        if not _is_nonempty_str(provenance.get(field)):
+            add("%s evidence provenance.%s must be a non-empty string" % (kind, field))
+    for field in PROVENANCE_KEYS:
+        if _is_nonempty_str(provenance.get(field)) and provenance.get(field) != attestation.get(field):
+            add(
+                "%s provenance.%s contradicts attestation: evidence=%r attestation=%r"
+                % (kind, field, provenance.get(field), attestation.get(field))
+            )
 
 
 def _resolve_evidence(ref, kind, evidence_index, now, issued_at, add,
@@ -680,10 +719,17 @@ def verify(receipt, roster, check_manifest, *,
     if not isinstance(builder, dict):
         fail("builder attestation is missing", True)
     else:
-        if builder.get("tool") != "claude-cli":
-            fail("builder.tool must be 'claude-cli', got %r" % (builder.get("tool"),), True)
-        if builder.get("family") != "anthropic":
-            fail("builder.family must be 'anthropic', got %r" % (builder.get("family"),), True)
+        builder_tool = builder.get("tool")
+        builder_family = builder.get("family")
+        expected_builder_family = BUILDER_TOOL_FAMILIES.get(builder_tool)
+        if expected_builder_family is None:
+            fail("builder.tool must be one of 'claude-cli' or 'codex-cli', got %r" % (builder_tool,), True)
+        elif builder_family != expected_builder_family:
+            fail(
+                "builder.family must be %r for %s, got %r"
+                % (expected_builder_family, builder_tool, builder_family),
+                True,
+            )
         b_ref = builder.get("evidence_ref")
         if not _is_nonempty_str(b_ref):
             fail("builder evidence_ref is missing", True)
@@ -692,6 +738,7 @@ def verify(receipt, roster, check_manifest, *,
                           expected_repo=expected_repo, expected_pr=expected_pr, expected_head_sha=expected_head_sha,
                           expected_kind="builder", expected_event_timestamp=builder.get("event_timestamp"),
                           seen_refs=seen_evidence_refs)
+            _validate_provenance(builder, _evidence_record(b_ref, evidence_index), "builder", lambda m: fail(m, True))
         if not _is_nonempty_str(builder.get("execution_identity")):
             fail("builder execution_identity is missing", True)
         else:
@@ -704,16 +751,31 @@ def verify(receipt, roster, check_manifest, *,
     if not isinstance(independent_review, dict):
         fail("independent_review attestation is missing", True)
     else:
-        if independent_review.get("tool") != "codex-cli":
+        reviewer_tool = independent_review.get("tool")
+        reviewer_family = independent_review.get("family")
+        allowed_reviewer_families = REVIEWER_TOOL_FAMILIES.get(reviewer_tool)
+        if allowed_reviewer_families is None:
             fail(
-                "independent_review.tool must be 'codex-cli', got %r" % (independent_review.get("tool"),),
+                "independent_review.tool must be one of 'codex-cli', 'cursor-cli', or 'claude-cli', got %r"
+                % (reviewer_tool,),
                 True,
             )
-        if independent_review.get("family") != "openai":
+        elif reviewer_family not in allowed_reviewer_families:
             fail(
-                "independent_review.family must be 'openai', got %r" % (independent_review.get("family"),),
+                "independent_review.family must be one of %r for %s, got %r"
+                % (sorted(allowed_reviewer_families), reviewer_tool, reviewer_family),
                 True,
             )
+        if reviewer_tool == "claude-cli":
+            # Temporary routing permits a fresh-context Claude fallback when
+            # Cursor is unavailable. It remains same-family evidence and cannot
+            # make a candidate release-ready (the check below enforces that).
+            if independent_review.get("fresh_context") is not True:
+                fail("independent_review.fresh_context must be true for claude-cli fallback", True)
+            if independent_review.get("degraded") is not True:
+                fail("independent_review.degraded must be true for claude-cli fallback", True)
+        elif independent_review.get("degraded") is True or independent_review.get("fresh_context") is True:
+            fail("independent_review degradation metadata is only valid for claude-cli fallback", True)
         ir_ref = independent_review.get("evidence_ref")
         if not _is_nonempty_str(ir_ref):
             fail("independent_review evidence_ref is missing", True)
@@ -723,6 +785,12 @@ def verify(receipt, roster, check_manifest, *,
                           expected_kind="independent_review",
                           expected_event_timestamp=independent_review.get("event_timestamp"),
                           seen_refs=seen_evidence_refs)
+            _validate_provenance(
+                independent_review,
+                _evidence_record(ir_ref, evidence_index),
+                "independent_review",
+                lambda m: fail(m, True),
+            )
         if not _is_nonempty_str(independent_review.get("execution_identity")):
             fail("independent_review execution_identity is missing", True)
         elif builder_execution_identity is not None and independent_review.get("execution_identity") == builder_execution_identity:
