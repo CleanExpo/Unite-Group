@@ -27,24 +27,27 @@ export function toCents(amount: number): number {
  * Handles both ISO format ("2026-03-01T00:00:00") and the legacy
  * /Date(...)/ format that Xero sometimes returns.
  */
-export function parseXeroDate(dateStr: string): Date {
+export function parseXeroDate(dateStr: string | null | undefined): Date {
+  if (typeof dateStr !== 'string' || dateStr.trim() === '') return new Date(NaN)
+
+  const value = dateStr.trim()
   // Handle /Date(1234567890000+0000)/ format
-  const msMatch = dateStr.match(/\/Date\((\d+)([+-]\d{4})?\)\//)
+  const msMatch = value.match(/\/Date\((\d+)([+-]\d{4})?\)\//)
   if (msMatch) {
     return new Date(parseInt(msMatch[1], 10))
   }
-  return new Date(dateStr)
+  return new Date(value)
 }
 
 /** Return a stable display value for a provider date, including an explicit invalid fallback. */
-export function formatXeroDate(dateStr: string): string {
+export function formatXeroDate(dateStr: string | null | undefined): string {
   const date = parseXeroDate(dateStr)
   if (!Number.isFinite(date.getTime())) return 'Date unavailable'
   return date.toLocaleDateString('en-AU', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
 /** Sort valid provider dates first and keep malformed dates visible at the end. */
-export function compareXeroDates(left: string, right: string): number {
+export function compareXeroDates(left: string | null | undefined, right: string | null | undefined): number {
   const leftTime = parseXeroDate(left).getTime()
   const rightTime = parseXeroDate(right).getTime()
   const leftValid = Number.isFinite(leftTime)
@@ -54,7 +57,7 @@ export function compareXeroDates(left: string, right: string): number {
 }
 
 /** Invalid dates are never treated as overdue. */
-export function isXeroDateOverdue(dateStr: string, now = Date.now()): boolean {
+export function isXeroDateOverdue(dateStr: string | null | undefined, now = Date.now()): boolean {
   const timestamp = parseXeroDate(dateStr).getTime()
   return Number.isFinite(timestamp) && timestamp < now
 }

@@ -76,6 +76,20 @@ describe('parseXeroDate', () => {
     expect(isXeroDateOverdue('/Date(not-a-date)/', Date.UTC(2027, 0, 1))).toBe(false)
   })
 
+  it('handles absent provider dates with an explicit fallback', () => {
+    expect(parseXeroDate(null).getTime()).toBeNaN()
+    expect(parseXeroDate(undefined).getTime()).toBeNaN()
+    expect(formatXeroDate(null)).toBe('Date unavailable')
+    expect(formatXeroDate(undefined)).toBe('Date unavailable')
+    expect(formatXeroDate('')).toBe('Date unavailable')
+    expect(compareXeroDates(null, '2026-03-01')).toBeGreaterThan(0)
+    expect(compareXeroDates('2026-03-01', undefined)).toBeLessThan(0)
+    expect(compareXeroDates('', null)).toBe(0)
+    expect(isXeroDateOverdue(null, Date.UTC(2027, 0, 1))).toBe(false)
+    expect(isXeroDateOverdue(undefined, Date.UTC(2027, 0, 1))).toBe(false)
+    expect(isXeroDateOverdue('', Date.UTC(2027, 0, 1))).toBe(false)
+  })
+
   it('parses plain date string', () => {
     const result = parseXeroDate('2026-06-30')
     expect(result.getFullYear()).toBe(2026)
