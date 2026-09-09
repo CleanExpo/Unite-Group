@@ -5,7 +5,93 @@ import { promisify } from 'node:util'
 import { fileURLToPath } from 'node:url'
 
 const execFileAsync = promisify(execFile)
-export const DEFAULT_SCANNER_TIMEOUT_MS = 60_000
+
+// 60s was not a budget, it was a coin toss: on 04/09/2026 seven of nine workspaces
+// hit it and the job reported `passed: false` having found nothing at all. The scans
+// run concurrently now, so a per-scan budget this size no longer costs wall clock:
+// ceil(9 / 5) waves * 300s = 600s, inside the 20-minute cap ci.yml gives this job.
+export const DEFAULT_SCANNER_TIMEOUT_MS = 300_000
+export const DEFAULT_SCANNER_CONCURRENCY = 5
+
+// ci.yml sets `timeout-minutes: 20` on the job that runs this script. Kept here so
+// the arithmetic above is asserted by a test rather than trusted to a comment that
+// nothing re-reads when either number changes.
+export const CI_JOB_BUDGET_MS = 20 * 60 * 1000
+
+// When a scanner's output will not parse, the message alone cannot say why: a different schema,
+// a broken scanner build and a banner on stdout all produce the same "missing
+// metadata.vulnerabilities". Recording the message and discarding the bytes that caused it left
+// the 04/09/2026 pnpm failures undiagnosable from CI — the uploaded artifact holds the PARSED
+// report, so the raw output existed nowhere. Bounded because audit output is unbounded; the
+// prefix is where the shape lives.
+export const MAX_STDOUT_SAMPLE_CHARS = 2048
+
+export function stdoutSample(stdout, limit = MAX_STDOUT_SAMPLE_CHARS) {
+  if (typeof stdout !== 'string' || stdout === '') return null
+  const head = stdout.slice(0, limit)
+  return head.length < stdout.length
+    ? `${head}\n...[truncated ${stdout.length - head.length} of ${stdout.length} chars]`
+    : head
+}
+
+// Bounding the sample while leaving the error message unbounded protects nothing: a crafted
+// stdout can make JSON.parse (or a coercion on the way into it) throw a message of arbitrary
+// length, and that message is stored in the same artifact. Every string that reaches the report
+// from scanner-controlled data has to be capped, not just the one named "sample".
+// `String(value)` is not a total function: it calls `toString`/`valueOf`/`Symbol.toPrimitive`,
+// and any of those can throw on a scanner-controlled object. The previous version called it
+// bare, so a value of that shape threw out of the bounding helper itself and rejected the whole
+// run — losing the entire matrix and artifact rather than recording one bad field. A helper that
+// throws on the input it exists to tame is worse than no helper.
+function coerceToString(value) {
+  if (typeof value === 'string') return value
+  if (value === null || value === undefined) return ''
+  try {
+    return String(value)
+  } catch {
+    return '[unrepresentable]'
+  }
+}
+
+export function boundedMessage(message, limit = MAX_STDOUT_SAMPLE_CHARS) {
+  const text = coerceToString(message)
+  return text.length <= limit
+    ? text
+    : `${text.slice(0, limit)}...[truncated ${text.length - limit} of ${text.length} chars]`
+}
+
+// A scanner budget that silently falls back to a default when it is misconfigured
+// is the same failure this file exists to fix: a number nobody chose, producing a
+// result nobody can interpret. Garbage in the environment must stop the run.
+export function readPositiveIntegerEnv(name, fallback, { env = process.env } = {}) {
+  const raw = env[name]
+  if (raw === undefined || raw === '') return fallback
+  if (!/^\d+$/.test(raw.trim())) {
+    throw new TypeError(`${name} must be a positive integer, received ${JSON.stringify(raw)}`)
+  }
+  const value = Number.parseInt(raw.trim(), 10)
+  if (!Number.isSafeInteger(value) || value <= 0) {
+    throw new TypeError(`${name} must be a positive integer, received ${JSON.stringify(raw)}`)
+  }
+  return value
+}
+
+// Bounded fan-out that writes into indexed slots. A pool that pushes as each worker
+// finishes would reorder the report between runs; `out[index] = ...` cannot.
+export async function mapWithConcurrency(items, limit, worker) {
+  if (!Number.isSafeInteger(limit) || limit <= 0) {
+    throw new TypeError(`concurrency must be a positive integer, received ${JSON.stringify(limit)}`)
+  }
+  const out = new Array(items.length)
+  let cursor = 0
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    for (let index = cursor++; index < items.length; index = cursor++) {
+      out[index] = await worker(items[index], index)
+    }
+  })
+  await Promise.all(runners)
+  return out
+}
 const LOCKFILE_TYPES = Object.freeze({
   'package-lock.json': { manager: 'npm', supported: true },
   'npm-shrinkwrap.json': { manager: 'npm', supported: true },
@@ -166,42 +252,85 @@ function normaliseVulnerabilities(report) {
   return values
 }
 
+// Every leaf below is copied straight out of scanner JSON, so every one is scanner-controlled
+// and attacker-length: the package NAME is an object key, and ranges and advisory URLs are free
+// text. Capping `error` and `stderr` while leaving these raw moved the bloat rather than removing
+// it — a VALID high-severity report carrying three 100,000-char strings produced a 300,525-char
+// artifact while the two "bounded" fields were dutifully short. Bounding here is safe because
+// findings are diagnostic only: `passed` is computed from `metadata.vulnerabilities` and the exit
+// code and never reads this list, so no cap can turn a failing scan green.
+export const MAX_FINDING_FIELD_CHARS = 256
+export const MAX_ADVISORIES_PER_FINDING = 8
+export const MAX_FINDINGS_PER_SCAN = 100
+
+function boundedField(value) {
+  if (value === null || value === undefined) return null
+  const text = boundedMessage(value, MAX_FINDING_FIELD_CHARS)
+  return text === '' ? null : text
+}
+
+function boundedAdvisories(items, pick) {
+  const advisories = []
+  for (const item of Array.isArray(items) ? items : []) {
+    if (advisories.length >= MAX_ADVISORIES_PER_FINDING) break
+    if (!item || typeof item !== 'object') continue
+    const value = boundedField(pick(item))
+    if (value !== null) advisories.push(value)
+  }
+  return advisories
+}
+
 function normaliseFindings(report) {
   const findings = []
+  // Dropping findings silently would be the failure this repo exists to prevent: a report
+  // listing 100 of 3000 reads exactly like a report of 100. The count is carried out so a
+  // truncated list can never be mistaken for a complete one.
+  let findingsTruncated = 0
+  const add = (finding) => {
+    if (findings.length >= MAX_FINDINGS_PER_SCAN) {
+      findingsTruncated += 1
+      return
+    }
+    findings.push(finding)
+  }
+
   for (const [name, finding] of Object.entries(report?.vulnerabilities ?? {})) {
     if (!['high', 'critical'].includes(finding?.severity)) continue
-    findings.push({
-      package: name,
+    add({
+      package: boundedField(name),
       severity: finding.severity,
-      range: finding.range ?? null,
-      advisories: (finding.via ?? [])
-        .filter((item) => item && typeof item === 'object')
-        .map((item) => item.url ?? item.title ?? String(item.source))
-        .filter(Boolean),
+      range: boundedField(finding.range),
+      advisories: boundedAdvisories(finding.via, (item) => item.url ?? item.title ?? item.source),
     })
   }
   for (const finding of Object.values(report?.advisories ?? {})) {
     if (!['high', 'critical'].includes(finding?.severity)) continue
-    findings.push({
-      package: finding.module_name ?? finding.name ?? null,
+    add({
+      package: boundedField(finding.module_name ?? finding.name),
       severity: finding.severity,
-      range: finding.vulnerable_versions ?? null,
-      advisories: [finding.url].filter(Boolean),
+      range: boundedField(finding.vulnerable_versions),
+      advisories: boundedAdvisories([finding], (item) => item.url),
     })
   }
-  return findings
+  return { findings, findingsTruncated }
 }
 
 export function parseAuditReport(stdout) {
   let report
   try {
-    report = JSON.parse(stdout)
+    // `JSON.parse` coerces its argument, so a hostile stdout throws from inside the parse and
+    // lands in the catch below — where interpolating a non-string `error.message` would throw
+    // AGAIN, out of the handler, taking the run with it. Coerce on the way in and bound on the
+    // way out: the only two places this function touches scanner-controlled data.
+    report = JSON.parse(coerceToString(stdout))
   } catch (error) {
-    throw new Error(`Audit scanner did not return valid JSON: ${error.message}`)
+    throw new Error(`Audit scanner did not return valid JSON: ${boundedMessage(error?.message)}`)
   }
+  const { findings, findingsTruncated } = normaliseFindings(report)
   return {
     vulnerabilities: normaliseVulnerabilities(report),
-    findings: normaliseFindings(report),
+    findings,
+    findingsTruncated,
   }
 }
 
@@ -224,7 +353,7 @@ export function buildAuditInvocation(entry, {
 
 export async function executeAudit(entry, {
   root = process.cwd(),
-  timeoutMs = DEFAULT_SCANNER_TIMEOUT_MS,
+  timeoutMs = readPositiveIntegerEnv('AUDIT_SCANNER_TIMEOUT_MS', DEFAULT_SCANNER_TIMEOUT_MS),
   platform = process.platform,
   nodeExecutable = process.execPath,
   runExec = execFileAsync,
@@ -259,6 +388,12 @@ export async function runActiveLockfileAudits({
   runAudit = executeAudit,
   root = process.cwd(),
   evidence,
+  concurrency = readPositiveIntegerEnv('AUDIT_SCANNER_CONCURRENCY', DEFAULT_SCANNER_CONCURRENCY),
+  // Seam, and it exists for exactly one reason: `auditOne` catches everything and always
+  // returns an object, so no injected `runAudit` can produce a sparse `results`. Without a
+  // way to substitute the mapper, the hole guard below is unreachable from any test and is
+  // therefore unproven — which is indistinguishable from absent.
+  mapResults = mapWithConcurrency,
 } = {}) {
   const activeEntries = entries ?? await discoverTrackedLockfiles({ root })
   const evidenceFields = evidence ?? await collectEvidence({ root })
@@ -280,60 +415,93 @@ export async function runActiveLockfileAudits({
     ? ['No tracked JavaScript lockfiles were discovered']
     : validations.flatMap(({ errors }) => errors)
   const inventoryError = inventoryErrors.length > 0 ? inventoryErrors.join('; ') : null
-  const results = []
-
-  for (const { entry, errors } of validations) {
+  async function auditOne({ entry, errors }) {
     if (errors.length > 0) {
-      results.push({
+      return {
         ...entry,
         status: 'error',
         exitCode: null,
+        timedOut: false,
         vulnerabilities: { ...ZERO_VULNERABILITIES },
         findings: [],
+        findingsTruncated: 0,
         error: errors.join('; '),
         stderr: '',
-      })
-      continue
+      }
     }
     const execution = await runAudit(entry, { root })
+    // A scanner that returns nothing usable must become a recorded failure, not a
+    // thrown one. Throwing here escapes Promise.all and aborts the whole run, so the
+    // report is never written and the CI artifact is empty — the run fails closed but
+    // destroys the evidence needed to say why.
+    if (execution === undefined || execution === null || typeof execution !== 'object') {
+      return {
+        ...entry,
+        status: 'error',
+        exitCode: null,
+        timeoutMs: null,
+        timedOut: false,
+        vulnerabilities: { ...ZERO_VULNERABILITIES },
+        findings: [],
+        findingsTruncated: 0,
+        error: `Audit scanner returned no usable result (${typeof execution})`,
+        stderr: '',
+      }
+    }
     if (execution.timedOut) {
-      results.push({
+      // `status: 'error'` is shared with inventory and parse failures, so on its own
+      // it cannot tell "the scanner never finished" from "the scanner found nothing".
+      // `timedOut` makes that distinction machine-readable. It stays inside the
+      // fail-closed set deliberately: a scan that did not run is not a clean scan.
+      return {
         ...entry,
         status: 'error',
         exitCode: execution.exitCode,
         timeoutMs: execution.timeoutMs,
+        timedOut: true,
         vulnerabilities: { ...ZERO_VULNERABILITIES },
         findings: [],
+        findingsTruncated: 0,
         error: `Audit scanner timed out after ${execution.timeoutMs}ms`,
-        stderr: execution.stderr.trim(),
-      })
-      continue
+        stderr: boundedMessage(execution.stderr).trim(),
+      }
     }
     try {
       const parsed = parseAuditReport(execution.stdout)
       const breached = parsed.vulnerabilities.high > 0 || parsed.vulnerabilities.critical > 0
-      results.push({
+      return {
         ...entry,
         status: execution.exitCode === 0 && !breached ? 'passed' : 'failed',
         exitCode: execution.exitCode,
         timeoutMs: execution.timeoutMs ?? null,
+        timedOut: false,
         vulnerabilities: parsed.vulnerabilities,
         findings: parsed.findings,
-        stderr: execution.stderr.trim(),
-      })
+        findingsTruncated: parsed.findingsTruncated,
+        stderr: boundedMessage(execution.stderr).trim(),
+      }
     } catch (error) {
-      results.push({
+      return {
         ...entry,
         status: 'error',
         exitCode: execution.exitCode,
         timeoutMs: execution.timeoutMs ?? null,
+        timedOut: false,
         vulnerabilities: { ...ZERO_VULNERABILITIES },
         findings: [],
-        error: error.message,
-        stderr: execution.stderr.trim(),
-      })
+        findingsTruncated: 0,
+        error: boundedMessage(error.message),
+        // Only on this path. A scan that parsed needs no sample, and a timeout has no output
+        // worth keeping — carrying it everywhere would bloat the artifact for no diagnostic gain.
+        stdoutSample: stdoutSample(execution.stdout),
+        stderr: boundedMessage(execution.stderr).trim(),
+      }
     }
   }
+
+  // Scans run concurrently but land in inventory order: the report is diffed between
+  // runs, and completion order is not stable. Indexed slots, never push-as-completed.
+  const results = await mapResults(validations, concurrency, auditOne)
 
   return {
     schema: 'unite-active-lockfile-audit-v2',
@@ -343,9 +511,15 @@ export async function runActiveLockfileAudits({
     installScriptsExecuted: false,
     inventoryError,
     inventoryErrors,
+    // `every` SKIPS array holes rather than failing them, so a sparse `results` — one
+    // worker throwing before it assigned its slot — would satisfy the predicate
+    // vacuously. `results.length` cannot catch that either: a hole still counts toward
+    // length. `Array.from` materialises holes as undefined, which is what makes the
+    // check below able to see them at all; a bare `results.every(Boolean)` cannot.
     passed: inventoryError === null
       && results.length === activeEntries.length
-      && results.every(({ status }) => status === 'passed'),
+      && Array.from(results).every((result) => result !== undefined && result !== null)
+      && Array.from(results).every(({ status }) => status === 'passed'),
     results,
   }
 }
