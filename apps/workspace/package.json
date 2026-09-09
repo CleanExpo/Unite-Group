@@ -108,8 +108,9 @@
       "brace-expansion": "5.0.9",
       "minimatch": "10.2.6",
       "fast-uri": "4.1.4",
-      "js-yaml@4.2.0": "4.3.1",
-      "js-yaml@4.3.0": "4.3.1",
+      "js-yaml@4.2.0": "4.3.2",
+      "js-yaml@4.3.0": "4.3.2",
+      "@xmldom/xmldom": "0.8.15",
       "shell-quote@1.8.4": "1.10.0",
       "tar": "7.5.22"
     }
