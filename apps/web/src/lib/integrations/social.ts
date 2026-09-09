@@ -33,6 +33,21 @@ export interface SocialPlatform {
   connected: boolean
 }
 
+/**
+ * LinkedIn's current OAuth products are split between member OIDC/share and
+ * organisation community-management access. Keep one request contract for
+ * both the founder route and the generic registry so they cannot drift.
+ */
+export const LINKEDIN_SCOPES = [
+  'openid',
+  'profile',
+  'email',
+  'w_member_social',
+  'r_organization_social',
+  'w_organization_social',
+  'rw_organization_admin',
+].join(' ')
+
 export const SOCIAL_PLATFORMS: SocialPlatform[] = [
   {
     key: 'meta',
@@ -64,7 +79,7 @@ export const SOCIAL_PLATFORMS: SocialPlatform[] = [
     connectionMode: 'oauth',
     setupUrl: 'https://www.linkedin.com/developers/apps/',
     docsUrl: 'https://learn.microsoft.com/en-us/linkedin/',
-    scope: 'r_liteprofile,r_basicprofile,r_organization_social,w_organization_social,rw_organization_admin',
+    scope: LINKEDIN_SCOPES,
     authUrl: 'https://www.linkedin.com/oauth/v2/authorization',
     tokenUrl: 'https://www.linkedin.com/oauth/v2/accessToken',
     icon: 'in',

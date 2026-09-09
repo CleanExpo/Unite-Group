@@ -176,6 +176,14 @@ export async function fetchLinkedInAnalytics(
   since: string,
   _until: string
 ): Promise<PostMetrics[]> {
+  // Organisation analytics are the only LinkedIn read contract currently
+  // requested. A personal fallback channel must never be sent with an
+  // organisation URN, and legacy rows without identity metadata fail closed.
+  if (channel.metadata?.linkedinEntityType !== 'organization') {
+    console.warn('[Analytics:LI] Unsupported channel identity; skipping analytics')
+    return []
+  }
+
   const accessToken = decodeToken(accessTokenEncrypted)
   const sinceTs = new Date(since).getTime()
 
