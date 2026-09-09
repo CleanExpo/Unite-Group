@@ -3,7 +3,8 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { BusinessFilter } from '../shared/BusinessFilter'
-import { formatAUD, formatDate } from '../shared/formatters'
+import { formatAUD } from '../shared/formatters'
+import { compareXeroDates, formatXeroDate, isXeroDateOverdue } from '@/lib/bookkeeper/utils'
 import type { BusinessKey } from '@/lib/businesses'
 import type { XeroInvoice } from '@/lib/integrations/xero/types'
 
@@ -19,12 +20,8 @@ function SkeletonRow() {
   )
 }
 
-function isOverdue(dueDate: string): boolean {
-  return new Date(dueDate).getTime() < Date.now()
-}
-
 function BillStatusBadge({ status, dueDate }: { status: string; dueDate: string }) {
-  const overdue = status !== 'PAID' && isOverdue(dueDate)
+  const overdue = status !== 'PAID' && isXeroDateOverdue(dueDate)
   if (status === 'PAID') {
     return (
       <span
@@ -53,13 +50,6 @@ function BillStatusBadge({ status, dueDate }: { status: string; dueDate: string 
       Awaiting Payment
     </span>
   )
-}
-
-/** Xero returns dates as "/Date(...)/" or ISO strings */
-function parseXeroDate(raw: string): string {
-  const match = raw.match(/\/Date\((\d+)\)\//)
-  if (match) return new Date(Number(match[1])).toISOString()
-  return raw
 }
 
 export function PayablesTab() {
@@ -96,9 +86,7 @@ export function PayablesTab() {
   // Sort by due date ascending (most urgent first)
   const sorted = useMemo(() => {
     return [...invoices].sort((a, b) => {
-      const da = new Date(parseXeroDate(a.DueDate)).getTime()
-      const db = new Date(parseXeroDate(b.DueDate)).getTime()
-      return da - db
+      return compareXeroDates(a.DueDate, b.DueDate)
     })
   }, [invoices])
 
@@ -161,8 +149,7 @@ export function PayablesTab() {
                 </tr>
               ) : (
                 sorted.map((inv) => {
-                  const dueDate = parseXeroDate(inv.DueDate)
-                  const overdue = inv.Status !== 'PAID' && isOverdue(dueDate)
+                  const overdue = inv.Status !== 'PAID' && isXeroDateOverdue(inv.DueDate)
                   return (
                     <motion.tr
                       key={inv.InvoiceID}
@@ -185,10 +172,10 @@ export function PayablesTab() {
                         className="px-3 py-2.5 tabular-nums"
                         style={{ color: overdue ? 'var(--color-danger)' : 'var(--color-text-secondary)' }}
                       >
-                        {formatDate(dueDate)}
+                        {formatXeroDate(inv.DueDate)}
                       </td>
                       <td className="px-3 py-2.5">
-                        <BillStatusBadge status={inv.Status} dueDate={dueDate} />
+                        <BillStatusBadge status={inv.Status} dueDate={inv.DueDate} />
                       </td>
                     </motion.tr>
                   )
