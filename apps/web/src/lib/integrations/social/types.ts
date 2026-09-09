@@ -12,6 +12,8 @@ export interface SocialChannel {
   name: string | null
   followerCount: number
   profileImageUrl: string | null
+  /** Provider-specific identity metadata, such as LinkedIn entity type. */
+  metadata?: Record<string, unknown>
   isConnected: boolean
   tokenExpiresAt: string | null
   lastSyncedAt: string | null
