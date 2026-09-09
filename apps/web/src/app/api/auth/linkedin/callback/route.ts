@@ -88,10 +88,15 @@ export async function GET(request: Request) {
         accessToken: tokens.access_token,
         refreshToken: tokens.refresh_token ?? null,
         expiresAt,
+        metadata: { linkedinEntityType: 'organization' },
       })
     }
   } else {
     // No org pages — store personal profile as the channel
+    if (!profile.sub || profile.sub === 'unknown') {
+      return NextResponse.redirect(`${APP_URL}/founder/social?error=member_identity_unavailable`)
+    }
+
     await upsertChannel({
       founderId: user.id,
       platform: 'linkedin',
@@ -101,6 +106,7 @@ export async function GET(request: Request) {
       accessToken: tokens.access_token,
       refreshToken: tokens.refresh_token ?? null,
       expiresAt,
+      metadata: { linkedinEntityType: 'person' },
     })
   }
 
