@@ -76,8 +76,13 @@ export async function publishToPlatform(
     }
 
     case 'linkedin': {
+      const linkedinEntityType = channel.metadata?.linkedinEntityType
+      if (linkedinEntityType !== 'organization' && linkedinEntityType !== 'person') {
+        throw new Error('LinkedIn channel identity unavailable; reconnect the account')
+      }
+
       const body = {
-        author: `urn:li:person:${channel.channel_id}`,
+        author: `urn:li:${linkedinEntityType}:${channel.channel_id}`,
         lifecycleState: 'PUBLISHED',
         specificContent: {
           'com.linkedin.ugc.ShareContent': {

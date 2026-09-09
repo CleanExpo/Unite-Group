@@ -42,6 +42,7 @@ export async function getChannels(founderId: string, businessKey?: string): Prom
     name: row.name,
     followerCount: row.follower_count ?? 0,
     profileImageUrl: row.profile_image_url,
+    metadata: (row.metadata as Record<string, unknown> | null) ?? undefined,
     isConnected: row.is_connected ?? false,
     tokenExpiresAt: row.token_expires_at,
     lastSyncedAt: row.last_synced_at,

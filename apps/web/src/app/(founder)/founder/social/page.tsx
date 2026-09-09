@@ -6,22 +6,44 @@
 export const dynamic = 'force-dynamic'
 
 import { getUser } from '@/lib/supabase/server'
-import { SOCIAL_PLATFORMS, isPlatformConfigured, loadPlatformTokens } from '@/lib/integrations/social'
+import { SOCIAL_PLATFORMS, isPlatformConfigured } from '@/lib/integrations/social'
+import { getChannels } from '@/lib/integrations/social/channels'
 import { PageHeader } from '@/components/ui/PageHeader'
 
+const BUSINESS_KEY = 'synthex'
+
+type ConnectionStatus = 'connected' | 'disconnected' | 'unknown'
+
 async function getPlatformStatus(founderId: string) {
-  return Promise.all(
-    SOCIAL_PLATFORMS.map(async (platform) => {
-      const configured = isPlatformConfigured(platform.key)
-      const tokens = await loadPlatformTokens(founderId, platform.key)
-      return {
-        ...platform,
-        configured,
-        connected: !!tokens,
-        connectedAt: tokens?.connectedAt ?? null,
-      }
-    })
-  )
+  // Dedicated OAuth callbacks persist connected accounts in social_channels.
+  // Read that table here so a successful connection is reflected on this page.
+  let channels: Awaited<ReturnType<typeof getChannels>> = []
+  let connectionStatus: ConnectionStatus = 'unknown'
+
+  try {
+    channels = await getChannels(founderId, BUSINESS_KEY)
+    connectionStatus = 'disconnected'
+  } catch {
+    // A status read failure must stay visible as unknown rather than looking
+    // like a confirmed disconnect or taking down the whole founder page.
+  }
+
+  return SOCIAL_PLATFORMS.map((platform) => {
+    const configured = isPlatformConfigured(platform.key)
+    const channelKeys = platform.key === 'meta'
+      ? ['facebook', 'instagram']
+      : [platform.key]
+    const channel = channels.find(
+      candidate => candidate.isConnected && channelKeys.includes(candidate.platform)
+    )
+    return {
+      ...platform,
+      configured,
+      connected: !!channel,
+      connectionStatus: channel ? 'connected' : connectionStatus,
+      connectedAt: channel?.lastSyncedAt ?? null,
+    }
+  })
 }
 
 export default async function SocialPage({
@@ -44,6 +66,7 @@ export default async function SocialPage({
   const platforms = await getPlatformStatus(user.id)
   const configuredCount = platforms.filter(p => p.configured).length
   const connectedCount = platforms.filter(p => p.connected).length
+  const hasUnknownConnectionStatus = platforms.some(p => p.connectionStatus === 'unknown')
 
   return (
     <div className="p-6 space-y-6">
@@ -72,7 +95,9 @@ export default async function SocialPage({
         </div>
         <div className="border border-black/8 px-4 py-2 rounded-sm" style={{ background: 'var(--surface-card)' }}>
           <span className="text-muted-foreground">Connected:</span>{' '}
-          <span className="text-[#15803d]">{connectedCount}/{platforms.length}</span>
+          <span className={hasUnknownConnectionStatus ? 'text-muted-foreground' : 'text-[#15803d]'}>
+            {hasUnknownConnectionStatus ? 'Unable to verify' : `${connectedCount}/${platforms.length}`}
+          </span>
         </div>
       </div>
 
@@ -125,13 +150,21 @@ export default async function SocialPage({
                 <span className="text-[10px] uppercase tracking-widest text-[#15803d]/80 border border-[#16a34a]/30 px-2.5 py-1 rounded-sm">
                   Live
                 </span>
-              ) : (
+              ) : platform.connectionStatus === 'unknown' ? (
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground border border-black/8 px-2.5 py-1 rounded-sm">
+                  Unable to verify
+                </span>
+              ) : platform.connectPath ? (
                 <a
-                  href={`/api/social/${platform.key}/connect`}
+                  href={platform.connectPath}
                   className="text-[10px] uppercase tracking-widest text-[#15803d] border border-[#16a34a]/30 bg-[#16a34a]/8 px-3 py-1.5 rounded-sm hover:bg-[#16a34a]/15 transition-colors"
                 >
                   Connect
                 </a>
+              ) : (
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground border border-black/8 px-2.5 py-1 rounded-sm">
+                  Credential check only
+                </span>
               )}
             </div>
           </div>
@@ -157,7 +190,15 @@ export default async function SocialPage({
                 {platform.name}
               </span>
               <span className="text-[10px] ml-auto" style={{ color: 'var(--color-text-muted)' }}>
-                {platform.connected ? 'Ready' : platform.configured ? 'Needs connection' : 'Needs app setup'}
+                {platform.connectionStatus === 'unknown'
+                  ? 'Unable to verify connection'
+                  : platform.connected
+                  ? 'Ready'
+                  : platform.configured
+                  ? platform.connectPath
+                    ? 'Needs connection'
+                    : 'Credential check only'
+                  : 'Needs app setup'}
               </span>
             </div>
           ))}
@@ -166,7 +207,7 @@ export default async function SocialPage({
 
       <div className="mt-6 text-xs text-muted-foreground">
         <p>After creating apps on each platform, add their credentials to your environment variables.</p>
-        <p className="mt-1">Then click Connect to authorize access. Tokens are stored encrypted in the vault.</p>
+        <p className="mt-1">Then click Connect to authorize access. OAuth tokens are stored encrypted in the vault.</p>
       </div>
     </div>
   )
