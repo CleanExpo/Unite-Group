@@ -4,10 +4,9 @@ import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { signOAuthState } from '@/lib/oauth-state'
 import { requireOAuthEnv } from '@/lib/oauth-env-guard'
+import { LINKEDIN_SCOPES } from '@/lib/integrations/social'
 
 export const dynamic = 'force-dynamic'
-
-const SCOPES = ['w_member_social', 'r_organization_social', 'rw_organization_admin'].join(' ')
 
 export async function GET(request: Request) {
   const user = await getUser()
@@ -41,7 +40,7 @@ export async function GET(request: Request) {
     client_id: process.env.LINKEDIN_CLIENT_ID!,
     redirect_uri: `${APP_URL}/api/auth/linkedin/callback`,
     state,
-    scope: SCOPES,
+    scope: LINKEDIN_SCOPES,
   })
 
   return NextResponse.redirect(`https://www.linkedin.com/oauth/v2/authorization?${params}`)
