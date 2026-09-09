@@ -84,10 +84,14 @@ export default async function ExperimentsPage() {
   const variantCounts: Record<string, number> = {}
 
   if (experimentIds.length > 0) {
-    const { data: variants } = await supabase
+    const { data: variants, error: variantsError } = await supabase
       .from('experiment_variants')
       .select('experiment_id')
       .in('experiment_id', experimentIds)
+
+    if (variantsError) {
+      throw new Error('Experiment variant counts could not be loaded. Please try again.')
+    }
 
     if (variants) {
       for (const v of variants) {

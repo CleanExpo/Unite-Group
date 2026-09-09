@@ -20,7 +20,7 @@ describe('one Mission Control shell', () => {
     expect(screen.getByText(`Actual ${route.section} content`)).toBeInTheDocument()
     expect(screen.queryByLabelText('Your idea')).not.toBeInTheDocument()
     const nav = within(screen.getByRole('navigation', { name: 'Mission Control workspaces' }))
-    expect(nav.getAllByRole('link', { hidden: true })).toHaveLength(12)
+    expect(nav.getAllByRole('link', { hidden: true })).toHaveLength(13)
     expect(nav.getByRole('link', { current: 'page', hidden: true })).toHaveAttribute('href', route.href)
     expect(nav.getByRole('link', { name: 'Home', exact: true })).toHaveAttribute('href', '/founder/command-centre')
     expect(screen.getByRole('button', { name: 'Toggle sidebar' })).toBeInTheDocument()
