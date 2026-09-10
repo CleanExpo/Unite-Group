@@ -32,34 +32,80 @@ EXPECTED_MSG="missing the disclosure marker"
 # The runtime is NOT pinned here on purpose. An earlier version of this script
 # prepended a hard-coded Node 22 path, which meant it measured on a runtime the
 # release does not ship on and would have kept doing so even on a correct host.
-# Instead: inherit the caller's Node and REFUSE if it is not the declared one.
-# A check that silently measures the wrong runtime is worse than no check.
+# Instead: inherit the caller's Node and REFUSE if it does not satisfy the
+# declared range. A check that silently measures the wrong runtime is worse
+# than no check.
+#
+# The parse is END-ANCHORED and FAILS CLOSED. A previous version scraped the
+# first `>=<digits>` fragment it could find anywhere in the string, so a
+# malformed `engines.node` such as 'malformed-range >=22 ???' yielded "22" and
+# then happily authorised a Node 22 run. An independent review demonstrated
+# that bypass. A declaration this script cannot fully parse is now a refusal,
+# never a permission — and the whole range is enforced, not just the major, so
+# 24.0.0 no longer satisfies '>=24.14.1 <25'.
+#
+# Exit codes: 80 malformed/absent declaration, 81 no node, 82 version outside
+# the declared range, 83 unparseable running version.
+
+# node_range_check <spec> <running-version>  -- pure, argv-only, no file access,
+# which is what makes the selfcheck table below possible without touching a
+# real package.json.
+node_range_check() {
+  python3 - "$1" "$2" <<'PY'
+import re, sys
+
+spec = (sys.argv[1] or "").strip()
+running = (sys.argv[2] or "").strip()
+
+# Only the exact shape this repo declares is accepted. Anything else refuses.
+m = re.fullmatch(r">=\s*(\d+)\.(\d+)\.(\d+)\s+<\s*(\d+)", spec)
+if not m:
+    print(f"FAIL: engines.node is absent or not a form this check accepts: {spec!r}")
+    print("      Expected exactly '>=A.B.C <D'. A declaration that cannot be")
+    print("      parsed is a refusal, not a permission.")
+    sys.exit(80)
+
+lo = (int(m.group(1)), int(m.group(2)), int(m.group(3)))
+hi = int(m.group(4))
+
+r = re.fullmatch(r"v?(\d+)\.(\d+)\.(\d+)", running)
+if not r:
+    print(f"FAIL: could not parse the running node version: {running!r}")
+    sys.exit(83)
+cur = (int(r.group(1)), int(r.group(2)), int(r.group(3)))
+
+lo_s = ".".join(map(str, lo))
+cur_s = ".".join(map(str, cur))
+if cur < lo or cur[0] >= hi:
+    print(f"FAIL: wrong runtime. engines.node declares >={lo_s} <{hi}, this host runs {cur_s}.")
+    print("      Refusing to measure: evidence from the wrong runtime is not evidence.")
+    print(f"      Put a satisfying Node on PATH (e.g. nvm use {lo[0]}) and re-run.")
+    sys.exit(82)
+
+print(f"runtime OK: node {cur_s} satisfies declared >={lo_s} <{hi}")
+PY
+}
+
 require_declared_node() {
-  local declared running
-  declared="$(python3 - <<'PY'
-import json, pathlib, re
-spec = json.loads(pathlib.Path('package.json').read_text()).get('engines', {}).get('node', '')
-m = re.search(r'>=\s*(\d+)', spec)
-print(m.group(1) if m else '')
+  local spec running out rc
+  spec="$(python3 - <<'PY'
+import json, pathlib
+try:
+    d = json.loads(pathlib.Path('package.json').read_text())
+except Exception:
+    print(''); raise SystemExit
+v = d.get('engines', {}).get('node', '')
+print(v if isinstance(v, str) else '')
 PY
 )"
-  if [ -z "$declared" ]; then
-    echo "FAIL: could not read engines.node from apps/web/package.json"
-    return 80
-  fi
   if ! command -v node >/dev/null 2>&1; then
     echo "FAIL: no node on PATH"
     return 81
   fi
-  running="$(node -p 'process.versions.node.split(".")[0]')"
-  if [ "$running" != "$declared" ]; then
-    echo "FAIL: wrong runtime. engines.node declares major $declared, this host runs $running."
-    echo "      Refusing to measure: evidence from the wrong runtime is not evidence."
-    echo "      Put the declared Node major on PATH (e.g. nvm use $declared) and re-run."
-    return 82
-  fi
-  echo "runtime OK: node major $running matches declared >=$declared"
-  return 0
+  running="$(node -p 'process.versions.node' 2>/dev/null)"
+  out="$(node_range_check "$spec" "$running")"; rc=$?
+  printf '%s\n' "$out"
+  return $rc
 }
 
 digest() { python3 -c "
@@ -205,8 +251,45 @@ PY
     exit 0
     ;;
 
+  selfcheck)
+    # Proves the runtime guard FAILS CLOSED. Every row is an argv-only call, so
+    # nothing here mutates package.json. Row 3 is the exact bypass an
+    # independent review demonstrated against the previous implementation.
+    fails=0
+    check_row() {
+      local desc="$1" spec="$2" running="$3" want="$4" got
+      node_range_check "$spec" "$running" >/dev/null 2>&1; got=$?
+      if [ "$got" = "$want" ]; then
+        printf '  ok   %-46s want=%s got=%s\n' "$desc" "$want" "$got"
+      else
+        printf '  FAIL %-46s want=%s got=%s\n' "$desc" "$want" "$got"
+        fails=$((fails + 1))
+      fi
+    }
+
+    echo "runtime-guard control table (0=allow, 80=malformed, 81=no node, 82=range, 83=bad version)"
+    check_row "declared range, satisfying version"   ">=24.14.1 <25" "24.14.1"  0
+    check_row "declared range, newer patch"          ">=24.14.1 <25" "24.20.0"  0
+    check_row "REVIEWER BYPASS: malformed with >=22" "malformed-range >=22 ???" "22.22.3" 80
+    check_row "wrong major (22)"                     ">=24.14.1 <25" "22.22.3" 82
+    check_row "above the exclusive upper bound"      ">=24.14.1 <25" "25.0.0"  82
+    check_row "below the declared minimum patch"     ">=24.14.1 <25" "24.0.0"  82
+    check_row "empty declaration"                    ""              "24.14.1" 80
+    check_row "malformed 'v24-lts'"                  "v24-lts"       "24.14.1" 80
+    check_row "major-only declaration is refused"    ">=24"          "24.14.1" 80
+    check_row "trailing junk after a valid range"    ">=24.14.1 <25 ???" "24.14.1" 80
+    check_row "unparseable running version"          ">=24.14.1 <25" "not-a-version" 83
+
+    if [ "$fails" -ne 0 ]; then
+      echo "FAIL(selfcheck): $fails row(s) did not fail closed"
+      exit 1
+    fi
+    echo "PASS(selfcheck): the runtime guard fails closed on every malformed declaration"
+    exit 0
+    ;;
+
   *)
-    echo "usage: $0 {positive|mutant|typecheck|lint}"
+    echo "usage: $0 {positive|mutant|typecheck|lint|selfcheck}"
     exit 64
     ;;
 esac
