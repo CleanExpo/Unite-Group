@@ -29,7 +29,38 @@ BACKUP="$(mktemp -t uni2717src)"
 # The exact assertion message the guard emits when a body loses the disclosure.
 EXPECTED_MSG="missing the disclosure marker"
 
-export PATH="/Users/phill-mac/.nvm/versions/node/v22.22.3/bin:$PATH"
+# The runtime is NOT pinned here on purpose. An earlier version of this script
+# prepended a hard-coded Node 22 path, which meant it measured on a runtime the
+# release does not ship on and would have kept doing so even on a correct host.
+# Instead: inherit the caller's Node and REFUSE if it is not the declared one.
+# A check that silently measures the wrong runtime is worse than no check.
+require_declared_node() {
+  local declared running
+  declared="$(python3 - <<'PY'
+import json, pathlib, re
+spec = json.loads(pathlib.Path('package.json').read_text()).get('engines', {}).get('node', '')
+m = re.search(r'>=\s*(\d+)', spec)
+print(m.group(1) if m else '')
+PY
+)"
+  if [ -z "$declared" ]; then
+    echo "FAIL: could not read engines.node from apps/web/package.json"
+    return 80
+  fi
+  if ! command -v node >/dev/null 2>&1; then
+    echo "FAIL: no node on PATH"
+    return 81
+  fi
+  running="$(node -p 'process.versions.node.split(".")[0]')"
+  if [ "$running" != "$declared" ]; then
+    echo "FAIL: wrong runtime. engines.node declares major $declared, this host runs $running."
+    echo "      Refusing to measure: evidence from the wrong runtime is not evidence."
+    echo "      Put the declared Node major on PATH (e.g. nvm use $declared) and re-run."
+    return 82
+  fi
+  echo "runtime OK: node major $running matches declared >=$declared"
+  return 0
+}
 
 digest() { python3 -c "
 import hashlib,sys
@@ -51,6 +82,12 @@ require_measured() {
   fi
   return 0
 }
+
+case "${1:-}" in
+  positive|mutant|typecheck|lint)
+    require_declared_node || exit $?
+    ;;
+esac
 
 case "${1:-}" in
 
