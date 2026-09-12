@@ -12,9 +12,9 @@ Public
 Notifications
 You must be signed in to change notification settings
 Fork
-9.7k
+9.8k
 Star
-177k
+179k
 Releases: firecrawl/firecrawl
 Release list
 Previous Next

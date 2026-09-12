@@ -12,13 +12,15 @@ Public
 Notifications
 You must be signed in to change notification settings
 Fork
-49.7k
+50.8k
 Star
-242k
+245k
 Releases: NousResearch/hermes-agent
 Release list
 Previous Next
 Jump to release
+Hermes Agent v0.21.2 (v2026.9.11)
+Hermes Agent v0.21.1 (v2026.9.7)
 Hermes Agent v0.21.0 (v2026.8.31)
 Hermes Agent v0.20.6 (v2026.8.27)
 Hermes Agent v0.20.5 (v2026.8.19)
@@ -27,13 +29,97 @@ Hermes Agent v0.20.3 (2026.8.16.2)
 Hermes Agent v0.20.2 (2026.8.16)
 Hermes Agent v0.20.1 (2026.8.13)
 Hermes Agent v0.20.0 (2026.8.3)
-Hermes Agent v0.19.1 (v2026.7.30)
-Hermes Agent v0.19.0 (2026.7.20) — The Quicksilver Release
 Previous Next
-Hermes Agent v0.21.0 (v2026.8.31)
-Hermes Agent v0.21.0 (v2026.8.31)
+Hermes Agent v0.21.2 (v2026.9.11)
+Hermes Agent v0.21.2 (v2026.9.11)
 Latest
 Latest
+Compare
+Choose a tag to compare
+Sorry, something went wrong.
+Filter
+View all tags
+teknium1
+released this
+11 Sep 19:20
+v2026.9.11
+939e45c
+Hermes Agent v0.21.2 (v2026.9.11) — The state.db Patch Release
+Release Date: September 11, 2026
+Patch release. v0.21.0 shipped a large rewrite of the session store's connection handling, and for some installs it made state.db fragile: second writers cancelling each other's locks, healthy databases reported as corrupt, one bad row killing sessions list . This release closes that class and rolls up everything else that landed on main in the four days since v0.21.1.
+About this release
+Measured at commit 04dd80a977f40b05e5b2054111747af07a61886a , the window since v0.21.1 contains 947 non-merge commits across 1,869 changed files (+182,504 / −15,564) and 312 merged PRs . 140 contributors appear in commits, co-author trailers, or salvage credits.
+✨ Highlights
+state.db reliability campaign (six PRs, 44 issues closed)
+If your state.db broke after 0.21.0, this is the release for you. Six PRs fix the root causes rather than the symptoms:
+No more second writers. Profile gateways wrote hosted-room state into the root state.db every 5 seconds; the dashboard opened a writable handle on startup; cron's lifecycle guard did a raw open() on a live database (which cancels the gateway's POSIX locks — the classic "how to corrupt SQLite" recipe); doctor --fix would checkpoint under a live holder. All four are gone: hosted rooms live in shared-state.db , the dashboard opens read-only first, the guard goes through the tracked connection registry, and doctor --fix refuses a checkpoint it can't prove is safe. ( #108076 — salvage #103489 @RikETS , #102682 @JoaoMarcos44 , #108012 @Halldrix , #105428 @TaoMasterCoder )
+Healthy WAL databases stop wedging. OpenZFS (deleted) dentries and a close() racing an append_message both produced a sticky DeletedWalGenerationError on a perfectly good store; the read pool was handed out under an unconfirmed journal mode; a transient disk I/O error on WSL2 killed get_session on the first attempt; and a "state.db locked" banner was broadcast after the lock had already cleared. ( #108082 — salvage #107411 @chelsealong , #105578 @ca-shrimp , #105711 @gaoanze888 , #106958 @nikkoxgonzales ; co-authored @QDung210 , @fangliquanflq , @Sahilvishnaliya )
+FTS damage no longer kills your turn. An error scoped to the full-text-search index was classified as whole-file corruption and fail-closed the conversation. It's now fts_index : search degrades, the index rebuilds later, the transcript store is untouched. Same PR: doctor names structural damage honestly instead of "FTS write corruption", the FTS write probe catches the stale-index shape that passed every check while every write failed, .recover output no longer fails startup on orphan FTS5 shadow tables, header-zeroed databases recover instead of being refused, and the dashboard analytics poller returns a 503 instead of 520K tracebacks a day. ( #108130 — salvage #97843 @SulthanZahran1 + #97841 @Finn763 , #88604 #56824 #103657 @liuhao1024 , #106890 @nftpoetrist , #103321 @jangomango76 , #91413 @leegunwoo98 , #102808 @TaoMasterCoder )
+One corrupt row no longer kills sessions list , export, or insights. A TEXT timestamp or a 1e30 epoch used to crash the whole listing; malformed marker JSON crashed json_extract ; more than 999 ids crashed bulk delete/prune. One coerce_epoch() helper on every reader (bad rows render ? with a WARNING naming the session), a json_valid guard, IN-list chunking, and batched export hydration. ( #108086 — salvage #106071 @Xipong , #101726 @efe-arv , #94701 @liuhao1024 , #102679 @mssteuer , #100658 @Mi55ed )
+Sessions never bind to or read another profile's database. The Desktop launch backend could pin itself to the wrong profile's state.db under a HERMES_HOME override race; session_search by bare ID silently scanned every profile and returned someone else's transcript; recovery guidance pointed at the wrong file; profile delete kept a handle open (WinError 32). ( #108074 — salvage #102534 @HexLab98 , #106975 @Sora-bluesky )
+Opening state.db no longer takes the write lock when nothing needs writing. A one-shot hermes process opening the store behind a busy gateway stalled 4–20 s and then failed with "database is locked". Now 0.01 s. ( #108067 — salvage #106751 @kshitijk4poor , #101881 @jonpol01 )
+Also in the window from the same subsystem: a fresh state.db no longer publishes FTS tables before owning the rebuild lock ( #106311 ), a handle that lost its WAL generation no longer checkpoints stale frames at shutdown ( #106315 , #106840 ), a clobbered first page is quarantined with its WAL instead of opened destructively ( #106587 ), WAL setup leaves an unverifiable database untouched ( #106568 ), and quarantined handles refuse VACUUM/FTS optimize ( #106343 , #106349 ). Most of these salvaged community diagnoses by @kshitijk4poor .
+Multi-profile isolation hardening
+A cluster of fixes for installs running several profiles under one gateway (multiplex): secondary-profile bots no longer inherit the default profile's allow-lists ( #107616 ), adapters no longer send credentials to the default profile's host ( #107617 ), stdio MCP servers no longer receive the default profile's vault secrets ( #107630 ), MEDIA: delivery can no longer attach another profile's .env / auth.json / state.db ( #107609 ), Feishu drive callbacks and /p/<profile>/ webhook replies stay on the routed profile ( #107620 , #107626 ), and secondary profiles no longer get a sibling's Nous bearer from per-process memos ( #107611 ).
+Desktop backend spawn storms are over
+Bot Mode used to spawn or dial one backend per profile on launch and on every roster tick, hovering the Bots roster spawned a backend per row, and profile switches could spawn a duplicate primary. ( #108069 , #108107 , #108118 , #108134 , #107969 , #108112 — salvage #102512 , #103634 , #103399 , #107997 and others by @kshitijk4poor )
+Password-blind credential vault
+The agent can now sign in, pay, and fill addresses from 1Password, Bitwarden, or the local Hermes vault without ever seeing a secret; two-factor codes come from a saved authenticator key or are asked for in the user's UI ( #106480 , #107585 ). Private git plugins install with the user's stored credentials ( #106981 ).
+Plugin catalog and one Plugins page
+A curated, SHA-pinned plugin index with CLI, admission CI, docs and dashboard ( #69446 ); Desktop gets one Plugins page owning agent + desktop plugins, install, catalog and per-commit pinning ( #107212 , #107314 , #107321 ); Radio ships as an opt-in SDK plugin ( #107072 ).
+Nous free tier and guided first launch
+Free inference and connectors out of the box with one command to sign in ( #105258 , #105260 ), /login from a chat ( #105261 ), connector tools (Gmail, Linear, Notion, ...) searchable through tool_search ( #106842 ), and a guided first launch behind HERMES_GUEST_ONBOARDING=1 ( #107697 , #107958 , #107985 , #108211 ).
+🐛 Notable Bug Fixes
+Gateway & platforms
+A bare display: key in config.yaml no longer crashes every gateway turn ( #106305 ); a queued-lane final refused by the platform is recorded and redelivered ( #106316 ); a stalled WebSocket send no longer blocks every later event ( #106581 ); the first turn no longer waits on the Python toolchain probe ( #106556 ).
+Telegram bots must @mention when bots_require_mention is on, breaking bot-to-bot loops ( #106534 ); Matrix renders LaTeX ( #106515 ); Signal renders markdown tables ( #106538 ); WhatsApp replies to view-once messages keep their quote ( #106541 ); media-only replies report SUCCESS everywhere ( #106557 ).
+Providers & routing
+/model and auxiliary auto never bill a provider you didn't select ( #107366 ); never auto-switch to a provider you have no credentials for ( #107281 ); Bedrock Claude/Converse/Mantle models survive /model , fallback and restore ( #107621 , #107658 ); Bedrock Guardrails enforced ( #107815 ).
+Codex: patch-budget image 400 shrinks and retries ( #106525 ); unentitled primary + fallback no longer oscillate ( #106549 ); Azure Foundry replayed-reasoning rejection classified and pruned ( #106718 @erosika ). MCP OAuth refresh no longer erases the refresh token ( #106185 ). Anthropic clients send exactly one credential ( #107978 ).
+DeepSeek V4.1 Flash on Nous Portal and OpenRouter pickers ( #107489 ); GPT Image 2.5 via OpenAI and FAL ( #105988 ); Opus 5 / Fable 5.1 on the native Anthropic picker ( #106636 @xxxigm ).
+Agent loop & compression
+One blocked periodic callback no longer stalls lease refresh ( #106308 ); a mid-turn /steer is persisted as its own user row ( #106317 , #106344 ); local-inference memory-ceiling rejections back off instead of compressing history ( #106307 ); context-overflow after partial streaming ends the turn ( #106567 ); length continuation stops when the prompt filled the window ( #106571 ); compression no longer times out silently on aux retries ( #106866 ); model_thresholds keys can be provider-scoped ( #108061 ).
+Surface switch (Desktop↔TUI) no longer rebuilds the system prompt and busts the prompt cache ( #105844 ); CLI keeps the api_content sidecar so the cache survives an early persist ( #105842 ).
+CLI, TUI & Desktop
+hermes -z --resume continues the session ( #106313 ); Shift+letter and Cmd+Shift+Z work on extended-key terminals ( #90674 @francip , #105493 ); browser_exec timeout kills the whole process tree ( #106589 ); update checks poll the GitHub API once a day instead of git-fetching every 30 min ( #107648 ); hermes update names the real cause and can't hang on a stalled fetch ( #108053 ).
+Desktop: UI language survives the update relaunch ( #106476 ), expired OAuth grants get a one-click re-sign-in ( #106965 ), HUD mode shows the transcript again and always gives the window back ( #107491 , #107423 ), the backend exits when its Desktop parent dies ( #107977 ), Windows updates stop reporting false failures ( #106175 , #107183 ), WSLg renders on the Windows GPU ( #106528 ), Telegram quick setup with QR ported from the dashboard ( #107242 ), a...
+Read more
+Contributors
+youssef, hoelzl, and 163 other contributors
+Assets
+2
+Loading
+27 people reacted
+Hermes Agent v0.21.1 (v2026.9.7)
+Hermes Agent v0.21.1 (v2026.9.7)
+Compare
+Choose a tag to compare
+Sorry, something went wrong.
+Filter
+View all tags
+teknium1
+released this
+07 Sep 22:17
+v2026.9.7
+2237be3
+Hermes Agent v0.21.1 (v2026.9.7)
+Release Date: September 7, 2026
+Patch release. This tag rolls up current main since v0.21.0 for tagged deployments and downstream consumers.
+About this release
+Measured at commit 6178e9f4eed8d99f4fc550add939d58c7bed6206 , the window since v0.21.0 contains 5,139 non-merge commits across 4,364 changed files (+601,014 / −768,419). GitHub reports 632 merged PRs in the release window at preparation time. These figures exclude the release-version commit.
+The rollup includes the codebase modularization, file-operation and startup performance work, provider and model updates, desktop session controls and browser annotations, MCP authorization improvements, cron scheduling and delivery fixes, and delegation reliability improvements. This patch does not attempt to enumerate or announce every feature in the window.
+Full curated release notes for this window will ship with v0.22.0 , covering everything since v0.21.0, including the intervening patch releases, feature details, and complete contributor credits.
+Updating
+Existing install: hermes update
+Fresh install: curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+Managed deployments should update through their deployment tooling using the new tag.
+Full Changelog: v2026.8.31...v2026.9.7
+Assets
+2
+Loading
+83 people reacted
+Hermes Agent v0.21.0 (v2026.8.31)
+Hermes Agent v0.21.0 (v2026.8.31)
 Compare
 Choose a tag to compare
 Sorry, something went wrong.
@@ -71,7 +157,7 @@ assimovt, dhanesh, and 196 other contributors
 Assets
 2
 Loading
-112 people reacted
+128 people reacted
 Hermes Agent v0.20.6 (v2026.8.27)
 Hermes Agent v0.20.6 (v2026.8.27)
 Compare
@@ -97,7 +183,7 @@ Full Changelog : v2026.8.19...v2026.8.27
 Assets
 2
 Loading
-84 people reacted
+87 people reacted
 Hermes Agent v0.20.5 (v2026.8.19)
 Hermes Agent v0.20.5 (v2026.8.19)
 Compare
@@ -123,7 +209,7 @@ Full Changelog : v2026.8.18...v2026.8.19
 Assets
 2
 Loading
-87 people reacted
+89 people reacted
 Hermes Agent v0.20.4 (2026.8.18)
 Hermes Agent v0.20.4 (2026.8.18)
 Compare
@@ -149,7 +235,7 @@ Full Changelog : v2026.8.16.2...v2026.8.18
 Assets
 2
 Loading
-68 people reacted
+70 people reacted
 Hermes Agent v0.20.3 (2026.8.16.2)
 Hermes Agent v0.20.3 (2026.8.16.2)
 Compare
@@ -175,7 +261,7 @@ Full Changelog : v2026.8.16...v2026.8.16.2
 Assets
 2
 Loading
-42 people reacted
+43 people reacted
 Hermes Agent v0.20.2 (2026.8.16)
 Hermes Agent v0.20.2 (2026.8.16)
 Compare
@@ -201,7 +287,7 @@ Full Changelog : v2026.8.13...v2026.8.16
 Assets
 2
 Loading
-54 people reacted
+55 people reacted
 Hermes Agent v0.20.1 (2026.8.13)
 Hermes Agent v0.20.1 (2026.8.13)
 Compare
@@ -227,7 +313,7 @@ Full Changelog : v2026.8.3...v2026.8.13
 Assets
 2
 Loading
-89 people reacted
+90 people reacted
 Hermes Agent v0.20.0 (2026.8.3)
 Hermes Agent v0.20.0 (2026.8.3)
 Compare
@@ -269,84 +355,5 @@ Assets
 2
 Loading
 177 people reacted
-Hermes Agent v0.19.1 (v2026.7.30)
-Hermes Agent v0.19.1 (v2026.7.30)
-Compare
-Choose a tag to compare
-Sorry, something went wrong.
-Filter
-View all tags
-teknium1
-released this
-30 Jul 23:45
-v2026.7.30
-This tag was signed with the committer’s verified signature .
-teknium1
-Teknium
-SSH Key Fingerprint: x9xNOpeJhoEAY2gWhmWHZROC3QF3VjOEbmNo9vQ8y2A
-Verified
-Learn about vigilant mode .
-cc4cab2
-Hermes Agent v0.19.1 (v2026.7.30)
-Release Date: July 30, 2026
-Patch release. This tag rolls up the ~1,000+ PRs merged since v0.19.0 into a stable tagged release for downstream consumers (Docker images, hosted deployments, fresh installs).
-About this release
-Since v2026.7.20 (v0.19.0, July 20): ~2,789 commits · ~4,748 files changed · ~442,000 insertions · ~392,300 deletions on main . This window is dominated by bug-fix and salvage waves across the gateway, voice subsystem, desktop app, and installer, plus continued platform work (Buzz/Nostr channel, FLUX3 video generation and delivery, Telegram media reliability, voice-mode regressions).
-Full curated release notes for this window will ship with v0.20.0 , which will document everything from v0.19.0 onward — highlights, feature areas, and complete contributor credits. Nothing in this window is skipped.
-Updating
-hermes update
-# or fresh install:
-curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
-Full Changelog : v2026.7.20...v2026.7.30
-Assets
-2
-Loading
-101 people reacted
-Hermes Agent v0.19.0 (2026.7.20) — The Quicksilver Release
-Hermes Agent v0.19.0 (2026.7.20) — The Quicksilver Release
-Compare
-Choose a tag to compare
-Sorry, something went wrong.
-Filter
-View all tags
-teknium1
-released this
-20 Jul 18:35
-v2026.7.20
-This tag was signed with the committer’s verified signature .
-teknium1
-Teknium
-SSH Key Fingerprint: x9xNOpeJhoEAY2gWhmWHZROC3QF3VjOEbmNo9vQ8y2A
-Verified
-Learn about vigilant mode .
-3ef6bbd
-This commit was created on GitHub.com and signed with GitHub’s verified signature .
-GPG key ID: B5690EEEBB952194
-Verified
-Learn about vigilant mode .
-Hermes Agent v0.19.0 (v2026.7.20)
-Release Date: July 20, 2026
-Since v0.18.0: ~2,245 commits · ~1,065 merged PRs · ~2,465 files changed · ~300,000 insertions · ~36,000 deletions · ~3,300 issues closed · 450+ community contributors
-The Quicksilver Release. Hermes is the messenger god, and this window we made him move like it. First-turn time-to-first-token dropped ~80% on every platform , reasoning streams live by default, the desktop app got a ~20-PR speed overhaul (14× faster streaming markdown, virtualized diffs, snappy session switching), and the TUI renders markdown incrementally. Around that speed spine: you can now manage your Nous subscription without leaving the terminal , plug Bitwarden and 1Password straight into Hermes, let smart approvals judge flagged commands for you by default, watch your subagents work live , and trust that a finished response survives a gateway crash thanks to a durable delivery ledger. This release also rolls up everything from the v0.18.1 and v0.18.2 infrastructure patch tags — those windows are fully documented here.
-✨ Highlights
-Hermes got dramatically faster — first token in a fraction of the time — Cold-start "Initializing agent..." used to eat ~4.3 seconds before your first turn even reached the model; it's now ~0.9s, an ~80% cut that applies to the CLI, gateway, TUI, desktop, and cron alike. Round 2 attacked what you see while waiting: reasoning models now stream their thinking live by default (no more staring at a spinner for 30 seconds), and the response box paints per token instead of per line. If Hermes ever felt like it took a deep breath before answering, that breath is gone. ( #59332 , #59389 — @teknium1 )
-The desktop app speed wave — 20+ targeted perf PRs — Long replies used to cost 14× more CPU in the markdown splitter than they do now; giant diffs froze the review pane until we virtualized it; switching sessions thrashes layout no more. Streaming no longer re-renders the sidebar and every tool row per token, profile backends pre-warm on hover intent, and boot-hidden panes mount at idle instead of on the cold-start critical path. The net effect: the desktop app feels like a native app under load, even with huge transcripts and busy agents. ( #67154 , #67818 , #65898 , #66033 , #66747 , #67742 and more — @OutThisLife )
-Manage your Nous plan from the terminal — /subscription and /topup — Changing your subscription used to mean a trip to the billing website. Now /subscription opens a full flow right in the TUI or classic CLI: see your plan and remaining allowance, preview exactly what an upgrade costs ("Pay $46.30 & upgrade now") or when a downgrade takes effect, and apply it — with scheduled-change banners and undo. The desktop app got a matching billing settings tab. Your wallet never has to leave the keyboard. ( #51639 , #61054 , #61067 — @alt-glitch )
-Smart approvals are now the default — When Hermes wants to run a flagged command, an LLM reviewer now assesses it independently instead of asking you to approve every single one — and each verdict covers only that exact command, so a later command matching the same pattern gets its own review. Combined with the new user-defined deny rules (which block commands even under yolo mode) and /deny <reason> (which tells the agent why you refused so it course-corrects), day-to-day approval fatigue drops sharply without giving up control. ( #62661 , #59164 , #54518 — @teknium1 )
-Plug your password manager into Hermes — Bitwarden & 1Password secret sources — API keys no longer have to live in a plaintext .env . A new pluggable SecretSource interface lets Hermes fetch secrets from Bitwarden and 1Password ( op:// references) at load time, with multiple vaults enabled simultaneously, deterministic precedence, conflict warnings, and per-variable provenance. This consolidated eleven competing community PRs into one orchestrated interface — future vault providers drop in as plugins. ( #59498 — @teknium1 , 1Password provider salvaged from @hwrdprkns )
-Watch your subagents work — live transcripts + durable background delegation — delegate_task dispatches now return live transcript files you can tail -f the moment the subagents launch: every tool call, result, and streamed reply, one human-readable log per child. And background delegation completions are now durable — if the process restarts mid-run, results are restored and delivered through an ownership-checked ledger instead of vanishing. Fan out a fleet, watch any worker live, and never lose the results. ( #67479 , #63494 — @teknium1 )
-A finished answer can no longer be lost — the delivery-obligation ledger — If the gateway died between generating your response and confirming the platform actually delivered it, that answer used to be silently gone (and you'd paid for the turn). Final responses are now recorded in a durable ledger in state.db around the platform send and redelivered on the next boot — closing a P1 silent-loss window for Telegram, Discord, Slack, and every other channel. ( #67181 — @teknium1 )
-One gateway, many profiles — profile-based message routing — A single multiplexed gateway sharing one bot token can now route specific guilds, channels, or threads to different profiles — each with fully isolated config, skills, memory, and secrets. Point your work Discord server at the work profile and your hobby server at personal , from one bot. A second multiplex hardening wave means one misconfigured profile can no longer take down the whole gateway. ( #64835 salvaging @Burgunthy , #65700 , #60589 — @teknium1 , @benbarclay + six salvaged contributors)
-New providers and the newest frontier models — Fireworks AI and DeepInfra land as first-class providers (Fireworks with cost estimation and a #2 slot in the provider picker), Upstage Solar joins via salvage, and the model catalogs picked up GPT-5.6 (Sol/Terra/Luna + Pro variants, wired end-to-end across every route) , grok-4.5 (GA) , moonshotai/kimi-k3 , claude-fable-5 / claude-sonnet-5 , and GA tencent/hy3 — plus LM Studio JIT model loading for local setups. ( #62593 , #63969 , #61616 — @kshitijk4poor completing @rob-maron 's #61578 , #60887 , #65913 , #64541 , #65472 )
-Crank the thinking to max — new reasoning effort tiers and per-model control — Reasoning effort gained max and ultra levels (GPT-5.6 and Codex's top tiers), selectable everywhere from the CLI to the desktop, with sane clamping on providers with smaller scales. You can now also pin per-model reasoning-effort overrides in config, set per-slot effort in MoA presets (your advisors think hard, your synthesizer stays fast), and per-task effort for auxiliary models. Thinking depth is now a dial, not a global switch. ( #62650 , #64458 , #64631 , #64597 — @teknium1 )
-Your sessions, your data — export everything — hermes sessions export now writes Markdown, Quarto, HTML, prompt-only, and even Hugging Face-ready trace formats, with the full filter surface (age, workspace, platform), an opt-in --redact secret-scrubbing pass, and compacted-session lineage stitched into one logical export. Pair with the new prune filters and bulk archive to keep your session store tidy. Your conversation history is a real dataset now, not a black box. ( #60186 salvaging @web3blind , #60492 , #60507 , #59327 — @teknium1 )
-Security hardening round — This window closed a long list of credential-surface gaps: Vertex credentials scoped away from subprocess env and through profile secret scopes, media/vision/image-gen local-file reads routed through one shared credential-read guard, a webhook body-size-cap sweep across every aiohttp server, bot-token redaction in Telegram transport errors, Fireworks token prefixes added to the redactor, six P1 bro...
-Read more
-Contributors
-DavidMetcalfe, gnodet, and 195 other contributors
-Assets
-4
-Loading
-167 people reacted
 Previous 1 2 3 4 Next
 Previous Next

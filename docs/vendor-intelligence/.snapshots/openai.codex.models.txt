@@ -11,7 +11,7 @@ Primary navigation
 Search docs
 Suggested
 responses create reasoning_effort realtime prompt caching
-Overview Models Agents Tools Voice & Audio Production API reference Overview
+Overview Models Agents Tools Audio & voice Production API reference Overview
 Home
 Get started
 Quickstart
@@ -76,17 +76,41 @@ Reasoning models
 Reasoning best practices
 Images and video
 Images and vision Image input cost calculator
-Image generation
+Image generation Overview
+Image prompting
 Video generation
 Realtime and audio
 Audio and speech
-Overview
+Getting started
 Voice agents
 Specialized models
 Deep research
 Embeddings
 Moderation
+Agents API
+Overview
+Quickstart
+Architecture
+Configuring Agents
+Sessions Run and continue sessions
+Events and items
+Manage sessions
+Webhooks
+Environments and sandboxes OpenAI-hosted sandboxes
+Self-hosted sandboxes
+Sandbox lifecycle
+Sandbox security
+Files and artifacts
+Tools and integrations Web search
+Functions
+MCP connections
+Plugins
+Vaults
+Multi-agent
+Observability and usage
+Tracing
 Agents SDK
+Overview
 Quickstart
 Agent definitions
 Models and providers
@@ -123,26 +147,34 @@ Local shell
 Code interpreter
 Media
 Image generation
-Get started
-Voice agents
-Live translation
-Realtime prompting guide
-Audio
-Audio and speech
-Transcription
-File transcription
-Realtime transcription
-Speech generation
-Connection methods
-WebRTC
-WebSocket
-SIP
-Sessions and operations
+GPT-Live
+Getting started
+Prompting
+Managing sessions
+Delegation and tools
+Migrate to GPT-Live
+Partner integrations
+Realtime API
+Getting started
+Prompting
 Managing conversations
 Voice activity detection
-Realtime with tools
-Webhooks and server-side controls
-Managing costs
+Tools and MCP
+Build with voice
+Voice agents
+Custom voices
+Cost optimization
+Connections
+WebRTC
+WebSockets
+Telephony and SIP
+Server-side controls
+Audio processing
+File transcription
+Live transcription
+Live translation
+Text to speech
+Audio in Chat Completions
 Performance and quality
 Latency optimization
 Predicted Outputs
@@ -150,7 +182,7 @@ Fast mode
 Accuracy optimization
 Cost and throughput
 Cost optimization
-Prompt caching
+Prompt caching Prompt cache diagnostics
 Batch
 Flex processing
 Safety and governance
@@ -250,14 +282,14 @@ Conversions API
 Supported Events
 Advertiser API
 Overview
-API Partner Setup
-Quickstart
-Bulk API
+Campaign Management
+Bidding & Budgets
+Targeting
 Product Feeds
-Delta Feeds API
-Campaign Targeting
-Conversion-Optimized Campaigns
-Custom Audiences
+Conversion Tracking
+Reporting
+Troubleshooting
+Account Management
 API Reference
 Authentication
 Ad Account
@@ -361,7 +393,6 @@ Git worktrees
 Build with Codex
 Codex SDK
 App Server
-MCP Server
 GitHub Action
 Non-interactive mode
 Third-party integrations
@@ -461,11 +492,11 @@ Company blog
 Developer blog
 Showcase Blog Cookbook Learn Community Select...
 Recent
+Rethinking skills and prompts for GPT-6 Astra
 Architectural visualization with Astra
 Building games with Astra
 Meet Rosalind Workbench: Empowering every scientist to be their own research team
 Automating repetitive work at OpenAI with Codex
-Meet the winners of OpenAI Build Week
 Topics
 General
 API

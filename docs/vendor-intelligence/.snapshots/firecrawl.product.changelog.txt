@@ -1,6 +1,6 @@
 Changelog | Firecrawl
 Introducing the Firecrawl Developer Index, built for supercharging coding agents. Read the announcement →
-176.8K Sign up
+179.5K Sign up
 Changelog
 Aug 20, 2026
 Firecrawl Developer Index
@@ -182,7 +182,7 @@ Browser Sandbox - Launch secure, isolated browser sessions with Python, JavaScri
 Multi-Language Support - Execute Python, JavaScript, or bash code remotely. Send commands via API, CLI, or SDK and get results instantly.
 agent-browser Integration - Pre-installed CLI with 40+ commands. AI agents write simple bash commands instead of complex Playwright code.
 Live View & CDP Access - Watch sessions in real time via embeddable stream URL or connect your own Playwright instance over WebSocket.
-Session Management - Configurable TTL controls, parallel sessions (up to 20 concurrent), and automatic cleanup. 2 credits per browser minute with 5 minutes free.
+Session Management - Configurable TTL controls, parallel sessions (up to 20 concurrent), and automatic cleanup. 2 credits per browser minute.
 Read the full documentation here .
 Feb 6, 2026
 Improved Logo Extraction for Branding Format v2
