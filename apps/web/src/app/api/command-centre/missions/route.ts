@@ -16,6 +16,7 @@ import {
 import {
   DeliveryConflict,
   DeliveryNotFound,
+  isDeliveryApprovalSigningAvailable,
 } from "@/lib/command-centre/delivery-store";
 import { toDeliveryMissionView } from "@/lib/command-centre/delivery-view";
 
@@ -28,10 +29,11 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   try {
     const tasks = await listTasks({ founderId: user.id, limit: 100 });
+    const readiness = { approvalSigningAvailable: isDeliveryApprovalSigningAvailable() };
     return NextResponse.json({
       missions: tasks
         .filter(isDeliveryMission)
-        .map((task) => toDeliveryMissionView(task)),
+        .map((task) => toDeliveryMissionView(task, Date.now(), readiness)),
       presets: DELIVERY_PRESETS,
       source: "supabase",
       coverage: "Latest 100 founder tasks; older missions may not be included.",

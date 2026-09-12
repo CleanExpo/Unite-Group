@@ -7,6 +7,7 @@ export const MISSION_CONTROL_ROUTES = [
   { section: 'operations', href: `${MISSION_CONTROL_HOME}/operations`, label: 'Operations', primary: true },
   { section: 'portfolio', href: `${MISSION_CONTROL_HOME}/portfolio`, label: 'Businesses', primary: true },
   { section: 'knowledge', href: `${MISSION_CONTROL_HOME}/knowledge`, label: 'Library & memory', primary: true },
+  { section: 'weekly-tasks', href: '/founder/weekly-tasks/margot', label: 'Weekly Tasks', primary: false },
   { section: 'campaigns', href: '/founder/campaigns', label: 'Campaigns', primary: false },
   { section: 'finance', href: '/founder/bookkeeper', label: 'Finance', primary: false },
   { section: 'providers', href: `${MISSION_CONTROL_HOME}/providers`, label: 'Connections', primary: true },

@@ -1,4 +1,5 @@
 import type { CommandCentreTask } from "./tasks";
+import { deliveryFingerprint } from "./delivery-store";
 import {
   readDeliveryMetadata,
   isCanonicalDeliveryTarget,
@@ -10,15 +11,27 @@ import {
 export function toDeliveryMissionView(
   task: CommandCentreTask,
   now = Date.now(),
+  readiness: { approvalSigningAvailable?: boolean } = {},
 ): DeliveryMissionView {
   const d = readDeliveryMetadata(task);
+  const signingFailure = d?.error?.code === "approval_signing_unavailable";
+  // A read can show repaired configuration without rewriting the historical
+  // failure or promoting its receipt. A fresh owner POST still checks all gates.
+  const signingRecovered = signingFailure && readiness.approvalSigningAvailable === true &&
+    ["proposed", "awaiting_approval"].includes(task.status) &&
+    d.phase === "ready" && !d.build &&
+    (!d.lease || Date.parse(d.lease.expiresAt) <= now) &&
+    d.lane === "software" && isCanonicalDeliveryTarget(d.projectKey) &&
+    d.projectKey === task.project_key && d.originalIdea === task.objective &&
+    !!d.spec && !!d.specVersion && deliveryFingerprint(d) === d.specVersion;
+  const currentError = signingRecovered ? null : d?.error;
   let stage: DeliveryStage = "captured";
   if (task.status === "running") stage = "building";
   else if (task.status === "queued") stage = "queued";
   else if (d?.build) stage = "review";
   else if (task.status === "done") stage = "release_blocked";
   else if (
-    d?.error ||
+    currentError ||
     !d ||
     task.status === "failed" ||
     task.status === "blocked"
@@ -34,7 +47,7 @@ export function toDeliveryMissionView(
       code: "invalid_mission",
       message: "This saved mission needs repair before it can continue.",
     });
-  if (d?.error) blockers.push(d.error);
+  if (currentError) blockers.push(currentError);
   if (task.status === "blocked")
     blockers.push({
       code: "paused",
@@ -116,14 +129,13 @@ export function toDeliveryMissionView(
     nextAction = { kind: "connect", owner: "Delivery operator", label: "Repair Margot’s AI connection, then continue preparation" };
   }
   if (
-    d?.error?.code === "approval_signing_unavailable" &&
-    d.phase === "ready" &&
+    signingFailure && !signingRecovered &&
     ["proposed", "awaiting_approval"].includes(task.status)
   ) {
     nextAction = {
-      kind: "approve",
-      owner: "You",
-      label: "Retry this specification’s build authorisation",
+      kind: "connect",
+      owner: "Delivery operator",
+      label: "Restore build authorisation before a new decision",
     };
   }
 
