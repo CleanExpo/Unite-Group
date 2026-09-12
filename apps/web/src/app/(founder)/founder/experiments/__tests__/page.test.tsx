@@ -12,6 +12,30 @@ describe('experiment variant count reads', () => {
     from.mockImplementation((table: string) => table === 'experiments' ? { select: () => ({ eq: () => ({ order }) }) } : { select: () => ({ in: variantsIn }) });
     order.mockResolvedValue({ data: [experiment], error: null });
   });
+  it.each([null, [experiment]])('reports only safe primary-query diagnostics and rejects partial data (%j)', async data => {
+    const privateError = {
+      message: 'private-db-message', details: 'private-db-details',
+      hint: 'private-db-hint', code: 'private-db-code',
+    };
+    order.mockResolvedValue({ data, error: privateError });
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const failure = await Page().catch((error: unknown) => error);
+      expect(failure).toBeInstanceOf(Error);
+      expect((failure as Error).message).toBe('Experiments could not be loaded. Please try again.');
+      expect(logged).toHaveBeenCalledExactlyOnceWith('[API Error]', failure, {
+        route: '/founder/experiments', operation: 'load_experiments',
+      });
+      const diagnostics = JSON.stringify([failure, logged.mock.calls], (_key, value) =>
+        value instanceof Error ? Object.fromEntries(Object.getOwnPropertyNames(value).map(key => [key, Reflect.get(value, key)])) : value);
+      for (const marker of Object.values(privateError)) expect(diagnostics).not.toContain(marker);
+      expect(failure).not.toHaveProperty('cause');
+      expect(variantsIn).not.toHaveBeenCalled();
+      expect(from).toHaveBeenCalledExactlyOnceWith('experiments');
+    } finally {
+      logged.mockRestore();
+    }
+  });
   it('throws a safe error rather than returning zero counts on variant lookup failure', async () => {
     variantsIn.mockResolvedValue({ data: null, error: { message: 'private database detail' } });
     await expect(Page()).rejects.toThrow('Experiment variant counts could not be loaded. Please try again.');
