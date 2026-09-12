@@ -1,12 +1,19 @@
-import { MissionControlShell } from '../../command-centre/MissionControlShell'
-import { MargotWeeklyReview } from './MargotWeeklyReview'
+import { loadMargotPrivateReview } from "@/lib/weekly-tasks/margot-packet-reader";
+import { MissionControlShell } from "../../command-centre/MissionControlShell";
+import { MargotWeeklyReview } from "./MargotWeeklyReview";
 
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic";
 
-// The parent founder layout enforces authentication. No durable weekly source
-// is configured; never import the local test packet into this production page.
-export default function MargotWeeklyPage() {
-  return <MissionControlShell section="weekly-tasks" title="Margot campaign review" description="Weekly Tasks · review only">
-    <MargotWeeklyReview review={{ source: 'not_configured' }} />
-  </MissionControlShell>
+// The parent layout and private reader authenticate; all row reads remain owner-scoped.
+export default async function MargotWeeklyPage() {
+  const review = await loadMargotPrivateReview();
+  return (
+    <MissionControlShell
+      section="weekly-tasks"
+      title="Margot campaign review"
+      description="Weekly Tasks · review only"
+    >
+      <MargotWeeklyReview review={review} />
+    </MissionControlShell>
+  );
 }
