@@ -2,6 +2,7 @@
 export const dynamic = 'force-dynamic'
 
 import { getUser } from '@/lib/supabase/server'
+import { captureApiError } from '@/lib/error-reporting'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/service'
 import { ExperimentsPageClient } from '@/components/founder/experiments/ExperimentsPageClient'
@@ -74,7 +75,9 @@ export default async function ExperimentsPage() {
   // that makes a broken backend look like a real empty CRM. Throw so the route's
   // error.tsx boundary renders an honest "couldn't load" state instead.
   if (error) {
-    throw new Error(`Failed to load experiments: ${error.message}`)
+    const safeError = new Error('Experiments could not be loaded. Please try again.')
+    captureApiError(safeError, { route: '/founder/experiments', operation: 'load_experiments' })
+    throw safeError
   }
 
   const experimentRows = (rows ?? []) as ExperimentRow[]
