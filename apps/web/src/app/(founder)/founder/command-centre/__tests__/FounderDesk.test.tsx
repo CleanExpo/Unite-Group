@@ -72,6 +72,66 @@ describe('FounderDesk mission journey', () => {
     expect(body).not.toHaveProperty('projectKey')
   })
 
+  it('refreshes an operator-blocked connection using only GET and waits for a fresh owner decision', async () => {
+    window.history.replaceState({}, '', `/?mission=${mission.taskId}`)
+    const unavailable = { ...mission, stage: 'failed', nextAction: { kind: 'connect', owner: 'Delivery operator', label: 'Restore build authorisation' }, blockers: [{ code: 'approval_signing_unavailable', message: 'Operator repair required' }] }
+    let reads = 0
+    let finishRead!: (value: ReturnType<typeof response>) => void
+    const refreshed = new Promise<ReturnType<typeof response>>(resolve => { finishRead = resolve })
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      if (init?.method === 'POST') throw new Error('Refresh must not write')
+      return ++reads === 1 ? response({ missions: [unavailable], presets: [], source: 'supabase' }) : refreshed
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<FounderDesk projects={[]} />)
+    await waitFor(() => screen.getByRole('button', { name: 'Refresh connection status' }))
+    expect(screen.queryByRole('button', { name: 'Approve this build' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh connection status' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Checking connection status…' })).toBeDisabled())
+    expect(screen.queryByRole('button', { name: 'Approve this build' })).not.toBeInTheDocument()
+    finishRead(response({ missions: [mission], presets: [], source: 'supabase' }))
+    await waitFor(() => screen.getByRole('button', { name: 'Approve this build' }))
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock.mock.calls.every(([, init]) => !init?.method || init.method === 'GET')).toBe(true)
+  })
+
+  it('replaces a rejected signing attempt with the inline operator blocker and does not retain a stale failure after read recovery', async () => {
+    window.history.replaceState({}, '', `/?mission=${mission.taskId}`)
+    const unavailable = { ...mission, stage: 'failed', nextAction: { kind: 'connect', owner: 'Delivery operator', label: 'Restore build authorisation' }, blockers: [{ code: 'approval_signing_unavailable', message: 'Operator repair required' }] }
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      if (init?.method === 'POST') return response({ mission: unavailable, error: 'Build authorisation is unavailable; no work was queued.' }, false)
+      return response({ missions: [mission], presets: [], source: 'supabase' })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<FounderDesk projects={[]} />)
+    await waitFor(() => screen.getByRole('button', { name: 'Approve this build' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Approve this build' }))
+    await waitFor(() => screen.getByRole('region', { name: 'Build authorisation connection' }))
+    expect(screen.queryByRole('button', { name: 'Approve this build' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh connection status' }))
+    await waitFor(() => screen.getByRole('button', { name: 'Approve this build' }))
+    expect(screen.queryByText('Build authorisation is unavailable; no work was queued.')).not.toBeInTheDocument()
+    expect(fetchMock.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(1)
+  })
+
+  it('retains the connection blocker when a read-only refresh fails', async () => {
+    window.history.replaceState({}, '', `/?mission=${mission.taskId}`)
+    const unavailable = { ...mission, stage: 'failed', nextAction: { kind: 'connect', owner: 'Delivery operator', label: 'Restore build authorisation' }, blockers: [{ code: 'approval_signing_unavailable', message: 'Operator repair required' }] }
+    let reads = 0
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      if (init?.method === 'POST') throw new Error('Refresh must not write')
+      if (++reads > 1) throw new Error('Connection interrupted')
+      return response({ missions: [unavailable], presets: [], source: 'supabase' })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<FounderDesk projects={[]} />)
+    await waitFor(() => screen.getByRole('button', { name: 'Refresh connection status' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh connection status' }))
+    await waitFor(() => expect(screen.getByRole('region', { name: 'Build authorisation connection' })).toHaveTextContent('Status could not be checked. The last recorded blocker remains shown.'))
+    expect(screen.queryByRole('button', { name: 'Approve this build' })).not.toBeInTheDocument()
+    expect(fetchMock.mock.calls.every(([, init]) => !init?.method || init.method === 'GET')).toBe(true)
+  })
+
   it('restores a persisted selection and sends approval for its exact spec version', async () => {
     window.history.replaceState({}, '', `/?mission=${mission.taskId}`)
     const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => response(init?.method === 'POST' ? { mission: { ...mission, stage: 'queued', nextAction: { kind: 'wait', owner: 'SPM', label: 'Waiting for a worker' } } } : { missions: [mission], presets: [], source: 'supabase' }))

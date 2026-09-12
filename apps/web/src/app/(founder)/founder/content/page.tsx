@@ -97,6 +97,10 @@ export default async function ContentLibraryPage({
     throw new Error(sanitiseError(nexusResult.error, 'Failed to load Nexus pages', { route: '/founder/content' }))
   }
 
+  if (businessesResult.error) {
+    throw new Error(sanitiseError(businessesResult.error, 'Failed to load businesses', { route: '/founder/content' }))
+  }
+
   const businessById = new Map(
     (businessesResult.data ?? []).map((b) => [b.id, { slug: b.slug, name: b.name }])
   )
@@ -125,7 +129,7 @@ export default async function ContentLibraryPage({
   // The drafts store is a dormant edge — the table may not be migrated yet.
   // A query error here means "not available", not "empty"; say so honestly.
   const draftsUnavailable = Boolean(draftsResult.error)
-  const draftItems: ContentItem[] = (draftsResult.data ?? []).map((row: DraftRow) => ({
+  const draftItems: ContentItem[] = (draftsUnavailable ? [] : draftsResult.data ?? []).map((row: DraftRow) => ({
     kind: 'draft' as const,
     timestamp: row.created_at,
     id: row.id,
@@ -162,8 +166,7 @@ export default async function ContentLibraryPage({
         </h1>
         <p className="text-[13px] mt-1" style={{ color: 'var(--color-text-muted)' }}>
           {counts.wiki} wiki {counts.wiki === 1 ? 'page' : 'pages'} · {counts.pages} Nexus{' '}
-          {counts.pages === 1 ? 'page' : 'pages'} · {counts.drafts} Margot{' '}
-          {counts.drafts === 1 ? 'draft' : 'drafts'}
+          {counts.pages === 1 ? 'page' : 'pages'} · {draftsUnavailable ? 'Margot drafts unavailable' : `${counts.drafts} Margot ${counts.drafts === 1 ? 'draft' : 'drafts'}`}
         </p>
       </div>
 
@@ -190,11 +193,17 @@ export default async function ContentLibraryPage({
                     }
               }
             >
-              {f.label} ({counts[f.key]})
+              {f.label} ({draftsUnavailable && f.key === 'drafts' ? 'unavailable' : draftsUnavailable && f.key === 'all' ? `${counts.all} available` : counts[f.key]})
             </Link>
           )
         })}
       </div>
+
+      {draftsUnavailable && (source === 'all' || source === 'drafts') && (
+        <p role="alert" className="text-[13px]" style={{ color: 'var(--color-text-muted)' }}>
+          Margot drafts could not be loaded. Counts include available records only.
+        </p>
+      )}
 
       {/* Unified list */}
       <div
@@ -205,8 +214,8 @@ export default async function ContentLibraryPage({
           <div className="px-4 py-8 text-center text-[13px] space-y-1" style={{ color: 'var(--color-text-disabled)' }}>
             {(source === 'all' || source === 'wiki') && counts.wiki === 0 && <p>No wiki pages yet.</p>}
             {(source === 'all' || source === 'pages') && counts.pages === 0 && <p>No Nexus pages yet.</p>}
-            {(source === 'all' || source === 'drafts') && counts.drafts === 0 && (
-              <p>{draftsUnavailable ? 'Margot drafts are not available yet (store not migrated).' : 'No Margot drafts yet.'}</p>
+            {(source === 'all' || source === 'drafts') && !draftsUnavailable && counts.drafts === 0 && (
+              <p>No Margot drafts yet.</p>
             )}
           </div>
         )}

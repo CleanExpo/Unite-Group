@@ -6,18 +6,22 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 // Grouped nav data lives in the shared manifest (UNI-2341) so the global ⌘K
 // CommandBar derives from the same source and can never drift from this list.
-import { FOUNDER_NAV_GROUPS as NAV_GROUPS } from '@/lib/navigation/founder-nav'
+import { FOUNDER_NAV_GROUPS as NAV_GROUPS, getActiveFounderNavHref } from '@/lib/navigation/founder-nav'
 
 interface SidebarNavProps { collapsed: boolean }
 
 export function SidebarNav({ collapsed }: SidebarNavProps) {
   const pathname = usePathname()
+  const activeHref = getActiveFounderNavHref(pathname)
 
   return (
     <nav className="flex flex-col gap-3 px-2">
-      {NAV_GROUPS.map((group, gi) => (
-        <div key={group.label ?? `group-${gi}`} className="flex flex-col gap-0.5">
-          {group.label && !collapsed && (
+      {NAV_GROUPS.map((group, gi) => {
+        const collapsible = 'collapsible' in group && group.collapsible && !collapsed
+        const activeGroup = group.items.some(item => activeHref === item.href)
+        const content = <>
+
+          {group.label && !collapsed && !collapsible && (
             <span
               className="px-2 pb-0.5 text-[10px] font-semibold tracking-widest uppercase"
               style={{ color: 'var(--color-text-disabled)' }}
@@ -29,11 +33,13 @@ export function SidebarNav({ collapsed }: SidebarNavProps) {
             <div className="mx-2 mb-1 h-px" style={{ background: 'var(--color-border)' }} />
           )}
           {group.items.map(({ href, label, icon: Icon }) => {
-            const active = pathname.startsWith(href)
+            const active = activeHref === href
             return (
               <Link
                 key={href}
                 href={href}
+                aria-label={collapsed ? label : undefined}
+                aria-current={active ? (pathname === href ? 'page' : 'location') : undefined}
                 className={cn(
                   'nav-item-hover relative flex items-center gap-2 px-2 h-8 rounded-sm text-[13px] font-medium transition-colors duration-100',
                   active
@@ -50,8 +56,12 @@ export function SidebarNav({ collapsed }: SidebarNavProps) {
               </Link>
             )
           })}
-        </div>
-      ))}
+        </>
+        return collapsible ? <details key={group.label} open={activeGroup || undefined} className="flex flex-col gap-0.5">
+          <summary className="px-2 text-[13px] font-medium cursor-pointer">{group.label}</summary>
+          <div className="flex flex-col gap-0.5 pl-2">{content}</div>
+        </details> : <div key={group.label ?? `group-${gi}`} className="flex flex-col gap-0.5">{content}</div>
+      })}
     </nav>
   )
 }

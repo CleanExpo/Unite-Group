@@ -4,10 +4,13 @@ import { getMissionControlSection, MISSION_CONTROL_HOME, MISSION_CONTROL_ROUTES 
 describe('Mission Control route manifest', () => {
   it('has one canonical home and distinct destinations for every workspace', () => {
     expect(MISSION_CONTROL_HOME).toBe('/founder/command-centre')
-    expect(MISSION_CONTROL_ROUTES).toHaveLength(12)
-    expect(new Set(MISSION_CONTROL_ROUTES.map(route => route.href)).size).toBe(12)
+    expect(MISSION_CONTROL_ROUTES).toHaveLength(13)
+    expect(new Set(MISSION_CONTROL_ROUTES.map(route => route.href)).size).toBe(13)
     expect(MISSION_CONTROL_ROUTES.filter(route => route.section === 'home')).toHaveLength(1)
     for (const route of MISSION_CONTROL_ROUTES) expect(getMissionControlSection(route.href)).toBe(route.section)
+  })
+  it('recognises the read-only Margot review inside Mission Control', () => {
+    expect(getMissionControlSection('/founder/weekly-tasks/margot')).toBe('weekly-tasks')
   })
   it('recognises campaign children but never swallows unknown routes or genuine other cockpits', () => {
     expect(getMissionControlSection('/founder/campaigns/new')).toBe('campaigns')
