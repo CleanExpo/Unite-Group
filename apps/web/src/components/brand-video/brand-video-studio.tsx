@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import {
   BRAND_VIDEO_STYLES,
@@ -67,7 +67,10 @@ export function BrandVideoStudio() {
   const [loadingJobs, setLoadingJobs] = useState(true);
   const [jobsError, setJobsError] = useState(false);
 
+  const latestHistoryRequest = useRef(0);
+
   const loadJobs = useCallback(async () => {
+    const requestId = ++latestHistoryRequest.current;
     setLoadingJobs(true);
     try {
       // RLS scopes this to the signed-in owner's rows.
@@ -77,13 +80,14 @@ export function BrandVideoStudio() {
         .order('created_at', { ascending: false })
         .limit(20);
       if (error) throw error;
+      if (requestId !== latestHistoryRequest.current) return;
       setJobs((data as BrandVideoJob[] | null) ?? []);
       setJobsError(false);
     } catch {
       // Preserve earlier observations; failure is not an empty history.
-      setJobsError(true);
+      if (requestId === latestHistoryRequest.current) setJobsError(true);
     } finally {
-      setLoadingJobs(false);
+      if (requestId === latestHistoryRequest.current) setLoadingJobs(false);
     }
   }, []);
 
