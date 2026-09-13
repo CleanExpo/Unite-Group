@@ -26,6 +26,30 @@ function readyMission(blockers: DeliveryMissionView['blockers'] = []): DeliveryM
 }
 
 describe('MissionDetail Board concerns and consent', () => {
+  it('puts the operator blocker and read-only refresh beside the next step without approval', () => {
+    const onAction = vi.fn()
+    const onRefresh = vi.fn()
+    const mission = { ...readyMission([{ code: 'approval_signing_unavailable', message: 'Operator repair required' }]), stage: 'failed' as const, nextAction: { kind: 'connect' as const, owner: 'Delivery operator', label: 'Restore build authorisation' } }
+    render(<MissionDetail mission={mission} busy={false} stale={false} onAction={onAction} onRefresh={onRefresh} />)
+    expect(screen.queryByRole('button', { name: 'Approve this build' })).not.toBeInTheDocument()
+    const connection = screen.getByRole('region', { name: 'Build authorisation connection' })
+    expect(connection).toHaveTextContent('Operator repair required')
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh connection status' }))
+    expect(onRefresh).toHaveBeenCalledOnce()
+    expect(onAction).not.toHaveBeenCalled()
+  })
+
+  it('keeps connection checks visibly pending or stale without offering approval', () => {
+    const mission = { ...readyMission([{ code: 'approval_signing_unavailable', message: 'Operator repair required' }]), stage: 'failed' as const, nextAction: { kind: 'connect' as const, owner: 'Delivery operator', label: 'Restore build authorisation' } }
+    const props = { mission, busy: false, onAction: vi.fn(), onRefresh: vi.fn() }
+    const { rerender } = render(<MissionDetail {...props} stale={false} refreshing />)
+    expect(screen.getByRole('button', { name: 'Checking connection status…' })).toBeDisabled()
+    rerender(<MissionDetail {...props} stale refreshing={false} />)
+    expect(screen.getByRole('region', { name: 'Build authorisation connection' })).toHaveTextContent('Status could not be checked. The last recorded blocker remains shown.')
+    expect(screen.getByRole('button', { name: 'Refresh connection status' })).toBeEnabled()
+    expect(screen.queryByRole('button', { name: 'Approve this build' })).not.toBeInTheDocument()
+  })
+
   it.each(['HOLD', 'REJECTED'])('shows the actual %s rationale before branch consent without inventing an override action', verdict => {
     const onAction = vi.fn()
     const message = `Board ${verdict}: Confirm who owns customer data before building.`

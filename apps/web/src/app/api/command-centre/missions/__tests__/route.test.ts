@@ -15,7 +15,7 @@ vi.mock("@/lib/command-centre/delivery-prepare", async (importOriginal) => {
     >();
   return { ...actual, prepareDeliveryMission: vi.fn() };
 });
-import { getUser } from "@/lib/supabase/server";
+import { getUser, createClient } from "@/lib/supabase/server";
 import { listTasks } from "@/lib/command-centre/tasks";
 import {
   prepareDeliveryMission,
@@ -26,6 +26,8 @@ import {
   DeliveryNotFound,
 } from "@/lib/command-centre/delivery-store";
 import { GET, POST } from "../route";
+import { observationFixture } from "@/lib/command-centre/__tests__/delivery-observations.fixture";
+import { deliveryFingerprint } from "@/lib/command-centre/delivery-store";
 import type { CommandCentreTask } from "@/lib/command-centre/tasks";
 
 const taskId = "a0000000-0000-4000-8000-000000000001";
@@ -108,6 +110,29 @@ describe("missions authenticated orchestration API", () => {
     expect((await POST(req(input))).status).toBe(409);
     expect((await POST(req({ action: "resume", taskId }))).status).toBe(404);
   });
+  it("GET rechecks signing availability without invoking preparation or changing the saved mission", async () => {
+    const { task: saved, delivery } = observationFixture();
+    delete delivery.build;
+    delivery.error = { code: "approval_signing_unavailable", message: "Operator repair required" };
+    delivery.specVersion = deliveryFingerprint(delivery);
+    saved.status = "proposed";
+    saved.objective = delivery.originalIdea;
+    const before = structuredClone(saved);
+    vi.mocked(listTasks).mockResolvedValue([saved]);
+    vi.stubEnv("MISSION_PROVENANCE_SECRET", "");
+    try {
+      const unavailable = await (await GET()).json();
+      expect(unavailable.missions[0].nextAction.kind).toBe("connect");
+      vi.stubEnv("MISSION_PROVENANCE_SECRET", "test-only-restored-signer");
+      const restored = await (await GET()).json();
+      expect(restored.missions[0].stage).toBe("ready_for_review");
+      expect(restored.missions[0].nextAction.kind).toBe("approve");
+      expect(prepareDeliveryMission).not.toHaveBeenCalled();
+      expect(saved).toEqual(before);
+      expect(createClient).not.toHaveBeenCalled();
+    } finally { vi.unstubAllEnvs(); }
+  });
+
   it("failed listing does not pretend there are no missions", async () => {
     vi.mocked(listTasks).mockRejectedValue(new Error("database unreachable"));
     const response = await GET();

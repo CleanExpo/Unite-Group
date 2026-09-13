@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 const h = vi.hoisted(() => ({
+  vaultError: null as { message: string } | null,
+  decrypt: vi.fn(() => JSON.stringify({ access_token: "a" })),
   vaultRows: [] as Array<Record<string, unknown>>,
 }))
 
@@ -17,19 +19,20 @@ vi.mock('@/lib/supabase/service', () => ({
     b.select = () => b
     b.eq = () => b
     b.limit = () => b
-    b.then = (resolve: (v: { data: unknown }) => unknown) => resolve({ data: h.vaultRows })
+    b.then = (resolve: (v: { data: unknown }) => unknown) => resolve({ data: h.vaultRows, error: h.vaultError })
     return b
   },
 }))
 
 vi.mock('@/lib/vault', () => ({
-  decrypt: () => JSON.stringify({ access_token: 'a', refresh_token: 'r', expiry: 0 }),
+  decrypt: h.decrypt,
 }))
 
 vi.mock('@/lib/integrations/google', () => ({
   getValidToken: vi.fn(async () => 'access-token'),
 }))
 
+import { getValidToken } from '@/lib/integrations/google'
 import { getVaultFiles, getVaultFileContent } from '../google-drive'
 
 const ROW = { encrypted_value: 'e', iv: 'i', salt: 's' }
@@ -40,6 +43,9 @@ beforeEach(() => {
   process.env.GOOGLE_CLIENT_SECRET = 'secret'
   process.env.GOOGLE_DRIVE_VAULT_FOLDER_ID = 'folder-123'
   h.vaultRows = [{ ...ROW }]
+  h.vaultError = null
+  vi.clearAllMocks()
+  global.fetch = vi.fn()
 })
 
 afterEach(() => {
@@ -49,6 +55,18 @@ afterEach(() => {
 })
 
 describe('getVaultFiles — no silent empty on failure', () => {
+  it('rejects failed credential lookup before decrypt, token or Drive calls', async () => {
+    h.vaultError = { message: 'private database detail' }
+    await expect(getVaultFiles('founder-1')).rejects.toThrow('Google Drive connection status could not be loaded.')
+    expect(h.decrypt).not.toHaveBeenCalled()
+    expect(getValidToken).not.toHaveBeenCalled()
+    expect(fetch).not.toHaveBeenCalled()
+  })
+  it('supports a successful empty Drive listing', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ files: [] }) })
+    expect(await getVaultFiles('founder-1')).toEqual([])
+  })
+
   it('returns [] when Drive is not configured (honest not-connected)', async () => {
     delete process.env.GOOGLE_DRIVE_VAULT_FOLDER_ID
     expect(await getVaultFiles('founder-1')).toEqual([])

@@ -15,6 +15,7 @@ export interface FounderNavItem {
 }
 
 export interface FounderNavGroup {
+  collapsible?: boolean
   label: string | null
   items: readonly FounderNavItem[]
 }
@@ -30,7 +31,15 @@ export const FOUNDER_NAV_GROUPS = [
     ],
   },
   {
+    label: 'Weekly Tasks',
+    collapsible: true,
+    items: [
+      { href: '/founder/weekly-tasks/margot', label: 'Margot campaign review', icon: CalendarDays },
+    ],
+  },
+  {
     label: 'Money',
+    collapsible: true,
     items: [
       { href: '/founder/bookkeeper', label: 'Bookkeeper', icon: BookOpen },
       { href: '/founder/xero',       label: 'Xero',       icon: Receipt },
@@ -40,6 +49,7 @@ export const FOUNDER_NAV_GROUPS = [
   },
   {
     label: 'Pipeline',
+    collapsible: true,
     items: [
       { href: '/founder/kanban',        label: 'Kanban',        icon: Columns2 },
       { href: '/founder/kanban/own',    label: 'My Board',      icon: SquareKanban },
@@ -51,6 +61,7 @@ export const FOUNDER_NAV_GROUPS = [
   },
   {
     label: 'Growth',
+    collapsible: true,
     items: [
       { href: '/founder/social',      label: 'Social',      icon: Share2 },
       { href: '/founder/campaigns',   label: 'Campaigns',   icon: Megaphone },
@@ -61,6 +72,7 @@ export const FOUNDER_NAV_GROUPS = [
   },
   {
     label: 'Advisory',
+    collapsible: true,
     items: [
       { href: '/founder/advisory',  label: 'Advisory',  icon: Scale },
       { href: '/founder/strategy',  label: 'Strategy',  icon: Brain },
@@ -69,6 +81,7 @@ export const FOUNDER_NAV_GROUPS = [
   },
   {
     label: 'Knowledge',
+    collapsible: true,
     items: [
       { href: '/founder/notes',             label: 'Notes',             icon: FileText },
       { href: '/founder/content',           label: 'Content',           icon: FolderOpen },
@@ -80,6 +93,7 @@ export const FOUNDER_NAV_GROUPS = [
   },
   {
     label: 'System',
+    collapsible: true,
     items: [
       { href: '/founder/schedule', label: 'Schedule', icon: Timer },
       { href: '/founder/vault',    label: 'Vault',    icon: Lock },
@@ -90,3 +104,11 @@ export const FOUNDER_NAV_GROUPS = [
 
 /** Flat ordered list of every founder nav destination. */
 export const FOUNDER_NAV_ITEMS: readonly FounderNavItem[] = FOUNDER_NAV_GROUPS.flatMap((g) => [...g.items])
+
+/** Prefer a nested destination over its parent, and never match a partial segment. */
+export function getActiveFounderNavHref(pathname: string): string | undefined {
+  return FOUNDER_NAV_ITEMS.reduce<string | undefined>((active, item) => {
+    const matches = pathname === item.href || pathname.startsWith(`${item.href}/`)
+    return matches && (!active || item.href.length > active.length) ? item.href : active
+  }, undefined)
+}

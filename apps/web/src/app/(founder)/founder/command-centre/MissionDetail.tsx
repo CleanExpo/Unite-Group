@@ -31,8 +31,8 @@ function readableTime(value: string) {
   return Number.isNaN(date.getTime()) ? 'Time unavailable' : date.toLocaleString('en-AU', { timeZone: 'Australia/Brisbane', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
 }
 
-export function MissionDetail({ mission, busy, stale, onAction }: {
-  mission: DeliveryMissionView; busy: boolean; stale: boolean; onAction: (request: DeliveryRequest) => void
+export function MissionDetail({ mission, busy, stale, refreshing = false, onRefresh, onAction }: {
+  mission: DeliveryMissionView; busy: boolean; stale: boolean; refreshing?: boolean; onRefresh?: () => void; onAction: (request: DeliveryRequest) => void
 }) {
   // Bind unsaved input to the actual question, not just a reused field ID.
   // Project resolution can replace the question set without changing specVersion.
@@ -42,7 +42,8 @@ export function MissionDetail({ mission, busy, stale, onAction }: {
   const preview = safeMissionUrl(mission.previewUrl)
   const disabled = busy || stale
   const boardConcerns = mission.blockers.filter(blocker => blocker.code === 'board_concern')
-  const deliveryBlockers = mission.blockers.filter(blocker => blocker.code !== 'board_concern')
+  const signingBlocker = mission.nextAction.kind === 'connect' ? mission.blockers.find(blocker => blocker.code === 'approval_signing_unavailable') : undefined
+  const deliveryBlockers = mission.blockers.filter(blocker => blocker.code !== 'board_concern' && blocker !== signingBlocker)
   const connectionRetry = mission.stage === 'failed' && mission.nextAction.kind === 'connect' && mission.blockers.some(blocker => ['preparation_provider_authentication', 'preparation_provider_configuration'].includes(blocker.code))
   return <article className={styles.missionDetail} aria-label="Selected mission">
     <header className={styles.detailHeader}>
@@ -71,6 +72,10 @@ export function MissionDetail({ mission, busy, stale, onAction }: {
       <h3>How we will know it works</h3>
       <ul className={styles.checklist}>{mission.spec.acceptanceCriteria.map((item, i) => <li key={`${i}-${item}`}><span aria-hidden="true">□</span>{item}</li>)}</ul>
       <details className={styles.details}><summary>Delivery steps</summary><ol>{mission.spec.steps.map((step, i) => <li key={`${i}-${step}`}>{step}</li>)}</ol></details>
+    </section>}
+    {signingBlocker && <section className={styles.approval} aria-label="Build authorisation connection" aria-live="polite">
+      <div><h3>Build authorisation needs operator attention</h3><p>{signingBlocker.message}</p><p>Your reviewed specification is saved. An operator needs to restore this connection. Refresh checks status only; it does not approve or start a build.</p>{stale && <p>Status could not be checked. The last recorded blocker remains shown.</p>}</div>
+      {onRefresh && <button className={styles.secondaryButton} disabled={busy || refreshing} onClick={onRefresh}>{refreshing ? 'Checking connection status…' : 'Refresh connection status'}</button>}
     </section>}
     {mission.nextAction.kind === 'approve' && mission.specVersion && <div className={styles.approval}>
       <div><h3>Does this capture your vision?</h3><p>Approval covers building this version in a branch and preparing a preview. Publishing to customers needs its own release authority.</p></div>

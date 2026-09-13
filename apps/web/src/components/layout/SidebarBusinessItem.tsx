@@ -25,7 +25,7 @@ export function SidebarBusinessItem({ business, collapsed }: SidebarBusinessItem
     <div>
       <div
         className={cn(
-          'nav-item-hover w-full flex items-center gap-2 px-2 h-8 rounded-sm text-[13px] font-medium transition-colors duration-100',
+          'nav-item-hover relative w-full flex items-center gap-2 px-2 h-8 rounded-sm text-[13px] font-medium transition-colors duration-100',
         )}
         style={isActive
           ? { color: 'var(--color-text-primary)', background: 'var(--surface-elevated)' }

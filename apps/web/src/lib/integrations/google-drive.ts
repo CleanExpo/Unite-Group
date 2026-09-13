@@ -63,13 +63,14 @@ export async function getVaultFiles(founderId: string): Promise<DriveFile[]> {
   const { getValidToken } = await import('@/lib/integrations/google')
 
   const supabase = createServiceClient()
-  const { data: vaultRows } = await supabase
+  const { data: vaultRows, error: lookupError } = await supabase
     .from('credentials_vault')
     .select('encrypted_value, iv, salt')
     .eq('founder_id', founderId)
     .eq('service', 'google')
     .limit(1)
 
+  if (lookupError) throw new Error('Google Drive connection status could not be loaded.')
   if (!vaultRows?.length) return []
 
   // No swallowing catch: a decrypt/token/API failure propagates so the caller

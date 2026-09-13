@@ -621,3 +621,189 @@ test('the CLI path parses --output, audits all locks, writes every result, and r
   assert.equal(stored.results.find(({ lockfile }) => lockfile === 'apps/empire/package-lock.json').status, 'failed')
   assert.equal(stored.results.at(-1).status, 'passed')
 })
+
+// On 04/09/2026 seven of nine workspaces exceeded the 60s scanner budget and the job
+// reported `passed: false` with every vulnerability count at zero. It had not failed;
+// it had not finished. The tests below pin the two properties that distinction needs:
+// a scan that did not run can never mean pass, and it must be visible as a timeout
+// rather than indistinguishable from a clean run.
+
+test('a timed-out scan can never report a passing aggregate, even when every other lock is clean', async () => {
+  const { runActiveLockfileAudits } = await loadRunner()
+  const timedOutLock = 'apps/web/pnpm-lock.yaml'
+  const report = await runActiveLockfileAudits({
+    entries: EXPECTED_ENTRIES,
+    runAudit: async (entry) => (entry.lockfile === timedOutLock
+      ? { exitCode: 2, stdout: '', stderr: 'killed', timedOut: true, timeoutMs: 300_000 }
+      : { exitCode: 0, stdout: CLEAN_AUDIT, stderr: '', timedOut: false }),
+  })
+
+  const timedOut = report.results.find(({ lockfile }) => lockfile === timedOutLock)
+  assert.equal(timedOut.timedOut, true)
+  assert.equal(timedOut.status, 'error')
+  assert.deepEqual(timedOut.vulnerabilities, {
+    info: 0, low: 0, moderate: 0, high: 0, critical: 0, total: 0,
+  })
+  // Every other lock is clean, so nothing but the timeout can be holding this closed.
+  assert.equal(report.results.filter(({ status }) => status === 'passed').length,
+    EXPECTED_LOCKS.length - 1)
+  assert.equal(report.passed, false)
+})
+
+test('a timeout is machine-distinguishable from a clean scan and from other error classes', async () => {
+  const { runActiveLockfileAudits } = await loadRunner()
+  const report = await runActiveLockfileAudits({
+    entries: EXPECTED_ENTRIES,
+    runAudit: async (entry) => {
+      if (entry.lockfile === 'apps/empire/package-lock.json') {
+        return { exitCode: 2, stdout: '', stderr: 'killed', timedOut: true, timeoutMs: 300_000 }
+      }
+      if (entry.lockfile === 'apps/spec-board/package-lock.json') {
+        return { exitCode: 0, stdout: 'not json at all', stderr: '', timedOut: false }
+      }
+      return { exitCode: 0, stdout: CLEAN_AUDIT, stderr: '', timedOut: false }
+    },
+  })
+
+  const timeout = report.results.find(({ lockfile }) => lockfile === 'apps/empire/package-lock.json')
+  const parseFailure = report.results.find(({ lockfile }) => lockfile === 'apps/spec-board/package-lock.json')
+  const clean = report.results.find(({ lockfile }) => lockfile === 'apps/workspace/pnpm-lock.yaml')
+
+  // `status` alone cannot separate these two: both are 'error'. That is precisely why
+  // the timeout needs its own field — the 04/09 incident was misread as a finding.
+  assert.equal(timeout.status, 'error')
+  assert.equal(parseFailure.status, 'error')
+  assert.equal(timeout.timedOut, true)
+  assert.equal(parseFailure.timedOut, false)
+  assert.equal(clean.timedOut, false)
+  assert.equal(clean.status, 'passed')
+  assert.match(timeout.error, /timed out after 300000ms/)
+  assert.equal(report.passed, false)
+})
+
+test('concurrent scans preserve inventory order and actually overlap', async () => {
+  const { runActiveLockfileAudits } = await loadRunner()
+  let inFlight = 0
+  let peakInFlight = 0
+  const report = await runActiveLockfileAudits({
+    entries: EXPECTED_ENTRIES,
+    concurrency: 5,
+    // Reversed latency: the first entry is slowest, the last is fastest. A pool that
+    // pushed as workers completed would emit these close to backwards.
+    runAudit: async (entry) => {
+      inFlight += 1
+      peakInFlight = Math.max(peakInFlight, inFlight)
+      const index = EXPECTED_LOCKS.indexOf(entry.lockfile)
+      await new Promise((done) => { setTimeout(done, (EXPECTED_LOCKS.length - index) * 4) })
+      inFlight -= 1
+      return { exitCode: 0, stdout: CLEAN_AUDIT, stderr: '', timedOut: false }
+    },
+  })
+
+  assert.deepEqual(report.results.map(({ lockfile }) => lockfile), EXPECTED_LOCKS)
+  assert.equal(report.results.length, EXPECTED_LOCKS.length)
+  assert.equal(report.passed, true)
+  // Positive control on the concurrency itself: if this were still serial the peak
+  // would be 1, and the order assertion above would prove nothing about ordering.
+  assert.ok(peakInFlight > 1, `expected overlapping scans, peak in-flight was ${peakInFlight}`)
+  assert.ok(peakInFlight <= 5, `concurrency cap breached, peak in-flight was ${peakInFlight}`)
+})
+
+test('a scanner returning no usable result becomes a recorded error, not an aborted run', async () => {
+  const { runActiveLockfileAudits } = await loadRunner()
+  const report = await runActiveLockfileAudits({
+    entries: EXPECTED_ENTRIES,
+    concurrency: 3,
+    runAudit: async (entry) => (entry.lockfile === 'apps/empire/package-lock.json'
+      ? undefined
+      : { exitCode: 0, stdout: CLEAN_AUDIT, stderr: '', timedOut: false }),
+  })
+
+  // Throwing here would escape Promise.all and abort the run, leaving no report for the CI
+  // artifact to upload — fail-closed, but with the evidence destroyed. Record it instead.
+  const broken = report.results.find(({ lockfile }) => lockfile === 'apps/empire/package-lock.json')
+  assert.equal(broken.status, 'error')
+  assert.equal(broken.timedOut, false)
+  assert.match(broken.error, /returned no usable result/)
+  assert.equal(report.results.length, EXPECTED_LOCKS.length)
+  assert.equal(report.passed, false)
+})
+
+test('a sparse results array fails the aggregate closed', async () => {
+  const { runActiveLockfileAudits } = await loadRunner()
+
+  // `auditOne` catches everything and always returns an object, so no injected `runAudit`
+  // can produce a hole — which is exactly why the mapper itself is the seam. Substituting
+  // it is the only way to reach the guard, and a guard no test can reach is not a guard.
+  const sparseMapper = async (items) => {
+    const out = new Array(items.length)
+    for (let index = 1; index < items.length; index += 1) {
+      out[index] = {
+        ...items[index].entry,
+        status: 'passed',
+        exitCode: 0,
+        timeoutMs: null,
+        timedOut: false,
+        vulnerabilities: { info: 0, low: 0, moderate: 0, high: 0, critical: 0, total: 0 },
+        findings: [],
+        stderr: '',
+      }
+    }
+    return out // index 0 is a genuine hole, never assigned
+  }
+
+  const report = await runActiveLockfileAudits({
+    entries: EXPECTED_ENTRIES,
+    runAudit: async () => ({ exitCode: 0, stdout: CLEAN_AUDIT, stderr: '', timedOut: false }),
+    mapResults: sparseMapper,
+  })
+
+  // The hole is real: length still matches, and `every` would skip it.
+  assert.equal(report.results.length, EXPECTED_LOCKS.length)
+  assert.equal(Object.hasOwn(report.results, 0), false)
+  assert.equal(report.results.every(({ status }) => status === 'passed'), true,
+    'precondition: a bare every() cannot see the hole, which is the defect being guarded')
+  assert.equal(report.passed, false)
+})
+
+test('scanner budget and concurrency come from the environment and reject garbage', async () => {
+  const { readPositiveIntegerEnv, DEFAULT_SCANNER_TIMEOUT_MS, DEFAULT_SCANNER_CONCURRENCY } = await loadRunner()
+
+  // Falls back when unset or empty.
+  assert.equal(readPositiveIntegerEnv('AUDIT_SCANNER_TIMEOUT_MS', DEFAULT_SCANNER_TIMEOUT_MS, { env: {} }),
+    DEFAULT_SCANNER_TIMEOUT_MS)
+  assert.equal(readPositiveIntegerEnv('AUDIT_SCANNER_CONCURRENCY', DEFAULT_SCANNER_CONCURRENCY,
+    { env: { AUDIT_SCANNER_CONCURRENCY: '' } }), DEFAULT_SCANNER_CONCURRENCY)
+
+  // Honours a valid override.
+  assert.equal(readPositiveIntegerEnv('AUDIT_SCANNER_TIMEOUT_MS', 300_000,
+    { env: { AUDIT_SCANNER_TIMEOUT_MS: '90000' } }), 90_000)
+
+  // Rejects rather than silently defaulting. A budget nobody chose is how this broke.
+  for (const bad of ['abc', '0', '-1', '1.5', '12abc', ' ']) {
+    assert.throws(
+      () => readPositiveIntegerEnv('AUDIT_SCANNER_TIMEOUT_MS', 300_000, { env: { AUDIT_SCANNER_TIMEOUT_MS: bad } }),
+      TypeError,
+      `expected ${JSON.stringify(bad)} to be rejected`,
+    )
+  }
+})
+
+test('worst-case wall clock fits the CI job budget at the shipped defaults', async () => {
+  const {
+    DEFAULT_SCANNER_TIMEOUT_MS, DEFAULT_SCANNER_CONCURRENCY, CI_JOB_BUDGET_MS,
+  } = await loadRunner()
+
+  const waves = Math.ceil(EXPECTED_LOCKS.length / DEFAULT_SCANNER_CONCURRENCY)
+  const worstCaseMs = waves * DEFAULT_SCANNER_TIMEOUT_MS
+
+  // Every scan can time out and the job must still return a report rather than being
+  // killed by the runner — a job the runner kills produces no artifact to read.
+  assert.ok(
+    worstCaseMs < CI_JOB_BUDGET_MS,
+    `worst case ${worstCaseMs}ms across ${waves} waves exceeds the ${CI_JOB_BUDGET_MS}ms job cap`,
+  )
+  // Raising the per-scan budget past the point where it no longer fits must break this
+  // test, not surface as a killed job three weeks later.
+  assert.ok(DEFAULT_SCANNER_TIMEOUT_MS > 60_000, 'the budget that failed on 04/09 must not be restored')
+})

@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "weekStartsAt": "2026-09-17T16:00:00+10:00",
+  "reviewDueAt": "2026-09-14T09:00:00+10:00",
+  "timezone": "Australia/Brisbane",
+  "scheduleStatus": "proposed-not-scheduled",
+  "reviewTimeStatus": "proposed",
+  "distributionSystem": "Synthex",
+  "primarySite": "NRPG",
+  "optionalContextualSite": "CARSI",
+  "sourceDocument": "synthetic-test-fixture.md",
+  "episodes": [
+    {
+      "id": "synthetic-episode-1",
+      "title": "Synthetic episode 1",
+      "slot": "2026-09-17T16:00:00+10:00",
+      "timezone": "Australia/Brisbane",
+      "script": "Synthetic script for test episode 1.",
+      "caption": "Synthetic caption for test episode 1.",
+      "resourceTitle": "Synthetic resourceTitle for test episode 1.",
+      "resourceText": "Synthetic resourceText for test episode 1.",
+      "productionStatus": "existing-owner-approved-master",
+      "scriptApproval": "approved",
+      "releaseApproval": "pending",
+      "videoId": "00000000000000000000000000000000"
+    },
+    {
+      "id": "synthetic-episode-2",
+      "title": "Synthetic episode 2",
+      "slot": "2026-09-18T16:00:00+10:00",
+      "timezone": "Australia/Brisbane",
+      "script": "Synthetic script for test episode 2.",
+      "caption": "Synthetic caption for test episode 2.",
+      "resourceTitle": "Synthetic resourceTitle for test episode 2.",
+      "resourceText": "Synthetic resourceText for test episode 2.",
+      "productionStatus": "script-draft-not-rendered",
+      "scriptApproval": "pending",
+      "releaseApproval": "pending"
+    },
+    {
+      "id": "synthetic-episode-3",
+      "title": "Synthetic episode 3",
+      "slot": "2026-09-21T16:00:00+10:00",
+      "timezone": "Australia/Brisbane",
+      "script": "Synthetic script for test episode 3.",
+      "caption": "Synthetic caption for test episode 3.",
+      "resourceTitle": "Synthetic resourceTitle for test episode 3.",
+      "resourceText": "Synthetic resourceText for test episode 3.",
+      "productionStatus": "script-draft-not-rendered",
+      "scriptApproval": "pending",
+      "releaseApproval": "pending"
+    },
+    {
+      "id": "synthetic-episode-4",
+      "title": "Synthetic episode 4",
+      "slot": "2026-09-22T16:00:00+10:00",
+      "timezone": "Australia/Brisbane",
+      "script": "Synthetic script for test episode 4.",
+      "caption": "Synthetic caption for test episode 4.",
+      "resourceTitle": "Synthetic resourceTitle for test episode 4.",
+      "resourceText": "Synthetic resourceText for test episode 4.",
+      "productionStatus": "script-draft-not-rendered",
+      "scriptApproval": "pending",
+      "releaseApproval": "pending"
+    },
+    {
+      "id": "synthetic-episode-5",
+      "title": "Synthetic episode 5",
+      "slot": "2026-09-23T16:00:00+10:00",
+      "timezone": "Australia/Brisbane",
+      "script": "Synthetic script for test episode 5.",
+      "caption": "Synthetic caption for test episode 5.",
+      "resourceTitle": "Synthetic resourceTitle for test episode 5.",
+      "resourceText": "Synthetic resourceText for test episode 5.",
+      "productionStatus": "script-draft-not-rendered",
+      "scriptApproval": "pending",
+      "releaseApproval": "pending"
+    }
+  ]
+}
