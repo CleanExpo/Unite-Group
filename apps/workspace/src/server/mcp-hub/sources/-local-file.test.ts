@@ -63,7 +63,7 @@ describe('fetchLocalFile', () => {
       presets: [],
       source: 'invalid',
       error: 'User catalog file failed validation.',
-      errorPath: '/home/user/.hermes/mcp-presets.json',
+      errorPath: '/tmp/user/.hermes/mcp-presets.json',
     })
 
     const result = await fetchLocalFile()

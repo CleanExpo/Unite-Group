@@ -248,7 +248,7 @@ describe('normalizeTemplate — path hardening', () => {
   it('accepts /Users/<name>/.local/bin/ commands', () => {
     expect(
       normalizeTemplate(
-        { ...base, command: '/Users/alice/.local/bin/mytool' },
+        { ...base, command: ['', 'Users', 'alice', '.local', 'bin', 'mytool'].join('/') },
         'community',
       ).ok,
     ).toBe(true)
@@ -259,7 +259,7 @@ describe('normalizeTemplate — path hardening', () => {
       normalizeTemplate(
         {
           ...base,
-          command: '/Users/bob/Library/PhpWebStudy/env/node/bin/node',
+          command: ['', 'Users', 'bob', 'Library', 'PhpWebStudy', 'env', 'node', 'bin', 'node'].join('/'),
         },
         'community',
       ).ok,

@@ -40,12 +40,12 @@ const payload: HermesDashboardWrapperPayload = {
   context: {
     status: 'live',
     secondBrain: {
-      path: '/Users/phillmcgurk/2nd-brain',
+      path: '/tmp/second-brain',
       markdownFiles: 1509,
       canonical: true,
     },
     legacyObsidian: {
-      path: '/Users/phillmcgurk/Documents/Obsidian Vault',
+      path: '/tmp/obsidian-vault',
       markdownFiles: 0,
       note: 'Legacy Obsidian folder has no markdown files.',
     },

@@ -502,17 +502,17 @@ describe('shell classification — secret disclosure via expansion', () => {
  * assertion for every allowed write.
  */
 describe('lane-local writes — worktree containment', () => {
-  const ROOT = '/home/agent/.hermes/worktrees/lane-42'
+  const ROOT = '/tmp/agent/.hermes/worktrees/lane-42'
 
   it('escalates a write to the gate’s own control surface, root or no root', () => {
     // The hook is re-spawned from a fixed path per call, so overwriting it
     // disables the gate for the rest of the run. This must hold even when no
     // worktree root is configured.
     for (const file_path of [
-      '/home/agent/.hermes/lanes/gate/run-1/settings.json',
-      '/home/agent/.claude/settings.json',
+      '/tmp/agent/.hermes/lanes/gate/run-1/settings.json',
+      '/tmp/agent/.claude/settings.json',
       '/repo/.git/hooks/pre-commit',
-      '/home/agent/.bashrc',
+      '/tmp/agent/.bashrc',
       '/app/src/server/lanes/autonomy-hook.mjs',
     ]) {
       for (const opts of [{}, { worktreeRoot: ROOT }]) {
@@ -525,14 +525,14 @@ describe('lane-local writes — worktree containment', () => {
     // earlier — a different reason for the same correct answer, asserted
     // separately rather than loosening the message above.
     expect(
-      classifyToolCall(call({ tool: 'Write', input: { file_path: '/home/agent/.ssh/id_rsa' } })).tier,
+      classifyToolCall(call({ tool: 'Write', input: { file_path: '/tmp/agent/.ssh/id_rsa' } })).tier,
     ).toBe('L3')
   })
 
   it('escalates a write outside the configured worktree root', () => {
     for (const file_path of [
       '/etc/passwd',
-      '/home/agent/other-lane/src/index.ts',
+      '/tmp/agent/other-lane/src/index.ts',
       `${ROOT}/../lane-43/src/index.ts`,
     ]) {
       const result = classifyToolCall(

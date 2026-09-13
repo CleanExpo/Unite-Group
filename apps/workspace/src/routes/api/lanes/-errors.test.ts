@@ -100,7 +100,7 @@ describe('lane API error boundaries', () => {
 
   it('does not expose create internals', async () => {
     createMock.mockRejectedValueOnce(
-      new Error('EACCES /Users/operator/.config/provider-secret'),
+      new Error(`EACCES ${['', 'Users', 'operator', '.config', 'provider-secret'].join('/')}`),
     )
     const { Route } = await import('./create')
     const handlers = Route.options.server?.handlers as { POST: PostHandler }

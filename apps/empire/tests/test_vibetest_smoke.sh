@@ -3,7 +3,7 @@
 # and `claude mcp list` reports vibetest as ✓ Connected.
 set -euo pipefail
 
-REPO_ROOT="/Users/phill-mac/pi-seo-workspace/unite-group"
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SMOKE="$REPO_ROOT/scripts/vibetest_smoke.sh"
 
 # Gate 1: smoke script exists + is executable

@@ -1,41 +1,33 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CANONICAL_REPO="/Users/aurora/hermes-workspace"
-FORBIDDEN_REPO="/Users/aurora/hermes-workspace"
-
+REPO_ROOT="$(git rev-parse --show-toplevel)"
 CURRENT_DIR="$(pwd -P)"
 
-if [[ "$CURRENT_DIR" == "$FORBIDDEN_REPO" ]] || [[ "$CURRENT_DIR" == "$FORBIDDEN_REPO"/* ]]; then
-  echo "ERROR: wrong repo: $CURRENT_DIR"
-  echo "Use: $CANONICAL_REPO"
+if [[ "$CURRENT_DIR" != "$REPO_ROOT" && "$CURRENT_DIR" != "$REPO_ROOT"/* ]]; then
+  echo "ERROR: cwd is outside the canonical repo: $CURRENT_DIR"
+  echo "Use: $REPO_ROOT"
   exit 1
 fi
 
-if [[ "$CURRENT_DIR" != "$CANONICAL_REPO" ]] && [[ "$CURRENT_DIR" != "$CANONICAL_REPO"/* ]]; then
-  echo "ERROR: non-canonical cwd: $CURRENT_DIR"
-  echo "Use: $CANONICAL_REPO"
-  exit 1
-fi
-
-if [[ ! -f "$CANONICAL_REPO/package.json" ]]; then
+if [[ ! -f "$REPO_ROOT/package.json" ]]; then
   echo "ERROR: package.json missing in canonical repo"
   exit 1
 fi
 
-REPO_NAME="$(python3 - <<'PY'
+REPO_NAME="$(python3 - <<PY
 import json
 from pathlib import Path
-pkg = json.loads(Path('/Users/aurora/hermes-workspace/package.json').read_text())
-print(pkg.get('name', ''))
+pkg = json.loads(Path("$REPO_ROOT/package.json").read_text())
+print(pkg.get("name", ""))
 PY
 )"
 
-if [[ "$REPO_NAME" != "hermes-workspace" ]]; then
-  echo "ERROR: unexpected package name: $REPO_NAME"
+if [[ -z "$REPO_NAME" ]]; then
+  echo "ERROR: package.json has no name"
   exit 1
 fi
 
-echo "OK: canonical Swarm repo"
+echo "OK: canonical repo"
 echo "cwd=$CURRENT_DIR"
 echo "package=$REPO_NAME"

@@ -46,7 +46,7 @@ describe('buildDashboardOverview', () => {
         release_date: '2026.4.30',
         config_version: 17,
         latest_config_version: 23,
-        hermes_home: '/Users/aurora/.hermes',
+        hermes_home: '/tmp/test-home/.hermes',
         platforms: {
           api_server: {
             state: 'connected',
@@ -67,7 +67,7 @@ describe('buildDashboardOverview', () => {
     expect(overview.status?.releaseDate).toBe('2026.4.30')
     expect(overview.status?.configVersion).toBe(17)
     expect(overview.status?.latestConfigVersion).toBe(23)
-    expect(overview.status?.hermesHome).toBe('/Users/aurora/.hermes')
+    expect(overview.status?.hermesHome).toBe('/tmp/test-home/.hermes')
     expect(overview.platforms).toEqual([
       {
         name: 'api_server',

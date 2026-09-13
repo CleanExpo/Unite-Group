@@ -33,8 +33,8 @@ describe('ensureWorkspacePath (#121)', () => {
 
   it('rejects sibling paths that share a prefix', () => {
     // Core boundary semantics we want, asserted at the primitive level:
-    const root = '/home/user/.claude'
-    const sibling = '/home/user/.claude2/secret.txt'
+    const root = '/tmp/user/.claude'
+    const sibling = '/tmp/user/.claude2/secret.txt'
 
     // The buggy check (startsWith) wrongly accepts this.
     expect(sibling.startsWith(root)).toBe(true)
@@ -47,7 +47,7 @@ describe('ensureWorkspacePath (#121)', () => {
   })
 
   it('rejects parent-relative escapes', () => {
-    const root = '/home/user/.claude'
+    const root = '/tmp/user/.claude'
     const escape = path.resolve(root, '../../etc/passwd')
 
     expect(escape.startsWith(root)).toBe(false)
@@ -59,8 +59,8 @@ describe('ensureWorkspacePath (#121)', () => {
   })
 
   it('accepts a nested path inside the workspace', () => {
-    const root = '/home/user/.claude'
-    const inside = '/home/user/.claude/memory/2026-04-23.md'
+    const root = '/tmp/user/.claude'
+    const inside = '/tmp/user/.claude/memory/2026-04-23.md'
 
     expect(inside.startsWith(root)).toBe(true)
 
@@ -71,8 +71,8 @@ describe('ensureWorkspacePath (#121)', () => {
   })
 
   it('treats exact root as valid', () => {
-    const root = '/home/user/.claude'
-    const same = '/home/user/.claude'
+    const root = '/tmp/user/.claude'
+    const same = '/tmp/user/.claude'
     const rel = path.relative(root, same)
     // empty string means same directory — allowed by our explicit
     // `resolved === WORKSPACE_ROOT` short-circuit

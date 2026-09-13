@@ -23,9 +23,22 @@
 // Does NOT call the cron agent. The cron entry is operator-installed.
 
 import { writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import { verifySynthexSync, formatSyncSummary, SYNTHEX_REPO } from './sync-verify'
 
-const DASHBOARD_PATH = '/Users/phillmcgurk/2nd-brain/.agentic_nexus/dashboard/latest_synthex_sync_status.json'
+function agenticNexusRoot(): string {
+  return (process.env.SENIOR_PM_ROOT || process.env.AGENTIC_NEXUS_PATH || '').replace(/\/$/, '')
+}
+
+function resolveDashboardPath(): string {
+  if (process.env.SYNTHEX_DASHBOARD_PATH?.trim()) {
+    return process.env.SYNTHEX_DASHBOARD_PATH.trim()
+  }
+  const root = agenticNexusRoot()
+  return root
+    ? join(root, 'dashboard', 'latest_synthex_sync_status.json')
+    : join(process.cwd(), 'latest_synthex_sync_status.json')
+}
 
 interface DashboardJson {
   schema_version: number
@@ -106,8 +119,8 @@ export async function runAndWriteDashboard(
     },
     notes: 'Recurring version of the bounded manual check (Kanban t_3ea8ebca, status: done). Cron-ready; does NOT publish, does NOT touch the Synthex repo. Read-only GH Actions API.',
     related: [
-      '/Users/phillmcgurk/2nd-brain/.agentic_nexus/PROJECT_REGISTRY_RESULTS.md',
-      '/Users/phillmcgurk/2nd-brain/Outcomes/2026-06-12-synthex-lane-recent-completions-and-next-batch.md',
+      '2nd-brain/.agentic_nexus/PROJECT_REGISTRY_RESULTS.md',
+      '2nd-brain/Outcomes/2026-06-12-synthex-lane-recent-completions-and-next-batch.md',
     ],
     safety: {
       production_db_touched: false,
@@ -120,7 +133,7 @@ export async function runAndWriteDashboard(
     },
   }
   if (v.error !== undefined) dashboard.result.error = v.error
-  await writeFile(DASHBOARD_PATH, JSON.stringify(dashboard, null, 2))
+  await writeFile(resolveDashboardPath(), JSON.stringify(dashboard, null, 2))
   return v
 }
 
