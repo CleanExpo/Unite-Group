@@ -33,13 +33,17 @@ export default async function OperationsDeckPage() {
     loadBlockedLanesData(),
     getUser(),
   ])
-  // Recent CRM Mission Control jobs (UNI-2234 slice 3). Founder-scoped; degrades
-  // honestly (not_connected / error) when the session or query is unavailable.
-  const crmMissionControlJobs = await loadCrmMissionControlJobs(user?.id ?? null)
-  // Agent events wall (UNI-2384 wave B2). Founder-scoped; the cc_agent_events
-  // migration is founder-gated, so a missing table renders as an honest
-  // "Wall dark" state — never a crash, never fabricated rows.
-  const agentEventsWall = await loadAgentEventsWall(user?.id ?? null)
+  // These are independent founder-scoped reads. Keep the honest degraded
+  // states, but avoid making the Agent Events Wall wait for CRM jobs (or vice
+  // versa) before the operations surface can render.
+  const [crmMissionControlJobs, agentEventsWall] = await Promise.all([
+    // Recent CRM Mission Control jobs (UNI-2234 slice 3). Founder-scoped;
+    // degrades honestly when the session or query is unavailable.
+    loadCrmMissionControlJobs(user?.id ?? null),
+    // Agent events wall (UNI-2384 wave B2). The cc_agent_events migration is
+    // founder-gated, so a missing table renders an honest dark state.
+    loadAgentEventsWall(user?.id ?? null),
+  ])
 
   return <OperationsView dashboard={dashboard} evidence={evidence} actionQueue={actionQueue} blockedLanes={blockedLanes} crmAutonomy={<CrmAutonomyPanel recentJobs={crmMissionControlJobs} />} agentEventsWall={agentEventsWall} className={`${chakra.variable} ${syne.variable} ${jbMono.variable}`} />
 }

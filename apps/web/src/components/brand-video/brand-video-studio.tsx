@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import {
   BRAND_VIDEO_STYLES,
@@ -65,16 +65,30 @@ export function BrandVideoStudio() {
   const [message, setMessage] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
   const [jobs, setJobs] = useState<BrandVideoJob[]>([]);
   const [loadingJobs, setLoadingJobs] = useState(true);
+  const [jobsError, setJobsError] = useState(false);
+
+  const latestHistoryRequest = useRef(0);
 
   const loadJobs = useCallback(async () => {
-    // RLS scopes this to the signed-in owner's rows.
-    const { data } = await supabaseBrowser
-      .from('brand_video_jobs')
-      .select('id, brand, style, topic, count, status, output_url, created_at')
-      .order('created_at', { ascending: false })
-      .limit(20);
-    setJobs((data as BrandVideoJob[] | null) ?? []);
-    setLoadingJobs(false);
+    const requestId = ++latestHistoryRequest.current;
+    setLoadingJobs(true);
+    try {
+      // RLS scopes this to the signed-in owner's rows.
+      const { data, error } = await supabaseBrowser
+        .from('brand_video_jobs')
+        .select('id, brand, style, topic, count, status, output_url, created_at')
+        .order('created_at', { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      if (requestId !== latestHistoryRequest.current) return;
+      setJobs((data as BrandVideoJob[] | null) ?? []);
+      setJobsError(false);
+    } catch {
+      // Preserve earlier observations; failure is not an empty history.
+      if (requestId === latestHistoryRequest.current) setJobsError(true);
+    } finally {
+      if (requestId === latestHistoryRequest.current) setLoadingJobs(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -191,11 +205,17 @@ export function BrandVideoStudio() {
           <CardDescription>Your most recent generation requests.</CardDescription>
         </CardHeader>
         <CardContent>
-          {loadingJobs ? (
-            <p className="text-sm text-muted-foreground">Loading…</p>
-          ) : jobs.length === 0 ? (
+          <Button variant="outline" onClick={() => void loadJobs()} disabled={loadingJobs}>
+            {loadingJobs ? 'Checking history…' : jobsError ? 'Retry history' : 'Refresh history'}
+          </Button>
+          {jobsError && <p role="alert" className="text-sm text-red-600">
+            Recent jobs could not be loaded. Please retry the history check.
+            {jobs.length > 0 && ' Previously loaded jobs may be out of date.'}
+          </p>}
+          {loadingJobs && <p role="status" className="text-sm text-muted-foreground">Loading…</p>}
+          {!loadingJobs && !jobsError && jobs.length === 0 ? (
             <p className="text-sm text-muted-foreground">No jobs yet.</p>
-          ) : (
+          ) : jobs.length > 0 ? (
             <ul className="divide-y divide-white/10">
               {jobs.map((job) => (
                 <li key={job.id} className="flex items-center justify-between gap-4 py-3">
@@ -222,7 +242,7 @@ export function BrandVideoStudio() {
                 </li>
               ))}
             </ul>
-          )}
+          ) : null}
         </CardContent>
       </Card>
     </div>
