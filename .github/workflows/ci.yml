@@ -67,17 +67,18 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          # Judge the PR branch, not GitHub's temporary merge-into-base ref.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Fetch origin/main so the default range is real
-        run: git fetch origin main --depth=1
-
-      - name: Fetch the PR base so the range is real
-        if: github.event_name == 'pull_request'
-        run: git fetch origin "${{ github.base_ref }}" --depth=1
+      # Full fetch. `--depth=1` after checkout severs merge-base: the range
+      # then has no common ancestor and dumps main's history as PR commits.
+      # That is the #1104 update-branch failure. Do not reintroduce --depth=1.
+      - name: Fetch the comparison base with enough history for merge-base
+        run: git fetch --no-tags origin "${{ github.base_ref || 'main' }}"
 
       - run: node --test scripts/__tests__/check-commit-messages.test.mjs
 

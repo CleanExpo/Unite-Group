@@ -300,6 +300,139 @@ test('MUTATION (e2e): missing base exits 1 — shallow-checkout bypass', () => {
   }
 });
 
+test('POSITIVE (e2e): merging main into the feature branch does not judge main\'s commits', () => {
+  // The #1104 update-branch failure: main's squash-merges (no Gate:, often no
+  // Linear ref) leaked into the PR range. With a real merge-base they must not.
+  const { dir, git } = makeRepo();
+  try {
+    commitFile(dir, git, {
+      content: 'main-0\n',
+      message: 'chore: seed (UNI-1)\n\nGate: fixture seed.\n',
+    });
+    git('branch', 'topic');
+    commitFile(dir, git, {
+      path: 'main-only',
+      content: 'from-main\n',
+      message: 'fix(deps): clear advisories (#1065)\n',
+    });
+    const mainHead = git('rev-parse', 'HEAD').trim();
+    git('checkout', '--quiet', 'topic');
+    commitFile(dir, git, {
+      path: 'feature',
+      content: 'work\n',
+      message: `${VALID.subject}\n\n${VALID.body}\n`,
+    });
+    git('merge', '--quiet', '--no-ff', '-m', 'Merge branch \'main\' into topic', mainHead);
+
+    const code = main({ cwd: dir, argv: [mainHead, 'HEAD'] });
+    assert.equal(code, 0, 'main\'s convention-breaking squash must not be judged on the PR');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('POSITIVE (e2e): commits that landed on main after the merge are not judged', () => {
+  // Triple-dot A...B would list these. Double-dot A..B must not.
+  const { dir, git } = makeRepo();
+  try {
+    commitFile(dir, git, {
+      content: 'main-0\n',
+      message: 'chore: seed (UNI-1)\n\nGate: fixture seed.\n',
+    });
+    git('branch', 'topic');
+    commitFile(dir, git, {
+      path: 'main-merged',
+      content: 'merged-to-topic\n',
+      message: 'fix(deps): already on main when topic merged (#1)\n',
+    });
+    const mergedMain = git('rev-parse', 'HEAD').trim();
+    git('checkout', '--quiet', 'topic');
+    commitFile(dir, git, {
+      path: 'feature',
+      content: 'work\n',
+      message: `${VALID.subject}\n\n${VALID.body}\n`,
+    });
+    git('merge', '--quiet', '--no-ff', '-m', 'Merge branch \'main\' into topic', mergedMain);
+    git('checkout', '--quiet', 'main');
+    commitFile(dir, git, {
+      path: 'main-later',
+      content: 'after-merge\n',
+      message: 'fix(mission-control): refuse complete (UNI-2643) (#1103)\n',
+    });
+    const laterMain = git('rev-parse', 'HEAD').trim();
+    git('checkout', '--quiet', 'topic');
+
+    const errors = [];
+    const origErr = console.error;
+    const origLog = console.log;
+    let stdout = '';
+    console.error = (...args) => {
+      errors.push(args.join(' '));
+    };
+    console.log = (...args) => {
+      stdout += `${args.join(' ')}\n`;
+    };
+    let code;
+    try {
+      code = main({ cwd: dir, argv: [laterMain, 'HEAD'] });
+    } finally {
+      console.error = origErr;
+      console.log = origLog;
+    }
+    assert.equal(code, 0, errors.join('\n') || stdout);
+    assert.doesNotMatch(errors.join('\n'), /UNI-2643|#1103/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('MUTATION (e2e): an unrelated/shallow base fails on merge-base, not by dumping history', () => {
+  // Stands in for `git fetch origin main --depth=1` after main has moved:
+  // no shared ancestor, so A...B would otherwise dump every commit.
+  const { dir, git } = makeRepo();
+  try {
+    commitFile(dir, git, {
+      content: 'seed\n',
+      message: 'chore: seed (UNI-1)\n\nGate: fixture seed.\n',
+    });
+    commitFile(dir, git, {
+      path: 'feature',
+      content: 'work\n',
+      message: `${VALID.subject}\n\n${VALID.body}\n`,
+    });
+    git('checkout', '--quiet', '--orphan', 'orphan-main');
+    commitFile(dir, git, {
+      path: 'orphan',
+      content: 'unrelated\n',
+      message: 'fix(deps): clear advisories (#1065)\n',
+    });
+    const orphan = git('rev-parse', 'HEAD').trim();
+    git('checkout', '--quiet', 'main');
+
+    const errors = [];
+    const origErr = console.error;
+    console.error = (...args) => {
+      errors.push(args.join(' '));
+    };
+    let code;
+    try {
+      code = main({ cwd: dir, argv: [orphan, 'HEAD'] });
+    } finally {
+      console.error = origErr;
+    }
+    assert.equal(code, 1);
+    const text = errors.join('\n');
+    assert.match(text, /cannot compute merge-base/);
+    assert.doesNotMatch(
+      text,
+      /clear advisories/,
+      'an unrelated base must not be reported as a convention violation on main\'s subject',
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('MUTATION (e2e): a good tip does not hide an earlier bad commit', () => {
   const { dir, git } = makeRepo();
   try {
@@ -336,6 +469,12 @@ test('the CI job fetches history and runs both the tests and the checker', () =>
   );
   assert.ok(job, 'the commit-messages job must keep a recognisable name');
   assert.match(job, /fetch-depth:\s*0/, 'a shallow clone would hide the range and pass empty');
+  const withoutComments = job.replace(/^\s*#.*$/gm, '');
+  assert.doesNotMatch(
+    withoutComments,
+    /--depth=1/,
+    'a shallow base fetch severs merge-base and dumps main history as PR commits (#1104)',
+  );
   assert.match(
     job,
     /check-commit-messages\.test\.mjs/,

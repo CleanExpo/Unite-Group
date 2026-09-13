@@ -14,9 +14,11 @@
  * squash-merge would have papered over that one SHA. The durable fix is a
  * check, not a reminder. #1066 is already merged; this guard is the work.
  *
- * RANGE, NOT HISTORY. Only commits in <base>...<head> are judged. Re-scanning
- * main would fail every historical squash that never carried a ref. The
- * enforcement point is the PR (and the local preflight that mirrors it).
+ * RANGE, NOT HISTORY. Only commits in <base>..<head> (reachable from HEAD,
+ * not from the base) are judged. Triple-dot A...B is wrong: after main
+ * moves ahead of an update-branch merge it also lists those new main
+ * commits. Re-scanning main would fail every historical squash that never
+ * carried a ref. The enforcement point is the PR.
  *
  * FAIL CLOSED ON A MISSING BASE. A shallow checkout that cannot see
  * origin/main must not report "0 commits, clean". That is the same class of
@@ -209,10 +211,32 @@ export function main({
     return 1;
   }
 
+  // merge-base is load-bearing. `git fetch origin main --depth=1` after a
+  // full checkout severs the base from the PR graph; the range then has no
+  // common ancestor and dumps main's history as if those squash-merges were
+  // on the PR. That is what redded this job on #1104 after an update-branch
+  // merge. Fail closed on a missing merge-base — do not log the universe.
+  let mergeBase;
+  try {
+    mergeBase = git(['merge-base', range.base, range.head], cwd).trim();
+  } catch {
+    mergeBase = '';
+  }
+  if (!mergeBase) {
+    console.error(
+      `COMMIT MESSAGE GUARD: cannot compute merge-base of ${range.base} and ${range.head}`,
+    );
+    console.error(
+      'The base was probably fetched shallow (--depth=1). Fetch the full base branch; ' +
+        'a severed merge-base must not be treated as "all of history".',
+    );
+    return 1;
+  }
+
   let raw;
   try {
     raw = git(
-      ['log', '--format=%H%x1f%P%x1f%s%x1f%b%x1e', `${range.base}...${range.head}`],
+      ['log', '--format=%H%x1f%P%x1f%s%x1f%b%x1e', `${range.base}..${range.head}`],
       cwd,
     );
   } catch (err) {
@@ -227,7 +251,7 @@ export function main({
   if (violations.length === 0) {
     console.log(
       `Commit-message guard: clean (${checked} checked, ${skipped} skipped, ` +
-        `range ${range.base}...${range.head})`,
+        `range ${range.base}..${range.head})`,
     );
     return 0;
   }
