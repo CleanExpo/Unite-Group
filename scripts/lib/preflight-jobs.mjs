@@ -73,6 +73,13 @@ export const JOBS = [
     cmd: ['python3', ['-m', 'unittest', 'discover', '-s', 'tests'], 'tools/board-release-verifier'],
   },
   {
+    id: 'complete-requires-push',
+    ciJob: 'complete-requires-push',
+    label: 'tools/complete-requires-push — tests',
+    paths: ['tools/complete-requires-push/'],
+    cmd: ['python3', ['-m', 'unittest', 'discover', '-s', 'tests'], 'tools/complete-requires-push'],
+  },
+  {
     id: 'dependency-audit',
     ciJob: 'dependency-audit',
     label: 'Active lockfiles — high-severity audit',
