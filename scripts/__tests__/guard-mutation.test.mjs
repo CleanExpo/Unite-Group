@@ -53,6 +53,12 @@ function sandbox() {
   // execute them, so a sandbox holding a subset would make it fail for a reason
   // that has nothing to do with the mutant.
   cpSync(join(ROOT, 'scripts', '__tests__'), join(dir, 'scripts', '__tests__'), { recursive: true })
+  // The security guard parses workflows via scripts/lib/workflow-yaml.mjs
+  // (UNI-2662). The sandbox used to copy only __tests__, which was enough
+  // when that file shelled out to python3; a missing lib now fails the import
+  // and the mutants below would all go red for the wrong reason.
+  mkdirSync(join(dir, 'scripts', 'lib'), { recursive: true })
+  cpSync(join(ROOT, 'scripts', 'lib'), join(dir, 'scripts', 'lib'), { recursive: true })
   cpSync(join(ROOT, 'package.json'), join(dir, 'package.json'))
   return dir
 }
@@ -72,7 +78,7 @@ function sandbox() {
  * The reporter is pinned to `tap` rather than left to the runtime default,
  * which is `spec` on Node 24 and emits `ℹ pass` / `ℹ fail`.
  */
-function runGuard(dir, guardPath = GUARD) {
+function runGuard(dir, guardPath = GUARD, extraEnv = {}) {
   let out = ''
   let status = 0
   try {
@@ -83,7 +89,7 @@ function runGuard(dir, guardPath = GUARD) {
       // A nested `node --test` inherits NODE_TEST_CONTEXT from the parent runner
       // and switches to a child reporting protocol, emitting no summary at all.
       // Without clearing it the child looks like it never ran.
-      env: { ...process.env, NODE_TEST_CONTEXT: undefined },
+      env: { ...process.env, NODE_TEST_CONTEXT: undefined, ...extraEnv },
     })
   } catch (err) {
     out = String(err.stdout ?? '') + String(err.stderr ?? '')
@@ -174,6 +180,37 @@ const BECAUSE = {
   undeclaredTools: /this step declares no claude_args/,
   notExecuted: /not EXECUTED by any npm script/,
 }
+
+test('the guard stays green when PyYAML cannot be imported (UNI-2662)', () => {
+  const dir = sandbox()
+  const poison = mkdtempSync(join(tmpdir(), 'nopyyaml-'))
+  try {
+    writeFileSync(join(poison, 'yaml.py'), 'raise ImportError("PyYAML must not be required")\n')
+    let yamlStatus = 0
+    try {
+      execFileSync('python3', ['-c', 'import yaml'], {
+        env: { ...process.env, PYTHONPATH: poison },
+        stdio: ['ignore', 'pipe', 'pipe'],
+      })
+    } catch (err) {
+      yamlStatus = typeof err.status === 'number' ? err.status : 1
+    }
+    assert.notEqual(
+      yamlStatus,
+      0,
+      'this case cannot prove independence unless python3 -c "import yaml" fails under the poison path',
+    )
+
+    const r = runGuard(dir, GUARD, { PYTHONPATH: poison })
+    assert.ok(r.ran, `guard did not execute without PyYAML (exit ${r.status}):\n${r.out.slice(0, 800)}`)
+    assert.ok(r.passed > 0, 'guard ran no assertions without PyYAML')
+    assert.equal(r.failed, 0, `guard failed when PyYAML was hidden:\n${r.out.slice(0, 800)}`)
+    assert.equal(r.status, 0, `guard exited ${r.status} when PyYAML was hidden:\n${r.out.slice(0, 800)}`)
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+    rmSync(poison, { recursive: true, force: true })
+  }
+})
 
 test('the sandbox itself is clean (positive control)', () => {
   const dir = sandbox()
@@ -335,9 +372,14 @@ test('catches one composite referenced TWICE from the same workflow', () => {
   expectCaught('duplicate composite reference', (dir) => {
     const original = readFileSync(join(dir, REVIEW_WF), 'utf8')
     const stepBlock = original.slice(original.indexOf('      - name: Run Claude Code Review'))
+    // The review workflow's steps sit at 6 spaces (job.steps). Composite
+    // `runs.steps` members sit at 4. Dedent rather than indent — the previous
+    // `  ${l}` over-indent is legal YAML (PyYAML accepted it) but the Node
+    // reader this guard now uses is a 2-space subset and refuses it. The
+    // defect under test is the duplicate reference, not the indent.
     write(dir, join('.github', 'actions', 'review', 'action.yml'),
       'name: Review\nruns:\n  using: composite\n  steps:\n' +
-      stepBlock.split('\n').map((l) => (l ? `  ${l}` : l)).join('\n'))
+      stepBlock.split('\n').map((l) => (l.startsWith('  ') ? l.slice(2) : l)).join('\n'))
     write(dir, REVIEW_WF,
       'name: Claude Code Review\n' +
       'on:\n  pull_request:\n    types: [opened]\n' +
