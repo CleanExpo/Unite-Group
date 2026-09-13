@@ -50,9 +50,9 @@
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
-import { existsSync, readdirSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
+import { parseWorkflowYaml } from '../lib/workflow-yaml.mjs'
 
 const ROOT = process.cwd()
 const WORKFLOWS = join(ROOT, '.github', 'workflows')
@@ -65,14 +65,36 @@ const REQUIRED_TOOLS = [
   'Bash(gh pr view:*)',
 ]
 
-/** Parse YAML via python3 — this repo has no js-yaml, and other guards use it. */
+/**
+ * Map a GitHub Actions YAML document onto the subset `parseWorkflowYaml`
+ * implements, without going through Python/PyYAML (UNI-2662).
+ *
+ * Two spellings the production runner accepts, and this guard must still see:
+ *   - `"track_progress": true` — a quoted key. Independent review planted this
+ *     and a text matcher missed it. Simple quoted keys with no backslash are
+ *     unfolded to plain keys; a key that contains an escape is left for the
+ *     reader to refuse, so the suite goes red rather than skipping the file.
+ *   - `run: >-` — a folded block scalar (ci.yml). This walker does not read
+ *     `run:` bodies, only `uses` / `with` / `if` / matrix. Rewriting `>` to `|`
+ *     keeps the document structure and lets the existing reader grade it.
+ *
+ * Anything else the reader does not implement still throws. That is fail-closed:
+ * an unreadable workflow cannot hide a Claude step.
+ */
+function toReadableWorkflowYaml(source) {
+  return source
+    .replace(/^([ \t]*(?:-[ \t]*)?)(["'])([^"'\\]+)\2(\s*:)/gm, '$1$3$4')
+    .replace(/^(\s*(?:-\s+)?[^\s:#][^:]*:\s*)>([-+]?\d*)(\s*(?:#.*)?)?$/gm, '$1|$2$3')
+}
+
 function parseYaml(path) {
-  const out = execFileSync('python3', [
-    '-c',
-    'import sys,yaml,json; json.dump(yaml.safe_load(open(sys.argv[1])), sys.stdout, default=str)',
-    path,
-  ], { encoding: 'utf8' })
-  return JSON.parse(out)
+  const source = readFileSync(path, 'utf8')
+  try {
+    return parseWorkflowYaml(toReadableWorkflowYaml(source))
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    throw new Error(`cannot parse ${path}: ${message}`)
+  }
 }
 
 /**
@@ -266,12 +288,7 @@ function collectClaudeSteps(path, multiplier = 1, stack = [], trail = [], jobCtx
   if (stack.includes(key) || !existsSync(key)) return []
   const nextStack = [...stack, key]
 
-  let doc
-  try {
-    doc = parseYaml(key)
-  } catch {
-    return []
-  }
+  const doc = parseYaml(key)
 
   const found = []
   const here = [...trail, key.replace(`${ROOT}/`, '')]
@@ -622,6 +639,19 @@ test('mentionGate rejects a tautological gate and accepts a real one', () => {
     ).gated,
     true,
   )
+})
+
+test('every workflow file is readable by the Node YAML walker', () => {
+  const files = readdirSync(WORKFLOWS).filter((f) => /\.ya?ml$/i.test(f))
+  assert.ok(files.length > 0, 'no workflow files found')
+  for (const file of files) {
+    const doc = parseYaml(join(WORKFLOWS, file))
+    assert.equal(
+      doc !== null && typeof doc === 'object' && !Array.isArray(doc),
+      true,
+      `${file} did not parse as a mapping — the walker would miss any Claude step in it`,
+    )
+  }
 })
 
 test('the graph walker finds the review invocation (positive control)', () => {
