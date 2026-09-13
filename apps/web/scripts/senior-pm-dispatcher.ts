@@ -24,13 +24,13 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-// Root of the canonical senior-PM inputs. Defaults to the operator's 2nd-brain
-// path for production runs; override with SENIOR_PM_ROOT so the dispatcher never
-// depends on a machine-specific path (used by tests and any non-default host).
-const DEFAULT_TWO_BRAIN_ROOT = '/Users/phillmcgurk/2nd-brain/.agentic_nexus'
-
+// Root of the canonical senior-PM inputs. Required via SENIOR_PM_ROOT so the
+// dispatcher never embeds a machine-specific home path.
 function resolveInputPaths(): { backlog: string; queue: string; workerRegistry: string } {
-  const root = process.env.SENIOR_PM_ROOT || DEFAULT_TWO_BRAIN_ROOT
+  const root = process.env.SENIOR_PM_ROOT
+  if (!root) {
+    throw new Error('SENIOR_PM_ROOT is required (no machine-specific default)')
+  }
   return {
     backlog: join(root, 'ACTIVE_PROGRAMME_BACKLOG.md'),
     queue: join(root, 'SENIOR_PM_NEXT_ACTION_QUEUE.md'),

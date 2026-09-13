@@ -17,7 +17,7 @@ vi.mock('node:fs', () => ({
 }))
 
 const { homedir } = vi.hoisted(() => ({
-  homedir: vi.fn().mockReturnValue('/home/testuser'),
+  homedir: vi.fn().mockReturnValue('/tmp/testuser'),
 }))
 
 vi.mock('node:os', () => ({
@@ -47,7 +47,7 @@ describe('memory-browser', () => {
   it('falls back to ~/.hermes when HERMES_HOME is not set', async () => {
     const mod = await loadMod()
     const root = mod.getMemoryWorkspaceRoot()
-    expect(root).toBe(path.resolve('/home/testuser/.hermes'))
+    expect(root).toBe(path.resolve('/tmp/testuser/.hermes'))
   })
 
   it('uses path.resolve on env path with trailing slash', async () => {

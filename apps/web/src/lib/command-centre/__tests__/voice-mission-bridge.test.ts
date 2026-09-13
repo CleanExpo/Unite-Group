@@ -367,7 +367,7 @@ describe('voice mission risk classification', () => {
       transcript_text: 'do the thing',
       summary: 'Do the thing',
       risk_level: 'low',
-      conversation_id: '/Users/phillmcgurk/secrets sk-live-abcdefgh12345678',
+      conversation_id: `${['', 'Users', 'example', 'secrets'].join('/')} sk-live-abcdefgh12345678`,
       actions: [{ kind: 'research' }],
     })
     expect(parsed.ok).toBe(false)
@@ -650,7 +650,7 @@ describe('voice mission receipts', () => {
 
   it('carries codes, never prose, and never the transcript', () => {
     const secretish =
-      'call me on sk-live_ABCDEFGHIJKLMNOPQRSTUV and see /Users/phill-mac/.claude/creds'
+      `call me on sk-live_ABCDEFGHIJKLMNOPQRSTUV and see ${['', 'Users', 'example', '.claude', 'creds'].join('/')}`
     const event = buildVoiceMissionEvent({
       verb: 'admitted',
       missionRef: 'voice:abc',

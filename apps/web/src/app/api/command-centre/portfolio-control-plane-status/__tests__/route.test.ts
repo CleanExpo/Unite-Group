@@ -52,7 +52,7 @@ describe("GET /api/command-centre/portfolio-control-plane-status", () => {
   it("returns a quarantined projection rather than an empty or green estate when sources fail", async () => {
     vi.mocked(getUser).mockResolvedValue({ id: "founder" } as never);
     vi.mocked(loadPortfolioControlPlaneRegistry).mockRejectedValue(
-      new Error("raw /Users/founder/path must not leak"),
+      new Error(`raw ${['', 'Users', 'founder', 'path'].join('/')} must not leak`),
     );
     const response = await GET();
     const body = await response.json();

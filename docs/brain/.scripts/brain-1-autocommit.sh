@@ -29,7 +29,7 @@ TS=$(date +"%Y-%m-%d %H:%M %Z")
 git -c commit.gpgsign=false commit -q -m "auto: nightly snapshot ${TS} (+${ADDED} ~${MODIFIED} -${DELETED})
 
 Auto-committed by ai.pidev.brain-1-autocommit LaunchAgent.
-Run /Users/phill-mac/2nd\ Brain/.scripts/brain-1-autocommit.sh manually to commit on-demand.
+Run $HOME/2nd\\ Brain/.scripts/brain-1-autocommit.sh manually to commit on-demand.
 "
 
 # Push

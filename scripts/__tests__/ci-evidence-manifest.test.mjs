@@ -36,7 +36,7 @@ const JOB_ID = '95119197937';
 const REQUIRED_JOB_NAME = 'packages/spine — type-check and bounded tests';
 const RUN_ID = '31928303697';
 const ATTEMPT = '1';
-const ROOT = '/home/runner/work/Unite-Group/Unite-Group';
+const ROOT = '/tmp/ci-workspace/Unite-Group';
 
 const NULL_IO = { log: () => {}, error: () => {} };
 

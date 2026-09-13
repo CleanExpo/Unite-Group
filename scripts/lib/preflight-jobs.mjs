@@ -34,6 +34,15 @@ export const JOBS = [
     cmd: ['npm', ['run', 'check:nul-bytes']],
   },
   {
+    id: 'home-paths',
+    ciJob: 'home-paths',
+    label: 'Absolute home-path guard',
+    // Always: a home path can land in any tracked file, and path-scoping this
+    // would mean trusting the very diff that embeds the leak.
+    always: true,
+    cmd: ['npm', ['run', 'check:home-paths']],
+  },
+  {
     id: 'swarm',
     ciJob: 'swarm',
     label: 'scripts/swarm — self-test',

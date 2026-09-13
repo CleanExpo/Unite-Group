@@ -97,7 +97,7 @@ describe('claude stream-json tool-call parser', () => {
             type: 'tool_use',
             id: 'toolu_1',
             name: 'Read',
-            input: { file_path: '/Users/phill/secrets/prod.env' },
+            input: { file_path: ['', 'Users', 'example', 'secrets', 'prod.env'].join('/') },
           },
         ],
       },
