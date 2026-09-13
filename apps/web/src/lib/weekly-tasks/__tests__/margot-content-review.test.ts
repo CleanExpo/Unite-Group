@@ -142,3 +142,27 @@ it("saves a whole-proposal decision only after verified exact playback and binds
     expect(result.event.mediaSHA256).toBe("e".repeat(64)); expect(result.event.publicationApproved).toBe(false);
   }
 });
+
+it.each(["owner_id", "database_id", "id", "archived_at"])("rejects an otherwise valid event with a different %s boundary", async field => {
+  const f = fixture();
+  expect((await saveMargotContentReview(f)).status).toBe("saved");
+  const row = f.events.get(operationId)!;
+  Object.assign(row, { [field]: field === "archived_at" ? "2026-09-13T00:00:00.000Z" : "99999999-9999-4999-8999-999999999999" });
+  expect((await saveMargotContentReview(f)).status).toBe("conflict");
+  expect((await readContentEvents(f)).status).toBe("unavailable");
+  expect(f.store.insertEvent).toHaveBeenCalledTimes(1);
+});
+it("does not confirm a saved event after a fully valid same-digest version replacement", async () => {
+  const f = fixture();
+  f.store.insertEvent.mockImplementation(async row => {
+    f.events.set(row.id, structuredClone(row));
+    f.pointer.cells.active.version = 2;
+    f.version.cells.version = 2;
+    return { error: null };
+  });
+  expect((await saveMargotContentReview(f)).status).toBe("stale");
+  expect(f.events.size).toBe(1);
+  const current = await readContentEvents(f);
+  expect(current.status).toBe("available");
+  if (current.status === "available") { expect(current.version).toBe(2); expect(current.events).toEqual({}); }
+});

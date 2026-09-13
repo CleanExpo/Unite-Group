@@ -52,3 +52,16 @@ it("does not return a signed URL when the pointer switches during signing", asyn
   const f = playbackFixture(); f.sign.mockImplementation(async () => { f.pointer.cells.active.version = 2; return "https://synthetic.example/private-signed"; });
   expect(await resolveMargotMedia(f)).toEqual({ status: "stale" });
 });
+
+it("never signs a valid hash-keyed asset belonging to another owner within an otherwise owned packet", async () => {
+  const f = playbackFixture();
+  const media = f.packet.episodes[0].media;
+  if (media.kind === "awaiting_render" || !media.asset) throw new Error("Rendered asset required");
+  media.asset.objectPath = `99999999-9999-4999-8999-999999999999/margot/${media.asset.sha256}.mp4`;
+  const digest = packetDigest(f.packet);
+  f.pointer.cells.active.packetSHA256 = digest;
+  f.version.cells.packetSHA256 = digest;
+  f.request.packetSHA256 = digest;
+  expect(await resolveMargotMedia(f)).toEqual({ status: "unavailable" });
+  expect(f.sign).not.toHaveBeenCalled();
+});
