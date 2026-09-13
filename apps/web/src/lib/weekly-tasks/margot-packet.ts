@@ -1,3 +1,4 @@
+import { verifiedMediaAssetSchema } from "./margot-media-asset";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 
@@ -120,12 +121,16 @@ const media = z.discriminatedUnion("kind", [
     .object({
       kind: z.literal("approved_reference"),
       videoId: z.string().regex(/^[a-f0-9]{32}$/),
+      asset: verifiedMediaAssetSchema.optional(),
+      ownerApproval: z.object({ sha256: z.string().regex(/^[a-f0-9]{64}$/), receiptSHA256: z.string().regex(/^[a-f0-9]{64}$/) }).strict().optional(),
     })
     .strict(),
   z
     .object({
       kind: z.literal("generated_draft"),
       videoId: z.string().regex(/^[a-f0-9]{32}$/),
+      asset: verifiedMediaAssetSchema.optional(),
+      ownerApproval: z.object({ sha256: z.string().regex(/^[a-f0-9]{64}$/), receiptSHA256: z.string().regex(/^[a-f0-9]{64}$/) }).strict().optional(),
     })
     .strict(),
   z.object({ kind: z.literal("awaiting_render") }).strict(),
@@ -147,11 +152,10 @@ const privateEpisode = z
   .strict()
   .refine(
     (value) =>
-      value.media.kind === "approved_reference"
-        ? value.scriptApproval === "approved"
-        : value.scriptApproval === "pending",
+      value.media.kind !== "approved_reference" ||
+      value.scriptApproval === "approved",
     "Media and script review disagree",
-  );
+  ).refine(value => value.media.kind === "awaiting_render" || !value.media.asset || !value.media.ownerApproval || value.media.asset.sha256 === value.media.ownerApproval.sha256, "Owner media approval must match hosted bytes");
 const privateSchema = z
   .object({
     ...commonShape,

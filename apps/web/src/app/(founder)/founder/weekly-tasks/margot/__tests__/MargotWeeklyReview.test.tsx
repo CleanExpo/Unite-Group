@@ -1,9 +1,11 @@
 import { exportMargotPrivatePacket } from "@/lib/weekly-tasks/margot-packet-ingestion.operator";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import fixture from "@/lib/weekly-tasks/__tests__/margot-first-five.fixture.json";
 import { parseMargotWeeklyPacket } from "@/lib/weekly-tasks/margot-packet";
 import { MargotWeeklyReview } from "../MargotWeeklyReview";
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 
 describe("read-only Margot weekly review", () => {
   it("shows unconfigured source without fake counts, episodes, video or actions", () => {
@@ -78,10 +80,10 @@ describe("private connected review", () => {
       />,
     );
     expect(
-      screen.getAllByRole("link", { name: "Open video for review in HeyGen" }),
+      screen.getAllByRole("link", { name: "Watch original provider version in HeyGen" }),
     ).toHaveLength(5);
     expect(
-      screen.getAllByText(/Generated draft — owner review required/),
+      screen.getAllByText(/Generated draft — video review pending/),
     ).toHaveLength(4);
     expect(
       screen.getByText(/5 videos available to review; 0 awaiting render/),
@@ -90,9 +92,21 @@ describe("private connected review", () => {
       screen.getByText("<img src=x onerror=alert(1)>"),
     ).toBeInTheDocument();
     expect(container.querySelector("img")).toBeNull();
-    expect(screen.queryByRole("button")).toBeNull();
+    for (const button of screen.getAllByRole("button", { name: "Approve this version" })) expect(button).toBeDisabled();
+    expect(screen.queryByRole("button", { name: /publish|schedule/i })).toBeNull();
     expect(network).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
+  });
+  it("shows approved script while the new video and release remain pending", () => {
+    const packet = privatePacket();
+    packet.episodes[1].scriptApproval = "approved";
+    render(<MargotWeeklyReview review={{ source: "available", packet, batchId: "synthetic-week", version: 2, packetSHA256: "a".repeat(64), calendar: "current" }} />);
+    const draft = within(screen.getByRole("article", { name: packet.episodes[1].title }));
+    expect(draft.getByText("Script review: approved. Release: pending.")).toBeVisible();
+    expect(draft.getByText(/Generated draft — video review pending/)).toBeVisible();
+    expect(draft.queryByText(/Previously approved reference/)).toBeNull();
+    expect(draft.getByRole("button", { name: "Approve this version" })).toBeDisabled();
+    expect(draft.getByRole("link", { name: "Watch original provider version in HeyGen" })).toHaveAttribute("href", `https://app.heygen.com/videos/${"2".repeat(32)}`);
   });
   it("shows an incomplete prior batch truthfully", () => {
     const packet = privatePacket();

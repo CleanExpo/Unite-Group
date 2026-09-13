@@ -11,6 +11,7 @@ import ErrorBoundary from "../error";
 vi.mock("@/lib/weekly-tasks/margot-packet-reader", () => ({
   loadMargotPrivateReview: vi.fn(),
 }));
+vi.mock("@/lib/weekly-tasks/margot-content-review.server", () => ({ loadMargotContentEvents: vi.fn(async () => ({ status: "unavailable" })) }));
 vi.mock("@/lib/supabase/server", () => ({ getUser: vi.fn() }));
 vi.mock("next/navigation", () => ({
   redirect: (path: string) => {
@@ -54,7 +55,7 @@ describe("weekly page inherits founder authentication", () => {
     unmount();
     render(<ErrorBoundary reset={vi.fn()} />);
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "No decision has been recorded",
+      "Your saved review status could not be confirmed",
     );
   });
 });
