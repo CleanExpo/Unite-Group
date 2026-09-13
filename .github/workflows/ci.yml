@@ -227,6 +227,18 @@ jobs:
         working-directory: tools/board-release-verifier
         run: python3 -m unittest discover -s tests -v
 
+  complete-requires-push:
+    name: tools/complete-requires-push — tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # UNI-2643: run_build must consult push_ok. Stdlib-only, no network.
+      # Path-scoped via preflight so an empty docs diff does not pay for it.
+      - name: Test the complete-requires-push gate
+        working-directory: tools/complete-requires-push
+        run: python3 -m unittest discover -s tests -v
+
   docs-watch:
     name: Nexus official-docs watcher — Node ${{ matrix.node-version }}
     runs-on: ubuntu-latest
