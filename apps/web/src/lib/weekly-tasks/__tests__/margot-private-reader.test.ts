@@ -92,11 +92,23 @@ describe("private display contract", () => {
   it("accepts five explicitly unapproved review videos without treating drafts as masters", () => {
     expect(parseMargotPrivatePacket(packet()).success).toBe(true);
   });
+  it.each(["generated_draft", "awaiting_render"])("retains approved script independently of %s media", kind => {
+    const value = packet();
+    value.episodes[1].scriptApproval = "approved";
+    Object.assign(value.episodes[1], { media: kind === "awaiting_render" ? { kind } : { kind, videoId: "a".repeat(32) } });
+    const result = parseMargotPrivatePacket(value);
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error("Approved script rejected");
+    expect(result.data.episodes[1].scriptApproval).toBe("approved");
+    expect(result.data.episodes[1].media.kind).toBe(kind);
+    expect(result.data.episodes[1].releaseApproval).toBe("pending");
+    expect(result.data.releaseEligible).toBe(false);
+  });
   it.each([
     "release",
     "release-approval",
     "reference",
-    "generated",
+    "script-approval",
     "duplicate",
     "Thursday",
     "Monday",
@@ -109,7 +121,7 @@ describe("private display contract", () => {
     if (reason === "release-approval")
       value.episodes[1].releaseApproval = "approved";
     if (reason === "reference") value.episodes[0].scriptApproval = "pending";
-    if (reason === "generated") value.episodes[1].scriptApproval = "approved";
+    if (reason === "script-approval") value.episodes[1].scriptApproval = "unknown";
     if (reason === "duplicate") value.episodes[1].id = value.episodes[0].id;
     if (reason === "Thursday") value.weekStartsAt = "2026-09-11T16:00:00+10:00";
     if (reason === "Monday") value.reviewDueAt = value.weekStartsAt;
@@ -283,4 +295,42 @@ it("marks the prior selected pack stale when the following Monday review becomes
   expect(
     await readMargotPrivatePacket({ ...f.input, now: new Date(nextReview) }),
   ).toMatchObject({ source: "available", calendar: "stale" });
+});
+
+describe("verified private media rendition", () => {
+  it("accepts a bounded hash-keyed private captioned rendition without changing approval", () => {
+    const value = packet();
+    Object.assign(value.episodes[1].media, { asset: { sha256: "a".repeat(64), bucket: "media-uploads", objectPath: `${owner}/margot/${"a".repeat(64)}.mp4`, rendition: "captioned_mp4" } });
+    const parsed = parseMargotPrivatePacket(value);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.episodes[1].scriptApproval).toBe("pending");
+      expect(parsed.data.episodes[1].releaseApproval).toBe("pending");
+      expect(parsed.data.releaseEligible).toBe(false);
+    }
+  });
+  it("rejects a private media locator whose path does not match its byte digest", () => {
+    const value = packet();
+    Object.assign(value.episodes[1].media, { asset: { sha256: "a".repeat(64), bucket: "media-uploads", objectPath: `${owner}/margot/${"b".repeat(64)}.mp4`, rendition: "captioned_mp4" } });
+    expect(parseMargotPrivatePacket(value).success).toBe(false);
+  });
+});
+
+describe("media-only owner receipt", () => {
+  it("retains approved corrected media separately from whole proposal and release", () => {
+    const value = packet();
+    Object.assign(value.episodes[1].media, { ownerApproval: { sha256: "a".repeat(64), receiptSHA256: "b".repeat(64) } });
+    const parsed = parseMargotPrivatePacket(value);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.episodes[1].media.kind).toBe("generated_draft");
+      expect(parsed.data.episodes[1].scriptApproval).toBe("pending");
+      expect(parsed.data.episodes[1].releaseApproval).toBe("pending");
+    }
+  });
+  it("rejects an owner media receipt for different hosted bytes", () => {
+    const value = packet();
+    Object.assign(value.episodes[1].media, { ownerApproval: { sha256: "b".repeat(64), receiptSHA256: "c".repeat(64) }, asset: { sha256: "a".repeat(64), bucket: "media-uploads", objectPath: `${owner}/margot/${"a".repeat(64)}.mp4`, rendition: "captioned_mp4" } });
+    expect(parseMargotPrivatePacket(value).success).toBe(false);
+  });
 });

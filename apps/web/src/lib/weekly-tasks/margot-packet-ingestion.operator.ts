@@ -67,7 +67,7 @@ export function exportMargotPrivatePacket(
         media:
           kind === "awaiting_render"
             ? { kind }
-            : { kind, videoId: item.videoId },
+            : { kind, videoId: item.videoId, ...(item.mediaAsset === undefined ? {} : { asset: item.mediaAsset }), ...(item.mediaOwnerApproval === undefined ? {} : { ownerApproval: item.mediaOwnerApproval }) },
       };
     }),
   };
