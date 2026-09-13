@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { BUSINESSES } from '@/lib/businesses'
 import { getUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { loadXeroTokens } from '@/lib/integrations/xero'
 
 type IconProps = { size?: number; strokeWidth?: number; className?: string } & React.SVGProps<SVGSVGElement>
 
@@ -120,7 +121,7 @@ export default async function BusinessHubPage({ params }: Props) {
   const businessId = dbBusiness?.id
 
   // Fetch data in parallel — gracefully handle missing DB business
-  const [contactsResult, pagesResult, xeroResult, experimentsResult] = await Promise.all([
+  const [contactsResult, pagesResult, xeroTokens, experimentsResult] = await Promise.all([
     businessId
       ? supabase
           .from('contacts')
@@ -140,14 +141,7 @@ export default async function BusinessHubPage({ params }: Props) {
           .order('updated_at', { ascending: false })
           .limit(20)
       : Promise.resolve({ data: [] }),
-    businessId
-      ? supabase
-          .from('credentials_vault')
-          .select('id', { count: 'exact', head: true })
-          .eq('founder_id', user.id)
-          .eq('service', 'xero')
-          .eq('business_id', businessId)
-      : Promise.resolve({ count: 0 }),
+    businessId ? loadXeroTokens(user.id, business.key) : Promise.resolve(null),
     supabase
       .from('experiments')
       .select('id, title, status, experiment_type, created_at')
@@ -160,7 +154,7 @@ export default async function BusinessHubPage({ params }: Props) {
 
   const contactCount = ('count' in contactsResult ? contactsResult.count : 0) ?? 0
   const pages = ('data' in pagesResult ? pagesResult.data : []) ?? []
-  const xeroConnected = (('count' in xeroResult ? xeroResult.count : 0) ?? 0) > 0
+  const xeroConnected = Boolean(xeroTokens)
   const experiments = (('data' in experimentsResult ? experimentsResult.data : []) ?? []) as Array<{ id: string; title: string; status: string; experiment_type: string; created_at: string }>
 
   const quickActions = [
