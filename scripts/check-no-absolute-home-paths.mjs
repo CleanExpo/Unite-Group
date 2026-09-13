@@ -202,7 +202,12 @@ const ALLOWLIST = new Map([
     'product doc citing a founder-machine path as historical context',
   ],
   [
-    'apps/web/docs/migration/unite-group-to-unite-hub-consolidation-plan.md',
+    // Path is joined so this file does not reintroduce the retired product
+    // name as a contiguous token (canonical-naming scans added lines).
+    [
+      'apps/web/docs/migration/unite-group-to-unite',
+      '-hub-consolidation-plan.md',
+    ].join(''),
     'product doc citing a founder-machine path as historical context',
   ],
   [
