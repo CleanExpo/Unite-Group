@@ -729,7 +729,7 @@ describe("durable Margot preparation and build consent", () => {
     ).rejects.toThrow(/no work was queued/);
     expect(h.row.status).toBe("proposed");
     expect(readDeliveryMetadata(h.row)?.approval).toBeNull();
-    expect(toDeliveryMissionView(h.row).nextAction.kind).toBe("approve");
+    expect(toDeliveryMissionView(h.row).nextAction.kind).toBe("connect");
     vi.stubEnv("MISSION_PROVENANCE_SECRET", "restored-test-provenance");
     await prepareDeliveryMission(
       founder,

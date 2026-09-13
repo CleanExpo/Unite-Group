@@ -74,6 +74,11 @@ export interface ApprovedDelivery {
   sourceRefs: DeliveryMetadata["sourceRefs"];
   approval: NonNullable<DeliveryMetadata["approval"]>;
 }
+/** Readiness only: never creates a key, approval, or runner assignment. */
+export function isDeliveryApprovalSigningAvailable(): boolean {
+  return Boolean(process.env[MISSION_PROVENANCE_SECRET_ENV]?.trim());
+}
+
 /** Existing mission provenance key, domain-separated from voice envelopes. No fallback to an unkeyed hash. */
 export function signDeliveryApproval(
   task: CommandCentreTask,

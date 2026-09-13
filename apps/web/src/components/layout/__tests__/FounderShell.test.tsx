@@ -53,7 +53,7 @@ function renderShellAt(pathname: string, homePalette = pathname === '/founder/co
 }
 
 describe('FounderShell ⌘K guard (UNI-2397/UNI-2398)', () => {
-  it.each(['/founder/command-centre', '/founder/command-centre/operations', '/founder/campaigns/new', '/founder/bookkeeper'])('leaves chrome ownership to the common Mission Control shell at %s', pathname => {
+  it.each(['/founder/command-centre', '/founder/command-centre/operations', '/founder/campaigns/new', '/founder/bookkeeper', '/founder/weekly-tasks/margot'])('leaves chrome ownership to the common Mission Control shell at %s', pathname => {
     renderShellAt(pathname)
     expect(screen.queryByText('Legacy topbar')).not.toBeInTheDocument()
     expect(screen.getByText('deck')).toBeInTheDocument()
@@ -84,6 +84,7 @@ describe('FounderShell ⌘K guard (UNI-2397/UNI-2398)', () => {
   })
 
   it.each([
+    '/founder/weekly-tasks/margot',
     '/founder/command-centre/operations',
     '/founder/command-centre/portfolio',
     '/founder/command-centre/providers',

@@ -46,13 +46,19 @@ export async function DELETE(request: Request) {
   ] as const
 
   for (const table of tables) {
-    await supabase.from(table).delete().eq('founder_id', founderId)
+    const { error } = await supabase.from(table).delete().eq('founder_id', founderId)
+    if (error) {
+      return NextResponse.json({ error: 'Account deletion failed' }, { status: 500 })
+    }
   }
 
   // nexus_* is the older owner_id-scoped sub-system (no founder_id column) —
   // deleting by founder_id silently removed nothing for these two tables.
   for (const table of ['nexus_pages', 'nexus_rows'] as const) {
-    await supabase.from(table).delete().eq('owner_id', founderId)
+    const { error } = await supabase.from(table).delete().eq('owner_id', founderId)
+    if (error) {
+      return NextResponse.json({ error: 'Account deletion failed' }, { status: 500 })
+    }
   }
 
   // Delete the auth user — cascades FK-linked tables (experiments, nexus_databases, etc.)
