@@ -106,6 +106,14 @@ test('changed paths select the expected gate', () => {
   assert.ok(pick(['packages/spine/packages/spine/src/x.ts']).includes('spine'));
   assert.ok(!pick(['docs/brain/NEXUS.md']).includes('web'), 'a docs change must not trigger verify:web');
   assert.ok(pick(['apps/web/pnpm-lock.yaml']).includes('dependency-audit'), 'lockfiles match by basename');
+  assert.ok(
+    pick(['tools/complete-requires-push/complete_requires_push.py']).includes('complete-requires-push'),
+    'the UNI-2643 gate must run when its own tree changes',
+  );
+  assert.ok(
+    !pick(['docs/brain/NEXUS.md']).includes('complete-requires-push'),
+    'a docs change must not trigger complete-requires-push',
+  );
 });
 
 // ── apps/web build-input surface ─────────────────────────────────────────────
