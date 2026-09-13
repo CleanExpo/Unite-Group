@@ -447,6 +447,9 @@ const config = defineConfig(({ mode, command }) => {
 
   return {
     test: {
+      // Parallel file startup can exhaust filesystem capacity before imports finish.
+      // Keep each file's concurrent race tests intact without widening time limits.
+      fileParallelism: false,
       exclude: [
         '**/node_modules/**',
         '**/dist/**',
@@ -584,6 +587,10 @@ const config = defineConfig(({ mode, command }) => {
           if (command !== 'serve') return
         },
         configureServer(server) {
+          // Vitest also creates a Vite dev server, including with custom modes.
+          // Tests must never start agents, probe local runtimes or clean up ports.
+          if (command !== 'serve' || mode === 'test' || process.env.VITEST === 'true') return
+
           server.middlewares.use(async (req, res, next) => {
             const requestPath = req.url?.split('?')[0]
             if (req.method === 'GET' && requestPath === '/api/healthcheck') {

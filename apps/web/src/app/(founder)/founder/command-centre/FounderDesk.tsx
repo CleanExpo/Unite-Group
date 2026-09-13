@@ -34,6 +34,7 @@ export function FounderDesk({ projects }: { projects: Array<{ name: string }> })
 
   const load = useCallback(async () => {
     if (mutationInFlight.current) return
+    setLoading(true)
     const sequence = ++readSequence.current
     try {
       const response = await fetch('/api/command-centre/missions', { credentials: 'include', cache: 'no-store' })
@@ -102,6 +103,9 @@ export function FounderDesk({ projects }: { projects: Array<{ name: string }> })
         setSelectedId(data.mission.taskId)
         saveSelectedMission(data.mission.taskId)
       }
+      // This saved failure has its own operator-owned inline action. Do not
+      // leave a duplicate global error behind after a read-only recovery check.
+      if (!response.ok && data.mission?.nextAction.kind === 'connect' && data.mission.blockers.some(blocker => blocker.code === 'approval_signing_unavailable')) return
       if (!response.ok || !data.mission?.taskId) throw new Error(data.error || 'The mission was not confirmed. Your idea is retained so you can try again.')
     } catch (error) {
       if (current === interaction.current) setActionError(error instanceof Error ? error.message : 'The connection was interrupted. Try again to confirm this mission.')
@@ -146,7 +150,7 @@ export function FounderDesk({ projects }: { projects: Array<{ name: string }> })
         { title: 'Building', stages: ['queued', 'building'] },
         { title: 'Review & release', stages: ['review', 'release_blocked'] },
       ].map(lane => { const items = missions.filter(m => lane.stages.includes(m.stage)); return <section key={lane.title} className={styles.floorLane} aria-label={lane.title}><h3>{lane.title} <span>{readError ? '—' : items.length}</span></h3>{items.map(missionCard)}{!items.length && !readError && <p className={styles.helper}>No missions at this stage.</p>}</section> })}</div>}
-      {selected && <MissionDetail key={`${selected.taskId}:${selected.specVersion ?? 'draft'}`} mission={selected} busy={busy} stale={!!readError} onAction={request => void act(request)} />}
+      {selected && <MissionDetail key={`${selected.taskId}:${selected.specVersion ?? 'draft'}`} mission={selected} busy={busy} stale={!!readError} refreshing={loading} onRefresh={() => void load()} onAction={request => void act(request)} />}
     </section>}
     {view === 'desk' && <section className={styles.missionWorkspace} data-selected={!!selected} aria-label="Your missions">
       <div className={styles.missionList}>
@@ -157,7 +161,7 @@ export function FounderDesk({ projects }: { projects: Array<{ name: string }> })
         {missions.map(missionCard)}
         <Link href="/founder/command-centre/operations#task-queue" className={styles.helper}>Open all existing tasks and approvals</Link>
       </div>
-      {selected && <MissionDetail key={`${selected.taskId}:${selected.specVersion ?? 'draft'}`} mission={selected} busy={busy} stale={!!readError} onAction={request => void act(request)} />}
+      {selected && <MissionDetail key={`${selected.taskId}:${selected.specVersion ?? 'draft'}`} mission={selected} busy={busy} stale={!!readError} refreshing={loading} onRefresh={() => void load()} onAction={request => void act(request)} />}
     </section>}
   </div>
 }
