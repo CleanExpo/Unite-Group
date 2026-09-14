@@ -1,0 +1,18 @@
+{
+  "name": "Unite-Group monorepo (apps/web)",
+  "install": "bash .cursor/install.sh",
+  "start": "bash .cursor/start.sh",
+  "terminals": [
+    {
+      "name": "web-dev",
+      "command": "export PATH=\"$HOME/.nvm/versions/node/v24.21.0/bin:$PATH\"; cd apps/web && corepack pnpm@9.15.0 run dev",
+      "description": "Next.js dev server for the apps/web product surface (http://localhost:3008)."
+    }
+  ],
+  "ports": [
+    {
+      "name": "apps/web dev server",
+      "port": 3008
+    }
+  ]
+}
