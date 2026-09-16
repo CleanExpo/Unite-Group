@@ -190,6 +190,73 @@ test('a regular commit is not skipped just because its subject mentions merge', 
   );
 });
 
+// ── Bot-authored commits ────────────────────────────────────────────────────
+//
+// Dependabot cannot satisfy this convention: it has no way to put a Linear ref
+// on a subject, and its `commit-message` config sets only the PREFIX, so a
+// Gate: line is unreachable for it by construction. The job could therefore
+// only ever FAIL there — eight open dependency PRs carried that red X on
+// 2026-09-16 — and a permanently-red check teaches the reader that red is
+// normal, which is how a real failure gets scrolled past.
+//
+// Skipped, NOT gated. The job still runs on every PR and can still fail; this
+// is a peer of the mechanical-merge skip, counted and named in the output.
+//
+// TWO markers required, because a commit body is author-controlled. Forging one
+// line must not buy a bypass of the convention.
+
+const DEPENDABOT_BODY = [
+  'Bumps the minor-and-patch group in /apps/autopilot-runner with 1 update.',
+  '',
+  '---',
+  'updated-dependencies:',
+  '- dependency-name: "@types/node"',
+  '  dependency-version: 24.13.4',
+  '  update-type: version-update:semver-patch',
+  '...',
+  '',
+  'Signed-off-by: dependabot[bot] <support@github.com>',
+].join('\n');
+
+test('POSITIVE: a real Dependabot commit is skipped, not failed', () => {
+  // Body copied from 121ab784 on PR #1106 — a genuine dependabot commit.
+  const result = inspectCommit({
+    subject: 'build(deps-dev): bump @types/node',
+    body: DEPENDABOT_BODY,
+    parents: ['a'],
+  });
+  assert.equal(result.skipped, true, 'a commit the bot cannot fix must not fail the gate');
+  assert.equal(result.ok, true);
+  assert.equal(result.reason, 'bot-author');
+});
+
+test('BYPASS: one forged marker does not buy a skip', () => {
+  // Each of these carries SOME dependabot-shaped text but not both markers.
+  // If any of them skips, a human can opt out of the convention by typing a
+  // sign-off line — the exact defect class this suite exists to catch.
+  for (const body of [
+    'Signed-off-by: dependabot[bot] <support@github.com>',
+    'updated-dependencies:\n- dependency-name: "left-pad"\n...',
+    'This bump came from dependabot[bot], honest.',
+    '',
+  ]) {
+    const result = inspectCommit({ subject: HISTORICAL_SUBJECT, body, parents: ['a'] });
+    assert.equal(result.skipped ?? false, false, `must not skip on: ${body.slice(0, 40)}`);
+    assert.equal(result.ok, false, `must still fail on: ${body.slice(0, 40)}`);
+  }
+});
+
+test('MUTATION: a bot-signed commit still counts as skipped in a range, not checked', () => {
+  const { violations, checked, skipped } = inspectCommits([
+    { sha: 'bot', subject: 'build(deps): bump x', body: DEPENDABOT_BODY, parents: ['a'] },
+    { sha: 'human', subject: HISTORICAL_SUBJECT, body: 'no gate line', parents: ['bot'] },
+  ]);
+  assert.equal(skipped, 1, 'the bot commit is skipped');
+  assert.equal(checked, 1, 'the human commit is still judged');
+  assert.equal(violations.length, 1);
+  assert.equal(violations[0].sha, 'human', 'a bot commit in the range must not shield a human one');
+});
+
 // ── Range inspection ────────────────────────────────────────────────────────
 
 test('MUTATION: a good HEAD does not hide an earlier bad commit in the range', () => {
