@@ -11,7 +11,7 @@
  */
 
 import { strict as assert } from 'node:assert';
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -167,4 +167,19 @@ test('the real repo scan (allowlist excluded) is clean', () => {
     [],
     `unguarded home paths remain:\n${offenders.map((o) => `  ${o.file}:${o.line} ${o.sample}`).join('\n')}`,
   );
+});
+
+test('the LaunchAgent plist templates are SCANNED, not allowlisted, and carry placeholders', () => {
+  const plists = [
+    'apps/workspace/deploy/ai.hermes.dashboard.plist',
+    'apps/workspace/deploy/ai.hermes.workspace.plist',
+  ];
+  const scanned = trackedScannablePaths();
+  for (const p of plists) {
+    assert.ok(existsSync(p), `${p} must exist, or this test proves nothing`);
+    assert.equal(allowlistReason(p), null, `${p} must not be allowlisted — it holds runtime-executable paths`);
+    assert.ok(scanned.includes(p), `${p} must be in the scanned set`);
+    assert.match(readFileSync(p, 'utf8'), /__HOME__\//, `${p} must use the __HOME__ install-time placeholder`);
+  }
+  assert.deepEqual(findOffenders(plists), [], 'plist templates must not embed a home path');
 });

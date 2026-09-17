@@ -60,9 +60,10 @@ export const HOME_PATH_RE = /(?:\/Users\/|\/home\/)[A-Za-z0-9._-]+\//g;
  *
  * Listed EXPLICITLY, file by file, rather than by excluding a directory — the
  * point of this guard is that such files are visible. An excluded folder would
- * hide the next one. Every entry has a written reason. Executable hits were
- * removed or parameterised in UNI-2660; what remains is docs and host-local
- * artefacts.
+ * hide the next one. Every entry has a written reason. Nothing executable is
+ * allowlisted: the LaunchAgent plists under apps/workspace/deploy/ carry
+ * install-time placeholders and are scanned like any other file. What remains
+ * is docs, captured logs and one third-party documentation snapshot.
  */
 const ALLOWLIST = new Map([
   [
@@ -229,14 +230,6 @@ const ALLOWLIST = new Map([
   [
     'apps/workspace/FEATURES-INVENTORY.md',
     'workspace doc citing a founder-machine path as historical context',
-  ],
-  [
-    'apps/workspace/deploy/ai.hermes.dashboard.plist',
-    'host-local LaunchAgent template; absolute paths are required at install time',
-  ],
-  [
-    'apps/workspace/deploy/ai.hermes.workspace.plist',
-    'host-local LaunchAgent template; absolute paths are required at install time',
   ],
   [
     'apps/workspace/docs/swarm2-agent-ide-spec.md',
