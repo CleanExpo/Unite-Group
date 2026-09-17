@@ -18,6 +18,7 @@
     "verify": "npm run verify:readiness && npm run verify:docs-watch && npm run verify:docs-review && npm run verify:web && npm run verify:workspace && npm run verify:autopilot && npm run verify:mcp && npm run verify:spine && npm run verify:spec-board",
     "check:nul-bytes": "node --test scripts/__tests__/check-no-nul-bytes.test.mjs && node scripts/check-no-nul-bytes.mjs",
     "check:home-paths": "node --test scripts/__tests__/check-no-absolute-home-paths.test.mjs && node scripts/check-no-absolute-home-paths.mjs",
+    "check:commit-messages": "node --test scripts/__tests__/check-commit-messages.test.mjs && node scripts/check-commit-messages.mjs",
     "swarm:selftest": "node scripts/swarm/selftest.mjs",
     "swarm:review": "node scripts/swarm/swarm.mjs --diff --base origin/main && node scripts/swarm/report.mjs",
     "preflight": "node scripts/preflight.mjs",

@@ -69,6 +69,43 @@ jobs:
       - run: node --test scripts/__tests__/check-no-absolute-home-paths.test.mjs
       - run: node scripts/check-no-absolute-home-paths.mjs
 
+  commit-messages:
+    # nexus-conventions require a Linear ref on the subject and a Gate: line in
+    # the body. Nothing enforced either, so they failed silently — UNI-2658's
+    # instance was 14bb3b60 on PR #1066 (fast-uri bump, no UNI-2640, no Gate:).
+    # A squash-merge of that PR would have papered over one SHA; this job is
+    # the durable check. Range-only: it does not re-litigate main's history.
+    # fetch-depth: 0 is load-bearing — a shallow clone that cannot see the
+    # base would look like an empty range and report clean.
+    name: Commit-message convention (Linear ref + Gate line)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          # Judge the PR branch, not GitHub's temporary merge-into-base ref.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # Full fetch. `--depth=1` after checkout severs merge-base: the range
+      # then has no common ancestor and dumps main's history as PR commits.
+      # That is the #1104 update-branch failure. Do not reintroduce --depth=1.
+      - name: Fetch the comparison base with enough history for merge-base
+        run: git fetch --no-tags origin "${{ github.base_ref || 'main' }}"
+
+      - run: node --test scripts/__tests__/check-commit-messages.test.mjs
+
+      - name: Check commit messages in the PR range
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            node scripts/check-commit-messages.mjs "origin/${{ github.base_ref }}" HEAD
+          else
+            node scripts/check-commit-messages.mjs
+          fi
+
   swarm:
     # The swarm's own logic gate. Added in the phase-3 PR after noticing that
     # 197 assertions had shipped across two merged PRs with NOTHING running

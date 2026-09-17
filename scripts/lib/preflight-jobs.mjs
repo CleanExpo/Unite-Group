@@ -43,6 +43,15 @@ export const JOBS = [
     cmd: ['npm', ['run', 'check:home-paths']],
   },
   {
+    id: 'commit-messages',
+    ciJob: 'commit-messages',
+    label: 'Commit-message convention (Linear ref + Gate line)',
+    // Always: the thing it catches is a commit subject/body, which is not a
+    // path. Path-scoping it would skip the exact PR that forgot the Linear ref.
+    always: true,
+    cmd: ['npm', ['run', 'check:commit-messages']],
+  },
+  {
     id: 'swarm',
     ciJob: 'swarm',
     label: 'scripts/swarm — self-test',
