@@ -237,6 +237,10 @@ const BYPASS_CASES = [
     symlinkSync(leak(['Users', 'someone', 'private', 'config']), join(dir, 'link.ts'));
     git('add', '.');
   }],
+  ['a symlink with a binary extension (link.png)', (dir, git) => {
+    symlinkSync(leak(['Users', 'someone', 'private', 'config']), join(dir, 'link.png'));
+    git('add', '.');
+  }],
   ['a deleted-but-still-indexed file', (dir, git) => {
     writeFileSync(join(dir, 'gone.ts'), `const p = "${leak(['Users', 'someone', 'cfg'])}";\n`);
     git('add', '.');

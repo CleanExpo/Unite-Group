@@ -454,7 +454,9 @@ export function trackedEntries() {
       return { mode: m[1], sha: m[2], path: m[3] };
     })
     .filter((e) => e.mode !== '160000')
-    .filter((e) => shouldScan(e.path))
+    // A symlink's blob is its target TEXT whatever the name says, so the
+    // binary-extension skip applies to regular files only (link.png -> /Users/…).
+    .filter((e) => e.mode === '120000' || shouldScan(e.path))
     .filter((e) => !ALLOWLIST.has(e.path));
 }
 
