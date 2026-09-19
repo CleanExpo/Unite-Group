@@ -454,10 +454,21 @@ export function trackedEntries() {
       return { mode: m[1], sha: m[2], path: m[3] };
     })
     .filter((e) => e.mode !== '160000')
-    // A symlink's blob is its target TEXT whatever the name says, so the
-    // binary-extension skip applies to regular files only (link.png -> /Users/…).
-    .filter((e) => e.mode === '120000' || shouldScan(e.path))
+    // A symlink's target is TEXT whatever the name says, so the binary-extension
+    // skip applies to regular-file content only. That holds for the index entry
+    // (link.png -> /Users/…) AND for the working tree, where an unstaged edit can
+    // turn a tracked image into a symlink without changing the index mode.
+    .filter((e) => e.mode === '120000' || shouldScan(e.path) || isWorkingTreeSymlink(e.path))
     .filter((e) => !ALLOWLIST.has(e.path));
+}
+
+function isWorkingTreeSymlink(path) {
+  try {
+    return lstatSync(path).isSymbolicLink();
+  } catch (err) {
+    if (err.code === 'ENOENT') return false;
+    throw err;
+  }
 }
 
 /** Tracked paths this guard is responsible for. */
@@ -499,11 +510,13 @@ export function findTrackedOffenders(entries) {
   const blobs = indexBlobs(entries.map((e) => e.sha));
   const offenders = [];
   for (const e of entries) {
-    const texts = [blobs.get(e.sha)];
+    // Content is text when it is link target text or a non-binary file; binary
+    // image/font/etc. bytes are never pattern-matched, on either side.
+    const texts = e.mode === '120000' || shouldScan(e.path) ? [blobs.get(e.sha)] : [];
     try {
       const st = lstatSync(e.path);
       if (st.isSymbolicLink()) texts.push(readlinkSync(e.path));
-      else if (st.isFile()) texts.push(readFileSync(e.path, 'utf8'));
+      else if (st.isFile() && shouldScan(e.path)) texts.push(readFileSync(e.path, 'utf8'));
     } catch (err) {
       if (err.code !== 'ENOENT') throw err;
     }

@@ -241,6 +241,12 @@ const BYPASS_CASES = [
     symlinkSync(leak(['Users', 'someone', 'private', 'config']), join(dir, 'link.png'));
     git('add', '.');
   }],
+  ['a tracked image replaced, unstaged, by a home-path symlink', (dir, git) => {
+    writeFileSync(join(dir, 'link.png'), 'not really a png\n');
+    git('add', '.');
+    rmSync(join(dir, 'link.png'));
+    symlinkSync(leak(['Users', 'someone', 'private', 'config']), join(dir, 'link.png'));
+  }],
   ['a deleted-but-still-indexed file', (dir, git) => {
     writeFileSync(join(dir, 'gone.ts'), `const p = "${leak(['Users', 'someone', 'cfg'])}";\n`);
     git('add', '.');
@@ -263,6 +269,16 @@ for (const [label, setup] of BYPASS_CASES) {
     });
   });
 }
+
+test('END TO END: binary bytes that happen to spell a home path are not scanned', () => {
+  withScratchRepo((dir, git) => {
+    writeFileSync(join(dir, 'photo.png'), `\x89PNG ${leak(['Users', 'someone', 'x'])}/\n`);
+    git('add', '.');
+  }, (dir) => {
+    const res = runGuardIn(dir);
+    assert.equal(res.status, 0, `${res.stdout}${res.stderr}`);
+  });
+});
 
 test('END TO END: the same scratch repo with a clean file stays green', () => {
   withScratchRepo((dir, git) => {
