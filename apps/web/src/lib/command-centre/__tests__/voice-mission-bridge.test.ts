@@ -649,8 +649,9 @@ describe('voice mission receipts', () => {
   })
 
   it('carries codes, never prose, and never the transcript', () => {
+    const home = ['', 'Users', 'example'].join('/')
     const secretish =
-      `call me on sk-live_ABCDEFGHIJKLMNOPQRSTUV and see ${['', 'Users', 'example', '.claude', 'creds'].join('/')}`
+      `call me on sk-live_ABCDEFGHIJKLMNOPQRSTUV and see ${home}/.claude/creds`
     const event = buildVoiceMissionEvent({
       verb: 'admitted',
       missionRef: 'voice:abc',
@@ -658,7 +659,7 @@ describe('voice mission receipts', () => {
     })
     const serialised = JSON.stringify(event)
     expect(serialised).not.toContain('sk-live_ABCDEFGHIJKLMNOPQRSTUV')
-    expect(serialised).not.toContain('/Users/phill-mac')
+    expect(serialised).not.toContain(home)
     expect(event.target).toMatch(/^[a-zA-Z0-9._:/-]*$/)
   })
 
