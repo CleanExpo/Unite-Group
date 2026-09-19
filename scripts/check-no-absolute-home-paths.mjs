@@ -24,7 +24,7 @@
  */
 
 import { execSync } from 'node:child_process';
-import { readFileSync, statSync } from 'node:fs';
+import { lstatSync, readFileSync, readlinkSync, statSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
 /**
@@ -436,18 +436,91 @@ export function findOffenders(paths) {
   return offenders;
 }
 
+/**
+ * Index entries this guard is responsible for: `{ mode, sha, path }`.
+ *
+ * NUL-delimited on purpose. Plain `git ls-files` C-quotes any path holding a
+ * non-ASCII byte, a quote or a newline, and the quoted form names no file on
+ * disk — so every such file used to be skipped and the scan still said clean.
+ * Submodules (mode 160000) carry no content of their own.
+ */
+export function trackedEntries() {
+  return execSync('git ls-files -s -z', { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
+    .split('\0')
+    .filter(Boolean)
+    .map((rec) => {
+      const m = /^(\d{6}) ([0-9a-f]+) \d\t([\s\S]+)$/.exec(rec);
+      if (!m) throw new Error(`unparseable git ls-files record: ${JSON.stringify(rec)}`);
+      return { mode: m[1], sha: m[2], path: m[3] };
+    })
+    .filter((e) => e.mode !== '160000')
+    .filter((e) => shouldScan(e.path))
+    .filter((e) => !ALLOWLIST.has(e.path));
+}
+
 /** Tracked paths this guard is responsible for. */
 export function trackedScannablePaths() {
-  return execSync('git ls-files', { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
-    .split('\n')
-    .filter(Boolean)
-    .filter(shouldScan)
-    .filter((f) => !ALLOWLIST.has(f));
+  return trackedEntries().map((e) => e.path);
+}
+
+/** Every blob's content from the index, in one `git cat-file --batch` pass. */
+function indexBlobs(shas) {
+  const unique = [...new Set(shas)];
+  const out = execSync('git cat-file --batch', {
+    input: unique.join('\n') + '\n',
+    maxBuffer: 1024 * 1024 * 1024,
+  });
+  const blobs = new Map();
+  let pos = 0;
+  for (const sha of unique) {
+    const nl = out.indexOf(0x0a, pos);
+    const header = out.subarray(pos, nl).toString('utf8');
+    const m = /^([0-9a-f]+) blob (\d+)$/.exec(header);
+    if (!m || m[1] !== sha) throw new Error(`git cat-file returned ${JSON.stringify(header)} for ${sha}`);
+    const size = Number(m[2]);
+    blobs.set(sha, out.subarray(nl + 1, nl + 1 + size).toString('utf8'));
+    pos = nl + 1 + size + 1;
+  }
+  return blobs;
+}
+
+/**
+ * Scan what is TRACKED, not only what happens to be on disk.
+ *
+ * Each entry is judged on its index blob — for a symlink that blob is the link
+ * target text, which following the link with readFileSync never sees — and, when
+ * the working-tree copy exists, on that copy too (link text for a symlink), so an
+ * unstaged edit is caught before it is committed. A deleted-but-indexed file is
+ * still scanned through its blob. Nothing is skipped silently.
+ */
+export function findTrackedOffenders(entries) {
+  const blobs = indexBlobs(entries.map((e) => e.sha));
+  const offenders = [];
+  for (const e of entries) {
+    const texts = [blobs.get(e.sha)];
+    try {
+      const st = lstatSync(e.path);
+      if (st.isSymbolicLink()) texts.push(readlinkSync(e.path));
+      else if (st.isFile()) texts.push(readFileSync(e.path, 'utf8'));
+    } catch (err) {
+      if (err.code !== 'ENOENT') throw err;
+    }
+    for (const text of texts) {
+      const matches = text.match(new RegExp(HOME_PATH_RE.source, 'g'));
+      if (!matches) continue;
+      const idx = text.search(new RegExp(HOME_PATH_RE.source));
+      const line = text.slice(0, idx).split('\n').length;
+      offenders.push({ file: e.path, line, count: matches.length, sample: matches[0] });
+      break;
+    }
+  }
+  return offenders;
 }
 
 export function main() {
-  const files = trackedScannablePaths();
-  const offenders = findOffenders(files);
+  const entries = trackedEntries();
+  const files = entries.map((e) => e.path);
+  const offenders = findTrackedOffenders(entries);
 
   if (offenders.length === 0) {
     console.log(

@@ -11,19 +11,53 @@
  */
 
 import { strict as assert } from 'node:assert';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import {
   HOME_PATH_RE,
   allowlistReason,
   allowlistedPaths,
   findOffenders,
+  findTrackedOffenders,
   shouldScan,
+  trackedEntries,
   trackedScannablePaths,
 } from '../check-no-absolute-home-paths.mjs';
+
+const GUARD = fileURLToPath(new URL('../check-no-absolute-home-paths.mjs', import.meta.url));
+const SWARM_ENV_CHECK = fileURLToPath(
+  new URL('../../apps/workspace/scripts/swarm-env-check.sh', import.meta.url),
+);
+
+/** A throwaway git repo; `setup(dir)` writes and stages whatever the case needs. */
+function withScratchRepo(setup, body) {
+  const dir = mkdtempSync(join(tmpdir(), 'home-path-repo-'));
+  try {
+    const git = (...args) => execFileSync('git', args, { cwd: dir, stdio: 'pipe' });
+    git('init', '-q');
+    setup(dir, git);
+    return body(dir);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+function runGuardIn(dir) {
+  return spawnSync(process.execPath, [GUARD], { cwd: dir, encoding: 'utf8' });
+}
 
 function leak(parts) {
   return ['', ...parts].join('/');
@@ -161,7 +195,7 @@ test('every ALLOWLIST entry has a written reason and is a real tracked path', ()
 });
 
 test('the real repo scan (allowlist excluded) is clean', () => {
-  const offenders = findOffenders(trackedScannablePaths());
+  const offenders = findTrackedOffenders(trackedEntries());
   assert.deepEqual(
     offenders,
     [],
@@ -182,4 +216,86 @@ test('the LaunchAgent plist templates are SCANNED, not allowlisted, and carry pl
     assert.match(readFileSync(p, 'utf8'), /__HOME__\//, `${p} must use the __HOME__ install-time placeholder`);
   }
   assert.deepEqual(findOffenders(plists), [], 'plist templates must not embed a home path');
+});
+
+// Review round 3 (UNI-2660) planted each of these in a scratch repo and the guard
+// printed "clean". Each case now runs the real guard end to end and requires red.
+const BYPASS_CASES = [
+  ['a non-ASCII filename (git C-quotes it)', (dir, git) => {
+    writeFileSync(join(dir, 'é.ts'), `const p = "${leak(['Users', 'someone', 'cfg'])}";\n`);
+    git('add', '.');
+  }],
+  ['a filename holding a double quote', (dir, git) => {
+    writeFileSync(join(dir, 'bad"name.ts'), `const p = "${leak(['Users', 'someone', 'cfg'])}";\n`);
+    git('add', '.');
+  }],
+  ['a filename holding a newline', (dir, git) => {
+    writeFileSync(join(dir, 'bad\nname.ts'), `const p = "${leak(['home', 'someone', 'cfg'])}";\n`);
+    git('add', '.');
+  }],
+  ['a symlink whose tracked target is a home path', (dir, git) => {
+    symlinkSync(leak(['Users', 'someone', 'private', 'config']), join(dir, 'link.ts'));
+    git('add', '.');
+  }],
+  ['a deleted-but-still-indexed file', (dir, git) => {
+    writeFileSync(join(dir, 'gone.ts'), `const p = "${leak(['Users', 'someone', 'cfg'])}";\n`);
+    git('add', '.');
+    rmSync(join(dir, 'gone.ts'));
+  }],
+  ['an unstaged edit to a tracked file', (dir, git) => {
+    mkdirSync(join(dir, 'src'));
+    writeFileSync(join(dir, 'src', 'ok.ts'), 'export {};\n');
+    git('add', '.');
+    writeFileSync(join(dir, 'src', 'ok.ts'), `const p = "${leak(['Users', 'someone', 'cfg'])}";\n`);
+  }],
+];
+
+for (const [label, setup] of BYPASS_CASES) {
+  test(`END TO END: the guard goes red for ${label}`, () => {
+    withScratchRepo(setup, (dir) => {
+      const res = runGuardIn(dir);
+      assert.equal(res.status, 1, `expected exit 1, got ${res.status}\n${res.stdout}${res.stderr}`);
+      assert.match(res.stderr, /ABSOLUTE HOME PATHS FOUND/);
+    });
+  });
+}
+
+test('END TO END: the same scratch repo with a clean file stays green', () => {
+  withScratchRepo((dir, git) => {
+    writeFileSync(join(dir, 'é.ts'), 'const p = "$HOME/cfg";\n');
+    symlinkSync('relative/target', join(dir, 'link.ts'));
+    git('add', '.');
+  }, (dir) => {
+    const res = runGuardIn(dir);
+    assert.equal(res.status, 0, `${res.stdout}${res.stderr}`);
+    assert.match(res.stdout, /clean \(2 tracked files/);
+  });
+});
+
+// UNI-2660 replaced swarm-env-check.sh's founder-machine path with the checkout's
+// own root. That must not turn it into "any Git project with a name passes".
+test('swarm-env-check refuses an unrelated repository', () => {
+  withScratchRepo((dir) => {
+    writeFileSync(join(dir, 'package.json'), '{"name":"unrelated-product"}\n');
+  }, (dir) => {
+    const res = spawnSync('bash', [SWARM_ENV_CHECK], { cwd: dir, encoding: 'utf8' });
+    assert.equal(res.status, 1, `${res.stdout}${res.stderr}`);
+    assert.match(res.stdout, /not the canonical repo/);
+  });
+});
+
+test('swarm-env-check refuses a repo named unite-group with no hermes-workspace', () => {
+  withScratchRepo((dir) => {
+    writeFileSync(join(dir, 'package.json'), '{"name":"unite-group"}\n');
+  }, (dir) => {
+    const res = spawnSync('bash', [SWARM_ENV_CHECK], { cwd: dir, encoding: 'utf8' });
+    assert.equal(res.status, 1, `${res.stdout}${res.stderr}`);
+    assert.match(res.stdout, /unexpected workspace package name/);
+  });
+});
+
+test('swarm-env-check accepts this checkout', () => {
+  const res = spawnSync('bash', [SWARM_ENV_CHECK], { encoding: 'utf8' });
+  assert.equal(res.status, 0, `${res.stdout}${res.stderr}`);
+  assert.match(res.stdout, /package=hermes-workspace/);
 });
