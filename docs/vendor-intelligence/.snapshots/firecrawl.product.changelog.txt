@@ -1,6 +1,6 @@
 Changelog | Firecrawl
 Introducing the Firecrawl Developer Index, built for supercharging coding agents. Read the announcement →
-176.8K Sign up
+182.2K Sign up
 Changelog
 Aug 20, 2026
 Firecrawl Developer Index
@@ -182,7 +182,7 @@ Browser Sandbox - Launch secure, isolated browser sessions with Python, JavaScri
 Multi-Language Support - Execute Python, JavaScript, or bash code remotely. Send commands via API, CLI, or SDK and get results instantly.
 agent-browser Integration - Pre-installed CLI with 40+ commands. AI agents write simple bash commands instead of complex Playwright code.
 Live View & CDP Access - Watch sessions in real time via embeddable stream URL or connect your own Playwright instance over WebSocket.
-Session Management - Configurable TTL controls, parallel sessions (up to 20 concurrent), and automatic cleanup. 2 credits per browser minute with 5 minutes free.
+Session Management - Configurable TTL controls, parallel sessions (up to 20 concurrent), and automatic cleanup. 2 credits per browser minute.
 Read the full documentation here .
 Feb 6, 2026
 Improved Logo Extraction for Branding Format v2
@@ -424,6 +424,7 @@ What is Enhanced Mode : Enhanced Mode is a specialized proxy feature for scrapin
 Pricing Change : Starting May 8th, 2025, Enhanced Mode proxy requests will cost 5 credits per request (previously included in standard credit pricing).
 Quality Improvements : The price adjustment reflects significant quality improvements to Enhanced Mode, ensuring higher success rates and more reliable data extraction from complex and difficult-to-scrape sites.
 Usage Optimization : For optimal credit usage, consider using Enhanced Mode as a retry mechanism only when encountering specific error status codes (401, 403, or 500).
+Update (August 17, 2026) : The 5-credit price above no longer applies. Enhanced Mode requests are billed at the same 1 credit per request as basic requests, and an automatic escalated retry is not charged separately. See the Enhanced Mode docs .
 Apr 28, 2025
 Firecrawl Launch Week III – Summary
 Firecrawl Launch Week III – Summary

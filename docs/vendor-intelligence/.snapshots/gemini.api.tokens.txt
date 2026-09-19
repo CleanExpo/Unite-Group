@@ -96,21 +96,23 @@ import com.google.genai.gaos.models.interactions.CreateModelInteraction ;
 import com.google.genai.gaos.models.interactions.Interaction ;
 import com.google.genai.gaos.models.interactions.InteractionsInput ;
 import com.google.genai.gaos.models.interactions.Model ;
-import com.google.genai.gaos.models.interactions.Usage ;
 import com.google.genai.gaos.models.operations.CreateInteractionRequestBody ;
+import com.google.genai.types.CountTokensResponse ;
 Client client = new Client ();
+String prompt = "The quick brown fox jumps over the lazy dog." ;
+// Count tokens before sending
+CountTokensResponse countResponse =
+client . models . countTokens ( "gemini-3.8-flash" , prompt , null );
+System . out . println ( "total_tokens: " + countResponse . totalTokens (). orElse ( 0 ));
+// Get usage from interaction
 CreateModelInteraction params =
 CreateModelInteraction . builder ()
 . model ( Model . of ( "gemini-3.8-flash" ))
-. input ( InteractionsInput . of ( "Calculate tokens for this message." ))
+. input ( InteractionsInput . of ( prompt ))
 . build ();
 Interaction interaction =
 client . interactions . create ( CreateInteractionRequestBody . of ( params )). interaction (). get ();
-if ( interaction . usage (). isPresent ()) {
-Usage usage = interaction . usage (). get ();
-System . out . println ( "Input tokens: " + usage . totalInputTokens (). orElse ( 0 ));
-System . out . println ( "Output tokens: " + usage . totalOutputTokens (). orElse ( 0 ));
-}
+System . out . println ( interaction . usage (). orElse ( null ));
 REST
 # Specifies the API revision to avoid breaking changes when they become default
 curl -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:countTokens" \
@@ -160,17 +162,29 @@ import com.google.genai.gaos.models.interactions.Model ;
 import com.google.genai.gaos.models.interactions.Usage ;
 import com.google.genai.gaos.models.operations.CreateInteractionRequestBody ;
 Client client = new Client ();
-CreateModelInteraction params =
+// First interaction
+CreateModelInteraction params1 =
 CreateModelInteraction . builder ()
 . model ( Model . of ( "gemini-3.8-flash" ))
-. input ( InteractionsInput . of ( "Calculate tokens for this message." ))
+. input ( InteractionsInput . of ( "Hi, my name is Bob" ))
 . build ();
-Interaction interaction =
-client . interactions . create ( CreateInteractionRequestBody . of ( params )). interaction (). get ();
-if ( interaction . usage (). isPresent ()) {
-Usage usage = interaction . usage (). get ();
+Interaction interaction1 =
+client . interactions . create ( CreateInteractionRequestBody . of ( params1 )). interaction (). get ();
+// Second interaction continues the conversation
+CreateModelInteraction params2 =
+CreateModelInteraction . builder ()
+. model ( Model . of ( "gemini-3.8-flash" ))
+. input ( InteractionsInput . of ( "What's my name?" ))
+. previousInteractionId ( interaction1 . id (). orElse ( "" ))
+. build ();
+Interaction interaction2 =
+client . interactions . create ( CreateInteractionRequestBody . of ( params2 )). interaction (). get ();
+// Usage includes tokens from both turns
+if ( interaction2 . usage (). isPresent ()) {
+Usage usage = interaction2 . usage (). get ();
 System . out . println ( "Input tokens: " + usage . totalInputTokens (). orElse ( 0 ));
 System . out . println ( "Output tokens: " + usage . totalOutputTokens (). orElse ( 0 ));
+System . out . println ( "Total tokens: " + usage . totalTokens (). orElse ( 0 ));
 }
 Count multimodal tokens
 All input to the Gemini API is tokenized, including images, video, and audio.
@@ -218,24 +232,52 @@ console . log ( countResponse . totalTokens );
 Java
 import com.google.genai.Client ;
 import com.google.genai.gaos.models.interactions.CreateModelInteraction ;
+import com.google.genai.gaos.models.interactions.ImageContent ;
+import com.google.genai.gaos.models.interactions.ImageContentMimeType ;
 import com.google.genai.gaos.models.interactions.Interaction ;
 import com.google.genai.gaos.models.interactions.InteractionsInput ;
 import com.google.genai.gaos.models.interactions.Model ;
-import com.google.genai.gaos.models.interactions.Usage ;
+import com.google.genai.gaos.models.interactions.TextContent ;
 import com.google.genai.gaos.models.operations.CreateInteractionRequestBody ;
+import com.google.genai.types.Content ;
+import com.google.genai.types.CountTokensResponse ;
+import com.google.genai.types.File ;
+import com.google.genai.types.Part ;
+import com.google.genai.types.UploadFileConfig ;
+import java.util.Arrays ;
 Client client = new Client ();
+File uploadedFile =
+client . files . upload (
+new java . io . File ( "path/to/image.jpg" ),
+UploadFileConfig . builder (). mimeType ( "image/jpeg" ). build ());
+// Count tokens for image + text
+CountTokensResponse countResponse =
+client . models . countTokens (
+"gemini-3.8-flash" ,
+Arrays . asList (
+Content . fromParts (
+Part . fromText ( "Tell me about this image" ),
+Part . fromUri (
+uploadedFile . uri (). orElse ( "" ), uploadedFile . mimeType (). orElse ( "image/jpeg" )))),
+null );
+System . out . println ( "Total tokens: " + countResponse . totalTokens (). orElse ( 0 ));
+// Generate with image
 CreateModelInteraction params =
 CreateModelInteraction . builder ()
 . model ( Model . of ( "gemini-3.8-flash" ))
-. input ( InteractionsInput . of ( "Calculate tokens for this message." ))
+. input (
+InteractionsInput . ofContent (
+Arrays . asList (
+TextContent . builder (). text ( "Tell me about this image" ). build (),
+ImageContent . builder ()
+. uri ( uploadedFile . uri (). orElse ( "" ))
+. mimeType (
+ImageContentMimeType . of ( uploadedFile . mimeType (). orElse ( "image/jpeg" )))
+. build ())))
 . build ();
 Interaction interaction =
 client . interactions . create ( CreateInteractionRequestBody . of ( params )). interaction (). get ();
-if ( interaction . usage (). isPresent ()) {
-Usage usage = interaction . usage (). get ();
-System . out . println ( "Input tokens: " + usage . totalInputTokens (). orElse ( 0 ));
-System . out . println ( "Output tokens: " + usage . totalOutputTokens (). orElse ( 0 ));
-}
+System . out . println ( interaction . usage (). orElse ( null ));
 Inline data example:
 Python
 # This will only work for SDK newer than 2.0.0
@@ -366,25 +408,11 @@ console . log ( `Input token limit: ${ modelInfo . inputTokenLimit } ` );
 console . log ( `Output token limit: ${ modelInfo . outputTokenLimit } ` );
 Java
 import com.google.genai.Client ;
-import com.google.genai.gaos.models.interactions.CreateModelInteraction ;
-import com.google.genai.gaos.models.interactions.Interaction ;
-import com.google.genai.gaos.models.interactions.InteractionsInput ;
-import com.google.genai.gaos.models.interactions.Model ;
-import com.google.genai.gaos.models.interactions.Usage ;
-import com.google.genai.gaos.models.operations.CreateInteractionRequestBody ;
+import com.google.genai.types.Model ;
 Client client = new Client ();
-CreateModelInteraction params =
-CreateModelInteraction . builder ()
-. model ( Model . of ( "gemini-3.8-flash" ))
-. input ( InteractionsInput . of ( "Calculate tokens for this message." ))
-. build ();
-Interaction interaction =
-client . interactions . create ( CreateInteractionRequestBody . of ( params )). interaction (). get ();
-if ( interaction . usage (). isPresent ()) {
-Usage usage = interaction . usage (). get ();
-System . out . println ( "Input tokens: " + usage . totalInputTokens (). orElse ( 0 ));
-System . out . println ( "Output tokens: " + usage . totalOutputTokens (). orElse ( 0 ));
-}
+Model modelInfo = client . models . get ( "gemini-3.8-flash" , null );
+System . out . println ( "Input token limit: " + modelInfo . inputTokenLimit (). orElse ( 0 ));
+System . out . println ( "Output token limit: " + modelInfo . outputTokenLimit (). orElse ( 0 ));
 Find context window sizes on the models page.
 What's next
 Text generation : Generation basics
@@ -392,4 +420,4 @@ Caching : Reduce costs with caching
 Pricing : Understand costs
 Send feedback
 Except as otherwise noted, the content of this page is licensed under the Creative Commons Attribution 4.0 License , and code samples are licensed under the Apache 2.0 License . For details, see the Google Developers Site Policies . Java is a registered trademark of Oracle and/or its affiliates.
-Last updated 2026-09-04 UTC.
+Last updated 2026-09-17 UTC.
