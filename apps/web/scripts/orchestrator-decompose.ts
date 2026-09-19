@@ -19,7 +19,16 @@
 import { writeFile, mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 
-const OUTPUT_DIR = '/Users/phillmcgurk/2nd-brain/.agentic_nexus/outputs/orchestrator-decompose'
+function agenticNexusRoot(): string {
+  return (process.env.SENIOR_PM_ROOT || process.env.AGENTIC_NEXUS_PATH || '').replace(/\/$/, '')
+}
+
+function resolveOutputDir(): string {
+  const root = agenticNexusRoot()
+  return root
+    ? join(root, 'outputs', 'orchestrator-decompose')
+    : join(process.cwd(), '.agentic-nexus-outputs', 'orchestrator-decompose')
+}
 
 export interface WorkerProfile {
   worker_id: string
@@ -208,8 +217,9 @@ export async function runOrchestratorDecompose(input: DecomposeInput): Promise<D
 
   // Optional: write to disk (operator-controlled)
   if (process.env.ORCHESTRATOR_DECOMPOSE_OUTPUT === '1') {
-    await mkdir(OUTPUT_DIR, { recursive: true })
-    const path = join(OUTPUT_DIR, `${Date.now()}.json`)
+    const outputDir = resolveOutputDir()
+    await mkdir(outputDir, { recursive: true })
+    const path = join(outputDir, `${Date.now()}.json`)
     await writeFile(path, JSON.stringify(report, null, 2))
     report.notes.push(`Wrote report to: ${path}`)
   }
@@ -226,7 +236,10 @@ if (typeof process !== 'undefined' && process.env.ORCHESTRATOR_DECOMPOSE === '1'
   }
   // Read workers from worker_registry.jsonl (the standard pattern)
   import('node:fs/promises').then(async (fs) => {
-    const registryPath = '/Users/phillmcgurk/2nd-brain/.agentic_nexus/worker_registry.jsonl'
+    const root = agenticNexusRoot()
+    const registryPath = root
+      ? join(root, 'worker_registry.jsonl')
+      : join(process.cwd(), 'worker_registry.jsonl')
     let workers: WorkerProfile[] = []
     try {
       const content = await fs.readFile(registryPath, 'utf-8')

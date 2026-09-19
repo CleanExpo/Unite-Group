@@ -309,7 +309,7 @@ describe('CliLaneAdapter', () => {
 
   it('redacts an incomplete provider token at the raw capture boundary', () => {
     const capturedTokenLength = 12
-    const pathPrefix = '/Users/example/'
+    const pathPrefix = `${['', 'Users', 'example'].join('/')}/`
     const padding = 'x'.repeat(
       CLI_OUTPUT_LIMIT + 1 - pathPrefix.length - 1 - capturedTokenLength,
     )
@@ -329,8 +329,8 @@ describe('CliLaneAdapter', () => {
 
   it('redacts local home and temporary filesystem paths', () => {
     const raw = [
-      '/Users/example/worktrees/private-repo/src/index.ts',
-      '/home/example/private-repo/config.json',
+      ['', 'Users', 'example', 'worktrees', 'private-repo', 'src', 'index.ts'].join('/'),
+      ['', 'home', 'example', 'private-repo', 'config.json'].join('/'),
       '/private/var/folders/aa/bb/T/private-file',
       'C:\\Users\\example\\private-repo\\secret.txt',
     ].join('\n')

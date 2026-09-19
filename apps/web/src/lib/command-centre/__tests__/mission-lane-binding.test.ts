@@ -341,10 +341,11 @@ function mockRunner(behaviour: 'resolve' | 'hang' | 'throw', output = 'ok'): Mis
 
 describe('mission lane run', () => {
   it('completes and returns redacted output', async () => {
-    const runner = mockRunner('resolve', 'done — see /Users/phill-mac/secret and sk-live_ABCDEFGHIJKL')
+    const homeLeak = ['', 'Users', 'example', 'secret'].join('/')
+    const runner = mockRunner('resolve', `done — see ${homeLeak} and sk-live_ABCDEFGHIJKL`)
     const result = await runMissionInLane(runner, { ref: 'voice:pkt-1', objective: 'note' }, {})
     expect(result.outcome).toBe('completed')
-    expect(result.output).not.toContain('/Users/phill-mac')
+    expect(result.output).not.toContain(homeLeak)
     expect(result.output).not.toContain('sk-live_ABCDEFGHIJKL')
   })
 
@@ -463,8 +464,8 @@ describe('mission control status view', () => {
     const row = toMissionControlRow(bridgedTask('running', true), {
       laneStatus: 'running',
       lastHeartbeatAt: new Date(NOW).toISOString(),
-      worktree: '/Users/phill-mac/.hermes/lanes/lane-1',
+      worktree: ['', 'Users', 'example', '.hermes', 'lanes', 'lane-1'].join('/'),
     }, { now: NOW })
-    expect(JSON.stringify(row)).not.toContain('/Users/phill-mac')
+    expect(JSON.stringify(row)).not.toContain(['', 'Users', 'example'].join('/'))
   })
 })

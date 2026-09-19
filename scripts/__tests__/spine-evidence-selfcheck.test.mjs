@@ -39,7 +39,7 @@ const EXECUTED_EVIDENCE = join(fixtures, 'spine-all-executed.synthetic.vitest.js
 
 const SPINE_CHECK_ID = 'spine-required-tests';
 /** The prefix baked into both fixtures' absolute test-file paths. */
-const CI_ROOT = '/home/runner/work/Unite-Group/Unite-Group';
+const CI_ROOT = '/tmp/ci-workspace/Unite-Group';
 
 const NULL_IO = { log: () => {}, error: () => {} };
 

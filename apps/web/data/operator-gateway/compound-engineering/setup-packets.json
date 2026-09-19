@@ -225,7 +225,7 @@
       "packet_id": "ce-setup-second-brain",
       "project_key": "second-brain",
       "project_name": "2nd-brain",
-      "repo_hint": "local:/Users/phillmcgurk/2nd-brain",
+      "repo_hint": "local:$HOME/2nd-brain",
       "priority": "P0",
       "status": "ready",
       "objective": "Use Compound Knowledge and research-scout patterns to capture decisions, setup results, source links, and reusable learnings into the Obsidian/2nd-brain source pipeline.",

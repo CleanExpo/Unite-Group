@@ -2,15 +2,12 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import type { Dirent } from 'node:fs'
 
-const DEFAULT_OBSIDIAN_VAULT_PATH = '/Users/phillmcgurk/2nd-brain'
-const DEFAULT_IMPORTED_MIRROR_PATH =
-  '/Users/phillmcgurk/Unite-Group/docs/brain/2nd Brain'
-
 export type MissionControlOsStatus = Awaited<
   ReturnType<typeof buildMissionControlOsStatus>
 >
 
 async function exists(targetPath: string): Promise<boolean> {
+  if (!targetPath) return false
   try {
     await fs.access(targetPath)
     return true
@@ -66,11 +63,11 @@ export async function buildMissionControlOsStatus(
     options.vaultPath ||
     process.env.OBSIDIAN_VAULT_PATH ||
     process.env.OBSIDIAN_VAULT ||
-    DEFAULT_OBSIDIAN_VAULT_PATH
+    ''
   const mirrorPath =
     options.mirrorPath ||
     process.env.OBSIDIAN_IMPORTED_MIRROR_PATH ||
-    DEFAULT_IMPORTED_MIRROR_PATH
+    ''
   const [vaultExists, mirrorExists] = await Promise.all([
     exists(vaultPath),
     exists(mirrorPath),

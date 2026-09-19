@@ -69,7 +69,7 @@ import { GET } from '@/app/api/command-center/hermes-dashboard/route';
 import type { NextRequest } from 'next/server';
 import path from 'node:path';
 
-const HERMES_HOME_RUNTIME = process.env.HERMES_HOME?.trim() || '/Users/phillmcgurk/.hermes';
+const HERMES_HOME_RUNTIME = process.env.HERMES_HOME?.trim() || '';
 const HERMES_CONFIG_RUNTIME = process.env.HERMES_CONFIG_PATH?.trim() || path.join(HERMES_HOME_RUNTIME, 'config.yaml');
 const HERMES_HOOKS_RUNTIME = process.env.HERMES_HOOKS_PATH?.trim() || path.join(HERMES_HOME_RUNTIME, 'hooks');
 
@@ -121,14 +121,11 @@ it('surfaces add-on readiness without leaking raw config or tool stdout', async 
 
   fsHandler = {
     stat: (p) => {
-      if (p === '/Users/phillmcgurk/2nd-brain') return { isDirectory: () => true, isFile: () => false };
-      if (p === '/Users/phillmcgurk/Documents/Obsidian Vault') return new Error('ENOENT');
       if (p.endsWith('/HOOK.yaml')) return { isDirectory: () => false, isFile: () => true };
       if (p.endsWith('/batch_runner.py')) return { isDirectory: () => false, isFile: () => true };
       return new Error('ENOENT');
     },
     readdir: (p) => {
-      if (p === '/Users/phillmcgurk/2nd-brain') return [];
       if (p === HERMES_HOOKS_RUNTIME) {
         return [{ name: 'gateway-tick', isDirectory: () => true, isFile: () => false }];
       }

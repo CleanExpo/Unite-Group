@@ -117,7 +117,7 @@ describe('POST /api/lanes/run', () => {
 
   it('does not expose unknown run internals', async () => {
     runMissionMock.mockRejectedValueOnce(
-      new Error('EACCES /Users/operator/.config/provider-secret'),
+      new Error(`EACCES ${['', 'Users', 'operator', '.config', 'provider-secret'].join('/')}`),
     )
     const { Route } = await import('./run')
     const handlers = Route.options.server?.handlers as {

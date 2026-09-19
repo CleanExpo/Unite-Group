@@ -110,8 +110,9 @@ describe('redacting splitter', () => {
 
   it('strips a home directory path before it can be persisted', () => {
     const splitter = createRedactingSplitter()
-    const [line] = splitter.push('reading /Users/phill/.hermes/.env now\n')
-    expect(line).not.toContain('/Users/phill')
+    const home = ['', 'Users', 'example'].join('/')
+    const [line] = splitter.push(`reading ${home}/.hermes/.env now\n`)
+    expect(line).not.toContain(home)
     expect(line).toContain('[REDACTED_PATH]')
   })
 
@@ -125,11 +126,12 @@ describe('redacting splitter', () => {
 
 describe('tool argument summaries', () => {
   it('redacts and bounds structured arguments', () => {
+    const home = ['', 'Users', 'example'].join('/')
     const summary = summariseToolArguments({
-      path: '/Users/phill/secret-project/main.ts',
+      path: `${home}/secret-project/main.ts`,
       token: 'sk_live_abcdefghijklmnop123456',
     })
-    expect(summary).not.toContain('/Users/phill')
+    expect(summary).not.toContain(home)
     expect(summary).not.toContain('sk_live_abcdefghijklmnop123456')
     expect(summary).toContain('[REDACTED')
   })

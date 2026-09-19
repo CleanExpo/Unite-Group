@@ -113,7 +113,7 @@ import path from 'node:path';
 // The route reads HERMES_HOME at module-load time, so we capture the same
 // value here to ensure fs mock paths align with whatever Hermes profile is
 // active in the current shell (e.g. ~/.hermes vs ~/.hermes/profiles/nexus-cfo).
-const HERMES_HOME_RUNTIME = process.env.HERMES_HOME?.trim() || '/Users/phillmcgurk/.hermes';
+const HERMES_HOME_RUNTIME = process.env.HERMES_HOME?.trim() || '';
 const HERMES_CONFIG_RUNTIME = process.env.HERMES_CONFIG_PATH?.trim() || path.join(HERMES_HOME_RUNTIME, 'config.yaml');
 const HERMES_HOOKS_RUNTIME = process.env.HERMES_HOOKS_PATH?.trim() || path.join(HERMES_HOME_RUNTIME, 'hooks');
 
@@ -199,14 +199,11 @@ describe('GET /api/command-center/hermes-dashboard', () => {
 
     setFsHandler({
       stat: (p) => {
-        if (p === '/Users/phillmcgurk/2nd-brain') return { isDirectory: () => true, isFile: () => false };
-        if (p === '/Users/phillmcgurk/Documents/Obsidian Vault') return new Error('ENOENT');
         if (p.endsWith('/HOOK.yaml')) return { isDirectory: () => false, isFile: () => true };
         if (p.endsWith('/batch_runner.py')) return { isDirectory: () => false, isFile: () => true };
         return new Error('ENOENT');
       },
       readdir: (p) => {
-        if (p === '/Users/phillmcgurk/2nd-brain') return [];
         if (p === HERMES_HOOKS_RUNTIME) return [
           { name: 'gateway-tick', isDirectory: () => true, isFile: () => false },
         ];
@@ -273,8 +270,6 @@ describe('GET /api/command-center/hermes-dashboard', () => {
 
     setFsHandler({
       stat: (p) => {
-        if (p === '/Users/phillmcgurk/2nd-brain') return new Error('ENOENT');
-        if (p === '/Users/phillmcgurk/Documents/Obsidian Vault') return new Error('ENOENT');
         if (p.endsWith('/HOOK.yaml')) return new Error('ENOENT');
         if (p.endsWith('/batch_runner.py')) return new Error('ENOENT');
         return new Error('ENOENT');
@@ -332,14 +327,11 @@ describe('GET /api/command-center/hermes-dashboard', () => {
 
     setFsHandler({
       stat: (p) => {
-        if (p === '/Users/phillmcgurk/2nd-brain') return { isDirectory: () => true, isFile: () => false };
-        if (p === '/Users/phillmcgurk/Documents/Obsidian Vault') return new Error('ENOENT');
         if (p.endsWith('/HOOK.yaml')) return new Error('ENOENT');
         if (p.endsWith('/batch_runner.py')) return new Error('ENOENT');
         return new Error('ENOENT');
       },
       readdir: (p) => {
-        if (p === '/Users/phillmcgurk/2nd-brain') return [];
         if (p === HERMES_HOOKS_RUNTIME) return new Error('ENOENT');
         return [];
       },
@@ -374,14 +366,11 @@ describe('GET /api/command-center/hermes-dashboard', () => {
 
     setFsHandler({
       stat: (p) => {
-        if (p === '/Users/phillmcgurk/2nd-brain') return { isDirectory: () => true, isFile: () => false };
-        if (p === '/Users/phillmcgurk/Documents/Obsidian Vault') return new Error('ENOENT');
         if (p.endsWith('/HOOK.yaml')) return new Error('ENOENT');
         if (p.endsWith('/batch_runner.py')) return new Error('ENOENT');
         return new Error('ENOENT');
       },
       readdir: (p) => {
-        if (p === '/Users/phillmcgurk/2nd-brain') return [];
         if (p === HERMES_HOOKS_RUNTIME) return new Error('ENOENT');
         return [];
       },

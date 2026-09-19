@@ -79,7 +79,7 @@ describe('cron-entrypoint script-invocation gate', () => {
     // This is a documentation test. It documents the cron install line
     // so the operator has a copy-paste reference.
     const expected =
-      '0 8 * * 1-5  cd /Users/phillmcgurk/Unite-Hub && SYNTHEX_RUN_CRON=1 /Users/phillmcgurk/.local/bin/npx tsx src/lib/synthex/sync-verify-cron.ts'
+      '0 8 * * 1-5  cd "$PWD" && SYNTHEX_RUN_CRON=1 npx tsx src/lib/synthex/sync-verify-cron.ts'
     expect(expected).toContain('SYNTHEX_RUN_CRON=1')
     expect(expected).toContain('sync-verify-cron.ts')
   })
