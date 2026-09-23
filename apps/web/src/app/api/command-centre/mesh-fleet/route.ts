@@ -16,6 +16,7 @@ export const dynamic = 'force-dynamic'
 interface MeshFleetUpstream {
   machines?: unknown[]
   ships?: unknown[]
+  claims?: unknown[]
 }
 
 interface SafeMeshMachine {
@@ -23,7 +24,24 @@ interface SafeMeshMachine {
   last_seen: string
   is_stale: boolean
   state?: 'working' | 'idle' | 'offline' | 'stale' | 'unknown'
+  cpu_pct?: number
+  mem_pct?: number
+  load1?: number
+  agent_runtimes?: string[]
+  active_agents?: number
 }
+
+interface SafeMeshClaim {
+  linear_id: string
+  machine: string | null
+  branch: string | null
+  state: 'claimed' | 'working'
+}
+
+const HOST_RE = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/
+const RUNTIME_RE = /^[a-z][a-z0-9_-]{0,31}$/
+const LINEAR_ID_RE = /^[A-Z][A-Z0-9]{0,9}-\d{1,7}$/
+const BRANCH_RE = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,199}$/
 
 const SAFE_MACHINE_STATES = new Set<SafeMeshMachine['state']>([
   'working',
@@ -33,12 +51,30 @@ const SAFE_MACHINE_STATES = new Set<SafeMeshMachine['state']>([
   'unknown',
 ])
 
+function finiteNumber(value: unknown): number | undefined {
+  // PostgREST may serialise numeric/bigint as strings; accept both, never invent 0.
+  const n = typeof value === 'string' && value.trim() !== '' ? Number(value) : value
+  return typeof n === 'number' && Number.isFinite(n) ? n : undefined
+}
+
+// Runtime NAMES only — upstream rows are {runtime, present}; paths/versions are dropped.
+function safeRuntimes(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  return value.flatMap((r) =>
+    r && typeof r === 'object' && typeof (r as Record<string, unknown>).runtime === 'string' &&
+    (r as Record<string, unknown>).present !== false &&
+    RUNTIME_RE.test((r as Record<string, unknown>).runtime as string)
+      ? [(r as Record<string, unknown>).runtime as string]
+      : [],
+  )
+}
+
 function safeMachine(value: unknown): SafeMeshMachine | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
   const machine = value as Record<string, unknown>
   if (
     typeof machine.host !== 'string' ||
-    !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/.test(machine.host) ||
+    !HOST_RE.test(machine.host) ||
     typeof machine.last_seen !== 'string' ||
     !Number.isFinite(Date.parse(machine.last_seen)) ||
     typeof machine.is_stale !== 'boolean'
@@ -46,17 +82,41 @@ function safeMachine(value: unknown): SafeMeshMachine | null {
     return null
   }
 
+  // The mesh_fleet view names this column `status`; older payloads used `state`.
+  const rawState = machine.state ?? machine.status
   const state =
-    typeof machine.state === 'string' &&
-    SAFE_MACHINE_STATES.has(machine.state as SafeMeshMachine['state'])
-      ? (machine.state as SafeMeshMachine['state'])
+    typeof rawState === 'string' && SAFE_MACHINE_STATES.has(rawState as SafeMeshMachine['state'])
+      ? (rawState as SafeMeshMachine['state'])
       : undefined
+  const cpu_pct = finiteNumber(machine.cpu_pct)
+  const mem_pct = finiteNumber(machine.mem_pct)
+  const load1 = finiteNumber(machine.load1)
+  const active_agents = finiteNumber(machine.active_agents)
+  const agent_runtimes = safeRuntimes(machine.agent_runtimes)
 
   return {
     host: machine.host,
     last_seen: new Date(machine.last_seen).toISOString(),
     is_stale: machine.is_stale,
     ...(state ? { state } : {}),
+    ...(cpu_pct !== undefined ? { cpu_pct } : {}),
+    ...(mem_pct !== undefined ? { mem_pct } : {}),
+    ...(load1 !== undefined ? { load1 } : {}),
+    ...(agent_runtimes ? { agent_runtimes } : {}),
+    ...(active_agents !== undefined ? { active_agents } : {}),
+  }
+}
+
+function safeClaim(value: unknown): SafeMeshClaim | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const claim = value as Record<string, unknown>
+  if (typeof claim.linear_id !== 'string' || !LINEAR_ID_RE.test(claim.linear_id)) return null
+  if (claim.state !== 'claimed' && claim.state !== 'working') return null
+  return {
+    linear_id: claim.linear_id,
+    machine: typeof claim.machine === 'string' && HOST_RE.test(claim.machine) ? claim.machine : null,
+    branch: typeof claim.branch === 'string' && BRANCH_RE.test(claim.branch) ? claim.branch : null,
+    state: claim.state,
   }
 }
 
@@ -92,15 +152,29 @@ export async function GET() {
     }
 
     const data = (await res.json()) as MeshFleetUpstream
-    const machines = Array.isArray(data.machines)
-      ? data.machines.map(safeMachine).filter((machine): machine is SafeMeshMachine => machine !== null)
-      : []
+    // A 200 without a machines array is a failed read, not an empty fleet.
+    if (!Array.isArray(data?.machines)) {
+      return NextResponse.json({
+        configured: true,
+        machines: [],
+        shipCount: 0,
+        source: 'upstream_error',
+        error: 'malformed_upstream',
+      })
+    }
+    const machines = data.machines
+      .map(safeMachine)
+      .filter((machine): machine is SafeMeshMachine => machine !== null)
     const shipCount = Array.isArray(data.ships) ? data.ships.length : 0
+    const claims = Array.isArray(data.claims)
+      ? data.claims.map(safeClaim).filter((claim): claim is SafeMeshClaim => claim !== null)
+      : undefined
 
     return NextResponse.json({
       configured: true,
       machines,
       shipCount,
+      ...(claims ? { claims } : {}),
       source: 'pi_ceo_live',
     }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (err) {

@@ -146,4 +146,75 @@ describe('GET /api/command-centre/mesh-fleet', () => {
     expect(outboundCall[0]).toBe('https://pi-ceo.test/api/mesh/fleet')
     expect((outboundCall[1] as { headers: Record<string, string> }).headers['X-Pi-CEO-Secret']).toBe('super-secret-value')
   })
+
+  it('allowlists machine metrics, runtime names and claims; drops unknown fields like secret_token', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    process.env.PI_CEO_API_URL = 'https://pi-ceo.test'
+    process.env.PI_CEO_API_KEY = 'super-secret-value'
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({
+      machines: [
+        {
+          host: 'mac-mini',
+          last_seen: '2026-09-24T02:00:00Z',
+          is_stale: false,
+          status: 'working',
+          cpu_pct: 42.5,
+          mem_pct: '61.2',
+          load1: 1.25,
+          active_agents: 2,
+          agent_runtimes: [
+            { runtime: 'claude', present: true, path: '/opt/agents/bin/claude' },
+            { runtime: 'hermes', present: false },
+          ],
+          tailnet_ip: '100.64.0.9',
+          secret_token: 'tok-must-not-leak',
+        },
+        { host: 'windows-box', last_seen: '2026-09-24T01:00:00Z', is_stale: true },
+      ],
+      ships: [],
+      claims: [
+        { id: 'uuid-1', linear_id: 'UNI-2305', machine: 'mac-mini', branch: 'feat/x', state: 'working', claimed_at: '2026-09-24T01:00:00Z' },
+        { id: 'uuid-2', linear_id: 'not a ticket; drop', machine: 'mac-mini', state: 'claimed' },
+      ],
+    })))
+
+    const res = await GET()
+    const bodyText = await res.text()
+    const body = JSON.parse(bodyText) as {
+      machines: Array<Record<string, unknown>>
+      claims: Array<Record<string, unknown>>
+    }
+    expect(body.machines[0]).toEqual({
+      host: 'mac-mini',
+      last_seen: '2026-09-24T02:00:00.000Z',
+      is_stale: false,
+      state: 'working',
+      cpu_pct: 42.5,
+      mem_pct: 61.2,
+      load1: 1.25,
+      agent_runtimes: ['claude'],
+      active_agents: 2,
+    })
+    // Missing metrics stay absent (rendered "—"), never defaulted to 0.
+    expect(body.machines[1]).toEqual({ host: 'windows-box', last_seen: '2026-09-24T01:00:00.000Z', is_stale: true })
+    expect(body.claims).toEqual([{ linear_id: 'UNI-2305', machine: 'mac-mini', branch: 'feat/x', state: 'working' }])
+    expect(bodyText).not.toContain('tok-must-not-leak')
+    expect(bodyText).not.toContain('secret_token')
+    expect(bodyText).not.toContain('/opt/agents')
+    expect(bodyText).not.toContain('100.64.0.9')
+    expect(bodyText).not.toContain('super-secret-value')
+  })
+
+  it('treats a 200 without a machines array as a failed read, not an empty fleet', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    process.env.PI_CEO_API_URL = 'https://pi-ceo.test'
+    process.env.PI_CEO_API_KEY = 'secret'
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({ message: 'relation does not exist' })))
+
+    const res = await GET()
+    const body = (await res.json()) as { source: string; error: string }
+    expect(body.source).toBe('upstream_error')
+    expect(body.error).toBe('malformed_upstream')
+  })
 })
