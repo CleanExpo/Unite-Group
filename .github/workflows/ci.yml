@@ -306,6 +306,19 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      # On a pull request the audit still runs in full and still fails on anything it
+      # could not scan, but high/critical advisories only BLOCK when the PR changes a
+      # package.json or a tracked lockfile. A new advisory published against an
+      # unchanged lockfile used to turn every open PR red at once (#1090/#1091/#1093/
+      # #1094, ~387 PR-open hours) though none of them could fix it; those now surface
+      # as warnings and stay enforced on main by push runs and by
+      # dependency-audit-nightly.yml. Push and dispatch runs stay strict.
+      - name: Fetch pull-request base for the dependency-change check
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: git fetch --no-tags --depth=1 origin "$BASE_SHA"
+
       # npm retired the classic audit endpoint on 15/07/2026 (HTTP 410:
       # "use the bulk advisory endpoint"); pnpm 9.x/10.x still call it, so
       # `pnpm@9.15.0 audit` fails on every run. pnpm 11 audits via the bulk
@@ -315,7 +328,9 @@ jobs:
       # audit. Verified locally 15/07/2026: pnpm@11.13.0 audit resolves the
       # full apps/web tree (1485 deps) and both workspaces report clean.
       - name: Audit every tracked JavaScript lockfile
-        run: node scripts/audit-active-lockfiles.mjs --output dependency-audit-results.json
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || '' }}
+        run: node scripts/audit-active-lockfiles.mjs --output dependency-audit-results.json ${BASE_SHA:+--advisory-unless-deps-changed "$BASE_SHA"}
 
       - name: Upload dependency audit matrix
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

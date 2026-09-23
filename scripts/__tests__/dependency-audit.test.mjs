@@ -807,3 +807,208 @@ test('worst-case wall clock fits the CI job budget at the shipped defaults', asy
   // test, not surface as a killed job three weeks later.
   assert.ok(DEFAULT_SCANNER_TIMEOUT_MS > 60_000, 'the budget that failed on 04/09 must not be restored')
 })
+
+// B5: a newly published advisory against an UNCHANGED lockfile must not turn every open
+// PR red, but an audit that could not run must still fail in every mode. The cases below
+// pin that split through the CLI entry point CI actually calls.
+
+const BASE_SHA = 'a'.repeat(40)
+const EMPIRE_LOCK = 'apps/empire/package-lock.json'
+
+function diffReturning(...paths) {
+  const calls = []
+  const runGit = async (command, args) => {
+    calls.push([command, ...args])
+    return { stdout: paths.length > 0 ? `${paths.join('\0')}\0` : '' }
+  }
+  return { runGit, calls }
+}
+
+function empireHasAdvisory({ empire } = {}) {
+  return async (entry) => {
+    if (entry.lockfile === EMPIRE_LOCK && empire) return empire()
+    const high = entry.lockfile === EMPIRE_LOCK ? 1 : 0
+    return {
+      exitCode: high ? 1 : 0,
+      stdout: JSON.stringify({
+        metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high, critical: 0, total: high } },
+        vulnerabilities: high
+          ? { 'bad-pkg': { severity: 'high', range: '<2.0.0', via: [{ url: 'https://github.com/advisories/GHSA-test-0001' }] } }
+          : {},
+      }),
+      stderr: '',
+    }
+  }
+}
+
+async function runCli(t, { argv = [], runAudit, runGit }) {
+  const root = await mkdtemp(join(tmpdir(), 'nexus-dependency-audit-b5-'))
+  t.after(() => rm(root, { recursive: true, force: true }))
+  const { main } = await loadRunner()
+  const reportPath = join(root, 'result.json')
+  let out = ''
+  const exitCode = await main({
+    argv: ['--output', reportPath, ...argv],
+    entries: EXPECTED_ENTRIES,
+    root: ROOT,
+    stdout: { write(chunk) { out += chunk } },
+    runAudit,
+    runGit,
+  })
+  return { exitCode, out, stored: JSON.parse(await readFile(reportPath, 'utf8')) }
+}
+
+test('B5(a) advisories on unchanged lockfiles warn and pass the check without faking a clean audit', async (t) => {
+  const { runGit, calls } = diffReturning('apps/web/src/page.tsx', 'README.md')
+  const { exitCode, out, stored } = await runCli(t, {
+    argv: ['--advisory-unless-deps-changed', BASE_SHA],
+    runAudit: empireHasAdvisory(),
+    runGit,
+  })
+
+  assert.equal(exitCode, 0)
+  assert.deepEqual(calls, [['git', 'diff', '--no-renames', '--name-only', '-z', BASE_SHA, 'HEAD']])
+  // The artifact still tells the truth: the audit did not pass.
+  assert.equal(stored.passed, false)
+  assert.equal(stored.blocking, false)
+  assert.equal(stored.enforcement, 'advisory')
+  assert.deepEqual(stored.changedDependencyFiles, [])
+  assert.equal(stored.results.find(({ lockfile }) => lockfile === EMPIRE_LOCK).status, 'failed')
+  assert.match(out, /^::warning file=apps\/empire\/package-lock\.json::bad-pkg \(high\) https:\/\/github\.com\/advisories\/GHSA-test-0001$/m)
+  assert.match(out, /^::warning::1 advisories on unchanged lockfiles — fix on main \(see nightly audit\)$/m)
+  assert.match(out, /^1 advisories on unchanged lockfiles — fix on main \(see nightly audit\)$/m)
+})
+
+test('B5(b) advisories fail the check when the PR changes a lockfile or a package.json', async (t) => {
+  for (const changed of ['apps/web/pnpm-lock.yaml', 'packages/spine/package.json', 'apps/empire/package-lock.json']) {
+    const { runGit } = diffReturning('apps/web/src/page.tsx', changed)
+    const { exitCode, out, stored } = await runCli(t, {
+      argv: ['--advisory-unless-deps-changed', BASE_SHA],
+      runAudit: empireHasAdvisory(),
+      runGit,
+    })
+    assert.equal(exitCode, 1, `${changed} must make advisories blocking`)
+    assert.equal(stored.enforcement, 'strict')
+    assert.deepEqual(stored.changedDependencyFiles, [changed])
+    assert.equal(stored.blocking, true)
+    assert.doesNotMatch(out, /::warning/)
+  }
+})
+
+test('B5(b) without the flag (push to main, nightly) advisories always fail', async (t) => {
+  const { runGit, calls } = diffReturning()
+  const { exitCode, stored } = await runCli(t, { runAudit: empireHasAdvisory(), runGit })
+  assert.equal(exitCode, 1)
+  assert.equal(stored.enforcement, 'strict')
+  assert.equal(stored.changedDependencyFiles, null)
+  assert.deepEqual(calls, [], 'strict mode must not consult the base diff')
+})
+
+test('B5(c) an audit that could not run fails even when no dependency file changed', async (t) => {
+  const cannotRun = {
+    'timed out': () => ({ exitCode: 2, stdout: '', stderr: 'killed', timedOut: true, timeoutMs: 300_000 }),
+    'unparseable output (network / 410)': () => ({ exitCode: 1, stdout: 'npm error 410 Gone', stderr: '410' }),
+    'crashed with no result': () => undefined,
+    'non-zero exit with no high or critical count': () => ({ exitCode: 1, stdout: CLEAN_AUDIT, stderr: 'ECONNRESET' }),
+  }
+  for (const [label, empire] of Object.entries(cannotRun)) {
+    const { runGit } = diffReturning('README.md')
+    const { exitCode, stored } = await runCli(t, {
+      argv: ['--advisory-unless-deps-changed', BASE_SHA],
+      runAudit: empireHasAdvisory({ empire }),
+      runGit,
+    })
+    assert.equal(exitCode, 1, `${label}: an audit that could not run must fail the check`)
+    assert.equal(stored.enforcement, 'advisory')
+    assert.equal(stored.blocking, true)
+    assert.equal(stored.passed, false)
+  }
+})
+
+test('B5(c) an advisory elsewhere cannot mask a scan that could not run', async (t) => {
+  const { runGit } = diffReturning('README.md')
+  const runAudit = async (entry) => entry.lockfile === EXPECTED_LOCKS[0]
+    ? { exitCode: 2, stdout: 'not-json', stderr: 'scanner unavailable' }
+    : empireHasAdvisory()(entry)
+  const { exitCode, out } = await runCli(t, { argv: ['--advisory-unless-deps-changed', BASE_SHA], runAudit, runGit })
+  assert.equal(exitCode, 1)
+  assert.doesNotMatch(out, /advisories on unchanged lockfiles/)
+})
+
+test('B5(c) a failed or malformed base diff aborts instead of choosing a mode', async () => {
+  const { main } = await loadRunner()
+  const common = { entries: EXPECTED_ENTRIES, root: ROOT, stdout: { write() {} }, runAudit: empireHasAdvisory() }
+  await assert.rejects(
+    main({ ...common, argv: ['--advisory-unless-deps-changed', BASE_SHA], runGit: async () => { throw new Error('fatal: bad object') } }),
+    /bad object/,
+  )
+  await assert.rejects(main({ ...common, argv: ['--advisory-unless-deps-changed', 'main'], runGit: diffReturning().runGit }), TypeError)
+  await assert.rejects(main({ ...common, argv: ['--advisory-unless-deps-changed'], runGit: diffReturning().runGit }), /requires a base sha/)
+})
+
+test('B5(b) a lockfile renamed to a non-dependency name still counts as a dependency change', async (t) => {
+  // Real git, rename detection forced on: the diff must still name the old lockfile path.
+  const { execFile } = await import('node:child_process')
+  const { promisify } = await import('node:util')
+  const git = (cwd, ...args) => promisify(execFile)('git', args, { cwd })
+  const repo = await mkdtemp(join(tmpdir(), 'nexus-dependency-audit-rename-'))
+  t.after(() => rm(repo, { recursive: true, force: true }))
+  await git(repo, 'init', '-q')
+  await git(repo, 'config', 'user.email', 'test@example.invalid')
+  await git(repo, 'config', 'user.name', 'test')
+  await git(repo, 'config', 'diff.renames', 'true')
+  await git(repo, 'config', 'commit.gpgsign', 'false')
+  await mkdir(join(repo, 'apps', 'empire'), { recursive: true })
+  await writeFile(join(repo, 'apps', 'empire', 'package-lock.json'), '{"lockfileVersion":3,"packages":{}}\n')
+  await git(repo, 'add', '-A')
+  await git(repo, 'commit', '-q', '-m', 'base')
+  const { stdout: base } = await git(repo, 'rev-parse', 'HEAD')
+  await git(repo, 'mv', 'apps/empire/package-lock.json', 'apps/empire/package-lock.json.bak')
+  await git(repo, 'commit', '-q', '-m', 'rename')
+
+  const { listChangedDependencyFiles } = await loadRunner()
+  assert.deepEqual(await listChangedDependencyFiles(base.trim(), { root: repo }), [EMPIRE_LOCK])
+})
+
+test('B5 a clean audit passes in advisory mode without emitting warnings', async (t) => {
+  const { runGit } = diffReturning('README.md')
+  const { exitCode, out, stored } = await runCli(t, {
+    argv: ['--advisory-unless-deps-changed', BASE_SHA],
+    runAudit: async () => ({ exitCode: 0, stdout: CLEAN_AUDIT, stderr: '' }),
+    runGit,
+  })
+  assert.equal(exitCode, 0)
+  assert.equal(stored.passed, true)
+  assert.doesNotMatch(out, /::warning/)
+})
+
+test('B5 dependency files are exactly package.json plus every lockfile the audit knows', async () => {
+  const { isDependencyFile } = await loadRunner()
+  for (const path of ['package.json', 'apps/web/package.json', 'a/package-lock.json', 'a/npm-shrinkwrap.json',
+    'a/pnpm-lock.yaml', 'a/yarn.lock', 'a/bun.lock', 'a/bun.lockb']) {
+    assert.equal(isDependencyFile(path), true, path)
+  }
+  for (const path of ['README.md', 'package.json.bak', 'apps/web/src/package.ts', 'pnpm-workspace.yaml']) {
+    assert.equal(isDependencyFile(path), false, path)
+  }
+})
+
+test('B5 CI passes the base sha only on pull requests and nightly audits main strictly', async () => {
+  const ci = await readFile(join(ROOT, '.github', 'workflows', 'ci.yml'), 'utf8')
+  const job = ci.match(/\n  dependency-audit:\n([\s\S]*?)\n  mcp:/)?.[1]
+  assert.ok(job, 'expected dependency-audit job')
+  assert.match(job, /^\s+name: Active lockfiles — high-severity dependency audit$/m)
+  assert.match(job, /BASE_SHA: \$\{\{ github\.event_name == 'pull_request' && github\.event\.pull_request\.base\.sha \|\| '' \}\}/)
+  assert.match(job, /--output dependency-audit-results\.json \$\{BASE_SHA:\+--advisory-unless-deps-changed "\$BASE_SHA"\}/)
+  assert.match(job, /if: github\.event_name == 'pull_request'\n\s+env:\n\s+BASE_SHA: \$\{\{ github\.event\.pull_request\.base\.sha \}\}\n\s+run: git fetch --no-tags --depth=1 origin "\$BASE_SHA"/)
+  const onBlock = ci.match(/\non:\n([\s\S]*?)\n\S/)?.[1]
+  assert.ok(onBlock, 'expected an on: block in ci.yml')
+  assert.doesNotMatch(onBlock, /schedule:/, 'ci.yml must not run every job nightly')
+
+  const nightly = await readFile(join(ROOT, '.github', 'workflows', 'dependency-audit-nightly.yml'), 'utf8')
+  assert.match(nightly, /schedule:\n\s+- cron: '17 19 \* \* \*'/)
+  assert.match(nightly, /node scripts\/audit-active-lockfiles\.mjs --output dependency-audit-results\.json\n/)
+  assert.doesNotMatch(nightly, /advisory-unless-deps-changed/)
+  assert.match(nightly, /if:\s*always\(\)/)
+  assert.match(nightly, /path:\s*dependency-audit-results\.json/)
+})

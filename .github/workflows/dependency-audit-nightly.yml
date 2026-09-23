@@ -1,0 +1,40 @@
+name: Nightly dependency audit
+
+# Strict audit of main, every night. Pull requests only block on advisories when
+# they change a package.json or a lockfile (see the dependency-audit job in ci.yml),
+# so a newly published advisory against an unchanged lockfile goes red HERE, on
+# main, where it can be fixed once — not on every open PR. Kept out of ci.yml
+# because a schedule trigger there would run every other job nightly too.
+
+on:
+  schedule:
+    - cron: '17 19 * * *' # 05:17 AEST
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-audit-nightly:
+    name: Nightly — high-severity dependency audit on main
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+
+      - name: Audit every tracked JavaScript lockfile (strict)
+        run: node scripts/audit-active-lockfiles.mjs --output dependency-audit-results.json
+
+      - name: Upload dependency audit matrix
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: dependency-audit-nightly-results
+          path: dependency-audit-results.json
+          retention-days: 14

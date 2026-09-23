@@ -436,21 +436,107 @@ export async function writeAuditReport(outputPath, report) {
   await writeFile(outputPath, `${JSON.stringify(report, null, 2)}\n`)
 }
 
+// A pull request that touches no dependency file cannot have caused an advisory that
+// was published against an unchanged lockfile. Before this existed, one new advisory
+// turned every open PR red at once (#1090/#1091/#1093/#1094, ~387 PR-open hours) while
+// none of them could fix it. Any manifest or lockfile the audit knows about counts.
+export function isDependencyFile(path) {
+  const name = basename(path)
+  return name === 'package.json' || Object.hasOwn(LOCKFILE_TYPES, name)
+}
+
+export async function listChangedDependencyFiles(baseSha, { root = process.cwd(), runGit = execFileAsync } = {}) {
+  if (typeof baseSha !== 'string' || !/^[0-9a-f]{40}$/i.test(baseSha)) {
+    throw new TypeError(`base sha must be a 40-character hex commit id, received ${JSON.stringify(baseSha)}`)
+  }
+  // Two-dot tree comparison: needs only the two commits, not the history between them.
+  // A failure here throws — "could not tell what changed" must never read as "nothing did".
+  // --no-renames: with rename detection on, a lockfile renamed to a non-dependency name
+  // (package-lock.json -> package-lock.json.bak) lists only the new path and would read as
+  // "no dependency file changed". Without it both the deleted and the added path appear.
+  const { stdout } = await runGit('git', ['diff', '--no-renames', '--name-only', '-z', baseSha, 'HEAD'], {
+    cwd: root,
+    maxBuffer: 10 * 1024 * 1024,
+  })
+  return stdout.split('\0').filter(Boolean).filter(isDependencyFile).sort()
+}
+
+// Only a scan that RAN, returned parseable JSON and reported high/critical counts is an
+// advisory finding. Everything else that is not `passed` — timeouts, unparseable output,
+// inventory errors, a non-zero exit with no high/critical count — means the audit could
+// not vouch for the lockfile, and stays blocking in every mode.
+export function isAdvisoryFinding(result) {
+  return result?.status === 'failed'
+    && (result.vulnerabilities?.high > 0 || result.vulnerabilities?.critical > 0)
+}
+
+function escapeWorkflowCommand(value) {
+  return String(value).replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A')
+}
+
+export function evaluateEnforcement(report, { advisory }) {
+  const results = Array.from(report.results)
+  const couldNotRun = report.inventoryError !== null
+    || results.length === 0
+    || results.some((result) => result === undefined || result === null)
+    || results.some((result) => result.status !== 'passed' && !isAdvisoryFinding(result))
+  const advisoryResults = results.filter(isAdvisoryFinding)
+  const advisoryCount = advisoryResults
+    .reduce((sum, { vulnerabilities }) => sum + vulnerabilities.high + vulnerabilities.critical, 0)
+  const blocking = report.passed ? false : couldNotRun || !advisory
+  return { blocking, couldNotRun, advisoryResults, advisoryCount }
+}
+
 export async function main({
   argv = process.argv.slice(2),
   entries,
   root = process.cwd(),
   runAudit = executeAudit,
+  runGit = execFileAsync,
   stdout = process.stdout,
 } = {}) {
   const outputIndex = argv.indexOf('--output')
   const outputPath = outputIndex === -1 ? null : argv[outputIndex + 1]
   if (outputIndex !== -1 && !outputPath) throw new Error('--output requires a path')
+  const baseIndex = argv.indexOf('--advisory-unless-deps-changed')
+  const baseSha = baseIndex === -1 ? null : argv[baseIndex + 1]
+  if (baseIndex !== -1 && !baseSha) throw new Error('--advisory-unless-deps-changed requires a base sha')
 
-  const report = await runActiveLockfileAudits({ entries, root, runAudit })
+  // Resolved before scanning so a broken diff aborts the run rather than silently
+  // falling back to either mode.
+  const changedDependencyFiles = baseSha === null
+    ? null
+    : await listChangedDependencyFiles(baseSha, { root, runGit })
+  const advisory = changedDependencyFiles !== null && changedDependencyFiles.length === 0
+
+  const audit = await runActiveLockfileAudits({ entries, root, runAudit })
+  const enforcement = evaluateEnforcement(audit, { advisory })
+  // `passed` stays the audit's own verdict. Advisory mode changes whether the verdict
+  // blocks, never what the verdict says.
+  const report = {
+    ...audit,
+    enforcement: advisory ? 'advisory' : 'strict',
+    baseSha,
+    changedDependencyFiles,
+    blocking: enforcement.blocking,
+  }
   if (outputPath) await writeAuditReport(resolve(root, outputPath), report)
   stdout.write(`${JSON.stringify(report, null, 2)}\n`)
-  return report.passed ? 0 : 1
+
+  if (advisory && !report.passed && !enforcement.blocking) {
+    for (const result of enforcement.advisoryResults) {
+      const findings = result.findings.length > 0
+        ? result.findings
+        : [{ package: null, severity: 'high', advisories: [] }]
+      for (const finding of findings) {
+        const message = `${finding.package ?? 'unknown package'} (${finding.severity}) ${finding.advisories.join(' ')}`.trim()
+        stdout.write(`::warning file=${escapeWorkflowCommand(result.lockfile)}::${escapeWorkflowCommand(message)}\n`)
+      }
+    }
+    const summary = `${enforcement.advisoryCount} advisories on unchanged lockfiles — fix on main (see nightly audit)`
+    stdout.write(`::warning::${escapeWorkflowCommand(summary)}\n${summary}\n`)
+  }
+  return enforcement.blocking ? 1 : 0
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
