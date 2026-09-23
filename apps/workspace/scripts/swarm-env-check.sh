@@ -1,41 +1,45 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CANONICAL_REPO="/Users/aurora/hermes-workspace"
-FORBIDDEN_REPO="/Users/aurora/hermes-workspace"
+# The Swarm workspace lives at apps/workspace inside the Unite-Group monorepo.
+# The canonical checkout is identified by its package identities, not by a
+# founder-machine path: the repo root must be `unite-group` and this workspace
+# `hermes-workspace`. Any other Git checkout with a package.json is refused.
+CANONICAL_ROOT_PACKAGE="unite-group"
+CANONICAL_WORKSPACE_PACKAGE="hermes-workspace"
 
+REPO_ROOT="$(git rev-parse --show-toplevel)"
 CURRENT_DIR="$(pwd -P)"
 
-if [[ "$CURRENT_DIR" == "$FORBIDDEN_REPO" ]] || [[ "$CURRENT_DIR" == "$FORBIDDEN_REPO"/* ]]; then
-  echo "ERROR: wrong repo: $CURRENT_DIR"
-  echo "Use: $CANONICAL_REPO"
+if [[ "$CURRENT_DIR" != "$REPO_ROOT" && "$CURRENT_DIR" != "$REPO_ROOT"/* ]]; then
+  echo "ERROR: cwd is outside the canonical repo: $CURRENT_DIR"
+  echo "Use: $REPO_ROOT"
   exit 1
 fi
 
-if [[ "$CURRENT_DIR" != "$CANONICAL_REPO" ]] && [[ "$CURRENT_DIR" != "$CANONICAL_REPO"/* ]]; then
-  echo "ERROR: non-canonical cwd: $CURRENT_DIR"
-  echo "Use: $CANONICAL_REPO"
-  exit 1
-fi
-
-if [[ ! -f "$CANONICAL_REPO/package.json" ]]; then
-  echo "ERROR: package.json missing in canonical repo"
-  exit 1
-fi
-
-REPO_NAME="$(python3 - <<'PY'
-import json
+package_name() {
+  PKG_JSON="$1" python3 -c '
+import json, os, sys
 from pathlib import Path
-pkg = json.loads(Path('/Users/aurora/hermes-workspace/package.json').read_text())
-print(pkg.get('name', ''))
-PY
-)"
+p = Path(os.environ["PKG_JSON"])
+if not p.is_file():
+    sys.exit(0)
+print(json.loads(p.read_text()).get("name", ""))
+'
+}
 
-if [[ "$REPO_NAME" != "hermes-workspace" ]]; then
-  echo "ERROR: unexpected package name: $REPO_NAME"
+ROOT_NAME="$(package_name "$REPO_ROOT/package.json")"
+if [[ "$ROOT_NAME" != "$CANONICAL_ROOT_PACKAGE" ]]; then
+  echo "ERROR: not the canonical repo: root package is '${ROOT_NAME}', expected '$CANONICAL_ROOT_PACKAGE'"
   exit 1
 fi
 
-echo "OK: canonical Swarm repo"
+REPO_NAME="$(package_name "$REPO_ROOT/apps/workspace/package.json")"
+if [[ "$REPO_NAME" != "$CANONICAL_WORKSPACE_PACKAGE" ]]; then
+  echo "ERROR: unexpected workspace package name: '${REPO_NAME}', expected '$CANONICAL_WORKSPACE_PACKAGE'"
+  exit 1
+fi
+
+echo "OK: canonical repo"
 echo "cwd=$CURRENT_DIR"
 echo "package=$REPO_NAME"

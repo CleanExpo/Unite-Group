@@ -53,6 +53,40 @@ export const GATE_LINE_RE = /^\s*(?:\*\*)?Gate:(?:\*\*)?\s+\S/m;
 export const MECHANICAL_MERGE_RE =
   /^Merge (?:(?:remote-tracking )?branch|pull request #\d+)\b/;
 
+/**
+ * Dependabot's sign-off trailer, and the structured block it writes into every
+ * version-update body. BOTH are required to skip — see isBotAuthored.
+ */
+export const BOT_SIGNOFF_RE = /^Signed-off-by:\s*\S*\[bot\]\s*</m;
+export const UPDATED_DEPENDENCIES_RE = /^updated-dependencies:\s*$/m;
+
+/**
+ * True for a commit no human wrote and no human can fix.
+ *
+ * WHY THIS SKIP EXISTS. Dependabot cannot satisfy this convention. It has no
+ * way to put a Linear ref on a subject, and its `commit-message` config sets
+ * only the PREFIX — there is no setting that emits a body, so the Gate: line is
+ * unreachable for it by construction. The guard could therefore only ever FAIL
+ * there: on 2026-09-16, eight open dependency PRs on this repo each carried the
+ * same red X, none of which said anything about the change. A permanently-red
+ * check is worse than no check, because it teaches the reader that red is
+ * normal and a real failure gets scrolled past with the rest.
+ *
+ * SKIPPED, NOT GATED. The CI job still runs on every PR and can still fail —
+ * `if:` on that job remains forbidden by its own wiring test. This is a peer of
+ * the mechanical-merge skip: counted and named in the output, never silent.
+ *
+ * TWO MARKERS, because a commit body is author-controlled. A sign-off line
+ * alone would let any human opt out of the convention by typing one, which is
+ * the bypass class this whole suite exists to catch. Forging both the `[bot]`
+ * trailer AND dependabot's generated `updated-dependencies:` block is no longer
+ * a slip — it is a deliberate false attribution, and a different problem.
+ */
+export function isBotAuthored({ body = '' } = {}) {
+  const text = String(body ?? '');
+  return BOT_SIGNOFF_RE.test(text) && UPDATED_DEPENDENCIES_RE.test(text);
+}
+
 export function extractLinearRef(subject) {
   const match = String(subject ?? '').match(LINEAR_REF_RE);
   return match ? match[0].toUpperCase() : null;
@@ -78,6 +112,10 @@ export function isMechanicalMerge({ subject = '', parents = [] } = {}) {
 export function inspectCommit({ subject = '', body = '', parents = [] } = {}) {
   if (isMechanicalMerge({ subject, parents })) {
     return { ok: true, skipped: true, reason: 'mechanical-merge' };
+  }
+
+  if (isBotAuthored({ body })) {
+    return { ok: true, skipped: true, reason: 'bot-author' };
   }
 
   const reasons = [];

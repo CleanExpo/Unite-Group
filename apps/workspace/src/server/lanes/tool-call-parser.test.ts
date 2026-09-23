@@ -88,6 +88,7 @@ describe('claude stream-json tool-call parser', () => {
   })
 
   it('redacts a home directory out of the argument summary', () => {
+    const home = ['', 'Users', 'example'].join('/')
     const line = JSON.stringify({
       type: 'assistant',
       timestamp: '2026-01-01T00:00:00.000Z',
@@ -97,13 +98,13 @@ describe('claude stream-json tool-call parser', () => {
             type: 'tool_use',
             id: 'toolu_1',
             name: 'Read',
-            input: { file_path: '/Users/phill/secrets/prod.env' },
+            input: { file_path: `${home}/secrets/prod.env` },
           },
         ],
       },
     })
     const { toolCalls } = parseAll([`${line}\n`])
-    expect(toolCalls[0]?.argumentSummary).not.toContain('/Users/phill')
+    expect(toolCalls[0]?.argumentSummary).not.toContain(home)
     expect(toolCalls[0]?.argumentSummary).toContain('[REDACTED_PATH]')
   })
 

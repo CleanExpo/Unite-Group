@@ -293,7 +293,7 @@ describe('redaction and retention', () => {
   })
 
   it('redacts a home directory out of a file URI', () => {
-    expect(safeUri('file:///Users/phill/secret/out.txt')).toContain('[REDACTED_PATH]')
+    expect(safeUri(`file://${['', 'Users', 'example', 'secret', 'out.txt'].join('/')}`)).toContain('[REDACTED_PATH]')
   })
 
   it('bounds an oversized URI', () => {

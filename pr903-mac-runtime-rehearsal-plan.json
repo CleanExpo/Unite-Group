@@ -51,7 +51,7 @@
     "canonical_attachment": 1101
   },
   "hard_stop_start": {
-    "path": "/Users/phill-mac/.claude/HARD_STOP",
+    "path": "$HOME/.claude/HARD_STOP",
     "inode": 134511257,
     "size": 0,
     "mtime_epoch": 1784200128,

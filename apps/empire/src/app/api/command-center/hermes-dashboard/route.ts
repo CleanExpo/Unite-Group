@@ -10,9 +10,9 @@ export const dynamic = 'force-dynamic';
 const execFileAsync = promisify(execFile);
 const HERMES_BIN = process.env.HERMES_BIN?.trim() || 'hermes';
 const TAILSCALE_BIN = process.env.TAILSCALE_BIN?.trim() || '/Applications/Tailscale.app/Contents/MacOS/Tailscale';
-const SECOND_BRAIN_PATH = process.env.UNITE_SECOND_BRAIN_PATH?.trim() || '/Users/phillmcgurk/2nd-brain';
-const LEGACY_OBSIDIAN_PATH = process.env.OBSIDIAN_VAULT_PATH?.trim() || '/Users/phillmcgurk/Documents/Obsidian Vault';
-const HERMES_HOME = process.env.HERMES_HOME?.trim() || '/Users/phillmcgurk/.hermes';
+const SECOND_BRAIN_PATH = process.env.UNITE_SECOND_BRAIN_PATH?.trim() || '';
+const LEGACY_OBSIDIAN_PATH = process.env.OBSIDIAN_VAULT_PATH?.trim() || '';
+const HERMES_HOME = process.env.HERMES_HOME?.trim() || '';
 const HERMES_CONFIG_PATH = process.env.HERMES_CONFIG_PATH?.trim() || path.join(HERMES_HOME, 'config.yaml');
 const HERMES_HOOKS_PATH = process.env.HERMES_HOOKS_PATH?.trim() || path.join(HERMES_HOME, 'hooks');
 const HERMES_SOURCE_PATH = process.env.HERMES_SOURCE_PATH?.trim() || path.join(HERMES_HOME, 'hermes-agent');
@@ -185,6 +185,7 @@ async function readKanban() {
 }
 
 async function countMarkdownFiles(root: string): Promise<number | null> {
+  if (!root) return null;
   try {
     const stat = await fs.stat(root);
     if (!stat.isDirectory()) return null;

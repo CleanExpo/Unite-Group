@@ -367,7 +367,7 @@ describe('voice mission risk classification', () => {
       transcript_text: 'do the thing',
       summary: 'Do the thing',
       risk_level: 'low',
-      conversation_id: '/Users/phillmcgurk/secrets sk-live-abcdefgh12345678',
+      conversation_id: `${['', 'Users', 'example', 'secrets'].join('/')} sk-live-abcdefgh12345678`,
       actions: [{ kind: 'research' }],
     })
     expect(parsed.ok).toBe(false)
@@ -649,8 +649,9 @@ describe('voice mission receipts', () => {
   })
 
   it('carries codes, never prose, and never the transcript', () => {
+    const home = ['', 'Users', 'example'].join('/')
     const secretish =
-      'call me on sk-live_ABCDEFGHIJKLMNOPQRSTUV and see /Users/phill-mac/.claude/creds'
+      `call me on sk-live_ABCDEFGHIJKLMNOPQRSTUV and see ${home}/.claude/creds`
     const event = buildVoiceMissionEvent({
       verb: 'admitted',
       missionRef: 'voice:abc',
@@ -658,7 +659,7 @@ describe('voice mission receipts', () => {
     })
     const serialised = JSON.stringify(event)
     expect(serialised).not.toContain('sk-live_ABCDEFGHIJKLMNOPQRSTUV')
-    expect(serialised).not.toContain('/Users/phill-mac')
+    expect(serialised).not.toContain(home)
     expect(event.target).toMatch(/^[a-zA-Z0-9._:/-]*$/)
   })
 

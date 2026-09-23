@@ -380,7 +380,7 @@ products:
       default_branch: main
     local:
       canonical_path: null
-      access_via: /Users/phillmcgurk/Unite-Group/apps/spec-board/projects
+      access_via: apps/spec-board/projects
       do_not_clone_to: []
     linear:
       team: Unite-Group

@@ -18,7 +18,16 @@ import { writeFile, mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { readFile } from 'node:fs/promises'
 
-const OUTPUT_DIR = '/Users/phillmcgurk/2nd-brain/.agentic_nexus/outputs/cfo-gate-review'
+function agenticNexusRoot(): string {
+  return (process.env.SENIOR_PM_ROOT || process.env.AGENTIC_NEXUS_PATH || '').replace(/\/$/, '')
+}
+
+function resolveOutputDir(): string {
+  const root = agenticNexusRoot()
+  return root
+    ? join(root, 'outputs', 'cfo-gate-review')
+    : join(process.cwd(), '.agentic-nexus-outputs', 'cfo-gate-review')
+}
 
 export interface GateReviewInput {
   /** The lane id (e.g. "12") or gate name being reviewed. */
@@ -174,9 +183,9 @@ export async function runCfoGateReview(input: GateReviewInput): Promise<GateRevi
       estimated_phill_time_seconds: typeOptions.length * 8, // ~8 sec per option to read + type
     },
     evidence_references: [
-      '/Users/phillmcgurk/2nd-brain/.agentic_nexus/SPEC_FINISH_EVERYTHING_2026-06-12.md',
-      '/Users/phillmcgurk/2nd-brain/.agentic_nexus/AUTONOMOUS_LOOP_CONTRACT.md',
-      '/Users/phillmcgurk/2nd-brain/.agentic_nexus/HERMES_PROFILES_ORCHESTRATOR_ARCHITECTURE_2026-06-12.md',
+      '2nd-brain/.agentic_nexus/SPEC_FINISH_EVERYTHING_2026-06-12.md',
+      '2nd-brain/.agentic_nexus/AUTONOMOUS_LOOP_CONTRACT.md',
+      '2nd-brain/.agentic_nexus/HERMES_PROFILES_ORCHESTRATOR_ARCHITECTURE_2026-06-12.md',
     ],
     safety: {
       production_db_touched: false,
@@ -189,9 +198,10 @@ export async function runCfoGateReview(input: GateReviewInput): Promise<GateRevi
   }
 
   if (process.env.CFO_GATE_REVIEW_OUTPUT === '1') {
-    await mkdir(OUTPUT_DIR, { recursive: true })
+    const outputDir = resolveOutputDir()
+    await mkdir(outputDir, { recursive: true })
     const safeGate = input.gate.replace(/[^a-z0-9_-]/gi, '_')
-    const path = join(OUTPUT_DIR, `${safeGate}-${Date.now()}.json`)
+    const path = join(outputDir, `${safeGate}-${Date.now()}.json`)
     await writeFile(path, JSON.stringify(packet, null, 2))
     packet.evidence_references.push(`Wrote packet to: ${path}`)
   }

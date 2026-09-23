@@ -53,6 +53,22 @@ jobs:
       - run: node --test scripts/__tests__/check-no-nul-bytes.test.mjs
       - run: node scripts/check-no-nul-bytes.mjs
 
+  home-paths:
+    # An absolute home path (`/Users/<name>/` or `/home/<name>/`) in a tracked
+    # file is a machine-specific leak. Ignore rules cannot stop a future control
+    # script from embedding one, so the durable protection is this content scan.
+    # Job name is the required-status-check context string — do not rename
+    # without updating branch protection in the same change.
+    name: Absolute home-path guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: node --test scripts/__tests__/check-no-absolute-home-paths.test.mjs
+      - run: node scripts/check-no-absolute-home-paths.mjs
+
   commit-messages:
     # nexus-conventions require a Linear ref on the subject and a Gate: line in
     # the body. Nothing enforced either, so they failed silently — UNI-2658's

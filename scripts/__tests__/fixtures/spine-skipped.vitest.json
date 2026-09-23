@@ -70,7 +70,7 @@
    "endTime": 1786880655919.069,
    "status": "passed",
    "message": "",
-   "name": "/home/runner/work/Unite-Group/Unite-Group/packages/spine/packages/spine/tests/unit.test.ts"
+   "name": "/tmp/ci-workspace/Unite-Group/packages/spine/packages/spine/tests/unit.test.ts"
   },
   {
    "assertionResults": [
@@ -123,7 +123,7 @@
    "endTime": 1786880655821,
    "status": "passed",
    "message": "",
-   "name": "/home/runner/work/Unite-Group/Unite-Group/packages/spine/packages/spine/tests/integration/c3_completeness.test.ts"
+   "name": "/tmp/ci-workspace/Unite-Group/packages/spine/packages/spine/tests/integration/c3_completeness.test.ts"
   },
   {
    "assertionResults": [
@@ -165,7 +165,7 @@
    "endTime": 1786880655821,
    "status": "passed",
    "message": "",
-   "name": "/home/runner/work/Unite-Group/Unite-Group/packages/spine/packages/spine/tests/integration/idempotency.test.ts"
+   "name": "/tmp/ci-workspace/Unite-Group/packages/spine/packages/spine/tests/integration/idempotency.test.ts"
   },
   {
    "assertionResults": [
@@ -196,7 +196,7 @@
    "endTime": 1786880655821,
    "status": "passed",
    "message": "",
-   "name": "/home/runner/work/Unite-Group/Unite-Group/packages/spine/packages/spine/tests/integration/match_isolation.test.ts"
+   "name": "/tmp/ci-workspace/Unite-Group/packages/spine/packages/spine/tests/integration/match_isolation.test.ts"
   },
   {
    "assertionResults": [
@@ -271,7 +271,7 @@
    "endTime": 1786880655821,
    "status": "passed",
    "message": "",
-   "name": "/home/runner/work/Unite-Group/Unite-Group/packages/spine/packages/spine/tests/integration/outbox_race.test.ts"
+   "name": "/tmp/ci-workspace/Unite-Group/packages/spine/packages/spine/tests/integration/outbox_race.test.ts"
   },
   {
    "assertionResults": [
@@ -324,7 +324,7 @@
    "endTime": 1786880655821,
    "status": "passed",
    "message": "",
-   "name": "/home/runner/work/Unite-Group/Unite-Group/packages/spine/packages/spine/tests/integration/rls.test.ts"
+   "name": "/tmp/ci-workspace/Unite-Group/packages/spine/packages/spine/tests/integration/rls.test.ts"
   }
  ]
 }
