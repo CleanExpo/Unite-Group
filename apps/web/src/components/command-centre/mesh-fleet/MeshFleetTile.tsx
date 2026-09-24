@@ -17,14 +17,46 @@ interface MeshMachine {
   last_seen: string
   is_stale: boolean
   state?: string
+  cpu_pct?: number
+  mem_pct?: number
+  load1?: number
+  agent_runtimes?: string[]
+  active_agents?: number
+}
+
+interface MeshClaim {
+  linear_id: string
+  machine: string | null
+  branch: string | null
+  state: string
 }
 
 interface MeshFleetResponse {
   configured: boolean
   machines: MeshMachine[]
   shipCount: number
+  claims?: MeshClaim[]
   source: string
   error?: string
+}
+
+// Heartbeats go stale after 60s (mesh_fleet view). A machine silent for 10
+// minutes is treated as switched off — shown "offline", not as an error.
+const OFFLINE_AFTER_MS = 10 * 60 * 1000
+// A heartbeat stamped more than 2 minutes in the future is a clock or data
+// fault, not proof of life — shown "unknown", never "online".
+const CLOCK_SKEW_MS = 2 * 60 * 1000
+
+function machineStatus(m: MeshMachine): 'online' | 'stale' | 'offline' | 'unknown' {
+  const age = Date.now() - Date.parse(m.last_seen)
+  if (m.state === 'offline' || !(age < OFFLINE_AFTER_MS)) return 'offline'
+  if (age < -CLOCK_SKEW_MS) return 'unknown'
+  return m.is_stale ? 'stale' : 'online'
+}
+
+// A missing metric is "—", never 0.
+function metric(value: number | undefined, suffix = ''): string {
+  return typeof value === 'number' && Number.isFinite(value) ? `${Math.round(value * 10) / 10}${suffix}` : '—'
 }
 
 function formatLastSeen(iso: string): string {
@@ -83,14 +115,21 @@ export function MeshFleetTile() {
   const configured = data?.configured ?? false
   const machines = data?.machines ?? []
   const shipCount = data?.shipCount ?? 0
+  const claims = data?.claims ?? []
   const mode = sourceMode(loading, data, fetchError)
   const degradedReason = fetchError ?? (data && data.error) ?? null
+  // Upstream read failed (not merely unconfigured): never show an empty list or zero counts.
+  const notConnected = !loading && (Boolean(fetchError) || (configured && mode === 'degraded'))
 
   // Founder feedback 14/07/2026 — the summary strip shows fleet health only
   // (machine / ship counts + stale count); raw machine hostnames sit behind
   // the shared DeckDetails disclosure. Founder-only page, so the collapsed
   // identifier layer is de-clutter, not a security boundary.
-  const staleCount = machines.filter((m) => m.is_stale).length
+  // The collapsed strip derives from the SAME status as each badge, so a
+  // future-dated, offline or stale heartbeat can never read "all fresh".
+  const notOnline = (['stale', 'offline', 'unknown'] as const)
+    .map((status) => ({ status, count: machines.filter((m) => machineStatus(m) === status).length }))
+    .filter(({ count }) => count > 0)
   const shownMachines = machines.slice(0, DECK_LIST_CAP)
 
   return (
@@ -104,16 +143,22 @@ export function MeshFleetTile() {
       <DeckDetails
         title="Mesh Fleet"
         stats={
-          !loading && configured && machines.length > 0
-            ? staleCount > 0
-              ? `${staleCount} stale heartbeat${staleCount === 1 ? '' : 's'}`
+          !loading && configured && !notConnected && machines.length > 0
+            ? notOnline.length > 0
+              ? notOnline.map(({ status, count }) => `${count} ${status}`).join(' · ')
               : 'all heartbeats fresh'
             : undefined
         }
         badge={
           <SourceBadge
             mode={mode}
-            label={configured ? `${machines.length} machines · ${shipCount} ships` : 'not configured'}
+            label={
+              notConnected
+                ? 'NOT CONNECTED'
+                : configured
+                  ? `${machines.length} machines · ${shipCount} ships`
+                  : 'not configured'
+            }
           />
         }
       >
@@ -123,43 +168,69 @@ export function MeshFleetTile() {
         </p>
       )}
 
-      {configured && machines.length > 0 && (
+      {notConnected && (
+        <p data-testid="mesh-not-connected" style={{ color: 'var(--deck-abort-text)', fontSize: 12, margin: 0 }}>
+          NOT CONNECTED — the mesh fleet could not be read, so no machine data is shown.
+        </p>
+      )}
+
+      {configured && !notConnected && machines.length > 0 && (
         <div>
-          {shownMachines.map((m) => (
+          {shownMachines.map((m) => {
+            const status = machineStatus(m)
+            return (
+              <div
+                key={m.host}
+                data-testid={`mesh-machine-${m.host}`}
+                style={{ padding: '6px 0', borderBottom: '1px solid var(--deck-line)', fontSize: 12 }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                  <span style={{ color: 'var(--deck-text)' }}>
+                    {m.host}
+                    {m.state && <span style={{ color: 'var(--deck-muted)' }}> · {m.state}</span>}
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span
+                      data-testid={`mesh-badge-${m.host}`}
+                      style={{
+                        color: status === 'online' ? 'var(--deck-text)' : 'var(--deck-abort-text)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                        fontSize: 11,
+                      }}
+                    >
+                      {status}
+                    </span>
+                    <span style={{ color: 'var(--deck-muted)' }}>{formatLastSeen(m.last_seen)}</span>
+                  </span>
+                </div>
+                <div data-testid={`mesh-metrics-${m.host}`} style={{ color: 'var(--deck-muted)', marginTop: 2 }}>
+                  CPU {metric(m.cpu_pct, '%')} · Mem {metric(m.mem_pct, '%')} · Load {metric(m.load1)} · Agents{' '}
+                  {metric(m.active_agents)} · Runtimes{' '}
+                  {m.agent_runtimes && m.agent_runtimes.length > 0 ? m.agent_runtimes.join(', ') : '—'}
+                </div>
+              </div>
+            )
+          })}
+          <DeckMoreLine total={machines.length} shown={shownMachines.length} />
+        </div>
+      )}
+
+      {configured && !notConnected && claims.length > 0 && (
+        <div data-testid="mesh-claims">
+          {claims.slice(0, DECK_LIST_CAP).map((c) => (
             <div
-              key={m.host}
-              data-testid={`mesh-machine-${m.host}`}
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: 8,
-                padding: '6px 0',
-                borderBottom: '1px solid var(--deck-line)',
-                fontSize: 12,
-              }}
+              key={c.linear_id}
+              data-testid={`mesh-claim-${c.linear_id}`}
+              style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '4px 0', fontSize: 12 }}
             >
-              <span style={{ color: 'var(--deck-text)' }}>
-                {m.host}
-                {m.state && <span style={{ color: 'var(--deck-muted)' }}> · {m.state}</span>}
-              </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span
-                  data-testid={`mesh-badge-${m.host}`}
-                  style={{
-                    color: m.is_stale ? 'var(--deck-abort-text)' : 'var(--deck-text)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.04em',
-                    fontSize: 11,
-                  }}
-                >
-                  {m.is_stale ? 'stale' : 'fresh'}
-                </span>
-                <span style={{ color: 'var(--deck-muted)' }}>{formatLastSeen(m.last_seen)}</span>
+              <span style={{ color: 'var(--deck-text)' }}>{c.linear_id}</span>
+              <span style={{ color: 'var(--deck-muted)' }}>
+                {c.machine ?? '—'} · {c.branch ?? '—'} · {c.state}
               </span>
             </div>
           ))}
-          <DeckMoreLine total={machines.length} shown={shownMachines.length} />
+          <DeckMoreLine total={claims.length} shown={Math.min(claims.length, DECK_LIST_CAP)} />
         </div>
       )}
 

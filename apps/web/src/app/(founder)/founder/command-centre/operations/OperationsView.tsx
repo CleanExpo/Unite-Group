@@ -19,6 +19,7 @@ import { LiveAgentOperationsMap } from '@/components/command-centre/live-agent-o
 import { ActivityFeedPanel } from '@/components/command-centre/activity/ActivityFeedPanel';
 import { DailyCrmDigestPanel } from '@/components/command-centre/digest/DailyCrmDigestPanel';
 import { PortfolioControlPlaneTile } from '@/components/command-centre/portfolio-control-plane/PortfolioControlPlaneTile';
+import { MeshFleetTile } from '@/components/command-centre/mesh-fleet/MeshFleetTile';
 import shell from '../shell.module.css';
 import styles from '../command-deck.module.css';
 
@@ -132,6 +133,26 @@ export function OperationsView({
         style={{ animationDelay: '0.14s' }}
       >
         <PortfolioControlPlaneTile />
+      </section>
+
+      {/* UNI-2760 — per-machine mesh heartbeat detail (CPU, memory, load,
+          runtimes, agents, work claims). Unverified diagnostic evidence: it
+          sits BELOW the signed control plane and never replaces it (#1079). */}
+      <div
+        className={`${shell.canvasScope} ${shell.glassSectionHead}`}
+        id="mesh-fleet"
+      >
+        <h2>Machine heartbeats</h2>
+        <span className={shell.glassSub}>
+          unverified mesh diagnostics · CPU · memory · load · work claims
+        </span>
+      </div>
+
+      <section
+        className={`${shell.canvasScope} ${shell.glassPanel} ${shell.glassSection} ${styles.reveal}`}
+        style={{ animationDelay: '0.145s' }}
+      >
+        <MeshFleetTile />
       </section>
 
       {/* ── Agent events wall (UNI-2384 wave B2) — runner lifecycle feed over
