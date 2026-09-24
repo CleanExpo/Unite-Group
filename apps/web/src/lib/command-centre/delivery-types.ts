@@ -171,6 +171,16 @@ export interface DeliveryMissionView {
   receipts: Array<{ kind: string; label: string; reference: string }>;
   sourceRefs: DeliveryMetadata["sourceRefs"];
   knowledgeContext?: DeliveryMetadata["knowledgeContext"];
+  /** Capture Intent: metadata.intent, a sibling of metadata.delivery (never part of the delivery contract). */
+  intent?: {
+    status: "draft" | "accepted";
+    markdown: string;
+    generatedAt?: string;
+    acceptedAt?: string;
+    author?: string;
+  } | null;
+  /** True once the founder has answered every question, or none were needed, and no preparation lease is live. */
+  intentReady?: boolean;
 }
 
 /** The durable external identity also marks damaged envelopes; deleting metadata cannot downgrade one. */

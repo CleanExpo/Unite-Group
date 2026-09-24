@@ -4,6 +4,7 @@ import { useState } from 'react'
 import type { DeliveryMissionView, DeliveryRequest, DeliveryStage } from '@/lib/command-centre/delivery-types'
 import styles from './founder-desk.module.css'
 import { MissionObservations } from './MissionObservations'
+import { MissionIntent } from './MissionIntent'
 
 export const MISSION_STAGE_LABELS: Record<DeliveryStage, string> = {
   captured: 'Idea captured', needs_clarification: 'Needs your input', preparing: 'Preparing the brief',
@@ -66,7 +67,8 @@ export function MissionDetail({ mission, busy, stale, refreshing = false, onRefr
       </div>)}
       <button className={styles.primaryButton} disabled={disabled} type="submit">{busy ? 'Saving and continuing…' : 'Save answers and continue'}</button>
     </form>}
-    {mission.spec && <section className={styles.reviewSpec} aria-label="Prepared specification">
+    <MissionIntent mission={mission} disabled={disabled} />
+    {mission.spec &&<section className={styles.reviewSpec} aria-label="Prepared specification">
       <h3>The result we are working towards</h3>
       <ul className={styles.requirements}>{mission.spec.requirements.map((item, i) => <li key={`${i}-${item}`}>{item}</li>)}</ul>
       <h3>How we will know it works</h3>

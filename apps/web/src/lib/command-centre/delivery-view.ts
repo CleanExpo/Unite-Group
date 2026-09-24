@@ -1,5 +1,6 @@
 import type { CommandCentreTask } from "./tasks";
 import { deliveryFingerprint } from "./delivery-store";
+import { readMissionIntent, isPreparationLeaseActive } from "./intent-store";
 import {
   readDeliveryMetadata,
   isCanonicalDeliveryTarget,
@@ -172,6 +173,12 @@ export function toDeliveryMissionView(
     updatedAt: task.updated_at,
     sourceRefs: d?.sourceRefs ?? [],
     knowledgeContext: d?.knowledgeContext,
+    intent: readMissionIntent(task),
+    intentReady:
+      !!d &&
+      !["captured", "clarify"].includes(d.phase) &&
+      !isPreparationLeaseActive(task, now) &&
+      d.questions.every((q) => !!d.answers[q.id]?.trim()),
     receipts: d?.build
       ? [
           {
