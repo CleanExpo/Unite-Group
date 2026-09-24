@@ -43,10 +43,14 @@ interface MeshFleetResponse {
 // Heartbeats go stale after 60s (mesh_fleet view). A machine silent for 10
 // minutes is treated as switched off — shown "offline", not as an error.
 const OFFLINE_AFTER_MS = 10 * 60 * 1000
+// A heartbeat stamped more than 2 minutes in the future is a clock or data
+// fault, not proof of life — shown "unknown", never "online".
+const CLOCK_SKEW_MS = 2 * 60 * 1000
 
-function machineStatus(m: MeshMachine): 'online' | 'stale' | 'offline' {
+function machineStatus(m: MeshMachine): 'online' | 'stale' | 'offline' | 'unknown' {
   const age = Date.now() - Date.parse(m.last_seen)
   if (m.state === 'offline' || !(age < OFFLINE_AFTER_MS)) return 'offline'
+  if (age < -CLOCK_SKEW_MS) return 'unknown'
   return m.is_stale ? 'stale' : 'online'
 }
 

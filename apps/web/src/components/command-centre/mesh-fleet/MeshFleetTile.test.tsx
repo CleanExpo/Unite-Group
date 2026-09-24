@@ -43,6 +43,29 @@ describe('MeshFleetTile', () => {
     expect(screen.getByText('3 machines · 3 ships', { exact: false })).toBeInTheDocument()
   })
 
+  it('never shows "online" for a last_seen beyond the 2-minute clock-skew allowance', async () => {
+    const secondsAhead = (s: number) => new Date(Date.now() + s * 1000).toISOString()
+    vi.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        configured: true,
+        machines: [
+          { host: 'future-box', last_seen: secondsAhead(5 * 60), is_stale: false },
+          { host: 'skewed-box', last_seen: secondsAhead(30), is_stale: false },
+        ],
+        shipCount: 0,
+        source: 'pi_ceo_live',
+      }),
+    } as unknown as Response)
+
+    render(<MeshFleetTile />)
+
+    await waitFor(() => expect(screen.getByTestId('mesh-badge-future-box')).toBeInTheDocument())
+    expect(screen.getByTestId('mesh-badge-future-box')).toHaveTextContent('unknown')
+    // Inside the allowance, small clock drift still reads as a live heartbeat.
+    expect(screen.getByTestId('mesh-badge-skewed-box')).toHaveTextContent('online')
+  })
+
   it('shows "—" for a missing metric, never 0', async () => {
     vi.spyOn(global, 'fetch').mockResolvedValue({
       ok: true,
