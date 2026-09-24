@@ -9,6 +9,7 @@ import { DeckMoreLine, DECK_LIST_CAP } from '@/components/command-centre/DeckDet
 // Founder cockpit tiles — consolidated from the retired /founder/dashboard (UNI-2306)
 // so the command deck is the one canonical console. Surface move: data routes unchanged.
 import { KPIGrid } from '@/components/founder/dashboard/KPIGrid'
+import { RevenuePanelTile } from '@/components/command-centre/revenue/RevenuePanelTile'
 import { FounderStats } from '@/components/founder/dashboard/FounderStats'
 import { CoachBriefs } from '@/components/founder/dashboard/CoachBriefs'
 import { ExperimentsDashboardWidget } from '@/components/founder/dashboard/ExperimentsDashboardWidget'
@@ -246,6 +247,10 @@ export function PortfolioView({ projects, integrationStatuses, pipeline, integra
       </section>
       <section className={`${styles.reveal}`} style={{ animationDelay: '0.16s' }}>
         <KPIGrid />
+      </section>
+      {/* Cleared Stripe funds vs break-even, beside the Xero revenue cards (Wave 1). */}
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.17s' }}>
+        <RevenuePanelTile />
       </section>
       <section className={`${styles.reveal}`} style={{ animationDelay: '0.18s' }}>
         <HubStatusWidget />
