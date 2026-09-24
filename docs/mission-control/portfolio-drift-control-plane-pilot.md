@@ -68,6 +68,8 @@ The founder-allow-listed, no-store endpoint is:
 
 The Operations page replaces the static mesh panel with one collapsed summary. It lists exceptions rather than repeating every healthy-looking row, and shows baseline state, enrolled/active/stale/offline/unknown device counts, repository state, blocker, exact next safe action, preserved unknown work and durable offline work. Raw Git errors, credentials and absolute worktree paths are not projected to the browser.
 
+UNI-2760 adds a separate, collapsed "Machine heartbeats" section (`id="mesh-fleet"`) below the control plane. It shows per-machine CPU, memory, load, runtimes, agents and work claims from the Pi-Dev-Ops mesh heartbeat, labelled as unverified diagnostics. It does not replace the control-plane summary, enrol a device or authorise execution.
+
 States mean:
 
 - `observed`: a fresh signed observation passed the identity and consistency contract; it is not release-ready;

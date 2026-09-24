@@ -100,10 +100,21 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
       );
       expect(operationsSrc).toContain(`id="${id}"`);
     }
-    // The portfolio tile replaces the static mesh tile; it remains read-only.
+    // The portfolio tile owns the agent-fleet slot (#1079); it remains read-only.
     expect(operationsSrc).toContain('<QueueBoard />');
     expect(operationsSrc).toContain('<PortfolioControlPlaneTile />');
-    expect(operationsSrc).not.toContain('<MeshFleetTile />');
+    // UNI-2760: the mesh heartbeat tile returns only as unverified diagnostic
+    // detail under its own id AFTER the control plane — never in the
+    // agent-fleet slot the signed control plane owns.
+    const fleetSlot = operationsSrc.indexOf('id="agent-fleet"');
+    const controlPlane = operationsSrc.indexOf('<PortfolioControlPlaneTile />');
+    const meshSlot = operationsSrc.indexOf('id="mesh-fleet"');
+    const meshTile = operationsSrc.indexOf('<MeshFleetTile />');
+    expect(fleetSlot).toBeGreaterThan(-1);
+    expect(controlPlane).toBeGreaterThan(fleetSlot);
+    expect(meshSlot).toBeGreaterThan(controlPlane);
+    expect(meshTile).toBeGreaterThan(meshSlot);
+    expect(operationsSrc.split('<MeshFleetTile />').length).toBe(2);
   });
 
   it('leaves no section on the retired light-deck head register (all five deck pages)', () => {

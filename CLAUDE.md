@@ -206,20 +206,24 @@ Steps 1 and 2 are unconditional. Step 3 applies only when no task was given.
 honest-sources rule and the `apps/web` completion spec, and those are three
 different things.
 
-## Vendor routing (temporary, expires 2026-09-12)
+## Vendor routing: Cursor is the auditor until Codex is back online
 
-VENDOR ROUTING ORDER — effective immediately, expires 2026-09-12.
+VENDOR ROUTING ORDER. The 07/09/2026 order expired on 2026-09-12. It is replaced by the
+founder ruling of 24/09/2026, verbatim: "use cursor until codex comes back on-line as the
+multi-LLM auditor."
 
-FACT: Codex quota is exhausted until 2026-09-12. Cursor plans are active
-and funded. This order overrides any document that says otherwise.
+FACT: "Back online" is a check, not a date. Codex is back only when the OAuth token in
+`~/.codex/auth.json` has an unexpired `exp`. `codex login status` prints "Logged in using
+ChatGPT" even when the token is dead, so it is not the check. Cursor plans are active and
+funded. This order overrides any document that says otherwise.
 
 STANDING RULES
-1. Do NOT invoke `codex` in any form. No retries, no probes, no queuing
-   work while waiting for it. Every Codex failure before this notice is
-   explained by the quota fact — stop treating it as transient.
+1. While Codex is not back online, do NOT invoke `codex` in any form. No retries, no
+   probes, no queuing work while waiting for it. Its failures are the expired token, not
+   a transient fault. Re-logging in (`codex login`) is founder-only.
 2. Wherever ANY prompt, doc, skill, CLAUDE.md, or goal card says "Codex",
    read it as "the adversarial / second-vendor slot". That slot is filled
-   by CURSOR until 2026-09-12.
+   by CURSOR until Codex is back online.
 3. Invoke Cursor headlessly:
      agent -p "<the adversarial brief>" --output-format text
    The binary is `agent`; -p/--print is non-interactive. Omit --model to
@@ -234,19 +238,14 @@ STANDING RULES
    state with the authoring session) and record the degradation on the
    scoreboard as "cross-vendor pass ran single-vendor fresh-context".
    Skipping the audit stage entirely is never an option.
-6. Every cross-vendor pass records which engine ran it. On or after
-   2026-09-12: check the date, ASK THE FOUNDER whether Codex returns to
-   the slot — do not auto-revert.
+6. Every cross-vendor pass records which engine ran it. When the `exp` check shows Codex
+   back online, ASK THE FOUNDER whether Codex returns to the slot — do not auto-revert.
 
-PERSIST THIS
-Append this block verbatim to this repo's CLAUDE.md under
-"## Vendor routing (temporary, expires 2026-09-12)" in your next
-commit/PR, so every future session inherits the order without being told.
+*First persisted 2026-09-07 by founder directive; date condition replaced 24/09/2026 by the
+founder ruling quoted above. Already in force — do not re-append.*
 
-*Persisted 2026-09-07 by founder directive. Already in force — do not re-append.*
-
-**Reading note for the release gate.** `independent_review.py` takes `--lane`; under this
-order the lane is **never `codex`**. Rule 5's fresh-context Claude fallback is a
+**Reading note for the release gate.** `independent_review.py` takes `--lane`; while Codex
+is not back online the lane is **never `codex`**. Rule 5's fresh-context Claude fallback is a
 *degradation that must be recorded*, not an equivalent — a same-vendor reviewer does not
 give the cross-family independence the gate exists for, so say so on the scoreboard
 rather than letting a PASS imply cross-vendor review happened.
