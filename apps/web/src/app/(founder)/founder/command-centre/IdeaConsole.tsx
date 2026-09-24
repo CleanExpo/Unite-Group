@@ -146,6 +146,13 @@ export function IdeaConsole({ projects }: { projects: IdeaConsoleProject[] }) {
   const [contentError, setContentError] = useState<string | null>(null)
   const [contentPublishing, setContentPublishing] = useState(false)
   const [contentPublished, setContentPublished] = useState<ContentDistributeView | null>(null)
+  // ── Capture Intent state (intent.md draft → edit → accept) ────────────────
+  const [intentDraft, setIntentDraft] = useState<string | null>(null)
+  const [intentDrafting, setIntentDrafting] = useState(false)
+  const [intentAccepting, setIntentAccepting] = useState(false)
+  const [intentAccepted, setIntentAccepted] = useState<{ markdown: string; acceptedAt: string } | null>(null)
+  const [intentError, setIntentError] = useState<string | null>(null)
+  const [intentCopied, setIntentCopied] = useState(false)
 
   async function submitIdea(e: React.FormEvent) {
     e.preventDefault()
@@ -158,6 +165,11 @@ export function IdeaConsole({ projects }: { projects: IdeaConsoleProject[] }) {
     // A fresh idea supersedes any prior verdict.
     setBoard(null)
     setRationale('')
+    // …and any intent.md belonging to the previous task.
+    setIntentDraft(null)
+    setIntentAccepted(null)
+    setIntentError(null)
+    setIntentCopied(false)
 
     try {
       const res = await fetch('/api/command-centre/ideas', {
@@ -282,6 +294,70 @@ export function IdeaConsole({ projects }: { projects: IdeaConsoleProject[] }) {
     }
   }
 
+  // ── Capture Intent handlers ────────────────────────────────────────────────
+
+  async function draftIntent() {
+    if (!task || intentDrafting) return
+    setIntentDrafting(true)
+    setIntentError(null)
+    try {
+      const res = await fetch('/api/command-centre/intent', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId: task.id }),
+      })
+      if (!res.ok) { setIntentError(await readError(res, 'Could not draft intent.md')); return }
+      const data = (await res.json()) as { markdown?: string }
+      if (typeof data.markdown === 'string' && data.markdown.trim()) {
+        setIntentDraft(data.markdown)
+      } else {
+        setIntentError('The server responded but returned no intent.md.')
+      }
+    } catch {
+      setIntentError('Network error — could not reach the intent service.')
+    } finally {
+      setIntentDrafting(false)
+    }
+  }
+
+  async function acceptIntent() {
+    if (!task || intentDraft === null || intentAccepting) return
+    setIntentAccepting(true)
+    setIntentError(null)
+    try {
+      const res = await fetch('/api/command-centre/intent', {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId: task.id, markdown: intentDraft }),
+      })
+      if (!res.ok) { setIntentError(await readError(res, 'Could not accept intent.md')); return }
+      const data = (await res.json()) as { markdown?: string; acceptedAt?: string }
+      if (typeof data.markdown === 'string' && typeof data.acceptedAt === 'string') {
+        setIntentAccepted({ markdown: data.markdown, acceptedAt: data.acceptedAt })
+      } else {
+        setIntentError('The server responded but did not confirm the acceptance.')
+      }
+    } catch {
+      setIntentError('Network error — could not reach the intent service.')
+    } finally {
+      setIntentAccepting(false)
+    }
+  }
+
+  async function copyIntent() {
+    if (!intentAccepted) return
+    setIntentError(null)
+    try {
+      await navigator.clipboard.writeText(intentAccepted.markdown)
+      setIntentCopied(true)
+    } catch {
+      setIntentCopied(false)
+      setIntentError('Could not copy to the clipboard — select the text and copy it manually.')
+    }
+  }
+
   // ── Software lane handlers ─────────────────────────────────────────────────
 
   async function planBuild() {
@@ -386,6 +462,11 @@ export function IdeaConsole({ projects }: { projects: IdeaConsoleProject[] }) {
     <div id="idea-console" className={styles.console}>
       {/* ── Intake column ──────────────────────────────────────────────── */}
       <form className={styles.intake} onSubmit={submitIdea}>
+        <h2 className={styles.cardTitle}>Capture Intent</h2>
+        <p className={styles.hint}>
+          Describe it in your own words → answer the questions → check the intent → accept.
+        </p>
+
         <div className={styles.field}>
           <label className={styles.label} htmlFor={ideaFieldId}>
             Tell Hermes an idea…
@@ -541,6 +622,76 @@ export function IdeaConsole({ projects }: { projects: IdeaConsoleProject[] }) {
         {clarifyError && (
           <div className={styles.error} role="alert">
             {clarifyError}
+          </div>
+        )}
+
+        {/* ── Capture Intent: draft → edit → accept intent.md ─────────── */}
+        {task && (
+          <div className={styles.verdict}>
+            <span className={styles.subhead}>intent.md</span>
+
+            {intentDraft === null && (
+              <div className={styles.actions}>
+                <button
+                  type="button"
+                  className={styles.board}
+                  onClick={draftIntent}
+                  disabled={intentDrafting}
+                  aria-label="Draft intent.md"
+                >
+                  {intentDrafting && <span className={styles.spinner} aria-hidden="true" />}
+                  {intentDrafting ? 'Drafting…' : 'Draft intent.md'}
+                </button>
+              </div>
+            )}
+
+            {intentDraft !== null && (
+              <>
+                <textarea
+                  aria-label="intent.md"
+                  className={styles.textarea}
+                  value={intentAccepted ? intentAccepted.markdown : intentDraft}
+                  onChange={(e) => setIntentDraft(e.target.value)}
+                  readOnly={intentAccepted !== null}
+                  disabled={intentAccepting}
+                  style={{ minHeight: '18rem', fontFamily: 'var(--font-geist-mono, monospace)' }}
+                />
+                {intentAccepted === null ? (
+                  <div className={styles.actions}>
+                    <button
+                      type="button"
+                      className={styles.submit}
+                      onClick={acceptIntent}
+                      disabled={intentAccepting || !intentDraft.trim()}
+                      aria-label="Accept intent"
+                    >
+                      {intentAccepting && <span className={styles.spinner} aria-hidden="true" />}
+                      {intentAccepting ? 'Accepting…' : 'Accept intent'}
+                    </button>
+                  </div>
+                ) : (
+                  <div className={styles.actions}>
+                    <span className={styles.rationale}>
+                      Accepted {new Date(intentAccepted.acceptedAt).toLocaleString()}
+                    </span>
+                    <button
+                      type="button"
+                      className={styles.board}
+                      onClick={copyIntent}
+                      aria-label="Copy intent.md"
+                    >
+                      {intentCopied ? 'Copied' : 'Copy intent.md'}
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+
+            {intentError && (
+              <div className={styles.error} role="alert">
+                {intentError}
+              </div>
+            )}
           </div>
         )}
 
