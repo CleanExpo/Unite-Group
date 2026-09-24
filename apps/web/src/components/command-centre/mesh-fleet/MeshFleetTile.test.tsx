@@ -64,6 +64,9 @@ describe('MeshFleetTile', () => {
     expect(screen.getByTestId('mesh-badge-future-box')).toHaveTextContent('unknown')
     // Inside the allowance, small clock drift still reads as a live heartbeat.
     expect(screen.getByTestId('mesh-badge-skewed-box')).toHaveTextContent('online')
+    // The always-visible collapsed strip must agree with the badge.
+    expect(screen.getByText('1 unknown')).toBeInTheDocument()
+    expect(screen.queryByText('all heartbeats fresh')).not.toBeInTheDocument()
   })
 
   it('shows "—" for a missing metric, never 0', async () => {

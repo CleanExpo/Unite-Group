@@ -125,7 +125,11 @@ export function MeshFleetTile() {
   // (machine / ship counts + stale count); raw machine hostnames sit behind
   // the shared DeckDetails disclosure. Founder-only page, so the collapsed
   // identifier layer is de-clutter, not a security boundary.
-  const staleCount = machines.filter((m) => m.is_stale).length
+  // The collapsed strip derives from the SAME status as each badge, so a
+  // future-dated, offline or stale heartbeat can never read "all fresh".
+  const notOnline = (['stale', 'offline', 'unknown'] as const)
+    .map((status) => ({ status, count: machines.filter((m) => machineStatus(m) === status).length }))
+    .filter(({ count }) => count > 0)
   const shownMachines = machines.slice(0, DECK_LIST_CAP)
 
   return (
@@ -140,8 +144,8 @@ export function MeshFleetTile() {
         title="Mesh Fleet"
         stats={
           !loading && configured && !notConnected && machines.length > 0
-            ? staleCount > 0
-              ? `${staleCount} stale heartbeat${staleCount === 1 ? '' : 's'}`
+            ? notOnline.length > 0
+              ? notOnline.map(({ status, count }) => `${count} ${status}`).join(' · ')
               : 'all heartbeats fresh'
             : undefined
         }
