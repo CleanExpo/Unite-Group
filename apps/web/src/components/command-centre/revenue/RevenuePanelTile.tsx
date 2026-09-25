@@ -16,6 +16,7 @@
 import { useEffect, useState } from 'react'
 import type { RevenueResponse } from '@/lib/revenue/revenue-snapshot'
 import type { AccountRead } from '@/lib/revenue/stripe-account'
+import { TrendAreaChart } from './TrendAreaChart'
 
 const aud = new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 })
 
@@ -56,26 +57,6 @@ const card: React.CSSProperties = {
 const muted: React.CSSProperties = { color: 'var(--deck-muted)', fontSize: 11 }
 const red: React.CSSProperties = { color: 'var(--deck-abort-text, #dc2626)', fontWeight: 700 }
 const row: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', gap: 8 }
-
-function Trend({ trend }: { trend: { date: string; netCents: number }[] }) {
-  const max = Math.max(1, ...trend.map((d) => d.netCents))
-  return (
-    <div aria-label="7-day cleared trend" style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 40 }}>
-      {trend.map((d) => (
-        <div
-          key={d.date}
-          title={`${d.date}: ${formatCents(d.netCents)}`}
-          style={{
-            flex: 1,
-            height: `${Math.max(2, Math.round((Math.max(0, d.netCents) / max) * 40))}px`,
-            background: 'var(--deck-cyan, #0891b2)',
-            opacity: d.netCents > 0 ? 1 : 0.25,
-          }}
-        />
-      ))}
-    </div>
-  )
-}
 
 function AccountSection({ account }: { account: AccountRead }) {
   if (account.status === 'not_connected') {
@@ -134,7 +115,7 @@ function AccountSection({ account }: { account: AccountRead }) {
 
       <div>
         <span style={muted}>7-day cleared trend</span>
-        <Trend trend={cleared.trend} />
+        <TrendAreaChart trend={cleared.trend} id={`revenue-trend-${account.account}`} />
       </div>
 
       <div>
