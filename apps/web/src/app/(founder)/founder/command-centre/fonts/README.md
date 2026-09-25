@@ -19,6 +19,7 @@ unchanged.
 | `chakra-petch-{400,500,600,700}.woff2` | Chakra Petch | static, one file per weight | v13 |
 | `syne-variable.woff2` | Syne | variable, `wght 400..800` | v24 |
 | `jetbrains-mono-variable.woff2` | JetBrains Mono | variable, `wght 400..600` | v24 |
+| `inter-variable.woff2` | Inter | variable, `wght 400..700` | v20 |
 
 All are the **latin** subset only — matching the `subsets: ['latin']` the deck
 pages previously declared. No other subset was ever requested, so nothing was
@@ -26,12 +27,13 @@ dropped in the move.
 
 ## Licence
 
-All three families are licensed under the SIL Open Font License 1.1. The full
+All four families are licensed under the SIL Open Font License 1.1. The full
 licence text for each ships alongside the binaries as required:
 
 - `OFL-chakrapetch.txt` — Copyright 2018 The Chakra Petch Project Authors
 - `OFL-syne.txt` — Copyright 2017 The Syne Project Authors
 - `OFL-jetbrainsmono.txt` — Copyright 2020 The JetBrains Mono Project Authors
+- `OFL-inter.txt` — Copyright 2020 The Inter Project Authors
 
 ## Refreshing
 

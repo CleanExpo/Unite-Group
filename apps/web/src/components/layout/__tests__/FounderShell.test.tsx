@@ -46,7 +46,7 @@ function pressCommandK() {
 function renderShellAt(pathname: string, homePalette = pathname === '/founder/command-centre') {
   mockPathname = pathname
   return render(
-    <FounderShell user={user}>
+    <FounderShell user={user} missionFontClassName="mock-font-inter">
       <div data-mission-home-palette={homePalette ? 'true' : undefined}>deck</div>
     </FounderShell>,
   )
@@ -64,6 +64,13 @@ describe('FounderShell ⌘K guard (UNI-2397/UNI-2398)', () => {
     unmount()
     renderShellAt('/founder/command-centre/unknown')
     expect(screen.getByText('Legacy topbar')).toBeInTheDocument()
+  })
+  it('defines the Inter font variable on Mission Control only', () => {
+    const { container, unmount } = renderShellAt('/founder/command-centre/operations')
+    expect(container.firstElementChild).toHaveClass('mock-font-inter')
+    unmount()
+    const other = renderShellAt('/founder/pi')
+    expect(other.container.firstElementChild).not.toHaveClass('mock-font-inter')
   })
   beforeEach(() => {
     mockToggleSidebar.mockClear()
