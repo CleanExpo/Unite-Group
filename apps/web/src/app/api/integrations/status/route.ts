@@ -4,9 +4,12 @@
 //   vault  — a credentials_vault row exists for the founder under `service`
 //   social — a social_channels row exists for the founder under `platform` (is_connected)
 //   env    — required env keys present (no per-founder token; e.g. Linear API key)
+// GitHub is the exception: its row comes from one real repository read, never
+// env presence (a rejected token once read as connected for ~20 days).
 
 import { NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
+import { readGithubConnectorHealth } from '@/lib/command-centre/delivery-repositories'
 
 export const dynamic = 'force-dynamic'
 
@@ -67,7 +70,7 @@ export async function GET() {
 
   const supabase = await createClient()
 
-  const [vaultRes, socialRes] = await Promise.all([
+  const [vaultRes, socialRes, github] = await Promise.all([
     supabase
       .from('credentials_vault')
       .select('service, created_at, updated_at, last_accessed_at')
@@ -76,6 +79,7 @@ export async function GET() {
       .from('social_channels')
       .select('platform, is_connected, updated_at')
       .eq('founder_id', user.id),
+    readGithubConnectorHealth(),
   ])
 
   if (vaultRes.error || socialRes.error) {
@@ -103,6 +107,8 @@ export async function GET() {
       tokenCount = rows.length
       connected = rows.length > 0
       lastSync = latest(rows.map((r) => r.updated_at))
+    } else if (p.id === 'github') {
+      connected = github.status === 'connected'
     } else if (p.source === 'env') {
       // env source: env-key presence IS the connection (no per-founder token)
       connected = configured
@@ -121,6 +127,9 @@ export async function GET() {
       tokenCount,
       lastSync,
       note: p.note ?? null,
+      ...(p.id === 'github'
+        ? { status: github.status, statusMessage: github.message }
+        : {}),
     }
   })
 

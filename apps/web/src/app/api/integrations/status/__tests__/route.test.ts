@@ -45,9 +45,15 @@ describe('GET /api/integrations/status', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(getUser).mockResolvedValue({ id: 'user-123' } as never)
+    // The GitHub row now performs a real read. Never let an ambient token turn
+    // these tests into a live call to api.github.com.
+    vi.stubEnv('GITHUB_TOKEN', '')
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockRejectedValue(new Error('network disabled in tests')))
   })
 
   afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.unstubAllEnvs()
     process.env = { ...savedEnv }
   })
 
@@ -212,5 +218,71 @@ describe('GET /api/integrations/status', () => {
 
     const res = await GET()
     expect(res.status).toBe(500)
+  })
+
+  // T2 (2026-09-25). The GitHub token was rejected for ~20 days while this row
+  // said connected, because `connected` was env presence. It must now come from
+  // ONE real repository read (per_page=1). fetch is stubbed rather than the
+  // helper mocked, so the real status mapping in delivery-repositories.ts runs.
+  describe('GitHub row is a real read, never env presence', () => {
+    async function githubRow() {
+      const { client } = makeSupabase([], [])
+      vi.mocked(createClient).mockResolvedValue(client)
+      const res = await GET()
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      return body.providers.find((p: { id: string }) => p.id === 'github')
+    }
+
+    it('connected after GitHub answers 200, using one per_page=1 read', async () => {
+      vi.stubEnv('GITHUB_TOKEN', 'test-only-token')
+      const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+        new Response(JSON.stringify([{ full_name: 'Owner/Repo', private: true, archived: false }]), { status: 200 }),
+      )
+      vi.stubGlobal('fetch', fetchMock)
+
+      const row = await githubRow()
+
+      expect(row.status).toBe('connected')
+      expect(row.connected).toBe(true)
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+      const url = new URL(String(fetchMock.mock.calls[0][0]))
+      expect(url.pathname).toBe('/user/repos')
+      expect(url.searchParams.get('per_page')).toBe('1')
+    })
+
+    it('auth_error, not connected, when GitHub rejects the token with 401', async () => {
+      vi.stubEnv('GITHUB_TOKEN', 'test-only-token')
+      vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(new Response('{"message":"Bad credentials"}', { status: 401 })))
+
+      const row = await githubRow()
+
+      expect(row.status).toBe('auth_error')
+      expect(row.connected).toBe(false)
+      expect(row.configured).toBe(true) // the token IS present; it just does not work
+      expect(row.statusMessage).toMatch(/cannot read repositories/)
+    })
+
+    it('not_configured and no GitHub call when no token is set', async () => {
+      const fetchMock = vi.fn<typeof fetch>()
+      vi.stubGlobal('fetch', fetchMock)
+
+      const row = await githubRow()
+
+      expect(row.status).toBe('not_configured')
+      expect(row.connected).toBe(false)
+      expect(fetchMock).not.toHaveBeenCalled()
+    })
+
+    it('unverified, never connected, when the read cannot complete', async () => {
+      vi.stubEnv('GITHUB_TOKEN', 'test-only-token')
+      vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockRejectedValue(new TypeError('fetch failed')))
+
+      const row = await githubRow()
+
+      expect(row.status).toBe('unverified')
+      expect(row.connected).toBe(false)
+      expect(row.statusMessage).toBeTruthy()
+    })
   })
 })

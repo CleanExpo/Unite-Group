@@ -27,9 +27,15 @@ describe('GET /api/health/connectors', () => {
     // make every assertion below vacuous. Configure it explicitly.
     process.env.FOUNDER_ALLOWED_USER_IDS = FOUNDER
     delete process.env.FOUNDER_ALLOWED_EMAILS
+    // The GitHub row now performs a real read. Never let an ambient token turn
+    // these identity tests into a live call to api.github.com.
+    vi.stubEnv('GITHUB_TOKEN', '')
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockRejectedValue(new Error('network disabled in tests')))
   })
 
   afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.unstubAllEnvs()
     if (saved.ids === undefined) delete process.env.FOUNDER_ALLOWED_USER_IDS
     else process.env.FOUNDER_ALLOWED_USER_IDS = saved.ids
     if (saved.emails === undefined) delete process.env.FOUNDER_ALLOWED_EMAILS
@@ -94,5 +100,86 @@ describe('GET /api/health/connectors', () => {
     expect(allowed).not.toBe(denied)
     expect(allowed).toBe(200)
     expect(denied).toBe(403)
+  })
+})
+
+// T2 (2026-09-25). The GitHub token was rejected for ~20 days while the health
+// surfaces still treated GitHub as fine, because the row came from env presence
+// alone. The GitHub row must now come from ONE real repository read
+// (per_page=1). fetch is stubbed rather than the helper mocked, so the real
+// status mapping in delivery-repositories.ts runs under these tests.
+describe('GET /api/health/connectors — GitHub row is a real read', () => {
+  const fetchMock = vi.fn<typeof fetch>()
+  const savedIds = process.env.FOUNDER_ALLOWED_USER_IDS
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    process.env.FOUNDER_ALLOWED_USER_IDS = FOUNDER
+    fetchMock.mockReset()
+    vi.stubGlobal('fetch', fetchMock)
+    vi.mocked(getUser).mockResolvedValue({ id: FOUNDER, email: 'founder@example.com' } as never)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.unstubAllEnvs()
+    if (savedIds === undefined) delete process.env.FOUNDER_ALLOWED_USER_IDS
+    else process.env.FOUNDER_ALLOWED_USER_IDS = savedIds
+  })
+
+  async function githubRow() {
+    const res = await GET()
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    return body.connectors.find((c: { service: string }) => c.service === 'github')
+  }
+
+  it('reports connected only after GitHub answers 200, using one per_page=1 read', async () => {
+    vi.stubEnv('GITHUB_TOKEN', 'test-only-token')
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify([{ full_name: 'Owner/Repo', private: true, archived: false }]), { status: 200 }),
+    )
+
+    const row = await githubRow()
+
+    expect(row.status).toBe('connected')
+    expect(row.oauthConnected).toBe(true)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const url = new URL(String(fetchMock.mock.calls[0][0]))
+    expect(url.pathname).toBe('/user/repos')
+    expect(url.searchParams.get('per_page')).toBe('1')
+  })
+
+  it('reports auth_error, not connected, when GitHub rejects the token with 401', async () => {
+    vi.stubEnv('GITHUB_TOKEN', 'test-only-token')
+    fetchMock.mockResolvedValue(new Response('{"message":"Bad credentials"}', { status: 401 }))
+
+    const row = await githubRow()
+
+    expect(row.status).toBe('auth_error')
+    expect(row.oauthConnected).toBe(false)
+    expect(row.configured).toBe(true) // the token IS present; it just does not work
+    expect(row.lastError).toMatch(/cannot read repositories/)
+  })
+
+  it('reports not_configured and makes no GitHub call when no token is set', async () => {
+    vi.stubEnv('GITHUB_TOKEN', '')
+
+    const row = await githubRow()
+
+    expect(row.status).toBe('not_configured')
+    expect(row.oauthConnected).toBe(false)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('reports unverified, never connected, when the read cannot complete', async () => {
+    vi.stubEnv('GITHUB_TOKEN', 'test-only-token')
+    fetchMock.mockRejectedValue(new TypeError('fetch failed'))
+
+    const row = await githubRow()
+
+    expect(row.status).toBe('unverified')
+    expect(row.oauthConnected).toBe(false)
+    expect(row.lastError).toBeTruthy()
   })
 })
