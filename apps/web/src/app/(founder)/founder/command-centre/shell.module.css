@@ -8,30 +8,37 @@
    Pipeline sections. */
 
 .canvasScope {
+  /* Colour values: Pi-Dev-Ops sign-in palette, CleanExpo/Pi-Dev-Ops
+     dashboard/app/globals.css (.dark), fetched 25/09/2026 — UNI-2769.
+     Names unchanged; values mapped by role. --red-400/--red-500 = action
+     (candy red), --red-300 = alarm (kept distinct), --green/--green-txt =
+     positive. */
   --canvas: #0e1014;
-  --surface-1: #141820;
-  --surface-2: #1c2230;
-  --surface-3: #232b3a;
-  --line: #262c36;
-  --line-soft: #1b2027;
+  --surface-1: #191e26;
+  --surface-2: #191e26;
+  --surface-3: #232934;
+  --line: #2e3542;
+  --line-soft: #191e26;
 
-  --glass-1: rgba(20, 24, 32, 0.55);
-  --glass-2: rgba(28, 34, 48, 0.6);
+  --glass-1: rgba(25, 30, 38, 0.55);
+  --glass-2: rgba(35, 41, 52, 0.6);
   --glass-hi: rgba(255, 255, 255, 0.06);
   --glass-brd: rgba(255, 255, 255, 0.08);
   --blur: blur(26px) saturate(145%);
   --blur-lite: blur(14px) saturate(135%);
 
-  --ink: #f0f3f7;
-  --ink-dim: #a6afbc;
-  --ink-hush: #6d7887;
+  --ink: #f4f5f7;
+  --ink-dim: #a7adba;
+  --ink-hush: #9aa3b1;
 
-  --red-500: #b30000;
-  --red-400: #cf1616;
-  --red-300: #e03333;
-  --green: #00a854;
-  --green-txt: #34d399;
-  --amber-txt: #f0a94c;
+  --red-500: #ff3b5c;
+  --red-400: #ff3b5c;
+  /* Alarm text: palette error #e5484d is 3.73:1 on --surface-3, so the
+     lighter alarm red #f87171 (5.28:1 there) — still not the action red. */
+  --red-300: #f87171;
+  --green: #00d97e;
+  --green-txt: #00d97e;
+  --amber-txt: #ff8a1f;
 
   --r-sm: 2px;
   --r-md: 4px;
@@ -46,7 +53,7 @@
   /* Slice 2 — tiles are imported UNCHANGED, so tokens they consume are
      re-pointed here instead of editing them. --color-text-muted is the
      app-global light-theme muted ink (#5f5f66, ~2.4:1 on --surface-2 —
-     fails); inside canvas glass it resolves to --ink-dim (7.18:1). */
+     fails); inside canvas glass it resolves to --ink-dim (7.43:1). */
   --color-text-muted: var(--ink-dim);
 }
 
@@ -87,7 +94,7 @@
 }
 @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
   .hero {
-    background: linear-gradient(135deg, rgba(28, 34, 48, 0.66), rgba(15, 18, 23, 0.6));
+    background: linear-gradient(135deg, rgba(35, 41, 52, 0.66), rgba(14, 16, 20, 0.6));
     backdrop-filter: var(--blur);
     -webkit-backdrop-filter: var(--blur);
   }
@@ -109,7 +116,8 @@
 }
 .heroEm {
   font-style: normal;
-  color: var(--red-300);
+  /* Action/emphasis red (--red-400), not the alarm token --red-300. */
+  color: var(--red-400);
 }
 .heroSub {
   color: var(--ink-dim);
@@ -122,7 +130,7 @@
 /* ── Glass section head (canvas .sec-h) ──
    Slice 2 flipped the deck ground dark (command-deck.module.css), so the
    head's opaque --surface-2 ground now reads as a quiet card on the canvas
-   (--ink 14.28:1 on it) rather than the slice-1 island on the light deck. */
+   (--ink 15.34:1 on it) rather than the slice-1 island on the light deck. */
 .glassSectionHead {
   display: flex;
   align-items: baseline;
@@ -144,7 +152,7 @@
   margin: 0;
 }
 /* --ink-dim (not --ink-hush): 12px/10px mono on --surface-2 needs >= 4.5:1;
-   --ink-dim measures ~7.2:1, --ink-hush only ~3.6:1. */
+   --ink-dim measures ~7.4:1 (UNI-2769 values). */
 .glassSub {
   color: var(--ink-dim);
   font-family: var(--font-jbmono), ui-monospace, monospace;
@@ -162,7 +170,7 @@
   border: 1px solid var(--glass-brd);
   border-radius: 3px;
   padding: 2px 6px;
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(244, 245, 247, 0.02);
 }
 
 /* ── Glass section body wrapper (canvas .panel) ── */
@@ -172,7 +180,7 @@
 
 /* ── Slice 2 — glass section-head extras ── */
 /* Full-width honesty caption inside a glass head (migrated from the deck's
-   .sectionCaption). 12px body copy on --surface-2 → --ink-dim (7.18:1). */
+   .sectionCaption). 12px body copy on --surface-2 → --ink-dim (7.43:1). */
 .glassCaption {
   flex-basis: 100%;
   font-size: 12px;
@@ -193,8 +201,8 @@
 /* ── Slice 2 — Operate launch-pad (canvas §Operate, BUSINESSES registry) ──
    Compact opaque tiles inside a glass panel: no backdrop-filter here, so the
    @supports guard/decl parity is untouched. Text grounds are the solid
-   --surface-3 (#232b3a): --ink 12.77:1, --ink-dim 6.41:1, --green-txt
-   7.39:1 — all AA for their sizes (computed, not eyeballed). */
+   --surface-3 (#232934): --ink 13.38:1, --ink-dim 6.49:1, --green-txt
+   7.81:1 — all AA for their sizes (computed, not eyeballed). */
 .launchGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
@@ -250,31 +258,40 @@
 
 /* ── Daylight register override (Affirm-inspired; pairs with
    command-deck.module.css .daylight). .daylight lands on the deck root, so
-   every nested canvasScope section flips with it: paper ground, white
-   cards, soft radii, calm shadows, indigo-adjacent signal ramp. */
+   every nested canvasScope section flips with it: off-white ground, zinc
+   panels, soft radii, calm shadows, orange-700 action ramp (UNI-2769). */
 .daylight .canvasScope {
-  --canvas: #faf9f7;
-  --surface-1: #ffffff;
-  --surface-2: #ffffff;
-  --surface-3: #f4f1eb;
-  --line: #e5e1d8;
-  --line-soft: #eeeae2;
+  /* Colour values: Pi-Dev-Ops sign-in palette, CleanExpo/Pi-Dev-Ops
+     dashboard/app/globals.css (:root light), fetched 25/09/2026 — UNI-2769.
+     --surface-3 uses panel (#f4f4f5), not panel-hover: the source's text
+     colours are tuned on panel (its #15803d green is 3.95:1 on #e4e4e7;
+     the #166534 --green-txt used here is 5.62:1 there).
+     Text shades aligned with the Mission Control set (builder 2c): --ink-hush
+     #5f6068 (5.69:1; text-dim #71717a is 4.40:1 on panel), --amber-txt
+     #854d0e (6.23:1; warning #a16207 is 4.48:1), --green-txt #166534
+     (6.49:1); --green fill stays success #15803d. */
+  --canvas: #f5f6f8;
+  --surface-1: #f4f4f5;
+  --surface-2: #f4f4f5;
+  --surface-3: #f4f4f5;
+  --line: #d4d4d8;
+  --line-soft: #e4e4e7;
 
-  --glass-1: rgba(255, 255, 255, 0.72);
-  --glass-2: rgba(250, 249, 247, 0.78);
-  --glass-hi: rgba(22, 24, 29, 0.03);
-  --glass-brd: rgba(22, 24, 29, 0.1);
+  --glass-1: rgba(244, 244, 245, 0.72);
+  --glass-2: rgba(245, 246, 248, 0.78);
+  --glass-hi: rgba(9, 9, 11, 0.03);
+  --glass-brd: rgba(9, 9, 11, 0.1);
 
-  --ink: #16181d;
-  --ink-dim: #5c6470;
-  --ink-hush: #79808c;
+  --ink: #09090b;
+  --ink-dim: #52525b;
+  --ink-hush: #5f6068;
 
-  --red-500: #c62a30;
-  --red-400: #dc2626;
+  --red-500: #c2410c;
+  --red-400: #c2410c;
   --red-300: #b91c1c;
-  --green: #0f9d58;
-  --green-txt: #0b7a44;
-  --amber-txt: #92510a;
+  --green: #15803d;
+  --green-txt: #166534;
+  --amber-txt: #854d0e;
 
   --r-sm: 8px;
   --r-md: 12px;
@@ -290,7 +307,7 @@
 /* Hero's @supports glass gradient hardcodes the dark ground — repaint it
    paper in daylight (three-class specificity beats the @supports rule). */
 .daylight .canvasScope.hero {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(250, 249, 247, 0.66));
+  background: linear-gradient(135deg, rgba(244, 244, 245, 0.78), rgba(245, 246, 248, 0.66));
 }
 
 /* Shared Mission Control governs both graphite and Daylight subpages. */

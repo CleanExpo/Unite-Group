@@ -238,8 +238,8 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
   });
 
   it('pins the launch-tile text pairings on their solid --surface-3 ground', () => {
-    // --ink #f0f3f7 on #232b3a → 12.77:1; --ink-dim #a6afbc → 6.41:1;
-    // --green-txt #34d399 (repo link) → 7.39:1. Computed, all AA.
+    // --ink #f4f5f7 on #232934 → 13.38:1; --ink-dim #a7adba → 6.49:1;
+    // --green-txt #00d97e (repo link) → 7.81:1. Computed, all AA (UNI-2769).
     const nameBlock = shellCss.match(/\.launchName \{[^}]*\}/)?.[0] ?? '';
     const metaBlock = shellCss.match(/\.launchMeta \{[^}]*\}/)?.[0] ?? '';
     const linkBlock = shellCss.match(/\.launchLink \{[^}]*\}/)?.[0] ?? '';
