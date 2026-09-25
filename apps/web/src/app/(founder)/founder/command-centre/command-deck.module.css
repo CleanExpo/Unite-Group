@@ -3,57 +3,63 @@
    Signal palette: cyan (primary) / go-green / caution-amber / abort-red. */
 
 .deck {
-  /* UNI-2339 slice 2 — the deck ground migrates onto the ratified Gun Metal
-     canvas (shell.module.css register). Every tile consumes colour via these
-     tokens (tiles imported unchanged), so the flip happens here. All TEXT
-     tokens computed against the darkest panel they land on (--deck-panel
-     #1c2230) and the bare canvas (#0e1014) — ratios noted per token. */
-  --deck-cyan: #2dbb57;     /* primary accent — fills, LEDs, glows only */
-  --deck-go: #2dbb57;       /* go — fills/LEDs only */
-  --deck-amber: #f4820f;    /* caution — fills/LEDs only */
-  --deck-abort: #e5484d;    /* abort — fills/LEDs only */
-  --deck-glow: 45, 187, 87; /* RGB triplet for LED/glow shadows — candy green on the dark deck */
-  --deck-line: rgba(255, 255, 255, 0.10);
+  /* UNI-2769 — palette source: CleanExpo/Pi-Dev-Ops dashboard/app/globals.css
+     (.dark / :root), fetched 25/09/2026. Token NAMES unchanged; VALUES follow
+     that palette by role. Fill tokens carry the palette value exactly; TEXT
+     tokens carry an AA tint where the palette value does not clear 4.5:1 on
+     the worst ground a deck panel shows (--deck-panel-hi, the top of every
+     panel gradient). Ratios below: canvas #0e1014 / panel #191e26 /
+     panel-hi #232934, WCAG 2.x relative luminance, computed by script.
+     History: UNI-2339 slice 2 moved the deck onto Gun Metal with green signals;
+     UNI-2769 makes candy red the action colour and keeps green for success. */
+  --deck-cyan: #ff3b5c;     /* action accent (palette --accent) — fills, LEDs, glows only */
+  --deck-go: #00d97e;       /* success (palette --success) — fills/LEDs only */
+  --deck-amber: #ff8a1f;    /* caution (palette --warning) — fills/LEDs only */
+  --deck-abort: #e5484d;    /* alarm (palette --error, distinct from action red) — fills/LEDs only */
+  --deck-glow: 255, 59, 92; /* RGB triplet of --deck-cyan for LED/glow shadows */
+  --deck-line: #2e3542;     /* palette --border */
+  /* Kept translucent: palette --border-subtle (#191e26) equals the panel fill,
+     so .readouts / .busTop dividers would vanish on it. */
   --deck-line-soft: rgba(255, 255, 255, 0.05);
-  --deck-panel: #1c2230;    /* canvas --surface-2 */
-  --deck-panel-hi: #232b3a; /* canvas --surface-3 */
-  --deck-text: #f0f3f7;     /* canvas --ink → 14.28:1 on panel, 17.11:1 on canvas */
-  --deck-muted: #a6afbc;    /* canvas --ink-dim → 7.18:1 on panel, 8.60:1 on canvas */
-  /* WCAG-AA text variants: the bright candy green/amber/red are kept for
-     fills/LEDs; TEXT consumers get light-on-dark variants that clear 4.5:1
-     on --deck-panel (#1c2230). */
-  --deck-cyan-text: #34d399;  /* 8.27:1 on panel, 9.90:1 on canvas */
-  --deck-amber-text: #f0a94c; /* 7.94:1 on panel, 9.51:1 on canvas */
-  --deck-abort-text: #f87171; /* 5.75:1 on panel, 6.88:1 on canvas */
+  --deck-panel: #191e26;    /* palette --panel (surface) */
+  --deck-panel-hi: #232934; /* palette --panel-hover (raised surface) */
+  --deck-text: #f4f5f7;     /* palette --text → 17.45 / 15.34 / 13.38 */
+  --deck-muted: #a7adba;    /* palette --text-muted → 8.46 / 7.43 / 6.49 */
+  /* WCAG-AA text variants: the bright fills above stay for fills/LEDs; TEXT
+     consumers get tints that clear 4.5:1 on panel-hi. Palette #ff3b5c as text
+     is 4.19 on panel-hi and #e5484d is 3.73, so neither is used as text. */
+  --deck-cyan-text: #ff5c77;  /* action text → 6.39 / 5.62 / 4.90 */
+  --deck-amber-text: #ff8a1f; /* palette --warning → 8.08 / 7.10 / 6.19 */
+  --deck-abort-text: #f87171; /* alarm text (kept) → 6.88 / 6.05 / 5.28 */
 
   /* Aliases so panels consolidated from the retired command-center page (which
      use the --cc-* namespace) resolve their colours on this deck. */
   --cc-bg: var(--deck-panel);
-  --cc-bg-soft: #141820;    /* canvas --surface-1 */
+  --cc-bg-soft: #0e1014;    /* palette --background (recessed ground) */
   --cc-grid: var(--deck-line);
   --cc-ink: var(--deck-text);
   --cc-ink-dim: var(--deck-muted);
-  --cc-ink-hush: #8b96a5;   /* hushed but AA: 5.30:1 on panel, 5.93:1 on bg-soft */
-  /* --cc-signal stays the bright candy green: consolidated cc-* panels use it
-     for fills/dots/LEDs/borders (ActivityRow, HermesControlPanel backgrounds,
-     WorkPacketLane borders, ActivityLog dot, DegradedDataBanner borderLeft).
-     TEXT consumers use --cc-signal-text (AA-passing on the dark grounds). */
+  --cc-ink-hush: #9aa3b1;   /* palette --text-dim → 7.48 / 6.57 / 5.73 */
+  /* --cc-signal follows the action colour: consolidated cc-* panels use it
+     for fills/dots/LEDs/borders on items that need the founder (approve,
+     blocked, gated, near-limit). TEXT consumers use --cc-signal-text. */
   --cc-signal: var(--deck-cyan);
   --cc-signal-text: var(--deck-cyan-text);
   --cc-pulse-duration: 2.4s;
 
   /* Tile inline-style tokens — the five queue/health/evidence tiles style via
      inline `style={{}}` (class overrides can't reach them), so they consume
-     these vars with their old literals as fallbacks. Deck values = those
-     literals exactly; the daylight block re-inks them for paper. */
-  --tile-ink: #e6f7ff;
-  --tile-ink-dim: #9bb0c1;
-  --tile-ink-hush: #6f879b;
+     these vars with their old literals as fallbacks. The daylight block
+     re-inks them for paper. */
+  --tile-ink: #f4f5f7;            /* palette --text → 13.38 on panel-hi */
+  --tile-ink-dim: #a7adba;        /* palette --text-muted → 6.49 on panel-hi */
+  --tile-ink-hush: #9aa3b1;       /* palette --text-dim → 5.73 on panel-hi */
+  /* Kept: a translucent darkening overlay on the panel, not an opaque fill. */
   --tile-card-bg: rgba(0, 0, 0, 0.25);
-  --tile-card-line: rgba(255, 255, 255, 0.08);
-  --tile-amber-txt: #fb923c;
-  --tile-green-txt: #34d399;
-  --tile-red-txt: #d02f35;
+  --tile-card-line: #2e3542;      /* palette --border */
+  --tile-amber-txt: #ff8a1f;      /* palette --warning → 6.19 on panel-hi */
+  --tile-green-txt: #00d97e;      /* palette --success → 7.81 on panel-hi */
+  --tile-red-txt: #f87171;        /* alarm text → 5.28 on panel-hi (was #d02f35, 2.80) */
 
   position: relative;
   min-height: 100%;
@@ -220,7 +226,7 @@
 .panel:hover {
   transform: translateY(-2px);
   border-color: rgba(var(--deck-glow), 0.4);
-  box-shadow: 0 10px 30px rgba(45, 120, 70, 0.16), 0 0 0 1px rgba(var(--deck-glow), 0.12);
+  box-shadow: 0 10px 30px rgba(var(--deck-glow), 0.16), 0 0 0 1px rgba(var(--deck-glow), 0.12);
 }
 
 .panelHead { display: flex; align-items: center; gap: 0.55rem; }
@@ -390,8 +396,8 @@
   min-height: 32px;
   border: 1px solid var(--deck-line);
   border-radius: 10px;
-  color: #eaf3ec;
-  background: rgba(8, 15, 24, 0.82);
+  color: #f4f5f7;
+  background: #0e1014;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
   cursor: pointer;
   transition: border-color 0.14s ease, color 0.14s ease, background 0.14s ease;
@@ -415,7 +421,13 @@
 .queueCommand:hover {
   border-color: rgba(var(--deck-glow), 0.5);
   color: var(--deck-cyan);
-  background: rgba(13, 25, 38, 0.94);
+  background: #191e26;
+}
+/* The command buttons stay a dark pair in every register, so in Daylight the
+   hover keeps palette text on the dark hover ground instead of inheriting the
+   paper accent (#c2410c on #191e26 is 3.23:1). #f4f5f7 on #191e26 → 15.34:1. */
+.daylight :is(.iconCommand, .queueCommand):hover {
+  color: #f4f5f7;
 }
 
 .iconCommand:disabled,
@@ -467,7 +479,7 @@
   font-family: var(--font-geist-mono), monospace;
   font-size: 0.58rem; letter-spacing: 0.22em; text-transform: uppercase;
   color: var(--deck-cyan-text);
-  border: 1px dashed rgba(52, 211, 153, 0.4);
+  border: 1px dashed rgba(var(--deck-glow), 0.4);
   border-radius: 10px; padding: 0.3rem 0.6rem;
 }
 
@@ -527,7 +539,7 @@
 .systemSummary::-webkit-details-marker { display: none; }
 .systemSummary::before {
   content: "▸";
-  color: #2f9e44;
+  color: var(--deck-cyan-text);
 }
 .systemDetail[open] .systemSummary::before { content: "▾"; }
 .systemSummary:hover { color: var(--deck-text); }
@@ -561,36 +573,41 @@
    DeckThemeShell when the founder flips the Feel toggle; default stays the
    dark deck. Contrast ratios noted per token against white (--deck-panel). */
 .deck.daylight {
-  --deck-cyan: #4a4af4;       /* indigo accent — fills, LEDs, glows only */
-  --deck-go: #0f9d58;
-  --deck-amber: #d97706;
-  --deck-abort: #dc2626;
-  --deck-glow: 74, 74, 244; /* RGB triplet for LED/glow shadows — indigo, matches --deck-cyan */
-  --deck-line: rgba(22, 24, 29, 0.12);
-  --deck-line-soft: rgba(22, 24, 29, 0.06);
-  --deck-panel: #ffffff;
-  --deck-panel-hi: #f4f1eb;
-  --deck-text: #16181d;       /* 16.6:1 on white */
-  --deck-muted: #5c6470;      /* 5.9:1 on white */
-  --deck-cyan-text: #3d3ddb;  /* 6.9:1 on white */
-  --deck-amber-text: #92510a; /* 6.1:1 on white */
-  --deck-abort-text: #b91c1c; /* 6.3:1 on white */
+  /* UNI-2769 — Pi-Dev-Ops light (:root) palette, fetched 25/09/2026. Ratios:
+     canvas #f5f6f8 / panel #f4f4f5 / panel-hi #e4e4e7. The palette's -700
+     text shades (#c2410c 4.08, #a16207 3.88, #15803d 3.95, #71717a 3.81 on
+     panel-hi) do not clear 4.5:1 there, so text tokens use the -800 shade of
+     the same hue; fills keep the palette value exactly. */
+  --deck-cyan: #c2410c;       /* action accent (palette --accent) — fills, LEDs, glows only */
+  --deck-go: #15803d;         /* palette --success */
+  --deck-amber: #a16207;      /* palette --warning */
+  --deck-abort: #b91c1c;      /* palette --error */
+  --deck-glow: 194, 65, 12; /* RGB triplet of --deck-cyan */
+  --deck-line: #d4d4d8;       /* palette --border */
+  --deck-line-soft: rgba(22, 24, 29, 0.06); /* kept: --border-subtle equals panel-hi */
+  --deck-panel: #f4f4f5;      /* palette --panel (never #ffffff) */
+  --deck-panel-hi: #e4e4e7;   /* palette --panel-hover */
+  --deck-text: #09090b;       /* palette --text → 18.40 / 18.10 / 15.68 */
+  --deck-muted: #52525b;      /* palette --text-muted → 7.15 / 7.03 / 6.09 */
+  --deck-cyan-text: #9a3412;  /* orange-800 → 6.76 / 6.65 / 5.76 */
+  --deck-amber-text: #854d0e; /* yellow-800 → 6.34 / 6.23 / 5.40 */
+  --deck-abort-text: #b91c1c; /* palette --error → 5.98 / 5.89 / 5.10 */
 
-  --cc-bg-soft: #f7f5f1;
-  --cc-ink-hush: #6b7280;     /* 4.8:1 on white */
+  --cc-bg-soft: #f5f6f8;      /* palette --background */
+  --cc-ink-hush: #5f6068;     /* → 5.78 / 5.69 / 4.93 (palette --text-dim #71717a is 3.81 on panel-hi) */
 
-  --tile-ink: #16181d;
-  --tile-ink-dim: #5c6470;        /* 5.9:1 on white */
-  --tile-ink-hush: #6b7280;       /* 4.8:1 on white */
-  --tile-card-bg: rgba(22, 24, 29, 0.03);
-  --tile-card-line: rgba(22, 24, 29, 0.12);
-  --tile-amber-txt: #92510a;      /* 6.1:1 on white */
-  --tile-green-txt: #0b7a44;
-  --tile-red-txt: #b91c1c;        /* 6.3:1 on white */
+  --tile-ink: #09090b;
+  --tile-ink-dim: #52525b;        /* 6.09 on panel-hi */
+  --tile-ink-hush: #5f6068;       /* 4.93 on panel-hi */
+  --tile-card-bg: rgba(22, 24, 29, 0.03); /* kept: translucent overlay */
+  --tile-card-line: #d4d4d8;      /* palette --border */
+  --tile-amber-txt: #854d0e;      /* 5.40 on panel-hi */
+  --tile-green-txt: #166534;      /* green-800 → 5.62 on panel-hi */
+  --tile-red-txt: #b91c1c;        /* 5.10 on panel-hi */
 
   color: var(--deck-text);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
-  background-color: #faf9f7;
+  background-color: #f5f6f8;
   background-image: none;
 }
 .deck.daylight::after { background: none; }
