@@ -16,6 +16,30 @@ const sources = [
   { id: 'c', name: 'Supabase', amount_aud: 0 },
 ]
 
+// Declarations for each selector inside the reduced-motion media block of the chart's own <style>.
+// jsdom does not apply media queries, so the rules are read from the rendered stylesheet text.
+function reducedMotionRules(styleText: string): Record<string, Record<string, string>> {
+  const start = styleText.indexOf('@media (prefers-reduced-motion: reduce)')
+  if (start < 0) return {}
+  const open = styleText.indexOf('{', start)
+  let depth = 0
+  let end = open
+  for (; end < styleText.length; end++) {
+    if (styleText[end] === '{') depth++
+    else if (styleText[end] === '}' && --depth === 0) break
+  }
+  const rules: Record<string, Record<string, string>> = {}
+  for (const [, selector, body] of styleText.slice(open + 1, end).matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    rules[selector.trim()] = Object.fromEntries(
+      body.split(';').filter((d) => d.includes(':')).map((d) => {
+        const i = d.indexOf(':')
+        return [d.slice(0, i).trim(), d.slice(i + 1).trim()]
+      }),
+    )
+  }
+  return rules
+}
+
 describe('computeDonutGeometry', () => {
   it('draws one slice per spending source, each proportional to its amount', () => {
     const g = computeDonutGeometry(sources, 500)!
@@ -92,7 +116,21 @@ describe('CostSplitDonut', () => {
     const centre = container.querySelector('[data-testid="cost-net"]')!
     expect(centre.textContent).toBe('-$20.00')
     expect(centre.getAttribute('fill')).toContain('--deck-abort-text')
-    expect(container.innerHTML).toMatch(/prefers-reduced-motion: reduce/)
+  })
+
+  it('reduced motion stops the arc fade and bar growth and shows both finished', () => {
+    const { container } = render(
+      <>
+        <CostSplitDonut sources={sources} net={-20} />
+        <MonthOnMonthBars current={1234.5} prior={617.25} />
+      </>,
+    )
+    const rules = reducedMotionRules(container.querySelector('style')?.textContent ?? '')
+    expect(rules['.ca-arc']).toMatchObject({ animation: 'none', opacity: '1' })
+    expect(rules['.ca-bar']).toMatchObject({ animation: 'none', transform: 'none' })
+    // Both animated classes are in use, so the rules above govern real elements
+    expect(container.querySelectorAll('.ca-arc').length).toBeGreaterThan(0)
+    expect(container.querySelectorAll('.ca-bar').length).toBeGreaterThan(0)
   })
 
   it('renders nothing for an unknown net', () => {
