@@ -204,24 +204,25 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
   });
 
   it('re-points every deck TEXT token to a computed AA pairing on the dark grounds', () => {
-    // Ratios computed against --deck-panel #1c2230 (worst-case opaque panel)
+    // UNI-2769 Pi-Dev-Ops palette. Ratios computed against --deck-panel-hi
+    // #232934 (worst-case: top of every panel gradient), --deck-panel #191e26
     // and the #0e1014 canvas. WCAG relative-luminance math, not eyeballed:
-    //   --deck-text  #f0f3f7 → 14.28:1 panel / 17.11:1 canvas
-    //   --deck-muted #a6afbc →  7.18:1 panel /  8.60:1 canvas
-    //   --deck-cyan-text  #34d399 → 8.27:1 panel
-    //   --deck-amber-text #f0a94c → 7.94:1 panel
-    //   --deck-abort-text #f87171 → 5.75:1 panel
-    //   --cc-ink-hush #8b96a5 → 5.30:1 panel / 5.93:1 on --cc-bg-soft #141820
-    expect(deckCss).toContain('--deck-text: #f0f3f7');
-    expect(deckCss).toContain('--deck-muted: #a6afbc');
-    expect(deckCss).toContain('--deck-cyan-text: #34d399');
-    expect(deckCss).toContain('--deck-amber-text: #f0a94c');
+    //   --deck-text  #f4f5f7 → 13.38:1 panel-hi / 15.34:1 panel / 17.45:1 canvas
+    //   --deck-muted #a7adba →  6.49:1 panel-hi /  7.43:1 panel /  8.46:1 canvas
+    //   --deck-cyan-text  #ff5c77 → 4.90:1 panel-hi
+    //   --deck-amber-text #ff8a1f → 6.19:1 panel-hi
+    //   --deck-abort-text #f87171 → 5.28:1 panel-hi
+    //   --cc-ink-hush #9aa3b1 → 5.73:1 panel-hi / 7.48:1 on --cc-bg-soft #0e1014
+    expect(deckCss).toContain('--deck-text: #f4f5f7');
+    expect(deckCss).toContain('--deck-muted: #a7adba');
+    expect(deckCss).toContain('--deck-cyan-text: #ff5c77');
+    expect(deckCss).toContain('--deck-amber-text: #ff8a1f');
     expect(deckCss).toContain('--deck-abort-text: #f87171');
-    expect(deckCss).toContain('--cc-ink-hush: #8b96a5');
+    expect(deckCss).toContain('--cc-ink-hush: #9aa3b1');
     // Panels resolve from the flipped tokens — no hard-coded light card left.
-    expect(deckCss).toContain('--deck-panel: #1c2230');
-    expect(deckCss).toContain('--deck-panel-hi: #232b3a');
-    expect(deckCss).toContain('--cc-bg-soft: #141820');
+    expect(deckCss).toContain('--deck-panel: #191e26');
+    expect(deckCss).toContain('--deck-panel-hi: #232934');
+    expect(deckCss).toContain('--cc-bg-soft: #0e1014');
     expect(deckCss).not.toContain('#fff7ec');
   });
 
