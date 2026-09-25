@@ -59,7 +59,7 @@ const SIGNAL_FALLBACK: HostSignal[] = [
 ]
 
 const STATE_COLOUR: Record<SignalState, string> = {
-  ready: 'var(--green-txt, #34d399)',
+  ready: 'var(--tile-green-txt, var(--green-txt, #34d399))',
   degraded: 'var(--amber-txt, #f0a94c)',
   unknown: 'var(--ink-hush, #6d7887)',
 }
@@ -176,7 +176,7 @@ function HostZone() {
   return (
     <div
       className={`${shell.canvasScope} ${shell.launchTile}`}
-      style={{ '--swatch': '#2dbb57', gridColumn: '1 / -1' } as React.CSSProperties}
+      style={{ '--swatch': 'var(--deck-go, #2dbb57)', gridColumn: '1 / -1' } as React.CSSProperties}
       data-testid="six-zone-host"
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>

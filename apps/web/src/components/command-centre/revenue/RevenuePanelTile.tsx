@@ -68,7 +68,7 @@ function Trend({ trend }: { trend: { date: string; netCents: number }[] }) {
           style={{
             flex: 1,
             height: `${Math.max(2, Math.round((Math.max(0, d.netCents) / max) * 40))}px`,
-            background: 'var(--deck-cyan, #0891b2)',
+            background: 'var(--deck-cyan, #ff3b5c)',
             opacity: d.netCents > 0 ? 1 : 0.25,
           }}
         />

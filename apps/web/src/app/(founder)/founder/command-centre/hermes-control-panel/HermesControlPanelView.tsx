@@ -5,7 +5,7 @@ import { MissionControlShell } from '../MissionControlShell'
 // Deck token values (command-deck.module.css) for the inline-styled bits.
 const mono = 'ui-monospace, SFMono-Regular, monospace'
 const muted = 'var(--mission-muted)' // --deck-muted
-const okText = 'var(--mission-blue)' // --deck-cyan-text
+const okText = 'var(--mission-blue-text)' // --deck-cyan-text
 
 const wrap: React.CSSProperties = {
   maxWidth: 1040,
@@ -40,9 +40,9 @@ const td: React.CSSProperties = {
 function riskStyle(risk: string): React.CSSProperties {
   // Alpha washes of the deck LED fills; text = the AA --deck-*-text variants.
   const map: Record<string, [string, string, string]> = {
-    none: ['rgba(45, 187, 87, 0.12)', 'var(--mission-blue)', 'rgba(45, 187, 87, 0.35)'],
-    low: ['rgba(244, 130, 15, 0.12)', 'var(--mission-attention)', 'rgba(244, 130, 15, 0.4)'],
-    high: ['rgba(229, 72, 77, 0.12)', 'var(--mission-attention)', 'rgba(229, 72, 77, 0.4)'],
+    none: ['rgba(45, 187, 87, 0.12)', 'var(--mission-blue-text)', 'rgba(45, 187, 87, 0.35)'],
+    low: ['rgba(244, 130, 15, 0.12)', 'var(--mission-attention-text)', 'rgba(244, 130, 15, 0.4)'],
+    high: ['rgba(229, 72, 77, 0.12)', 'var(--mission-attention-text)', 'rgba(229, 72, 77, 0.4)'],
   }
   const [bg, fg, bd] = map[risk] ?? map.none
   return {

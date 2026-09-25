@@ -426,7 +426,7 @@ export function WikiGraphCanvas({ nodes, edges }: Props) {
                     padding: '1px 5px',
                     borderRadius: 2,
                     background: 'rgba(45,187,87,0.10)',
-                    color: 'var(--mission-blue, #15803d)',
+                    color: 'var(--mission-success-text, #15803d)',
                     border: '1px solid rgba(45,187,87,0.18)',
                   }}
                 >

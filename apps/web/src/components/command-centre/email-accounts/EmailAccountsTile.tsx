@@ -20,8 +20,16 @@ const STATE_LABEL: Record<EmailAccountState, string> = {
 }
 
 function stateColor(state: EmailAccountState): string {
-  if (state === 'connected') return 'var(--deck-cyan-text, #15803d)'
+  if (state === 'connected') return 'var(--tile-green-txt, #15803d)'
   if (state === 'needs_reauth') return 'var(--deck-amber-text, #b45309)'
+  return 'var(--deck-muted)'
+}
+
+// Status dots are fills, so they take the fill tokens; the label beside them takes
+// the contrast-safe text shade from stateColor (UNI-2769).
+function stateDot(state: EmailAccountState): string {
+  if (state === 'connected') return 'var(--deck-go, #2dbb57)'
+  if (state === 'needs_reauth') return 'var(--deck-amber, #f4820f)'
   return 'var(--deck-muted)'
 }
 
@@ -102,7 +110,7 @@ export function EmailAccountsTile() {
               const rel = relTime(p.lastActivityAt)
               return (
                 <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--deck-line, rgba(207,224,236,0.12))' }}>
-                  <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: stateColor(p.state) }} />
+                  <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: stateDot(p.state) }} />
                   <span style={{ color: 'var(--deck-text, #e6f7ff)', fontSize: 12 }}>{p.label}</span>
                   <span style={{ marginLeft: 'auto', color: stateColor(p.state), fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                     {STATE_LABEL[p.state]}

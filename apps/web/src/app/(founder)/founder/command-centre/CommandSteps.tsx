@@ -26,9 +26,9 @@ interface Step {
 }
 
 const STEPS: Step[] = [
-  { n: 1, title: 'Describe it', text: 'Type what you need in plain words — a post, an email, a build, a campaign.', target: 'idea-console', accent: '#37b24d', numbg: '#e7f7ec', numfg: '#2b8a3e' },
-  { n: 2, title: 'Agents build it', text: 'The system picks the right AI and does the work. You watch it happen.', target: '/founder/command-centre/operations#task-queue', accent: '#f59f00', numbg: '#fff4e0', numfg: '#e8590c' },
-  { n: 3, title: 'Review & ship', text: 'Approve the result with one click, or send it back. Nothing ships without you.', target: '/founder/command-centre/operations#in-progress-prs', accent: '#37b24d', numbg: '#e7f7ec', numfg: '#2b8a3e' },
+  { n: 1, title: 'Describe it', text: 'Type what you need in plain words — a post, an email, a build, a campaign.', target: 'idea-console', accent: 'var(--deck-go, #37b24d)', numbg: '#e7f7ec', numfg: '#2b8a3e' },
+  { n: 2, title: 'Agents build it', text: 'The system picks the right AI and does the work. You watch it happen.', target: '/founder/command-centre/operations#task-queue', accent: 'var(--deck-amber, #f59f00)', numbg: '#fff4e0', numfg: '#e8590c' },
+  { n: 3, title: 'Review & ship', text: 'Approve the result with one click, or send it back. Nothing ships without you.', target: '/founder/command-centre/operations#in-progress-prs', accent: 'var(--deck-go, #37b24d)', numbg: '#e7f7ec', numfg: '#2b8a3e' },
 ]
 
 function goToStep(target: string) {

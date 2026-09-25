@@ -39,10 +39,10 @@ interface PortfolioHealthResponse {
 const REFRESH_MS = 60_000
 
 const DOT: Record<HealthColor, string> = {
-  green: '#34d399',
-  yellow: '#fbbf24',
-  red: '#f87171',
-  grey: '#6f879b',
+  green: 'var(--deck-go, #34d399)',
+  yellow: 'var(--deck-amber, #fbbf24)',
+  red: 'var(--deck-abort, #f87171)',
+  grey: 'var(--tile-ink-hush, #6f879b)',
 }
 
 function formatRunAt(iso: string | null): string {

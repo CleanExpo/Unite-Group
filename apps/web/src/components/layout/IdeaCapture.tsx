@@ -145,7 +145,7 @@ export function IdeaCapture() {
 
             {/* Body */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {error && <div role="alert" className="rounded-sm border p-3 text-[12px]" style={{ borderColor: 'var(--color-danger)', color: 'var(--color-danger)' }}>
+              {error && <div role="alert" className="rounded-sm border p-3 text-[12px]" style={{ borderColor: 'var(--color-danger)', color: 'var(--deck-abort-text, var(--color-danger))' }}>
                 <p>{error}</p>
                 {state === 'conversation' && <button type="button" onClick={() => void sendToCapture(messages)} disabled={loading} className="mt-2 underline">Retry idea capture</button>}
               </div>}

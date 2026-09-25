@@ -278,7 +278,7 @@ export function AIAnalysisTab() {
               </button>
               {showSandbox && (
                 <pre className="mt-2 text-[12px] font-mono p-3 rounded-sm overflow-x-auto"
-                  style={{ background: 'var(--mission-raised)', color: sandboxResult.success ? 'var(--color-success)' : 'var(--color-danger)' }}>
+                  style={{ background: 'var(--mission-raised)', color: sandboxResult.success ? 'var(--tile-green-txt, var(--color-success))' : 'var(--deck-abort-text, var(--color-danger))' }}>
                   {sandboxResult.output}
                 </pre>
               )}

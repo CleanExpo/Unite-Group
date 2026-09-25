@@ -21,11 +21,11 @@ type Item = {
 }
 
 const RISK_TONE: Record<string, string> = {
-  read: '#16a34a',
-  'write-local': '#34d399',
+  read: 'var(--deck-go, #16a34a)',
+  'write-local': 'var(--deck-go, #34d399)',
   'write-shared': '#fbbf24',
-  external: '#fb923c',
-  destructive: '#f87171',
+  external: 'var(--deck-amber, #fb923c)',
+  destructive: 'var(--deck-abort, #f87171)',
 }
 
 function scrollTo(id: string) {
@@ -87,7 +87,7 @@ export function CommandPalette({
       icon: '◆',
       title: p.name,
       sub: p.production_url ? p.production_url.replace(/^https?:\/\//, '') : `${p.status} · no production URL`,
-      tone: p.status === 'active' ? '#34d399' : p.status === 'stub' ? '#fbbf24' : '#6f879b',
+      tone: p.status === 'active' ? 'var(--deck-go, #34d399)' : p.status === 'stub' ? 'var(--deck-amber, #fbbf24)' : 'var(--tile-ink-hush, #6f879b)',
       run: () => {
         if (p.production_url) window.open(p.production_url, '_blank', 'noopener,noreferrer')
       },
@@ -98,7 +98,7 @@ export function CommandPalette({
       icon: '⬡',
       title: t.tool_key,
       sub: `${t.source} · ${t.risk_class} · copy key`,
-      tone: RISK_TONE[t.risk_class] ?? '#6f879b',
+      tone: RISK_TONE[t.risk_class] ?? 'var(--tile-ink-hush, #6f879b)',
       run: () => { void navigator.clipboard?.writeText(t.tool_key).catch(() => {}) },
     }))
     return [...nav, ...proj, ...tool]

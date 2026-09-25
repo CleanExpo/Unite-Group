@@ -12,8 +12,8 @@
 // follow the tiles to their new page sources — none are weakened.
 
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join, relative } from 'node:path';
 
 const dir = join(process.cwd(), 'src/app/(founder)/founder/command-centre');
 const pageSrc = readFileSync(join(dir, 'page.tsx'), 'utf8');
@@ -238,8 +238,8 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
   });
 
   it('pins the launch-tile text pairings on their solid --surface-3 ground', () => {
-    // --ink #f0f3f7 on #232b3a → 12.77:1; --ink-dim #a6afbc → 6.41:1;
-    // --green-txt #34d399 (repo link) → 7.39:1. Computed, all AA.
+    // --ink #f4f5f7 on #232934 → 13.38:1; --ink-dim #a7adba → 6.49:1;
+    // --green-txt #00d97e (repo link) → 7.81:1. Computed, all AA (UNI-2769).
     const nameBlock = shellCss.match(/\.launchName \{[^}]*\}/)?.[0] ?? '';
     const metaBlock = shellCss.match(/\.launchMeta \{[^}]*\}/)?.[0] ?? '';
     const linkBlock = shellCss.match(/\.launchLink \{[^}]*\}/)?.[0] ?? '';
@@ -287,5 +287,101 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
     const scopeBlock =
       shellCss.match(/\.canvasScope \{[\s\S]*?\n\}/)?.[0] ?? '';
     expect(scopeBlock).toContain('--color-text-muted: var(--ink-dim)');
+  });
+
+  it('bridges every Mission Control TEXT alias to a contrast-safe mission text shade, never a fill (UNI-2769)', () => {
+    // Fills (#ff3b5c, #15803d, #a16207, #e5484d …) drop below 4.5:1 as text on the
+    // raised surfaces; the --mission-*-text shades clear it on every surface.
+    const bridge = deckCss.match(/\.missionTokens \{[\s\S]*?\n\}/)?.[0] ?? '';
+    const textAliases = [...bridge.matchAll(/(--(?:deck-[a-z]+-text|cc-signal-text|tile-[a-z]+-txt)):\s*([^;]+);/g)];
+    expect(textAliases.map(([, name]) => name).sort()).toEqual([
+      '--cc-signal-text',
+      '--deck-abort-text',
+      '--deck-amber-text',
+      '--deck-cyan-text',
+      '--tile-amber-txt',
+      '--tile-green-txt',
+      '--tile-red-txt',
+    ]);
+    for (const [, name, value] of textAliases) {
+      expect(`${name}: ${value}`).toMatch(/: var\(--mission-[a-z]+-text\)$/);
+    }
+    expect(deckCss).toContain('.missionTokens :is(.plink, .projectName) { color: var(--mission-blue-text); }');
+
+    // No Mission Control source sets a text colour straight from a fill token.
+    const fillAsText =
+      /(?<![-\w])color\s*:\s*['"]?var\(\s*--(?:mission-(?:blue|danger|attention|success)|deck-(?:cyan|go|amber|abort)|cc-signal)\s*[,)]/;
+    const walk = (root: string): string[] =>
+      readdirSync(root, { withFileTypes: true }).flatMap((e) => {
+        const p = join(root, e.name);
+        if (e.isDirectory()) return e.name === '__tests__' ? [] : walk(p);
+        return /\.(css|tsx|ts)$/.test(e.name) && !/\.test\./.test(e.name) ? [p] : [];
+      });
+    const offenders = [dir, join(process.cwd(), 'src/components/command-centre')]
+      .flatMap(walk)
+      .flatMap((file) =>
+        readFileSync(file, 'utf8')
+          .split('\n')
+          .map((line, i) => ({ file, line, n: i + 1 }))
+          .filter(({ line }) => fillAsText.test(line)),
+      )
+      .map(({ file, n }) => `${relative(process.cwd(), file)}:${n}`);
+    expect(offenders).toEqual([]);
+
+    // Status dots are fills: the email tile's dot takes the fill token, its label the text shade.
+    const emailTile = readFileSync(
+      join(process.cwd(), 'src/components/command-centre/email-accounts/EmailAccountsTile.tsx'),
+      'utf8',
+    );
+    expect(emailTile).toContain("background: stateDot(p.state)");
+    expect(emailTile).toContain("if (state === 'connected') return 'var(--deck-go, #2dbb57)'");
+
+    const shellBridge = shellCss.match(/:global\(\[data-mission-control\]\) \.canvasScope \{[\s\S]*?\n\}/)?.[0] ?? '';
+    expect(shellBridge).toContain('--green-txt: var(--mission-success-text);');
+    expect(shellBridge).toContain('--amber-txt: var(--mission-attention-text);');
+  });
+
+  it('routes INDIRECT status text (a tone value later painted as color/fg) through the text shades (UNI-2769)', () => {
+    // The direct-pattern sweep above cannot see a fill token stored in a map or
+    // helper and painted as text later. These pin the consumers that did that.
+    const gatewayKit = readFileSync(join(dir, 'operator-gateway/_components.tsx'), 'utf8');
+    const gatewayView = readFileSync(join(dir, 'operator-gateway/OperatorGatewayView.tsx'), 'utf8');
+    const hermesView = readFileSync(join(dir, 'hermes-control-panel/HermesControlPanelView.tsx'), 'utf8');
+    const stageBoard = readFileSync(join(dir, 'StageBoardTile.tsx'), 'utf8');
+
+    // Operator gateway: Pill / StatCard value / group summary paint toneSwatch.fg as text.
+    expect(gatewayKit).not.toMatch(/fg: 'var\(--mission-(?:blue|danger|attention|success)\)'/);
+    for (const fg of ['success', 'danger', 'attention', 'blue']) {
+      expect(gatewayKit).toContain(`fg: 'var(--mission-${fg}-text)'`);
+    }
+    // StatCard's accent border takes the fill (rail), its value the text shade (fg).
+    expect(gatewayKit).toContain('borderLeft: `3px solid ${rail}`');
+    // theme.ok/warn/warnAlt/bad stay fills (borders, dots and glows elsewhere);
+    // every text use in the gateway goes through the *Text shades.
+    expect(gatewayKit).toContain("okText: 'var(--mission-success-text)'");
+    expect(gatewayKit).toContain("warnText: 'var(--mission-attention-text)'");
+    expect(gatewayKit).toContain("warnAltText: 'var(--mission-attention-text)'");
+    expect(gatewayKit).toContain("badText: 'var(--mission-danger-text)'");
+    expect(gatewayKit + gatewayView).not.toMatch(/color: [^,}]*theme\.(?:ok|warn|warnAlt|bad)\b/);
+
+    // Hermes control panel: okText and the risk badge text.
+    expect(hermesView).toContain("const okText = 'var(--mission-blue-text)'");
+    expect(hermesView).toContain("none: ['rgba(45, 187, 87, 0.12)', 'var(--mission-blue-text)',");
+    expect(hermesView).toContain("low: ['rgba(244, 130, 15, 0.12)', 'var(--mission-attention-text)',");
+    expect(hermesView).toContain("high: ['rgba(229, 72, 77, 0.12)', 'var(--mission-attention-text)',");
+    expect(hermesView).not.toMatch(/\[[^\]]*'var\(--mission-(?:blue|danger|attention|success)\)'/);
+
+    // Stage board: the rail keeps the fill, the stage word takes the text shade.
+    expect(stageBoard).toContain("Research: 'var(--deck-cyan-text, #22d3ee)'");
+    expect(stageBoard).toContain('color: STAGE_TEXT[team.stage]');
+    expect(stageBoard).toContain('borderLeft: `3px solid ${STAGE_COLOUR[team.stage]}`');
+    const railMap = stageBoard.slice(stageBoard.indexOf('const STAGE_COLOUR'), stageBoard.indexOf('const STAGE_TEXT'));
+    const textMap = stageBoard.slice(stageBoard.indexOf('const STAGE_TEXT'), stageBoard.indexOf('const checkedAtStyle'));
+    expect(railMap).toContain("Develop: 'var(--deck-amber, #fb923c)'");
+    expect(railMap).toContain("Done: 'var(--deck-go, #34d399)'");
+    expect(railMap).not.toMatch(/-(?:txt|text)\b/);
+    expect(textMap).toContain("Develop: 'var(--tile-amber-txt, #fb923c)'");
+    expect(textMap).toContain("Done: 'var(--tile-green-txt, #34d399)'");
+    expect(stageBoard).not.toContain('color: STAGE_COLOUR[');
   });
 });
