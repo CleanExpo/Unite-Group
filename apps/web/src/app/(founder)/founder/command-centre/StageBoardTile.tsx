@@ -46,6 +46,12 @@ const STAGE_COLOUR: Record<TeamStage['stage'], string> = {
   Production: '#a78bfa',
   Done: 'var(--tile-green-txt, #34d399)',
 }
+// The rail (border) takes the fill above; the stage word is text, so it takes
+// the contrast-safe text shade (UNI-2769).
+const STAGE_TEXT: Record<TeamStage['stage'], string> = {
+  ...STAGE_COLOUR,
+  Research: 'var(--deck-cyan-text, #22d3ee)',
+}
 
 const checkedAtStyle = {
   marginLeft: 'auto',
@@ -104,7 +110,7 @@ export function StageBoardTile({ data }: { data: StageBoardData }) {
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'baseline', flexWrap: 'wrap' }}>
               <span style={{ color: 'var(--tile-ink-hush, #6f879b)', fontFamily: 'ui-monospace, SFMono-Regular, monospace' }}>{team.key}</span>
               <span style={{ fontWeight: 600, color: 'var(--tile-ink, #e6f7ff)' }}>{team.name}</span>
-              <span data-testid="stage-board-word" style={{ fontWeight: 700, color: STAGE_COLOUR[team.stage], letterSpacing: '0.04em' }}>
+              <span data-testid="stage-board-word" style={{ fontWeight: 700, color: STAGE_TEXT[team.stage], letterSpacing: '0.04em' }}>
                 {team.stage}
               </span>
               <span style={{ marginLeft: 'auto', fontSize: '0.66rem', color: 'var(--tile-ink-hush, #6f879b)', fontFamily: 'ui-monospace, SFMono-Regular, monospace' }}>

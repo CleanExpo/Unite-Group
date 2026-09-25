@@ -340,4 +340,40 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
     expect(shellBridge).toContain('--green-txt: var(--mission-success-text);');
     expect(shellBridge).toContain('--amber-txt: var(--mission-attention-text);');
   });
+
+  it('routes INDIRECT status text (a tone value later painted as color/fg) through the text shades (UNI-2769)', () => {
+    // The direct-pattern sweep above cannot see a fill token stored in a map or
+    // helper and painted as text later. These pin the consumers that did that.
+    const gatewayKit = readFileSync(join(dir, 'operator-gateway/_components.tsx'), 'utf8');
+    const gatewayView = readFileSync(join(dir, 'operator-gateway/OperatorGatewayView.tsx'), 'utf8');
+    const hermesView = readFileSync(join(dir, 'hermes-control-panel/HermesControlPanelView.tsx'), 'utf8');
+    const stageBoard = readFileSync(join(dir, 'StageBoardTile.tsx'), 'utf8');
+
+    // Operator gateway: Pill / StatCard value / group summary paint toneSwatch.fg as text.
+    expect(gatewayKit).not.toMatch(/fg: 'var\(--mission-(?:blue|danger|attention|success)\)'/);
+    for (const fg of ['success', 'danger', 'attention', 'blue']) {
+      expect(gatewayKit).toContain(`fg: 'var(--mission-${fg}-text)'`);
+    }
+    // StatCard's accent border takes the fill (rail), its value the text shade (fg).
+    expect(gatewayKit).toContain('borderLeft: `3px solid ${rail}`');
+    // theme.ok/warn/warnAlt/bad stay fills (borders, dots and glows elsewhere);
+    // every text use in the gateway goes through the *Text shades.
+    expect(gatewayKit).toContain("okText: 'var(--mission-success-text)'");
+    expect(gatewayKit).toContain("warnText: 'var(--mission-attention-text)'");
+    expect(gatewayKit).toContain("warnAltText: 'var(--mission-attention-text)'");
+    expect(gatewayKit).toContain("badText: 'var(--mission-danger-text)'");
+    expect(gatewayKit + gatewayView).not.toMatch(/color: [^,}]*theme\.(?:ok|warn|warnAlt|bad)\b/);
+
+    // Hermes control panel: okText and the risk badge text.
+    expect(hermesView).toContain("const okText = 'var(--mission-blue-text)'");
+    expect(hermesView).toContain("none: ['rgba(45, 187, 87, 0.12)', 'var(--mission-blue-text)',");
+    expect(hermesView).toContain("low: ['rgba(244, 130, 15, 0.12)', 'var(--mission-attention-text)',");
+    expect(hermesView).toContain("high: ['rgba(229, 72, 77, 0.12)', 'var(--mission-attention-text)',");
+    expect(hermesView).not.toMatch(/\[[^\]]*'var\(--mission-(?:blue|danger|attention|success)\)'/);
+
+    // Stage board: the rail keeps the fill, the stage word takes the text shade.
+    expect(stageBoard).toContain("Research: 'var(--deck-cyan-text, #22d3ee)'");
+    expect(stageBoard).toContain('color: STAGE_TEXT[team.stage]');
+    expect(stageBoard).not.toContain('color: STAGE_COLOUR[');
+  });
 });

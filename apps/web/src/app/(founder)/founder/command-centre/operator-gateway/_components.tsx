@@ -24,21 +24,28 @@ export const theme = {
   warnAlt: 'var(--mission-attention)', // nearest deck token: --deck-amber-text (no orange text token)
   bad: 'var(--mission-danger)', // blocked/error status
   info: 'var(--mission-blue)', // nearest deck token: --deck-cyan-text
+  // ok/warn/warnAlt/bad/info above are FILLS (borders, dots, glows). Anything
+  // painted as text takes these contrast-safe shades instead (UNI-2769).
+  okText: 'var(--mission-success-text)',
+  warnText: 'var(--mission-attention-text)',
+  warnAltText: 'var(--mission-attention-text)',
+  badText: 'var(--mission-danger-text)',
 } as const
 
 export const monoFont = 'ui-monospace, SFMono-Regular, monospace'
 
 export type Tone = 'ok' | 'warn' | 'bad' | 'muted' | 'info'
 
-// bg / fg / border per tone — used by Pill and tone-coloured text.
+// bg / fg / border / rail per tone — used by Pill and tone-coloured text.
 // Fills are alpha washes of the deck LED fills (--deck-go / --deck-amber /
-// --deck-abort); text uses the AA --deck-*-text variants.
-const toneSwatch: Record<Tone, { bg: string; fg: string; bd: string }> = {
-  ok: { bg: 'rgba(45, 187, 87, 0.12)', fg: 'var(--mission-success)', bd: 'rgba(45, 187, 87, 0.35)' },
-  bad: { bg: 'rgba(229, 72, 77, 0.12)', fg: 'var(--mission-danger)', bd: 'rgba(229, 72, 77, 0.4)' },
-  warn: { bg: 'rgba(244, 130, 15, 0.12)', fg: 'var(--mission-attention)', bd: 'rgba(244, 130, 15, 0.4)' },
-  info: { bg: 'rgba(45, 187, 87, 0.08)', fg: 'var(--mission-blue)', bd: 'rgba(45, 187, 87, 0.25)' },
-  muted: { bg: 'rgba(255, 255, 255, 0.04)', fg: 'var(--mission-muted)', bd: 'var(--mission-border)' },
+// --deck-abort). fg is text, so it takes the contrast-safe --mission-*-text
+// shade; rail is the solid fill for accent borders (UNI-2769).
+const toneSwatch: Record<Tone, { bg: string; fg: string; bd: string; rail: string }> = {
+  ok: { bg: 'rgba(45, 187, 87, 0.12)', fg: 'var(--mission-success-text)', bd: 'rgba(45, 187, 87, 0.35)', rail: 'var(--mission-success)' },
+  bad: { bg: 'rgba(229, 72, 77, 0.12)', fg: 'var(--mission-danger-text)', bd: 'rgba(229, 72, 77, 0.4)', rail: 'var(--mission-danger)' },
+  warn: { bg: 'rgba(244, 130, 15, 0.12)', fg: 'var(--mission-attention-text)', bd: 'rgba(244, 130, 15, 0.4)', rail: 'var(--mission-attention)' },
+  info: { bg: 'rgba(45, 187, 87, 0.08)', fg: 'var(--mission-blue-text)', bd: 'rgba(45, 187, 87, 0.25)', rail: 'var(--mission-blue)' },
+  muted: { bg: 'rgba(255, 255, 255, 0.04)', fg: 'var(--mission-muted)', bd: 'var(--mission-border)', rail: 'var(--mission-muted)' },
 }
 
 // ---------------------------------------------------------------------------
@@ -217,13 +224,13 @@ export function MetricCard({
   tone: Tone
   hint?: string
 }) {
-  const accent = toneSwatch[tone].fg
+  const { fg: accent, rail } = toneSwatch[tone]
   return (
     <div
       style={{
         background: theme.surface,
         border: `1px solid ${theme.border}`,
-        borderLeft: `3px solid ${accent}`,
+        borderLeft: `3px solid ${rail}`,
         borderRadius: 2,
         padding: '0.85rem 1rem',
       }}
@@ -292,7 +299,7 @@ export function CollapsibleGroup({
         }}
       >
         <span style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <span aria-hidden style={{ color: theme.ok, fontSize: 12, fontFamily: monoFont }}>▸</span>
+          <span aria-hidden style={{ color: theme.okText, fontSize: 12, fontFamily: monoFont }}>▸</span>
           <span style={{ fontSize: 16, fontWeight: 700 }}>{title}</span>
         </span>
         <span style={{ fontSize: 13, fontFamily: monoFont, letterSpacing: '0.03em', color: accent }}>{summary}</span>
