@@ -314,6 +314,59 @@
   flex-wrap: wrap;
 }
 
+/* Mobile-only control surface; desktop keeps the existing command deck. */
+.mobileControls { display: none; }
+
+@media (max-width: 720px) {
+  .desktopSessionStart { display: none; }
+  .toolbar, .rowTop { align-items: stretch; flex-direction: column; }
+  .toolbarRight, .rowActions { flex-wrap: wrap; }
+  .rowActions > button { flex: 1 1 calc(50% - 0.4rem); min-height: 44px; }
+  .rowTitle { white-space: normal; }
+  .mobileControls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 0.75rem;
+    border: 1px solid rgba(52, 211, 153, 0.28);
+    border-radius: 8px;
+    background: rgba(47, 111, 83, 0.09);
+    color: #e6f1f8;
+    font-size: 0.78rem;
+  }
+  .mobileControls > span, .releaseWarning { color: #9fb3c2; font-size: 0.7rem; line-height: 1.45; }
+  .mobileControlGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.45rem; }
+  .mobileControlGrid button, .redirectForm button { min-height: 46px; white-space: normal; }
+  .releaseRequest {
+    font: inherit;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #bbf7d0;
+    background: rgba(47, 111, 83, 0.18);
+    border: 1px solid rgba(52, 211, 153, 0.42);
+    border-radius: 6px;
+    padding: 0.4rem 0.55rem;
+  }
+  .releaseRequest:disabled { opacity: 0.45; }
+  .redirectForm { display: flex; flex-direction: column; gap: 0.4rem; }
+  .redirectForm textarea {
+    min-height: 76px;
+    color: #e6f1f8;
+    background: rgba(0, 0, 0, 0.28);
+    border: 1px solid rgba(111, 135, 155, 0.34);
+    border-radius: 6px;
+    padding: 0.6rem;
+    font: inherit;
+  }
+  .releaseWarning { margin: 0; }
+}
+
+:global(.cc-daylight) .mobileControls { background: rgba(47, 111, 83, 0.05); color: #16181d; }
+:global(.cc-daylight) .mobileControls > span,
+:global(.cc-daylight) .releaseWarning { color: #6b7280; }
+:global(.cc-daylight) .redirectForm textarea { color: #16181d; background: #fff; }
+
 /* Daylight register bridge — ink ramps + quiet paper fills; LEDs keep their
    status colours (fills stay legible on paper). */
 :global(.cc-daylight) .count { color: #6b7280; }

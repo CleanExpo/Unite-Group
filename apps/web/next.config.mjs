@@ -12,6 +12,7 @@ const nextConfig = {
     '/founder/command-centre': [
       './data/command-centre/portfolio.yaml',
       './data/command-centre/control-plane.v1.json',
+      './data/command-centre/founder-queue.md',
     ],
     '/api/command-centre/**': [
       './data/command-centre/portfolio.yaml',
