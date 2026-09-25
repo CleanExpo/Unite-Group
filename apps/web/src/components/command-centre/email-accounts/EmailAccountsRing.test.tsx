@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { EmailAccountsRing, computeRingSegments, RING } from './EmailAccountsRing'
 import { EmailAccountsTile } from './EmailAccountsTile'
+import { deriveEmailAccounts } from '@/lib/command-centre/email-accounts'
 
 const C = 2 * Math.PI * RING.radius
 
@@ -131,5 +132,25 @@ describe('EmailAccountsTile ring', () => {
     render(<EmailAccountsTile />)
     await waitFor(() => expect(screen.getByTestId('email-accounts-tile').textContent).toContain('0 connected'))
     expect(screen.queryByTestId('email-accounts-ring')).toBeNull()
+  })
+
+  it('a roster with nothing connected draws no ring (real derivation, no credentials)', async () => {
+    const empty = deriveEmailAccounts({ now: '2026-09-25T00:00:00.000Z', vaultRows: [], envPresent: {} })
+    expect(empty.summary.connected + empty.summary.needsReauth).toBe(0)
+    expect(empty.summary.total).toBeGreaterThan(0)
+    mockFetch({ ok: true, body: empty })
+    render(<EmailAccountsTile />)
+    await waitFor(() => expect(screen.getByTestId('email-accounts-tile').textContent).toContain('0 connected'))
+    expect(screen.queryByTestId('email-accounts-ring')).toBeNull()
+  })
+
+  it('one account needing re-auth, the rest not connected, still draws the ring', async () => {
+    mockFetch({
+      ok: true,
+      body: { ...payload, summary: { connected: 0, needsReauth: 1, notConnected: 2, total: 3 } },
+    })
+    render(<EmailAccountsTile />)
+    await waitFor(() => expect(screen.getByTestId('email-accounts-ring')).toBeTruthy())
+    expect(screen.getByTestId('email-ring-centre').textContent).toBe('0/3')
   })
 })

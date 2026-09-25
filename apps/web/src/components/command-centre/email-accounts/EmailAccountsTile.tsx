@@ -91,8 +91,9 @@ export function EmailAccountsTile() {
       {/* Ring summary [UNI-2772]: drawn only from a read that succeeded. Any
           failed read (first load or a later poll with the old payload kept)
           draws no ring — a stale chart would look like a current one. Zero
-          accounts draws nothing; the ring component returns null. */}
-      {payload && !error && (
+          accounts draws nothing; the ring component returns null. A roster
+          with nothing connected at all draws no ring either. */}
+      {payload && !error && payload.summary.notConnected < payload.summary.total && (
         <EmailAccountsRing
           counts={{
             connected: payload.summary.connected,
