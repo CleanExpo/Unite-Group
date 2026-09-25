@@ -12,8 +12,8 @@
 // follow the tiles to their new page sources — none are weakened.
 
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join, relative } from 'node:path';
 
 const dir = join(process.cwd(), 'src/app/(founder)/founder/command-centre');
 const pageSrc = readFileSync(join(dir, 'page.tsx'), 'utf8');
@@ -307,6 +307,34 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
       expect(`${name}: ${value}`).toMatch(/: var\(--mission-[a-z]+-text\)$/);
     }
     expect(deckCss).toContain('.missionTokens :is(.plink, .projectName) { color: var(--mission-blue-text); }');
+
+    // No Mission Control source sets a text colour straight from a fill token.
+    const fillAsText =
+      /(?<![-\w])color\s*:\s*['"]?var\(\s*--(?:mission-(?:blue|danger|attention|success)|deck-(?:cyan|go|amber|abort)|cc-signal)\s*[,)]/;
+    const walk = (root: string): string[] =>
+      readdirSync(root, { withFileTypes: true }).flatMap((e) => {
+        const p = join(root, e.name);
+        if (e.isDirectory()) return e.name === '__tests__' ? [] : walk(p);
+        return /\.(css|tsx|ts)$/.test(e.name) && !/\.test\./.test(e.name) ? [p] : [];
+      });
+    const offenders = [dir, join(process.cwd(), 'src/components/command-centre')]
+      .flatMap(walk)
+      .flatMap((file) =>
+        readFileSync(file, 'utf8')
+          .split('\n')
+          .map((line, i) => ({ file, line, n: i + 1 }))
+          .filter(({ line }) => fillAsText.test(line)),
+      )
+      .map(({ file, n }) => `${relative(process.cwd(), file)}:${n}`);
+    expect(offenders).toEqual([]);
+
+    // Status dots are fills: the email tile's dot takes the fill token, its label the text shade.
+    const emailTile = readFileSync(
+      join(process.cwd(), 'src/components/command-centre/email-accounts/EmailAccountsTile.tsx'),
+      'utf8',
+    );
+    expect(emailTile).toContain("background: stateDot(p.state)");
+    expect(emailTile).toContain("if (state === 'connected') return 'var(--deck-go, #2dbb57)'");
 
     const shellBridge = shellCss.match(/:global\(\[data-mission-control\]\) \.canvasScope \{[\s\S]*?\n\}/)?.[0] ?? '';
     expect(shellBridge).toContain('--green-txt: var(--mission-success-text);');

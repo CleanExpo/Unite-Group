@@ -420,7 +420,7 @@
 .iconCommand:hover,
 .queueCommand:hover {
   border-color: rgba(var(--deck-glow), 0.5);
-  color: var(--deck-cyan);
+  color: var(--deck-cyan-text);
   background: #191e26;
 }
 /* The command buttons stay a dark pair in every register, so in Daylight the
