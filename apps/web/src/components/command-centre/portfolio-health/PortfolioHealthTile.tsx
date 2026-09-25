@@ -167,12 +167,13 @@ export function PortfolioHealthTile() {
                 </span>
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <RepoHealthBar repo={r.repo} health={r} />
+                {/* A failed refresh keeps the last roster but draws no bar: a cached chart would read as current. */}
+                {!fetchError && <RepoHealthBar repo={r.repo} health={r} />}
                 <span style={{ color: 'var(--deck-muted)' }}>{formatRunAt(r.latestRunAt)}</span>
               </span>
             </div>
           ))}
-          {repos.some((r) => computeRunSegments(r) !== null) && (
+          {!fetchError && repos.some((r) => computeRunSegments(r) !== null) && (
             <div style={{ paddingTop: 6 }}>
               <RepoHealthLegend />
             </div>

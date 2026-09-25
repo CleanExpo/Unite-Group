@@ -111,4 +111,42 @@ describe('PortfolioHealthTile', () => {
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
     expect(screen.getByRole('alert')).toHaveTextContent(/Portfolio Health/)
   })
+
+  it('a failed refresh after a good read hides the bars and legend but keeps the roster', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      const data = {
+        configured: true,
+        source: 'github_live',
+        overall: 'green',
+        openP0P1: 0,
+        linearSource: 'linear_live',
+        timestamp: '2026-09-25T01:00:00Z',
+        repos: [
+          {
+            repo: 'Review',
+            fullName: 'CleanExpo/Review',
+            latestConclusion: 'success',
+            latestRunUrl: null,
+            latestRunAt: '2026-09-25T01:00:00Z',
+            failCountLast10: 0,
+            color: 'green',
+          },
+        ],
+      }
+      vi.spyOn(global, 'fetch')
+        .mockResolvedValueOnce({ ok: true, json: async () => data } as Response)
+        .mockResolvedValue({ ok: false, status: 500 } as Response)
+      render(<PortfolioHealthTile />)
+      await waitFor(() => expect(screen.getByTestId('portfolio-bar-Review')).toBeInTheDocument())
+      expect(screen.getByTestId('portfolio-bar-legend')).toBeInTheDocument()
+      await vi.advanceTimersByTimeAsync(60_000)
+      await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('portfolio_health_http_500'))
+      expect(screen.queryByTestId('portfolio-bar-Review')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('portfolio-bar-legend')).not.toBeInTheDocument()
+      expect(screen.getByText('Review')).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })
