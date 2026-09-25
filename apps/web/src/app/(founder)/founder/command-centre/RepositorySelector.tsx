@@ -32,27 +32,41 @@ export function RepositorySelector({ value, onChange, projects, disabled }: {
   const [connectionFailure, setConnectionFailure] = useState<'auth_error' | 'not_connected' | null>(null)
   const [retryCursor, setRetryCursor] = useState<string | null>(null)
   const sequence = useRef(0)
+  const controller = useRef<AbortController | null>(null)
   const trigger = useRef<HTMLButtonElement>(null)
-  useEffect(() => () => { sequence.current += 1 }, [])
+  useEffect(() => () => { sequence.current += 1; controller.current?.abort() }, [])
 
-  async function load(cursor: string | null = null) {
+  // Follows the server's nextCursor until the last page, so search covers every repository.
+  // A failed page stops the loop, keeps what loaded, and Retry resumes from that page.
+  async function load(startCursor: string | null = null) {
     const request = ++sequence.current
+    controller.current?.abort()
+    const abort = new AbortController()
+    controller.current = abort
     setLoading(true)
     setError(null)
     setConnectionFailure(null)
-    setRetryCursor(cursor)
+    const seen = new Set<string>()
+    let cursor = startCursor
     try {
-      const response = await fetch(`/api/command-centre/missions/repositories${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`)
-      const data = await response.json() as Catalogue & { error?: string }
-      if (request !== sequence.current) return
-      if (data.status === 'auth_error' || data.status === 'not_connected') setConnectionFailure(data.status)
-      const retryHint = typeof data.retryAfterSeconds === 'number' && Number.isFinite(data.retryAfterSeconds) && data.retryAfterSeconds > 0
-        ? ` Wait ${Math.ceil(data.retryAfterSeconds)} seconds before retrying.` : ''
-      if (!response.ok || !Array.isArray(data.repositories)) throw new Error((data.message || data.error || 'GitHub repositories could not be loaded.') + retryHint)
-      if (data.status !== 'complete' && data.status !== 'partial') throw new Error((data.message || 'GitHub repositories are currently unavailable.') + retryHint)
-      setCatalogue(data)
-      setIncomplete(previous => (cursor ? previous : false) || data.incomplete)
-      setRepositories(previous => [...new Map([...(cursor ? previous : []), ...data.repositories].map(repo => [repo.fullName, repo])).values()])
+      do {
+        setRetryCursor(cursor)
+        const pageCursor = cursor
+        const response = await fetch(`/api/command-centre/missions/repositories${pageCursor ? `?cursor=${encodeURIComponent(pageCursor)}` : ''}`, { signal: abort.signal })
+        const data = await response.json() as Catalogue & { error?: string }
+        if (request !== sequence.current) return
+        if (data.status === 'auth_error' || data.status === 'not_connected') setConnectionFailure(data.status)
+        const retryHint = typeof data.retryAfterSeconds === 'number' && Number.isFinite(data.retryAfterSeconds) && data.retryAfterSeconds > 0
+          ? ` Wait ${Math.ceil(data.retryAfterSeconds)} seconds before retrying.` : ''
+        if (!response.ok || !Array.isArray(data.repositories)) throw new Error((data.message || data.error || 'GitHub repositories could not be loaded.') + retryHint)
+        if (data.status !== 'complete' && data.status !== 'partial') throw new Error((data.message || 'GitHub repositories are currently unavailable.') + retryHint)
+        if (pageCursor) seen.add(pageCursor)
+        const repeated = !!data.nextCursor && seen.has(data.nextCursor)
+        setCatalogue(data)
+        setIncomplete(previous => (pageCursor ? previous : false) || data.incomplete || repeated)
+        setRepositories(previous => [...new Map([...(pageCursor ? previous : []), ...data.repositories].map(repo => [repo.fullName.toLowerCase(), repo])).values()])
+        cursor = repeated ? null : data.nextCursor
+      } while (cursor)
     } catch (cause) {
       if (request === sequence.current) setError(cause instanceof Error ? cause.message : 'GitHub repositories could not be loaded.')
     } finally {
@@ -80,14 +94,14 @@ export function RepositorySelector({ value, onChange, projects, disabled }: {
       <button type="button" className={styles.textButton} disabled={disabled} onClick={() => choose('')}>Let Margot help me place it</button>
       <label htmlFor={`${id}-search`}>Search loaded GitHub repositories</label>
       <input id={`${id}-search`} type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search owner or repository name" disabled={disabled} />
-      <p className={styles.repositoryHint} role="status">{loading ? 'Loading GitHub repositories…' : `${repositories.length} repositories loaded${complete ? ' · connected account list complete' : ' · list may be incomplete'}`}{search.trim() ? ` · ${matches.length} matching` : ''}</p>
+      <p className={styles.repositoryHint} role="status">{loading ? `Loading GitHub repositories… ${repositories.length} loaded so far` : `${repositories.length} repositories loaded${complete ? ' · connected account list complete' : ' · list may be incomplete'}`}{search.trim() ? ` · ${matches.length} matching` : ''}</p>
       {error && <div className={styles.repositoryError} role="alert"><p>{error}</p>{connectionFailure && <p>The Mission Control GitHub connection needs attention from your system operator.</p>}<p>{projects.length > 0 ? 'You can still prepare your idea. Choose a registered business below, or let Margot help you place it.' : 'You can still prepare your idea. Let Margot help you place it without choosing a repository.'}</p><button type="button" className={styles.secondaryButton} disabled={loading || disabled} onClick={() => void load(retryCursor)}>Retry repositories</button></div>}
       {catalogue?.coverage && <p className={styles.repositoryHint}>{catalogue.coverage}</p>}
+      {error && retryCursor && repositories.length > 0 && <p className={styles.repositoryHint}>Only some repositories loaded before GitHub stopped answering. This list is incomplete; retry to load the rest.</p>}
       {incomplete && <p className={styles.repositoryHint}>Some repositories could not be included. This list is incomplete.</p>}
-      {catalogue?.status === 'partial' && catalogue.message && <p className={styles.repositoryHint}>{catalogue.message}</p>}
+      {catalogue?.status === 'partial' && catalogue.incomplete && catalogue.message && <p className={styles.repositoryHint}>{catalogue.message}</p>}
       {matches.length > 0 && <ul className={styles.repositoryList} aria-label="GitHub repositories">{matches.map(repo => <li key={repo.fullName}><button type="button" disabled={disabled} aria-pressed={value === repo.fullName} onClick={() => choose(repo.fullName)}><span>{repo.fullName}</span>{' '}<small>{repo.private ? 'Private' : 'Public'}{repo.archived ? ' · Archived' : ''}</small></button></li>)}</ul>}
       {!loading && !error && matches.length === 0 && <p className={styles.repositoryHint}>{search.trim() ? 'No loaded repositories match your search.' : 'No repositories have been returned.'}{!complete && ' More repositories may be available.'}</p>}
-      {catalogue?.nextCursor && <button type="button" className={styles.secondaryButton} disabled={loading || disabled} onClick={() => void load(catalogue.nextCursor)}>Load more repositories</button>}
       {catalogue && !error && <button type="button" className={styles.secondaryButton} disabled={loading || disabled} onClick={() => void load()}>Refresh repository list</button>}
       {projects.length > 0 && <div className={styles.registeredProjects}><label htmlFor={`${id}-business`}>Or choose a registered business</label><select id={`${id}-business`} value={projects.some(project => project.name === value) ? value : ''} disabled={disabled} onChange={event => choose(event.target.value)}><option value="">Select a registered business</option>{projects.map(project => <option key={project.name} value={project.name}>{project.name}</option>)}</select></div>}
     </div>}
