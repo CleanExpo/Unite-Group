@@ -8,6 +8,10 @@ import { getUser } from '@/lib/supabase/server'
 import { hasPrivateAccess } from '@/lib/auth/private-access'
 import { isXeroConfigured } from '@/lib/integrations/xero'
 import { isGoogleConfigured } from '@/lib/integrations/google-oauth'
+import {
+  readGithubConnectorHealth,
+  type GithubConnectorHealthStatus,
+} from '@/lib/command-centre/delivery-repositories'
 
 interface ConnectorStatus {
   name: string
@@ -15,6 +19,7 @@ interface ConnectorStatus {
   configured: boolean
   envVars: Array<{ name: string; present: boolean }>
   oauthConnected: boolean
+  status?: GithubConnectorHealthStatus
   lastError?: string
   lastSyncedAt?: string
 }
@@ -182,6 +187,9 @@ export async function GET() {
   })
 
   // ── GitHub ──
+  // Connection comes from one real repository read, never from env presence: a
+  // rejected token once read as healthy here for ~20 days.
+  const github = await readGithubConnectorHealth()
   connectors.push({
     name: 'GitHub',
     service: 'github',
@@ -190,7 +198,9 @@ export async function GET() {
       { name: 'GITHUB_APP_ID', present: envPresent('GITHUB_APP_ID') },
       { name: 'GITHUB_TOKEN', present: envPresent('GITHUB_TOKEN') },
     ],
-    oauthConnected: false,
+    oauthConnected: github.status === 'connected',
+    status: github.status,
+    ...(github.status === 'connected' ? {} : { lastError: github.message }),
   })
 
   // ── Summary ──

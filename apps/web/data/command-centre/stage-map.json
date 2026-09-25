@@ -1,0 +1,21 @@
+{
+  "$comment": "Single source of truth for Linear workflow state -> founder stage word. Read by apps/web/src/lib/command-centre/project-stages.ts (Mission Control deck) and scripts/stage.mjs (CLI /stage). Change it here and both follow; a parity test asserts they agree. State names were read from Linear on 03/09/2026: every team has Backlog/Todo/In Progress/In Review/Done; RestoreAssist adds the three Pi-Dev states.",
+  "words": ["Planning", "Research", "Develop", "Production", "Done"],
+  "byStateName": {
+    "Backlog": "Planning",
+    "Todo": "Planning",
+    "Ready for Pi-Dev": "Planning",
+    "In Progress": "Develop",
+    "Pi-Dev: In Progress": "Develop",
+    "Pi-Dev: Blocked": "Develop",
+    "In Review": "Production"
+  },
+  "byStateType": {
+    "triage": "Planning",
+    "backlog": "Planning",
+    "unstarted": "Planning",
+    "started": "Develop"
+  },
+  "researchLabelPattern": "research|spike|discovery|investigat",
+  "activeOrder": ["Production", "Develop", "Research", "Planning"]
+}
