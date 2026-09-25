@@ -789,6 +789,162 @@ test('scanner budget and concurrency come from the environment and reject garbag
   }
 })
 
+test('unparseable scanner output is captured, bounded, and only on the parse-failure path', async () => {
+  const { runActiveLockfileAudits, stdoutSample, MAX_STDOUT_SAMPLE_CHARS } = await loadRunner()
+
+  // The helper: short output survives whole, long output is truncated and says so.
+  assert.equal(stdoutSample(''), null)
+  assert.equal(stdoutSample(undefined), null)
+  assert.equal(stdoutSample('{"a":1}'), '{"a":1}')
+  // The cap is asserted as a LITERAL, deliberately. Deriving the input from
+  // MAX_STDOUT_SAMPLE_CHARS made this test pass for any value of that constant — it compared the
+  // constant against itself and proved nothing. Changing the cap must now break this test.
+  assert.equal(MAX_STDOUT_SAMPLE_CHARS, 2048, 'the cap is a contract; changing it is a decision')
+  const long = 'x'.repeat(5000)
+  const sample = stdoutSample(long)
+  assert.equal(sample.slice(0, 2048), 'x'.repeat(2048))
+  assert.equal(sample.startsWith('x'.repeat(2049)), false, 'the raw prefix must stop at 2048')
+  assert.match(sample, /truncated 2952 of 5000 chars/)
+  // The truncation note is additive, so the field is longer than the raw cap. That is intended;
+  // pin it so the total can never drift unbounded.
+  assert.ok(sample.length < 2048 + 64, `field must stay near the cap, was ${sample.length}`)
+
+  const unparseable = '{"advisories":{},"metadata":{"totalDependencies":42}}'
+  const report = await runActiveLockfileAudits({
+    entries: EXPECTED_ENTRIES,
+    runAudit: async (entry) => {
+      if (entry.lockfile === 'apps/web/pnpm-lock.yaml') {
+        return { exitCode: 0, stdout: unparseable, stderr: '', timedOut: false }
+      }
+      if (entry.lockfile === 'apps/empire/package-lock.json') {
+        return { exitCode: 2, stdout: 'never parsed', stderr: 'killed', timedOut: true, timeoutMs: 300_000 }
+      }
+      return { exitCode: 0, stdout: CLEAN_AUDIT, stderr: '', timedOut: false }
+    },
+  })
+
+  // This is the whole point: the bytes that would not parse are recoverable from the report,
+  // so the NEXT CI run answers the schema question with output instead of inference.
+  const failed = report.results.find(({ lockfile }) => lockfile === 'apps/web/pnpm-lock.yaml')
+  assert.equal(failed.status, 'error')
+  assert.equal(failed.stdoutSample, unparseable)
+  assert.match(failed.error, /missing metadata\.vulnerabilities/)
+
+  // And nowhere else: a clean scan and a timeout both carry no sample.
+  const clean = report.results.find(({ lockfile }) => lockfile === 'apps/workspace/pnpm-lock.yaml')
+  const timedOut = report.results.find(({ lockfile }) => lockfile === 'apps/empire/package-lock.json')
+  assert.equal(clean.status, 'passed')
+  assert.equal(Object.hasOwn(clean, 'stdoutSample'), false)
+  assert.equal(timedOut.timedOut, true)
+  assert.equal(Object.hasOwn(timedOut, 'stdoutSample'), false)
+  assert.equal(report.passed, false)
+})
+
+test('stderr is bounded on every executed-scan path, not just the parse-failure one', async () => {
+  const { runActiveLockfileAudits } = await loadRunner()
+
+  // executeAudit permits a 10 MiB child-process buffer per scan, so stderr is scanner-controlled
+  // and unbounded at source. Capping the sample and the error message while leaving stderr free
+  // would have moved the bloat rather than removed it — the artifact is the thing being protected.
+  const huge = 'S'.repeat(100_000)
+  const report = await runActiveLockfileAudits({
+    entries: EXPECTED_ENTRIES,
+    runAudit: async (entry) => {
+      if (entry.lockfile === 'apps/empire/package-lock.json') {
+        return { exitCode: 2, stdout: '', stderr: huge, timedOut: true, timeoutMs: 300_000 }
+      }
+      if (entry.lockfile === 'apps/web/pnpm-lock.yaml') {
+        return { exitCode: 0, stdout: 'not json', stderr: huge, timedOut: false }
+      }
+      return { exitCode: 0, stdout: CLEAN_AUDIT, stderr: huge, timedOut: false }
+    },
+  })
+
+  // All three result classes: clean, timeout, parse-failure.
+  for (const result of report.results) {
+    assert.ok(
+      result.stderr.length < 2048 + 64,
+      `${result.workspace} (${result.status}) stderr unbounded at ${result.stderr.length} chars`,
+    )
+  }
+  const serialised = JSON.stringify(report)
+  assert.ok(serialised.length < 80_000, `report unbounded at ${serialised.length} chars`)
+})
+
+// Bounding the sample and leaving the error message unbounded protects nothing — both land in
+// the same uploaded artifact. The previous version of this control planted a stdout whose
+// toString threw a huge message, but coerceToString swallows that and substitutes
+// '[unrepresentable]' before the parse, so the only text reaching either cap was V8's own short
+// JSON error — and both caps could be deleted with this file still green. V8 bounds JSON.parse
+// messages itself, so a long parse message is only reachable by substituting the parser.
+// Expected strings are pinned from the literal 2048, never from the exported constant.
+const HUGE_PARSE_MESSAGE = 'E'.repeat(100_000)
+const BOUNDED_PARSE_ERROR = `Audit scanner did not return valid JSON: ${'E'.repeat(2048)}...[truncated 97952 of 100000 chars]`
+
+test('a long parse-error message is capped where parseAuditReport records it', async () => {
+  const { parseAuditReport } = await loadRunner()
+
+  assert.throws(
+    () => parseAuditReport('{}', { parseJson: () => { throw new Error(HUGE_PARSE_MESSAGE) } }),
+    (error) => {
+      assert.equal(error.message.length, BOUNDED_PARSE_ERROR.length, 'parse error message is not capped')
+      assert.equal(error.message, BOUNDED_PARSE_ERROR)
+      return true
+    },
+  )
+})
+
+test('a long recorded error is capped where the runner writes it into the report', async () => {
+  const { runActiveLockfileAudits } = await loadRunner()
+
+  const report = await runActiveLockfileAudits({
+    entries: EXPECTED_ENTRIES,
+    parseJson: (text) => {
+      if (text === 'not json') throw new Error(HUGE_PARSE_MESSAGE)
+      return JSON.parse(text)
+    },
+    runAudit: async (entry) => (entry.lockfile === 'apps/web/pnpm-lock.yaml'
+      ? { exitCode: 0, stdout: 'not json', stderr: '', timedOut: false }
+      : { exitCode: 0, stdout: CLEAN_AUDIT, stderr: '', timedOut: false }),
+  })
+
+  // The message arriving at the runner is already 2126 chars (prefix + inner cap), so only the
+  // runner's own cap brings it back to 2048 plus its marker. Removing that cap alone leaves the
+  // inner-capped message in the report, which this exact-string check rejects.
+  const recorded = `${BOUNDED_PARSE_ERROR.slice(0, 2048)}...[truncated ${BOUNDED_PARSE_ERROR.length - 2048} of ${BOUNDED_PARSE_ERROR.length} chars]`
+  const failed = report.results.find(({ lockfile }) => lockfile === 'apps/web/pnpm-lock.yaml')
+  assert.equal(failed.status, 'error')
+  assert.equal(failed.error.length, recorded.length, 'recorded error is not capped by the runner')
+  assert.equal(failed.error, recorded)
+  // The seam only substitutes the parser; every other scan still parses and passes.
+  assert.equal(report.results.filter(({ status }) => status === 'passed').length, EXPECTED_ENTRIES.length - 1)
+  const serialised = JSON.stringify(report)
+  assert.ok(serialised.length < 60_000, `report unbounded at ${serialised.length} chars`)
+  assert.equal(report.passed, false)
+})
+
+test('a malformed advisory via fails the scan closed instead of being dropped', async () => {
+  const { runActiveLockfileAudits } = await loadRunner()
+
+  // Zero metadata counts plus a high finding whose `via` is not an array. Treating the bad
+  // `via` as "no advisories" let the zero counts decide, and the scan reported passed.
+  const malformed = JSON.stringify({
+    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 0, critical: 0, total: 0 } },
+    vulnerabilities: { 'bad-pkg': { severity: 'high', range: '*', via: 'malformed' } },
+  })
+  const report = await runActiveLockfileAudits({
+    entries: EXPECTED_ENTRIES,
+    runAudit: async (entry) => (entry.lockfile === 'apps/web/pnpm-lock.yaml'
+      ? { exitCode: 0, stdout: malformed, stderr: '', timedOut: false }
+      : { exitCode: 0, stdout: CLEAN_AUDIT, stderr: '', timedOut: false }),
+  })
+
+  const bad = report.results.find(({ lockfile }) => lockfile === 'apps/web/pnpm-lock.yaml')
+  assert.equal(bad.status, 'error')
+  assert.match(bad.error, /via/)
+  assert.equal(report.passed, false)
+})
+
 test('worst-case wall clock fits the CI job budget at the shipped defaults', async () => {
   const {
     DEFAULT_SCANNER_TIMEOUT_MS, DEFAULT_SCANNER_CONCURRENCY, CI_JOB_BUDGET_MS,
@@ -806,4 +962,188 @@ test('worst-case wall clock fits the CI job budget at the shipped defaults', asy
   // Raising the per-scan budget past the point where it no longer fits must break this
   // test, not surface as a killed job three weeks later.
   assert.ok(DEFAULT_SCANNER_TIMEOUT_MS > 60_000, 'the budget that failed on 04/09 must not be restored')
+})
+
+test('a throwing coercion cannot reject the run on any executed-scan path', async () => {
+  const { runActiveLockfileAudits, boundedMessage } = await loadRunner()
+
+  // `String(value)` calls toString/valueOf/Symbol.toPrimitive, any of which a scanner-controlled
+  // object can throw from. boundedMessage called it bare, so this exact value threw out of the
+  // bounding helper and rejected the WHOLE run — the matrix and artifact lost to protect one
+  // field. The helper must be total on every input it is pointed at.
+  const throwingToString = { toString() { throw new Error('coercion refused') } }
+  const throwingValueOf = { valueOf() { throw new Error('valueOf refused') }, toString: undefined }
+
+  assert.equal(boundedMessage(throwingToString), '[unrepresentable]')
+  assert.equal(boundedMessage(throwingValueOf), '[unrepresentable]')
+  assert.equal(boundedMessage(null), '')
+  assert.equal(boundedMessage(undefined), '')
+  assert.equal(boundedMessage(42), '42')
+
+  // `JSON.parse` coerces its argument too, so the same hostile value reaches the parser. The
+  // recorded error must be a real JSON syntax error, not text the scanner chose by throwing from
+  // its own toString — otherwise the coercion is a side-channel into the artifact, and a
+  // non-string thrown `message` would throw again from inside the catch handler.
+  const { parseAuditReport } = await loadRunner()
+  assert.throws(
+    () => parseAuditReport(throwingToString),
+    (error) => /did not return valid JSON/.test(error.message)
+      && !/coercion refused/.test(error.message),
+    'a hostile coercion must not dictate the recorded parse error',
+  )
+
+  // Planted on the clean, timeout AND parse-failure paths in one run: a per-path fix that
+  // misses a path is the exact shape this defect has taken twice already on this branch.
+  const report = await runActiveLockfileAudits({
+    entries: EXPECTED_ENTRIES,
+    runAudit: async (entry) => {
+      if (entry.lockfile === 'apps/empire/package-lock.json') {
+        return { exitCode: 2, stdout: '', stderr: throwingToString, timedOut: true, timeoutMs: 300_000 }
+      }
+      if (entry.lockfile === 'apps/web/pnpm-lock.yaml') {
+        return { exitCode: 0, stdout: throwingToString, stderr: throwingToString, timedOut: false }
+      }
+      return { exitCode: 0, stdout: CLEAN_AUDIT, stderr: throwingToString, timedOut: false }
+    },
+  })
+
+  // The run COMPLETED — that is the whole assertion. Before the fix this rejected.
+  assert.equal(report.results.length, EXPECTED_ENTRIES.length)
+  for (const result of report.results) {
+    assert.equal(typeof result.stderr, 'string', `${result.workspace} lost its stderr field`)
+    assert.ok(result.stderr.length < 2048 + 64, `${result.workspace} stderr unbounded`)
+    // This run covers the clean, timeout and parse-failure paths, so the field must be a number
+    // on all of them: a consumer summing truncation across the matrix would otherwise get NaN
+    // from the paths that never parsed anything.
+    assert.equal(
+      typeof result.findingsTruncated, 'number',
+      `${result.workspace} (${result.status}) has no findingsTruncated`,
+    )
+  }
+  // A scan whose output could not even be coerced is not a clean scan.
+  const hostile = report.results.find(({ lockfile }) => lockfile === 'apps/web/pnpm-lock.yaml')
+  assert.equal(hostile.status, 'error')
+  assert.equal(report.passed, false)
+})
+
+test('findings are bounded per field, per advisory and in count, without changing the verdict', async () => {
+  const {
+    runActiveLockfileAudits,
+    MAX_FINDING_FIELD_CHARS,
+    MAX_ADVISORIES_PER_FINDING,
+    MAX_FINDINGS_PER_SCAN,
+  } = await loadRunner()
+
+  // Pinned as literals, deliberately. Deriving the expected bound from the constant it claims to
+  // check is what made the previous cap assertion pass for any value of that constant.
+  assert.equal(MAX_FINDING_FIELD_CHARS, 256, 'the field cap is a contract; changing it is a decision')
+  assert.equal(MAX_ADVISORIES_PER_FINDING, 8, 'the advisory cap is a contract')
+  assert.equal(MAX_FINDINGS_PER_SCAN, 100, 'the finding cap is a contract')
+
+  const huge = 'P'.repeat(100_000)
+  // VALID, well-formed, high-severity audit JSON. Nothing here is malformed — this is the shape
+  // that slipped past two rounds of "every scanner string is bounded now".
+  const vulnerabilities = { [huge]: {
+    severity: 'critical',
+    range: 'R'.repeat(100_000),
+    via: Array.from({ length: 50 }, (_, i) => ({ url: `U${i}`.repeat(50_000) })),
+  } }
+  // A fixture that always supplies `url` never selects the `?? item.source` arm, so a regression
+  // that bounds url/title and leaves source raw ships green. Proven: a mutant doing exactly that
+  // kept this suite 35/35. Declared BEFORE the bulk filler so it survives the finding cap — a
+  // fallback fixture truncated away is a fixture that checks nothing.
+  vulnerabilities['fallback-via-source'] = {
+    severity: 'high',
+    range: '<1.0.0',
+    via: [{ source: 'S'.repeat(100_000) }],
+  }
+  for (let i = 0; i < 500; i += 1) {
+    vulnerabilities[`pkg-${i}`] = { severity: 'high', range: '<1.0.0', via: [{ title: 'T'.repeat(9_000) }] }
+  }
+  const hostileValid = JSON.stringify({
+    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 500, critical: 1, total: 501 } },
+    vulnerabilities,
+  })
+
+  // normaliseFindings has TWO loops: npm v7+ (`vulnerabilities`) and npm v6 (`advisories`,
+  // module_name/vulnerable_versions/url). A control that only ever sends the v7 shape cannot
+  // tell a bounded second loop from an unbounded one — verified by mutation: reverting the v6
+  // loop alone left this suite 35/35 green until this shape was added. Both loops, one test.
+  const hostileV6 = JSON.stringify({
+    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 2, critical: 0, total: 2 } },
+    advisories: {
+      1: {
+        severity: 'high',
+        module_name: 'M'.repeat(100_000),
+        vulnerable_versions: 'V'.repeat(100_000),
+        url: 'U'.repeat(100_000),
+      },
+      // Same blindness, other loop: always supplying `module_name` never selects the `?? name`
+      // arm. A mutant bounding module_name and leaving name raw also kept this suite green.
+      2: {
+        severity: 'high',
+        name: 'N'.repeat(100_000),
+        vulnerable_versions: '<2.0.0',
+        url: 'https://example.invalid/advisory',
+      },
+    },
+  })
+
+  const report = await runActiveLockfileAudits({
+    entries: EXPECTED_ENTRIES,
+    runAudit: async (entry) => {
+      if (entry.lockfile === 'apps/web/pnpm-lock.yaml') {
+        return { exitCode: 1, stdout: hostileValid, stderr: '', timedOut: false }
+      }
+      if (entry.lockfile === 'apps/workspace/pnpm-lock.yaml') {
+        return { exitCode: 1, stdout: hostileV6, stderr: '', timedOut: false }
+      }
+      return { exitCode: 0, stdout: CLEAN_AUDIT, stderr: '', timedOut: false }
+    },
+  })
+
+  const hostile = report.results.find(({ lockfile }) => lockfile === 'apps/web/pnpm-lock.yaml')
+  const hostileLegacy = report.results.find(({ lockfile }) => lockfile === 'apps/workspace/pnpm-lock.yaml')
+
+  // Every leaf of BOTH shapes, not just the ones that were easy to name.
+  assert.ok(hostile.findings.length <= 100, `finding count unbounded at ${hostile.findings.length}`)
+  assert.equal(hostileLegacy.findings.length, 2, 'the v6 shape must produce findings to bound')
+
+  // The two FALLBACK arms, asserted by identity rather than by hoping the loop above reached
+  // them. A fallback fixture that silently vanished (truncated, or never selected) would leave
+  // the bound unchecked while the suite stayed green - which is precisely what happened here.
+  const viaSourceOnly = hostile.findings.find(({ package: p }) => p === 'fallback-via-source')
+  assert.ok(viaSourceOnly, 'the source-only via fixture must survive the finding cap to be checked')
+  assert.equal(viaSourceOnly.advisories.length, 1, 'via[].source must yield an advisory')
+  assert.ok(viaSourceOnly.advisories[0].startsWith('S'), 'the advisory must come from via[].source')
+  assert.ok(
+    viaSourceOnly.advisories[0].length < 256 + 64,
+    `via[].source unbounded at ${viaSourceOnly.advisories[0].length}`,
+  )
+
+  const nameOnly = hostileLegacy.findings.find(({ package: p }) => p?.startsWith('N'))
+  assert.ok(nameOnly, 'the name-only advisory fixture must be present to be checked')
+  assert.ok(nameOnly.package.length < 256 + 64, `advisories[].name unbounded at ${nameOnly.package.length}`)
+  for (const finding of [...hostile.findings, ...hostileLegacy.findings]) {
+    assert.ok(finding.package.length < 256 + 64, `package unbounded at ${finding.package.length}`)
+    assert.ok(finding.range.length < 256 + 64, `range unbounded at ${finding.range.length}`)
+    assert.ok(finding.advisories.length <= 8, `advisories unbounded at ${finding.advisories.length}`)
+    for (const advisory of finding.advisories) {
+      assert.ok(advisory.length < 256 + 64, `advisory unbounded at ${advisory.length}`)
+    }
+  }
+  assert.equal(hostileLegacy.status, 'failed')
+
+  // Dropped findings are COUNTED, never silently absent: 502 in, 100 kept, 402 declared.
+  assert.equal(hostile.findingsTruncated, 402)
+
+  // The verdict is computed from metadata counts and the exit code, so no cap can green a
+  // failing scan. This is the property that makes bounding safe at all.
+  assert.equal(hostile.status, 'failed')
+  assert.equal(hostile.vulnerabilities.critical, 1)
+  assert.equal(hostile.vulnerabilities.high, 500)
+  assert.equal(report.passed, false)
+
+  const serialised = JSON.stringify(report)
+  assert.ok(serialised.length < 400_000, `report unbounded at ${serialised.length} chars`)
 })
