@@ -326,8 +326,8 @@
   --ink-dim: var(--mission-muted);
   --ink-hush: var(--mission-muted);
   --green: var(--mission-success);
-  --green-txt: var(--mission-success);
-  --amber-txt: var(--mission-attention);
+  --green-txt: var(--mission-success-text);
+  --amber-txt: var(--mission-attention-text);
   --sh-1: none;
   --sh-2: none;
   font-family: inherit;

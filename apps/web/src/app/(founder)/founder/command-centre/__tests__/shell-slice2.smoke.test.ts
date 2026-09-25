@@ -288,4 +288,28 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
       shellCss.match(/\.canvasScope \{[\s\S]*?\n\}/)?.[0] ?? '';
     expect(scopeBlock).toContain('--color-text-muted: var(--ink-dim)');
   });
+
+  it('bridges every Mission Control TEXT alias to a contrast-safe mission text shade, never a fill (UNI-2769)', () => {
+    // Fills (#ff3b5c, #15803d, #a16207, #e5484d …) drop below 4.5:1 as text on the
+    // raised surfaces; the --mission-*-text shades clear it on every surface.
+    const bridge = deckCss.match(/\.missionTokens \{[\s\S]*?\n\}/)?.[0] ?? '';
+    const textAliases = [...bridge.matchAll(/(--(?:deck-[a-z]+-text|cc-signal-text|tile-[a-z]+-txt)):\s*([^;]+);/g)];
+    expect(textAliases.map(([, name]) => name).sort()).toEqual([
+      '--cc-signal-text',
+      '--deck-abort-text',
+      '--deck-amber-text',
+      '--deck-cyan-text',
+      '--tile-amber-txt',
+      '--tile-green-txt',
+      '--tile-red-txt',
+    ]);
+    for (const [, name, value] of textAliases) {
+      expect(`${name}: ${value}`).toMatch(/: var\(--mission-[a-z]+-text\)$/);
+    }
+    expect(deckCss).toContain('.missionTokens :is(.plink, .projectName) { color: var(--mission-blue-text); }');
+
+    const shellBridge = shellCss.match(/:global\(\[data-mission-control\]\) \.canvasScope \{[\s\S]*?\n\}/)?.[0] ?? '';
+    expect(shellBridge).toContain('--green-txt: var(--mission-success-text);');
+    expect(shellBridge).toContain('--amber-txt: var(--mission-attention-text);');
+  });
 });

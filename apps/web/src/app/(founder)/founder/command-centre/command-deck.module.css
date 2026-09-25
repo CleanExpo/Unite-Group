@@ -641,13 +641,15 @@
 
 /* Existing operational components inherit the canonical Mission Control theme. */
 .missionTokens {
+  /* Text aliases take the contrast-safe mission text shades (>=4.5:1 on canvas,
+     surface and raised in both themes); fills keep the exact palette values. */
   --deck-cyan: var(--mission-blue);
   --deck-go: var(--mission-success);
   --deck-amber: var(--mission-attention);
   --deck-abort: var(--mission-danger);
-  --deck-cyan-text: var(--mission-blue);
-  --deck-amber-text: var(--mission-attention);
-  --deck-abort-text: var(--mission-danger);
+  --deck-cyan-text: var(--mission-blue-text);
+  --deck-amber-text: var(--mission-attention-text);
+  --deck-abort-text: var(--mission-danger-text);
   --deck-line: var(--mission-border);
   --deck-line-soft: var(--mission-border);
   --deck-panel: var(--mission-surface);
@@ -662,20 +664,20 @@
   --cc-ink-dim: var(--mission-muted);
   --cc-ink-hush: var(--mission-muted);
   --cc-signal: var(--mission-blue);
-  --cc-signal-text: var(--mission-blue);
+  --cc-signal-text: var(--mission-blue-text);
   --cc-pulse-duration: 2.4s;
   --tile-ink: var(--mission-ink);
   --tile-ink-dim: var(--mission-muted);
   --tile-ink-hush: var(--mission-muted);
   --tile-card-bg: var(--mission-raised);
   --tile-card-line: var(--mission-border);
-  --tile-amber-txt: var(--mission-attention);
-  --tile-green-txt: var(--mission-success);
-  --tile-red-txt: var(--mission-danger);
+  --tile-amber-txt: var(--mission-attention-text);
+  --tile-green-txt: var(--mission-success-text);
+  --tile-red-txt: var(--mission-danger-text);
 }
 .missionTokens :is(.panel, .bus) { background: var(--mission-surface); border-color: var(--mission-border); }
 .missionTokens :is(.panel, .bus, .project, .integrationGrid) { min-width: 0; }
 .missionTokens :is(.toolGrid, .integrationGrid) { grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); }
-.missionTokens :is(.plink, .projectName) { color: var(--mission-blue); }
+.missionTokens :is(.plink, .projectName) { color: var(--mission-blue-text); }
 .missionTokens .reveal { opacity: 1; animation: none; transform: none; }
 .missionTokens [data-source-mode] { min-width: 0; max-width: 100%; flex-wrap: wrap; overflow-wrap: anywhere; }
