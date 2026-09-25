@@ -91,3 +91,14 @@ to postgres;
 -- after `set local role authenticated` with no JWT returned 0 — the policies
 -- still bind exactly where the tests exercise them.
 alter role postgres bypassrls;
+
+-- ── Ephemeral sentinel (RA-7753) ─────────────────────────────────────────────
+--
+-- tests/setup/ephemeral-guard.ts refuses to run any suite unless this table
+-- exists. It is created HERE and nowhere else — never by a migration — so a
+-- database that was not built by this CI bootstrap cannot carry it, and the
+-- suites (which write fixtures, drop schemas and break rules inside savepoints)
+-- cannot be pointed at one. It lives in `public`, which no spine teardown drops.
+create table if not exists public.spine_ephemeral_sentinel (
+  created_at timestamptz not null default now()
+);
