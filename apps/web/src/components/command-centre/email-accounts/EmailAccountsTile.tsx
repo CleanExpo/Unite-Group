@@ -10,6 +10,7 @@ import type { EmailAccountsPayload, EmailAccountState } from '@/lib/command-cent
 import { SourceBadge, type SourceMode } from '../SourceBadge'
 import { DeckDetails } from '../DeckDetails'
 import { StaleReadNotice } from '@/components/ui/StaleReadNotice'
+import { EmailAccountsRing } from './EmailAccountsRing'
 
 const POLL_MS = 120000
 
@@ -86,6 +87,20 @@ export function EmailAccountsTile() {
       {error && <p role="alert" style={{ color: 'var(--deck-abort-text, #d02f35)', fontSize: 12, margin: 0 }}>Could not load email accounts: {error}</p>}
 
       {staleRead && <StaleReadNotice source="Email accounts" />}
+
+      {/* Ring summary [UNI-2772]: drawn only from a read that succeeded. Any
+          failed read (first load or a later poll with the old payload kept)
+          draws no ring — a stale chart would look like a current one. Zero
+          accounts draws nothing; the ring component returns null. */}
+      {payload && !error && (
+        <EmailAccountsRing
+          counts={{
+            connected: payload.summary.connected,
+            needsReauth: payload.summary.needsReauth,
+            notConnected: payload.summary.notConnected,
+          }}
+        />
+      )}
 
       <DeckDetails
         title="Email accounts"
