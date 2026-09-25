@@ -7,6 +7,30 @@ import { LiveAgentOperationsMap } from './LiveAgentOperationsMap'
 
 const STATES: OperationNodeState[] = ['working', 'queued', 'blocked', 'idle']
 
+// Declarations for each selector inside the reduced-motion media block of the map's own <style>.
+// jsdom does not apply media queries, so the rules are read from the rendered stylesheet text.
+function reducedMotionRules(styleText: string): Record<string, Record<string, string>> {
+  const start = styleText.indexOf('@media (prefers-reduced-motion: reduce)')
+  if (start < 0) return {}
+  const open = styleText.indexOf('{', start)
+  let depth = 0
+  let end = open
+  for (; end < styleText.length; end++) {
+    if (styleText[end] === '{') depth++
+    else if (styleText[end] === '}' && --depth === 0) break
+  }
+  const rules: Record<string, Record<string, string>> = {}
+  for (const [, selector, body] of styleText.slice(open + 1, end).matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    rules[selector.trim()] = Object.fromEntries(
+      body.split(';').filter((d) => d.includes(':')).map((d) => {
+        const i = d.indexOf(':')
+        return [d.slice(0, i).trim(), d.slice(i + 1).trim()]
+      }),
+    )
+  }
+  return rules
+}
+
 function node(i: number, overrides: Partial<OperationNode> = {}): OperationNode {
   const state = STATES[i % STATES.length]
   return {
@@ -86,9 +110,16 @@ describe('LiveAgentOperationsHubMap', () => {
     expect(links).toHaveLength(5)
     const flowing = links.filter((l) => l.getAttribute('class')?.includes('lao-flow')).map((l) => l.getAttribute('data-node'))
     expect(flowing).toEqual(['agent-0', 'agent-3'])
-    expect(container.innerHTML).toMatch(/prefers-reduced-motion: reduce/)
     expect(container.textContent).toContain('Mission Control')
     expect(container.textContent).toContain('working · 2 sessions')
+  })
+
+  it('reduced motion stops the flowing links', () => {
+    const { container } = render(<LiveAgentOperationsHubMap nodes={[node(0, { state: 'working', activeSessions: 1 })]} />)
+    const rules = reducedMotionRules(container.querySelector('style')?.textContent ?? '')
+    expect(rules['.lao-flow']).toMatchObject({ animation: 'none' })
+    // The animated class is in use, so the rule above governs a real link
+    expect(container.querySelectorAll('.lao-flow').length).toBeGreaterThan(0)
   })
 
   it('renders nothing for an empty node list', () => {
