@@ -1,13 +1,15 @@
 'use client'
 
 // src/components/command-centre/cost-allocation/CostAllocationTile.tsx
-// Founder cost-allocation tile for the Mission Control deck. One horizontal
-// bar per cost source (share of the max spender), current-calendar-month
-// totals, and a revenue-vs-cost net footer. Reads the metering tables via
-// /api/command-centre/cost-allocation — real sums only, honest empty state.
+// Founder cost-allocation tile for the Mission Control deck. A donut of this
+// month's cost split across the cost sources (net in the centre), this month
+// vs prior month cost as two bars on one scale, and a revenue-vs-cost net
+// footer. Reads the metering tables via /api/command-centre/cost-allocation —
+// real sums only, honest empty state; an unknown figure is never drawn as $0.
 
 import { useCallback, useEffect, useState } from 'react'
 import { SourceBadge, type SourceMode } from '../SourceBadge'
+import { CostSplitDonut, MonthOnMonthBars, computeDonutGeometry } from './CostAllocationCharts'
 
 interface SourceView {
   id: string
@@ -47,6 +49,11 @@ const AUD = new Intl.NumberFormat('en-AU', {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 })
+
+/** A figure the response did not carry (older shape, bad value) reads "unknown", never $0. */
+function money(n: unknown): string {
+  return typeof n === 'number' && Number.isFinite(n) ? AUD.format(n) : 'unknown'
+}
 
 function monthLabel(isoDate: string): string {
   const parsed = new Date(`${isoDate}T00:00:00Z`)
@@ -90,7 +97,14 @@ export function CostAllocationTile() {
   const empty =
     !loading && !error && data !== null &&
     data.total_cost_aud === 0 && data.total_revenue_aud === 0 && maxAmount === 0
-  const net = (data?.total_revenue_aud ?? 0) - (data?.total_cost_aud ?? 0)
+  const revenue = data?.total_revenue_aud
+  const cost = data?.total_cost_aud
+  const net =
+    typeof revenue === 'number' && Number.isFinite(revenue) && typeof cost === 'number' && Number.isFinite(cost)
+      ? revenue - cost
+      : Number.NaN
+  const donut = data && !empty ? computeDonutGeometry(sources, net) : null
+  const swatch = new Map(donut?.slices.map((sl) => [sl.id, sl.opacity]) ?? [])
 
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -101,7 +115,7 @@ export function CostAllocationTile() {
         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {data && !empty && (
             <span style={{ color: 'var(--deck-text)', fontSize: 13, fontVariantNumeric: 'tabular-nums' }}>
-              {AUD.format(data.total_cost_aud)}
+              {money(data.total_cost_aud)}
             </span>
           )}
           <SourceBadge mode={mode} label="Metering" />
@@ -117,39 +131,44 @@ export function CostAllocationTile() {
       )}
 
       {!empty && sources.length > 0 && (
-        <div>
-          {sources.map((s) => (
-            <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderBottom: '1px solid var(--deck-line)', fontSize: 12 }}>
-              <span style={{ color: 'var(--deck-text)', minWidth: 110, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {s.name}
-              </span>
-              <span style={{ flex: 1, height: 6, borderRadius: 2, background: 'transparent', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14 }}>
+          {donut && <CostSplitDonut sources={sources} net={net} />}
+          <div style={{ flex: '1 1 160px', minWidth: 0 }}>
+            {sources.map((s) => (
+              <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderBottom: '1px solid var(--deck-line)', fontSize: 12 }}>
                 <span
-                  data-testid={`cost-bar-${s.id}`}
+                  aria-hidden="true"
                   style={{
-                    display: 'block',
-                    height: '100%',
-                    width: maxAmount > 0 ? `${Math.max(1, (s.amount_aud / maxAmount) * 100)}%` : '0%',
-                    background: 'var(--deck-muted)',
+                    flex: 'none',
+                    width: 9,
+                    height: 9,
                     borderRadius: 2,
+                    background: swatch.has(s.id) ? 'var(--deck-amber, #ff8a1f)' : 'transparent',
+                    opacity: swatch.get(s.id) ?? 1,
+                    border: swatch.has(s.id) ? 'none' : '1px solid var(--deck-line)',
                   }}
                 />
-              </span>
-              <span style={{ color: 'var(--deck-text)', minWidth: 84, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                {AUD.format(s.amount_aud)}
-              </span>
-            </div>
-          ))}
+                <span style={{ color: 'var(--deck-text)', flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {s.name}
+                </span>
+                <span style={{ color: 'var(--deck-text)', minWidth: 84, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                  {money(s.amount_aud)}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
+      {data && !empty && <MonthOnMonthBars current={data.total_cost_aud} prior={data.prior_month_cost_aud} />}
+
       {data && !empty && (
         <p style={{ color: 'var(--deck-muted)', fontSize: 12, margin: 0, fontVariantNumeric: 'tabular-nums' }}>
-          Revenue {AUD.format(data.total_revenue_aud)} · Cost {AUD.format(data.total_cost_aud)} · Net{' '}
+          Revenue {money(data.total_revenue_aud)} · Cost {money(data.total_cost_aud)} · Net{' '}
           <span style={{ color: net < 0 ? 'var(--deck-abort-text)' : 'var(--deck-text)' }}>
-            {AUD.format(net)}
+            {money(net)}
           </span>
-          {' '}· Prior month {AUD.format(data.prior_month_cost_aud)}
+          {' '}· Prior month {money(data.prior_month_cost_aud)}
         </p>
       )}
     </section>
