@@ -21,6 +21,8 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/components/layout/FounderShell", () => ({
   FounderShell: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
+// The layout imports the next/font module; Vitest has no next/font transform.
+vi.mock("@/app/(founder)/founder/command-centre/fonts", () => ({ inter: { variable: "mock-font-inter" } }));
 vi.mock("@/app/(founder)/founder/command-centre/MissionControlShell", () => ({
   MissionControlShell: ({ children }: { children: ReactNode }) => (
     <>{children}</>

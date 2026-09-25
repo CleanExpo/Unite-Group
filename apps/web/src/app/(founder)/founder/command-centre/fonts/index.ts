@@ -35,6 +35,20 @@ export const syne = localFont({
   display: 'swap',
 })
 
+// Owner-workspace body text. Replaces the hard-coded Arial in
+// founder-desk.module.css; Inter is the Pi-Dev-Ops sign-in face, which is the
+// palette source for the Mission Control restyle. The (founder) server layout
+// passes inter.variable to FounderShell, which puts --font-inter on the same
+// element as .missionTheme, so the sidebar and every command-centre route are
+// in scope. Import this module from server modules only.
+export const inter = localFont({
+  src: './inter-variable.woff2',
+  weight: '400 700',
+  style: 'normal',
+  variable: '--font-inter',
+  display: 'swap',
+})
+
 export const jbMono = localFont({
   src: './jetbrains-mono-variable.woff2',
   weight: '400 600',

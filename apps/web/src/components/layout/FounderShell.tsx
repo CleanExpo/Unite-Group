@@ -23,9 +23,13 @@ const CommandBar = dynamic(
 interface FounderShellProps {
   children: React.ReactNode
   user: { name: string; email: string }
+  // next/font class that defines --font-inter, supplied by the server layout.
+  // Importing the next/font module into this 'use client' file makes the dev
+  // server reject it ("Font loader calls must be assigned to a const").
+  missionFontClassName?: string
 }
 
-export function FounderShell({ children, user }: FounderShellProps) {
+export function FounderShell({ children, user, missionFontClassName = '' }: FounderShellProps) {
   const toggleSidebar = useUIStore((s) => s.toggleSidebar)
   const sidebarOpen = useUIStore((s) => s.sidebarOpen)
   const toggleCommandBar = useUIStore((s) => s.toggleCommandBar)
@@ -58,7 +62,7 @@ export function FounderShell({ children, user }: FounderShellProps) {
 
   return (
     <div
-      className={`flex h-screen overflow-hidden ${onMissionControl ? `${missionStyles.missionTheme} ${daylight ? missionStyles.missionDaylight : ''}` : ''}`}
+      className={`flex h-screen overflow-hidden ${onMissionControl ? `${missionFontClassName} ${missionStyles.missionTheme} ${daylight ? missionStyles.missionDaylight : ''}` : ''}`}
       style={{ background: 'var(--surface-canvas)' }}
     >
       {sidebarOpen && (

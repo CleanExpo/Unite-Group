@@ -45,7 +45,7 @@
   --color-accent-text: var(--mission-blue);
   --color-success: var(--mission-success);
   --color-danger: var(--mission-danger);
-  font-family: Arial, sans-serif;
+  font-family: var(--font-inter), system-ui, sans-serif;
   font-size: 15px;
   line-height: 1.55;
 }
@@ -66,7 +66,7 @@
 .workspaceHeading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 18px; margin: 26px 0; }
 .workspaceHeading h1 { font-family: var(--font-syne), sans-serif; font-size: clamp(27px, 2.6vw, 36px); line-height: 1.15; font-weight: 650; letter-spacing: -.035em; margin: 0; }
 .workspaceHeading p { color: var(--mission-muted); max-width: 72ch; margin: 10px 0 0; }
-.founderDesk { max-width: 1480px; margin: 0 auto; font-family: Arial, sans-serif; font-size: 15px; line-height: 1.55; }
+.founderDesk { max-width: 1480px; margin: 0 auto; font-family: var(--font-inter), system-ui, sans-serif; font-size: 15px; line-height: 1.55; }
 .founderDesk *, .shell * { box-sizing: border-box; }
 .founderDesk h1, .founderDesk h2, .founderDesk h3, .founderDesk p { margin: 0; }
 .founderDesk h1 { font-family: var(--font-syne), sans-serif; font-size: clamp(27px, 2.6vw, 36px); line-height: 1.15; font-weight: 650; letter-spacing: -.035em; }

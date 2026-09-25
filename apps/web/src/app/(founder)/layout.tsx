@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getUser } from '@/lib/supabase/server'
 import { FounderShell } from '@/components/layout/FounderShell'
+import { inter } from '@/app/(founder)/founder/command-centre/fonts'
 
 // All founder pages require auth — render at request time only
 export const dynamic = 'force-dynamic';
@@ -17,5 +18,5 @@ export default async function FounderLayout({ children }: { children: React.Reac
     ?? 'Founder'
   const email = user.email ?? ''
 
-  return <FounderShell user={{ name, email }}>{children}</FounderShell>
+  return <FounderShell user={{ name, email }} missionFontClassName={inter.variable}>{children}</FounderShell>
 }
