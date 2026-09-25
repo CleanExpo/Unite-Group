@@ -13,6 +13,30 @@ const trend = [
   { date: '2026-09-24', netCents: 90_000 },
 ]
 
+// Declarations for each selector inside the reduced-motion media block of the chart's own <style>.
+// jsdom does not apply media queries, so the rules are read from the rendered stylesheet text.
+function reducedMotionRules(styleText: string): Record<string, Record<string, string>> {
+  const start = styleText.indexOf('@media (prefers-reduced-motion: reduce)')
+  if (start < 0) return {}
+  const open = styleText.indexOf('{', start)
+  let depth = 0
+  let end = open
+  for (; end < styleText.length; end++) {
+    if (styleText[end] === '{') depth++
+    else if (styleText[end] === '}' && --depth === 0) break
+  }
+  const rules: Record<string, Record<string, string>> = {}
+  for (const [, selector, body] of styleText.slice(open + 1, end).matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    rules[selector.trim()] = Object.fromEntries(
+      body.split(';').filter((d) => d.includes(':')).map((d) => {
+        const i = d.indexOf(':')
+        return [d.slice(0, i).trim(), d.slice(i + 1).trim()]
+      }),
+    )
+  }
+  return rules
+}
+
 describe('computeTrendGeometry', () => {
   it('returns one point per data point, higher values drawn higher, x spread plot-left to plot-right', () => {
     const g = computeTrendGeometry(trend)!
@@ -55,7 +79,16 @@ describe('TrendAreaChart', () => {
     expect(Number(dot.getAttribute('cy'))).toBe(g.latest.y)
     expect(container.textContent).toMatch(/\$0/)
     expect(container.textContent).toMatch(/\$1,500/) // nice ceiling above $1,200
-    expect(container.innerHTML).toMatch(/prefers-reduced-motion: reduce/)
+  })
+
+  it('reduced motion stops both animations and shows the finished chart', () => {
+    const { container } = render(<TrendAreaChart trend={trend} id="t3" />)
+    const rules = reducedMotionRules(container.querySelector('style')?.textContent ?? '')
+    expect(rules['.rt-line']).toMatchObject({ animation: 'none', 'stroke-dashoffset': '0' })
+    expect(rules['.rt-fade']).toMatchObject({ animation: 'none', opacity: '1' })
+    // Both animated classes are in use, so the rules above govern real elements
+    expect(container.querySelector('.rt-line')).not.toBeNull()
+    expect(container.querySelectorAll('.rt-fade').length).toBeGreaterThan(0)
   })
 
   it('renders no chart path and an honest line when there is nothing to chart', () => {
