@@ -125,6 +125,33 @@ describe('GitHub repository selection', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 
+  it('stops and marks the list incomplete when the server repeats a page cursor', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(response(page([repo('Owner/one')], '2')))
+      .mockResolvedValueOnce(response(page([repo('Owner/two')], '3')))
+      .mockResolvedValueOnce(response(page([repo('Owner/three')], '2')))
+      .mockRejectedValue(new Error('unexpected extra request'))
+    vi.stubGlobal('fetch', fetchMock)
+    mount()
+    fireEvent.click(trigger())
+    await screen.findByRole('button', { name: 'Owner/three Private' })
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('3 repositories loaded · list may be incomplete'))
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    expect(screen.getByText('Some repositories could not be included. This list is incomplete.')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('dedupes the same repository across pages even when GitHub changes its letter case', async () => {
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce(response(page([repo('Owner/Portal'), repo('Other/portal')], '2')))
+      .mockResolvedValueOnce(response(page([repo('owner/portal')]))))
+    mount()
+    fireEvent.click(trigger())
+    await screen.findByText('2 repositories loaded · connected account list complete')
+    expect(screen.getAllByRole('button', { name: /^owner\/portal Private$/i })).toHaveLength(1)
+    expect(screen.getByRole('button', { name: 'Other/portal Private' })).toBeInTheDocument()
+  })
+
   it('shows a connection error without fabricating repository options and leaves automatic placement available', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => response({ ...page([]), status: 'not_connected', message: 'GitHub account is not connected.', incomplete: true })))
     const prepare = mount()
