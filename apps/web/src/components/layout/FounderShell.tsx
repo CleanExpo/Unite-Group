@@ -9,6 +9,7 @@ import { useUIStore } from '@/store/ui'
 import { getMissionControlSection } from '@/lib/navigation/mission-control'
 import { useDeckTheme } from '@/app/(founder)/founder/command-centre/DeckThemeShell'
 import missionStyles from '@/app/(founder)/founder/command-centre/founder-desk.module.css'
+import { inter } from '@/app/(founder)/founder/command-centre/fonts'
 
 // Lazy-load overlay components — defers JS bundle until first render
 const IdeaCapture = dynamic(
@@ -58,7 +59,7 @@ export function FounderShell({ children, user }: FounderShellProps) {
 
   return (
     <div
-      className={`flex h-screen overflow-hidden ${onMissionControl ? `${missionStyles.missionTheme} ${daylight ? missionStyles.missionDaylight : ''}` : ''}`}
+      className={`flex h-screen overflow-hidden ${onMissionControl ? `${inter.variable} ${missionStyles.missionTheme} ${daylight ? missionStyles.missionDaylight : ''}` : ''}`}
       style={{ background: 'var(--surface-canvas)' }}
     >
       {sidebarOpen && (

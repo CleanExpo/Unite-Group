@@ -21,6 +21,9 @@ vi.mock('next/dynamic', () => ({
 vi.mock('@/components/layout/Sidebar', () => ({ Sidebar: () => null }))
 vi.mock('@/components/layout/Topbar', () => ({ Topbar: () => <header>Legacy topbar</header> }))
 
+// Vitest has no next/font transform, so the real localFont() call would throw at import.
+vi.mock('@/app/(founder)/founder/command-centre/fonts', () => ({ inter: { variable: 'mock-font-inter' } }))
+
 const mockToggleSidebar = vi.fn()
 const mockToggleCommandBar = vi.fn()
 const mockToggleCapture = vi.fn()
@@ -64,6 +67,13 @@ describe('FounderShell ⌘K guard (UNI-2397/UNI-2398)', () => {
     unmount()
     renderShellAt('/founder/command-centre/unknown')
     expect(screen.getByText('Legacy topbar')).toBeInTheDocument()
+  })
+  it('defines the Inter font variable on Mission Control only', () => {
+    const { container, unmount } = renderShellAt('/founder/command-centre/operations')
+    expect(container.firstElementChild).toHaveClass('mock-font-inter')
+    unmount()
+    const other = renderShellAt('/founder/pi')
+    expect(other.container.firstElementChild).not.toHaveClass('mock-font-inter')
   })
   beforeEach(() => {
     mockToggleSidebar.mockClear()
