@@ -21,9 +21,6 @@ vi.mock('next/dynamic', () => ({
 vi.mock('@/components/layout/Sidebar', () => ({ Sidebar: () => null }))
 vi.mock('@/components/layout/Topbar', () => ({ Topbar: () => <header>Legacy topbar</header> }))
 
-// Vitest has no next/font transform, so the real localFont() call would throw at import.
-vi.mock('@/app/(founder)/founder/command-centre/fonts', () => ({ inter: { variable: 'mock-font-inter' } }))
-
 const mockToggleSidebar = vi.fn()
 const mockToggleCommandBar = vi.fn()
 const mockToggleCapture = vi.fn()
@@ -49,7 +46,7 @@ function pressCommandK() {
 function renderShellAt(pathname: string, homePalette = pathname === '/founder/command-centre') {
   mockPathname = pathname
   return render(
-    <FounderShell user={user}>
+    <FounderShell user={user} missionFontClassName="mock-font-inter">
       <div data-mission-home-palette={homePalette ? 'true' : undefined}>deck</div>
     </FounderShell>,
   )
