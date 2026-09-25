@@ -31,14 +31,29 @@ The root session is using the local SPM process. No Pi planning-service invocati
 
 ## Operator recovery: GitHub
 
-The catalogue reads `process.env.GITHUB_TOKEN` in `apps/web/src/lib/command-centre/delivery-repositories.ts:64`. Existing portfolio, repository campaign, observation and PR readers use the same deployment credential. A founder login or a new Vault entry does not replace it. There is no existing GitHub OAuth reconnect endpoint in `apps/web`; Settings email connections and the LLM provider pool are different integrations.
+The catalogue reads `process.env.GITHUB_TOKEN` in `apps/web/src/lib/command-centre/delivery-repositories.ts:66`. Existing portfolio, repository campaign, observation and PR readers use the same deployment credential. A founder login or a new Vault entry does not replace it. There is no existing GitHub OAuth reconnect endpoint in `apps/web`; Settings email connections and the LLM provider pool are different integrations.
 
 1. Identify the deployment/environment serving the failing page. Review credential configuration metadata there without printing the value. Preserve the distinction between a missing token, rejected authentication, denied repository access and rate limiting.
 2. Have the authorised connection operator repair or replace that environment's `GITHUB_TOKEN` for the intended account and required repository access. This is an operational repair, not a request to paste a token into chat or a mission. Apply the deployment's normal configuration/release process; do not silently borrow another machine's GitHub session.
 3. Re-read the authenticated `GET /api/command-centre/missions/repositories` endpoint. Follow its numeric `nextCursor` pages until complete; confirm the intended repositories are visible. Do not mistake one successful page for the complete account list.
 4. Recheck portfolio/repository campaign signals, then continue the saved mission. Record the repaired deployment revision, timestamp and sanitised result without credential values or raw provider response bodies.
 
-Existing `/api/integrations/status` equates a nonempty `GITHUB_TOKEN` with connected. `/api/health/connectors` also treats `GITHUB_APP_ID` alone as configured, although the catalogue cannot use that alone. Neither indicator proves a successful repository read. The recovery UI should explain the failed server connection and offer a recheck after repair; it must not label an unrelated Settings or Vault destination “Reconnect GitHub”.
+Since PR #1132 (25/09/2026), `/api/integrations/status` and `/api/health/connectors` both take GitHub's state from one live repository read, not from the token being present: `connected` means GitHub answered the read; a rejected token shows `auth_error`. `/api/health/connectors` still counts `GITHUB_APP_ID` alone as configured, but its connected status comes from the live read. The recovery UI should explain the failed server connection and offer a recheck after repair; it must not label an unrelated Settings or Vault destination “Reconnect GitHub”.
+
+### GitHub token: type, expiry and rotation
+
+Recorded 25/09/2026 (UNI-2773). No token value, name or permission list is recorded here.
+
+- **Type:** a GitHub personal access token (classic). Mission Control reads it from `process.env.GITHUB_TOKEN` (`apps/web/src/lib/command-centre/delivery-repositories.ts:66`) on the Vercel `unite-group` project's Production environment. Which account token production holds is unconfirmed.
+- **Expiry date:** none set (observed 25/09/2026 on the GitHub account's token settings page). A token with no expiry keeps working until someone revokes it or GitHub disables it. If that happens, the Mission Control GitHub health line shows `auth_error` instead of `connected`.
+- **Rotation steps:**
+  1. Create a replacement GitHub personal access token for the account Mission Control should read as, with the repository access it needs.
+  2. In Vercel, open the `unite-group` project, Production environment, and replace `GITHUB_TOKEN` with the new token.
+  3. Redeploy production so the new value is loaded.
+  4. Signed in, open `/api/integrations/status` and confirm GitHub shows `connected` with the message "GitHub answered a live repository read."
+  5. Only then revoke the old token on GitHub.
+
+  Never paste the token into chat, a mission or a repository.
 
 ## SPM assignment work packet — proposed, not accepted
 
@@ -61,7 +76,7 @@ PR #1075 validation: 660 test files / 4,652 tests, lint, typecheck, production-e
 
 PR #1076 validation: the final candidate passed 660 test files / 4,747 tests, lint, typecheck, production-equivalent build and static checks. A review finding about strict specification bounds was corrected and independently re-reviewed before the final candidate passed all required GitHub checks and merged. The exact production release successfully generated the saved specification above.
 
-**Still open:** GitHub operational repair; real SPM assignment acceptance; a defined Board decision policy with a same-mission revision/re-review path. Specification generation is verified; generated-product delivery is not complete.
+**Still open:** GitHub operational repair (production reported GitHub `connected` from a live read on 25/09/2026; which token it uses is unconfirmed); real SPM assignment acceptance; a defined Board decision policy with a same-mission revision/re-review path. Specification generation is verified; generated-product delivery is not complete.
 
 Grounded 05/09/2026: parent authenticated walkthrough recorded saved mission `0d6a120c-69ff-4963-ac4a-c5345b36a1ff`, main `e62cc715`, repository `auth_error` and classification 502 at 05:49 UTC; source mapping confirms the catalogue credential and Pi bridge limits above.
 
