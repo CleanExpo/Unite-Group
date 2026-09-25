@@ -374,6 +374,14 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
     // Stage board: the rail keeps the fill, the stage word takes the text shade.
     expect(stageBoard).toContain("Research: 'var(--deck-cyan-text, #22d3ee)'");
     expect(stageBoard).toContain('color: STAGE_TEXT[team.stage]');
+    expect(stageBoard).toContain('borderLeft: `3px solid ${STAGE_COLOUR[team.stage]}`');
+    const railMap = stageBoard.slice(stageBoard.indexOf('const STAGE_COLOUR'), stageBoard.indexOf('const STAGE_TEXT'));
+    const textMap = stageBoard.slice(stageBoard.indexOf('const STAGE_TEXT'), stageBoard.indexOf('const checkedAtStyle'));
+    expect(railMap).toContain("Develop: 'var(--deck-amber, #fb923c)'");
+    expect(railMap).toContain("Done: 'var(--deck-go, #34d399)'");
+    expect(railMap).not.toMatch(/-(?:txt|text)\b/);
+    expect(textMap).toContain("Develop: 'var(--tile-amber-txt, #fb923c)'");
+    expect(textMap).toContain("Done: 'var(--tile-green-txt, #34d399)'");
     expect(stageBoard).not.toContain('color: STAGE_COLOUR[');
   });
 });

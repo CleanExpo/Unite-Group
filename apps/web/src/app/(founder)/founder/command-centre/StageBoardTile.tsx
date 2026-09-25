@@ -42,15 +42,17 @@ export async function loadStageBoardData(now: () => Date = () => new Date()): Pr
 const STAGE_COLOUR: Record<TeamStage['stage'], string> = {
   Planning: 'var(--tile-ink-dim, #9bb0c1)',
   Research: 'var(--deck-cyan, #22d3ee)',
-  Develop: 'var(--tile-amber-txt, #fb923c)',
+  Develop: 'var(--deck-amber, #fb923c)',
   Production: '#a78bfa',
-  Done: 'var(--tile-green-txt, #34d399)',
+  Done: 'var(--deck-go, #34d399)',
 }
 // The rail (border) takes the fill above; the stage word is text, so it takes
 // the contrast-safe text shade (UNI-2769).
 const STAGE_TEXT: Record<TeamStage['stage'], string> = {
   ...STAGE_COLOUR,
   Research: 'var(--deck-cyan-text, #22d3ee)',
+  Develop: 'var(--tile-amber-txt, #fb923c)',
+  Done: 'var(--tile-green-txt, #34d399)',
 }
 
 const checkedAtStyle = {
