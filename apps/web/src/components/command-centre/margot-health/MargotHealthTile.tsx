@@ -27,10 +27,10 @@ function Flag({ on, label }: { on: boolean; label: string }) {
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       <span
         aria-hidden
-        style={{ width: 6, height: 6, borderRadius: '50%', background: on ? 'var(--deck-cyan, #00F5FF)' : 'var(--deck-muted, #6f879b)' }}
+        style={{ width: 6, height: 6, borderRadius: '50%', background: on ? 'var(--deck-go, #2dbb57)' : 'var(--deck-muted, #6f879b)' }}
       />
       <span style={{ color: 'var(--deck-text, #e6f7ff)', fontSize: 12 }}>{label}</span>
-      <span style={{ marginLeft: 'auto', color: on ? 'var(--deck-cyan-text, #15803d)' : 'var(--deck-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+      <span style={{ marginLeft: 'auto', color: on ? 'var(--tile-green-txt, #15803d)' : 'var(--deck-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
         {on ? 'present' : 'absent'}
       </span>
     </div>
@@ -91,7 +91,7 @@ export function MargotHealthTile() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span
               aria-hidden
-              style={{ width: 8, height: 8, borderRadius: '50%', background: payload.voiceReady ? 'var(--deck-cyan, #00F5FF)' : 'var(--deck-muted, #6f879b)' }}
+              style={{ width: 8, height: 8, borderRadius: '50%', background: payload.voiceReady ? 'var(--deck-go, #2dbb57)' : 'var(--deck-muted, #6f879b)' }}
             />
             <span style={{ color: 'var(--deck-text, #e6f7ff)', fontSize: 12, fontWeight: 600 }}>
               Voice endpoint {payload.voiceReady ? 'ready' : 'not configured'}

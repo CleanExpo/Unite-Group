@@ -20,7 +20,7 @@ const STATE_LABEL: Record<EmailAccountState, string> = {
 }
 
 function stateColor(state: EmailAccountState): string {
-  if (state === 'connected') return 'var(--deck-cyan-text, #15803d)'
+  if (state === 'connected') return 'var(--tile-green-txt, #15803d)'
   if (state === 'needs_reauth') return 'var(--deck-amber-text, #b45309)'
   return 'var(--deck-muted)'
 }

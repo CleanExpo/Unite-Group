@@ -42,7 +42,7 @@ export function BlockedLanesTile({ data }: { data: BlockedLanesData }) {
             key={`${r.number}-${r.name}`}
             style={{
               border: '1px solid rgba(251, 146, 60, 0.25)',
-              borderLeft: '3px solid #fb923c',
+              borderLeft: '3px solid var(--deck-amber, #fb923c)',
               padding: '0.4rem 0.6rem',
               background: 'var(--tile-card-bg, rgba(0,0,0,0.25))',
               borderRadius: '2px',
