@@ -27,6 +27,8 @@ interface GithubReadDeps {
   fetchFn?: typeof fetch;
   now?: () => number;
   timeoutMs?: number;
+  /** Page size, 1-100. Health checks pass 1 for one cheap read; default 100. */
+  perPage?: number;
 }
 export const repositoryFullNameSchema = z
   .string()
@@ -180,17 +182,25 @@ export async function listDeliveryRepositories(
       status: "unavailable",
       message: "The repository page is invalid. Restart the repository list.",
     };
+  const requested = deps.perPage;
+  const perPage =
+    typeof requested === "number" &&
+    Number.isInteger(requested) &&
+    requested >= 1 &&
+    requested <= 100
+      ? requested
+      : 100;
   try {
     const query = new URLSearchParams({
       visibility: "all",
       affiliation: "owner,collaborator,organization_member",
       sort: "full_name",
       direction: "asc",
-      per_page: "100",
+      per_page: String(perPage),
       page: String(page),
     });
     const { response, body } = await githubRead(`/user/repos?${query}`, deps);
-    if (!Array.isArray(body) || body.length > 100)
+    if (!Array.isArray(body) || body.length > perPage)
       throw new Error("invalid_repository_page");
     const repositories = new Map<string, DeliveryRepository>();
     let malformed = false;
@@ -203,11 +213,11 @@ export async function listDeliveryRepositories(
     const hasNext = !!link && /rel="next"/.test(link);
     // Never follow provider URLs. Only generate the next numeric page on this fixed endpoint.
     const nextCursor =
-      (hasNext || (!link && body.length === 100)) && page < MAX_PAGE
+      (hasNext || (!link && body.length === perPage)) && page < MAX_PAGE
         ? String(page + 1)
         : null;
     const incomplete =
-      malformed || (page === MAX_PAGE && (hasNext || body.length === 100));
+      malformed || (page === MAX_PAGE && (hasNext || body.length === perPage));
     const partial = !!nextCursor || incomplete;
     return {
       ...base,
@@ -239,6 +249,44 @@ export async function listDeliveryRepositories(
       message: "GitHub returned an unreadable repository page. Retry later.",
     };
   }
+}
+
+export type GithubConnectorHealthStatus =
+  | "connected"
+  | "auth_error"
+  | "not_configured"
+  | "unverified";
+export interface GithubConnectorHealth {
+  status: GithubConnectorHealthStatus;
+  message: string;
+  observedAt: string;
+}
+
+/**
+ * Connector health from ONE real repository read (per_page=1), never from the
+ * token's presence. A rejected token is auth_error; a read that could not
+ * complete (rate limit, network, timeout, unreadable body) is unverified.
+ */
+export async function readGithubConnectorHealth(
+  deps: GithubReadDeps = {},
+): Promise<GithubConnectorHealth> {
+  const result = await listDeliveryRepositories(null, { ...deps, perPage: 1 });
+  const status: GithubConnectorHealthStatus =
+    result.status === "complete" || result.status === "partial"
+      ? "connected"
+      : result.status === "auth_error"
+        ? "auth_error"
+        : result.status === "not_connected"
+          ? "not_configured"
+          : "unverified";
+  return {
+    status,
+    message:
+      status === "connected"
+        ? "GitHub answered a live repository read."
+        : result.message,
+    observedAt: result.observedAt,
+  };
 }
 
 export async function readDeliveryRepository(
