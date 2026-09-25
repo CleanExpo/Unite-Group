@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MargotMissionConsole } from '../MargotMissionConsole'
 
 const repo = (fullName: string, archived = false) => ({ fullName, private: true, archived })
@@ -8,6 +8,7 @@ function page(repositories: ReturnType<typeof repo>[], nextCursor: string | null
 }
 const response = (body: unknown, ok = true) => ({ ok, json: async () => body })
 const trigger = () => screen.getByRole('button', { name: /^Business or project/ })
+const requested = (fetchMock: ReturnType<typeof vi.fn>) => fetchMock.mock.calls.map(call => call[0])
 function mount() {
   const prepare = vi.fn()
   render(<MargotMissionConsole projects={[{ name: 'Registered business' }]} presets={[]} busy={false} onPrepare={prepare} />)
@@ -47,52 +48,81 @@ describe('GitHub repository selection', () => {
     expect(prepare).toHaveBeenCalledWith('Give customers a useful new portal', 'OwnerB/shared', [])
   })
 
-  it('finds a repository beyond page one and keeps search and accumulated entries through pagination', async () => {
+  it('loads every page automatically, dedupes by full name and searches across all pages', async () => {
     const first = Array.from({ length: 100 }, (_, index) => repo(`Owner/repository-${index}`))
-    const fetchMock = vi.fn().mockResolvedValueOnce(response(page(first, '2'))).mockResolvedValueOnce(response(page([repo('Other/rare-project')])))
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(response(page(first, '2')))
+      .mockResolvedValueOnce(response(page([repo('Owner/repository-99'), repo('Other/middle')], '3')))
+      .mockResolvedValueOnce(response(page([repo('Other/rare-project')])))
     vi.stubGlobal('fetch', fetchMock)
     mount()
     fireEvent.click(trigger())
-    await screen.findByText('100 repositories loaded · list may be incomplete')
-    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'rare-project' } })
-    expect(screen.getByText(/No loaded repositories match/)).toHaveTextContent('More repositories may be available.')
-    fireEvent.click(screen.getByRole('button', { name: 'Load more repositories' }))
     await screen.findByRole('button', { name: 'Other/rare-project Private' })
-    expect(fetchMock).toHaveBeenLastCalledWith('/api/command-centre/missions/repositories?cursor=2')
-    expect(screen.getByRole('status')).toHaveTextContent('101 repositories loaded · connected account list complete · 1 matching')
+    expect(requested(fetchMock)).toEqual(['/api/command-centre/missions/repositories', '/api/command-centre/missions/repositories?cursor=2', '/api/command-centre/missions/repositories?cursor=3'])
+    expect(screen.getByRole('status')).toHaveTextContent('102 repositories loaded · connected account list complete')
+    expect(screen.getAllByRole('button', { name: 'Owner/repository-99 Private' })).toHaveLength(1)
+    expect(screen.queryByRole('button', { name: 'Load more repositories' })).not.toBeInTheDocument()
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'rare-project' } })
+    expect(screen.getByRole('status')).toHaveTextContent('1 matching')
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'middle' } })
+    expect(screen.getByRole('button', { name: 'Other/middle Private' })).toBeInTheDocument()
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: '' } })
     expect(screen.getByRole('button', { name: 'Owner/repository-0 Private' })).toBeInTheDocument()
   })
 
-  it('retains selection and loaded entries after a failed page and retries that page', async () => {
-    const fetchMock = vi.fn().mockResolvedValueOnce(response(page([repo('Owner/kept')], '2')))
+  it('never shows a complete list when a page fails mid-loop, keeps what loaded, and retry resumes at the failed page', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(response(page([repo('Owner/kept')], '2')))
       .mockResolvedValueOnce(response({ error: 'GitHub is unavailable.' }, false))
-      .mockResolvedValueOnce(response(page([repo('Owner/next')])))
+      .mockResolvedValueOnce(response(page([repo('Owner/second')], '3')))
+      .mockResolvedValueOnce(response(page([repo('Owner/third')])))
     vi.stubGlobal('fetch', fetchMock)
     mount()
     fireEvent.click(trigger())
-    fireEvent.click(await screen.findByRole('button', { name: 'Owner/kept Private' }))
-    fireEvent.click(trigger())
-    fireEvent.click(screen.getByRole('button', { name: 'Load more repositories' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('GitHub is unavailable.')
-    expect(trigger()).toHaveTextContent('Owner/kept')
-    expect(screen.getByRole('button', { name: 'Owner/kept Private' })).toHaveAttribute('aria-pressed', 'true')
+    expect(requested(fetchMock)).toEqual(['/api/command-centre/missions/repositories', '/api/command-centre/missions/repositories?cursor=2'])
+    expect(screen.getByRole('button', { name: 'Owner/kept Private' })).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('1 repositories loaded · list may be incomplete')
+    expect(screen.queryByText(/connected account list complete/)).not.toBeInTheDocument()
+    expect(screen.getByText('Only some repositories loaded before GitHub stopped answering. This list is incomplete; retry to load the rest.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Owner/kept Private' }))
+    fireEvent.click(trigger())
     fireEvent.click(screen.getByRole('button', { name: 'Retry repositories' }))
-    await screen.findByRole('button', { name: 'Owner/next Private' })
-    expect(fetchMock).toHaveBeenLastCalledWith('/api/command-centre/missions/repositories?cursor=2')
+    await screen.findByRole('button', { name: 'Owner/third Private' })
+    expect(requested(fetchMock).slice(2)).toEqual(['/api/command-centre/missions/repositories?cursor=2', '/api/command-centre/missions/repositories?cursor=3'])
+    expect(screen.getByRole('status')).toHaveTextContent('3 repositories loaded · connected account list complete')
     expect(trigger()).toHaveTextContent('Owner/kept')
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('does not claim complete coverage after a damaged page followed by the last page', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(response(page([repo('Owner/first')], '2', true))).mockResolvedValueOnce(response(page([repo('Owner/last')]))))
     mount()
     fireEvent.click(trigger())
-    fireEvent.click(await screen.findByRole('button', { name: 'Load more repositories' }))
     await screen.findByRole('button', { name: 'Owner/last Private' })
     expect(screen.getByRole('status')).toHaveTextContent('list may be incomplete')
     expect(screen.queryByText(/connected account list complete/)).not.toBeInTheDocument()
     expect(screen.getByText('Some repositories could not be included. This list is incomplete.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Refresh repository list' })).toBeInTheDocument()
+  })
+
+  it('aborts the page loop when the picker unmounts', async () => {
+    let finish: (value: ReturnType<typeof response>) => void = () => {}
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(response(page([repo('Owner/first')], '2')))
+      .mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
+      .mockResolvedValue(response(page([repo('Owner/never')])))
+    vi.stubGlobal('fetch', fetchMock)
+    const { unmount } = render(<MargotMissionConsole projects={[]} presets={[]} busy={false} onPrepare={vi.fn()} />)
+    fireEvent.click(trigger())
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+    const signal = (fetchMock.mock.calls[1][1] as RequestInit | undefined)?.signal
+    expect(signal?.aborted).toBe(false)
+    unmount()
+    expect(signal?.aborted).toBe(true)
+    finish(response(page([repo('Owner/second')], '3')))
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 
   it('shows a connection error without fabricating repository options and leaves automatic placement available', async () => {
@@ -142,6 +172,6 @@ describe('GitHub repository selection', () => {
     finish(response(page([repo('Owner/newly-accessible')])))
     await screen.findByRole('button', { name: 'Owner/newly-accessible Private' })
     expect(trigger()).toHaveTextContent('Owner/existing')
-    expect(fetchMock).toHaveBeenLastCalledWith('/api/command-centre/missions/repositories')
+    expect(requested(fetchMock)).toEqual(['/api/command-centre/missions/repositories', '/api/command-centre/missions/repositories'])
   })
 })
