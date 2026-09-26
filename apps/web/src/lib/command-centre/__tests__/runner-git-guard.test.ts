@@ -42,6 +42,8 @@ beforeAll(() => {
       'if [ "$1" = "rev-parse" ]; then echo "${STUB_BRANCH:-feature-x}"; exit 0; fi',
       // the shim asks whether a pushed name is a tag; this seeded repo has none
       'if [ "$1" = "show-ref" ]; then exit 1; fi',
+      // the shim dry-runs each push to see where it lands; this seeded push lands on feature-x
+      'for a in "$@"; do if [ "$a" = "--porcelain" ]; then printf "To r\\n*\\trefs/heads/feature-x:refs/heads/feature-x\\t[new branch]\\nDone\\n"; exit 0; fi; done',
       'echo "STUB_CALLED: $*"',
       'exit 0',
       '',

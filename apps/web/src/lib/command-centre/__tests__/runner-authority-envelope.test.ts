@@ -214,6 +214,15 @@ beforeAll(() => {
       'if [ "$1" = "rev-parse" ]; then echo feature-x; exit 0; fi',
       // `show-ref --verify --quiet <ref>`: v* names are tags; feature-y is both a tag and a branch
       'if [ "$1" = "show-ref" ]; then case "$4" in refs/tags/v*|refs/tags/feature-y|refs/heads/feature-y) exit 0 ;; esac; exit 1; fi',
+      // `push ... --dry-run --porcelain`: report where git would push. STUB_PUSH_DST seeds a
+      // config redirect; STUB_DRY=quiet|fail seeds a dry run that shows nothing or fails.
+      'for a in "$@"; do if [ "$a" = "--porcelain" ]; then',
+      '  echo "To stub-remote"',
+      // a rejected dry run still prints its ref line, then exits non-zero
+      '  [ "${STUB_DRY:-}" = fail ] && { printf "!\\trefs/heads/feature-x:refs/heads/feature-x\\t[rejected]\\nDone\\n"; exit 1; }',
+      '  [ "${STUB_DRY:-}" = quiet ] || printf "*\\trefs/heads/feature-x:%s\\t[new branch]\\n" "${STUB_PUSH_DST:-refs/heads/feature-x}"',
+      '  echo "Done"; exit 0',
+      'fi; done',
       'echo "STUB_CALLED: $*"',
       'echo "PIN: ${GIT_CONFIG_KEY_0:-none}=${GIT_CONFIG_VALUE_0:-none}"',
       'exit 0',
@@ -227,13 +236,14 @@ afterAll(() => {
   rmSync(stubDir, { recursive: true, force: true })
 })
 
-function run([tool, ...args]: Cmd) {
+function run([tool, ...args]: Cmd, extraEnv: Record<string, string> = {}) {
   const shim = path.join(RUNNER_DIR, 'bin', tool)
   const real = toPosixPath(stub)
   const options = {
     encoding: 'utf8' as const,
     env: {
       ...process.env,
+      ...extraEnv,
       NEXUS_RUNNER_REAL_GIT: real,
       NEXUS_RUNNER_REAL_GH: real,
       NEXUS_RUNNER_REAL_VERCEL: real,
@@ -264,6 +274,21 @@ describe.skipIf(!BASH)('seeded accepted mission — runner shims', () => {
     expect(r.status).toBe(0)
     expect(r.stdout).toContain('PIN: push.default=current')
     expect(run(['git', 'status']).stdout).toContain('PIN: none=none')
+  })
+
+  // Config can map a named branch elsewhere (a preset remote.*.push, or one pulled in by
+  // include.path: Cursor review round 6). The shim asks git where the push lands.
+  it.each([
+    ['a config redirect to main', { STUB_PUSH_DST: 'refs/heads/main' }],
+    ['a config redirect to master', { STUB_PUSH_DST: 'refs/heads/master' }],
+    ['a config redirect to a tag', { STUB_PUSH_DST: 'refs/tags/v9' }],
+    ['a dry run that shows no destination', { STUB_DRY: 'quiet' }],
+    ['a dry run that fails', { STUB_DRY: 'fail' }],
+  ])('PROTECTED: a named-branch push stops on %s', (_label, env) => {
+    const r = run(['git', 'push', '-u', 'origin', 'feature-x'], env)
+    expect(r.status).toBe(3)
+    expect(r.stderr).toContain('nexus-runner: BLOCKED')
+    expect(r.stdout).not.toContain('STUB_CALLED')
   })
 
   for (const [step, cmds] of Object.entries(BUILD_COMMANDS)) {

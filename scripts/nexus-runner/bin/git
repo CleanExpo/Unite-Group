@@ -95,6 +95,29 @@ case "$sub" in
     unset GIT_CONFIG_PARAMETERS
     GIT_CONFIG_COUNT=1; GIT_CONFIG_KEY_0=push.default; GIT_CONFIG_VALUE_0=current
     export GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0
+    # Ask git where this exact push would land, then refuse if any destination is the default
+    # branch or a tag. Config can still map a named branch elsewhere (a preset remote.*.push,
+    # or one pulled in by include.path: Cursor review round 6), and only git resolves that.
+    # A dry run that fails is refused: the envelope never pushes what it could not inspect.
+    # -q/--quiet hide the porcelain ref lines, so they are dropped from the dry run only; a dry
+    # run that still reports no destination at all (e.g. a bundled -uq) is refused.
+    dry_run() {
+      for a do
+        shift
+        case "$a" in -q|--quiet) continue ;; esac
+        set -- "$@" "$a"
+      done
+      "$REAL_GIT" "$@" --dry-run --porcelain
+    }
+    plan=$(dry_run "$@" 2>&1) || deny "git push (dry run failed: $(printf '%s' "$plan" | tail -1))"
+    dests=$(printf '%s\n' "$plan" | awk -F'\t' 'NF >= 2 { n = split($2, p, ":"); print p[n] }')
+    [ -n "$dests" ] || deny "git push (dry run showed no destination to check)"
+    for d in $dests; do
+      case "$d" in
+        refs/heads/main|refs/heads/master|main|master) deny "git push lands on the default branch ($d)" ;;
+        refs/tags/*) deny "git push lands on a tag ($d)" ;;
+      esac
+    done
     ;;
   merge)        deny "git merge" ;;
   reset)
