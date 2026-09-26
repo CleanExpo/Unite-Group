@@ -1,10 +1,10 @@
 {
- "numTotalTestSuites": 12,
- "numPassedTestSuites": 12,
+ "numTotalTestSuites": 30,
+ "numPassedTestSuites": 30,
  "numFailedTestSuites": 0,
  "numPendingTestSuites": 0,
- "numTotalTests": 22,
- "numPassedTests": 22,
+ "numTotalTests": 73,
+ "numPassedTests": 73,
  "numFailedTests": 0,
  "numPendingTests": 0,
  "numTodoTests": 0,
@@ -131,9 +131,9 @@
      "ancestorTitles": [
       "migrations: reproducible apply + clean teardown"
      ],
-     "fullName": "migrations: reproducible apply + clean teardown teardown → apply rebuilds the full spine (20 tables)",
+     "fullName": "migrations: reproducible apply + clean teardown teardown \u2192 apply rebuilds the full spine (20 tables)",
      "status": "passed",
-     "title": "teardown → apply rebuilds the full spine (20 tables)",
+     "title": "teardown \u2192 apply rebuilds the full spine (20 tables)",
      "failureMessages": [],
      "meta": {},
      "tags": []
@@ -153,9 +153,9 @@
      "ancestorTitles": [
       "migrations: reproducible apply + clean teardown"
      ],
-     "fullName": "migrations: reproducible apply + clean teardown the teardown→apply cycle is re-runnable (reproducible)",
+     "fullName": "migrations: reproducible apply + clean teardown the teardown\u2192apply cycle is re-runnable (reproducible)",
      "status": "passed",
-     "title": "the teardown→apply cycle is re-runnable (reproducible)",
+     "title": "the teardown\u2192apply cycle is re-runnable (reproducible)",
      "failureMessages": [],
      "meta": {},
      "tags": []
@@ -173,9 +173,9 @@
      "ancestorTitles": [
       "semantic recall cross-tenant isolation (interleaved)"
      ],
-     "fullName": "semantic recall cross-tenant isolation (interleaved) org A sees only org A rows — no leak despite interleaved org B",
+     "fullName": "semantic recall cross-tenant isolation (interleaved) org A sees only org A rows \u2014 no leak despite interleaved org B",
      "status": "passed",
-     "title": "org A sees only org A rows — no leak despite interleaved org B",
+     "title": "org A sees only org A rows \u2014 no leak despite interleaved org B",
      "failureMessages": [],
      "meta": {},
      "tags": []
@@ -184,9 +184,9 @@
      "ancestorTitles": [
       "semantic recall cross-tenant isolation (interleaved)"
      ],
-     "fullName": "semantic recall cross-tenant isolation (interleaved) org B sees only org B rows — no leak despite interleaved org A",
+     "fullName": "semantic recall cross-tenant isolation (interleaved) org B sees only org B rows \u2014 no leak despite interleaved org A",
      "status": "passed",
-     "title": "org B sees only org B rows — no leak despite interleaved org A",
+     "title": "org B sees only org B rows \u2014 no leak despite interleaved org A",
      "failureMessages": [],
      "meta": {},
      "tags": []
@@ -204,9 +204,9 @@
      "ancestorTitles": [
       "outbox two-relayer concurrency race (integration)"
      ],
-     "fullName": "outbox two-relayer concurrency race (integration) drains every event to done — no wedge, no dead-letter",
+     "fullName": "outbox two-relayer concurrency race (integration) drains every event to done \u2014 no wedge, no dead-letter",
      "status": "passed",
-     "title": "drains every event to done — no wedge, no dead-letter",
+     "title": "drains every event to done \u2014 no wedge, no dead-letter",
      "failureMessages": [],
      "meta": {},
      "tags": []
@@ -215,9 +215,9 @@
      "ancestorTitles": [
       "outbox two-relayer concurrency race (integration)"
      ],
-     "fullName": "outbox two-relayer concurrency race (integration) both relayers actually claimed events — the race was exercised, not vacuous",
+     "fullName": "outbox two-relayer concurrency race (integration) both relayers actually claimed events \u2014 the race was exercised, not vacuous",
      "status": "passed",
-     "title": "both relayers actually claimed events — the race was exercised, not vacuous",
+     "title": "both relayers actually claimed events \u2014 the race was exercised, not vacuous",
      "failureMessages": [],
      "meta": {},
      "tags": []
@@ -237,9 +237,9 @@
      "ancestorTitles": [
       "outbox two-relayer concurrency race (integration)"
      ],
-     "fullName": "outbox two-relayer concurrency race (integration) no orphan re-mint or identity split: each key → exactly one party, 12 total",
+     "fullName": "outbox two-relayer concurrency race (integration) no orphan re-mint or identity split: each key \u2192 exactly one party, 12 total",
      "status": "passed",
-     "title": "no orphan re-mint or identity split: each key → exactly one party, 12 total",
+     "title": "no orphan re-mint or identity split: each key \u2192 exactly one party, 12 total",
      "failureMessages": [],
      "meta": {},
      "tags": []
@@ -325,6 +325,672 @@
    "status": "passed",
    "message": "",
    "name": "/tmp/ci-workspace/Unite-Group/packages/spine/packages/spine/tests/integration/rls.test.ts"
+  },
+  {
+   "assertionResults": [
+    {
+     "ancestorTitles": [
+      "rule 2: eligible \u2260 accepted"
+     ],
+     "fullName": "rule 2: eligible \u2260 accepted eligible_at alone leaves accepted_at null",
+     "status": "passed",
+     "title": "eligible_at alone leaves accepted_at null",
+     "duration": 13.449166999999996,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 2: eligible \u2260 accepted"
+     ],
+     "fullName": "rule 2: eligible \u2260 accepted accepted_at without evidence + body reference is refused (23514), each missing piece alone",
+     "status": "passed",
+     "title": "accepted_at without evidence + body reference is refused (23514), each missing piece alone",
+     "duration": 12.425041000000007,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 2: eligible \u2260 accepted"
+     ],
+     "fullName": "rule 2: eligible \u2260 accepted nothing derives acceptance: carsi.cec_claim carries no triggers",
+     "status": "passed",
+     "title": "nothing derives acceptance: carsi.cec_claim carries no triggers",
+     "duration": 1.888916000000009,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 2: eligible \u2260 accepted"
+     ],
+     "fullName": "rule 2: eligible \u2260 accepted MUTANT: with the CHECK dropped, an unevidenced acceptance lands",
+     "status": "passed",
+     "title": "MUTANT: with the CHECK dropped, an unevidenced acceptance lands",
+     "duration": 5.9871669999999995,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    }
+   ],
+   "startTime": 1790349141729,
+   "endTime": 1790349141762.987,
+   "status": "passed",
+   "message": "",
+   "name": "/tmp/ci-workspace/Unite-Group/packages/spine/packages/spine/tests/integration/cec_separation.test.ts"
+  },
+  {
+   "assertionResults": [
+    {
+     "ancestorTitles": [
+      "rule 1: verified needs evidence"
+     ],
+     "fullName": "rule 1: verified needs evidence ISSUER_VERIFIED and REGISTRY_VERIFIED without evidence are refused (23514)",
+     "status": "passed",
+     "title": "ISSUER_VERIFIED and REGISTRY_VERIFIED without evidence are refused (23514)",
+     "duration": 16.547167,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 1: verified needs evidence"
+     ],
+     "fullName": "rule 1: verified needs evidence upgrading SELF_REPORTED \u2192 ISSUER_VERIFIED without evidence is refused (23514)",
+     "status": "passed",
+     "title": "upgrading SELF_REPORTED \u2192 ISSUER_VERIFIED without evidence is refused (23514)",
+     "duration": 6.668458999999999,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 1: verified needs evidence"
+     ],
+     "fullName": "rule 1: verified needs evidence a URL is refused as evidence_ref (opaque keys only)",
+     "status": "passed",
+     "title": "a URL is refused as evidence_ref (opaque keys only)",
+     "duration": 5.347166000000001,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 1: verified needs evidence"
+     ],
+     "fullName": "rule 1: verified needs evidence with verified_at + method + evidence_ref, ISSUER_VERIFIED is accepted",
+     "status": "passed",
+     "title": "with verified_at + method + evidence_ref, ISSUER_VERIFIED is accepted",
+     "duration": 4.125750000000011,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 1: verified needs evidence"
+     ],
+     "fullName": "rule 1: verified needs evidence MUTANT: with the CHECK dropped, an unevidenced ISSUER_VERIFIED lands",
+     "status": "passed",
+     "title": "MUTANT: with the CHECK dropped, an unevidenced ISSUER_VERIFIED lands",
+     "duration": 5.113708000000003,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 5: credential number anomaly"
+     ],
+     "fullName": "rule 5: credential number anomaly the same type/issuer/number on two holders \u2192 exactly 1 review row; both stay active; no number in the row",
+     "status": "passed",
+     "title": "the same type/issuer/number on two holders \u2192 exactly 1 review row; both stay active; no number in the row",
+     "duration": 9.509292000000002,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 5: credential number anomaly"
+     ],
+     "fullName": "rule 5: credential number anomaly false-positive control: the same holder renewing the same number \u2192 0 rows",
+     "status": "passed",
+     "title": "false-positive control: the same holder renewing the same number \u2192 0 rows",
+     "duration": 5.157415999999998,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 5: credential number anomaly"
+     ],
+     "fullName": "rule 5: credential number anomaly MUTANT: with the trigger dropped, reuse goes unflagged",
+     "status": "passed",
+     "title": "MUTANT: with the trigger dropped, reuse goes unflagged",
+     "duration": 9.275374999999997,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    }
+   ],
+   "startTime": 1790349141097,
+   "endTime": 1790349141159.2754,
+   "status": "passed",
+   "message": "",
+   "name": "/tmp/ci-workspace/Unite-Group/packages/spine/packages/spine/tests/integration/credential_provenance.test.ts"
+  },
+  {
+   "assertionResults": [
+    {
+     "ancestorTitles": [
+      "rule 3 (D1): no re-point of a source record"
+     ],
+     "fullName": "rule 3 (D1): no re-point of a source record _record for an already-linked key and a DIFFERENT party keeps the link and queues 1 review",
+     "status": "passed",
+     "title": "_record for an already-linked key and a DIFFERENT party keeps the link and queues 1 review",
+     "duration": 33.771792000000005,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 3 (D1): no re-point of a source record"
+     ],
+     "fullName": "rule 3 (D1): no re-point of a source record MUTANT: with the strangler/0001 _record restored, the same call re-points (the test can see it)",
+     "status": "passed",
+     "title": "MUTANT: with the strangler/0001 _record restored, the same call re-points (the test can see it)",
+     "duration": 9.163749999999993,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 3 (D1): no re-point of a source record"
+     ],
+     "fullName": "rule 3 (D1): no re-point of a source record false-positive control: _record for the SAME party is a no-op with 0 reviews",
+     "status": "passed",
+     "title": "false-positive control: _record for the SAME party is a no-op with 0 reviews",
+     "duration": 7.283292000000003,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 3 (D1): no re-point of a source record"
+     ],
+     "fullName": "rule 3 (D1): no re-point of a source record regression: re-staging a different identity through resolve_one leaves the link unchanged",
+     "status": "passed",
+     "title": "regression: re-staging a different identity through resolve_one leaves the link unchanged",
+     "duration": 6.787666999999999,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 6 (D2): forged field ties expose nothing"
+     ],
+     "fullName": "rule 6 (D2): forged field ties expose nothing control: org B cannot see Alice (org A) before any forgery",
+     "status": "passed",
+     "title": "control: org B cannot see Alice (org A) before any forgery",
+     "duration": 5.087874999999997,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 6 (D2): forged field ties expose nothing"
+     ],
+     "fullName": "rule 6 (D2): forged field ties expose nothing field.customer with a stranger as contact_person_id is refused, and Alice stays hidden",
+     "status": "passed",
+     "title": "field.customer with a stranger as contact_person_id is refused, and Alice stays hidden",
+     "duration": 8.338999999999999,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 6 (D2): forged field ties expose nothing"
+     ],
+     "fullName": "rule 6 (D2): forged field ties expose nothing field.evidence captured_by a stranger is refused, and Alice stays hidden",
+     "status": "passed",
+     "title": "field.evidence captured_by a stranger is refused, and Alice stays hidden",
+     "duration": 9.549833000000007,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 6 (D2): forged field ties expose nothing"
+     ],
+     "fullName": "rule 6 (D2): forged field ties expose nothing MUTANT: with the 0002 customer_rw policy restored, the forgery lands and Alice leaks to org B",
+     "status": "passed",
+     "title": "MUTANT: with the 0002 customer_rw policy restored, the forgery lands and Alice leaks to org B",
+     "duration": 8.378625,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 6 (D2): forged field ties expose nothing"
+     ],
+     "fullName": "rule 6 (D2): forged field ties expose nothing a legitimate tie still works: org B may name its own member as captured_by",
+     "status": "passed",
+     "title": "a legitimate tie still works: org B may name its own member as captured_by",
+     "duration": 6.816082999999992,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 6 (D2): credentials and the pinned tie set"
+     ],
+     "fullName": "rule 6 (D2): credentials and the pinned tie set a refused forgery exposes none of the stranger's credentials either",
+     "status": "passed",
+     "title": "a refused forgery exposes none of the stranger's credentials either",
+     "duration": 8.889792,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 6 (D2): credentials and the pinned tie set"
+     ],
+     "fullName": "rule 6 (D2): credentials and the pinned tie set party_visible_nonfield reads exactly membership + routed-lead ties, plus a self tie",
+     "status": "passed",
+     "title": "party_visible_nonfield reads exactly membership + routed-lead ties, plus a self tie",
+     "duration": 2.814458000000002,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 6 (D2): credentials and the pinned tie set"
+     ],
+     "fullName": "rule 6 (D2): credentials and the pinned tie set party_visible adds exactly the two write-checked field ties",
+     "status": "passed",
+     "title": "party_visible adds exactly the two write-checked field ties",
+     "duration": 2.2285830000000146,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    }
+   ],
+   "startTime": 1790349140733,
+   "endTime": 1790349140843.2285,
+   "status": "passed",
+   "message": "",
+   "name": "/tmp/ci-workspace/Unite-Group/packages/spine/packages/spine/tests/integration/identity_rules.test.ts"
+  },
+  {
+   "assertionResults": [
+    {
+     "ancestorTitles": [
+      "rule 7: every spine table has RLS enabled AND forced"
+     ],
+     "fullName": "rule 7: every spine table has RLS enabled AND forced the catalog scan sees every spine table, new ones included (positive control)",
+     "status": "passed",
+     "title": "the catalog scan sees every spine table, new ones included (positive control)",
+     "duration": 11.881374999999998,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 7: every spine table has RLS enabled AND forced"
+     ],
+     "fullName": "rule 7: every spine table has RLS enabled AND forced no spine table lacks relrowsecurity or relforcerowsecurity",
+     "status": "passed",
+     "title": "no spine table lacks relrowsecurity or relforcerowsecurity",
+     "duration": 2.7097080000000062,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 7: every spine table has RLS enabled AND forced"
+     ],
+     "fullName": "rule 7: every spine table has RLS enabled AND forced MUTANT: `no force row level security` on core.credential is caught",
+     "status": "passed",
+     "title": "MUTANT: `no force row level security` on core.credential is caught",
+     "duration": 3.499042000000003,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 8: grants on the new surface are SELECT-only and narrow"
+     ],
+     "fullName": "rule 8: grants on the new surface are SELECT-only and narrow authenticated and anon cannot INSERT, UPDATE or DELETE any new table",
+     "status": "passed",
+     "title": "authenticated and anon cannot INSERT, UPDATE or DELETE any new table",
+     "duration": 17.08737500000001,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 8: grants on the new surface are SELECT-only and narrow"
+     ],
+     "fullName": "rule 8: grants on the new surface are SELECT-only and narrow authenticated may SELECT the new tables; anon may not",
+     "status": "passed",
+     "title": "authenticated may SELECT the new tables; anon may not",
+     "duration": 4.6172499999999985,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 8: grants on the new surface are SELECT-only and narrow"
+     ],
+     "fullName": "rule 8: grants on the new surface are SELECT-only and narrow the credential number column is not readable by authenticated or anon",
+     "status": "passed",
+     "title": "the credential number column is not readable by authenticated or anon",
+     "duration": 2.791957999999994,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 8: grants on the new surface are SELECT-only and narrow"
+     ],
+     "fullName": "rule 8: grants on the new surface are SELECT-only and narrow MUTANT: a blanket `grant select on core.credential` (e.g. re-running 0004) is caught",
+     "status": "passed",
+     "title": "MUTANT: a blanket `grant select on core.credential` (e.g. re-running 0004) is caught",
+     "duration": 2.5369579999999985,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 8: grants on the new surface are SELECT-only and narrow"
+     ],
+     "fullName": "rule 8: grants on the new surface are SELECT-only and narrow no new function is executable by anon; end_employment is service_role only",
+     "status": "passed",
+     "title": "no new function is executable by anon; end_employment is service_role only",
+     "duration": 5.468874999999997,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 8: grants on the new surface are SELECT-only and narrow"
+     ],
+     "fullName": "rule 8: grants on the new surface are SELECT-only and narrow every new SECURITY DEFINER function pins search_path to empty",
+     "status": "passed",
+     "title": "every new SECURITY DEFINER function pins search_path to empty",
+     "duration": 2.2917499999999933,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    }
+   ],
+   "startTime": 1790349141619,
+   "endTime": 1790349141672.2917,
+   "status": "passed",
+   "message": "",
+   "name": "/tmp/ci-workspace/Unite-Group/packages/spine/packages/spine/tests/integration/rls_catalog.test.ts"
+  },
+  {
+   "assertionResults": [
+    {
+     "ancestorTitles": [
+      "rule 4: tenure single source"
+     ],
+     "fullName": "rule 4: tenure single source while employed: the employer sees credentials issued in the stint, not before it, and never the number",
+     "status": "passed",
+     "title": "while employed: the employer sees credentials issued in the stint, not before it, and never the number",
+     "duration": 34.274041999999994,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 4: tenure single source"
+     ],
+     "fullName": "rule 4: tenure single source the holder reads their own number through credential_full",
+     "status": "passed",
+     "title": "the holder reads their own number through credential_full",
+     "duration": 13.214666999999992,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 4: tenure single source"
+     ],
+     "fullName": "rule 4: tenure single source end_employment closes the stint AND sets membership left; the former employer then sees 0 credentials",
+     "status": "passed",
+     "title": "end_employment closes the stint AND sets membership left; the former employer then sees 0 credentials",
+     "duration": 20.073125000000005,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 4: tenure single source"
+     ],
+     "fullName": "rule 4: tenure single source a departed worker holding a stale org claim sees none of the org's other rows",
+     "status": "passed",
+     "title": "a departed worker holding a stale org claim sees none of the org's other rows",
+     "duration": 16.432166999999993,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 4: tenure single source"
+     ],
+     "fullName": "rule 4: tenure single source MUTANT: an end_employment that skips the membership update leaves the departed worker seeing the org",
+     "status": "passed",
+     "title": "MUTANT: an end_employment that skips the membership update leaves the departed worker seeing the org",
+     "duration": 14.785333000000008,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 4: tenure single source"
+     ],
+     "fullName": "rule 4: tenure single source an ended stint cannot be edited (23000); MUTANT without the trigger it can",
+     "status": "passed",
+     "title": "an ended stint cannot be edited (23000); MUTANT without the trigger it can",
+     "duration": 13.866791000000006,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 4: tenure single source"
+     ],
+     "fullName": "rule 4: tenure single source at most one open stint per person and org",
+     "status": "passed",
+     "title": "at most one open stint per person and org",
+     "duration": 10.103666000000004,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "rule 4: tenure single source"
+     ],
+     "fullName": "rule 4: tenure single source an authenticated caller cannot call end_employment (42501), not even the employer",
+     "status": "passed",
+     "title": "an authenticated caller cannot call end_employment (42501), not even the employer",
+     "duration": 10.348040999999995,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    }
+   ],
+   "startTime": 1790349140904,
+   "endTime": 1790349141037.3481,
+   "status": "passed",
+   "message": "",
+   "name": "/tmp/ci-workspace/Unite-Group/packages/spine/packages/spine/tests/integration/tenure_visibility.test.ts"
+  },
+  {
+   "assertionResults": [
+    {
+     "ancestorTitles": [
+      "ephemeral guard: URL checks"
+     ],
+     "fullName": "ephemeral guard: URL checks accepts the loopback CI stack on 54322",
+     "status": "passed",
+     "title": "accepts the loopback CI stack on 54322",
+     "duration": 0.753458000000002,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "ephemeral guard: URL checks"
+     ],
+     "fullName": "ephemeral guard: URL checks refuses a pooler-shaped hosted URL, and never echoes its password",
+     "status": "passed",
+     "title": "refuses a pooler-shaped hosted URL, and never echoes its password",
+     "duration": 0.12904100000000085,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "ephemeral guard: URL checks"
+     ],
+     "fullName": "ephemeral guard: URL checks refuses any known project ref even behind a loopback-looking tunnel",
+     "status": "passed",
+     "title": "refuses any known project ref even behind a loopback-looking tunnel",
+     "duration": 0.07220800000000338,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "ephemeral guard: URL checks"
+     ],
+     "fullName": "ephemeral guard: URL checks refuses a non-loopback host",
+     "status": "passed",
+     "title": "refuses a non-loopback host",
+     "duration": 0.053415999999998576,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "ephemeral guard: URL checks"
+     ],
+     "fullName": "ephemeral guard: URL checks refuses the wrong port (e.g. a plain local 5432 that the bootstrap did not build)",
+     "status": "passed",
+     "title": "refuses the wrong port (e.g. a plain local 5432 that the bootstrap did not build)",
+     "duration": 0.07166699999999793,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "ephemeral guard: URL checks"
+     ],
+     "fullName": "ephemeral guard: URL checks refuses an unparseable URL",
+     "status": "passed",
+     "title": "refuses an unparseable URL",
+     "duration": 0.08220899999999887,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "ephemeral guard: sentinel check (integration)"
+     ],
+     "fullName": "ephemeral guard: sentinel check (integration) passes on the bootstrapped database and refuses the same database once the sentinel is gone",
+     "status": "passed",
+     "title": "passes on the bootstrapped database and refuses the same database once the sentinel is gone",
+     "duration": 11.770291,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "fixture hygiene scan"
+     ],
+     "fullName": "fixture hygiene scan scans a non-empty fixture set (positive control on the scan itself)",
+     "status": "passed",
+     "title": "scans a non-empty fixture set (positive control on the scan itself)",
+     "duration": 0.11324999999999363,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "fixture hygiene scan"
+     ],
+     "fullName": "fixture hygiene scan every fixture email is on a reserved test domain",
+     "status": "passed",
+     "title": "every fixture email is on a reserved test domain",
+     "duration": 1.5184169999999995,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    },
+    {
+     "ancestorTitles": [
+      "fixture hygiene scan"
+     ],
+     "fullName": "fixture hygiene scan no bcrypt, TOTP or JWT-shaped strings in fixtures",
+     "status": "passed",
+     "title": "no bcrypt, TOTP or JWT-shaped strings in fixtures",
+     "duration": 0.9571669999999983,
+     "failureMessages": [],
+     "meta": {},
+     "tags": []
+    }
+   ],
+   "startTime": 1790349142162,
+   "endTime": 1790349142177.9573,
+   "status": "passed",
+   "message": "",
+   "name": "/tmp/ci-workspace/Unite-Group/packages/spine/packages/spine/tests/unit/ephemeral-guard.test.ts"
   }
  ]
 }

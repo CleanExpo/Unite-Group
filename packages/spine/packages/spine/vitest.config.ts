@@ -4,6 +4,9 @@ export default defineConfig({
   test: {
     include: ['tests/**/*.test.ts'],
     environment: 'node',
+    // RA-7753: refuses to run against anything but the loopback ephemeral stack.
+    // Runs before any suite (and so before any DAL import); see the file header.
+    globalSetup: ['tests/setup/ephemeral-guard.ts'],
     // Integration suites self-skip when SPINE_DATABASE_URL is unset (see tests/integration/*).
     //
     // fileParallelism stays FALSE — but for a different reason than before, and the

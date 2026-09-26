@@ -26,6 +26,13 @@ export interface Evidence { id: UUID; org_id: UUID; job_id: UUID; captured_by: U
 export interface Course { id: UUID; title: string; iicrc_category: string | null; ce_credits: number | null; embedding: string | null; metadata: Json; created_at: string; }
 export interface Enrollment { id: UUID; course_id: UUID; person_party_id: UUID; org_id: UUID | null; status: string; enrolled_at: string; completed_at: string | null; }
 export interface TrainingCredential { id: UUID; person_party_id: UUID; course_id: UUID; iicrc_credits: number | null; issued_at: string; expires_at: string | null; }
+// RA-7753 slice 1a (migrations/0006). `number` is absent from the base-table column grant;
+// read it through core.credential_full (holder and staff only).
+export type VerificationClass = 'SELF_REPORTED' | 'DOCUMENT_UPLOADED' | 'ISSUER_VERIFIED' | 'REGISTRY_VERIFIED' | 'UNKNOWN';
+export interface Employment { id: UUID; person_party_id: UUID; org_party_id: UUID; role: string | null; started_at: string; ended_at: string | null; end_reason: string | null; employer_display_snapshot: string | null; created_at: string; }
+export interface Credential { id: UUID; holder_party_id: UUID; credential_type: string; issuer: string; issued_at: string | null; expires_at: string | null; verification_class: VerificationClass; status: 'active' | 'expired' | 'revoked'; verified_at: string | null; verification_method: string | null; source_record_id: UUID | null; evidence_ref: string | null; created_at: string; }
+export interface CredentialFull extends Credential { number: string | null; }
+export interface CecClaim { id: UUID; enrollment_id: UUID; recognising_body: string; eligibility_basis: string | null; eligible_at: string | null; evidence_submitted_at: string | null; evidence_ref: string | null; accepted_at: string | null; acceptance_evidence_ref: string | null; body_reference: string | null; created_at: string; }
 export interface EvidenceMatch { id: UUID; org_id: UUID; evidence_class: string | null; similarity: number; }
 export interface Application { id: UUID; applicant_person_id: UUID | null; org_id: UUID | null; campaign_id: UUID | null; source_lead_id: UUID | null; status: string; submitted_at: string; }
 export interface Opportunity { id: UUID; target_org_id: UUID | null; owner: string; stage: string; amount_cents: number | null; created_at: string; }
