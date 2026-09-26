@@ -53,6 +53,10 @@ const BUILD_COMMANDS: Record<string, Cmd[]> = {
     // and a remote that happens to be called main
     ['git', 'push', 'origin', 'feature-y'],
     ['git', 'push', 'main', 'feature-x'],
+    // bundled quiet must not hide the destination check nor refuse the push (Cursor review round 7)
+    ['git', 'push', '-uq', 'origin', 'feature-x'],
+    ['git', 'push', '-qu', 'origin', 'feature-x'],
+    ['git', 'push', '--quiet', '-u', 'origin', 'feature-x'],
   ],
   draft_pr: [
     ['gh', 'pr', 'create', '--draft', '--title', 't', '--body', 'b'],
@@ -217,6 +221,10 @@ beforeAll(() => {
       // `push ... --dry-run --porcelain`: report where git would push. STUB_PUSH_DST seeds a
       // config redirect; STUB_DRY=quiet|fail seeds a dry run that shows nothing or fails.
       'for a in "$@"; do if [ "$a" = "--porcelain" ]; then',
+      // like real git: quiet (--quiet, or q in a short cluster such as -uq) hides the ref lines
+      '  for b in "$@"; do case "$b" in --quiet) STUB_DRY=quiet ;; --*) : ;; -*q*) STUB_DRY=quiet ;; esac; done',
+      // the dry run must switch hooks off, or a pre-push hook could print a fake destination
+      '  [ "${GIT_CONFIG_KEY_1:-}=${GIT_CONFIG_VALUE_1:-}" = "core.hooksPath=/dev/null" ] || { echo "HOOKS LIVE IN DRY RUN"; exit 1; }',
       '  echo "To stub-remote"',
       // a rejected dry run still prints its ref line, then exits non-zero
       '  [ "${STUB_DRY:-}" = fail ] && { printf "!\\trefs/heads/feature-x:refs/heads/feature-x\\t[rejected]\\nDone\\n"; exit 1; }',
@@ -285,10 +293,12 @@ describe.skipIf(!BASH)('seeded accepted mission — runner shims', () => {
     ['a dry run that shows no destination', { STUB_DRY: 'quiet' }],
     ['a dry run that fails', { STUB_DRY: 'fail' }],
   ])('PROTECTED: a named-branch push stops on %s', (_label, env) => {
-    const r = run(['git', 'push', '-u', 'origin', 'feature-x'], env)
-    expect(r.status).toBe(3)
-    expect(r.stderr).toContain('nexus-runner: BLOCKED')
-    expect(r.stdout).not.toContain('STUB_CALLED')
+    for (const flags of [['-u'], ['-uq'], ['-q', '-u'], ['--quiet']]) {
+      const r = run(['git', 'push', ...flags, 'origin', 'feature-x'], env)
+      expect(r.status).toBe(3)
+      expect(r.stderr).toContain('nexus-runner: BLOCKED')
+      expect(r.stdout).not.toContain('STUB_CALLED')
+    }
   })
 
   for (const [step, cmds] of Object.entries(BUILD_COMMANDS)) {

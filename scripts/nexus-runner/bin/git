@@ -99,17 +99,25 @@ case "$sub" in
     # branch or a tag. Config can still map a named branch elsewhere (a preset remote.*.push,
     # or one pulled in by include.path: Cursor review round 6), and only git resolves that.
     # A dry run that fails is refused: the envelope never pushes what it could not inspect.
-    # -q/--quiet hide the porcelain ref lines, so they are dropped from the dry run only; a dry
-    # run that still reports no destination at all (e.g. a bundled -uq) is refused.
+    # Quiet hides the porcelain ref lines, so it is removed from the dry run only: --quiet, and
+    # the q in any short-option cluster (-q, -uq, -qu). Hooks are switched off for the dry run
+    # (it pushes nothing) so a pre-push hook cannot print a fake "safe" destination into it
+    # (Cursor review round 7); the real push below still runs its hooks. Only stdout is read.
+    # A dry run that fails, or reports no destination at all, is refused.
     dry_run() {
       for a do
         shift
-        case "$a" in -q|--quiet) continue ;; esac
+        case "$a" in
+          --quiet) continue ;;
+          --*) : ;;
+          -*q*) a=$(printf '%s' "$a" | tr -d q); [ "$a" = - ] && continue ;;
+        esac
         set -- "$@" "$a"
       done
-      "$REAL_GIT" "$@" --dry-run --porcelain
+      GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_1=core.hooksPath GIT_CONFIG_VALUE_1=/dev/null \
+        "$REAL_GIT" "$@" --dry-run --porcelain
     }
-    plan=$(dry_run "$@" 2>&1) || deny "git push (dry run failed: $(printf '%s' "$plan" | tail -1))"
+    plan=$(dry_run "$@" 2>/dev/null) || deny "git push (dry run failed; nothing was pushed)"
     dests=$(printf '%s\n' "$plan" | awk -F'\t' 'NF >= 2 { n = split($2, p, ":"); print p[n] }')
     [ -n "$dests" ] || deny "git push (dry run showed no destination to check)"
     for d in $dests; do
