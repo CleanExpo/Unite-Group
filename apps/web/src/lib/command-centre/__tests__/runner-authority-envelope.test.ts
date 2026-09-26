@@ -155,6 +155,16 @@ const PROTECTED_COMMANDS: Record<string, Cmd[]> = {
     ['git', 'config', 'alias.p', 'push --force'],
     ['git', 'config', 'include.path', '/tmp/evil.gitconfig'],
     ['git', '-c', 'include.path=/tmp/evil.gitconfig', 'status'],
+    // a push that relies on config for its destination (Cursor review round 5): push.default=upstream
+    // turned `git push origin feature-x` into a push to main
+    ['git', 'push'],
+    ['git', 'push', 'origin'],
+    ['git', 'push', '-u', 'origin'],
+    ['git', 'config', 'push.default', 'upstream'],
+    ['git', 'config', '--local', 'remote.origin.push', 'refs/heads/feature-x:refs/heads/main'],
+    ['git', 'config', 'remote.origin.mirror', 'true'],
+    ['git', '-c', 'push.default=upstream', 'push', 'origin', 'feature-x'],
+    ['git', '-c', 'PUSH.default=matching', 'push', 'origin', 'feature-x'],
     ['git', 'push', '--all', 'origin'],
     ['git', 'push', 'origin', '--all'],
     ['gh', '--template', 'x', 'repo', 'delete', 'o/r'],
@@ -205,6 +215,7 @@ beforeAll(() => {
       // `show-ref --verify --quiet <ref>`: v* names are tags; feature-y is both a tag and a branch
       'if [ "$1" = "show-ref" ]; then case "$4" in refs/tags/v*|refs/tags/feature-y|refs/heads/feature-y) exit 0 ;; esac; exit 1; fi',
       'echo "STUB_CALLED: $*"',
+      'echo "PIN: ${GIT_CONFIG_KEY_0:-none}=${GIT_CONFIG_VALUE_0:-none}"',
       'exit 0',
       '',
     ].join('\n'),
@@ -248,6 +259,13 @@ describe('mission-authority.json', () => {
 })
 
 describe.skipIf(!BASH)('seeded accepted mission — runner shims', () => {
+  it('pins push.default=current on every push, above repository config', () => {
+    const r = run(['git', 'push', '-u', 'origin', 'feature-x'])
+    expect(r.status).toBe(0)
+    expect(r.stdout).toContain('PIN: push.default=current')
+    expect(run(['git', 'status']).stdout).toContain('PIN: none=none')
+  })
+
   for (const [step, cmds] of Object.entries(BUILD_COMMANDS)) {
     for (const cmd of cmds) {
       it(`BUILD ${step}: '${cmd.join(' ')}' proceeds with no stop`, () => {

@@ -27,19 +27,30 @@ for a in "$@"; do
   esac
   sub="$a"; break
 done
+# Config keys that rename a command (alias.*), pull in other config (include*), or
+# redirect where a push lands (push.*, remote.<name>.push, remote.<name>.mirror).
+# `push.default=upstream` turned `git push origin feature-x` into a push to main
+# (Cursor review round 5, confirmed with real git).
+risky_key() {
+  case "$1" in
+    [Aa][Ll][Ii][Aa][Ss].*|[Ii][Nn][Cc][Ll][Uu][Dd][Ee].*|[Ii][Nn][Cc][Ll][Uu][Dd][Ee][Ii][Ff].*) return 0 ;;
+    [Pp][Uu][Ss][Hh].*|[Rr][Ee][Mm][Oo][Tt][Ee].*.[Pp][Uu][Ss][Hh]*|[Rr][Ee][Mm][Oo][Tt][Ee].*.[Mm][Ii][Rr][Rr][Oo][Rr]*) return 0 ;;
+  esac
+  return 1
+}
 prev=""
 for a in "$@"; do
-  case "$prev" in -c) case "$a" in [Aa][Ll][Ii][Aa][Ss].*|[Ii][Nn][Cc][Ll][Uu][Dd][Ee].*|[Ii][Nn][Cc][Ll][Uu][Dd][Ee][Ii][Ff].*) deny "git -c $a (alias or include override)" ;; esac ;; esac
+  case "$prev" in -c) risky_key "$a" && deny "git -c $a (alias, include or push-redirect override)" ;; esac
   prev="$a"
 done
 if [ "$sub" = config ]; then
-  for a in "$@"; do case "$a" in [Aa][Ll][Ii][Aa][Ss].*|[Ii][Nn][Cc][Ll][Uu][Dd][Ee].*|[Ii][Nn][Cc][Ll][Uu][Dd][Ee][Ii][Ff].*) deny "git config $a (alias or include)" ;; esac; done
+  for a in "$@"; do risky_key "$a" && deny "git config $a (alias, include or push-redirect key)"; done
 fi
 
 case "$sub" in
   push)
     [ "$dirglobal" = 0 ] || deny "git push behind -C/--git-dir/--work-tree (push from inside the worktree)"
-    seen=0; npos=0
+    seen=0; npos=0; nrefs=0
     for a in "$@"; do
       # the first positional after `push` is the remote, not a refspec: `git push main feature-x`
       # names a remote called main; only refspecs are checked for tags and default-branch targets
@@ -58,6 +69,7 @@ case "$sub" in
         --all|--branches|--tags|--follow-tags|tag|refs/tags/*|*:refs/tags/*) deny "git push $a" ;;
       esac
       [ "$isref" = 1 ] || continue
+      nrefs=$((nrefs + 1))
       # forbid pushing a tag named bare (`git push origin v1.0.0`): ask git whether the source is a
       # tag. A name that is also a branch is left to git, which refuses the ambiguous refspec itself.
       src="${a%%:*}"
@@ -75,6 +87,14 @@ case "$sub" in
     case "$br" in
       main|master) deny "git push from default branch ($br)" ;;
     esac
+    # a push must name what it pushes: a bare `git push` / `git push origin` follows
+    # push.default, remote.*.push and the branch upstream, any of which can point at main
+    [ "$nrefs" -ge 1 ] || deny "git push without an explicit branch (name it: git push -u origin <branch>)"
+    # pin push.default=current for this push, above any repository or global config, so an
+    # explicit `<branch>` refspec always lands on the same-named remote branch
+    unset GIT_CONFIG_PARAMETERS
+    GIT_CONFIG_COUNT=1; GIT_CONFIG_KEY_0=push.default; GIT_CONFIG_VALUE_0=current
+    export GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0
     ;;
   merge)        deny "git merge" ;;
   reset)
