@@ -39,7 +39,16 @@ fi
 case "$sub" in
   push)
     [ "$dirglobal" = 0 ] || deny "git push behind -C/--git-dir/--work-tree (push from inside the worktree)"
+    seen=0; npos=0
     for a in "$@"; do
+      # the first positional after `push` is the remote, not a refspec: `git push main feature-x`
+      # names a remote called main; only refspecs are checked for tags and default-branch targets
+      isref=0
+      case "$a" in
+        -*) : ;;
+        *) if [ "$seen" = 1 ]; then npos=$((npos + 1)); [ "$npos" -ge 2 ] && isref=1; fi
+           [ "$a" = push ] && seen=1 ;;
+      esac
       case "$a" in
         # forbid all force, including a +refspec
         --force|--force-with-lease|-f|--force-with-lease=*|--force-if-includes|+*) deny "git push force ($a)" ;;
@@ -48,14 +57,14 @@ case "$sub" in
         # forbid pushing every branch (which includes main) and tags (which can trigger releases)
         --all|--branches|--tags|--follow-tags|tag|refs/tags/*|*:refs/tags/*) deny "git push $a" ;;
       esac
-      # forbid pushing a tag named bare (`git push origin v1.0.0`): ask git whether the source is a tag
-      case "$a" in
-        -*) : ;;
-        *) src="${a%%:*}"
-           if [ -n "$src" ] && "$REAL_GIT" show-ref --verify --quiet "refs/tags/$src" 2>/dev/null; then
-             deny "git push tag ($a)"
-           fi ;;
-      esac
+      [ "$isref" = 1 ] || continue
+      # forbid pushing a tag named bare (`git push origin v1.0.0`): ask git whether the source is a
+      # tag. A name that is also a branch is left to git, which refuses the ambiguous refspec itself.
+      src="${a%%:*}"
+      if [ -n "$src" ] && "$REAL_GIT" show-ref --verify --quiet "refs/tags/$src" 2>/dev/null &&
+        ! "$REAL_GIT" show-ref --verify --quiet "refs/heads/$src" 2>/dev/null; then
+        deny "git push tag ($a)"
+      fi
       # forbid a main/master destination, however spelled (main, x:main, refs/heads/main)
       dst="${a##*:}"
       dst="${dst#refs/heads/}"

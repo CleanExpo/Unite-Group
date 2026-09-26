@@ -22,11 +22,19 @@ for a in "$@"; do
 done
 
 # Defence in depth: an unlisted value-taking global option could shift the
-# subcommand, so a mutating subcommand word anywhere in argv is refused too.
+# subcommand, so a mutating subcommand word anywhere in argv is refused too. A word
+# straight after an option is that option's value (--scope project), not a command;
+# the allow-list below still decides the command itself.
+prev=""
 for a in "$@"; do
+  case "$prev" in
+    -*=*|"") : ;;
+    -*) prev="$a"; continue ;;
+  esac
   case "$a" in
     promote|rollback|redeploy|alias|aliases|env|domains|domain|dns|certs|cert|remove|rm|project|projects|teams|team|switch|pull|link|integration|integrations|secrets|git|rolling-release|blob|target|targets|buy|redirects|routes|flags|cache|microfrontends|login|logout|init) deny "$a" ;;
   esac
+  prev="$a"
 done
 
 # First non-option word is the subcommand (or a deploy path, or absent = deploy).
@@ -34,7 +42,7 @@ sub=""; skip=0
 for a in "$@"; do
   if [ "$skip" = 1 ]; then skip=0; continue; fi
   case "$a" in
-    --cwd|--token|-t|--scope|-S|--team|-T|--local-config|-A|--global-config|-Q|--api|--target|--meta|-m|--env|-e|--build-env|-b|--regions|--archive) skip=1; continue ;;
+    --cwd|--token|-t|--scope|-S|--team|-T|--project|--local-config|-A|--global-config|-Q|--api|--target|--meta|-m|--env|-e|--build-env|-b|--regions|--archive) skip=1; continue ;;
     -*) continue ;;
   esac
   sub="$a"; break

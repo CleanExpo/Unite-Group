@@ -43,21 +43,34 @@ const BUILD_COMMANDS: Record<string, Cmd[]> = {
     ['gh', '--jq', '.', 'pr', 'view', '12'],
     ['supabase', 'gen', 'types', 'typescript', '--local'],
     ['supabase', '--workdir', '/tmp', 'gen', 'types', 'typescript', '--local'],
+    ['supabase', '--network-id', 'projects', 'gen', 'types', 'typescript', '--local'],
     ['git', 'push', '-u', 'origin', 'feature-x:feature-x'],
   ],
   commit: [['git', 'commit', '-m', 'feat: x (UNI-1)']],
-  push_scoped_branch: [['git', 'push', '-u', 'origin', 'feature-x']],
+  push_scoped_branch: [
+    ['git', 'push', '-u', 'origin', 'feature-x'],
+    // must not be over-blocked (Cursor review round 4): a branch that shares a tag's name,
+    // and a remote that happens to be called main
+    ['git', 'push', 'origin', 'feature-y'],
+    ['git', 'push', 'main', 'feature-x'],
+  ],
   draft_pr: [
     ['gh', 'pr', 'create', '--draft', '--title', 't', '--body', 'b'],
     ['gh', 'pr', 'create', '-d', '--fill'],
     ['gh', '-R', 'CleanExpo/Unite-Group', 'pr', 'create', '--draft', '--fill'],
     // value-taking options must not turn a build step into a refusal (Cursor review round 3)
     ['gh', '--hostname', 'github.com', 'pr', 'create', '--draft', '--title', 't', '--body', 'b'],
+    // an option VALUE that equals a protected word is not a command (Cursor review round 4)
+    ['gh', 'pr', 'create', '--draft', '--label', 'ready', '--title', 'merge', '--body', 'b'],
+    ['gh', 'pr', 'comment', '1', '--body', 'ready'],
+    ['gh', 'pr', 'edit', '1', '--title', 't', '--add-label', 'ready'],
   ],
   preview_within_existing_mandate: [
     ['vercel', 'deploy'],
     ['vercel', 'deploy', '--target', 'preview'],
     ['vercel', '--scope', 'unite-group', 'deploy'],
+    ['vercel', '--project', 'myapp', 'deploy'],
+    ['vercel', '--scope', 'project', 'deploy'],
     ['vercel', 'inspect', 'url'],
   ],
 }
@@ -189,8 +202,8 @@ beforeAll(() => {
     [
       '#!/bin/sh',
       'if [ "$1" = "rev-parse" ]; then echo feature-x; exit 0; fi',
-      // `show-ref --verify --quiet refs/tags/<name>`: only v* names are tags in this seeded repo
-      'if [ "$1" = "show-ref" ]; then case "$4" in refs/tags/v*) exit 0 ;; esac; exit 1; fi',
+      // `show-ref --verify --quiet <ref>`: v* names are tags; feature-y is both a tag and a branch
+      'if [ "$1" = "show-ref" ]; then case "$4" in refs/tags/v*|refs/tags/feature-y|refs/heads/feature-y) exit 0 ;; esac; exit 1; fi',
       'echo "STUB_CALLED: $*"',
       'exit 0',
       '',

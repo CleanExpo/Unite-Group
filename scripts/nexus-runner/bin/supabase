@@ -10,11 +10,19 @@ REAL_SUPABASE="${NEXUS_RUNNER_REAL_SUPABASE:-}"
 deny() { echo "nexus-runner: BLOCKED 'supabase $*' (protected action; needs the founder)" >&2; exit 3; }
 
 # Defence in depth: a value-taking global flag (e.g. --workdir gen) could
-# shift the first word, so any remote/mutating subcommand word is refused.
+# shift the first word, so any remote/mutating subcommand word is refused. A word
+# straight after an option is that option's value, not a command; the allow-list
+# below still decides the command itself.
+prev=""
 for a in "$@"; do
+  case "$prev" in
+    -*=*|"") : ;;
+    -*) prev="$a"; continue ;;
+  esac
   case "$a" in
     db|migration|migrations|secrets|projects|functions|link|unlink|branches|storage|orgs|sso|domains|vanity-subdomains|postgres-config|network-bans|network-restrictions|ssl-enforcement|encryption|config|backups|snippets|seed|login|logout|init|start|stop|bootstrap) deny "$a" ;;
   esac
+  prev="$a"
 done
 
 sub=""; skip=0

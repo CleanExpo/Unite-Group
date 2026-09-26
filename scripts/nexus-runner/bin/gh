@@ -15,10 +15,18 @@ REAL_GH="${NEXUS_RUNNER_REAL_GH:-}"
 
 deny() { echo "nexus-runner: BLOCKED 'gh $*' (protected action; needs the founder or a release mandate)" >&2; exit 3; }
 
+# A word straight after an option is treated as that option's value (--label ready,
+# --title merge) and is not a command; the allow-list below still decides the command.
+prev=""
 for a in "$@"; do
+  case "$prev" in
+    -*=*|"") : ;;
+    -*) prev="$a"; continue ;;
+  esac
   case "$a" in
     merge|ready|release|gist|secret|variable|workflow|ruleset|auth|alias|extension|extensions|ext|config|codespace|attestation|cache|label|project|org|gpg-key|ssh-key) deny "$a" ;;
   esac
+  prev="$a"
 done
 
 # First two non-option words are the command and subcommand.
@@ -35,7 +43,7 @@ done
 case "$sub" in
   pr)
     case "$sub2" in
-      view|list|diff|checks|status|comment|checkout) : ;;
+      view|list|diff|checks|status|comment|checkout|edit) : ;;
       create)
         draft=0
         for a in "$@"; do
