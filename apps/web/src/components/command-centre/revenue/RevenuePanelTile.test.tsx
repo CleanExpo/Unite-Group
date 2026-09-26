@@ -73,6 +73,38 @@ describe('RevenuePanelView', () => {
     expect(screen.getByTestId('revenue-verdict').textContent).toMatch(/PARTIAL/)
     expect(screen.getByTestId('revenue-combined').textContent).toMatch(/^at least /)
   })
+
+  it('charts the account trend as an SVG area chart when the read has cleared funds', () => {
+    const withTrend = {
+      ...emptyOk,
+      cleared: {
+        ...emptyOk.cleared,
+        trend: [
+          { date: '2026-09-23', netCents: 10_000 },
+          { date: '2026-09-24', netCents: 25_000 },
+        ],
+      },
+    }
+    const { container } = render(<RevenuePanelView data={snapshot({ accounts: [withTrend] })} />)
+    const section = screen.getByTestId('revenue-account-synthex')
+    expect(section.querySelector('[data-testid="revenue-trend-line"]')).not.toBeNull()
+    expect(section.querySelector('[data-testid="revenue-trend-latest"]')).not.toBeNull()
+    expect(container.querySelectorAll('[data-testid="revenue-trend-latest"]')).toHaveLength(1)
+  })
+
+  it('an empty trend and a NOT CONNECTED account render no chart path', () => {
+    const { container } = render(
+      <RevenuePanelView
+        data={snapshot({
+          accounts: [{ account: 'agency', label: 'Agency', status: 'not_connected', reason: 'auth_failed', readAt: READ_AT }, emptyOk],
+          combined: { ...snapshot().combined, complete: false, verdict: 'partial' },
+        })}
+      />,
+    )
+    expect(container.querySelector('path')).toBeNull()
+    expect(screen.getByTestId('revenue-not-connected-agency').textContent).toMatch(/NOT CONNECTED — Stripe rejected the key/)
+    expect(screen.getByTestId('revenue-account-synthex').textContent).toMatch(/No cleared funds in the last 7 days \(read OK\)/)
+  })
 })
 
 describe('RevenuePanelTile', () => {
