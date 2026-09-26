@@ -1,0 +1,15 @@
+#!/bin/sh
+# nexus-runner supabase shim (policy: ../mission-authority.json). The runner
+# never runs migrations against any database and never touches secrets, so only
+# local, read-only or type-generation subcommands pass; everything else is
+# blocked by default (allow-list).
+REAL_SUPABASE="${NEXUS_RUNNER_REAL_SUPABASE:-}"
+[ -x "$REAL_SUPABASE" ] || REAL_SUPABASE=$(PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin command -v supabase)
+
+deny() { echo "nexus-runner: BLOCKED 'supabase $*' (protected action; needs the founder)" >&2; exit 3; }
+
+case "${1:-}" in
+  gen|help|--help|-h|--version|-v) : ;;
+  *) deny "$*" ;;
+esac
+exec "$REAL_SUPABASE" "$@"

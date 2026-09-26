@@ -1,0 +1,29 @@
+#!/bin/sh
+# nexus-runner vercel shim (policy: ../mission-authority.json). A preview
+# deployment is a build step and passes. Production deploys, promote, rollback,
+# aliases, env/secrets, domains and every other subcommand are blocked:
+# an allow-list, so a subcommand nobody has thought of is refused by default.
+REAL_VERCEL="${NEXUS_RUNNER_REAL_VERCEL:-}"
+[ -x "$REAL_VERCEL" ] || REAL_VERCEL=$(PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin command -v vercel)
+
+deny() { echo "nexus-runner: BLOCKED 'vercel $*' (protected action; needs the founder or a release mandate)" >&2; exit 3; }
+
+deploy_check() {
+  prev=""
+  for a in "$@"; do
+    case "$a" in
+      --prod|--prod=*|--target=production|--target=prod) deny "production deploy" ;;
+    esac
+    case "$prev" in
+      --target) case "$a" in production|prod) deny "production deploy" ;; esac ;;
+    esac
+    prev="$a"
+  done
+}
+
+case "${1:-}" in
+  inspect|ls|list|logs|whoami|build|help|--help|-h|--version|-v) : ;;
+  ""|deploy|-*|.|./*|/*) deploy_check "$@" ;;
+  *) deny "$1" ;;
+esac
+exec "$REAL_VERCEL" "$@"

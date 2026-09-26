@@ -18,6 +18,10 @@ case "$sub" in
     for a in "$@"; do
       case "$a" in --force|--force-with-lease|-f|--force-with-lease=*) deny "git push force" ;; esac
     done
+    # forbid deleting remote refs (--delete, -d, an empty-source :ref refspec, --mirror, --prune)
+    for a in "$@"; do
+      case "$a" in --delete|-d|--mirror|--prune|:*) deny "git push delete ($a)" ;; esac
+    done
     # forbid an explicit main/master destination refspec
     for a in "$@"; do
       case "$a" in main|master|*:main|*:master) deny "git push to default branch ($a)" ;; esac
