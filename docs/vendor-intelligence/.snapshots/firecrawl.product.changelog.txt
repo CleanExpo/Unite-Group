@@ -1,7 +1,17 @@
 Changelog | Firecrawl
-Introducing the Firecrawl Developer Index, built for supercharging coding agents. Read the announcement →
-176.8K Sign up
+Introducing Alexandria and our $75M Series B. Read the announcement →
+185K Sign up
 Changelog
+Sep 22, 2026
+Introducing Alexandria and our $75M Series B
+Alexandria is the knowledge library for superintelligence. It gives AI agents a common way to discover sources and retrieve information through Firecrawl, bringing together the live web, official data providers, site-specific connectors and our own indexes.
+More places to look
+AI agents can search our Research, Developer and Government indexes, query data providers and use specialized tools to reach information beyond individual web pages. We’re continuing to add sources and build more indexes.
+Across the verticals we tested, AI agents using Alexandria scored 21% higher on answer quality than those using built-in web tools. We used the same model and prompts across 845 tasks, with blind AI judging.
+Our $75M Series B
+We raised a $75M Series B led by Smash Capital , with participation by Altos Ventures , Nexus Venture Partners , Y Combinator , Freestyle and Offline Ventures .
+We’re investing in search and Alexandria, building deeper indexes and retrieval systems and working directly with more knowledge providers. Our goal is to make useful knowledge easier to reach and worth sharing for the people who create it.
+Try Alexandria or read the full announcement .
 Aug 20, 2026
 Firecrawl Developer Index
 The Firecrawl Developer Index is now available, a specialized index for coding agents. It covers 70M+ artifacts across READMEs, external documentation, issues, pull requests, and OpenAPI specs, with semantic retrieval and metadata filters. Your AI agents answer questions about code behavior, API contracts, error messages, and known bugs from primary sources instead of general web pages.
@@ -182,7 +192,7 @@ Browser Sandbox - Launch secure, isolated browser sessions with Python, JavaScri
 Multi-Language Support - Execute Python, JavaScript, or bash code remotely. Send commands via API, CLI, or SDK and get results instantly.
 agent-browser Integration - Pre-installed CLI with 40+ commands. AI agents write simple bash commands instead of complex Playwright code.
 Live View & CDP Access - Watch sessions in real time via embeddable stream URL or connect your own Playwright instance over WebSocket.
-Session Management - Configurable TTL controls, parallel sessions (up to 20 concurrent), and automatic cleanup. 2 credits per browser minute with 5 minutes free.
+Session Management - Configurable TTL controls, parallel sessions (up to 20 concurrent), and automatic cleanup. 2 credits per browser minute.
 Read the full documentation here .
 Feb 6, 2026
 Improved Logo Extraction for Branding Format v2
@@ -424,6 +434,7 @@ What is Enhanced Mode : Enhanced Mode is a specialized proxy feature for scrapin
 Pricing Change : Starting May 8th, 2025, Enhanced Mode proxy requests will cost 5 credits per request (previously included in standard credit pricing).
 Quality Improvements : The price adjustment reflects significant quality improvements to Enhanced Mode, ensuring higher success rates and more reliable data extraction from complex and difficult-to-scrape sites.
 Usage Optimization : For optimal credit usage, consider using Enhanced Mode as a retry mechanism only when encountering specific error status codes (401, 403, or 500).
+Update (August 17, 2026) : The 5-credit price above no longer applies. Enhanced Mode requests are billed at the same 1 credit per request as basic requests, and an automatic escalated retry is not charged separately. See the Enhanced Mode docs .
 Apr 28, 2025
 Firecrawl Launch Week III – Summary
 Firecrawl Launch Week III – Summary

@@ -1,7 +1,7 @@
 Models | ChatGPT Learn
 For the complete documentation index, see llms.txt . Markdown versions of documentation pages are available by appending
 .md to the page URL.
-ChatGPT Start searching API Dashboard
+ChatGPT
 Try ChatGPT
 Search the docs
 Search docs
@@ -11,11 +11,11 @@ Primary navigation
 Search docs
 Suggested
 responses create reasoning_effort realtime prompt caching
-Overview Models Agents Tools Voice & Audio Production API reference Overview
+Overview Models Agents Tools Audio & voice Production API reference Overview
 Home
 Get started
 Quickstart
-Using GPT-6 Astra
+Using GPT-6
 Key concepts
 Core concepts
 Responses API
@@ -74,19 +74,42 @@ Frontend prompting
 Reasoning
 Reasoning models
 Reasoning best practices
-Images and video
+Images
 Images and vision Image input cost calculator
-Image generation
-Video generation
+Image generation Overview
+Image prompting
 Realtime and audio
 Audio and speech
-Overview
+Getting started
 Voice agents
 Specialized models
 Deep research
 Embeddings
 Moderation
+Agents API
+Overview
+Quickstart
+Architecture
+Configuring Agents
+Sessions Run and continue sessions
+Events and items
+Manage sessions
+Webhooks
+Environments and sandboxes OpenAI-hosted sandboxes
+Self-hosted sandboxes
+Sandbox lifecycle
+Sandbox security
+Files and artifacts
+Tools and integrations Web search
+Functions
+MCP connections
+Plugins
+Vaults
+Multi-agent
+Observability and usage
+Tracing
 Agents SDK
+Overview
 Quickstart
 Agent definitions
 Models and providers
@@ -108,7 +131,7 @@ Web search
 File search
 Retrieval
 Connect tools and data
-MCP and Connectors
+MCP servers
 Secure MCP Tunnel
 Build tool workflows
 Skills
@@ -123,26 +146,35 @@ Local shell
 Code interpreter
 Media
 Image generation
-Get started
-Voice agents
-Live translation
-Realtime prompting guide
-Audio
-Audio and speech
-Transcription
-File transcription
-Realtime transcription
-Speech generation
-Connection methods
-WebRTC
-WebSocket
-SIP
-Sessions and operations
+GPT-Live
+Getting started
+Prompting
+Managing sessions
+Delegation and tools
+Migrate to GPT-Live
+Partner integrations
+Realtime API
+Getting started
+Prompting
 Managing conversations
 Voice activity detection
-Realtime with tools
-Webhooks and server-side controls
-Managing costs
+Tools and MCP
+Build with voice
+Voice agents
+Custom voices
+Cost optimization
+Connections
+WebRTC
+WebRTC with WARP
+WebSockets
+Telephony and SIP
+Server-side controls
+Audio processing
+File transcription
+Live transcription
+Live translation
+Text to speech
+Audio in Chat Completions
 Performance and quality
 Latency optimization
 Predicted Outputs
@@ -150,12 +182,13 @@ Fast mode
 Accuracy optimization
 Cost and throughput
 Cost optimization
-Prompt caching
+Prompt caching Prompt cache diagnostics
 Batch
 Flex processing
 Safety and governance
 Safety best practices
 Red teaming
+Daybreak
 Safety checks Safety classifiers
 Cybersecurity checks
 Misalignment monitoring
@@ -163,6 +196,7 @@ Under-18 guidance
 CSAM guidance
 Content provenance
 Your data
+Private Safety Processing
 Permissions
 Infrastructure and access
 Terraform provider Overview
@@ -173,10 +207,9 @@ Model, tool, and data controls
 Import and reconciliation
 Private Link
 IP allowlist
+Organization blocking
 Mutual TLS
-Workload identity federation Codex setup
-Federation rules
-Admin API
+Workload identity federation Federation rules
 X.509 certificates
 Kubernetes
 AWS
@@ -251,13 +284,14 @@ Supported Events
 Advertiser API
 Overview
 API Partner Setup
-Quickstart
-Bulk API
+Campaign Management
+Bidding & Budgets
+Targeting
 Product Feeds
-Delta Feeds API
-Campaign Targeting
-Conversion-Optimized Campaigns
-Custom Audiences
+Conversion Tracking
+Reporting
+Troubleshooting
+Account Management
 API Reference
 Authentication
 Ad Account
@@ -277,6 +311,7 @@ Get started with Work
 Import from another agent
 Foundations
 Prompting
+Model selection
 Personalize ChatGPT
 Skills & Plugins
 Permissions
@@ -299,6 +334,7 @@ Open Source
 Workflows
 Projects and chats
 Sites
+Build plugins
 Visualizations
 Scheduled tasks
 Long-running work
@@ -350,7 +386,6 @@ Code review
 Integrated terminal
 Extend and automate
 Build skills
-Build plugins
 Site tools (WebMCP)
 Hooks
 Environments
@@ -361,7 +396,6 @@ Git worktrees
 Build with Codex
 Codex SDK
 App Server
-MCP Server
 GitHub Action
 Non-interactive mode
 Third-party integrations
@@ -416,7 +450,6 @@ ChatGPT Work admin FAQ
 ChatGPT Work: usage and cost
 Identity and authentication
 Authentication overview
-Workload identity
 Personal Access Tokens
 Service accounts
 Workspace access, policy, and models
@@ -424,6 +457,7 @@ Groups and provisioning
 User lifecycle management
 Roles and workspace permissions
 GPTs and Sharing
+Migrate custom GPTs to plugins
 Managed configuration
 Prisma AIRS
 HIPAA configuration
@@ -436,6 +470,7 @@ Usage, governance, and compliance
 Governance
 Admin plugin
 Workspace analytics
+Usage Insights
 Analytics API
 Compliance API and audit events
 Deployment and model providers
@@ -447,7 +482,7 @@ Community
 Codex Ambassadors
 Codex for Students
 Codex for Open Source
-Meetups
+Events
 Blog
 Company blog
 Developer blog
@@ -455,17 +490,17 @@ Community
 Codex Ambassadors
 Codex for Students
 Codex for Open Source
-Meetups
+Events
 Blog
 Company blog
 Developer blog
 Showcase Blog Cookbook Learn Community Select...
 Recent
+Bringing my LED display to life with GPT-Live-1 and Codex
+Rethinking skills and prompts for GPT-6 Astra
 Architectural visualization with Astra
 Building games with Astra
 Meet Rosalind Workbench: Empowering every scientist to be their own research team
-Automating repetitive work at OpenAI with Codex
-Meet the winners of OpenAI Build Week
 Topics
 General
 API
@@ -505,9 +540,8 @@ Codex Ambassadors
 Codex for Students
 Codex for Open Source
 OpenAI for Startups
-Events
-Meetups
 Spaces
+Events
 Developer Forum
 Discord
 Reddit
@@ -519,9 +553,23 @@ Models
 Meet the AI models that power ChatGPT Work and Codex
 ChatGPT desktop app
 Copy Page
+GPT-5.5 retirement
+On October 14, 2026, GPT-5.5 will retire from ChatGPT, ChatGPT Work, and Codex
+on all plans, including consumer, Business, Enterprise, and Edu plans. This
+retirement does not apply to the OpenAI API.
+If you use Codex with ChatGPT sign-in, choose an available replacement before
+October 14:
+On Plus, Pro, Business, Enterprise, and Edu plans, choose GPT-6 Sol
+( gpt-6-sol ) when available.
+On Free and Go plans, choose GPT-6 Luna ( gpt-6-luna ) in the desktop app
+when available.
+Replace gpt-5.5 in workspace defaults, saved model settings, managed
+configurations, custom agents, scheduled tasks, and scripts that select a model.
+See workspace model availability
+for administrator guidance.
 Choose a model
-In the ChatGPT desktop app, use the model and reasoning control beneath the
-composer to choose an available model and adjust its reasoning effort.
+In Work or Codex in the ChatGPT desktop app, use the model and reasoning control
+beneath the composer to choose an available model and adjust its reasoning effort.
 Higher reasoning effort can improve results for complex tasks, but it takes
 longer and uses more tokens. Start with the default effort and increase it when
 the task needs deeper planning or analysis.
@@ -529,11 +577,11 @@ Ultra mode goes
 beyond a single-agent run. It uses
 subagents to accelerate complex work,
 making it useful for larger tasks that can be split across subagents.
-5.6 Sol Extra High Selections in this preview don't change your ChatGPT settings. 5.6 Sol Extra High, 5 of 6. Use Left and Right arrow keys to adjust power.
-5.6 Sol Extra High Selections in this preview don't change your ChatGPT settings. 5.6 Sol Extra High, 5 of 6. Use Left and Right arrow keys to adjust power.
-codex --model gpt-5.6
+6 Sol Light Selections in this preview don't change your ChatGPT settings. 6 Sol Light, 2 of 6. Use Left and Right arrow keys to adjust power.
+6 Sol Light Selections in this preview don't change your ChatGPT settings. 6 Sol Light, 2 of 6. Use Left and Right arrow keys to adjust power.
+codex --model gpt-6-sol
 The same option works with non-interactive runs. For example:
-codex exec -m gpt-5.6 "Review the current changes"
+codex exec -m gpt-6-sol "Review the current changes"
 Higher reasoning effort can improve results for complex tasks, but it takes
 longer and uses more tokens. Start with the default effort and increase it when
 the task needs deeper planning or analysis.
@@ -542,7 +590,7 @@ beyond a single-agent run. It uses
 subagents to accelerate complex work,
 making it useful for larger tasks that can be split across subagents.
 Interactive Codex CLI reasoning level selector
-Select Reasoning Level for gpt-5.6-sol
+Select Reasoning Level for gpt-6-sol
 Low Fast responses with lighter reasoning
 Medium (default) Balances speed and reasoning depth for everyday tasks
 High Greater reasoning depth for complex problems
@@ -550,8 +598,16 @@ Extra high Extra high reasoning depth for complex problems
 Max Maximum reasoning depth for the hardest problems
 Ultra (current) Maximum reasoning with automatic task delegation
 Press enter to confirm or esc to go back
-5.6 Sol Extra High Selections in this preview don't change your ChatGPT settings. 5.6 Sol Extra High, 5 of 6. Use Left and Right arrow keys to adjust power.
+6 Sol Light Selections in this preview don't change your ChatGPT settings. 6 Sol Light, 2 of 6. Use Left and Right arrow keys to adjust power.
 Recommended models
+GPT-6 Sol and GPT-6 Luna bring improved coding, factual reliability, and
+communication to lower-cost models. Use Sol for complex coding and agentic
+workflows, and Luna for focused, repeatable tasks. Select gpt-6-sol or
+gpt-6-luna in your model picker or saved configuration when available.
+In ChatGPT, GPT-6 Sol and GPT-6 Luna are available in Work and Codex. They
+aren’t available in Chat.
+GPT-5.6 Sol, GPT-5.6 Terra, and GPT-5.6 Luna remain available during the rollout. Selecting a
+new model doesn’t change workspace permissions or grant access to it.
 Astra
 Our most capable model for complex work across code, apps, and research, combining advanced reasoning, computer use, and stronger judgment.
 codex -m gpt-6-astra
@@ -565,53 +621,26 @@ Codex IDE extension
 Codex cloud
 ChatGPT Credits
 API Access
-5.6 Sol
-The most capable GPT-5.6 model for complex coding, computer use, research, and cybersecurity.
-codex -m gpt-5.6-sol
+6 Sol
+Built for complex coding and agentic workflows, with stronger factual reliability and clearer communication than GPT-5.6 Sol.
+codex -m gpt-6-sol
 Copy command
 Capability
 Speed
-ChatGPT desktop app
-ChatGPT web
+Work and Codex in the desktop app
+ChatGPT Work on the web
 Codex CLI
 Codex IDE extension
-Codex cloud
 ChatGPT Credits
 API Access
-5.6 Terra
-Balanced GPT-5.6 model for everyday work, with performance competitive with GPT-5.5 at a lower cost.
-codex -m gpt-5.6-terra
+6 Luna
+Our most efficient model for focused, high-volume tasks, including summarization, extraction, and focused coding.
+codex -m gpt-6-luna
 Copy command
 Capability
 Speed
-ChatGPT desktop app
-ChatGPT web
-Codex CLI
-Codex IDE extension
-Codex cloud
-ChatGPT Credits
-API Access
-5.6 Luna
-Fast and affordable GPT-5.6 model that delivers strong capability at the lowest cost in the family.
-codex -m gpt-5.6-luna
-Copy command
-Capability
-Speed
-ChatGPT desktop app
-ChatGPT web
-Codex CLI
-Codex IDE extension
-Codex cloud
-ChatGPT Credits
-API Access
-5.3 Codex Spark
-Text-only research preview model optimized for near-instant, real-time coding iteration. Available to ChatGPT Pro users.
-codex -m gpt-5.3-codex-spark
-Copy command
-Capability
-Speed
-ChatGPT desktop app
-ChatGPT web
+Work and Codex in the desktop app
+ChatGPT Work on the web
 Codex CLI
 Codex IDE extension
 Codex cloud
@@ -623,25 +652,24 @@ workspace model availability
 for Enterprise access.
 Start with the default Power setting available to your account. Move toward
 Smarter for deeper reasoning or Faster for faster, lower-cost work.
-Open Advanced when you want gpt-5.6-luna or a specific model, reasoning
-effort, or speed.
-The picker illustrations show GPT-5.6 controls. For eligible Pro, Business
-($100), and Enterprise accounts, the Astra rollout updates the Power options
-to Terra Light, Sol Light, Sol Medium, Astra Light, Astra Medium, and Astra
-Extra High. Options can differ by plan and rollout stage.
+Open Advanced to choose a specific model, reasoning effort, or speed.
+The six Power presets shown are Luna High, Sol Light (the starting
+preset), Sol Medium, Astra Light, Astra Medium, and Astra Extra High. Some paid plans omit
+Astra Extra High. Advanced controls are illustrative; available options
+and defaults vary by plan, client, workspace settings, and rollout.
 Experimental context management
 On supported Codex clients, users signed in with ChatGPT Plus or Pro can opt
 in to experimental context management. Astra keeps notes across context
 windows and can search earlier messages and tool results from the same task.
-This experiment is off by default and isn't available with Business, Enterprise, or
+This experiment is off by default and isn’t available with Business, Enterprise, or
 API-key sign-in at launch.
 To opt in, set features.context_management.experimental_mode = true in your
 config.toml , then start a new task. See the configuration reference
 for the setting and configuration basics
 for the file location. Workspace requirements still apply.
-Choosing Astra, Sol, Terra, and Luna
+Choosing Astra, Sol, and Luna
 Choose Astra when a task needs the strongest capability across multiple
-steps and tools. Sol offers depth and polish, Terra suits everyday work,
+steps and tools. Sol suits everyday work and complex coding,
 and Luna suits clear, repeatable tasks.
 Where each model shines
 Astra, for the hardest end-to-end work. Choose Astra for complete workflows
@@ -649,45 +677,40 @@ across code, apps, and research that need sustained reasoning and judgment.
 Give it the sources, templates, constraints, and checks that define a useful
 result. Astra is better at asking focused questions and incorporating your
 guidance while keeping the original goal and constraints in view.
-Sol, for complex, open-ended work. Choose Sol for ambiguous, difficult, or
+Sol, for everyday and complex work. Choose Sol for ambiguous, difficult, or
 high-value tasks that need extra analysis, judgment, or polish, such as
 complex code changes, deep research, or polished documents. For narrower
 tasks, define what done looks like to keep the work focused.
-Terra, the pragmatic all-rounder. Choose Terra for everyday work that
-needs strong reasoning and tool use when you do not need Sol's full depth. It
-is a natural starting point for work you previously gave GPT-5.5.
 Luna, for clear, repeatable tasks. Choose Luna for specific, high-volume
 tasks when you know what a good result looks like, such as extraction,
 classification, transformation, and structured summaries.
 Pick a reasoning effort
-Use the lowest reasoning effort that produces the result you need. Increase it
-for tasks that need more planning, analysis, or checking.
+Start with Medium for Sol, High for Luna, or Light for Astra.
+In configuration, Astra’s Light setting is low . Increase the effort for tasks
+that need more planning, analysis, or checking.
 Light in the ChatGPT desktop app, ChatGPT Work on the web, and IDE extension, or Low in the
 CLI, suits quick, well-scoped tasks.
 Medium balances speed and depth for tasks that need more planning.
 High and Extra High suit difficult work with multiple steps, sources,
 or tradeoffs.
-There is no exact mapping from GPT-5.5 reasoning efforts to GPT-5.6. Try a
-familiar task at a lower setting and adjust based on the result.
+Reasoning efforts don’t map exactly between model generations. Try a familiar task
+at a lower setting and adjust based on the result.
 Know when to use Max or Ultra
 Max gives the selected model more time to reason about a single task. Use it
 for the hardest problems, when depth matters more than speed or usage. If you
-don't see Max in your options, you'll have to enable it in your app settings.
+don’t see Max in your options, you’ll have to enable it in your app settings.
 Ultra uses subagents to handle
 separate parts of a complex task in parallel. Choose it when you can divide the
 work into meaningful parts. Most tasks do not need Max or Ultra.
-If Ultra doesn't appear in the desktop app's model slider, go to
-Settings > Configuration , then turn on Ultra in model picker slider .
+GPT-6 Luna supports reasoning efforts up to Max , but not Ultra .
+If your model supports Ultra but it doesn’t appear in the desktop app’s model
+slider, go to Settings > Configuration , then turn on
+Ultra in model picker slider .
 Other models
 When you sign in with ChatGPT, Codex works best with the recommended models listed above.
-GPT-5.4 and GPT-5.4 mini retire from Codex on August 31, 2026.
-If you sign in with ChatGPT, replace gpt-5.4 with gpt-5.6-terra and
-gpt-5.4-mini with gpt-5.6-luna in saved configurations, custom agents, and
-scheduled tasks. The OpenAI API and Codex authenticated with your own API key
-aren't affected.
 View other models
 5.5
-Previous-generation flagship model for complex coding, computer use, knowledge work, and research workflows.
+Previous-generation flagship model. Retires from ChatGPT, ChatGPT Work, and Codex on October 14, 2026; remains available on the OpenAI API.
 codex -m gpt-5.5
 Copy command
 Capability
@@ -729,24 +752,30 @@ You can also point Codex at any model and provider that supports either the Chat
 Support for the Chat Completions API is deprecated and will be removed in
 future releases of Codex.
 Deprecated Codex models
-The gpt-5.4 and gpt-5.4-mini models retire from Codex with ChatGPT sign-in
-on August 31, 2026. Replace gpt-5.4 with gpt-5.6-terra and
-gpt-5.4-mini with gpt-5.6-luna in workspace defaults, saved model
-settings, managed configurations, custom agents, and scheduled tasks.
+GPT-5.5 retires from Codex with ChatGPT sign-in on October 14, 2026. Replace
+gpt-5.5 with a model available to your account and client. See
+GPT-5.5 retirement for plan-specific
+replacements and the migration checklist.
+The gpt-5.4 and gpt-5.4-mini models retired from Codex with ChatGPT sign-in
+on August 31, 2026. Replace gpt-5.4 with gpt-6-sol and
+gpt-5.4-mini with gpt-6-luna when available to your plan and client.
+In Enterprise and Edu, an administrator must enable Luna first. Update workspace
+defaults, saved model settings, managed configurations, custom agents, and
+scheduled tasks with an available replacement.
 The gpt-5.2 and gpt-5.3-codex models are already deprecated in Codex when
 you sign in with ChatGPT. Update scripts, configuration files, and
 codex exec --model commands that still reference those models.
-The OpenAI API and Codex authenticated with your own API key aren't affected
+The OpenAI API and Codex authenticated with your own API key aren’t affected
 by the GPT-5.4 retirement. For current API model availability, see the
 API models page .
 Configure your default local model
 The ChatGPT desktop app, Codex CLI, and IDE extension use the same config.toml
 configuration file . To specify a model, add a
-model entry to your configuration file. If you don't specify a model, the
+model entry to your configuration file. If you don’t specify a model, the
 ChatGPT desktop app, Codex CLI, or IDE extension uses a recommended model.
-model = "gpt-5.6"
+model = "gpt-6-sol"
 Choose a model for cloud chats
-Currently, you can't change the default model for Codex cloud chats.
+Currently, you can’t change the default model for Codex cloud chats.
 Ask AI
 Docs agent
 Loading docs agent...

@@ -37,6 +37,18 @@ Stable
 Gemini 3.8 Flash
 Our most intelligent Flash model, engineered for long-horizon software engineering, autonomous agents, and complex enterprise workflows.
 New Stable
+Gemini 3.8 Live
+Default Live API model for most low-latency voice agent experiences without reasoning delays.
+New Stable
+Gemini 3.8 Live Extended Thinking
+High-reasoning Live API model for voice interactions, recommended when higher background reasoning is required.
+New Stable
+Gemini 3.8 Flash TTS
+Flagship creative text-to-speech model for studio-grade voice fidelity, expressive acting, Voice design, and Voice replication.
+New Stable
+Gemini 3.8 Flash-Lite TTS
+Fast, cost-efficient text-to-speech model for high-volume production, real-time voice agent cascades, and Voice replication.
+New Stable
 Gemini 3.7 Flash
 Our previous-generation Flash model for complex coding, agentic workflows, and reliable multi-step execution.
 Stable
@@ -75,11 +87,11 @@ Gemini 3.5 Live Translate
 Low-latency, real-time speech to speech translation model that supports 70+ languages.
 New
 Gemini 3.1 Flash Live
-High-quality, low-latency Live API model for real-time dialogue and voice-first AI applications.
+Legacy Live API preview model. We recommend updating to Gemini 3.8 Live.
 New
 Gemini 3.1 Flash TTS
-Powerful, low-latency speech generation.
-New
+Legacy TTS preview model. We recommend updating to Gemini 3.8 Flash TTS or Gemini 3.8 Flash-Lite TTS.
+Preview
 Gemini Omni Flash
 Fast video generation, editing, keyframe interpolation, and extension with native audio.
 New
@@ -88,6 +100,14 @@ Model
 Endpoint
 Gemini 3.8 Flash
 gemini-3.8-flash
+Gemini 3.8 Live
+gemini-3.8-live
+Gemini 3.8 Live Extended Thinking
+gemini-3.8-live-extended-thinking
+Gemini 3.8 Flash TTS
+gemini-3.8-flash-tts
+Gemini 3.8 Flash-Lite TTS
+gemini-3.8-flash-lite-tts
 Gemini 3.7 Flash
 gemini-3.7-flash
 Gemini 3.6 Flash
@@ -158,11 +178,23 @@ including ones that may already be listed in other sections
 Model
 Description
 Endpoint
+Gemini 3.8 Live
+The default option for most low-latency voice agent experiences and real-time dialogue without reasoning delays.
+gemini-3.8-live
+Gemini 3.8 Live Extended Thinking
+Our high-reasoning audio-to-audio model, recommended when higher background reasoning is required during live interactions.
+gemini-3.8-live-extended-thinking
+Gemini 3.8 Flash TTS
+Flagship creative text-to-speech model for studio-grade voice fidelity, expressive acting, and regional dialects across 130 languages.
+gemini-3.8-flash-tts
+Gemini 3.8 Flash-Lite TTS
+Fast, cost-efficient text-to-speech model built for high-throughput production workloads across 101 languages.
+gemini-3.8-flash-lite-tts
 Gemini 3.1 Flash Live
-Our high-quality, low-latency audio-to-audio (A2A) model designed for real-time dialogue and voice-first AI applications.
+Legacy audio-to-audio preview model. We recommend updating to Gemini 3.8 Live.
 gemini-3.1-flash-live-preview
 Gemini 3.1 Flash TTS
-Powerful, low-latency speech generation, with natural outputs, steerable prompts, and new expressive audio tags for precise narration control.
+Legacy text-to-speech preview model. We recommend updating to Gemini 3.8 Flash TTS or Gemini 3.8 Flash-Lite TTS.
 gemini-3.1-flash-tts-preview
 Gemini 3.5 Transcribe
 Low-latency speech-to-text model with utterance-based language detection, speaker diarization, word-level timestamps, and custom vocabulary biasing.
@@ -204,8 +236,8 @@ gemini-omni-1.1-flash
 Nano Banana
 State-of-the-art native image generation and editing designed for fast, creative workflows.
 gemini-2.5-flash-image
-Imagen 4 (Deprecated)
-Text-to-image model featuring fast and ultra-fast generation and exceptional clarity up to 2K resolution.
+Imagen 4 (Shut down)
+Text-to-image model featuring fast and ultra-fast generation (shut down).
 imagen-4.0-generate
 Music generation models
 This section contains all music generation models,
@@ -240,7 +272,7 @@ Maximum comprehensiveness for automated context gathering and synthesis across h
 deep-research-max-preview-04-2026
 Antigravity Agent
 A general-purpose managed agent that autonomously plans, reasons, runs code, manages files, and browses the web inside a secure, isolated Linux sandbox.
-antigravity-preview-05-2026
+antigravity-preview-09-2026
 Specialized task models
 Model
 Description
@@ -303,4 +335,4 @@ Model deprecations
 For information about model deprecations, visit the Gemini deprecations page.
 Send feedback
 Except as otherwise noted, the content of this page is licensed under the Creative Commons Attribution 4.0 License , and code samples are licensed under the Apache 2.0 License . For details, see the Google Developers Site Policies . Java is a registered trademark of Oracle and/or its affiliates.
-Last updated 2026-09-04 UTC.
+Last updated 2026-09-24 UTC.

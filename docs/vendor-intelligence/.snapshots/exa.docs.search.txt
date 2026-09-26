@@ -1,11 +1,18 @@
 > ## Documentation Index
 > Fetch the complete documentation index at: https://exa.ai/docs/llms.txt
 > Use this file to discover all available pages before exploring further.
+> ## Agent Instructions
+> The Exa API is served at https://api.exa.ai. Authenticate with `Authorization: Bearer $EXA_API_KEY` (or `x-api-key: $EXA_API_KEY`); create keys at https://dashboard.exa.ai/api-keys.
+> Prefer the official SDKs, `exa-py` (`pip install exa-py`) and `exa-js` (`npm install exa-js`); both read `EXA_API_KEY` from the environment.
+> Tool-using agents can call Exa without writing code through the hosted MCP server at https://mcp.exa.ai/mcp, or install the Exa agent skill with `npx skills add exa-labs/agent-skills` (skill file: https://exa.ai/docs/skill.md).
+> The OpenAPI specs at https://exa.ai/docs/exa-spec.yaml and https://exa.ai/docs/team-management-spec.yaml are the source of truth for request and response schemas.
 # Search
 > The search endpoint lets you search the web and extract contents from the results.
-<Card title="Get your Exa API key" icon="key" horizontal href="https://dashboard.exa.ai/api-keys" />
+<Card title="Get your Exa API key" icon="key" horizontal href="https://dashboard.exa.ai/api-keys">
+Create a key in the dashboard. New accounts start with free credits.
+</Card>
 ## OpenAPI
-````yaml post /search
+````yaml exa-spec.yaml POST /search
 openapi: 3.1.0
 info:
 title: Exa Public API
@@ -98,6 +105,8 @@ oneOf:
 $ref: '#/components/responses/TooManyRequestsResponse'
 '500':
 $ref: '#/components/responses/InternalServerErrorResponse'
+'503':
+$ref: '#/components/responses/ServiceUnavailableResponse'
 components:
 schemas:
 SearchRequest:
@@ -138,26 +147,6 @@ instead of adding a `site:` operator to the query.
 example:
 - docs.python.org/3
 - type: 'null'
-startCrawlDate:
-anyOf:
-- type: string
-description: >-
-Deprecated and has no effect; ignored by the API. Must be
-specified in ISO 8601 format.
-example: '2023-01-01T00:00:00.000Z'
-format: date-time
-deprecated: true
-- type: 'null'
-endCrawlDate:
-anyOf:
-- type: string
-description: >-
-Deprecated and has no effect; ignored by the API. Must be
-specified in ISO 8601 format.
-example: '2023-12-31T00:00:00.000Z'
-format: date-time
-deprecated: true
-- type: 'null'
 startPublishedDate:
 anyOf:
 - type: string
@@ -187,34 +176,6 @@ maximum public limit is 100 results. Contact sales
 (hello@exa.ai) to discuss higher limits.
 example: 10
 default: 10
-- type: 'null'
-context:
-anyOf:
-- description: >-
-Deprecated: Use highlights or text instead. Returns page
-contents as a combined context string.
-deprecated: true
-oneOf:
-- type: boolean
-description: >-
-Deprecated: Use highlights or text instead. Returns page
-contents as a combined context string.
-example: true
-deprecated: true
-- type: object
-properties:
-maxCharacters:
-type: integer
-minimum: 1
-maximum: 10000
-description: >-
-Deprecated. Maximum character limit for the context
-string. Maximum supported value is 10000.
-example: 10000
-description: >-
-Deprecated: Use highlights or text instead. Returns page
-contents as a combined context string.
-deprecated: true
 - type: 'null'
 moderation:
 anyOf:
@@ -324,38 +285,8 @@ example: hipaa
 outputSchema:
 anyOf:
 - oneOf:
-- type: object
-properties:
-type:
-type: string
-const: text
-description:
-type: string
-required:
-- type
-- type: object
-properties:
-type:
-type: string
-const: object
-description:
-type: string
-properties:
-type: object
-propertyNames:
-type: string
-additionalProperties:
-$ref: '#/components/schemas/JsonValue'
-required:
-type: array
-items:
-type: string
-additionalProperties:
-type: boolean
-required:
-- type
-additionalProperties:
-$ref: '#/components/schemas/JsonValue'
+- $ref: '#/components/schemas/OutputSchemaText'
+- $ref: '#/components/schemas/OutputSchemaObject'
 description: >-
 JSON schema for synthesized output. Supported root types are
 "text" and "object". When provided, the response includes an
@@ -363,6 +294,13 @@ output object whose content matches this schema. Works with
 every search type and adds about 2 seconds of synthesis latency
 on top of the selected search type.
 type: object
+discriminator:
+propertyName: type
+mapping:
+text:
+$ref: '#/components/schemas/OutputSchemaText'
+object:
+$ref: '#/components/schemas/OutputSchemaObject'
 - type: 'null'
 systemPrompt:
 anyOf:
@@ -382,406 +320,122 @@ Streaming is currently used only when outputSchema is provided;
 otherwise the endpoint returns the normal JSON search response.
 default: false
 - type: 'null'
+startCrawlDate:
+anyOf:
+- type: string
+format: date-time
+description: Deprecated. Ignored by the API.
+x-exa-lifecycle: deprecated
+deprecated: true
+- type: 'null'
+endCrawlDate:
+anyOf:
+- type: string
+format: date-time
+description: Deprecated. Ignored by the API.
+x-exa-lifecycle: deprecated
+deprecated: true
+- type: 'null'
+includeText:
+anyOf:
+- maxItems: 50
+type: array
+items:
+type: string
+maxLength: 4096
+- type: 'null'
+description: >-
+Deprecated. List of strings that must be present in the webpage text
+of results. Matching is approximate (word-level rather than exact
+phrase), so a multi-word entry can match pages where its words
+appear separately. Up to 50 strings, each up to 4096 characters.
+x-exa-lifecycle: deprecated
+deprecated: true
+excludeText:
+anyOf:
+- maxItems: 50
+type: array
+items:
+type: string
+maxLength: 4096
+- type: 'null'
+description: >-
+Deprecated. List of strings that must not be present in the webpage
+text of results. Matching is approximate (word-level rather than
+exact phrase). Up to 50 strings, each up to 4096 characters.
+x-exa-lifecycle: deprecated
+deprecated: true
+context:
+anyOf:
+- description: >-
+Deprecated. Use `highlights` or `text` instead. Returns page
+contents as a combined context string.
+x-exa-lifecycle: deprecated
+deprecated: true
+x-exa-replacement:
+- highlights
+- text
+oneOf:
+- type: boolean
+description: >-
+Deprecated. Use `highlights` or `text` instead. Returns page
+contents as a combined context string.
+x-exa-lifecycle: deprecated
+deprecated: true
+x-exa-replacement:
+- highlights
+- text
+- type: object
+properties:
+maxCharacters:
+type: integer
+minimum: 1
+maximum: 1000000
+description: Maximum character limit for the context string.
+description: >-
+Deprecated. Use `highlights` or `text` instead. Returns page
+contents as a combined context string.
+x-exa-lifecycle: deprecated
+deprecated: true
+x-exa-replacement:
+- highlights
+- text
+- type: 'null'
 required:
 - query
 SearchResponse:
 oneOf:
-- type: object
-properties:
-requestId:
-type: string
-description: Unique identifier for the request.
-example: b5947044c4b78efa9552a7c89b306d95
-results:
-type: array
-items:
-$ref: '#/components/schemas/SearchResultOutput'
-description: >-
-A list of search results containing title, URL, published date,
-and author.
-resolvedSearchType:
-description: >-
-Deprecated legacy field. Current production responses may return
-an empty string; clients should not branch on this value.
-example: ''
-deprecated: true
-type: string
-context:
-type: string
-description: >-
-Deprecated. Combined context string from search results. Use
-highlights or text instead.
-deprecated: true
-costDollars:
-$ref: '#/components/schemas/CostDollarsOutput'
-searchTime:
-type: number
-description: >-
-Server-side processing time in milliseconds, measured at the
-gateway. Covers retrieval but may exclude later phases such as
-structured output synthesis, so it can be lower than end-to-end
-request latency.
-example: 312.4
-output:
-$ref: '#/components/schemas/SearchSynthesisOutputOutput'
-required:
-- results
-- output
-additionalProperties: false
-- type: object
-properties:
-requestId:
-type: string
-description: Unique identifier for the request.
-example: b5947044c4b78efa9552a7c89b306d95
-results:
-type: array
-items:
-$ref: '#/components/schemas/SearchResultOutput'
-description: >-
-A list of search results containing title, URL, published date,
-and author.
-resolvedSearchType:
-description: >-
-Deprecated legacy field. Current production responses may return
-an empty string; clients should not branch on this value.
-example: ''
-deprecated: true
-type: string
-context:
-type: string
-description: >-
-Deprecated. Combined context string from search results. Use
-highlights or text instead.
-deprecated: true
-costDollars:
-$ref: '#/components/schemas/CostDollarsOutput'
-searchTime:
-type: number
-description: >-
-Server-side processing time in milliseconds, measured at the
-gateway. Covers retrieval but may exclude later phases such as
-structured output synthesis, so it can be lower than end-to-end
-request latency.
-example: 312.4
-required:
-- results
-additionalProperties: false
+- $ref: '#/components/schemas/SearchSynthesisResponse'
+- $ref: '#/components/schemas/SearchResultsResponse'
 SearchStreamChunk:
 oneOf:
-- type: object
-properties:
-requestId:
-type: string
-description: Unique identifier for the request.
-example: b5947044c4b78efa9552a7c89b306d95
-type:
-type: string
-const: text-delta
-delta:
-type: string
-choices:
-type: array
-items:
-type: object
-properties:
-index:
-type: integer
-minimum: 0
-delta:
-type: object
-properties:
-role:
-type: string
-const: assistant
-content:
-type: string
-citations:
-type: array
-items:
-type: object
-properties:
-url:
-type: string
-format: uri
-description: Source URL.
-title:
-type: string
-description: Source title.
-id:
-type: string
-required:
-- url
-- title
-- id
-additionalProperties: false
-additionalProperties: false
-finish_reason:
-oneOf:
-- type: string
-const: stop
-- type: 'null'
-required:
-- index
-- delta
-- finish_reason
-additionalProperties: false
-required:
-- type
-- delta
-additionalProperties: false
-- type: object
-properties:
-requestId:
-type: string
-description: Unique identifier for the request.
-example: b5947044c4b78efa9552a7c89b306d95
-type:
-type: string
-const: grounding
-grounding:
-type: array
-items:
-type: object
-properties:
-field:
-type: string
-description: >-
-Field path in output.content, for example content or
-companies[0].funding.
-citations:
-type: array
-items:
-type: object
-properties:
-url:
-type: string
-format: uri
-description: Source URL.
-title:
-type: string
-description: Source title.
-required:
-- url
-- title
-additionalProperties: false
-description: Sources supporting this output field.
-confidence:
-type: string
-enum:
-- low
-- medium
-- high
-description: Model-reported reliability for this field.
-required:
-- field
-- citations
-- confidence
-additionalProperties: false
-description: Field-level grounding for synthesized output.
-citations:
-type: array
-items:
-type: object
-properties:
-url:
-type: string
-format: uri
-description: Source URL.
-title:
-type: string
-description: Source title.
-id:
-type: string
-required:
-- url
-- title
-- id
-additionalProperties: false
-choices:
-type: array
-items:
-type: object
-properties:
-index:
-type: integer
-minimum: 0
-delta:
-type: object
-properties:
-role:
-type: string
-const: assistant
-content:
-type: string
-citations:
-type: array
-items:
-type: object
-properties:
-url:
-type: string
-format: uri
-description: Source URL.
-title:
-type: string
-description: Source title.
-id:
-type: string
-required:
-- url
-- title
-- id
-additionalProperties: false
-additionalProperties: false
-finish_reason:
-oneOf:
-- type: string
-const: stop
-- type: 'null'
-required:
-- index
-- delta
-- finish_reason
-additionalProperties: false
-required:
-- type
-- grounding
-additionalProperties: false
-- type: object
-properties:
-requestId:
-type: string
-description: Unique identifier for the request.
-example: b5947044c4b78efa9552a7c89b306d95
-type:
-type: string
-const: results
-results:
-type: array
-items:
-$ref: '#/components/schemas/SearchResultOutput'
-required:
-- type
-- results
-additionalProperties: false
-- type: object
-properties:
-requestId:
-type: string
-description: Unique identifier for the request.
-example: b5947044c4b78efa9552a7c89b306d95
-type:
-type: string
-const: stream-reset
-streamReset:
-type: boolean
-const: true
-required:
-- type
-- streamReset
-additionalProperties: false
-- type: object
-properties:
-requestId:
-type: string
-description: Unique identifier for the request.
-example: b5947044c4b78efa9552a7c89b306d95
-type:
-type: string
-const: done
-output:
-anyOf:
-- $ref: '#/components/schemas/SearchSynthesisOutputOutput'
-- type: 'null'
-searchTime:
-type: number
-description: >-
-Server-side processing time in milliseconds, measured at the
-gateway. Covers retrieval but may exclude later phases such as
-structured output synthesis, so it can be lower than end-to-end
-request latency.
-example: 312.4
-costDollars:
-$ref: '#/components/schemas/CostDollarsOutput'
-choices:
-type: array
-items:
-type: object
-properties:
-index:
-type: integer
-minimum: 0
-delta:
-type: object
-properties:
-role:
-type: string
-const: assistant
-content:
-type: string
-citations:
-type: array
-items:
-type: object
-properties:
-url:
-type: string
-format: uri
-description: Source URL.
-title:
-type: string
-description: Source title.
-id:
-type: string
-required:
-- url
-- title
-- id
-additionalProperties: false
-additionalProperties: false
-finish_reason:
-oneOf:
-- type: string
-const: stop
-- type: 'null'
-required:
-- index
-- delta
-- finish_reason
-additionalProperties: false
-required:
-- type
-- output
-- searchTime
-additionalProperties: false
-- type: object
-properties:
-requestId:
-type: string
-description: Unique identifier for the request.
-example: b5947044c4b78efa9552a7c89b306d95
-type:
-type: string
-const: error
-error:
-type: object
-properties:
-message:
-type: string
-required:
-- message
-additionalProperties: false
-required:
-- type
-- error
-additionalProperties: false
+- $ref: '#/components/schemas/SearchStreamTextDeltaChunkOutput'
+- $ref: '#/components/schemas/SearchStreamGroundingChunkOutput'
+- $ref: '#/components/schemas/SearchStreamResultsChunkOutput'
+- $ref: '#/components/schemas/SearchStreamResetChunkOutput'
+- $ref: '#/components/schemas/SearchStreamDoneChunkOutput'
+- $ref: '#/components/schemas/SearchStreamErrorChunkOutput'
 description: >-
 Schema for each JSON payload emitted in a `/search` server-sent event
 stream. Each event is emitted as `data: <json>` and the stream
 terminates with `data: [DONE]`, which is not represented by this JSON
 schema.
 type: object
+discriminator:
+propertyName: type
+mapping:
+text-delta:
+$ref: '#/components/schemas/SearchStreamTextDeltaChunkOutput'
+grounding:
+$ref: '#/components/schemas/SearchStreamGroundingChunkOutput'
+results:
+$ref: '#/components/schemas/SearchStreamResultsChunkOutput'
+stream-reset:
+$ref: '#/components/schemas/SearchStreamResetChunkOutput'
+done:
+$ref: '#/components/schemas/SearchStreamDoneChunkOutput'
+error:
+$ref: '#/components/schemas/SearchStreamErrorChunkOutput'
 ErrorResponse:
 type: object
 properties:
@@ -825,6 +479,11 @@ examples:
 - TEAM_BLOCKED
 - NOT_FOUND
 - RATE_LIMIT_EXCEEDED
+- SNAPSHOT_RATE_LIMIT_EXCEEDED
+- SNAPSHOT_NOT_ON_PLAN
+- SNAPSHOT_NOT_IN_CONTRACT
+- SNAPSHOT_TRIAL_EXHAUSTED
+- SNAPSHOT_TRIAL_CAP_EXCEEDED
 required:
 - requestId
 - error
@@ -874,6 +533,11 @@ examples:
 - TEAM_BLOCKED
 - NOT_FOUND
 - RATE_LIMIT_EXCEEDED
+- SNAPSHOT_RATE_LIMIT_EXCEEDED
+- SNAPSHOT_NOT_ON_PLAN
+- SNAPSHOT_NOT_IN_CONTRACT
+- SNAPSHOT_TRIAL_EXHAUSTED
+- SNAPSHOT_TRIAL_CAP_EXCEEDED
 x402Version:
 type: number
 description: Version of the x402 protocol used to build this challenge.
@@ -946,11 +610,10 @@ maxCharacters:
 anyOf:
 - type: integer
 minimum: 1
-maximum: 10000
+maximum: 1000000
 description: >-
 Maximum character limit for the full page text.
 Useful for controlling response size and API costs.
-Maximum supported value is 10000.
 example: 1000
 - type: 'null'
 includeHtmlTags:
@@ -1104,12 +767,12 @@ maxCharacters:
 anyOf:
 - type: integer
 minimum: 1
-maximum: 10000
+maximum: 1000000
 description: >-
 Maximum number of characters to return for
 highlights. Controls the total length of highlight
-text returned per URL. Maximum supported value is
-10000. Not compatible with highlights.dynamic.
+text returned per URL. Not compatible with
+highlights.dynamic.
 example: 2000
 - type: 'null'
 numSentences:
@@ -1117,24 +780,24 @@ anyOf:
 - type: integer
 minimum: 1
 description: >-
-Deprecated and will be removed in a future release.
-Currently mapped to a character budget of about 1333
+Deprecated. Use `maxCharacters` instead. Currently
+mapped to a character budget of about 1333
 characters per sentence. Pass highlights: true for
 default highlights, or { query } to guide selection
 with your own query.
-example: 1
+x-exa-lifecycle: deprecated
 deprecated: true
+x-exa-replacement: maxCharacters
 - type: 'null'
 highlightsPerUrl:
 anyOf:
 - type: integer
 minimum: 1
 description: >-
-Deprecated and will be removed in a future release.
-Currently ignored. Pass highlights: true for default
-highlights, or { query } to guide selection with
-your own query.
-example: 1
+Deprecated. Currently ignored. Pass highlights: true
+for default highlights, or { query } to guide
+selection with your own query.
+x-exa-lifecycle: deprecated
 deprecated: true
 - type: 'null'
 title: Advanced highlights options
@@ -1233,50 +896,6 @@ default: 0
 - type: 'null'
 description: Extra parameters to pass.
 - type: 'null'
-context:
-anyOf:
-- description: >-
-Deprecated: Use highlights or text instead. Returns page
-contents as a combined context string.
-deprecated: true
-oneOf:
-- type: boolean
-description: >-
-Deprecated: Use highlights or text instead. Returns page
-contents as a combined context string.
-example: true
-deprecated: true
-- type: object
-properties:
-maxCharacters:
-type: integer
-minimum: 1
-maximum: 10000
-description: >-
-Deprecated. Maximum character limit for the context
-string. Maximum supported value is 10000.
-example: 10000
-description: >-
-Deprecated: Use highlights or text instead. Returns page
-contents as a combined context string.
-deprecated: true
-- type: 'null'
-livecrawl:
-anyOf:
-- type: string
-enum:
-- never
-- always
-- fallback
-- preferred
-description: >-
-Deprecated: Use maxAgeHours instead for content freshness
-control. livecrawl does not guarantee freshly fetched parser
-output and may be served according to server freshness policy.
-Do not send livecrawl and maxAgeHours together.
-example: preferred
-deprecated: true
-- type: 'null'
 livecrawlTimeout:
 anyOf:
 - type: integer
@@ -1299,6 +918,25 @@ options to newly fetched pages; -1 always uses cache; omitted
 uses fallback fetching when cached content is unavailable.
 Maximum supported value is 720 hours.
 example: 24
+- type: 'null'
+snapshotAsOf:
+anyOf:
+- description: >-
+Return the newest stored version of each page as of this
+instant. Accepts an ISO 8601 date-time (`2026-01-15T00:00:00Z`)
+or a date-only value (`2026-01-15`), which is interpreted as
+midnight UTC. Historical requests are served from stored
+versions only and never fetch the live page.
+example: '2026-01-15T00:00:00.000Z'
+oneOf:
+- type: string
+description: ISO 8601 date-time.
+example: '2026-01-15T00:00:00.000Z'
+format: date-time
+- type: string
+description: ISO 8601 date (`YYYY-MM-DD`), interpreted as midnight UTC.
+example: '2026-01-15T00:00:00.000Z'
+format: date
 - type: 'null'
 subpages:
 anyOf:
@@ -1329,6 +967,504 @@ type: string
 minLength: 1
 maxLength: 100
 - type: 'null'
+context:
+anyOf:
+- description: >-
+Deprecated. Use `highlights` or `text` instead. Returns page
+contents as a combined context string.
+x-exa-lifecycle: deprecated
+deprecated: true
+x-exa-replacement:
+- highlights
+- text
+oneOf:
+- type: boolean
+description: >-
+Deprecated. Use `highlights` or `text` instead. Returns page
+contents as a combined context string.
+x-exa-lifecycle: deprecated
+deprecated: true
+x-exa-replacement:
+- highlights
+- text
+- type: object
+properties:
+maxCharacters:
+type: integer
+minimum: 1
+maximum: 1000000
+description: Maximum character limit for the context string.
+description: >-
+Deprecated. Use `highlights` or `text` instead. Returns page
+contents as a combined context string.
+x-exa-lifecycle: deprecated
+deprecated: true
+x-exa-replacement:
+- highlights
+- text
+- type: 'null'
+livecrawl:
+anyOf:
+- type: string
+enum:
+- never
+- always
+- fallback
+- preferred
+description: >-
+Deprecated. Use `maxAgeHours` instead. Does not guarantee
+freshly fetched content, which may be served according to server
+freshness policy. Do not send livecrawl and maxAgeHours
+together.
+x-exa-lifecycle: deprecated
+deprecated: true
+x-exa-replacement: maxAgeHours
+- type: 'null'
+crawledBeforeDate:
+anyOf:
+- type: string
+- type: 'null'
+format: date-time
+description: >-
+Deprecated. Use `snapshotAsOf` instead. Alias of snapshotAsOf with
+identical behavior.
+x-exa-lifecycle: deprecated
+deprecated: true
+x-exa-replacement: snapshotAsOf
+OutputSchemaText:
+type: object
+properties:
+type:
+type: string
+const: text
+description:
+type: string
+required:
+- type
+OutputSchemaObject:
+type: object
+properties:
+type:
+type: string
+const: object
+description:
+type: string
+properties:
+type: object
+propertyNames:
+type: string
+additionalProperties:
+$ref: '#/components/schemas/JsonValue'
+required:
+type: array
+items:
+type: string
+additionalProperties:
+type: boolean
+required:
+- type
+additionalProperties:
+$ref: '#/components/schemas/JsonValue'
+SearchSynthesisResponse:
+type: object
+properties:
+requestId:
+type: string
+description: Unique identifier for the request.
+example: b5947044c4b78efa9552a7c89b306d95
+results:
+type: array
+items:
+$ref: '#/components/schemas/SearchResultOutput'
+description: >-
+A list of search results containing title, URL, published date, and
+author.
+costDollars:
+$ref: '#/components/schemas/CostDollarsOutput'
+searchTime:
+type: number
+description: >-
+Server-side processing time in milliseconds, measured at the
+gateway. Covers retrieval but may exclude later phases such as
+structured output synthesis, so it can be lower than end-to-end
+request latency.
+example: 312.4
+output:
+$ref: '#/components/schemas/SearchSynthesisOutputOutput'
+resolvedSearchType:
+description: Deprecated. May be an empty string. Do not branch on this value.
+x-exa-lifecycle: deprecated
+deprecated: true
+type: string
+context:
+type: string
+description: >-
+Deprecated. Use `results[].highlights` or `results[].text` instead.
+Combined context string from search results.
+x-exa-lifecycle: deprecated
+deprecated: true
+x-exa-replacement:
+- results[].highlights
+- results[].text
+required:
+- results
+- output
+additionalProperties: false
+SearchResultsResponse:
+type: object
+properties:
+requestId:
+type: string
+description: Unique identifier for the request.
+example: b5947044c4b78efa9552a7c89b306d95
+results:
+type: array
+items:
+$ref: '#/components/schemas/SearchResultOutput'
+description: >-
+A list of search results containing title, URL, published date, and
+author.
+costDollars:
+$ref: '#/components/schemas/CostDollarsOutput'
+searchTime:
+type: number
+description: >-
+Server-side processing time in milliseconds, measured at the
+gateway. Covers retrieval but may exclude later phases such as
+structured output synthesis, so it can be lower than end-to-end
+request latency.
+example: 312.4
+resolvedSearchType:
+description: Deprecated. May be an empty string. Do not branch on this value.
+x-exa-lifecycle: deprecated
+deprecated: true
+type: string
+context:
+type: string
+description: >-
+Deprecated. Use `results[].highlights` or `results[].text` instead.
+Combined context string from search results.
+x-exa-lifecycle: deprecated
+deprecated: true
+x-exa-replacement:
+- results[].highlights
+- results[].text
+required:
+- results
+additionalProperties: false
+SearchStreamTextDeltaChunkOutput:
+type: object
+properties:
+requestId:
+type: string
+description: Unique identifier for the request.
+example: b5947044c4b78efa9552a7c89b306d95
+type:
+type: string
+const: text-delta
+delta:
+type: string
+choices:
+type: array
+items:
+type: object
+properties:
+index:
+type: integer
+minimum: 0
+delta:
+type: object
+properties:
+role:
+type: string
+const: assistant
+content:
+type: string
+citations:
+type: array
+items:
+type: object
+properties:
+url:
+type: string
+format: uri
+description: Source URL.
+title:
+type: string
+description: Source title.
+id:
+type: string
+required:
+- url
+- title
+- id
+additionalProperties: false
+additionalProperties: false
+finish_reason:
+oneOf:
+- type: string
+const: stop
+- type: 'null'
+required:
+- index
+- delta
+- finish_reason
+additionalProperties: false
+required:
+- type
+- delta
+additionalProperties: false
+SearchStreamGroundingChunkOutput:
+type: object
+properties:
+requestId:
+type: string
+description: Unique identifier for the request.
+example: b5947044c4b78efa9552a7c89b306d95
+type:
+type: string
+const: grounding
+grounding:
+type: array
+items:
+type: object
+properties:
+field:
+type: string
+description: >-
+Field path in output.content, for example content or
+companies[0].funding.
+citations:
+type: array
+items:
+type: object
+properties:
+url:
+type: string
+format: uri
+description: Source URL.
+title:
+type: string
+description: Source title.
+required:
+- url
+- title
+additionalProperties: false
+description: Sources supporting this output field.
+confidence:
+type: string
+enum:
+- low
+- medium
+- high
+description: Model-reported reliability for this field.
+required:
+- field
+- citations
+- confidence
+additionalProperties: false
+description: Field-level grounding for synthesized output.
+citations:
+type: array
+items:
+type: object
+properties:
+url:
+type: string
+format: uri
+description: Source URL.
+title:
+type: string
+description: Source title.
+id:
+type: string
+required:
+- url
+- title
+- id
+additionalProperties: false
+choices:
+type: array
+items:
+type: object
+properties:
+index:
+type: integer
+minimum: 0
+delta:
+type: object
+properties:
+role:
+type: string
+const: assistant
+content:
+type: string
+citations:
+type: array
+items:
+type: object
+properties:
+url:
+type: string
+format: uri
+description: Source URL.
+title:
+type: string
+description: Source title.
+id:
+type: string
+required:
+- url
+- title
+- id
+additionalProperties: false
+additionalProperties: false
+finish_reason:
+oneOf:
+- type: string
+const: stop
+- type: 'null'
+required:
+- index
+- delta
+- finish_reason
+additionalProperties: false
+required:
+- type
+- grounding
+additionalProperties: false
+SearchStreamResultsChunkOutput:
+type: object
+properties:
+requestId:
+type: string
+description: Unique identifier for the request.
+example: b5947044c4b78efa9552a7c89b306d95
+type:
+type: string
+const: results
+results:
+type: array
+items:
+$ref: '#/components/schemas/SearchResultOutput'
+required:
+- type
+- results
+additionalProperties: false
+SearchStreamResetChunkOutput:
+type: object
+properties:
+requestId:
+type: string
+description: Unique identifier for the request.
+example: b5947044c4b78efa9552a7c89b306d95
+type:
+type: string
+const: stream-reset
+streamReset:
+type: boolean
+const: true
+required:
+- type
+- streamReset
+additionalProperties: false
+SearchStreamDoneChunkOutput:
+type: object
+properties:
+requestId:
+type: string
+description: Unique identifier for the request.
+example: b5947044c4b78efa9552a7c89b306d95
+type:
+type: string
+const: done
+output:
+anyOf:
+- $ref: '#/components/schemas/SearchSynthesisOutputOutput'
+- type: 'null'
+searchTime:
+type: number
+description: >-
+Server-side processing time in milliseconds, measured at the
+gateway. Covers retrieval but may exclude later phases such as
+structured output synthesis, so it can be lower than end-to-end
+request latency.
+example: 312.4
+costDollars:
+$ref: '#/components/schemas/CostDollarsOutput'
+choices:
+type: array
+items:
+type: object
+properties:
+index:
+type: integer
+minimum: 0
+delta:
+type: object
+properties:
+role:
+type: string
+const: assistant
+content:
+type: string
+citations:
+type: array
+items:
+type: object
+properties:
+url:
+type: string
+format: uri
+description: Source URL.
+title:
+type: string
+description: Source title.
+id:
+type: string
+required:
+- url
+- title
+- id
+additionalProperties: false
+additionalProperties: false
+finish_reason:
+oneOf:
+- type: string
+const: stop
+- type: 'null'
+required:
+- index
+- delta
+- finish_reason
+additionalProperties: false
+required:
+- type
+- output
+- searchTime
+additionalProperties: false
+SearchStreamErrorChunkOutput:
+type: object
+properties:
+requestId:
+type: string
+description: Unique identifier for the request.
+example: b5947044c4b78efa9552a7c89b306d95
+type:
+type: string
+const: error
+error:
+type: object
+properties:
+message:
+type: string
+required:
+- message
+additionalProperties: false
+required:
+- type
+- error
+additionalProperties: false
 JsonValue:
 description: Any JSON value.
 oneOf:
@@ -1469,7 +1605,224 @@ results. Returned for supported entity-backed categories.
 type: array
 items:
 oneOf:
+- $ref: '#/components/schemas/SearchCompanyEntityOutput'
+- $ref: '#/components/schemas/SearchPersonEntityOutput'
+- $ref: '#/components/schemas/SearchPublicationEntityOutput'
+type: object
+discriminator:
+propertyName: type
+mapping:
+company:
+$ref: '#/components/schemas/SearchCompanyEntityOutput'
+person:
+$ref: '#/components/schemas/SearchPersonEntityOutput'
+publication:
+$ref: '#/components/schemas/SearchPublicationEntityOutput'
+extras:
+description: >-
+Results from extras. Each field is returned only when requested via
+contents.extras.
+example:
+links: []
+type: object
+properties:
+links:
+description: Array of links from the search result.
+example: []
+type: array
+items:
+type: string
+imageLinks:
+description: Array of image URLs from the search result.
+example: []
+type: array
+items:
+type: string
+richImageLinks:
+description: >-
+Array of images with their alt text, in the order the images
+appear on the page.
+example:
+- url: https://exa.ai/images/illustrations/api_illustration4.webp
+alt: High rate limits, low latency and high reliability.
+type: array
+items:
+type: object
+properties:
+url:
+type: string
+description: The URL of the image.
+alt:
+description: The alt text of the image, when the page provides one.
+type: string
+required:
+- url
+additionalProperties: false
+richLinks:
+description: >-
+Array of links with their anchor text, in the order they appear
+on the page.
+example:
+- url: https://dashboard.exa.ai
+anchor: API Dashboard
+type: array
+items:
+type: object
+properties:
+url:
+type: string
+description: The URL of the link.
+anchor:
+description: The anchor text of the link, when the page provides one.
+type: string
+required:
+- url
+additionalProperties: false
+codeBlocks:
+description: Array of code blocks from the search result.
+example:
+- text: pip install exa-py
+source: bash
+type: array
+items:
+type: object
+properties:
+text:
+type: string
+description: The contents of the code block.
+source:
+type: string
+description: The language the code block is annotated with, if any.
+required:
+- text
+- source
+additionalProperties: false
+additionalProperties: false
+required:
+- title
+- url
+additionalProperties: false
+CostDollarsOutput:
+type: object
+properties:
+total:
+description: >-
+Estimated total dollar cost for the completed request. This response
+value is not an invoice record.
+example: 0.007
+format: float
+type: number
+search:
+description: >-
+Endpoint-dependent estimated search cost breakdown by retrieval
+mode. Instant, fast, and auto search responses may include neural
+search cost. Deep search modes may be reflected only in total.
+type: object
+properties:
+neural:
+description: Cost of neural search operations.
+example: 0.007
+format: float
+type: number
+keyword:
+description: Cost of keyword search operations.
+example: 0.0025
+format: float
+type: number
+additionalProperties: false
+summary:
+description: Cost of synthesized summary generation for search requests.
+example: 0.005
+format: float
+type: number
+contents:
+description: >-
+Estimated cost breakdown for standalone content retrieval (text,
+highlights, and summaries billed outside the bundled search price).
+type: object
+properties:
+text:
+description: Cost of text extraction.
+example: 0.001
+format: float
+type: number
+highlights:
+description: Cost of highlight extraction.
+example: 0.001
+format: float
+type: number
+summary:
+description: Cost of per-result summary generation.
+example: 0.001
+format: float
+type: number
+additionalProperties: false
+additionalProperties: false
+description: >-
+Endpoint-dependent estimated dollar cost breakdown for the completed
+request. Billing is computed from usage counters rather than this
+response object.
+SearchSynthesisOutputOutput:
+type: object
+properties:
+content:
+description: >-
+Synthesized content. String by default, or object when outputSchema
+is provided.
+oneOf:
+- type: string
 - type: object
+propertyNames:
+type: string
+additionalProperties:
+$ref: '#/components/schemas/JsonValue'
+grounding:
+type: array
+items:
+type: object
+properties:
+field:
+type: string
+description: >-
+Field path in output.content, for example content or
+companies[0].funding.
+citations:
+type: array
+items:
+type: object
+properties:
+url:
+type: string
+format: uri
+description: Source URL.
+title:
+type: string
+description: Source title.
+required:
+- url
+- title
+additionalProperties: false
+description: Sources supporting this output field.
+confidence:
+type: string
+enum:
+- low
+- medium
+- high
+description: Model-reported reliability for this field.
+required:
+- field
+- citations
+- confidence
+additionalProperties: false
+description: Field-level grounding for synthesized output.
+required:
+- content
+- grounding
+additionalProperties: false
+description: Synthesized output. Returned when outputSchema is provided.
+SearchCompanyEntityOutput:
+type: object
 properties:
 id:
 type: string
@@ -1607,8 +1960,8 @@ anyOf:
 - type: integer
 - type: 'null'
 description: >-
-Estimated website traffic rank within the
-company's primary country.
+Estimated website traffic rank within the company's
+primary country.
 avgDurationSeconds:
 anyOf:
 - type: number
@@ -1621,19 +1974,13 @@ type: object
 properties:
 value:
 type: number
-description: >-
-Estimated monthly visits for this
-period.
+description: Estimated monthly visits for this period.
 dateFrom:
 type: string
-description: >-
-Start month for this value, formatted as
-YYYY-MM.
+description: Start month for this value, formatted as YYYY-MM.
 dateTo:
 type: string
-description: >-
-End month for this value, formatted as
-YYYY-MM.
+description: End month for this value, formatted as YYYY-MM.
 required:
 - value
 - dateFrom
@@ -1702,8 +2049,8 @@ anyOf:
 - type: string
 - type: 'null'
 description: >-
-Resolved publication entity identifier,
-when available.
+Resolved publication entity identifier, when
+available.
 type:
 anyOf:
 - type: string
@@ -1757,16 +2104,14 @@ worksCount:
 anyOf:
 - type: integer
 - type: 'null'
-description: >-
-Number of works produced at the
-organization.
+description: Number of works produced at the organization.
 citationCount:
 anyOf:
 - type: integer
 - type: 'null'
 description: >-
-Number of citations for works produced
-at the organization.
+Number of citations for works produced at the
+organization.
 required:
 - person
 - worksCount
@@ -1801,7 +2146,8 @@ required:
 - version
 - properties
 additionalProperties: false
-- type: object
+SearchPersonEntityOutput:
+type: object
 properties:
 id:
 type: string
@@ -2024,8 +2370,8 @@ anyOf:
 - type: string
 - type: 'null'
 description: >-
-Resolved publication entity identifier,
-when available.
+Resolved publication entity identifier, when
+available.
 type:
 anyOf:
 - type: string
@@ -2077,7 +2423,8 @@ required:
 - version
 - properties
 additionalProperties: false
-- type: object
+SearchPublicationEntityOutput:
+type: object
 properties:
 id:
 type: string
@@ -2131,9 +2478,7 @@ citationCount:
 anyOf:
 - type: integer
 - type: 'null'
-description: >-
-Number of works citing this publication (incoming
-references).
+description: Number of works citing this publication (incoming references).
 authors:
 type: array
 items:
@@ -2148,9 +2493,7 @@ id:
 anyOf:
 - type: string
 - type: 'null'
-description: >-
-Resolved person entity identifier, when
-available.
+description: Resolved person entity identifier, when available.
 required:
 - name
 - id
@@ -2160,9 +2503,7 @@ referenceCount:
 anyOf:
 - type: integer
 - type: 'null'
-description: >-
-Number of works this publication cites (outgoing
-references).
+description: Number of works this publication cites (outgoing references).
 abstract:
 anyOf:
 - type: string
@@ -2192,210 +2533,6 @@ required:
 - version
 - properties
 additionalProperties: false
-type: object
-extras:
-description: >-
-Results from extras. Each field is returned only when requested via
-contents.extras.
-example:
-links: []
-type: object
-properties:
-links:
-description: Array of links from the search result.
-example: []
-type: array
-items:
-type: string
-imageLinks:
-description: Array of image URLs from the search result.
-example: []
-type: array
-items:
-type: string
-richImageLinks:
-description: >-
-Array of images with their alt text, in the order the images
-appear on the page.
-example:
-- url: https://exa.ai/images/illustrations/api_illustration4.webp
-alt: High rate limits, low latency and high reliability.
-type: array
-items:
-type: object
-properties:
-url:
-type: string
-description: The URL of the image.
-alt:
-description: The alt text of the image, when the page provides one.
-type: string
-required:
-- url
-additionalProperties: false
-richLinks:
-description: >-
-Array of links with their anchor text, in the order they appear
-on the page.
-example:
-- url: https://dashboard.exa.ai
-anchor: API Dashboard
-type: array
-items:
-type: object
-properties:
-url:
-type: string
-description: The URL of the link.
-anchor:
-description: The anchor text of the link, when the page provides one.
-type: string
-required:
-- url
-additionalProperties: false
-codeBlocks:
-description: Array of code blocks from the search result.
-example:
-- text: pip install exa-py
-source: bash
-type: array
-items:
-type: object
-properties:
-text:
-type: string
-description: The contents of the code block.
-source:
-type: string
-description: The language the code block is annotated with, if any.
-required:
-- text
-- source
-additionalProperties: false
-additionalProperties: false
-required:
-- title
-- url
-additionalProperties: false
-CostDollarsOutput:
-type: object
-properties:
-total:
-description: >-
-Estimated total dollar cost for the completed request. This response
-value is not an invoice record.
-example: 0.007
-format: float
-type: number
-search:
-description: >-
-Endpoint-dependent estimated search cost breakdown by retrieval
-mode. Instant, fast, and auto search responses may include neural
-search cost. Deep search modes may be reflected only in total.
-type: object
-properties:
-neural:
-description: Cost of neural search operations.
-example: 0.007
-format: float
-type: number
-keyword:
-description: Cost of keyword search operations.
-example: 0.0025
-format: float
-type: number
-additionalProperties: false
-summary:
-description: Cost of synthesized summary generation for search requests.
-example: 0.005
-format: float
-type: number
-contents:
-description: >-
-Estimated cost breakdown for standalone content retrieval (text,
-highlights, and summaries billed outside the bundled search price).
-type: object
-properties:
-text:
-description: Cost of text extraction.
-example: 0.001
-format: float
-type: number
-highlights:
-description: Cost of highlight extraction.
-example: 0.001
-format: float
-type: number
-summary:
-description: Cost of per-result summary generation.
-example: 0.001
-format: float
-type: number
-additionalProperties: false
-additionalProperties: false
-description: >-
-Endpoint-dependent estimated dollar cost breakdown for the completed
-request. Billing is computed from usage counters rather than this
-response object.
-SearchSynthesisOutputOutput:
-type: object
-properties:
-content:
-description: >-
-Synthesized content. String by default, or object when outputSchema
-is provided.
-oneOf:
-- type: string
-- type: object
-propertyNames:
-type: string
-additionalProperties:
-$ref: '#/components/schemas/JsonValue'
-grounding:
-type: array
-items:
-type: object
-properties:
-field:
-type: string
-description: >-
-Field path in output.content, for example content or
-companies[0].funding.
-citations:
-type: array
-items:
-type: object
-properties:
-url:
-type: string
-format: uri
-description: Source URL.
-title:
-type: string
-description: Source title.
-required:
-- url
-- title
-additionalProperties: false
-description: Sources supporting this output field.
-confidence:
-type: string
-enum:
-- low
-- medium
-- high
-description: Model-reported reliability for this field.
-required:
-- field
-- citations
-- confidence
-additionalProperties: false
-description: Field-level grounding for synthesized output.
-required:
-- content
-- grounding
-additionalProperties: false
-description: Synthesized output. Returned when outputSchema is provided.
 headers:
 XRequestId:
 description: >-
@@ -2449,7 +2586,7 @@ tag: INVALID_API_KEY
 schema:
 $ref: '#/components/schemas/ErrorResponse'
 TooManyRequestsResponse:
-description: A rate limit was exceeded.
+description: A rate limit for this API key, team, or network was exceeded.
 headers:
 x-request-id:
 $ref: '#/components/headers/XRequestId'
@@ -2476,6 +2613,23 @@ error: >-
 Sorry, we encountered an error while processing your request.
 Please try again later
 tag: DEFAULT_ERROR
+schema:
+$ref: '#/components/schemas/ErrorResponse'
+ServiceUnavailableResponse:
+description: >-
+Exa is temporarily over capacity or unavailable. The request was not
+processed; retry with exponential backoff.
+headers:
+x-request-id:
+$ref: '#/components/headers/XRequestId'
+content:
+application/json:
+example:
+requestId: b3d5f7a9c1e0a2c4e6b8d0f2a4c6e8b1
+error: >-
+Exa is temporarily over capacity. Please retry with exponential
+backoff.
+tag: SERVICE_OVERLOADED
 schema:
 $ref: '#/components/schemas/ErrorResponse'
 securitySchemes:
