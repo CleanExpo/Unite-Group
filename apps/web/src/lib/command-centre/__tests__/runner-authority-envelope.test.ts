@@ -34,7 +34,13 @@ type Cmd = [tool: 'git' | 'gh' | 'vercel' | 'supabase', ...args: string[]]
 
 // Build steps with a shell command. The rest are not tool-gated (see below).
 const BUILD_COMMANDS: Record<string, Cmd[]> = {
-  discover: [['git', 'log', '--oneline', '-5'], ['gh', 'pr', 'view', '12'], ['gh', 'api', 'repos/CleanExpo/Unite-Group/pulls/12']],
+  discover: [
+    ['git', 'log', '--oneline', '-5'],
+    ['gh', 'pr', 'view', '12'],
+    ['gh', 'pr', 'checks', '12'],
+    ['gh', 'run', 'view', '123', '--log-failed'],
+    ['gh', 'api', 'repos/CleanExpo/Unite-Group/pulls/12'],
+  ],
   commit: [['git', 'commit', '-m', 'feat: x (UNI-1)']],
   push_scoped_branch: [['git', 'push', '-u', 'origin', 'feature-x']],
   draft_pr: [
@@ -61,6 +67,17 @@ const PROTECTED_COMMANDS: Record<string, Cmd[]> = {
     ['gh', '-R', 'o/r', 'pr', 'merge', '1'],
     ['gh', '--repo', 'x/y', 'pr', 'merge', '1'],
     ['gh', 'api', '-XPUT', 'repos/o/r/pulls/1/merge'],
+    // value-taking options that shift the subcommand (Cursor review round 2)
+    ['gh', '--hostname', 'github.com', 'pr', 'merge', '1'],
+    ['gh', '--jq', '.', 'pr', 'merge', '1'],
+    ['gh', '--template', '{{.}}', 'pr', 'merge', '1'],
+    ['gh', '-R', 'o/r', '--jq', '.', 'pr', 'merge', '1'],
+    ['gh', '--hostname', 'github.com', 'api', '-XPUT', 'repos/o/r/pulls/1/merge'],
+    // an unlisted value-taking option shifts the words so an allowed pair shows first;
+    // only the protected-word-anywhere layer sees the merge
+    ['gh', '--jq', 'pr', 'view', 'pr', 'merge', '1'],
+    ['gh', 'config', 'set', 'alias.m', 'pr merge'],
+    ['gh', 'm', '1'],
   ],
   mark_pr_ready: [
     ['gh', 'pr', 'ready', '12'],
@@ -85,7 +102,14 @@ const PROTECTED_COMMANDS: Record<string, Cmd[]> = {
     ['vercel', '--cwd', 'x', 'promote', 'https://x.vercel.app'],
     ['vercel', '--foo', 'ls', 'promote', 'https://x.vercel.app'],
   ],
-  public_publish: [['gh', 'release', 'create', 'v1.0.0']],
+  public_publish: [
+    ['gh', 'release', 'create', 'v1.0.0'],
+    ['gh', '--hostname', 'github.com', 'release', 'create', 'v1'],
+    ['gh', 'gist', 'create', 'notes.md', '--public'],
+    ['git', 'push', 'origin', '--tags'],
+    ['git', 'push', 'origin', 'tag', 'v1.0.0'],
+    ['git', 'push', 'origin', 'refs/tags/v1.0.0'],
+  ],
   spend_expansion: [['vercel', 'domains', 'buy', 'example.com']],
   destructive_action: [
     ['git', 'push', '--force', 'origin', 'feature-x'],
@@ -106,6 +130,11 @@ const PROTECTED_COMMANDS: Record<string, Cmd[]> = {
     ['git', '-c', 'push.default=simple', 'push', '--force'],
     ['git', '-c', 'alias.p=push --force', 'p'],
     ['git', 'config', 'alias.p', 'push --force'],
+    ['git', 'config', 'include.path', '/tmp/evil.gitconfig'],
+    ['git', '-c', 'include.path=/tmp/evil.gitconfig', 'status'],
+    ['git', 'push', '--all', 'origin'],
+    ['git', 'push', 'origin', '--all'],
+    ['gh', '--template', 'x', 'repo', 'delete', 'o/r'],
     ['supabase', '--debug', 'db', 'push'],
     ['supabase', '--workdir', 'gen', 'db', 'push'],
   ],
@@ -126,6 +155,10 @@ const PROTECTED_COMMANDS: Record<string, Cmd[]> = {
     ['gh', 'extension', 'install', 'owner/gh-x'],
     // allow-lists: a subcommand nobody has listed is refused by default
     ['vercel', 'some-future-subcommand'],
+    ['gh', 'some-future-subcommand'],
+    ['gh', 'pr', 'some-future-subcommand'],
+    ['gh', '--hostname', 'github.com', 'workflow', 'run', 'ci.yml'],
+    ['gh', '--jq', '.', 'secret', 'set', 'X'],
     ['supabase', 'some-future-subcommand'],
     // behind -C the default-branch check cannot see the target repository
     ['git', '-C', '/tmp', 'push', '-u', 'origin', 'feature-x'],

@@ -29,11 +29,11 @@ for a in "$@"; do
 done
 prev=""
 for a in "$@"; do
-  case "$prev" in -c) case "$a" in [Aa][Ll][Ii][Aa][Ss].*) deny "git -c $a (alias override)" ;; esac ;; esac
+  case "$prev" in -c) case "$a" in [Aa][Ll][Ii][Aa][Ss].*|[Ii][Nn][Cc][Ll][Uu][Dd][Ee].*|[Ii][Nn][Cc][Ll][Uu][Dd][Ee][Ii][Ff].*) deny "git -c $a (alias or include override)" ;; esac ;; esac
   prev="$a"
 done
 if [ "$sub" = config ]; then
-  for a in "$@"; do case "$a" in [Aa][Ll][Ii][Aa][Ss].*) deny "git config $a (alias)" ;; esac; done
+  for a in "$@"; do case "$a" in [Aa][Ll][Ii][Aa][Ss].*|[Ii][Nn][Cc][Ll][Uu][Dd][Ee].*|[Ii][Nn][Cc][Ll][Uu][Dd][Ee][Ii][Ff].*) deny "git config $a (alias or include)" ;; esac; done
 fi
 
 case "$sub" in
@@ -45,6 +45,8 @@ case "$sub" in
         --force|--force-with-lease|-f|--force-with-lease=*|--force-if-includes|+*) deny "git push force ($a)" ;;
         # forbid deleting remote refs (--delete, -d, an empty-source :ref refspec, --mirror, --prune)
         --delete|-d|--mirror|--prune|:*) deny "git push delete ($a)" ;;
+        # forbid pushing every branch (which includes main) and tags (which can trigger releases)
+        --all|--branches|--tags|--follow-tags|tag|refs/tags/*|*:refs/tags/*) deny "git push $a" ;;
       esac
       # forbid a main/master destination, however spelled (main, x:main, refs/heads/main)
       dst="${a##*:}"

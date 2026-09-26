@@ -1,15 +1,25 @@
 #!/bin/sh
 # nexus-runner gh shim — the release half of the runner's reversible envelope
-# (policy: ../mission-authority.json). Opening or updating a DRAFT PR is a build
-# step and passes. Merging, marking ready, a non-draft PR, releases, secrets,
-# workflow runs, repo settings, aliases, extensions and any gh api write are
-# protected and blocked. Holds even under bypassPermissions (the permission
-# engine is off; this is not). Global flags (-R/--repo) are skipped to find the
-# real subcommand, so they cannot hide it.
+# (policy: ../mission-authority.json). Holds even under bypassPermissions (the
+# permission engine is off; this is not).
+#
+# ALLOW-LIST: only the commands a build needs pass — read-only discovery, and
+# opening or updating a DRAFT pull request. Everything else (merge, ready,
+# releases, gists, secrets, workflows, config, aliases, extensions, repo
+# settings, any gh api write, any command nobody has listed) is refused.
+# A deny-list lost twice in review to options that shift the subcommand, so:
+#   1. the first non-option word must be an allowed command, and
+#   2. a protected command word anywhere in argv is refused as well.
 REAL_GH="${NEXUS_RUNNER_REAL_GH:-}"
 [ -x "$REAL_GH" ] || REAL_GH=$(PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin command -v gh)
 
 deny() { echo "nexus-runner: BLOCKED 'gh $*' (protected action; needs the founder or a release mandate)" >&2; exit 3; }
+
+for a in "$@"; do
+  case "$a" in
+    merge|ready|release|gist|secret|variable|workflow|ruleset|auth|alias|extension|extensions|ext|config|codespace|attestation|cache|label|project|org|gpg-key|ssh-key) deny "$a" ;;
+  esac
+done
 
 # First two non-option words are the command and subcommand.
 sub=""; sub2=""; skip=0
@@ -25,8 +35,7 @@ done
 case "$sub" in
   pr)
     case "$sub2" in
-      merge) deny "pr merge" ;;
-      ready) deny "pr ready" ;;
+      view|list|diff|checks|status|comment|checkout) : ;;
       create)
         draft=0
         for a in "$@"; do
@@ -37,6 +46,7 @@ case "$sub" in
         done
         [ "$draft" = 1 ] || deny "pr create without --draft"
         ;;
+      *) deny "pr $sub2" ;;
     esac
     ;;
   api)
@@ -47,9 +57,12 @@ case "$sub" in
       esac
     done
     ;;
-  release|secret|variable|workflow|ruleset|auth|alias|extension|extensions|ext) deny "$sub" ;;
+  issue|run|search)
+    case "$sub2" in view|list|status|watch|issues|prs|code|repos|commits) : ;; *) deny "$sub $sub2" ;; esac ;;
   repo)
-    case "$sub2" in delete|edit|archive|rename|deploy-key) deny "repo $sub2" ;; esac
-    ;;
+    case "$sub2" in view|clone) : ;; *) deny "repo $sub2" ;; esac ;;
+  status|help|version|--version) : ;;
+  "") for a in "$@"; do case "$a" in --help|-h|--version) : ;; *) deny "$*" ;; esac; done ;;
+  *) deny "$sub" ;;
 esac
 exec "$REAL_GH" "$@"
