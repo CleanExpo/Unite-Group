@@ -37,8 +37,17 @@ const BUILD_COMMANDS: Record<string, Cmd[]> = {
   discover: [['git', 'log', '--oneline', '-5'], ['gh', 'pr', 'view', '12'], ['gh', 'api', 'repos/CleanExpo/Unite-Group/pulls/12']],
   commit: [['git', 'commit', '-m', 'feat: x (UNI-1)']],
   push_scoped_branch: [['git', 'push', '-u', 'origin', 'feature-x']],
-  draft_pr: [['gh', 'pr', 'create', '--draft', '--title', 't', '--body', 'b'], ['gh', 'pr', 'create', '-d', '--fill']],
-  preview_within_existing_mandate: [['vercel', 'deploy'], ['vercel', 'deploy', '--target', 'preview'], ['vercel', 'inspect', 'url']],
+  draft_pr: [
+    ['gh', 'pr', 'create', '--draft', '--title', 't', '--body', 'b'],
+    ['gh', 'pr', 'create', '-d', '--fill'],
+    ['gh', '-R', 'CleanExpo/Unite-Group', 'pr', 'create', '--draft', '--fill'],
+  ],
+  preview_within_existing_mandate: [
+    ['vercel', 'deploy'],
+    ['vercel', 'deploy', '--target', 'preview'],
+    ['vercel', '--scope', 'unite-group', 'deploy'],
+    ['vercel', 'inspect', 'url'],
+  ],
 }
 const BUILD_NOT_TOOL_GATED = ['edit', 'test', 'repair', 'update_linear']
 
@@ -48,8 +57,19 @@ const PROTECTED_COMMANDS: Record<string, Cmd[]> = {
     ['gh', 'pr', 'merge', '12', '--auto'],
     ['gh', 'api', '-X', 'PUT', 'repos/CleanExpo/Unite-Group/pulls/12/merge'],
     ['git', 'merge', 'origin/main'],
+    // a global flag before the subcommand must not hide it (Cursor review P1)
+    ['gh', '-R', 'o/r', 'pr', 'merge', '1'],
+    ['gh', '--repo', 'x/y', 'pr', 'merge', '1'],
+    ['gh', 'api', '-XPUT', 'repos/o/r/pulls/1/merge'],
   ],
-  mark_pr_ready: [['gh', 'pr', 'ready', '12'], ['gh', 'pr', 'create', '--title', 't', '--body', 'b'], ['gh', 'pr', 'create', '--draft=false', '--fill']],
+  mark_pr_ready: [
+    ['gh', 'pr', 'ready', '12'],
+    ['gh', 'pr', 'create', '--title', 't', '--body', 'b'],
+    ['gh', 'pr', 'create', '--draft=false', '--fill'],
+    ['gh', 'pr', 'create', '--draft', '--draft=false', '--fill'],
+    ['gh', '-R', 'o/r', 'pr', 'ready', '1'],
+    ['gh', '--repo', 'o/r', 'pr', 'create', '--title', 't', '--body', 'b'],
+  ],
   production_deploy: [
     ['vercel', '--prod'],
     ['vercel', 'deploy', '--prod'],
@@ -59,6 +79,11 @@ const PROTECTED_COMMANDS: Record<string, Cmd[]> = {
     ['vercel', 'rollback'],
     ['vercel', 'redeploy', 'url'],
     ['git', 'push', 'origin', 'HEAD:main'],
+    ['git', 'push', 'origin', 'HEAD:refs/heads/main'],
+    ['git', 'push', 'origin', 'refs/heads/main:refs/heads/main'],
+    ['git', '-C', '/tmp', 'push', 'origin', 'main'],
+    ['vercel', '--cwd', 'x', 'promote', 'https://x.vercel.app'],
+    ['vercel', '--foo', 'ls', 'promote', 'https://x.vercel.app'],
   ],
   public_publish: [['gh', 'release', 'create', 'v1.0.0']],
   spend_expansion: [['vercel', 'domains', 'buy', 'example.com']],
@@ -73,11 +98,22 @@ const PROTECTED_COMMANDS: Record<string, Cmd[]> = {
     ['supabase', 'db', 'reset', '--linked'],
     ['supabase', 'migration', 'up'],
     ['gh', 'repo', 'delete', 'CleanExpo/Unite-Group'],
+    ['git', 'push', 'origin', '+feature-x'],
+    ['git', 'push', 'origin', '+main'],
+    ['git', 'push', 'origin', '+:refs/heads/feature'],
+    ['git', '-C', '/tmp', 'push', '--force'],
+    ['git', '--git-dir=.git', 'push', '--force'],
+    ['git', '-c', 'push.default=simple', 'push', '--force'],
+    ['git', '-c', 'alias.p=push --force', 'p'],
+    ['git', 'config', 'alias.p', 'push --force'],
+    ['supabase', '--debug', 'db', 'push'],
+    ['supabase', '--workdir', 'gen', 'db', 'push'],
   ],
   credential_change: [
     ['gh', 'secret', 'set', 'X'],
     ['vercel', 'env', 'add', 'X'],
     ['vercel', 'pull'],
+    ['vercel', '--token', 't', 'env', 'add', 'FOO'],
     ['supabase', 'secrets', 'set', 'X=1'],
   ],
   authority_change: [
@@ -86,6 +122,14 @@ const PROTECTED_COMMANDS: Record<string, Cmd[]> = {
     ['gh', 'repo', 'edit', '--visibility', 'public'],
     ['gh', 'workflow', 'run', 'ci.yml'],
     ['gh', 'auth', 'refresh', '-s', 'admin:org'],
+    ['gh', 'alias', 'set', 'm', 'pr merge'],
+    ['gh', 'extension', 'install', 'owner/gh-x'],
+    // allow-lists: a subcommand nobody has listed is refused by default
+    ['vercel', 'some-future-subcommand'],
+    ['supabase', 'some-future-subcommand'],
+    // behind -C the default-branch check cannot see the target repository
+    ['git', '-C', '/tmp', 'push', '-u', 'origin', 'feature-x'],
+    ['git', '--no-pager', 'push', '--force'],
   ],
 }
 const PROTECTED_NOT_TOOL_GATED = ['strategic_scope_change']

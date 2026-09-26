@@ -11,20 +11,45 @@ REAL_GIT="${NEXUS_RUNNER_REAL_GIT:-/usr/bin/git}"
 
 deny() { echo "nexus-runner: BLOCKED '$*' (L2 reversible-envelope guard)" >&2; exit 3; }
 
-sub="$1"
+# Find the real subcommand past git's global options (-C dir, -c k=v,
+# --git-dir, ...), so a leading global option cannot hide a push. An alias
+# defined with -c or written by `git config alias.*` could rename push, so both
+# are refused. A push behind a directory-changing global option is refused:
+# the default-branch check below could not see which repository it targets.
+sub=""; skip=0; dirglobal=0
+for a in "$@"; do
+  if [ "$skip" = 1 ]; then skip=0; continue; fi
+  case "$a" in
+    -c) skip=1; continue ;;
+    -C|--git-dir|--work-tree|--namespace|--exec-path|--super-prefix|--config-env) dirglobal=1; skip=1; continue ;;
+    --git-dir=*|--work-tree=*|--namespace=*|--config-env=*) dirglobal=1; continue ;;
+    -*) continue ;;
+  esac
+  sub="$a"; break
+done
+prev=""
+for a in "$@"; do
+  case "$prev" in -c) case "$a" in [Aa][Ll][Ii][Aa][Ss].*) deny "git -c $a (alias override)" ;; esac ;; esac
+  prev="$a"
+done
+if [ "$sub" = config ]; then
+  for a in "$@"; do case "$a" in [Aa][Ll][Ii][Aa][Ss].*) deny "git config $a (alias)" ;; esac; done
+fi
+
 case "$sub" in
   push)
-    # forbid all force
+    [ "$dirglobal" = 0 ] || deny "git push behind -C/--git-dir/--work-tree (push from inside the worktree)"
     for a in "$@"; do
-      case "$a" in --force|--force-with-lease|-f|--force-with-lease=*) deny "git push force" ;; esac
-    done
-    # forbid deleting remote refs (--delete, -d, an empty-source :ref refspec, --mirror, --prune)
-    for a in "$@"; do
-      case "$a" in --delete|-d|--mirror|--prune|:*) deny "git push delete ($a)" ;; esac
-    done
-    # forbid an explicit main/master destination refspec
-    for a in "$@"; do
-      case "$a" in main|master|*:main|*:master) deny "git push to default branch ($a)" ;; esac
+      case "$a" in
+        # forbid all force, including a +refspec
+        --force|--force-with-lease|-f|--force-with-lease=*|--force-if-includes|+*) deny "git push force ($a)" ;;
+        # forbid deleting remote refs (--delete, -d, an empty-source :ref refspec, --mirror, --prune)
+        --delete|-d|--mirror|--prune|:*) deny "git push delete ($a)" ;;
+      esac
+      # forbid a main/master destination, however spelled (main, x:main, refs/heads/main)
+      dst="${a##*:}"
+      dst="${dst#refs/heads/}"
+      case "$dst" in main|master) deny "git push to default branch ($a)" ;; esac
     done
     # forbid a push while the current branch IS the default branch
     br=$("$REAL_GIT" rev-parse --abbrev-ref HEAD 2>/dev/null)

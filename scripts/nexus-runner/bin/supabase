@@ -1,15 +1,32 @@
 #!/bin/sh
 # nexus-runner supabase shim (policy: ../mission-authority.json). The runner
 # never runs migrations against any database and never touches secrets, so only
-# local, read-only or type-generation subcommands pass; everything else is
-# blocked by default (allow-list).
+# type generation and help pass; everything else is blocked by default
+# (allow-list). The first non-option word decides, so a leading global flag
+# cannot hide the subcommand.
 REAL_SUPABASE="${NEXUS_RUNNER_REAL_SUPABASE:-}"
 [ -x "$REAL_SUPABASE" ] || REAL_SUPABASE=$(PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin command -v supabase)
 
 deny() { echo "nexus-runner: BLOCKED 'supabase $*' (protected action; needs the founder)" >&2; exit 3; }
 
-case "${1:-}" in
-  gen|help|--help|-h|--version|-v) : ;;
+# Defence in depth: a value-taking global flag (e.g. --workdir gen) could
+# shift the first word, so any remote/mutating subcommand word is refused.
+for a in "$@"; do
+  case "$a" in
+    db|migration|migrations|secrets|projects|functions|link|unlink|branches|storage|orgs|sso|domains|vanity-subdomains|postgres-config|network-bans|network-restrictions|ssl-enforcement|encryption|config|backups|snippets|seed|login|logout|init|start|stop|bootstrap) deny "$a" ;;
+  esac
+done
+
+sub=""
+for a in "$@"; do
+  case "$a" in -*) continue ;; esac
+  sub="$a"; break
+done
+
+case "$sub" in
+  gen|help) : ;;
+  "")
+    for a in "$@"; do case "$a" in --help|-h|--version|-v) : ;; *) deny "$*" ;; esac; done ;;
   *) deny "$*" ;;
 esac
 exec "$REAL_SUPABASE" "$@"

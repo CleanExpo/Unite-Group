@@ -2,22 +2,38 @@
 # nexus-runner gh shim — the release half of the runner's reversible envelope
 # (policy: ../mission-authority.json). Opening or updating a DRAFT PR is a build
 # step and passes. Merging, marking ready, a non-draft PR, releases, secrets,
-# workflow runs, repo settings and any gh api write are protected and blocked.
-# Holds even under bypassPermissions (the permission engine is off; this is not).
+# workflow runs, repo settings, aliases, extensions and any gh api write are
+# protected and blocked. Holds even under bypassPermissions (the permission
+# engine is off; this is not). Global flags (-R/--repo) are skipped to find the
+# real subcommand, so they cannot hide it.
 REAL_GH="${NEXUS_RUNNER_REAL_GH:-}"
 [ -x "$REAL_GH" ] || REAL_GH=$(PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin command -v gh)
 
 deny() { echo "nexus-runner: BLOCKED 'gh $*' (protected action; needs the founder or a release mandate)" >&2; exit 3; }
 
-case "$1" in
+# First two non-option words are the command and subcommand.
+sub=""; sub2=""; skip=0
+for a in "$@"; do
+  if [ "$skip" = 1 ]; then skip=0; continue; fi
+  case "$a" in
+    -R|--repo) skip=1; continue ;;
+    -*) continue ;;
+  esac
+  if [ -z "$sub" ]; then sub="$a"; elif [ -z "$sub2" ]; then sub2="$a"; break; fi
+done
+
+case "$sub" in
   pr)
-    case "$2" in
+    case "$sub2" in
       merge) deny "pr merge" ;;
       ready) deny "pr ready" ;;
       create)
         draft=0
         for a in "$@"; do
-          case "$a" in --draft|-d|--draft=true) draft=1 ;; esac
+          case "$a" in
+            --draft|-d|--draft=true) draft=1 ;;
+            --draft=false) draft=0 ;;
+          esac
         done
         [ "$draft" = 1 ] || deny "pr create without --draft"
         ;;
@@ -27,13 +43,13 @@ case "$1" in
     # Read-only GETs only. -f/-F/--field/--input make gh api send a POST.
     for a in "$@"; do
       case "$a" in
-        -X|--method|--method=*|-X*|-f|-F|--field|--field=*|--raw-field|--raw-field=*|--input|--input=*) deny "api write" ;;
+        -X*|--method|--method=*|-f|-f*|-F|-F*|--field|--field=*|--raw-field|--raw-field=*|--input|--input=*) deny "api write" ;;
       esac
     done
     ;;
-  release|secret|variable|workflow|ruleset|auth) deny "$1" ;;
+  release|secret|variable|workflow|ruleset|auth|alias|extension|extensions|ext) deny "$sub" ;;
   repo)
-    case "$2" in delete|edit|archive|rename|deploy-key) deny "repo $2" ;; esac
+    case "$sub2" in delete|edit|archive|rename|deploy-key) deny "repo $sub2" ;; esac
     ;;
 esac
 exec "$REAL_GH" "$@"
