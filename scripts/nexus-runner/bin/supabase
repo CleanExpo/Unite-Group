@@ -17,9 +17,13 @@ for a in "$@"; do
   esac
 done
 
-sub=""
+sub=""; skip=0
 for a in "$@"; do
-  case "$a" in -*) continue ;; esac
+  if [ "$skip" = 1 ]; then skip=0; continue; fi
+  case "$a" in
+    --workdir|--profile|--output|-o|--dns-resolver|--network-id) skip=1; continue ;;
+    -*) continue ;;
+  esac
   sub="$a"; break
 done
 

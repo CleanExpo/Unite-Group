@@ -40,6 +40,10 @@ const BUILD_COMMANDS: Record<string, Cmd[]> = {
     ['gh', 'pr', 'checks', '12'],
     ['gh', 'run', 'view', '123', '--log-failed'],
     ['gh', 'api', 'repos/CleanExpo/Unite-Group/pulls/12'],
+    ['gh', '--jq', '.', 'pr', 'view', '12'],
+    ['supabase', 'gen', 'types', 'typescript', '--local'],
+    ['supabase', '--workdir', '/tmp', 'gen', 'types', 'typescript', '--local'],
+    ['git', 'push', '-u', 'origin', 'feature-x:feature-x'],
   ],
   commit: [['git', 'commit', '-m', 'feat: x (UNI-1)']],
   push_scoped_branch: [['git', 'push', '-u', 'origin', 'feature-x']],
@@ -47,6 +51,8 @@ const BUILD_COMMANDS: Record<string, Cmd[]> = {
     ['gh', 'pr', 'create', '--draft', '--title', 't', '--body', 'b'],
     ['gh', 'pr', 'create', '-d', '--fill'],
     ['gh', '-R', 'CleanExpo/Unite-Group', 'pr', 'create', '--draft', '--fill'],
+    // value-taking options must not turn a build step into a refusal (Cursor review round 3)
+    ['gh', '--hostname', 'github.com', 'pr', 'create', '--draft', '--title', 't', '--body', 'b'],
   ],
   preview_within_existing_mandate: [
     ['vercel', 'deploy'],
@@ -76,6 +82,7 @@ const PROTECTED_COMMANDS: Record<string, Cmd[]> = {
     // an unlisted value-taking option shifts the words so an allowed pair shows first;
     // only the protected-word-anywhere layer sees the merge
     ['gh', '--jq', 'pr', 'view', 'pr', 'merge', '1'],
+    ['gh', '--some-unlisted-value-flag', 'pr', 'view', 'pr', 'merge', '1'],
     ['gh', 'config', 'set', 'alias.m', 'pr merge'],
     ['gh', 'm', '1'],
   ],
@@ -109,6 +116,9 @@ const PROTECTED_COMMANDS: Record<string, Cmd[]> = {
     ['git', 'push', 'origin', '--tags'],
     ['git', 'push', 'origin', 'tag', 'v1.0.0'],
     ['git', 'push', 'origin', 'refs/tags/v1.0.0'],
+    // a tag pushed by its bare name (Cursor review round 3); the stub reports v* as tags
+    ['git', 'push', 'origin', 'v1.0.0'],
+    ['git', 'push', 'origin', 'v1.0.0:v1.0.0'],
   ],
   spend_expansion: [['vercel', 'domains', 'buy', 'example.com']],
   destructive_action: [
@@ -137,6 +147,7 @@ const PROTECTED_COMMANDS: Record<string, Cmd[]> = {
     ['gh', '--template', 'x', 'repo', 'delete', 'o/r'],
     ['supabase', '--debug', 'db', 'push'],
     ['supabase', '--workdir', 'gen', 'db', 'push'],
+    ['supabase', '--some-unlisted-value-flag', 'gen', 'db', 'push'],
   ],
   credential_change: [
     ['gh', 'secret', 'set', 'X'],
@@ -175,7 +186,15 @@ beforeAll(() => {
   stub = path.join(stubDir, 'stub.sh')
   writeFileSync(
     stub,
-    ['#!/bin/sh', 'if [ "$1" = "rev-parse" ]; then echo feature-x; exit 0; fi', 'echo "STUB_CALLED: $*"', 'exit 0', ''].join('\n'),
+    [
+      '#!/bin/sh',
+      'if [ "$1" = "rev-parse" ]; then echo feature-x; exit 0; fi',
+      // `show-ref --verify --quiet refs/tags/<name>`: only v* names are tags in this seeded repo
+      'if [ "$1" = "show-ref" ]; then case "$4" in refs/tags/v*) exit 0 ;; esac; exit 1; fi',
+      'echo "STUB_CALLED: $*"',
+      'exit 0',
+      '',
+    ].join('\n'),
   )
   chmodSync(stub, 0o755)
 })

@@ -40,6 +40,8 @@ beforeAll(() => {
     [
       '#!/bin/sh',
       'if [ "$1" = "rev-parse" ]; then echo "${STUB_BRANCH:-feature-x}"; exit 0; fi',
+      // the shim asks whether a pushed name is a tag; this seeded repo has none
+      'if [ "$1" = "show-ref" ]; then exit 1; fi',
       'echo "STUB_CALLED: $*"',
       'exit 0',
       '',

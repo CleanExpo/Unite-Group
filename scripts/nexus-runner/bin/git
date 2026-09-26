@@ -48,6 +48,14 @@ case "$sub" in
         # forbid pushing every branch (which includes main) and tags (which can trigger releases)
         --all|--branches|--tags|--follow-tags|tag|refs/tags/*|*:refs/tags/*) deny "git push $a" ;;
       esac
+      # forbid pushing a tag named bare (`git push origin v1.0.0`): ask git whether the source is a tag
+      case "$a" in
+        -*) : ;;
+        *) src="${a%%:*}"
+           if [ -n "$src" ] && "$REAL_GIT" show-ref --verify --quiet "refs/tags/$src" 2>/dev/null; then
+             deny "git push tag ($a)"
+           fi ;;
+      esac
       # forbid a main/master destination, however spelled (main, x:main, refs/heads/main)
       dst="${a##*:}"
       dst="${dst#refs/heads/}"

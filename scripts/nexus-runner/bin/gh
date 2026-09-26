@@ -26,7 +26,7 @@ sub=""; sub2=""; skip=0
 for a in "$@"; do
   if [ "$skip" = 1 ]; then skip=0; continue; fi
   case "$a" in
-    -R|--repo) skip=1; continue ;;
+    -R|--repo|--hostname|--jq|-q|--template|-t|--json) skip=1; continue ;;
     -*) continue ;;
   esac
   if [ -z "$sub" ]; then sub="$a"; elif [ -z "$sub2" ]; then sub2="$a"; break; fi
