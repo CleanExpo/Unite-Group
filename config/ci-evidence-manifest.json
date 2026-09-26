@@ -23,7 +23,11 @@
         "tenant-isolation",
         "migration-integrity",
         "data-completeness",
-        "relay-concurrency"
+        "relay-concurrency",
+        "identity-lineage",
+        "credential-provenance",
+        "cec-separation",
+        "tenure-visibility"
       ],
       "prerequisite": {
         "env": "SPINE_DATABASE_URL",
@@ -37,9 +41,27 @@
           "gate": "describe.skipIf(!hasDb)"
         },
         {
+          "suite": "tests/integration/cec_separation.test.ts",
+          "class": "REQUIRED_EVIDENCE",
+          "capability": "cec-separation",
+          "gate": "describe.skipIf(!hasDb)"
+        },
+        {
+          "suite": "tests/integration/credential_provenance.test.ts",
+          "class": "REQUIRED_EVIDENCE",
+          "capability": "credential-provenance",
+          "gate": "describe.skipIf(!hasDb)"
+        },
+        {
           "suite": "tests/integration/idempotency.test.ts",
           "class": "REQUIRED_EVIDENCE",
           "capability": "migration-integrity",
+          "gate": "describe.skipIf(!hasDb)"
+        },
+        {
+          "suite": "tests/integration/identity_rules.test.ts",
+          "class": "REQUIRED_EVIDENCE",
+          "capability": "identity-lineage",
           "gate": "describe.skipIf(!hasDb)"
         },
         {
@@ -61,10 +83,28 @@
           "gate": "describe.skipIf(!hasDb)"
         },
         {
+          "suite": "tests/integration/rls_catalog.test.ts",
+          "class": "REQUIRED_EVIDENCE",
+          "capability": "tenant-isolation",
+          "gate": "describe.skipIf(!hasDb)"
+        },
+        {
+          "suite": "tests/integration/tenure_visibility.test.ts",
+          "class": "REQUIRED_EVIDENCE",
+          "capability": "tenure-visibility",
+          "gate": "describe.skipIf(!hasDb)"
+        },
+        {
           "suite": "tests/unit.test.ts",
           "class": "REQUIRED_EVIDENCE",
           "capability": "unit",
           "gate": "none"
+        },
+        {
+          "suite": "tests/unit/ephemeral-guard.test.ts",
+          "class": "REQUIRED_EVIDENCE",
+          "capability": "unit",
+          "gate": "none for the URL and hygiene checks; describe.skipIf(!hasDb) for the sentinel check"
         }
       ]
     }

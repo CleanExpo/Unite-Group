@@ -111,6 +111,10 @@ function clamp01(n: number): number {
   return Math.max(0, Math.min(1, n))
 }
 
+/** Usage pressure (0..1) at which a provider turns 'near_limit'. Shared with
+ *  the radial usage gauge so its caution band matches the state label. */
+export const NEAR_LIMIT_PRESSURE = 0.8
+
 interface Derived {
   state: ProviderState
   truthLevel: TruthLevel
@@ -143,7 +147,7 @@ export function deriveProviderState(signal: ProviderSignal): Derived {
   const usagePct = Math.round(p * 100)
   let state: ProviderState
   if (p >= 0.95) state = 'blocked'
-  else if (p >= 0.8) state = 'near_limit'
+  else if (p >= NEAR_LIMIT_PRESSURE) state = 'near_limit'
   else if (p >= 0.5) state = 'watching'
   else state = 'available'
   return { state, truthLevel: signal.truth ?? 'estimated', usagePct, missingSetupReason: null }

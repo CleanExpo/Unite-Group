@@ -295,7 +295,8 @@ test('THE FINDING: a green job with zero tenant-isolation execution is FAIL', ()
     .filter((v) => v.reason === 'CAPABILITY_UNPROVEN')
     .map((v) => v.capability).sort();
   assert.deepEqual(unproven, [
-    'data-completeness', 'migration-integrity', 'relay-concurrency', 'tenant-isolation',
+    'cec-separation', 'credential-provenance', 'data-completeness', 'identity-lineage',
+    'migration-integrity', 'relay-concurrency', 'tenant-isolation', 'tenure-visibility',
   ]);
 });
 
@@ -308,7 +309,7 @@ test('POSITIVE CONTROL: PASS is reachable when every declared suite executed', (
 
   assert.equal(result.verdict, 'PASS');
   assert.deepEqual(result.violations, []);
-  assert.equal(result.totals.executed, 22);
+  assert.equal(result.totals.executed, 73);
 });
 
 test("a file whose own status is 'passed' while every test skipped is still SKIPPED", () => {
@@ -846,7 +847,7 @@ test('an evidence file with no testResults entries cannot pass', () => {
     provenance: { sha: REAL_SHA },
   });
   assert.equal(result.verdict, 'FAIL');
-  assert.equal(result.violations.filter((v) => v.reason === 'REQUIRED_EVIDENCE_UNAVAILABLE').length, 6);
+  assert.equal(result.violations.filter((v) => v.reason === 'REQUIRED_EVIDENCE_UNAVAILABLE').length, 12);
 });
 
 // ---------------------------------------------------------------------------
@@ -1490,7 +1491,7 @@ test('THE WHOLE SUITE-SUMMARY FAMILY IS READ, not only the field that was report
   }
 
   // A pending suite never ran, which is the whole point of this checker.
-  const pending = graded({ numPassedTestSuites: 11, numPendingTestSuites: 1 });
+  const pending = graded({ numPassedTestSuites: 29, numPendingTestSuites: 1 });
   assert.equal(pending.verdict, 'FAIL');
   assert.ok(pending.violations.some((v) => v.reason === 'REPORT_DECLARES_PENDING_SUITES'));
 
@@ -2460,7 +2461,7 @@ test('A MISSING FILE VERDICT IS NOT A PASSING ONE', () => {
 
   assert.equal(result.verdict, 'FAIL');
   const absent = result.violations.filter((v) => v.reason === 'SUITE_FILE_VERDICT_ABSENT');
-  assert.equal(absent.length, 6, JSON.stringify(result.violations.map((v) => v.reason)));
+  assert.equal(absent.length, 12, JSON.stringify(result.violations.map((v) => v.reason)));
 });
 
 test('one file missing its verdict is enough to fail', () => {

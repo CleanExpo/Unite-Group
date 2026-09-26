@@ -2,6 +2,26 @@
 
 One-screen handoff so a fresh session continues without re-reading the long thread.
 
+> **CURRENT TRUTH (26/09/2026, RA-7753). Read this before anything below — the older text is history.**
+> - **Repo:** the spine lives in the `CleanExpo/Unite-Group` monorepo at `packages/spine/packages/spine/`
+>   (the path is doubled). The standalone `CleanExpo/Unite-Group-Spine` repo was archived on 05/07/2026.
+>   Paths below starting `D:\Unite-Group-Spine\` are historical.
+> - **Sandbox:** `xgqwfwqumliuguzhshwv` was deleted on 15/06/2026 and will not be replaced. Every
+>   "GREEN on the sandbox" line below is an *observed* historical result, not something any machine
+>   can re-run. `strangler/0002_roleemail_fix.sql` existed only there and is not in the repo.
+> - **CI database:** the `spine` job in `.github/workflows/ci.yml` starts an **ephemeral local
+>   Supabase** (`npx supabase@2.114.0 start`, loopback `127.0.0.1:54322`), applies `ci/00_extensions.sql`,
+>   `migrations/0001..0006` and `strangler/0001,0003,0004,0005`, seeds, and runs vitest. There is no
+>   `SPINE_DATABASE_URL` secret and none is needed; the integration suites run on every push and
+>   `scripts/spine-evidence-selfcheck.mjs` fails the job if a REQUIRED suite skips.
+> - **Guard:** `tests/setup/ephemeral-guard.ts` refuses to run any suite against a non-loopback host,
+>   a port other than 54322, a hosted Supabase marker, or a database without the CI-only sentinel table.
+> - **No new infra** (Phill, 09/06/2026) still stands. Spine has never been applied to production.
+> - **Slice 1a (RA-7753):** D1 record guard (`strangler/0005`), D2 field-tie write check, and
+>   `core.employment`, `core.credential`, `carsi.cec_claim` (`migrations/0006`). Identity map:
+>   `docs/DATA_CONTRACT_MAP-identity.md`. The `*.test.sql` files are still NOT run by CI; the vitest
+>   suites are the evidence.
+
 > ✅ **Under version control since 2026-06-10:** standalone PRIVATE repo `github.com/CleanExpo/Unite-Group-Spine`
 > (Phill approved the push). Pre-push secret-scan clean; bundle backup also at `C:\Backups\spine\`. CI
 > (`.github/workflows/ci.yml`) runs typecheck + vitest on every push; the 19 integration tests (RLS matrix, C3,

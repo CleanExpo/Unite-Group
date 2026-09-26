@@ -121,11 +121,11 @@ describe.skipIf(!hasDb)('migrations: reproducible apply + clean teardown', () =>
     }
   });
 
-  it('teardown → apply rebuilds the full spine (20 tables)', async () => {
+  it('teardown → apply rebuilds the full spine (23 tables: 20 + RA-7753 core.employment, core.credential, carsi.cec_claim)', async () => {
     await teardown();
     const files = await applyAll();
     expect(files.length).toBeGreaterThan(0);
-    expect(await tableCount()).toBe(20);
+    expect(await tableCount()).toBe(23);
   });
 
   it('teardown leaves zero spine objects', async () => {

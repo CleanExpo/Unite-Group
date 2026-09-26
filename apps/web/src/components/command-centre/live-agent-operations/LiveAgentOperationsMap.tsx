@@ -11,6 +11,7 @@ import type {
 import { SourceBadge, type SourceMode } from '../SourceBadge'
 import { DegradedDataBanner } from '../DegradedDataBanner'
 import { StaleReadNotice } from '@/components/ui/StaleReadNotice'
+import { LiveAgentOperationsHubMap } from './LiveAgentOperationsHubMap'
 
 const POLL_MS = 15000
 
@@ -146,6 +147,17 @@ export function LiveAgentOperationsMap() {
       {/* Read-only surface: there is nothing here to disable, so the notice
           does not pretend otherwise. */}
       {staleRead && <StaleReadNotice source="Live Agent Operations" />}
+
+      {/* The map summarises the node cards below; it never replaces them. It
+          draws only from a read that succeeded: after a failed poll the
+          retained nodes are a photograph, and a flowing link would claim an
+          agent is live now. An empty node list draws nothing (the text row
+          below says so). */}
+      {payload && !error && payload.nodes.length > 0 && (
+        <div className="px-6 py-4" style={{ background: 'var(--cc-bg-soft)', borderBottom: '1px solid var(--cc-grid)' }}>
+          <LiveAgentOperationsHubMap nodes={payload.nodes} />
+        </div>
+      )}
 
       <div
         className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_22rem]"
