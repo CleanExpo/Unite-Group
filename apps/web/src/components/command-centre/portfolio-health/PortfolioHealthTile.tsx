@@ -11,6 +11,7 @@
 import { useEffect, useState } from 'react'
 import { SourceBadge, type SourceMode } from '../SourceBadge'
 import { DegradedDataBanner } from '../DegradedDataBanner'
+import { RepoHealthBar, RepoHealthLegend, computeRunSegments } from './RepoHealthBar'
 
 type HealthColor = 'green' | 'yellow' | 'red' | 'grey'
 
@@ -165,9 +166,18 @@ export function PortfolioHealthTile() {
                   {!r.error && r.failCountLast10 > 0 && ` · ${r.failCountLast10}/10 fails`}
                 </span>
               </span>
-              <span style={{ color: 'var(--deck-muted)' }}>{formatRunAt(r.latestRunAt)}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {/* A failed refresh keeps the last roster but draws no bar: a cached chart would read as current. */}
+                {!fetchError && <RepoHealthBar repo={r.repo} health={r} />}
+                <span style={{ color: 'var(--deck-muted)' }}>{formatRunAt(r.latestRunAt)}</span>
+              </span>
             </div>
           ))}
+          {!fetchError && repos.some((r) => computeRunSegments(r) !== null) && (
+            <div style={{ paddingTop: 6 }}>
+              <RepoHealthLegend />
+            </div>
+          )}
         </div>
       )}
 
