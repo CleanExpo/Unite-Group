@@ -14,10 +14,11 @@
 // NEXUS_REPO_ROOT, POLL_SECONDS, TASK_TIMEOUT_SECONDS.
 
 import { execFileSync, spawn } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { homedir, hostname } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { renderAuthorityBlock } from './authority-prompt.mjs'
 
 const APP_URL = (process.env.NEXUS_APP_URL ?? '').replace(/\/$/, '')
 const SECRET = process.env.AGENT_EVENTS_SECRET ?? ''
@@ -28,6 +29,13 @@ const TASK_TIMEOUT_SECONDS = Number(process.env.TASK_TIMEOUT_SECONDS ?? 3600)
 const HARD_STOP = join(homedir(), '.claude', 'HARD_STOP')
 
 const SESSION_ID = `run-${Date.now().toString(36)}`
+
+// UNI-2779: the runner's authority rules are rendered from the one policy file
+// the bin/ shims also enforce. Read at start-up; a missing or malformed policy
+// throws here, so the runner never executes with hand-written rules.
+const AUTHORITY_BLOCK = renderAuthorityBlock(
+  JSON.parse(readFileSync(new URL('./mission-authority.json', import.meta.url), 'utf8')),
+)
 
 // True when executed directly (node runner.mjs via run.sh); false when imported
 // by the unit tests, which must not start the loop or exit the process.
@@ -146,13 +154,13 @@ function taskPrompt(task) {
       'A draft PR is a review handoff and does not mean delivered. SPM delivery ownership continues after this build.',
     ] : []),
     '',
-    'HARD RULES (L2 autonomy ceiling — non-negotiable):',
+    'REPOSITORY RULES:',
     '- Create a fresh git worktree off origin/main under .claude/worktrees/ and work ONLY there.',
     '- Branch, implement the smallest correct change, run the affected gates (type-check, lint, tests).',
     '- Commit, push the branch, and open a DRAFT PR with gh pr create --draft.',
-    '- NEVER merge, never push to main, never run migrations against any database, never deploy,',
-    '  never touch env/secrets, never spend money.',
-    '- If the task cannot fit these rules or exceeds roughly half a day of work, STOP.',
+    '- If the task needs a protected action or exceeds roughly half a day of work, end with RUNNER_REQUEUE.',
+    '',
+    AUTHORITY_BLOCK,
     '',
     'FINAL LINE OF YOUR OUTPUT (exactly one of):',
     '- PR_URL: <the draft PR url>          (success)',
