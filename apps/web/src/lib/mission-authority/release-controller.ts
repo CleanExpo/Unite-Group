@@ -106,7 +106,8 @@ export function protectedPathHits(paths: readonly string[]): string[] {
 }
 
 function requiredChecksGreen(required: readonly string[], runs: readonly CheckRun[], sha: string): boolean {
-  if (required.length === 0) return false
+  // A blank required name would be satisfied by a blank-named run: same positive test as a receipt ref (UNI-2782).
+  if (required.length === 0 || !required.every((name) => RECEIPT_REF.test(name))) return false
   return required.every((name) => {
     const named = runs.filter((run) => run.name === name)
     return (

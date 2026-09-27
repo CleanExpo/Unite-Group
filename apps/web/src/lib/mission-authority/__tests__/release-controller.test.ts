@@ -167,6 +167,18 @@ describe('release controller — gates are derived from evidence', () => {
     expect(deriveGates(evidence({ reviewBlockingSeverities: [' P2', 'p3\n'] })).no_unresolved_p0_p1).toBe(true)
   })
 
+  it('a blank required-check name never counts as green, even against a blank-named passing run (UNI-2782)', () => {
+    for (const blank of ['', '  ', '\u200b']) {
+      const gates = deriveGates(
+        evidence({
+          requiredChecks: [blank],
+          checkRuns: [{ name: blank, headSha: SHA, status: 'completed', conclusion: 'success' }],
+        }),
+      )
+      expect(gates.required_ci_green).toBe(false)
+    }
+  })
+
   it('an empty required-check list never counts as green', () => {
     expect(deriveGates(evidence({ requiredChecks: [] })).required_ci_green).toBe(false)
   })

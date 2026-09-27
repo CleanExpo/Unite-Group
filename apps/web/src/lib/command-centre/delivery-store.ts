@@ -209,6 +209,8 @@ export async function saveDelivery(
     status?: TaskStatus;
     expectedLease?: string;
     clearClaim?: boolean;
+    /** Drop metadata.mission in the same guarded write (UNI-2781: a superseded intent's continuation). */
+    clearMission?: boolean;
     client?: DeliveryStoreClient;
   } = {},
 ): Promise<CommandCentreTask> {
@@ -227,10 +229,11 @@ export async function saveDelivery(
   const updatedAt = new Date(
     Math.max(Date.now(), Date.parse(task.updated_at) + 1),
   ).toISOString();
+  const { mission: _mission, ...withoutMission } = task.metadata;
   let query = (db as DeliveryMutationClient)
     .from("cc_tasks")
     .update({
-      metadata: { ...task.metadata, delivery },
+      metadata: { ...(options.clearMission ? withoutMission : task.metadata), delivery },
       updated_at: updatedAt,
       project_key: delivery.projectKey,
       ...(options.status ? { status: options.status } : {}),

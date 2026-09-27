@@ -90,8 +90,10 @@ export async function mintAuthorityFromAcceptedIntent(
       )
       // Withdraw the stale consent. saveDelivery compares status 'queued' and
       // updated_at, so a runner that claimed the build first wins and this throws.
+      // The continuation was minted for the old intent; it goes in the same CAS (UNI-2781).
       await (overrides.saveDelivery ?? saveDelivery)(task, { ...d, approval: null }, {
         status: 'awaiting_approval',
+        clearMission: true,
         client: overrides.client,
       })
     }

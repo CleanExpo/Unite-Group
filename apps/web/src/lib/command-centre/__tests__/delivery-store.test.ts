@@ -116,6 +116,21 @@ describe("guarded delivery store", () => {
       hashDeliveryInput(delivery),
     );
   });
+  it("clearMission drops metadata.mission in the same guarded write and keeps everything else (UNI-2781)", async () => {
+    const { task, delivery } = fixture();
+    task.metadata.mission = { intent_hash: "old" };
+    const db = database(task);
+    const saved = await saveDelivery(task, delivery, { clearMission: true, client: db.client });
+    expect(saved.metadata.mission).toBeUndefined();
+    expect(saved.metadata.unrelated).toEqual({ retained: true });
+    expect(db.filters).toEqual(expect.arrayContaining([["updated_at", task.updated_at]]));
+  });
+  it("keeps metadata.mission unless asked to clear it (UNI-2781)", async () => {
+    const { task, delivery } = fixture();
+    task.metadata.mission = { intent_hash: "current" };
+    const saved = await saveDelivery(task, delivery, { client: database(task).client });
+    expect(saved.metadata.mission).toEqual({ intent_hash: "current" });
+  });
   it("refuses a lost CAS instead of overwriting newer mission state", async () => {
     const { task, delivery } = fixture();
     const db = database(task, { emptyWrite: true });

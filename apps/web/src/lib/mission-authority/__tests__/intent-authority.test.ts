@@ -265,6 +265,9 @@ describe('re-accepting an edited intent on a queued mission (UNI-2779 supersessi
     // The stale consent was withdrawn through the guarded CAS writer, not a direct status write.
     const statuses = vi.mocked(h.deps.saveDelivery!).mock.calls.map(([, , options]) => options?.status)
     expect(statuses).toContain('awaiting_approval')
+    // ...and the continuation minted for the old intent goes in that same write (UNI-2781).
+    const demotion = vi.mocked(h.deps.saveDelivery!).mock.calls.find(([, , options]) => options?.status === 'awaiting_approval')
+    expect(demotion?.[2]?.clearMission).toBe(true)
 
     // The runner claims the new binding...
     const claimed = await claimNextQueuedTask(claimClient(h.row, h.receipts), { founderId: FOUNDER, runnerId: 'runner-a' })
