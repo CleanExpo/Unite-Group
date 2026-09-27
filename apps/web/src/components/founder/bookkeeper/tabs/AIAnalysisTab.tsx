@@ -173,7 +173,7 @@ export function AIAnalysisTab() {
     <div className="space-y-6 max-w-3xl">
       {/* Header */}
       <div className="flex items-center gap-2">
-        <Brain size={16} style={{ color: 'var(--mission-blue)' }} />
+        <Brain size={16} style={{ color: 'var(--mission-blue-text)' }} />
         <span className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--color-text-disabled)' }}>
           AI Financial Analysis
         </span>
@@ -314,8 +314,8 @@ export function AIAnalysisTab() {
             style={{ borderColor: 'color-mix(in srgb, var(--mission-blue) 20%, transparent)', background: 'var(--surface-card)' }}
           >
             <div className="flex items-center gap-2 mb-3">
-              <Brain size={13} style={{ color: 'color-mix(in srgb, var(--mission-blue) 60%, transparent)' }} />
-              <p className="text-[11px] uppercase tracking-widest" style={{ color: 'color-mix(in srgb, var(--mission-blue) 60%, transparent)' }}>
+              <Brain size={13} style={{ color: 'var(--mission-blue-text)' }} />
+              <p className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--mission-blue-text)' }}>
                 Strategic Advisory Brief
               </p>
             </div>

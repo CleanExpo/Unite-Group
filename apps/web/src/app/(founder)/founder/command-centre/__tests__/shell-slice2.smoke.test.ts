@@ -320,8 +320,14 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
         if (e.isDirectory()) return e.name === '__tests__' ? [] : walk(p);
         return /\.(css|tsx|ts)$/.test(e.name) && !/\.test\./.test(e.name) ? [p] : [];
       });
+    // Plus the two files outside those roots whose text shades this change also fixed.
     const offenders = [dir, join(process.cwd(), 'src/components/command-centre')]
       .flatMap(walk)
+      .concat(
+        ['src/components/founder/bookkeeper/tabs/AIAnalysisTab.tsx', 'src/components/layout/IdeaCapture.tsx'].map((p) =>
+          join(process.cwd(), p),
+        ),
+      )
       .flatMap((file) =>
         readFileSync(file, 'utf8')
           .split('\n')
