@@ -381,7 +381,13 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
     expect(gatewayKit).toContain("warnText: 'var(--mission-attention-text)'");
     expect(gatewayKit).toContain("warnAltText: 'var(--mission-attention-text)'");
     expect(gatewayKit).toContain("badText: 'var(--mission-danger-text)'");
-    expect(gatewayKit + gatewayView).not.toMatch(/color: [^,}]*theme\.(?:ok|warn|warnAlt|bad)\b/);
+    // The fill keys are read from the theme object itself, so a fill key added later
+    // (or one missed here, as `info` was) is covered without editing this list.
+    const themeBlock = gatewayKit.slice(gatewayKit.indexOf('export const theme = {'), gatewayKit.indexOf('} as const'));
+    const themeFillKeys = [...themeBlock.matchAll(/^\s*(\w+): 'var\(--mission-(?:blue|danger|attention|success)\)'/gm)].map((m) => m[1]);
+    expect(themeFillKeys).toEqual(['ok', 'warn', 'warnAlt', 'bad', 'info']);
+    const themeFillAsText = new RegExp(`(?:color|fg)\\s*[:=]\\s*\\{?[^,}]*theme\\.(?:${themeFillKeys.join('|')})\\b`);
+    expect(gatewayKit + gatewayView).not.toMatch(themeFillAsText);
 
     // Hermes control panel: okText and the risk badge text. Healthy text takes the success
     // shade: --mission-blue is now the Pi-Dev-Ops signal red, which would read as an alarm.
