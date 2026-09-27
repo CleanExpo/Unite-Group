@@ -411,5 +411,38 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
     expect(deckTokens).toContain('--tile-violet-txt: #c4b5fd;');
     expect(deckTokens).toContain('--tile-violet-txt: #6d28d9;');
     expect(stageBoard).not.toContain('color: STAGE_COLOUR[');
+
+    // Every other helper or map whose value is later painted as text: its whole body
+    // must hold no fill token or fill hex, and its consumer must still paint it as text.
+    const fill =
+      /var\(\s*--(?:mission-(?:blue|danger|attention|success)|deck-(?:cyan|go|amber|abort)|cc-signal|red-(?:400|500)|color-(?:success|danger|accent))\s*[,)]|#(?:ff3b5c|15803d|a16207|e5484d|16a34a|ef4444|2dbb57)\b/i;
+    const between = (src: string, from: string, to: string) => {
+      const start = src.indexOf(from);
+      expect(start, from).toBeGreaterThanOrEqual(0);
+      return src.slice(start, src.indexOf(to, start + from.length));
+    };
+    const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
+    const sixZone = read('src/app/(founder)/founder/command-centre/six-zone/SixZoneCanvas.tsx');
+    const sourceBadge = read('src/components/command-centre/SourceBadge.tsx');
+    const hermesPanel = read('src/components/command-centre/control-panel/HermesControlPanel.tsx');
+    const steps = read('src/app/(founder)/founder/command-centre/CommandSteps.tsx');
+    const ring = read('src/components/command-centre/email-accounts/EmailAccountsRing.tsx');
+    const textChannels: [string, string, string][] = [
+      ['SixZone STATE_COLOUR', between(sixZone, 'const STATE_COLOUR', '\n}'), 'color: STATE_COLOUR[signal.state]'],
+      ['SourceBadge textColorFor', between(sourceBadge, 'function textColorFor', '\n}'), 'const textColor = textColorFor(mode)'],
+      ['Hermes panel statusTextColor', between(hermesPanel, 'function statusTextColor', '\n}'), 'const textColor = statusTextColor(item.status, item.ryg)'],
+      ['CommandSteps numfg', [...steps.matchAll(/numfg: '[^']*'/g)].join('\n'), "'--numfg': s.numfg"],
+      ['EmailAccountsRing text', [...ring.matchAll(/text: '[^']*'/g)].join('\n'), 'color: s.text'],
+    ];
+    for (const [name, body, consumer] of textChannels) {
+      expect(body.length, name).toBeGreaterThan(0);
+      expect(body, name).not.toMatch(fill);
+    }
+    expect(sixZone).toContain(textChannels[0][2]);
+    expect(sourceBadge).toContain(textChannels[1][2]);
+    expect(hermesPanel).toContain(textChannels[2][2]);
+    expect(steps).toContain(textChannels[3][2]);
+    expect(ring).toContain(textChannels[4][2]);
+    expect(read('src/app/(founder)/founder/command-centre/CommandSteps.module.css')).toContain('color: var(--numfg');
   });
 });
