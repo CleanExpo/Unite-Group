@@ -8,6 +8,7 @@ import {
   fetchIssues,
   fetchTeamStates,
   updateIssueState,
+  fetchIssue,
   createIssue,
   stateToColumn,
   issueToBusiness,
@@ -16,6 +17,7 @@ import {
   COLUMN_TO_STATE_NAME,
 } from '@/lib/integrations/linear'
 import { BUSINESSES } from '@/lib/businesses'
+import { checkDoneAllowed } from '@/lib/mission-authority/done-invariant'
 
 export const dynamic = 'force-dynamic'
 
@@ -162,6 +164,24 @@ export async function PATCH(request: Request) {
     const stateId = stateMap[teamKey]?.[columnId]
     if (!stateId) {
       return NextResponse.json({ error: `No state found for ${teamKey}/${columnId}` }, { status: 400 })
+    }
+
+    // UNI-2779 done invariant: a move into a completed state is refused while
+    // the issue's own description says it is not finished. The target state's
+    // TYPE decides (the column name and stateMap are client-supplied), and the
+    // description is read fresh from Linear — a failed read fails closed (502).
+    const targetState = (await fetchTeamStates())
+      .flatMap((team) => team.states.nodes)
+      .find((state) => state.id === stateId)
+    if (columnId === 'done' || targetState?.type === 'completed') {
+      const issue = await fetchIssue(issueId)
+      const check = checkDoneAllowed(issue.description ?? '')
+      if (!check.allowed) {
+        return NextResponse.json(
+          { error: `Cannot move ${issueId} to Done: its description says it is not finished`, blockers: check.blockers },
+          { status: 409 },
+        )
+      }
     }
 
     await updateIssueState(issueId, stateId)

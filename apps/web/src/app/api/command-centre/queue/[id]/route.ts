@@ -13,6 +13,7 @@ import { listApprovalsForTask } from '@/lib/command-centre/approvals'
 import { getValidationSummary } from '@/lib/command-centre/validation'
 import { isLegalTransition } from '@/lib/command-centre/task-transitions'
 import { isDeliveryMission } from '@/lib/command-centre/delivery-types'
+import { checkDoneAllowed } from '@/lib/mission-authority/done-invariant'
 
 export const dynamic = 'force-dynamic'
 
@@ -93,6 +94,22 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       },
       { status: 409 },
     )
+  }
+
+  // UNI-2779 done invariant: the task's own acceptance text (its objective and
+  // any metadata.acceptance) must not say NOT MET / HELD BACK / BLOCKED /
+  // UNVERIFIED or leave an acceptance box unchecked. Refused before any write.
+  if (status === 'done') {
+    const acceptance = [current.objective, current.metadata?.acceptance]
+      .filter((part): part is string => typeof part === 'string')
+      .join('\n\n')
+    const check = checkDoneAllowed(acceptance)
+    if (!check.allowed) {
+      return NextResponse.json(
+        { error: 'Cannot complete: the acceptance text says this is not finished', blockers: check.blockers },
+        { status: 409 },
+      )
+    }
   }
 
   // CC-12 enforcement (no fake-green): a task may not be marked `done` while any
