@@ -59,13 +59,33 @@ case "$sub" in
     ;;
   api)
     # Read-only GETs only. -f/-F/--field/--input make gh api send a POST.
+    # The endpoint is an ALLOW-list of the repository reads a build needs (PRs, issues,
+    # commits, checks, statuses, branches, contents, workflow runs). A deny-list of
+    # credential paths lost twice in review (gpg_keys, deploy_keys, SECRETS, %73ecrets:
+    # Cursor review round 10), and credential_change covers reading too.
+    api_path_ok() (
+      set -f
+      case "$1" in *[!A-Za-z0-9/_.?=\&,{}-]*|*..*|*//*) exit 1 ;; esac
+      p="${1#/}"; p="${p%%\?*}"
+      IFS=/; set -- $p
+      [ "$1" = repos ] && [ -n "$2" ] && [ -n "$3" ] || exit 1
+      [ "$#" = 3 ] && exit 0
+      case "$4" in
+        pulls|issues|commits|check-runs|check-suites|statuses|compare|branches|contents) exit 0 ;;
+        actions) case "$5" in runs|jobs) exit 0 ;; esac ;;
+      esac
+      exit 1
+    )
+    seen=0; skip=0
     for a in "$@"; do
+      if [ "$skip" = 1 ]; then skip=0; continue; fi
       case "$a" in
         -X*|--method|--method=*|-f|-f*|-F|-F*|--field|--field=*|--raw-field|--raw-field=*|--input|--input=*) deny "api write" ;;
-        # credential_change covers reading too: secrets, variables, deploy keys and hook
-        # config are refused even as a GET (Cursor review round 9).
-        *secrets*|*variables*|*/keys*|*/hooks*|*codespaces*) deny "api credential path ($a)" ;;
+        -H|--header|--jq|-q|-t|--template|--hostname|-p|--preview|--cache|-R|--repo) skip=1; continue ;;
+        -*) continue ;;
       esac
+      if [ "$seen" = 0 ]; then [ "$a" = api ] && seen=1; continue; fi
+      api_path_ok "$a" || deny "api $a (not on the read allow-list)"
     done
     ;;
   issue|run|search)
