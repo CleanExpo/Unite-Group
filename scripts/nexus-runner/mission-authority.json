@@ -1,5 +1,5 @@
 {
-  "schema": "nexus-mission-authority/1",
+  "schema": "nexus-mission-authority/2",
   "scope": "branch_preview_only",
   "build_authorised_when": "The claim API has verified the founder-signed delivery approval for this exact frozen specification. That approval IS the build authority: no further founder approval is needed for any build step.",
   "build": {
@@ -34,5 +34,60 @@
     "credential_change": "Reading, adding or changing secrets and environment variables",
     "authority_change": "Changing repository settings, branch protection, workflows or permissions",
     "strategic_scope_change": "Changing the approved objective or widening the approved scope"
+  },
+  "phases": [
+    "DRAFT",
+    "ACCEPTED",
+    "ADMITTED",
+    "BUILD_AUTHORISED",
+    "BUILD_CONTINUE",
+    "RELEASE_CANDIDATE",
+    "SAFE_RELEASE",
+    "PROTECTED_RELEASE",
+    "VERIFIED"
+  ],
+  "action_classes": {
+    "discover": "BUILD_CONTINUE",
+    "edit": "BUILD_CONTINUE",
+    "test": "BUILD_CONTINUE",
+    "repair": "BUILD_CONTINUE",
+    "commit": "BUILD_CONTINUE",
+    "push_scoped_branch": "BUILD_CONTINUE",
+    "draft_pr": "BUILD_CONTINUE",
+    "preview_within_existing_mandate": "BUILD_CONTINUE",
+    "update_linear": "BUILD_CONTINUE",
+    "merge": "SAFE_RELEASE",
+    "mark_pr_ready": "SAFE_RELEASE",
+    "production_deploy": "SAFE_RELEASE",
+    "public_publish": "PROTECTED_RELEASE",
+    "spend_expansion": "PROTECTED_RELEASE",
+    "destructive_action": "PROTECTED_RELEASE",
+    "credential_change": "PROTECTED_RELEASE",
+    "authority_change": "PROTECTED_RELEASE",
+    "strategic_scope_change": "PROTECTED_RELEASE"
+  },
+  "action_classes_rule": "BUILD_CONTINUE actions inside the mission's allowed actions continue with no founder question. A SAFE_RELEASE action continues only when the mission's release mandate names it, the risk is low or medium and no higher than the mandate's maxRisk, the phase is RELEASE_CANDIDATE or SAFE_RELEASE, and every safe_release_requires gate is true; otherwise it escalates as PROTECTED_RELEASE. PROTECTED_RELEASE actions always escalate. An action missing from this map escalates.",
+  "safe_release_requires": {
+    "exact_final_sha": "Evidence is bound to the exact final commit SHA being released",
+    "clean_tree": "The working tree is clean at that SHA",
+    "required_ci_green": "Every required CI check executed (none skipped) and is green for that SHA",
+    "independent_review_pass": "An independent reviewer that did not build the change returned PASS for that SHA",
+    "release_gate_pass": "The release gate returned PASS for that SHA",
+    "no_unresolved_p0_p1": "No unresolved P0 or P1 finding remains",
+    "no_auth_security_credential_change": "The change touches no authentication, security or credential surface",
+    "no_destructive_migration": "The change carries no destructive database migration",
+    "no_new_spend": "The change adds no new or increased spend",
+    "rollback_proven": "A rollback path exists and has been exercised",
+    "post_release_verification_defined": "Post-release verification is defined before the release",
+    "infrastructure_semantics_match": "The target infrastructure behaves as the change assumes"
+  },
+  "interruption_reasons": {
+    "legitimate_protected_boundary": "The next action is PROTECTED_RELEASE, or a SAFE_RELEASE action whose mandate or gates are not satisfied. The only reason that justifies asking the founder.",
+    "missing_authority_mapping": "The action has no class in action_classes. Fix the policy; do not ask the founder about a build step.",
+    "agent_uncertainty": "The agent was unsure. Not a reason to interrupt: diagnose and continue.",
+    "missing_context": "The agent lacked context it could read for itself. Not a reason to interrupt.",
+    "broken_tool": "A tool, hook or script failed. Repair it and continue.",
+    "false_policy_conflict": "The agent believed two rules conflicted when the policy decides it. Not a reason to interrupt.",
+    "unnecessary_implementation_question": "An implementation choice inside the approved scope. Decide and continue."
   }
 }
