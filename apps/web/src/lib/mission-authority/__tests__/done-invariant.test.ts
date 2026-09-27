@@ -186,6 +186,14 @@ describe('wired: founder Linear state change (PATCH /api/linear/issues)', () => 
     expect(updateIssueState).toHaveBeenCalledWith('UNI-2779', 's-done')
   })
 
+  it('fails closed when the target state cannot be resolved (Cursor P1 at 417a532)', async () => {
+    vi.mocked(fetchTeamStates).mockResolvedValue([] as never)
+    vi.mocked(fetchIssue).mockResolvedValue({ id: 'UNI-2779', title: 'Status: BLOCKED', description: UNI_2779_HISTORICAL } as never)
+    const res = await patchLinearIssue(req('shipped', 's-done-real'))
+    expect(res.status).toBe(502)
+    expect(updateIssueState).not.toHaveBeenCalled()
+  })
+
   it('does not fetch the description for a non-Done move', async () => {
     const res = await patchLinearIssue(req('today', 's-prog'))
     expect(res.status).toBe(200)

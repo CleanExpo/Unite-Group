@@ -173,7 +173,12 @@ export async function PATCH(request: Request) {
     const targetState = (await fetchTeamStates())
       .flatMap((team) => team.states.nodes)
       .find((state) => state.id === stateId)
-    if (columnId === 'done' || targetState?.type === 'completed') {
+    // A state we cannot classify might be a completed one: refuse rather than
+    // skip the invariant on an unknown target.
+    if (!targetState) {
+      return NextResponse.json({ error: `Unknown target state ${stateId}: cannot confirm it is not Done` }, { status: 502 })
+    }
+    if (columnId === 'done' || targetState.type === 'completed') {
       const issue = await fetchIssue(issueId)
       const check = checkDoneAllowed(acceptanceText(issue.title, issue.description))
       if (!check.allowed) {
