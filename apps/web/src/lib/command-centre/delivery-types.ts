@@ -113,6 +113,14 @@ export const deliveryMetadataSchema = z.object({
         .string()
         .regex(/^[a-f0-9]{64}$/)
         .optional(),
+      // UNI-2779: the accepted intent.md this consent is bound to (signed).
+      intent: z
+        .object({
+          hash: z.string().regex(/^[a-f0-9]{64}$/),
+          version: z.number().int().positive(),
+          acceptedAt: z.string().nullable(),
+        })
+        .optional(),
     })
     .nullable(),
   build: z

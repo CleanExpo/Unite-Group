@@ -13,7 +13,9 @@
 //   Validates the founder-edited markdown (400 with the reason if incomplete,
 //   nothing saved), rewrites the frontmatter to status: accepted / author /
 //   created / task, and saves metadata.intent = { status: 'accepted', markdown,
-//   acceptedAt, author }.
+//   acceptedAt, author }. For a delivery mission that is already admitted
+//   (ready spec, Board APPROVED) the accept also mints the signed build
+//   approval through approve(), bound to this exact intent (UNI-2779).
 //
 // Delivery missions are written ONLY through the guarded saveMissionIntent
 // compare-and-swap (409 on conflict, or while a preparation lease is live);
@@ -32,6 +34,7 @@ import {
   setIntentStatus,
   type IntentClarifications,
 } from '@/lib/command-centre/intent'
+import { mintAuthorityFromAcceptedIntent, type MintOutcome } from '@/lib/mission-authority/intent-authority'
 
 export const dynamic = 'force-dynamic'
 
@@ -170,5 +173,17 @@ export async function PUT(request: Request) {
     // best-effort — audit failure must not block the response
   }
 
-  return NextResponse.json({ markdown, acceptedAt }, { status: 200 })
+  // ── UNI-2779: accepted + admitted => build authorised, no second action ──
+  // Delivery missions only. The mint goes through the existing approve() path
+  // and reports honestly; a refusal does not undo the saved acceptance.
+  let authority: MintOutcome | { minted: false; reason: 'mint_failed' } | undefined
+  if (isDeliveryMission(task)) {
+    try {
+      authority = await mintAuthorityFromAcceptedIntent(user.id, taskId)
+    } catch {
+      authority = { minted: false, reason: 'mint_failed' }
+    }
+  }
+
+  return NextResponse.json({ markdown, acceptedAt, ...(authority ? { authority } : {}) }, { status: 200 })
 }

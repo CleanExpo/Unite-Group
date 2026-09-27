@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn(), createClient: vi.fn() }))
-vi.mock('@/lib/command-centre/tasks', () => ({
+vi.mock('@/lib/command-centre/tasks', async (importOriginal) => ({
+  // UNI-2779: the route now reaches delivery-prepare (intent -> authority mint),
+  // which reads the rest of this module at import time.
+  ...(await importOriginal<typeof import('@/lib/command-centre/tasks')>()),
   getTaskById: vi.fn(),
   mergeTaskMetadata: vi.fn(),
   appendTaskEvent: vi.fn(),
