@@ -489,6 +489,12 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
     expect(sixZone).toContain(textChannels[0][2]);
     expect(sourceBadge).toContain(textChannels[1][2]);
     expect(hermesPanel).toContain(textChannels[2][2]);
+    // Pin the paint sites, not just the declarations: the label and the state readout
+    // must paint textColor, never the fill (dotColor / statusColor's `color`).
+    expect(sourceBadge).toContain('<span style={{ color: textColor }}>{MODE_LABEL[mode]}</span>');
+    expect(sourceBadge).not.toMatch(/color:\s*dotColor\b/);
+    expect(hermesPanel).toContain('<MetaLine label="state" value={stateLabel(item.status, item.ryg)} color={textColor} />');
+    expect(hermesPanel).not.toMatch(/MetaLine[^\n]*color=\{color\}/);
     expect(steps).toContain(textChannels[3][2]);
     expect(ring).toContain(textChannels[4][2]);
     expect(read('src/app/(founder)/founder/command-centre/CommandSteps.module.css')).toContain('color: var(--numfg');
