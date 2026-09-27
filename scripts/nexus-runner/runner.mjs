@@ -322,14 +322,21 @@ function prHeadSha(prRef) {
 
 function observeVerification(c) {
   const sha = c.candidate_sha
-  const runs = ghJson(['api', `repos/${repoOf(prRefOf(c))}/commits/${sha}/check-runs?per_page=100`])
+  const repo = repoOf(prRefOf(c))
+  // Every page, so a required check past the first hundred is not simply absent.
+  const pages = ghJson(['api', '--paginate', '--slurp', `repos/${repo}/commits/${sha}/check-runs?per_page=100`])
+  // The check runs main requires (app-owned); nexus/release-receipt is a status posted later.
+  const protection = ghJson(['api', `repos/${repo}/branches/main/protection/required_status_checks`])
   let review = null
   if (REVIEW_DIR) {
     try { review = JSON.parse(readFileSync(join(REVIEW_DIR, `${sha}.json`), 'utf8')) } catch { /* no report yet */ }
   }
   return {
-    checkRuns: Array.isArray(runs?.check_runs)
-      ? runs.check_runs.map((run) => ({ name: run.name, headSha: run.head_sha, status: run.status, conclusion: run.conclusion }))
+    checkRuns: Array.isArray(pages) && pages.every((page) => Array.isArray(page?.check_runs))
+      ? pages.flatMap((page) => page.check_runs).map((run) => ({ name: run.name, headSha: run.head_sha, status: run.status, conclusion: run.conclusion }))
+      : null,
+    requiredChecks: Array.isArray(protection?.checks)
+      ? protection.checks.filter((check) => check.app_id !== null).map((check) => check.context)
       : null,
     review,
   }

@@ -28,7 +28,10 @@ const withReceipts = (c, receipts) => [...(Array.isArray(c.receipts) ? c.receipt
 /**
  * @param {object} c the stored continuation (updated_at is carried through untouched)
  * @param {{ checkRuns: Array<{name: string, headSha: string, status: string, conclusion: string|null}> | null,
+ *           requiredChecks: string[] | null,
  *           review: { head_sha: string, verdict: string } | null }} observed
+ *   requiredChecks: the check-run names the base branch requires. null or empty keeps
+ *   the mission waiting: green is only ever "every required check passed on this SHA"
  * @param {string} at ISO timestamp for any receipt written
  * @returns {{ changed: boolean, reason: string, continuation: object }}
  */
@@ -61,8 +64,17 @@ export function wake(c, observed, at) {
     }
   }
 
-  const ciGreen =
-    !!runs && runs.length > 0 && runs.every((run) => run.headSha === sha && run.status === 'completed' && run.conclusion === 'success')
+  const required = Array.isArray(observed?.requiredChecks) ? observed.requiredChecks : null
+  const passed = (run) => run.headSha === sha && run.status === 'completed' && run.conclusion === 'success'
+  // Every required check has a run on this SHA and all of them passed, and nothing else
+  // observed on this SHA is still running or failed: a trivial green check is not CI.
+  const requiredGreen =
+    !!runs && !!required && required.length > 0 &&
+    required.every((name) => {
+      const named = runs.filter((run) => run.name === name)
+      return named.length > 0 && named.every(passed)
+    })
+  const ciGreen = requiredGreen && runs.every(passed)
   if (ciGreen && review?.verdict === 'PASS') {
     return {
       changed: true,
@@ -80,7 +92,12 @@ export function wake(c, observed, at) {
     }
   }
 
-  const waitingOn = [runs === null ? 'check runs unreadable' : !ciGreen ? 'CI not green yet' : null, review ? null : 'no review for this SHA']
+  const waitingOn = [
+    runs === null ? 'check runs unreadable' : null,
+    !required || required.length === 0 ? 'required checks unknown' : null,
+    runs !== null && required?.length && !ciGreen ? 'CI not green yet' : null,
+    review ? null : 'no review for this SHA',
+  ]
     .filter(Boolean)
     .join('; ')
   return { changed: false, reason: `waiting: ${waitingOn}`, continuation: c }

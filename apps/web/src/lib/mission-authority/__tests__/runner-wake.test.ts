@@ -14,37 +14,43 @@ const waiting = {
 }
 const green = [{ name: 'test', headSha: SHA, status: 'completed', conclusion: 'success' }, { name: 'lint', headSha: SHA, status: 'completed', conclusion: 'success' }]
 const pass = { head_sha: SHA, verdict: 'PASS' }
+const REQUIRED = ['test', 'lint']
 
 describe('wake', () => {
   it('sends a failed check run to repair, counting the attempt and recording which check', () => {
-    const out = wake(waiting, { checkRuns: [green[0], { name: 'lint', headSha: SHA, status: 'completed', conclusion: 'failure' }], review: pass }, AT)
+    const out = wake(waiting, { checkRuns: [green[0], { name: 'lint', headSha: SHA, status: 'completed', conclusion: 'failure' }], review: pass, requiredChecks: REQUIRED }, AT)
     expect(out.changed).toBe(true)
     expect(out.continuation).toMatchObject({ next_action: 'repair', attempt_count: 2, phase: 'BUILD_CONTINUE' })
     expect(out.continuation.receipts.at(-1)).toEqual({ kind: 'ci_failed', ref: 'lint', sha: SHA, at: AT })
   })
 
   it('sends an independent review FAIL on this SHA to repair', () => {
-    const out = wake(waiting, { checkRuns: green, review: { head_sha: SHA, verdict: 'FAIL' } }, AT)
+    const out = wake(waiting, { checkRuns: green, review: { head_sha: SHA, verdict: 'FAIL' }, requiredChecks: REQUIRED }, AT)
     expect(out.continuation).toMatchObject({ next_action: 'repair', receipts: [{ kind: 'review_failed' }] })
   })
 
   it('advances to the release boundary only on green CI AND a PASS for this exact SHA', () => {
-    const out = wake(waiting, { checkRuns: green, review: pass }, AT)
+    const out = wake(waiting, { checkRuns: green, review: pass, requiredChecks: REQUIRED }, AT)
     expect(out.continuation).toMatchObject({ phase: 'RELEASE_CANDIDATE', next_action: 'mark_pr_ready', last_verified_sha: SHA })
     expect(isAwaitingVerification(out.continuation)).toBe(false)
   })
 
   it.each([
-    ['check runs unreadable', { checkRuns: null, review: pass }],
-    ['no check runs at all', { checkRuns: [], review: pass }],
-    ['a check still running', { checkRuns: [{ name: 'test', headSha: SHA, status: 'in_progress', conclusion: null }], review: pass }],
-    ['a check marked success but still in progress', { checkRuns: [{ name: 'test', headSha: SHA, status: 'in_progress', conclusion: 'success' }], review: pass }],
-    ['a skipped check', { checkRuns: [{ name: 'test', headSha: SHA, status: 'completed', conclusion: 'skipped' }], review: pass }],
-    ['no review', { checkRuns: green, review: null }],
-    ['a PASS for a different SHA', { checkRuns: green, review: { head_sha: 'f'.repeat(40), verdict: 'PASS' } }],
-    ['green runs from another commit', { checkRuns: green.map((run) => ({ ...run, headSha: 'f'.repeat(40) })), review: pass }],
-    ['green runs naming no commit', { checkRuns: green.map(({ headSha: _omit, ...run }) => run), review: pass }],
-    ['a failure on another commit, nothing on this one', { checkRuns: [{ name: 'lint', headSha: 'f'.repeat(40), status: 'completed', conclusion: 'failure' }], review: pass }],
+    ['check runs unreadable', { checkRuns: null, review: pass, requiredChecks: REQUIRED }],
+    ['no check runs at all', { checkRuns: [], review: pass, requiredChecks: REQUIRED }],
+    ['a check still running', { checkRuns: [{ name: 'test', headSha: SHA, status: 'in_progress', conclusion: null }], review: pass, requiredChecks: REQUIRED }],
+    ['a required check marked success but still in progress', { checkRuns: [green[0], { name: 'lint', headSha: SHA, status: 'in_progress', conclusion: 'success' }], review: pass, requiredChecks: REQUIRED }],
+    ['a skipped check', { checkRuns: [{ name: 'test', headSha: SHA, status: 'completed', conclusion: 'skipped' }], review: pass, requiredChecks: REQUIRED }],
+    ['no review', { checkRuns: green, review: null, requiredChecks: REQUIRED }],
+    ['a PASS for a different SHA', { checkRuns: green, review: { head_sha: 'f'.repeat(40), verdict: 'PASS' }, requiredChecks: REQUIRED }],
+    ['green runs from another commit', { checkRuns: green.map((run) => ({ ...run, headSha: 'f'.repeat(40) })), review: pass, requiredChecks: REQUIRED }],
+    ['green runs naming no commit', { checkRuns: green.map(({ headSha: _omit, ...run }) => run), review: pass, requiredChecks: REQUIRED }],
+    ['only a non-required check green', { checkRuns: [{ name: 'trivial', headSha: SHA, status: 'completed', conclusion: 'success' }], review: pass, requiredChecks: REQUIRED }],
+    ['one required check never ran', { checkRuns: [green[0]], review: pass, requiredChecks: REQUIRED }],
+    ['required checks unknown', { checkRuns: green, review: pass, requiredChecks: null }],
+    ['no required checks named', { checkRuns: green, review: pass, requiredChecks: [] }],
+    ['required green but another check still running', { checkRuns: [...green, { name: 'e2e', headSha: SHA, status: 'in_progress', conclusion: null }], review: pass, requiredChecks: REQUIRED }],
+    ['a failure on another commit, nothing on this one', { checkRuns: [{ name: 'lint', headSha: 'f'.repeat(40), status: 'completed', conclusion: 'failure' }], review: pass, requiredChecks: REQUIRED }],
   ])('keeps waiting on %s', (_label, observed) => {
     const out = wake(waiting, observed, AT)
     expect(out.changed).toBe(false)
@@ -53,7 +59,7 @@ describe('wake', () => {
 
   it('leaves a continuation that is not waiting on verification untouched', () => {
     const repairing = { ...waiting, next_action: 'repair' }
-    expect(wake(repairing, { checkRuns: green, review: pass }, AT)).toMatchObject({ changed: false, continuation: repairing })
+    expect(wake(repairing, { checkRuns: green, review: pass, requiredChecks: REQUIRED }, AT)).toMatchObject({ changed: false, continuation: repairing })
   })
 })
 
