@@ -11,24 +11,126 @@ REAL_GIT="${NEXUS_RUNNER_REAL_GIT:-/usr/bin/git}"
 
 deny() { echo "nexus-runner: BLOCKED '$*' (L2 reversible-envelope guard)" >&2; exit 3; }
 
-sub="$1"
+# Find the real subcommand past git's global options (-C dir, -c k=v,
+# --git-dir, ...), so a leading global option cannot hide a push. An alias
+# defined with -c or written by `git config alias.*` could rename push, so both
+# are refused. A push behind a directory-changing global option is refused:
+# the default-branch check below could not see which repository it targets.
+sub=""; skip=0; dirglobal=0
+for a in "$@"; do
+  if [ "$skip" = 1 ]; then skip=0; continue; fi
+  case "$a" in
+    -c) skip=1; continue ;;
+    -C|--git-dir|--work-tree|--namespace|--exec-path|--super-prefix|--config-env) dirglobal=1; skip=1; continue ;;
+    --git-dir=*|--work-tree=*|--namespace=*|--config-env=*) dirglobal=1; continue ;;
+    -*) continue ;;
+  esac
+  sub="$a"; break
+done
+# Config keys that rename a command (alias.*), pull in other config (include*), or
+# redirect where a push lands (push.*, remote.<name>.push, remote.<name>.mirror).
+# `push.default=upstream` turned `git push origin feature-x` into a push to main
+# (Cursor review round 5, confirmed with real git).
+risky_key() {
+  case "$1" in
+    [Aa][Ll][Ii][Aa][Ss].*|[Ii][Nn][Cc][Ll][Uu][Dd][Ee].*|[Ii][Nn][Cc][Ll][Uu][Dd][Ee][Ii][Ff].*) return 0 ;;
+    [Pp][Uu][Ss][Hh].*|[Rr][Ee][Mm][Oo][Tt][Ee].*.[Pp][Uu][Ss][Hh]*|[Rr][Ee][Mm][Oo][Tt][Ee].*.[Mm][Ii][Rr][Rr][Oo][Rr]*) return 0 ;;
+  esac
+  return 1
+}
+prev=""
+for a in "$@"; do
+  case "$prev" in -c) risky_key "$a" && deny "git -c $a (alias, include or push-redirect override)" ;; esac
+  prev="$a"
+done
+if [ "$sub" = config ]; then
+  for a in "$@"; do risky_key "$a" && deny "git config $a (alias, include or push-redirect key)"; done
+fi
+
 case "$sub" in
   push)
-    # forbid all force
+    [ "$dirglobal" = 0 ] || deny "git push behind -C/--git-dir/--work-tree (push from inside the worktree)"
+    seen=0; npos=0; nrefs=0
     for a in "$@"; do
-      case "$a" in --force|--force-with-lease|-f|--force-with-lease=*) deny "git push force" ;; esac
-    done
-    # forbid an explicit main/master destination refspec
-    for a in "$@"; do
-      case "$a" in main|master|*:main|*:master) deny "git push to default branch ($a)" ;; esac
+      # the first positional after `push` is the remote, not a refspec: `git push main feature-x`
+      # names a remote called main; only refspecs are checked for tags and default-branch targets
+      isref=0
+      case "$a" in
+        -*) : ;;
+        *) if [ "$seen" = 1 ]; then npos=$((npos + 1)); [ "$npos" -ge 2 ] && isref=1; fi
+           [ "$a" = push ] && seen=1 ;;
+      esac
+      case "$a" in
+        # forbid all force, including a +refspec
+        --force|--force-with-lease|-f|--force-with-lease=*|--force-if-includes|+*) deny "git push force ($a)" ;;
+        # forbid deleting remote refs (--delete, -d, an empty-source :ref refspec, --mirror, --prune)
+        --delete|-d|--mirror|--prune|:*) deny "git push delete ($a)" ;;
+        # forbid pushing every branch (which includes main) and tags (which can trigger releases)
+        --all|--branches|--tags|--follow-tags|tag|refs/tags/*|*:refs/tags/*) deny "git push $a" ;;
+      esac
+      [ "$isref" = 1 ] || continue
+      nrefs=$((nrefs + 1))
+      # forbid pushing a tag named bare (`git push origin v1.0.0`): ask git whether the source is a
+      # tag. A name that is also a branch is left to git, which refuses the ambiguous refspec itself.
+      src="${a%%:*}"
+      if [ -n "$src" ] && "$REAL_GIT" show-ref --verify --quiet "refs/tags/$src" 2>/dev/null &&
+        ! "$REAL_GIT" show-ref --verify --quiet "refs/heads/$src" 2>/dev/null; then
+        deny "git push tag ($a)"
+      fi
+      # forbid a main/master destination, however spelled (main, x:main, refs/heads/main)
+      dst="${a##*:}"
+      dst="${dst#refs/heads/}"
+      case "$dst" in main|master) deny "git push to default branch ($a)" ;; esac
     done
     # forbid a push while the current branch IS the default branch
     br=$("$REAL_GIT" rev-parse --abbrev-ref HEAD 2>/dev/null)
     case "$br" in
       main|master) deny "git push from default branch ($br)" ;;
     esac
+    # a push must name what it pushes: a bare `git push` / `git push origin` follows
+    # push.default, remote.*.push and the branch upstream, any of which can point at main
+    [ "$nrefs" -ge 1 ] || deny "git push without an explicit branch (name it: git push -u origin <branch>)"
+    # pin push.default=current for this push, above any repository or global config, so an
+    # explicit `<branch>` refspec always lands on the same-named remote branch
+    unset GIT_CONFIG_PARAMETERS
+    GIT_CONFIG_COUNT=1; GIT_CONFIG_KEY_0=push.default; GIT_CONFIG_VALUE_0=current
+    export GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0
+    # Ask git where this exact push would land, then refuse if any destination is the default
+    # branch or a tag. Config can still map a named branch elsewhere (a preset remote.*.push,
+    # or one pulled in by include.path: Cursor review round 6), and only git resolves that.
+    # A dry run that fails is refused: the envelope never pushes what it could not inspect.
+    # Quiet hides the porcelain ref lines, so it is removed from the dry run only: --quiet, and
+    # the q in any short-option cluster (-q, -uq, -qu). Hooks are switched off for the dry run
+    # (it pushes nothing) so a pre-push hook cannot print a fake "safe" destination into it
+    # (Cursor review round 7); the real push below still runs its hooks. Only stdout is read.
+    # A dry run that fails, or reports no destination at all, is refused.
+    dry_run() {
+      for a do
+        shift
+        case "$a" in
+          --quiet) continue ;;
+          --*) : ;;
+          -*q*) a=$(printf '%s' "$a" | tr -d q); [ "$a" = - ] && continue ;;
+        esac
+        set -- "$@" "$a"
+      done
+      GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_1=core.hooksPath GIT_CONFIG_VALUE_1=/dev/null \
+        "$REAL_GIT" "$@" --dry-run --porcelain
+    }
+    plan=$(dry_run "$@" 2>/dev/null) || deny "git push (dry run failed; nothing was pushed)"
+    dests=$(printf '%s\n' "$plan" | awk -F'\t' 'NF >= 2 { n = split($2, p, ":"); print p[n] }')
+    [ -n "$dests" ] || deny "git push (dry run showed no destination to check)"
+    for d in $dests; do
+      case "$d" in
+        refs/heads/main|refs/heads/master|main|master) deny "git push lands on the default branch ($d)" ;;
+        refs/tags/*) deny "git push lands on a tag ($d)" ;;
+      esac
+    done
     ;;
   merge)        deny "git merge" ;;
+  # Remote-write plumbing and bridges that push without going through `git push` and
+  # its checks above (Cursor review round 9: `git send-pack` reached main).
+  send-pack|http-push|receive-pack|remote-*|svn|p4|cvsexportcommit) deny "git $sub (remote write outside git push)" ;;
   reset)
     for a in "$@"; do case "$a" in --hard) deny "git reset --hard" ;; esac; done ;;
   branch)

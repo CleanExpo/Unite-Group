@@ -15,6 +15,7 @@ import type {
 } from '@/lib/command-centre/provider-usage'
 import { SourceBadge, type SourceMode } from '../SourceBadge'
 import { DegradedDataBanner } from '../DegradedDataBanner'
+import { UsageGauge } from './UsageGauge'
 
 const POLL_MS = 30000
 
@@ -26,7 +27,7 @@ const STATE_LABEL: Record<ProviderState, string> = {
   unknown: 'unknown',
 }
 
-// Fill variant — bright signal, used for the usage-meter bar.
+// Fill variant — bright signal, used for the per-seat usage bars.
 function stateColor(state: ProviderState): string {
   if (state === 'available') return 'var(--cc-ink)'
   if (state === 'watching') return 'var(--cc-ink-dim)'
@@ -58,46 +59,46 @@ function sourceMode(payload: ProviderCockpitPayload | null, loading: boolean, er
   return 'live'
 }
 
+// A usage figure is known only when it is a real finite number.
+function knownUsage(pct: number | null): number | null {
+  return typeof pct === 'number' && Number.isFinite(pct) ? pct : null
+}
+
 function ProviderMeter({ provider }: { provider: ProviderCockpitEntry }) {
-  const color = stateColor(provider.state)
   const textColor = stateTextColor(provider.state)
-  const pct = provider.usagePct ?? 0
+  const caption = `${provider.planType} · ${provider.truthLevel} · resets ${provider.resetCadence}`
+  const pct = knownUsage(provider.usagePct)
   return (
-    <div className="cc-provider-row" style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '8px 0' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-        <span style={{ color: 'var(--cc-ink)', fontWeight: 600, fontSize: 13 }}>{provider.label}</span>
-        <span
-          data-testid={`provider-state-${provider.id}`}
-          style={{ color: textColor, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em' }}
-        >
-          {STATE_LABEL[provider.state]}
-        </span>
-      </div>
-      {/* usage meter */}
-      <div
-        role="meter"
-        aria-label={`${provider.label} usage`}
-        aria-valuenow={provider.usagePct ?? undefined}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        style={{ height: 6, borderRadius: 2, background: 'var(--cc-ink-hush)', overflow: 'hidden' }}
+    <div className="cc-provider-row" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '8px 0' }}>
+      {/* UNI-2772 — radial gauge ONLY for a known usage figure. Unknown / not
+          connected renders the honest state in words, never a 0% dial. */}
+      {pct !== null ? (
+        <UsageGauge id={provider.id} label={provider.label} pct={pct} state={provider.state} caption={caption} />
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, minHeight: 96, justifyContent: 'center' }}>
+          <span
+            data-testid={`provider-usage-unknown-${provider.id}`}
+            style={{ color: 'var(--cc-ink-hush)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}
+          >
+            usage unavailable
+          </span>
+          <span style={{ color: 'var(--cc-ink)', fontWeight: 600, fontSize: 13, textAlign: 'center' }}>{provider.label}</span>
+          <span style={{ color: 'var(--cc-ink-dim)', fontSize: 11, textAlign: 'center' }}>{caption}</span>
+        </div>
+      )}
+      <span
+        data-testid={`provider-state-${provider.id}`}
+        style={{ color: textColor, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em' }}
       >
-        <div style={{ width: `${pct}%`, height: '100%', background: color }} />
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--cc-ink-dim)' }}>
-        <span>
-          {provider.planType} · {provider.truthLevel}
-          {provider.usagePct !== null ? ` · ${provider.usagePct}%` : ''}
-        </span>
-        <span>resets {provider.resetCadence}</span>
-      </div>
+        {STATE_LABEL[provider.state]}
+      </span>
       {provider.missingSetupReason && (
-        <span style={{ fontSize: 11, color: 'var(--cc-signal-text)' }}>⚠ {provider.missingSetupReason}</span>
+        <span style={{ fontSize: 11, color: 'var(--cc-signal-text)', textAlign: 'center' }}>⚠ {provider.missingSetupReason}</span>
       )}
       {/* UNI-2338 — per-seat plan bars. usagePct null renders as "no telemetry",
           never a fabricated fill. */}
       {provider.plans && provider.plans.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, paddingLeft: 10, marginTop: 2 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, alignSelf: 'stretch', paddingLeft: 10, marginTop: 2 }}>
           {provider.plans.map((seat) => (
             <PlanSeatBar key={seat.id} seat={seat} />
           ))}
@@ -188,7 +189,7 @@ export function ProviderUsageCockpit() {
             <span>{payload.summary.unknown} unknown</span>
           </div>
 
-          <div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8 }}>
             {payload.providers.map((p) => (
               <ProviderMeter key={p.id} provider={p} />
             ))}

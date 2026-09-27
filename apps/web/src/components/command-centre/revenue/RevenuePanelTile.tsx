@@ -16,6 +16,7 @@
 import { useEffect, useState } from 'react'
 import type { RevenueResponse } from '@/lib/revenue/revenue-snapshot'
 import type { AccountRead } from '@/lib/revenue/stripe-account'
+import { TrendAreaChart } from './TrendAreaChart'
 
 const aud = new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 })
 
@@ -134,7 +135,7 @@ function AccountSection({ account }: { account: AccountRead }) {
 
       <div>
         <span style={muted}>7-day cleared trend</span>
-        <Trend trend={cleared.trend} />
+        <TrendAreaChart trend={cleared.trend} id={`revenue-trend-${account.account}`} />
       </div>
 
       <div>

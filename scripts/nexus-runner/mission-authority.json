@@ -1,0 +1,38 @@
+{
+  "schema": "nexus-mission-authority/1",
+  "scope": "branch_preview_only",
+  "build_authorised_when": "The claim API has verified the founder-signed delivery approval for this exact frozen specification. That approval IS the build authority: no further founder approval is needed for any build step.",
+  "build": {
+    "discover": "Inspect repositories, documentation and permitted runtime evidence",
+    "edit": "Edit files inside the approved scope",
+    "test": "Run type-check, lint, unit, integration and end-to-end tests",
+    "repair": "Fix failures, retry with a different method, add missing tests",
+    "commit": "Commit scoped work",
+    "push_scoped_branch": "Push the task's own feature branch",
+    "draft_pr": "Open or update a DRAFT pull request",
+    "preview_within_existing_mandate": "Create a Vercel preview (non-production) deployment",
+    "update_linear": "Update Linear status and build receipts"
+  },
+  "protected": {
+    "merge": "founder_or_existing_release_mandate",
+    "mark_pr_ready": "founder_or_existing_release_mandate",
+    "production_deploy": "founder_or_existing_release_mandate",
+    "public_publish": "founder_or_existing_publish_mandate",
+    "spend_expansion": "founder",
+    "destructive_action": "founder",
+    "credential_change": "founder",
+    "authority_change": "founder",
+    "strategic_scope_change": "founder"
+  },
+  "protected_descriptions": {
+    "merge": "Merging any pull request or branch",
+    "mark_pr_ready": "Marking a pull request ready for review, or opening one that is not a draft",
+    "production_deploy": "Deploying, promoting or rolling back production, or pushing to main",
+    "public_publish": "Publishing a release or any public content",
+    "spend_expansion": "Buying anything or raising any spend",
+    "destructive_action": "Force-pushing, deleting branches or data, resetting history, or running migrations against any database",
+    "credential_change": "Reading, adding or changing secrets and environment variables",
+    "authority_change": "Changing repository settings, branch protection, workflows or permissions",
+    "strategic_scope_change": "Changing the approved objective or widening the approved scope"
+  }
+}

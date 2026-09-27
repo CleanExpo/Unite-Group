@@ -542,9 +542,11 @@ jobs:
             migrations/0003_match_and_lineage_rls.sql \
             migrations/0004_grants.sql \
             migrations/0005_match_iterative_scan.sql \
+            migrations/0006_employment_credential.sql \
             strangler/0001_resolver.sql \
             strangler/0003_dual_write_outbox.sql \
-            strangler/0004_shadow_read_diff.sql
+            strangler/0004_shadow_read_diff.sql \
+            strangler/0005_record_guard.sql
           do
             echo "── applying $f (as postgres)"
             psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 54322 -U postgres -d postgres -f "$f"

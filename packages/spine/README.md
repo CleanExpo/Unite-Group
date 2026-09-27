@@ -36,3 +36,9 @@ packages/spine/
 
 ## Status
 Greenfield build in progress (non-prod). Production cutover: NOT STARTED (gated).
+
+**Where it runs (26/09/2026).** This package lives in the `CleanExpo/Unite-Group` monorepo at
+`packages/spine/packages/spine/`; the design links above are historical local paths. There is no
+hosted spine database and no new infra (Phill, 09/06/2026). CI builds the spine in an ephemeral
+local Supabase on loopback port 54322 and runs the vitest suites there; see `RESUME.md` for the
+current truth block.

@@ -114,3 +114,18 @@ Sandbox: `Unite-Group Test` (`xgqwfwqumliuguzhshwv`), schema-isolated, fully rev
 
 ## Gate (unchanged)
 Production data cutover = the single human-gated, irreversible step. Not started.
+
+## RA-7753 slice 1a — employment & credential v1 (26/09/2026, branch `feature/RA-7753-spine-identity-v1`)
+Built in the monorepo, proven only in the ephemeral local Supabase (loopback 54322). Nothing applied anywhere else.
+- **D1 (latent):** `migrate._record` re-pointed an already-linked `source_record` to another party. Since strangler/0003,
+  `resolve_one` never reaches that branch, so only a direct `_record` call could. Closed in `strangler/0005_record_guard.sql`:
+  keep the existing link, queue `identity_audit` review. Test shown RED on origin/main `1c24a956c` first.
+- **D2:** any member could INSERT `field.customer` / `field.evidence` naming any person and so expose that person's PII
+  through `party_visible()`. Closed in `migrations/0006`: a field row may only name someone already visible by a non-field tie.
+  Test shown RED on origin/main first.
+- **New tables (`migrations/0006`):** `core.employment` (+ `core.end_employment()`), `core.credential` (+ `credential_full`
+  view, number column masked from employers, reuse anomaly trigger), `carsi.cec_claim`. FORCE RLS, SELECT-only grants.
+- **Evidence:** one REQUIRED vitest suite per capability (`identity_rules`, `credential_provenance`, `cec_separation`,
+  `tenure_visibility`, `rls_catalog`, `unit/ephemeral-guard`); every rule has a negative control and a mutant; rule blocks
+  repeat 3×. Table count 20 → 23 (idempotency, exact).
+- **Defaults awaiting Phill:** D-15 (former employer sees no credentials/CEC), D-16 (DR-NRPG business = Contractor).
