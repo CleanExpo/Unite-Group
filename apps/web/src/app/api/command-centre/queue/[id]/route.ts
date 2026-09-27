@@ -8,7 +8,7 @@
 import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
-import { getTaskById, updateTaskStatusGuarded, appendTaskEvent, type TaskStatus } from '@/lib/command-centre/tasks'
+import { getTaskById, updateTaskStatusGuarded, appendTaskEvent, DoneRefusedError, type TaskStatus } from '@/lib/command-centre/tasks'
 import { listApprovalsForTask } from '@/lib/command-centre/approvals'
 import { getValidationSummary } from '@/lib/command-centre/validation'
 import { isLegalTransition } from '@/lib/command-centre/task-transitions'
@@ -170,6 +170,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     return NextResponse.json({ task })
   } catch (err) {
+    // The store re-reads the row at write time; text edited since the check
+    // above is refused there, and that refusal is a conflict, not a fault.
+    if (err instanceof DoneRefusedError) {
+      return NextResponse.json(
+        { error: 'Cannot complete: the acceptance text says this is not finished', blockers: err.blockers },
+        { status: 409 },
+      )
+    }
     return NextResponse.json(
       { error: sanitiseError(err, 'Failed to update task') },
       { status: 500 },

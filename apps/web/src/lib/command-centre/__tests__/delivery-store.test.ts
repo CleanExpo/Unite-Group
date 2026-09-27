@@ -5,7 +5,7 @@ import {
   deliveryFingerprint,
   type DeliveryStoreClient,
 } from "../delivery-store";
-import type { CommandCentreTask } from "../tasks";
+import { DoneRefusedError, type CommandCentreTask } from "../tasks";
 import type { DeliveryMetadata } from "../delivery-types";
 
 function fixture(): { task: CommandCentreTask; delivery: DeliveryMetadata } {
@@ -129,6 +129,21 @@ describe("guarded delivery store", () => {
     await expect(
       saveDelivery(task, delivery, { client: db.client }),
     ).rejects.toThrow(/confirmed/);
+  });
+  it("refuses status done while the mission text says it is held back, writing nothing (UNI-2779)", async () => {
+    const { task, delivery } = fixture();
+    task.objective = "Build a portal\n\nHeld back: the live walk (needs founder)";
+    const db = database(task);
+    await expect(
+      saveDelivery(task, delivery, { status: "done", client: db.client }),
+    ).rejects.toBeInstanceOf(DoneRefusedError);
+    expect(db.update).not.toHaveBeenCalled();
+  });
+  it("still saves status done when the mission text is clean (UNI-2779)", async () => {
+    const { task, delivery } = fixture();
+    const db = database(task);
+    const saved = await saveDelivery(task, delivery, { status: "done", client: db.client });
+    expect(saved.status).toBe("done");
   });
   it("rejects a stale lease before any update", async () => {
     const { task, delivery } = fixture();

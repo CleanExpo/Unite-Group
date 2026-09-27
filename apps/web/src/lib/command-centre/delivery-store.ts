@@ -2,6 +2,7 @@ import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { listApprovalsForTask } from "./approvals";
 import {
+  assertDoneAllowed,
   getTaskById,
   type CommandCentreTask,
   type SupabaseLike,
@@ -216,6 +217,9 @@ export async function saveDelivery(
     throw new DeliveryConflict("The saved mission contract is invalid.");
   if (options.expectedLease && old.lease?.token !== options.expectedLease)
     throw new DeliveryConflict("Preparation ownership changed.");
+  // UNI-2779: this CAS writes the exact row in hand (updated_at guarded), so
+  // its own acceptance text is the text that must allow Done.
+  if (options.status === "done") assertDoneAllowed(task);
   const db =
     options.client ??
     ((await createClient()) as unknown as DeliveryStoreClient);

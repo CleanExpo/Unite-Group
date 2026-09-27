@@ -91,12 +91,18 @@ function makeFakeDb() {
                     // zero rows means the expected status no longer matched.
                     eq(c3: string, v3: unknown) {
                       filters.push([c3, v3])
-                      return {
+                      const guarded = {
                         select() {
                           const match = apply()
                           return Promise.resolve({ data: match ? [match] : [], error: null })
                         },
+                        // 4-eq Done path: also compare-and-swap on updated_at.
+                        eq(c4: string, v4: unknown) {
+                          filters.push([c4, v4])
+                          return { select: guarded.select }
+                        },
                       }
+                      return guarded
                     },
                   }
                 },
@@ -358,6 +364,50 @@ describe('work-packet-store', () => {
 
     expect(result.ok).toBe(false)
     expect(tables[CC_TASKS_TABLE][0].status).toBe('running')
+  })
+
+  it('applyPacketTransition completes a clean packet to cc_tasks done', async () => {
+    const { client, tables } = makeFakeDb()
+    const packet = samplePacket()
+    await saveWorkPacket(client, FOUNDER, packet)
+    ;(tables[CC_TASKS_TABLE][0] as Record<string, unknown>).status = packetStatusToTaskStatus('running')
+
+    const result = await applyPacketTransition(client, FOUNDER, packet.id, { type: 'complete' })
+
+    expect(result.ok).toBe(true)
+    expect(tables[CC_TASKS_TABLE][0].status).toBe('done')
+  })
+
+  it('applyPacketTransition refuses done when the row text changed to Held back after its own check (UNI-2779 choke point)', async () => {
+    const { client, tables } = makeFakeDb()
+    const packet = samplePacket()
+    await saveWorkPacket(client, FOUNDER, packet)
+    const row = tables[CC_TASKS_TABLE][0] as Record<string, unknown>
+    row.status = packetStatusToTaskStatus('running')
+    // The packet store reads the row once (clean) and checks it; the objective is
+    // edited before the Done write. Only the store's write-time re-read sees it.
+    let taskReads = 0
+    const racing = {
+      from(table: string) {
+        const t = client.from(table)
+        if (table !== CC_TASKS_TABLE) return t
+        return {
+          ...t,
+          select: (columns?: string) => {
+            taskReads += 1
+            if (taskReads === 2) row.objective = 'Ship it\n\nHeld back: the do not ask half'
+            return t.select(columns)
+          },
+        }
+      },
+    } as unknown as SupabaseLike
+
+    const result = await applyPacketTransition(racing, FOUNDER, packet.id, { type: 'complete' })
+
+    expect(result.ok).toBe(false)
+    expect(result.reason).toMatch(/not finished/)
+    expect(row.status).toBe('running')
+    expect(tables[CC_TASK_EVENTS_TABLE]).toHaveLength(0)
   })
 
   it('applyPacketTransition returns ok=false, packet=null for a missing packet', async () => {

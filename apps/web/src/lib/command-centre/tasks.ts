@@ -10,6 +10,7 @@
 
 import { createHash } from 'node:crypto'
 import { isDeliveryMission } from './delivery-types'
+import { acceptanceText, checkDoneAllowed } from '@/lib/mission-authority/done-invariant'
 
 import { createClient } from '@/lib/supabase/server'
 
@@ -541,6 +542,8 @@ export async function updateTaskStatusGuarded(
 ): Promise<CommandCentreTask | null> {
   const db = client ?? ((await createClient()) as unknown as GuardedUpdateClientLike)
 
+  if (input.status === 'done') return completeTaskGuarded(input, db)
+
   const { data, error } = await db
     .from(CC_TASKS_TABLE)
     .update({ status: input.status })
@@ -549,6 +552,92 @@ export async function updateTaskStatusGuarded(
     .eq('status', input.expectedStatus)
     .select('*')
 
+  if (error) throw new Error(`updateTaskStatusGuarded failed: ${error.message}`)
+  const rows = (data as CommandCentreTask[]) ?? []
+  return rows[0] ?? null
+}
+
+/**
+ * UNI-2779 — thrown when a write would set cc_tasks.status = 'done' while the
+ * row's own title, objective or metadata.acceptance says it is not finished.
+ * Nothing is written. Routes map this to 409.
+ */
+export class DoneRefusedError extends Error {
+  constructor(taskId: string, blockers: string[]) {
+    super(`Done refused for task ${taskId}: the acceptance text says this is not finished — ${blockers.join('; ')}`)
+    this.name = 'DoneRefusedError'
+    this.taskId = taskId
+    this.blockers = blockers
+  }
+
+  readonly taskId: string
+  readonly blockers: string[]
+}
+
+/**
+ * The single Done check every cc_tasks writer runs against the row it is about
+ * to complete. Throws DoneRefusedError; returns normally when Done is allowed.
+ */
+export function assertDoneAllowed(
+  task: Pick<CommandCentreTask, 'id' | 'title' | 'objective' | 'metadata'>,
+): void {
+  const check = checkDoneAllowed(acceptanceText(task.title, task.objective, task.metadata?.acceptance))
+  if (!check.allowed) throw new DoneRefusedError(task.id, check.blockers)
+}
+
+// The Done write reads the row first and then compares-and-swaps on
+// updated_at as well as status, so an edit to the acceptance text between the
+// check and the write matches zero rows instead of being completed unread.
+interface DoneWriteClientLike {
+  from(table: string): {
+    select(columns?: string): {
+      eq(column: string, value: unknown): {
+        eq(column: string, value: unknown): {
+          single(): Promise<{ data: unknown; error: SupabaseErrorLike | null }>
+        }
+      }
+    }
+    update(values: unknown): {
+      eq(column: string, value: unknown): {
+        eq(column: string, value: unknown): {
+          eq(column: string, value: unknown): {
+            eq(column: string, value: unknown): {
+              select(columns?: string): Promise<{ data: unknown; error: SupabaseErrorLike | null }>
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+async function completeTaskGuarded(
+  input: { founderId: string; taskId: string; expectedStatus: TaskStatus },
+  client: GuardedUpdateClientLike,
+): Promise<CommandCentreTask | null> {
+  const db = client as unknown as DoneWriteClientLike
+  const { data: current, error: readError } = await db
+    .from(CC_TASKS_TABLE)
+    .select('*')
+    .eq('founder_id', input.founderId)
+    .eq('id', input.taskId)
+    .single()
+  if (readError?.code === 'PGRST116') return null
+  if (readError) throw new Error(`updateTaskStatusGuarded read failed: ${readError.message}`)
+  if (!current) throw new Error('updateTaskStatusGuarded read returned no row and no error')
+  const row = current as CommandCentreTask
+  if (row.status !== input.expectedStatus) return null
+
+  assertDoneAllowed(row)
+
+  const { data, error } = await db
+    .from(CC_TASKS_TABLE)
+    .update({ status: 'done' })
+    .eq('founder_id', input.founderId)
+    .eq('id', input.taskId)
+    .eq('status', input.expectedStatus)
+    .eq('updated_at', row.updated_at)
+    .select('*')
   if (error) throw new Error(`updateTaskStatusGuarded failed: ${error.message}`)
   const rows = (data as CommandCentreTask[]) ?? []
   return rows[0] ?? null
