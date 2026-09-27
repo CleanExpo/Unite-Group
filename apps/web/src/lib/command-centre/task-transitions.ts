@@ -48,7 +48,9 @@ const TRANSITIONS: Record<TransitionActor, Partial<Record<TaskStatus, readonly T
   // Direct client PATCH — benign edits only; never promotes to queued/running.
   founder: {
     proposed: ['awaiting_approval', 'blocked', 'failed'],
-    awaiting_approval: ['proposed', 'blocked', 'failed'],
+    // done = the founder completing a reviewed handoff; the route still applies the
+    // UNI-2779 done invariant and CC-12 validation before any write.
+    awaiting_approval: ['proposed', 'blocked', 'failed', 'done'],
     queued: ['blocked', 'failed'], // pull back / cancel an approved-but-unclaimed task
     running: ['blocked', 'done', 'failed'], // pause / mark-done (validation-gated) / abort
     blocked: ['proposed', 'failed'],
@@ -65,7 +67,7 @@ const TRANSITIONS: Record<TransitionActor, Partial<Record<TaskStatus, readonly T
   // runner uses atomic conditional updates. Present for lifecycle completeness.
   runner: {
     queued: ['running'],
-    running: ['done', 'failed', 'queued', 'awaiting_approval'], // legacy done / failed / requeue / delivery review
+    running: ['failed', 'queued', 'awaiting_approval'], // failed / requeue / review handoff — an opened PR is never done (UNI-2779)
   },
 }
 
