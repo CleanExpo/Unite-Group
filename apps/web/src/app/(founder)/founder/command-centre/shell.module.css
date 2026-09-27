@@ -33,6 +33,9 @@
 
   --red-500: #ff3b5c;
   --red-400: #ff3b5c;
+  /* Action red as TEXT: #ff3b5c is a fill and fails 4.5:1 as text, so text takes the
+     same AA shade as --deck-cyan-text. */
+  --red-text: #ff5c77;
   /* Alarm text: palette error #e5484d is 3.73:1 on --surface-3, so the
      lighter alarm red #f87171 (5.28:1 there) — still not the action red. */
   --red-300: #f87171;
@@ -116,8 +119,8 @@
 }
 .heroEm {
   font-style: normal;
-  /* Action/emphasis red (--red-400), not the alarm token --red-300. */
-  color: var(--red-400);
+  /* Action/emphasis red as text (--red-text), not the alarm token --red-300. */
+  color: var(--red-text);
 }
 .heroSub {
   color: var(--ink-dim);
@@ -288,6 +291,7 @@
 
   --red-500: #c2410c;
   --red-400: #c2410c;
+  --red-text: #9a3412;
   --red-300: #b91c1c;
   --green: #15803d;
   --green-txt: #166534;

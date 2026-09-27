@@ -309,8 +309,11 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
     expect(deckCss).toContain('.missionTokens :is(.plink, .projectName) { color: var(--mission-blue-text); }');
 
     // No Mission Control source sets a text colour straight from a fill token.
+    // Scans the whole `color:` value, so a fill in either branch of a ternary
+    // (`color: on ? 'var(--red-400)' : ...`) is caught; it stops at the next `key:`
+    // so a neighbouring `background: var(--deck-go)` is not blamed on `color`.
     const fillAsText =
-      /(?<![-\w])color\s*:\s*['"]?var\(\s*--(?:mission-(?:blue|danger|attention|success)|deck-(?:cyan|go|amber|abort)|cc-signal)\s*[,)]/;
+      /(?<![-\w])color\s*:(?:(?!\w\s*:)[^;}\n])*?var\(\s*--(?:mission-(?:blue|danger|attention|success)|deck-(?:cyan|go|amber|abort)|cc-signal|red-(?:400|500))\s*[,)]/;
     const walk = (root: string): string[] =>
       readdirSync(root, { withFileTypes: true }).flatMap((e) => {
         const p = join(root, e.name);
