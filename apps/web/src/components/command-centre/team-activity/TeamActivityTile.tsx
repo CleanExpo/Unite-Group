@@ -17,7 +17,7 @@ function MemberCard({ m }: { m: MemberActivity }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '8px 0', borderBottom: '1px solid var(--deck-line, rgba(207,224,236,0.12))' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
         <span style={{ color: 'var(--deck-text, #e6f7ff)', fontWeight: 600, fontSize: 13 }}>{m.name}</span>
-        <span style={{ color: 'var(--deck-cyan-text, #15803d)', fontSize: 11 }}>
+        <span style={{ color: 'var(--deck-cyan-text, var(--color-accent-text))', fontSize: 11 }}>
           {m.activeDays} active day{m.activeDays === 1 ? '' : 's'} · {m.commitCount} commit{m.commitCount === 1 ? '' : 's'}
         </span>
       </div>

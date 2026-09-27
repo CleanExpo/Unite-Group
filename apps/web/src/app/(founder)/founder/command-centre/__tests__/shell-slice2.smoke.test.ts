@@ -312,8 +312,11 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
     // Scans the whole `color:` value, so a fill in either branch of a ternary
     // (`color: on ? 'var(--red-400)' : ...`) is caught; it stops at the next `key:`
     // so a neighbouring `background: var(--deck-go)` is not blamed on `color`.
+    // Fills are caught as tokens (including the app-global --color-success/danger/accent
+    // aliases, which the mission scope bridges to fills) and as raw fill hexes, in a
+    // fallback too: text falls back to --color-accent-text / --color-danger-text.
     const fillAsText =
-      /(?<![-\w])color\s*:(?:(?!\w\s*:)[^;}\n])*?var\(\s*--(?:mission-(?:blue|danger|attention|success)|deck-(?:cyan|go|amber|abort)|cc-signal|red-(?:400|500))\s*[,)]/;
+      /(?<![-\w])color\s*:(?:(?!\w\s*:)[^;}\n])*?(?:var\(\s*--(?:mission-(?:blue|danger|attention|success)|deck-(?:cyan|go|amber|abort)|cc-signal|red-(?:400|500)|color-(?:success|danger|accent))\s*[,)]|#(?:ff3b5c|15803d|a16207|e5484d)\b)/i;
     const walk = (root: string): string[] =>
       readdirSync(root, { withFileTypes: true }).flatMap((e) => {
         const p = join(root, e.name);

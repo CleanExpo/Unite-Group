@@ -30,7 +30,7 @@ function Flag({ on, label }: { on: boolean; label: string }) {
         style={{ width: 6, height: 6, borderRadius: '50%', background: on ? 'var(--deck-go, #2dbb57)' : 'var(--deck-muted, #6f879b)' }}
       />
       <span style={{ color: 'var(--deck-text, #e6f7ff)', fontSize: 12 }}>{label}</span>
-      <span style={{ marginLeft: 'auto', color: on ? 'var(--tile-green-txt, #15803d)' : 'var(--deck-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+      <span style={{ marginLeft: 'auto', color: on ? 'var(--tile-green-txt, var(--color-accent-text))' : 'var(--deck-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
         {on ? 'present' : 'absent'}
       </span>
     </div>

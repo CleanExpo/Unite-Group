@@ -138,7 +138,7 @@ export function EmailAccountsTile() {
           </div>
         )}
 
-        <a href="/founder/settings" style={{ color: 'var(--deck-cyan-text, #15803d)', fontSize: 11, textDecoration: 'underline' }}>
+        <a href="/founder/settings" style={{ color: 'var(--deck-cyan-text, var(--color-accent-text))', fontSize: 11, textDecoration: 'underline' }}>
           ↗ manage in Settings
         </a>
       </DeckDetails>
