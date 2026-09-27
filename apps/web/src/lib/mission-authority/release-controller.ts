@@ -77,8 +77,9 @@ export function protectedPathHits(paths: readonly string[]): string[] {
   return paths.filter((path) => {
     if (PREFIXES.some((prefix) => (prefix.endsWith('/') ? path.startsWith(prefix) : path === prefix))) return true
     return path.split('/').some((part) => {
-      const stem = part.replace(/\.[^.]+$/, '')
-      return part.startsWith('.env') || SEGMENTS.includes(part) || SEGMENTS.includes(stem)
+      // Up to the first dot, so auth.config.ts and security.test.ts match as well as auth.ts.
+      const stem = part.split('.')[0]
+      return part.startsWith('.env') || SEGMENTS.includes(stem)
     })
   })
 }
@@ -100,15 +101,20 @@ export function deriveGates(evidence: ReleaseEvidence): Record<string, boolean> 
   const exact = SHA.test(sha)
   const paths = evidence.changedPaths
   const severities = evidence.reviewBlockingSeverities
+  // An agent name that is blank, or the builder's under another case or padding, is not a reviewer.
+  const reviewer = (evidence.reviewerAgent ?? '').trim().toLowerCase()
+  const builder = evidence.builderAgent.trim().toLowerCase()
   return {
     exact_final_sha: exact && evidence.reviewedSha === sha && evidence.receiptSha === sha,
     clean_tree: exact && evidence.tree?.sha === sha && evidence.tree.porcelain === '',
     required_ci_green: exact && requiredChecksGreen(evidence.requiredChecks, evidence.checkRuns),
     independent_review_pass:
+      exact &&
       evidence.reviewVerdict === 'PASS' &&
       evidence.reviewedSha === sha &&
-      !!evidence.reviewerAgent &&
-      evidence.reviewerAgent !== evidence.builderAgent,
+      reviewer.length > 0 &&
+      builder.length > 0 &&
+      reviewer !== builder,
     release_gate_pass: exact && evidence.receiptSha === sha,
     no_unresolved_p0_p1:
       exact && evidence.reviewedSha === sha && Array.isArray(severities) && !severities.some((level) => /^P[01]$/i.test(level)),

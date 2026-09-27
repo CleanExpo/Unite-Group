@@ -55,9 +55,13 @@ describe('release controller — gates are derived from evidence', () => {
     ['reviewer is the builder', { reviewerAgent: 'claude' }, ['independent_review_pass']],
     ['review verdict FAIL', { reviewVerdict: 'FAIL' }, ['independent_review_pass']],
     ['no reviewer named', { reviewerAgent: null }, ['independent_review_pass']],
+    ['a blank reviewer name', { reviewerAgent: ' \t\n' }, ['independent_review_pass']],
+    ['the builder under another case and padding', { reviewerAgent: ' Claude ' }, ['independent_review_pass']],
+    ['a blank builder name', { builderAgent: '  ' }, ['independent_review_pass']],
     ['a lower-case p0 left in the review report', { reviewBlockingSeverities: ['p0'] }, ['no_unresolved_p0_p1']],
     ['no receipt status on the head', { receiptSha: null }, ['exact_final_sha', 'release_gate_pass']],
     ['a required check skipped', { checkRuns: [{ name: REQUIRED[0], status: 'completed', conclusion: 'skipped' }, { name: REQUIRED[1], status: 'completed', conclusion: 'success' }] }, ['required_ci_green']],
+    ['a required check still in progress', { checkRuns: [{ name: REQUIRED[0], status: 'in_progress', conclusion: 'success' }, { name: REQUIRED[1], status: 'completed', conclusion: 'success' }] }, ['required_ci_green']],
     ['a required check never ran', { checkRuns: [{ name: REQUIRED[0], status: 'completed', conclusion: 'success' }] }, ['required_ci_green']],
     ['a dirty tree', { tree: { sha: SHA, porcelain: ' M apps/web/x.ts' } }, ['clean_tree']],
     ['tree status from another SHA', { tree: { sha: 'd'.repeat(40), porcelain: '' } }, ['clean_tree']],
@@ -77,11 +81,12 @@ describe('release controller — gates are derived from evidence', () => {
   ] as const)('%s → that gate fails and the release escalates', (_label, override, failing) => {
     const gates = deriveGates(evidence(override as Partial<ReleaseEvidence>))
     for (const gate of failing) expect(gates[gate], gate).toBe(false)
-    expect(classifyRelease(input({ evidence: evidence(override as Partial<ReleaseEvidence>) }))).toMatchObject({ verdict: 'escalate', boundary: 'PROTECTED_RELEASE' })
+    const decision = classifyRelease(input({ evidence: evidence(override as Partial<ReleaseEvidence>) }))
+    expect(decision).toMatchObject({ verdict: 'escalate', boundary: 'PROTECTED_RELEASE' })
+    expect(decision.executor).toBeUndefined()
   })
 
-  it('a candidate that is not a full 40-hex SHA fails every SHA-bound gate, even when all artefacts name it', () => {
-    const ref = 'HEAD'
+  it.each(['HEAD', 'c'.repeat(41), 'C'.repeat(40), `x${'c'.repeat(40)}`])('candidate %s is not a full 40-hex SHA: every SHA-bound gate fails, even when all artefacts name it', (ref) => {
     const gates = deriveGates(evidence({
       candidateSha: ref,
       reviewedSha: ref,
@@ -92,7 +97,7 @@ describe('release controller — gates are derived from evidence', () => {
       postReleaseVerification: { sha: ref, ref: 'post-release' },
       infrastructureReceipt: { sha: ref, ref: 'infrastructure' },
     }))
-    for (const gate of ['exact_final_sha', 'clean_tree', 'required_ci_green', 'release_gate_pass', 'no_unresolved_p0_p1',
+    for (const gate of ['exact_final_sha', 'clean_tree', 'required_ci_green', 'independent_review_pass', 'release_gate_pass', 'no_unresolved_p0_p1',
       'no_new_spend', 'rollback_proven', 'post_release_verification_defined', 'infrastructure_semantics_match']) {
       expect(gates[gate], gate).toBe(false)
     }
@@ -103,7 +108,7 @@ describe('release controller — gates are derived from evidence', () => {
   })
 
   it('protected paths escalate whatever the gates say', () => {
-    for (const path of ['apps/web/src/lib/auth/session.ts', '.github/workflows/ci.yml', 'scripts/nexus-runner/mission-authority.json', 'apps/web/.env.production', 'docs/constitution/x.md', 'apps/web/src/proxy.ts']) {
+    for (const path of ['apps/web/src/lib/auth/session.ts', 'apps/web/src/lib/credentials.ts', 'apps/web/src/security.test.ts', 'apps/web/src/lib/auth.config.ts','apps/web/.env.development.local', '.env', '.github/workflows/ci.yml', 'scripts/nexus-runner/mission-authority.json', 'apps/web/.env.production', 'docs/constitution/x.md', 'apps/web/src/proxy.ts']) {
       expect(protectedPathHits([path]), path).toEqual([path])
       expect(classifyRelease(input({ evidence: evidence({ changedPaths: [path] }) })), path).toMatchObject({ verdict: 'escalate', boundary: 'PROTECTED_RELEASE' })
     }
