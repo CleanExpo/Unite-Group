@@ -68,6 +68,12 @@ describe('release controller — gates are derived from evidence', () => {
     ['tree status from another SHA', { tree: { sha: 'd'.repeat(40), porcelain: '' } }, ['clean_tree']],
     ['tree status never captured', { tree: null }, ['clean_tree']],
     ['a P1 left in the review report', { reviewBlockingSeverities: ['P2', 'P1'] }, ['no_unresolved_p0_p1']],
+    ['a padded P0 left in the review report', { reviewBlockingSeverities: [' P0'] }, ['no_unresolved_p0_p1']],
+    ['a P0 with a trailing newline', { reviewBlockingSeverities: ['P0\n'] }, ['no_unresolved_p0_p1']],
+    ['a tab-prefixed P1', { reviewBlockingSeverities: ['\tP1'] }, ['no_unresolved_p0_p1']],
+    ['two severities run together', { reviewBlockingSeverities: ['P2, P0'] }, ['no_unresolved_p0_p1']],
+    ['an unrecognised severity', { reviewBlockingSeverities: ['critical'] }, ['no_unresolved_p0_p1']],
+    ['a severity written with a space', { reviewBlockingSeverities: ['P 1'] }, ['no_unresolved_p0_p1']],
     ['review report never read', { reviewBlockingSeverities: null }, ['no_unresolved_p0_p1']],
     ['spend never scanned', { spend: null }, ['no_new_spend']],
     ['spend scanned on another SHA', { spend: { sha: 'd'.repeat(40), newCosts: [] } }, ['no_new_spend']],
@@ -112,6 +118,10 @@ describe('release controller — gates are derived from evidence', () => {
     for (const entry of [...policy.protected_paths.prefixes, ...policy.protected_paths.segments]) {
       expect(entry, entry).toBe(entry.toLowerCase())
     }
+  })
+
+  it('padded or lower-case P2/P3 findings do not block a release', () => {
+    expect(deriveGates(evidence({ reviewBlockingSeverities: [' P2', 'p3\n'] })).no_unresolved_p0_p1).toBe(true)
   })
 
   it('an empty required-check list never counts as green', () => {

@@ -72,6 +72,8 @@ export interface ReleaseDecision extends MayDecision {
 }
 
 const SHA = /^[0-9a-f]{40}$/
+/** A blocking finding that does not stop a release. Anything else, padded or unrecognised, does. */
+const NON_BLOCKING_SEVERITY = /^P[2-9]$/i
 const PREFIXES: readonly string[] = policy.protected_paths.prefixes
 // Policy entries are lower case (pinned by a test), so only the path needs folding.
 const SEGMENTS: readonly string[] = policy.protected_paths.segments
@@ -131,7 +133,7 @@ export function deriveGates(evidence: ReleaseEvidence): Record<string, boolean> 
       reviewer !== builder,
     release_gate_pass: exact && evidence.receiptSha === sha,
     no_unresolved_p0_p1:
-      exact && evidence.reviewedSha === sha && Array.isArray(severities) && !severities.some((level) => /^P[01]$/i.test(level)),
+      exact && evidence.reviewedSha === sha && Array.isArray(severities) && severities.every((level) => NON_BLOCKING_SEVERITY.test(String(level).trim())),
     no_auth_security_credential_change: paths.length > 0 && protectedPathHits(paths).length === 0,
     no_destructive_migration: paths.length > 0 && !paths.some((path) => path.toLowerCase().split('/').includes('migrations')),
     no_new_spend: exact && evidence.spend?.sha === sha && evidence.spend.newCosts.length === 0,
