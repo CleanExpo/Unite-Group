@@ -6,6 +6,7 @@ import { MissionControlShell } from '../MissionControlShell'
 const mono = 'ui-monospace, SFMono-Regular, monospace'
 const muted = 'var(--mission-muted)' // --deck-muted
 const okText = 'var(--mission-success-text)' // healthy text: the success shade, as in the operator gateway (UNI-2769)
+const dangerText = 'var(--mission-danger-text)' // an exposed credential is an alarm, never healthy text
 
 const wrap: React.CSSProperties = {
   maxWidth: 1040,
@@ -129,7 +130,7 @@ export function HermesControlPanelView({ view, className }: HermesControlPanelVi
               <span>External channels enabled: <b style={{ color: okText }}>{view.externalChannelsEnabled ? 'yes' : 'no'}</b></span>
               <span>MCP connected: <b style={{ color: okText }}>{view.mcpConnected ? 'yes' : 'no'}</b></span>
               <span>Remote gateway connected: <b style={{ color: okText }}>{view.remoteGatewayConnected ? 'yes' : 'no'}</b></span>
-              <span>Credentials exposed: <b style={{ color: okText }}>{view.credentialsExposed ? 'yes' : 'no'}</b></span>
+              <span>Credentials exposed: <b style={{ color: view.credentialsExposed ? dangerText : okText }}>{view.credentialsExposed ? 'yes' : 'no'}</b></span>
             </div>
           </DeckDetails>
 

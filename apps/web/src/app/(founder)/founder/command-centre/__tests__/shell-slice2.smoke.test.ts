@@ -419,10 +419,21 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
     expect(themeFillKeys).toEqual(['ok', 'warn', 'warnAlt', 'bad', 'info']);
     const themeFillAsText = new RegExp(`(?:color|fg)\\s*[:=]\\s*\\{?[^,}]*theme\\.(?:${themeFillKeys.join('|')})\\b`);
     expect(gatewayKit + gatewayView).not.toMatch(themeFillAsText);
+    // toneSwatch.rail is the fill. Outside the swatch table, its only reader is the
+    // StatCard destructure feeding borderLeft, so any new reader turns this red.
+    const swatchEnd = gatewayKit.indexOf('\n}', gatewayKit.indexOf('const toneSwatch'));
+    const railReaders = (gatewayKit.slice(swatchEnd) + gatewayView)
+      .split('\n')
+      .filter((l) => /\brail\b/.test(l) && !/^\s*\/\//.test(l))
+      .map((l) => l.trim());
+    expect(railReaders).toEqual(['const { fg: accent, rail } = toneSwatch[tone]', 'borderLeft: `3px solid ${rail}`,']);
 
     // Hermes control panel: okText and the risk badge text. Healthy text takes the success
     // shade: --mission-blue is now the Pi-Dev-Ops signal red, which would read as an alarm.
     expect(hermesView).toContain("const okText = 'var(--mission-success-text)'");
+    // "Credentials exposed: yes" is an alarm: it must not share the healthy colour.
+    expect(hermesView).toContain('color: view.credentialsExposed ? dangerText : okText');
+    expect(hermesView).toContain("const dangerText = 'var(--mission-danger-text)'");
     expect(hermesView).toContain("none: ['rgba(45, 187, 87, 0.12)', 'var(--mission-success-text)',");
     expect(hermesView).not.toMatch(/(?:okText =|none: \[)[^\n]*--mission-blue/);
     expect(hermesView).toContain("low: ['rgba(244, 130, 15, 0.12)', 'var(--mission-attention-text)',");
