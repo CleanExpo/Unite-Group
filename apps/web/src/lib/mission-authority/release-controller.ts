@@ -90,6 +90,56 @@ function matches(pattern: RegExp, value: unknown): value is string {
   return typeof value === 'string' && pattern.test(value)
 }
 const text = (value: unknown): string => (typeof value === 'string' ? value : '')
+const isText = (value: unknown): value is string => typeof value === 'string'
+const textOrNull = (value: unknown): string | null => (isText(value) ? value : null)
+/** A real array of strings, copied once; anything array-like, sparse or mixed is not a list. */
+const textList = (value: unknown): string[] | null =>
+  Array.isArray(value) && value.every(isText) ? [...value] : null
+const record = (value: unknown): Record<string, unknown> | null =>
+  value !== null && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null
+
+function artefact(value: unknown): ShaArtefact | null {
+  const r = record(value)
+  return r && isText(r.sha) && isText(r.ref) ? { sha: r.sha, ref: r.ref } : null
+}
+
+function checkRun(value: unknown): CheckRun | null {
+  const r = record(value)
+  if (!r || !isText(r.name) || !isText(r.headSha) || !isText(r.status)) return null
+  if (r.conclusion !== null && !isText(r.conclusion)) return null
+  return { name: r.name, headSha: r.headSha, status: r.status, conclusion: r.conclusion }
+}
+
+/**
+ * Evidence is checked once, here, against its declared shape at runtime. A field of the wrong
+ * type is ABSENT (null or empty), never coerced, so every gate that needs it fails. Types say
+ * what a caller should send; this is what the gates are allowed to believe (review 1b4418f7).
+ */
+export function parseEvidence(raw: unknown): ReleaseEvidence {
+  const r = record(raw) ?? {}
+  const tree = record(r.tree)
+  const spend = record(r.spend)
+  const spendCosts = spend ? textList(spend.newCosts) : null
+  const runs = Array.isArray(r.checkRuns) ? [...r.checkRuns].map(checkRun) : null
+  return {
+    candidateSha: text(r.candidateSha),
+    tree: tree && isText(tree.sha) && isText(tree.porcelain) ? { sha: tree.sha, porcelain: tree.porcelain } : null,
+    reviewedSha: textOrNull(r.reviewedSha),
+    reviewVerdict: textOrNull(r.reviewVerdict),
+    reviewerAgent: textOrNull(r.reviewerAgent),
+    builderAgent: text(r.builderAgent),
+    receiptSha: textOrNull(r.receiptSha),
+    requiredChecks: textList(r.requiredChecks) ?? [],
+    // One malformed run makes the whole list unreadable: a partial list could hide the failure.
+    checkRuns: runs && runs.every((run): run is CheckRun => run !== null) ? runs : [],
+    changedPaths: textList(r.changedPaths) ?? [],
+    reviewBlockingSeverities: textList(r.reviewBlockingSeverities),
+    spend: spend && isText(spend.sha) && spendCosts ? { sha: spend.sha, newCosts: spendCosts } : null,
+    rollbackReceipt: artefact(r.rollbackReceipt),
+    postReleaseVerification: artefact(r.postReleaseVerification),
+    infrastructureReceipt: artefact(r.infrastructureReceipt),
+  }
+}
 const PREFIXES: readonly string[] = policy.protected_paths.prefixes
 // Policy entries are lower case (pinned by a test), so only the path needs folding.
 const SEGMENTS: readonly string[] = policy.protected_paths.segments
@@ -129,13 +179,12 @@ function atSha(artefact: ShaArtefact | null, sha: string): boolean {
   return !!artefact && artefact.sha === sha && matches(RECEIPT_REF, artefact.ref)
 }
 
-export function deriveGates(evidence: ReleaseEvidence): Record<string, boolean> {
+export function deriveGates(raw: ReleaseEvidence): Record<string, boolean> {
+  const evidence = parseEvidence(raw)
   const sha = evidence.candidateSha
   const exact = matches(SHA, sha)
-  // A path that is not a string cannot be classified, so the list proves nothing: both path gates need paths.
-  const paths = Array.isArray(evidence.changedPaths) && evidence.changedPaths.every((path) => typeof path === 'string')
-    ? evidence.changedPaths
-    : []
+  // parseEvidence empties a list with any non-string path, and both path gates need paths.
+  const paths = evidence.changedPaths
   const severities = evidence.reviewBlockingSeverities
   // An agent name that is blank, or the builder's under another case or padding, is not a reviewer.
   const reviewer = text(evidence.reviewerAgent).trim().toLowerCase()
@@ -164,13 +213,14 @@ export function deriveGates(evidence: ReleaseEvidence): Record<string, boolean> 
 }
 
 export function classifyRelease(input: ReleaseInput): ReleaseDecision {
-  const gates = deriveGates(input.evidence)
-  const hits = protectedPathHits(input.evidence.changedPaths)
+  const evidence = parseEvidence(input.evidence)
+  const gates = deriveGates(evidence)
+  const hits = protectedPathHits(evidence.changedPaths)
   const decision = may({
     mission: input.mission,
     actor: input.actor,
     action: input.action,
-    target: input.evidence.candidateSha,
+    target: evidence.candidateSha,
     risk: input.risk,
     state: { gates, phase: input.phase },
     now: input.now,

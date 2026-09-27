@@ -201,6 +201,33 @@ describe('release controller — gates are derived from evidence', () => {
     expect(gates.no_destructive_migration).toBe(false)
   })
 
+  it('evidence of the wrong runtime shape is absent, so its gate fails (review 1b4418f7)', () => {
+    const arrayLike = (items: unknown[]) => ({ length: items.length, every: (fn: (v: unknown) => boolean) => items.every(fn), filter: (fn: (v: unknown) => boolean) => items.filter(fn), some: (fn: (v: unknown) => boolean) => items.some(fn) })
+    const run = { name: REQUIRED[0], headSha: SHA, status: 'completed', conclusion: 'success' }
+    const cases: Array<[string, Partial<ReleaseEvidence>, string]> = [
+      ['newCosts as an empty string', { spend: { sha: SHA, newCosts: '' as never } }, 'no_new_spend'],
+      ['newCosts as {length: 0}', { spend: { sha: SHA, newCosts: { length: 0 } as never } }, 'no_new_spend'],
+      ['newCosts holding a non-string', { spend: { sha: SHA, newCosts: [null] as never } }, 'no_new_spend'],
+      ['requiredChecks as an array-like', { requiredChecks: arrayLike(REQUIRED) as never }, 'required_ci_green'],
+      ['checkRuns as an array-like', { checkRuns: arrayLike(REQUIRED.map((name) => ({ ...run, name }))) as never }, 'required_ci_green'],
+      ['one check run with a non-string field', { checkRuns: [...REQUIRED.map((name) => ({ ...run, name })), { ...run, status: 1 } as never] }, 'required_ci_green'],
+      ['severities as an array-like', { reviewBlockingSeverities: arrayLike([]) as never }, 'no_unresolved_p0_p1'],
+      ['changedPaths as an array-like', { changedPaths: arrayLike(['apps/web/src/app/page.tsx']) as never }, 'no_destructive_migration'],
+      ['tree porcelain not a string', { tree: { sha: SHA, porcelain: 0 as never } }, 'clean_tree'],
+      ['review verdict as an object printing PASS', { reviewVerdict: { toString: () => 'PASS' } as never }, 'independent_review_pass'],
+    ]
+    for (const [label, override, gate] of cases) {
+      expect(deriveGates(evidence(override))[gate], label).toBe(false)
+    }
+    // and the well-formed evidence these were derived from still proves every gate
+    expect(Object.values(deriveGates(evidence({}))).every(Boolean)).toBe(true)
+  })
+
+  it('classifyRelease reads the parsed evidence, so a non-string path escalates instead of throwing', () => {
+    const decision = classifyRelease({ ...input(), evidence: evidence({ changedPaths: ['apps/web/src/app/page.tsx', 7 as never] }) })
+    expect(decision.verdict).not.toBe('continue')
+  })
+
   it('an empty required-check list never counts as green', () => {
     expect(deriveGates(evidence({ requiredChecks: [] })).required_ci_green).toBe(false)
   })
