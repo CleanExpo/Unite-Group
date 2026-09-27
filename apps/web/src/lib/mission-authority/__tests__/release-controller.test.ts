@@ -179,6 +179,28 @@ describe('release controller — gates are derived from evidence', () => {
     }
   })
 
+  it('a value that is not a string never proves a gate, however RegExp.test would coerce it (review 3d8dcdc2)', () => {
+    const coercible: unknown[] = [null, undefined, 0, true, { toString: () => 'ok' }, ['cursor']]
+    for (const value of coercible) {
+      const v = value as never
+      expect(deriveGates(evidence({ requiredChecks: [v], checkRuns: [{ name: v, headSha: SHA, status: 'completed', conclusion: 'success' }] })).required_ci_green).toBe(false)
+      expect(deriveGates(evidence({ rollbackReceipt: { sha: SHA, ref: v } })).rollback_proven).toBe(false)
+      expect(deriveGates(evidence({ postReleaseVerification: { sha: SHA, ref: v } })).post_release_verification_defined).toBe(false)
+      expect(deriveGates(evidence({ infrastructureReceipt: { sha: SHA, ref: v } })).infrastructure_semantics_match).toBe(false)
+      expect(deriveGates(evidence({ reviewerAgent: v })).independent_review_pass).toBe(false)
+      expect(deriveGates(evidence({ builderAgent: v })).independent_review_pass).toBe(false)
+    }
+    // an object that prints as a non-blocking severity is still not one
+    expect(deriveGates(evidence({ reviewBlockingSeverities: [{ toString: () => 'P2' } as never] })).no_unresolved_p0_p1).toBe(false)
+    // a SHA that only prints as one
+    const printsAsSha = { toString: () => SHA } as never
+    expect(deriveGates(evidence({ candidateSha: printsAsSha, reviewedSha: printsAsSha, receiptSha: printsAsSha })).exact_final_sha).toBe(false)
+    // a changed path that is not a string empties the list, so both path gates fail
+    const gates = deriveGates(evidence({ changedPaths: ['apps/web/src/app/page.tsx', 7 as never] }))
+    expect(gates.no_auth_security_credential_change).toBe(false)
+    expect(gates.no_destructive_migration).toBe(false)
+  })
+
   it('an empty required-check list never counts as green', () => {
     expect(deriveGates(evidence({ requiredChecks: [] })).required_ci_green).toBe(false)
   })

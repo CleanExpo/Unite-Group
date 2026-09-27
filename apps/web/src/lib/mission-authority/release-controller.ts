@@ -82,6 +82,14 @@ const AGENT_NAME = /^[a-z0-9][a-z0-9._:-]{0,127}$/
  * or default-ignorable character can pass it, however many Unicode categories there are.
  */
 const RECEIPT_REF = /[a-z0-9]/i
+/**
+ * RegExp.test() coerces its argument: null becomes "null", which names something. Every pattern in
+ * this module is applied through this, so only a real string can match (review 3d8dcdc2).
+ */
+function matches(pattern: RegExp, value: unknown): value is string {
+  return typeof value === 'string' && pattern.test(value)
+}
+const text = (value: unknown): string => (typeof value === 'string' ? value : '')
 const PREFIXES: readonly string[] = policy.protected_paths.prefixes
 // Policy entries are lower case (pinned by a test), so only the path needs folding.
 const SEGMENTS: readonly string[] = policy.protected_paths.segments
@@ -107,7 +115,7 @@ export function protectedPathHits(paths: readonly string[]): string[] {
 
 function requiredChecksGreen(required: readonly string[], runs: readonly CheckRun[], sha: string): boolean {
   // A blank required name would be satisfied by a blank-named run: same positive test as a receipt ref (UNI-2782).
-  if (required.length === 0 || !required.every((name) => RECEIPT_REF.test(name))) return false
+  if (required.length === 0 || !required.every((name) => matches(RECEIPT_REF, name))) return false
   return required.every((name) => {
     const named = runs.filter((run) => run.name === name)
     return (
@@ -118,17 +126,20 @@ function requiredChecksGreen(required: readonly string[], runs: readonly CheckRu
 }
 
 function atSha(artefact: ShaArtefact | null, sha: string): boolean {
-  return !!artefact && artefact.sha === sha && RECEIPT_REF.test(artefact.ref)
+  return !!artefact && artefact.sha === sha && matches(RECEIPT_REF, artefact.ref)
 }
 
 export function deriveGates(evidence: ReleaseEvidence): Record<string, boolean> {
   const sha = evidence.candidateSha
-  const exact = SHA.test(sha)
-  const paths = evidence.changedPaths
+  const exact = matches(SHA, sha)
+  // A path that is not a string cannot be classified, so the list proves nothing: both path gates need paths.
+  const paths = Array.isArray(evidence.changedPaths) && evidence.changedPaths.every((path) => typeof path === 'string')
+    ? evidence.changedPaths
+    : []
   const severities = evidence.reviewBlockingSeverities
   // An agent name that is blank, or the builder's under another case or padding, is not a reviewer.
-  const reviewer = (evidence.reviewerAgent ?? '').trim().toLowerCase()
-  const builder = evidence.builderAgent.trim().toLowerCase()
+  const reviewer = text(evidence.reviewerAgent).trim().toLowerCase()
+  const builder = text(evidence.builderAgent).trim().toLowerCase()
   return {
     exact_final_sha: exact && evidence.reviewedSha === sha && evidence.receiptSha === sha,
     clean_tree: exact && evidence.tree?.sha === sha && evidence.tree.porcelain === '',
@@ -142,7 +153,7 @@ export function deriveGates(evidence: ReleaseEvidence): Record<string, boolean> 
       reviewer !== builder,
     release_gate_pass: exact && evidence.receiptSha === sha,
     no_unresolved_p0_p1:
-      exact && evidence.reviewedSha === sha && Array.isArray(severities) && severities.every((level) => NON_BLOCKING_SEVERITY.test(String(level).trim())),
+      exact && evidence.reviewedSha === sha && Array.isArray(severities) && severities.every((level) => matches(NON_BLOCKING_SEVERITY, text(level).trim())),
     no_auth_security_credential_change: paths.length > 0 && protectedPathHits(paths).length === 0,
     no_destructive_migration: paths.length > 0 && !paths.some((path) => path.toLowerCase().split('/').includes('migrations')),
     no_new_spend: exact && evidence.spend?.sha === sha && evidence.spend.newCosts.length === 0,
