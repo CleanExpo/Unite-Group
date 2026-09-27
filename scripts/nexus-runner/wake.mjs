@@ -25,11 +25,57 @@ export function isAwaitingVerification(c) {
 
 const withReceipts = (c, receipts) => [...(Array.isArray(c.receipts) ? c.receipts : []), ...receipts].slice(-MAX_RECEIPTS)
 
+// Same positive tests as the release controller, so the two deciders agree.
+const NON_BLOCKING_SEVERITY = /^P[2-9]$/i
+const AGENT_NAME = /^[a-z0-9][a-z0-9._:-]{0,127}$/
+const isText = (value) => typeof value === 'string'
+const isRecord = (value) => typeof value === 'object' && value !== null && !Array.isArray(value)
+
+/**
+ * Check every observed value against its declared shape once, before any decision.
+ * A value of the wrong shape is unread (null), never coerced and never thrown on:
+ * one malformed check run makes the whole list unreadable, so the mission waits.
+ */
+export function parseObserved(observed) {
+  const o = isRecord(observed) ? observed : {}
+  const runs = Array.isArray(o.checkRuns) &&
+    o.checkRuns.every((run) => isRecord(run) && isText(run.name) && isText(run.headSha) && isText(run.status) &&
+      (run.conclusion === null || isText(run.conclusion)))
+    ? o.checkRuns.map(({ name, headSha, status, conclusion }) => ({ name, headSha, status, conclusion }))
+    : null
+  const requiredChecks = Array.isArray(o.requiredChecks) && o.requiredChecks.every(isText) ? [...o.requiredChecks] : null
+  const r = o.review
+  const findings = isRecord(r) && Array.isArray(r.blocking_findings) && r.blocking_findings.every(isRecord)
+    ? r.blocking_findings
+    : null
+  const review = isRecord(r) && isText(r.head_sha) && isText(r.verdict)
+    ? {
+        head_sha: r.head_sha,
+        verdict: r.verdict,
+        reviewer_agent: isText(r.reviewer_agent) ? r.reviewer_agent : null,
+        implementation_agent: isText(r.implementation_agent) ? r.implementation_agent : null,
+        severities: findings && findings.every((f) => isText(f.severity)) ? findings.map((f) => f.severity) : null,
+      }
+    : null
+  return { checkRuns: runs, requiredChecks, review }
+}
+
+/** A PASS proves the review gate only as the release controller reads it: independent, no P0/P1 left. */
+function reviewProves(review) {
+  if (review?.verdict !== 'PASS' || !review.severities) return false
+  const reviewer = (review.reviewer_agent ?? '').trim().toLowerCase()
+  const builder = (review.implementation_agent ?? '').trim().toLowerCase()
+  return AGENT_NAME.test(reviewer) && AGENT_NAME.test(builder) && reviewer !== builder &&
+    review.severities.every((level) => NON_BLOCKING_SEVERITY.test(level.trim()))
+}
+
 /**
  * @param {object} c the stored continuation (updated_at is carried through untouched)
  * @param {{ checkRuns: Array<{name: string, headSha: string, status: string, conclusion: string|null}> | null,
  *           requiredChecks: string[] | null,
- *           review: { head_sha: string, verdict: string } | null }} observed
+ *           review: { head_sha: string, verdict: string, reviewer_agent: string,
+ *                     implementation_agent: string, blocking_findings: Array<{severity: string}> } | null }} observed
+ *   review: the reviewer's report as written (schema 2). Every field is shape-checked by parseObserved
  *   requiredChecks: the check-run names the base branch requires. null or empty keeps
  *   the mission waiting: green is only ever "every required check passed on this SHA"
  * @param {string} at ISO timestamp for any receipt written
@@ -38,9 +84,10 @@ const withReceipts = (c, receipts) => [...(Array.isArray(c.receipts) ? c.receipt
 export function wake(c, observed, at) {
   if (!isAwaitingVerification(c)) return { changed: false, reason: 'not awaiting verification', continuation: c }
   const sha = c.candidate_sha
-  const runs = Array.isArray(observed?.checkRuns) ? observed.checkRuns : null
+  const parsed = parseObserved(observed)
+  const runs = parsed.checkRuns
   // A review for any other SHA says nothing about this candidate.
-  const review = observed?.review && observed.review.head_sha === sha ? observed.review : null
+  const review = parsed.review?.head_sha === sha ? parsed.review : null
 
   // Only a run GitHub reports on this candidate speaks for it: a result for another
   // commit, or one naming no commit, neither fails nor passes this SHA.
@@ -64,7 +111,7 @@ export function wake(c, observed, at) {
     }
   }
 
-  const required = Array.isArray(observed?.requiredChecks) ? observed.requiredChecks : null
+  const required = parsed.requiredChecks
   // A required name must name something: a blank one would match a blank-named run.
   // Same positive test as the release controller's RECEIPT_REF (UNI-2782).
   const namesSomething = (name) => typeof name === 'string' && /[a-z0-9]/i.test(name)
@@ -78,7 +125,7 @@ export function wake(c, observed, at) {
       return named.length > 0 && named.every(passed)
     })
   const ciGreen = requiredGreen && runs.every(passed)
-  if (ciGreen && review?.verdict === 'PASS') {
+  if (ciGreen && reviewProves(review)) {
     return {
       changed: true,
       reason: `CI green and independent review PASS on ${sha}`,
@@ -100,6 +147,7 @@ export function wake(c, observed, at) {
     !required || required.length === 0 ? 'required checks unknown' : null,
     runs !== null && required?.length && !ciGreen ? 'CI not green yet' : null,
     review ? null : 'no review for this SHA',
+    review && !reviewProves(review) ? 'review does not prove an independent PASS with no P0/P1' : null,
   ]
     .filter(Boolean)
     .join('; ')

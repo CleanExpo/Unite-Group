@@ -13,7 +13,7 @@ const waiting = {
   attempt_count: 1, receipts: [], updated_at: '2026-09-27T02:00:00.000Z',
 }
 const green = [{ name: 'test', headSha: SHA, status: 'completed', conclusion: 'success' }, { name: 'lint', headSha: SHA, status: 'completed', conclusion: 'success' }]
-const pass = { head_sha: SHA, verdict: 'PASS' }
+const pass = { head_sha: SHA, verdict: 'PASS', reviewer_agent: 'cursor', implementation_agent: 'claude', blocking_findings: [] as unknown[] }
 const REQUIRED = ['test', 'lint']
 
 describe('wake', () => {
@@ -42,7 +42,7 @@ describe('wake', () => {
     ['a required check marked success but still in progress', { checkRuns: [green[0], { name: 'lint', headSha: SHA, status: 'in_progress', conclusion: 'success' }], review: pass, requiredChecks: REQUIRED }],
     ['a skipped check', { checkRuns: [{ name: 'test', headSha: SHA, status: 'completed', conclusion: 'skipped' }], review: pass, requiredChecks: REQUIRED }],
     ['no review', { checkRuns: green, review: null, requiredChecks: REQUIRED }],
-    ['a PASS for a different SHA', { checkRuns: green, review: { head_sha: 'f'.repeat(40), verdict: 'PASS' }, requiredChecks: REQUIRED }],
+    ['a PASS for a different SHA', { checkRuns: green, review: { ...pass, head_sha: 'f'.repeat(40) }, requiredChecks: REQUIRED }],
     ['green runs from another commit', { checkRuns: green.map((run) => ({ ...run, headSha: 'f'.repeat(40) })), review: pass, requiredChecks: REQUIRED }],
     ['green runs naming no commit', { checkRuns: green.map(({ headSha: _omit, ...run }) => run), review: pass, requiredChecks: REQUIRED }],
     ['only a non-required check green', { checkRuns: [{ name: 'trivial', headSha: SHA, status: 'completed', conclusion: 'success' }], review: pass, requiredChecks: REQUIRED }],
@@ -55,11 +55,49 @@ describe('wake', () => {
     ] as const),
     ['a blank name alongside real required checks', { checkRuns: [...green, { name: '', headSha: SHA, status: 'completed', conclusion: 'success' }], review: pass, requiredChecks: [...REQUIRED, ''] }],
     ['required green but another check still running', { checkRuns: [...green, { name: 'e2e', headSha: SHA, status: 'in_progress', conclusion: null }], review: pass, requiredChecks: REQUIRED }],
+    ...(['P0', 'P1', 'p1 ', 'P10', 'P1/P2', '', 'critical'] as const).map((severity) => [
+      `a PASS still listing a ${JSON.stringify(severity)} blocking finding`,
+      { checkRuns: green, review: { ...pass, blocking_findings: [{ id: 'x', severity }] }, requiredChecks: REQUIRED },
+    ] as const),
+    ['a PASS whose blocking findings are unreadable', { checkRuns: green, review: { ...pass, blocking_findings: undefined }, requiredChecks: REQUIRED }],
+    ['a PASS whose blocking findings are an array-like', { checkRuns: green, review: { ...pass, blocking_findings: { length: 0 } }, requiredChecks: REQUIRED }],
+    ['a PASS with a finding carrying no severity', { checkRuns: green, review: { ...pass, blocking_findings: [{ id: 'x' }] }, requiredChecks: REQUIRED }],
+    ['a PASS with a null finding', { checkRuns: green, review: { ...pass, blocking_findings: [null] }, requiredChecks: REQUIRED }],
+    ['a PASS written by the builder', { checkRuns: green, review: { ...pass, reviewer_agent: ' Claude ' }, requiredChecks: REQUIRED }],
+    ['a PASS naming no reviewer', { checkRuns: green, review: { ...pass, reviewer_agent: undefined }, requiredChecks: REQUIRED }],
+    ['a PASS naming no builder', { checkRuns: green, review: { ...pass, implementation_agent: '' }, requiredChecks: REQUIRED }],
+    ['a PASS whose builder is a zero-width name', { checkRuns: green, review: { ...pass, implementation_agent: '\u200b' }, requiredChecks: REQUIRED }],
+    ['a PASS whose reviewer is a zero-width name', { checkRuns: green, review: { ...pass, reviewer_agent: '\u200b' }, requiredChecks: REQUIRED }],
+    ['a PASS verdict that is not a string', { checkRuns: green, review: { ...pass, verdict: { toString: () => 'PASS' } }, requiredChecks: REQUIRED }],
+    ['a null check run among green ones', { checkRuns: [...green, null], review: pass, requiredChecks: REQUIRED }],
+    ['a check run with a numeric status', { checkRuns: [...green, { name: 'e2e', headSha: SHA, status: 1, conclusion: 'success' }], review: pass, requiredChecks: REQUIRED }],
+    ['an array-like check-run list', { checkRuns: { length: 2, 0: green[0], 1: green[1] }, review: pass, requiredChecks: REQUIRED }],
+    ['an array-like required list', { checkRuns: green, review: pass, requiredChecks: { length: 2, 0: 'test', 1: 'lint' } }],
     ['a failure on another commit, nothing on this one', { checkRuns: [{ name: 'lint', headSha: 'f'.repeat(40), status: 'completed', conclusion: 'failure' }], review: pass, requiredChecks: REQUIRED }],
   ])('keeps waiting on %s', (_label, observed) => {
     const out = wake(waiting, observed, AT)
     expect(out.changed).toBe(false)
     expect(out.continuation).toBe(waiting)
+  })
+
+  it('reads agent names as the release controller does: trimmed and case-folded', () => {
+    const review = { ...pass, reviewer_agent: ' Cursor ', implementation_agent: 'Claude' }
+    expect(wake(waiting, { checkRuns: green, review, requiredChecks: REQUIRED }, AT).continuation).toMatchObject({ phase: 'RELEASE_CANDIDATE' })
+  })
+
+  it('advances on a PASS whose only listed findings are P2 or lower, as the release controller does', () => {
+    const review = { ...pass, blocking_findings: [{ id: 'x', severity: ' p2 ' }, { id: 'y', severity: 'P3' }] }
+    expect(wake(waiting, { checkRuns: green, review, requiredChecks: REQUIRED }, AT).continuation).toMatchObject({ phase: 'RELEASE_CANDIDATE' })
+  })
+
+  it.each([
+    ['a null check run', { checkRuns: [null], review: pass, requiredChecks: REQUIRED }],
+    ['a string check run', { checkRuns: ['lint'], review: pass, requiredChecks: REQUIRED }],
+    ['observed itself null', null],
+    ['a review that is a string', { checkRuns: green, review: 'PASS', requiredChecks: REQUIRED }],
+  ])('never throws on %s: the mission keeps waiting', (_label, observed) => {
+    expect(() => wake(waiting, observed as never, AT)).not.toThrow()
+    expect(wake(waiting, observed as never, AT)).toMatchObject({ changed: false, continuation: waiting })
   })
 
   it('leaves a continuation that is not waiting on verification untouched', () => {
