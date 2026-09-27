@@ -84,6 +84,12 @@ describe('checkDoneAllowed', () => {
     expect(checkDoneAllowed('## Follow-ups\n- [ ] later idea\n').allowed).toBe(true)
   })
 
+  it('refuses the directive markers REQUIRED FOLLOW-UP and FAILED', () => {
+    expect(checkDoneAllowed('Gate: REQUIRED FOLLOW-UP on the canary').allowed).toBe(false)
+    expect(checkDoneAllowed('Live walk: FAILED').allowed).toBe(false)
+    expect(checkDoneAllowed('the retry failed once, then passed').allowed).toBe(true)
+  })
+
   it('treats empty or missing text as nothing to refuse', () => {
     expect(checkDoneAllowed('')).toEqual({ allowed: true, blockers: [] })
     expect(checkDoneAllowed(undefined as unknown as string)).toEqual({ allowed: true, blockers: [] })
@@ -113,6 +119,13 @@ describe('wired: cc_tasks mark-done (PATCH /api/command-centre/queue/[id])', () 
 
   it('reads metadata.acceptance as acceptance text too', async () => {
     vi.mocked(getTaskById).mockResolvedValue({ id: 'task-1', status: 'running', objective: 'Ship it', metadata: { acceptance: 'Walk live: NOT MET' } } as never)
+    const res = await patchQueueTask(req(), { params })
+    expect(res.status).toBe(409)
+    expect(updateTaskStatusGuarded).not.toHaveBeenCalled()
+  })
+
+  it('reads the task title too — a title-only marker refuses done', async () => {
+    vi.mocked(getTaskById).mockResolvedValue({ id: 'task-1', status: 'running', title: 'Status: BLOCKED on credentials', objective: CLEAN_ACCEPTANCE, metadata: {} } as never)
     const res = await patchQueueTask(req(), { params })
     expect(res.status).toBe(409)
     expect(updateTaskStatusGuarded).not.toHaveBeenCalled()
@@ -155,6 +168,13 @@ describe('wired: founder Linear state change (PATCH /api/linear/issues)', () => 
   it('refuses a Done state reached through a relabelled column (state type decides, not the column name)', async () => {
     vi.mocked(fetchIssue).mockResolvedValue({ id: 'UNI-2779', description: UNI_2779_HISTORICAL } as never)
     const res = await patchLinearIssue(req('today', 's-done'))
+    expect(res.status).toBe(409)
+    expect(updateIssueState).not.toHaveBeenCalled()
+  })
+
+  it('refuses Done when only the TITLE carries the marker (description empty)', async () => {
+    vi.mocked(fetchIssue).mockResolvedValue({ id: 'UNI-2779', title: 'Status: BLOCKED on credentials', description: null } as never)
+    const res = await patchLinearIssue(req('done', 's-done'))
     expect(res.status).toBe(409)
     expect(updateIssueState).not.toHaveBeenCalled()
   })

@@ -22,6 +22,8 @@ const MARKERS: Array<{ label: string; pattern: RegExp }> = [
   { label: 'HELD BACK', pattern: /\bheld back\b/i },
   { label: 'BLOCKED', pattern: /\bBLOCKED\b/ },
   { label: 'UNVERIFIED', pattern: /\bUNVERIFIED\b/ },
+  { label: 'REQUIRED FOLLOW-UP', pattern: /\bREQUIRED FOLLOW-?UP\b/ },
+  { label: 'FAILED', pattern: /\bFAILED\b/ },
 ]
 
 const HEADING = /^\s{0,3}#{1,6}\s+(.*)$/
@@ -47,4 +49,10 @@ export function checkDoneAllowed(acceptanceText: string): DoneCheck {
   }
 
   return { allowed: blockers.length === 0, blockers }
+}
+
+// Every Done writer scans the same fields: title, body and any acceptance
+// field. A marker in the title alone must refuse Done too (Cursor slice-1 P1).
+export function acceptanceText(...parts: unknown[]): string {
+  return parts.filter((part): part is string => typeof part === 'string' && part.length > 0).join('\n\n')
 }

@@ -30,6 +30,7 @@ import {
   type NextActionOwner,
   transitionPacket,
 } from './work-packet'
+import { acceptanceText, checkDoneAllowed } from '@/lib/mission-authority/done-invariant'
 import {
   createTask,
   createTaskOnce,
@@ -310,6 +311,20 @@ export async function applyPacketTransition(
       ok: false,
       packet: current,
       reason: `illegal promotion: ${fromTaskStatus} → ${toTaskStatus} is not permitted via a work-packet transition`,
+    }
+  }
+  // UNI-2779 done invariant: completing a packet writes cc_tasks `done`, so it
+  // obeys the same rule as the queue and Linear writers.
+  if (toTaskStatus === 'done') {
+    const check = checkDoneAllowed(
+      acceptanceText(task.title, task.objective, readPacketMetadata(task.metadata).outcome, task.metadata?.acceptance),
+    )
+    if (!check.allowed) {
+      return {
+        ok: false,
+        packet: current,
+        reason: `done refused: the acceptance text says this is not finished — ${check.blockers.join('; ')}`,
+      }
     }
   }
   // UNI-2436 TOCTOU guard: persist the new status ONLY while the row still holds

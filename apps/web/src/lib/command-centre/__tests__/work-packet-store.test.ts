@@ -332,6 +332,34 @@ describe('work-packet-store', () => {
     expect(tables[CC_TASK_EVENTS_TABLE]).toHaveLength(0)
   })
 
+  it('applyPacketTransition refuses complete while the packet text says it is not finished (UNI-2779 done invariant)', async () => {
+    const { client, tables } = makeFakeDb()
+    const packet = samplePacket({ outcome: 'Ship it — Held back: the do not ask half' })
+    await saveWorkPacket(client, FOUNDER, packet)
+    ;(tables[CC_TASKS_TABLE][0] as Record<string, unknown>).status = packetStatusToTaskStatus('running')
+
+    const result = await applyPacketTransition(client, FOUNDER, packet.id, { type: 'complete' })
+
+    expect(result.ok).toBe(false)
+    expect(result.reason).toMatch(/not finished/)
+    expect(tables[CC_TASKS_TABLE][0].status).toBe('running')
+    expect(tables[CC_TASK_EVENTS_TABLE]).toHaveLength(0)
+  })
+
+  it('applyPacketTransition refuses complete when metadata.acceptance carries an open marker', async () => {
+    const { client, tables } = makeFakeDb()
+    const packet = samplePacket()
+    await saveWorkPacket(client, FOUNDER, packet)
+    const row = tables[CC_TASKS_TABLE][0] as Record<string, unknown>
+    row.status = packetStatusToTaskStatus('running')
+    row.metadata = { ...(row.metadata as Record<string, unknown>), acceptance: 'Walk live: NOT MET' }
+
+    const result = await applyPacketTransition(client, FOUNDER, packet.id, { type: 'complete' })
+
+    expect(result.ok).toBe(false)
+    expect(tables[CC_TASKS_TABLE][0].status).toBe('running')
+  })
+
   it('applyPacketTransition returns ok=false, packet=null for a missing packet', async () => {
     const { client } = makeFakeDb()
     const result = await applyPacketTransition(client, FOUNDER, 'nope', { type: 'route' })

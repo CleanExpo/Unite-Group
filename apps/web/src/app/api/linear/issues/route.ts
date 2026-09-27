@@ -17,7 +17,7 @@ import {
   COLUMN_TO_STATE_NAME,
 } from '@/lib/integrations/linear'
 import { BUSINESSES } from '@/lib/businesses'
-import { checkDoneAllowed } from '@/lib/mission-authority/done-invariant'
+import { acceptanceText, checkDoneAllowed } from '@/lib/mission-authority/done-invariant'
 
 export const dynamic = 'force-dynamic'
 
@@ -175,10 +175,10 @@ export async function PATCH(request: Request) {
       .find((state) => state.id === stateId)
     if (columnId === 'done' || targetState?.type === 'completed') {
       const issue = await fetchIssue(issueId)
-      const check = checkDoneAllowed(issue.description ?? '')
+      const check = checkDoneAllowed(acceptanceText(issue.title, issue.description))
       if (!check.allowed) {
         return NextResponse.json(
-          { error: `Cannot move ${issueId} to Done: its description says it is not finished`, blockers: check.blockers },
+          { error: `Cannot move ${issueId} to Done: its title or description says it is not finished`, blockers: check.blockers },
           { status: 409 },
         )
       }
