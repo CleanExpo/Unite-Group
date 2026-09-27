@@ -508,7 +508,8 @@
 .riskTag {
   font-family: var(--font-geist-mono), monospace;
   font-size: 0.52rem; letter-spacing: 0.12em; text-transform: uppercase;
-  color: var(--rail, var(--deck-muted));
+  /* text: the --rail fill stays on the row's left border (UNI-2769) */
+  color: var(--deck-muted);
   white-space: nowrap;
 }
 .approval {

@@ -326,6 +326,14 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
     // SVG <text> takes its colour from `fill`, so a fill there is fill-as-text too.
     const fillAsSvgText =
       /<text\b[^>]*\bfill=\{?["'`](?:var\(\s*--(?:mission-(?:blue|danger|attention|success)|deck-(?:cyan|go|amber|abort)|cc-signal|red-(?:400|500)|color-(?:success|danger|accent))\s*[,)]|#(?:ff3b5c|15803d|a16207|e5484d|16a34a|ef4444|2dbb57)\b)/i;
+    // A CSS custom property a component fills from a status colour (--accent, --rail,
+    // --swatch, --numbg, --led) is a fill channel: it may feed borders, rails and glows but
+    // never a text colour. Channels are discovered from the source, so a new one is
+    // covered; names that say text (fg, text, ink, muted) are the text channels.
+    const fillChannelRef = (names: string[]) =>
+      new RegExp(
+        `(?:(?<![-\\w])color\\s*:(?:(?!\\w\\s*:)[^;}\\n])*?|text-\\[|<text\\b[^>]*\\bfill=\\{?["'\`])var\\(\\s*--(?:${names.join('|')})\\s*[,)]`,
+      );
     const walk = (root: string): string[] =>
       readdirSync(root, { withFileTypes: true }).flatMap((e) => {
         const p = join(root, e.name);
@@ -348,6 +356,21 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
       )
       .map(({ file, n }) => `${relative(process.cwd(), file)}:${n}`);
     expect(offenders).toEqual([]);
+
+    const swept = [dir, join(process.cwd(), 'src/components/command-centre')].flatMap(walk);
+    const sweptSrc = swept.map((f) => readFileSync(f, 'utf8')).join('\n');
+    const setChannels = [...sweptSrc.matchAll(/'--([a-z][a-z0-9-]*)'\s*:/g), ...sweptSrc.matchAll(/(?<![-\w])--(led)\s*:/g)].map((m) => m[1]);
+    const fillChannels = [...new Set(setChannels)].filter((n) => !/(?:fg|text|ink|muted|line(?:-soft)?)$/.test(n)).sort();
+    expect(fillChannels).toEqual(['accent', 'led', 'numbg', 'rail', 'swatch']);
+    const channelAsText = fillChannelRef(fillChannels);
+    const channelOffenders = swept.flatMap((file) =>
+      readFileSync(file, 'utf8')
+        .split('\n')
+        .map((line, i) => ({ line, at: `${relative(process.cwd(), file)}:${i + 1}` }))
+        .filter(({ line }) => channelAsText.test(line))
+        .map(({ at }) => at),
+    );
+    expect(channelOffenders).toEqual([]);
 
     // Status dots are fills: the email tile's dot takes the fill token, its label the text shade.
     const emailTile = readFileSync(
