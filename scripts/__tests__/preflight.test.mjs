@@ -181,6 +181,12 @@ test('the declared capability prebuild inputs match what the sync script actuall
   }
 });
 
+test('the mission-authority policy apps/web imports is an apps/web build input (UNI-2779)', () => {
+  // may.ts imports scripts/nexus-runner/mission-authority.json; a policy-only
+  // merge that skipped the build would leave production on the old policy.
+  assert.ok(affectsWebBuild(['scripts/nexus-runner/mission-authority.json']));
+});
+
 test('unrelated changes do not affect the apps/web build', () => {
   assert.equal(affectsWebBuild(['docs/convergence/runbook.md', 'apps/workspace/src/a.ts']), false);
 });

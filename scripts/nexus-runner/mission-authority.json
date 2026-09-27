@@ -1,5 +1,5 @@
 {
-  "schema": "nexus-mission-authority/2",
+  "schema": "nexus-mission-authority/3",
   "scope": "branch_preview_only",
   "build_authorised_when": "The claim API has verified the founder-signed delivery approval for this exact frozen specification. That approval IS the build authority: no further founder approval is needed for any build step.",
   "build": {
@@ -16,7 +16,7 @@
   "protected": {
     "merge": "founder_or_existing_release_mandate",
     "mark_pr_ready": "founder_or_existing_release_mandate",
-    "production_deploy": "founder_or_existing_release_mandate",
+    "promote_production": "founder",
     "public_publish": "founder_or_existing_publish_mandate",
     "spend_expansion": "founder",
     "destructive_action": "founder",
@@ -25,9 +25,9 @@
     "strategic_scope_change": "founder"
   },
   "protected_descriptions": {
-    "merge": "Merging any pull request or branch",
+    "merge": "Merging any pull request or branch. On unite-group a merge to main builds a STAGED production deployment and never moves the production domain (autoAssignCustomDomains=false); promotion is a separate protected action",
     "mark_pr_ready": "Marking a pull request ready for review, or opening one that is not a draft",
-    "production_deploy": "Deploying, promoting or rolling back production, or pushing to main",
+    "promote_production": "Promoting, deploying, redeploying or rolling back production, or pushing directly to main",
     "public_publish": "Publishing a release or any public content",
     "spend_expansion": "Buying anything or raising any spend",
     "destructive_action": "Force-pushing, deleting branches or data, resetting history, or running migrations against any database",
@@ -58,7 +58,7 @@
     "update_linear": "BUILD_CONTINUE",
     "merge": "SAFE_RELEASE",
     "mark_pr_ready": "SAFE_RELEASE",
-    "production_deploy": "SAFE_RELEASE",
+    "promote_production": "PROTECTED_RELEASE",
     "public_publish": "PROTECTED_RELEASE",
     "spend_expansion": "PROTECTED_RELEASE",
     "destructive_action": "PROTECTED_RELEASE",
@@ -81,13 +81,14 @@
     "post_release_verification_defined": "Post-release verification is defined before the release",
     "infrastructure_semantics_match": "The target infrastructure behaves as the change assumes"
   },
-  "interruption_reasons": {
-    "legitimate_protected_boundary": "The next action is PROTECTED_RELEASE, or a SAFE_RELEASE action whose mandate or gates are not satisfied. The only reason that justifies asking the founder.",
-    "missing_authority_mapping": "The action has no class in action_classes. Fix the policy; do not ask the founder about a build step.",
-    "agent_uncertainty": "The agent was unsure. Not a reason to interrupt: diagnose and continue.",
-    "missing_context": "The agent lacked context it could read for itself. Not a reason to interrupt.",
-    "broken_tool": "A tool, hook or script failed. Repair it and continue.",
-    "false_policy_conflict": "The agent believed two rules conflicted when the policy decides it. Not a reason to interrupt.",
-    "unnecessary_implementation_question": "An implementation choice inside the approved scope. Decide and continue."
+  "interruption_classes": {
+    "LEGITIMATE_PROTECTED_BOUNDARY": "The next action is PROTECTED_RELEASE, or a SAFE_RELEASE action whose mandate or gates are not satisfied. The only class that justifies asking the founder.",
+    "MISSING_AUTHORITY_MAPPING": "The action has no class in action_classes. Fix the policy; do not ask the founder about a build step.",
+    "BROKEN_TOOL": "A tool, hook or script failed. Repair it and continue.",
+    "MISSING_CONTEXT": "The agent lacked context it could read for itself. Not a reason to interrupt.",
+    "MODEL_UNCERTAINTY": "The agent was unsure. Not a reason to interrupt: diagnose and continue.",
+    "IMPLEMENTATION_QUESTION": "An implementation choice inside the approved scope. Decide and continue.",
+    "FALSE_POLICY_CONFLICT": "The agent believed two rules conflicted when the policy decides it. Not a reason to interrupt.",
+    "OTHER": "Anything not above. Recorded so the policy can learn a class for it; still not a reason to interrupt."
   }
 }

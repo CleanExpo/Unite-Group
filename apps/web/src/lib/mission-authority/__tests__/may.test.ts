@@ -39,7 +39,7 @@ function input(overrides: Partial<MayInput> = {}): MayInput {
   }
 }
 
-describe('policy shape — mission-authority.json v2', () => {
+describe('policy shape — mission-authority.json v3', () => {
   it('maps every action to exactly one class, and nothing else', () => {
     const actions = [...Object.keys(policy.build), ...Object.keys(policy.protected)]
     expect(new Set(actions).size).toBe(actions.length) // no action is both build and protected
@@ -50,26 +50,26 @@ describe('policy shape — mission-authority.json v2', () => {
     for (const action of Object.keys(policy.build)) {
       expect(policy.action_classes[action as keyof typeof policy.action_classes]).toBe('BUILD_CONTINUE')
     }
-    for (const action of ['merge', 'mark_pr_ready', 'production_deploy'] as const) {
+    for (const action of ['merge', 'mark_pr_ready'] as const) {
       expect(policy.action_classes[action]).toBe('SAFE_RELEASE')
     }
     for (const action of [
-      'public_publish', 'spend_expansion', 'destructive_action',
+      'promote_production', 'public_publish', 'spend_expansion', 'destructive_action',
       'credential_change', 'authority_change', 'strategic_scope_change',
     ] as const) {
       expect(policy.action_classes[action]).toBe('PROTECTED_RELEASE')
     }
   })
 
-  it('carries the phases, safe-release gates and interruption reasons the directive names', () => {
+  it('carries the phases, safe-release gates and interruption classes the directive names', () => {
     expect(policy.phases).toEqual([
       'DRAFT', 'ACCEPTED', 'ADMITTED', 'BUILD_AUTHORISED', 'BUILD_CONTINUE',
       'RELEASE_CANDIDATE', 'SAFE_RELEASE', 'PROTECTED_RELEASE', 'VERIFIED',
     ])
     expect(GATES).toHaveLength(12)
-    expect(Object.keys(policy.interruption_reasons).sort()).toEqual([
-      'agent_uncertainty', 'broken_tool', 'false_policy_conflict', 'legitimate_protected_boundary',
-      'missing_authority_mapping', 'missing_context', 'unnecessary_implementation_question',
+    expect(Object.keys(policy.interruption_classes).sort()).toEqual([
+      'BROKEN_TOOL', 'FALSE_POLICY_CONFLICT', 'IMPLEMENTATION_QUESTION', 'LEGITIMATE_PROTECTED_BOUNDARY',
+      'MISSING_AUTHORITY_MAPPING', 'MISSING_CONTEXT', 'MODEL_UNCERTAINTY', 'OTHER',
     ])
   })
 })
@@ -150,10 +150,11 @@ describe('may() — seeded cases', () => {
       expect(decision, action).toMatchObject({ verdict: 'escalate', boundary: 'PROTECTED_RELEASE' })
       expect(decision.founderPacket, action).toBeTruthy()
     }
-    // production_deploy is SAFE_RELEASE-eligible, but this mandate only names merge.
-    const production = may(input({ action: 'production_deploy', state: release }))
+    // Production promotion is PROTECTED: no mandate, gate set or phase makes it continue.
+    const mandated = { ...MISSION, releaseMandate: { classes: ['merge', 'promote_production'], maxRisk: 'medium' as const } }
+    const production = may(input({ mission: mandated, action: 'promote_production', risk: 'low', state: release }))
     expect(production).toMatchObject({ verdict: 'escalate', boundary: 'PROTECTED_RELEASE' })
-    expect(production.founderPacket).toContain('production_deploy')
+    expect(production.founderPacket).toContain('promote_production')
   })
 
   it('fails closed on null, expired, revoked or malformed authority', () => {
@@ -180,7 +181,7 @@ describe('may() — G: decisions come from the persisted authority, not conversa
       ...['discover', 'edit', 'test', 'repair', 'commit', 'push_scoped_branch', 'draft_pr', 'preview_within_existing_mandate', 'update_linear']
         .map((action) => input({ action })),
       input({ action: 'merge', state: { gates: allGates(), phase: 'RELEASE_CANDIDATE' } }),
-      input({ action: 'production_deploy', state: { gates: allGates(), phase: 'RELEASE_CANDIDATE' } }),
+      input({ action: 'promote_production', state: { gates: allGates(), phase: 'RELEASE_CANDIDATE' } }),
       input({ action: 'credential_change' }),
     ]
     const dir = mkdtempSync(path.join(tmpdir(), 'may-fresh-'))
