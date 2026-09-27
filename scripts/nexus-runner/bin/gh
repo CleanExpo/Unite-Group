@@ -1,0 +1,99 @@
+#!/bin/sh
+# nexus-runner gh shim — the release half of the runner's reversible envelope
+# (policy: ../mission-authority.json). Holds even under bypassPermissions (the
+# permission engine is off; this is not).
+#
+# ALLOW-LIST: only the commands a build needs pass — read-only discovery, and
+# opening or updating a DRAFT pull request. Everything else (merge, ready,
+# releases, gists, secrets, workflows, config, aliases, extensions, repo
+# settings, any gh api write, any command nobody has listed) is refused.
+# A deny-list lost twice in review to options that shift the subcommand, so:
+#   1. the first non-option word must be an allowed command, and
+#   2. a protected command word anywhere in argv is refused as well.
+REAL_GH="${NEXUS_RUNNER_REAL_GH:-}"
+[ -x "$REAL_GH" ] || REAL_GH=$(PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin command -v gh)
+
+deny() { echo "nexus-runner: BLOCKED 'gh $*' (protected action; needs the founder or a release mandate)" >&2; exit 3; }
+
+# A word straight after an option is treated as that option's value (--label ready,
+# --title merge) and is not a command; the allow-list below still decides the command.
+prev=""
+for a in "$@"; do
+  case "$prev" in
+    -*=*|"") : ;;
+    -*) prev="$a"; continue ;;
+  esac
+  case "$a" in
+    merge|ready|release|gist|secret|variable|workflow|ruleset|auth|alias|extension|extensions|ext|config|codespace|attestation|cache|label|project|org|gpg-key|ssh-key) deny "$a" ;;
+  esac
+  prev="$a"
+done
+
+# First two non-option words are the command and subcommand.
+sub=""; sub2=""; skip=0
+for a in "$@"; do
+  if [ "$skip" = 1 ]; then skip=0; continue; fi
+  case "$a" in
+    -R|--repo|--hostname|--jq|-q|--template|-t|--json) skip=1; continue ;;
+    -*) continue ;;
+  esac
+  if [ -z "$sub" ]; then sub="$a"; elif [ -z "$sub2" ]; then sub2="$a"; break; fi
+done
+
+case "$sub" in
+  pr)
+    case "$sub2" in
+      view|list|diff|checks|status|comment|checkout|edit) : ;;
+      create)
+        draft=0
+        for a in "$@"; do
+          case "$a" in
+            --draft|-d|--draft=true) draft=1 ;;
+            --draft=false) draft=0 ;;
+          esac
+        done
+        [ "$draft" = 1 ] || deny "pr create without --draft"
+        ;;
+      *) deny "pr $sub2" ;;
+    esac
+    ;;
+  api)
+    # Read-only GETs only. -f/-F/--field/--input make gh api send a POST.
+    # The endpoint is an ALLOW-list of the repository reads a build needs (PRs, issues,
+    # commits, checks, statuses, branches, contents, workflow runs). A deny-list of
+    # credential paths lost twice in review (gpg_keys, deploy_keys, SECRETS, %73ecrets:
+    # Cursor review round 10), and credential_change covers reading too.
+    api_path_ok() (
+      set -f
+      case "$1" in *[!A-Za-z0-9/_.?=\&,{}-]*|*..*|*//*) exit 1 ;; esac
+      p="${1#/}"; p="${p%%\?*}"
+      IFS=/; set -- $p
+      [ "$1" = repos ] && [ -n "$2" ] && [ -n "$3" ] || exit 1
+      [ "$#" = 3 ] && exit 0
+      case "$4" in
+        pulls|issues|commits|check-runs|check-suites|statuses|compare|branches|contents) exit 0 ;;
+        actions) case "$5" in runs|jobs) exit 0 ;; esac ;;
+      esac
+      exit 1
+    )
+    seen=0; skip=0
+    for a in "$@"; do
+      if [ "$skip" = 1 ]; then skip=0; continue; fi
+      case "$a" in
+        -X*|--method|--method=*|-f|-f*|-F|-F*|--field|--field=*|--raw-field|--raw-field=*|--input|--input=*) deny "api write" ;;
+        -H|--header|--jq|-q|-t|--template|--hostname|-p|--preview|--cache|-R|--repo) skip=1; continue ;;
+        -*) continue ;;
+      esac
+      if [ "$seen" = 0 ]; then [ "$a" = api ] && seen=1; continue; fi
+      api_path_ok "$a" || deny "api $a (not on the read allow-list)"
+    done
+    ;;
+  issue|run|search)
+    case "$sub2" in view|list|status|watch|issues|prs|code|repos|commits) : ;; *) deny "$sub $sub2" ;; esac ;;
+  repo)
+    case "$sub2" in view|clone) : ;; *) deny "repo $sub2" ;; esac ;;
+  status|help|version|--version) : ;;
+  "") for a in "$@"; do case "$a" in --help|-h|--version) : ;; *) deny "$*" ;; esac; done ;;
+  *) deny "$sub" ;;
+esac
+exec "$REAL_GH" "$@"
