@@ -18,6 +18,7 @@ const CI_TONE: Record<TestBranchStatus['ci'], string> = {
   passing: 'var(--tile-green-txt, #34d399)',
   failing: 'var(--tile-red-txt, #d02f35)',
   running: 'var(--tile-amber-txt, #fb923c)',
+  unknown: 'var(--tile-amber-txt, #fb923c)',
   none: 'var(--tile-ink-dim, #9bb0c1)',
 }
 
@@ -82,7 +83,7 @@ export function TestCatalogueLiveStrip() {
     <div data-testid="test-catalogue-live" style={box}>
       <span style={{ fontWeight: 700, color: CI_TONE[data.ci] }} data-testid="test-catalogue-live-ci">
         LIVE · CI {data.ci}
-        {data.checks_total > 0 && ` (${data.checks_total - data.checks_failed - data.checks_pending}/${data.checks_total} green)`}
+        {data.checks_total > 0 && ` (${data.checks_total - data.checks_failed - data.checks_pending - data.checks_unknown}/${data.checks_total} green)`}
       </span>
       <span style={{ color: 'var(--tile-ink-dim, #9bb0c1)' }}>
         {data.repo} · <span style={mono}>{data.branch}</span> @{' '}

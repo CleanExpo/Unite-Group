@@ -109,7 +109,7 @@ export function loadTestCatalogue(): TestCatalogueData {
 
 // ── Live branch state ───────────────────────────────────────────────────
 
-export type CiState = 'passing' | 'failing' | 'running' | 'none'
+export type CiState = 'passing' | 'failing' | 'running' | 'unknown' | 'none'
 
 export interface TestBranchStatus {
   available: boolean
@@ -122,6 +122,7 @@ export interface TestBranchStatus {
   checks_total: number
   checks_failed: number
   checks_pending: number
+  checks_unknown: number
   pr_number: number | null
   pr_url: string | null
   pr_state: 'open' | 'draft' | 'merged' | 'closed' | 'none'
@@ -142,14 +143,28 @@ interface CheckRun {
   conclusion: string | null
 }
 
-/** Pure: fold GitHub check runs into one CI state. */
-export function summariseCheckRuns(runs: CheckRun[]): Pick<TestBranchStatus, 'ci' | 'checks_total' | 'checks_failed' | 'checks_pending'> {
+/**
+ * Pure: fold GitHub check runs into one CI state. Fails closed: a completed run is green only
+ * when its conclusion is on the allow-list; 'stale', null or any unrecognised value is unknown.
+ */
+export function summariseCheckRuns(
+  runs: CheckRun[],
+): Pick<TestBranchStatus, 'ci' | 'checks_total' | 'checks_failed' | 'checks_pending' | 'checks_unknown'> {
+  const greenConclusions = new Set(['success', 'neutral', 'skipped'])
   const failedConclusions = new Set(['failure', 'timed_out', 'cancelled', 'action_required', 'startup_failure'])
-  const pending = runs.filter((r) => r.status !== 'completed').length
-  const failed = runs.filter((r) => r.status === 'completed' && r.conclusion !== null && failedConclusions.has(r.conclusion)).length
-  const ci: CiState = runs.length === 0 ? 'none' : failed > 0 ? 'failing' : pending > 0 ? 'running' : 'passing'
-  return { ci, checks_total: runs.length, checks_failed: failed, checks_pending: pending }
+  const completed = runs.filter((r) => r.status === 'completed')
+  const pending = runs.length - completed.length
+  const failed = completed.filter((r) => r.conclusion !== null && failedConclusions.has(r.conclusion)).length
+  const unknown = completed.filter(
+    (r) => r.conclusion === null || (!greenConclusions.has(r.conclusion) && !failedConclusions.has(r.conclusion)),
+  ).length
+  const ci: CiState =
+    runs.length === 0 ? 'none' : failed > 0 ? 'failing' : pending > 0 ? 'running' : unknown > 0 ? 'unknown' : 'passing'
+  return { ci, checks_total: runs.length, checks_failed: failed, checks_pending: pending, checks_unknown: unknown }
 }
+
+/** Largest number of check-run pages read before the result is reported incomplete. */
+const MAX_CHECK_PAGES = 10
 
 /** Read the catalogue branch's head, CI and PR. NEVER throws. */
 export async function getTestBranchStatus(deps: TestBranchStatusDeps = {}): Promise<TestBranchStatus> {
@@ -171,6 +186,7 @@ export async function getTestBranchStatus(deps: TestBranchStatusDeps = {}): Prom
     checks_total: 0,
     checks_failed: 0,
     checks_pending: 0,
+    checks_unknown: 0,
     pr_number: null,
     pr_url: null,
     pr_state: 'none',
@@ -187,7 +203,7 @@ export async function getTestBranchStatus(deps: TestBranchStatusDeps = {}): Prom
     'x-github-api-version': '2022-11-28',
   }
   const get = async (path: string): Promise<unknown> => {
-    const res = await fetchFn(`${GH}${path}`, { headers, signal: AbortSignal.timeout(8000), next: { revalidate: 60 } })
+    const res = await fetchFn(`${GH}${path}`, { headers, signal: AbortSignal.timeout(8000), cache: 'no-store' })
     if (!res.ok) throw new Error(`${path.split('?')[0]}: HTTP ${res.status}`)
     return res.json()
   }
@@ -199,14 +215,35 @@ export async function getTestBranchStatus(deps: TestBranchStatusDeps = {}): Prom
     const sha = branchRes.commit?.sha ?? null
     if (!sha) return { ...base, status_message: 'branch has no head commit', read_error: 'no commit sha' }
 
-    const [checks, pulls] = await Promise.all([
-      get(`/repos/${repo}/commits/${sha}/check-runs?per_page=100`) as Promise<{ check_runs?: CheckRun[] }>,
-      get(`/repos/${repo}/pulls?state=all&head=${encodeURIComponent(`${repo.split('/')[0]}:${branch}`)}&per_page=1`) as Promise<
-        Array<{ number: number; html_url: string; state: string; draft?: boolean; merged_at?: string | null }>
-      >,
-    ])
+    // Every page, checked against total_count: a failure past page one must not read as green.
+    const getAllCheckRuns = async (): Promise<CheckRun[]> => {
+      const runs: CheckRun[] = []
+      let total = 0
+      for (let page = 1; page <= MAX_CHECK_PAGES; page++) {
+        const body = (await get(`/repos/${repo}/commits/${sha}/check-runs?per_page=100&page=${page}`)) as {
+          total_count?: unknown
+          check_runs?: unknown
+        }
+        if (typeof body?.total_count !== 'number' || !Array.isArray(body.check_runs)) {
+          throw new Error('check-runs: malformed response body')
+        }
+        total = body.total_count
+        runs.push(...(body.check_runs as CheckRun[]))
+        if (runs.length >= total || body.check_runs.length === 0) break
+      }
+      if (runs.length < total) throw new Error(`check-runs: incomplete, read ${runs.length} of ${total}`)
+      return runs
+    }
 
-    const pr = Array.isArray(pulls) ? pulls[0] : undefined
+    const [checkRuns, pulls] = await Promise.all([
+      getAllCheckRuns(),
+      get(`/repos/${repo}/pulls?state=all&head=${encodeURIComponent(`${repo.split('/')[0]}:${branch}`)}&per_page=1`),
+    ])
+    if (!Array.isArray(pulls)) throw new Error('pulls: malformed response body')
+
+    const pr = pulls[0] as
+      | { number: number; html_url: string; state: string; draft?: boolean; merged_at?: string | null }
+      | undefined
     const prState: TestBranchStatus['pr_state'] = !pr
       ? 'none'
       : pr.merged_at
@@ -216,7 +253,7 @@ export async function getTestBranchStatus(deps: TestBranchStatusDeps = {}): Prom
           : pr.draft
             ? 'draft'
             : 'open'
-    const ci = summariseCheckRuns(checks.check_runs ?? [])
+    const ci = summariseCheckRuns(checkRuns)
 
     return {
       ...base,

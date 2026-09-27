@@ -63,7 +63,7 @@ describe('summariseCheckRuns', () => {
       { status: 'completed', conclusion: 'failure' },
       { status: 'in_progress', conclusion: null },
     ])
-    expect(s).toEqual({ ci: 'failing', checks_total: 3, checks_failed: 1, checks_pending: 1 })
+    expect(s).toEqual({ ci: 'failing', checks_total: 3, checks_failed: 1, checks_pending: 1, checks_unknown: 0 })
   })
   it('running while any check is unfinished and none failed', () => {
     expect(summariseCheckRuns([{ status: 'queued', conclusion: null }, { status: 'completed', conclusion: 'success' }]).ci).toBe('running')
@@ -76,6 +76,16 @@ describe('summariseCheckRuns', () => {
         { status: 'completed', conclusion: 'neutral' },
       ]).ci,
     ).toBe('passing')
+  })
+  it('a completed run with a stale, missing or unrecognised conclusion is unknown, never green', () => {
+    for (const conclusion of ['stale', null, 'some_future_value']) {
+      const s = summariseCheckRuns([
+        { status: 'completed', conclusion: 'success' },
+        { status: 'completed', conclusion },
+      ])
+      expect(s.ci).toBe('unknown')
+      expect(s.checks_unknown).toBe(1)
+    }
   })
 })
 
@@ -92,7 +102,7 @@ describe('getTestBranchStatus', () => {
     const gh = fakeGitHub({
       '/branches/': () => jsonResponse({ commit: { sha: 'abc12345def', html_url: 'https://github.com/x/commit/abc' } }),
       '/check-runs': () =>
-        jsonResponse({ check_runs: [{ status: 'completed', conclusion: 'success' }, { status: 'completed', conclusion: 'failure' }] }),
+        jsonResponse({ total_count: 2, check_runs: [{ status: 'completed', conclusion: 'success' }, { status: 'completed', conclusion: 'failure' }] }),
       '/pulls?': () => jsonResponse([{ number: 2400, html_url: 'https://github.com/x/pull/2400', state: 'open', draft: true }]),
     })
     const s = await getTestBranchStatus({ token: 't', fetchFn: gh.fetchFn, now })
@@ -110,7 +120,7 @@ describe('getTestBranchStatus', () => {
   it('reports "no PR yet" and "no CI" honestly for a branch that has neither', async () => {
     const gh = fakeGitHub({
       '/branches/': () => jsonResponse({ commit: { sha: 'abc' } }),
-      '/check-runs': () => jsonResponse({ check_runs: [] }),
+      '/check-runs': () => jsonResponse({ total_count: 0, check_runs: [] }),
       '/pulls?': () => jsonResponse([]),
     })
     const s = await getTestBranchStatus({ token: 't', fetchFn: gh.fetchFn, now })
@@ -118,6 +128,56 @@ describe('getTestBranchStatus', () => {
     expect(s.ci).toBe('none')
     expect(s.pr_state).toBe('none')
     expect(s.status_message).toBe('no CI runs on this commit yet')
+  })
+
+  it('a 200 check-runs body without check_runs is a failed read, not "no CI yet"', async () => {
+    const gh = fakeGitHub({
+      '/branches/': () => jsonResponse({ commit: { sha: 'abc' } }),
+      '/check-runs': () => jsonResponse({ total_count: 5 }),
+      '/pulls?': () => jsonResponse([]),
+    })
+    const s = await getTestBranchStatus({ token: 't', fetchFn: gh.fetchFn, now })
+    expect(s.available).toBe(false)
+    expect(s.status_message).toBe('GitHub read failed')
+    expect(s.read_error).toMatch(/check-runs/)
+  })
+
+  it('a 200 pulls body that is not a list is a failed read, not "no PR yet"', async () => {
+    const gh = fakeGitHub({
+      '/branches/': () => jsonResponse({ commit: { sha: 'abc' } }),
+      '/check-runs': () => jsonResponse({ total_count: 0, check_runs: [] }),
+      '/pulls?': () => jsonResponse({ message: 'unexpected' }),
+    })
+    const s = await getTestBranchStatus({ token: 't', fetchFn: gh.fetchFn, now })
+    expect(s.available).toBe(false)
+    expect(s.read_error).toMatch(/pulls/)
+  })
+
+  it('reads every page of check runs, so a failure past the first 100 is seen', async () => {
+    const green = Array.from({ length: 100 }, () => ({ status: 'completed', conclusion: 'success' }))
+    const gh = fakeGitHub({
+      '/branches/': () => jsonResponse({ commit: { sha: 'abc' } }),
+      'page=2': () => jsonResponse({ total_count: 101, check_runs: [{ status: 'completed', conclusion: 'failure' }] }),
+      '/check-runs': () => jsonResponse({ total_count: 101, check_runs: green }),
+      '/pulls?': () => jsonResponse([]),
+    })
+    const s = await getTestBranchStatus({ token: 't', fetchFn: gh.fetchFn, now })
+    expect(s.available).toBe(true)
+    expect(s.checks_total).toBe(101)
+    expect(s.ci).toBe('failing')
+  })
+
+  it('check runs that cannot all be fetched are a failed read, never a partial green', async () => {
+    const green = Array.from({ length: 100 }, () => ({ status: 'completed', conclusion: 'success' }))
+    const gh = fakeGitHub({
+      '/branches/': () => jsonResponse({ commit: { sha: 'abc' } }),
+      'page=2': () => jsonResponse({ total_count: 150, check_runs: [] }),
+      '/check-runs': () => jsonResponse({ total_count: 150, check_runs: green }),
+      '/pulls?': () => jsonResponse([]),
+    })
+    const s = await getTestBranchStatus({ token: 't', fetchFn: gh.fetchFn, now })
+    expect(s.available).toBe(false)
+    expect(s.read_error).toMatch(/100 of 150/)
   })
 
   it('a GitHub error is unavailable with the reason, never a stale-looking success', async () => {
@@ -131,7 +191,7 @@ describe('getTestBranchStatus', () => {
   it('reports a merged PR as merged', async () => {
     const gh = fakeGitHub({
       '/branches/': () => jsonResponse({ commit: { sha: 'abc' } }),
-      '/check-runs': () => jsonResponse({ check_runs: [{ status: 'completed', conclusion: 'success' }] }),
+      '/check-runs': () => jsonResponse({ total_count: 1, check_runs: [{ status: 'completed', conclusion: 'success' }] }),
       '/pulls?': () => jsonResponse([{ number: 1, html_url: 'u', state: 'closed', merged_at: '2026-09-28T00:00:00Z' }]),
     })
     const s = await getTestBranchStatus({ token: 't', fetchFn: gh.fetchFn, now })
