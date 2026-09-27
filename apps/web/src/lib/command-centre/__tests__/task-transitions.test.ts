@@ -15,6 +15,13 @@ describe('isLegalTransition — governance boundary (UNI-2417)', () => {
       expect(isLegalTransition('awaiting_approval', 'failed', 'approval')).toBe(true)
       expect(isLegalTransition('awaiting_approval', 'blocked', 'approval')).toBe(true)
     })
+
+    it('may withdraw a queued consent (queued → awaiting_approval) but move queued nowhere else (UNI-2779)', () => {
+      expect(isLegalTransition('queued', 'awaiting_approval', 'approval')).toBe(true)
+      for (const to of TASK_STATUSES.filter((s) => s !== 'queued' && s !== 'awaiting_approval')) {
+        expect(isLegalTransition('queued', to, 'approval')).toBe(false)
+      }
+    })
   })
 
   describe('founder direct-PATCH actor — must not bypass governance', () => {
@@ -55,12 +62,21 @@ describe('isLegalTransition — governance boundary (UNI-2417)', () => {
   })
 
   describe('runner actor', () => {
-    it('allows queued → running and running → done/failed/queued', () => {
+    it('allows queued → running and running → failed/queued/awaiting_approval', () => {
       expect(isLegalTransition('queued', 'running', 'runner')).toBe(true)
-      expect(isLegalTransition('running', 'done', 'runner')).toBe(true)
       expect(isLegalTransition('running', 'failed', 'runner')).toBe(true)
       expect(isLegalTransition('running', 'queued', 'runner')).toBe(true)
       expect(isLegalTransition('running', 'awaiting_approval', 'runner')).toBe(true)
+    })
+
+    it('DENIES running → done: an opened PR is a review handoff, never done (UNI-2779)', () => {
+      expect(isLegalTransition('running', 'done', 'runner')).toBe(false)
+    })
+  })
+
+  describe('founder completes a reviewed handoff (UNI-2779)', () => {
+    it('allows awaiting_approval → done (the route still applies the done invariant and CC-12)', () => {
+      expect(isLegalTransition('awaiting_approval', 'done')).toBe(true)
     })
   })
 

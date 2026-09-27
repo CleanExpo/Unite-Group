@@ -46,6 +46,7 @@ import {
   verifyDeliveryApproval,
   type DeliveryStoreClient,
 } from "./delivery-store";
+import { acceptedIntentBinding } from "@/lib/mission-authority/intent-binding";
 
 export interface DeliveryPreparationDeps {
   createTaskOnce: typeof createTaskOnce;
@@ -674,6 +675,10 @@ async function approve(
     scope: DELIVERY_SCOPE,
     approvedAt: receipt.at,
   };
+  // UNI-2779: an accepted intent.md is bound into the signed consent, so a
+  // later change to that intent invalidates the approval.
+  const intent = acceptedIntentBinding(task);
+  if (intent) approval.intent = intent;
   const signature = signDeliveryApproval(task, approval);
   if (!signature) {
     task = await deps.saveDelivery(

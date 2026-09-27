@@ -116,8 +116,12 @@ describe('claimNextQueuedTask', () => {
 })
 
 describe('releaseClaimedTask', () => {
-  it('releases done with the claimant guard and stores the PR ref', async () => {
-    const row = { id: 't1', status: 'done' }
+  // CONTRACT CHANGE (UNI-2779): this test used to expect status 'done' for a
+  // runner-reported PR URL. PR_OPEN is never DONE: a draft PR is a review
+  // handoff, so the task goes to awaiting_approval with its claim cleared — the
+  // same semantics the delivery branch already uses.
+  it('releases a PR handoff to awaiting_approval with the claimant guard and stores the PR ref', async () => {
+    const row = { id: 't1', status: 'awaiting_approval' }
     const { client, updates } = mockClient([], [[row]])
 
     const released = await releaseClaimedTask(client, {
@@ -130,7 +134,9 @@ describe('releaseClaimedTask', () => {
 
     expect(released.task).toEqual(row)
     expect(released.effectiveOutcome).toBe('done')
-    expect(updates[0].values.status).toBe('done')
+    expect(updates[0].values.status).toBe('awaiting_approval')
+    expect(updates[0].values.claimed_by).toBeNull()
+    expect(updates[0].values.claimed_at).toBeNull()
     expect(updates[0].values.preview_url).toContain('/pull/900')
     // only the claimant can release, and only from running
     expect(updates[0].filters).toContainEqual(['claimed_by', 'runner-a'])
@@ -355,7 +361,7 @@ describe('releaseClaimedTask requeue cap (UNI-2396)', () => {
 
   it('never touches the events table for done or failed outcomes', async () => {
     const { client, updates, countFilters } = capMockClient({
-      updateResults: [[{ id: 't1', status: 'done' }]],
+      updateResults: [[{ id: 't1', status: 'awaiting_approval' }]],
     })
 
     await releaseClaimedTask(client, {
@@ -365,8 +371,18 @@ describe('releaseClaimedTask requeue cap (UNI-2396)', () => {
       outcome: 'done',
     })
 
-    expect(updates[0].values.status).toBe('done')
+    expect(updates[0].values.status).toBe('awaiting_approval')
     expect(countFilters).toHaveLength(0)
+  })
+
+  it('never produces status done from a runner release, with or without a PR URL', async () => {
+    for (const prRef of ['https://github.com/CleanExpo/Unite-Group/pull/901', null, undefined]) {
+      const { client, updates } = mockClient([], [[{ id: 't1', status: 'awaiting_approval' }]])
+      await releaseClaimedTask(client, { founderId: 'f1', taskId: 't1', runnerId: 'runner-a', outcome: 'done', prRef })
+      expect(updates).toHaveLength(1)
+      expect(updates[0].values.status).not.toBe('done')
+      expect(updates[0].values.status).toBe('awaiting_approval')
+    }
   })
 })
 

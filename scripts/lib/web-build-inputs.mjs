@@ -35,6 +35,8 @@ export const WEB_BUILD_INPUTS = [
   '.claude/agents/',
   '.claude/skills/',
   '.mcp.json',
+  // Imported by apps/web/src/lib/mission-authority/may.ts (UNI-2779).
+  'scripts/nexus-runner/mission-authority.json',
 ];
 
 /**

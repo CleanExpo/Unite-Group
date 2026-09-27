@@ -2,6 +2,7 @@ import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { listApprovalsForTask } from "./approvals";
 import {
+  assertDoneAllowed,
   getTaskById,
   type CommandCentreTask,
   type SupabaseLike,
@@ -14,6 +15,7 @@ import {
   type DeliveryMetadata,
 } from "./delivery-types";
 import { MISSION_PROVENANCE_SECRET_ENV } from "./voice-mission-bridge";
+import { intentBindingHolds } from "@/lib/mission-authority/intent-binding";
 
 export class DeliveryConflict extends Error {
   constructor(message = "This mission changed. Reload it before continuing.") {
@@ -99,6 +101,9 @@ export function signDeliveryApproval(
         revision: approval.revision,
         scope: approval.scope,
         approvedAt: approval.approvedAt,
+        // UNI-2779: bound only when present, so approvals signed before intent
+        // binding existed keep verifying unchanged.
+        ...(approval.intent ? { intent: approval.intent } : {}),
       }),
     )
     .digest("hex");
@@ -138,6 +143,9 @@ export function getApprovedDelivery(
     d.originalIdea !== task.objective
   )
     return null;
+  // UNI-2779: consent minted from an accepted intent holds only while that
+  // exact intent.md is still the accepted one.
+  if (a.intent && !intentBindingHolds(task, a.intent)) return null;
   return {
     repository: "CleanExpo/Unite-Group",
     revision: d.revision,
@@ -201,6 +209,8 @@ export async function saveDelivery(
     status?: TaskStatus;
     expectedLease?: string;
     clearClaim?: boolean;
+    /** Drop metadata.mission in the same guarded write (UNI-2781: a superseded intent's continuation). */
+    clearMission?: boolean;
     client?: DeliveryStoreClient;
   } = {},
 ): Promise<CommandCentreTask> {
@@ -209,6 +219,9 @@ export async function saveDelivery(
     throw new DeliveryConflict("The saved mission contract is invalid.");
   if (options.expectedLease && old.lease?.token !== options.expectedLease)
     throw new DeliveryConflict("Preparation ownership changed.");
+  // UNI-2779: this CAS writes the exact row in hand (updated_at guarded), so
+  // its own acceptance text is the text that must allow Done.
+  if (options.status === "done") assertDoneAllowed(task);
   const db =
     options.client ??
     ((await createClient()) as unknown as DeliveryStoreClient);
@@ -216,10 +229,11 @@ export async function saveDelivery(
   const updatedAt = new Date(
     Math.max(Date.now(), Date.parse(task.updated_at) + 1),
   ).toISOString();
+  const { mission: _mission, ...withoutMission } = task.metadata;
   let query = (db as DeliveryMutationClient)
     .from("cc_tasks")
     .update({
-      metadata: { ...task.metadata, delivery },
+      metadata: { ...(options.clearMission ? withoutMission : task.metadata), delivery },
       updated_at: updatedAt,
       project_key: delivery.projectKey,
       ...(options.status ? { status: options.status } : {}),

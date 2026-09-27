@@ -5,6 +5,7 @@ import type { DeliveryMissionView, DeliveryRequest, DeliveryStage } from '@/lib/
 import styles from './founder-desk.module.css'
 import { MissionObservations } from './MissionObservations'
 import { MissionIntent } from './MissionIntent'
+import { MissionAuthorityPanel } from './MissionAuthorityPanel'
 
 export const MISSION_STAGE_LABELS: Record<DeliveryStage, string> = {
   captured: 'Idea captured', needs_clarification: 'Needs your input', preparing: 'Preparing the brief',
@@ -58,6 +59,7 @@ export function MissionDetail({ mission, busy, stale, refreshing = false, onRefr
       {preview && <a className={styles.resultLink} href={preview} target="_blank" rel="noopener noreferrer">Open build result</a>}
     </div>
     <div className={styles.nextAction} role="status"><div className={styles.nextActionHeading}><strong>Next step</strong><span>Responsible: <b>{mission.nextAction.owner}</b></span></div><span>{mission.nextAction.label}</span></div>
+    <MissionAuthorityPanel taskId={mission.taskId} />
     {boardConcerns.length > 0 && <section className={styles.blockers} aria-label="Board concerns"><h3>Board concerns to review</h3><ul>{boardConcerns.map(blocker => <li key={blocker.code}>{blocker.message}</li>)}</ul><p>Branch build consent does not resolve these Board concerns.</p></section>}
     {mission.questions.length > 0 && mission.nextAction.kind === 'answer' && <form className={styles.questions} onSubmit={e => { e.preventDefault(); if (!disabled) onAction({ action: 'resume', taskId: mission.taskId, answers }) }}>
       <h3>A little business context</h3>

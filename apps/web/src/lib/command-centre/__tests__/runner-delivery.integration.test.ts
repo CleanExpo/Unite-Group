@@ -3,6 +3,7 @@ import { deliveryFingerprint, signDeliveryApproval } from '../delivery-store'
 import type { DeliveryMetadata } from '../delivery-types'
 import { claimNextQueuedTask, releaseClaimedTask, type RunnerClaimClientLike } from '../runner-claim'
 import type { CommandCentreTask } from '../tasks'
+import { acceptedIntentBinding } from '@/lib/mission-authority/intent-binding'
 
 function fixture() {
   const delivery: DeliveryMetadata = {
@@ -21,9 +22,12 @@ function fixture() {
     project_id: null, project_key: 'unite-group', title: 'Bookings', objective: delivery.originalIdea,
     priority: 'P1', status: 'queued', agent_owner: null, risk_level: 'medium', execution_mode: 'branch-preview',
     origin: 'idea', dependencies: [], human_approval_required: true, evidence_path: null, validation_required: [],
-    linear_id: null, preview_url: null, metadata: { delivery, preserved: 'context' },
+    linear_id: null, preview_url: null,
+    metadata: { delivery, preserved: 'context', intent: { status: 'accepted', markdown: '# Intent\nLet customers edit their bookings', acceptedAt: '2026-09-05T00:00:00.000Z' } },
     created_at: '2026-09-05T00:00:00.000Z', updated_at: '2026-09-05T00:00:00.000Z',
   }
+  // UNI-2779: build authority is an approval bound to an accepted intent.
+  delivery.approval.intent = acceptedIntentBinding(task)!
   delivery.approval.signature = signDeliveryApproval(task, delivery.approval)!
   const receipt = { id: 'approval-1', founder_id: 'founder-1', task_id: 'task-1', decision: 'approve', approver: 'founder', note: `delivery:${delivery.specVersion}:branch_preview_only`, at: '2026-09-05T00:00:00.000Z' }
   return { task, delivery, receipt }
@@ -84,7 +88,7 @@ describe('real frozen-consent reader through runner lifecycle', () => {
     expect(db.writes()).toBe(2)
   })
 
-  it.each(['missing', 'revoked', 'other-founder', 'changed-spec', 'refingerprinted-spec', 'wrong-project', 'unsigned', 'forged-signature', 'missing-signing-key', 'replayed-task'] as const)('does not claim %s consent', async (fault) => {
+  it.each(['missing', 'revoked', 'other-founder', 'changed-spec', 'refingerprinted-spec', 'wrong-project', 'unsigned', 'forged-signature', 'missing-signing-key', 'replayed-task', 'intent-unbound'] as const)('does not claim %s consent', async (fault) => {
     const { task, receipt, delivery } = fixture()
     let receipts: Record<string, unknown>[] = [receipt]
     if (fault === 'missing') receipts = []
@@ -103,6 +107,12 @@ describe('real frozen-consent reader through runner lifecycle', () => {
     if (fault === 'unsigned') delete delivery.approval!.signature
     if (fault === 'forged-signature') delivery.approval!.signature = '0'.repeat(64)
     if (fault === 'missing-signing-key') vi.stubEnv('MISSION_PROVENANCE_SECRET', '')
+    if (fault === 'intent-unbound') {
+      // UNI-2779 bypass: a genuinely signed, ledger-current approval that was
+      // never bound to an accepted intent resolves no mission authority.
+      delete delivery.approval!.intent
+      delivery.approval!.signature = signDeliveryApproval(task, delivery.approval!)!
+    }
     if (fault === 'replayed-task') {
       task.id = 'different-mission'
       receipts = [{ ...receipt, task_id: task.id }]

@@ -114,7 +114,7 @@ const PROTECTED_COMMANDS: Record<string, Cmd[]> = {
     ['gh', '-R', 'o/r', 'pr', 'ready', '1'],
     ['gh', '--repo', 'o/r', 'pr', 'create', '--title', 't', '--body', 'b'],
   ],
-  production_deploy: [
+  promote_production: [
     ['vercel', '--prod'],
     ['vercel', 'deploy', '--prod'],
     ['vercel', 'deploy', '--target=production'],

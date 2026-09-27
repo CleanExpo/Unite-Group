@@ -8,11 +8,12 @@
 import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
-import { getTaskById, updateTaskStatusGuarded, appendTaskEvent, type TaskStatus } from '@/lib/command-centre/tasks'
+import { getTaskById, updateTaskStatusGuarded, appendTaskEvent, DoneRefusedError, type TaskStatus } from '@/lib/command-centre/tasks'
 import { listApprovalsForTask } from '@/lib/command-centre/approvals'
 import { getValidationSummary } from '@/lib/command-centre/validation'
 import { isLegalTransition } from '@/lib/command-centre/task-transitions'
 import { isDeliveryMission } from '@/lib/command-centre/delivery-types'
+import { acceptanceText, checkDoneAllowed } from '@/lib/mission-authority/done-invariant'
 
 export const dynamic = 'force-dynamic'
 
@@ -95,6 +96,19 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     )
   }
 
+  // UNI-2779 done invariant: the task's own acceptance text (its objective and
+  // any metadata.acceptance) must not say NOT MET / HELD BACK / BLOCKED /
+  // UNVERIFIED or leave an acceptance box unchecked. Refused before any write.
+  if (status === 'done') {
+    const check = checkDoneAllowed(acceptanceText(current.title, current.objective, current.metadata?.acceptance))
+    if (!check.allowed) {
+      return NextResponse.json(
+        { error: 'Cannot complete: the acceptance text says this is not finished', blockers: check.blockers },
+        { status: 409 },
+      )
+    }
+  }
+
   // CC-12 enforcement (no fake-green): a task may not be marked `done` while any
   // required validation gate is failing or unrun. Returns 422 with the offenders.
   if (status === 'done') {
@@ -156,6 +170,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     return NextResponse.json({ task })
   } catch (err) {
+    // The store re-reads the row at write time; text edited since the check
+    // above is refused there, and that refusal is a conflict, not a fault.
+    if (err instanceof DoneRefusedError) {
+      return NextResponse.json(
+        { error: 'Cannot complete: the acceptance text says this is not finished', blockers: err.blockers },
+        { status: 409 },
+      )
+    }
     return NextResponse.json(
       { error: sanitiseError(err, 'Failed to update task') },
       { status: 500 },

@@ -30,6 +30,7 @@ import {
   type NextActionOwner,
   transitionPacket,
 } from './work-packet'
+import { acceptanceText, checkDoneAllowed } from '@/lib/mission-authority/done-invariant'
 import {
   createTask,
   createTaskOnce,
@@ -37,6 +38,7 @@ import {
   listTasks,
   updateTaskStatusGuarded,
   appendTaskEvent,
+  DoneRefusedError,
   type CommandCentreTask,
   type CreateTaskInput,
   type TaskStatus,
@@ -312,21 +314,45 @@ export async function applyPacketTransition(
       reason: `illegal promotion: ${fromTaskStatus} → ${toTaskStatus} is not permitted via a work-packet transition`,
     }
   }
+  // UNI-2779 done invariant: completing a packet writes cc_tasks `done`, so it
+  // obeys the same rule as the queue and Linear writers.
+  if (toTaskStatus === 'done') {
+    const check = checkDoneAllowed(
+      acceptanceText(task.title, task.objective, readPacketMetadata(task.metadata).outcome, task.metadata?.acceptance),
+    )
+    if (!check.allowed) {
+      return {
+        ok: false,
+        packet: current,
+        reason: `done refused: the acceptance text says this is not finished — ${check.blockers.join('; ')}`,
+      }
+    }
+  }
   // UNI-2436 TOCTOU guard: persist the new status ONLY while the row still holds
   // the status we read at the top of this function (task.status). A zero-row
   // (null) result means another writer changed the status underneath between that
   // read and here — refuse rather than clobber it, and audit nothing. The
   // append-only event (below) records the rest of the transition for the audit
   // trail; the returned packet carries the full in-memory transition result.
-  const updated = await updateTaskStatusGuarded(
-    {
-      founderId,
-      taskId: task.id,
-      status: packetStatusToTaskStatus(next.status),
-      expectedStatus: task.status,
-    },
-    db as unknown as GuardedUpdateClientLike,
-  )
+  let updated: CommandCentreTask | null
+  try {
+    updated = await updateTaskStatusGuarded(
+      {
+        founderId,
+        taskId: task.id,
+        status: packetStatusToTaskStatus(next.status),
+        expectedStatus: task.status,
+      },
+      db as unknown as GuardedUpdateClientLike,
+    )
+  } catch (err) {
+    if (!(err instanceof DoneRefusedError)) throw err
+    return {
+      ok: false,
+      packet: current,
+      reason: `done refused: the acceptance text says this is not finished — ${err.blockers.join('; ')}`,
+    }
+  }
   if (!updated) {
     return {
       ok: false,
