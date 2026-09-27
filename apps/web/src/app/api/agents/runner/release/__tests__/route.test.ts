@@ -7,12 +7,18 @@ vi.mock('@/lib/command-centre/runner-claim', async (orig) => {
 })
 vi.mock('@/lib/command-centre/tasks', async (orig) => {
   const actual = await orig<typeof import('@/lib/command-centre/tasks')>()
-  return { ...actual, appendTaskEvent: vi.fn() }
+  return { ...actual, appendTaskEvent: vi.fn(), getTaskById: vi.fn() }
+})
+vi.mock('@/lib/mission-authority/continuation', async (orig) => {
+  const actual = await orig<typeof import('@/lib/mission-authority/continuation')>()
+  return { ...actual, resolveMissionAuthority: vi.fn() }
 })
 
+import policy from '../../../../../../../../../scripts/nexus-runner/mission-authority.json'
 import { createServiceClient } from '@/lib/supabase/service'
 import { releaseClaimedTask } from '@/lib/command-centre/runner-claim'
-import { appendTaskEvent } from '@/lib/command-centre/tasks'
+import { appendTaskEvent, getTaskById } from '@/lib/command-centre/tasks'
+import { resolveMissionAuthority } from '@/lib/mission-authority/continuation'
 import { POST } from '../route'
 
 const SECRET = 'test-secret'
@@ -35,6 +41,16 @@ const doneBody = {
   prRef: 'https://github.com/CleanExpo/Unite-Group/pull/900',
 }
 
+/** A legacy (non-mission) row: the release contract it had before UNI-2779 is unchanged. */
+const legacyRow = { id: TASK_ID, status: 'running', claimed_by: 'mac-mini-runner', risk_level: 'low', external_ref: null, metadata: {} }
+/** A delivery mission row the runner holds. */
+const missionRow = { ...legacyRow, external_ref: 'delivery:request-1', metadata: { delivery: { kind: 'software_delivery' } } }
+const AUTHORITY = {
+  missionId: TASK_ID, intentHash: 'b'.repeat(64), intentVersion: 1, admissionReceipt: 'approval-1',
+  authorityVersion: policy.schema, allowedActions: Object.keys(policy.build),
+  releaseMandate: { classes: [], maxRisk: 'low' as const }, expiresAt: null, revokedAt: null,
+}
+
 const savedSecret = process.env.AGENT_EVENTS_SECRET
 const savedFounder = process.env.FOUNDER_USER_ID
 
@@ -44,6 +60,8 @@ describe('POST /api/agents/runner/release', () => {
     process.env.AGENT_EVENTS_SECRET = SECRET
     process.env.FOUNDER_USER_ID = 'founder-1'
     vi.mocked(createServiceClient).mockReturnValue({} as never)
+    vi.mocked(getTaskById).mockResolvedValue(legacyRow as never)
+    vi.mocked(resolveMissionAuthority).mockResolvedValue(AUTHORITY)
   })
   afterEach(() => {
     if (savedSecret === undefined) delete process.env.AGENT_EVENTS_SECRET
@@ -182,6 +200,81 @@ describe('POST /api/agents/runner/release', () => {
     const res = await POST(req(doneBody, `Bearer ${SECRET}`))
     expect(res.status).toBe(404)
     expect(appendTaskEvent).not.toHaveBeenCalled()
+  })
+
+  it('404s before any judgement when another runner holds the row', async () => {
+    vi.mocked(getTaskById).mockResolvedValue({ ...legacyRow, claimed_by: 'someone-else' } as never)
+    expect((await POST(req(doneBody, `Bearer ${SECRET}`))).status).toBe(404)
+    expect(releaseClaimedTask).not.toHaveBeenCalled()
+  })
+
+  // UNI-2779 — the service boundary. Each of these is a report a runner with
+  // bypassed PATH shims could send; the route refuses it before the row moves.
+  describe('mission authority boundary', () => {
+    it.each([
+      ['a protected action claimed as done', { ...doneBody, action: 'merge' }],
+      ['production promotion', { ...doneBody, action: 'promote_production' }],
+      ['an action the policy does not map', { ...doneBody, action: 'rewrite_history' }],
+      ['a bare requeue-to-ask', { taskId: TASK_ID, runnerId: 'mac-mini-runner', outcome: 'requeue', code: 'ask_founder' }],
+    ])('403s %s on a mission and never releases', async (_label, body) => {
+      vi.mocked(getTaskById).mockResolvedValue(missionRow as never)
+      const res = await POST(req(body, `Bearer ${SECRET}`))
+      expect(res.status).toBe(403)
+      expect(releaseClaimedTask).not.toHaveBeenCalled()
+      expect(appendTaskEvent).not.toHaveBeenCalled()
+    })
+
+    it('403s a mission done report once its authority no longer resolves', async () => {
+      vi.mocked(getTaskById).mockResolvedValue(missionRow as never)
+      vi.mocked(resolveMissionAuthority).mockResolvedValue(null)
+      expect((await POST(req(doneBody, `Bearer ${SECRET}`))).status).toBe(403)
+      expect(releaseClaimedTask).not.toHaveBeenCalled()
+    })
+
+    it('403s an explicit action on a legacy row, which holds no mission authority', async () => {
+      expect((await POST(req({ ...doneBody, action: 'draft_pr' }, `Bearer ${SECRET}`))).status).toBe(403)
+      expect(releaseClaimedTask).not.toHaveBeenCalled()
+    })
+
+    it('releases a mission draft PR that may() continues', async () => {
+      vi.mocked(getTaskById).mockResolvedValue(missionRow as never)
+      vi.mocked(releaseClaimedTask).mockResolvedValue({ task: { id: TASK_ID, status: 'awaiting_approval' }, effectiveOutcome: 'done' } as never)
+      expect((await POST(req({ ...doneBody, action: 'draft_pr' }, `Bearer ${SECRET}`))).status).toBe(200)
+      expect(releaseClaimedTask).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ outcome: 'done' }))
+    })
+
+    it('accepts RUNNER_BLOCKED at a legitimate boundary: records the interruption and blocks for the founder', async () => {
+      vi.mocked(getTaskById).mockResolvedValue(missionRow as never)
+      vi.mocked(releaseClaimedTask).mockResolvedValue({ task: { id: TASK_ID, status: 'blocked' }, effectiveOutcome: 'blocked' } as never)
+      const res = await POST(req({
+        taskId: TASK_ID, runnerId: 'mac-mini-runner', outcome: 'blocked',
+        interruptionClass: 'LEGITIMATE_PROTECTED_BOUNDARY', reason: 'next step is merge',
+      }, `Bearer ${SECRET}`))
+      expect(res.status).toBe(200)
+      expect(appendTaskEvent).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'comment',
+        payload: { kind: 'interruption', class: 'LEGITIMATE_PROTECTED_BOUNDARY', source: 'mac-mini-runner', reason: 'next step is merge' },
+      }), expect.anything())
+      expect(releaseClaimedTask).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ outcome: 'blocked' }))
+    })
+
+    it('records a non-founder interruption class and sends the mission back to the queue, not to the founder', async () => {
+      vi.mocked(getTaskById).mockResolvedValue(missionRow as never)
+      vi.mocked(releaseClaimedTask).mockResolvedValue({ task: { id: TASK_ID, status: 'queued' }, effectiveOutcome: 'requeue' } as never)
+      const res = await POST(req({
+        taskId: TASK_ID, runnerId: 'mac-mini-runner', outcome: 'blocked', interruptionClass: 'MODEL_UNCERTAINTY', reason: 'unsure',
+      }, `Bearer ${SECRET}`))
+      expect(res.status).toBe(200)
+      expect(releaseClaimedTask).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ outcome: 'requeue' }))
+    })
+
+    it('400s a blocked report whose class is not in the policy', async () => {
+      const res = await POST(req({
+        taskId: TASK_ID, runnerId: 'mac-mini-runner', outcome: 'blocked', interruptionClass: 'ASK_THE_FOUNDER', reason: 'x',
+      }, `Bearer ${SECRET}`))
+      expect(res.status).toBe(400)
+      expect(appendTaskEvent).not.toHaveBeenCalled()
+    })
   })
 
   it('500s (sanitised) when the release throws', async () => {

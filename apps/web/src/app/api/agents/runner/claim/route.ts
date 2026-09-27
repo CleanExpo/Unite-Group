@@ -20,6 +20,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import {
   claimNextQueuedTask,
   releaseClaimedTask,
+  resumeOwnMission,
   type RunnerClaimClientLike,
 } from '@/lib/command-centre/runner-claim'
 import { admitMissionToLane } from '@/lib/command-centre/mission-lane-binding'
@@ -377,15 +378,35 @@ export async function POST(request: Request) {
       return NextResponse.json({ task: null, refused: 'lane_unavailable' }, { status: 200 })
     }
 
-    const inFlight = await countRunning(client as unknown as RunnerClaimClientLike, founderId)
-    if (inFlight >= MAX_CONCURRENT_MISSIONS) {
-      return NextResponse.json({ task: null, refused: 'at_capacity' }, { status: 200 })
+    // UNI-2779: a mission this runner id already holds (its previous process
+    // died mid-mission) is resumed from its persisted continuation BEFORE the
+    // capacity check — the orphan is the in-flight mission, so counting it
+    // would refuse its own resumption forever. Resumption re-runs the same
+    // approval and may() checks as a fresh claim.
+    let inFlight = 0
+    let task: Awaited<ReturnType<typeof resumeOwnMission>> = null
+    try {
+      task = await resumeOwnMission(client as unknown as RunnerClaimClientLike, {
+        founderId,
+        runnerId: parsed.data.runnerId,
+      })
+    } catch (err) {
+      // Logged, not swallowed: an unreadable resume only delays resumption. The
+      // capacity count below fails closed on its own and counts the orphan.
+      console.error(`runner claim: resume read failed (${err instanceof Error ? err.message : 'unknown'})`)
     }
+    const resumed = task !== null
+    if (!task) {
+      inFlight = await countRunning(client as unknown as RunnerClaimClientLike, founderId)
+      if (inFlight >= MAX_CONCURRENT_MISSIONS) {
+        return NextResponse.json({ task: null, refused: 'at_capacity' }, { status: 200 })
+      }
 
-    const task = await claimNextQueuedTask(client as unknown as RunnerClaimClientLike, {
-      founderId,
-      runnerId: parsed.data.runnerId,
-    })
+      task = await claimNextQueuedTask(client as unknown as RunnerClaimClientLike, {
+        founderId,
+        runnerId: parsed.data.runnerId,
+      })
+    }
 
     if (task) {
       // The admission gate had no production caller: a task was claimed and
@@ -500,6 +521,7 @@ export async function POST(request: Request) {
           // whether it ran contained or in an unsandboxed live checkout.
           payload: {
             claimed_by: parsed.data.runnerId,
+            ...(resumed ? { resumed: true, next_action: task.mission?.continuation?.next_action ?? null } : {}),
             platform: parsed.data.platform ?? null,
             containment: parsed.data.containment ?? null,
             ...(task.approvedDelivery ? {

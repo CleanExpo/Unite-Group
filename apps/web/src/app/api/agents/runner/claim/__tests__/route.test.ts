@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 vi.mock('@/lib/supabase/service', () => ({ createServiceClient: vi.fn() }))
 vi.mock('@/lib/command-centre/runner-claim', async (orig) => {
   const actual = await orig<typeof import('@/lib/command-centre/runner-claim')>()
-  return { ...actual, claimNextQueuedTask: vi.fn() }
+  return { ...actual, claimNextQueuedTask: vi.fn(), resumeOwnMission: vi.fn() }
 })
 vi.mock('@/lib/command-centre/tasks', async (orig) => {
   const actual = await orig<typeof import('@/lib/command-centre/tasks')>()
@@ -11,7 +11,7 @@ vi.mock('@/lib/command-centre/tasks', async (orig) => {
 })
 
 import { createServiceClient } from '@/lib/supabase/service'
-import { claimNextQueuedTask } from '@/lib/command-centre/runner-claim'
+import { claimNextQueuedTask, resumeOwnMission } from '@/lib/command-centre/runner-claim'
 import { appendTaskEvent } from '@/lib/command-centre/tasks'
 import { POST } from '../route'
 import { runningCountClient } from './fixtures'
@@ -47,6 +47,7 @@ describe('POST /api/agents/runner/claim', () => {
     // The route counts running missions to enforce maxConcurrent, so the client
     // has to answer that query. An empty result means nothing else is in flight.
     vi.mocked(createServiceClient).mockReturnValue(runningCountClient([]) as never)
+    vi.mocked(resumeOwnMission).mockResolvedValue(null)
   })
   afterEach(() => {
     if (savedSecret === undefined) delete process.env.AGENT_EVENTS_SECRET
@@ -99,6 +100,23 @@ describe('POST /api/agents/runner/claim', () => {
     })
     expect(appendTaskEvent).toHaveBeenCalledWith(
       expect.objectContaining({ taskId: 'task-1', type: 'started', actor: 'mac-mini-runner' }),
+      expect.anything(),
+    )
+  })
+
+  it('resumes its own orphaned mission ahead of the capacity check that the orphan itself fills', async () => {
+    // One mission is running — the orphan. Counting it would refuse at_capacity forever.
+    vi.mocked(createServiceClient).mockReturnValue(runningCountClient([{ id: 'task-1' }]) as never)
+    vi.mocked(resumeOwnMission).mockResolvedValue({
+      id: 'task-1', status: 'running', claimed_by: 'mac-mini-runner',
+      mission: { continuation: { next_action: 'repair' }, nextStep: { execute: true, action: 'repair' } },
+    } as never)
+    const res = await POST(req(validBody, `Bearer ${SECRET}`))
+    const body = await res.json()
+    expect(body.task.mission.nextStep).toMatchObject({ execute: true, action: 'repair' })
+    expect(claimNextQueuedTask).not.toHaveBeenCalled()
+    expect(appendTaskEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'started', payload: expect.objectContaining({ resumed: true, next_action: 'repair' }) }),
       expect.anything(),
     )
   })

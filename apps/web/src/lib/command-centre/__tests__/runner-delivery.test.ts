@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { claimNextQueuedTask, releaseClaimedTask, type RunnerClaimClientLike } from '../runner-claim'
+import policy from '../../../../../../scripts/nexus-runner/mission-authority.json'
+import { claimNextQueuedTask, releaseClaimedTask, resumeOwnMission, type RunnerClaimClientLike } from '../runner-claim'
 import { getApprovedDelivery, verifyDeliveryApproval } from '../delivery-store'
 
 vi.mock('../delivery-store', () => ({
@@ -14,7 +15,10 @@ const delivery = {
   spec: { title: 'Bookings', summary: 'Customer bookings', requirements: ['Save edits'], acceptanceCriteria: ['Reload keeps edits'], steps: ['Implement edit flow'], presetIds: [] },
   specVersion, harness: [], sourceRefs: [],
   board: { verdict: 'APPROVED', rationale: 'Scoped', decisionId: 'board-1' },
-  lease: null, approval: { id: 'approval-1', founderId: 'f1', specVersion, revision: 2, scope: 'branch_preview_only', approvedAt: '2026-09-05T00:00:00.000Z' },
+  lease: null, approval: {
+    id: 'approval-1', founderId: 'f1', specVersion, revision: 2, scope: 'branch_preview_only', approvedAt: '2026-09-05T00:00:00.000Z',
+    intent: { hash: 'e'.repeat(64), version: 1, acceptedAt: '2026-09-05T00:00:00.000Z' },
+  },
   error: null, scope: 'branch_preview_only',
 }
 const task = {
@@ -86,6 +90,28 @@ describe('delivery mission runner lifecycle', () => {
       ['founder_id', 'f1'], ['status', 'queued'], ['updated_at', task.updated_at],
       ['metadata->delivery->>revision', '2'],
     ]))
+  })
+
+  it('refuses, before any claim, a consented delivery whose approval resolves no mission authority', async () => {
+    vi.mocked(getApprovedDelivery).mockReturnValue({ ...delivery, approval: { ...delivery.approval, intent: undefined } } as never)
+    const { client, updates } = clientFor([task])
+    expect(await claimNextQueuedTask(client, { founderId: 'f1', runnerId: 'runner-1' })).toBeNull()
+    expect(updates).toHaveLength(0)
+  })
+
+  it('a fresh process resumes its own running mission from the persisted continuation, writing nothing', async () => {
+    const mission = {
+      mission_id: 'task-1', intent_hash: 'e'.repeat(64), authority_version: policy.schema, phase: 'BUILD_CONTINUE',
+      status: 'active', candidate_sha: null, last_verified_sha: null, next_action: 'repair', blocked_reason: null,
+      attempt_count: 1, receipts: [], updated_at: '2026-09-05T00:00:01.000Z',
+    }
+    const legacyOrphan = { ...task, id: 'legacy-1', status: 'running', claimed_by: 'runner-1', metadata: {} }
+    const own = { ...task, status: 'running', claimed_by: 'runner-1', metadata: { ...task.metadata, mission } }
+    const { client, updates, reads } = clientFor([legacyOrphan, own])
+    const resumed = await resumeOwnMission(client, { founderId: 'f1', runnerId: 'runner-1' })
+    expect(resumed).toMatchObject({ id: 'task-1', mission: { continuation: { next_action: 'repair' }, nextStep: { execute: true, action: 'repair' } } })
+    expect(reads).toEqual(expect.arrayContaining([['status', 'running'], ['claimed_by', 'runner-1']]))
+    expect(updates).toHaveLength(0)
   })
 
   it('does not claim a review-stage specification even when accidentally queued again', async () => {

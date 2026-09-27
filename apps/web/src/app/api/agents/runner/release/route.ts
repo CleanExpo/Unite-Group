@@ -9,6 +9,15 @@
 // (AGENT_EVENTS_SECRET) — one founder arming step for the whole runner plane.
 // Guarded by claimed_by = runnerId inside the accessor: only the claimant can
 // release, and a non-matching release is an honest 404, never a silent write.
+//
+// UNI-2779 — SERVICE BOUNDARY. The runner's PATH shims are defence in depth;
+// this route is the enforcement. Every reported outcome/action is judged by
+// may() against the authority the row holds, and anything may() would not
+// continue is refused 403 before the row is touched. The one exception is
+// outcome 'blocked' (the runner's RUNNER_BLOCKED: <CLASS>: <reason> line):
+// it is accepted and recorded as an interruption. Only
+// LEGITIMATE_PROTECTED_BOUNDARY stops the mission for the founder; every other
+// class is recorded and the mission goes back to the queue to continue.
 
 import { timingSafeEqual } from 'node:crypto'
 import { sanitiseError } from '@/lib/error-reporting'
@@ -20,22 +29,33 @@ import {
   type RunnerClaimClientLike,
   type RunnerReleaseOutcome,
 } from '@/lib/command-centre/runner-claim'
-import { appendTaskEvent, type SupabaseLike, type TaskEventType } from '@/lib/command-centre/tasks'
+import { appendTaskEvent, getTaskById, type SupabaseLike, type TaskEventType } from '@/lib/command-centre/tasks'
+import { resolveMissionAuthority } from '@/lib/mission-authority/continuation'
+import { INTERRUPTION_CLASSES, PROTECTED_BOUNDARY_CLASS, recordInterruption } from '@/lib/mission-authority/interruptions'
+import { isMissionScoped, releaseVerdict } from '@/lib/mission-authority/runner-boundary'
 
 export const dynamic = 'force-dynamic'
 
 const bodySchema = z.object({
   taskId: z.string().uuid(),
   runnerId: z.string().trim().min(1).max(128),
-  outcome: z.enum(['done', 'failed', 'requeue']),
+  outcome: z.enum(['done', 'failed', 'requeue', 'blocked']),
   prRef: z.string().trim().max(512).nullish(),
   code: z.string().trim().max(64).nullish(),
-})
+  /** The policy action the runner asserts it took; judged by may() whenever present. */
+  action: z.string().trim().min(1).max(64).optional(),
+  interruptionClass: z.string().optional(),
+  reason: z.string().trim().min(1).max(2000).optional(),
+}).refine(
+  (b) => b.outcome !== 'blocked' || (INTERRUPTION_CLASSES.includes(b.interruptionClass ?? '') && !!b.reason),
+  { message: 'a blocked report needs an interruptionClass from the policy and a reason', path: ['interruptionClass'] },
+)
 
 const OUTCOME_EVENT: Record<RunnerReleaseOutcome, TaskEventType> = {
   done: 'completed',
   failed: 'failed',
   requeue: 'status_changed',
+  blocked: 'blocked',
 }
 
 function timingSafeBearerMatch(request: Request, expectedSecret: string | undefined): boolean {
@@ -80,14 +100,46 @@ export async function POST(request: Request) {
 
   try {
     const client = createServiceClient()
+    const body = parsed.data
+    const current = await getTaskById({ founderId, taskId: body.taskId }, client as unknown as SupabaseLike)
+    if (!current || current.status !== 'running' || (current as { claimed_by?: unknown }).claimed_by !== body.runnerId) {
+      return NextResponse.json({ error: 'No matching running task claimed by this runner' }, { status: 404 })
+    }
+
+    let outcome: RunnerReleaseOutcome = body.outcome
+    if (body.outcome === 'blocked') {
+      await recordInterruption(
+        { founderId, taskId: current.id, class: body.interruptionClass as string, source: body.runnerId, reason: body.reason as string },
+        client as unknown as SupabaseLike,
+      )
+      // Only a legitimate protected boundary waits for the founder. Every other
+      // class is not a reason to interrupt: recorded, then back to the queue.
+      if (body.interruptionClass !== PROTECTED_BOUNDARY_CLASS) outcome = 'requeue'
+    } else {
+      const authority = isMissionScoped(current)
+        ? await resolveMissionAuthority(current, client as unknown as SupabaseLike)
+        : null
+      const verdict = releaseVerdict({
+        task: current,
+        authority,
+        runnerId: body.runnerId,
+        outcome: body.outcome,
+        action: body.action,
+        target: body.prRef ?? null,
+      })
+      if (!verdict.allowed) {
+        return NextResponse.json({ error: `Refused by mission authority: ${verdict.reason}` }, { status: 403 })
+      }
+    }
+
     const { task, effectiveOutcome } = await releaseClaimedTask(
       client as unknown as RunnerClaimClientLike,
       {
         founderId,
-        taskId: parsed.data.taskId,
-        runnerId: parsed.data.runnerId,
-        outcome: parsed.data.outcome,
-        prRef: parsed.data.prRef ?? null,
+        taskId: body.taskId,
+        runnerId: body.runnerId,
+        outcome,
+        prRef: body.prRef ?? null,
       },
     )
 
@@ -113,6 +165,7 @@ export async function POST(request: Request) {
           ...(reviewHandoff ? { status: 'awaiting_approval' } : {}),
           ...(parsed.data.prRef ? { pr_ref: parsed.data.prRef } : {}),
           ...(parsed.data.code ? { code: parsed.data.code } : {}),
+          ...(parsed.data.outcome === 'blocked' ? { interruption_class: parsed.data.interruptionClass } : {}),
         },
       },
       client as unknown as SupabaseLike,

@@ -18,6 +18,7 @@ import type { AgentEventInput } from './agent-events'
 import { RUNNER_AGENT_NAME } from './runner-identity'
 import { isDeliveryMission, readDeliveryMetadata } from './delivery-types'
 import { getApprovedDelivery, verifyDeliveryApproval } from './delivery-store'
+import { missionClaimVerdict, type MissionClaim } from '@/lib/mission-authority/runner-boundary'
 
 export const CC_TASKS_TABLE = 'cc_tasks'
 // Re-exported so existing importers keep working. The DEFINITION moved to
@@ -40,7 +41,7 @@ export type RunnerLifecycleVerb =
   | 'aborted'
   | 'requeued'
 
-export type RunnerReleaseOutcome = 'done' | 'failed' | 'requeue'
+export type RunnerReleaseOutcome = 'done' | 'failed' | 'requeue' | 'blocked'
 
 /** cc_tasks row including the claim columns added by 20260716010000_cc_tasks_claim.sql. */
 export type ClaimedTask = CommandCentreTask & {
@@ -48,6 +49,8 @@ export type ClaimedTask = CommandCentreTask & {
   claimed_at: string | null
   /** Server-validated snapshot; never reconstructed by the worker from a draft. */
   approvedDelivery?: NonNullable<ReturnType<typeof getApprovedDelivery>>
+  /** UNI-2779: the mission's binding, persisted continuation and may() verdict on its next_action. */
+  mission?: MissionClaim
 }
 
 interface SupabaseErrorLike {
@@ -120,6 +123,11 @@ export async function claimNextQueuedTask(
     // stay unclaimed and cannot silently take the legacy path.
     if (deliveryMission && (!delivery || delivery.build || !approvedDelivery ||
       !await verifyDeliveryApproval(candidate, client as unknown as SupabaseLike))) continue
+    // UNI-2779: a mission is claimable only while may() continues its first
+    // build step against the authority the row holds. Refused before the claim,
+    // so nothing is flipped to running and no requeue budget is burned.
+    const verdict = missionClaimVerdict(candidate)
+    if (!verdict.claimable) continue
 
     const claimedAt = new Date().toISOString()
     const values: Record<string, unknown> = {
@@ -149,9 +157,45 @@ export async function claimNextQueuedTask(
     if (claimError) throw new Error(`claimNextQueuedTask claim failed: ${claimError.message}`)
 
     const rows = (claimed as ClaimedTask[]) ?? []
-    if (rows.length === 1) return approvedDelivery ? { ...rows[0], approvedDelivery } : rows[0]
+    if (rows.length === 1) {
+      return {
+        ...rows[0],
+        ...(approvedDelivery ? { approvedDelivery } : {}),
+        ...(verdict.mission ? { mission: verdict.mission } : {}),
+      }
+    }
   }
 
+  return null
+}
+
+/**
+ * UNI-2779 — a fresh runner process resumes the mission its previous process
+ * (same runner id) left 'running'. Only a row carrying a persisted continuation
+ * is resumed, and only while its approval and may() verdict still hold; legacy
+ * rows are left exactly as before. Nothing is written: the claim already exists.
+ */
+export async function resumeOwnMission(
+  client: RunnerClaimClientLike,
+  input: { founderId: string; runnerId: string },
+): Promise<ClaimedTask | null> {
+  const { data, error } = await client
+    .from(CC_TASKS_TABLE)
+    .select('*')
+    .eq('founder_id', input.founderId)
+    .eq('status', 'running')
+    .eq('claimed_by', input.runnerId)
+    .order('claimed_at', { ascending: true })
+    .limit(5)
+  if (error) throw new Error(`resumeOwnMission read failed: ${error.message}`)
+  for (const row of (Array.isArray(data) ? data : []) as ClaimedTask[]) {
+    if (row?.metadata?.mission === undefined || row.metadata.mission === null) continue
+    const approvedDelivery = getApprovedDelivery(row)
+    if (!approvedDelivery || !await verifyDeliveryApproval(row, client as unknown as SupabaseLike)) continue
+    const verdict = missionClaimVerdict(row)
+    if (!verdict.claimable || !verdict.mission?.continuation) continue
+    return { ...row, approvedDelivery, mission: verdict.mission }
+  }
   return null
 }
 
@@ -172,6 +216,9 @@ const OUTCOME_STATUS: Record<RunnerReleaseOutcome, CommandCentreTask['status']> 
   done: 'awaiting_approval',
   failed: 'failed',
   requeue: 'queued',
+  // UNI-2779: a RUNNER_BLOCKED report at a legitimate protected boundary. The
+  // mission waits for the founder with its claim cleared.
+  blocked: 'blocked',
 }
 
 export interface ReleaseClaimedTaskResult {
@@ -283,7 +330,7 @@ export async function releaseClaimedTask(
       completedAt: new Date().toISOString(),
     } } }
   }
-  if (outcome === 'requeue' || outcome === 'done') {
+  if (outcome === 'requeue' || outcome === 'done' || outcome === 'blocked') {
     values.claimed_by = null
     values.claimed_at = null
   }
