@@ -164,8 +164,12 @@ export interface ReleaseClaimedTaskInput {
   prRef?: string | null
 }
 
+// UNI-2779: the runner's 'done' outcome means "a draft PR is open for review".
+// PR_OPEN is never DONE, so it lands in awaiting_approval (the review handoff
+// the delivery branch already uses). Only trusted completion evidence may set
+// status 'done'; a runner release never does.
 const OUTCOME_STATUS: Record<RunnerReleaseOutcome, CommandCentreTask['status']> = {
-  done: 'done',
+  done: 'awaiting_approval',
   failed: 'failed',
   requeue: 'queued',
 }
@@ -279,7 +283,7 @@ export async function releaseClaimedTask(
       completedAt: new Date().toISOString(),
     } } }
   }
-  if (outcome === 'requeue') {
+  if (outcome === 'requeue' || outcome === 'done') {
     values.claimed_by = null
     values.claimed_at = null
   }
