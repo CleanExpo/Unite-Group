@@ -223,3 +223,17 @@
 @media (max-width: 800px) { .composerGrid { grid-template-columns: 1fr; } .draftSpec { border-left: 0; border-top: 1px solid var(--mission-border); } .missionWorkspace, .missionWorkspace[data-selected="false"] .missionList { grid-template-columns: 1fr; } .deskHeader { align-items: flex-start; } .deskHeader p { font-size: 14px; } .floorGrid { grid-template-columns: 1fr; } }
 @media (max-width: 480px) { .shell { padding: 18px 14px 80px; } .deskHeader { flex-direction: column; gap: 16px; } .deskHeader h1 { font-size: 29px; } .composer, .draftSpec, .missionDetail { padding: 20px; } .margotHeading { gap: 10px; } .margotHeading h2 { font-size: 18px; } .margotMark { width: 34px; height: 34px; flex-basis: 34px; font-size: 21px; } .primaryButton { width: 100%; white-space: normal; } .roleList { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .founderDesk *, .founderDesk *::before, .founderDesk *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
+/* UNI-2779 — Mission authority panel. */
+.authorityPanel { margin-top: 14px; font-size: 13px; }
+.authorityList { display: grid; gap: 8px; margin: 0 0 18px; padding: 14px 16px; background: var(--mission-raised); border-left: 3px solid var(--mission-success); border-radius: 3px; overflow-wrap: anywhere; }
+.authorityList[data-continuing="false"] { border-left-color: var(--mission-attention); }
+.authorityList > div { display: grid; grid-template-columns: minmax(110px, 140px) 1fr; gap: 12px; }
+.authorityList dt { color: var(--mission-muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; font-size: 12px; }
+.authorityList dd { margin: 0; color: var(--mission-ink); }
+.authorityList dd small { display: block; margin-top: 4px; color: var(--mission-muted); font-size: 12px; }
+.authorityList > div[data-stop="true"] dd { color: var(--mission-attention-text); }
+.interruptions h4 { margin: 0 0 6px; font-size: 14px; }
+.interruptions ul { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 4px; }
+.interruptions li { display: flex; justify-content: space-between; gap: 12px; padding: 4px 8px; border: 1px solid transparent; border-radius: 3px; color: var(--mission-muted); overflow-wrap: anywhere; }
+.interruptions li[data-protected="true"] { border-color: var(--mission-success); color: var(--mission-success-text); font-weight: 600; }
+@media (max-width: 560px) { .authorityList > div { grid-template-columns: 1fr; gap: 2px; } }
