@@ -1,0 +1,746 @@
+{
+  "source": "2nd Brain/Wiki/test-catalogue-100-2026-09-27.md",
+  "generated": "2026-09-28",
+  "project": "RestoreAssist",
+  "repo": "CleanExpo/RestoreAssist",
+  "branch": "tests/security-catalogue-20260927",
+  "commit": "3f8e836d",
+  "rows": [
+    {
+      "id": "TEN-01",
+      "area": "Tenancy and admin scope (RA's biggest risk — the app layer is the only wall)",
+      "test": "Org-less ADMIN gate-metrics sees only own records, never organizationId: null",
+      "status": "BUILT",
+      "note": "was DEFECT; fixed",
+      "portable": true
+    },
+    {
+      "id": "TEN-02",
+      "area": "Tenancy and admin scope (RA's biggest risk — the app layer is the only wall)",
+      "test": "Empty-string organisation treated as no organisation",
+      "status": "BUILT",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "TEN-03",
+      "area": "Tenancy and admin scope (RA's biggest risk — the app layer is the only wall)",
+      "test": "Org ADMIN stays scoped to own org on gate-metrics",
+      "status": "BUILT",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "TEN-04",
+      "area": "Tenancy and admin scope (RA's biggest risk — the app layer is the only wall)",
+      "test": "Org-less ADMIN on admin/usage sees own usage only",
+      "status": "EXISTS",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "TEN-05",
+      "area": "Tenancy and admin scope (RA's biggest risk — the app layer is the only wall)",
+      "test": "admin/users/[id]: scope spread never replaces the target id",
+      "status": "EXISTS",
+      "note": "guarded at L57-68",
+      "portable": true
+    },
+    {
+      "id": "TEN-06",
+      "area": "Tenancy and admin scope (RA's biggest risk — the app layer is the only wall)",
+      "test": "Static rule: no { id, ...scope } spread in a Prisma where",
+      "status": "TODO",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "TEN-07",
+      "area": "Tenancy and admin scope (RA's biggest risk — the app layer is the only wall)",
+      "test": "Inspection reopen/sign/scope-variations refuse another tenant's row that EXISTS",
+      "status": "EXISTS",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "TEN-08",
+      "area": "Tenancy and admin scope (RA's biggest risk — the app layer is the only wall)",
+      "test": "Report progress routes refuse cross-tenant ids",
+      "status": "EXISTS",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "TEN-09",
+      "area": "Tenancy and admin scope (RA's biggest risk — the app layer is the only wall)",
+      "test": "Draft-snapshot tenancy",
+      "status": "EXISTS",
+      "note": null,
+      "portable": false
+    },
+    {
+      "id": "TEN-10",
+      "area": "Tenancy and admin scope (RA's biggest risk — the app layer is the only wall)",
+      "test": "Invoice numbering isolated per tenant",
+      "status": "EXISTS",
+      "note": "DB",
+      "portable": false
+    },
+    {
+      "id": "TEN-11",
+      "area": "Tenancy and admin scope (RA's biggest risk — the app layer is the only wall)",
+      "test": "Team invites: cannot invite into another org",
+      "status": "EXISTS",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "TEN-12",
+      "area": "Tenancy and admin scope (RA's biggest risk — the app layer is the only wall)",
+      "test": "analytics/monthly-volume re-checks role from DB, not the login token",
+      "status": "TODO",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "TEN-13",
+      "area": "Tenancy and admin scope (RA's biggest risk — the app layer is the only wall)",
+      "test": "reports/bulk-status: ADMIN bypass limited to own org",
+      "status": "TODO",
+      "note": null,
+      "portable": false
+    },
+    {
+      "id": "TEN-14",
+      "area": "Tenancy and admin scope (RA's biggest risk — the app layer is the only wall)",
+      "test": "Every route using inline role === \"ADMIN\" also applies an org scope (static)",
+      "status": "TODO",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "TEN-15",
+      "area": "Tenancy and admin scope (RA's biggest risk — the app layer is the only wall)",
+      "test": "Tenancy mocks are scope-sensitive (target row exists; only an unscoped query finds it) — lint for null-returning mocks",
+      "status": "TODO",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "TEN-16",
+      "area": "Tenancy and admin scope (RA's biggest risk — the app layer is the only wall)",
+      "test": "Portal accounts revoke/rotate scoped to owner",
+      "status": "EXISTS",
+      "note": null,
+      "portable": false
+    },
+    {
+      "id": "TEN-17",
+      "area": "Tenancy and admin scope (RA's biggest risk — the app layer is the only wall)",
+      "test": "Claims dashboard page refuses another tenant's report",
+      "status": "EXISTS",
+      "note": null,
+      "portable": false
+    },
+    {
+      "id": "TEN-18",
+      "area": "Tenancy and admin scope (RA's biggest risk — the app layer is the only wall)",
+      "test": "AI-runtime schema tenancy",
+      "status": "EXISTS",
+      "note": null,
+      "portable": false
+    },
+    {
+      "id": "TEN-19",
+      "area": "Tenancy and admin scope (RA's biggest risk — the app layer is the only wall)",
+      "test": "Raw-admin-gate baseline shrinks only (CI)",
+      "status": "EXISTS",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "TEN-20",
+      "area": "Tenancy and admin scope (RA's biggest risk — the app layer is the only wall)",
+      "test": "Platform-staff routes fail closed when the staff allowlist is unset",
+      "status": "EXISTS",
+      "note": "per route",
+      "portable": true
+    },
+    {
+      "id": "PLAT-01",
+      "area": "Platform-only data (staff allowlist, not \"any ADMIN\")",
+      "test": "stripe-diagnostics refuses a tenant ADMIN",
+      "status": "EXISTS",
+      "note": "checked 27/09 — already fixed",
+      "portable": true
+    },
+    {
+      "id": "PLAT-02",
+      "area": "Platform-only data (staff allowlist, not \"any ADMIN\")",
+      "test": "insurer-profiles write = platform operator only",
+      "status": "EXISTS",
+      "note": null,
+      "portable": false
+    },
+    {
+      "id": "PLAT-03",
+      "area": "Platform-only data (staff allowlist, not \"any ADMIN\")",
+      "test": "insurer-profiles ?includeInactive=true limited to staff",
+      "status": "TODO",
+      "note": "low",
+      "portable": false
+    },
+    {
+      "id": "PLAT-04",
+      "area": "Platform-only data (staff allowlist, not \"any ADMIN\")",
+      "test": "support tickets, notification email, margot = staff gate",
+      "status": "EXISTS",
+      "note": null,
+      "portable": false
+    },
+    {
+      "id": "PLAT-05",
+      "area": "Platform-only data (staff allowlist, not \"any ADMIN\")",
+      "test": "cron-jobs / portal-content = platform operator",
+      "status": "EXISTS",
+      "note": null,
+      "portable": false
+    },
+    {
+      "id": "PLAT-06",
+      "area": "Platform-only data (staff allowlist, not \"any ADMIN\")",
+      "test": "Each of the 29 baselined raw-admin routes gets a scope test before leaving the baseline",
+      "status": "TODO",
+      "note": "29",
+      "portable": false
+    },
+    {
+      "id": "SEC-01",
+      "area": "Secrets and configuration",
+      "test": "No secret-shaped name behind NEXT_PUBLIC_ (SECRET/PRIVATE/SERVICE_ROLE/PASSWORD/TOKEN/WEBHOOK)",
+      "status": "BUILT",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "SEC-02",
+      "area": "Secrets and configuration",
+      "test": "No hard-coded sk_live_/sk_test_/AKIA/ghp_/xoxb-/JWT literals in source",
+      "status": "EXISTS",
+      "note": "gitleaks",
+      "portable": true
+    },
+    {
+      "id": "SEC-03",
+      "area": "Secrets and configuration",
+      "test": ".env* never tracked; .env.example has placeholders only",
+      "status": "TODO",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "SEC-04",
+      "area": "Secrets and configuration",
+      "test": "App refuses to boot when a required secret is missing (no invented default)",
+      "status": "TODO",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "SEC-05",
+      "area": "Secrets and configuration",
+      "test": "Preview environments never carry production keys",
+      "status": "TODO",
+      "note": "config check",
+      "portable": true
+    },
+    {
+      "id": "SEC-06",
+      "area": "Secrets and configuration",
+      "test": "Production source maps off; /.git/HEAD not served",
+      "status": "TODO",
+      "note": "smoke",
+      "portable": true
+    },
+    {
+      "id": "SEC-07",
+      "area": "Secrets and configuration",
+      "test": "Error responses never include stack traces",
+      "status": "EXISTS",
+      "note": "`generic-500-body` rule",
+      "portable": true
+    },
+    {
+      "id": "SEC-TOKEN-01",
+      "area": "Sessions and tokens",
+      "test": "Homeowner portal token NOT in localStorage (HttpOnly cookie)",
+      "status": "DEFECT",
+      "note": "`lib/portal/client-session.ts:22`; baselined in the invariant file",
+      "portable": true
+    },
+    {
+      "id": "SEC-TOKEN-02",
+      "area": "Sessions and tokens",
+      "test": "No NEW auth token written to localStorage (shrink-only baseline)",
+      "status": "BUILT",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "SEC-TOKEN-03",
+      "area": "Sessions and tokens",
+      "test": "Session cookies are HttpOnly + Secure + SameSite=Lax",
+      "status": "TODO",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "SEC-TOKEN-04",
+      "area": "Sessions and tokens",
+      "test": "JWTs verified, never just decoded; alg: none rejected",
+      "status": "TODO",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "SEC-TOKEN-05",
+      "area": "Sessions and tokens",
+      "test": "Middleware is not the only auth layer (x-middleware-subrequest bypass)",
+      "status": "TODO",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "SEC-TOKEN-06",
+      "area": "Sessions and tokens",
+      "test": "Revoke-sessions kills every session of the target only",
+      "status": "EXISTS",
+      "note": null,
+      "portable": false
+    },
+    {
+      "id": "SEC-TOKEN-07",
+      "area": "Sessions and tokens",
+      "test": "2FA, password reset, register, native token, Google flows",
+      "status": "EXISTS",
+      "note": null,
+      "portable": false
+    },
+    {
+      "id": "SEC-TOKEN-08",
+      "area": "Sessions and tokens",
+      "test": "Stale admin role in token doesn't grant admin after demotion",
+      "status": "EXISTS",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "PAY-01",
+      "area": "Payments (Stripe)",
+      "test": "No checkout takes its amount from the request (static)",
+      "status": "BUILT",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "PAY-02",
+      "area": "Payments (Stripe)",
+      "test": "Subscription checkout accepts only the configured price id",
+      "status": "EXISTS",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "PAY-03",
+      "area": "Payments (Stripe)",
+      "test": "Add-on price comes from the server catalogue by key",
+      "status": "EXISTS",
+      "note": null,
+      "portable": false
+    },
+    {
+      "id": "PAY-04",
+      "area": "Payments (Stripe)",
+      "test": "Invoice checkout amount from the DB, scoped to owner",
+      "status": "EXISTS",
+      "note": null,
+      "portable": false
+    },
+    {
+      "id": "PAY-05",
+      "area": "Payments (Stripe)",
+      "test": "Lifetime deal amount is a server constant",
+      "status": "EXISTS",
+      "note": null,
+      "portable": false
+    },
+    {
+      "id": "PAY-06",
+      "area": "Payments (Stripe)",
+      "test": "Checkout metadata (user, plan) set server-side",
+      "status": "TODO",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "PAY-07",
+      "area": "Payments (Stripe)",
+      "test": "GST applied on every checkout",
+      "status": "EXISTS",
+      "note": null,
+      "portable": false
+    },
+    {
+      "id": "PAY-08",
+      "area": "Payments (Stripe)",
+      "test": "Stripe test/live mode guard",
+      "status": "EXISTS",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "PAY-09",
+      "area": "Payments (Stripe)",
+      "test": "Access decided from webhook-synced DB status, never a client flag",
+      "status": "TODO",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "PAY-10",
+      "area": "Payments (Stripe)",
+      "test": "Public displayed price equals Stripe unit_amount",
+      "status": "EXISTS",
+      "note": "checkout-presentation",
+      "portable": false
+    },
+    {
+      "id": "PAY-11",
+      "area": "Payments (Stripe)",
+      "test": "Job-file-audit checkout (public by design) rate-limited",
+      "status": "TODO",
+      "note": null,
+      "portable": false
+    },
+    {
+      "id": "HOOK-01",
+      "area": "Webhooks and crons",
+      "test": "Every webhook receiver verifies a signature (static)",
+      "status": "BUILT",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "HOOK-02",
+      "area": "Webhooks and crons",
+      "test": "Stripe webhook verifies on the raw body",
+      "status": "EXISTS",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "HOOK-03",
+      "area": "Webhooks and crons",
+      "test": "GitHub, Xero, MYOB, QuickBooks, ServiceM8, Ascora, DR-NRPG signature paths",
+      "status": "EXISTS",
+      "note": "GitHub unit; others per provider",
+      "portable": false
+    },
+    {
+      "id": "HOOK-04",
+      "area": "Webhooks and crons",
+      "test": "Replayed/old webhook rejected (freshness)",
+      "status": "EXISTS",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "HOOK-05",
+      "area": "Webhooks and crons",
+      "test": "Duplicate event processed once (idempotency)",
+      "status": "TODO",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "CRON-01",
+      "area": "Webhooks and crons",
+      "test": "Every cron route verifies the cron secret (static)",
+      "status": "BUILT",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "CRON-02",
+      "area": "Webhooks and crons",
+      "test": "Cron auth fails closed when the secret is unset; constant-time compare",
+      "status": "EXISTS",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "CRON-03",
+      "area": "Webhooks and crons",
+      "test": "Every scheduled cron is monitored or explicitly unmonitored",
+      "status": "EXISTS",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "CRON-04",
+      "area": "Webhooks and crons",
+      "test": "Production schedule lives in GitHub Actions and matches expected jobs",
+      "status": "EXISTS",
+      "note": null,
+      "portable": false
+    },
+    {
+      "id": "DATA-01",
+      "area": "Input and data handling",
+      "test": "No $queryRawUnsafe/$executeRawUnsafe with user input",
+      "status": "EXISTS",
+      "note": "`raw-sql-unsafe`",
+      "portable": true
+    },
+    {
+      "id": "DATA-02",
+      "area": "Input and data handling",
+      "test": "Every route body parsed with Zod before Prisma",
+      "status": "TODO",
+      "note": "static",
+      "portable": true
+    },
+    {
+      "id": "DATA-03",
+      "area": "Input and data handling",
+      "test": "No mass assignment of req.body into create/update",
+      "status": "TODO",
+      "note": "static",
+      "portable": true
+    },
+    {
+      "id": "DATA-04",
+      "area": "Input and data handling",
+      "test": "Prisma findMany always has take",
+      "status": "EXISTS",
+      "note": "warning",
+      "portable": true
+    },
+    {
+      "id": "DATA-05",
+      "area": "Input and data handling",
+      "test": "Operator injection ({contains: \"\"}) blocked by schema",
+      "status": "TODO",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "DATA-06",
+      "area": "Input and data handling",
+      "test": "Uploads: type, size, path checked",
+      "status": "TODO",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "DATA-07",
+      "area": "Input and data handling",
+      "test": "Server components never pass whole DB rows to the client (select)",
+      "status": "TODO",
+      "note": "static",
+      "portable": true
+    },
+    {
+      "id": "RATE-01",
+      "area": "Rate limits and spend caps",
+      "test": "Login/register/reset/OTP rate-limited per IP and per user",
+      "status": "TODO",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "RATE-02",
+      "area": "Rate limits and spend caps",
+      "test": "Paid AI routes require auth",
+      "status": "EXISTS",
+      "note": "`paid-ai-no-auth`",
+      "portable": true
+    },
+    {
+      "id": "RATE-03",
+      "area": "Rate limits and spend caps",
+      "test": "Per-user AI token/spend cap enforced",
+      "status": "TODO",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "RATE-04",
+      "area": "Rate limits and spend caps",
+      "test": "Email/SMS send endpoints rate-limited",
+      "status": "TODO",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "RATE-05",
+      "area": "Rate limits and spend caps",
+      "test": "Rate-limit counters never stored in a client-writable table",
+      "status": "TODO",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "AI-01",
+      "area": "AI behaviour (LLM output is untrusted)",
+      "test": "No AI provider key reachable from the client",
+      "status": "COVERED",
+      "note": "covered by SEC-01",
+      "portable": true
+    },
+    {
+      "id": "AI-02",
+      "area": "AI behaviour (LLM output is untrusted)",
+      "test": "LLM output HTML is sanitised before render",
+      "status": "TODO",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "AI-03",
+      "area": "AI behaviour (LLM output is untrusted)",
+      "test": "Tool calls restricted to an allowlist with schema-validated params",
+      "status": "TODO",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "AI-04",
+      "area": "AI behaviour (LLM output is untrusted)",
+      "test": "No SQL or shell built from LLM output",
+      "status": "TODO",
+      "note": "static",
+      "portable": true
+    },
+    {
+      "id": "AI-05",
+      "area": "AI behaviour (LLM output is untrusted)",
+      "test": "Report writer never sends IICRC/Standards Australia text to a model (licence)",
+      "status": "TODO",
+      "note": "see RA-7684",
+      "portable": false
+    },
+    {
+      "id": "AI-06",
+      "area": "AI behaviour (LLM output is untrusted)",
+      "test": "Citation validator flags fabricated clause refs",
+      "status": "EXISTS",
+      "note": "live-teacher",
+      "portable": false
+    },
+    {
+      "id": "AI-ROUTE-01",
+      "area": "AI behaviour (LLM output is untrusted)",
+      "test": "Current classifier vs Jev on ≥200 labelled de-identified items: agreement, cost, p95 latency",
+      "status": "TODO",
+      "note": "research only, no customer data to Jev until residency confirmed",
+      "portable": true
+    },
+    {
+      "id": "AI-ROUTE-02",
+      "area": "AI behaviour (LLM output is untrusted)",
+      "test": "Router falls back to the LLM when classifier confidence < threshold",
+      "status": "TODO",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "AI-ROUTE-03",
+      "area": "AI behaviour (LLM output is untrusted)",
+      "test": "Router never sends a \"needs reply\" item to the no-reply lane",
+      "status": "TODO",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "COPY-01",
+      "area": "Content and copy guards",
+      "test": "Australian English on tracked content",
+      "status": "EXISTS",
+      "note": "content guards — run after `git add`",
+      "portable": true
+    },
+    {
+      "id": "COPY-02",
+      "area": "Content and copy guards",
+      "test": "No emoji in UI/content",
+      "status": "EXISTS",
+      "note": "misses `data/`",
+      "portable": true
+    },
+    {
+      "id": "COPY-03",
+      "area": "Content and copy guards",
+      "test": "Emoji guard also scans data/",
+      "status": "TODO",
+      "note": null,
+      "portable": false
+    },
+    {
+      "id": "COPY-04",
+      "area": "Content and copy guards",
+      "test": "AI-slop phrase list (\"it's not X, it's Y\", \"the future is already here\", em-dash density) on public copy",
+      "status": "TODO",
+      "note": "borrow no-ai-slop's list",
+      "portable": true
+    },
+    {
+      "id": "COPY-05",
+      "area": "Content and copy guards",
+      "test": "Content guard fails if its scanned-file count didn't rise after adding files",
+      "status": "TODO",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "DEP-01",
+      "area": "Delivery and deployment",
+      "test": "Security headers: CSP, HSTS, X-Frame-Options, nosniff, Referrer-Policy",
+      "status": "TODO",
+      "note": "smoke",
+      "portable": true
+    },
+    {
+      "id": "DEP-02",
+      "area": "Delivery and deployment",
+      "test": "No * CORS on authenticated routes",
+      "status": "TODO",
+      "note": null,
+      "portable": true
+    },
+    {
+      "id": "DEP-03",
+      "area": "Delivery and deployment",
+      "test": "Schema PR cannot merge before its migration is applied",
+      "status": "TODO",
+      "note": "process",
+      "portable": false
+    },
+    {
+      "id": "DEP-04",
+      "area": "Delivery and deployment",
+      "test": "/api/health reports migration fingerprint matching the repo",
+      "status": "EXISTS",
+      "note": null,
+      "portable": false
+    },
+    {
+      "id": "DEP-05",
+      "area": "Delivery and deployment",
+      "test": "Tests run under .nvmrc Node in CI and the pre-push hook",
+      "status": "TODO",
+      "note": null,
+      "portable": true
+    }
+  ]
+}

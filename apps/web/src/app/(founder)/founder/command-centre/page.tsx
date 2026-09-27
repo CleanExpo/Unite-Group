@@ -13,6 +13,7 @@ import { loadActionQueueData } from './ActionQueueTile'
 import { loadBlockedLanesData } from './BlockedLanesTile'
 import { BlockedOnMeTile, loadBlockedOnMeData } from './BlockedOnMeTile'
 import { StageBoardTile, loadStageBoardData } from './StageBoardTile'
+import { TestCatalogueTile, loadTestCatalogueData } from './TestCatalogueTile'
 import { CommandPalette, CommandPaletteTrigger } from './CommandPalette'
 import { FounderDesk } from './FounderDesk'
 import { MissionControlShell } from './MissionControlShell'
@@ -33,6 +34,7 @@ export default async function CommandDeckPage() {
     loadStageBoardData(),
   ])
 
+  const testCatalogue = loadTestCatalogueData()
   const deliveryProjects = resolveDeliveryProjects(projects)
   const activeCount = projects.filter((project) => project.status === 'active').length
   const sourceCount = new Set(tools.map((tool) => tool.source)).size
@@ -74,6 +76,14 @@ export default async function CommandDeckPage() {
       </div>
       <section className={`${shell.canvasScope} ${shell.glassPanel}`} aria-label="Blocked on me">
         <BlockedOnMeTile data={blockedOnMe} />
+      </section>
+
+      <div className={`${shell.canvasScope} ${shell.glassSectionHead}`}>
+        <h2>Test catalogue</h2>
+        <span className={shell.glassSub}>security and tenancy tests · RestoreAssist first, portable to every project · live CI on the test branch</span>
+      </div>
+      <section className={`${shell.canvasScope} ${shell.glassPanel}`} aria-label="Test catalogue">
+        <TestCatalogueTile data={testCatalogue} />
       </section>
 
       <div className={`${shell.canvasScope} ${shell.glassSectionHead}`}>
