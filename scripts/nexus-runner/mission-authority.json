@@ -90,5 +90,32 @@
     "IMPLEMENTATION_QUESTION": "An implementation choice inside the approved scope. Decide and continue.",
     "FALSE_POLICY_CONFLICT": "The agent believed two rules conflicted when the policy decides it. Not a reason to interrupt.",
     "OTHER": "Anything not above. Recorded so the policy can learn a class for it; still not a reason to interrupt."
-  }
+  },
+  "protected_paths": {
+    "rule": "A release whose changed paths touch any of these prefixes or path segments is PROTECTED_RELEASE, whatever its gates say: auth, security, credentials, schema, CI, constitution and this policy itself.",
+    "prefixes": [
+      "apps/web/supabase/migrations/",
+      "supabase/migrations/",
+      "packages/spine/migrations/",
+      ".github/",
+      "docs/constitution/",
+      "tools/board-release-verifier/",
+      "scripts/nexus-runner/",
+      "apps/web/src/middleware.ts",
+      "apps/web/src/proxy.ts",
+      "apps/web/src/lib/supabase/",
+      "apps/web/vercel.json",
+      "vercel.json",
+      "apps/web/next.config.mjs"
+    ],
+    "segments": [
+      "auth",
+      "security",
+      "credentials",
+      "vault",
+      "secrets",
+      ".env"
+    ]
+  },
+  "merge_lane": "A SAFE_RELEASE merge on an UG-AUTONOMY-001 repository executes only through tools/board-release-verifier/controller.py with a verified Board receipt; the mission never calls the merge API itself."
 }
