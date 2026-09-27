@@ -57,6 +57,22 @@ describe('release controller — gates are derived from evidence', () => {
     ['no reviewer named', { reviewerAgent: null }, ['independent_review_pass']],
     ['a blank reviewer name', { reviewerAgent: ' \t\n' }, ['independent_review_pass']],
     ['the builder under another case and padding', { reviewerAgent: ' Claude ' }, ['independent_review_pass']],
+    ['a reviewer name made of \u200b', { reviewerAgent: '\u200b' }, ['independent_review_pass']],
+    ['a reviewer name made of \u200c', { reviewerAgent: '\u200c' }, ['independent_review_pass']],
+    ['a reviewer name made of \u200d', { reviewerAgent: '\u200d' }, ['independent_review_pass']],
+    ['a reviewer name made of \u180e', { reviewerAgent: '\u180e' }, ['independent_review_pass']],
+    ['a builder name made of \u200b', { builderAgent: '\u200b' }, ['independent_review_pass']],
+    ['the builder hidden behind a zero-width space', { reviewerAgent: 'claude\u200b' }, ['independent_review_pass']],
+    ['a reviewer name made of a Hangul filler', { reviewerAgent: '\u3164' }, ['independent_review_pass']],
+    ['a rollbackReceipt ref of invisible characters (\u200b)', { rollbackReceipt: { sha: SHA, ref: '\u200b' } }, ['rollback_proven']],
+    ['a rollbackReceipt ref of invisible characters (\u200d \u180e)', { rollbackReceipt: { sha: SHA, ref: '\u200d \u180e' } }, ['rollback_proven']],
+    ['a rollbackReceipt ref of invisible characters (\u2800)', { rollbackReceipt: { sha: SHA, ref: '\u2800' } }, ['rollback_proven']],
+    ['a postReleaseVerification ref of invisible characters (\u200b)', { postReleaseVerification: { sha: SHA, ref: '\u200b' } }, ['post_release_verification_defined']],
+    ['a postReleaseVerification ref of invisible characters (\u200d \u180e)', { postReleaseVerification: { sha: SHA, ref: '\u200d \u180e' } }, ['post_release_verification_defined']],
+    ['a postReleaseVerification ref of invisible characters (\u2800)', { postReleaseVerification: { sha: SHA, ref: '\u2800' } }, ['post_release_verification_defined']],
+    ['a infrastructureReceipt ref of invisible characters (\u200b)', { infrastructureReceipt: { sha: SHA, ref: '\u200b' } }, ['infrastructure_semantics_match']],
+    ['a infrastructureReceipt ref of invisible characters (\u200d \u180e)', { infrastructureReceipt: { sha: SHA, ref: '\u200d \u180e' } }, ['infrastructure_semantics_match']],
+    ['a infrastructureReceipt ref of invisible characters (\u2800)', { infrastructureReceipt: { sha: SHA, ref: '\u2800' } }, ['infrastructure_semantics_match']],
     ['a blank builder name', { builderAgent: '  ' }, ['independent_review_pass']],
     ['a lower-case p0 left in the review report', { reviewBlockingSeverities: ['p0'] }, ['no_unresolved_p0_p1']],
     ['no receipt status on the head', { receiptSha: null }, ['exact_final_sha', 'release_gate_pass']],
@@ -118,6 +134,11 @@ describe('release controller — gates are derived from evidence', () => {
     for (const entry of [...policy.protected_paths.prefixes, ...policy.protected_paths.segments]) {
       expect(entry, entry).toBe(entry.toLowerCase())
     }
+  })
+
+  it('real agent names with dots, colons and dashes still count as independent', () => {
+    const gates = deriveGates(evidence({ reviewerAgent: 'Cursor-Independent', builderAgent: 'claude:opus-5.5' }))
+    expect(gates.independent_review_pass).toBe(true)
   })
 
   it('padded or lower-case P2/P3 findings do not block a release', () => {

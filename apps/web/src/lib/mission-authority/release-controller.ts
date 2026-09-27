@@ -74,6 +74,10 @@ export interface ReleaseDecision extends MayDecision {
 const SHA = /^[0-9a-f]{40}$/
 /** A blocking finding that does not stop a release. Anything else, padded or unrecognised, does. */
 const NON_BLOCKING_SEVERITY = /^P[2-9]$/i
+/** An agent name is a plain identifier. Invisible or exotic characters cannot make a name, so they cannot make a reviewer. */
+const AGENT_NAME = /^[a-z0-9][a-z0-9._:-]{0,127}$/
+/** Characters that render as nothing: format, control, separator, and the letter-class blanks. */
+const INVISIBLE = /[\p{Cf}\p{Cc}\p{Z}\u115F\u1160\u3164\uFFA0\u2800]/gu
 const PREFIXES: readonly string[] = policy.protected_paths.prefixes
 // Policy entries are lower case (pinned by a test), so only the path needs folding.
 const SEGMENTS: readonly string[] = policy.protected_paths.segments
@@ -109,7 +113,7 @@ function requiredChecksGreen(required: readonly string[], runs: readonly CheckRu
 }
 
 function atSha(artefact: ShaArtefact | null, sha: string): boolean {
-  return !!artefact && artefact.sha === sha && artefact.ref.trim().length > 0
+  return !!artefact && artefact.sha === sha && artefact.ref.replace(INVISIBLE, '').length > 0
 }
 
 export function deriveGates(evidence: ReleaseEvidence): Record<string, boolean> {
@@ -128,8 +132,8 @@ export function deriveGates(evidence: ReleaseEvidence): Record<string, boolean> 
       exact &&
       evidence.reviewVerdict === 'PASS' &&
       evidence.reviewedSha === sha &&
-      reviewer.length > 0 &&
-      builder.length > 0 &&
+      AGENT_NAME.test(reviewer) &&
+      AGENT_NAME.test(builder) &&
       reviewer !== builder,
     release_gate_pass: exact && evidence.receiptSha === sha,
     no_unresolved_p0_p1:
