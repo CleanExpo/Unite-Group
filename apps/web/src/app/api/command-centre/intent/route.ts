@@ -18,7 +18,9 @@
 //   approval through approve(), bound to this exact intent (UNI-2779).
 //
 // Delivery missions are written ONLY through the guarded saveMissionIntent
-// compare-and-swap (409 on conflict, or while a preparation lease is live);
+// compare-and-swap (409 on conflict, while a preparation lease is live, or
+// while a runner is building it); re-accepting an edited intent on a queued
+// mission re-binds its build consent to the new intent (UNI-2779);
 // mergeTaskMetadata is used only for non-delivery tasks.
 
 import { NextResponse } from 'next/server'
@@ -40,6 +42,8 @@ export const dynamic = 'force-dynamic'
 
 const CONFLICT_MESSAGE = 'This mission changed while you were working. Reload it and try again.'
 const PREPARING_MESSAGE = 'Margot is still preparing this mission. Wait for her to finish, reload and try again.'
+const RUNNING_MESSAGE =
+  'A build runner is working on this mission. Its intent cannot change mid-build: wait for the build to finish, or pause it, then try again.'
 
 async function readBody(request: Request): Promise<Record<string, unknown> | null> {
   try {
@@ -69,6 +73,10 @@ function intentSource(task: CommandCentreTask): { idea: string; clarifications: 
 async function persistIntent(founderId: string, task: CommandCentreTask, intent: MissionIntent): Promise<NextResponse | null> {
   if (isDeliveryMission(task)) {
     if (isPreparationLeaseActive(task)) return NextResponse.json({ error: PREPARING_MESSAGE }, { status: 409 })
+    // UNI-2779: a running build holds consent bound to the accepted intent. A
+    // new draft or acceptance would silently void that consent under the runner,
+    // so it is refused; the saveMissionIntent CAS on status closes the race.
+    if (task.status === 'running') return NextResponse.json({ error: RUNNING_MESSAGE }, { status: 409 })
     try {
       await saveMissionIntent(task, intent)
       return null

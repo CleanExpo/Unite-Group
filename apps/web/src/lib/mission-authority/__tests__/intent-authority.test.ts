@@ -27,6 +27,7 @@ import { renderIntentMarkdown } from '@/lib/command-centre/intent'
 import { PUT } from '@/app/api/command-centre/intent/route'
 import { hashIntentMarkdown, INTENT_BINDING_VERSION } from '../intent-binding'
 import { mintAuthorityFromAcceptedIntent } from '../intent-authority'
+import { claimNextQueuedTask, type RunnerClaimClientLike } from '@/lib/command-centre/runner-claim'
 
 // UNI-2779 — accepting the intent IS the founder's build consent. When the
 // mission is already admitted (ready spec, Board APPROVED), accepting mints
@@ -110,6 +111,7 @@ function harness(intent: Record<string, unknown> | null, delivery = readyDeliver
     receipts,
     get row() { return clone(row) },
     setIntent: (next: Record<string, unknown>) => { row = { ...row, metadata: { ...row.metadata, intent: next } } },
+    setStatus: (status: CommandCentreTask['status']) => { row = { ...row, status, updated_at: new Date(clock + ++write).toISOString() } },
     advance: (ms: number) => { clock += ms },
   }
 }
@@ -200,6 +202,123 @@ describe('mintAuthorityFromAcceptedIntent', () => {
   })
 })
 
+// A runner-claim client over a single task row and its approval receipts.
+function claimClient(task: CommandCentreTask, receipts: Approval[]) {
+  const client: RunnerClaimClientLike = {
+    from: (table: string) => ({
+      select: () => {
+        const chain = {
+          eq: () => chain,
+          order: () => chain,
+          limit: async () => ({ data: table === 'cc_tasks' ? [structuredClone(task)] : receipts, error: null }),
+        }
+        return chain
+      },
+      update: (values: Record<string, unknown>) => {
+        const chain = {
+          eq: () => chain,
+          select: async () => ({ data: [{ ...structuredClone(task), ...values }], error: null }),
+        }
+        return chain
+      },
+    }),
+  }
+  return client
+}
+
+const EDITED_MD = renderIntentMarkdown(
+  {
+    title: 'Contractors see claim report status and insurer receipt',
+    problem: 'Contractors phone the office to ask whether a report was sent.',
+    proposedOutcome: 'One page shows each report status and whether the insurer received it.',
+    affectedUsersAndSystems: 'Contractors, office staff, the reports module.',
+    constraints: ['No new login system'],
+    openQuestions: ['Do insurers expose a status we can read?'],
+  },
+  { author: 'phill@example.com', status: 'accepted', createdAt: '2026-09-27T03:00:00.000Z', taskId: TASK_ID },
+)
+const EDITED = { ...ACCEPTED, markdown: EDITED_MD, acceptedAt: '2026-09-27T03:00:00.000Z' }
+
+describe('re-accepting an edited intent on a queued mission (UNI-2779 supersession)', () => {
+  it('supersedes the old hash, re-binds consent to the new hash and re-queues through approve()', async () => {
+    const h = harness(ACCEPTED)
+    const append = vi.fn(async () => ({}) as never)
+    await mintAuthorityFromAcceptedIntent(FOUNDER, TASK_ID, { ...h.deps, appendTaskEvent: append })
+    expect(h.row.status).toBe('queued')
+    const oldHash = hashIntentMarkdown(INTENT_MD)
+    const newHash = hashIntentMarkdown(EDITED_MD)
+
+    h.setIntent(EDITED)
+    const stranded = h.row
+    // Before the re-bind the queued build is unclaimable: its consent names the old intent.
+    expect(await claimNextQueuedTask(claimClient(stranded, h.receipts), { founderId: FOUNDER, runnerId: 'runner-a' })).toBeNull()
+
+    const result = await mintAuthorityFromAcceptedIntent(FOUNDER, TASK_ID, { ...h.deps, appendTaskEvent: append })
+    expect(result).toMatchObject({ minted: true })
+    expect(h.row.status).toBe('queued')
+    expect(readDeliveryMetadata(h.row)!.approval!.intent!.hash).toBe(newHash)
+    expect(append).toHaveBeenCalledOnce()
+    expect(append).toHaveBeenCalledWith(
+      expect.objectContaining({ taskId: TASK_ID, payload: { kind: 'intent_superseded', oldHash, newHash } }),
+      undefined,
+    )
+    // The stale consent was withdrawn through the guarded CAS writer, not a direct status write.
+    const statuses = vi.mocked(h.deps.saveDelivery!).mock.calls.map(([, , options]) => options?.status)
+    expect(statuses).toContain('awaiting_approval')
+
+    // The runner claims the new binding...
+    const claimed = await claimNextQueuedTask(claimClient(h.row, h.receipts), { founderId: FOUNDER, runnerId: 'runner-a' })
+    expect(claimed?.approvedDelivery?.approval.intent?.hash).toBe(newHash)
+    // ...and a row presenting the old binding against the new intent is refused.
+    const staleApproval = readDeliveryMetadata(stranded)!.approval
+    const replay = { ...h.row, metadata: { ...h.row.metadata, delivery: { ...readDeliveryMetadata(h.row)!, approval: staleApproval } } }
+    expect(await claimNextQueuedTask(claimClient(replay, h.receipts), { founderId: FOUNDER, runnerId: 'runner-a' })).toBeNull()
+  })
+
+  it('a queued build still bound to the current intent is left alone (no withdrawal, no supersession)', async () => {
+    const h = harness(ACCEPTED)
+    const append = vi.fn(async () => ({}) as never)
+    await mintAuthorityFromAcceptedIntent(FOUNDER, TASK_ID, { ...h.deps, appendTaskEvent: append })
+    const saves = vi.mocked(h.deps.saveDelivery!).mock.calls.length
+    const before = h.row
+
+    expect(await mintAuthorityFromAcceptedIntent(FOUNDER, TASK_ID, { ...h.deps, appendTaskEvent: append })).toMatchObject({ minted: false })
+    expect(vi.mocked(h.deps.saveDelivery!).mock.calls.length).toBe(saves)
+    expect(append).not.toHaveBeenCalled()
+    expect(h.row).toEqual(before)
+  })
+
+  it('an intent edited back to draft re-queues nothing and records no supersession', async () => {
+    const h = harness(ACCEPTED)
+    const append = vi.fn(async () => ({}) as never)
+    await mintAuthorityFromAcceptedIntent(FOUNDER, TASK_ID, { ...h.deps, appendTaskEvent: append })
+    const saves = vi.mocked(h.deps.saveDelivery!).mock.calls.length
+    const before = readDeliveryMetadata(h.row)!.approval
+
+    h.setIntent({ ...EDITED, status: 'draft' })
+    expect(await mintAuthorityFromAcceptedIntent(FOUNDER, TASK_ID, { ...h.deps, appendTaskEvent: append })).toMatchObject({ minted: false, reason: 'intent_not_accepted' })
+    expect(vi.mocked(h.deps.saveDelivery!).mock.calls.length).toBe(saves)
+    expect(append).not.toHaveBeenCalled()
+    expect(readDeliveryMetadata(h.row)!.approval).toEqual(before)
+    expect(getApprovedDelivery(h.row)).toBeNull()
+  })
+
+  it('a runner that claims the build first wins: the re-bind withdraws nothing from a running task', async () => {
+    const h = harness(ACCEPTED)
+    await mintAuthorityFromAcceptedIntent(FOUNDER, TASK_ID, h.deps)
+    h.setIntent(EDITED)
+    const queuedSnapshot = h.row
+    h.setStatus('running') // the runner's claim lands between the read and the demotion
+    const approvalBefore = readDeliveryMetadata(h.row)!.approval
+    const read = vi.fn(async () => structuredClone(queuedSnapshot))
+
+    const result = await mintAuthorityFromAcceptedIntent(FOUNDER, TASK_ID, { ...h.deps, getTaskById: read, appendTaskEvent: vi.fn(async () => ({}) as never) })
+    expect(result).toMatchObject({ minted: false, reason: 'approval_refused' })
+    expect(h.row.status).toBe('running')
+    expect(readDeliveryMetadata(h.row)!.approval).toEqual(approvalBefore)
+  })
+})
+
 describe('wired: PUT /api/command-centre/intent mints authority on accept', () => {
   beforeEach(() => {
     vi.mocked(getUser).mockResolvedValue({ id: FOUNDER, email: 'phill@example.com' } as never)
@@ -219,5 +338,23 @@ describe('wired: PUT /api/command-centre/intent mints authority on accept', () =
     expect(res.status).toBe(200)
     expect(mintAuthorityFromAcceptedIntent).toHaveBeenCalledWith(FOUNDER, TASK_ID)
     expect((await res.json()).authority).toMatchObject({ minted: false })
+  })
+
+  it('refuses to change the intent of a mission a runner is building (409, nothing saved, nothing minted)', async () => {
+    const h = harness(ACCEPTED)
+    await mintAuthorityFromAcceptedIntent(FOUNDER, TASK_ID, h.deps)
+    h.setStatus('running')
+    vi.mocked(mockedGetTaskById).mockImplementation(h.deps.getTaskById as never)
+    vi.mocked(mintAuthorityFromAcceptedIntent).mockClear()
+
+    const res = await PUT(new Request('https://app.test/api/command-centre/intent', {
+      method: 'PUT',
+      body: JSON.stringify({ taskId: TASK_ID, markdown: EDITED_MD }),
+    }))
+
+    expect(res.status).toBe(409)
+    expect(saveMissionIntent).not.toHaveBeenCalled()
+    expect(mintAuthorityFromAcceptedIntent).not.toHaveBeenCalled()
+    expect(getApprovedDelivery(h.row)).not.toBeNull()
   })
 })

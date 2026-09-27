@@ -15,6 +15,13 @@ describe('isLegalTransition — governance boundary (UNI-2417)', () => {
       expect(isLegalTransition('awaiting_approval', 'failed', 'approval')).toBe(true)
       expect(isLegalTransition('awaiting_approval', 'blocked', 'approval')).toBe(true)
     })
+
+    it('may withdraw a queued consent (queued → awaiting_approval) but move queued nowhere else (UNI-2779)', () => {
+      expect(isLegalTransition('queued', 'awaiting_approval', 'approval')).toBe(true)
+      for (const to of TASK_STATUSES.filter((s) => s !== 'queued' && s !== 'awaiting_approval')) {
+        expect(isLegalTransition('queued', to, 'approval')).toBe(false)
+      }
+    })
   })
 
   describe('founder direct-PATCH actor — must not bypass governance', () => {

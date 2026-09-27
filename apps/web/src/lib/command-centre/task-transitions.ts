@@ -62,6 +62,11 @@ const TRANSITIONS: Record<TransitionActor, Partial<Record<TaskStatus, readonly T
   approval: {
     proposed: ['queued', 'failed', 'blocked'],
     awaiting_approval: ['queued', 'failed', 'blocked'],
+    // UNI-2779: withdraw a queued build's consent when the accepted intent it
+    // was signed against is superseded, so approve() can re-mint it against the
+    // new intent. A demotion only — the generic approve route never targets
+    // awaiting_approval (decisionToStatus: queued/failed/blocked).
+    queued: ['awaiting_approval'],
   },
   // Nexus runner claim/release (mirrors runner-claim.ts). Not enforced here; the
   // runner uses atomic conditional updates. Present for lifecycle completeness.
