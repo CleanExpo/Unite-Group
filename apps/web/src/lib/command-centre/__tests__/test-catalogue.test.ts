@@ -130,16 +130,20 @@ describe('getTestBranchStatus', () => {
     expect(s.status_message).toBe('no CI runs on this commit yet')
   })
 
-  it('a 200 check-runs body without check_runs is a failed read, not "no CI yet"', async () => {
-    const gh = fakeGitHub({
-      '/branches/': () => jsonResponse({ commit: { sha: 'abc' } }),
-      '/check-runs': () => jsonResponse({ total_count: 5 }),
-      '/pulls?': () => jsonResponse([]),
-    })
-    const s = await getTestBranchStatus({ token: 't', fetchFn: gh.fetchFn, now })
-    expect(s.available).toBe(false)
-    expect(s.status_message).toBe('GitHub read failed')
-    expect(s.read_error).toMatch(/check-runs/)
+  it('a 200 check-runs body missing total_count or check_runs is a failed read, not "no CI yet"', async () => {
+    // Each body alone must be refused by the shape guard: {check_runs: []} would otherwise
+    // read as zero runs, and {total_count: 0} as a complete empty result.
+    for (const body of [{}, { check_runs: [] }, { total_count: 0 }, { total_count: '0', check_runs: [] }]) {
+      const gh = fakeGitHub({
+        '/branches/': () => jsonResponse({ commit: { sha: 'abc' } }),
+        '/check-runs': () => jsonResponse(body),
+        '/pulls?': () => jsonResponse([]),
+      })
+      const s = await getTestBranchStatus({ token: 't', fetchFn: gh.fetchFn, now })
+      expect(s.available).toBe(false)
+      expect(s.status_message).toBe('GitHub read failed')
+      expect(s.read_error).toBe('check-runs: malformed response body')
+    }
   })
 
   it('a 200 pulls body that is not a list is a failed read, not "no PR yet"', async () => {
@@ -178,6 +182,19 @@ describe('getTestBranchStatus', () => {
     const s = await getTestBranchStatus({ token: 't', fetchFn: gh.fetchFn, now })
     expect(s.available).toBe(false)
     expect(s.read_error).toMatch(/100 of 150/)
+  })
+
+  it('a total_count that changes between pages is a failed read, never a partial green', async () => {
+    const green = Array.from({ length: 100 }, () => ({ status: 'completed', conclusion: 'success' }))
+    const gh = fakeGitHub({
+      '/branches/': () => jsonResponse({ commit: { sha: 'abc' } }),
+      'page=2': () => jsonResponse({ total_count: 100, check_runs: [] }),
+      '/check-runs': () => jsonResponse({ total_count: 150, check_runs: green }),
+      '/pulls?': () => jsonResponse([]),
+    })
+    const s = await getTestBranchStatus({ token: 't', fetchFn: gh.fetchFn, now })
+    expect(s.available).toBe(false)
+    expect(s.read_error).toBe('check-runs: total changed during read (150 then 100)')
   })
 
   it('a GitHub error is unavailable with the reason, never a stale-looking success', async () => {

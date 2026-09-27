@@ -218,7 +218,7 @@ export async function getTestBranchStatus(deps: TestBranchStatusDeps = {}): Prom
     // Every page, checked against total_count: a failure past page one must not read as green.
     const getAllCheckRuns = async (): Promise<CheckRun[]> => {
       const runs: CheckRun[] = []
-      let total = 0
+      let total: number | null = null
       for (let page = 1; page <= MAX_CHECK_PAGES; page++) {
         const body = (await get(`/repos/${repo}/commits/${sha}/check-runs?per_page=100&page=${page}`)) as {
           total_count?: unknown
@@ -227,11 +227,16 @@ export async function getTestBranchStatus(deps: TestBranchStatusDeps = {}): Prom
         if (typeof body?.total_count !== 'number' || !Array.isArray(body.check_runs)) {
           throw new Error('check-runs: malformed response body')
         }
-        total = body.total_count
+        // Completeness is judged against the total the read started with; if it moves, the
+        // pages no longer describe one set of runs.
+        if (total === null) total = body.total_count
+        else if (body.total_count !== total) {
+          throw new Error(`check-runs: total changed during read (${total} then ${body.total_count})`)
+        }
         runs.push(...(body.check_runs as CheckRun[]))
         if (runs.length >= total || body.check_runs.length === 0) break
       }
-      if (runs.length < total) throw new Error(`check-runs: incomplete, read ${runs.length} of ${total}`)
+      if (runs.length !== total) throw new Error(`check-runs: incomplete, read ${runs.length} of ${total}`)
       return runs
     }
 
