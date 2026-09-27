@@ -21,7 +21,7 @@ const MISSION: MissionAuthority = {
 function evidence(overrides: Partial<ReleaseEvidence> = {}): ReleaseEvidence {
   return {
     candidateSha: SHA,
-    treeClean: true,
+    tree: { sha: SHA, porcelain: '' },
     reviewedSha: SHA,
     reviewVerdict: 'PASS',
     reviewerAgent: 'cursor',
@@ -30,11 +30,11 @@ function evidence(overrides: Partial<ReleaseEvidence> = {}): ReleaseEvidence {
     requiredChecks: REQUIRED,
     checkRuns: REQUIRED.map((name) => ({ name, status: 'completed', conclusion: 'success' })),
     changedPaths: ['apps/web/src/lib/release-canary.ts'],
-    unresolvedP0P1: 0,
-    addsSpend: false,
-    rollbackReceipt: 'vercel promote dpl_previous (rehearsed)',
-    postReleaseVerification: 'unite-group.in alias unchanged; /api/health 200',
-    infrastructureReceipt: 'autoAssignCustomDomains=false read back',
+    reviewBlockingSeverities: [],
+    spend: { sha: SHA, newCosts: [] },
+    rollbackReceipt: { sha: SHA, ref: 'vercel promote dpl_previous (rehearsed)' },
+    postReleaseVerification: { sha: SHA, ref: 'unite-group.in alias unchanged; /api/health 200' },
+    infrastructureReceipt: { sha: SHA, ref: 'autoAssignCustomDomains=false read back' },
     ...overrides,
   }
 }
@@ -56,8 +56,19 @@ describe('release controller — gates are derived from evidence', () => {
     ['no receipt status on the head', { receiptSha: null }, ['exact_final_sha', 'release_gate_pass']],
     ['a required check skipped', { checkRuns: [{ name: REQUIRED[0], status: 'completed', conclusion: 'skipped' }, { name: REQUIRED[1], status: 'completed', conclusion: 'success' }] }, ['required_ci_green']],
     ['a required check never ran', { checkRuns: [{ name: REQUIRED[0], status: 'completed', conclusion: 'success' }] }, ['required_ci_green']],
-    ['spend unknown', { addsSpend: null }, ['no_new_spend']],
+    ['a dirty tree', { tree: { sha: SHA, porcelain: ' M apps/web/x.ts' } }, ['clean_tree']],
+    ['tree status from another SHA', { tree: { sha: 'd'.repeat(40), porcelain: '' } }, ['clean_tree']],
+    ['tree status never captured', { tree: null }, ['clean_tree']],
+    ['a P1 left in the review report', { reviewBlockingSeverities: ['P2', 'P1'] }, ['no_unresolved_p0_p1']],
+    ['review report never read', { reviewBlockingSeverities: null }, ['no_unresolved_p0_p1']],
+    ['spend never scanned', { spend: null }, ['no_new_spend']],
+    ['spend scanned on another SHA', { spend: { sha: 'd'.repeat(40), newCosts: [] } }, ['no_new_spend']],
+    ['a new cost found', { spend: { sha: SHA, newCosts: ['vercel cron every minute'] } }, ['no_new_spend']],
     ['no rollback receipt', { rollbackReceipt: null }, ['rollback_proven']],
+    ['rollback receipt for another SHA', { rollbackReceipt: { sha: 'd'.repeat(40), ref: 'receipt for another commit' } }, ['rollback_proven']],
+    ['empty rollback receipt', { rollbackReceipt: { sha: SHA, ref: '  ' } }, ['rollback_proven']],
+    ['post-release check for another SHA', { postReleaseVerification: { sha: 'd'.repeat(40), ref: 'receipt for another commit' } }, ['post_release_verification_defined']],
+    ['infrastructure receipt for another SHA', { infrastructureReceipt: { sha: 'd'.repeat(40), ref: 'receipt for another commit' } }, ['infrastructure_semantics_match']],
     ['a migration in the diff', { changedPaths: ['apps/web/supabase/migrations/2026_x.sql'] }, ['no_destructive_migration', 'no_auth_security_credential_change']],
   ] as const)('%s → that gate fails and the release escalates', (_label, override, failing) => {
     const gates = deriveGates(evidence(override as Partial<ReleaseEvidence>))

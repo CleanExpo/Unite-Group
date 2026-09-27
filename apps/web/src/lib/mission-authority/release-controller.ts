@@ -1,12 +1,18 @@
 // src/lib/mission-authority/release-controller.ts
 //
-// UNI-2779 — decide what a release candidate may do next. The safe-release
-// gates are DERIVED from evidence (SHAs, check runs, review verdict, receipt,
-// changed paths), never accepted as caller-asserted booleans, and the verdict
-// comes from may() so the release path reads the same policy as every build
-// step. This module never merges or deploys: a SAFE_RELEASE merge is handed to
-// the Board release controller (tools/board-release-verifier/controller.py),
-// and production promotion is always PROTECTED_RELEASE.
+// UNI-2779 — decide what a release candidate may do next. Every safe-release
+// gate is DERIVED from an artefact that names the SHA it was produced at (check
+// runs, review, receipt, tree status, spend scan, rollback, post-release and
+// infrastructure receipts); an artefact for any other SHA counts as missing, and
+// no gate takes a bare yes/no. The verdict comes from may() so the release path
+// reads the same policy as every build step.
+//
+// This function is pure: it cannot tell a genuine artefact from a forged one, so
+// it is wired to no route. Whatever executes a release must collect the artefacts
+// itself and never accept them from the caller asking to release. This module
+// never merges or deploys: a SAFE_RELEASE merge is handed to the Board release
+// controller (tools/board-release-verifier/controller.py), and production
+// promotion is always PROTECTED_RELEASE.
 
 import policy from '../../../../../scripts/nexus-runner/mission-authority.json'
 import { may, type MayDecision, type MissionAuthority, type Risk } from './may'
@@ -17,9 +23,16 @@ export interface CheckRun {
   conclusion: string | null
 }
 
+/** A receipt and the SHA it was produced at. */
+export interface ShaArtefact {
+  sha: string
+  ref: string
+}
+
 export interface ReleaseEvidence {
   candidateSha: string
-  treeClean: boolean
+  /** Porcelain tree status captured at `sha`; '' means clean. */
+  tree: { sha: string; porcelain: string } | null
   reviewedSha: string | null
   reviewVerdict: string | null
   reviewerAgent: string | null
@@ -29,13 +42,14 @@ export interface ReleaseEvidence {
   requiredChecks: string[]
   checkRuns: CheckRun[]
   changedPaths: string[]
-  unresolvedP0P1: number
-  /** null = unknown, which never counts as "no new spend". */
-  addsSpend: boolean | null
-  rollbackReceipt: string | null
-  postReleaseVerification: string | null
+  /** Severities of the blocking findings in the review report at reviewedSha. null = report unread. */
+  reviewBlockingSeverities: string[] | null
+  /** Cost-bearing additions found by a spend scan at `sha`. null = not scanned, never "no new spend". */
+  spend: { sha: string; newCosts: string[] } | null
+  rollbackReceipt: ShaArtefact | null
+  postReleaseVerification: ShaArtefact | null
   /** Receipt proving the target behaves as assumed (e.g. the merge-stays-staged canary). */
-  infrastructureReceipt: string | null
+  infrastructureReceipt: ShaArtefact | null
 }
 
 export interface ReleaseInput {
@@ -77,13 +91,18 @@ function requiredChecksGreen(required: readonly string[], runs: readonly CheckRu
   })
 }
 
+function atSha(artefact: ShaArtefact | null, sha: string): boolean {
+  return !!artefact && artefact.sha === sha && artefact.ref.trim().length > 0
+}
+
 export function deriveGates(evidence: ReleaseEvidence): Record<string, boolean> {
   const sha = evidence.candidateSha
   const exact = SHA.test(sha)
   const paths = evidence.changedPaths
+  const severities = evidence.reviewBlockingSeverities
   return {
     exact_final_sha: exact && evidence.reviewedSha === sha && evidence.receiptSha === sha,
-    clean_tree: evidence.treeClean === true,
+    clean_tree: exact && evidence.tree?.sha === sha && evidence.tree.porcelain === '',
     required_ci_green: exact && requiredChecksGreen(evidence.requiredChecks, evidence.checkRuns),
     independent_review_pass:
       evidence.reviewVerdict === 'PASS' &&
@@ -91,13 +110,14 @@ export function deriveGates(evidence: ReleaseEvidence): Record<string, boolean> 
       !!evidence.reviewerAgent &&
       evidence.reviewerAgent !== evidence.builderAgent,
     release_gate_pass: exact && evidence.receiptSha === sha,
-    no_unresolved_p0_p1: evidence.unresolvedP0P1 === 0,
+    no_unresolved_p0_p1:
+      exact && evidence.reviewedSha === sha && Array.isArray(severities) && !severities.some((level) => /^P[01]$/i.test(level)),
     no_auth_security_credential_change: paths.length > 0 && protectedPathHits(paths).length === 0,
     no_destructive_migration: paths.length > 0 && !paths.some((path) => path.includes('/migrations/')),
-    no_new_spend: evidence.addsSpend === false,
-    rollback_proven: !!evidence.rollbackReceipt,
-    post_release_verification_defined: !!evidence.postReleaseVerification,
-    infrastructure_semantics_match: !!evidence.infrastructureReceipt,
+    no_new_spend: exact && evidence.spend?.sha === sha && evidence.spend.newCosts.length === 0,
+    rollback_proven: exact && atSha(evidence.rollbackReceipt, sha),
+    post_release_verification_defined: exact && atSha(evidence.postReleaseVerification, sha),
+    infrastructure_semantics_match: exact && atSha(evidence.infrastructureReceipt, sha),
   }
 }
 
