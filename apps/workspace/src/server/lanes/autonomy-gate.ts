@@ -33,8 +33,24 @@
  * It classifies and decides. It never approves and never executes. Granting an
  * L3 approval is a founder action that happens elsewhere; this file only checks
  * whether a presented approval actually covers the exact action in hand.
+ *
+ * ## One authority, not two (UNI-2779)
+ *
+ * The canonical action policy is `scripts/nexus-runner/mission-authority.json`.
+ * Where this gate and that policy describe the same action, the gate reads the
+ * policy's class instead of restating it:
+ *
+ *   BUILD_CONTINUE      → L0 / L1 / L2 (never a founder question)
+ *   SAFE_RELEASE        → L3 (release mandate or founder)
+ *   PROTECTED_RELEASE   → L3 (founder / Board)
+ *   absent from policy  → L3 (the policy's own "missing mapping escalates")
+ *
+ * The app cannot import a file outside its own build context (the Docker image
+ * is built from `apps/workspace` alone), so `./mission-authority.json` is a
+ * byte-for-byte copy guarded by a sync test that fails on any drift.
  */
 import { createHash } from 'node:crypto'
+import missionAuthority from './mission-authority.json' with { type: 'json' }
 
 export type AutonomyTier = 'L0' | 'L1' | 'L2' | 'L3'
 
@@ -230,6 +246,19 @@ const SAFE_SUBCOMMANDS = new Map<string, Set<string>>([
 ])
 
 /**
+ * Read-only subcommands whose OTHER arguments can mutate. For these the whole
+ * argument list must be on the allow-list: `git branch -D x` deletes a branch
+ * (a mission-authority.json `destructive_action`) and used to classify L0
+ * because only the subcommand word was checked. UNI-2779.
+ */
+const SAFE_SUBCOMMAND_ARGS = new Map<string, Set<string>>([
+  [
+    'git branch',
+    new Set(['-a', '--all', '-r', '--remotes', '-v', '-vv', '--verbose', '-l', '--list', '--show-current', '--no-color']),
+  ],
+])
+
+/**
  * Constructs that let one command become another.
  *
  * This is the heart of the control. Without it, `ls; rm -rf /` classifies on
@@ -269,12 +298,18 @@ const INDIRECTION_EXECUTABLES = new Set([
   'python3', 'perl', 'ruby', 'node', 'deno', 'bun',
 ])
 
-/** Words that mark an outright irreversible or outward action. */
-const L3_MARKERS: ReadonlyArray<{ pattern: RegExp; reason: string }> = [
+/**
+ * Words that mark an outright irreversible or outward action.
+ *
+ * A marker with an `id` can be superseded by a policy mapping below — and only
+ * by the exact mapping that names it. Every other marker still fires on a
+ * policy-mapped command.
+ */
+const L3_MARKERS: ReadonlyArray<{ pattern: RegExp; reason: string; id?: string }> = [
   { pattern: /\bgit\s+push\b/, reason: 'pushes to a remote' },
   { pattern: /\bgit\s+merge\b/, reason: 'merges a branch' },
-  { pattern: /\bgh\s+pr\s+(merge|create|ready)\b/, reason: 'acts on a pull request' },
-  { pattern: /\b(vercel|railway|fly|netlify|heroku)\b/, reason: 'deploys' },
+  { pattern: /\bgh\s+pr\s+(merge|create|ready)\b/, reason: 'acts on a pull request', id: 'gh-pr' },
+  { pattern: /\b(vercel|railway|fly|netlify|heroku)\b/, reason: 'deploys', id: 'deploy' },
   { pattern: /\bterraform\s+(apply|destroy)\b/, reason: 'mutates infrastructure' },
   { pattern: /\bkubectl\s+(apply|delete)\b/, reason: 'mutates a cluster' },
   { pattern: /\bnpm\s+publish\b/, reason: 'publishes a package' },
@@ -310,6 +345,142 @@ export interface CommandClassification {
   reason: string
 }
 
+// ── Canonical policy (mission-authority.json) ────────────────────────────────
+
+/** `action_classes` from the canonical policy, read — never restated here. */
+export const MISSION_AUTHORITY_ACTION_CLASSES: Readonly<Record<string, string>> =
+  missionAuthority.action_classes
+
+/**
+ * The tier a policy action resolves to.
+ *
+ * BUILD_CONTINUE is L1: the policy says no founder question, and both mapped
+ * build actions are reversible (a draft PR can be closed, a preview is not
+ * production). L2 is not used for them because the enforcement hook never
+ * presents a verification stamp, so L2 would still block — the same false
+ * interruption under a different name. Anything else, including an action the
+ * policy does not know, is L3.
+ */
+export function tierForPolicyAction(
+  action: string,
+  classes: Readonly<Record<string, string>> = MISSION_AUTHORITY_ACTION_CLASSES,
+): AutonomyTier {
+  return Object.hasOwn(classes, action) && classes[action] === 'BUILD_CONTINUE' ? 'L1' : 'L3'
+}
+
+/**
+ * Split a command into shell words, removing quotes the way the shell would.
+ * Returns null on anything this does not model (backslash escapes, unterminated
+ * quotes), so the caller falls back to the ordinary fail-closed path. Expansion
+ * and chaining never reach here as a live construct: the metacharacter check
+ * rejects them before a policy tier is returned.
+ */
+function shellWords(command: string): Array<string> | null {
+  if (command.includes('\\')) return null
+  const words: Array<string> = []
+  let current = ''
+  let inWord = false
+  let quote: string | null = null
+  for (const ch of command) {
+    if (quote !== null) {
+      if (ch === quote) quote = null
+      else current += ch
+      continue
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch
+      inWord = true
+      continue
+    }
+    if (/\s/.test(ch)) {
+      if (inWord) words.push(current)
+      current = ''
+      inWord = false
+      continue
+    }
+    current += ch
+    inWord = true
+  }
+  if (quote !== null) return null
+  if (inWord) words.push(current)
+  return words
+}
+
+/** `gh pr create` options a draft may carry. Anything else stays L3. */
+const GH_PR_CREATE_VALUE_FLAGS = new Set(['--title', '-t', '--body', '-b', '--base', '-B', '--head', '-H', '--label', '-l'])
+const GH_PR_CREATE_BOOLEAN_FLAGS = new Set(['--fill', '-f', '--fill-first', '--fill-verbose'])
+
+/**
+ * Exactly `gh pr create` with `--draft`/`-d` present AS A FLAG. A value flag
+ * consumes the next word, so `--title --draft` is a non-draft PR titled
+ * "--draft" and does not match. `--draft=false`, `--body-file`, `--repo`,
+ * `--reviewer`, global options and anything unlisted do not match.
+ */
+function isDraftPrCreate(words: ReadonlyArray<string>): boolean {
+  if (words[0] !== 'gh' || words[1] !== 'pr' || words[2] !== 'create') return false
+  let draft = false
+  for (let i = 3; i < words.length; i += 1) {
+    const word = words[i]
+    if (word === '--draft' || word === '-d') {
+      draft = true
+      continue
+    }
+    if (GH_PR_CREATE_BOOLEAN_FLAGS.has(word)) continue
+    if (GH_PR_CREATE_VALUE_FLAGS.has(word)) {
+      if (i + 1 >= words.length) return false
+      i += 1
+      continue
+    }
+    const eq = word.indexOf('=')
+    if (word.startsWith('--') && eq > 0 && GH_PR_CREATE_VALUE_FLAGS.has(word.slice(0, eq))) continue
+    return false
+  }
+  return draft
+}
+
+/**
+ * Exactly `vercel` or `vercel deploy`, optionally `--target preview` /
+ * `--target=preview` / `--prebuilt`. No `--prod`, no production target, no
+ * other subcommand (promote, rollback, redeploy, alias, env, domains, pull …),
+ * no `--yes` (which can create and link a new project), no scope/token/cwd.
+ */
+function isVercelPreviewDeploy(words: ReadonlyArray<string>): boolean {
+  if (words[0] !== 'vercel') return false
+  let i = words[1] === 'deploy' ? 2 : 1
+  for (; i < words.length; i += 1) {
+    const word = words[i]
+    if (word === '--target=preview' || word === '--prebuilt') continue
+    if (word === '--target' && words[i + 1] === 'preview') {
+      i += 1
+      continue
+    }
+    return false
+  }
+  return true
+}
+
+/**
+ * Shell commands that ARE a named policy action. `supersedes` is the one L3
+ * marker id the mapping replaces; the tier comes from the policy, not from here.
+ */
+const POLICY_COMMAND_MAPPINGS: ReadonlyArray<{
+  action: string
+  supersedes: string
+  matches: (words: ReadonlyArray<string>) => boolean
+}> = [
+  { action: 'draft_pr', supersedes: 'gh-pr', matches: isDraftPrCreate },
+  { action: 'preview_within_existing_mandate', supersedes: 'deploy', matches: isVercelPreviewDeploy },
+]
+
+/** Policy action names this gate maps shell commands to. */
+export const POLICY_MAPPED_ACTIONS: ReadonlyArray<string> = POLICY_COMMAND_MAPPINGS.map((m) => m.action)
+
+function matchPolicyCommand(command: string): (typeof POLICY_COMMAND_MAPPINGS)[number] | null {
+  const words = shellWords(command)
+  if (words === null) return null
+  return POLICY_COMMAND_MAPPINGS.find((mapping) => mapping.matches(words)) ?? null
+}
+
 /**
  * Classify a shell command string.
  *
@@ -323,8 +494,10 @@ export function classifyShellCommand(command: unknown): CommandClassification {
     return { tier: 'L3', reason: 'command is missing or not a string; cannot classify' }
   }
   const trimmed = command.trim()
+  const policyMatch = matchPolicyCommand(trimmed)
 
   for (const marker of L3_MARKERS) {
+    if (policyMatch !== null && marker.id === policyMatch.supersedes) continue
     if (marker.pattern.test(trimmed)) {
       return { tier: 'L3', reason: `command ${marker.reason}` }
     }
@@ -350,6 +523,15 @@ export function classifyShellCommand(command: unknown): CommandClassification {
     return { tier: 'L3', reason: 'command is prefixed with an environment assignment' }
   }
 
+  // Reached only after every credential, chaining and env-prefix check passed.
+  if (policyMatch !== null) {
+    const policyClass = MISSION_AUTHORITY_ACTION_CLASSES[policyMatch.action] ?? '(absent)'
+    return {
+      tier: tierForPolicyAction(policyMatch.action),
+      reason: `mission-authority.json classes '${policyMatch.action}' as ${policyClass}`,
+    }
+  }
+
   const executable = (words[0] ?? '').split('/').pop() ?? ''
   if (executable === '') {
     return { tier: 'L3', reason: 'command has no resolvable executable' }
@@ -366,6 +548,13 @@ export function classifyShellCommand(command: unknown): CommandClassification {
   const subcommands = SAFE_SUBCOMMANDS.get(executable)
   if (subcommands) {
     const subcommand = words[1] ?? ''
+    const allowedArgs = SAFE_SUBCOMMAND_ARGS.get(`${executable} ${subcommand}`)
+    if (allowedArgs && !words.slice(2).every((arg) => allowedArgs.has(arg))) {
+      return {
+        tier: 'L3',
+        reason: `'${executable} ${subcommand}' with these arguments can mutate; only listed read-only arguments are allowed`,
+      }
+    }
     if (subcommands.has(subcommand)) {
       return { tier: 'L0', reason: `'${executable} ${subcommand}' is a known read-only command` }
     }

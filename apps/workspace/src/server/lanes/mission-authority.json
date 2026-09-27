@@ -1,0 +1,121 @@
+{
+  "schema": "nexus-mission-authority/3",
+  "scope": "branch_preview_only",
+  "build_authorised_when": "The claim API has verified the founder-signed delivery approval for this exact frozen specification. That approval IS the build authority: no further founder approval is needed for any build step.",
+  "build": {
+    "discover": "Inspect repositories, documentation and permitted runtime evidence",
+    "edit": "Edit files inside the approved scope",
+    "test": "Run type-check, lint, unit, integration and end-to-end tests",
+    "repair": "Fix failures, retry with a different method, add missing tests",
+    "commit": "Commit scoped work",
+    "push_scoped_branch": "Push the task's own feature branch",
+    "draft_pr": "Open or update a DRAFT pull request",
+    "preview_within_existing_mandate": "Create a Vercel preview (non-production) deployment",
+    "update_linear": "Update Linear status and build receipts"
+  },
+  "protected": {
+    "merge": "founder_or_existing_release_mandate",
+    "mark_pr_ready": "founder_or_existing_release_mandate",
+    "promote_production": "founder",
+    "public_publish": "founder_or_existing_publish_mandate",
+    "spend_expansion": "founder",
+    "destructive_action": "founder",
+    "credential_change": "founder",
+    "authority_change": "founder",
+    "strategic_scope_change": "founder"
+  },
+  "protected_descriptions": {
+    "merge": "Merging any pull request or branch. On unite-group a merge to main builds a STAGED production deployment and never moves the production domain (autoAssignCustomDomains=false); promotion is a separate protected action",
+    "mark_pr_ready": "Marking a pull request ready for review, or opening one that is not a draft",
+    "promote_production": "Promoting, deploying, redeploying or rolling back production, or pushing directly to main",
+    "public_publish": "Publishing a release or any public content",
+    "spend_expansion": "Buying anything or raising any spend",
+    "destructive_action": "Force-pushing, deleting branches or data, resetting history, or running migrations against any database",
+    "credential_change": "Reading, adding or changing secrets and environment variables",
+    "authority_change": "Changing repository settings, branch protection, workflows or permissions",
+    "strategic_scope_change": "Changing the approved objective or widening the approved scope"
+  },
+  "phases": [
+    "DRAFT",
+    "ACCEPTED",
+    "ADMITTED",
+    "BUILD_AUTHORISED",
+    "BUILD_CONTINUE",
+    "RELEASE_CANDIDATE",
+    "SAFE_RELEASE",
+    "PROTECTED_RELEASE",
+    "VERIFIED"
+  ],
+  "action_classes": {
+    "discover": "BUILD_CONTINUE",
+    "edit": "BUILD_CONTINUE",
+    "test": "BUILD_CONTINUE",
+    "repair": "BUILD_CONTINUE",
+    "commit": "BUILD_CONTINUE",
+    "push_scoped_branch": "BUILD_CONTINUE",
+    "draft_pr": "BUILD_CONTINUE",
+    "preview_within_existing_mandate": "BUILD_CONTINUE",
+    "update_linear": "BUILD_CONTINUE",
+    "merge": "SAFE_RELEASE",
+    "mark_pr_ready": "SAFE_RELEASE",
+    "promote_production": "PROTECTED_RELEASE",
+    "public_publish": "PROTECTED_RELEASE",
+    "spend_expansion": "PROTECTED_RELEASE",
+    "destructive_action": "PROTECTED_RELEASE",
+    "credential_change": "PROTECTED_RELEASE",
+    "authority_change": "PROTECTED_RELEASE",
+    "strategic_scope_change": "PROTECTED_RELEASE"
+  },
+  "action_classes_rule": "BUILD_CONTINUE actions inside the mission's allowed actions continue with no founder question. A SAFE_RELEASE action continues only when the mission's release mandate names it, the risk is low or medium and no higher than the mandate's maxRisk, the phase is RELEASE_CANDIDATE or SAFE_RELEASE, and every safe_release_requires gate is true; otherwise it escalates as PROTECTED_RELEASE. PROTECTED_RELEASE actions always escalate. An action missing from this map escalates.",
+  "safe_release_requires": {
+    "exact_final_sha": "Evidence is bound to the exact final commit SHA being released",
+    "clean_tree": "The working tree is clean at that SHA",
+    "required_ci_green": "Every required CI check executed (none skipped) and is green for that SHA",
+    "independent_review_pass": "An independent reviewer that did not build the change returned PASS for that SHA",
+    "release_gate_pass": "The release gate returned PASS for that SHA",
+    "no_unresolved_p0_p1": "No unresolved P0 or P1 finding remains",
+    "no_auth_security_credential_change": "The change touches no authentication, security or credential surface",
+    "no_destructive_migration": "The change carries no destructive database migration",
+    "no_new_spend": "The change adds no new or increased spend",
+    "rollback_proven": "A rollback path exists and has been exercised",
+    "post_release_verification_defined": "Post-release verification is defined before the release",
+    "infrastructure_semantics_match": "The target infrastructure behaves as the change assumes"
+  },
+  "interruption_classes": {
+    "LEGITIMATE_PROTECTED_BOUNDARY": "The next action is PROTECTED_RELEASE, or a SAFE_RELEASE action whose mandate or gates are not satisfied. The only class that justifies asking the founder.",
+    "MISSING_AUTHORITY_MAPPING": "The action has no class in action_classes. Fix the policy; do not ask the founder about a build step.",
+    "BROKEN_TOOL": "A tool, hook or script failed. Repair it and continue.",
+    "MISSING_CONTEXT": "The agent lacked context it could read for itself. Not a reason to interrupt.",
+    "MODEL_UNCERTAINTY": "The agent was unsure. Not a reason to interrupt: diagnose and continue.",
+    "IMPLEMENTATION_QUESTION": "An implementation choice inside the approved scope. Decide and continue.",
+    "FALSE_POLICY_CONFLICT": "The agent believed two rules conflicted when the policy decides it. Not a reason to interrupt.",
+    "OTHER": "Anything not above. Recorded so the policy can learn a class for it; still not a reason to interrupt."
+  },
+  "protected_paths": {
+    "rule": "A release whose changed paths touch any of these prefixes or path segments is PROTECTED_RELEASE, whatever its gates say: auth, security, credentials, schema, CI, constitution and this policy itself.",
+    "prefixes": [
+      "apps/web/supabase/migrations/",
+      "supabase/migrations/",
+      "packages/spine/migrations/",
+      ".github/",
+      "docs/constitution/",
+      "tools/board-release-verifier/",
+      "scripts/nexus-runner/",
+      "apps/web/src/middleware.ts",
+      "apps/web/src/proxy.ts",
+      "apps/web/src/lib/supabase/",
+      "apps/web/vercel.json",
+      "vercel.json",
+      "apps/web/next.config.mjs"
+    ],
+    "segments": [
+      "auth",
+      "security",
+      "credentials",
+      "vault",
+      "secrets",
+      ".env"
+    ]
+  },
+  "merge_lane": "A SAFE_RELEASE merge on an UG-AUTONOMY-001 repository executes only through tools/board-release-verifier/controller.py with a verified Board receipt; the mission never calls the merge API itself."
+}
