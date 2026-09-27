@@ -17,6 +17,52 @@
 | `L2` | outward or cross-domain | allow **only** with a verification stamp |
 | `L3` | merge, deploy, prod DB, secrets, spend, external publish, destructive | **block** pending founder/Board approval scoped to the exact action |
 
+### 1a. The tiers against the canonical policy (UNI-2779)
+
+**[`scripts/nexus-runner/mission-authority.json`](../../scripts/nexus-runner/mission-authority.json)
+is the canonical action policy.** This gate is not a second authority: where
+the two describe the same action, the gate reads the policy's class and derives
+the tier from it.
+
+| Policy class (`action_classes`) | Gate tier | Who decides |
+| --- | --- | --- |
+| `BUILD_CONTINUE` | `L0` (reads), `L1` (reversible writes, and every policy-mapped build command), `L2` (outward reads such as `WebFetch`, needing a verification stamp) | nobody — no founder question |
+| `SAFE_RELEASE` (`merge`, `mark_pr_ready`) | `L3` | release mandate or founder |
+| `PROTECTED_RELEASE` (`promote_production`, `public_publish`, `spend_expansion`, `destructive_action`, `credential_change`, `authority_change`, `strategic_scope_change`) | `L3` | founder / Board |
+| action absent from the policy | `L3` | the policy's own rule: a missing mapping escalates |
+
+Shell commands the gate maps to a policy action, with the tier read from the
+policy (`tierForPolicyAction`):
+
+| Command | Policy action | Tier (policy v3) |
+| --- | --- | --- |
+| `gh pr create` with `--draft` / `-d` as a real flag and only `--title`/`-t`, `--body`/`-b`, `--base`/`-B`, `--head`/`-H`, `--label`/`-l`, `--fill`/`-f`, `--fill-first`, `--fill-verbose` | `draft_pr` | `L1` |
+| `vercel` or `vercel deploy`, optionally `--target preview` / `--target=preview` / `--prebuilt` | `preview_within_existing_mandate` | `L1` |
+
+Mapped build actions resolve to `L1`, not `L2`: the policy says no question,
+both are reversible (a draft PR can be closed; a preview is not production),
+and the hook never presents a verification stamp, so `L2` would still block.
+
+Everything else stays `L3`, including: `gh pr create` without `--draft`, with
+`--draft=false`, or with `--draft` only as the *value* of another option
+(`--title --draft`); `gh pr ready`; `gh pr merge`; `vercel --prod`,
+`--target=production`, `promote`, `rollback`, `redeploy`, `alias`, `env`,
+`domains`, `pull`, `link` and any other subcommand. The gate is deliberately
+**stricter than the policy** in places, because it sees only a command string:
+`--body-file`, `--repo`/`-R`, `--reviewer`, global `gh` options, a path to the
+executable (`/tmp/evil/vercel`), `vercel --yes` (can create and link a new
+project), `--scope`/`--token`/`--cwd`, and any quoted text that trips the
+credential, chaining or expansion checks — all still `L3`.
+
+The mapping is consulted only **after** the credential, chaining, expansion and
+environment-assignment checks pass, so no existing fail-closed rule is relaxed.
+
+The app's Docker build context is `apps/workspace` alone, so the gate imports a
+vendored copy, `apps/workspace/src/server/lanes/mission-authority.json`.
+`autonomy-gate.policy.test.ts` fails if that copy differs from the canonical
+file by a single byte, and fails (never skips) if the canonical file cannot be
+found. Change the canonical file, then copy it.
+
 ## 2. The one design decision everything rests on
 
 **This is an allow-list, not a deny-list.**
@@ -141,6 +187,26 @@ Each mutation was applied and reverted.
 | unknown executable → L0 (deny-list behaviour) | 1 test red |
 | approval ignores the action hash | 2 tests red |
 | unknown tool → L0 | 1 test red |
+
+### UNI-2779 — policy alignment
+
+`autonomy-gate.policy.test.ts` iterates the policy's `action_classes`: every
+`SAFE_RELEASE` / `PROTECTED_RELEASE` action must have representative commands
+(taken from the web envelope test's `PROTECTED_COMMANDS`) or a stated reason it
+has none, and every one must classify `L3` and be blocked. That test found a
+pre-existing hole: `git branch -D x` (a `destructive_action`) classified `L0`,
+because only the subcommand word was checked. `git branch` now needs every
+argument on a read-only list.
+
+| Mutation | Result |
+| --- | --- |
+| drop the `--draft` requirement | 5 tests red |
+| accept any `--flag` on `vercel` (drops the `--prod` check) | 8 tests red |
+| map `vercel promote` to preview | 1 test red |
+| accept any `vercel` subcommand word | 5 tests red |
+| tier ignores the policy class | 1 test red |
+| vendored policy drifts (`draft_pr` → `SAFE_RELEASE`) | 9 tests red |
+| drop the `git branch` argument check | 4 tests red |
 
 ## 7. Surfacing what was blocked
 

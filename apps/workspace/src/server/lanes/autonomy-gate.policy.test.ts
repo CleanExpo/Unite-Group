@@ -85,6 +85,7 @@ const NON_BUILD_COMMANDS: Record<string, Array<string>> = {
     'vercel deploy --target production',
     'vercel --target=prod',
     'vercel deploy --target preview --prod',
+    'vercel promote',
     'vercel promote url',
     'vercel rollback',
     'vercel redeploy url',
