@@ -65,11 +65,14 @@ export function wake(c, observed, at) {
   }
 
   const required = Array.isArray(observed?.requiredChecks) ? observed.requiredChecks : null
+  // A required name must name something: a blank one would match a blank-named run.
+  // Same positive test as the release controller's RECEIPT_REF (UNI-2782).
+  const namesSomething = (name) => typeof name === 'string' && /[a-z0-9]/i.test(name)
   const passed = (run) => run.headSha === sha && run.status === 'completed' && run.conclusion === 'success'
   // Every required check has a run on this SHA and all of them passed, and nothing else
   // observed on this SHA is still running or failed: a trivial green check is not CI.
   const requiredGreen =
-    !!runs && !!required && required.length > 0 &&
+    !!runs && !!required && required.length > 0 && required.every(namesSomething) &&
     required.every((name) => {
       const named = runs.filter((run) => run.name === name)
       return named.length > 0 && named.every(passed)

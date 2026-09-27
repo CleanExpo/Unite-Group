@@ -49,6 +49,11 @@ describe('wake', () => {
     ['one required check never ran', { checkRuns: [green[0]], review: pass, requiredChecks: REQUIRED }],
     ['required checks unknown', { checkRuns: green, review: pass, requiredChecks: null }],
     ['no required checks named', { checkRuns: green, review: pass, requiredChecks: [] }],
+    ...['', '  ', '\u200b'].map((blank) => [
+      `a blank required name ${JSON.stringify(blank)} matched by a blank-named green run (UNI-2782)`,
+      { checkRuns: [{ name: blank, headSha: SHA, status: 'completed', conclusion: 'success' }], review: pass, requiredChecks: [blank] },
+    ] as const),
+    ['a blank name alongside real required checks', { checkRuns: [...green, { name: '', headSha: SHA, status: 'completed', conclusion: 'success' }], review: pass, requiredChecks: [...REQUIRED, ''] }],
     ['required green but another check still running', { checkRuns: [...green, { name: 'e2e', headSha: SHA, status: 'in_progress', conclusion: null }], review: pass, requiredChecks: REQUIRED }],
     ['a failure on another commit, nothing on this one', { checkRuns: [{ name: 'lint', headSha: 'f'.repeat(40), status: 'completed', conclusion: 'failure' }], review: pass, requiredChecks: REQUIRED }],
   ])('keeps waiting on %s', (_label, observed) => {
