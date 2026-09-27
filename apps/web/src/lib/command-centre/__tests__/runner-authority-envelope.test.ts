@@ -169,6 +169,11 @@ const PROTECTED_COMMANDS: Record<string, Cmd[]> = {
     ['git', 'config', 'remote.origin.mirror', 'true'],
     ['git', '-c', 'push.default=upstream', 'push', 'origin', 'feature-x'],
     ['git', '-c', 'PUSH.default=matching', 'push', 'origin', 'feature-x'],
+    // remote-write plumbing that skips `git push` and its checks (Cursor review round 9)
+    ['git', 'send-pack', 'origin', 'refs/heads/feature-x:refs/heads/main'],
+    ['git', 'http-push', 'https://example.invalid/r.git', 'main'],
+    ['git', 'remote-https', 'origin', 'https://github.com/CleanExpo/Unite-Group.git'],
+    ['git', '-C', '.', 'send-pack', 'origin', 'main'],
     ['git', 'push', '--all', 'origin'],
     ['git', 'push', 'origin', '--all'],
     ['gh', '--template', 'x', 'repo', 'delete', 'o/r'],
@@ -182,6 +187,12 @@ const PROTECTED_COMMANDS: Record<string, Cmd[]> = {
     ['vercel', 'pull'],
     ['vercel', '--token', 't', 'env', 'add', 'FOO'],
     ['supabase', 'secrets', 'set', 'X=1'],
+    // reading counts: a GET of secret or variable names (Cursor review round 9)
+    ['gh', 'api', 'repos/CleanExpo/Unite-Group/actions/secrets'],
+    ['gh', 'api', 'repos/CleanExpo/Unite-Group/actions/variables'],
+    ['gh', 'api', 'repos/CleanExpo/Unite-Group/environments/Production/secrets'],
+    ['gh', 'api', 'repos/CleanExpo/Unite-Group/keys'],
+    ['gh', 'api', 'repos/CleanExpo/Unite-Group/hooks'],
   ],
   authority_change: [
     ['gh', 'api', '--method', 'PATCH', 'repos/CleanExpo/Unite-Group'],

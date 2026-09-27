@@ -62,6 +62,9 @@ case "$sub" in
     for a in "$@"; do
       case "$a" in
         -X*|--method|--method=*|-f|-f*|-F|-F*|--field|--field=*|--raw-field|--raw-field=*|--input|--input=*) deny "api write" ;;
+        # credential_change covers reading too: secrets, variables, deploy keys and hook
+        # config are refused even as a GET (Cursor review round 9).
+        *secrets*|*variables*|*/keys*|*/hooks*|*codespaces*) deny "api credential path ($a)" ;;
       esac
     done
     ;;

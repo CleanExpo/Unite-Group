@@ -128,6 +128,9 @@ case "$sub" in
     done
     ;;
   merge)        deny "git merge" ;;
+  # Remote-write plumbing and bridges that push without going through `git push` and
+  # its checks above (Cursor review round 9: `git send-pack` reached main).
+  send-pack|http-push|receive-pack|remote-*|svn|p4|cvsexportcommit) deny "git $sub (remote write outside git push)" ;;
   reset)
     for a in "$@"; do case "$a" in --hard) deny "git reset --hard" ;; esac; done ;;
   branch)
