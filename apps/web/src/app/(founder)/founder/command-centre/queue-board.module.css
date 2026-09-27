@@ -122,15 +122,15 @@
   height: 8px;
   border-radius: 50%;
   background: #6f879b;
-  box-shadow: 0 0 6px currentColor;
+  box-shadow: 0 0 6px var(--led, currentColor);
 }
-.led[data-status='proposed'] { background: #16a34a; color: #16a34a; }
-.led[data-status='awaiting_approval'] { background: #fbbf24; color: #fbbf24; }
-.led[data-status='queued'] { background: #34d399; color: #34d399; }
-.led[data-status='running'] { background: #60a5fa; color: #60a5fa; animation: pulse 1.4s ease-in-out infinite; }
-.led[data-status='blocked'] { background: #fb923c; color: #fb923c; }
-.led[data-status='done'] { background: #2f6f53; color: #2f6f53; }
-.led[data-status='failed'] { background: #f87171; color: #f87171; }
+.led[data-status='proposed'] { background: #16a34a; --led: #16a34a; }
+.led[data-status='awaiting_approval'] { background: #fbbf24; --led: #fbbf24; }
+.led[data-status='queued'] { background: #34d399; --led: #34d399; }
+.led[data-status='running'] { background: #60a5fa; --led: #60a5fa; animation: pulse 1.4s ease-in-out infinite; }
+.led[data-status='blocked'] { background: #fb923c; --led: #fb923c; }
+.led[data-status='done'] { background: #2f6f53; --led: #2f6f53; }
+.led[data-status='failed'] { background: #f87171; --led: #f87171; }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }

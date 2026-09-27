@@ -52,6 +52,7 @@ const STAGE_TEXT: Record<TeamStage['stage'], string> = {
   ...STAGE_COLOUR,
   Research: 'var(--deck-cyan-text, #22d3ee)',
   Develop: 'var(--tile-amber-txt, #fb923c)',
+  Production: 'var(--tile-violet-txt, #c4b5fd)',
   Done: 'var(--tile-green-txt, #34d399)',
 }
 

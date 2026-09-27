@@ -313,10 +313,11 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
     // (`color: on ? 'var(--red-400)' : ...`) is caught; it stops at the next `key:`
     // so a neighbouring `background: var(--deck-go)` is not blamed on `color`.
     // Fills are caught as tokens (including the app-global --color-success/danger/accent
-    // aliases, which the mission scope bridges to fills) and as raw fill hexes, in a
+    // aliases, which the mission scope bridges to fills) and as raw fill hexes (including
+    // the light canvas fills #16a34a / #ef4444, globals.css:300,311), in a
     // fallback too: text falls back to --color-accent-text / --color-danger-text.
     const fillAsText =
-      /(?<![-\w])color\s*:(?:(?!\w\s*:)[^;}\n])*?(?:var\(\s*--(?:mission-(?:blue|danger|attention|success)|deck-(?:cyan|go|amber|abort)|cc-signal|red-(?:400|500)|color-(?:success|danger|accent))\s*[,)]|#(?:ff3b5c|15803d|a16207|e5484d)\b)/i;
+      /(?<![-\w])color\s*:(?:(?!\w\s*:)[^;}\n])*?(?:var\(\s*--(?:mission-(?:blue|danger|attention|success)|deck-(?:cyan|go|amber|abort)|cc-signal|red-(?:400|500)|color-(?:success|danger|accent))\s*[,)]|#(?:ff3b5c|15803d|a16207|e5484d|16a34a|ef4444|2dbb57)\b)/i;
     const walk = (root: string): string[] =>
       readdirSync(root, { withFileTypes: true }).flatMap((e) => {
         const p = join(root, e.name);
@@ -402,6 +403,13 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
     expect(railMap).not.toMatch(/-(?:txt|text)\b/);
     expect(textMap).toContain("Develop: 'var(--tile-amber-txt, #fb923c)'");
     expect(textMap).toContain("Done: 'var(--tile-green-txt, #34d399)'");
+    // Production is violet: the rail keeps #a78bfa, the word takes a violet text shade
+    // defined for both registers (#a78bfa is ~2.5:1 as text on daylight).
+    expect(textMap).toContain("Production: 'var(--tile-violet-txt, #c4b5fd)'");
+    expect(textMap).not.toContain('#a78bfa');
+    const deckTokens = readFileSync(join(dir, 'command-deck.module.css'), 'utf8');
+    expect(deckTokens).toContain('--tile-violet-txt: #c4b5fd;');
+    expect(deckTokens).toContain('--tile-violet-txt: #6d28d9;');
     expect(stageBoard).not.toContain('color: STAGE_COLOUR[');
   });
 });

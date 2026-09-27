@@ -60,6 +60,7 @@
   --tile-amber-txt: #ff8a1f;      /* palette --warning → 6.19 on panel-hi */
   --tile-green-txt: #00d97e;      /* palette --success → 7.81 on panel-hi */
   --tile-red-txt: #f87171;        /* alarm text → 5.28 on panel-hi (was #d02f35, 2.80) */
+  --tile-violet-txt: #c4b5fd;     /* violet-300 → stage text on panel-hi (the rail keeps #a78bfa) */
 
   position: relative;
   min-height: 100%;
@@ -604,6 +605,7 @@
   --tile-amber-txt: #854d0e;      /* 5.40 on panel-hi */
   --tile-green-txt: #166534;      /* green-800 → 5.62 on panel-hi */
   --tile-red-txt: #b91c1c;        /* 5.10 on panel-hi */
+  --tile-violet-txt: #6d28d9;     /* violet-700 → stage text on daylight (#a78bfa is ~2.5:1) */
 
   color: var(--deck-text);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
