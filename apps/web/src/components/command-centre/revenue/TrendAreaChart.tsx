@@ -72,7 +72,7 @@ export function TrendAreaChart({ trend, id }: { trend: TrendPoint[]; id: string 
   if (!g) {
     return <div style={{ color: 'var(--deck-muted)', fontSize: 11 }}>No cleared funds in the last 7 days (read OK).</div>
   }
-  const colour = 'var(--deck-cyan, #0891b2)'
+  const colour = 'var(--deck-cyan, #ff3b5c)'
   const fillId = `${id}-fill`
   return (
     <svg

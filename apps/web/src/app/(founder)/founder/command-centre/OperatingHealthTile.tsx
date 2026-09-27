@@ -14,12 +14,12 @@ import type { DashboardSummary, DashboardSummaryResult } from '@/lib/command-cen
 function statusColor(s: DashboardSummary['status']): string {
   switch (s) {
     case 'RED':
-      return '#f87171'
+      return 'var(--deck-abort, #f87171)'
     case 'AMBER':
-      return '#fbbf24'
+      return 'var(--deck-amber, #fbbf24)'
     case 'GREEN':
     case 'PASS':
-      return '#34d399'
+      return 'var(--deck-go, #34d399)'
     case 'DRAFT_FOR_REVIEW':
       return '#a78bfa'
     default:

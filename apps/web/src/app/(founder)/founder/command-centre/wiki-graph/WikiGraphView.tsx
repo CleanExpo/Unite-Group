@@ -26,7 +26,7 @@ export function WikiGraphView({ graph, error, truncated, className }: WikiGraphV
       <header style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', gap: '0.75rem' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {truncated && (
-            <span style={{ fontSize: 11, color: 'var(--mission-attention)' }}>
+            <span style={{ fontSize: 11, color: 'var(--mission-attention-text)' }}>
               showing first {WIKI_PAGES_LIMIT} pages
             </span>
           )}
@@ -83,7 +83,7 @@ function EmptyState({ title, detail }: { title: string; detail: string }) {
         background: 'var(--mission-surface)',
       }}
     >
-      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--mission-blue)' }}>{title}</span>
+      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--mission-blue-text)' }}>{title}</span>
       <span style={{ fontSize: 12, color: 'var(--mission-muted)', maxWidth: 420 }}>{detail}</span>
     </div>
   )

@@ -225,7 +225,7 @@ function DegradedNote({ source, stale, reason }: { source: string; stale: boolea
       style={{
         fontFamily: 'var(--font-jbmono, monospace)',
         fontSize: 11,
-        color: stale ? 'var(--deck-amber-text, #b45309)' : 'var(--deck-abort-text, #e5484d)',
+        color: stale ? 'var(--deck-amber-text, #b45309)' : 'var(--deck-abort-text, var(--color-danger-text))',
       }}
     >
       {stale
@@ -309,7 +309,7 @@ function FleetCard() {
               </span>
               <span
                 style={{
-                  color: m.is_stale ? 'var(--deck-abort-text, #e5484d)' : 'var(--deck-muted)',
+                  color: m.is_stale ? 'var(--deck-abort-text, var(--color-danger-text))' : 'var(--deck-muted)',
                   whiteSpace: 'nowrap',
                 }}
               >

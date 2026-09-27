@@ -5,7 +5,8 @@ import { MissionControlShell } from '../MissionControlShell'
 // Deck token values (command-deck.module.css) for the inline-styled bits.
 const mono = 'ui-monospace, SFMono-Regular, monospace'
 const muted = 'var(--mission-muted)' // --deck-muted
-const okText = 'var(--mission-blue)' // --deck-cyan-text
+const okText = 'var(--mission-success-text)' // healthy text: the success shade, as in the operator gateway (UNI-2769)
+const dangerText = 'var(--mission-danger-text)' // an exposed credential is an alarm, never healthy text
 
 const wrap: React.CSSProperties = {
   maxWidth: 1040,
@@ -40,9 +41,9 @@ const td: React.CSSProperties = {
 function riskStyle(risk: string): React.CSSProperties {
   // Alpha washes of the deck LED fills; text = the AA --deck-*-text variants.
   const map: Record<string, [string, string, string]> = {
-    none: ['rgba(45, 187, 87, 0.12)', 'var(--mission-blue)', 'rgba(45, 187, 87, 0.35)'],
-    low: ['rgba(244, 130, 15, 0.12)', 'var(--mission-attention)', 'rgba(244, 130, 15, 0.4)'],
-    high: ['rgba(229, 72, 77, 0.12)', 'var(--mission-attention)', 'rgba(229, 72, 77, 0.4)'],
+    none: ['rgba(45, 187, 87, 0.12)', 'var(--mission-success-text)', 'rgba(45, 187, 87, 0.35)'],
+    low: ['rgba(244, 130, 15, 0.12)', 'var(--mission-attention-text)', 'rgba(244, 130, 15, 0.4)'],
+    high: ['rgba(229, 72, 77, 0.12)', 'var(--mission-attention-text)', 'rgba(229, 72, 77, 0.4)'],
   }
   const [bg, fg, bd] = map[risk] ?? map.none
   return {
@@ -129,7 +130,7 @@ export function HermesControlPanelView({ view, className }: HermesControlPanelVi
               <span>External channels enabled: <b style={{ color: okText }}>{view.externalChannelsEnabled ? 'yes' : 'no'}</b></span>
               <span>MCP connected: <b style={{ color: okText }}>{view.mcpConnected ? 'yes' : 'no'}</b></span>
               <span>Remote gateway connected: <b style={{ color: okText }}>{view.remoteGatewayConnected ? 'yes' : 'no'}</b></span>
-              <span>Credentials exposed: <b style={{ color: okText }}>{view.credentialsExposed ? 'yes' : 'no'}</b></span>
+              <span>Credentials exposed: <b style={{ color: view.credentialsExposed ? dangerText : okText }}>{view.credentialsExposed ? 'yes' : 'no'}</b></span>
             </div>
           </DeckDetails>
 

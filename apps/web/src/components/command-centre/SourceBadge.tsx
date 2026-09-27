@@ -76,7 +76,7 @@ const MODE_LABEL: Record<RenderedSourceMode, string> = {
 // fill; text uses the AA-passing darkened variant.
 function dotColorFor(mode: RenderedSourceMode): string {
   if (mode === "live") return "var(--cc-ink, #cfe0ec)";
-  if (mode === "fresh") return "var(--cc-signal, #2dbb57)";
+  if (mode === "fresh") return "var(--deck-go, #2dbb57)";
   if (mode === "degraded" || mode === "stale")
     return "var(--deck-amber, #f4820f)";
   if (mode === "unavailable") return "var(--deck-abort, #e5484d)";
@@ -85,7 +85,7 @@ function dotColorFor(mode: RenderedSourceMode): string {
 
 function textColorFor(mode: RenderedSourceMode): string {
   if (mode === "live") return "var(--cc-ink, #cfe0ec)";
-  if (mode === "fresh") return "var(--cc-signal-text, #34d399)";
+  if (mode === "fresh") return "var(--tile-green-txt, #34d399)";
   if (mode === "degraded" || mode === "stale")
     return "var(--deck-amber-text, #b45309)";
   if (mode === "unavailable") return "var(--deck-abort-text, #b91c1c)";

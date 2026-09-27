@@ -12,8 +12,8 @@
 // follow the tiles to their new page sources — none are weakened.
 
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join, relative } from 'node:path';
 
 const dir = join(process.cwd(), 'src/app/(founder)/founder/command-centre');
 const pageSrc = readFileSync(join(dir, 'page.tsx'), 'utf8');
@@ -238,8 +238,8 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
   });
 
   it('pins the launch-tile text pairings on their solid --surface-3 ground', () => {
-    // --ink #f0f3f7 on #232b3a → 12.77:1; --ink-dim #a6afbc → 6.41:1;
-    // --green-txt #34d399 (repo link) → 7.39:1. Computed, all AA.
+    // --ink #f4f5f7 on #232934 → 13.38:1; --ink-dim #a7adba → 6.49:1;
+    // --green-txt #00d97e (repo link) → 7.81:1. Computed, all AA (UNI-2769).
     const nameBlock = shellCss.match(/\.launchName \{[^}]*\}/)?.[0] ?? '';
     const metaBlock = shellCss.match(/\.launchMeta \{[^}]*\}/)?.[0] ?? '';
     const linkBlock = shellCss.match(/\.launchLink \{[^}]*\}/)?.[0] ?? '';
@@ -287,5 +287,222 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
     const scopeBlock =
       shellCss.match(/\.canvasScope \{[\s\S]*?\n\}/)?.[0] ?? '';
     expect(scopeBlock).toContain('--color-text-muted: var(--ink-dim)');
+  });
+
+  it('bridges every Mission Control TEXT alias to a contrast-safe mission text shade, never a fill (UNI-2769)', () => {
+    // Fills (#ff3b5c, #15803d, #a16207, #e5484d …) drop below 4.5:1 as text on the
+    // raised surfaces; the --mission-*-text shades clear it on every surface.
+    const bridge = deckCss.match(/\.missionTokens \{[\s\S]*?\n\}/)?.[0] ?? '';
+    const textAliases = [...bridge.matchAll(/(--(?:deck-[a-z]+-text|cc-signal-text|tile-[a-z]+-txt)):\s*([^;]+);/g)];
+    expect(textAliases.map(([, name]) => name).sort()).toEqual([
+      '--cc-signal-text',
+      '--deck-abort-text',
+      '--deck-amber-text',
+      '--deck-cyan-text',
+      '--tile-amber-txt',
+      '--tile-green-txt',
+      '--tile-red-txt',
+    ]);
+    for (const [, name, value] of textAliases) {
+      expect(`${name}: ${value}`).toMatch(/: var\(--mission-[a-z]+-text\)$/);
+    }
+    expect(deckCss).toContain('.missionTokens :is(.plink, .projectName) { color: var(--mission-blue-text); }');
+
+    // No Mission Control source sets a text colour straight from a fill token.
+    // Scans the whole `color:` value, so a fill in either branch of a ternary
+    // (`color: on ? 'var(--red-400)' : ...`) is caught; it stops at the next `key:`
+    // so a neighbouring `background: var(--deck-go)` is not blamed on `color`.
+    // Fills are caught as tokens (including the app-global --color-success/danger/accent
+    // aliases, which the mission scope bridges to fills) and as raw fill hexes (including
+    // the light canvas fills #16a34a / #ef4444, globals.css:300,311), in a
+    // fallback too: text falls back to --color-accent-text / --color-danger-text.
+    const fillAsText =
+      /(?<![-\w])color\s*:(?:(?!\w\s*:)[^;}\n])*?(?:var\(\s*--(?:mission-(?:blue|danger|attention|success)|deck-(?:cyan|go|amber|abort)|cc-signal|red-(?:400|500)|color-(?:success|danger|accent))\s*[,)]|#(?:ff3b5c|15803d|a16207|e5484d|16a34a|ef4444|2dbb57)\b)/i;
+    // Tailwind paints text through classes, not `color:`: an arbitrary text-[…] value
+    // carrying a fill token or fill hex, and the palette classes that ARE those fills
+    // (green-600 #16a34a, green-700 #15803d, red-500 #ef4444, yellow-700 #a16207).
+    const fillAsTailwindText =
+      /(?<![-\w:])text-(?:\[(?:var\(\s*--(?:mission-(?:blue|danger|attention|success)|deck-(?:cyan|go|amber|abort)|cc-signal|red-(?:400|500)|color-(?:success|danger|accent))\s*[,)]|#(?:ff3b5c|15803d|a16207|e5484d|16a34a|ef4444|2dbb57)\b)|(?:green-600|green-700|red-500|yellow-700)\b)/i;
+    // SVG <text> takes its colour from `fill`, so a fill there is fill-as-text too.
+    const fillAsSvgText =
+      /<text\b[^>]*\bfill=\{?["'`](?:var\(\s*--(?:mission-(?:blue|danger|attention|success)|deck-(?:cyan|go|amber|abort)|cc-signal|red-(?:400|500)|color-(?:success|danger|accent))\s*[,)]|#(?:ff3b5c|15803d|a16207|e5484d|16a34a|ef4444|2dbb57)\b)/i;
+    // A CSS custom property a component fills from a status colour (--accent, --rail,
+    // --swatch, --numbg, --led) is a fill channel: it may feed borders, rails and glows but
+    // never a text colour. Channels are discovered from the source, so a new one is
+    // covered; names that say text (fg, text, ink, muted) are the text channels.
+    const fillChannelRef = (names: string[]) =>
+      new RegExp(
+        `(?:(?<![-\\w])color\\s*:(?:(?!\\w\\s*:)[^;}\\n])*?|text-\\[|<text\\b[^>]*\\bfill=\\{?["'\`])var\\(\\s*--(?:${names.join('|')})\\s*[,)]`,
+      );
+    const walk = (root: string): string[] =>
+      readdirSync(root, { withFileTypes: true }).flatMap((e) => {
+        const p = join(root, e.name);
+        if (e.isDirectory()) return e.name === '__tests__' ? [] : walk(p);
+        return /\.(css|tsx|ts)$/.test(e.name) && !/\.test\./.test(e.name) ? [p] : [];
+      });
+    // Plus the two files outside those roots whose text shades this change also fixed.
+    const offenders = [dir, join(process.cwd(), 'src/components/command-centre')]
+      .flatMap(walk)
+      .concat(
+        ['src/components/founder/bookkeeper/tabs/AIAnalysisTab.tsx', 'src/components/layout/IdeaCapture.tsx'].map((p) =>
+          join(process.cwd(), p),
+        ),
+      )
+      .flatMap((file) =>
+        readFileSync(file, 'utf8')
+          .split('\n')
+          .map((line, i) => ({ file, line, n: i + 1 }))
+          .filter(({ line }) => fillAsText.test(line) || fillAsTailwindText.test(line) || fillAsSvgText.test(line)),
+      )
+      .map(({ file, n }) => `${relative(process.cwd(), file)}:${n}`);
+    expect(offenders).toEqual([]);
+
+    const swept = [dir, join(process.cwd(), 'src/components/command-centre')].flatMap(walk);
+    const sweptSrc = swept.map((f) => readFileSync(f, 'utf8')).join('\n');
+    const setChannels = [...sweptSrc.matchAll(/'--([a-z][a-z0-9-]*)'\s*:/g), ...sweptSrc.matchAll(/(?<![-\w])--(led)\s*:/g)].map((m) => m[1]);
+    const fillChannels = [...new Set(setChannels)].filter((n) => !/(?:fg|text|ink|muted|line(?:-soft)?)$/.test(n)).sort();
+    expect(fillChannels).toEqual(['accent', 'led', 'numbg', 'rail', 'swatch']);
+    const channelAsText = fillChannelRef(fillChannels);
+    const channelOffenders = swept.flatMap((file) =>
+      readFileSync(file, 'utf8')
+        .split('\n')
+        .map((line, i) => ({ line, at: `${relative(process.cwd(), file)}:${i + 1}` }))
+        .filter(({ line }) => channelAsText.test(line))
+        .map(({ at }) => at),
+    );
+    expect(channelOffenders).toEqual([]);
+
+    // Status dots are fills: the email tile's dot takes the fill token, its label the text shade.
+    const emailTile = readFileSync(
+      join(process.cwd(), 'src/components/command-centre/email-accounts/EmailAccountsTile.tsx'),
+      'utf8',
+    );
+    expect(emailTile).toContain("background: stateDot(p.state)");
+    expect(emailTile).toContain('color: stateColor(p.state)');
+    // Read each helper's own body: stateDot and stateColor share line shapes, so a whole-file
+    // match cannot tell which helper a colour belongs to.
+    const helper = (name: string) => emailTile.match(new RegExp(`function ${name}\\([\\s\\S]*?\\n\\}`))?.[0] ?? '';
+    expect(helper('stateDot')).toContain("if (state === 'connected') return 'var(--deck-go, #2dbb57)'");
+    expect(helper('stateColor')).toContain("if (state === 'connected') return 'var(--tile-green-txt, #15803d)'");
+    expect(helper('stateColor')).not.toMatch(/var\(--deck-(?:go|amber|abort)[,)]/);
+
+    const shellBridge = shellCss.match(/:global\(\[data-mission-control\]\) \.canvasScope \{[\s\S]*?\n\}/)?.[0] ?? '';
+    expect(shellBridge).toContain('--green-txt: var(--mission-success-text);');
+    expect(shellBridge).toContain('--amber-txt: var(--mission-attention-text);');
+  });
+
+  it('routes INDIRECT status text (a tone value later painted as color/fg) through the text shades (UNI-2769)', () => {
+    // The direct-pattern sweep above cannot see a fill token stored in a map or
+    // helper and painted as text later. These pin the consumers that did that.
+    const gatewayKit = readFileSync(join(dir, 'operator-gateway/_components.tsx'), 'utf8');
+    const gatewayView = readFileSync(join(dir, 'operator-gateway/OperatorGatewayView.tsx'), 'utf8');
+    const hermesView = readFileSync(join(dir, 'hermes-control-panel/HermesControlPanelView.tsx'), 'utf8');
+    const stageBoard = readFileSync(join(dir, 'StageBoardTile.tsx'), 'utf8');
+
+    // Operator gateway: Pill / StatCard value / group summary paint toneSwatch.fg as text.
+    expect(gatewayKit).not.toMatch(/fg: 'var\(--mission-(?:blue|danger|attention|success)\)'/);
+    for (const fg of ['success', 'danger', 'attention', 'blue']) {
+      expect(gatewayKit).toContain(`fg: 'var(--mission-${fg}-text)'`);
+    }
+    // StatCard's accent border takes the fill (rail), its value the text shade (fg).
+    expect(gatewayKit).toContain('borderLeft: `3px solid ${rail}`');
+    // theme.ok/warn/warnAlt/bad stay fills (borders, dots and glows elsewhere);
+    // every text use in the gateway goes through the *Text shades.
+    expect(gatewayKit).toContain("okText: 'var(--mission-success-text)'");
+    expect(gatewayKit).toContain("warnText: 'var(--mission-attention-text)'");
+    expect(gatewayKit).toContain("warnAltText: 'var(--mission-attention-text)'");
+    expect(gatewayKit).toContain("badText: 'var(--mission-danger-text)'");
+    // The fill keys are read from the theme object itself, so a fill key added later
+    // (or one missed here, as `info` was) is covered without editing this list.
+    const themeBlock = gatewayKit.slice(gatewayKit.indexOf('export const theme = {'), gatewayKit.indexOf('} as const'));
+    const themeFillKeys = [...themeBlock.matchAll(/^\s*(\w+): 'var\(--mission-(?:blue|danger|attention|success)\)'/gm)].map((m) => m[1]);
+    expect(themeFillKeys).toEqual(['ok', 'warn', 'warnAlt', 'bad', 'info']);
+    const themeFillAsText = new RegExp(`(?:color|fg)\\s*[:=]\\s*\\{?[^,}]*theme\\.(?:${themeFillKeys.join('|')})\\b`);
+    expect(gatewayKit + gatewayView).not.toMatch(themeFillAsText);
+    // toneSwatch.rail is the fill. Outside the swatch table, its only reader is the
+    // StatCard destructure feeding borderLeft, so any new reader turns this red.
+    const swatchEnd = gatewayKit.indexOf('\n}', gatewayKit.indexOf('const toneSwatch'));
+    const railReaders = (gatewayKit.slice(swatchEnd) + gatewayView)
+      .split('\n')
+      .filter((l) => /\brail\b/.test(l) && !/^\s*\/\//.test(l))
+      .map((l) => l.trim());
+    expect(railReaders).toEqual(['const { fg: accent, rail } = toneSwatch[tone]', 'borderLeft: `3px solid ${rail}`,']);
+
+    // Hermes control panel: okText and the risk badge text. Healthy text takes the success
+    // shade: --mission-blue is now the Pi-Dev-Ops signal red, which would read as an alarm.
+    expect(hermesView).toContain("const okText = 'var(--mission-success-text)'");
+    // "Credentials exposed: yes" is an alarm: it must not share the healthy colour.
+    expect(hermesView).toContain('color: view.credentialsExposed ? dangerText : okText');
+    expect(hermesView).toContain("const dangerText = 'var(--mission-danger-text)'");
+    expect(hermesView).toContain("none: ['rgba(45, 187, 87, 0.12)', 'var(--mission-success-text)',");
+    expect(hermesView).not.toMatch(/(?:okText =|none: \[)[^\n]*--mission-blue/);
+    expect(hermesView).toContain("low: ['rgba(244, 130, 15, 0.12)', 'var(--mission-attention-text)',");
+    expect(hermesView).toContain("high: ['rgba(229, 72, 77, 0.12)', 'var(--mission-attention-text)',");
+    expect(hermesView).not.toMatch(/\[[^\]]*'var\(--mission-(?:blue|danger|attention|success)\)'/);
+
+    // Stage board: the rail keeps the fill, the stage word takes the text shade.
+    expect(stageBoard).toContain("Research: 'var(--deck-cyan-text, #22d3ee)'");
+    expect(stageBoard).toContain('color: STAGE_TEXT[team.stage]');
+    expect(stageBoard).toContain('borderLeft: `3px solid ${STAGE_COLOUR[team.stage]}`');
+    const railMap = stageBoard.slice(stageBoard.indexOf('const STAGE_COLOUR'), stageBoard.indexOf('const STAGE_TEXT'));
+    const textMap = stageBoard.slice(stageBoard.indexOf('const STAGE_TEXT'), stageBoard.indexOf('const checkedAtStyle'));
+    expect(railMap).toContain("Develop: 'var(--deck-amber, #fb923c)'");
+    expect(railMap).toContain("Done: 'var(--deck-go, #34d399)'");
+    expect(railMap).not.toMatch(/-(?:txt|text)\b/);
+    expect(textMap).toContain("Develop: 'var(--tile-amber-txt, #fb923c)'");
+    expect(textMap).toContain("Done: 'var(--tile-green-txt, #34d399)'");
+    // Production is violet: the rail keeps #a78bfa, the word takes a violet text shade
+    // defined for both registers (#a78bfa is ~2.5:1 as text on daylight).
+    expect(textMap).toContain("Production: 'var(--tile-violet-txt, #c4b5fd)'");
+    expect(textMap).not.toContain('#a78bfa');
+    const deckTokens = readFileSync(join(dir, 'command-deck.module.css'), 'utf8');
+    expect(deckTokens).toContain('--tile-violet-txt: #c4b5fd;');
+    expect(deckTokens).toContain('--tile-violet-txt: #6d28d9;');
+    expect(stageBoard).not.toContain('color: STAGE_COLOUR[');
+
+    // Every other helper or map whose value is later painted as text: its whole body
+    // must hold no fill token or fill hex, and its consumer must still paint it as text.
+    const fill =
+      /var\(\s*--(?:mission-(?:blue|danger|attention|success)|deck-(?:cyan|go|amber|abort)|cc-signal|red-(?:400|500)|color-(?:success|danger|accent))\s*[,)]|#(?:ff3b5c|15803d|a16207|e5484d|16a34a|ef4444|2dbb57)\b/i;
+    const between = (src: string, from: string, to: string) => {
+      const start = src.indexOf(from);
+      expect(start, from).toBeGreaterThanOrEqual(0);
+      return src.slice(start, src.indexOf(to, start + from.length));
+    };
+    const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
+    const sixZone = read('src/app/(founder)/founder/command-centre/six-zone/SixZoneCanvas.tsx');
+    const sourceBadge = read('src/components/command-centre/SourceBadge.tsx');
+    const hermesPanel = read('src/components/command-centre/control-panel/HermesControlPanel.tsx');
+    const steps = read('src/app/(founder)/founder/command-centre/CommandSteps.tsx');
+    const ring = read('src/components/command-centre/email-accounts/EmailAccountsRing.tsx');
+    const textChannels: [string, string, string][] = [
+      ['SixZone STATE_COLOUR', between(sixZone, 'const STATE_COLOUR', '\n}'), 'color: STATE_COLOUR[signal.state]'],
+      ['SourceBadge textColorFor', between(sourceBadge, 'function textColorFor', '\n}'), 'const textColor = textColorFor(mode)'],
+      ['Hermes panel statusTextColor', between(hermesPanel, 'function statusTextColor', '\n}'), 'const textColor = statusTextColor(item.status, item.ryg)'],
+      ['CommandSteps numfg', [...steps.matchAll(/numfg: '[^']*'/g)].join('\n'), "'--numfg': s.numfg"],
+      ['EmailAccountsRing text', [...ring.matchAll(/text: '[^']*'/g)].join('\n'), 'color: s.text'],
+    ];
+    for (const [name, body, consumer] of textChannels) {
+      expect(body.length, name).toBeGreaterThan(0);
+      expect(body, name).not.toMatch(fill);
+    }
+    expect(sixZone).toContain(textChannels[0][2]);
+    expect(sourceBadge).toContain(textChannels[1][2]);
+    expect(hermesPanel).toContain(textChannels[2][2]);
+    // Pin the paint sites, not just the declarations: the label and the state readout
+    // must paint textColor, never the fill (dotColor / statusColor's `color`).
+    expect(sourceBadge).toContain('<span style={{ color: textColor }}>{MODE_LABEL[mode]}</span>');
+    expect(sourceBadge).not.toMatch(/color:\s*dotColor\b/);
+    expect(hermesPanel).toContain('<MetaLine label="state" value={stateLabel(item.status, item.ryg)} color={textColor} />');
+    expect(hermesPanel).not.toMatch(/MetaLine[^\n]*color=\{color\}/);
+    expect(steps).toContain(textChannels[3][2]);
+    expect(ring).toContain(textChannels[4][2]);
+    expect(read('src/app/(founder)/founder/command-centre/CommandSteps.module.css')).toContain('color: var(--numfg');
+    // WikiGraph canvas labels are text drawn with fillText: they take the ink tokens.
+    const wikiCanvas = read('src/components/command-centre/wiki-graph/WikiGraphCanvas.tsx');
+    expect(wikiCanvas).toContain("label: token('--mission-ink', DEFAULT_COLOURS.label)");
+    expect(wikiCanvas).toContain("labelDim: token('--mission-muted', DEFAULT_COLOURS.labelDim)");
+    expect(wikiCanvas).toContain('ctx!.fillStyle = hover && !isHover && !isNeighbour ? colours.labelDim : colours.label\n          ctx!.fillText(');
+    expect(between(wikiCanvas, 'const DEFAULT_COLOURS', '\n}').match(/\blabel(?:Dim)?: '[^']*'/g)?.join('\n') ?? '', 'wiki labels').not.toMatch(fill);
   });
 });

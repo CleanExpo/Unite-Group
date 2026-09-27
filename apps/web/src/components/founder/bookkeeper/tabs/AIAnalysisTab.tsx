@@ -173,7 +173,7 @@ export function AIAnalysisTab() {
     <div className="space-y-6 max-w-3xl">
       {/* Header */}
       <div className="flex items-center gap-2">
-        <Brain size={16} style={{ color: 'var(--mission-blue)' }} />
+        <Brain size={16} style={{ color: 'var(--mission-blue-text)' }} />
         <span className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--color-text-disabled)' }}>
           AI Financial Analysis
         </span>
@@ -249,7 +249,7 @@ export function AIAnalysisTab() {
 
       {/* Error */}
       {error && (
-        <p className="text-sm text-[var(--color-danger)]/80">{error}</p>
+        <p className="text-sm text-[var(--color-danger-text)]">{error}</p>
       )}
 
       {/* Direct mode results */}
@@ -278,7 +278,7 @@ export function AIAnalysisTab() {
               </button>
               {showSandbox && (
                 <pre className="mt-2 text-[12px] font-mono p-3 rounded-sm overflow-x-auto"
-                  style={{ background: 'var(--mission-raised)', color: sandboxResult.success ? 'var(--color-success)' : 'var(--color-danger)' }}>
+                  style={{ background: 'var(--mission-raised)', color: sandboxResult.success ? 'var(--tile-green-txt, var(--color-accent-text))' : 'var(--deck-abort-text, var(--color-danger-text))' }}>
                   {sandboxResult.output}
                 </pre>
               )}
@@ -314,8 +314,8 @@ export function AIAnalysisTab() {
             style={{ borderColor: 'color-mix(in srgb, var(--mission-blue) 20%, transparent)', background: 'var(--surface-card)' }}
           >
             <div className="flex items-center gap-2 mb-3">
-              <Brain size={13} style={{ color: 'color-mix(in srgb, var(--mission-blue) 60%, transparent)' }} />
-              <p className="text-[11px] uppercase tracking-widest" style={{ color: 'color-mix(in srgb, var(--mission-blue) 60%, transparent)' }}>
+              <Brain size={13} style={{ color: 'var(--mission-blue-text)' }} />
+              <p className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--mission-blue-text)' }}>
                 Strategic Advisory Brief
               </p>
             </div>

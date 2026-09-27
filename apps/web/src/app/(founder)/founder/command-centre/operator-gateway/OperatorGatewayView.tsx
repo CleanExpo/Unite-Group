@@ -127,15 +127,15 @@ export function OperatorGatewayView({ view, jobsView, jobEvents, agentConnection
             Live heartbeat from <code>operator_agent_presence</code> · status endpoint <code>/api/hermes/operator-gateway/status</code>
           </p>
           {agentConnection.state === 'connected' ? (
-            <p style={{ color: theme.ok, fontSize: 14, marginTop: 0 }}>
+            <p style={{ color: theme.okText, fontSize: 14, marginTop: 0 }}>
               Agent online — last heartbeat {agentConnection.freshestAgeSeconds}s ago.
             </p>
           ) : agentConnection.state === 'stale' ? (
-            <p style={{ color: theme.warn, fontSize: 14, marginTop: 0 }}>
+            <p style={{ color: theme.warnText, fontSize: 14, marginTop: 0 }}>
               Agent heartbeat is stale — last seen {agentConnection.freshestAgeSeconds}s ago. It may be paused or offline.
             </p>
           ) : (
-            <p style={{ color: theme.warnAlt, fontSize: 14, marginTop: 0 }}>
+            <p style={{ color: theme.warnAltText, fontSize: 14, marginTop: 0 }}>
               {agentConnection.source === 'not_provisioned'
                 ? 'Agent bridge not provisioned yet — presence table missing or unreachable.'
                 : 'No agent has checked in. Start the local Hermes runner to bring the bridge online.'}
@@ -178,7 +178,7 @@ export function OperatorGatewayView({ view, jobsView, jobEvents, agentConnection
         summary={`${view.runtimeTopology.nodeCount} nodes · ${view.runtimeTopology.activeNodeCount} active · ${view.runnerTelemetry.connectedMonitorCount}/${view.runnerTelemetry.monitorCount} monitors`}
       >
         <h3 style={{ fontSize: 16, marginTop: '1rem' }}>Mission Control Runtime Monitor · Multi-CLI topology</h3>
-        <p style={{ color: theme.ok, fontSize: 14 }}>
+        <p style={{ color: theme.okText, fontSize: 14 }}>
           Registry view only: Hermes, Codex, and skill execution are declared active. Claude Code, MiniMax, and Cursor remain install/login blocked until runtime telemetry proves otherwise.
         </p>
         <p style={{ color: theme.muted, fontSize: 13 }}>Status endpoint: <code>/api/hermes/operator-gateway/runtime-topology</code></p>
@@ -208,7 +208,7 @@ export function OperatorGatewayView({ view, jobsView, jobEvents, agentConnection
               <p style={{ margin: '0.35rem 0' }}><b>{node.tool}</b></p>
               <p style={{ color: theme.muted, fontSize: 13, margin: '0.35rem 0' }}>{node.planAllocation}</p>
               <p style={{ color: theme.muted, fontSize: 13, margin: '0.35rem 0' }}>{node.workspaceIsolation}</p>
-              <p style={{ color: node.status === 'active' ? theme.ok : theme.warnAlt, fontSize: 13, marginBottom: 0 }}>{node.nextAction}</p>
+              <p style={{ color: node.status === 'active' ? theme.okText : theme.warnAltText, fontSize: 13, marginBottom: 0 }}>{node.nextAction}</p>
             </div>
           ))}
         </div>
@@ -271,7 +271,7 @@ export function OperatorGatewayView({ view, jobsView, jobEvents, agentConnection
             <p>Local foundation endpoint: <code>{view.controlledLocalExecution.endpoint}</code></p>
             <p>Jobs visible: <b>{view.jobQueue.jobCount}</b></p>
             {view.jobQueue.source === 'sandbox_select' && view.jobQueue.jobCount === 0 ? (
-              <p style={{ color: theme.ok, fontSize: 13 }}>Sandbox connected empty state: no operator jobs recorded yet.</p>
+              <p style={{ color: theme.okText, fontSize: 13 }}>Sandbox connected empty state: no operator jobs recorded yet.</p>
             ) : null}
             <p style={{ color: theme.muted, fontSize: 13 }}>{view.jobQueue.note}</p>
           </Card>
@@ -287,8 +287,8 @@ export function OperatorGatewayView({ view, jobsView, jobEvents, agentConnection
         {/* Controlled real-local execution */}
         <Card aria-label="controlled real-local execution">
           <h3 style={{ fontSize: 16, marginTop: 0 }}>Controlled real-local execution · local_foundation_ready</h3>
-          <p style={{ color: theme.ok, fontSize: 14 }}>Controlled real-local execution design status is local_foundation_ready. The foundation validates policy, appends sandbox events, and can update sandbox job status, but dispatch remains disabled.</p>
-          <p style={{ color: theme.warnAlt, fontSize: 13 }}>Hard-gated actions refused: production DB, deploy, migrations, secrets/OP/1Password, API keys, external services, browser automation, Computer Use, email, payments, claims, orders, and public/client actions.</p>
+          <p style={{ color: theme.okText, fontSize: 14 }}>Controlled real-local execution design status is local_foundation_ready. The foundation validates policy, appends sandbox events, and can update sandbox job status, but dispatch remains disabled.</p>
+          <p style={{ color: theme.warnAltText, fontSize: 13 }}>Hard-gated actions refused: production DB, deploy, migrations, secrets/OP/1Password, API keys, external services, browser automation, Computer Use, email, payments, claims, orders, and public/client actions.</p>
           <p style={{ color: theme.muted, fontSize: 13 }}>active Hermes/Codex/skill-exec lanes: {view.controlledLocalExecution.activeLanes.join(', ')}</p>
           <p style={{ color: theme.muted, fontSize: 13 }}>pending Claude/MiniMax/Cursor lanes: {view.controlledLocalExecution.pendingLanes.join(', ')}</p>
           <StatusRow label="External execution enabled" value={view.controlledLocalExecution.externalExecutionEnabled} />
@@ -321,7 +321,7 @@ export function OperatorGatewayView({ view, jobsView, jobEvents, agentConnection
                   <td style={td}>
                     <b>{lane.displayName}</b>
                     <div style={{ color: theme.muted, fontSize: 12 }}>{lane.laneId} · {lane.tool}</div>
-                    <div style={{ color: theme.ok, fontSize: 12 }}>{lane.safetyLabel}</div>
+                    <div style={{ color: theme.okText, fontSize: 12 }}>{lane.safetyLabel}</div>
                   </td>
                   <td style={td}>{lane.authMode}</td>
                   <td style={td}><Pill tone={lane.status === 'active' ? 'ok' : 'warn'}>{lane.status}</Pill></td>
@@ -342,8 +342,8 @@ export function OperatorGatewayView({ view, jobsView, jobEvents, agentConnection
                 ? 'Create sandbox job · sandbox job creation enabled'
                 : 'Create sandbox job · currently disabled'}
             </h3>
-            <p style={{ color: view.jobSubmission.enabled ? theme.ok : theme.warnAlt, fontSize: 14 }}>{view.jobSubmission.disabledReason}</p>
-            <p style={{ color: theme.warnAlt, fontSize: 13 }}>
+            <p style={{ color: view.jobSubmission.enabled ? theme.okText : theme.warnAltText, fontSize: 14 }}>{view.jobSubmission.disabledReason}</p>
+            <p style={{ color: theme.warnAltText, fontSize: 13 }}>
               Hard-gate warning: production DB writes, deployment, API-key requests, payments, email, claims, orders, external execution, and live runner activation are refused.
             </p>
             <form method="post" action="/api/hermes/operator-gateway/jobs">
@@ -371,7 +371,7 @@ export function OperatorGatewayView({ view, jobsView, jobEvents, agentConnection
                 disabled={!view.jobSubmission.enabled}
                 style={{
                   ...inputStyle,
-                  color: theme.ok,
+                  color: theme.okText,
                   fontWeight: 700,
                   opacity: view.jobSubmission.enabled ? 1 : 0.6,
                   cursor: view.jobSubmission.enabled ? 'pointer' : 'not-allowed',
@@ -387,7 +387,7 @@ export function OperatorGatewayView({ view, jobsView, jobEvents, agentConnection
 
           <Card style={{ marginBottom: 0 }} aria-label="operator job queue">
             <h3 style={{ fontSize: 16, marginTop: 0 }}>Operator job queue · live (production)</h3>
-            <p style={{ color: theme.ok, fontSize: 13 }}>Read live from prod operator_jobs (founder-scoped). The agent claims queued jobs and runs SAFE lanes only (read-only diagnostics); hard-gated tasks are blocked with an event. The buttons below remain dry-run / policy-foundation only.</p>
+            <p style={{ color: theme.okText, fontSize: 13 }}>Read live from prod operator_jobs (founder-scoped). The agent claims queued jobs and runs SAFE lanes only (read-only diagnostics); hard-gated tasks are blocked with an event. The buttons below remain dry-run / policy-foundation only.</p>
             {jobsView?.jobs.length ? (
               <DeckDetails
                 title="Jobs"
@@ -398,7 +398,7 @@ export function OperatorGatewayView({ view, jobsView, jobEvents, agentConnection
               <div key={job.id} style={{ borderBottom: `1px solid ${theme.borderSoft}`, padding: '0.6rem 0' }}>
                 <div><b>{job.title}</b> <Pill tone="info">{job.status}</Pill></div>
                 <div style={{ color: theme.muted, fontSize: 13 }}>{job.laneId} · {job.taskType}</div>
-                <div style={{ color: theme.ok, fontSize: 12 }}>apiKeyRequested=false · externalExecution=false · liveRunner=false</div>
+                <div style={{ color: theme.okText, fontSize: 12 }}>apiKeyRequested=false · externalExecution=false · liveRunner=false</div>
                 <form method="post" action="/api/hermes/operator-gateway/jobs/dry-run" style={{ marginTop: '0.5rem' }}>
                   <input type="hidden" name="jobId" value={job.id} />
                   <input type="hidden" name="dryRunReason" value="Command Centre dry-run-only execution selected" />
@@ -410,7 +410,7 @@ export function OperatorGatewayView({ view, jobsView, jobEvents, agentConnection
                     disabled={!view.dryRunExecution.enabled || job.status !== 'planned' || job.externalActionRequested || job.productionActionRequested || job.apiKeyRequested}
                     style={{
                       ...inputStyle,
-                      color: theme.ok,
+                      color: theme.okText,
                       fontWeight: 700,
                       opacity: view.dryRunExecution.enabled && job.status === 'planned' ? 1 : 0.6,
                       cursor: view.dryRunExecution.enabled && job.status === 'planned' ? 'pointer' : 'not-allowed',
@@ -435,7 +435,7 @@ export function OperatorGatewayView({ view, jobsView, jobEvents, agentConnection
                     disabled={!view.controlledLocalExecution.enabled || job.status !== 'planned' || job.externalActionRequested || job.productionActionRequested || job.apiKeyRequested}
                     style={{
                       ...inputStyle,
-                      color: theme.ok,
+                      color: theme.okText,
                       fontWeight: 700,
                       opacity: view.controlledLocalExecution.enabled && job.status === 'planned' ? 1 : 0.6,
                       cursor: view.controlledLocalExecution.enabled && job.status === 'planned' ? 'pointer' : 'not-allowed',
@@ -499,7 +499,7 @@ export function OperatorGatewayView({ view, jobsView, jobEvents, agentConnection
         {/* Self-evolving skill mesh */}
         <Card aria-label="self-evolving skill mesh" style={{ marginTop: '1rem' }}>
           <h3 style={{ fontSize: 16, marginTop: 0 }}>Self-Evolving Skill Mesh</h3>
-          <p style={{ color: theme.ok, fontSize: 14 }}>
+          <p style={{ color: theme.okText, fontSize: 14 }}>
             Local foundation ready: baseline skill → feedback/evals → prompt candidate → gated promotion/rollback. Read-only status only; no live skill mutation.
           </p>
           <p style={{ color: theme.muted, fontSize: 13 }}>Source: <code>{view.skillEvolution.source}</code></p>
@@ -525,7 +525,7 @@ export function OperatorGatewayView({ view, jobsView, jobEvents, agentConnection
         {/* Compound engineering connectors */}
         <Card aria-label="compound engineering connectors">
           <h3 style={{ fontSize: 16, marginTop: 0 }}>Compound Engineering Connectors</h3>
-          <p style={{ color: theme.ok, fontSize: 14 }}>
+          <p style={{ color: theme.okText, fontSize: 14 }}>
             Matt Van Horn / Every pattern mapped into Unite-Group: setup, serial review, research scout, design studio, workflow loop, and 2nd-brain knowledge capture connectors.
           </p>
           <p style={{ color: theme.muted, fontSize: 13 }}>Source: <code>{view.compoundEngineering.source}</code></p>
@@ -551,12 +551,12 @@ export function OperatorGatewayView({ view, jobsView, jobEvents, agentConnection
           <Card style={{ marginBottom: 0 }}>
             <h3 style={{ fontSize: 16, marginTop: 0 }}>Specialised Skill Mesh</h3>
             <p style={{ color: theme.muted, fontSize: 13 }}>Source: <code>{view.skillMesh.source ?? 'not_connected'}</code></p>
-            <p style={{ color: theme.ok, fontSize: 14 }}>Available specialised skills: <b>{view.skillMesh.specializedSkillCount}</b></p>
-            <p style={{ color: theme.ok, fontSize: 14 }}>Business mission templates: <b>{view.skillMesh.businessMissionTemplateCount}</b></p>
+            <p style={{ color: theme.okText, fontSize: 14 }}>Available specialised skills: <b>{view.skillMesh.specializedSkillCount}</b></p>
+            <p style={{ color: theme.okText, fontSize: 14 }}>Business mission templates: <b>{view.skillMesh.businessMissionTemplateCount}</b></p>
             <p>Active lanes: <code>{view.skillMesh.activeLanes.join(', ')}</code></p>
             <p>Pending lanes: <code>{view.skillMesh.pendingLanes.join(', ')}</code></p>
             <p>Blocked lanes: <code>{view.skillMesh.blockedLanes.join(', ')}</code></p>
-            <p style={{ color: theme.warnAlt, fontSize: 13 }}>sandbox_voice_migration_blocked_op remains BLOCKED-OP until 1Password CLI authentication is green.</p>
+            <p style={{ color: theme.warnAltText, fontSize: 13 }}>sandbox_voice_migration_blocked_op remains BLOCKED-OP until 1Password CLI authentication is green.</p>
             <p style={{ color: theme.muted, fontSize: 13 }}>Status endpoint: <code>/api/hermes/operator-gateway/skill-mesh</code></p>
           </Card>
           <Card style={{ marginBottom: 0 }}>
@@ -584,7 +584,7 @@ export function OperatorGatewayView({ view, jobsView, jobEvents, agentConnection
         {/* Mobile voice intake */}
         <Card aria-label="mobile voice intake" style={{ marginTop: '1rem' }}>
           <h3 style={{ fontSize: 16, marginTop: 0 }}>Mobile Voice Intake · Plaud to 2nd brain</h3>
-          <p style={{ color: theme.ok, fontSize: 14 }}>
+          <p style={{ color: theme.okText, fontSize: 14 }}>
             Mobile-first capture is ready for Plaud transcripts, driving thoughts, podcast notes, audio-book ideas, and field conversations. Captures become Obsidian source notes, research prompts, and Board review packets before Hermes creates tasks.
           </p>
           <p style={{ color: theme.muted, fontSize: 13 }}>Status endpoint: <code>/api/hermes/operator-gateway/mobile-voice-intake</code></p>
@@ -631,7 +631,7 @@ export function OperatorGatewayView({ view, jobsView, jobEvents, agentConnection
         {/* Latest Next 20 compound moves */}
         <Card aria-label="latest mobile voice next 20 compound moves">
           <h3 style={{ fontSize: 16, marginTop: 0 }}>Latest Next 20 · 2nd-brain compound moves</h3>
-          <p style={{ color: view.latestMobileVoiceCompoundMoves.status === 'available' ? theme.ok : theme.warnAlt, fontSize: 14 }}>
+          <p style={{ color: view.latestMobileVoiceCompoundMoves.status === 'available' ? theme.okText : theme.warnAltText, fontSize: 14 }}>
             {view.latestMobileVoiceCompoundMoves.note}
           </p>
           <div style={grid}>
@@ -662,7 +662,7 @@ export function OperatorGatewayView({ view, jobsView, jobEvents, agentConnection
                     <Pill tone="info">{move.lane ?? 'move'}</Pill>
                   </div>
                   <p style={{ color: theme.muted, fontSize: 13, margin: '0.35rem 0' }}>{move.agent ?? 'unassigned agent'}</p>
-                  <p style={{ color: theme.warnAlt, fontSize: 12, marginBottom: 0 }}>Gate: <code>{move.stopGate ?? 'approval_required'}</code></p>
+                  <p style={{ color: theme.warnAltText, fontSize: 12, marginBottom: 0 }}>Gate: <code>{move.stopGate ?? 'approval_required'}</code></p>
                 </div>
               ))}
             </div>
@@ -684,7 +684,7 @@ export function OperatorGatewayView({ view, jobsView, jobEvents, agentConnection
         {/* Project definition-of-done coverage */}
         <Card aria-label="project definition of done coverage" style={{ marginTop: '1rem' }}>
           <h3 style={{ fontSize: 16, marginTop: 0 }}>Project Definition of Done Engine · Project coverage</h3>
-          <p style={{ color: theme.ok, fontSize: 14 }}>
+          <p style={{ color: theme.okText, fontSize: 14 }}>
             false-done prevention active: project done is only green when authoritative DoD coverage passes threshold and hard gates are closed.
           </p>
           <p style={{ color: theme.muted, fontSize: 13 }}>Status endpoint: <code>/api/hermes/operator-gateway/project-coverage</code></p>
@@ -703,7 +703,7 @@ export function OperatorGatewayView({ view, jobsView, jobEvents, agentConnection
                 <h4 style={{ fontSize: 15, marginTop: 0 }}>{project.projectName}</h4>
                 <p>Coverage: <b>{project.coveragePercent}%</b> · project done: <Pill tone={project.projectDone ? 'ok' : 'bad'}>{project.projectDone ? 'yes' : 'no'}</Pill></p>
                 <p>missing requirements: <b>{project.missingRequirements.length}</b> · hard-gate failures: <b>{project.failedHardGateCount}</b></p>
-                <p style={{ color: project.projectDone ? theme.ok : theme.warnAlt, fontSize: 12 }}>{project.judgementStatus}</p>
+                <p style={{ color: project.projectDone ? theme.okText : theme.warnAltText, fontSize: 12 }}>{project.judgementStatus}</p>
               </div>
             ))}
           </div>
@@ -718,7 +718,7 @@ export function OperatorGatewayView({ view, jobsView, jobEvents, agentConnection
         {/* Board decision mathematics engine */}
         <Card aria-label="board decision mathematics engine">
           <h3 style={{ fontSize: 16, marginTop: 0 }}>Board Decision Mathematics Engine</h3>
-          <p style={{ color: theme.ok, fontSize: 14 }}>
+          <p style={{ color: theme.okText, fontSize: 14 }}>
             Deterministic local decision layer: Expected value + Verification + retry + calibration + coverage target, with irreversible hard gates always escalated.
           </p>
           <p style={{ color: theme.muted, fontSize: 13 }}>Status endpoint: <code>/api/hermes/operator-gateway/command-centre</code></p>
@@ -738,7 +738,7 @@ export function OperatorGatewayView({ view, jobsView, jobEvents, agentConnection
             <StatusRow label="market launch action disabled" value={view.boardDecisionPanel.engine.marketLaunchActionDisabled} safeWhenFalse={false} />
             <StatusRow label="External execution enabled" value={view.boardDecisionPanel.engine.externalExecutionEnabled} />
           </div>
-          <p style={{ color: theme.warnAlt, fontSize: 13 }}>
+          <p style={{ color: theme.warnAltText, fontSize: 13 }}>
             EV is never permission to deploy, charge, publish, email, mutate production, or override BLOCKED-OP. Human approval remains mandatory for irreversible moves.
           </p>
         </Card>
@@ -758,7 +758,7 @@ export function OperatorGatewayView({ view, jobsView, jobEvents, agentConnection
       >
         <Card aria-label="safety status flags" style={{ marginTop: '1rem' }}>
           <h3 style={{ fontSize: 16, marginTop: 0 }}>Safety status</h3>
-          <p style={{ color: safetyAllGreen ? theme.ok : theme.bad, fontSize: 14, marginTop: 0 }}>
+          <p style={{ color: safetyAllGreen ? theme.okText : theme.badText, fontSize: 14, marginTop: 0 }}>
             {safetyAllGreen
               ? `all gates green ✓ — ${safetyFlags.length} safety flags all safe`
               : `${safetyIssueCount} of ${safetyFlags.length} safety flags require attention`}

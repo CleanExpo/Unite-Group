@@ -690,11 +690,11 @@ function SessionsView({
 }
 
 const RISK_RAIL: Record<string, string> = {
-  low: '#34d399',
+  low: 'var(--deck-go, #34d399)',
   medium: '#fbbf24',
-  high: '#fb923c',
-  critical: '#f87171',
+  high: 'var(--deck-amber, #fb923c)',
+  critical: 'var(--deck-abort, #f87171)',
 }
 function riskRail(risk: string): string {
-  return RISK_RAIL[risk] ?? '#6f879b'
+  return RISK_RAIL[risk] ?? 'var(--tile-ink-hush, #6f879b)'
 }

@@ -122,15 +122,15 @@
   height: 8px;
   border-radius: 50%;
   background: #6f879b;
-  box-shadow: 0 0 6px currentColor;
+  box-shadow: 0 0 6px var(--led, currentColor);
 }
-.led[data-status='proposed'] { background: #16a34a; color: #16a34a; }
-.led[data-status='awaiting_approval'] { background: #fbbf24; color: #fbbf24; }
-.led[data-status='queued'] { background: #34d399; color: #34d399; }
-.led[data-status='running'] { background: #60a5fa; color: #60a5fa; animation: pulse 1.4s ease-in-out infinite; }
-.led[data-status='blocked'] { background: #fb923c; color: #fb923c; }
-.led[data-status='done'] { background: #2f6f53; color: #2f6f53; }
-.led[data-status='failed'] { background: #f87171; color: #f87171; }
+.led[data-status='proposed'] { background: #16a34a; --led: #16a34a; }
+.led[data-status='awaiting_approval'] { background: #fbbf24; --led: #fbbf24; }
+.led[data-status='queued'] { background: #34d399; --led: #34d399; }
+.led[data-status='running'] { background: #60a5fa; --led: #60a5fa; animation: pulse 1.4s ease-in-out infinite; }
+.led[data-status='blocked'] { background: #fb923c; --led: #fb923c; }
+.led[data-status='done'] { background: #2f6f53; --led: #2f6f53; }
+.led[data-status='failed'] { background: #f87171; --led: #f87171; }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
@@ -388,14 +388,15 @@
 :global(.cc-daylight) .groupName { color: #16181d; }
 :global(.cc-daylight) .groupCount { color: #6b7280; }
 
-/* The queue is the same workspace in either Mission Control theme. */
+/* The queue is the same workspace in either Mission Control theme. Text takes the
+   contrast-safe --mission-*-text shades; fills keep the exact palette (UNI-2769). */
 :global([data-mission-control]) :is(.count, .liveLabel, .placeholder, .groupCount, .rowMeta, .tag, .valMuted, .gateChip) { color: var(--mission-muted); }
 :global([data-mission-control]) :is(.groupName, .rowTitle) { color: var(--mission-ink); }
 :global([data-mission-control]) :is(.row, .valPanel, .sessPanel) { background: var(--mission-raised); border-color: var(--mission-border); border-radius: 3px; }
-:global([data-mission-control]) :is(.refresh, .valToggle, .defer) { color: var(--mission-blue); background: var(--mission-surface); border-color: var(--mission-border); border-radius: 3px; }
-:global([data-mission-control]) :is(.error, .valError, .reject, .tag[data-risk='critical'], .gateChip[data-state='fail']) { color: var(--mission-danger); }
-:global([data-mission-control]) :is(.tag[data-risk='high'], .gateChip[data-state='pending'], .gateChip[data-state='skip'], .completeBadge[data-ok='false']) { color: var(--mission-attention); }
-:global([data-mission-control]) .gateChip[data-state='pass'] { color: var(--mission-success); }
+:global([data-mission-control]) :is(.refresh, .valToggle, .defer) { color: var(--mission-blue-text); background: var(--mission-surface); border-color: var(--mission-border); border-radius: 3px; }
+:global([data-mission-control]) :is(.error, .valError, .reject, .tag[data-risk='critical'], .gateChip[data-state='fail']) { color: var(--mission-danger-text); }
+:global([data-mission-control]) :is(.tag[data-risk='high'], .gateChip[data-state='pending'], .gateChip[data-state='skip'], .completeBadge[data-ok='false']) { color: var(--mission-attention-text); }
+:global([data-mission-control]) .gateChip[data-state='pass'] { color: var(--mission-success-text); }
 :global([data-mission-control]) .toolbar { flex-wrap: wrap; }
 :global([data-mission-control]) .rowTop { flex-wrap: wrap; }
 :global([data-mission-control]) .toolbarRight { flex-wrap: wrap; min-width: 0; }

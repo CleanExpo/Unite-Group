@@ -1,15 +1,23 @@
+/* Mission tokens: Pi-Dev-Ops sign-in palette, from CleanExpo/Pi-Dev-Ops
+ * dashboard/app/globals.css (fetched 25/09/2026), UNI-2769. Names kept, values
+ * mapped by role; --mission-blue is the action colour (now candy red / orange). */
 .shell, .missionTheme {
-  --mission-canvas: #171a1f;
-  --mission-surface: #22262d;
-  --mission-raised: #292e37;
-  --mission-border: #434b57;
-  --mission-ink: #f2f5f8;
-  --mission-muted: #b3becd;
-  --mission-blue: #8ab8ff;
-  --mission-blue-ink: #13253f;
-  --mission-attention: #f1c58b;
-  --mission-success: #82d4ac;
-  --mission-danger: #ff9b9b;
+  --mission-canvas: #0e1014;
+  --mission-surface: #191e26;
+  --mission-raised: #232934;
+  --mission-border: #2e3542;
+  --mission-ink: #f4f5f7;
+  --mission-muted: #a7adba;
+  --mission-blue: #ff3b5c;
+  --mission-blue-ink: #0e1014;
+  --mission-attention: #ff8a1f;
+  --mission-success: #00d97e;
+  --mission-danger: #e5484d;
+  /* Text shades: same hue, >= 4.5:1 on --mission-raised (lead ruling, UNI-2769). */
+  --mission-blue-text: #ff5c77;
+  --mission-attention-text: #ff8a1f;
+  --mission-success-text: #00d97e;
+  --mission-danger-text: #f87171;
 }
 .shell {
   min-height: 100%;
@@ -18,17 +26,21 @@
   padding: 28px clamp(18px, 3vw, 48px) 80px;
 }
 .shell:global(.cc-daylight), .missionTheme.missionDaylight {
-  --mission-canvas: #f5f7fa;
-  --mission-surface: #fff;
-  --mission-raised: #edf1f6;
-  --mission-border: #c5ceda;
-  --mission-ink: #182331;
-  --mission-muted: #516174;
-  --mission-blue: #315eab;
-  --mission-blue-ink: #fff;
-  --mission-attention: #865309;
-  --mission-success: #226b45;
-  --mission-danger: #a52c35;
+  --mission-canvas: #f5f6f8;
+  --mission-surface: #f4f4f5;
+  --mission-raised: #e4e4e7;
+  --mission-border: #d4d4d8;
+  --mission-ink: #09090b;
+  --mission-muted: #52525b;
+  --mission-blue: #c2410c;
+  --mission-blue-ink: #ffffff;
+  --mission-attention: #a16207;
+  --mission-success: #15803d;
+  --mission-danger: #b91c1c;
+  --mission-blue-text: #9a3412;
+  --mission-attention-text: #854d0e;
+  --mission-success-text: #166534;
+  --mission-danger-text: #b91c1c;
 }
 .shell, .shell:global(.cc-daylight), .missionTheme, .missionTheme.missionDaylight {
   --surface-canvas: var(--mission-canvas);
@@ -42,7 +54,7 @@
   --color-text-muted: var(--mission-muted);
   --color-text-disabled: var(--mission-muted);
   --color-accent: var(--mission-blue);
-  --color-accent-text: var(--mission-blue);
+  --color-accent-text: var(--mission-blue-text);
   --color-success: var(--mission-success);
   --color-danger: var(--mission-danger);
   font-family: var(--font-inter), system-ui, sans-serif;
@@ -62,7 +74,7 @@
 .workspaceChrome [data-topbar-actions] > button { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--mission-muted); border: 1px solid var(--mission-border); background: transparent; padding: 6px 10px; }
 .workspaceNav { display: flex; flex-wrap: wrap; gap: 4px 8px; padding: 12px 0 16px; border-top: 1px solid var(--mission-border); border-bottom: 1px solid var(--mission-border); margin-bottom: 20px; }
 .workspaceNav a { color: var(--mission-muted); font-size: 13px; text-decoration: none; padding: 7px 10px; min-height: 36px; border: 1px solid transparent; border-radius: 3px; }
-.workspaceNav a:hover, .workspaceNav a[aria-current="page"] { color: var(--mission-blue); border-color: var(--mission-border); background: var(--mission-raised); }
+.workspaceNav a:hover, .workspaceNav a[aria-current="page"] { color: var(--mission-blue-text); border-color: var(--mission-border); background: var(--mission-raised); }
 .workspaceHeading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 18px; margin: 26px 0; }
 .workspaceHeading h1 { font-family: var(--font-syne), sans-serif; font-size: clamp(27px, 2.6vw, 36px); line-height: 1.15; font-weight: 650; letter-spacing: -.035em; margin: 0; }
 .workspaceHeading p { color: var(--mission-muted); max-width: 72ch; margin: 10px 0 0; }
@@ -78,14 +90,14 @@
 .founderDesk button { cursor: pointer; }
 .founderDesk button:disabled { opacity: .55; cursor: wait; }
 .founderDesk :is(button, a, textarea, select, input, summary):focus-visible, .shell summary:focus-visible { outline: 3px solid var(--mission-blue); outline-offset: 4px; }
-.founderDesk a { color: var(--mission-blue); text-underline-offset: 3px; }
+.founderDesk a { color: var(--mission-blue-text); text-underline-offset: 3px; }
 .deskHeader { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 18px 0 20px; }
 .deskHeader p { color: var(--mission-muted); margin-top: 8px; }
 .deskHeader > div { max-width: 820px; }
 .primaryButton, .secondaryButton, .textButton { border-radius: 3px; padding: 12px 18px; font-weight: 600 !important; border: 1px solid transparent; white-space: nowrap; min-height: 44px; }
 .primaryButton { background: var(--mission-blue); color: var(--mission-blue-ink); }
 .secondaryButton { border-color: var(--mission-border); background: transparent; color: var(--mission-ink); }
-.textButton { color: var(--mission-blue); padding: 6px 10px; background: transparent; }
+.textButton { color: var(--mission-blue-text); padding: 6px 10px; background: transparent; }
 .composerGrid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(280px, 1fr); border: 1px solid var(--mission-border); border-radius: 4px; overflow: hidden; background: var(--mission-surface); }
 .composerGrid[data-has-draft="false"] { grid-template-columns: 1fr; }
 .composerGrid[data-has-draft="false"] .composer { padding: 22px 26px; }
@@ -94,7 +106,7 @@
 .composer { min-width: 0; padding: clamp(20px, 2vw, 28px); }
 .margotHeading { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 16px; }
 .margotHeading p { margin-top: 8px; color: var(--mission-muted); font-size: 14px; }
-.margotMark { display: grid; place-items: center; width: 42px; height: 42px; flex: 0 0 42px; border: 1px solid var(--mission-blue); color: var(--mission-blue); font-family: var(--font-syne), sans-serif; font-size: 25px; border-radius: 3px; }
+.margotMark { display: grid; place-items: center; width: 42px; height: 42px; flex: 0 0 42px; border: 1px solid var(--mission-blue); color: var(--mission-blue-text); font-family: var(--font-syne), sans-serif; font-size: 25px; border-radius: 3px; }
 .fieldLabel { display: block; margin-bottom: 8px; font-weight: 600; }
 .ideaInput { width: 100%; min-height: 110px; resize: vertical; background: var(--mission-canvas); color: var(--mission-ink); border: 1px solid var(--mission-border); border-radius: 3px; padding: 16px; line-height: 1.65; }
 .ideaInput::placeholder { color: var(--mission-muted); opacity: .9; }
@@ -123,8 +135,8 @@
 .requirements li { margin: 8px 0; overflow-wrap: anywhere; }
 .draftSpec .requirements { font-size: 14px; }
 .status { display: inline-flex; align-items: center; width: fit-content; border: 1px solid var(--mission-border); border-radius: 3px; padding: 3px 8px; font-size: 12px; color: var(--mission-muted); }
-.status[data-stage="ready_for_review"], .status[data-stage="needs_clarification"] { color: var(--mission-blue); border-color: var(--mission-blue); }
-.status[data-stage="failed"], .status[data-stage="release_blocked"] { color: var(--mission-attention); }
+.status[data-stage="ready_for_review"], .status[data-stage="needs_clarification"] { color: var(--mission-blue-text); border-color: var(--mission-blue); }
+.status[data-stage="failed"], .status[data-stage="release_blocked"] { color: var(--mission-attention-text); }
 .missionWorkspace { display: grid; grid-template-columns: minmax(240px, 320px) minmax(0, 1fr); gap: 24px; margin-top: 32px; align-items: start; }
 .missionList { min-width: 0; }
 .missionWorkspace[data-selected="false"] { grid-template-columns: 1fr; }
@@ -148,7 +160,7 @@
 .nextAction strong { font-size: 13px; }
 .nextActionHeading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; }
 .nextActionHeading span { color: var(--mission-muted); font-size: 13px; }
-.nextActionHeading b { color: var(--mission-blue); }
+.nextActionHeading b { color: var(--mission-blue-text); }
 .reviewSpec { margin: 24px 0; }
 .checklist { list-style: none; padding: 0; margin: 12px 0 20px; }
 .checklist li { display: flex; align-items: baseline; gap: 10px; margin: 9px 0; }
@@ -164,11 +176,11 @@
 .roleList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 18px; }
 .role { display: flex; flex-direction: column; gap: 5px; padding-left: 12px; border-left: 1px solid var(--mission-border); }
 .role span { font-size: 13px; color: var(--mission-muted); }
-.role small { font-size: 11px; color: var(--mission-blue); }
-.blockers { margin: 24px 0; color: var(--mission-attention); }
+.role small { font-size: 11px; color: var(--mission-blue-text); }
+.blockers { margin: 24px 0; color: var(--mission-attention-text); }
 .blockers ul { padding-left: 20px; font-size: 13px; }
 .blockers li { margin: 6px 0; }
-.error { border: 1px solid var(--mission-attention); padding: 14px 16px; margin-bottom: 18px; color: var(--mission-attention); border-radius: 3px; overflow-wrap: anywhere; }
+.error { border: 1px solid var(--mission-attention); padding: 14px 16px; margin-bottom: 18px; color: var(--mission-attention-text); border-radius: 3px; overflow-wrap: anywhere; }
 .error p { font-size: 13px; margin-top: 8px; }
 .empty, .selectionHint { padding: 24px; border: 1px dashed var(--mission-border); color: var(--mission-muted); font-size: 14px; }
 .selectionHint { padding: 40px; }
@@ -179,7 +191,7 @@
 .answerField textarea { display: block; width: 100%; min-height: 88px; resize: vertical; border: 1px solid var(--mission-border); border-radius: 3px; padding: 12px; color: var(--mission-ink); background: var(--mission-canvas); }
 .viewSwitch { display: flex; gap: 8px; align-items: center; margin: 22px 0 0; }
 .viewSwitch button { padding: 9px 16px; border: 1px solid var(--mission-border); border-radius: 3px; background: transparent; color: var(--mission-muted); min-height: 44px; }
-.viewSwitch button[aria-pressed="true"] { background: var(--mission-raised); color: var(--mission-blue); border-color: var(--mission-blue); }
+.viewSwitch button[aria-pressed="true"] { background: var(--mission-raised); color: var(--mission-blue-text); border-color: var(--mission-blue); }
 .floor { margin-top: 24px; }
 .floorGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-bottom: 24px; }
 .floorLane { min-width: 0; border-top: 2px solid var(--mission-border); padding-top: 14px; }
@@ -188,19 +200,19 @@
 .portfolioSummary { max-width: 1480px; margin: 28px auto 0; padding-top: 20px; border-top: 1px solid var(--mission-border); color: var(--mission-muted); font-size: 14px; }
 .portfolioSummary summary { cursor: pointer; padding: 10px 0; }
 .portfolioSummary p { margin: 12px 0; }
-.portfolioSummary a { color: var(--mission-blue); }
+.portfolioSummary a { color: var(--mission-blue-text); }
 .observations { border-top: 1px solid var(--mission-border); padding: 22px 0; }
 .repositoryTrigger { width: 100%; min-height: 44px; display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 10px 12px; text-align: left; border: 1px solid var(--mission-border); border-radius: 3px; color: var(--mission-ink); background: var(--mission-canvas); }
 .repositoryTrigger span:first-child { overflow-wrap: anywhere; min-width: 0; }
 .founderDesk .repositoryHint { color: var(--mission-muted); font-size: 12px; margin: 8px 0; overflow-wrap: anywhere; }
 .repositoryPanel { margin-top: 10px; padding: 14px; border: 1px solid var(--mission-border); border-radius: 3px; background: var(--mission-canvas); }
 .repositoryPanel input { width: 100%; min-height: 44px; padding: 9px 10px; border: 1px solid var(--mission-border); border-radius: 3px; color: var(--mission-ink); background: var(--mission-surface); }
-.textButton { padding: 4px 0 12px; color: var(--mission-blue); background: transparent; border: 0; text-align: left; }
+.textButton { padding: 4px 0 12px; color: var(--mission-blue-text); background: transparent; border: 0; text-align: left; }
 .repositoryList { list-style: none; padding: 0; margin: 12px 0; max-height: 260px; overflow-y: auto; overscroll-behavior: contain; }
 .repositoryList button { width: 100%; min-height: 52px; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; padding: 10px; border: 1px solid transparent; border-bottom-color: var(--mission-border); background: transparent; color: var(--mission-ink); overflow-wrap: anywhere; }
 .repositoryList button:hover, .repositoryList button[aria-pressed="true"] { background: var(--mission-raised); border-color: var(--mission-blue); }
 .repositoryList small { color: var(--mission-muted); font-size: 11px; }
-.repositoryError { color: var(--mission-attention); font-size: 13px; margin: 12px 0; }
+.repositoryError { color: var(--mission-attention-text); font-size: 13px; margin: 12px 0; }
 .repositoryError p { margin-bottom: 10px; overflow-wrap: anywhere; }
 .registeredProjects { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--mission-border); }
 .observationGrid { margin-top: 18px; font-size: 13px; }

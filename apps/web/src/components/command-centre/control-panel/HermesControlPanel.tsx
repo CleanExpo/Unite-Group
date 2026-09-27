@@ -46,7 +46,8 @@ const RYG_LABELS: Record<ControlRyg, string> = {
 
 // Fill/border variant — bright signal, used for dots, LEDs and borders.
 function statusColor(status: ControlStatus, ryg?: ControlRyg) {
-  if (ryg === 'red' || status === 'gated') return 'var(--cc-signal)'
+  if (ryg === 'red') return 'var(--deck-abort)'
+  if (status === 'gated') return 'var(--cc-signal)'
   if (status === 'live') return 'var(--cc-ink)'
   if (status === 'building') return 'var(--cc-ink-dim)'
   return 'var(--cc-ink-hush)'
@@ -55,7 +56,8 @@ function statusColor(status: ControlStatus, ryg?: ControlRyg) {
 // Text variant — AA-safe darkened signal, used wherever the status colour
 // paints text content.
 function statusTextColor(status: ControlStatus, ryg?: ControlRyg) {
-  if (ryg === 'red' || status === 'gated') return 'var(--cc-signal-text)'
+  if (ryg === 'red') return 'var(--deck-abort-text)'
+  if (status === 'gated') return 'var(--cc-signal-text)'
   if (status === 'live') return 'var(--cc-ink)'
   if (status === 'building') return 'var(--cc-ink-dim)'
   return 'var(--cc-ink-hush)'
