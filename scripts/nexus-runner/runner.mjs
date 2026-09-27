@@ -329,7 +329,7 @@ function observeVerification(c) {
   }
   return {
     checkRuns: Array.isArray(runs?.check_runs)
-      ? runs.check_runs.map((run) => ({ name: run.name, status: run.status, conclusion: run.conclusion }))
+      ? runs.check_runs.map((run) => ({ name: run.name, headSha: run.head_sha, status: run.status, conclusion: run.conclusion }))
       : null,
     review,
   }

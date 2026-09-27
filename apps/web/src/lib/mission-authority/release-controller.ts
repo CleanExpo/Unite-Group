@@ -133,7 +133,7 @@ export function deriveGates(evidence: ReleaseEvidence): Record<string, boolean> 
     no_unresolved_p0_p1:
       exact && evidence.reviewedSha === sha && Array.isArray(severities) && !severities.some((level) => /^P[01]$/i.test(level)),
     no_auth_security_credential_change: paths.length > 0 && protectedPathHits(paths).length === 0,
-    no_destructive_migration: paths.length > 0 && !paths.some((path) => path.includes('/migrations/')),
+    no_destructive_migration: paths.length > 0 && !paths.some((path) => path.toLowerCase().split('/').includes('migrations')),
     no_new_spend: exact && evidence.spend?.sha === sha && evidence.spend.newCosts.length === 0,
     rollback_proven: exact && atSha(evidence.rollbackReceipt, sha),
     post_release_verification_defined: exact && atSha(evidence.postReleaseVerification, sha),

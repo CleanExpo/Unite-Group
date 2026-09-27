@@ -27,7 +27,7 @@ const withReceipts = (c, receipts) => [...(Array.isArray(c.receipts) ? c.receipt
 
 /**
  * @param {object} c the stored continuation (updated_at is carried through untouched)
- * @param {{ checkRuns: Array<{name: string, status: string, conclusion: string|null}> | null,
+ * @param {{ checkRuns: Array<{name: string, headSha: string, status: string, conclusion: string|null}> | null,
  *           review: { head_sha: string, verdict: string } | null }} observed
  * @param {string} at ISO timestamp for any receipt written
  * @returns {{ changed: boolean, reason: string, continuation: object }}
@@ -39,7 +39,11 @@ export function wake(c, observed, at) {
   // A review for any other SHA says nothing about this candidate.
   const review = observed?.review && observed.review.head_sha === sha ? observed.review : null
 
-  const failedRuns = (runs ?? []).filter((run) => run.status === 'completed' && FAILED_CONCLUSIONS.has(run.conclusion))
+  // Only a run GitHub reports on this candidate speaks for it: a result for another
+  // commit, or one naming no commit, neither fails nor passes this SHA.
+  const failedRuns = (runs ?? []).filter(
+    (run) => run.headSha === sha && run.status === 'completed' && FAILED_CONCLUSIONS.has(run.conclusion),
+  )
   if (failedRuns.length || review?.verdict === 'FAIL') {
     const receipt = failedRuns.length
       ? { kind: 'ci_failed', ref: failedRuns.map((run) => run.name).join(', ').slice(0, 512) || 'check run', sha, at }
@@ -57,7 +61,8 @@ export function wake(c, observed, at) {
     }
   }
 
-  const ciGreen = !!runs && runs.length > 0 && runs.every((run) => run.status === 'completed' && run.conclusion === 'success')
+  const ciGreen =
+    !!runs && runs.length > 0 && runs.every((run) => run.headSha === sha && run.status === 'completed' && run.conclusion === 'success')
   if (ciGreen && review?.verdict === 'PASS') {
     return {
       changed: true,

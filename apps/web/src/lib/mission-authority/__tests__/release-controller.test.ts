@@ -78,6 +78,9 @@ describe('release controller — gates are derived from evidence', () => {
     ['post-release check for another SHA', { postReleaseVerification: { sha: 'd'.repeat(40), ref: 'receipt for another commit' } }, ['post_release_verification_defined']],
     ['infrastructure receipt for another SHA', { infrastructureReceipt: { sha: 'd'.repeat(40), ref: 'receipt for another commit' } }, ['infrastructure_semantics_match']],
     ['no changed paths collected', { changedPaths: [] }, ['no_auth_security_credential_change', 'no_destructive_migration']],
+    ['a migration directory in another case', { changedPaths: ['apps/empire/supabase/Migrations/20260101_drop.sql'] }, ['no_destructive_migration']],
+    ['a migration directory at the repo root', { changedPaths: ['migrations/foo.sql'] }, ['no_destructive_migration']],
+    ['an upper-case migration directory', { changedPaths: ['FOO/MIGRATIONS/bar.sql'] }, ['no_destructive_migration']],
     ['a migration in the diff', { changedPaths: ['apps/web/supabase/migrations/2026_x.sql'] }, ['no_destructive_migration', 'no_auth_security_credential_change']],
   ] as const)('%s → that gate fails and the release escalates', (_label, override, failing) => {
     const gates = deriveGates(evidence(override as Partial<ReleaseEvidence>))

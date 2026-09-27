@@ -12,12 +12,12 @@ const waiting = {
   status: 'active', candidate_sha: SHA, last_verified_sha: null, next_action: 'test', blocked_reason: null,
   attempt_count: 1, receipts: [], updated_at: '2026-09-27T02:00:00.000Z',
 }
-const green = [{ name: 'test', status: 'completed', conclusion: 'success' }, { name: 'lint', status: 'completed', conclusion: 'success' }]
+const green = [{ name: 'test', headSha: SHA, status: 'completed', conclusion: 'success' }, { name: 'lint', headSha: SHA, status: 'completed', conclusion: 'success' }]
 const pass = { head_sha: SHA, verdict: 'PASS' }
 
 describe('wake', () => {
   it('sends a failed check run to repair, counting the attempt and recording which check', () => {
-    const out = wake(waiting, { checkRuns: [green[0], { name: 'lint', status: 'completed', conclusion: 'failure' }], review: pass }, AT)
+    const out = wake(waiting, { checkRuns: [green[0], { name: 'lint', headSha: SHA, status: 'completed', conclusion: 'failure' }], review: pass }, AT)
     expect(out.changed).toBe(true)
     expect(out.continuation).toMatchObject({ next_action: 'repair', attempt_count: 2, phase: 'BUILD_CONTINUE' })
     expect(out.continuation.receipts.at(-1)).toEqual({ kind: 'ci_failed', ref: 'lint', sha: SHA, at: AT })
@@ -37,10 +37,14 @@ describe('wake', () => {
   it.each([
     ['check runs unreadable', { checkRuns: null, review: pass }],
     ['no check runs at all', { checkRuns: [], review: pass }],
-    ['a check still running', { checkRuns: [{ name: 'test', status: 'in_progress', conclusion: null }], review: pass }],
-    ['a skipped check', { checkRuns: [{ name: 'test', status: 'completed', conclusion: 'skipped' }], review: pass }],
+    ['a check still running', { checkRuns: [{ name: 'test', headSha: SHA, status: 'in_progress', conclusion: null }], review: pass }],
+    ['a check marked success but still in progress', { checkRuns: [{ name: 'test', headSha: SHA, status: 'in_progress', conclusion: 'success' }], review: pass }],
+    ['a skipped check', { checkRuns: [{ name: 'test', headSha: SHA, status: 'completed', conclusion: 'skipped' }], review: pass }],
     ['no review', { checkRuns: green, review: null }],
     ['a PASS for a different SHA', { checkRuns: green, review: { head_sha: 'f'.repeat(40), verdict: 'PASS' } }],
+    ['green runs from another commit', { checkRuns: green.map((run) => ({ ...run, headSha: 'f'.repeat(40) })), review: pass }],
+    ['green runs naming no commit', { checkRuns: green.map(({ headSha: _omit, ...run }) => run), review: pass }],
+    ['a failure on another commit, nothing on this one', { checkRuns: [{ name: 'lint', headSha: 'f'.repeat(40), status: 'completed', conclusion: 'failure' }], review: pass }],
   ])('keeps waiting on %s', (_label, observed) => {
     const out = wake(waiting, observed, AT)
     expect(out.changed).toBe(false)
