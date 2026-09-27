@@ -73,6 +73,24 @@ describe('release controller — gates are derived from evidence', () => {
     ['a infrastructureReceipt ref of invisible characters (\u200b)', { infrastructureReceipt: { sha: SHA, ref: '\u200b' } }, ['infrastructure_semantics_match']],
     ['a infrastructureReceipt ref of invisible characters (\u200d \u180e)', { infrastructureReceipt: { sha: SHA, ref: '\u200d \u180e' } }, ['infrastructure_semantics_match']],
     ['a infrastructureReceipt ref of invisible characters (\u2800)', { infrastructureReceipt: { sha: SHA, ref: '\u2800' } }, ['infrastructure_semantics_match']],
+    ['a rollbackReceipt ref of combining or ignorable marks (\u034f)', { rollbackReceipt: { sha: SHA, ref: '\u034f' } }, ['rollback_proven']],
+    ['a rollbackReceipt ref of combining or ignorable marks (\ufe0f)', { rollbackReceipt: { sha: SHA, ref: '\ufe0f' } }, ['rollback_proven']],
+    ['a rollbackReceipt ref of combining or ignorable marks (\u17b4)', { rollbackReceipt: { sha: SHA, ref: '\u17b4' } }, ['rollback_proven']],
+    ['a rollbackReceipt ref of combining or ignorable marks (\u200b\u034f)', { rollbackReceipt: { sha: SHA, ref: '\u200b\u034f' } }, ['rollback_proven']],
+    ['a rollbackReceipt ref of combining or ignorable marks (\ufe0e)', { rollbackReceipt: { sha: SHA, ref: '\ufe0e' } }, ['rollback_proven']],
+    ['a rollbackReceipt ref of punctuation only', { rollbackReceipt: { sha: SHA, ref: '-- . --' } }, ['rollback_proven']],
+    ['a postReleaseVerification ref of combining or ignorable marks (\u034f)', { postReleaseVerification: { sha: SHA, ref: '\u034f' } }, ['post_release_verification_defined']],
+    ['a postReleaseVerification ref of combining or ignorable marks (\ufe0f)', { postReleaseVerification: { sha: SHA, ref: '\ufe0f' } }, ['post_release_verification_defined']],
+    ['a postReleaseVerification ref of combining or ignorable marks (\u17b4)', { postReleaseVerification: { sha: SHA, ref: '\u17b4' } }, ['post_release_verification_defined']],
+    ['a postReleaseVerification ref of combining or ignorable marks (\u200b\u034f)', { postReleaseVerification: { sha: SHA, ref: '\u200b\u034f' } }, ['post_release_verification_defined']],
+    ['a postReleaseVerification ref of combining or ignorable marks (\ufe0e)', { postReleaseVerification: { sha: SHA, ref: '\ufe0e' } }, ['post_release_verification_defined']],
+    ['a postReleaseVerification ref of punctuation only', { postReleaseVerification: { sha: SHA, ref: '-- . --' } }, ['post_release_verification_defined']],
+    ['a infrastructureReceipt ref of combining or ignorable marks (\u034f)', { infrastructureReceipt: { sha: SHA, ref: '\u034f' } }, ['infrastructure_semantics_match']],
+    ['a infrastructureReceipt ref of combining or ignorable marks (\ufe0f)', { infrastructureReceipt: { sha: SHA, ref: '\ufe0f' } }, ['infrastructure_semantics_match']],
+    ['a infrastructureReceipt ref of combining or ignorable marks (\u17b4)', { infrastructureReceipt: { sha: SHA, ref: '\u17b4' } }, ['infrastructure_semantics_match']],
+    ['a infrastructureReceipt ref of combining or ignorable marks (\u200b\u034f)', { infrastructureReceipt: { sha: SHA, ref: '\u200b\u034f' } }, ['infrastructure_semantics_match']],
+    ['a infrastructureReceipt ref of combining or ignorable marks (\ufe0e)', { infrastructureReceipt: { sha: SHA, ref: '\ufe0e' } }, ['infrastructure_semantics_match']],
+    ['a infrastructureReceipt ref of punctuation only', { infrastructureReceipt: { sha: SHA, ref: '-- . --' } }, ['infrastructure_semantics_match']],
     ['a blank builder name', { builderAgent: '  ' }, ['independent_review_pass']],
     ['a lower-case p0 left in the review report', { reviewBlockingSeverities: ['p0'] }, ['no_unresolved_p0_p1']],
     ['no receipt status on the head', { receiptSha: null }, ['exact_final_sha', 'release_gate_pass']],
@@ -134,6 +152,10 @@ describe('release controller — gates are derived from evidence', () => {
     for (const entry of [...policy.protected_paths.prefixes, ...policy.protected_paths.segments]) {
       expect(entry, entry).toBe(entry.toLowerCase())
     }
+  })
+
+  it('an upper-case receipt ref still proves its gate', () => {
+    expect(deriveGates(evidence({ rollbackReceipt: { sha: SHA, ref: 'DPL OK' } })).rollback_proven).toBe(true)
   })
 
   it('real agent names with dots, colons and dashes still count as independent', () => {

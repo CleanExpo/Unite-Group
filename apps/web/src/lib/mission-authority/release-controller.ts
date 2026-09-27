@@ -76,8 +76,12 @@ const SHA = /^[0-9a-f]{40}$/
 const NON_BLOCKING_SEVERITY = /^P[2-9]$/i
 /** An agent name is a plain identifier. Invisible or exotic characters cannot make a name, so they cannot make a reviewer. */
 const AGENT_NAME = /^[a-z0-9][a-z0-9._:-]{0,127}$/
-/** Characters that render as nothing: format, control, separator, and the letter-class blanks. */
-const INVISIBLE = /[\p{Cf}\p{Cc}\p{Z}\u115F\u1160\u3164\uFFA0\u2800]/gu
+/**
+ * A receipt ref is a machine receipt (deployment id, command read-back, alias check), so it names
+ * something in ASCII. Requiring one ASCII letter or digit is a positive test: no invisible, combining
+ * or default-ignorable character can pass it, however many Unicode categories there are.
+ */
+const RECEIPT_REF = /[a-z0-9]/i
 const PREFIXES: readonly string[] = policy.protected_paths.prefixes
 // Policy entries are lower case (pinned by a test), so only the path needs folding.
 const SEGMENTS: readonly string[] = policy.protected_paths.segments
@@ -113,7 +117,7 @@ function requiredChecksGreen(required: readonly string[], runs: readonly CheckRu
 }
 
 function atSha(artefact: ShaArtefact | null, sha: string): boolean {
-  return !!artefact && artefact.sha === sha && artefact.ref.replace(INVISIBLE, '').length > 0
+  return !!artefact && artefact.sha === sha && RECEIPT_REF.test(artefact.ref)
 }
 
 export function deriveGates(evidence: ReleaseEvidence): Record<string, boolean> {
