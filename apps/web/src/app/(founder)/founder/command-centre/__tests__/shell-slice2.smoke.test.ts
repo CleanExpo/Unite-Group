@@ -334,7 +334,13 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
       'utf8',
     );
     expect(emailTile).toContain("background: stateDot(p.state)");
-    expect(emailTile).toContain("if (state === 'connected') return 'var(--deck-go, #2dbb57)'");
+    expect(emailTile).toContain('color: stateColor(p.state)');
+    // Read each helper's own body: stateDot and stateColor share line shapes, so a whole-file
+    // match cannot tell which helper a colour belongs to.
+    const helper = (name: string) => emailTile.match(new RegExp(`function ${name}\\([\\s\\S]*?\\n\\}`))?.[0] ?? '';
+    expect(helper('stateDot')).toContain("if (state === 'connected') return 'var(--deck-go, #2dbb57)'");
+    expect(helper('stateColor')).toContain("if (state === 'connected') return 'var(--tile-green-txt, #15803d)'");
+    expect(helper('stateColor')).not.toMatch(/var\(--deck-(?:go|amber|abort)[,)]/);
 
     const shellBridge = shellCss.match(/:global\(\[data-mission-control\]\) \.canvasScope \{[\s\S]*?\n\}/)?.[0] ?? '';
     expect(shellBridge).toContain('--green-txt: var(--mission-success-text);');
@@ -364,9 +370,11 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
     expect(gatewayKit).toContain("badText: 'var(--mission-danger-text)'");
     expect(gatewayKit + gatewayView).not.toMatch(/color: [^,}]*theme\.(?:ok|warn|warnAlt|bad)\b/);
 
-    // Hermes control panel: okText and the risk badge text.
-    expect(hermesView).toContain("const okText = 'var(--mission-blue-text)'");
-    expect(hermesView).toContain("none: ['rgba(45, 187, 87, 0.12)', 'var(--mission-blue-text)',");
+    // Hermes control panel: okText and the risk badge text. Healthy text takes the success
+    // shade: --mission-blue is now the Pi-Dev-Ops signal red, which would read as an alarm.
+    expect(hermesView).toContain("const okText = 'var(--mission-success-text)'");
+    expect(hermesView).toContain("none: ['rgba(45, 187, 87, 0.12)', 'var(--mission-success-text)',");
+    expect(hermesView).not.toMatch(/(?:okText =|none: \[)[^\n]*--mission-blue/);
     expect(hermesView).toContain("low: ['rgba(244, 130, 15, 0.12)', 'var(--mission-attention-text)',");
     expect(hermesView).toContain("high: ['rgba(229, 72, 77, 0.12)', 'var(--mission-attention-text)',");
     expect(hermesView).not.toMatch(/\[[^\]]*'var\(--mission-(?:blue|danger|attention|success)\)'/);
