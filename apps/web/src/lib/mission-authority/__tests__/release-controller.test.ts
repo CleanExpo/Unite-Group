@@ -51,8 +51,11 @@ describe('release controller — gates are derived from evidence', () => {
   })
 
   it.each([
-    ['review on another SHA', { reviewedSha: 'd'.repeat(40) }, ['exact_final_sha', 'independent_review_pass']],
+    ['review on another SHA', { reviewedSha: 'd'.repeat(40) }, ['exact_final_sha', 'independent_review_pass', 'no_unresolved_p0_p1']],
     ['reviewer is the builder', { reviewerAgent: 'claude' }, ['independent_review_pass']],
+    ['review verdict FAIL', { reviewVerdict: 'FAIL' }, ['independent_review_pass']],
+    ['no reviewer named', { reviewerAgent: null }, ['independent_review_pass']],
+    ['a lower-case p0 left in the review report', { reviewBlockingSeverities: ['p0'] }, ['no_unresolved_p0_p1']],
     ['no receipt status on the head', { receiptSha: null }, ['exact_final_sha', 'release_gate_pass']],
     ['a required check skipped', { checkRuns: [{ name: REQUIRED[0], status: 'completed', conclusion: 'skipped' }, { name: REQUIRED[1], status: 'completed', conclusion: 'success' }] }, ['required_ci_green']],
     ['a required check never ran', { checkRuns: [{ name: REQUIRED[0], status: 'completed', conclusion: 'success' }] }, ['required_ci_green']],
@@ -69,11 +72,30 @@ describe('release controller — gates are derived from evidence', () => {
     ['empty rollback receipt', { rollbackReceipt: { sha: SHA, ref: '  ' } }, ['rollback_proven']],
     ['post-release check for another SHA', { postReleaseVerification: { sha: 'd'.repeat(40), ref: 'receipt for another commit' } }, ['post_release_verification_defined']],
     ['infrastructure receipt for another SHA', { infrastructureReceipt: { sha: 'd'.repeat(40), ref: 'receipt for another commit' } }, ['infrastructure_semantics_match']],
+    ['no changed paths collected', { changedPaths: [] }, ['no_auth_security_credential_change', 'no_destructive_migration']],
     ['a migration in the diff', { changedPaths: ['apps/web/supabase/migrations/2026_x.sql'] }, ['no_destructive_migration', 'no_auth_security_credential_change']],
   ] as const)('%s → that gate fails and the release escalates', (_label, override, failing) => {
     const gates = deriveGates(evidence(override as Partial<ReleaseEvidence>))
     for (const gate of failing) expect(gates[gate], gate).toBe(false)
     expect(classifyRelease(input({ evidence: evidence(override as Partial<ReleaseEvidence>) }))).toMatchObject({ verdict: 'escalate', boundary: 'PROTECTED_RELEASE' })
+  })
+
+  it('a candidate that is not a full 40-hex SHA fails every SHA-bound gate, even when all artefacts name it', () => {
+    const ref = 'HEAD'
+    const gates = deriveGates(evidence({
+      candidateSha: ref,
+      reviewedSha: ref,
+      receiptSha: ref,
+      tree: { sha: ref, porcelain: '' },
+      spend: { sha: ref, newCosts: [] },
+      rollbackReceipt: { sha: ref, ref: 'rollback' },
+      postReleaseVerification: { sha: ref, ref: 'post-release' },
+      infrastructureReceipt: { sha: ref, ref: 'infrastructure' },
+    }))
+    for (const gate of ['exact_final_sha', 'clean_tree', 'required_ci_green', 'release_gate_pass', 'no_unresolved_p0_p1',
+      'no_new_spend', 'rollback_proven', 'post_release_verification_defined', 'infrastructure_semantics_match']) {
+      expect(gates[gate], gate).toBe(false)
+    }
   })
 
   it('an empty required-check list never counts as green', () => {
