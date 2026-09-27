@@ -249,7 +249,7 @@ export function AIAnalysisTab() {
 
       {/* Error */}
       {error && (
-        <p className="text-sm text-[var(--color-danger)]/80">{error}</p>
+        <p className="text-sm text-[var(--color-danger-text)]">{error}</p>
       )}
 
       {/* Direct mode results */}

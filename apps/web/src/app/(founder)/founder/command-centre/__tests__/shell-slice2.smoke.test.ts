@@ -318,6 +318,14 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
     // fallback too: text falls back to --color-accent-text / --color-danger-text.
     const fillAsText =
       /(?<![-\w])color\s*:(?:(?!\w\s*:)[^;}\n])*?(?:var\(\s*--(?:mission-(?:blue|danger|attention|success)|deck-(?:cyan|go|amber|abort)|cc-signal|red-(?:400|500)|color-(?:success|danger|accent))\s*[,)]|#(?:ff3b5c|15803d|a16207|e5484d|16a34a|ef4444|2dbb57)\b)/i;
+    // Tailwind paints text through classes, not `color:`: an arbitrary text-[…] value
+    // carrying a fill token or fill hex, and the palette classes that ARE those fills
+    // (green-600 #16a34a, green-700 #15803d, red-500 #ef4444, yellow-700 #a16207).
+    const fillAsTailwindText =
+      /(?<![-\w:])text-(?:\[(?:var\(\s*--(?:mission-(?:blue|danger|attention|success)|deck-(?:cyan|go|amber|abort)|cc-signal|red-(?:400|500)|color-(?:success|danger|accent))\s*[,)]|#(?:ff3b5c|15803d|a16207|e5484d|16a34a|ef4444|2dbb57)\b)|(?:green-600|green-700|red-500|yellow-700)\b)/i;
+    // SVG <text> takes its colour from `fill`, so a fill there is fill-as-text too.
+    const fillAsSvgText =
+      /<text\b[^>]*\bfill=\{?["'`](?:var\(\s*--(?:mission-(?:blue|danger|attention|success)|deck-(?:cyan|go|amber|abort)|cc-signal|red-(?:400|500)|color-(?:success|danger|accent))\s*[,)]|#(?:ff3b5c|15803d|a16207|e5484d|16a34a|ef4444|2dbb57)\b)/i;
     const walk = (root: string): string[] =>
       readdirSync(root, { withFileTypes: true }).flatMap((e) => {
         const p = join(root, e.name);
@@ -336,7 +344,7 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
         readFileSync(file, 'utf8')
           .split('\n')
           .map((line, i) => ({ file, line, n: i + 1 }))
-          .filter(({ line }) => fillAsText.test(line)),
+          .filter(({ line }) => fillAsText.test(line) || fillAsTailwindText.test(line) || fillAsSvgText.test(line)),
       )
       .map(({ file, n }) => `${relative(process.cwd(), file)}:${n}`);
     expect(offenders).toEqual([]);
@@ -450,5 +458,11 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
     expect(steps).toContain(textChannels[3][2]);
     expect(ring).toContain(textChannels[4][2]);
     expect(read('src/app/(founder)/founder/command-centre/CommandSteps.module.css')).toContain('color: var(--numfg');
+    // WikiGraph canvas labels are text drawn with fillText: they take the ink tokens.
+    const wikiCanvas = read('src/components/command-centre/wiki-graph/WikiGraphCanvas.tsx');
+    expect(wikiCanvas).toContain("label: token('--mission-ink', DEFAULT_COLOURS.label)");
+    expect(wikiCanvas).toContain("labelDim: token('--mission-muted', DEFAULT_COLOURS.labelDim)");
+    expect(wikiCanvas).toContain('ctx!.fillStyle = hover && !isHover && !isNeighbour ? colours.labelDim : colours.label\n          ctx!.fillText(');
+    expect(between(wikiCanvas, 'const DEFAULT_COLOURS', '\n}').match(/\blabel(?:Dim)?: '[^']*'/g)?.join('\n') ?? '', 'wiki labels').not.toMatch(fill);
   });
 });
