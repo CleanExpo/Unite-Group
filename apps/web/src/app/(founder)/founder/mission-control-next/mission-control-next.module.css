@@ -1,0 +1,112 @@
+/* UNI-2776 preview. Gun Metal register (UNI-2339): canvas #0e1014, signal green #2dbb57. Mobile-first. */
+.page {
+  min-height: 100dvh;
+  padding: 16px;
+  background: #0e1014;
+  color: #e6e8ec;
+  font-size: 15px;
+  line-height: 1.45;
+}
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+.tabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #262a31;
+}
+.tab {
+  flex: 0 0 auto;
+  padding: 10px 12px;
+  color: #a4abb6;
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+}
+.tab[aria-current='page'] {
+  color: #e6e8ec;
+  border-bottom-color: #e6e8ec;
+}
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+.card {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #262a31;
+  border-left-width: 4px;
+  border-radius: 2px;
+  background: #151820;
+}
+.card[data-tone='good'] { border-left-color: #2dbb57; }
+.card[data-tone='warn'] { border-left-color: #d9a441; }
+.card[data-tone='bad'] { border-left-color: #d9534f; }
+.card[data-tone='neutral'] { border-left-color: #6b7280; }
+.cardHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.cardTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+.badge {
+  flex: 0 0 auto;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: #a4abb6;
+}
+.card[data-tone='good'] .badge { color: #2dbb57; }
+.card[data-tone='warn'] .badge { color: #d9a441; }
+.card[data-tone='bad'] .badge { color: #d9534f; }
+.detail { margin: 4px 0 8px; color: #a4abb6; }
+.value { margin: 0 0 4px; font-weight: 600; }
+.muted { margin: 0; color: #a4abb6; }
+.list { margin: 0; padding-left: 18px; overflow-wrap: anywhere; }
+.list li + li { margin-top: 6px; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.provenance {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: #6b7280;
+  overflow-wrap: anywhere;
+}
+.button {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid #3a3f48;
+  border-radius: 2px;
+  background: #1d2129;
+  color: #e6e8ec;
+  font: inherit;
+  cursor: pointer;
+}
+.button:disabled { opacity: 0.5; cursor: progress; }
+.button:focus-visible, .tab:focus-visible { outline: 2px solid #e6e8ec; outline-offset: 2px; }
+.outcome { flex-basis: 100%; font-size: 13px; }
+.outcome[data-kind='confirmed'] { color: #2dbb57; }
+.outcome[data-kind='rejected'] { color: #d9534f; }
+.outcome[data-kind='unconfirmed'] { color: #d9a441; }
+
+@media (min-width: 768px) {
+  .page { padding: 24px; }
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1200px) {
+  .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
