@@ -28,7 +28,7 @@ function evidence(overrides: Partial<ReleaseEvidence> = {}): ReleaseEvidence {
     builderAgent: 'claude',
     receiptSha: SHA,
     requiredChecks: REQUIRED,
-    checkRuns: REQUIRED.map((name) => ({ name, status: 'completed', conclusion: 'success' })),
+    checkRuns: REQUIRED.map((name) => ({ name, headSha: SHA, status: 'completed', conclusion: 'success' })),
     changedPaths: ['apps/web/src/lib/release-canary.ts'],
     reviewBlockingSeverities: [],
     spend: { sha: SHA, newCosts: [] },
@@ -60,9 +60,10 @@ describe('release controller — gates are derived from evidence', () => {
     ['a blank builder name', { builderAgent: '  ' }, ['independent_review_pass']],
     ['a lower-case p0 left in the review report', { reviewBlockingSeverities: ['p0'] }, ['no_unresolved_p0_p1']],
     ['no receipt status on the head', { receiptSha: null }, ['exact_final_sha', 'release_gate_pass']],
-    ['a required check skipped', { checkRuns: [{ name: REQUIRED[0], status: 'completed', conclusion: 'skipped' }, { name: REQUIRED[1], status: 'completed', conclusion: 'success' }] }, ['required_ci_green']],
-    ['a required check still in progress', { checkRuns: [{ name: REQUIRED[0], status: 'in_progress', conclusion: 'success' }, { name: REQUIRED[1], status: 'completed', conclusion: 'success' }] }, ['required_ci_green']],
-    ['a required check never ran', { checkRuns: [{ name: REQUIRED[0], status: 'completed', conclusion: 'success' }] }, ['required_ci_green']],
+    ['a required check skipped', { checkRuns: [{ name: REQUIRED[0], headSha: SHA, status: 'completed', conclusion: 'skipped' }, { name: REQUIRED[1], headSha: SHA, status: 'completed', conclusion: 'success' }] }, ['required_ci_green']],
+    ['a required check still in progress', { checkRuns: [{ name: REQUIRED[0], headSha: SHA, status: 'in_progress', conclusion: 'success' }, { name: REQUIRED[1], headSha: SHA, status: 'completed', conclusion: 'success' }] }, ['required_ci_green']],
+    ['a required check green on another SHA', { checkRuns: [{ name: REQUIRED[0], headSha: 'd'.repeat(40), status: 'completed', conclusion: 'success' }, { name: REQUIRED[1], headSha: SHA, status: 'completed', conclusion: 'success' }] }, ['required_ci_green']],
+    ['a required check never ran', { checkRuns: [{ name: REQUIRED[0], headSha: SHA, status: 'completed', conclusion: 'success' }] }, ['required_ci_green']],
     ['a dirty tree', { tree: { sha: SHA, porcelain: ' M apps/web/x.ts' } }, ['clean_tree']],
     ['tree status from another SHA', { tree: { sha: 'd'.repeat(40), porcelain: '' } }, ['clean_tree']],
     ['tree status never captured', { tree: null }, ['clean_tree']],
@@ -96,10 +97,17 @@ describe('release controller — gates are derived from evidence', () => {
       rollbackReceipt: { sha: ref, ref: 'rollback' },
       postReleaseVerification: { sha: ref, ref: 'post-release' },
       infrastructureReceipt: { sha: ref, ref: 'infrastructure' },
+      checkRuns: REQUIRED.map((name) => ({ name, headSha: ref, status: 'completed', conclusion: 'success' })),
     }))
     for (const gate of ['exact_final_sha', 'clean_tree', 'required_ci_green', 'independent_review_pass', 'release_gate_pass', 'no_unresolved_p0_p1',
       'no_new_spend', 'rollback_proven', 'post_release_verification_defined', 'infrastructure_semantics_match']) {
       expect(gates[gate], gate).toBe(false)
+    }
+  })
+
+  it('policy path entries are lower case, because only the changed path is case-folded', () => {
+    for (const entry of [...policy.protected_paths.prefixes, ...policy.protected_paths.segments]) {
+      expect(entry, entry).toBe(entry.toLowerCase())
     }
   })
 
@@ -108,7 +116,7 @@ describe('release controller — gates are derived from evidence', () => {
   })
 
   it('protected paths escalate whatever the gates say', () => {
-    for (const path of ['apps/web/src/lib/auth/session.ts', 'apps/web/src/lib/credentials.ts', 'apps/web/src/security.test.ts', 'apps/web/src/lib/auth.config.ts','apps/web/.env.development.local', '.env', '.github/workflows/ci.yml', 'scripts/nexus-runner/mission-authority.json', 'apps/web/.env.production', 'docs/constitution/x.md', 'apps/web/src/proxy.ts']) {
+    for (const path of ['apps/web/src/lib/auth/session.ts', 'apps/web/src/lib/credentials.ts', 'apps/web/src/security.test.ts', 'apps/web/src/lib/auth.config.ts', 'apps/web/src/lib/Auth/session.ts', 'apps/web/src/SECURITY/x.ts', 'apps/web/src/lib/Credentials.ts', 'apps/web/src/middleware.js', 'apps/web/src/proxy.js', 'apps/web/src/Proxy.ts', 'apps/web/next.config.ts', 'apps/web/next.config.js', 'apps/web/vercel.ts', 'Vercel.json', '.GitHub/workflows/ci.yml', 'Scripts/nexus-runner/runner.mjs', 'apps/web/.env.development.local', '.env', '.github/workflows/ci.yml', 'scripts/nexus-runner/mission-authority.json', 'apps/web/.env.production', 'docs/constitution/x.md', 'apps/web/src/proxy.ts']) {
       expect(protectedPathHits([path]), path).toEqual([path])
       expect(classifyRelease(input({ evidence: evidence({ changedPaths: [path] }) })), path).toMatchObject({ verdict: 'escalate', boundary: 'PROTECTED_RELEASE' })
     }

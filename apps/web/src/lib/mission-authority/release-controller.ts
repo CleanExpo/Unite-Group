@@ -19,6 +19,8 @@ import { may, type MayDecision, type MissionAuthority, type Risk } from './may'
 
 export interface CheckRun {
   name: string
+  /** The commit GitHub ran this check on (its head_sha). */
+  headSha: string
   status: string
   conclusion: string | null
 }
@@ -71,11 +73,20 @@ export interface ReleaseDecision extends MayDecision {
 
 const SHA = /^[0-9a-f]{40}$/
 const PREFIXES: readonly string[] = policy.protected_paths.prefixes
+// Policy entries are lower case (pinned by a test), so only the path needs folding.
 const SEGMENTS: readonly string[] = policy.protected_paths.segments
+/** Code and config extensions a named file may also be written in (middleware.js, next.config.ts). */
+const CODE_EXT = /\.(?:[cm]?[jt]sx?|json[c5]?)$/
 
 export function protectedPathHits(paths: readonly string[]): string[] {
-  return paths.filter((path) => {
-    if (PREFIXES.some((prefix) => (prefix.endsWith('/') ? path.startsWith(prefix) : path === prefix))) return true
+  return paths.filter((original) => {
+    // Case-folded: Auth/ and SECURITY/ are the same surface on a case-insensitive checkout.
+    const path = original.toLowerCase()
+    const named = path.replace(CODE_EXT, '')
+    const hitsPrefix = PREFIXES.some((prefix) =>
+      prefix.endsWith('/') ? path.startsWith(prefix) : named === prefix.replace(CODE_EXT, ''),
+    )
+    if (hitsPrefix) return true
     return path.split('/').some((part) => {
       // Up to the first dot, so auth.config.ts and security.test.ts match as well as auth.ts.
       const stem = part.split('.')[0]
@@ -84,11 +95,14 @@ export function protectedPathHits(paths: readonly string[]): string[] {
   })
 }
 
-function requiredChecksGreen(required: readonly string[], runs: readonly CheckRun[]): boolean {
+function requiredChecksGreen(required: readonly string[], runs: readonly CheckRun[], sha: string): boolean {
   if (required.length === 0) return false
   return required.every((name) => {
     const named = runs.filter((run) => run.name === name)
-    return named.length > 0 && named.every((run) => run.status === 'completed' && run.conclusion === 'success')
+    return (
+      named.length > 0 &&
+      named.every((run) => run.headSha === sha && run.status === 'completed' && run.conclusion === 'success')
+    )
   })
 }
 
@@ -107,7 +121,7 @@ export function deriveGates(evidence: ReleaseEvidence): Record<string, boolean> 
   return {
     exact_final_sha: exact && evidence.reviewedSha === sha && evidence.receiptSha === sha,
     clean_tree: exact && evidence.tree?.sha === sha && evidence.tree.porcelain === '',
-    required_ci_green: exact && requiredChecksGreen(evidence.requiredChecks, evidence.checkRuns),
+    required_ci_green: exact && requiredChecksGreen(evidence.requiredChecks, evidence.checkRuns, sha),
     independent_review_pass:
       exact &&
       evidence.reviewVerdict === 'PASS' &&
