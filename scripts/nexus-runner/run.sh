@@ -7,7 +7,9 @@
 #
 # Safety envelope:
 # - ~/.claude/HARD_STOP kills the loop at the next poll.
-# - The runner's OWN committed bin/ git+rm shims are prepended to PATH — they
+# - The runner's OWN committed bin/ git+gh+vercel+supabase+rm shims (policy:
+#   mission-authority.json; gh/vercel/supabase block merge, mark-ready,
+#   production deploy, secrets and database writes) are prepended to PATH — they
 #   allow exactly what L2 needs (a plain feature-branch push to open the draft
 #   PR) and block force-push/merge/reset --hard/branch -D/push-to-main, even
 #   under bypassPermissions. Portable — no dependency on the machine-level
