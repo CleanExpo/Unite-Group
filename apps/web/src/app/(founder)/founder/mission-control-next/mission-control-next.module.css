@@ -103,6 +103,17 @@
 .outcome[data-kind='rejected'] { color: #d9534f; }
 .outcome[data-kind='unconfirmed'] { color: #d9a441; }
 
+.playtestWarehouse { padding: 12px; margin: 12px 0; border: 1px solid #3a3f48; }
+.playtestCapacity { display: grid; gap: 6px; }
+.playtestCapacity meter { width: 100%; }
+.playtestActions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.playtestActions .button { padding: 10px 14px; text-align: left; }
+.playtestLink { color: #b7cef8; text-decoration: underline; }
+.playtestSnapshot { margin: 12px 0; }
+.playtestSnapshot summary { min-height: 44px; cursor: pointer; padding: 8px 0; }
+.playtestSnapshot pre { max-height: 260px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; }
+.playtestSnapshot summary:focus-visible, .playtestLink:focus-visible { outline: 2px solid #e6e8ec; outline-offset: 2px; }
+
 @media (min-width: 768px) {
   .page { padding: 24px; }
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

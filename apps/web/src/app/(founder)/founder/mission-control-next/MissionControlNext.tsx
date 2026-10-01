@@ -20,6 +20,7 @@ import { MISSION_CONTROL_NEXT_TABS, type MissionControlNextTab } from '@/lib/mis
 import type { CommandCentreTask } from '@/lib/command-centre/tasks'
 import type { DeliveryMissionView } from '@/lib/command-centre/delivery-types'
 import styles from './mission-control-next.module.css'
+import { WorldPlaytest } from './WorldPlaytest'
 
 const POLL_MS = 30_000
 const TAB_LABELS: Record<MissionControlNextTab, string> = {
@@ -106,12 +107,15 @@ export function MissionControlNext({ tab }: { tab: MissionControlNextTab }) {
   }, [])
 
   useEffect(() => {
+    // The World tab has no live source yet. Its optional local playtest must not
+    // wait for unrelated feeds or poll operational APIs as a gameplay loop.
+    if (tab === 'world') return
     void refresh()
     const id = setInterval(() => {
       if (document.visibilityState === 'visible') void refresh()
     }, POLL_MS)
     return () => clearInterval(id)
-  }, [refresh])
+  }, [refresh, tab])
 
   const nav = (
     <nav className={styles.tabs} aria-label="Mission Control sections">
@@ -122,6 +126,27 @@ export function MissionControlNext({ tab }: { tab: MissionControlNextTab }) {
       ))}
     </nav>
   )
+
+  if (tab === 'world') {
+    return (
+      <main className={styles.page}>
+        <header className={styles.top}><h1 className={styles.title}>Mission Control · preview</h1></header>
+        {nav}
+        <div className={styles.grid}>
+          <Card
+            title="Restoration World"
+            status={{
+              state: 'unavailable',
+              source: 'none',
+              observedAt: null,
+              detail: 'No world-state source exists yet. The canonical world model is UNI-2774.',
+            }}
+          />
+          <WorldPlaytest />
+        </div>
+      </main>
+    )
+  }
 
   if (!reads) {
     return (
@@ -271,18 +296,6 @@ export function MissionControlNext({ tab }: { tab: MissionControlNextTab }) {
           )}
         </Card>
       </>
-    )
-  } else if (tab === 'world') {
-    body = (
-      <Card
-        title="Restoration World"
-        status={{
-          state: 'unavailable',
-          source: 'none',
-          observedAt: null,
-          detail: 'No world-state source exists yet. The canonical world model is UNI-2774.',
-        }}
-      />
     )
   } else if (tab === 'portfolio') {
     body = (
