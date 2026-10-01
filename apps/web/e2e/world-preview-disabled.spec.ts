@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { loginAsFounder } from './fixtures/auth'
+import { expectWorldPreviewDenied } from './support/world-preview-denial'
 
 test.use({ trace: 'off', screenshot: 'off' })
 
@@ -15,9 +16,8 @@ test('World preview remains founder-protected while the flag is off', async ({ p
   await expect(page.getByRole('button', { name: 'Start fictional playtest' })).toHaveCount(0)
 })
 
-test('authenticated founder receives 404 while World preview is disabled', async ({ page }) => {
+test('authenticated founder sees not-found UI while World preview is disabled', async ({ page }) => {
   await loginAsFounder(page)
   const response = await page.goto('/founder/mission-control-next?tab=world')
-  expect(response?.status()).toBe(404)
-  await expect(page.getByRole('button', { name: 'Start fictional playtest' })).toHaveCount(0)
+  await expectWorldPreviewDenied(page, response?.status())
 })

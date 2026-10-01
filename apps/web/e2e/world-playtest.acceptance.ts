@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { loginAsFounder } from './fixtures/auth'
+import { expectWorldPreviewDenied } from './support/world-preview-denial'
 
 test('enabled World preview still denies an unauthenticated visitor', async ({ page }) => {
   await page.goto('/founder/mission-control-next?tab=world')
@@ -27,6 +28,9 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 375, height: 900
     await expect(live).toHaveAttribute('data-state', 'unavailable')
     await expect(simulation).toHaveAttribute('data-state', 'test')
     await expect(simulation.getByText('Fictional playtest · not saved')).toBeVisible()
+    // Real negative control: the exact disabled-view checker must reject an
+    // already-rendered authenticated game, even though its HTTP status is 200.
+    await expect(expectWorldPreviewDenied(page, response?.status(), 250)).rejects.toThrow(/Page Not Found/)
     const start = simulation.getByRole('button', { name: 'Start fictional playtest' })
     await start.focus()
     await start.press('Enter')
