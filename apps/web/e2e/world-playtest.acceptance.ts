@@ -49,7 +49,11 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 375, height: 900
     expect(snapshot.progression).toEqual({ reflections: 1, completedScenarios: 1 })
     await expect(live).toHaveAttribute('data-state', 'unavailable')
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false)
-    await testInfo.attach(`world-${viewport.width}`, { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
+    // FounderShell scrolls inside <main>; the document alone can conceal clipping.
+    for (const main of await page.getByRole('main').all()) {
+      expect(await main.evaluate(element => element.scrollWidth > element.clientWidth)).toBe(false)
+    }
+    await testInfo.attach(`world-${viewport.width}`, { body: await simulation.screenshot(), contentType: 'image/png' })
     await simulation.getByRole('button', { name: 'Restart fictional playtest' }).click()
     await expect(simulation.getByText(/Simulation only: 0 reflection, 0 completed scenario/)).toBeVisible()
     await simulation.getByRole('button', { name: 'Explore the consequence of rushing' }).click()
