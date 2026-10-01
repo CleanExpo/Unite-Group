@@ -706,6 +706,11 @@ jobs:
       - name: Run Playwright tests
         run: pnpm exec playwright test
 
+      - name: Verify founder World preview in an isolated enabled test process
+        # The default suite above proves flag-off denial. This separate local
+        # process enables only its test server; no Vercel or production setting changes.
+        run: pnpm exec playwright test --config playwright.world.config.ts
+
       - name: Upload Playwright report
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
