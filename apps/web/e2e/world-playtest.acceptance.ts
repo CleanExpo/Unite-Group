@@ -23,6 +23,14 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 375, height: 900
     })
     const response = await page.goto('/founder/mission-control-next?tab=world')
     expect(response?.status()).toBe(200)
+    if (viewport.width < 768) {
+      // Fresh founder sessions open mobile navigation. Dismiss it as a user
+      // would, outside the 240px drawer, before interacting with the game.
+      const backdrop = page.locator('div.fixed.inset-0.z-40')
+      await expect(backdrop).toBeVisible()
+      await backdrop.click({ position: { x: viewport.width - 12, y: 12 } })
+      await expect(backdrop).toHaveCount(0)
+    }
     const live = page.getByRole('region', { name: 'Restoration World', exact: true })
     const simulation = page.getByRole('region', { name: 'Fictional Restoration World playtest' })
     await expect(live).toHaveAttribute('data-state', 'unavailable')
