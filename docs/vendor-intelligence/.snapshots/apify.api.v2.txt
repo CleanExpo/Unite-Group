@@ -50,7 +50,7 @@ next: [Get started](https://docs.apify.com/api/v2/getting-started.md)
 > ## Documentation index
 > Fetch the complete documentation index at: https://docs.apify.com/llms.txt
 > Use this file to discover all available pages before exploring further.
-Version: v2-2026-09-02T154542Z
+Version: v2-2026-10-01T153946Z
 Download OpenAPI
 * [YAML](https://docs.apify.com/api/openapi.yaml)
 * [JSON](https://docs.apify.com/api/openapi.json)
@@ -210,15 +210,23 @@ There are two kinds of rate limits - a global rate limit and a per-resource rate
 The global rate limit is set to *250 000 requests per minute*. For authenticated requests, it is counted per user, and for unauthenticated requests, it is counted per IP address.
 ### Per-resource rate limit
 The default per-resource rate limit is *60 requests per second per resource*, which in this context means a single Actor, a single Actor run, a single dataset, single key-value store etc. The default rate limit is applied to every API endpoint except a few select ones, which have higher rate limits. Each API endpoint returns its rate limit in `X-RateLimit-Limit` header.
+These endpoints have a rate limit of *35 requests per second per resource*:
+* Batch (add, delete) operations on requests in request queues
+* List and lock head of a request queue
+These endpoints have a rate limit of *100 requests per second per resource*:
+* Download records from a key-value store as a ZIP archive
 These endpoints have a rate limit of *200 requests per second per resource*:
 * CRUD (get, put, delete) operations on key-value store records
+* Get list of keys in a key-value store
+These endpoints have a rate limit of *350 requests per second per resource*:
+* CRUD (add, get, update, delete) operations on requests in request queues
+* Request lock operations (prolong, delete) in request queues
 These endpoints have a rate limit of *400 requests per second per resource*:
 * Run Actor
 * Run Actor task asynchronously
 * Run Actor task synchronously
 * Metamorph Actor run
 * Push items to dataset
-* CRUD (add, get, update, delete) operations on requests in request queues
 ### Rate limit exceeded errors
 If the client is sending too many requests, the API endpoints respond with the HTTP status code `429 Too Many Requests` and the following body:
 ```typescript

@@ -1,187 +1,174 @@
 # Exa
-## Docs
-- [Exa Search API](https://exa.ai/docs/reference/search-api-guide.md): Exa is an SF-based research lab building perfect search.
-- [Search API Reference](https://exa.ai/docs/reference/search-api-guide-for-coding-agents.md): Self-contained reference with best practices and examples for coding agents
-- [Search Best Practices](https://exa.ai/docs/reference/search-best-practices.md): Best practices for using Exa's Search API
-- [Contents API](https://exa.ai/docs/reference/contents-api-guide.md): Extract clean, LLM-ready web content.
-- [Contents API Reference](https://exa.ai/docs/reference/contents-api-guide-for-coding-agents.md): Best practices, examples, and API reference for your coding agent
-- [Contents Best Practices](https://exa.ai/docs/reference/contents-best-practices.md): Best practices for using Exa's Contents API
-- [Exa Agent](https://exa.ai/docs/reference/agent-api-guide.md): Run deep research, list-building, and enrichment workflows that return structured outputs.
-- [Examples](https://exa.ai/docs/reference/agent-api/examples.md): Production Exa Agent examples for list building, KYB intelligence, job postings, and structured outputs.
-- [Websets](https://exa.ai/docs/websets/api-guide.md): Find anything on the web, no matter how complex. Websets searches, verifies, and enriches results automatically.
-- [Websets Reference (For Your Coding Agent)](https://exa.ai/docs/websets/api-guide-for-coding-agents.md): Self-contained reference for coding agents. Websets API architecture, request/response shapes, event flow, and integration patterns.
-- [How Websets Works](https://exa.ai/docs/websets/api/how-it-works.md)
-- [How to Use Imports](https://exa.ai/docs/websets/imports-and-search.md): A step-by-step guide to importing URLs into Websets -- enriching your list, scoring it against criteria, discovering new matches, and combining all three.
-- [FAQ](https://exa.ai/docs/websets/faq.md): Frequently asked questions about Websets
-- [Websets Best Practices](https://exa.ai/docs/websets/best-practices.md): Best practices for building with the Websets API
-- [Get started](https://exa.ai/docs/websets/dashboard/get-started.md): Welcome to the Websets Dashboard! Find anything you want on the web, no matter how complex.
-- [Example queries](https://exa.ai/docs/websets/dashboard/websets-example-queries.md): Here are some examples for things to search for, to get you started!
-- [Criteria vs Enrichments](https://exa.ai/docs/websets/dashboard/criteria-versus-enrichments.md)
-- [Import from CSV](https://exa.ai/docs/websets/dashboard/import-from-csv.md): Turn your existing CSV data into a Webset
-- [Exclude Results](https://exa.ai/docs/websets/dashboard/exclude-results.md): Avoid duplicate results in your new searches by excluding URLs from previous Websets or CSV files.
-- [Integrations](https://exa.ai/docs/websets/dashboard/integrations.md): Connect your Websets with popular CRM and email tools
-- [Creating Enrichments ](https://exa.ai/docs/websets/dashboard/walkthroughs/Creating-enrichments.md): Here's how to create enrichments (also known as Adding Columns).
-- [Exploring your results ](https://exa.ai/docs/websets/dashboard/walkthroughs/Exploring-your-results.md): Explore your Websets matched results, view summaries, criteria justification
-- [Adding and Managing Your Team Members in Websets](https://exa.ai/docs/websets/dashboard/walkthroughs/Managing-Team-Members.md): Here's how to manage your team.
-- [Prompting Websets](https://exa.ai/docs/websets/dashboard/walkthroughs/Prompting.md): Here's how to prompt your query in Websets
-- [Downloading and Sharing Your Results](https://exa.ai/docs/websets/dashboard/walkthroughs/Sharing-and-Downloading-Your-Results.md): Here's how to share or download your results and enrichments.
-- [Monitors](https://exa.ai/docs/reference/monitors-api-guide.md): Schedule recurring Exa searches and get results delivered to your webhook.
-- [Monitors API Reference](https://exa.ai/docs/reference/monitors-api-guide-for-coding-agents.md): Self-contained reference with all endpoints, parameters, and examples for coding agents.
-- [Exa Connect](https://exa.ai/docs/reference/agent-api/connect/overview.md): Give your Exa Agent live access to premium data partners, alongside Exa web search, in a single run.
-- [Fiber.ai](https://exa.ai/docs/reference/agent-api/connect/fiber.md): Search Fiber.ai's B2B database for companies, people, and LinkedIn profiles.
-- [Similarweb](https://exa.ai/docs/reference/agent-api/connect/similarweb.md): Get website traffic estimates, global rankings, and competitor discovery.
-- [Baselayer](https://exa.ai/docs/reference/agent-api/connect/baselayer.md): Verify US businesses and retrieve KYB data: officers, registrations, risk scores.
-- [Polymarket](https://exa.ai/docs/reference/agent-api/connect/polymarket.md): Get prediction-market odds, price history, order books, and trader positions.
-- [Affiliate.com](https://exa.ai/docs/reference/agent-api/connect/affiliatecom.md): Search product catalogs across merchants and affiliate networks.
-- [Particle](https://exa.ai/docs/reference/agent-api/connect/particle.md): Search podcast transcripts with speaker attribution and timestamps.
-- [Financial Datasets](https://exa.ai/docs/reference/agent-api/connect/financialdatasets.md): Structured financial and market data for 27,000+ active and delisted U.S. tickers, including prices, fundamentals, earnings, SEC filings, ownership, and stock screening.
-- [Jinko](https://exa.ai/docs/reference/agent-api/connect/jinko.md): Flight and Hotel search with real-time pricing.
-- [Combining providers](https://exa.ai/docs/reference/agent-api/connect/combining-providers.md): Use several data partners together in a single Exa Agent run.
-- [Additional providers](https://exa.ai/docs/reference/agent-api/connect/additional-partners.md): Exa Connect partners beyond the self-serve provider set.
-- [People Search](https://exa.ai/docs/reference/verticals/people.md)
-- [People Search Reference](https://exa.ai/docs/reference/verticals/people-for-coding-agents.md): Self-contained reference for coding agents using Exa People Search
-- [Company Search](https://exa.ai/docs/reference/verticals/company.md)
-- [Company Search Reference](https://exa.ai/docs/reference/verticals/company-for-coding-agents.md): Self-contained reference for coding agents using Exa Company Search
-- [Code Search](https://exa.ai/docs/reference/verticals/code.md)
-- [Code Search Reference](https://exa.ai/docs/reference/verticals/code-for-coding-agents.md): Self-contained reference for coding agents using Exa Code Search
-- [News Search](https://exa.ai/docs/reference/verticals/news.md)
-- [News Search Reference](https://exa.ai/docs/reference/verticals/news-for-coding-agents.md): Self-contained reference for coding agents using Exa News Search
-- [Web Search MCP](https://exa.ai/docs/reference/exa-mcp.md): Complete setup guide for Exa MCP Server. Connect Claude Desktop, Cursor, VS Code, and 10+ AI assistants to Exa's web search, fetching, Exa Agent, and Exa Connect tools.
-- [Agent Skills](https://exa.ai/docs/reference/agent-skills.md): Install Exa agent skills into Claude Code, Cursor, Codex, or any Agent Skills–compatible coding agent.
-- [Build with Exa](https://exa.ai/docs/reference/agent-skills/build-with-exa.md): Build applications and agents with Exa's full API platform: search, contents, answer, context, Agent API, monitors, websets, and the SDKs.
-- [Company Research](https://exa.ai/docs/reference/agent-skills/company-research.md): Deep company research with the Exa Agent API — funding, competitors, tech stack, news — plus quick company-category lookups with Advanced Search.
-- [Lead Generation](https://exa.ai/docs/reference/agent-skills/lead-generation.md): Generate enriched, ICP-scored lead lists as CSV using the Exa Agent API.
-- [Exa Search](https://exa.ai/docs/reference/agent-skills/exa-search.md): Call Exa Search directly with cURL or raw HTTP — semantic search, ranked results, filters, freshness, and structured output.
-- [Exa Contents](https://exa.ai/docs/reference/agent-skills/exa-contents.md): Call Exa Contents directly with cURL or raw HTTP — extracted text, highlights, summaries, links, and subpages from known URLs.
-- [Python SDK](https://exa.ai/docs/sdks/python-sdk.md): Install and use the Exa Python SDK
-- [JavaScript SDK](https://exa.ai/docs/sdks/javascript-sdk.md): Install and use the Exa JavaScript SDK
-- [Python SDK Specification](https://exa.ai/docs/sdks/python-sdk-specification.md): Enumeration of methods and types in the Exa Python SDK (exa_py).
-- [TypeScript SDK Specification](https://exa.ai/docs/sdks/typescript-sdk-specification.md): Enumeration of methods and types in the Exa TypeScript SDK (exa-js).
-- [Python and TS Cheat Sheets](https://exa.ai/docs/sdks/cheat-sheet.md): Some common code you might want to use - don't miss the TypeScript tab below!
-- [Exa in Slack](https://exa.ai/docs/reference/exa-slack.md)
+> A powerful web search tool designed for agents. Everything optimized to get you token-efficient, accurate results.
+> ## Agent Instructions
+> The Exa API is served at https://api.exa.ai. Authenticate with `Authorization: Bearer $EXA_API_KEY` (or `x-api-key: $EXA_API_KEY`); create keys at https://dashboard.exa.ai/api-keys.
+> Prefer the official SDKs, `exa-py` (`pip install exa-py`) and `exa-js` (`npm install exa-js`); both read `EXA_API_KEY` from the environment.
+> Tool-using agents can call Exa without writing code through the hosted MCP server at https://mcp.exa.ai/mcp, or install the Exa agent skill with `npx skills add exa-labs/agent-skills` (skill file: https://exa.ai/docs/skill.md).
+> The OpenAPI specs at https://exa.ai/docs/exa-spec.yaml and https://exa.ai/docs/team-management-spec.yaml are the source of truth for request and response schemas.
+- [Start building with Exa](https://exa.ai/docs/index.md): A powerful web search tool designed for agents. Everything optimized to get you token-efficient, accurate results.
+- [Developer quickstart](https://exa.ai/docs/get-started/quickstart.md): Get an API key, then use Exa from your code or your agent.
+- [Exa MCP](https://exa.ai/docs/get-started/exa-mcp.md): Connect ChatGPT, Codex, Claude, Grok, Cursor, and any other MCP client to Exa's web search, page fetching, Exa Agent, and Exa Connect tools.
+- [Agent Skills](https://exa.ai/docs/get-started/agent-skills/overview.md): Install Exa skills in Claude Code, Codex, and other coding agents.
+- [Build with Exa Skill](https://exa.ai/docs/get-started/agent-skills/build-with-exa.md): An agent skill to help developers implement any part of the Exa API platform.
+- [Exa Search Skill](https://exa.ai/docs/get-started/agent-skills/exa-search.md): Find relevant web pages and return synthesized content in under two seconds with Exa Search.
+- [Exa Contents Skill](https://exa.ai/docs/get-started/agent-skills/exa-contents.md): Extract page content with Exa Contents when you already have the URLs.
+- [Exa Search API](https://exa.ai/docs/search/quickstart.md): Search the web in natural language and get clean, relevant page content in one request.
+- [Deep Search](https://exa.ai/docs/search/deep-search.md): Use iterative search, reasoning, and grounded synthesis for complex research tasks.
+- [Highlights](https://exa.ai/docs/search/highlights.md): Return query-relevant excerpts from Exa Search results while controlling context size and latency.
+- [Exa Snapshot](https://exa.ai/docs/search/snapshot.md): Pin Search and Contents to a stored version of a page at a datetime you choose.
+- [Search Best Practices](https://exa.ai/docs/search/best-practices.md): Tune retrieval quality, latency, context, and synthesis for production Search API integrations.
+- [Data Index](https://exa.ai/docs/search/data/overview.md): What Exa indexes across the public web and private data sources.
+- [News](https://exa.ai/docs/search/data/news.md): Find current reporting, industry coverage, and emerging stories with Exa Search.
+- [Code & Docs](https://exa.ai/docs/search/data/code.md): Find code, technical documentation, and implementation guidance with Exa Search.
+- [Companies & People](https://exa.ai/docs/search/data/companies-people.md): Find companies, professional profiles, and the relationships between them with Exa Search.
+- [Financial Markets](https://exa.ai/docs/search/data/financial.md): Find market data, filings, earnings calls, and economic releases with Exa Search.
+- [Research Publications](https://exa.ai/docs/search/data/research.md): Find academic papers, patents, grants, clinical trials, and regulatory approvals with Exa Search.
+- [Legal & Public Records](https://exa.ai/docs/search/data/legal.md): Find court opinions, patents, sanctions, government contracts, and other public records with Exa Search.
+- [Sports, Weather & Places](https://exa.ai/docs/search/data/sports-weather-places.md): Find live sports data, weather forecasts, and local places with Exa Search.
+- [Cybersecurity](https://exa.ai/docs/search/data/security.md): Find vulnerabilities, advisories, threat reporting, and trust documentation with Exa Search.
+- [Exa Agent](https://exa.ai/docs/agent/quickstart.md): Run deep research, list-building, and enrichment workflows that return structured outputs.
+- [Agent Best Practices](https://exa.ai/docs/agent/best-practices.md): Tune query quality, structured output, effort, and cost for production Exa Agent integrations.
+- [Examples](https://exa.ai/docs/agent/examples.md): Production Exa Agent examples for list building, KYB intelligence, job postings, and structured outputs.
+- [Agent Ultra](https://exa.ai/docs/agent/agent-ultra.md): Run Exa Agent at its highest effort for large list building and exhaustive research.
+- [Exa Connect](https://exa.ai/docs/agent/connect/overview.md): Give your Exa Agent live access to premium data partners, alongside Exa web search, in a single run.
+- [Fiber.ai](https://exa.ai/docs/agent/connect/fiber.md): Search Fiber.ai's B2B database for companies, people, and LinkedIn profiles.
+- [Similarweb](https://exa.ai/docs/agent/connect/similarweb.md): Get website traffic estimates, global rankings, and competitor discovery.
+- [Baselayer](https://exa.ai/docs/agent/connect/baselayer.md): Verify US businesses and retrieve KYB data: officers, registrations, risk scores.
+- [Polymarket](https://exa.ai/docs/agent/connect/polymarket.md): Get prediction-market odds, price history, order books, and trader positions.
+- [Macrobond](https://exa.ai/docs/agent/connect/macrobond.md): Search and fetch macroeconomic and financial time series, entity metadata, and release calendars.
+- [Affiliate.com](https://exa.ai/docs/agent/connect/affiliatecom.md): Search product catalogs across merchants and affiliate networks.
+- [Particle](https://exa.ai/docs/agent/connect/particle.md): Search podcast transcripts with speaker attribution and timestamps.
+- [Financial Datasets](https://exa.ai/docs/agent/connect/financialdatasets.md): Structured financial and market data for 27,000+ U.S. tickers: prices, fundamentals, earnings, SEC filings, ownership, and stock screening.
+- [Jinko](https://exa.ai/docs/agent/connect/jinko.md): Flight and Hotel search with real-time pricing.
+- [Combining providers](https://exa.ai/docs/agent/connect/combining-providers.md): Use several data partners together in a single Exa Agent run.
+- [Additional providers](https://exa.ai/docs/agent/connect/additional-partners.md): Exa Connect partners beyond the self-serve provider set.
+- [Contents API](https://exa.ai/docs/contents/quickstart.md): Extract text, highlights, and summaries from any URL.
+- [Monitors API](https://exa.ai/docs/monitors/quickstart.md): Run recurring searches and receive newly discovered results by webhook.
+- [Batch API](https://exa.ai/docs/batch/quickstart.md): Run Exa API requests asynchronously in batches.
+- [SDK Quickstart](https://exa.ai/docs/sdks/quickstart.md): Install and use the Exa Python and JavaScript SDKs
 - [Exa in Codex and ChatGPT](https://exa.ai/docs/integrations/chatgpt-codex.md): Search the web, read any page, and research with Exa directly from Codex and ChatGPT.
-- [Grok Build](https://exa.ai/docs/integrations/grok-build.md): Use Exa web search in Grok Build. Install the Exa plugin from the Grok Build marketplace and sign in with your Exa account.
-- [fx by Vercel Labs](https://exa.ai/docs/integrations/fx.md): Add Exa web search to fx, Vercel Labs' native coding agent, with the hosted Exa MCP server.
-- [OpenAI Tool Calling](https://exa.ai/docs/reference/openai-tool-calling.md): Use OpenAI tool calling to add Exa web search and page contents to your application.
-- [Anthropic Tool Calling](https://exa.ai/docs/reference/anthropic-tool-calling.md): Use Claude tool use to add Exa web search and page contents to your application.
-- [Vercel AI Gateway](https://exa.ai/docs/integrations/vercel-ai-gateway.md): Use Exa web search through Vercel AI Gateway with the AI SDK.
-- [AI SDK by Vercel](https://exa.ai/docs/reference/vercel.md): Add Exa web search to AI SDK applications with the @exalabs/ai-sdk package.
-- [OpenAI SDK Compatibility](https://exa.ai/docs/reference/openai-sdk.md): Use Exa's endpoints as a drop-in replacement for OpenAI - supporting both chat completions and responses APIs.
-- [Browserbase](https://exa.ai/docs/integrations/browserbase.md): Combine Exa company search with Browserbase browser automation for job application workflows.
-- [LangChain](https://exa.ai/docs/reference/langchain.md): How to use Exa's integration with LangChain to perform RAG.
-- [Pydantic AI](https://exa.ai/docs/reference/pydantic-ai.md): Give a Pydantic AI agent web research tools backed by the Exa search API.
-- [CrewAI](https://exa.ai/docs/reference/crewai.md): Learn how to add Exa retrieval capabilities to your CrewAI agents.
-- [LlamaIndex](https://exa.ai/docs/reference/llamaindex.md): A quick-start guide on how to add Exa retrieval to a LlamaIndex Agent Application.
-- [Exa for Google Sheets](https://exa.ai/docs/reference/exa-for-sheets.md): Use Exa Agent and Exa formulas inside Google Sheets.
-- [Snowflake](https://exa.ai/docs/integrations/snowflake.md): Use Exa search and content retrieval from Snowflake stored procedures and Cortex Agents.
+- [Exa in Claude Code, Web, and Desktop](https://exa.ai/docs/integrations/claude-web-desktop.md): Search the web and read any page with Exa directly from Claude
+- [OpenAI SDK Compatibility](https://exa.ai/docs/integrations/openai-sdk.md): Use Exa's endpoints as a drop-in replacement for OpenAI - supporting both chat completions and responses APIs.
+- [OpenAI Tool Calling](https://exa.ai/docs/integrations/tool-calling/openai.md): Use OpenAI tool calling to add Exa web search and page contents to your application.
+- [Anthropic Tool Calling](https://exa.ai/docs/integrations/tool-calling/anthropic.md): Use Claude tool use to add Exa web search and page contents to your application.
+- [AI SDK by Vercel](https://exa.ai/docs/integrations/vercel/ai-sdk.md): Add Exa web search to AI SDK applications with the @exalabs/ai-sdk package.
+- [Vercel AI Gateway](https://exa.ai/docs/integrations/vercel/ai-gateway.md): Use Exa web search through Vercel AI Gateway with the AI SDK.
+- [fx by Vercel Labs](https://exa.ai/docs/integrations/vercel/fx.md): Add Exa web search to fx, Vercel Labs' native coding agent, with the hosted Exa MCP server.
+- [Stripe Projects](https://exa.ai/docs/integrations/marketplaces/stripe-projects.md): Integrate Exa from your terminal using the Stripe Projects CLI.
+- [Pay with x402](https://exa.ai/docs/integrations/payments/x402/quickstart.md): Use Exa's Search and Contents APIs without an API key. Pay per request with USDC on Base or Solana via the x402 protocol.
+- [World AgentKit](https://exa.ai/docs/integrations/payments/x402/agentkit.md): Let verified human-backed AI agents access Exa for free using World AgentKit — no USDC needed.
+- [Pay with MPP (Tempo)](https://exa.ai/docs/integrations/payments/mpp/quickstart.md): Call Exa's Search and Contents APIs without an API key by paying per request with USDC.e on Tempo.
+- [Tempo MPP GTM Enrichment Cookbook](https://exa.ai/docs/integrations/payments/mpp/gtm-enrichment.md): Build a GTM enrichment workflow that pays per Exa search and contents request with Tempo MPP — no API key required.
+- [Nevermined](https://exa.ai/docs/integrations/payments/nevermined.md): Autonomous agent payments for Exa via Nevermined x402 card delegation. A 7 USD purchase provisions or tops up an Exa API key with 7 USD of credits.
+- [Exa in Slack](https://exa.ai/docs/integrations/exa-slack.md): Install Exa in Slack and tag @Exa in any channel or thread for cited research, list-building, and enrichment answers.
+- [Hermes Agent](https://exa.ai/docs/integrations/hermes-agent.md): Give Hermes Agent live web search and page contents with Exa.
+- [n8n](https://exa.ai/docs/integrations/n8n.md): Use Exa search and contents inside n8n workflows.
+- [OpenClaw](https://exa.ai/docs/integrations/openclaw.md): Give OpenClaw live web search and page contents with Exa.
+- [OpenRouter](https://exa.ai/docs/integrations/openrouter.md): Ground any OpenRouter model with Exa web search through the openrouter:web_search server tool.
+- [Baseten](https://exa.ai/docs/integrations/baseten.md): Ground open-source models on Baseten Model APIs with Exa web search through Baseten Hosted Tools.
+- [Gumloop](https://exa.ai/docs/integrations/gumloop.md): Use Exa search and contents inside Gumloop flows.
+- [Exa for Google Sheets](https://exa.ai/docs/integrations/exa-for-sheets.md): Use Exa Agent and Exa formulas inside Google Sheets.
+- [CrewAI](https://exa.ai/docs/integrations/crewai.md): Learn how to add Exa retrieval capabilities to your CrewAI agents.
 - [ElevenLabs](https://exa.ai/docs/integrations/elevenlabs.md): Add Exa web search to ElevenLabs voice agents.
 - [OpenHuman](https://exa.ai/docs/integrations/openhuman.md): Give the OpenHuman agent live web search with Exa, either managed or with your own Exa API key.
 - [TrueFoundry](https://exa.ai/docs/integrations/truefoundry.md): Connect Exa to the TrueFoundry MCP Gateway for centralized access controls, tool management, and usage monitoring.
-- [Stripe Projects](https://exa.ai/docs/reference/stripe-projects.md): Integrate Exa from your terminal using the Stripe Projects CLI.
-- [Pay with x402](https://exa.ai/docs/reference/x402-guide.md): Use Exa's Search and Contents APIs without an API key. Pay per request with USDC on Base or Solana via the x402 protocol.
-- [World AgentKit](https://exa.ai/docs/reference/x402-agentkit-free-trial.md): Let verified human-backed AI agents access Exa for free using World AgentKit — no USDC needed.
-- [Pay with MPP (Tempo)](https://exa.ai/docs/reference/mpp-guide.md): Call Exa's Search and Contents APIs without an API key by paying per request with USDC.e on Tempo.
-- [Tempo MPP GTM Enrichment Cookbook](https://exa.ai/docs/reference/tempo-mpp-gtm-enrichment-cookbook.md): Build a GTM enrichment workflow that pays per Exa search and contents request with Tempo MPP — no API key required.
-- [Nevermined](https://exa.ai/docs/integrations/nevermined.md): Autonomous agent payments for Exa via Nevermined x402 card delegation. A 7 USD purchase provisions or tops up an Exa API key with 7 USD of credits.
-- [Managing Your Team](https://exa.ai/docs/reference/setting-up-team.md): Details on Team structure and account management for the Exa platform
-- [Pricing](https://exa.ai/docs/reference/pricing.md): Pay-as-you-go rates for Exa Search, Contents, Answer, Monitors, and the Agent API
-- [Billing](https://exa.ai/docs/reference/billing.md): How billing, auto recharge, and invoices work on Exa's API
-- [Rate Limits](https://exa.ai/docs/reference/rate-limits.md): Default rate limits for Exa API endpoints
-- [Error Codes](https://exa.ai/docs/reference/error-codes.md): Reference for common error codes used by the Exa API
-- [Enterprise Documentation & Security](https://exa.ai/docs/reference/security.md)
-- [HIPAA](https://exa.ai/docs/reference/security/hipaa.md): Use HIPAA compliance mode for eligible cached retrieval requests.
-- [Enterprise Managed Auth for Claude](https://exa.ai/docs/reference/mcp-enterprise-managed-auth.md): Set up Enterprise Managed Auth (EMA) so Claude connects to Exa MCP through your identity provider, with no per-user OAuth login or consent screen. Includes Okta Cross App Access (XAA) setup.
-- [OpenAPI Specification](https://exa.ai/docs/reference/openapi-spec.md)
-- [Batch API](https://exa.ai/docs/reference/batches.md): Run Exa API requests asynchronously in batches.
-- [Context (Exa Code)](https://exa.ai/docs/reference/context.md): Get relevant code snippets and examples from open source libraries and repositories. Search through code repositories to find contextual examples that help developers understand how specific libraries, frameworks, or programming concepts are implemented in practice.
-- [Content Freshness](https://exa.ai/docs/reference/livecrawling-contents.md)
-- [Migrating from Bing](https://exa.ai/docs/reference/migrating-from-bing.md): Guide for switching from the deprecated Bing Search API to Exa
-- [Make Exa Your Default Search Engine](https://exa.ai/docs/reference/set-exa-as-default-search.md): Simple steps to set exa.ai as your browser's default search engine
-- [Building a Voice Agent with Exa](https://exa.ai/docs/examples/voice-agent.md): Best practices for building AI voice agents powered by Exa's real-time search
-- [FAQs](https://exa.ai/docs/reference/faqs.md)
-- [Blog](https://exa.ai/docs/reference/blog.md)
+- [Snowflake](https://exa.ai/docs/integrations/snowflake.md): Use Exa search and content retrieval from Snowflake stored procedures and Cortex Agents.
+- [Grok Build](https://exa.ai/docs/integrations/grok-build.md): Use Exa web search in Grok Build. Install the Exa plugin from the Grok Build marketplace and sign in with your Exa account.
+- [LlamaIndex](https://exa.ai/docs/integrations/llamaindex.md): A quick-start guide on how to add Exa retrieval to a LlamaIndex Agent Application.
+- [Pydantic AI](https://exa.ai/docs/integrations/pydantic-ai.md): Give a Pydantic AI agent web research tools backed by the Exa search API.
+- [LangChain](https://exa.ai/docs/integrations/langchain.md): How to use Exa's integration with LangChain to perform RAG.
+- [Browserbase](https://exa.ai/docs/integrations/browserbase.md): Combine Exa company search with Browserbase browser automation for job application workflows.
+- [Pricing](https://exa.ai/docs/admin/pricing.md): Pay-as-you-go rates for Exa Search, Contents, Answer, Monitors, and the Agent API
+- [Billing and Rate Limits](https://exa.ai/docs/admin/billing.md): Manage Exa credits, invoices, and API rate limits.
+- [Managing Your Team](https://exa.ai/docs/admin/team-management.md): Details on Team structure and account management for the Exa platform
+- [Security Overview](https://exa.ai/docs/admin/security/overview.md): Exa security, compliance, and regional access information.
+- [Zero Data Retention](https://exa.ai/docs/admin/security/zero-data-retention.md): Zero Data Retention availability across Exa products.
+- [HIPAA](https://exa.ai/docs/admin/security/hipaa.md): Use HIPAA compliance mode for eligible cached retrieval requests.
+- [Enterprise Managed Auth for Claude](https://exa.ai/docs/admin/mcp-enterprise-managed-auth.md): Set up Enterprise Managed Auth (EMA) so Claude connects to Exa MCP through your identity provider, including Okta Cross App Access (XAA).
+- [Status Page](https://exa.ai/docs/admin/status.md): Live availability, active incidents, and uptime history for Exa services.
+- [Error Codes](https://exa.ai/docs/admin/error-codes.md): Reference for common error codes used by the Exa API
+- [OpenAPI Specification](https://exa.ai/docs/admin/openapi-spec.md): Download the OpenAPI specs for the Exa public API and Team Management API in YAML or JSON.
+- [FAQs](https://exa.ai/docs/admin/faqs.md): Answers to common questions about Exa products, search index, freshness, grounding, security, and pricing.
+- [Websets](https://exa.ai/docs/websets/quickstart.md): Build verified, enriched datasets from the web.
+- [How to Use Imports](https://exa.ai/docs/websets/imports-and-search.md): A step-by-step guide to importing URLs into Websets -- enriching your list, scoring it against criteria, discovering new matches, and combining all three.
+- [Get started](https://exa.ai/docs/websets/dashboard/get-started.md): Welcome to the Websets Dashboard! Find anything you want on the web, no matter how complex.
+- [Import from CSV](https://exa.ai/docs/websets/dashboard/import-from-csv.md): Turn your existing CSV data into a Webset
+- [Exclude Results](https://exa.ai/docs/websets/dashboard/exclude-results.md): Avoid duplicate results in your new searches by excluding URLs from previous Websets or CSV files.
+- [Integrations](https://exa.ai/docs/websets/dashboard/integrations.md): Connect your Websets with popular CRM and email tools
 - [Search](https://exa.ai/docs/reference/search.md): The search endpoint lets you search the web and extract contents from the results.
 - [Contents](https://exa.ai/docs/reference/get-contents.md): Get the full page contents, summaries, and metadata for a list of URLs.
-- [Answer](https://exa.ai/docs/reference/answer.md): Get an LLM answer to a question informed by Exa search results. `/answer` performs an Exa search and uses an LLM to generate either: 1. A direct answer for specific queries. (i.e. "What is the capital of France?" would return "Paris") 2. A detailed summary with citations for open-ended queries (i.e.…
-- [Overview](https://exa.ai/docs/reference/agent-api/overview.md): Agent runs asynchronous, multi-step web research, list-building, and enrichment workflows with natural-language answers, structured outputs, and citations.
 - [Create a run](https://exa.ai/docs/reference/agent-api/create-a-run.md): Create an asynchronous Agent run. The response returns the run object immediately unless you request server-sent events.
-- [Get a run](https://exa.ai/docs/reference/agent-api/get-a-run.md): Retrieve an Agent run by ID.
-- [List runs](https://exa.ai/docs/reference/agent-api/list-runs.md): Retrieve a paginated list of Agent runs for your team.
+- [Get an Agent run](https://exa.ai/docs/reference/agent-api/get-a-run.md): Retrieve an Agent run by ID.
+- [List Agent runs](https://exa.ai/docs/reference/agent-api/list-runs.md): Retrieve a paginated list of Agent runs for your team.
 - [Cancel a run](https://exa.ai/docs/reference/agent-api/cancel-a-run.md): Cancel a queued or running Agent run.
 - [Stop a run](https://exa.ai/docs/reference/agent-api/stop-a-run.md): Gracefully stop a running Agent run and keep the results gathered so far.
 - [Delete a run](https://exa.ai/docs/reference/agent-api/delete-a-run.md): Delete a stored Agent run.
 - [List run events](https://exa.ai/docs/reference/agent-api/list-run-events.md): List stored Agent run events or replay them as server-sent events.
-- [Create a Webset](https://exa.ai/docs/websets/api/websets/create-a-webset.md): Creates a new Webset with optional search, import, and enrichment configurations. The Webset will automatically begin processing once created.
-- [Get a Webset](https://exa.ai/docs/websets/api/websets/get-a-webset.md)
-- [Update a Webset](https://exa.ai/docs/websets/api/websets/update-a-webset.md)
-- [Delete a Webset](https://exa.ai/docs/websets/api/websets/delete-a-webset.md): Deletes a Webset.
-- [Preview a webset](https://exa.ai/docs/websets/api/websets/preview-a-webset.md): Preview how a search query will be decomposed before creating a webset. This endpoint performs the same query analysis that happens during webset creation, allowing you to see the detected entity type, generated search criteria, and available enrichment columns in advance.
-- [Cancel a running Webset](https://exa.ai/docs/websets/api/websets/cancel-a-running-webset.md): Cancels all operations being performed on a Webset.
-- [List all Websets](https://exa.ai/docs/websets/api/websets/list-all-websets.md): Returns a list of Websets.
-- [Get an Item](https://exa.ai/docs/websets/api/websets/items/get-an-item.md): Returns a Webset Item.
-- [Delete an Item](https://exa.ai/docs/websets/api/websets/items/delete-an-item.md): Deletes an Item from the Webset.
-- [List all Items for a Webset](https://exa.ai/docs/websets/api/websets/items/list-all-items-for-a-webset.md): Returns a list of Webset Items.
-- [Create a Search](https://exa.ai/docs/websets/api/websets/searches/create-a-search.md): Creates a new Search for the Webset.
-- [Get a Search](https://exa.ai/docs/websets/api/websets/searches/get-a-search.md): Gets a Search by id
-- [Cancel a running Search](https://exa.ai/docs/websets/api/websets/searches/cancel-a-running-search.md): Cancels a currently running Search.
-- [Create an Enrichment](https://exa.ai/docs/websets/api/websets/enrichments/create-an-enrichment.md): Create an Enrichment for a Webset.
-- [Get an Enrichment](https://exa.ai/docs/websets/api/websets/enrichments/get-an-enrichment.md)
-- [Update an Enrichment](https://exa.ai/docs/websets/api/websets/enrichments/update-an-enrichment.md): Update an Enrichment configuration for a Webset.
-- [Delete an Enrichment](https://exa.ai/docs/websets/api/websets/enrichments/delete-an-enrichment.md): When deleting an Enrichment, any running enrichments will be canceled and all existing `enrichment_result` generated by this Enrichment will no longer be available.
-- [Cancel a running Enrichment](https://exa.ai/docs/websets/api/websets/enrichments/cancel-a-running-enrichment.md): All running enrichments will be canceled. You can not resume an Enrichment after it has been canceled.
-- [Create an Import](https://exa.ai/docs/websets/api/imports/create-an-import.md): Creates a new import to upload your data into Websets. Imports can be used to:
-- [Get Import](https://exa.ai/docs/websets/api/imports/get-import.md): Gets a specific import.
-- [Update Import](https://exa.ai/docs/websets/api/imports/update-import.md): Updates a import configuration.
-- [Delete Import](https://exa.ai/docs/websets/api/imports/delete-import.md): Deletes a import.
-- [List Imports](https://exa.ai/docs/websets/api/imports/list-imports.md): Lists all imports for the Webset.
-- [Create a Monitor](https://exa.ai/docs/websets/api/monitors/create-a-monitor.md): Creates a new `Monitor` to continuously keep your Websets updated with fresh data.
-- [Get Monitor](https://exa.ai/docs/websets/api/monitors/get-monitor.md): Gets a specific monitor.
-- [Update Monitor](https://exa.ai/docs/websets/api/monitors/update-monitor.md): Updates a monitor configuration.
-- [Delete Monitor](https://exa.ai/docs/websets/api/monitors/delete-monitor.md): Deletes a monitor.
-- [List Monitors](https://exa.ai/docs/websets/api/monitors/list-monitors.md): Lists all monitors for the Webset.
-- [List Monitor Runs](https://exa.ai/docs/websets/api/monitors/runs/list-monitor-runs.md): Lists all runs for the Monitor.
-- [Get Monitor Run](https://exa.ai/docs/websets/api/monitors/runs/get-monitor-run.md): Gets a specific monitor run.
-- [Create a Webhook](https://exa.ai/docs/websets/api/webhooks/create-a-webhook.md)
-- [Get a Webhook](https://exa.ai/docs/websets/api/webhooks/get-a-webhook.md)
-- [Update a Webhook](https://exa.ai/docs/websets/api/webhooks/update-a-webhook.md)
-- [Delete a Webhook](https://exa.ai/docs/websets/api/webhooks/delete-a-webhook.md)
-- [List webhooks](https://exa.ai/docs/websets/api/webhooks/list-webhooks.md)
-- [List webhook attempts](https://exa.ai/docs/websets/api/webhooks/attempts/list-webhook-attempts.md): List all attempts made by a Webhook ordered in descending order.
-- [Verifying Signatures](https://exa.ai/docs/websets/api/webhooks/verifying-signatures.md): Learn how to securely verify webhook signatures to ensure requests are from Exa
-- [Event Types](https://exa.ai/docs/websets/api/events/types.md): Learn about the events that occur within the Webset API
-- [List all Events](https://exa.ai/docs/websets/api/events/list-all-events.md): List all events that have occurred in the system.
-- [Get an Event](https://exa.ai/docs/websets/api/events/get-an-event.md): Get a single Event by id.
-- [Get Team Info](https://exa.ai/docs/websets/api/teams/get-team-info.md): Retrieve information about your team including concurrency usage and limits.
-- [Create a Monitor](https://exa.ai/docs/reference/monitors/create-a-monitor.md): Creates a new Monitor to run recurring Exa searches on a schedule.
-- [List Monitors](https://exa.ai/docs/reference/monitors/list-monitors.md): Lists all monitors for the authenticated team. Supports filtering by status and cursor-based pagination.
-- [Get a Monitor](https://exa.ai/docs/reference/monitors/get-a-monitor.md): Retrieves a single monitor by its ID.
-- [Update a Monitor](https://exa.ai/docs/reference/monitors/update-a-monitor.md): Updates an existing monitor. All fields are optional. For `search`, you can send a partial object containing only the fields you want to change. Set `trigger` to `null` to remove the schedule.
-- [Delete a Monitor](https://exa.ai/docs/reference/monitors/delete-a-monitor.md): Deletes a monitor. This cannot be undone.
-- [Trigger a Monitor](https://exa.ai/docs/reference/monitors/trigger-a-monitor.md): Triggers a run immediately, regardless of the schedule. Works for monitors with status `active` or `paused`.
-- [Batch Action on Monitors](https://exa.ai/docs/reference/monitors/batch-monitors.md): Perform a batch action on monitors matching the provided filters.
-- [List Runs](https://exa.ai/docs/reference/monitors/runs/list-runs.md): Lists all runs for a monitor with cursor-based pagination. Runs are returned in reverse chronological order.
-- [Get a Run](https://exa.ai/docs/reference/monitors/runs/get-a-run.md): Retrieves a single run by its ID, including the full output if the run is completed.
+- [Create a monitor](https://exa.ai/docs/reference/monitors/create-a-monitor.md): Creates a new Monitor to run recurring Exa searches on a schedule.
+- [List monitors](https://exa.ai/docs/reference/monitors/list-monitors.md): Lists all monitors for the authenticated team. Supports filtering by status and cursor-based pagination.
+- [Get a monitor](https://exa.ai/docs/reference/monitors/get-a-monitor.md): Retrieves a single monitor by its ID.
+- [Update a monitor](https://exa.ai/docs/reference/monitors/update-a-monitor.md): Updates an existing monitor. All fields are optional. For `search`, you can send a partial object containing only the fields you want to change. Set `trigger` to `null` to remove the schedule.
+- [Delete a monitor](https://exa.ai/docs/reference/monitors/delete-a-monitor.md): Deletes a monitor. This cannot be undone.
+- [Trigger a monitor](https://exa.ai/docs/reference/monitors/trigger-a-monitor.md): Triggers a run immediately, regardless of the schedule. Works for monitors with status `active` or `paused`.
+- [Batch action on monitors](https://exa.ai/docs/reference/monitors/batch-monitors.md): Perform a batch action on monitors matching the provided filters.
+- [List runs](https://exa.ai/docs/reference/monitors/runs/list-runs.md): Lists all runs for a monitor with cursor-based pagination. Runs are returned in reverse chronological order.
+- [Get a run](https://exa.ai/docs/reference/monitors/runs/get-a-run.md): Retrieves a single run by its ID, including the full output if the run is completed.
+- [Answer](https://exa.ai/docs/reference/answer.md): Get an LLM answer to a question informed by Exa search results. `/answer` performs an Exa search and uses an LLM to generate either: 1. A direct answer for specific queries. (i.e. "What is the capital of France?" would return "Paris") 2. A detailed summary with citations for open-ended queries (i.e.…
 - [Create a batch](https://exa.ai/docs/reference/batches/create-a-batch.md): Submit a batch of Exa API requests to run asynchronously.
 - [List batches](https://exa.ai/docs/reference/batches/list-batches.md): Retrieve a paginated list of batches for your team.
 - [Get a batch](https://exa.ai/docs/reference/batches/get-a-batch.md): Retrieve a batch by ID.
 - [Cancel a batch](https://exa.ai/docs/reference/batches/cancel-a-batch.md): Cancel an in-progress batch.
 - [Delete a batch](https://exa.ai/docs/reference/batches/delete-a-batch.md): Delete a batch in a terminal status.
-- [Create API Key](https://exa.ai/docs/reference/team-management/create-api-key.md): Create a new API key for your team with optional name and rate limit configuration.
-- [List API Keys](https://exa.ai/docs/reference/team-management/list-api-keys.md): Retrieve all API keys belonging to your team with their metadata.
-- [Get API Key](https://exa.ai/docs/reference/team-management/get-api-key.md): Retrieve details of a specific API key by its ID.
-- [Get API Key Usage](https://exa.ai/docs/reference/team-management/get-api-key-usage.md): Retrieve usage analytics and billing data for a specific API key.
-- [Update API Key](https://exa.ai/docs/reference/team-management/update-api-key.md): Update the name and rate limit of an existing API key.
-- [Delete API Key](https://exa.ai/docs/reference/team-management/delete-api-key.md): Permanently delete an API key from your team.
+- [Create API key](https://exa.ai/docs/reference/team-management/create-api-key.md): Create a new API key for your team with optional name and rate limit configuration.
+- [List API keys](https://exa.ai/docs/reference/team-management/list-api-keys.md): Retrieve all API keys belonging to your team with their metadata.
+- [Get API key](https://exa.ai/docs/reference/team-management/get-api-key.md): Retrieve details of a specific API key by its ID.
+- [Get API key usage](https://exa.ai/docs/reference/team-management/get-api-key-usage.md): Retrieve usage analytics and billing data for a specific API key.
+- [Update API key](https://exa.ai/docs/reference/team-management/update-api-key.md): Update the name and rate limit of an existing API key.
+- [Delete API key](https://exa.ai/docs/reference/team-management/delete-api-key.md): Permanently delete an API key from your team.
+- [Create a webset](https://exa.ai/docs/websets/api/websets/create-a-webset.md): Creates a new Webset with optional search, import, and enrichment configurations. The Webset will automatically begin processing once created.
+- [Get a webset](https://exa.ai/docs/websets/api/websets/get-a-webset.md): Returns a Webset by `id` or `externalId`, including its status, searches, imports, enrichments, and monitors.
+- [Update a webset](https://exa.ai/docs/websets/api/websets/update-a-webset.md): Updates the `title` or `metadata` of a Webset. Searches, imports, and enrichments are managed through their own endpoints.
+- [Delete a webset](https://exa.ai/docs/websets/api/websets/delete-a-webset.md): Deletes a Webset.
+- [Preview a webset](https://exa.ai/docs/websets/api/websets/preview-a-webset.md): Preview how a search query will be decomposed before creating a webset. This endpoint performs the same query analysis that happens during webset creation, allowing you to see the detected entity type, generated search criteria, and available enrichment columns in advance.
+- [Cancel a running webset](https://exa.ai/docs/websets/api/websets/cancel-a-running-webset.md): Cancels all operations being performed on a Webset.
+- [List all websets](https://exa.ai/docs/websets/api/websets/list-all-websets.md): Returns a list of Websets.
+- [Get an item](https://exa.ai/docs/websets/api/websets/items/get-an-item.md): Returns a Webset Item.
+- [Delete an item](https://exa.ai/docs/websets/api/websets/items/delete-an-item.md): Deletes an Item from the Webset.
+- [List all items for a webset](https://exa.ai/docs/websets/api/websets/items/list-all-items-for-a-webset.md): Returns a list of Webset Items.
+- [Create a search](https://exa.ai/docs/websets/api/websets/searches/create-a-search.md): Creates a new Search for the Webset.
+- [Get a search](https://exa.ai/docs/websets/api/websets/searches/get-a-search.md): Gets a Search by id
+- [Cancel a running search](https://exa.ai/docs/websets/api/websets/searches/cancel-a-running-search.md): Cancels a currently running Search.
+- [Create an enrichment](https://exa.ai/docs/websets/api/websets/enrichments/create-an-enrichment.md): Create an Enrichment for a Webset.
+- [Get an enrichment](https://exa.ai/docs/websets/api/websets/enrichments/get-an-enrichment.md): Returns an Enrichment configured on a Webset, including its status, description, format, and options.
+- [Update an enrichment](https://exa.ai/docs/websets/api/websets/enrichments/update-an-enrichment.md): Update an Enrichment configuration for a Webset.
+- [Delete an enrichment](https://exa.ai/docs/websets/api/websets/enrichments/delete-an-enrichment.md): When deleting an Enrichment, any running enrichments will be canceled and all existing `enrichment_result` generated by this Enrichment will no longer be available.
+- [Cancel a running enrichment](https://exa.ai/docs/websets/api/websets/enrichments/cancel-a-running-enrichment.md): All running enrichments will be canceled. You can not resume an Enrichment after it has been canceled.
+- [Create an import](https://exa.ai/docs/websets/api/imports/create-an-import.md): Creates a new import to upload your data into Websets. Imports can be used to:
+- [Get an import](https://exa.ai/docs/websets/api/imports/get-import.md): Gets a specific import.
+- [Update an import](https://exa.ai/docs/websets/api/imports/update-import.md): Updates a import configuration.
+- [Delete an import](https://exa.ai/docs/websets/api/imports/delete-import.md): Deletes a import.
+- [List imports](https://exa.ai/docs/websets/api/imports/list-imports.md): Lists all imports for the Webset.
+- [Create a Websets monitor](https://exa.ai/docs/websets/api/monitors/create-a-monitor.md): Creates a new `Monitor` to continuously keep your Websets updated with fresh data.
+- [Get a Websets monitor](https://exa.ai/docs/websets/api/monitors/get-monitor.md): Gets a specific monitor.
+- [Update a Websets monitor](https://exa.ai/docs/websets/api/monitors/update-monitor.md): Updates a monitor configuration.
+- [Delete a Websets monitor](https://exa.ai/docs/websets/api/monitors/delete-monitor.md): Deletes a monitor.
+- [List Websets monitors](https://exa.ai/docs/websets/api/monitors/list-monitors.md): Lists all monitors for the Webset.
+- [List monitor runs](https://exa.ai/docs/websets/api/monitors/runs/list-monitor-runs.md): Lists all runs for the Monitor.
+- [Get a monitor run](https://exa.ai/docs/websets/api/monitors/runs/get-monitor-run.md): Gets a specific monitor run.
+- [Create a webhook](https://exa.ai/docs/websets/api/webhooks/create-a-webhook.md): Creates a Webhook that delivers the selected events to your URL as they occur.
+- [Get a webhook](https://exa.ai/docs/websets/api/webhooks/get-a-webhook.md): Returns a Webhook by id, including its status, subscribed events, target URL, and metadata. The signing `secret` is not returned.
+- [Update a webhook](https://exa.ai/docs/websets/api/webhooks/update-a-webhook.md): Updates the target URL, subscribed events, or metadata of a Webhook. Omitted fields are left unchanged.
+- [Delete a webhook](https://exa.ai/docs/websets/api/webhooks/delete-a-webhook.md): Deletes a Webhook. Its status becomes `inactive`, which stops future webhook deliveries to its URL.
+- [List webhooks](https://exa.ai/docs/websets/api/webhooks/list-webhooks.md): Returns the active Webhooks for your team.
+- [List webhook attempts](https://exa.ai/docs/websets/api/webhooks/attempts/list-webhook-attempts.md): List all attempts made by a Webhook ordered in descending order.
+- [Verifying signatures](https://exa.ai/docs/websets/api/webhooks/verifying-signatures.md): Learn how to securely verify webhook signatures to ensure requests are from Exa
+- [Event types](https://exa.ai/docs/websets/api/events/types.md): Learn about the events that occur within the Webset API
+- [List all events](https://exa.ai/docs/websets/api/events/list-all-events.md): List all events that have occurred in the system.
+- [Get an event](https://exa.ai/docs/websets/api/events/get-an-event.md): Get a single Event by id.
+- [Get team info](https://exa.ai/docs/websets/api/teams/get-team-info.md): Retrieve information about your team including concurrency usage and limits.
 - [Changelog](https://exa.ai/docs/changelog.md): Product updates and announcements from Exa.
-- [AGENTS](https://exa.ai/docs/AGENTS.md)
-- [Exa](https://exa.ai/docs/integrations/agentops.md)
-- [Google ADK](https://exa.ai/docs/integrations/google-adk.md)
-- [OpenRouter](https://exa.ai/docs/integrations/openrouter.md)
-- [Contents Retrieval](https://exa.ai/docs/reference/contents-retrieval.md)
-- [Crawling Subpages](https://exa.ai/docs/reference/crawling-subpages.md)
-- [IBM WatsonX](https://exa.ai/docs/reference/ibm-watsonx.md)
-- [The Exa Index](https://exa.ai/docs/reference/the-exa-index.md): We spend a lot of time and energy creating a high quality, curated index.
-- [2026 08 24 design button behavioral stability](https://exa.ai/docs/superpowers/plans/2026-08-24-design-button-behavioral-stability.md)
+- [Changelog](https://exa.ai/docs/changelog.md): Product updates and announcements from Exa.
 ## OpenAPI Specs
-- [exa-spec](https://exa.ai/docs/exa-spec.yaml)
-- [team-management-spec](https://exa.ai/docs/team-management-spec.yaml)
+- [exa-spec](/docs/exa-spec.json)
+- [exa-spec](/docs/exa-spec.yaml)
+- [team-management-spec](/docs/team-management-spec.yaml)

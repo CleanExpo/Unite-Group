@@ -137,8 +137,14 @@ INSTRUCTIONS
 response = client.responses.create(
 model: "gpt-6-astra",
 input: [
-{role: :developer, content: instructions},
-{role: :user, content: "My monitor won't turn on - help!"}
+{
+role: :developer,
+content: instructions
+},
+{
+role: :user,
+content: "My monitor won't turn on - help!"
+}
 ]
 )
 puts(response.output_text)
@@ -228,8 +234,23 @@ require "openai"
 client = OpenAI::Client.new
 evaluation = client.evals.create(
 name: "Support answer quality",
-data_source_config: {type: :custom, item_schema: {type: :object, properties: {input: {type: :string}}, required: ["input"]}},
-testing_criteria: [{type: :string_check, name: "mentions_refund", input: "{{sample.output_text}}", operation: :contains, reference: "refund"}]
+data_source_config: {
+type: :custom,
+item_schema: {
+type: :object,
+properties: { input: { type: :string } },
+required: ["input"]
+}
+},
+testing_criteria: [
+{
+type: :string_check,
+name: "mentions_refund",
+input: "{{sample.output_text}}",
+operation: :contains,
+reference: "refund"
+}
+]
 )
 puts(evaluation.id)
 ```
@@ -323,7 +344,7 @@ Now that we've created an eval that describes the desired behavior of our applic
 ## Test a prompt with your eval
 Now that we have defined how we want our app to behave in an eval, let's construct a prompt that reliably generates the correct output for a representative sample of test data.
 ### Uploading test data
-There are several ways to provide test data for eval runs, but it may be convenient to upload a [JSONL](https://jsonlines.org/) file that contains data in the schema we specified when we created our eval. A sample JSONL file that conforms to the schema we set up is below:
+You can provide test data for eval runs in several ways, but it may be convenient to upload a [JSONL](https://jsonlines.org/) file that contains data in the schema we specified when we created our eval. A sample JSONL file that conforms to the schema we set up is below:
 ```json
 { "item": { "ticket_text": "My monitor won't turn on!", "correct_label": "Hardware" } }
 { "item": { "ticket_text": "I'm in vim and I can't quit!", "correct_label": "Software" } }
@@ -477,7 +498,10 @@ run = client.evals.runs.create(
 name: "Categorization text run",
 data_source: {
 type: :responses,
-source: {type: :file_id, id: "YOUR_FILE_ID"},
+source: {
+type: :file_id,
+id: "YOUR_FILE_ID"
+},
 input_messages: {
 type: :template,
 template: [
@@ -485,7 +509,10 @@ template: [
 role: :developer,
 content: "Categorize the ticket as Hardware, Software, or Other."
 },
-{role: :user, content: "{{ item.ticket_text }}"}
+{
+role: :user,
+content: "{{ item.ticket_text }}"
+}
 ]
 },
 model: "gpt-6-astra"
@@ -661,7 +688,7 @@ You'll need the UUID of both your eval and eval run to fetch its status. When yo
 }
 ```
 The API response contains granular information about test criteria results, API usage for generating model responses, and a `report_url` property that takes you to a page in the dashboard where you can explore the results visually.
-In our simple test, the model reliably generated the content we wanted for a small test case sample. In reality, you will often have to run your eval with more criteria, different prompts, and different data sets. But the process above gives you all the tools you need to build robust evals for your LLM apps!
+In our test, the model reliably generated the content we wanted for a small test case sample. In reality, you will often have to run your eval with more criteria, different prompts, and different data sets. But the process above gives you all the tools you need to build robust evals for your LLM apps!
 ## Next steps
 Now you know how to create and run evals via API, and using the dashboard! Here are a few other resources that may be useful to you as you continue to improve your model results.
 [Cookbook: Detecting prompt regressions
