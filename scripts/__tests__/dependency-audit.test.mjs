@@ -1147,3 +1147,183 @@ test('findings are bounded per field, per advisory and in count, without changin
   const serialised = JSON.stringify(report)
   assert.ok(serialised.length < 400_000, `report unbounded at ${serialised.length} chars`)
 })
+
+// Accepted-risk exception (GHSA-vfj7-8cjw-p6xm, founder-approved 05/10/2026). The fixture is the
+// shape npm reports: the advisory sits on braces, and chokidar is high only because it uses braces.
+function bracesReport(advisory = 'GHSA-vfj7-8cjw-p6xm') {
+  return JSON.stringify({
+    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 2, critical: 0, total: 2 } },
+    vulnerabilities: {
+      braces: {
+        severity: 'high',
+        range: '*',
+        via: [{ url: `https://github.com/advisories/${advisory}`, severity: 'high', title: 'braces DoS' }],
+      },
+      chokidar: { severity: 'high', range: '2.0.0 - 3.6.0', via: ['braces'] },
+    },
+  })
+}
+
+const BRACES_ENTRY = [{ manager: 'npm', supported: true, workspace: 'app', lockfile: 'app/package-lock.json' }]
+
+async function auditBraces(t, { advisory, now }) {
+  const { runActiveLockfileAudits } = await loadRunner()
+  const root = await makeFixture(t)
+  return runActiveLockfileAudits({
+    entries: BRACES_ENTRY,
+    root,
+    evidence: {},
+    now,
+    runAudit: async () => ({ exitCode: 1, stdout: bracesReport(advisory), stderr: '', timedOut: false }),
+  })
+}
+
+test('the braces exception excuses only its own advisory while active, and fails once it expires', async (t) => {
+  const active = await auditBraces(t, { now: new Date('2026-11-05T23:00:00Z') })
+  assert.equal(active.passed, true)
+  assert.deepEqual(active.results[0].acceptedRisk.excused.map(({ package: name }) => name), ['braces', 'chokidar'])
+
+  const expired = await auditBraces(t, { now: new Date('2026-11-06T00:00:00Z') })
+  assert.equal(expired.passed, false)
+  assert.equal(expired.results[0].status, 'failed')
+  assert.deepEqual(expired.results[0].acceptedRisk.expiredExceptionsMatched, ['GHSA-vfj7-8cjw-p6xm'])
+})
+
+test('a different advisory id is never excused by the braces exception', async (t) => {
+  const report = await auditBraces(t, { advisory: 'GHSA-q2hr-2g5m-vwhr', now: new Date('2026-10-05T00:00:00Z') })
+  assert.equal(report.passed, false)
+  assert.equal(report.results[0].status, 'failed')
+  assert.equal(report.results[0].acceptedRisk.blocking, true)
+  assert.deepEqual(report.results[0].acceptedRisk.excused, [])
+})
+
+test('every finding the exception excuses is printed on the run', async (t) => {
+  const { main } = await loadRunner()
+  const root = await makeFixture(t)
+  let printed = ''
+  const exitCode = await main({
+    argv: [],
+    entries: BRACES_ENTRY,
+    root,
+    now: new Date('2026-10-05T00:00:00Z'),
+    stdout: { write: () => {} },
+    stderr: { write: (text) => { printed += text } },
+    runAudit: async () => ({ exitCode: 1, stdout: bracesReport(), stderr: '', timedOut: false }),
+  })
+  assert.equal(exitCode, 0)
+  assert.match(printed, /accepted-risk exception GHSA-vfj7-8cjw-p6xm: ACTIVE \(expires 2026-11-05\) — .*founder on 05\/10\/2026/)
+  assert.match(printed, /ACCEPTED RISK app\/package-lock\.json: excused high braces via GHSA-vfj7-8cjw-p6xm/)
+  assert.match(printed, /ACCEPTED RISK app\/package-lock\.json: excused high chokidar via GHSA-vfj7-8cjw-p6xm/)
+})
+
+test('more than 100 excused findings are all printed, none summarised away', async (t) => {
+  const { main } = await loadRunner()
+  const root = await makeFixture(t)
+  const via = [{ url: 'https://github.com/advisories/GHSA-vfj7-8cjw-p6xm', severity: 'high' }]
+  const vulnerabilities = Object.fromEntries(Array.from({ length: 101 }, (_, i) => [`pkg-${i}`, { severity: 'high', via }]))
+  const stdout = JSON.stringify({
+    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 101, critical: 0, total: 101 } },
+    vulnerabilities,
+  })
+  let printed = ''
+  const exitCode = await main({
+    argv: [],
+    entries: BRACES_ENTRY,
+    root,
+    now: new Date('2026-10-05T00:00:00Z'),
+    stdout: { write: () => {} },
+    stderr: { write: (text) => { printed += text } },
+    runAudit: async () => ({ exitCode: 1, stdout, stderr: '', timedOut: false }),
+  })
+  assert.equal(exitCode, 0)
+  assert.equal(printed.match(/^ACCEPTED RISK app\/package-lock\.json: excused high pkg-\d+ /gm).length, 101)
+  assert.match(printed, /excused high pkg-100 via GHSA-vfj7-8cjw-p6xm/)
+})
+
+test('a high count the findings do not account for is never excused', async (t) => {
+  const { runActiveLockfileAudits } = await loadRunner()
+  const root = await makeFixture(t)
+  const stdout = JSON.stringify({
+    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 2, critical: 0, total: 2 } },
+    vulnerabilities: {
+      braces: { severity: 'high', via: [{ url: 'https://github.com/advisories/GHSA-vfj7-8cjw-p6xm', severity: 'high' }] },
+    },
+  })
+  const report = await runActiveLockfileAudits({
+    entries: BRACES_ENTRY,
+    root,
+    evidence: {},
+    now: new Date('2026-10-05T00:00:00Z'),
+    runAudit: async () => ({ exitCode: 1, stdout, stderr: '', timedOut: false }),
+  })
+  assert.equal(report.passed, false)
+  assert.equal(report.results[0].acceptedRisk.blocking, true)
+})
+
+test('an advisory whose URL is not the canonical GHSA URL is never excused, whatever id it declares', async () => {
+  const { evaluateAcceptedRisk, ACCEPTED_RISK_EXCEPTIONS } = await loadRunner()
+  const now = new Date('2026-10-05T00:00:00Z')
+  for (const url of [
+    'https://github.com/advisories/GHSA-vfj7-8cjw-p6xm-suffix',
+    'https://github.com/advisories/GHSA-VFJ7-8CJW-P6XM',
+    'https://example.com/advisories/GHSA-vfj7-8cjw-p6xm',
+  ]) {
+    const outcome = evaluateAcceptedRisk({
+      metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 1, critical: 0, total: 1 } },
+      advisories: { 1: { module_name: 'braces', severity: 'high', github_advisory_id: 'GHSA-vfj7-8cjw-p6xm', url } },
+    }, { exceptions: ACCEPTED_RISK_EXCEPTIONS, now })
+    assert.equal(outcome.blocking, true, url)
+    assert.deepEqual(outcome.excused, [], url)
+  }
+})
+
+test('high and critical counts are reconciled separately, so a severity disagreement blocks', async () => {
+  const { evaluateAcceptedRisk, ACCEPTED_RISK_EXCEPTIONS } = await loadRunner()
+  const now = new Date('2026-10-05T00:00:00Z')
+  // The scanner counts one CRITICAL; the findings describe one excusable HIGH. The summed totals
+  // agree (1 = 1), so only a per-severity comparison sees the disagreement.
+  const via = [{ url: 'https://github.com/advisories/GHSA-vfj7-8cjw-p6xm', severity: 'high' }]
+  const npmShape = {
+    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 0, critical: 1, total: 1 } },
+    vulnerabilities: { braces: { severity: 'high', via } },
+  }
+  const pnpmShape = {
+    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 0, critical: 1, total: 1 } },
+    advisories: { 1: { module_name: 'braces', severity: 'high', github_advisory_id: 'GHSA-vfj7-8cjw-p6xm', url: via[0].url } },
+  }
+  for (const report of [npmShape, pnpmShape]) {
+    assert.equal(evaluateAcceptedRisk(report, { exceptions: ACCEPTED_RISK_EXCEPTIONS, now }).blocking, true)
+  }
+})
+
+test('the braces exception covers only the accepted high severity, so a critical re-rating fails', async () => {
+  const { evaluateAcceptedRisk, ACCEPTED_RISK_EXCEPTIONS } = await loadRunner()
+  const now = new Date('2026-10-05T00:00:00Z')
+  const url = 'https://github.com/advisories/GHSA-vfj7-8cjw-p6xm'
+  const counts = { info: 0, low: 0, moderate: 0, high: 0, critical: 1, total: 1 }
+  const npmShape = {
+    metadata: { vulnerabilities: counts },
+    vulnerabilities: { braces: { severity: 'critical', via: [{ url, severity: 'critical' }] } },
+  }
+  const pnpmShape = {
+    metadata: { vulnerabilities: counts },
+    advisories: { 1: { module_name: 'braces', severity: 'critical', github_advisory_id: 'GHSA-vfj7-8cjw-p6xm', url } },
+  }
+  for (const report of [npmShape, pnpmShape]) {
+    const outcome = evaluateAcceptedRisk(report, { exceptions: ACCEPTED_RISK_EXCEPTIONS, now })
+    assert.equal(outcome.blocking, true)
+    assert.deepEqual(outcome.excused, [])
+  }
+})
+
+test('a package rated worse than every excused cause it carries is never excused', async () => {
+  const { evaluateAcceptedRisk, ACCEPTED_RISK_EXCEPTIONS } = await loadRunner()
+  const outcome = evaluateAcceptedRisk({
+    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 0, critical: 1, total: 1 } },
+    vulnerabilities: {
+      braces: { severity: 'critical', via: [{ url: 'https://github.com/advisories/GHSA-vfj7-8cjw-p6xm', severity: 'high' }] },
+    },
+  }, { exceptions: ACCEPTED_RISK_EXCEPTIONS, now: new Date('2026-10-05T00:00:00Z') })
+  assert.equal(outcome.blocking, true)
+  assert.deepEqual(outcome.excused, [])
+})
