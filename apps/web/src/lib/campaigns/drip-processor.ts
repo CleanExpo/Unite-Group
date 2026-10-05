@@ -59,6 +59,19 @@ export interface DripProcessSummary {
     | 'unsubscribe_not_configured'
     | 'allowlist_empty'
     | 'suppression_lookup_failed'
+  /** true when a live run was refused because DRIP_LIVE_SEND_ENABLED is not 'true'. */
+  liveSendDisabled?: boolean
+}
+
+/**
+ * Live-send master switch (UNI-2918). Drip email reaches a real inbox only when
+ * DRIP_LIVE_SEND_ENABLED is exactly 'true' on the server. It stays off until
+ * the UNI-2291 consent, unsubscribe and suppression gates are on main and the
+ * founder sets it; until then every live request is refused before any read,
+ * write or provider call, so no enrollment is advanced or marked failed.
+ */
+export function isDripLiveSendEnabled(): boolean {
+  return process.env.DRIP_LIVE_SEND_ENABLED === 'true'
 }
 
 function isSafeDryRunRecipient(email: string): boolean {
@@ -184,6 +197,18 @@ export async function processCampaignDrip(
   input: ProcessCampaignDripInput
 ): Promise<DripProcessSummary> {
   const { supabase, founderId, campaignId, businessKey, dryRun } = input
+
+  if (!dryRun && !isDripLiveSendEnabled()) {
+    return {
+      processed: 0,
+      skipped: 0,
+      failed: 0,
+      dryRun: false,
+      providerSend: 'not_attempted',
+      liveSendDisabled: true,
+    }
+  }
+
   const now = input.now ?? new Date()
   let processed = 0
   let skipped = 0
