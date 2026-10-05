@@ -9,6 +9,13 @@ vi.mock('@/lib/ai/client', () => ({
 vi.mock('@/lib/site-agent/site-keys', () => ({
   validateSiteKey: vi.fn(),
 }))
+vi.mock('@/lib/site-agent/quota', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/site-agent/quota')>()
+  return { ...actual, claimPublicAgentQuota: vi.fn() }
+})
+vi.mock('@/lib/ai/usage-recorder', () => ({
+  recordAiUsage: vi.fn(async () => undefined),
+}))
 vi.mock('@/lib/site-agent/grounding', () => ({
   ground: vi.fn(async () => ({ snippets: [], source: 'none', businessName: 'Synthex' })),
   formatGroundingContext: vi.fn(() => ''),
@@ -17,6 +24,8 @@ vi.mock('@/lib/site-agent/grounding', () => ({
 import { getAIClient } from '@/lib/ai/client'
 import { validateSiteKey } from '@/lib/site-agent/site-keys'
 import { ground } from '@/lib/site-agent/grounding'
+import { claimPublicAgentQuota } from '@/lib/site-agent/quota'
+import { recordAiUsage } from '@/lib/ai/usage-recorder'
 import { POST, OPTIONS } from '../route'
 
 let keyCounter = 0
@@ -54,6 +63,7 @@ describe('POST /api/agent', () => {
       founderId: 'founder-1',
       businessKey: 'synthex',
     })
+    vi.mocked(claimPublicAgentQuota).mockResolvedValue({ ok: true })
   })
 
   it('returns a generic 401 with CORS headers on a bad site key (no reason enumeration)', async () => {
@@ -158,6 +168,86 @@ describe('POST /api/agent', () => {
   })
 })
 
+describe('POST /api/agent — durable ceiling, kill switch, usage (UNI-2917)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(validateSiteKey).mockResolvedValue({
+      ok: true,
+      founderId: 'founder-1',
+      businessKey: 'synthex',
+    })
+  })
+
+  for (const [reason, status, error] of [
+    ['paused', 503, 'Agent is unavailable'],
+    ['unavailable', 503, 'Agent is unavailable'],
+    ['key_ceiling', 429, 'Daily limit reached'],
+    ['founder_ceiling', 429, 'Daily limit reached'],
+  ] as const) {
+    it(`refuses with ${status} and makes no model call when the claim says ${reason}`, async () => {
+      vi.mocked(claimPublicAgentQuota).mockResolvedValue({ ok: false, reason })
+      const create = vi.fn(async () => anthropicEvents('should not run'))
+      vi.mocked(getAIClient).mockReturnValue({ messages: { create } } as any)
+
+      const res = await POST(req({ siteKey: uniqueKey(), messages: [{ role: 'user', content: 'hi' }] }))
+
+      expect(res.status).toBe(status)
+      expect(await res.json()).toEqual({ error })
+      expect(Number(res.headers.get('Retry-After'))).toBeGreaterThan(0)
+      expect(res.headers.get('Access-Control-Allow-Origin')).toBe('https://client.example')
+      expect(getAIClient).not.toHaveBeenCalled()
+      expect(create).not.toHaveBeenCalled()
+      expect(ground).not.toHaveBeenCalled()
+    })
+  }
+
+  it('claims the chat quota for the validated founder and the presented key', async () => {
+    vi.mocked(claimPublicAgentQuota).mockResolvedValue({ ok: true })
+    vi.mocked(getAIClient).mockReturnValue({
+      messages: { create: vi.fn(async () => anthropicEvents('ok')) },
+    } as any)
+    const siteKey = uniqueKey()
+    await (await POST(req({ siteKey, messages: [{ role: 'user', content: 'hi' }] }))).text()
+    expect(claimPublicAgentQuota).toHaveBeenCalledWith(expect.anything(), 'founder-1', siteKey, 'chat')
+  })
+
+  it('never claims quota for a rejected site key', async () => {
+    vi.mocked(validateSiteKey).mockResolvedValue({ ok: false, reason: 'unknown_key' })
+    const res = await POST(req({ siteKey: uniqueKey(), messages: [{ role: 'user', content: 'hi' }] }))
+    expect(res.status).toBe(401)
+    expect(claimPublicAgentQuota).not.toHaveBeenCalled()
+  })
+
+  it('records measured token usage through the existing recorder after the stream', async () => {
+    vi.mocked(claimPublicAgentQuota).mockResolvedValue({ ok: true })
+    const create = vi.fn(async () =>
+      (async function* () {
+        yield { type: 'message_start', message: { id: 'msg_1', usage: { input_tokens: 120, output_tokens: 1 } } }
+        yield { type: 'content_block_delta', delta: { type: 'text_delta', text: 'Hi' } }
+        yield { type: 'message_delta', usage: { output_tokens: 42 } }
+        yield { type: 'message_stop' }
+      })(),
+    )
+    vi.mocked(getAIClient).mockReturnValue({ messages: { create } } as any)
+
+    const res = await POST(req({ siteKey: uniqueKey(), messages: [{ role: 'user', content: 'hi' }] }))
+    await res.text()
+
+    expect(recordAiUsage).toHaveBeenCalledTimes(1)
+    expect(recordAiUsage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        taskType: 'public-site-agent',
+        inputTokens: 120,
+        outputTokens: 42,
+        requestId: 'msg_1',
+        success: true,
+        metadata: expect.objectContaining({ business: 'synthex' }),
+      }),
+    )
+  })
+})
+
+
 // hCaptcha guard (UNI-2929). The real captcha module runs; fetch is mocked only
 // at the siteverify boundary.
 describe('POST /api/agent — hCaptcha guard', () => {
@@ -188,6 +278,7 @@ describe('POST /api/agent — hCaptcha guard', () => {
     })
     create = vi.fn(async () => anthropicEvents('ok'))
     vi.mocked(getAIClient).mockReturnValue({ messages: { create } } as any)
+    vi.mocked(claimPublicAgentQuota).mockResolvedValue({ ok: true })
     process.env.HCAPTCHA_SECRET = 'test-hcaptcha-secret'
   })
 
@@ -279,6 +370,14 @@ describe('POST /api/agent — hCaptcha guard', () => {
     const res = await POST(chat({ captchaToken: 'tok' }))
     expect(res.status).toBe(401)
     expect(siteverifyCalls(fetchMock)).toHaveLength(0)
+  })
+
+  it('a failed captcha never claims quota, so bots cannot spend the daily ceiling', async () => {
+    process.env.SITE_AGENT_CAPTCHA_ENABLED = 'true'
+    mockSiteverify(async () => new Response(JSON.stringify({ success: false })))
+    const res = await POST(chat({ captchaToken: 'tok' }))
+    expect(res.status).toBe(403)
+    expect(claimPublicAgentQuota).not.toHaveBeenCalled()
   })
 })
 

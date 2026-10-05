@@ -23,15 +23,17 @@
  * gate below does NOT provide must be in place first:
  *   1. Mint the activating site_keys row with a NON-EMPTY `allowed_origins` —
  *      the empty-list "any origin" path (see validateSiteKey) is unsafe here.
- *   2. Add a durable per-key/per-founder daily mint cap. The in-memory
- *      per-isolate limiter below is best-effort only (resets on cold start,
- *      not shared across regions); it is not a real global spend ceiling.
+ *   2. A durable per-key/per-founder daily mint cap — now enforced by
+ *      claimPublicAgentQuota (UNI-2917) below; the founder's
+ *      public_agent_controls row must exist with enabled = true. The
+ *      in-memory per-isolate limiter is burst control only.
  */
 
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { validateSiteKey } from '@/lib/site-agent/site-keys'
 import { captchaRequired, verifyCaptcha, captchaErrorCode } from '@/lib/site-agent/captcha'
+import { claimPublicAgentQuota, quotaRefusalResponse } from '@/lib/site-agent/quota'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 15
@@ -160,6 +162,19 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: 'Voice agent is not configured' },
       { status: 503, headers: cors },
+    )
+  }
+
+  // Durable per-key / per-founder daily mint cap + kill switch (UNI-2917) —
+  // activation precondition 2 above. Claimed only when a mint can actually
+  // happen, so an unconfigured agent does not burn budget. Fails closed.
+  const quota = await claimPublicAgentQuota(supabase, validation.founderId, parsed.siteKey, 'voice')
+  if (!quota.ok) {
+    console.warn(`[agent/voice] quota refused: ${quota.reason}`)
+    const refusal = quotaRefusalResponse(quota.reason)
+    return NextResponse.json(
+      { error: refusal.error },
+      { status: refusal.status, headers: { ...cors, 'Retry-After': String(refusal.retryAfterSeconds) } },
     )
   }
 

@@ -6,8 +6,13 @@ vi.mock('@/lib/supabase/service', () => ({
 vi.mock('@/lib/site-agent/site-keys', () => ({
   validateSiteKey: vi.fn(),
 }))
+vi.mock('@/lib/site-agent/quota', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/site-agent/quota')>()
+  return { ...actual, claimPublicAgentQuota: vi.fn() }
+})
 
 import { validateSiteKey } from '@/lib/site-agent/site-keys'
+import { claimPublicAgentQuota } from '@/lib/site-agent/quota'
 import { POST, OPTIONS } from '../route'
 
 let keyCounter = 0
@@ -39,6 +44,31 @@ describe('POST /api/agent/voice/signed-url', () => {
     })
     process.env.ELEVENLABS_API_KEY = 'test-xi-key'
     process.env.ELEVENLABS_SITE_AGENT_ID = 'agent-abc'
+    vi.mocked(claimPublicAgentQuota).mockResolvedValue({ ok: true })
+  })
+
+  for (const [reason, status] of [
+    ['paused', 503],
+    ['unavailable', 503],
+    ['key_ceiling', 429],
+    ['founder_ceiling', 429],
+  ] as const) {
+    it(`refuses with ${status} and never calls ElevenLabs when the claim says ${reason} (UNI-2917)`, async () => {
+      vi.mocked(claimPublicAgentQuota).mockResolvedValue({ ok: false, reason })
+      const fetchSpy = vi.fn()
+      globalThis.fetch = fetchSpy as any
+      const res = await POST(req({ siteKey: uniqueKey() }))
+      expect(res.status).toBe(status)
+      expect(Number(res.headers.get('Retry-After'))).toBeGreaterThan(0)
+      expect(fetchSpy).not.toHaveBeenCalled()
+    })
+  }
+
+  it('claims the voice quota only when a mint can actually happen (UNI-2917)', async () => {
+    delete process.env.ELEVENLABS_SITE_AGENT_ID
+    const res = await POST(req({ siteKey: uniqueKey() }))
+    expect(res.status).toBe(503)
+    expect(claimPublicAgentQuota).not.toHaveBeenCalled()
   })
 
   afterEach(() => {
