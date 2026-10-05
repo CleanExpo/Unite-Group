@@ -264,13 +264,15 @@ export const MAX_ADVISORIES_PER_FINDING = 8
 export const MAX_FINDINGS_PER_SCAN = 100
 
 // Accepted-risk exceptions. Each one is keyed by ONE exact GitHub advisory id — never a package
-// name, never a severity — so it can only excuse the advisory it names. It expires on its date
+// name, never a severity — so it can only excuse the advisory it names, and only at the severity
+// that was accepted: if the advisory is re-rated (say high -> critical) it fails again. It expires on its date
 // (inclusive, UTC): from the next day the advisory fails the audit again with no edit needed.
 // Every finding an exception excuses is recorded in the report and printed on every run, so an
 // excused finding can never read like a clean scan.
 export const ACCEPTED_RISK_EXCEPTIONS = Object.freeze([
   Object.freeze({
     advisory: 'GHSA-vfj7-8cjw-p6xm',
+    severity: 'high',
     expires: '2026-11-05',
     reason: 'braces <=3.0.3 stack-exhaustion DoS: no patched braces release exists (first_patched_version null, latest 3.0.3). Accepted risk approved by the founder on 05/10/2026; re-check for a fix before expiry.',
   }),
@@ -291,6 +293,9 @@ export function validateExceptions(exceptions) {
       : null
     if (!date || Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== exception.expires) {
       throw new TypeError(`accepted-risk exception ${exception.advisory} needs an expires date YYYY-MM-DD`)
+    }
+    if (!HIGH_OR_CRITICAL.has(exception.severity)) {
+      throw new TypeError(`accepted-risk exception ${exception.advisory} needs the accepted severity (high or critical)`)
     }
     if (typeof exception.reason !== 'string' || exception.reason.trim() === '') {
       throw new TypeError(`accepted-risk exception ${exception.advisory} needs a reason`)
@@ -325,7 +330,10 @@ const HIGH_OR_CRITICAL = new Set(['high', 'critical'])
 // high/critical package with no high/critical cause, counts with no findings behind them, or an
 // advisory without a recognisable GHSA id. Reads the raw report, never the bounded findings list.
 export function evaluateAcceptedRisk(report, { exceptions, now }) {
-  const active = new Set(exceptions.filter((e) => exceptionIsActive(e, now)).map((e) => e.advisory))
+  const active = new Map(exceptions.filter((e) => exceptionIsActive(e, now)).map((e) => [e.advisory, e.severity]))
+  // An advisory is excusable only while its exception is active AND it carries exactly the
+  // severity that was accepted.
+  const excusable = (id, severity) => id !== null && active.get(id) === severity
   const expired = new Set(exceptions.filter((e) => !exceptionIsActive(e, now)).map((e) => e.advisory))
   const excused = []
   const expiredMatches = new Set()
@@ -339,6 +347,7 @@ export function evaluateAcceptedRisk(report, { exceptions, now }) {
     const seen = new Set([name])
     const queue = [name]
     const causes = new Set()
+    const causeSeverities = new Set()
     let packageBlocks = false
     while (queue.length > 0 && !packageBlocks) {
       const current = vulnerabilities[queue.shift()]
@@ -357,19 +366,23 @@ export function evaluateAcceptedRisk(report, { exceptions, now }) {
         } else if (via && typeof via === 'object') {
           if (!HIGH_OR_CRITICAL.has(via.severity)) continue
           const id = advisoryIdOf(via)
-          if (id === null || !active.has(id)) {
+          if (!excusable(id, via.severity)) {
             if (id !== null && expired.has(id)) expiredMatches.add(id)
             packageBlocks = true
             break
           }
           causes.add(id)
+          causeSeverities.add(via.severity)
         } else {
           packageBlocks = true
           break
         }
       }
     }
-    if (packageBlocks || causes.size === 0) {
+    // A package's severity is the worst of its causes; one rated worse than every excused cause
+    // has a cause this walk did not see.
+    if (packageBlocks || causes.size === 0 || !causeSeverities.has(entry.severity)
+      || (entry.severity === 'high' && causeSeverities.has('critical'))) {
       blocking = true
     } else {
       excused.push({ package: boundedField(name), severity: entry.severity, advisories: [...causes].sort() })
@@ -380,7 +393,7 @@ export function evaluateAcceptedRisk(report, { exceptions, now }) {
     if (!HIGH_OR_CRITICAL.has(advisory?.severity)) continue
     explained[advisory.severity] += 1
     const id = advisoryIdOf(advisory)
-    if (id === null || !active.has(id)) {
+    if (!excusable(id, advisory.severity)) {
       if (id !== null && expired.has(id)) expiredMatches.add(id)
       blocking = true
     } else {

@@ -1280,16 +1280,50 @@ test('an advisory whose URL is not the canonical GHSA URL is never excused, what
 test('high and critical counts are reconciled separately, so a severity disagreement blocks', async () => {
   const { evaluateAcceptedRisk, ACCEPTED_RISK_EXCEPTIONS } = await loadRunner()
   const now = new Date('2026-10-05T00:00:00Z')
-  const via = [{ url: 'https://github.com/advisories/GHSA-vfj7-8cjw-p6xm', severity: 'critical' }]
+  // The scanner counts one CRITICAL; the findings describe one excusable HIGH. The summed totals
+  // agree (1 = 1), so only a per-severity comparison sees the disagreement.
+  const via = [{ url: 'https://github.com/advisories/GHSA-vfj7-8cjw-p6xm', severity: 'high' }]
   const npmShape = {
-    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 1, critical: 0, total: 1 } },
-    vulnerabilities: { braces: { severity: 'critical', via } },
+    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 0, critical: 1, total: 1 } },
+    vulnerabilities: { braces: { severity: 'high', via } },
   }
   const pnpmShape = {
-    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 1, critical: 0, total: 1 } },
-    advisories: { 1: { module_name: 'braces', severity: 'critical', github_advisory_id: 'GHSA-vfj7-8cjw-p6xm', url: via[0].url } },
+    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 0, critical: 1, total: 1 } },
+    advisories: { 1: { module_name: 'braces', severity: 'high', github_advisory_id: 'GHSA-vfj7-8cjw-p6xm', url: via[0].url } },
   }
   for (const report of [npmShape, pnpmShape]) {
     assert.equal(evaluateAcceptedRisk(report, { exceptions: ACCEPTED_RISK_EXCEPTIONS, now }).blocking, true)
   }
+})
+
+test('the braces exception covers only the accepted high severity, so a critical re-rating fails', async () => {
+  const { evaluateAcceptedRisk, ACCEPTED_RISK_EXCEPTIONS } = await loadRunner()
+  const now = new Date('2026-10-05T00:00:00Z')
+  const url = 'https://github.com/advisories/GHSA-vfj7-8cjw-p6xm'
+  const counts = { info: 0, low: 0, moderate: 0, high: 0, critical: 1, total: 1 }
+  const npmShape = {
+    metadata: { vulnerabilities: counts },
+    vulnerabilities: { braces: { severity: 'critical', via: [{ url, severity: 'critical' }] } },
+  }
+  const pnpmShape = {
+    metadata: { vulnerabilities: counts },
+    advisories: { 1: { module_name: 'braces', severity: 'critical', github_advisory_id: 'GHSA-vfj7-8cjw-p6xm', url } },
+  }
+  for (const report of [npmShape, pnpmShape]) {
+    const outcome = evaluateAcceptedRisk(report, { exceptions: ACCEPTED_RISK_EXCEPTIONS, now })
+    assert.equal(outcome.blocking, true)
+    assert.deepEqual(outcome.excused, [])
+  }
+})
+
+test('a package rated worse than every excused cause it carries is never excused', async () => {
+  const { evaluateAcceptedRisk, ACCEPTED_RISK_EXCEPTIONS } = await loadRunner()
+  const outcome = evaluateAcceptedRisk({
+    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 0, critical: 1, total: 1 } },
+    vulnerabilities: {
+      braces: { severity: 'critical', via: [{ url: 'https://github.com/advisories/GHSA-vfj7-8cjw-p6xm', severity: 'high' }] },
+    },
+  }, { exceptions: ACCEPTED_RISK_EXCEPTIONS, now: new Date('2026-10-05T00:00:00Z') })
+  assert.equal(outcome.blocking, true)
+  assert.deepEqual(outcome.excused, [])
 })
