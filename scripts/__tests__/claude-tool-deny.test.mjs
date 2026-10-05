@@ -144,7 +144,10 @@ const GITHUB_CATALOGUE = `actions_get actions_list actions_run_trigger add_comme
   search_orgs search_pull_requests search_repositories search_users star_repository
   sub_issue_write ui_get unstar_repository update_gist update_issue_comment update_pull_request
   update_pull_request_branch`.split(/\s+/)
-const GITHUB_READ = /^(get_|list_|search_)|_read$|^(ui_get|github_support_docs_search|actions_get|actions_list|projects_get|projects_list)$/
+const GITHUB_READ_PATTERN = /^(get_|list_|search_)|_read$|^(ui_get|github_support_docs_search|actions_get|actions_list|projects_get|projects_list)$/
+/** Names the read pattern matches that WRITE (review round 3: it clears the founder's notifications). */
+const GITHUB_READ_LOOKALIKE_WRITES = new Set(['mark_all_notifications_read'])
+const GITHUB_READ = { test: (tool) => GITHUB_READ_PATTERN.test(tool) && !GITHUB_READ_LOOKALIKE_WRITES.has(tool) }
 /** Writes a cloud thread keeps: it may open a PR from a branch, never land one. */
 const GITHUB_ALLOWED_WRITES = new Set(['create_pull_request', 'create_branch'])
 
