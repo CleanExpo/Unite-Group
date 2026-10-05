@@ -23,6 +23,8 @@ export interface SendEmailInput {
   replyTo?: EmailRecipient
   categories?: string[]
   customArgs?: Record<string, string>
+  /** Extra MIME headers, e.g. List-Unsubscribe (UNI-2291). */
+  headers?: Record<string, string>
 }
 
 /**
@@ -41,6 +43,7 @@ export async function sendEmail(input: SendEmailInput): Promise<string> {
     replyTo: input.replyTo,
     categories: input.categories,
     customArgs: input.customArgs,
+    headers: input.headers,
   }
 
   const [response] = await sgMail.send(msg)

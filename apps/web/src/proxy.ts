@@ -61,6 +61,7 @@ const PUBLIC_PATHS = [
   '/api/webhooks', // External provider callbacks verify their own signatures/secrets
   '/api/leads',    // Public website lead capture (UNI-2355) — service-role insert, rate-limited above
   '/api/agent',    // Public site chat agent — auth is the publishable site key, validated in-route (UNI-2359)
+  '/api/drip/unsubscribe', // Drip email unsubscribe (UNI-2291) — auth is the signed token, verified in-route; ONLY this path, not /api/drip
   '/widget',       // Embeddable chat widget script must load on third-party sites (UNI-2359)
   '/robots.txt',
   '/sitemap.xml',

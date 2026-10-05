@@ -7,6 +7,7 @@ vi.mock('@/lib/integrations/sendgrid', () => ({
 
 import { sendEmail } from '@/lib/integrations/sendgrid'
 import { processCampaignDrip, resolveDripFromAddress } from '../drip-processor'
+import { verifyUnsubscribeToken } from '../drip-unsubscribe'
 
 // --- Supabase mock: per-table FIFO response queues + write capture -------
 let responses: Record<string, any[]>
@@ -18,6 +19,7 @@ function makeChain(table: string) {
     select: vi.fn(),
     eq: vi.fn(),
     lte: vi.fn(),
+    in: vi.fn(),
     order: vi.fn(),
     insert: vi.fn(),
     update: vi.fn(),
@@ -30,6 +32,7 @@ function makeChain(table: string) {
   b.select.mockReturnValue(b)
   b.eq.mockReturnValue(b)
   b.lte.mockReturnValue(b)
+  b.in.mockReturnValue(b)
   b.order.mockReturnValue(b)
   b.insert.mockImplementation((payload: any) => {
     inserts.push({ table, payload })
@@ -68,6 +71,17 @@ function enrollment(overrides: Partial<Record<string, unknown>> = {}) {
   }
 }
 
+// Live-send gate config (UNI-2291). Stubbed for every processCampaignDrip
+// test so the pre-existing live-lane tests run with the gates satisfied;
+// the gate tests below override individual values.
+function stubLiveGates() {
+  vi.stubEnv('SENDGRID_FROM_EMAIL', 'hello@unite-group.in')
+  vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://app.example.test')
+  vi.stubEnv('DRIP_UNSUBSCRIBE_SECRET', 'test-unsubscribe-secret')
+  vi.stubEnv('DRIP_RECIPIENT_ALLOWLIST', 'Lead@Example.com, other@example.com')
+  vi.stubEnv('DRIP_ALLOWLIST_DISABLED', '')
+}
+
 function baseInput(dryRun: boolean) {
   return {
     supabase,
@@ -82,6 +96,7 @@ describe('processCampaignDrip', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.unstubAllEnvs()
+    stubLiveGates()
     responses = {}
     inserts = []
     updates = []
@@ -103,7 +118,8 @@ describe('processCampaignDrip', () => {
       expect.objectContaining({
         to: { email: 'lead@example.com', name: 'Lead Person' },
         subject: 'Welcome',
-        html: '<p>Hi</p>',
+        // UNI-2291 appends the unsubscribe footer after the step body.
+        html: expect.stringMatching(/^<p>Hi<\/p>\n/),
       })
     )
     const event = inserts.find((i) => i.table === 'drip_events')
@@ -193,6 +209,155 @@ describe('processCampaignDrip', () => {
   })
 })
 
+describe('processCampaignDrip live-send gates (UNI-2291)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.unstubAllEnvs()
+    stubLiveGates()
+    responses = {}
+    inserts = []
+    updates = []
+  })
+
+  function dueOne(email = 'lead@example.com') {
+    responses.drip_steps = [{ data: [STEP_1], error: null }]
+    responses.drip_enrollments = [
+      { data: [enrollment({ email })], error: null },
+      { error: null }, // bookkeeping update
+    ]
+    responses.drip_events = [{ error: null }]
+  }
+
+  it('sends to an allowlisted, unsuppressed recipient with the unsubscribe link in html + text and RFC 8058 headers', async () => {
+    dueOne()
+    responses.drip_suppressions = [{ data: [], error: null }]
+    vi.mocked(sendEmail).mockResolvedValue('sg-msg-2')
+
+    const summary = await processCampaignDrip(baseInput(false))
+
+    expect(summary).toMatchObject({ processed: 1, providerSend: 'attempted' })
+    expect(summary.blockedReason).toBeUndefined()
+    expect(sendEmail).toHaveBeenCalledTimes(1)
+    const sent = vi.mocked(sendEmail).mock.calls[0][0]
+    expect(sent.from).toEqual({ email: 'hello@unite-group.in', name: 'DR' })
+    const url = sent.headers?.['List-Unsubscribe']?.slice(1, -1) ?? ''
+    expect(url).toMatch(/^https:\/\/app\.example\.test\/api\/drip\/unsubscribe\?token=.+/)
+    expect(sent.headers).toEqual({
+      'List-Unsubscribe': `<${url}>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    })
+    expect(sent.html).toContain('<p>Hi</p>')
+    expect(sent.html).toContain(`href="${url}"`)
+    expect(sent.text).toContain(url)
+    // The link's token round-trips to this founder + recipient.
+    const token = new URL(url).searchParams.get('token')
+    expect(verifyUnsubscribeToken(token)).toEqual({
+      founderId: 'founder-1',
+      email: 'lead@example.com',
+    })
+  })
+
+  it('does not send to a suppressed recipient: cancelled + skipped event, provider never called', async () => {
+    dueOne('LEAD@example.com')
+    responses.drip_suppressions = [{ data: [{ email: 'lead@example.com' }], error: null }]
+
+    const summary = await processCampaignDrip(baseInput(false))
+
+    expect(sendEmail).not.toHaveBeenCalled()
+    expect(summary).toMatchObject({ processed: 0, skipped: 1, failed: 0 })
+    expect(updates.find((u) => u.table === 'drip_enrollments')?.payload).toMatchObject({
+      status: 'cancelled',
+      metadata: expect.objectContaining({ blockedReason: 'suppressed' }),
+    })
+    expect(inserts.find((i) => i.table === 'drip_events')?.payload).toMatchObject({
+      event_type: 'skipped',
+      provider_send: 'not_attempted',
+      metadata: expect.objectContaining({ reason: 'suppressed' }),
+    })
+  })
+
+  it('does not send to a recipient outside the allowlist: paused (reversible) + skipped event', async () => {
+    dueOne('stranger@example.com')
+    responses.drip_suppressions = [{ data: [], error: null }]
+
+    const summary = await processCampaignDrip(baseInput(false))
+
+    expect(sendEmail).not.toHaveBeenCalled()
+    expect(summary).toMatchObject({ processed: 0, skipped: 1, failed: 0 })
+    expect(updates.find((u) => u.table === 'drip_enrollments')?.payload).toMatchObject({
+      status: 'paused',
+      metadata: expect.objectContaining({ blockedReason: 'not_allowlisted' }),
+    })
+    expect(inserts.find((i) => i.table === 'drip_events')?.payload).toMatchObject({
+      event_type: 'skipped',
+      provider_send: 'not_attempted',
+      metadata: expect.objectContaining({ reason: 'not_allowlisted' }),
+    })
+  })
+
+  it('sends nothing and touches nothing when the allowlist is empty and not explicitly disabled', async () => {
+    vi.stubEnv('DRIP_RECIPIENT_ALLOWLIST', ' , ')
+    dueOne()
+
+    const summary = await processCampaignDrip(baseInput(false))
+
+    expect(sendEmail).not.toHaveBeenCalled()
+    expect(summary).toMatchObject({ blockedReason: 'allowlist_empty', providerSend: 'not_attempted' })
+    expect(supabase.from).not.toHaveBeenCalled()
+  })
+
+  it('DRIP_ALLOWLIST_DISABLED=true lifts the allowlist (suppression still read)', async () => {
+    vi.stubEnv('DRIP_RECIPIENT_ALLOWLIST', '')
+    vi.stubEnv('DRIP_ALLOWLIST_DISABLED', 'true')
+    dueOne('stranger@example.com')
+    responses.drip_suppressions = [{ data: [], error: null }]
+    vi.mocked(sendEmail).mockResolvedValue('sg-msg-3')
+
+    const summary = await processCampaignDrip(baseInput(false))
+
+    expect(sendEmail).toHaveBeenCalledTimes(1)
+    expect(summary).toMatchObject({ processed: 1 })
+    expect(supabase.from).toHaveBeenCalledWith('drip_suppressions')
+  })
+
+  it('sends nothing and writes nothing when the suppression lookup errors (fail closed)', async () => {
+    dueOne()
+    responses.drip_suppressions = [{ data: null, error: { message: 'relation does not exist' } }]
+
+    const summary = await processCampaignDrip(baseInput(false))
+
+    expect(sendEmail).not.toHaveBeenCalled()
+    expect(summary).toMatchObject({
+      blockedReason: 'suppression_lookup_failed',
+      processed: 0,
+      providerSend: 'not_attempted',
+    })
+    expect(updates).toEqual([])
+    expect(inserts).toEqual([])
+  })
+
+  it('sends nothing when SENDGRID_FROM_EMAIL is unset — no default sender', async () => {
+    vi.stubEnv('SENDGRID_FROM_EMAIL', '')
+    dueOne()
+
+    const summary = await processCampaignDrip(baseInput(false))
+
+    expect(sendEmail).not.toHaveBeenCalled()
+    expect(summary).toMatchObject({ blockedReason: 'sender_not_configured' })
+    expect(supabase.from).not.toHaveBeenCalled()
+  })
+
+  it('sends nothing when the unsubscribe link cannot be built', async () => {
+    vi.stubEnv('DRIP_UNSUBSCRIBE_SECRET', '')
+    dueOne()
+
+    const summary = await processCampaignDrip(baseInput(false))
+
+    expect(sendEmail).not.toHaveBeenCalled()
+    expect(summary).toMatchObject({ blockedReason: 'unsubscribe_not_configured' })
+  })
+})
+
 describe('resolveDripFromAddress', () => {
   beforeEach(() => vi.unstubAllEnvs())
 
@@ -201,12 +366,9 @@ describe('resolveDripFromAddress', () => {
     expect(resolveDripFromAddress('dr').email).toBe('hello@unite-group.in')
   })
 
-  it('falls back to the business noreply convention', () => {
+  it('never defaults a sender when SENDGRID_FROM_EMAIL is unset (UNI-2291)', () => {
     vi.stubEnv('SENDGRID_FROM_EMAIL', '')
-    vi.stubEnv('DEFAULT_FROM', '')
-    expect(resolveDripFromAddress('nrpg')).toEqual({
-      email: 'noreply@nrpg.com.au',
-      name: 'NRPG',
-    })
+    vi.stubEnv('DEFAULT_FROM', 'fallback@example.com')
+    expect(resolveDripFromAddress('nrpg')).toBeNull()
   })
 })

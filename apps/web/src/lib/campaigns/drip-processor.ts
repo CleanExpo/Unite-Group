@@ -6,6 +6,13 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { sendEmail, type EmailRecipient } from '@/lib/integrations/sendgrid'
+import {
+  DRIP_SUPPRESSIONS_TABLE,
+  isAllowlistDisabled,
+  normaliseEmail,
+  parseRecipientAllowlist,
+  unsubscribeUrlBuilder,
+} from '@/lib/campaigns/drip-unsubscribe'
 
 type JsonObject = Record<string, unknown>
 
@@ -43,6 +50,15 @@ export interface DripProcessSummary {
   failed: number
   dryRun: boolean
   providerSend: 'not_attempted' | 'attempted'
+  /**
+   * Set when a live run was refused before any send (UNI-2291 gates). Nothing
+   * was sent and no enrollment was touched.
+   */
+  blockedReason?:
+    | 'sender_not_configured'
+    | 'unsubscribe_not_configured'
+    | 'allowlist_empty'
+    | 'suppression_lookup_failed'
 }
 
 function isSafeDryRunRecipient(email: string): boolean {
@@ -50,22 +66,113 @@ function isSafeDryRunRecipient(email: string): boolean {
 }
 
 /**
- * Sender identity for a business's drip emails. Same resolution order as the
- * email_campaigns blast side (UNI-2332): explicit env sender first, then the
- * business's conventional noreply address.
+ * Sender identity for a business's drip emails: SENDGRID_FROM_EMAIL only.
+ * Returns null when it is unset — live drip never invents or defaults a
+ * sender (UNI-2291); an unset sender blocks the send.
  */
-export function resolveDripFromAddress(businessKey: string): EmailRecipient {
+export function resolveDripFromAddress(businessKey: string): EmailRecipient | null {
+  const email = process.env.SENDGRID_FROM_EMAIL?.trim()
+  if (!email) return null
+  return { email, name: businessKey.toUpperCase() }
+}
+
+type LiveSendGates = {
+  from: EmailRecipient
+  unsubscribeUrlFor: (email: string) => string
+  /** null when DRIP_ALLOWLIST_DISABLED=true. */
+  allowlist: Set<string> | null
+}
+
+type BlockedReason = NonNullable<DripProcessSummary['blockedReason']>
+
+/**
+ * Campaign-level live-send gates (UNI-2291), all fail closed: no explicit
+ * sender, no unsubscribe link, or an empty allowlist (unless explicitly
+ * disabled) refuses the whole run before any read, write or provider call.
+ */
+function resolveLiveSendGates(
+  founderId: string,
+  businessKey: string
+): LiveSendGates | { blockedReason: BlockedReason } {
+  const from = resolveDripFromAddress(businessKey)
+  if (!from) return { blockedReason: 'sender_not_configured' }
+  const unsubscribeUrlFor = unsubscribeUrlBuilder(founderId)
+  if (!unsubscribeUrlFor) return { blockedReason: 'unsubscribe_not_configured' }
+  if (isAllowlistDisabled()) return { from, unsubscribeUrlFor, allowlist: null }
+  const allowlist = parseRecipientAllowlist()
+  if (allowlist.size === 0) return { blockedReason: 'allowlist_empty' }
+  return { from, unsubscribeUrlFor, allowlist }
+}
+
+function blockedSummary(blockedReason: BlockedReason): DripProcessSummary {
   return {
-    email:
-      process.env.SENDGRID_FROM_EMAIL?.trim() ||
-      process.env.DEFAULT_FROM?.trim() ||
-      `noreply@${businessKey}.com.au`,
-    name: businessKey.toUpperCase(),
+    processed: 0,
+    skipped: 0,
+    failed: 0,
+    dryRun: false,
+    providerSend: 'not_attempted',
+    blockedReason,
+  }
+}
+
+function withUnsubscribeFooter(html: string, text: string | null, url: string) {
+  return {
+    html: `${html}\n<p style="font-size:12px;color:#666">Don't want these emails? <a href="${url}">Unsubscribe</a>.</p>`,
+    text: `${text ?? ''}\n\nDon't want these emails? Unsubscribe: ${url}`.trimStart(),
   }
 }
 
 /**
+ * Record a gate skip honestly: the enrollment moves to `status` with the
+ * reason in metadata, and a `skipped` event says the provider was never
+ * called. Returns false when the bookkeeping itself failed.
+ */
+async function recordGateSkip(
+  supabase: SupabaseClient,
+  founderId: string,
+  campaignId: string,
+  enrollment: DripEnrollmentRow,
+  stepId: string,
+  status: 'paused' | 'cancelled',
+  reason: 'not_allowlisted' | 'suppressed',
+  now: Date
+): Promise<boolean> {
+  const { error: updateError } = await supabase
+    .from('drip_enrollments')
+    .update({
+      status,
+      metadata: { blockedReason: reason, blockedAt: now.toISOString() } satisfies JsonObject,
+    })
+    .eq('id', enrollment.id)
+    .eq('founder_id', founderId)
+
+  const { error: eventError } = await supabase.from('drip_events').insert({
+    founder_id: founderId,
+    campaign_id: campaignId,
+    enrollment_id: enrollment.id,
+    contact_id: enrollment.contact_id,
+    step_id: stepId,
+    event_type: 'skipped',
+    provider_send: 'not_attempted',
+    metadata: { dryRun: false, reason } satisfies JsonObject,
+  })
+
+  if (updateError || eventError) {
+    console.error(
+      `[drip-processor] ${reason} bookkeeping failed:`,
+      updateError?.message ?? eventError?.message
+    )
+    return false
+  }
+  return true
+}
+
+/**
  * Process every due active enrollment of one campaign.
+ *
+ * Live runs pass the UNI-2291 gates first (sender, unsubscribe link,
+ * allowlist, suppression — see resolveLiveSendGates); every live email carries
+ * an unsubscribe link in html + text and RFC 8058 List-Unsubscribe headers.
  *
  * dryRun=true keeps the pre-UNI-2356 semantics exactly: safe test recipients
  * are advanced with a `dry_run_processed` event, everything else is blocked
@@ -81,6 +188,10 @@ export async function processCampaignDrip(
   let processed = 0
   let skipped = 0
   let failed = 0
+
+  const gates = dryRun ? null : resolveLiveSendGates(founderId, businessKey)
+  if (gates && 'blockedReason' in gates) return blockedSummary(gates.blockedReason)
+  const live = gates
 
   const { data: stepsData, error: stepsError } = await supabase
     .from('drip_steps')
@@ -103,8 +214,27 @@ export async function processCampaignDrip(
     .order('next_run_at', { ascending: true })
 
   if (enrollmentsError) throw enrollmentsError
+  const due = (enrollments ?? []) as DripEnrollmentRow[]
 
-  for (const enrollment of (enrollments ?? []) as DripEnrollmentRow[]) {
+  // Suppression lookup (UNI-2291): one read for every due recipient. A failed
+  // read refuses the whole live run — never send without knowing.
+  let suppressed = new Set<string>()
+  if (live && due.length > 0) {
+    const { data: suppressionRows, error: suppressionError } = await supabase
+      .from(DRIP_SUPPRESSIONS_TABLE)
+      .select('email')
+      .eq('founder_id', founderId)
+      .in('email', [...new Set(due.map((e) => normaliseEmail(e.email)))])
+    if (suppressionError) {
+      console.error('[drip-processor] suppression lookup failed:', suppressionError.message)
+      return blockedSummary('suppression_lookup_failed')
+    }
+    suppressed = new Set(
+      ((suppressionRows ?? []) as Array<{ email: string }>).map((r) => normaliseEmail(r.email))
+    )
+  }
+
+  for (const enrollment of due) {
     const step = stepsByOrder.get(enrollment.current_step_order)
     if (!step) {
       const { error } = await supabase
@@ -159,14 +289,43 @@ export async function processCampaignDrip(
     let providerSend = 'not_attempted'
     let eventMetadata: JsonObject = { dryRun: true }
 
-    if (!dryRun) {
+    if (live) {
+      const recipient = normaliseEmail(enrollment.email)
+      // Suppressed → cancelled (permanent). Outside the testing allowlist →
+      // paused (reversible), not failed, so the enrollment stays intact for
+      // when the allowlist lifts.
+      const gateSkip = suppressed.has(recipient)
+        ? ({ status: 'cancelled', reason: 'suppressed' } as const)
+        : live.allowlist && !live.allowlist.has(recipient)
+          ? ({ status: 'paused', reason: 'not_allowlisted' } as const)
+          : null
+      if (gateSkip) {
+        const ok = await recordGateSkip(
+          supabase,
+          founderId,
+          campaignId,
+          enrollment,
+          step.id,
+          gateSkip.status,
+          gateSkip.reason,
+          now
+        )
+        if (ok) skipped++
+        else failed++
+        continue
+      }
+
+      const unsubscribeUrl = live.unsubscribeUrlFor(recipient)
       try {
         const messageId = await sendEmail({
           to: { email: enrollment.email, name: enrollment.name ?? undefined },
-          from: resolveDripFromAddress(businessKey),
+          from: live.from,
           subject: step.subject,
-          html: step.body_html,
-          text: step.body_text ?? undefined,
+          ...withUnsubscribeFooter(step.body_html, step.body_text, unsubscribeUrl),
+          headers: {
+            'List-Unsubscribe': `<${unsubscribeUrl}>`,
+            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+          },
           categories: ['drip'],
           customArgs: { drip_enrollment_id: enrollment.id, drip_step_id: step.id },
         })

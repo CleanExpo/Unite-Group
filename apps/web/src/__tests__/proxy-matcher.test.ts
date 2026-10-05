@@ -143,3 +143,23 @@ describe('public-path exemption is segment-aware, not prefix-loose', () => {
     })
   })
 })
+
+// UNI-2291 made exactly one drip path public. Everything around it — the
+// parent, siblings sharing its prefix, and the authenticated drip/campaign
+// routes — must stay gated.
+describe('drip unsubscribe is the only drip path made public', () => {
+  it('exempts the unsubscribe endpoint', () => {
+    expect(isPublicPath('/api/drip/unsubscribe')).toBe(true)
+  })
+
+  it.each([
+    '/api/drip',
+    '/api/drip/process',
+    '/api/drip/unsubscribe-all',
+    '/api/drip/unsubscribed',
+    '/api/dripx/unsubscribe',
+    '/api/campaigns/drip',
+  ])('does NOT exempt %s', (p) => {
+    expect(isPublicPath(p)).toBe(false)
+  })
+})
