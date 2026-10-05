@@ -196,8 +196,10 @@ describe('loadFounderQueue against the live ledger', () => {
     expect(oursClass.notes).toEqual(theirsClass.notes)
     const bad = [{ id: 'F9', decision: 'x', opened: '2026-08-16', blocks: '', context: '', status: 'opne' }, { id: '', decision: '', opened: '2026-08-16', blocks: '', context: '', status: 'resolved' }]
     expect(classifyOpenRows(bad)).toEqual(mjs.classifyOpenRows(bad))
+    // Live rows are aged against the real clock: the fixed NOW predates rows opened after it.
+    const liveNow = new Date().toISOString()
     for (const row of ours.open) {
-      expect(computeAgeDays(row.opened, NOW)).toBe(mjs.computeAgeDays(row.opened, NOW))
+      expect(computeAgeDays(row.opened, liveNow)).toBe(mjs.computeAgeDays(row.opened, liveNow))
     }
   })
 })
