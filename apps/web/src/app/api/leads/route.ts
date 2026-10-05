@@ -238,11 +238,16 @@ export async function POST(request: NextRequest) {
   const dripCampaignId = clean(body.drip_campaign_id, MAX_SHORT_FIELD)
   let drip: Awaited<ReturnType<typeof enrollLeadInDrip>> | undefined
   if (dripCampaignId) {
-    drip = await enrollLeadInDrip(supabase, founderId, dripCampaignId, {
-      email,
-      firstName,
-      lastName,
-    })
+    // Spam Act 2003: no commercial email without consent (UNI-2918). The lead
+    // is still captured; only the drip enrolment needs the explicit opt-in.
+    drip =
+      body.marketing_consent === true
+        ? await enrollLeadInDrip(supabase, founderId, dripCampaignId, {
+            email,
+            firstName,
+            lastName,
+          })
+        : { enrolled: false, reason: 'no_marketing_consent' }
   }
 
   return NextResponse.json({ id: leadRow.id, ...(drip ? { drip } : {}) }, { status: 201 })
