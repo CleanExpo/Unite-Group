@@ -1276,3 +1276,20 @@ test('an advisory whose URL is not the canonical GHSA URL is never excused, what
     assert.deepEqual(outcome.excused, [], url)
   }
 })
+
+test('high and critical counts are reconciled separately, so a severity disagreement blocks', async () => {
+  const { evaluateAcceptedRisk, ACCEPTED_RISK_EXCEPTIONS } = await loadRunner()
+  const now = new Date('2026-10-05T00:00:00Z')
+  const via = [{ url: 'https://github.com/advisories/GHSA-vfj7-8cjw-p6xm', severity: 'critical' }]
+  const npmShape = {
+    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 1, critical: 0, total: 1 } },
+    vulnerabilities: { braces: { severity: 'critical', via } },
+  }
+  const pnpmShape = {
+    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 1, critical: 0, total: 1 } },
+    advisories: { 1: { module_name: 'braces', severity: 'critical', github_advisory_id: 'GHSA-vfj7-8cjw-p6xm', url: via[0].url } },
+  }
+  for (const report of [npmShape, pnpmShape]) {
+    assert.equal(evaluateAcceptedRisk(report, { exceptions: ACCEPTED_RISK_EXCEPTIONS, now }).blocking, true)
+  }
+})

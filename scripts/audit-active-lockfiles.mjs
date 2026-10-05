@@ -330,12 +330,12 @@ export function evaluateAcceptedRisk(report, { exceptions, now }) {
   const excused = []
   const expiredMatches = new Set()
   let blocking = false
-  let explainedFindings = 0
+  const explained = { high: 0, critical: 0 }
 
   const vulnerabilities = report?.vulnerabilities ?? {}
   for (const [name, entry] of Object.entries(vulnerabilities)) {
     if (!HIGH_OR_CRITICAL.has(entry?.severity)) continue
-    explainedFindings += 1
+    explained[entry.severity] += 1
     const seen = new Set([name])
     const queue = [name]
     const causes = new Set()
@@ -378,7 +378,7 @@ export function evaluateAcceptedRisk(report, { exceptions, now }) {
 
   for (const advisory of Object.values(report?.advisories ?? {})) {
     if (!HIGH_OR_CRITICAL.has(advisory?.severity)) continue
-    explainedFindings += 1
+    explained[advisory.severity] += 1
     const id = advisoryIdOf(advisory)
     if (id === null || !active.has(id)) {
       if (id !== null && expired.has(id)) expiredMatches.add(id)
@@ -392,11 +392,11 @@ export function evaluateAcceptedRisk(report, { exceptions, now }) {
     }
   }
 
-  // The scanner's own high/critical count must equal the findings examined above. A count the
-  // findings do not account for is an unexplained finding, and an unexplained finding blocks.
+  // The scanner's own high and critical counts must each equal the findings of that severity
+  // examined above. A count the findings do not account for, or a severity they disagree on, is
+  // an unexplained finding, and an unexplained finding blocks.
   const counts = report?.metadata?.vulnerabilities ?? {}
-  const counted = (counts.high ?? 0) + (counts.critical ?? 0)
-  if (counted !== explainedFindings) blocking = true
+  if ((counts.high ?? 0) !== explained.high || (counts.critical ?? 0) !== explained.critical) blocking = true
 
   // Not capped: every excused finding is recorded and printed. The list is bounded by the
   // scanner's own reconciled count above, never by a silent truncation.
