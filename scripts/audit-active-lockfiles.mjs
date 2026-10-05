@@ -263,6 +263,141 @@ export const MAX_FINDING_FIELD_CHARS = 256
 export const MAX_ADVISORIES_PER_FINDING = 8
 export const MAX_FINDINGS_PER_SCAN = 100
 
+// Accepted-risk exceptions. Each one is keyed by ONE exact GitHub advisory id — never a package
+// name, never a severity — so it can only excuse the advisory it names. It expires on its date
+// (inclusive, UTC): from the next day the advisory fails the audit again with no edit needed.
+// Every finding an exception excuses is recorded in the report and printed on every run, so an
+// excused finding can never read like a clean scan.
+export const ACCEPTED_RISK_EXCEPTIONS = Object.freeze([
+  Object.freeze({
+    advisory: 'GHSA-vfj7-8cjw-p6xm',
+    expires: '2026-11-05',
+    reason: 'braces <=3.0.3 stack-exhaustion DoS: no patched braces release exists (first_patched_version null, latest 3.0.3). Accepted risk approved by the founder on 05/10/2026; re-check for a fix before expiry.',
+  }),
+])
+
+const GHSA_ID = /^GHSA(-[23456789cfghjmpqrvwx]{4}){3}$/
+const GHSA_URL = /^https:\/\/github\.com\/advisories\/(GHSA(?:-[23456789cfghjmpqrvwx]{4}){3})$/
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
+
+export function validateExceptions(exceptions) {
+  if (!Array.isArray(exceptions)) throw new TypeError('accepted-risk exceptions must be an array')
+  for (const exception of exceptions) {
+    if (typeof exception?.advisory !== 'string' || !GHSA_ID.test(exception.advisory)) {
+      throw new TypeError(`accepted-risk exception advisory must be one GHSA id, received ${JSON.stringify(exception?.advisory)}`)
+    }
+    const date = typeof exception.expires === 'string' && ISO_DATE.test(exception.expires)
+      ? new Date(`${exception.expires}T00:00:00Z`)
+      : null
+    if (!date || Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== exception.expires) {
+      throw new TypeError(`accepted-risk exception ${exception.advisory} needs an expires date YYYY-MM-DD`)
+    }
+    if (typeof exception.reason !== 'string' || exception.reason.trim() === '') {
+      throw new TypeError(`accepted-risk exception ${exception.advisory} needs a reason`)
+    }
+  }
+  return exceptions
+}
+
+export function exceptionIsActive(exception, now) {
+  return now.toISOString().slice(0, 10) <= exception.expires
+}
+
+function advisoryIdOf(item) {
+  if (!item || typeof item !== 'object') return null
+  const fromUrl = typeof item.url === 'string' ? GHSA_URL.exec(item.url)?.[1] ?? null : null
+  const declared = typeof item.github_advisory_id === 'string' ? item.github_advisory_id : null
+  if (declared !== null && fromUrl !== null && declared !== fromUrl) return null
+  const id = declared ?? fromUrl
+  return id !== null && GHSA_ID.test(id) ? id : null
+}
+
+const HIGH_OR_CRITICAL = new Set(['high', 'critical'])
+
+// Decides whether every high/critical finding in a scanner report is explained by an advisory an
+// active exception names. Anything it cannot explain blocks: an unknown `via` reference, a
+// high/critical package with no high/critical cause, counts with no findings behind them, or an
+// advisory without a recognisable GHSA id. Reads the raw report, never the bounded findings list.
+export function evaluateAcceptedRisk(report, { exceptions, now }) {
+  const active = new Set(exceptions.filter((e) => exceptionIsActive(e, now)).map((e) => e.advisory))
+  const expired = new Set(exceptions.filter((e) => !exceptionIsActive(e, now)).map((e) => e.advisory))
+  const excused = []
+  const expiredMatches = new Set()
+  let blocking = false
+  let explainedFindings = 0
+
+  const vulnerabilities = report?.vulnerabilities ?? {}
+  for (const [name, entry] of Object.entries(vulnerabilities)) {
+    if (!HIGH_OR_CRITICAL.has(entry?.severity)) continue
+    explainedFindings += 1
+    const seen = new Set([name])
+    const queue = [name]
+    const causes = new Set()
+    let packageBlocks = false
+    while (queue.length > 0 && !packageBlocks) {
+      const current = vulnerabilities[queue.shift()]
+      if (!current || typeof current !== 'object' || !Array.isArray(current.via)) {
+        packageBlocks = true
+        break
+      }
+      for (const via of current.via) {
+        if (typeof via === 'string') {
+          const next = vulnerabilities[via]
+          if (!next || typeof next !== 'object') { packageBlocks = true; break }
+          if (HIGH_OR_CRITICAL.has(next.severity) && !seen.has(via)) {
+            seen.add(via)
+            queue.push(via)
+          }
+        } else if (via && typeof via === 'object') {
+          if (!HIGH_OR_CRITICAL.has(via.severity)) continue
+          const id = advisoryIdOf(via)
+          if (id === null || !active.has(id)) {
+            if (id !== null && expired.has(id)) expiredMatches.add(id)
+            packageBlocks = true
+            break
+          }
+          causes.add(id)
+        } else {
+          packageBlocks = true
+          break
+        }
+      }
+    }
+    if (packageBlocks || causes.size === 0) {
+      blocking = true
+    } else {
+      excused.push({ package: boundedField(name), severity: entry.severity, advisories: [...causes].sort() })
+    }
+  }
+
+  for (const advisory of Object.values(report?.advisories ?? {})) {
+    if (!HIGH_OR_CRITICAL.has(advisory?.severity)) continue
+    explainedFindings += 1
+    const id = advisoryIdOf(advisory)
+    if (id === null || !active.has(id)) {
+      if (id !== null && expired.has(id)) expiredMatches.add(id)
+      blocking = true
+    } else {
+      excused.push({
+        package: boundedField(advisory.module_name ?? advisory.name),
+        severity: advisory.severity,
+        advisories: [id],
+      })
+    }
+  }
+
+  const counts = report?.metadata?.vulnerabilities ?? {}
+  const counted = (counts.high ?? 0) + (counts.critical ?? 0)
+  if (counted > 0 && explainedFindings === 0) blocking = true
+
+  return {
+    blocking,
+    excused: excused.slice(0, MAX_FINDINGS_PER_SCAN),
+    excusedTruncated: Math.max(0, excused.length - MAX_FINDINGS_PER_SCAN),
+    expiredExceptionsMatched: [...expiredMatches].sort(),
+  }
+}
+
 function boundedField(value) {
   if (value === null || value === undefined) return null
   const text = boundedMessage(value, MAX_FINDING_FIELD_CHARS)
@@ -324,7 +459,11 @@ function normaliseFindings(report) {
 // (fuzzing string inputs never produced one over ~90 chars), so no stdout can reach the message
 // cap below. A cap no input can reach cannot be shown to work, and cannot be told from absent;
 // substituting the parser is the only way to plant a long message. Production never passes it.
-export function parseAuditReport(stdout, { parseJson = JSON.parse } = {}) {
+export function parseAuditReport(stdout, {
+  parseJson = JSON.parse,
+  exceptions = ACCEPTED_RISK_EXCEPTIONS,
+  now = new Date(),
+} = {}) {
   let report
   try {
     // `JSON.parse` coerces its argument, so a hostile stdout throws from inside the parse and
@@ -336,10 +475,14 @@ export function parseAuditReport(stdout, { parseJson = JSON.parse } = {}) {
     throw new Error(`Audit scanner did not return valid JSON: ${boundedMessage(error?.message)}`)
   }
   const { findings, findingsTruncated } = normaliseFindings(report)
+  const vulnerabilities = normaliseVulnerabilities(report)
   return {
-    vulnerabilities: normaliseVulnerabilities(report),
+    vulnerabilities,
     findings,
     findingsTruncated,
+    acceptedRisk: vulnerabilities.high > 0 || vulnerabilities.critical > 0
+      ? evaluateAcceptedRisk(report, { exceptions, now })
+      : null,
   }
 }
 
@@ -406,7 +549,10 @@ export async function runActiveLockfileAudits({
   // Seam, passed straight to parseAuditReport: the recorded-error cap below is fed only by
   // parse failures, which V8 keeps short, so it is unreachable without substituting the parser.
   parseJson = JSON.parse,
+  exceptions = ACCEPTED_RISK_EXCEPTIONS,
+  now = new Date(),
 } = {}) {
+  validateExceptions(exceptions)
   const activeEntries = entries ?? await discoverTrackedLockfiles({ root })
   const evidenceFields = evidence ?? await collectEvidence({ root })
   const lockCounts = new Map()
@@ -479,17 +625,26 @@ export async function runActiveLockfileAudits({
       }
     }
     try {
-      const parsed = parseAuditReport(execution.stdout, { parseJson })
+      const parsed = parseAuditReport(execution.stdout, { parseJson, exceptions, now })
       const breached = parsed.vulnerabilities.high > 0 || parsed.vulnerabilities.critical > 0
+      // A breached scan passes only when every high/critical finding traces to an advisory an
+      // active exception names, and the scanner exited the way it does for "vulnerabilities
+      // found" (1). Any other exit code is a scanner failure, never an excusable finding.
+      const excusedByException = breached
+        && execution.exitCode === 1
+        && parsed.acceptedRisk !== null
+        && !parsed.acceptedRisk.blocking
+        && parsed.acceptedRisk.excused.length > 0
       return {
         ...entry,
-        status: execution.exitCode === 0 && !breached ? 'passed' : 'failed',
+        status: (execution.exitCode === 0 && !breached) || excusedByException ? 'passed' : 'failed',
         exitCode: execution.exitCode,
         timeoutMs: execution.timeoutMs ?? null,
         timedOut: false,
         vulnerabilities: parsed.vulnerabilities,
         findings: parsed.findings,
         findingsTruncated: parsed.findingsTruncated,
+        acceptedRisk: parsed.acceptedRisk,
         stderr: boundedMessage(execution.stderr).trim(),
       }
     } catch (error) {
@@ -520,6 +675,10 @@ export async function runActiveLockfileAudits({
     generatedAt: new Date().toISOString(),
     ...evidenceFields,
     threshold: 'high',
+    acceptedRiskExceptions: exceptions.map((exception) => ({
+      ...exception,
+      active: exceptionIsActive(exception, now),
+    })),
     installScriptsExecuted: false,
     inventoryError,
     inventoryErrors,
@@ -547,15 +706,42 @@ export async function main({
   root = process.cwd(),
   runAudit = executeAudit,
   stdout = process.stdout,
+  stderr = process.stderr,
+  exceptions = ACCEPTED_RISK_EXCEPTIONS,
+  now = new Date(),
 } = {}) {
   const outputIndex = argv.indexOf('--output')
   const outputPath = outputIndex === -1 ? null : argv[outputIndex + 1]
   if (outputIndex !== -1 && !outputPath) throw new Error('--output requires a path')
 
-  const report = await runActiveLockfileAudits({ entries, root, runAudit })
+  const report = await runActiveLockfileAudits({ entries, root, runAudit, exceptions, now })
   if (outputPath) await writeAuditReport(resolve(root, outputPath), report)
   stdout.write(`${JSON.stringify(report, null, 2)}\n`)
+  stderr.write(formatAcceptedRisk(report))
   return report.passed ? 0 : 1
+}
+
+// Printed on every run, whatever the verdict: each configured exception with its state, then
+// every finding an exception excused. An excused finding must never be silent.
+export function formatAcceptedRisk(report) {
+  const lines = []
+  for (const exception of report.acceptedRiskExceptions ?? []) {
+    lines.push(`accepted-risk exception ${exception.advisory}: ${exception.active ? 'ACTIVE' : 'EXPIRED'} (expires ${exception.expires}) — ${exception.reason}`)
+  }
+  for (const result of report.results ?? []) {
+    const risk = result?.acceptedRisk
+    if (!risk) continue
+    for (const finding of risk.excused) {
+      lines.push(`ACCEPTED RISK ${result.lockfile}: excused ${finding.severity} ${finding.package} via ${finding.advisories.join(', ')}`)
+    }
+    if (risk.excusedTruncated > 0) {
+      lines.push(`ACCEPTED RISK ${result.lockfile}: ${risk.excusedTruncated} further excused findings not listed`)
+    }
+    for (const advisory of risk.expiredExceptionsMatched) {
+      lines.push(`EXPIRED accepted-risk exception ${advisory} matched a finding in ${result.lockfile}; it now fails the audit`)
+    }
+  }
+  return lines.length > 0 ? `${lines.join('\n')}\n` : ''
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
