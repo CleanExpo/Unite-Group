@@ -83,7 +83,8 @@ const MUST_DENY = {
     'Google_Calendar__create_event', 'Google_Calendar__update_event',
     'Google_Calendar__respond_to_event', 'Google_Drive__share_file',
   ],
-  newRepository: ['github__create_repository', 'github__fork_repository'],
+  newRepository: ['github__create_repository', 'github__fork_repository',
+    'github__delete_repository', 'GitHub__delete_repository'],
   founderMachine: [
     'Desktop_Commander__start_process', 'Desktop_Commander__write_file',
     'Desktop_Commander__kill_process', 'Remote_Desktop_Commander__start_process',
