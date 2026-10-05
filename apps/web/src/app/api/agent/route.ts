@@ -20,6 +20,8 @@ import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 import { validateSiteKey } from '@/lib/site-agent/site-keys'
 import { ground, formatGroundingContext } from '@/lib/site-agent/grounding'
 import { readConversationId, recordSiteChatExchange } from '@/lib/site-agent/transcript'
+import { claimPublicAgentQuota, quotaRefusalResponse } from '@/lib/site-agent/quota'
+import { recordAiUsage } from '@/lib/ai/usage-recorder'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -211,6 +213,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid site key' }, { status: 401, headers: cors })
   }
 
+  // Durable daily ceiling + kill switch (UNI-2917), checked AFTER the key is
+  // known good (unknown keys must not consume a founder's budget) and BEFORE
+  // any model call. Fails closed.
+  const quota = await claimPublicAgentQuota(supabase, validation.founderId, parsed.siteKey, 'chat')
+  if (!quota.ok) {
+    console.warn(`[agent] quota refused: ${quota.reason}`)
+    const refusal = quotaRefusalResponse(quota.reason)
+    return NextResponse.json(
+      { error: refusal.error },
+      { status: refusal.status, headers: { ...cors, 'Retry-After': String(refusal.retryAfterSeconds) } },
+    )
+  }
+
   let client: Anthropic
   try {
     client = getAIClient()
@@ -230,6 +245,11 @@ export async function POST(request: Request) {
 
   const readable = new ReadableStream<Uint8Array>({
     async start(controller) {
+      const startedAt = Date.now()
+      let inputTokens = 0
+      let outputTokens = 0
+      let requestId: string | null = null
+      let completed = false
       try {
         const stream = await client.messages.create({
           model: MODEL,
@@ -240,11 +260,18 @@ export async function POST(request: Request) {
         })
         let reply = ''
         for await (const event of stream) {
-          if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+          if (event.type === 'message_start') {
+            requestId = event.message?.id ?? null
+            inputTokens = event.message?.usage?.input_tokens ?? 0
+            outputTokens = event.message?.usage?.output_tokens ?? 0
+          } else if (event.type === 'message_delta') {
+            outputTokens = event.usage?.output_tokens ?? outputTokens
+          } else if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
             reply += event.delta.text
             controller.enqueue(sseEvent({ delta: event.delta.text }))
           }
         }
+        completed = true
         // UNI-2920: flag-gated, never throws, time-boxed; cannot block [DONE].
         await recordSiteChatExchange(supabase, {
           founderId: validation.founderId,
@@ -260,6 +287,20 @@ export async function POST(request: Request) {
       } finally {
         controller.enqueue(SSE_DONE)
         controller.close()
+        // Public chat spend goes through the one existing recorder
+        // (ai_usage_logs) — no second metering store. Fail-soft by design.
+        if (inputTokens > 0 || outputTokens > 0) {
+          await recordAiUsage({
+            taskType: 'public-site-agent',
+            model: MODEL,
+            inputTokens,
+            outputTokens,
+            requestId,
+            latencyMs: Date.now() - startedAt,
+            success: completed,
+            metadata: { business: validation.businessKey, surface: 'api/agent' },
+          })
+        }
       }
     },
   })

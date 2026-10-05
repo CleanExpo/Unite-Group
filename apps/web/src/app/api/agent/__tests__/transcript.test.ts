@@ -24,6 +24,13 @@ vi.mock('@/lib/site-agent/grounding', () => ({
   ground: vi.fn(async () => ({ snippets: [], source: 'none', businessName: 'Synthex' })),
   formatGroundingContext: vi.fn(() => ''),
 }))
+vi.mock('@/lib/site-agent/quota', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/site-agent/quota')>()
+  return { ...actual, claimPublicAgentQuota: vi.fn() }
+})
+vi.mock('@/lib/ai/usage-recorder', () => ({
+  recordAiUsage: vi.fn(async () => undefined),
+}))
 vi.mock('@/lib/crm/activity-timeline', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/crm/activity-timeline')>()
   return { ...actual, buildCrmActivityTimelineEvent: vi.fn(actual.buildCrmActivityTimelineEvent) }
@@ -31,6 +38,7 @@ vi.mock('@/lib/crm/activity-timeline', async (importOriginal) => {
 
 import { getAIClient } from '@/lib/ai/client'
 import { validateSiteKey } from '@/lib/site-agent/site-keys'
+import { claimPublicAgentQuota } from '@/lib/site-agent/quota'
 import { buildCrmActivityTimelineEvent } from '@/lib/crm/activity-timeline'
 import { POST } from '../route'
 
@@ -79,6 +87,7 @@ describe('POST /api/agent — site-chat transcripts (UNI-2920)', () => {
       founderId: 'founder-1',
       businessKey: 'synthex',
     })
+    vi.mocked(claimPublicAgentQuota).mockResolvedValue({ ok: true })
     vi.mocked(getAIClient).mockImplementation(
       () => ({ messages: { create: vi.fn(async () => anthropicEvents('We ', 'build websites.')) } }) as any,
     )
