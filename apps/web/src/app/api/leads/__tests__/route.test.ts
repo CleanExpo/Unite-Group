@@ -158,7 +158,7 @@ describe('POST /api/leads', () => {
       { data: null, error: null }, // enrollment insert
     ]
 
-    const res = await POST(req({ ...VALID_LEAD, drip_campaign_id: 'camp-1' }))
+    const res = await POST(req({ ...VALID_LEAD, marketing_consent: true, drip_campaign_id: 'camp-1' }))
 
     expect(res.status).toBe(201)
     expect(await res.json()).toMatchObject({
@@ -183,12 +183,35 @@ describe('POST /api/leads', () => {
     responses.crm_leads = [{ data: { id: 'lead-1' }, error: null }]
     responses.drip_campaigns = [{ data: null, error: { message: 'not found' } }]
 
-    const res = await POST(req({ ...VALID_LEAD, drip_campaign_id: 'missing' }))
+    const res = await POST(req({ ...VALID_LEAD, marketing_consent: true, drip_campaign_id: 'missing' }))
 
     expect(res.status).toBe(201)
     expect(await res.json()).toMatchObject({
       id: 'lead-1',
       drip: { enrolled: false, reason: 'campaign_not_found' },
     })
+  })
+
+  it('captures the lead but never enrols it in a drip without marketing consent (UNI-2918)', async () => {
+    for (const consent of [undefined, false, 'true', 1]) {
+      vi.clearAllMocks()
+      inserts = []
+      responses = { crm_leads: [{ data: { id: 'lead-1' }, error: null }] }
+      const body: Record<string, unknown> = { ...VALID_LEAD, drip_campaign_id: 'camp-1' }
+      if (consent !== undefined) body.marketing_consent = consent
+
+      const res = await POST(req(body))
+
+      expect(res.status, JSON.stringify(consent)).toBe(201)
+      expect(await res.json()).toMatchObject({
+        id: 'lead-1',
+        drip: { enrolled: false, reason: 'no_marketing_consent' },
+      })
+      expect(inserts.some((i) => i.table === 'crm_leads')).toBe(true)
+      const touched = mockFrom.mock.calls.map(([table]) => table)
+      expect(touched).not.toContain('drip_campaigns')
+      expect(touched).not.toContain('contacts')
+      expect(touched).not.toContain('drip_enrollments')
+    }
   })
 })
