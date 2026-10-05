@@ -189,6 +189,7 @@ Leftover test IDs for marker 2026-06-07T12:06:12.154Z: {"contacts":[],"workspace
 30. **Approve live email provider sending separately from dry-run processing**
    - `process_pending` deliberately does not call SendGrid or any live provider in this pass.
    - Needed decision: define the live-send gate, test-domain policy, unsubscribe/consent rules, and provider cost/credential lane before enabling provider sends.
+   - **Reconciled 05/10/2026 (UNI-2918):** the first bullet is no longer true on main — `process_pending` with `dryRun: false` reaches SendGrid via `src/lib/campaigns/drip-processor.ts` (UNI-2356) — but only when `DRIP_LIVE_SEND_ENABLED=true`, which is unset. See #37.
 
 ## Added 2026-06-08T08:59+10:00 — Email import mocked path proved, live providers still gated
 
@@ -237,6 +238,7 @@ Leftover test IDs for marker 2026-06-07T12:06:12.154Z: {"contacts":[],"workspace
    - Live mode, once implemented, additionally requires ALL of: (a) per-enrollment consent flag recorded before send; (b) unsubscribe link present in every step body; (c) recipient allowlist — first proof uses SendGrid **sandbox mode** (request validated, nothing delivered); any delivered proof goes only to a founder-owned mailbox, never a real contact.
    - Failure handling keeps the current pattern: enrollment → `failed`, `drip_events` row written, campaign status → `partial`.
    - Exact human step: add the two SendGrid env vars to Vercel and reply with typed approval "approve drip sandbox send proof". Until then live send remains **UNKNOWN**.
+   - **Reconciled 05/10/2026 (UNI-2918).** The paragraph above predates UNI-2356 (#807), which added a live SendGrid lane to `src/lib/campaigns/drip-processor.ts` and a 30-minute cron (`/api/cron/drip-process`) that called it with `dryRun: false`. Production held 0 `drip_campaigns`, 0 `drip_enrollments` and 0 `drip_events` on 05/10/2026 (read-only count), so nothing had been sent. On main after UNI-2918: live send is held behind `DRIP_LIVE_SEND_ENABLED=true` (unset by default) at the processor itself, so the founder `process_pending` action is covered as well as the cron; the cron is dormant (reads and writes nothing) while the switch is off, because the dry-run lane marks real enrollments `failed`; and `/api/leads` enrols into a drip only when `marketing_consent === true`. Conditions (b) unsubscribe link and (c) recipient allowlist, plus suppression, are still unbuilt and stay with UNI-2291. The typed approval above still governs the first live send.
 
 ## Added 2026-07-05T17:05+10:00 — UNI-2153 live Gmail import: consent not yet persisted, import is a founder-browser action
 
