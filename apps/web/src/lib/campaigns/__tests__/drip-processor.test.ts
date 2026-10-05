@@ -238,7 +238,7 @@ describe('live-send master switch (UNI-2918)', () => {
   it('still runs the dry-run lane with the switch unset', async () => {
     responses.drip_steps = [{ data: [STEP_1], error: null }]
     responses.drip_enrollments = [
-      { data: [enrollment({ email: 'safe@unite-hub.test' })], error: null },
+      { data: [enrollment({ email: 'safe__PW_TEST__@example.com' })], error: null },
       { error: null },
     ]
     responses.drip_events = [{ error: null }]
