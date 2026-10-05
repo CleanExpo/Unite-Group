@@ -27,6 +27,45 @@
   var accent = script.getAttribute('data-accent') || '#2563eb';
   var MAX_MESSAGES = 20;
   var MAX_CHARS = 4000;
+  // hCaptcha (UNI-2929): optional public site key. When present, each send
+  // carries a fresh token and a 403 captcha_* reply is retried once with a new
+  // one. The hCaptcha script is only loaded on demand (never on page load).
+  var hcaptchaSiteKey = script.getAttribute('data-hcaptcha-sitekey');
+  var HCAPTCHA_SRC = 'https://js.hcaptcha.com/1/api.js?render=explicit&onload=';
+  var hcaptchaReady = null; // Promise<hcaptcha>
+  var hcaptchaWidgetId = null;
+
+  function loadHcaptcha() {
+    if (hcaptchaReady) return hcaptchaReady;
+    hcaptchaReady = new Promise(function (resolve, reject) {
+      if (window.hcaptcha && window.hcaptcha.render) return resolve(window.hcaptcha);
+      var cb = '__nexusAgentHcaptchaOnload';
+      window[cb] = function () { resolve(window.hcaptcha); };
+      var tag = document.createElement('script');
+      tag.src = HCAPTCHA_SRC + cb;
+      tag.async = true;
+      tag.onerror = function () { hcaptchaReady = null; reject(new Error('hcaptcha_load_failed')); };
+      document.head.appendChild(tag);
+    });
+    return hcaptchaReady;
+  }
+
+  // Resolves a single-use response token. The container lives in the light DOM
+  // (the widget's shadow root is closed and hCaptcha mounts its challenge
+  // overlay against the document).
+  function getCaptchaToken() {
+    return loadHcaptcha().then(function (hc) {
+      if (hcaptchaWidgetId === null) {
+        var box = document.createElement('div');
+        box.setAttribute('data-nexus-agent-hcaptcha', '');
+        document.body.appendChild(box);
+        hcaptchaWidgetId = hc.render(box, { sitekey: hcaptchaSiteKey, size: 'invisible' });
+      } else {
+        hc.reset(hcaptchaWidgetId);
+      }
+      return hc.execute(hcaptchaWidgetId, { async: true }).then(function (r) { return r.response; });
+    });
+  }
 
   var messages = []; // { role: 'user' | 'assistant', content: string }
   var busy = false;
@@ -147,11 +186,32 @@
       addMessage('na-user', text);
       var botEl = addMessage('na-bot', '');
 
-      fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ siteKey: siteKey, messages: messages }),
-      })
+      function post(token) {
+        var payload = { siteKey: siteKey, messages: messages };
+        if (token) payload.captchaToken = token;
+        return fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      }
+
+      function isCaptchaRefusal(res) {
+        if (res.status !== 403) return Promise.resolve(false);
+        return res.clone().json().then(function (b) {
+          return !!b && (b.error === 'captcha_required' || b.error === 'captcha_failed');
+        }, function () { return false; });
+      }
+
+      (hcaptchaSiteKey ? getCaptchaToken() : Promise.resolve(null))
+        .then(post)
+        .then(function (res) {
+          if (!hcaptchaSiteKey) return res;
+          // Retry once with a fresh single-use token on a captcha refusal.
+          return isCaptchaRefusal(res).then(function (refused) {
+            return refused ? getCaptchaToken().then(post) : res;
+          });
+        })
         .then(function (res) {
           if (!res.ok || !res.body) {
             botEl.className = 'na-msg na-err';

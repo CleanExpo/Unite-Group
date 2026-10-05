@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('@/lib/supabase/service', () => ({
   createServiceClient: vi.fn(() => ({ from: vi.fn() })),
@@ -155,6 +155,130 @@ describe('POST /api/agent', () => {
       last = await POST(req({ siteKey, messages: [{ role: 'user', content: 'hi' }] }))
     }
     expect(last?.status).toBe(429)
+  })
+})
+
+// hCaptcha guard (UNI-2929). The real captcha module runs; fetch is mocked only
+// at the siteverify boundary.
+describe('POST /api/agent — hCaptcha guard', () => {
+  const REAL_FETCH = globalThis.fetch
+  const SITEVERIFY = 'https://api.hcaptcha.com/siteverify'
+
+  function siteverifyCalls(fetchMock: ReturnType<typeof vi.fn>) {
+    return fetchMock.mock.calls.filter((call) => String(call[0]) === SITEVERIFY)
+  }
+
+  function mockSiteverify(reply: () => Promise<Response>) {
+    const fetchMock = vi.fn(async (input: unknown) => {
+      if (String(input) === SITEVERIFY) return reply()
+      throw new Error(`unexpected fetch ${String(input)}`)
+    })
+    globalThis.fetch = fetchMock as unknown as typeof fetch
+    return fetchMock
+  }
+
+  let create: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(validateSiteKey).mockResolvedValue({
+      ok: true,
+      founderId: 'founder-1',
+      businessKey: 'synthex',
+    })
+    create = vi.fn(async () => anthropicEvents('ok'))
+    vi.mocked(getAIClient).mockReturnValue({ messages: { create } } as any)
+    process.env.HCAPTCHA_SECRET = 'test-hcaptcha-secret'
+  })
+
+  afterEach(() => {
+    globalThis.fetch = REAL_FETCH
+    delete process.env.SITE_AGENT_CAPTCHA_ENABLED
+    delete process.env.HCAPTCHA_SECRET
+  })
+
+  const chat = (extra: object = {}) =>
+    req({ siteKey: uniqueKey(), messages: [{ role: 'user', content: 'hi' }], ...extra })
+
+  it('flag off: makes no siteverify call and proceeds to the model', async () => {
+    const fetchMock = mockSiteverify(async () => new Response(JSON.stringify({ success: false })))
+    const res = await POST(chat())
+    expect(res.status).toBe(200)
+    expect(siteverifyCalls(fetchMock)).toHaveLength(0)
+    expect(create).toHaveBeenCalledTimes(1)
+  })
+
+  it('flag on + missing token: 403 captcha_required with CORS, no model call', async () => {
+    process.env.SITE_AGENT_CAPTCHA_ENABLED = 'true'
+    const fetchMock = mockSiteverify(async () => new Response(JSON.stringify({ success: true })))
+    const res = await POST(chat())
+    expect(res.status).toBe(403)
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBe('https://client.example')
+    expect(await res.json()).toEqual({ error: 'captcha_required' })
+    expect(siteverifyCalls(fetchMock)).toHaveLength(0)
+    expect(create).not.toHaveBeenCalled()
+    expect(ground).not.toHaveBeenCalled()
+  })
+
+  it('flag on + success:false: 403 captcha_failed, no grounding or model call', async () => {
+    process.env.SITE_AGENT_CAPTCHA_ENABLED = 'true'
+    mockSiteverify(
+      async () =>
+        new Response(JSON.stringify({ success: false, 'error-codes': ['invalid-input-response'] })),
+    )
+    const res = await POST(chat({ captchaToken: 'tok' }))
+    expect(res.status).toBe(403)
+    expect(await res.json()).toEqual({ error: 'captcha_failed' })
+    expect(create).not.toHaveBeenCalled()
+    expect(ground).not.toHaveBeenCalled()
+  })
+
+  it('flag on + siteverify fetch rejects: 403 captcha_failed (fail closed)', async () => {
+    process.env.SITE_AGENT_CAPTCHA_ENABLED = 'true'
+    mockSiteverify(async () => {
+      throw new Error('network down')
+    })
+    const res = await POST(chat({ captchaToken: 'tok' }))
+    expect(res.status).toBe(403)
+    expect(await res.json()).toEqual({ error: 'captcha_failed' })
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it('flag on + HCAPTCHA_SECRET unset: 403 captcha_failed without calling siteverify', async () => {
+    process.env.SITE_AGENT_CAPTCHA_ENABLED = 'true'
+    delete process.env.HCAPTCHA_SECRET
+    const fetchMock = mockSiteverify(async () => new Response(JSON.stringify({ success: true })))
+    const res = await POST(chat({ captchaToken: 'tok' }))
+    expect(res.status).toBe(403)
+    expect(await res.json()).toEqual({ error: 'captcha_failed' })
+    expect(siteverifyCalls(fetchMock)).toHaveLength(0)
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it('flag on + success:true: verifies the token form-encoded and streams the answer', async () => {
+    process.env.SITE_AGENT_CAPTCHA_ENABLED = 'true'
+    const fetchMock = mockSiteverify(async () => new Response(JSON.stringify({ success: true })))
+    const res = await POST(chat({ captchaToken: 'tok-good' }))
+    expect(res.status).toBe(200)
+    expect(await res.text()).toContain('data: {"delta":"ok"}')
+    expect(create).toHaveBeenCalledTimes(1)
+
+    const calls = siteverifyCalls(fetchMock)
+    expect(calls).toHaveLength(1)
+    const init = calls[0][1] as RequestInit
+    expect((init.headers as Record<string, string>)['Content-Type']).toBe(
+      'application/x-www-form-urlencoded',
+    )
+    expect(new URLSearchParams(String(init.body)).get('response')).toBe('tok-good')
+  })
+
+  it('an invalid site key is still a 401 and never reaches siteverify', async () => {
+    process.env.SITE_AGENT_CAPTCHA_ENABLED = 'true'
+    vi.mocked(validateSiteKey).mockResolvedValue({ ok: false, reason: 'unknown_key' })
+    const fetchMock = mockSiteverify(async () => new Response(JSON.stringify({ success: true })))
+    const res = await POST(chat({ captchaToken: 'tok' }))
+    expect(res.status).toBe(401)
+    expect(siteverifyCalls(fetchMock)).toHaveLength(0)
   })
 })
 

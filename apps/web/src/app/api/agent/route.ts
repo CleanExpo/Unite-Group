@@ -19,6 +19,7 @@ import { getAIClient } from '@/lib/ai/client'
 import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 import { validateSiteKey } from '@/lib/site-agent/site-keys'
 import { ground, formatGroundingContext } from '@/lib/site-agent/grounding'
+import { captchaRequired, verifyCaptcha, captchaErrorCode } from '@/lib/site-agent/captcha'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -208,6 +209,23 @@ export async function POST(request: Request) {
     // an anonymous caller distinguish unknown-key from inactive/wrong-origin.
     console.warn(`[agent] site key rejected: ${validation.reason}`)
     return NextResponse.json({ error: 'Invalid site key' }, { status: 401, headers: cors })
+  }
+
+  // hCaptcha (UNI-2929) — after site-key validation so a caller without a valid
+  // key cannot make us spend outbound siteverify calls (and the 401 path is
+  // unchanged); before grounding and the model call so unverified traffic
+  // costs no retrieval or Anthropic spend. Flag off → skipped entirely.
+  if (captchaRequired()) {
+    const captcha = await verifyCaptcha(
+      (raw as { captchaToken?: unknown }).captchaToken,
+      getClientIp(request),
+    )
+    if (!captcha.ok) {
+      return NextResponse.json(
+        { error: captchaErrorCode(captcha.reason) },
+        { status: 403, headers: cors },
+      )
+    }
   }
 
   let client: Anthropic

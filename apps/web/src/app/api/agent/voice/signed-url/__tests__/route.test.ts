@@ -153,6 +153,111 @@ describe('POST /api/agent/voice/signed-url', () => {
   })
 })
 
+// hCaptcha guard (UNI-2929). The real captcha module runs; fetch dispatches on
+// URL so siteverify and the ElevenLabs mint are distinguishable.
+describe('POST /api/agent/voice/signed-url — hCaptcha guard', () => {
+  const SITEVERIFY = 'https://api.hcaptcha.com/siteverify'
+
+  function mockUpstreams(siteverify: () => Promise<Response>) {
+    const fetchMock = vi.fn(async (input: unknown) => {
+      const url = String(input)
+      if (url === SITEVERIFY) return siteverify()
+      if (url.startsWith('https://api.elevenlabs.io/')) {
+        return new Response(JSON.stringify({ signed_url: 'wss://elevenlabs.io/signed?token=abc' }), {
+          status: 200,
+        })
+      }
+      throw new Error(`unexpected fetch ${url}`)
+    })
+    globalThis.fetch = fetchMock as unknown as typeof fetch
+    return fetchMock
+  }
+
+  const calledUrls = (fetchMock: ReturnType<typeof vi.fn>) =>
+    fetchMock.mock.calls.map((call) => String(call[0]))
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(validateSiteKey).mockResolvedValue({
+      ok: true,
+      founderId: 'founder-1',
+      businessKey: 'synthex',
+    })
+    process.env.ELEVENLABS_API_KEY = 'test-xi-key'
+    process.env.ELEVENLABS_SITE_AGENT_ID = 'agent-abc'
+    process.env.HCAPTCHA_SECRET = 'test-hcaptcha-secret'
+  })
+
+  afterEach(() => {
+    globalThis.fetch = REAL_FETCH
+    delete process.env.ELEVENLABS_API_KEY
+    delete process.env.ELEVENLABS_SITE_AGENT_ID
+    delete process.env.SITE_AGENT_CAPTCHA_ENABLED
+    delete process.env.HCAPTCHA_SECRET
+  })
+
+  it('flag off: no siteverify call, signed URL minted as before', async () => {
+    const fetchMock = mockUpstreams(async () => new Response(JSON.stringify({ success: false })))
+    const res = await POST(req({ siteKey: uniqueKey() }))
+    expect(res.status).toBe(200)
+    expect(calledUrls(fetchMock)).not.toContain(SITEVERIFY)
+    expect(calledUrls(fetchMock).some((u) => u.startsWith('https://api.elevenlabs.io/'))).toBe(true)
+  })
+
+  it('flag on + missing token: 403 captcha_required with CORS, no ElevenLabs mint', async () => {
+    process.env.SITE_AGENT_CAPTCHA_ENABLED = 'true'
+    const fetchMock = mockUpstreams(async () => new Response(JSON.stringify({ success: true })))
+    const res = await POST(req({ siteKey: uniqueKey() }))
+    expect(res.status).toBe(403)
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBe('https://client.example')
+    expect(await res.json()).toEqual({ error: 'captcha_required' })
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('flag on + success:false: 403 captcha_failed, no ElevenLabs mint', async () => {
+    process.env.SITE_AGENT_CAPTCHA_ENABLED = 'true'
+    const fetchMock = mockUpstreams(async () => new Response(JSON.stringify({ success: false })))
+    const res = await POST(req({ siteKey: uniqueKey(), captchaToken: 'tok' }))
+    expect(res.status).toBe(403)
+    expect(await res.json()).toEqual({ error: 'captcha_failed' })
+    expect(calledUrls(fetchMock)).toEqual([SITEVERIFY])
+  })
+
+  it('flag on + siteverify fetch rejects: 403 captcha_failed (fail closed)', async () => {
+    process.env.SITE_AGENT_CAPTCHA_ENABLED = 'true'
+    const fetchMock = mockUpstreams(async () => {
+      throw new Error('network down')
+    })
+    const res = await POST(req({ siteKey: uniqueKey(), captchaToken: 'tok' }))
+    expect(res.status).toBe(403)
+    expect(await res.json()).toEqual({ error: 'captcha_failed' })
+    expect(calledUrls(fetchMock)).toEqual([SITEVERIFY])
+  })
+
+  it('flag on + HCAPTCHA_SECRET unset: 403 captcha_failed, no upstream calls', async () => {
+    process.env.SITE_AGENT_CAPTCHA_ENABLED = 'true'
+    delete process.env.HCAPTCHA_SECRET
+    const fetchMock = mockUpstreams(async () => new Response(JSON.stringify({ success: true })))
+    const res = await POST(req({ siteKey: uniqueKey(), captchaToken: 'tok' }))
+    expect(res.status).toBe(403)
+    expect(await res.json()).toEqual({ error: 'captcha_failed' })
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('flag on + success:true: verifies then mints the signed URL', async () => {
+    process.env.SITE_AGENT_CAPTCHA_ENABLED = 'true'
+    const fetchMock = mockUpstreams(async () => new Response(JSON.stringify({ success: true })))
+    const res = await POST(req({ siteKey: uniqueKey(), captchaToken: 'tok-good' }))
+    expect(res.status).toBe(200)
+    expect((await res.json()).signed_url).toBe('wss://elevenlabs.io/signed?token=abc')
+    const urls = calledUrls(fetchMock)
+    expect(urls[0]).toBe(SITEVERIFY)
+    expect(urls[1]).toMatch(/^https:\/\/api\.elevenlabs\.io\//)
+    const init = fetchMock.mock.calls[0][1] as RequestInit
+    expect(new URLSearchParams(String(init.body)).get('response')).toBe('tok-good')
+  })
+})
+
 describe('OPTIONS /api/agent/voice/signed-url', () => {
   it('answers preflight with CORS headers reflecting the origin', async () => {
     const res = await OPTIONS(

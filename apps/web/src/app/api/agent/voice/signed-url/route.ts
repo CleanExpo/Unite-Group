@@ -31,6 +31,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { validateSiteKey } from '@/lib/site-agent/site-keys'
+import { captchaRequired, verifyCaptcha, captchaErrorCode } from '@/lib/site-agent/captcha'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 15
@@ -135,6 +136,22 @@ export async function POST(request: Request) {
     // caller cannot distinguish unknown-key from inactive/wrong-origin.
     console.warn(`[agent/voice] site key rejected: ${validation.reason}`)
     return NextResponse.json({ error: 'Invalid site key' }, { status: 401, headers: cors })
+  }
+
+  // hCaptcha (UNI-2929) — after site-key validation (no siteverify spend for
+  // invalid keys; 401 path unchanged), before the billed ElevenLabs mint.
+  // Token travels in the JSON body as `captchaToken`. Flag off → skipped.
+  if (captchaRequired()) {
+    const captcha = await verifyCaptcha(
+      (raw as { captchaToken?: unknown }).captchaToken,
+      getClientIp(request),
+    )
+    if (!captcha.ok) {
+      return NextResponse.json(
+        { error: captchaErrorCode(captcha.reason) },
+        { status: 403, headers: cors },
+      )
+    }
   }
 
   const apiKey = process.env.ELEVENLABS_API_KEY?.trim()
