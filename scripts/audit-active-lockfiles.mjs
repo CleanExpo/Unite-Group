@@ -305,11 +305,17 @@ export function exceptionIsActive(exception, now) {
 
 function advisoryIdOf(item) {
   if (!item || typeof item !== 'object') return null
-  const fromUrl = typeof item.url === 'string' ? GHSA_URL.exec(item.url)?.[1] ?? null : null
-  const declared = typeof item.github_advisory_id === 'string' ? item.github_advisory_id : null
+  // Every identity field the scanner supplies must be well-formed and agree; a present but
+  // non-canonical URL or id makes the advisory unidentifiable, which blocks.
+  const hasUrl = item.url !== undefined && item.url !== null
+  const hasDeclared = item.github_advisory_id !== undefined && item.github_advisory_id !== null
+  const fromUrl = hasUrl ? (typeof item.url === 'string' ? GHSA_URL.exec(item.url)?.[1] ?? null : null) : null
+  const declared = hasDeclared && typeof item.github_advisory_id === 'string' && GHSA_ID.test(item.github_advisory_id)
+    ? item.github_advisory_id
+    : null
+  if ((hasUrl && fromUrl === null) || (hasDeclared && declared === null)) return null
   if (declared !== null && fromUrl !== null && declared !== fromUrl) return null
-  const id = declared ?? fromUrl
-  return id !== null && GHSA_ID.test(id) ? id : null
+  return declared ?? fromUrl
 }
 
 const HIGH_OR_CRITICAL = new Set(['high', 'critical'])
@@ -386,14 +392,17 @@ export function evaluateAcceptedRisk(report, { exceptions, now }) {
     }
   }
 
+  // The scanner's own high/critical count must equal the findings examined above. A count the
+  // findings do not account for is an unexplained finding, and an unexplained finding blocks.
   const counts = report?.metadata?.vulnerabilities ?? {}
   const counted = (counts.high ?? 0) + (counts.critical ?? 0)
-  if (counted > 0 && explainedFindings === 0) blocking = true
+  if (counted !== explainedFindings) blocking = true
 
+  // Not capped: every excused finding is recorded and printed. The list is bounded by the
+  // scanner's own reconciled count above, never by a silent truncation.
   return {
     blocking,
-    excused: excused.slice(0, MAX_FINDINGS_PER_SCAN),
-    excusedTruncated: Math.max(0, excused.length - MAX_FINDINGS_PER_SCAN),
+    excused,
     expiredExceptionsMatched: [...expiredMatches].sort(),
   }
 }
@@ -733,9 +742,6 @@ export function formatAcceptedRisk(report) {
     if (!risk) continue
     for (const finding of risk.excused) {
       lines.push(`ACCEPTED RISK ${result.lockfile}: excused ${finding.severity} ${finding.package} via ${finding.advisories.join(', ')}`)
-    }
-    if (risk.excusedTruncated > 0) {
-      lines.push(`ACCEPTED RISK ${result.lockfile}: ${risk.excusedTruncated} further excused findings not listed`)
     }
     for (const advisory of risk.expiredExceptionsMatched) {
       lines.push(`EXPIRED accepted-risk exception ${advisory} matched a finding in ${result.lockfile}; it now fails the audit`)

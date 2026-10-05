@@ -1215,3 +1215,64 @@ test('every finding the exception excuses is printed on the run', async (t) => {
   assert.match(printed, /ACCEPTED RISK app\/package-lock\.json: excused high braces via GHSA-vfj7-8cjw-p6xm/)
   assert.match(printed, /ACCEPTED RISK app\/package-lock\.json: excused high chokidar via GHSA-vfj7-8cjw-p6xm/)
 })
+
+test('more than 100 excused findings are all printed, none summarised away', async (t) => {
+  const { main } = await loadRunner()
+  const root = await makeFixture(t)
+  const via = [{ url: 'https://github.com/advisories/GHSA-vfj7-8cjw-p6xm', severity: 'high' }]
+  const vulnerabilities = Object.fromEntries(Array.from({ length: 101 }, (_, i) => [`pkg-${i}`, { severity: 'high', via }]))
+  const stdout = JSON.stringify({
+    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 101, critical: 0, total: 101 } },
+    vulnerabilities,
+  })
+  let printed = ''
+  const exitCode = await main({
+    argv: [],
+    entries: BRACES_ENTRY,
+    root,
+    now: new Date('2026-10-05T00:00:00Z'),
+    stdout: { write: () => {} },
+    stderr: { write: (text) => { printed += text } },
+    runAudit: async () => ({ exitCode: 1, stdout, stderr: '', timedOut: false }),
+  })
+  assert.equal(exitCode, 0)
+  assert.equal(printed.match(/^ACCEPTED RISK app\/package-lock\.json: excused high pkg-\d+ /gm).length, 101)
+  assert.match(printed, /excused high pkg-100 via GHSA-vfj7-8cjw-p6xm/)
+})
+
+test('a high count the findings do not account for is never excused', async (t) => {
+  const { runActiveLockfileAudits } = await loadRunner()
+  const root = await makeFixture(t)
+  const stdout = JSON.stringify({
+    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 2, critical: 0, total: 2 } },
+    vulnerabilities: {
+      braces: { severity: 'high', via: [{ url: 'https://github.com/advisories/GHSA-vfj7-8cjw-p6xm', severity: 'high' }] },
+    },
+  })
+  const report = await runActiveLockfileAudits({
+    entries: BRACES_ENTRY,
+    root,
+    evidence: {},
+    now: new Date('2026-10-05T00:00:00Z'),
+    runAudit: async () => ({ exitCode: 1, stdout, stderr: '', timedOut: false }),
+  })
+  assert.equal(report.passed, false)
+  assert.equal(report.results[0].acceptedRisk.blocking, true)
+})
+
+test('an advisory whose URL is not the canonical GHSA URL is never excused, whatever id it declares', async () => {
+  const { evaluateAcceptedRisk, ACCEPTED_RISK_EXCEPTIONS } = await loadRunner()
+  const now = new Date('2026-10-05T00:00:00Z')
+  for (const url of [
+    'https://github.com/advisories/GHSA-vfj7-8cjw-p6xm-suffix',
+    'https://github.com/advisories/GHSA-VFJ7-8CJW-P6XM',
+    'https://example.com/advisories/GHSA-vfj7-8cjw-p6xm',
+  ]) {
+    const outcome = evaluateAcceptedRisk({
+      metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 1, critical: 0, total: 1 } },
+      advisories: { 1: { module_name: 'braces', severity: 'high', github_advisory_id: 'GHSA-vfj7-8cjw-p6xm', url } },
+    }, { exceptions: ACCEPTED_RISK_EXCEPTIONS, now })
+    assert.equal(outcome.blocking, true, url)
+    assert.deepEqual(outcome.excused, [], url)
+  }
+})
