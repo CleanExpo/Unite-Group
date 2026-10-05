@@ -143,3 +143,37 @@ describe('public-path exemption is segment-aware, not prefix-loose', () => {
     })
   })
 })
+
+// UNI-2925: the public AI-Website page. Spec §5.2(3) requires the gate opening
+// to be narrow and proven: exactly '/aiw' becomes public, nothing beside it.
+describe('the /aiw exemption is the exact page and nothing else (UNI-2925)', () => {
+  it('runs the proxy on /aiw (rate limit + CSP still apply)', () => {
+    expect(isMatched('/aiw')).toBe(true)
+  })
+
+  it('exempts exactly /aiw', () => {
+    expect(isPublicPath('/aiw')).toBe(true)
+  })
+
+  // Enumerated: sub-paths, a sibling sharing the prefix, a case variant, and the
+  // founder app. A segment-prefix entry would leak '/aiw/secret'; a bare
+  // startsWith would leak '/aiwx'.
+  const stillGated = [
+    '/',
+    '/founder',
+    '/founder/x',
+    '/dashboard',
+    '/api/contacts',
+    '/aiw/secret',
+    '/aiwx',
+    '/AIW',
+  ]
+
+  it.each(stillGated)('does NOT exempt %s', (p) => {
+    expect(isPublicPath(p)).toBe(false)
+  })
+
+  it('leaves /api/leads exactly as it is on main (already public, UNI-2355)', () => {
+    expect(isPublicPath('/api/leads')).toBe(true)
+  })
+})

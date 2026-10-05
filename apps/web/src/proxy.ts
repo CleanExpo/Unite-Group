@@ -11,6 +11,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
 import { checkRateLimit } from '@/lib/middleware/rate-limit';
 import { hasPrivateAccess, isPrivateAccessConfigured } from '@/lib/auth/private-access';
+import { isAiwPublicPage } from '@/lib/aiw/public-paths';
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -70,6 +71,14 @@ const PUBLIC_PATHS = [
 
 export function isPublicPath(pathname: string): boolean {
   if (process.env.KNOWLEDGE_CONSOLE_PREVIEW === '1' && pathname === '/preview/knowledge-console') {
+    return true;
+  }
+
+  // Public AI-Website page (UNI-2925, spec §5.2(3) "gate opening is a designed,
+  // narrow deliverable"). EXACT match only — PUBLIC_PATHS below is segment-prefix,
+  // so listing '/aiw' there would also open '/aiw/<anything>'. '/aiw/x', '/aiwx'
+  // and '/AIW' stay gated. The page itself is dark unless AIW_PAGE_ENABLED=true.
+  if (isAiwPublicPage(pathname)) {
     return true;
   }
 

@@ -20,6 +20,19 @@
 
 export const AIW_PUBLIC_PREFIXES = ['/aiw', '/api/aiw'] as const;
 
+/** The public AIW marketing page itself (UNI-2925). */
+export const AIW_PUBLIC_PAGE_PATH = '/aiw';
+
+/**
+ * True only for the exact `/aiw` page — no sub-paths, no siblings, case-sensitive.
+ * This is what `proxy.ts` wires today (UNI-2925). The wider `isAiwPublicPath()`
+ * surface (`/aiw/*`, `/api/aiw/*`) is NOT wired yet: it opens with the routes that
+ * need it, each with its own proxy test.
+ */
+export function isAiwPublicPage(pathname: string): boolean {
+  return pathname === AIW_PUBLIC_PAGE_PATH;
+}
+
 /**
  * True only for the AIW public surface. Boundary-safe: matches a prefix exactly or
  * when it is followed by `/`, never as a bare substring (so `/aiwesome` and
