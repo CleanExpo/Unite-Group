@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { assertCronAuth } from '@/lib/cron-auth'
 import { getFounderUserId } from '@/lib/auth/founder-user-id'
 import { createServiceClient } from '@/lib/supabase/service'
-import { processCampaignDrip, type DripProcessSummary } from '@/lib/campaigns/drip-processor'
+import {
+  isDripLiveSendEnabled,
+  processCampaignDrip,
+  type DripProcessSummary,
+} from '@/lib/campaigns/drip-processor'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300 // 5 minutes — one live SendGrid send per due enrollment
@@ -21,10 +25,22 @@ type ActiveCampaignRow = {
  *
  * GET (not POST): Vercel Cron invokes the path with a GET request, matching
  * every other cron route in this app. Manual triggers use GET + CRON_SECRET.
+ *
+ * DORMANT unless DRIP_LIVE_SEND_ENABLED=true (UNI-2918). Dormant rather than
+ * dry-run on purpose: the dry-run lane marks every non-test recipient's
+ * enrollment `failed`, so a dry-run cron would destroy real enrollments every
+ * 30 minutes. Dormant reads and writes nothing.
  */
 export async function GET(request: NextRequest) {
   const denied = assertCronAuth(request)
   if (denied) return denied
+
+  if (!isDripLiveSendEnabled()) {
+    return NextResponse.json({
+      dormant: true,
+      message: 'DRIP_LIVE_SEND_ENABLED is not true — drip sends are held',
+    })
+  }
 
   const founderId = getFounderUserId()
   if (!founderId) {
