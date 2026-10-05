@@ -600,7 +600,7 @@ test('the shipped ledger still parses clean after all of this', () => {
   const parsed = parseFounderQueue(readFileSync(QUEUE_PATH, 'utf8'));
   assert.deepEqual(parsed.malformed, []);
   assert.equal(summarise(parsed, LIVE_NOW).integrity, 'OK');
-  assert.equal(parsed.open.length, 8);
+  assert.equal(parsed.open.length, 11); // F9–F11 appended 05/10/2026 (UNI-2354)
 });
 
 test('A RESOLVED ROW THAT RESOLVES NOTHING IS NOT RESOLVED', () => {

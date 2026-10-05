@@ -52,6 +52,9 @@ He resolved it on 17/08/2026 — see Resolved.
 | F6 | Retrieve/create the three social platform app secrets | 2026-07-06 | — | UNI-2331 | Connectors already built; only FACEBOOK_APP_SECRET, LINKEDIN_*, TIKTOK_* are missing | open |
 | F7 | Stripe connection | 2026-08-16 | — | billing, and therefore the metric of record | Blocks paying customers directly | open |
 | P9 | Sign off the arming checklist | 2026-08-07 | — | P9 go-live | Per `.spm/2026-08-07-p9-board-meetings-collision.md` | open |
+| F9 | Mint the first production site key for the public site agent, with a non-empty `allowed_origins` | 2026-10-05 | — | UNI-2354 verify steps 1 and 5 | Production write (Class 3); `site_keys` holds 0 rows on 05/10/2026 (read-only count). The voice route header requires a non-empty allow-list before activation | open |
+| F10 | Name the controlled recipient address and approve one test drip campaign for the UNI-2354 verify | 2026-10-05 | — | UNI-2354 verify steps 2–4 | A send to a real inbox is founder-held; `drip_campaigns` holds 0 rows on 05/10/2026. Sends stay behind UNI-2918/UNI-2291 consent and unsubscribe gates | open |
+| F11 | Sign off `@elevenlabs/react` for apps/web; set `ELEVENLABS_SITE_AGENT_ID` in production only after the durable daily mint cap ships | 2026-07-13 | — | UNI-2354 verify step 5 (voice) | New dependency needs founder sign-off under the apps/web no-new-deps rule; recorded in the header of `/api/agent/voice/signed-url` since #818 (13/07/2026). That header also requires a durable per-key/per-founder daily mint cap before the agent ID is set, so `ELEVENLABS_SITE_AGENT_ID` stays unset until UNI-2917 (#1169) is merged and verified alongside F9's non-empty allow-list | open |
 
 ## Resolved
 
