@@ -6,7 +6,7 @@ vi.mock('@/lib/integrations/sendgrid', () => ({
 }))
 
 import { sendEmail } from '@/lib/integrations/sendgrid'
-import { processCampaignDrip, resolveDripFromAddress } from '../drip-processor'
+import { isDripLiveSendEnabled, processCampaignDrip, resolveDripFromAddress } from '../drip-processor'
 
 // --- Supabase mock: per-table FIFO response queues + write capture -------
 let responses: Record<string, any[]>
@@ -82,6 +82,9 @@ describe('processCampaignDrip', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.unstubAllEnvs()
+    // The live-lane cases below exercise the send path, so the master switch
+    // is on for them; the UNI-2918 block at the end turns it off.
+    vi.stubEnv('DRIP_LIVE_SEND_ENABLED', 'true')
     responses = {}
     inserts = []
     updates = []
@@ -190,6 +193,61 @@ describe('processCampaignDrip', () => {
     expect(updates.find((u) => u.table === 'drip_enrollments')?.payload).toMatchObject({
       status: 'completed',
     })
+  })
+})
+
+describe('live-send master switch (UNI-2918)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.unstubAllEnvs()
+    responses = {}
+    inserts = []
+    updates = []
+  })
+
+  it('refuses a live run before any read, write or provider call when the switch is unset', async () => {
+    responses.drip_steps = [{ data: [STEP_1], error: null }]
+    responses.drip_enrollments = [{ data: [enrollment()], error: null }]
+    vi.mocked(sendEmail).mockResolvedValue('sg-msg-1')
+
+    const summary = await processCampaignDrip(baseInput(false))
+
+    expect(summary).toEqual({
+      processed: 0,
+      skipped: 0,
+      failed: 0,
+      dryRun: false,
+      providerSend: 'not_attempted',
+      liveSendDisabled: true,
+    })
+    expect(supabase.from).not.toHaveBeenCalled()
+    expect(sendEmail).not.toHaveBeenCalled()
+    expect(inserts).toEqual([])
+    expect(updates).toEqual([])
+  })
+
+  it('accepts only the exact string "true"', () => {
+    for (const value of ['', 'TRUE', 'True', '1', 'yes', ' true']) {
+      vi.stubEnv('DRIP_LIVE_SEND_ENABLED', value)
+      expect(isDripLiveSendEnabled(), JSON.stringify(value)).toBe(false)
+    }
+    vi.stubEnv('DRIP_LIVE_SEND_ENABLED', 'true')
+    expect(isDripLiveSendEnabled()).toBe(true)
+  })
+
+  it('still runs the dry-run lane with the switch unset', async () => {
+    responses.drip_steps = [{ data: [STEP_1], error: null }]
+    responses.drip_enrollments = [
+      { data: [enrollment({ email: 'safe@unite-hub.test' })], error: null },
+      { error: null },
+    ]
+    responses.drip_events = [{ error: null }]
+
+    const summary = await processCampaignDrip(baseInput(true))
+
+    expect(summary.liveSendDisabled).toBeUndefined()
+    expect(supabase.from).toHaveBeenCalled()
+    expect(sendEmail).not.toHaveBeenCalled()
   })
 })
 
