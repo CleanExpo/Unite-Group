@@ -31,6 +31,19 @@
   var messages = []; // { role: 'user' | 'assistant', content: string }
   var busy = false;
 
+  // Random per page session; links this chat's turns on the server timeline
+  // (UNI-2920). Not stored, not derived from anything about the visitor.
+  var conversationId = (function () {
+    try {
+      if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+        return window.crypto.randomUUID();
+      }
+    } catch (e) { /* fall through */ }
+    var id = '';
+    while (id.length < 32) id += Math.random().toString(36).slice(2);
+    return id.slice(0, 32);
+  })();
+
   var STYLES =
     ':host{all:initial}' +
     '*{box-sizing:border-box;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}' +
@@ -150,7 +163,7 @@
       fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ siteKey: siteKey, messages: messages }),
+        body: JSON.stringify({ siteKey: siteKey, conversationId: conversationId, messages: messages }),
       })
         .then(function (res) {
           if (!res.ok || !res.body) {

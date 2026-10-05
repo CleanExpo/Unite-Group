@@ -139,6 +139,25 @@ describe('POST /api/leads', () => {
     expect(timelineInsert?.payload.payload.metadata).not.toHaveProperty('ipAddress')
   })
 
+  it('links a valid conversation_id into lead additional_data and timeline metadata; drops an invalid one', async () => {
+    responses.crm_leads = [{ data: { id: 'lead-1' }, error: null }]
+    await POST(req({ ...VALID_LEAD, business_key: 'dr', conversation_id: 'conv_abcdefghijklmnop' }))
+    expect(inserts.find((i) => i.table === 'crm_leads')?.payload.additional_data).toEqual({
+      business_key: 'dr',
+      conversation_id: 'conv_abcdefghijklmnop',
+    })
+    expect(inserts.find((i) => i.table === 'agent_actions')?.payload.payload.metadata).toMatchObject({
+      conversationId: 'conv_abcdefghijklmnop',
+    })
+
+    inserts = []
+    responses.crm_leads = [{ data: { id: 'lead-2' }, error: null }]
+    const res = await POST(req({ ...VALID_LEAD, conversation_id: 'bad id!' }))
+    expect(res.status).toBe(201)
+    expect(inserts.find((i) => i.table === 'crm_leads')?.payload.additional_data).toEqual({})
+    expect(inserts.find((i) => i.table === 'agent_actions')?.payload.payload.metadata).not.toHaveProperty('conversationId')
+  })
+
   it('returns 500 when the insert fails', async () => {
     responses.crm_leads = [{ data: null, error: { message: 'boom' } }]
     const res = await POST(req(VALID_LEAD))

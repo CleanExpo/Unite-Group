@@ -17,9 +17,10 @@ export type CrmActivityTimelineEventType =
   | 'approval_cancelled'
   | 'approval_expired'
   | 'task_completed'
-  | 'integration_stale';
+  | 'integration_stale'
+  | 'site_chat_exchange';
 
-export type CrmActivityTimelineCategory = 'lead' | 'contact' | 'opportunity' | 'approval' | 'task' | 'integration';
+export type CrmActivityTimelineCategory = 'lead' | 'contact' | 'opportunity' | 'approval' | 'task' | 'integration' | 'conversation';
 export type CrmActivityTimelineSeverity = 'normal' | 'high' | 'warning';
 export type CrmActivityTimelineActionClass = 'auto' | 'approval_required' | 'investigate';
 
@@ -103,6 +104,7 @@ const TYPE_CONFIG: Record<CrmActivityTimelineEventType, {
   approval_expired: { category: 'approval', severity: 'high', actionClass: 'approval_required', label: 'Approval expired' },
   task_completed: { category: 'task', severity: 'normal', actionClass: 'auto', label: 'Task completed' },
   integration_stale: { category: 'integration', severity: 'warning', actionClass: 'investigate', label: 'Integration stale' },
+  site_chat_exchange: { category: 'conversation', severity: 'normal', actionClass: 'auto', label: 'Site chat exchange' },
 };
 
 const BLOCKED_METADATA_KEY_PARTS = [

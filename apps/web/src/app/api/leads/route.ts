@@ -14,6 +14,7 @@ import {
   buildCrmActivityTimelineEvent,
   buildCrmTimelineAgentActionInsert,
 } from '@/lib/crm/activity-timeline'
+import { isValidConversationId } from '@/lib/site-agent/transcript'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,6 +33,8 @@ type LeadBody = {
   business_key?: string
   /** Optional drip campaign to enroll the lead into (capture → enroll in one call). */
   drip_campaign_id?: string
+  /** Optional site-chat conversation id (UNI-2920) linking the lead to its chat transcript. */
+  conversation_id?: string
 }
 
 type ContactRow = {
@@ -175,6 +178,8 @@ export async function POST(request: NextRequest) {
 
   const lastName = clean(body.last_name, MAX_SHORT_FIELD)
   const businessKey = clean(body.business_key, MAX_SHORT_FIELD)
+  // Invalid ids are dropped, never rejected: the link is optional context.
+  const conversationId = isValidConversationId(body.conversation_id) ? body.conversation_id : null
   const ipAddress =
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
     request.headers.get('x-real-ip') ||
@@ -200,7 +205,10 @@ export async function POST(request: NextRequest) {
       source: 'website_form',
       ip_address: ipAddress,
       user_agent: userAgent,
-      additional_data: businessKey ? { business_key: businessKey } : {},
+      additional_data: {
+        ...(businessKey ? { business_key: businessKey } : {}),
+        ...(conversationId ? { conversation_id: conversationId } : {}),
+      },
     })
     .select('id')
     .single()
@@ -224,6 +232,7 @@ export async function POST(request: NextRequest) {
       email,
       phone: clean(body.phone, MAX_SHORT_FIELD),
       ipAddress,
+      ...(conversationId ? { conversationId } : {}),
     },
   })
   const timelineInsert = buildCrmTimelineAgentActionInsert(timelineEvent)

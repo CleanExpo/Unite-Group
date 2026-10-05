@@ -19,6 +19,7 @@ import { getAIClient } from '@/lib/ai/client'
 import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 import { validateSiteKey } from '@/lib/site-agent/site-keys'
 import { ground, formatGroundingContext } from '@/lib/site-agent/grounding'
+import { readConversationId, recordSiteChatExchange } from '@/lib/site-agent/transcript'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -237,11 +238,22 @@ export async function POST(request: Request) {
           messages: turns,
           stream: true,
         })
+        let reply = ''
         for await (const event of stream) {
           if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+            reply += event.delta.text
             controller.enqueue(sseEvent({ delta: event.delta.text }))
           }
         }
+        // UNI-2920: flag-gated, never throws, time-boxed; cannot block [DONE].
+        await recordSiteChatExchange(supabase, {
+          founderId: validation.founderId,
+          businessKey: validation.businessKey,
+          conversationId: readConversationId(raw),
+          messages: parsed.messages,
+          visitorMessage: query,
+          assistantReply: reply,
+        })
       } catch {
         // Surface a terminal error event; never leak provider internals.
         controller.enqueue(sseEvent({ error: 'stream_failed' }))
