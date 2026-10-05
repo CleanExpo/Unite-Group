@@ -14,7 +14,7 @@
     "test:view-contract": "vitest run test/view --reporter=verbose",
     "test:alpic-contract": "vitest run test/alpic --reporter=verbose",
     "verify:mcp-runtime-evidence": "node scripts/verify-runtime-evidence.mjs",
-    "audit:package": "npm audit --audit-level high",
+    "audit:package": "node ../../scripts/audit-active-lockfiles.mjs",
     "check:licences": "node -e \"const {execFileSync}=require('node:child_process');const rows=JSON.parse(execFileSync('npm',['query',':not([license])','--json'],{encoding:'utf8'}));const unexpected=rows.filter(p=>!['pi-ceo-operator-mcp','@skybridge/devtools'].includes(p.name));if(unexpected.length)throw new Error('unlicensed dependencies: '+unexpected.map(p=>p.name).join(','));console.log('licence exceptions verified: package + @skybridge/devtools upstream metadata gap')\"",
     "check:install-scripts": "node -e \"const lock=require('./package-lock.json');const found=Object.entries(lock.packages).filter(([,v])=>v.hasInstallScript).map(([p,v])=>p+'@'+v.version).sort();const expected=['node_modules/esbuild@0.28.1','node_modules/fsevents@2.3.3'];if(JSON.stringify(found)!==JSON.stringify(expected))throw new Error('install-script allow-list drift: '+found.join(','));console.log('install-script allow-list verified:',found.join(','))\""
   },
@@ -36,14 +36,15 @@
     "vitest": "^4.1.10"
   },
   "overrides": {
-    "brace-expansion": "5.0.9",
+    "brace-expansion": "5.0.12",
     "minimatch": "10.2.6",
     "esbuild": "0.28.1",
     "fast-uri": "4.1.4",
     "ip-address": "10.4.0",
     "ajv": "8.20.0",
     "hono": "4.12.34",
-    "qs": "6.16.0"
+    "qs": "6.16.0",
+    "undici": "6.29.0"
   },
   "engines": {
     "node": ">=24.14.1 <25"
