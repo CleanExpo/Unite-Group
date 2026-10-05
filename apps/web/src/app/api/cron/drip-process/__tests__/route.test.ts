@@ -17,9 +17,11 @@ vi.mock('@/lib/supabase/service', () => ({
   createServiceClient: vi.fn(() => ({ from: vi.fn(() => chain) })),
 }))
 
-vi.mock('@/lib/campaigns/drip-processor', () => ({
-  processCampaignDrip: vi.fn(),
-}))
+// The real switch is kept so the dormant tests exercise the shipped env check.
+vi.mock('@/lib/campaigns/drip-processor', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/campaigns/drip-processor')>()
+  return { isDripLiveSendEnabled: actual.isDripLiveSendEnabled, processCampaignDrip: vi.fn() }
+})
 
 import { processCampaignDrip } from '@/lib/campaigns/drip-processor'
 import { GET } from '../route'
@@ -36,7 +38,26 @@ describe('GET /api/cron/drip-process', () => {
     vi.unstubAllEnvs()
     vi.stubEnv('CRON_SECRET', 'test-secret')
     vi.stubEnv('FOUNDER_USER_ID', 'founder-1')
+    vi.stubEnv('DRIP_LIVE_SEND_ENABLED', 'true')
     campaignsResponse = { data: [], error: null }
+  })
+
+  it('is dormant without DRIP_LIVE_SEND_ENABLED=true: reads nothing, sends nothing (UNI-2918)', async () => {
+    const { createServiceClient } = await import('@/lib/supabase/service')
+    for (const value of ['', 'false', '1', 'TRUE']) {
+      vi.stubEnv('DRIP_LIVE_SEND_ENABLED', value)
+      const res = await GET(req())
+      expect(res.status, JSON.stringify(value)).toBe(200)
+      expect(await res.json()).toMatchObject({ dormant: true })
+    }
+    expect(createServiceClient).not.toHaveBeenCalled()
+    expect(processCampaignDrip).not.toHaveBeenCalled()
+  })
+
+  it('still refuses an unauthenticated caller while dormant', async () => {
+    vi.stubEnv('DRIP_LIVE_SEND_ENABLED', '')
+    const res = await GET(req('Bearer wrong'))
+    expect(res.status).toBe(401)
   })
 
   it('returns 401 without a valid CRON_SECRET', async () => {
