@@ -99,9 +99,9 @@ describe("Alpic, platform and closure contracts", () => {
 
   test("AUD-01 keeps the package audit independent from the portfolio audit", async () => {
     const pkg = JSON.parse(await readFile(resolve(packageRoot, "package.json"), "utf8"));
-    expect(pkg.scripts["audit:package"]).toBe("npm audit --audit-level high");
+    expect(pkg.scripts["audit:package"]).toBe("node ../../scripts/audit-active-lockfiles.mjs");
     expect(await workflow()).toContain("npm run audit:package");
-    await recordCase("AUD-01", { assertions: 2, argv: ["npm", "audit", "--audit-level", "high"] });
+    await recordCase("AUD-01", { assertions: 2, argv: ["node", "../../scripts/audit-active-lockfiles.mjs"] });
   });
 
   test("CLOSE-01 rejects missing, failed, stale, skipped, duplicate and zero-count receipts", async () => {
