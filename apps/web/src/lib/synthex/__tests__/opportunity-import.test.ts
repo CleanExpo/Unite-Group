@@ -6,6 +6,7 @@ import {
   type OpportunityImportStore,
 } from "../opportunity-import";
 import type { Tables } from "@/types/database";
+import { getImportProjects } from "../import-projects";
 
 const projects = [{ name: "synthex", repository: "CleanExpo/Synthex" }];
 
@@ -167,6 +168,46 @@ describe("Synthex opportunity import public service", () => {
     expect(() =>
       previewSynthexOpportunity(acceptedBundle(), "CleanExpo/Synthex", []),
     ).toThrow();
+  });
+
+  it("rejects a different selected repository even when both projects are in the canonical registry", () => {
+    const canonicalProjects = getImportProjects();
+    const bundle = acceptedBundle();
+    const bundleProject = canonicalProjects.find(
+      (project) =>
+        project.repository === bundle.proposal.targetProject.repository,
+    )!;
+    const selectedProject = canonicalProjects.find(
+      (project) => project.repository !== bundleProject.repository,
+    )!;
+    expect(
+      previewSynthexOpportunity(
+        bundle,
+        bundleProject.repository,
+        canonicalProjects,
+      ).project,
+    ).toEqual(bundleProject);
+    const selectedBundle = acceptedBundle();
+    selectedBundle.proposal.targetProject = {
+      name: selectedProject.name,
+      repository: selectedProject.repository,
+    };
+    expect(
+      previewSynthexOpportunity(
+        selectedBundle,
+        selectedProject.repository,
+        canonicalProjects,
+      ).project,
+    ).toEqual(selectedProject);
+    expect(() =>
+      previewSynthexOpportunity(
+        bundle,
+        selectedProject.repository,
+        canonicalProjects,
+      ),
+    ).toThrow(
+      "Target repository must match the proposal and local portfolio registry",
+    );
   });
 
   it("bounds the next action without splitting a Unicode character", () => {
