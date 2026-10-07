@@ -1,10 +1,15 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { TrendingUp } from 'lucide-react'
 import type { Tables } from '@/types/database'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { SynthexImportPanel } from './SynthexImportPanel'
+import {
+  SynthexImportAssociationSchema,
+  type SynthexImportAssociation,
+} from '@/lib/synthex/import-association'
 import {
   DeckDetails,
   LIGHT_THEME_DECK_TOKENS,
@@ -12,6 +17,30 @@ import {
 } from '@/components/command-centre/DeckDetails'
 
 type Opportunity = Tables<'crm_opportunities'>
+
+interface PlanningRow {
+  opportunity: Opportunity
+  association: SynthexImportAssociation | null
+  projectLabel: string | null
+  repositoryLabel: string | null
+}
+
+function planningAssociation(opportunity: Opportunity): SynthexImportAssociation | null {
+  const metadata = opportunity.additional_data
+  if (
+    opportunity.source !== 'synthex' || metadata === null ||
+    typeof metadata !== 'object' || Array.isArray(metadata) ||
+    !Object.prototype.hasOwnProperty.call(metadata, 'synthexImport')
+  ) return null
+  const parsed = SynthexImportAssociationSchema.safeParse(metadata.synthexImport)
+  return parsed.success ? parsed.data : null
+}
+
+function matchesProject(association: SynthexImportAssociation | null, selection: string): boolean {
+  if (selection === 'all') return true
+  if (selection === 'unassigned') return association === null
+  return association !== null && selection === `project:${association.projectId}`
+}
 
 interface Summary {
   total: number
@@ -118,10 +147,12 @@ function mergeOpportunityRows(current: Opportunity[], incoming: Opportunity[]): 
 
 // One opportunity row — shared by the visible list and the "+N more"
 // disclosure so the markup is never duplicated.
-function renderOpportunityRow(o: Opportunity) {
+function renderOpportunityRow(row: PlanningRow) {
+  const o = row.opportunity
   return (
-    <div
+    <article
       key={o.id}
+      aria-label={redactOpportunityText(o.name)}
       className="rounded-sm px-4 py-3 flex items-center gap-4"
       style={{ background: 'var(--surface-card)', border: '1px solid var(--color-border)' }}
     >
@@ -133,6 +164,14 @@ function renderOpportunityRow(o: Opportunity) {
           {label(o.stage)} · {o.status}
           {o.next_action ? ` · next: ${redactOpportunityText(o.next_action)}` : ''}
         </span>
+        <span className="text-[11px] break-words" style={{ color: 'var(--color-text-secondary)', overflowWrap: 'anywhere' }}>
+          {row.association ? `Project planning reference: ${row.projectLabel}` : 'Unassigned planning reference'}
+        </span>
+        {row.association && (
+          <span className="text-[11px] break-words" style={{ color: 'var(--color-text-muted)', overflowWrap: 'anywhere' }}>
+            Repository: {row.repositoryLabel}
+          </span>
+        )}
       </div>
       <div className="flex flex-col items-end gap-1 shrink-0">
         <span className="text-[13px]" style={{ color: 'var(--color-text-primary)' }}>
@@ -144,7 +183,7 @@ function renderOpportunityRow(o: Opportunity) {
           </span>
         )}
       </div>
-    </div>
+    </article>
   )
 }
 
@@ -173,6 +212,9 @@ export function OpportunitiesPageClient() {
   const [error, setError] = useState(false)
   const [olderError, setOlderError] = useState(false)
   const [stageFilter, setStageFilter] = useState<string>('all')
+  const [projectFilter, setProjectFilter] = useState('all')
+  const [lastImportedId, setLastImportedId] = useState<string | null>(null)
+  const projectOrdinals = useRef(new Map<string, number>())
   const [composerOpen, setComposerOpen] = useState(false)
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
@@ -331,10 +373,61 @@ export function OpportunitiesPageClient() {
     }
   }
 
-  const filtered = useMemo(() => {
-    if (stageFilter === 'all') return opportunities
-    return opportunities.filter((o) => o.stage === stageFilter)
-  }, [opportunities, stageFilter])
+  const planning = useMemo(() => {
+    const associations = opportunities.map(opportunity => ({
+      opportunity,
+      association: planningAssociation(opportunity),
+    }))
+    const projectIds = [...new Set(associations.flatMap(row =>
+      row.association ? [row.association.projectId] : [],
+    ))].sort()
+    const projectLabels = new Map<string, string>()
+    for (const projectId of projectIds) {
+      const safeLabel = redactOpportunityText(projectId)
+      if (safeLabel === projectId) projectLabels.set(projectId, safeLabel)
+      else {
+        if (!projectOrdinals.current.has(projectId)) {
+          projectOrdinals.current.set(projectId, projectOrdinals.current.size + 1)
+        }
+        projectLabels.set(projectId, `${safeLabel} · Reference ${projectOrdinals.current.get(projectId)}`)
+      }
+    }
+    // Retain safe labels for a selected project absent from an in-place reload.
+    for (const [projectId, ordinal] of projectOrdinals.current) {
+      if (!projectLabels.has(projectId)) {
+        projectLabels.set(projectId, `${redactOpportunityText(projectId)} · Reference ${ordinal}`)
+      }
+    }
+    const rows: PlanningRow[] = associations.map(row => ({
+      ...row,
+      projectLabel: row.association ? projectLabels.get(row.association.projectId) ?? null : null,
+      repositoryLabel: row.association ? redactOpportunityText(row.association.repository) : null,
+    }))
+    return { rows, projectIds, projectLabels }
+  }, [opportunities])
+
+  const selectedProjectId = projectFilter.startsWith('project:') ? projectFilter.slice('project:'.length) : null
+  const projectOptions = useMemo(() => {
+    const ids = selectedProjectId && !planning.projectIds.includes(selectedProjectId)
+      ? [...planning.projectIds, selectedProjectId].sort()
+      : planning.projectIds
+    return ids.map(projectId => ({
+      value: `project:${projectId}`,
+      label: planning.projectLabels.get(projectId) ?? redactOpportunityText(projectId),
+    }))
+  }, [planning.projectIds, planning.projectLabels, selectedProjectId])
+
+  const filtered = useMemo(() => planning.rows.filter(row =>
+    (stageFilter === 'all' || row.opportunity.stage === stageFilter) &&
+    matchesProject(row.association, projectFilter),
+  ), [planning.rows, stageFilter, projectFilter])
+  const unfilteredEmpty = opportunities.length === 0 && stageFilter === 'all' && projectFilter === 'all'
+  const lastImported = planning.rows.find(row => row.opportunity.id === lastImportedId)
+  const importedProjectExcluded = !!lastImported && !matchesProject(lastImported.association, projectFilter)
+
+  useEffect(() => {
+    if (lastImportedId && lastImported && !importedProjectExcluded) setLastImportedId(null)
+  }, [lastImportedId, lastImported, importedProjectExcluded])
 
   const latestOpportunityUpdateLabel = readiness?.latestOpportunityUpdatedAt
     ? formatSourceTimestamp(readiness.latestOpportunityUpdatedAt)
@@ -343,11 +436,18 @@ export function OpportunitiesPageClient() {
   const loadedCountLabel = useMemo(() => {
     if (loading) return null
     const loadedLabel = `${opportunities.length} loaded ${opportunities.length === 1 ? 'opportunity' : 'opportunities'}`
-    const base = stageFilter === 'all'
+    const projectLabel = projectFilter === 'unassigned'
+      ? 'unassigned planning references'
+      : `project ${planning.projectLabels.get(selectedProjectId ?? '') ?? redactOpportunityText(selectedProjectId ?? '')}`
+    const filters = [
+      stageFilter === 'all' ? null : label(stageFilter),
+      projectFilter === 'all' ? null : projectLabel,
+    ].filter(Boolean)
+    const base = filters.length === 0
       ? `Showing ${loadedLabel}`
-      : `Showing ${filtered.length} of ${loadedLabel} for ${label(stageFilter)}`
+      : `Showing ${filtered.length} of ${loadedLabel} for ${filters.join(' and ')}`
     return readiness?.nextCursor ? `${base} · older opportunities available` : base
-  }, [filtered.length, loading, opportunities.length, readiness?.nextCursor, stageFilter])
+  }, [filtered.length, loading, opportunities.length, readiness?.nextCursor, stageFilter, projectFilter, planning.projectLabels, selectedProjectId])
 
   const kpis = [
     { key: 'open', label: 'Open', value: String(summary?.open ?? 0) },
@@ -375,6 +475,38 @@ export function OpportunitiesPageClient() {
           </button>
         }
       />
+
+      <SynthexImportPanel onImported={(imported) => {
+        setOpportunities((current) => {
+          const next = [imported, ...current.filter((row) => row.id !== imported.id)]
+          setSummary(summarizeOpportunities(next))
+          return next
+        })
+        setLastImportedId(imported.id)
+        setReadiness((current) => mergeReadiness(current, {
+          queueWindow: 'latest_500_created_at', pagination: 'cursor_by_created_at',
+          latestOpportunityUpdatedAt: imported.updated_at ?? imported.created_at ?? null,
+          nextCursor: current?.nextCursor ?? null,
+        }))
+      }} />
+
+      {importedProjectExcluded && (
+        <div
+          role="status"
+          className="rounded-sm px-4 py-3 flex flex-col gap-2 text-[12px]"
+          style={{ background: 'var(--surface-card)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+        >
+          <p>The saved blocked review is outside the current project filter. Clear the project filter to include its project; the stage filter still applies.</p>
+          <button
+            type="button"
+            className="min-h-11 self-start rounded-sm border px-3 py-2"
+            style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
+            onClick={() => setProjectFilter('all')}
+          >
+            Clear project filter
+          </button>
+        </div>
+      )}
 
       {composerOpen && (
         <form
@@ -505,21 +637,40 @@ export function OpportunitiesPageClient() {
             ))}
           </div>
 
-          {/* Stage filter */}
+          {/* Filters apply only to the loaded window, not a database search. */}
           <div className="flex flex-col gap-2">
-            <select
-              value={stageFilter}
-              onChange={(e) => setStageFilter(e.target.value)}
-              aria-label="Filter by stage"
-              className="text-[12px] rounded-sm px-3 py-2 max-w-xs"
-              style={{ background: 'var(--surface-card)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
-            >
-              {STAGE_OPTIONS.map((s) => (
-                <option key={s} value={s}>{s === 'all' ? 'All stages' : label(s)}</option>
-              ))}
-            </select>
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <select
+                value={stageFilter}
+                onChange={(e) => setStageFilter(e.target.value)}
+                aria-label="Filter by stage"
+                className="min-h-11 w-full text-[12px] rounded-sm px-3 py-2 sm:max-w-xs"
+                style={{ background: 'var(--surface-card)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
+              >
+                {STAGE_OPTIONS.map((s) => (
+                  <option key={s} value={s}>{s === 'all' ? 'All stages' : label(s)}</option>
+                ))}
+              </select>
+              <select
+                value={projectFilter}
+                onChange={event => setProjectFilter(event.target.value)}
+                aria-label="Filter by project"
+                className="min-h-11 w-full text-[12px] rounded-sm px-3 py-2 sm:max-w-xs"
+                style={{ background: 'var(--surface-card)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
+              >
+                <option value="all">All projects</option>
+                <option value="unassigned">Unassigned planning references</option>
+                {projectOptions.map(project => (
+                  <option key={project.value} value={project.value}>{project.label}</option>
+                ))}
+              </select>
+            </div>
+            <p className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>Filters cover the loaded window only. Summary cards include all loaded rows. Unassigned includes ordinary opportunities and missing or invalid Synthex references. Planning references are not database project FKs or execution authority.</p>
             {loadedCountLabel && (
-              <p className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
+              <p
+                className="text-[11px] break-words"
+                style={{ color: 'var(--color-text-muted)', overflowWrap: 'anywhere' }}
+              >
                 {loadedCountLabel}
               </p>
             )}
@@ -534,14 +685,14 @@ export function OpportunitiesPageClient() {
           {!loading && filtered.length === 0 ? (
             <EmptyState
               icon={TrendingUp}
-              title={opportunities.length === 0 ? 'No opportunities yet' : 'No opportunities in this stage'}
+              title={unfilteredEmpty ? 'No opportunities yet' : 'No matching opportunities in the loaded window'}
               description={
-                opportunities.length === 0
+                unfilteredEmpty
                   ? 'Create the first forecast opportunity to start the pipeline — this is not billing truth.'
-                  : 'Try a different stage filter.'
+                  : 'Change or clear the filters, or load older opportunities. Stage and project filters apply together.'
               }
               action={
-                opportunities.length === 0
+                unfilteredEmpty
                   ? {
                       label: 'New opportunity',
                       href: '#',
@@ -550,7 +701,14 @@ export function OpportunitiesPageClient() {
                         setCreateError(null)
                       },
                     }
-                  : undefined
+                  : {
+                      label: 'Clear filters',
+                      href: '#',
+                      onClick: () => {
+                        setProjectFilter('all')
+                        setStageFilter('all')
+                      },
+                    }
               }
             />
           ) : (
@@ -570,18 +728,18 @@ export function OpportunitiesPageClient() {
                   </div>
                 </DeckDetails>
               )}
-              {readiness?.nextCursor && (
-                <button
-                  type="button"
-                  onClick={fetchOlderOpportunities}
-                  disabled={loadingOlder}
-                  className="rounded-sm px-4 py-3 text-[12px] text-left"
-                  style={{ background: 'var(--surface-card)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
-                >
-                  {loadingOlder ? 'Loading older opportunities…' : 'Load older opportunities'}
-                </button>
-              )}
             </div>
+          )}
+          {readiness?.nextCursor && (
+            <button
+              type="button"
+              onClick={fetchOlderOpportunities}
+              disabled={loadingOlder}
+              className="rounded-sm px-4 py-3 text-[12px] text-left"
+              style={{ background: 'var(--surface-card)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
+            >
+              {loadingOlder ? 'Loading older opportunities…' : 'Load older opportunities'}
+            </button>
           )}
         </>
       )}
