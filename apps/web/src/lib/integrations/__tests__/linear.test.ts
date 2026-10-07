@@ -21,6 +21,7 @@ async function loadLinear() {
 beforeEach(() => {
   vi.unstubAllEnvs()
   vi.restoreAllMocks()
+  vi.unstubAllGlobals()
 })
 
 describe('Linear integration', () => {

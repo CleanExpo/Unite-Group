@@ -3,10 +3,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const { sdk } = vi.hoisted(() => ({ sdk: vi.fn() }))
 
 vi.mock('@anthropic-ai/sdk', () => ({
-  default: sdk.mockImplementation((options: Record<string, unknown>) => ({
-    _options: options,
-    messages: { create: vi.fn() },
-  })),
+  default: sdk.mockImplementation(function (options: Record<string, unknown>) {
+    return {
+      _options: options,
+      messages: { create: vi.fn() },
+    }
+  }),
 }))
 
 import { getAIClient, resetAIClient } from '../client'

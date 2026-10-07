@@ -7,15 +7,17 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 vi.stubEnv('ANTHROPIC_API_KEY', 'test-key-integration')
 
 vi.mock('@anthropic-ai/sdk', () => ({
-  default: vi.fn().mockImplementation(() => ({
-    messages: {
-      create: vi.fn().mockResolvedValue({
-        content: [{ type: 'text', text: 'Integration test response' }],
-        usage: { input_tokens: 10, output_tokens: 5 },
-        model: 'claude-sonnet-4-5-20250929',
-      }),
-    },
-  })),
+  default: vi.fn().mockImplementation(function () {
+    return {
+      messages: {
+        create: vi.fn().mockResolvedValue({
+          content: [{ type: 'text', text: 'Integration test response' }],
+          usage: { input_tokens: 10, output_tokens: 5 },
+          model: 'claude-sonnet-4-5-20250929',
+        }),
+      },
+    }
+  }),
 }))
 
 import {

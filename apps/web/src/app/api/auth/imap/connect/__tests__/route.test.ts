@@ -63,20 +63,24 @@ describe('POST /api/auth/imap/connect', () => {
 
   it('returns 401 when IMAP connection fails', async () => {
     vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
-    vi.mocked(ImapFlow).mockImplementation(() => ({
-      connect: vi.fn().mockRejectedValue(new Error('Connection refused')),
-      logout: vi.fn(),
-    }) as any)
+    vi.mocked(ImapFlow).mockImplementation(function () {
+      return {
+        connect: vi.fn().mockRejectedValue(new Error('Connection refused')),
+        logout: vi.fn(),
+      } as any
+    })
     const res = await POST(req({ email: 'x@carsi.com.au', password: 'wrong' }))
     expect(res.status).toBe(401)
   })
 
   it('returns 200 on successful connection and storage', async () => {
     vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
-    vi.mocked(ImapFlow).mockImplementation(() => ({
-      connect: vi.fn().mockResolvedValue(undefined),
-      logout: vi.fn().mockResolvedValue(undefined),
-    }) as any)
+    vi.mocked(ImapFlow).mockImplementation(function () {
+      return {
+        connect: vi.fn().mockResolvedValue(undefined),
+        logout: vi.fn().mockResolvedValue(undefined),
+      } as any
+    })
     const mockSc = {
       from: vi.fn(),
     }
