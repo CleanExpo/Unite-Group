@@ -70,7 +70,7 @@ jobs:
       # examples/pr-review-comprehensive.yml.
       - name: Run Claude Code Review
         id: claude-review
-        uses: anthropics/claude-code-action@756cc22e19660d20e8cc9496b4f242475a7f7790 # v1
+        uses: anthropics/claude-code-action@6fed3ca145920b639991cb756090506e1bcaf515 # v1
         with:
           # OAuth, not anthropic_api_key — ANTHROPIC_API_KEY is empty in this
           # repo's runners and an empty value breaks the CLI.
