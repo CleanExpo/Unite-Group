@@ -7,6 +7,7 @@ import {
   autonomyEnv,
   autonomyHookPath,
   buildAutonomySettings,
+  buildCodexHookArgs,
   parseGateAudit,
   quote,
 } from './autonomy-settings'
@@ -47,6 +48,19 @@ describe('the hook is installed on every tool', () => {
 
   it('quotes a path containing a single quote', () => {
     expect(quote(`/a'b`)).toBe(`'/a'\\''b'`)
+  })
+
+  it('attaches the same hook to codex on every tool, as a -c override', () => {
+    expect(buildCodexHookArgs('/hook.mjs', '/abs/node')).toEqual([
+      '--dangerously-bypass-hook-trust',
+      '-c',
+      `hooks.PreToolUse=[{matcher="*",hooks=[{type="command",command="'/abs/node' '/hook.mjs'"}]}]`,
+    ])
+  })
+
+  it('escapes a codex hook path so it cannot break out of the TOML string', () => {
+    const override = buildCodexHookArgs('/a"b\\c.mjs', '/node')[2]
+    expect(override).toContain(`command="'/node' '/a\\"b\\\\c.mjs'"`)
   })
 })
 

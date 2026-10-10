@@ -11,6 +11,7 @@ import {
   redactCliOutput,
 } from './cli-adapter'
 import { StopNotAcknowledgedError, truncateUtf8 } from './adapter'
+import { buildCodexHookArgs } from './autonomy-settings'
 import { terminateProcessTree } from './process-tree'
 import type { SpawnFn } from './cli-adapter'
 import type { Lane } from './types'
@@ -645,16 +646,34 @@ describe('CliLaneAdapter', () => {
     ])
   })
 
-  it('does not claim to gate a codex lane it cannot gate', async () => {
-    // Codex does not read Claude Code settings. Passing `--settings` there
-    // would be inert, and a lane that looks gated but is not is worse than one
-    // that is honestly ungated.
+  it('gates a codex lane with the same hook through -c overrides', async () => {
+    // Codex does not read Claude Code settings, so `--settings` would be inert.
+    // It takes the hook as a `-c` config override instead, and the hook gets
+    // the same identity env with the codex adapter name.
     const spawn: SpawnFn = vi.fn(async () => ({ code: 0, stdout: '', stderr: '' }))
     const adapter = createCliAdapter({ spawn, accountsDir: '/tmp/accounts' })
     await adapter.run(cliLane('codex'), 'mission', { gate })
-    expect(vi.mocked(spawn).mock.calls[0]?.[1]).toEqual(['exec', '-'])
+    const args = vi.mocked(spawn).mock.calls[0]?.[1] ?? []
+    expect(args).toEqual(['exec', ...buildCodexHookArgs(), '-'])
+    expect(args).toContain('--dangerously-bypass-hook-trust')
+    expect(args).not.toContain('--settings')
+    const override = args[args.indexOf('-c') + 1] ?? ''
+    expect(override).toMatch(/^hooks\.PreToolUse=\[\{matcher="\*",/)
+    expect(override).toContain('autonomy-hook.mjs')
     const env = vi.mocked(spawn).mock.calls[0]?.[2].env ?? {}
-    expect(env.NEXUS_LANE_REQUEST_ID).toBeUndefined()
+    expect(env.NEXUS_LANE_REQUEST_ID).toBe('run-1')
+    expect(env.NEXUS_LANE_ADAPTER).toBe('codex')
+    expect(env.NEXUS_APPROVALS_FILE).toBe('/tmp/gate/approvals.json')
+    expect(env.NEXUS_GATE_AUDIT_FILE).toBe('/tmp/gate/decisions.jsonl')
+    // Without the root the hook cannot confine writes to this lane (review r1).
+    expect(env.NEXUS_LANE_WORKTREE_ROOT).toBe(cliLane('codex').worktree)
+  })
+
+  it('runs a codex lane ungated only when no gate was supplied', async () => {
+    const spawn: SpawnFn = vi.fn(async () => ({ code: 0, stdout: '', stderr: '' }))
+    const adapter = createCliAdapter({ spawn, accountsDir: '/tmp/accounts' })
+    await adapter.run(cliLane('codex'), 'mission')
+    expect(vi.mocked(spawn).mock.calls[0]?.[1]).toEqual(['exec', '-'])
   })
 
   it('runs ungated only when no gate was supplied at all', async () => {

@@ -84,10 +84,14 @@ export interface GateDecision {
  * Tools that only read. `Bash` is deliberately absent: a shell is not a tool,
  * it is an arbitrary-tool factory, and is classified by its command below.
  */
+// Not `Grep`: it searches every file under a directory or glob, so the gate
+// sees `.` and never the credentials.json it reads (Codex review r16), and
+// every mode depends on contents: matching lines disclose them directly,
+// counts or matching names one guessed prefix at a time (Codex review r17).
+// As an unlisted tool it needs approval. `Glob` reads names only.
 const READ_ONLY_TOOLS = new Set([
   'Read',
   'Glob',
-  'Grep',
   'NotebookRead',
   'TodoRead',
   'ListMcpResources',
@@ -114,14 +118,28 @@ const SELF_PROTECTED_WRITE_PATTERNS: ReadonlyArray<{ pattern: RegExp; what: stri
   // The hook entry itself (`autonomyHookPath()` resolves it from the lanes
   // module directory) and the per-run gate settings the hook reads.
   { pattern: /(^|\/)autonomy-hook\.mjs$/, what: "the gate's own hook entry" },
+  // Everything the hook loads on each call: this classifier and the action
+  // policy it imports. Guarding the entry file alone left the policy itself
+  // writable to a lane rooted at the gate checkout (Codex review r17).
+  { pattern: /(^|\/)autonomy-gate\.ts$/, what: "the gate's own classifier" },
+  { pattern: /(^|\/)mission-authority\.json$/, what: "the gate's own action policy" },
   { pattern: /(^|\/)lanes\/gate(\/|$)/, what: "the gate's own per-run settings" },
   { pattern: /(^|\/)\.claude(\/|$)/, what: 'agent configuration' },
-  // Hooks only, NOT all of `.git`: a lane legitimately writes inside its own
-  // worktree, and an early draft of this list blocked `.git` and `.hermes`
-  // wholesale — which escalated every write in a worktree that lives under
-  // `~/.hermes/worktrees/`, i.e. all of them. A guard that blocks the ordinary
-  // case gets switched off, and then guards nothing.
-  { pattern: /(^|\/)\.git\/hooks(\/|$)/, what: 'git hooks' },
+  // Codex reads hooks and config from a project `.codex/` as well as the
+  // account home, so a lane writing there could change what runs before its
+  // own tool calls.
+  { pattern: /(^|\/)\.codex(\/|$)/, what: 'agent configuration' },
+  // All of `.git`, including the `.git` file of a linked worktree. Hooks,
+  // `config`, `config.worktree` and `info/` can each name a program git runs
+  // on a read-only command (`core.fsmonitor`, diff drivers, textconv), and a
+  // lane edits its files, never git's own metadata (Codex review r12). Not
+  // `.hermes`: lane worktrees live under `~/.hermes/worktrees/`, and an early
+  // draft that blocked it escalated every ordinary write.
+  { pattern: /(^|\/)\.git(\/|$)/, what: 'git metadata' },
+  // `.gitattributes` selects which configured diff driver or textconv program
+  // git runs on a file, so a lane editing it arms a program for the next git
+  // command anyone approves (Codex review r16).
+  { pattern: /(^|\/)\.gitattributes$/, what: 'git attributes' },
   { pattern: /(^|\/)\.(bashrc|zshrc|profile|bash_profile|zshenv)$/, what: 'a shell startup file' },
   { pattern: /(^|\/)\.ssh(\/|$)/, what: 'SSH material' },
 ]
@@ -155,6 +173,72 @@ function isInsideRoot(target: string, root: string): boolean {
 }
 
 /**
+ * Maps a path to the real file it names, following symlinks. Supplied by the
+ * hook, which runs on the lane's machine; the classifier itself stays pure.
+ */
+export type PathResolver = (target: string) => string
+
+/**
+ * True when the program the shell will start for this command word is a
+ * trusted system binary. Supplied by the hook, which can see PATH and disk.
+ */
+export type ExecutableTrust = (word: string) => boolean
+
+/**
+ * True when `target` names an existing regular file with more than one hard
+ * link. Another name for the same file can be `.env` or a file outside the
+ * lane, and neither the name nor `realpath` reveals it (Codex review r21).
+ * Supplied by the hook, which can stat the file.
+ */
+export type SharedFileCheck = (target: string) => boolean
+
+const SHARED_FILE_REASON = 'a file with another hard-linked name the gate cannot see'
+
+/** `target` as an absolute path, relative ones taken from `root`. */
+function absoluteFrom(root: string, target: string): string {
+  // Rooted, not lane-relative: `/x`, and every Windows form that names its own
+  // root: `\x` (current drive), `\\server\share` (UNC), `\\?\C:\x` (device)
+  // and `C:x` (drive-relative). Prefixing the lane root to any of them judged
+  // a fabricated path (Codex review r19). Left as written, each fails the
+  // containment check unless it really is under the root.
+  if (/^[\\/]/.test(target) || /^[A-Za-z]:/.test(target)) return target
+  return `${root.replace(/[\\/]+$/, '')}/${target}`
+}
+
+/**
+ * The spellings a filesystem may treat as one path: as written; with Windows
+ * `\\` separators as `/`; and that form lowercased, with each component's
+ * trailing dots and spaces and any `:stream` suffix removed, all of which
+ * Windows ignores (Codex review r13). Every guard pattern is written for `/`,
+ * so a guard that saw only the raw text missed `C:\\lane\\.codex`. Matching a
+ * spelling the filesystem would not alias only escalates.
+ */
+function pathSpellings(p: string): string[] {
+  const slashed = p.replace(/\\/g, '/')
+  const folded = slashed
+    .toLowerCase()
+    .split('/')
+    .map((part, i) => {
+      if (part === '.' || part === '..') return part
+      const unstreamed = i === 0 && /^[a-z]:$/.test(part) ? part : part.replace(/:.*$/, '')
+      return unstreamed.replace(/[. ]+$/, '')
+    })
+    .join('/')
+  return [p, slashed, folded]
+}
+
+/** True when any spelling of `target` names credential material. */
+function namesSecret(target: string): boolean {
+  return pathSpellings(target).some((view) => SECRET_MARKERS.some((marker) => marker.test(view)))
+}
+
+/** True when the resolved form of `target` names credential material. */
+function resolvesToSecret(target: string, resolvePath: PathResolver | undefined): boolean {
+  if (!resolvePath) return false
+  return namesSecret(resolvePath(target))
+}
+
+/**
  * Classify a write by WHERE it lands, not merely by which tool asked.
  *
  * Absent a configured root the tier is unchanged (L1) but the reason says so,
@@ -165,10 +249,21 @@ function classifyLaneWrite(
   tool: string,
   targets: readonly string[],
   worktreeRoot: string | undefined,
+  resolvePath?: PathResolver,
 ): CommandClassification {
+  const hasRoot = typeof worktreeRoot === 'string' && worktreeRoot.trim() !== ''
+  // Every spelling of each target: as given, made absolute against the root,
+  // and with symlinks followed. A link inside the worktree that points at the
+  // hook, at `.codex`, or at a sibling lane is judged by where it lands.
+  const views = (target: string): string[] => {
+    const absolute = hasRoot ? absoluteFrom(worktreeRoot as string, target) : target
+    const out = [target, absolute]
+    if (resolvePath) out.push(resolvePath(absolute))
+    return out.flatMap(pathSpellings)
+  }
   for (const target of targets) {
     for (const guard of SELF_PROTECTED_WRITE_PATTERNS) {
-      if (guard.pattern.test(target)) {
+      if (views(target).some((view) => guard.pattern.test(view))) {
         return {
           tier: 'L3',
           reason: `'${tool}' would write to ${guard.what}; a lane may not rewrite the controls it runs under`,
@@ -176,7 +271,7 @@ function classifyLaneWrite(
       }
     }
   }
-  if (typeof worktreeRoot !== 'string' || worktreeRoot.trim() === '') {
+  if (!hasRoot) {
     return {
       tier: 'L1',
       reason: `'${tool}' writes a file; worktree containment NOT enforced (no lane worktree root configured)`,
@@ -193,8 +288,14 @@ function classifyLaneWrite(
       reason: `'${tool}' has no recognisable target path, so worktree containment cannot be checked`,
     }
   }
+  const root = worktreeRoot as string
+  const realRoot = resolvePath ? resolvePath(root) : root
   for (const target of targets) {
-    if (!isInsideRoot(target, worktreeRoot)) {
+    const absolute = absoluteFrom(root, target)
+    const outside =
+      !isInsideRoot(absolute, root) ||
+      (resolvePath !== undefined && !isInsideRoot(resolvePath(absolute), realRoot))
+    if (outside) {
       return {
         tier: 'L3',
         reason: `'${tool}' targets a path outside the lane worktree; a lane-local write is only lane-local inside its own root`,
@@ -203,7 +304,9 @@ function classifyLaneWrite(
   }
   return {
     tier: 'L1',
-    reason: `'${tool}' writes inside the lane worktree (path containment checked; symlinks not resolved)`,
+    reason: resolvePath
+      ? `'${tool}' writes inside the lane worktree (path containment checked; symlinks resolved)`
+      : `'${tool}' writes inside the lane worktree (path containment checked; symlinks not resolved)`,
   }
 }
 
@@ -230,18 +333,32 @@ const ALWAYS_L3_TOOLS = new Set([
  * scripts) and `find` is absent (`-exec`, `-delete`).
  */
 const SAFE_EXECUTABLES = new Set([
-  'ls', 'pwd', 'cat', 'head', 'tail', 'wc', 'echo', 'date', 'whoami', 'hostname',
-  'grep', 'rg', 'egrep', 'fgrep', 'diff', 'file', 'stat', 'basename', 'dirname',
-  'sort', 'uniq', 'cut', 'tr', 'nl', 'seq', 'true', 'false', 'test', 'realpath',
+  'ls', 'pwd', 'cat', 'head', 'tail', 'wc', 'echo', 'whoami',
+  'grep', 'egrep', 'fgrep', 'stat', 'basename', 'dirname',
+  'cut', 'tr', 'nl', 'seq', 'true', 'false', 'test', 'realpath',
 ])
+// Removed by the Codex review of UNI-2409, by the rule above rather than by
+// patching options: `sort` writes (-o, and temp files via -T or $TMPDIR even
+// without it), `uniq IN OUT` writes, `file -C` writes, `date -s` and
+// `hostname NAME` change the system, and `diff DIR DIR` prints every file the
+// two directories share, `.env` included, while the gate sees two directory
+// names. None is read-only in every invocation.
 
 /**
  * Read-only subcommands of executables that are otherwise dangerous. The pair
- * must match exactly: `git status` is safe, `git` alone is not.
+ * must match exactly: `node --version` is safe, `node` alone is not.
  */
 const SAFE_SUBCOMMANDS = new Map<string, Set<string>>([
-  ['git', new Set(['status', 'log', 'diff', 'show', 'branch', 'remote', 'rev-parse', 'ls-files', 'blame'])],
-  ['npm', new Set(['ls', 'list', 'view', 'outdated'])],
+  // No git subcommand is here. Each was removed for a side path the Codex
+  // review of UNI-2409 demonstrated: `status` rewrites the index outside a
+  // linked lane (r12); `remote` prints token-bearing URLs (r14); `log`, `diff`,
+  // `show` and `blame` run diff drivers and textconv programs (r16); and
+  // `ls-files` runs `core.fsmonitor`, whose script a lane can edit (r20).
+  // Any git command can run a program named in repository config, so none is
+  // read-only in every invocation. Glob, Read and `cat` still list and read.
+  // npm is absent: every npm command writes its log and cache (`--cache DIR`
+  // puts them anywhere), so none is read-only in every invocation (Codex
+  // review r6 of UNI-2409).
   ['node', new Set(['--version', '-v'])],
 ])
 
@@ -330,6 +447,42 @@ const SECRET_MARKERS: ReadonlyArray<RegExp> = [
   /\.aws\/credentials\b/,
   /\.npmrc\b/,
   /\bcredentials?\.json\b/i,
+  // The CLI logins a lane runs under: Codex keeps its OAuth token in
+  // `$CODEX_HOME/auth.json`, the GitHub CLI in `gh/hosts.yml`.
+  /\bauth\.json\b/i,
+  /\bgh\/hosts\.ya?ml\b/,
+  // Standard credential stores whose names carry no secret-shaped word
+  // (Codex review r17): git's credential store, netrc (`_netrc` on Windows),
+  // PostgreSQL, PyPI, Docker, Kubernetes, gcloud and GnuPG.
+  /(^|\/)\.git-credentials$/,
+  /(^|\/)[._]netrc$/,
+  /(^|\/)\.pgpass$/,
+  /(^|\/)\.pypirc$/,
+  /\.docker\/config\.json$/,
+  /\.kube\/config$/,
+  /\.config\/gcloud(\/|$)/,
+  /\.gnupg(\/|$)/,
+  // Git config holds remote URLs, and a URL can carry a token, the reason
+  // `git remote` is blocked; a linked worktree keeps its own config.worktree
+  // in the parent's .git/worktrees/<name>/ (Codex review r22). Writes to all
+  // of .git were already protected; this blocks the reads.
+  /(^|\/)\.git\/(worktrees\/[^/\s]+\/)?config(\.worktree)?(?=$|[\s'"])/,
+  // The user and system git config can carry the same token, in a remote URL
+  // or an `http.extraheader` (Codex review r23): ~/.gitconfig, /etc/gitconfig,
+  // the XDG ~/.config/git/{config,credentials}, and Git for Windows' system
+  // config in ProgramData.
+  /(^|[\/\s'"=])\.?gitconfig(?=$|[\s'"])/,
+  /(^|[\/\s'"=])\.config\/git\/(config|credentials)(?=$|[\s'"])/,
+  /(^|\/)programdata\/git\/config(?=$|[\s'"])/i,
+  // All of ~/.aws, not only `credentials`: `config` can hold access keys, and
+  // the SSO and CLI caches hold session tokens under ordinary .json names
+  // (Codex review r22).
+  /(^|\/)\.aws(\/|$)/,
+  // Every per-process file, not one spelling: environ holds the tokens a
+  // process was started with and has aliases (`task/<tid>/environ`, Codex
+  // review r10); cmdline, mem and fd/ can carry the same. The resolver turns
+  // `/proc/self` into `/proc/<pid>`, so both spellings meet this rule.
+  /\/proc\/(self|thread-self|\d+)(\/|$)/,
   // `\b` does NOT fire between `_` and a letter — both are word characters — so
   // the previous `\b(...)\b` form never matched the names secrets actually have:
   // ANTHROPIC_API_KEY, GITHUB_TOKEN, SUPABASE_SERVICE_ROLE_KEY. It matched only
@@ -366,6 +519,99 @@ export function tierForPolicyAction(
   classes: Readonly<Record<string, string>> = MISSION_AUTHORITY_ACTION_CLASSES,
 ): AutonomyTier {
   return Object.hasOwn(classes, action) && classes[action] === 'BUILD_CONTINUE' ? 'L1' : 'L3'
+}
+
+/**
+ * Options that turn a read-only executable into a writer, a launcher, or a
+ * reader of whole directory trees. An executable is on SAFE_EXECUTABLES because
+ * its ordinary use only reads; these are the uses that do not. Codex review
+ * r2 (UNI-2409) found `sort -o` writing `.codex/config.toml` and `grep -R`
+ * reading a `.env` through a linked directory; the rest is the same audit run
+ * over the whole list.
+ */
+function unsafeOption(executable: string, args: ReadonlyArray<string>): string | null {
+  // GNU getopt and git accept any unambiguous prefix of a long option, so
+  // `--out=x` is `--output=x` and `--no-ind` is `--no-index` (Codex review
+  // r11). A prefix of a blocked name counts as that name; an ambiguous one
+  // escalating too is the correct direction.
+  const long = (...names: string[]) =>
+    args.some((arg) => {
+      if (!arg.startsWith('--') || arg === '--') return false
+      const option = arg.split('=')[0]
+      return names.some((name) => option === name || (option.length > 3 && name.startsWith(option)))
+    })
+  // `--files0-from`, `--files-from`, `--pathspec-from-file`: the paths come
+  // out of a file, so the gate never sees them (Codex review r4, sort).
+  if (
+    args.some((arg) => /^--[a-z0-9-]*-from(-file)?(=|$)/.test(arg)) ||
+    long('--files0-from', '--files-from', '--pathspec-from-file')
+  ) {
+    return 'reads a list of paths from a file the gate cannot see into'
+  }
+  switch (executable) {
+    case 'grep':
+    case 'egrep':
+    case 'fgrep': {
+      // An allow-list of options, not a list of the recursive ones: -r, -R,
+      // -d/--directories recurse (in either spelling, Codex review r11),
+      // -D, -f and every abbreviation fall outside it and escalate.
+      const shortOk = new Set([...'nivclLwxFEGPHhoqsabzmABCeTUZ0123456789'])
+      const longOk = new Set([
+        '--color', '--colour', '--line-number', '--ignore-case', '--no-ignore-case', '--invert-match',
+        '--count', '--files-with-matches', '--files-without-match', '--word-regexp', '--line-regexp',
+        '--fixed-strings', '--extended-regexp', '--basic-regexp', '--perl-regexp', '--with-filename',
+        '--no-filename', '--only-matching', '--quiet', '--silent', '--no-messages', '--byte-offset',
+        '--max-count', '--after-context', '--before-context', '--context', '--regexp', '--text',
+        '--null-data', '--initial-tab', '--null',
+      ])
+      for (const arg of args) {
+        if (arg === '--' || !arg.startsWith('-') || arg === '-') continue
+        const known = arg.startsWith('--')
+          ? longOk.has(arg.split('=')[0])
+          : [...arg.slice(1)].every((ch) => shortOk.has(ch))
+        if (!known) return `option '${arg.split('=')[0]}' is not a known read-only grep option`
+      }
+      return null
+    }
+    default:
+      return null
+  }
+}
+
+/**
+ * True when the command has an unquoted glob, brace or tilde expansion
+ * the shell will turn into paths the gate never sees: `cat .e*` reads `.env`
+ * while the text says `.e*`. Quoted patterns reach the program literally and
+ * are fine (`grep 'a.*b' x`).
+ */
+function hasUnquotedExpansion(command: string): boolean {
+  let quote: string | null = null
+  // A tilde is expanded at the start of a word and, in bash, after an
+  // unquoted `=` or `:`. The resolver models only `~` and `~/` (the user's
+  // own home); `~name`, `~+` and `~-` name other places (Codex review r7).
+  let wordStart = true
+  const chars = [...command]
+  for (let i = 0; i < chars.length; i += 1) {
+    const ch = chars[i]
+    if (quote !== null) {
+      if (ch === quote) quote = null
+      wordStart = false
+      continue
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch
+      wordStart = false
+      continue
+    }
+    // `(` covers extglob patterns such as `@(...)` and subshells.
+    if ('*?[{()'.includes(ch)) return true
+    if (ch === '~' && wordStart) {
+      const next = chars[i + 1]
+      if (next !== undefined && next !== '/' && !/\s/.test(next)) return true
+    }
+    wordStart = /\s/.test(ch) || ch === '=' || ch === ':'
+  }
+  return false
 }
 
 /**
@@ -415,10 +661,18 @@ const GH_PR_CREATE_BOOLEAN_FLAGS = new Set(['--fill', '-f', '--fill-first', '--f
  * consumes the next word, so `--title --draft` is a non-draft PR titled
  * "--draft" and does not match. `--draft=false`, `--body-file`, `--repo`,
  * `--reviewer`, global options and anything unlisted do not match.
+ *
+ * The base must be given, and must be `main`: this repository forbids stacked
+ * PRs, which merge into their feature-branch base and strand the work off
+ * `main` (Codex review r24). An absent base is not safe either: gh takes a
+ * per-branch `branch.<name>.gh-merge-base` before the repository default, and
+ * the lane can set that (Codex review r25).
  */
 function isDraftPrCreate(words: ReadonlyArray<string>): boolean {
   if (words[0] !== 'gh' || words[1] !== 'pr' || words[2] !== 'create') return false
+  const isBase = (flag: string) => flag === '--base' || flag === '-B'
   let draft = false
+  let mainBase = false
   for (let i = 3; i < words.length; i += 1) {
     const word = words[i]
     if (word === '--draft' || word === '-d') {
@@ -428,14 +682,20 @@ function isDraftPrCreate(words: ReadonlyArray<string>): boolean {
     if (GH_PR_CREATE_BOOLEAN_FLAGS.has(word)) continue
     if (GH_PR_CREATE_VALUE_FLAGS.has(word)) {
       if (i + 1 >= words.length) return false
+      if (isBase(word) && words[i + 1] !== 'main') return false
+      if (isBase(word)) mainBase = true
       i += 1
       continue
     }
     const eq = word.indexOf('=')
-    if (word.startsWith('--') && eq > 0 && GH_PR_CREATE_VALUE_FLAGS.has(word.slice(0, eq))) continue
+    if (word.startsWith('--') && eq > 0 && GH_PR_CREATE_VALUE_FLAGS.has(word.slice(0, eq))) {
+      if (isBase(word.slice(0, eq)) && word.slice(eq + 1) !== 'main') return false
+      if (isBase(word.slice(0, eq))) mainBase = true
+      continue
+    }
     return false
   }
-  return draft
+  return draft && mainBase
 }
 
 /**
@@ -489,7 +749,12 @@ function matchPolicyCommand(command: string): (typeof POLICY_COMMAND_MAPPINGS)[n
  * anything that could smuggle a second command escalates. Only a single,
  * fully-recognised, metacharacter-free command can reach L0/L1.
  */
-export function classifyShellCommand(command: unknown): CommandClassification {
+export function classifyShellCommand(
+  command: unknown,
+  resolvePath?: PathResolver,
+  trustExecutable?: ExecutableTrust,
+  isSharedFile?: SharedFileCheck,
+): CommandClassification {
   if (typeof command !== 'string' || command.trim() === '') {
     return { tier: 'L3', reason: 'command is missing or not a string; cannot classify' }
   }
@@ -523,7 +788,19 @@ export function classifyShellCommand(command: unknown): CommandClassification {
     return { tier: 'L3', reason: 'command is prefixed with an environment assignment' }
   }
 
-  // Reached only after every credential, chaining and env-prefix check passed.
+  // The name is only a name: `lane/cat` is whatever script the lane wrote
+  // there (Codex review r8). With the hook's check, the program PATH or the
+  // path resolves to must be a system binary; without it, an explicit path is
+  // not trusted at all. Checked before the policy mappings too, or a lane's
+  // own `gh` script runs as the draft-PR action (Codex review r9).
+  const firstWord = words[0] ?? ''
+  const trusted = trustExecutable ? trustExecutable(firstWord) : !firstWord.includes('/')
+  if (!trusted) {
+    return { tier: 'L3', reason: `'${firstWord}' does not resolve to a trusted system program` }
+  }
+
+  // Reached only after every credential, chaining, env-prefix and executable
+  // check passed.
   if (policyMatch !== null) {
     const policyClass = MISSION_AUTHORITY_ACTION_CLASSES[policyMatch.action] ?? '(absent)'
     return {
@@ -541,6 +818,35 @@ export function classifyShellCommand(command: unknown): CommandClassification {
       tier: 'L3',
       reason: `'${executable}' runs another command, so classifying it classifies nothing`,
     }
+  }
+  if (hasUnquotedExpansion(trimmed)) {
+    return { tier: 'L3', reason: 'command has an unquoted glob or brace expansion; the paths it reads cannot be checked' }
+  }
+  // Operands as the program receives them, quotes removed: `cat 'readme.txt'`
+  // must be checked as `readme.txt` (Codex review r2).
+  const argv = shellWords(trimmed)
+  if (argv === null) {
+    return { tier: 'L3', reason: 'command uses quoting the gate does not model; its operands cannot be checked' }
+  }
+  const unsafe = unsafeOption(executable, argv.slice(1))
+  if (unsafe !== null) {
+    return { tier: 'L3', reason: `'${executable}' with these options ${unsafe}` }
+  }
+  // A read-only command still discloses whatever file it is pointed at. The
+  // text check above sees `readme.txt`; the resolver sees the `.env` it links
+  // to. Every word is checked whole, dash-prefixed ones too: after `--` a
+  // program reads `-notes.txt` as a file, and the gate does not model where
+  // each program's options end (Codex review r18). A `--opt=value` is also
+  // checked by its value.
+  const operandPaths = argv.slice(1).flatMap((word) => {
+    const eq = word.startsWith('-') ? word.indexOf('=') : -1
+    return eq > 0 ? [word, word.slice(eq + 1)] : [word]
+  })
+  if (operandPaths.some((word) => word !== '' && resolvesToSecret(word, resolvePath))) {
+    return { tier: 'L3', reason: 'command reads a path that resolves to credential material' }
+  }
+  if (isSharedFile && operandPaths.some((word) => word !== '' && isSharedFile(word))) {
+    return { tier: 'L3', reason: `command reads ${SHARED_FILE_REASON}` }
   }
   if (SAFE_EXECUTABLES.has(executable)) {
     return { tier: 'L0', reason: `'${executable}' is a known read-only command` }
@@ -627,10 +933,33 @@ const CONTENT_RETURNING_TOOLS = new Set([
   'NotebookEdit',
 ])
 
+/**
+ * The paths a Codex `apply_patch` touches, read from its patch headers.
+ *
+ * Codex sends the whole patch as `tool_input.command`; every file it adds,
+ * updates, deletes or moves to is named on its own header line. Returns null
+ * when the input is not a patch or names no file: a write whose targets cannot
+ * be read must not pass containment by having nothing to check.
+ */
+// Leading whitespace is accepted: matching more header lines can only add
+// targets to check, never remove one.
+const PATCH_TARGET = /^\s*\*\*\* (?:(?:Add|Update|Delete) File|Move to): (.+)$/
+
+function readPatchTargets(input: unknown): string[] | null {
+  const patch = readCommand(input)
+  if (typeof patch !== 'string' || !patch.includes('*** Begin Patch')) return null
+  const targets: string[] = []
+  for (const line of patch.split(/\r?\n/)) {
+    const match = PATCH_TARGET.exec(line)
+    if (match) targets.push(match[1].trim())
+  }
+  return targets.length > 0 ? targets : null
+}
+
 /** Classify any tool call. Unknown tools fail closed to L3. */
 export function classifyToolCall(
   request: ToolCallRequest,
-  options: Pick<GateOptions, 'worktreeRoot'> = {},
+  options: Pick<GateOptions, 'worktreeRoot' | 'resolvePath' | 'trustExecutable' | 'isSharedFile'> = {},
 ): CommandClassification {
   const tool = typeof request.tool === 'string' ? request.tool.trim() : ''
   if (tool === '') {
@@ -640,22 +969,49 @@ export function classifyToolCall(
     return { tier: 'L3', reason: `'${tool}' is an irreversible or outward action` }
   }
   if (tool === 'Bash' || tool === 'Shell' || tool === 'Terminal') {
-    return classifyShellCommand(readCommand(request.input))
+    return classifyShellCommand(
+      readCommand(request.input),
+      options.resolvePath,
+      options.trustExecutable,
+      options.isSharedFile,
+    )
+  }
+  if (tool === 'apply_patch') {
+    const targets = readPatchTargets(request.input)
+    if (targets === null) {
+      return { tier: 'L3', reason: "'apply_patch' names no file it could be checked against" }
+    }
+    for (const target of targets) {
+      if (namesSecret(target)) {
+        return { tier: 'L3', reason: 'tool targets credential material' }
+      }
+      if (resolvesToSecret(target, options.resolvePath)) {
+        return { tier: 'L3', reason: 'tool targets a path that resolves to credential material' }
+      }
+      if (options.isSharedFile?.(target)) {
+        return { tier: 'L3', reason: `tool targets ${SHARED_FILE_REASON}` }
+      }
+    }
+    return classifyLaneWrite(tool, targets, options.worktreeRoot, options.resolvePath)
   }
 
   if (CONTENT_RETURNING_TOOLS.has(tool)) {
     for (const target of readTargets(request.input)) {
-      for (const marker of SECRET_MARKERS) {
-        if (marker.test(target)) {
-          return { tier: 'L3', reason: 'tool targets credential material' }
-        }
+      if (namesSecret(target)) {
+        return { tier: 'L3', reason: 'tool targets credential material' }
+      }
+      if (resolvesToSecret(target, options.resolvePath)) {
+        return { tier: 'L3', reason: 'tool targets a path that resolves to credential material' }
+      }
+      if (options.isSharedFile?.(target)) {
+        return { tier: 'L3', reason: `tool targets ${SHARED_FILE_REASON}` }
       }
     }
   }
 
   if (READ_ONLY_TOOLS.has(tool)) return { tier: 'L0', reason: `'${tool}' only reads` }
   if (LANE_LOCAL_WRITE_TOOLS.has(tool)) {
-    return classifyLaneWrite(tool, readTargets(request.input), options.worktreeRoot)
+    return classifyLaneWrite(tool, readTargets(request.input), options.worktreeRoot, options.resolvePath)
   }
   if (OUTWARD_READ_TOOLS.has(tool)) {
     return { tier: 'L2', reason: `'${tool}' reaches outside the machine` }
@@ -721,6 +1077,16 @@ export interface GateOptions {
    * the decision reason says so rather than asserting a check that did not run.
    */
   worktreeRoot?: string
+  /**
+   * Follows symlinks to the real file. When present, secret and containment
+   * checks also run on the resolved path, so a link with an innocent name
+   * cannot carry a read or a write past them.
+   */
+  resolvePath?: PathResolver
+  /** Decides whether a command word starts a trusted system program. */
+  trustExecutable?: ExecutableTrust
+  /** Says whether a target is an existing file with more than one hard link. */
+  isSharedFile?: SharedFileCheck
   now?: () => number
 }
 
@@ -746,7 +1112,12 @@ export function evaluateToolCall(
       }
     }
 
-    const { tier, reason } = classifyToolCall(request, { worktreeRoot: options.worktreeRoot })
+    const { tier, reason } = classifyToolCall(request, {
+      worktreeRoot: options.worktreeRoot,
+      resolvePath: options.resolvePath,
+      trustExecutable: options.trustExecutable,
+      isSharedFile: options.isSharedFile,
+    })
     const summary = safeSummary(request, tier)
 
     if (tier === 'L0' || tier === 'L1') {

@@ -21,7 +21,7 @@ import {
   processTreeContainmentSupported,
   terminateProcessTree,
 } from './process-tree'
-import { autonomyEnv } from './autonomy-settings'
+import { autonomyEnv, buildCodexHookArgs } from './autonomy-settings'
 import { createToolCallParser } from './tool-call-parser'
 import { isValidCliAccount } from './types'
 import type { LaneAdapter, LaneRunOptions, RunResult } from './adapter'
@@ -355,12 +355,15 @@ export function createCliAdapter(deps: CliAdapterDeps = {}): LaneAdapter {
       const command = tool === 'codex' ? 'codex' : 'claude'
       const baseArgs =
         tool === 'codex'
-          ? ['exec', '-']
+          ? gate
+            ? ['exec', ...buildCodexHookArgs(), '-']
+            : ['exec', '-']
           : structured
             ? ['-p', '--output-format', 'stream-json', '--verbose']
             : ['-p']
       // `--settings` merges ADDITIONAL settings, so the hook narrows what the
-      // lane may do without replacing the account's own configuration.
+      // lane may do without replacing the account's own configuration. Codex
+      // takes the same hook as `-c` overrides, added above.
       const args =
         gate && tool === 'claude-code'
           ? [...baseArgs, '--settings', gate.settingsPath]
@@ -391,12 +394,13 @@ export function createCliAdapter(deps: CliAdapterDeps = {}): LaneAdapter {
         // The hook reads its request identity, adapter and approvals location
         // from the environment. CLI_ENV_ALLOWLIST strips everything else, so
         // these must be added after it rather than inherited.
-        ...(gate && tool === 'claude-code'
+        ...(gate
           ? autonomyEnv({
               requestId: gate.requestId,
-              adapter: 'claude-code',
+              adapter: tool === 'codex' ? 'codex' : 'claude-code',
               ...(gate.approvalsPath ? { approvalsFile: gate.approvalsPath } : {}),
               ...(gate.auditPath ? { auditFile: gate.auditPath } : {}),
+              worktreeRoot: lane.worktree,
             })
           : {}),
       }

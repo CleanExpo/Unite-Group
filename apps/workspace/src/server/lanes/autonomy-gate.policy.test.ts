@@ -164,11 +164,11 @@ describe('no SAFE_RELEASE or PROTECTED_RELEASE action classifies below L3', () =
 
 describe('policy BUILD_CONTINUE commands are not founder interruptions', () => {
   const draftPr = [
-    'gh pr create --draft --title t --body b',
-    'gh pr create -d --fill',
-    'gh pr create --draft --title "Fix the thing" --body "Draft for review"',
+    'gh pr create --draft --base main --title t --body b',
+    'gh pr create -d -B main --fill',
+    'gh pr create --draft --base main --title "Fix the thing" --body "Draft for review"',
     "gh pr create --title 'merge ready' --draft --base main --label wip",
-    'gh pr create --draft --title=t --body=b',
+    'gh pr create --draft --base=main --title=t --body=b',
   ]
   const preview = [
     'vercel',
@@ -209,11 +209,14 @@ describe('policy BUILD_CONTINUE commands are not founder interruptions', () => {
   })
 })
 
-describe('git branch: listing stays L0, mutation does not', () => {
+// UNI-2409 (Codex review r20) took git off the read-only list: any git command
+// can run a program named in repository config (`core.fsmonitor`), so listing
+// branches now needs approval too.
+describe('git branch: listing needs approval like every git command', () => {
   it.each(['git branch', 'git branch -a', 'git branch --show-current', 'git branch -vv'])(
-    '%j is L0',
+    '%j is L3',
     (command) => {
-      expect(classifyShellCommand(command).tier).toBe('L0')
+      expect(classifyShellCommand(command).tier).toBe('L3')
     },
   )
 })
