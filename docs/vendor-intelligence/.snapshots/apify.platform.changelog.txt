@@ -1,6 +1,15 @@
 Changelog · Apify Skip to content
 Changelog
 What's new at Apify?
+Oct 6, 2026
+Find Actors by use case with new Store categories
+New
+Console
+Actor
+Actors are now grouped by use case, including Generate leads , Track products & prices , and Brand monitoring . Filter by industry, output type, target site, or Actor type, such as MCP server or open source. Apify assigns the categories. Publishers have nothing to update. Read how the categories work   .
+Less scrolling through thousands of Actors. Browse Store categories   .
+Marek Mouček
+Product Manager
 Sep 3, 2026
 Create an Actor with a Git repo in a few clicks
 New
@@ -55,19 +64,6 @@ Actor
 Creating Actors on Apify is now easier. The creation flow guides you to the most relevant template based on what you want to build and your preferred language. You get to the right template faster, without choice overload.
 If you're an experienced Actor developer, you can still browse the full template list by clicking Browse all templates in the top-right corner.
 Patrik Braborec
-Product Manager
-Jun 24, 2026
-Publish tasks for your Actor to get more users
-New
-As an Actor creator, you can now publish tasks. It's a new way to get your Actor found on Apify Store. Each published task gets its own page on Apify Store, indexed by search engines and readable by AI agents. That means more ways for people to find your Actor, beyond just the main Actor page. This has two key benefits:
-Shows visitors a concrete, ready-to-run example of how to use your Actor
-Drives organic traffic by targeting specific, long-tail search queries
-The key is naming your tasks around what users actually search for. For example, RAG Web Browser has three published tasks:
-Web search to markdown - targets users looking for markdown-formatted output
-RAG: search a specific website - showcases the site input parameter
-Web Fetch Tool for AI Agent - highlights the Actor's web fetch capability
-Publish a task now: https://docs.apify.com/platform/actors/publishing/publish-task  
-Martin Sabo
 Product Manager
 Show more changes
 We're making the web more programmable.

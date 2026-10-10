@@ -1,7 +1,81 @@
 Changelog | Firecrawl
-Introducing the Firecrawl Developer Index, built for supercharging coding agents. Read the announcement →
-176.8K Sign up
+Introducing Alexandria and our $75M Series B. Read the announcement →
+190.2K Sign up
 Changelog
+Oct 8, 2026
+Introducing Universal Scrape
+Introducing Universal Scrape . Give your agents context from web pages, PDFs and images, plus people profiles, financial data, podcasts and beyond. Access the web, files and a growing set of Alexandria providers, all with one API.
+More context through /scrape
+Web pages and files. Read dynamic websites, PDFs, images, Word documents, spreadsheets and presentations by URL, with Firecrawl handling rendering, retries and parsing.
+Provider data through Alexandria. Get people and company data from Apollo, FullEnrich and Data Legion, financial data from Fiscal.ai and Benzinga, and podcast data from Particle.
+One Firecrawl API. Send a URL to /scrape or call a supported Alexandria capability through the same endpoint, using your Firecrawl key and credits. Supported profile URLs can also route to configured enrichment providers.
+Alexandria has more than 200 providers, and Universal Scrape already works with a growing selection of them. We're adding providers to Alexandria every day and bringing more of that library into /scrape .
+Bring that data into whatever you're building, wherever you use AI agents. Install the Firecrawl plugin for ChatGPT and Codex , connect Firecrawl in Claude , or add the Claude Code plugin . You can also use the API or MCP in your own apps and agent tools.
+Some providers require an org admin to accept their terms before the first call. See the docs for provider setup, inputs and pricing.
+Read the announcement · Scrape docs · Alexandria docs
+Oct 6, 2026
+Fantasy sports data is live in Alexandria
+Your AI agents can now research fantasy sports with Firecrawl Alexandria. Bring fantasy rankings and projections together with player and team stats, sports betting odds and the latest news to make more informed lineup decisions in ChatGPT or Claude.
+What you can do
+Research who to start. Compare projections with this week's matchups and injury news before choosing your lineup.
+Look beyond one ranking. Check where fantasy analysis sources agree or disagree and use the wider research to assess a close call.
+Try the fantasy football demo. Paste your roster to compare projections, switch scoring formats and see suggested start/sit changes for your league's lineup slots.
+Connect Firecrawl in ChatGPT or Claude and ask your AI agent to use Alexandria for your next lineup decision, or try the fantasy football demo .
+Oct 1, 2026
+People and company enrichment in Alexandria
+Your agents can now find decision makers, look up work emails, and enrich company data with Alexandria. Apollo, FullEnrich, and Data Legion are live through the same Firecrawl connection your agents already use to search and scrape the web.
+Use the people enrichment pack in Claude, ChatGPT, Codex, or your own agent through the Firecrawl API, MCP, or CLI. Describe the data you need and Alexandria finds the available capabilities, with their inputs and prices attached.
+What's available
+Apollo: Search for people by title, company domain, and location, then enrich selected profiles with work emails and employment history. Enrich companies with funding, headcount, and technologies, or pull job postings and company news.
+FullEnrich: Search for people by role, employer, location, skills, and work history. Find work emails, look up profiles, identify the person behind an email address, and retrieve company firmographics and technologies.
+Data Legion: Enrich a known person or company at base or premium detail, with contact data available for person enrichment.
+What you can do
+Build a target account list, find the people who own a relevant function, and look up work emails for your shortlist. Enrich an inbound signup with company context, or combine company enrichment with hiring signals and financial data from other Alexandria providers.
+Try asking your agent:
+Use Firecrawl Alexandria to find engineering leaders at a company I specify. Show their current roles and the available work email enrichment options with prices before running enrichment.
+One connection, clear pricing
+Use your Firecrawl account and credits across providers, with no second API key to rotate. Discovery is free, and each tool shows its execution price before you call it. Apollo's person search is free; enrichment and other capabilities use their listed prices.
+Some providers require your organization to accept their terms before the first call. If a call returns THIRD_PARTY_DATA_TERMS_REQUIRED , an organization admin can follow the returned requiresAction.url or open provider settings . Agents need your explicit authorization before accepting terms on your behalf. Provider-specific usage restrictions apply; FullEnrich's terms, for example, prohibit marketing to personal email addresses.
+Try the people enrichment pack or connect Firecrawl over MCP .
+Sep 29, 2026
+Alexandria and the Developer Index are now in ChatGPT and Codex
+You can now use Alexandria directly in ChatGPT and Codex through the Firecrawl plugin. Search and scrape the live web, with access to 100+ data providers and Firecrawl's specialized indexes from the same conversation.
+What you can do
+Research a company. Bring together its website, SEC EDGAR filings, and financial data from Yahoo Finance in one brief.
+Compare products. Check prices and specs across Amazon, Best Buy, and Newegg alongside lab reviews from RTINGS.
+Work through a bug in Codex. Find relevant GitHub issues, merged pull requests, READMEs, and documentation through the Developer Index, then check the package on npm or PyPI.
+Dig into a research topic. Search scientific paper abstracts through the Research Index to find studies relevant to your question.
+These are a few examples of what you can research with the data providers, specialized indexes, and live web available to your agent.
+In our internal evaluations, agents using Alexandria scored 21% higher on answer quality than those using built-in web tools. We used the same model and prompts across 845 tasks, with blind AI judging.
+Get started
+Install the Firecrawl plugin in ChatGPT and Codex and connect your Firecrawl account. Alexandria requires authentication. If you already have the plugin connected, try it in your next conversation:
+Use Firecrawl Alexandria to find remote software engineering jobs posted in the past week. Include salaries where available and application links.
+Your agent discovers relevant tools, reads their inputs and prices, and calls the ones it needs. Discovery and inspection are free; execution is billed at each tool's listed price. Web search and scraping are billed as normal. Some providers require an organization admin to accept their terms in provider settings first.
+Browse Alexandria or read the Alexandria documentation .
+Sep 24, 2026
+Alexandria is now in Claude and Claude Code
+Your agents in Claude and Claude Code can now reach 100+ data providers through Alexandria, alongside Firecrawl's live web search, scraping, and specialized indexes.
+Research companies, pull economic data, find scientific papers, or work through a coding question without leaving your conversation. Describe what you need and your agent can discover a source, inspect its inputs and price, and retrieve the data through Firecrawl.
+What you can do
+Research a company. Bring together its website, SEC EDGAR filings, and financial data from Yahoo Finance in one brief.
+Explore economic data. Pull inflation, interest rates, and other time series from providers such as FRED.
+Dig into a research topic. Find relevant scientific papers through the Research Index and check supported full-text passages.
+Work through a bug in Claude Code. Search repositories, documentation, GitHub issues, and merged pull requests through the Developer Index.
+Get started
+Connect Firecrawl in Claude, or install the Firecrawl plugin for Claude Code , and connect your Firecrawl account. Alexandria requires authentication. Then ask:
+Use Firecrawl Alexandria to show US CPI, the Fed funds rate, and the 10-year Treasury yield for the past 12 months in one table.
+Discovering providers and reading their tool contracts is free. Data calls use Firecrawl credits at the price shown on each tool. Some providers require an organization admin to accept their terms in provider settings before the first call.
+Explore Alexandria or connect Firecrawl over MCP .
+Sep 22, 2026
+Introducing Alexandria and our $75M Series B
+Alexandria is the knowledge library for superintelligence. It gives AI agents a common way to discover sources and retrieve information through Firecrawl, bringing together the live web, official data providers, site-specific connectors and our own indexes.
+More places to look
+AI agents can search our Research, Developer and Government indexes, query data providers and use specialized tools to reach information beyond individual web pages. We’re continuing to add sources and build more indexes.
+Across the verticals we tested, AI agents using Alexandria scored 21% higher on answer quality than those using built-in web tools. We used the same model and prompts across 845 tasks, with blind AI judging.
+Our $75M Series B
+We raised a $75M Series B led by Smash Capital , with participation by Altos Ventures , Nexus Venture Partners , Y Combinator , Freestyle and Offline Ventures .
+We’re investing in search and Alexandria, building deeper indexes and retrieval systems and working directly with more knowledge providers. Our goal is to make useful knowledge easier to reach and worth sharing for the people who create it.
+Try Alexandria or read the full announcement .
 Aug 20, 2026
 Firecrawl Developer Index
 The Firecrawl Developer Index is now available, a specialized index for coding agents. It covers 70M+ artifacts across READMEs, external documentation, issues, pull requests, and OpenAPI specs, with semantic retrieval and metadata filters. Your AI agents answer questions about code behavior, API contracts, error messages, and known bugs from primary sources instead of general web pages.
@@ -182,7 +256,7 @@ Browser Sandbox - Launch secure, isolated browser sessions with Python, JavaScri
 Multi-Language Support - Execute Python, JavaScript, or bash code remotely. Send commands via API, CLI, or SDK and get results instantly.
 agent-browser Integration - Pre-installed CLI with 40+ commands. AI agents write simple bash commands instead of complex Playwright code.
 Live View & CDP Access - Watch sessions in real time via embeddable stream URL or connect your own Playwright instance over WebSocket.
-Session Management - Configurable TTL controls, parallel sessions (up to 20 concurrent), and automatic cleanup. 2 credits per browser minute with 5 minutes free.
+Session Management - Configurable TTL controls, parallel sessions (up to 20 concurrent), and automatic cleanup. 2 credits per browser minute.
 Read the full documentation here .
 Feb 6, 2026
 Improved Logo Extraction for Branding Format v2
@@ -424,6 +498,7 @@ What is Enhanced Mode : Enhanced Mode is a specialized proxy feature for scrapin
 Pricing Change : Starting May 8th, 2025, Enhanced Mode proxy requests will cost 5 credits per request (previously included in standard credit pricing).
 Quality Improvements : The price adjustment reflects significant quality improvements to Enhanced Mode, ensuring higher success rates and more reliable data extraction from complex and difficult-to-scrape sites.
 Usage Optimization : For optimal credit usage, consider using Enhanced Mode as a retry mechanism only when encountering specific error status codes (401, 403, or 500).
+Update (August 17, 2026) : The 5-credit price above no longer applies. Enhanced Mode requests are billed at the same 1 credit per request as basic requests, and an automatic escalated retry is not charged separately. See the Enhanced Mode docs .
 Apr 28, 2025
 Firecrawl Launch Week III – Summary
 Firecrawl Launch Week III – Summary

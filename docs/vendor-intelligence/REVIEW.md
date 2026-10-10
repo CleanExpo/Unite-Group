@@ -1,8 +1,8 @@
 # Nexus vendor-intelligence review
 
-Generated: 2026-09-05T17:19:07.733Z
+Generated: 2026-10-10T17:23:02.646Z
 
-Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
+Summary: 36 sources reviewed; 35 material; 1 volatile noise; 0 unchanged.
 
 ## Material changes
 
@@ -11,51 +11,91 @@ Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
 - Vendor: Anthropic
 - Source: https://code.claude.com/docs/en/changelog
 - Change: changed
-- Prior hash: c80c24ed4c0885a9b451ccd74de4311fe1840447666c67d41fb1923da14dcdf2
-- Current hash: 3f6f83405e574480ef3eb66c8183dd6c984f9bb6f6fdcaef3d7abd287cf6d236
+- Prior hash: 3f6f83405e574480ef3eb66c8183dd6c984f9bb6f6fdcaef3d7abd287cf6d236
+- Current hash: aec0239000e1be921976bc03ff9ec35dd7235846d50a99a8d71affa3c0e57387
 
 ```diff
-+ <Update label="2.1.261" description="September 4, 2026">
-+ * Added an "Organization policy" line to `/status` and `claude doctor` that says why your organization's policy could not be loaded, such as a proxy not passing the endpoint through
-+ * Added `bashOutputMaxChars` and `taskOutputMaxChars` settings to raise how much command and background-task output Claude receives inline before it is saved to a file, up to 128K characters
-+ * Added `--append-subagent-system-prompt-file` to read the subagent system prompt from a file, for prompts too large to pass on the command line
-+ * Added `/skill-doctor` to show which loaded skills go unused and what they cost in context, so you can prune them
-+ * Fixed typed or pasted characters occasionally landing out of order or being dropped during fast input or key repeat
-+ * Fixed `/add-dir <subdirectory>` printing a false "couldn't be resolved" error when the working directory is on a `/net` automount
-+ * Fixed the Bedrock setup wizard hanging when AWS or an AWS credential helper never responds (it now times out with a clear error), and its model checks failing behind a TLS-inspecting proxy
-+ * Fixed cloud sessions discarding a plugin synced from claude.ai when managed settings force-enable it in `enabledPlugins`, then falling back to a marketplace clone that could fail
-+ * Fixed being unable to delete the character immediately before an inline `[Image #N]` chip in the prompt input
-+ * Fixed resuming a session losing hook output and other context around parallel tool calls, which changed the resumed request
-+ * Fixed Remote Control showing a stale permission mode when a phone, browser, or claude.ai app attaches to a terminal session or after the mode changes in the terminal
-+ * Fixed Remote Control sessions showing as still working (stuck spinner and Stop button) after stopping a turn from a connected phone or browser, or after a local slash command like `/clear`
-+ * Fixed SDK and cloud sessions ignoring a Stop or interrupt sent just after the first prompt, before the turn had started; the turn now stops instead of running to completion
-+ * Fixed Remote Control uploading a session pulled with `/teleport` into the connected session, which appeared appended to the original on phone and web
-+ * Fixed Remote Control's inbound event stream failing behind TLS-inspecting corporate proxies on native Windows
-+ * Fixed Remote Control sessions showing the default effort level on claude.ai when the effort comes from settings
-+ * Fixed `gcpAuthRefresh` opening a browser at startup when the Google credential check was slow, even though the credential was still valid
-+ * Fixed claude.ai connectors staying absent for the whole session when the startup connector fetch timed out — the CLI now retries in the background
-+ * Fixed sustained high CPU usage when a background agent could not be resumed and its wake-up was retried in a tight loop
-+ * Fixed feature flags gated to a newer version occasionally applying to an older Claude Code version running on the same machine
-+ * Fixed `/usage` and the VS Code usage panel dropping a model-specific weekly limit row when the usage endpoint is rate limited or when opened right after startup
-+ * Fixed `claude -p --resume <file>` adopting a malformed session ID recorded in the transcript; it now resumes under a fresh session ID instead
-+ * Fixed the terminal progress indicator (iTerm2, Ghostty, ConEmu) showing the session as finished while a background workflow or agent was still running
-+ * Fixed a rare layout glitch where a box could render with the wrong height after its container switched between row and column direction
-+ * Fixed Claude apps gateway client IP when a trusted proxy appends a port to `X-Forwarded-For`; with an access list set, an unreadable entry now gets 403
-+ * Fixed Claude apps gateway telling Claude Desktop to export OpenTelemetry as JSON even when the terminal CLI uses protobuf, so protobuf-only collectors rejected Desktop's data
-+ * Fixed Desktop and web showing a session as busy while it only watches an artifact for updates
-+ * Fixed Claude in Chrome `file_upload` failing with "paths: expected array, received undefined" in local Cowork sessions run from the Claude Desktop app
-+ * Fixed `SendMessage` to an offline Remote Control session on another machine reading as delivered; the result now says delivery is queued until that machine reconnects
-+ * Fixed plugin install hints from CLIs run in background Bash commands: they are now detected, and the raw `<claude-code-hint>` tag no longer leaks into the conversation
-+ * Fixed in-process agent-team teammates re-sending their first-turn tool and skill announcements on the second turn, which changed the request prefix and missed the prompt cache
-+ * Improved the `/model` picker and the VS Code model pill to show a model's name instead of its raw Bedrock, Vertex AI, or LLM gateway ID when Claude Code recognizes it
-+ * Improved startup on Google Vertex AI when `GOOGLE_APPLICATION_CREDENTIALS` is set: API client creation no longer re-runs Google Cloud project discovery or spawns extra `gcloud` processes
-+ * Improved streaming performance: already-rendered blocks are no longer re-checked by layout on each update
-+ * Improved the dangerous-`rm` safety prompt to also catch `rm -rf` on positional parameters and inside double-quoted `sh -c` scripts
-+ * Improved handling when the API sends no response headers: the retry now waits up to `API_TIMEOUT_MS` (10 minutes by default) instead of another 3 minutes, and the messages say what to change
-+ * Changed a Claude apps gateway 403 on the managed settings load (at startup or after `/login`) to say Claude Code may not be enabled for the organization, instead of advising a new sign-in
-+ * Changed machines whose managed settings pin `forceLoginMethod: "gateway"` to ignore a leftover API key or claude.ai login and ask for `/login`; Bedrock, Vertex AI, and Foundry sessions are unaffected
-+ * Changed auto mode to treat a link that packs content into a public diagram renderer's URL as an upload to that site: no longer auto-approved unless you asked for it
-… diff truncated (778 added / 0 removed lines)
+- This page is generated from the [CHANGELOG.md on GitHub](https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md).
+- * Improved the `/model` picker and the VS Code model pill to show a model's name instead of its raw Bedrock, Vertex AI, or LLM gateway ID when Claude Code recognizes it
+- * Improved startup on Google Vertex AI when `GOOGLE_APPLICATION_CREDENTIALS` is set: API client creation no longer re-runs Google Cloud project discovery or spawns extra `gcloud` processes
+- * Improved streaming performance: already-rendered blocks are no longer re-checked by layout on each update
+- * Improved the dangerous-`rm` safety prompt to also catch `rm -rf` on positional parameters and inside double-quoted `sh -c` scripts
+- * Improved handling when the API sends no response headers: the retry now waits up to `API_TIMEOUT_MS` (10 minutes by default) instead of another 3 minutes, and the messages say what to change
+- * Improved structured output: Workflow `agent({schema})` rejects a JSON Schema that can never be satisfied up front, and retry-cap errors now include the last validation failure
+- * Improved deleting a background session whose worktree has unpushed commits: the message now names the branch and commit count, and deleting again discards the worktree
+- * Improved the Claude apps gateway's refresh-failure log to name the step that failed
+- * Improved idle CPU usage of non-interactive (`-p` / SDK) sessions
+- * Improved the Claude apps gateway on Amazon Bedrock: input tokens for an aborted request are now counted with AWS's free CountTokens API (grant `bedrock:CountTokens`) instead of a one-token request
+- * Improved the settings error for rules such as `Edit(C:\dir\(name)\**)`, where `\(` is read as an escaped parenthesis rather than a path separator, to suggest an unambiguous spelling
+- * Improved auto-compact for 1M-context models: Opus and Fable sessions now compact shortly before the 1M-token limit, and recovery compaction on very large contexts no longer times out at 10 minutes
+- * Improved `/ultrareview` and `claude ultrareview` to wait up to 45 minutes (previously 30) for long-running cloud reviews
+- * Improved `/effort` on Claude Fable 5.1 so changing effort mid-session no longer invalidates the prompt cache
+- * Improved terminal resize and first-render performance for long responses by reusing text measurements
+- * Improved `/workflows` agent detail: JSON outcomes are pretty-printed with syntax colors and real line breaks, and long outcomes fold behind an expand toggle
+- * Improved headless/SDK session start: the first turn begins up to 50 ms sooner when MCP servers finish connecting
+- * Improved `/install-github-app` to explain it is GitHub-only and point to the GitLab CI/CD docs when run inside a GitLab repository
+- * Improved nested background subagent results to be saved in the parent subagent's transcript, so resumed subagents keep them and shared transcripts show the delivery
+- * Improved rendering performance: less re-render work per turn in long conversations, streaming no longer slows down as the reply grows, and background-agent updates no longer re-render the whole screen
+- * Improved prompt input responsiveness by reducing per-keystroke rendering work
+- * Improved policy helper diagnostics — refresh failures now show in `/status`, declining the managed-settings dialog prints why Claude Code exited, and helper timeouts are reported as timeouts
+- * Improved `/code-review --comment` to post findings on GitLab merge requests via `glab mr note` instead of reporting the target as unsupported
+- * Improved notifications: an MCP elicitation or permission ask queued under another dialog now sends its idle desktop notification at the same delay as a visible ask
+- * Improved verbose/transcript output: async hook completion notices that arrive together now appear on one line instead of one line per hook
+- * Improved `claude self-hosted-runner --configure-git` to also enable git push negotiation, so the first push of a new branch from a stale clone uploads only the new commits instead of the whole tree
+- * Improved liveness reporting to SDK hosts while a response is held open by gateway keep-alives, so long waits under a raised `CLAUDE_STREAM_IDLE_TIMEOUT_MS` are not mistaken for a hung session
+- * Improved MCP connection and OAuth debug/error logs so credentials carried in a server's URL or request headers are redacted
+- * Improved `/fork` to keep the original conversation's prompt cache in the new background session: its worktree briefing now arrives as a message instead of a system-prompt change
+- * Improved emoji autocomplete to accept the remaining GitHub/Slack shortcode aliases (`:satisfied:`, `:telephone:`, `:collision:`, …)
+- * Improved CPU usage during turns in interactive sessions by cutting redundant UI re-renders
+- * Improved install size: the native binary is about 5 MB smaller
+- * Improved cloud sessions: when the session's network proxy drops a connection during a Bash command, the tool result now names the host and reason instead of only "connection reset"
+- * Improved `/schedule` to explain that MCP servers configured in Claude Code can't be attached to cloud routines, instead of a bare "No MCP connectors" message
+- * Improved framing of messages from your own subagents: Claude is told the sender is a worker inside this session, not an unrelated Claude session
+- * Improved the prompt placeholder to read "Message @name…" while viewing a background subagent or fork transcript opened from the subagent panel or `/tasks`
+- * Improved sanitization of MCP server names in error messages, menus, and command results
+- * Improved Amazon Bedrock session start under `CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST` (e.g. Claude Desktop): a session given a Bedrock model ID or ARN no longer waits for inference-profile discovery
+- * Improved the managed settings approval dialog to list only the settings that changed since you last approved them
++ This page is generated from the [CHANGELOG.md on GitHub](https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md). Longer releases are grouped by type of change, with long lists of improvements and bug fixes collapsed.
++ <Update label="2.1.296" description="October 9, 2026">
++ **Added**
++ * Added a `code` key to the Claude apps gateway's `managed.policies[]`: the same settings as `cli`, also applied in Claude Desktop's Code tab; beside `desktop`, it turns on Claude Desktop's gateway mode
++ * Added `autoCompactWindow` to subagent frontmatter and `--agents` definitions, so a subagent can auto-compact earlier than the main conversation's window
++ * Added `CLAUDE_CODE_WORKFLOW_SUBAGENT_MODEL` to run every workflow agent on one model while other subagents keep theirs
++ * Added `CLAUDE_CODE_OVERLOADED_RETRY_MAX_DELAY_MS` environment variable to set a longer maximum delay for the backoff when retrying an overloaded (529) request
++ * Added a note in `/plugin` on a plugin whose hooks are left out because another enabled plugin has the same name
++ * Added an `allow_large` option to the Read tool so Claude can read a text file past the usual size limits in one call when it needs the whole file and the context has room
++ * \[Cloud sessions] Added a status filter to the Sessions and Runners lists on a self-hosted environment's Activity tab in admin settings; you can pick several statuses at once
++ * \[Claude Tag] Added creating, editing and deleting workspace and channel memory files on the Activity page's Memory tab for members with the Claude Tag Admin permission
++ **Changed**
++ * Updated `/cost`, the status line, `--max-budget-usd` and the SDK's cost figures to price Sonnet 5.5 cache reads at $0.10 per million tokens (was $0.20)
++ * Updated the bundled dataviz skill: lighter violet for the seventh series in light mode, softer primary text in dark mode, and compact y-axis labels like 1K
++ * Changed the default limit on MCP tool descriptions sent up front and on MCP server instructions from 2,048 to 4,096 characters
++ * Changed `←`: a turn or `!` command started while the session moves to the background is now stopped instead of finishing out of sight
++ * \[VSCode] Changed Claude in Chrome to ask before browser actions in every session, including one connected with `@browser`, as the terminal does; allowing a site for the session stops repeat asks
++ * \[Claude Tag] Changed Claude in Slack to show the footer with the session link, model and cost only on its newest reply in a thread; the reply before it drops the footer
++ <Expandable title="9 improvements">
++ - Improved fullscreen mode: the link under the mouse pointer is now underlined to show it can be opened
++ - Improved transcript toggle (ctrl+o) responsiveness in code-heavy conversations by caching syntax-highlighted code blocks
++ - Improved Claude Desktop's Code tab behind a Claude apps gateway: when a session can't start, including on a machine not set up for the gateway's `code` settings, the reason shows as a reply
++ - Improved the errors for a refused cloud session: they now say why your organization's policy couldn't be loaded, and name an API key or auth token that overrides your claude.ai login
++ - Improved `--debug` output to name unrecognized frontmatter fields in custom agent files, with a hint for likely typos
++ - Improved auto mode: a tool call that wasn't run because auto mode's check had no usable answer now shows as a dim "Not run" row instead of a red error
++ - Improved `--debug` output for hooks: command hooks on tool calls, prompts, SessionStart and Stop now log their command, plugin, outcome and duration when they finish, so a slow hook is identifiable
++ - Improved `CLAUDE_CODE_TRANSCRIPT_LOCAL_GC`: a large transcript file is no longer rewritten when that would free under 10% of it
++ - \[Code Review] Improved Code Review admin settings to say why a setting couldn't be saved, such as a policy restriction, instead of a generic failure message
++ </Expandable>
++ <Expandable title="56 bug fixes">
++ * Fixed managed-settings `PreToolUse` hooks that deny a tool call with `"continue": false`, and managed `prompt` hooks that block one, refusing the call but not ending the turn
++ * Fixed PostToolUse hooks in managed settings not applying `updatedMCPToolOutput` in some sessions
++ * Fixed headless sessions starting a folder's `.mcp.json` or plugin MCP server that was switched off for that folder, after changing directory or reloading plugins
++ * Fixed a Claude apps gateway that serves `allowedProviders` with `"gateway"` locking out laptops that name that gateway in user settings
++ * Fixed a saved Claude apps gateway sign-in being ignored on machines whose managed settings set `forceLoginMethod` to `gateway` with no `forceLoginGatewayUrl` (regression in 2.1.295)
++ * Fixed `--teleport` opening an empty conversation when the session's history could not be read
++ * Fixed token counts for Haiku 5.5 and other models that take only adaptive thinking, which failed behind some gateways and were counted with budget thinking elsewhere
++ * Fixed resumed subagents being told that the user rejected a tool call that a session shutdown had interrupted
++ * Fixed hook output being altered when it contained text resembling a plugin hint tag
++ * Fixed secret redaction in shared transcripts and debug logs missing some values that follow a key with no value, including in JSON written inside a shell string
+… diff truncated (5240 added / 2040 removed lines)
 ```
 
 ### anthropic.claude-code.legal
@@ -63,23 +103,15 @@ Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
 - Vendor: Anthropic
 - Source: https://code.claude.com/docs/en/legal-and-compliance
 - Change: changed
-- Prior hash: e7bcf9bca1f73eeb7f2123348681504178f7786125e806da4140cd55db908ba9
-- Current hash: f108f4c2704787c4ab440ad89f4478213d5a12080155111f7debc4e9df491ce6
+- Prior hash: f108f4c2704787c4ab440ad89f4478213d5a12080155111f7debc4e9df491ce6
+- Current hash: 95d7277f55ef5f31a26134951350123854fa40cc2369194753887b5e033ef441
 
 ```diff
-- * [Commercial Terms](https://www.anthropic.com/legal/commercial-terms) - for Team, Enterprise, and Claude API users
-- If a customer has a Business Associate Agreement (BAA) with us, and wants to use Claude Code, the BAA will automatically extend to cover Claude Code if the customer has executed a BAA and has [Zero Data Retention (ZDR)](/docs/en/zero-data-retention) activated. The BAA will be applicable to that customer's API traffic flowing through Claude Code. ZDR is enabled on a per-organization basis, so each organization must have ZDR enabled separately to be covered under the BAA.
-- * **Developers** building products or services that interact with Claude's capabilities, including those using the [Agent SDK](/docs/en/agent-sdk/overview), should use API key authentication through [Claude Console](https://platform.claude.com/) or a supported cloud provider. Anthropic does not permit third-party developers to offer Claude.ai login or to route requests through Free, Pro, or Max plan credentials on behalf of their users.
-+ * [Commercial Terms of Service](https://www.anthropic.com/legal/commercial-terms) - for Team, Enterprise, and Claude API users
-+ ### Can customers offer Claude Code in their products?
-+ Unless we've mutually agreed otherwise, preinstalling or running Claude Code in your products or services (e.g. in hosted sandboxes or other agent infrastructure) requires agreeing to our [Commercial Terms of Service](https://www.anthropic.com/legal/commercial-terms) and complying with the conditions below:
-+ * **The Claude Code binary must not be modified.** Claude Code must be installed and run as published by Anthropic, and customers may not remove, disable, or restrict any authentication method built into it (including methods that permit signing in with a Claude account or the user's own API key).
-+ * **Customers may not pay for, resell, or intermediate Claude usage on their end users' behalf.** Each end user must authenticate with their own Anthropic API key, Claude subscription plan credentials, or 3P inference provider credential (Amazon Bedrock, Google Cloud's Agent Platform, Microsoft Foundry). That usage is billed directly to the end user under their own agreement with Anthropic or, for third-party inference providers, with the applicable provider.
-+ **Using the Claude Code name and logo.** You can accurately say, in plain text, that your product has Claude Code preinstalled or that it runs Claude Code. But you can't use the Claude Code or Anthropic names or logos as part of your own product, feature, or company name, in your own logo, or in a way that suggests Anthropic built, endorses, or is partnered with your product. Any other use of Anthropic's names or logos is governed by our [Trademark Guidelines](https://www.anthropic.com/legal/trademark-guidelines) and requires our written permission.
-+ Claude Code remains governed by Anthropic's standard terms (see the License and Commercial agreements sections above) regardless of the platform through which it is accessed.
-+ If a customer has executed a Business Associate Agreement (BAA) with Anthropic and has [Zero Data Retention (ZDR)](/docs/en/zero-data-retention) enabled for the relevant organization, that BAA extends to the customer's API traffic through Claude Code.
-+ * **Developers** building products or services that interact with Claude's capabilities, including those using the [Agent SDK](/docs/en/agent-sdk/overview), should use API key authentication through [Claude Console](https://platform.claude.com/) or a supported cloud provider. Anthropic does not permit third-party developers to offer Claude.ai login into their own applications, or to route requests through Free, Pro, or Max plan credentials on behalf of their users. Moreover, developers may not collect, store, or intermediate Claude.ai credentials or session tokens — sign-in to a Claude account must complete through Anthropic's own flow.
-+ This does not restrict how customers provision and manage their own API keys or third-party inference provider credentials — for example, configuring an API key in a development environment, secrets manager, or machine image for use by the customer's own authorized users — provided the resulting usage is billed to the key owner under their agreement with Anthropic (or the applicable provider) and is not resold or intermediated as described above. Nor does it prevent an end user from signing in to the unmodified Claude Code binary with their own Claude subscription, including where a platform hosts Claude Code as described under *Can customers offer Claude Code in their products?* above.
+- If a customer has executed a Business Associate Agreement (BAA) with Anthropic and has [Zero Data Retention (ZDR)](/docs/en/zero-data-retention) enabled for the relevant organization, that BAA extends to the customer's API traffic through Claude Code.
++ If a customer has executed a Business Associate Agreement (BAA) with Anthropic, that BAA extends to Claude Code in two configurations, depending on what is available for your organization:
++ * **HIPAA configuration**: the Claude Code CLI or the Code tab in Claude Desktop, used with a Claude for Enterprise account. The organization must have HIPAA enabled and the HIPAA configuration applied to Claude Code (local mode) and Cowork (local mode). See [Set up Claude Code (local mode) for a HIPAA-ready organization](/docs/en/hipaa-setup).
++ * **Zero Data Retention**: Claude Code with [Zero Data Retention (ZDR)](/docs/en/zero-data-retention) enabled for the relevant organization. ZDR isn't available for all organizations.
++ Under the HIPAA configuration, cloud sessions, Remote Control, Claude Code in the Claude mobile app, and Claude Code routed through a third-party cloud provider or a gateway aren't covered. Review the [Implementation Guide](https://trust.anthropic.com/resources?s=l1wrssd9hsbi4gak0tp5a6\&name=%5Banthropic%5D-hipaa-ready-offering-implementation-guide) for a full list of Eligible Services.
 ```
 
 ### anthropic.platform.access-transparency
@@ -87,21 +119,37 @@ Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
 - Vendor: Anthropic
 - Source: https://platform.claude.com/docs/en/manage-claude/access-transparency
 - Change: changed
-- Prior hash: fb85db257149c86ca53a4b14bc8430d712a793e354f52dd7ff75f1d04bf0b6c2
-- Current hash: edc51d81b95ed110b6da41731c6b6d15ebf57270e1178a9628b7c4339e8a9bae
+- Prior hash: edc51d81b95ed110b6da41731c6b6d15ebf57270e1178a9628b7c4339e8a9bae
+- Current hash: 2ca2ff54c5370a8122eca333b58039fab6111308b560fb624a4316fdf40eb91b
 - Surface: Anthropic API compliance — Access Transparency (api-compliance)
 - Surface note: Access Transparency is a human-access audit facility covering specific Anthropic API customer-data surfaces only. It is NOT Claude Max usage telemetry and does not cover the excluded consumer/application surfaces. Changes here classify strictly under the API-compliance surface and must never be reported as Max or consumer usage telemetry.
 - Explicitly excludes: Claude Max plan usage telemetry; Claude consumer application (Claude.ai) surfaces; Claude Code local session telemetry; Claude mobile and desktop application usage
 
 ```diff
-- --header "x-api-key: $ANTHROPIC_COMPLIANCE_ACCESS_KEY"
-- --header "x-api-key: $ANTHROPIC_COMPLIANCE_ACCESS_KEY"
-- | Anthropic Workbench | No | The Workbench stores data in data stores that are not covered by Access Transparency |
-+ --header "x-api-key: $ANTHROPIC_COMPLIANCE_ACCESS_KEY" \
-+ --header "anthropic-version: 2023-06-01"
-+ --header "x-api-key: $ANTHROPIC_COMPLIANCE_ACCESS_KEY" \
-+ --header "anthropic-version: 2023-06-01"
-+ | Playground (Claude Console) | No | Not covered |
+- * **Events arrive on your existing feed.** Activities are accessible through your [Compliance API Activity Feed](https://platform.claude.com/docs/en/manage-claude/compliance-activity-feed). Existing credentials, audit, export, and SIEM integrations for the Compliance API will still apply.
+- * **Covered content:** Access Transparency covers prompt and response content sent through the Claude Messages API or Claude Code sessions. Anthropic's [general ZDR documentation](https://platform.claude.com/docs/en/manage-claude/api-and-data-retention) and [ZDR for Claude Code documentation](https://code.claude.com/docs/en/zero-data-retention) explain which APIs and features are covered by ZDR. The same APIs and features are covered by Access Transparency.
+- * **Anything ZDR does not cover:** Products that are not covered by ZDR (for example, the Files API, Anthropic-hosted stateful applications, and the Batch API) are not covered by Access Transparency. See [ZDR documentation](https://code.claude.com/docs/en/zero-data-retention#what-zdr-does-not-cover) for additional details.
+- | ------------------------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+- | `created_at` | RFC 3339 string | When the activity became visible in your feed |
+- "organization_uuid": "5b236db4-3fb4-4bf3-a560-b5e266038a15"
+- "organization_uuid": "00000000-1111-2222-3333-444444444444"
+- `anthropic_access` and `cmek_preserve` events are delivered to your Compliance API feed within two business days of the access or preservation they record. This feed should not be treated as a real-time alerting channel, and the `accessed_at` timestamp reflects when the access occurred, which might be up to two business days before the activity becomes visible in your feed. The `created_at` field reflects the time that the event became visible.
++ * **Events arrive on your existing feed.** Activities are accessible through your [Compliance API Activity Feed](https://platform.claude.com/docs/en/manage-claude/compliance-activity-feed). Existing credentials, audit, export, and SIEM integrations for the Compliance API still apply.
++ * **Events are tamper-evident.** Each event recorded after your organization's [transparency log](https://platform.claude.com/docs/en/manage-claude/access-transparency-log) (beta) is created is also committed to that log. The log is an append-only, signed record that you can verify independently of Anthropic's serving systems.
++ * **Covered content:** Access Transparency covers prompt and response content sent through the Claude Messages API or Claude Code sessions. Anthropic's [general ZDR documentation](https://platform.claude.com/docs/en/manage-claude/api-and-data-retention) explains which APIs and features are covered by ZDR. The same APIs and features are covered by Access Transparency.
++ * **Anything ZDR does not cover:** Products that are not covered by ZDR (for example, the Files API, Anthropic-hosted stateful applications, and the Batch API) are not covered by Access Transparency. See [ZDR documentation](https://platform.claude.com/docs/en/manage-claude/api-and-data-retention#zero-data-retention-zdr-scope) for additional details.
++ | ----------------------------- | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
++ | `created_at` | RFC 3339 string | When Anthropic recorded the event. An event usually becomes visible in your feed shortly after; see [Timing](https://platform.claude.com/docs/en/manage-claude/access-transparency-log#timing) for when it can lag |
++ | `workspace_uuid` | string | The workspace the content belongs to. UUID format. Present when the access was scoped to a workspace, and absent otherwise. Not one of the transparency log's [leaf fields](https://platform.claude.com/docs/en/manage-claude/access-transparency-log#how-an-event-becomes-a-leaf), so an inclusion proof does not cover it |
++ | `transparency_log_leaf_index` | integer | The event's zero-based position in your organization's transparency log (beta). Present whenever the event has a leaf, and absent otherwise. See [Verify Access Transparency events with the transparency log](https://platform.claude.com/docs/en/manage-claude/access-transparency-log) |
++ "organization_uuid": "5b236db4-3fb4-4bf3-a560-b5e266038a15",
++ "transparency_log_leaf_index": 41
++ "organization_uuid": "00000000-1111-2222-3333-444444444444",
++ "transparency_log_leaf_index": 57
++ `anthropic_access` and `cmek_preserve` events are delivered to your Compliance API feed within two business days of the access or preservation they record. This feed should not be treated as a real-time alerting channel, and the `accessed_at` timestamp reflects when the access occurred, which might be up to two business days before the activity becomes visible in your feed. The `created_at` field reflects the time Anthropic recorded the event, and the event usually becomes visible in your feed shortly after that time. These events do not follow the Activity Feed's usual 1-minute [indexing lag](https://platform.claude.com/docs/en/manage-claude/compliance-integration-patterns#window-polling): an event can become visible up to two business days after its `created_at`. If you poll the feed by `created_at` window, overlap consecutive windows by at least two business days for `anthropic_access` and `cmek_preserve` events so that a late-indexed event is not dropped.
++ <Accordion title="How can I tell that my Access Transparency record has not been altered?">
++ Verify your organization's transparency log (beta): an append-only, signed record of your Access Transparency events, with inclusion and consistency proofs you check on your own infrastructure. See [Verify Access Transparency events with the transparency log](https://platform.claude.com/docs/en/manage-claude/access-transparency-log).
++ * [Verify Access Transparency events with the transparency log (beta)](https://platform.claude.com/docs/en/manage-claude/access-transparency-log)
 ```
 
 ### anthropic.platform.authentication
@@ -109,59 +157,36 @@ Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
 - Vendor: Anthropic
 - Source: https://platform.claude.com/docs/en/manage-claude/authentication
 - Change: changed
-- Prior hash: f2ccf0c17cf163c589edf43e2e3c18378e3c954277231227bb43f7e0319be84b
-- Current hash: bfedc8ac0f35c27b64d6594a36fb1b06bc2bb1032937edcb148492a04ae34a41
+- Prior hash: bfedc8ac0f35c27b64d6594a36fb1b06bc2bb1032937edcb148492a04ae34a41
+- Current hash: a84e7cc10dc9b4681fd274210d3b4e799a25524b9d6e6b2c1877d812149ae1e8
 
 ```diff
-- | [API key](https://platform.claude.com/docs/en/manage-claude/authentication#api-keys) | Static `sk-ant-api...` secret in the `x-api-key` header | Local development, prototyping, scripts, and single-tenant servers where you control secret storage |
-- API keys and Workload Identity Federation grant the same access to Claude API endpoints. Choose API keys to get started quickly, and move to Workload Identity Federation when your workload already has a platform-issued identity you can federate. Use App Attest for iOS and macOS apps you distribute to end users.
-- API keys are static secrets that you generate in the Claude Console and pass on every request.
-- * **Create a key:** Go to [Settings → API keys](https://platform.claude.com/settings/keys) in the Claude Console. You choose an [expiration](https://platform.claude.com/docs/en/manage-claude/authentication#key-expiration) as part of creation. Use [workspaces](https://platform.claude.com/settings/workspaces) to scope keys by project or environment.
-- * **Send the key:** Set the `x-api-key` header on direct HTTP requests, or set the `ANTHROPIC_API_KEY` environment variable and the [client SDKs](https://platform.claude.com/docs/en/cli-sdks-libraries/overview) pick it up automatically.
-- x-api-key: YOUR_API_KEY
-- Store API keys in a secrets manager, rotate them periodically, and revoke any key you suspect has leaked. You can also set an [expiration](https://platform.claude.com/docs/en/manage-claude/authentication#key-expiration) when you create a key to limit how long a leaked credential stays usable.
-- Expiration limits the lifetime of a leaked credential, but it is not a substitute for secret hygiene. Regardless of expiration, store keys in a secrets manager and revoke any key you suspect has leaked.
-+ | [API key](https://platform.claude.com/docs/en/manage-claude/authentication#api-keys) | Static `sk-ant-api...` secret sent as a bearer token in the `Authorization` header | Local development, prototyping, scripts, and servers where you control secret storage |
-+ API keys and Workload Identity Federation grant the same access to Claude API endpoints. Choose API keys to get started quickly: a personal key for your own development, or a service account key for anything shared. Move to Workload Identity Federation when your workload already has a platform-issued identity you can federate. Use App Attest for iOS and macOS apps you distribute to end users.
-+ API keys are static secrets that you generate in the Claude Console and send on every request as a bearer token in the `Authorization` header.
-+ ### Key types
-+ When you create a key, you choose its type, which determines what the key can do, where it works, and when it stops working:
-+ | Key type | Acts as | Works in | Stops working when |
-+ | -------------------------- | -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-+ | **Personal key** | You, the user, with your roles and permissions | Either a single workspace or the workspaces where your role allows API use, chosen when the key is created | You lose access to the organization or, for a single-workspace key, to that workspace. Personal keys are archived when you are removed from the organization. If you are re-invited, create new keys; archived keys are not restored |
-+ | **Service account key** | A [service account](https://platform.claude.com/docs/en/manage-claude/workload-identity-federation#service-accounts) | Either a single workspace or anything the service account has access to, chosen when the key is created. A service account has access to the Default Workspace and to workspaces it has been added to | The service account is archived or, for a single-workspace key, is removed from that workspace |
-+ | **Workspace key** (legacy) | No one: it belongs to the workspace it was created in | That workspace | It expires, is disabled or deleted, or its workspace is archived, regardless of whether its creator leaves the organization |
-+ Personal keys and service account keys are identity-backed: each belongs to a user or service account your organization already manages, and every request acts as that identity. When that identity is removed from the organization, the key stops working. This means that keys won't accidentally outlive the people or workloads that own them. Prefer them over workspace keys for new integrations.
-+ Use a personal key for your own development and scripts. A shared personal key acts as one person and breaks when they leave. For shared or automated workloads (CI, production services), have an organization admin create a service account so the workload has its own identity.
-+ Workspace API keys still work but should be considered legacy; identity-backed keys or [Workload Identity Federation](https://platform.claude.com/docs/en/manage-claude/workload-identity-federation) are preferred. To migrate, see [Replacing workspace API keys](https://platform.claude.com/docs/en/manage-claude/authentication#replacing-workspace-api-keys).
-+ ### Create and use a key
-+ * **Create a key:** Go to [Settings → API keys](https://platform.claude.com/settings/keys) in the Claude Console and click **Create key**. Name the key and choose an [expiration](https://platform.claude.com/docs/en/manage-claude/authentication#key-expiration). Set **Linked account** to yourself for a personal key, or to a service account for a key shared across multiple users. You can also scope the key to a specific workspace, which lets you skip setting a workspace ID manually in future requests.
-+ * **Use the key:** Send it as `Authorization: Bearer <key>` on direct HTTP requests, or set the `ANTHROPIC_API_KEY` environment variable and the [client SDKs](https://platform.claude.com/docs/en/cli-sdks-libraries/overview) pick it up automatically.
-+ Authorization: Bearer YOUR_API_KEY
-+ The legacy `x-api-key: YOUR_API_KEY` header is still supported in place of `Authorization`.
-+ Store API keys in a secrets manager, rotate them periodically, and disable or delete any key you suspect has leaked. On the [API keys page](https://platform.claude.com/settings/keys), **Disable** is reversible (the Admin API reports the key's `status` as `"inactive"`, and **Re-enable** returns it to `"active"`), while **Delete** is permanent: the key is archived and still appears in [List API Keys](https://platform.claude.com/docs/en/api/admin/api_keys/list) with `status: "archived"`. Expired keys can only be deleted. You can also set an [expiration](https://platform.claude.com/docs/en/manage-claude/authentication#key-expiration) when you create a key to limit how long a leaked credential stays usable.
-+ ### Select a workspace
-+ API keys that are created for a specific workspace only work in that workspace, and API requests using these keys can omit the workspace ID.
-+ If your API key isn't scoped to a workspace, you must specify the workspace ID in the `anthropic-workspace-id` header for each request. See the following example for how to set this header in a request or in SDKs.
-+ The [Admin API](https://platform.claude.com/docs/en/manage-claude/admin-api) accepts a personal key or service account key only if the key isn't scoped to a specific workspace.
-+ You can find a workspace's ID in the **ID** column of [Settings → Workspaces](https://platform.claude.com/settings/workspaces) in the Claude Console, or by calling the [List Workspaces](https://platform.claude.com/docs/en/api/admin/workspaces/list) endpoint. List Workspaces omits the Default Workspace; its ID is in the `anthropic-workspace-id` [response header](https://platform.claude.com/docs/en/manage-claude/workspaces#identify-the-workspace-behind-an-api-response) of any request that runs there.
-+ # Required on every request for a multi-workspace key.
-+ # Omit the anthropic-workspace-id header for a single-workspace key.
-+ -H "anthropic-workspace-id: wrkspc_01JwQvzr7rXLA5AGx3HKfFUJ" \
-+ # Required on every command for a multi-workspace key.
-+ # Omit --workspace-id for a single-workspace key.
-+ ant messages create \
-+ --workspace-id wrkspc_01JwQvzr7rXLA5AGx3HKfFUJ \
-+ --model claude-opus-5 \
-+ --max-tokens 1024 \
-+ --message '{role: user, content: "Hello, Claude"}'
-+ client = Anthropic() # reads ANTHROPIC_API_KEY
-+ # Required on every request for a multi-workspace key.
-+ # Omit extra_headers for a single-workspace key.
-+ message = client.messages.create(
-+ model="claude-opus-5",
-+ max_tokens=1024,
-… diff truncated (164 added / 8 removed lines)
+- Store API keys in a secrets manager, rotate them periodically, and disable or delete any key you suspect has leaked. On the [API keys page](https://platform.claude.com/settings/keys), **Disable** is reversible (the Admin API reports the key's `status` as `"inactive"`, and **Re-enable** returns it to `"active"`), while **Delete** is permanent: the key is archived and still appears in [List API Keys](https://platform.claude.com/docs/en/api/admin/api_keys/list) with `status: "archived"`. Expired keys can only be deleted. You can also set an [expiration](https://platform.claude.com/docs/en/manage-claude/authentication#key-expiration) when you create a key to limit how long a leaked credential stays usable.
+- "model": "claude-opus-5",
+- You can find a workspace's ID in the **ID** column of [Settings → Workspaces](https://platform.claude.com/settings/workspaces) in the Claude Console, or by calling the [List Workspaces](https://platform.claude.com/docs/en/api/admin/workspaces/list) endpoint. List Workspaces omits the Default Workspace; its ID is in the `anthropic-workspace-id` [response header](https://platform.claude.com/docs/en/manage-claude/workspaces#identify-the-workspace-behind-an-api-response) of any request that runs there.
+- "model": "claude-opus-5",
+- --model claude-opus-5 \
+- model="claude-opus-5",
+- model: "claude-opus-5",
+- Model = Model.ClaudeOpus5,
+- Model: anthropic.ModelClaudeOpus5,
+- .model(Model.CLAUDE_OPUS_5)
+- model: Model::CLAUDE_OPUS_5,
+- model: Anthropic::Model::CLAUDE_OPUS_5,
+- The Console API keys table shows each key's expiration, and the Admin API reports each key's `expires_at` timestamp on the [List API Keys](https://platform.claude.com/docs/en/api/admin/api_keys/list) and [Retrieve API Key](https://platform.claude.com/docs/en/api/admin/api_keys/retrieve) endpoints, so you can audit and rotate keys before they expire. The field is `null` for keys without an expiration.
++ Store API keys in a secrets manager, rotate them periodically, and disable or delete any key you suspect has leaked. On the [API keys page](https://platform.claude.com/settings/keys), **Disable** is reversible (the Admin API reports the key's `status` as `"inactive"`, and **Re-enable** returns it to `"active"`), while **Delete** is permanent: the key is archived and still appears in [List API Keys](https://platform.claude.com/docs/en/api/organization/api_keys/list) with `status: "archived"`. Expired keys can only be deleted. You can also set an [expiration](https://platform.claude.com/docs/en/manage-claude/authentication#key-expiration) when you create a key to limit how long a leaked credential stays usable.
++ "model": "claude-opus-5-5",
++ You can find a workspace's ID in the **ID** column of [Settings → Workspaces](https://platform.claude.com/settings/workspaces) in the Claude Console, or by calling the [List Workspaces](https://platform.claude.com/docs/en/api/organization/workspaces/list) endpoint. List Workspaces includes the Default Workspace only when you pass `include_default=true`; its ID is also in the `anthropic-workspace-id` [response header](https://platform.claude.com/docs/en/manage-claude/workspaces#identify-the-workspace-behind-an-api-response) of any request that runs there.
++ "model": "claude-opus-5-5",
++ --model claude-opus-5-5 \
++ model="claude-opus-5-5",
++ model: "claude-opus-5-5",
++ Model = Model.ClaudeOpus5_5,
++ Model: anthropic.ModelClaudeOpus5_5,
++ .model(Model.CLAUDE_OPUS_5_5)
++ model: Model::CLAUDE_OPUS_5_5,
++ model: Anthropic::Model::CLAUDE_OPUS_5_5,
++ The Console API keys table shows each key's expiration, and the Admin API reports each key's `expires_at` timestamp on the [List API Keys](https://platform.claude.com/docs/en/api/organization/api_keys/list) and [Retrieve API Key](https://platform.claude.com/docs/en/api/organization/api_keys/retrieve) endpoints, so you can audit and rotate keys before they expire. The field is `null` for keys without an expiration.
 ```
 
 ### anthropic.platform.data-retention
@@ -169,43 +194,34 @@ Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
 - Vendor: Anthropic
 - Source: https://platform.claude.com/docs/en/manage-claude/api-and-data-retention
 - Change: changed
-- Prior hash: 49cd0a59f8f2b7ed7f526f64c5e6f663329a3096b2600b210f7e8185f4949391
-- Current hash: 433cd20a2b6f30d93b4c944a869839e3568deb5e5597a4daf9e4ac4b1f0e17c0
+- Prior hash: 433cd20a2b6f30d93b4c944a869839e3568deb5e5597a4daf9e4ac4b1f0e17c0
+- Current hash: b3110fc73d09ab08253832811715d86ce1a175d5161a2a9821f794cc8b2381bb
 
 ```diff
-- Several retention models sit outside the ZDR and HIPAA arrangements described on this page. Data accessible through the [Compliance API](https://platform.claude.com/docs/en/manage-claude/compliance-api) follows its own retention model. The [Activity Feed](https://platform.claude.com/docs/en/manage-claude/compliance-activity-feed) retains data for 6 years. Chat, file, and project content from claude.ai follows your organization's retention policy set in [claude.ai > Organization settings > Data and privacy](https://claude.ai/admin-settings/data-privacy-controls). [Local session transcripts](https://platform.claude.com/docs/en/manage-claude/compliance-sessions#retrieve-local-sessions) (Cowork and Claude Code on users' machines) are stored for 6 years by default, or for your organization's custom conversation retention period when a finite one is set (the same claude.ai setting). [Remote session transcripts](https://platform.claude.com/docs/en/manage-claude/compliance-sessions#retrieve-remote-sessions) (Cowork in the cloud) are retained for 6 years. The Compliance API does not capture local sessions for which ZDR is in effect, or any local sessions from organizations with HIPAA readiness enabled.
-- * **Console and Workbench:** Any usage on Claude Console or the Workbench prompt-testing interface.
-- * **Claude Fable 5 and Claude Mythos 5:** These models require 30-day data retention and are not available under ZDR. See [Model-specific data retention requirements](https://platform.claude.com/docs/en/manage-claude/api-and-data-retention#model-specific-data-retention-requirements).
-- * **Console and Workbench:** Usage through the Claude Console interface (enabling HIPAA readiness from Console settings is supported; processing PHI through the Console is not covered).
-- The error message lists the non-eligible features detected in the request; remove them and retry. The phrase "without Zero Data Retention" is the API's own wording and does not change the resolution.
-- HIPAA readiness controls are applied to your organization as soon as you accept. Once HIPAA readiness is enabled for your organization, the configuration is permanent and cannot be disabled by an administrator. The API automatically enforces feature restrictions, returning an error for requests that use non-eligible features. See [HIPAA error handling](https://platform.claude.com/docs/en/manage-claude/api-and-data-retention#hipaa-error-handling).
-- Claude Fable 5 and Claude Mythos 5 are designated Covered Models (see the [Covered Models support article](https://support.claude.com/en/articles/15425695)) and require 30-day data retention; ZDR is therefore not available for either model. On the Claude API, requests to Claude Fable 5 from an organization whose data retention configuration does not meet this requirement return a `400 invalid_request_error`:
-- Organizations with a ZDR arrangement can make Claude Fable 5 and Claude Mythos 5 available in a specific workspace by enabling 30-day retention for that workspace only. Other workspaces in the organization keep zero data retention.
-- Requests to Claude Fable 5 and Claude Mythos 5 from this workspace now succeed. Workspaces without an override continue to follow the organization default.
-- * **No:** The feature is not eligible. Under HIPAA readiness, the API blocks requests that include a "No" feature and returns a `400` error. Under ZDR, the API does **not** block these features; using one is a choice to step outside your ZDR arrangement for that specific data, and the feature's own documented retention policy applies. Features marked "No" for ZDR are typically stateful (they store jobs, files, or container state), which is why they cannot be zero-retention.
-- | [Computer use](https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool) | `/v1/messages` (with `computer` tool) | <Eligible>Yes</Eligible> | <Eligible>Yes</Eligible> | Client-side tool where screenshots and files are captured and stored in your environment, not by Anthropic. See [Computer use](https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool#data-retention). |
-- | [Files API](https://platform.claude.com/docs/en/build-with-claude/files) | `/v1/files` | <Eligible status="no">No</Eligible> | <Eligible status="no">No</Eligible> | Files retained until explicitly deleted. See [Files API](https://platform.claude.com/docs/en/build-with-claude/files#data-retention). |
-- | [Web fetch](https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-fetch-tool) | `/v1/messages` (with `web_fetch` tool) | <Eligible>Yes</Eligible> | <Eligible status="no">No</Eligible> | Fetched web content returned in the API response. [Dynamic filtering](https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-search-tool#dynamic-filtering) is not eligible for ZDR or HIPAA. Website publishers may retain request data (such as fetched URLs and request metadata) according to their own policies. |
-- The API returns a `400` error with an `invalid_request_error` type. The error message identifies which features are not available. Remove the non-eligible features from your request and retry. See [HIPAA error handling](https://platform.claude.com/docs/en/manage-claude/api-and-data-retention#hipaa-error-handling).
-- No. HIPAA readiness is enforced at the organization level and automatically blocks all non-eligible features. Use a separate organization for workloads that do not require HIPAA readiness.
-- * [Files API reference](https://platform.claude.com/docs/en/api/beta/files/upload)
-+ Several retention models sit outside the ZDR and HIPAA arrangements described on this page. Data accessible through the [Compliance API](https://platform.claude.com/docs/en/manage-claude/compliance-api) follows its own retention model. The [Activity Feed](https://platform.claude.com/docs/en/manage-claude/compliance-activity-feed) retains data for 6 years. Chat, file, and project content from claude.ai follows your organization's retention policy set in [claude.ai > Organization settings > Data and privacy](https://claude.ai/admin-settings/data-privacy-controls). [Local session transcripts](https://platform.claude.com/docs/en/manage-claude/compliance-sessions#retrieve-local-sessions) (from sessions on users' machines, in apps such as Cowork and Claude Code) are stored for 6 years by default, or for your organization's custom conversation retention period when a finite one is set (the same claude.ai setting). [Remote session transcripts](https://platform.claude.com/docs/en/manage-claude/compliance-sessions#retrieve-remote-sessions) (Cowork in the cloud) are retained for 6 years, unless a user deletes the session sooner. The Compliance API does not capture local sessions for which ZDR is in effect, or any local sessions from organizations with HIPAA readiness enabled.
-+ * **Claude Console:** Any usage in the Claude Console, including playground.
-+ * **Claude Fable 5.1, Claude Mythos 5.1, Claude Fable 5, and Claude Mythos 5:** These models require 30-day data retention and are not available under ZDR unless expressly authorized by Anthropic. See [Model-specific data retention requirements](https://platform.claude.com/docs/en/manage-claude/api-and-data-retention#model-specific-data-retention-requirements).
-+ * **Claude Console:** Usage through the Claude Console interface (enabling HIPAA readiness from Console settings is supported; processing PHI through the Console is not covered).
-+ The error message lists the non-eligible features detected in the request; remove them and retry. The phrase "without Zero Data Retention" is the API's own wording and does not change the resolution. Client-side tools whose Details column in the [feature eligibility table](https://platform.claude.com/docs/en/manage-claude/api-and-data-retention#feature-eligibility) says they are not blocked are accepted but remain outside HIPAA readiness.
-+ HIPAA readiness controls are applied to your organization as soon as you accept. Once HIPAA readiness is enabled for your organization, the configuration is permanent and cannot be disabled by an administrator. The API automatically enforces feature restrictions, returning an error for requests that use non-eligible features. See [HIPAA error handling](https://platform.claude.com/docs/en/manage-claude/api-and-data-retention#hipaa-error-handling) for the error and the client-side tool exception.
-+ Claude Fable 5.1, Claude Mythos 5.1, Claude Fable 5, and Claude Mythos 5 are designated Covered Models (see the [Covered Models support article](https://support.claude.com/en/articles/15425695)) and require 30-day data retention; ZDR is therefore not available for any of them unless expressly authorized by Anthropic. On the Claude API, requests to Claude Fable 5 from an organization whose data retention configuration does not meet this requirement return a `400 invalid_request_error`:
-+ Organizations with a ZDR arrangement can make these models available in a specific workspace by enabling 30-day retention for that workspace only. Other workspaces in the organization keep zero data retention.
-+ Requests to Covered Models from this workspace now succeed. Workspaces without an override continue to follow the organization default.
-+ * **No:** The feature is not eligible. Under HIPAA readiness, the API blocks requests that include a "No" feature and returns a `400` error, unless the feature's Details column says otherwise. Under ZDR, the API does **not** block these features; using one is a choice to step outside your ZDR arrangement for that specific data, and the feature's own documented retention policy applies. Features marked "No" for ZDR are typically stateful (they store jobs, files, or container state), which is why they cannot be zero-retention.
-+ | [Browser use](https://platform.claude.com/docs/en/agents-and-tools/tool-use/browser-use-tool) | `/v1/messages` (with `browser` toolset) | <Eligible>Yes</Eligible> | <Eligible status="no">No</Eligible> | Client-side tool. Anthropic does not run browser actions or retain page content beyond standard API handling. Not covered under HIPAA readiness; requests that include the browser use tool are not blocked. See [Browser use](https://platform.claude.com/docs/en/agents-and-tools/tool-use/browser-use-tool#data-retention). |
-+ | [Computer use](https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool) | `/v1/messages` (with `computer` toolset or tool) | <Eligible>Yes</Eligible> | <Eligible>Yes</Eligible> | Client-side tool where screenshots and files are captured and stored in your environment, not by Anthropic. See [Computer use](https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool#data-retention). |
-+ | [Files API](https://platform.claude.com/docs/en/build-with-claude/files) | `/v1/files` | <Eligible status="no">No</Eligible> | <Eligible status="no">No</Eligible> | Files retained until explicitly deleted or they reach their configured expiration. See [Files API](https://platform.claude.com/docs/en/build-with-claude/files#data-retention). |
-+ | [Web fetch](https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-fetch-tool) | `/v1/messages` (with `web_fetch` tool) | <Eligible>Yes</Eligible> | <Eligible status="no">No</Eligible> | Fetched web content returned in the API response. [Dynamic filtering](https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-fetch-tool#dynamic-filtering) is not eligible for ZDR or HIPAA. Website publishers may retain request data (such as fetched URLs and request metadata) according to their own policies. |
-+ The API returns a `400` error with an `invalid_request_error` type, except for the client-side tools whose Details column in the [feature eligibility table](https://platform.claude.com/docs/en/manage-claude/api-and-data-retention#feature-eligibility) says they are not blocked (those are accepted but remain outside HIPAA readiness). The error message identifies which features are not available. Remove those features from your request and retry. See [HIPAA error handling](https://platform.claude.com/docs/en/manage-claude/api-and-data-retention#hipaa-error-handling).
-+ No. HIPAA readiness is enforced at the organization level and automatically blocks non-eligible features (client-side tools noted in the table's Details column are the exception: they are not blocked, but they are still outside HIPAA readiness). Use a separate organization for workloads that do not require HIPAA readiness.
-+ * [Files API reference](https://platform.claude.com/docs/en/api/files/upload)
+- Several retention models sit outside the ZDR and HIPAA arrangements described on this page. Data accessible through the [Compliance API](https://platform.claude.com/docs/en/manage-claude/compliance-api) follows its own retention model. The [Activity Feed](https://platform.claude.com/docs/en/manage-claude/compliance-activity-feed) retains data for 6 years. Chat, file, and project content from claude.ai follows your organization's retention policy set in [claude.ai > Organization settings > Data and privacy](https://claude.ai/admin-settings/data-privacy-controls). [Local session transcripts](https://platform.claude.com/docs/en/manage-claude/compliance-sessions#retrieve-local-sessions) (from sessions on users' machines, in apps such as Cowork and Claude Code) are stored for 6 years by default, or for your organization's custom conversation retention period when a finite one is set (the same claude.ai setting). [Remote session transcripts](https://platform.claude.com/docs/en/manage-claude/compliance-sessions#retrieve-remote-sessions) (Cowork in the cloud) are retained for 6 years, unless a user deletes the session sooner. The Compliance API does not capture local sessions for which ZDR is in effect, or any local sessions from organizations with HIPAA readiness enabled.
+- * **Claude Code:** ZDR applies when Claude Code is used with API keys from a Commercial organization (an organization under Anthropic's Commercial Terms of Service, as distinct from a consumer Claude account) or through Claude Enterprise with ZDR enabled. If metrics logging is enabled in Claude Code, productivity data such as usage statistics is exempted from ZDR and may be retained. See the [Claude Code ZDR documentation](https://code.claude.com/docs/en/zero-data-retention) for full details.
+- * **Claude Teams and Claude Enterprise product interfaces:** These interfaces are not ZDR-eligible. The exception is Claude Code used through Claude Enterprise with ZDR enabled; see [What ZDR covers](https://platform.claude.com/docs/en/manage-claude/api-and-data-retention#what-zdr-covers).
+- <Step title="Open your organization's privacy settings">
+- In [Claude Console > Settings > Privacy](https://platform.claude.com/settings/privacy), organization admins with the HIPAA management permission see a **HIPAA compliance** card. If your organization is eligible but you don't see the option to enable, ask an organization admin to complete these steps.
+- In [Claude Console > Settings > Workspaces](https://platform.claude.com/settings/workspaces), select the workspace and open its **Privacy controls** tab.
+- | [Context management (compaction)](https://platform.claude.com/docs/en/build-with-claude/compaction) | `/v1/messages` (with `context_management`) | <Eligible>Yes</Eligible> | <Eligible status="no">No</Eligible> | Server-side compaction results are returned and round-tripped statelessly through the API response. |
+- Eligible organizations can enable HIPAA readiness directly in [Claude Console > Settings > Privacy](https://platform.claude.com/settings/privacy) by reviewing and executing Anthropic's standard BAA; see [Getting started with HIPAA readiness](https://platform.claude.com/docs/en/manage-claude/api-and-data-retention#getting-started-with-hipaa-readiness). If your organization requires a negotiated BAA, or self-serve enablement isn't available for your organization, contact the [Anthropic sales team](https://claude.com/contact-sales).
+- Claude Code is eligible for ZDR through two paths:
+- * **API keys:** Claude Code used with pay-as-you-go API keys from a Commercial organization
+- * **Claude Enterprise:** Claude Code used through Claude Enterprise with ZDR enabled for the organization
+- For full details on ZDR for Claude Code on Claude Enterprise, including disabled features and how to request enablement, see the [Claude Code ZDR documentation](https://code.claude.com/docs/en/zero-data-retention).
++ Several retention models sit outside the ZDR and HIPAA arrangements described on this page. Data accessible through the [Compliance API](https://platform.claude.com/docs/en/manage-claude/compliance-api) follows its own retention model. The [Activity Feed](https://platform.claude.com/docs/en/manage-claude/compliance-activity-feed) retains data for 6 years. Chat, file, and project content from claude.ai follows your organization's retention policy set in [claude.ai > Organization settings > Data and privacy](https://claude.ai/admin-settings/data-privacy-controls), unless a user deletes it sooner. [Local session transcripts](https://platform.claude.com/docs/en/manage-claude/compliance-sessions#retrieve-local-sessions) (from sessions on users' machines, in apps such as Cowork and Claude Code) are stored for 6 years by default, or for your organization's custom conversation retention period when a finite one is set (the same claude.ai setting). [Remote session transcripts](https://platform.claude.com/docs/en/manage-claude/compliance-sessions#retrieve-remote-sessions) (Cowork in the cloud) are retained for 6 years, unless a user deletes the session sooner. The Compliance API does not capture local sessions for which ZDR is in effect. For organizations with HIPAA readiness enabled, it captures Cowork and Claude Code local sessions only and stores their transcripts for 30 days.
++ * **Claude Code with API keys:** ZDR applies when Claude Code is used with API keys from a Commercial organization (an organization under Anthropic's Commercial Terms of Service, as distinct from a consumer Claude account). If metrics logging is enabled in Claude Code, productivity data such as usage statistics is exempted from ZDR and may be retained. Claude Code on Claude Enterprise is not covered by this arrangement and has a separate ZDR offering; see [What ZDR does not cover](https://platform.claude.com/docs/en/manage-claude/api-and-data-retention#what-zdr-does-not-cover).
++ * **Claude Teams and Claude Enterprise product interfaces:** These interfaces are not ZDR-eligible. The one exception is Claude Code on Claude Enterprise, which has its own ZDR offering, separate from the ZDR arrangement described on this page. That offering is available only to qualified accounts on Claude Enterprise and requires separate enablement by Anthropic. See the [Claude Code ZDR documentation](https://code.claude.com/docs/en/zero-data-retention), which applies to Claude Enterprise organizations only.
++ <Step title="Open your organization's data retention settings">
++ In [Claude Console > Settings > Data retention](https://platform.claude.com/settings/privacy), organization admins with the HIPAA management permission see a **HIPAA compliance** card. If your organization is eligible but you don't see the option to enable, ask an organization admin to complete these steps.
++ In [Claude Console > Settings > Workspaces](https://platform.claude.com/settings/workspaces), select the workspace. In the panel that opens, click **Security** to open the workspace's Security page. Under **Data retention**, click **Manage in Privacy controls**.
++ | [Context management (compaction)](https://platform.claude.com/docs/en/build-with-claude/compaction-threshold) | `/v1/messages` (with `context_management`) | <Eligible>Yes</Eligible> | <Eligible status="no">No</Eligible> | Server-side compaction results are returned and round-tripped statelessly through the API response. |
++ Eligible organizations can enable HIPAA readiness directly in [Claude Console > Settings > Data retention](https://platform.claude.com/settings/privacy) by reviewing and executing Anthropic's standard BAA; see [Getting started with HIPAA readiness](https://platform.claude.com/docs/en/manage-claude/api-and-data-retention#getting-started-with-hipaa-readiness). If your organization requires a negotiated BAA, or self-serve enablement isn't available for your organization, contact the [Anthropic sales team](https://claude.com/contact-sales).
++ Claude Code is eligible for ZDR under two separate offerings:
++ * **API keys:** Claude Code used with pay-as-you-go API keys from a Commercial organization is covered when that organization has a ZDR arrangement for the Claude API, which this page describes.
++ * **Claude Enterprise:** Claude Code used through Claude Enterprise is covered by a separate offering, ZDR for Claude Code on Claude Enterprise, when Anthropic has enabled it for the organization.
++ For full details on ZDR for Claude Code on Claude Enterprise, including disabled features and how to request enablement, see the [Claude Code ZDR documentation](https://code.claude.com/docs/en/zero-data-retention). That documentation applies to Claude Enterprise organizations only and does not describe the ZDR arrangement for the Claude API.
 ```
 
 ### anthropic.platform.release-notes
@@ -213,89 +229,78 @@ Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
 - Vendor: Anthropic
 - Source: https://platform.claude.com/docs/en/release-notes/overview
 - Change: changed
-- Prior hash: 69bed00add900550b00b736d3da4a747a215df7fc72454c4f074e45e3eab50a2
-- Current hash: 6ad4dafb0e1ebb480b0fc37f66899ce0169662bc9265b5c3f82256c6d50535ba
+- Prior hash: 6ad4dafb0e1ebb480b0fc37f66899ce0169662bc9265b5c3f82256c6d50535ba
+- Current hash: edfa64c9a06b74cbaaff88aea059c1cc67cfc89734e728b03410dd1f182563f4
 
 ```diff
-- * We've retired the Claude Opus 4.1 model (`claude-opus-4-1-20250805`). All requests to this model on the Claude API will now return an error. We recommend upgrading to [Claude Opus 5](https://platform.claude.com/docs/en/about-claude/models/overview#latest-models-comparison). Researchers can request ongoing access through the [External Researcher Access Program](https://support.claude.com/en/articles/9125743-what-is-the-external-researcher-access-program).
-- * We've launched **Claude Opus 5** (`claude-opus-5`), a step-change improvement over Claude Opus 4.8. Claude Opus 5 supports a [1M token context window](https://platform.claude.com/docs/en/build-with-claude/context-windows) (both the default and the maximum), 128k max output tokens, and [thinking](https://platform.claude.com/docs/en/build-with-claude/thinking) on by default, at $5 / $25 USD per MTok, the same pricing as Claude Opus 4.8. It's available on the Claude API, [Claude in Amazon Bedrock](https://platform.claude.com/docs/en/build-with-claude/claude-in-amazon-bedrock), [Claude on Google Cloud](https://platform.claude.com/docs/en/build-with-claude/claude-on-vertex-ai), and [Claude in Microsoft Foundry](https://platform.claude.com/docs/en/build-with-claude/claude-in-microsoft-foundry). See [What's new in Claude Opus 5](https://platform.claude.com/docs/en/about-claude/models/whats-new-opus-5) for new features, behavior changes, and migration guidance, and the [models overview](https://platform.claude.com/docs/en/about-claude/models/overview) for complete specs.
-- * On Claude Opus 5, disabling thinking is allowed only at effort `high` or below: `thinking: {"type": "disabled"}` with effort `xhigh` or `max` returns a 400 error, a breaking change from Claude Opus 4.8. See [What's new in Claude Opus 5](https://platform.claude.com/docs/en/about-claude/models/whats-new-opus-5#behavior-changes).
-- * We've removed [fast mode](https://platform.claude.com/docs/en/build-with-claude/fast-mode) for Claude Opus 4.7. Requests to `claude-opus-4-7` with `speed: "fast"` now return an error; unlike Claude Opus 4.6, they do not fall back to standard speed. Claude Opus 4.7 itself remains available at standard speed. To continue using fast mode, migrate to [Claude Opus 5](https://platform.claude.com/docs/en/about-claude/models/migration-guide#migrating-from-claude-opus-47) or Claude Opus 4.8. Read more in [Fast mode](https://platform.claude.com/docs/en/build-with-claude/fast-mode#supported-models).
-- * We've launched **Claude Sonnet 5** (`claude-sonnet-5`), the next generation of our Sonnet model family, at introductory pricing of $2 / $10 per MTok (made the standard price on August 10, 2026). Claude Sonnet 5 supports a [1M token context window](https://platform.claude.com/docs/en/build-with-claude/context-windows), 128k max output tokens, and the same set of tools and platform features as Claude Sonnet 4.6, except [Priority Tier](https://platform.claude.com/docs/en/api/service-tiers#supported-models), which is not available on Claude Sonnet 5. Three behavior changes apply when migrating: [adaptive thinking](https://platform.claude.com/docs/en/build-with-claude/thinking) is now on by default; manual extended thinking (`thinking: {type: "enabled", budget_tokens: N}`) is removed and returns a 400 error (it was deprecated on Sonnet 4.6); and setting sampling parameters (`temperature`, `top_p`, `top_k`) to non-default values returns a 400 error. Claude Sonnet 5 also uses a new tokenizer that produces approximately 30% more tokens for the same text. The exact increase depends on the content and workload shape. See [What's new in Claude Sonnet 5](https://platform.claude.com/docs/en/about-claude/models/whats-new-sonnet-5) for details and migration guidance. For behavioral differences and model-specific prompting patterns, see [Prompting Claude Sonnet 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5).
-- * The Python, TypeScript, Go, Java, Ruby, PHP, and C# SDKs now include support for `code_execution_20260120`, the [code execution tool](https://platform.claude.com/docs/en/agents-and-tools/tool-use/code-execution-tool) version that adds REPL state persistence and is the minimum version for [programmatic tool calling](https://platform.claude.com/docs/en/agents-and-tools/tool-use/programmatic-tool-calling). To adopt it, set the tool's `type` to `code_execution_20260120`; no beta header is required. It's available on Claude Fable 5, Claude Mythos 5, Claude Opus 4.5 and newer, and Claude Sonnet 4.5 and newer; see the [model compatibility table](https://platform.claude.com/docs/en/agents-and-tools/tool-use/code-execution-tool#model-compatibility).
-- * We've retired the Claude Sonnet 4 model (`claude-sonnet-4-20250514`) and the Claude Opus 4 model (`claude-opus-4-20250514`). All requests to these models on the Claude API will now return an error. We recommend upgrading to [Claude Sonnet 4.6](https://platform.claude.com/docs/en/about-claude/models/overview#latest-models-comparison) and [Claude Opus 4.8](https://platform.claude.com/docs/en/about-claude/models/overview#latest-models-comparison) respectively. Researchers can request ongoing access through the [External Researcher Access Program](https://support.claude.com/en/articles/9125743-what-is-the-external-researcher-access-program).
-- * We've launched **Claude Fable 5** (`claude-fable-5`), our most capable widely released model, alongside **Claude Mythos 5** (`claude-mythos-5`) for Project Glasswing participants. Both models support a [1M token context window](https://platform.claude.com/docs/en/build-with-claude/context-windows) by default, 128k max output tokens, and always-on [adaptive thinking](https://platform.claude.com/docs/en/build-with-claude/thinking). See [Introducing Claude Fable 5 and Claude Mythos 5](https://platform.claude.com/docs/en/about-claude/models/introducing-claude-fable-5-and-claude-mythos-5) for capabilities, API changes, and availability.
-- * On Claude Fable 5 and Claude Mythos 5, [adaptive thinking](https://platform.claude.com/docs/en/build-with-claude/thinking) is the only thinking mode: `thinking: {"type": "disabled"}` is not supported, and manual extended thinking budgets and assistant prefill are not supported (both return a 400 error). See [Migrating from Claude Mythos Preview to Claude Mythos 5](https://platform.claude.com/docs/en/about-claude/models/migration-guide#migrating-from-claude-mythos-preview).
-- * We've launched **Claude Opus 4.8** (claude-opus-4-8), our most capable generally available model. Claude Opus 4.8 supports a [1M token context window](https://platform.claude.com/docs/en/build-with-claude/context-windows) by default on the Claude API, Amazon Bedrock, Google Cloud, and Microsoft Foundry, 128k max output tokens, and the same set of tools and platform features as Claude Opus 4.7. See the [migration guide](https://platform.claude.com/docs/en/about-claude/models/migration-guide) for baseline settings, features, and migration guidance.
-- * [Workload Identity Federation](https://platform.claude.com/docs/en/manage-claude/workload-identity-federation) is now generally available. Authenticate workloads to the Claude API with short-lived OIDC tokens from your own identity provider (AWS IAM, Google Cloud, GitHub Actions, Kubernetes, Microsoft Entra ID, Okta, SPIFFE, and more) instead of long-lived static API keys. Configure issuers and federation rules in the Claude Console, and the SDK handles token exchange and refresh automatically. See [Authentication](https://platform.claude.com/docs/en/manage-claude/authentication).
-- * We've retired the 1M token context window beta (`context-1m-2025-08-07`) for Claude Sonnet 4.5 and Claude Sonnet 4. The beta header now has no effect on these models, and requests exceeding the standard 200k-token context window return an error. To use the 1M context window, migrate to [Claude Sonnet 4.6](https://platform.claude.com/docs/en/about-claude/models/overview#latest-models-comparison) or [Claude Opus 4.6](https://platform.claude.com/docs/en/about-claude/models/overview#latest-models-comparison), where it's generally available at standard pricing with no beta header required.
-- * We've retired the Claude Haiku 3 model (`claude-3-haiku-20240307`). All requests to this model will now return an error. We recommend upgrading to [Claude Haiku 4.5](https://platform.claude.com/docs/en/about-claude/models/overview#latest-models-comparison).
-- * We've launched [Claude Opus 4.7](https://www.anthropic.com/news/claude-opus-4-7), our most capable generally available model for complex reasoning and agentic coding, at the same $5 / $25 per MTok pricing as Opus 4.6. See [What's new in Claude Opus 4.7](https://platform.claude.com/docs/en/about-claude/models/whats-new-claude-4-7) for capability improvements, new features, and the updated tokenizer. Opus 4.7 includes API breaking changes versus Opus 4.6; see the [migration guide](https://platform.claude.com/docs/en/about-claude/models/migration-guide) before upgrading.
-- * We announced the deprecation of the Claude Sonnet 4 model (`claude-sonnet-4-20250514`) and the Claude Opus 4 model (`claude-opus-4-20250514`), with retirement on the Claude API scheduled for June 15, 2026. We recommend migrating to [Claude Sonnet 4.6](https://platform.claude.com/docs/en/about-claude/models/overview#latest-models-comparison) and [Claude Opus 4.8](https://platform.claude.com/docs/en/about-claude/models/migration-guide) respectively. Read more in [Model deprecations](https://platform.claude.com/docs/en/about-claude/model-deprecations).
-- * We're retiring the 1M token context window beta for Claude Sonnet 4.5 and Claude Sonnet 4 on **April 30, 2026**. After that date, the `context-1m-2025-08-07` beta header will have no effect on these models, and requests that exceed the standard 200k-token context window will return an error. To continue using 1M context windows, migrate to [Claude Sonnet 4.6](https://platform.claude.com/docs/en/about-claude/models/overview#latest-models-comparison) or [Claude Opus 4.6](https://platform.claude.com/docs/en/about-claude/models/overview#latest-models-comparison), which support the full 1M token context window at standard pricing with no beta header required.
-- * The [1M token context window](https://platform.claude.com/docs/en/build-with-claude/context-windows) is now generally available for Claude Opus 4.6 and Sonnet 4.6 at standard pricing. Requests over 200k tokens work automatically for these models with no beta header required. The 1M token context window remains in beta for Claude Sonnet 4.5 and Sonnet 4.
-- * We've retired the Claude Sonnet 3.7 model (`claude-3-7-sonnet-20250219`) and the Claude Haiku 3.5 model (`claude-3-5-haiku-20241022`). All requests to Claude Sonnet 3.7 will now return an error. Requests to Claude Haiku 3.5 on the Claude API will now return an error; it remains available on Amazon Bedrock and Google Cloud. We recommend upgrading to [Claude Sonnet 4.6](https://platform.claude.com/docs/en/about-claude/models/overview#latest-models-comparison) and [Claude Haiku 4.5](https://platform.claude.com/docs/en/about-claude/models/overview#latest-models-comparison) respectively. Researchers can request ongoing access through the [External Researcher Access Program](https://support.claude.com/en/articles/9125743-what-is-the-external-researcher-access-program).
-- * We announced the deprecation of the Claude Haiku 3 model (`claude-3-haiku-20240307`), with retirement scheduled for April 20, 2026. We recommend migrating to [Claude Haiku 4.5](https://platform.claude.com/docs/en/about-claude/models/overview#latest-models-comparison). Read more in [Model deprecations](https://platform.claude.com/docs/en/about-claude/model-deprecations).
-- * The [web search tool](https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-search-tool) and [programmatic tool calling](https://platform.claude.com/docs/en/agents-and-tools/tool-use/programmatic-tool-calling) are now generally available (no beta header required). Web search and web fetch now support [dynamic filtering](https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-search-tool#dynamic-filtering), which uses code execution to filter results before they reach the context window for better performance and reduced token cost.
-- * The [code execution tool](https://platform.claude.com/docs/en/agents-and-tools/tool-use/code-execution-tool), [web fetch tool](https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-fetch-tool), [tool search tool](https://platform.claude.com/docs/en/agents-and-tools/tool-use/tool-search-tool), [tool use examples](https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools#providing-tool-use-examples), and [memory tool](https://platform.claude.com/docs/en/agents-and-tools/tool-use/memory-tool) are now generally available (no beta header required).
-- * The [effort parameter](https://platform.claude.com/docs/en/build-with-claude/effort) is now generally available (no beta header required) and supports Claude Opus 4.6. Effort replaces `budget_tokens` for controlling thinking depth on new models.
-- * [Fine-grained tool streaming](https://platform.claude.com/docs/en/agents-and-tools/tool-use/fine-grained-tool-streaming) is now generally available on all models and platforms (no beta header required).
-- * [Structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs) are now generally available on the Claude API for Claude Sonnet 4.5, Claude Opus 4.5, and Claude Haiku 4.5. GA includes expanded schema support, improved grammar compilation latency, and a simplified integration path with no beta header required. The `output_format` parameter has moved to `output_config.format`. Existing beta users can continue using the beta header during the transition period. Structured outputs remain in public beta on Amazon Bedrock and Microsoft Foundry.
-- * We've retired the Claude Opus 3 model (`claude-3-opus-20240229`). All requests to this model will now return an error. We recommend upgrading to [Claude Opus 4.5](https://platform.claude.com/docs/en/about-claude/models/overview#latest-models-comparison), which offers significantly improved intelligence at a third of the cost. Researchers can request ongoing access to Claude Opus 3 on the API through the [External Researcher Access Program](https://support.claude.com/en/articles/9125743-what-is-the-external-researcher-access-program).
-- * Search result content blocks are now generally available on Amazon Bedrock. Learn more in [Search results](https://platform.claude.com/docs/en/build-with-claude/search-results).
-- * Learn more in [Agent Skills](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview) and [API reference](https://platform.claude.com/docs/en/api/skills/create-skill)
-- * We've launched [Claude Sonnet 4.5](https://www.anthropic.com/news/claude-sonnet-4-5), our best model for complex agents and coding, with the highest intelligence across most tasks. Learn more in the [models overview](https://platform.claude.com/docs/en/about-claude/models/overview).
-- * The 1-hour cache duration for prompt caching is now generally available. You can now use the extended cache TTL without a beta header. Learn more in [Prompt caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching#1-hour-cache-duration).
-- * Search result content blocks are now generally available on the Claude API and Vertex AI. This feature enables natural citations for RAG applications with proper source attribution. The beta header `search-results-2025-06-09` is no longer required. Learn more in [Search results](https://platform.claude.com/docs/en/build-with-claude/search-results).
-- * We've moved our [Go SDK](https://github.com/anthropics/anthropic-sdk-go) from beta to GA.
-- * We've moved our [Ruby SDK](https://github.com/anthropics/anthropic-sdk-ruby) from beta to GA.
-- * We've moved our [Java SDK](https://github.com/anthropics/anthropic-sdk-java) from beta to GA.
-- The following features are now generally available in the Claude API:
-- * [Models API](https://platform.claude.com/docs/en/api/models/list): Query available models, validate model IDs, and resolve [model aliases](https://platform.claude.com/docs/en/about-claude/models/overview) to their canonical model IDs.
-- * We've moved 8,192 token outputs from beta to general availability for Claude Sonnet 3.5.
-- * [Claude Sonnet 3.5](https://www.anthropic.com/news/claude-3-5-sonnet), our most intelligent model yet, is now generally available across the Claude API, Amazon Bedrock, and Vertex AI.
-- * [Tool use](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview) is now generally available across the Claude API, Amazon Bedrock, and Vertex AI.
-+ The Claude Platform release notes list changes to the Claude API, the client SDKs, and the Claude Console, newest first.
-+ ### September 3, 2026
-+ * Version 1.30.0 of the `ant` CLI adds `ant apply`, which creates and updates agents, environments, skills, memory stores, and deployments from files in your repository. Describe each resource in a file, run `ant apply`, and approve the plan it prints. Commit the `claude-lock.json` lockfile it writes so that later runs, on your machine or in CI, update the same resources instead of creating new ones. See [Manage resources as code with ant apply](https://platform.claude.com/docs/en/cli-sdks-libraries/cli/apply).
-+ ### September 1, 2026
-+ * We've launched **Claude Fable 5.1** (`claude-fable-5-1`), the successor to Claude Fable 5 for long-running agentic coding, knowledge work, and research, alongside **Claude Mythos 5.1** (`claude-mythos-5-1`) for Project Glasswing participants. Both models support a [1M token context window](https://platform.claude.com/docs/en/build-with-claude/context-windows) by default, 128k max output tokens, and always-on [adaptive thinking](https://platform.claude.com/docs/en/build-with-claude/thinking), at $10 / $50 USD per MTok, the same as Claude Fable 5, with cache reads cut to $0.25 per MTok. Claude Fable 5.1 is available on the Claude API, [Claude in Amazon Bedrock](https://platform.claude.com/docs/en/build-with-claude/claude-in-amazon-bedrock), [Claude Platform on AWS](https://platform.claude.com/docs/en/build-with-claude/claude-platform-on-aws), [Claude on Google Cloud](https://platform.claude.com/docs/en/build-with-claude/claude-on-vertex-ai), and [Claude in Microsoft Foundry](https://platform.claude.com/docs/en/build-with-claude/claude-in-microsoft-foundry). See [What's new in Claude Fable 5.1](https://platform.claude.com/docs/en/models/fable-5-1/whats-new-fable-5-1) for capabilities, API changes, and migration guidance.
-+ * Prompt cache reads on Claude Fable 5.1 and Claude Mythos 5.1 cost $0.25 USD per million tokens: 0.025x the base input price, compared with 0.1x on other models. Cache writes are unchanged. See [Prompt caching pricing](https://platform.claude.com/docs/en/about-claude/pricing#prompt-caching).
-+ * On Claude Fable 5.1 and Claude Mythos 5.1, `tool_choice` types `any` and `tool` aren't supported and return a 400 error. `auto` and `none` are unchanged. To guarantee schema-conformant tool inputs, use [strict tool use](https://platform.claude.com/docs/en/agents-and-tools/tool-use/strict-tool-use) or [structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs).
-+ * Thinking blocks produced by Claude Fable 5.1 and Claude Mythos 5.1 are preserved only for the model that produced them or a newer one: earlier models can't read them, and the API drops one replayed to an earlier model. Claude Fable 5.1 accepts thinking blocks from Claude Opus 5, Claude Fable 5, Claude Mythos 5, and earlier Claude models. On Claude Fable 5.1, the API also [checks that nothing before a block has changed](https://platform.claude.com/docs/en/build-with-claude/thinking#preserved-in-conversation): for new accounts created on or after August 31, 2026, replaying one after the `system` prompt, `tools`, or an earlier message changed returns a 400 error. With the `thinking-binding-controls-2026-08-01` beta header, dropped blocks are reported in an `input_transformations` response field, and `thinking.block_binding.prefix_mismatch_behavior` chooses between rejecting and dropping blocks whose history changed. See [Preserved thinking](https://platform.claude.com/docs/en/build-with-claude/thinking#preserved-thinking).
-+ * Per-message effort changes are in beta on Claude Fable 5.1, Claude Mythos 5.1, and Claude Opus 5 on the Claude API. Add a `role: "system"` message with `output_config.effort` inside `messages` to change effort for later turns while preserving the prompt cache. Include the `mid-conversation-output-config-2026-07-01` beta header in your requests. See [Per-message effort](https://platform.claude.com/docs/en/build-with-claude/effort#change-effort-mid-conversation-beta).
-+ * [Turn-scoped system messages](https://platform.claude.com/docs/en/build-with-claude/mid-conversation-system-messages#turn-scoped-system-messages) are in beta (`mid-conversation-system-clear-at-2026-08-21` header). Set `clear_at: "next_user_message"` on a mid-conversation `role: "system"` message and it renders for the current turn only, then stays in the history at no token cost. Per-turn reminders don't accumulate and don't invalidate the prompt cache or later thinking blocks.
-+ * `thinking.display` accepts a third value, `"updates"`, in beta (`thinking-display-updates-2026-08-18` header). Reasoning comes back with an empty `thinking` field, as under `"omitted"`, and the short progress updates that Claude Fable 5.1, Claude Mythos 5.1, and Claude Fable 5 write between tool calls come back as text, at most one `thinking` block before a tool call. See [Progress updates between tool calls](https://platform.claude.com/docs/en/build-with-claude/thinking#progress-updates).
-+ * Text generated by Claude Fable 5.1 and Claude Mythos 5.1 carries Anthropic's text watermark, and supported image, video, and audio files that Claude produces through the [code execution tool](https://platform.claude.com/docs/en/agents-and-tools/tool-use/code-execution-tool) carry C2PA Content Credentials when you retrieve them through the [Files API](https://platform.claude.com/docs/en/build-with-claude/files) on the Claude API. Marking requires no changes to your requests or response handling.
-+ * Like Claude Fable 5, both models require 30-day data retention and aren't available under zero data retention unless expressly authorized by Anthropic. See [Model-specific data retention requirements](https://platform.claude.com/docs/en/manage-claude/api-and-data-retention#model-specific-data-retention-requirements).
-+ * The guides for the Claude Enterprise endpoints of the [Admin API](https://platform.claude.com/docs/en/api/admin) ([user management](https://platform.claude.com/docs/en/manage-claude/user-management) and [spend limits](https://platform.claude.com/docs/en/manage-claude/spend-limits-api)), the [Claude Enterprise Analytics API](https://platform.claude.com/docs/en/manage-claude/analytics-api), and the [Compliance API](https://platform.claude.com/docs/en/manage-claude/compliance-api) now show the `anthropic-version` header; send it on every request to these endpoints, as in the rest of the Claude API. See [API versions](https://platform.claude.com/docs/en/api/versioning).
-+ ### August 27, 2026
-+ * In Python SDK 1.2.0, TypeScript SDK 0.122.0, Go SDK 1.68.0, Java SDK 2.59.0, Ruby SDK 1.67.0, and C# SDK 12.44.0, `client.beta.files` and `client.beta.skills` no longer send the `files-api-2025-04-14` and `skills-2025-10-02` beta headers and return the same shapes as `client.files` and `client.skills`. With this change, `client.beta.skills.delete()` deletes a Skill together with all of its versions, and the beta Messages type `BetaSkill` (the container Skill reference) is renamed `BetaContainerSkill`. Requests that still send the beta headers keep receiving the beta shapes. See [Migrate from `files-api-2025-04-14`](https://platform.claude.com/docs/en/build-with-claude/files#migrate-from-files-api-2025-04-14) and [Migrate from `skills-2025-10-02`](https://platform.claude.com/docs/en/build-with-claude/skills-guide#migrate-from-skills-2025-10-02).
-+ - You can now create **personal keys** and **service account keys** in the Claude Console. They act as you or as a [service account](https://platform.claude.com/docs/en/manage-claude/workload-identity-federation#service-accounts), with the same permissions, and stop working when the linked account is removed from an organization. This lets organization admins more easily track usage for each account, and ensure key usage is legitimate. These API keys can be scoped to a specific workspace or [work on admin endpoints and across any workspace](https://platform.claude.com/docs/en/manage-claude/authentication#select-a-workspace) the account has access to. Workspace API keys remain supported as a legacy option. See [API keys](https://platform.claude.com/docs/en/manage-claude/authentication#api-keys) for more information.
-+ ### August 26, 2026
-+ * The [Compliance API](https://platform.claude.com/docs/en/manage-claude/compliance-api) session endpoints are out of beta for Cowork and Claude Code sessions. See [Retrieve session transcripts](https://platform.claude.com/docs/en/manage-claude/compliance-sessions).
-+ * The [Compliance API](https://platform.claude.com/docs/en/manage-claude/compliance-api) local session endpoints now also return transcripts of Claude Science sessions (`product_surface` value `claude_science`) and Claude for Microsoft 365 sessions in Excel, PowerPoint, Word, and Outlook (`product_surface` values beginning with `office_agents`), in beta for Claude Enterprise organizations, with your existing Compliance Access Key and the `read:compliance_user_data` scope. See [Sessions on users' machines](https://platform.claude.com/docs/en/manage-claude/compliance-sessions#retrieve-local-sessions).
-+ - The [Admin API](https://platform.claude.com/docs/en/manage-claude/admin-api) is now available in the `ant` CLI and the Python, TypeScript, C#, Go, Java, PHP, and Ruby SDKs under `client.beta.organization`. They cover organization info, members, invites, workspaces and workspace members, API keys, rate limits, service accounts, workload identity federation issuers and rules, and customer-managed encryption keys. Usage and cost reports and the Claude Enterprise user-management and analytics endpoints remain curl-only. The CLI and SDKs read an Admin API key from `ANTHROPIC_API_KEY` or an `org:admin` OAuth token from `ANTHROPIC_AUTH_TOKEN`.
-+ ### August 20, 2026
-+ * We've released **v1.0 of the [Python SDK](https://platform.claude.com/docs/en/cli-sdks-libraries/sdks/python)**. The SDK's HTTP layer moves from `httpx` to [httpx2](https://httpx2.pydantic.dev), a maintained, API-compatible fork: build custom `http_client`, `Timeout`, and transport objects from `httpx2` (the `DefaultHttpxClient` helpers are unchanged), and call `httpx2.alias_httpx()` at startup if you rely on tracing or mocking libraries that patch `httpx`. v1.0 requires Python 3.10 or later and removes long-deprecated surface, including the legacy Text Completions API, the `temperature`, `top_p`, and `top_k` parameters on Messages methods, and the tool runner's client-side `compaction_control`. On the async client, `.with_raw_response` results now need `await response.parse()`, and `AnthropicBedrock` now raises an error when no AWS region is configured instead of defaulting to `us-east-1`. See the [v1 migration guide](https://github.com/anthropics/anthropic-sdk-python/blob/main/MIGRATION.md) for every change with before-and-after snippets.
-+ * The [computer use](https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool) and [browser use](https://platform.claude.com/docs/en/agents-and-tools/tool-use/browser-use-tool) toolsets (`computer_toolset_20260801` and `browser_toolset_20260801`) are now available on [Google Cloud](https://platform.claude.com/docs/en/build-with-claude/claude-on-vertex-ai) for Claude Fable 5, Claude Mythos 5, Claude Opus 5, Claude Sonnet 5, and Claude Opus 4.8. Requests use the same `tools` entries as on the Claude API.
-+ ### August 19, 2026
-+ * The [computer use tool](https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool) is out of beta on the Claude API as the `computer_toolset_20260801` toolset: no beta header, batch actions (several actions in one turn), `zoom` enabled by default, and per-member configuration through `configs`. Earlier beta versions remain available. Upgrading an existing integration changes the request shape and tool handling; see [Migrate from `computer_20251124`](https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool#migrate-from-computer-20251124).
-+ * We've launched the [browser use tool](https://platform.claude.com/docs/en/agents-and-tools/tool-use/browser-use-tool) (`browser_toolset_20260801`), a client toolset for driving a browser that your application hosts. It works inside a browser viewport rather than a whole desktop, reading the page itself (its accessibility tree, elements, forms, and tabs) and adding element references, form input, tab management, download reporting, and opt-in file upload on top of screenshot-and-click control.
-+ * Both toolsets are available for Claude Fable 5, Claude Mythos 5, Claude Opus 5, Claude Sonnet 5, and Claude Opus 4.8 on the Claude API.
-+ * The [Files API](https://platform.claude.com/docs/en/build-with-claude/files) is out of beta on the Claude API. Requests to the `/v1/files` endpoints, and Messages API requests that reference an uploaded file, no longer require the `files-api-2025-04-14` beta header. Requests sent without the header use the current response format: [file expiration](https://platform.claude.com/docs/en/build-with-claude/files#file-expiration) (set `expires_in_seconds` when you upload a file; file objects report `expires_at`), and `page` and `next_page` [pagination](https://platform.claude.com/docs/en/api/overview#pagination) plus an `ids[]` filter when you [list files](https://platform.claude.com/docs/en/build-with-claude/files#list-files). `/v1/files` requests that still send the beta header keep working and return the previous response format. To move an existing integration off the header, see [Migrate from `files-api-2025-04-14`](https://platform.claude.com/docs/en/build-with-claude/files#migrate-from-files-api-2025-04-14).
-+ * [Agent Skills](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview) and the Skills API (`/v1/skills`) are out of beta on the Claude API. Requests no longer require the `skills-2025-10-02` beta header, including Messages API requests that load Skills through the `container` parameter. Requests that still send the header continue to work unchanged. See [Using Agent Skills with the API](https://platform.claude.com/docs/en/build-with-claude/skills-guide). To move an existing integration off the header, see [Migrate from `skills-2025-10-02`](https://platform.claude.com/docs/en/build-with-claude/skills-guide#migrate-from-skills-2025-10-02).
-+ * The [Admin API](https://platform.claude.com/docs/en/api/admin) user-management endpoints for **Claude Enterprise** (claude.ai) organizations (members, invites, groups, and custom roles) are out of beta. The `anthropic-beta: ce-user-management-2026-07-13` header is no longer required on group and custom-role requests; requests that still send it are accepted unchanged. See [User management](https://platform.claude.com/docs/en/manage-claude/user-management).
-+ * You can now restrict which sites a Claude Managed Agents agent's `web_search` and `web_fetch` tools can reach. Set `allowed_domains` or `blocked_domains` on the tool's entry in the `agent_toolset_20260401` `configs` array; `web_fetch` also accepts `max_content_tokens` and `web_search` accepts `user_location`. Each `configs` entry is identified by its `name` and typed by an optional `type`, and requests that pass only `name`, `enabled`, and `permission_policy` continue to work; in the typed SDKs, `configs` entries become per-tool types. See [Restrict web search and web fetch domains](https://platform.claude.com/docs/en/managed-agents/tools#restrict-web-search-and-web-fetch-domains).
-+ * Claude Managed Agents sessions that run in a [self-hosted sandbox](https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes) can now attach [memory stores](https://platform.claude.com/docs/en/managed-agents/memory). The Python, TypeScript, and Go SDK workers download each attached store into the sandbox at its `mount_path` and sync the agent's changes back to the store. See [Use memory stores](https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes#use-memory-stores).
-+ * The session viewer in the Claude Console has been redesigned with a timeline minimap, a transcript grouped by model request, and an Inspector panel for session details and cost, raw events, per-tool statistics, mounted resources, and per-thread activity. See [Console observability](https://platform.claude.com/docs/en/managed-agents/events-and-streaming#console-observability).
-+ ### August 18, 2026
-+ * Workbench is now [**playground**](https://platform.claude.com/playground) in the Claude Console. Playground supports every Messages API parameter and includes templates that demonstrate API features such as code execution and web search. It shows the full SDK request and the API response for each run, to help you understand the API and build with it. For more, see the [Claude Help Center](https://support.claude.com/en/articles/8606378-how-do-i-use-playground) or try it at [platform.claude.com/playground](https://platform.claude.com/playground).
-+ * We've retired the Claude Opus 4.1 model (`claude-opus-4-1-20250805`). All requests to this model on the Claude API will now return an error. We recommend upgrading to [Claude Opus 5](https://platform.claude.com/docs/en/models/overview#latest-models-comparison). Researchers can request ongoing access through the [External Researcher Access Program](https://support.claude.com/en/articles/9125743-what-is-the-external-researcher-access-program).
-+ * We've launched **Claude Opus 5** (`claude-opus-5`), a step-change improvement over Claude Opus 4.8. Claude Opus 5 supports a [1M token context window](https://platform.claude.com/docs/en/build-with-claude/context-windows) (both the default and the maximum), 128k max output tokens, and [thinking](https://platform.claude.com/docs/en/build-with-claude/thinking) on by default, at $5 / $25 USD per MTok, the same pricing as Claude Opus 4.8. It's available on the Claude API, [Claude in Amazon Bedrock](https://platform.claude.com/docs/en/build-with-claude/claude-in-amazon-bedrock), [Claude Platform on AWS](https://platform.claude.com/docs/en/build-with-claude/claude-platform-on-aws), [Claude on Google Cloud](https://platform.claude.com/docs/en/build-with-claude/claude-on-vertex-ai), and [Claude in Microsoft Foundry](https://platform.claude.com/docs/en/build-with-claude/claude-in-microsoft-foundry). See [What's new in Claude Opus 5](https://platform.claude.com/docs/en/models/opus-5/whats-new-opus-5) for new features, behavior changes, and migration guidance, and the [models overview](https://platform.claude.com/docs/en/models/overview) for complete specs.
-+ * On Claude Opus 5, disabling thinking is allowed only at effort `high` or below: `thinking: {"type": "disabled"}` with effort `xhigh` or `max` returns a 400 error, a breaking change from Claude Opus 4.8. See [What's new in Claude Opus 5](https://platform.claude.com/docs/en/models/opus-5/whats-new-opus-5#behavior-changes).
-+ * We've removed [fast mode](https://platform.claude.com/docs/en/build-with-claude/fast-mode) for Claude Opus 4.7. Requests to `claude-opus-4-7` with `speed: "fast"` now return an error; unlike Claude Opus 4.6, they do not fall back to standard speed. Claude Opus 4.7 itself remains available at standard speed. To continue using fast mode, migrate to [Claude Opus 5](https://platform.claude.com/docs/en/models/opus-5/migration-guide#migrating-from-claude-opus-47) or Claude Opus 4.8. Read more in [Fast mode](https://platform.claude.com/docs/en/build-with-claude/fast-mode#supported-models).
-… diff truncated (74 added / 38 removed lines)
+- * The guides for the Claude Enterprise endpoints of the [Admin API](https://platform.claude.com/docs/en/api/admin) ([user management](https://platform.claude.com/docs/en/manage-claude/user-management) and [spend limits](https://platform.claude.com/docs/en/manage-claude/spend-limits-api)), the [Claude Enterprise Analytics API](https://platform.claude.com/docs/en/manage-claude/analytics-api), and the [Compliance API](https://platform.claude.com/docs/en/manage-claude/compliance-api) now show the `anthropic-version` header; send it on every request to these endpoints, as in the rest of the Claude API. See [API versions](https://platform.claude.com/docs/en/api/versioning).
+- - The [Admin API](https://platform.claude.com/docs/en/manage-claude/admin-api) is now available in the `ant` CLI and the Python, TypeScript, C#, Go, Java, PHP, and Ruby SDKs under `client.beta.organization`. They cover organization info, members, invites, workspaces and workspace members, API keys, rate limits, service accounts, workload identity federation issuers and rules, and customer-managed encryption keys. Usage and cost reports and the Claude Enterprise user-management and analytics endpoints remain curl-only. The CLI and SDKs read an Admin API key from `ANTHROPIC_API_KEY` or an `org:admin` OAuth token from `ANTHROPIC_AUTH_TOKEN`.
+- * The [Admin API](https://platform.claude.com/docs/en/api/admin) user-management endpoints for **Claude Enterprise** (claude.ai) organizations (members, invites, groups, and custom roles) are out of beta. The `anthropic-beta: ce-user-management-2026-07-13` header is no longer required on group and custom-role requests; requests that still send it are accepted unchanged. See [User management](https://platform.claude.com/docs/en/manage-claude/user-management).
+- * You can now restrict which sites a Claude Managed Agents agent's `web_search` and `web_fetch` tools can reach. Set `allowed_domains` or `blocked_domains` on the tool's entry in the `agent_toolset_20260401` `configs` array; `web_fetch` also accepts `max_content_tokens` and `web_search` accepts `user_location`. Each `configs` entry is identified by its `name` and typed by an optional `type`, and requests that pass only `name`, `enabled`, and `permission_policy` continue to work; in the typed SDKs, `configs` entries become per-tool types. See [Restrict web search and web fetch domains](https://platform.claude.com/docs/en/managed-agents/tools#restrict-web-search-and-web-fetch-domains).
+- * Claude Managed Agents sessions that run in a [self-hosted sandbox](https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes) can now attach [memory stores](https://platform.claude.com/docs/en/managed-agents/memory). The Python, TypeScript, and Go SDK workers download each attached store into the sandbox at its `mount_path` and sync the agent's changes back to the store. See [Use memory stores](https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes#use-memory-stores).
+- * The session viewer in the Claude Console has been redesigned with a timeline minimap, a transcript grouped by model request, and an Inspector panel for session details and cost, raw events, per-tool statistics, mounted resources, and per-thread activity. See [Console observability](https://platform.claude.com/docs/en/managed-agents/events-and-streaming#console-observability).
+- * We've launched **Claude Opus 5** (`claude-opus-5`), a step-change improvement over Claude Opus 4.8. Claude Opus 5 supports a [1M token context window](https://platform.claude.com/docs/en/build-with-claude/context-windows) (both the default and the maximum), 128k max output tokens, and [thinking](https://platform.claude.com/docs/en/build-with-claude/thinking) on by default, at $5 / $25 USD per MTok, the same pricing as Claude Opus 4.8. It's available on the Claude API, [Claude in Amazon Bedrock](https://platform.claude.com/docs/en/build-with-claude/claude-in-amazon-bedrock), [Claude Platform on AWS](https://platform.claude.com/docs/en/build-with-claude/claude-platform-on-aws), [Claude on Google Cloud](https://platform.claude.com/docs/en/build-with-claude/claude-on-vertex-ai), and [Claude in Microsoft Foundry](https://platform.claude.com/docs/en/build-with-claude/claude-in-microsoft-foundry). See [What's new in Claude Opus 5](https://platform.claude.com/docs/en/models/opus-5/whats-new-opus-5) for new features, behavior changes, and migration guidance, and the [models overview](https://platform.claude.com/docs/en/models/overview) for complete specs.
+- * On Claude Opus 5, disabling thinking is allowed only at effort `high` or below: `thinking: {"type": "disabled"}` with effort `xhigh` or `max` returns a 400 error, a breaking change from Claude Opus 4.8. See [What's new in Claude Opus 5](https://platform.claude.com/docs/en/models/opus-5/whats-new-opus-5#behavior-changes).
+- * We've removed [fast mode](https://platform.claude.com/docs/en/build-with-claude/fast-mode) for Claude Opus 4.7. Requests to `claude-opus-4-7` with `speed: "fast"` now return an error; unlike Claude Opus 4.6, they do not fall back to standard speed. Claude Opus 4.7 itself remains available at standard speed. To continue using fast mode, migrate to [Claude Opus 5](https://platform.claude.com/docs/en/models/opus-5/migration-guide#migrating-from-claude-opus-47) or Claude Opus 4.8. Read more in [Fast mode](https://platform.claude.com/docs/en/build-with-claude/fast-mode#supported-models).
+- * Claude Managed Agents session thread event streams now support [event deltas](https://platform.claude.com/docs/en/managed-agents/events-and-streaming#event-deltas). `GET /v1/sessions/{session_id}/threads/{thread_id}/stream` accepts the same `event_deltas[]` query parameter as the session-level stream, so you can preview a subagent's text as the model generates it. A connection previews only the thread it's reading. See [Preview session thread events](https://platform.claude.com/docs/en/managed-agents/events-and-streaming#preview-session-thread-events).
+- * You can now manage the people in your **Claude Enterprise** (claude.ai) organization with the [Admin API](https://platform.claude.com/docs/en/api/admin), in beta for all Claude Enterprise organizations: list members and look them up by email address, change a member's role, remove members, send and withdraw invites, manage groups and their membership, and read custom roles. Group and custom-role requests require the `anthropic-beta: ce-user-management-2026-07-13` beta header; member and invite requests take no beta header. An Admin API key with the `read:org_audit` scope can also call every user-management `GET` endpoint. See [User management](https://platform.claude.com/docs/en/manage-claude/user-management).
+- * You can now set an expiration when you create an API key or an Admin API key in the [Claude Console](https://platform.claude.com/settings/keys). Choose a preset, a custom duration, or **Never**. For keys with a lifetime of at least 7 days, Anthropic emails the creator before expiration. Existing keys are unaffected. The Admin API reports each key's expiration in the [`expires_at`](https://platform.claude.com/docs/en/api/admin/api_keys/list) field. See [Authentication](https://platform.claude.com/docs/en/manage-claude/authentication#key-expiration).
+- * We've launched **Claude Sonnet 5** (`claude-sonnet-5`), the next generation of our Sonnet model family, at introductory pricing of $2 / $10 per MTok (made the standard price on August 10, 2026). Claude Sonnet 5 supports a [1M token context window](https://platform.claude.com/docs/en/build-with-claude/context-windows), 128k max output tokens, and the same set of tools and platform features as Claude Sonnet 4.6, except [Priority Tier](https://platform.claude.com/docs/en/api/service-tiers#supported-models), which is not available on Claude Sonnet 5. Three behavior changes apply when migrating: [adaptive thinking](https://platform.claude.com/docs/en/build-with-claude/thinking) is now on by default; manual extended thinking (`thinking: {type: "enabled", budget_tokens: N}`) is removed and returns a 400 error (it was deprecated on Sonnet 4.6); and setting sampling parameters (`temperature`, `top_p`, `top_k`) to non-default values returns a 400 error. Claude Sonnet 5 also uses a new tokenizer that produces approximately 30% more tokens for the same text. The exact increase depends on the content and workload shape. See [What's new in Claude Sonnet 5](https://platform.claude.com/docs/en/models/sonnet-5/whats-new-sonnet-5) for details and migration guidance. For behavioral differences and model-specific prompting patterns, see [Prompting Claude Sonnet 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5).
+- * Claude Managed Agents session event streams now support [event deltas](https://platform.claude.com/docs/en/managed-agents/events-and-streaming#event-deltas). Opt in with the `event_deltas[]` query parameter on `GET /v1/sessions/{session_id}/events/stream`. The `event_start` and `event_delta` events preview an agent message's text as it's generated, before the complete `agent.message` event arrives.
+- * We've launched **Claude Fable 5** (`claude-fable-5`), our most capable widely released model, alongside **Claude Mythos 5** (`claude-mythos-5`) for Project Glasswing participants. Both models support a [1M token context window](https://platform.claude.com/docs/en/build-with-claude/context-windows) by default, 128k max output tokens, and always-on [adaptive thinking](https://platform.claude.com/docs/en/build-with-claude/thinking). See [Introducing Claude Fable 5 and Claude Mythos 5](https://platform.claude.com/docs/en/models/fable-5/introducing-claude-fable-5-and-claude-mythos-5) for capabilities, API changes, and availability.
+- * On Claude Fable 5 and Claude Mythos 5, [adaptive thinking](https://platform.claude.com/docs/en/build-with-claude/thinking) is the only thinking mode: `thinking: {"type": "disabled"}` is not supported, and manual extended thinking budgets and assistant prefill are not supported (both return a 400 error). See [Migrating from Claude Mythos Preview to Claude Mythos 5](https://platform.claude.com/docs/en/models/fable-5/migration-guide#migrating-from-claude-mythos-preview).
+- * We've launched **Claude Opus 4.8** (claude-opus-4-8), our most capable widely released model. Claude Opus 4.8 supports a [1M token context window](https://platform.claude.com/docs/en/build-with-claude/context-windows) by default on the Claude API, Amazon Bedrock, Google Cloud, and Microsoft Foundry, 128k max output tokens, and the same set of tools and platform features as Claude Opus 4.7. See the [migration guide](https://platform.claude.com/docs/en/about-claude/models/migration-guide) for baseline settings, features, and migration guidance.
+- * We've launched [Claude Opus 4.7](https://www.anthropic.com/news/claude-opus-4-7), our most capable widely released model for complex reasoning and agentic coding, at the same $5 / $25 per MTok pricing as Opus 4.6. See [What's new in Claude Opus 4.7](https://platform.claude.com/docs/en/about-claude/models/whats-new-claude-4-7) for capability improvements, new features, and the updated tokenizer. Opus 4.7 includes API breaking changes versus Opus 4.6; see the [migration guide](https://platform.claude.com/docs/en/about-claude/models/migration-guide) before upgrading.
+- * We've launched [Claude Sonnet 4.6](https://www.anthropic.com/news/claude-sonnet-4-6), our latest balanced model combining speed and intelligence for everyday tasks. Sonnet 4.6 delivers improved agentic search performance while consuming fewer tokens. Sonnet 4.6 supports [extended thinking](https://platform.claude.com/docs/en/build-with-claude/extended-thinking) and a [1M token context window](https://platform.claude.com/docs/en/build-with-claude/context-windows) (beta). See [Models & Pricing](https://platform.claude.com/docs/en/about-claude/models) for details.
+- * We've launched the [compaction API](https://platform.claude.com/docs/en/build-with-claude/compaction) in beta, providing server-side context summarization for effectively infinite conversations. Available on Opus 4.6.
+- * We've launched [Claude Opus 4.5](https://www.anthropic.com/news/claude-opus-4-5), our most intelligent model combining maximum capability with practical performance. Ideal for complex specialized tasks, professional software engineering, and advanced agents. Features step-change improvements in vision, coding, and computer use at a more accessible price point than previous Opus models. Learn more in [Models overview](https://platform.claude.com/docs/en/about-claude/models).
+- * We've launched [Claude Haiku 4.5](https://www.anthropic.com/news/claude-haiku-4-5), our fastest and most intelligent Haiku model with near-frontier performance. Ideal for real-time applications, high-volume processing, and cost-sensitive deployments requiring strong reasoning. Learn more in [Models overview](https://platform.claude.com/docs/en/about-claude/models).
+- * We've added a new endpoint to the Admin API for retrieving organization information. For details, see the [Organization Info Admin API reference](https://platform.claude.com/docs/en/api/admin-api/organization/get-me).
+- * We've launched [Claude Opus 4.1](https://www.anthropic.com/news/claude-opus-4-1), an incremental update to Claude Opus 4 with enhanced capabilities and performance improvements.\* Learn more in [Models overview](https://platform.claude.com/docs/en/about-claude/models).
+- * We've launched [Claude Opus 4 and Claude Sonnet 4](https://www.anthropic.com/news/claude-4), our latest models with extended thinking capabilities. Learn more in [Models overview](https://platform.claude.com/docs/en/about-claude/models).
+- * We've launched [Claude Sonnet 3.7](https://www.anthropic.com/news/claude-3-7-sonnet), our most intelligent model yet. Claude Sonnet 3.7 can produce near-instant responses or show its extended thinking step-by-step. One model, two ways to think. Learn more about all Claude models in [Models overview](https://platform.claude.com/docs/en/about-claude/models).
+- * We've added support for a [delete endpoint](https://platform.claude.com/docs/en/api/deleting-message-batches) in the Message Batches API.
++ ### October 9, 2026
++ * You can now let a Claude Managed Agents agent use [dynamic workflows](https://platform.claude.com/docs/en/managed-agents/multiagent-orchestration#dynamic-workflows), in beta with the `managed-agents-2026-04-01` beta header. For work with many pieces, such as reviewing hundreds of documents, the agent can write a workflow. A workflow is a program that runs many agents in phases and combines their results. The server runs it in the background as a workflow run. To [turn dynamic workflows on](https://platform.claude.com/docs/en/managed-agents/multiagent-orchestration#turn-on-dynamic-workflows), set the agent's `multiagent` field to `{"type": "multiagent_20261001", "workflows": {"type": "enabled"}}`. To guide the agent, tell it in its system prompt when to start a run. Follow each run through `workflow_run.*` events on the session's event stream. See [Workflow runs](https://platform.claude.com/docs/en/managed-agents/workflow-runs).
++ ### October 8, 2026
++ * The [Compliance API](https://platform.claude.com/docs/en/manage-claude/compliance-api) chat endpoints now also return chats from the unified Claude experience, in beta for Claude Enterprise organizations, with your existing Compliance Access Key. See [Retrieve and delete chats, files, and projects](https://platform.claude.com/docs/en/manage-claude/compliance-content-data).
++ * The Compliance API can now download Claude Docs documents as Word files, in beta. See [Retrieve files and artifacts](https://platform.claude.com/docs/en/manage-claude/compliance-content-data#retrieve-files-and-artifacts).
++ ### October 7, 2026
++ * We've lowered the price of prompt cache reads on Claude Sonnet 5.5 from $0.20 USD to $0.10 USD per million tokens: 0.05x the base input price instead of 0.1x. Cache writes and all other prices are unchanged. See [Prompt caching pricing](https://platform.claude.com/docs/en/about-claude/pricing#prompt-caching).
++ * We've launched **Claude Haiku 5.5** (`claude-haiku-5-5`), our most capable model tuned for high-volume and latency-sensitive work. It has a [1M token context window](https://platform.claude.com/docs/en/build-with-claude/context-windows), 128k max output tokens, and [adaptive thinking](https://platform.claude.com/docs/en/build-with-claude/thinking) with the [effort parameter](https://platform.claude.com/docs/en/build-with-claude/effort). It's available on the Claude API, [Claude in Amazon Bedrock](https://platform.claude.com/docs/en/build-with-claude/claude-in-amazon-bedrock), [Claude Platform on AWS](https://platform.claude.com/docs/en/build-with-claude/claude-platform-on-aws), [Claude on Google Cloud](https://platform.claude.com/docs/en/build-with-claude/claude-on-vertex-ai), and [Claude in Microsoft Foundry](https://platform.claude.com/docs/en/build-with-claude/claude-in-microsoft-foundry). See [What's new in Claude Haiku 5.5](https://platform.claude.com/docs/en/models/haiku-5-5/whats-new-haiku-5-5).
++ * Code written for Claude Haiku 4.5 can break on Claude Haiku 5.5. Manual extended thinking (`budget_tokens`), the sampling parameters `temperature`, `top_p`, and `top_k`, and assistant message prefill can each return a 400 error. `computer_20250124` also returns a 400 error: use the `computer_toolset_20260801` toolset on the Claude API and Google Cloud, or `computer_20251124` on Amazon Bedrock. A request that sends thinking blocks back after a change to `system`, `tools`, or earlier turns can also return a 400 error. On Amazon Bedrock, structured outputs aren't available for Claude Haiku 5.5. Adaptive thinking is on by default, so a response can begin with `thinking` blocks, and their text is omitted unless you set `thinking.display` to `"summarized"`. The same text also counts as more tokens. See the [migration guide](https://platform.claude.com/docs/en/models/haiku-5-5/migration-guide) for each change. For model-specific prompting patterns, see [Prompting Claude Haiku 5.5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5).
++ * The Python and TypeScript SDKs now include classes, in beta, for the [browser use tool](https://platform.claude.com/docs/en/agents-and-tools/tool-use/browser-use-tool) and the [computer use tool](https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool). You subclass one and write one method per tool against your own browser or desktop automation. The SDK runs the tool loop, the URL and file policies you set for the browser, and your approval callback. See [Browser and computer use with the SDK toolsets](https://platform.claude.com/docs/en/agents-and-tools/tool-use/browser-use-sdk).
++ * Claude Max and Team plans now include monthly API credits. To learn how to claim them, see [API credits for Max and Team plans](https://platform.claude.com/docs/en/about-claude/api-credits-for-subscribers).
++ * In Claude Managed Agents, a cloud environment with `limited` networking now also applies its `allowed_hosts` to the `web_search` and `web_fetch` tools. A `web_fetch` call for a URL on a host that `allowed_hosts` does not match returns a `url_not_allowed` error result to the agent. `web_search` omits results from such hosts. When `allowed_hosts` lists no hosts, neither tool returns a page or a search result. `allow_package_managers` and `allow_mcp_servers` add no hosts for these tools. To let the tools reach a host, add it to `allowed_hosts`, which also opens it to the sandbox. `unrestricted` networking and self-hosted environments do not limit these tools. See [Environment networking](https://platform.claude.com/docs/en/managed-agents/environments#networking).
++ * With `limited` networking, creating a session fails with a 400 error when an enabled web tool's `allowed_domains` has an entry not within `allowed_hosts`. So does a session update that adds such an entry. An `allowed_hosts` entry matches one exact host unless it starts with `*.`, so `docs.example.com` is not within `["example.com"]`. To fix the error, add the host to `allowed_hosts` or remove the entry from `allowed_domains`. See [Restrict web search and web fetch domains](https://platform.claude.com/docs/en/managed-agents/tools-web-restrictions).
++ * In Claude Managed Agents, the [`web_fetch` tool](https://platform.claude.com/docs/en/managed-agents/tools#available-tools) now fetches only URLs that have already appeared in the session, for example in the text of a user message, in a `web_search` result, or in a page that `web_fetch` returned earlier. This reduces the risk of data exfiltration. A URL that appears only in Claude's own output, the agent's system prompt, an attached document, or the output of a tool such as `bash`, `read`, or an MCP tool does not count: a `web_fetch` call for it returns a `url_not_in_prior_context` error result to the agent. To let the agent fetch a URL, send it in the text of a `user.message` event.
++ ### October 6, 2026
++ * We've added `capabilities.server_tools` to the [Models API](https://platform.claude.com/docs/en/api/models/list). `GET /v1/models` and `GET /v1/models/{model_id}` now report whether each model accepts the web search and code execution tools. To check whether a model accepts the code execution tool, read `capabilities.server_tools.code_execution`. The top-level `capabilities.code_execution` reports whether code can call your request's other tools. See [Using the Models API](https://platform.claude.com/docs/en/models/overview#using-the-models-api).
++ ### October 5, 2026
++ * We've added `capabilities.thinking.types.disabled` to the [Models API](https://platform.claude.com/docs/en/api/models/list). `GET /v1/models` and `GET /v1/models/{model_id}` now report whether each model accepts `thinking: {type: "disabled"}`, which turns thinking off. See [Using the Models API](https://platform.claude.com/docs/en/models/overview#using-the-models-api).
++ ### October 1, 2026
++ * We've added a `line` field to the [Models API](https://platform.claude.com/docs/en/api/models/list). `GET /v1/models` and `GET /v1/models/{model_id}` now return the model line each model belongs to. Claude Opus 4.5 and Claude Opus 4.6 both report `opus`, for example. Use `line` to group models without parsing their IDs. `line` is `null` for a model that belongs to no line. See [Using the Models API](https://platform.claude.com/docs/en/models/overview#using-the-models-api).
++ * [Dreams](https://platform.claude.com/docs/en/managed-agents/dreams) (research preview) now supports Claude Opus 5.5, Claude Fable 5.1, and Claude Sonnet 5.5. See [Supported models](https://platform.claude.com/docs/en/managed-agents/dreams#limits).
++ ### September 30, 2026
++ * In Python SDK 1.10.0, TypeScript SDK 0.130.0, C# SDK 12.52.0, Go SDK 1.77.0, Java SDK 2.67.0, PHP SDK 0.53.0, Ruby SDK 1.75.0, and version 1.37.0 of the `ant` CLI, the [Admin API](https://platform.claude.com/docs/en/manage-claude/admin-api) methods for organization info, members, invites, workspaces, API keys, rate limits, service accounts, workload identity federation, customer-managed encryption keys, and compliance settings are out of beta: call them under `client.organization` and `ant organization`. These releases also keep `client.beta.organization` and `ant beta:organization`.
++ * We announced the deprecation of the Claude Sonnet 4.5 model (`claude-sonnet-4-5-20250929`), with retirement on the Claude API scheduled for November 30, 2026. We recommend migrating to [Claude Sonnet 5.5](https://platform.claude.com/docs/en/models/sonnet-5-5/migration-guide#migrating-from-sonnet-45). Read more in [Model deprecations](https://platform.claude.com/docs/en/about-claude/model-deprecations).
++ ### September 28, 2026
++ * We've launched **Claude Sonnet 5.5** (`claude-sonnet-5-5`). It's available on the Claude API, [Claude in Amazon Bedrock](https://platform.claude.com/docs/en/build-with-claude/claude-in-amazon-bedrock), [Claude Platform on AWS](https://platform.claude.com/docs/en/build-with-claude/claude-platform-on-aws), [Claude on Google Cloud](https://platform.claude.com/docs/en/build-with-claude/claude-on-vertex-ai), and [Claude in Microsoft Foundry](https://platform.claude.com/docs/en/build-with-claude/claude-in-microsoft-foundry). For its context window, output limits, and prices, see the [Claude Sonnet 5.5 model page](https://platform.claude.com/docs/en/models/sonnet-5-5/overview).
++ * Code written for Claude Sonnet 5 can break on Claude Sonnet 5.5 in five ways. To turn off up-front thinking, send `thinking: {"type": "between_tools"}` instead of `"disabled"`, at `high` effort or below. Forced tool use (`tool_choice` types `any` and `tool`) returns a 400 error. Thinking blocks are tied to the model and the conversation. On the Claude API and Google Cloud, the earlier `computer_20251124` computer use tool isn't accepted. The advisor tool rejects Claude Opus 4.8, Claude Opus 4.7, and Claude Sonnet 5 as advisors. See [What's new in Claude Sonnet 5.5](https://platform.claude.com/docs/en/models/sonnet-5-5/whats-new-sonnet-5-5) for each change and the [migration guide](https://platform.claude.com/docs/en/models/sonnet-5-5/migration-guide) for before-and-after requests. For model-specific prompting patterns, see [Prompting Claude Sonnet 5.5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5-5).
++ * Thinking blocks that Claude Sonnet 5.5 produces work only in the account that produced them, or in an account linked to it. When another account sends one of these blocks, the API drops the block before the model sees it, and the request succeeds. Blocks from earlier models aren't affected. See [Preserved thinking](https://platform.claude.com/docs/en/build-with-claude/preserved-thinking#account-bound-thinking).
++ ### September 24, 2026
++ * We're resuming billing for refusals that arrive before any output when `stop_details.category` is `"bio"`, `"frontier_llm"`, or `"reasoning_extraction"`, the categories where we measure low volumes of false positives. Mid-stream refusals were already billed. Refusals billed under this change are charged like any other request, at the rates of the model that ran it. Refusals before any output in other categories are still not billed, and fallback credit is unchanged. This change applies on all platforms. See [How refusals are billed](https://platform.claude.com/docs/en/build-with-claude/refusals-and-fallback#how-refusals-are-billed).
++ * The [Compliance API](https://platform.claude.com/docs/en/manage-claude/compliance-api) local session endpoints are out of beta for Claude for Microsoft 365 sessions in Excel, PowerPoint, Word, and Outlook (`product_surface` values beginning with `office_agents`). See [Sessions on users' machines](https://platform.claude.com/docs/en/manage-claude/compliance-sessions#retrieve-local-sessions).
++ * The [Compliance API](https://platform.claude.com/docs/en/manage-claude/compliance-api) [Activity Feed](https://platform.claude.com/docs/en/manage-claude/compliance-activity-feed) no longer returns file names, project document names, or artifact titles. The `filename` and `title` fields on file, project document, and artifact activities are now always empty or omitted, including on activities recorded before this change. To look up a name or title by the ID on the activity, use a Compliance Access Key with the `read:compliance_user_data` scope. See [Understand the Activity object](https://platform.claude.com/docs/en/manage-claude/compliance-activity-feed#understand-the-activity-object).
++ ### September 23, 2026
++ * [Cache diagnostics](https://platform.claude.com/docs/en/build-with-claude/cache-diagnostics) is out of beta on the Claude API and no longer requires the `cache-diagnosis-2026-04-07` beta header. Include the `diagnostics` object on a Messages request to opt in; requests that still send the header work as before. Responses from `POST /v1/messages` now always include the `diagnostics` field, which is `null` when the request did not include the `diagnostics` object.
++ ### September 22, 2026
++ * We've launched **Claude Opus 5.5** (`claude-opus-5-5`), a model for long-running agentic coding and knowledge work. It has a [1M token context window](https://platform.claude.com/docs/en/build-with-claude/context-windows) by default, 128k max output tokens, and always-on [adaptive thinking](https://platform.claude.com/docs/en/build-with-claude/thinking), at $4 / $20 USD per MTok (Claude Opus 5 is $5 / $25). Claude Opus 5.5 is available on the Claude API, [Claude in Amazon Bedrock](https://platform.claude.com/docs/en/build-with-claude/claude-in-amazon-bedrock), [Claude Platform on AWS](https://platform.claude.com/docs/en/build-with-claude/claude-platform-on-aws), [Claude on Google Cloud](https://platform.claude.com/docs/en/build-with-claude/claude-on-vertex-ai), and [Claude in Microsoft Foundry](https://platform.claude.com/docs/en/build-with-claude/claude-in-microsoft-foundry). See [What's new in Claude Opus 5.5](https://platform.claude.com/docs/en/models/opus-5-5/whats-new-opus-5-5) for capabilities, API changes, and migration guidance.
++ * On Claude Opus 5.5, thinking can't be disabled: `thinking: {"type": "disabled"}` and `thinking: {"type": "enabled", ...}` return a 400 error. Omit the `thinking` field and control thinking depth with the [effort parameter](https://platform.claude.com/docs/en/build-with-claude/effort). `tool_choice` types `any` and `tool` also return a 400 error, as on Claude Fable 5.1; use `auto` with [strict tool use](https://platform.claude.com/docs/en/agents-and-tools/tool-use/strict-tool-use). On the Claude API and Google Cloud, [computer use](https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool) on this model requires the `computer_toolset_20260801` toolset and the earlier `computer_20251124` tool returns a 400 error; on Amazon Bedrock, `computer_20251124` keeps working. See the [migration guide](https://platform.claude.com/docs/en/models/opus-5-5/migration-guide#migrating-from-claude-opus-5).
++ * [Fast mode](https://platform.claude.com/docs/en/build-with-claude/fast-mode) (research preview) is available for Claude Opus 5.5 on the Claude API.
++ * Tools can now be defined inside a [mid-conversation system message](https://platform.claude.com/docs/en/build-with-claude/mid-conversation-system-messages#define-tools-in-a-message-beta), in beta on the Claude API with the `inline-tools-2026-09-15` beta header. A `tool_addition` block can carry the tool's full definition (`tool: {"type": "tool_definition", "definition": {...}}`), so you can add a tool, change its schema, or move a server tool to a newer version without editing `tools` or invalidating the prompt cache. The same header covers adding and removing tools by reference. With the MCP connector's `mcp-client-2026-09-15` beta header as well, the definition can be an MCP toolset, and a response records each server's fetched tool list in an `mcp_tool_listing` block, which pins that list when you send it back.
++ ### September 18, 2026
+… diff truncated (78 added / 27 removed lines)
 ```
 
 ### anthropic.platform.token-counting
@@ -303,66 +308,91 @@ Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
 - Vendor: Anthropic
 - Source: https://platform.claude.com/docs/en/build-with-claude/token-counting
 - Change: changed
-- Prior hash: 5b3a644ba8d7a22730b83f535c44ab20c21dce808832fb657f8da65b58435f14
-- Current hash: b409c3a73340bc01db6373c959b3c889bb4c0d5f5482c424fdfed268cbe5f030
+- Prior hash: b409c3a73340bc01db6373c959b3c889bb4c0d5f5482c424fdfed268cbe5f030
+- Current hash: bdbd1635207faf7a6e52f8a306a01889df0b73e6cda31cca7038230d348c7b65
 
 ```diff
-- All [active models](https://platform.claude.com/docs/en/about-claude/models/overview) support token counting, including Claude Opus 5 and Claude Sonnet 5.
-- import httpx
-- image_data = base64.standard_b64encode(httpx.get(image_url).content).decode("utf-8")
-- * Thinking blocks from **previous** assistant turns are ignored and **do not** count toward your input tokens
-- "model": "claude-sonnet-4-6",
-- "type": "enabled",
-- "budget_tokens": 16000
-- model: claude-sonnet-4-6
-- type: enabled
-- budget_tokens: 16000
-- model="claude-sonnet-4-6",
-- thinking={"type": "enabled", "budget_tokens": 16000},
-- model: "claude-sonnet-4-6",
-- type: "enabled",
-- budget_tokens: 16000
-- Model = Model.ClaudeSonnet4_6,
-- Thinking = new ThinkingConfigEnabled(budgetTokens: 16000),
-- Model: anthropic.ModelClaudeSonnet4_6,
-- Thinking: anthropic.ThinkingConfigParamOfEnabled(16000),
-- .model(Model.CLAUDE_SONNET_4_6)
-- .enabledThinking(16000)
-- model: 'claude-sonnet-4-6',
-- thinking: [
-- 'type' => 'enabled',
-- 'budget_tokens' => 16000
-- model: "claude-sonnet-4-6",
-- type: "enabled",
-- budget_tokens: 16000
-- ## Token counts on Claude Fable 5 and Claude Mythos 5
-- Claude Fable 5 and Claude Mythos 5 use the tokenizer introduced with Claude Opus 4.7, which produces roughly 30 percent more tokens than models before Claude Opus 4.7 for the same text. The exact increase depends on the content and workload shape. The token counting endpoint returns the count under the tokenizer of the `model` you pass, so to measure the difference for your workload, count the same request twice: once with your current model and once with `model: "claude-fable-5"` (or `"claude-mythos-5"`), and compare the two `input_tokens` values.
-- **Billing and migration:** Usage and billing on Claude Fable 5 and Claude Mythos 5 reflect this tokenizer's counts. If you're migrating from a model before Claude Opus 4.7, the same content consumes roughly 30 percent more tokens. The exact increase depends on the content and workload shape. When migrating a workload to Claude Fable 5 and Claude Mythos 5, don't reuse token counts measured on a model before Claude Opus 4.7 to estimate costs or context window fit. Count your prompts with `model: "claude-fable-5"` (or `"claude-mythos-5"`).
-- | Start | 2,000 |
-- | Build | 4,000 |
-- | Scale | 8,000 |
-+ All [active models](https://platform.claude.com/docs/en/models/overview) support token counting.
-+ import httpx2
-+ image_data = base64.standard_b64encode(httpx2.get(image_url).content).decode("utf-8")
-+ An embedded image block that sets [`"oversized_image": "error"`](https://platform.claude.com/docs/en/build-with-claude/vision-coordinates#oversized-image-error) is rejected at count time exactly as the Messages API would reject it.
-+ * Thinking blocks from **previous** assistant turns count toward your input tokens on models that [keep all prior turns](https://platform.claude.com/docs/en/build-with-claude/thinking#thinking-block-preservation-by-model); on models that keep only the last turn, the API strips them and they do **not** count
-+ "type": "adaptive"
-+ type: adaptive
-+ thinking={"type": "adaptive"},
-+ thinking: { type: "adaptive" },
-+ Thinking = new ThinkingConfigAdaptive(),
-+ Thinking: anthropic.ThinkingConfigParamUnion{
-+ OfAdaptive: &anthropic.ThinkingConfigAdaptiveParam{},
-+ import com.anthropic.models.messages.ThinkingConfigAdaptive;
-+ .thinking(ThinkingConfigAdaptive.builder().build())
-+ thinking: ['type' => 'adaptive'],
-+ type: "adaptive"
-+ ## Token counts on Claude Fable and Claude Mythos models
-+ Claude Fable 5.1, Claude Mythos 5.1, Claude Fable 5, and Claude Mythos 5 share the tokenizer introduced with Claude Opus 4.7. A prompt counts the same on all four, and roughly 30 percent higher than on models before Claude Opus 4.7 (the exact increase depends on the content). The token counting endpoint counts under the tokenizer of the `model` you pass. To measure the difference for your workload, count the same request twice, once with your current model and once with the model you plan to move to, and compare the two `input_tokens` values.
-+ **Billing and migration:** Usage and billing on these models reflect this tokenizer's counts. When migrating from a model before Claude Opus 4.7, don't reuse token counts measured on the older model to estimate costs or context window fit. Count your prompts with the `model` ID you plan to use (for example, `"claude-fable-5-1"`).
-+ | Start | 5,000 |
-+ | Build | 10,000 |
-+ | Scale | 20,000 |
+- ## Compatibility
+- - [ZDR](https://platform.claude.com/docs/en/manage-claude/api-and-data-retention): eligible (excludes [Covered Models](https://platform.claude.com/docs/en/manage-claude/api-and-data-retention#model-specific-data-retention-requirements))
+- - Platforms: Claude API, Claude Platform on AWS, Amazon Bedrock, Google Cloud, Microsoft Foundry
+- The [token counting](https://platform.claude.com/docs/en/api/messages-count-tokens) endpoint accepts the same structured list of inputs for creating a message, including support for system prompts, [tools](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview), [images](https://platform.claude.com/docs/en/build-with-claude/vision), and [PDFs](https://platform.claude.com/docs/en/build-with-claude/pdf-support). The response contains the total number of input tokens.
+- "model": "claude-opus-5",
+- --model claude-opus-5 \
+- model="claude-opus-5",
+- model: "claude-opus-5",
+- Model = Model.ClaudeOpus5,
+- Model: anthropic.ModelClaudeOpus5,
+- .model(Model.CLAUDE_OPUS_5)
+- model: 'claude-opus-5',
+- model: "claude-opus-5",
+- [Server tool](https://platform.claude.com/docs/en/agents-and-tools/tool-use/server-tools) token counts only apply to the first sampling call.
+- "model": "claude-opus-5",
+- model: claude-opus-5
+- model="claude-opus-5",
+- model: "claude-opus-5",
+- Model = Model.ClaudeOpus5,
+- Model: anthropic.ModelClaudeOpus5,
+- .model(Model.CLAUDE_OPUS_5)
+- model: 'claude-opus-5',
+- model: "claude-opus-5",
+- "model": "claude-opus-5",
+- model: claude-opus-5
+- model="claude-opus-5",
+- model: "claude-opus-5",
+- Model = Model.ClaudeOpus5,
+- Model: anthropic.ModelClaudeOpus5,
+- .model(Model.CLAUDE_OPUS_5)
+- model: 'claude-opus-5',
+- model: "claude-opus-5",
+- "model": "claude-opus-5",
+- model: claude-opus-5
+- model="claude-opus-5",
+- model: "claude-opus-5",
+- Model = Model.ClaudeOpus5,
+- Model: anthropic.ModelClaudeOpus5,
+- .model(Model.CLAUDE_OPUS_5)
+- model: 'claude-opus-5',
++ featureMetadata:
++ status: ga
++ zdr:
++ eligibility: eligible
++ note: Excludes [Covered Models](https://platform.claude.com/docs/en/manage-claude/api-and-data-retention#model-specific-data-retention-requirements).
++ supportedPlatforms:
++ Claude API: ga
++ Claude Platform on AWS: ga
++ Amazon Bedrock: ga
++ Google Cloud: ga
++ Microsoft Foundry: ga
++ The [token counting](https://platform.claude.com/docs/en/api/messages/count_tokens) endpoint accepts the same structured list of inputs for creating a message, including support for system prompts, [tools](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview), [images](https://platform.claude.com/docs/en/build-with-claude/vision), and [PDFs](https://platform.claude.com/docs/en/build-with-claude/pdf-support). The response contains the total number of input tokens.
++ This endpoint returns an `invalid_request_error` for a few inputs that the Messages API accepts: [server tools](https://platform.claude.com/docs/en/agents-and-tools/tool-use/server-tools) such as web search, web fetch, code execution, and tool search (every server tool except the [advisor tool](https://platform.claude.com/docs/en/agents-and-tools/tool-use/advisor-tool)), the [MCP connector](https://platform.claude.com/docs/en/agents-and-tools/mcp-connector), and `image` or `document` blocks with a `url` or `file` source. Send images and PDFs as base64 to count them. For requests that use server tools or MCP servers, the Messages API response reports the tokens used in its `usage` object.
++ "model": "claude-opus-5-5",
++ --model claude-opus-5-5 \
++ model="claude-opus-5-5",
++ model: "claude-opus-5-5",
++ Model = Model.ClaudeOpus5_5,
++ Model: anthropic.ModelClaudeOpus5_5,
++ .model(Model.CLAUDE_OPUS_5_5)
++ model: 'claude-opus-5-5',
++ model: "claude-opus-5-5",
++ Token counting supports client tools and the [advisor tool](https://platform.claude.com/docs/en/agents-and-tools/tool-use/advisor-tool). Requests that include other [server tools](https://platform.claude.com/docs/en/agents-and-tools/tool-use/server-tools) return an error. For the advisor tool, the count covers the executor's first sampling call only.
++ "model": "claude-opus-5-5",
++ model: claude-opus-5-5
++ model="claude-opus-5-5",
++ model: "claude-opus-5-5",
++ Model = Model.ClaudeOpus5_5,
++ Model: anthropic.ModelClaudeOpus5_5,
++ .model(Model.CLAUDE_OPUS_5_5)
++ model: 'claude-opus-5-5',
++ model: "claude-opus-5-5",
++ "model": "claude-opus-5-5",
++ model: claude-opus-5-5
++ model="claude-opus-5-5",
++ model: "claude-opus-5-5",
++ Model = Model.ClaudeOpus5_5,
++ Model: anthropic.ModelClaudeOpus5_5,
++ .model(Model.CLAUDE_OPUS_5_5)
++ model: 'claude-opus-5-5',
+… diff truncated (62 added / 53 removed lines)
 ```
 
 ### apify.api.v2
@@ -370,75 +400,112 @@ Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
 - Vendor: Apify
 - Source: https://docs.apify.com/api/v2
 - Change: changed
-- Prior hash: 8287b97ee8c355313a26c0b7efdb39933820f718fb522fe29836d166ba621be5
-- Current hash: 949c500125ab16a908dc1948db9327d3f019a0f895c0ddfaf429402233e1d770
+- Prior hash: 949c500125ab16a908dc1948db9327d3f019a0f895c0ddfaf429402233e1d770
+- Current hash: 38b373155b88617d9cc42cec0ff636a5a899c9062a293f60a204864c7afd5722
 
 ```diff
-- Version: v2-2026-08-05T133145Z
-+ Version: v2-2026-09-02T154542Z
-```
-
-### apify.cli.changelog
-
-- Vendor: Apify
-- Source: https://docs.apify.com/cli/docs/changelog
-- Change: changed
-- Prior hash: 44adf1694ec7572a6df5607422e53278ef1992718ebec86bfd8ad197c2589136
-- Current hash: 3b6f317698a5c8c74202e33297d996fcbd42816b21f2498095f2e379ba3b3896
-
-```diff
-+ ### [1.10.0](https://github.com/apify/apify-cli/releases/tag/v1.10.0) (2026-09-02)[](#1100-2026-09-02)
-+ * Re-prompt for a repository name when the provider rejects it ([#1373](https://github.com/apify/apify-cli/pull/1373)) ([e8b9d9b](https://github.com/apify/apify-cli/commit/e8b9d9b52dcced3bc4213c8a613dbbd80cfec6d1)) by [@l2ysho](https://github.com/l2ysho), closes [#1372](https://github.com/apify/apify-cli/issues/1372)
-+ * Add GitLab and Bitbucket to `--source` ([#1356](https://github.com/apify/apify-cli/pull/1356)) ([fec0ea8](https://github.com/apify/apify-cli/commit/fec0ea89a92beac54d1eb7ba0df5c2fcbc5d47c2)) by [@l2ysho](https://github.com/l2ysho)
-+ * Ask before `apify push` drops a Git source ([#1378](https://github.com/apify/apify-cli/pull/1378)) ([6667817](https://github.com/apify/apify-cli/commit/6667817c2cd42417f8349b269423ca838cd35390)) by [@l2ysho](https://github.com/l2ysho), closes [#1142](https://github.com/apify/apify-cli/issues/1142)
-+ * Turn on automatic builds for a Git-sourced Actor ([#1377](https://github.com/apify/apify-cli/pull/1377)) ([5bb642e](https://github.com/apify/apify-cli/commit/5bb642ecd1028314f1958608487272848b1ffcd1)) by [@l2ysho](https://github.com/l2ysho), closes [#1355](https://github.com/apify/apify-cli/issues/1355)
-+ * Connect the right Apify account in `apify create --source github` ([#1371](https://github.com/apify/apify-cli/pull/1371)) ([87dd140](https://github.com/apify/apify-cli/commit/87dd140f1666c78d548008b14c9bf349d3be5281)) by [@l2ysho](https://github.com/l2ysho), closes [#1370](https://github.com/apify/apify-cli/issues/1370)
-+ ### [1.9.0](https://github.com/apify/apify-cli/releases/tag/v1.9.0) (2026-08-27)[](#190-2026-08-27)
-+ * **install:** Single-bundle install/upgrade scripts ([#1219](https://github.com/apify/apify-cli/pull/1219)) ([bb346ec](https://github.com/apify/apify-cli/commit/bb346ec0a538d4494ab39503d25685bd3a179f36)) by [@vladfrangu](https://github.com/vladfrangu)
-+ * Add task publish and unpublish commands ([#1317](https://github.com/apify/apify-cli/pull/1317)) ([b5bbc08](https://github.com/apify/apify-cli/commit/b5bbc08407cea88d88aeeed728a89bef7810dbb4)) by [@Janjiran](https://github.com/Janjiran)
-+ * **create:** Machine-readable --json output and hidden --origin flag ([#1280](https://github.com/apify/apify-cli/pull/1280)) ([1255d2f](https://github.com/apify/apify-cli/commit/1255d2f5fb3dc07127b7894f995e55925bf34f20)) by [@l2ysho](https://github.com/l2ysho), closes [#1238](https://github.com/apify/apify-cli/issues/1238)
-+ * Warn rental Actor publishers about the rental model sunset ([#1347](https://github.com/apify/apify-cli/pull/1347)) ([ffc6605](https://github.com/apify/apify-cli/commit/ffc66050cc4fb4740d16c53059b51b89ac96149d)) by [@patrikbraborec](https://github.com/patrikbraborec), closes [#1344](https://github.com/apify/apify-cli/issues/1344)
-+ * Add `--source github` to create Git-sourced Actors ([#1348](https://github.com/apify/apify-cli/pull/1348)) ([4502c46](https://github.com/apify/apify-cli/commit/4502c468ecfe8d4e0282b28150291cf056792888)) by [@l2ysho](https://github.com/l2ysho), closes [#1237](https://github.com/apify/apify-cli/issues/1237)
-+ * Validate actors search choice flags ([#1332](https://github.com/apify/apify-cli/pull/1332)) ([0e25909](https://github.com/apify/apify-cli/commit/0e25909488e495000a6a860fc96a48fc09f63fe2)) by [@kuntal1461](https://github.com/kuntal1461), closes [#1322](https://github.com/apify/apify-cli/issues/1322)
-+ * Allow tilde in inline JSON input ([#1331](https://github.com/apify/apify-cli/pull/1331)) ([99f3cc1](https://github.com/apify/apify-cli/commit/99f3cc18f1cfa8d6ff22f91f6f3bb917cbdf3e4b)) by [@kuntal1461](https://github.com/kuntal1461), closes [#1281](https://github.com/apify/apify-cli/issues/1281)
-+ #### 🚀 Features[](#-features-14)
-+ #### 🐛 Bug Fixes[](#-bug-fixes-21)
-+ #### 🚀 Features[](#-features-15)
-+ #### 🐛 Bug Fixes[](#-bug-fixes-22)
+- Version: v2-2026-09-02T154542Z
++ Version: v2-2026-10-08T073338Z
++ These endpoints have a rate limit of *35 requests per second per resource*:
++ * Batch (add, delete) operations on requests in request queues
++ * List and lock head of a request queue
++ These endpoints have a rate limit of *100 requests per second per resource*:
++ * Download records from a key-value store as a ZIP archive
++ * Get list of keys in a key-value store
++ These endpoints have a rate limit of *350 requests per second per resource*:
++ * Request lock operations (prolong, delete) in request queues
 ```
 
 ### apify.integrations.mcp
 
 - Vendor: Apify
-- Source: https://docs.apify.com/integrations/mcp
+- Source: https://docs.apify.com/mcp
 - Change: changed
-- Prior hash: 822eaa42b6c0ac899d0baa7363e111886e9aa7023d961ce522438324199ba077
-- Current hash: 9261c1ad0211ee3bbffaebf46f54684d3bf7480a42a76a9313718233ad411168
+- Prior hash: 9261c1ad0211ee3bbffaebf46f54684d3bf7480a42a76a9313718233ad411168
+- Current hash: 00b928e3def35eb3d8ddfe6c2fd368c880778493c4e9141590a79972b545ca31
 
 ```diff
-- ## Quick start
-- You can connect to the Apify MCP server in two ways: use our hosted service for a quick and easy setup using Streamable HTTP with OAuth, or run the server locally for development and testing using local stdio.
-- Provide the server URL `https://mcp.apify.com`. You will be redirected to your browser to sign in to your Apify account and approve the connection.
-- When you connect for the first time, you'll be redirected to your browser to sign in to Apify and authorize the connection. This OAuth flow ensures secure authentication without exposing your API token.
-- * OAuth
-- * Bearer token
-- When you connect for the first time, you'll be redirected to your browser to sign in to Apify and authorize the connection. This OAuth flow ensures secure authentication without exposing your API token.
-- When you connect for the first time, you'll be redirected to your browser to sign in to Apify and authorize the connection. This OAuth flow ensures secure authentication without exposing your API token.
-- * OAuth
-- * Bearer token
-- When you connect for the first time, you'll be redirected to your browser to sign in to Apify and authorize the connection. This OAuth flow ensures secure authentication without exposing your API token.
-- When you connect for the first time, you'll be redirected to your browser to sign in to Apify and authorize the connection. This OAuth flow ensures secure authentication without exposing your API token.
-+ ## Connect and authorize
-+ You can connect to the Apify MCP server in two ways: use our hosted service using Streamable HTTP with OAuth, or run the server locally for development and testing using local stdio.
-+ Add `https://mcp.apify.com` to your MCP client. On first connection, your browser opens so you can sign in to Apify and approve access. To authorize without signing in, use your Apify API token instead.
-+ This flow authorizes the server without putting your API token in the client configuration.
-+ To use a bearer token instead of signing in, add an `Authorization` header with your [Apify API token](https://console.apify.com/settings/integrations):
-+ To use a bearer token instead of signing in, add an `Authorization` header with your [Apify API token](https://console.apify.com/settings/integrations):
-+ | `get-actor-task` | tasks | | Get a saved Actor task, its publication state, and its public display configuration |
-+ | `create-actor-task` | tasks | | Create a saved Actor task: a named, reusable Actor configuration |
-+ | `update-actor-task` | tasks | | Update a task's input, run options, or the display configuration of its landing page |
-+ | `publish-actor-task` | tasks | | Publish a task on its public landing page |
-+ | `unpublish-actor-task` | tasks | | Unpublish a task from its public landing page |
+- url: https://docs.apify.com/integrations/mcp.md
+- - [Integrations](https://docs.apify.com/integrations.md)
+- - [AI](https://docs.apify.com/integrations/ai.md)
+- previous: [Build with connectors](https://docs.apify.com/integrations/mcp-connectors/use-in-actors.md)
+- next: [Milvus](https://docs.apify.com/integrations/milvus.md)
+- Help keep this page up to date
+- This integration uses a third-party service. If you find outdated content, please [submit an issue on GitHub](https://github.com/apify/apify-docs/issues).
+- Before connecting your AI to Apify, you'll need three things:
+- * *An Apify account* - Sign up for an Apify account, if you don't have one.
+- * *Apify API token* - Get your API token from the **API & Integrations** section in [Apify Console](https://console.apify.com/settings/integrations). This token authorizes the MCP server to run Actors on your behalf. Make sure to keep it secure.
+- * *MCP client* - An AI agent or client that supports Model Context Protocol (MCP) This could be Anthropic's Claude for Desktop, a VS Code extension with MCP support, or any application that implements the MCP specification. The [official MCP documentation](https://modelcontextprotocol.io/clients) maintains a list of compatible clients.
+- SSE transport deprecated
+- Server-Sent Events (SSE) transport will be removed on April 1, 2026. The Apify MCP server now uses Streamable HTTP, in line with the official MCP specification. Visit [mcp.apify.com](https://mcp.apify.com/) to update your client configuration.
+- Quick setup options
+- *MCP server configuration for other clients*: Use the [UI configuration tool](https://mcp.apify.com/) to select Actors and tools, then copy the configuration to your client.
+- #### Client configuration
+- Here's how to add the Apify MCP server to popular text editors and AI assistants:
+- **Cursor**
+- One-click installation
+- The [Apify UI configurator](https://mcp.apify.com/) offers a one-click install button for Cursor that automatically applies the configuration to your client.
+- To add Apify MCP server to Cursor manually:
+- 1. Create or open the `.cursor/mcp.json` file.
+- 2. Add the following to the configuration file:
+- To use a bearer token instead of signing in, add an `Authorization` header with your [Apify API token](https://console.apify.com/settings/integrations):
+- **VS Code**
+- One-click installation
+- The [Apify UI configurator](https://mcp.apify.com/) offers a one-click install button for VS Code that automatically applies the configuration to your client.
+- VS Code supports MCP through GitHub Copilot's agent mode (requires Copilot subscription):
+- 1. Ensure you have GitHub Copilot installed
+- 2. Open Command Palette (`CMD`/`CTRL` + `Shift` + `P`) and run *MCP: Open User Configuration* command.
+- * This will open `mcp.json` file in your user profile. If the file does not exist, VS Code creates it for you.
+- 3. Add the following to the configuration file:
+- To use a bearer token instead of signing in, add an `Authorization` header with your [Apify API token](https://console.apify.com/settings/integrations):
+- **Claude Desktop**
+- [Add a custom connector](https://support.claude.com/en/articles/11175166) in Claude Desktop and use `https://mcp.apify.com` as the server URL. On first connection, your browser opens to sign in to Apify and authorize the connection.
+- You can also search for "Apify" in the connector directory and install it directly.
+- For detailed setup options and troubleshooting, see the [Claude Desktop integration guide](https://docs.apify.com/integrations/claude-desktop.md).
+- **Apify CLI**
+- Use the Apify CLI to add the Apify MCP server to a supported local client:
+- apify mcp install cursor
++ url: https://docs.apify.com/mcp.md
++ previous: [Plugins](https://docs.apify.com/agents/plugins.md)
++ next: [Agent Skills](https://docs.apify.com/agents/skills.md)
++ To connect a coding agent such as Claude Code, Cursor, GitHub Copilot, or Codex, install the [Apify plugin](https://docs.apify.com/agents/plugins.md) instead. It sets up this server together with [Agent Skills](https://docs.apify.com/agents/skills.md) in one step.
++ Before connecting your AI to Apify, you need:
++ * *An Apify account* - You need one unless your agent uses only the tools that work without an account or pays through agentic payments. Sign up for an Apify account, if you don't have one.
++ * *MCP client* - An AI agent or client that supports Model Context Protocol (MCP). This could be Anthropic's Claude for Desktop, a VS Code extension with MCP support, or any application that implements the MCP specification. The [official MCP documentation](https://modelcontextprotocol.io/clients) maintains a list of compatible clients.
++ * *Apify API token* (optional) - Only needed for the local stdio server or the Bearer token option. The recommended remote connection signs you in with OAuth instead. Get your token from the **API & Integrations** section in [Apify Console](https://console.apify.com/settings/integrations) and keep it secure.
++ For a client-specific configuration, use the [MCP configurator](https://mcp.apify.com/): pick the Actors and tools you need, then copy the generated configuration into your client. If you use the [Apify CLI](https://docs.apify.com/cli), `apify mcp install <client>` writes the configuration for you, for example `apify mcp install cursor`.
++ Agents can pay for Actor runs without an Apify account. Payments made per request through the MCP server, such as with [Skyfire](https://docs.apify.com/integrations/skyfire.md), work only with pay-per-event Actors. To run any Actor that uses limited permissions, buy a prepaid token through [agentic payments](https://docs.apify.com/agents/payments.md) and use it as a Bearer token with the MCP server.
++ By default, the MCP server loads the `actors` and `docs` tool categories, the `apify/rag-web-browser` and `apify/web-fetch` Actors, and `report-problem`. You can customize which tools are available by adding parameters to the server URL:
++ ### Use without an account
++ | ---------------------------------------------------------------- | ----------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
++ | `search-actors` | `actors` | ✅ | Search for Actors in Apify Store |
++ | `fetch-actor-details` | `actors` | ✅ | Retrieve detailed information about a specific Actor, including its input and output schema, README (summary when available, full otherwise), and pricing |
++ | `call-actor` | `actors` | ✅ | Run an Actor and wait up to `waitSecs` (0-45, default 30) for it to finish. Pass run limits (`memory`, `timeout`, `maxItems`, `maxTotalChargeUsd`) in `callOptions`, not in the Actor input. Returns the run status and storage IDs, not the results themselves |
++ | [apify/web-fetch](https://apify.com/apify/web-fetch) | Actor | ✅ | Fetch one http(s) URL and return its full content, rendering JavaScript and bypassing anti-bot protection |
++ | `search-apify-docs` | `docs` | ✅ | Search the Apify documentation for relevant pages |
++ | `fetch-apify-docs` | `docs` | ✅ | Fetch the full content of an Apify documentation page by its URL |
++ | `get-actor-run` | `runs` | | Get detailed information about a specific Actor run |
++ | `get-actor-run-list` | `runs` | | Get a list of an Actor's runs, filterable by status |
++ | `get-actor-run-log` | `runs` | | Retrieve the logs for a specific Actor run |
++ | `abort-actor-run` | `runs` | | Abort a running Actor run |
++ | `get-dataset` | `storage` | | Get metadata about a specific dataset |
++ | `get-dataset-items` | `storage` | | Retrieve items from a dataset with support for filtering and pagination |
++ | `get-dataset-schema` | `storage` | | Generate a JSON schema from dataset items |
++ | `get-key-value-store` | `storage` | | Get metadata about a specific key-value store |
++ | `get-key-value-store-keys` | `storage` | | List the keys within a specific key-value store |
++ | `get-key-value-store-record` | `storage` | | Get the value associated with a specific key in a key-value store |
++ | `get-dataset-list` | `storage` | | List all available datasets for the user |
++ | `get-key-value-store-list` | `storage` | | List all available key-value stores for the user |
++ | `get-actor-task` | `tasks` | | Get a saved Actor task, its publication state, and its public display configuration |
++ | `create-actor-task` | `tasks` | | Create a saved Actor task: a named, reusable Actor configuration |
++ | `update-actor-task` | `tasks` | | Update a task's input, run options, or the display configuration of its landing page |
++ | `publish-actor-task` | `tasks` | | Publish a task on its public landing page |
++ | `unpublish-actor-task` | `tasks` | | Unpublish a task from its public landing page |
++ | `create-schedule` | `schedules` | | Create a schedule that runs Actors and tasks on a cron cadence |
++ | `get-schedule` | `schedules` | | Get a schedule's cron expression, time zone, state, and next run |
++ | `update-schedule` | `schedules` | | Change a schedule's cron expression, time zone, state, or actions |
++ | `delete-schedule` | `schedules` | | Delete a schedule permanently |
+… diff truncated (44 added / 78 removed lines)
 ```
 
 ### apify.platform.changelog
@@ -446,39 +513,38 @@ Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
 - Vendor: Apify
 - Source: https://apify.com/change-log?_format=html
 - Change: changed
-- Prior hash: 117dc61ca8f496558b92d2f78e7c718e09e3f94b3a26010d6388c72cf8aa93dd
-- Current hash: f3bda27cce65c8e39a6e2e671e1ac6759d86d776ddc03115474733c3a87bd926
+- Prior hash: f3bda27cce65c8e39a6e2e671e1ac6759d86d776ddc03115474733c3a87bd926
+- Current hash: c4d037c4ed75e3f8d2ce47bf4c0a9674ae2dcedf294c8dd6c107d10248c28716
 
 ```diff
-- Jun 9, 2026
-- MCP connectors are live. Actors now work where you do.
-- Integrations
-- Apify Actors work on the open web - any public page, no login. But until now, anything that required a login (Notion, Slack, GitHub) had to happen outside Apify.
-- MCP connectors fix that. They use the open Model Context Protocol to securely connect apps to specific Actors. The Actor reads and writes through a proxy in a single run - it never sees your credentials.
-- Authenticate an MCP Server in Settings > API & Integrations
-- Select Actors that support MCP connectors
-- Select your previously authenticated MCP connector to use within the Actor
-- Watch your Actor work within your MCP-connected tools
-- Connect your first app →
-- Griffin Trent
-+ Sep 3, 2026
-+ Create an Actor with a Git repo in a few clicks
-+ When you create a new Actor in Apify Console or with the Apify CLI, you can now pick GitHub, GitLab, or Bitbucket, and Apify sets up the whole Git workflow for you.
-+ Why it matters
-+ Builds on your first push. The build pipeline is configured for you. You push a commit, and Apify builds the Actor.
-+ Your own repository from day one. From the start, you get pull requests, reviews, CI, and everything else you already do with Git.
-+ No manual wiring. The old flow meant creating the repository yourself, adding the template code, and pasting the Git URL into the Actor's Source tab. Private repositories also needed the SSH URL and a deployment key. All of that now happens automatically.
-+ One flow in Apify Console and the Apify CLI. Whether you start in the browser or the terminal, you end up in the same place: code in your repo, builds running on push.
-+ In Apify Console, click Develop new . The flow walks you through creating an Actor:
-+ What do you want to build? A web scraper, an AI agent, an API and data pipeline, or browser automation.
-+ Which language do you prefer? TypeScript, JavaScript, or Python.
-+ Here's your best match. Templates matched to your answers, so you start from working code instead of browsing a template gallery.
-+ Where do you want to host your code? This is the new part.
-+ Pick Git and choose GitHub, GitLab, or Bitbucket. You authorize the provider through OAuth, select the account or organization the repository should live under, and Apify does the rest: creates the repository, pushes the Actor template code, and configures the build. The new repository is private. You can make it public later in your provider's settings.
-+ The apify create command in the Apify CLI walks you through the same choices and gives the same result: a repository under your account with the template code pushed and builds configured.
-+ If you don't want Git, Create without Git is still there: Clone locally or Host on Apify.
-+ Learn more
-+ The new feature is live for everyone, on every plan. Open actor.new   , and see for yourself. Or get the latest version of the Apify CLI and run apify create in your terminal. Read more   about the new flow in the blog post.
+- Jun 24, 2026
+- Publish tasks for your Actor to get more users
+- As an Actor creator, you can now publish tasks. It's a new way to get your Actor found on Apify Store. Each published task gets its own page on Apify Store, indexed by search engines and readable by AI agents. That means more ways for people to find your Actor, beyond just the main Actor page. This has two key benefits:
+- Shows visitors a concrete, ready-to-run example of how to use your Actor
+- Drives organic traffic by targeting specific, long-tail search queries
+- The key is naming your tasks around what users actually search for. For example, RAG Web Browser has three published tasks:
+- Web search to markdown - targets users looking for markdown-formatted output
+- RAG: search a specific website - showcases the site input parameter
+- Web Fetch Tool for AI Agent - highlights the Actor's web fetch capability
+- Publish a task now: https://docs.apify.com/platform/actors/publishing/publish-task
+- Martin Sabo
++ Oct 6, 2026
++ Find Actors by use case with new Store categories
++ Actors are now grouped by use case, including Generate leads , Track products & prices , and Brand monitoring . Filter by industry, output type, target site, or Actor type, such as MCP server or open source. Apify assigns the categories. Publishers have nothing to update. Read how the categories work   .
++ Less scrolling through thousands of Actors. Browse Store categories   .
+```
+
+### apify.sdk.javascript.changelog
+
+- Vendor: Apify
+- Source: https://docs.apify.com/sdk/js/reference/changelog
+- Change: changed
+- Prior hash: ec5d64ffd9e0fc089a1bcd19f051ef87a96474f34e3056b0b3b66c7cc6bc5b42
+- Current hash: 0a481d6a9b075eb0669655ce3a9ddc8ef5b132f6afd939aa0e087882e50ec72b
+
+```diff
+- * `Apify.metamorph()` is now just a shortcut for running `ApifyClient.task(taskId).metamorph(input, options)`, while also taking the ACTOR\_RUN\_ID inside env vars into account
++ * `Apify.metamorph()` is now just a shortcut for running `ApifyClient.task(taskId).metamorph(input, options)`, while also taking the ACTOR_RUN_ID inside env vars into account
 ```
 
 ### exa.docs.changelog
@@ -486,48 +552,183 @@ Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
 - Vendor: Exa
 - Source: https://exa.ai/docs/changelog
 - Change: changed
-- Prior hash: 9b8f9a0ceb5c2884000b2184d0bbf584cd2bf85f2188c9d60a1148f15ebaa748
-- Current hash: aff1047f2ff77aef4b95d65a58af004dcdb4475ca08f3f1be7420707f71fedad
+- Prior hash: aff1047f2ff77aef4b95d65a58af004dcdb4475ca08f3f1be7420707f71fedad
+- Current hash: f6811fe95c70a0f50831ad99b01301346a394f5d786abf35b374ae5bf8e0a222
 
 ```diff
-+ label="August 2026"
-+ <div><a href="#dynamic-highlights-research-preview">Dynamic Highlights (research preview)</a></div>
-+ title: "August 2026",
-+ description: "Dynamic Highlights is a research preview that returns the most useful information across a result set for agents and RAG."
-+ ## Dynamic Highlights (research preview)
-+ Dynamic Highlights selects excerpts across the complete result set instead of treating each page independently. It gives more of the shared context budget to useful sources and gives less context to sources that only repeat information already returned.
-+ * **Single-turn RAG**: about 49% better token efficiency and 2.4% higher downstream quality with Exa Auto across coding and general QA evaluations.
-+ * **Agents**: about 30% fewer tokens across complete agent trajectories and 1% higher quality across BrowseComp, WideSearch, and internal company and people evaluations.
-+ Requests that set `dynamic: true` require the `Exa-Beta: dynamic-highlights-2026-08-28` header.
-+ [Read the Dynamic Highlights guide →](/docs/reference/contents-api-guide)
+- <Update
+- label="August 2026"
+- description={
+- <div className="changelog-month-index">
+- <div><a href="#dynamic-highlights-research-preview">Dynamic Highlights (research preview)</a></div>
+- </div>
+- }
+- rss={{
+- title: "August 2026",
+- description: "Dynamic Highlights is a research preview that returns the most useful information across a result set for agents and RAG."
+- }}
+- >
+- [Read the Dynamic Highlights guide →](/docs/reference/contents-api-guide)
+- <Update
+- label="July 2026"
+- description={
+- <div className="changelog-month-index">
+- <div><a href="#publication-research">Publication research</a></div>
+- <div><a href="#exa-agent-and-exa-connect-in-mcp">Exa Agent and Exa Connect in MCP</a></div>
+- </div>
+- }
+- rss={{
+- title: "July 2026",
+- description: "Expanded publication research with 350M publications, richer organization and people results, and a public retrieval benchmark. Plus Exa Agent and Exa Connect in MCP."
+- }}
+- >
+- Query it via the API with the `publication` [search category](/docs/reference/search-api-guide), or [try it in the dashboard →](https://dashboard.exa.ai/playground/search?type=instant).
+- [Read the Exa MCP guide →](/docs/reference/exa-mcp) · [Read the Exa Agent guide →](/docs/reference/agent-api-guide) · [Announcement tweet →](https://x.com/ExaAILabs/status/2072389192458592672)
+- <Update
+- label="June 2026"
+- description={
+- <div className="changelog-month-index">
+- <div><a href="#introducing-exa-agent">Introducing Exa Agent</a></div>
+- <div><a href="#introducing-exa-connect">Introducing Exa Connect</a></div>
+- </div>
+- }
+- rss={{
+- title: "June 2026",
+- description: "Introducing Exa Agent and Exa Connect, a new class of frontier web research and partner-data workflows accessible via API."
+- }}
++ > ## Agent Instructions
++ > The Exa API is served at https://api.exa.ai. Authenticate with `Authorization: Bearer $EXA_API_KEY` (or `x-api-key: $EXA_API_KEY`); create keys at https://dashboard.exa.ai/api-keys.
++ > Prefer the official SDKs, `exa-py` (`pip install exa-py`) and `exa-js` (`npm install exa-js`); both read `EXA_API_KEY` from the environment.
++ > Tool-using agents can call Exa without writing code through the hosted MCP server at https://mcp.exa.ai/mcp, or install the Exa agent skill with `npx skills add exa-labs/agent-skills` (skill file: https://exa.ai/docs/skill.md).
++ > The OpenAPI specs at https://exa.ai/docs/exa-spec.yaml and https://exa.ai/docs/team-management-spec.yaml are the source of truth for request and response schemas.
++ <Update label="September 24, 2026" rss={{ title: "Agent Ultra" }}>
++ ## Agent Ultra
++ Agent Ultra is Exa Agent's highest-effort mode, built for large list building, deep multi-source research, and criteria that are hard to verify. Set `effort: "ultra"` on a run.
++ * **Metered**: billed at standard Agent usage rates, up to a default \$20 per run. Set `budget.maxCostDollars` to change the cap.
++ * **Time budget**: set `budget.maxDurationSeconds` (5 minutes to 3 hours) and the run wraps up with what it has found by then.
++ * **Stop early**: `POST /agent/runs/{id}/stop` ends a run and keeps the results gathered so far.
++ [Read the Agent Ultra guide →](/docs/agent/agent-ultra)
++ <Update label="August 28, 2026" rss={{ title: "Dynamic Highlights (research preview)" }}>
++ [Read the Dynamic Highlights guide →](/docs/contents/quickstart)
++ <Update label="July 23, 2026" rss={{ title: "Publication research" }}>
++ Query it via the API with the `publication` [search category](/docs/search/quickstart), or [try it in the dashboard →](https://dashboard.exa.ai/playground/search?type=instant).
++ <Update label="July 1, 2026" rss={{ title: "Exa Agent and Exa Connect in MCP" }}>
++ [Read the Exa MCP guide →](/docs/get-started/exa-mcp) · [Read the Exa Agent guide →](/docs/agent/quickstart) · [Announcement tweet →](https://x.com/ExaAILabs/status/2072389192458592672)
++ <Update label="June 24, 2026" rss={{ title: "Introducing Exa Connect" }}>
++ [Read the Exa Connect guide →](/docs/agent/connect/overview) · [Announcement tweet →](https://x.com/ExaAILabs/status/2069842203577651283)
++ <Update label="June 16, 2026" rss={{ title: "Introducing Exa Agent" }}>
++ [Read the Exa Agent API guide →](/docs/agent/quickstart)
++ <Update label="April 1, 2026" rss={{ title: "API Deprecation Notice" }}>
++ <Update label="March 30, 2026" rss={{ title: "Introducing Exa Monitors" }}>
++ [Read the Monitors API guide →](/docs/monitors/quickstart)
++ <Update label="March 4, 2026" rss={{ title: "Exa Deep Revamp" }}>
++ <Update label="March 3, 2026" rss={{ title: "Exa Pricing Update" }}>
++ <Update label="February 5, 2026" rss={{ title: "Introducing Exa Instant Search" }}>
++ [Read the Search API guide →](/docs/search/quickstart) · [Try it in the dashboard →](https://dashboard.exa.ai/playground/search?type=instant)
++ <Update label="February 2, 2026" rss={{ title: "Highlights, content freshness, and MCP updates" }}>
++ [Content freshness docs →](/docs/contents/quickstart#content-freshness) · [Exa MCP →](/docs/get-started/exa-mcp)
++ <Update label="January 21, 2026" rss={{ title: "Introducing Exa Company Search" }}>
++ [Read the Companies & People Search docs →](/docs/search/data/companies-people) · [Read the benchmark blog →](https://exa.ai/blog/company-search-benchmarks)
++ <Update label="December 19, 2025" rss={{ title: "Introducing Exa People Search" }}>
++ [Read the Companies & People Search docs →](/docs/search/data/companies-people) · [Read the benchmark blog →](https://exa.ai/blog/people-search-benchmark)
++ <Update label="November 26, 2025" rss={{ title: "JS SDK: highlights restored" }}>
++ [Read the JavaScript SDK docs →](/docs/sdks/quickstart)
++ <Update label="November 20, 2025" rss={{ title: "New Deep Search Type" }}>
++ <Update label="November 5, 2025" rss={{ title: "Added Language Filtering" }}>
++ [Read the Search API guide →](/docs/search/quickstart)
+… diff truncated (56 added / 209 removed lines)
 ```
 
 ### exa.docs.contents-retrieval
 
 - Vendor: Exa
-- Source: https://exa.ai/docs/reference/contents-retrieval
+- Source: https://exa.ai/docs/contents/quickstart.md
 - Change: changed
-- Prior hash: f5ab74cebc766818387ba5ed5927557255f489517a3ca3c4f71b95ed5d2b4f7d
-- Current hash: 60c952eb599af0c78133a64791aa6f2bc06e6c559ea01c08c3305b41dd074bdc
+- Prior hash: 60c952eb599af0c78133a64791aa6f2bc06e6c559ea01c08c3305b41dd074bdc
+- Current hash: a9e4ceaeb41036f0a2db09b0e9aa37376433637d1594b175844b7bd79ae41ea3
 
 ```diff
-- You can configure highlights in two ways:
-- 1. **Simple boolean** (`highlights=True` in SDKs): Returns default highlights based on the search query
-- 2. **Detailed configuration** (pass as an object): include `query` to guide selection and `maxCharacters` to cap highlight length
-+ ### Dynamic Highlights
-+ Dynamic Highlights is available as a research preview on `/search` and `/contents`. Include the `Exa-Beta: dynamic-highlights-2026-08-28` header on every request that sets `dynamic: true`.
-+ Regular highlights select excerpts from each page independently. Dynamic Highlights allocates context across all requested pages, giving more space to useful information and less to redundant results.
-+ Enable it with `dynamic: true`:
-+ "ids": [
-+ "https://www.baseten.co/blog/how-to-optimize-llm-inference-speed-and-reduce-costs-in-production/",
-+ "https://blog.cloudflare.com/smaller-faster-safer-models/"
-+ ],
-+ "highlights": {"dynamic": true}
-+ The model sizes and distributes the output automatically, so `dynamic: true` is incompatible with `maxCharacters`.
-+ You can configure highlights in three ways:
-+ 1. **Simple boolean** (`highlights=True` in SDKs): use the request query to select highlights
-+ 2. **Per-page configuration**: use `query` to guide selection or `maxCharacters` for a page-level limit
-+ 3. **Dynamic configuration**: set `dynamic: true` to allocate context across the result set
+- # Contents Retrieval
+- ***
+- When using the Exa API, you can request different types of content. On `/search`, content options are nested under `contents`; on `/contents`, the same options are top-level fields because the endpoint already retrieves known URLs.
+- ## Text (text=True)
+- Returns the full text content of the result, formatted as markdown. It extracts the main content (like article body text) while filtering out navigation elements, pop-ups, and other peripheral text. This is extractive content taken directly from the page's source.
+- ### Content Filtering Options
+- <Note>
+- **Important**: Content filtering options (`verbosity`, `includeSections`, `excludeSections`) require live crawling to take effect. Use `maxAgeHours: 0` to force a fresh crawl for these filters.
+- </Note>
+- You can control the level of detail and which page sections are included using these options:
+- 1. **Verbosity** - Controls overall content detail level:
+- * `compact` (default): Most concise output, main content only
+- * `standard`: Balanced content with more detail
+- * `full`: Complete content including all sections
+- 2. **Section Filtering** - Include or exclude specific semantic sections:
+- * `includeSections`: Only include content from specified sections
+- * `excludeSections`: Remove content from specified sections
+- Available section tags:
+- * `header` - Page header content
+- * `navigation` - Navigation menus
+- * `banner` - Banner/hero sections
+- * `body` - Main body content
+- * `sidebar` - Sidebar content
+- * `footer` - Page footer
+- * `metadata` - Page metadata
+- Example `/search` configuration:
+- "query": "latest product updates",
+- "contents": {
+- "verbosity": "standard",
+- "includeSections": ["body", "header"]
+- "maxAgeHours": 0
+- Equivalent `/contents` configuration:
+- "ids": ["https://example.com"],
+- "excludeSections": ["navigation", "footer", "sidebar"]
+- "maxAgeHours": 0
+- ## Summary (summary=True)
+- Provides a concise summary generated from the text, tailored to a specific query you provide. This is abstractive content created by processing the source text using Gemini Flash.
+- ### Structured Summaries
+- You can also request structured summaries by providing a JSON schema. This is `/contents` top-level form:
+- "ids": ["https://example.com"],
++ > ## Agent Instructions
++ > The Exa API is served at https://api.exa.ai. Authenticate with `Authorization: Bearer $EXA_API_KEY` (or `x-api-key: $EXA_API_KEY`); create keys at https://dashboard.exa.ai/api-keys.
++ > Prefer the official SDKs, `exa-py` (`pip install exa-py`) and `exa-js` (`npm install exa-js`); both read `EXA_API_KEY` from the environment.
++ > Tool-using agents can call Exa without writing code through the hosted MCP server at https://mcp.exa.ai/mcp, or install the Exa agent skill with `npx skills add exa-labs/agent-skills` (skill file: https://exa.ai/docs/skill.md).
++ > The OpenAPI specs at https://exa.ai/docs/exa-spec.yaml and https://exa.ai/docs/team-management-spec.yaml are the source of truth for request and response schemas.
++ # Contents API
++ > Extract text, highlights, and summaries from any URL.
++ Exa Contents returns clean page content from URLs, handling JavaScript-rendered pages, PDFs, and complex layouts automatically.
++ All contents features are also available in [Exa Search](/docs/search/quickstart) for returned URLs, at no extra charge up to 10 results per search (\$1/1000 pages afterwards). We recommend using Search in this way instead of Contents for web search tool use cases.
++ <Tip>
++ For search results feeding AI context, request `contents: { highlights: true }` on `/search` —
++ Exa sizes each result's excerpts to its relevance. See [Highlights](/docs/search/highlights).
++ </Tip>
++ ## Make your first request
++ Pass one or more URLs or document IDs and request highlights for the parts relevant to your task. In HTTP requests, provide them in `ids`:
++ <CodeGroup>
++ ```python Python theme={null}
++ from exa_py import Exa
++ exa = Exa()
++ result = exa.get_contents(
++ ["https://exa.ai/blog/dynamic-highlights"],
++ highlights={"query": "token efficiency and quality results"},
++ )
++ print(result.results[0].highlights)
++ ```javascript JavaScript theme={null}
++ import Exa from "exa-js";
++ const exa = new Exa();
++ const result = await exa.getContents(
++ ["https://exa.ai/blog/dynamic-highlights"],
++ highlights: {
++ query: "token efficiency and quality results"
++ );
++ console.log(result.results[0].highlights);
++ ```bash cURL theme={null}
++ curl -s -X POST "https://api.exa.ai/contents" \
++ -H "Content-Type: application/json" \
++ -H "Authorization: Bearer $EXA_API_KEY" \
++ -d '{
++ "ids": ["https://exa.ai/blog/dynamic-highlights"],
++ "query": "token efficiency and quality results"
+… diff truncated (232 added / 101 removed lines)
 ```
 
 ### exa.docs.index
@@ -535,43 +736,91 @@ Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
 - Vendor: Exa
 - Source: https://exa.ai/docs/llms.txt
 - Change: changed
-- Prior hash: db63ac7041377e84c1e31f6c59f11861c99bd39842fd96b69a6bb2cc1102b160
-- Current hash: a60fc40b1adbc761c928a7f484208dca1a9cd9723fa58781c0ab783e862abd0d
+- Prior hash: a60fc40b1adbc761c928a7f484208dca1a9cd9723fa58781c0ab783e862abd0d
+- Current hash: d50b13ada017baf3db4fb878d07ae8d40c6525d23a32aad3355efb38a57d1163
 
 ```diff
-- - [Jinko](https://exa.ai/docs/reference/agent-api/connect/jinko.md): Discover travel destinations from your departure airports, ranked by lowest available fare.
-- - [OpenAI Tool Calling](https://exa.ai/docs/reference/openai-tool-calling.md): Use OpenAI tool calling to add Exa web search to your application.
-- - [Anthropic Tool Calling](https://exa.ai/docs/reference/anthropic-tool-calling.md): Use Claude tool use to add Exa web search to your application.
-- - [OpenAI Responses API](https://exa.ai/docs/reference/openai-responses-api-with-exa.md): Use Exa with OpenAI's Responses API - both as a web search tool and for direct research capabilities.
-- - [Agent](https://exa.ai/docs/.mintlify/skills/build-with-exa/references/agent.md)
-- - [Answer](https://exa.ai/docs/.mintlify/skills/build-with-exa/references/answer.md)
-- - [Common mistakes](https://exa.ai/docs/.mintlify/skills/build-with-exa/references/common-mistakes.md)
-- - [Contents](https://exa.ai/docs/.mintlify/skills/build-with-exa/references/contents.md)
-- - [Context](https://exa.ai/docs/.mintlify/skills/build-with-exa/references/context.md)
-- - [Http requests](https://exa.ai/docs/.mintlify/skills/build-with-exa/references/http-requests.md)
-- - [Migrate websets to agent](https://exa.ai/docs/.mintlify/skills/build-with-exa/references/migrate-websets-to-agent.md)
-- - [Models and modes](https://exa.ai/docs/.mintlify/skills/build-with-exa/references/models-and-modes.md)
-- - [Monitors](https://exa.ai/docs/.mintlify/skills/build-with-exa/references/monitors.md)
-- - [Openai compat](https://exa.ai/docs/.mintlify/skills/build-with-exa/references/openai-compat.md)
-- - [Prompting and patterns](https://exa.ai/docs/.mintlify/skills/build-with-exa/references/prompting-and-patterns.md)
-- - [Sdks](https://exa.ai/docs/.mintlify/skills/build-with-exa/references/sdks.md)
-- - [Search](https://exa.ai/docs/.mintlify/skills/build-with-exa/references/search.md)
-- - [openapi](https://exa.ai/docs/api-reference/openapi.json)
-+ - [Polymarket](https://exa.ai/docs/reference/agent-api/connect/polymarket.md): Get prediction-market odds, price history, order books, and trader positions.
-+ - [Jinko](https://exa.ai/docs/reference/agent-api/connect/jinko.md): Flight and Hotel search with real-time pricing.
-+ - [Exa in Codex and ChatGPT](https://exa.ai/docs/integrations/chatgpt-codex.md): Search the web, read any page, and research with Exa directly from Codex and ChatGPT.
-+ - [fx by Vercel Labs](https://exa.ai/docs/integrations/fx.md): Add Exa web search to fx, Vercel Labs' native coding agent, with the hosted Exa MCP server.
-+ - [OpenAI Tool Calling](https://exa.ai/docs/reference/openai-tool-calling.md): Use OpenAI tool calling to add Exa web search and page contents to your application.
-+ - [Anthropic Tool Calling](https://exa.ai/docs/reference/anthropic-tool-calling.md): Use Claude tool use to add Exa web search and page contents to your application.
-+ - [Enterprise Managed Auth for Claude](https://exa.ai/docs/reference/mcp-enterprise-managed-auth.md): Set up Enterprise Managed Auth (EMA) so Claude connects to Exa MCP through your identity provider, with no per-user OAuth login or consent screen. Includes Okta Cross App Access (XAA) setup.
-+ - [Batch API](https://exa.ai/docs/reference/batches.md): Run Exa API requests asynchronously in batches.
-+ - [Stop a run](https://exa.ai/docs/reference/agent-api/stop-a-run.md): Gracefully stop a running Agent run and keep the results gathered so far.
-+ - [Create a batch](https://exa.ai/docs/reference/batches/create-a-batch.md): Submit a batch of Exa API requests to run asynchronously.
-+ - [List batches](https://exa.ai/docs/reference/batches/list-batches.md): Retrieve a paginated list of batches for your team.
-+ - [Get a batch](https://exa.ai/docs/reference/batches/get-a-batch.md): Retrieve a batch by ID.
-+ - [Cancel a batch](https://exa.ai/docs/reference/batches/cancel-a-batch.md): Cancel an in-progress batch.
-+ - [Delete a batch](https://exa.ai/docs/reference/batches/delete-a-batch.md): Delete a batch in a terminal status.
-+ - [2026 08 24 design button behavioral stability](https://exa.ai/docs/superpowers/plans/2026-08-24-design-button-behavioral-stability.md)
+- ## Docs
+- - [Exa Search API](https://exa.ai/docs/reference/search-api-guide.md): Exa is an SF-based research lab building perfect search.
+- - [Search API Reference](https://exa.ai/docs/reference/search-api-guide-for-coding-agents.md): Self-contained reference with best practices and examples for coding agents
+- - [Search Best Practices](https://exa.ai/docs/reference/search-best-practices.md): Best practices for using Exa's Search API
+- - [Contents API](https://exa.ai/docs/reference/contents-api-guide.md): Extract clean, LLM-ready web content.
+- - [Contents API Reference](https://exa.ai/docs/reference/contents-api-guide-for-coding-agents.md): Best practices, examples, and API reference for your coding agent
+- - [Contents Best Practices](https://exa.ai/docs/reference/contents-best-practices.md): Best practices for using Exa's Contents API
+- - [Exa Agent](https://exa.ai/docs/reference/agent-api-guide.md): Run deep research, list-building, and enrichment workflows that return structured outputs.
+- - [Examples](https://exa.ai/docs/reference/agent-api/examples.md): Production Exa Agent examples for list building, KYB intelligence, job postings, and structured outputs.
+- - [Websets](https://exa.ai/docs/websets/api-guide.md): Find anything on the web, no matter how complex. Websets searches, verifies, and enriches results automatically.
+- - [Websets Reference (For Your Coding Agent)](https://exa.ai/docs/websets/api-guide-for-coding-agents.md): Self-contained reference for coding agents. Websets API architecture, request/response shapes, event flow, and integration patterns.
+- - [How Websets Works](https://exa.ai/docs/websets/api/how-it-works.md)
+- - [FAQ](https://exa.ai/docs/websets/faq.md): Frequently asked questions about Websets
+- - [Websets Best Practices](https://exa.ai/docs/websets/best-practices.md): Best practices for building with the Websets API
+- - [Example queries](https://exa.ai/docs/websets/dashboard/websets-example-queries.md): Here are some examples for things to search for, to get you started!
+- - [Criteria vs Enrichments](https://exa.ai/docs/websets/dashboard/criteria-versus-enrichments.md)
+- - [Creating Enrichments ](https://exa.ai/docs/websets/dashboard/walkthroughs/Creating-enrichments.md): Here's how to create enrichments (also known as Adding Columns).
+- - [Exploring your results ](https://exa.ai/docs/websets/dashboard/walkthroughs/Exploring-your-results.md): Explore your Websets matched results, view summaries, criteria justification
+- - [Adding and Managing Your Team Members in Websets](https://exa.ai/docs/websets/dashboard/walkthroughs/Managing-Team-Members.md): Here's how to manage your team.
+- - [Prompting Websets](https://exa.ai/docs/websets/dashboard/walkthroughs/Prompting.md): Here's how to prompt your query in Websets
+- - [Downloading and Sharing Your Results](https://exa.ai/docs/websets/dashboard/walkthroughs/Sharing-and-Downloading-Your-Results.md): Here's how to share or download your results and enrichments.
+- - [Monitors](https://exa.ai/docs/reference/monitors-api-guide.md): Schedule recurring Exa searches and get results delivered to your webhook.
+- - [Monitors API Reference](https://exa.ai/docs/reference/monitors-api-guide-for-coding-agents.md): Self-contained reference with all endpoints, parameters, and examples for coding agents.
+- - [Exa Connect](https://exa.ai/docs/reference/agent-api/connect/overview.md): Give your Exa Agent live access to premium data partners, alongside Exa web search, in a single run.
+- - [Fiber.ai](https://exa.ai/docs/reference/agent-api/connect/fiber.md): Search Fiber.ai's B2B database for companies, people, and LinkedIn profiles.
+- - [Similarweb](https://exa.ai/docs/reference/agent-api/connect/similarweb.md): Get website traffic estimates, global rankings, and competitor discovery.
+- - [Baselayer](https://exa.ai/docs/reference/agent-api/connect/baselayer.md): Verify US businesses and retrieve KYB data: officers, registrations, risk scores.
+- - [Polymarket](https://exa.ai/docs/reference/agent-api/connect/polymarket.md): Get prediction-market odds, price history, order books, and trader positions.
+- - [Affiliate.com](https://exa.ai/docs/reference/agent-api/connect/affiliatecom.md): Search product catalogs across merchants and affiliate networks.
+- - [Particle](https://exa.ai/docs/reference/agent-api/connect/particle.md): Search podcast transcripts with speaker attribution and timestamps.
+- - [Financial Datasets](https://exa.ai/docs/reference/agent-api/connect/financialdatasets.md): Structured financial and market data for 27,000+ active and delisted U.S. tickers, including prices, fundamentals, earnings, SEC filings, ownership, and stock screening.
+- - [Jinko](https://exa.ai/docs/reference/agent-api/connect/jinko.md): Flight and Hotel search with real-time pricing.
+- - [Combining providers](https://exa.ai/docs/reference/agent-api/connect/combining-providers.md): Use several data partners together in a single Exa Agent run.
+- - [Additional providers](https://exa.ai/docs/reference/agent-api/connect/additional-partners.md): Exa Connect partners beyond the self-serve provider set.
+- - [People Search](https://exa.ai/docs/reference/verticals/people.md)
+- - [People Search Reference](https://exa.ai/docs/reference/verticals/people-for-coding-agents.md): Self-contained reference for coding agents using Exa People Search
+- - [Company Search](https://exa.ai/docs/reference/verticals/company.md)
+- - [Company Search Reference](https://exa.ai/docs/reference/verticals/company-for-coding-agents.md): Self-contained reference for coding agents using Exa Company Search
+- - [Code Search](https://exa.ai/docs/reference/verticals/code.md)
+- - [Code Search Reference](https://exa.ai/docs/reference/verticals/code-for-coding-agents.md): Self-contained reference for coding agents using Exa Code Search
++ > A powerful web search tool designed for agents. Everything optimized to get you token-efficient, accurate results.
++ > ## Agent Instructions
++ > The Exa API is served at https://api.exa.ai. Authenticate with `Authorization: Bearer $EXA_API_KEY` (or `x-api-key: $EXA_API_KEY`); create keys at https://dashboard.exa.ai/api-keys.
++ > Prefer the official SDKs, `exa-py` (`pip install exa-py`) and `exa-js` (`npm install exa-js`); both read `EXA_API_KEY` from the environment.
++ > Tool-using agents can call Exa without writing code through the hosted MCP server at https://mcp.exa.ai/mcp, or install the Exa agent skill with `npx skills add exa-labs/agent-skills` (skill file: https://exa.ai/docs/skill.md).
++ > The OpenAPI specs at https://exa.ai/docs/exa-spec.yaml and https://exa.ai/docs/team-management-spec.yaml are the source of truth for request and response schemas.
++ - [Start building with Exa](https://exa.ai/docs/index.md): A powerful web search tool designed for agents. Everything optimized to get you token-efficient, accurate results.
++ - [Developer quickstart](https://exa.ai/docs/get-started/quickstart.md): Get an API key, then use Exa from your code or your agent.
++ - [Exa MCP](https://exa.ai/docs/get-started/exa-mcp.md): Connect ChatGPT, Codex, Claude, Grok, Cursor, and any other MCP client to Exa's web search, page fetching, Exa Agent, and Exa Connect tools.
++ - [Agent Skills](https://exa.ai/docs/get-started/agent-skills/overview.md): Install Exa skills in Claude Code, Codex, and other coding agents.
++ - [Build with Exa Skill](https://exa.ai/docs/get-started/agent-skills/build-with-exa.md): An agent skill to help developers implement any part of the Exa API platform.
++ - [Exa Search Skill](https://exa.ai/docs/get-started/agent-skills/exa-search.md): Find relevant web pages and return synthesized content in under two seconds with Exa Search.
++ - [Exa Contents Skill](https://exa.ai/docs/get-started/agent-skills/exa-contents.md): Extract page content with Exa Contents when you already have the URLs.
++ - [Exa Search API](https://exa.ai/docs/search/quickstart.md): Search the web in natural language and get clean, relevant page content in one request.
++ - [Deep Search](https://exa.ai/docs/search/deep-search.md): Use iterative search, reasoning, and grounded synthesis for complex research tasks.
++ - [Highlights](https://exa.ai/docs/search/highlights.md): Return query-relevant excerpts from Exa Search results while controlling context size and latency.
++ - [Exa Snapshot](https://exa.ai/docs/search/snapshot.md): Pin Search and Contents to a stored version of a page at a datetime you choose.
++ - [Search Best Practices](https://exa.ai/docs/search/best-practices.md): Tune retrieval quality, latency, context, and synthesis for production Search API integrations.
++ - [Data Index](https://exa.ai/docs/search/data/overview.md): What Exa indexes across the public web and private data sources.
++ - [News](https://exa.ai/docs/search/data/news.md): Find current reporting, industry coverage, and emerging stories with Exa Search.
++ - [Code & Docs](https://exa.ai/docs/search/data/code.md): Find code, technical documentation, and implementation guidance with Exa Search.
++ - [Companies & People](https://exa.ai/docs/search/data/companies-people.md): Find companies, professional profiles, and the relationships between them with Exa Search.
++ - [Financial Markets](https://exa.ai/docs/search/data/financial.md): Find market data, filings, earnings calls, and economic releases with Exa Search.
++ - [Research Publications](https://exa.ai/docs/search/data/research.md): Find academic papers, patents, grants, clinical trials, and regulatory approvals with Exa Search.
++ - [Legal & Public Records](https://exa.ai/docs/search/data/legal.md): Find court opinions, patents, sanctions, government contracts, and other public records with Exa Search.
++ - [Sports, Weather & Places](https://exa.ai/docs/search/data/sports-weather-places.md): Find live sports data, weather forecasts, and local places with Exa Search.
++ - [Cybersecurity](https://exa.ai/docs/search/data/security.md): Find vulnerabilities, advisories, threat reporting, and trust documentation with Exa Search.
++ - [Exa Agent](https://exa.ai/docs/agent/quickstart.md): Run deep research, list-building, and enrichment workflows that return structured outputs.
++ - [Agent Best Practices](https://exa.ai/docs/agent/best-practices.md): Tune query quality, structured output, effort, and cost for production Exa Agent integrations.
++ - [Examples](https://exa.ai/docs/agent/examples.md): Production Exa Agent examples for list building, KYB intelligence, job postings, and structured outputs.
++ - [Agent Ultra](https://exa.ai/docs/agent/agent-ultra.md): Run Exa Agent at its highest effort for large list building and exhaustive research.
++ - [Exa Connect](https://exa.ai/docs/agent/connect/overview.md): Give your Exa Agent live access to premium data partners, alongside Exa web search, in a single run.
++ - [Fiber.ai](https://exa.ai/docs/agent/connect/fiber.md): Search Fiber.ai's B2B database for companies, people, and LinkedIn profiles.
++ - [Similarweb](https://exa.ai/docs/agent/connect/similarweb.md): Get website traffic estimates, global rankings, and competitor discovery.
++ - [Baselayer](https://exa.ai/docs/agent/connect/baselayer.md): Verify US businesses and retrieve KYB data: officers, registrations, risk scores.
++ - [Polymarket](https://exa.ai/docs/agent/connect/polymarket.md): Get prediction-market odds, price history, order books, and trader positions.
++ - [Macrobond](https://exa.ai/docs/agent/connect/macrobond.md): Search and fetch macroeconomic and financial time series, entity metadata, and release calendars.
++ - [Affiliate.com](https://exa.ai/docs/agent/connect/affiliatecom.md): Search product catalogs across merchants and affiliate networks.
++ - [Particle](https://exa.ai/docs/agent/connect/particle.md): Search podcast transcripts with speaker attribution and timestamps.
++ - [Financial Datasets](https://exa.ai/docs/agent/connect/financialdatasets.md): Structured financial and market data for 27,000+ U.S. tickers: prices, fundamentals, earnings, SEC filings, ownership, and stock screening.
+… diff truncated (144 added / 157 removed lines)
 ```
 
 ### exa.docs.search
@@ -579,91 +828,91 @@ Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
 - Vendor: Exa
 - Source: https://exa.ai/docs/reference/search
 - Change: changed
-- Prior hash: 9f4dc1c9a590ea21086e3a6d78c866bf7f349b5e1ffa9ddef633d95ab313586f
-- Current hash: 68bb3178990f619909564908c08ea73d474b8c9dcbca7572e9d393abaf650a4f
+- Prior hash: 68bb3178990f619909564908c08ea73d474b8c9dcbca7572e9d393abaf650a4f
+- Current hash: 33c1298dcdbaac7d24bfc44f0c971d16bdfb9392a7c296c085b2414939cf54b7
 
 ```diff
-- description: Payment Required
-- x-codeSamples:
-- - lang: bash
-- label: Simple search with contents
-- source: |-
-- curl -X POST 'https://api.exa.ai/search' \
-- -H 'x-api-key: YOUR-EXA-API-KEY' \
-- -H 'Content-Type: application/json' \
-- -d '{
-- "query": "Latest research in LLMs",
-- "contents": {
-- "highlights": true
-- }
-- }'
-- - lang: python
-- label: Simple search with contents
-- source: |-
-- # pip install exa-py
-- from exa_py import Exa
-- exa = Exa(api_key='YOUR_EXA_API_KEY')
-- results = exa.search(
-- "Latest research in LLMs",
-- contents={"highlights": True}
-- )
-- print(results)
-- - lang: javascript
-- label: Simple search with contents
-- source: |-
-- // npm install exa-js
-- import Exa from 'exa-js';
-- const exa = new Exa('YOUR_EXA_API_KEY');
-- const results = await exa.search(
-- 'Latest research in LLMs',
-- { contents: { highlights: true } }
-- );
-- console.log(results);
-- - lang: bash
-- label: Advanced search with filters
-- source: |-
-- curl --request POST \
-+ headers:
-+ x-request-id:
-+ $ref: '#/components/headers/XRequestId'
-+ x-exa-queued:
-+ $ref: '#/components/headers/XExaQueued'
-+ x-exa-queue-ms:
-+ $ref: '#/components/headers/XExaQueueMs'
-+ '400':
-+ $ref: '#/components/responses/BadRequestResponse'
-+ '401':
-+ $ref: '#/components/responses/UnauthorizedResponse'
-+ Payment required. For API-key requests this is the standard error
-+ envelope (out of credits or a budget exceeded). On x402-priced
-+ endpoints, requests without an API key instead receive an x402
-+ payment challenge with tag `X402_PAYMENT_REQUIRED`: the envelope
-+ extended with x402 payment metadata (`x402Version`, `resource`,
-+ `accepts`, and optional `extensions`) describing how to pay for the
-+ request.
-+ headers:
-+ x-request-id:
-+ $ref: '#/components/headers/XRequestId'
-+ - $ref: '#/components/schemas/ErrorResponse'
-+ - $ref: '#/components/schemas/X402PaymentChallenge'
-+ '429':
-+ $ref: '#/components/responses/TooManyRequestsResponse'
-+ '500':
-+ $ref: '#/components/responses/InternalServerErrorResponse'
-+ Server-side processing time in milliseconds, measured at the
-+ gateway. Covers retrieval but may exclude later phases such as
-+ structured output synthesis, so it can be lower than end-to-end
-+ request latency.
-+ example: 312.4
-+ Server-side processing time in milliseconds, measured at the
-+ gateway. Covers retrieval but may exclude later phases such as
-+ structured output synthesis, so it can be lower than end-to-end
-+ request latency.
-+ example: 312.4
-+ Server-side processing time in milliseconds, measured at the
-+ gateway. Covers retrieval but may exclude later phases such as
-+ structured output synthesis, so it can be lower than end-to-end
-… diff truncated (261 added / 255 removed lines)
+- <Card title="Get your Exa API key" icon="key" horizontal href="https://dashboard.exa.ai/api-keys" />
+- ````yaml post /search
+- tags: []
+- example:
+- requestId: b5947044c4b78efa9552a7c89b306d95
+- - title: A Comprehensive Overview of Large Language Models
+- url: https://arxiv.org/pdf/2307.06435.pdf
+- publishedDate: '2023-11-16T01:36:32.547Z'
+- author: >-
+- Humza Naveed, University of Engineering and Technology
+- (UET), Lahore, Pakistan
+- id: https://arxiv.org/abs/2307.06435
+- image: https://arxiv.org/pdf/2307.06435.pdf/page_1.png
+- favicon: https://arxiv.org/favicon.ico
+- text: >-
+- Abstract Large Language Models (LLMs) have recently
+- demonstrated remarkable capabilities...
+- - Such requirements have limited their adoption...
+- summary: >-
+- This overview paper on Large Language Models (LLMs)
+- highlights key developments...
+- resolvedSearchType: neural
+- total: 0.007
+- neural: 0.007
+- example:
+- - arxiv.org
+- - exa.ai/blog
+- example:
+- - docs.python.org/3
+- Deprecated and has no effect; ignored by the API. Must be
+- specified in ISO 8601 format.
+- example: '2023-01-01T00:00:00.000Z'
+- Deprecated and has no effect; ignored by the API. Must be
+- specified in ISO 8601 format.
+- example: '2023-12-31T00:00:00.000Z'
+- example: '2023-01-01T00:00:00.000Z'
+- example: '2023-12-31T00:00:00.000Z'
+- example: 10
+- Deprecated: Use highlights or text instead. Returns page
+- Deprecated: Use highlights or text instead. Returns page
++ > ## Agent Instructions
++ > The Exa API is served at https://api.exa.ai. Authenticate with `Authorization: Bearer $EXA_API_KEY` (or `x-api-key: $EXA_API_KEY`); create keys at https://dashboard.exa.ai/api-keys.
++ > Prefer the official SDKs, `exa-py` (`pip install exa-py`) and `exa-js` (`npm install exa-js`); both read `EXA_API_KEY` from the environment.
++ > Tool-using agents can call Exa without writing code through the hosted MCP server at https://mcp.exa.ai/mcp, or install the Exa agent skill with `npx skills add exa-labs/agent-skills` (skill file: https://exa.ai/docs/skill.md).
++ > The OpenAPI specs at https://exa.ai/docs/exa-spec.yaml and https://exa.ai/docs/team-management-spec.yaml are the source of truth for request and response schemas.
++ <Card title="Get your Exa API key" icon="key" horizontal href="https://dashboard.exa.ai/api-keys">
++ Create a key in the dashboard. New accounts start with free credits.
++ </Card>
++ ````yaml exa-spec.yaml POST /search
++ '403':
++ $ref: '#/components/responses/ForbiddenResponse'
++ '503':
++ $ref: '#/components/responses/ServiceUnavailableResponse'
++ x-codeSamples:
++ - lang: bash
++ source: |-
++ curl -X POST https://api.exa.ai/search \
++ -H "x-api-key: $EXA_API_KEY" \
++ -H "Content-Type: application/json" \
++ -d '{
++ "query": "<query>",
++ "type": "auto",
++ "contents": {
++ "highlights": true
++ }
++ }'
++ - lang: javascript
++ source: |-
++ import Exa from "exa-js";
++ const exa = new Exa(process.env.EXA_API_KEY);
++ const result = await exa.search("<query>", {
++ type: "auto",
++ contents: { highlights: true },
++ });
++ - lang: python
++ source: |-
++ from exa_py import Exa
++ exa = Exa(api_key="YOUR_API_KEY")
++ result = exa.search(
++ "<query>",
+… diff truncated (262 added / 283 removed lines)
 ```
 
 ### firecrawl.docs.index
@@ -671,91 +920,62 @@ Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
 - Vendor: Firecrawl
 - Source: https://docs.firecrawl.dev/llms.txt
 - Change: changed
-- Prior hash: 8d6e66ab5dd802f86c318f0ae15d08e1bc93eeb4731362fdbac99c1139efc555
-- Current hash: 0ee47209638ef3a11ce3e9bd0c4ddeb30f2ce97fe507d288618f19dec5c39bea
+- Prior hash: 0ee47209638ef3a11ce3e9bd0c4ddeb30f2ce97fe507d288618f19dec5c39bea
+- Current hash: bdea4defc72763a486ee4eb98a04400614ccceb244f7fe752b7bbb34bceb2f4c
 
 ```diff
-- ## Docs
-- - [Introduction](https://docs.firecrawl.dev/introduction.md): Search the web, scrape any page, and interact with it, all through one API.
-- - [Get Started](https://docs.firecrawl.dev/mcp-server.md): Set up Firecrawl MCP with keyless access, account sign-in, or an API key.
-- - [For Agents](https://docs.firecrawl.dev/mcp-server/keyless.md): Agents can start instantly, no API key required. Add an API key to unlock more usage.
-- - [For Humans](https://docs.firecrawl.dev/mcp-server/oauth.md): Sign in via your browser.
-- - [CLI](https://docs.firecrawl.dev/sdks/cli.md): Firecrawl skills are an easy way for AI agents such as Claude Code, Antigravity and OpenCode to use Firecrawl through the CLI.
-- - [Build with AI](https://docs.firecrawl.dev/ai-onboarding.md): Everything you need to onboard your AI agent to Firecrawl.
-- - [Advanced Scraping Guide](https://docs.firecrawl.dev/advanced-scraping-guide.md): Configure scrape options, browser actions, crawl, map, and the agent endpoint with Firecrawl's full API surface.
-- - [Billing](https://docs.firecrawl.dev/billing.md): How Firecrawl billing, credits, and plans work
-- - [Rate Limits](https://docs.firecrawl.dev/rate-limits.md): Rate limits for different pricing plans and API requests
-- - [Partner Credits](https://docs.firecrawl.dev/partner-credits.md): How Firecrawl partner credits work, including eligibility, expiration, and plan limits
-- - [Enterprise](https://docs.firecrawl.dev/enterprise.md): Enterprise plans, security, and features for Firecrawl at scale
-- - [IP Restrictions](https://docs.firecrawl.dev/features/ip-restrictions.md): Restrict your team's API keys to an allowlist of IP addresses or CIDR ranges, so they only work from approved networks. Enforced server-side.
-- - [Key Restrictions](https://docs.firecrawl.dev/features/key-restrictions.md): Lock an individual API key to specific output formats and endpoints. Enforced server-side, with no way for a request to override it.
-- - [Threat Protection](https://docs.firecrawl.dev/features/threat-protection.md): Block requests to risky URLs across every endpoint, using a policy your organization controls. Enforced server-side.
-- - [SIEM Audit Logging](https://docs.firecrawl.dev/features/siem.md): Stream a structured audit event for every scrape your team runs to your own SIEM, starting with Microsoft Sentinel. Delivered server-side.
-- - [Search](https://docs.firecrawl.dev/features/search.md): Search the web and get full content from results
-- - [Search Highlights](https://docs.firecrawl.dev/features/search-highlights.md): Return query-relevant passages instead of plain website descriptions
-- - [Research Index](https://docs.firecrawl.dev/features/research.md): Search papers, read paper passages, and find related work
-- - [Developer Index](https://docs.firecrawl.dev/features/developer.md): Search issues, merged pull requests, repository READMEs, and curated documentation sites
-- - [Scrape](https://docs.firecrawl.dev/features/scrape.md): Turn any url into clean data
-- - [Faster Scraping](https://docs.firecrawl.dev/features/fast-scraping.md): Speed up your scrapes by 500% with the maxAge parameter
-- - [Batch Scrape](https://docs.firecrawl.dev/features/batch-scrape.md): Scrape multiple URLs in a single batch job
-- - [JSON mode - Structured result](https://docs.firecrawl.dev/features/llm-extract.md): Extract structured data from pages via LLMs
-- - [Change Tracking](https://docs.firecrawl.dev/features/change-tracking.md): Detect and monitor changes in web content between scrapes
-- - [Enhanced Mode](https://docs.firecrawl.dev/features/enhanced-mode.md): Use enhanced proxies for reliable scraping on complex sites
-- - [Lockdown Mode](https://docs.firecrawl.dev/features/lockdown.md): Cache-only scrape mode for compliance and air-gapped environments. No outbound traffic.
-- - [PII Redaction](https://docs.firecrawl.dev/features/pii-redaction.md): Redact personally identifiable information from scrape and parse output
-- - [Proxies](https://docs.firecrawl.dev/features/proxies.md): Learn about proxy types, locations, and how Firecrawl selects proxies for your requests.
-- - [Document Parsing](https://docs.firecrawl.dev/features/document-parsing.md): Learn about document parsing capabilities.
-- - [Monitoring](https://docs.firecrawl.dev/features/monitoring.md): Schedule recurring checks, detect changes, and get notified by webhook or email
-- - [Page monitoring](https://docs.firecrawl.dev/features/monitoring-page.md): Watch known URLs and get alerted on meaningful page changes
-- - [Website monitoring](https://docs.firecrawl.dev/features/monitoring-website.md): Crawl a website on a schedule and detect changes across every discovered page
-- - [Entire web-scale monitoring](https://docs.firecrawl.dev/features/monitoring-web-scale.md): Run always-on web searches and alert when new matching results appear
-- - [Interact after scraping](https://docs.firecrawl.dev/features/interact.md): Interact with a page you fetched by prompting or running code.
-- - [Parse](https://docs.firecrawl.dev/features/parse.md): Upload a local or non-public document and convert it into clean, LLM-ready data
-- - [Map](https://docs.firecrawl.dev/features/map.md): Input a website and get all the urls on the website - extremely fast
-- - [Crawl](https://docs.firecrawl.dev/features/crawl.md): Recursively crawl a website and get content from every page
-- - [Node.js](https://docs.firecrawl.dev/quickstarts/nodejs.md): Get started with Firecrawl in Node.js. Scrape, search, and interact with web data using the official SDK.
-- - [Next.js](https://docs.firecrawl.dev/quickstarts/nextjs.md): Use Firecrawl with Next.js to scrape, search, and interact with web data in your React application.
-+ - [v2 (165 pages)](https://docs.firecrawl.dev/_llms/en/v2.md): Documentation for v2.
-+ - [v2-openapi](/api-reference/v2-openapi.json)
-+ - [webhooks-openapi](/api-reference/webhooks-openapi.json)
-+ - [v1-openapi](/api-reference/v1-openapi.json)
-+ - [v1-openapi](/es/api-reference/v1-openapi.json)
-+ - [v0-openapi](/es/v0/api-reference/v0-openapi.json)
-+ - [v1-openapi](/es/v1/api-reference/v1-openapi.json)
-+ - [v2-openapi](/es/v1/api-reference/v2-openapi.json)
-+ - [v1-openapi](/fr/api-reference/v1-openapi.json)
-+ - [v0-openapi](/fr/v0/api-reference/v0-openapi.json)
-+ - [v1-openapi](/fr/v1/api-reference/v1-openapi.json)
-+ - [v2-openapi](/fr/v1/api-reference/v2-openapi.json)
-+ - [v1-openapi](/ja/api-reference/v1-openapi.json)
-+ - [v0-openapi](/ja/v0/api-reference/v0-openapi.json)
-+ - [v1-openapi](/ja/v1/api-reference/v1-openapi.json)
-+ - [v2-openapi](/ja/v1/api-reference/v2-openapi.json)
-+ - [v1-openapi](/pt-BR/api-reference/v1-openapi.json)
-+ - [v0-openapi](/pt-BR/v0/api-reference/v0-openapi.json)
-+ - [v1-openapi](/pt-BR/v1/api-reference/v1-openapi.json)
-+ - [v2-openapi](/pt-BR/v1/api-reference/v2-openapi.json)
-+ - [v0-openapi](/v0/api-reference/v0-openapi.json)
-+ - [v1-openapi](/v1/api-reference/v1-openapi.json)
-+ - [v2-openapi](/v1/api-reference/v2-openapi.json)
-+ - [v1-openapi](/zh/api-reference/v1-openapi.json)
-+ - [v0-openapi](/zh/v0/api-reference/v0-openapi.json)
-+ - [v1-openapi](/zh/v1/api-reference/v1-openapi.json)
-+ - [v2-openapi](/zh/v1/api-reference/v2-openapi.json)
-+ - [Integrations](https://www.firecrawl.dev/app)
-+ > The links below point to documentation indexes. Follow each `/_llms/` index recursively until you reach documentation pages.
-+ ## Indexes
-+ - [English / v2 (165 pages)](https://docs.firecrawl.dev/_llms/en/v2.md): Documentation for English / v2.
-+ - [Spanish (165 pages)](https://docs.firecrawl.dev/_llms/es.md): Documentation for Spanish.
-+ - [Spanish / v2 (165 pages)](https://docs.firecrawl.dev/_llms/es/v2.md): Documentation for Spanish / v2.
-+ - [French (165 pages)](https://docs.firecrawl.dev/_llms/fr.md): Documentation for French.
-+ - [French / v2 (165 pages)](https://docs.firecrawl.dev/_llms/fr/v2.md): Documentation for French / v2.
-+ - [Japanese (165 pages)](https://docs.firecrawl.dev/_llms/ja.md): Documentation for Japanese.
-+ - [Japanese / v2 (165 pages)](https://docs.firecrawl.dev/_llms/ja/v2.md): Documentation for Japanese / v2.
-+ - [Brazilian Portuguese (165 pages)](https://docs.firecrawl.dev/_llms/pt-br.md): Documentation for Brazilian Portuguese.
-+ - [Brazilian Portuguese / v2 (165 pages)](https://docs.firecrawl.dev/_llms/pt-br/v2.md): Documentation for Brazilian Portuguese / v2.
-+ - [Chinese (165 pages)](https://docs.firecrawl.dev/_llms/zh.md): Documentation for Chinese.
-… diff truncated (41 added / 224 removed lines)
+- - [v2 (165 pages)](https://docs.firecrawl.dev/_llms/en/v2.md): Documentation for v2.
+- - [English / v2 (165 pages)](https://docs.firecrawl.dev/_llms/en/v2.md): Documentation for English / v2.
+- - [Spanish (165 pages)](https://docs.firecrawl.dev/_llms/es.md): Documentation for Spanish.
+- - [Spanish / v2 (165 pages)](https://docs.firecrawl.dev/_llms/es/v2.md): Documentation for Spanish / v2.
+- - [French (165 pages)](https://docs.firecrawl.dev/_llms/fr.md): Documentation for French.
+- - [French / v2 (165 pages)](https://docs.firecrawl.dev/_llms/fr/v2.md): Documentation for French / v2.
+- - [Japanese (165 pages)](https://docs.firecrawl.dev/_llms/ja.md): Documentation for Japanese.
+- - [Japanese / v2 (165 pages)](https://docs.firecrawl.dev/_llms/ja/v2.md): Documentation for Japanese / v2.
+- - [Brazilian Portuguese (165 pages)](https://docs.firecrawl.dev/_llms/pt-br.md): Documentation for Brazilian Portuguese.
+- - [Brazilian Portuguese / v2 (165 pages)](https://docs.firecrawl.dev/_llms/pt-br/v2.md): Documentation for Brazilian Portuguese / v2.
+- - [Chinese (165 pages)](https://docs.firecrawl.dev/_llms/zh.md): Documentation for Chinese.
+- - [Chinese / v2 (165 pages)](https://docs.firecrawl.dev/_llms/zh/v2.md): Documentation for Chinese / v2.
++ - [v2 (221 pages)](https://docs.firecrawl.dev/_llms/en/v2.md): Documentation for v2.
++ ## v1
++ ### Documentation
++ #### Get Started
++ - [Introduction](https://docs.firecrawl.dev/introduction.md): The web data API for AI agents. Search the web, scrape any page, and interact with it through one API.
++ - [Get Started](https://docs.firecrawl.dev/mcp-server.md): Set up Firecrawl MCP with keyless access, account sign-in, or an API key.
++ - [Advanced Scraping Guide](https://docs.firecrawl.dev/advanced-scraping-guide.md): Configure scrape options, browser actions, crawl, map, and the agent endpoint with Firecrawl's full API surface.
++ ##### Plans and Billing
++ - [Billing](https://docs.firecrawl.dev/billing.md): How Firecrawl billing, credits, and plans work
++ - [Rate Limits](https://docs.firecrawl.dev/rate-limits.md): Rate limits for different pricing plans and API requests
++ - [Partner Credits](https://docs.firecrawl.dev/partner-credits.md): How Firecrawl partner credits work, including eligibility, expiration, and plan limits
++ ##### Enterprise
++ - [Enterprise](https://docs.firecrawl.dev/enterprise.md): Enterprise plans, security, and features for Firecrawl at scale
++ - [SSO and SCIM](https://docs.firecrawl.dev/features/sso.md): Set up single sign-on (SSO) and SCIM directory sync so your team signs in through your identity provider and user access stays in sync with your directory.
++ - [IP Restrictions](https://docs.firecrawl.dev/features/ip-restrictions.md): Restrict your team's API keys to an allowlist of IP addresses or CIDR ranges, so they only work from approved networks. Enforced server-side.
++ - [Key Restrictions](https://docs.firecrawl.dev/features/key-restrictions.md): Lock an individual API key to specific output formats and endpoints. Enforced server-side, with no way for a request to override it.
++ - [Threat Protection](https://docs.firecrawl.dev/features/threat-protection.md): Block requests to risky URLs across every endpoint, using a policy your organization controls. Enforced server-side.
++ - [SIEM Audit Logging](https://docs.firecrawl.dev/features/siem.md): Stream a structured audit event for every scrape your team runs to your own SIEM, starting with Microsoft Sentinel. Delivered server-side.
++ #### Standard Features
++ - [Crawl](https://docs.firecrawl.dev/features/crawl.md): Recursively crawl a website and get content from every page
++ - [Map](https://docs.firecrawl.dev/features/map.md): Input a website and get all the urls on the website - extremely fast
++ - [Search](https://docs.firecrawl.dev/features/search.md): Search the web and get full content from results
++ ##### Scrape
++ - [Scrape](https://docs.firecrawl.dev/features/scrape.md): Turn any url into clean data
++ - [Faster Scraping](https://docs.firecrawl.dev/features/fast-scraping.md): Speed up your scrapes by 500% with the maxAge parameter
++ - [Batch Scrape](https://docs.firecrawl.dev/features/batch-scrape.md): Scrape multiple URLs in a single batch job
++ - [JSON mode - Structured result](https://docs.firecrawl.dev/features/llm-extract.md): Extract structured data from pages via LLMs
++ - [Change Tracking](https://docs.firecrawl.dev/features/change-tracking.md): Detect and monitor changes in web content between scrapes
++ - [Enhanced Mode](https://docs.firecrawl.dev/features/enhanced-mode.md): Use enhanced proxies for reliable scraping on complex sites
++ - [Proxies](https://docs.firecrawl.dev/features/proxies.md): Learn about proxy types, locations, and how Firecrawl selects proxies for your requests.
++ #### Webhooks
++ - [Overview](https://docs.firecrawl.dev/webhooks/overview.md): Real-time notifications for your Firecrawl operations
++ - [Event Types](https://docs.firecrawl.dev/webhooks/events.md): Webhook event reference
++ - [Security](https://docs.firecrawl.dev/webhooks/security.md): Verify webhook authenticity
++ - [Testing](https://docs.firecrawl.dev/webhooks/testing.md): Test and debug webhooks
++ #### Dashboard
++ - [Overview](https://docs.firecrawl.dev/dashboard.md): Overview of the Firecrawl dashboard and its key features
++ ### SDKs
++ #### Overall
++ - [Overview](https://docs.firecrawl.dev/sdks/overview.md): Firecrawl SDKs are wrappers around the Firecrawl API to help you easily search, scrape, and interact with the web.
 ```
 
 ### firecrawl.github.releases
@@ -763,16 +983,21 @@ Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
 - Vendor: Firecrawl
 - Source: https://github.com/firecrawl/firecrawl/releases
 - Change: changed
-- Prior hash: 490d1431d0f2d494debbbf729c78e371294c7829dc5ac43e7f842a2303bba212
-- Current hash: 5057be387b05021d313e046f69305f39e31b4c7eb4dc7fe4f64d051d57480343
+- Prior hash: 5057be387b05021d313e046f69305f39e31b4c7eb4dc7fe4f64d051d57480343
+- Current hash: eb90a750db0b43b11513cb5da86f11432a89fa1c09731c0c27a56cc580a21e96
 
 ```diff
-- 9.4k
-- 168k
-- 54 people reacted
-+ 9.7k
-+ 177k
-+ 53 people reacted
+- firecrawl
+- /
+- firecrawl
+- Public
+- Notifications
+- You must be signed in to change notification settings
+- Fork
+- 9.7k
+- Star
+- 177k
++ Repository navigation
 ```
 
 ### firecrawl.product.changelog
@@ -780,24 +1005,54 @@ Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
 - Vendor: Firecrawl
 - Source: https://www.firecrawl.dev/changelog
 - Change: changed
-- Prior hash: 77cc831faa353adb24eea1c7295fa7e66b27af56504226048982d601861da8af
-- Current hash: 946304cbdfd0615a50a7c5467e041c0fa5c1252d898b051df119455a93d03e40
+- Prior hash: 946304cbdfd0615a50a7c5467e041c0fa5c1252d898b051df119455a93d03e40
+- Current hash: 71b951b899ceb5ef04c2ff4addca317480bd9d0ebf34d80d1110b2020f5aeda8
 
 ```diff
-- Introducing our most accurate /search yet. Read the announcement →
-- 167.7K Sign up
-- Firestarter Example - Open Source Chatbot building platform. Repo here.
-+ Introducing the Firecrawl Developer Index, built for supercharging coding agents. Read the announcement →
-+ 176.8K Sign up
-+ Aug 20, 2026
-+ Firecrawl Developer Index
-+ The Firecrawl Developer Index is now available, a specialized index for coding agents. It covers 70M+ artifacts across READMEs, external documentation, issues, pull requests, and OpenAPI specs, with semantic retrieval and metadata filters. Your AI agents answer questions about code behavior, API contracts, error messages, and known bugs from primary sources instead of general web pages.
-+ Highest recall of any major coding-specific index. Scores 0.63 recall@10 across the 1,179 real developer queries in our open DevDex benchmark , ahead of every other provider we tested.
-+ 70M+ artifacts. READMEs, docs, issues, PRs, and OpenAPI specs from the most popular public repos and documentation sites, refreshed continuously with most sources updated daily.
-+ Answers with passages. Every result carries a stable id, a url, and the matched passages in markdown, so your agents act on the answer without a second scrape.
-+ Rich filters in the API. Scope by result type, repository, documentation source, language, topic, license, minimum stars, and more. These are API-only; agents on the CLI and MCP perform best without them.
-+ Keyless to start. No API key needed to try it; add one for higher rate limits. A developer search costs 2 credits per 10 results.
-+ Available everywhere you build. Query it through the API at /search/developer , plus the CLI, MCP, and SDKs, or install the companion skill with npx -y firecrawl-cli@latest setup developer-index .
+- Introducing the Firecrawl Developer Index, built for supercharging coding agents. Read the announcement →
+- 176.8K Sign up
+- Session Management - Configurable TTL controls, parallel sessions (up to 20 concurrent), and automatic cleanup. 2 credits per browser minute with 5 minutes free.
++ Introducing Alexandria and our $75M Series B. Read the announcement →
++ 190.2K Sign up
++ Oct 8, 2026
++ Introducing Universal Scrape
++ Introducing Universal Scrape . Give your agents context from web pages, PDFs and images, plus people profiles, financial data, podcasts and beyond. Access the web, files and a growing set of Alexandria providers, all with one API.
++ More context through /scrape
++ Web pages and files. Read dynamic websites, PDFs, images, Word documents, spreadsheets and presentations by URL, with Firecrawl handling rendering, retries and parsing.
++ Provider data through Alexandria. Get people and company data from Apollo, FullEnrich and Data Legion, financial data from Fiscal.ai and Benzinga, and podcast data from Particle.
++ One Firecrawl API. Send a URL to /scrape or call a supported Alexandria capability through the same endpoint, using your Firecrawl key and credits. Supported profile URLs can also route to configured enrichment providers.
++ Alexandria has more than 200 providers, and Universal Scrape already works with a growing selection of them. We're adding providers to Alexandria every day and bringing more of that library into /scrape .
++ Bring that data into whatever you're building, wherever you use AI agents. Install the Firecrawl plugin for ChatGPT and Codex , connect Firecrawl in Claude , or add the Claude Code plugin . You can also use the API or MCP in your own apps and agent tools.
++ Some providers require an org admin to accept their terms before the first call. See the docs for provider setup, inputs and pricing.
++ Read the announcement · Scrape docs · Alexandria docs
++ Oct 6, 2026
++ Fantasy sports data is live in Alexandria
++ Your AI agents can now research fantasy sports with Firecrawl Alexandria. Bring fantasy rankings and projections together with player and team stats, sports betting odds and the latest news to make more informed lineup decisions in ChatGPT or Claude.
++ What you can do
++ Research who to start. Compare projections with this week's matchups and injury news before choosing your lineup.
++ Look beyond one ranking. Check where fantasy analysis sources agree or disagree and use the wider research to assess a close call.
++ Try the fantasy football demo. Paste your roster to compare projections, switch scoring formats and see suggested start/sit changes for your league's lineup slots.
++ Connect Firecrawl in ChatGPT or Claude and ask your AI agent to use Alexandria for your next lineup decision, or try the fantasy football demo .
++ Oct 1, 2026
++ People and company enrichment in Alexandria
++ Your agents can now find decision makers, look up work emails, and enrich company data with Alexandria. Apollo, FullEnrich, and Data Legion are live through the same Firecrawl connection your agents already use to search and scrape the web.
++ Use the people enrichment pack in Claude, ChatGPT, Codex, or your own agent through the Firecrawl API, MCP, or CLI. Describe the data you need and Alexandria finds the available capabilities, with their inputs and prices attached.
++ What's available
++ Apollo: Search for people by title, company domain, and location, then enrich selected profiles with work emails and employment history. Enrich companies with funding, headcount, and technologies, or pull job postings and company news.
++ FullEnrich: Search for people by role, employer, location, skills, and work history. Find work emails, look up profiles, identify the person behind an email address, and retrieve company firmographics and technologies.
++ Data Legion: Enrich a known person or company at base or premium detail, with contact data available for person enrichment.
++ What you can do
++ Build a target account list, find the people who own a relevant function, and look up work emails for your shortlist. Enrich an inbound signup with company context, or combine company enrichment with hiring signals and financial data from other Alexandria providers.
++ Try asking your agent:
++ Use Firecrawl Alexandria to find engineering leaders at a company I specify. Show their current roles and the available work email enrichment options with prices before running enrichment.
++ One connection, clear pricing
++ Use your Firecrawl account and credits across providers, with no second API key to rotate. Discovery is free, and each tool shows its execution price before you call it. Apollo's person search is free; enrichment and other capabilities use their listed prices.
++ Some providers require your organization to accept their terms before the first call. If a call returns THIRD_PARTY_DATA_TERMS_REQUIRED , an organization admin can follow the returned requiresAction.url or open provider settings . Agents need your explicit authorization before accepting terms on your behalf. Provider-specific usage restrictions apply; FullEnrich's terms, for example, prohibit marketing to personal email addresses.
++ Try the people enrichment pack or connect Firecrawl over MCP .
++ Sep 29, 2026
++ Alexandria and the Developer Index are now in ChatGPT and Codex
++ You can now use Alexandria directly in ChatGPT and Codex through the Firecrawl plugin. Search and scrape the live web, with access to 100+ data providers and Firecrawl's specialized indexes from the same conversation.
+… diff truncated (78 added / 3 removed lines)
 ```
 
 ### gemini.api.changelog
@@ -805,53 +1060,55 @@ Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
 - Vendor: Gemini
 - Source: https://ai.google.dev/gemini-api/docs/changelog
 - Change: changed
-- Prior hash: 586227f92a3be04734702e2e1f3af29c2d1420933dab40d3f4c35af433a5dc5e
-- Current hash: 0e5a056295d5000f94ffc33972344e95b57c85907fc7720b7ca9e0fdc625edc3
+- Prior hash: 0e5a056295d5000f94ffc33972344e95b57c85907fc7720b7ca9e0fdc625edc3
+- Current hash: a243adc488f27bb466137aa76d240cccf55aa22f61a5832a201b36c715a92ae7
 
 ```diff
-- The Interactions API is now generally available. We recommend using this API for access to all the latest features and models.
-- Semantic Retriever
-- Last updated 2026-08-13 UTC.
-+ Gemini 3.8 Flash is now available. Try it out .
-+ September 3, 2026
-+ Lyria 3.5 in public preview : Released the next generation of Google's music
-+ generation model:
-+ lyria-3.5 :
-+ Full-length song generation with improved musical coherence, natural vocals,
-+ and fine-grained duration and structural control.
-+ The model supports text and image inputs and generates high-fidelity 44.1 kHz
-+ stereo audio. See the Music generation
-+ guide for details and code samples.
-+ September 2, 2026
-+ Gemini 3.8 Flash generally available (GA) : Released
-+ gemini-3.8-flash , our most intelligent Flash model, engineered for
-+ long-horizon software engineering, autonomous agents, and complex enterprise
-+ workflows.
-+ Gemini 3.8 Flash model page and
-+ the Latest model guide .
-+ September 1, 2026
-+ Agentic video understanding : Released agentic video understanding for
-+ Gemini 3.7 Flash, 3.6 Flash, and 3.5 Flash-Lite across the Interactions and
-+ GenerateContent APIs. The model dynamically navigates video timelines,
-+ requesting transcripts, frames, or audio tracks on demand. This approach uses
-+ up to 88% fewer tokens for long-form content compared to static processing.
-+ Agentic video understanding guide.
-+ August 27, 2026
-+ Gemini Omni Flash generally available (GA) : Released
-+ gemini-omni-1.1-flash , the GA version of our fast, conversational video
-+ generation and editing model. This release includes significant new
-+ capabilities:
-+ Video extension : Seamlessly extend existing videos by generating
-+ continuations at the end of a clip using the extend task or directly
-+ with a prompt.
-+ Interpolation (first + last frame) : Generate a video transitioning
-+ between two images using the image_to_video task with up to 2 images.
-+ Resolution control : New resolution parameter in video_config
-+ supports 360p , 720p (default), 1080p , and 4k outputs.
-+ 1080p and 4K outputs are generated using upscaling.
-+ The existing gemini-omni-flash-preview endpoint will be deprecated on
-+ September 30, 2026.
-+ Gemini Omni Flash model page
+- Lyria 3.5 in public preview : Released the next generation of Google's music
+- generation model:
+- Launched Nano Banana 2, Gemini 3.1 Flash Image Preview , a high-efficiency
+- Last updated 2026-09-04 UTC.
++ October 8, 2026
++ Gemini 3.7 Flash deprecation :
++ gemini-3.7-flash is deprecated
++ and has been replaced by gemini-3.8-flash .
++ All requests to gemini-3.7-flash are automatically routed to
++ gemini-3.8-flash . Update your model string to gemini-3.8-flash and
++ review the Gemini 3.8 Flash guide .
++ Gemini 3.5 Flash deprecation :
++ gemini-3.5-flash is deprecated
++ and has been replaced by gemini-3.6-flash .
++ All requests to gemini-3.5-flash are automatically routed to
++ gemini-3.6-flash . Update your model string to gemini-3.6-flash (or
++ gemini-3.8-flash ) and review the
++ Gemini 3.6 Flash guide .
++ Deep Research Agent deep-research-pro-preview-12-2025 deprecation :
++ The deep-research-pro-preview-12-2025 agent is deprecated and will be
++ shut down on October 23,
++ 2026 .
++ Migrate your requests to one of the newer Deep
++ Research agent versions:
++ deep-research-preview-04-2026 :
++ Designed for speed and efficiency, ideal to be streamed back to a client
++ UI.
++ deep-research-max-preview-04-2026 :
++ Maximum comprehensiveness for automated context gathering and synthesis.
++ To migrate, update the agent parameter in your interactions.create
++ requests from deep-research-pro-preview-12-2025 to
++ deep-research-preview-04-2026 (or deep-research-max-preview-04-2026 ).
++ October 6, 2026
++ Gemini Nano Banana 2.1 generally available (GA) : Released
++ Gemini Nano Banana 2.1
++ ( gemini-nano-banana-2.1 ), the latest high-efficiency image generation and
++ conversational editing model. An update to Nano Banana 2
++ ( gemini-3.1-flash-image ),
++ it maintains Flash-level speed and cost efficiency while delivering
++ significant improvements in visual quality, prompt adherence, multi-turn
++ character consistency, text rendering, and wide and panoramic aspect ratio
++ generation ( 1:4 , 4:1 , 1:8 , 8:1 ) across 1K , 2K , and 4K
++ resolutions.
++ See the Image generation guide to get
+… diff truncated (127 added / 4 removed lines)
 ```
 
 ### gemini.api.deprecations
@@ -859,31 +1116,59 @@ Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
 - Vendor: Gemini
 - Source: https://ai.google.dev/gemini-api/docs/deprecations
 - Change: changed
-- Prior hash: f27ba1b45bc1226cf2a56b6bc81e8717c1623a3355b6bc4ab878f9c75444dfd8
-- Current hash: 1419e17f5fee62496ccb49f6b1e340498de5f726b2e913d733a08907341c719d
+- Prior hash: 1419e17f5fee62496ccb49f6b1e340498de5f726b2e913d733a08907341c719d
+- Current hash: 85c953e0e76901766991c76ed3137275cde57369744c29c12d0806e8791c7c04
 
 ```diff
-- The Interactions API is now generally available. We recommend using this API for access to all the latest features and models.
-- Last updated 2026-08-13 UTC.
-+ Gemini 3.8 Flash is now available. Try it out .
-+ gemini-3.8-flash
-+ September 2, 2026
-+ August 13, 2026
-+ gemini-3.5-transcribe-live
-+ gemini-3.5-live-translate-preview
-+ June 2026
-+ gemini-3.5-transcribe
-+ Gemini Omni Flash models
-+ gemini-omni-1.1-flash
-+ August 27, 2026
-+ Deprecated models
-+ gemini-omni-flash-preview
-+ September 30, 2026
-+ gemini-omni-1.1-flash
-+ lyria-3.5
-+ September 3, 2026
-+ lyria-3.5
-+ Last updated 2026-09-05 UTC.
+- models in the Gemini API. A " deprecation " is the announcement that we
+- no longer provide support for a model, and that it will be " shut down " in
+- the near future. Once a model is " shutdown ", it is completely
+- turned off, and the endpoint is no longer available.
+- October 2, 2026
+- April 13, 2026
+- Deprecated models
+- September 30, 2026
+- Last updated 2026-09-05 UTC.
++ models and for managed agents in the Gemini API. A " deprecation " is the
++ announcement that we no longer provide support for a model, and that it will be
++ " shut down " in the near future. Once a model is " shutdown ", it is
++ completely turned off, and the endpoint is no longer available.
++ gemini-3.8-flash-tts
++ September 22, 2026
++ gemini-3.8-flash-lite-tts
++ September 22, 2026
++ gemini-3.8-live
++ September 15, 2026
++ gemini-3.8-live-extended-thinking
++ September 15, 2026
++ gemini-3.8-flash (requests to gemini-3.7-flash are automatically routed to gemini-3.8-flash )
++ gemini-3.6-flash (requests to gemini-3.5-flash are automatically routed to gemini-3.6-flash )
++ November 17, 2026
++ gemini-3.8-flash-tts or gemini-3.8-flash-lite-tts
++ gemini-2.5-computer-use-preview-10-2025
++ October 7, 2025
++ July 28, 2026
++ gemini-3.8-live
++ September 15, 2026
++ gemini-3.8-live-extended-thinking
++ September 15, 2026
++ gemini-3.8-live
++ November 17, 2026
++ gemini-3.8-live
++ November 17, 2026
++ gemini-3.8-live
++ gemini-3.8-live
++ November 17, 2026
++ gemini-3.8-flash-tts or gemini-3.8-flash-lite-tts
++ November 17, 2026
++ gemini-3.8-flash-tts or gemini-3.8-flash-lite-tts
++ Nano Banana models
++ gemini-nano-banana-2.1
++ October 6, 2026
++ gemini-3.1-flash-lite-image
++ gemini-nano-banana-2.1
++ March 15, 2027
++ gemini-3.1-flash-lite-image
 ```
 
 ### gemini.api.models
@@ -891,48 +1176,67 @@ Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
 - Vendor: Gemini
 - Source: https://ai.google.dev/gemini-api/docs/models
 - Change: changed
-- Prior hash: 7eb1cd8efbdfcf496829c497e162ca01e80f532a9b486216fb45930cc839b3cf
-- Current hash: 9e7c3711087835291ec307d34c1d8616b7a63dec501b96821b9bac81a45d2fb9
+- Prior hash: 9e7c3711087835291ec307d34c1d8616b7a63dec501b96821b9bac81a45d2fb9
+- Current hash: daecf1761d90d22e87ef91d93d3fce4fc7930ad4b959a2fe6727fc7157f9b1e2
 
 ```diff
-- The Interactions API is now generally available. We recommend using this API for access to all the latest features and models.
-- Our latest and most capable Flash model, built for complex coding, agentic workflows, and reliable multi-step execution.
-- New Preview
-- New Preview
-- New Preview
-- Fast, conversational video generation and editing. Turn text and images into video, and refine results through natural language.
-- New Preview
-- gemini-omni-flash
-- Fast, conversational video generation and editing. Turn text and images into video, and refine results through natural language.
-- gemini-omni-flash
-- Last updated 2026-08-14 UTC.
-+ Gemini 3.8 Flash is now available. Try it out .
-+ Gemini 3.8 Flash
-+ Our most intelligent Flash model, engineered for long-horizon software engineering, autonomous agents, and complex enterprise workflows.
-+ Our previous-generation Flash model for complex coding, agentic workflows, and reliable multi-step execution.
-+ Gemini 3.5 Transcribe
-+ Low-latency speech-to-text model with utterance-based language detection, speaker diarization, and word timestamps.
-+ New
-+ New
-+ New
-+ Fast video generation, editing, keyframe interpolation, and extension with native audio.
-+ New
-+ Gemini 3.8 Flash
-+ gemini-3.8-flash
-+ gemini-omni-1.1-flash
-+ Gemini 3.5 Transcribe
-+ gemini-3.5-transcribe
-+ gemini-3.5-transcribe-live
-+ Gemini 3.5 Transcribe
-+ Low-latency speech-to-text model with utterance-based language detection, speaker diarization, word-level timestamps, and custom vocabulary biasing.
-+ gemini-3.5-transcribe
-+ gemini-3.5-transcribe-live
-+ Fast video generation, editing, keyframe interpolation, and extension with native audio.
-+ gemini-omni-1.1-flash
-+ Lyria 3.5
-+ lyria-3.5
-+ Previous generation music generation model for full-length songs.
-+ Last updated 2026-09-04 UTC.
+- Gemini 3.7 Flash
+- Our previous-generation Flash model for complex coding, agentic workflows, and reliable multi-step execution.
+- Gemini 3.5 Flash
+- Our legacy Flash model, providing baseline speed and foundational performance for routine, high-throughput workloads.
+- High-quality, low-latency Live API model for real-time dialogue and voice-first AI applications.
+- Powerful, low-latency speech generation.
+- Gemini 3.7 Flash
+- gemini-3.7-flash
+- Gemini 3.5 Flash
+- gemini-3.5-flash
+- Our high-quality, low-latency audio-to-audio (A2A) model designed for real-time dialogue and voice-first AI applications.
+- Powerful, low-latency speech generation, with natural outputs, steerable prompts, and new expressive audio tags for precise narration control.
+- Imagen 4 (Deprecated)
+- Text-to-image model featuring fast and ultra-fast generation and exceptional clarity up to 2K resolution.
+- Computer Use
+- antigravity-preview-05-2026
+- Last updated 2026-09-04 UTC.
++ Gemini 3.8 Live
++ Default Live API model for most low-latency voice agent experiences without reasoning delays.
++ Gemini 3.8 Live Extended Thinking
++ High-reasoning Live API model for voice interactions, recommended when higher background reasoning is required.
++ Gemini 3.8 Flash TTS
++ Flagship creative text-to-speech model for studio-grade voice fidelity, expressive acting, Voice design, and Voice replication.
++ Gemini 3.8 Flash-Lite TTS
++ Fast, cost-efficient text-to-speech model for high-volume production, real-time voice agent cascades, and Voice replication.
++ Nano Banana 2.1
++ High-efficiency image generation and editing model with improved visual quality, typography, and multi-turn consistency.
++ Legacy Live API preview model. We recommend updating to Gemini 3.8 Live.
++ Legacy TTS preview model. We recommend updating to Gemini 3.8 Flash TTS or Gemini 3.8 Flash-Lite TTS.
++ Gemini 3.8 Live
++ gemini-3.8-live
++ Gemini 3.8 Live Extended Thinking
++ gemini-3.8-live-extended-thinking
++ Gemini 3.8 Flash TTS
++ gemini-3.8-flash-tts
++ Gemini 3.8 Flash-Lite TTS
++ gemini-3.8-flash-lite-tts
++ Nano Banana 2.1
++ gemini-nano-banana-2.1
++ Gemini 3.8 Live
++ The default option for most low-latency voice agent experiences and real-time dialogue without reasoning delays.
++ gemini-3.8-live
++ Gemini 3.8 Live Extended Thinking
++ Our high-reasoning audio-to-audio model, recommended when higher background reasoning is required during live interactions.
++ gemini-3.8-live-extended-thinking
++ Gemini 3.8 Flash TTS
++ Flagship creative text-to-speech model for studio-grade voice fidelity, expressive acting, and regional dialects across 130 languages.
++ gemini-3.8-flash-tts
++ Gemini 3.8 Flash-Lite TTS
++ Fast, cost-efficient text-to-speech model built for high-throughput production workloads across 101 languages.
++ gemini-3.8-flash-lite-tts
++ Legacy audio-to-audio preview model. We recommend updating to Gemini 3.8 Live.
++ Legacy text-to-speech preview model. We recommend updating to Gemini 3.8 Flash TTS or Gemini 3.8 Flash-Lite TTS.
++ Nano Banana 2.1
++ High-efficiency image generation and editing model with improved visual quality, typography, and multi-turn consistency.
++ gemini-nano-banana-2.1
++ Imagen 4 (Shut down)
 ```
 
 ### gemini.api.rate-limits
@@ -940,18 +1244,18 @@ Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
 - Vendor: Gemini
 - Source: https://ai.google.dev/gemini-api/docs/rate-limits
 - Change: changed
-- Prior hash: 8b69470da94934d23714f0fecca7c9bddabcc7c3cf041823d7e0be2c05578751
-- Current hash: 83459731700624cf0a0b103347724da7f0058a90929990d72f3794c0f95fba18
+- Prior hash: 83459731700624cf0a0b103347724da7f0058a90929990d72f3794c0f95fba18
+- Current hash: 36e1a34d4f347ced14e76267eafa20d486510da1ac3959237cb69689a97752ab
 
 ```diff
-- The Interactions API is now generally available. We recommend using this API for access to all the latest features and models.
-- Last updated 2026-08-13 UTC.
-+ Gemini 3.8 Flash is now available. Try it out .
-+ $50
-+ Gemini 3.8 Flash
-+ Gemini 3.8 Flash
-+ Gemini 3.8 Flash
-+ Last updated 2026-09-02 UTC.
+- Gemini 3.7 Flash
+- Gemini 3.5 Flash
+- Gemini 3.7 Flash
+- Gemini 3.5 Flash
+- Gemini 3.7 Flash
+- Gemini 3.5 Flash
+- Last updated 2026-09-02 UTC.
++ Last updated 2026-10-09 UTC.
 ```
 
 ### gemini.api.tokens
@@ -959,76 +1263,64 @@ Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
 - Vendor: Gemini
 - Source: https://ai.google.dev/gemini-api/docs/tokens
 - Change: changed
-- Prior hash: 5de1a023e1b845f9beeadb63e2e3fc84b62489adb591bd1d4f2cfbc16c0c7278
-- Current hash: f95180ddfb1e9565726f8c59c593c456a3019f2772ce93c7992c26da1a749a64
+- Prior hash: f95180ddfb1e9565726f8c59c593c456a3019f2772ce93c7992c26da1a749a64
+- Current hash: 95073147f8cd2cebd33033f556d2f196fdea738aa63b16399bbd02571543c26b
 
 ```diff
-- The Interactions API is now generally available. We recommend using this API for access to all the latest features and models.
-- model = "gemini-3.6-flash" ,
-- model = "gemini-3.6-flash" ,
-- model : "gemini-3.6-flash" ,
-- model : "gemini-3.6-flash" ,
-- curl -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:countTokens" \
-- model = "gemini-3.6-flash" ,
-- model = "gemini-3.6-flash" ,
-- model : "gemini-3.6-flash" ,
-- model : "gemini-3.6-flash" ,
-- Video : 263 tokens per second
-- model = "gemini-3.6-flash" ,
-- model = "gemini-3.6-flash" ,
-- model : "gemini-3.6-flash" ,
-- model = "gemini-3.6-flash" ,
-- # A 60-second video is approximately 263 * 60 = 15,780 tokens
-- model = "gemini-3.6-flash" ,
-- model = "gemini-3.6-flash" ,
-- model = "gemini-3.6-flash" ,
-- model = "gemini-3.6-flash" ,
-- model = "gemini-3.6-flash" ,
-- model = "gemini-3.6-flash" ,
-- model_info = client . models . get ( model = "gemini-3.6-flash" )
-- const modelInfo = await client . models . get ({ model : "gemini-3.6-flash" });
-- Last updated 2026-07-30 UTC.
-+ Gemini 3.8 Flash is now available. Try it out .
-+ model = "gemini-3.8-flash" ,
-+ model = "gemini-3.8-flash" ,
-+ model : "gemini-3.8-flash" ,
-+ model : "gemini-3.8-flash" ,
-+ Java
-+ import com.google.genai.Client ;
-+ import com.google.genai.gaos.models.interactions.CreateModelInteraction ;
-+ import com.google.genai.gaos.models.interactions.Interaction ;
-+ import com.google.genai.gaos.models.interactions.InteractionsInput ;
-+ import com.google.genai.gaos.models.interactions.Model ;
-+ import com.google.genai.gaos.models.interactions.Usage ;
-+ import com.google.genai.gaos.models.operations.CreateInteractionRequestBody ;
-+ Client client = new Client ();
-+ CreateModelInteraction params =
-+ CreateModelInteraction . builder ()
-+ . model ( Model . of ( "gemini-3.8-flash" ))
-+ . input ( InteractionsInput . of ( "Calculate tokens for this message." ))
-+ . build ();
-+ Interaction interaction =
-+ client . interactions . create ( CreateInteractionRequestBody . of ( params )). interaction (). get ();
-+ if ( interaction . usage (). isPresent ()) {
-+ Usage usage = interaction . usage (). get ();
-+ System . out . println ( "Input tokens: " + usage . totalInputTokens (). orElse ( 0 ));
-+ System . out . println ( "Output tokens: " + usage . totalOutputTokens (). orElse ( 0 ));
-+ curl -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:countTokens" \
-+ model = "gemini-3.8-flash" ,
-+ model = "gemini-3.8-flash" ,
-+ model : "gemini-3.8-flash" ,
-+ model : "gemini-3.8-flash" ,
-+ Java
-+ import com.google.genai.Client ;
-+ import com.google.genai.gaos.models.interactions.CreateModelInteraction ;
-+ import com.google.genai.gaos.models.interactions.Interaction ;
-+ import com.google.genai.gaos.models.interactions.InteractionsInput ;
-+ import com.google.genai.gaos.models.interactions.Model ;
-+ import com.google.genai.gaos.models.interactions.Usage ;
-+ import com.google.genai.gaos.models.operations.CreateInteractionRequestBody ;
-+ Client client = new Client ();
-+ CreateModelInteraction params =
-… diff truncated (125 added / 25 removed lines)
+- . input ( InteractionsInput . of ( "Calculate tokens for this message." ))
+- if ( interaction . usage (). isPresent ()) {
+- Usage usage = interaction . usage (). get ();
+- . input ( InteractionsInput . of ( "Calculate tokens for this message." ))
+- if ( interaction . usage (). isPresent ()) {
+- Usage usage = interaction . usage (). get ();
+- . input ( InteractionsInput . of ( "Calculate tokens for this message." ))
+- if ( interaction . usage (). isPresent ()) {
+- Usage usage = interaction . usage (). get ();
+- . input ( InteractionsInput . of ( "Calculate tokens for this message." ))
+- if ( interaction . usage (). isPresent ()) {
+- Usage usage = interaction . usage (). get ();
+- Last updated 2026-09-04 UTC.
++ import com.google.genai.types.CountTokensResponse ;
++ String prompt = "The quick brown fox jumps over the lazy dog." ;
++ CountTokensResponse countResponse =
++ client . models . countTokens ( "gemini-3.8-flash" , prompt , null );
++ System . out . println ( "total_tokens: " + countResponse . totalTokens (). orElse ( 0 ));
++ . input ( InteractionsInput . of ( prompt ))
++ System . out . println ( interaction . usage (). orElse ( null ));
++ Go
++ package main
++ import (
++ "context"
++ "fmt"
++ "log"
++ "google.golang.org/genai"
++ func main () {
++ ctx := context . Background ()
++ client , err := genai . NewClient ( ctx , nil )
++ if err != nil {
++ log . Fatal ( err )
++ modelInfo , err := client . Models . Get ( ctx , "gemini-3.8-flash" , nil )
++ if err != nil {
++ log . Fatal ( err )
++ fmt . Printf ( "Input token limit: %d\n" , modelInfo . InputTokenLimit )
++ fmt . Printf ( "Output token limit: %d\n" , modelInfo . OutputTokenLimit )
++ CreateModelInteraction params1 =
++ . input ( InteractionsInput . of ( "Hi, my name is Bob" ))
++ Interaction interaction1 =
++ client . interactions . create ( CreateInteractionRequestBody . of ( params1 )). interaction (). get ();
++ CreateModelInteraction params2 =
++ . input ( InteractionsInput . of ( "What's my name?" ))
++ . previousInteractionId ( interaction1 . id (). orElse ( "" ))
++ Interaction interaction2 =
++ client . interactions . create ( CreateInteractionRequestBody . of ( params2 )). interaction (). get ();
++ // Usage includes tokens from both turns
++ if ( interaction2 . usage (). isPresent ()) {
++ Usage usage = interaction2 . usage (). get ();
++ System . out . println ( "Total tokens: " + usage . totalTokens (). orElse ( 0 ));
++ Go
++ package main
++ import (
+… diff truncated (207 added / 13 removed lines)
 ```
 
 ### hermes.docs.cli-commands
@@ -1036,64 +1328,91 @@ Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
 - Vendor: Hermes
 - Source: https://hermes-agent.nousresearch.com/docs/reference/cli-commands
 - Change: changed
-- Prior hash: 034f491a8f8649401f64744bfcd59620bcc3ca657eddc5f52fdc07bbf1be6d11
-- Current hash: e94d8ac78be7d44b7e8620e9ecdb58b28d4caa7d74744ff602769142b9c5066a
+- Prior hash: e94d8ac78be7d44b7e8620e9ecdb58b28d4caa7d74744ff602769142b9c5066a
+- Current hash: 0b3fd6d5c93b958847e20cbd857485cebd04e4dba8b84cb78871d84e8fcb5a35
 
 ```diff
-- hermes version
-- One-shot, non-interactive prompt.
-- Force a provider: auto , openrouter , nous , openai-codex , copilot-acp , copilot , anthropic , gemini , huggingface , novita (aliases novita-ai , novitaai ), openai-api , zai , kimi-coding , kimi-coding-cn , minimax , minimax-cn , minimax-oauth , kilocode , xiaomi , arcee , gmi , upstage (alias solar ), alibaba , alibaba-coding-plan (alias alibaba_coding ), deepseek , nvidia , ollama-cloud , xai (alias grok ), xai-oauth (alias grok-oauth ), qwen-oauth , bedrock , opencode-zen , opencode-go , ai-gateway , azure-foundry , lmstudio , stepfun , tencent-tokenhub (alias tencent , tokenhub ).
-- hermes chat -q "Summarize the latest PRs"
-- Same agent, same tools, same skills — just strips every interactive / cosmetic layer. If you need tool output in the transcript too, use hermes chat -q instead; -z is explicitly for "I only want the final answer".
-- hermes cron < list | create | edit | pause | resume | run | remove | status | tick >
-- Create a scheduled job from a prompt, optionally attaching one or more skills via repeated --skill .
-- Update a job's schedule, prompt, name, delivery, repeat count, or attached skills. Supports --clear-skills , --add-skill , and --remove-skill .
-- Create a zip archive of your Hermes configuration, skills, sessions, and data. The backup excludes the hermes-agent codebase itself.
-- Interactive session picker with search and resume.
-- hermes update [ --gateway ] [ --check ] [ --no-backup ] [ --backup ] [ --yes ]
-- hermes version
-- hermes import Examples
-+ hermes peer
-+ Register peer Hermes gateways on other machines and DM their agents' canonical Bot Chats ( hermes peer dm <peer>[/<agent>] "…" ). The transport behind cross-machine bot-to-bot messaging.
-+ hermes --version
-+ Seed the session with a prompt. On a real TTY the prompt is submitted literally as the first turn of a normal interactive session (it is never parsed as a slash command or ! shell escape) and the session stays open — ideal for OS launchers and desktop integrations. With --oneshot , -Q , or non-TTY stdio it answers and exits.
-+ --query-file PATH
-+ Read the query from a file ( - = stdin). Nothing is shell-interpreted, so quotes, $(...) , and backticks arrive verbatim — use this for programmatic or untrusted message bodies (Bot Mode teammate DMs use it). Mutually exclusive with -q .
-+ --oneshot
-+ With -q / --query-file : answer the query and exit (the pre-0.21 single-query behavior) instead of seeding an interactive session. Implied on non-TTY stdio and by -Q .
-+ Force a provider: auto , openrouter , nous , openai-codex , copilot-acp , copilot , anthropic , gemini , huggingface , novita (aliases novita-ai , novitaai ), openai-api , zai , kimi-coding , kimi-coding-cn , minimax , minimax-cn , minimax-oauth , kilocode , xiaomi , arcee , gmi , upstage (alias solar ), alibaba , alibaba-cn , alibaba-coding-plan (alias alibaba_coding ), alibaba-coding-plan-cn , alibaba-token-plan , alibaba-token-plan-cn , deepseek , nvidia , ollama-cloud , xai (alias grok ), xai-oauth (alias grok-oauth ), qwen-oauth , bedrock , opencode-zen , opencode-go , opencode-free (aliases free , opencode_free ; keyless), commandcode , commandcode-anthropic , ai-gateway , azure-foundry , lmstudio , stepfun , tencent-tokenhub (alias tencent , tokenhub ), router (aliases ramp-router , ramp ), nebius-token-factory (aliases nebius , nebius-tf , tokenfactory ), tencent-tokenplan (aliases tokenplan , tencent-lkeap ).
-+ hermes chat -q "Summarize the latest PRs" # seeds an interactive session
-+ hermes chat --oneshot -q "Summarize the latest PRs" # answer and exit
-+ Same agent, same tools, same skills — just strips every interactive / cosmetic layer. If you need tool output in the transcript too, use hermes chat --oneshot -q instead; -z is explicitly for "I only want the final answer".
-+ hermes peer ​
-+ hermes peer add < name > --url http://host:port --key < API_SERVER_KEY >
-+ hermes peer list
-+ hermes peer dm < peer > [ / < agent > ] "message"
-+ hermes peer run < peer > [ / < agent > ] --idempotency-key < key > "message"
-+ hermes peer status < peer > [ / < agent > ] < run_id >
-+ hermes peer stop < peer > [ / < agent > ] < run_id >
-+ hermes peer remove < name >
-+ Bot-to-bot DMs across machines. Register another Hermes gateway (any machine
-+ running the api_server platform) as a peer , then message its agents:
-+ hermes peer dm resolves the remote agent's canonical Bot Chat session
-+ over the peer's API server, runs one agent turn there, and prints the reply
-+ on stdout — the cross-machine twin of the local
-+ hermes -p <bot> chat --in ~ -c "Bot Chat" … bot-messaging command.
-+ <peer> alone targets the peer gateway's main agent;
-+ <peer>/<agent> targets a named profile on a multiplexed peer (routed via
-+ its /p/<profile>/ mirror).
-+ add <name> --url <URL> [--key <KEY>] [--note TEXT]
-+ Register or update a peer. The URL goes to config.yaml ( bot_peers ); the key is stored as HERMES_PEER_<NAME>_KEY in ~/.hermes/.env .
-+ List peers and whether each has a key configured.
-+ dm <peer>[/<agent>] [message]
-+ Message the peer agent's canonical Bot Chat and print the reply ( --json for machine-readable output; message falls back to stdin).
-+ run <peer>[/<agent>] [message]
-+ Start a long canonical Bot Chat turn asynchronously and return its run_id , session ID, and idempotency key ( --json supported). Reuse --idempotency-key when retrying the same request.
-+ status <peer>[/<agent>] <run_id>
-+ Poll an asynchronous peer run and print its final output when complete ( --json supported).
-+ stop <peer>[/<agent>] <run_id>
-+ Stop the exact asynchronous peer run without targeting another turn ( --json supported).
-… diff truncated (110 added / 13 removed lines)
+- Pull latest code and reinstall dependencies. --check previews without installing; --backup takes a pre-pull HERMES_HOME snapshot.
+- Force a provider: auto , openrouter , nous , openai-codex , copilot-acp , copilot , anthropic , gemini , huggingface , novita (aliases novita-ai , novitaai ), openai-api , zai , kimi-coding , kimi-coding-cn , minimax , minimax-cn , minimax-oauth , kilocode , xiaomi , arcee , gmi , upstage (alias solar ), alibaba , alibaba-cn , alibaba-coding-plan (alias alibaba_coding ), alibaba-coding-plan-cn , alibaba-token-plan , alibaba-token-plan-cn , deepseek , nvidia , ollama-cloud , xai (alias grok ), xai-oauth (alias grok-oauth ), qwen-oauth , bedrock , opencode-zen , opencode-go , opencode-free (aliases free , opencode_free ; keyless), commandcode , commandcode-anthropic , ai-gateway , azure-foundry , lmstudio , stepfun , tencent-tokenhub (alias tencent , tokenhub ), router (aliases ramp-router , ramp ), nebius-token-factory (aliases nebius , nebius-tf , tokenfactory ), tencent-tokenplan (aliases tokenplan , tencent-lkeap ).
+- Session source tag for filtering (default: cli ). Use tool for third-party integrations that should not appear in user session lists.
+- hermes -z "…" --usage-file /path/report.json writes a machine-readable usage report after the run: estimated_cost_usd , input_tokens / output_tokens / cache_read_tokens / cache_write_tokens / reasoning_tokens / total_tokens , api_calls , model , provider , session_id , service_tier , and completed / failed flags. The report is written even when the run fails , so batch pipelines can always account for spend. It has no effect outside -z / --oneshot , and a broken usage write never masks the run's own outcome.
+- hermes -z "summarize this repo" --usage-file /tmp/usage.json
+- jq .estimated_cost_usd /tmp/usage.json
+- --external-supervisor is a restart-policy contract: an in-chat restart or
+- service-restart update exits with status 75 , so the wrapper's supervisor must
+- hermes send --to telegram "MEDIA:/tmp/screenshot.png"
+- hermes send --to telegram "Build chart for today MEDIA:/tmp/chart.png" # with caption
+- hermes send --to discord: #ops "MEDIA:/tmp/report.pdf"
+- hermes send --to telegram "[[as_document]] MEDIA:/tmp/screenshot.png"
+- hermes send --to discord: #ops --file /tmp/report.md
+- Download and verify the pinned bws binary. --force re-downloads even if a managed copy already exists.
+- hermes auth spotify # Authenticate Hermes with Spotify via PKCE
+- Subcommands: add , list , remove , reset , status , logout , spotify . When called with no subcommand, launches the interactive management wizard.
+- hermes status [ --all ] [ --deep ]
+- Show all details in a shareable redacted format.
+- Run deeper checks that may take longer.
+- Resume a paused job and compute its next future run.
+- For the full design — comparison with Cline Kanban / Paperclip / NanoClaw / Gemini Enterprise, eight collaboration patterns, four user stories, concurrency correctness proof — see docs/hermes-kanban-v1-spec.pdf in the repository or the Kanban user guide .
+- hermes egress install --force # re-download even if already installed
+- Subscriptions persist to ~/.hermes/webhook_subscriptions.json and are hot-reloaded by the webhook adapter without a gateway restart.
+- Any config values that differ from defaults
+- The report includes system info (OS, Python version, Hermes version), recent agent, gateway, GUI/dashboard, and desktop logs (512 KB limit per file), and redacted API key status. By default, uploads are redacted so secrets are not included.
+- hermes backup -o /tmp/hermes.zip # Full backup to specific path
+- Delete only the legacy-<timestamp>/ archives produced by the v1→v2 migration.
+- Which log to view: agent (default), errors , gateway , or list to show available files with sizes.
+- get <key> [--json]
+- Print a single config value by dotted key (e.g. hermes config get model.default ). --json emits machine-readable output.
+- set <key> <value>
+- Set a config value.
+- Remove a config key, reverting it to the built-in default.
+- Set up and manage external memory provider plugins. Available providers: honcho, openviking, mem0, hindsight, holographic, retaindb, byterover, supermemory. Only one external provider can be active at a time. Built-in memory (MEMORY.md/USER.md) is always active.
+- cd ~/.hermes/hermes-agent && uv pip install -e '.[acp]'
+- Install a catalog entry (e.g. hermes mcp install n8n ).
+- install <identifier> [--force] [--ref COMMIT_SHA]
+- Install a plugin from a Git URL, owner/repo , or a bare index name. Bare names (no slash) are resolved through the community plugin index to owner/repo plus the index-pinned commit; ambiguous names list candidates and exit. --ref accepts only a full 40-character commit SHA, installs that exact immutable revision, and overrides any index pin.
+- search [term] [--json] [--capability CAP] [--refresh]
+- Search the community plugin index (fuzzy match on name/description/tags; omit term to browse). Fetched from plugins.index_url (default: the NousResearch plugin index), cached under ~/.hermes/cache/ for 24h, falling back to the stale cache and then the bundled seed when offline. Indexed ≠ audited — inclusion is a metadata review only.
++ Python dependency commands on this page use a
++ PM-prepared source checkout .
++ After a dependency change, reactivate the checkout and restart Hermes.
++ hermes-agent (legacy single-query runner) ​
++ The install also ships hermes-agent , a minimal runner that sends one query and exits: hermes-agent --query "summarize README.md" (or hermes-agent "summarize README.md" ). hermes-agent --help lists its options ( --model , --base-url , --max-turns , --enabled-toolsets , --disabled-toolsets , --list-tools , --save-trajectories , …) and hermes-agent --version prints the version; neither starts the agent. Run with no query, it prints the same help and exits. For anything else use hermes ( hermes -z <prompt> is the scripted one-shot).
++ hermes codex-runtime
++ Noninteractive counterpart of /codex-runtime : migrate [--dry-run] [--json] regenerates the Hermes-managed block in ~/.codex/config.toml for the selected profile. See Codex app-server runtime .
++ hermes usage
++ Show the configured account's rate-limit windows (the /usage block) without a session; --json for scripts.
++ hermes pause / hermes resume
++ Global emergency stop: no new cron fires (built-in ticker, managed-cron webhook, misfire catch-up), kanban dispatch or gateway turns start until resumed; in-flight work is never killed.
++ Update to the latest stable release (or the selected channel) and reinstall dependencies. --check previews without installing; --backup takes a pre-pull HERMES_HOME snapshot.
++ Force a provider: auto , openrouter , nous , openai-codex (aliases chatgpt , chatgpt-codex ), copilot-acp , copilot , anthropic , gemini , huggingface , novita (aliases novita-ai , novitaai ), openai-api , zai , kimi-coding , kimi-coding-cn , minimax , minimax-cn , minimax-oauth , kilocode , xiaomi , arcee , gmi , upstage (alias solar ), alibaba , alibaba-cn , alibaba-coding-plan (alias alibaba_coding ), alibaba-coding-plan-cn , alibaba-token-plan , alibaba-token-plan-cn , deepseek , nvidia , ollama-cloud , xai (alias grok ), xai-oauth (alias grok-oauth ), qwen-oauth , bedrock , opencode-zen , opencode-go , commandcode , commandcode-anthropic , ai-gateway , azure-foundry , lmstudio , stepfun , tencent-tokenhub (alias tencent , tokenhub ), router (aliases ramp-router , ramp ), nebius-token-factory (aliases nebius , nebius-tf , tokenfactory ), tencent-tokenplan (aliases tokenplan , tencent-lkeap ).
++ --format stream-json
++ Emit structured JSONL for a -q / --query invocation. Implies --quiet ; cannot be combined with --tui .
++ Session source tag for filtering (default: cli ; one-shot runs default to oneshot , which pickers hide). Use tool for third-party integrations that should not appear in user session lists. An explicit --source is always stored as given, even for a one-shot run launched from inside a TUI or Desktop session.
++ hermes chat -q "Inspect this repository" --format stream-json
++ --format stream-json — structured JSONL output ​
++ Use --format stream-json when a program needs to consume progress without
++ scraping terminal output. It requires -q / --query (or --query-file ), implies
++ quiet non-interactive CLI mode, and rejects an explicit --tui request. Every
++ stdout line is one JSON object; diagnostics and the session_id: line stay on stderr.
++ hermes chat -q "Summarize this repository" --format stream-json
++ Every event carries timestamp (Unix epoch milliseconds).
++ Event type
++ Fields
++ system
++ subtype: "init" , model , session_id
++ text
++ text — a streamed assistant text delta
++ tool_use
++ name ; input when the tool arguments are available
++ tool_result
++ name , output (capped at 5000 chars), duration_ms , is_error
++ result
++ session_id , exit_code , text , tokens ( input , output , total , cache_read , cache_write ), duration_ms ; error when the turn failed
++ Once a conversation starts, its terminal record is always result — including
++ exit_code: 130 when it is interrupted with Ctrl-C. Treat that record as the
++ completion signal; the process exit code matches its exit_code .
++ Exit codes for one-shot runs ​
+… diff truncated (246 added / 53 removed lines)
 ```
 
 ### hermes.docs.fallback-providers
@@ -1101,36 +1420,116 @@ Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
 - Vendor: Hermes
 - Source: https://hermes-agent.nousresearch.com/docs/user-guide/features/fallback-providers
 - Change: changed
-- Prior hash: c81638336d4a008613917aab5a2ab93b1b688d2466c6ba15c5a8cabcb83a784a
-- Current hash: cc2cf1c9050b24954fa57dfed00a53cad4cb4c643586417a3205c019427b1593
+- Prior hash: cc2cf1c9050b24954fa57dfed00a53cad4cb4c643586417a3205c019427b1593
+- Current hash: 69fcfec06611815a5aff098be3836c4881ee5253fbefb9f4761bd60befb8d8e2
 
 ```diff
-- Auxiliary task fallback — independent provider resolution for side tasks like vision, compression, and web extraction
-- Web Extract
-- Web page summarization
-- auxiliary.web_extract
-- web_extract :
-- Web extraction
-- auxiliary.web_extract
-+ Auxiliary task fallback — independent provider resolution for side tasks like vision and compression
-+ CommandCode
-+ commandcode (alias commandcode-chat ; Claude via commandcode-anthropic )
-+ COMMANDCODE_API_KEY
-+ OpenCode Free
-+ opencode-free
-+ — (keyless, no credential)
-+ Ramp Router
-+ router
-+ RAMP_ROUTER_API_KEY
-+ Nebius Token Factory
-+ nebius-token-factory
-+ NEBIUS_API_KEY
-+ Tencent TokenPlan
-+ tencent-tokenplan
-+ TOKENPLAN_API_KEY
-+ Review
-+ /review reviewer subagent (full agent, not a single LLM call)
-+ auxiliary.review
+- OpenCode Free
+- opencode-free
+- — (keyless, no credential)
+- Invalid responses — when the API returns malformed or empty responses repeatedly
+- Resolves credentials for the fallback provider
+- Builds a new API client
+- The per-turn retry is reset-aware : when the primary's credentials report a rate-limit reset time that hasn't elapsed yet (subscription windows like Claude Pro/Max's 5-hour blocks or Codex weekly limits report these as hours or days), Hermes skips the doomed retry and stays on the fallback until the reset passes — avoiding two pointless provider switches (and two prompt-cache invalidations) per turn. The moment the reset time elapses, the next turn goes back to the primary automatically. Transient 429s without a reset time keep the existing behavior: a short cooldown, then retry every turn.
+- model : gpt - 5.3 - codex
+- CLI sessions
+- ✔ (subagents inherit the parent fallback chain)
+- ✔ (cron agents inherit configured fallback providers)
+- When a task's provider is set to "auto" (the default), Hermes first tries the main provider + main model for that auxiliary task. If that route is unavailable or later fails with a capacity-style error, Hermes now honors user-configured fallback policy before using the built-in discovery chain:
+- fallback_providers / fallback_model → built-in auxiliary discovery chain
+- Those built-in chains are a convenience fallback for users who have not declared a task-specific or main fallback policy.
+- Every task above follows the same provider / model / base_url pattern. Each task can also declare its own fallback_chain ; if omitted, provider: auto uses the top-level fallback_providers chain before Hermes' built-in auxiliary discovery chain.
+- Cron jobs inherit your configured fallback_providers chain (or legacy fallback_model ) when they create an agent. To use a different primary provider for a cron job, configure provider and model overrides on the cron job itself:
+- See Scheduled Tasks (Cron) for full configuration details.
+- fallback_chain (if set) → main agent model → warn + raise, on capacity errors only
+- Inherits the parent's fallback_providers chain; optional provider/model override
+- delegation.provider / delegation.model
+- Inherit the configured fallback_providers chain; optional per-job provider override
+- Per-job provider / model
++ When a rate-limit response names its reset time, the primary is benched until exactly then (a provider that says nothing gets the exponential 60 s → 4 h backoff). Optionally, skip the switch when the primary reopens soon:
++ fallback :
++ min_switch_reset_seconds : 120 # 0 (default) = always switch
++ Key
++ Default
++ Effect
++ fallback.min_switch_reset_seconds
++ 0 (off)
++ A rate-limited primary whose declared reset is sooner than this many seconds is not swapped for a fallback; the retry backoff waits out the window instead.
++ Gemini fallback entries accept gemini , google , google-gemini , and
++ google-ai-studio . On Google's native API endpoint, all use the native Gemini
++ client, including its generationConfig.thinkingConfig translation. A custom
++ OpenAI-compatible base URL continues to use the compatible client instead.
++ Local llama.cpp (managed)
++ llamacpp (aliases llama.cpp , llama-cpp )
++ The local model server Hermes manages (Desktop Settings → Providers → Local models ), no base_url needed. If it is not running the entry is skipped — Hermes never sends the local model name to another provider
++ Mixture of Agents preset
++ moa ( model = preset name)
++ A configured MoA preset whose aggregator has credentials — the fallback runs the whole preset (references + aggregator), not the aggregator alone
++ Invalid responses — when the API returns malformed or empty responses repeatedly. An HTTP-200 body whose only assistant text is a router's Connect timeout, please try again later. with zero completion tokens counts as invalid too (streamed or not, in the main loop, the iteration-limit summary and auxiliary calls), so it is retried instead of shown as the answer. A streamed refusal (the model declining with an explanation on the refusal channel) is a terminal content_filter result, not an empty response, so it is surfaced rather than retried. On the native Anthropic wire a stop_reason: refusal arrives with an empty body; Hermes reports the reason from the response's stop_details (category and, when present, explanation) in the refusal message and in the log line ( native_stop_reason=… stop_details=… ).
++ Resolves credentials for the fallback provider (including named custom providers using key_cmd )
++ Builds a new API client, preserving a dynamic credential source across timeout and request-client rebuilds
++ Re-resolves the reasoning effort for the fallback model (its agent.reasoning_overrides entry, else the global agent.reasoning_effort )
++ The same re-resolution happens when the CLI falls back at startup because the primary provider's auth fails before the first request: the fallback model is sent its own configured effort, not the primary's. An explicit hermes chat --reasoning <level> is kept across that startup switch — it is your intent for the run.
++ The per-turn retry is reset-aware : when the primary's credentials report a rate-limit reset time that hasn't elapsed yet (subscription windows like Claude Pro/Max's 5-hour blocks or Codex weekly limits report these as hours or days), Hermes skips the doomed retry and stays on the fallback until the reset passes — avoiding two pointless provider switches (and two prompt-cache invalidations) per turn. Expiry makes the primary eligible for a later retry; it does not schedule a retry or guarantee recovery. Transient 429s without a reset time use an exponential cooldown.
++ When a switch arms that cooldown, the fallback notice includes its approximate remaining duration, for example: Primary retry eligible in ~60 s; recovery is not guaranteed. Non-rate-limit switches and switches from an already-active cross-provider fallback do not announce a new primary cooldown.
++ model : gpt - 5.4
++ CLI sessions (interactive and hermes -z one-shot)
++ ✔ (at startup when the primary's credentials/quota fail, mid-session, and a chain added or edited while a chat is open applies from its next turn)
++ Desktop app / TUI chats
++ ✔ (a chain added or edited while a chat is open applies from its next turn)
++ ✔ ( delegation.fallback_providers when set; otherwise only unpinned children inherit the parent chain; [] disables)
++ ✔ (unpinned jobs inherit the configured chain; a job with its own provider/model/base_url never falls back to it)
++ When a task's provider is set to "auto" (the default), Hermes first tries the main provider + main model for that auxiliary task. If that route is unavailable or later fails with a capacity-style error, Hermes follows your configured fallback policy and then stops:
++ fallback_providers / fallback_model → skip the task (warn)
++ A billing or quota failure quarantines only the failed custom endpoint for the auxiliary health cooldown, not every route registered as custom . A healthy local endpoint with a different base URL remains eligible for fallback and subsequent auto routing. Aliases for the same custom endpoint share its health state. Built-in providers retain their shared-account health checks.
++ Those built-in chains run only when no main provider is selected ( model.provider: auto or unset). Once you have picked a main provider, an unavailable main route with no fallback_chain / fallback_providers skips the auxiliary task with a warning instead of guessing another provider you happen to be logged into — an expired xAI or Codex session must never bill your Nous Portal or OpenRouter balance behind your back. Declare a fallback if you want one.
++ Every task above follows the same provider / model / base_url pattern. Each task can also declare its own fallback_chain ; if omitted, provider: auto uses the top-level fallback_providers chain (the built-in discovery chain applies only when no main provider is selected).
++ "llamacpp"
++ Force the managed local llama.cpp server
+```
+
+### hermes.docs.mixture-of-agents
+
+- Vendor: Hermes
+- Source: https://hermes-agent.nousresearch.com/docs/user-guide/features/mixture-of-agents
+- Change: changed
+- Prior hash: a0698e3a7f71ca04d183baedfed8631261356d18be8375764503e4f89d816bc8
+- Current hash: 957ed6a3cb5004f2089cd01834635f2096796c547577e16cd7537c930932dc7a
+
+```diff
+- max_tokens : 4096
+- Tuning advisor speed with reference_max_tokens ​
+- Each turn, MoA runs the reference models (advisors) in parallel and then the
+- aggregator acts. Advisor generation is the dominant per-turn latency — turn
+- wall time correlates strongly with how many tokens the advisors emit, because
+- the turn waits for the slowest advisor to finish writing. By default advisors
+- are uncapped ( reference_max_tokens unset), so they may write long,
+- essay-length advice.
+- Set reference_max_tokens on a preset to cap advisor output and give concise
+- advice instead. The aggregator only needs the gist of each advisor's
+- judgement, so a cap (e.g. 600 ) measurably cuts per-turn wall time with little
+- quality impact. It caps advisors only — the acting aggregator's output (the
+- user-visible answer) is never capped.
+- fast :
+- reference_max_tokens : 600 # concise advice → faster turns
+- Leave it unset (or 0 /blank) to keep the prior uncapped behavior.
+- The aggregator is the acting model. The reference outputs are appended to the end of the latest user turn as private guidance. Because that text sits at the tail — below the entire stable prefix (system prompt + prior history) — it does not invalidate any cached prefix: the aggregator gets a cache hit on everything above the injection, and only the freshly appended tail is new. That is exactly how every normal turn behaves, where each new user message is also uncached tail tokens.
+- So MoA does not sacrifice prompt caching on either call type. Its only real cost is the extra reference calls per iteration — you pay for multiple model perspectives, not for broken caches. The long-lived conversation prefix shared with the rest of Hermes is fully intact.
+- Configure presets Tuning advisor speed with reference_max_tokens
++ Who pays for a MoA run
++ The aggregator is billed for the whole run : it runs every step of the tool loop, so almost all of a preset's cost lands on the aggregator's provider. References only advise once per user turn (with the default fanout ). If your main model is on a subscription provider but the aggregator sits elsewhere, the run is billed to the aggregator's provider, not to your subscription — hermes moa configure and hermes moa list print a one-line notice whenever the aggregator's provider differs from model.provider , and the Desktop editor, hermes model , and /model mark the aggregator slot as the acting, billed model.
++ Advisor output ​
++ MoA uses provider-owned output limits. Preset and per-slot output-token cap
++ settings are no longer supported. Provider defaults vary; omission does not
++ always mean the model maximum. Native protocols that require an output limit
++ receive an internal value from Hermes.
++ hermes moa list marks the aggregator as the acting model that carries almost all of the cost and lists references as advising once per user turn (by default). When the aggregator's provider differs from your main model.provider , both list and configure add:
++ Aggregator is on nous; the whole tool loop will be billed there, not to openai-codex.
++ The aggregator is the acting model. The reference outputs are appended as their own trailing user message of private guidance — never merged into your message. Because that block sits at the tail — below the entire stable prefix (system prompt + your message + prior tool history) — it does not invalidate any cached prefix: every request in a tool loop is a byte-identical extension of the previous one minus its guidance block, so the aggregator gets a cache hit on everything above the injection and only the freshly appended tail is new. That is exactly how every normal turn behaves, where each new user message is also uncached tail tokens. Aggregators on the Anthropic Messages, Bedrock Converse or native Gemini wire merge the two adjacent user turns into one message, but as separate content blocks: your message's block is byte-identical to the one later iterations replay, and the guidance block follows it, so the cached prefix still runs through your message.
++ On the OpenAI-compatible wire the request ends user(your message), user(guidance) on the first iteration of a turn. A few chat templates that enforce strict user/assistant alternation (llama.cpp and vLLM Jinja templates, some OpenRouter routes) reject that with a 400 such as Conversation roles must alternate . Hermes recovers on its own: it retries that one request with the two adjacent user messages merged, remembers that aggregator destination (endpoint + model) for the rest of the session so later turns are merged up front, and leaves every other destination on the split, cache-stable shape. The merge is applied only where a destination demanded it, because merging everywhere would reintroduce the prefix divergence described above.
++ So MoA does not sacrifice prompt caching on either call type. Its only real cost is the extra reference calls (once per user turn with the default fanout ) — you pay for multiple model perspectives, not for broken caches. The long-lived conversation prefix shared with the rest of Hermes is fully intact.
++ A preset can be a fallback entry ( fallback_providers: [{provider: moa, model: <preset>}] ). When the primary fails, Hermes activates the preset itself — references and aggregator, with moa://local as the virtual endpoint — the same way /model <preset> --provider moa does. The entry is skipped when the preset does not resolve or its aggregator has no credentials.
++ Configure presets Advisor output
 ```
 
 ### hermes.github.releases
@@ -1138,91 +1537,91 @@ Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
 - Vendor: Hermes
 - Source: https://github.com/NousResearch/hermes-agent/releases
 - Change: changed
-- Prior hash: 67692cb7e307e65329a16b4926d6bb2655e2bccf80a9a46f7e6346c21fa6fc7c
-- Current hash: 590f469580856ae86715b7e55377ff0ac6d7b84853e782ce1f29ffd941f30a2e
+- Prior hash: 590f469580856ae86715b7e55377ff0ac6d7b84853e782ce1f29ffd941f30a2e
+- Current hash: d8a9276be8b4ef08aeec6958c59bc3efd282eacc4e98e21aa4d6ea5ace967e0b
 
 ```diff
-- 45.8k
-- 231k
-- Hermes Agent v0.18.2 (2026.7.7.2)
-- Hermes Agent v0.18.1 (2026.7.7)
-- Hermes Agent v0.18.0 (2026.7.1) — The Judgment Release
-- Hermes Agent v0.17.0 (v2026.6.19)
-- Hermes Agent v0.16.0 (2026.6.5) — The Surface Release
-- Hermes Agent v0.15.2 (2026.5.29.2)
-- 75 people reacted
-- 171 people reacted
-- Hermes Agent v0.18.2 (2026.7.7.2)
-- Hermes Agent v0.18.2 (2026.7.7.2)
-- 08 Jul 03:11
-- v2026.7.7.2
-- 9de9c25
-- Hermes Agent v0.18.2 (v2026.7.7.2)
-- Release Date: July 7, 2026
-- Same-day patch on top of v0.18.1, picking up the WhatsApp Baileys dependency fix needed for tagged-release Docker builds.
-- What's in this patch
-- fix(whatsapp): unpin Baileys from git commit, use published 7.0.0-rc13 ( #60643 ) — the WhatsApp bridge dependency now installs from the published npm release instead of a pinned git commit, making installs and Docker image builds reliable.
-- Full curated release notes for the entire post-v0.18.0 window ship with v0.19.0.
-- hermes update # existing installs
-- pip install -U hermes-agent
-- Full Changelog : v2026.7.7...v2026.7.7.2
-- 90 people reacted
-- Hermes Agent v0.18.1 (2026.7.7)
-- Hermes Agent v0.18.1 (2026.7.7)
-- 08 Jul 01:15
-- v2026.7.7
-- f9eca7e
-- Hermes Agent v0.18.1 (v2026.7.7)
-- Release Date: July 7, 2026
-- Patch release. This tag rolls up the ~660 PRs merged since v0.18.0 (July 1) — bug fixes, hardening, and in-progress feature work — into a stable tagged release for downstream consumers (Docker images, hosted deployments, PyPI installs).
-- This is an infrastructure-driven patch tag rather than a fully curated release. Since v0.18.0 shipped six days ago, main has accumulated roughly 667 commits across ~990 files (+89.5k/−10.4k lines) , including installer/updater self-healing on Windows, dashboard and gateway fixes, WhatsApp dashboard pairing, MCP and provider fixes, and a large volume of stability work.
-- Full curated release notes for this window will ship with v0.19.0 , which will document everything from v0.18.0 onward — highlights, feature areas, and complete contributor credits. Nothing in this window is skipped; it's documented in the next minor release.
-- hermes update # existing installs
-- pip install -U hermes-agent
-- Full Changelog : v2026.7.1...v2026.7.7
-- 25 people reacted
-- Hermes Agent v0.18.0 (2026.7.1) — The Judgment Release
-+ 49.7k
-+ 242k
-+ Hermes Agent v0.21.0 (v2026.8.31)
-+ Hermes Agent v0.20.6 (v2026.8.27)
-+ Hermes Agent v0.20.5 (v2026.8.19)
-+ Hermes Agent v0.20.4 (2026.8.18)
-+ Hermes Agent v0.20.3 (2026.8.16.2)
-+ Hermes Agent v0.20.2 (2026.8.16)
-+ Hermes Agent v0.21.0 (v2026.8.31)
-+ Hermes Agent v0.21.0 (v2026.8.31)
-+ 31 Aug 19:29
-+ v2026.8.31
-+ 29112be
-+ Hermes Agent v0.21.0 (v2026.8.31)
-+ Release Date: August 31, 2026
-+ Since v0.20.0: ~5,800 commits · ~2,475 merged PRs · ~5,680 files changed · ~869,000 insertions · ~135,000 deletions · ~2,100 issues closed · 760+ contributors
-+ The Pantheon Release. v0.20.0 made Hermes the herald — he spoke, and he carried word to other agents. In v0.21.0 the gods assemble. Bot Mode ships built into the desktop app: a society of named agents with their own faces and group chats, where your bots talk to each other — and to you — like a team, not a toolbox. Around that spine: cron jobs gained memory and continuity so scheduled agents actually learn between runs, subagents can be steered live mid-flight, the MCP surface became a real command center, and the agent can now drive the desktop's own browser. This release rolls up everything from the v0.20.1–v0.20.6 infrastructure patch tags — those windows are fully documented here.
-+ Bot Mode — your agents become a society, built in — Bot Mode is now a bundled, default-on part of the desktop app: every agent profile gets a name, a deterministic avatar face (with randomize/lock controls), and a place in a shared roster. Create Discord-style group chats where multiple bots and you talk in one room, @-mention any bot from the composer, and give rooms names and pictures. Before, "multi-agent" meant plumbing; now it looks like a chat app full of coworkers. ( #87886 , #88243 , #89386 , #96726 — @teknium1 , @OutThisLife , @dokterdok )
-+ hermes peer — bot-to-bot DMs between your agents — Any Hermes agent can now message any other by handle, across profiles and gateways, from the CLI or from inside a conversation. Ask your research bot to hand findings to your coding bot and get the reply back where you can read it. Replies land in each agent's canonical Bot Chat, so conversations between agents are durable and inspectable, not fire-and-forget. ( #88725 , #88178 , #91487 — @teknium1 )
-+ Cron jobs that remember — Scheduled jobs stopped being goldfish. Cron agents now load and update persistent memory like every other agent, continuity=true carries each run's output into the next (so a monitor can dedupe against what it already reported), every job gets a durable notepad scratchpad, monitor-mode jobs skip the LLM entirely when nothing changed, and cron output can land in a bot's canonical Bot Chat — where the bot actually responds. Your 9am briefing job now knows what it told you yesterday. ( #91447 , #80774 , #81139 , #81138 , #91487 — @teknium1 , @smwbev )
-+ Steer your subagents while they run — delegate_task gained live orchestration: list running children, steer one mid-flight with a course correction, or stop it early and keep the partial result. Add optional JSON-schema validation on child outputs, per-delegation cost surfaced in results, and raised defaults (250 iterations, 10 concurrent children) — delegation went from fire-and-pray to actually managed parallel work. ( #85232 , #81144 , #81142 , #86506 , #86745 — @teknium1 )
-+ The MCP command center — MCP servers and the catalog merged into one coherent desktop page with drag-in "paste anything" import, background health checks that nudge you to re-auth before a tool call fails, a fleet cost/usage overlay showing schema token estimates and 30-day usage per server, and hermes:// deep links that install an MCP server with explicit confirmation. Managing twenty MCP servers used to be config-file archaeology; now it's a dashboard. ( #87525 , #87572 , #87576 , #87579 , #87581 — @teknium1 )
-+ A CLI power wave — Ctrl+P opens a fuzzy command palette, the /model picker filters as you type, /status shows reasoning mode, pending approvals, and context usage, and the status bar can display live cache-hit %, latency, and tokens/sec with per-field toggles. Plus: a global emergency stop, session pin/unpin, rotating task-oriented composer placeholders — and Ghostty-level terminal pets , because a companion should have a companion. ( #90730 , #90717 , #90745 , #98250 , #98282 , #97666 — @teknium1 , and salvaged community work)
-+ The agent drives the desktop's browser — The in-app browser stopped being a window the agent could only look at: Hermes now navigates, clicks, and reads it directly, and pages can be popped out to your system browser with full link context menus. Ask it to walk a docs site or debug a web app and watch it happen inside your own app. ( #90197 , #89366 — @OutThisLife , @ethernet8023 )
-+ Six new providers and a model catalog wave — Meta Model API (Muse Spark) arrives as a built-in provider, alongside CommandCode, Tencent TokenPlan, Nebius Token Factory, Ramp Router, and Actual Computer. The catalogs picked up GLM-5.3-Flash, qwen3.8-max/flash, Gemini 3.7 Flash, MiniMax M3 free, and Nemotron 3.5 Lightning — and model_overrides lets you patch any model's context window or pricing yourself without waiting on a release. ( #88565 , #88308 , #97917 , #97916 , #97915 , #85560 — @teknium1 and community)
-+ Security hardening across the board — Protected agent-instruction files (AGENTS.md, skills, memory stores) now always require write approval so a prompt-injected agent can't quietly rewrite its own standing orders. A deep redaction sweep closed secret-leak gaps across terminal errors, .env file reads, checkpoints, and ACP logs; the approval system learned Windows destructive commands; and macOS permission grants finally survive updates via a stable TCC signing identity. ( #81152 , #80965 , #84428 , #95091 — @teknium1 and community)
-+ 🏗️ Core Agent & Architecture
-+ Providers & Models
-+ New providers: Actual Computer inference ( #79644 , salvage of #26491 ), CommandCode with GOAT/Pro/Max plans ( #88308 , salvage of #32909 ), Meta Model API (Muse Spark) as a built-in provider plugin ( #88565 ), Tencent TokenPlan ( #97917 ), Nebius Token Factory ( #97916 ), and Ramp Router ( #97915 ).
-+ Model catalog wave: qwen3.8-max and qwen3.8-flash ( #78024 , #96979 ), Gemini 3.7 Flash ( #85526 ), GLM-5.3-Flash across OpenRouter/Nous/z.ai/OpenCode ( #95621 , #96293 ), MiniMax M3 + Inkling free SKUs ( #96264 ), Nemotron 3.5 Lightning ( #84645 ), Meta Muse Spark 1.2 ( #88600 ).
-+ Per-model metadata overrides via model_overrides config — patch context windows, pricing, or capabilities for any model without waiting on a release ( #85560 ).
-+ Data-training-tier warnings — a unified selection-guard registry warns you across every picker surface when a model trains on your data ( #85917 ).
-+ Pip-installed model providers discovered via entry points — third parties can ship providers as packages ( #85504 , salvage ...
-+ assimovt, dhanesh, and 196 other contributors
-+ 112 people reacted
-+ Hermes Agent v0.20.6 (v2026.8.27)
-+ Hermes Agent v0.20.6 (v2026.8.27)
-+ 27 Aug 12:06
-+ v2026.8.27
-+ 5fc308a
-… diff truncated (103 added / 153 removed lines)
+- NousResearch
+- /
+- hermes-agent
+- Public
+- Notifications
+- You must be signed in to change notification settings
+- Fork
+- 49.7k
+- Star
+- 242k
+- Hermes Agent v0.20.3 (2026.8.16.2)
+- Hermes Agent v0.20.2 (2026.8.16)
+- Hermes Agent v0.20.1 (2026.8.13)
+- Hermes Agent v0.20.0 (2026.8.3)
+- Hermes Agent v0.19.1 (v2026.7.30)
+- Hermes Agent v0.19.0 (2026.7.20) — The Quicksilver Release
+- 112 people reacted
+- 84 people reacted
+- Hermes Agent v0.20.3 (2026.8.16.2)
+- Hermes Agent v0.20.3 (2026.8.16.2)
+- 17 Aug 18:43
+- v2026.8.16.2
+- 7339f5f
+- Hermes Agent v0.20.3 (v2026.8.16.2)
+- Release Date: August 16, 2026
+- Patch release. This tag rolls up the ~125 PRs merged since v0.20.2 into a stable tagged release for downstream consumers (Docker images, hosted deployments, fresh installs).
+- Since v0.20.2 (v2026.8.16, tagged earlier today), this window landed ~250 commits across ~461 files (+42,613 / −1,641) — ~125 merged PRs including the MCP 2.x SDK migration and 2026-07-28 stateless protocol support, the bundled Bot Mode (hermes-bots) plugin with the core teammate protocol, the CommandCode provider plugin, subprocess Python runtime ownership hardening (PYTHONHOME/PYTHONPATH isolation), Cua Driver 0.20 runtime contracts for computer use, kanban worktree/dispatch fixes, cron continuity flags, desktop remote-gateway headers and connection self-healing, cron scheduler self-heal (EMFILE recovery, stale-claim reconciliation, wedged-job re-arm), session handoff data-loss fixes, plus a wave of ports from the ecosystem scout slate (plugin install security scanning, /worktree, /rollback hand-edit preservation, UTF-16 file reads, Gemini 3 tool-call ID preservation, and more).
+- Full Changelog : v2026.8.16...v2026.8.16.2
+- 42 people reacted
+- Hermes Agent v0.20.2 (2026.8.16)
+- Hermes Agent v0.20.2 (2026.8.16)
+- 16 Aug 17:33
+- v2026.8.16
+- df4b651
+- Hermes Agent v0.20.2 (v2026.8.16)
+- Release Date: August 16, 2026
+- Patch release. This tag rolls up the ~397 PRs merged since v0.20.1 into a stable tagged release for downstream consumers (Docker images, hosted deployments, fresh installs).
+- Since v0.20.1 (v2026.8.13, tagged August 13), this window landed ~967 commits across ~1,279 files (+128,522 / −7,622) — ~397 merged PRs of fixes and improvements spanning the desktop app (multi-gateway Connections registry, profile-scoped refreshes, MCP health checks and deep links), the CLI (Windows update probes, Kitty keyboard protocol, chat -c hardening), the gateway (persisted model routes, /loop completion, Telegram DM topics), prompt caching for LiteLLM Claude on the OpenAI wire, cron hardening, auth resolution through profile scopes, and installer robustness on both Linux and Windows.
+- Full Changelog : v2026.8.13...v2026.8.16
+- 54 people reacted
++ Repository navigation
++ Hermes Agent v0.21.6
++ Hermes Agent v0.21.5 (v2026.9.24)
++ Hermes Agent v0.21.4 (v2026.9.21)
++ Hermes Agent v0.21.3 (v2026.9.14)
++ Hermes Agent v0.21.2 (v2026.9.11)
++ Hermes Agent v0.21.1 (v2026.9.7)
++ Hermes Agent v0.21.6
++ Hermes Agent v0.21.6
++ 08 Oct 11:51
++ v0.21.6
++ 818c13b
++ Hermes Agent v0.21.6
++ Release Date: October 8, 2026
++ Patch release. This tag rolls up the ~2,100 PRs merged since v0.21.5 into a stable tagged release for Docker and Hermes Cloud. Full curated notes for this window ship with v0.22.0.
++ This is the first release cut by the new stable release pipeline: one attempt ref, a tested Docker image, and a receipt tag at publish. It ships the tag, this GitHub release and the Docker image. The desktop app, Termux packages and the Microsoft Store stay on their current build for now and move with the next bundled release.
++ Measured at commit 818c13be1dc4fd28987e1e881a9408224afd4535 , the window since v0.21.5 contains 8,867 non-merge commits across 8,342 changed files (+772,490 / −225,600), 2,106 merged PRs and 3,027 closed issues .
++ Also in the window, undocumented here on purpose: live transcription while you speak on CLI, TUI and Desktop ( stt.streaming ); spoken voice turns routed to their own model ( auxiliary.voice_chat ) with reasoning off by default; third-party plugins running in a per-profile plugin host ( plugins.isolation: host ) and one Settings ▸ Plugins home for their settings pages; favorite and pinned models at the top of the Desktop picker, a usage chip before a subscription hits its wall, and rate-limited providers that say why and until when; local models in hermes model plus llama.cpp CUDA on Linux x64 and arm64; pluggable, layered language packs across core, Desktop and TUI; a summary-first hermes status ( --short , --full ); a review-pane diff scope selector (Uncommitted / Branch / Last turn) and keep-awake that follows the turn; cron, doctor and home-channel warnings when the cron store goes unwritable; approval flags for credential uploads and invisible Unicode in terminal commands; a Discord setup that checks the bot token and prints the invite link; a unified Kanban workflow definition; activate.fish ; GPT-6.1 Sol and Claude Sonnet 5.5 / Haiku 5.5 in the catalogs; and dozens of new community plugins.
++ Full curated release notes for this window ship with v0.22.0 , which will document everything from v0.21.0 onward — highlights, feature areas, and complete contributor credits. Nothing in this window is skipped.
++ Docker / Hermes Cloud: nousresearch/hermes-agent:stable (or :latest ).
++ CLI (git installs): hermes update , or re-run the installer one-liner.
++ Desktop app and Termux: no change in this release; they update with the next bundled release.
++ Security Fixes
++ Dashboard authentication hardening
++ Spoofed X-Forwarded-For headers could reset the password-login rate limit and get around the per-IP cap on native sign-in ( #133367 )
++ Unauthenticated login requests could write unbounded values to the auth audit log ( #133369 )
++ The public /auth/ routes had no request-body size limit ( #133370 )
++ Native sign-in could send login codes to a non-loopback redirect, which allowed session takeover ( #130685 )
++ Thanks to Tenable Research for reporting all four issues (TRA-725, TRA-726, TRA-727, TRA-728). The native sign-in redirect issue was also reported independently and fixed by @Froraut . The X-Forwarded-For fix builds on community work by @Hinotoi-agent and @BearHuddleston ( #40285 ).
++ Repository git filter hardening
++ Automatic git calls (session workspace snapshot, subagent worktrees, kanban, worktree cleanup, hermes -w ) could run clean / smudge / process filter programs defined by an untrusted repository's own config, before the first prompt ( #130661 )
++ Thanks to 燕涛 for reporting this privately. It was also reported and fixed publicly by @jonpol01 ( #126017 , #126019 ) and @JoaoMarcos44 ( #126075 ).
++ Email gateway sender hardening
++ A quoted display name in the From header (e.g. "Victim <victim@example.com>" <attacker@evil.test> ) could make an attacker's message pass the email allowlist as an allowed sender ( #125212 )
++ Thanks to Daniel Steele ( @keeltrace ) for reporting this and writing the fix ( #124322 ).
++ Full Changelog : v2026.9.24...v0.21.6
++ jonpol01, Froraut, and 4 other contributors
++ 47 people reacted
++ Hermes Agent v0.21.5 (v2026.9.24)
++ Hermes Agent v0.21.5 (v2026.9.24)
+… diff truncated (149 added / 133 removed lines)
 ```
 
 ### openai.api.changelog
@@ -1230,54 +1629,53 @@ Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
 - Vendor: OpenAI
 - Source: https://developers.openai.com/api/docs/changelog
 - Change: changed
-- Prior hash: 62bafab0b995ce1398c60badf1296ae923ac3f30bed0c37499d15c8d235362da
-- Current hash: 5bdc521726ff9dc7c3a2b1f5aca76cb13626f76ef5c56c4d029d7da314097e09
+- Prior hash: 5bdc521726ff9dc7c3a2b1f5aca76cb13626f76ef5c56c4d029d7da314097e09
+- Current hash: fffea54d641579a7d7dae75fb91d8846ffa7c057c297636ab2d421de5bfddba0
 
 ```diff
-- Feature · Model: gpt-5.6-cyber · Model: daybreak-red-latest · Model: daybreak-blue-latest · API: v1/responses
-- Start with Daybreak Blue for most defensive security work. It provides access to general-purpose models such as GPT-5.6 Sol for vulnerability discovery, secure code review, detection engineering, incident response, malware analysis, and patch validation. Read more [here](https://developers.openai.com/api/docs/models/daybreak-blue-latest).
-- Released the [GPT-5.6 model family](https://developers.openai.com/api/docs/guides/latest-model), including GPT-5.6 Sol for frontier capability, GPT-5.6 Terra for a balance of intelligence and cost, and GPT-5.6 Luna for efficient, high-volume workloads. The `gpt-5.6` alias routes requests to `gpt-5.6-sol`.
-- - Announced plans to bring all [Assistants API](https://developers.openai.com/api/docs/assistants) features to the easier to use [Responses API](https://developers.openai.com/api/docs/guides/migrate-to-responses), with an anticipated sunset date for Assistants in 2026 (after achieving full feature parity).
-- Assistants API now supports [including file search results used by the file search tool, and customizing ranking behavior](https://developers.openai.com/api/docs/assistants/tools/file-search#improve-file-search-result-relevance-with-chunk-ranking).
-- Added support for [file search customizations](https://developers.openai.com/api/docs/assistants/tools/file-search#customizing-file-search-settings).
-+ ## September, 2026
-+ ### Sep 3
-+ Feature · Model: gpt-6-astra · API: v1/responses · API: v1/chat/completions
-+ Released [GPT-6 Astra](https://developers.openai.com/api/docs/models/gpt-6-astra), our most capable model, built for the hardest end-to-end work.
-+ Use GPT-6 Astra for reasoning, coding, computer use, research, and document creation. It combines these capabilities to carry complex tasks from an initial request to a finished result, using the context and tools you provide.
-+ Key changes to consider when migrating:
-+ - GPT-6 Astra does not support the `none` reasoning effort level.
-+ - GPT-6 Astra does not support custom `temperature` or `top_p` values or log probabilities (`logprobs`).
-+ - Tool calling requires the Responses API. If you use tools with Chat Completions, follow the [Responses migration guide](https://developers.openai.com/api/docs/guides/migrate-to-responses).
-+ - [Misalignment monitoring](https://developers.openai.com/api/docs/guides/safety-checks/misalignment-monitoring) asynchronously checks for potential issues during agent work in supported Responses API requests. Checks can trigger safety alerts or stop a conversation for review.
-+ Start with [Using GPT-6 Astra](https://developers.openai.com/api/docs/guides/latest-model) for capabilities, prompting, and migration guidance. Explore [computer use](https://developers.openai.com/api/docs/guides/tools-computer-use) for browser and desktop workflows, and see [pricing](https://developers.openai.com/api/docs/pricing) for available inference tiers.
-+ ### Sep 3
-+ Added new controls for long-running work with GPT-6 Astra in the Responses API:
-+ - [Async tool calling](https://developers.openai.com/api/docs/guides/async-tool-calling): Let the model continue working while your application runs function or custom tools, then return results as they become available.
-+ - [Mid-turn steering](https://developers.openai.com/api/docs/guides/steering): Send additional instructions while a response is in progress over WebSockets, so the model can incorporate corrections or changing requirements.
-+ - [Change reasoning effort mid-conversation](https://developers.openai.com/api/docs/guides/reasoning#change-reasoning-mid-conversation): Increase effort for difficult work or reduce it for routine follow-ups while preserving the cached prompt prefix.
-+ ### Sep 2
-+ Updated API errors so applications can distinguish traffic that increases too quickly from temporary model overload.
-+ Traffic that increases too quickly can return a `429` error with the `slow_down` code. Temporary model overload returns a `503` error with the `server_is_overloaded` code. Both responses may include `Retry-After`. When the header is present, wait at least as long as it specifies before retrying. If it's missing, use exponential backoff. See the [error codes guide](https://developers.openai.com/api/docs/guides/error-codes) and [rate limits guide](https://developers.openai.com/api/docs/guides/rate-limits).
-+ ### Sep 1
-+ Connections to `api.openai.com` can now use IPv6.
-+ [Mutual TLS (mTLS)](https://developers.openai.com/api/docs/guides/mutual-tls) and [X.509 workload identity federation](https://developers.openai.com/api/docs/guides/workload-identity-federation/x509) are now generally available for the OpenAI API. Configure certificates and X.509 identity providers directly in the [Platform console](https://platform.openai.com/settings/organization/security), with access controlled by your organization's roles and permissions.
-+ ### Aug 26
-+ Update · Model: whisper-1 · Model: gpt-4o-transcribe · Model: gpt-4o-mini-transcribe · Model: gpt-4o-transcribe-diarize · API: v1/audio/transcriptions · API: v1/realtime
-+ Announced the deprecation of `whisper-1`, `gpt-4o-transcribe`, `gpt-4o-mini-transcribe`, and `gpt-4o-transcribe-diarize`. These models will shut down on February 26, 2027. Migrate to [`gpt-live-transcribe`](https://developers.openai.com/api/docs/models/gpt-live-transcribe) or [`gpt-transcribe`](https://developers.openai.com/api/docs/models/gpt-transcribe). See the [transcription guide](https://developers.openai.com/api/docs/guides/transcription) and [deprecations page](https://developers.openai.com/api/docs/deprecations).
-+ The Assistants API shut down on August 26, 2026. Migrate to the Responses API and Conversations API using the [migration guide](https://developers.openai.com/api/docs/assistants/migration).
-+ API customers can now select regional processing for an individual request by using a prefixed domain with an API key from a project having Global geography. Existing eligibility, data retention control, endpoint, and model support requirements continue to apply. Learn more in the [data controls guide](https://developers.openai.com/api/docs/guides/your-data#select-a-processing-region-per-request).
-+ Update · Model: gpt-5.6-sol
-+ GPT-5.6 Sol now costs $4 per million input tokens and $20 per million output tokens, representing 20% lower input pricing and 33% lower output pricing. GPT-5.6 Sol’s promotional pricing is available at least through November 21, 2026. See [pricing details](https://developers.openai.com/api/docs/pricing).
-+ Released the [Prompt Caching dashboard](https://platform.openai.com/usage?usage_section=prompt-caching) on the OpenAI API platform. Track your cache hit rate over time, cache reads per write, and the breakdown of cache-read, cache-write, and uncached tokens to understand your caching efficiency and identify opportunities to improve. Filter metrics by model and service tier.
-+ Update · Model: gpt-image-2 · Model: gpt-image-2-2026-04-21 · API: v1/images/generations · API: v1/images/edits · API: v1/responses
-+ Transparent backgrounds are now available in preview for `gpt-image-2` and `gpt-image-2-2026-04-21` in the Images API and the Responses API image generation tool. Set `background` to `transparent` and use `png` or `webp` output; `jpeg` does not support transparent backgrounds. Learn more in the [image generation guide](https://developers.openai.com/api/docs/guides/image-generation#customize-image-output).
-+ Feature · Model: gpt-5.6-cyber · Model: gpt-daybreak-red-latest · Model: gpt-daybreak-blue-latest · API: v1/responses
-+ Start with Daybreak Blue for most defensive security work. It provides access to general-purpose models such as GPT-5.6 Sol for vulnerability discovery, secure code review, detection engineering, incident response, malware analysis, and patch validation. Read more [here](https://developers.openai.com/api/docs/models/gpt-daybreak-blue-latest).
-+ Released the [GPT-5.6 model family](https://developers.openai.com/api/docs/guides/latest-model?model=gpt-5.6), including GPT-5.6 Sol for frontier capability, GPT-5.6 Terra for a balance of intelligence and cost, and GPT-5.6 Luna for efficient, high-volume workloads. The `gpt-5.6` alias routes requests to `gpt-5.6-sol`.
-+ - Announced plans to bring all [Assistants API](https://developers.openai.com/api/docs/assistants/migration) features to the easier to use [Responses API](https://developers.openai.com/api/docs/guides/migrate-to-responses), with an anticipated sunset date for Assistants in 2026 (after achieving full feature parity).
-+ Assistants API now supports [including file search results used by the file search tool, and customizing ranking behavior](https://developers.openai.com/api/docs/assistants/migration#improve-file-search-result-relevance-with-chunk-ranking).
-+ Added support for [file search customizations](https://developers.openai.com/api/docs/assistants/migration#customizing-file-search-settings).
+- Updated the [Realtime and audio guide](https://developers.openai.com/api/docs/guides/realtime), added a dedicated [Realtime translation guide](https://developers.openai.com/api/docs/guides/realtime-translation), refreshed [Realtime transcription](https://developers.openai.com/api/docs/guides/realtime-transcription) for streaming transcripts, and moved realtime prompting guidance into [Using realtime models](https://developers.openai.com/api/docs/guides/realtime-models-prompting).
+- Expanded `input_file` support to accept more document, presentation, spreadsheet, code, and text file types. Learn more [here](https://developers.openai.com/api/docs/guides/file-inputs).
+- Added dedicated SIP IP ranges for Realtime API. `sip.api.openai.com` does GeoIP routing, and will direct SIP traffic to the closest region. [Learn more](https://developers.openai.com/api/docs/guides/realtime-sip#dedicated-sip-ip-ranges).
++ ## October, 2026
++ ### Oct 8
++ Feature · Model: gpt-6.1-sol · API: v1/responses
++ Added [Ultrafast mode](https://developers.openai.com/api/docs/guides/ultrafast-mode) for [GPT-6.1 Sol](https://developers.openai.com/api/docs/models/gpt-6.1-sol) in the Responses API. Use `gpt-6.1-sol` with `service_tier: "ultrafast"` to reduce the time between generated output tokens. It is available to all API users, subject to rate limits, with global processing and US and EU data residency. See [Ultrafast pricing](https://developers.openai.com/api/docs/pricing?latest-pricing=ultrafast).
++ ### Oct 7
++ Updated the **chat-latest** snapshot, which points to the latest model available in ChatGPT for Plus, Pro, Business and Enterprise users. We recommend leveraging the [GPT-6 model family](https://developers.openai.com/api/docs/guides/latest-model) for production API usage, but feel free to use this model to test the latest improvements for chat use cases. The underlying model snapshot will be regularly updated. Read more [here](https://developers.openai.com/api/docs/models/chat-latest).
++ Feature · Model: gpt-6-luna · API: v1/decisions
++ Released the [Decisions API](https://developers.openai.com/api/docs/guides/decisions) in beta with `gpt-6-luna`. Turn text and images into typed answers 10x faster than the Responses API.
++ Simplified API usage tiers from five to three: Build, Launch, and Grow. Organizations automatically upgrade as total credit purchases reach tier minimums. See [usage tiers](https://developers.openai.com/api/docs/guides/rate-limits#usage-tiers) for monthly usage limits and how to view rate limits for each model.
++ ### Oct 5
++ Added an in-product flow for HIPAA compliance support in API [Organization settings > General](https://platform.openai.com/settings/organization/general). Admins of eligible organizations can now accept the standard Business Associate Agreement (BAA) and enable HIPAA compliance support for their organization. See the [Help Center](https://help.openai.com/en/articles/8660679-getting-a-business-associate-agreement-for-the-openai-api) for eligibility, covered services, and configuration requirements.
++ ### Sep 29
++ Added [computer use](https://developers.openai.com/api/docs/guides/agents-api/tools/computer-use) to the Agents API. Agents can complete tasks in an OpenAI-hosted browser, with website access approvals and sign-in handled by your application.
++ ### Sep 29
++ Feature · Model: gpt-6.1-sol · API: v1/responses · API: v1/chat/completions
++ Released [GPT-6.1 Sol](https://developers.openai.com/api/docs/models/gpt-6.1-sol) (`gpt-6.1-sol`) for complex coding and professional work at a lower cost than GPT-6 Astra.
++ Standard pricing per 1M tokens for prompts with up to 272K input tokens is $2 input, $0.10 cached input, $2.50 cache write, and $10 output.
++ GPT-6.1 Sol also supports [Multi-agent](https://developers.openai.com/api/docs/guides/responses-multi-agent) in beta. Let the model delegate work to subagents in a Responses API request.
++ Use the Responses API for tool calling. See [GPT-6 model guidance](https://developers.openai.com/api/docs/guides/latest-model?model=gpt-6-astra#gpt-61-sol) for reasoning settings and [pricing](https://developers.openai.com/api/docs/pricing) for available processing tiers.
++ ### Sep 29
++ Feature · Model: gpt-6-astra · API: v1/responses
++ Added [Ultrafast mode](https://developers.openai.com/api/docs/guides/ultrafast-mode) for GPT-6 Astra in the Responses API. Use `gpt-6-astra` with `service_tier: "ultrafast"` to reduce the time between generated output tokens. It is available to API customers, subject to rate limits, with global processing and US data residency. EU and other regional inference residency aren't supported. See [Ultrafast pricing](https://developers.openai.com/api/docs/pricing?latest-pricing=ultrafast).
++ ### Sep 25
++ Fix · Model: gpt-6-sol · Model: gpt-6-luna
++ Fixed a bug in image encoding that degraded image understanding in [GPT-6 Sol](https://developers.openai.com/api/docs/models/gpt-6-sol) and [GPT-6 Luna](https://developers.openai.com/api/docs/models/gpt-6-luna). This update improves results on visual tasks in the API and Codex, including computer use.
++ If your use cases involve image inputs, we recommend rerunning your evaluations and retrying workflows affected by the issue.
++ ### Sep 22
++ Feature · Model: gpt-6-sol · Model: gpt-6-luna · API: v1/responses · API: v1/chat/completions
++ Released [GPT-6 Sol](https://developers.openai.com/api/docs/models/gpt-6-sol) (`gpt-6-sol`) and [GPT-6 Luna](https://developers.openai.com/api/docs/models/gpt-6-luna) (`gpt-6-luna`).
++ These reasoning models accept text and image inputs and generate text through the Responses and Chat Completions APIs.
++ Standard pricing per 1M tokens for prompts with up to 272K input tokens:
++ - GPT-6 Sol: $2 input, $0.20 cached input, and $10 output.
++ - GPT-6 Luna: $0.10 input, $0.01 cached input, and $0.50 output.
++ Compare capabilities in the [model catalog](https://developers.openai.com/api/docs/models), and see [pricing](https://developers.openai.com/api/docs/pricing) for cache writes, longer prompts, and other processing tiers.
++ ### Sep 15
++ Added API key creation governance controls at the organization and project levels. Administrators can allow only service-account keys, allow only user-owned project keys, or disable all new API key creation. Organization restrictions take precedence over project settings, and existing API keys are unaffected. See [production best practices](https://developers.openai.com/api/docs/guides/production-best-practices#api-keys) for details.
++ ### Sep 10
++ You can now set expiration dates when creating project API keys. Administrators can also enforce a maximum key lifetime at the organization or project level in Platform settings, requiring newly created keys to expire within the configured limit. See [production best practices](https://developers.openai.com/api/docs/guides/production-best-practices#api-keys) for guidance on key expiration and rotation.
++ ### Sep 10
++ Released the [Agents API](https://developers.openai.com/api/docs/guides/agents-api/overview) in public beta. Build agents with a managed Codex harness while OpenAI handles session orchestration, context compaction, and recovery.
 ```
 
 ### openai.api.deprecations
@@ -1285,18 +1683,76 @@ Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
 - Vendor: OpenAI
 - Source: https://developers.openai.com/api/docs/deprecations
 - Change: changed
-- Prior hash: 4fc34212ee878b48b1671d45f1d5bc65e755f15ea86460006549dfc57d1d1d59
-- Current hash: 66a6c1a91573dac1b611d8d0d9fb19356b61930bdbb4b67aa0eab73c904ef5b6
+- Prior hash: 66a6c1a91573dac1b611d8d0d9fb19356b61930bdbb4b67aa0eab73c904ef5b6
+- Current hash: 409e3b345cb4456b22ea9ac26bfad8a95843c2d8190fcb63b5ae7d08112e8e8c
 
 ```diff
-+ ### 2026-08-26: Transcription models
-+ On August 26, 2026, we notified developers using `whisper-1`, `gpt-4o-transcribe`, `gpt-4o-mini-transcribe`, and `gpt-4o-transcribe-diarize` of their deprecation and removal from the API on February 26, 2027.
-+ For information about the recommended replacements, see the [transcription guide](https://developers.openai.com/api/docs/guides/transcription).
-+ | ------------- | --------------------------- | ----------------------------------------- |
-+ | Feb 26, 2027 | `whisper-1` | `gpt-live-transcribe` or `gpt-transcribe` |
-+ | Feb 26, 2027 | `gpt-4o-transcribe` | `gpt-live-transcribe` or `gpt-transcribe` |
-+ | Feb 26, 2027 | `gpt-4o-mini-transcribe` | `gpt-live-transcribe` or `gpt-transcribe` |
-+ | Feb 26, 2027 | `gpt-4o-transcribe-diarize` | `gpt-live-transcribe` or `gpt-transcribe` |
+- | ------------- | ---------------------- | ----------------------- |
+- | Dec 1, 2026 | `gpt-image-1-mini` | `gpt-image-2` |
+- | Dec 1, 2026 | `gpt-image-1.5` | `gpt-image-2` |
+- | Dec 1, 2026 | `chatgpt-image-latest` | `gpt-image-2` |
+- | ---------------- | ---------------------------------------------------------------------- | ------------------------------------- |
+- | October 23, 2026 | `gpt-image-1` | `gpt-image-2` |
+- ### 2026-05-08: gpt-5.2-chat-latest and gpt-5.3-chat-latest model snapshots
+- ### 2025-11-18: chatgpt-4o-latest snapshot
+- ### 2025-11-17: codex-mini-latest model snapshot
+- There are a few key differences between the interfaces in the Realtime beta API and the released GA API. See [the migration guide](https://developers.openai.com/api/docs/guides/realtime#beta-to-ga-migration) for the current GA interface and related Realtime docs.
+- ### 2025-09-15: gpt-4o-realtime-preview models
+- In September, 2025, we notified developers using gpt-4o-realtime-preview models of their deprecation and removal from the API in six months.
+- | ------------- | ---------------------------------- | ----------------------- |
+- | 2026-05-07 | gpt-4o-realtime-preview | gpt-realtime-1.5 |
+- | 2026-05-07 | gpt-4o-realtime-preview-2025-06-03 | gpt-realtime-1.5 |
+- | 2026-05-07 | gpt-4o-realtime-preview-2024-12-17 | gpt-realtime-1.5 |
+- | 2026-05-07 | gpt-4o-mini-realtime-preview | gpt-realtime-mini |
+- | 2026-05-07 | gpt-4o-audio-preview | gpt-audio-1.5 |
+- | 2026-05-07 | gpt-4o-mini-audio-preview | gpt-audio-mini |
+- ### 2025-06-10: gpt-4o-realtime-preview-2024-10-01
+- On June 10th, 2025, we notified developers using gpt-4o-realtime-preview-2024-10-01 of its deprecation and removal from the API in three months.
+- | ------------- | ---------------------------------- | ----------------------- |
+- | 2025-10-10 | gpt-4o-realtime-preview-2024-10-01 | gpt-realtime-1.5 |
+- ### 2025-06-10: gpt-4o-audio-preview-2024-10-01
+- ### 2025-04-28: text-moderation
+- ### 2025-04-28: o1-preview and o1-mini
++ ### 2026-10-01: GPT-5.3-Codex, GPT-5.1, GPT-5.4-Nano
++ The following models are deprecated and will be removed from the API on April 1, 2027, with six months' notice. Migrate to the recommended replacements before the shutdown date.
++ | ------------- | --------------- | ----------------------- |
++ | Apr 1, 2027 | `gpt-5.3-codex` | `gpt-6-sol` |
++ | Apr 1, 2027 | `gpt-5.4-nano` | `gpt-6-luna` |
++ | Apr 1, 2027 | `gpt-5.1` | `gpt-6-sol` |
++ ### 2026-10-01: Text-to-speech models
++ The following text-to-speech models are deprecated and will be removed from the API on January 6, 2027, with at least three months' notice. Migrate to `gpt-realtime-2.1-mini` before the shutdown date. See the [Realtime API guide](https://developers.openai.com/api/docs/guides/realtime) to plan your migration.
++ | ------------- | ---------------------------- | ----------------------- |
++ | Jan 6, 2027 | `tts-1` | `gpt-realtime-2.1-mini` |
++ | Jan 6, 2027 | `tts-1-hd` | `gpt-realtime-2.1-mini` |
++ | Jan 6, 2027 | `gpt-4o-mini-tts-2025-03-20` | `gpt-realtime-2.1-mini` |
++ | Jan 6, 2027 | `gpt-4o-mini-tts-2025-12-15` | `gpt-realtime-2.1-mini` |
++ | ------------- | ---------------------- | ------------------------------------------------- |
++ | Dec 1, 2026 | `gpt-image-1-mini` | `gpt-image-2.5-sunburst` or `gpt-image-2.5-flare` |
++ | Dec 1, 2026 | `gpt-image-1.5` | `gpt-image-2.5-sunburst` or `gpt-image-2.5-flare` |
++ | Dec 1, 2026 | `chatgpt-image-latest` | `gpt-image-2.5-sunburst` or `gpt-image-2.5-flare` |
++ ### 2026-09-11: GPT-5.4-Cyber
++ The `gpt-5.4-cyber` model is deprecated and will be removed from the API on October 1, 2026. Migrate to the most capable cyber model available to you before the shutdown date.
++ | ------------- | --------------- | ---------------------------------------------- |
++ | Oct 1, 2026 | `gpt-5.4-cyber` | The most capable cyber model available to you. |
++ ### 2026-05-08: `gpt-5.2-chat-latest` and `gpt-5.3-chat-latest` model snapshots
++ | ---------------- | ---------------------------------------------------------------------- | ------------------------------------------------- |
++ | October 23, 2026 | `gpt-image-1` | `gpt-image-2.5-sunburst` or `gpt-image-2.5-flare` |
++ ### 2025-11-18: `chatgpt-4o-latest` snapshot
++ ### 2025-11-17: `codex-mini-latest` model snapshot
++ The interfaces in the Realtime beta API and the released GA API have a few key differences. See [the migration guide](https://developers.openai.com/api/docs/guides/realtime#beta-to-ga-migration) for the current GA interface and related Realtime docs.
++ ### 2025-09-15: `gpt-4o-realtime-preview` models
++ In September, 2025, we notified developers using `gpt-4o-realtime-preview` models of their deprecation and removal from the API in six months.
++ | ------------- | ------------------------------------ | ----------------------- |
++ | 2026-05-07 | `gpt-4o-realtime-preview` | `gpt-realtime-1.5` |
++ | 2026-05-07 | `gpt-4o-realtime-preview-2025-06-03` | `gpt-realtime-1.5` |
++ | 2026-05-07 | `gpt-4o-realtime-preview-2024-12-17` | `gpt-realtime-1.5` |
++ | 2026-05-07 | `gpt-4o-mini-realtime-preview` | `gpt-realtime-mini` |
++ | 2026-05-07 | `gpt-4o-audio-preview` | `gpt-audio-1.5` |
++ | 2026-05-07 | `gpt-4o-mini-audio-preview` | `gpt-audio-mini` |
++ ### 2025-06-10: `gpt-4o-realtime-preview-2024-10-01`
++ On June 10th, 2025, we notified developers using `gpt-4o-realtime-preview-2024-10-01` of its deprecation and removal from the API in three months.
++ | ------------- | ------------------------------------ | ----------------------- |
++ | 2025-10-10 | `gpt-4o-realtime-preview-2024-10-01` | `gpt-realtime-1.5` |
 ```
 
 ### openai.api.evals
@@ -1304,61 +1760,59 @@ Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
 - Vendor: OpenAI
 - Source: https://developers.openai.com/api/docs/guides/evals
 - Change: changed
-- Prior hash: 299a41625f6a4a78b18a9685b0b9c55a0a45fb76fe759436fac88e2cd25a28a1
-- Current hash: fdf33e24dee8d7439dee7c30c7c9da3f0793ce8bf3402ab828cd69c0493b7ab5
+- Prior hash: fdf33e24dee8d7439dee7c30c7c9da3f0793ce8bf3402ab828cd69c0493b7ab5
+- Current hash: 1ebd2e75fd7aa40ab261190aec63c08a6a07a40ce5d06d3b2753ba5218f51ecd
 
 ```diff
-- model: "gpt-5.6",
-- model="gpt-5.6",
-- Model: "gpt-5.6",
-- model: "gpt-5.6",
-- "model": "gpt-5.6",
-- Explanation: data_source_config parameter
-- Explanation: testing_criteria parameter
-- model: "gpt-5.6",
-- "model": "gpt-5.6",
-- model: "gpt-5.6"
-- "model": "gpt-5.6",
-+ model: "gpt-6-astra",
-+ model="gpt-6-astra",
-+ Model: "gpt-6-astra",
-+ ```java
-+ import com.openai.client.OpenAIClient;
-+ import com.openai.client.okhttp.OpenAIOkHttpClient;
-+ import com.openai.models.responses.EasyInputMessage;
-+ import com.openai.models.responses.ResponseCreateParams;
-+ import com.openai.models.responses.ResponseInputItem;
-+ import java.util.List;
-+ ResponseCreateParams params =
-+ ResponseCreateParams.builder()
-+ .model("gpt-6-astra")
-+ .inputOfResponse(
-+ List.of(
-+ ResponseInputItem.ofEasyInputMessage(
-+ EasyInputMessage.builder()
-+ .role(EasyInputMessage.Role.DEVELOPER)
-+ .content(
-+ "You are an expert in categorizing IT support tickets. Categorize each request as Hardware, Software, or Other. Respond with only one of those words.")
-+ .build()),
-+ ResponseInputItem.ofEasyInputMessage(
-+ EasyInputMessage.builder()
-+ .role(EasyInputMessage.Role.USER)
-+ .content("My monitor won't turn on - help!")
-+ .build())))
-+ .build();
-+ client.responses().create(params).output().stream()
-+ .flatMap(item -> item.message().stream())
-+ .flatMap(message -> message.content().stream())
-+ .flatMap(content -> content.outputText().stream())
-+ .forEach(text -> System.out.println(text.text()));
-+ ```csharp
-+ using OpenAI.Responses;
-+ #pragma warning disable OPENAI001
-+ string key = Environment.GetEnvironmentVariable("OPENAI_API_KEY")!;
-+ ResponsesClient client = new(key);
-+ ResponseResult response = await client.CreateResponseAsync(
-+ "gpt-6-astra",
-+ [
+- {role: :developer, content: instructions},
+- {role: :user, content: "My monitor won't turn on - help!"}
+- data_source_config: {type: :custom, item_schema: {type: :object, properties: {input: {type: :string}}, required: ["input"]}},
+- testing_criteria: [{type: :string_check, name: "mentions_refund", input: "{{sample.output_text}}", operation: :contains, reference: "refund"}]
+- There are several ways to provide test data for eval runs, but it may be convenient to upload a [JSONL](https://jsonlines.org/) file that contains data in the schema we specified when we created our eval. A sample JSONL file that conforms to the schema we set up is below:
+- source: {type: :file_id, id: "YOUR_FILE_ID"},
+- {role: :user, content: "{{ item.ticket_text }}"}
+- In our simple test, the model reliably generated the content we wanted for a small test case sample. In reality, you will often have to run your eval with more criteria, different prompts, and different data sets. But the process above gives you all the tools you need to build robust evals for your LLM apps!
++ content: instructions
++ role: :user,
++ content: "My monitor won't turn on - help!"
++ import com.openai.core.JsonValue;
++ import com.openai.models.evals.EvalCreateParams;
++ import com.openai.models.graders.gradermodels.StringCheckGrader;
++ import java.util.Map;
++ var eval =
++ .evals()
++ EvalCreateParams.builder()
++ .name("IT Ticket Categorization")
++ .dataSourceConfig(
++ EvalCreateParams.DataSourceConfig.Custom.builder()
++ .itemSchema(
++ EvalCreateParams.DataSourceConfig.Custom.ItemSchema.builder()
++ .additionalProperties(
++ Map.of(
++ "type", JsonValue.from("object"),
++ "properties",
++ JsonValue.from(
++ Map.of(
++ "ticket_text",
++ Map.of("type", "string"),
++ "correct_label",
++ Map.of("type", "string"))),
++ "required",
++ JsonValue.from(
++ List.of("ticket_text", "correct_label"))))
++ .build())
++ .includeSampleSchema(true)
++ .build())
++ .addTestingCriterion(
++ StringCheckGrader.builder()
++ .name("Match output to human label")
++ .input("{{ sample.output_text }}")
++ .operation(StringCheckGrader.Operation.EQ)
++ .reference("{{ item.correct_label }}")
++ .build())
++ System.out.println(eval);
++ type: :custom,
+… diff truncated (101 added / 8 removed lines)
 ```
 
 ### openai.api.models
@@ -1366,91 +1820,91 @@ Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
 - Vendor: OpenAI
 - Source: https://developers.openai.com/api/docs/models/all
 - Change: changed
-- Prior hash: ddb9538f9539e22b9cdc42810839a7a02a1f679db6029f88ec3e391e6b6d727b
-- Current hash: 4ee5fe4d6acb67da82da3ddcdf40d7b07263efe6d3d12058f720ef843c524278
+- Prior hash: 4ee5fe4d6acb67da82da3ddcdf40d7b07263efe6d3d12058f720ef843c524278
+- Current hash: 89f2f17f508d2c508a09206bcc76bdc0cb365dec996016f0f993dd14dc7f414c
 
 ```diff
-- Using GPT-5.6
-- Deep dive
-- Images and vision
-- Safety checks Cybersecurity checks
-- Under 18 API Guidance
-- Workload identity federation X.509 certificates (beta)
-- Chrome extension
-- Custom Code Review rules for Codex
-- Mastering remote engineering work from your phone
-- Making private MCP servers reachable without making them public
-- How Perplexity Brought Voice Search to Millions Using the Realtime API
-- Designing delightful frontends with GPT-5.4
-- Browse all available models and compare their capabilities.
-- Frontier models
-- OpenAI's most advanced models, recommended for most tasks.
-- Frontier model for complex professional work
-- GPT Image 2
-- GPT-Realtime-2.1 mini
-- GPT Live Transcribe
-- gpt-audio-1.5
-- GPT Transcribe
-- GPT-4o mini Transcribe
-- Speech-to-text model powered by GPT-4o mini
-- GPT-4o mini TTS
-- Text-to-speech model powered by GPT-4o mini
-- Frontier cyber models for defenders
-- An alias for frontier general-purpose models with safeguards for defensive cybersecurity work.
-- GPT-5.4 mini
-- Previous frontier model for professional work with configurable reasoning effort
-- GPT-5 mini
-- Near-frontier intelligence for cost sensitive, low latency, high volume workloads
-- GPT-4.1 mini
-- GPT-4o mini
-- gpt-audio
-- GPT Image 1.5
-- gpt-image-1-mini
-- GPT Image 1
-- Fast, cost-efficient reasoning model, succeeded by GPT-5 mini
-- GPT-Realtime mini
-- gpt-audio-mini
-+ Using GPT-6 Astra
-+ Mid-turn steering
-+ Images and vision Image input cost calculator
-+ Async tool calling
-+ Safety checks Safety classifiers
-+ Cybersecurity checks
-+ Misalignment monitoring
-+ Under-18 guidance
-+ CSAM guidance
-+ Mutual TLS
-+ Workload identity federation Codex setup
-+ Federation rules
-+ Admin API
-+ X.509 certificates
-+ Custom Audiences
-+ Browser extension
-+ Site tools (WebMCP)
-+ GitLab (Beta)
-+ GitLab CI/CD
-+ ChatGPT Work
-+ ChatGPT Work cloud security
-+ ChatGPT Work local security
-+ ChatGPT Work: usage and cost
-+ Workload identity
-+ User lifecycle management
-+ Plugin management
-+ Admin plugin
-+ Architectural visualization with Astra
-+ Building games with Astra
-+ Meet Rosalind Workbench: Empowering every scientist to be their own research team
-+ Automating repetitive work at OpenAI with Codex
-+ Meet the winners of OpenAI Build Week
-+ Life sciences
-+ Browse models and compare their capabilities.
-+ Flagship models
-+ Compare capabilities and specifications.
-+ GPT-6 Astra
-+ Our most capable model, built for the hardest end-to-end work
-+ Flagship model for complex professional work
-+ GPT-Image-2
-… diff truncated (67 added / 44 removed lines)
+- ChatGPT Start searching API Dashboard
+- Overview Models Agents Tools Voice & Audio Production API reference
+- Overview Models Agents Tools Voice & Audio Production API reference Models
+- Using GPT-6 Astra
+- Images and video
+- MCP and Connectors
+- Realtime prompting guide
+- Transcription
+- Realtime transcription
+- Speech generation
+- Connection methods
+- WebSocket
+- SIP
+- Sessions and operations
+- Realtime with tools
+- Webhooks and server-side controls
+- Managing costs
+- Prompt caching
+- Workload identity federation Codex setup
+- Federation rules
+- Admin API
+- Docs Use cases Docs
+- Plugins Workspace Agents Commerce Ads Select...
+- Bulk API
+- Delta Feeds API
+- Campaign Targeting
+- Conversion-Optimized Campaigns
+- Custom Audiences
+- Overview Features Configuration Developers Security Administration Use Cases Resources Overview
+- Remote
+- Codex cloud
+- Cloud environment
+- MCP Server
+- Internet access
+- Codex Security cloud Setup
+- ChatGPT Work Overview
+- ChatGPT Work cloud security
+- ChatGPT Work local security
+- ChatGPT Work admin FAQ
+- ChatGPT Work: usage and cost
++ Overview Models Agents Tools Audio & voice Production API reference
++ Docs Models
++ Using GPT-6
++ Decisions API
++ Images
++ Image generation Overview
++ Image prompting
++ Agents API
++ Architecture
++ Configuring Agents
++ Sessions Run and continue sessions
++ Events and items
++ Manage sessions
++ Environments and sandboxes OpenAI-hosted sandboxes
++ Self-hosted sandboxes
++ Sandbox lifecycle
++ Pre-warm sandboxes
++ Sandbox security
++ Files and artifacts
++ Tools and integrations Web search
++ Functions
++ MCP connections
++ Vaults
++ Observability and usage
++ Tracing
++ Errors and recovery
++ API reference
++ Bedrock Managed Agents
++ MCP servers
++ GPT-Live
++ Managing sessions
++ Delegation and tools
++ Migrate to GPT-Live
++ Partner integrations
++ Realtime API
++ Tools and MCP
++ Build with voice
++ Connect voice to Decisions
++ Custom voices
++ Connections
+… diff truncated (147 added / 60 removed lines)
 ```
 
 ### openai.api.token-counting
@@ -1458,81 +1912,31 @@ Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
 - Vendor: OpenAI
 - Source: https://developers.openai.com/api/docs/guides/token-counting
 - Change: changed
-- Prior hash: 27c4c36c68aa3d4ef82c9c3c6982fc41e7c9257ce4d8dd7898c08e274f89ecba
-- Current hash: 532908feecb03315a2ca9951cec147d5c02389665439096e7bb42c082597f564
+- Prior hash: 532908feecb03315a2ca9951cec147d5c02389665439096e7bb42c082597f564
+- Current hash: d6c99ccc1f75225f070c669e86b16fc7aa23300ffe52a4135a0e5b8fb52e54b5
 
 ```diff
-- model: "gpt-5.6",
-- model="gpt-5.6", input="Tell me a joke."
-- Model: openai.String("gpt-5.6"),
-- model: "gpt-5.6",
-- "model": "gpt-5.6",
-- --model gpt-5.6 \
-- model: "gpt-5.6",
-- model="gpt-5.6",
-- Model: openai.String("gpt-5.6"),
-- model: "gpt-5.6",
-- "model": "gpt-5.6",
-- model: gpt-5.6
-- model: "gpt-5.6",
-- model="gpt-5.6",
-- Model: openai.String("gpt-5.6"),
-- model: "gpt-5.6",
-- "model": "gpt-5.6",
-- model: gpt-5.6
-- model: "gpt-5.6",
-- model="gpt-5.6",
-- Model: openai.String("gpt-5.6"),
-- model: "gpt-5.6",
-- "model": "gpt-5.6",
-- model: gpt-5.6
-- model: "gpt-5.6",
-- model="gpt-5.6",
-- Model: openai.String("gpt-5.6"),
-- model: "gpt-5.6",
-- "model": "gpt-5.6",
-- model: gpt-5.6
-+ model: "gpt-6-astra",
-+ model="gpt-6-astra", input="Tell me a joke."
-+ Model: openai.String("gpt-6-astra"),
-+ ```java
-+ import com.openai.client.OpenAIClient;
-+ import com.openai.client.okhttp.OpenAIOkHttpClient;
-+ import com.openai.models.responses.inputtokens.InputTokenCountParams;
-+ var count =
-+ client
-+ .responses()
-+ .inputTokens()
-+ .count(
-+ InputTokenCountParams.builder()
-+ .model("gpt-6-astra")
-+ .input("Tell me a joke.")
-+ .build());
-+ System.out.println(count.inputTokens());
-+ model: "gpt-6-astra",
-+ "model": "gpt-6-astra",
-+ --model gpt-6-astra \
-+ model: "gpt-6-astra",
-+ model="gpt-6-astra",
-+ Model: openai.String("gpt-6-astra"),
-+ ```java
-+ import com.openai.client.OpenAIClient;
-+ import com.openai.client.okhttp.OpenAIOkHttpClient;
-+ import com.openai.models.responses.EasyInputMessage;
-+ import com.openai.models.responses.ResponseInputItem;
-+ import com.openai.models.responses.inputtokens.InputTokenCountParams;
-+ import java.util.List;
-+ var count =
-+ client
-+ .responses()
-+ .inputTokens()
-+ .count(
-+ InputTokenCountParams.builder()
-+ .model("gpt-6-astra")
-+ .inputOfResponseInputItems(
-+ List.of(
-+ ResponseInputItem.ofEasyInputMessage(
-… diff truncated (157 added / 30 removed lines)
+- - **Route requests** based on size (e.g., smaller prompts to faster models)
+- The [input token count endpoint](https://developers.openai.com/api/reference/python/resources/responses/subresources/input_tokens/methods/count) accepts the same input format as the [Responses API](https://developers.openai.com/api/reference/resources/responses/methods/create). Pass text, messages, images, files, tools, or conversations—the API returns the exact count the model will receive.
+- - **Model-specific behavior** can change tokenization (e.g., reasoning, caching)
+- {role: :user, content: "What is 2 + 2?"},
+- {role: :assistant, content: "2 + 2 equals 4."},
+- {role: :user, content: "What about 3 + 3?"}
+- {type: :input_text, text: "Summarize this chart."}
+- properties: {location: {type: "string"}},
+- [File inputs](https://developers.openai.com/api/docs/guides/file-inputs)—currently PDFs—are supported. Pass `file_id`, `file_url`, or `file_data` as you would for `responses.create`. The token count reflects the model’s full processed input.
+- For full parameters and response shape, see the [Count input tokens API reference](https://developers.openai.com/api/reference/python/resources/responses/subresources/input_tokens/methods/count). The endpoint is:
++ - **Route requests** based on size (for example, smaller prompts to faster models)
++ The [input token count endpoint](https://developers.openai.com/api/reference/resources/responses/subresources/input_tokens/methods/count) accepts the same input format as the [Responses API](https://developers.openai.com/api/reference/resources/responses/methods/create). Pass text, messages, images, files, tools, or conversations—the API returns the exact count the model will receive.
++ - **Model-specific behavior** can change tokenization (for example, reasoning, caching)
++ content: "What is 2 + 2?"
++ role: :assistant,
++ content: "2 + 2 equals 4."
++ content: "What about 3 + 3?"
++ type: :input_text,
++ text: "Summarize this chart."
++ [File inputs](https://developers.openai.com/api/docs/guides/file-inputs) (currently PDFs) are supported. Pass `file_id`, `file_url`, or `file_data` as you would for `responses.create`. The token count reflects the model’s full processed input.
++ For full parameters and response shape, see the [Count input tokens API reference](https://developers.openai.com/api/reference/resources/responses/subresources/input_tokens/methods/count). The endpoint is:
 ```
 
 ### openai.codex.changelog
@@ -1540,91 +1944,91 @@ Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
 - Vendor: OpenAI
 - Source: https://learn.chatgpt.com/docs/changelog
 - Change: changed
-- Prior hash: 2da006560239d41037e3d2610546b1d861c406a20c4a5ff8e935b7a206eb7dc6
-- Current hash: e8b0c9fbf58fb1fae26839a2d290154deb8ee2e374d716f678e02346548840fd
+- Prior hash: e8b0c9fbf58fb1fae26839a2d290154deb8ee2e374d716f678e02346548840fd
+- Current hash: bfcc477092027fbcea32febdb19b46bebcd416a7f28b0918871bd32fb7d8cb3c
 
 ```diff
-- Using GPT-5.6
-- Deep dive
-- Images and vision
-- Safety checks Cybersecurity checks
-- Under 18 API Guidance
-- Workload identity federation X.509 certificates (beta)
-- Chrome extension
-- Custom Code Review rules for Codex
-- Mastering remote engineering work from your phone
-- Making private MCP servers reachable without making them public
-- How Perplexity Brought Voice Search to Millions Using the Realtime API
-- Designing delightful frontends with GPT-5.4
-- August 2026 July 2026 June 2026 May 2026 April 2026 March 2026 February 2026 January 2026 December 2025 November 2025 October 2025 September 2025 August 2025 June 2025 May 2025
-- li+li]:mt-12"> 2026-08-13
-- and provisioning; Daybreak Blue access doesn’t grant access to Daybreak Red.
-- Type in the built-in browser’s address bar to revisit pages from your
-- browsing history or search Google when there’s no match.
-- Added a new “Activity view” in the sidebar to view which chats you engaged with recently and require attention. Click the bell or use Cmd / Ctrl + Opt + U to change to the new view.
-- picture, if available. You must still review and approve each plugin’s requested
-- Codex CLI 0.146.0
-- pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.146.0
-- Name new sessions with /new or /clear , pin important threads, and switch between side conversations without closing them. ( #34605 , #34840 , #35011 )
-- Support Agent Plugins manifests, workspace plugin publishing, and additional plugin marketplaces for Amazon Bedrock and Claude Code. ( #35105 , #35254 , #34931 , #34979 )
-- Fork threads with paginated history, including temporary forks that do not appear in thread listings. ( #35220 , #35251 )
-- Connect app-server to remote Code Mode hosts over WebSocket. ( #35078 , #35098 )
-- Enable standalone web search for compatible custom model providers. ( #34846 )
-- Discover executor-provided skills and securely read their associated resources, including explicitly selected skills. ( #35184 , #35198 )
-- Honor configured proxies across authentication, plugin downloads, MCP authorization, remote execution, WebSockets, redirects, and LM Studio connections. ( #34479 , #34509 , #34655 , #34678 , #35023 , #35056 , #35239 )
-- Keep MCP connections and Apps tools current when authentication or configuration changes, reconnecting closed servers without restarting healthy connections. ( #34952 , #34957 , #35028 , #35144 , #35146 , #35151 )
-- Preserve submitted messages, final responses, failed-turn errors, imported timestamps, and approval settings across interruptions, replay, imports, and forks. ( #34839 , #34777 , #35524 , #34989 , #34664 )
-- Improve terminal responsiveness and rendering, including nonblocking interrupts, keyboard handling, narrow layouts, hyperlinks, and refreshed mention results. ( #35000 , #35021 , #34775 , #34778 , #35365 , #35375 )
-- Fix Windows navigation keys, reliably terminate sandboxed process trees, and preserve proxy settings during security reviews. ( #34625 , #34624 , #35036 )
-- Retain more available skills under tight context budgets and warn when skill catalogs must be truncated. ( #34732 , #34738 , #34997 )
-- Document shared HTTP-client usage, proxy-aware connection pooling, and safe outbound request handling. ( #34669 )
-- Clarify Windows drive-letter canonicalization for PathUri values. ( #34667 )
-- Publish release artifacts, channel metadata, and installer aliases through OpenAI-hosted release infrastructure, with GitHub fallback. ( #34505 , #34508 , #34729 , #34910 )
-- Sign and notarize bundled macOS helper executables before packaging. ( #35264 )
-- Reduce app-server serialization overhead and unnecessary request-building allocations. ( #34761 , #34766 , #34825 )
-- Add enterprise-plan recognition and administrator controls for in-app updates. ( #35238 , #35537 )
-- Full Changelog: rust-v0.145.0...rust-v0.146.0
-+ Using GPT-6 Astra
-+ Mid-turn steering
-+ Images and vision Image input cost calculator
-+ Async tool calling
-+ Safety checks Safety classifiers
-+ Cybersecurity checks
-+ Misalignment monitoring
-+ Under-18 guidance
-+ CSAM guidance
-+ Mutual TLS
-+ Workload identity federation Codex setup
-+ Federation rules
-+ Admin API
-+ X.509 certificates
-+ Custom Audiences
-+ Browser extension
-+ Site tools (WebMCP)
-+ GitLab (Beta)
-+ GitLab CI/CD
-+ ChatGPT Work
-+ ChatGPT Work cloud security
-+ ChatGPT Work local security
-+ ChatGPT Work: usage and cost
-+ Workload identity
-+ User lifecycle management
-+ Plugin management
-+ Admin plugin
-+ Architectural visualization with Astra
-+ Building games with Astra
-+ Meet Rosalind Workbench: Empowering every scientist to be their own research team
-+ Automating repetitive work at OpenAI with Codex
-+ Meet the winners of OpenAI Build Week
-+ Life sciences
-+ September 2026 August 2026 July 2026 June 2026 May 2026 April 2026 March 2026 February 2026 January 2026 December 2025 November 2025 October 2025 September 2025 August 2025 June 2025 May 2025
-+ September 2026
-+ li+li]:mt-12"> 2026-09-04
-+ Codex CLI 0.153.4
-+ pre]:w-full [&>pre]:max-w-full [&>pre]:mb-0 pt-4"> $ npm install -g @openai/codex@0.153.4
-+ Fixed Astra’s visibility in the bundled model picker and made it the bundled default when no model is explicitly configured. ( #42874 )
-+ Updated Astra’s guidance to use asynchronous questions only when the tool is available in the session. ( #42878 )
-… diff truncated (1366 added / 1093 removed lines)
+- ChatGPT Start searching API Dashboard
+- Overview Models Agents Tools Voice & Audio Production API reference Overview
+- Using GPT-6 Astra
+- Images and video
+- MCP and Connectors
+- Realtime prompting guide
+- Transcription
+- Realtime transcription
+- Speech generation
+- Connection methods
+- WebSocket
+- SIP
+- Sessions and operations
+- Realtime with tools
+- Webhooks and server-side controls
+- Managing costs
+- Prompt caching
+- Workload identity federation Codex setup
+- Federation rules
+- Admin API
+- Docs Use cases Docs
+- Plugins Workspace Agents Commerce Ads Select...
+- Bulk API
+- Delta Feeds API
+- Campaign Targeting
+- Conversion-Optimized Campaigns
+- Custom Audiences
+- Overview Features Configuration Developers Security Administration Use Cases Resources Overview
+- Remote
+- Codex cloud
+- Cloud environment
+- MCP Server
+- Internet access
+- Codex Security cloud Setup
+- ChatGPT Work Overview
+- ChatGPT Work cloud security
+- ChatGPT Work local security
+- ChatGPT Work admin FAQ
+- ChatGPT Work: usage and cost
+- Identity and authentication
++ Docs Overview
++ Using GPT-6
++ Decisions API
++ Images
++ Image generation Overview
++ Image prompting
++ Agents API
++ Architecture
++ Configuring Agents
++ Sessions Run and continue sessions
++ Events and items
++ Manage sessions
++ Environments and sandboxes OpenAI-hosted sandboxes
++ Self-hosted sandboxes
++ Sandbox lifecycle
++ Pre-warm sandboxes
++ Sandbox security
++ Files and artifacts
++ Tools and integrations Web search
++ Functions
++ MCP connections
++ Vaults
++ Observability and usage
++ Tracing
++ Errors and recovery
++ API reference
++ Bedrock Managed Agents
++ MCP servers
++ GPT-Live
++ Managing sessions
++ Delegation and tools
++ Migrate to GPT-Live
++ Partner integrations
++ Realtime API
++ Tools and MCP
++ Build with voice
++ Connect voice to Decisions
++ Custom voices
++ Connections
++ WebRTC with WARP
+… diff truncated (368 added / 1709 removed lines)
 ```
 
 ### openai.codex.models
@@ -1632,81 +2036,91 @@ Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
 - Vendor: OpenAI
 - Source: https://learn.chatgpt.com/docs/models
 - Change: changed
-- Prior hash: 950329102a6b2e1e5f9f1bf88f819fa9bcbfc41ad8ee99850992319eb22ac2ef
-- Current hash: a1d747122bcb7a290eba962315d8ffb3a0085d204ef5c1e00595f3b047ee8332
+- Prior hash: a1d747122bcb7a290eba962315d8ffb3a0085d204ef5c1e00595f3b047ee8332
+- Current hash: e608e2df2f6c74b66b19b9dda8b4f7911a42fdfe84f4ea1bacfb1fb91c653df5
 
 ```diff
-- Using GPT-5.6
-- Deep dive
-- Images and vision
-- Safety checks Cybersecurity checks
-- Under 18 API Guidance
-- Workload identity federation X.509 certificates (beta)
-- Chrome extension
-- Custom Code Review rules for Codex
-- Mastering remote engineering work from your phone
-- Making private MCP servers reachable without making them public
-- How Perplexity Brought Voice Search to Millions Using the Realtime API
-- Designing delightful frontends with GPT-5.4
-- Flagship GPT-5.6 model with the strongest capability for complex coding, computer use, research, and cybersecurity.
-- Start with the default Power setting, which uses gpt-5.6-sol with medium
-- reasoning. Move toward Smarter for deeper reasoning or Faster for
-- faster, lower-cost work. Open Advanced when you want gpt-5.6-luna or a
-- specific model, reasoning effort, or speed.
-- Choosing Sol, Terra, and Luna
-- Codex offers three GPT-5.6 models: Sol for detail and polish, Terra as the
-- everyday workhorse, and Luna for clear, repeatable work. If you are unsure,
-- start with Sol.
-- needs strong reasoning and tool use when you do not need Sol’s full depth. It
-- don’t see Max in your options, you’ll have to enable it in your app settings.
-- If Ultra doesn’t appear in the desktop app’s model slider, go to
-- aren’t affected.
-- Previous-generation frontier model for complex coding, computer use, knowledge work, and research workflows.
-- Frontier model for professional work with strong coding, reasoning, tool use, and agentic workflow capabilities.
-- The OpenAI API and Codex authenticated with your own API key aren’t affected
-- model entry to your configuration file. If you don’t specify a model, the
-- Currently, you can’t change the default model for Codex cloud chats.
-+ Using GPT-6 Astra
-+ Mid-turn steering
-+ Images and vision Image input cost calculator
-+ Async tool calling
-+ Safety checks Safety classifiers
-+ Cybersecurity checks
-+ Misalignment monitoring
-+ Under-18 guidance
-+ CSAM guidance
-+ Mutual TLS
-+ Workload identity federation Codex setup
-+ Federation rules
-+ Admin API
-+ X.509 certificates
-+ Custom Audiences
-+ Browser extension
-+ Site tools (WebMCP)
-+ GitLab (Beta)
-+ GitLab CI/CD
-+ ChatGPT Work
-+ ChatGPT Work cloud security
-+ ChatGPT Work local security
-+ ChatGPT Work: usage and cost
-+ Workload identity
-+ User lifecycle management
-+ Plugin management
-+ Admin plugin
-+ Architectural visualization with Astra
-+ Building games with Astra
-+ Meet Rosalind Workbench: Empowering every scientist to be their own research team
-+ Automating repetitive work at OpenAI with Codex
-+ Meet the winners of OpenAI Build Week
-+ Life sciences
-+ Astra
-+ Our most capable model for complex work across code, apps, and research, combining advanced reasoning, computer use, and stronger judgment.
-+ codex -m gpt-6-astra
-+ The most capable GPT-5.6 model for complex coding, computer use, research, and cybersecurity.
-+ Availability depends on the rollout, your sign-in method, and your client.
-+ See pricing for plan access and usage, and
-+ workspace model availability
-… diff truncated (77 added / 30 removed lines)
+- ChatGPT Start searching API Dashboard
+- Overview Models Agents Tools Voice & Audio Production API reference Overview
+- Using GPT-6 Astra
+- Images and video
+- MCP and Connectors
+- Realtime prompting guide
+- Transcription
+- Realtime transcription
+- Speech generation
+- Connection methods
+- WebSocket
+- SIP
+- Sessions and operations
+- Realtime with tools
+- Webhooks and server-side controls
+- Managing costs
+- Prompt caching
+- Workload identity federation Codex setup
+- Federation rules
+- Admin API
+- Docs Use cases Docs
+- Plugins Workspace Agents Commerce Ads Select...
+- Bulk API
+- Delta Feeds API
+- Campaign Targeting
+- Conversion-Optimized Campaigns
+- Custom Audiences
+- Overview Features Configuration Developers Security Administration Use Cases Resources Overview
+- Remote
+- Codex cloud
+- Cloud environment
+- MCP Server
+- Internet access
+- Codex Security cloud Setup
+- ChatGPT Work Overview
+- ChatGPT Work cloud security
+- ChatGPT Work local security
+- ChatGPT Work admin FAQ
+- ChatGPT Work: usage and cost
+- Identity and authentication
++ Docs Overview
++ Using GPT-6
++ Decisions API
++ Images
++ Image generation Overview
++ Image prompting
++ Agents API
++ Architecture
++ Configuring Agents
++ Sessions Run and continue sessions
++ Events and items
++ Manage sessions
++ Environments and sandboxes OpenAI-hosted sandboxes
++ Self-hosted sandboxes
++ Sandbox lifecycle
++ Pre-warm sandboxes
++ Sandbox security
++ Files and artifacts
++ Tools and integrations Web search
++ Functions
++ MCP connections
++ Vaults
++ Observability and usage
++ Tracing
++ Errors and recovery
++ API reference
++ Bedrock Managed Agents
++ MCP servers
++ GPT-Live
++ Managing sessions
++ Delegation and tools
++ Migrate to GPT-Live
++ Partner integrations
++ Realtime API
++ Tools and MCP
++ Build with voice
++ Connect voice to Decisions
++ Custom voices
++ Connections
++ WebRTC with WARP
+… diff truncated (244 added / 149 removed lines)
 ```
 
 ### openai.codex.plan-usage
@@ -1714,93 +2128,93 @@ Summary: 36 sources reviewed; 34 material; 1 volatile noise; 1 unchanged.
 - Vendor: OpenAI
 - Source: https://learn.chatgpt.com/docs/pricing
 - Change: changed
-- Prior hash: 80706b64e61c061cb18d651ee94a58c882a54d51738ac9ed573123e52a38de1d
-- Current hash: 8cac49415a6fc9271c1ac405e9ee3464e585c1c1ee8a97976f1d5f63dc7413e6
+- Prior hash: 8cac49415a6fc9271c1ac405e9ee3464e585c1c1ee8a97976f1d5f63dc7413e6
+- Current hash: 61f1399814c7c9264ba8d4861eb28dc44f8485d7c8e8712e40c0ec5286279231
 
 ```diff
-- Using GPT-5.6
-- Deep dive
-- Images and vision
-- Safety checks Cybersecurity checks
-- Under 18 API Guidance
-- Workload identity federation X.509 certificates (beta)
-- Chrome extension
-- Custom Code Review rules for Codex
-- Mastering remote engineering work from your phone
-- Making private MCP servers reachable without making them public
-- How Perplexity Brought Voice Search to Millions Using the Realtime API
-- Designing delightful frontends with GPT-5.4
-- Pay only for the tokens Codex uses, based on API
-- Pay only for the tokens Codex uses, based on API
-- recipient’s email address, and send the invitation.
-- Referrals aren’t currently available for ChatGPT Enterprise.
-- 30 days after they’re granted. Business referrals use separate shared-workspace
-- so prompt length alone isn’t a reliable estimate.
-- Plus Pro 5x Pro 20x Business API Key
-- Local Messages * / 5h
-- Cloud chats * / 5h
-- Code Reviews / 5h
-- Not available
-- Not available
-- Not available
-- Not available
-- Not available
-- Not available
-- Not available
-- Not available
-- Not available
-- Not available
-- Not available
-- Not available
-- *The usage limits for local messages and cloud chats share a
-- five-hour window . Additional weekly limits may apply.
-- For Enterprise/Edu users with flexible pricing, there are no
-- fixed rate limits - usage scales with
-- credits
-- Enterprise and Edu plans without flexible pricing have the same
-+ Using GPT-6 Astra
-+ Mid-turn steering
-+ Images and vision Image input cost calculator
-+ Async tool calling
-+ Safety checks Safety classifiers
-+ Cybersecurity checks
-+ Misalignment monitoring
-+ Under-18 guidance
-+ CSAM guidance
-+ Mutual TLS
-+ Workload identity federation Codex setup
-+ Federation rules
-+ Admin API
-+ X.509 certificates
-+ Custom Audiences
-+ Browser extension
-+ Site tools (WebMCP)
-+ GitLab (Beta)
-+ GitLab CI/CD
-+ ChatGPT Work
-+ ChatGPT Work cloud security
-+ ChatGPT Work local security
-+ ChatGPT Work: usage and cost
-+ Workload identity
-+ User lifecycle management
-+ Plugin management
-+ Admin plugin
-+ Architectural visualization with Astra
-+ Building games with Astra
-+ Meet Rosalind Workbench: Empowering every scientist to be their own research team
-+ Automating repetitive work at OpenAI with Codex
-+ Meet the winners of OpenAI Build Week
-+ Life sciences
-+ Pay for Codex usage based on API pricing
-+ Pay for Codex usage based on API pricing
-+ recipient's email address, and send the invitation.
-+ Referrals aren't currently available for ChatGPT Enterprise.
-+ 30 days after they're granted. Business referrals use separate shared-workspace
-+ so prompt length alone isn't a reliable estimate.
-+ The estimates below show local messages per five-hour period. Cloud chats on
-… diff truncated (90 added / 149 removed lines)
+- ChatGPT Start searching API Dashboard
+- Overview Models Agents Tools Voice & Audio Production API reference Overview
+- Using GPT-6 Astra
+- Images and video
+- MCP and Connectors
+- Realtime prompting guide
+- Transcription
+- Realtime transcription
+- Speech generation
+- Connection methods
+- WebSocket
+- SIP
+- Sessions and operations
+- Realtime with tools
+- Webhooks and server-side controls
+- Managing costs
+- Prompt caching
+- Workload identity federation Codex setup
+- Federation rules
+- Admin API
+- Docs Use cases Docs
+- Plugins Workspace Agents Commerce Ads Select...
+- Bulk API
+- Delta Feeds API
+- Campaign Targeting
+- Conversion-Optimized Campaigns
+- Custom Audiences
+- Overview Features Configuration Developers Security Administration Use Cases Resources Overview
+- Remote
+- Cloud environment
+- MCP Server
+- Internet access
+- Codex Security cloud Setup
+- ChatGPT Work Overview
+- ChatGPT Work cloud security
+- ChatGPT Work local security
+- ChatGPT Work admin FAQ
+- ChatGPT Work: usage and cost
+- Identity and authentication
+- Workload identity
++ Docs Overview
++ Using GPT-6
++ Decisions API
++ Images
++ Image generation Overview
++ Image prompting
++ Agents API
++ Architecture
++ Configuring Agents
++ Sessions Run and continue sessions
++ Events and items
++ Manage sessions
++ Environments and sandboxes OpenAI-hosted sandboxes
++ Self-hosted sandboxes
++ Sandbox lifecycle
++ Pre-warm sandboxes
++ Sandbox security
++ Files and artifacts
++ Tools and integrations Web search
++ Functions
++ MCP connections
++ Vaults
++ Observability and usage
++ Tracing
++ Errors and recovery
++ API reference
++ Bedrock Managed Agents
++ MCP servers
++ GPT-Live
++ Managing sessions
++ Delegation and tools
++ Migrate to GPT-Live
++ Partner integrations
++ Realtime API
++ Tools and MCP
++ Build with voice
++ Connect voice to Decisions
++ Custom voices
++ Connections
++ WebRTC with WARP
+… diff truncated (237 added / 181 removed lines)
 ```
 
 ## Volatile noise (ignored)
 
-- `hermes.docs.mixture-of-agents` — https://hermes-agent.nousresearch.com/docs/user-guide/features/mixture-of-agents
+- `apify.cli.changelog` — https://docs.apify.com/cli/docs/changelog
