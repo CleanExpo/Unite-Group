@@ -776,9 +776,11 @@ jobs:
         # and ignores BASE_REF for that event (src/index.js:176), so a hand-started run
         # always failed on findings already on main, never on the branch under test.
         # The release gate needs that run green before a PR may open, so every agent PR
-        # was blocked. This scans the same range a pull_request event scans: the
-        # branch's own commits since main. Same gitleaks version the action defaults to,
-        # same config, binary checked against the release's published sha256.
+        # was blocked. This scans every commit the branch has that main lacks: merged
+        # side-branch commits too, and with --diff-merges=first-parent the patch a merge
+        # commit itself introduces. (No --no-merges/--first-parent: those skip both.)
+        # Same gitleaks version the action defaults to, same config, binary checked
+        # against the release's published sha256.
         if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main'
         env:
           GITLEAKS_VERSION: 8.24.3
@@ -792,4 +794,4 @@ jobs:
           tar -xzf "$RUNNER_TEMP/$tarball" -C "$RUNNER_TEMP" gitleaks
           git fetch --no-tags origin main
           "$RUNNER_TEMP/gitleaks" git --config .gitleaks.toml --redact --no-banner \
-            --log-opts="--no-merges --first-parent origin/main..HEAD" .
+            --log-opts="--diff-merges=first-parent origin/main..HEAD" .
