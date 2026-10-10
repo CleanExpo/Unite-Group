@@ -55,6 +55,29 @@ export function buildAutonomySettings(
   }
 }
 
+/**
+ * `codex exec` arguments that attach the same hook to a Codex lane.
+ *
+ * Codex has no `--settings` file; it takes config overrides as `-c key=<TOML>`.
+ * The matcher is `*` for the reason given at the top of this file. Codex only
+ * runs hooks it has been told to trust, and a lane runs unattended, so
+ * `--dangerously-bypass-hook-trust` trusts this one: the flag trusts hooks we
+ * pass, it does not loosen what the hook decides. Hooks fail open if they
+ * crash or time out, and do not cover hosted tools (Codex docs) — stated here
+ * rather than implied away.
+ */
+export function buildCodexHookArgs(
+  hookPath: string = autonomyHookPath(),
+  nodeBin: string = process.execPath,
+): string[] {
+  const command = JSON.stringify(`${quote(nodeBin)} ${quote(hookPath)}`)
+  return [
+    '--dangerously-bypass-hook-trust',
+    '-c',
+    `hooks.PreToolUse=[{matcher="*",hooks=[{type="command",command=${command}}]}]`,
+  ]
+}
+
 /** Quote a path for the shell the hook command is run through. */
 export function quote(value: string): string {
   return `'${value.replace(/'/g, `'\\''`)}'`
@@ -65,6 +88,8 @@ export interface AutonomyEnvInput {
   adapter: 'claude-code' | 'codex' | 'hermes'
   approvalsFile?: string
   auditFile?: string
+  /** The lane's worktree; the hook confines writes to it. */
+  worktreeRoot?: string
 }
 
 /** Environment the hook reads. Approvals come from a file, never from the model. */
@@ -74,6 +99,7 @@ export function autonomyEnv(input: AutonomyEnvInput): NodeJS.ProcessEnv {
     NEXUS_LANE_ADAPTER: input.adapter,
     ...(input.approvalsFile ? { NEXUS_APPROVALS_FILE: input.approvalsFile } : {}),
     ...(input.auditFile ? { NEXUS_GATE_AUDIT_FILE: input.auditFile } : {}),
+    ...(input.worktreeRoot ? { NEXUS_LANE_WORKTREE_ROOT: input.worktreeRoot } : {}),
   }
 }
 

@@ -28,14 +28,15 @@ describe('shell classification — the safe cases', () => {
     }
   })
 
-  it('allows read-only subcommands of otherwise dangerous executables', () => {
-    for (const command of ['git status', 'git log --oneline', 'git diff HEAD', 'npm ls']) {
-      expect(classifyShellCommand(command).tier).toBe('L0')
+  it('allows no subcommand of an otherwise dangerous executable (review r20)', () => {
+    // git lost its last read-only subcommands in review r20; node runs other
+    // programs, so `node --version` was never allowed either.
+    for (const command of ['git ls-files', 'node --version', 'node -v']) {
+      expect(classifyShellCommand(command).tier, command).toBe('L3')
     }
   })
 
   it('does not allow the dangerous executable bare', () => {
-    // `git` alone is not safe just because `git status` is.
     expect(classifyShellCommand('git').tier).toBe('L3')
     expect(classifyShellCommand('npm').tier).toBe('L3')
   })
@@ -100,10 +101,17 @@ describe('adversarial matrix — indirect execution', () => {
 })
 
 describe('adversarial matrix — aliases and path tricks', () => {
-  it('classifies on the executable basename, not the path', () => {
-    // `/usr/bin/ls` is still ls; `/tmp/evil/ls` is still classified as ls, which
-    // is why PATH manipulation is blocked separately below rather than here.
-    expect(classifyShellCommand('/bin/ls').tier).toBe('L0')
+  it('does not trust a program by its basename', () => {
+    // `/tmp/evil/ls` used to classify as ls (Codex review r8 of UNI-2409: a
+    // lane-written `lane/cat` ran as L0). Without the hook's on-disk check an
+    // explicit path is not trusted; with it, only a system binary is.
+    for (const command of ['/bin/ls', '/tmp/evil/ls', './cat notes.txt', 'scripts/nexus-runner/bin/git status']) {
+      expect(classifyShellCommand(command).tier, command).toBe('L3')
+    }
+    const trust = (word: string) => word === 'ls' || word === '/bin/ls'
+    expect(classifyShellCommand('/bin/ls', undefined, trust).tier).toBe('L0')
+    expect(classifyShellCommand('/tmp/evil/ls', undefined, trust).tier).toBe('L3')
+    expect(classifyShellCommand('cat notes.txt', undefined, trust).tier).toBe('L3')
   })
 
   it('blocks an environment assignment prefix that could redirect the executable', () => {
@@ -195,10 +203,10 @@ describe('adversarial matrix — secret reads', () => {
     }
   })
 
-  it('still allows a grep that targets ordinary source', () => {
+  it('needs approval for a grep even over ordinary source (review r17)', () => {
     expect(
       classifyToolCall(call({ tool: 'Grep', input: { pattern: 'TODO', glob: 'src/**/*.ts' } })).tier,
-    ).toBe('L0')
+    ).toBe('L3')
   })
 
   it('does not escalate a name-only tool for a secret-shaped pattern', () => {
@@ -229,7 +237,7 @@ describe('malformed input fails closed', () => {
 
 describe('tool classification', () => {
   it('allows read-only tools', () => {
-    for (const tool of ['Read', 'Glob', 'Grep']) {
+    for (const tool of ['Read', 'Glob']) {
       expect(classifyToolCall(call({ tool, input: {} })).tier).toBe('L0')
     }
   })
@@ -486,7 +494,7 @@ describe('shell classification — secret disclosure via expansion', () => {
   })
 
   it('still allows the safe commands the gate exists to let through', () => {
-    for (const command of ['ls', 'ls -la', 'pwd', 'cat README.md', 'git status']) {
+    for (const command of ['ls', 'ls -la', 'pwd', 'cat README.md', 'wc -l README.md']) {
       expect(classifyShellCommand(command).tier, command).toBe('L0')
     }
   })
@@ -588,5 +596,671 @@ describe('lane-local writes — worktree containment', () => {
     )
     expect(decision.tier).toBe('L3')
     expect(decision.allowed).toBe(false)
+  })
+})
+
+/**
+ * UNI-2409 Codex slice. Codex edits files with `apply_patch`, which carries the
+ * whole patch in `command`; the paths live on the patch header lines. Before
+ * this, `apply_patch` was an unknown tool and every Codex edit escalated.
+ */
+describe('codex apply_patch — paths from the patch headers', () => {
+  const ROOT = '/tmp/agent/.hermes/worktrees/lane-42'
+  const patch = (...headers: string[]) => ({
+    tool: 'apply_patch',
+    input: { command: ['*** Begin Patch', ...headers.flatMap((h) => [h, '+x']), '*** End Patch'].join('\n') },
+  })
+
+  it('allows a patch whose every file is inside the worktree root', () => {
+    const result = classifyToolCall(
+      call(patch(`*** Update File: ${ROOT}/src/a.ts`, `*** Add File: ${ROOT}/src/b.ts`)),
+      { worktreeRoot: ROOT },
+    )
+    expect(result.tier).toBe('L1')
+    expect(result.reason).toMatch(/containment checked/i)
+  })
+
+  it('escalates a patch that adds, deletes or moves a file outside the root', () => {
+    for (const header of [
+      '*** Add File: /etc/cron.d/x',
+      `*** Delete File: ${ROOT}/../lane-43/a.ts`,
+      '*** Move to: /tmp/agent/other/a.ts',
+    ]) {
+      const result = classifyToolCall(
+        call(patch(`*** Update File: ${ROOT}/src/a.ts`, header)),
+        { worktreeRoot: ROOT },
+      )
+      expect(result.tier, header).toBe('L3')
+    }
+  })
+
+  it('reads an indented or CRLF header, so an outside-root file is not missed', () => {
+    const command = [
+      '*** Begin Patch',
+      `*** Update File: ${ROOT}/src/a.ts`,
+      '+x',
+      '  *** Add File: /etc/cron.d/x',
+      '+y',
+      '*** End Patch',
+    ].join('\r\n')
+    const result = classifyToolCall(call({ tool: 'apply_patch', input: { command } }), { worktreeRoot: ROOT })
+    expect(result.tier).toBe('L3')
+  })
+
+  it('escalates a patch that touches credential material', () => {
+    const result = classifyToolCall(call(patch(`*** Update File: ${ROOT}/.env`)), { worktreeRoot: ROOT })
+    expect(result.tier).toBe('L3')
+    expect(result.reason).toMatch(/credential/i)
+  })
+
+  it('escalates a patch into .codex, root or no root', () => {
+    for (const opts of [{}, { worktreeRoot: ROOT }]) {
+      const result = classifyToolCall(call(patch(`*** Add File: ${ROOT}/.codex/config.toml`)), opts)
+      expect(result.tier, JSON.stringify(opts)).toBe('L3')
+      expect(result.reason).toMatch(/controls it runs under/i)
+    }
+  })
+
+  it('fails closed on a patch it cannot read', () => {
+    for (const input of [
+      {},
+      { command: 'not a patch' },
+      { command: '*** Begin Patch\n*** End Patch' },
+      { command: 42 },
+    ]) {
+      const result = classifyToolCall(call({ tool: 'apply_patch', input }))
+      expect(result.tier, JSON.stringify(input)).toBe('L3')
+    }
+  })
+})
+
+describe('.codex is agent configuration for every write tool', () => {
+  it('escalates a Write into .codex even with no root configured', () => {
+    const result = classifyToolCall(call({ tool: 'Write', input: { file_path: '/srv/a/.codex/config.toml' } }))
+    expect(result.tier).toBe('L3')
+    expect(result.reason).toMatch(/controls it runs under/i)
+  })
+})
+
+/** UNI-2409 Codex review r2: read-only executables whose options are not. */
+describe('read-only executables with writing, launching or recursive options', () => {
+  const tier = (command: string) => classifyShellCommand(command).tier
+
+  it('escalates options that write a file or run a program', () => {
+    for (const command of [
+      'sort -o /tmp/outside.txt input.txt',
+      'sort -uo .codex/config.toml input.txt',
+      'sort --output=.codex/config.toml input.txt',
+      'sort --compress-program=evil input.txt',
+      'uniq input.txt out.txt',
+      'file -C -m magic',
+      'date -s 2020-01-01',
+      'hostname evil',
+      'git diff --output=/tmp/x',
+      'git diff --ext-diff',
+      'git remote add x https://example.com/x.git',
+      'git remote set-url origin https://example.com/x.git',
+    ]) {
+      expect(tier(command), command).toBe('L3')
+    }
+  })
+
+  it('escalates reads of whole trees, hidden files or links', () => {
+    for (const command of [
+      'grep -R SECRET linked',
+      'grep -rn SECRET .',
+      'grep --recursive SECRET .',
+      'grep -d recurse SECRET .',
+      'rg --hidden SECRET',
+      'rg -uu SECRET',
+      'rg -L SECRET',
+      'rg --no-ignore SECRET',
+      'rg --pre cat SECRET',
+      'rg SYNTHETIC_ONLY .',
+      'rg -n TODO',
+      'diff -r a b',
+      'diff --recursive a b',
+    ]) {
+      expect(tier(command), command).toBe('L3')
+    }
+  })
+
+  it('escalates unquoted globs and braces, which expand to unseen paths', () => {
+    for (const command of ['cat .e*', 'cat .en?', 'cat .e[n]v', 'cat .e{nv,x}', 'ls *.ts']) {
+      expect(tier(command), command).toBe('L3')
+    }
+  })
+
+  it('still allows the ordinary forms', () => {
+    for (const command of [
+      'grep -n TODO src/a.ts',
+    ]) {
+      expect(tier(command), command).toBe('L0')
+    }
+  })
+
+  it('checks quoted and --opt=value operands through the resolver', () => {
+    const resolve = (target: string) => (target.endsWith('readme.txt') ? '/lane/.env' : '/lane/' + target)
+    for (const command of [
+      "cat 'readme.txt'",
+      'cat "readme.txt"',
+      'cat -- readme.txt',
+      'grep -f readme.txt x',
+      'wc --files0-from=readme.txt',
+    ]) {
+      expect(classifyShellCommand(command, resolve).tier, command).toBe('L3')
+    }
+    expect(classifyShellCommand("cat 'notes.txt'", resolve).tier).toBe('L0')
+  })
+
+  it('protects .git/config, which can name commands git runs', () => {
+    expect(classifyToolCall(call({ tool: 'Write', input: { file_path: '/repo/.git/config' } })).tier).toBe('L3')
+  })
+})
+
+describe('the logins a lane runs under are credential material', () => {
+  it('escalates reads of CLI login files and process environments', () => {
+    for (const command of [
+      'cat /srv/a/.hermes/accounts/x/auth.json',
+      'cat /srv/a/.codex/auth.json',
+      'cat /srv/a/.config/gh/hosts.yml',
+      'cat /proc/self/environ',
+      'head /proc/1/environ',
+    ]) {
+      expect(classifyShellCommand(command).tier, command).toBe('L3')
+    }
+    expect(
+      classifyToolCall(call({ tool: 'Read', input: { file_path: '/srv/a/.codex/auth.json' } })).tier,
+    ).toBe('L3')
+  })
+})
+
+describe('options that read a list of paths from a file', () => {
+  it('escalates them on every allowed executable', () => {
+    for (const command of [
+      'sort --files0-from=names.txt',
+      'sort --files0-from names.txt',
+      'wc --files0-from=names.txt',
+      'file -f names.txt',
+      'git diff --pathspec-from-file=names.txt',
+      'git log --pathspec-from-file names.txt',
+    ]) {
+      expect(classifyShellCommand(command).tier, command).toBe('L3')
+    }
+  })
+})
+
+describe('executables that are not read-only in every invocation are not on the list', () => {
+  it('escalates sort, uniq, file, date, hostname and diff in their plainest forms', () => {
+    // sort spills temp files to -T or $TMPDIR outside the worktree (Codex review r5).
+    for (const command of ['sort input.txt', 'sort -T /tmp/sibling -S 1K input.txt', 'uniq input.txt', 'file a.txt', 'date', 'hostname', 'diff . ../other-lane']) {
+      expect(classifyShellCommand(command).tier, command).toBe('L3')
+    }
+  })
+})
+
+describe('review r6: git diff --no-index and npm', () => {
+  it('escalates git diff --no-index and every npm subcommand', () => {
+    for (const command of [
+      'git diff --no-index lane sibling',
+      'npm ls',
+      'npm ls --cache /tmp/sibling --prefix lane',
+      'npm view react',
+      'npm outdated',
+    ]) {
+      expect(classifyShellCommand(command).tier, command).toBe('L3')
+    }
+  })
+})
+
+describe('review r7: tilde forms the resolver does not model', () => {
+  it('escalates ~name, ~+ and ~-, at word start and after = or :', () => {
+    for (const command of [
+      'cat ~phill/lane/innocent.txt',
+      'cat ~+/innocent.txt',
+      'cat ~-/innocent.txt',
+      'wc --x=~phill/innocent.txt',
+      'cat a:~phill/innocent.txt',
+      'cat @(.e?v)',
+      'cat !(notes).txt',
+    ]) {
+      expect(classifyShellCommand(command).tier, command).toBe('L3')
+    }
+  })
+
+  it('still allows ~ and ~/ (resolved to the home directory) and a ~ inside a word', () => {
+    for (const command of ['cat ~/notes.txt', 'ls ~', 'cat a~b.txt', "cat '~phill'"]) {
+      expect(classifyShellCommand(command).tier, command).toBe('L0')
+    }
+  })
+})
+
+describe('review r9: policy-mapped commands need a trusted program too', () => {
+  it('escalates gh and vercel when the program is not trusted, keeps the policy tier when it is', () => {
+    for (const command of ['gh pr create --draft --base main', 'vercel --target preview']) {
+      expect(classifyShellCommand(command, undefined, () => false).tier, command).toBe('L3')
+      expect(classifyShellCommand(command, undefined, () => true).tier, command).toBe('L1')
+    }
+  })
+})
+
+describe('review r10: every per-process /proc file is credential material', () => {
+  it('escalates environ aliases and other process files', () => {
+    for (const command of [
+      'cat /proc/1/task/1/environ',
+      'cat /proc/self/task/42/environ',
+      'cat /proc/thread-self/environ',
+      'cat /proc/123/cmdline',
+      'cat ../../proc/1/environ',
+    ]) {
+      expect(classifyShellCommand(command).tier, command).toBe('L3')
+    }
+  })
+
+  it('still allows system-wide /proc files that are not per-process', () => {
+    for (const command of ['cat /proc/cpuinfo', 'cat /proc/meminfo']) {
+      expect(classifyShellCommand(command).tier, command).toBe('L0')
+    }
+  })
+})
+
+describe('review r11: option spellings, abbreviations and the grep allow-list', () => {
+  it('escalates grep recursion in every spelling and any unknown grep option', () => {
+    for (const command of [
+      'grep --directories recurse SYNTHETIC .',
+      'grep --directories=recurse SYNTHETIC .',
+      'grep --dir recurse SYNTHETIC .',
+      'grep --recur SYNTHETIC .',
+      'grep -d recurse SYNTHETIC .',
+      'grep -drecurse SYNTHETIC .',
+      'grep -D read SYNTHETIC x',
+      'grep -f patterns.txt x',
+      'egrep -r SYNTHETIC .',
+    ]) {
+      expect(classifyShellCommand(command).tier, command).toBe('L3')
+    }
+  })
+
+  it('escalates abbreviations of blocked long options', () => {
+    for (const command of [
+      'git diff --out=/tmp/x',
+      'git diff --outp /tmp/x',
+      'git diff --no-ind lane sibling',
+      'git diff --ext',
+      'git log --pathspec-from=names.txt',
+      'wc --files0=names.txt',
+    ]) {
+      expect(classifyShellCommand(command).tier, command).toBe('L3')
+    }
+  })
+
+  it('still allows ordinary grep options', () => {
+    for (const command of [
+      'grep -n TODO src/a.ts',
+      'grep -inw TODO src/a.ts',
+      'grep -A3 -B 2 TODO src/a.ts',
+      'grep --color=never --line-number TODO src/a.ts',
+      'grep -e TODO -- src/a.ts',
+    ]) {
+      expect(classifyShellCommand(command).tier, command).toBe('L0')
+    }
+  })
+})
+
+describe('review r12: git metadata is never written by a read command or a lane edit', () => {
+  it('needs approval for git status, which rewrites the index', () => {
+    expect(classifyShellCommand('git status').tier).toBe('L3')
+    expect(classifyShellCommand('git status --short').tier).toBe('L3')
+  })
+
+  it('protects every git metadata path, including a linked worktree .git file', () => {
+    for (const file_path of [
+      '/repo/.git/config.worktree',
+      '/repo/.git/info/attributes',
+      '/repo/.git/index',
+      '/repo/.git',
+    ]) {
+      for (const tool of ['Write', 'Edit']) {
+        expect(classifyToolCall(call({ tool, input: { file_path } })).tier, `${tool} ${file_path}`).toBe('L3')
+      }
+    }
+  })
+
+  it('still allows ordinary writes whose names only resemble .git', () => {
+    expect(classifyToolCall(call({ tool: 'Write', input: { file_path: '/repo/src/.gitignore' } })).tier).not.toBe('L3')
+  })
+})
+
+describe('review r13: Windows spellings of protected and secret paths', () => {
+  const WIN = 'C:\\lane'
+  const resolvePath = (target: string) => target
+  it('escalates Write and Edit to Windows-form protected paths', () => {
+    for (const file_path of [
+      `${WIN}\\.codex\\config.toml`,
+      `${WIN}\\.git\\config`,
+      `${WIN}\\apps\\workspace\\src\\server\\lanes\\autonomy-hook.mjs`,
+      `${WIN}\\.CODEX\\config.toml`,
+      `${WIN}\\.git.\\config`,
+      `${WIN}\\.git \\hooks\\pre-commit`,
+      `${WIN}\\.codex::$INDEX_ALLOCATION\\config.toml`,
+      `${WIN}\\.claude\\settings.json`,
+    ]) {
+      for (const tool of ['Write', 'Edit']) {
+        const result = classifyToolCall(call({ tool, input: { file_path } }), { worktreeRoot: WIN, resolvePath })
+        expect(result.tier, `${tool} ${file_path}`).toBe('L3')
+      }
+    }
+  })
+
+  it('escalates an apply_patch header naming a Windows-form .codex target', () => {
+    const command = `*** Begin Patch\n*** Add File: ${WIN}\\.codex\\config.toml\n+x\n*** End Patch\n`
+    expect(
+      classifyToolCall(call({ tool: 'apply_patch', input: { command } }), { worktreeRoot: WIN, resolvePath }).tier,
+    ).toBe('L3')
+  })
+
+  it('escalates reads of Windows-form credential paths', () => {
+    // `gh\\hosts.yml` matches the GitHub CLI login marker only once `\\` reads as `/`.
+    for (const file_path of [`${WIN}\\.ENV`, `${WIN}\\.env.`, 'C:\\Users\\a\\AppData\\gh\\hosts.yml']) {
+      expect(classifyToolCall(call({ tool: 'Read', input: { file_path } })).tier, file_path).toBe('L3')
+    }
+  })
+
+  it('escalates an apply_patch header naming a Windows-form credential file', () => {
+    const command = `*** Begin Patch\n*** Update File: ${WIN}\\gh\\hosts.yml\n+x\n*** End Patch\n`
+    expect(classifyToolCall(call({ tool: 'apply_patch', input: { command } }), { worktreeRoot: WIN }).tier).toBe('L3')
+  })
+
+  it('still allows an ordinary Windows-form write inside the root', () => {
+    const result = classifyToolCall(call({ tool: 'Write', input: { file_path: `${WIN}\\src\\a.ts` } }), {
+      worktreeRoot: WIN,
+      resolvePath,
+    })
+    expect(result.tier).toBe('L1')
+  })
+})
+
+describe('review r14: no git command that prints remote URLs', () => {
+  it('needs approval for every git remote form and other URL listings', () => {
+    for (const command of [
+      'git remote',
+      'git remote -v',
+      'git remote --verbose',
+      'git remote show origin',
+      'git remote get-url origin',
+      'git ls-remote',
+      'git config --get remote.origin.url',
+    ]) {
+      expect(classifyShellCommand(command).tier, command).toBe('L3')
+    }
+  })
+})
+
+describe('review r15: ripgrep is not a read-only executable', () => {
+  it('needs approval for every rg form, file listing included', () => {
+    // ripgrep obeys the LAST mode flag, so `--files --json PATTERN .` searches
+    // file contents across the tree; no option check can follow that safely.
+    const trusted = () => true
+    for (const command of ['rg --files', 'rg --files --json SYNTHETIC_ONLY .', 'rg --json --files', 'rg --version']) {
+      expect(classifyShellCommand(command, undefined, trusted).tier, command).toBe('L3')
+    }
+  })
+})
+
+describe('review r16: git helpers and tree-wide Grep', () => {
+  it('needs approval for every git command that can run a diff driver or textconv', () => {
+    for (const command of [
+      'git log',
+      'git log -p --textconv',
+      'git diff',
+      'git diff --stat',
+      'git show HEAD',
+      'git show --textconv HEAD:a',
+      'git blame sample.txt',
+    ]) {
+      expect(classifyShellCommand(command).tier, command).toBe('L3')
+    }
+  })
+
+  it('protects .gitattributes, which selects the helper git runs', () => {
+    for (const file_path of ['/repo/.gitattributes', '/repo/sub/.gitattributes', '/repo/.GitAttributes']) {
+      expect(classifyToolCall(call({ tool: 'Write', input: { file_path } })).tier, file_path).toBe('L3')
+    }
+  })
+
+  it('escalates a Grep that returns matching lines', () => {
+    for (const input of [
+      { pattern: 'SYNTHETIC_ONLY', path: '.', output_mode: 'content' },
+      { pattern: 'TODO', glob: 'src/**/*.ts', output_mode: 'content' },
+    ]) {
+      expect(classifyToolCall(call({ tool: 'Grep', input })).tier).toBe('L3')
+    }
+    // An adapter whose Grep default is not documented must name its mode.
+    expect(classifyToolCall(call({ tool: 'Grep', adapter: 'codex', input: { pattern: 'x', path: '.' } })).tier).toBe(
+      'L3',
+    )
+  })
+
+  it('escalates a Grep in names and count modes too (review r17)', () => {
+    // A count or a matching name answers 'does the secret start with X?'.
+    for (const input of [
+      { pattern: '^SYNTHETIC_ONLY', path: '.' },
+      { pattern: '^SYNTHETIC_ONLY', path: '.', output_mode: 'files_with_matches' },
+      { pattern: '^SYNTHETIC_ONLY', path: '.', output_mode: 'count' },
+    ]) {
+      expect(classifyToolCall(call({ tool: 'Grep', input })).tier).toBe('L3')
+    }
+  })
+})
+
+describe('review r17: credential stores and the gate policy files', () => {
+  it('escalates reads of standard credential stores', () => {
+    for (const target of [
+      '/srv/a/.git-credentials',
+      '/srv/a/.netrc',
+      'C:\\Users\\a\\_netrc',
+      '/srv/a/.pgpass',
+      '/srv/a/.pypirc',
+      '/srv/a/.docker/config.json',
+      '/srv/a/.kube/config',
+      '/srv/a/.config/gcloud/application_default_credentials.json',
+      '/srv/a/.gnupg/private-keys-v1.d/x.key',
+    ]) {
+      expect(classifyShellCommand(`cat ${target.replace(/\\/g, '/')}`).tier, target).toBe('L3')
+      expect(classifyToolCall(call({ tool: 'Read', input: { file_path: target } })).tier, target).toBe('L3')
+    }
+  })
+
+  it('still allows an ordinary file whose name only resembles one', () => {
+    expect(classifyShellCommand('cat docs/netrc-format.md').tier).toBe('L0')
+  })
+
+  it('protects every file the hook loads, inside a root that contains the gate', () => {
+    const root = '/gate-checkout'
+    for (const file_path of [
+      `${root}/apps/workspace/src/server/lanes/autonomy-gate.ts`,
+      `${root}/apps/workspace/src/server/lanes/mission-authority.json`,
+      `${root}/scripts/nexus-runner/mission-authority.json`,
+    ]) {
+      expect(classifyToolCall(call({ tool: 'Write', input: { file_path } }), { worktreeRoot: root }).tier, file_path).toBe(
+        'L3',
+      )
+    }
+    const command = `*** Begin Patch\n*** Update File: ${root}/apps/workspace/src/server/lanes/autonomy-gate.ts\n+x\n*** End Patch\n`
+    expect(classifyToolCall(call({ tool: 'apply_patch', input: { command } }), { worktreeRoot: root }).tier).toBe('L3')
+  })
+})
+
+describe('review r18: dash-prefixed operands are checked too', () => {
+  it('escalates a dash-prefixed file that resolves to a secret, after -- or not', () => {
+    const resolvePath = (target: string) => (target.endsWith('-notes.txt') ? '/lane/.env' : '/lane/' + target)
+    for (const command of ['cat -- -notes.txt', 'head -n 5 -- -notes.txt', 'cat -notes.txt']) {
+      expect(classifyShellCommand(command, resolvePath).tier, command).toBe('L3')
+    }
+  })
+
+  it('still allows ordinary options that resolve to nothing secret', () => {
+    const resolvePath = (target: string) => '/lane/' + target
+    for (const command of ['head -n 5 src/a.ts', 'cat -- src/a.ts', 'wc -l src/a.ts']) {
+      expect(classifyShellCommand(command, resolvePath).tier, command).toBe('L0')
+    }
+  })
+})
+
+describe('review r19: Windows rooted path forms are not lane-relative', () => {
+  const WIN = 'C:\\lane'
+  const resolvePath = (target: string) => target
+  const outside = ['\\\\server\\share\\outside.txt', '\\outside.txt', '\\\\?\\C:\\outside.txt', 'C:outside.txt']
+  it('escalates Write, Edit and apply_patch to UNC, root-relative, device and drive-relative paths', () => {
+    for (const file_path of outside) {
+      for (const tool of ['Write', 'Edit']) {
+        const result = classifyToolCall(call({ tool, input: { file_path } }), { worktreeRoot: WIN, resolvePath })
+        expect(result.tier, `${tool} ${file_path}`).toBe('L3')
+      }
+      const command = `*** Begin Patch\n*** Add File: ${file_path}\n+x\n*** End Patch\n`
+      const patch = classifyToolCall(call({ tool: 'apply_patch', input: { command } }), { worktreeRoot: WIN, resolvePath })
+      expect(patch.tier, `apply_patch ${file_path}`).toBe('L3')
+    }
+  })
+
+  it('still allows relative and drive-absolute writes inside the root', () => {
+    for (const file_path of ['src\\a.ts', 'src/a.ts', `${WIN}\\src\\a.ts`]) {
+      const result = classifyToolCall(call({ tool: 'Write', input: { file_path } }), { worktreeRoot: WIN, resolvePath })
+      expect(result.tier, file_path).toBe('L1')
+    }
+  })
+})
+
+describe('review r20: no git command is read-only', () => {
+  it('needs approval for every git command, fsmonitor-running ls-files included', () => {
+    for (const command of ['git ls-files', 'git rev-parse HEAD', 'git branch', 'git branch -a', 'git --version']) {
+      expect(classifyShellCommand(command).tier, command).toBe('L3')
+    }
+  })
+})
+
+describe('review r21: files with another hard-linked name', () => {
+  const shared = (target: string) => target.endsWith('ordinary.txt')
+  it('escalates shell reads, tool reads, writes and patches of a multiply linked file', () => {
+    for (const command of ['cat ordinary.txt', 'head -n 3 -- ordinary.txt']) {
+      expect(classifyShellCommand(command, undefined, undefined, shared).tier, command).toBe('L3')
+    }
+    for (const tool of ['Read', 'Write', 'Edit', 'NotebookEdit']) {
+      const result = classifyToolCall(call({ tool, input: { file_path: '/lane/ordinary.txt' } }), {
+        worktreeRoot: '/lane',
+        isSharedFile: shared,
+      })
+      expect(result.tier, tool).toBe('L3')
+    }
+    const command = '*** Begin Patch\n*** Update File: /lane/ordinary.txt\n+x\n*** End Patch\n'
+    expect(
+      classifyToolCall(call({ tool: 'apply_patch', input: { command } }), { worktreeRoot: '/lane', isSharedFile: shared })
+        .tier,
+    ).toBe('L3')
+  })
+
+  it('still allows a file with a single name', () => {
+    expect(classifyShellCommand('cat notes.txt', undefined, undefined, shared).tier).toBe('L0')
+    const result = classifyToolCall(call({ tool: 'Write', input: { file_path: '/lane/notes.txt' } }), {
+      worktreeRoot: '/lane',
+      isSharedFile: shared,
+    })
+    expect(result.tier).toBe('L1')
+  })
+})
+
+describe('review r22: git config and the AWS tree are credential reads', () => {
+  it('escalates shell and Read access to git config and every .aws file', () => {
+    for (const target of [
+      '/lane/.git/config',
+      '/lane/.git/config.worktree',
+      '/repo/.git/worktrees/lane/config.worktree',
+      '/srv/a/.aws/config',
+      '/srv/a/.aws/sso/cache/a1b2.json',
+      '/srv/a/.aws/cli/cache/a1b2.json',
+    ]) {
+      expect(classifyShellCommand(`cat ${target}`).tier, target).toBe('L3')
+      expect(classifyToolCall(call({ tool: 'Read', input: { file_path: target } })).tier, target).toBe('L3')
+    }
+  })
+
+  it('escalates a symlink alias that resolves into .aws', () => {
+    const resolvePath = (target: string) => (target.endsWith('alias.txt') ? '/srv/a/.aws/config' : '/lane/' + target)
+    for (const command of ['cat alias.txt', 'head alias.txt']) {
+      expect(classifyShellCommand(command, resolvePath).tier, command).toBe('L3')
+    }
+  })
+
+  it('still allows files whose names only resemble these', () => {
+    for (const command of ['cat docs/config.md', 'cat .github/config.yml']) {
+      expect(classifyShellCommand(command).tier, command).toBe('L0')
+    }
+    // Through Read: in a shell command the word `aws` already escalates as a
+    // cloud CLI, which is not what this rule is about.
+    for (const file_path of ['/lane/src/aws-client.ts', '/lane/.awsignore']) {
+      expect(classifyToolCall(call({ tool: 'Read', input: { file_path } })).tier, file_path).toBe('L0')
+    }
+  })
+})
+
+describe('review r23: user and system git config are credential reads', () => {
+  it('escalates shell and Read access to every git config location', () => {
+    for (const target of [
+      '/srv/a/.gitconfig',
+      '/etc/gitconfig',
+      '/srv/a/.config/git/config',
+      '/srv/a/.config/git/credentials',
+      'C:/ProgramData/Git/config',
+    ]) {
+      expect(classifyShellCommand(`cat ${target}`).tier, target).toBe('L3')
+      expect(classifyToolCall(call({ tool: 'Read', input: { file_path: target } })).tier, target).toBe('L3')
+    }
+    expect(classifyShellCommand('cat .gitconfig').tier).toBe('L3')
+  })
+
+  it('escalates a symlink alias that resolves to ~/.gitconfig', () => {
+    const resolvePath = (target: string) => (target.endsWith('alias.txt') ? '/srv/a/.gitconfig' : '/lane/' + target)
+    expect(classifyShellCommand('cat alias.txt', resolvePath).tier).toBe('L3')
+  })
+
+  it('still allows files whose names only resemble these', () => {
+    for (const target of ['/lane/docs/gitconfig.md', '/lane/.config/gitx/config.ts', '/lane/src/git/config.ts']) {
+      expect(classifyToolCall(call({ tool: 'Read', input: { file_path: target } })).tier, target).toBe('L0')
+    }
+  })
+})
+
+describe('review r24: a draft PR may only target main', () => {
+  const trusted = () => true
+
+  it('escalates a draft PR whose base is any branch other than main', () => {
+    for (const command of [
+      'gh pr create --draft --base feature/foo',
+      'gh pr create --draft -B feature/foo',
+      'gh pr create --draft --base=feature/foo',
+      'gh pr create --draft --base main --base feature/foo',
+      'gh pr create --draft --base Main',
+      'gh pr create --draft -Bfeature/foo',
+    ]) {
+      expect(classifyShellCommand(command, undefined, trusted).tier, command).toBe('L3')
+    }
+  })
+
+  it('keeps a draft PR into main at the policy tier', () => {
+    for (const command of [
+      'gh pr create --draft --base main',
+      'gh pr create --draft -B main',
+      'gh pr create --draft --base=main --title t --body b',
+    ]) {
+      expect(classifyShellCommand(command, undefined, trusted).tier, command).toBe('L1')
+    }
+  })
+})
+
+describe('review r25: a draft PR must name main as its base', () => {
+  it('escalates a draft PR with no base, which gh may resolve from branch config', () => {
+    for (const command of ['gh pr create --draft', 'gh pr create -d --fill', 'gh pr create --draft --title t --body b']) {
+      expect(classifyShellCommand(command, undefined, () => true).tier, command).toBe('L3')
+    }
   })
 })
