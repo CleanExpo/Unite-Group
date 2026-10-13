@@ -126,12 +126,6 @@ create table public.cost_source (
 create table public.raw_cost_event (id uuid primary key default gen_random_uuid(), cost_source_id text not null references public.cost_source(id));
 create table public.cost_record (id uuid primary key default gen_random_uuid(), cost_source_id text not null references public.cost_source(id));
 create table public.allocation_rule (id uuid primary key default gen_random_uuid(), cost_source_id text not null references public.cost_source(id), match_key text not null);
-
--- WORST-CASE policy drift: prod's full policy inventory was not read, so assume
--- a broad legacy permissive SELECT exists on both tables. Founder isolation
--- must hold anyway (restrictive policies in the migration).
-create policy legacy_select_all on public.ai_usage_logs for select using (true);
-create policy legacy_select_all on public.provider_accounts for select using (true);
 alter table public.cost_source enable row level security;
 alter table public.cost_source force row level security;
 insert into public.cost_source (id, name, reachability, native_currency) values
@@ -143,8 +137,23 @@ insert into public.cost_source (id, name, reachability, native_currency) values
 
 insert into auth.users values ('00000000-0000-0000-0000-00000000000a'), ('00000000-0000-0000-0000-00000000000b');
 SQL
+# Policy inventory. provider_accounts_founder_all comes from the pool migration
+# in both modes.
+if [ "${1:-worst}" = "real" ]; then
+  # REAL prod inventory (orchestrator read-only query, 13/10/2026).
+  q <<'SQL' || return 1
+create policy ai_usage_service_role on public.ai_usage_logs as permissive for all to service_role using (true) with check (true);
+SQL
+else
+  # WORST-CASE drift: a broad legacy permissive SELECT on both tables. Founder
+  # isolation must hold anyway (restrictive policies in the migration).
+  q <<'SQL' || return 1
+create policy legacy_select_all on public.ai_usage_logs for select using (true);
+create policy legacy_select_all on public.provider_accounts for select using (true);
+SQL
+fi
 }
-prestate || { echo "PRESTATE_FAIL"; exit 1; }
+prestate worst || { echo "PRESTATE_FAIL"; exit 1; }
 
 FINGERPRINT_SQL="
 select 'col|'||table_name||'|'||column_name||'|'||data_type||'|'||coalesce(numeric_precision::text,'')||','||coalesce(numeric_scale::text,'')||'|'||is_nullable||'|'||coalesce(column_default,'')
@@ -200,6 +209,9 @@ expect_reject "A6c unknown provider 'grok' rejected" provider_accounts_provider_
   "insert into public.provider_accounts (founder_id, provider, label) values ('$A','grok','g');"
 expect_eq "A6d exactly one provider CHECK remains after two applies" "1" \
   "select count(*) from pg_constraint where conrelid='public.provider_accounts'::regclass and contype='c' and pg_get_constraintdef(oid) ~* '\\mprovider\\M\\s*(=|in\\M)';"
+
+expect_eq "A6e all 8 migration CHECKs exist and are VALIDATED (NOT VALID then VALIDATE)" "8|8" \
+  "select count(*)||'|'||count(*) filter (where convalidated) from pg_constraint where contype='c' and conname in ('provider_accounts_provider_check','provider_accounts_billing_kind_check','provider_accounts_plan_price_aud_check','provider_accounts_quota_unit_check','provider_accounts_quota_limit_check','provider_accounts_subscription_unroutable','provider_accounts_subscription_only_providers','ai_usage_logs_source_check');"
 
 # ── ai_usage_logs ────────────────────────────────────────────────────────────
 # The current recorder's exact default-path column set (src/lib/ai/usage-recorder.ts).
@@ -292,6 +304,42 @@ printf '%s\n' "$ROLLBACK_SQL" | q >"$ERR" 2>&1; rc=$?
 [ "$rc" -eq 0 ] && pass "D7 rollback completes despite the referenced seed (psql exit 0)" || fail "D7 rollback with referenced seed (psql exit $rc): $(tr '\n' ' ' <"$ERR")"
 expect_eq "D8 referenced seed preserved; subscription columns and restrictive policies removed" "1|0|0" \
   "select (select count(*) from public.cost_source where id='ai_subscriptions')||'|'||(select count(*) from information_schema.columns where table_schema='public' and table_name='provider_accounts' and column_name in ('plan_price_aud','renewal_date','quota_unit','quota_limit'))||'|'||(select count(*) from pg_policies where policyname like '%founder_restrict');"
+DB=postgres
+
+# ── REAL policy inventory scenario (separate database) ───────────────────────
+# Exactly the policies prod has (13/10/2026): ai_usage_logs → ai_usage_service_role
+# (PERMISSIVE, service_role, ALL, true/true); provider_accounts →
+# provider_accounts_founder_all (PERMISSIVE, public, ALL, founder_id = auth.uid()).
+q -c "create database realpol" >/dev/null 2>&1 || fail "R0 create realpol database"
+DB=realpol
+prestate real || fail "R0 real-inventory pre-state"
+expect_eq "R0 pre-state policy inventory is exactly prod's" "ai_usage_logs|ai_usage_service_role|PERMISSIVE|{service_role}|ALL provider_accounts|provider_accounts_founder_all|PERMISSIVE|{public}|ALL" \
+  "select string_agg(tablename||'|'||policyname||'|'||permissive||'|'||roles::text||'|'||cmd, ' ' order by tablename, policyname) from pg_policies where schemaname='public' and tablename in ('ai_usage_logs','provider_accounts');"
+PRE_R="$(printf '%s\n' "$FINGERPRINT_SQL" | q -tA)" || fail "R0 fingerprint"
+q <"$MIG" >"$ERR" 2>&1; rc=$?
+[ "$rc" -eq 0 ] && pass "R1 migration apply #1 on real inventory (psql exit 0)" || fail "R1 apply #1 (psql exit $rc): $(tr '\n' ' ' <"$ERR")"
+q <"$MIG" >"$ERR" 2>&1; rc=$?
+[ "$rc" -eq 0 ] && pass "R2 migration apply #2 on real inventory (psql exit 0)" || fail "R2 apply #2 (psql exit $rc): $(tr '\n' ' ' <"$ERR")"
+expect_ok "R3a seed A/B rows (as the service path)" \
+  "insert into public.provider_accounts (id, founder_id, provider, label) values ('40000000-0000-0000-0000-00000000000a','$A','openai','A api'), ('40000000-0000-0000-0000-00000000000b','$B','openai','B api');
+   insert into public.ai_usage_logs (provider, model_id, founder_id) values ('anthropic','m','$A'), ('anthropic','m','$B'), ('anthropic','m',null);"
+expect_eq "R3 founder A cannot read founder B's (or unowned) rows on either table" "0|0" \
+  "set role authenticated; set request.jwt.claim.sub = '$A'; select (select count(*) from public.provider_accounts where founder_id='$B')||'|'||(select count(*) from public.ai_usage_logs where founder_id is distinct from '$A');"
+expect_eq "R4 founder A reads exactly its own rows on both tables" "1|1" \
+  "set role authenticated; set request.jwt.claim.sub = '$A'; select (select count(*) from public.provider_accounts)||'|'||(select count(*) from public.ai_usage_logs);"
+expect_eq "R5 service_role (recorder path) still reads all and can insert" "4" \
+  "set role service_role; insert into public.ai_usage_logs (provider, model_id, task_type, tokens_input, tokens_output, tokens_cached, cost_usd, request_id, success, metadata) values ('anthropic','claude-haiku-4-5','t',1,1,0,0,'msg_r5',true,'{}'); select count(*) from public.ai_usage_logs;"
+expect_ok "R6a founder-session insert into provider_accounts (POST path) works" \
+  "set role authenticated; set request.jwt.claim.sub = '$A'; insert into public.provider_accounts (founder_id, provider, label, billing_kind, routable) values ('$A','claude_max','Seat A','subscription',false);"
+expect_reject "R6b founder A cannot insert a provider_accounts row for founder B" "row-level security" \
+  "set role authenticated; set request.jwt.claim.sub = '$A'; insert into public.provider_accounts (founder_id, provider, label) values ('$B','openai','x');"
+expect_ok "R7a rollback precondition: remove widened-provider rows" \
+  "delete from public.provider_accounts where provider not in ('claude','openai','minimax','gemini','openrouter');"
+printf '%s\n' "$ROLLBACK_SQL" | q >"$ERR" 2>&1; rc=$?
+[ "$rc" -eq 0 ] && pass "R7 rollback on real inventory (psql exit 0)" || fail "R7 rollback (psql exit $rc): $(tr '\n' ' ' <"$ERR")"
+POST_R="$(printf '%s\n' "$FINGERPRINT_SQL" | q -tA)"
+if [ "$PRE_R" = "$POST_R" ]; then pass "R8 real-inventory fingerprint identical to pre-state ($(printf '%s\n' "$PRE_R" | wc -l | tr -d ' ') lines)"
+else fail "R8 real-inventory fingerprint differs:"; diff <(printf '%s\n' "$PRE_R") <(printf '%s\n' "$POST_R"); fi
 DB=postgres
 
 rm -f "$ERR"

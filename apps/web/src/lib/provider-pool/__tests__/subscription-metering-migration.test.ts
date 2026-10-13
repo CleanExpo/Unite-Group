@@ -53,6 +53,16 @@ describe('ai_subscription_metering migration (text)', () => {
     expect(sql).toContain('alter table public.provider_accounts alter column routable set not null')
   })
 
+  it('is lock-safe: bounded lock/statement timeouts, every CHECK added NOT VALID then validated', () => {
+    expect(sql).toMatch(/set lock_timeout = '\d+s'/)
+    expect(sql).toMatch(/set statement_timeout = '\d+s'/)
+    const allAdds = [...sql.matchAll(/add constraint (\w+) check/g)].map((m) => m[1])
+    const notValid = [...sql.matchAll(/add constraint (\w+) check \(.*?\) not valid;/g)].map((m) => m[1])
+    expect(allAdds.length).toBeGreaterThanOrEqual(8)
+    expect([...notValid].sort()).toEqual([...allAdds].sort())
+    for (const name of allAdds) expect(sql).toContain(`validate constraint ${name};`)
+  })
+
   it('adds restrictive founder policies so no legacy permissive policy can leak rows', () => {
     expect(sql).toMatch(/create policy ai_usage_logs_founder_restrict on public\.ai_usage_logs as restrictive for all using \(founder_id = auth\.uid\(\)\) with check \(founder_id = auth\.uid\(\)\)/)
     expect(sql).toMatch(/create policy provider_accounts_founder_restrict on public\.provider_accounts as restrictive for all using \(founder_id = auth\.uid\(\)\) with check \(founder_id = auth\.uid\(\)\)/)

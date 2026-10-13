@@ -23,6 +23,22 @@
 -- provider CHECK is named provider_accounts_provider_check. cost_source's
 -- reachability CHECK allows 'key-gate'.
 
+-- ── 0. lock safety ──────────────────────────────────────────────────────────
+-- Bound every lock wait and statement: if a lock cannot be taken quickly the
+-- apply FAILS (retry in a quiet window) instead of queueing behind - and then
+-- blocking - live readers/writers. CHECKs are added NOT VALID (brief
+-- ACCESS EXCLUSIVE, no scan) and validated separately (SHARE UPDATE EXCLUSIVE:
+-- reads and writes continue). Indexes use ordinary CREATE INDEX on purpose:
+-- prod row counts read 13/10/2026 are ai_usage_logs = 707 and provider_accounts
+-- = a handful, so each build takes milliseconds; CONCURRENTLY would force a
+-- separate non-transactional migration for no practical gain. Revisit if
+-- ai_usage_logs grows past ~1M rows before apply. If the migration runner wraps
+-- this file in ONE transaction, each ADD's ACCESS EXCLUSIVE lock is held until
+-- commit, so the NOT VALID split only shortens lock time when statements commit
+-- separately; at these row counts each validation scan is milliseconds anyway.
+set lock_timeout = '5s';
+set statement_timeout = '60s';
+
 -- ── 1. provider_accounts: widened provider set + billing metadata ──────────
 
 -- Drop the live CHECK by its real name, then (cheap fallback for any
@@ -47,7 +63,8 @@ alter table public.provider_accounts
   add constraint provider_accounts_provider_check check (provider in (
     'claude', 'openai', 'minimax', 'gemini', 'openrouter',
     'claude_max', 'chatgpt_pro', 'cursor', 'xai', 'higgsfield', 'heygen', 'artlist', 'other'
-  ));
+  )) not valid;
+alter table public.provider_accounts validate constraint provider_accounts_provider_check;
 
 alter table public.provider_accounts add column if not exists billing_kind text not null default 'metered';
 alter table public.provider_accounts add column if not exists plan_price_aud numeric(10,2);
@@ -75,11 +92,13 @@ alter table public.provider_accounts alter column routable set not null;
 
 alter table public.provider_accounts drop constraint if exists provider_accounts_billing_kind_check;
 alter table public.provider_accounts
-  add constraint provider_accounts_billing_kind_check check (billing_kind in ('metered', 'subscription', 'prepaid'));
+  add constraint provider_accounts_billing_kind_check check (billing_kind in ('metered', 'subscription', 'prepaid')) not valid;
+alter table public.provider_accounts validate constraint provider_accounts_billing_kind_check;
 
 alter table public.provider_accounts drop constraint if exists provider_accounts_plan_price_aud_check;
 alter table public.provider_accounts
-  add constraint provider_accounts_plan_price_aud_check check (plan_price_aud is null or plan_price_aud >= 0);
+  add constraint provider_accounts_plan_price_aud_check check (plan_price_aud is null or plan_price_aud >= 0) not valid;
+alter table public.provider_accounts validate constraint provider_accounts_plan_price_aud_check;
 
 -- Quota unit set FLAGGED for founder confirmation (mirrors QUOTA_UNITS in
 -- src/lib/provider-pool/accounts.ts).
@@ -87,22 +106,26 @@ alter table public.provider_accounts drop constraint if exists provider_accounts
 alter table public.provider_accounts
   add constraint provider_accounts_quota_unit_check check (quota_unit is null or quota_unit in (
     'tokens', 'requests', 'messages', 'credits', 'minutes', 'generations', 'usd'
-  ));
+  )) not valid;
+alter table public.provider_accounts validate constraint provider_accounts_quota_unit_check;
 
 alter table public.provider_accounts drop constraint if exists provider_accounts_quota_limit_check;
 alter table public.provider_accounts
-  add constraint provider_accounts_quota_limit_check check (quota_limit is null or quota_limit >= 0);
+  add constraint provider_accounts_quota_limit_check check (quota_limit is null or quota_limit >= 0) not valid;
+alter table public.provider_accounts validate constraint provider_accounts_quota_limit_check;
 
 -- THE invariant: a subscription is metered, never routed.
 alter table public.provider_accounts drop constraint if exists provider_accounts_subscription_unroutable;
 alter table public.provider_accounts
-  add constraint provider_accounts_subscription_unroutable check (billing_kind <> 'subscription' or routable = false);
+  add constraint provider_accounts_subscription_unroutable check (billing_kind <> 'subscription' or routable = false) not valid;
+alter table public.provider_accounts validate constraint provider_accounts_subscription_unroutable;
 
 -- Consumer subscriptions whose terms forbid pooling can only be subscriptions.
 alter table public.provider_accounts drop constraint if exists provider_accounts_subscription_only_providers;
 alter table public.provider_accounts
   add constraint provider_accounts_subscription_only_providers
-  check (provider not in ('claude_max', 'chatgpt_pro') or billing_kind = 'subscription');
+  check (provider not in ('claude_max', 'chatgpt_pro') or billing_kind = 'subscription') not valid;
+alter table public.provider_accounts validate constraint provider_accounts_subscription_only_providers;
 
 -- ── 2. ai_usage_logs: codify the live table, then extend it ────────────────
 
@@ -146,7 +169,8 @@ alter table public.ai_usage_logs add column if not exists project text;
 
 alter table public.ai_usage_logs drop constraint if exists ai_usage_logs_source_check;
 alter table public.ai_usage_logs
-  add constraint ai_usage_logs_source_check check (source is null or source in ('sdk', 'cli_claude', 'cli_codex', 'cli_cursor', 'swarm', 'manual'));
+  add constraint ai_usage_logs_source_check check (source is null or source in ('sdk', 'cli_claude', 'cli_codex', 'cli_cursor', 'swarm', 'manual')) not valid;
+alter table public.ai_usage_logs validate constraint ai_usage_logs_source_check;
 
 -- Dedupe at-least-once ingest per source. Existing rows have source NULL, and
 -- NULLs are distinct in a unique index, so historical rows cannot collide.
@@ -190,6 +214,9 @@ grant all on public.ai_usage_logs to service_role;
 insert into public.cost_source (id, name, reachability, native_currency) values
   ('ai_subscriptions', 'AI subscriptions', 'key-gate', 'AUD')
 on conflict (id) do nothing;
+
+reset lock_timeout;
+reset statement_timeout;
 
 -- ── ROLLBACK (manual; run only with founder approval) ───────────────────────
 -- Run as one transaction. Restoring the original provider CHECK FAILS if any

@@ -4,7 +4,7 @@ import { getUser, createClient } from '@/lib/supabase/server'
 import { makeSupabaseStore, loadAccounts } from '@/lib/provider-pool/repository'
 import { validateNewAccount } from '@/lib/provider-pool/registration'
 import { toAccountView } from '@/lib/provider-pool/accounts'
-import type { Json } from '@/types/database'
+import { probeMeteringColumns, buildProviderAccountInsert } from '@/lib/provider-pool/metering-schema'
 
 // Provider-account registration + live state. Founder-auth, founder-scoped.
 // Lists accounts with their live router state (metadata only — never the key,
@@ -65,26 +65,16 @@ export async function POST(request: NextRequest) {
       if (!vaultEntry) return NextResponse.json({ error: 'vault entry not found for this founder' }, { status: 400 })
     }
 
+    // UNI-2780: works before AND after migration 20261013090000 is applied.
+    // Before it, legacy registrations use the legacy column set and anything
+    // needing the new columns (e.g. a subscription) is refused with 409.
+    const schema = await probeMeteringColumns(supabase)
+    const built = buildProviderAccountInsert(user.id, validated.value, schema)
+    if (!built.ok) return NextResponse.json({ error: built.error }, { status: 409 })
+
     const { data, error } = await supabase
       .from('provider_accounts')
-      .insert({
-        founder_id: user.id,
-        provider: validated.value.provider,
-        label: validated.value.label,
-        vault_entry_id: validated.value.vaultEntryId,
-        enabled: true,
-        plan: validated.value.plan as unknown as Json,
-        allow_metered: validated.value.allowMetered,
-        // UNI-2780 — requires migration 20261013090000_ai_subscription_metering
-        // to be applied first (FOUNDER-GATED); routable is persisted explicitly
-        // so a subscription can never fall back to the column default (true).
-        billing_kind: validated.value.billingKind,
-        plan_price_aud: validated.value.planPriceAud,
-        renewal_date: validated.value.renewalDate,
-        quota_unit: validated.value.quotaUnit,
-        quota_limit: validated.value.quotaLimit,
-        routable: validated.value.routable,
-      })
+      .insert(built.row)
       .select('id')
       .single()
     if (error) return NextResponse.json({ error: sanitiseError(error, 'create failed', { route: '/api/command-centre/provider-accounts' }) }, { status: 500 })
