@@ -15,15 +15,20 @@
 -- before prod (lksfwktwtmyznckodsau), and prod apply needs founder approval.
 -- Never apply autonomously.
 --
--- Live-schema assumptions (prod read 13/10/2026 by the coordinator, not by this
--- author): ai_usage_logs exists, has NO CHECK constraints, and its only
--- NOT NULL-without-default columns are provider and model_id.
+-- Live schema reconciled against a read-only prod query by the orchestrator,
+-- 13/10/2026 (lksfwktwtmyznckodsau): ai_usage_logs exists with the exact shape
+-- codified in section 2, no CHECK constraints, no workspace FK, user_id FK to
+-- auth.users ON DELETE SET NULL, RLS enabled (not forced), and none of
+-- founder_id / provider_account_id / source / project yet. provider_accounts'
+-- provider CHECK is named provider_accounts_provider_check. cost_source's
+-- reachability CHECK allows 'key-gate'.
 
 -- ── 1. provider_accounts: widened provider set + billing metadata ──────────
 
--- The original inline CHECK's name is [UNCONFIRMED] on prod (Postgres default
--- would be provider_accounts_provider_check). Drop whichever CHECK constrains
--- the provider column, by definition rather than by name, then re-add it named.
+-- Drop the live CHECK by its real name, then (cheap fallback for any
+-- environment where it was created under another name) any other CHECK whose
+-- definition constrains the provider column; then re-add it named.
+alter table public.provider_accounts drop constraint if exists provider_accounts_provider_check;
 do $$
 declare r record;
 begin
@@ -85,22 +90,14 @@ alter table public.provider_accounts
 -- ── 2. ai_usage_logs: codify the live table, then extend it ────────────────
 
 -- No active migration creates this table (archive only:
--- supabase/migrations-archive/_archive/046_ai_usage_tracking*.sql). On prod this
--- is a no-op. On a fresh branch it builds the shape below, derived from the
--- archive + the columns src/lib/ai/usage-recorder.ts inserts.
--- Deliberate departures from the archive, to match the live facts above:
---   * no CHECK constraints (live has none; the archive's provider CHECK would
---     reject the recorder's 'anthropic' value);
---   * workspace_id NULLABLE (recorder omits it; it is a retired tenancy column);
---   * no FK to public.workspaces / auth.users.
--- [UNCONFIRMED] vs live: column types/defaults for tokens_thinking,
--- response_size_bytes, error_message, error_code, endpoint, user_id; whether
--- the live workspace_id/user_id FKs still exist; numeric precision of
--- cost_usd (archive DECIMAL(10,6)) and cost_per_*_mtok (archive DECIMAL(10,2)).
+-- supabase/migrations-archive/_archive/046_ai_usage_tracking*.sql). The body
+-- below matches the live prod table column-for-column (types, nullability,
+-- defaults, PK, user_id FK; no CHECKs, no workspace FK), so on prod this is a
+-- true no-op and on a fresh branch it reproduces prod.
 create table if not exists public.ai_usage_logs (
-  id                   uuid primary key default gen_random_uuid(),
+  id                   uuid constraint ai_usage_logs_pkey primary key default gen_random_uuid(),
   workspace_id         uuid,
-  user_id              uuid,
+  user_id              uuid constraint ai_usage_logs_user_id_fkey references auth.users(id) on delete set null,
   provider             text not null,
   model_id             text not null,
   task_type            text,
@@ -119,13 +116,11 @@ create table if not exists public.ai_usage_logs (
   endpoint             text,
   request_id           text,
   metadata             jsonb default '{}'::jsonb,
-  created_at           timestamptz not null default now()
+  created_at           timestamptz default now()
 );
 
 -- New metering columns — all NULLABLE so every existing row and every existing
--- writer (which omits them) stays valid.
--- [UNCONFIRMED] that prod has no pre-existing columns with these names; ADD
--- COLUMN IF NOT EXISTS would silently keep a differently-typed one.
+-- writer (which omits them) stays valid. None exist on prod yet (13/10/2026).
 alter table public.ai_usage_logs add column if not exists founder_id uuid;
 alter table public.ai_usage_logs
   add column if not exists provider_account_id uuid references public.provider_accounts(id) on delete set null;
@@ -158,8 +153,7 @@ grant all on public.ai_usage_logs to service_role;
 
 -- ── 3. cost_source seed ─────────────────────────────────────────────────────
 -- reachability 'key-gate': plan fees are entered from invoices/receipts, not
--- pulled with a connected token. [UNCONFIRMED] prod cost_source.reachability
--- CHECK still allows 'key-gate' (repo migration 20260714000000 does).
+-- pulled with a connected token. Allowed by prod's cost_source_reachability_check.
 insert into public.cost_source (id, name, reachability, native_currency) values
   ('ai_subscriptions', 'AI subscriptions', 'key-gate', 'AUD')
 on conflict (id) do nothing;

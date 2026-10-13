@@ -32,6 +32,8 @@ describe('ai_subscription_metering migration (text)', () => {
   const sql = executable(raw)
 
   it('widens the provider CHECK to the full pool provider set, keeping the original values', () => {
+    // Live prod name (orchestrator read-only query, 13/10/2026).
+    expect(sql).toContain('alter table public.provider_accounts drop constraint if exists provider_accounts_provider_check')
     const m = sql.match(/add constraint provider_accounts_provider_check check \( ?provider in \(([^)]*)\) ?\)/)
     expect(m, 'provider CHECK not found').not.toBeNull()
     const listed = (m?.[1] ?? '').split(',').map((s) => s.trim().replace(/'/g, ''))
