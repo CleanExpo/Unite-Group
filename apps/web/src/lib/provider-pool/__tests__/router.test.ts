@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { decideRoute, PROVIDER_PREFERENCE, type AccountRuntimeState } from '../router'
 import type { ProviderId } from '../../command-centre/provider-usage'
+import { makeSupabaseStore, loadAccounts } from '../repository'
 
 const NOW = '2026-06-21T00:00:00.000Z'
 
@@ -110,5 +111,77 @@ describe('decideRoute — spend guardrail (queue, never overspend)', () => {
       expect(whys.minimax).toContain('prepaid')
       expect(whys.openrouter).toBe('not configured')
     }
+  })
+})
+
+describe('decideRoute — routable=false accounts are never selected (UNI-2780)', () => {
+  it('skips a non-routable account and takes the next account of the same provider', () => {
+    const accounts = [
+      acct('claude', { accountId: 'claude-max-a', routable: false }),
+      acct('claude', { accountId: 'claude-api' }),
+      ...pool().filter((a) => a.provider !== 'claude'),
+    ]
+    const r = decideRoute({ kind: 'coding', accounts, now: NOW })
+    expect(r).toMatchObject({ action: 'route', provider: 'claude', accountId: 'claude-api' })
+  })
+
+  it('falls back to the next provider when the only account of a provider is non-routable', () => {
+    const r = decideRoute({ kind: 'coding', accounts: pool({ claude: { routable: false } }), now: NOW })
+    expect(r).toMatchObject({ action: 'route', provider: 'openai', fallbackUsed: true })
+  })
+
+  it('never returns a routable=false account for any lane, even via override — queues instead', () => {
+    const accounts = pool({
+      claude: { routable: false },
+      openai: { routable: false },
+      minimax: { routable: false },
+      gemini: { routable: false },
+      openrouter: { routable: false },
+    })
+    for (const kind of Object.keys(PROVIDER_PREFERENCE) as Array<keyof typeof PROVIDER_PREFERENCE>) {
+      const r = decideRoute({ kind, accounts, now: NOW })
+      expect(r.action).toBe('queue')
+    }
+    const o = decideRoute({ kind: 'coding', accounts, now: NOW, preferenceOverride: ['claude', 'openai'] })
+    expect(o.action).toBe('queue')
+  })
+
+  it('treats an absent routable flag as routable (existing rows unchanged)', () => {
+    const r = decideRoute({ kind: 'coding', accounts: pool(), now: NOW })
+    expect(r).toMatchObject({ action: 'route', provider: 'claude' })
+  })
+})
+
+describe('routable=false survives the DB → router path (UNI-2780)', () => {
+  function fakeSupabase(rows: Array<Record<string, unknown>>) {
+    const q = (data: unknown) => {
+      const chain: Record<string, unknown> = {}
+      chain.select = () => chain
+      chain.eq = () => chain
+      chain.gte = () => chain
+      chain.then = (res: (v: unknown) => unknown) => Promise.resolve({ data, error: null }).then(res)
+      return chain
+    }
+    return { from: (table: string) => q(table === 'provider_accounts' ? rows : []) }
+  }
+  const base = { vault_entry_id: 'vault-1', enabled: true, allow_metered: false, label: '' }
+  const windowed = { kind: 'windowed', caps: [{ label: '5-hour', seconds: 18000, cap: 200 }] }
+
+  it('a provider_accounts row with routable=false is never routed', async () => {
+    const store = makeSupabaseStore(fakeSupabase([
+      { ...base, id: 'seat-a', provider: 'claude', plan: windowed, routable: false },
+      { ...base, id: 'openai-1', provider: 'openai', plan: windowed, routable: true },
+    ]))
+    const accounts = await loadAccounts(store, 'founder-1', NOW, {})
+    expect(accounts.find((a) => a.accountId === 'seat-a')?.routable).toBe(false)
+    const r = decideRoute({ kind: 'coding', accounts, now: NOW })
+    expect(r).toMatchObject({ action: 'route', provider: 'openai', accountId: 'openai-1' })
+  })
+
+  it('a pre-migration row (no routable column) stays routable', async () => {
+    const store = makeSupabaseStore(fakeSupabase([{ ...base, id: 'claude-1', provider: 'claude', plan: windowed }]))
+    const accounts = await loadAccounts(store, 'founder-1', NOW, {})
+    const r = decideRoute({ kind: 'coding', accounts, now: NOW })
+    expect(r).toMatchObject({ action: 'route', provider: 'claude', accountId: 'claude-1' })
   })
 })

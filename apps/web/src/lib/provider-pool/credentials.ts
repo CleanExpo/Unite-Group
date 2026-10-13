@@ -9,6 +9,7 @@
 // (never logs or returns it anywhere it shouldn't).
 
 import type { ProviderId } from '../command-centre/provider-usage'
+import type { PoolProviderId } from './accounts'
 
 /** Env var names checked (in order) for each provider's key. */
 export const PROVIDER_ENV_CANDIDATES: Record<ProviderId, string[]> = {
@@ -21,9 +22,12 @@ export const PROVIDER_ENV_CANDIDATES: Record<ProviderId, string[]> = {
 
 type Env = Record<string, string | undefined>
 
+/** Widened view: metered-only pool providers (UNI-2780) have no env key. */
+const CANDIDATES_BY_POOL_PROVIDER: Partial<Record<PoolProviderId, string[]>> = PROVIDER_ENV_CANDIDATES
+
 /** The key value for a provider from env, or null if no candidate is set. */
-export function resolveEnvKey(provider: ProviderId, env: Env): string | null {
-  for (const name of PROVIDER_ENV_CANDIDATES[provider] ?? []) {
+export function resolveEnvKey(provider: PoolProviderId, env: Env): string | null {
+  for (const name of CANDIDATES_BY_POOL_PROVIDER[provider] ?? []) {
     const v = env[name]
     if (typeof v === 'string' && v.length > 0) return v
   }
@@ -31,6 +35,6 @@ export function resolveEnvKey(provider: ProviderId, env: Env): string | null {
 }
 
 /** Whether a provider's key is present in env (presence only — never the value). */
-export function hasEnvKey(provider: ProviderId, env: Env): boolean {
+export function hasEnvKey(provider: PoolProviderId, env: Env): boolean {
   return resolveEnvKey(provider, env) !== null
 }

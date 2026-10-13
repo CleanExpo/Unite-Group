@@ -106,6 +106,9 @@ export function makeSupabaseStore(supabase: {
         enabled: Boolean(r.enabled),
         plan: r.plan as ProviderAccountRow['plan'],
         allowMetered: Boolean(r.allow_metered),
+        // UNI-2780: only an explicit false makes an account unroutable. Before
+        // the migration the column is absent (undefined) → routable, as today.
+        ...(r.routable === false ? { routable: false } : {}),
       }))
     },
     async listRecentEvents(founderId, sinceIso) {

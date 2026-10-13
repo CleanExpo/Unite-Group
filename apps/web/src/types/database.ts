@@ -818,6 +818,12 @@ export type Database = {
       provider_accounts: {
         Row: {
           allow_metered: boolean
+          billing_kind: string
+          plan_price_aud: number | null
+          quota_limit: number | null
+          quota_unit: string | null
+          renewal_date: string | null
+          routable: boolean
           created_at: string
           enabled: boolean
           founder_id: string
@@ -830,6 +836,12 @@ export type Database = {
         }
         Insert: {
           allow_metered?: boolean
+          billing_kind?: string
+          plan_price_aud?: number | null
+          quota_limit?: number | null
+          quota_unit?: string | null
+          renewal_date?: string | null
+          routable?: boolean
           created_at?: string
           enabled?: boolean
           founder_id: string
@@ -842,6 +854,12 @@ export type Database = {
         }
         Update: {
           allow_metered?: boolean
+          billing_kind?: string
+          plan_price_aud?: number | null
+          quota_limit?: number | null
+          quota_unit?: string | null
+          renewal_date?: string | null
+          routable?: boolean
           created_at?: string
           enabled?: boolean
           founder_id?: string

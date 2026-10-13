@@ -12,10 +12,31 @@
 // which is the contract the Phase-1b migration implements. No secrets here — the
 // credential itself lives in the vault, referenced by `vaultEntryId`.
 
-import type { ProviderId } from '../command-centre/provider-usage'
 import { deriveProviderState } from '../command-centre/provider-usage'
 import { windowedPressure, prepaidPressure, nextResetAt, type QuotaEvent, type WindowCap } from './quota'
 import type { AccountRuntimeState } from './router'
+
+/**
+ * Every provider id a provider_accounts row may carry (UNI-2780). The first five
+ * are the routable API providers the cockpit knows (ProviderId); the rest are
+ * subscriptions/tools that are METERED but never routed — e.g. two Claude Max
+ * seats held by one person must each be tracked, and must never be rotated
+ * between (that would breach the subscription terms). Mirrors the DB CHECK in
+ * supabase/migrations/20261013090000_ai_subscription_metering.sql.
+ */
+export const POOL_PROVIDERS = [
+  'claude', 'openai', 'minimax', 'gemini', 'openrouter',
+  'claude_max', 'chatgpt_pro', 'cursor', 'xai', 'higgsfield', 'heygen', 'artlist', 'other',
+] as const
+export type PoolProviderId = (typeof POOL_PROVIDERS)[number]
+
+/** How an account is billed. A 'subscription' is never routable (DB CHECK). */
+export const BILLING_KINDS = ['metered', 'subscription', 'prepaid'] as const
+export type BillingKind = (typeof BILLING_KINDS)[number]
+
+/** Unit a plan's quota_limit is expressed in. FLAGGED for founder confirmation. */
+export const QUOTA_UNITS = ['tokens', 'requests', 'messages', 'credits', 'minutes', 'generations', 'usd'] as const
+export type QuotaUnit = (typeof QUOTA_UNITS)[number]
 
 /** How a plan is metered. */
 export type PlanShape =
@@ -25,7 +46,7 @@ export type PlanShape =
 /** The persisted account (DB row shape). The secret is in the vault, not here. */
 export interface ProviderAccountRow {
   accountId: string
-  provider: ProviderId
+  provider: PoolProviderId
   label: string
   /** Vault entry holding the token/key. Presence ⇒ configured. */
   vaultEntryId: string | null
@@ -33,6 +54,13 @@ export interface ProviderAccountRow {
   plan: PlanShape
   /** Opt-in to metered billing once the paid envelope is gone. Default false. */
   allowMetered?: boolean
+  /** False = metered only, never selected by the router. Absent = routable. */
+  routable?: boolean
+}
+
+/** Carry an explicit routable=false through to the router; absent stays absent. */
+function routableOf(row: ProviderAccountRow): { routable?: false } {
+  return row.routable === false ? { routable: false } : {}
 }
 
 /** Lifetime sum of usage units (for prepaid drawdown). */
@@ -56,7 +84,7 @@ export function toRuntimeState(
   const configured = row.enabled && (row.vaultEntryId !== null || credentialPresent === true)
 
   if (!configured) {
-    return { provider: row.provider, accountId: row.accountId, configured: false, state: 'blocked' }
+    return { provider: row.provider, accountId: row.accountId, configured: false, state: 'blocked', ...routableOf(row) }
   }
 
   if (row.plan.kind === 'prepaid') {
@@ -70,6 +98,7 @@ export function toRuntimeState(
       state,
       prepaidExhausted: pressure >= 1,
       allowMetered: row.allowMetered ?? false,
+      ...routableOf(row),
     }
   }
 
@@ -89,5 +118,6 @@ export function toRuntimeState(
     state,
     coolingUntil,
     allowMetered: row.allowMetered ?? false,
+    ...routableOf(row),
   }
 }

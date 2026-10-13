@@ -85,6 +85,15 @@ export async function POST(request: NextRequest) {
         enabled: true,
         plan: validated.value.plan as unknown as Json,
         allow_metered: validated.value.allowMetered,
+        // UNI-2780 — requires migration 20261013090000_ai_subscription_metering
+        // to be applied first (FOUNDER-GATED); routable is persisted explicitly
+        // so a subscription can never fall back to the column default (true).
+        billing_kind: validated.value.billingKind,
+        plan_price_aud: validated.value.planPriceAud,
+        renewal_date: validated.value.renewalDate,
+        quota_unit: validated.value.quotaUnit,
+        quota_limit: validated.value.quotaLimit,
+        routable: validated.value.routable,
       })
       .select('id')
       .single()
