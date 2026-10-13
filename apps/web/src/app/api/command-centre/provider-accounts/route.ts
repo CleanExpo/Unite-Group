@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
 import { makeSupabaseStore, loadAccounts } from '@/lib/provider-pool/repository'
 import { validateNewAccount } from '@/lib/provider-pool/registration'
-import type { Json } from '@/types/database'
+import { toAccountView } from '@/lib/provider-pool/accounts'
+import { probeMeteringColumns, buildProviderAccountInsert } from '@/lib/provider-pool/metering-schema'
 
 // Provider-account registration + live state. Founder-auth, founder-scoped.
 // Lists accounts with their live router state (metadata only — never the key,
@@ -22,20 +23,9 @@ export async function GET() {
     const [rows, states] = await Promise.all([store.listAccounts(user.id), loadAccounts(store, user.id, now)])
     const stateById = new Map(states.map((s) => [s.accountId, s]))
 
-    const accounts = rows.map((r) => {
-      const s = stateById.get(r.accountId)
-      return {
-        accountId: r.accountId,
-        provider: r.provider,
-        label: r.label,
-        planKind: r.plan.kind,
-        enabled: r.enabled,
-        state: s?.state ?? 'unknown',
-        usable: s ? s.configured && (s.state === 'available' || s.state === 'watching' || s.state === 'unknown') && !s.prepaidExhausted : false,
-        prepaidExhausted: s?.prepaidExhausted ?? false,
-        coolingUntil: s?.coolingUntil ?? null,
-      }
-    })
+    // usable = router capacity; metering-only (routable=false) accounts are
+    // reported with their billing metadata but never counted as usable.
+    const accounts = rows.map((r) => toAccountView(r, stateById.get(r.accountId)))
 
     return NextResponse.json(
       { source: 'cc:provider-accounts', generatedAt: now, total: accounts.length, accounts },
@@ -75,17 +65,16 @@ export async function POST(request: NextRequest) {
       if (!vaultEntry) return NextResponse.json({ error: 'vault entry not found for this founder' }, { status: 400 })
     }
 
+    // UNI-2780: works before AND after migration 20261013090000 is applied.
+    // Before it, legacy registrations use the legacy column set and anything
+    // needing the new columns (e.g. a subscription) is refused with 409.
+    const schema = await probeMeteringColumns(supabase)
+    const built = buildProviderAccountInsert(user.id, validated.value, schema)
+    if (!built.ok) return NextResponse.json({ error: built.error }, { status: 409 })
+
     const { data, error } = await supabase
       .from('provider_accounts')
-      .insert({
-        founder_id: user.id,
-        provider: validated.value.provider,
-        label: validated.value.label,
-        vault_entry_id: validated.value.vaultEntryId,
-        enabled: true,
-        plan: validated.value.plan as unknown as Json,
-        allow_metered: validated.value.allowMetered,
-      })
+      .insert(built.row)
       .select('id')
       .single()
     if (error) return NextResponse.json({ error: sanitiseError(error, 'create failed', { route: '/api/command-centre/provider-accounts' }) }, { status: 500 })

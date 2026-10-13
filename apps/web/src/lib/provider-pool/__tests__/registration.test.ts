@@ -60,3 +60,76 @@ describe('validateNewAccount', () => {
     expect(validateNewAccount('x').ok).toBe(false)
   })
 })
+
+describe('validateNewAccount — subscription metering (UNI-2780)', () => {
+  it('accepts every widened provider id', () => {
+    for (const provider of ['claude_max', 'chatgpt_pro', 'cursor', 'xai', 'higgsfield', 'heygen', 'artlist', 'other']) {
+      const r = validateNewAccount({ provider, label: `${provider} seat` })
+      expect(r.ok, provider).toBe(true)
+    }
+  })
+
+  it('forces routable=false for a subscription account', () => {
+    const r = validateNewAccount({ provider: 'cursor', label: 'Cursor $200', billingKind: 'subscription', planPriceAud: 200 })
+    expect(r.ok).toBe(true)
+    if (r.ok) {
+      expect(r.value.billingKind).toBe('subscription')
+      expect(r.value.routable).toBe(false)
+      expect(r.value.planPriceAud).toBe(200)
+    }
+  })
+
+  it('rejects subscription + routable=true', () => {
+    const r = validateNewAccount({ provider: 'cursor', label: 'Cursor', billingKind: 'subscription', routable: true })
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.error).toMatch(/routable/)
+  })
+
+  it('defaults Claude Max and ChatGPT Pro to a non-routable subscription and refuses any other billing kind', () => {
+    for (const provider of ['claude_max', 'chatgpt_pro']) {
+      const r = validateNewAccount({ provider, label: 'seat' })
+      expect(r.ok).toBe(true)
+      if (r.ok) {
+        expect(r.value.billingKind).toBe('subscription')
+        expect(r.value.routable).toBe(false)
+      }
+      expect(validateNewAccount({ provider, label: 'seat', billingKind: 'metered' }).ok).toBe(false)
+      expect(validateNewAccount({ provider, label: 'seat', billingKind: 'metered', routable: true }).ok).toBe(false)
+    }
+  })
+
+  it('keeps two Claude Max seats as distinct, non-routable registrations', () => {
+    const a = validateNewAccount({ provider: 'claude_max', label: 'Claude Max — seat A' })
+    const b = validateNewAccount({ provider: 'claude_max', label: 'Claude Max — seat B' })
+    expect(a.ok && b.ok).toBe(true)
+    if (a.ok && b.ok) {
+      expect(a.value.label).not.toBe(b.value.label)
+      expect([a.value.routable, b.value.routable]).toEqual([false, false])
+    }
+  })
+
+  it('rejects a negative or non-numeric plan price', () => {
+    for (const planPriceAud of [-1, '60', Number.POSITIVE_INFINITY]) {
+      const r = validateNewAccount({ provider: 'cursor', label: 'c', planPriceAud })
+      expect(r.ok).toBe(false)
+      if (!r.ok) expect(r.error).toMatch(/planPriceAud/)
+    }
+  })
+
+  it('validates billingKind, renewalDate, quotaUnit and quotaLimit', () => {
+    expect(validateNewAccount({ provider: 'xai', label: 'x', billingKind: 'free' }).ok).toBe(false)
+    expect(validateNewAccount({ provider: 'xai', label: 'x', renewalDate: '13/10/2026' }).ok).toBe(false)
+    expect(validateNewAccount({ provider: 'xai', label: 'x', renewalDate: '2026-02-30' }).ok).toBe(false)
+    expect(validateNewAccount({ provider: 'xai', label: 'x', quotaUnit: 'bananas' }).ok).toBe(false)
+    expect(validateNewAccount({ provider: 'xai', label: 'x', quotaLimit: -3 }).ok).toBe(false)
+    const ok = validateNewAccount({ provider: 'heygen', label: 'HeyGen', billingKind: 'subscription', renewalDate: '2026-11-01', quotaUnit: 'credits', quotaLimit: 600 })
+    expect(ok.ok).toBe(true)
+    if (ok.ok) expect(ok.value).toMatchObject({ renewalDate: '2026-11-01', quotaUnit: 'credits', quotaLimit: 600, routable: false })
+  })
+
+  it('leaves existing metered registrations routable with billingKind metered', () => {
+    const r = validateNewAccount({ provider: 'minimax', label: 'MiniMax' })
+    expect(r.ok).toBe(true)
+    if (r.ok) expect(r.value).toMatchObject({ billingKind: 'metered', routable: true, planPriceAud: null })
+  })
+})

@@ -106,6 +106,14 @@ export function makeSupabaseStore(supabase: {
         enabled: Boolean(r.enabled),
         plan: r.plan as ProviderAccountRow['plan'],
         allowMetered: Boolean(r.allow_metered),
+        // UNI-2780: only an explicit false makes an account unroutable. Before
+        // the migration the column is absent (undefined) → routable, as today.
+        ...(r.routable === false ? { routable: false } : {}),
+        ...(typeof r.billing_kind === 'string' ? { billingKind: r.billing_kind as ProviderAccountRow['billingKind'] } : {}),
+        ...(r.plan_price_aud != null ? { planPriceAud: Number(r.plan_price_aud) } : {}),
+        ...(r.renewal_date != null ? { renewalDate: String(r.renewal_date) } : {}),
+        ...(r.quota_unit != null ? { quotaUnit: r.quota_unit as ProviderAccountRow['quotaUnit'] } : {}),
+        ...(r.quota_limit != null ? { quotaLimit: Number(r.quota_limit) } : {}),
       }))
     },
     async listRecentEvents(founderId, sinceIso) {

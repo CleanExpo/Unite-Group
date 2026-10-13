@@ -1,5 +1,8 @@
 /**
- * Records one Anthropic call's measured token usage to `public.ai_usage_logs`.
+ * Records one AI call's measured token usage to `public.ai_usage_logs`.
+ * Defaults to provider 'anthropic' with a computed price; UNI-2780 callers may
+ * attribute the row to another provider / provider account and pass the
+ * provider-reported cost.
  *
  * WHY THIS TABLE. `ai_usage_logs` already existed, purpose-built for exactly
  * this (cost_usd, cost_per_input_mtok, cost_per_output_mtok, request_id,
@@ -20,6 +23,9 @@
  */
 
 import { priceUsage } from './pricing';
+
+/** Where a usage row came from. Mirrors the ai_usage_logs.source CHECK (UNI-2780). */
+export type UsageSource = 'sdk' | 'cli_claude' | 'cli_codex' | 'cli_cursor' | 'swarm' | 'manual';
 
 export interface RecordUsageInput {
   /** Capability id (router) or route id (direct callers) — the attribution matchKey. */
@@ -42,6 +48,22 @@ export interface RecordUsageInput {
   success?: boolean;
   /** Extra context for the ledger (e.g. { business: 'dr' }). */
   metadata?: Record<string, unknown>;
+
+  // ── UNI-2780 subscription metering. All optional; when absent the row is
+  // byte-identical to the pre-UNI-2780 shape (no new columns are written), so
+  // existing callers keep working against a database without the migration.
+  /** Provider label for the row. Default 'anthropic'. */
+  provider?: string;
+  /** provider_accounts.id this call was billed to (e.g. one specific Claude Max seat). */
+  providerAccountId?: string | null;
+  founderId?: string | null;
+  source?: UsageSource;
+  project?: string | null;
+  /**
+   * Cost the provider itself reported (USD). When present and a finite number
+   * >= 0 it wins over the computed price, which only knows Anthropic rates.
+   */
+  reportedCostUsd?: number | null;
 }
 
 /**
@@ -53,8 +75,21 @@ export interface RecordUsageInput {
  */
 export async function recordAiUsage(input: RecordUsageInput): Promise<void> {
   try {
-    const priced = priceUsage(input);
-    if (!priced) {
+    const provider = input.provider ?? 'anthropic';
+    const reported =
+      typeof input.reportedCostUsd === 'number' &&
+      Number.isFinite(input.reportedCostUsd) &&
+      input.reportedCostUsd >= 0
+        ? input.reportedCostUsd
+        : null;
+    if (input.reportedCostUsd != null && reported === null) {
+      console.warn(`[ai/usage] ignoring invalid reportedCostUsd for '${input.taskType}'`);
+    }
+    // pricing.ts holds Anthropic rates only — applying them to another
+    // provider's model would fabricate a cost. Non-Anthropic rows are priced
+    // only by a reported cost; otherwise they are flagged unpriced.
+    const priced = provider === 'anthropic' ? priceUsage(input) : null;
+    if (!priced && reported === null) {
       console.warn(
         `[ai/usage] no rate for model '${input.model}' — recording tokens with cost_usd 0 and flagging`,
       );
@@ -71,13 +106,13 @@ export async function recordAiUsage(input: RecordUsageInput): Promise<void> {
     // nullable, so omitting it produces an identical row while keeping the
     // retired tenancy column out of new code entirely.
     const { error } = await db.from('ai_usage_logs').insert({
-      provider: 'anthropic',
+      provider,
       model_id: input.model,
       task_type: input.taskType,
       tokens_input: input.inputTokens,
       tokens_output: input.outputTokens,
       tokens_cached: input.cacheReadTokens ?? 0,
-      cost_usd: priced?.costUsd ?? 0,
+      cost_usd: reported ?? priced?.costUsd ?? 0,
       cost_per_input_mtok: priced?.inputPerMTok ?? null,
       cost_per_output_mtok: priced?.outputPerMTok ?? null,
       request_id: input.requestId ?? null,
@@ -90,8 +125,14 @@ export async function recordAiUsage(input: RecordUsageInput): Promise<void> {
         // (1.25x) from a 1-hour write (2x), which the priced total assumes away.
         ...(input.cacheReadTokens ? { cache_read_tokens: input.cacheReadTokens } : {}),
         ...(input.cacheWriteTokens ? { cache_write_tokens: input.cacheWriteTokens } : {}),
-        ...(priced ? {} : { unpriced_model: input.model }),
+        ...(reported !== null ? { cost_basis: 'reported' } : {}),
+        ...(priced || reported !== null ? {} : { unpriced_model: input.model }),
       },
+      // New columns only when supplied (see RecordUsageInput).
+      ...(input.providerAccountId != null ? { provider_account_id: input.providerAccountId } : {}),
+      ...(input.founderId != null ? { founder_id: input.founderId } : {}),
+      ...(input.source !== undefined ? { source: input.source } : {}),
+      ...(input.project != null ? { project: input.project } : {}),
     });
 
     if (error) {

@@ -14,6 +14,7 @@
 // answer to "use the plans I've paid for, don't burn API credits".
 
 import type { ProviderId, ProviderState } from '../command-centre/provider-usage'
+import type { PoolProviderId } from './accounts'
 
 /** The kind of work being routed. Maps to a provider-preference order below. */
 export type WorkKind =
@@ -28,7 +29,7 @@ export type WorkKind =
 
 /** Live state of one provider account, as the router sees it. */
 export interface AccountRuntimeState {
-  provider: ProviderId
+  provider: PoolProviderId
   /** Stable id (e.g. the provider_accounts row id). */
   accountId: string
   /** Whether a credential is present + the account is enabled. */
@@ -41,6 +42,11 @@ export interface AccountRuntimeState {
   prepaidExhausted?: boolean
   /** Opt-in to metered billing once the paid envelope is gone. Default false. */
   allowMetered?: boolean
+  /**
+   * False = metered only; the router must never select this account (UNI-2780 —
+   * e.g. a Claude Max seat). Absent/true = routable, so existing rows are unchanged.
+   */
+  routable?: boolean
 }
 
 export type RouteDecision =
@@ -104,9 +110,13 @@ export function decideRoute(input: RouteInput): RouteDecision {
     ? input.preferenceOverride
     : PROVIDER_PREFERENCE[input.kind]
 
-  const byProvider = new Map<ProviderId, AccountRuntimeState>()
+  const byProvider = new Map<PoolProviderId, AccountRuntimeState>()
   for (const a of input.accounts) {
-    // First account per provider wins (single-account design); deterministic.
+    // Non-routable accounts are invisible to routing — dropped BEFORE the
+    // first-account pick so they can neither be chosen nor shadow a routable
+    // account of the same provider. Subscriptions are metered, never rotated.
+    if (a.routable === false) continue
+    // First routable account per provider wins (single-account design); deterministic.
     if (!byProvider.has(a.provider)) byProvider.set(a.provider, a)
   }
 
