@@ -56,6 +56,54 @@ export interface ProviderAccountRow {
   allowMetered?: boolean
   /** False = metered only, never selected by the router. Absent = routable. */
   routable?: boolean
+  /** Billing metadata (UNI-2780). Absent on rows read before the migration. */
+  billingKind?: BillingKind
+  planPriceAud?: number | null
+  renewalDate?: string | null
+  quotaUnit?: QuotaUnit | null
+  quotaLimit?: number | null
+}
+
+/** The account as the provider-accounts API presents it (metadata only, no secrets). */
+export interface AccountView {
+  accountId: string
+  provider: PoolProviderId
+  label: string
+  planKind: PlanShape['kind']
+  enabled: boolean
+  state: AccountRuntimeState['state']
+  /** True only when the ROUTER could pick this account now. Never true for metering-only accounts. */
+  usable: boolean
+  routable: boolean
+  /** Subscription seats etc.: tracked for cost, never routed. */
+  meteringOnly: boolean
+  billingKind: BillingKind
+  planPriceAud: number | null
+  renewalDate: string | null
+  prepaidExhausted: boolean
+  coolingUntil: string | null
+}
+
+/** Present one account + its live state. Pure. */
+export function toAccountView(row: ProviderAccountRow, s: AccountRuntimeState | undefined): AccountView {
+  const routable = row.routable !== false
+  return {
+    accountId: row.accountId,
+    provider: row.provider,
+    label: row.label,
+    planKind: row.plan.kind,
+    enabled: row.enabled,
+    state: s?.state ?? 'unknown',
+    usable: routable && s !== undefined && s.routable !== false && s.configured
+      && (s.state === 'available' || s.state === 'watching' || s.state === 'unknown') && !s.prepaidExhausted,
+    routable,
+    meteringOnly: !routable,
+    billingKind: row.billingKind ?? 'metered',
+    planPriceAud: row.planPriceAud ?? null,
+    renewalDate: row.renewalDate ?? null,
+    prepaidExhausted: s?.prepaidExhausted ?? false,
+    coolingUntil: s?.coolingUntil ?? null,
+  }
 }
 
 /** Carry an explicit routable=false through to the router; absent stays absent. */

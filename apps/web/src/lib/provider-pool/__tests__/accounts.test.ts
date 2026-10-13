@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { toRuntimeState, totalSpent, type ProviderAccountRow } from '../accounts'
+import { toRuntimeState, totalSpent, toAccountView, type ProviderAccountRow } from '../accounts'
 import { WINDOW, type QuotaEvent } from '../quota'
 
 const NOW = '2026-06-21T10:00:00.000Z'
@@ -91,5 +91,30 @@ describe('toRuntimeState — prepaid', () => {
     const r = toRuntimeState({ ...minimaxRow, allowMetered: true }, [{ at: NOW, units: 1000 }], NOW)
     expect(r.allowMetered).toBe(true)
     expect(r.prepaidExhausted).toBe(true)
+  })
+})
+
+describe('toAccountView — API presentation of metering-only accounts (UNI-2780)', () => {
+  const live = { configured: true, state: 'available' as const }
+  const maxSeat: ProviderAccountRow = {
+    accountId: 'seat-a', provider: 'claude_max', label: 'Claude Max — seat A', vaultEntryId: 'v', enabled: true,
+    plan: { kind: 'windowed', caps: [] }, routable: false, billingKind: 'subscription', planPriceAud: 320, renewalDate: '2026-11-01',
+  }
+
+  it('never advertises a routable=false account as usable, even when configured and available', () => {
+    const v = toAccountView(maxSeat, { provider: 'claude_max', accountId: 'seat-a', routable: false, ...live })
+    expect(v.usable).toBe(false)
+    expect(v.routable).toBe(false)
+    expect(v.meteringOnly).toBe(true)
+    expect(v).toMatchObject({ billingKind: 'subscription', planPriceAud: 320, renewalDate: '2026-11-01' })
+  })
+
+  it('keeps an existing routable account usable and reports legacy defaults', () => {
+    const v = toAccountView(claudeRow, { provider: 'claude', accountId: claudeRow.accountId, ...live })
+    expect(v).toMatchObject({ usable: true, routable: true, meteringOnly: false, billingKind: 'metered', planPriceAud: null })
+  })
+
+  it('is not usable without a runtime state', () => {
+    expect(toAccountView(claudeRow, undefined).usable).toBe(false)
   })
 })

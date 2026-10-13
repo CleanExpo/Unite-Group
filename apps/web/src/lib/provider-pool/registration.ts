@@ -21,7 +21,9 @@ export function defaultPlanFor(provider: PoolProviderId): PlanShape {
   switch (provider) {
     case 'claude':
     case 'claude_max':
-      // Max subscription: 5-hour rolling + weekly. Estimates in run units.
+      // 'claude' = an Anthropic API-key account; 'claude_max' = a Max seat
+      // (metered only, never routed). Both get 5-hour rolling + weekly window
+      // estimates in run units.
       return { kind: 'windowed', caps: [
         { label: '5-hour', seconds: WINDOW.fiveHour, cap: 200 },
         { label: 'weekly', seconds: WINDOW.weekly, cap: 2000 },
@@ -135,6 +137,11 @@ export function validateNewAccount(input: unknown): ValidationResult {
   if (v.plan !== undefined && !isPlanShape(v.plan)) return { ok: false, error: 'plan is malformed' }
 
   // ── billing / subscription metering (UNI-2780) ──
+  // INTENDED: legacy 'claude' stays metered + routable by default — it is the
+  // Anthropic API-key provider, which the router may use. A Claude Max seat
+  // must be registered as 'claude_max', which can only be a non-routable
+  // subscription. Existing rows are not reclassified from their label; the
+  // founder classifies the two real Max seats (FLAGGED for founder action).
   let billingKind: BillingKind = SUBSCRIPTION_ONLY.has(provider) ? 'subscription' : 'metered'
   if (v.billingKind !== undefined && v.billingKind !== null) {
     if (typeof v.billingKind !== 'string' || !(BILLING_KINDS as readonly string[]).includes(v.billingKind)) {

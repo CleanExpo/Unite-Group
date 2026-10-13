@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
 import { makeSupabaseStore, loadAccounts } from '@/lib/provider-pool/repository'
 import { validateNewAccount } from '@/lib/provider-pool/registration'
+import { toAccountView } from '@/lib/provider-pool/accounts'
 import type { Json } from '@/types/database'
 
 // Provider-account registration + live state. Founder-auth, founder-scoped.
@@ -22,20 +23,9 @@ export async function GET() {
     const [rows, states] = await Promise.all([store.listAccounts(user.id), loadAccounts(store, user.id, now)])
     const stateById = new Map(states.map((s) => [s.accountId, s]))
 
-    const accounts = rows.map((r) => {
-      const s = stateById.get(r.accountId)
-      return {
-        accountId: r.accountId,
-        provider: r.provider,
-        label: r.label,
-        planKind: r.plan.kind,
-        enabled: r.enabled,
-        state: s?.state ?? 'unknown',
-        usable: s ? s.configured && (s.state === 'available' || s.state === 'watching' || s.state === 'unknown') && !s.prepaidExhausted : false,
-        prepaidExhausted: s?.prepaidExhausted ?? false,
-        coolingUntil: s?.coolingUntil ?? null,
-      }
-    })
+    // usable = router capacity; metering-only (routable=false) accounts are
+    // reported with their billing metadata but never counted as usable.
+    const accounts = rows.map((r) => toAccountView(r, stateById.get(r.accountId)))
 
     return NextResponse.json(
       { source: 'cc:provider-accounts', generatedAt: now, total: accounts.length, accounts },

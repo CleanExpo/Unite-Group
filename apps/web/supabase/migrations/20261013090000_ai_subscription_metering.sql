@@ -56,6 +56,23 @@ alter table public.provider_accounts add column if not exists quota_unit text;
 alter table public.provider_accounts add column if not exists quota_limit numeric;
 alter table public.provider_accounts add column if not exists routable boolean not null default true;
 
+-- Drift guard: ADD COLUMN IF NOT EXISTS does not repair a pre-existing column.
+-- A NULL billing_kind/routable would slip past the subscription CHECKs below
+-- (SQL UNKNOWN passes a CHECK), so backfill — only ever in the SAFE direction —
+-- then force the defaults and NOT NULL. On prod (neither column exists yet)
+-- the updates match no rows and the ALTERs restate what ADD COLUMN set.
+update public.provider_accounts
+  set billing_kind = case when provider in ('claude_max', 'chatgpt_pro') then 'subscription' else 'metered' end
+  where billing_kind is null;
+update public.provider_accounts
+  set routable = false
+  where billing_kind = 'subscription' and routable is distinct from false;
+update public.provider_accounts set routable = true where routable is null;
+alter table public.provider_accounts alter column billing_kind set default 'metered';
+alter table public.provider_accounts alter column billing_kind set not null;
+alter table public.provider_accounts alter column routable set default true;
+alter table public.provider_accounts alter column routable set not null;
+
 alter table public.provider_accounts drop constraint if exists provider_accounts_billing_kind_check;
 alter table public.provider_accounts
   add constraint provider_accounts_billing_kind_check check (billing_kind in ('metered', 'subscription', 'prepaid'));
@@ -148,6 +165,22 @@ drop policy if exists ai_usage_logs_founder_select on public.ai_usage_logs;
 create policy ai_usage_logs_founder_select on public.ai_usage_logs
   for select using (founder_id = auth.uid());
 
+-- Founder isolation that survives ANY pre-existing permissive policy: a
+-- RESTRICTIVE policy is ANDed with every permissive one, so no broader legacy
+-- policy (prod inventory not read) can admit another founder's row. Rows with
+-- founder_id NULL become invisible to anon/authenticated; every current reader
+-- of ai_usage_logs uses the service role (bypasses RLS), so nothing loses data.
+drop policy if exists ai_usage_logs_founder_restrict on public.ai_usage_logs;
+create policy ai_usage_logs_founder_restrict on public.ai_usage_logs
+  as restrictive for all using (founder_id = auth.uid()) with check (founder_id = auth.uid());
+
+drop policy if exists provider_accounts_founder_restrict on public.provider_accounts;
+create policy provider_accounts_founder_restrict on public.provider_accounts
+  as restrictive for all using (founder_id = auth.uid()) with check (founder_id = auth.uid());
+
+-- Grants are intentionally NOT reverted by the rollback: Supabase's default
+-- privileges already grant these on public tables, so a REVOKE could strip
+-- grants prod had before this migration (prod grant inventory not read).
 grant select on public.ai_usage_logs to authenticated;
 grant all on public.ai_usage_logs to service_role;
 
@@ -162,11 +195,18 @@ on conflict (id) do nothing;
 -- Run as one transaction. Restoring the original provider CHECK FAILS if any
 -- row now uses a widened provider value — delete/migrate those rows first
 -- (a founder decision; they are real subscription records).
+-- The 'ai_subscriptions' seed is deleted only when nothing references it
+-- (cost_record, raw_cost_event, allocation_rule — every FK to cost_source in
+-- 20260714000000); a referenced seed is PRESERVED and the rollback still
+-- completes. Grants added above are deliberately left in place (see note).
 --
 -- begin;
 -- delete from public.cost_source where id = 'ai_subscriptions'
 --   and not exists (select 1 from public.cost_record where cost_source_id = 'ai_subscriptions')
---   and not exists (select 1 from public.raw_cost_event where cost_source_id = 'ai_subscriptions');
+--   and not exists (select 1 from public.raw_cost_event where cost_source_id = 'ai_subscriptions')
+--   and not exists (select 1 from public.allocation_rule where cost_source_id = 'ai_subscriptions');
+-- drop policy if exists provider_accounts_founder_restrict on public.provider_accounts;
+-- drop policy if exists ai_usage_logs_founder_restrict on public.ai_usage_logs;
 -- drop policy if exists ai_usage_logs_founder_select on public.ai_usage_logs;
 -- drop index if exists public.ai_usage_logs_provider_account_idx;
 -- drop index if exists public.ai_usage_logs_founder_created_idx;

@@ -33,7 +33,8 @@ done
 [ "$ready" = 0 ] || { echo "PG_NOT_READY"; exit 3; }
 sleep 1
 
-q() { docker exec -i "$NAME" psql -X -v ON_ERROR_STOP=1 -U postgres -q "$@"; }
+# DB selects the database (default 'postgres'); the drift scenario uses its own.
+q() { docker exec -i "$NAME" psql -X -v ON_ERROR_STOP=1 -U postgres -d "${DB:-postgres}" -q "$@"; }
 FAILS=0
 pass() { echo "PASS  $1"; }
 fail() { echo "FAIL  $1"; FAILS=$((FAILS + 1)); }
@@ -60,11 +61,15 @@ expect_eq() {
 
 echo "image: $IMAGE ($(docker exec "$NAME" postgres --version))"
 
-# ── Supabase stubs ────────────────────────────────────────────────────────────
-q <<'SQL' || { echo "STUB_FAIL"; exit 1; }
+# ── Supabase stubs (roles are cluster-wide; the rest is per database) ────────
+q <<'SQL' || { echo "ROLES_FAIL"; exit 1; }
 create role anon nologin;
 create role authenticated nologin;
 create role service_role nologin bypassrls;
+SQL
+
+prestate() {
+q <<'SQL' || return 1
 create schema auth;
 create table auth.users (id uuid primary key);
 create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
@@ -74,10 +79,9 @@ grant usage on schema public to anon, authenticated, service_role;
 -- Supabase's default privileges on public tables
 alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
 SQL
-
 # ── PRE-STATE (prod as read 13/10/2026) ──────────────────────────────────────
-q <"$POOL" || { echo "PRESTATE_POOL_FAIL"; exit 1; }
-q <<'SQL' || { echo "PRESTATE_FAIL"; exit 1; }
+q <"$POOL" || return 1
+q <<'SQL' || return 1
 -- prod: provider_accounts RLS enabled AND forced
 alter table public.provider_accounts force row level security;
 
@@ -121,6 +125,13 @@ create table public.cost_source (
 );
 create table public.raw_cost_event (id uuid primary key default gen_random_uuid(), cost_source_id text not null references public.cost_source(id));
 create table public.cost_record (id uuid primary key default gen_random_uuid(), cost_source_id text not null references public.cost_source(id));
+create table public.allocation_rule (id uuid primary key default gen_random_uuid(), cost_source_id text not null references public.cost_source(id), match_key text not null);
+
+-- WORST-CASE policy drift: prod's full policy inventory was not read, so assume
+-- a broad legacy permissive SELECT exists on both tables. Founder isolation
+-- must hold anyway (restrictive policies in the migration).
+create policy legacy_select_all on public.ai_usage_logs for select using (true);
+create policy legacy_select_all on public.provider_accounts for select using (true);
 alter table public.cost_source enable row level security;
 alter table public.cost_source force row level security;
 insert into public.cost_source (id, name, reachability, native_currency) values
@@ -132,6 +143,8 @@ insert into public.cost_source (id, name, reachability, native_currency) values
 
 insert into auth.users values ('00000000-0000-0000-0000-00000000000a'), ('00000000-0000-0000-0000-00000000000b');
 SQL
+}
+prestate || { echo "PRESTATE_FAIL"; exit 1; }
 
 FINGERPRINT_SQL="
 select 'col|'||table_name||'|'||column_name||'|'||data_type||'|'||coalesce(numeric_precision::text,'')||','||coalesce(numeric_scale::text,'')||'|'||is_nullable||'|'||coalesce(column_default,'')
@@ -161,6 +174,12 @@ expect_reject "A3 subscription + routable=true rejected" provider_accounts_subsc
   "insert into public.provider_accounts (founder_id, provider, label, billing_kind, routable) values ('$A','cursor','Cursor \$60','subscription',true);"
 expect_reject "A3b subscription relying on routable default (true) rejected" provider_accounts_subscription_unroutable \
   "insert into public.provider_accounts (founder_id, provider, label, billing_kind) values ('$A','heygen','HeyGen','subscription');"
+expect_reject "A3c claude_max with billing_kind NULL rejected (NOT NULL)" 'null value in column "billing_kind"' \
+  "insert into public.provider_accounts (founder_id, provider, label, billing_kind, routable) values ('$A','claude_max','Claude Max A',null,true);"
+expect_reject "A3d routable NULL rejected (NOT NULL)" 'null value in column "routable"' \
+  "insert into public.provider_accounts (founder_id, provider, label, billing_kind, routable) values ('$A','cursor','Cursor','subscription',null);"
+expect_eq "A3e billing_kind and routable are NOT NULL with defaults metered/true" "billing_kind|NO|'metered'::text routable|NO|true" \
+  "select string_agg(column_name||'|'||is_nullable||'|'||column_default, ' ' order by column_name) from information_schema.columns where table_schema='public' and table_name='provider_accounts' and column_name in ('billing_kind','routable');"
 expect_reject "A4 claude_max with billing_kind metered rejected" provider_accounts_subscription_only_providers \
   "insert into public.provider_accounts (founder_id, provider, label, billing_kind, routable) values ('$A','claude_max','Claude Max A','metered',false);"
 expect_reject "A4b chatgpt_pro with billing_kind prepaid rejected" provider_accounts_subscription_only_providers \
@@ -211,6 +230,18 @@ expect_eq "A10c authenticated founder B sees only B's ai_usage_logs rows" "2" \
   "set role authenticated; set request.jwt.claim.sub = '$B'; select count(*) from public.ai_usage_logs;"
 expect_reject "A10d authenticated cannot insert into ai_usage_logs (no write policy)" "row-level security" \
   "set role authenticated; set request.jwt.claim.sub = '$A'; insert into public.ai_usage_logs (provider, model_id, founder_id) values ('x','m','$A');"
+expect_eq "A10e the broad legacy permissive SELECT policies are present (A10b/c/g are not vacuous)" "2" \
+  "select count(*) from pg_policies where schemaname='public' and policyname='legacy_select_all' and permissive='PERMISSIVE';"
+expect_ok "A10f seed one provider_accounts row for founder B" \
+  "insert into public.provider_accounts (id, founder_id, provider, label) values ('20000000-0000-0000-0000-0000000000b1','$B','openai','B api');"
+expect_eq "A10g founder A cannot read founder B's provider_accounts or ai_usage_logs rows via any policy" "0|0" \
+  "set role authenticated; set request.jwt.claim.sub = '$A'; select (select count(*) from public.provider_accounts where founder_id='$B')||'|'||(select count(*) from public.ai_usage_logs where founder_id is distinct from '$A');"
+expect_eq "A10h founder B sees exactly its own provider_accounts row" "1" \
+  "set role authenticated; set request.jwt.claim.sub = '$B'; select count(*) from public.provider_accounts;"
+expect_ok "A10i founder-session insert into provider_accounts (the POST path) still works" \
+  "set role authenticated; set request.jwt.claim.sub = '$A'; insert into public.provider_accounts (founder_id, provider, label, billing_kind, routable) values ('$A','heygen','HeyGen','subscription',false);"
+expect_reject "A10j founder A cannot insert a provider_accounts row for founder B" "row-level security" \
+  "set role authenticated; set request.jwt.claim.sub = '$A'; insert into public.provider_accounts (founder_id, provider, label) values ('$B','openai','x');"
 
 # ── seed ─────────────────────────────────────────────────────────────────────
 expect_eq "A11 cost_source 'ai_subscriptions' present exactly once after two applies" "1|key-gate|AUD" \
@@ -229,6 +260,39 @@ printf '%s\n' "$ROLLBACK_SQL" | q >"$ERR" 2>&1; rc=$?
 POST="$(printf '%s\n' "$FINGERPRINT_SQL" | q -tA)"
 if [ "$PRE" = "$POST" ]; then pass "A12c schema/RLS/grant/seed fingerprint identical to pre-state ($(printf '%s\n' "$PRE" | wc -l | tr -d ' ') lines)"
 else fail "A12c fingerprint differs after rollback:"; diff <(printf '%s\n' "$PRE") <(printf '%s\n' "$POST"); fi
+
+# ── DRIFT scenario (separate database) ───────────────────────────────────────
+# Not the prod state: billing_kind/routable pre-exist as NULLABLE columns with
+# unsafe rows. The migration must close the NULL hole in the safe direction.
+q -c "create database drift" >/dev/null 2>&1 || fail "D0 create drift database"
+DB=drift
+prestate || fail "D0 drift pre-state"
+expect_ok "D1 drift setup: nullable billing_kind/routable with a claude_max NULL/true row" \
+  "alter table public.provider_accounts add column billing_kind text; alter table public.provider_accounts add column routable boolean;
+   insert into public.provider_accounts (id, founder_id, provider, label, billing_kind, routable) values
+     ('30000000-0000-0000-0000-000000000001','$A','claude','api',null,null),
+     ('30000000-0000-0000-0000-000000000002','$A','openai','api',null,true);"
+q -c "alter table public.provider_accounts drop constraint provider_accounts_provider_check" >/dev/null 2>&1
+expect_ok "D1b drift row: claude_max with billing_kind NULL, routable true" \
+  "insert into public.provider_accounts (id, founder_id, provider, label, billing_kind, routable) values ('30000000-0000-0000-0000-000000000003','$A','claude_max','seat',null,true);"
+q <"$MIG" >"$ERR" 2>&1; rc=$?
+[ "$rc" -eq 0 ] && pass "D2 migration applies over the drifted columns (psql exit 0)" || fail "D2 migration over drift (psql exit $rc): $(tr '\n' ' ' <"$ERR")"
+expect_eq "D3 drifted rows backfilled in the safe direction" "claude|metered|true claude_max|subscription|false openai|metered|true" \
+  "select string_agg(provider||'|'||billing_kind||'|'||routable, ' ' order by provider) from public.provider_accounts where id::text like '30000000%';"
+expect_eq "D4 drifted columns are now NOT NULL" "NO NO" \
+  "select string_agg(is_nullable, ' ') from information_schema.columns where table_schema='public' and table_name='provider_accounts' and column_name in ('billing_kind','routable');"
+expect_reject "D5 claude_max NULL/true can no longer be inserted" 'null value in column "billing_kind"' \
+  "insert into public.provider_accounts (founder_id, provider, label, billing_kind, routable) values ('$A','claude_max','seat2',null,true);"
+
+# ── ROLLBACK with a referenced seed (allocation_rule) ────────────────────────
+expect_ok "D6 allocation_rule references the ai_subscriptions seed; widened rows removed (precondition)" \
+  "insert into public.allocation_rule (cost_source_id, match_key) values ('ai_subscriptions','claude_max:*');
+   delete from public.provider_accounts where provider not in ('claude','openai','minimax','gemini','openrouter');"
+printf '%s\n' "$ROLLBACK_SQL" | q >"$ERR" 2>&1; rc=$?
+[ "$rc" -eq 0 ] && pass "D7 rollback completes despite the referenced seed (psql exit 0)" || fail "D7 rollback with referenced seed (psql exit $rc): $(tr '\n' ' ' <"$ERR")"
+expect_eq "D8 referenced seed preserved; subscription columns and restrictive policies removed" "1|0|0" \
+  "select (select count(*) from public.cost_source where id='ai_subscriptions')||'|'||(select count(*) from information_schema.columns where table_schema='public' and table_name='provider_accounts' and column_name in ('plan_price_aud','renewal_date','quota_unit','quota_limit'))||'|'||(select count(*) from pg_policies where policyname like '%founder_restrict');"
+DB=postgres
 
 rm -f "$ERR"
 echo "---"

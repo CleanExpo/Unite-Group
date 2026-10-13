@@ -48,6 +48,14 @@ describe('ai_subscription_metering migration (text)', () => {
     expect(sql).toMatch(/billing_kind in \('metered', ?'subscription', ?'prepaid'\)/)
     expect(sql).toMatch(/add column if not exists plan_price_aud numeric\(10, ?2\)/)
     expect(sql).toMatch(/plan_price_aud is null or plan_price_aud >= 0/)
+    // A pre-existing nullable column must not let NULL slip past the CHECKs.
+    expect(sql).toContain('alter table public.provider_accounts alter column billing_kind set not null')
+    expect(sql).toContain('alter table public.provider_accounts alter column routable set not null')
+  })
+
+  it('adds restrictive founder policies so no legacy permissive policy can leak rows', () => {
+    expect(sql).toMatch(/create policy ai_usage_logs_founder_restrict on public\.ai_usage_logs as restrictive for all using \(founder_id = auth\.uid\(\)\) with check \(founder_id = auth\.uid\(\)\)/)
+    expect(sql).toMatch(/create policy provider_accounts_founder_restrict on public\.provider_accounts as restrictive for all using \(founder_id = auth\.uid\(\)\) with check \(founder_id = auth\.uid\(\)\)/)
   })
 
   it('creates/extends ai_usage_logs additively with founder scoping, account FK and source CHECK', () => {
