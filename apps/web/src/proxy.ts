@@ -62,14 +62,22 @@ const PUBLIC_PATHS = [
   '/api/leads',    // Public website lead capture (UNI-2355) — service-role insert, rate-limited above
   '/api/agent',    // Public site chat agent — auth is the publishable site key, validated in-route (UNI-2359)
   '/widget',       // Embeddable chat widget script must load on third-party sites (UNI-2359)
-  '/llms.txt',     // AI-agent identification file; static, no private data
+] as const;
+
+// Single public files, matched EXACTLY. A file has no sub-routes, so the
+// segment rule above would grant '/llms.txt/<anything>' an exemption nobody
+// approved (independent review, Wave 1).
+const EXACT_PUBLIC_FILES: ReadonlySet<string> = new Set([
+  '/llms.txt', // AI-agent identification file; static, no private data
   '/robots.txt',
   '/sitemap.xml',
   '/site.webmanifest',
   '/founder-os-sw.js',
-] as const;
+]);
 
 export function isPublicPath(pathname: string): boolean {
+  if (EXACT_PUBLIC_FILES.has(pathname)) return true;
+
   if (process.env.KNOWLEDGE_CONSOLE_PREVIEW === '1' && pathname === '/preview/knowledge-console') {
     return true;
   }

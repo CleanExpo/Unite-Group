@@ -115,6 +115,8 @@ describe('public-path exemption is segment-aware, not prefix-loose', () => {
       '/robots.txt',
       '/sitemap.xml',
       '/llms.txt',
+      '/site.webmanifest',
+      '/founder-os-sw.js',
     ]
 
     it.each(exempt)('exempts %s', (p) => {
@@ -129,9 +131,17 @@ describe('public-path exemption is segment-aware, not prefix-loose', () => {
       '/api/agents/events',
       '/api/agents/runner/claim',
       '/api/agents/runner/release',
-      // '/llms.txt' is public; a lookalike must not ride on it.
+      // '/llms.txt' is public; a lookalike or a descendant must not ride on it.
       '/llms.txtx',
       '/llms',
+      '/llms.txt/private',
+      '/llms.txt/founder',
+      '/llms.txt/api/founder/wiki',
+      // Every single-file entry is exact: none of them has sub-routes.
+      '/robots.txt/private',
+      '/sitemap.xml/founder',
+      '/site.webmanifest/api/founder/wiki',
+      '/founder-os-sw.js/private',
     ]
 
     it.each(gated)('does NOT exempt %s', (p) => {

@@ -1,4 +1,4 @@
-// public/llms.txt is served unauthenticated (PUBLIC_PATHS in src/proxy.ts), so
+// public/llms.txt is served unauthenticated (EXACT_PUBLIC_FILES in src/proxy.ts), so
 // everything it says is a public claim. unite-group.com.au does not resolve
 // (NXDOMAIN, 14/10/2026); pointing AI engines at it damages the entity signal.
 import { describe, it, expect } from 'vitest'
