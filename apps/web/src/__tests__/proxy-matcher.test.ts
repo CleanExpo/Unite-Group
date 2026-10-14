@@ -113,6 +113,8 @@ describe('public-path exemption is segment-aware, not prefix-loose', () => {
       '/api/cron/hub-sweep',
       '/auth/login',
       '/robots.txt',
+      '/sitemap.xml',
+      '/llms.txt',
     ]
 
     it.each(exempt)('exempts %s', (p) => {
@@ -127,6 +129,9 @@ describe('public-path exemption is segment-aware, not prefix-loose', () => {
       '/api/agents/events',
       '/api/agents/runner/claim',
       '/api/agents/runner/release',
+      // '/llms.txt' is public; a lookalike must not ride on it.
+      '/llms.txtx',
+      '/llms',
     ]
 
     it.each(gated)('does NOT exempt %s', (p) => {

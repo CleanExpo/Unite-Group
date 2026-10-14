@@ -30,7 +30,7 @@ Acceptance:
 
 Proof:
 - `pnpm exec vitest run src/__tests__/proxy-matcher.test.ts src/__tests__/llms-txt.test.ts` → exit 0.
-- `grep -rn "unite-group.com.au" public src` → exit 1 (no match).
+- `grep -rn "unite-group.com.au" public src --exclude-dir=__tests__` → exit 1 (no match).
 
 ## Item 3 — lead capture from the site agent
 

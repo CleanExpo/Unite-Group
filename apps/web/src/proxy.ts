@@ -62,6 +62,7 @@ const PUBLIC_PATHS = [
   '/api/leads',    // Public website lead capture (UNI-2355) — service-role insert, rate-limited above
   '/api/agent',    // Public site chat agent — auth is the publishable site key, validated in-route (UNI-2359)
   '/widget',       // Embeddable chat widget script must load on third-party sites (UNI-2359)
+  '/llms.txt',     // AI-agent identification file; static, no private data
   '/robots.txt',
   '/sitemap.xml',
   '/site.webmanifest',
