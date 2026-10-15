@@ -35,6 +35,8 @@ const formatter = (data = proposal(), id = 'format-1') => event('assistant', [{ 
 const fakeChild = () => Object.assign(new EventEmitter(), { pid: 1234, stdout: new PassThrough(), stderr: new PassThrough(), stdin: new PassThrough() });
 const writeEvents = (child, events) => { child.stdout.write(events.map(value => JSON.stringify(value)).join('\n') + '\n'); child.emit('close', 0); };
 const response = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'content-type': 'application/json' } });
+const subscriptionLimit = () => ({ type: 'result', subtype: 'success', is_error: true, result: "You've hit your weekly limit · resets Oct 20, 5am (Australia/Brisbane)", num_turns: 1 });
+const subscriptionLimitReason = 'The monthly subscription research allowance is exhausted. Check the provider account for its reset time before starting another approved run. Paid API fallback is disabled.';
 
 test('worker requires explicit single run and rejects secret-bearing or remote HTTP origins', () => {
   assert.equal(config.origin, env.NEXUS_APP_URL);
@@ -294,6 +296,56 @@ test('final usage is checkpointed only after the provider process stopped and be
   harness.dependencies.call = async body => { if (body.checkpoint?.usageFinal) assert.equal(stopped, true); return original(body); };
   await assert.rejects(runOnce(config, harness.dependencies), /invalid_research_proposal/);
   assert.equal(harness.commands.at(-2).checkpoint.usageFinal, true); assert.equal(harness.commands.at(-2).checkpoint.turnsUsed, 3); assert.equal(harness.commands.at(-1).usageReconciled, true);
+});
+
+test('terminal subscription quota is safely classified after process exit and saved with reconciled usage', async () => {
+  for (const exitCode of [0, 1]) {
+    const child = fakeChild(), harness = runHarness(); const prepare = harness.dependencies.prepare;
+    harness.dependencies.prepare = async clean => ({ ...await prepare(clean), execute: async () => runResearchProcess(claim(), {
+      cwd: 'isolated', env: {}, spawn: () => { queueMicrotask(() => { child.stdout.write(JSON.stringify(subscriptionLimit()) + '\n'); child.emit('close', exitCode); }); return child; },
+    }) });
+    await assert.rejects(runOnce(config, harness.dependencies), error => error.code === 'research_subscription_limit' && error.message === subscriptionLimitReason);
+    assert.equal(harness.commands.at(-2).checkpoint.turnsUsed, 1);
+    assert.equal(harness.commands.at(-2).checkpoint.toolCalls, 0);
+    assert.equal(harness.commands.at(-2).checkpoint.usageFinal, true);
+    assert.equal(harness.commands.at(-1).reason, subscriptionLimitReason);
+    assert.equal(harness.commands.at(-1).usageReconciled, true);
+    assert.equal(harness.commands.filter(command => command.action === 'claim').length, 1);
+    assert.ok(!harness.commands.some(command => command.action === 'finish'));
+    assert.doesNotMatch(JSON.stringify(harness.commands), /Oct 20|Brisbane/);
+  }
+});
+
+test('unrecognised provider errors stay generic and never leak raw result text', async () => {
+  for (const result of ['synthetic-provider-secret', "You've hit your weekly limit · resets synthetic-secret\nprivate-token", 'Quota exhausted: synthetic-provider-secret']) {
+    const child = fakeChild();
+    await assert.rejects(runResearchProcess(claim(), { cwd: 'isolated', env: {}, spawn: () => {
+      queueMicrotask(() => writeEvents(child, [{ ...subscriptionLimit(), result }])); return child;
+    } }), error => error.code === 'research_cli_failed' && error.message === 'research_cli_failed' && !JSON.stringify(error).includes('synthetic-provider-secret'));
+  }
+});
+
+test('quota-like assistant text is untrusted content, and terminal quota without known turns keeps usage unknown', async () => {
+  const child = fakeChild();
+  const output = await runResearchProcess(claim(), { cwd: 'isolated', env: {}, spawn: () => {
+    queueMicrotask(() => writeEvents(child, [event('assistant', [{ type: 'text', text: subscriptionLimit().result }]), final()])); return child;
+  } });
+  assert.deepEqual(output.result, proposal());
+  const unknown = fakeChild(), terminal = subscriptionLimit(); delete terminal.num_turns;
+  await assert.rejects(runResearchProcess(claim(), { cwd: 'isolated', env: {}, spawn: () => {
+    queueMicrotask(() => writeEvents(unknown, [terminal])); return unknown;
+  } }), error => error.code === 'research_subscription_limit' && error.progress.usageReconciled === false);
+});
+
+test('subscription quota CLI reports its safe internal code without provider reset text', async () => {
+  const harness = runHarness(), errors = [], prepare = harness.dependencies.prepare;
+  harness.dependencies.prepare = async clean => ({ ...await prepare(clean), execute: async () => {
+    const child = fakeChild(); return runResearchProcess(claim(), { cwd: 'isolated', env: {}, spawn: () => {
+      queueMicrotask(() => writeEvents(child, [subscriptionLimit()])); return child;
+    } });
+  } });
+  assert.equal(await main(args, { ...harness.dependencies, output: { log: assert.fail, error: value => errors.push(value) } }), 1);
+  assert.deepEqual(errors, ['Public research stopped: research_subscription_limit.']);
 });
 
 test('unconfirmed checkpoint does not start a model or claim false final acknowledgement', async () => {

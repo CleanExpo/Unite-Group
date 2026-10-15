@@ -21,8 +21,11 @@ const hardStopped = () => existsSync(join(homedir(), '.claude', 'HARD_STOP'));
 const RETRY_MS = [1000, 3000];
 const REQUIRED_FLAGS = ['--safe-mode', '--restricted', '--permission-mode', '--tools', '--allowedTools', '--disallowedTools', '--strict-mcp-config', '--no-chrome', '--no-session-persistence', '--json-schema', '--output-format', '--setting-sources'];
 let busy = false;
+const failureReason = code => code === 'research_subscription_limit'
+  ? 'The monthly subscription research allowance is exhausted. Check the provider account for its reset time before starting another approved run. Paid API fallback is disabled.'
+  : code;
 export class ResearchWorkerError extends Error {
-  constructor(code) { super(code); this.code = code; }
+  constructor(code) { super(failureReason(code)); this.code = code; }
 }
 const fail = code => { throw new ResearchWorkerError(code); };
 const integer = (value, min, max) => Number.isSafeInteger(value) && value >= min && value <= max;
@@ -155,6 +158,11 @@ export function streamObserver(domains, maxTurns, now = () => new Date().toISOSt
       !Array.isArray(proposal.claims) || proposal.claims.some(claim => !['hypothesis', 'assumption'].includes(claim.classification)) || proposal.sources.some(source => !approvedUrl(source.reference, domains))) fail('invalid_research_proposal');
   };
   let toolCalls = 0, final = null, formatter = null;
+  // Recognise only the observed terminal provider quota format. Its reset text
+  // is untrusted: never parse, echo, persist or use it to schedule another run.
+  const failureCode = () => final?.is_error === true && final.subtype === 'success' && typeof final.result === 'string' &&
+    /^You've hit your weekly limit · resets [^\x00-\x1f\x7f]{1,160}$/u.test(final.result)
+    ? 'research_subscription_limit' : 'research_cli_failed';
   return {
     accept(event) {
       if (final && ['assistant', 'user'].includes(event.type)) fail('event_after_cli_result');
@@ -196,8 +204,9 @@ export function streamObserver(domains, maxTurns, now = () => new Date().toISOSt
       }
     },
     snapshot: () => ({ toolCalls, turnsUsed: final?.num_turns ?? turns.size, usageReconciled: integer(final?.num_turns, 0, maxTurns), observations: [...observations] }),
+    failureCode,
     result() {
-      if (!final || final.is_error || final.subtype !== 'success' || !final.structured_output) fail('research_cli_failed');
+      if (!final || final.is_error || final.subtype !== 'success' || !final.structured_output) fail(failureCode());
       if (!integer(final.num_turns, 0, maxTurns)) fail('research_usage_unknown');
       const proposal = final.structured_output;
       validateProposal(proposal);
@@ -269,7 +278,7 @@ export async function runResearchProcess(claim, { cwd, env, spawn, terminate = k
       try {
         buffer += decoder.end();
         if (buffer.trim()) observer.accept(JSON.parse(buffer));
-        if (code !== 0) fail('research_cli_failed');
+        if (code !== 0) fail(observer.failureCode());
         const result = observer.result();
         if (result.sources.length > claim.limits.maximumSources) fail('source_admission_limit');
         finish(null, { result, ...observer.snapshot() });
@@ -370,7 +379,7 @@ export async function runOnce(config, dependencies = {}) {
     if (executionError || controller.signal.aborted) {
       const code = localStopped ? 'research_local_hard_stop' : executionError instanceof ResearchWorkerError ? executionError.code : 'research_execution_failed';
       if (progress.usageReconciled === true) await checkpoint('Public research stopped; provider turn usage was recorded.', 'Review the interruption before an explicit retry.', [], true);
-      const blocked = await call({ action: 'block', ...lease, reason: code, usageReconciled: progress.usageReconciled === true });
+      const blocked = await call({ action: 'block', ...lease, reason: failureReason(code), usageReconciled: progress.usageReconciled === true });
       if (blocked?.research?.id !== config.runId || !['blocked', 'partial', 'cancelled'].includes(blocked.research.state)) fail('research_persistence_unconfirmed');
       fail(code);
     }

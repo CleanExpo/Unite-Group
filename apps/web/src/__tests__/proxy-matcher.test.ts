@@ -39,6 +39,7 @@ describe('proxy matcher', () => {
       '/api/contacts/probe',
       '/api/health/connectors',
       '/api/agents/runner/claim',
+      '/api/agents/runner/research',
       '/founder/dashboard',
       '/founder/command-centre',
       '/login',
@@ -131,6 +132,9 @@ describe('public-path exemption is segment-aware, not prefix-loose', () => {
       '/api/agents/events',
       '/api/agents/runner/claim',
       '/api/agents/runner/release',
+      // Worker transport has its own exact POST admission; it is never public.
+      '/api/agents/runner/research',
+      '/api/agents/runner/research/private',
       // '/llms.txt' is public; a lookalike or a descendant must not ride on it.
       '/llms.txtx',
       '/llms',
