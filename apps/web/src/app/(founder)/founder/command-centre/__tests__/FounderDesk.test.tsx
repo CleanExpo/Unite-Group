@@ -60,6 +60,35 @@ describe('FounderDesk mission journey', () => {
     expect(fetchMock).not.toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ method: 'POST' }))
   })
 
+  it.each(['success', 'failure'] as const)('keeps a confirmed research capture when an older history read finishes with %s', async outcome => {
+    const captured = { ...mission, taskId: '00000000-0000-4000-8000-000000000009', title: 'Fresh research idea', stage: 'captured', spec: null, specVersion: null, nextAction: { kind: 'wait', owner: 'You', label: 'Open the research workbench' } }
+    let finishRead!: (value: ReturnType<typeof response>) => void
+    const pendingRead = new Promise<ReturnType<typeof response>>(resolve => { finishRead = resolve })
+    let reads = 0
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === 'POST') return response({ mission: captured, source: 'supabase' })
+      if (url === '/api/command-centre/missions') return ++reads === 1 ? response({ missions: [mission], presets: DELIVERY_PRESETS, source: 'supabase' }) : pendingRead
+      return response({ source: 'supabase' })
+    }))
+    render(<FounderDesk projects={[]} />)
+    await screen.findByRole('button', { name: /RestoreAssistCustomer portal/ })
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+    fireEvent.change(screen.getByLabelText('Idea title'), { target: { value: 'Fresh research idea' } })
+    fireEvent.change(screen.getByLabelText('Rough idea'), { target: { value: 'Save this research idea while history is loading' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save idea for research' }))
+    await screen.findByRole('heading', { name: 'Fresh research idea' })
+    await act(async () => { finishRead(outcome === 'success' ? response({ missions: [mission], presets: [], source: 'supabase' }) : response({ error: 'Older history read failed' }, false)) })
+    const recovered = {
+      capturedVisible: screen.queryByRole('heading', { name: 'Fresh research idea' }) !== null,
+      selection: new URL(window.location.href).searchParams.get('mission'),
+      unavailable: screen.queryByText(/This mission is unavailable/) !== null,
+      oldReadError: screen.queryByText('Older history read failed') !== null,
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'New idea' }))
+    fireEvent.click(screen.getByText('Existing delivery preparation'))
+    expect({ ...recovered, selectionAfterNewIdea: new URL(window.location.href).searchParams.get('mission'), presetsRetained: screen.queryByRole('button', { name: 'Review & approval Ready to reuse' }) !== null }).toEqual({ capturedVisible: true, selection: captured.taskId, unavailable: false, oldReadError: false, selectionAfterNewIdea: null, presetsRetained: true })
+  })
+
   it('sends an explicitly selected GitHub owner/repository as the persisted project key', async () => {
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
       if (url.includes('/repositories')) return response({ repositories: [{ fullName: 'OtherOwner/uncommon-project', private: true, archived: false }], status: 'complete', nextCursor: null, incomplete: false, message: '', observedAt: '2026-09-05T00:00:00Z', coverage: 'Connected GitHub account.' })

@@ -8,12 +8,14 @@ import { DeliveryConflict, DeliveryNotFound, getApprovedDelivery, verifyDelivery
 import { toDeliveryMissionView } from '@/lib/command-centre/delivery-view'
 import {
   applyLifecycleCommand, createLifecycleHandoff, lifecycleCommandSchema,
-  LifecycleConflict, readIdeaLifecycle, toLifecycleView,
+  ideaLifecycleApprovalHolds, LifecycleConflict, readIdeaLifecycle, toLifecycleView,
 } from '@/lib/command-centre/idea-lifecycle'
 import {
   captureIdeaLifecycle, getIdeaLifecycleTask, saveIdeaLifecycle, saveLifecycleProof, readTrustedLifecycleObservations,
 } from '@/lib/command-centre/idea-lifecycle-store'
 import { observeIdeaLifecycle } from '@/lib/command-centre/idea-lifecycle-observations'
+import { factoryEvidenceEnabled, persistFactoryReviewedHandoff, readFactoryActivation } from '@/lib/command-centre/idea-factory-activation'
+import { IdeaEvidenceError } from '@/lib/command-centre/idea-evidence-store'
 import type { CommandCentreTask } from '@/lib/command-centre/tasks'
 
 export const dynamic = 'force-dynamic'
@@ -44,13 +46,14 @@ async function readBoundedJson(request: Request): Promise<unknown> {
   } finally { reader.releaseLock() }
 }
 
-function representation(task: CommandCentreTask, compact = false) {
+async function representation(task: CommandCentreTask, compact = false) {
   const lifecycle = readIdeaLifecycle(task.metadata)
   if (!lifecycle) throw new DeliveryNotFound()
   const observations = readTrustedLifecycleObservations(task)
   const progress = toLifecycleView(lifecycle, observations)
+  const factoryActivation = await readFactoryActivation(task)
   if (compact) return {
-    taskId: task.id, source: 'supabase', progress,
+    taskId: task.id, source: 'supabase', progress, factoryActivation,
     lifecycle: {
       kind: lifecycle.kind, title: lifecycle.title, revision: lifecycle.revision,
       checkpoint: lifecycle.checkpoint ? { status: lifecycle.checkpoint.status, summary: lifecycle.checkpoint.summary, nextStep: lifecycle.checkpoint.nextStep } : null,
@@ -61,7 +64,7 @@ function representation(task: CommandCentreTask, compact = false) {
     },
   }
   return {
-    taskId: task.id, lifecycle, progress,
+    taskId: task.id, lifecycle, progress, factoryActivation,
     handoff: lifecycle.brief?.snapshot.revision === lifecycle.revision ? createLifecycleHandoff(lifecycle) : null,
     mission: toDeliveryMissionView(task), source: 'supabase',
   }
@@ -70,7 +73,7 @@ function representation(task: CommandCentreTask, compact = false) {
 function failure(error: unknown) {
   if (error instanceof z.ZodError) return NextResponse.json({ error: 'The lifecycle input is invalid or exceeds the saved-state limit.' }, { status: 400, headers })
   if (error instanceof DeliveryNotFound) return NextResponse.json({ error: 'Mission not found' }, { status: 404, headers })
-  if (error instanceof DeliveryConflict || error instanceof LifecycleConflict) {
+  if (error instanceof DeliveryConflict || error instanceof LifecycleConflict || (error instanceof IdeaEvidenceError && error.kind === 'conflict')) {
     return NextResponse.json({ error: error.message || 'This mission changed. Reload before continuing.' }, { status: 409, headers })
   }
   return NextResponse.json({
@@ -86,7 +89,7 @@ export async function GET(request: Request) {
   if (!taskId.success) return NextResponse.json({ error: 'Provide a valid taskId.' }, { status: 400, headers })
   if (params.has('view') && params.get('view') !== 'status') return NextResponse.json({ error: 'Use view=status for a compact status response.' }, { status: 400, headers })
   try {
-    return NextResponse.json(representation(await getIdeaLifecycleTask(user.id, taskId.data), params.get('view') === 'status'), { headers })
+    return NextResponse.json(await representation(await getIdeaLifecycleTask(user.id, taskId.data), params.get('view') === 'status'), { headers })
   } catch (error) { return failure(error) }
 }
 
@@ -124,7 +127,7 @@ export async function POST(request: Request) {
         deliveryAuthorityVerified: !!getApprovedDelivery(task) && await verifyDeliveryApproval(task),
       })
       const saved = await saveLifecycleProof(task, observations, input.expectedRevision)
-      return NextResponse.json(representation(saved), { headers })
+      return NextResponse.json(await representation(saved), { headers })
     }
     if (!command.success) throw new Error('Validated request unavailable')
     const input = command.data
@@ -132,13 +135,17 @@ export async function POST(request: Request) {
       const { task, deduplicated } = await captureIdeaLifecycle(user.id, {
         rawIdea: input.rawIdea, title: input.title, requestId: input.requestId,
       }, context)
-      return NextResponse.json({ ...representation(task), deduplicated }, { headers })
+      return NextResponse.json({ ...(await representation(task)), deduplicated }, { headers })
     }
     const task = await getIdeaLifecycleTask(user.id, input.taskId)
     const lifecycle = readIdeaLifecycle(task.metadata)!
     if (lifecycle.revision !== input.expectedRevision) throw new DeliveryConflict()
+    if (input.action === 'create_handoff' && factoryEvidenceEnabled() && ideaLifecycleApprovalHolds(lifecycle)) {
+      const saved = await persistFactoryReviewedHandoff(task, input, context)
+      return NextResponse.json(await representation(saved), { headers })
+    }
     const updated = applyLifecycleCommand(lifecycle, input, context)
     const saved = await saveIdeaLifecycle(task, updated, input.expectedRevision)
-    return NextResponse.json(representation(saved), { headers })
+    return NextResponse.json(await representation(saved), { headers })
   } catch (error) { return failure(error) }
 }

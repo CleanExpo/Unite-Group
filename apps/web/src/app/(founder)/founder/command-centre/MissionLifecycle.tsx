@@ -14,6 +14,7 @@ import type {
 import styles from "./mission-lifecycle.module.css";
 import desk from "./founder-desk.module.css";
 import { MissionResearch } from "./MissionResearch";
+import type { FactoryActivationView } from "@/lib/command-centre/idea-factory-activation";
 
 const endpoint = "/api/command-centre/missions/lifecycle";
 interface LifecycleResponse {
@@ -24,6 +25,7 @@ interface LifecycleResponse {
   source: string;
   mission?: DeliveryMissionView;
   error?: string;
+  factoryActivation?: FactoryActivationView;
 }
 type Update = LifecycleCommand extends infer C
   ? C extends { action: "capture" }
@@ -485,6 +487,28 @@ export function MissionLifecycle({
           <p>
             <strong>Next:</strong> {data.progress.nextAction}
           </p>
+          <section aria-label="Internal factory use">
+            <h4>Internal factory use</h4>
+            <p className={desk.helper}>This mission’s operator history is separate from its customers, payments and paying-client count.</p>
+            {!data.factoryActivation || data.factoryActivation.status === "not_connected" ? (
+              <p>Internal-use evidence is not connected.</p>
+            ) : data.factoryActivation.status === "unavailable" ? (
+              <p role="status">Internal-use evidence could not be confirmed. Refresh before relying on it.</p>
+            ) : (
+              <>
+                <p>{data.factoryActivation.firstValue ? "First internal value confirmed: an approved research handoff was persisted." : "No confirmed internal first-value event for this mission."}</p>
+                <ol aria-label="Internal-use history">
+                  {data.factoryActivation.history.map(entry => (
+                    <li key={entry.id}>
+                      <span>{entry.withdrawn ? "Evidence withdrawn" : "Approved research handoff persisted"} · revision {entry.revision}</span>{" "}
+                      <time dateTime={entry.occurredAt}>{new Date(entry.occurredAt).toLocaleString("en-AU", { timeZone: "Australia/Brisbane" })} AEST</time>
+                      <span> · {entry.environment} · release {entry.releaseId}</span>
+                    </li>
+                  ))}
+                </ol>
+              </>
+            )}
+          </section>
           {data.progress.blockers.length > 0 && (
             <div className={desk.blockers}>
               <h4>What prevents progress</h4>

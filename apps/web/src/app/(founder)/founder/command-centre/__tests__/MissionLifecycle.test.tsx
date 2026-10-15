@@ -44,6 +44,25 @@ beforeEach(() => {
   vi.restoreAllMocks();
 });
 
+describe('internal factory use view', () => {
+  it.each([
+    ['not_connected', false, 'Internal-use evidence is not connected.'],
+    ['unavailable', false, 'Internal-use evidence could not be confirmed. Refresh before relying on it.'],
+    ['available', false, 'First internal value confirmed: an approved research handoff was persisted.'],
+    ['available', true, 'No confirmed internal first-value event for this mission.'],
+  ] as const)('keeps %s internal use separate from customer outcomes, withdrawn=%s', async (status, withdrawn, message) => {
+    const entry = { id: taskId, occurredAt: '2026-10-15T00:00:00.000Z', admittedAt: '2026-10-15T00:00:01.000Z', briefHash: 'a'.repeat(64), revision: 1, releaseId: 'dpl_PreviousRuntime', environment: 'production', withdrawn }
+    const initial = packet()
+    initial.lifecycle.revision = 9
+    const fetchMock = vi.fn(async () => response({ ...initial, factoryActivation: { status, classification: 'internal_factory_use', scope: 'this_mission', history: status === 'available' ? [entry] : [], firstValue: status === 'available' && !withdrawn ? entry : null } }))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<MissionLifecycle taskId={taskId} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Open research and outcome workbench' }))
+    const section = await screen.findByRole('region', { name: 'Internal factory use' })
+    expect({ message: within(section).queryByText(message) !== null, separation: section.textContent?.includes('separate from its customers, payments and paying-client count.'), historicalRevision: status === 'available' ? section.textContent?.includes('revision 1') : true, withdrawal: status === 'available' && withdrawn ? section.textContent?.includes('Evidence withdrawn') : true, time: section.querySelector('time')?.getAttribute('datetime') ?? null, writes: fetchMock.mock.calls.length }).toEqual({ message: true, separation: true, historicalRevision: true, withdrawal: true, time: status === 'available' ? entry.occurredAt : null, writes: 1 })
+  })
+})
+
 describe("research-only idea capture", () => {
   it("saves raw input to the research capture route without invoking paid preparation", async () => {
     const onCaptured = vi.fn();

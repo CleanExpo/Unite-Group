@@ -4,12 +4,15 @@ vi.mock('@/lib/command-centre/idea-lifecycle-store', () => ({ captureIdeaLifecyc
 vi.mock('@/lib/command-centre/idea-lifecycle-observations', () => ({ observeIdeaLifecycle: vi.fn() }))
 vi.mock('@/lib/command-centre/delivery-projects', () => ({ getDeliveryProjectByName: vi.fn() }))
 vi.mock('@/lib/integrations/stripe/client', () => ({ getStripe: vi.fn(() => null) }))
+vi.mock('@/lib/command-centre/idea-factory-activation', () => ({ factoryEvidenceEnabled: () => process.env.IDEA_EVIDENCE_ENABLED === '1', persistFactoryReviewedHandoff: vi.fn(), readFactoryActivation: vi.fn() }))
 import { getUser } from '@/lib/supabase/server'
 import { captureIdeaLifecycle, getIdeaLifecycleTask, saveIdeaLifecycle, saveLifecycleProof } from '@/lib/command-centre/idea-lifecycle-store'
 import { observeIdeaLifecycle } from '@/lib/command-centre/idea-lifecycle-observations'
 import { DeliveryConflict, DeliveryNotFound } from '@/lib/command-centre/delivery-store'
 import { applyLifecycleCommand, createIdeaLifecycle, type LifecycleBriefInput } from '@/lib/command-centre/idea-lifecycle'
 import type { CommandCentreTask } from '@/lib/command-centre/tasks'
+import { persistFactoryReviewedHandoff, readFactoryActivation } from '@/lib/command-centre/idea-factory-activation'
+import { IdeaEvidenceError } from '@/lib/command-centre/idea-evidence-store'
 import { GET, POST } from '../route'
 
 const actorId = 'b0000000-0000-4000-8000-000000000001'
@@ -23,11 +26,58 @@ const req = (body: unknown) => new Request('https://app.test/api/command-centre/
 const get = (id = taskId) => new Request(`https://app.test/api/command-centre/missions/lifecycle?taskId=${id}`)
 beforeEach(() => {
   vi.clearAllMocks()
+  vi.stubEnv('IDEA_EVIDENCE_ENABLED', '')
+  vi.mocked(readFactoryActivation).mockResolvedValue({ status: 'not_connected', classification: 'internal_factory_use', scope: 'this_mission', history: [], firstValue: null })
   vi.mocked(getUser).mockResolvedValue({ id: actorId } as never)
   vi.mocked(getIdeaLifecycleTask).mockResolvedValue(structuredClone(task))
   vi.mocked(captureIdeaLifecycle).mockResolvedValue({ task, deduplicated: false })
   vi.mocked(saveIdeaLifecycle).mockImplementation(async (original, updated) => ({ ...original, metadata: { ...original.metadata, lifecycle: updated } }))
   vi.mocked(saveLifecycleProof).mockResolvedValue(task)
+})
+
+describe('internal factory activation API boundary', () => {
+  function reviewed(approved = true) {
+    const brief: LifecycleBriefInput = { objective: 'Persist the handoff', user: 'Founder', payer: 'Internal budget', nonGoals: [], acceptanceCriteria: [{ id: 'saved', criterion: 'Save the reviewed handoff', validation: 'Read back the task' }], outputs: Array.from({ length: 13 }, (_, index) => ({ id: index + 1, status: 'included', content: 'Recorded research' })), design: { summary: 'Existing UI', sourceIds: [] }, target: { repository: 'CleanExpo/Unite-Group', baseBranch: 'main' }, risks: [], openDecisions: [] }
+    let state = applyLifecycleCommand(lifecycle, { action: 'propose_brief', taskId, expectedRevision: 1, brief }, context)
+    if (approved) state = applyLifecycleCommand(state, { action: 'approve_brief', taskId, expectedRevision: state.revision, briefHash: state.brief!.hash }, context)
+    return { ...task, metadata: { lifecycle: state } }
+  }
+  it.each([false, true])('retains ordinary draft persistence when builtin admission is inapplicable: enabled=%s', async enabled => {
+    vi.stubEnv('IDEA_EVIDENCE_ENABLED', enabled ? '1' : '')
+    vi.mocked(getIdeaLifecycleTask).mockResolvedValue(reviewed(!enabled))
+    const response = await POST(req({ action: 'create_handoff', taskId, expectedRevision: 2 }))
+    const body = await response.json()
+    expect({ status: response.status, source: body.source, builtin: vi.mocked(persistFactoryReviewedHandoff).mock.calls.length, ordinary: vi.mocked(saveIdeaLifecycle).mock.calls.length, activation: body.factoryActivation.status }).toEqual({ status: 200, source: 'supabase', builtin: 0, ordinary: 1, activation: 'not_connected' })
+  })
+  it('uses only the authenticated atomic writer for an approved enabled handoff', async () => {
+    vi.stubEnv('IDEA_EVIDENCE_ENABLED', '1')
+    const original = reviewed()
+    vi.mocked(getIdeaLifecycleTask).mockResolvedValue(original)
+    vi.mocked(persistFactoryReviewedHandoff).mockResolvedValue(original)
+    const response = await POST(req({ action: 'create_handoff', taskId, expectedRevision: 2 }))
+    const body = await response.json()
+    const call = vi.mocked(persistFactoryReviewedHandoff).mock.calls[0]
+    expect({ status: response.status, actor: call?.[2].actorId, task: call?.[0].id, command: call?.[1], ordinary: vi.mocked(saveIdeaLifecycle).mock.calls.length, eligibleClients: body.progress.commercial.eligibleClients }).toEqual({ status: 200, actor: actorId, task: taskId, command: { action: 'create_handoff', taskId, expectedRevision: 2 }, ordinary: 0, eligibleClients: 0 })
+  })
+  it.each([['conflict', 409], ['unavailable', 503]] as const)('does not fall back after atomic %s failure', async (kind, status) => {
+    vi.stubEnv('IDEA_EVIDENCE_ENABLED', '1')
+    vi.mocked(getIdeaLifecycleTask).mockResolvedValue(reviewed())
+    vi.mocked(persistFactoryReviewedHandoff).mockRejectedValue(new IdeaEvidenceError(kind))
+    const response = await POST(req({ action: 'create_handoff', taskId, expectedRevision: 2 }))
+    expect({ status: response.status, ordinary: vi.mocked(saveIdeaLifecycle).mock.calls.length, writerCalls: vi.mocked(persistFactoryReviewedHandoff).mock.calls.length }).toEqual({ status, ordinary: 0, writerCalls: 1 })
+  })
+  it.each(['source_id', 'grant_id', 'subject', 'release_id'])('rejects browser-selected producer authority: %s', async field => {
+    vi.stubEnv('IDEA_EVIDENCE_ENABLED', '1')
+    const response = await POST(req({ action: 'create_handoff', taskId, expectedRevision: 2, [field]: 'forged' }))
+    expect({ status: response.status, reads: vi.mocked(getIdeaLifecycleTask).mock.calls.length, writerCalls: vi.mocked(persistFactoryReviewedHandoff).mock.calls.length }).toEqual({ status: 400, reads: 0, writerCalls: 0 })
+  })
+  it('returns operator history separately without counting it as paying clients', async () => {
+    const entry = { id: taskId, occurredAt: context.now, admittedAt: context.now, briefHash: 'a'.repeat(64), revision: 1, releaseId: 'dpl_PreviousRuntime', environment: 'production' as const, withdrawn: false }
+    vi.mocked(readFactoryActivation).mockResolvedValue({ status: 'available', classification: 'internal_factory_use', scope: 'this_mission', history: [entry], firstValue: entry })
+    const response = await GET(get())
+    const body = await response.json()
+    expect({ status: response.status, internal: body.factoryActivation.firstValue.id, classification: body.factoryActivation.classification, eligibleClients: body.progress.commercial.eligibleClients, requiredClients: body.progress.commercial.requiredClients, net: body.progress.commercial.netByCurrency }).toEqual({ status: 200, internal: taskId, classification: 'internal_factory_use', eligibleClients: 0, requiredClients: null, net: {} })
+  })
 })
 
 describe('authenticated lifecycle API', () => {

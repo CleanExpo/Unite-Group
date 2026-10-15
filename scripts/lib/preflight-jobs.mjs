@@ -116,9 +116,19 @@ export const JOBS = [
     id: 'web',
     ciJob: 'web',
     label: 'apps/web — lint, type-check, test, build',
-    // Shared with the Vercel ignore step so the two can never disagree about
-    // what an apps/web build depends on.
-    paths: WEB_BUILD_INPUTS,
+    // The app-dependent producer controls run after frozen web installation.
+    // Host tooling changes select this verification without forcing a Vercel build.
+    paths: [
+      ...WEB_BUILD_INPUTS,
+      'scripts/idea-evidence-review-collector.mjs',
+      'scripts/idea-evidence-journey-witness.mjs',
+      'scripts/idea-evidence-admin.mjs',
+      'scripts/idea-value-event.mjs',
+      'scripts/__tests__/idea-evidence-review-collector.test.mjs',
+      'scripts/__tests__/idea-evidence-journey-witness.test.mjs',
+      'scripts/__tests__/idea-evidence-admin.test.mjs',
+      'scripts/__tests__/idea-value-event.test.mjs',
+    ],
     cmd: ['npm', ['run', 'verify:web']],
   },
   {
