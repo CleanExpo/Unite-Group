@@ -321,7 +321,7 @@ jobs:
         run: node scripts/audit-active-lockfiles.mjs --output dependency-audit-results.json
 
       - name: Upload dependency audit matrix
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: dependency-audit-results
@@ -410,7 +410,7 @@ jobs:
 
       - name: Upload runtime evidence
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: pi-ceo-mcp-runtime-${{ github.sha }}
           path: |
@@ -627,7 +627,7 @@ jobs:
       # job that PASSED, and in that case the test step succeeds and the artefact
       # is produced. A failing test step already fails CI loudly on its own.
       - name: Upload test-evidence report
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: spine-test-evidence-${{ github.sha }}
           path: packages/spine/packages/spine/vitest-report.json
@@ -710,7 +710,7 @@ jobs:
         run: pnpm exec playwright test
 
       - name: Upload Playwright report
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: playwright-report
