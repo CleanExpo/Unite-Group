@@ -24,6 +24,7 @@ import { generateIntent, renderIntentMarkdown, type IntentDoc } from '@/lib/comm
 import { saveMissionIntent } from '@/lib/command-centre/intent-store'
 import { DeliveryConflict } from '@/lib/command-centre/delivery-store'
 import type { DeliveryMetadata } from '@/lib/command-centre/delivery-types'
+import { applyLifecycleCommand, createIdeaLifecycle, type LifecycleBriefInput } from '@/lib/command-centre/idea-lifecycle'
 import { POST, PUT } from '../route'
 
 const USER = { id: 'user-1', email: 'phill@example.com' }
@@ -67,6 +68,32 @@ beforeEach(() => {
 })
 
 describe('POST /api/command-centre/intent (draft)', () => {
+  it('uses the reviewed lifecycle brief deterministically and never calls a paid model', async () => {
+    const actorId = 'b0000000-0000-4000-8000-000000000001'
+    const taskId = 'b0000000-0000-4000-8000-000000000002'
+    const context = { actorId, now: '2026-10-15T00:00:00.000Z' }
+    let lifecycle = createIdeaLifecycle({ title: 'Reviewed portal', rawIdea: 'Research the customer portal', requestId: taskId }, context)
+    const brief: LifecycleBriefInput = { objective: 'Let customers read their own records', user: 'Customer', payer: 'Owner', nonGoals: ['No new identity system'],
+      acceptanceCriteria: [{ id: 'a1', criterion: 'Only own records visible', validation: 'Owner isolation test' }],
+      outputs: Array.from({ length: 13 }, (_, index) => ({ id: index + 1, status: 'included', content: `Output ${index + 1}` })),
+      design: { summary: 'Reuse the current application', sourceIds: [] }, target: { repository: 'CleanExpo/Unite-Group', baseBranch: 'main' }, risks: [], openDecisions: [] }
+    lifecycle = applyLifecycleCommand(lifecycle, { action: 'propose_brief', taskId, expectedRevision: 1, brief }, context)
+    lifecycle = applyLifecycleCommand(lifecycle, { action: 'approve_brief', taskId, expectedRevision: 2, briefHash: lifecycle.brief!.hash }, context)
+    const mission = { ...MISSION, id: taskId, founder_id: actorId, external_ref: `delivery:research:${taskId}`, metadata: { delivery: DELIVERY, lifecycle } }
+    vi.mocked(getUser).mockResolvedValue({ id: actorId } as never)
+    vi.mocked(getTaskById).mockResolvedValue(mission as never)
+    expect((await POST(req('POST', { taskId }))).status).toBe(200)
+    expect(generateIntent).not.toHaveBeenCalled()
+    expect(saveMissionIntent).toHaveBeenCalledWith(mission, expect.objectContaining({ markdown: expect.stringContaining(lifecycle.brief!.hash) }))
+    const unapproved = { ...mission, metadata: { ...mission.metadata, lifecycle: { ...lifecycle, approval: null } } }
+    vi.mocked(getTaskById).mockResolvedValue(unapproved as never)
+    expect((await POST(req('POST', { taskId }))).status).toBe(409)
+    expect(generateIntent).not.toHaveBeenCalled()
+    const damaged = { ...mission, metadata: { delivery: DELIVERY } }
+    vi.mocked(getTaskById).mockResolvedValue(damaged as never)
+    expect((await POST(req('POST', { taskId }))).status).toBe(409)
+    expect(generateIntent).not.toHaveBeenCalled()
+  })
   it('returns 401 when unauthenticated', async () => {
     vi.mocked(getUser).mockResolvedValue(null)
     const res = await POST(req('POST', { taskId: 'mission-1' }))

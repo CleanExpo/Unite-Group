@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { toDeliveryMissionView } from "../delivery-view";
 import { deliveryFingerprint } from "../delivery-store";
 import { observationFixture } from "./delivery-observations.fixture";
+import { applyLifecycleCommand, createIdeaLifecycle, type LifecycleBriefInput } from "../idea-lifecycle";
 
 function blockedSigningMission() {
   const { task, delivery } = observationFixture();
@@ -48,5 +49,52 @@ describe("delivery signing failure projection", () => {
     if (guard === "other_error") delivery.error = { code: "unsupported_lane", message: "Unsupported" };
     if (guard !== "fingerprint") delivery.specVersion = deliveryFingerprint(delivery);
     expect(toDeliveryMissionView(task, Date.now(), { approvalSigningAvailable: true }).nextAction.kind).not.toBe("approve");
+  });
+});
+
+describe("research-bound current build result", () => {
+  it("hides an old PR across material research edits and fresh preparation, then shows only the new matching receipt", () => {
+    const { task, delivery } = observationFixture();
+    const actorId = "b0000000-0000-4000-8000-000000000001";
+    const context = { actorId, now: "2026-10-15T00:00:00.000Z" };
+    const brief: LifecycleBriefInput = { objective: "Reviewed portal", user: "Customer", payer: "Owner", nonGoals: [],
+      acceptanceCriteria: [{ id: "a1", criterion: "Only owned data", validation: "Isolation test" }],
+      outputs: Array.from({ length: 13 }, (_, index) => ({ id: index + 1, status: "included", content: `Output ${index + 1}` })),
+      design: { summary: "Reuse the application", sourceIds: [] }, target: { repository: "CleanExpo/Unite-Group", baseBranch: "main" }, risks: [], openDecisions: [] };
+    let lifecycle = createIdeaLifecycle({ title: "Portal", rawIdea: "Research the portal", requestId: task.id }, context);
+    lifecycle = applyLifecycleCommand(lifecycle, { action: "propose_brief", taskId: task.id, expectedRevision: 1, brief }, context);
+    task.metadata.lifecycle = lifecycle;
+    task.preview_url = "https://github.com/CleanExpo/Unite-Group/pull/1";
+    delivery.sourceRefs = [{ reference: `idea-brief:${lifecycle.brief!.hash}`, label: "Reviewed brief" }];
+    delivery.specVersion = deliveryFingerprint(delivery);
+    delivery.build = { ...delivery.build!, prRef: task.preview_url, specFingerprint: delivery.specVersion };
+    expect(toDeliveryMissionView(task).previewUrl).toBe(task.preview_url);
+    lifecycle = applyLifecycleCommand(lifecycle, { action: "checkpoint", taskId: task.id, expectedRevision: lifecycle.revision,
+      checkpoint: { status: "partial", summary: "Revised research", nextStep: "Review the new brief", blockers: [] } }, context);
+    task.metadata.lifecycle = lifecycle;
+    expect(toDeliveryMissionView(task).previewUrl).toBeNull();
+    expect(toDeliveryMissionView(task).receipts).toEqual([]);
+    lifecycle = applyLifecycleCommand(lifecycle, { action: "propose_brief", taskId: task.id, expectedRevision: lifecycle.revision, brief }, context);
+    lifecycle = applyLifecycleCommand(lifecycle, { action: "approve_brief", taskId: task.id, expectedRevision: lifecycle.revision, briefHash: lifecycle.brief!.hash }, context);
+    task.metadata.lifecycle = lifecycle;
+    expect(toDeliveryMissionView(task).previewUrl).toBeNull();
+    delivery.revision++;
+    delivery.sourceRefs = [{ reference: `idea-brief:${lifecycle.brief!.hash}`, label: "New reviewed brief" }];
+    delete delivery.build;
+    delivery.specVersion = deliveryFingerprint(delivery);
+    expect(toDeliveryMissionView(task).previewUrl).toBeNull();
+    delivery.build = { status: "awaiting_review", prRef: "https://github.com/CleanExpo/Unite-Group/pull/2", runnerId: "runner", specRevision: delivery.revision, specFingerprint: delivery.specVersion, completedAt: context.now };
+    expect(toDeliveryMissionView(task).previewUrl).toBe(delivery.build.prRef);
+    expect(toDeliveryMissionView(task).receipts[0].reference).toBe(delivery.build.prRef);
+    delivery.build.specRevision--;
+    expect(toDeliveryMissionView(task).previewUrl).toBeNull();
+  });
+  it("preserves the legacy preview fallback and refuses a damaged research marker", () => {
+    const { task, delivery } = observationFixture();
+    delete delivery.build;
+    task.preview_url = "https://example.test/existing-preview";
+    expect(toDeliveryMissionView(task).previewUrl).toBe(task.preview_url);
+    task.external_ref = `delivery:research:${task.id}`;
+    expect(toDeliveryMissionView(task).previewUrl).toBeNull();
   });
 });

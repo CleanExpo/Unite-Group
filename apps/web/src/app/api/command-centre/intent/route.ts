@@ -27,10 +27,12 @@ import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { getTaskById, mergeTaskMetadata, appendTaskEvent, type CommandCentreTask } from '@/lib/command-centre/tasks'
 import { isDeliveryMission, readDeliveryMetadata } from '@/lib/command-centre/delivery-types'
-import { DeliveryConflict } from '@/lib/command-centre/delivery-store'
+import { DeliveryConflict, hashDeliveryInput } from '@/lib/command-centre/delivery-store'
+import { readIdeaLifecycle } from '@/lib/command-centre/idea-lifecycle'
 import { saveMissionIntent, isPreparationLeaseActive, type MissionIntent } from '@/lib/command-centre/intent-store'
 import {
   generateIntent,
+  intentFromReviewedLifecycle,
   parseIntentMarkdown,
   renderIntentMarkdown,
   setIntentStatus,
@@ -112,9 +114,12 @@ export async function POST(request: Request) {
 
   // ── Draft ─────────────────────────────────────────────────────────────────
   const { idea, clarifications } = intentSource(task)
-  const result = await generateIntent(idea, clarifications)
+  const researchMission = task.metadata?.lifecycle !== undefined || task.external_ref?.startsWith('delivery:research:')
+  const lifecycle = readIdeaLifecycle(task.metadata)
+  if (researchMission && !lifecycle) return NextResponse.json({ error: 'The research brief is unavailable. Reload before continuing.' }, { status: 409 })
+  const result = researchMission && lifecycle ? intentFromReviewedLifecycle(lifecycle) : await generateIntent(idea, clarifications)
   if (!result.ok) {
-    return NextResponse.json({ error: `Could not draft intent.md: ${result.reason}` }, { status: 502 })
+    return NextResponse.json({ error: `Could not draft intent.md: ${result.reason}` }, { status: researchMission ? 409 : 502 })
   }
 
   const generatedAt = new Date().toISOString()
@@ -128,6 +133,9 @@ export async function POST(request: Request) {
   // The model call took time: persist against a fresh read so the CAS compares current state.
   const fresh = await getTaskById({ founderId: user.id, taskId })
   if (!fresh) return NextResponse.json({ error: 'Task not found' }, { status: 404 })
+  if (researchMission && hashDeliveryInput(fresh.metadata.lifecycle) !== hashDeliveryInput(task.metadata.lifecycle)) {
+    return NextResponse.json({ error: CONFLICT_MESSAGE }, { status: 409 })
+  }
   const failure = await persistIntent(user.id, fresh, { status: 'draft', markdown, generatedAt })
   if (failure) return failure
 

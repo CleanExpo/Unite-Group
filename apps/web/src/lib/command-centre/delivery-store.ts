@@ -16,6 +16,7 @@ import {
 } from "./delivery-types";
 import { MISSION_PROVENANCE_SECRET_ENV } from "./voice-mission-bridge";
 import { intentBindingHolds } from "@/lib/mission-authority/intent-binding";
+import { readIdeaLifecycle, ideaLifecycleApprovalHolds } from "./idea-lifecycle";
 
 export class DeliveryConflict extends Error {
   constructor(message = "This mission changed. Reload it before continuing.") {
@@ -88,6 +89,14 @@ export function signDeliveryApproval(
 ): string | null {
   const key = process.env[MISSION_PROVENANCE_SECRET_ENV]?.trim();
   if (!key) return null;
+  const lifecycle = readIdeaLifecycle(task.metadata);
+  // Research-born missions require a current founder-reviewed brief before build consent.
+  // Missing/damaged lifecycle metadata cannot fall back to legacy authority.
+  if ((task.metadata.lifecycle !== undefined || task.external_ref?.startsWith("delivery:research:")) && (!lifecycle || !ideaLifecycleApprovalHolds(lifecycle))) return null;
+  if (lifecycle && !readDeliveryMetadata(task)?.sourceRefs.some(source => source.reference === `idea-brief:${lifecycle.brief!.hash}`)) return null;
+  const researchIntent = task.metadata.intent as { markdown?: unknown } | undefined;
+  if (lifecycle && (!approval.intent || !intentBindingHolds(task, approval.intent) ||
+    typeof researchIntent?.markdown !== "string" || !researchIntent.markdown.includes(lifecycle.brief!.hash))) return null;
   return createHmac("sha256", key)
     .update("unite-group:delivery-approval:v1:")
     .update(
@@ -104,6 +113,7 @@ export function signDeliveryApproval(
         // UNI-2779: bound only when present, so approvals signed before intent
         // binding existed keep verifying unchanged.
         ...(approval.intent ? { intent: approval.intent } : {}),
+        ...(lifecycle ? { researchBrief: { briefHash: lifecycle.brief!.hash, approval: lifecycle.approval } } : {}),
       }),
     )
     .digest("hex");

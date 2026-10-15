@@ -19,6 +19,7 @@ import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 import type { JSONOutputFormat } from '@anthropic-ai/sdk/resources/messages'
 import { PreparationResponseError, readPreparationObject } from './model-response'
 import type { ModelClientLike } from './clarify'
+import { ideaLifecycleApprovalHolds, type IdeaLifecycle } from './idea-lifecycle'
 
 // ─── Public types ─────────────────────────────────────────────────────────────
 
@@ -41,6 +42,23 @@ export interface IntentClarifications {
 export type GenerateIntentResult = { ok: true; doc: IntentDoc } | { ok: false; reason: string }
 
 export type ParseIntentResult = { ok: true; title: string } | { ok: false; reason: string }
+
+/** The reviewed structured brief already contains the intent; this path never calls a paid model. */
+export function intentFromReviewedLifecycle(state: IdeaLifecycle): GenerateIntentResult {
+  if (!ideaLifecycleApprovalHolds(state) || !state.brief) return { ok: false, reason: 'Approve the current research brief first.' }
+  const brief = state.brief.snapshot.brief
+  return { ok: true, doc: {
+    title: state.title,
+    problem: brief.objective,
+    proposedOutcome: [brief.objective, ...brief.acceptanceCriteria.map(criterion => `${criterion.id}: ${criterion.criterion} — ${criterion.validation}`)].join('\n'),
+    affectedUsersAndSystems: `User: ${brief.user}. Payer: ${brief.payer}. Repository: ${brief.target.repository}; base: ${brief.target.baseBranch}.`,
+    constraints: [`Reviewed research brief: ${state.brief.hash}; revision ${state.revision}.`,
+      'Branch preview only. Merge, release, outreach and charging need separate authority.',
+      ...brief.nonGoals.map(value => `Non-goal: ${value}`)],
+    openQuestions: [...state.openDecisions, ...brief.openDecisions].length
+      ? [...state.openDecisions, ...brief.openDecisions] : ['No open decisions recorded; review evidence before external actions.'],
+  } }
+}
 
 /** The five playbook sections, in order, exactly as the stager names them. */
 export const INTENT_SECTIONS = [

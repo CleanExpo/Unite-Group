@@ -1,6 +1,7 @@
 import type { CommandCentreTask } from "./tasks";
 import { deliveryFingerprint } from "./delivery-store";
 import { readMissionIntent, isPreparationLeaseActive } from "./intent-store";
+import { readIdeaLifecycle } from "./idea-lifecycle";
 import {
   readDeliveryMetadata,
   isCanonicalDeliveryTarget,
@@ -15,6 +16,13 @@ export function toDeliveryMissionView(
   readiness: { approvalSigningAvailable?: boolean } = {},
 ): DeliveryMissionView {
   const d = readDeliveryMetadata(task);
+  const researchMission = task.metadata.lifecycle !== undefined || task.external_ref?.startsWith("delivery:research:");
+  const lifecycle = researchMission ? readIdeaLifecycle(task.metadata) : null;
+  const currentBuild = !researchMission ? d?.build :
+    lifecycle?.brief && lifecycle.brief.snapshot.revision === lifecycle.revision &&
+    d?.sourceRefs.some(source => source.reference === `idea-brief:${lifecycle.brief!.hash}`) &&
+    d.specVersion === deliveryFingerprint(d) && d.build?.specRevision === d.revision &&
+    d.build.specFingerprint === d.specVersion ? d.build : undefined;
   const signingFailure = d?.error?.code === "approval_signing_unavailable";
   // A read can show repaired configuration without rewriting the historical
   // failure or promoting its receipt. A fresh owner POST still checks all gates.
@@ -169,7 +177,7 @@ export function toDeliveryMissionView(
       : null,
     nextAction,
     blockers,
-    previewUrl: d?.build?.prRef ?? task.preview_url,
+    previewUrl: researchMission ? currentBuild?.prRef ?? null : d?.build?.prRef ?? task.preview_url,
     updatedAt: task.updated_at,
     sourceRefs: d?.sourceRefs ?? [],
     knowledgeContext: d?.knowledgeContext,
@@ -179,13 +187,13 @@ export function toDeliveryMissionView(
       !["captured", "clarify"].includes(d.phase) &&
       !isPreparationLeaseActive(task, now) &&
       d.questions.every((q) => !!d.answers[q.id]?.trim()),
-    receipts: d?.build
+    receipts: currentBuild
       ? [
           {
             kind: "builder_report",
             label:
               "Draft PR reported by build runner; independent verification pending",
-            reference: d.build.prRef,
+            reference: currentBuild.prRef,
           },
         ]
       : [],

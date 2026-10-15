@@ -14,10 +14,12 @@ const text = z.string().max(1000);
 const prSchema = z.object({
   number: id,
   head: z.object({ sha }),
-  base: z.object({ repo: z.object({ full_name: text }) }),
+  base: z.object({ repo: z.object({ full_name: text }), ref: text.optional() }),
   draft: z.boolean(),
   state: z.enum(["open", "closed"]),
   merged: z.boolean(),
+  merge_commit_sha: sha.nullable().optional(),
+  merged_at: z.string().datetime().nullable().optional(),
   updated_at: z.string().datetime(),
 });
 const checkSchema = z.object({
@@ -105,6 +107,9 @@ export interface DeliveryObservations {
     draft: boolean;
     state: "open" | "closed";
     merged: boolean;
+    baseBranch: string | null;
+    mergeSha: string | null;
+    mergedAt: string | null;
   } | null;
   checks: ObservationSource<CheckObservation>;
   statuses: ObservationSource<StatusObservation>;
@@ -385,7 +390,10 @@ export async function observeDelivery(
       final.number !== pr.number ||
       final.merged !== initial.merged ||
       final.draft !== initial.draft ||
-      final.state !== initial.state
+      final.state !== initial.state ||
+      final.base.ref !== initial.base.ref ||
+      final.merge_commit_sha !== initial.merge_commit_sha ||
+      final.merged_at !== initial.merged_at
     )
       return stop(
         "The pull request changed during observation. Refresh to obtain a consistent snapshot.",
@@ -397,6 +405,9 @@ export async function observeDelivery(
       draft: initial.draft,
       merged: initial.merged,
       state: initial.state,
+      baseBranch: initial.base.ref ?? null,
+      mergeSha: initial.merge_commit_sha ?? null,
+      mergedAt: initial.merged_at ?? null,
     };
     result.checks = checks.items.some((check) => check.head_sha !== head)
       ? unavailable("Check SHA did not match the observed PR head.")

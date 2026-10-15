@@ -5,6 +5,7 @@ import Link from 'next/link'
 import type { DeliveryMissionView, DeliveryPreset, DeliveryRequest } from '@/lib/command-centre/delivery-types'
 import { MargotMissionConsole } from './MargotMissionConsole'
 import { MissionDetail, MISSION_STAGE_LABELS } from './MissionDetail'
+import { IdeaCapture } from './MissionLifecycle'
 import styles from './founder-desk.module.css'
 
 interface MissionResponse { mission?: DeliveryMissionView; error?: string }
@@ -21,6 +22,7 @@ export function FounderDesk({ projects }: { projects: Array<{ name: string }> })
   const [missions, setMissions] = useState<DeliveryMissionView[]>([])
   const [presets, setPresets] = useState<DeliveryPreset[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const selectedMission = useRef<string | null>(null)
   const [draftKey, setDraftKey] = useState(0)
   const [view, setView] = useState<'desk' | 'operations'>('desk')
   const [loading, setLoading] = useState(true)
@@ -52,7 +54,8 @@ export function FounderDesk({ projects }: { projects: Array<{ name: string }> })
   }, [])
 
   useEffect(() => {
-    setSelectedId(new URL(window.location.href).searchParams.get('mission'))
+    selectedMission.current = new URL(window.location.href).searchParams.get('mission')
+    setSelectedId(selectedMission.current)
     void load()
     const timer = window.setInterval(() => { if (document.visibilityState === 'visible') void load() }, 20000)
     return () => { window.clearInterval(timer); readSequence.current++; interaction.current++ }
@@ -62,6 +65,7 @@ export function FounderDesk({ projects }: { projects: Array<{ name: string }> })
     interaction.current++
     mutationInFlight.current = false
     setSelectedId(null)
+    selectedMission.current = null
     setView('desk')
     setDraftKey(key => key + 1)
     setBusy(false)
@@ -71,7 +75,7 @@ export function FounderDesk({ projects }: { projects: Array<{ name: string }> })
   }, [])
 
   useEffect(() => {
-    const focusComposer = () => { if (!mutationInFlight.current) { setView('desk'); setSelectedId(null); saveSelectedMission(null) } }
+    const focusComposer = () => { if (!mutationInFlight.current) { setView('desk'); setSelectedId(null); selectedMission.current = null; saveSelectedMission(null) } }
     window.addEventListener('mission:focus-idea', focusComposer)
     return () => window.removeEventListener('mission:focus-idea', focusComposer)
   }, [])
@@ -80,6 +84,7 @@ export function FounderDesk({ projects }: { projects: Array<{ name: string }> })
     interaction.current++
     mutationInFlight.current = false
     setSelectedId(id)
+    selectedMission.current = id
     setBusy(false)
     setActionError(null)
     saveSelectedMission(id)
@@ -101,6 +106,7 @@ export function FounderDesk({ projects }: { projects: Array<{ name: string }> })
       if (data.mission?.taskId) {
         setMissions(previous => [data.mission!, ...previous.filter(m => m.taskId !== data.mission!.taskId)])
         setSelectedId(data.mission.taskId)
+        selectedMission.current = data.mission.taskId
         saveSelectedMission(data.mission.taskId)
       }
       // This saved failure has its own operator-owned inline action. Do not
@@ -120,6 +126,14 @@ export function FounderDesk({ projects }: { projects: Array<{ name: string }> })
     void act({ action: 'prepare', clientRequestId: retryIdentity.current.id, idea, ...(projectKey ? { projectKey } : {}), presetIds })
   }
 
+  function captured(mission: DeliveryMissionView) {
+    setMissions(previous => [mission, ...previous.filter(item => item.taskId !== mission.taskId)])
+    if (selectedMission.current !== null) return
+    setSelectedId(mission.taskId)
+    selectedMission.current = mission.taskId
+    saveSelectedMission(mission.taskId)
+  }
+
   const selected = missions.find(m => m.taskId === selectedId)
   function missionCard(mission: DeliveryMissionView) {
     return <button key={mission.taskId} disabled={busy && mission.taskId === selectedId} className={styles.missionCard} data-selected={mission.taskId === selectedId} aria-pressed={mission.taskId === selectedId} onClick={() => selectMission(mission.taskId)}>
@@ -135,7 +149,10 @@ export function FounderDesk({ projects }: { projects: Array<{ name: string }> })
       <button className={styles.secondaryButton} onClick={newIdea}>New idea</button>
     </header>
     {actionError && <div className={styles.error} role="alert">{actionError}</div>}
-    <div hidden={!!selectedId || view !== 'desk'}><MargotMissionConsole key={draftKey} projects={projects} presets={presets} busy={busy} onPrepare={prepare} /></div>
+    <div hidden={!!selectedId || view !== 'desk'}>
+      <IdeaCapture key={`capture-${draftKey}`} onCaptured={captured} />
+      <details className={styles.details}><summary>Existing delivery preparation</summary><p className={styles.helper}>For work already ready for specification preparation. This uses the existing connected AI preparation service and its allowance. Capturing an idea above saves it for research only.</p><MargotMissionConsole key={draftKey} projects={projects} presets={presets} busy={busy} onPrepare={prepare} /></details>
+    </div>
     {selectedId && !selected && <div className={styles.empty}>{loading ? 'Loading your mission…' : 'This mission is unavailable in the current history. Refresh the list or start a new idea.'}</div>}
     <div className={styles.viewSwitch} role="group" aria-label="Mission view">
       <button aria-pressed={view === 'desk'} onClick={() => setView('desk')}>Founder desk</button>
