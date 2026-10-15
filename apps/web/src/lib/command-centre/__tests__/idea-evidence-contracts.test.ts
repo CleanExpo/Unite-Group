@@ -131,7 +131,175 @@ function verifyFixture(value = fixture(), signature?: string) {
   });
 }
 
+function acceptanceFixture() {
+  const value = fixture();
+  value.source = {
+    ...value.source,
+    event_kind: "production_journey_verified",
+    adapter_version: "canonical_factory_journey_v1",
+  };
+  delete value.source.review_policy;
+  value.grant.release_id = "dpl_live";
+  const acceptance = {
+    task_id: "55555555-5555-4555-8555-555555555555",
+    lifecycle_revision: 2,
+    brief_hash: "f".repeat(64),
+    outcome_hash: null,
+  };
+  Object.assign(value.grant, { acceptance_task: acceptance });
+  value.envelope = {
+    ...value.envelope,
+    release_id: "dpl_live",
+    event_kind: "production_journey_verified",
+    payload: {
+      adapter_version: "canonical_factory_journey_v1",
+      canonical_origin: "https://unite-group.in",
+      provider_project_id: "prj_factory",
+      provider_team_id: "team_factory",
+      deployment_id: "dpl_live",
+      merge_sha: head,
+      journey_version: "factory_manual_research_v1",
+      authenticated_subject: value.grant.subject,
+      steps: [
+        "intake_persisted",
+        "research_recorded",
+        "brief_approved",
+        "handoff_persisted",
+        "recovery_readback",
+      ].map((action, index) => ({
+        sequence: index + 1,
+        action,
+        action_ref: `action-${index}`,
+        action_digest: digest,
+        readback_ref: `read-${index}`,
+        readback_digest: digest,
+      })),
+      recovery_ref: "retained-task-1",
+      recovery_digest: digest,
+      alias_start: {
+        deployment_id: "dpl_live",
+        merge_sha: head,
+        observed_at: now,
+      },
+      alias_end: {
+        deployment_id: "dpl_live",
+        merge_sha: head,
+        observed_at: now,
+      },
+    },
+  };
+  Object.assign(value.envelope.payload, {
+    acceptance_task: structuredClone(acceptance),
+  });
+  return { value, acceptance };
+}
+
 describe("authenticated idea evidence contracts", () => {
+  it("binds a distinct approved acceptance task while keeping the implementation envelope primary", () => {
+    const { value, acceptance } = acceptanceFixture();
+    const verified = verifyFixture(value);
+    expect(verified.envelope.task_id).toBe(task);
+    expect(Reflect.get(verified.envelope.payload, "acceptance_task")).toEqual(
+      acceptance,
+    );
+  });
+  it.each([
+    null,
+    {
+      task_id: task,
+      lifecycle_revision: 2,
+      brief_hash: digest,
+      outcome_hash: null,
+    },
+    {
+      task_id: "not-a-uuid",
+      lifecycle_revision: 2,
+      brief_hash: digest,
+      outcome_hash: null,
+    },
+    {
+      task_id: "55555555-5555-4555-8555-555555555555",
+      lifecycle_revision: 0,
+      brief_hash: digest,
+      outcome_hash: null,
+    },
+    {
+      task_id: "55555555-5555-4555-8555-555555555555",
+      lifecycle_revision: 2,
+      brief_hash: "invalid",
+      outcome_hash: null,
+    },
+    {
+      task_id: "55555555-5555-4555-8555-555555555555",
+      lifecycle_revision: 2,
+      brief_hash: digest,
+      outcome_hash: digest,
+    },
+    {
+      task_id: "55555555-5555-4555-8555-555555555555",
+      lifecycle_revision: 2,
+      brief_hash: digest,
+      outcome_hash: null,
+      acceptance_task: {},
+    },
+  ])("rejects an invalid or recursive acceptance task %j", (acceptance) => {
+    const { value } = acceptanceFixture();
+    Object.assign(value.grant, { acceptance_task: acceptance });
+    Object.assign(value.envelope.payload, { acceptance_task: acceptance });
+    expect(() => verifyFixture(value)).toThrow();
+  });
+  it.each([
+    "task_id",
+    "lifecycle_revision",
+    "brief_hash",
+    "absent_payload",
+    "absent_grant",
+  ])("rejects a signed acceptance binding changed at %s", (field) => {
+    const { value, acceptance } = acceptanceFixture();
+    if (field === "absent_payload")
+      Reflect.deleteProperty(value.envelope.payload, "acceptance_task");
+    else if (field === "absent_grant")
+      Reflect.deleteProperty(value.grant, "acceptance_task");
+    else
+      Object.assign(value.envelope.payload, {
+        acceptance_task: {
+          ...acceptance,
+          [field]:
+            field === "task_id"
+              ? "66666666-6666-4666-8666-666666666666"
+              : field === "lifecycle_revision"
+                ? 3
+                : digest,
+        },
+      });
+    expect(() => verifyFixture(value)).toThrow();
+  });
+  it("rejects acceptance scope on other evidence kinds and non-production journeys", () => {
+    const other = fixture();
+    Object.assign(other.grant, {
+      acceptance_task: acceptanceFixture().acceptance,
+    });
+    expect(() => verifyFixture(other)).toThrow();
+    const { value } = acceptanceFixture();
+    value.source.environment =
+      value.grant.environment =
+      value.envelope.environment =
+        "staging";
+    expect(() => verifyFixture(value)).toThrow();
+  });
+  it("rejects the primary UUID even when its acceptance spelling changes case", () => {
+    const grant = fixture().grant;
+    grant.task_id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    expect(
+      ideaEvidenceGrantSchema.safeParse({
+        ...grant,
+        acceptance_task: {
+          ...acceptanceFixture().acceptance,
+          task_id: grant.task_id.toUpperCase(),
+        },
+      }).success,
+    ).toBe(false);
+  });
   it("verifies a full non-exempt review bound to its enrolled source and exact head", () => {
     const result = verifyFixture();
     expect(result.envelope_hash).toBe(hashIdeaEvidence(fixture().envelope));

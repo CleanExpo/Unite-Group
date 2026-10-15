@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
-import { generateKeyPairSync } from 'node:crypto';
+import { generateKeyPairSync, sign } from 'node:crypto';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
-import { hashIdeaEvidence, verifyExternalIdeaEvidence } from '../../apps/web/src/lib/command-centre/idea-evidence-contracts.ts';
+import { hashIdeaEvidence, ideaEvidenceSignatureMessage, verifyExternalIdeaEvidence } from '../../apps/web/src/lib/command-centre/idea-evidence-contracts.ts';
 import { sha256 } from '../idea-evidence-review-collector.mjs';
 import { createJourneyWitness, journeyWitnessPolicy, lifecycleHash } from '../idea-evidence-journey-witness.mjs';
 
@@ -32,7 +32,7 @@ function fixture() {
   const repack = () => {
     for (const [index, name] of Object.keys(facts).entries()) {
       captures[name] = Buffer.from(name === 'intake' ? facts[name] : JSON.stringify(facts[name]));
-      manifest.artifacts[name] = { file: `${name}.json`, source_kind: kinds[index], observed_at: at(times[index]), sha256: sha256(captures[name]) };
+      manifest.artifacts[name] = { file: `${name}.json`, source_kind: name === 'implementation' ? 'authenticated_implementation_lifecycle_get' : kinds[index], observed_at: at(name === 'implementation' ? 6 : times[index]), sha256: sha256(captures[name]) };
     }
     for (const name of ['alias_start', 'alias_end', 'deployment']) {
       facts[name].providerRawDigest = manifest.artifacts[`provider_${name}`].sha256;
@@ -45,12 +45,138 @@ function fixture() {
   return { facts, config, manifest, captures, repack, input: { config, manifest, captures, privateKey: keys.privateKey.export({ type: 'pkcs8', format: 'pem' }) }, options: { now: new Date(at(11)), collectorDigest: digest } };
 }
 
+function crossTaskFixture() {
+  const f = fixture(); const grant = f.config.grant.registration;
+  const implementation = structuredClone(f.facts.full);
+  const primary = implementation.lifecycle;
+  primary.title = primary.brief.snapshot.title = 'Original synthetic implementation';
+  primary.revision = primary.brief.snapshot.revision = implementation.progress.revision = 4;
+  primary.brief.hash = lifecycleHash(primary.brief.snapshot);
+  primary.brief.createdAt = '2026-10-15T01:03:00Z';
+  primary.approval.briefHash = primary.brief.hash; primary.approval.revision = 4;
+  primary.approval.approvedAt = '2026-10-15T01:04:00Z';
+  primary.history.forEach((entry, index) => { entry.at = entry.at.replace('2026-10-16', '2026-10-15'); if (index >= 2) entry.revision = 4; });
+  const oldBinding = { ...implementation.handoff.manifest }; delete oldBinding.manifestHash;
+  const originalBinding = { ...oldBinding, revision: 4, briefHash: primary.brief.hash, createdAt: '2026-10-15T01:05:00Z' };
+  implementation.handoff.manifest = { ...originalBinding, manifestHash: lifecycleHash(originalBinding) };
+  primary.handoff = Object.fromEntries(Object.keys(primary.handoff).map(key => [key, implementation.handoff.manifest[key]]));
+  implementation.mission.projectKey = 'Unite-Group';
+  grant.lifecycle_revision = 4; grant.brief_hash = primary.brief.hash;
+  grant.acceptance_task = { task_id: '55555555-5555-4555-8555-555555555555', lifecycle_revision: 2, brief_hash: f.facts.full.lifecycle.brief.hash, outcome_hash: null };
+  for (const reply of [f.facts.full, f.facts.compact, f.facts.recovered]) {
+    reply.taskId = grant.acceptance_task.task_id;
+    if (reply.mission) { reply.mission.taskId = reply.taskId; reply.mission.projectKey = null; }
+  }
+  f.facts.implementation = implementation;
+  f.config.grant.registration_hash = hashIdeaEvidence(grant);
+  f.repack(); return f;
+}
+
+test('synthetic fresh acceptance journey binds old implementation history without transferring its release subject', () => {
+  const f = crossTaskFixture(); const signed = createJourneyWitness(f.input, f.options);
+  const grant = f.config.grant.registration;
+  assert.equal(signed.envelope.task_id, grant.task_id);
+  assert.equal(signed.envelope.brief_hash, grant.brief_hash);
+  assert.equal(signed.envelope.release_id, grant.release_id);
+  assert.equal(f.facts.full.mission.projectKey, null);
+  assert.deepEqual(signed.envelope.payload.acceptance_task, grant.acceptance_task);
+  assert.ok(signed.envelope.payload.steps[0].action_ref.includes(grant.acceptance_task.task_id));
+  assert.ok(!signed.envelope.payload.steps[0].action_ref.includes(grant.task_id));
+  assert.equal(verifyExternalIdeaEvidence({ ...signed, source: f.config.source, grant: f.config.grant, expected: { founder_id: grant.founder_id, task_id: grant.task_id } }).envelope_hash, hashIdeaEvidence(signed.envelope));
+});
+
+test('synthetic acceptance may also retain the exact original registered project', () => {
+  const f = crossTaskFixture();
+  f.facts.full.mission.projectKey = f.facts.recovered.mission.projectKey = 'Unite-Group';
+  f.repack(); assert.ok(createJourneyWitness(f.input, f.options));
+});
+
+test('synthetic two inert research tasks can witness without gaining a registered build or release', () => {
+  const f = crossTaskFixture(); f.facts.implementation.mission.projectKey = null;
+  f.repack(); const signed = createJourneyWitness(f.input, f.options);
+  assert.equal(signed.envelope.task_id, f.config.grant.registration.task_id);
+  assert.equal(Object.hasOwn(signed.envelope.payload, 'engineering'), false);
+});
+
+test('synthetic original implementation outcome stays on primary while acceptance remains internal', () => {
+  const f = crossTaskFixture(); const grant = f.config.grant.registration;
+  const primary = f.facts.implementation.lifecycle;
+  const outcome = { repository: grant.repository, baseBranch: 'main', productId: grant.product_id, stripeAccountId: 'acct_SyntheticExisting', activationEvent: 'synthetic.existing', requiredClients: 1, minimumAmountMinor: 100, currency: 'AUD', windowStart: at(0), windowEnd: at(59) };
+  primary.outcome = primary.brief.snapshot.outcome = outcome;
+  primary.brief.hash = lifecycleHash(primary.brief.snapshot);
+  primary.approval.briefHash = primary.brief.hash;
+  grant.brief_hash = primary.brief.hash; grant.outcome_hash = lifecycleHash(outcome);
+  grant.outcome_canonical = JSON.stringify(Object.fromEntries(Object.entries(outcome).sort(([a], [b]) => a.localeCompare(b))));
+  f.config.grant.registration_hash = hashIdeaEvidence(grant); f.repack();
+  const signed = createJourneyWitness(f.input, f.options);
+  assert.equal(signed.envelope.outcome_hash, grant.outcome_hash);
+  assert.equal(signed.envelope.payload.acceptance_task.outcome_hash, null);
+});
+
+for (const [name, mutate] of [
+  ['wrong implementation task', f => { f.facts.implementation.taskId = f.config.grant.registration.acceptance_task.task_id; }],
+  ['wrong implementation owner', f => { f.facts.implementation.lifecycle.approval.actorId = f.config.grant.registration.task_id; }],
+  ['implementation brief hash', f => { f.facts.implementation.lifecycle.brief.hash = 'e'.repeat(64); }],
+  ['implementation revision', f => { f.facts.implementation.lifecycle.revision = 3; }],
+  ['implementation outcome', f => { f.facts.implementation.lifecycle.outcome = { invented: true }; }],
+  ['implementation approval missing', f => { f.facts.implementation.lifecycle.approval = null; }],
+  ['implementation project absent', f => { delete f.facts.implementation.mission.projectKey; }],
+  ['acceptance registered project differs', f => { f.facts.full.mission.projectKey = 'Other'; }],
+  ['acceptance project absent', f => { delete f.facts.full.mission.projectKey; }],
+  ['acceptance target repository differs', f => { f.facts.full.lifecycle.brief.snapshot.brief.target.repository = 'Other/Repo'; }],
+  ['acceptance target branch differs', f => { f.facts.full.lifecycle.brief.snapshot.brief.target.baseBranch = 'develop'; }],
+  ['acceptance task mismatch', f => { f.facts.full.taskId = f.config.grant.registration.task_id; }],
+  ['acceptance owner differs', f => { f.facts.full.lifecycle.approval.actorId = f.config.grant.registration.task_id; }],
+  ['acceptance hash mismatch', f => { f.facts.full.lifecycle.brief.hash = 'e'.repeat(64); }],
+  ['acceptance revision mismatch', f => { f.facts.full.lifecycle.revision = 3; }],
+  ['acceptance outcome present', f => { f.facts.full.lifecycle.outcome = { invented: true }; }],
+  ['acceptance approval missing', f => { f.facts.full.lifecycle.approval = null; }],
+  ['acceptance old capture history', f => { f.facts.full.lifecycle.history[0].at = '2026-10-15T01:01:00Z'; }],
+  ['acceptance missing output', f => { f.facts.full.lifecycle.brief.snapshot.brief.outputs.pop(); }],
+  ['acceptance fake paying clients', f => { f.facts.full.progress.commercial = { eligibleClients: 1, requiredClients: 1, status: 'achieved' }; }],
+  ['acceptance unapproved handoff', f => { f.facts.full.lifecycle.handoff.approved = false; }],
+  ['acceptance changed recovery', f => { f.facts.recovered.lifecycle.rawIdea = 'Changed'; }],
+  ['missing implementation artifact', f => { delete f.facts.implementation; }],
+]) test(`refuses synthetic cross-task ${name}`, () => {
+  const f = crossTaskFixture(); mutate(f); f.repack();
+  if (!f.facts.implementation) { delete f.manifest.artifacts.implementation; delete f.captures.implementation; }
+  assert.throws(() => createJourneyWitness(f.input, f.options));
+});
+
+for (const [name, mutate] of [
+  ['stale implementation capture', f => { f.manifest.artifacts.implementation.observed_at = '2026-10-15T01:06:00Z'; }],
+  ['untrusted implementation source kind', f => { f.manifest.artifacts.implementation.source_kind = 'public_http_200'; }],
+  ['implementation outside alias window', f => { f.manifest.artifacts.implementation.observed_at = '2026-10-16T00:59:00Z'; }],
+  ['null acceptance binding', f => { f.config.grant.registration.acceptance_task = null; f.config.grant.registration_hash = hashIdeaEvidence(f.config.grant.registration); }],
+  ['same primary and acceptance task', f => { f.config.grant.registration.acceptance_task.task_id = f.config.grant.registration.task_id; f.config.grant.registration_hash = hashIdeaEvidence(f.config.grant.registration); }],
+  ['nonnull acceptance outcome hash', f => { f.config.grant.registration.acceptance_task.outcome_hash = 'f'.repeat(64); f.config.grant.registration_hash = hashIdeaEvidence(f.config.grant.registration); }],
+  ['changed acceptance grant hash', f => { f.config.grant.registration.acceptance_task.brief_hash = 'f'.repeat(64); f.config.grant.registration_hash = hashIdeaEvidence(f.config.grant.registration); }],
+  ['changed acceptance grant revision', f => { f.config.grant.registration.acceptance_task.lifecycle_revision = 3; f.config.grant.registration_hash = hashIdeaEvidence(f.config.grant.registration); }],
+]) test(`refuses cross-task packet ${name}`, () => {
+  const f = crossTaskFixture(); mutate(f); assert.throws(() => createJourneyWitness(f.input, f.options));
+});
+
+test('cross-task signed acceptance binding cannot be substituted or removed', () => {
+  const f = crossTaskFixture(); const signed = createJourneyWitness(f.input, f.options);
+  const verify = value => verifyExternalIdeaEvidence({ ...value, signature: sign(null, ideaEvidenceSignatureMessage(value.envelope), keys.privateKey).toString('base64'), source: f.config.source, grant: f.config.grant, expected: { founder_id: f.config.grant.registration.founder_id, task_id: f.config.grant.registration.task_id } });
+  signed.envelope.payload.acceptance_task.task_id = f.config.grant.registration.task_id;
+  assert.throws(() => verify(signed));
+  delete signed.envelope.payload.acceptance_task; assert.throws(() => verify(signed));
+  signed.envelope.payload.acceptance_task = null; assert.throws(() => verify(signed));
+});
+
 test('synthetic complete operator witness signs stable ordered evidence; this is not live verification', () => {
   const f = fixture(); const first = createJourneyWitness(f.input, f.options); const again = createJourneyWitness(f.input, f.options);
   assert.deepEqual(first, again);
   assert.equal(first.envelope.payload.steps.length, 5);
   assert.equal(first.envelope.occurred_at, at(10));
+  assert.equal(Object.hasOwn(first.envelope.payload, 'acceptance_task'), false);
   assert.equal(verifyExternalIdeaEvidence({ ...first, source: f.config.source, grant: f.config.grant, expected: { founder_id: f.config.grant.registration.founder_id, task_id: f.config.grant.registration.task_id } }).envelope_hash, hashIdeaEvidence(first.envelope));
+});
+
+test('same-task mode refuses an ungranted extra implementation artifact', () => {
+  const f = fixture(); f.facts.implementation = structuredClone(f.facts.full); f.repack();
+  assert.throws(() => createJourneyWitness(f.input, f.options), /Complete capture manifest/);
 });
 
 for (const [name, mutate] of [

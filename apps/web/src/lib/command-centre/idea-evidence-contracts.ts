@@ -100,6 +100,19 @@ export const ideaEvidenceStripeBindingSchema = z
   })
   .strict();
 
+/** A separately approved inert acceptance task; implementation authority stays primary. */
+export const ideaEvidenceAcceptanceTaskSchema = z
+  .object({
+    task_id: z.string().uuid(),
+    lifecycle_revision: z.number().int().positive(),
+    brief_hash: digest,
+    outcome_hash: z.null(),
+  })
+  .strict();
+export type IdeaEvidenceAcceptanceTask = z.infer<
+  typeof ideaEvidenceAcceptanceTaskSchema
+>;
+
 export const ideaEvidenceGrantSchema = z
   .object({
     grant_id: z.string().uuid(),
@@ -122,9 +135,21 @@ export const ideaEvidenceGrantSchema = z
     valid_from: timestamp,
     valid_until: timestamp,
     stripe_binding: ideaEvidenceStripeBindingSchema.nullable().optional(),
+    acceptance_task: ideaEvidenceAcceptanceTaskSchema.optional(),
   })
   .strict()
   .superRefine((grant, ctx) => {
+    if (
+      grant.acceptance_task &&
+      (grant.acceptance_task.task_id.toLowerCase() ===
+        grant.task_id.toLowerCase() ||
+        grant.environment !== "production")
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Acceptance requires a distinct task in production",
+      });
+    }
     if (Date.parse(grant.valid_until) <= Date.parse(grant.valid_from)) {
       ctx.addIssue({ code: "custom", message: "Grant interval must increase" });
     }
@@ -208,6 +233,7 @@ const journeyPayloadSchema = z
     recovery_digest: digest,
     alias_start: aliasSchema,
     alias_end: aliasSchema,
+    acceptance_task: ideaEvidenceAcceptanceTaskSchema.optional(),
   })
   .strict()
   .superRefine((payload, ctx) => {
@@ -460,6 +486,27 @@ export function verifyExternalIdeaEvidence(input: {
     source.environment !== envelope.environment
   )
     throw new Error("Evidence grant scope mismatch");
+  const acceptance =
+    envelope.event_kind === "production_journey_verified"
+      ? envelope.payload.acceptance_task
+      : undefined;
+  if (grant.acceptance_task !== undefined || acceptance !== undefined) {
+    if (
+      source.kind !== "ed25519" ||
+      source.event_kind !== "production_journey_verified" ||
+      source.environment !== "production" ||
+      grant.environment !== "production" ||
+      envelope.event_kind !== "production_journey_verified" ||
+      !grant.acceptance_task ||
+      !acceptance ||
+      canonicalEvidenceJson(grant.acceptance_task) !==
+        canonicalEvidenceJson(acceptance)
+    ) {
+      throw new Error(
+        "Acceptance task must exactly match its enrolled production journey grant",
+      );
+    }
+  }
   if (envelope.event_kind === "independent_review_verified") {
     if (envelope.payload.head_sha !== envelope.release_id)
       throw new Error("Review release must be its exact head SHA");

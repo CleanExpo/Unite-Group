@@ -58,6 +58,17 @@ definition and validity interval. Review sources require the separately pinned
 `review_policy`; see [REVIEW_PRODUCER.md](./REVIEW_PRODUCER.md). A submitted public
 configuration cannot enroll itself.
 
+Only an Ed25519 production-journey grant may optionally include the strict
+`acceptance_task` binding described in [JOURNEY_WITNESS.md](./JOURNEY_WITNESS.md).
+It identifies a distinct, currently owned and approved secondary task with exact
+task ID, revision, brief hash and null outcome hash. Its outcome must remain null;
+both approved briefs target the same canonical repository and main branch. The
+secondary project is null for inert research or matches the primary project.
+This binding lends no PR, adopts no implementation and transfers no build or
+payment authority. The primary scope remains intact. Enroll a new immutable grant
+version with the reviewed collector policy and digest; never rewrite an existing
+grant version to add acceptance scope or make a packet pass.
+
 Revocation prevents new admission prospectively while preserving admitted history
 and exact historical retries. Withdrawal appends a quarantine decision for one
 event; it never deletes history. Reuse the original withdrawal identity and reason

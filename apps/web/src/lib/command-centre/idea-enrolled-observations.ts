@@ -5,6 +5,7 @@ import {
   verifyExternalIdeaEvidence,
   type IdeaEvidenceGrantRow,
   type IdeaEvidenceSourceRow,
+  type IdeaEvidenceAcceptanceTask,
 } from "./idea-evidence-contracts";
 import {
   getIdeaEvidenceGrant,
@@ -22,7 +23,12 @@ import { canonicalHash } from "./portfolio-control-plane";
 import { registeredPullRequest } from "./delivery-observations";
 import { readDeliveryMetadata } from "./delivery-types";
 import type { CommandCentreProject } from "./registry";
-import type { CommandCentreTask } from "./tasks";
+import {
+  getTaskById,
+  type CommandCentreTask,
+  type SupabaseLike,
+} from "./tasks";
+import { createServiceClient } from "@/lib/supabase/service";
 
 export interface EnrolledIdeaEvidence {
   record: StoredIdeaEvidence;
@@ -35,6 +41,40 @@ export interface EnrolledObservationDeps {
     founderId: string,
     taskId: string,
   ) => Promise<EnrolledIdeaEvidence[]>;
+  /** Unit-test seam only. Production reads the current founder-scoped task using a service client. */
+  loadAcceptanceTask?: (
+    founderId: string,
+    taskId: string,
+  ) => Promise<CommandCentreTask | null>;
+}
+
+function acceptanceTaskHolds(
+  current: CommandCentreTask | null | undefined,
+  binding: IdeaEvidenceAcceptanceTask,
+  primary: CommandCentreTask,
+  repository: string,
+): boolean {
+  if (
+    !current ||
+    current.id !== binding.task_id ||
+    current.id === primary.id ||
+    current.founder_id !== primary.founder_id ||
+    (current.project_key !== null &&
+      current.project_key !== primary.project_key)
+  )
+    return false;
+  const lifecycle = readIdeaLifecycle(current.metadata);
+  return !!(
+    lifecycle &&
+    ideaLifecycleApprovalHolds(lifecycle) &&
+    lifecycle.approval?.actorId === primary.founder_id &&
+    lifecycle.revision === binding.lifecycle_revision &&
+    lifecycle.brief?.hash === binding.brief_hash &&
+    lifecycle.outcome === null &&
+    binding.outcome_hash === null &&
+    lifecycle.brief.snapshot.brief.target.repository === repository &&
+    lifecycle.brief.snapshot.brief.target.baseBranch === "main"
+  );
 }
 
 async function loadEvidence(founderId: string, taskId: string) {
@@ -96,24 +136,23 @@ export async function projectEnrolledIdeaEvidence(
   observations.release = undefined;
   observations.activations = [];
   if (observations.engineering) observations.engineering.reviewApproved = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let readsActive = true;
   try {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    let records: EnrolledIdeaEvidence[];
-    try {
-      records = await Promise.race([
-        (process.env.NODE_ENV === "test" && deps.loadEvidence
-          ? deps.loadEvidence
-          : loadEvidence)(task.founder_id, task.id),
-        new Promise<never>((_resolve, reject) => {
-          timer = setTimeout(
-            () => reject(new Error("Evidence read deadline")),
-            8_000,
-          );
-        }),
-      ]);
-    } finally {
-      if (timer) clearTimeout(timer);
-    }
+    const deadline = new Promise<never>((_resolve, reject) => {
+      timer = setTimeout(() => {
+        readsActive = false;
+        reject(new Error("Evidence read deadline"));
+      }, 8_000);
+    });
+    const records = await Promise.race([
+      (process.env.NODE_ENV === "test" && deps.loadEvidence
+        ? deps.loadEvidence
+        : loadEvidence)(task.founder_id, task.id),
+      deadline,
+    ]);
+    // Preserve the authoritative store's bound even when using test fixtures.
+    if (records.length > 500) throw new Error("Evidence read limit");
     const accepted = records
       .map(({ record, source, grant }) => {
         if (
@@ -166,6 +205,41 @@ export async function projectEnrolledIdeaEvidence(
         return { ...verified, occurred };
       })
       .filter((value) => value !== null);
+    const acceptanceIds = [
+      ...new Set(
+        accepted.flatMap(({ envelope }) =>
+          envelope.event_kind === "production_journey_verified" &&
+          envelope.payload.acceptance_task
+            ? [envelope.payload.acceptance_task.task_id]
+            : [],
+        ),
+      ),
+    ];
+    const acceptanceTasks = new Map<string, CommandCentreTask | null>();
+    let nextAcceptance = 0;
+    let serviceClient: SupabaseLike | undefined;
+    const readAcceptance =
+      process.env.NODE_ENV === "test" && deps.loadAcceptanceTask
+        ? deps.loadAcceptanceTask
+        : (founderId: string, taskId: string) => {
+            // getTaskById defaults to a session client; this authoritative read must not.
+            serviceClient ??= createServiceClient() as unknown as SupabaseLike;
+            return getTaskById({ founderId, taskId }, serviceClient);
+          };
+    await Promise.race([
+      Promise.all(
+        Array.from({ length: Math.min(4, acceptanceIds.length) }, async () => {
+          while (readsActive && nextAcceptance < acceptanceIds.length) {
+            const id = acceptanceIds[nextAcceptance++];
+            const current = await readAcceptance(task.founder_id, id);
+            // A late read cannot start queued work or mutate projected observations.
+            if (!readsActive) return;
+            acceptanceTasks.set(id, current);
+          }
+        }),
+      ),
+      deadline,
+    ]);
     const engineering =
       observations.sources.github === "connected"
         ? observations.engineering
@@ -218,6 +292,13 @@ export async function projectEnrolledIdeaEvidence(
       .filter(
         ({ envelope: event, occurred }) =>
           event.event_kind === "production_journey_verified" &&
+          (!event.payload.acceptance_task ||
+            acceptanceTaskHolds(
+              acceptanceTasks.get(event.payload.acceptance_task.task_id),
+              event.payload.acceptance_task,
+              task,
+              target.repository,
+            )) &&
           engineering?.merged &&
           engineering.repository === target.repository &&
           pr?.reference === engineering.prUrl &&
@@ -312,5 +393,8 @@ export async function projectEnrolledIdeaEvidence(
     observations.limitations.push(
       "Enrolled evidence could not be verified from service-owned storage; review, journey and activation remain unverified.",
     );
+  } finally {
+    readsActive = false;
+    if (timer) clearTimeout(timer);
   }
 }

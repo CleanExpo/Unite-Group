@@ -7,6 +7,7 @@ import {
 import {
   applyLifecycleCommand,
   createIdeaLifecycle,
+  readIdeaLifecycle,
   type CommercialOutcome,
   type LifecycleObservations,
 } from "../idea-lifecycle";
@@ -21,6 +22,9 @@ import {
 import { canonicalHash } from "../portfolio-control-plane";
 import { observationFixture, headSha } from "./delivery-observations.fixture";
 import { observeIdeaLifecycle } from "../idea-lifecycle-observations";
+import * as tasks from "../tasks";
+import type { CommandCentreTask } from "../tasks";
+import * as service from "@/lib/supabase/service";
 
 const now = "2026-10-16T00:00:00.000Z";
 const occurred = "2026-10-15T23:59:00.000Z";
@@ -41,9 +45,13 @@ const outcome: CommercialOutcome = {
   windowEnd: "2026-10-31T00:00:00Z",
 };
 
-function fixture(commercial: CommercialOutcome | null = outcome) {
+function fixture(
+  commercial: CommercialOutcome | null = outcome,
+  taskId?: string,
+) {
   vi.stubEnv("IDEA_EVIDENCE_ENABLED", "1");
   const { task, project } = observationFixture();
+  if (taskId) task.id = taskId;
   task.founder_id = founder;
   Object.assign(project, {
     production_url: "https://unite-group.in",
@@ -60,7 +68,9 @@ function fixture(commercial: CommercialOutcome | null = outcome) {
     ...createIdeaLifecycle(
       {
         title: "Factory",
-        rawIdea: "Research an idea",
+        rawIdea: taskId
+          ? `Research acceptance for ${taskId}`
+          : "Research an idea",
         requestId: "22222222-2222-4222-8222-222222222222",
       },
       context,
@@ -338,9 +348,337 @@ function fixture(commercial: CommercialOutcome | null = outcome) {
     });
   return { task, project, observations, events, seal, run };
 }
-afterEach(() => vi.unstubAllEnvs());
+function acceptanceFixture() {
+  const primary = fixture(null);
+  const secondary = fixture(null, "66666666-6666-4666-8666-666666666666");
+  secondary.task.project_key = null;
+  // Acceptance never acquires the implementation task's registered PR.
+  delete secondary.task.metadata.delivery;
+  const lifecycle = readIdeaLifecycle(secondary.task.metadata)!;
+  const binding = {
+    task_id: secondary.task.id,
+    lifecycle_revision: lifecycle.revision,
+    brief_hash: lifecycle.brief!.hash,
+    outcome_hash: null,
+  } as const;
+  const event = primary.events[1];
+  if (event.event_kind !== "production_journey_verified")
+    throw new Error("fixture");
+  event.payload.acceptance_task = { ...binding };
+  const records = () => {
+    const rows = primary.events.slice(0, 2).map(primary.seal);
+    const grant = rows[1].grant.registration as IdeaEvidenceGrant;
+    grant.acceptance_task = { ...binding };
+    rows[1].grant.registration_hash = hashIdeaEvidence(grant);
+    return rows;
+  };
+  const loadAcceptanceTask = vi.fn(
+    async (
+      _founderId: string,
+      _taskId: string,
+    ): Promise<CommandCentreTask | null> => secondary.task,
+  );
+  const run = (rows = records()) =>
+    projectEnrolledIdeaEvidence(
+      primary.task,
+      primary.project,
+      null,
+      primary.observations,
+      { loadEvidence: async () => rows, loadAcceptanceTask },
+    );
+  return {
+    primary,
+    secondary,
+    binding,
+    event,
+    records,
+    loadAcceptanceTask,
+    run,
+  };
+}
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.restoreAllMocks();
+  vi.useRealTimers();
+});
 
 describe("enrolled lifecycle projection", () => {
+  it("proves the primary release using an explicitly enrolled fresh acceptance task without lending it engineering", async () => {
+    const f = acceptanceFixture();
+    const secondaryBefore = structuredClone({
+      task: f.secondary.task,
+      observations: f.secondary.observations,
+    });
+    const deliveryBefore = structuredClone(f.primary.task.metadata.delivery);
+    await f.run();
+    expect(f.loadAcceptanceTask).toHaveBeenCalledExactlyOnceWith(
+      founder,
+      f.secondary.task.id,
+    );
+    expect(f.primary.observations).toMatchObject({
+      engineering: { reviewApproved: true },
+      release: { commitSha: merge, journeyPassed: true },
+      activations: [],
+    });
+    expect({
+      task: f.secondary.task,
+      observations: f.secondary.observations,
+    }).toEqual(secondaryBefore);
+    expect(f.primary.task.metadata.delivery).toEqual(deliveryBefore);
+  });
+  it.each([
+    "deleted",
+    "other_id",
+    "other_owner",
+    "other_project",
+    "target_repository",
+    "target_branch",
+    "brief",
+    "revision",
+    "outcome",
+    "unapproved",
+    "other_approver",
+    "database_error",
+  ])("rejects current acceptance task %s", async (kind) => {
+    const f = acceptanceFixture();
+    if (kind === "deleted") f.loadAcceptanceTask.mockResolvedValue(null);
+    if (kind === "other_id") f.secondary.task.id = f.primary.task.id;
+    if (kind === "other_owner")
+      f.secondary.task.founder_id = "99999999-9999-4999-8999-999999999999";
+    if (kind === "other_project") f.secondary.task.project_key = "Other";
+    const lifecycle = f.secondary.task.metadata.lifecycle as Record<
+      string,
+      unknown
+    >;
+    if (["target_repository", "brief", "revision", "outcome"].includes(kind)) {
+      let current = readIdeaLifecycle(f.secondary.task.metadata)!;
+      const brief = current.brief!.snapshot.brief;
+      const context = { actorId: founder, now };
+      if (kind === "outcome")
+        current = applyLifecycleCommand(
+          current,
+          {
+            action: "set_outcome",
+            taskId: f.secondary.task.id,
+            expectedRevision: current.revision,
+            outcome,
+          },
+          context,
+        );
+      const proposed = applyLifecycleCommand(
+        current,
+        {
+          action: "propose_brief",
+          taskId: f.secondary.task.id,
+          expectedRevision: current.revision,
+          brief: {
+            ...brief,
+            objective: "Freshly approved acceptance scope",
+            target: {
+              repository:
+                kind === "target_repository"
+                  ? "Other/Repo"
+                  : outcome.repository,
+              baseBranch: "main",
+            },
+          },
+        },
+        context,
+      );
+      const approved = applyLifecycleCommand(
+        proposed,
+        {
+          action: "approve_brief",
+          taskId: f.secondary.task.id,
+          expectedRevision: proposed.revision,
+          briefHash: proposed.brief!.hash,
+        },
+        context,
+      );
+      f.secondary.task.metadata.lifecycle = approved;
+      expect(readIdeaLifecycle(f.secondary.task.metadata)).not.toBeNull();
+      Object.assign(f.binding, {
+        lifecycle_revision:
+          kind === "revision"
+            ? f.binding.lifecycle_revision
+            : approved.revision,
+        brief_hash:
+          kind === "brief" ? f.binding.brief_hash : approved.brief!.hash,
+      });
+      f.event.payload.acceptance_task = { ...f.binding };
+    }
+    if (kind === "target_branch") {
+      const brief = lifecycle.brief as {
+        snapshot: { brief: { target: { baseBranch: string } } };
+      };
+      brief.snapshot.brief.target.baseBranch = "develop";
+    }
+    if (kind === "unapproved") lifecycle.approval = null;
+    if (kind === "other_approver")
+      (lifecycle.approval as Record<string, unknown>).actorId =
+        "99999999-9999-4999-8999-999999999999";
+    if (kind === "database_error")
+      f.loadAcceptanceTask.mockRejectedValue(new Error("read failed"));
+    await f.run();
+    expect(f.primary.observations.release).toBeUndefined();
+    expect(f.primary.observations.activations).toEqual([]);
+  });
+  it("also accepts a current acceptance task assigned to the exact primary project", async () => {
+    const f = acceptanceFixture();
+    f.secondary.task.project_key = f.primary.task.project_key;
+    await f.run();
+    expect(f.primary.observations.release?.journeyPassed).toBe(true);
+  });
+  it.each(["grant", "payload", "missing_grant", "missing_payload"])(
+    "rejects acceptance binding %s substitution",
+    async (kind) => {
+      const f = acceptanceFixture();
+      if (kind === "payload")
+        f.event.payload.acceptance_task!.brief_hash = digest;
+      if (kind === "missing_payload") delete f.event.payload.acceptance_task;
+      const rows = f.records();
+      const grant = rows[1].grant.registration as IdeaEvidenceGrant;
+      if (kind === "grant") grant.acceptance_task!.brief_hash = digest;
+      if (kind === "missing_grant") delete grant.acceptance_task;
+      rows[1].grant.registration_hash = hashIdeaEvidence(grant);
+      await f.run(rows);
+      expect(f.primary.observations.release).toBeUndefined();
+    },
+  );
+  it("does not borrow the acceptance task's PR when the primary has none", async () => {
+    const f = acceptanceFixture();
+    f.secondary.task.metadata.delivery = f.primary.task.metadata.delivery;
+    delete f.primary.task.metadata.delivery;
+    await f.run();
+    expect(f.primary.observations.release).toBeUndefined();
+    expect(f.primary.observations.engineering?.reviewApproved).toBe(false);
+  });
+  it("caches repeated acceptance IDs within the same bounded projection", async () => {
+    const f = acceptanceFixture();
+    const rows = f.records();
+    await f.run([...rows, rows[1], rows[1]]);
+    expect(f.loadAcceptanceTask).toHaveBeenCalledTimes(1);
+    expect(f.primary.observations.release?.journeyPassed).toBe(true);
+  });
+  it("keeps legacy same-task journeys independent of acceptance task reads", async () => {
+    const f = fixture(null);
+    const loadAcceptanceTask = vi.fn();
+    await projectEnrolledIdeaEvidence(f.task, f.project, null, f.observations, {
+      loadEvidence: async () => f.events.slice(0, 2).map(f.seal),
+      loadAcceptanceTask,
+    });
+    expect(f.observations.release?.journeyPassed).toBe(true);
+    expect(loadAcceptanceTask).not.toHaveBeenCalled();
+  });
+  it("includes acceptance readback in the original eight-second deadline and never applies a late result", async () => {
+    vi.useFakeTimers();
+    const f = acceptanceFixture();
+    let finish!: (task: typeof f.secondary.task) => void;
+    f.loadAcceptanceTask.mockImplementation(
+      () => new Promise((resolve) => (finish = resolve)),
+    );
+    const projecting = f.run();
+    await vi.advanceTimersByTimeAsync(8_000);
+    await projecting;
+    expect(f.primary.observations).toMatchObject({
+      release: undefined,
+      engineering: { reviewApproved: false },
+      sources: { deployment: "error", activation: "error" },
+    });
+    finish(f.secondary.task);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(f.primary.observations.release).toBeUndefined();
+  });
+  it("does not renew the read deadline after loading enrollment records", async () => {
+    vi.useFakeTimers();
+    const f = acceptanceFixture();
+    f.loadAcceptanceTask.mockImplementation(
+      () =>
+        new Promise((resolve) =>
+          setTimeout(() => resolve(f.secondary.task), 200),
+        ),
+    );
+    const projecting = projectEnrolledIdeaEvidence(
+      f.primary.task,
+      f.primary.project,
+      null,
+      f.primary.observations,
+      {
+        loadEvidence: () =>
+          new Promise((resolve) =>
+            setTimeout(() => resolve(f.records()), 7_900),
+          ),
+        loadAcceptanceTask: f.loadAcceptanceTask,
+      },
+    );
+    await vi.advanceTimersByTimeAsync(8_000);
+    await projecting;
+    expect(f.loadAcceptanceTask).toHaveBeenCalledTimes(1);
+    expect(f.primary.observations.sources.deployment).toBe("error");
+    await vi.advanceTimersByTimeAsync(200);
+    expect(f.primary.observations.release).toBeUndefined();
+  });
+  it("bounds concurrent current-task reads and stops queued reads on expiry", async () => {
+    vi.useFakeTimers();
+    const f = acceptanceFixture();
+    const rows = [f.records()[0]];
+    for (let index = 0; index < 6; index++) {
+      const event = structuredClone(f.event);
+      event.event_id = `journey${index}`;
+      event.grant_id = `77777777-7777-4777-8777-77777777777${index}`;
+      event.payload.acceptance_task!.task_id = `88888888-8888-4888-8888-88888888888${index}`;
+      const row = f.primary.seal(event);
+      const grant = row.grant.registration as IdeaEvidenceGrant;
+      grant.acceptance_task = event.payload.acceptance_task;
+      row.grant.registration_hash = hashIdeaEvidence(grant);
+      rows.push(row);
+    }
+    const complete: (() => void)[] = [];
+    f.loadAcceptanceTask.mockImplementation(
+      (_founderId, taskId) =>
+        new Promise((resolve) =>
+          complete.push(() => resolve({ ...f.secondary.task, id: taskId })),
+        ),
+    );
+    const projecting = f.run(rows);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(f.loadAcceptanceTask).toHaveBeenCalledTimes(4);
+    await vi.advanceTimersByTimeAsync(7_999);
+    await projecting;
+    complete.forEach((finish) => finish());
+    await vi.advanceTimersByTimeAsync(1);
+    expect(f.loadAcceptanceTask).toHaveBeenCalledTimes(4);
+    expect(f.primary.observations.release).toBeUndefined();
+  });
+  it("preserves the authoritative 500-row limit before starting acceptance reads", async () => {
+    const f = acceptanceFixture();
+    const row = f.records()[1];
+    await f.run(Array.from({ length: 501 }, () => row));
+    expect(f.loadAcceptanceTask).not.toHaveBeenCalled();
+    expect(f.primary.observations.release).toBeUndefined();
+    expect(f.primary.observations.sources.deployment).toBe("error");
+  });
+  it("uses a founder-scoped explicit service client outside the secondary test seam", async () => {
+    const f = acceptanceFixture();
+    const client = {} as ReturnType<typeof service.createServiceClient>;
+    vi.spyOn(service, "createServiceClient").mockReturnValue(client);
+    const getTask = vi
+      .spyOn(tasks, "getTaskById")
+      .mockResolvedValue(f.secondary.task);
+    await projectEnrolledIdeaEvidence(
+      f.primary.task,
+      f.primary.project,
+      null,
+      f.primary.observations,
+      { loadEvidence: async () => f.records() },
+    );
+    expect(getTask).toHaveBeenCalledExactlyOnceWith(
+      { founderId: founder, taskId: f.binding.task_id },
+      client,
+    );
+    expect(f.primary.observations.release?.journeyPassed).toBe(true);
+  });
   it("projects the authenticated exact-head review, canonical journey and bound external value action", async () => {
     const f = fixture();
     await f.run();

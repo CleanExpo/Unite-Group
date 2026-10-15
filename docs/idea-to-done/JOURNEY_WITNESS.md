@@ -49,6 +49,57 @@ repository, registered Vercel project/team, witness procedure and 900 second
 capture age. A changed collector requires deliberate enrollment under the new
 policy; never rewrite an existing registration to make a packet pass.
 
+The policy now explicitly pins
+`acceptance_binding:"explicit_implementation_and_acceptance_tasks_v1"`. This
+changes the collector digest and policy hash. Enroll a new immutable grant version
+with the reviewed new policy; do not mutate an already enrolled version or label
+the frozen 1514 packet as proof of this change.
+
+## Original implementation and fresh acceptance tasks
+
+Omit `acceptance_task` entirely for the existing same-task mode; explicit `null`
+is refused. For a fresh acceptance journey of an already implemented release,
+the governed primary grant can instead contain exactly:
+
+```json
+{"acceptance_task":{"task_id":"ACTUAL_DISTINCT_ACCEPTANCE_UUID","lifecycle_revision":1,"brief_hash":"ACTUAL_ACCEPTANCE_BRIEF_SHA256","outcome_hash":null}}
+```
+
+The values come from the actual current owner-approved acceptance brief, not this
+illustration. This optional binding is allowed only for an Ed25519 production
+journey, must identify a task distinct from the primary implementation task,
+and is mirrored **exactly** in the signed journey payload. The grant/envelope's
+primary task, approved brief/revision/outcome, repository, product and deployment
+release ID retain their original meanings. Both tasks must have the same actual
+owner. Either mission may retain its natural `projectKey:null` inert research
+state. A nonnull acceptance project must match the primary's actual project,
+and both approved briefs must target the same canonical repository and `main`.
+A different nonnull project is refused. The acceptance task remains internal with no
+commercial outcome, customer activation, engineering result or payment status.
+Service enrollment/admission independently checks both current owned approved
+briefs and this repository/project relationship. Collecting a witness for two
+inert tasks does not establish a build or a release milestone.
+
+In this mode, the existing intake/full/compact/recovered captures and all five
+observed actions refer to the **fresh acceptance task**. Its actual capture,
+research, owner approval, non-executable handoff and recovery still occur inside
+the original alias window and 15-minute limit. Add one protected `implementation`
+artifact with source kind `authenticated_implementation_lifecycle_get`: the full
+actual authenticated lifecycle GET of the original primary task, freshly read
+inside this serving window. Its current owned approval, complete brief hash,
+revision and outcome must match the primary grant. Its saved capture/research
+history can predate this release. Both full mission responses retain their actual
+null-or-matching project state; the recovered acceptance response retains the
+same project state as its first full response. The manifest must include this
+extra artifact in cross-task mode and must exclude it in same-task mode.
+
+This binding supplies scoped acceptance evidence to the original implementation
+mission. Release evidence projects there only when that original mission already
+has its legitimate registered PR and matching provider-observed GitHub merge/main
+facts. It does not adopt an unrelated PR, assign its build to the acceptance task,
+or confer any new execution authority. The acceptance mission receives no
+engineering or payment milestone from the primary mission.
+
 ## Witness procedure
 
 1. Read the actual canonical Vercel alias and production deployment through the
@@ -67,7 +118,11 @@ policy; never rewrite an existing registration to make a packet pass.
    approves its current `research_brief_only` hash/revision, then persists and
    reads back its approved **non-executable** handoff. Enroll the task-specific
    grant against this actual owned, current approved brief and export the fresh
-   source/grant rows before witness completion/signing. Read authenticated full
+   source/grant rows before witness completion/signing. In cross-task mode bind
+   this acceptance brief explicitly while retaining the original implementation
+   task's current approved scope in the primary grant; capture its fresh full
+   authenticated `implementation` GET during the same serving window. Read the
+   authenticated full
    `GET /api/command-centre/missions/lifecycle?taskId=TASK_UUID` in that session.
    Capture the entire JSON response, without exporting session credentials.
 4. Read the same endpoint with `&view=status` and retain its full compact JSON.
@@ -113,7 +168,7 @@ regular private sibling files; no absolute capture paths or URLs are accepted.
 
 | Artifact | Exact source kind | File contents |
 | --- | --- | --- |
-| intake | operator_original_intake | Original UTF-8 text, unchanged |
+| intake | operator_original_intake | Original UTF-8 acceptance intake text, unchanged |
 | full | authenticated_lifecycle_get | Full actual authenticated service response |
 | compact | authenticated_lifecycle_status_get | Actual compact response |
 | recovered | authenticated_lifecycle_get_after_reload | Full response after actual browser reload |
@@ -122,6 +177,7 @@ regular private sibling files; no absolute capture paths or URLs are accepted.
 | provider_alias_start / provider_alias_end | vercel_alias_raw | Entire original provider JSON |
 | provider_deployment | vercel_deployment_raw | Entire original provider JSON |
 | witness | operator_ui_witness | Explicit observations below |
+| implementation (cross-task mode only) | authenticated_implementation_lifecycle_get | Full fresh authenticated primary implementation response; no old history timestamp rewriting |
 
 Normalise one clearly reviewed projection rather than asking code to guess
 arbitrary tool wrappers. Original provider JSON remains separately retained and

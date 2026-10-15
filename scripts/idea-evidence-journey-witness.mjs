@@ -24,7 +24,7 @@ const equal = (a, b) => hashEvidenceArtifact(a) === hashEvidenceArtifact(b);
 /** Enrollment must pin this policy hash in grant.contract_hash before capture. */
 export function journeyWitnessPolicy(collectorDigest) {
   need(DIGEST.test(collectorDigest), 'Collector digest required');
-  return { adapter_version: 'canonical_factory_journey_v1', journey_version: 'factory_manual_research_v1', collector_policy_digest: collectorDigest, canonical_origin: ORIGIN, provider_project_id: PROJECT, provider_team_id: TEAM, repository: REPO, issuer_trust: 'explicit_operator_witness_v1', maximum_capture_age_seconds: 900 };
+  return { adapter_version: 'canonical_factory_journey_v1', journey_version: 'factory_manual_research_v1', collector_policy_digest: collectorDigest, canonical_origin: ORIGIN, provider_project_id: PROJECT, provider_team_id: TEAM, repository: REPO, issuer_trust: 'explicit_operator_witness_v1', acceptance_binding: 'explicit_implementation_and_acceptance_tasks_v1', maximum_capture_age_seconds: 900 };
 }
 
 // Existing lifecycle hashes use locale-sorted JSON, not the evidence signature format.
@@ -50,9 +50,12 @@ function enrollment(config, collectorDigest, now) {
 export function createJourneyWitness({ config, manifest, captures, privateKey }, { now = new Date(), collectorDigest = sha256(readArtifact(fileURLToPath(import.meta.url))) } = {}) {
   const clock = now.getTime();
   const { source, grant } = enrollment(config, collectorDigest, clock);
-  need(manifest.schema === 1 && Object.keys(manifest.artifacts).sort().join(',') === Object.keys(KINDS).sort().join(','), 'Complete capture manifest required');
+  const acceptance = grant.acceptance_task;
+  const journey = acceptance ?? grant;
+  const kinds = acceptance ? { ...KINDS, implementation: 'authenticated_implementation_lifecycle_get' } : KINDS;
+  need(manifest.schema === 1 && Object.keys(manifest.artifacts).sort().join(',') === Object.keys(kinds).sort().join(','), 'Complete capture manifest required');
   const facts = {};
-  for (const [name, kind] of Object.entries(KINDS)) {
+  for (const [name, kind] of Object.entries(kinds)) {
     const spec = manifest.artifacts[name]; const bytes = captures[name];
     need(spec.source_kind === kind && DIGEST.test(spec.sha256) && Buffer.isBuffer(bytes) && bytes.length > 0 && bytes.length <= 1_048_576 && sha256(bytes) === spec.sha256, 'Capture kind/bytes/digest mismatch');
     need(time(spec.observed_at) <= clock && clock - time(spec.observed_at) <= 900_000, 'Stale or future capture');
@@ -65,26 +68,35 @@ export function createJourneyWitness({ config, manifest, captures, privateKey },
   const completed = time(witness.completed_at);
   need(completed <= clock && clock - completed <= 900_000 && completed >= time(grant.valid_from) && completed <= time(grant.valid_until), 'Witness outside authority/freshness interval');
   need(time(manifest.artifacts.witness.observed_at) === completed && time(manifest.artifacts.alias_end.observed_at) <= completed, 'Witness completion order mismatch');
-  for (const reply of [full, compact, recovered]) need(reply.source === 'supabase' && reply.taskId === grant.task_id && reply.lifecycle?.revision === grant.lifecycle_revision && reply.lifecycle?.brief?.hash === grant.brief_hash && reply.lifecycle?.brief?.snapshot?.revision === grant.lifecycle_revision, 'Lifecycle readback subject mismatch');
+  for (const reply of [full, compact, recovered]) need(reply.source === 'supabase' && reply.taskId === journey.task_id && reply.lifecycle?.revision === journey.lifecycle_revision && reply.lifecycle?.brief?.hash === journey.brief_hash && reply.lifecycle?.brief?.snapshot?.revision === journey.lifecycle_revision, 'Lifecycle readback subject mismatch');
+  if (acceptance) {
+    const primary = facts.implementation; const original = primary.lifecycle; const snapshot = original?.brief?.snapshot; const approved = original?.approval;
+    need(primary.source === 'supabase' && primary.taskId === grant.task_id && (primary.mission?.taskId === grant.task_id || primary.mission?.id === grant.task_id) && original?.kind === 'idea_to_done' && original.revision === grant.lifecycle_revision && original.brief?.hash === grant.brief_hash && snapshot?.revision === grant.lifecycle_revision && lifecycleHash(snapshot) === grant.brief_hash, 'Current implementation readback required');
+    need(approved?.scope === 'research_brief_only' && approved.actorId === grant.founder_id && approved.revision === grant.lifecycle_revision && approved.briefHash === grant.brief_hash, 'Current implementation owner approval required');
+    need(equal(snapshot.outcome, original.outcome) && equal(snapshot.sources, original.sources) && equal(snapshot.claims, original.claims) && equal(snapshot.mandate, original.mandate) && equal(snapshot.checkpoint, original.checkpoint) && equal(snapshot.openDecisions, original.openDecisions) && snapshot.rawIdea === original.rawIdea && snapshot.title === original.title && (original.outcome === null ? grant.outcome_hash === null : lifecycleHash(original.outcome) === grant.outcome_hash) && snapshot.brief?.target?.repository === grant.repository && snapshot.brief.target.baseBranch === 'main', 'Implementation brief/outcome changed');
+    need((primary.mission.projectKey === null || typeof primary.mission.projectKey === 'string' && primary.mission.projectKey.trim()) && (full.mission?.projectKey === null || full.mission?.projectKey === primary.mission.projectKey) && recovered.mission?.projectKey === full.mission?.projectKey, 'Acceptance must remain inert or use the implementation project');
+    need(time(manifest.artifacts.implementation.observed_at) >= time(manifest.artifacts.alias_start.observed_at) && time(manifest.artifacts.implementation.observed_at) <= time(manifest.artifacts.alias_end.observed_at), 'Implementation readback outside serving window');
+    need(journey.outcome_hash === null && full.lifecycle.outcome === null, 'Acceptance task must remain internal without a commercial outcome');
+  }
   const state = full.lifecycle;
   need(full.progress?.revision === state.revision && (state.outcome !== null || full.progress.commercial?.eligibleClients === 0 && full.progress.commercial.requiredClients === null && full.progress.commercial.status !== 'achieved' && full.progress.stage !== 'done'), 'Journey cannot invent paying-client completion');
   need(state.kind === 'idea_to_done' && state.rawIdea === facts.intake && state.brief.snapshot.rawIdea === facts.intake, 'Original intake changed');
   need(state.mandate && state.mandate.paidApiAllowed === false && state.checkpoint?.status === 'complete' && Array.isArray(state.checkpoint.blockers) && state.checkpoint.blockers.length === 0, 'Bounded completed research required');
   const snapshot = state.brief.snapshot;
-  need(lifecycleHash(snapshot) === grant.brief_hash && snapshot.revision === state.revision && snapshot.title === state.title && equal(snapshot.sources, state.sources) && equal(snapshot.claims, state.claims) && equal(snapshot.openDecisions, state.openDecisions) && equal(snapshot.mandate, state.mandate) && equal(snapshot.checkpoint, state.checkpoint) && equal(snapshot.outcome, state.outcome), 'Current immutable brief snapshot mismatch');
+  need(lifecycleHash(snapshot) === journey.brief_hash && snapshot.revision === state.revision && snapshot.title === state.title && equal(snapshot.sources, state.sources) && equal(snapshot.claims, state.claims) && equal(snapshot.openDecisions, state.openDecisions) && equal(snapshot.mandate, state.mandate) && equal(snapshot.checkpoint, state.checkpoint) && equal(snapshot.outcome, state.outcome), 'Current immutable brief snapshot mismatch');
   need(Array.isArray(snapshot.brief?.outputs) && snapshot.brief.outputs.length === 13 && new Set(snapshot.brief.outputs.map(item => item.id)).size === 13 && snapshot.brief.outputs.every(item => Number.isInteger(item.id) && item.id >= 1 && item.id <= 13 && ['included', 'blocked', 'deferred', 'not_applicable'].includes(item.status) && typeof item.content === 'string' && item.content.trim()) && snapshot.brief.target?.repository === REPO && snapshot.brief.target?.baseBranch === 'main', 'All thirteen unique outputs/current target required');
-  need(state.outcome === null ? grant.outcome_hash === null : lifecycleHash(state.outcome) === grant.outcome_hash, 'Outcome binding mismatch');
+  need(state.outcome === null ? journey.outcome_hash === null : lifecycleHash(state.outcome) === journey.outcome_hash, 'Outcome binding mismatch');
   const approval = state.approval;
-  need(approval?.scope === 'research_brief_only' && approval.actorId === grant.founder_id && approval.revision === state.revision && approval.briefHash === grant.brief_hash, 'Actual current owner research approval required');
+  need(approval?.scope === 'research_brief_only' && approval.actorId === grant.founder_id && approval.revision === state.revision && approval.briefHash === journey.brief_hash, 'Actual current owner research approval required');
   const handoff = state.handoff;
-  need(handoff?.mode === 'non_executable_draft' && handoff.schemaVersion === 1 && handoff.approved === true && handoff.revision === state.revision && handoff.briefHash === grant.brief_hash && DIGEST.test(handoff.manifestHash), 'Persisted approved non-executable handoff required');
+  need(handoff?.mode === 'non_executable_draft' && handoff.schemaVersion === 1 && handoff.approved === true && handoff.revision === state.revision && handoff.briefHash === journey.brief_hash && DIGEST.test(handoff.manifestHash), 'Persisted approved non-executable handoff required');
   need(full.handoff?.manifest && equal(handoff, Object.fromEntries(Object.keys(handoff).map(key => [key, full.handoff.manifest[key]]))), 'Saved/exported handoff mismatch');
   const { manifestHash, ...binding } = full.handoff.manifest;
   need(lifecycleHash(binding) === manifestHash && binding.target?.repository === REPO && binding.target?.baseBranch === 'main' && typeof full.handoff.prompt === 'string' && full.handoff.prompt.includes('NON-EXECUTABLE DRAFT'), 'Exported handoff integrity mismatch');
-  need(binding.snapshot?.evidenceHash === lifecycleHash({ sources: state.sources, claims: state.claims }) && binding.snapshot.designHash === lifecycleHash(snapshot.brief.design) && binding.snapshot.outcomeHash === grant.outcome_hash, 'Handoff evidence/design/outcome binding mismatch');
+  need(binding.snapshot?.evidenceHash === lifecycleHash({ sources: state.sources, claims: state.claims }) && binding.snapshot.designHash === lifecycleHash(snapshot.brief.design) && binding.snapshot.outcomeHash === journey.outcome_hash, 'Handoff evidence/design/outcome binding mismatch');
   need(equal(compact.lifecycle.approval, { scope: approval.scope, revision: approval.revision, briefHash: approval.briefHash }) && equal(compact.progress, full.progress), 'Compact readback mismatch');
   need(equal(recovered.lifecycle, state) && equal(recovered.handoff, full.handoff) && equal(recovered.progress, full.progress), 'Reload recovery changed saved state');
-  need(full.mission?.taskId === grant.task_id || full.mission?.id === grant.task_id, 'Saved mission identity required');
+  need(full.mission?.taskId === journey.task_id || full.mission?.id === journey.task_id, 'Saved mission identity required');
   need(Array.isArray(state.history) && Array.isArray(witness.actions) && witness.actions.length === ACTIONS.length, 'Actual history/action observations required');
   let previous = time(manifest.artifacts.alias_start.observed_at); let previousHistory = -1; let previousEventTime = previous;
   const steps = ACTIONS.map((action, index) => {
@@ -104,7 +116,7 @@ export function createJourneyWitness({ config, manifest, captures, privateKey },
       if (index === 3) need(entry.at === handoff.createdAt, 'Handoff timestamp mismatch');
       event = { action, history_index: observed.history_index, entry, ui_reference: observed.ui_reference };
     } else need(observed.recovery_reference === witness.recovery_reference && typeof witness.recovery_reference === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,199}$/.test(witness.recovery_reference), 'Explicit reload recovery reference required');
-    return { sequence: index + 1, action, action_ref: index < 4 ? `task.${grant.task_id}.history.${observed.history_index}` : witness.recovery_reference, action_digest: hashEvidenceArtifact({ observation: observed, event: event ?? null, packet_digest: hashIdeaEvidence(manifest) }), readback_ref: `${readback}.${grant.task_id}`, readback_digest: manifest.artifacts[readback].sha256 };
+    return { sequence: index + 1, action, action_ref: index < 4 ? `task.${journey.task_id}.history.${observed.history_index}` : witness.recovery_reference, action_digest: hashEvidenceArtifact({ observation: observed, event: event ?? null, packet_digest: hashIdeaEvidence(manifest) }), readback_ref: `${readback}.${journey.task_id}`, readback_digest: manifest.artifacts[readback].sha256 };
   });
   need(time(manifest.artifacts.full.observed_at) <= time(manifest.artifacts.compact.observed_at) && time(manifest.artifacts.compact.observed_at) <= time(manifest.artifacts.recovered.observed_at) && time(manifest.artifacts.recovered.observed_at) <= time(manifest.artifacts.alias_end.observed_at), 'Readback/recovery/alias order mismatch');
   const d = deployment.deployment;
@@ -117,7 +129,7 @@ export function createJourneyWitness({ config, manifest, captures, privateKey },
   };
   need(deployment.providerRawDigest === manifest.artifacts.provider_deployment.sha256 && time(manifest.artifacts.deployment.observed_at) === time(manifest.artifacts.provider_deployment.observed_at), 'Deployment raw provenance mismatch');
   need(time(manifest.artifacts.deployment.observed_at) >= time(manifest.artifacts.alias_start.observed_at) && time(manifest.artifacts.deployment.observed_at) <= time(manifest.artifacts.alias_end.observed_at), 'Deployment observation outside serving window');
-  const payload = { adapter_version: 'canonical_factory_journey_v1', canonical_origin: ORIGIN, provider_project_id: PROJECT, provider_team_id: TEAM, deployment_id: d.id, merge_sha: d.meta.githubCommitSha, journey_version: 'factory_manual_research_v1', authenticated_subject: grant.subject, steps, recovery_ref: witness.recovery_reference, recovery_digest: manifest.artifacts.recovered.sha256, alias_start: alias('alias_start'), alias_end: alias('alias_end') };
+  const payload = { adapter_version: 'canonical_factory_journey_v1', canonical_origin: ORIGIN, provider_project_id: PROJECT, provider_team_id: TEAM, deployment_id: d.id, merge_sha: d.meta.githubCommitSha, journey_version: 'factory_manual_research_v1', authenticated_subject: grant.subject, ...(acceptance ? { acceptance_task: acceptance } : {}), steps, recovery_ref: witness.recovery_reference, recovery_digest: manifest.artifacts.recovered.sha256, alias_start: alias('alias_start'), alias_end: alias('alias_end') };
   const envelope = { source_id: source.source_id, source_version: source.version, grant_id: grant.grant_id, grant_version: grant.version, event_id: `journey.v1.${witness.witness_id}`, event_kind: 'production_journey_verified', occurred_at: witness.completed_at, payload };
   for (const key of ['founder_id', 'task_id', 'lifecycle_revision', 'brief_hash', 'outcome_hash', 'repository', 'product_id', 'release_id', 'environment', 'subject', 'event_name', 'contract_hash']) envelope[key] = grant[key];
   const parsed = ideaEvidenceEnvelopeSchema.parse(envelope); const key = createPrivateKey(privateKey);
