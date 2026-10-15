@@ -31,6 +31,7 @@ SELECT 'ee161900-0000-4000-8000-000000000003'::uuid, 'ee161900-0000-4000-8000-00
     'approval',jsonb_build_object('scope','research_brief_only','actorId','ee161900-0000-4000-8000-000000000001',
       'revision',1,'briefHash',repeat('a',64)),
     'brief',jsonb_build_object('hash',repeat('a',64),'snapshot',jsonb_build_object('revision',1,'brief',jsonb_build_object(
+      'target',jsonb_build_object('repository','CleanExpo/Unite-Group','baseBranch','main'),
       'outputs',(SELECT jsonb_agg(jsonb_build_object('id',n,'status','included','content','Fixture output ' || n)) FROM generate_series(1,13) n))))
   )), clock_timestamp() - interval '1 minute';
 
@@ -262,8 +263,202 @@ END;
 $$;
 RESET ROLE;
 
+-- Production journey acceptance uses a separately approved inert task without
+-- adopting the implementation PR. All rows remain isolated rollback fixtures.
+INSERT INTO public.cc_tasks(id,founder_id,title,metadata,updated_at)
+SELECT 'ee161900-0000-4000-8000-000000000010'::uuid,founder_id,'Isolated fresh acceptance fixture',
+  metadata,clock_timestamp() FROM public.cc_tasks WHERE id='ee161900-0000-4000-8000-000000000003';
+INSERT INTO public.cc_tasks(id,founder_id,title,metadata,updated_at)
+SELECT 'ee161900-0000-4000-8000-000000000012'::uuid,'ee161900-0000-4000-8000-000000000002'::uuid,
+  'Isolated foreign owner acceptance fixture',jsonb_set(metadata,'{lifecycle,approval,actorId}',
+    '"ee161900-0000-4000-8000-000000000002"'::jsonb),clock_timestamp()
+  FROM public.cc_tasks WHERE id='ee161900-0000-4000-8000-000000000010';
+
+SET LOCAL ROLE service_role;
+DO $$
+DECLARE s jsonb; g jsonb; e jsonb; binding jsonb; changed jsonb; bad_binding jsonb;
+  source_row jsonb; grant_row jsonb; old_event jsonb; retried jsonb; target public.cc_tasks%ROWTYPE;
+  primary_task public.cc_tasks%ROWTYPE; path text[]; v_secondary_project text; old_time timestamptz;
+BEGIN
+  SELECT * INTO STRICT target FROM public.cc_tasks WHERE id='ee161900-0000-4000-8000-000000000010';
+  SELECT * INTO STRICT primary_task FROM public.cc_tasks WHERE id='ee161900-0000-4000-8000-000000000003';
+  IF primary_task.project_key IS NOT NULL OR target.project_key IS NOT NULL THEN
+    RAISE EXCEPTION 'Inert SQL fixture must start with null project keys'; END IF;
+  s := jsonb_build_object('source_id','sql.fixture.journey','version',1,'kind','ed25519',
+    'event_kind','production_journey_verified','adapter_version','canonical_factory_journey_v1',
+    'repository','CleanExpo/Unite-Group','product_id','factory','environment','production',
+    'public_key','TEST-ONLY-public-key-not-used-for-SQL-signature-verification');
+  source_row := public.cc_idea_evidence_enroll_source_v1(s,s::text);
+  binding := jsonb_build_object('task_id',target.id,'lifecycle_revision',1,'brief_hash',repeat('a',64),'outcome_hash',NULL);
+  SELECT value || jsonb_build_object('grant_id','ee161900-0000-4000-8000-000000000011',
+    'source_id','sql.fixture.journey','environment','production','release_id','dpl-sql-fixture',
+    'event_name','journey.verified.v1','acceptance_task',binding) INTO g FROM evidence_fixture WHERE name='grant';
+  -- Missing, foreign-owner, stale-revision and stale-brief targets fail closed.
+  FOR bad_binding IN SELECT value FROM jsonb_array_elements(jsonb_build_array(
+    binding || '{"task_id":"ee161900-0000-4000-8000-000000000099"}'::jsonb,
+    binding || '{"task_id":"ee161900-0000-4000-8000-000000000012"}'::jsonb,
+    binding || '{"lifecycle_revision":2}'::jsonb,
+    binding || jsonb_build_object('brief_hash',repeat('d',64)))) LOOP
+    changed := jsonb_set(g,'{acceptance_task}',bad_binding);
+    PERFORM pg_temp.expect_error(format('SELECT public.cc_idea_evidence_enroll_grant_v1(%L::jsonb,%L)',changed,changed::text),'PT409');
+  END LOOP;
+  -- Null, recursive, commercial and same-as-primary bindings are not this contract.
+  FOR bad_binding IN SELECT value FROM jsonb_array_elements(jsonb_build_array(
+    'null'::jsonb,binding || '{"acceptance_task":{}}'::jsonb,
+    binding || jsonb_build_object('outcome_hash',repeat('d',64)),
+    binding || jsonb_build_object('task_id',primary_task.id))) LOOP
+    changed := jsonb_set(g,'{acceptance_task}',bad_binding);
+    PERFORM pg_temp.expect_error(format('SELECT public.cc_idea_evidence_enroll_grant_v1(%L::jsonb,%L)',changed,changed::text),'22023');
+  END LOOP;
+  changed := g || '{"source_id":"sql.fixture.review","environment":"staging"}'::jsonb;
+  PERFORM pg_temp.expect_error(format('SELECT public.cc_idea_evidence_enroll_grant_v1(%L::jsonb,%L)',changed,changed::text),'22023');
+  changed := s || '{"source_id":"sql.fixture.stage-journey","environment":"staging"}'::jsonb;
+  PERFORM public.cc_idea_evidence_enroll_source_v1(changed,changed::text);
+  changed := g || '{"source_id":"sql.fixture.stage-journey","environment":"staging"}'::jsonb;
+  PERFORM pg_temp.expect_error(format('SELECT public.cc_idea_evidence_enroll_grant_v1(%L::jsonb,%L)',changed,changed::text),'22023');
+  FOR path IN SELECT value FROM (VALUES (ARRAY['lifecycle','outcome']),
+    (ARRAY['lifecycle','approval','actorId']),(ARRAY['lifecycle','approval','scope']),
+    (ARRAY['lifecycle','brief','snapshot','brief','target','repository']),
+    (ARRAY['lifecycle','brief','snapshot','brief','target','baseBranch'])) AS paths(value) LOOP
+    BEGIN
+      UPDATE public.cc_tasks SET metadata=jsonb_set(target.metadata,path,'"wrong"'::jsonb) WHERE id=target.id;
+      PERFORM pg_temp.expect_error(format('SELECT public.cc_idea_evidence_enroll_grant_v1(%L::jsonb,%L)',g,g::text),'PT409');
+      RAISE EXCEPTION 'Rollback invalid secondary context' USING ERRCODE='ZX010';
+    EXCEPTION WHEN SQLSTATE 'ZX010' THEN NULL;
+    END;
+  END LOOP;
+  BEGIN
+    UPDATE public.cc_tasks SET project_key='foreign-project' WHERE id=target.id;
+    PERFORM pg_temp.expect_error(format('SELECT public.cc_idea_evidence_enroll_grant_v1(%L::jsonb,%L)',g,g::text),'PT409');
+    RAISE EXCEPTION 'Rollback foreign project context' USING ERRCODE='ZX011';
+  EXCEPTION WHEN SQLSTATE 'ZX011' THEN NULL;
+  END;
+  BEGIN
+    UPDATE public.cc_tasks SET metadata=jsonb_set(primary_task.metadata,'{lifecycle,approval,actorId}',
+      '"ee161900-0000-4000-8000-000000000002"'::jsonb) WHERE id=primary_task.id;
+    PERFORM pg_temp.expect_error(format('SELECT public.cc_idea_evidence_enroll_grant_v1(%L::jsonb,%L)',g,g::text),'PT409');
+    RAISE EXCEPTION 'Rollback invalid primary approval' USING ERRCODE='ZX012';
+  EXCEPTION WHEN SQLSTATE 'ZX012' THEN NULL;
+  END;
+  -- A registered primary can accept an inert null-key task or one with its
+  -- exact project key. Any different nonnull key is rejected. Each branch rolls back.
+  FOR v_secondary_project IN SELECT value FROM (VALUES (NULL::text),('sql.fixture.project'),('foreign-project')) AS projects(value) LOOP
+    BEGIN
+      UPDATE public.cc_tasks SET project_key='sql.fixture.project' WHERE id=primary_task.id;
+      UPDATE public.cc_tasks SET project_key=v_secondary_project WHERE id=target.id;
+      IF v_secondary_project IS NULL OR v_secondary_project='sql.fixture.project' THEN
+        PERFORM public.cc_idea_evidence_enroll_grant_v1(g,g::text);
+      ELSE
+        PERFORM pg_temp.expect_error(format('SELECT public.cc_idea_evidence_enroll_grant_v1(%L::jsonb,%L)',g,g::text),'PT409');
+      END IF;
+      RAISE EXCEPTION 'Rollback project-key enrollment matrix' USING ERRCODE='ZX020';
+    EXCEPTION WHEN SQLSTATE 'ZX020' THEN NULL;
+    END;
+  END LOOP;
+  -- Fresh acceptance does not require rewriting the implementation's old history.
+  old_time := clock_timestamp()-interval '2 days';
+  UPDATE public.cc_tasks SET metadata=jsonb_set(jsonb_set(jsonb_set(metadata,'{lifecycle,updatedAt}',to_jsonb(old_time)),
+    '{lifecycle,history,0,at}',to_jsonb(old_time)),'{lifecycle,handoff,createdAt}',to_jsonb(old_time)),updated_at=old_time
+    WHERE id=primary_task.id;
+  grant_row := public.cc_idea_evidence_enroll_grant_v1(g,g::text);
+  e := (g - ARRAY['version','source_version','outcome_canonical','valid_from','valid_until','acceptance_task']) ||
+    jsonb_build_object('source_version',1,'grant_version',1,'event_id','journey-acceptance-1',
+      'event_kind','production_journey_verified','occurred_at',clock_timestamp(),
+      'payload',jsonb_build_object('acceptance_task',binding,'fixture',true));
+  changed := jsonb_set(e,'{payload,acceptance_task,lifecycle_revision}','2'::jsonb);
+  PERFORM pg_temp.expect_error(format('SELECT public.cc_idea_evidence_admit_v1(%L::jsonb,%L,%L,%L,%L)',
+    changed,changed::text,'TEST-ONLY-server-verified-signature',source_row->>'registration_hash',grant_row->>'registration_hash'),'22023');
+  changed := e #- '{payload,acceptance_task}';
+  PERFORM pg_temp.expect_error(format('SELECT public.cc_idea_evidence_admit_v1(%L::jsonb,%L,%L,%L,%L)',
+    changed,changed::text,'TEST-ONLY-server-verified-signature',source_row->>'registration_hash',grant_row->>'registration_hash'),'22023');
+  changed := jsonb_set(e,'{payload,acceptance_task}','null'::jsonb);
+  PERFORM pg_temp.expect_error(format('SELECT public.cc_idea_evidence_admit_v1(%L::jsonb,%L,%L,%L,%L)',
+    changed,changed::text,'TEST-ONLY-server-verified-signature',source_row->>'registration_hash',grant_row->>'registration_hash'),'22023');
+  FOR path IN SELECT value FROM (VALUES (ARRAY['lifecycle','brief','hash']),
+    (ARRAY['lifecycle','outcome']),(ARRAY['lifecycle','approval','scope']),
+    (ARRAY['lifecycle','approval','actorId']),(ARRAY['lifecycle','brief','snapshot','brief','target','repository']),
+    (ARRAY['lifecycle','brief','snapshot','brief','target','baseBranch'])) AS paths(value) LOOP
+    BEGIN
+      UPDATE public.cc_tasks SET metadata=jsonb_set(target.metadata,path,'"wrong"'::jsonb) WHERE id=target.id;
+      PERFORM pg_temp.expect_error(format('SELECT public.cc_idea_evidence_admit_v1(%L::jsonb,%L,%L,%L,%L)',
+        e,e::text,'TEST-ONLY-server-verified-signature',source_row->>'registration_hash',grant_row->>'registration_hash'),'PT409');
+      RAISE EXCEPTION 'Rollback changed secondary admission context' USING ERRCODE='ZX017';
+    EXCEPTION WHEN SQLSTATE 'ZX017' THEN NULL;
+    END;
+  END LOOP;
+  BEGIN
+    UPDATE public.cc_tasks SET project_key='foreign-project' WHERE id=target.id;
+    PERFORM pg_temp.expect_error(format('SELECT public.cc_idea_evidence_admit_v1(%L::jsonb,%L,%L,%L,%L)',
+      e,e::text,'TEST-ONLY-server-verified-signature',source_row->>'registration_hash',grant_row->>'registration_hash'),'PT409');
+    RAISE EXCEPTION 'Rollback changed project admission context' USING ERRCODE='ZX018';
+  EXCEPTION WHEN SQLSTATE 'ZX018' THEN NULL;
+  END;
+  BEGIN
+    UPDATE public.cc_tasks SET founder_id='ee161900-0000-4000-8000-000000000002',
+      metadata=jsonb_set(target.metadata,'{lifecycle,approval,actorId}','"ee161900-0000-4000-8000-000000000002"'::jsonb) WHERE id=target.id;
+    PERFORM pg_temp.expect_error(format('SELECT public.cc_idea_evidence_admit_v1(%L::jsonb,%L,%L,%L,%L)',
+      e,e::text,'TEST-ONLY-server-verified-signature',source_row->>'registration_hash',grant_row->>'registration_hash'),'PT409');
+    RAISE EXCEPTION 'Rollback changed owner admission context' USING ERRCODE='ZX019';
+  EXCEPTION WHEN SQLSTATE 'ZX019' THEN NULL;
+  END;
+  FOR v_secondary_project IN SELECT value FROM (VALUES (NULL::text),('sql.fixture.project'),('foreign-project')) AS projects(value) LOOP
+    BEGIN
+      UPDATE public.cc_tasks SET project_key='sql.fixture.project' WHERE id=primary_task.id;
+      UPDATE public.cc_tasks SET project_key=v_secondary_project WHERE id=target.id;
+      changed := e || jsonb_build_object('event_id','journey-project-matrix-' || COALESCE(v_secondary_project,'inert'));
+      IF v_secondary_project IS NULL OR v_secondary_project='sql.fixture.project' THEN
+        PERFORM public.cc_idea_evidence_admit_v1(changed,changed::text,'TEST-ONLY-server-verified-signature',
+          source_row->>'registration_hash',grant_row->>'registration_hash');
+      ELSE
+        PERFORM pg_temp.expect_error(format('SELECT public.cc_idea_evidence_admit_v1(%L::jsonb,%L,%L,%L,%L)',
+          changed,changed::text,'TEST-ONLY-server-verified-signature',source_row->>'registration_hash',grant_row->>'registration_hash'),'PT409');
+      END IF;
+      RAISE EXCEPTION 'Rollback project-key admission matrix' USING ERRCODE='ZX021';
+    EXCEPTION WHEN SQLSTATE 'ZX021' THEN NULL;
+    END;
+  END LOOP;
+  BEGIN
+    UPDATE public.cc_tasks SET metadata=jsonb_set(target.metadata,'{lifecycle,revision}','2'::jsonb) WHERE id=target.id;
+    PERFORM pg_temp.expect_error(format('SELECT public.cc_idea_evidence_admit_v1(%L::jsonb,%L,%L,%L,%L)',
+      e,e::text,'TEST-ONLY-server-verified-signature',source_row->>'registration_hash',grant_row->>'registration_hash'),'PT409');
+    RAISE EXCEPTION 'Rollback stale secondary admission' USING ERRCODE='ZX013';
+  EXCEPTION WHEN SQLSTATE 'ZX013' THEN NULL;
+  END;
+  BEGIN
+    DELETE FROM public.cc_tasks WHERE id=target.id;
+    PERFORM pg_temp.expect_error(format('SELECT public.cc_idea_evidence_admit_v1(%L::jsonb,%L,%L,%L,%L)',
+      e,e::text,'TEST-ONLY-server-verified-signature',source_row->>'registration_hash',grant_row->>'registration_hash'),'PT409');
+    RAISE EXCEPTION 'Rollback missing secondary admission' USING ERRCODE='ZX014';
+  EXCEPTION WHEN SQLSTATE 'ZX014' THEN NULL;
+  END;
+  BEGIN
+    UPDATE public.cc_tasks SET metadata=metadata #- '{lifecycle,approval}' WHERE id=primary_task.id;
+    PERFORM pg_temp.expect_error(format('SELECT public.cc_idea_evidence_admit_v1(%L::jsonb,%L,%L,%L,%L)',
+      e,e::text,'TEST-ONLY-server-verified-signature',source_row->>'registration_hash',grant_row->>'registration_hash'),'PT409');
+    RAISE EXCEPTION 'Rollback stale primary admission' USING ERRCODE='ZX015';
+  EXCEPTION WHEN SQLSTATE 'ZX015' THEN NULL;
+  END;
+  old_event := public.cc_idea_evidence_admit_v1(e,e::text,'TEST-ONLY-server-verified-signature',
+    source_row->>'registration_hash',grant_row->>'registration_hash');
+  IF old_event->>'task_id' IS DISTINCT FROM primary_task.id::text
+     OR old_event#>'{envelope,payload,acceptance_task}' IS DISTINCT FROM binding THEN
+    RAISE EXCEPTION 'Acceptance evidence replaced its primary implementation context'; END IF;
+  BEGIN
+    DELETE FROM public.cc_tasks WHERE id=target.id;
+    UPDATE public.cc_tasks SET metadata=metadata #- '{lifecycle,approval}' WHERE id=primary_task.id;
+    PERFORM public.cc_idea_evidence_revoke_source_v1('sql.fixture.journey',1,'SQL fixture prospective rotation');
+    retried := public.cc_idea_evidence_admit_v1(e,e::text,'TEST-ONLY-server-verified-signature',
+      source_row->>'registration_hash',grant_row->>'registration_hash');
+    IF retried IS DISTINCT FROM old_event THEN RAISE EXCEPTION 'Exact acceptance retry changed history'; END IF;
+    RAISE EXCEPTION 'Rollback historical retry fixture' USING ERRCODE='ZX016';
+  EXCEPTION WHEN SQLSTATE 'ZX016' THEN NULL;
+  END;
+END;
+$$;
+RESET ROLE;
+
 DO $$ BEGIN
-  IF (SELECT count(*) FROM public.cc_idea_evidence_events WHERE source_id LIKE 'sql.fixture.%') <> 3 THEN
-    RAISE EXCEPTION 'Expected review, withdrawal and handoff only'; END IF;
+  IF (SELECT count(*) FROM public.cc_idea_evidence_events WHERE source_id LIKE 'sql.fixture.%') <> 4 THEN
+    RAISE EXCEPTION 'Expected review, withdrawal, handoff and acceptance journey only'; END IF;
 END; $$;
 ROLLBACK;

@@ -161,12 +161,14 @@ DECLARE
   v_source public.cc_idea_evidence_sources%ROWTYPE;
   v_row public.cc_idea_evidence_grants%ROWTYPE;
   v_task public.cc_tasks%ROWTYPE;
+  v_acceptance public.cc_tasks%ROWTYPE;
+  v_acceptance_binding jsonb := p_registration->'acceptance_task';
   v_key text;
   v_now timestamptz;
 BEGIN
   SELECT * INTO STRICT v_source FROM public.cc_idea_evidence_sources
     WHERE source_id = p_registration->>'source_id' AND version = (p_registration->>'source_version')::integer FOR UPDATE;
-  -- All authority mutations take source -> grant -> task locks, in that order.
+  -- Authority mutations take source -> grant -> tasks in ascending UUID order.
   SELECT * INTO v_row FROM public.cc_idea_evidence_grants
     WHERE grant_id = p_registration->>'grant_id' AND version = (p_registration->>'version')::integer FOR UPDATE;
   IF FOUND THEN
@@ -175,7 +177,35 @@ BEGIN
     END IF;
     RETURN to_jsonb(v_row);
   END IF;
-  SELECT * INTO STRICT v_task FROM public.cc_tasks WHERE id = (p_registration->>'task_id')::uuid FOR UPDATE;
+  IF p_registration ? 'acceptance_task' THEN
+    IF jsonb_typeof(v_acceptance_binding) IS DISTINCT FROM 'object'
+       OR NOT (v_acceptance_binding ?& ARRAY['task_id','lifecycle_revision','brief_hash','outcome_hash'])
+       OR (v_acceptance_binding - ARRAY['task_id','lifecycle_revision','brief_hash','outcome_hash']) <> '{}'::jsonb
+       OR jsonb_typeof(v_acceptance_binding->'task_id') IS DISTINCT FROM 'string'
+       OR COALESCE(v_acceptance_binding->>'task_id','') !~* '^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$'
+       OR jsonb_typeof(v_acceptance_binding->'lifecycle_revision') IS DISTINCT FROM 'number'
+       OR COALESCE(v_acceptance_binding->>'lifecycle_revision','') !~ '^[1-9][0-9]{0,8}$'
+       OR COALESCE(v_acceptance_binding->>'brief_hash','') !~ '^[a-f0-9]{64}$'
+       OR v_acceptance_binding->'outcome_hash' IS DISTINCT FROM 'null'::jsonb
+       OR v_source.registration->>'kind' IS DISTINCT FROM 'ed25519'
+       OR v_source.registration->>'event_kind' IS DISTINCT FROM 'production_journey_verified'
+       OR v_source.registration->>'environment' IS DISTINCT FROM 'production'
+       OR p_registration->>'environment' IS DISTINCT FROM 'production' THEN
+      RAISE EXCEPTION 'Acceptance task belongs only to a production journey grant' USING ERRCODE = '22023';
+    END IF;
+    IF (v_acceptance_binding->>'task_id')::uuid = (p_registration->>'task_id')::uuid THEN
+      RAISE EXCEPTION 'Acceptance task must differ from the implementation task' USING ERRCODE = '22023';
+    END IF;
+  END IF;
+  -- Lock both rows before inspecting either; reversed bindings cannot deadlock.
+  PERFORM id FROM public.cc_tasks WHERE id IN ((p_registration->>'task_id')::uuid,
+    (v_acceptance_binding->>'task_id')::uuid) ORDER BY id FOR UPDATE;
+  SELECT * INTO v_task FROM public.cc_tasks WHERE id = (p_registration->>'task_id')::uuid;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Implementation task no longer exists' USING ERRCODE = 'PT409'; END IF;
+  IF v_acceptance_binding IS NOT NULL THEN
+    SELECT * INTO v_acceptance FROM public.cc_tasks WHERE id = (v_acceptance_binding->>'task_id')::uuid;
+    IF NOT FOUND THEN RAISE EXCEPTION 'Acceptance task no longer exists' USING ERRCODE = 'PT409'; END IF;
+  END IF;
   v_now := clock_timestamp();
   IF v_source.revoked_at IS NOT NULL OR jsonb_typeof(p_registration) IS DISTINCT FROM 'object'
      OR COALESCE(p_registration->>'grant_id', '') !~ '^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,199}$'
@@ -213,6 +243,28 @@ BEGIN
      OR v_task.metadata#>>'{lifecycle,brief,hash}' IS DISTINCT FROM p_registration->>'brief_hash'
      OR COALESCE(v_task.metadata#>'{lifecycle,outcome}', 'null'::jsonb) IS DISTINCT FROM (p_registration->>'outcome_canonical')::jsonb THEN
     RAISE EXCEPTION 'Grant does not match current owned brief' USING ERRCODE = 'PT409';
+  END IF;
+  IF v_acceptance_binding IS NOT NULL AND (
+       v_task.metadata#>>'{lifecycle,approval,scope}' IS DISTINCT FROM 'research_brief_only'
+       OR v_task.metadata#>>'{lifecycle,approval,actorId}' IS DISTINCT FROM v_task.founder_id::text
+       OR v_task.metadata#>>'{lifecycle,approval,revision}' IS DISTINCT FROM p_registration->>'lifecycle_revision'
+       OR v_task.metadata#>>'{lifecycle,approval,briefHash}' IS DISTINCT FROM p_registration->>'brief_hash'
+       OR v_task.metadata#>>'{lifecycle,brief,snapshot,revision}' IS DISTINCT FROM p_registration->>'lifecycle_revision'
+       OR v_task.metadata#>>'{lifecycle,brief,snapshot,brief,target,repository}' IS DISTINCT FROM p_registration->>'repository'
+       OR v_task.metadata#>>'{lifecycle,brief,snapshot,brief,target,baseBranch}' IS DISTINCT FROM 'main'
+       OR v_acceptance.founder_id IS DISTINCT FROM v_task.founder_id
+       OR (v_acceptance.project_key IS NOT NULL AND v_acceptance.project_key IS DISTINCT FROM v_task.project_key)
+       OR v_acceptance.metadata#>>'{lifecycle,revision}' IS DISTINCT FROM v_acceptance_binding->>'lifecycle_revision'
+       OR v_acceptance.metadata#>>'{lifecycle,brief,hash}' IS DISTINCT FROM v_acceptance_binding->>'brief_hash'
+       OR v_acceptance.metadata#>'{lifecycle,outcome}' IS DISTINCT FROM 'null'::jsonb
+       OR v_acceptance.metadata#>>'{lifecycle,approval,scope}' IS DISTINCT FROM 'research_brief_only'
+       OR v_acceptance.metadata#>>'{lifecycle,approval,actorId}' IS DISTINCT FROM v_task.founder_id::text
+       OR v_acceptance.metadata#>>'{lifecycle,approval,revision}' IS DISTINCT FROM v_acceptance_binding->>'lifecycle_revision'
+       OR v_acceptance.metadata#>>'{lifecycle,approval,briefHash}' IS DISTINCT FROM v_acceptance_binding->>'brief_hash'
+       OR v_acceptance.metadata#>>'{lifecycle,brief,snapshot,revision}' IS DISTINCT FROM v_acceptance_binding->>'lifecycle_revision'
+       OR v_acceptance.metadata#>>'{lifecycle,brief,snapshot,brief,target,repository}' IS DISTINCT FROM p_registration->>'repository'
+       OR v_acceptance.metadata#>>'{lifecycle,brief,snapshot,brief,target,baseBranch}' IS DISTINCT FROM 'main') THEN
+    RAISE EXCEPTION 'Acceptance binding requires both current owned approved briefs in the same project' USING ERRCODE = 'PT409';
   END IF;
   IF (p_registration->>'outcome_canonical')::jsonb = 'null'::jsonb THEN
     IF p_registration->'outcome_hash' IS DISTINCT FROM 'null'::jsonb THEN
@@ -295,6 +347,8 @@ DECLARE
   v_grant public.cc_idea_evidence_grants%ROWTYPE;
   v_event public.cc_idea_evidence_events%ROWTYPE;
   v_task public.cc_tasks%ROWTYPE;
+  v_acceptance public.cc_tasks%ROWTYPE;
+  v_acceptance_binding jsonb;
   v_key text;
   v_now timestamptz;
   v_occurred timestamptz;
@@ -320,7 +374,36 @@ BEGIN
     END IF;
     RETURN to_jsonb(v_event); -- Historical retry never refreshes time or authority.
   END IF;
-  SELECT * INTO STRICT v_task FROM public.cc_tasks WHERE id = v_grant.task_id FOR UPDATE;
+  v_acceptance_binding := v_grant.registration->'acceptance_task';
+  IF v_grant.registration ? 'acceptance_task' OR (p_envelope->'payload') ? 'acceptance_task' THEN
+    IF jsonb_typeof(v_acceptance_binding) IS DISTINCT FROM 'object'
+       OR NOT (v_acceptance_binding ?& ARRAY['task_id','lifecycle_revision','brief_hash','outcome_hash'])
+       OR (v_acceptance_binding - ARRAY['task_id','lifecycle_revision','brief_hash','outcome_hash']) <> '{}'::jsonb
+       OR jsonb_typeof(v_acceptance_binding->'task_id') IS DISTINCT FROM 'string'
+       OR COALESCE(v_acceptance_binding->>'task_id','') !~* '^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$'
+       OR jsonb_typeof(v_acceptance_binding->'lifecycle_revision') IS DISTINCT FROM 'number'
+       OR COALESCE(v_acceptance_binding->>'lifecycle_revision','') !~ '^[1-9][0-9]{0,8}$'
+       OR COALESCE(v_acceptance_binding->>'brief_hash','') !~ '^[a-f0-9]{64}$'
+       OR v_acceptance_binding->'outcome_hash' IS DISTINCT FROM 'null'::jsonb
+       OR v_acceptance_binding IS DISTINCT FROM p_envelope#>'{payload,acceptance_task}'
+       OR v_source.registration->>'kind' IS DISTINCT FROM 'ed25519'
+       OR v_source.registration->>'event_kind' IS DISTINCT FROM 'production_journey_verified'
+       OR v_source.registration->>'environment' IS DISTINCT FROM 'production'
+       OR v_grant.registration->>'environment' IS DISTINCT FROM 'production' THEN
+      RAISE EXCEPTION 'Signed acceptance task does not match its production journey grant' USING ERRCODE = '22023';
+    END IF;
+    IF (v_acceptance_binding->>'task_id')::uuid = v_grant.task_id THEN
+      RAISE EXCEPTION 'Acceptance task must differ from the implementation task' USING ERRCODE = '22023';
+    END IF;
+  END IF;
+  PERFORM id FROM public.cc_tasks WHERE id IN (v_grant.task_id,
+    (v_acceptance_binding->>'task_id')::uuid) ORDER BY id FOR UPDATE;
+  SELECT * INTO v_task FROM public.cc_tasks WHERE id = v_grant.task_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Implementation task no longer exists' USING ERRCODE = 'PT409'; END IF;
+  IF v_acceptance_binding IS NOT NULL THEN
+    SELECT * INTO v_acceptance FROM public.cc_tasks WHERE id = (v_acceptance_binding->>'task_id')::uuid;
+    IF NOT FOUND THEN RAISE EXCEPTION 'Acceptance task no longer exists' USING ERRCODE = 'PT409'; END IF;
+  END IF;
   v_now := clock_timestamp();
   v_occurred := (p_envelope->>'occurred_at')::timestamptz;
   IF v_source.revoked_at IS NOT NULL OR v_grant.revoked_at IS NOT NULL
@@ -346,6 +429,28 @@ BEGIN
      OR v_task.metadata#>>'{lifecycle,brief,hash}' IS DISTINCT FROM v_grant.registration->>'brief_hash'
      OR COALESCE(v_task.metadata#>'{lifecycle,outcome}', 'null'::jsonb) IS DISTINCT FROM (v_grant.registration->>'outcome_canonical')::jsonb THEN
     RAISE EXCEPTION 'Evidence no longer matches current owned brief' USING ERRCODE = 'PT409';
+  END IF;
+  IF v_acceptance_binding IS NOT NULL AND (
+       v_task.metadata#>>'{lifecycle,approval,scope}' IS DISTINCT FROM 'research_brief_only'
+       OR v_task.metadata#>>'{lifecycle,approval,actorId}' IS DISTINCT FROM v_task.founder_id::text
+       OR v_task.metadata#>>'{lifecycle,approval,revision}' IS DISTINCT FROM v_grant.registration->>'lifecycle_revision'
+       OR v_task.metadata#>>'{lifecycle,approval,briefHash}' IS DISTINCT FROM v_grant.registration->>'brief_hash'
+       OR v_task.metadata#>>'{lifecycle,brief,snapshot,revision}' IS DISTINCT FROM v_grant.registration->>'lifecycle_revision'
+       OR v_task.metadata#>>'{lifecycle,brief,snapshot,brief,target,repository}' IS DISTINCT FROM v_grant.registration->>'repository'
+       OR v_task.metadata#>>'{lifecycle,brief,snapshot,brief,target,baseBranch}' IS DISTINCT FROM 'main'
+       OR v_acceptance.founder_id IS DISTINCT FROM v_task.founder_id
+       OR (v_acceptance.project_key IS NOT NULL AND v_acceptance.project_key IS DISTINCT FROM v_task.project_key)
+       OR v_acceptance.metadata#>>'{lifecycle,revision}' IS DISTINCT FROM v_acceptance_binding->>'lifecycle_revision'
+       OR v_acceptance.metadata#>>'{lifecycle,brief,hash}' IS DISTINCT FROM v_acceptance_binding->>'brief_hash'
+       OR v_acceptance.metadata#>'{lifecycle,outcome}' IS DISTINCT FROM 'null'::jsonb
+       OR v_acceptance.metadata#>>'{lifecycle,approval,scope}' IS DISTINCT FROM 'research_brief_only'
+       OR v_acceptance.metadata#>>'{lifecycle,approval,actorId}' IS DISTINCT FROM v_task.founder_id::text
+       OR v_acceptance.metadata#>>'{lifecycle,approval,revision}' IS DISTINCT FROM v_acceptance_binding->>'lifecycle_revision'
+       OR v_acceptance.metadata#>>'{lifecycle,approval,briefHash}' IS DISTINCT FROM v_acceptance_binding->>'brief_hash'
+       OR v_acceptance.metadata#>>'{lifecycle,brief,snapshot,revision}' IS DISTINCT FROM v_acceptance_binding->>'lifecycle_revision'
+       OR v_acceptance.metadata#>>'{lifecycle,brief,snapshot,brief,target,repository}' IS DISTINCT FROM v_grant.registration->>'repository'
+       OR v_acceptance.metadata#>>'{lifecycle,brief,snapshot,brief,target,baseBranch}' IS DISTINCT FROM 'main') THEN
+    RAISE EXCEPTION 'Acceptance binding no longer matches both current owned approved briefs' USING ERRCODE = 'PT409';
   END IF;
   INSERT INTO public.cc_idea_evidence_events(source_id, source_version, event_id, grant_id, grant_version,
     founder_id, task_id, envelope, canonical_envelope, payload_hash, signature, occurred_at, admitted_at)
