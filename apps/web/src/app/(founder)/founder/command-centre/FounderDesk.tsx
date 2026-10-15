@@ -127,6 +127,8 @@ export function FounderDesk({ projects }: { projects: Array<{ name: string }> })
   }
 
   function captured(mission: DeliveryMissionView) {
+    readSequence.current++
+    setLoading(false)
     setMissions(previous => [mission, ...previous.filter(item => item.taskId !== mission.taskId)])
     if (selectedMission.current !== null) return
     setSelectedId(mission.taskId)

@@ -401,6 +401,43 @@ test('THE LOCAL READINESS GATE RUNS EVERY TEST CI RUNS', () => {
   );
 });
 
+const ideaEvidenceProducerNames = ['review-collector', 'journey-witness', 'admin'];
+const ideaEvidenceProducerScripts = [
+  ...ideaEvidenceProducerNames.map(name => `scripts/idea-evidence-${name}.mjs`),
+  'scripts/idea-value-event.mjs',
+];
+const ideaEvidenceProducerTests = [
+  ...ideaEvidenceProducerNames.map(name => `scripts/__tests__/idea-evidence-${name}.test.mjs`),
+  'scripts/__tests__/idea-value-event.test.mjs',
+];
+
+test('idea evidence producers share the same post-install CI and local verification command', () => {
+  const { scripts } = JSON.parse(readFileSync(resolve(repoRoot, 'package.json'), 'utf8'));
+  assert.equal(scripts['verify:idea-evidence'], `node --test ${ideaEvidenceProducerTests.join(' ')}`);
+  const localCommands = scripts['verify:web'].split(' && ');
+  const localInstall = localCommands.indexOf('corepack pnpm@9.15.0 install --frozen-lockfile');
+  const localControls = localCommands.indexOf('npm --prefix ../.. run verify:idea-evidence');
+  assert.ok(localInstall >= 0 && localControls > localInstall, 'local producer controls require the frozen app dependency installation first');
+  assert.deepEqual(JOBS.find(job => job.id === 'web').cmd, ['npm', ['run', 'verify:web']]);
+  const lines = readFileSync(CI_PATH, 'utf8').split('\n');
+  const start = lines.indexOf('  web:');
+  const next = lines.findIndex((line, index) => index > start && /^ {2}[A-Za-z0-9_-]+:\s*$/.test(line));
+  const web = lines.slice(start, next === -1 ? undefined : next).join('\n');
+  assert.match(web, /name: Test idea evidence producers\n\s+run: npm --prefix \.\.\/\.\. run verify:idea-evidence/u);
+  assert.ok(web.indexOf('run: pnpm install --frozen-lockfile') >= 0 && web.indexOf('run: npm --prefix ../.. run verify:idea-evidence') > web.indexOf('run: pnpm install --frozen-lockfile'), 'CI producer controls require the frozen app dependency installation first');
+});
+
+test('stdlib-only readiness does not import the app-dependent evidence producer suite', () => {
+  const { scripts } = JSON.parse(readFileSync(resolve(repoRoot, 'package.json'), 'utf8'));
+  assert.equal(ideaEvidenceProducerTests.some(path => scripts['verify:readiness'].includes(path)) || scripts['verify:readiness'].includes('verify:idea-evidence'), false);
+});
+
+for (const path of [...ideaEvidenceProducerScripts, ...ideaEvidenceProducerTests]) {
+  test(`preflight selects post-install web verification for ${path}`, () => {
+    assert.equal(jobMatches(JOBS.find(job => job.id === 'web'), [path]), true);
+  });
+}
+
 test('the release contract cannot omit local preflight or authoritative remote readback', () => {
   const packageJson = JSON.parse(readFileSync(resolve(repoRoot, 'package.json'), 'utf8'));
   assert.equal(

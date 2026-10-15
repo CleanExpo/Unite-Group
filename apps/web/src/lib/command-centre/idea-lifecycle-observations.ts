@@ -19,6 +19,10 @@ import { readDeliveryMetadata } from "./delivery-types";
 import { canonicalHash } from "./portfolio-control-plane";
 import type { CommandCentreProject } from "./registry";
 import type { CommandCentreTask } from "./tasks";
+import {
+  projectEnrolledIdeaEvidence,
+  type EnrolledObservationDeps,
+} from "./idea-enrolled-observations";
 
 /** Read-only SDK slice; callers reuse the server's existing getStripe() accessor.
  * Docs checked 15/10/2026: https://docs.stripe.com/api/charges/list,
@@ -513,7 +517,7 @@ async function observeRequiredChecks(
   }
 }
 
-export interface LifecycleObservationDeps {
+export interface LifecycleObservationDeps extends EnrolledObservationDeps {
   token?: string;
   stripe?: StripeLifecycleReadClient | null;
   fetchFn?: typeof fetch;
@@ -780,7 +784,9 @@ export async function observeIdeaLifecycle(
     activations: [],
     payments: [],
     limitations: [
-      "Provider deployments do not prove a working live user journey; no trusted live-journey or activation connector is available here.",
+      process.env.IDEA_EVIDENCE_ENABLED === "1"
+        ? "Provider deployments alone do not prove a live journey; separately enrolled production journey and external customer value evidence are required."
+        : "Provider deployments do not prove a working live user journey; no trusted live-journey or activation connector is available here.",
       "Independent review requires an authenticated exact-commit report with verified reviewer provenance; a GitHub approval or advisory success alone is insufficient.",
       "Payment reads cover fully captured one-off Checkout payments created in the agreed window; subscription renewals and mixed-product baskets are not verified. Actual refund/dispute flags are retained and excluded from eligible-client counts.",
       "Pending, unquantified or truncated refund evidence is excluded; net amounts mean captured amounts less recorded refunds, before provider fees.",
@@ -888,6 +894,7 @@ export async function observeIdeaLifecycle(
       "Engineering evidence requires current signed delivery authority bound to this exact approved idea brief.",
     );
   }
+  await projectEnrolledIdeaEvidence(task, project, outcome, result, deps);
   if (!outcome) {
     result.limitations.push(
       "An agreed commercial outcome contract is required before payment reconciliation.",
