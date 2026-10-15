@@ -23,8 +23,9 @@ Use Node 24 and the existing pure evidence contracts. No dependency, credential,
 browser token or cookie export is required. An authorised service operator must
 first enroll the source using the governed enrollment process. Enroll the
 task-specific grant only after the actual task and its current owner-approved
-brief exist, and before witness completion/signing; grant enrollment checks that
-owned current approval. The key remains on its trusted POSIX host in an owner-only regular file;
+brief exist, and before witness completion/signing. The operator confirms owner
+approval; enrollment verifies the current owned brief, and evidence projection
+independently rechecks approval. The key remains on its trusted POSIX host in an owner-only regular file;
 all packet files live in an owner-only directory with no linked or shared parent
 directories. The CLI refuses Windows private-key capture, symlinks, traversal,
 external URLs, files over 1 MiB, changed files and output replacement. It makes
