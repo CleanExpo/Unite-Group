@@ -2,6 +2,7 @@
 -- This file does not authorise production application or producer enrollment.
 -- Signature verification belongs to the trusted server adapter. Admission binds
 -- the exact registrations it verified while serialising against revocation.
+BEGIN;
 
 CREATE TABLE IF NOT EXISTS public.cc_idea_evidence_sources (
   source_id text NOT NULL,
@@ -116,11 +117,11 @@ BEGIN
       RAISE EXCEPTION 'Missing source scope: %', v_key USING ERRCODE = '22023';
     END IF;
   END LOOP;
-  IF p_registration->>'adapter_version' IS DISTINCT FROM CASE p_registration->>'event_kind'
+  IF p_registration->>'adapter_version' IS DISTINCT FROM (CASE p_registration->>'event_kind'
       WHEN 'reviewed_handoff_persisted' THEN 'factory_handoff_v1'
       WHEN 'independent_review_verified' THEN 'nexus_release_gate_v1'
       WHEN 'production_journey_verified' THEN 'canonical_factory_journey_v1'
-      WHEN 'customer_value_achieved' THEN 'product_value_action_v1' END
+      WHEN 'customer_value_achieved' THEN 'product_value_action_v1' END)
      OR (p_registration->>'kind' = 'ed25519' AND p_registration->>'event_kind' = 'reviewed_handoff_persisted')
      OR (p_registration->>'kind' = 'builtin_factory' AND
       (p_registration->>'event_kind' <> 'reviewed_handoff_persisted' OR p_registration->'public_key' IS DISTINCT FROM 'null'::jsonb))
@@ -496,3 +497,4 @@ GRANT EXECUTE ON FUNCTION public.cc_idea_evidence_enroll_source_v1(jsonb,text),
   public.cc_idea_evidence_revoke_grant_v1(text,integer,text), public.cc_idea_evidence_admit_v1(jsonb,text,text,text,text),
   public.cc_idea_evidence_persist_handoff_v1(jsonb,text,text,text,jsonb,timestamptz,integer,jsonb,text,text),
   public.cc_idea_evidence_withdraw_v1(uuid,text,text) TO service_role;
+COMMIT;
