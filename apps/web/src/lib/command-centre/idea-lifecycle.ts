@@ -335,6 +335,28 @@ export interface LifecycleObservations {
     checksPassed: boolean;
     reviewApproved: boolean;
   };
+  /** Provider deployment snapshot only; never a live journey or serving-alias receipt. */
+  deployment?: {
+    repository: string;
+    commitSha: string;
+    deploymentId: number;
+    statusId: number;
+    environment: string;
+    url: string;
+    createdAt: string;
+    updatedAt: string;
+    statusCreatedAt: string;
+    statusUpdatedAt: string;
+    creatorId: number;
+    creatorLogin: string;
+    providerProductionEnvironment: boolean;
+    registeredProjectId: string;
+    registeredTeamId: string;
+    coverage: "latest_environment_window";
+    historicalCoverageComplete: false;
+    environmentWindowSize: number;
+    currentServing: false;
+  };
   release?: {
     repository: string;
     commitSha: string;
@@ -832,6 +854,13 @@ export function toLifecycleView(
     release.commitSha === engineering?.mergeSha &&
     release.live;
   const journey = released && release?.journeyPassed === true;
+  const deployment =
+    merged &&
+    observations?.sources.deployment === "connected" &&
+    observations.deployment?.repository === target?.repository &&
+    observations.deployment.commitSha === engineering?.mergeSha
+      ? observations.deployment
+      : undefined;
   const inWindow = (date: string) =>
     !!outcome &&
     Number.isFinite(Date.parse(date)) &&
@@ -985,7 +1014,15 @@ export function toLifecycleView(
       evidence:
         journey && release
           ? [release.releaseId, release.url, release.commitSha]
-          : [],
+          : deployment
+            ? [
+                `github:deployment:${deployment.deploymentId}`,
+                `github:deployment-status:${deployment.statusId}`,
+                deployment.url,
+                deployment.commitSha,
+                "Production deployment observed; authenticated live journey remains unverified.",
+              ]
+            : [],
     },
     {
       id: "activation",

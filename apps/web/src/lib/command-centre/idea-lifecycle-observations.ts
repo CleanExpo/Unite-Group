@@ -181,22 +181,13 @@ const actionRunSchema = z.object({
   repository: z.object({ full_name: githubName }),
 });
 
-/** Same exact-SHA/completed-success gate as the existing release controller.
- * Policy is observed from GitHub, including legacy statuses and active rulesets.
- * GitHub Actions jobs additionally bind the provider's run, attempt and registered
- * CI workflow, following scripts/ci-evidence-manifest.mjs's provenance checks.
- */
-async function observeRequiredChecks(
-  github: DeliveryObservations,
+function githubReader(
   repo: string,
   deps: LifecycleObservationDeps,
   deadline: number,
-): Promise<{ passed: boolean; stale: boolean; limitation?: string }> {
-  const pr = registeredPullRequest(github.pr?.reference ?? "", repo);
-  if (!pr || !github.headSha || !deps.token)
-    return { passed: false, stale: false };
-  const head = github.headSha;
-  const get = async (path: string) => {
+  latestEnvironmentWindowPath?: string,
+) {
+  return async (path: string) => {
     const remaining = deadline - Date.now();
     if (remaining <= 0) throw new Error("Observation deadline expired");
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -218,7 +209,11 @@ async function observeRequiredChecks(
           );
           if (
             !response.ok ||
-            /rel="next"/.test(response.headers.get("link") ?? "")
+            (/rel="next"/.test(response.headers.get("link") ?? "") &&
+              (path !== latestEnvironmentWindowPath ||
+                !/^\/deployments\?environment=[^&]+&per_page=10&page=1$/.test(
+                  path,
+                )))
           )
             throw new Error("Incomplete provider evidence");
           const body = await response.text();
@@ -237,6 +232,24 @@ async function observeRequiredChecks(
       if (timer) clearTimeout(timer);
     }
   };
+}
+
+/** Same exact-SHA/completed-success gate as the existing release controller.
+ * Policy is observed from GitHub, including legacy statuses and active rulesets.
+ * GitHub Actions jobs additionally bind the provider's run, attempt and registered
+ * CI workflow, following scripts/ci-evidence-manifest.mjs's provenance checks.
+ */
+async function observeRequiredChecks(
+  github: DeliveryObservations,
+  repo: string,
+  deps: LifecycleObservationDeps,
+  deadline: number,
+): Promise<{ passed: boolean; stale: boolean; limitation?: string }> {
+  const pr = registeredPullRequest(github.pr?.reference ?? "", repo);
+  if (!pr || !github.headSha || !deps.token)
+    return { passed: false, stale: false };
+  const head = github.headSha;
+  const get = githubReader(repo, deps, deadline);
   try {
     const [rawProtection, rawRules, rawChecks, rawStatuses] = await Promise.all(
       [
@@ -511,6 +524,236 @@ export interface LifecycleObservationDeps {
   maximumDurationMs?: number;
 }
 
+const deploymentCreatorSchema = z.object({
+  id: z.literal(35613825),
+  login: z.literal("vercel[bot]"),
+  type: z.literal("Bot"),
+});
+const productionDeploymentSchema = z.object({
+  id: githubId,
+  sha: githubSha,
+  ref: githubName,
+  repository_url: z.string(),
+  environment: githubName,
+  production_environment: z.boolean(),
+  transient_environment: z.literal(false),
+  creator: deploymentCreatorSchema,
+  created_at: z.string().datetime(),
+  updated_at: z.string().datetime(),
+});
+const productionStatusSchema = z.object({
+  id: githubId,
+  state: z.enum([
+    "error",
+    "failure",
+    "pending",
+    "in_progress",
+    "queued",
+    "success",
+    "inactive",
+  ]),
+  environment: githubName,
+  environment_url: z.string().max(2048),
+  deployment_url: z.string(),
+  repository_url: z.string(),
+  creator: deploymentCreatorSchema,
+  created_at: z.string().datetime(),
+  updated_at: z.string().datetime(),
+});
+const productionIdentitySchema = z.object({
+  projectId: z.string().regex(/^prj_[A-Za-z0-9]+$/),
+  projectName: z
+    .string()
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+    .max(63),
+  teamId: z.string().regex(/^team_[A-Za-z0-9]+$/),
+  teamSlug: z
+    .string()
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+    .max(63),
+  environment: z.string().min(1).max(100),
+});
+class ProductionObservationStale extends Error {}
+
+/** GitHub is read only. Enrollment of the named Vercel environment and host
+ * scope comes from the registered project, independently checked against Vercel.
+ * Vercel's named Production environment currently reports production_environment
+ * false; preserve that flag rather than mistaking it for current serving proof.
+ * Docs checked 16/10/2026: https://docs.github.com/en/rest/deployments/deployments
+ * and https://docs.github.com/en/rest/deployments/statuses.
+ */
+export async function observeProductionDeployment(
+  github: DeliveryObservations,
+  project: CommandCentreProject,
+  deps: LifecycleObservationDeps,
+  deadline: number,
+  observedAt: string,
+): Promise<LifecycleObservations["deployment"]> {
+  const identity = productionIdentitySchema.parse(
+    project.production_deployment,
+  );
+  const repo = project.github_repo;
+  const pr = registeredPullRequest(github.pr?.reference ?? "", repo);
+  if (
+    !identity ||
+    !repo ||
+    !pr ||
+    !github.pr?.mergeSha ||
+    !github.pr.mergedAt ||
+    !github.pr.merged ||
+    github.pr.draft ||
+    github.pr.state !== "closed" ||
+    github.pr.baseBranch !== "main"
+  )
+    return undefined;
+  const root = `https://api.github.com/repos/${repo}`;
+  const listPath = `/deployments?environment=${encodeURIComponent(identity.environment)}&per_page=10&page=1`;
+  // Only this environment's latest window can have an older history tail.
+  // Exact-SHA and status queries still require complete bounded coverage.
+  const get = githubReader(repo, deps, deadline, listPath);
+  const exactPath = `/deployments?sha=${github.pr.mergeSha}&environment=${encodeURIComponent(identity.environment)}&per_page=10&page=1`;
+  const listSchema = z.array(productionDeploymentSchema).max(9);
+  const windowSchema = z.array(productionDeploymentSchema).max(10);
+  const statusListSchema = z.array(productionStatusSchema).max(9);
+  const [deployments, latestWindow] = await Promise.all([
+    get(exactPath).then((body) => listSchema.parse(body)),
+    get(listPath).then((body) => windowSchema.parse(body)),
+  ]);
+  if (!deployments.length) return undefined;
+  const deployment = latestWindow[0];
+  const now = Date.parse(observedAt);
+  const validTimes = (created: string, updated: string, earliest: number) =>
+    Date.parse(created) >= earliest &&
+    Date.parse(updated) >= Date.parse(created) &&
+    Date.parse(updated) <= now;
+  if (
+    new Set(deployments.map((item) => item.id)).size !== deployments.length ||
+    deployments.some(
+      (item) =>
+        item.repository_url !== root ||
+        item.environment !== identity.environment ||
+        item.sha !== github.pr!.mergeSha,
+    ) ||
+    latestWindow.some(
+      (item, index) =>
+        item.repository_url !== root ||
+        item.environment !== identity.environment ||
+        !validTimes(item.created_at, item.updated_at, 0) ||
+        (index > 0 &&
+          (item.id >= latestWindow[index - 1].id ||
+            Date.parse(item.created_at) >
+              Date.parse(latestWindow[index - 1].created_at))),
+    ) ||
+    !deployment ||
+    !deployments.some(
+      (item) => canonicalHash(item) === canonicalHash(deployment),
+    ) ||
+    deployment.sha !== github.pr.mergeSha ||
+    !validTimes(
+      deployment.created_at,
+      deployment.updated_at,
+      Date.parse(github.pr.mergedAt),
+    )
+  )
+    throw new Error("Production deployment binding mismatch");
+  const statusPath = `/deployments/${deployment.id}/statuses?per_page=10&page=1`;
+  const statuses = statusListSchema.parse(await get(statusPath));
+  const status = [...statuses].sort((a, b) => b.id - a.id)[0];
+  const url = new URL(status?.environment_url ?? "");
+  // Project/team names are validated in the registry, not accepted from callers.
+  const generatedHost = new RegExp(
+    `^${identity.projectName}-[a-z0-9]{9}-${identity.teamSlug}\\.vercel\\.app$`,
+  );
+  const registered = new URL(project.production_url ?? "");
+  if (
+    !status ||
+    new Set(statuses.map((item) => item.id)).size !== statuses.length ||
+    status.state !== "success" ||
+    status.environment !== identity.environment ||
+    status.repository_url !== root ||
+    status.deployment_url !== `${root}/deployments/${deployment.id}` ||
+    !validTimes(
+      status.created_at,
+      status.updated_at,
+      Date.parse(deployment.created_at),
+    ) ||
+    registered.protocol !== "https:" ||
+    registered.username ||
+    registered.password ||
+    registered.port ||
+    registered.search ||
+    registered.hash ||
+    registered.pathname !== "/" ||
+    url.protocol !== "https:" ||
+    url.username ||
+    url.password ||
+    url.port ||
+    url.search ||
+    url.hash ||
+    url.pathname !== "/" ||
+    (url.origin !== registered.origin && !generatedHost.test(url.hostname))
+  )
+    throw new Error("Production deployment status mismatch");
+  const [finalDeployments, finalWindow, finalStatuses, finalPr] =
+    await Promise.all([
+      get(exactPath).then((body) => listSchema.parse(body)),
+      get(listPath).then((body) => windowSchema.parse(body)),
+      get(statusPath).then((body) => statusListSchema.parse(body)),
+      get(`/pulls/${pr.number}`),
+    ]);
+  const current = z
+    .object({
+      number: githubId,
+      head: z.object({ sha: githubSha }),
+      base: z.object({
+        ref: githubName,
+        repo: z.object({ full_name: githubName }),
+      }),
+      draft: z.literal(false),
+      state: z.literal("closed"),
+      merged: z.literal(true),
+      merge_commit_sha: githubSha,
+      merged_at: z.string().datetime(),
+    })
+    .safeParse(finalPr);
+  if (
+    canonicalHash(finalDeployments) !== canonicalHash(deployments) ||
+    canonicalHash(finalWindow) !== canonicalHash(latestWindow) ||
+    canonicalHash(finalStatuses) !== canonicalHash(statuses) ||
+    !current.success ||
+    current.data.number !== pr.number ||
+    current.data.head.sha !== github.headSha ||
+    current.data.base.repo.full_name.toLowerCase() !== repo.toLowerCase() ||
+    current.data.base.ref !== "main" ||
+    current.data.merge_commit_sha !== github.pr.mergeSha ||
+    current.data.merged_at !== github.pr.mergedAt
+  )
+    throw new ProductionObservationStale(
+      "Production observation changed during readback",
+    );
+  return {
+    repository: repo,
+    commitSha: deployment.sha,
+    deploymentId: deployment.id,
+    statusId: status.id,
+    environment: deployment.environment,
+    url: url.origin,
+    createdAt: deployment.created_at,
+    updatedAt: deployment.updated_at,
+    statusCreatedAt: status.created_at,
+    statusUpdatedAt: status.updated_at,
+    creatorId: deployment.creator.id,
+    creatorLogin: deployment.creator.login,
+    providerProductionEnvironment: deployment.production_environment,
+    registeredProjectId: identity.projectId,
+    registeredTeamId: identity.teamId,
+    coverage: "latest_environment_window",
+    historicalCoverageComplete: false,
+    environmentWindowSize: latestWindow.length,
+    currentServing: false,
+  };
+}
+
 /** Called only with server-loaded task/contract; browser evidence never enters here. */
 export async function observeIdeaLifecycle(
   task: CommandCentreTask,
@@ -611,6 +854,34 @@ export async function observeIdeaLifecycle(
         result.engineering.checksPassed = checks.passed;
       }
       if (checks.limitation) result.limitations.push(checks.limitation);
+      if (!checks.stale && merged && project.production_deployment) {
+        try {
+          result.deployment = await observeProductionDeployment(
+            github,
+            project,
+            deps,
+            deadline,
+            observedAt,
+          );
+          result.sources.deployment = "connected";
+          result.limitations.push(
+            "The registered production deployment registry was read from GitHub; this does not prove the currently serving alias, an authenticated live journey, review approval or activation.",
+          );
+          if (!result.deployment)
+            result.limitations.push(
+              "No matching production deployment was observed for the main merge commit.",
+            );
+        } catch (error) {
+          result.sources.deployment = "error";
+          if (error instanceof ProductionObservationStale) {
+            result.engineering = undefined;
+            result.sources.github = "error";
+          }
+          result.limitations.push(
+            "Production deployment identity, latest status, readback or bounded coverage could not be verified.",
+          );
+        }
+      }
     }
   } else {
     result.limitations.push(

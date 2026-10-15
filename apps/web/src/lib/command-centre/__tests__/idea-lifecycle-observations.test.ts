@@ -7,6 +7,7 @@ import {
   applyLifecycleCommand,
   createIdeaLifecycle,
   readIdeaLifecycle,
+  toLifecycleView,
   type CommercialOutcome,
 } from "../idea-lifecycle";
 import { observationFixture, headSha } from "./delivery-observations.fixture";
@@ -422,6 +423,347 @@ function approvedFixture(contract: CommercialOutcome = outcome) {
   ];
   return fixture;
 }
+
+const productionIdentity = {
+  projectId: "prj_IfUuJNLjXTE8VXqEGwLAleIGhiA0",
+  projectName: "unite-group",
+  teamId: "team_KMZACI5rIltoCRhAtGCXlxUf",
+  teamSlug: "unite-group",
+  environment: "Production – unite-group",
+};
+const productionRoot = "https://api.github.com/repos/CleanExpo/Unite-Group";
+const vercelCreator = { id: 35613825, login: "vercel[bot]", type: "Bot" };
+const productionDeployment = {
+  id: 301,
+  sha: mergeSha,
+  ref: mergeSha,
+  repository_url: productionRoot,
+  environment: productionIdentity.environment,
+  production_environment: false,
+  transient_environment: false,
+  creator: vercelCreator,
+  created_at: "2026-10-14T11:00:00Z",
+  updated_at: "2026-10-14T11:01:00Z",
+};
+const productionStatus = {
+  id: 401,
+  state: "success",
+  environment: productionIdentity.environment,
+  environment_url: "https://unite-group-7tdb2e339-unite-group.vercel.app",
+  deployment_url: `${productionRoot}/deployments/301`,
+  repository_url: productionRoot,
+  creator: vercelCreator,
+  created_at: "2026-10-14T11:01:00Z",
+  updated_at: "2026-10-14T11:01:00Z",
+};
+function productionProvider(
+  deployments: unknown[] = [productionDeployment],
+  statuses: unknown[] = [productionStatus],
+  change?: (url: URL, read: number) => Response | undefined,
+) {
+  const fallback = gateProvider();
+  const reads = new Map<string, number>();
+  return vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+    const url = new URL(String(input));
+    const read = (reads.get(url.href) ?? 0) + 1;
+    reads.set(url.href, read);
+    const changed = change?.(url, read);
+    if (changed) return changed;
+    if (
+      url.pathname.endsWith("/deployments") &&
+      url.searchParams.has("environment")
+    ) {
+      expect(url.searchParams.get("environment")).toBe(
+        productionIdentity.environment,
+      );
+      return new Response(JSON.stringify(deployments));
+    }
+    if (url.pathname.endsWith("/deployments/301/statuses"))
+      return new Response(JSON.stringify(statuses));
+    return fallback(input, init);
+  });
+}
+async function runProduction(
+  provider = productionProvider(),
+  duration?: number,
+) {
+  const fixture = approvedFixture();
+  Object.assign(fixture.project, {
+    production_url: "https://unite-group.in",
+    production_deployment: productionIdentity,
+  });
+  const result = await observeIdeaLifecycle(
+    fixture.task,
+    fixture.project,
+    outcome,
+    {
+      token: "private",
+      fetchFn: provider,
+      deliveryAuthorityVerified: true,
+      now: () => new Date(observedAt),
+      maximumDurationMs: duration,
+    },
+  );
+  return { result, fixture };
+}
+describe("registered production merge deployment observations", () => {
+  it("observes the merge SHA separately from the PR head without promoting journey, review or clients", async () => {
+    const provider = productionProvider();
+    const { result, fixture } = await runProduction(provider);
+    expect(result.sources.deployment).toBe("connected");
+    expect(result.deployment).toMatchObject({
+      commitSha: mergeSha,
+      deploymentId: 301,
+      statusId: 401,
+      environment: productionIdentity.environment,
+      providerProductionEnvironment: false,
+      currentServing: false,
+      url: productionStatus.environment_url,
+    });
+    expect(result.release).toBeUndefined();
+    expect(result.engineering?.headSha).toBe(headSha);
+    expect(result.engineering?.reviewApproved).toBe(false);
+    expect(result.activations).toEqual([]);
+    const view = toLifecycleView(
+      readIdeaLifecycle(fixture.task.metadata)!,
+      result,
+      observedAt,
+    );
+    expect(view.milestones.find((item) => item.id === "launch")).toMatchObject({
+      status: "blocked",
+      evidence: expect.arrayContaining([
+        "github:deployment:301",
+        "github:deployment-status:401",
+        mergeSha,
+      ]),
+    });
+    expect(view.commercial.status).not.toBe("achieved");
+    expect(
+      provider.mock.calls.every(([url]) =>
+        String(url).startsWith(`${productionRoot}/`),
+      ),
+    ).toBe(true);
+    expect(
+      provider.mock.calls.filter(([url]) =>
+        String(url).includes("environment="),
+      ).length,
+    ).toBe(4);
+  });
+  it.each([
+    { sha: headSha },
+    { repository_url: "https://api.github.com/repos/Other/Repo" },
+    { creator: { ...vercelCreator, id: 1 } },
+    { creator: { ...vercelCreator, login: "forged" } },
+    { environment: "Preview – unite-group" },
+    { transient_environment: true },
+    { created_at: "2026-10-14T09:00:00Z" },
+    { created_at: "2026-10-16T00:00:00Z" },
+  ])("rejects a mismatched production deployment %j", async (change) => {
+    const { result } = await runProduction(
+      productionProvider([{ ...productionDeployment, ...change }]),
+    );
+    expect(result.deployment).toBeUndefined();
+    expect(result.sources.deployment).toBe("error");
+  });
+  it.each([
+    { state: "inactive" },
+    { state: "failure" },
+    { state: "pending" },
+    { environment_url: "https://unite-group-7tdb2e339-other-team.vercel.app" },
+    {
+      environment_url:
+        "https://unite-group-7tdb2e339-unite-group.vercel.app.evil.example",
+    },
+    {
+      environment_url:
+        "https://unite-group-7tdb2e339-unite-group.vercel.app?token=untrusted",
+    },
+    { environment_url: "http://unite-group-7tdb2e339-unite-group.vercel.app" },
+    { environment_url: "https://user@unite-group.in" },
+    { environment_url: "https://unite-group.in:444" },
+    { creator: { ...vercelCreator, id: 1 } },
+    { environment: "Preview – unite-group" },
+    { deployment_url: `${productionRoot}/deployments/302` },
+    { repository_url: "https://api.github.com/repos/Other/Repo" },
+    { created_at: "2026-10-14T10:59:00Z" },
+    { updated_at: "2026-10-16T00:00:00Z" },
+  ])("rejects untrusted or unsuccessful latest status %j", async (change) => {
+    const { result } = await runProduction(
+      productionProvider(undefined, [{ ...productionStatus, ...change }]),
+    );
+    expect(result.deployment).toBeUndefined();
+    expect(result.sources.deployment).toBe("error");
+  });
+  it("cannot hide a newer conflicting deployment or inactive status behind an older success", async () => {
+    for (const provider of [
+      productionProvider([
+        productionDeployment,
+        { ...productionDeployment, production_environment: true },
+      ]),
+      productionProvider(undefined, [
+        productionStatus,
+        { ...productionStatus, state: "failure" },
+      ]),
+      productionProvider([
+        productionDeployment,
+        { ...productionDeployment, id: 302, sha: headSha },
+      ]),
+      productionProvider(undefined, [
+        productionStatus,
+        { ...productionStatus, id: 402, state: "inactive" },
+      ]),
+    ])
+      expect((await runProduction(provider)).result.deployment).toBeUndefined();
+  });
+  it("reads only the latest environment window when older history has many pages", async () => {
+    const window = [
+      productionDeployment,
+      ...Array.from({ length: 9 }, (_, index) => ({
+        ...productionDeployment,
+        id: 300 - index,
+        sha: headSha,
+        created_at: "2026-10-13T11:00:00Z",
+        updated_at: "2026-10-13T11:00:00Z",
+      })),
+    ];
+    const provider = productionProvider(undefined, undefined, (url) => {
+      if (
+        url.pathname.endsWith("/deployments") &&
+        url.searchParams.has("environment") &&
+        !url.searchParams.has("sha")
+      )
+        return new Response(JSON.stringify(window), {
+          headers: { link: '<https://untrusted.example/older>; rel="next"' },
+        });
+    });
+    const { result } = await runProduction(provider);
+    expect(result.deployment).toMatchObject({
+      deploymentId: 301,
+      coverage: "latest_environment_window",
+      historicalCoverageComplete: false,
+      environmentWindowSize: 10,
+    });
+    expect(
+      provider.mock.calls.some(
+        ([url]) =>
+          String(url).includes("page=2") ||
+          String(url).includes("untrusted.example"),
+      ),
+    ).toBe(false);
+  });
+  it.each(["order", "time", "newer", "changed"])(
+    "rejects a conflicting or malformed latest window: %s",
+    async (kind) => {
+      const provider = productionProvider(undefined, undefined, (url, read) => {
+        if (
+          url.pathname.endsWith("/deployments") &&
+          url.searchParams.has("environment") &&
+          !url.searchParams.has("sha")
+        ) {
+          const other = {
+            ...productionDeployment,
+            id: kind === "order" ? 302 : 300,
+            sha: headSha,
+          };
+          if (kind === "time") other.created_at = "2026-10-14T11:00:01Z";
+          if (kind === "newer")
+            return new Response(
+              JSON.stringify([{ ...other, id: 302 }, productionDeployment]),
+            );
+          if (kind === "changed")
+            return new Response(
+              JSON.stringify(read > 1 ? [] : [productionDeployment]),
+            );
+          return new Response(JSON.stringify([productionDeployment, other]));
+        }
+      });
+      const { result } = await runProduction(provider);
+      expect(result.deployment).toBeUndefined();
+      expect(result.sources.deployment).toBe("error");
+    },
+  );
+  it("does not observe deployments without the signed current brief or a confirmed main merge", async () => {
+    for (const authority of [false, true]) {
+      const fixture = approvedFixture();
+      Object.assign(fixture.project, {
+        production_url: "https://unite-group.in",
+        production_deployment: productionIdentity,
+      });
+      const fallback = productionProvider();
+      const provider = vi.fn(
+        async (input: string | URL | Request, init?: RequestInit) =>
+          String(input).endsWith("/pulls/42")
+            ? new Response(JSON.stringify({ ...pullRequest, merged: false }))
+            : fallback(input, init),
+      );
+      const result = await observeIdeaLifecycle(
+        fixture.task,
+        fixture.project,
+        outcome,
+        {
+          token: "private",
+          fetchFn: provider,
+          deliveryAuthorityVerified: authority,
+          now: () => new Date(observedAt),
+        },
+      );
+      expect(result.deployment).toBeUndefined();
+      expect(
+        provider.mock.calls.some(([input]) =>
+          String(input).includes("environment="),
+        ),
+      ).toBe(false);
+    }
+  });
+  it("fails closed on a hanging deployment provider within the shared deadline", async () => {
+    const fallback = productionProvider();
+    const provider = vi.fn(
+      (input: string | URL | Request, init?: RequestInit): Promise<Response> =>
+        String(input).includes("environment=")
+          ? new Promise(() => {})
+          : fallback(input, init),
+    );
+    const started = Date.now();
+    const { result } = await runProduction(provider, 100);
+    expect(Date.now() - started).toBeLessThan(1000);
+    expect(result.deployment).toBeUndefined();
+    expect(result.sources.deployment).toBe("error");
+  });
+  it.each(["deployment", "status", "pr", "pagination", "oversize"])(
+    "rejects %s changes or incomplete coverage",
+    async (kind) => {
+      const provider = productionProvider(undefined, undefined, (url, read) => {
+        if (
+          url.pathname.endsWith("/deployments") &&
+          url.searchParams.has("environment")
+        ) {
+          if (kind === "deployment" && read > 1)
+            return new Response(JSON.stringify([]));
+          if (kind === "pagination")
+            return new Response(JSON.stringify([productionDeployment]), {
+              headers: { link: '<https://untrusted.example>; rel="next"' },
+            });
+          if (kind === "oversize") return new Response(" ".repeat(2_000_001));
+        }
+        if (
+          kind === "status" &&
+          read > 1 &&
+          url.pathname.endsWith("/301/statuses")
+        )
+          return new Response(
+            JSON.stringify([{ ...productionStatus, state: "failure" }]),
+          );
+        if (kind === "pr" && read > 3 && url.pathname.endsWith("/pulls/42"))
+          return new Response(
+            JSON.stringify({ ...pullRequest, merge_commit_sha: headSha }),
+          );
+      });
+      const { result } = await runProduction(provider);
+      expect(result.deployment).toBeUndefined();
+      expect(result.sources.deployment).toBe("error");
+    },
+  );
+});
 describe("provider-confirmed main merge", () => {
   it("cannot attach an unrelated or unapproved delivery PR to the current idea", async () => {
     const { task, project, delivery } = approvedFixture();

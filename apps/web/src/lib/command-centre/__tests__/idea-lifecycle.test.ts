@@ -452,6 +452,52 @@ describe("idea lifecycle research and immutable authority", () => {
 });
 
 describe("subordinate whole-journey evidence projection", () => {
+  it("shows deployment receipts while retaining blocked journey and rejects another merge or expired snapshot", () => {
+    const state = approved();
+    const observations = proof();
+    observations.release = undefined;
+    observations.deployment = {
+      repository: outcome.repository,
+      commitSha: "b".repeat(40),
+      deploymentId: 301,
+      statusId: 401,
+      environment: "Production – unite-group",
+      url: "https://unite-group.in",
+      createdAt: now,
+      updatedAt: now,
+      statusCreatedAt: now,
+      statusUpdatedAt: now,
+      creatorId: 35613825,
+      creatorLogin: "vercel[bot]",
+      providerProductionEnvironment: false,
+      registeredProjectId: "prj_registered",
+      registeredTeamId: "team_registered",
+      coverage: "latest_environment_window",
+      historicalCoverageComplete: false,
+      environmentWindowSize: 1,
+      currentServing: false,
+    };
+    let view = toLifecycleView(state, observations, now);
+    expect(view.milestones.find((item) => item.id === "launch")).toMatchObject({
+      status: "blocked",
+      evidence: expect.arrayContaining(["github:deployment:301"]),
+    });
+    expect(view.commercial.status).toBe("not_achieved");
+    expect(view.commercial.eligibleClients).toBe(0);
+    observations.deployment.commitSha = "c".repeat(40);
+    expect(
+      toLifecycleView(state, observations, now).milestones.find(
+        (item) => item.id === "launch",
+      )?.evidence,
+    ).toEqual([]);
+    observations.deployment.commitSha = "b".repeat(40);
+    observations.observedAt = "2026-10-14T00:00:00.000Z";
+    view = toLifecycleView(state, observations, now);
+    expect(view.milestones.find((item) => item.id === "launch")).toMatchObject({
+      status: "not_connected",
+      evidence: [],
+    });
+  });
   it("never promotes absent proof or a task.done flag", () => {
     const state = { ...approved(), taskStatus: "done" } as IdeaLifecycle;
     const progress = toLifecycleView(state);

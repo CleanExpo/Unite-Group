@@ -2,6 +2,7 @@ import { z } from "zod";
 import { readDeliveryMetadata } from "./delivery-types";
 import type { CommandCentreTask } from "./tasks";
 import type { CommandCentreProject } from "./registry";
+import { matchesStoredDeliveryProjectKey } from "./delivery-projects";
 
 /** GitHub observations are read-only signals, never admission or completion receipts.
  * Docs verified 05/09/2026: https://docs.github.com/en/rest/pulls/reviews,
@@ -204,7 +205,7 @@ export async function observeDelivery(
   if (
     !project ||
     task.project_key !== meta.projectKey ||
-    project.name.toLowerCase() !== meta.projectKey?.toLowerCase()
+    !matchesStoredDeliveryProjectKey(project, meta.projectKey)
   )
     return stop(
       "The mission project cannot be matched to its registered repository.",

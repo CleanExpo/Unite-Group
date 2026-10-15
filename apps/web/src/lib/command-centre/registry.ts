@@ -36,6 +36,14 @@ export interface CommandCentreProject {
   validation_commands: string[]
   linear_prefix: string
   production_url: string | null
+  /** Explicitly enrolled provider environment; absence grants no production inference. */
+  production_deployment?: {
+    projectId: string
+    projectName: string
+    teamId: string
+    teamSlug: string
+    environment: string
+  }
   integration_status_url?: string | null
 }
 
@@ -51,7 +59,16 @@ interface PortfolioProduct {
   owner?: string
   github?: { org?: string | null; repo?: string | null } | null
   local?: { canonical_path?: string | null; access_via?: string } | null
-  vercel?: { production?: { domain?: string | null } | null } | null
+  vercel?: {
+    team_id?: string
+    team_slug?: string
+    production?: {
+      domain?: string | null
+      project_id?: string
+      project_name?: string
+      github_environment?: string
+    } | null
+  } | null
   workflow?: { ci_required_checks?: string[] } | null
   stack?: { package_manager?: string } | null
   linear?: { team_key?: string } | null
@@ -157,6 +174,15 @@ function toCommandCentreProject(product: PortfolioProduct): CommandCentreProject
     validation_commands: deriveValidationCommands(product),
     linear_prefix: deriveLinearPrefix(product),
     production_url: productionUrl,
+    ...(product.vercel?.production?.github_environment ? {
+      production_deployment: {
+        projectId: product.vercel.production.project_id ?? '',
+        projectName: product.vercel.production.project_name ?? '',
+        teamId: product.vercel.team_id ?? '',
+        teamSlug: product.vercel.team_slug ?? '',
+        environment: product.vercel.production.github_environment,
+      },
+    } : {}),
     integration_status_url: deriveIntegrationStatusUrl(productionUrl),
   }
 }

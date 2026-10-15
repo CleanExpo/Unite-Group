@@ -13,7 +13,7 @@
  * fail-open behaviour so an "optimisation" cannot quietly invert it.
  */
 import { strict as assert } from 'node:assert';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import {
   copyFileSync,
   mkdirSync,
@@ -25,13 +25,83 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { JOBS, UNREPRODUCIBLE, jobMatches } from '../lib/preflight-jobs.mjs';
+import * as preflightJobs from '../lib/preflight-jobs.mjs';
 import { WEB_BUILD_INPUTS, affectsWebBuild } from '../lib/web-build-inputs.mjs';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const CI_PATH = resolve(repoRoot, '.github/workflows/ci.yml');
+
+test('Windows preflight launches npm through Node without flattening argv', () => {
+  assert.equal(typeof preflightJobs.buildJobInvocation, 'function');
+  const nodeExecutable = 'C:\\Program Files & Tools\\node.exe';
+  const args = ['run', 'probe', '--', 'literal & echo unexpected', 'space value'];
+  assert.deepEqual(preflightJobs.buildJobInvocation('npm', args, {
+    platform: 'win32', nodeExecutable,
+  }), {
+    executable: nodeExecutable,
+    args: ['C:\\Program Files & Tools\\node_modules\\npm\\bin\\npm-cli.js', ...args],
+  });
+  assert.deepEqual(args, ['run', 'probe', '--', 'literal & echo unexpected', 'space value']);
+});
+
+test('preflight preserves non-Windows npm and other command invocations', () => {
+  assert.equal(typeof preflightJobs.buildJobInvocation, 'function');
+  for (const [platform, executable] of [['linux', 'npm'], ['darwin', 'npm'], ['win32', 'node'], ['win32', 'python3']]) {
+    const args = ['a file', '& literal'];
+    assert.deepEqual(preflightJobs.buildJobInvocation(executable, args, { platform }), {
+      executable, args,
+    });
+  }
+});
+
+test('preflight invocation passes literal metacharacters to a real child without a shell', () => {
+  const values = ['space value', '& echo unexpected', '$(not-a-command)', 'semi;colon', '"quoted"'];
+  const invocation = preflightJobs.buildJobInvocation(process.execPath, [
+    '-e', 'process.stdout.write(JSON.stringify(process.argv.slice(1)))', '--', ...values,
+  ]);
+  const result = spawnSync(invocation.executable, invocation.args, { encoding: 'utf8', shell: false });
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), values);
+});
+
+for (const exitCode of [0, 7]) {
+  test(`preflight executes an installed npm child and preserves exit ${exitCode}`, (t) => {
+    const fixture = mkdtempSync(resolve(tmpdir(), 'preflight runner & argv '));
+    t.after(() => rmSync(fixture, { recursive: true, force: true }));
+    const runner = resolve(fixture, 'scripts/preflight.mjs');
+    mkdirSync(dirname(runner), { recursive: true });
+    mkdirSync(resolve(fixture, 'scripts/lib'), { recursive: true });
+    copyFileSync(resolve(repoRoot, 'scripts/preflight.mjs'), runner);
+    const jobsUrl = pathToFileURL(resolve(repoRoot, 'scripts/lib/preflight-jobs.mjs')).href;
+    writeFileSync(resolve(fixture, 'scripts/lib/preflight-jobs.mjs'), `
+      import * as actual from ${JSON.stringify(jobsUrl)};
+      export const buildJobInvocation = actual.buildJobInvocation;
+      export const JOBS = [{ label: 'npm child probe', cmd: ['npm', ['run', 'probe', '--', '${exitCode}']] }];
+      export const UNREPRODUCIBLE = {};
+      export const jobMatches = () => true;
+    `);
+    writeFileSync(resolve(fixture, 'package.json'), JSON.stringify({
+      private: true, scripts: { probe: 'node probe.cjs' },
+    }));
+    writeFileSync(resolve(fixture, 'probe.cjs'), `
+      console.log('PREFLIGHT_CHILD_CWD=' + process.cwd());
+      process.exitCode = Number(process.argv[2]);
+    `);
+    const result = spawnSync(process.execPath, [runner, '--all', '--base', 'HEAD'], {
+      cwd: fixture, encoding: 'utf8', shell: false,
+      env: { ...process.env, npm_config_update_notifier: 'false' },
+    });
+    assert.equal(result.error, undefined);
+    assert.equal(result.status, exitCode === 0 ? 0 : 1, result.stdout + result.stderr);
+    assert.ok(result.stdout.includes(`PREFLIGHT_CHILD_CWD=${fixture}`), result.stdout + result.stderr);
+    assert.match(result.stdout, exitCode === 0 ? /PASS\s+npm child probe/ : /FAIL \([^\n]+\) — exit 7/);
+    assert.doesNotMatch(result.stdout, /could not run npm/);
+  });
+}
 
 /**
  * Parse the top-level job ids out of ci.yml without a YAML dependency: they are
