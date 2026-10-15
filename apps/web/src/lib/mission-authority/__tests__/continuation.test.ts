@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import policy from '../../../../../../scripts/nexus-runner/mission-authority.json'
 import { DeliveryConflict, deliveryFingerprint, hashDeliveryInput, signDeliveryApproval, type DeliveryStoreClient } from '@/lib/command-centre/delivery-store'
@@ -202,16 +202,16 @@ describe('nextStep', () => {
       writeFileSync(rowsFile, JSON.stringify({ rows, authority: AUTHORITY, now: NOW }))
       const here = path.dirname(fileURLToPath(import.meta.url))
       const modulePath = path.resolve(here, '..', 'continuation.ts')
-      const tsx = path.resolve(here, '../../../../node_modules/.bin/tsx')
+      const tsx = path.resolve(here, '../../../../node_modules/tsx/dist/cli.mjs')
       const script = [
         `import { readFileSync } from 'node:fs'`,
-        `import { readContinuation, nextStep } from ${JSON.stringify(modulePath)}`,
+        `import { readContinuation, nextStep } from ${JSON.stringify(pathToFileURL(modulePath).href)}`,
         `const { rows, authority, now } = JSON.parse(readFileSync(${JSON.stringify(rowsFile)}, 'utf8'))`,
         `process.stdout.write(JSON.stringify(rows.map((row) => { const s = readContinuation(row); return s.state === 'ok' ? nextStep(s.continuation, authority, {}, now) : s })))`,
       ].join('\n')
       const scriptFile = path.join(dir, 'fresh.mts')
       writeFileSync(scriptFile, script)
-      const run = spawnSync(tsx, ['--tsconfig', path.resolve(here, '../../../../tsconfig.json'), scriptFile], { encoding: 'utf8' })
+      const run = spawnSync(process.execPath, [tsx, '--tsconfig', path.resolve(here, '../../../../tsconfig.json'), scriptFile], { encoding: 'utf8' })
       expect(run.status, run.stderr).toBe(0)
       const fresh = JSON.parse(run.stdout)
       const inProcess = rows.map((row) => nextStep(row.metadata.mission as MissionContinuation, AUTHORITY, {}, NOW))

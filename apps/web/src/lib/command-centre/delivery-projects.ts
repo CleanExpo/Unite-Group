@@ -4,6 +4,27 @@ import type { DeliveryRepository } from "./delivery-repositories";
 const CANONICAL_REPOSITORY = "CleanExpo/Unite-Group";
 type DeliveryProject = CommandCentreProject & { deliveryNames?: string[] };
 
+/** Compatibility for saved task keys only; never advertised as new intake names. */
+export function matchesStoredDeliveryProjectKey(
+  project: CommandCentreProject,
+  key: string | null | undefined,
+): boolean {
+  if (!key) return false;
+  if (project.name.toLowerCase() === key.toLowerCase()) return true;
+  const registeredDirectory = project.repo_path
+    ?.replace(/\\/g, "/")
+    .replace(/\/+$/, "")
+    .split("/")
+    .at(-1);
+  return (
+    project.name === "Unite-Group" &&
+    project.github_repo === CANONICAL_REPOSITORY &&
+    project.status.toLowerCase() !== "retired" &&
+    !!registeredDirectory &&
+    key.toLowerCase() === registeredDirectory.toLowerCase()
+  );
+}
+
 /** Delivery identity adapter only. The historical portfolio inventory stays unchanged. */
 export function resolveDeliveryProjects(projects: CommandCentreProject[]): {
   projects: DeliveryProject[];
@@ -67,8 +88,8 @@ export async function getDeliveryProjectByName(
   const resolved = resolveDeliveryProjects(await getProjects());
   if (resolved.error) throw new Error(resolved.error);
   const target = name.trim().toLowerCase();
-  const named = resolved.projects.find(
-    (project) => project.name.toLowerCase() === target,
+  const named = resolved.projects.find((project) =>
+    matchesStoredDeliveryProjectKey(project, target),
   );
   if (named) return named;
   const byRepository = resolved.projects.filter(

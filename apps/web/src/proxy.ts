@@ -90,6 +90,13 @@ export function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
+// This worker authenticates its bearer, founder scope and containment grant in
+// the route. It has no browser session. Keep this distinct from public paths:
+// neither sibling runner routes nor descendants inherit its transport access.
+function isRouteAuthenticatedWorkerPath(pathname: string): boolean {
+  return pathname === '/api/agents/runner/research';
+}
+
 // ---------------------------------------------------------------------------
 // Middleware
 // ---------------------------------------------------------------------------
@@ -125,7 +132,15 @@ export async function proxy(request: NextRequest) {
   //    can read it via headers() from next/headers.
   // ------------------------------------------------------------------
   const nonce = generateNonce();
-  const { response, user } = await updateSession(request, { 'x-nonce': nonce });
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-nonce', nonce);
+  const routeAuthenticatedWorker = request.method === 'POST' && isRouteAuthenticatedWorkerPath(pathname);
+  const { response, user } = routeAuthenticatedWorker
+    ? {
+      response: NextResponse.next({ request: { headers: requestHeaders } }),
+      user: null,
+    }
+    : await updateSession(request, { 'x-nonce': nonce });
 
   // Attach rate-limit headers to successful responses so clients can
   // monitor their remaining budget.
@@ -141,7 +156,7 @@ export async function proxy(request: NextRequest) {
   // ------------------------------------------------------------------
   // 3. Auth guard — redirect unauthenticated users to login
   // ------------------------------------------------------------------
-  if (!user && !isPublicPath(pathname)) {
+  if (!user && !isPublicPath(pathname) && !routeAuthenticatedWorker) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = '/auth/login';
     loginUrl.searchParams.set('redirectTo', pathname);
@@ -151,7 +166,7 @@ export async function proxy(request: NextRequest) {
   // ------------------------------------------------------------------
   // 4. Private CRM guard — only explicit founder/invite allow-list can enter
   // ------------------------------------------------------------------
-  if (user && !isPublicPath(pathname) && !hasPrivateAccess(user)) {
+  if (user && !isPublicPath(pathname) && !routeAuthenticatedWorker && !hasPrivateAccess(user)) {
     // Log the rejected identity so a lockout is diagnosable from Vercel runtime
     // logs alone (2026-07-14: a stale FOUNDER_USER_ID denied the real founder
     // and the logs showed nothing about who was rejected or why).

@@ -15,6 +15,21 @@
  * `cmd`          → [binary, args, optionalCwdRelativeToRepoRoot]
  */
 import { WEB_BUILD_INPUTS } from './web-build-inputs.mjs';
+import { win32 } from 'node:path';
+
+export function buildJobInvocation(executable, args, {
+  platform = process.platform,
+  nodeExecutable = process.execPath,
+} = {}) {
+  // Windows npm is a .cmd shim; launch its JS entrypoint without a shell.
+  if (platform === 'win32' && executable === 'npm') {
+    return {
+      executable: nodeExecutable,
+      args: [win32.join(win32.dirname(nodeExecutable), 'node_modules', 'npm', 'bin', 'npm-cli.js'), ...args],
+    };
+  }
+  return { executable, args };
+}
 
 export const JOBS = [
   {

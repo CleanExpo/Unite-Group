@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import policy from '../../../../../../scripts/nexus-runner/mission-authority.json'
 import { may, type MayInput, type MissionAuthority } from '../may'
@@ -189,16 +189,16 @@ describe('may() — G: decisions come from the persisted authority, not conversa
       const casesFile = path.join(dir, 'cases.json')
       writeFileSync(casesFile, JSON.stringify(cases))
       const mayPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'may.ts')
-      const tsx = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../node_modules/.bin/tsx')
+      const tsx = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../node_modules/tsx/dist/cli.mjs')
       const script = [
         `import { readFileSync } from 'node:fs'`,
-        `import { may } from ${JSON.stringify(mayPath)}`,
+        `import { may } from ${JSON.stringify(pathToFileURL(mayPath).href)}`,
         `const cases = JSON.parse(readFileSync(${JSON.stringify(casesFile)}, 'utf8'))`,
         `process.stdout.write(JSON.stringify(cases.map((c) => may(c))))`,
       ].join('\n')
       const scriptFile = path.join(dir, 'fresh.mts')
       writeFileSync(scriptFile, script)
-      const run = spawnSync(tsx, [scriptFile], { encoding: 'utf8' })
+      const run = spawnSync(process.execPath, [tsx, scriptFile], { encoding: 'utf8' })
       expect(run.status, run.stderr).toBe(0)
       const fresh = JSON.parse(run.stdout)
       const here = (JSON.parse(JSON.stringify(cases)) as MayInput[]).map((c) => may(c))

@@ -13,9 +13,9 @@ parent_company: Unite-Group Nexus Pty Ltd
 # Former repos are frozen pending hard deletion per
 # docs/convergence/cutover-and-deletion-runbook.md (gated on Phill's typed approval).
 products:
-  - canonical_name: Unite-Hub
+  - canonical_name: Unite-Group
+    # Stable repository paths and existing task IDs are unchanged by the display-name correction.
     aliases:
-      - Unite Hub
       - Unite-Group
       - Unite Group
       - Unite-Group CRM
@@ -46,10 +46,13 @@ products:
         - D:\Unite-Group Agency
     vercel:
       team_id: team_KMZACI5rIltoCRhAtGCXlxUf
+      team_slug: unite-group
       production:
-        project_id: prj_y8hsRwhZHe6ewe6wCbwMbBYx20yp
-        project_name: unite-hub
-        domain: unite-hub-self.vercel.app  # bare unite-hub.vercel.app is third-party-owned (Gatwick union portal); Vercel assigned -self fallback
+        # Provider metadata checked 16/10/2026 against the existing live project and verified domain.
+        project_id: prj_IfUuJNLjXTE8VXqEGwLAleIGhiA0
+        project_name: unite-group
+        domain: unite-group.in
+        github_environment: Production – unite-group
       sandbox:
         project_id: prj_tNqIsHGY3kvw7zdO2bXVxFWTPIk0
         project_name: unite-hub-sandbox

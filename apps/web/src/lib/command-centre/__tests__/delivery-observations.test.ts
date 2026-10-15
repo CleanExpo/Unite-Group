@@ -82,6 +82,21 @@ describe("registry-constrained PR identity", () => {
 });
 
 describe("delivery GitHub observations", () => {
+  it("reads a historical stored task key through the canonical surviving project without rewriting metadata", async () => {
+    const { task, project, delivery } = observationFixture();
+    project.repo_path = `D:/worktrees/${task.id}`;
+    task.project_key = task.id;
+    delivery.projectKey = task.id;
+    project.status = "merged";
+    const before = structuredClone(task);
+    const result = await observeDelivery(task, project, {
+      token: "private-token",
+      fetchFn: provider(),
+    });
+    expect(result.state).toBe("observed");
+    expect(task).toEqual(before);
+    expect(result.projectKey).toBe(task.id);
+  });
   it("binds actual signals to current head/spec but never marks independent review or live delivery", async () => {
     const fetchFn = provider();
     const data = await run(fetchFn);

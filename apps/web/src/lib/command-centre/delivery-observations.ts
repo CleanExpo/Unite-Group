@@ -2,6 +2,7 @@ import { z } from "zod";
 import { readDeliveryMetadata } from "./delivery-types";
 import type { CommandCentreTask } from "./tasks";
 import type { CommandCentreProject } from "./registry";
+import { matchesStoredDeliveryProjectKey } from "./delivery-projects";
 
 /** GitHub observations are read-only signals, never admission or completion receipts.
  * Docs verified 05/09/2026: https://docs.github.com/en/rest/pulls/reviews,
@@ -14,10 +15,12 @@ const text = z.string().max(1000);
 const prSchema = z.object({
   number: id,
   head: z.object({ sha }),
-  base: z.object({ repo: z.object({ full_name: text }) }),
+  base: z.object({ repo: z.object({ full_name: text }), ref: text.optional() }),
   draft: z.boolean(),
   state: z.enum(["open", "closed"]),
   merged: z.boolean(),
+  merge_commit_sha: sha.nullable().optional(),
+  merged_at: z.string().datetime().nullable().optional(),
   updated_at: z.string().datetime(),
 });
 const checkSchema = z.object({
@@ -105,6 +108,9 @@ export interface DeliveryObservations {
     draft: boolean;
     state: "open" | "closed";
     merged: boolean;
+    baseBranch: string | null;
+    mergeSha: string | null;
+    mergedAt: string | null;
   } | null;
   checks: ObservationSource<CheckObservation>;
   statuses: ObservationSource<StatusObservation>;
@@ -199,7 +205,7 @@ export async function observeDelivery(
   if (
     !project ||
     task.project_key !== meta.projectKey ||
-    project.name.toLowerCase() !== meta.projectKey?.toLowerCase()
+    !matchesStoredDeliveryProjectKey(project, meta.projectKey)
   )
     return stop(
       "The mission project cannot be matched to its registered repository.",
@@ -385,7 +391,10 @@ export async function observeDelivery(
       final.number !== pr.number ||
       final.merged !== initial.merged ||
       final.draft !== initial.draft ||
-      final.state !== initial.state
+      final.state !== initial.state ||
+      final.base.ref !== initial.base.ref ||
+      final.merge_commit_sha !== initial.merge_commit_sha ||
+      final.merged_at !== initial.merged_at
     )
       return stop(
         "The pull request changed during observation. Refresh to obtain a consistent snapshot.",
@@ -397,6 +406,9 @@ export async function observeDelivery(
       draft: initial.draft,
       merged: initial.merged,
       state: initial.state,
+      baseBranch: initial.base.ref ?? null,
+      mergeSha: initial.merge_commit_sha ?? null,
+      mergedAt: initial.merged_at ?? null,
     };
     result.checks = checks.items.some((check) => check.head_sha !== head)
       ? unavailable("Check SHA did not match the observed PR head.")

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import {
   createTaskOnce,
+  appendTaskEventOnce,
   getTaskById,
   listTasks,
   type CommandCentreTask,
@@ -47,8 +48,10 @@ import {
   type DeliveryStoreClient,
 } from "./delivery-store";
 import { acceptedIntentBinding } from "@/lib/mission-authority/intent-binding";
+import { readIdeaLifecycle, ideaLifecycleApprovalHolds } from "./idea-lifecycle";
 
 export interface DeliveryPreparationDeps {
+  appendTaskEventOnce?: typeof appendTaskEventOnce;
   createTaskOnce: typeof createTaskOnce;
   getTaskById: typeof getTaskById;
   listTasks: typeof listTasks;
@@ -226,6 +229,73 @@ export async function prepareDeliveryMission(
     task = found;
   }
   let d = metadata(task);
+  if (task.metadata.lifecycle !== undefined || task.external_ref?.startsWith("delivery:research:")) {
+    const lifecycle = readIdeaLifecycle(task.metadata);
+    if (!lifecycle || !ideaLifecycleApprovalHolds(lifecycle))
+      throw new DeliveryConflict("Review and approve the current research brief before preparing or approving a build.");
+    const brief = lifecycle.brief!;
+    const reference = `idea-brief:${brief.hash}`;
+    if (request.action === "approve" && !d.sourceRefs.some(source => source.reference === reference))
+      throw new DeliveryConflict("Prepare the current approved brief before deciding on a branch build.");
+    const researchIntent = task.metadata.intent as { markdown?: unknown } | undefined;
+    if (request.action === "approve" && (!acceptedIntentBinding(task) ||
+      typeof researchIntent?.markdown !== "string" || !researchIntent.markdown.includes(brief.hash)))
+      throw new DeliveryConflict("Draft and accept the intent for this reviewed brief before authorising its branch build.");
+    if (request.action !== "approve") {
+      if (task.status === "running")
+        return { task, deduplicated: true };
+      if (task.status === "done")
+        throw new DeliveryConflict("This completed mission is closed. Capture a new idea for further delivery.");
+      if (d.lease && Date.parse(d.lease.expiresAt) > deps.now())
+        throw new DeliveryConflict("Preparation is already in progress. Reload before continuing.");
+      const currentBrief = d.sourceRefs.some(source => source.reference === reference);
+      if (d.phase === "ready" && currentBrief && !["blocked", "failed"].includes(task.status))
+        return { task, deduplicated: true };
+      const registry = resolveDeliveryProjects(await deps.getProjects());
+      const targets = registry.projects.filter(project =>
+        project.github_repo?.toLowerCase() === brief.snapshot.brief.target.repository.toLowerCase()
+        && !["retired", "archived", "paused"].includes(project.status.toLowerCase()));
+      if (registry.error || targets.length !== 1)
+        throw new DeliveryConflict(registry.error ?? "Connect the approved brief's exact repository to one active project before preparing its build.");
+      const content = brief.snapshot.brief;
+      // The founder has already supplied and reviewed this structured specification.
+      // Do not send a research-only mandate through the legacy paid model pipeline.
+      const next: DeliveryMetadata = {
+        ...d, revision: d.revision + 1, projectKey: targets[0].name, lane: "software",
+        phase: "ready", lease: null, approval: null, executionAssignment: undefined, build: undefined,
+        board: null, error: null, questions: [], answers: {},
+        spec: {
+          title: lifecycle.title, summary: content.objective,
+          requirements: [content.objective, `User: ${content.user}; payer: ${content.payer}`,
+            `Design: ${content.design.summary}`, ...content.nonGoals.map(value => `Non-goal: ${value}`),
+            ...content.outputs.map(output => `${output.id} [${output.status}]: ${output.content}`)],
+          acceptanceCriteria: content.acceptanceCriteria.map(criterion => `${criterion.id}: ${criterion.criterion} — ${criterion.validation}`),
+          steps: ["Inspect the existing application and approved research sources.",
+            "Implement the reviewed requirements and design within branch-preview authority.",
+            "Run the defined acceptance checks and submit a draft pull request for independent review."],
+          presetIds: d.presetIds,
+        },
+        sourceRefs: [{ reference, label: "Current founder-approved immutable research brief" },
+          ...lifecycle.sources.slice(0, 29).map(source => ({ reference: source.reference, label: source.label }))],
+        harness: roles("software", d.presetIds),
+      };
+      next.specVersion = deliveryFingerprint(next);
+      const validated = deliveryMetadataSchema.parse(next);
+      if (d.build) {
+        await (deps.appendTaskEventOnce ?? appendTaskEventOnce)({
+          founderId, taskId: task.id, type: "evidence_added", actor: "system",
+          eventKey: `delivery-build-snapshot:${d.revision}:${d.specVersion}:${brief.hash}`,
+          payload: { kind: "prior_delivery_builder_report", build: d.build,
+            specVersion: d.specVersion, revision: d.revision, nextBriefHash: brief.hash },
+        }, db);
+      }
+      task = await deps.saveDelivery(task, validated, {
+        status: task.status === "queued" ? "awaiting_approval" : "proposed",
+        clearClaim: true, clearMission: true, client: deps.client,
+      });
+      return { task, deduplicated };
+    }
+  }
   if (request.action === "approve")
     return {
       task: await approve(task, d, request.specVersion, deps),

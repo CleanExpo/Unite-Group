@@ -43,7 +43,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { JOBS, UNREPRODUCIBLE, jobMatches } from './lib/preflight-jobs.mjs';
+import { JOBS, UNREPRODUCIBLE, buildJobInvocation, jobMatches } from './lib/preflight-jobs.mjs';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -145,7 +145,8 @@ for (const job of selected) {
 
   console.log(`\n▸ ${job.label}`);
   const started = Date.now();
-  const proc = spawnSync(bin, args, { cwd: wd, stdio: 'inherit', shell: false });
+  const invocation = buildJobInvocation(bin, args);
+  const proc = spawnSync(invocation.executable, invocation.args, { cwd: wd, stdio: 'inherit', shell: false });
   const secs = ((Date.now() - started) / 1000).toFixed(1);
 
   if (proc.error) {
