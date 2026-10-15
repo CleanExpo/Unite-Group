@@ -2,6 +2,8 @@
 -- This file does not authorise production application or producer enrollment.
 -- Signature verification belongs to the trusted server adapter. Admission binds
 -- the exact registrations it verified while serialising against revocation.
+-- Business conflicts use PT409: PostgREST may retry SQLSTATE 40001 indefinitely.
+-- Reserve 40001 for genuine PostgreSQL serialization failures.
 BEGIN;
 
 CREATE TABLE IF NOT EXISTS public.cc_idea_evidence_sources (
@@ -210,7 +212,7 @@ BEGIN
      OR v_task.metadata#>>'{lifecycle,revision}' IS DISTINCT FROM p_registration->>'lifecycle_revision'
      OR v_task.metadata#>>'{lifecycle,brief,hash}' IS DISTINCT FROM p_registration->>'brief_hash'
      OR COALESCE(v_task.metadata#>'{lifecycle,outcome}', 'null'::jsonb) IS DISTINCT FROM (p_registration->>'outcome_canonical')::jsonb THEN
-    RAISE EXCEPTION 'Grant does not match current owned brief' USING ERRCODE = '40001';
+    RAISE EXCEPTION 'Grant does not match current owned brief' USING ERRCODE = 'PT409';
   END IF;
   IF (p_registration->>'outcome_canonical')::jsonb = 'null'::jsonb THEN
     IF p_registration->'outcome_hash' IS DISTINCT FROM 'null'::jsonb THEN
@@ -343,7 +345,7 @@ BEGIN
      OR v_task.metadata#>>'{lifecycle,revision}' IS DISTINCT FROM v_grant.registration->>'lifecycle_revision'
      OR v_task.metadata#>>'{lifecycle,brief,hash}' IS DISTINCT FROM v_grant.registration->>'brief_hash'
      OR COALESCE(v_task.metadata#>'{lifecycle,outcome}', 'null'::jsonb) IS DISTINCT FROM (v_grant.registration->>'outcome_canonical')::jsonb THEN
-    RAISE EXCEPTION 'Evidence no longer matches current owned brief' USING ERRCODE = '40001';
+    RAISE EXCEPTION 'Evidence no longer matches current owned brief' USING ERRCODE = 'PT409';
   END IF;
   INSERT INTO public.cc_idea_evidence_events(source_id, source_version, event_id, grant_id, grant_version,
     founder_id, task_id, envelope, canonical_envelope, payload_hash, signature, occurred_at, admitted_at)
@@ -423,9 +425,10 @@ BEGIN
      OR v_last->>'at' IS DISTINCT FROM p_next_lifecycle->>'updatedAt'
      OR v_handoff->>'createdAt' IS DISTINCT FROM p_next_lifecycle->>'updatedAt'
      OR (p_next_lifecycle->>'updatedAt')::timestamptz IS NULL
-     OR (p_next_lifecycle->>'updatedAt')::timestamptz < v_task.updated_at
+     OR (v_old->>'updatedAt')::timestamptz IS NULL
+     OR (p_next_lifecycle->>'updatedAt')::timestamptz < (v_old->>'updatedAt')::timestamptz
      OR (p_next_lifecycle->>'updatedAt')::timestamptz > clock_timestamp() + interval '5 minutes' THEN
-    RAISE EXCEPTION 'Reviewed handoff compare-and-set or approval mismatch' USING ERRCODE = '40001';
+    RAISE EXCEPTION 'Reviewed handoff compare-and-set or approval mismatch' USING ERRCODE = 'PT409';
   END IF;
   IF jsonb_typeof(v_old#>'{brief,snapshot,brief,outputs}') IS DISTINCT FROM 'array'
      OR jsonb_array_length(v_old#>'{brief,snapshot,brief,outputs}') <> 13

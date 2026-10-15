@@ -139,6 +139,7 @@ DO $$
 DECLARE s jsonb; g jsonb; e jsonb; t public.cc_tasks%ROWTYPE; next_lifecycle jsonb;
   handoff jsonb; next_metadata jsonb; result jsonb; changed jsonb; handoff_at timestamptz := clock_timestamp();
   changed_lifecycle jsonb; changed_metadata jsonb; changed_envelope jsonb; changed_task public.cc_tasks%ROWTYPE;
+  backdated_at timestamptz; missing_clock_at timestamptz; changed_handoff jsonb;
 BEGIN
   SELECT * INTO STRICT t FROM public.cc_tasks WHERE id='ee161900-0000-4000-8000-000000000003';
   s := jsonb_build_object('source_id','sql.fixture.handoff','version',1,'kind','builtin_factory','event_kind','reviewed_handoff_persisted',
@@ -160,10 +161,10 @@ BEGIN
   PERFORM pg_temp.expect_error(format('SELECT public.cc_idea_evidence_admit_v1(%L::jsonb,%L,%L,%L,%L)',
     e,e::text,'fake-signature',s->>'registration_hash',g->>'registration_hash'),'22023');
   PERFORM pg_temp.expect_error(format('SELECT public.cc_idea_evidence_persist_handoff_v1(%L::jsonb,%L,%L,%L,%L::jsonb,%L::timestamptz,1,%L::jsonb,%L,%L)',
-    e,e::text,s->>'registration_hash',g->>'registration_hash',t.metadata,t.updated_at-interval '1 second',next_lifecycle,handoff::text,next_metadata::text),'40001');
+    e,e::text,s->>'registration_hash',g->>'registration_hash',t.metadata,t.updated_at-interval '1 second',next_lifecycle,handoff::text,next_metadata::text),'PT409');
   changed := next_lifecycle || '{"title":"unrelated mutation"}'::jsonb;
   PERFORM pg_temp.expect_error(format('SELECT public.cc_idea_evidence_persist_handoff_v1(%L::jsonb,%L,%L,%L,%L::jsonb,%L::timestamptz,1,%L::jsonb,%L,%L)',
-    e,e::text,s->>'registration_hash',g->>'registration_hash',t.metadata,t.updated_at,changed,handoff::text,next_metadata::text),'40001');
+    e,e::text,s->>'registration_hash',g->>'registration_hash',t.metadata,t.updated_at,changed,handoff::text,next_metadata::text),'PT409');
   BEGIN
     -- Alter the persisted approval, not just a caller's stale expected value.
     UPDATE public.cc_tasks SET metadata=jsonb_set(t.metadata,'{lifecycle,approval,actorId}',
@@ -174,7 +175,7 @@ BEGIN
       to_jsonb(encode(sha256(convert_to(changed_metadata::text,'UTF8')),'hex')));
     PERFORM pg_temp.expect_error(format('SELECT public.cc_idea_evidence_persist_handoff_v1(%L::jsonb,%L,%L,%L,%L::jsonb,%L::timestamptz,1,%L::jsonb,%L,%L)',
       changed_envelope,changed_envelope::text,s->>'registration_hash',g->>'registration_hash',changed_task.metadata,
-      changed_task.updated_at,changed_lifecycle,handoff::text,changed_metadata::text),'40001');
+      changed_task.updated_at,changed_lifecycle,handoff::text,changed_metadata::text),'PT409');
     RAISE EXCEPTION 'Rollback forged approval fixture' USING ERRCODE='ZX001';
   EXCEPTION WHEN SQLSTATE 'ZX001' THEN NULL;
   END;
@@ -197,6 +198,58 @@ BEGIN
   IF EXISTS (SELECT 1 FROM public.cc_idea_evidence_events WHERE event_id='handoff-1')
      OR (SELECT metadata FROM public.cc_tasks WHERE id=t.id) IS DISTINCT FROM t.metadata THEN
     RAISE EXCEPTION 'Failed CAS left a task/event mutation'; END IF;
+
+  BEGIN
+    -- Missing prior business-clock provenance must not disable monotonicity.
+    UPDATE public.cc_tasks SET metadata=t.metadata #- '{lifecycle,updatedAt}'
+      WHERE id=t.id RETURNING * INTO changed_task;
+    missing_clock_at := clock_timestamp() + interval '1 second';
+    changed_handoff := jsonb_set(handoff,'{createdAt}',to_jsonb(missing_clock_at));
+    changed_lifecycle := jsonb_set(jsonb_set(jsonb_set(next_lifecycle,'{handoff}',changed_handoff),
+      '{updatedAt}',to_jsonb(missing_clock_at)),'{history,0,at}',to_jsonb(missing_clock_at));
+    changed_metadata := jsonb_set(changed_task.metadata,'{lifecycle}',changed_lifecycle);
+    changed_envelope := jsonb_set(jsonb_set(jsonb_set(e,'{occurred_at}',to_jsonb(missing_clock_at)),
+      '{payload,handoff_digest}',to_jsonb(encode(sha256(convert_to(changed_handoff::text,'UTF8')),'hex'))),
+      '{payload,persisted_metadata_digest}',to_jsonb(encode(sha256(convert_to(changed_metadata::text,'UTF8')),'hex')));
+    PERFORM pg_temp.expect_error(format('SELECT public.cc_idea_evidence_persist_handoff_v1(%L::jsonb,%L,%L,%L,%L::jsonb,%L::timestamptz,1,%L::jsonb,%L,%L)',
+      changed_envelope,changed_envelope::text,s->>'registration_hash',g->>'registration_hash',changed_task.metadata,
+      changed_task.updated_at,changed_lifecycle,changed_handoff::text,changed_metadata::text),'PT409');
+    RAISE EXCEPTION 'Rollback missing prior timestamp fixture' USING ERRCODE='ZX003';
+  EXCEPTION WHEN SQLSTATE 'ZX003' THEN NULL;
+  END;
+
+  -- A valid application lifecycle timestamp may precede a later database row
+  -- write. Preserve the exact DB-row CAS while ordering business timestamps
+  -- against the previous lifecycle timestamp from that same clock domain.
+  UPDATE public.cc_tasks SET updated_at=clock_timestamp() WHERE id=t.id RETURNING * INTO t;
+  handoff_at := (t.metadata#>>'{lifecycle,updatedAt}')::timestamptz + interval '1 second';
+  IF handoff_at >= t.updated_at OR handoff_at < (t.metadata#>>'{lifecycle,updatedAt}')::timestamptz THEN
+    RAISE EXCEPTION 'Clock regression fixture does not separate application and database clocks'; END IF;
+  handoff := jsonb_set(handoff,'{createdAt}',to_jsonb(handoff_at));
+  next_lifecycle := jsonb_set(jsonb_set(jsonb_set(next_lifecycle,'{handoff}',handoff),
+    '{updatedAt}',to_jsonb(handoff_at)),'{history,0,at}',to_jsonb(handoff_at));
+  next_metadata := jsonb_set(t.metadata,'{lifecycle}',next_lifecycle);
+  e := jsonb_set(jsonb_set(jsonb_set(e,'{occurred_at}',to_jsonb(handoff_at)),
+    '{payload,handoff_digest}',to_jsonb(encode(sha256(convert_to(handoff::text,'UTF8')),'hex'))),
+    '{payload,persisted_metadata_digest}',to_jsonb(encode(sha256(convert_to(next_metadata::text,'UTF8')),'hex')));
+
+  -- An actual backwards business timestamp still fails with a terminal HTTP
+  -- conflict, even when every handoff/history/hash field agrees with it.
+  backdated_at := (t.metadata#>>'{lifecycle,updatedAt}')::timestamptz - interval '1 second';
+  changed_handoff := jsonb_set(handoff,'{createdAt}',to_jsonb(backdated_at));
+  changed_lifecycle := jsonb_set(jsonb_set(jsonb_set(next_lifecycle,'{handoff}',changed_handoff),
+    '{updatedAt}',to_jsonb(backdated_at)),'{history,0,at}',to_jsonb(backdated_at));
+  changed_metadata := jsonb_set(t.metadata,'{lifecycle}',changed_lifecycle);
+  changed_envelope := jsonb_set(jsonb_set(e,'{payload,handoff_digest}',
+    to_jsonb(encode(sha256(convert_to(changed_handoff::text,'UTF8')),'hex'))),
+    '{payload,persisted_metadata_digest}',to_jsonb(encode(sha256(convert_to(changed_metadata::text,'UTF8')),'hex')));
+  PERFORM pg_temp.expect_error(format('SELECT public.cc_idea_evidence_persist_handoff_v1(%L::jsonb,%L,%L,%L,%L::jsonb,%L::timestamptz,1,%L::jsonb,%L,%L)',
+    changed_envelope,changed_envelope::text,s->>'registration_hash',g->>'registration_hash',t.metadata,t.updated_at,
+    changed_lifecycle,changed_handoff::text,changed_metadata::text),'PT409');
+  IF EXISTS (SELECT 1 FROM public.cc_idea_evidence_events WHERE event_id='handoff-1')
+     OR (SELECT metadata FROM public.cc_tasks WHERE id=t.id) IS DISTINCT FROM t.metadata THEN
+    RAISE EXCEPTION 'Backdated clock rejection changed task or evidence'; END IF;
+
   result := public.cc_idea_evidence_persist_handoff_v1(e,e::text,s->>'registration_hash',g->>'registration_hash',
     t.metadata,t.updated_at,1,next_lifecycle,handoff::text,next_metadata::text);
   IF result#>'{task,metadata}' IS DISTINCT FROM next_metadata OR result#>'{event,envelope}' IS DISTINCT FROM e
