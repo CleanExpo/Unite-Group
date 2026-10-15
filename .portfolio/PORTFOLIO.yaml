@@ -14,7 +14,7 @@ parent_company: Unite-Group Nexus Pty Ltd
 # docs/convergence/cutover-and-deletion-runbook.md (gated on Phill's typed approval).
 products:
   - canonical_name: Unite-Group
-    # Historical display name: Unite-Hub. Stable repository and existing task IDs are unchanged.
+    # Stable repository paths and existing task IDs are unchanged by the display-name correction.
     aliases:
       - Unite-Group
       - Unite Group

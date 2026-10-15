@@ -19,6 +19,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -97,7 +98,7 @@ for (const exitCode of [0, 7]) {
     });
     assert.equal(result.error, undefined);
     assert.equal(result.status, exitCode === 0 ? 0 : 1, result.stdout + result.stderr);
-    assert.ok(result.stdout.includes(`PREFLIGHT_CHILD_CWD=${fixture}`), result.stdout + result.stderr);
+    assert.ok(result.stdout.includes(`PREFLIGHT_CHILD_CWD=${realpathSync(fixture)}`), result.stdout + result.stderr);
     assert.match(result.stdout, exitCode === 0 ? /PASS\s+npm child probe/ : /FAIL \([^\n]+\) — exit 7/);
     assert.doesNotMatch(result.stdout, /could not run npm/);
   });

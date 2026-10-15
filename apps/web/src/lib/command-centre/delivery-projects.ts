@@ -11,11 +11,17 @@ export function matchesStoredDeliveryProjectKey(
 ): boolean {
   if (!key) return false;
   if (project.name.toLowerCase() === key.toLowerCase()) return true;
+  const registeredDirectory = project.repo_path
+    ?.replace(/\\/g, "/")
+    .replace(/\/+$/, "")
+    .split("/")
+    .at(-1);
   return (
     project.name === "Unite-Group" &&
     project.github_repo === CANONICAL_REPOSITORY &&
     project.status.toLowerCase() !== "retired" &&
-    key.toLowerCase() === "unite-hub"
+    !!registeredDirectory &&
+    key.toLowerCase() === registeredDirectory.toLowerCase()
   );
 }
 

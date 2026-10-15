@@ -67,10 +67,14 @@ describe("delivery project identity against the checked-in portfolio", () => {
       },
     });
     const result = resolveDeliveryProjects(inventory);
-    expect(matchesStoredDeliveryProjectKey(actual, "Unite-Hub")).toBe(true);
-    expect(matchDeliveryProject("Unite-Hub", result.projects)).toBeNull();
-    expect(matchesStoredDeliveryProjectKey({ ...actual, github_repo: "Other/Repo" }, "Unite-Hub")).toBe(false);
-    expect(matchesStoredDeliveryProjectKey({ ...actual, status: "retired" }, "Unite-Hub")).toBe(false);
+    const storedKey = actual.repo_path.split("/").at(-1)!;
+    expect(matchesStoredDeliveryProjectKey(actual, storedKey)).toBe(true);
+    expect(matchesStoredDeliveryProjectKey(actual, storedKey.toUpperCase())).toBe(true);
+    expect(matchDeliveryProject(storedKey, result.projects)).toBeNull();
+    expect(matchesStoredDeliveryProjectKey({ ...actual, github_repo: "Other/Repo" }, storedKey)).toBe(false);
+    expect(matchesStoredDeliveryProjectKey({ ...actual, status: "retired" }, storedKey)).toBe(false);
+    expect(matchesStoredDeliveryProjectKey({ ...actual, repo_path: "" }, storedKey)).toBe(false);
+    expect(matchesStoredDeliveryProjectKey(actual, "unregistered-key")).toBe(false);
   });
 
   it("refuses multiple nonretired canonical-repository candidates", () => {
