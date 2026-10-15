@@ -508,3 +508,378 @@ describe("provider-confirmed main merge", () => {
     },
   );
 });
+
+const requiredPolicy = {
+  required_status_checks: {
+    contexts: ["test", "nexus/release-receipt"],
+    checks: [
+      { context: "test", app_id: 15368 },
+      { context: "nexus/release-receipt", app_id: null },
+    ],
+  },
+  required_pull_request_reviews: null,
+};
+const gateCheck = {
+  id: 11,
+  name: "test",
+  head_sha: headSha,
+  status: "completed",
+  conclusion: "success",
+  details_url:
+    "https://github.com/CleanExpo/Unite-Group/actions/runs/101/job/11",
+  app: { id: 15368, slug: "github-actions" },
+  check_suite: { id: 201 },
+};
+const gateStatus = {
+  sha: headSha,
+  total_count: 1,
+  statuses: [{ id: 10, context: "nexus/release-receipt", state: "success" }],
+};
+const actionRun = {
+  id: 101,
+  run_attempt: 1,
+  check_suite_id: 201,
+  head_sha: headSha,
+  path: ".github/workflows/ci.yml",
+  event: "pull_request",
+  status: "completed",
+  conclusion: "success",
+  repository: { full_name: "CleanExpo/Unite-Group" },
+};
+const actionJob = {
+  id: 11,
+  run_id: 101,
+  run_attempt: 1,
+  head_sha: headSha,
+  name: "test",
+  status: "completed",
+  conclusion: "success",
+  check_run_url:
+    "https://api.github.com/repos/CleanExpo/Unite-Group/check-runs/11",
+};
+function gateProvider(
+  overrides: Partial<
+    Record<"policy" | "rules" | "checks" | "statuses" | "run" | "job", unknown>
+  > = {},
+  change?: (url: URL, policyRead: number) => Response | undefined,
+) {
+  const fallback = githubProvider();
+  let policyReads = 0;
+  return vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+    const url = new URL(String(input));
+    if (url.pathname.endsWith("/protection")) policyReads++;
+    const changed = change?.(url, policyReads);
+    if (changed) return changed;
+    const values = {
+      policy: requiredPolicy,
+      rules: [],
+      checks: { total_count: 1, check_runs: [gateCheck] },
+      statuses: gateStatus,
+      run: actionRun,
+      job: actionJob,
+      ...overrides,
+    };
+    let body: unknown;
+    if (url.pathname.endsWith("/protection")) body = values.policy;
+    else if (url.pathname.endsWith("/rules/branches/main")) body = values.rules;
+    else if (url.pathname.endsWith("/check-runs")) body = values.checks;
+    else if (url.pathname.endsWith("/status")) body = values.statuses;
+    else if (url.pathname.endsWith("/actions/runs/101")) body = values.run;
+    else if (url.pathname.endsWith("/actions/jobs/11")) body = values.job;
+    else return fallback(input);
+    expect(init?.redirect).toBe("error");
+    return new Response(JSON.stringify(body));
+  });
+}
+describe("authoritative required check policy and provenance", () => {
+  it.each(["failure", "skipped", "neutral"])(
+    "cannot hide a %s required check behind a same-context success status",
+    async (conclusion) => {
+      const policy = {
+        ...requiredPolicy,
+        required_status_checks: {
+          contexts: ["test"],
+          checks: [{ context: "test", app_id: null }],
+        },
+      };
+      const checks = {
+        total_count: 1,
+        check_runs: [{ ...gateCheck, conclusion }],
+      };
+      const statuses = {
+        ...gateStatus,
+        total_count: 1,
+        statuses: [{ id: 12, context: "test", state: "success" }],
+      };
+      expect(
+        (await runGithub(gateProvider({ policy, checks, statuses })))
+          .engineering?.checksPassed,
+      ).toBe(false);
+    },
+  );
+  it.each([null, -1, 15368])(
+    "cannot hide a failed same-context status behind a green check (app %s)",
+    async (app_id) => {
+      const policy = {
+        ...requiredPolicy,
+        required_status_checks: {
+          contexts: ["test"],
+          checks: [{ context: "test", app_id }],
+        },
+      };
+      const statuses = {
+        ...gateStatus,
+        total_count: 1,
+        statuses: [{ id: 12, context: "test", state: "failure" }],
+      };
+      expect(
+        (await runGithub(gateProvider({ policy, statuses }))).engineering
+          ?.checksPassed,
+      ).toBe(false);
+    },
+  );
+  it.each([
+    { ...gateCheck, app: { id: 15368, slug: "forged" } },
+    {
+      ...gateCheck,
+      details_url:
+        "https://untrusted.example/CleanExpo/Unite-Group/actions/runs/101/job/11",
+    },
+    {
+      ...gateCheck,
+      details_url: "https://github.com/Other/Repo/actions/runs/101/job/11",
+    },
+    { ...gateCheck, details_url: `${gateCheck.details_url}?token=untrusted` },
+  ])(
+    "rejects spoofed app identity or action URLs without following them",
+    async (check) => {
+      const provider = gateProvider({
+        checks: { total_count: 1, check_runs: [check] },
+      });
+      expect((await runGithub(provider)).engineering?.checksPassed).toBe(false);
+      expect(
+        provider.mock.calls.every(([input]) =>
+          String(input).startsWith(
+            "https://api.github.com/repos/CleanExpo/Unite-Group/",
+          ),
+        ),
+      ).toBe(true);
+    },
+  );
+  it("bounds an unresponsive policy provider without claiming a passing check gate", async () => {
+    const fallback = gateProvider();
+    const provider = vi.fn(
+      (
+        input: string | URL | Request,
+        init?: RequestInit,
+      ): Promise<Response> => {
+        if (String(input).endsWith("/protection")) return new Promise(() => {});
+        return fallback(input, init);
+      },
+    );
+    const { task, project } = approvedFixture();
+    const started = Date.now();
+    const result = await observeIdeaLifecycle(task, project, outcome, {
+      token: "private",
+      fetchFn: provider,
+      deliveryAuthorityVerified: true,
+      maximumDurationMs: 30,
+      now: () => new Date(observedAt),
+    });
+    expect(Date.now() - started).toBeLessThan(1000);
+    expect(result.engineering?.checksPassed).toBe(false);
+  });
+  it("accepts complete exact-SHA required app jobs and required statuses while leaving missing independent review unverified", async () => {
+    const provider = gateProvider();
+    const result = await runGithub(provider);
+    expect(result.engineering).toMatchObject({
+      merged: true,
+      checksPassed: true,
+      reviewApproved: false,
+    });
+    expect(
+      provider.mock.calls.some(([input]) =>
+        String(input).endsWith("/actions/jobs/11"),
+      ),
+    ).toBe(true);
+    expect(
+      provider.mock.calls.filter(([input]) =>
+        String(input).endsWith("/protection"),
+      ),
+    ).toHaveLength(2);
+  });
+  it.each([
+    { status: "in_progress", conclusion: null },
+    { status: "completed", conclusion: "failure" },
+  ])(
+    "does not invent a gate from unrelated workflow aggregate state %j",
+    async (aggregate) => {
+      expect(
+        (await runGithub(gateProvider({ run: { ...actionRun, ...aggregate } })))
+          .engineering?.checksPassed,
+      ).toBe(true);
+    },
+  );
+  it.each([
+    {
+      checks: {
+        total_count: 1,
+        check_runs: [
+          { ...gateCheck, app: { id: 999, slug: "github-actions" } },
+        ],
+      },
+    },
+    {
+      checks: {
+        total_count: 1,
+        check_runs: [{ ...gateCheck, status: "in_progress" }],
+      },
+    },
+    {
+      checks: {
+        total_count: 1,
+        check_runs: [{ ...gateCheck, conclusion: "skipped" }],
+      },
+    },
+    {
+      checks: {
+        total_count: 1,
+        check_runs: [{ ...gateCheck, conclusion: "neutral" }],
+      },
+    },
+    { checks: { total_count: 2, check_runs: [gateCheck] } },
+    { statuses: { ...gateStatus, statuses: [] } },
+    { statuses: { ...gateStatus, sha: "f".repeat(40) } },
+    {
+      statuses: {
+        ...gateStatus,
+        statuses: [{ ...gateStatus.statuses[0], state: "failure" }],
+      },
+    },
+    {
+      statuses: {
+        ...gateStatus,
+        statuses: [{ id: 10, context: "CodeRabbit", state: "success" }],
+      },
+    },
+    { job: { ...actionJob, run_attempt: 2 } },
+    { job: { ...actionJob, run_id: 102 } },
+    { job: { ...actionJob, head_sha: "f".repeat(40) } },
+    { job: { ...actionJob, name: "advisory" } },
+    {
+      job: {
+        ...actionJob,
+        check_run_url: "https://api.github.com/repos/Other/Repo/check-runs/11",
+      },
+    },
+    { run: { ...actionRun, check_suite_id: 202 } },
+    { run: { ...actionRun, head_sha: "f".repeat(40) } },
+    { run: { ...actionRun, repository: { full_name: "Other/Repo" } } },
+    { run: { ...actionRun, event: "pull_request_target" } },
+    { run: { ...actionRun, path: ".github/workflows/advisory.yml" } },
+    {
+      policy: {
+        required_status_checks: null,
+        required_pull_request_reviews: null,
+      },
+    },
+    { policy: {} },
+  ])(
+    "refuses missing, skipped, advisory or mismatched required proof %j",
+    async (change) => {
+      expect(
+        (await runGithub(gateProvider(change))).engineering?.checksPassed,
+      ).toBe(false);
+    },
+  );
+  it("includes every active ruleset-required status and refuses unsupported required CI rules", async () => {
+    const rules = [
+      {
+        type: "required_status_checks",
+        parameters: {
+          required_status_checks: [
+            { context: "security", integration_id: 15368 },
+          ],
+        },
+      },
+    ];
+    expect(
+      (await runGithub(gateProvider({ rules }))).engineering?.checksPassed,
+    ).toBe(false);
+    expect(
+      (
+        await runGithub(
+          gateProvider({ rules: [{ type: "workflows", parameters: {} }] }),
+        )
+      ).engineering?.checksPassed,
+    ).toBe(false);
+    expect(
+      (
+        await runGithub(
+          gateProvider({ rules: [{ type: "required_signatures" }] }),
+        )
+      ).engineering?.checksPassed,
+    ).toBe(true);
+  });
+  it.each(["check-runs", "status", "actions/runs/101"])(
+    "discards %s evidence that changes during observation",
+    async (suffix) => {
+      const provider = gateProvider({}, (url, reads) => {
+        if (reads !== 2 || !url.pathname.endsWith(`/${suffix}`))
+          return undefined;
+        const body =
+          suffix === "check-runs"
+            ? {
+                total_count: 1,
+                check_runs: [{ ...gateCheck, conclusion: "failure" }],
+              }
+            : suffix === "status"
+              ? {
+                  ...gateStatus,
+                  statuses: [{ ...gateStatus.statuses[0], state: "pending" }],
+                }
+              : { ...actionRun, run_attempt: 2 };
+        return new Response(JSON.stringify(body));
+      });
+      expect((await runGithub(provider)).engineering).toBeUndefined();
+    },
+  );
+  it("rejects policy drift and a PR that moves during policy observation", async () => {
+    const changedPolicy = gateProvider({}, (url, reads) =>
+      url.pathname.endsWith("/protection") && reads === 2
+        ? new Response(
+            JSON.stringify({ ...requiredPolicy, required_status_checks: null }),
+          )
+        : undefined,
+    );
+    expect((await runGithub(changedPolicy)).engineering).toBeUndefined();
+    const movedPr = gateProvider({}, (url, reads) =>
+      url.pathname.endsWith("/pulls/42") && reads === 2
+        ? new Response(
+            JSON.stringify({ ...pullRequest, head: { sha: "f".repeat(40) } }),
+          )
+        : undefined,
+    );
+    expect((await runGithub(movedPr)).engineering).toBeUndefined();
+  });
+  it("refuses paginated or inaccessible policy without following supplied URLs", async () => {
+    for (const response of [
+      new Response("denied", { status: 403 }),
+      new Response(JSON.stringify(requiredPolicy), {
+        headers: { link: '<https://untrusted.example/policy>; rel="next"' },
+      }),
+    ]) {
+      const provider = gateProvider({}, (url) =>
+        url.pathname.endsWith("/protection") ? response.clone() : undefined,
+      );
+      expect((await runGithub(provider)).engineering?.checksPassed).toBe(false);
+      expect(
+        provider.mock.calls.every(([input]) =>
+          String(input).startsWith(
+            "https://api.github.com/repos/CleanExpo/Unite-Group/",
+          ),
+        ),
+      ).toBe(true);
+    }
+  });
+});

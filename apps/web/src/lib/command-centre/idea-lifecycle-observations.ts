@@ -1,6 +1,14 @@
 import { z } from "zod";
 import type Stripe from "stripe";
-import { observeDelivery } from "./delivery-observations";
+import {
+  observeDelivery,
+  registeredPullRequest,
+  type DeliveryObservations,
+} from "./delivery-observations";
+import {
+  deriveGates,
+  type CheckRun,
+} from "../mission-authority/release-controller";
 import {
   ideaLifecycleApprovalHolds,
   readIdeaLifecycle,
@@ -108,6 +116,390 @@ const page = <T>(schema: z.ZodType<T>, maximum: number) =>
 const identity = (value: z.infer<typeof reference>) =>
   typeof value === "string" ? value : (value?.id ?? null);
 
+const githubName = z.string().trim().min(1).max(1000);
+const githubId = z.number().int().positive().safe();
+const githubSha = z.string().regex(/^[a-f0-9]{40}$/i);
+const requiredCheckSchema = z.object({
+  context: githubName,
+  app_id: z.number().int().nullable(),
+});
+const protectionSchema = z.object({
+  required_status_checks: z
+    .object({
+      contexts: z.array(githubName).max(100),
+      checks: z.array(requiredCheckSchema).max(100),
+    })
+    .nullable(),
+  required_pull_request_reviews: z.unknown().nullable(),
+});
+const branchRulesSchema = z
+  .array(z.object({ type: githubName, parameters: z.unknown().optional() }))
+  .max(100);
+const providerCheckSchema = z.object({
+  id: githubId,
+  name: githubName,
+  head_sha: githubSha,
+  status: githubName,
+  conclusion: z.string().nullable(),
+  details_url: z.string().nullable(),
+  app: z.object({ id: githubId, slug: githubName }),
+  check_suite: z.object({ id: githubId }),
+});
+const providerStatusSchema = z.object({
+  id: githubId,
+  context: githubName,
+  state: githubName,
+});
+const providerChecksPageSchema = z.object({
+  total_count: z.number().int().nonnegative(),
+  check_runs: z.array(providerCheckSchema).max(100),
+});
+const providerStatusesPageSchema = z.object({
+  sha: githubSha,
+  total_count: z.number().int().nonnegative(),
+  statuses: z.array(providerStatusSchema).max(100),
+});
+const actionJobSchema = z.object({
+  id: githubId,
+  run_id: githubId,
+  run_attempt: githubId,
+  head_sha: githubSha,
+  name: githubName,
+  status: githubName,
+  conclusion: z.string().nullable(),
+  check_run_url: z.string(),
+});
+const actionRunSchema = z.object({
+  id: githubId,
+  run_attempt: githubId,
+  check_suite_id: githubId,
+  head_sha: githubSha,
+  path: githubName,
+  event: githubName,
+  status: githubName,
+  conclusion: z.string().nullable(),
+  repository: z.object({ full_name: githubName }),
+});
+
+/** Same exact-SHA/completed-success gate as the existing release controller.
+ * Policy is observed from GitHub, including legacy statuses and active rulesets.
+ * GitHub Actions jobs additionally bind the provider's run, attempt and registered
+ * CI workflow, following scripts/ci-evidence-manifest.mjs's provenance checks.
+ */
+async function observeRequiredChecks(
+  github: DeliveryObservations,
+  repo: string,
+  deps: LifecycleObservationDeps,
+  deadline: number,
+): Promise<{ passed: boolean; stale: boolean; limitation?: string }> {
+  const pr = registeredPullRequest(github.pr?.reference ?? "", repo);
+  if (!pr || !github.headSha || !deps.token)
+    return { passed: false, stale: false };
+  const head = github.headSha;
+  const get = async (path: string) => {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) throw new Error("Observation deadline expired");
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        (async () => {
+          const response = await (deps.fetchFn ?? fetch)(
+            `https://api.github.com/repos/${repo}${path}`,
+            {
+              headers: {
+                authorization: `Bearer ${deps.token}`,
+                accept: "application/vnd.github+json",
+                "x-github-api-version": "2022-11-28",
+              },
+              redirect: "error",
+              cache: "no-store",
+              signal: AbortSignal.timeout(Math.min(8000, remaining)),
+            },
+          );
+          if (
+            !response.ok ||
+            /rel="next"/.test(response.headers.get("link") ?? "")
+          )
+            throw new Error("Incomplete provider evidence");
+          const body = await response.text();
+          if (body.length > 2_000_000)
+            throw new Error("Provider evidence exceeded limit");
+          return JSON.parse(body) as unknown;
+        })(),
+        new Promise<never>((_resolve, reject) => {
+          timer = setTimeout(
+            () => reject(new Error("Observation deadline expired")),
+            Math.min(8000, remaining),
+          );
+        }),
+      ]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  };
+  try {
+    const [rawProtection, rawRules, rawChecks, rawStatuses] = await Promise.all(
+      [
+        get("/branches/main/protection"),
+        get("/rules/branches/main"),
+        get(`/commits/${head}/check-runs?filter=latest&per_page=100`),
+        get(`/commits/${head}/status?per_page=100`),
+      ],
+    );
+    const protection = protectionSchema.parse(rawProtection);
+    const rules = branchRulesSchema.parse(rawRules);
+    // This proves CI, not overall merge permission. Non-CI rules (signatures,
+    // linear history, review counts, etc.) belong to their separate gates.
+    if (
+      rules.some((rule) => ["workflows", "code_scanning"].includes(rule.type))
+    )
+      throw new Error("Additional required policy is not supported");
+    const required = [...(protection.required_status_checks?.checks ?? [])];
+    for (const context of protection.required_status_checks?.contexts ?? []) {
+      if (!required.some((check) => check.context === context))
+        required.push({ context, app_id: null });
+    }
+    for (const rule of rules.filter(
+      (rule) => rule.type === "required_status_checks",
+    )) {
+      const parameters = z
+        .object({
+          required_status_checks: z
+            .array(
+              z.object({
+                context: githubName,
+                integration_id: z.number().int().nullable().optional(),
+              }),
+            )
+            .max(100),
+        })
+        .parse(rule.parameters);
+      required.push(
+        ...parameters.required_status_checks.map((check) => ({
+          context: check.context,
+          app_id: check.integration_id ?? null,
+        })),
+      );
+    }
+    const checks = providerChecksPageSchema.parse(rawChecks);
+    const statuses = providerStatusesPageSchema.parse(rawStatuses);
+    if (
+      checks.total_count > checks.check_runs.length ||
+      statuses.total_count > statuses.statuses.length ||
+      statuses.sha !== head ||
+      checks.check_runs.some((check) => check.head_sha !== head)
+    )
+      throw new Error("Incomplete or mismatched commit evidence");
+    const runs = new Map<number, Promise<z.infer<typeof actionRunSchema>>>();
+    const authenticateCheck = async (
+      check: z.infer<typeof providerCheckSchema>,
+    ) => {
+      if (check.app.id === 15368 && check.app.slug !== "github-actions")
+        return false;
+      if (check.app.slug === "github-actions" && check.app.id !== 15368)
+        return false;
+      if (check.app.slug !== "github-actions") return true;
+      const url = new URL(check.details_url ?? "");
+      const match =
+        /^\/([^/]+)\/([^/]+)\/actions\/runs\/([1-9][0-9]*)\/job\/([1-9][0-9]*)$/.exec(
+          url.pathname,
+        );
+      if (
+        url.origin !== "https://github.com" ||
+        url.search ||
+        url.hash ||
+        !match ||
+        `${match[1]}/${match[2]}`.toLowerCase() !== repo.toLowerCase()
+      )
+        return false;
+      const runId = Number(match[3]);
+      const jobId = Number(match[4]);
+      if (!Number.isSafeInteger(runId) || !Number.isSafeInteger(jobId))
+        return false;
+      if (!runs.has(runId))
+        runs.set(
+          runId,
+          get(`/actions/runs/${runId}`).then((body) =>
+            actionRunSchema.parse(body),
+          ),
+        );
+      const [run, job] = await Promise.all([
+        runs.get(runId)!,
+        get(`/actions/jobs/${jobId}`).then((body) =>
+          actionJobSchema.parse(body),
+        ),
+      ]);
+      return (
+        run.id === runId &&
+        job.id === jobId &&
+        job.run_id === run.id &&
+        job.run_attempt === run.run_attempt &&
+        job.head_sha === head &&
+        run.head_sha === head &&
+        run.check_suite_id === check.check_suite.id &&
+        run.repository.full_name.toLowerCase() === repo.toLowerCase() &&
+        run.path === ".github/workflows/ci.yml" &&
+        ["pull_request", "push"].includes(run.event) &&
+        job.name === check.name &&
+        job.status === "completed" &&
+        job.conclusion === "success" &&
+        job.check_run_url ===
+          `https://api.github.com/repos/${repo}/check-runs/${check.id}`
+      );
+    };
+    // Keep provider calls bounded even if policy names many checks.
+    if (required.length > 30)
+      throw new Error("Required policy exceeds bounded coverage");
+    const observed: CheckRun[] = [];
+    for (let offset = 0; offset < required.length; offset += 5) {
+      const batch = await Promise.all(
+        required.slice(offset, offset + 5).map(async (requiredCheck) => {
+          const matching = checks.check_runs.filter(
+            (check) =>
+              check.name === requiredCheck.context &&
+              (requiredCheck.app_id === null ||
+                requiredCheck.app_id === -1 ||
+                check.app.id === requiredCheck.app_id),
+          );
+          const compatible =
+            matching.length > 0 &&
+            matching.every(
+              (check) =>
+                check.status === "completed" && check.conclusion === "success",
+            ) &&
+            (await Promise.all(matching.map(authenticateCheck))).every(Boolean);
+          const latestStatus = statuses.statuses
+            .filter((status) => status.context === requiredCheck.context)
+            .sort((a, b) => b.id - a.id)[0];
+          const statusPass =
+            (requiredCheck.app_id === null || requiredCheck.app_id === -1) &&
+            latestStatus?.state === "success";
+          // GitHub requires both a check and a status when they share a required
+          // context. A success on either source must never hide the other's
+          // failure, skip or pending state. An unbound status cannot satisfy a
+          // policy that explicitly pins a GitHub App.
+          const passed =
+            (matching.length > 0 || statusPass) &&
+            (matching.length === 0 || compatible) &&
+            (!latestStatus || latestStatus.state === "success");
+          return {
+            name: requiredCheck.context,
+            headSha: head,
+            status: "completed",
+            conclusion: passed ? "success" : "failure",
+          };
+        }),
+      );
+      observed.push(...batch);
+    }
+    const [finalProtection, finalRules, finalPr, finalChecks, finalStatuses] =
+      await Promise.all([
+        get("/branches/main/protection"),
+        get("/rules/branches/main"),
+        get(`/pulls/${pr.number}`),
+        get(`/commits/${head}/check-runs?filter=latest&per_page=100`),
+        get(`/commits/${head}/status?per_page=100`),
+      ]);
+    const runBinding = (run: z.infer<typeof actionRunSchema>) => [
+      run.id,
+      run.run_attempt,
+      run.check_suite_id,
+      run.head_sha,
+      run.path,
+      run.event,
+      run.repository.full_name.toLowerCase(),
+    ];
+    const actionRunsChanged = (
+      await Promise.all(
+        [...runs.entries()].map(
+          async ([id, initial]) =>
+            canonicalHash(runBinding(await initial)) !==
+            canonicalHash(
+              runBinding(
+                actionRunSchema.parse(await get(`/actions/runs/${id}`)),
+              ),
+            ),
+        ),
+      )
+    ).some(Boolean);
+    const current = z
+      .object({
+        number: githubId,
+        head: z.object({ sha: githubSha }),
+        base: z.object({
+          ref: githubName,
+          repo: z.object({ full_name: githubName }),
+        }),
+        merged: z.boolean(),
+        draft: z.boolean(),
+        state: z.string(),
+        merge_commit_sha: githubSha.nullable().optional(),
+        merged_at: z.string().nullable().optional(),
+      })
+      .parse(finalPr);
+    const stale =
+      current.number !== pr.number ||
+      current.head.sha !== head ||
+      current.base.ref !== github.pr?.baseBranch ||
+      current.base.repo.full_name.toLowerCase() !== repo.toLowerCase() ||
+      current.merged !== github.pr?.merged ||
+      current.draft !== github.pr?.draft ||
+      current.state !== github.pr?.state ||
+      (current.merge_commit_sha ?? null) !== github.pr?.mergeSha ||
+      (current.merged_at ?? null) !== github.pr?.mergedAt ||
+      canonicalHash(protectionSchema.parse(finalProtection)) !==
+        canonicalHash(protection) ||
+      canonicalHash(branchRulesSchema.parse(finalRules)) !==
+        canonicalHash(rules) ||
+      canonicalHash(providerChecksPageSchema.parse(finalChecks)) !==
+        canonicalHash(checks) ||
+      canonicalHash(providerStatusesPageSchema.parse(finalStatuses)) !==
+        canonicalHash(statuses) ||
+      actionRunsChanged;
+    if (stale)
+      return {
+        passed: false,
+        stale: true,
+        limitation:
+          "Pull request, required-check policy or current check execution changed during observation; refresh trusted evidence.",
+      };
+    const gates = deriveGates({
+      candidateSha: head,
+      requiredChecks: required.map((check) => check.context),
+      checkRuns: observed,
+      tree: null,
+      reviewedSha: null,
+      reviewVerdict: null,
+      reviewerAgent: null,
+      builderAgent: "unknown",
+      receiptSha: null,
+      changedPaths: [],
+      reviewBlockingSeverities: null,
+      spend: null,
+      rollbackReceipt: null,
+      postReleaseVerification: null,
+      infrastructureReceipt: null,
+    });
+    return {
+      passed: gates.required_ci_green,
+      stale: false,
+      ...(!gates.required_ci_green
+        ? {
+            limitation:
+              "Every required GitHub check and status must have authenticated, complete success evidence on this exact commit.",
+          }
+        : {}),
+    };
+  } catch {
+    return {
+      passed: false,
+      stale: false,
+      limitation:
+        "Required GitHub policy, check provenance or bounded evidence coverage could not be verified; no passing check gate is inferred.",
+    };
+  }
+}
+
 export interface LifecycleObservationDeps {
   token?: string;
   stripe?: StripeLifecycleReadClient | null;
@@ -146,7 +538,7 @@ export async function observeIdeaLifecycle(
     payments: [],
     limitations: [
       "Provider deployments do not prove a working live user journey; no trusted live-journey or activation connector is available here.",
-      "Required branch checks and independent reviewer eligibility are not evaluated; engineering check/review verification remains blocked.",
+      "Independent review requires an authenticated exact-commit report with verified reviewer provenance; a GitHub approval or advisory success alone is insufficient.",
       "Payment reads cover fully captured one-off Checkout payments created in the agreed window; subscription renewals and mixed-product baskets are not verified. Actual refund/dispute flags are retained and excluded from eligible-client counts.",
       "Pending, unquantified or truncated refund evidence is excluded; net amounts mean captured amounts less recorded refunds, before provider fees.",
       "Customer references are distinct Stripe customer IDs, not independently verified distinct legal buyers.",
@@ -206,6 +598,19 @@ export async function observeIdeaLifecycle(
         checksPassed: false,
         reviewApproved: false,
       };
+      const checks = await observeRequiredChecks(
+        github,
+        project.github_repo,
+        deps,
+        deadline,
+      );
+      if (checks.stale) {
+        result.engineering = undefined;
+        result.sources.github = "error";
+      } else {
+        result.engineering.checksPassed = checks.passed;
+      }
+      if (checks.limitation) result.limitations.push(checks.limitation);
     }
   } else {
     result.limitations.push(
