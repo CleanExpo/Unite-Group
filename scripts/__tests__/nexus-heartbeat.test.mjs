@@ -47,7 +47,7 @@ const WORKFLOW_PATH = join(repositoryRoot, '.github', 'workflows', 'nexus-heartb
 // The hash was recomputed independently with `shasum -a 256`, not copied from
 // this test's own failure message — the pin must not be re-derived from the
 // thing it exists to pin.
-const PINNED_WORKFLOW_SHA256 = 'dffbee02d49d517c8a09c162e0eefeb287ff429e7c49a85d2a997e2212bb2067';
+const PINNED_WORKFLOW_SHA256 = 'fa7c8483e8d3f9283856ad752aa9feaddea72e5d85edf4cb06e029653c2672a2';
 
 // Rendered gate lists (what reconcileGates PRODUCES).
 const GREEN = [
