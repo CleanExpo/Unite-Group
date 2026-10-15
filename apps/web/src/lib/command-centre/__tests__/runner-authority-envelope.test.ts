@@ -278,6 +278,8 @@ function run([tool, ...args]: Cmd, extraEnv: Record<string, string> = {}) {
     env: {
       ...process.env,
       ...extraEnv,
+      // Native Windows callers must pass literal {} and [] through MSYS argv parsing.
+      ...(process.platform === 'win32' ? { MSYS: 'noglob' } : {}),
       NEXUS_RUNNER_REAL_GIT: real,
       NEXUS_RUNNER_REAL_GH: real,
       NEXUS_RUNNER_REAL_VERCEL: real,
