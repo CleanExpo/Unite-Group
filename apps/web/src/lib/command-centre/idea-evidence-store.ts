@@ -70,7 +70,11 @@ function db(options: Options): IdeaEvidenceClient {
   );
 }
 function fail(error: DbError): never {
-  if (error.code === "23505" || error.code === "40001")
+  if (
+    error.code === "23505" ||
+    error.code === "PT409" ||
+    error.code === "40001"
+  )
     throw new IdeaEvidenceError("conflict");
   if (error.code === "22023") throw new IdeaEvidenceError("invalid");
   if (error.code === "P0002") throw new IdeaEvidenceError("unauthorized");

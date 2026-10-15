@@ -269,6 +269,15 @@ describe("service-owned idea evidence store", () => {
       admitExternalIdeaEvidence(value, fixtureDb(value, null, "23505")),
     ).rejects.toMatchObject({ kind: "conflict" });
   });
+  it.each(["PT409", "40001"])(
+    "treats %s as a conflict while preserving database serialization handling",
+    async (code) => {
+      const value = fixture();
+      await expect(
+        admitExternalIdeaEvidence(value, fixtureDb(value, null, code)),
+      ).rejects.toMatchObject({ kind: "conflict" });
+    },
+  );
   it("fails closed when admission returns a row but readback is empty", async () => {
     const value = fixture();
     const db = database(
