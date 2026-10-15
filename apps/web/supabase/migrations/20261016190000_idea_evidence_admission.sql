@@ -162,6 +162,7 @@ BEGIN
     END IF;
     RETURN to_jsonb(v_row);
   END IF;
+  SELECT * INTO STRICT v_task FROM public.cc_tasks WHERE id = (p_registration->>'task_id')::uuid FOR UPDATE;
   v_now := clock_timestamp();
   IF v_source.revoked_at IS NOT NULL OR jsonb_typeof(p_registration) IS DISTINCT FROM 'object'
      OR COALESCE(p_registration->>'grant_id', '') !~ '^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,199}$'
@@ -194,7 +195,6 @@ BEGIN
      OR length(p_registration#>>'{subject,id}') NOT BETWEEN 1 AND 200 THEN
     RAISE EXCEPTION 'Missing grant subject identity' USING ERRCODE = '22023';
   END IF;
-  SELECT * INTO STRICT v_task FROM public.cc_tasks WHERE id = (p_registration->>'task_id')::uuid FOR UPDATE;
   IF v_task.founder_id IS DISTINCT FROM (p_registration->>'founder_id')::uuid
      OR v_task.metadata#>>'{lifecycle,revision}' IS DISTINCT FROM p_registration->>'lifecycle_revision'
      OR v_task.metadata#>>'{lifecycle,brief,hash}' IS DISTINCT FROM p_registration->>'brief_hash'
@@ -307,6 +307,7 @@ BEGIN
     END IF;
     RETURN to_jsonb(v_event); -- Historical retry never refreshes time or authority.
   END IF;
+  SELECT * INTO STRICT v_task FROM public.cc_tasks WHERE id = v_grant.task_id FOR UPDATE;
   v_now := clock_timestamp();
   v_occurred := (p_envelope->>'occurred_at')::timestamptz;
   IF v_source.revoked_at IS NOT NULL OR v_grant.revoked_at IS NOT NULL
@@ -327,7 +328,6 @@ BEGIN
       RAISE EXCEPTION 'Evidence grant context mismatch: %', v_key USING ERRCODE = '22023';
     END IF;
   END LOOP;
-  SELECT * INTO STRICT v_task FROM public.cc_tasks WHERE id = v_grant.task_id FOR UPDATE;
   IF v_task.founder_id IS DISTINCT FROM v_grant.founder_id
      OR v_task.metadata#>>'{lifecycle,revision}' IS DISTINCT FROM v_grant.registration->>'lifecycle_revision'
      OR v_task.metadata#>>'{lifecycle,brief,hash}' IS DISTINCT FROM v_grant.registration->>'brief_hash'
