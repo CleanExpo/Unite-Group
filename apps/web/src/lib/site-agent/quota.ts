@@ -75,3 +75,8 @@ export function secondsUntilBrisbaneMidnight(now: Date = new Date()): number {
   const msIntoDay = ((brisbaneMs % 86_400_000) + 86_400_000) % 86_400_000
   return Math.max(1, Math.ceil((86_400_000 - msIntoDay) / 1000))
 }
+
+/** The counters' calendar day (YYYY-MM-DD), matching the RPC's Brisbane date. */
+export function brisbaneDay(now: Date = new Date()): string {
+  return new Date(now.getTime() + 10 * 60 * 60 * 1000).toISOString().slice(0, 10)
+}

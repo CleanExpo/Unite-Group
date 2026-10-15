@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { COMPANY_NAME, companyAbnLabel } from '@/lib/legal/company'
 
 export const metadata: Metadata = {
   title: 'Privacy Policy — Unite-Group Application',
@@ -8,7 +9,7 @@ export const metadata: Metadata = {
 
 const LAST_UPDATED = '20 June 2026'
 const CONTACT_EMAIL = 'contact@unite-group.in'
-const COMPANY = 'Unite-Group Nexus Pty Ltd'
+const COMPANY = COMPANY_NAME
 const APP_URL = 'https://unite-group.in'
 
 export default function PrivacyPolicyPage() {
@@ -56,7 +57,7 @@ export default function PrivacyPolicyPage() {
 
         <Section title="1. Overview">
           <p>
-            {COMPANY} ABN (&#8220;we&#8221;, &#8220;our&#8221;, &#8220;us&#8221;) operates the Unite-Group Application
+            {COMPANY} ({companyAbnLabel()}) (&#8220;we&#8221;, &#8220;our&#8221;, &#8220;us&#8221;) operates the Unite-Group Application
             (the &#8220;Application&#8221;) available at{' '}
             <a href={APP_URL} style={{ color: '#15803d' }}>{APP_URL}</a>. This Privacy Policy explains
             how we collect, use, disclose, and safeguard information in connection with the Application.
@@ -254,7 +255,7 @@ export default function PrivacyPolicyPage() {
           letterSpacing: '0.08em',
         }}
       >
-        © 2026 {COMPANY} — ABN · Australia ·{' '}
+        © 2026 {COMPANY} — {companyAbnLabel()} · Australia ·{' '}
         <a href="/terms-of-service" style={{ color: 'rgba(255,255,255,0.40)' }}>Terms of Service</a>
       </footer>
     </div>

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { COMPANY_NAME, companyAbnLabel } from '@/lib/legal/company'
 
 export const metadata: Metadata = {
   title: 'Terms of Service — Unite-Group Application',
@@ -8,7 +9,7 @@ export const metadata: Metadata = {
 
 const LAST_UPDATED = '20 June 2026'
 const CONTACT_EMAIL = 'contact@unite-group.in'
-const COMPANY = 'Unite-Group Nexus Pty Ltd'
+const COMPANY = COMPANY_NAME
 const APP_URL = 'https://unite-group.in'
 
 export default function TermsOfServicePage() {
@@ -264,7 +265,7 @@ export default function TermsOfServicePage() {
           letterSpacing: '0.08em',
         }}
       >
-        © 2026 {COMPANY} — ABN · Australia ·{' '}
+        © 2026 {COMPANY} — {companyAbnLabel()} · Australia ·{' '}
         <a href="/privacy-policy" style={{ color: 'rgba(255,255,255,0.40)' }}>Privacy Policy</a>
       </footer>
     </div>
