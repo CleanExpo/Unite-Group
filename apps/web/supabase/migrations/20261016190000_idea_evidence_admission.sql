@@ -129,6 +129,17 @@ BEGIN
       (jsonb_typeof(p_registration->'public_key') IS DISTINCT FROM 'string' OR length(p_registration->>'public_key') < 32)) THEN
     RAISE EXCEPTION 'Source mechanism does not match its evidence kind' USING ERRCODE = '22023';
   END IF;
+  IF p_registration->>'event_kind' = 'independent_review_verified' AND
+     (jsonb_typeof(p_registration->'review_policy') IS DISTINCT FROM 'object'
+      OR COALESCE(p_registration#>>'{review_policy,verifier_digest}', '') !~ '^[a-f0-9]{64}$'
+      OR COALESCE(p_registration#>>'{review_policy,collector_policy_digest}', '') !~ '^[a-f0-9]{64}$'
+      OR jsonb_typeof(p_registration#>'{review_policy,implementer_vendor}') IS DISTINCT FROM 'string'
+      OR COALESCE(p_registration#>>'{review_policy,implementer_vendor}', '') !~ '^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,99}$') THEN
+    RAISE EXCEPTION 'Independent review source requires pinned verifier and collector policy' USING ERRCODE = '22023';
+  END IF;
+  IF p_registration->>'event_kind' <> 'independent_review_verified' AND p_registration ? 'review_policy' THEN
+    RAISE EXCEPTION 'Review policy belongs only to an independent review source' USING ERRCODE = '22023';
+  END IF;
   INSERT INTO public.cc_idea_evidence_sources(source_id, version, registration, canonical_registration, registration_hash)
   VALUES (p_registration->>'source_id', (p_registration->>'version')::integer, p_registration, p_canonical, v_hash)
   ON CONFLICT DO NOTHING;

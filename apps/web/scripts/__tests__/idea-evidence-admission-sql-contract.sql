@@ -37,7 +37,8 @@ SELECT 'ee161900-0000-4000-8000-000000000003'::uuid, 'ee161900-0000-4000-8000-00
 INSERT INTO evidence_fixture VALUES ('source', jsonb_build_object(
   'source_id','sql.fixture.review','version',1,'kind','ed25519','event_kind','independent_review_verified',
   'adapter_version','nexus_release_gate_v1','repository','CleanExpo/Unite-Group','product_id','factory',
-  'environment','staging','public_key','TEST-ONLY-public-key-not-used-for-SQL-signature-verification'));
+  'environment','staging','public_key','TEST-ONLY-public-key-not-used-for-SQL-signature-verification',
+  'review_policy',jsonb_build_object('verifier_digest',repeat('e',64),'collector_policy_digest',repeat('f',64),'implementer_vendor','test-implementer')));
 INSERT INTO evidence_fixture VALUES ('grant', jsonb_build_object(
   'grant_id','ee161900-0000-4000-8000-000000000004','version',1,'source_id','sql.fixture.review','source_version',1,
   'founder_id','ee161900-0000-4000-8000-000000000001','task_id','ee161900-0000-4000-8000-000000000003',
@@ -48,6 +49,8 @@ INSERT INTO evidence_fixture VALUES ('grant', jsonb_build_object(
   'valid_from',clock_timestamp()-interval '1 hour','valid_until',clock_timestamp()+interval '1 hour'));
 
 SET LOCAL ROLE service_role;
+SELECT pg_temp.expect_error(format('SELECT public.cc_idea_evidence_enroll_source_v1(%L::jsonb,%L)',
+  value - 'review_policy',(value - 'review_policy')::text),'22023') FROM evidence_fixture WHERE name='source';
 INSERT INTO evidence_fixture SELECT 'source_row', public.cc_idea_evidence_enroll_source_v1(value, value::text)
   FROM evidence_fixture WHERE name='source';
 INSERT INTO evidence_fixture SELECT 'grant_row', public.cc_idea_evidence_enroll_grant_v1(value, value::text)
@@ -135,6 +138,7 @@ $$;
 DO $$
 DECLARE s jsonb; g jsonb; e jsonb; t public.cc_tasks%ROWTYPE; next_lifecycle jsonb;
   handoff jsonb; next_metadata jsonb; result jsonb; changed jsonb; handoff_at timestamptz := clock_timestamp();
+  changed_lifecycle jsonb; changed_metadata jsonb; changed_envelope jsonb; changed_task public.cc_tasks%ROWTYPE;
 BEGIN
   SELECT * INTO STRICT t FROM public.cc_tasks WHERE id='ee161900-0000-4000-8000-000000000003';
   s := jsonb_build_object('source_id','sql.fixture.handoff','version',1,'kind','builtin_factory','event_kind','reviewed_handoff_persisted',
@@ -148,7 +152,7 @@ BEGIN
   next_lifecycle := t.metadata->'lifecycle' || jsonb_build_object('handoff',handoff,'updatedAt',handoff_at,
     'history',jsonb_build_array(jsonb_build_object('revision',1,'action','create_handoff','actorId',t.founder_id,'at',handoff_at)));
   next_metadata := jsonb_set(t.metadata,'{lifecycle}',next_lifecycle);
-  e := (g->'registration' - ARRAY['version','source_version','outcome_canonical','valid_from','valid_until']) || jsonb_build_object(
+  e := ((g->'registration') - ARRAY['version','source_version','outcome_canonical','valid_from','valid_until']) || jsonb_build_object(
     'source_version',1,'grant_version',1,'event_id','handoff-1','event_kind','reviewed_handoff_persisted','occurred_at',handoff_at,
     'payload',jsonb_build_object('adapter_version','factory_handoff_v1','handoff_id','fixture-handoff',
       'handoff_digest',encode(sha256(convert_to(handoff::text,'UTF8')),'hex'),
@@ -160,6 +164,36 @@ BEGIN
   changed := next_lifecycle || '{"title":"unrelated mutation"}'::jsonb;
   PERFORM pg_temp.expect_error(format('SELECT public.cc_idea_evidence_persist_handoff_v1(%L::jsonb,%L,%L,%L,%L::jsonb,%L::timestamptz,1,%L::jsonb,%L,%L)',
     e,e::text,s->>'registration_hash',g->>'registration_hash',t.metadata,t.updated_at,changed,handoff::text,next_metadata::text),'40001');
+  BEGIN
+    -- Alter the persisted approval, not just a caller's stale expected value.
+    UPDATE public.cc_tasks SET metadata=jsonb_set(t.metadata,'{lifecycle,approval,actorId}',
+      '"ee161900-0000-4000-8000-000000000002"'::jsonb) WHERE id=t.id RETURNING * INTO changed_task;
+    changed_lifecycle := jsonb_set(next_lifecycle,'{approval,actorId}','"ee161900-0000-4000-8000-000000000002"'::jsonb);
+    changed_metadata := jsonb_set(changed_task.metadata,'{lifecycle}',changed_lifecycle);
+    changed_envelope := jsonb_set(e,'{payload,persisted_metadata_digest}',
+      to_jsonb(encode(sha256(convert_to(changed_metadata::text,'UTF8')),'hex')));
+    PERFORM pg_temp.expect_error(format('SELECT public.cc_idea_evidence_persist_handoff_v1(%L::jsonb,%L,%L,%L,%L::jsonb,%L::timestamptz,1,%L::jsonb,%L,%L)',
+      changed_envelope,changed_envelope::text,s->>'registration_hash',g->>'registration_hash',changed_task.metadata,
+      changed_task.updated_at,changed_lifecycle,handoff::text,changed_metadata::text),'40001');
+    RAISE EXCEPTION 'Rollback forged approval fixture' USING ERRCODE='ZX001';
+  EXCEPTION WHEN SQLSTATE 'ZX001' THEN NULL;
+  END;
+  BEGIN
+    -- Keep hashes/expected metadata consistent; the missing thirteenth output
+    -- itself must prevent admission rather than an unrelated CAS mismatch.
+    UPDATE public.cc_tasks SET metadata=jsonb_set(t.metadata,'{lifecycle,brief,snapshot,brief,outputs}',
+      (t.metadata#>'{lifecycle,brief,snapshot,brief,outputs}') - 12) WHERE id=t.id RETURNING * INTO changed_task;
+    changed_lifecycle := jsonb_set(next_lifecycle,'{brief,snapshot,brief,outputs}',
+      (next_lifecycle#>'{brief,snapshot,brief,outputs}') - 12);
+    changed_metadata := jsonb_set(changed_task.metadata,'{lifecycle}',changed_lifecycle);
+    changed_envelope := jsonb_set(e,'{payload,persisted_metadata_digest}',
+      to_jsonb(encode(sha256(convert_to(changed_metadata::text,'UTF8')),'hex')));
+    PERFORM pg_temp.expect_error(format('SELECT public.cc_idea_evidence_persist_handoff_v1(%L::jsonb,%L,%L,%L,%L::jsonb,%L::timestamptz,1,%L::jsonb,%L,%L)',
+      changed_envelope,changed_envelope::text,s->>'registration_hash',g->>'registration_hash',changed_task.metadata,
+      changed_task.updated_at,changed_lifecycle,handoff::text,changed_metadata::text),'22023');
+    RAISE EXCEPTION 'Rollback incomplete output fixture' USING ERRCODE='ZX002';
+  EXCEPTION WHEN SQLSTATE 'ZX002' THEN NULL;
+  END;
   IF EXISTS (SELECT 1 FROM public.cc_idea_evidence_events WHERE event_id='handoff-1')
      OR (SELECT metadata FROM public.cc_tasks WHERE id=t.id) IS DISTINCT FROM t.metadata THEN
     RAISE EXCEPTION 'Failed CAS left a task/event mutation'; END IF;
