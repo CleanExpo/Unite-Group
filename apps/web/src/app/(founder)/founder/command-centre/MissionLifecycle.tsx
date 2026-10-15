@@ -13,6 +13,7 @@ import type {
 } from "@/lib/command-centre/idea-lifecycle";
 import styles from "./mission-lifecycle.module.css";
 import desk from "./founder-desk.module.css";
+import { MissionResearch } from "./MissionResearch";
 
 const endpoint = "/api/command-centre/missions/lifecycle";
 interface LifecycleResponse {
@@ -604,9 +605,8 @@ export function MissionLifecycle({
           <details className={desk.details}>
             <summary>Research mandate and checkpoint</summary>
             <p className={desk.helper}>
-              This workbench records bounded research. No supported automated
-              research connection is available here; it does not fall back to
-              paid APIs.
+              Set the objective and permitted sources first. Request bounded
+              research below, or keep recording findings manually.
             </p>
             {state.checkpoint && (
               <p>
@@ -663,6 +663,12 @@ export function MissionLifecycle({
                 </button>
               </fieldset>
             </form>
+            <MissionResearch
+              taskId={taskId}
+              lifecycle={state}
+              stale={disabled}
+              onRefreshIdea={() => void request()}
+            />
             <form
               onSubmit={(event) =>
                 form(event, (fields) => ({

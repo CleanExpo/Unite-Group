@@ -158,6 +158,23 @@
   flex-wrap: wrap;
   margin-top: 16px;
 }
+.research {
+  min-width: 0;
+  margin: 20px 0;
+  padding: 16px;
+  border: 1px solid var(--mission-border);
+  border-radius: 3px;
+}
+.researchConsent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+}
+.researchConsent input {
+  flex: 0 0 auto;
+  margin-top: 5px;
+}
 @media (max-width: 700px) {
   .knowledge,
   .milestones {

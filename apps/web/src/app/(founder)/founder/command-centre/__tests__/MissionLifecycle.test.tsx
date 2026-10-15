@@ -351,7 +351,7 @@ describe("mission lifecycle workbench", () => {
       screen.getByRole("heading", { name: "Need to research" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/No supported automated research connection/),
+      screen.getByText(/Availability and remaining subscription allowance are not confirmed/),
     ).toBeInTheDocument();
     const milestones = screen.getByRole("list", {
       name: "Evidence milestones",

@@ -155,6 +155,11 @@ export type LifecycleClaim = z.infer<typeof claimSchema>;
 export type LifecycleBriefInput = z.infer<typeof briefInputSchema>;
 export type LifecycleMandate = z.infer<typeof mandateSchema>;
 export type LifecycleCheckpoint = z.infer<typeof checkpointSchema>;
+export {
+  sourceSchema as lifecycleSourceSchema,
+  claimSchema as lifecycleClaimSchema,
+  briefInputSchema as lifecycleBriefInputSchema,
+};
 
 const snapshotSchema = z
   .object({
