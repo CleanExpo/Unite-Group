@@ -130,6 +130,9 @@ updates:
     ignore:
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+  # All action bumps land as ONE weekly PR. Some tests pin workflow content
+  # (sha256 of nexus-heartbeat.yml, action SHAs in nexus-docs-watch.test.mjs);
+  # re-pin them in the same PR or it can never go green.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -138,3 +141,7 @@ updates:
     labels:
       - "ci"
       - "dependencies"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
