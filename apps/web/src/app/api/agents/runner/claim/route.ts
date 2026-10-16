@@ -388,19 +388,24 @@ export async function POST(request: Request) {
     // capacity check — the orphan is the in-flight mission, so counting it
     // would refuse its own resumption forever. Resumption re-runs the same
     // approval and may() checks as a fresh claim.
+    // Exact initial claims must win the queued-task CAS themselves; sharing a
+    // runner id must not adopt another attempt. Only explicit revalidation may
+    // resume an exact task. Legacy polling without a selector still resumes.
     let inFlight = 0
     let task: Awaited<ReturnType<typeof resumeOwnMission>> = null
-    try {
-      task = await resumeOwnMission(client as unknown as RunnerClaimClientLike, {
-        founderId,
-        runnerId: parsed.data.runnerId,
-        ...(parsed.data.taskId !== undefined ? { taskId: parsed.data.taskId } : {}),
-      })
-    } catch (err) {
-      if (parsed.data.resumeOnly) throw err
-      // Logged, not swallowed: an unreadable resume only delays resumption. The
-      // capacity count below fails closed on its own and counts the orphan.
-      console.error(`runner claim: resume read failed (${err instanceof Error ? err.message : 'unknown'})`)
+    if (parsed.data.taskId === undefined || parsed.data.resumeOnly === true) {
+      try {
+        task = await resumeOwnMission(client as unknown as RunnerClaimClientLike, {
+          founderId,
+          runnerId: parsed.data.runnerId,
+          ...(parsed.data.taskId !== undefined ? { taskId: parsed.data.taskId } : {}),
+        })
+      } catch (err) {
+        if (parsed.data.resumeOnly) throw err
+        // Logged, not swallowed: an unreadable resume only delays resumption. The
+        // capacity count below fails closed on its own and counts the orphan.
+        console.error(`runner claim: resume read failed (${err instanceof Error ? err.message : 'unknown'})`)
+      }
     }
     const resumed = task !== null
     if (!task && parsed.data.resumeOnly) return NextResponse.json({ task: null }, { status: 200 })
