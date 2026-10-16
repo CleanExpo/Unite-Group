@@ -85,6 +85,8 @@ export interface RunnerClaimClientLike {
 export interface ClaimNextQueuedTaskInput {
   founderId: string
   runnerId: string
+  /** Optional exact task, filtered before the candidate limit. */
+  taskId?: string
   /** How many queued candidates to attempt per poll (races skip to the next). */
   candidateLimit?: number
 }
@@ -102,11 +104,13 @@ export async function claimNextQueuedTask(
 ): Promise<ClaimedTask | null> {
   const limit = Math.min(Math.max(input.candidateLimit ?? 5, 1), 20)
 
-  const { data, error } = await client
+  let candidatesQuery = client
     .from(CC_TASKS_TABLE)
     .select('*')
     .eq('founder_id', input.founderId)
     .eq('status', 'queued')
+  if (input.taskId !== undefined) candidatesQuery = candidatesQuery.eq('id', input.taskId)
+  const { data, error } = await candidatesQuery
     .order('priority', { ascending: true })
     .order('created_at', { ascending: true })
     .limit(limit)
@@ -115,6 +119,7 @@ export async function claimNextQueuedTask(
   const candidates = (data as CommandCentreTask[]) ?? []
 
   for (const candidate of candidates) {
+    if (input.taskId !== undefined && candidate.id !== input.taskId) continue
     const deliveryMission = isDeliveryMission(candidate)
     const delivery = deliveryMission ? readDeliveryMetadata(candidate) : null
     const approvedDelivery = deliveryMission ? getApprovedDelivery(candidate) : null
@@ -173,27 +178,44 @@ export async function claimNextQueuedTask(
  * UNI-2779 — a fresh runner process resumes the mission its previous process
  * (same runner id) left 'running'. Only a row carrying a persisted continuation
  * is resumed, and only while its approval and may() verdict still hold; legacy
- * rows are left exactly as before. Nothing is written: the claim already exists.
+ * rows are left exactly as before. An exact selector also permits revalidating a
+ * fresh delivery claim before its first continuation, using its current approved
+ * execution assignment. Nothing is written: the claim already exists.
  */
 export async function resumeOwnMission(
   client: RunnerClaimClientLike,
-  input: { founderId: string; runnerId: string },
+  input: { founderId: string; runnerId: string; taskId?: string },
 ): Promise<ClaimedTask | null> {
-  const { data, error } = await client
+  let ownQuery = client
     .from(CC_TASKS_TABLE)
     .select('*')
     .eq('founder_id', input.founderId)
     .eq('status', 'running')
     .eq('claimed_by', input.runnerId)
+  if (input.taskId !== undefined) ownQuery = ownQuery.eq('id', input.taskId)
+  const { data, error } = await ownQuery
     .order('claimed_at', { ascending: true })
     .limit(5)
   if (error) throw new Error(`resumeOwnMission read failed: ${error.message}`)
   for (const row of (Array.isArray(data) ? data : []) as ClaimedTask[]) {
-    if (row?.metadata?.mission === undefined || row.metadata.mission === null) continue
+    if (input.taskId === undefined) {
+      if (row?.metadata?.mission === undefined || row.metadata.mission === null) continue
+    } else {
+      if (row.id !== input.taskId || row.founder_id !== input.founderId ||
+        row.status !== 'running' || row.claimed_by !== input.runnerId ||
+        typeof row.claimed_at !== 'string' || !Number.isFinite(Date.parse(row.claimed_at)) ||
+        !isDeliveryMission(row)) continue
+      const delivery = readDeliveryMetadata(row)
+      const assignment = delivery?.executionAssignment
+      if (!delivery || delivery.build || !assignment || assignment.runnerId !== input.runnerId ||
+        assignment.specRevision !== delivery.revision || assignment.specFingerprint !== delivery.specVersion ||
+        assignment.scope !== delivery.scope) continue
+    }
     const approvedDelivery = getApprovedDelivery(row)
     if (!approvedDelivery || !await verifyDeliveryApproval(row, client as unknown as SupabaseLike)) continue
     const verdict = missionClaimVerdict(row)
-    if (!verdict.claimable || !verdict.mission?.continuation) continue
+    if (!verdict.claimable || !verdict.mission ||
+      (input.taskId === undefined && !verdict.mission.continuation)) continue
     return { ...row, approvedDelivery, mission: verdict.mission }
   }
   return null
