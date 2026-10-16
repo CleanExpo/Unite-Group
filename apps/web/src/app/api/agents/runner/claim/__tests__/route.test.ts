@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 vi.mock('@/lib/supabase/service', () => ({ createServiceClient: vi.fn() }))
 vi.mock('@/lib/command-centre/runner-claim', async (orig) => {
   const actual = await orig<typeof import('@/lib/command-centre/runner-claim')>()
-  return { ...actual, claimNextQueuedTask: vi.fn(), resumeOwnMission: vi.fn() }
+  return { ...actual, claimNextQueuedTask: vi.fn(), resumeOwnMission: vi.fn(), releaseClaimedTask: vi.fn() }
 })
 vi.mock('@/lib/command-centre/tasks', async (orig) => {
   const actual = await orig<typeof import('@/lib/command-centre/tasks')>()
@@ -11,7 +11,7 @@ vi.mock('@/lib/command-centre/tasks', async (orig) => {
 })
 
 import { createServiceClient } from '@/lib/supabase/service'
-import { claimNextQueuedTask, resumeOwnMission } from '@/lib/command-centre/runner-claim'
+import { claimNextQueuedTask, resumeOwnMission, releaseClaimedTask } from '@/lib/command-centre/runner-claim'
 import { appendTaskEvent } from '@/lib/command-centre/tasks'
 import { POST } from '../route'
 import { runningCountClient } from './fixtures'
@@ -128,6 +128,70 @@ describe('POST /api/agents/runner/claim', () => {
     const body = await res.json()
     expect(body.task).toBeNull()
     expect(appendTaskEvent).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    { taskId: 'invalid' }, { taskId: null }, { resumeOnly: true },
+    { resumeOnly: 'true' }, { resumeOnly: 1 }, { resumeOnly: null },
+    { taskId: 'invalid', resumeOnly: true },
+  ])('rejects an invalid exact-claim selector/mode before any database access: %j', async fields => {
+    const res = await POST(req({ ...validBody, ...fields }, `Bearer ${SECRET}`))
+    expect(res.status).toBe(400)
+    expect(createServiceClient).not.toHaveBeenCalled()
+    expect(resumeOwnMission).not.toHaveBeenCalled()
+    expect(claimNextQueuedTask).not.toHaveBeenCalled()
+  })
+
+  it('passes the exact initial selector to both readers with the server founder', async () => {
+    const taskId = 'a0000000-0000-4000-8000-000000000001'
+    vi.mocked(claimNextQueuedTask).mockResolvedValue(null)
+    const res = await POST(req({ ...validBody, taskId, resumeOnly: false, founderId: 'forged-founder' }, `Bearer ${SECRET}`))
+    expect(res.status).toBe(200)
+    for (const reader of [resumeOwnMission, claimNextQueuedTask]) {
+      expect(reader).toHaveBeenCalledWith(expect.anything(), { founderId: 'founder-1', runnerId: validBody.runnerId, taskId })
+    }
+  })
+
+  it('does not select queued candidates when exact revalidation finds no owned running claim', async () => {
+    const taskId = 'a0000000-0000-4000-8000-000000000001'
+    // If the original claim was released/requeued, valid consent must not reclaim it.
+    vi.mocked(claimNextQueuedTask).mockResolvedValue({ id: taskId, status: 'running' } as never)
+    const res = await POST(req({ ...validBody, taskId, resumeOnly: true }, `Bearer ${SECRET}`))
+    expect(await res.json()).toEqual({ task: null })
+    expect(resumeOwnMission).toHaveBeenCalledWith(expect.anything(), { founderId: 'founder-1', runnerId: validBody.runnerId, taskId })
+    expect(claimNextQueuedTask).not.toHaveBeenCalled()
+    expect(appendTaskEvent).not.toHaveBeenCalled()
+  })
+
+  it('revalidates an existing claim without replacing its timestamps or appending another started event', async () => {
+    const taskId = 'a0000000-0000-4000-8000-000000000001'
+    const task = { id: taskId, status: 'running', claimed_by: validBody.runnerId, claimed_at: '2026-10-16T01:00:00.000Z', metadata: { delivery: { executionAssignment: { acceptedAt: '2026-10-16T01:00:00.001Z' } } } }
+    vi.mocked(resumeOwnMission).mockResolvedValue(task as never)
+    const res = await POST(req({ ...validBody, taskId, resumeOnly: true }, `Bearer ${SECRET}`))
+    expect(await res.json()).toEqual({ task })
+    expect(claimNextQueuedTask).not.toHaveBeenCalled()
+    expect(appendTaskEvent).not.toHaveBeenCalled()
+  })
+
+  it('fails closed on an exact revalidation read error without capacity or candidate selection', async () => {
+    vi.mocked(resumeOwnMission).mockRejectedValue(new Error('private read failure'))
+    const client = { from: vi.fn() }
+    vi.mocked(createServiceClient).mockReturnValue(client as never)
+    const res = await POST(req({ ...validBody, taskId: 'a0000000-0000-4000-8000-000000000001', resumeOnly: true }, `Bearer ${SECRET}`))
+    expect(res.status).toBe(500)
+    expect(client.from).not.toHaveBeenCalled()
+    expect(claimNextQueuedTask).not.toHaveBeenCalled()
+    expect(appendTaskEvent).not.toHaveBeenCalled()
+  })
+
+  it('retains lane refusal during read-only revalidation without releasing or auditing the claim', async () => {
+    const taskId = 'a0000000-0000-4000-8000-000000000001'
+    vi.mocked(resumeOwnMission).mockResolvedValue({ id: taskId, status: 'running', claimed_by: validBody.runnerId, external_ref: 'voice:packet', metadata: {} } as never)
+    const res = await POST(req({ ...validBody, taskId, resumeOnly: true }, `Bearer ${SECRET}`))
+    expect(await res.json()).toEqual({ task: null, refused: 'risk_unclassified' })
+    expect(releaseClaimedTask).not.toHaveBeenCalled()
+    expect(appendTaskEvent).not.toHaveBeenCalled()
+    expect(claimNextQueuedTask).not.toHaveBeenCalled()
   })
 
   it('500s (sanitised) when the claim throws', async () => {

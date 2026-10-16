@@ -35,6 +35,11 @@ const bodySchema = z.object({
   // rather than erroring at parse time and looking like a different fault.
   platform: z.string().trim().max(32).optional(),
   containment: z.string().trim().max(32).optional(),
+  taskId: z.string().uuid().optional(),
+  /** Read-only authority check; never fall through to a fresh claim. */
+  resumeOnly: z.boolean().optional(),
+}).refine(body => body.resumeOnly !== true || body.taskId !== undefined, {
+  message: 'resumeOnly requires taskId', path: ['taskId'],
 })
 
 function timingSafeBearerMatch(request: Request, expectedSecret: string | undefined): boolean {
@@ -389,13 +394,16 @@ export async function POST(request: Request) {
       task = await resumeOwnMission(client as unknown as RunnerClaimClientLike, {
         founderId,
         runnerId: parsed.data.runnerId,
+        ...(parsed.data.taskId !== undefined ? { taskId: parsed.data.taskId } : {}),
       })
     } catch (err) {
+      if (parsed.data.resumeOnly) throw err
       // Logged, not swallowed: an unreadable resume only delays resumption. The
       // capacity count below fails closed on its own and counts the orphan.
       console.error(`runner claim: resume read failed (${err instanceof Error ? err.message : 'unknown'})`)
     }
     const resumed = task !== null
+    if (!task && parsed.data.resumeOnly) return NextResponse.json({ task: null }, { status: 200 })
     if (!task) {
       inFlight = await countRunning(client as unknown as RunnerClaimClientLike, founderId)
       if (inFlight >= MAX_CONCURRENT_MISSIONS) {
@@ -405,6 +413,7 @@ export async function POST(request: Request) {
       task = await claimNextQueuedTask(client as unknown as RunnerClaimClientLike, {
         founderId,
         runnerId: parsed.data.runnerId,
+        ...(parsed.data.taskId !== undefined ? { taskId: parsed.data.taskId } : {}),
       })
     }
 
@@ -437,6 +446,11 @@ export async function POST(request: Request) {
       })
 
       if (!decision.admit) {
+        // Revalidation reports the current refusal without changing ownership,
+        // requeue budget or audit history of the original claim.
+        if (parsed.data.resumeOnly) {
+          return NextResponse.json({ task: null, refused: decision.code }, { status: 200 })
+        }
         // Whether a refusal is terminal depends on WHAT was refused.
         //
         // A verdict about the MISSION is terminal: an unclassified, unprovenanced,
@@ -509,6 +523,8 @@ export async function POST(request: Request) {
           { status: 200 },
         )
       }
+
+      if (parsed.data.resumeOnly) return NextResponse.json({ task }, { status: 200 })
 
       await appendTaskEvent(
         {

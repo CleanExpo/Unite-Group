@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { deliveryFingerprint, signDeliveryApproval } from '../delivery-store'
 import type { DeliveryMetadata } from '../delivery-types'
-import { claimNextQueuedTask, releaseClaimedTask, type RunnerClaimClientLike } from '../runner-claim'
+import { claimNextQueuedTask, releaseClaimedTask, resumeOwnMission, type RunnerClaimClientLike } from '../runner-claim'
 import type { CommandCentreTask } from '../tasks'
 import { acceptedIntentBinding } from '@/lib/mission-authority/intent-binding'
 
@@ -34,23 +34,27 @@ function fixture() {
 }
 
 /** Stateful query double exercises the real fingerprint/receipt readers and CAS filters. */
-function database(initial: CommandCentreTask, receipts: Record<string, unknown>[]) {
-  let row = { ...initial } as unknown as Record<string, unknown>
+function database(initial: CommandCentreTask | CommandCentreTask[], receipts: Record<string, unknown>[]) {
+  const rows = (Array.isArray(initial) ? initial : [initial]).map(row => ({ ...row })) as unknown as Record<string, unknown>[]
   let writes = 0
+  const reads: Array<{ table: string; filters: Array<[string, unknown]>; limit: number }> = []
   const valueAt = (record: Record<string, unknown>, field: string): unknown => {
     if (field === 'metadata->delivery->>revision') return String((record.metadata as { delivery?: { revision?: number } })?.delivery?.revision)
     return record[field]
   }
   const client = {
     from: (table: string) => {
-      const source = () => table === 'cc_approvals' ? receipts : table === 'cc_tasks' ? [row] : []
+      const source = () => table === 'cc_approvals' ? receipts : table === 'cc_tasks' ? rows : []
       return {
         select: () => {
           const filters: Array<[string, unknown]> = []
           const chain = {
             eq: (key: string, value: unknown) => { filters.push([key, value]); return chain },
             order: () => chain,
-            limit: async (limit: number) => ({ data: source().filter((record) => filters.every(([key, value]) => valueAt(record, key) === value)).slice(0, limit), error: null }),
+            limit: async (limit: number) => {
+              reads.push({ table, filters: [...filters], limit })
+              return { data: source().filter((record) => filters.every(([key, value]) => valueAt(record, key) === value)).slice(0, limit), error: null }
+            },
           }
           return chain
         },
@@ -59,10 +63,11 @@ function database(initial: CommandCentreTask, receipts: Record<string, unknown>[
           const chain = {
             eq: (key: string, value: unknown) => { filters.push([key, value]); return chain },
             select: async () => {
-              if (!filters.every(([key, value]) => valueAt(row, key) === value)) return { data: [], error: null }
+              const index = rows.findIndex(row => filters.every(([key, value]) => valueAt(row, key) === value))
+              if (index < 0) return { data: [], error: null }
               writes += 1
-              row = { ...row, ...values }
-              return { data: [row], error: null }
+              rows[index] = { ...rows[index], ...values }
+              return { data: [rows[index]], error: null }
             },
           }
           return chain
@@ -70,12 +75,93 @@ function database(initial: CommandCentreTask, receipts: Record<string, unknown>[
       }
     },
   } as RunnerClaimClientLike
-  return { client, writes: () => writes, row: () => row }
+  return { client, writes: () => writes, row: () => rows[0], reads }
 }
 
 describe('real frozen-consent reader through runner lifecycle', () => {
   beforeEach(() => vi.stubEnv('MISSION_PROVENANCE_SECRET', 'runner-delivery-test-key-no-production-authority'))
   afterEach(() => vi.unstubAllEnvs())
+  it('filters the requested queued task before the candidate limit and never consumes older unrelated work', async () => {
+    const { task, receipt } = fixture()
+    const unrelated = Array.from({ length: 6 }, (_, index) => ({ ...task, id: `unrelated-${index}`, external_ref: null, metadata: {} }))
+    const db = database([...unrelated, task], [receipt])
+    const claimed = await claimNextQueuedTask(db.client, { founderId: task.founder_id, runnerId: 'contained-1', taskId: task.id })
+    expect(claimed?.id).toBe(task.id)
+    expect(db.reads[0]).toMatchObject({ table: 'cc_tasks', filters: expect.arrayContaining([['id', task.id], ['founder_id', task.founder_id], ['status', 'queued']]) })
+    expect(db.writes()).toBe(1)
+  })
+
+  it.each(['wrong-task', 'wrong-founder'] as const)('cannot claim a queued task for an exact %s selector', async fault => {
+    const { task, receipt } = fixture()
+    const db = database(task, [receipt])
+    expect(await claimNextQueuedTask(db.client, {
+      founderId: fault === 'wrong-founder' ? 'other-founder' : task.founder_id,
+      runnerId: 'contained-1', taskId: fault === 'wrong-task' ? 'other-task' : task.id,
+    })).toBeNull()
+    expect(db.writes()).toBe(0)
+    expect(db.row().status).toBe('queued')
+  })
+
+  it('revalidates a fresh owned claim without a continuation or timestamp mutation, while legacy polling still skips it', async () => {
+    const { task, receipt } = fixture()
+    const db = database(task, [receipt])
+    const claimed = await claimNextQueuedTask(db.client, { founderId: task.founder_id, runnerId: 'contained-1', taskId: task.id })
+    expect(claimed).not.toBeNull()
+    expect(claimed!.metadata.mission).toBeUndefined()
+    expect(await resumeOwnMission(db.client, { founderId: task.founder_id, runnerId: 'contained-1' })).toBeNull()
+    const resumed = await resumeOwnMission(db.client, { founderId: task.founder_id, runnerId: 'contained-1', taskId: task.id })
+    expect(resumed).toEqual(claimed)
+    expect(resumed!.claimed_at).toBe(claimed!.claimed_at)
+    expect((resumed!.metadata.delivery as DeliveryMetadata).executionAssignment!.acceptedAt).toBe((claimed!.metadata.delivery as DeliveryMetadata).executionAssignment!.acceptedAt)
+    expect(db.writes()).toBe(1)
+    expect(db.reads.filter(read => read.table === 'cc_tasks').at(-1)!.filters).toEqual(expect.arrayContaining([
+      ['id', task.id], ['founder_id', task.founder_id], ['status', 'running'], ['claimed_by', 'contained-1'],
+    ]))
+  })
+
+  it.each(['wrong-task', 'wrong-founder', 'wrong-claimant', 'requeued', 'missing-assignment', 'role', 'runnerId', 'specRevision', 'specFingerprint', 'scope', 'acceptedAt', 'missing-claimed-at', 'existing-build', 'revoked', 'changed-spec', 'damaged-intent', 'non-delivery'] as const)('refuses exact resume after %s without writing or selecting queued work', async fault => {
+    const { task, receipt } = fixture()
+    const receipts: Record<string, unknown>[] = [receipt]
+    const db = database(task, receipts)
+    await claimNextQueuedTask(db.client, { founderId: task.founder_id, runnerId: 'contained-1' })
+    const row = db.row()
+    const metadata = row.metadata as CommandCentreTask['metadata']
+    const d = metadata.delivery as DeliveryMetadata
+    const assignment = d.executionAssignment! as unknown as Record<string, unknown>
+    if (fault === 'requeued') row.status = 'queued'
+    if (fault === 'missing-assignment') delete d.executionAssignment
+    if (fault === 'role') assignment.role = 'publisher'
+    if (fault === 'runnerId') assignment.runnerId = 'other-runner'
+    if (fault === 'specRevision') assignment.specRevision = 99
+    if (fault === 'specFingerprint') assignment.specFingerprint = '0'.repeat(64)
+    if (fault === 'scope') assignment.scope = 'production'
+    if (fault === 'acceptedAt') assignment.acceptedAt = 'invalid'
+    if (fault === 'missing-claimed-at') row.claimed_at = null
+    if (fault === 'existing-build') d.build = { status: 'awaiting_review', prRef: 'https://github.com/CleanExpo/Unite-Group/pull/321', runnerId: 'contained-1', specRevision: d.revision, specFingerprint: d.specVersion!, completedAt: new Date().toISOString() }
+    if (fault === 'revoked') receipts.unshift({ ...receipt, id: 'reject', decision: 'reject' })
+    if (fault === 'changed-spec') d.spec!.requirements.push('Unapproved extra work')
+    if (fault === 'damaged-intent') metadata.intent = { status: 'accepted', markdown: 'Changed accepted intent' }
+    if (fault === 'non-delivery') { row.external_ref = null; delete metadata.delivery }
+    const beforeReads = db.reads.length
+    expect(await resumeOwnMission(db.client, {
+      founderId: fault === 'wrong-founder' ? 'other-founder' : task.founder_id,
+      runnerId: fault === 'wrong-claimant' ? 'other-runner' : 'contained-1',
+      taskId: fault === 'wrong-task' ? 'other-task' : task.id,
+    })).toBeNull()
+    expect(db.writes()).toBe(1)
+    expect(db.reads.slice(beforeReads).filter(read => read.table === 'cc_tasks').every(read => read.filters.some(([key, value]) => key === 'status' && value === 'running'))).toBe(true)
+  })
+
+  it('applies the exact resume selector before its limit even behind older owned rows', async () => {
+    const { task, receipt } = fixture()
+    const first = database(task, [receipt])
+    const claimed = await claimNextQueuedTask(first.client, { founderId: task.founder_id, runnerId: 'contained-1' })
+    const unrelated = Array.from({ length: 6 }, (_, index) => ({ ...task, id: `older-${index}`, status: 'running' as const, claimed_by: 'contained-1' }))
+    const db = database([...unrelated, claimed!], [receipt])
+    expect((await resumeOwnMission(db.client, { founderId: task.founder_id, runnerId: 'contained-1', taskId: task.id }))?.id).toBe(task.id)
+    expect(db.reads[0].filters).toContainEqual(['id', task.id])
+    expect(db.writes()).toBe(0)
+  })
   it('valid consent claims its exact spec and releases a draft PR into review', async () => {
     const { task, receipt, delivery } = fixture()
     const db = database(task, [receipt])

@@ -10,6 +10,8 @@ import { checkRateLimit } from '@/lib/middleware/rate-limit'
 import { hasPrivateAccess } from '@/lib/auth/private-access'
 import { isPublicPath, proxy } from '../proxy'
 import { POST } from '@/app/api/agents/runner/research/route'
+import { POST as claim } from '@/app/api/agents/runner/claim/route'
+import { POST as release } from '@/app/api/agents/runner/release/route'
 
 const path = '/api/agents/runner/research'
 const request = (pathname = path, method = 'POST', bearer?: string) => new NextRequest(`https://app.test${pathname}`, {
@@ -72,10 +74,10 @@ describe('research worker transport uses route authentication', () => {
   })
 
   it.each([
-    '/api/agents', '/api/agents/events', '/api/agents/runner/claim', '/api/agents/runner/release',
+    '/api/agents', '/api/agents/events', '/api/agents/runner/continuation',
     `${path}/`, `${path}/private`, `${path}.png`, `${path}er`,
     '/api/agents/runner/Research', '/api/agents/runner/%72esearch',
-    '/api/agents/runner/claim?next=/api/agents/runner/research',
+    '/api/agents/runner/claimed?next=/api/agents/runner/research',
   ])('retains cookie authentication for sibling, suffix and query lookalikes: %s', async pathname => {
     const response = await proxy(request(pathname))
     expect(response.status).toBe(307)
@@ -92,5 +94,49 @@ describe('research worker transport uses route authentication', () => {
     const req = request(`${path}?ignored=/api/agents/runner/claim`)
     expect((await proxy(req)).headers.get('x-middleware-next')).toBe('1')
     expect((await POST(req)).status).toBe(401)
+  })
+})
+
+describe.each([
+  ['/api/agents/runner/claim', claim], ['/api/agents/runner/release', release],
+] as const)('runner bearer transport for %s', (runnerPath, handler) => {
+  it.each([undefined, 'wrong-key', 'test-only-worker-transport-key'])('forwards exact POST with CSP and delegates bearer validation: %s', async bearer => {
+    const req = request(runnerPath, 'POST', bearer)
+    const transport = await proxy(req)
+    expect(transport.headers.get('x-middleware-next')).toBe('1')
+    expect(transport.headers.get('Content-Security-Policy')).toContain('nonce-')
+    expect(updateSession).not.toHaveBeenCalled()
+    expect(hasPrivateAccess).not.toHaveBeenCalled()
+    expect((await handler(req)).status).toBe(bearer === 'test-only-worker-transport-key' ? 400 : 401)
+    expect(isPublicPath(runnerPath)).toBe(false)
+  })
+
+  it('preserves the handler missing-founder refusal', async () => {
+    vi.stubEnv('FOUNDER_USER_ID', '')
+    const req = request(runnerPath, 'POST', 'test-only-worker-transport-key')
+    expect((await proxy(req)).headers.get('x-middleware-next')).toBe('1')
+    expect((await handler(req)).status).toBe(503)
+  })
+
+  it.each(['GET', 'HEAD', 'PUT', 'DELETE', 'OPTIONS'])('keeps cookie authentication for %s', async method => {
+    expect((await proxy(request(runnerPath, method))).status).toBe(307)
+    expect(updateSession).toHaveBeenCalledOnce()
+  })
+
+  it.each(['/', '/private', '.png', 'ed', '%2fprivate'])('keeps suffixes/descendants private: %s', async suffix => {
+    expect((await proxy(request(`${runnerPath}${suffix}`))).status).toBe(307)
+    expect(updateSession).toHaveBeenCalledOnce()
+  })
+
+  it('does not decode an encoded spelling into transport authority', async () => {
+    const encoded = runnerPath.replace('/runner/', '/%72unner/')
+    expect((await proxy(request(encoded))).status).toBe(307)
+    expect(updateSession).toHaveBeenCalledOnce()
+  })
+
+  it('applies rate-limit denial before transport admission', async () => {
+    vi.mocked(checkRateLimit).mockReturnValue({ success: false, limit: 100, remaining: 0, reset: Math.floor(Date.now() / 1000) + 60 })
+    expect((await proxy(request(runnerPath))).status).toBe(429)
+    expect(updateSession).not.toHaveBeenCalled()
   })
 })

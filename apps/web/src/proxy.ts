@@ -93,7 +93,10 @@ export function isPublicPath(pathname: string): boolean {
 // These exact POST handlers authenticate their own bearer or enrolled signature.
 // Cookies grant no transport authority; siblings and descendants stay private.
 function isRouteAuthenticatedPath(pathname: string): boolean {
-  return pathname === '/api/agents/runner/research' || pathname === '/api/integrations/idea-evidence';
+  return pathname === '/api/agents/runner/research' ||
+    pathname === '/api/agents/runner/claim' ||
+    pathname === '/api/agents/runner/release' ||
+    pathname === '/api/integrations/idea-evidence';
 }
 
 // ---------------------------------------------------------------------------
