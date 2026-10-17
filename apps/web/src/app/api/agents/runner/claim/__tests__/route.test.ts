@@ -114,6 +114,9 @@ describe('POST /api/agents/runner/claim', () => {
     const res = await POST(req(validBody, `Bearer ${SECRET}`))
     const body = await res.json()
     expect(body.task.mission.nextStep).toMatchObject({ execute: true, action: 'repair' })
+    expect(resumeOwnMission).toHaveBeenCalledExactlyOnceWith(expect.anything(), {
+      founderId: 'founder-1', runnerId: validBody.runnerId,
+    })
     expect(claimNextQueuedTask).not.toHaveBeenCalled()
     expect(appendTaskEvent).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'started', payload: expect.objectContaining({ resumed: true, next_action: 'repair' }) }),
@@ -142,14 +145,79 @@ describe('POST /api/agents/runner/claim', () => {
     expect(claimNextQueuedTask).not.toHaveBeenCalled()
   })
 
-  it('passes the exact initial selector to both readers with the server founder', async () => {
+  it.each([{ resumeOnly: false }, {}])('does not adopt an existing running claim for a fresh exact selector: %j', async mode => {
     const taskId = 'a0000000-0000-4000-8000-000000000001'
-    vi.mocked(claimNextQueuedTask).mockResolvedValue(null)
-    const res = await POST(req({ ...validBody, taskId, resumeOnly: false, founderId: 'forged-founder' }, `Bearer ${SECRET}`))
+    const client = runningCountClient([{ id: taskId }])
+    const count = vi.spyOn(client, 'from')
+    vi.mocked(createServiceClient).mockReturnValue(client as never)
+    vi.mocked(resumeOwnMission).mockResolvedValue({
+      id: taskId, status: 'running', claimed_by: validBody.runnerId,
+    } as never)
+
+    const res = await POST(req({ ...validBody, taskId, ...mode }, `Bearer ${SECRET}`))
+
     expect(res.status).toBe(200)
-    for (const reader of [resumeOwnMission, claimNextQueuedTask]) {
-      expect(reader).toHaveBeenCalledWith(expect.anything(), { founderId: 'founder-1', runnerId: validBody.runnerId, taskId })
+    expect(await res.json()).toEqual({ task: null, refused: 'at_capacity' })
+    expect(count).toHaveBeenCalledWith('cc_tasks')
+    expect(resumeOwnMission).not.toHaveBeenCalled()
+    expect(claimNextQueuedTask).not.toHaveBeenCalled()
+    expect(releaseClaimedTask).not.toHaveBeenCalled()
+    expect(appendTaskEvent).not.toHaveBeenCalled()
+  })
+
+  it.each([{ resumeOnly: false }, {}])('returns null when a fresh exact selector cannot claim a queued task: %j', async mode => {
+    const taskId = 'a0000000-0000-4000-8000-000000000001'
+    // Even a stale capacity read cannot turn an existing attempt into a fresh claim.
+    vi.mocked(resumeOwnMission).mockResolvedValue({
+      id: taskId, status: 'running', claimed_by: validBody.runnerId,
+    } as never)
+    vi.mocked(claimNextQueuedTask).mockResolvedValue(null)
+
+    const res = await POST(req({ ...validBody, taskId, ...mode, founderId: 'forged-founder' }, `Bearer ${SECRET}`))
+
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ task: null })
+    expect(resumeOwnMission).not.toHaveBeenCalled()
+    expect(claimNextQueuedTask).toHaveBeenCalledExactlyOnceWith(expect.anything(), {
+      founderId: 'founder-1', runnerId: validBody.runnerId, taskId,
+    })
+    expect(releaseClaimedTask).not.toHaveBeenCalled()
+    expect(appendTaskEvent).not.toHaveBeenCalled()
+  })
+
+  it.each([{ resumeOnly: false }, {}])('claims a fresh exact task and only resumes it with explicit read-only revalidation: %j', async mode => {
+    const taskId = 'a0000000-0000-4000-8000-000000000001'
+    const task = {
+      id: taskId, status: 'running', claimed_by: validBody.runnerId,
+      claimed_at: '2026-10-16T01:00:00.000Z',
+      metadata: { delivery: { executionAssignment: { acceptedAt: '2026-10-16T01:00:00.001Z' } } },
     }
+    vi.mocked(claimNextQueuedTask).mockResolvedValue(task as never)
+
+    const initial = await POST(req({ ...validBody, taskId, ...mode }, `Bearer ${SECRET}`))
+
+    expect(initial.status).toBe(200)
+    expect(await initial.json()).toEqual({ task })
+    expect(resumeOwnMission).not.toHaveBeenCalled()
+    expect(claimNextQueuedTask).toHaveBeenCalledExactlyOnceWith(expect.anything(), {
+      founderId: 'founder-1', runnerId: validBody.runnerId, taskId,
+    })
+    expect(appendTaskEvent).toHaveBeenCalledTimes(1)
+    expect(appendTaskEvent).toHaveBeenCalledWith(expect.objectContaining({
+      taskId, type: 'started', payload: expect.not.objectContaining({ resumed: true }),
+    }), expect.anything())
+
+    vi.mocked(resumeOwnMission).mockResolvedValue(task as never)
+    const revalidated = await POST(req({ ...validBody, taskId, resumeOnly: true }, `Bearer ${SECRET}`))
+
+    expect(revalidated.status).toBe(200)
+    expect(await revalidated.json()).toEqual({ task })
+    expect(resumeOwnMission).toHaveBeenCalledExactlyOnceWith(expect.anything(), {
+      founderId: 'founder-1', runnerId: validBody.runnerId, taskId,
+    })
+    expect(claimNextQueuedTask).toHaveBeenCalledTimes(1)
+    expect(appendTaskEvent).toHaveBeenCalledTimes(1)
+    expect(releaseClaimedTask).not.toHaveBeenCalled()
   })
 
   it('does not select queued candidates when exact revalidation finds no owned running claim', async () => {
