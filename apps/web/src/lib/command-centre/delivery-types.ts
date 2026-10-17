@@ -108,7 +108,8 @@ export const deliveryMetadataSchema = z.object({
       specVersion: z.string().length(64),
       revision: z.number().int().positive(),
       scope: z.literal(DELIVERY_SCOPE),
-      approvedAt: z.string().datetime(),
+      // Accept PostgreSQL offsets without changing the signed timestamp bytes.
+      approvedAt: z.string().datetime({ offset: true }),
       signature: z
         .string()
         .regex(/^[a-f0-9]{64}$/)
