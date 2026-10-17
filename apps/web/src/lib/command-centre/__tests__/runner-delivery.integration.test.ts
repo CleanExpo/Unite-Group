@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { deliveryFingerprint, signDeliveryApproval } from '../delivery-store'
+import { deliveryFingerprint, getApprovedDelivery, hashDeliveryInput, signDeliveryApproval, verifyDeliveryApproval } from '../delivery-store'
 import type { DeliveryMetadata } from '../delivery-types'
 import { claimNextQueuedTask, releaseClaimedTask, resumeOwnMission, type RunnerClaimClientLike } from '../runner-claim'
 import type { CommandCentreTask } from '../tasks'
 import { acceptedIntentBinding } from '@/lib/mission-authority/intent-binding'
 
-function fixture() {
+const POSTGRES_APPROVED_AT = '2026-10-16T05:03:53.600004+00:00'
+
+function fixture(approvedAt = '2026-09-05T00:00:00.000Z') {
   const delivery: DeliveryMetadata = {
     schemaVersion: 1, kind: 'software_delivery', revision: 1, inputHash: 'a'.repeat(64),
     lane: 'software', projectKey: 'unite-group', originalIdea: 'Let customers edit their bookings',
@@ -16,7 +18,7 @@ function fixture() {
     lease: null, approval: null, error: null, scope: 'branch_preview_only',
   }
   delivery.specVersion = deliveryFingerprint(delivery)
-  delivery.approval = { id: 'approval-1', founderId: 'founder-1', specVersion: delivery.specVersion, revision: 1, scope: 'branch_preview_only', approvedAt: '2026-09-05T00:00:00.000Z' }
+  delivery.approval = { id: 'approval-1', founderId: 'founder-1', specVersion: delivery.specVersion, revision: 1, scope: 'branch_preview_only', approvedAt }
   const task: CommandCentreTask = {
     id: 'task-1', founder_id: 'founder-1', external_ref: 'delivery:request-1', queue_id: null,
     project_id: null, project_key: 'unite-group', title: 'Bookings', objective: delivery.originalIdea,
@@ -29,7 +31,7 @@ function fixture() {
   // UNI-2779: build authority is an approval bound to an accepted intent.
   delivery.approval.intent = acceptedIntentBinding(task)!
   delivery.approval.signature = signDeliveryApproval(task, delivery.approval)!
-  const receipt = { id: 'approval-1', founder_id: 'founder-1', task_id: 'task-1', decision: 'approve', approver: 'founder', note: `delivery:${delivery.specVersion}:branch_preview_only`, at: '2026-09-05T00:00:00.000Z' }
+  const receipt = { id: 'approval-1', founder_id: 'founder-1', task_id: 'task-1', decision: 'approve', approver: 'founder', note: `delivery:${delivery.specVersion}:branch_preview_only`, at: approvedAt }
   return { task, delivery, receipt }
 }
 
@@ -38,6 +40,7 @@ function database(initial: CommandCentreTask | CommandCentreTask[], receipts: Re
   const rows = (Array.isArray(initial) ? initial : [initial]).map(row => ({ ...row })) as unknown as Record<string, unknown>[]
   let writes = 0
   const reads: Array<{ table: string; filters: Array<[string, unknown]>; limit: number }> = []
+  const updates: Array<{ table: string; filters: Array<[string, unknown]> }> = []
   const valueAt = (record: Record<string, unknown>, field: string): unknown => {
     if (field === 'metadata->delivery->>revision') return String((record.metadata as { delivery?: { revision?: number } })?.delivery?.revision)
     return record[field]
@@ -63,6 +66,7 @@ function database(initial: CommandCentreTask | CommandCentreTask[], receipts: Re
           const chain = {
             eq: (key: string, value: unknown) => { filters.push([key, value]); return chain },
             select: async () => {
+              updates.push({ table, filters: [...filters] })
               const index = rows.findIndex(row => filters.every(([key, value]) => valueAt(row, key) === value))
               if (index < 0) return { data: [], error: null }
               writes += 1
@@ -75,12 +79,117 @@ function database(initial: CommandCentreTask | CommandCentreTask[], receipts: Re
       }
     },
   } as RunnerClaimClientLike
-  return { client, writes: () => writes, row: () => rows[0], reads }
+  return { client, writes: () => writes, row: () => rows[0], reads, updates }
 }
 
 describe('real frozen-consent reader through runner lifecycle', () => {
   beforeEach(() => vi.stubEnv('MISSION_PROVENANCE_SECRET', 'runner-delivery-test-key-no-production-authority'))
   afterEach(() => vi.unstubAllEnvs())
+
+  it('preserves PostgreSQL approval timestamp bytes through frozen consent, queued CAS and exact resumption', async () => {
+    const { task, delivery, receipt } = fixture(POSTGRES_APPROVED_AT)
+    const originalApproval = structuredClone(delivery.approval!)
+    const originalApprovalHash = hashDeliveryInput(originalApproval)
+    const originalTimestampBytes = Buffer.from(POSTGRES_APPROVED_AT, 'utf8')
+    const db = database(task, [receipt])
+    const approved = getApprovedDelivery(task)
+
+    expect(approved).not.toBeNull()
+    expect(approved!.approval).toEqual(originalApproval)
+    expect(Buffer.from(approved!.approval.approvedAt, 'utf8')).toEqual(originalTimestampBytes)
+    expect(hashDeliveryInput(approved!.approval)).toBe(originalApprovalHash)
+    expect(signDeliveryApproval(task, approved!.approval)).toBe(originalApproval.signature)
+    expect(await verifyDeliveryApproval(task, db.client as never)).toBe(true)
+
+    const claimed = await claimNextQueuedTask(db.client, {
+      founderId: task.founder_id, runnerId: 'contained-1', taskId: task.id,
+    })
+
+    expect(claimed).not.toBeNull()
+    expect(claimed!.approvedDelivery!.approval).toEqual(originalApproval)
+    expect((claimed!.metadata.delivery as DeliveryMetadata).approval).toEqual(originalApproval)
+    expect(hashDeliveryInput((claimed!.metadata.delivery as DeliveryMetadata).approval)).toBe(originalApprovalHash)
+    expect(db.updates).toEqual([{
+      table: 'cc_tasks', filters: [
+        ['founder_id', task.founder_id], ['id', task.id], ['status', 'queued'],
+        ['updated_at', task.updated_at], ['metadata->delivery->>revision', String(delivery.revision)],
+      ],
+    }])
+    const claimedAt = claimed!.claimed_at
+    const assignmentAcceptedAt = (claimed!.metadata.delivery as DeliveryMetadata).executionAssignment!.acceptedAt
+    expect(claimedAt).toEqual(expect.any(String))
+    expect(assignmentAcceptedAt).toBe(claimedAt)
+
+    const resumed = await resumeOwnMission(db.client, {
+      founderId: task.founder_id, runnerId: 'contained-1', taskId: task.id,
+    })
+
+    expect(resumed).toEqual(claimed)
+    expect(resumed!.claimed_at).toBe(claimedAt)
+    expect((resumed!.metadata.delivery as DeliveryMetadata).executionAssignment!.acceptedAt).toBe(assignmentAcceptedAt)
+    expect(resumed!.approvedDelivery!.approval).toEqual(originalApproval)
+    expect(Buffer.from(resumed!.approvedDelivery!.approval.approvedAt, 'utf8')).toEqual(originalTimestampBytes)
+    expect(hashDeliveryInput(resumed!.approvedDelivery!.approval)).toBe(originalApprovalHash)
+    expect(delivery.approval).toEqual(originalApproval)
+    expect(receipt.at).toBe(POSTGRES_APPROVED_AT)
+    expect(db.writes()).toBe(1)
+    expect(db.updates).toHaveLength(1)
+  })
+
+  it.each([
+    '2026-10-16T05:03:53.600004Z',
+    '2026-10-16T05:03:53.600+00:00',
+  ])('refuses an unsigned rewrite of the PostgreSQL approval timestamp to %s', async approvedAt => {
+    const { task, delivery, receipt } = fixture(POSTGRES_APPROVED_AT)
+    const signature = delivery.approval!.signature
+    delivery.approval!.approvedAt = approvedAt
+    const db = database(task, [receipt])
+
+    expect(signDeliveryApproval(task, delivery.approval!)).not.toBe(signature)
+    expect(getApprovedDelivery(task)).toBeNull()
+    expect(await verifyDeliveryApproval(task, db.client as never)).toBe(false)
+    expect(await claimNextQueuedTask(db.client, {
+      founderId: task.founder_id, runnerId: 'contained-1', taskId: task.id,
+    })).toBeNull()
+    expect(db.writes()).toBe(0)
+    expect(db.row().status).toBe('queued')
+  })
+
+  it.each([
+    '2026-10-16T05:03:53.600004+0:00',
+    '2026-10-16T05:03:53.600004+00:0X',
+    '2026-10-16T05:03:53.600004+00:00 trailing',
+  ])('refuses malformed offset syntax even with a signed approval: %s', async approvedAt => {
+    const { task, delivery, receipt } = fixture(approvedAt)
+    expect(delivery.approval!.signature).toEqual(expect.any(String))
+    const db = database(task, [receipt])
+    expect(getApprovedDelivery(task)).toBeNull()
+    expect(await verifyDeliveryApproval(task, db.client as never)).toBe(false)
+    expect(await claimNextQueuedTask(db.client, {
+      founderId: task.founder_id, runnerId: 'contained-1', taskId: task.id,
+    })).toBeNull()
+    expect(db.writes()).toBe(0)
+  })
+
+  it.each(['forged-signature', 'revoked', 'other-founder', 'changed-spec', 'damaged-intent'] as const)(
+    'retains current-consent refusal for a PostgreSQL timestamp after %s', async fault => {
+      const { task, delivery, receipt } = fixture(POSTGRES_APPROVED_AT)
+      let receipts: Record<string, unknown>[] = [receipt]
+      if (fault === 'forged-signature') delivery.approval!.signature = '0'.repeat(64)
+      if (fault === 'revoked') receipts = [{ ...receipt, id: 'latest-rejection', decision: 'reject' }, receipt]
+      if (fault === 'other-founder') receipts = [{ ...receipt, founder_id: 'someone-else' }]
+      if (fault === 'changed-spec') delivery.spec!.requirements.push('Unapproved extra work')
+      if (fault === 'damaged-intent') task.metadata.intent = { status: 'accepted', markdown: 'Changed intent' }
+      const db = database(task, receipts)
+      expect(await verifyDeliveryApproval(task, db.client as never)).toBe(false)
+      expect(await claimNextQueuedTask(db.client, {
+        founderId: task.founder_id, runnerId: 'contained-1', taskId: task.id,
+      })).toBeNull()
+      expect(db.writes()).toBe(0)
+      expect(db.row().status).toBe('queued')
+    },
+  )
+
   it('filters the requested queued task before the candidate limit and never consumes older unrelated work', async () => {
     const { task, receipt } = fixture()
     const unrelated = Array.from({ length: 6 }, (_, index) => ({ ...task, id: `unrelated-${index}`, external_ref: null, metadata: {} }))
