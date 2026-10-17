@@ -25,7 +25,7 @@ Türkçe
 Get API key
 Cookbook
 Community
-Gemini 3.8 Flash is now available. Try it out .
+Gemini 4 Argon is now available. Try it out .
 Home
 Gemini API
 Docs
@@ -57,9 +57,9 @@ Gemini API enforces spend-based rate limits to protect against unexpected
 charges. Whether these limits apply to your account depends on your billing
 history and usage tier .
 The following table shows the spend-based rate limits for each
-usage tier . These limits are evaluated on a rolling 10-minute
-window. Whether these limits apply to your account depends on your billing
-history and account standing.
+usage tier . These limits are
+evaluated on a rolling 10-minute window. Whether these limits apply to your
+account depends on your billing history and account standing.
 Usage tier
 Spend rate limit (per 10 minutes)
 Free
@@ -127,21 +127,19 @@ Tier 1
 Model
 Batch enqueued tokens
 Text-out models
+Gemini 4 Argon
+5,000,000
 Gemini 3.1 Pro Preview
 5,000,000
 Gemini 3.5 Flash-Lite
 10,000,000
 Gemini 3.8 Flash
 3,000,000
-Gemini 3.7 Flash
-3,000,000
 Gemini 3.1 Flash Lite
 10,000,000
 Gemini 3.1 Flash Lite Preview
 10,000,000
 Gemini 3.6 Flash
-3,000,000
-Gemini 3.5 Flash
 3,000,000
 Gemini 2.5 Pro
 5,000,000
@@ -179,6 +177,8 @@ Tier 2
 Model
 Batch enqueued tokens
 Text-out models
+Gemini 4 Argon
+500,000,000
 Gemini 3.1 Pro Preview
 500,000,000
 Gemini 3.5 Flash-Lite
@@ -189,11 +189,7 @@ Gemini 3.1 Flash Lite Preview
 500,000,000
 Gemini 3.8 Flash
 400,000,000
-Gemini 3.7 Flash
-400,000,000
 Gemini 3.6 Flash
-400,000,000
-Gemini 3.5 Flash
 400,000,000
 Gemini 2.5 Pro
 500,000,000
@@ -231,6 +227,8 @@ Tier 3
 Model
 Batch enqueued tokens
 Text-out models
+Gemini 4 Argon
+1,000,000,000
 Gemini 3.1 Pro Preview
 1,000,000,000
 Gemini 3.5 Flash-Lite
@@ -241,11 +239,7 @@ Gemini 3.1 Flash Lite Preview
 1,000,000,000
 Gemini 3.8 Flash
 1,000,000,000
-Gemini 3.7 Flash
-1,000,000,000
 Gemini 3.6 Flash
-1,000,000,000
-Gemini 3.5 Flash
 1,000,000,000
 Gemini 2.5 Pro
 1,000,000,000
@@ -282,10 +276,13 @@ Gemini Embedding
 How to upgrade to the next tier
 To transition from the Free tier to a paid tier, you must first
 set up billing in AI Studio .
-Once your project meets the specified criteria , it will be
+Once your project meets the
+specified criteria , it will be
 automatically upgraded to the next tier. Tier upgrades from the Free to Tier 1
 will typically take effect instantly, and subsequent tier upgrades will take
-effect within 10 minutes. Navigate to the Projects page in AI Studio to check your tiers.
+effect within 10 minutes. Navigate to the
+Projects page in AI Studio to check your
+tiers.
 Request a rate limit increase
 Each model variation has an associated rate limit (requests per minute, RPM).
 For details on those rate limits, see the
@@ -295,4 +292,4 @@ We offer no guarantees about increasing your rate limit, but we'll do our best
 to review your request.
 Send feedback
 Except as otherwise noted, the content of this page is licensed under the Creative Commons Attribution 4.0 License , and code samples are licensed under the Apache 2.0 License . For details, see the Google Developers Site Policies . Java is a registered trademark of Oracle and/or its affiliates.
-Last updated 2026-09-02 UTC.
+Last updated 2026-10-15 UTC.

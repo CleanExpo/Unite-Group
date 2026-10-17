@@ -5,16 +5,7 @@ Sign in
 Search
 Sign in
 Sign up
-firecrawl
-/
-firecrawl
-Public
-Notifications
-You must be signed in to change notification settings
-Fork
-9.7k
-Star
-177k
+Repository navigation
 Releases: firecrawl/firecrawl
 Release list
 Previous Next
@@ -107,6 +98,7 @@ Full Changelog : v2.10...v2.11.0
 Assets
 2
 Loading
+1 person reacted
 Firecrawl v2.10
 Firecrawl v2.10
 Compare
