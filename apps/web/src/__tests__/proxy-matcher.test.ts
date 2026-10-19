@@ -111,6 +111,7 @@ describe('public-path exemption is segment-aware, not prefix-loose', () => {
       '/api/agent/chat',
       '/api/auth/callback',
       '/api/health',
+      '/api/webhooks/synthex',
       '/api/cron/hub-sweep',
       '/auth/login',
       '/robots.txt',

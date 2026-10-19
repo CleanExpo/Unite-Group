@@ -1,4 +1,5 @@
 /**
+ * NOTE: apps/empire is not deployed. The live receiver is apps/web /api/webhooks/synthex.
  * POST /api/events — Synthex → Unite-Group witness receiver (Flywheel C2).
  *
  * Receives fire-and-forget events from Synthex's unite-group-connector
