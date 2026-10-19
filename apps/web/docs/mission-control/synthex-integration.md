@@ -9,9 +9,35 @@ Synthex's `lib/unite-group-connector.ts` fires witness events (fire-and-forget).
 
 - Auth: header `x-api-key` vs `SYNTHEX_EVENTS_API_KEY`, constant-time compare.
 - Status codes: key unset 503 `receiver_not_configured` · mismatch 401 · bad JSON 400 · schema miss 400 · `FOUNDER_USER_ID`/storage missing 503 · insert error 500 · success 201 `{ok,id}`. `GET`/`HEAD` are dataless probes (`{ok, configured}`).
-- Writes ONE `cc_agent_events` row per event: `agent_name=synthex`, `event_type=status`, `surface=local`, `machine=synthex.social`, `project_key`=business slug (`ccw→ccw-crm`, `nrpg→dr-nrpg`), `target`=one-line summary (≤512), `tool_name`=event type. No payload is stored.
+- Writes ONE `cc_agent_events` row per event: `agent_name=synthex`, `event_type=status`, `surface=local`, `machine=synthex.social`, `project_key`=business slug (`ccw→ccw-crm`, `nrpg→dr-nrpg`), `plan_key`=`missionId` or null, `target`=one-line summary (≤512) ending `· no mission id` when none was sent and `· occurred <ISO time>`, `tool_name`=event type. The raw body is never stored.
 - If the event carries `missionId` (a `cc_tasks` id owned by the founder) a `cc_task_events` `comment` row is also appended. Response gains `mission: linked | not_found | link_failed`. Witness events never change `cc_tasks` status.
 - No new tables, migrations or dependencies.
+
+### Structured fields (SPM-audit G2)
+
+Optional body fields, validated (a malformed value is a 400, never stored):
+
+| Field | Rule | Used by |
+|---|---|---|
+| `missionId` | UUID | all six mission steps; null is accepted and shown as "no mission id" |
+| `occurredAt` | ISO datetime; falls back to `timestamp` | all; timeline order |
+| `count` | integer ≥ 0 | `outcome.trials` (required), never on `outcome.read_failed` |
+| `window` | ≤64 printable chars | `outcome.trials` (required), `outcome.read_failed` |
+| `attributionKey` | ≤64 printable chars, e.g. `utm_source=synthex` | outcomes |
+| `postUrl` | https, no credentials, ≤500 | `content.published` |
+| `postId` | ≤128 printable chars | post steps |
+| `status` | `drafted` · `awaiting_approval` · `approved` · `scheduled` · `published` · `failed` | post steps |
+| `scheduledAt`, `publishedAt` | ISO datetime | post steps |
+| `text` | full post text, ≤5,000 chars; line breaks kept, other control characters removed | post steps |
+| `thumbnailUrls` | up to 4 https URLs | post steps |
+| `approveUrl` | https deep link into Synthex; linked only on `synthex.social` | post steps |
+
+The live `content.outcomes` digest's `postsPublished`/`isoWeek` map to `count`/`window`.
+Mission-linked rows keep a whitelisted `cc_task_events.payload`: `{source, event_type, summary, missionId, eventType, occurredAt, sentAt, orgSlug, businessSlug, platform, count, window, attributionKey, postId, status, scheduledAt, publishedAt, text, thumbnailUrls, approveUrl, postUrl}` (unknown values are `null`, `thumbnailUrls` is `[]`). The post text never goes on the wall row. Labelled steps: `campaign.planned`, `content.drafted`, `content.held_for_review`, `content.approved`, `content.published`, `outcome.trials`, plus `outcome.read_failed` (shown as "unknown — RA read failed", never 0).
+
+Events without a `missionId` have no task row to hold JSONB, so their values survive only in the wall row's `target` text. Sending `missionId` on `content.published` and `outcome.trials` is a Synthex change (audit C2). A Mission Control calendar that must show every post, including ones with no mission, needs one additive table or column for these fields; that migration belongs with the calendar change and must be applied before any code writes to it.
+
+**Mission view:** the selected mission's "Synthex activity" panel (`GET /api/command-centre/missions/synthex?taskId=`, founder session) lists that mission's events oldest step first by `occurredAt`, plus the 20 most recent Synthex events that arrived with no mission id. A failed read is shown as an error, never as an empty list. Only https LinkedIn post URLs render as links.
 
 ## Slice 2 — Synthex claims missions (not built)
 

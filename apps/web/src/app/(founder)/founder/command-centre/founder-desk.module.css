@@ -237,3 +237,6 @@
 .interruptions li { display: flex; justify-content: space-between; gap: 12px; padding: 4px 8px; border: 1px solid transparent; border-radius: 3px; color: var(--mission-muted); overflow-wrap: anywhere; }
 .interruptions li[data-protected="true"] { border-color: var(--mission-success); color: var(--mission-success-text); font-weight: 600; }
 @media (max-width: 560px) { .authorityList > div { grid-template-columns: 1fr; gap: 2px; } }
+/* SPM-audit G2 — Synthex mission timeline facts. */
+.synthexFacts { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 4px 0 12px; color: var(--mission-muted); overflow-wrap: anywhere; }
+.synthexPostText { white-space: pre-wrap; overflow-wrap: anywhere; margin: 8px 0; color: var(--mission-ink); }

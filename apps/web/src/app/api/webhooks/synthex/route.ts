@@ -3,8 +3,10 @@
 // Synthex witness-event receiver (Mission Control slice 1). Synthex's
 // lib/unite-group-connector.ts POSTs fire-and-forget events here; each lands as
 // ONE redacted cc_agent_events row (names + targets, no payload) so Mission
-// Control witnesses what Synthex did. Replaces the undeployed apps/empire
-// /api/events receiver.
+// Control witnesses what Synthex did. When the event names a founder mission,
+// its whitelisted structured detail (count, window, post URL, occurredAt…) is
+// kept in that mission's cc_task_events payload. Replaces the undeployed
+// apps/empire /api/events receiver.
 //
 // DORMANT BY DEFAULT: SYNTHEX_EVENTS_API_KEY unset ⇒ 503 before any work.
 // /api/webhooks is public in proxy.ts because this route verifies its own key.
@@ -21,7 +23,12 @@ import {
   type AgentEventsClientLike,
 } from '@/lib/command-centre/agent-events'
 import { appendTaskEvent, getTaskById, type SupabaseLike } from '@/lib/command-centre/tasks'
-import { synthexEventSchema, summariseEvent, toAgentEventInput } from '@/lib/integrations/synthex-events'
+import {
+  synthexEventDetail,
+  synthexEventSchema,
+  summariseEvent,
+  toAgentEventInput,
+} from '@/lib/integrations/synthex-events'
 
 export const dynamic = 'force-dynamic'
 
@@ -113,7 +120,12 @@ export async function POST(request: Request) {
             taskId: task.id,
             type: 'comment',
             actor: 'synthex',
-            payload: { source: 'synthex', event_type: event.type.slice(0, 128), summary: summariseEvent(event) },
+            payload: {
+              source: 'synthex',
+              event_type: event.type.slice(0, 128),
+              summary: summariseEvent(event),
+              ...synthexEventDetail(event),
+            },
           },
           db,
         )
