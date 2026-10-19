@@ -75,3 +75,19 @@ describe.each([
     expect(colours.filter((c) => (contrastOnPaper(c) ?? 0) < 4.5)).toEqual([])
   })
 })
+
+describe('privacy policy covers website enquiries (/grow)', () => {
+  const text = renderToStaticMarkup(createElement(PrivacyPolicyPage))
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&#x27;|&#8217;/g, "'")
+    .replace(/\s+/g, ' ')
+
+  it('names what /grow collects, the consent rule, and how to opt out or delete', () => {
+    expect(text).toContain('10. Website Enquiries and Free Audits')
+    expect(text).toContain('https://unite-group.in/grow')
+    expect(text).toMatch(/name, email address, and optionally your phone number/)
+    expect(text).toContain('We send you marketing emails only if you tick the marketing box.')
+    expect(text).toMatch(/ask to see, correct or delete your information/)
+    expect(text).toContain('12. Contact Us')
+  })
+})

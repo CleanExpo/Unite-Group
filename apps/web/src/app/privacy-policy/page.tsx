@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 }
 
-const LAST_UPDATED = '20 June 2026'
+const LAST_UPDATED = '19 October 2026'
 const CONTACT_EMAIL = 'contact@unite-group.in'
 const COMPANY = COMPANY_NAME
 const APP_URL = 'https://unite-group.in'
@@ -217,7 +217,36 @@ export default function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="10. Changes to This Policy">
+        <Section title="10. Website Enquiries and Free Audits">
+          <p>
+            When you request a free audit or ask about our services at{' '}
+            <a href={`${APP_URL}/grow`} style={{ color: '#15803d' }}>{APP_URL}/grow</a>, at an event, or
+            through a referral link, we collect your name, email address, and optionally your phone number,
+            business name, website address, the package you are interested in, and anything you tell us in the
+            message box. We also record how you reached us (for example &#8220;event&#8221; or &#8220;LinkedIn&#8221;).
+          </p>
+          <p>
+            We use this information to run the audit you asked for, send you the results, and reply to your
+            enquiry. We look at your business&#8217;s public website and public listings (such as your Google
+            Business Profile) to prepare the audit.
+          </p>
+          <p>
+            We send you marketing emails only if you tick the marketing box. You can unsubscribe from any
+            marketing email, or email{' '}
+            <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: '#15803d' }}>{CONTACT_EMAIL}</a>, and we will stop.
+          </p>
+          <p>
+            We store enquiries in our customer database (hosted with Supabase), which only {COMPANY} staff can
+            access. We do not sell your information. We keep enquiry records for as long as needed to respond and
+            follow up, unless you ask us to delete them sooner.
+          </p>
+          <p>
+            You can ask to see, correct or delete your information at any time by emailing{' '}
+            <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: '#15803d' }}>{CONTACT_EMAIL}</a>.
+          </p>
+        </Section>
+
+        <Section title="11. Changes to This Policy">
           <p>
             We may update this Privacy Policy from time to time. The &#8220;Last updated&#8221; date at the
             top of this page indicates when the most recent revision was made. Continued use of the Application
@@ -225,7 +254,7 @@ export default function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="11. Contact Us">
+        <Section title="12. Contact Us">
           <p>
             For privacy enquiries, to exercise your rights, or to report a concern, contact:
           </p>
