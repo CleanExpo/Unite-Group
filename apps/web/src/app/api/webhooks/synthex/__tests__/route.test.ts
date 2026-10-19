@@ -10,7 +10,10 @@ vi.mock('@/lib/command-centre/tasks', async (orig) => {
   return { ...actual, getTaskById: vi.fn(), appendTaskEvent: vi.fn() }
 })
 
+vi.mock('@/lib/command-centre/synthex-posts', () => ({ recordSynthexPostEvent: vi.fn() }))
+
 import { createServiceClient } from '@/lib/supabase/service'
+import { recordSynthexPostEvent } from '@/lib/command-centre/synthex-posts'
 import { insertAgentEvents } from '@/lib/command-centre/agent-events'
 import { appendTaskEvent, getTaskById } from '@/lib/command-centre/tasks'
 import { GET, HEAD, POST } from '../route'
@@ -38,6 +41,7 @@ describe('/api/webhooks/synthex', () => {
     process.env.FOUNDER_USER_ID = 'founder-1'
     vi.mocked(createServiceClient).mockReturnValue({} as never)
     vi.mocked(insertAgentEvents).mockResolvedValue([{ id: 'row-1' }] as never)
+    vi.mocked(recordSynthexPostEvent).mockResolvedValue('skipped')
   })
   afterEach(() => {
     if (saved.key === undefined) delete process.env.SYNTHEX_EVENTS_API_KEY
@@ -52,6 +56,7 @@ describe('/api/webhooks/synthex', () => {
     expect(res.status).toBe(503)
     expect((await res.json()).error).toBe('receiver_not_configured')
     expect(insertAgentEvents).not.toHaveBeenCalled()
+    expect(recordSynthexPostEvent).not.toHaveBeenCalled()
   })
 
   it('401s on a missing key, a wrong key and a prefix of the key', async () => {
@@ -165,6 +170,30 @@ describe('/api/webhooks/synthex', () => {
     const res = await POST(req({ type: 'outcome.trials', source: 'synthex', timestamp: event.timestamp, window: '2026-W42' }))
     expect(res.status).toBe(400)
     expect(insertAgentEvents).not.toHaveBeenCalled()
+  })
+
+  it('records a post event for the calendar, with or without a mission, after the wall row', async () => {
+    vi.mocked(recordSynthexPostEvent).mockResolvedValue('recorded')
+    const res = await POST(req({ ...event, postId: 'cm9post', status: 'awaiting_approval', text: 'Draft body' }))
+    expect(res.status).toBe(201)
+    expect(await res.json()).toEqual({ ok: true, id: 'row-1', post: 'recorded' })
+    const [, founderId, recorded] = vi.mocked(recordSynthexPostEvent).mock.calls[0]
+    expect(founderId).toBe('founder-1')
+    expect(recorded).toMatchObject({ postId: 'cm9post', status: 'awaiting_approval', text: 'Draft body' })
+    expect(vi.mocked(insertAgentEvents).mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(recordSynthexPostEvent).mock.invocationCallOrder[0])
+  })
+
+  it('reports post record_failed (201, wall row kept) when the post store write fails', async () => {
+    vi.mocked(recordSynthexPostEvent).mockRejectedValue(new Error('relation "cc_synthex_post_events" does not exist'))
+    const res = await POST(req({ ...event, postId: 'cm9post' }))
+    expect(res.status).toBe(201)
+    expect(await res.json()).toEqual({ ok: true, id: 'row-1', post: 'record_failed' })
+  })
+
+  it('does not touch the post store when the wall insert fails', async () => {
+    vi.mocked(insertAgentEvents).mockRejectedValue(new Error('boom'))
+    expect((await POST(req({ ...event, postId: 'cm9post' }))).status).toBe(500)
+    expect(recordSynthexPostEvent).not.toHaveBeenCalled()
   })
 
   it('does not link a mission that is not the founder’s', async () => {

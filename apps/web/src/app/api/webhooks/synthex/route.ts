@@ -5,8 +5,9 @@
 // ONE redacted cc_agent_events row (names + targets, no payload) so Mission
 // Control witnesses what Synthex did. When the event names a founder mission,
 // its whitelisted structured detail (count, window, post URL, occurredAt…) is
-// kept in that mission's cc_task_events payload. Replaces the undeployed
-// apps/empire /api/events receiver.
+// kept in that mission's cc_task_events payload. Any event naming a postId is
+// also appended to cc_synthex_post_events for the Mission Control calendar.
+// Replaces the undeployed apps/empire /api/events receiver.
 //
 // DORMANT BY DEFAULT: SYNTHEX_EVENTS_API_KEY unset ⇒ 503 before any work.
 // /api/webhooks is public in proxy.ts because this route verifies its own key.
@@ -23,6 +24,7 @@ import {
   type AgentEventsClientLike,
 } from '@/lib/command-centre/agent-events'
 import { appendTaskEvent, getTaskById, type SupabaseLike } from '@/lib/command-centre/tasks'
+import { recordSynthexPostEvent, type SynthexPostsClient } from '@/lib/command-centre/synthex-posts'
 import {
   synthexEventDetail,
   synthexEventSchema,
@@ -136,5 +138,17 @@ export async function POST(request: Request) {
     }
   }
 
-  return NextResponse.json({ ok: true, id, ...(mission ? { mission } : {}) }, { status: 201 })
+  // Calendar post store. Same rule: the witness row is durable, so a failed
+  // post write is reported in the body, never retried into a duplicate.
+  let post: 'recorded' | 'record_failed' | undefined
+  try {
+    if ((await recordSynthexPostEvent(client as unknown as SynthexPostsClient, founderId, event)) === 'recorded') post = 'recorded'
+  } catch {
+    post = 'record_failed'
+  }
+
+  return NextResponse.json(
+    { ok: true, id, ...(mission ? { mission } : {}), ...(post ? { post } : {}) },
+    { status: 201 },
+  )
 }
