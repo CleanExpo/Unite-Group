@@ -64,7 +64,7 @@ const PUBLIC_PATHS = [
   '/widget',       // Embeddable chat widget script must load on third-party sites (UNI-2359)
 ] as const;
 
-// Single public files, matched EXACTLY. A file has no sub-routes, so the
+// Single public files and pages, matched EXACTLY. They have no sub-routes, so the
 // segment rule above would grant '/llms.txt/<anything>' an exemption nobody
 // approved (independent review, Wave 1).
 const EXACT_PUBLIC_FILES: ReadonlySet<string> = new Set([
@@ -73,6 +73,7 @@ const EXACT_PUBLIC_FILES: ReadonlySet<string> = new Set([
   '/sitemap.xml',
   '/site.webmanifest',
   '/founder-os-sw.js',
+  '/grow', // Public SMB services offer page; its form posts to the public /api/leads
 ]);
 
 export function isPublicPath(pathname: string): boolean {

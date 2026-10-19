@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 }
 
-const LAST_UPDATED = '20 June 2026'
+const LAST_UPDATED = '19 October 2026'
 const CONTACT_EMAIL = 'contact@unite-group.in'
 const COMPANY = COMPANY_NAME
 const APP_URL = 'https://unite-group.in'
@@ -16,12 +16,12 @@ export default function PrivacyPolicyPage() {
   return (
     <div
       className="min-h-screen"
-      style={{ background: '#fffdf7', color: 'rgba(255,255,255,0.88)' }}
+      style={{ background: '#fffdf7', color: 'rgba(28,25,23,0.88)' }}
     >
       {/* Header */}
       <header
         style={{
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          borderBottom: '1px solid rgba(28,25,23,0.1)',
           background: '#fff7ec',
         }}
       >
@@ -32,7 +32,7 @@ export default function PrivacyPolicyPage() {
           >
             UNITE-GROUP
           </a>
-          <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '11px', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}>
+          <span style={{ color: 'rgba(28,25,23,0.68)', fontSize: '11px', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}>
             PRIVACY POLICY
           </span>
         </div>
@@ -46,12 +46,12 @@ export default function PrivacyPolicyPage() {
             fontWeight: 600,
             letterSpacing: '-0.02em',
             marginBottom: '6px',
-            color: '#fff',
+            color: '#1c1917',
           }}
         >
           Privacy Policy
         </h1>
-        <p style={{ color: 'rgba(255,255,255,0.40)', fontSize: '13px', fontFamily: 'var(--font-mono)', marginBottom: '48px' }}>
+        <p style={{ color: 'rgba(28,25,23,0.7)', fontSize: '13px', fontFamily: 'var(--font-mono)', marginBottom: '48px' }}>
           Last updated: {LAST_UPDATED}
         </p>
 
@@ -217,7 +217,36 @@ export default function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="10. Changes to This Policy">
+        <Section title="10. Website Enquiries and Free Audits">
+          <p>
+            When you request a free audit or ask about our services at{' '}
+            <a href={`${APP_URL}/grow`} style={{ color: '#15803d' }}>{APP_URL}/grow</a>, at an event, or
+            through a referral link, we collect your name, email address, and optionally your phone number,
+            business name, website address, the package you are interested in, and anything you tell us in the
+            message box. We also record how you reached us (for example &#8220;event&#8221; or &#8220;LinkedIn&#8221;).
+          </p>
+          <p>
+            We use this information to run the audit you asked for, send you the results, and reply to your
+            enquiry. We look at your business&#8217;s public website and public listings (such as your Google
+            Business Profile) to prepare the audit.
+          </p>
+          <p>
+            We send you marketing emails only if you tick the marketing box. You can unsubscribe from any
+            marketing email, or email{' '}
+            <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: '#15803d' }}>{CONTACT_EMAIL}</a>, and we will stop.
+          </p>
+          <p>
+            We store enquiries in our customer database (hosted with Supabase), which only {COMPANY} staff can
+            access. We do not sell your information. We keep enquiry records for as long as needed to respond and
+            follow up, unless you ask us to delete them sooner.
+          </p>
+          <p>
+            You can ask to see, correct or delete your information at any time by emailing{' '}
+            <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: '#15803d' }}>{CONTACT_EMAIL}</a>.
+          </p>
+        </Section>
+
+        <Section title="11. Changes to This Policy">
           <p>
             We may update this Privacy Policy from time to time. The &#8220;Last updated&#8221; date at the
             top of this page indicates when the most recent revision was made. Continued use of the Application
@@ -225,7 +254,7 @@ export default function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="11. Contact Us">
+        <Section title="12. Contact Us">
           <p>
             For privacy enquiries, to exercise your rights, or to report a concern, contact:
           </p>
@@ -246,17 +275,17 @@ export default function PrivacyPolicyPage() {
 
       <footer
         style={{
-          borderTop: '1px solid rgba(255,255,255,0.06)',
+          borderTop: '1px solid rgba(28,25,23,0.08)',
           padding: '24px',
           textAlign: 'center',
-          color: 'rgba(255,255,255,0.25)',
+          color: 'rgba(28,25,23,0.66)',
           fontSize: '11px',
           fontFamily: 'var(--font-mono)',
           letterSpacing: '0.08em',
         }}
       >
         © 2026 {COMPANY} — {companyAbnLabel()} · Australia ·{' '}
-        <a href="/terms-of-service" style={{ color: 'rgba(255,255,255,0.40)' }}>Terms of Service</a>
+        <a href="/terms-of-service" style={{ color: 'rgba(28,25,23,0.7)' }}>Terms of Service</a>
       </footer>
     </div>
   )
@@ -278,7 +307,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       >
         {title}
       </h2>
-      <div style={{ fontSize: '14px', lineHeight: '1.8', color: 'rgba(255,255,255,0.78)' }} className="prose-content">
+      <div style={{ fontSize: '14px', lineHeight: '1.8', color: 'rgba(28,25,23,0.82)' }} className="prose-content">
         {children}
       </div>
     </section>
@@ -291,7 +320,7 @@ function SubHeading({ children }: { children: React.ReactNode }) {
       style={{
         fontSize: '13px',
         fontWeight: 600,
-        color: 'rgba(255,255,255,0.70)',
+        color: 'rgba(28,25,23,0.78)',
         letterSpacing: '0.04em',
         marginTop: '20px',
         marginBottom: '8px',

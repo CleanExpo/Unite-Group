@@ -119,6 +119,7 @@ describe('public-path exemption is segment-aware, not prefix-loose', () => {
       '/llms.txt',
       '/site.webmanifest',
       '/founder-os-sw.js',
+      '/grow',
     ]
 
     it.each(exempt)('exempts %s', (p) => {
@@ -147,6 +148,11 @@ describe('public-path exemption is segment-aware, not prefix-loose', () => {
       '/sitemap.xml/founder',
       '/site.webmanifest/api/founder/wiki',
       '/founder-os-sw.js/private',
+      // '/grow' is one public page; lookalikes and descendants stay gated.
+      '/growth',
+      '/grow-admin',
+      '/grow/private',
+      '/grow/api/founder/wiki',
     ]
 
     it.each(gated)('does NOT exempt %s', (p) => {
