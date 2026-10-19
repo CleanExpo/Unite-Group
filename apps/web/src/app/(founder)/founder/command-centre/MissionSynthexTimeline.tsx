@@ -2,8 +2,8 @@
 
 // MissionSynthexTimeline — SPM-audit G2. The Synthex witness events recorded
 // for the selected mission, in the order the steps happened, with the
-// structured fields the receiver kept (trial count and window, post URL,
-// occurred time). Events that arrived with no mission id are listed separately
+// structured fields the receiver kept (trial count and window, post status,
+// schedule, full text, approve link, post URL, occurred time). Events that arrived with no mission id are listed separately
 // so a sender gap is visible. Read on demand, like the authority panel;
 // nothing here writes. States: reading, failed, none, rows.
 
@@ -25,6 +25,16 @@ export function linkedInPostUrl(value: string | null): string | null {
   } catch { return null }
 }
 
+/** Only an https synthex.social deep link becomes the approve link. */
+export function synthexApproveUrl(value: string | null): string | null {
+  if (!value) return null
+  try {
+    const url = new URL(value)
+    const synthex = url.hostname === 'synthex.social' || url.hostname.endsWith('.synthex.social')
+    return url.protocol === 'https:' && synthex && !url.username && !url.password ? url.href : null
+  } catch { return null }
+}
+
 function countLine(entry: SynthexTimelineEntry): string | null {
   if (entry.eventType === 'outcome.read_failed') return 'Trials: unknown — RA read failed'
   if (entry.eventType === 'outcome.trials') return `Trials: ${entry.count ?? 'not recorded'}`
@@ -33,8 +43,10 @@ function countLine(entry: SynthexTimelineEntry): string | null {
 }
 
 function TimelineItem({ entry }: { entry: SynthexTimelineEntry }) {
-  const link = linkedInPostUrl(entry.url)
+  const link = linkedInPostUrl(entry.postUrl)
+  const approve = synthexApproveUrl(entry.approveUrl)
   const count = countLine(entry)
+  const post = [entry.postId && `Post ${entry.postId}`, entry.platform].filter(Boolean).join(' · ')
   return <li data-event={entry.eventType}>
     <p className={styles.helper}>{entry.occurredAt
       ? <time dateTime={entry.occurredAt}>{aest(entry.occurredAt)}</time>
@@ -44,9 +56,19 @@ function TimelineItem({ entry }: { entry: SynthexTimelineEntry }) {
       {count && <span>{count}</span>}
       {entry.window && <span>Window: {entry.window}</span>}
       {entry.attributionKey && <span>Attribution: {entry.attributionKey}</span>}
-      {entry.url && <span>{link ? <a href={link} target="_blank" rel="noopener noreferrer">Open LinkedIn post</a> : `Post: ${entry.url}`}</span>}
+      {entry.postUrl && <span>{link ? <a href={link} target="_blank" rel="noopener noreferrer">Open LinkedIn post</a> : `Post: ${entry.postUrl}`}</span>}
+      {post && <span>{post}</span>}
+      {entry.status && <span>Status: {entry.status.replaceAll('_', ' ')}</span>}
+      {entry.scheduledAt && <span>Scheduled: {aest(entry.scheduledAt)}</span>}
+      {entry.publishedAt && <span>Published: {aest(entry.publishedAt)}</span>}
+      {entry.businessSlug && <span>Business: {entry.businessSlug}</span>}
       <span>Mission id: {entry.missionId}</span>
     </p>
+    {entry.text && <details className={styles.details}><summary>Post text</summary><p className={styles.synthexPostText}>{entry.text}</p></details>}
+    {entry.thumbnailUrls.length > 0 && <p className={styles.synthexFacts}>{entry.thumbnailUrls.map(url => <span key={url}>Media: {url}</span>)}</p>}
+    {entry.approveUrl && <p>{approve
+      ? <a className={styles.resultLink} href={approve} target="_blank" rel="noopener noreferrer">Review and approve in Synthex</a>
+      : `Approve link (not Synthex, not linked): ${entry.approveUrl}`}</p>}
   </li>
 }
 

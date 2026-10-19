@@ -9,6 +9,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { CC_AGENT_EVENTS_TABLE } from './agent-events'
 import { CC_TASK_EVENTS_TABLE } from './tasks'
+import { SYNTHEX_POST_STATUSES, type SynthexPostStatus } from '@/lib/integrations/synthex-events'
 
 const TIMELINE_LIMIT = 200
 const UNLINKED_LIMIT = 20
@@ -25,7 +26,16 @@ export interface SynthexTimelineEntry {
   count: number | null
   window: string | null
   attributionKey: string | null
-  url: string | null
+  postUrl: string | null
+  businessSlug: string | null
+  platform: string | null
+  postId: string | null
+  status: SynthexPostStatus | null
+  scheduledAt: string | null
+  publishedAt: string | null
+  text: string | null
+  thumbnailUrls: string[]
+  approveUrl: string | null
 }
 
 export interface SynthexUnlinkedEvent {
@@ -58,23 +68,37 @@ export interface SynthexTimelineClient {
 interface TaskEventRow { id: string; task_id: string; at: string; payload: unknown }
 
 const text = (value: unknown): string | null => (typeof value === 'string' && value ? value : null)
+const time = (value: unknown): string | null => {
+  const t = text(value)
+  return t && !Number.isNaN(Date.parse(t)) ? t : null
+}
+const status = (value: unknown): SynthexPostStatus | null =>
+  (SYNTHEX_POST_STATUSES as readonly unknown[]).includes(value) ? (value as SynthexPostStatus) : null
 
 /** Read one stored row back. Only whitelisted, correctly typed values are shown. */
 export function readSynthexTimelineEntry(row: TaskEventRow): SynthexTimelineEntry | null {
   const p = (row.payload && typeof row.payload === 'object' ? row.payload : {}) as Record<string, unknown>
   if (p.source !== 'synthex') return null
-  const occurredAt = text(p.occurredAt)
   return {
     id: row.id,
     receivedAt: row.at,
-    occurredAt: occurredAt && !Number.isNaN(Date.parse(occurredAt)) ? occurredAt : null,
+    occurredAt: time(p.occurredAt),
     eventType: text(p.eventType) ?? text(p.event_type) ?? 'unknown',
     summary: text(p.summary) ?? '',
     missionId: row.task_id,
     count: Number.isInteger(p.count) && (p.count as number) >= 0 ? (p.count as number) : null,
     window: text(p.window),
     attributionKey: text(p.attributionKey),
-    url: text(p.url),
+    postUrl: text(p.postUrl),
+    businessSlug: text(p.businessSlug),
+    platform: text(p.platform),
+    postId: text(p.postId),
+    status: status(p.status),
+    scheduledAt: time(p.scheduledAt),
+    publishedAt: time(p.publishedAt),
+    text: text(p.text),
+    thumbnailUrls: Array.isArray(p.thumbnailUrls) ? p.thumbnailUrls.filter((u): u is string => typeof u === 'string') : [],
+    approveUrl: text(p.approveUrl),
   }
 }
 

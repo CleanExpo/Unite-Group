@@ -134,14 +134,15 @@ describe('/api/webhooks/synthex', () => {
     vi.mocked(getTaskById).mockResolvedValue({ id: MISSION } as never)
     vi.mocked(appendTaskEvent).mockResolvedValue({} as never)
     const url = 'https://www.linkedin.com/feed/update/urn:li:activity:7000000000000000000/'
-    const res = await POST(req({ ...event, missionId: MISSION, url, occurredAt: '2026-10-19T00:58:00.000Z', userId: 'u-1', email: 'x@y.z' }))
+    const res = await POST(req({ ...event, missionId: MISSION, postUrl: url, occurredAt: '2026-10-19T00:58:00.000Z', userId: 'u-1', email: 'x@y.z' }))
     expect(res.status).toBe(201)
     const payload = vi.mocked(appendTaskEvent).mock.calls[0][0].payload
     expect(payload).toEqual({
       source: 'synthex', event_type: 'content.published',
       summary: `Synthex published a linkedin post for ccw: ${url}`,
       missionId: MISSION, eventType: 'content.published', occurredAt: '2026-10-19T00:58:00.000Z', sentAt: event.timestamp,
-      orgSlug: 'ccw', platform: 'linkedin', count: null, window: null, attributionKey: null, url,
+      orgSlug: 'ccw', businessSlug: 'ccw-crm', platform: 'linkedin', count: null, window: null, attributionKey: null, postUrl: url,
+      postId: null, status: null, scheduledAt: null, publishedAt: null, text: null, thumbnailUrls: [], approveUrl: null,
     })
     expect(JSON.stringify(payload)).not.toContain('x@y.z')
     expect(vi.mocked(insertAgentEvents).mock.calls[0][2][0].planKey).toBe(MISSION)

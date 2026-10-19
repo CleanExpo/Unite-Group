@@ -28,6 +28,12 @@ const httpsUrl = z.string().max(500).refine((value) => {
   }
 }, 'must be an https URL without credentials')
 
+/** Post lifecycle states the Mission Control calendar shows. */
+export const SYNTHEX_POST_STATUSES = ['drafted', 'awaiting_approval', 'approved', 'scheduled', 'published', 'failed'] as const
+export type SynthexPostStatus = (typeof SYNTHEX_POST_STATUSES)[number]
+export const MAX_POST_TEXT = 5000
+const MAX_THUMBNAILS = 4
+
 export const synthexEventSchema = z
   .object({
     type: z.string().trim().min(1).max(80),
@@ -40,7 +46,15 @@ export const synthexEventSchema = z
     count: z.number().int().min(0).max(10_000_000).optional(),
     window: label.optional(),
     attributionKey: label.optional(),
-    url: httpsUrl.optional(),
+    // Post lifecycle (Mission Control calendar: read and approve every post).
+    postId: z.string().trim().min(1).max(128).regex(/^[\x20-\x7e]+$/, 'single-line printable text only').optional(),
+    status: z.enum(SYNTHEX_POST_STATUSES).optional(),
+    scheduledAt: z.string().datetime().optional(),
+    publishedAt: z.string().datetime().optional(),
+    text: z.string().max(MAX_POST_TEXT).optional(),
+    thumbnailUrls: z.array(httpsUrl).max(MAX_THUMBNAILS).optional(),
+    approveUrl: httpsUrl.optional(),
+    postUrl: httpsUrl.optional(),
   })
   .passthrough()
   .superRefine((event, ctx) => {
@@ -82,11 +96,28 @@ export interface SynthexEventDetail {
   occurredAt: string
   sentAt: string
   orgSlug: string | null
+  businessSlug: string | null
   platform: string | null
   count: number | null
   window: string | null
   attributionKey: string | null
-  url: string | null
+  postId: string | null
+  status: SynthexPostStatus | null
+  scheduledAt: string | null
+  publishedAt: string | null
+  /** Full post text, ≤5k chars, newlines kept, other control characters removed. */
+  text: string | null
+  thumbnailUrls: string[]
+  /** Deep link into Synthex where the founder reads and approves the post. */
+  approveUrl: string | null
+  postUrl: string | null
+}
+
+/** Keep line breaks and tabs; drop every other control character. */
+function postText(value: string | undefined): string | null {
+  if (value === undefined) return null
+  const cleaned = value.replace(/\r\n?/g, '\n').replace(/[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u2028\u2029]/g, '').trim()
+  return cleaned || null
 }
 
 function optionalLine(value: unknown, max: number): string | null {
@@ -107,11 +138,19 @@ export function synthexEventDetail(event: SynthexEvent): SynthexEventDetail {
     occurredAt: event.occurredAt ?? event.timestamp,
     sentAt: event.timestamp,
     orgSlug: event.orgSlug ? oneLine(event.orgSlug) : null,
+    businessSlug: resolveBusinessSlug(event.orgSlug),
     platform: optionalLine(event.platform, 40),
     count: event.count ?? digestCount,
     window: event.window ?? (digest ? optionalLine(event.isoWeek, 64) : null),
     attributionKey: event.attributionKey ?? null,
-    url: event.url ?? null,
+    postId: event.postId ?? null,
+    status: event.status ?? null,
+    scheduledAt: event.scheduledAt ?? null,
+    publishedAt: event.publishedAt ?? null,
+    text: postText(event.text),
+    thumbnailUrls: event.thumbnailUrls ?? [],
+    approveUrl: event.approveUrl ?? null,
+    postUrl: event.postUrl ?? null,
   }
 }
 
@@ -137,7 +176,7 @@ export function summariseEvent(event: SynthexEvent): string {
       summary = `A Synthex draft was approved${brand}`
       break
     case 'content.published':
-      summary = `Synthex published a ${platform} post${brand}${detail.url ? `: ${detail.url}` : ' (post link not sent)'}`
+      summary = `Synthex published a ${platform} post${brand}${detail.postUrl ? `: ${detail.postUrl}` : ' (post link not sent)'}`
       break
     case 'outcome.trials': {
       const n = detail.count ?? 0 // schema guarantees a count for this type

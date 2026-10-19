@@ -54,15 +54,15 @@ describe('synthex-events structured detail', () => {
     expect(e.success).toBe(true)
     expect(synthexEventDetail(e.data!)).toEqual({
       missionId: null, eventType: 'outcome.trials', occurredAt: '2026-10-19T00:30:00.000Z', sentAt: base.timestamp,
-      orgSlug: 'restoreassist', platform: null, count: 3, window: '2026-10-12/2026-10-18',
-      attributionKey: 'utm_source=synthex', url: null,
+      orgSlug: 'restoreassist', businessSlug: 'restoreassist', platform: null, count: 3, window: '2026-10-12/2026-10-18',
+      attributionKey: 'utm_source=synthex', postUrl: null, postId: null, status: null, scheduledAt: null, publishedAt: null, text: null, thumbnailUrls: [], approveUrl: null,
     })
   })
 
   it('keeps the post URL for content.published and the missionId when sent; occurredAt falls back to timestamp', () => {
     const url = 'https://www.linkedin.com/feed/update/urn:li:activity:7000000000000000000/'
-    const e = parse({ ...base, type: 'content.published', platform: 'linkedin', url, missionId: MISSION })
-    expect(synthexEventDetail(e.data!)).toMatchObject({ missionId: MISSION, url, platform: 'linkedin', occurredAt: base.timestamp, count: null, window: null })
+    const e = parse({ ...base, type: 'content.published', platform: 'linkedin', postUrl: url, missionId: MISSION })
+    expect(synthexEventDetail(e.data!)).toMatchObject({ missionId: MISSION, postUrl: url, platform: 'linkedin', occurredAt: base.timestamp, count: null, window: null })
   })
 
   it('maps the live content.outcomes digest (postsPublished, isoWeek) to count and window', () => {
@@ -76,9 +76,9 @@ describe('synthex-events structured detail', () => {
     expect(parse({ ...trials, count: '3' }).success).toBe(false)
     expect(parse({ ...trials, window: 'a\nb' }).success).toBe(false)
     expect(parse({ ...trials, window: 'w'.repeat(65) }).success).toBe(false)
-    expect(parse({ ...base, type: 'content.published', url: 'http://www.linkedin.com/x' }).success).toBe(false)
-    expect(parse({ ...base, type: 'content.published', url: 'https://u:p@www.linkedin.com/x' }).success).toBe(false)
-    expect(parse({ ...base, type: 'content.published', url: 'not a url' }).success).toBe(false)
+    expect(parse({ ...base, type: 'content.published', postUrl: 'http://www.linkedin.com/x' }).success).toBe(false)
+    expect(parse({ ...base, type: 'content.published', postUrl: 'https://u:p@www.linkedin.com/x' }).success).toBe(false)
+    expect(parse({ ...base, type: 'content.published', postUrl: 'not a url' }).success).toBe(false)
     expect(parse({ ...trials, occurredAt: 'yesterday' }).success).toBe(false)
   })
 
@@ -98,7 +98,7 @@ describe('synthex-events structured detail', () => {
     expect(s({ type: 'content.drafted', platform: 'linkedin' })).toBe('Synthex drafted a linkedin post for restoreassist')
     expect(s({ type: 'content.held_for_review' })).toBe('Synthex held a draft for human review for restoreassist')
     expect(s({ type: 'content.approved' })).toBe('A Synthex draft was approved for restoreassist')
-    expect(s({ type: 'content.published', platform: 'linkedin', url: 'https://www.linkedin.com/feed/update/1' }))
+    expect(s({ type: 'content.published', platform: 'linkedin', postUrl: 'https://www.linkedin.com/feed/update/1' }))
       .toBe('Synthex published a linkedin post for restoreassist: https://www.linkedin.com/feed/update/1')
     expect(s({ type: 'content.published', platform: 'linkedin' })).toBe('Synthex published a linkedin post for restoreassist (post link not sent)')
     expect(s({ type: 'outcome.trials', count: 0, window: '2026-10-12/2026-10-18', attributionKey: 'utm_source=synthex' }))
@@ -116,5 +116,58 @@ describe('synthex-events structured detail', () => {
     const unlinked = toAgentEventInput(parse(trials).data!)
     expect(unlinked.planKey).toBeNull()
     expect(unlinked.target).toBe('Synthex outcome: 3 trials attributed to utm_source=synthex in 2026-10-12/2026-10-18 for restoreassist · no mission id · occurred 2026-10-19T00:30:00.000Z')
+  })
+})
+
+// Orchestrator scope addition 19/10: post-lifecycle fields for the Mission Control calendar.
+describe('synthex-events post lifecycle fields', () => {
+  const post = {
+    ...base, type: 'content.drafted', orgSlug: 'ccw', platform: 'linkedin', postId: 'cm9post0001',
+    status: 'awaiting_approval', scheduledAt: '2026-10-21T22:00:00.000Z',
+    text: 'Line one\nLine two\u0007 with a bell', thumbnailUrls: ['https://cdn.synthex.social/a.jpg', 'https://cdn.synthex.social/b.png'],
+    approveUrl: 'https://synthex.social/studio/ccw/drafts/cm9post0001',
+  }
+  const parse = (e: Record<string, unknown>) => synthexEventSchema.safeParse(e)
+
+  it('keeps postId, status, schedule, text (multi-line, control chars stripped), thumbnails, approve link and business', () => {
+    const e = parse(post)
+    expect(e.success).toBe(true)
+    expect(synthexEventDetail(e.data!)).toMatchObject({
+      postId: 'cm9post0001', platform: 'linkedin', status: 'awaiting_approval', scheduledAt: '2026-10-21T22:00:00.000Z',
+      publishedAt: null, text: 'Line one\nLine two with a bell', thumbnailUrls: post.thumbnailUrls,
+      approveUrl: post.approveUrl, orgSlug: 'ccw', businessSlug: 'ccw-crm',
+    })
+  })
+
+  it('accepts every calendar status and publishedAt', () => {
+    for (const status of ['drafted', 'awaiting_approval', 'approved', 'scheduled', 'published', 'failed']) {
+      expect(parse({ ...post, status }).success).toBe(true)
+    }
+    expect(synthexEventDetail(parse({ ...post, publishedAt: '2026-10-21T22:00:05.000Z' }).data!).publishedAt).toBe('2026-10-21T22:00:05.000Z')
+  })
+
+  it('rejects malformed post fields rather than storing them', () => {
+    expect(parse({ ...post, status: 'live' }).success).toBe(false)
+    expect(parse({ ...post, text: 'x'.repeat(5001) }).success).toBe(false)
+    expect(parse({ ...post, text: 'x'.repeat(5000) }).success).toBe(true)
+    expect(parse({ ...post, thumbnailUrls: Array(5).fill('https://cdn.synthex.social/a.jpg') }).success).toBe(false)
+    expect(parse({ ...post, thumbnailUrls: ['http://cdn.synthex.social/a.jpg'] }).success).toBe(false)
+    expect(parse({ ...post, thumbnailUrls: 'https://cdn.synthex.social/a.jpg' }).success).toBe(false)
+    expect(parse({ ...post, approveUrl: 'http://synthex.social/x' }).success).toBe(false)
+    expect(parse({ ...post, scheduledAt: 'tomorrow' }).success).toBe(false)
+    expect(parse({ ...post, postId: 'a\nb' }).success).toBe(false)
+    expect(parse({ ...post, postId: 'p'.repeat(129) }).success).toBe(false)
+  })
+
+  it('keeps the live content.published shape (platform, postId, no status) valid', () => {
+    const live = parse({ ...base, type: 'content.published', userId: 'u1', platform: 'linkedin', postId: 'cm9live', orgSlug: 'ccw' })
+    expect(live.success).toBe(true)
+    expect(synthexEventDetail(live.data!)).toMatchObject({ postId: 'cm9live', status: null, text: null, thumbnailUrls: [] })
+  })
+
+  it('never puts the post text on the wall row', () => {
+    const target = toAgentEventInput(parse({ ...post, text: 'SECRET-LOOKING DRAFT BODY' }).data!).target!
+    expect(target).not.toContain('SECRET-LOOKING')
+    expect(target.length).toBeLessThanOrEqual(512)
   })
 })

@@ -239,3 +239,4 @@
 @media (max-width: 560px) { .authorityList > div { grid-template-columns: 1fr; gap: 2px; } }
 /* SPM-audit G2 — Synthex mission timeline facts. */
 .synthexFacts { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 4px 0 12px; color: var(--mission-muted); overflow-wrap: anywhere; }
+.synthexPostText { white-space: pre-wrap; overflow-wrap: anywhere; margin: 8px 0; color: var(--mission-ink); }

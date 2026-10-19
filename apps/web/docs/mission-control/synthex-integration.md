@@ -24,12 +24,18 @@ Optional body fields, validated (a malformed value is a 400, never stored):
 | `count` | integer ≥ 0 | `outcome.trials` (required), never on `outcome.read_failed` |
 | `window` | ≤64 printable chars | `outcome.trials` (required), `outcome.read_failed` |
 | `attributionKey` | ≤64 printable chars, e.g. `utm_source=synthex` | outcomes |
-| `url` | https, no credentials, ≤500 | `content.published` |
+| `postUrl` | https, no credentials, ≤500 | `content.published` |
+| `postId` | ≤128 printable chars | post steps |
+| `status` | `drafted` · `awaiting_approval` · `approved` · `scheduled` · `published` · `failed` | post steps |
+| `scheduledAt`, `publishedAt` | ISO datetime | post steps |
+| `text` | full post text, ≤5,000 chars; line breaks kept, other control characters removed | post steps |
+| `thumbnailUrls` | up to 4 https URLs | post steps |
+| `approveUrl` | https deep link into Synthex; linked only on `synthex.social` | post steps |
 
 The live `content.outcomes` digest's `postsPublished`/`isoWeek` map to `count`/`window`.
-Mission-linked rows keep a whitelisted `cc_task_events.payload`: `{source, event_type, summary, missionId, eventType, occurredAt, sentAt, orgSlug, platform, count, window, attributionKey, url}` (unknown values are `null`). Labelled steps: `campaign.planned`, `content.drafted`, `content.held_for_review`, `content.approved`, `content.published`, `outcome.trials`, plus `outcome.read_failed` (shown as "unknown — RA read failed", never 0).
+Mission-linked rows keep a whitelisted `cc_task_events.payload`: `{source, event_type, summary, missionId, eventType, occurredAt, sentAt, orgSlug, businessSlug, platform, count, window, attributionKey, postId, status, scheduledAt, publishedAt, text, thumbnailUrls, approveUrl, postUrl}` (unknown values are `null`, `thumbnailUrls` is `[]`). The post text never goes on the wall row. Labelled steps: `campaign.planned`, `content.drafted`, `content.held_for_review`, `content.approved`, `content.published`, `outcome.trials`, plus `outcome.read_failed` (shown as "unknown — RA read failed", never 0).
 
-Events without a `missionId` have no task row to hold JSONB, so their values survive only in the wall row's `target` text. Sending `missionId` on `content.published` and `outcome.trials` is a Synthex change (audit C2).
+Events without a `missionId` have no task row to hold JSONB, so their values survive only in the wall row's `target` text. Sending `missionId` on `content.published` and `outcome.trials` is a Synthex change (audit C2). A Mission Control calendar that must show every post, including ones with no mission, needs one additive table or column for these fields; that migration belongs with the calendar change and must be applied before any code writes to it.
 
 **Mission view:** the selected mission's "Synthex activity" panel (`GET /api/command-centre/missions/synthex?taskId=`, founder session) lists that mission's events oldest step first by `occurredAt`, plus the 20 most recent Synthex events that arrived with no mission id. A failed read is shown as an error, never as an empty list. Only https LinkedIn post URLs render as links.
 

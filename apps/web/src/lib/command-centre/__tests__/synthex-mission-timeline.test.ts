@@ -5,7 +5,7 @@ const TASK = '7f1d1b64-9a54-4f2b-9a2f-3f5f1d0c7a11'
 const row = (id: string, at: string, payload: Record<string, unknown>) => ({ id, task_id: TASK, type: 'comment', at, payload })
 const step = (type: string, occurredAt: string, extra: Record<string, unknown> = {}) => ({
   source: 'synthex', event_type: type, summary: `summary ${type}`, missionId: TASK, eventType: type, occurredAt,
-  sentAt: occurredAt, orgSlug: 'restoreassist', platform: null, count: null, window: null, attributionKey: null, url: null, ...extra,
+  sentAt: occurredAt, orgSlug: 'restoreassist', platform: null, count: null, window: null, attributionKey: null, postUrl: null, ...extra,
 })
 
 /** Records every filter so a test can see the query the reader actually ran. */
@@ -66,9 +66,25 @@ describe('synthex mission timeline reader', () => {
     const entry = readSynthexTimelineEntry(row('old', '2026-10-19T01:00:00Z', { source: 'synthex', event_type: 'content.published', summary: 'Synthex published a linkedin post' }))
     expect(entry).toEqual({
       id: 'old', receivedAt: '2026-10-19T01:00:00Z', occurredAt: null, eventType: 'content.published', summary: 'Synthex published a linkedin post',
-      missionId: TASK, count: null, window: null, attributionKey: null, url: null,
+      missionId: TASK, count: null, window: null, attributionKey: null, postUrl: null,
+      businessSlug: null, platform: null, postId: null, status: null, scheduledAt: null, publishedAt: null, text: null, thumbnailUrls: [], approveUrl: null,
     })
     // A wrong-typed count is not a number we can show.
     expect(readSynthexTimelineEntry(row('x', '2026-10-19T01:00:00Z', step('outcome.trials', '2026-10-19T01:00:00Z', { count: '3' })))?.count).toBeNull()
+  })
+})
+
+describe('synthex mission timeline reader — post fields', () => {
+  it('reads post-lifecycle fields back and drops wrong-typed values', () => {
+    const good = readSynthexTimelineEntry(row('p', '2026-10-19T01:00:00Z', step('content.drafted', '2026-10-19T01:00:00Z', {
+      postId: 'cm9', platform: 'linkedin', status: 'awaiting_approval', scheduledAt: '2026-10-21T22:00:00.000Z', text: 'Hello\nworld',
+      thumbnailUrls: ['https://cdn.synthex.social/a.jpg'], approveUrl: 'https://synthex.social/studio/x', businessSlug: 'restoreassist',
+    })))
+    expect(good).toMatchObject({ postId: 'cm9', platform: 'linkedin', status: 'awaiting_approval', scheduledAt: '2026-10-21T22:00:00.000Z',
+      text: 'Hello\nworld', thumbnailUrls: ['https://cdn.synthex.social/a.jpg'], approveUrl: 'https://synthex.social/studio/x', businessSlug: 'restoreassist' })
+    const bad = readSynthexTimelineEntry(row('q', '2026-10-19T01:00:00Z', step('content.drafted', '2026-10-19T01:00:00Z', {
+      status: 'live', scheduledAt: 'soon', thumbnailUrls: 'https://x', text: 42,
+    })))
+    expect(bad).toMatchObject({ status: null, scheduledAt: null, thumbnailUrls: [], text: null })
   })
 })
