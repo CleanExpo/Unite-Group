@@ -23,7 +23,14 @@ header  x-api-key: <SYNTHEX_EVENTS_API_KEY>
 body    { type, source: "synthex", timestamp, orgSlug?, ...passthrough }
 ```
 
-Receiver: `apps/empire/src/app/api/events/route.ts`. Its contract, in order:
+**Live receiver (deployed): `apps/web/src/app/api/webhooks/synthex/route.ts`**, with mapping in
+`apps/web/src/lib/integrations/synthex-events.ts`. It writes one `cc_agent_events` row per event
+(no `agent_actions`; see `apps/web/docs/mission-control/synthex-integration.md`). Synthex's connector
+path must be `/api/webhooks/synthex` against `https://unite-group.in`. The `apps/empire` receiver
+below is the original reference and is **not deployed** — events sent to `/api/events` on
+unite-group.in are redirected to login and dropped. The status-code contract below is identical in both.
+
+Reference receiver: `apps/empire/src/app/api/events/route.ts`. Its contract, in order:
 
 1. **`SYNTHEX_EVENTS_API_KEY` unset → 503 `receiver_not_configured`.** The key
    is required; the receiver refuses to run open.
