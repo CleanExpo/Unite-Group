@@ -16,12 +16,12 @@ export default function PrivacyPolicyPage() {
   return (
     <div
       className="min-h-screen"
-      style={{ background: '#fffdf7', color: 'rgba(255,255,255,0.88)' }}
+      style={{ background: '#fffdf7', color: 'rgba(28,25,23,0.88)' }}
     >
       {/* Header */}
       <header
         style={{
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          borderBottom: '1px solid rgba(28,25,23,0.1)',
           background: '#fff7ec',
         }}
       >
@@ -32,7 +32,7 @@ export default function PrivacyPolicyPage() {
           >
             UNITE-GROUP
           </a>
-          <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '11px', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}>
+          <span style={{ color: 'rgba(28,25,23,0.68)', fontSize: '11px', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}>
             PRIVACY POLICY
           </span>
         </div>
@@ -46,12 +46,12 @@ export default function PrivacyPolicyPage() {
             fontWeight: 600,
             letterSpacing: '-0.02em',
             marginBottom: '6px',
-            color: '#fff',
+            color: '#1c1917',
           }}
         >
           Privacy Policy
         </h1>
-        <p style={{ color: 'rgba(255,255,255,0.40)', fontSize: '13px', fontFamily: 'var(--font-mono)', marginBottom: '48px' }}>
+        <p style={{ color: 'rgba(28,25,23,0.7)', fontSize: '13px', fontFamily: 'var(--font-mono)', marginBottom: '48px' }}>
           Last updated: {LAST_UPDATED}
         </p>
 
@@ -246,17 +246,17 @@ export default function PrivacyPolicyPage() {
 
       <footer
         style={{
-          borderTop: '1px solid rgba(255,255,255,0.06)',
+          borderTop: '1px solid rgba(28,25,23,0.08)',
           padding: '24px',
           textAlign: 'center',
-          color: 'rgba(255,255,255,0.25)',
+          color: 'rgba(28,25,23,0.66)',
           fontSize: '11px',
           fontFamily: 'var(--font-mono)',
           letterSpacing: '0.08em',
         }}
       >
         © 2026 {COMPANY} — {companyAbnLabel()} · Australia ·{' '}
-        <a href="/terms-of-service" style={{ color: 'rgba(255,255,255,0.40)' }}>Terms of Service</a>
+        <a href="/terms-of-service" style={{ color: 'rgba(28,25,23,0.7)' }}>Terms of Service</a>
       </footer>
     </div>
   )
@@ -278,7 +278,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       >
         {title}
       </h2>
-      <div style={{ fontSize: '14px', lineHeight: '1.8', color: 'rgba(255,255,255,0.78)' }} className="prose-content">
+      <div style={{ fontSize: '14px', lineHeight: '1.8', color: 'rgba(28,25,23,0.82)' }} className="prose-content">
         {children}
       </div>
     </section>
@@ -291,7 +291,7 @@ function SubHeading({ children }: { children: React.ReactNode }) {
       style={{
         fontSize: '13px',
         fontWeight: 600,
-        color: 'rgba(255,255,255,0.70)',
+        color: 'rgba(28,25,23,0.78)',
         letterSpacing: '0.04em',
         marginTop: '20px',
         marginBottom: '8px',
