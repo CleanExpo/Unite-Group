@@ -7,9 +7,11 @@ import TermsOfServicePage from '../terms-of-service/page'
 
 // Both pages sit on a light paper background (#fffdf7). From 22/06/2026 (#390) until this test,
 // their text stayed white, so the published privacy policy and terms were unreadable.
-// Every inline text colour must parse as a colour and reach WCAG AA (4.5:1) on that paper.
-// Anything the parser cannot read (a keyword such as `white`, hsl(), a variable) fails closed.
+// Every inline text colour must parse as a colour and reach WCAG AA (4.5:1) on both backgrounds
+// the pages use: the paper (#fffdf7) and the header band (#fff7ec). Anything the parser cannot
+// read (a keyword such as `white`, hsl(), a variable) fails closed.
 const PAPER: [number, number, number] = [255, 253, 247]
+const HEADER: [number, number, number] = [255, 247, 236]
 
 function parseColour(value: string): [number, number, number, number] | null {
   const v = value.trim().toLowerCase()
@@ -31,13 +33,20 @@ function luminance([r, g, b]: number[]): number {
   return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
 }
 
-function contrastOnPaper(value: string): number | null {
+function contrastOn(value: string, bg: [number, number, number]): number | null {
   const c = parseColour(value)
   if (!c) return null
   const [r, g, b, a] = c
-  const mixed = [r, g, b].map((ch, i) => ch * a + PAPER[i] * (1 - a))
-  const [hi, lo] = [luminance(PAPER), luminance(mixed)].sort((x, y) => y - x)
+  const mixed = [r, g, b].map((ch, i) => ch * a + bg[i] * (1 - a))
+  const [hi, lo] = [luminance(bg), luminance(mixed)].sort((x, y) => y - x)
   return (hi + 0.05) / (lo + 0.05)
+}
+
+// Worst case over the two backgrounds the legal pages actually use.
+function contrastOnPaper(value: string): number | null {
+  const onPaper = contrastOn(value, PAPER)
+  const onHeader = contrastOn(value, HEADER)
+  return onPaper === null || onHeader === null ? null : Math.min(onPaper, onHeader)
 }
 
 function textColours(html: string): string[] {
@@ -53,6 +62,11 @@ describe('contrastOnPaper', () => {
       expect((contrastOnPaper(v) ?? 0) >= 4.5).toBe(false)
     },
   )
+
+  it('fails a grey that passes on the paper but not on the header band', () => {
+    expect(contrastOn('#757575', PAPER)!).toBeGreaterThanOrEqual(4.5)
+    expect(contrastOnPaper('#757575')!).toBeLessThan(4.5)
+  })
 
   it('passes dark stone ink', () => {
     expect(contrastOnPaper('#1c1917')!).toBeGreaterThan(15)
