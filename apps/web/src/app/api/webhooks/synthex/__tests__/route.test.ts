@@ -112,7 +112,8 @@ describe('/api/webhooks/synthex', () => {
     expect(founderId).toBe('founder-1')
     expect(rows).toEqual([{
       agentName: 'synthex', surface: 'local', machine: 'synthex.social', projectKey: 'ccw-crm',
-      eventType: 'status', toolName: 'content.published', target: 'Synthex published a linkedin post for ccw',
+      eventType: 'status', toolName: 'content.published', planKey: null,
+      target: 'Synthex published a linkedin post for ccw (post link not sent) · no mission id · occurred 2026-10-19T01:00:00.000Z',
     }])
     expect(JSON.stringify(rows)).not.toContain('leak-me')
     expect(appendTaskEvent).not.toHaveBeenCalled()
@@ -127,6 +128,42 @@ describe('/api/webhooks/synthex', () => {
     expect(getTaskById).toHaveBeenCalledWith({ founderId: 'founder-1', taskId: MISSION }, expect.anything())
     const input = vi.mocked(appendTaskEvent).mock.calls[0][0]
     expect(input).toMatchObject({ founderId: 'founder-1', taskId: MISSION, type: 'comment', actor: 'synthex' })
+  })
+
+  it('stores the structured fields on the mission timeline row (SPM-audit G2)', async () => {
+    vi.mocked(getTaskById).mockResolvedValue({ id: MISSION } as never)
+    vi.mocked(appendTaskEvent).mockResolvedValue({} as never)
+    const url = 'https://www.linkedin.com/feed/update/urn:li:activity:7000000000000000000/'
+    const res = await POST(req({ ...event, missionId: MISSION, url, occurredAt: '2026-10-19T00:58:00.000Z', userId: 'u-1', email: 'x@y.z' }))
+    expect(res.status).toBe(201)
+    const payload = vi.mocked(appendTaskEvent).mock.calls[0][0].payload
+    expect(payload).toEqual({
+      source: 'synthex', event_type: 'content.published',
+      summary: `Synthex published a linkedin post for ccw: ${url}`,
+      missionId: MISSION, eventType: 'content.published', occurredAt: '2026-10-19T00:58:00.000Z', sentAt: event.timestamp,
+      orgSlug: 'ccw', platform: 'linkedin', count: null, window: null, attributionKey: null, url,
+    })
+    expect(JSON.stringify(payload)).not.toContain('x@y.z')
+    expect(vi.mocked(insertAgentEvents).mock.calls[0][2][0].planKey).toBe(MISSION)
+  })
+
+  it('accepts outcome.trials without a missionId: wall row only, count and window kept, no mission shown', async () => {
+    const res = await POST(req({
+      type: 'outcome.trials', source: 'synthex', timestamp: event.timestamp, orgSlug: 'restoreassist',
+      count: 0, window: '2026-10-12/2026-10-18', attributionKey: 'utm_source=synthex',
+    }))
+    expect(res.status).toBe(201)
+    expect(await res.json()).toEqual({ ok: true, id: 'row-1' })
+    const row = vi.mocked(insertAgentEvents).mock.calls[0][2][0]
+    expect(row.planKey).toBeNull()
+    expect(row.target).toBe('Synthex outcome: 0 trials attributed to utm_source=synthex in 2026-10-12/2026-10-18 for restoreassist · no mission id · occurred 2026-10-19T01:00:00.000Z')
+    expect(getTaskById).not.toHaveBeenCalled()
+  })
+
+  it('400s an outcome.trials with no count instead of storing a blank outcome', async () => {
+    const res = await POST(req({ type: 'outcome.trials', source: 'synthex', timestamp: event.timestamp, window: '2026-W42' }))
+    expect(res.status).toBe(400)
+    expect(insertAgentEvents).not.toHaveBeenCalled()
   })
 
   it('does not link a mission that is not the founder’s', async () => {
