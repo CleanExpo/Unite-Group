@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getUser } from "@/lib/supabase/server";
-import { listTasks } from "@/lib/command-centre/tasks";
+import { z } from "zod";
+import { getBusinessByKey } from "@/lib/businesses";
+import { listTasks, getTaskById } from "@/lib/command-centre/tasks";
 import {
   deliveryRequestSchema,
   isDeliveryMission,
@@ -23,20 +25,30 @@ import { toDeliveryMissionView } from "@/lib/command-centre/delivery-view";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-export async function GET() {
+export async function GET(request?: Request) {
   const user = await getUser();
   if (!user)
     return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
+  const params = request ? new URL(request.url).searchParams : new URLSearchParams();
+  const businessKey = params.get("business");
+  const selectedId = params.get("taskId");
+  if ((businessKey !== null && !getBusinessByKey(businessKey)) || (selectedId !== null && !z.string().uuid().safeParse(selectedId).success)) {
+    return NextResponse.json({ error: "Choose a registered business and a valid mission." }, { status: 400 });
+  }
   try {
-    const tasks = await listTasks({ founderId: user.id, limit: 100 });
+    const tasks = await listTasks({ founderId: user.id, limit: 100, ...(businessKey ? { businessKey } : {}) });
     const readiness = { approvalSigningAvailable: isDeliveryApprovalSigningAvailable() };
+    // A direct mission link must remain readable even outside the capped project list.
+    const selected = selectedId && !tasks.some(task => task.id === selectedId)
+      ? await getTaskById({ founderId: user.id, taskId: selectedId }) : null;
     return NextResponse.json({
+      ...(selected && selected.founder_id === user.id && isDeliveryMission(selected) ? { selectedMission: toDeliveryMissionView(selected, Date.now(), readiness) } : {}),
       missions: tasks
         .filter(isDeliveryMission)
         .map((task) => toDeliveryMissionView(task, Date.now(), readiness)),
       presets: DELIVERY_PRESETS,
       source: "supabase",
-      coverage: "Latest 100 founder tasks; older missions may not be included.",
+      coverage: businessKey ? "Up to 100 tasks filed under this business, highest priority first and oldest first within each priority." : "Latest 100 founder tasks; older missions may not be included.",
     });
   } catch {
     return NextResponse.json(

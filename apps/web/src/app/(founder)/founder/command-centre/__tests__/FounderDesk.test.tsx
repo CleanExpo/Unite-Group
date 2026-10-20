@@ -371,9 +371,11 @@ describe('FounderDesk mission journey', () => {
       { ...mission, taskId: 'older', title: 'Older normal task', priority: 'P2', createdAt: '2026-09-01T00:00:00Z' },
       { ...mission, taskId: 'other', title: 'Other business', businessKey: 'carsi', priority: 'P0' },
     ]
-    vi.stubGlobal('fetch', vi.fn(async () => response({ missions: items, presets: [], source: 'supabase' })))
+    const fetchMock = vi.fn(async () => response({ missions: items, presets: [], source: 'supabase' }))
+    vi.stubGlobal('fetch', fetchMock)
     render(<FounderDesk projects={[]} />)
     await screen.findByRole('button', { name: /Urgent repair/ })
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/command-centre/missions?business=restore')
     const cards = screen.getAllByRole('button').filter(button => button.hasAttribute('aria-pressed') && button.textContent?.includes('Priority'))
     expect(cards.map(button => button.textContent)).toEqual([expect.stringContaining('Urgent repair'), expect.stringContaining('Older normal task')])
     expect(screen.queryByRole('button', { name: /Other business/ })).not.toBeInTheDocument()
@@ -383,6 +385,32 @@ describe('FounderDesk mission journey', () => {
     expect(screen.queryByRole('article', { name: 'Selected mission' })).not.toBeInTheDocument()
     expect(new URL(window.location.href).searchParams.get('mission')).toBeNull()
     expect(screen.getByRole('button', { name: /Other business/ })).toBeVisible()
+    await waitFor(() => expect(fetchMock).toHaveBeenLastCalledWith('/api/command-centre/missions?business=carsi', expect.objectContaining({ cache: 'no-store' })))
+  })
+
+  it('does not let a slower previous business read replace the selected business result', async () => {
+    window.history.replaceState({}, '', '/founder/command-centre?business=restore')
+    let finish!: (value: ReturnType<typeof response>) => void
+    const pending = new Promise<ReturnType<typeof response>>(resolve => { finish = resolve })
+    const carsiMission = { ...mission, taskId: 'carsi-mission', title: 'CARSI research', businessKey: 'carsi' }
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => url.includes('business=restore') ? pending : response({ missions: [carsiMission], presets: [], source: 'supabase' })))
+    render(<FounderDesk projects={[]} />)
+    fireEvent.change(screen.getByLabelText('Show missions for'), { target: { value: 'carsi' } })
+    await screen.findByRole('button', { name: /CARSI research/ })
+    await act(async () => { finish(response({ missions: [mission], presets: [], source: 'supabase' })) })
+    expect(screen.getByLabelText('Show missions for')).toHaveValue('carsi')
+    expect(screen.getByRole('button', { name: /CARSI research/ })).toBeVisible()
+    expect(screen.queryByRole('button', { name: /Customer portal/ })).not.toBeInTheDocument()
+  })
+
+  it('opens an exact linked mission even when it is outside the capped list', async () => {
+    window.history.replaceState({}, '', `/founder/command-centre?mission=${mission.taskId}`)
+    const fetchMock = vi.fn(async () => response({ missions: [], selectedMission: mission, presets: [], source: 'supabase' }))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<FounderDesk projects={[]} />)
+    await screen.findByRole('article', { name: 'Selected mission' })
+    expect(screen.getByRole('article', { name: 'Selected mission' })).toHaveTextContent('Customer portal')
+    expect(fetchMock.mock.calls[0][0]).toBe(`/api/command-centre/missions?taskId=${mission.taskId}`)
   })
 
 })

@@ -25,6 +25,7 @@ function makeMockClient(resultOrResults: MockResult | MockResult[]) {
     op: 'insert' | 'select'
     inserted?: unknown
     eqs: Array<[string, unknown]>
+    orders?: Array<[string, { ascending: boolean }]>
     order?: [string, { ascending: boolean }]
     limit?: number
   }[] = []
@@ -41,7 +42,8 @@ function makeMockClient(resultOrResults: MockResult | MockResult[]) {
       }
       const order = (column: string, opts: { ascending: boolean }) => {
         record.order = [column, opts]
-        return { limit }
+        record.orders = [...(record.orders ?? []), [column, opts]]
+        return eqChain
       }
       const eqChain = {
         eq(column: string, value: unknown) {
@@ -192,6 +194,31 @@ describe('command-centre tasks accessors', () => {
     expect(calls[0].eqs).toContainEqual(['project_key', 'unite-hub'])
     expect(calls[0].order).toEqual(['updated_at', { ascending: false }])
     expect(calls[0].limit).toBe(10)
+  })
+
+  it('filters the business and orders priority then age before applying the row cap', async () => {
+    const events: string[] = []
+    const filters: Array<[string, unknown]> = []
+    const ordering: string[] = []
+    const urgent = { id: 'old-urgent', founder_id: 'f1', priority: 'P0', created_at: '2025-01-01', metadata: { businessKey: 'restore' } }
+    const rows = [
+      ...Array.from({ length: 150 }, (_, index) => ({ ...urgent, id: `other-${index}`, metadata: { businessKey: 'carsi' } })),
+      { ...urgent, id: 'new-normal', priority: 'P2', created_at: '2026-10-20' }, urgent,
+    ]
+    const query = {
+      eq: (key: string, value: unknown) => { events.push(`eq:${key}`); filters.push([key, value]); return query },
+      order: (key: string) => { events.push(`order:${key}`); ordering.push(key); return query },
+      limit: async (limit: number) => {
+        events.push('limit')
+        const matching = rows.filter(row => filters.every(([key, value]) => key === 'metadata->>businessKey' ? row.metadata.businessKey === value : row[key as keyof typeof row] === value))
+        matching.sort((a, b) => { for (const key of ordering) { const delta = String(a[key as keyof typeof a]).localeCompare(String(b[key as keyof typeof b])); if (delta) return delta } return 0 })
+        return { data: matching.slice(0, limit), error: null }
+      },
+    }
+    const client = { from: () => ({ select: () => query }) } as unknown as SupabaseLike
+    const result = await listTasks({ founderId: 'f1', businessKey: 'restore', limit: 1 }, client)
+    expect(result.map(row => row.id)).toEqual(['old-urgent'])
+    expect(events).toEqual(['eq:founder_id', 'eq:metadata->>businessKey', 'order:priority', 'order:created_at', 'order:id', 'limit'])
   })
 
   it('listTasks caps the limit at 100', async () => {

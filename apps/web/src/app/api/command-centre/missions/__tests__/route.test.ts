@@ -16,7 +16,7 @@ vi.mock("@/lib/command-centre/delivery-prepare", async (importOriginal) => {
   return { ...actual, prepareDeliveryMission: vi.fn() };
 });
 import { getUser, createClient } from "@/lib/supabase/server";
-import { listTasks } from "@/lib/command-centre/tasks";
+import { listTasks, getTaskById } from "@/lib/command-centre/tasks";
 import {
   prepareDeliveryMission,
   DeliveryPreparationFailure,
@@ -64,6 +64,21 @@ describe("missions authenticated orchestration API", () => {
     expect((await GET()).status).toBe(401);
     expect((await POST(req(input))).status).toBe(401);
     expect(prepareDeliveryMission).not.toHaveBeenCalled();
+  });
+  it("asks the store for the chosen business before its row cap and reads an older linked mission separately", async () => {
+    vi.mocked(listTasks).mockResolvedValue([]);
+    vi.mocked(getTaskById).mockResolvedValue(task);
+    const response = await GET(new Request(`https://app.test/api/command-centre/missions?business=restore&taskId=${taskId}`));
+    expect(response.status).toBe(200);
+    expect(listTasks).toHaveBeenCalledWith({ founderId: "owner", businessKey: "restore", limit: 100 });
+    expect(getTaskById).toHaveBeenCalledWith({ founderId: "owner", taskId });
+    const body = await response.json();
+    expect(body.missions).toEqual([]);
+    expect(body.selectedMission.taskId).toBe(taskId);
+  });
+  it("rejects unknown business filters without querying tasks", async () => {
+    expect((await GET(new Request("https://app.test/api/command-centre/missions?business=unknown"))).status).toBe(400);
+    expect(listTasks).not.toHaveBeenCalled();
   });
   it("rejects client stage/receipt fields and unknown presets", async () => {
     expect((await POST(req({ ...input, stage: "live_verified" }))).status).toBe(

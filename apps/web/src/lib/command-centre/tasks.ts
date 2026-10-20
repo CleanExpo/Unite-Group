@@ -145,6 +145,8 @@ export interface ListTasksFilter {
   founderId: string
   status?: TaskStatus
   projectKey?: string
+  /** My Businesses filing; applied before priority ordering and the row cap. */
+  businessKey?: string
   limit?: number
 }
 
@@ -342,11 +344,20 @@ export async function listTasks(
   const db = client ?? ((await createClient()) as unknown as SupabaseLike)
   const limit = Math.min(Math.max(filter.limit ?? 50, 1), 100)
 
-  let query = db.from(CC_TASKS_TABLE).select('*').eq('founder_id', filter.founderId)
+  interface TaskListQuery {
+    eq(column: string, value: unknown): TaskListQuery
+    order(column: string, options: { ascending: boolean }): TaskListQuery
+    limit(limit: number): Promise<{ data: unknown; error: SupabaseErrorLike | null }>
+  }
+  let query = db.from(CC_TASKS_TABLE).select('*').eq('founder_id', filter.founderId) as unknown as TaskListQuery
   if (filter.status) query = query.eq('status', filter.status) as never
   if (filter.projectKey) query = query.eq('project_key', filter.projectKey) as never
 
-  const { data, error } = await query.order('updated_at', { ascending: false }).limit(limit)
+  if (filter.businessKey) query = query.eq('metadata->>businessKey', filter.businessKey)
+  const ordered = filter.businessKey
+    ? query.order('priority', { ascending: true }).order('created_at', { ascending: true }).order('id', { ascending: true })
+    : query.order('updated_at', { ascending: false })
+  const { data, error } = await ordered.limit(limit)
   if (error) throw new Error(`listTasks failed: ${error.message}`)
   return (data as CommandCentreTask[]) ?? []
 }

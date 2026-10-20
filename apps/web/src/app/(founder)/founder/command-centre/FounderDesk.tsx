@@ -10,7 +10,7 @@ import { IdeaCapture } from './MissionLifecycle'
 import styles from './founder-desk.module.css'
 
 interface MissionResponse { mission?: DeliveryMissionView; error?: string }
-interface MissionListResponse { missions?: DeliveryMissionView[]; presets?: DeliveryPreset[]; source?: string; error?: string }
+interface MissionListResponse { selectedMission?: DeliveryMissionView; missions?: DeliveryMissionView[]; presets?: DeliveryPreset[]; source?: string; error?: string }
 
 function saveSelectedMission(id: string | null) {
   const url = new URL(window.location.href)
@@ -22,6 +22,7 @@ function saveSelectedMission(id: string | null) {
 export function FounderDesk({ projects }: { projects: Array<{ name: string }> }) {
   const [missions, setMissions] = useState<DeliveryMissionView[]>([])
   const [businessFilter, setBusinessFilter] = useState('')
+  const businessFilterRef = useRef('')
   const [presets, setPresets] = useState<DeliveryPreset[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const selectedMission = useRef<string | null>(null)
@@ -41,11 +42,15 @@ export function FounderDesk({ projects }: { projects: Array<{ name: string }> })
     setLoading(true)
     const sequence = ++readSequence.current
     try {
-      const response = await fetch('/api/command-centre/missions', { credentials: 'include', cache: 'no-store' })
+      const params = new URLSearchParams()
+      if (businessFilterRef.current) params.set('business', businessFilterRef.current)
+      if (selectedMission.current) params.set('taskId', selectedMission.current)
+      const suffix = params.size ? `?${params}` : ''
+      const response = await fetch(`/api/command-centre/missions${suffix}`, { credentials: 'include', cache: 'no-store' })
       const data = await response.json() as MissionListResponse
       if (sequence !== readSequence.current) return
       if (!response.ok || data.source !== 'supabase' || !Array.isArray(data.missions) || !Array.isArray(data.presets)) throw new Error(data.error || 'Mission history could not be loaded. Try refreshing it.')
-      setMissions(data.missions)
+      setMissions(data.selectedMission && !data.missions.some(mission => mission.taskId === data.selectedMission!.taskId) ? [...data.missions, data.selectedMission] : data.missions)
       setPresets(data.presets)
       setReadError(null)
     } catch (error) {
@@ -58,7 +63,8 @@ export function FounderDesk({ projects }: { projects: Array<{ name: string }> })
   useEffect(() => {
     const params = new URL(window.location.href).searchParams
     const business = params.get('business') ?? ''
-    setBusinessFilter(getBusinessByKey(business) ? business : '')
+    businessFilterRef.current = getBusinessByKey(business) ? business : ''
+    setBusinessFilter(businessFilterRef.current)
     selectedMission.current = params.get('mission')
     setSelectedId(selectedMission.current)
     void load()
@@ -147,12 +153,14 @@ export function FounderDesk({ projects }: { projects: Array<{ name: string }> })
     // A confirmed refile keeps the open mission and follows its saved business.
     if (!businessFilter || !selected || selected.businessKey === businessFilter) return
     const nextBusiness = selected.businessKey ?? ''
+    businessFilterRef.current = nextBusiness
     setBusinessFilter(nextBusiness)
     const url = new URL(window.location.href)
     if (nextBusiness) url.searchParams.set('business', nextBusiness)
     else url.searchParams.delete('business')
     window.history.replaceState(window.history.state, '', url)
-  }, [businessFilter, selected])
+    void load()
+  }, [businessFilter, selected, load])
 
   function missionCard(mission: DeliveryMissionView) {
     return <button key={mission.taskId} disabled={busy && mission.taskId === selectedId} className={styles.missionCard} data-selected={mission.taskId === selectedId} aria-pressed={mission.taskId === selectedId} onClick={() => selectMission(mission.taskId)}>
@@ -168,8 +176,8 @@ export function FounderDesk({ projects }: { projects: Array<{ name: string }> })
       <div><h1>Your vision. A clear path forward.</h1><p>Turn ideas into missions. See progress. Make the decisions that need you.</p></div>
       <button className={styles.secondaryButton} onClick={newIdea}>New idea</button>
     </header>
-    <div className={styles.answerField}><label htmlFor="mission-business-filter">Show missions for</label><select id="mission-business-filter" value={businessFilter} disabled={busy} onChange={event => { if (event.target.value && selected?.businessKey !== event.target.value) { setSelectedId(null); selectedMission.current = null; saveSelectedMission(null) } setBusinessFilter(event.target.value); const url = new URL(window.location.href); if (event.target.value) url.searchParams.set('business', event.target.value); else url.searchParams.delete('business'); window.history.replaceState(window.history.state, '', url) }}><option value="">All businesses</option>{BUSINESSES.map(business => <option key={business.key} value={business.key}>{business.name}</option>)}</select></div>
-    {businessFilter && <p className={styles.helper}>Showing {getBusinessByKey(businessFilter)?.name} missions by urgency, oldest first within each priority, from the latest 100 founder tasks. <a href={`/founder/${businessFilter}`}>Open business</a></p>}
+    <div className={styles.answerField}><label htmlFor="mission-business-filter">Show missions for</label><select id="mission-business-filter" value={businessFilter} disabled={busy} onChange={event => { if (event.target.value && selected?.businessKey !== event.target.value) { setSelectedId(null); selectedMission.current = null; saveSelectedMission(null) } businessFilterRef.current = event.target.value; setBusinessFilter(event.target.value); const url = new URL(window.location.href); if (event.target.value) url.searchParams.set('business', event.target.value); else url.searchParams.delete('business'); window.history.replaceState(window.history.state, '', url); void load() }}><option value="">All businesses</option>{BUSINESSES.map(business => <option key={business.key} value={business.key}>{business.name}</option>)}</select></div>
+    {businessFilter && <p className={styles.helper}>Showing {getBusinessByKey(businessFilter)?.name} missions by urgency, oldest first within each priority, from up to 100 tasks filed under this business. <a href={`/founder/${businessFilter}`}>Open business</a></p>}
     {actionError && <div className={styles.error} role="alert">{actionError}</div>}
     <div hidden={!!selectedId || view !== 'desk'}>
       <IdeaCapture key={`capture-${draftKey}`} onCaptured={captured} />
