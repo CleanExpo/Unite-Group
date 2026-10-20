@@ -9,6 +9,7 @@ import type {
 } from "@/lib/command-centre/idea-research";
 import styles from "./mission-lifecycle.module.css";
 import desk from "./founder-desk.module.css";
+import { MissionSuggestion } from "./MissionSuggestion";
 
 const endpoint = "/api/command-centre/missions/research";
 type OwnerResearchRun = Omit<ResearchRun, "lease"> & {
@@ -90,6 +91,30 @@ function mandateBudget(mandate: NonNullable<IdeaLifecycle["mandate"]>): string {
   } catch {
     return "Review the saved budget above.";
   }
+}
+
+/** Only offer hosts explicitly named in the saved mandate, never guessed sites. */
+export function mandateDomains(sources: string[]): string | undefined {
+  const hosts = sources.flatMap((source) => {
+    try {
+      const url = new URL(source.trim());
+      return url.protocol === "https:" &&
+        !url.username &&
+        !url.password &&
+        /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(
+          url.hostname,
+        ) &&
+        !/(?:^|\.)(?:localhost|local|internal)$/.test(url.hostname)
+        ? [url.hostname]
+        : [];
+    } catch {
+      return [];
+    }
+  });
+  const unique = [...new Set(hosts)];
+  return unique.length > 0 && unique.length <= 20
+    ? unique.join("\n")
+    : undefined;
 }
 
 export function MissionResearch({
@@ -445,20 +470,18 @@ export function MissionResearch({
                         {mandateBudget(lifecycle.mandate)}
                       </p>
                     </details>
-                    <label
-                      className={styles.field}
-                      htmlFor={`${fieldId}-domains`}
-                    >
-                      <span>Allowed public website domains — one per line</span>
-                      <textarea
-                        id={`${fieldId}-domains`}
-                        name="allowedDomains"
-                        rows={3}
-                        required
-                        maxLength={5080}
-                        placeholder="example.com"
-                      />
-                    </label>
+                    <MissionSuggestion
+                      label="Allowed public website domains — one per line"
+                      name="allowedDomains"
+                      multiline
+                      required
+                      maxLength={5080}
+                      placeholder="example.com"
+                      suggestion={mandateDomains(
+                        lifecycle.mandate.allowedSources,
+                      )}
+                      onDraftChange={() => setAllowanceApproved(false)}
+                    />
                     <label
                       className={styles.field}
                       htmlFor={`${fieldId}-sources`}

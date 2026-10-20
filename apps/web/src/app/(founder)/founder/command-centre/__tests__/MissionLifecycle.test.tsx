@@ -528,3 +528,18 @@ describe("mission lifecycle workbench", () => {
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 });
+
+
+it("keeps currency editable after clearing its controlled field", async () => {
+  vi.stubGlobal("fetch", vi.fn(async () => response(packet())));
+  render(<MissionLifecycle taskId={taskId} />);
+  fireEvent.click(screen.getByRole("button", { name: "Open research and outcome workbench" }));
+  await screen.findByText("Research mandate and checkpoint");
+  fireEvent.click(screen.getByText("Research mandate and checkpoint"));
+  const boundaries = screen.getByRole("group", { name: "Research boundaries" });
+  const currency = within(boundaries).getByLabelText("Payment currency");
+  fireEvent.change(currency, { target: { value: "" } });
+  fireEvent.change(currency, { target: { value: "JPY" } });
+  expect(currency).toHaveValue("JPY");
+  expect(within(boundaries).getByLabelText("Research spend limit (JPY)")).toBeInTheDocument();
+});

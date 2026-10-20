@@ -5,7 +5,7 @@ import { DELIVERY_PRESETS } from '@/lib/command-centre/delivery-presets'
 
 const mission = {
   taskId: '00000000-0000-4000-8000-000000000001', title: 'Customer portal',
-  objective: 'Give customers a place to see their job', projectKey: 'RestoreAssist',
+  objective: 'Give customers a place to see their job', projectKey: 'RestoreAssist', businessKey: 'restore',
   status: 'proposed', stage: 'ready_for_review', summary: 'A customer portal with job updates.',
   specVersion: 'a'.repeat(64), spec: { requirements: ['Show job updates'], acceptanceCriteria: ['A customer can see their own job'], steps: ['Build the portal'], presetIds: [] },
   questions: [], answers: {}, harness: [{ id: 'spm', label: 'Senior project manager', purpose: 'Own delivery', status: 'recommended', assignmentRef: null }],
@@ -364,4 +364,25 @@ describe('FounderDesk mission journey', () => {
     expect(screen.getByRole('article', { name: 'Selected mission' })).toHaveTextContent('Customer portal')
     expect(new URL(window.location.href).searchParams.get('mission')).toBe(mission.taskId)
   })
+  it('filters a business deep link by saved filing and orders urgent work before older low-priority work', async () => {
+    window.history.replaceState({}, '', '/founder/command-centre?business=restore')
+    const items = [
+      { ...mission, taskId: 'urgent', title: 'Urgent repair', priority: 'P0', createdAt: '2026-10-20T00:00:00Z' },
+      { ...mission, taskId: 'older', title: 'Older normal task', priority: 'P2', createdAt: '2026-09-01T00:00:00Z' },
+      { ...mission, taskId: 'other', title: 'Other business', businessKey: 'carsi', priority: 'P0' },
+    ]
+    vi.stubGlobal('fetch', vi.fn(async () => response({ missions: items, presets: [], source: 'supabase' })))
+    render(<FounderDesk projects={[]} />)
+    await screen.findByRole('button', { name: /Urgent repair/ })
+    const cards = screen.getAllByRole('button').filter(button => button.hasAttribute('aria-pressed') && button.textContent?.includes('Priority'))
+    expect(cards.map(button => button.textContent)).toEqual([expect.stringContaining('Urgent repair'), expect.stringContaining('Older normal task')])
+    expect(screen.queryByRole('button', { name: /Other business/ })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Urgent repair/ }))
+    expect(screen.getByRole('article', { name: 'Selected mission' })).toHaveTextContent('Urgent repair')
+    fireEvent.change(screen.getByLabelText('Show missions for'), { target: { value: 'carsi' } })
+    expect(screen.queryByRole('article', { name: 'Selected mission' })).not.toBeInTheDocument()
+    expect(new URL(window.location.href).searchParams.get('mission')).toBeNull()
+    expect(screen.getByRole('button', { name: /Other business/ })).toBeVisible()
+  })
+
 })

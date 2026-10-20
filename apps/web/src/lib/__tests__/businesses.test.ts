@@ -7,8 +7,8 @@ import {
 } from '../businesses'
 
 describe('BUSINESSES', () => {
-  it('has 8 entries', () => {
-    expect(BUSINESSES).toHaveLength(8)
+  it('includes the group alongside its 8 business entries', () => {
+    expect(BUSINESSES).toHaveLength(9)
   })
 
   it('each entry has key, name, color, status, type', () => {
@@ -18,7 +18,7 @@ describe('BUSINESSES', () => {
         name: expect.any(String),
         color: expect.stringMatching(/^#[0-9a-f]{6}$/i),
         status: expect.stringMatching(/^(active|planning)$/),
-        type: expect.stringMatching(/^(owned|client)$/),
+        type: expect.stringMatching(/^(owned|client|group)$/),
       })
     }
   })
@@ -38,6 +38,8 @@ describe('BUSINESSES', () => {
 
   it('keeps CCW out of owned-bookkeeping helpers', () => {
     expect(isOwnedBusinessKey('ccw')).toBe(false)
+    expect(isOwnedBusinessKey('unite-group')).toBe(false)
+    expect(BUSINESSES.find(business => business.key === 'unite-group')?.repoUrl).toBe('https://github.com/CleanExpo/Unite-Group')
     expect(isOwnedBusinessKey('carsi')).toBe(true)
     expect(OWNED_BUSINESSES.map((business) => business.key)).toEqual([
       'dr',

@@ -23,7 +23,8 @@ import styles from './founder-desk.module.css'
 /** Pi-Dev-Ops builds view. A plain link: the no-prompt escort needs its login secret, which is founder-held (Q6). */
 const PI_DEV_OPS_BUILDS_URL = 'https://pi-dev-ops.vercel.app/builds'
 
-export default async function CommandDeckPage() {
+export default async function CommandDeckPage({ searchParams }: { searchParams?: Promise<{ business?: string }> } = {}) {
+  const businessKey = (await searchParams)?.business ?? ''
   const [projects, tools, actionQueue, blockedLanes, blockedOnMe, stageBoard] = await Promise.all([
     getProjects(),
     getToolCatalogue(),
@@ -66,7 +67,7 @@ export default async function CommandDeckPage() {
       />
 
       {deliveryProjects.error && <p role="status">{deliveryProjects.error}</p>}
-      <FounderDesk projects={deliveryProjects.projects.map(project => ({ name: project.name }))} />
+      <FounderDesk key={businessKey} projects={deliveryProjects.projects.map(project => ({ name: project.name }))} />
 
       <div className={`${shell.canvasScope} ${shell.glassSectionHead}`}>
         <h2>Blocked on me</h2>

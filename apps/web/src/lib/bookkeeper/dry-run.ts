@@ -139,6 +139,7 @@ export async function runBookkeeperDryRun(
   businessKey?: string,
 ): Promise<BookkeeperDryRunResult> {
   const businesses = BUSINESSES.filter((business) => {
+    if (business.type === 'group') return false
     if (business.status !== 'active') return false
     return businessKey ? business.key === businessKey : true
   })

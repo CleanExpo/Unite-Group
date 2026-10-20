@@ -569,3 +569,22 @@ describe("MissionResearch", () => {
     }
   });
 });
+
+
+it("clears existing research consent when a saved-domain suggestion is accepted", async () => {
+  const saved = lifecycle();
+  saved.mandate!.allowedSources = ["https://docs.example.com/guide"];
+  const fetchMock = vi.fn(async () => response(body()));
+  vi.stubGlobal("fetch", fetchMock);
+  render(<MissionResearch taskId={taskId} lifecycle={saved} />);
+  await load();
+  fireEvent.click(screen.getByText("Choose the research boundaries"));
+  const consent = screen.getByRole("checkbox", { name: /I approve public research/ });
+  fireEvent.click(consent);
+  expect(consent).toBeChecked();
+  fireEvent.click(screen.getByRole("button", { name: "Accept suggestion for Allowed public website domains — one per line" }));
+  expect(screen.getByLabelText("Allowed public website domains — one per line")).toHaveValue("docs.example.com");
+  expect(consent).not.toBeChecked();
+  expect(screen.getByRole("button", { name: "Approve and queue research" })).toBeDisabled();
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+});

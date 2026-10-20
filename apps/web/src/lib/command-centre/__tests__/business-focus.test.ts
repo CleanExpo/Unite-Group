@@ -25,6 +25,7 @@ describe('buildBusinessFocusPayload', () => {
     const payload = buildBusinessFocusPayload(
       [
         project({ name: 'RestoreAssist', github_repo: 'CleanExpo/RestoreAssist' }),
+        project({ name: 'Unite-Group', github_repo: 'CleanExpo/Unite-Group' }),
         project({ name: 'Synthex', integration_status_url: 'https://synthex.social/api/v1/connections/status' }),
         project({ name: 'CCW-CRM', github_repo: 'CleanExpo/CCW-CRM' }),
       ],
@@ -32,9 +33,10 @@ describe('buildBusinessFocusPayload', () => {
     )
 
     expect(payload.source).toBe('cc:business-focus')
-    expect(payload.summary.businesses).toBe(8)
+    expect(payload.summary.businesses).toBe(9)
     expect(payload.summary.owned).toBe(7)
     expect(payload.summary.clients).toBe(1)
+    expect(payload.items.find(item => item.key === 'unite-group')).toMatchObject({ name: 'Unite-Group', primaryProjectName: 'Unite-Group', githubRepo: 'CleanExpo/Unite-Group', signal: 'live' })
     expect(payload.items.find((item) => item.key === 'restore')).toMatchObject({
       name: 'RestoreAssist',
       signal: 'live',

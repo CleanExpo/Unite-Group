@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { BUSINESSES, getBusinessByKey } from '@/lib/businesses'
 import type { DeliveryMissionView, DeliveryPreset, DeliveryRequest } from '@/lib/command-centre/delivery-types'
 import { MargotMissionConsole } from './MargotMissionConsole'
 import { MissionDetail, MISSION_STAGE_LABELS } from './MissionDetail'
@@ -20,6 +21,7 @@ function saveSelectedMission(id: string | null) {
 
 export function FounderDesk({ projects }: { projects: Array<{ name: string }> }) {
   const [missions, setMissions] = useState<DeliveryMissionView[]>([])
+  const [businessFilter, setBusinessFilter] = useState('')
   const [presets, setPresets] = useState<DeliveryPreset[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const selectedMission = useRef<string | null>(null)
@@ -54,7 +56,10 @@ export function FounderDesk({ projects }: { projects: Array<{ name: string }> })
   }, [])
 
   useEffect(() => {
-    selectedMission.current = new URL(window.location.href).searchParams.get('mission')
+    const params = new URL(window.location.href).searchParams
+    const business = params.get('business') ?? ''
+    setBusinessFilter(getBusinessByKey(business) ? business : '')
+    selectedMission.current = params.get('mission')
     setSelectedId(selectedMission.current)
     void load()
     const timer = window.setInterval(() => { if (document.visibilityState === 'visible') void load() }, 20000)
@@ -136,11 +141,24 @@ export function FounderDesk({ projects }: { projects: Array<{ name: string }> })
     saveSelectedMission(mission.taskId)
   }
 
+  const visibleMissions = businessFilter ? missions.filter(mission => mission.businessKey === businessFilter).sort((left, right) => (left.priority ?? 'P2').localeCompare(right.priority ?? 'P2') || Date.parse(left.createdAt ?? left.updatedAt) - Date.parse(right.createdAt ?? right.updatedAt)) : missions
   const selected = missions.find(m => m.taskId === selectedId)
+  useEffect(() => {
+    // A confirmed refile keeps the open mission and follows its saved business.
+    if (!businessFilter || !selected || selected.businessKey === businessFilter) return
+    const nextBusiness = selected.businessKey ?? ''
+    setBusinessFilter(nextBusiness)
+    const url = new URL(window.location.href)
+    if (nextBusiness) url.searchParams.set('business', nextBusiness)
+    else url.searchParams.delete('business')
+    window.history.replaceState(window.history.state, '', url)
+  }, [businessFilter, selected])
+
   function missionCard(mission: DeliveryMissionView) {
     return <button key={mission.taskId} disabled={busy && mission.taskId === selectedId} className={styles.missionCard} data-selected={mission.taskId === selectedId} aria-pressed={mission.taskId === selectedId} onClick={() => selectMission(mission.taskId)}>
-      <span className={styles.missionProject}>{mission.projectKey || 'Unassigned business'}</span>
+      <span className={styles.missionProject}>{getBusinessByKey(mission.businessKey ?? '')?.name || 'Unassigned business'}</span>
       <strong>{mission.title}</strong>
+      {mission.priority && <span className={styles.helper}>Priority {mission.priority}</span>}
       <span className={styles.status} data-stage={mission.stage}>{MISSION_STAGE_LABELS[mission.stage]}</span>
       <span className={styles.missionNext}>{mission.nextAction.label}</span>
     </button>
@@ -150,6 +168,8 @@ export function FounderDesk({ projects }: { projects: Array<{ name: string }> })
       <div><h1>Your vision. A clear path forward.</h1><p>Turn ideas into missions. See progress. Make the decisions that need you.</p></div>
       <button className={styles.secondaryButton} onClick={newIdea}>New idea</button>
     </header>
+    <div className={styles.answerField}><label htmlFor="mission-business-filter">Show missions for</label><select id="mission-business-filter" value={businessFilter} disabled={busy} onChange={event => { if (event.target.value && selected?.businessKey !== event.target.value) { setSelectedId(null); selectedMission.current = null; saveSelectedMission(null) } setBusinessFilter(event.target.value); const url = new URL(window.location.href); if (event.target.value) url.searchParams.set('business', event.target.value); else url.searchParams.delete('business'); window.history.replaceState(window.history.state, '', url) }}><option value="">All businesses</option>{BUSINESSES.map(business => <option key={business.key} value={business.key}>{business.name}</option>)}</select></div>
+    {businessFilter && <p className={styles.helper}>Showing {getBusinessByKey(businessFilter)?.name} missions by urgency, oldest first within each priority, from the latest 100 founder tasks. <a href={`/founder/${businessFilter}`}>Open business</a></p>}
     {actionError && <div className={styles.error} role="alert">{actionError}</div>}
     <div hidden={!!selectedId || view !== 'desk'}>
       <IdeaCapture key={`capture-${draftKey}`} onCaptured={captured} />
@@ -168,7 +188,7 @@ export function FounderDesk({ projects }: { projects: Array<{ name: string }> })
         { title: 'Preparing', stages: ['captured', 'needs_clarification', 'preparing', 'ready_for_review', 'failed'] },
         { title: 'Building', stages: ['queued', 'building'] },
         { title: 'Review & release', stages: ['review', 'release_blocked'] },
-      ].map(lane => { const items = missions.filter(m => lane.stages.includes(m.stage)); return <section key={lane.title} className={styles.floorLane} aria-label={lane.title}><h3>{lane.title} <span>{readError ? '—' : items.length}</span></h3>{items.map(missionCard)}{!items.length && !readError && <p className={styles.helper}>No missions at this stage.</p>}</section> })}</div>}
+      ].map(lane => { const items = visibleMissions.filter(m => lane.stages.includes(m.stage)); return <section key={lane.title} className={styles.floorLane} aria-label={lane.title}><h3>{lane.title} <span>{readError ? '—' : items.length}</span></h3>{items.map(missionCard)}{!items.length && !readError && <p className={styles.helper}>No missions at this stage.</p>}</section> })}</div>}
       {selected && <MissionDetail key={`${selected.taskId}:${selected.specVersion ?? 'draft'}`} mission={selected} busy={busy} stale={!!readError} refreshing={loading} onRefresh={() => void load()} onAction={request => void act(request)} />}
     </section>}
     {view === 'desk' && <section className={styles.missionWorkspace} data-selected={!!selected} aria-label="Your missions">
@@ -177,7 +197,8 @@ export function FounderDesk({ projects }: { projects: Array<{ name: string }> })
         {readError && <div className={styles.error} role="alert">{readError}{missions.length > 0 && <p>Showing the last successful read. Refresh before making a decision.</p>}</div>}
         {loading && missions.length === 0 && <p className={styles.helper}>Loading mission history…</p>}
         {!loading && !readError && missions.length === 0 && <p className={styles.empty}>Your next idea starts here. Once captured, its progress and decisions stay with the mission.</p>}
-        {missions.map(missionCard)}
+        {visibleMissions.map(missionCard)}
+        {!loading && !readError && businessFilter && visibleMissions.length === 0 && <p className={styles.helper}>No missions filed under this business in the current history.</p>}
         <Link href="/founder/command-centre/operations#task-queue" className={styles.helper}>Open all existing tasks and approvals</Link>
       </div>
       {selected && <MissionDetail key={`${selected.taskId}:${selected.specVersion ?? 'draft'}`} mission={selected} busy={busy} stale={!!readError} refreshing={loading} onRefresh={() => void load()} onAction={request => void act(request)} />}

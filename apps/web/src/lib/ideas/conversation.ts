@@ -3,6 +3,7 @@ import { BUSINESSES, BusinessKey } from '@/lib/businesses'
 
 // Business key → Linear team key mapping
 export const BUSINESS_TO_TEAM_KEY: Record<BusinessKey, string> = {
+  'unite-group': 'UNI',
   dr:       'DR',
   nrpg:     'DR',
   carsi:    'GP',

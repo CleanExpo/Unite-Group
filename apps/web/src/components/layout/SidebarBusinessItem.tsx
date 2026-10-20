@@ -77,6 +77,9 @@ export function SidebarBusinessItem({ business, collapsed }: SidebarBusinessItem
             className="overflow-hidden"
           >
             <div className="pl-6 py-0.5 flex flex-col gap-0.5">
+              <Link href={`/founder/command-centre?business=${business.key}`} className="nav-item-hover flex items-center gap-2 px-2 h-7 rounded-sm text-[12px] transition-colors duration-100" style={{ color: 'var(--color-text-muted)' }}>
+                <span>Missions and tasks</span>
+              </Link>
               <Link
                 href={`/founder/${business.key}/page/new`}
                 className="nav-item-hover flex items-center gap-2 px-2 h-7 rounded-sm text-[12px] transition-colors duration-100"

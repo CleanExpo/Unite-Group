@@ -188,3 +188,19 @@
     white-space: normal;
   }
 }
+
+.suggestion {
+  padding: 12px;
+  border: 1px dashed var(--mission-border);
+  border-radius: 3px;
+  background: var(--mission-raised);
+  color: var(--mission-ink);
+}
+.suggestion > p {
+  margin: 8px 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+.suggestion .actions { margin-top: 10px; }
+.suggestion kbd { font: inherit; color: var(--mission-muted); }

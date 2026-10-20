@@ -190,6 +190,8 @@ export default async function BusinessHubPage({ params }: Props) {
         </span>
       </div>
 
+      <Link href={`/founder/command-centre?business=${business.key}`} className="text-sm underline" style={{ color: 'var(--color-text-primary)' }}>Open {business.name} missions and tasks</Link>
+
       {/* Quick Stats */}
       <div className="grid grid-cols-3 gap-4">
         <div

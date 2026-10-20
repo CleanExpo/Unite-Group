@@ -11,6 +11,8 @@ export const BUSINESSES = [
   { key: 'ato',    name: 'ATO App',              color: '#3b82f6', status: 'active', type: 'owned', repoUrl: 'https://github.com/CleanExpo/ATO' },
   { key: 'itr',    name: 'ITR-Button',           color: '#6366f1', status: 'active', type: 'owned', repoUrl: 'https://github.com/CleanExpo/ITR-Button' },
   { key: 'ccw',    name: 'CCW-ERP/CRM',          color: '#DDA0DD', status: 'active', type: 'client', repoUrl: 'https://github.com/CleanExpo/CCW-CRM' },
+  // Group-level work belongs here without creating an owned-bookkeeping entity.
+  { key: 'unite-group', name: 'Unite-Group', color: '#6366f1', status: 'active', type: 'group', repoUrl: 'https://github.com/CleanExpo/Unite-Group' },
 ] as const
 
 export type BusinessKey = typeof BUSINESSES[number]['key']

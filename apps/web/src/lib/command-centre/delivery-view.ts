@@ -1,3 +1,4 @@
+import { readMissionBusiness } from "./mission-business";
 import type { CommandCentreTask } from "./tasks";
 import { deliveryFingerprint } from "./delivery-store";
 import { readMissionIntent, isPreparationLeaseActive } from "./intent-store";
@@ -155,9 +156,12 @@ export function toDeliveryMissionView(
     assignment.specFingerprint === d.specVersion;
   return {
     taskId: task.id,
+    priority: task.priority,
+    createdAt: task.created_at,
     title: d?.spec?.title ?? task.title,
     objective: task.objective,
     projectKey: task.project_key,
+    businessKey: readMissionBusiness(task.metadata),
     status: task.status,
     stage,
     lane: d?.lane ?? "unknown",

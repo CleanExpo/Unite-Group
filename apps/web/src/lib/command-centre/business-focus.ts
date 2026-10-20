@@ -37,6 +37,7 @@ export interface BusinessFocusPayload {
 // distinct from the Kanban path's Linear project names (see linear.ts) — the
 // registry and Linear use different naming, so the two maps must stay separate.
 const PROJECTS_BY_BUSINESS_KEY: Record<Business['key'], string[]> = {
+  'unite-group': ['Unite-Group'],
   dr: ['Disaster-Recovery'],
   nrpg: ['DR-NRPG'],
   carsi: ['CARSI'],

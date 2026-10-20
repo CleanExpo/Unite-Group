@@ -150,6 +150,10 @@ export const deliveryMetadataSchema = z.object({
 export type DeliveryMetadata = z.infer<typeof deliveryMetadataSchema>;
 export type DeliverySpec = z.infer<typeof specSchema>;
 export interface DeliveryMissionView {
+  priority?: import("./tasks").TaskPriority;
+  createdAt?: string;
+  /** Filing under My Businesses; separate from the delivery repository. */
+  businessKey?: import("@/lib/businesses").BusinessKey | null;
   taskId: string;
   title: string;
   objective: string;

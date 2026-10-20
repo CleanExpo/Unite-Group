@@ -14,6 +14,7 @@ import type {
 import styles from "./mission-lifecycle.module.css";
 import desk from "./founder-desk.module.css";
 import { MissionResearch } from "./MissionResearch";
+import { MissionSuggestion, MissionSuggestionContext } from "./MissionSuggestion";
 import type { FactoryActivationView } from "@/lib/command-centre/idea-factory-activation";
 
 const endpoint = "/api/command-centre/missions/lifecycle";
@@ -135,6 +136,9 @@ function Field({
   children?: ReactNode;
 } & React.InputHTMLAttributes<HTMLInputElement>) {
   const id = useId();
+  if (!children && props.value === undefined && (!props.type || props.type === "text")) {
+    return <MissionSuggestion label={label} name={name} {...props} />;
+  }
   return (
     <label className={styles.field} htmlFor={id}>
       <span>{label}</span>
@@ -157,20 +161,9 @@ function Text({
   maxLength?: number;
   readOnly?: boolean;
 }) {
-  const id = useId();
   return (
-    <label className={styles.field} htmlFor={id}>
-      <span>{label}</span>
-      <textarea
-        id={id}
-        name={name}
-        defaultValue={defaultValue}
-        required={required}
-        maxLength={maxLength}
-        readOnly={readOnly}
-        rows={3}
-      />
-    </label>
+    <MissionSuggestion label={label} name={name} defaultValue={defaultValue}
+      required={required} maxLength={maxLength} readOnly={readOnly} multiline />
   );
 }
 function Choice({
@@ -479,6 +472,7 @@ export function MissionLifecycle({
         </p>
       )}
       {data && state && (
+        <MissionSuggestionContext.Provider value={state}>
         <div key={`${taskId}:${state.revision}`} className={styles.body}>
           <p className={desk.meta}>
             Saved revision {state.revision} ·{" "}
@@ -1055,6 +1049,7 @@ export function MissionLifecycle({
             </details>
           )}
         </div>
+        </MissionSuggestionContext.Provider>
       )}
     </section>
   );

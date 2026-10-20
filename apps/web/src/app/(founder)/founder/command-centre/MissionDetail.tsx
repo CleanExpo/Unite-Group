@@ -1,6 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { getBusinessByKey } from '@/lib/businesses'
+import { MissionBusiness } from './MissionBusiness'
+import { MissionSuggestion } from './MissionSuggestion'
 import type { DeliveryMissionView, DeliveryRequest, DeliveryStage } from '@/lib/command-centre/delivery-types'
 import styles from './founder-desk.module.css'
 import { MissionObservations } from './MissionObservations'
@@ -51,7 +54,7 @@ export function MissionDetail({ mission, busy, stale, refreshing = false, onRefr
   const connectionRetry = mission.stage === 'failed' && mission.nextAction.kind === 'connect' && mission.blockers.some(blocker => ['preparation_provider_authentication', 'preparation_provider_configuration'].includes(blocker.code))
   return <article className={styles.missionDetail} aria-label="Selected mission">
     <header className={styles.detailHeader}>
-      <div><span className={styles.meta}>{mission.projectKey || 'Business to be confirmed'}</span><h2>{mission.title}</h2><p>{mission.summary || mission.objective}</p></div>
+      <div><span className={styles.meta}>{getBusinessByKey(mission.businessKey ?? '')?.name || 'Business to be confirmed'}</span><h2>{mission.title}</h2><p>{mission.summary || mission.objective}</p></div>
       <span className={styles.status} data-stage={mission.stage}>{MISSION_STAGE_LABELS[mission.stage]}</span>
     </header>
     <div className={styles.ownership}>
@@ -61,6 +64,7 @@ export function MissionDetail({ mission, busy, stale, refreshing = false, onRefr
       {preview && <a className={styles.resultLink} href={preview} target="_blank" rel="noopener noreferrer">Open build result</a>}
     </div>
     <div className={styles.nextAction} role="status"><div className={styles.nextActionHeading}><strong>Next step</strong><span>Responsible: <b>{mission.nextAction.owner}</b></span></div><span>{mission.nextAction.label}</span></div>
+    <MissionBusiness key={`${mission.taskId}:${mission.updatedAt}`} mission={mission} disabled={disabled} onSaved={onRefresh} />
     <MissionAuthorityPanel taskId={mission.taskId} />
     <MissionLifecycle key={mission.taskId} taskId={mission.taskId} stale={stale} deliveryBusy={busy} onPrepareReviewed={() => onAction({ action: 'resume', taskId: mission.taskId })} />
     <MissionSynthexTimeline key={`synthex-${mission.taskId}`} taskId={mission.taskId} />
@@ -68,8 +72,7 @@ export function MissionDetail({ mission, busy, stale, refreshing = false, onRefr
     {mission.questions.length > 0 && mission.nextAction.kind === 'answer' && <form className={styles.questions} onSubmit={e => { e.preventDefault(); if (!disabled) onAction({ action: 'resume', taskId: mission.taskId, answers }) }}>
       <h3>A little business context</h3>
       {mission.questions.map(question => <div key={question.id} className={styles.answerField}>
-        <label htmlFor={`mission-${mission.taskId}-${question.id}`}>{question.label}</label>
-        <textarea id={`mission-${mission.taskId}-${question.id}`} value={answers[question.id] ?? ''} onChange={e => setAnswerDrafts(previous => ({ ...previous, [answerKey(question)]: e.target.value }))} disabled={disabled} maxLength={4000} required />
+        <MissionSuggestion key={answerKey(question)} label={question.label} name={question.id} value={answers[question.id] ?? ''} onValueChange={value => setAnswerDrafts(previous => ({ ...previous, [answerKey(question)]: value }))} multiline disabled={disabled} maxLength={4000} required suggestion={question.id !== 'project' && /objective|outcome|scope|achieve|build/i.test(question.label) ? mission.objective : undefined} />
       </div>)}
       <button className={styles.primaryButton} disabled={disabled} type="submit">{busy ? 'Saving and continuing…' : 'Save answers and continue'}</button>
     </form>}
