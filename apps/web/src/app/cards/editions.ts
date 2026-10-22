@@ -1,8 +1,10 @@
 /**
  * The living business card editions, as shipped in the card kit
- * (Synthex business-card/brand-kits/phill-mcgurk.json @ f0398a22).
+ * (Synthex business-card/site/media + brand-kits/phill-mcgurk.json), all ending on the
+ * cracked-U logo Phill made current on 22/10/2026.
  * Media are byte-identical local copies under public/cards/media — never hotlinked.
- * Descriptions were written from frames of each clip (0.3 s, 1.5 s, 2.7 s), not from the edition names.
+ * stopAt values are the kit's, checked by eye on each clip's resting frame.
+ * Descriptions were written from frames of each clip, not from the edition names.
  */
 
 export type Edition = {
@@ -21,14 +23,14 @@ export type Edition = {
 
 const media = (file: string) => `/cards/media/${file}`
 
-function edition(name: string, label: string, line: string, job: string): Edition {
+function edition(name: string, label: string, line: string, job: string, stopAt: number): Edition {
   return {
     name,
     label,
     line,
     video: media(`edition-${name}.mp4`),
     poster: media(`edition-${name}-poster.jpg`),
-    stopAt: 3.95,
+    stopAt,
     job,
     aspect: '9/16',
   }
@@ -38,23 +40,23 @@ export const EDITIONS: readonly Edition[] = [
   {
     name: 'signature',
     label: 'Signature reveal',
-    line: 'The original four-second logo reveal.',
-    video: media('unite-nexus-reveal-h264.mp4'),
-    poster: media('unite-nexus-reveal-poster.jpg'),
-    stopAt: 3.35,
-    job: '9d9d98d9-dc53-47df-a610-ede9fa7179d8',
+    line: 'Glowing shards fly together into the cracked U.',
+    video: media('unite-nexus-u-reveal-h264.mp4'),
+    poster: media('unite-nexus-u-reveal-poster.jpg'),
+    stopAt: 4.4,
+    job: 'f51278f4-e500-480c-9bde-fc2fe7674e5d',
     aspect: '1/1',
   },
-  edition('blueprint', 'Blueprint', 'A spark draws the logo in white linework on navy, then it lights up.', '79c25c92-eac8-4b11-87e5-07f9422b3c4a'),
-  edition('forge', 'Forge', 'Molten metal pours into a mould and sets as the logo in dark stone.', '4712e0de-ce47-46f8-b093-04520c11d639'),
-  edition('constellation', 'Constellation', 'Stars join up into the logo across a night sky.', '54e6e2bf-e8c4-41f5-ba0d-a99a93b137b2'),
-  edition('ink', 'Ink', 'One drop splashes, and the logo glows out of the swirl.', '90463cb2-9496-4070-b1d8-93327812edab'),
-  edition('rewind', 'Rewind', 'Shattered glass lights up and pulls itself back together.', '62822ddf-df7b-406d-a52c-af4a1fb6acc4'),
-  edition('skyline', 'Skyline', 'A fast flight through a city at night, up to the logo.', 'dd07eaba-07eb-4d50-96f8-37f80a4d3558'),
-  edition('origami', 'Origami', 'Dark paper folds itself into the logo, then it lights up.', 'ac453c47-ca08-4e94-9e0f-761c69f6ab52'),
-  edition('portal', 'Portal', 'A cracked phone screen gives way to a vortex that opens on the logo.', '911c388b-fe9e-4c61-ac3e-524b048017bc'),
-  edition('restoration', 'Restoration', 'A stained, cracked wall cleans back to the logo.', 'cc159c97-8175-4f21-b5c1-49d68d63b72c'),
-  edition('magnet', 'Magnet', 'Scattered metal beads are pulled together into the logo.', '74047787-3e84-4104-9ce8-85d3d227af18'),
+  edition('blueprint', 'Blueprint', 'A spark sketches the U in white linework on navy, then it glows orange.', '77aaf2d3-29ec-4675-b3f6-025eb31c1071', 3.95),
+  edition('forge', 'Forge', 'Molten metal pours into a stone mould and sets as the logo.', 'cb3e17f6-bb76-4ab5-9d8b-93f1b9b56c94', 3.95),
+  edition('constellation', 'Constellation', 'Stars join up into the U across a night sky.', 'b5a430e5-0fd6-4512-bb40-9d308e7bbbc2', 3.95),
+  edition('ink', 'Ink', 'One amber drop splashes, and the U glows out of the swirl.', 'e530a648-92d5-4b33-9a60-2a07d0be34c7', 3.95),
+  edition('rewind', 'Rewind', 'Shattered glass lights up and pulls back together around the U.', 'e13f34a8-2f82-4bfa-bcb5-512d03a6dfe0', 3.95),
+  edition('skyline', 'Skyline', 'A fast flight through a city at night, up to the logo.', 'b19f1950-7276-4a0a-a744-2de2a760c34f', 3.95),
+  edition('origami', 'Origami', 'Dark paper folds itself into the U, then it lights up.', '99497770-0c6d-4e59-95df-0265cdac0735', 3.95),
+  edition('portal', 'Portal', 'A cracked phone screen gives way to a vortex that opens on the logo.', '8e9d89bc-f798-4196-af4f-400838d99ae5', 3.95),
+  edition('restoration', 'Restoration', 'A stained, cracked wall cleans back to the logo.', '14c4fc3e-1476-4364-9d4a-6f1dd6d267c5', 3.95),
+  edition('magnet', 'Magnet', 'Scattered beads are pulled together into the logo.', '0737511e-1b52-4b58-aab7-756189148826', 3.45),
 ]
 
 export const AI_LABEL = 'AI-generated clip (Higgsfield)'
