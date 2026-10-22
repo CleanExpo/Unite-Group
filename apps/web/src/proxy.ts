@@ -62,6 +62,7 @@ const PUBLIC_PATHS = [
   '/api/leads',    // Public website lead capture (UNI-2355) — service-role insert, rate-limited above
   '/api/agent',    // Public site chat agent — auth is the publishable site key, validated in-route (UNI-2359)
   '/widget',       // Embeddable chat widget script must load on third-party sites (UNI-2359)
+  '/cards/media',  // Living-card showroom clips: static files in public/cards/media (.mp4 is not in the matcher's asset list)
 ] as const;
 
 // Single public files and pages, matched EXACTLY. They have no sub-routes, so the
@@ -74,6 +75,8 @@ const EXACT_PUBLIC_FILES: ReadonlySet<string> = new Set([
   '/site.webmanifest',
   '/founder-os-sw.js',
   '/grow', // Public SMB services offer page; its form posts to the public /api/leads
+  '/cards', // Public living-card showroom (ten editions + signature reveal)
+  '/cards/order', // Public card enquiry page; no payment, its form posts to the public /api/leads
 ]);
 
 export function isPublicPath(pathname: string): boolean {
