@@ -1,3 +1,6 @@
+import { createHash } from 'node:crypto'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/lib/margot/account-voice', () => ({
@@ -85,6 +88,15 @@ describe('renderSignatureHtml', () => {
   it('contains the logo absolute URL at width 120', () => {
     expect(html).toContain('/logos/unite-group-nexus-logo.png')
     expect(html).toContain('width="120"')
+  })
+
+  it('serves the approved Unite-Group Nexus emblem as that logo, not the retired cyan mark', () => {
+    // Brand library 22/10/2026, 01-approved-logo: unite-group-nexus-emblem-256x256.png.
+    // The emblem, not the full logo: its wordmark is unreadable at 120px.
+    const file = readFileSync(join(__dirname, '..', '..', '..', 'public', 'logos', 'unite-group-nexus-logo.png'))
+    expect(createHash('sha256').update(file).digest('hex')).toBe(
+      '80eb3bc3f47d33481ac481acbab84a365645273a2214244f1ec228a95063445f',
+    )
   })
 
   it('contains the slogan, sign-off, business name, own email and domain', () => {

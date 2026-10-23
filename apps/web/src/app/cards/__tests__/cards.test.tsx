@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import CardsShowroomPage from '../page'
 import CardOrderPage from '../order/page'
@@ -56,11 +56,77 @@ describe('/cards/order', () => {
     expect(html).not.toMatch(/stripe|checkout|\$\d/i)
   })
 
+  const tier = (html: string, id: string) => {
+    const start = html.indexOf(`data-tier="${id}"`)
+    return start < 0 ? null : html.slice(start, html.indexOf('</article>', start))
+  }
+
+  it('offers both tiers, each with its own price and Stripe link, once both links are configured', () => {
+    vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', 'https://buy.stripe.com/test_ready')
+    vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_CUSTOM', 'https://buy.stripe.com/test_custom')
+    try {
+      const html = order(null)
+      expect(html).toContain('data-state="orders-online"')
+      expect(html).not.toContain('data-state="orders-offline"')
+      const ready = tier(html, 'ready')!
+      expect(ready).toContain('$249')
+      expect(ready).toContain('href="https://buy.stripe.com/test_ready"')
+      expect(ready).not.toContain('test_custom')
+      const custom = tier(html, 'custom')!
+      expect(custom).toContain('$449')
+      expect(custom).toContain('href="https://buy.stripe.com/test_custom"')
+      expect(custom).not.toContain('test_ready')
+      expect(html).toContain('GST included')
+      // The enquiry form stays for people who want to talk first.
+      expect(html).toContain('name="edition"')
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
+  it('shows only the tier whose link is set, never a price without a way to pay', () => {
+    vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', 'https://buy.stripe.com/test_ready')
+    try {
+      const html = order(null)
+      expect(tier(html, 'ready')).not.toBeNull()
+      expect(tier(html, 'custom')).toBeNull()
+      expect(html).not.toContain('$449')
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
+  it('refuses a link that is not an https Stripe Payment Link, and stays enquiry-only', () => {
+    for (const bad of ['https://evil.example/pay', 'http://buy.stripe.com/test_card123', 'not a url', '   ']) {
+      vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', bad)
+      vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_CUSTOM', bad)
+      try {
+        const html = order(null)
+        expect(html, bad).toContain('data-state="orders-offline"')
+        expect(html, bad).not.toMatch(/stripe|\$\d/i)
+      } finally {
+        vi.unstubAllEnvs()
+      }
+    }
+  })
+
   it('opens with the chosen edition already selected', async () => {
     expect(checkedEditions(order('forge'))).toEqual(['forge'])
     // Through the real page entry, as the card links to it.
     const page = await CardOrderPage({ searchParams: Promise.resolve({ edition: 'Origami', ref: 'phill-mcgurk' }) })
     expect(checkedEditions(renderToStaticMarkup(page))).toEqual(['origami'])
+  })
+
+  it('gives every opener tile a 9:16 poster, so the square signature is never cropped or boxed', () => {
+    const html = order(null)
+    const publicDir = join(__dirname, '..', '..', '..', '..', 'public')
+    for (const e of EDITIONS) {
+      const src = e.aspect === '9/16' ? e.poster : e.pickerPoster
+      expect(src, `${e.name} needs a 9:16 picker poster`).toBeDefined()
+      expect(existsSync(join(publicDir, src!)), src).toBe(true)
+      const img = new RegExp(`<img[^>]*src="${src}"[^>]*>`).exec(html)?.[0] ?? ''
+      expect(img, e.name).toContain('object-cover')
+    }
   })
 
   it('ignores unknown or malformed editions instead of guessing', async () => {

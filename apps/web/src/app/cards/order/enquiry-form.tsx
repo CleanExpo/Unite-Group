@@ -75,7 +75,7 @@ export function CardEnquiryForm({ edition, referrer }: { edition: string | null;
                 className="peer absolute opacity-0"
               />
               <img
-                src={e.poster}
+                src={e.pickerPoster ?? e.poster}
                 alt=""
                 loading="lazy"
                 className="aspect-[9/16] w-full rounded-sm border-[3px] border-transparent bg-[#04080e] object-cover peer-checked:border-[#e55a2b] peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-stone-900"
