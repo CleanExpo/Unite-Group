@@ -19,6 +19,8 @@ export type Edition = {
   job: string
   /** Poster aspect: editions are 9:16, the signature reveal is square. */
   aspect: '9/16' | '1/1'
+  /** A 9:16 poster for the /cards/order picker, whose tiles are all 9:16. Only the square signature needs one. */
+  pickerPoster?: string
 }
 
 const media = (file: string) => `/cards/media/${file}`
@@ -46,6 +48,7 @@ export const EDITIONS: readonly Edition[] = [
     stopAt: 4.4,
     job: 'f51278f4-e500-480c-9bde-fc2fe7674e5d',
     aspect: '1/1',
+    pickerPoster: media('unite-nexus-u-reveal-poster-9x16.jpg'),
   },
   edition('blueprint', 'Blueprint', 'A spark sketches the U in white linework on navy, then it glows orange.', '77aaf2d3-29ec-4675-b3f6-025eb31c1071', 3.95),
   edition('forge', 'Forge', 'Molten metal pours into a stone mould and sets as the logo.', 'cb3e17f6-bb76-4ab5-9d8b-93f1b9b56c94', 3.95),
