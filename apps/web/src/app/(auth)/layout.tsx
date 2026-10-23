@@ -29,32 +29,25 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       />
 
       <div className="w-full max-w-md relative" style={{ zIndex: 10 }}>
-        {/* Pi-CEO brand mark — orange π (was a green gradient that made this look
-            like a separate, duller app from the orange Pi-CEO landing). */}
+        {/* Brand mark — the approved Unite-Group Nexus emblem (orange cracked U on
+            navy) from the brand pack, replacing the earlier orange π tile. */}
         <div className="flex flex-col items-center mb-8">
           <div
-            className="mb-3 flex items-center justify-center"
+            className="mb-3 relative overflow-hidden"
             style={{
               width: 76,
               height: 76,
               borderRadius: 20,
-              background: 'linear-gradient(160deg, #fb923c 0%, #f97316 55%, #ea580c 100%)',
-              boxShadow:
-                '0 10px 30px rgba(249,115,22,0.40), inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -2px 8px rgba(0,0,0,0.20)',
+              boxShadow: '0 10px 30px rgba(249,115,22,0.40)',
             }}
           >
-            <span
-              style={{
-                fontFamily: 'var(--font-mono, monospace)',
-                fontSize: 44,
-                fontWeight: 700,
-                lineHeight: 1,
-                color: '#ffffff',
-                textShadow: '0 1px 0 rgba(0,0,0,0.28)',
-              }}
-            >
-              π
-            </span>
+            <Image
+              src="/logos/unite-group-nexus-emblem-256.png"
+              alt="Unite-Group Nexus"
+              fill
+              priority
+              sizes="76px"
+            />
           </div>
           <p
             className="font-bold leading-none"

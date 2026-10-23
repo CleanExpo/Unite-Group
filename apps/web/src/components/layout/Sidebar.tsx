@@ -1,6 +1,7 @@
 // src/components/layout/Sidebar.tsx
 'use client'
 
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Search } from 'lucide-react'
 import { usePathname } from 'next/navigation'
@@ -34,9 +35,13 @@ export function Sidebar({ user }: SidebarProps) {
         className="flex items-center h-11 px-3 shrink-0 border-b"
         style={{ borderColor: 'var(--color-border)' }}
       >
-        <span className="text-[15px] font-semibold select-none" style={{ color: 'var(--color-accent-text)' }}>
-          ◈
-        </span>
+        <Image
+          src="/logos/unite-group-nexus-emblem-256.png"
+          alt="Unite-Group Nexus"
+          width={22}
+          height={22}
+          className="shrink-0 rounded-sm select-none"
+        />
         {sidebarOpen && (
           <span
             className="ml-2 text-[13px] font-semibold tracking-widest"
