@@ -73,7 +73,7 @@ describe('/cards/order', () => {
       expect(ready).toContain('href="https://buy.stripe.com/test_ready"')
       expect(ready).not.toContain('test_custom')
       const custom = tier(html, 'custom')!
-      expect(custom).toContain('$490')
+      expect(custom).toContain('$449')
       expect(custom).toContain('href="https://buy.stripe.com/test_custom"')
       expect(custom).not.toContain('test_ready')
       expect(html).toContain('GST included')
@@ -90,7 +90,7 @@ describe('/cards/order', () => {
       const html = order(null)
       expect(tier(html, 'ready')).not.toBeNull()
       expect(tier(html, 'custom')).toBeNull()
-      expect(html).not.toContain('$490')
+      expect(html).not.toContain('$449')
     } finally {
       vi.unstubAllEnvs()
     }

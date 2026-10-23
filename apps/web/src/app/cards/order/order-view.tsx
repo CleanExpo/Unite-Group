@@ -18,7 +18,7 @@ export const CARD_TIERS = [
   {
     id: 'custom',
     name: 'Made for you',
-    priceAud: 490,
+    priceAud: 449,
     line: 'We make a film for your business. You approve a private proof before it goes live.',
     paymentLinkEnv: 'STRIPE_PAYMENT_LINK_CARD_CUSTOM',
   },
