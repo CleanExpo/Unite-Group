@@ -13,7 +13,7 @@ export function Proof() {
             <h2 id="proof-title" className={s.bannerTitle}>
               See it before you ask
             </h2>
-            <p className={s.cardLine}>The showroom plays every film we have made.</p>
+            <p className={s.cardLine}>Watch the card films in our showroom.</p>
             <a href="/cards" className={s.buttonPrimary}>
               Open the showroom
             </a>

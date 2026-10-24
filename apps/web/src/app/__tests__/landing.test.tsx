@@ -165,6 +165,13 @@ describe('/ pillars and honesty', () => {
     expect(proof).toContain('href="/cards"')
   })
 
+  // Codex 25/10: the hero film is not one of the card editions the showroom plays, so "every film we have made" was false
+  it('scopes the results banner to the card films the showroom really plays, never to every film', async () => {
+    const proof = strip(section(await signedOut(), 'proof', 'answers'))
+    expect(proof).not.toMatch(/every film|all (of )?our films|all films/i)
+    expect(proof).toMatch(/card films/i)
+  })
+
   it('has four to six real questions and says plainly what is unknown', async () => {
     const html = await signedOut()
     const answers = html.slice(html.indexOf('id="answers"'), html.indexOf('id="contact"'))

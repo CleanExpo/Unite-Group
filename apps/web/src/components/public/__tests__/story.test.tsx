@@ -141,4 +141,3 @@ describe('the Disaster Recovery line', () => {
     expect(JSON.stringify(entityJsonLd())).not.toMatch(banned)
   })
 })
-
