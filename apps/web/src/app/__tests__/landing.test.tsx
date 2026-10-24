@@ -212,8 +212,8 @@ describe('/ contact and footer', () => {
 
   it('shows the legal name, Privacy, Terms and the ABR-verified ABN (25/10/2026) unless COMPANY_ABN overrides it', async () => {
     vi.stubEnv('COMPANY_ABN', '')
-    const pending = await signedOut()
-    const footer = pending.slice(pending.indexOf('<footer'))
+    const dflt = await signedOut()
+    const footer = dflt.slice(dflt.indexOf('<footer'))
     expect(footer).toContain('Unite-Group Nexus Pty Ltd')
     // was 'ABN pending': an unset or blank COMPANY_ABN now falls back to the number verified on the ABR
     expect(footer).toContain('ABN 95 691 477 844')
@@ -224,7 +224,7 @@ describe('/ contact and footer', () => {
     vi.stubEnv('COMPANY_ABN', '51 824 753 556')
     const set = await signedOut()
     expect(set).toContain('ABN 51 824 753 556')
-    expect(set).not.toContain('ABN pending')
+    expect(set).not.toContain('ABN 95 691 477 844')
   })
 })
 

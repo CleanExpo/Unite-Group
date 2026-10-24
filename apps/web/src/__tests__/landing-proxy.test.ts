@@ -44,6 +44,26 @@ describe('pillar pages and hero media for signed-out visitors', () => {
   })
 })
 
+describe('Vercel Web Analytics paths', () => {
+  // Phill 25/10/2026: the proxy sent /_vercel/insights/script.js to the login page, so analytics never loaded.
+  // Only the two Vercel analytics prefixes open; segment-aware, so neighbours and look-alikes stay closed.
+  it.each(['/_vercel/insights/script.js', '/_vercel/insights/view', '/_vercel/speed-insights/script.js', '/_vercel/speed-insights/vitals'])(
+    'lets a signed-out request for %s through',
+    async (path) => {
+      expect(isPublicPath(path)).toBe(true)
+      expect((await get(path)).headers.get('location')).toBeNull()
+    },
+  )
+
+  it.each(['/_vercel/other', '/_vercel/other/insights', '/_vercelx', '/_vercel', '/_vercel/insightsx/script.js', '/_vercel/speed-insightsx', '/x/_vercel/insights/script.js'])(
+    'still sends a signed-out request for %s to the login page',
+    async (path) => {
+      expect(isPublicPath(path)).toBe(false)
+      expect(new URL((await get(path)).headers.get('location') ?? '').pathname).toBe('/auth/login')
+    },
+  )
+})
+
 describe('signed-out visitors and the public landing page', () => {
   it('lets a signed-out visitor reach exactly /', async () => {
     expect(isPublicPath('/')).toBe(true)
