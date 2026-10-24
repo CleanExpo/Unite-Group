@@ -8,11 +8,13 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Auth middleware', () => {
-  test('unauthenticated root redirects to /auth/login', async ({ page }) => {
+  // Phill 25/10/2026 (UNI-3001): a signed-out visitor on / sees the public home; sign-in is the footer link
+  test('unauthenticated root shows the public home, with the founder login in the footer', async ({ page }) => {
     await page.goto('/');
 
-    // Root page.tsx performs a server-side redirect to /auth/login when no session
-    await expect(page).toHaveURL(/\/auth\/login/);
+    await expect(page).not.toHaveURL(/\/auth\/login/);
+    await expect(page.locator('h1')).toContainText('Unite Group');
+    await expect(page.locator('footer a[href="/auth/login"]')).toHaveCount(1);
   });
 
   test('/auth/login page renders without error', async ({ page }) => {
