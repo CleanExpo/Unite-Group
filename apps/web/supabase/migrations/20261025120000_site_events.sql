@@ -8,8 +8,10 @@
 --
 -- Writes: only POST /api/events, through the service role. There is no anon or authenticated
 -- INSERT/UPDATE/DELETE policy and the table is FORCE ROW LEVEL SECURITY.
--- Reads: the founder, through the policy below (same founder-read model as card_enquiries:
--- the founder is whoever card_owners names), and the reporting functions at the bottom.
+-- Reads: service_role only. There is deliberately NO select policy for authenticated users: the repo
+-- has no SQL-level founder identity (no founders / allow-list table; founder_id lives on data rows, and
+-- this table has none), and card_owners is not a founder list. The founder page reads through the
+-- service client behind the app-level hasPrivateAccess check (FOUNDER_ALLOWED_USER_IDS).
 --
 -- RETENTION: 13 months. The privacy policy promises it. site_events_purge() deletes older rows;
 -- it is service_role only and is NOT scheduled here (no speculative cron). Until something calls
@@ -41,24 +43,10 @@ alter table public.site_events enable row level security;
 alter table public.site_events force row level security;
 
 revoke all on table public.site_events from public, anon, authenticated;
-grant select on table public.site_events to authenticated;
 grant select, insert, delete on table public.site_events to service_role;
 
-do $$
-begin
-  if not exists (
-    select 1 from pg_policies where schemaname = 'public'
-      and tablename = 'site_events' and policyname = 'site_events_founder_select'
-  ) then
-    create policy site_events_founder_select on public.site_events
-      for select to authenticated using (
-        exists (select 1 from public.card_owners as owner where owner.founder_id = auth.uid())
-      );
-  end if;
-end $$;
-
 -- Counts by Brisbane calendar day and event type, from p_from (inclusive) to p_to (exclusive).
--- SECURITY INVOKER: the caller's RLS applies, so only the founder (or service_role) gets rows.
+-- SECURITY INVOKER and executable by service_role only.
 create or replace function public.site_events_daily(p_from timestamptz, p_to timestamptz)
 returns table (day date, event_type text, events bigint)
 language sql
@@ -130,9 +118,9 @@ begin
 end;
 $$;
 
-revoke all on function public.site_events_daily(timestamptz, timestamptz) from public, anon;
-revoke all on function public.site_events_breakdown(timestamptz, timestamptz) from public, anon;
+revoke all on function public.site_events_daily(timestamptz, timestamptz) from public, anon, authenticated;
+revoke all on function public.site_events_breakdown(timestamptz, timestamptz) from public, anon, authenticated;
 revoke all on function public.site_events_purge() from public, anon, authenticated;
-grant execute on function public.site_events_daily(timestamptz, timestamptz) to authenticated, service_role;
-grant execute on function public.site_events_breakdown(timestamptz, timestamptz) to authenticated, service_role;
+grant execute on function public.site_events_daily(timestamptz, timestamptz) to service_role;
+grant execute on function public.site_events_breakdown(timestamptz, timestamptz) to service_role;
 grant execute on function public.site_events_purge() to service_role;

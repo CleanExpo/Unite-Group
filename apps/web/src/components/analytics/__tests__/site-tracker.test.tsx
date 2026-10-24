@@ -90,6 +90,20 @@ describe('SiteTracker', () => {
     expect(JSON.stringify(events)).not.toContain('secret')
   })
 
+  it('never reports a looping (autoplay-style) video as a play or complete', async () => {
+    const { container } = render(
+      <div>
+        <SiteTracker />
+        <video data-track="video" data-track-label="hero-loop" loop muted />
+      </div>,
+    )
+    const loop = container.querySelector('video')!
+    fireEvent(loop, new Event('play'))
+    fireEvent(loop, new Event('ended'))
+    const types = (await sentEvents()).map((e) => e.event_type)
+    expect(types).toEqual(['page_view'])
+  })
+
   it('reports video_play once per play and video_complete on end', async () => {
     const { container } = render(
       <div>

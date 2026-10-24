@@ -94,9 +94,10 @@ export async function POST(request: NextRequest) {
   const userAgent = request.headers.get('user-agent')
   if (isBotUserAgent(userAgent)) return new NextResponse(null, { status: 204, headers: NO_STORE })
 
-  // 3. Per-IP limit.
+  // 3. Per-IP limit (over-limit callers get a silent 204 and nothing is stored).
   if (rateLimited(clientKey(request))) {
-    return NextResponse.json({ error: 'Too many requests' }, { status: 429, headers: { ...NO_STORE, 'Retry-After': '60' } })
+    // Silently drop: a 429 would invite retries and reveal the limit.
+    return new NextResponse(null, { status: 204, headers: NO_STORE })
   }
 
   // 4. Parse and validate.

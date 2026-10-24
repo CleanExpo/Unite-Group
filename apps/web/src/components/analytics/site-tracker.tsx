@@ -155,6 +155,8 @@ export function SiteTracker() {
     const onVideo = (type: 'video_play' | 'video_complete') => (e: Event) => {
       const el = e.target instanceof Element ? e.target : null
       if (!el || !el.matches('video[data-track="video"]') || !isTrackedPath(here())) return
+      // Looping videos (the hero loop is script-started, not user-initiated) are decoration, not engagement: never report them as plays or completes.
+      if ((el as HTMLVideoElement).loop) return
       if (type === 'video_play') {
         if (playing.has(el)) return
         playing.add(el)

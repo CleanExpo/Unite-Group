@@ -150,11 +150,18 @@ describe('POST /api/events privacy', () => {
 })
 
 describe('POST /api/events limits and failure', () => {
-  it('rate limits one caller by hashed IP and leaves others alone', async () => {
-    let last = 204
-    for (let i = 0; i < 61; i++) last = (await POST(req(VIEW))).status
-    expect(last).toBe(429)
+  it('silently drops (204, nothing stored, no Retry-After) an over-limit caller and leaves others alone', async () => {
+    const statuses: number[] = []
+    let last: Response | undefined
+    for (let i = 0; i < 61; i++) {
+      last = await POST(req(VIEW))
+      statuses.push(last.status)
+    }
+    expect(statuses.every((s) => s === 204)).toBe(true)
+    expect(last!.headers.get('retry-after')).toBeNull()
+    expect(inserts).toHaveLength(60) // the 61st was dropped, not stored
     expect((await POST(req(VIEW, { 'x-forwarded-for': '198.51.100.9' }))).status).toBe(204)
+    expect(inserts).toHaveLength(61)
   })
 
   it('fails closed with 503 and a log line when the service client is not configured', async () => {
