@@ -179,7 +179,7 @@ Further agent challenge: independently invent >=12 additional pairings from trul
 6. **Follow-up:** consent-aware, preference-based value delivery, with unsubscribe and data deletion mechanisms.
 7. **Review:** measure qualified outcomes and compare tested experience variants.
 
-### Starter collection-point catalog
+### Starter collection-point catalogue
 | Product | Free value | Paid entry | Ongoing step | Main event |
 |---|---|---|---|---|
 | Website design | Interactive site configurator | Scoped design package | Managed maintenance | qualified_quote |
@@ -213,7 +213,7 @@ Single primary promise, demonstrated proof, key requirements, price or transpare
 - **Asset preparation:** Blender for mesh cleanup, re-topology, LODs, UV/material optimisation, export QA; compressed GLB/glTF, KTX2 textures and Draco or Meshopt where supported.
 - **Creative production:** Higgsfield for storyboard/short cinematic footage/advertising concepts; Artlist for media and textured 3D asset generation; human QC for consistency and licensing. Maintain source files, metadata and alternatives.
 - **Video delivery:** compressed adaptive outputs / poster frames; user-triggered or viewport-based playback; captions/transcripts; default mute; no forced audio.
-- **Backend:** modular services for product catalog, configuration, enquiries, booking/order integration, entitlements, content, experiments and analytics. Require authenticated access for client-specific metrics.
+- **Backend:** modular services for product catalogue, configuration, enquiries, booking/order integration, entitlements, content, experiments and analytics. Require authenticated access for client-specific metrics.
 - **Data:** first-party event store with transparent consent, retention and export. Never render arbitrary private client data into public scenes.
 - **Deploy:** preview environments first; CI/test security and performance; monitored feature flags, rollback and immutable version receipts.
 
@@ -233,7 +233,7 @@ Bright, calm, high-contrast design that is not dependent on dark cyberpunk image
 External discovery roads -> semantic offer pages -> optional interactive scene -> clear collection point -> configured CRM/order system -> customer follow-up -> aggregated insight -> experiment registry -> reviewed change. Preserve source/consent on ingest, access controls and deletion policy throughout.
 
 ### Required asset flow
-Brief -> prompt/reference -> Higgsfield/Artlist draft -> artistic and factual QC -> mesh/video optimisation -> alternate mobile/static assets -> license evidence -> staging import -> performance/accessibility smoke test -> release candidate.
+Brief -> prompt/reference -> Higgsfield/Artlist draft -> artistic and factual QC -> mesh/video optimisation -> alternate mobile/static assets -> licence evidence -> staging import -> performance/accessibility smoke test -> release candidate.
 
 ### Engineering failure modes
 Heavy GPU/WebGL on mobile, poor input mapping, motion sickness, 3D model format mismatch, lost navigation focus, blocked search crawlers, fabricated-looking live dashboards, generative inconsistency, runaway generation costs and fragile vendor APIs. Build fallbacks, deterministic scenes and budget limits first.
@@ -394,7 +394,7 @@ No fake live client data; no unapproved CRM or payment account access; no claims
 | False claims from video | Citation cannot be traced | Source audits; mark claims unverified until corroborated |
 | Inadequate experimental power | Early declaration of uplift | Predefined metrics, minimum sample, qualitative alternative |
 
-**Pending decisions:** target agency offer catalog; branding; platform/repo; ownership of customer data; allowable spend per tool; production integration permissions; preferred 3D authoring tool; target audiences; initial region/languages; design signoff. None blocks pure research or local prototyping.
+**Pending decisions:** target agency offer catalogue; branding; platform/repo; ownership of customer data; allowable spend per tool; production integration permissions; preferred 3D authoring tool; target audiences; initial region/languages; design signoff. None blocks pure research or local prototyping.
 
 ---
 

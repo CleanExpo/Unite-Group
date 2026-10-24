@@ -198,7 +198,7 @@ Mapping from prior Agentic Income Lab IDs. No idea may be silently deleted or co
 | A14 | EXP-05 cinematic creative service |
 | A15 | EXP-05/EXP-06 testimonial consent workflow |
 | A16 | EXP local listing repair optional |
-| A17 | REV-05 Synthex search visibility module (Semrush measured data) |
+| A17 | REV-05 search visibility module run by Synthex, the internal marketing agency, for Unite Group businesses (Semrush measured data) |
 | A18 | OPS-05 competitive/pricing intelligence optional |
 | A19 | EXP-06 customer feedback intelligence |
 | A20 | EXP-03 multilingual module optional with QC |
@@ -391,7 +391,7 @@ All routes are examples, not verified route locations. Check existing APIs first
 
 **Phase 3: First sellable managed offer.** Only if measurable pilot and legal/consent controls pass. Client onboarding, support, billing, pilot pricing, limit/usage disclosure and customer ROI report.
 
-**Phase 4: Scale to adjacent niches.** Trade intake and quote recovery, Synthex CRO/reputation, event lead conversion and differentiated creative bundles. Marketplace/resale/arbitrage remain separate research hypotheses unless independently validated.
+**Phase 4: Scale to adjacent niches.** Trade intake and quote recovery, CRO and reputation work by Synthex, the internal marketing agency, for Unite Group businesses only, event lead conversion and differentiated creative bundles. Marketplace/resale/arbitrage remain separate research hypotheses unless independently validated.
 
 **Kill rules:** Stop acquisition or agent action on unapproved send, cross-tenant leakage, hallucinated financial/customer claim, repeated provider failure, complaint rate crossing approved guardrail, negative contribution beyond cap, noncompliant consent or missing evidence. A paused pilot remains visible and recoverable.
 
