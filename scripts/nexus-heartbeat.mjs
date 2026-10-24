@@ -85,22 +85,52 @@ export async function captureAlertHealth({ url, token, fetchImpl = fetch }) {
   }
 }
 
+/** An ISO-8601 instant with an explicit zone: Z, or any +hh:mm / -hh:mm offset (Postgres writes +00:00). */
+const ISO_WITH_ZONE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/u;
+const isTimestamp = (value) => typeof value === 'string' && ISO_WITH_ZONE.test(value) && !Number.isNaN(Date.parse(value));
+const isIdList = (value) => Array.isArray(value) && value.length <= 20
+  && value.every((id) => typeof id === 'string' && /^[\w.-]{1,64}$/u.test(id));
+const DESTINATION_STATES = ['clear', 'suppressed', 'unknown'];
+
 function alertHealthResult(entry) {
   let response;
   try { response = JSON.parse(entry.response); } catch { return { healthy: false }; }
-  const counts = ['attempts', 'failed', 'unconfigured', 'deduped', 'unalerted'];
+  const counts = ['attempts', 'failed', 'unconfigured', 'deduped', 'unalerted', 'sent'];
   if (!response || response.window_hours !== 72
     || counts.some((key) => !Number.isInteger(response[key]) || response[key] < 0)
-    || !(response.last_failure_at === null || (typeof response.last_failure_at === 'string'
-      && /^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/u.test(response.last_failure_at)))) {
+    || !(response.last_failure_at === null || isTimestamp(response.last_failure_at))
+    || !DESTINATION_STATES.includes(response.destination)
+    || !isIdList(response.failed_ids) || !isIdList(response.unalerted_ids)) {
     return { healthy: false };
   }
-  const evidence = Object.fromEntries(['window_hours', ...counts, 'last_failure_at']
+  const evidence = Object.fromEntries(['window_hours', ...counts, 'last_failure_at', 'destination', 'failed_ids', 'unalerted_ids']
     .map((key) => [key, response[key]]));
   return {
-    healthy: entry.httpCode === 200 && response.failed === 0 && response.unalerted === 0,
+    healthy: entry.httpCode === 200 && response.failed === 0 && response.unalerted === 0
+      && response.destination !== 'suppressed',
     evidence,
   };
+}
+
+/** Counts from the previous run's "Alert health" line, or null when it cannot be read. */
+function previousAlertCounts(previousBody) {
+  if (typeof previousBody !== 'string') return null;
+  const match = /Alert health \(HTTP \d+\): `([^`]+)`/u.exec(previousBody);
+  if (!match) return null;
+  try {
+    const value = JSON.parse(match[1]);
+    return Number.isInteger(value.failed) && Number.isInteger(value.unalerted) ? value : null;
+  } catch { return null; }
+}
+
+/** A gate that is already red hides a second outage; say so when the counts rose. */
+function alertDrift(previousBody, gates) {
+  const current = gates.find((gate) => gate.name === 'alert-health')?.evidence;
+  const before = previousAlertCounts(previousBody);
+  if (!current || !before) return null;
+  if (current.failed <= before.failed && current.unalerted <= before.unalerted) return null;
+  return `New alert failures since the previous run: failed ${before.failed} to ${current.failed}, `
+    + `unalerted ${before.unalerted} to ${current.unalerted}.`;
 }
 
 const STATUS_LABEL = Object.freeze({
@@ -713,6 +743,17 @@ export function buildHeartbeatBody({ date, gates, queue, drift, anomalies = [], 
   if (alertGate && Object.hasOwn(alertGate, 'httpCode')) {
     lines.push('', `Alert health (HTTP ${alertGate.httpCode ?? 'unavailable'}): `
       + (alertGate.evidence ? `\`${JSON.stringify(alertGate.evidence)}\`` : 'no usable response.'));
+    if (alertGate.evidence) {
+      lines.push('Sent means SendGrid accepted the message (HTTP 202); delivery is not confirmed.');
+      if (alertGate.evidence.destination === 'suppressed') {
+        lines.push('**The destination mailbox is suppressed by SendGrid:** alerts are accepted (202) but never delivered. '
+          + 'Remove the address from the suppression list in SendGrid.');
+      } else if (alertGate.evidence.destination === 'unknown') {
+        lines.push('Destination suppression: NOT CHECKED (the SendGrid key cannot read suppression lists, or SendGrid did not answer).');
+      }
+      const followUp = [...new Set([...alertGate.evidence.failed_ids, ...alertGate.evidence.unalerted_ids])];
+      if (followUp.length) lines.push(`Leads to follow up: ${followUp.join(', ')}`);
+    }
   }
 
   /*
@@ -822,7 +863,8 @@ export function composeHeartbeat({
 
   const previous = parsePreviousGates(previousBody, declared);
   const body = buildHeartbeatBody({
-    date, gates, queue, drift: detectDrift(previous, gates), anomalies, provenance,
+    date, gates, queue, drift: [detectDrift(previous, gates), alertDrift(previousBody, gates)].filter(Boolean).join(' ') || null,
+    anomalies, provenance,
   });
 
   /*

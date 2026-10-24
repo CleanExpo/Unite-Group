@@ -2,11 +2,14 @@ import { NextResponse } from 'next/server'
 import { assertCronAuth } from '@/lib/cron-auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import type { LogOutcome } from '@/lib/notifications/lead-alert'
+import { checkSuppression } from '@/lib/notifications/sendgrid-suppression'
 
 export const dynamic = 'force-dynamic'
 
 const WINDOW_HOURS = 72
 const PAGE_SIZE = 500
+const MAX_IDS = 20
+const DELIVERY_NOTE = 'sent means SendGrid accepted the message (HTTP 202); delivery is not confirmed'
 
 type DeliveryRow = {
   id: string
@@ -20,6 +23,10 @@ type DeliveryRow = {
 export async function GET(request: Request) {
   const token = process.env.ALERT_HEALTH_TOKEN?.trim()
   if (token) {
+    // A read-only counter credential must never be the cron master key.
+    if (token === process.env.CRON_SECRET?.trim()) {
+      return NextResponse.json({ error: 'ALERT_HEALTH_TOKEN must differ from CRON_SECRET' }, { status: 500 })
+    }
     if (request.headers.get('authorization') !== `Bearer ${token}`) {
       return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
     }
@@ -65,6 +72,8 @@ export async function GET(request: Request) {
       sources.set(row.source_id, [...(sources.get(row.source_id) ?? []), row])
     }
     let attempts = 0
+    let sent = 0
+    const failedIds: string[] = []
     let failed = 0
     let unconfigured = 0
     let deduped = 0
@@ -86,16 +95,21 @@ export async function GET(request: Request) {
       if (rows.some((row) => row.outcome === 'unconfigured')) unconfigured++
       const failures = rows.filter((row) => row.outcome === 'failed' || row.outcome === 'unconfigured' ||
         (row.outcome === 'pending' && Date.parse(row.created_at) < now - 15_000))
+      if (rows.some((row) => row.outcome === 'sent')) sent++
       if (failures.length) {
         failed++
+        failedIds.push(sourceId)
         for (const row of failures) {
           const timestamp = row.outcome === 'pending' ? row.created_at : row.updated_at
           if (!lastFailureAt || timestamp > lastFailureAt) lastFailureAt = timestamp
         }
       }
     }
+    const destination = await checkSuppression(process.env.LEAD_ALERT_EMAIL_TO ?? '', { apiKey: process.env.SENDGRID_API_KEY })
+    const ids = (values: Iterable<string>) => [...values].sort().slice(0, MAX_IDS)
     return NextResponse.json({ window_hours: WINDOW_HOURS, attempts, failed, unconfigured,
-      deduped, unalerted: unalertedIds.size, last_failure_at: lastFailureAt })
+      deduped, unalerted: unalertedIds.size, last_failure_at: lastFailureAt, sent, delivery_note: DELIVERY_NOTE,
+      destination, failed_ids: ids(failedIds), unalerted_ids: ids(unalertedIds) })
   } catch {
     return NextResponse.json({ error: 'Alert health unavailable' }, { status: 503 })
   }

@@ -66,6 +66,8 @@ const RED = [
 const HEALTHY_ALERT = {
   window_hours: 72, attempts: 4, failed: 0, unconfigured: 0,
   deduped: 1, unalerted: 0, last_failure_at: null,
+  sent: 3, delivery_note: 'sent means SendGrid accepted the message (HTTP 202); delivery is not confirmed',
+  destination: 'clear', failed_ids: [], unalerted_ids: [],
 };
 const capture = (name, exitCode = 0) => ({
   name, exitCode,
@@ -1936,4 +1938,70 @@ test('AC-13 workflow captures alert response through the tested JavaScript funct
   assert.match(workflow, /vars\.NEXT_PUBLIC_APP_URL/u);
   assert.match(workflow, /await captureAlertHealth\(/u);
   assert.match(workflow, /JSON\.stringify\(\[\.\.\.captured, result\]\)/u);
+});
+
+// Added for the engineering bench blockers (UNI-2999): offset timestamps, suppression, lead ids, repeat failures.
+const withAlert = (extra) => capture('alert-health') && ({ ...capture('alert-health'), response: JSON.stringify({ ...HEALTHY_ALERT, ...extra }) });
+const LEAD = '11111111-2222-4333-8444-555555555555';
+
+for (const stamp of ['2026-10-22T19:01:00.123456+00:00', '2026-10-22T19:01:00.000Z', '2026-10-23T05:01:00+10:00', '2026-10-22T19:01:00-07:30']) {
+  test(`AC-13 last_failure_at ${stamp} is readable, so a real failure is not reported as no usable response`, () => {
+    const report = alertReport(withAlert({ failed: 1, failed_ids: [LEAD], last_failure_at: stamp }));
+    assert.match(report.body, /`alert-health` \| FAIL \|/u);
+    assert.doesNotMatch(report.body, /no usable response/u);
+    assert.ok(report.body.includes(JSON.stringify(stamp)));
+  });
+}
+
+for (const stamp of ['yesterday', '2026-10-22 19:01:00', '2026-10-22T19:01:00', '2026-13-45T99:99:99+00:00', 12]) {
+  test(`AC-13 last_failure_at ${JSON.stringify(stamp)} is not a timestamp and the response is unusable`, () => {
+    const report = alertReport(withAlert({ failed: 1, last_failure_at: stamp }));
+    assert.match(report.body, /no usable response/u);
+  });
+}
+
+test('AC-13 a suppressed destination fails the gate even though every count is healthy', () => {
+  const report = alertReport(withAlert({ destination: 'suppressed' }));
+  assert.equal(report.failed, true);
+  assert.match(report.body, /`alert-health` \| FAIL \|/u);
+  assert.match(report.body, /destination mailbox is suppressed/u);
+});
+
+test('AC-13 an unknown destination state is shown as NOT CHECKED and does not fail the gate', () => {
+  const report = alertReport(withAlert({ destination: 'unknown' }));
+  assert.equal(report.failed, false);
+  assert.match(report.body, /NOT CHECKED/u);
+});
+
+for (const bad of [{ destination: 'maybe' }, { destination: undefined }, { failed_ids: 'x' }, { unalerted_ids: [LEAD, 7] }, { sent: -1 }]) {
+  test(`AC-13 malformed ${JSON.stringify(bad)} makes the response unusable`, () => {
+    const report = alertReport(withAlert(bad));
+    assert.match(report.body, /`alert-health` \| FAIL \|/u);
+    assert.match(report.body, /no usable response/u);
+  });
+}
+
+test('AC-13 the red alert names the lead ids to follow up and says sent is only accepted', () => {
+  const report = alertReport(withAlert({ failed: 1, unalerted: 1, failed_ids: [LEAD], unalerted_ids: [LEAD] }));
+  assert.match(report.body, /`alert-health` \| FAIL \|/u);
+  assert.ok(report.body.includes(`Leads to follow up: ${LEAD}`));
+  assert.match(report.body, /accepted the message \(HTTP 202\); delivery is not confirmed/u);
+});
+
+test('AC-13 a second outage while the gate is already red is called out as new failures', () => {
+  const first = alertReport(withAlert({ failed: 1, failed_ids: [LEAD], last_failure_at: '2026-10-22T19:01:00Z' }));
+  const worse = composeHeartbeat({
+    date: '25/10/2026',
+    gateEvidence: { ok: true, value: [...CAPTURE_GREEN.filter((g) => g.name !== 'alert-health'), withAlert({ failed: 6, unalerted: 2, failed_ids: [LEAD], last_failure_at: '2026-10-24T19:01:00Z' })] },
+    queueEvidence: { ok: true, value: QUEUE },
+    previousBody: first.body,
+  });
+  assert.match(worse.body, /New alert failures since the previous run: failed 1 to 6, unalerted 0 to 2/u);
+  const same = composeHeartbeat({
+    date: '25/10/2026',
+    gateEvidence: { ok: true, value: [...CAPTURE_GREEN.filter((g) => g.name !== 'alert-health'), withAlert({ failed: 1, failed_ids: [LEAD], last_failure_at: '2026-10-22T19:01:00Z' })] },
+    queueEvidence: { ok: true, value: QUEUE },
+    previousBody: first.body,
+  });
+  assert.doesNotMatch(same.body, /New alert failures/u);
 });

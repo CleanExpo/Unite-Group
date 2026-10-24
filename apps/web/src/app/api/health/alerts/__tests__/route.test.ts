@@ -69,7 +69,9 @@ describe('alert health', () => {
       log('S6', 'pending', 20_000), log('S7', 'pending', 5_000), log('S8', 'failed', 60 * HOUR),
       log('S9', 'failed', 80 * HOUR), { ...log('foreign', 'failed'), founder_id: 'another' }]
     expect(await (await GET(request())).json()).toEqual({ window_hours: 72, attempts: 7, failed: 5,
-      unconfigured: 1, deduped: 1, unalerted: 0, last_failure_at: ago(20_000) })
+      unconfigured: 1, deduped: 1, unalerted: 0, last_failure_at: ago(20_000), sent: 1,
+      delivery_note: 'sent means SendGrid accepted the message (HTTP 202); delivery is not confirmed',
+      destination: 'unknown', failed_ids: ['S1', 'S2', 'S3', 'S6', 'S8'], unalerted_ids: [] })
   })
 
   it.each(['alert_delivery_log', 'crm_leads'])('fails closed when %s cannot be read', async (table) => {
@@ -121,5 +123,46 @@ describe('alert health', () => {
       event_type: 'checkout.session.completed', received_at: ago(5 * 60 * 1000) }]
     expect(await (await GET(request())).json()).toMatchObject({ unalerted: 0, attempts: 0 })
     expect(state.queries).not.toContain('stripe_events')
+  })
+  it('names the leads to follow up: unalerted and failed source ids, capped at 20', async () => {
+    state.tables.crm_leads = Array.from({ length: 25 }, (_, i) => lead(`missing-${String(i).padStart(2, '0')}`))
+    state.tables.alert_delivery_log = [log('bad-lead', 'failed')]
+    const body = await (await GET(request())).json()
+    expect(body.unalerted).toBe(25)
+    expect(body.unalerted_ids).toHaveLength(20)
+    expect(body.unalerted_ids[0]).toBe('missing-00')
+    expect(body.failed_ids).toEqual(['bad-lead'])
+  })
+
+  describe('destination suppression (SendGrid answers 202 for a suppressed address)', () => {
+    const answers = (listed: boolean) => vi.fn(async (url: string | URL) => {
+      const path = String(url)
+      const body = path.includes('/asm/') ? (listed ? { recipient_email: 'x' } : {}) : (listed && path.includes('/bounces/') ? [{ email: 'x' }] : [])
+      return { ok: true, status: 200, json: async () => body } as Response
+    })
+    beforeEach(() => {
+      vi.stubEnv('LEAD_ALERT_EMAIL_TO', 'destination@example.invalid')
+      vi.stubEnv('SENDGRID_API_KEY', 'test-placeholder')
+    })
+    afterEach(() => vi.unstubAllGlobals())
+
+    it('reports suppressed, while every count still says healthy (the 202 hides it)', async () => {
+      state.tables.alert_delivery_log = [log('S1', 'sent')]
+      vi.stubGlobal('fetch', answers(true))
+      expect(await (await GET(request())).json()).toMatchObject({ destination: 'suppressed', failed: 0, unalerted: 0, sent: 1 })
+    })
+    it('reports clear when no list holds the address', async () => {
+      vi.stubGlobal('fetch', answers(false))
+      expect(await (await GET(request())).json()).toMatchObject({ destination: 'clear' })
+    })
+    it('reports unknown, never clear, when the key cannot read the lists', async () => {
+      vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 403, json: async () => ({}) }) as Response))
+      expect(await (await GET(request())).json()).toMatchObject({ destination: 'unknown' })
+    })
+  })
+
+  it('refuses a health token that equals CRON_SECRET', async () => {
+    vi.stubEnv('CRON_SECRET', 'test-health-token')
+    expect((await GET(request())).status).toBe(500)
   })
 })
