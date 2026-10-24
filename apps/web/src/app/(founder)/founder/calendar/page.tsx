@@ -8,6 +8,8 @@ import {
   getConnectedGoogleAccounts,
 } from '@/lib/integrations/google'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { loadSynthexPosts } from '@/lib/command-centre/synthex-posts'
+import { FounderCalendar } from './FounderCalendar'
 
 export default async function CalendarPage() {
   const user = await getUser()
@@ -17,7 +19,10 @@ export default async function CalendarPage() {
 
   // Fetch real calendar events when accounts are connected.
   // Never show fabricated mock data — surface "not connected" instead.
-  const result = user ? await fetchCalendarEvents(user.id) : null
+  const [result, posts] = await Promise.all([
+    user ? fetchCalendarEvents(user.id) : Promise.resolve(null),
+    loadSynthexPosts(user?.id ?? null),
+  ])
   const events = result?.data ?? []
   const notConnected = !result || result.source === 'not_connected'
   const loadFailed = result?.source === 'error'
@@ -26,8 +31,8 @@ export default async function CalendarPage() {
     <div className="p-6 space-y-6">
       <PageHeader
         title="Calendar"
-        subtitle="Events from connected Google Calendars"
-        tip="Connect a Google account via Email settings to see events here"
+        subtitle="Google Calendar events and Synthex posts"
+        tip="Connect a Google account via Email settings to see events here. Synthex posts come from Synthex's witness events."
       />
 
       {!configured && (
@@ -63,46 +68,13 @@ export default async function CalendarPage() {
         </div>
       )}
 
-      {events.length > 0 ? (
-        <div className="space-y-2">
-          {events.map((event) => (
-            <div
-              key={event.id}
-              className="border px-4 py-3 rounded-sm flex items-center gap-4 hover:border-white/18 transition-colors"
-              style={{ borderColor: 'var(--color-border)' }}
-            >
-              {/* Business colour stripe */}
-              <div
-                className="w-1 h-10 rounded-full shrink-0"
-                style={{ backgroundColor: event.colour }}
-              />
-              <div className="min-w-0 flex-1">
-                <p className="text-sm text-[#0A0A0A] truncate">{event.title}</p>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
-                  {new Date(event.start).toLocaleString('en-AU', {
-                    dateStyle: 'short',
-                    timeStyle: 'short',
-                  })}
-                </p>
-              </div>
-              <div className="text-right shrink-0">
-                <span className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>
-                  {event.businessKey}
-                </span>
-                <p className="text-[10px] mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
-                  {event.email.split('@')[1]}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        configured && connectedAccounts.length > 0 && !notConnected && !loadFailed && (
-          <p className="text-sm text-center py-8" style={{ color: 'var(--color-text-muted)' }}>
-            No upcoming events across your connected calendars.
-          </p>
-        )
+      {configured && connectedAccounts.length > 0 && !notConnected && !loadFailed && events.length === 0 && (
+        <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+          No upcoming events across your connected calendars.
+        </p>
       )}
+
+      <FounderCalendar events={events} posts={posts} />
     </div>
   )
 }
