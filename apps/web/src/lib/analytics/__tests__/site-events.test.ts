@@ -3,6 +3,7 @@ import { isPublicPath } from '@/proxy'
 import { PUBLIC_ROUTES } from '@/lib/public-site'
 import {
   TRACKED_PATHS,
+  cleanCampaignTag,
   countryFromHeader,
   deviceFromUserAgent,
   isBotUserAgent,
@@ -76,5 +77,15 @@ describe('classifiers', () => {
     expect(visitorOptedOut(new Headers({ dnt: '1' }))).toBe(true)
     expect(visitorOptedOut(new Headers({ 'sec-gpc': '1' }))).toBe(true)
     expect(visitorOptedOut(new Headers({ dnt: '0' }))).toBe(false)
+  })
+})
+
+describe('cleanCampaignTag', () => {
+  it('keeps ordinary campaign tags', () => {
+    for (const v of ['nrpg', 'oct-launch', 'Card_2026', 'a b', 'x.y+z']) expect(cleanCampaignTag(v)).toBe(v)
+  })
+  it('drops personal-looking or markup values', () => {
+    for (const v of ['a@b.co', '0412345678', 'call <b>', '', ' ', '-lead', 'x'.repeat(101)]) expect(cleanCampaignTag(v)).toBeNull()
+    expect(cleanCampaignTag(null)).toBeNull()
   })
 })

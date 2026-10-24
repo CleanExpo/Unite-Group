@@ -63,6 +63,18 @@ export type UtmKey = (typeof UTM_KEYS)[number]
 export type PathParts = { path: string; utm: Partial<Record<UtmKey, string>> }
 
 /**
+ * A utm_* value is kept only if it looks like a campaign tag (letters, digits, space, _ - . +),
+ * never an email address, phone number or free text. Anything else is dropped, not stored.
+ */
+export function cleanCampaignTag(value: string | null | undefined): string | null {
+  const v = value?.trim()
+  if (!v || v.length > SITE_EVENT_LIMITS.utm) return null
+  if (!/^[A-Za-z0-9][A-Za-z0-9 _.+-]*$/.test(v)) return null
+  if (/\d{6,}/.test(v)) return null // long digit runs look like phone or account numbers
+  return v
+}
+
+/**
  * Reduce whatever the browser sent as a path to a bare pathname plus the three
  * utm_* values. Query strings and fragments are dropped; nothing else survives.
  * Returns null when the input is not a same-site path.
@@ -77,8 +89,8 @@ export function splitPath(raw: string): PathParts | null {
   }
   const utm: Partial<Record<UtmKey, string>> = {}
   for (const key of UTM_KEYS) {
-    const value = url.searchParams.get(key)?.trim()
-    if (value) utm[key] = value.slice(0, SITE_EVENT_LIMITS.utm)
+    const value = cleanCampaignTag(url.searchParams.get(key))
+    if (value) utm[key] = value
   }
   return { path: url.pathname.slice(0, SITE_EVENT_LIMITS.path), utm }
 }

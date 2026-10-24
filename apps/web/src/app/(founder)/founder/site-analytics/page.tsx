@@ -7,6 +7,7 @@ import { getUser } from '@/lib/supabase/server'
 import { hasPrivateAccess } from '@/lib/auth/private-access'
 import { createServiceClient, hasSupabaseServiceConfig } from '@/lib/supabase/service'
 import { loadSiteReport, type ReportClient, type ReportResult } from '@/lib/analytics/site-events-report'
+import { maybePurgeSiteEvents } from '@/lib/analytics/site-events-retention'
 import { SiteAnalyticsView } from './site-analytics-view'
 
 export const dynamic = 'force-dynamic'
@@ -28,7 +29,9 @@ export default async function SiteAnalyticsPage({
     result = { status: 'error', days, message: 'Service database access is not configured' }
   } else {
     try {
-      result = await loadSiteReport(createServiceClient() as unknown as ReportClient, days)
+      const service = createServiceClient()
+      result = await loadSiteReport(service as unknown as ReportClient, days)
+      await maybePurgeSiteEvents(service as unknown as Parameters<typeof maybePurgeSiteEvents>[0])
     } catch (err) {
       result = { status: 'error', days, message: err instanceof Error ? err.message : String(err) }
     }

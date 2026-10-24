@@ -17,14 +17,17 @@ import { createServiceClient, hasSupabaseServiceConfig } from '@/lib/supabase/se
 import {
   SITE_EVENT_LIMITS,
   SITE_EVENT_TYPES,
+  cleanCampaignTag,
   countryFromHeader,
   deviceFromUserAgent,
   isBotUserAgent,
+  isTrackedPath,
   referrerHost,
   splitPath,
   visitorOptedOut,
 } from '@/lib/analytics/site-events'
 import { SITE_URL } from '@/lib/public-site'
+import { maybePurgeSiteEvents } from '@/lib/analytics/site-events-retention'
 
 export const dynamic = 'force-dynamic'
 
@@ -81,6 +84,31 @@ export function __resetRateLimitForTests() {
   hits.clear()
 }
 
+/** Read the body as UTF-8 text, stopping (and cancelling the stream) once more than `max` BYTES arrive. null = too large. */
+async function readCapped(request: Request, max: number): Promise<string | null> {
+  if (!request.body) return ''
+  const reader = request.body.getReader()
+  const chunks: Uint8Array[] = []
+  let total = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    total += value.byteLength
+    if (total > max) {
+      await reader.cancel().catch(() => undefined)
+      return null
+    }
+    chunks.push(value)
+  }
+  const bytes = new Uint8Array(total)
+  let offset = 0
+  for (const c of chunks) {
+    bytes.set(c, offset)
+    offset += c.byteLength
+  }
+  return new TextDecoder().decode(bytes)
+}
+
 function clean(value: string | undefined, max: number): string | null {
   const trimmed = value?.trim()
   return trimmed ? trimmed.slice(0, max) : null
@@ -105,13 +133,13 @@ export async function POST(request: NextRequest) {
   if (declared > SITE_EVENT_LIMITS.maxBodyBytes) {
     return NextResponse.json({ error: 'Payload too large' }, { status: 413, headers: NO_STORE })
   }
-  let raw: string
+  let raw: string | null
   try {
-    raw = await request.text()
+    raw = await readCapped(request, SITE_EVENT_LIMITS.maxBodyBytes)
   } catch {
     return NextResponse.json({ error: 'Invalid body' }, { status: 400, headers: NO_STORE })
   }
-  if (raw.length > SITE_EVENT_LIMITS.maxBodyBytes) {
+  if (raw === null) {
     return NextResponse.json({ error: 'Payload too large' }, { status: 413, headers: NO_STORE })
   }
   let json: unknown
@@ -133,15 +161,16 @@ export async function POST(request: NextRequest) {
   const rows = []
   for (const event of parsed.data) {
     const parts = splitPath(event.path)
-    if (!parts) continue
+    // Only the public pages are measured; anything else (founder routes, made-up paths) is dropped.
+    if (!parts || !isTrackedPath(parts.path)) continue
     rows.push({
       event_type: event.event_type,
       path: parts.path,
       label: clean(event.label, SITE_EVENT_LIMITS.label),
       referrer_host: referrerHost(event.referrer, ownHosts),
-      utm_source: clean(event.utm_source, SITE_EVENT_LIMITS.utm) ?? parts.utm.utm_source ?? null,
-      utm_medium: clean(event.utm_medium, SITE_EVENT_LIMITS.utm) ?? parts.utm.utm_medium ?? null,
-      utm_campaign: clean(event.utm_campaign, SITE_EVENT_LIMITS.utm) ?? parts.utm.utm_campaign ?? null,
+      utm_source: cleanCampaignTag(event.utm_source) ?? parts.utm.utm_source ?? null,
+      utm_medium: cleanCampaignTag(event.utm_medium) ?? parts.utm.utm_medium ?? null,
+      utm_campaign: cleanCampaignTag(event.utm_campaign) ?? parts.utm.utm_campaign ?? null,
       session_id: clean(event.session_id, SITE_EVENT_LIMITS.sessionId),
       device,
       country,
@@ -157,11 +186,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Analytics unavailable' }, { status: 503, headers: NO_STORE })
   }
   try {
-    const { error } = await createServiceClient().from('site_events').insert(rows)
+    const service = createServiceClient()
+    const { error } = await service.from('site_events').insert(rows)
     if (error) {
       console.error('[events] insert failed:', error.message)
       return NextResponse.json({ error: 'Analytics unavailable' }, { status: 503, headers: NO_STORE })
     }
+    // Retention (13 months): throttled, never throws, never changes the response.
+    await maybePurgeSiteEvents(service)
   } catch (err) {
     console.error('[events] insert failed:', err instanceof Error ? err.message : String(err))
     return NextResponse.json({ error: 'Analytics unavailable' }, { status: 503, headers: NO_STORE })

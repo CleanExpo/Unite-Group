@@ -1,12 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const inserts: Array<{ table: string; rows: any[] }> = []
+const rpcCalls: string[] = []
 let insertError: { message: string } | null = null
 let configured = true
 
 vi.mock('@/lib/supabase/service', () => ({
   hasSupabaseServiceConfig: vi.fn(() => configured),
   createServiceClient: vi.fn(() => ({
+    rpc: (fn: string) => {
+      rpcCalls.push(fn)
+      return Promise.resolve({ data: 0, error: null })
+    },
     from: (table: string) => ({
       insert: (rows: any[]) => {
         inserts.push({ table, rows })
@@ -17,6 +22,7 @@ vi.mock('@/lib/supabase/service', () => ({
 }))
 
 import { POST, __resetRateLimitForTests } from '../route'
+import { __resetPurgeThrottleForTests } from '@/lib/analytics/site-events-retention'
 
 const BROWSER_UA =
   'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
@@ -34,6 +40,8 @@ const VIEW = { event_type: 'page_view', path: '/cards', session_id: 'abc123' }
 
 beforeEach(() => {
   inserts.length = 0
+  rpcCalls.length = 0
+  __resetPurgeThrottleForTests()
   insertError = null
   configured = true
   __resetRateLimitForTests()
@@ -146,6 +154,72 @@ describe('POST /api/events privacy', () => {
     expect(serialised).not.toContain('Mozilla')
     expect(Object.keys(row)).not.toContain('ip')
     expect(Object.keys(row)).not.toContain('user_agent')
+  })
+})
+
+describe('POST /api/events path, campaign tags and body size', () => {
+  it('drops events for paths that are not public pages (founder routes, made-up paths)', async () => {
+    expect((await POST(req({ ...VIEW, path: '/founder/contacts/review-person@example.test' }))).status).toBe(400)
+    expect((await POST(req({ ...VIEW, path: '/api/leads' }))).status).toBe(400)
+    expect(inserts).toHaveLength(0)
+    // a mixed batch keeps only the public page
+    await POST(req([{ ...VIEW, path: '/founder/x' }, VIEW]))
+    expect(inserts[0].rows).toHaveLength(1)
+    expect(inserts[0].rows[0].path).toBe('/cards')
+  })
+
+  it('drops campaign tags that look personal (email, phone-like digits, free text) but keeps normal tags', async () => {
+    await POST(req({ ...VIEW, path: '/cards?utm_campaign=review-person%40example.test&utm_source=nrpg-card&utm_medium=0412345678' }))
+    await POST(req({ ...VIEW, utm_campaign: 'jane@example.com', utm_source: 'Oct Launch_2', utm_medium: 'call me on <b>x</b>' }))
+    expect(inserts[0].rows[0]).toMatchObject({ utm_campaign: null, utm_source: 'nrpg-card', utm_medium: null })
+    expect(inserts[1].rows[0]).toMatchObject({ utm_campaign: null, utm_source: 'Oct Launch_2', utm_medium: null })
+  })
+
+  it('measures BYTES not characters: multibyte padding under 32k characters but over 32 KiB is refused', async () => {
+    const body = JSON.stringify({ ...VIEW, pad: '\u20ac'.repeat(12_000) }) // ~12k chars, ~36k bytes
+    expect(body.length).toBeLessThan(32_768)
+    expect(new TextEncoder().encode(body).length).toBeGreaterThan(32_768)
+    expect((await POST(req(body))).status).toBe(413)
+    expect(inserts).toHaveLength(0)
+  })
+
+  it('stops reading a chunked body once the cap is passed (does not buffer it all)', async () => {
+    let pulled = 0
+    let cancelled = false
+    const stream = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        pulled += 1
+        controller.enqueue(new TextEncoder().encode('x'.repeat(8_192)))
+        if (pulled > 200) controller.close()
+      },
+      cancel() {
+        cancelled = true
+      },
+    })
+    const request = new Request('https://unite-group.in/api/events', {
+      method: 'POST',
+      body: stream,
+      headers: { 'user-agent': BROWSER_UA, 'x-forwarded-for': '203.0.113.7' },
+      // @ts-expect-error duplex is required by undici for stream bodies
+      duplex: 'half',
+    }) as any
+    expect((await POST(request)).status).toBe(413)
+    expect(cancelled).toBe(true)
+    expect(pulled).toBeLessThan(20)
+  })
+})
+
+describe('POST /api/events retention', () => {
+  it('purges expired rows after a stored event, throttled to once per interval', async () => {
+    await POST(req(VIEW))
+    await POST(req(VIEW))
+    expect(rpcCalls).toEqual(['site_events_purge'])
+  })
+
+  it('does not purge when the insert failed, and a purge failure never changes the 204', async () => {
+    insertError = { message: 'boom' }
+    await POST(req(VIEW))
+    expect(rpcCalls).toEqual([])
   })
 })
 

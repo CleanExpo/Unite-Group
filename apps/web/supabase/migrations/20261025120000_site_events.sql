@@ -13,9 +13,11 @@
 -- this table has none), and card_owners is not a founder list. The founder page reads through the
 -- service client behind the app-level hasPrivateAccess check (FOUNDER_ALLOWED_USER_IDS).
 --
--- RETENTION: 13 months. The privacy policy promises it. site_events_purge() deletes older rows;
--- it is service_role only and is NOT scheduled here (no speculative cron). Until something calls
--- it, retention is not enforced: wire it to the existing cron mechanism before relying on the promise.
+-- RETENTION: 13 months. site_events_purge() deletes older rows; it is service_role only. Vercel team
+-- crons are stopped, so nothing here is scheduled. The app calls it opportunistically (throttled to once
+-- per 6 hours per server instance) after a stored event and on each founder analytics page load
+-- (src/lib/analytics/site-events-retention.ts). That runs while the site is in use; a fully idle site
+-- runs no purge. The privacy policy wording is limited to exactly that.
 -- Rollback: additive only (one table, three functions). Removal needs a reviewed forward migration.
 
 create table if not exists public.site_events (

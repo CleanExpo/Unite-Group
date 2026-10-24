@@ -42,6 +42,7 @@ export function EditionTile({ edition }: { edition: Edition }) {
         <video
           data-track="video"
           data-track-label={`edition-${edition.name}`}
+          data-track-stop-at={edition.stopAt}
           ref={video}
           src={edition.video}
           poster={edition.poster}

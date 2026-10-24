@@ -90,6 +90,62 @@ describe('SiteTracker', () => {
     expect(JSON.stringify(events)).not.toContain('secret')
   })
 
+  it('completes a film at its configured stop point (before native ended), once per play, and again on replay', async () => {
+    const { container } = render(
+      <div>
+        <SiteTracker />
+        <video data-track="video" data-track-label="signature" data-track-stop-at="4.4" />
+      </div>,
+    )
+    const v = container.querySelector('video')!
+    let time = 0
+    Object.defineProperty(v, 'currentTime', { get: () => time, set: (n: number) => (time = n), configurable: true })
+
+    // play, run to the stop point; the component pauses there instead of reaching "ended"
+    fireEvent(v, new Event('play'))
+    time = 2
+    fireEvent(v, new Event('timeupdate'))
+    time = 4.4
+    fireEvent(v, new Event('timeupdate'))
+    fireEvent(v, new Event('timeupdate')) // repeated updates at the stop point do not repeat the completion
+    fireEvent(v, new Event('pause'))
+
+    // replay: the component rewinds, then plays again
+    time = 0
+    fireEvent(v, new Event('play'))
+    time = 4.5
+    fireEvent(v, new Event('timeupdate'))
+    fireEvent(v, new Event('pause'))
+
+    // a third play that is abandoned part-way: a play, but no completion
+    time = 0
+    fireEvent(v, new Event('play'))
+    time = 1
+    fireEvent(v, new Event('timeupdate'))
+
+    const types = (await sentEvents()).map((e) => e.event_type) // sentEvents also fires pagehide
+    expect(types.filter((t) => t === 'video_play')).toHaveLength(3)
+    expect(types.filter((t) => t === 'video_complete')).toHaveLength(2)
+  })
+
+  it('does not double count a completion when ended follows the stop point', async () => {
+    const { container } = render(
+      <div>
+        <SiteTracker />
+        <video data-track="video" data-track-label="a" data-track-stop-at="3" />
+      </div>,
+    )
+    const v = container.querySelector('video')!
+    let time = 0
+    Object.defineProperty(v, 'currentTime', { get: () => time, set: (n: number) => (time = n), configurable: true })
+    fireEvent(v, new Event('play'))
+    time = 3
+    fireEvent(v, new Event('timeupdate'))
+    fireEvent(v, new Event('ended'))
+    const types = (await sentEvents()).map((e) => e.event_type)
+    expect(types.filter((t) => t === 'video_complete')).toHaveLength(1)
+  })
+
   it('never reports a looping (autoplay-style) video as a play or complete', async () => {
     const { container } = render(
       <div>

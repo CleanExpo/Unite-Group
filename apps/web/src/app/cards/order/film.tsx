@@ -33,6 +33,7 @@ export function Film({ edition, aspect = edition.aspect }: { edition: Edition; a
         <video
           data-track="video"
           data-track-label={`order-film-${edition.name}`}
+          data-track-stop-at={edition.stopAt}
           key={edition.name}
           ref={video}
           src={edition.video}

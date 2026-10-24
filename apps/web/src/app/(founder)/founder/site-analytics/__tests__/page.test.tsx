@@ -4,6 +4,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 let user: unknown = { id: 'f1', email: 'phill@example.com' }
 let allowed = true
 let configured = true
+const rpcCalls: string[] = []
 let rpcImpl: (fn: string) => Promise<{ data: unknown; error: { message: string } | null }>
 
 vi.mock('next/navigation', () => ({
@@ -18,10 +19,16 @@ vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn(async () => user) }))
 vi.mock('@/lib/auth/private-access', () => ({ hasPrivateAccess: vi.fn(() => allowed) }))
 vi.mock('@/lib/supabase/service', () => ({
   hasSupabaseServiceConfig: vi.fn(() => configured),
-  createServiceClient: vi.fn(() => ({ rpc: (fn: string) => rpcImpl(fn) })),
+  createServiceClient: vi.fn(() => ({
+    rpc: (fn: string) => {
+      rpcCalls.push(fn)
+      return rpcImpl(fn)
+    },
+  })),
 }))
 
 import Page from '../page'
+import { __resetPurgeThrottleForTests } from '@/lib/analytics/site-events-retention'
 
 async function renderPage(days?: string) {
   const ui = await Page({ searchParams: Promise.resolve(days ? { days } : {}) })
@@ -32,6 +39,8 @@ const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Brisbane' 
 
 beforeEach(() => {
   cleanup()
+  rpcCalls.length = 0
+  __resetPurgeThrottleForTests()
   user = { id: 'f1', email: 'phill@example.com' }
   allowed = true
   configured = true
@@ -43,6 +52,11 @@ describe('founder site analytics page', () => {
     await renderPage()
     expect(screen.getByText('No events yet')).toBeTruthy()
     expect(document.querySelector('[data-state="error"]')).toBeNull()
+  })
+
+  it('runs the 13-month retention purge on load', async () => {
+    await renderPage()
+    expect(rpcCalls).toContain('site_events_purge')
   })
 
   it('renders an error state, not zeros, when the query fails', async () => {

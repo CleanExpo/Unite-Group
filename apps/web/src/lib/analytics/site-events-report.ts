@@ -91,7 +91,10 @@ export function summarise(daily: DailyRow[], breakdown: BreakdownRow[], days: nu
 }
 
 export async function loadSiteReport(client: ReportClient, days: number, now: Date = new Date()): Promise<ReportResult> {
-  const args = { p_from: new Date(now.getTime() - days * 86_400_000).toISOString(), p_to: new Date(now.getTime() + 60_000).toISOString() }
+  // Brisbane has no daylight saving (UTC+10): the window starts at midnight Brisbane on the first
+  // displayed day, so the chart, totals and every breakdown cover exactly the same days.
+  const firstDay = dayWindow(days, now)[0]
+  const args = { p_from: new Date(`${firstDay}T00:00:00+10:00`).toISOString(), p_to: new Date(now.getTime() + 60_000).toISOString() }
   try {
     const [daily, breakdown] = await Promise.all([client.rpc('site_events_daily', args), client.rpc('site_events_breakdown', args)])
     if (daily.error) return { status: 'error', days, message: daily.error.message }

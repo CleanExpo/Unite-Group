@@ -131,7 +131,7 @@ export function SiteTracker() {
   useEffect(() => {
     if (trackingOptedOut()) return
     const here = () => pathRef.current || window.location.pathname
-    const playing = new WeakSet<Element>()
+    const watching = new WeakMap<Element, { completed: boolean }>()
 
     const onClick = (e: MouseEvent) => {
       const target = e.target instanceof Element ? e.target : null
@@ -152,33 +152,59 @@ export function SiteTracker() {
       }
     }
 
-    const onVideo = (type: 'video_play' | 'video_complete') => (e: Event) => {
+    // One entry per video while a watch is in progress. A watch ends at the configured stop point
+    // (data-track-stop-at, where our films pause before the native "ended"), at "ended", or when the
+    // video is paused after completing or rewound to the start; the next play then counts afresh.
+    const trackedVideo = (e: Event): HTMLVideoElement | null => {
       const el = e.target instanceof Element ? e.target : null
-      if (!el || !el.matches('video[data-track="video"]') || !isTrackedPath(here())) return
-      // Looping videos (the hero loop is script-started, not user-initiated) are decoration, not engagement: never report them as plays or completes.
-      if ((el as HTMLVideoElement).loop) return
-      if (type === 'video_play') {
-        if (playing.has(el)) return
-        playing.add(el)
-      } else {
-        playing.delete(el)
-      }
-      track({ event_type: type, path: here(), label: labelOf(el) })
+      if (!el || !el.matches('video[data-track="video"]') || !isTrackedPath(here())) return null
+      // Looping videos (the hero loop is script-started, not user-initiated) are decoration, not engagement.
+      if ((el as HTMLVideoElement).loop) return null
+      return el as HTMLVideoElement
     }
-    const onPlay = onVideo('video_play')
-    const onEnded = onVideo('video_complete')
+    const onPlay = (e: Event) => {
+      const el = trackedVideo(e)
+      if (!el || watching.has(el)) return
+      watching.set(el, { completed: false })
+      track({ event_type: 'video_play', path: here(), label: labelOf(el) })
+    }
+    const complete = (el: HTMLVideoElement) => {
+      const state = watching.get(el)
+      if (!state || state.completed) return
+      state.completed = true
+      track({ event_type: 'video_complete', path: here(), label: labelOf(el) })
+    }
+    const onTimeUpdate = (e: Event) => {
+      const el = trackedVideo(e)
+      const stopAt = Number(el?.getAttribute('data-track-stop-at'))
+      if (el && stopAt > 0 && el.currentTime >= stopAt) complete(el)
+    }
+    const onEnded = (e: Event) => {
+      const el = trackedVideo(e)
+      if (!el) return
+      complete(el)
+      watching.delete(el)
+    }
+    const onPause = (e: Event) => {
+      const el = trackedVideo(e)
+      if (el && (watching.get(el)?.completed || el.currentTime === 0)) watching.delete(el)
+    }
     const onHidden = () => {
       if (document.visibilityState === 'hidden') flush()
     }
 
     document.addEventListener('click', onClick, true)
     document.addEventListener('play', onPlay, true)
+    document.addEventListener('timeupdate', onTimeUpdate, true)
+    document.addEventListener('pause', onPause, true)
     document.addEventListener('ended', onEnded, true)
     document.addEventListener('visibilitychange', onHidden)
     window.addEventListener('pagehide', flush)
     return () => {
       document.removeEventListener('click', onClick, true)
       document.removeEventListener('play', onPlay, true)
+      document.removeEventListener('timeupdate', onTimeUpdate, true)
+      document.removeEventListener('pause', onPause, true)
       document.removeEventListener('ended', onEnded, true)
       document.removeEventListener('visibilitychange', onHidden)
       window.removeEventListener('pagehide', flush)
