@@ -42,6 +42,12 @@ describe('Sidebar', () => {
     expect(screen.getByText('NEXUS')).toBeInTheDocument()
   })
 
+  it('renders the Unite-Group Nexus emblem as the brand mark', () => {
+    render(<Sidebar user={testUser} />)
+    const mark = screen.getByAltText('Unite-Group Nexus')
+    expect(mark.getAttribute('src')).toContain('unite-group-nexus-emblem-256.png')
+  })
+
   it('renders all global nav items', () => {
     render(<Sidebar user={testUser} />)
     expect(screen.getByText('Mission Control')).toBeInTheDocument()

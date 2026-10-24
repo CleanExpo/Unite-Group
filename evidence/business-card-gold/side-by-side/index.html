@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en-AU"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Order page vs Wave</title>
+<style>
+:root{--bg:#f4f2ee;--fg:#1b1b1b;--muted:#666;--line:#d8d4cc}
+@media (prefers-color-scheme:dark){:root{--bg:#141414;--fg:#eee;--muted:#999;--line:#333}}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.4 -apple-system,system-ui,sans-serif}
+header{padding:16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:2;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+h1{font-size:18px;margin:0}
+button{font:inherit;padding:6px 14px;border:1px solid var(--line);background:transparent;color:var(--fg);border-radius:6px;cursor:pointer}
+button[aria-pressed=true]{background:var(--fg);color:var(--bg)}
+.note{color:var(--muted);font-size:13px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px}
+.col h2{font-size:14px;margin:0 0 8px;position:sticky;top:64px;background:var(--bg);padding:4px 0}
+.col img{width:100%;display:block;border:1px solid var(--line)}
+.mobile .col img{max-width:390px;margin:0 auto}
+[hidden]{display:none}
+</style></head><body>
+<header><h1>New order page (left) beside the Wave reference (right)</h1>
+<button id="bd" aria-pressed="true">Desktop</button><button id="bm" aria-pressed="false">Mobile</button>
+<span class="note">Screenshots taken on the Mini, 24/10/2026. Ours: /cards/order at rest. Reference: Wave, captured live.</span></header>
+<section id="d" class="grid"><div class="col"><h2>Ours, desktop 1440</h2><img src="ours-desktop.png" alt="Our order page, desktop"></div><div class="col"><h2>Wave, desktop 1440</h2><img src="reference-desktop.png" alt="Wave reference, desktop"></div></section>
+<section id="m" class="grid mobile" hidden><div class="col"><h2>Ours, mobile 390</h2><img src="ours-mobile.png" alt="Our order page, mobile"></div><div class="col"><h2>Wave, mobile 390</h2><img src="reference-mobile.png" alt="Wave reference, mobile"></div></section>
+<script>
+const d=document.getElementById('d'),m=document.getElementById('m'),bd=document.getElementById('bd'),bm=document.getElementById('bm');
+function show(mob){m.hidden=!mob;d.hidden=mob;bd.setAttribute('aria-pressed',!mob);bm.setAttribute('aria-pressed',mob)}
+bd.onclick=()=>show(false);bm.onclick=()=>show(true);
+</script></body></html>

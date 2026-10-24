@@ -74,7 +74,12 @@ export function formatAud(amount: number): string {
  * so an unset, mistyped or foreign URL shows no pay button rather than sending a customer elsewhere.
  */
 export function paymentLinkFor(pkg: GrowPackage, env: Record<string, string | undefined> = process.env): string | null {
-  const raw = env[pkg.paymentLinkEnv]?.trim()
+  return stripePaymentLink(env[pkg.paymentLinkEnv])
+}
+
+/** The value as a Stripe Payment Link, or null: https on buy.stripe.com with no credentials, nothing else. */
+export function stripePaymentLink(value: string | undefined): string | null {
+  const raw = value?.trim()
   if (!raw) return null
   try {
     const url = new URL(raw)

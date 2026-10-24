@@ -9,6 +9,10 @@ import { Analytics } from '@vercel/analytics/react';
 export const metadata: Metadata = {
   title: 'Unite-Group Nexus',
   description: 'Private founder CRM and operating cockpit',
+  // Icons, apple-icon and the Open Graph / Twitter card come from the brand-pack
+  // files beside this layout (icon.png, apple-icon.png, opengraph-image.png,
+  // twitter-image.png) via Next's metadata file convention.
+  manifest: '/site.webmanifest',
 };
 
 export default async function RootLayout({

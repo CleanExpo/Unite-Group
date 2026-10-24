@@ -9,7 +9,7 @@ const createIntentSchema = z.object({
   currency: z.string().min(3).max(3).default('aud'),
   description: z.string().optional(),
   customer_id: z.string().optional(),
-  metadata: z.record(z.string()).optional(),
+  metadata: z.record(z.string(), z.string()).optional(),
   receipt_email: z.string().email().optional(),
   payment_method_types: z.array(z.string()).optional(),
 });

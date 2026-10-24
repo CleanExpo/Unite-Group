@@ -120,6 +120,10 @@ describe('public-path exemption is segment-aware, not prefix-loose', () => {
       '/site.webmanifest',
       '/founder-os-sw.js',
       '/grow',
+      '/cards',
+      '/cards/order',
+      '/cards/media/edition-ink.mp4',
+      '/cards/media/unite-nexus-reveal-h264.mp4',
     ]
 
     it.each(exempt)('exempts %s', (p) => {
@@ -153,6 +157,14 @@ describe('public-path exemption is segment-aware, not prefix-loose', () => {
       '/grow-admin',
       '/grow/private',
       '/grow/api/founder/wiki',
+      // '/cards' and '/cards/order' are exact pages; only '/cards/media/*' is a public subtree.
+      '/cardsx',
+      '/cards-admin',
+      '/cards/private',
+      '/cards/order/private',
+      '/cards/orders',
+      '/cards/mediax/edition-ink.mp4',
+      '/cards/api/founder/wiki',
     ]
 
     it.each(gated)('does NOT exempt %s', (p) => {

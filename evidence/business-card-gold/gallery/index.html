@@ -1,0 +1,121 @@
+<title>Business Card Gold Pick</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a contact-sheet. One row per candidate: letter + verdict on the left, desktop and phone captures side by side on the right. */
+:root {
+  --bg: #f3f2ef; --panel: #ffffff; --fg: #1b1c1f; --muted: #5d6068; --line: #d9d8d3; --accent: #9a6a1f;
+  --display: "Fraunces", Georgia, serif; --body: "Instrument Sans", system-ui, sans-serif; --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121315; --panel: #1b1c1f; --fg: #ecebe7; --muted: #a2a4ab; --line: #2e3034; --accent: #d9a54f; color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #121315; --panel: #1b1c1f; --fg: #ecebe7; --muted: #a2a4ab; --line: #2e3034; --accent: #d9a54f; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 40px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 40px; }
+header { display: grid; gap: 10px; max-width: 68ch; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(32px, 5vw, 52px); line-height: 1.05; margin: 0; text-wrap: balance; }
+header p { margin: 0; color: var(--muted); }
+.ask { font-family: var(--display); font-size: 22px; color: var(--accent); margin: 6px 0 0; }
+.pick { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 28px; border-top: 1px solid var(--line); padding-top: 28px; }
+.label { display: grid; gap: 8px; align-content: start; min-width: 0; }
+.letter { font-family: var(--display); font-weight: 700; font-size: 64px; line-height: .9; color: var(--accent); }
+.label h2 { font-family: var(--display); font-weight: 500; font-size: 24px; margin: 0; }
+.label p { margin: 0; }
+.take { color: var(--muted); }
+.src { font-family: var(--mono); font-size: 12px; color: var(--muted); word-break: break-all; }
+.src a { color: inherit; }
+.shots { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 190px); gap: 16px; align-items: start; min-width: 0; }
+figure { margin: 0; display: grid; gap: 6px; min-width: 0; }
+figure .frame { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; max-height: 640px; overflow-y: auto; }
+figure img { display: block; width: 100%; height: auto; }
+figcaption { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); padding-top: 20px; max-width: 80ch; }
+@media (max-width: 820px) {
+  .pick { grid-template-columns: minmax(0, 1fr); }
+  .shots { grid-template-columns: minmax(0, 1fr) minmax(0, 40%); }
+  .letter { font-size: 48px; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Business Card offer · gold standard · 24/10/2026</span>
+    <h1>Five real pages, captured live today</h1>
+    <p>From ten scouted business-card and one-page service offers, these five sell best on a single page. Each image is a real headless-browser capture of the live site (scroll inside a frame to see more). We study the pattern, never copy the design.</p>
+    <p class="ask">Which one?</p>
+  </header>
+
+  <section class="pick" id="a">
+    <div class="label">
+      <span class="letter">A</span>
+      <h2>Wave Metal Card</h2>
+      <p>Dark, material-led, one product.</p>
+      <p class="take">Pattern: the object is the hero, lit like jewellery, with the price and the order button right beside it. Closest to our chrome-and-dark house look.</p>
+      <p class="src"><a href="https://wavecards.com.au/product/metal-smart-business-card/">wavecards.com.au</a> · AUD 199</p>
+    </div>
+    <div class="shots">
+      <figure><div class="frame"><img src="img/04-wave-metal-desktop.jpg" alt="Wave metal business card page, desktop capture" loading="lazy"></div><figcaption>Desktop 1440</figcaption></figure>
+      <figure><div class="frame"><img src="img/04-wave-metal-mobile.jpg" alt="Wave metal business card page, phone capture" loading="lazy"></div><figcaption>Phone 390</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="pick" id="b">
+    <div class="label">
+      <span class="letter">B</span>
+      <h2>V1CE</h2>
+      <p>The whole sale on one screen.</p>
+      <p class="take">Pattern: a sharp one-line promise, one price, then three numbered choices (card, quantity, add-on) and a risk-free promise above the cart button.</p>
+      <p class="src"><a href="https://v1ce.co/nfc-cards">v1ce.co</a> · AUD 214</p>
+    </div>
+    <div class="shots">
+      <figure><div class="frame"><img src="img/01-v1ce-desktop.jpg" alt="V1CE card order page, desktop capture" loading="lazy"></div><figcaption>Desktop 1440</figcaption></figure>
+      <figure><div class="frame"><img src="img/01-v1ce-mobile.jpg" alt="V1CE card order page, phone capture" loading="lazy"></div><figcaption>Phone 390</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="pick" id="c">
+    <div class="label">
+      <span class="letter">C</span>
+      <h2>Blinq</h2>
+      <p>Editorial, real people, real moments.</p>
+      <p class="take">Pattern: a big serif headline over a full-width photo of the card being used, then trust (customer logos) before any detail.</p>
+      <p class="src"><a href="https://blinq.me/">blinq.me</a></p>
+    </div>
+    <div class="shots">
+      <figure><div class="frame"><img src="img/03-blinq-desktop.jpg" alt="Blinq home page, desktop capture" loading="lazy"></div><figcaption>Desktop 1440</figcaption></figure>
+      <figure><div class="frame"><img src="img/03-blinq-mobile.jpg" alt="Blinq home page, phone capture" loading="lazy"></div><figcaption>Phone 390</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="pick" id="d">
+    <div class="label">
+      <span class="letter">D</span>
+      <h2>Designjoy</h2>
+      <p>A service made to feel like a product.</p>
+      <p class="take">Pattern: a short headline, three colour tiles that explain the process (subscribe, request, receive), then one membership card to buy.</p>
+      <p class="src"><a href="https://www.designjoy.co/">designjoy.co</a></p>
+    </div>
+    <div class="shots">
+      <figure><div class="frame"><img src="img/07-designjoy-desktop.jpg" alt="Designjoy home page, desktop capture" loading="lazy"></div><figcaption>Desktop 1440</figcaption></figure>
+      <figure><div class="frame"><img src="img/07-designjoy-mobile.jpg" alt="Designjoy home page, phone capture" loading="lazy"></div><figcaption>Phone 390</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="pick" id="e">
+    <div class="label">
+      <span class="letter">E</span>
+      <h2>Penji</h2>
+      <p>Tiers you compare at a glance.</p>
+      <p class="take">Pattern: an atmospheric dark hero with the price panels sitting right in it, and a money-back line under them. Fits our two tiers, Ready-made and Made for you.</p>
+      <p class="src"><a href="https://penji.co/pricing/">penji.co/pricing</a></p>
+    </div>
+    <div class="shots">
+      <figure><div class="frame"><img src="img/09-penji-desktop.jpg" alt="Penji pricing page, desktop capture" loading="lazy"></div><figcaption>Desktop 1440</figcaption></figure>
+      <figure><div class="frame"><img src="img/09-penji-mobile.jpg" alt="Penji pricing page, phone capture" loading="lazy"></div><figcaption>Phone 390</figcaption></figure>
+    </div>
+  </section>
+
+  <footer>Left out of the ten: Dot, Mobilo, HiHello and ManyPixels (generic software-site look) and Draftss (cartoon-character imagery). All 20 full-page captures, their source links and a pixel check (20 of 20 non-blank) are in the repo under evidence/business-card-gold/scout on branch feat/see-pick-tweak-20261024.</footer>
+</div>
