@@ -1,0 +1,166 @@
+{
+  "verified_at": "2026-10-24T01:55:38.914Z",
+  "entries": 10,
+  "checks": [
+    {
+      "file": "01-v1ce-desktop.png",
+      "bytes": 4234101,
+      "width": 1440,
+      "height": 13637,
+      "sampled_colours": 15337,
+      "pass": true
+    },
+    {
+      "file": "01-v1ce-mobile.png",
+      "bytes": 2115732,
+      "width": 390,
+      "height": 19523,
+      "sampled_colours": 51733,
+      "pass": true
+    },
+    {
+      "file": "02-dot-cards-desktop.png",
+      "bytes": 2284827,
+      "width": 1440,
+      "height": 7870,
+      "sampled_colours": 7893,
+      "pass": true
+    },
+    {
+      "file": "02-dot-cards-mobile.png",
+      "bytes": 1147364,
+      "width": 390,
+      "height": 8908,
+      "sampled_colours": 23025,
+      "pass": true
+    },
+    {
+      "file": "03-blinq-desktop.png",
+      "bytes": 3628437,
+      "width": 1440,
+      "height": 14599,
+      "sampled_colours": 22940,
+      "pass": true
+    },
+    {
+      "file": "03-blinq-mobile.png",
+      "bytes": 1535837,
+      "width": 390,
+      "height": 14541,
+      "sampled_colours": 42754,
+      "pass": true
+    },
+    {
+      "file": "04-wave-metal-desktop.png",
+      "bytes": 1915993,
+      "width": 1440,
+      "height": 8974,
+      "sampled_colours": 5531,
+      "pass": true
+    },
+    {
+      "file": "04-wave-metal-mobile.png",
+      "bytes": 1266527,
+      "width": 390,
+      "height": 9659,
+      "sampled_colours": 18368,
+      "pass": true
+    },
+    {
+      "file": "05-mobilo-desktop.png",
+      "bytes": 6032783,
+      "width": 1440,
+      "height": 24473,
+      "sampled_colours": 19833,
+      "pass": true
+    },
+    {
+      "file": "05-mobilo-mobile.png",
+      "bytes": 4272211,
+      "width": 390,
+      "height": 34451,
+      "sampled_colours": 88257,
+      "pass": true
+    },
+    {
+      "file": "06-hihello-desktop.png",
+      "bytes": 3515535,
+      "width": 1440,
+      "height": 11961,
+      "sampled_colours": 17945,
+      "pass": true
+    },
+    {
+      "file": "06-hihello-mobile.png",
+      "bytes": 2236452,
+      "width": 390,
+      "height": 17593,
+      "sampled_colours": 67303,
+      "pass": true
+    },
+    {
+      "file": "07-designjoy-desktop.png",
+      "bytes": 2284086,
+      "width": 1440,
+      "height": 7438,
+      "sampled_colours": 10850,
+      "pass": true
+    },
+    {
+      "file": "07-designjoy-mobile.png",
+      "bytes": 1616251,
+      "width": 390,
+      "height": 12655,
+      "sampled_colours": 45726,
+      "pass": true
+    },
+    {
+      "file": "08-manypixels-desktop.png",
+      "bytes": 2422071,
+      "width": 1440,
+      "height": 7001,
+      "sampled_colours": 12373,
+      "pass": true
+    },
+    {
+      "file": "08-manypixels-mobile.png",
+      "bytes": 515620,
+      "width": 390,
+      "height": 6150,
+      "sampled_colours": 14904,
+      "pass": true
+    },
+    {
+      "file": "09-penji-desktop.png",
+      "bytes": 1333845,
+      "width": 1440,
+      "height": 7109,
+      "sampled_colours": 7570,
+      "pass": true
+    },
+    {
+      "file": "09-penji-mobile.png",
+      "bytes": 568764,
+      "width": 390,
+      "height": 7404,
+      "sampled_colours": 17590,
+      "pass": true
+    },
+    {
+      "file": "10-draftss-desktop.png",
+      "bytes": 6898462,
+      "width": 1440,
+      "height": 16509,
+      "sampled_colours": 36776,
+      "pass": true
+    },
+    {
+      "file": "10-draftss-mobile.png",
+      "bytes": 3290358,
+      "width": 390,
+      "height": 21179,
+      "sampled_colours": 114825,
+      "pass": true
+    }
+  ]
+}
