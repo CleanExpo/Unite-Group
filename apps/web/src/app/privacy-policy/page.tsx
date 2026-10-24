@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 }
 
-const LAST_UPDATED = '19 October 2026'
+const LAST_UPDATED = '25 October 2026'
 const CONTACT_EMAIL = 'contact@unite-group.in'
 const COMPANY = COMPANY_NAME
 const APP_URL = 'https://unite-group.in'
@@ -269,6 +269,72 @@ export default function PrivacyPolicyPage() {
           <p>
             We will respond to privacy requests within 30 days in accordance with the Australian Privacy
             Principles.
+          </p>
+        </Section>
+
+        <Section title="13. Public Website and Living Business Cards">
+          <p>
+            This section covers the public parts of our website, including the Living Business Card pages. It applies
+            in addition to the sections above.
+          </p>
+          <SubHeading>13.1 What we collect, and why</SubHeading>
+          <ul>
+            <li>
+              <strong>People who buy a card:</strong> your name, email address, billing address and phone number, collected
+              at checkout so we can take payment, send a tax invoice and contact you about your order.
+            </li>
+            <li>
+              <strong>Card owners:</strong> the logo, business name and contact details you want shown on your card, and,
+              if you choose to tell us, where we met. We use these to supply, host and support your card.
+            </li>
+            <li>
+              <strong>Card visitors:</strong> if a visitor sends an enquiry or feedback from a card, we collect what they
+              type into the form, including any name or contact details they give, so it can reach the card owner and be
+              stored for them.
+            </li>
+            <li>
+              <strong>Everyone:</strong> standard server logs (IP address, browser type, pages visited and times) to keep
+              the site running and secure.
+            </li>
+          </ul>
+          <p>We do not collect any of this to sell it. We do not sell your personal information.</p>
+
+          <SubHeading>13.2 Who receives it</SubHeading>
+          <ul>
+            <li>Where a card has an enquiry or feedback form, the message is sent to the owner of the card by email.</li>
+            <li>
+              Stripe, and our related company CARSI Pty Ltd, which processes card payments. Stripe collects your payment
+              details at checkout; we do not see your full card number.
+            </li>
+            <li>Supabase, which hosts our database.</li>
+            <li>Vercel, which hosts the website and keeps request logs.</li>
+            <li>SendGrid, which delivers the emails our system sends.</li>
+            <li>ElevenLabs, which provides the voice agent that answers calls to the Margot phone line, and Twilio, the phone carrier for that line.</li>
+          </ul>
+          <p>
+            Our database administrators can technically read enquiries sent through a card. We do not disclose your
+            information to anyone else unless the law requires it.
+          </p>
+
+          <SubHeading>13.3 How long we keep it</SubHeading>
+          <p>
+            We keep order and enquiry records while your card is hosted and for 12 months after, then delete them, except that records
+            we must keep by law, such as tax records, are kept for as long as the law requires.
+          </p>
+
+          <SubHeading>13.4 Access, correction, deletion and complaints</SubHeading>
+          <p>
+            You can ask to access, correct or delete the information we hold about you by emailing{' '}
+            <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: '#15803d' }}>{CONTACT_EMAIL}</a>. If you are unhappy with how
+            we handle your information, you can complain to us at the same address. You can also complain to the Office of
+            the Australian Information Commissioner (OAIC) at{' '}
+            <a href="https://www.oaic.gov.au" style={{ color: '#15803d' }}>www.oaic.gov.au</a> or on 1300 363 992.
+          </p>
+          <SubHeading>13.5 Calls to the Margot phone line</SubHeading>
+          <p>
+            Calls to the Margot phone line are answered by an AI assistant, not a person. Calls may be recorded and
+            transcribed so we can follow up, and a summary of the call is stored in our CRM, together with any name,
+            business, email address or reason for calling that you give.
           </p>
         </Section>
       </main>

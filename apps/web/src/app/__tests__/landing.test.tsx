@@ -191,12 +191,14 @@ describe('/ contact and footer', () => {
     expect(html).not.toMatch(/href="\/auth\/(?!login")/)
   })
 
-  it('shows the legal name, Privacy, Terms, and ABN pending until COMPANY_ABN is set', async () => {
+  it('shows the legal name, Privacy, Terms and the ABR-verified ABN (25/10/2026) unless COMPANY_ABN overrides it', async () => {
     vi.stubEnv('COMPANY_ABN', '')
     const pending = await signedOut()
     const footer = pending.slice(pending.indexOf('<footer'))
     expect(footer).toContain('Unite-Group Nexus Pty Ltd')
-    expect(footer).toContain('ABN pending')
+    // was 'ABN pending': an unset or blank COMPANY_ABN now falls back to the number verified on the ABR
+    expect(footer).toContain('ABN 95 691 477 844')
+    expect(footer).not.toContain('ABN pending')
     expect(footer).toContain('href="/privacy-policy"')
     expect(footer).toContain('href="/terms-of-service"')
 
