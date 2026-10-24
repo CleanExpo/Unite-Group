@@ -8,7 +8,7 @@ import { entityJsonLd } from '@/lib/entity'
 
 import { BUSINESSES } from '../businesses'
 import { Hero } from '../hero'
-import { Story } from '../story'
+import { BEATS, Story } from '../story'
 
 const strip = (html: string) => html.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
 const story = () => renderToStaticMarkup(<Story />)
@@ -40,7 +40,7 @@ describe('story beats', () => {
       expect(strip(list[i])).toContain(label)
       expect(strip(list[i]).length).toBeGreaterThan(60)
     })
-    expect(strip(list[4])).toMatch(/one CRM and operating system.*New businesses plug in/)
+    expect(strip(list[4])).toMatch(/CRM and operating system we are building for the whole group.*new businesses to plug in/)
   })
 
   it('shows each frame labelled "n of 5" in static markup, so reduced motion and no script lose nothing', () => {
@@ -53,6 +53,13 @@ describe('story beats', () => {
     const text = strip(story())
     expect(renderToStaticMarkup(<Story />).match(/>Coming</g)).toHaveLength(4)
     expect(text.replace(/\d of 5/g, '')).not.toMatch(/\d|testimonial/i)
+  })
+
+  // Codex 25/10: the group CRM is not built yet, so beats 2 to 5 must say what we are building, never claim it runs today
+  it('frames every pillar beat as what we are building, with no present-tense operating claim', () => {
+    for (const b of BEATS.slice(1)) expect(b.body, b.key).toMatch(/we are building/)
+    const text = strip(story())
+    expect(text).not.toMatch(/lands and is run|sees every one of them|is caught and routed/)
   })
 
   it('uses no image to carry any text', () => {

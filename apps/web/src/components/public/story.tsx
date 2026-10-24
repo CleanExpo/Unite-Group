@@ -31,8 +31,8 @@ export const BEATS: readonly Beat[] = [
     key: 'visibility',
     label: 'Visibility',
     pillar: 'visibility',
-    title: 'Visibility: the group sees every one of them.',
-    body: 'One view across every business, so nothing sits out of sight.',
+    title: 'Visibility: seeing every one of them.',
+    body: 'What we are building: one view across every business, so nothing sits out of sight.',
     part: 'objective',
   },
   {
@@ -40,15 +40,15 @@ export const BEATS: readonly Beat[] = [
     label: 'Experience',
     pillar: 'experience',
     title: 'Experience: one standard way of serving customers.',
-    body: 'The same careful standard, whichever business a customer meets first.',
+    body: 'What we are building: the same careful standard, whichever business a customer meets first.',
     part: 'focus',
   },
   {
     key: 'conversion',
     label: 'Conversion',
     pillar: 'conversion',
-    title: 'Conversion: every enquiry is caught and routed.',
-    body: 'An enquiry from any business lands in one place and goes to the right one.',
+    title: 'Conversion: every enquiry caught and routed.',
+    body: 'What we are building: an enquiry from any business lands in one place and goes to the right one.',
     part: 'iris',
   },
   {
@@ -56,7 +56,7 @@ export const BEATS: readonly Beat[] = [
     label: 'Intelligence',
     pillar: 'intelligence',
     title: 'Intelligence: one CRM, one picture.',
-    body: 'Nexus is the one CRM and operating system where every lead, customer, job and number across the group lands and is run, by AI agents. New businesses plug in.',
+    body: 'Nexus is the CRM and operating system we are building for the whole group: every lead, customer, job and number in one place, run with AI agents, with room for new businesses to plug in.',
     part: 'sensor',
   },
 ]
