@@ -38,11 +38,10 @@ export function answers() {
 
 export function Answers() {
   return (
-    <section data-position id="answers" className={`${s.section} ${s.sectionAlt}`} aria-labelledby="answers-title">
+    <section data-position id="answers" className={s.section} aria-labelledby="answers-title">
       <div className={s.wrap}>
-        <p className={s.eyebrow}>Resources</p>
         <h2 id="answers-title" className={s.h2}>
-          Questions people ask first.
+          Questions
         </h2>
         <div className={s.faq}>
           {answers().map((item) => (

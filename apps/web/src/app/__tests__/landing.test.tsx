@@ -84,7 +84,8 @@ describe('/ positions (AC-3)', () => {
   it('has the eight positions in the fixed order', async () => {
     const html = await signedOut()
     const ids = [...html.matchAll(/<(?:section|footer)[^>]*data-position[^>]*id="([a-z]+)"/g)].map((m) => m[1])
-    expect(ids).toEqual(['hero', 'pillars', 'cards', 'how', 'proof', 'answers', 'contact', 'footer'])
+    // Phill 25/10/2026: the living-cards gallery comes before the four jobs
+    expect(ids).toEqual(['hero', 'cards', 'pillars', 'how', 'proof', 'answers', 'contact', 'footer'])
   })
 })
 
@@ -122,15 +123,15 @@ describe('/ hero and metadata', () => {
     ])
   })
 
-  it('keeps the card offer out of the hero and lower down: the group section, then the pillars, then the cards', async () => {
+  it('keeps the card offer out of the hero and lower down: the group section, then the gallery, then the jobs', async () => {
     const html = await signedOut()
-    const hero = html.slice(html.indexOf('id="hero"'), html.indexOf('id="group"'))
+    const hero = html.slice(html.indexOf('id="hero"'), html.indexOf('id="highlights"'))
     expect(hero).not.toMatch(/living card|\$249|\$449|GST/)
     expect(hero).toContain('href="#contact"')
     expect(html.indexOf('id="hero"')).toBeLessThan(html.indexOf('id="group"'))
-    expect(html.indexOf('id="group"')).toBeLessThan(html.indexOf('id="pillars"'))
-    expect(html.indexOf('id="pillars"')).toBeLessThan(html.indexOf('id="cards"'))
-    const cards = html.slice(html.indexOf('id="cards"'), html.indexOf('id="how"'))
+    expect(html.indexOf('id="group"')).toBeLessThan(html.indexOf('id="cards"'))
+    expect(html.indexOf('id="cards"')).toBeLessThan(html.indexOf('id="pillars"'))
+    const cards = html.slice(html.indexOf('id="cards"'), html.indexOf('id="pillars"'))
     expect(cards).toContain('See the living card')
     expect(cards).toContain('$249')
     expect(cards).toContain('$449')
@@ -147,11 +148,11 @@ describe('/ hero and metadata', () => {
 })
 
 describe('/ pillars and honesty', () => {
-  it('marks every pillar Coming except the card, which is on sale', async () => {
+  it('marks every pillar Coming, and says on Conversion alone that the card is on sale', async () => {
     const html = await signedOut()
-    const row = html.slice(html.indexOf('id="pillars"'), html.indexOf('id="cards"'))
-    expect(row.match(/>Coming</g)).toHaveLength(3)
-    expect(row.match(/on sale now/g)).toHaveLength(1)
+    const row = html.slice(html.indexOf('id="pillars"'), html.indexOf('id="how"'))
+    expect(row.match(/>Coming</g)).toHaveLength(4)
+    expect(row.match(/Card from \$249/g)).toHaveLength(1)
     expect(row).not.toMatch(/Ask us/)
     for (const p of PILLARS) expect(row).toContain(`href="${pillarPath(p.slug)}"`)
   })

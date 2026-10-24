@@ -24,18 +24,18 @@ const PAIRS = [
   ['ink', 'bg'], ['ink', 'bg-alt'], ['ink-soft', 'bg'], ['ink-soft', 'bg-alt'], ['muted', 'bg'], ['muted', 'bg-alt'],
   ['accent', 'bg'], ['accent', 'bg-alt'], ['accent-strong', 'bg'], ['accent-strong', 'bg-alt'], ['accent-strong', 'accent-soft'],
   ['accent-ink', 'accent'], ['accent-ink', 'accent-strong'], ['danger', 'bg'], ['bg', 'ink'],
-  // Mode A, warm white (spec 10.5): the page canvas sits behind the white cards
+  // The dark canvas sits behind the card surfaces
   ['ink', 'canvas'], ['ink-soft', 'canvas'], ['muted', 'canvas'], ['accent', 'canvas'], ['accent-strong', 'canvas'], ['focus', 'canvas'],
-  // Mode B, the dark hero band: light text, and the sampled copper as text and as a button face
+  // The hero band and nav: light text, and the sampled copper as text and as a button face
   ['night-ink', 'night'], ['night-soft', 'night'], ['highlight', 'night'], ['night', 'highlight'],
 ] as const
 
 describe('public tokens: text and button pairs are at least 4.5:1', () => {
   // Phill 25/10/2026: the copper is the one sampled from the Unite-Group Nexus logo file, not the earlier brown-orange.
-  it('uses the copper sampled from the logo as --highlight, and a darker shade of it for text on light', () => {
+  it('uses the copper sampled from the logo as --highlight, and the same copper as the accent on the dark page', () => {
     expect(token('highlight')).toBe('#ec7b41')
     expect(ratio(token('accent'), token('bg'))).toBeGreaterThanOrEqual(4.5)
-    expect(token('accent')).not.toBe('#c2410c')
+    expect(token('accent')).toBe(token('highlight'))
     const hue = (hex: string) => {
       const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
       const mx = Math.max(r, g, b), mn = Math.min(r, g, b)
@@ -43,9 +43,11 @@ describe('public tokens: text and button pairs are at least 4.5:1', () => {
     }
     expect(Math.abs(hue(token('accent')) - hue(token('highlight')))).toBeLessThan(8)
   })
-  it('uses the spec 10.5 warm-white canvas', () => {
-    expect(token('canvas')).toBe('#f6f7f4')
-    expect(token('ink')).toBe('#17242b')
+  // Phill 25/10/2026: the whole public site is dark, so the canvas is near-black and the ink is light.
+  it('is dark: a near-black canvas under light ink', () => {
+    expect(luminance(token('canvas'))).toBeLessThan(0.01)
+    expect(luminance(token('ink'))).toBeGreaterThan(0.8)
+    expect(token('canvas')).toBe(token('night'))
   })
   it.each(PAIRS)('%s on %s', (fg, bg) => {
     expect(ratio(token(fg), token(bg)), `${fg} on ${bg}`).toBeGreaterThanOrEqual(4.5)

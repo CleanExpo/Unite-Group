@@ -16,7 +16,6 @@ const LOGOS = join(WEB, 'public', 'landing', 'logos')
 const SOURCE: Record<string, string> = {
   'disaster-recovery': 'apps/empire/public/logos/disaster-recovery.png',
   restoreassist: 'apps/empire/public/logos/restoreassist.png',
-  synthex: 'apps/empire/public/logos/synthex.png',
   carsi: 'apps/empire/public/logos/carsi.png',
 }
 
@@ -63,6 +62,31 @@ describe('the approved NRPG logo, and only that', () => {
   })
 })
 
+// Phill 25/10/2026: Synthex's blurry crop with a thin white border is replaced by the clean navy tile from brand-assets
+// (not in the repo), so the served file is pinned by hash: it is a byte-identical copy of synthex-tile-384.webp.
+// Trade Hall has NO logo (Phill rejected the one offered, 25/10/2026): its tile is the name only until he picks another.
+const SYNTHEX_TILE_SHA = '1fc614a138c08aa5793a23d26cd0e0b915481645cb30d5d356303a6046e6e56a'
+
+describe('the approved Synthex tile, and Trade Hall with no logo', () => {
+  it('serves the clean Synthex tile byte for byte', () => {
+    expect(createHash('sha256').update(readFileSync(join(LOGOS, 'synthex.webp'))).digest('hex')).toBe(SYNTHEX_TILE_SHA)
+  })
+
+  it('has no white edge on the Synthex tile: every border pixel is dark navy', async () => {
+    const { data, info } = await sharp(join(LOGOS, 'synthex.webp')).removeAlpha().raw().toBuffer({ resolveWithObject: true })
+    const sum = (x: number, y: number) => data[(y * info.width + x) * 3] + data[(y * info.width + x) * 3 + 1] + data[(y * info.width + x) * 3 + 2]
+    const edge: number[] = []
+    for (let i = 0; i < info.width; i++) edge.push(sum(i, 0), sum(i, info.height - 1))
+    for (let j = 0; j < info.height; j++) edge.push(sum(0, j), sum(info.width - 1, j))
+    expect(Math.max(...edge)).toBeLessThan(300)
+  })
+
+  it('shows Trade Hall by name only: no logo file, no image, anywhere', () => {
+    expect(BUSINESSES.find((b) => b.name === 'Trade Hall')?.logo).toBeUndefined()
+    expect(readdirSync(LOGOS).filter((f) => /trade/i.test(f))).toEqual([])
+  })
+})
+
 describe('business logos come from repo files', () => {
   it('lists a tracked source for every logo, and Trade Hall (no logo file in the repo) as a wordmark', () => {
     const withLogo = TILES.filter((b) => b.logo)
@@ -98,6 +122,7 @@ describe('business logos come from repo files', () => {
     for (const src of Object.values(SOURCE)) expect(readme).toContain(src)
     for (const f of Object.keys(NRPG_APPROVED)) expect(readme).toContain(f)
     expect(readme).toContain('brand-assets/nrpg/01-approved-logo')
+    expect(readme).toContain('brand-assets/synthex/01-clean-tile/synthex-tile-384.webp')
     expect(readme).toContain('public/logos/unite-group-nexus-logo.png')
     // every source above is a tracked repo path; none is a file fetched from a website
     expect(readme).not.toMatch(/no tracked copy|live header logo/i)
