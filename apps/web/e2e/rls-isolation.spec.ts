@@ -97,6 +97,14 @@ test.describe('RLS founder isolation — crm_contacts', () => {
       // Anonymous (no session) sees ZERO.
       const anon = makeAnonClient()
       const anonRead = await anon.from('crm_contacts').select('id').eq('founder_id', userA.id!)
+      // Denied outright (privilege revoked, UNI-3006: 42501) or zero rows (RLS only) both pass;
+      // any other error, or any row, fails.
+      if (anonRead.error) {
+        expect(
+          anonRead.error.code === '42501' || /permission denied/i.test(anonRead.error.message),
+          `anon read failed for a reason other than permission: ${JSON.stringify(anonRead.error)}`,
+        ).toBe(true)
+      }
       expect(anonRead.data ?? [], 'RLS BREACH: anonymous client can read founder rows').toHaveLength(0)
     } finally {
       if (seededId) await admin.from('crm_contacts').delete().eq('id', seededId)
