@@ -85,6 +85,27 @@ describe('the approved Synthex tile, and Trade Hall with no logo', () => {
     expect(BUSINESSES.find((b) => b.name === 'Trade Hall')?.logo).toBeUndefined()
     expect(readdirSync(LOGOS).filter((f) => /trade/i.test(f))).toEqual([])
   })
+
+  // Phill 25/10/2026: the Trade Hall name is set in Avenir Next Heavy. Avenir is a licensed font, so no font file is
+  // bundled or fetched: devices without it (everything except Apple's) show the fallback stack.
+  it('sets the Trade Hall name in Avenir Next at weight 800 with a fallback stack, and ships no font file', () => {
+    const css = readFileSync(join(WEB, 'src', 'components', 'public', 'story.module.css'), 'utf8')
+    const rule = css.match(/\.name\[data-wordmark\]\s*\{[^}]*\}/g)?.join(' ') ?? ''
+    expect(rule).toMatch(/font-family:\s*'Avenir Next'[^;]*(Helvetica|Arial|sans-serif)/)
+    expect(rule).toMatch(/font-weight:\s*800/)
+    const found: string[] = []
+    const walk = (dir: string) => {
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        const full = join(dir, e.name)
+        if (e.isDirectory()) { if (e.name !== 'node_modules' && e.name !== '.next') walk(full) }
+        else if (/\.(woff2?|ttf|otf|eot)$/i.test(e.name) && /avenir/i.test(e.name)) found.push(full)
+      }
+    }
+    walk(join(WEB, 'public'))
+    walk(join(WEB, 'src'))
+    expect(found).toEqual([])
+    expect(css).not.toMatch(/@font-face[^}]*avenir/i)
+  })
 })
 
 describe('business logos come from repo files', () => {
