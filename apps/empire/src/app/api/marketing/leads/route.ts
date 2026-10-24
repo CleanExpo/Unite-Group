@@ -25,7 +25,7 @@ const leadSchema = z.object({
   referralSource: z.string().optional(),
   marketingConsent: z.boolean().optional(),
   emailListId: z.string().optional(),
-  additionalData: z.record(z.any()).optional(),
+  additionalData: z.record(z.string(), z.any()).optional(),
 });
 
 /**

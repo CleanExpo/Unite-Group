@@ -156,7 +156,7 @@ export function OnboardingWizard() {
     if (currentStep === 0) {
       const result = businessInfoSchema.safeParse(businessInfo);
       if (!result.success) {
-        toast.error(result.error.errors[0]?.message ?? "Please fill in all fields.");
+        toast.error(result.error.issues[0]?.message ?? "Please fill in all fields.");
         return false;
       }
       return true;

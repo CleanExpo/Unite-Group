@@ -23,7 +23,7 @@ export function validateResponse<T>(data: unknown, schema: z.ZodType<T>): T {
       // Throw a new error with more context
       throw new ValidationError(
         `API response validation failed: ${errorMessage}`,
-        error.errors,
+        error.issues,
         data
       );
     }
@@ -38,7 +38,7 @@ export function validateResponse<T>(data: unknown, schema: z.ZodType<T>): T {
  * @returns A formatted error message
  */
 function formatZodError(error: z.ZodError): string {
-  return error.errors.map(err => {
+  return error.issues.map(err => {
     const path = err.path.join('.');
     return `${path ? `${path}: ` : ''}${err.message}`;
   }).join('; ');

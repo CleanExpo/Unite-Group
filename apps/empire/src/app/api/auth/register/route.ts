@@ -28,7 +28,7 @@ const registerSchema = z.object({
   firstName: z.string().trim().min(1, 'First name is required').max(50),
   lastName: z.string().trim().min(1, 'Last name is required').max(50),
   acceptTerms: z.literal(true, {
-    errorMap: () => ({ message: 'You must accept the terms and conditions' }),
+    error: 'You must accept the terms and conditions',
   }),
 });
 
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     const parsed = registerSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { error: parsed.error.errors[0]?.message ?? 'Invalid input' },
+        { error: parsed.error.issues[0]?.message ?? 'Invalid input' },
         { status: 400 },
       );
     }
