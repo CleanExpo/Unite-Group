@@ -1,8 +1,12 @@
 /* Shared styles for the public home, pillar pages, nav and footer. Tokens: src/styles/public-tokens.css. */
 
+/* globals.css sets overflow-x: hidden on body, which makes body a scroll container that never scrolls and so
+   freezes every scroll-driven animation (animation-timeline: view()) on the page. On these pages it is clip. */
+:global(body):has(.page) { overflow-x: clip; }
+
 .page {
   min-height: 100vh;
-  background: var(--pub-bg);
+  background: var(--pub-canvas);
   color: var(--pub-ink);
   font-family: var(--pub-font);
   line-height: 1.6;
@@ -21,7 +25,7 @@
 .page a { color: var(--pub-accent); text-underline-offset: 3px; }
 .page a:hover { color: var(--pub-accent-strong); }
 .page :focus-visible {
-  outline: 3px solid var(--pub-accent);
+  outline: 3px solid var(--pub-focus);
   outline-offset: 2px;
 }
 
@@ -29,8 +33,8 @@
 .header {
   position: relative;
   z-index: 5;
-  border-bottom: 1px solid var(--pub-line);
-  background: var(--pub-bg);
+  border-bottom: 1px solid rgba(244, 241, 236, 0.1);
+  background: var(--pub-night);
 }
 .navRow {
   display: flex;
@@ -47,9 +51,13 @@
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--pub-ink) !important;
+  color: var(--pub-night-ink) !important;
   text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
 }
+.logo img { display: block; width: 36px; height: 36px; }
 .navList {
   display: flex;
   flex-wrap: wrap;
@@ -64,11 +72,12 @@
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  color: var(--pub-ink-soft);
+  color: var(--pub-night-soft);
   text-decoration: none;
   cursor: pointer;
 }
-.navList a:hover { color: var(--pub-accent-strong); text-decoration: underline; }
+.navList a:hover { color: var(--pub-highlight); text-decoration: underline; }
+.header :focus-visible { outline-color: var(--pub-highlight); }
 .dropdown { position: relative; }
 .dropdown summary { list-style: none; gap: 6px; }
 .dropdown summary::-webkit-details-marker { display: none; }
@@ -85,8 +94,8 @@
   margin: 0;
   padding: 8px;
   list-style: none;
-  background: var(--pub-bg);
-  border: 1px solid var(--pub-line);
+  background: var(--pub-night);
+  border: 1px solid rgba(244, 241, 236, 0.18);
   border-radius: var(--pub-radius);
   min-width: 12rem;
 }
@@ -95,13 +104,25 @@
     position: absolute;
     top: 100%;
     left: 0;
-    box-shadow: 0 12px 28px rgba(28, 25, 23, 0.12);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
   }
 }
 .menu a { width: 100%; padding: 0 10px; }
 
 /* ---- sections ---- */
-.section { padding: 56px 0; border-top: 1px solid var(--pub-line); }
+.section { position: relative; padding: 56px 0; border-top: 1px solid var(--pub-line); }
+/* The shard motif: a copper cut-glass tab on the divider, set where the page content starts. */
+.section::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: max(16px, calc((100% - var(--pub-max)) / 2 + 16px));
+  width: 44px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--pub-highlight), var(--pub-accent-strong));
+  clip-path: polygon(0 0, 100% 0, 88% 100%, 6% 100%);
+}
+@media (min-width: 640px) { .section::before { left: max(24px, calc((100% - var(--pub-max)) / 2 + 24px)); } }
 .sectionAlt { background: var(--pub-bg-alt); }
 .eyebrow {
   margin: 0 0 8px;
@@ -117,6 +138,7 @@
   font-size: clamp(1.5rem, 3.4vw, 2.1rem);
   line-height: 1.15;
   letter-spacing: -0.02em;
+  text-wrap: balance;
 }
 .lead { margin: 12px 0 0; max-width: 40rem; font-size: 17px; color: var(--pub-ink-soft); }
 .muted { color: var(--pub-muted); }
@@ -184,7 +206,7 @@
 .badge {
   position: absolute;
   left: 8px;
-  bottom: 8px;
+  top: 8px;
   padding: 2px 10px;
   border-radius: 999px;
   background: var(--pub-ink);
