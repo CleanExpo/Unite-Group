@@ -71,14 +71,13 @@ export function Story() {
                 <a href={b.url} rel="noopener" className={t.tile}>
                   {b.logo && (
                     <span className={t.plate}>
-                      <img src={b.logo} alt="" width={b.logo.includes('carsi') ? 360 : 192} height={b.logo.includes('carsi') ? 91 : 192} loading="lazy" decoding="async" />
+                      <img src={b.logo} alt="" width={192} height={192} loading="lazy" decoding="async" />
                     </span>
                   )}
                   <span className={t.label}>
                     <span className={t.name} {...(b.logo ? {} : { 'data-wordmark': '' })}>
                       {b.name}
                     </span>
-                    {b.line && <span className={t.line}>{b.line}</span>}
                   </span>
                 </a>
               </li>
@@ -89,6 +88,12 @@ export function Story() {
             <span>the CRM we are building</span>
           </p>
         </ShardAssembly>
+
+        {TILES.filter((b) => b.line).map((b) => (
+          <p key={b.name} className={t.drline} data-dr-line>
+            <strong>{b.name}</strong> {b.line}
+          </p>
+        ))}
 
         <ul className={t.more} data-businesses-more>
           {ALSO.map((b) => (

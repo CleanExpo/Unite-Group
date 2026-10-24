@@ -9,10 +9,10 @@ generated. Originals are not committed here (no PNG masters in public/landing); 
 | nrpg.webp | NRPG | apps/empire/public/logos/nrpg.png (the repo shield badge; the live site serves no logo, its JSON-LD names /images/nrpg-logo.png and og-nrpg-main.jpg, both 404) |
 | restoreassist.webp | RestoreAssist | apps/empire/public/logos/restoreassist.png (byte-identical to https://restoreassist.app/logo.png; raster white circle badge) |
 | synthex.webp | Synthex | apps/empire/public/logos/synthex.png (the navy SYNTHEX wordmark in the repo; not served by the live site) |
-| carsi.webp | CARSI | https://carsi.com.au/logo/logo1.png (the live header logo, 851x240). No tracked copy exists; the served file is pinned by sha256 af1e4c906e581788de3a180afa45216f14ef57be6c6124f6799df0d5ebe8c6e4 |
+| carsi.webp | CARSI | apps/empire/public/logos/carsi.png (the repo blue C badge) |
 | unite-group-nexus-mark.webp | Nav mark | apps/web/public/logos/unite-group-nexus-logo.png (edge frame cropped, corners rounded to transparent) |
 
-Processing: flatten on white, trim the flat margin, fit inside 192 px square (CARSI: 360 px wide), webp quality 88 to 90.
+Processing: flatten on white, trim the flat margin, fit inside 192 px square, webp quality 88 to 90.
 Collected by the lead on 25/10/2026; see the handover SOURCES.md for the originals.
 
 Missing: Trade Hall. No logo file exists in the repo and none was found on the web, so its tile is the name only,

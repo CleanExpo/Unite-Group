@@ -164,6 +164,16 @@ describe('the Disaster Recovery line', () => {
     expect(strip(html).split(SENTENCE).length - 1).toBe(1)
   })
 
+  it('is readable at every width: one visible caption under the U, never hidden by CSS', () => {
+    const html = story()
+    const m = html.match(/<p[^>]*data-dr-line[^>]*>([\s\S]*?)<\/p>/)
+    expect(m, 'caption paragraph').not.toBeNull()
+    expect(strip(m![1])).toContain(SENTENCE)
+    const css = readFileSync(join(__dirname, '..', 'story.module.css'), 'utf8')
+    expect(css).not.toMatch(/\.line\s*\{[^}]*display:\s*none/)
+    expect(css).not.toMatch(/\.drline\s*\{[^}]*display:\s*none/)
+  })
+
   it('makes no 24/7, certified or IICRC claim anywhere a public file names Disaster Recovery', () => {
     const banned = /24\/7|24 hours|certified|IICRC/i
     expect(DR_LINE).not.toMatch(banned)

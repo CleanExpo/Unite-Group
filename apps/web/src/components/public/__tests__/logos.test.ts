@@ -18,6 +18,7 @@ const SOURCE: Record<string, string> = {
   nrpg: 'apps/empire/public/logos/nrpg.png',
   restoreassist: 'apps/empire/public/logos/restoreassist.png',
   synthex: 'apps/empire/public/logos/synthex.png',
+  carsi: 'apps/empire/public/logos/carsi.png',
 }
 
 /** An 8 by 8 colour signature on white. A source file goes through the same trim and fit that made the served file. */
@@ -64,9 +65,8 @@ describe('business logos come from repo files', () => {
     const readme = readFileSync(join(LOGOS, 'README.md'), 'utf8')
     for (const src of Object.values(SOURCE)) expect(readme).toContain(src)
     expect(readme).toContain('public/logos/unite-group-nexus-logo.png')
-    // CARSI's file is the live site's header logo, which has no tracked copy: the README pins the served file by hash
-    expect(readme).toContain('https://carsi.com.au/logo/logo1.png')
-    expect(readme).toContain(createHash('sha256').update(readFileSync(join(LOGOS, 'carsi.webp'))).digest('hex'))
+    // every source above is a tracked repo path; none is a file fetched from a website
+    expect(readme).not.toMatch(/no tracked copy|live header logo/i)
     expect(readme).toMatch(/Trade Hall[\s\S]*(no logo|missing)/i)
   })
 })
