@@ -92,3 +92,34 @@ create policy card_feedback_anon_insert on public.card_feedback
     -- a malformed slug passes here so the table's own check constraint rejects it (23514), as before
     card_slug !~ '^[a-z0-9-]{1,64}$' or public.card_slug_accepts_capture(card_slug)
   );
+
+-- Enquiry duplicate guard (review round 2): the same (card_slug, reply_email, ask) within 10 minutes returns the row
+-- already stored instead of inserting another, so a retry gets the same receipt. An advisory transaction lock on the
+-- key makes two racing retries serialise. Security invoker: only service_role (bypassrls, insert/select granted) may call it.
+-- Rollback: drop function public.card_submit_enquiry(text, text, text, text, text, text).
+create or replace function public.card_submit_enquiry(
+  p_card_slug text, p_first_name text, p_business text, p_ask text, p_reply_email text, p_source text
+) returns table (id uuid, created_at timestamptz)
+language plpgsql as $$
+declare
+  v_id uuid;
+  v_at timestamptz;
+begin
+  perform pg_advisory_xact_lock(hashtextextended(p_card_slug || E'\x1f' || coalesce(lower(p_reply_email), '') || E'\x1f' || p_ask, 0));
+  select e.id, e.created_at into v_id, v_at
+    from public.card_enquiries as e
+    where e.card_slug = p_card_slug
+      and lower(e.reply_email) is not distinct from lower(p_reply_email)
+      and e.ask = p_ask
+      and e.created_at > now() - interval '10 minutes'
+    order by e.created_at desc
+    limit 1;
+  if v_id is null then
+    insert into public.card_enquiries as e (card_slug, first_name, business, ask, reply_email, source)
+      values (p_card_slug, p_first_name, p_business, p_ask, p_reply_email, p_source)
+      returning e.id, e.created_at into v_id, v_at;
+  end if;
+  return query select v_id, v_at;
+end $$;
+revoke all on function public.card_submit_enquiry(text, text, text, text, text, text) from public, anon, authenticated;
+grant execute on function public.card_submit_enquiry(text, text, text, text, text, text) to service_role;

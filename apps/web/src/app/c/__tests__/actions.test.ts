@@ -20,10 +20,8 @@ describe('submitEnquiryAction is off unless explicitly enabled', () => {
   it('with the flag on, uses the service client and returns the receipt from the inserted row', async () => {
     vi.stubEnv('CARD_ENQUIRY_RECEIPT_ENABLED', '1')
     const c = {
-      from: (t: string) =>
-        t === 'card_profiles'
-          ? { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { card_slug: 'sam', published_at: 'x' }, error: null }) }) }) }
-          : { insert: () => ({ select: () => ({ single: async () => ({ data: { id: 'id-1', created_at: 't' }, error: null }) }) }) },
+      from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { card_slug: 'sam', published_at: 'x' }, error: null }) }) }) }),
+      rpc: () => ({ single: async () => ({ data: { id: 'id-1', created_at: 't' }, error: null }) }),
     }
     createServiceClient.mockReturnValue(c)
     const r = await submitEnquiryAction('sam', { firstName: 'Jo', ask: 'hi' })

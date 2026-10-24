@@ -81,6 +81,23 @@ fresh_db_reuse tenants || exit 2
 apply tenants "$BASE_MIG"; apply tenants "$FIX_MIG"
 expect_pass "two-tenant proof" tenants "$TESTS/card_profiles_rls.sql"
 
+# 4b. enquiry duplicate guard: same (slug, email, ask) inside 10 minutes is one row and one receipt
+fresh_db_reuse dedupe || exit 2
+apply dedupe "$BASE_MIG"; apply dedupe "$FIX_MIG"
+expect_pass "enquiry duplicate guard proof" dedupe "$TESTS/card_enquiry_dedupe.sql"
+for mut in \
+  "s/and e.ask = p_ask/and false/" \
+  "s/and e.created_at > now() - interval '10 minutes'//"; do
+  name="mut$RANDOM"
+  fresh_db_reuse "$name" || exit 2
+  apply "$name" "$BASE_MIG"
+  sed -e "$mut" "$FIX_MIG" > "$DATA/mutant.sql"
+  if cmp -s "$FIX_MIG" "$DATA/mutant.sql"; then echo "FAIL  mutant did not change the migration: $mut"; FAILS=$((FAILS+1)); continue; fi
+  apply "$name" "$DATA/mutant.sql"
+  out="$(PSQL -d "$name" -f "$TESTS/card_enquiry_dedupe.sql" 2>&1)"; rc=$?
+  if [ $rc -ne 0 ] && ! echo "$out" | grep -q CARD_ENQUIRY_DEDUPE_PASS; then echo "RED-AS-EXPECTED  dedupe mutant ($mut)"; else echo "FAIL  dedupe proof stayed green on mutant ($mut)"; FAILS=$((FAILS+1)); fi
+done
+
 # 5. negative controls: break the migration on purpose and watch the proof go red
 for mut in \
   "s/using (published_at is not null)/using (true)/" \

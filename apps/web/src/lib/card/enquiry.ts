@@ -17,9 +17,10 @@ export interface EnquiryClient {
     select(columns: string): {
       eq(column: string, value: string): { maybeSingle(): PromiseLike<{ data: { published_at: string | null } | null; error: DbError }> }
     }
-    insert(row: Record<string, unknown>): {
-      select(columns: string): { single(): PromiseLike<{ data: { id?: string; created_at?: string } | null; error: DbError }> }
-    }
+  }
+  /** card_submit_enquiry: inserts, or returns the row already stored for the same (slug, email, ask) in the last 10 minutes. */
+  rpc(fn: string, args: Record<string, unknown>): {
+    single(): PromiseLike<{ data: { id?: string; created_at?: string } | null; error: DbError }>
   }
 }
 
@@ -46,10 +47,11 @@ export async function submitCardEnquiry(client: EnquiryClient, slug: string, inp
   if (profile.error) return fail(500, 'could not check the card')
   if (!profile.data?.published_at) return fail(404, 'card not found')
 
+  // The ten-minute duplicate guard lives in the database function so two racing retries cannot both insert.
   const { data, error } = await client
-    .from('card_enquiries')
-    .insert({ card_slug: slug, first_name: firstName, business, ask, reply_email: replyEmail, source: 'card-profile' })
-    .select('id, created_at')
+    .rpc('card_submit_enquiry', {
+      p_card_slug: slug, p_first_name: firstName, p_business: business, p_ask: ask, p_reply_email: replyEmail, p_source: 'card-profile',
+    })
     .single()
   if (error || !data?.id) return fail(500, 'could not store the enquiry')
   return { ok: true, receipt: { id: data.id, status: 'received', acceptedAt: data.created_at ?? '' } }
