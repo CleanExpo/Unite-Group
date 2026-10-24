@@ -27,11 +27,12 @@ describe('root page redirect', () => {
     vi.clearAllMocks();
   });
 
-  it('redirects unauthenticated users to /auth/login', async () => {
+  // Phill 25/10/2026: signed-out visitors see the public Nexus landing page (landing.test.tsx covers its content)
+  it('shows unauthenticated users the public landing page instead of redirecting', async () => {
     vi.mocked(getUser).mockResolvedValue(null);
 
-    await expect(RootPage()).rejects.toThrow('REDIRECT:/auth/login');
-    expect(redirect).toHaveBeenCalledWith('/auth/login');
+    await expect(RootPage()).resolves.toBeTruthy();
+    expect(redirect).not.toHaveBeenCalled();
   });
 
   it('redirects authenticated users to the founder dashboard', async () => {

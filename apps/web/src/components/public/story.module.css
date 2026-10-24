@@ -1,0 +1,90 @@
+/* The five-beat story. Static frames first: every beat is a labelled frame with readable text, no script
+   and no motion needed. Scroll-driven motion is added only where the browser supports it and the visitor
+   has not asked for reduced motion. */
+
+.story { background: var(--pub-bg); }
+.beats { display: grid; gap: 28px; margin: 32px 0 0; padding: 0; list-style: none; }
+.beat { display: grid; gap: 16px; align-items: center; }
+@media (min-width: 800px) {
+  .beat { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 32px; }
+  .beat:nth-child(even) { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); }
+  .beat:nth-child(even) .visual { order: 2; }
+}
+.text h3 { margin: 0 0 6px; font-size: 20px; line-height: 1.25; }
+.text p { margin: 0 0 10px; color: var(--pub-ink-soft); }
+.text p:first-child { color: var(--pub-muted); }
+
+.visual {
+  position: relative;
+  min-height: 220px;
+  overflow: hidden;
+  border: 1px solid var(--pub-line);
+  border-radius: 10px;
+  background: var(--pub-bg-alt);
+}
+.lens { position: absolute; top: 6%; right: 0; width: 62%; height: 88%; }
+.ground { fill: var(--pub-line); opacity: 0.6; }
+.barrel { fill: var(--pub-bg); stroke: var(--pub-ink-soft); stroke-width: 1.2; }
+.part, .part rect { fill: var(--pub-bg); stroke: var(--pub-line-strong); stroke-width: 1.2; }
+.active, .active rect { fill: var(--pub-accent-soft); stroke: var(--pub-accent); stroke-width: 2.4; }
+.wire { fill: none; stroke: var(--pub-accent); stroke-width: 1; }
+
+.chip {
+  position: absolute;
+  width: 34px;
+  height: 14px;
+  border: 1px solid var(--pub-line-strong);
+  border-radius: 999px;
+  background: var(--pub-bg);
+}
+/* Unfocused on the way in, sharper as they pass each part, points once they are through the focus ring. */
+[data-beat-visual='0'] .chip { opacity: 0.65; filter: blur(1.6px); }
+[data-beat-visual='1'] .chip { opacity: 0.85; filter: blur(0.6px); }
+[data-beat-visual='2'] .chip,
+[data-beat-visual='3'] .chip {
+  width: 9px;
+  height: 9px;
+  padding: 0;
+  overflow: hidden;
+  border-color: var(--pub-accent);
+  background: var(--pub-accent);
+  font-size: 0;
+}
+
+.call {
+  position: absolute;
+  right: 4%;
+  top: 40%;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--pub-accent);
+  border-radius: 999px;
+  background: var(--pub-accent-soft);
+  color: var(--pub-accent-strong);
+  font-weight: 600;
+  font-size: 14px;
+}
+.phone { width: 20px; height: 20px; fill: none; stroke: var(--pub-accent-strong); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .chip { animation: chip-in linear both; animation-timeline: view(); animation-range: entry 0% cover 45%; }
+    .active { animation: part-on linear both; animation-timeline: view(); animation-range: entry 10% cover 50%; }
+    .call { animation: call-in linear both; animation-timeline: view(); animation-range: entry 20% cover 55%; }
+    .ring { animation: ring 1.6s ease-in-out infinite; }
+  }
+}
+@keyframes chip-in { from { transform: translateX(-56px); opacity: 0; filter: blur(5px); } }
+@keyframes part-on { from { stroke: var(--pub-line-strong); fill: var(--pub-bg); } }
+@keyframes call-in { from { transform: scale(0.85); opacity: 0; } }
+@keyframes ring { 50% { opacity: 0.2; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .chip, .active, .call, .ring { animation: none !important; transition: none !important; }
+}
+
+.listTitle { margin: 40px 0 8px; font-size: 17px; }
+.businesses { display: flex; flex-wrap: wrap; gap: 8px 12px; margin: 0; padding: 0; list-style: none; }
+.businesses li { padding: 6px 14px; border: 1px solid var(--pub-line); border-radius: 999px; background: var(--pub-bg-alt); color: var(--pub-ink-soft); font-size: 15px; }

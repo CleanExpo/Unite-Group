@@ -1,0 +1,25 @@
+/*
+ * Public light token set for the Unite Group home and pillar pages (spec 2026-10-23, s10 and s11).
+ * Accent is copper #c2410c, taken from the cracked-U glow: 5.18:1 on white.
+ * Every text and button pair below is checked at 4.5:1 or better by
+ * src/components/public/__tests__/tokens-contrast.test.ts. Add a token, add its pair there.
+ * Lines and rings (--pub-line*) are decoration, never text.
+ */
+:root {
+  --pub-bg: #ffffff;
+  --pub-bg-alt: #f7f5f2;
+  --pub-ink: #1c1917;
+  --pub-ink-soft: #44403c;
+  --pub-muted: #57534e;
+  --pub-line: #d6d3d1;
+  --pub-line-strong: #a8a29e;
+  --pub-accent: #c2410c;
+  --pub-accent-strong: #9a3412;
+  --pub-accent-ink: #ffffff;
+  --pub-accent-soft: #fff1e8;
+  --pub-danger: #b91c1c;
+  --pub-radius: 6px;
+  --pub-max: 72rem;
+  --pub-font: var(--font-geist-sans), system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --pub-mono: var(--font-geist-mono), ui-monospace, 'SF Mono', Menlo, monospace;
+}
