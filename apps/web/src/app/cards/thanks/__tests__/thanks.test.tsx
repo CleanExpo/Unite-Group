@@ -5,34 +5,37 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
 import ThanksPage from '../page'
-import { buildIntakeBody, checkLogoFile, orderRef } from '../intake-form'
+import { buildIntakeBody, checkLogoFile, checkoutSessionId } from '../intake-form'
 
 const render = async (params: Record<string, string | string[] | undefined>) =>
   renderToStaticMarkup(await ThanksPage({ searchParams: Promise.resolve(params) }))
 
-describe('orderRef', () => {
-  it('takes ref, else the Stripe session_id placeholder value', () => {
-    expect(orderRef({ ref: 'ref_abc123' })).toBe('ref_abc123')
-    expect(orderRef({ session_id: 'cs_test_a1' })).toBe('cs_test_a1')
-    expect(orderRef({ ref: 'ref_abc123', session_id: 'cs_test_a1' })).toBe('ref_abc123')
+describe('checkoutSessionId', () => {
+  it('takes the Stripe session_id placeholder value', () => {
+    expect(checkoutSessionId({ session_id: 'cs_test_a1' })).toBe('cs_test_a1')
+    expect(checkoutSessionId({ session_id: 'cs_live_a1B2' })).toBe('cs_live_a1B2')
   })
-  it.each([[{}], [{ ref: '' }], [{ ref: 'a b' }], [{ ref: 'a,b' }], [{ ref: ['x', 'y'] }], [{ ref: 'x'.repeat(201) }]])(
+  it('ignores a ref label, even alongside a session id', () => {
+    expect(checkoutSessionId({ ref: 'sample-plumbing-2610' })).toBeNull()
+    expect(checkoutSessionId({ ref: 'sample-plumbing-2610', session_id: 'cs_test_a1' })).toBe('cs_test_a1')
+  })
+  it.each([[{}], [{ session_id: '' }], [{ session_id: 'sample-plumbing-2610' }], [{ session_id: 'cs_test_a b' }], [{ session_id: 'cs_test_a,b' }], [{ session_id: ['cs_test_a', 'cs_test_b'] }], [{ session_id: 'cs_test_' + 'x'.repeat(201) }]])(
     'returns null for %j',
-    (p) => expect(orderRef(p as never)).toBeNull(),
+    (p) => expect(checkoutSessionId(p as never)).toBeNull(),
   )
 })
 
 describe('/cards/thanks', () => {
   it('thanks the buyer and shows the intake fields, carrying the reference', async () => {
-    const html = await render({ ref: 'ref_abc123' })
+    const html = await render({ session_id: 'cs_test_a1' })
     expect(html).toContain('Thank you')
     for (const name of ['name', 'business', 'email', 'where_met']) expect(html).toMatch(new RegExp(`<(input|textarea)[^>]*name="${name}"`))
     expect(html).toMatch(/<input[^>]*type="file"[^>]*name="logo"|<input[^>]*name="logo"[^>]*type="file"/)
-    expect(html).toContain('ref_abc123')
+    expect(html).toContain('cs_test_a1')
   })
 
-  it('shows no form, and says what to do, when there is no usable reference', async () => {
-    const html = await render({})
+  it('shows no form, and says what to do, when there is no usable session id, including a readable ref', async () => {
+    const html = await render({ ref: 'sample-plumbing-2610' })
     expect(html).not.toContain('<form')
     expect(html).toContain('payment receipt')
   })
@@ -43,7 +46,7 @@ describe('/cards/thanks', () => {
   })
 
   it('does not collect card details of any kind', async () => {
-    const html = (await render({ ref: 'ref_abc123' })).toLowerCase()
+    const html = (await render({ session_id: 'cs_test_a1' })).toLowerCase()
     expect(html).not.toMatch(/card number|cvc|expiry/)
   })
 
@@ -61,8 +64,8 @@ describe('buildIntakeBody', () => {
     form.set('email', 'sample@example.invalid')
     form.set('where_met', 'Expo')
     form.set('logo', new File(['x'], 'logo.png', { type: 'image/png' }))
-    const body = buildIntakeBody(form, 'ref_abc123')
-    expect(body).toEqual({ ref: 'ref_abc123', name: 'Sample Client', business: 'Sample Plumbing Co', email: 'sample@example.invalid', where_met: 'Expo' })
+    const body = buildIntakeBody(form, 'cs_test_a1')
+    expect(body).toEqual({ session_id: 'cs_test_a1', name: 'Sample Client', business: 'Sample Plumbing Co', email: 'sample@example.invalid', where_met: 'Expo' })
     expect(JSON.stringify(body)).not.toContain('logo')
   })
 })

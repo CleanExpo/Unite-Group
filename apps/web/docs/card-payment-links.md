@@ -9,7 +9,8 @@ When Stripe sends `checkout.session.completed` to `/api/webhooks/stripe`, a paid
 Payment Links (listed in `STRIPE_CARD_PAYMENT_LINK_IDS`) and whose amount is A$249 or A$449
 (the two `CARD_TIERS` in `src/app/cards/order/order-view.tsx`) becomes one `card_orders` row and one email to
 `LEAD_ALERT_EMAIL_TO` with the buyer's name and the tier only. The order's reference is the session's
-`client_reference_id`; if the link carried none, it is the checkout session id (`cs_...`). The same event arriving twice
+`client_reference_id`; if the link carried none, it is the checkout session id (`cs_...`). The reference is only a label for
+you: the thank-you form is tied to the order by the checkout session id alone, never by the reference. The same event arriving twice
 changes nothing the second time. If the price of a tier changes, change `CARD_TIERS`; the match is on AUD amount.
 
 ## Steps in Stripe
@@ -20,13 +21,12 @@ changes nothing the second time. If the price of a tier changes, change `CARD_TI
 2. **Send the buyer to the thank-you page.** For each of the two Payment Links (Ready-made, Made for you): edit the link,
    "After the payment", choose "Don't show confirmation page", "Redirect customers to your website", and enter
    `https://unite-group.in/cards/thanks?session_id={CHECKOUT_SESSION_ID}`. Stripe replaces `{CHECKOUT_SESSION_ID}` with the
-   real session id. The page finds the order by it, so this works even when the link has no `client_reference_id`.
-3. **Optional: tie a payment to a person.** When you send someone a link by email, add `?client_reference_id=<value>` to the
-   link, for example `https://buy.stripe.com/xxxx?client_reference_id=sample-plumbing-2610`. Use letters, digits, `-` and `_`
-   only, at most 200 characters, and a different value for every buyer. That value becomes the order's reference. The
-   public links on the website carry none, so their orders use the session id.
-4. **Do not use a reference twice.** If two orders share a reference, the thank-you page refuses to guess and asks the buyer
-   to contact us.
+   real session id. The page finds the order by that session id alone, so this works whether or not the link has a `client_reference_id`. Without `session_id` in the address the form does not appear. When Stripe recorded the buyer's email, the email typed into the form must match it.
+3. **Optional: label a payment for yourself.** When you send someone a link by email, you may add
+   `?client_reference_id=<value>` to the link, for example `https://buy.stripe.com/xxxx?client_reference_id=sample-plumbing-2610`
+   (letters, digits, `-` and `_` only, at most 200 characters). It is stored as the order's `reference` so you can recognise the
+   order. It is NOT a key to anything: a readable value can be guessed, so the thank-you form never accepts it, and the buyer
+   page works only from the unguessable `session_id` Stripe puts in the redirect (step 2).
 
 ## Environment (Vercel project)
 

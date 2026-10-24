@@ -6,8 +6,8 @@ vi.mock('@/lib/supabase/service', () => ({ createServiceClient: vi.fn() }))
 import { createServiceClient } from '@/lib/supabase/service'
 import { POST } from '../route'
 
-const ORDER = { id: 'order-1', founder_id: 'founder-1' }
-const BODY = { ref: 'ref_abc123', name: 'Sample Client', business: 'Sample Plumbing Co', email: 'sample@example.invalid', where_met: 'Expo stand' }
+const ORDER = { id: 'order-1', founder_id: 'founder-1', customer_email: 'sample@example.invalid' }
+const BODY = { session_id: 'cs_test_a1', name: 'Sample Client', business: 'Sample Plumbing Co', email: 'sample@example.invalid', where_met: 'Expo stand' }
 
 const req = (body: unknown, raw = false) =>
   new NextRequest('http://localhost/api/cards/intake', {
@@ -16,14 +16,14 @@ const req = (body: unknown, raw = false) =>
     body: raw ? String(body) : JSON.stringify(body),
   })
 
-/** card_orders: select().or().limit() resolves to `orders`; card_order_intakes: insert() resolves to `insert`. */
+/** card_orders: select().eq().limit() resolves to `orders`; card_order_intakes: insert() resolves to `insert`. */
 function mockDb(orders: { data: unknown[] | null; error?: unknown }, insertResult: { error?: unknown } = { error: null }) {
-  const or = vi.fn(() => ({ limit: vi.fn(async () => ({ error: null, ...orders })) }))
+  const eq = vi.fn(() => ({ limit: vi.fn(async () => ({ error: null, ...orders })) }))
   const insert = vi.fn(async () => insertResult)
   ;(createServiceClient as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
-    from: vi.fn((t: string) => (t === 'card_orders' ? { select: vi.fn(() => ({ or })) } : { insert })),
+    from: vi.fn((t: string) => (t === 'card_orders' ? { select: vi.fn(() => ({ eq })) } : { insert })),
   })
-  return { or, insert }
+  return { eq, insert }
 }
 
 describe('POST /api/cards/intake', () => {
@@ -44,15 +44,54 @@ describe('POST /api/cards/intake', () => {
     })
   })
 
-  it('looks the order up by reference or checkout session id', async () => {
+  it('looks the order up by the checkout session id and nothing else', async () => {
     const db = mockDb({ data: [ORDER] })
     await POST(req(BODY))
-    expect(db.or).toHaveBeenCalledWith('reference.eq.ref_abc123,stripe_session_id.eq.ref_abc123')
+    expect(db.eq).toHaveBeenCalledTimes(1)
+    expect(db.eq).toHaveBeenCalledWith('stripe_session_id', 'cs_test_a1')
+  })
+
+  it('lets the real buyer in whatever the case or spacing of their email', async () => {
+    const db = mockDb({ data: [ORDER] })
+    const res = await POST(req({ ...BODY, email: ' Sample@Example.Invalid ' }))
+    expect(res.status).toBe(201)
+    expect(db.insert).toHaveBeenCalledTimes(1)
+  })
+
+  it('stores the intake when Stripe recorded no email for the order', async () => {
+    const db = mockDb({ data: [{ ...ORDER, customer_email: null }] })
+    expect((await POST(req(BODY))).status).toBe(201)
+    expect(db.insert).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([
+    ['a readable client reference sent as the id', { ...BODY, session_id: 'sample-plumbing-2610' }],
+    ['a readable reference sent in the old ref field', { name: BODY.name, email: BODY.email, ref: 'sample-plumbing-2610' }],
+    ['a readable reference beside a session id', { ...BODY, ref: 'sample-plumbing-2610', session_id: undefined }],
+  ])('a guessed or readable reference cannot claim an order: %s', async (_l, body) => {
+    const db = mockDb({ data: [ORDER] })
+    const res = await POST(req(body))
+    expect(res.status).toBe(400)
+    expect(db.eq).not.toHaveBeenCalled()
+    expect(db.insert).not.toHaveBeenCalled()
+  })
+
+  it('answers a wrong session id exactly as an unknown one, and a wrong email the same way', async () => {
+    const unknown = mockDb({ data: [] })
+    const a = await POST(req({ ...BODY, session_id: 'cs_test_zzz' }))
+    const aBody = await a.json()
+    expect(unknown.insert).not.toHaveBeenCalled()
+    const wrongEmail = mockDb({ data: [ORDER] })
+    const b = await POST(req({ ...BODY, email: 'someone-else@example.invalid' }))
+    expect(wrongEmail.insert).not.toHaveBeenCalled()
+    expect(a.status).toBe(404)
+    expect(b.status).toBe(a.status)
+    expect(await b.json()).toEqual(aBody)
   })
 
   it('treats business and where_met as optional', async () => {
     const db = mockDb({ data: [ORDER] })
-    const res = await POST(req({ ref: 'ref_abc123', name: 'A', email: 'a@example.invalid' }))
+    const res = await POST(req({ session_id: 'cs_test_a1', name: 'A', email: 'sample@example.invalid' }))
     expect(res.status).toBe(201)
     expect(db.insert).toHaveBeenCalledWith(expect.objectContaining({ business: null, where_met: null }))
   })
@@ -61,14 +100,14 @@ describe('POST /api/cards/intake', () => {
     ['missing name', { ...BODY, name: '  ' }],
     ['missing email', { ...BODY, email: '' }],
     ['bad email', { ...BODY, email: 'not-an-email' }],
-    ['missing ref', { ...BODY, ref: '' }],
-    ['ref with filter characters', { ...BODY, ref: 'a,b.eq.c' }],
+    ['missing session id', { ...BODY, session_id: '' }],
+    ['session id with filter characters', { ...BODY, session_id: 'cs_test_a,b.eq.c' }],
     ['over-long name', { ...BODY, name: 'x'.repeat(121) }],
   ])('rejects %s with 400 before touching the database', async (_label, body) => {
     const db = mockDb({ data: [ORDER] })
     const res = await POST(req(body))
     expect(res.status).toBe(400)
-    expect(db.or).not.toHaveBeenCalled()
+    expect(db.eq).not.toHaveBeenCalled()
     expect(db.insert).not.toHaveBeenCalled()
   })
 
@@ -77,15 +116,9 @@ describe('POST /api/cards/intake', () => {
     expect((await POST(req('{nope', true))).status).toBe(400)
   })
 
-  it('returns 404 for a reference with no order', async () => {
+  it('returns 404 for a session id with no order', async () => {
     const db = mockDb({ data: [] })
     expect((await POST(req(BODY))).status).toBe(404)
-    expect(db.insert).not.toHaveBeenCalled()
-  })
-
-  it('returns 409 when two orders share the reference, rather than guessing', async () => {
-    const db = mockDb({ data: [ORDER, { id: 'order-2', founder_id: 'founder-1' }] })
-    expect((await POST(req(BODY))).status).toBe(409)
     expect(db.insert).not.toHaveBeenCalled()
   })
 

@@ -5,19 +5,16 @@ import { useState, type ChangeEvent, type FormEvent } from 'react'
 import f from '../order/enquiry-form.module.css'
 import s from '../order/order.module.css'
 
-const REF = /^[A-Za-z0-9_-]{1,200}$/
+const SESSION_ID = /^cs_(test|live)_[A-Za-z0-9]{1,200}$/
 const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml']
 const LOGO_MAX_BYTES = 5 * 1024 * 1024
 
 type Params = Record<string, string | string[] | undefined>
 
-/** The order reference from the page URL: ?ref= (client_reference_id) or ?session_id= (Stripe's redirect placeholder). */
-export function orderRef(params: Params): string | null {
-  for (const key of ['ref', 'session_id']) {
-    const v = params[key]
-    if (typeof v === 'string' && REF.test(v)) return v
-  }
-  return null
+/** The checkout session id from the page URL: ?session_id= (Stripe's redirect placeholder). A ?ref= label is ignored. */
+export function checkoutSessionId(params: Params): string | null {
+  const v = params.session_id
+  return typeof v === 'string' && SESSION_ID.test(v) ? v : null
 }
 
 /** Null when the file is fine (or absent); otherwise the reason to show the buyer. */
@@ -29,10 +26,10 @@ export function checkLogoFile(file: File | null): string | null {
 }
 
 /** The /api/cards/intake body. The logo file is deliberately not part of it. Exported so tests check the wire contract. */
-export function buildIntakeBody(form: FormData, ref: string) {
+export function buildIntakeBody(form: FormData, sessionId: string) {
   const value = (name: string) => String(form.get(name) ?? '').trim()
   return {
-    ref,
+    session_id: sessionId,
     name: value('name'),
     business: value('business'),
     email: value('email'),

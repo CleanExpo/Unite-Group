@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 import s from '../order/order.module.css'
-import { IntakeForm, orderRef } from './intake-form'
+import { IntakeForm, checkoutSessionId } from './intake-form'
 
 export const metadata: Metadata = {
   title: 'Thank you | Unite Group',
@@ -12,11 +12,11 @@ export const metadata: Metadata = {
 type SearchParams = Record<string, string | string[] | undefined>
 
 /**
- * Where the payment links send a buyer after paying (see docs/card-payment-links.md). The reference
- * arrives in the URL; the form posts it with the details so they land on the right order.
+ * Where the payment links send a buyer after paying (see docs/card-payment-links.md). Stripe puts the
+ * checkout session id in the URL; the form posts it with the details so they land on the right order.
  */
 export default async function CardThanksPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
-  const reference = orderRef(await searchParams)
+  const reference = checkoutSessionId(await searchParams)
   return (
     <div className={s.page}>
       <header className={s.header}>
