@@ -24,7 +24,6 @@ import {
   type AgentEventsClientLike,
 } from '@/lib/command-centre/agent-events'
 import { appendTaskEvent, getTaskById, type SupabaseLike } from '@/lib/command-centre/tasks'
-import { isMissingTableError } from '@/lib/command-centre/agent-events-wall'
 import { recordSynthexPostEvent, type SynthexPostsClient } from '@/lib/command-centre/synthex-posts'
 import {
   synthexEventDetail,
@@ -146,15 +145,14 @@ export async function POST(request: Request) {
   // applied): that stays a 201 with post: record_failed, as before.
   let post: 'recorded' | 'record_failed' | undefined
   try {
-    if ((await recordSynthexPostEvent(client as unknown as SynthexPostsClient, founderId, event)) === 'recorded') post = 'recorded'
+    const outcome = await recordSynthexPostEvent(client as unknown as SynthexPostsClient, founderId, event)
+    if (outcome === 'recorded') post = 'recorded'
+    else if (outcome === 'table_missing') post = 'record_failed'
   } catch (err) {
-    if (!isMissingTableError(err instanceof Error ? err.message : '')) {
-      return NextResponse.json(
-        { error: 'post_store_failed', id, message: sanitiseError(err, 'Failed to record Synthex post event') },
-        { status: 500 },
-      )
-    }
-    post = 'record_failed'
+    return NextResponse.json(
+      { error: 'post_store_failed', id, message: sanitiseError(err, 'Failed to record Synthex post event') },
+      { status: 500 },
+    )
   }
 
   return NextResponse.json(

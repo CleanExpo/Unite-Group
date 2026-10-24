@@ -183,15 +183,15 @@ describe('/api/webhooks/synthex', () => {
     expect(vi.mocked(insertAgentEvents).mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(recordSynthexPostEvent).mock.invocationCallOrder[0])
   })
 
-  it('reports post record_failed (201, wall row kept) when the post store write fails', async () => {
-    vi.mocked(recordSynthexPostEvent).mockRejectedValue(new Error('relation "cc_synthex_post_events" does not exist'))
+  it('reports post record_failed (201, wall row kept) only when the post table is missing', async () => {
+    vi.mocked(recordSynthexPostEvent).mockResolvedValue('table_missing')
     const res = await POST(req({ ...event, postId: 'cm9post' }))
     expect(res.status).toBe(201)
     expect(await res.json()).toEqual({ ok: true, id: 'row-1', post: 'record_failed' })
   })
 
   it('500s (retryable) when the post store write fails for a real reason, not a missing table', async () => {
-    vi.mocked(recordSynthexPostEvent).mockRejectedValue(new Error('connection terminated'))
+    vi.mocked(recordSynthexPostEvent).mockRejectedValue(new Error('recordSynthexPostEvent failed: column "detail" does not exist'))
     const res = await POST(req({ ...event, postId: 'cm9post' }))
     expect(res.status).toBe(500)
     expect((await res.json()).error).toBe('post_store_failed')

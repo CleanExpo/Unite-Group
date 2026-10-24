@@ -12,7 +12,8 @@ const row = (over: Partial<SynthexPostEventRow> & { detail?: Record<string, unkn
   occurred_at: '2026-10-19T01:00:00.000Z', created_at: '2026-10-19T01:00:01.000Z', ...over, detail: over.detail ?? {},
 })
 
-function fakeClient(result: { data: unknown; error: { message: string } | null }, insertError: { message: string } | null = null) {
+type DbError = { message: string; code?: string }
+function fakeClient(result: { data: unknown; error: DbError | null }, insertError: DbError | null = null) {
   const calls: unknown[][] = []
   const client: SynthexPostsClient = {
     from(table: string) {
@@ -58,8 +59,36 @@ describe('synthex post events — write side', () => {
     const none = fakeClient({ data: [], error: null })
     expect(await recordSynthexPostEvent(none.client, 'f1', ev({ type: 'campaign.planned' }))).toBe('skipped')
     expect(none.calls).toEqual([])
-    const bad = fakeClient({ data: [], error: null }, { message: 'relation "cc_synthex_post_events" does not exist' })
-    await expect(recordSynthexPostEvent(bad.client, 'f1', ev({ type: 'content.drafted', postId: 'p1' }))).rejects.toThrow(/does not exist/)
+  })
+
+  // Only an absent TABLE is the founder-gated "migration not applied" state. Every other
+  // failure (missing column, schema-cache mismatch, permissions, network) must throw so the
+  // receiver can answer 500 instead of acknowledging a post it did not store.
+  const MISSING_TABLE: DbError[] = [
+    { code: '42P01', message: 'relation "cc_synthex_post_events" does not exist' },
+    { code: 'PGRST205', message: "Could not find the table 'public.cc_synthex_post_events' in the schema cache" },
+    { message: 'relation "cc_synthex_post_events" does not exist' },
+  ]
+  const NOT_MISSING_TABLE: DbError[] = [
+    { code: '42703', message: 'column "detail" does not exist' },
+    { code: 'PGRST204', message: "Could not find the 'detail' column of 'cc_synthex_post_events' in the schema cache" },
+    { message: 'column "detail" does not exist' },
+    { message: "Could not find the 'detail' column of 'cc_synthex_post_events' in the schema cache" },
+    { code: '42501', message: 'permission denied for table cc_synthex_post_events' },
+    { code: '42P01', message: 'relation "cc_agent_events" does not exist' },
+    { message: 'connection terminated' },
+  ]
+  it.each(MISSING_TABLE)('treats a missing table as table_missing: %j', async (err) => {
+    const c = fakeClient({ data: [], error: null }, err)
+    expect(await recordSynthexPostEvent(c.client, 'f1', ev({ type: 'content.drafted', postId: 'p1' }))).toBe('table_missing')
+  })
+  it.each(NOT_MISSING_TABLE)('throws on any other write failure: %j', async (err) => {
+    const c = fakeClient({ data: [], error: null }, err)
+    await expect(recordSynthexPostEvent(c.client, 'f1', ev({ type: 'content.drafted', postId: 'p1' }))).rejects.toThrow(/recordSynthexPostEvent failed/)
+  })
+  it.each(NOT_MISSING_TABLE)('read side reports error, not migration_not_applied: %j', async (err) => {
+    const c = fakeClient({ data: null, error: err })
+    expect(await loadSynthexPosts('f1', c.client)).toMatchObject({ source: 'error', posts: [] })
   })
 })
 
@@ -97,7 +126,7 @@ describe('synthex post events — calendar read side', () => {
     expect(res.posts).toHaveLength(1)
     expect(ok.calls).toContainEqual(['eq', 'founder_id', 'f1'])
     expect(await loadSynthexPosts(null, ok.client)).toMatchObject({ source: 'not_connected', reason: 'no_founder', posts: [] })
-    const missing = fakeClient({ data: null, error: { message: 'Could not find the table public.cc_synthex_post_events in the schema cache' } })
+    const missing = fakeClient({ data: null, error: { code: 'PGRST205', message: "Could not find the table 'public.cc_synthex_post_events' in the schema cache" } })
     expect(await loadSynthexPosts('f1', missing.client)).toMatchObject({ source: 'not_connected', reason: 'migration_not_applied', posts: [] })
     const failed = fakeClient({ data: null, error: { message: 'timeout' } })
     expect(await loadSynthexPosts('f1', failed.client)).toMatchObject({ source: 'error', error: expect.stringContaining('timeout'), posts: [] })

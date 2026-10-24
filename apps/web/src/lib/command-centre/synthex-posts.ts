@@ -8,7 +8,6 @@
 // calendar.
 
 import { createClient } from '@/lib/supabase/server'
-import { isMissingTableError } from './agent-events-wall'
 import {
   SYNTHEX_POST_STATUSES,
   synthexEventDetail,
@@ -33,6 +32,21 @@ export function statusForEvent(eventType: string, status: SynthexPostStatus | nu
   return status ?? (Object.hasOwn(STATUS_BY_EVENT, eventType) ? STATUS_BY_EVENT[eventType] : null)
 }
 
+const POST_TABLE_MISSING_CODES = ['42P01', 'PGRST205']
+
+/**
+ * True only when cc_synthex_post_events itself is absent (the founder-gated
+ * "migration not applied" state): Postgres 42P01 or PostgREST PGRST205. Column
+ * errors (42703, PGRST204), a different missing relation, permissions and
+ * network faults are NOT this state. Without a code, the message must name the
+ * table and must not be about a column.
+ */
+export function isPostTableMissing(error: { code?: string | null; message?: string }): boolean {
+  const message = error.message ?? ''
+  if (error.code) return POST_TABLE_MISSING_CODES.includes(error.code) && message.includes(CC_SYNTHEX_POST_EVENTS_TABLE)
+  return /does not exist|could not find the table/i.test(message) && !/column/i.test(message) && message.includes(CC_SYNTHEX_POST_EVENTS_TABLE)
+}
+
 export interface SynthexPostEventRow {
   id: string
   post_id: string
@@ -44,7 +58,7 @@ export interface SynthexPostEventRow {
   detail: Record<string, unknown>
 }
 
-type Result = PromiseLike<{ data?: unknown; error: { message: string } | null }>
+type Result = PromiseLike<{ data?: unknown; error: { message: string; code?: string | null } | null }>
 interface Readable {
   select(columns: string): Readable
   eq(column: string, value: unknown): Readable
@@ -69,16 +83,23 @@ export function toPostEventRow(founderId: string, event: SynthexEvent) {
   }
 }
 
-/** Append the event to the post store. Throws on a failed write so the caller can report it. */
+/**
+ * Append the event to the post store. Returns 'table_missing' only when the
+ * table is absent (migration not applied); any other failed write throws so the
+ * caller can refuse to acknowledge a post it did not store.
+ */
 export async function recordSynthexPostEvent(
   client: SynthexPostsClient,
   founderId: string,
   event: SynthexEvent,
-): Promise<'recorded' | 'skipped'> {
+): Promise<'recorded' | 'skipped' | 'table_missing'> {
   const row = toPostEventRow(founderId, event)
   if (!row) return 'skipped'
   const { error } = await client.from(CC_SYNTHEX_POST_EVENTS_TABLE).insert(row)
-  if (error) throw new Error(`recordSynthexPostEvent failed: ${error.message}`)
+  if (error) {
+    if (isPostTableMissing(error)) return 'table_missing'
+    throw new Error(`recordSynthexPostEvent failed: ${error.message}`)
+  }
   return 'recorded'
 }
 
@@ -164,12 +185,14 @@ export async function loadSynthexPosts(founderId: string | null, client?: Synthe
       .eq('founder_id', founderId)
       .order('occurred_at', { ascending: false })
       .limit(READ_LIMIT)
-    if (error) throw new Error(error.message)
+    if (error) {
+      if (isPostTableMissing(error)) return { source: 'not_connected', reason: 'migration_not_applied', posts: [], truncated: false }
+      throw new Error(error.message)
+    }
     if (!Array.isArray(data)) throw new Error('no rows returned')
     return { source: 'connected', posts: foldPostEvents(data as SynthexPostEventRow[]), truncated: data.length >= READ_LIMIT }
   } catch (e) {
     const message = e instanceof Error ? e.message : 'unknown error'
-    if (isMissingTableError(message)) return { source: 'not_connected', reason: 'migration_not_applied', posts: [], truncated: false }
     return { source: 'error', error: message, posts: [], truncated: false }
   }
 }
