@@ -113,9 +113,8 @@ function Visual({ index, part }: { index: number; part: Beat['part'] }) {
   return (
     <div className={t.visual} data-beat-visual={index} aria-hidden="true">
       {POSITIONS[index].map(([left, top], i) => (
-        <span key={i} className={t.chip} style={{ left: `${left}%`, top: `${top}%` }}>
-          {BUSINESSES[i].name}
-        </span>
+        // an unlabelled shape per business: names live only in the business list below (Phill 25/10/2026)
+        <span key={i} className={t.chip} data-chip style={{ left: `${left}%`, top: `${top}%` }} />
       ))}
       <Lens part={part} />
       {index === 4 && (
