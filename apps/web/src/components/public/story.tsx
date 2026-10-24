@@ -16,7 +16,7 @@ export function Story() {
             <li key={b.name} className={t.tileItem} data-tile>
               <a href={b.url} rel="noopener" className={t.tile}>
                 {b.logo ? (
-                  <span className={t.plate}>
+                  <span className={`${t.plate} ${b.logo.endsWith('.svg') ? t.plateBare : ''}`}>
                     <img src={b.logo} alt="" width={64} height={64} loading="lazy" decoding="async" />
                   </span>
                 ) : null}

@@ -50,7 +50,7 @@ describe('the six business tiles', () => {
     expect(list.match(/rel="noopener"/g)).toHaveLength(6)
   })
 
-  it('carry the real logo as a sized local file, or a text wordmark where the repo has none', () => {
+  it('carry the real logo as a sized local file', () => {
     const t = tiles(story())
     t.forEach((tile, i) => {
       const b = TILES[i]
@@ -66,7 +66,7 @@ describe('the six business tiles', () => {
         expect(tile).toContain('data-wordmark')
       }
     })
-    expect(TILES.filter((b) => !b.logo).map((b) => b.name)).toEqual(['Trade Hall'])
+    expect(TILES.filter((b) => !b.logo).map((b) => b.name)).toEqual([])
     expect(story()).not.toMatch(/<img[^>]*src="https?:/)
   })
 

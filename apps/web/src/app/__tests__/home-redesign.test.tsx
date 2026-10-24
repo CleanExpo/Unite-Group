@@ -95,18 +95,19 @@ describe('three big media cards', () => {
 })
 
 describe('six business tiles with the approved logos', () => {
-  it('shows the six tiles in order, each a link, with real logos and an NRPG symbol that is the approved file', async () => {
+  it('shows the six tiles in order, each a link, with real logos and the NRPG and Trade Hall symbols that are the approved files', async () => {
     const tiles = blocks(await signedOut(), 'data-tile', 'li')
     expect(tiles).toHaveLength(6)
     expect(tiles.map((t) => t.replace(/<[^>]*>/g, ' ').trim().split(/\s+/)[0])).toEqual(['Synthex', 'CARSI', 'Disaster', 'NRPG', 'Trade', 'RestoreAssist'])
     const nrpg = tiles.find((t) => t.includes('NRPG'))!
-    expect(nrpg).toContain('src="/landing/logos/nrpg-symbol.svg"')
+    expect(tiles.find((t) => t.includes('Trade Hall'))).toContain('src="/landing/logos/trade-hall-floor-symbol-dark.svg"')
+    expect(nrpg).toContain('src="/landing/logos/nrpg-reveal-symbol-dark.svg"')
     for (const t of tiles) {
       expect(t).toMatch(/<a [^>]*href="https:\/\//)
       const src = t.match(/<img[^>]*src="([^"]+)"/)?.[1]
       if (src) expect(existsSync(join(PUBLIC, src)), src).toBe(true)
     }
-    expect(tiles.filter((t) => !t.includes('<img'))).toHaveLength(1)
+    expect(tiles.filter((t) => !t.includes('<img'))).toHaveLength(0)
   })
 })
 
