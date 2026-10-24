@@ -9,7 +9,8 @@ vi.mock('next/navigation', () => ({
   notFound: () => { throw new Error('not-found') },
 }))
 const ID = '00000000-0000-4000-8000-000000000001'
-const page = (id = ID) => EnquiryPage({ params: Promise.resolve({ id }) })
+const page = (id = ID, searchParams: Record<string, string> = {}) =>
+  EnquiryPage({ params: Promise.resolve({ id }), searchParams: Promise.resolve(searchParams) })
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -57,5 +58,14 @@ describe('authenticated enquiry view', () => {
     await expect(page()).rejects.toThrow('not-found')
     mocks.maybeSingle.mockResolvedValue({ data: null, error: { message: 'SENTINEL-PRIVATE' } })
     await expect(page()).rejects.toThrow('Could not load enquiry')
+  })
+  it('offers a POST form that erases the alert and timeline records, and confirms after it ran', async () => {
+    const html = renderToStaticMarkup(await page())
+    expect(html).toContain(`action="/api/founder/leads/${ID}/erase-alert-data"`)
+    expect(html).toContain('method="post"')
+    expect(html).not.toContain('Alert and timeline records erased')
+    const done = renderToStaticMarkup(await page(ID, { erased: '2' }))
+    expect(done).toContain('Alert and timeline records erased for 2 enquiries')
+    expect(renderToStaticMarkup(await page(ID, { erased: '<b>x</b>' }))).not.toContain('<b>x</b>')
   })
 })

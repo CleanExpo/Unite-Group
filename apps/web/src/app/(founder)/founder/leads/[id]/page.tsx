@@ -6,12 +6,16 @@ export const dynamic = 'force-dynamic'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-export default async function EnquiryPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EnquiryPage({ params, searchParams }: {
+  params: Promise<{ id: string }>
+  searchParams?: Promise<{ erased?: string }>
+}) {
   const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) redirect('/auth/login')
 
   const { id } = await params
+  const erased = Number.parseInt((await searchParams)?.erased ?? '', 10)
   if (!UUID_RE.test(id) || user.id !== getFounderUserId()) notFound()
 
   const { data: lead, error } = await supabase.from('crm_leads')
@@ -41,6 +45,20 @@ export default async function EnquiryPage({ params }: { params: Promise<{ id: st
           </div>
         ))}
       </dl>
+      {Number.isInteger(erased) && erased > 0 && (
+        <p className="mt-6 text-sm" role="status">
+          Alert and timeline records erased for {erased} {erased === 1 ? 'enquiry' : 'enquiries'}.
+        </p>
+      )}
+      <form method="post" action={`/api/founder/leads/${lead.id}/erase-alert-data`} className="mt-8">
+        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+          Removes the alert log and activity timeline entries for every enquiry from this email address. It does not delete the enquiry
+          itself or the alert email in the mailbox (search the mailbox for the enquiry reference).
+        </p>
+        <button type="submit" className="mt-2 rounded-sm border px-3 py-1 text-sm" style={{ borderColor: 'var(--color-border)' }}>
+          Erase alert and timeline records
+        </button>
+      </form>
     </main>
   )
 }

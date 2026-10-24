@@ -245,9 +245,10 @@ export default function PrivacyPolicyPage() {
             follow up, unless you ask us to delete them sooner.
           </p>
           <p>
-            When a deletion request is actioned, our founder, Phill McGurk, deletes the enquiry alert
-            email copy from the alert mailbox as well as the enquiry record, subject to legal retention
-            requirements. You can ask to see, correct or delete your information at any time by emailing{' '}
+            When a deletion request is actioned, our founder, Phill McGurk, deletes the enquiry record,
+            removes its alert delivery log and activity timeline entries (the delivery log holds only an
+            internal reference and a keyed value used to spot repeat enquiries), and deletes the enquiry
+            alert email copy from the alert mailbox, subject to legal retention requirements. You can ask to see, correct or delete your information at any time by emailing{' '}
             <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: '#15803d' }}>{CONTACT_EMAIL}</a>.
           </p>
         </Section>
