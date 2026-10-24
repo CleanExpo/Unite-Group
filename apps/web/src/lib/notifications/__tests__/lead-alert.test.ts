@@ -106,6 +106,10 @@ describe('lead alert privacy and delivery', () => {
     expect(mocks.sendEmail).toHaveBeenCalledTimes(1)
     const input = mocks.sendEmail.mock.calls[0][0]
     expect(input.subject).toBe('New enquiry')
+    // every field handed to the mail client, not just the body: to, from, replyTo, customArgs, categories
+    for (const value of forbidden) expect(JSON.stringify(input)).not.toContain(value)
+    expect(input.text).toContain('https://app.example.invalid/founder/leads/lead-2\n')
+    expect(input.html).toContain('href="https://app.example.invalid/founder/leads/lead-2"')
     for (const content of [input.text, input.html]) {
       for (const value of ['FirstSentinel', 'BusinessSentinel', 'Living card', 'lead-2']) expect(content).toContain(value)
       for (const value of forbidden) expect(content).not.toContain(value)
@@ -284,6 +288,35 @@ describe('atomic claim contract with predicate-aware fake', () => {
   })
 })
 
+
+describe('send budget follows the remaining deadline', () => {
+  const slowClaim = (ms: number) => {
+    const original = mocks.rpc.getMockImplementation()!
+    mocks.rpc.mockImplementation((name: string, args: unknown) => {
+      const inner = original(name, args)
+      const delayed = new Promise((resolve) => setTimeout(resolve, ms)).then(() => inner)
+      return Object.assign(delayed, { abortSignal: () => delayed })
+    })
+  }
+
+  it('gives SendGrid only what is left of the six seconds, so it always times out before the cap', async () => {
+    slowClaim(3000)
+    const pending = notify(payload())
+    await vi.advanceTimersByTimeAsync(3000)
+    expect(await pending).toEqual({ email: 'sent' })
+    expect(mocks.sendEmail.mock.calls[0][0].timeoutMs).toBe(2500)
+    expect(logs[0].outcome).toBe('sent')
+  })
+
+  it('does not start a send with under a second left, and records failed while the row can still be written', async () => {
+    slowClaim(5200)
+    const pending = notify(payload())
+    await vi.advanceTimersByTimeAsync(5200)
+    expect(await pending).toEqual({ email: 'failed' })
+    expect(mocks.sendEmail).not.toHaveBeenCalled()
+    expect(logs[0].outcome).toBe('failed')
+  })
+})
 
 describe('S2a checkout exclusion', () => {
   it('accepts the existing signed checkout fixture without email or alert ledger writes', async () => {

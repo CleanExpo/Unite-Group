@@ -4,6 +4,8 @@ import { EDITIONS } from '@/app/cards/editions'
 import { sendEmail } from '@/lib/integrations/sendgrid'
 import { createServiceClient } from '@/lib/supabase/service'
 
+const CAP_MS = 6000
+
 export type Outcome = 'sent' | 'failed' | 'unconfigured'
 export type LogOutcome = Outcome | 'pending' | 'deduped'
 export type NotifyResult = { email: Outcome | 'deduped' }
@@ -64,13 +66,13 @@ export async function deliverLeadAlert(payload: LeadAlertPayload): Promise<Notif
   let timer: ReturnType<typeof setTimeout> | undefined
   try {
     return await Promise.race([
-      deliver(payload, controller.signal),
+      deliver(payload, controller.signal, Date.now()),
       new Promise<NotifyResult>((resolve) => {
         timer = setTimeout(() => {
           controller.abort()
           console.error('[Notify] lead alert failed:', 'TimeoutError')
           resolve({ email: 'failed' })
-        }, 6000)
+        }, CAP_MS)
       }),
     ])
   } catch (error) {
@@ -81,7 +83,7 @@ export async function deliverLeadAlert(payload: LeadAlertPayload): Promise<Notif
   }
 }
 
-async function deliver(payload: LeadAlertPayload, signal: AbortSignal): Promise<NotifyResult> {
+async function deliver(payload: LeadAlertPayload, signal: AbortSignal, startedAt: number): Promise<NotifyResult> {
   const label = packageLabel(payload.interests)
   console.log(`[Notify] type=new_lead title="New enquiry" metadata=${JSON.stringify({ source_id: payload.leadId, package_label: label })}`)
   const founder = process.env.FOUNDER_USER_ID?.trim()
@@ -114,7 +116,10 @@ async function deliver(payload: LeadAlertPayload, signal: AbortSignal): Promise<
   if (to && from && process.env.SENDGRID_API_KEY?.trim()) {
     try {
       const content = buildAlertText(payload)
-      await sendEmail({ to: { email: to }, from: { email: from }, subject: 'New enquiry', ...content, timeoutMs: 5000, disableTracking: true })
+      // SendGrid must time out before the cap does, or an accepted email leaves its row pending.
+      const timeoutMs = Math.min(5000, CAP_MS - (Date.now() - startedAt) - 500)
+      if (timeoutMs < 1000) throw new Error('No time left to send')
+      await sendEmail({ to: { email: to }, from: { email: from }, subject: 'New enquiry', ...content, timeoutMs, disableTracking: true })
       outcome = signal.aborted ? 'failed' : 'sent'
     } catch (error) {
       outcome = 'failed'

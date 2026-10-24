@@ -15,6 +15,7 @@
     "lint": "eslint src/",
     "lint:all": "turbo run lint",
     "type-check": "tsc --noEmit",
+    "verify:claim-sql": "node scripts/verify-claim-alert-sql.mjs",
     "type-check:tests": "tsc --noEmit -p tsconfig.typetest.json",
     "type-check:all": "turbo run type-check",
     "test": "vitest run",
