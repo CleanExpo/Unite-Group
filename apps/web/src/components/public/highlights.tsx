@@ -1,12 +1,13 @@
 import { CARD_FILM } from './film-config'
 import { FilmPlayer } from './film-player'
 import s from './public.module.css'
+import { VisualImg } from './visual-img'
 import { VISUALS, type Visual } from './visuals'
 
 // Three big media cards, the first row under the hero: full-bleed picture or film, a bold title and ONE caption line.
 // The film card plays the U reveal once with Replay and Pause; its title link sits under the film's own buttons.
 export function Highlights() {
-  const picture = (v: Visual | null) => (v ? <img src={v.src} alt="" width={v.width} height={v.height} loading="lazy" decoding="async" /> : null)
+  const picture = (v: Visual | null) => (v ? <VisualImg visual={v} /> : null)
   return (
     <section id="highlights" className={`${s.section} ${s.tight}`} aria-label="Highlights">
       <div className={s.wrap}>
@@ -24,7 +25,7 @@ export function Highlights() {
               <p className={s.cardLine}>A video card that ends on your logo.</p>
             </div>
           </article>
-          <article className={s.mediaCard} data-media-card>
+          <article className={`${s.mediaCard} ${VISUALS.nexus ? '' : s.plainCard}`} data-media-card>
             <div className={s.mediaBox}>{picture(VISUALS.nexus)}</div>
             <div className={s.mediaText}>
               <h3 className={s.cardTitle}>

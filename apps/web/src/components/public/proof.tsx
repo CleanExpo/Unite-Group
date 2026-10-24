@@ -1,4 +1,5 @@
 import s from './public.module.css'
+import { VisualImg } from './visual-img'
 import { VISUALS } from './visuals'
 
 // Position 5: a banner over the showroom picture. One honest line about a real artefact; no numbers, no testimonials.
@@ -8,7 +9,7 @@ export function Proof() {
     <section data-position id="proof" className={s.section} aria-labelledby="proof-title">
       <div className={s.wrap}>
         <div className={`${s.banner} ${v ? '' : s.plainBanner}`}>
-          {v && <img src={v.src} alt="" width={v.width} height={v.height} loading="lazy" decoding="async" />}
+          {v && <VisualImg visual={v} />}
           <div className={s.bannerText}>
             <h2 id="proof-title" className={s.bannerTitle}>
               See it before you ask

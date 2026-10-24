@@ -1,6 +1,7 @@
 import { PILLARS, SHIPPED_PILLAR, lowestCardPrice, pillarPath } from '@/lib/public-site'
 
 import s from './public.module.css'
+import { VisualImg } from './visual-img'
 import { VISUALS } from './visuals'
 
 // Position 3: four image cards, each a title, one line and a Coming chip, linked to its pillar page.
@@ -21,7 +22,7 @@ export function PillarsRow() {
                 <article className={`${s.mediaCard} ${v ? '' : s.plainCard}`} data-job>
                   {v && (
                     <div className={s.mediaBox}>
-                      <img src={v.src} alt="" width={v.width} height={v.height} loading="lazy" decoding="async" />
+                      <VisualImg visual={v} />
                     </div>
                   )}
                   <div className={s.mediaText}>

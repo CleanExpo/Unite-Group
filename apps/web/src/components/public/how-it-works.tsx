@@ -1,4 +1,5 @@
 import s from './public.module.css'
+import { VisualImg } from './visual-img'
 import { VISUALS } from './visuals'
 
 // Position 4: three steps that run today; the wording matches the /cards showroom.
@@ -23,7 +24,7 @@ export function HowItWorks() {
                 <article className={`${s.mediaCard} ${v ? '' : s.plainCard}`} data-step>
                   {v && (
                     <div className={s.mediaBox}>
-                      <img src={v.src} alt="" width={v.width} height={v.height} loading="lazy" decoding="async" />
+                      <VisualImg visual={v} />
                     </div>
                   )}
                   <div className={s.mediaText}>

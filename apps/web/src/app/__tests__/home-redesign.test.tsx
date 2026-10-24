@@ -83,10 +83,10 @@ describe('three big media cards', () => {
     for (const c of cards) {
       expect(c.match(/<p[ >]/g)).toHaveLength(1)
     }
-    // a picture only where a distinct file exists (Phill 25/10/2026): the film card and the Nexus card have one, the network card is plain
+    // a picture only where a distinct file exists (Phill 25/10/2026): the film card and the network card have one, the Nexus card is plain glass until it has its own
     expect(cards[0]).toContain('data-film')
-    expect(cards[1]).toMatch(/<img[^>]*src="\/cards\/media\/unite-nexus-u-reveal-poster-9x16\.jpg"/)
-    expect(cards[2]).not.toContain('<img')
+    expect(cards[1]).not.toContain('<img')
+    expect(cards[2]).toMatch(/<img[^>]*src="\/landing\/visuals\/network-1280\.webp"/)
     expect(cards[0]).toContain('data-film')
     expect(cards[0]).toContain('href="/cards"')
     expect(cards[1]).toContain('href="/solutions/intelligence"')
@@ -143,9 +143,10 @@ describe('four job cards and three step cards', () => {
   it('has the four pillars as image cards, each marked Coming and linked to its page', async () => {
     const jobs = blocks(between(await signedOut(), 'pillars', 'how'), 'data-job', 'article')
     expect(jobs).toHaveLength(4)
-    // only the Intelligence card has a picture until the new ones arrive
-    expect(jobs.map((j) => j.includes('<img'))).toEqual([false, false, false, true])
-    expect(jobs[3]).toContain('/landing/visuals/intelligence.webp')
+    // each job has its own approved picture (Phill 25/10/2026), and the Intelligence picture is on the Intelligence card only
+    for (const [i, slug] of ['visibility', 'experience', 'conversion', 'intelligence'].entries()) {
+      expect(jobs[i], slug).toMatch(new RegExp(`<img[^>]*src="/landing/visuals/${slug}-1280\\.webp"[^>]*alt="[^"]{20,}"`))
+    }
     for (const [i, p] of PILLARS.entries()) {
       expect(jobs[i]).toContain(`href="${pillarPath(p.slug)}"`)
       expect(jobs[i]).toContain('>Coming<')
@@ -156,6 +157,7 @@ describe('four job cards and three step cards', () => {
   it('has three step cards: pick, send, approve', async () => {
     const steps = blocks(between(await signedOut(), 'how', 'proof'), 'data-step', 'article')
     expect(steps.map((s) => strip(s.match(/<h3[^>]*>([\s\S]*?)<\/h3>/)![1]))).toEqual(['Pick an opener', 'Send your details', 'Approve a proof'])
+    for (const [i, f] of ['step-pick', 'step-send', 'step-approve'].entries()) expect(steps[i], f).toMatch(new RegExp(`<img[^>]*src="/landing/visuals/${f}-1280\\.webp"[^>]*alt="[^"]{20,}"`))
   })
 })
 
@@ -170,16 +172,29 @@ describe('almost no paragraphs', () => {
 })
 
 describe('images come from one map, and no file appears twice', () => {
-  it('maps every slot to an existing file or to nothing, never repeats a file, and uses intelligence.webp only in the Intelligence card', async () => {
+  it('maps every slot to an existing file with real alt text, repeats no file, and uses intelligence only in the Intelligence card', async () => {
     const { VISUALS } = await import('@/components/public/visuals')
     expect(Object.keys(VISUALS).sort()).toEqual(
       ['conversion', 'experience', 'intelligence', 'network', 'nexus', 'showroom', 'stepApprove', 'stepPick', 'stepSend', 'visibility'].sort(),
     )
-    const files = Object.values(VISUALS).flatMap((v) => (v ? [v.src] : []))
-    for (const f of files) expect(existsSync(join(PUBLIC, f)), f).toBe(true)
+    const filled = Object.entries(VISUALS).flatMap(([slot, v]) => (v ? [[slot, v] as const] : []))
+    // only Nexus has no picture of its own yet
+    expect(Object.entries(VISUALS).filter(([, v]) => !v).map(([k]) => k)).toEqual(['nexus'])
+    const files: string[] = []
+    for (const [slot, v] of filled) {
+      for (const f of [v.src, v.small]) {
+        expect(existsSync(join(PUBLIC, f)), `${slot}: ${f}`).toBe(true)
+        files.push(f)
+      }
+      expect(v.alt.length, `${slot} alt`).toBeGreaterThanOrEqual(20)
+      expect(v.alt, `${slot} alt`).not.toMatch(/\b(image|picture|photo) of\b/i)
+    }
     expect(new Set(files).size, 'a file is mapped to two slots').toBe(files.length)
-    expect(Object.entries(VISUALS).filter(([, v]) => v?.src.endsWith('/intelligence.webp')).map(([k]) => k)).toEqual(['intelligence'])
+    expect(filled.filter(([, v]) => v.src.includes('intelligence')).map(([k]) => k)).toEqual(['intelligence'])
     expect(readdirSync(join(PUBLIC, 'landing', 'visuals')).filter((f) => !/\.webp$/.test(f))).toEqual([])
+    // every mapped picture is on the page exactly once
+    const html = await signedOut()
+    for (const [slot, v] of filled) expect(html.split(`src="${v.src}"`).length - 1, slot).toBe(1)
     for (const f of ['public-home.tsx', 'highlights.tsx', 'pillars-row.tsx', 'how-it-works.tsx', 'proof.tsx']) {
       expect(readFileSync(join(__dirname, '..', '..', 'components', 'public', f), 'utf8'), f).not.toMatch(/\/landing\/visuals\//)
     }

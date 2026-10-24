@@ -164,7 +164,8 @@
   border-radius: 20px;
   background: var(--pub-bg);
 }
-.mediaRow .mediaCard { aspect-ratio: 5 / 6; }
+.mediaRow .mediaCard { aspect-ratio: 4 / 3; }
+@media (max-width: 899px) { .mediaRow .mediaCard { aspect-ratio: 5 / 4; } }
 .mediaBox { position: absolute; inset: 0; z-index: 0; }
 .mediaBox img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .mediaBox :global([data-film]) { aspect-ratio: auto; height: 100%; }
@@ -208,11 +209,13 @@
 
 /* ---- four jobs and three steps ---- */
 .grid4, .steps { display: grid; gap: 16px; margin: 28px 0 0; padding: 0; list-style: none; }
-.grid4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid4 { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 600px) { .grid4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (min-width: 1000px) { .grid4 { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .steps { grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 800px) { .steps { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-.grid4 .mediaCard { aspect-ratio: 3 / 4; }
+.grid4 .mediaCard { aspect-ratio: 4 / 3; }
+@media (min-width: 1000px) { .grid4 .mediaCard { aspect-ratio: 3 / 4; } }
 .grid4 .cardTitle { font-size: clamp(1.4rem, 2.4vw, 1.9rem); }
 .steps .mediaCard { aspect-ratio: 4 / 3; }
 .stepNo { font-family: var(--pub-mono); font-size: 13px; color: var(--pub-accent-strong); }
@@ -286,3 +289,5 @@
 .plainCard::after, .plainBanner::after { background: none; }
 
 .srOnly { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0; }
+
+.mediaRow .plainCard { aspect-ratio: auto; min-height: 190px; }
