@@ -1,134 +1,40 @@
-/* "How the group fits together": six shards that lock into a U, Nexus in the middle, then five beats.
-   The default state is the finished U: no script, no motion and no animation-timeline support all show it. */
+/* "The group": six dark glass tiles, one line each. */
 
-.story { background: transparent; }
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 28px 0 0; padding: 0; list-style: none; }
+@media (min-width: 700px) { .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; } }
 
-/* ---- the U ---- */
-.u {
-  --row: 112px;
-  --gap: 8px;
-  position: relative;
-  max-width: 56rem;
-  margin: 40px auto 0;
-  view-timeline: --u block;
-}
-@media (min-width: 700px) { .u { --row: 150px; --gap: 12px; } }
-
-.shards {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  grid-template-rows: repeat(3, var(--row));
-  gap: var(--gap);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-/* Where each shard sits in the U, and the cut of its edges. --dx, --dy and --r are where it comes in from. */
-.s0 { grid-column: 1; grid-row: 1; --clip: polygon(0 14%, 22% 0, 100% 0, 100% 80%, 76% 100%, 0 100%); --dx: -90px; --dy: -60px; --r: -14deg; }
-.s1 { grid-column: 1; grid-row: 2; --clip: polygon(0 0, 100% 0, 100% 78%, 82% 100%, 0 100%, 0 0); --dx: -120px; --dy: 10px; --r: 9deg; }
-.s2 { grid-column: 1 / 3; grid-row: 3; --clip: polygon(0 0, 96% 0, 100% 22%, 100% 100%, 0 100%); --dx: -80px; --dy: 90px; --r: -8deg; }
-.s3 { grid-column: 4; grid-row: 2; --clip: polygon(0 0, 100% 0, 100% 100%, 24% 100%, 0 80%); --dx: 120px; --dy: 10px; --r: -9deg; }
-.s4 { grid-column: 4; grid-row: 1; --clip: polygon(0 0, 78% 0, 100% 14%, 100% 100%, 0 86%); --dx: 90px; --dy: -60px; --r: 14deg; }
-.s5 { grid-column: 3 / 5; grid-row: 3; --clip: polygon(0 24%, 4% 0, 100% 0, 100% 100%, 0 100%); --dx: 80px; --dy: 90px; --r: 8deg; }
-
-.shard {
-  position: relative;
-  background: linear-gradient(140deg, var(--pub-highlight), var(--pub-accent-strong));
-  clip-path: var(--clip);
-  transition: transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1), opacity 0.6s ease;
-}
-.s1 { transition-delay: 0.08s; } .s2 { transition-delay: 0.16s; } .s3 { transition-delay: 0.24s; } .s4 { transition-delay: 0.32s; } .s5 { transition-delay: 0.4s; }
-
-.u .tile {
-  position: absolute;
-  inset: 2px;
+.tileItem { display: flex; }
+.tile {
   display: flex;
+  flex: 1;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px 6px;
-  background: var(--pub-bg);
-  clip-path: var(--clip);
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid rgba(244, 241, 236, 0.14);
+  border-radius: 16px;
+  background: linear-gradient(160deg, rgba(244, 241, 236, 0.08), rgba(244, 241, 236, 0.02));
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
   color: var(--pub-ink);
-  text-align: center;
   text-decoration: none;
+  transition: border-color 0.2s ease, transform 0.2s ease;
 }
-.s2 .tile, .s5 .tile { flex-direction: row; gap: 12px; padding: 8px 14px; text-align: left; }
-.u .tile:hover { background: var(--pub-accent-soft); color: var(--pub-ink); }
-.u .tile:focus-visible { outline: 3px solid var(--pub-focus); outline-offset: -8px; }
+.tileItem a.tile, .tileItem a.tile:hover { color: var(--pub-ink); }
+.tile:hover { border-color: var(--pub-highlight); transform: translateY(-2px); }
+.tile:focus-visible { outline: 3px solid var(--pub-focus); outline-offset: 3px; }
 
-.plate { display: flex; align-items: center; justify-content: center; flex: none; width: 100%; max-width: 64px; height: 48px; background: var(--pub-bg); }
-.s1 .plate { max-width: 100%; }
-.s2 .plate, .s5 .plate { width: 52px; height: 52px; max-width: 52px; }
-.s2 .name, .s5 .name { overflow-wrap: normal; font-size: 13px; }
+.plate { display: flex; align-items: center; justify-content: center; flex: none; width: 64px; height: 64px; border-radius: 14px; background: #ffffff; overflow: hidden; }
+.plateBare { background: transparent; border-radius: 0; }
 .plate img { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
 .label { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.name { font-size: 12px; font-weight: 650; line-height: 1.2; overflow-wrap: anywhere; }
+.name { font-family: var(--pub-display); font-size: 18px; font-weight: 800; line-height: 1.1; letter-spacing: 0.01em; text-transform: uppercase; overflow-wrap: anywhere; }
+.name[data-wordmark] { font-size: 22px; }
+@media (min-width: 700px) { .name { font-size: 22px; } .name[data-wordmark] { font-size: 26px; } }
+.tag { font-size: 14px; line-height: 1.35; color: var(--pub-ink-soft); }
+
 .drline { max-width: 44rem; margin: 20px auto 0; text-align: center; font-size: 15px; line-height: 1.5; color: var(--pub-ink-soft); }
 .drline strong { color: var(--pub-ink); font-weight: 650; }
-.name[data-wordmark] { font-family: var(--pub-mono); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; }
 
-@media (min-width: 700px) {
-  .u .tile { gap: 10px; padding: 12px 10px; }
-  .plate { max-width: 88px; height: 72px; }
-  .s2 .plate, .s5 .plate { width: 88px; height: 88px; max-width: 88px; }
-  .s2 .name, .s5 .name { font-size: 16px; }
-  .name { font-size: 16px; }
-  .name[data-wordmark] { font-size: 16px; }
-}
-
-.nexus {
-  position: absolute;
-  top: 0;
-  left: 25%;
-  right: 25%;
-  height: calc(var(--row) * 2 + var(--gap));
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  margin: 0;
-  text-align: center;
-  color: var(--pub-ink-soft);
-  font-size: 12px;
-}
-.nexus strong { font-size: clamp(1.6rem, 5.4vw, 2.6rem); line-height: 1; letter-spacing: -0.02em; color: var(--pub-accent-strong); }
-@media (min-width: 700px) { .nexus { font-size: 15px; } }
-
-/* ---- the businesses that are not shards ---- */
 .more { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 12px; margin: 24px 0 0; padding: 0; list-style: none; }
 .more li { padding: 6px 16px; border: 1px solid var(--pub-line); border-radius: 999px; background: var(--pub-bg); color: var(--pub-ink-soft); font-size: 15px; }
-
-/* ---- the five beats ---- */
-.beats { display: grid; gap: 0; margin: 48px 0 0; padding: 0; list-style: none; }
-@media (min-width: 800px) { .beats { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 24px; } }
-.beat { padding: 20px 0; border-top: 1px solid var(--pub-line); }
-.text h3 { margin: 0 0 6px; font-size: 18px; line-height: 1.25; }
-.text p { margin: 0 0 10px; color: var(--pub-ink-soft); font-size: 15px; }
-.text p.step { margin-bottom: 8px; color: var(--pub-muted); font-family: var(--pub-mono); font-size: 12px; letter-spacing: 0.04em; }
-
-/* ---- motion ---- */
-/* No script, no support or reduced motion: the U above is the finished state. Where the browser can, the shards
-   fall in as the block scrolls into view. Where it cannot, shard-assembly.tsx sets data-shards="apart" and then
-   "assembled" once the block is in view. */
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    .shard { animation: shard-in linear both; animation-timeline: --u; animation-range: entry 8% entry 100%; transition: none; }
-    .nexus { animation: nexus-in linear both; animation-timeline: --u; animation-range: entry 40% entry 100%; }
-  }
-}
-@keyframes shard-in { from { transform: translate(var(--dx), var(--dy)) rotate(var(--r)); opacity: 0; } to { transform: none; opacity: 1; } }
-@keyframes nexus-in { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: none; } }
-
-@media (prefers-reduced-motion: no-preference) {
-  .u[data-shards='apart'] .shard { transform: translate(var(--dx), var(--dy)) rotate(var(--r)); opacity: 0; }
-  .u[data-shards='apart'] .nexus { opacity: 0; }
-  .nexus { transition: opacity 0.8s ease 0.5s; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .shard, .nexus { animation: none !important; transition: none !important; transform: none !important; opacity: 1 !important; }
-}

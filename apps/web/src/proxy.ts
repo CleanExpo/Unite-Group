@@ -64,6 +64,8 @@ const PUBLIC_PATHS = [
   '/widget',       // Embeddable chat widget script must load on third-party sites (UNI-2359)
   '/cards/media',  // Living-card showroom clips: static files in public/cards/media (.mp4 is not in the matcher's asset list)
   '/landing/media',  // Home hero preview renders (webp, jpg, webm, mp4): static files in public/landing/media; .mp4 and .webm are not in the matcher's asset list
+  '/_vercel/insights',        // Vercel Web Analytics script and beacon; segment-aware, so '/_vercel/other' and '/_vercelx' stay closed
+  '/_vercel/speed-insights', // Vercel Speed Insights script and beacon
 ] as const;
 
 // Single public files and pages, matched EXACTLY. They have no sub-routes, so the

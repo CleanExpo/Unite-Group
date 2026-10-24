@@ -84,7 +84,8 @@ describe('/ positions (AC-3)', () => {
   it('has the eight positions in the fixed order', async () => {
     const html = await signedOut()
     const ids = [...html.matchAll(/<(?:section|footer)[^>]*data-position[^>]*id="([a-z]+)"/g)].map((m) => m[1])
-    expect(ids).toEqual(['hero', 'pillars', 'cards', 'how', 'proof', 'answers', 'contact', 'footer'])
+    // Phill 25/10/2026: the living-cards gallery comes before the four jobs
+    expect(ids).toEqual(['hero', 'cards', 'pillars', 'how', 'proof', 'answers', 'contact', 'footer'])
   })
 })
 
@@ -122,15 +123,15 @@ describe('/ hero and metadata', () => {
     ])
   })
 
-  it('keeps the card offer out of the hero and lower down: the group section, then the pillars, then the cards', async () => {
+  it('keeps the card offer out of the hero and lower down: the group section, then the gallery, then the jobs', async () => {
     const html = await signedOut()
-    const hero = html.slice(html.indexOf('id="hero"'), html.indexOf('id="group"'))
+    const hero = html.slice(html.indexOf('id="hero"'), html.indexOf('id="highlights"'))
     expect(hero).not.toMatch(/living card|\$249|\$449|GST/)
     expect(hero).toContain('href="#contact"')
     expect(html.indexOf('id="hero"')).toBeLessThan(html.indexOf('id="group"'))
-    expect(html.indexOf('id="group"')).toBeLessThan(html.indexOf('id="pillars"'))
-    expect(html.indexOf('id="pillars"')).toBeLessThan(html.indexOf('id="cards"'))
-    const cards = html.slice(html.indexOf('id="cards"'), html.indexOf('id="how"'))
+    expect(html.indexOf('id="group"')).toBeLessThan(html.indexOf('id="cards"'))
+    expect(html.indexOf('id="cards"')).toBeLessThan(html.indexOf('id="pillars"'))
+    const cards = html.slice(html.indexOf('id="cards"'), html.indexOf('id="pillars"'))
     expect(cards).toContain('See the living card')
     expect(cards).toContain('$249')
     expect(cards).toContain('$449')
@@ -147,11 +148,11 @@ describe('/ hero and metadata', () => {
 })
 
 describe('/ pillars and honesty', () => {
-  it('marks every pillar Coming except the card, which is on sale', async () => {
+  it('marks every pillar Coming, and says on Conversion alone that the card is on sale', async () => {
     const html = await signedOut()
-    const row = html.slice(html.indexOf('id="pillars"'), html.indexOf('id="cards"'))
-    expect(row.match(/>Coming</g)).toHaveLength(3)
-    expect(row.match(/on sale now/g)).toHaveLength(1)
+    const row = html.slice(html.indexOf('id="pillars"'), html.indexOf('id="how"'))
+    expect(row.match(/>Coming</g)).toHaveLength(4)
+    expect(row.match(/Card from \$249/g)).toHaveLength(1)
     expect(row).not.toMatch(/Ask us/)
     for (const p of PILLARS) expect(row).toContain(`href="${pillarPath(p.slug)}"`)
   })
@@ -162,6 +163,13 @@ describe('/ pillars and honesty', () => {
     expect(proof).not.toMatch(/<table|<li/)
     expect(strip(proof)).not.toMatch(/\d|testimonial/i)
     expect(proof).toContain('href="/cards"')
+  })
+
+  // Codex 25/10: the hero film is not one of the card editions the showroom plays, so "every film we have made" was false
+  it('scopes the results banner to the card films the showroom really plays, never to every film', async () => {
+    const proof = strip(section(await signedOut(), 'proof', 'answers'))
+    expect(proof).not.toMatch(/every film|all (of )?our films|all films/i)
+    expect(proof).toMatch(/card films/i)
   })
 
   it('has four to six real questions and says plainly what is unknown', async () => {
@@ -212,8 +220,8 @@ describe('/ contact and footer', () => {
 
   it('shows the legal name, Privacy, Terms and the ABR-verified ABN (25/10/2026) unless COMPANY_ABN overrides it', async () => {
     vi.stubEnv('COMPANY_ABN', '')
-    const pending = await signedOut()
-    const footer = pending.slice(pending.indexOf('<footer'))
+    const dflt = await signedOut()
+    const footer = dflt.slice(dflt.indexOf('<footer'))
     expect(footer).toContain('Unite-Group Nexus Pty Ltd')
     // was 'ABN pending': an unset or blank COMPANY_ABN now falls back to the number verified on the ABR
     expect(footer).toContain('ABN 95 691 477 844')
@@ -224,7 +232,7 @@ describe('/ contact and footer', () => {
     vi.stubEnv('COMPANY_ABN', '51 824 753 556')
     const set = await signedOut()
     expect(set).toContain('ABN 51 824 753 556')
-    expect(set).not.toContain('ABN pending')
+    expect(set).not.toContain('ABN 95 691 477 844')
   })
 })
 

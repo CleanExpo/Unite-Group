@@ -5,14 +5,15 @@
 //   synthex.social 200, carsi.com.au 200, disasterrecovery.com.au 200, nrpg.business 200,
 //   cleanexpo247-hall.vercel.app 200, restoreassist.app 200, ccwonline.com.au 200 (the address in
 //   src/lib/campaigns/launch-lanes.ts; ccw.com.au returned 404 and is not used).
+// `tag` is the one short line on its tile; Synthex and Trade Hall carry none (Synthex is never described as a service).
 // An entry with no url is plain text, never a "#" link.
 //
 // `tile: true` marks the six businesses shown as shards of the U, in this order (see story.tsx).
 // `logo` is a file in public/landing/logos, a resize of an existing logo file (see public/landing/logos/README.md
 // for each source). No logo is drawn or generated. An entry with no `logo` gets a clean
-// text wordmark tile: Trade Hall has no logo file in the repo or on the web.
+// text wordmark tile (none today: every business has its final logo, 25/10/2026).
 
-export type Business = { name: string; url?: string; tile?: true; logo?: string; host?: string; line?: string }
+export type Business = { name: string; url?: string; tile?: true; logo?: string; host?: string; line?: string; tag?: string }
 
 // Phill 25/10/2026: the one approved description of Disaster Recovery. Defined here and used from here only;
 // no hours, certification or standards claim (a test holds that).
@@ -21,11 +22,11 @@ export const DR_LINE =
 
 export const BUSINESSES: readonly Business[] = [
   { name: 'Synthex', url: 'https://www.synthex.social', tile: true, logo: '/landing/logos/synthex.webp' },
-  { name: 'CARSI', url: 'https://www.carsi.com.au', tile: true, logo: '/landing/logos/carsi.webp' },
-  { name: 'Disaster Recovery', url: 'https://www.disasterrecovery.com.au', line: DR_LINE, tile: true, logo: '/landing/logos/disaster-recovery.webp' },
-  { name: 'NRPG', url: 'https://www.nrpg.business', tile: true, logo: '/landing/logos/nrpg.webp' },
-  { name: 'Trade Hall', url: 'https://cleanexpo247-hall.vercel.app', tile: true },
-  { name: 'RestoreAssist', url: 'https://restoreassist.app', tile: true, logo: '/landing/logos/restoreassist.webp' },
+  { name: 'CARSI', url: 'https://www.carsi.com.au', tile: true, logo: '/landing/logos/carsi.webp', tag: 'Restoration industry training.' },
+  { name: 'Disaster Recovery', url: 'https://www.disasterrecovery.com.au', line: DR_LINE, tag: 'Water damage and mould restoration.', tile: true, logo: '/landing/logos/disaster-recovery.webp' },
+  { name: 'NRPG', url: 'https://www.nrpg.business', tile: true, logo: '/landing/logos/nrpg-reveal-symbol-dark.svg', tag: 'The restoration company network.' },
+  { name: 'Trade Hall', url: 'https://cleanexpo247-hall.vercel.app', tile: true, logo: '/landing/logos/trade-hall-floor-symbol-dark.svg' },
+  { name: 'RestoreAssist', url: 'https://restoreassist.app', tile: true, logo: '/landing/logos/restoreassist.webp', tag: 'Software for restoration contractors.' },
   { name: 'CCW', url: 'https://ccwonline.com.au' },
   { name: 'and the ones to come' },
 ]

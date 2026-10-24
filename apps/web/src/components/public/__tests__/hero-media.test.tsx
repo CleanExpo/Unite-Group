@@ -6,7 +6,7 @@ import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { CardsStrip } from '../cards-strip'
+import { Highlights } from '../highlights'
 import { FilmPlayer } from '../film-player'
 import { CARD_FILM, HERO_FILM } from '../film-config'
 import { Hero } from '../hero'
@@ -64,8 +64,8 @@ describe('hero server markup: the words and the poster come before any video', (
     expect(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1].replace(/<[^>]*>/g, '')).toBe('Every business. One system.')
     expect(html).toMatch(/data-wordmark[^>]*>Unite-Group Nexus</)
     const text = strip(html)
-    expect(text).toMatch(/Unite-Group Nexus is the CRM and operating system we are building to run the businesses behind it/)
-    expect(html).toMatch(/<a [^>]*href="#group"[^>]*>See how the group fits together</)
+    expect(text).toMatch(/The CRM we are building to run the businesses behind it/)
+    expect(html).toMatch(/<a [^>]*href="#group"[^>]*>Meet the group</)
     expect(html).toMatch(/<a [^>]*href="#contact"[^>]*>Ask a question</)
   })
 
@@ -187,7 +187,7 @@ describe('the film files', () => {
 
 describe('the card film tile is not an empty box', () => {
   it('renders the U reveal poster as a sized img with the film player around it', () => {
-    const html = renderToStaticMarkup(<CardsStrip />)
+    const html = renderToStaticMarkup(<Highlights />)
     expect(html).toContain('data-film')
     expect(html).toContain(`src="${CARD_FILM.poster}"`)
     expect(html).toContain(`width="${CARD_FILM.width}"`)

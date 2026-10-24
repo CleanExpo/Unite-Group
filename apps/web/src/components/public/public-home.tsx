@@ -4,6 +4,7 @@ import { Answers } from './answers'
 import { CardsStrip } from './cards-strip'
 import { ContactBand } from './contact-band'
 import { Hero } from './hero'
+import { Highlights } from './highlights'
 import { HowItWorks } from './how-it-works'
 import { PillarsRow } from './pillars-row'
 import { Story } from './story'
@@ -12,17 +13,18 @@ import s from './public.module.css'
 import { SiteFooter } from './site-footer'
 import { SiteNav } from './site-nav'
 
-// The public home: nav, then the eight positions in the fixed order of spec s10:
-// hero (then the story, which is not a position), pillars, cards, how, proof, answers, contact, footer.
+// The public home, dark, in the order Phill set on 25/10/2026: hero, three media cards, the group (not a position),
+// then the positions: living cards gallery, four jobs, how it works, results, FAQ, contact, footer.
 export function PublicHome() {
   return (
     <div className={s.page}>
       <SiteNav />
       <main>
         <Hero />
+        <Highlights />
         <Story />
-        <PillarsRow />
         <CardsStrip />
+        <PillarsRow />
         <HowItWorks />
         <Proof />
         <Answers />
