@@ -109,6 +109,7 @@ const card = (over: Record<string, unknown> = {}, livemode = false) => ({
       amount_total: 24900,
       currency: 'aud',
       payment_status: 'paid',
+      payment_link: 'plink_test_card',
       customer_details: { name: 'Sample Client', email: 'sample@example.invalid' },
       ...over,
     },
@@ -126,17 +127,18 @@ function mockTables(events: Result, orders: Result) {
 }
 
 describe('POST /api/webhooks/stripe, paid card order', () => {
-  const saved = { to: process.env.LEAD_ALERT_EMAIL_TO, from: process.env.SENDGRID_FROM_EMAIL, f: process.env.FOUNDER_USER_ID }
+  const saved = { to: process.env.LEAD_ALERT_EMAIL_TO, from: process.env.SENDGRID_FROM_EMAIL, f: process.env.FOUNDER_USER_ID, l: process.env.STRIPE_CARD_PAYMENT_LINK_IDS }
   beforeEach(() => {
     vi.clearAllMocks()
     process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test'
     process.env.LEAD_ALERT_EMAIL_TO = 'alerts@example.invalid'
     process.env.SENDGRID_FROM_EMAIL = 'noreply@example.invalid'
     process.env.FOUNDER_USER_ID = '00000000-0000-0000-0000-000000000001'
+    process.env.STRIPE_CARD_PAYMENT_LINK_IDS = 'plink_test_other, plink_test_card'
     vi.mocked(sendEmail).mockResolvedValue('sg-1')
   })
   afterEach(() => {
-    for (const [k, v] of [['LEAD_ALERT_EMAIL_TO', saved.to], ['SENDGRID_FROM_EMAIL', saved.from], ['FOUNDER_USER_ID', saved.f]] as const) {
+    for (const [k, v] of [['LEAD_ALERT_EMAIL_TO', saved.to], ['SENDGRID_FROM_EMAIL', saved.from], ['FOUNDER_USER_ID', saved.f], ['STRIPE_CARD_PAYMENT_LINK_IDS', saved.l]] as const) {
       if (v === undefined) delete process.env[k]
       else process.env[k] = v
     }
@@ -235,6 +237,34 @@ describe('POST /api/webhooks/stripe, paid card order', () => {
     expect(res.status).toBe(200)
     expect(t.card_orders).not.toHaveBeenCalled()
     expect(sendEmail).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['another product at a card price (a different payment link)', { payment_link: 'plink_test_unrelated' }],
+    ['a checkout with no payment link at a card price', { payment_link: null }],
+  ])('writes nothing and sends nothing for %s', async (_n, over) => {
+    mockStripe(() => card(over))
+    const t = mockTables({ error: null }, { error: null })
+    const res = await POST(req('{}', 'sig'))
+    expect(res.status).toBe(200)
+    expect(t.card_orders).not.toHaveBeenCalled()
+    expect(sendEmail).not.toHaveBeenCalled()
+  })
+
+  it('fails closed when no card payment link is configured', async () => {
+    delete process.env.STRIPE_CARD_PAYMENT_LINK_IDS
+    mockStripe(() => card())
+    const t = mockTables({ error: null }, { error: null })
+    expect((await POST(req('{}', 'sig'))).status).toBe(200)
+    expect(t.card_orders).not.toHaveBeenCalled()
+    expect(sendEmail).not.toHaveBeenCalled()
+  })
+
+  it('accepts an expanded payment_link object', async () => {
+    mockStripe(() => card({ payment_link: { id: 'plink_test_card' } }))
+    const t = mockTables({ error: null }, { error: null })
+    await POST(req('{}', 'sig'))
+    expect(t.card_orders).toHaveBeenCalledTimes(1)
   })
 
   it('writes nothing for an unpaid session or another event type', async () => {

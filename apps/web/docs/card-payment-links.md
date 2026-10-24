@@ -5,7 +5,8 @@ Do it in Stripe TEST mode first and pay with a Stripe test card before touching 
 
 ## What the code now does
 
-When Stripe sends `checkout.session.completed` to `/api/webhooks/stripe`, a paid session whose amount is A$249 or A$449
+When Stripe sends `checkout.session.completed` to `/api/webhooks/stripe`, a paid session that came from one of the two card
+Payment Links (listed in `STRIPE_CARD_PAYMENT_LINK_IDS`) and whose amount is A$249 or A$449
 (the two `CARD_TIERS` in `src/app/cards/order/order-view.tsx`) becomes one `card_orders` row and one email to
 `LEAD_ALERT_EMAIL_TO` with the buyer's name and the tier only. The order's reference is the session's
 `client_reference_id`; if the link carried none, it is the checkout session id (`cs_...`). The same event arriving twice
@@ -33,6 +34,7 @@ changes nothing the second time. If the price of a tier changes, change `CARD_TI
 |---|---|
 | `LEAD_ALERT_EMAIL_TO` | the address that receives the order alert; unset means no email, the order is still recorded |
 | `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL` | the existing mail sender the alert uses |
+| `STRIPE_CARD_PAYMENT_LINK_IDS` | the two card Payment Link ids (`plink_...`, from each link's page in the Stripe dashboard), comma-separated. Not secret. Unset means no order is recorded: the price alone never counts, so another product at A$249 or A$449 cannot become a card order |
 | `FOUNDER_USER_ID` | already set; the order's owner |
 | `STRIPE_WEBHOOK_SECRET` | already set |
 

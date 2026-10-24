@@ -3,7 +3,8 @@
 // A checkout.session.completed whose price is one of CARD_TIERS becomes one card_orders row, then
 // one alert email with the buyer's name and the tier only. No card data ever reaches this code:
 // Stripe's session carries none. Idempotency is the UNIQUE(stripe_session_id) constraint, not a
-// timer: a redelivered event inserts nothing and so sends nothing.
+// timer: a redelivered event inserts nothing and so sends nothing. Only sessions from the listed card
+// Payment Links count (STRIPE_CARD_PAYMENT_LINK_IDS); the price match alone never creates an order.
 
 import type Stripe from 'stripe'
 
@@ -18,6 +19,24 @@ type Admin = ReturnType<typeof createServiceClient>
 export function matchCardTier(session: Pick<Stripe.Checkout.Session, 'amount_total' | 'currency'>): CardTier | null {
   if (session.currency?.toLowerCase() !== 'aud' || typeof session.amount_total !== 'number') return null
   return CARD_TIERS.find((t) => t.priceAud * 100 === session.amount_total) ?? null
+}
+
+/** The Payment Link a session came from: Stripe sends its id (plink_...) or, when expanded, the object. */
+function paymentLinkId(session: Pick<Stripe.Checkout.Session, 'payment_link'>): string | null {
+  const link = session.payment_link as string | { id?: string } | null | undefined
+  return (typeof link === 'string' ? link : link?.id) || null
+}
+
+/**
+ * True only when the session came from one of the card Payment Links listed in STRIPE_CARD_PAYMENT_LINK_IDS
+ * (comma-separated plink_ ids, not secrets). The price alone is not enough: any other product at A$249 or A$449
+ * would otherwise be recorded as a card order. Unset or empty fails closed.
+ */
+export function isCardPaymentLink(session: Pick<Stripe.Checkout.Session, 'payment_link'>): boolean {
+  const id = paymentLinkId(session)
+  if (!id) return false
+  const allowed = (process.env.STRIPE_CARD_PAYMENT_LINK_IDS ?? '').split(',').map((v) => v.trim()).filter(Boolean)
+  return allowed.includes(id)
 }
 
 /** client_reference_id when the payment link carried one, else the checkout session id. */
@@ -37,6 +56,10 @@ export async function recordPaidCardOrder(admin: Admin, event: Stripe.Event): Pr
   if (!session || session.payment_status !== 'paid') return 'ignored'
   const tier = matchCardTier(session)
   if (!tier) return 'ignored'
+  if (!isCardPaymentLink(session)) {
+    console.warn('[cards] paid session at a card price ignored: payment link not in STRIPE_CARD_PAYMENT_LINK_IDS')
+    return 'ignored'
+  }
 
   const founderId = process.env.FOUNDER_USER_ID?.trim()
   if (!founderId) throw new Error('FOUNDER_USER_ID not configured')
