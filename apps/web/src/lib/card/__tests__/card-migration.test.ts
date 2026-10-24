@@ -33,8 +33,10 @@ describe('card capture migration structure (not database execution)', () => {
   it('stores no phone number and keeps the briefed limits', () => {
     const statements = migration.replace(/^\s*--.*$/gm, '')
     expect(statements).not.toMatch(/phone|mobile/i)
-    expect(migration).toContain('between 1 and 60')
-    expect(migration).toContain('between 1 and 2000')
+    // limits apply to the stored value itself, never a trimmed copy, so padding cannot smuggle bulk past them
+    expect(migration.match(/check \(char_length\(first_name\) <= 60 and first_name ~ '\[\^\[:space:\]\]'\)/g)).toHaveLength(2)
+    expect(migration).toContain("check (char_length(ask) <= 2000 and ask ~ '[^[:space:]]')")
+    expect(migration).not.toContain('btrim(')
     expect(migration).toContain('octet_length(answers::text) <= 4000')
   })
 

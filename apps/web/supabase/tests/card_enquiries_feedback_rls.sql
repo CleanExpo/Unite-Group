@@ -49,6 +49,12 @@ select pg_temp.expect_error('insert into public.card_feedback (card_slug, first_
 select pg_temp.expect_error('insert into public.card_enquiries (card_slug, first_name, ask) values (''phill-mcgurk'', repeat(''a'', 61), ''b'')', '23514', 'first_name over 60');
 select pg_temp.expect_error('insert into public.card_enquiries (card_slug, first_name, ask) values (''phill-mcgurk'', ''   '', ''b'')', '23514', 'blank first_name');
 select pg_temp.expect_error('insert into public.card_enquiries (card_slug, first_name, ask) values (''phill-mcgurk'', ''A'', repeat(''b'', 2001))', '23514', 'ask over 2000');
+select pg_temp.expect_error('insert into public.card_enquiries (card_slug, first_name, ask) values (''phill-mcgurk'', repeat('' '', 100000) || ''A'', ''b'')', '23514', 'space-padded first_name over 60');
+select pg_temp.expect_error('insert into public.card_enquiries (card_slug, first_name, ask) values (''phill-mcgurk'', ''A'', repeat('' '', 100000) || ''b'')', '23514', 'space-padded ask over 2000');
+select pg_temp.expect_error('insert into public.card_enquiries (card_slug, first_name, ask) values (''phill-mcgurk'', E''\t\n\r'', ''b'')', '23514', 'tab/newline-only first_name');
+select pg_temp.expect_error('insert into public.card_enquiries (card_slug, first_name, ask) values (''phill-mcgurk'', ''A'', E''\t\n'')', '23514', 'tab/newline-only ask');
+select pg_temp.expect_error('insert into public.card_feedback (card_slug, first_name, answers) values (''phill-mcgurk'', repeat('' '', 100000) || ''A'', ''{}'')', '23514', 'space-padded feedback first_name');
+select pg_temp.expect_error('insert into public.card_feedback (card_slug, first_name, answers) values (''phill-mcgurk'', E''\t'', ''{}'')', '23514', 'tab-only feedback first_name');
 select pg_temp.expect_error('insert into public.card_enquiries (card_slug, first_name, ask) values (''Bad Slug!'', ''A'', ''b'')', '23514', 'bad card_slug');
 select pg_temp.expect_error('insert into public.card_enquiries (card_slug, first_name, ask, reply_email) values (''phill-mcgurk'', ''A'', ''b'', ''not-an-email'')', '23514', 'bad reply_email');
 select pg_temp.expect_error('insert into public.card_enquiries (card_slug, first_name, business, ask) values (''phill-mcgurk'', ''A'', repeat(''c'', 121), ''b'')', '23514', 'business over 120');

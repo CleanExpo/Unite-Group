@@ -16,9 +16,9 @@ create table if not exists public.card_enquiries (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),
   card_slug text not null check (card_slug ~ '^[a-z0-9-]{1,64}$'),
-  first_name text not null check (char_length(btrim(first_name)) between 1 and 60),
+  first_name text not null check (char_length(first_name) <= 60 and first_name ~ '[^[:space:]]'),
   business text check (business is null or char_length(business) <= 120),
-  ask text not null check (char_length(btrim(ask)) between 1 and 2000),
+  ask text not null check (char_length(ask) <= 2000 and ask ~ '[^[:space:]]'),
   reply_email text check (
     reply_email is null
     or (char_length(reply_email) <= 254 and reply_email ~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$')
@@ -30,7 +30,7 @@ create table if not exists public.card_feedback (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),
   card_slug text not null check (card_slug ~ '^[a-z0-9-]{1,64}$'),
-  first_name text not null check (char_length(btrim(first_name)) between 1 and 60),
+  first_name text not null check (char_length(first_name) <= 60 and first_name ~ '[^[:space:]]'),
   answers jsonb not null check (jsonb_typeof(answers) = 'object' and octet_length(answers::text) <= 4000),
   device text check (device is null or char_length(device) <= 200)
 );
