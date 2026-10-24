@@ -30,10 +30,10 @@ export function Hero() {
             One link or QR code. It plays a short film, then shows your details and saves to contacts in one tap.
           </p>
           <div className={h.actions}>
-            <a href="/cards" className={s.buttonPrimary}>
+            <a href="/cards" data-track="cta" data-track-label="home-hero-see-card" className={s.buttonPrimary}>
               See the living card
             </a>
-            <a href="#contact">Ask a question</a>
+            <a href="#contact" data-track="cta" data-track-label="home-hero-ask-question">Ask a question</a>
           </div>
           <p className={h.prices}>
             {CARD_TIERS.map((t, i) => (

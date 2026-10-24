@@ -40,6 +40,8 @@ export function EditionTile({ edition }: { edition: Edition }) {
         style={{ aspectRatio: edition.aspect }}
       >
         <video
+          data-track="video"
+          data-track-label={`edition-${edition.name}`}
           ref={video}
           src={edition.video}
           poster={edition.poster}
@@ -70,6 +72,8 @@ export function EditionTile({ edition }: { edition: Edition }) {
         <h3 className="text-[15px] font-semibold text-white">{edition.label}</h3>
         <a
           href={`/cards/order?edition=${edition.name}`}
+          data-track="cta"
+          data-track-label="cards-edition-order"
           className="shrink-0 text-[13px] font-semibold text-[#ff8a5c] hover:text-white"
         >
           Choose this

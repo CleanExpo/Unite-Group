@@ -75,6 +75,8 @@ export function HeroMedia({ children }: { children: ReactNode }) {
             />
           </picture>
           <video
+            data-track="video"
+            data-track-label="home-hero-loop"
             ref={video}
             className={`${h.blend} ${h.loop}`}
             muted

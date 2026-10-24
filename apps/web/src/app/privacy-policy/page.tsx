@@ -104,6 +104,14 @@ export default function PrivacyPolicyPage() {
             Vercel (our hosting provider) retains deployment and request logs, provides error monitoring via
             Vercel Observability, and Vercel Analytics for aggregated usage data.
           </p>
+          <p>
+            On our public pages we also run our own first-party analytics, stored in our Supabase database. It records
+            which page was viewed, which buttons and videos were used, the website you came from (the site name only), a
+            random identifier that lives in your browser tab until you close it, a general device type (phone, tablet or
+            desktop) and your country. It uses no cookies, collects no personal information, does not store your IP
+            address, and is not shared with advertisers or other third parties. If your browser sends Do Not Track or
+            Global Privacy Control, we do not record anything. We keep these records for 13 months.
+          </p>
         </Section>
 
         <Section title="3. How We Use Information">

@@ -30,14 +30,14 @@ export function CardsStrip() {
                   <p className={s.price}>{formatAud(t.priceAud)}</p>
                   <p className={s.priceNote}>{PRICE_NOTE}</p>
                   <p>{t.line}</p>
-                  <a href="/cards/order" aria-label={`Order the ${t.name} card`}>
+                  <a href="/cards/order" data-track="cta" data-track-label={`home-strip-order-${t.id}`} aria-label={`Order the ${t.name} card`}>
                     Order this card
                   </a>
                 </li>
               ))}
             </ul>
             <p className={s.stripCta}>
-              <a href="/cards" className={s.buttonSecondary}>
+              <a href="/cards" data-track="cta" data-track-label="home-strip-see-card" className={s.buttonSecondary}>
                 See the living card
               </a>
             </p>

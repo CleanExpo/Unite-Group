@@ -67,7 +67,7 @@ export function StickyBar({ price }: { price: string | null }) {
           <p className={s.stickyName}>Living business card</p>
           <p className={s.stickyPrice}>{price ? `From ${price} AUD, GST included` : 'Ends on your logo'}</p>
         </div>
-        <a href="#choose" className={s.primary} tabIndex={visible ? 0 : -1}>
+        <a href="#choose" data-track="cta" data-track-label="order-sticky-choose" className={s.primary} tabIndex={visible ? 0 : -1}>
           Choose your card
         </a>
       </div>

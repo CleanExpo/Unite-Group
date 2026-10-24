@@ -31,6 +31,8 @@ export function Film({ edition, aspect = edition.aspect }: { edition: Edition; a
     <figure style={{ margin: 0 }}>
       <div className={s.filmFrame} style={{ aspectRatio: aspect }} data-film={edition.name}>
         <video
+          data-track="video"
+          data-track-label={`order-film-${edition.name}`}
           key={edition.name}
           ref={video}
           src={edition.video}

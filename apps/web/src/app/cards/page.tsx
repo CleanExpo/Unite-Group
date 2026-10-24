@@ -28,6 +28,8 @@ export default function CardsShowroomPage() {
           <span className="font-mono text-[13px] tracking-[0.15em] text-[#ff8a5c]">UNITE GROUP</span>
           <a
             href="/cards/order"
+            data-track="cta"
+            data-track-label="cards-header-get-card"
             className="rounded-sm border border-[#e55a2b] px-4 py-2 text-[14px] font-semibold text-white hover:bg-[#e55a2b]"
           >
             Get your own card
@@ -49,12 +51,16 @@ export default function CardsShowroomPage() {
             <div className="mt-8 flex flex-wrap gap-3">
               <a
                 href="/cards/order"
+                data-track="cta"
+                data-track-label="cards-hero-get-card"
                 className="inline-flex min-h-12 items-center rounded-sm bg-[#e55a2b] px-7 text-[15px] font-semibold text-white hover:bg-[#cf4b1f]"
               >
                 Get your own card
               </a>
               <a
                 href="#editions"
+                data-track="cta"
+                data-track-label="cards-hero-see-editions"
                 className="inline-flex min-h-12 items-center rounded-sm border border-white/20 px-7 text-[15px] font-semibold text-stone-100 hover:border-white/40"
               >
                 See the editions
