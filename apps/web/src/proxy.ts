@@ -92,8 +92,12 @@ const EXACT_PUBLIC_FILES: ReadonlySet<string> = new Set([
   '/solutions/intelligence',
 ]);
 
+// Owner cards: exactly /c/<slug> and /c/<slug>/contact.vcf. Nothing else under /c, and '/c' itself, stay private.
+const OWNER_CARD_PATH = /^\/c\/[a-z0-9-]{1,64}(?:\/contact\.vcf)?$/;
+
 export function isPublicPath(pathname: string): boolean {
   if (EXACT_PUBLIC_FILES.has(pathname)) return true;
+  if (OWNER_CARD_PATH.test(pathname)) return true;
 
   if (process.env.KNOWLEDGE_CONSOLE_PREVIEW === '1' && pathname === '/preview/knowledge-console') {
     return true;
