@@ -6,11 +6,11 @@ import h from './hero.module.css'
 
 // PREVIEW ONLY: AI look-development renders, not approved by Phill (handover 25/10/2026).
 export const HERO_MEDIA = {
-  posterDesktop: '/home/media/unite-group-hero-exploded-16x9-air.webp',
-  posterMobile: '/home/media/unite-group-hero-exploded-9x16.webp',
-  loopWebm: '/home/media/unite-group-hero-loop-16x9.webm',
-  loopMp4: '/home/media/unite-group-hero-loop-16x9.mp4',
-  loopPoster: '/home/media/unite-group-hero-loop-poster-16x9.jpg',
+  posterDesktop: '/landing/media/unite-group-hero-exploded-16x9-air.webp',
+  posterMobile: '/landing/media/unite-group-hero-exploded-9x16.webp',
+  loopWebm: '/landing/media/unite-group-hero-loop-16x9.webm',
+  loopMp4: '/landing/media/unite-group-hero-loop-16x9.mp4',
+  loopPoster: '/landing/media/unite-group-hero-loop-poster-16x9.jpg',
 } as const
 
 /**

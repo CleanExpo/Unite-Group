@@ -33,14 +33,14 @@ describe('pillar pages and hero media for signed-out visitors', () => {
     },
   )
 
-  it('lets a signed-out GET of /home/media/<file> through, but not /home/other', async () => {
+  it('lets a signed-out GET of /landing/media/<file> through, but not /landing/other', async () => {
     for (const f of ['unite-group-hero-loop-16x9.mp4', 'unite-group-hero-loop-16x9.webm']) {
-      expect(isPublicPath(`/home/media/${f}`)).toBe(true)
-      expect((await get(`/home/media/${f}`)).headers.get('location')).toBeNull()
+      expect(isPublicPath(`/landing/media/${f}`)).toBe(true)
+      expect((await get(`/landing/media/${f}`)).headers.get('location')).toBeNull()
     }
-    expect(isPublicPath('/home/other')).toBe(false)
-    expect(new URL((await get('/home/other')).headers.get('location') ?? '').pathname).toBe('/auth/login')
-    expect(new URL((await get('/home/mediax')).headers.get('location') ?? '').pathname).toBe('/auth/login')
+    expect(isPublicPath('/landing/other')).toBe(false)
+    expect(new URL((await get('/landing/other')).headers.get('location') ?? '').pathname).toBe('/auth/login')
+    expect(new URL((await get('/landing/mediax')).headers.get('location') ?? '').pathname).toBe('/auth/login')
   })
 })
 

@@ -43,17 +43,17 @@ describe('hero media preview', () => {
     motion(false)
     const { container } = render(<HeroMedia>{figure}</HeroMedia>)
     const sources = [...container.querySelectorAll('picture source')].map((s) => `${s.getAttribute('media')} ${s.getAttribute('srcset')}`)
-    expect(sources).toEqual(['(max-width: 899px) /home/media/unite-group-hero-exploded-9x16.webp'])
-    expect(container.querySelector('picture img')?.getAttribute('src')).toBe('/home/media/unite-group-hero-exploded-16x9-air.webp')
+    expect(sources).toEqual(['(max-width: 899px) /landing/media/unite-group-hero-exploded-9x16.webp'])
+    expect(container.querySelector('picture img')?.getAttribute('src')).toBe('/landing/media/unite-group-hero-exploded-16x9-air.webp')
     const video = container.querySelector('video')!
     expect(video.muted).toBe(true)
     expect(video.loop).toBe(true)
     expect(video.getAttribute('preload')).toBe('none')
     expect(video.hasAttribute('autoplay')).toBe(false)
-    expect(video.getAttribute('poster')).toBe('/home/media/unite-group-hero-loop-poster-16x9.jpg')
+    expect(video.getAttribute('poster')).toBe('/landing/media/unite-group-hero-loop-poster-16x9.jpg')
     expect([...video.querySelectorAll('source')].map((s) => s.getAttribute('src'))).toEqual([
-      '/home/media/unite-group-hero-loop-16x9.webm',
-      '/home/media/unite-group-hero-loop-16x9.mp4',
+      '/landing/media/unite-group-hero-loop-16x9.webm',
+      '/landing/media/unite-group-hero-loop-16x9.mp4',
     ])
     expect(container.querySelector('[hidden] [data-testid="figure"]')).not.toBeNull()
     expect(container.textContent).toContain('Pause the loop')

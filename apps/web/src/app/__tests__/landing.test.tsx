@@ -100,12 +100,12 @@ describe('/ hero', () => {
     expect(html).toContain('Pause the animation')
   })
 
-  it('serves no video on first paint and adds no unapproved image or video outside public/home/media', async () => {
+  it('serves no video on first paint and adds no unapproved image or video outside public/landing/media', async () => {
     const html = await signedOut()
     expect(html).not.toMatch(/<video|\.mp4/)
     const dir = join(__dirname, '..', '..', 'components', 'public')
     expect(readdirSync(dir).filter((f) => /\.(png|jpe?g|webp|gif|mp4|webm|avif)$/i.test(f))).toEqual([])
-    const media = readdirSync(join(__dirname, '..', '..', '..', 'public', 'home', 'media'))
+    const media = readdirSync(join(__dirname, '..', '..', '..', 'public', 'landing', 'media'))
     expect(media.filter((f) => /\.png$/i.test(f))).toEqual([])
     expect(media.sort()).toEqual([
       'unite-group-hero-exploded-16x9-air.webp',

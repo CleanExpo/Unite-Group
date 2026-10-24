@@ -63,7 +63,7 @@ const PUBLIC_PATHS = [
   '/api/agent',    // Public site chat agent — auth is the publishable site key, validated in-route (UNI-2359)
   '/widget',       // Embeddable chat widget script must load on third-party sites (UNI-2359)
   '/cards/media',  // Living-card showroom clips: static files in public/cards/media (.mp4 is not in the matcher's asset list)
-  '/home/media',  // Home hero preview renders (webp, jpg, webm, mp4): static files in public/home/media; .mp4 and .webm are not in the matcher's asset list
+  '/landing/media',  // Home hero preview renders (webp, jpg, webm, mp4): static files in public/landing/media; .mp4 and .webm are not in the matcher's asset list
 ] as const;
 
 // Single public files and pages, matched EXACTLY. They have no sub-routes, so the
