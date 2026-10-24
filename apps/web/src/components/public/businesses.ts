@@ -23,7 +23,7 @@ export const BUSINESSES: readonly Business[] = [
   { name: 'Synthex', url: 'https://www.synthex.social', tile: true, logo: '/landing/logos/synthex.webp' },
   { name: 'CARSI', url: 'https://www.carsi.com.au', tile: true, logo: '/landing/logos/carsi.webp' },
   { name: 'Disaster Recovery', url: 'https://www.disasterrecovery.com.au', line: DR_LINE, tile: true, logo: '/landing/logos/disaster-recovery.webp' },
-  { name: 'NRPG', url: 'https://www.nrpg.business', tile: true, logo: '/landing/logos/nrpg.webp' },
+  { name: 'NRPG', url: 'https://www.nrpg.business', tile: true, logo: '/landing/logos/nrpg-symbol.svg' },
   { name: 'Trade Hall', url: 'https://cleanexpo247-hall.vercel.app', tile: true },
   { name: 'RestoreAssist', url: 'https://restoreassist.app', tile: true, logo: '/landing/logos/restoreassist.webp' },
   { name: 'CCW', url: 'https://ccwonline.com.au' },

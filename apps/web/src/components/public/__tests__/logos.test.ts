@@ -15,7 +15,6 @@ const LOGOS = join(WEB, 'public', 'landing', 'logos')
 // Every logo served is a resize of a logo file already tracked in the repo. Nothing is drawn or generated.
 const SOURCE: Record<string, string> = {
   'disaster-recovery': 'apps/empire/public/logos/disaster-recovery.png',
-  nrpg: 'apps/empire/public/logos/nrpg.png',
   restoreassist: 'apps/empire/public/logos/restoreassist.png',
   synthex: 'apps/empire/public/logos/synthex.png',
   carsi: 'apps/empire/public/logos/carsi.png',
@@ -31,6 +30,38 @@ async function signature(input: string | Buffer, source: boolean) {
   return img.resize(8, 8, { fit: 'contain', background: '#ffffff' }).raw().toBuffer()
 }
 const distance = (a: Buffer, b: Buffer) => a.reduce((sum, v, i) => sum + Math.abs(v - b[i]), 0) / a.length
+
+// Phill 25/10/2026: the old round gold NRP Restoration badge is wrong. The approved NRPG logo is the one in
+// brand-assets/nrpg/01-approved-logo, copied byte for byte (hashes taken from the source files).
+const NRPG_APPROVED: Record<string, string> = {
+  'nrpg-symbol.svg': '0912ac81e64ff577f4df1d2450c650e5c4371d2f9702a35e64460fde51376ad7',
+  'nrpg-logo-light.svg': 'bc4b34b4974dcb0f63a52a423c849d0e8f6d913ddefd98c0396937d9569addc8',
+  'nrpg-logo-dark.svg': '1fa16d547b76d1d7e028c59e4a0b943af2c3e7aa0b7fb243a859f4f0875daa41',
+}
+
+describe('the approved NRPG logo, and only that', () => {
+  it('serves the three approved svg files byte for byte', () => {
+    for (const [f, hash] of Object.entries(NRPG_APPROVED)) {
+      expect(createHash('sha256').update(readFileSync(join(LOGOS, f))).digest('hex'), f).toBe(hash)
+    }
+  })
+
+  it('has no old NRPG badge file, and no source file references one', () => {
+    expect(existsSync(join(LOGOS, 'nrpg.webp'))).toBe(false)
+    expect(BUSINESSES.find((b) => b.name === 'NRPG')?.logo).toBe('/landing/logos/nrpg-symbol.svg')
+    const refs: string[] = []
+    const walk = (dir: string) => {
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        const full = join(dir, e.name)
+        if (e.isDirectory()) { if (e.name !== '__tests__' && e.name !== 'node_modules') walk(full) }
+        else if (/\.(tsx?|css)$/.test(e.name)) for (const m of readFileSync(full, 'utf8').matchAll(/[\w/.-]*nrpg[\w/.-]*\.(?:webp|png|jpe?g|svg)/gi)) refs.push(m[0])
+      }
+    }
+    walk(join(WEB, 'src', 'components', 'public'))
+    walk(join(WEB, 'src', 'app'))
+    for (const r of refs) expect(Object.keys(NRPG_APPROVED).map((f) => `/landing/logos/${f}`), r).toContain(r)
+  })
+})
 
 describe('business logos come from repo files', () => {
   it('lists a tracked source for every logo, and Trade Hall (no logo file in the repo) as a wordmark', () => {
@@ -58,12 +89,15 @@ describe('business logos come from repo files', () => {
     expect(files.filter((f) => /\.png$/i.test(f))).toEqual([])
     const used = new Set(BUSINESSES.map((b) => b.logo?.split('/').pop()).filter(Boolean))
     for (const f of files.filter((n) => n.endsWith('.webp') && n !== 'unite-group-nexus-mark.webp')) expect(used.has(f), f).toBe(true)
-    for (const b of BUSINESSES) if (b.logo) expect(b.logo).toMatch(/^\/landing\/logos\/[a-z-]+\.webp$/)
+    expect(files.filter((n) => /nrpg/i.test(n)).sort()).toEqual(['nrpg-logo-dark.svg', 'nrpg-logo-light.svg', 'nrpg-symbol.svg'])
+    for (const b of BUSINESSES) if (b.logo) expect(b.logo).toMatch(/^\/landing\/logos\/[a-z-]+\.(webp|svg)$/)
   })
 
   it('records provenance in a README beside the files, naming the missing logo', () => {
     const readme = readFileSync(join(LOGOS, 'README.md'), 'utf8')
     for (const src of Object.values(SOURCE)) expect(readme).toContain(src)
+    for (const f of Object.keys(NRPG_APPROVED)) expect(readme).toContain(f)
+    expect(readme).toContain('brand-assets/nrpg/01-approved-logo')
     expect(readme).toContain('public/logos/unite-group-nexus-logo.png')
     // every source above is a tracked repo path; none is a file fetched from a website
     expect(readme).not.toMatch(/no tracked copy|live header logo/i)
