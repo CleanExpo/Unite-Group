@@ -79,6 +79,7 @@ const EXACT_PUBLIC_FILES: ReadonlySet<string> = new Set([
   '/grow', // Public SMB services offer page; its form posts to the public /api/leads
   '/cards', // Public living-card showroom (ten editions + signature reveal)
   '/cards/order', // Public card enquiry page; no payment, its form posts to the public /api/leads
+  '/cards/terms', // Public card order terms; static text, no data. Exact path only
   // The four pillar pages (UNI-3001). Exact paths only: a prefix rule would also open '/solutions/anything'.
   '/solutions/visibility',
   '/solutions/experience',

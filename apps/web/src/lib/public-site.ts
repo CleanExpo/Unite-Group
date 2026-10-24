@@ -85,6 +85,7 @@ export const PUBLIC_ROUTES = [
   '/grow',
   '/cards',
   '/cards/order',
+  '/cards/terms',
   ...PILLARS.map((p) => pillarPath(p.slug)),
   '/privacy-policy',
   '/terms-of-service',
