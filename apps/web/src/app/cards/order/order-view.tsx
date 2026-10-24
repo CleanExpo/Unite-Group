@@ -1,7 +1,11 @@
 import { COMPANY_NAME, companyAbnLabel } from '@/lib/legal/company'
 
 import { formatAud, stripePaymentLink } from '../../grow/packages'
+import { EDITIONS } from '../editions'
 import { CardEnquiryForm } from './enquiry-form'
+import { Film } from './film'
+import { BuyFilm, StickyBar } from './order-buy'
+import s from './order.module.css'
 
 /**
  * The two card tiers (Phill, 23/10/2026). Prices are AUD, one-off, GST included.
@@ -24,78 +28,158 @@ export const CARD_TIERS = [
   },
 ] as const
 
-/** The rendered order page for already-resolved params. Exported so tests render it without a request. */
+/**
+ * The rendered order page for already-resolved params. Exported so tests render it without a request.
+ * Layout follows the locked Wave gold standard (evidence/business-card-gold/gold/recipe.md).
+ */
 export function OrderView({ edition, referrer }: { edition: string | null; referrer: string | null }) {
   const tiers = CARD_TIERS.flatMap((t) => {
     const link = stripePaymentLink(process.env[t.paymentLinkEnv])
     return link ? [{ ...t, link }] : []
   })
   const payLink = tiers.length > 0
+  const fromPrice = payLink ? formatAud(Math.min(...tiers.map((t) => t.priceAud))) : null
+  const signature = EDITIONS[0]
+
+  const facts = payLink
+    ? [
+        ...tiers.map((t) => ({ value: formatAud(t.priceAud), label: t.name })),
+        { value: 'Private proof', label: 'before anything goes live' },
+        { value: 'One-off', label: 'GST included, no subscription' },
+      ]
+    : [
+        { value: 'Ten films', label: 'to choose from' },
+        { value: 'Your logo', label: 'at the end of every film' },
+        { value: 'Private proof', label: 'before anything goes live' },
+        { value: 'Nothing charged', label: 'on this page' },
+      ]
+
   return (
-    <div className="min-h-screen bg-[#fbfaf6] text-stone-900">
-      <header className="border-b border-stone-200 bg-white">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 sm:px-6">
-          <span className="font-mono text-[13px] tracking-[0.15em] text-[#b8431c]">UNITE GROUP</span>
-          <a href="/cards" className="text-[14px] font-semibold text-stone-700 hover:text-stone-950">
-            See all editions
-          </a>
+    <div className={s.page}>
+      <header className={s.header}>
+        <div className={`${s.wrap} ${s.headerRow}`}>
+          <span className={s.wordmark}>UNITE GROUP</span>
+          <nav className={s.headerLinks} aria-label="Cards">
+            <a href="/cards" className={s.navLink}>
+              See all editions
+            </a>
+          </nav>
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-4 pb-16 pt-10 sm:px-6 sm:pt-14">
-        <p className="font-mono text-[12px] tracking-[0.14em] text-stone-500">LIVING BUSINESS CARDS</p>
-        <h1 className="mt-3 text-[clamp(1.9rem,5vw,2.8rem)] font-semibold leading-[1.1] tracking-[-0.02em]">
-          Get your own living card
-        </h1>
-
-        {payLink ? (
-          <div data-state="orders-online" className="mt-6">
-            <p className="text-[15px] text-stone-600">One-off price, GST included. No subscription. Pay securely with Stripe.</p>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              {tiers.map((t) => (
-                <article key={t.id} data-tier={t.id} className="flex flex-col rounded-sm border border-stone-300 bg-white p-5">
-                  <h2 className="text-[16px] font-semibold">{t.name}</h2>
-                  <p className="mt-2 text-2xl font-semibold tracking-[-0.02em]">{formatAud(t.priceAud)}</p>
-                  <p className="mt-2 flex-1 text-[15px] leading-relaxed text-stone-600">{t.line}</p>
-                  <a
-                    href={t.link}
-                    rel="noopener"
-                    className="mt-4 inline-block rounded-sm bg-[#b8431c] px-5 py-3 text-center text-[15px] font-semibold text-white hover:bg-[#9a3716]"
-                  >
-                    Order {t.name.toLowerCase()}
-                  </a>
-                </article>
-              ))}
+      <main>
+        <section className={`${s.wrap} ${s.hero}`}>
+          <div>
+            <p className={s.eyebrow}>LIVING BUSINESS CARD</p>
+            <h1 className={s.title}>Get your own living card</h1>
+            <p className={s.lead}>
+              A short film that ends on your logo and contact details. Pick one of our ten, or have one made for your business.
+            </p>
+            <div className={s.heroActions}>
+              <a href="#choose" className={s.primary}>
+                Choose your film
+              </a>
+              <a href="/cards" className={s.secondary}>
+                See all editions
+              </a>
             </div>
           </div>
-        ) : (
-          <div data-state="orders-offline" className="mt-6 rounded-sm border border-dashed border-[#b8431c] bg-white p-5">
-            <p className="font-mono text-[12px] tracking-[0.1em] text-[#b8431c]">NOT ONLINE YET</p>
-            <p className="mt-2 text-[16px] font-semibold">We&rsquo;re not taking orders online yet.</p>
-            <p className="mt-1.5 text-[15px] leading-relaxed text-stone-600">
-              Send us your details below and we will contact you to build your card. You approve a private proof before anything
-              goes live, and nothing is charged on this page.
-            </p>
-          </div>
-        )}
+          <Film edition={signature} />
+        </section>
 
-        <div className="mt-10">
-          {payLink ? <p className="mb-4 text-[15px] text-stone-600">Prefer to talk first? Send your details and we&rsquo;ll call you.</p> : null}
-          <CardEnquiryForm edition={edition} referrer={referrer} />
-        </div>
+        <section id="choose" className={s.buy} aria-label="Choose your card">
+          <div className={`${s.wrap} ${s.buyGrid}`}>
+            <BuyFilm edition={edition} />
+
+            <div className={s.buyBox} data-buy-box>
+              <h2 className={s.productName}>Living business card</h2>
+              <p className={s.buyLine}>
+                Every film ends on your logo and details. You approve a private proof before anything goes live.
+              </p>
+
+              {payLink ? (
+                <div data-state="orders-online">
+                  <p className={s.chosen}>One-off price, GST included. No subscription. Pay securely with Stripe.</p>
+                  <div className={s.tiers}>
+                    {tiers.map((t) => (
+                      <article key={t.id} data-tier={t.id} className={s.tier}>
+                        <h3 className={s.tierName}>{t.name}</h3>
+                        <p className={s.price}>
+                          {formatAud(t.priceAud)}
+                          <span className={s.priceNote}>AUD</span>
+                        </p>
+                        <p className={s.tierLine}>{t.line}</p>
+                        <a href={t.link} rel="noopener" className={`${s.primary} ${s.block}`}>
+                          Order {t.name.toLowerCase()}
+                        </a>
+                      </article>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div data-state="orders-offline" className={s.offline}>
+                  <p className={s.offlineTag}>NOT ONLINE YET</p>
+                  <p className={s.offlineTitle}>We&rsquo;re not taking orders online yet.</p>
+                  <p className={s.offlineBody}>
+                    Send us your details below and we will contact you to build your card. You approve a private proof before
+                    anything goes live, and nothing is charged on this page.
+                  </p>
+                  <a href="#enquire" className={`${s.primary} ${s.block}`}>
+                    Send my details
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <dl className={`${s.wrap} ${s.facts}`}>
+          {facts.map((f) => (
+            <div key={f.value} className={s.fact}>
+              <dt className={s.factValue}>{f.value}</dt>
+              <dd className={s.factLabel}>{f.label}</dd>
+            </div>
+          ))}
+        </dl>
+
+        <section className={`${s.wrap} ${s.statement}`}>
+          <p className={s.statementTag}>EVERY EDITION</p>
+          <h2 className={s.statementTitle}>It ends on your logo.</h2>
+          <p className={s.statementBody}>
+            The films on this page finish on the cracked U. Yours finishes on your own logo and contact details, not ours.
+          </p>
+        </section>
+
+        <section id="enquire" className={s.enquire}>
+          <div className={s.enquireInner}>
+            <h2 className={s.enquireTitle}>{payLink ? 'Talk to us first' : 'Send us your details'}</h2>
+            <p className={s.enquireLine}>
+              {payLink
+                ? 'Send your details and we’ll call you before you order.'
+                : 'We will contact you to build your card. Nothing is charged on this page.'}
+            </p>
+            <CardEnquiryForm referrer={referrer} />
+          </div>
+        </section>
       </main>
 
-      <footer className="border-t border-stone-200 bg-white">
-        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-[13px] text-stone-500 sm:px-6">
+      <footer className={s.footer}>
+        <div className={`${s.wrap} ${s.footerRow}`}>
           <span>
             {COMPANY_NAME} · {companyAbnLabel()}
           </span>
-          <span className="flex gap-4">
-            <a href="/privacy-policy" className="hover:text-stone-800">Privacy</a>
-            <a href="/terms-of-service" className="hover:text-stone-800">Terms</a>
+          <span className={s.footerLinks}>
+            <a href="/privacy-policy" className={s.navLink}>
+              Privacy
+            </a>
+            <a href="/terms-of-service" className={s.navLink}>
+              Terms
+            </a>
           </span>
         </div>
       </footer>
+
+      <StickyBar price={fromPrice} />
     </div>
   )
 }

@@ -38,6 +38,7 @@
     "nexus:semantic-backfill": "tsx scripts/nexus-semantic-backfill.ts",
     "test:nexus-semantic-sql": "bash scripts/verify-nexus-semantic-sql.sh",
     "test:e2e": "playwright test",
+    "visual:gate": "playwright test -c playwright.visual.config.ts",
     "test:e2e:contact-crud": "tsx e2e/support/run-with-supabase-admin.ts playwright test e2e/contact-crud.spec.ts",
     "test:e2e:lead-scoring": "tsx e2e/support/run-with-supabase-admin.ts playwright test e2e/lead-scoring.spec.ts",
     "test:e2e:file-upload": "UNITE_HUB_TEST_MOCK_AI_FILES=1 tsx e2e/support/run-with-supabase-admin.ts playwright test e2e/file-upload.spec.ts",

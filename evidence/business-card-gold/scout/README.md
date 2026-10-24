@@ -39,8 +39,8 @@ capture.mjs uses cached Playwright and cached Chromium headless shell with fresh
 From the work folder, in a session whose host policy permits Chromium launch:
 
 ```sh
-/Users/phill-mac/.nvm/versions/node/v24.14.1/bin/node evidence/business-card-gold/scout/capture.mjs
-/Users/phill-mac/.nvm/versions/node/v24.14.1/bin/node evidence/business-card-gold/scout/capture.mjs --verify
+node evidence/business-card-gold/scout/capture.mjs
+node evidence/business-card-gold/scout/capture.mjs --verify
 ```
 
 Do not weaken the sandbox or replace headless capture with an authenticated browser session. The current manifest deliberately uses null for capture timestamps and image paths. A successful capture replaces those nulls and records page titles, response status, cookie handling and action links in inspection.json. Visual review is still needed after the numerical checks, including rejecting error pages, blank sections, overlays and unsuitable purchase paths. Video/motion quality cannot be judged from still screenshots alone.
