@@ -20,7 +20,7 @@ export function foldLine(line: string): string {
   return parts.join('\r\n')
 }
 
-/** Text escaping for vCard 3.0. Line breaks become \n, so a field can never start a new property. */
+/** Text escaping for vCard 4.0. Line breaks become \n, so a field can never start a new property. */
 function esc(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/\r\n|\r|\n/g, '\\n').replace(/;/g, '\\;').replace(/,/g, '\\,')
 }
@@ -31,14 +31,14 @@ function splitName(displayName: string): { family: string; given: string } {
   return { family: parts[parts.length - 1], given: parts.slice(0, -1).join(' ') }
 }
 
-/** vCard 3.0, CRLF line ends, public fields only. Deterministic for the same card. */
+/** vCard 4.0, CRLF line ends, public fields only. Deterministic for the same card. */
 export function buildVCard(card: PublicCard, baseUrl: string): string {
   const { family, given } = splitName(card.displayName)
-  const lines: string[] = ['BEGIN:VCARD', 'VERSION:3.0', `FN:${esc(card.displayName)}`, `N:${esc(family)};${esc(given)};;;`]
+  const lines: string[] = ['BEGIN:VCARD', 'VERSION:4.0', `FN:${esc(card.displayName)}`, `N:${esc(family)};${esc(given)};;;`]
   if (card.businessName) lines.push(`ORG:${esc(card.businessName)}`)
   if (card.roleTitle) lines.push(`TITLE:${esc(card.roleTitle)}`)
-  if (card.phone) lines.push(`TEL;TYPE=CELL,VOICE:${esc(card.phone)}`)
-  if (card.email) lines.push(`EMAIL;TYPE=INTERNET:${esc(card.email)}`)
+  if (card.phone) lines.push(`TEL;VALUE=uri;TYPE="cell,voice":tel:${card.phone.replace(/[^+\d]/g, '')}`)
+  if (card.email) lines.push(`EMAIL:${esc(card.email)}`)
   lines.push(`URL:${baseUrl}/c/${card.slug}`)
   if (card.serviceArea) lines.push(`NOTE:${esc(`Service area: ${card.serviceArea}`)}`)
   lines.push(`UID:urn:unite-group:card:${card.slug}`, 'END:VCARD')

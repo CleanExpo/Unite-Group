@@ -1,9 +1,10 @@
 import type { PublicCard } from '@/lib/card/published'
 
 import styles from './card.module.css'
+import { EnquiryForm } from './enquiry-form'
 
-/** The persistent card: server HTML, real links, no script, no media. */
-export function CardView({ card }: { card: PublicCard }) {
+/** The persistent card: server HTML, real links, no media. The enquiry form (the only script) renders only when enquiries are open. */
+export function CardView({ card, enquiryOpen = false }: { card: PublicCard; enquiryOpen?: boolean }) {
   const telHref = card.phone ? `tel:${card.phone.replace(/[^+\d]/g, '')}` : null
   return (
     <main className={styles.page}>
@@ -27,6 +28,7 @@ export function CardView({ card }: { card: PublicCard }) {
             <a className={styles.button} href={`/c/${card.slug}/contact.vcf`}>Save contact</a>
           </li>
         </ul>
+        {enquiryOpen ? <EnquiryForm slug={card.slug} /> : null}
       </article>
     </main>
   )

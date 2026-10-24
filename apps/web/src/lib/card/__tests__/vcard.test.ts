@@ -42,8 +42,8 @@ describe('foldLine', () => {
 describe('buildVCard', () => {
   const out = buildVCard(card, 'https://unite-group.in')
 
-  it('is vCard 3.0 with CRLF line ends only', () => {
-    expect(out.startsWith('BEGIN:VCARD\r\nVERSION:3.0\r\n')).toBe(true)
+  it('is vCard 4.0 with CRLF line ends only', () => {
+    expect(out.startsWith('BEGIN:VCARD\r\nVERSION:4.0\r\n')).toBe(true)
     expect(out.endsWith('END:VCARD\r\n')).toBe(true)
     expect(out.replace(/\r\n/g, '')).not.toMatch(/[\r\n]/)
   })
@@ -60,8 +60,8 @@ describe('buildVCard', () => {
   })
 
   it('carries phone, email, url and a stable uid', () => {
-    expect(out).toContain('TEL;TYPE=CELL,VOICE:+61 400 000 001\r\n')
-    expect(out).toContain('EMAIL;TYPE=INTERNET:sam@example.com\r\n')
+    expect(out).toContain('TEL;VALUE=uri;TYPE="cell,voice":tel:+61400000001\r\n')
+    expect(out).toContain('EMAIL:sam@example.com\r\n')
     expect(out).toContain('URL:https://unite-group.in/c/sam-cleaning\r\n')
     expect(out).toContain('UID:urn:unite-group:card:sam-cleaning\r\n')
     expect(buildVCard(card, 'https://unite-group.in')).toBe(out)

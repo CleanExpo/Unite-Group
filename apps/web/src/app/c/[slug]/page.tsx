@@ -26,5 +26,5 @@ export default async function OwnerCardPage({ params }: Props) {
   const { slug } = await params
   const card = await getPublishedCard(slug)
   if (!card) notFound()
-  return <CardView card={card} />
+  return <CardView card={card} enquiryOpen={process.env.CARD_ENQUIRY_RECEIPT_ENABLED === '1'} />
 }

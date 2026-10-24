@@ -5,7 +5,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 
 /**
  * Non-production enquiry receipt. Off unless CARD_ENQUIRY_RECEIPT_ENABLED=1, which no deployment sets: with the
- * flag absent this never builds a database client. No page renders a form that calls it yet.
+ * flag absent this never builds a database client, and the card page renders no enquiry form.
  */
 export async function submitEnquiryAction(slug: string, input: EnquiryInput): Promise<EnquiryResult> {
   if (process.env.CARD_ENQUIRY_RECEIPT_ENABLED !== '1') {

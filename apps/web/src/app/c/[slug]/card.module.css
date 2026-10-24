@@ -66,3 +66,52 @@
   outline: 3px solid #fff;
   outline-offset: 2px;
 }
+
+.enquiry {
+  display: grid;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.enquiry label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.875rem;
+  color: #c9c3b8;
+}
+
+.enquiry input,
+.enquiry textarea {
+  min-height: 44px;
+  padding: 10px 12px;
+  box-sizing: border-box;
+  font: inherit;
+  color: #f4efe6;
+  background: #0b0d10;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 4px;
+}
+
+.enquiry textarea {
+  min-height: 96px;
+}
+
+.enquiry button {
+  min-height: 48px;
+  font: inherit;
+  font-weight: 600;
+  color: #fff;
+  background: #e55a2b;
+  border: 0;
+  border-radius: 4px;
+}
+
+.enquiry [role='alert'] {
+  margin: 0;
+  color: #ffb199;
+}
+
+.receipt {
+  margin: 28px 0 0;
+  overflow-wrap: anywhere;
+}

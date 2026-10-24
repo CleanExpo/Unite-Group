@@ -31,6 +31,17 @@ describe('/c/[slug]', () => {
     expect(html).not.toContain('<video')
   })
 
+  it('shows no enquiry form unless CARD_ENQUIRY_RECEIPT_ENABLED=1, then shows it', async () => {
+    getPublishedCard.mockResolvedValue(card)
+    expect(renderToStaticMarkup(await CardPage(params('sam')))).not.toContain('<form')
+    vi.stubEnv('CARD_ENQUIRY_RECEIPT_ENABLED', '1')
+    try {
+      expect(renderToStaticMarkup(await CardPage(params('sam')))).toContain('<form')
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
   it('404s for an unknown, unpublished or invalid slug (same outcome)', async () => {
     getPublishedCard.mockResolvedValue(null)
     await expect(CardPage(params('nobody'))).rejects.toThrow('NEXT_NOT_FOUND')
@@ -59,7 +70,7 @@ describe('/c/[slug]/contact.vcf', () => {
     expect(res.headers.get('content-type')).toBe('text/vcard; charset=utf-8')
     expect(res.headers.get('content-disposition')).toBe('attachment; filename="sam.vcf"')
     const body = await res.text()
-    expect(body.startsWith('BEGIN:VCARD\r\nVERSION:3.0\r\n')).toBe(true)
+    expect(body.startsWith('BEGIN:VCARD\r\nVERSION:4.0\r\n')).toBe(true)
     expect(body).toContain('FN:Sam Smith')
   })
 
