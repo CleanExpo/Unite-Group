@@ -1,4 +1,0 @@
-
-> unite-group@1.0.0 type-check:tests /Volumes/Mini Mini 2T Storage/worktrees/Unite-Group/feat-enquiry-alerts/apps/web
-> tsc --noEmit -p tsconfig.typetest.json
-

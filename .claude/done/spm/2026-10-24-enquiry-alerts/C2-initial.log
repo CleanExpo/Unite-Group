@@ -1,1 +1,0 @@
-src/lib/integrations/sendgrid.ts(47,70): error TS2339: Property 'MailService' does not exist on type 'MailService'.
