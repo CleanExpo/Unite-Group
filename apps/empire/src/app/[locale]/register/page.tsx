@@ -28,7 +28,7 @@ const registerSchema = z.object({
     .regex(/[0-9]/, "Must contain a number"),
   confirmPassword: z.string(),
   acceptTerms: z.literal(true, {
-    errorMap: () => ({ message: "You must accept the terms" }),
+    error: "You must accept the terms",
   }),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords do not match",
@@ -99,7 +99,7 @@ export default function Register() {
       acceptTerms: acceptTerms as true,
     });
     if (!result.success) {
-      const msg = result.error.errors[0]?.message ?? "Please fix the form errors.";
+      const msg = result.error.issues[0]?.message ?? "Please fix the form errors.";
       toast.error(msg);
       setLoading(false);
       return;

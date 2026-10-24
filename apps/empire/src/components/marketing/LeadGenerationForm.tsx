@@ -59,7 +59,7 @@ export interface LeadFormConfig {
 
 // Form schema based on configuration
 const createFormSchema = (config: LeadFormConfig) => {
-  const schemaFields: Record<string, any> = {};
+  const schemaFields: Record<string, z.ZodType<any>> = {};
   
   Object.entries(config.fields).forEach(([fieldName, fieldConfig]) => {
     if (!fieldConfig) return;

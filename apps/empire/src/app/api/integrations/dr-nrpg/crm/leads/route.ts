@@ -49,7 +49,7 @@ const integrationPayloadSchema = z.object({
     consent: z.boolean().optional(),
     source: z.string().trim().optional().nullable(),
     referrer: z.string().trim().optional().nullable(),
-    utm: z.record(z.unknown()).optional(),
+    utm: z.record(z.string(), z.unknown()).optional(),
   }).optional(),
   audit: z.object({
     correlationId: z.string().trim().optional().nullable(),

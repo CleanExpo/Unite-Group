@@ -77,7 +77,7 @@ function containsUnsafeAdditionalData(value: unknown): boolean {
   return false;
 }
 
-const safeAdditionalData = z.record(z.unknown()).superRefine((value, ctx) => {
+const safeAdditionalData = z.record(z.string(), z.unknown()).superRefine((value, ctx) => {
   const serialized = JSON.stringify(value);
   if (serialized === undefined || Buffer.byteLength(serialized, 'utf8') > ADDITIONAL_DATA_MAX_BYTES) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'additionalData is too large' });
