@@ -15,4 +15,11 @@ describe('alert claim migration structure (not database execution)', () => {
     expect(migration.match(/on conflict on constraint alert_delivery_log_source_kind_source_id_channel_key do nothing/g)).toHaveLength(2)
     expect(migration).toContain('returning delivery.channel')
   })
+
+  it('can be re-applied without failing on objects it already created', () => {
+    expect(migration).toContain('create table if not exists public.alert_delivery_log (')
+    expect(migration.match(/create index if not exists alert_delivery_log_/g)).toHaveLength(2)
+    expect(migration).toContain('create or replace function public.claim_alert(')
+    expect(migration).not.toMatch(/^create (table|index|function) (?!if not exists)/m)
+  })
 })

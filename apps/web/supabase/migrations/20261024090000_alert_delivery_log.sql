@@ -3,7 +3,7 @@
 -- Rollback: revert code only; keep this additive table and function. Any removal
 -- requires a reviewed forward migration so the migration ledger remains truthful.
 
-create table public.alert_delivery_log (
+create table if not exists public.alert_delivery_log (
   id uuid primary key default gen_random_uuid(),
   founder_id uuid not null references auth.users(id) on delete cascade,
   source_kind text not null check (source_kind in ('new_lead', 'checkout_completed')),
@@ -16,9 +16,9 @@ create table public.alert_delivery_log (
   unique (source_kind, source_id, channel)
 );
 
-create index alert_delivery_log_dedup_idx on public.alert_delivery_log (dedup_key, created_at desc)
+create index if not exists alert_delivery_log_dedup_idx on public.alert_delivery_log (dedup_key, created_at desc)
   where dedup_key is not null;
-create index alert_delivery_log_created_idx on public.alert_delivery_log (created_at desc);
+create index if not exists alert_delivery_log_created_idx on public.alert_delivery_log (created_at desc);
 alter table public.alert_delivery_log enable row level security;
 alter table public.alert_delivery_log force row level security;
 
@@ -37,7 +37,7 @@ begin
   end if;
 end $$;
 
-create function public.claim_alert(
+create or replace function public.claim_alert(
   p_founder uuid, p_kind text, p_source_id text, p_dedup_key text, p_window_minutes int
 ) returns table (channel text)
 language plpgsql
