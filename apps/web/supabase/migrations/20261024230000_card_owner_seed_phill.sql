@@ -3,10 +3,10 @@
 -- enquiries and feedback it collects (card_enquiries / card_feedback read through card_owners).
 --
 -- WHY A MIGRATION AND NOT A DIRECT INSERT: production changes only through a reviewed,
--- merged branch. The founder is resolved from existing CRM data the same way
+-- merged branch. The founder is resolved from existing CRM data (crm_leads and crm_contacts, which must agree), as
 -- 20260908020000_coaching_seed_klim_spiroski.sql does, never typed in by hand.
 --
--- It refuses rather than guesses: exactly one distinct founder must own the CRM rows,
+-- It refuses rather than guesses: exactly one distinct founder must own the rows of both tables,
 -- or it raises. It never replaces an owner that is already set to someone else.
 -- Re-running it changes nothing.
 
@@ -16,10 +16,10 @@ declare
   v_count int;
   v_existing uuid;
 begin
-  select count(distinct founder_id), min(founder_id::text)::uuid into v_count, v_founder from public.crm_leads;
-  if v_count = 0 then
-    select count(distinct founder_id), min(founder_id::text)::uuid into v_count, v_founder from public.crm_contacts;
-  end if;
+  -- both CRM tables together: if they name different founders, that is a disagreement, not a fallback
+  select count(distinct f), min(f::text)::uuid into v_count, v_founder
+    from (select founder_id as f from public.crm_leads union select founder_id from public.crm_contacts) as founders
+    where f is not null;
 
   if v_count = 0 then
     raise exception 'card owner seed: no founder found in crm_leads or crm_contacts';
