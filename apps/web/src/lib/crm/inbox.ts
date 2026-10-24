@@ -72,6 +72,7 @@ export interface InboxQuery extends PromiseLike<QueryResult> {
   eq(column: string, value: string): InboxQuery
   gte(column: string, value: string): InboxQuery
   in(column: string, values: string[]): InboxQuery
+  or(filters: string): InboxQuery
   order(column: string, options: { ascending: boolean }): InboxQuery
   limit(count: number): InboxQuery
 }
@@ -164,6 +165,20 @@ export function parseSourceParam(value: string | string[] | undefined): InboxSou
     : null
 }
 
+/**
+ * PostgREST `or` filter matching any of `emails` case-insensitively (ilike). Stored contact emails keep
+ * the case they were typed in, so an exact `in` would miss "Ann@Example.com" for the lowercased
+ * "ann@example.com". Values are double-quoted so commas and parentheses cannot break the filter; an
+ * address containing a quote or backslash cannot be quoted safely and is left unlinked. `_` and `%`
+ * stay LIKE wildcards: that can only over-match, and the caller keys results by exact lowercased email.
+ */
+export function contactEmailFilter(emails: string[]): string {
+  return emails
+    .filter((e) => !/["\\]/.test(e))
+    .map((e) => `email.ilike."${e}"`)
+    .join(',')
+}
+
 async function run(query: () => InboxQuery): Promise<unknown[] | null> {
   try {
     const { data, error } = await query()
@@ -231,9 +246,10 @@ export async function loadInbox(
 
   const contactIdByEmail = new Map<string, string>()
   let contactLinksFailed = false
-  if (emails.length > 0) {
+  const emailFilter = contactEmailFilter(emails)
+  if (emailFilter) {
     const contacts = await run(() =>
-      client.from('contacts').select('id, email').eq('founder_id', opts.founderId).in('email', emails),
+      client.from('contacts').select('id, email').eq('founder_id', opts.founderId).or(emailFilter),
     )
     if (!contacts) {
       contactLinksFailed = true

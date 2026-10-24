@@ -33,7 +33,7 @@ function fakeClient(results: Record<string, Result>) {
     from(table: string) {
       calls[table] = []
       const builder: Record<string, unknown> = {}
-      for (const m of ['select', 'eq', 'gte', 'in', 'order', 'limit']) {
+      for (const m of ['select', 'eq', 'gte', 'in', 'or', 'order', 'limit']) {
         builder[m] = (...args: unknown[]) => { calls[table].push([m, args]); return builder }
       }
       builder.then = (res: (r: Result) => unknown) => Promise.resolve(results[table]).then(res)
@@ -126,5 +126,58 @@ describe('loadInbox', () => {
     const { client } = fakeClient({ crm_leads: ok([]), card_enquiries: ok([]), card_feedback: ok([]), contacts: ok([]) })
     const r = await loadInbox(client, { founderId: 'f-1', now: NOW })
     expect(r).toMatchObject({ items: [], failedSources: [], contactLinksFailed: false, truncated: [] })
+  })
+  it('links a contact whose stored email has different case (the query itself must be case-insensitive)', async () => {
+    // Query-enforcing fake: `in` is exact (like SQL), `or` with ilike terms is case-insensitive.
+    // A fake that returns the configured contact regardless of the filter would hide this bug.
+    const stored = [{ id: 'c-ann', email: 'Ann@Example.com' }, { id: 'c-other', email: 'zed@example.com' }]
+    const filters: string[] = []
+    const client: InboxClient = {
+      from(table: string) {
+        const rows: Record<string, unknown[]> = {
+          crm_leads: [lead({ email: 'ann@example.com' }), lead({ id: 'l2', email: 'ANN@EXAMPLE.COM' })],
+          card_enquiries: [],
+          card_feedback: [],
+          contacts: stored,
+        }
+        let keep = (_r: unknown) => true
+        const builder: Record<string, unknown> = {}
+        for (const m of ['select', 'eq', 'gte', 'order', 'limit']) builder[m] = () => builder
+        builder.in = (col: string, values: string[]) => {
+          filters.push(`in:${values.join('|')}`)
+          keep = (r) => values.includes((r as Record<string, string>)[col])
+          return builder
+        }
+        builder.or = (expr: string) => {
+          filters.push(`or:${expr}`)
+          const wanted = [...expr.matchAll(/email\.ilike\."([^"]*)"/g)].map((m) => m[1].toLowerCase())
+          keep = (r) => wanted.includes(String((r as Record<string, string>).email).toLowerCase())
+          return builder
+        }
+        builder.then = (res: (r: Result) => unknown) =>
+          Promise.resolve(ok(rows[table].filter((r) => keep(r)))).then(res)
+        return builder as never
+      },
+    }
+    const r = await loadInbox(client, { founderId: 'f-1', now: NOW })
+    expect(filters.length).toBeGreaterThan(0)
+    expect(r.contactLinksFailed).toBe(false)
+    expect(r.items.filter((i) => i.source === 'website_lead').map((i) => i.contactId)).toEqual(['c-ann', 'c-ann'])
+  })
+
+  it('quotes or-filter values so commas, parentheses and quotes in an address cannot break the filter', async () => {
+    const seen: string[] = []
+    const client: InboxClient = {
+      from(table: string) {
+        const builder: Record<string, unknown> = {}
+        for (const m of ['select', 'eq', 'gte', 'in', 'order', 'limit']) builder[m] = () => builder
+        builder.or = (expr: string) => { seen.push(expr); return builder }
+        builder.then = (res: (r: Result) => unknown) =>
+          Promise.resolve(ok(table === 'crm_leads' ? [lead({ email: 'a,b(c)@example.com' })] : [])).then(res)
+        return builder as never
+      },
+    }
+    await loadInbox(client, { founderId: 'f-1', now: NOW })
+    expect(seen).toEqual(['email.ilike."a,b(c)@example.com"'])
   })
 })
