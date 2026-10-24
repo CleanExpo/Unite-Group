@@ -1,75 +1,36 @@
-import { CARD_TIERS } from '@/app/cards/order/order-view'
-import { formatAud } from '@/app/grow/packages'
-
-import { HeroFigure } from './hero-figure'
-import { HeroMedia } from './hero-media'
+import { FilmPlayer } from './film-player'
+import { HERO_FILM } from './film-config'
 import h from './hero.module.css'
-import { PauseControl } from './pause-control'
-import s from './public.module.css'
 
-const VIEWS = [
-  { value: 'assembled', label: 'Assembled' },
-  { value: 'exploded', label: 'Exploded' },
-  { value: 'inside', label: 'Inside' },
-] as const
-
-// Position 1. The words come first in the document so the H1 paints before the figure. The figure lives
-// inside [data-hero-media], the slot for the later poster and rendered-frame sequence (16:9 desktop,
-// 9:16 mobile crop, poster, muted loop). The SVG stays as the no-script, reduced-motion and crawler fallback.
+// Position 1, Mode B (Cinematic Spotlight): the one dark band on the page. The U is the single focal point.
+// The H1, the wordmark, the Nexus line and both CTAs are real HTML in the server markup; the poster (the exact
+// last frame of the film) paints with them, and the film starts later, only when motion is allowed.
+// The card offer is not here: it is one offer, lower down (Phill 25/10/2026).
 export function Hero() {
   return (
-    <section data-position id="hero" className={h.hero} aria-labelledby="hero-title">
-      <div className={`${s.wrap} ${h.grid}`}>
-        <div>
-          <p className={s.eyebrow}>Australia and New Zealand</p>
-          <h1 id="hero-title" className={h.h1}>
-            Unite Group makes video business cards that open on your logo.
-          </h1>
-          <p className={h.storyLine}>Every business. One system.</p>
-          <p className={h.sub}>
-            One link or QR code. It plays a short film, then shows your details and saves to contacts in one tap.
-          </p>
-          <div className={h.actions}>
-            <a href="/cards" className={s.buttonPrimary}>
-              See the living card
-            </a>
-            <a href="#contact">Ask a question</a>
-          </div>
-          <p className={h.prices}>
-            {CARD_TIERS.map((t, i) => (
-              <span key={t.id}>
-                {i > 0 ? ' · ' : ''}
-                <strong>{formatAud(t.priceAud)}</strong> {t.name.toLowerCase()}
-              </span>
-            ))}
-            . One-off price, GST included.
-          </p>
+    <section data-position id="hero" data-mode="spotlight" className={h.hero} aria-labelledby="hero-title">
+      <div className={h.stage} data-hero-media>
+        <FilmPlayer film={HERO_FILM} priority fade className={h.film} />
+      </div>
+      <div className={h.copy}>
+        <p className={h.wordmark} data-wordmark>
+          Unite-Group Nexus
+        </p>
+        <h1 id="hero-title" className={h.h1}>
+          Every business. <span className={h.accent}>One system.</span>
+        </h1>
+        <p className={h.sub}>
+          Unite-Group Nexus is the CRM and operating system we are building to run the businesses behind it, from Disaster Recovery and NRPG to CARSI,
+          RestoreAssist and Trade Hall.
+        </p>
+        <div className={h.actions}>
+          <a href="#group" className={h.cta}>
+            See how the group fits together
+          </a>
+          <a href="#contact" className={h.ghost}>
+            Ask a question
+          </a>
         </div>
-
-        <HeroMedia>
-          <div className={h.stage}>
-            <fieldset className={h.views}>
-              <legend>Figure view</legend>
-              {VIEWS.map((v, i) => (
-                <span key={v.value}>
-                  <input
-                    className={h.radio}
-                    type="radio"
-                    name="hero-view"
-                    id={`hero-view-${v.value}`}
-                    value={v.value}
-                    defaultChecked={i === 0}
-                  />
-                  <label className={h.viewLabel} htmlFor={`hero-view-${v.value}`}>
-                    {v.label}
-                  </label>
-                </span>
-              ))}
-            </fieldset>
-            <HeroFigure />
-          </div>
-          <PauseControl targetId="hero-figure" />
-        </HeroMedia>
       </div>
     </section>
   )

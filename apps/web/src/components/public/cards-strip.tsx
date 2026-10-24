@@ -2,12 +2,14 @@ import { CARD_TIERS } from '@/app/cards/order/order-view'
 import { formatAud } from '@/app/grow/packages'
 import { PRICE_NOTE } from '@/lib/public-site'
 
+import { CARD_FILM } from './film-config'
+import { FilmPlayer } from './film-player'
+
 import s from './public.module.css'
 
 // Position 3. Prices come from CARD_TIERS, the same constant /cards/order reads, so they cannot drift.
-// The frame is a real poster from public/cards/media. It ends on the wordmark; a frame from before the
-// wordmark is not in the repo yet.
-const FRAME = '/cards/media/unite-nexus-u-reveal-poster-9x16.jpg'
+// The film tile plays the U reveal once when it scrolls into view (its poster shows until then, and always under
+// reduced motion), with Replay and Pause. The files are named in film-config.ts.
 
 export function CardsStrip() {
   return (
@@ -19,7 +21,7 @@ export function CardsStrip() {
         </h2>
         <div className={s.cardsRow}>
           <figure className={s.frame}>
-            <img src={FRAME} alt="A frame from a video business card: a copper U that ends on the Unite-Group Nexus name" width={720} height={1280} loading="lazy" />
+            <FilmPlayer film={CARD_FILM} />
             <figcaption className={s.badge}>AI-generated</figcaption>
           </figure>
           <div>

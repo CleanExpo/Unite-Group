@@ -1,108 +1,59 @@
-/* Hero: treatment A, Minimal Engineering. 0 KB JS figure; motion stops under reduced motion and on the pause control. */
+/* Hero, Mode B (Cinematic Spotlight). Dark band, edge to edge, one focal point: the copper U.
+   The stage has a fixed height, so the poster, the film and the text below cannot shift. */
 
-.hero { padding: 40px 0 56px; }
-.grid { display: grid; gap: 32px; align-items: center; }
-@media (min-width: 900px) { .grid { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 48px; } }
-.h1 {
-  margin: 12px 0 0;
-  font-size: clamp(2.1rem, 5.2vw, 3.5rem);
-  line-height: 1.06;
-  letter-spacing: -0.03em;
+.hero { background: var(--pub-night); color: var(--pub-night-ink); }
+.stage { position: relative; width: 100%; }
+.stage .film { --film-y: 46%; --film-scale: 1.28; --controls-right: max(16px, calc((100% - var(--pub-max)) / 2 + 24px)); aspect-ratio: auto; height: clamp(300px, calc(100svh - 440px), 620px); }
+
+.copy {
+  position: relative;
+  z-index: 1;
+  max-width: 66rem;
+  margin: -56px auto 0;
+  padding: 0 16px 64px;
+  text-align: center;
 }
-.sub { margin: 16px 0 0; max-width: 34rem; font-size: 18px; color: var(--pub-ink-soft); }
-.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-top: 28px; }
-.prices { margin: 14px 0 0; font-size: 14px; color: var(--pub-muted); }
-.prices strong { color: var(--pub-ink); font-weight: 600; }
-
-/* data-hero-media: the slot for the later poster and rendered-frame sequence (16:9 desktop, 9:16 mobile crop,
-   poster, muted loop). Until then it holds the SVG figure, which stays as the no-script and reduced-motion fallback. */
-.media { position: relative; }
-.stage { position: relative; }
-.radio { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
-.views { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; padding: 0; border: 0; }
-.views legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-.viewLabel {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 0 16px;
-  border: 1px solid var(--pub-line-strong);
-  border-radius: 999px;
-  background: var(--pub-bg);
-  color: var(--pub-ink-soft);
+.wordmark {
+  margin: 0;
   font-family: var(--pub-mono);
   font-size: 13px;
-  cursor: pointer;
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--pub-night-soft);
 }
-.radio:checked + .viewLabel { background: var(--pub-ink); border-color: var(--pub-ink); color: var(--pub-bg); }
-.radio:focus-visible + .viewLabel { outline: 3px solid var(--pub-accent); outline-offset: 2px; }
+.h1 {
+  margin: 14px 0 0;
+  font-size: clamp(2.1rem, 5.2vw, 4rem);
+  text-wrap: balance;
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+  font-weight: 650;
+  color: var(--pub-night-ink);
+}
+.accent { color: var(--pub-highlight); }
+.sub { margin: 18px auto 0; max-width: 40rem; font-size: 18px; line-height: 1.55; color: var(--pub-night-soft); }
+.actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px 16px; margin-top: 28px; }
 
-.figure { display: block; width: 100%; height: auto; overflow: visible; }
-.pause {
-  margin-top: 8px;
-  min-height: 44px;
-  padding: 0 14px;
-  border: 1px solid var(--pub-line-strong);
+.cta, .ghost {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 24px;
   border-radius: var(--pub-radius);
-  background: var(--pub-bg);
-  color: var(--pub-ink-soft);
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
 }
-.pause:disabled { cursor: default; color: var(--pub-muted); }
+.hero a.cta { background: var(--pub-highlight); color: var(--pub-night); border: 1px solid var(--pub-highlight); }
+.hero a.cta:hover { background: #f58f5c; border-color: #f58f5c; color: var(--pub-night); }
+.hero a.ghost { color: var(--pub-night-ink); border: 1px solid rgba(244, 241, 236, 0.5); background: transparent; }
+.hero a.ghost:hover { border-color: var(--pub-highlight); color: var(--pub-highlight); }
+.hero a:focus-visible { outline: 3px solid var(--pub-highlight); outline-offset: 3px; }
 
-/* SVG text and lines */
-.label { font-family: var(--pub-mono); font-size: 7.5px; fill: var(--pub-ink-soft); letter-spacing: 0.04em; }
-.fig { font-family: var(--pub-mono); font-size: 13px; fill: var(--pub-ink); letter-spacing: 0.08em; }
-.leader { stroke: var(--pub-accent); stroke-width: 0.8; fill: none; }
-.dot { fill: var(--pub-accent); }
-.axis { stroke: var(--pub-ink-soft); stroke-width: 0.6; stroke-dasharray: 8 4 2 4; fill: none; animation: march 6s linear infinite; }
-.outline { stroke: var(--pub-ink); stroke-width: 0.9; }
-.fine { stroke: var(--pub-ink-soft); stroke-width: 0.5; fill: none; }
-.copper { stroke: var(--pub-accent); stroke-width: 1; }
-.shell { transition: opacity 0.5s ease; }
-.sweep { animation: sweep 9s ease-in-out infinite; mix-blend-mode: soft-light; }
-
-/* Each part has an outer intro wrapper (one-off assembly on load) and an inner view wrapper (Assembled, Exploded, Inside). */
-.part { transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1); }
-.intro { animation: assemble 2.4s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
-.i1 { --from: -46px; animation-delay: 0.0s; }
-.i2 { --from: -30px; animation-delay: 0.1s; }
-.i3 { --from: -14px; animation-delay: 0.2s; }
-.i4 { --from: 0px; }
-.i5 { --from: 18px; animation-delay: 0.2s; }
-.i6 { --from: 34px; animation-delay: 0.1s; }
-.i7 { --from: 52px; animation-delay: 0.0s; }
-
-.p4 { transform: none; }
-.stage:has(input[value='exploded']:checked) .p1 { transform: translateX(-54px); }
-.stage:has(input[value='exploded']:checked) .p2 { transform: translateX(-36px); }
-.stage:has(input[value='exploded']:checked) .p3 { transform: translateX(-18px); }
-.stage:has(input[value='exploded']:checked) .p5 { transform: translateX(18px); }
-.stage:has(input[value='exploded']:checked) .p6 { transform: translateX(36px); }
-.stage:has(input[value='exploded']:checked) .p7 { transform: translateX(54px); }
-.stage:has(input[value='exploded']:checked) .shell { opacity: 0.35; }
-.stage:has(input[value='inside']:checked) .shell { opacity: 0.12; }
-.stage:has(input[value='inside']:checked) .glass { stroke: var(--pub-accent); stroke-width: 1.4; }
-
-@keyframes assemble { from { transform: translateX(var(--from)); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-@keyframes march { to { stroke-dashoffset: -36; } }
-@keyframes sweep { 0% { transform: translateX(-260px); } 50% { transform: translateX(260px); } 100% { transform: translateX(-260px); } }
-
-.figure[data-paused='true'] * { animation-play-state: paused !important; }
-
-@media (prefers-reduced-motion: reduce) {
-  .figure *, .part, .shell { animation: none !important; transition: none !important; }
+@media (max-width: 640px) {
+  .stage .film { height: clamp(240px, 52svh, 360px); --film-y: 46%; --film-scale: 1.15; }
+  .copy { margin-top: -36px; padding-bottom: 48px; }
+  .wordmark { letter-spacing: 0.22em; font-size: 12px; }
+  .sub { font-size: 16px; }
 }
-
-/* Preview media (look-development renders). The object is about 45% of the hero width on wide screens;
-   multiply drops the renders' #fdfdfd edge into the white page. The loop sits over its poster, which shows
-   until the video has frames. */
-.mediaObject { position: relative; width: 100%; margin: 0 auto; }
-@media (min-width: 900px) { .mediaObject { width: min(45vw, 34rem); } }
-.mediaObject picture, .mediaObject img { display: block; width: 100%; height: auto; }
-.blend { mix-blend-mode: multiply; }
-.loop { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
-
-.storyLine { margin: 12px 0 0; font-family: var(--pub-mono); font-size: 14px; letter-spacing: 0.06em; color: var(--pub-accent-strong); }
