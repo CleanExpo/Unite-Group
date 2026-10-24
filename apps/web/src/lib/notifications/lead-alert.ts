@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { dedupKey } from './dedup-key'
 import { GROW_PACKAGES } from '@/app/grow/packages'
 import { EDITIONS } from '@/app/cards/editions'
 import { sendEmail } from '@/lib/integrations/sendgrid'
@@ -47,8 +47,8 @@ export function buildAlertText(payload: LeadAlertPayload): { text: string; html:
   const link = new URL(`/founder/leads/${encodeURIComponent(payload.leadId)}`, baseUrl).toString()
   const lines = [flatten(payload.firstName), payload.businessName ? flatten(payload.businessName).trim() || 'Not given' : 'Not given', packageLabel(payload.interests)]
   return {
-    text: [...lines, link].join('\n'),
-    html: `${lines.map((line) => `<p>${escapeHtml(line)}</p>`).join('')}<p><a href="${escapeHtml(link)}">View enquiry</a></p>`,
+    text: [...lines, link, `Ref: ${payload.leadId}`].join('\n'),
+    html: `${lines.map((line) => `<p>${escapeHtml(line)}</p>`).join('')}<p><a href="${escapeHtml(link)}">View enquiry</a></p><p>Ref: ${escapeHtml(payload.leadId)}</p>`,
   }
 }
 
@@ -94,10 +94,11 @@ async function deliver(payload: LeadAlertPayload, signal: AbortSignal): Promise<
         .eq('id', payload.leadId).eq('founder_id', founder).abortSignal(signal).single()
       if (leadError) throw leadError
       if (!lead?.email) throw new Error('Lead lookup failed')
-      const dedupKey = createHash('sha256').update(`${founder}|${String(lead.email).toLowerCase()}|${label}`).digest('hex')
+      const key = dedupKey(founder, String(lead.email), label)
+      if (key === null) console.error('[Notify] ALERT_DEDUP_SECRET not set: duplicate suppression is off')
       const { data, error } = await client.rpc('claim_alert', {
         p_founder: founder, p_kind: 'new_lead', p_source_id: payload.leadId,
-        p_dedup_key: dedupKey, p_window_minutes: 60,
+        p_dedup_key: key, p_window_minutes: 60,
       }).abortSignal(signal)
       if (error) throw error
       if (!data?.some((row: { channel: string }) => row.channel === 'email')) return { email: 'deduped' }
@@ -113,7 +114,7 @@ async function deliver(payload: LeadAlertPayload, signal: AbortSignal): Promise<
   if (to && from && process.env.SENDGRID_API_KEY?.trim()) {
     try {
       const content = buildAlertText(payload)
-      await sendEmail({ to: { email: to }, from: { email: from }, subject: 'New enquiry', ...content, timeoutMs: 5000 })
+      await sendEmail({ to: { email: to }, from: { email: from }, subject: 'New enquiry', ...content, timeoutMs: 5000, disableTracking: true })
       outcome = signal.aborted ? 'failed' : 'sent'
     } catch (error) {
       outcome = 'failed'

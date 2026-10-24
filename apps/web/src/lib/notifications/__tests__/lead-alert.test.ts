@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createHash } from 'node:crypto'
+import { createHmac } from 'node:crypto'
 
 const mocks = vi.hoisted(() => ({ from: vi.fn(), rpc: vi.fn(), sendEmail: vi.fn(), constructEvent: vi.fn() }))
 vi.mock('@/lib/integrations/stripe/client', () => ({ getStripe: () => ({ webhooks: { constructEvent: mocks.constructEvent } }) }))
@@ -69,6 +69,7 @@ beforeEach(() => {
   vi.stubEnv('LEAD_ALERT_EMAIL_TO', 'destination@example.invalid')
   vi.stubEnv('SENDGRID_API_KEY', 'test-placeholder')
   vi.stubEnv('SENDGRID_FROM_EMAIL', 'sender@example.invalid')
+  vi.stubEnv('ALERT_DEDUP_SECRET', 'test-placeholder-dedup-secret')
   vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://app.example.invalid')
   for (const method of ['log', 'warn', 'error'] as const) vi.spyOn(console, method).mockImplementation(() => {})
   leads = [{ id: 'lead-1', founder_id: founder, email, captured_at: capturedAt }]
@@ -193,8 +194,34 @@ describe('atomic claim contract with predicate-aware fake', () => {
     leads[0].email = email.toUpperCase()
     await notify(payload())
     expect(mocks.rpc).toHaveBeenCalledWith('claim_alert', expect.objectContaining({ p_window_minutes: 60,
-      p_dedup_key: createHash('sha256').update(`${founder}|${email}|Living card`).digest('hex') }))
+      p_dedup_key: createHmac('sha256', 'test-placeholder-dedup-secret').update(`${founder}|${email}|Living card`).digest('hex') }))
     expect(JSON.stringify(logs)).not.toContain(email)
+  })
+
+  it('keys the dedup hash with a server secret, so the stored value cannot be recomputed from an email alone', async () => {
+    await notify(payload())
+    const unsalted = (await import('node:crypto')).createHash('sha256').update(`${founder}|${email}|Living card`).digest('hex')
+    expect(logs[0].dedup_key).toMatch(/^[0-9a-f]{64}$/)
+    expect(logs[0].dedup_key).not.toBe(unsalted)
+    logs.length = 0
+    vi.stubEnv('ALERT_DEDUP_SECRET', 'another-placeholder-secret')
+    await notify(payload())
+    expect(logs[0].dedup_key).not.toBe(createHmac('sha256', 'test-placeholder-dedup-secret').update(`${founder}|${email}|Living card`).digest('hex'))
+  })
+
+  it.each(['', '   '])('with no dedup secret (%j) stores no key, still sends, and logs the cause', async (blank) => {
+    vi.stubEnv('ALERT_DEDUP_SECRET', blank)
+    expect(await notify(payload())).toEqual({ email: 'sent' })
+    expect(mocks.rpc).toHaveBeenCalledWith('claim_alert', expect.objectContaining({ p_dedup_key: null }))
+    expect(logs[0].dedup_key).toBeNull()
+    expect(JSON.stringify(vi.mocked(console.error).mock.calls)).toContain('ALERT_DEDUP_SECRET')
+  })
+
+  it('sends with tracking off and the lead id in plain text so the mailbox copy can be found and erased', async () => {
+    await notify(payload())
+    const input = mocks.sendEmail.mock.calls[0][0]
+    expect(input.disableTracking).toBe(true)
+    expect(input.text).toContain('Ref: lead-1')
   })
 
   it.each([false, true])('claims the same source once in both request orders (reverse=%s)', async (reverse) => {

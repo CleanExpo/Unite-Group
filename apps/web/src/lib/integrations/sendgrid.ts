@@ -24,6 +24,8 @@ export interface SendEmailInput {
   categories?: string[]
   customArgs?: Record<string, string>
   timeoutMs?: number
+  /** Turn click and open tracking off for this message (no link rewriting, no pixel). */
+  disableTracking?: boolean
 }
 
 /**
@@ -42,6 +44,9 @@ export async function sendEmail(input: SendEmailInput): Promise<string> {
     replyTo: input.replyTo,
     categories: input.categories,
     customArgs: input.customArgs,
+    ...(input.disableTracking
+      ? { trackingSettings: { clickTracking: { enable: false, enableText: false }, openTracking: { enable: false } } }
+      : {}),
   }
 
   const sender = input.timeoutMs === undefined ? sgMail : new MailService()

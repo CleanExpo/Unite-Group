@@ -42,4 +42,11 @@ describe('SendGrid alert timeout isolation', () => {
     expect(mocks.isolatedSend).toHaveBeenCalledTimes(1)
     expect(mocks.singletonTimeout).not.toHaveBeenCalled()
   })
+  it('turns click and open tracking off only when asked', async () => {
+    await sendEmail({ ...input, timeoutMs: 5000, disableTracking: true })
+    expect(mocks.isolatedSend.mock.calls[0][0].trackingSettings).toEqual({
+      clickTracking: { enable: false, enableText: false }, openTracking: { enable: false } })
+    await sendEmail(input)
+    expect(mocks.singletonSend.mock.calls[0][0]).not.toHaveProperty('trackingSettings')
+  })
 })
