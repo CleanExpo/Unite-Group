@@ -1,0 +1,69 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vitest.config.mts:82:25). Use `import.meta.dirname` instead
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+7:33:36 PM [vite] warning: `esbuild` option was specified by "vitest" plugin. This option is deprecated, please use `oxc` instead.
+The plugin "vite-tsconfig-paths" is detected. Vite now supports tsconfig paths resolution natively via the resolve.tsconfigPaths option. You can remove the plugin and set resolve.tsconfigPaths: true in your Vite config instead.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vitest.config.mts:82:25). Use `import.meta.dirname` instead
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+7:33:36 PM [vite] warning: `esbuild` option was specified by "vitest:project" plugin. This option is deprecated, please use `oxc` instead.
+The plugin "vite-tsconfig-paths" is detected. Vite now supports tsconfig paths resolution natively via the resolve.tsconfigPaths option. You can remove the plugin and set resolve.tsconfigPaths: true in your Vite config instead.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vitest.config.mts:82:25). Use `import.meta.dirname` instead
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+7:33:36 PM [vite] warning: `esbuild` option was specified by "vitest:project" plugin. This option is deprecated, please use `oxc` instead.
+The plugin "vite-tsconfig-paths" is detected. Vite now supports tsconfig paths resolution natively via the resolve.tsconfigPaths option. You can remove the plugin and set resolve.tsconfigPaths: true in your Vite config instead.
+
+ RUN  v3.2.7 /Volumes/Mini Mini 2T Storage/worktrees/Unite-Group/feat-enquiry-alerts/apps/web
+
+ ❯ |node| src/lib/notifications/__tests__/lead-alert.test.ts (24 tests | 1 failed | 23 skipped) 6ms
+   ↓ lead alert privacy and delivery > sends only first name, business, ask and enquiry link through the real POST path; logs contain no personal values
+   ↓ lead alert privacy and delivery > reconciles the real POST after the grace period (claim failure=false)
+   ↓ lead alert privacy and delivery > reconciles the real POST after the grace period (claim failure=true)
+   ↓ lead alert privacy and delivery > escapes, strips controls and truncates names before HTML escaping
+   ↓ lead alert privacy and delivery > strips Unicode line and format controls, and handles an empty sanitised business name
+   ↓ lead alert privacy and delivery > rejects unsafe public base URLs: javascript:alert(1)
+   ↓ lead alert privacy and delivery > rejects unsafe public base URLs: https://user:password@example.invalid
+   ↓ lead alert privacy and delivery > returns unconfigured before sending when LEAD_ALERT_EMAIL_TO is unset
+   ↓ lead alert privacy and delivery > returns unconfigured before sending when SENDGRID_API_KEY is unset
+   ↓ lead alert privacy and delivery > returns unconfigured before sending when SENDGRID_FROM_EMAIL is unset
+   × lead alert privacy and delivery > uses the env recipient and never user_settings; provider failure is safe and never exposes its message 5ms
+     → expected '[["[Notify] type=new_lead title=\"New…' not to contain 'SENTINEL-KEY'
+   ↓ lead alert privacy and delivery > caps a hung email at six seconds and leaves pending evidence for stale-claim reconciliation
+   ↓ lead alert privacy and delivery > sends even when founder settings cannot be consulted
+   ↓ atomic claim contract with predicate-aware fake > hashes owner, lower-case email and allow-listed package without storing raw email
+   ↓ atomic claim contract with predicate-aware fake > claims the same source once in both request orders (reverse=false)
+   ↓ atomic claim contract with predicate-aware fake > claims the same source once in both request orders (reverse=true)
+   ↓ atomic claim contract with predicate-aware fake > suppresses concurrent different sources in both visibility orders (reverse=false)
+   ↓ atomic claim contract with predicate-aware fake > suppresses concurrent different sources in both visibility orders (reverse=true)
+   ↓ atomic claim contract with predicate-aware fake > keeps both POST leads but respects the 60-minute window at 10 minutes
+   ↓ atomic claim contract with predicate-aware fake > keeps both POST leads but respects the 60-minute window at 90 minutes
+   ↓ atomic claim contract with predicate-aware fake > does not suppress resubmission after a failed first alert
+   ↓ atomic claim contract with predicate-aware fake > does not suppress another package, or stale pending claims
+   ↓ atomic claim contract with predicate-aware fake > fails towards a duplicate send when claim_alert errors, leaving no claimed evidence
+   ↓ S2a checkout exclusion > accepts the existing signed checkout fixture without email or alert ledger writes
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |node| src/lib/notifications/__tests__/lead-alert.test.ts > lead alert privacy and delivery > uses the env recipient and never user_settings; provider failure is safe and never exposes its message
+AssertionError: expected '[["[Notify] type=new_lead title=\"New…' not to contain 'SENTINEL-KEY'
+
+Expected: "SENTINEL-KEY"
+Received: "[["[Notify] type=new_lead title=\"New enquiry\" metadata={\"source_id\":\"lead-1\",\"package_label\":\"Living card\"}"],["[Notify] lead alert failed:","SENTINEL-KEY destination@example.invalid",null]]"
+
+ ❯ src/lib/notifications/__tests__/lead-alert.test.ts:169:24
+    167|     expect(mocks.from.mock.calls.flat()).not.toContain('user_settings')
+    168|     const output = JSON.stringify(['log', 'warn', 'error'].flatMap((me…
+    169|     expect(output).not.toContain('SENTINEL-KEY')
+       |                        ^
+    170|     expect(output).not.toContain('destination@example.invalid')
+    171|     expect(logs[0].outcome).toBe('failed')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 23 skipped (24)
+   Start at  19:33:36
+   Duration  284ms (transform 41ms, setup 50ms, collect 73ms, tests 6ms, environment 0ms, prepare 37ms)
+

@@ -1,0 +1,6 @@
+
+> unite-group@1.0.0 type-check:tests /Volumes/Mini Mini 2T Storage/worktrees/Unite-Group/feat-enquiry-alerts/apps/web
+> tsc --noEmit -p tsconfig.typetest.json
+
+src/lib/integrations/sendgrid.ts(47,70): error TS2339: Property 'MailService' does not exist on type 'MailService'.
+ ELIFECYCLE  Command failed with exit code 2.

@@ -1,0 +1,74 @@
+[
+  {
+    "AC": "AC-1",
+    "file": "apps/web/src/app/api/leads/route.ts",
+    "planted": "Delete notify call",
+    "command": "cd apps/web && pnpm exec vitest run src/app/api/leads/__tests__/route.test.ts -t 'alerts once only after'",
+    "exit_under_mutant": 1,
+    "exit_restored": 0,
+    "cmp_exit": 0
+  },
+  {
+    "AC": "AC-2",
+    "file": "apps/web/src/app/api/leads/route.ts",
+    "planted": "Remove alert try/catch",
+    "command": "cd apps/web && pnpm exec vitest run src/app/api/leads/__tests__/route.test.ts -t 'alerts are rejected'",
+    "exit_under_mutant": 1,
+    "exit_restored": 0,
+    "cmp_exit": 0
+  },
+  {
+    "AC": "AC-2",
+    "file": "apps/web/src/app/api/leads/route.ts",
+    "planted": "Return 500 for a non-sent outcome",
+    "command": "cd apps/web && pnpm exec vitest run src/app/api/leads/__tests__/route.test.ts -t 'alerts are failed'",
+    "exit_under_mutant": 1,
+    "exit_restored": 0,
+    "cmp_exit": 0
+  },
+  {
+    "AC": "AC-2",
+    "file": "apps/web/src/app/api/leads/route.ts",
+    "planted": "Remove the six-second route cap",
+    "command": "cd apps/web && pnpm exec vitest run src/app/api/leads/__tests__/route.test.ts -t 'alerts are never'",
+    "exit_under_mutant": 1,
+    "exit_restored": 0,
+    "cmp_exit": 0
+  },
+  {
+    "AC": "AC-3",
+    "file": "apps/web/src/lib/notifications/lead-alert.ts",
+    "planted": "Put first name into audit title",
+    "command": "cd apps/web && pnpm exec vitest run src/lib/notifications/__tests__/lead-alert.test.ts -t 'sends only first name'",
+    "exit_under_mutant": 1,
+    "exit_restored": 0,
+    "cmp_exit": 0
+  },
+  {
+    "AC": "AC-5",
+    "file": "apps/web/src/lib/notifications/lead-alert.ts",
+    "planted": "Log provider error.message",
+    "command": "cd apps/web && pnpm exec vitest run src/lib/notifications/__tests__/lead-alert.test.ts -t 'provider failure is safe'",
+    "exit_under_mutant": 1,
+    "exit_restored": 0,
+    "cmp_exit": 0
+  },
+  {
+    "AC": "AC-6",
+    "file": "apps/web/src/app/api/leads/route.ts",
+    "planted": "Delete notify call before reconciliation",
+    "command": "cd apps/web && pnpm exec vitest run src/lib/notifications/__tests__/lead-alert.test.ts -t 'reconciles the real POST'",
+    "exit_under_mutant": 1,
+    "exit_restored": 0,
+    "cmp_exit": 0
+  },
+  {
+    "AC": "AC-7",
+    "file": "apps/web/src/lib/notifications/lead-alert.ts",
+    "planted": "Widen dedup window from 60 to 1440 minutes",
+    "command": "cd apps/web && pnpm exec vitest run src/lib/notifications/__tests__/lead-alert.test.ts -t '90 minutes'",
+    "exit_under_mutant": 1,
+    "exit_restored": 0,
+    "cmp_exit": 0
+  }
+]

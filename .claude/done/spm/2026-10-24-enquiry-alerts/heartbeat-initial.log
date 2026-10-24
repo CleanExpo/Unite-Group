@@ -1,0 +1,586 @@
+TAP version 13
+# Subtest: with no existing issue the heartbeat creates exactly one
+ok 1 - with no existing issue the heartbeat creates exactly one
+  ---
+  duration_ms: 0.702958
+  type: 'test'
+  ...
+# Subtest: an existing OWNED issue is UPDATED, never duplicated
+ok 2 - an existing OWNED issue is UPDATED, never duplicated
+  ---
+  duration_ms: 0.157084
+  type: 'test'
+  ...
+# Subtest: A HUMAN ISSUE WITH THE SAME TITLE IS NEVER OVERWRITTEN
+ok 3 - A HUMAN ISSUE WITH THE SAME TITLE IS NEVER OVERWRITTEN
+  ---
+  duration_ms: 0.061
+  type: 'test'
+  ...
+# Subtest: an issue carrying the marker but a different title is not ours either
+ok 4 - an issue carrying the marker but a different title is not ours either
+  ---
+  duration_ms: 0.25875
+  type: 'test'
+  ...
+# Subtest: the upsert refuses to publish a body with no ownership marker
+ok 5 - the upsert refuses to publish a body with no ownership marker
+  ---
+  duration_ms: 0.221125
+  type: 'test'
+  ...
+# Subtest: a near-miss title does not count as a match, so the pin stays singular
+ok 6 - a near-miss title does not count as a match, so the pin stays singular
+  ---
+  duration_ms: 0.053875
+  type: 'test'
+  ...
+# Subtest: duplicate owned issues update the lowest-numbered one deterministically
+ok 7 - duplicate owned issues update the lowest-numbered one deterministically
+  ---
+  duration_ms: 0.106083
+  type: 'test'
+  ...
+# Subtest: THE UNI-2567 LESSON: a gate absent from the capture becomes NOT RUN, never PASS
+ok 8 - THE UNI-2567 LESSON: a gate absent from the capture becomes NOT RUN, never PASS
+  ---
+  duration_ms: 0.392041
+  type: 'test'
+  ...
+# Subtest: an empty capture makes every declared gate NOT RUN and says so
+ok 9 - an empty capture makes every declared gate NOT RUN and says so
+  ---
+  duration_ms: 0.201166
+  type: 'test'
+  ...
+# Subtest: a capture that is not an array is refused rather than trusted
+ok 10 - a capture that is not an array is refused rather than trusted
+  ---
+  duration_ms: 0.274583
+  type: 'test'
+  ...
+# Subtest: an unrecognised status is downgraded to NOT RUN, not rendered verbatim
+ok 11 - an unrecognised status is downgraded to NOT RUN, not rendered verbatim
+  ---
+  duration_ms: 0.111209
+  type: 'test'
+  ...
+# Subtest: a duplicated gate entry is flagged and the first result kept
+ok 12 - a duplicated gate entry is flagged and the first result kept
+  ---
+  duration_ms: 0.056667
+  type: 'test'
+  ...
+# Subtest: a captured gate nobody declared is reported rather than silently accepted
+ok 13 - a captured gate nobody declared is reported rather than silently accepted
+  ---
+  duration_ms: 0.102459
+  type: 'test'
+  ...
+# Subtest: a non-integer exit code is normalised away instead of printed as data
+ok 14 - a non-integer exit code is normalised away instead of printed as data
+  ---
+  duration_ms: 0.113541
+  type: 'test'
+  ...
+# Subtest: a missing evidence file reports WHY, and never returns a value
+ok 15 - a missing evidence file reports WHY, and never returns a value
+  ---
+  duration_ms: 0.080708
+  type: 'test'
+  ...
+# Subtest: a truncated evidence file is refused, not parsed into a shrug
+ok 16 - a truncated evidence file is refused, not parsed into a shrug
+  ---
+  duration_ms: 0.050875
+  type: 'test'
+  ...
+# Subtest: a readable evidence file returns its parsed value
+ok 17 - a readable evidence file returns its parsed value
+  ---
+  duration_ms: 0.026166
+  type: 'test'
+  ...
+# Subtest: THE STALE-PASS FAILURE: a dead observe job publishes NOT RUN and DEGRADED
+ok 18 - THE STALE-PASS FAILURE: a dead observe job publishes NOT RUN and DEGRADED
+  ---
+  duration_ms: 0.335167
+  type: 'test'
+  ...
+# Subtest: a fully green run is not degraded and carries its provenance
+ok 19 - a fully green run is not degraded and carries its provenance
+  ---
+  duration_ms: 0.089583
+  type: 'test'
+  ...
+# Subtest: A RED GATE FAILS THE RUN, not merely the paragraph nobody reads
+ok 20 - A RED GATE FAILS THE RUN, not merely the paragraph nobody reads
+  ---
+  duration_ms: 0.274292
+  type: 'test'
+  ...
+# Subtest: ZERO DECLARED GATES IS NOT A GREEN RUN
+ok 21 - ZERO DECLARED GATES IS NOT A GREEN RUN
+  ---
+  duration_ms: 0.280416
+  type: 'test'
+  ...
+# Subtest: THE WORKFLOW FAILS THE RUN ON `failed`, not on `degraded`
+ok 22 - THE WORKFLOW FAILS THE RUN ON `failed`, not on `degraded`
+  ---
+  duration_ms: 0.1495
+  type: 'test'
+  ...
+# Subtest: drift is computed from the previous OWNED body, not from a bare string
+ok 23 - drift is computed from the previous OWNED body, not from a bare string
+  ---
+  duration_ms: 0.10225
+  type: 'test'
+  ...
+# Subtest: an unowned previous body yields no drift claim at all
+ok 24 - an unowned previous body yields no drift claim at all
+  ---
+  duration_ms: 0.023667
+  type: 'test'
+  ...
+# Subtest: a previous body missing a gate row counts that gate as not-passing
+ok 25 - a previous body missing a gate row counts that gate as not-passing
+  ---
+  duration_ms: 0.062375
+  type: 'test'
+  ...
+# Subtest: a green run reports every gate as PASS
+ok 26 - a green run reports every gate as PASS
+  ---
+  duration_ms: 0.032
+  type: 'test'
+  ...
+# Subtest: THE UNI-2567 LESSON: a failed gate surfaces as FAIL, never as silence
+ok 27 - THE UNI-2567 LESSON: a failed gate surfaces as FAIL, never as silence
+  ---
+  duration_ms: 0.026042
+  type: 'test'
+  ...
+# Subtest: a gate that did not run is reported as NOT RUN, not omitted and not PASS
+ok 28 - a gate that did not run is reported as NOT RUN, not omitted and not PASS
+  ---
+  duration_ms: 0.025792
+  type: 'test'
+  ...
+# Subtest: the body always names the oldest founder decision and its age
+ok 29 - the body always names the oldest founder decision and its age
+  ---
+  duration_ms: 0.041541
+  type: 'test'
+  ...
+# Subtest: an empty founder queue is stated explicitly rather than left blank
+ok 30 - an empty founder queue is stated explicitly rather than left blank
+  ---
+  duration_ms: 0.047708
+  type: 'test'
+  ...
+# Subtest: AN UNPARSEABLE QUEUE IS NEVER RENDERED AS "nothing is blocked"
+ok 31 - AN UNPARSEABLE QUEUE IS NEVER RENDERED AS "nothing is blocked"
+  ---
+  duration_ms: 0.032625
+  type: 'test'
+  ...
+# Subtest: AN IMPOSSIBLE SUMMARY NEVER PRINTS THE ALL-CLEAR, only flags it
+ok 32 - AN IMPOSSIBLE SUMMARY NEVER PRINTS THE ALL-CLEAR, only flags it
+  ---
+  duration_ms: 0.036666
+  type: 'test'
+  ...
+# Subtest: THE TWO CONSUMERS OF THE LEDGER CANNOT DISAGREE ABOUT WHETHER IT IS CLEAN
+ok 33 - THE TWO CONSUMERS OF THE LEDGER CANNOT DISAGREE ABOUT WHETHER IT IS CLEAN
+  ---
+  duration_ms: 0.073458
+  type: 'test'
+  ...
+# Subtest: A MALFORMED OLDEST RECORD IS NOT A USABLE ONE
+ok 34 - A MALFORMED OLDEST RECORD IS NOT A USABLE ONE
+  ---
+  duration_ms: 0.057375
+  type: 'test'
+  ...
+# Subtest: A DROPPED WRITE IS NOT A SUCCESSFUL ONE: the upsert reads the issue back
+ok 35 - A DROPPED WRITE IS NOT A SUCCESSFUL ONE: the upsert reads the issue back
+  ---
+  duration_ms: 0.120792
+  type: 'test'
+  ...
+# Subtest: A CLIENT THAT CANNOT CONFIRM ITS WRITE IS REFUSED, not trusted
+ok 36 - A CLIENT THAT CANNOT CONFIRM ITS WRITE IS REFUSED, not trusted
+  ---
+  duration_ms: 0.114167
+  type: 'test'
+  ...
+# Subtest: A CONFIRMED WRITE STILL SUCCEEDS, so the readback does not cry wolf
+ok 37 - A CONFIRMED WRITE STILL SUCCEEDS, so the readback does not cry wolf
+  ---
+  duration_ms: 0.044917
+  type: 'test'
+  ...
+# Subtest: drift is reported when a gate that passed before now fails
+ok 38 - drift is reported when a gate that passed before now fails
+  ---
+  duration_ms: 0.029083
+  type: 'test'
+  ...
+# Subtest: no drift line when nothing regressed
+ok 39 - no drift line when nothing regressed
+  ---
+  duration_ms: 0.023125
+  type: 'test'
+  ...
+# Subtest: a gate recovering from FAIL to PASS is not reported as drift
+ok 40 - a gate recovering from FAIL to PASS is not reported as drift
+  ---
+  duration_ms: 0.021209
+  type: 'test'
+  ...
+# Subtest: with no previous run there is no drift claim either way
+ok 41 - with no previous run there is no drift claim either way
+  ---
+  duration_ms: 0.01925
+  type: 'test'
+  ...
+# Subtest: THE YAML DECIDES NOTHING: no gate reconstruction is inlined in the workflow
+ok 42 - THE YAML DECIDES NOTHING: no gate reconstruction is inlined in the workflow
+  ---
+  duration_ms: 0.077375
+  type: 'test'
+  ...
+# Subtest: THE WRITE TOKEN IS ISOLATED: the issues-write job runs no commands at all
+ok 43 - THE WRITE TOKEN IS ISOLATED: the issues-write job runs no commands at all
+  ---
+  duration_ms: 0.947416
+  type: 'test'
+  ...
+# Subtest: THE ISSUES-WRITE CHECKOUT IS ONE FILE: no full checkout under the token
+ok 44 - THE ISSUES-WRITE CHECKOUT IS ONE FILE: no full checkout under the token
+  ---
+  duration_ms: 0.437917
+  type: 'test'
+  ...
+# Subtest: POSITIVE CONTROL: the isolation guard fails on the exact round-four mutant
+ok 45 - POSITIVE CONTROL: the isolation guard fails on the exact round-four mutant
+  ---
+  duration_ms: 0.32025
+  type: 'test'
+  ...
+# Subtest: THE WORKFLOW IS ARMED: it declares the approved daily schedule
+ok 46 - THE WORKFLOW IS ARMED: it declares the approved daily schedule
+  ---
+  duration_ms: 0.221083
+  type: 'test'
+  ...
+# Subtest: THE OBSERVE JOB RUNS NO COMMAND THAT CANNOT SUCCEED (round-eight P1)
+ok 47 - THE OBSERVE JOB RUNS NO COMMAND THAT CANNOT SUCCEED (round-eight P1)
+  ---
+  duration_ms: 0.336833
+  type: 'test'
+  ...
+# Subtest: THE WORKFLOW SUPPLIES THE READBACK: its client can get an issue
+ok 48 - THE WORKFLOW SUPPLIES THE READBACK: its client can get an issue
+  ---
+  duration_ms: 0.066917
+  type: 'test'
+  ...
+# Subtest: THE WORKFLOW READER FAILS CLOSED: unreadable YAML throws rather than parsing to nothing
+ok 49 - THE WORKFLOW READER FAILS CLOSED: unreadable YAML throws rather than parsing to nothing
+  ---
+  duration_ms: 0.278833
+  type: 'test'
+  ...
+# Subtest: THE WORKFLOW IS PINNED BY CONTENT, so no YAML construct can bypass the guards
+ok 50 - THE WORKFLOW IS PINNED BY CONTENT, so no YAML construct can bypass the guards
+  ---
+  duration_ms: 0.210459
+  type: 'test'
+  ...
+# Subtest: A QUOTED KEY IS REFUSED, not decoded (rounds six and seven, one class)
+ok 51 - A QUOTED KEY IS REFUSED, not decoded (rounds six and seven, one class)
+  ---
+  duration_ms: 0.730625
+  type: 'test'
+  ...
+# Subtest: A TAG IS REFUSED, on a key or a value (round-eight P0)
+ok 52 - A TAG IS REFUSED, on a key or a value (round-eight P0)
+  ---
+  duration_ms: 0.109708
+  type: 'test'
+  ...
+# Subtest: AN ESCAPED QUOTED VALUE IS REFUSED, not read literally (round-eight P0)
+ok 53 - AN ESCAPED QUOTED VALUE IS REFUSED, not read literally (round-eight P0)
+  ---
+  duration_ms: 0.087333
+  type: 'test'
+  ...
+# Subtest: A RESERVED KEY IS REFUSED, not written onto every mapping
+ok 54 - A RESERVED KEY IS REFUSED, not written onto every mapping
+  ---
+  duration_ms: 0.0575
+  type: 'test'
+  ...
+# Subtest: THE PERMISSION SHORTHANDS ARE READ, not treated as "not declared"
+ok 55 - THE PERMISSION SHORTHANDS ARE READ, not treated as "not declared"
+  ---
+  duration_ms: 0.186375
+  type: 'test'
+  ...
+# Subtest: THE REPORT DATE IS A BRISBANE DATE IN en-AU ORDER (round-six P1)
+ok 56 - THE REPORT DATE IS A BRISBANE DATE IN en-AU ORDER (round-six P1)
+  ---
+  duration_ms: 0.145625
+  type: 'test'
+  ...
+# Subtest: A JOB WITH NO PERMISSIONS BLOCK IS TREATED AS CAPABLE, not assumed safe
+ok 57 - A JOB WITH NO PERMISSIONS BLOCK IS TREATED AS CAPABLE, not assumed safe
+  ---
+  duration_ms: 0.112125
+  type: 'test'
+  ...
+# Subtest: neither checkout leaves an ambient credential in the workspace
+ok 58 - neither checkout leaves an ambient credential in the workspace
+  ---
+  duration_ms: 0.096833
+  type: 'test'
+  ...
+# Subtest: the report job runs even when the observe job dies
+ok 59 - the report job runs even when the observe job dies
+  ---
+  duration_ms: 0.09175
+  type: 'test'
+  ...
+# Subtest: the issue lookup paginates rather than reading only the first page
+ok 60 - the issue lookup paginates rather than reading only the first page
+  ---
+  duration_ms: 0.052375
+  type: 'test'
+  ...
+# Subtest: THE VERDICT IS DERIVED, NOT ACCEPTED: a capture carrying a status is distrusted
+ok 61 - THE VERDICT IS DERIVED, NOT ACCEPTED: a capture carrying a status is distrusted
+  ---
+  duration_ms: 0.042083
+  type: 'test'
+  ...
+# Subtest: a non-zero exit code is FAIL and a zero is PASS, derived here
+ok 62 - a non-zero exit code is FAIL and a zero is PASS, derived here
+  ---
+  duration_ms: 0.033542
+  type: 'test'
+  ...
+# Subtest: a prototype-chain status is not a known status
+ok 63 - a prototype-chain status is not a known status
+  ---
+  duration_ms: 0.039666
+  type: 'test'
+  ...
+# Subtest: the workflow capture step no longer decides PASS or FAIL
+ok 64 - the workflow capture step no longer decides PASS or FAIL
+  ---
+  duration_ms: 0.135709
+  type: 'test'
+  ...
+# Subtest: A PULL REQUEST IS NEVER ADOPTED AS THE HEARTBEAT ISSUE
+ok 65 - A PULL REQUEST IS NEVER ADOPTED AS THE HEARTBEAT ISSUE
+  ---
+  duration_ms: 0.02975
+  type: 'test'
+  ...
+# Subtest: drift reads the SAME issue the upsert rewrites
+ok 66 - drift reads the SAME issue the upsert rewrites
+  ---
+  duration_ms: 0.059875
+  type: 'test'
+  ...
+# Subtest: AN UNVALIDATED QUEUE SHAPE IS NEVER "nothing is blocked"
+ok 67 - AN UNVALIDATED QUEUE SHAPE IS NEVER "nothing is blocked"
+  ---
+  duration_ms: 0.034459
+  type: 'test'
+  ...
+# Subtest: A MALFORMED QUEUE MAKES THE RUN DEGRADED, not merely annotated
+ok 68 - A MALFORMED QUEUE MAKES THE RUN DEGRADED, not merely annotated
+  ---
+  duration_ms: 0.050959
+  type: 'test'
+  ...
+# Subtest: a clean queue is still clean, so the guard does not cry wolf
+ok 69 - a clean queue is still clean, so the guard does not cry wolf
+  ---
+  duration_ms: 0.036167
+  type: 'test'
+  ...
+# Subtest: a queue claiming integrity OK while listing malformed rows is contradictory
+ok 70 - a queue claiming integrity OK while listing malformed rows is contradictory
+  ---
+  duration_ms: 0.034917
+  type: 'test'
+  ...
+# Subtest: the workflow carries pull_request through so ownership can exclude PRs
+ok 71 - the workflow carries pull_request through so ownership can exclude PRs
+  ---
+  duration_ms: 0.055875
+  type: 'test'
+  ...
+# Subtest: THE RENDER PATH also refuses a prototype-chain status
+ok 72 - THE RENDER PATH also refuses a prototype-chain status
+  ---
+  duration_ms: 0.040583
+  type: 'test'
+  ...
+# Subtest: AN IMPOSSIBLE QUEUE SUMMARY IS AN ANOMALY, not an all-clear
+ok 73 - AN IMPOSSIBLE QUEUE SUMMARY IS AN ANOMALY, not an all-clear
+  ---
+  duration_ms: 0.030375
+  type: 'test'
+  ...
+# Subtest: a coherent queue produces no anomaly, so the guard does not cry wolf
+ok 74 - a coherent queue produces no anomaly, so the guard does not cry wolf
+  ---
+  duration_ms: 0.020667
+  type: 'test'
+  ...
+# Subtest: a pull_request normalised to null still disqualifies the issue
+ok 75 - a pull_request normalised to null still disqualifies the issue
+  ---
+  duration_ms: 0.029667
+  type: 'test'
+  ...
+# Subtest: THE DRIFT READ AND THE WRITE USE ONE LISTING, so they cannot race
+ok 76 - THE DRIFT READ AND THE WRITE USE ONE LISTING, so they cannot race
+  ---
+  duration_ms: 0.041125
+  type: 'test'
+  ...
+# Subtest: the workflow reads the issue list exactly once
+ok 77 - the workflow reads the issue list exactly once
+  ---
+  duration_ms: 0.049458
+  type: 'test'
+  ...
+# Subtest: THE THREAT MODEL IS STATED, not implied
+ok 78 - THE THREAT MODEL IS STATED, not implied
+  ---
+  duration_ms: 0.087833
+  type: 'test'
+  ...
+# Subtest: A CLOSED HEARTBEAT ISSUE IS NOT A PUBLISHED ONE
+ok 79 - A CLOSED HEARTBEAT ISSUE IS NOT A PUBLISHED ONE
+  ---
+  duration_ms: 0.099542
+  type: 'test'
+  ...
+# Subtest: THE WORKFLOW CLIENT CARRIES `state` BACK, or the check above cannot fire
+ok 80 - THE WORKFLOW CLIENT CARRIES `state` BACK, or the check above cannot fire
+  ---
+  duration_ms: 0.087708
+  type: 'test'
+  ...
+# Subtest: A SUBSET OF THE REQUIRED GATES IS NOT A GREEN RUN
+ok 81 - A SUBSET OF THE REQUIRED GATES IS NOT A GREEN RUN
+  ---
+  duration_ms: 0.104958
+  type: 'test'
+  ...
+# Subtest: EVERY OWNED ISSUE IS REWRITTEN, so no duplicate keeps yesterday green
+ok 82 - EVERY OWNED ISSUE IS REWRITTEN, so no duplicate keeps yesterday green
+  ---
+  duration_ms: 0.068125
+  type: 'test'
+  ...
+# Subtest: THE REWRITE USES THE LISTING IT SELECTED FROM, not a second one
+ok 83 - THE REWRITE USES THE LISTING IT SELECTED FROM, not a second one
+  ---
+  duration_ms: 0.087375
+  type: 'test'
+  ...
+# Subtest: AN ABSENT `oldest` IS NOT PROOF OF AN EMPTY QUEUE
+ok 84 - AN ABSENT `oldest` IS NOT PROOF OF AN EMPTY QUEUE
+  ---
+  duration_ms: 0.028
+  type: 'test'
+  ...
+# Subtest: THE CAPTURE IS TRUSTED NO MORE THAN THE DECLARATION
+ok 85 - THE CAPTURE IS TRUSTED NO MORE THAN THE DECLARATION
+  ---
+  duration_ms: 0.094875
+  type: 'test'
+  ...
+# Subtest: AC-13 alert-health declares a fourth gate and a healthy response keeps the run green
+ok 86 - AC-13 alert-health declares a fourth gate and a healthy response keeps the run green
+  ---
+  duration_ms: 0.056
+  type: 'test'
+  ...
+# Subtest: AC-13 alert-health 503 fixture makes the composed issue FAIL and the run non-green
+ok 87 - AC-13 alert-health 503 fixture makes the composed issue FAIL and the run non-green
+  ---
+  duration_ms: 0.040167
+  type: 'test'
+  ...
+# Subtest: AC-13 alert-health unalerted fixture makes the composed issue FAIL and the run non-green
+ok 88 - AC-13 alert-health unalerted fixture makes the composed issue FAIL and the run non-green
+  ---
+  duration_ms: 0.028083
+  type: 'test'
+  ...
+# Subtest: AC-13 alert-health failed fixture makes the composed issue FAIL and the run non-green
+ok 89 - AC-13 alert-health failed fixture makes the composed issue FAIL and the run non-green
+  ---
+  duration_ms: 0.026
+  type: 'test'
+  ...
+# Subtest: AC-13 alert-health invalid JSON fixture makes the composed issue FAIL and the run non-green
+ok 90 - AC-13 alert-health invalid JSON fixture makes the composed issue FAIL and the run non-green
+  ---
+  duration_ms: 0.031083
+  type: 'test'
+  ...
+# Subtest: AC-13 alert-health missing counters fixture makes the composed issue FAIL and the run non-green
+ok 91 - AC-13 alert-health missing counters fixture makes the composed issue FAIL and the run non-green
+  ---
+  duration_ms: 0.022083
+  type: 'test'
+  ...
+# Subtest: AC-13 alert-health transport error fixture makes the composed issue FAIL and the run non-green
+ok 92 - AC-13 alert-health transport error fixture makes the composed issue FAIL and the run non-green
+  ---
+  duration_ms: 0.023542
+  type: 'test'
+  ...
+# Subtest: AC-13 absent alert-health evidence stays NOT RUN
+ok 93 - AC-13 absent alert-health evidence stays NOT RUN
+  ---
+  duration_ms: 0.028542
+  type: 'test'
+  ...
+# Subtest: AC-13 capture uses a bearer, a bounded read and never follows a redirect
+ok 94 - AC-13 capture uses a bearer, a bounded read and never follows a redirect
+  ---
+  duration_ms: 0.140833
+  type: 'test'
+  ...
+# Subtest: AC-13 capture does not fetch without a token or expose transport errors
+ok 95 - AC-13 capture does not fetch without a token or expose transport errors
+  ---
+  duration_ms: 0.067041
+  type: 'test'
+  ...
+# Subtest: AC-13 workflow captures alert response through the tested JavaScript function
+ok 96 - AC-13 workflow captures alert response through the tested JavaScript function
+  ---
+  duration_ms: 0.060875
+  type: 'test'
+  ...
+1..96
+# tests 96
+# suites 0
+# pass 96
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 64.606375

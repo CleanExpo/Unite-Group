@@ -1,0 +1,8 @@
+
+> unite-group@1.0.0 type-check:tests /Volumes/Mini Mini 2T Storage/worktrees/Unite-Group/feat-enquiry-alerts/apps/web
+> tsc --noEmit -p tsconfig.typetest.json
+
+src/lib/notifications/__tests__/notify.test-d.ts(10,1): error TS2578: Unused '@ts-expect-error' directive.
+src/lib/notifications/__tests__/notify.test-d.ts(16,54): error TS2344: Type '"type" | "leadId" | "firstName" | "businessName" | "interests" | "capturedAt"' does not satisfy the constraint '"Expected: literal string: type, Actual: literal string: email" | "Expected: literal string: leadId, Actual: literal string: email" | "Expected: literal string: firstName, Actual: literal string: email" | "Expected: literal string: businessName, Actual: literal string: email" | "Expected: literal string: interests, ...'.
+  Type '"type"' is not assignable to type '"Expected: literal string: type, Actual: literal string: email" | "Expected: literal string: leadId, Actual: literal string: email" | "Expected: literal string: firstName, Actual: literal string: email" | "Expected: literal string: businessName, Actual: literal string: email" | "Expected: literal string: interests, ...'.
+ ELIFECYCLE  Command failed with exit code 2.

@@ -50,6 +50,11 @@ const REQUIRED = [
 ]
 
 const INTEGRATION = [
+  // Enquiry alerts are optional at build time.
+  { name: 'LEAD_ALERT_EMAIL_TO', hint: 'Enquiry alert email destination', group: 'Alerts' },
+  { name: 'ALERT_HEALTH_TOKEN', hint: 'Read-only alert health bearer', group: 'Alerts' },
+  { name: 'SENDGRID_API_KEY', hint: 'SendGrid email API key', group: 'Alerts' },
+  { name: 'SENDGRID_FROM_EMAIL', hint: 'SendGrid verified sender', group: 'Alerts' },
   // Linear
   { name: 'LINEAR_API_KEY', hint: 'Linear personal API key', group: 'Linear' },
   // Xero — CARSI account

@@ -1,0 +1,73 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vitest.config.mts:85:25). Use `import.meta.dirname` instead
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+7:35:42 PM [vite] warning: `esbuild` option was specified by "vitest" plugin. This option is deprecated, please use `oxc` instead.
+The plugin "vite-tsconfig-paths" is detected. Vite now supports tsconfig paths resolution natively via the resolve.tsconfigPaths option. You can remove the plugin and set resolve.tsconfigPaths: true in your Vite config instead.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vitest.config.mts:85:25). Use `import.meta.dirname` instead
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+7:35:42 PM [vite] warning: `esbuild` option was specified by "vitest:project" plugin. This option is deprecated, please use `oxc` instead.
+The plugin "vite-tsconfig-paths" is detected. Vite now supports tsconfig paths resolution natively via the resolve.tsconfigPaths option. You can remove the plugin and set resolve.tsconfigPaths: true in your Vite config instead.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vitest.config.mts:85:25). Use `import.meta.dirname` instead
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+7:35:42 PM [vite] warning: `esbuild` option was specified by "vitest:project" plugin. This option is deprecated, please use `oxc` instead.
+The plugin "vite-tsconfig-paths" is detected. Vite now supports tsconfig paths resolution natively via the resolve.tsconfigPaths option. You can remove the plugin and set resolve.tsconfigPaths: true in your Vite config instead.
+
+ RUN  v3.2.7 /Volumes/Mini Mini 2T Storage/worktrees/Unite-Group/feat-enquiry-alerts/apps/web
+
+ ❯ |node| src/lib/notifications/__tests__/alert-env.test.ts (1 test | 1 failed) 5ms
+   × alert environment declarations > keeps both new variables in the advisory integration tier 4ms
+     → expected '\n  // Enquiry alerts are optional at…' to contain 'name: \'LEAD_ALERT_EMAIL_TO\''
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |node| src/lib/notifications/__tests__/alert-env.test.ts > alert environment declarations > keeps both new variables in the advisory integration tier
+AssertionError: expected '\n  // Enquiry alerts are optional at…' to contain 'name: \'LEAD_ALERT_EMAIL_TO\''
+
+- Expected
++ Received
+
+- name: 'LEAD_ALERT_EMAIL_TO'
++
++   // Enquiry alerts are optional at build time.
++   { name: 'ALERT_HEALTH_TOKEN', hint: 'Read-only alert health bearer', group: 'Alerts' },
++   { name: 'SENDGRID_API_KEY', hint: 'SendGrid email API key', group: 'Alerts' },
++   { name: 'SENDGRID_FROM_EMAIL', hint: 'SendGrid verified sender', group: 'Alerts' },
++   // Linear
++   { name: 'LINEAR_API_KEY', hint: 'Linear personal API key', group: 'Linear' },
++   // Xero — CARSI account
++   { name: 'XERO_CLIENT_ID', hint: 'Xero shared OAuth client ID', group: 'Xero' },
++   { name: 'XERO_CLIENT_SECRET', hint: 'Xero shared OAuth client secret', group: 'Xero' },
++   // Xero — DR account (code reads DR_CLIENT_ID / DR_CLIENT_SECRET — see xero/client.ts)
++   { name: 'XERO_TENANT_ID_CARSI', hint: 'Xero tenant ID for CARSI', group: 'Xero' },
++   { name: 'XERO_TENANT_ID_DR', hint: 'Xero tenant ID for Disaster Recovery', group: 'Xero' },
++   { name: 'XERO_WEBHOOK_KEY', hint: 'Xero webhook signing key', group: 'Xero' },
++   // Google
++   { name: 'GOOGLE_CLIENT_ID', hint: 'Google OAuth client ID', group: 'Google' },
++   { name: 'GOOGLE_CLIENT_SECRET', hint: 'Google OAuth client secret', group: 'Google' },
++   // Social
++   { name: 'FACEBOOK_APP_ID', hint: 'Facebook app ID', group: 'Social' },
++   { name: 'LINKEDIN_CLIENT_ID', hint: 'LinkedIn client ID', group: 'Social' },
++   { name: 'TIKTOK_CLIENT_KEY', hint: 'TikTok client key', group: 'Social' },
++   // Slack
++   { name: 'SLACK_WEBHOOK_URL', hint: 'Slack incoming webhook URL', group: 'Slack' },
++   // App
++   { name: 'NEXT_PUBLIC_APP_URL', hint: 'App URL for OAuth callbacks (http://localhost:3000)', group: 'App' },
+
+ ❯ src/lib/notifications/__tests__/alert-env.test.ts:10:27
+      8|     const integration = source.split('const INTEGRATION = [')[1].split…
+      9|     for (const name of ['LEAD_ALERT_EMAIL_TO', 'ALERT_HEALTH_TOKEN', '…
+     10|       expect(integration).toContain(`name: '${name}'`)
+       |                           ^
+     11|     }
+     12|     const result = spawnSync(process.execPath, ['scripts/validate-env.…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  19:35:42
+   Duration  465ms (transform 16ms, setup 261ms, collect 8ms, tests 5ms, environment 0ms, prepare 46ms)
+

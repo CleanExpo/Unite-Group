@@ -1,0 +1,39 @@
+┌─ Nexus 2.0 Environment Validation ──────────────────────
+│
+│ ❌ CRITICAL: 0/3 set
+│   └ NEXT_PUBLIC_SUPABASE_URL — Supabase project URL (https://xxx.supabase.co)
+│   └ NEXT_PUBLIC_SUPABASE_ANON_KEY — Supabase anon/public key
+│   └ SUPABASE_SERVICE_ROLE_KEY — Supabase service role key (server-side only)
+│ ❌ REQUIRED: 0/4 set
+│   └ ANTHROPIC_API_KEY — Anthropic API key (sk-ant-xxx)
+│   └ VAULT_ENCRYPTION_KEY — AES-256 key — openssl rand -hex 32
+│   └ CRON_SECRET — Secret for cron route auth
+│   └ FOUNDER_USER_ID — Supabase auth.users UUID for the founder
+│ ⚠️ INTEGRATION: 0/17 set
+│   └ LEAD_ALERT_EMAIL_TO — Enquiry alert email destination
+│   └ ALERT_HEALTH_TOKEN — Read-only alert health bearer
+│   └ SENDGRID_API_KEY — SendGrid email API key
+│   └ SENDGRID_FROM_EMAIL — SendGrid verified sender
+│   └ LINEAR_API_KEY — Linear personal API key
+│   └ XERO_CLIENT_ID — Xero shared OAuth client ID
+│   └ XERO_CLIENT_SECRET — Xero shared OAuth client secret
+│   └ XERO_TENANT_ID_CARSI — Xero tenant ID for CARSI
+│   └ XERO_TENANT_ID_DR — Xero tenant ID for Disaster Recovery
+│   └ XERO_WEBHOOK_KEY — Xero webhook signing key
+│   └ GOOGLE_CLIENT_ID — Google OAuth client ID
+│   └ GOOGLE_CLIENT_SECRET — Google OAuth client secret
+│   └ FACEBOOK_APP_ID — Facebook app ID
+│   └ LINKEDIN_CLIENT_ID — LinkedIn client ID
+│   └ TIKTOK_CLIENT_KEY — TikTok client key
+│   └ SLACK_WEBHOOK_URL — Slack incoming webhook URL
+│   └ NEXT_PUBLIC_APP_URL — App URL for OAuth callbacks (http://localhost:3000)
+│
+└─────────────────────────────────────────────────────────
+
+❌ VALIDATION FAILED — missing CRITICAL or REQUIRED env vars
+
+To fix:
+  1. Copy .env.example to .env.local
+  2. Fill in the missing values
+  3. For Vercel: vercel env add <NAME>
+

@@ -15,6 +15,7 @@
     "lint": "eslint src/",
     "lint:all": "turbo run lint",
     "type-check": "tsc --noEmit",
+    "type-check:tests": "tsc --noEmit -p tsconfig.typetest.json",
     "type-check:all": "turbo run type-check",
     "test": "vitest run",
     "test:all": "turbo run test",

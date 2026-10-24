@@ -1,0 +1,8 @@
+
+> unite-group@1.0.0 type-check:tests /Volumes/Mini Mini 2T Storage/worktrees/Unite-Group/feat-enquiry-alerts/apps/web
+> tsc --noEmit -p tsconfig.typetest.json
+
+src/lib/notifications/__tests__/notify.test-d.ts(5,110): error TS2344: Type 'Promise<void>' does not satisfy the constraint '{ [toStringTag]: string; then: "Expected: function, Actual: function"; catch: <TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | null | undefined) => Promise<...>; finally: "Expected: function, Actual: function"; }'.
+  Types of property 'then' are incompatible.
+    Type '<TResult1 = void, TResult2 = never>(onfulfilled?: ((value: void) => TResult1 | PromiseLike<TResult1>) | null | undefined, onrejected?: ((reason: any) => TResult2 | PromiseLike<...>) | null | undefined) => Promise<...>' is not assignable to type '"Expected: function, Actual: function"'.
+ ELIFECYCLE  Command failed with exit code 2.

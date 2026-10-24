@@ -1,7 +1,7 @@
 // src/lib/integrations/sendgrid.ts
 // SendGrid email client wrapper for campaign sending.
 
-import sgMail from '@sendgrid/mail'
+import sgMail, { MailService } from '@sendgrid/mail'
 
 function ensureApiKey(): void {
   const key = process.env.SENDGRID_API_KEY?.trim()
@@ -23,6 +23,7 @@ export interface SendEmailInput {
   replyTo?: EmailRecipient
   categories?: string[]
   customArgs?: Record<string, string>
+  timeoutMs?: number
 }
 
 /**
@@ -43,7 +44,12 @@ export async function sendEmail(input: SendEmailInput): Promise<string> {
     customArgs: input.customArgs,
   }
 
-  const [response] = await sgMail.send(msg)
+  const sender = input.timeoutMs === undefined ? sgMail : new MailService()
+  if (input.timeoutMs !== undefined) {
+    sender.setApiKey(process.env.SENDGRID_API_KEY!.trim())
+    sender.setTimeout(input.timeoutMs)
+  }
+  const [response] = await sender.send(msg)
   const messageId = response.headers['x-message-id'] as string | undefined
   return messageId ?? response.statusCode.toString()
 }

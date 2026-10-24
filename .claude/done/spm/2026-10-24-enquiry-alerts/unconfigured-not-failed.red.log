@@ -1,0 +1,67 @@
+
+ RUN  v3.2.7 /Volumes/Mini Mini 2T Storage/worktrees/Unite-Group/feat-enquiry-alerts/apps/web
+
+ ❯ |node| src/app/api/health/alerts/__tests__/route.test.ts (11 tests | 1 failed) 19ms
+   ✓ alert health > requires the dedicated token, falling back to cron only when blank 3ms
+   × alert health > counts exact per-source outcomes over 72 hours including stale pending 8ms
+     → expected { window_hours: 72, attempts: 7, …(5) } to deeply equal { window_hours: 72, attempts: 7, …(5) }
+   ✓ alert health > fails closed when alert_delivery_log cannot be read 0ms
+   ✓ alert health > fails closed when crm_leads cannot be read 0ms
+   ✓ alert health > reports yesterday and the day before failures so daily polls cannot miss them 1ms
+   ✓ alert health > reconciles absent alerts and suppressions without sent coverage, with a two-minute grace 0ms
+   ✓ alert health > reports an unclaimed lead after a failed claim rather than returning zeros 0ms
+   ✓ alert health > reads coverage before the 72-hour edge without counting it as an attempt 0ms
+   ✓ alert health > does not cover a suppression with a later sent row or a send over 60 minutes earlier 0ms
+   ✓ alert health > pages beyond the API row cap without dropping failures or missing leads 5ms
+   ✓ alert health > S2a excludes checkout events from reconciliation 0ms
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 10 passed (11)
+   Start at  19:33:15
+   Duration  258ms (transform 24ms, setup 51ms, collect 35ms, tests 19ms, environment 0ms, prepare 30ms)
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vitest.config.mts:82:25). Use `import.meta.dirname` instead
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+7:33:14 PM [vite] warning: `esbuild` option was specified by "vitest" plugin. This option is deprecated, please use `oxc` instead.
+The plugin "vite-tsconfig-paths" is detected. Vite now supports tsconfig paths resolution natively via the resolve.tsconfigPaths option. You can remove the plugin and set resolve.tsconfigPaths: true in your Vite config instead.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vitest.config.mts:82:25). Use `import.meta.dirname` instead
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+7:33:15 PM [vite] warning: `esbuild` option was specified by "vitest:project" plugin. This option is deprecated, please use `oxc` instead.
+The plugin "vite-tsconfig-paths" is detected. Vite now supports tsconfig paths resolution natively via the resolve.tsconfigPaths option. You can remove the plugin and set resolve.tsconfigPaths: true in your Vite config instead.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vitest.config.mts:82:25). Use `import.meta.dirname` instead
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+7:33:15 PM [vite] warning: `esbuild` option was specified by "vitest:project" plugin. This option is deprecated, please use `oxc` instead.
+The plugin "vite-tsconfig-paths" is detected. Vite now supports tsconfig paths resolution natively via the resolve.tsconfigPaths option. You can remove the plugin and set resolve.tsconfigPaths: true in your Vite config instead.
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |node| src/app/api/health/alerts/__tests__/route.test.ts > alert health > counts exact per-source outcomes over 72 hours including stale pending
+AssertionError: expected { window_hours: 72, attempts: 7, …(5) } to deeply equal { window_hours: 72, attempts: 7, …(5) }
+
+- Expected
++ Received
+
+  {
+    "attempts": 7,
+    "deduped": 1,
+-   "failed": 5,
++   "failed": 4,
+    "last_failure_at": "2026-10-24T18:59:40.000Z",
+    "unalerted": 0,
+    "unconfigured": 1,
+    "window_hours": 72,
+  }
+
+ ❯ src/app/api/health/alerts/__tests__/route.test.ts:71:49
+     69|       log('S6', 'pending', 20_000), log('S7', 'pending', 5_000), log('…
+     70|       log('S9', 'failed', 80 * HOUR), { ...log('foreign', 'failed'), f…
+     71|     expect(await (await GET(request())).json()).toEqual({ window_hours…
+       |                                                 ^
+     72|       unconfigured: 1, deduped: 1, unalerted: 0, last_failure_at: ago(…
+     73|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

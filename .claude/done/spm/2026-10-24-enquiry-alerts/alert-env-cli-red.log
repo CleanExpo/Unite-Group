@@ -1,0 +1,32 @@
+┌─ Nexus 2.0 Environment Validation ──────────────────────
+│
+│ ✅ CRITICAL: 3/3 set
+│ ❌ REQUIRED: 4/5 set
+│   └ LEAD_ALERT_EMAIL_TO — Enquiry alert email destination
+│ ⚠️ INTEGRATION: 0/16 set
+│   └ ALERT_HEALTH_TOKEN — Read-only alert health bearer
+│   └ SENDGRID_API_KEY — SendGrid email API key
+│   └ SENDGRID_FROM_EMAIL — SendGrid verified sender
+│   └ LINEAR_API_KEY — Linear personal API key
+│   └ XERO_CLIENT_ID — Xero shared OAuth client ID
+│   └ XERO_CLIENT_SECRET — Xero shared OAuth client secret
+│   └ XERO_TENANT_ID_CARSI — Xero tenant ID for CARSI
+│   └ XERO_TENANT_ID_DR — Xero tenant ID for Disaster Recovery
+│   └ XERO_WEBHOOK_KEY — Xero webhook signing key
+│   └ GOOGLE_CLIENT_ID — Google OAuth client ID
+│   └ GOOGLE_CLIENT_SECRET — Google OAuth client secret
+│   └ FACEBOOK_APP_ID — Facebook app ID
+│   └ LINKEDIN_CLIENT_ID — LinkedIn client ID
+│   └ TIKTOK_CLIENT_KEY — TikTok client key
+│   └ SLACK_WEBHOOK_URL — Slack incoming webhook URL
+│   └ NEXT_PUBLIC_APP_URL — App URL for OAuth callbacks (http://localhost:3000)
+│
+└─────────────────────────────────────────────────────────
+
+❌ VALIDATION FAILED — missing CRITICAL or REQUIRED env vars
+
+To fix:
+  1. Copy .env.example to .env.local
+  2. Fill in the missing values
+  3. For Vercel: vercel env add <NAME>
+

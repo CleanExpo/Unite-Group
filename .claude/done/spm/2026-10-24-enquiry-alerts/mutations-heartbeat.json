@@ -1,0 +1,20 @@
+[
+  {
+    "AC": "AC-13",
+    "file": "scripts/nexus-heartbeat.mjs",
+    "planted": "503-allowed",
+    "command": "node --test scripts/__tests__/nexus-heartbeat.test.mjs",
+    "exit_under_mutant": 1,
+    "exit_restored": 0,
+    "cmp_exit": 0
+  },
+  {
+    "AC": "AC-13",
+    "file": "scripts/nexus-heartbeat.mjs",
+    "planted": "unalerted-bypass",
+    "command": "node --test scripts/__tests__/nexus-heartbeat.test.mjs",
+    "exit_under_mutant": 1,
+    "exit_restored": 0,
+    "cmp_exit": 0
+  }
+]

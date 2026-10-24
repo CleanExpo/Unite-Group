@@ -1,0 +1,31 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vitest.config.mts:82:25). Use `import.meta.dirname` instead
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+7:33:30 PM [vite] warning: `esbuild` option was specified by "vitest" plugin. This option is deprecated, please use `oxc` instead.
+The plugin "vite-tsconfig-paths" is detected. Vite now supports tsconfig paths resolution natively via the resolve.tsconfigPaths option. You can remove the plugin and set resolve.tsconfigPaths: true in your Vite config instead.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vitest.config.mts:82:25). Use `import.meta.dirname` instead
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+7:33:30 PM [vite] warning: `esbuild` option was specified by "vitest:project" plugin. This option is deprecated, please use `oxc` instead.
+The plugin "vite-tsconfig-paths" is detected. Vite now supports tsconfig paths resolution natively via the resolve.tsconfigPaths option. You can remove the plugin and set resolve.tsconfigPaths: true in your Vite config instead.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vitest.config.mts:82:25). Use `import.meta.dirname` instead
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+7:33:30 PM [vite] warning: `esbuild` option was specified by "vitest:project" plugin. This option is deprecated, please use `oxc` instead.
+The plugin "vite-tsconfig-paths" is detected. Vite now supports tsconfig paths resolution natively via the resolve.tsconfigPaths option. You can remove the plugin and set resolve.tsconfigPaths: true in your Vite config instead.
+
+ RUN  v3.2.7 /Volumes/Mini Mini 2T Storage/worktrees/Unite-Group/feat-enquiry-alerts/apps/web
+
+stderr | src/app/api/leads/__tests__/route.test.ts > POST /api/leads > preserves the exact response and one lead insert when alerts are rejected, with and without drip
+[leads] alert failed: Error
+
+stderr | src/app/api/leads/__tests__/route.test.ts > POST /api/leads > preserves the exact response and one lead insert when alerts are rejected, with and without drip
+[leads] alert failed: Error
+
+ ✓ |node| src/app/api/leads/__tests__/route.test.ts (16 tests | 15 skipped) 6ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 15 skipped (16)
+   Start at  19:33:30
+   Duration  289ms (transform 26ms, setup 49ms, collect 38ms, tests 6ms, environment 0ms, prepare 34ms)
+

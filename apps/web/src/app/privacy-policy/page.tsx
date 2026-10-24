@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 }
 
-const LAST_UPDATED = '19 October 2026'
+const LAST_UPDATED = '24 October 2026'
 const CONTACT_EMAIL = 'contact@unite-group.in'
 const COMPANY = COMPANY_NAME
 const APP_URL = 'https://unite-group.in'
@@ -148,9 +148,9 @@ export default function PrivacyPolicyPage() {
 
         <Section title="5. Data Storage and Security">
           <p>
-            All data is stored in a Supabase PostgreSQL database hosted in the <strong>ap-southeast-2 (Sydney)</strong> AWS
+            Application records are stored in a Supabase PostgreSQL database hosted in the <strong>ap-southeast-2 (Sydney)</strong> AWS
             region. Row-Level Security (RLS) policies ensure data is accessible only to the authorised account
-            holder.
+            holder. Enquiry alert email copies are also processed and retained as described in section 10.
           </p>
           <p>
             OAuth tokens and credentials are encrypted at rest using AES-256-GCM. Database connections use TLS
@@ -177,6 +177,7 @@ export default function PrivacyPolicyPage() {
               <tr><td>Anthropic</td><td>AI completions (Claude API)</td><td>US</td></tr>
               <tr><td>Google (OAuth + APIs)</td><td>Authentication, Gmail, Calendar, Drive</td><td>Global</td></tr>
               <tr><td>Xero</td><td>Accounting data</td><td>AU / NZ</td></tr>
+              <tr><td>Twilio SendGrid</td><td>Enquiry alert emails (first name, business name and package requested)</td><td>Overseas / US</td></tr>
             </tbody>
           </table>
           <p>
@@ -237,11 +238,16 @@ export default function PrivacyPolicyPage() {
           </p>
           <p>
             We store enquiries in our customer database (hosted with Supabase), which only {COMPANY} staff can
-            access. We do not sell your information. We keep enquiry records for as long as needed to respond and
+            access. We also send your first name, business name and the package requested through SendGrid
+            to our alert mailbox, with a sign-in link to the enquiry. Contact details and your message
+            stay in the Application. SendGrid processes this alert overseas; the email copy is retained
+            according to the alert mailbox account settings. We do not sell your information. We keep enquiry records for as long as needed to respond and
             follow up, unless you ask us to delete them sooner.
           </p>
           <p>
-            You can ask to see, correct or delete your information at any time by emailing{' '}
+            When a deletion request is actioned, our founder, Phill McGurk, deletes the enquiry alert
+            email copy from the alert mailbox as well as the enquiry record, subject to legal retention
+            requirements. You can ask to see, correct or delete your information at any time by emailing{' '}
             <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: '#15803d' }}>{CONTACT_EMAIL}</a>.
           </p>
         </Section>

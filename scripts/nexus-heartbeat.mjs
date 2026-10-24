@@ -67,7 +67,41 @@ export const DECLARED_GATES = Object.freeze([
   'verify:readiness',
   'verify:docs-watch',
   'verify:docs-review',
+  'alert-health',
 ]);
+
+/** Capture one bounded read. No retries and no provider error text in evidence. */
+export async function captureAlertHealth({ url, token, fetchImpl = fetch }) {
+  try {
+    if (!token?.trim()) return { name: 'alert-health', exitCode: 1, httpCode: null, response: '' };
+    const response = await fetchImpl(new URL('/api/health/alerts', url), {
+      headers: { Authorization: `Bearer ${token.trim()}` },
+      signal: AbortSignal.timeout(10000),
+      redirect: 'error',
+    });
+    return { name: 'alert-health', exitCode: 0, httpCode: response.status, response: await response.text() };
+  } catch {
+    return { name: 'alert-health', exitCode: 1, httpCode: null, response: '' };
+  }
+}
+
+function alertHealthResult(entry) {
+  let response;
+  try { response = JSON.parse(entry.response); } catch { return { healthy: false }; }
+  const counts = ['attempts', 'failed', 'unconfigured', 'deduped', 'unalerted'];
+  if (!response || response.window_hours !== 72
+    || counts.some((key) => !Number.isInteger(response[key]) || response[key] < 0)
+    || !(response.last_failure_at === null || (typeof response.last_failure_at === 'string'
+      && /^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/u.test(response.last_failure_at)))) {
+    return { healthy: false };
+  }
+  const evidence = Object.fromEntries(['window_hours', ...counts, 'last_failure_at']
+    .map((key) => [key, response[key]]));
+  return {
+    healthy: entry.httpCode === 200 && response.failed === 0 && response.unalerted === 0,
+    evidence,
+  };
+}
 
 const STATUS_LABEL = Object.freeze({
   PASS: 'PASS',
@@ -275,6 +309,13 @@ export function reconcileGates(declared, captured) {
         + 'it ran cannot be told from whether it passed.',
       );
       return { name, status: 'NOT_RUN', exitCode: null };
+    }
+    if (name === 'alert-health') {
+      const { healthy, evidence } = alertHealthResult(entry);
+      return {
+        name, status: entry.exitCode === 0 && healthy ? 'PASS' : 'FAIL',
+        exitCode: entry.exitCode, httpCode: entry.httpCode ?? null, evidence,
+      };
     }
     return {
       name,
@@ -667,6 +708,11 @@ export function buildHeartbeatBody({ date, gates, queue, drift, anomalies = [], 
       ? '—'
       : `exit ${gate.exitCode}`;
     lines.push(`| \`${gate.name}\` | ${label} | ${exit} |`);
+  }
+  const alertGate = gates.find((gate) => gate.name === 'alert-health');
+  if (alertGate && Object.hasOwn(alertGate, 'httpCode')) {
+    lines.push('', `Alert health (HTTP ${alertGate.httpCode ?? 'unavailable'}): `
+      + (alertGate.evidence ? `\`${JSON.stringify(alertGate.evidence)}\`` : 'no usable response.'));
   }
 
   /*
