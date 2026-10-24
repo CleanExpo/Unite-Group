@@ -15,13 +15,14 @@ describe('cards strip price parity (AC-4)', () => {
     const tiers = html.split('data-tier="').slice(1)
     expect(tiers).toHaveLength(2)
     CARD_TIERS.forEach((t, i) => {
-      expect(tiers[i]).toContain(`>${formatAud(t.priceAud)}<`)
-      expect(tiers[i]).toContain('One-off price, GST included')
-      expect(tiers[i].indexOf('href="/cards/order"')).toBeGreaterThan(tiers[i].indexOf(formatAud(t.priceAud)))
+      expect(tiers[i]).toContain(`${t.name} ${formatAud(t.priceAud)}<`)
     })
+    // Phill 25/10/2026: the tier cards became one bright button, a price line and one GST line.
+    expect(html.match(/One-off price, GST included/g)).toHaveLength(1)
+    expect(html).toMatch(/<a [^>]*href="\/cards\/order"[^>]*>From \$249<\/a>/)
     expect(html).toContain('AI-generated')
     expect(html).toContain('See the living card')
-    expect(html.match(/\$\d+/g)).toEqual(['$249', '$449'])
+    expect(html.match(/\$\d+/g)).toEqual(['$249', '$249', '$449'])
   })
 
   it('matches the prices the live /cards/order page renders', () => {

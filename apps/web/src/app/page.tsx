@@ -10,9 +10,9 @@ import { SITE_URL } from "@/lib/public-site";
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: "Unite Group | Video business cards that open on your logo",
+  title: "Unite Group | Every business. One system.",
   description:
-    "Unite Group makes video business cards: one link or QR code that plays a short film, then shows your details. Online business serving Australia and New Zealand.",
+    "Unite-Group Nexus is the CRM and operating system we are building to run the businesses behind it, from Disaster Recovery and NRPG to CARSI, RestoreAssist and Trade Hall. Online business serving Australia and New Zealand.",
   alternates: { canonical: SITE_URL },
   robots: { index: true, follow: true },
 };

@@ -18,7 +18,7 @@ import { buildHomeLeadBody } from '@/components/public/contact-form'
 import { PILLARS, pillarPath } from '@/lib/public-site'
 import { isPublicPath } from '@/proxy'
 
-import RootPage from '../page'
+import RootPage, { metadata } from '../page'
 
 const signedOut = async () => {
   vi.mocked(getUser).mockResolvedValue(null as Awaited<ReturnType<typeof getUser>>)
@@ -84,55 +84,75 @@ describe('/ positions (AC-3)', () => {
   it('has the eight positions in the fixed order', async () => {
     const html = await signedOut()
     const ids = [...html.matchAll(/<(?:section|footer)[^>]*data-position[^>]*id="([a-z]+)"/g)].map((m) => m[1])
-    expect(ids).toEqual(['hero', 'pillars', 'cards', 'how', 'proof', 'answers', 'contact', 'footer'])
+    // Phill 25/10/2026: the living-cards gallery comes before the four jobs
+    expect(ids).toEqual(['hero', 'cards', 'pillars', 'how', 'proof', 'answers', 'contact', 'footer'])
   })
 })
 
-describe('/ hero', () => {
-  it('names Unite Group in the H1, paints the words before the figure, and leaves the media slot', async () => {
+// Phill 25/10/2026 (lead ruling after the #1225 preview): Unite-Group is the umbrella over every business and
+// the CRM, never framed as one product. The H1 is the umbrella line; the card is ONE offer, lower down. This
+// supersedes the earlier must-fix "card offer above the fold".
+describe('/ hero and metadata', () => {
+  it('says the umbrella line in the H1, and carries Unite Group and the honest Nexus line in the metadata', async () => {
     const html = await signedOut()
-    expect(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1]).toContain('Unite Group')
-    expect(html.indexOf('<h1')).toBeLessThan(html.indexOf('<svg'))
-    expect(html).toContain('data-hero-media')
-    expect(html.indexOf('data-hero-media')).toBeLessThan(html.indexOf('<svg'))
-    expect(html).toContain('FIG. 1')
-    for (const view of ['Assembled', 'Exploded', 'Inside']) expect(html).toContain(`>${view}</label>`)
-    expect(html).toContain('Pause the animation')
+    expect(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1].replace(/<[^>]*>/g, '')).toBe('Every business. One system.')
+    expect(String(metadata.title)).toBe('Unite Group | Every business. One system.')
+    const description = String(metadata.description)
+    expect(description).toMatch(/Unite-Group Nexus is the CRM and operating system we are building to run the businesses behind it/)
+    expect(description).toContain('Australia and New Zealand')
+    expect(`${metadata.title} ${description}`).not.toMatch(/makes video business cards|video business card/i)
+    expect(`${metadata.title} ${description}`).not.toMatch(/synthex/i)
   })
 
-  it('serves no video on first paint and adds no unapproved image or video outside public/landing/media', async () => {
+  it('paints the words and the poster first, and mounts no video on the server', async () => {
     const html = await signedOut()
+    expect(html).toContain('data-hero-media')
+    expect(html.indexOf('<h1')).toBeGreaterThan(-1)
     expect(html).not.toMatch(/<video|\.mp4/)
+    expect(html).not.toMatch(/FIG\. 1|hero-figure|Pause the animation/)
     const dir = join(__dirname, '..', '..', 'components', 'public')
     expect(readdirSync(dir).filter((f) => /\.(png|jpe?g|webp|gif|mp4|webm|avif)$/i.test(f))).toEqual([])
     const media = readdirSync(join(__dirname, '..', '..', '..', 'public', 'landing', 'media'))
     expect(media.filter((f) => /\.png$/i.test(f))).toEqual([])
     expect(media.sort()).toEqual([
-      'unite-group-hero-exploded-16x9-air.webp',
-      'unite-group-hero-exploded-9x16.webp',
-      'unite-group-hero-loop-16x9.mp4',
-      'unite-group-hero-loop-16x9.webm',
-      'unite-group-hero-loop-poster-16x9.jpg',
+      'unite-group-hero-u-assemble-16x9-web.mp4',
+      'unite-group-hero-u-assemble-16x9.webm',
+      'unite-group-hero-u-poster-16x9-1280.webp',
+      'unite-group-hero-u-poster-16x9-768.webp',
+      'unite-group-hero-u-poster-16x9.jpg',
     ])
   })
 
-  it('shows both prices beside the button, from CARD_TIERS', async () => {
+  it('keeps the card offer out of the hero and lower down: the group section, then the gallery, then the jobs', async () => {
     const html = await signedOut()
-    const hero = html.slice(html.indexOf('id="hero"'), html.indexOf('id="pillars"'))
-    expect(hero).toContain('See the living card')
-    expect(hero).toContain('$249')
-    expect(hero).toContain('$449')
-    expect(hero).toContain('GST included')
+    const hero = html.slice(html.indexOf('id="hero"'), html.indexOf('id="highlights"'))
+    expect(hero).not.toMatch(/living card|\$249|\$449|GST/)
     expect(hero).toContain('href="#contact"')
+    expect(html.indexOf('id="hero"')).toBeLessThan(html.indexOf('id="group"'))
+    expect(html.indexOf('id="group"')).toBeLessThan(html.indexOf('id="cards"'))
+    expect(html.indexOf('id="cards"')).toBeLessThan(html.indexOf('id="pillars"'))
+    const cards = html.slice(html.indexOf('id="cards"'), html.indexOf('id="pillars"'))
+    expect(cards).toContain('See the living card')
+    expect(cards).toContain('$249')
+    expect(cards).toContain('$449')
+    expect(cards).toContain('GST included')
+  })
+
+  it('puts the U mark left of the wordmark in the nav', async () => {
+    const html = await signedOut()
+    const header = html.slice(html.indexOf('<header'), html.indexOf('</header>'))
+    const logo = header.match(/<a [^>]*href="\/"[^>]*>[\s\S]*?<\/a>/)?.[0] ?? ''
+    expect(logo).toMatch(/<img[^>]*src="\/landing\/logos\/unite-group-nexus-mark\.webp"[^>]*width="\d+"[^>]*height="\d+"/)
+    expect(logo.indexOf('<img')).toBeLessThan(logo.indexOf('Unite Group'))
   })
 })
 
 describe('/ pillars and honesty', () => {
-  it('marks every pillar Coming except the card, which is on sale', async () => {
+  it('marks every pillar Coming, and says on Conversion alone that the card is on sale', async () => {
     const html = await signedOut()
-    const row = html.slice(html.indexOf('id="pillars"'), html.indexOf('id="cards"'))
-    expect(row.match(/>Coming</g)).toHaveLength(3)
-    expect(row.match(/on sale now/g)).toHaveLength(1)
+    const row = html.slice(html.indexOf('id="pillars"'), html.indexOf('id="how"'))
+    expect(row.match(/>Coming</g)).toHaveLength(4)
+    expect(row.match(/Card from \$249/g)).toHaveLength(1)
     expect(row).not.toMatch(/Ask us/)
     for (const p of PILLARS) expect(row).toContain(`href="${pillarPath(p.slug)}"`)
   })
@@ -143,6 +163,13 @@ describe('/ pillars and honesty', () => {
     expect(proof).not.toMatch(/<table|<li/)
     expect(strip(proof)).not.toMatch(/\d|testimonial/i)
     expect(proof).toContain('href="/cards"')
+  })
+
+  // Codex 25/10: the hero film is not one of the card editions the showroom plays, so "every film we have made" was false
+  it('scopes the results banner to the card films the showroom really plays, never to every film', async () => {
+    const proof = strip(section(await signedOut(), 'proof', 'answers'))
+    expect(proof).not.toMatch(/every film|all (of )?our films|all films/i)
+    expect(proof).toMatch(/card films/i)
   })
 
   it('has four to six real questions and says plainly what is unknown', async () => {
@@ -191,19 +218,21 @@ describe('/ contact and footer', () => {
     expect(html).not.toMatch(/href="\/auth\/(?!login")/)
   })
 
-  it('shows the legal name, Privacy, Terms, and ABN pending until COMPANY_ABN is set', async () => {
+  it('shows the legal name, Privacy, Terms and the ABR-verified ABN (25/10/2026) unless COMPANY_ABN overrides it', async () => {
     vi.stubEnv('COMPANY_ABN', '')
-    const pending = await signedOut()
-    const footer = pending.slice(pending.indexOf('<footer'))
+    const dflt = await signedOut()
+    const footer = dflt.slice(dflt.indexOf('<footer'))
     expect(footer).toContain('Unite-Group Nexus Pty Ltd')
-    expect(footer).toContain('ABN pending')
+    // was 'ABN pending': an unset or blank COMPANY_ABN now falls back to the number verified on the ABR
+    expect(footer).toContain('ABN 95 691 477 844')
+    expect(footer).not.toContain('ABN pending')
     expect(footer).toContain('href="/privacy-policy"')
     expect(footer).toContain('href="/terms-of-service"')
 
     vi.stubEnv('COMPANY_ABN', '51 824 753 556')
     const set = await signedOut()
     expect(set).toContain('ABN 51 824 753 556')
-    expect(set).not.toContain('ABN pending')
+    expect(set).not.toContain('ABN 95 691 477 844')
   })
 })
 
@@ -211,7 +240,8 @@ describe('/ copy rules (AC-13 part)', () => {
   it('never names the internal agency and avoids banned phrases, US spellings and emoji', async () => {
     const html = await signedOut()
     const text = strip(html)
-    expect(html.replace(/<ul[^>]*data-businesses[\s\S]*?<\/ul>/, '')).not.toMatch(/synthex/i)
+    // the name may appear only in the businesses list (tiles), which is a <ul data-businesses> and nowhere else
+    expect(html.replace(/<ul[^>]*data-businesses(?!-)[\s\S]*?<\/ul>/, '')).not.toMatch(/synthex/i)
     expect(text).not.toMatch(/AI platform|#1|revolutioni[sz]/i)
     expect(text).not.toMatch(/\bHome\b/)
     expect(text).not.toMatch(/\b(color|colors|center|organization)\b/i)

@@ -2,7 +2,7 @@ import { PILLARS, pillarPath } from '@/lib/public-site'
 
 import s from './public.module.css'
 
-// Position 0. Logo goes to /. The first item is a keyboard-operable dropdown (details and summary: Enter or
+// Position 0. The U mark and wordmark go to /. The first item is a keyboard-operable dropdown (details and summary: Enter or
 // Space opens it, Tab reaches each link, no script). No "Home" item, one Contact, no two links share an href.
 // Results, About and Resources are in-page anchors on the home page, so they exist wherever the nav shows.
 export function SiteNav() {
@@ -10,6 +10,7 @@ export function SiteNav() {
     <header className={s.header}>
       <div className={`${s.wrap} ${s.navRow}`}>
         <a href="/" className={s.logo}>
+          <img src="/landing/logos/unite-group-nexus-mark.webp" alt="" width={36} height={36} />
           Unite Group
         </a>
         <nav aria-label="Main">

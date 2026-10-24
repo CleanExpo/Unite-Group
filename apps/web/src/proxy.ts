@@ -65,6 +65,8 @@ const PUBLIC_PATHS = [
   '/widget',       // Embeddable chat widget script must load on third-party sites (UNI-2359)
   '/cards/media',  // Living-card showroom clips: static files in public/cards/media (.mp4 is not in the matcher's asset list)
   '/landing/media',  // Home hero preview renders (webp, jpg, webm, mp4): static files in public/landing/media; .mp4 and .webm are not in the matcher's asset list
+  '/_vercel/insights',        // Vercel Web Analytics script and beacon; segment-aware, so '/_vercel/other' and '/_vercelx' stay closed
+  '/_vercel/speed-insights', // Vercel Speed Insights script and beacon
 ] as const;
 
 // Single public files and pages, matched EXACTLY. They have no sub-routes, so the
@@ -80,6 +82,7 @@ const EXACT_PUBLIC_FILES: ReadonlySet<string> = new Set([
   '/grow', // Public SMB services offer page; its form posts to the public /api/leads
   '/cards', // Public living-card showroom (ten editions + signature reveal)
   '/cards/order', // Public card enquiry page; no payment, its form posts to the public /api/leads
+  '/cards/terms', // Public card order terms; static text, no data. Exact path only
   // The four pillar pages (UNI-3001). Exact paths only: a prefix rule would also open '/solutions/anything'.
   '/solutions/visibility',
   '/solutions/experience',

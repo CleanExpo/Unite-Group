@@ -1,25 +1,36 @@
 /*
- * Public light token set for the Unite Group home and pillar pages (spec 2026-10-23, s10 and s11).
- * Accent is copper #c2410c, taken from the cracked-U glow: 5.18:1 on white.
+ * Public token set for the Unite Group home and pillar pages.
+ * The whole public site is dark (Phill, 25/10/2026): molten orange shards on navy-black, the look of the hero film.
+ * --pub-highlight is the copper sampled from the Unite-Group Nexus logo file (median of its saturated warm
+ * pixels, 25/10/2026), #ec7b41. On this dark page it is also the accent: links, chips and the one bright button
+ * per section all use it.
  * Every text and button pair below is checked at 4.5:1 or better by
  * src/components/public/__tests__/tokens-contrast.test.ts. Add a token, add its pair there.
  * Lines and rings (--pub-line*) are decoration, never text.
  */
 :root {
-  --pub-bg: #ffffff;
-  --pub-bg-alt: #f7f5f2;
-  --pub-ink: #1c1917;
-  --pub-ink-soft: #44403c;
-  --pub-muted: #57534e;
-  --pub-line: #d6d3d1;
-  --pub-line-strong: #a8a29e;
-  --pub-accent: #c2410c;
-  --pub-accent-strong: #9a3412;
-  --pub-accent-ink: #ffffff;
-  --pub-accent-soft: #fff1e8;
-  --pub-danger: #b91c1c;
-  --pub-radius: 6px;
+  --pub-bg: #0d1020;
+  --pub-canvas: #080914;
+  --pub-bg-alt: #0b0d1c;
+  --pub-ink: #f4f1ec;
+  --pub-ink-soft: #c9ccd6;
+  --pub-muted: #a3a8b8;
+  --pub-line: #232842;
+  --pub-line-strong: #5a6180;
+  --pub-highlight: #ec7b41;
+  --pub-accent: #ec7b41;
+  --pub-accent-strong: #ff9a63;
+  --pub-accent-ink: #080914;
+  --pub-accent-soft: #2a1710;
+  --pub-focus: #6fd0e0;
+  --pub-danger: #ff8a8a;
+  --pub-night: #080914;
+  --pub-night-ink: #f4f1ec;
+  --pub-night-soft: #c9ccd6;
+  --pub-radius: 8px;
   --pub-max: 72rem;
   --pub-font: var(--font-geist-sans), system-ui, -apple-system, 'Segoe UI', sans-serif;
   --pub-mono: var(--font-geist-mono), ui-monospace, 'SF Mono', Menlo, monospace;
+  /* Condensed display type for the headlines: faces already on the device, no web font to buy or load. */
+  --pub-display: 'Avenir Next Condensed', 'Arial Narrow', 'Roboto Condensed', 'Helvetica Neue', var(--font-geist-sans), system-ui, sans-serif;
 }
