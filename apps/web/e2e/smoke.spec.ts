@@ -43,7 +43,7 @@ test.describe('Smoke — No Auth Required', () => {
     await page.goto('/');
 
     await expect(page).not.toHaveURL(/\/auth\/login/);
-    await expect(page.locator('h1')).toContainText('Unite Group');
+    await expect(page.locator('h1')).toContainText('Every business');
   });
 
   /**

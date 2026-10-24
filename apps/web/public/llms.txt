@@ -1,6 +1,6 @@
 # Unite Group
 
-> Unite Group (Unite-Group Nexus Pty Ltd) is an online business serving Australia and New Zealand. It makes video business cards: one link or QR code that plays a short film ending on your logo, then shows your details and saves to contacts in one tap.
+> Unite Group (Unite-Group Nexus Pty Ltd) is an online business serving Australia and New Zealand. Unite-Group Nexus is the CRM and operating system we are building to run the businesses behind it. Its first offer on sale is the video business card: one link or QR code that plays a short film ending on your logo, then shows your details and saves to contacts in one tap.
 
 ## What is on sale
 
