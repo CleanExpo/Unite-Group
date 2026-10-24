@@ -47,3 +47,9 @@ Correct flow:
   `Grounded <date>: <fact> — <source>` line and a `Waterline:` stage line. Full
   rule: `.claude/rules/ground-truth-standard.md`.
 - Do not read or print secrets. Locale: en-AU | DD/MM/YYYY | AUD | AEST/AEDT.
+
+## Review rounds and Claude allowance (founder rule, 24/10/2026)
+
+- Max 2 Codex review rounds on any plan or config. If it still fails after round 2, park the findings in the status file (PAIR-STATUS.md), tell Phill in one line, and keep building.
+- Codex reviews the BUILT thing, not repeated plan versions.
+- Claude allowance is limited. Use Codex, Sonnet subagents and scripts for grunt work; keep Opus for lead decisions.

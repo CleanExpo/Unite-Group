@@ -8,6 +8,7 @@ import CardsShowroomPage from '../page'
 import CardOrderPage from '../order/page'
 import { OrderView } from '../order/order-view'
 import { buildCardEnquiryBody } from '../order/enquiry-form'
+import { ENQUIRY_FORM_ID } from '../order/order-buy'
 import { AI_LABEL, EDITIONS, cleanRef, resolveEdition } from '../editions'
 
 const NAMES = ['signature', 'blueprint', 'forge', 'constellation', 'ink', 'rewind', 'skyline', 'origami', 'portal', 'restoration', 'magnet']
@@ -125,7 +126,7 @@ describe('/cards/order', () => {
       expect(src, `${e.name} needs a 9:16 picker poster`).toBeDefined()
       expect(existsSync(join(publicDir, src!)), src).toBe(true)
       const img = new RegExp(`<img[^>]*src="${src}"[^>]*>`).exec(html)?.[0] ?? ''
-      expect(img, e.name).toContain('object-cover')
+      expect(img, e.name + ' tile shows its 9:16 poster').not.toBe('')
     }
   })
 
@@ -180,6 +181,16 @@ describe('buildCardEnquiryBody', () => {
       business_key: 'unite-cards',
       marketing_consent: false,
     })
+  })
+
+  it('carries the edition chosen in the film strip into the enquiry, though the radios sit outside the form', () => {
+    document.body.innerHTML = order('forge')
+    const enquiry = document.getElementById(ENQUIRY_FORM_ID)
+    expect(enquiry).toBeInstanceOf(HTMLFormElement)
+    const data = new FormData(enquiry as HTMLFormElement)
+    expect(data.get('edition')).toBe('forge')
+    expect(buildCardEnquiryBody(data, null).interests).toBe('living-card:forge')
+    document.body.innerHTML = ''
   })
 
   it('works with no edition and no referrer', () => {

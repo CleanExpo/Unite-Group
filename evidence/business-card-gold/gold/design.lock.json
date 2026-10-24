@@ -1,0 +1,18 @@
+{
+  "reference": {
+    "slug": "wave-metal",
+    "url": "https://wavecards.com.au/product/metal-smart-business-card/",
+    "captured_at": "2026-10-24T01:50:06.310Z",
+    "sha256": {
+      "desktop": "d24afad5c6e4ccb64dcc7f2b82e59f8bb5080d53a357601de5ee649b34afa90a",
+      "mobile": "73e6dcd6f5ae4ce953528de93b87f695068eebe57bb7592aff2175072e507ad0"
+    }
+  },
+  "picked_by": "Phill",
+  "picked_at": "2026-10-24",
+  "pick_message": "A",
+  "recipe": "gold/recipe.md",
+  "render": null,
+  "approved": null,
+  "history": []
+}

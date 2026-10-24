@@ -1,0 +1,97 @@
+/* The /cards/order enquiry form, dark house style. States here are covered by e2e/visual. */
+
+.form {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .wide {
+    grid-column: 1 / -1;
+  }
+}
+
+.label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 13px;
+  font-weight: 500;
+  color: #a6a29b;
+}
+
+.field {
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: #0f1217;
+  color: #f3f1ec;
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+}
+
+.field::placeholder {
+  color: #6f6c67;
+}
+
+.field:focus-visible {
+  border-color: #e55a2b;
+  box-shadow: 0 0 0 3px rgba(229, 90, 43, 0.25);
+}
+
+.consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #a6a29b;
+}
+
+.check {
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.2rem;
+  accent-color: #e55a2b;
+}
+
+.check:focus-visible {
+  outline: 2px solid #ffd2bf;
+  outline-offset: 2px;
+}
+
+.alert {
+  margin: 0.75rem 0 0;
+  font-size: 14px;
+  color: #ff9b85;
+}
+
+.sent {
+  padding: 1.5rem;
+  border: 1px solid rgba(229, 90, 43, 0.4);
+  border-radius: 12px;
+  background: rgba(229, 90, 43, 0.08);
+}
+
+.sentTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #ff8a5c;
+}
+
+.sentBody {
+  margin: 0.5rem 0 0;
+  font-size: 15px;
+  color: #f3f1ec;
+}
