@@ -21,7 +21,7 @@ export function CardsStrip() {
         </h2>
         <div className={s.cardsRow}>
           <figure className={s.frame}>
-            <FilmPlayer film={CARD_FILM} />
+            <FilmPlayer film={CARD_FILM} controls="bottom" />
             <figcaption className={s.badge}>AI-generated</figcaption>
           </figure>
           <div>

@@ -75,6 +75,8 @@ describe('hero server markup: the words and the poster come before any video', (
     expect(img).toContain(`width="${HERO_FILM.width}"`)
     expect(img).toContain(`height="${HERO_FILM.height}"`)
     expect(img).toMatch(/fetchPriority="high"|fetchpriority="high"/)
+    expect(img).toMatch(/srcSet="[^"]*-768\.webp 768w/i)
+    expect(img).toMatch(/sizes="\(max-width: 640px\) 450px, 100vw"/)
     expect(html).not.toMatch(/<video|\.mp4|\.webm/)
     expect(html).toContain('data-film-state="poster"')
   })
@@ -91,6 +93,8 @@ describe('the film: plays once when visible, holds on the poster frame, can be r
   it('mounts a muted, inline, non-looping video with Replay and Pause controls when motion is allowed', () => {
     setup(false)
     const { container } = render(<FilmPlayer film={HERO_FILM} priority />)
+    expect(container.querySelector('video')).toBeNull() // not before it is in view
+    see()
     const video = container.querySelector('video')!
     expect(video).not.toBeNull()
     expect(video.hasAttribute('loop')).toBe(false)
@@ -113,6 +117,7 @@ describe('the film: plays once when visible, holds on the poster frame, can be r
     see()
     expect(play).toHaveBeenCalledTimes(1)
     const root = container.querySelector('[data-film]')!
+    expect(container.querySelectorAll('video')).toHaveLength(1)
     fireEvent.ended(container.querySelector('video')!)
     expect(root.getAttribute('data-film-state')).toBe('held')
   })
@@ -120,8 +125,8 @@ describe('the film: plays once when visible, holds on the poster frame, can be r
   it('Replay restarts from the first frame and Pause toggles to Play', () => {
     setup(false)
     const { container, getByText } = render(<FilmPlayer film={HERO_FILM} />)
-    const video = container.querySelector('video')!
     see()
+    const video = container.querySelector('video')!
     fireEvent.ended(video)
     video.currentTime = 3
     fireEvent.click(getByText('Replay'))
@@ -135,6 +140,7 @@ describe('the film: plays once when visible, holds on the poster frame, can be r
   it('shows the poster only under prefers-reduced-motion: no video, no controls', () => {
     setup(true)
     const { container } = render(<FilmPlayer film={HERO_FILM} />)
+    expect(io).toBeNull() // no observer is even set up
     expect(container.querySelector('video')).toBeNull()
     expect(container.querySelector('button')).toBeNull()
     expect(container.querySelector('img')?.getAttribute('src')).toBe(HERO_FILM.poster)
@@ -145,6 +151,7 @@ describe('the film: plays once when visible, holds on the poster frame, can be r
   it('leaves the poster in place when the film fails to load', () => {
     setup(false)
     const { container } = render(<FilmPlayer film={HERO_FILM} />)
+    see()
     fireEvent.error(container.querySelector('video source:last-child')!)
     expect(container.querySelector('video')).toBeNull()
     expect(container.querySelector('img')?.getAttribute('src')).toBe(HERO_FILM.poster)
@@ -154,12 +161,15 @@ describe('the film: plays once when visible, holds on the poster frame, can be r
 describe('the film files', () => {
   const media = join(PUBLIC, 'landing', 'media')
 
-  it('are exactly the three hero film files, with no PNG master', () => {
+  it('are exactly the film, its poster and two smaller copies of that poster, with no PNG master', () => {
     expect(readdirSync(media).sort()).toEqual([
       'unite-group-hero-u-assemble-16x9-web.mp4',
       'unite-group-hero-u-assemble-16x9.webm',
+      'unite-group-hero-u-poster-16x9-1280.webp',
+      'unite-group-hero-u-poster-16x9-768.webp',
       'unite-group-hero-u-poster-16x9.jpg',
     ])
+    for (const p of HERO_FILM.posterSet ?? []) expect(existsSync(join(PUBLIC, p.src)), p.src).toBe(true)
     for (const f of [HERO_FILM.mp4, HERO_FILM.webm, HERO_FILM.poster]) expect(existsSync(join(PUBLIC, f)), f).toBe(true)
     expect(existsSync(join(PUBLIC, CARD_FILM.mp4)) && existsSync(join(PUBLIC, CARD_FILM.poster))).toBe(true)
   })

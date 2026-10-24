@@ -14,20 +14,27 @@ type State = 'poster' | 'playing' | 'paused' | 'held'
  * its last frame (the poster is that frame). Replay and Pause are real buttons. It never loops, never has sound,
  * and a film that fails to load leaves the poster in place.
  */
-export function FilmPlayer({ film, priority = false, className = '', fade = false }: { film: Film; priority?: boolean; className?: string; fade?: boolean }) {
+export function FilmPlayer({ film, priority = false, className = '', fade = false, controls = 'top' }: { film: Film; priority?: boolean; className?: string; fade?: boolean; controls?: 'top' | 'bottom' }) {
   const [motion, setMotion] = useState(false)
+  const [seen, setSeen] = useState(false)
   const [failed, setFailed] = useState(false)
   const [state, setState] = useState<State>('poster')
   const root = useRef<HTMLDivElement>(null)
   const video = useRef<HTMLVideoElement>(null)
   const started = useRef(false)
 
+  // Motion is decided once the page has finished loading, so the film never competes with the poster for the network.
   useEffect(() => {
     const query = window.matchMedia('(prefers-reduced-motion: reduce)')
     const apply = () => setMotion(!query.matches)
-    apply()
+    const onLoad = () => apply()
+    if (document.readyState === 'complete') apply()
+    else window.addEventListener('load', onLoad, { once: true })
     query.addEventListener('change', apply)
-    return () => query.removeEventListener('change', apply)
+    return () => {
+      window.removeEventListener('load', onLoad)
+      query.removeEventListener('change', apply)
+    }
   }, [])
 
   function run(v: HTMLVideoElement) {
@@ -35,24 +42,30 @@ export function FilmPlayer({ film, priority = false, className = '', fade = fals
     void v.play().catch(() => setState('poster'))
   }
 
+  // Mount the film only once it is half in view; then play it once.
   useEffect(() => {
     const el = root.current
-    const v = video.current
-    if (!motion || failed || !el || !v || typeof IntersectionObserver === 'undefined') return
+    if (!motion || failed || seen || !el || typeof IntersectionObserver === 'undefined') return
     const io = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && !started.current) {
-          started.current = true
-          run(v)
-        }
+        if (entry.isIntersecting) setSeen(true)
       },
       { threshold: 0.4 },
     )
     io.observe(el)
     return () => io.disconnect()
-  }, [motion, failed])
+  }, [motion, failed, seen])
 
-  const live = motion && !failed
+  const live = motion && seen && !failed
+
+  useEffect(() => {
+    const v = video.current
+    if (live && v && !started.current) {
+      started.current = true
+      run(v)
+    }
+  }, [live])
+
   const sources = [film.webm && { src: film.webm, type: 'video/webm' }, { src: film.mp4, type: 'video/mp4' }].filter(Boolean) as { src: string; type: string }[]
 
   function replay() {
@@ -76,6 +89,7 @@ export function FilmPlayer({ film, priority = false, className = '', fade = fals
       ref={root}
       data-film
       data-film-state={live ? state : 'poster'}
+      data-controls={controls}
       className={`${f.film} ${className}`}
       style={{ '--film-ratio': `${film.width} / ${film.height}` } as CSSProperties}
     >
@@ -83,6 +97,8 @@ export function FilmPlayer({ film, priority = false, className = '', fade = fals
         <img
           className={f.layer}
           src={film.poster}
+          srcSet={film.posterSet?.map((p) => `${p.src} ${p.w}w`).join(', ')}
+          sizes={film.posterSet ? film.sizes : undefined}
           alt={film.alt}
           width={film.width}
           height={film.height}

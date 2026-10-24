@@ -22,3 +22,6 @@
 .controls button:hover:not(:disabled) { border-color: var(--pub-highlight); }
 .controls button:disabled { cursor: default; opacity: 0.6; }
 .controls button:focus-visible { outline: 3px solid var(--pub-highlight); outline-offset: 2px; }
+
+/* In a small tile the controls sit along the bottom, clear of the label at the top. */
+.film[data-controls='bottom'] .controls { top: auto; bottom: 8px; right: 8px; }

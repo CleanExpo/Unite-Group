@@ -116,6 +116,8 @@ describe('/ hero and metadata', () => {
     expect(media.sort()).toEqual([
       'unite-group-hero-u-assemble-16x9-web.mp4',
       'unite-group-hero-u-assemble-16x9.webm',
+      'unite-group-hero-u-poster-16x9-1280.webp',
+      'unite-group-hero-u-poster-16x9-768.webp',
       'unite-group-hero-u-poster-16x9.jpg',
     ])
   })
