@@ -24,6 +24,7 @@ import {
   type AgentEventsClientLike,
 } from '@/lib/command-centre/agent-events'
 import { appendTaskEvent, getTaskById, type SupabaseLike } from '@/lib/command-centre/tasks'
+import { isMissingTableError } from '@/lib/command-centre/agent-events-wall'
 import { recordSynthexPostEvent, type SynthexPostsClient } from '@/lib/command-centre/synthex-posts'
 import {
   synthexEventDetail,
@@ -138,12 +139,21 @@ export async function POST(request: Request) {
     }
   }
 
-  // Calendar post store. Same rule: the witness row is durable, so a failed
-  // post write is reported in the body, never retried into a duplicate.
+  // Calendar post store. The wall row is redacted and cannot rebuild the post
+  // (text, approve URL), so a real write failure is a 500 the sender can retry;
+  // a retry only repeats append-only rows and the calendar folds them to one
+  // post. A missing table is the documented founder-gated state (migration not
+  // applied): that stays a 201 with post: record_failed, as before.
   let post: 'recorded' | 'record_failed' | undefined
   try {
     if ((await recordSynthexPostEvent(client as unknown as SynthexPostsClient, founderId, event)) === 'recorded') post = 'recorded'
-  } catch {
+  } catch (err) {
+    if (!isMissingTableError(err instanceof Error ? err.message : '')) {
+      return NextResponse.json(
+        { error: 'post_store_failed', id, message: sanitiseError(err, 'Failed to record Synthex post event') },
+        { status: 500 },
+      )
+    }
     post = 'record_failed'
   }
 

@@ -37,6 +37,8 @@ describe('synthex post events — write side', () => {
     expect(statusForEvent('content.approved', null)).toBe('approved')
     expect(statusForEvent('content.published', null)).toBe('published')
     expect(statusForEvent('content.published', 'failed')).toBe('failed')
+    expect(statusForEvent('__proto__', null)).toBeNull()
+    expect(statusForEvent('constructor', null)).toBeNull()
     expect(statusForEvent('campaign.planned', null)).toBeNull()
   })
 

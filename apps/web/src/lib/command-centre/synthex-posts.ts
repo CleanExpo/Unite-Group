@@ -30,7 +30,7 @@ const STATUS_BY_EVENT: Record<string, SynthexPostStatus> = {
 
 /** The sender's explicit status wins; otherwise the event type implies one. */
 export function statusForEvent(eventType: string, status: SynthexPostStatus | null): SynthexPostStatus | null {
-  return status ?? STATUS_BY_EVENT[eventType] ?? null
+  return status ?? (Object.hasOwn(STATUS_BY_EVENT, eventType) ? STATUS_BY_EVENT[eventType] : null)
 }
 
 export interface SynthexPostEventRow {

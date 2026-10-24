@@ -190,6 +190,13 @@ describe('/api/webhooks/synthex', () => {
     expect(await res.json()).toEqual({ ok: true, id: 'row-1', post: 'record_failed' })
   })
 
+  it('500s (retryable) when the post store write fails for a real reason, not a missing table', async () => {
+    vi.mocked(recordSynthexPostEvent).mockRejectedValue(new Error('connection terminated'))
+    const res = await POST(req({ ...event, postId: 'cm9post' }))
+    expect(res.status).toBe(500)
+    expect((await res.json()).error).toBe('post_store_failed')
+  })
+
   it('does not touch the post store when the wall insert fails', async () => {
     vi.mocked(insertAgentEvents).mockRejectedValue(new Error('boom'))
     expect((await POST(req({ ...event, postId: 'cm9post' }))).status).toBe(500)
