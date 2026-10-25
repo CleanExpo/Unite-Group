@@ -1,4 +1,6 @@
+import { MargotPhoneLine } from '@/components/public/margot-phone-line'
 import { COMPANY_NAME, companyAbnLabel } from '@/lib/legal/company'
+import { readMargotPhoneNumber } from '@/lib/margot/phone-line'
 
 import { formatAud, stripePaymentLink } from '../../grow/packages'
 import { EDITIONS } from '../editions'
@@ -177,6 +179,7 @@ export function OrderView({ edition, referrer }: { edition: string | null; refer
           <span>
             {COMPANY_NAME} · {companyAbnLabel()}
           </span>
+          <MargotPhoneLine number={readMargotPhoneNumber()} />
           <span className={s.footerLinks}>
             <a href="/privacy-policy" className={s.navLink}>
               Privacy
