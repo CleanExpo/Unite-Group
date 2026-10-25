@@ -371,24 +371,6 @@ const REGISTRY = [
 
   // ── Section 3j: Integration — Email ───────────────────────────────────────
   {
-    name: 'MAILTRAP_API_KEY',
-    tier: 'integration',
-    packages: ['web'],
-    hint: 'Mailtrap Email Sending API key for alert email (same account CARSI uses). Founder sets it in the hosting dashboard; preferred over SendGrid when present',
-  },
-  {
-    name: 'EMAIL_FROM',
-    tier: 'integration',
-    packages: ['web'],
-    hint: 'Sender address on a Mailtrap-verified domain (CARSI reads the same name); defaults to alerts@unite-group.in',
-  },
-  {
-    name: 'MAILTRAP_TRACKING_DISABLED',
-    tier: 'integration',
-    packages: ['web'],
-    hint: 'Set to true once open and click tracking are off for the Mailtrap sending domain; enquiry alerts use Mailtrap only then',
-  },
-  {
     name: 'SENDGRID_API_KEY',
     tier: 'integration',
     packages: ['web'],

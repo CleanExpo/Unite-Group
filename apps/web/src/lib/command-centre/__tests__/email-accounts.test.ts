@@ -36,13 +36,6 @@ describe('deriveEmailAccounts', () => {
     expect(p.providers.find((x) => x.id === 'imap')!.state).toBe('connected')
   })
 
-  it('treats Mailtrap as connected only when its env key is present', () => {
-    const off = deriveEmailAccounts({ now: NOW, vaultRows: [], envPresent: { MAILTRAP_API_KEY: false } })
-    expect(off.providers.find((x) => x.id === 'mailtrap')!.state).toBe('not_connected')
-    const on = deriveEmailAccounts({ now: NOW, vaultRows: [], envPresent: { MAILTRAP_API_KEY: true } })
-    expect(on.providers.find((x) => x.id === 'mailtrap')!.state).toBe('connected')
-  })
-
   it('treats SendGrid as connected only when its env key is present', () => {
     const off = deriveEmailAccounts({ now: NOW, vaultRows: [], envPresent: { SENDGRID_API_KEY: false } })
     expect(off.providers.find((x) => x.id === 'sendgrid')!.state).toBe('not_connected')
@@ -59,7 +52,7 @@ describe('deriveEmailAccounts', () => {
       envPresent: { SENDGRID_API_KEY: true },
     })
     expect(p.summary.connected).toBe(2) // google + sendgrid
-    expect(p.summary.notConnected).toBe(3) // microsoft + imap + mailtrap
-    expect(p.summary.total).toBe(5)
+    expect(p.summary.notConnected).toBe(2) // microsoft + imap
+    expect(p.summary.total).toBe(4)
   })
 })

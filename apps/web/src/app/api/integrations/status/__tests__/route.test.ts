@@ -106,22 +106,6 @@ describe('GET /api/integrations/status', () => {
     expect(body.summary.connected).toBeGreaterThanOrEqual(3) // xero + linkedin + linear
   })
 
-  it('Mailtrap (env source): configured only by key presence, never echoing the value', async () => {
-    delete process.env.MAILTRAP_API_KEY
-    const { client } = makeSupabase([], [])
-    vi.mocked(createClient).mockResolvedValue(client)
-    const off = await (await GET()).json()
-    expect(off.providers.find((p: { id: string }) => p.id === 'mailtrap').connected).toBe(false)
-
-    process.env.MAILTRAP_API_KEY = 'mailtrap_test_marker'
-    vi.mocked(createClient).mockResolvedValue(makeSupabase([], []).client)
-    const res = await GET()
-    const text = await res.text()
-    expect(JSON.parse(text).providers.find((p: { id: string }) => p.id === 'mailtrap').connected).toBe(true)
-    expect(text).not.toContain('mailtrap_test_marker')
-    delete process.env.MAILTRAP_API_KEY
-  })
-
   it('HeyGen (env source): connected/configured when HEYGEN_API_KEY present, not otherwise', async () => {
     process.env.HEYGEN_API_KEY = 'heygen_test_key'
 
