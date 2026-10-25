@@ -1,0 +1,39 @@
+.notice {
+  margin: 0 0 1rem;
+  max-width: 40rem;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.notice a,
+.notice.light a,
+.notice.dark a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.notice a:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+.light {
+  color: #57534e;
+}
+
+.notice.light a:hover {
+  color: #1c1917;
+}
+
+.dark {
+  color: #a6a29b;
+}
+
+.notice.dark a:hover {
+  color: #f3f1ec;
+}
+
+.notice.dark a:focus-visible {
+  outline-color: #ffd2bf;
+}

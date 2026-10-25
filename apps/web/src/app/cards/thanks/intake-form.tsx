@@ -2,6 +2,8 @@
 
 import { useState, type ChangeEvent, type FormEvent } from 'react'
 
+import { CollectionNotice } from '@/components/public/collection-notice'
+
 import f from '../order/enquiry-form.module.css'
 import s from '../order/order.module.css'
 
@@ -110,6 +112,8 @@ export function IntakeForm({ reference }: { reference: string }) {
           <textarea id="where_met" name="where_met" rows={2} maxLength={500} className={f.field} />
         </div>
       </div>
+
+      <CollectionNotice form="card-intake" tone="dark" />
 
       <div>
         <button type="submit" disabled={status.kind === 'sending'} className={s.primary}>
