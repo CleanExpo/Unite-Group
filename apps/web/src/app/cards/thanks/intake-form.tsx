@@ -5,17 +5,8 @@ import { useState, type ChangeEvent, type FormEvent } from 'react'
 import f from '../order/enquiry-form.module.css'
 import s from '../order/order.module.css'
 
-const SESSION_ID = /^cs_(test|live)_[A-Za-z0-9]{1,200}$/
 const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml']
 const LOGO_MAX_BYTES = 5 * 1024 * 1024
-
-type Params = Record<string, string | string[] | undefined>
-
-/** The checkout session id from the page URL: ?session_id= (Stripe's redirect placeholder). A ?ref= label is ignored. */
-export function checkoutSessionId(params: Params): string | null {
-  const v = params.session_id
-  return typeof v === 'string' && SESSION_ID.test(v) ? v : null
-}
 
 /** Null when the file is fine (or absent); otherwise the reason to show the buyer. */
 export function checkLogoFile(file: File | null): string | null {
