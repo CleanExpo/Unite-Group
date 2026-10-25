@@ -35,7 +35,8 @@ describe('pillar pages show real pictures', () => {
     expect(hero?.alt).toBe(escapeAttr(visual.alt))
     expect(hero?.loading).not.toBe('lazy')
     // The hero picture is an <img> inside the article, not decoration elsewhere.
-    expect(hero?.index).toBeGreaterThan(html.indexOf('<main'))
+    expect(hero?.index).toBeGreaterThan(html.indexOf('<article'))
+    expect(hero?.index).toBeLessThan(html.indexOf('</article>'))
 
     // The same file must never appear twice. next/image puts the same file in src and srcset, so compare the file inside src only.
     const srcs = images(html).map((i) => i.src.match(/\/(?:landing|cards)\/[^&?\s]+\.(?:webp|jpg)/)?.[0] ?? i.src)
@@ -46,7 +47,8 @@ describe('pillar pages show real pictures', () => {
     const html = renderToStaticMarkup(ConversionPage())
     const poster = images(html).find((i) => i.src.includes('/cards/media/edition-blueprint-poster.jpg'))
     expect(poster, 'no poster <img>').toBeDefined()
-    expect(poster?.alt.length).toBeGreaterThan(10)
+    // Says what the still shows (not the video's linework blurb in editions.ts).
+    expect(poster?.alt).toBe('The Blueprint edition of the living business card: a cracked copper U glowing orange on navy, with the words Unite-Group Nexus beneath')
     const anchors = [...html.matchAll(/<a\b[^>]*href="\/cards"[^>]*>[\s\S]*?<\/a>/g)]
     expect(anchors.some((a) => a[0].includes('edition-blueprint-poster') || a[0].includes(encodeURIComponent('/cards/media/edition-blueprint-poster.jpg')))).toBe(true)
     expect(renderToStaticMarkup(VisibilityPage())).not.toContain('edition-blueprint-poster')

@@ -68,8 +68,9 @@ export function PillarPage({ slug }: { slug: Pillar['slug'] }) {
           {live && (
             <aside className={s.available}>
               <div className={ps.availableRow}>
-                <a href="/cards" className={ps.poster}>
-                  <Image src="/cards/media/edition-blueprint-poster.jpg" width={720} height={1280} alt="The Blueprint edition of the living business card: a U sketched in white linework on navy, glowing orange" loading="lazy" sizes="200px" />
+                {/* Out of the tab order: the button below is the one keyboard stop for /cards. */}
+                <a href="/cards" className={ps.poster} tabIndex={-1}>
+                  <Image src="/cards/media/edition-blueprint-poster.jpg" width={720} height={1280} alt="The Blueprint edition of the living business card: a cracked copper U glowing orange on navy, with the words Unite-Group Nexus beneath" loading="lazy" sizes="200px" />
                 </a>
                 <div>
                   <h2>Available now: the video business card</h2>
