@@ -13,11 +13,13 @@ export interface FallbackContact {
 
 type View = { kind: 'idle' } | { kind: 'sending' } | { kind: 'error'; message: string } | { kind: 'received'; reference: string }
 
+export const RECIPIENT_LINE = 'Unite Group stores your message. The card owner is not notified yet.'
+
 /**
  * One enquiry. The reference number is shown only from a stored-row result; a failed or thrown call keeps what the
  * visitor typed and shows an error, never a receipt.
  */
-export function EnquiryForm({ slug, fallback, owner }: { slug: string; fallback?: FallbackContact; owner?: string }) {
+export function EnquiryForm({ slug, fallback }: { slug: string; fallback?: FallbackContact }) {
   const [view, setView] = useState<View>({ kind: 'idle' })
   const [firstName, setFirstName] = useState('')
   const [ask, setAsk] = useState('')
@@ -73,7 +75,9 @@ export function EnquiryForm({ slug, fallback, owner }: { slug: string; fallback?
           <input name="lc_extra" value={website} onChange={(e) => setWebsite(e.target.value)} tabIndex={-1} autoComplete="off" />
         </label>
       </div>
-      <p className={styles.recipient}>Your message goes to {owner ? `${owner} and Unite Group` : 'Unite Group'}.</p>
+      {/* UNI-3021: the owner inbox is not built yet, so this never claims delivery (matches the receipt below). Fixed copy:
+          the card's display name is free text, so it is never interpolated into this trust sentence. */}
+      <p className={styles.recipient}>{RECIPIENT_LINE}</p>
       <CollectionNotice form="card-enquiry" tone="dark" />
       <label className={styles.consent}>
         <input type="checkbox" name="consent" checked={consent} onChange={(e) => setConsent(e.target.checked)} required />
