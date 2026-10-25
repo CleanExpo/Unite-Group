@@ -41,6 +41,7 @@ const PROVIDERS: ProviderDef[] = [
   { id: 'youtube',   label: 'YouTube',         category: 'social',     source: 'social', socialPlatform: 'youtube',   envKeys: ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'] },
   { id: 'linear',    label: 'Linear',          category: 'project',    source: 'env',    envKeys: ['LINEAR_API_KEY'] },
   { id: 'stripe',    label: 'Stripe',          category: 'payments',   source: 'env',    envKeys: ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET'] },
+  { id: 'mailtrap',    label: 'Mailtrap',          category: 'email',      source: 'env',    envKeys: ['MAILTRAP_API_KEY'] },
   { id: 'sendgrid',  label: 'SendGrid',        category: 'email',      source: 'env',    envKeys: ['SENDGRID_API_KEY'] },
   { id: 'reddit',    label: 'Reddit',          category: 'social',     source: 'env',    envKeys: ['REDDIT_CLIENT_ID', 'REDDIT_CLIENT_SECRET'] },
   { id: 'github',    label: 'GitHub',          category: 'dev',        source: 'env',    envKeys: ['GITHUB_TOKEN'] },

@@ -173,6 +173,20 @@ describe('alert health', () => {
     expect(body.failed_ids).toEqual(['bad-lead'])
   })
 
+  it('names Mailtrap in the delivery note and never claims a SendGrid suppression answer when Mailtrap sends', async () => {
+    vi.stubEnv('MAILTRAP_API_KEY', 'test-placeholder-mailtrap')
+    vi.stubEnv('MAILTRAP_TRACKING_DISABLED', 'true')
+    vi.stubEnv('SENDGRID_API_KEY', 'test-placeholder')
+    vi.stubEnv('LEAD_ALERT_EMAIL_TO', 'destination@example.invalid')
+    const fetchMock = vi.fn(async () => ({ ok: true, status: 200, json: async () => [] }) as Response)
+    vi.stubGlobal('fetch', fetchMock)
+    const body = await (await GET(request())).json()
+    expect(body.delivery_note).toBe('sent means Mailtrap accepted the message (HTTP 2xx); delivery is not confirmed')
+    expect(body.destination).toBe('unknown')
+    expect(fetchMock).not.toHaveBeenCalled()
+    vi.unstubAllGlobals()
+  })
+
   describe('destination suppression (SendGrid answers 202 for a suppressed address)', () => {
     const answers = (listed: boolean) => vi.fn(async (url: string | URL) => {
       const path = String(url)

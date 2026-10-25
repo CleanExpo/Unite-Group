@@ -12,7 +12,7 @@
 import type Stripe from 'stripe'
 
 import { CARD_EXTRA_BUSINESS, CARD_TIERS } from '@/app/cards/order/order-view'
-import { sendEmail } from '@/lib/integrations/sendgrid'
+import { resolveEmailSender, sendEmail } from '@/lib/integrations/email-provider'
 import type { createServiceClient } from '@/lib/supabase/service'
 
 type CardTier = (typeof CARD_TIERS)[number]
@@ -149,9 +149,9 @@ async function sendOrderAlert(
   livemode: boolean,
 ): Promise<void> {
   const to = process.env.LEAD_ALERT_EMAIL_TO?.trim()
-  const from = process.env.SENDGRID_FROM_EMAIL?.trim()
-  if (!to || !from) {
-    console.warn('[cards] order alert skipped: LEAD_ALERT_EMAIL_TO or SENDGRID_FROM_EMAIL not set')
+  const sender = resolveEmailSender()
+  if (!to || !sender) {
+    console.warn('[cards] order alert skipped: LEAD_ALERT_EMAIL_TO or an email provider (MAILTRAP_API_KEY, or SENDGRID_API_KEY with SENDGRID_FROM_EMAIL) not set')
     return
   }
   const who = name ?? 'A buyer'
@@ -163,7 +163,7 @@ async function sendOrderAlert(
   try {
     await sendEmail({
       to: { email: to },
-      from: { email: from },
+      from: { email: sender.from },
       subject: `${livemode ? '' : '[TEST] '}New paid card order: ${label}`,
       text: line,
       html: `<p>${escapeHtml(line)}</p>`,
