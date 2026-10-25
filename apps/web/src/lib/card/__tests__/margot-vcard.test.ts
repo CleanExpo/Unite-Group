@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { readMargotPhoneNumber } from '../margot-phone'
+import { OWNER_CARD_SLUG, readMargotPhoneNumber } from '../margot-phone'
 import type { PublicCard } from '../published'
 import { buildVCard } from '../vcard'
 
-const bare: PublicCard = { slug: 'x', displayName: 'Bo', roleTitle: null, businessName: null, email: null, phone: null, serviceArea: null }
+const bare: PublicCard = { slug: OWNER_CARD_SLUG, displayName: 'Bo', roleTitle: null, businessName: null, email: null, phone: null, serviceArea: null }
 const telLines = (v: string) => v.split('\r\n').filter((l) => l.startsWith('TEL'))
 
 afterEach(() => vi.unstubAllEnvs())
@@ -43,5 +43,18 @@ describe('contact.vcf Margot line', () => {
     const both = telLines(buildVCard({ ...bare, phone: '+61 400 000 001' }, 'https://unite-group.in'))
     expect(both).toHaveLength(2)
     expect(both.filter((l) => l.startsWith('TEL;TYPE=WORK'))).toHaveLength(1)
+  })
+})
+
+describe('contact.vcf Margot line is the founder card only (spec v1.4 lines 1568, 1789)', () => {
+  it('uses the existing seeded owner slug', () => {
+    expect(OWNER_CARD_SLUG).toBe('phill-mcgurk')
+  })
+
+  it.each(['someone-else', 'phill-mcgurk-2', 'x', 'PHILL-MCGURK'])('adds no Margot line to the card %s even with a valid number set', (slug) => {
+    vi.stubEnv('MARGOT_PHONE_NUMBER', '+61400000000')
+    const out = buildVCard({ ...bare, slug, phone: '+61 400 000 001' }, 'https://unite-group.in')
+    expect(telLines(out)).toEqual(['TEL;VALUE=uri;TYPE="cell,voice":tel:+61400000001'])
+    expect(out).not.toContain('+61400000000')
   })
 })

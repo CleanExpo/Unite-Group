@@ -95,3 +95,21 @@ describe('/c/[slug]/contact.vcf', () => {
     expect((await GET(new Request('https://x/c/a/contact.vcf'), params('sam'))).status).toBe(500)
   })
 })
+
+describe('Margot line is founder-card only', () => {
+  it('the served contact.vcf of a client card carries no Margot line, and its page has no Margot TEL', async () => {
+    vi.stubEnv('MARGOT_PHONE_NUMBER', '+61400000000')
+    try {
+      getPublishedCard.mockResolvedValue(card)
+      const vcf = await (await GET(new Request('https://unite-group.in/c/sam/contact.vcf'), params('sam'))).text()
+      expect(vcf).not.toContain('+61400000000')
+      expect(vcf).not.toContain('TYPE=WORK')
+      expect(renderToStaticMarkup(await CardPage(params('sam')))).not.toContain('+61400000000')
+      getPublishedCard.mockResolvedValue({ ...card, slug: 'phill-mcgurk' })
+      const own = await (await GET(new Request('https://unite-group.in/c/phill-mcgurk/contact.vcf'), params('phill-mcgurk'))).text()
+      expect(own).toContain('TEL;TYPE=WORK;VALUE=uri:tel:+61400000000')
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+})

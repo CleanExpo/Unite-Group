@@ -3,12 +3,14 @@
 -- Living Card v2, phase 1: the persistent owner card at /c/<slug>.
 --  1. card_profiles: what a card shows publicly, one row per card_owners.card_slug. Anon may read ONLY the
 --     public columns of PUBLISHED rows; the card's owner manages their own row; nobody anonymous can write.
---  2. R2 fix: card_enquiries / card_feedback took anonymous INSERT "with check (true)", so a well-formed slug that
+--  2. Cap (G10b): the per-card hourly volume cap lives in card_enquiry_has_capacity and binds BOTH card_submit_enquiry and a
+--     direct anon INSERT into card_enquiries, so the static card flow cannot go around it.
+--  3. R2 fix: card_enquiries / card_feedback took anonymous INSERT "with check (true)", so a well-formed slug that
 --     nobody owns was accepted. Anon may now write only for a card that has an owner and is not an unpublished draft
 --     (an owned card with no profile row, such as the existing static card, keeps working).
 -- Re-appliable: tables/indexes use if not exists, functions use create or replace, policies are dropped and recreated.
 -- Rollback (reviewed forward migration): drop the two anon insert policies and recreate them as with check (true),
---   then drop table public.card_profiles and function public.card_slug_accepts_capture. No data outside card_profiles is touched.
+--   then drop table public.card_profiles and functions public.card_slug_accepts_capture, public.card_enquiry_has_capacity. No data outside card_profiles is touched.
 
 create table if not exists public.card_profiles (
   card_slug text primary key references public.card_owners(card_slug) on delete cascade,
@@ -79,11 +81,23 @@ $$;
 revoke all on function public.card_slug_accepts_capture(text) from public;
 grant execute on function public.card_slug_accepts_capture(text) to anon, authenticated, service_role;
 
+-- Volume cap (spec v1.4 release blocker 2), one definition for both doors into card_enquiries: at most 30 enquiries per
+-- card per rolling hour. card_submit_enquiry (service_role) calls it, and so does the anon INSERT policy below, so the cap
+-- cannot be bypassed by inserting into the table directly (the static card flow). Security definer for the same reason as
+-- card_slug_accepts_capture: anon can ask the question without being able to read card_enquiries. One boolean, nothing else.
+create or replace function public.card_enquiry_has_capacity(p_slug text) returns boolean
+language sql security definer set search_path = public, pg_temp as $$
+  select (select count(*) from public.card_enquiries as c where c.card_slug = p_slug and c.created_at > now() - interval '1 hour') < 30;
+$$;
+revoke all on function public.card_enquiry_has_capacity(text) from public;
+grant execute on function public.card_enquiry_has_capacity(text) to anon, authenticated, service_role;
+
 drop policy if exists card_enquiries_anon_insert on public.card_enquiries;
 create policy card_enquiries_anon_insert on public.card_enquiries
   for insert to anon with check (
-    -- a malformed slug passes here so the table's own check constraint rejects it (23514), as before
-    card_slug !~ '^[a-z0-9-]{1,64}$' or public.card_slug_accepts_capture(card_slug)
+    -- a malformed slug passes here so the table's own check constraint rejects it (23514), as before.
+    -- AND binds tighter than OR: malformed, or (owned and not a draft and under the hourly cap).
+    card_slug !~ '^[a-z0-9-]{1,64}$' or public.card_slug_accepts_capture(card_slug) and public.card_enquiry_has_capacity(card_slug)
   );
 
 drop policy if exists card_feedback_anon_insert on public.card_feedback;
@@ -115,9 +129,9 @@ begin
     order by e.created_at desc
     limit 1;
   if v_id is null then
-    -- Volume cap (spec v1.4 release blocker 2): at most 30 enquiries per card per rolling hour, however many different
-    -- messages arrive. The advisory lock above is per message, so two racing different messages can overshoot by a few.
-    if (select count(*) from public.card_enquiries as c where c.card_slug = p_card_slug and c.created_at > now() - interval '1 hour') >= 30 then
+    -- Volume cap (spec v1.4 release blocker 2), shared with the anon INSERT policy via card_enquiry_has_capacity: however many
+    -- different messages arrive. The advisory lock above is per message, so two racing different messages can overshoot by a few.
+    if not public.card_enquiry_has_capacity(p_card_slug) then
       raise exception 'card_enquiry_rate_limited';
     end if;
     insert into public.card_enquiries as e (card_slug, first_name, business, ask, reply_email, source)

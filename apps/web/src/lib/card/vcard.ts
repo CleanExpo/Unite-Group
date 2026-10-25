@@ -1,4 +1,4 @@
-import { readMargotPhoneNumber } from './margot-phone'
+import { margotPhoneForCard } from './margot-phone'
 import type { PublicCard } from './published'
 
 const MAX_OCTETS = 75
@@ -33,13 +33,13 @@ function splitName(displayName: string): { family: string; given: string } {
 }
 
 /** vCard 4.0, CRLF line ends, public fields only. Deterministic for the same card. */
-export function buildVCard(card: PublicCard, baseUrl: string, margotPhone: string | null = readMargotPhoneNumber()): string {
+export function buildVCard(card: PublicCard, baseUrl: string, margotPhone: string | null = margotPhoneForCard(card.slug)): string {
   const { family, given } = splitName(card.displayName)
   const lines: string[] = ['BEGIN:VCARD', 'VERSION:4.0', `FN:${esc(card.displayName)}`, `N:${esc(family)};${esc(given)};;;`]
   if (card.businessName) lines.push(`ORG:${esc(card.businessName)}`)
   if (card.roleTitle) lines.push(`TITLE:${esc(card.roleTitle)}`)
   if (card.phone) lines.push(`TEL;VALUE=uri;TYPE="cell,voice":tel:${card.phone.replace(/[^+\d]/g, '')}`)
-  // The AI phone line is a validated E.164 number (+ and digits only), so nothing needs escaping.
+  // The AI phone line is founder-card only (margotPhoneForCard), and is a validated E.164 number (+ and digits only), so nothing needs escaping.
   if (margotPhone) lines.push(`TEL;TYPE=WORK;VALUE=uri:tel:${margotPhone}`)
   if (card.email) lines.push(`EMAIL:${esc(card.email)}`)
   lines.push(`URL:${baseUrl}/c/${card.slug}`)

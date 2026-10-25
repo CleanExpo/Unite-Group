@@ -102,7 +102,7 @@ done
 fresh_db_reuse cap || exit 2
 apply cap "$BASE_MIG"; apply cap "$FIX_MIG"
 expect_pass "enquiry volume cap proof" cap "$TESTS/card_enquiry_cap.sql"
-for mut in "s/c.created_at > now() - interval '1 hour') >= 30/c.created_at > now() - interval '1 hour') >= 100000/"; do
+for mut in "s/c.created_at > now() - interval '1 hour') < 30/c.created_at > now() - interval '1 hour') < 100000/"; do
   name="mut$RANDOM"
   fresh_db_reuse "$name" || exit 2
   apply "$name" "$BASE_MIG"
@@ -111,6 +111,21 @@ for mut in "s/c.created_at > now() - interval '1 hour') >= 30/c.created_at > now
   apply "$name" "$DATA/mutant.sql"
   out="$(PSQL -d "$name" -f "$TESTS/card_enquiry_cap.sql" 2>&1)"; rc=$?
   if [ $rc -ne 0 ] && ! echo "$out" | grep -q CARD_ENQUIRY_CAP_PASS; then echo "RED-AS-EXPECTED  cap mutant ($mut)"; else echo "FAIL  cap proof stayed green on mutant ($mut)"; FAILS=$((FAILS+1)); fi
+done
+
+# 4d. the same cap binds a DIRECT anon insert (the static card flow), not only card_submit_enquiry
+fresh_db_reuse directcap || exit 2
+apply directcap "$BASE_MIG"; apply directcap "$FIX_MIG"
+expect_pass "direct anon insert volume cap proof" directcap "$TESTS/card_enquiry_direct_cap.sql"
+for mut in "s/ and public.card_enquiry_has_capacity(card_slug)//"; do
+  name="mut$RANDOM"
+  fresh_db_reuse "$name" || exit 2
+  apply "$name" "$BASE_MIG"
+  sed -e "$mut" "$FIX_MIG" > "$DATA/mutant.sql"
+  if cmp -s "$FIX_MIG" "$DATA/mutant.sql"; then echo "FAIL  mutant did not change the migration: $mut"; FAILS=$((FAILS+1)); continue; fi
+  apply "$name" "$DATA/mutant.sql"
+  out="$(PSQL -d "$name" -f "$TESTS/card_enquiry_direct_cap.sql" 2>&1)"; rc=$?
+  if [ $rc -ne 0 ] && ! echo "$out" | grep -q CARD_ENQUIRY_DIRECT_CAP_PASS; then echo "RED-AS-EXPECTED  direct-cap mutant ($mut)"; else echo "FAIL  direct-cap proof stayed green on mutant ($mut)"; FAILS=$((FAILS+1)); fi
 done
 
 # 5. negative controls: break the migration on purpose and watch the proof go red
