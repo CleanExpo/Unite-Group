@@ -44,7 +44,7 @@ changes nothing the second time. If the price of a tier changes, change `CARD_TI
 
 Each extra business is A$199, up to 5, bought on its own Payment Link (a link URL cannot carry a quantity). In Stripe, TEST mode first:
 
-1. Create a product "Extra business" at AUD 199, one-off, with the same tax setting as the existing card links (match the existing card links' tax setting; the card prices are GST-inclusive).
+1. Create a product "Extra business" at AUD 199, one-off, with the same tax setting as the existing card links. The order page and terms say "GST included", so check that setting is what makes that true.
 2. Create a Payment Link for it with "Let customers adjust quantity" enabled, minimum 1 and maximum 5.
 3. Leave the confirmation as Stripe's own page (no redirect to `/cards/thanks`): the thank-you intake form would otherwise attach to the add-on order.
 4. Apply `supabase/migrations/20261025200000_card_orders_extra_business.sql` first (founder-gated; until then add-on orders fail to insert, the webhook answers 500 and Stripe retries).
