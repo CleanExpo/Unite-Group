@@ -7,6 +7,7 @@ import { Hero } from './hero'
 import { Highlights } from './highlights'
 import { HowItWorks } from './how-it-works'
 import { PillarsRow } from './pillars-row'
+import { StartChooser } from './start-chooser'
 import { Story } from './story'
 import { Proof } from './proof'
 import s from './public.module.css'
@@ -21,6 +22,7 @@ export function PublicHome() {
       <SiteNav />
       <main>
         <Hero />
+        <StartChooser />
         <Highlights />
         <Story />
         <CardsStrip />

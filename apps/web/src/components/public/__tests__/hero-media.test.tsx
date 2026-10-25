@@ -65,8 +65,21 @@ describe('hero server markup: the words and the poster come before any video', (
     expect(html).toMatch(/data-wordmark[^>]*>Unite-Group Nexus</)
     const text = strip(html)
     expect(text).toMatch(/The CRM we are building to run the businesses behind it/)
-    expect(html).toMatch(/<a [^>]*href="#group"[^>]*>Meet the group</)
+    expect(html).toMatch(/<a [^>]*href="#start"[^>]*>Where do you want to start\?</)
     expect(html).toMatch(/<a [^>]*href="#contact"[^>]*>Ask a question</)
+  })
+
+  it('has exactly one primary CTA and it goes to the chooser; the secondary stays the contact link', () => {
+    const anchors = [...html.matchAll(/<a [^>]*>/g)].map((m) => m[0])
+    expect(anchors).toHaveLength(2)
+    const primary = anchors.filter((a) => !/ghost/.test(a))
+    expect(primary).toHaveLength(1)
+    expect(primary[0]).toContain('href="#start"')
+    expect(primary[0]).toContain('data-track-label="home-hero-start"')
+    expect(html).not.toMatch(/href="#group"/)
+    const secondary = anchors.filter((a) => /ghost/.test(a))
+    expect(secondary).toHaveLength(1)
+    expect(secondary[0]).toContain('href="#contact"')
   })
 
   it('shows the finished-U poster as a sized, high-priority img and mounts no video on the server', () => {
