@@ -315,6 +315,41 @@ const server = http.createServer((q, r) => r.end('ok')).listen(0, '127.0.0.1', a
     assert.deepEqual(refused, ['ECONNREFUSED', 'ECONNREFUSED', 'fetch failed']);
   });
 
+  test('a loopback redirect to a public host is refused, not followed', () => {
+    const probe = join(mkdtempSync(join(tmpdir(), 'smoke-redirect-')), 'probe.cjs');
+    temporary.push(dirname(probe));
+    writeFileSync(probe, `
+const http = require('node:http');
+const net = require('node:net');
+const connected = [];
+const realConnect = net.Socket.prototype.connect;
+net.Socket.prototype.connect = function (...args) {
+  const first = args[0];
+  const host = first && typeof first === 'object' ? first.host : undefined;
+  if (host && !['127.0.0.1', 'localhost', '::1'].includes(host)) { connected.push(host); this.destroy(new Error('probe: refused')); return this; }
+  return realConnect.apply(this, args);
+};
+const server = http.createServer((req, res) => {
+  if (req.url === '/to-public') { res.writeHead(302, { Location: 'https://example.com/leak' }); res.end(); }
+  else if (req.url === '/to-loopback') { res.writeHead(302, { Location: '/final' }); res.end(); }
+  else res.end('final');
+}).listen(0, '127.0.0.1', async () => {
+  const base = 'http://127.0.0.1:' + server.address().port;
+  const out = [];
+  out.push(await fetch(base + '/to-public').then(() => 'LEAK', (e) => e.message));
+  out.push(await fetch(base + '/to-loopback').then(async (r) => r.status + ' ' + (await r.text()), (e) => e.message));
+  out.push(await fetch(base + '/to-public', { redirect: 'manual' }).then((r) => String(r.status), (e) => e.message));
+  server.close();
+  console.log(JSON.stringify({ out, connected }));
+});`);
+    const result = spawnSync(process.execPath, ['--require', join(realAppDir, 'scripts', 'smoke-offline-preload.cjs'), probe], { encoding: 'utf8', timeout: 20_000 });
+    assert.equal(result.status, 0, result.stderr);
+    const { out, connected } = JSON.parse(result.stdout.trim().split('\n').pop());
+    assert.deepEqual(out, ['fetch failed', '200 final', '302']);
+    assert.deepEqual(connected, [], 'no socket may be opened to a public host');
+    assert.match(result.stderr, /\[smoke-offline\] blocked https:\/\/example\.com/);
+  });
+
   test('the card stub answers only the exact public query and refuses any other like an outage', () => {
     const probe = join(mkdtempSync(join(tmpdir(), 'smoke-stub-')), 'probe.cjs');
     temporary.push(dirname(probe));

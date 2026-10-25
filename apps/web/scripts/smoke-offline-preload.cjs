@@ -111,9 +111,44 @@ function noteBlocked(host) {
   }
 }
 
+const MAX_LOOPBACK_HOPS = 10;
+
+/**
+ * A loopback request must stay on loopback. undici follows redirects inside realFetch, so a loopback 302 to a
+ * public host would open a socket to it. Fetch with redirect: 'manual' and follow each hop here, refusing any hop
+ * whose target is not loopback exactly as a direct fetch to that host would be refused.
+ */
+async function loopbackFetch(input, init) {
+  const mode = (init && init.redirect) || (input && input.redirect) || 'follow';
+  if (mode !== 'follow') return realFetch(input, init); // the caller handles (or forbids) redirects itself
+  let current = input;
+  let currentInit = { ...(init || {}), redirect: 'manual' };
+  for (let hop = 0; hop <= MAX_LOOPBACK_HOPS; hop += 1) {
+    const response = await realFetch(current, currentInit);
+    const location = response.status >= 300 && response.status < 400 ? response.headers.get('location') : null;
+    if (location === null) return response;
+    let target = null;
+    try {
+      target = new URL(location, urlOf(current));
+    } catch {
+      target = null;
+    }
+    if (!isLoopback(target)) {
+      noteBlocked(target ? `${target.protocol}//${target.host}` : String(location));
+      throw new TypeError('fetch failed');
+    }
+    const method = methodOf(current, currentInit);
+    const toGet = response.status === 303 || ((response.status === 301 || response.status === 302) && method === 'POST');
+    const headers = currentInit.headers || (current && current.headers) || undefined;
+    currentInit = { ...(toGet ? { method: 'GET' } : { method, ...(currentInit.body ? { body: currentInit.body } : {}) }), ...(headers ? { headers } : {}), redirect: 'manual' };
+    current = target.href;
+  }
+  throw new TypeError('fetch failed'); // redirect loop
+}
+
 globalThis.fetch = function smokeOfflineFetch(input, init) {
   const url = urlOf(input);
-  if (isLoopback(url)) return realFetch(input, init);
+  if (isLoopback(url)) return loopbackFetch(input, init);
   const stub = url ? cardLookupStub(url, input, init) : null;
   if (stub) return Promise.resolve(stub);
   noteBlocked(url ? `${url.protocol}//${url.host}` : String(input));
