@@ -2,6 +2,8 @@
 
 import { useState, type FormEvent } from 'react'
 
+import { CollectionNotice } from '@/components/public/collection-notice'
+
 import { GROW_PACKAGES } from './packages'
 
 type Status = { kind: 'idle' } | { kind: 'sending' } | { kind: 'sent' } | { kind: 'error'; message: string }
@@ -100,6 +102,7 @@ export function LeadForm() {
         <span>Yes, Unite Group may email me marketing updates. You can unsubscribe at any time.</span>
       </label>
       <div className="sm:col-span-2">
+        <CollectionNotice form="grow" tone="light" />
         <button
           type="submit"
           disabled={status.kind === 'sending'}

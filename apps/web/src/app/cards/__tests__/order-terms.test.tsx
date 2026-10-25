@@ -25,8 +25,8 @@ const norm = (h: string) =>
 /** The one terms addition, in the buy box. */
 const TERMS_ADDITION =
   '<p class="_chosen">By paying you agree to our order terms. <a href="/cards/terms" class="_navLink">Order terms</a></p>'
-/** The notice directly under the enquiry form. */
-const NOTICE_ADDITION = /<p class="_notice">Your message goes to Unite Group\.[\s\S]*?<\/p>/
+/** The shared APP 5 notice, inside the enquiry form directly before the submit button. */
+const NOTICE_ADDITION = /<p[^>]*data-collection-notice="card-enquiry"[^>]*>[\s\S]*?<\/p>/
 
 const online = () => {
   vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', 'https://buy.stripe.com/test_ready')
@@ -78,10 +78,13 @@ describe('/cards/order terms link', () => {
 })
 
 describe('/cards/order collection notice', () => {
-  it('sits directly under the enquiry form with a link to the privacy policy', () => {
+  it('sits inside the enquiry form, directly before the submit button, with a link to the privacy policy', () => {
     const html = render(null, null)
-    const after = html.slice(html.indexOf('</form>') + '</form>'.length)
-    expect(norm(after).startsWith('<p class="_notice">Your message goes to Unite Group.')).toBe(true)
-    expect(after.slice(0, after.indexOf('</p>'))).toContain('href="/privacy-policy"')
+    const form = html.slice(html.indexOf('<form'), html.indexOf('</form>'))
+    const notice = form.match(NOTICE_ADDITION)?.[0] ?? ''
+    expect(notice).not.toBe('')
+    expect(notice).toContain('href="/privacy-policy"')
+    expect(form.indexOf(notice)).toBeLessThan(form.search(/<button[^>]*type="submit"/))
+    expect(form.slice(form.indexOf(notice) + notice.length)).toMatch(/^<div><button[^>]*type="submit"/)
   })
 })

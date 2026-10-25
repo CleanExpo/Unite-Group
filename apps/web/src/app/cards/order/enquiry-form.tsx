@@ -2,6 +2,8 @@
 
 import { useState, type FormEvent } from 'react'
 
+import { CollectionNotice } from '@/components/public/collection-notice'
+
 import f from './enquiry-form.module.css'
 import { ENQUIRY_FORM_ID } from './order-buy'
 import s from './order.module.css'
@@ -93,6 +95,8 @@ export function CardEnquiryForm({ referrer }: { referrer: string | null }) {
         <input type="checkbox" name="marketing_consent" className={f.check} />
         <span>Yes, Unite Group may email me marketing updates. You can unsubscribe at any time.</span>
       </label>
+
+      <CollectionNotice form="card-enquiry" tone="dark" />
 
       <div>
         <button type="submit" disabled={status.kind === 'sending'} className={s.primary}>

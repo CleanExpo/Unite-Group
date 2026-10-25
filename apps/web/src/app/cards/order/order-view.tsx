@@ -2,7 +2,6 @@ import { COMPANY_NAME, companyAbnLabel } from '@/lib/legal/company'
 
 import { formatAud, stripePaymentLink } from '../../grow/packages'
 import { EDITIONS } from '../editions'
-import { CollectionNotice } from '../collection-notice'
 import { CardEnquiryForm } from './enquiry-form'
 import { Film } from './film'
 import { BuyFilm, StickyBar } from './order-buy'
@@ -167,7 +166,6 @@ export function OrderView({ edition, referrer }: { edition: string | null; refer
                 : 'We will contact you to build your card. Nothing is charged on this page.'}
             </p>
             <CardEnquiryForm referrer={referrer} />
-            <CollectionNotice />
           </div>
         </section>
       </main>

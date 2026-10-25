@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from 'react'
 
+import { CollectionNotice } from '@/components/public/collection-notice'
 import { CARD_TIERS } from '@/app/cards/order/order-view'
 import { formatAud } from '@/app/grow/packages'
 import { CONTACT_EMAIL } from '@/lib/public-site'
@@ -108,6 +109,7 @@ export function ContactForm() {
         <span>Yes, Unite Group may email me marketing updates. You can unsubscribe at any time.</span>
       </label>
       <div>
+        <CollectionNotice form="home" tone="dark" />
         <button type="submit" disabled={status.kind === 'sending'} className={s.buttonPrimary}>
           {status.kind === 'sending' ? 'Sending...' : 'Send your question'}
         </button>
