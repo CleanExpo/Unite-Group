@@ -1926,10 +1926,32 @@ test('AC-13 capture does not fetch without a token or expose transport errors', 
   const missing = await captureAlertHealth({ url: 'https://app.invalid', token: ' ', fetchImpl });
   assert.equal(calls, 0);
   assert.equal(alertReport(missing).failed, true);
+  assert.match(alertReport(missing).body, /`alert-health` \| NOT RUN \|/u);
   const rejected = await captureAlertHealth({ url: 'https://app.invalid', token: 'test-only-token', fetchImpl });
   assert.equal(calls, 1);
   assert.equal(rejected.exitCode, 1);
   assert.ok(!JSON.stringify(rejected).includes('SENTINEL-KEY'));
+});
+
+test('AC-13 unset ALERT_HEALTH_TOKEN reads NOT RUN with the reason, never FAIL and never PASS', async () => {
+  for (const token of [undefined, '', ' ']) {
+    const result = await captureAlertHealth({
+      url: 'https://app.invalid', token, fetchImpl: async () => { throw new Error('must not fetch'); },
+    });
+    const report = alertReport(result);
+    assert.match(report.body, /`alert-health` \| NOT RUN \|/u);
+    assert.doesNotMatch(report.body, /`alert-health` \| (FAIL|PASS) \|/u);
+    assert.ok(report.body.includes('ALERT_HEALTH_TOKEN'), 'the reason is stated in the report');
+    assert.equal(report.failed, true, 'a not-run gate must not turn the run green');
+    assert.ok(report.failureReasons.some((reason) => reason.includes('alert-health') && reason.includes('NOT_RUN')));
+  }
+});
+
+test('AC-13 a configured token whose read fails is still FAIL, not NOT RUN', async () => {
+  const result = await captureAlertHealth({
+    url: 'https://app.invalid', token: 'test-only-token', fetchImpl: async () => { throw new Error('boom'); },
+  });
+  assert.match(alertReport(result).body, /`alert-health` \| FAIL \|/u);
 });
 
 test('AC-13 workflow captures alert response through the tested JavaScript function', () => {
