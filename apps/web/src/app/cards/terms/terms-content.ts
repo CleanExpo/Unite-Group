@@ -1,7 +1,7 @@
 // The approved text of the Living Business Card order terms (Phill, 25/10/2026), word for word.
-// One sentence is NOT in the approved file: the extra-business item under Made for you (25/10/2026),
-// pending Phill's lawyer read. Otherwise only two things differ from the approved file: the DRAFT header line and the internal draft note
-// are not published, and the ABN is the {{ABN}} token, filled by companyAbnLabel() (it reads
+// Exception: the extra-business item under Made for you (25/10/2026) is NOT in the approved file and
+// awaits Phill's lawyer read. Apart from that, two things differ from the approved file: the DRAFT
+// header line and the internal draft note are not published, and the ABN is the {{ABN}} token, filled by companyAbnLabel() (it reads
 // "ABN 95 691 477 844" unless COMPANY_ABN overrides it, the same text as the approved file).
 // Markers: "# " h1, "## " h2, "N. " list item, a whole line in ** ** a bold lead-in, anything else a paragraph.
 export const CARD_ORDER_TERMS = `# Living Business Card: Order Terms

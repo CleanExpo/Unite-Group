@@ -34,7 +34,7 @@ describe('extra business add-on placement', () => {
     expect(tierSlice(h, 'ready')).not.toContain('extra business')
   })
 
-  it('leaves the markup untouched when the env is unset', () => {
+  it('renders no add-on markup when the env is unset or empty (identity with origin/main: order-terms.test.tsx)', () => {
     env({ ready: true, custom: true })
     const h = html()
     expect(h).not.toMatch(/extra/i)
@@ -81,6 +81,15 @@ describe('extra business stepper', () => {
     expect(link.getAttribute('rel')).toBe('noopener noreferrer')
     expect(link.getAttribute('data-track-label')).toBe('order-extra-business')
     expect(document.body.textContent).toContain('2 extra businesses: AUD 398, GST included.')
+  })
+
+  it('announces the count with context in a polite live region, not a bare number', async () => {
+    await mount()
+    fireEvent.click(plus())
+    fireEvent.click(plus())
+    const live = document.querySelectorAll('[aria-live="polite"]')
+    expect(live).toHaveLength(1)
+    expect(live[0].textContent).toBe('2 extra businesses selected')
   })
 
   it('uses the singular for one', async () => {

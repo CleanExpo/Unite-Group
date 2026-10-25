@@ -28,8 +28,11 @@ export function ExtraBusiness({ link, priceAud, maxQuantity }: { link: string; p
         >
           &minus;
         </button>
-        <span className={s.count} aria-live="polite">
+        <span className={s.count} aria-hidden="true">
           {quantity}
+        </span>
+        <span className={s.srOnly} aria-live="polite">
+          {plural(quantity)} selected
         </span>
         <button
           type="button"
