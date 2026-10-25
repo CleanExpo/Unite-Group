@@ -30,6 +30,7 @@ export async function register() {
     { name: 'GitHub',    vars: ['GITHUB_TOKEN'] },
     { name: 'HeyGen',   vars: ['HEYGEN_API_KEY'] },
     { name: 'Reddit',   vars: ['REDDIT_CLIENT_ID', 'REDDIT_CLIENT_SECRET'] },
+    { name: 'Mailtrap', vars: ['MAILTRAP_API_KEY'] },
     { name: 'SendGrid', vars: ['SENDGRID_API_KEY'] },
   ] as const
 

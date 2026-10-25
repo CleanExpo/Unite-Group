@@ -4,7 +4,7 @@
 // connection sources with an honest connected / needs-reauth / not-connected
 // state. Reads the same substrate the Integrations panel models:
 //   - vault  — a credentials_vault row exists for the founder under `service`
-//   - env    — required env keys present (transactional email, e.g. SendGrid)
+//   - env    — required env keys present (transactional email, e.g. Mailtrap or SendGrid)
 //
 // This tile READS status only and links to Settings — it never touches OAuth
 // routes (a sibling agent owns the connect UI). NorthStar "no fake-as-real":
@@ -29,7 +29,8 @@ export const EMAIL_PROVIDERS: EmailProviderDef[] = [
   { id: 'google', label: 'Google (Gmail)', source: 'vault', vaultService: 'google' },
   { id: 'microsoft', label: 'Microsoft 365', source: 'vault', vaultService: 'microsoft' },
   { id: 'imap', label: 'IMAP mailbox', source: 'vault', vaultService: 'imap' },
-  { id: 'sendgrid', label: 'SendGrid (transactional)', source: 'env', envKeys: ['SENDGRID_API_KEY'] },
+  { id: 'mailtrap', label: 'Mailtrap (transactional)', source: 'env', envKeys: ['MAILTRAP_API_KEY'] },
+  { id: 'sendgrid', label: 'SendGrid (fallback)', source: 'env', envKeys: ['SENDGRID_API_KEY'] },
 ]
 
 /** A credentials_vault row, reduced to the fields we read. */
