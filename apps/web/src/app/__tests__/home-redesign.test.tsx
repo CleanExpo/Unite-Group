@@ -83,9 +83,9 @@ describe('three big media cards', () => {
     for (const c of cards) {
       expect(c.match(/<p[ >]/g)).toHaveLength(1)
     }
-    // a picture only where a distinct file exists (Phill 25/10/2026): the film card and the network card have one, the Nexus card is plain glass until it has its own
+    // a picture only where a distinct file exists (Phill 25/10/2026); the Nexus card now shows the real product Inbox
     expect(cards[0]).toContain('data-film')
-    expect(cards[1]).not.toContain('<img')
+    expect(cards[1]).toMatch(/<img[^>]*src="\/landing\/visuals\/nexus-1280\.webp"/)
     expect(cards[2]).toMatch(/<img[^>]*src="\/landing\/visuals\/network-1280\.webp"/)
     expect(cards[0]).toContain('data-film')
     expect(cards[0]).toContain('href="/cards"')
@@ -178,8 +178,11 @@ describe('images come from one map, and no file appears twice', () => {
       ['conversion', 'experience', 'intelligence', 'network', 'nexus', 'showroom', 'stepApprove', 'stepPick', 'stepSend', 'visibility'].sort(),
     )
     const filled = Object.entries(VISUALS).flatMap(([slot, v]) => (v ? [[slot, v] as const] : []))
-    // only Nexus has no picture of its own yet
-    expect(Object.entries(VISUALS).filter(([, v]) => !v).map(([k]) => k)).toEqual(['nexus'])
+    // every slot has its own picture; the Nexus CRM card shows the real product, not an abstract image (Phill, 25/10/2026)
+    expect(Object.entries(VISUALS).filter(([, v]) => !v).map(([k]) => k)).toEqual([])
+    expect(VISUALS.nexus?.src).toBe('/landing/visuals/nexus-1280.webp')
+    expect(VISUALS.nexus?.small).toBe('/landing/visuals/nexus-640.webp')
+    expect(VISUALS.nexus?.alt).toMatch(/Nexus CRM inbox/)
     const files: string[] = []
     for (const [slot, v] of filled) {
       for (const f of [v.src, v.small]) {
