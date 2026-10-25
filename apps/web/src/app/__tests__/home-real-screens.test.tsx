@@ -118,3 +118,32 @@ describe('the 01/02/03 step labels are readable', () => {
     expect(Number(rule.match(/font-size:\s*(\d+)px/)?.[1] ?? 0)).toBeGreaterThanOrEqual(14)
   })
 })
+
+// Founder rule: a seed must never look live. The analytics counts and inbox entries on these screens are invented,
+// so every frame says so in a small visible caption.
+describe('every home screen frame says it is sample data', () => {
+  it('renders the visible caption "Sample data" inside each of the 7 frames, in readable contrast', async () => {
+    const html = await signedOut()
+    const frames = html.split('data-frame=').slice(1)
+    expect(frames).toHaveLength(7)
+    for (const f of frames) {
+      const frame = f.slice(0, f.indexOf('<img'))
+      // a sibling of the (aria-hidden) chrome bar, so a screen reader announces it too
+      expect(frame, f.slice(0, 60)).toMatch(/<\/span><span class="[^"]*sample[^"]*">Sample data<\/span>/)
+    }
+    const css = readFileSync(join(PUB, 'home-screens.module.css'), 'utf8')
+    const rule = [...css.matchAll(/(?:^|\})\s*(?:\.[\w\s.]+\s)?\.sample\s*\{([^}]*)\}/g)].map((m) => m[1]).join(';')
+    expect(rule, '.sample rule').toMatch(/font-family:\s*var\(--pub-mono\)/)
+    const tokens = readFileSync(join(__dirname, '..', '..', 'styles', 'public-tokens.css'), 'utf8')
+    const colour = rule.match(/(?:^|;)\s*color:\s*var\((--[\w-]+)\)/)?.[1] ?? ''
+    const fg = tokens.match(new RegExp(`${colour}:\\s*(#[0-9a-f]{6})`, 'i'))?.[1] ?? ''
+    const bar = css.match(/\.bar\s*\{[^}]*background:\s*(#[0-9a-f]{6})/i)?.[1] ?? ''
+    expect(fg, 'caption colour token').toMatch(/^#[0-9a-f]{6}$/i)
+    expect(bar, 'bar background').toMatch(/^#[0-9a-f]{6}$/i)
+    expect(contrast(fg, bar)).toBeGreaterThanOrEqual(4.5)
+    // the phone bar is darker still; the caption must clear it too
+    const phoneBar = css.match(/\.phone \.bar\s*\{[^}]*background:\s*(#[0-9a-f]{6})/i)?.[1] ?? ''
+    expect(contrast(fg, phoneBar)).toBeGreaterThanOrEqual(4.5)
+    expect(Number(rule.match(/font-size:\s*(\d+)px/)?.[1] ?? 0)).toBeGreaterThanOrEqual(11)
+  })
+})
