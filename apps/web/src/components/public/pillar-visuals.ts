@@ -26,7 +26,7 @@ const screen = (file: string, width: number, height: number, frame: Screen['fram
 
 export const PILLAR_SCREENS: Record<Pillar['slug'], PillarScreens> = {
   visibility: {
-    hero: screen('visibility-site-analytics', 1200, 900, 'browser', 'The Unite-Group site analytics screen with sample numbers: page views by day for the last 7 days, 176 in total'),
+    hero: screen('visibility-site-analytics', 1200, 872, 'browser', 'The Unite-Group site analytics screen with sample numbers: page views by day for the last 7 days, 176 in total'),
     support: screen('visibility-top-referrers', 1116, 803, 'browser', 'Top referrers from the same screen: google.com, chatgpt.com, bing.com, perplexity.ai and linkedin.com, with sample counts', 3),
   },
   experience: {
