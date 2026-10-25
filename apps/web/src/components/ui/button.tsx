@@ -13,7 +13,7 @@ export const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: 'bg-(--color-accent-10) border border-(--color-accent-border) text-accent hover:bg-(--color-accent-20)',
+        primary: 'bg-(--color-accent-10) border border-(--color-accent-border) text-(--color-accent-text) hover:bg-(--color-accent-20)',
         secondary: 'bg-white/4 border border-white/10 text-[#3f3f46] hover:bg-black/5 hover:text-[#0A0A0A]',
         danger: 'bg-(--color-danger-dim) border border-danger/40 text-danger hover:bg-danger/20',
         success: 'bg-(--color-success-dim) border border-success/40 text-success hover:bg-success/20',
