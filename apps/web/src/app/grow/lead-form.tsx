@@ -56,8 +56,7 @@ export function LeadForm() {
   if (status.kind === 'sent') {
     return (
       <div role="status" className="rounded-sm border border-green-700/30 bg-green-50 p-6 text-stone-800">
-        <p className="text-lg font-semibold text-green-800">Thanks, we have your details.</p>
-        <p className="mt-2 text-[15px]">We will email you your free AI-visibility audit and the next steps.</p>
+        <p className="text-lg font-semibold text-green-800">Thank you. We have your details and will reply by email.</p>
       </div>
     )
   }
@@ -99,7 +98,7 @@ export function LeadForm() {
       </div>
       <label className="flex items-start gap-2.5 text-[14px] text-stone-700 sm:col-span-2">
         <input type="checkbox" name="marketing_consent" className="mt-1 h-4 w-4 accent-green-700" />
-        <span>Yes, Unite Group may email me marketing updates. You can unsubscribe at any time.</span>
+        <span>Yes, Unite Group may email me marketing updates.</span>
       </label>
       <div className="sm:col-span-2">
         <CollectionNotice form="grow" tone="light" />

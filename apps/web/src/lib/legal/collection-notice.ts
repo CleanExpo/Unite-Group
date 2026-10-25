@@ -27,8 +27,9 @@ export type CollectionNoticeForm = 'grow' | 'home' | 'card-enquiry' | 'card-inta
 
 /** Why each form collects the details, in the policy's own terms. */
 export const COLLECTION_PURPOSES: Record<CollectionNoticeForm, string> = {
-  // Section 10: "run the audit you asked for, send you the results, and reply to your enquiry".
-  grow: 'to run the free audit you asked for, send you the results and reply to your enquiry',
+  // Section 10: "reply to your enquiry". No audit or results promise: /api/leads answers 201 once the row is
+  // stored, even when the alert email fails. COLLECTION_RECIPIENTS says the details are stored.
+  grow: 'to reply to your enquiry',
   // Section 10: "reply to your enquiry".
   home: 'to reply to your enquiry',
   // Section 10: "reply to your enquiry". The form is a pre-purchase enquiry ("Nothing has been charged"),

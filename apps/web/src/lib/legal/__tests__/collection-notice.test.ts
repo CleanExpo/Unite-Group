@@ -26,7 +26,7 @@ const forms = Object.keys(COLLECTION_PURPOSES) as CollectionNoticeForm[]
 
 /** The policy wording that backs each form's purpose (sections 10 and 13.1). */
 const PURPOSE_BACKING: Array<[CollectionNoticeForm, string[]]> = [
-  ['grow', ['run the audit you asked for', 'send you the results', 'reply to your enquiry']],
+  ['grow', ['reply to your enquiry']],
   ['home', ['reply to your enquiry']],
   ['card-enquiry', ['reply to your enquiry']],
   ['card-intake', ['supply, host and support your card']],
