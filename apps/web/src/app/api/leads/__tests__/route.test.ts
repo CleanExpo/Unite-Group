@@ -1,11 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 // --- Supabase service mock: per-table FIFO queues + write capture --------
 let responses: Record<string, any[]>
 let inserts: Array<{ table: string; payload: any }>
+let resolvedTables: string[]
 
 function makeChain(table: string) {
   const next = () => {
+    resolvedTables.push(table)
     const queue = responses[table] ?? []
     return queue.shift() ?? { data: null, error: null }
   }
@@ -36,7 +38,10 @@ vi.mock('@/lib/supabase/service', () => ({
   createServiceClient: vi.fn(() => ({ from: mockFrom })),
 }))
 
-import { POST } from '../route'
+const { mockNotify } = vi.hoisted(() => ({ mockNotify: vi.fn() }))
+vi.mock('@/lib/notifications', () => ({ notify: mockNotify }))
+
+import { POST, maxDuration } from '../route'
 
 function req(body: unknown, headers: Record<string, string> = {}) {
   return new Request('https://app.test/api/leads', {
@@ -51,11 +56,15 @@ const VALID_LEAD = { first_name: 'Jane', email: 'Jane@Example.com' }
 describe('POST /api/leads', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockNotify.mockReset().mockResolvedValue({ email: 'sent' })
     vi.unstubAllEnvs()
     vi.stubEnv('FOUNDER_USER_ID', 'founder-1')
     responses = {}
     inserts = []
+    resolvedTables = []
   })
+
+  afterEach(() => vi.useRealTimers())
 
   it('returns 500 when FOUNDER_USER_ID is not configured', async () => {
     vi.stubEnv('FOUNDER_USER_ID', '')
@@ -214,4 +223,51 @@ describe('POST /api/leads', () => {
       expect(touched).not.toContain('drip_enrollments')
     }
   })
+
+  it('alerts once only after the lead insert resolves, with the minimal payload', async () => {
+    responses.crm_leads = [{ data: { id: 'lead-1', captured_at: '2026-10-24T00:00:00Z' }, error: null }]
+    mockNotify.mockImplementation(async (payload) => {
+      expect(inserts.filter((row) => row.table === 'crm_leads')).toHaveLength(1)
+      expect(resolvedTables).toContain('crm_leads')
+      expect(payload).toEqual({
+        type: 'new_lead', leadId: 'lead-1', firstName: 'Jane', businessName: 'Example business',
+        interests: 'living-card', capturedAt: '2026-10-24T00:00:00Z',
+      })
+      return { email: 'sent' }
+    })
+    const response = await POST(req({ ...VALID_LEAD, company: 'Example business', interests: 'living-card' }))
+    expect(maxDuration).toBe(30)
+    expect(response.status).toBe(201)
+    expect(mockNotify).toHaveBeenCalledTimes(1)
+  })
+
+  it.each(['rejected', 'failed', 'unconfigured', 'deduped', 'never'])(
+    'preserves the exact response and one lead insert when alerts are %s, with and without drip',
+    async (outcome) => {
+      vi.useFakeTimers()
+      for (const withDrip of [false, true]) {
+        inserts = []
+        responses = { crm_leads: [{ data: { id: 'lead-1' }, error: null }] }
+        if (outcome === 'rejected') mockNotify.mockRejectedValue(new Error('provider failure'))
+        else if (outcome === 'never') mockNotify.mockImplementation(() => new Promise(() => {}))
+        else mockNotify.mockResolvedValue({ email: outcome })
+        const pending = POST(req({ ...VALID_LEAD, ...(withDrip ? { drip_campaign_id: 'camp-1' } : {}) }))
+        await vi.advanceTimersByTimeAsync(6000)
+        const response = await pending
+        expect(response.status).toBe(201)
+        expect(await response.json()).toEqual({
+          id: 'lead-1', ...(withDrip ? { drip: { enrolled: false, reason: 'no_marketing_consent' } } : {}),
+        })
+        expect(inserts.filter((row) => row.table === 'crm_leads')).toHaveLength(1)
+      }
+    }, 1000
+  )
+
+  it('does not alert on validation or insert failures', async () => {
+    await POST(req({ email: 'bad' }))
+    responses.crm_leads = [{ data: null, error: { message: 'insert rejected' } }]
+    await POST(req(VALID_LEAD))
+    expect(mockNotify).not.toHaveBeenCalled()
+  })
+
 })

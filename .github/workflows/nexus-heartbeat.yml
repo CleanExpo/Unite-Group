@@ -169,6 +169,26 @@ jobs:
       - name: Compute founder-queue age
         run: node scripts/founder-queue.mjs > /tmp/heartbeat/queue.json || true
 
+      - name: Capture alert health
+        if: always()
+        env:
+          NEXT_PUBLIC_APP_URL: ${{ vars.NEXT_PUBLIC_APP_URL || 'https://unite-group.in' }}
+          ALERT_HEALTH_TOKEN: ${{ secrets.ALERT_HEALTH_TOKEN }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { mkdirSync, writeFileSync } from 'node:fs';
+          import { captureAlertHealth, readEvidence } from './scripts/nexus-heartbeat.mjs';
+          const path = '/tmp/heartbeat/gate-results.json';
+          const prior = readEvidence(path);
+          const result = await captureAlertHealth({
+            url: process.env.NEXT_PUBLIC_APP_URL,
+            token: process.env.ALERT_HEALTH_TOKEN,
+          });
+          mkdirSync('/tmp/heartbeat', { recursive: true });
+          const captured = prior.ok && Array.isArray(prior.value) ? prior.value : [];
+          writeFileSync(path, JSON.stringify([...captured, result]));
+          NODE
+
       - name: Upload the evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

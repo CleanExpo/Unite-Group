@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 import {
   DECLARED_GATES,
+  captureAlertHealth,
   brisbaneReportDate,
   HEARTBEAT_TITLE,
   OWNER_MARKER,
@@ -47,7 +48,7 @@ const WORKFLOW_PATH = join(repositoryRoot, '.github', 'workflows', 'nexus-heartb
 // The hash was recomputed independently with `shasum -a 256`, not copied from
 // this test's own failure message — the pin must not be re-derived from the
 // thing it exists to pin.
-const PINNED_WORKFLOW_SHA256 = 'fa7c8483e8d3f9283856ad752aa9feaddea72e5d85edf4cb06e029653c2672a2';
+const PINNED_WORKFLOW_SHA256 = 'ab34bbf03c36d517b93c7e9b7e73eed82356df9572e0d8681c01470cf040d27f';
 
 // Rendered gate lists (what reconcileGates PRODUCES).
 const GREEN = [
@@ -62,8 +63,18 @@ const RED = [
 ];
 
 // Captures (what the workflow WRITES): exit codes only, never a verdict.
-const CAPTURE_GREEN = DECLARED_GATES.map((name) => ({ name, exitCode: 0 }));
-const CAPTURE_RED = DECLARED_GATES.map((name, index) => ({ name, exitCode: index === 0 ? 1 : 0 }));
+const HEALTHY_ALERT = {
+  window_hours: 72, attempts: 4, failed: 0, unconfigured: 0,
+  deduped: 1, unalerted: 0, last_failure_at: null,
+  sent: 3, delivery_note: 'sent means SendGrid accepted the message (HTTP 202); delivery is not confirmed',
+  destination: 'clear', failed_ids: [], unalerted_ids: [],
+};
+const capture = (name, exitCode = 0) => ({
+  name, exitCode,
+  ...(name === 'alert-health' ? { httpCode: 200, response: JSON.stringify(HEALTHY_ALERT) } : {}),
+});
+const CAPTURE_GREEN = DECLARED_GATES.map((name) => capture(name));
+const CAPTURE_RED = DECLARED_GATES.map((name, index) => capture(name, index === 0 ? 1 : 0));
 
 const QUEUE = {
   openCount: 9,
@@ -198,10 +209,10 @@ test('duplicate owned issues update the lowest-numbered one deterministically', 
 test('THE UNI-2567 LESSON: a gate absent from the capture becomes NOT RUN, never PASS', () => {
   const { gates, anomalies } = reconcileGates(DECLARED_GATES, [CAPTURE_GREEN[0]]);
 
-  assert.equal(gates.length, 3);
+  assert.equal(gates.length, 4);
   assert.deepEqual(
     gates.map((g) => g.status),
-    ['PASS', 'NOT_RUN', 'NOT_RUN'],
+    ['PASS', 'NOT_RUN', 'NOT_RUN', 'NOT_RUN'],
   );
   assert.ok(anomalies.some((a) => a.includes('verify:docs-watch')), anomalies.join('\n'));
 });
@@ -210,7 +221,7 @@ test('an empty capture makes every declared gate NOT RUN and says so', () => {
   const { gates, anomalies } = reconcileGates(DECLARED_GATES, []);
 
   assert.ok(gates.every((g) => g.status === 'NOT_RUN'), JSON.stringify(gates));
-  assert.equal(anomalies.length, 3);
+  assert.equal(anomalies.length, 4);
 });
 
 test('a capture that is not an array is refused rather than trusted', () => {
@@ -341,7 +352,7 @@ test('A RED GATE FAILS THE RUN, not merely the paragraph nobody reads', () => {
    * lesson from the founder-queue exit code, applied at the second site before
    * it could bite.
    */
-  const oneRed = DECLARED_GATES.map((name, index) => ({ name, exitCode: index === 0 ? 1 : 0 }));
+  const oneRed = DECLARED_GATES.map((name, index) => capture(name, index === 0 ? 1 : 0));
   const red = composeHeartbeat({
     date: '2026-08-16',
     gateEvidence: { ok: true, value: oneRed },
@@ -1344,7 +1355,7 @@ test('a non-zero exit code is FAIL and a zero is PASS, derived here', () => {
     { name: 'verify:docs-watch', exitCode: 2 },
     { name: 'verify:docs-review', exitCode: 0 },
   ]);
-  assert.deepEqual(gates.map((g) => g.status), ['PASS', 'FAIL', 'PASS']);
+  assert.deepEqual(gates.map((g) => g.status), ['PASS', 'FAIL', 'PASS', 'NOT_RUN']);
 });
 
 test('a prototype-chain status is not a known status', () => {
@@ -1650,7 +1661,7 @@ test('A SUBSET OF THE REQUIRED GATES IS NOT A GREEN RUN', () => {
     declared: [DECLARED_GATES[0]],
   });
   assert.equal(partial.failed, true);
-  assert.match(partial.failureReasons.join('\n'), /omits 2 required gate\(s\)/u);
+  assert.match(partial.failureReasons.join('\n'), /omits 3 required gate\(s\)/u);
 
   // A declaration naming something that is not required is equally wrong: the
   // report would grade a gate nobody asked for and call the run certified.
@@ -1811,7 +1822,7 @@ test('THE CAPTURE IS TRUSTED NO MORE THAN THE DECLARATION', () => {
    */
   const synthesised = [];
   synthesised[Symbol.iterator] = function* iter() {
-    for (const name of DECLARED_GATES) yield { name, exitCode: 0 };
+    for (const name of DECLARED_GATES) yield capture(name);
   };
   const forged = composeHeartbeat({
     date: '2026-08-16',
@@ -1845,4 +1856,152 @@ test('THE CAPTURE IS TRUSTED NO MORE THAN THE DECLARATION', () => {
   });
   assert.equal(honest.failed, false);
   assert.equal(honest.gates.filter((g) => g.status === 'PASS').length, DECLARED_GATES.length);
+});
+
+
+// Enquiry alerts S2a: response evidence is graded here, never in workflow YAML.
+function alertReport(entry) {
+  return composeHeartbeat({
+    date: '24/10/2026',
+    gateEvidence: { ok: true, value: [...CAPTURE_GREEN.filter((gate) => gate.name !== 'alert-health'), ...(entry ? [entry] : [])] },
+    queueEvidence: { ok: true, value: QUEUE },
+    previousBody: null,
+  });
+}
+
+test('AC-13 alert-health declares a fourth gate and a healthy response keeps the run green', () => {
+  assert.equal(DECLARED_GATES.length, 4);
+  assert.ok(DECLARED_GATES.includes('alert-health'));
+  const report = alertReport(capture('alert-health'));
+  assert.equal(report.failed, false);
+  assert.match(report.body, /`alert-health` \| PASS \| exit 0/u);
+  assert.match(report.body, /Alert health \(HTTP 200\)/u);
+  assert.match(report.body, /"attempts":4/u);
+});
+
+for (const [label, entry] of [
+  ['503', { ...capture('alert-health'), httpCode: 503 }],
+  ['unalerted', { ...capture('alert-health'), response: JSON.stringify({ ...HEALTHY_ALERT, unalerted: 1 }) }],
+  ['failed', { ...capture('alert-health'), response: JSON.stringify({ ...HEALTHY_ALERT, failed: 1 }) }],
+  ['invalid JSON', { ...capture('alert-health'), response: 'not JSON' }],
+  ['missing counters', { ...capture('alert-health'), response: '{}' }],
+  ['transport error', { ...capture('alert-health'), exitCode: 1 }],
+]) {
+  test(`AC-13 alert-health ${label} fixture makes the composed issue FAIL and the run non-green`, () => {
+    const report = alertReport(entry);
+    assert.equal(report.failed, true);
+    assert.match(report.body, /`alert-health` \| FAIL \|/u);
+    assert.ok(report.failureReasons.some((reason) => reason.includes('alert-health')));
+  });
+}
+
+test('AC-13 absent alert-health evidence stays NOT RUN', () => {
+  const report = alertReport(null);
+  assert.equal(report.failed, true);
+  assert.match(report.body, /`alert-health` \| NOT RUN \|/u);
+});
+
+test('AC-13 capture uses a bearer, a bounded read and never follows a redirect', async () => {
+  let calls = 0;
+  const result = await captureAlertHealth({
+    url: 'https://app.invalid', token: 'test-only-token',
+    fetchImpl: async (url, options) => {
+      calls += 1;
+      assert.equal(url.href, 'https://app.invalid/api/health/alerts');
+      assert.equal(options.headers.Authorization, 'Bearer test-only-token');
+      assert.equal(options.redirect, 'error');
+      assert.ok(options.signal instanceof AbortSignal);
+      return { status: 200, text: async () => JSON.stringify(HEALTHY_ALERT) };
+    },
+  });
+  assert.equal(calls, 1);
+  assert.equal(result.httpCode, 200);
+  assert.equal(result.exitCode, 0);
+  assert.equal(alertReport(result).failed, false);
+});
+
+test('AC-13 capture does not fetch without a token or expose transport errors', async () => {
+  let calls = 0;
+  const fetchImpl = async () => { calls += 1; throw new Error('SENTINEL-KEY'); };
+  const missing = await captureAlertHealth({ url: 'https://app.invalid', token: ' ', fetchImpl });
+  assert.equal(calls, 0);
+  assert.equal(alertReport(missing).failed, true);
+  const rejected = await captureAlertHealth({ url: 'https://app.invalid', token: 'test-only-token', fetchImpl });
+  assert.equal(calls, 1);
+  assert.equal(rejected.exitCode, 1);
+  assert.ok(!JSON.stringify(rejected).includes('SENTINEL-KEY'));
+});
+
+test('AC-13 workflow captures alert response through the tested JavaScript function', () => {
+  const workflow = readFileSync(WORKFLOW_PATH, 'utf8');
+  assert.match(workflow, /secrets\.ALERT_HEALTH_TOKEN/u);
+  assert.match(workflow, /vars\.NEXT_PUBLIC_APP_URL/u);
+  assert.match(workflow, /await captureAlertHealth\(/u);
+  assert.match(workflow, /JSON\.stringify\(\[\.\.\.captured, result\]\)/u);
+});
+
+// Added for the engineering bench blockers (UNI-2999): offset timestamps, suppression, lead ids, repeat failures.
+const withAlert = (extra) => capture('alert-health') && ({ ...capture('alert-health'), response: JSON.stringify({ ...HEALTHY_ALERT, ...extra }) });
+const LEAD = '11111111-2222-4333-8444-555555555555';
+
+for (const stamp of ['2026-10-22T19:01:00.123456+00:00', '2026-10-22T19:01:00.000Z', '2026-10-23T05:01:00+10:00', '2026-10-22T19:01:00-07:30']) {
+  test(`AC-13 last_failure_at ${stamp} is readable, so a real failure is not reported as no usable response`, () => {
+    const report = alertReport(withAlert({ failed: 1, failed_ids: [LEAD], last_failure_at: stamp }));
+    assert.match(report.body, /`alert-health` \| FAIL \|/u);
+    assert.doesNotMatch(report.body, /no usable response/u);
+    assert.ok(report.body.includes(JSON.stringify(stamp)));
+  });
+}
+
+for (const stamp of ['yesterday', '2026-10-22 19:01:00', '2026-10-22T19:01:00', '2026-13-45T99:99:99+00:00', 12]) {
+  test(`AC-13 last_failure_at ${JSON.stringify(stamp)} is not a timestamp and the response is unusable`, () => {
+    const report = alertReport(withAlert({ failed: 1, last_failure_at: stamp }));
+    assert.match(report.body, /no usable response/u);
+  });
+}
+
+test('AC-13 a suppressed destination fails the gate even though every count is healthy', () => {
+  const report = alertReport(withAlert({ destination: 'suppressed' }));
+  assert.equal(report.failed, true);
+  assert.match(report.body, /`alert-health` \| FAIL \|/u);
+  assert.match(report.body, /destination mailbox is suppressed/u);
+});
+
+test('AC-13 an unknown destination state is shown as NOT CHECKED and does not fail the gate', () => {
+  const report = alertReport(withAlert({ destination: 'unknown' }));
+  assert.equal(report.failed, false);
+  assert.match(report.body, /NOT CHECKED/u);
+});
+
+for (const bad of [{ destination: 'maybe' }, { destination: undefined }, { failed_ids: 'x' }, { unalerted_ids: [LEAD, 7] }, { sent: -1 }]) {
+  test(`AC-13 malformed ${JSON.stringify(bad)} makes the response unusable`, () => {
+    const report = alertReport(withAlert(bad));
+    assert.match(report.body, /`alert-health` \| FAIL \|/u);
+    assert.match(report.body, /no usable response/u);
+  });
+}
+
+test('AC-13 the red alert names the lead ids to follow up and says sent is only accepted', () => {
+  const report = alertReport(withAlert({ failed: 1, unalerted: 1, failed_ids: [LEAD], unalerted_ids: [LEAD] }));
+  assert.match(report.body, /`alert-health` \| FAIL \|/u);
+  assert.ok(report.body.includes(`Leads to follow up: ${LEAD}`));
+  assert.match(report.body, /accepted the message \(HTTP 202\); delivery is not confirmed/u);
+});
+
+test('AC-13 a second outage while the gate is already red is called out as new failures', () => {
+  const first = alertReport(withAlert({ failed: 1, failed_ids: [LEAD], last_failure_at: '2026-10-22T19:01:00Z' }));
+  const worse = composeHeartbeat({
+    date: '25/10/2026',
+    gateEvidence: { ok: true, value: [...CAPTURE_GREEN.filter((g) => g.name !== 'alert-health'), withAlert({ failed: 6, unalerted: 2, failed_ids: [LEAD], last_failure_at: '2026-10-24T19:01:00Z' })] },
+    queueEvidence: { ok: true, value: QUEUE },
+    previousBody: first.body,
+  });
+  assert.match(worse.body, /New alert failures since the previous run: failed 1 to 6, unalerted 0 to 2/u);
+  const same = composeHeartbeat({
+    date: '25/10/2026',
+    gateEvidence: { ok: true, value: [...CAPTURE_GREEN.filter((g) => g.name !== 'alert-health'), withAlert({ failed: 1, failed_ids: [LEAD], last_failure_at: '2026-10-22T19:01:00Z' })] },
+    queueEvidence: { ok: true, value: QUEUE },
+    previousBody: first.body,
+  });
+  assert.doesNotMatch(same.body, /New alert failures/u);
 });

@@ -10,12 +10,14 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { notify } from '@/lib/notifications'
 import {
   buildCrmActivityTimelineEvent,
   buildCrmTimelineAgentActionInsert,
 } from '@/lib/crm/activity-timeline'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 30
 
 type LeadBody = {
   first_name?: string
@@ -142,7 +144,7 @@ async function enrollLeadInDrip(
   })
 
   if (enrollError) {
-    console.error('[leads] drip enroll failed:', enrollError.message)
+    console.error('[leads] drip enroll failed:', enrollError.name)
     return { enrolled: false, contactId: contact.id, reason: 'enroll_failed' }
   }
 
@@ -202,12 +204,33 @@ export async function POST(request: NextRequest) {
       user_agent: userAgent,
       additional_data: businessKey ? { business_key: businessKey } : {},
     })
-    .select('id')
+    .select('id, captured_at')
     .single()
 
   if (insertError || !leadRow) {
-    console.error('[leads] insert failed:', insertError?.message)
+    console.error('[leads] insert failed:', insertError?.name)
     return NextResponse.json({ error: 'Failed to capture lead' }, { status: 500 })
+  }
+
+  let alertTimer: ReturnType<typeof setTimeout> | undefined
+  try {
+    await Promise.race([
+      notify({
+        type: 'new_lead',
+        leadId: leadRow.id,
+        firstName,
+        businessName: clean(body.company, MAX_SHORT_FIELD),
+        interests: clean(body.interests, MAX_LONG_FIELD),
+        capturedAt: leadRow.captured_at,
+      }),
+      new Promise<never>((_, reject) => {
+        alertTimer = setTimeout(() => reject(new Error('Alert deadline exceeded')), 6000)
+      }),
+    ])
+  } catch (error) {
+    console.error('[leads] alert failed:', error instanceof Error ? error.name : 'Error')
+  } finally {
+    if (alertTimer) clearTimeout(alertTimer)
   }
 
   const subjectLabel = [firstName, lastName].filter(Boolean).join(' ').trim() || clean(body.company, MAX_SHORT_FIELD) || email
@@ -229,10 +252,9 @@ export async function POST(request: NextRequest) {
   const timelineInsert = buildCrmTimelineAgentActionInsert(timelineEvent)
   try {
     const { error: timelineError } = await supabase.from('agent_actions').insert(timelineInsert)
-    if (timelineError) console.error('[leads] timeline insert failed:', timelineError.message)
+    if (timelineError) console.error('[leads] timeline insert failed:', timelineError.name)
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    console.error('[leads] timeline insert failed:', message)
+    console.error('[leads] timeline insert failed:', err instanceof Error ? err.name : 'Error')
   }
 
   const dripCampaignId = clean(body.drip_campaign_id, MAX_SHORT_FIELD)

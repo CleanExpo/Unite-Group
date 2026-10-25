@@ -2,6 +2,8 @@
 // Centralised notification router
 // All notification delivery is fire-and-forget — never throws, never blocks callers.
 
+import { deliverLeadAlert, type LeadAlertPayload, type NotifyResult } from './lead-alert'
+export type { LeadAlertPayload, NotifyResult, Outcome, LogOutcome } from './lead-alert'
 import { sendSlack, formatSlackNotification } from './slack'
 import { getFounderUserId } from '@/lib/auth/founder-user-id'
 import { createServiceClient, hasSupabaseServiceConfig } from '@/lib/supabase/service'
@@ -57,7 +59,10 @@ export interface NotificationPayload {
  * Route a notification to all enabled channels for the founder.
  * Never throws — wraps everything in try/catch so callers can fire-and-forget.
  */
-export async function notify(payload: NotificationPayload): Promise<void> {
+export function notify(payload: NotificationPayload): Promise<void>
+export function notify(payload: LeadAlertPayload): Promise<NotifyResult>
+export async function notify(payload: NotificationPayload | LeadAlertPayload): Promise<void | NotifyResult> {
+  if (payload.type === 'new_lead') return deliverLeadAlert(payload)
   try {
     const { type, title, body, businessKey, severity, metadata } = payload
     const founderId = getFounderUserId()

@@ -2,6 +2,8 @@ import { defineConfig } from 'vitest/config';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import path from 'path';
 
+const typecheckOnly = process.argv.includes('--typecheck.only');
+
 /**
  * Vitest Configuration — Unite-Group Nexus 2.0
  *
@@ -13,12 +15,15 @@ export default defineConfig({
   plugins: [tsconfigPaths()],
   test: {
     globals: true,
+    typecheck: { include: ['**/*.test-d.ts'], tsconfig: './tsconfig.typetest.json' },
     environment: 'node',
-    projects: [
+    // Vitest 3 does not pass the CLI typecheck flags into inline projects.
+    projects: typecheckOnly ? undefined : [
       {
         extends: true,
         test: {
           name: 'node',
+          typecheck: { include: ['**/*.test-d.ts'], tsconfig: './tsconfig.typetest.json' },
           environment: 'node',
           include: ['src/**/*.test.ts'],
           exclude: ['src/components/**/*.test.ts', 'src/**/*.test.tsx'],
