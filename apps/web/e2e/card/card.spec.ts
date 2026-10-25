@@ -31,7 +31,7 @@ test.describe('layout', () => {
   test('enquiry form starts above the fold at 390x844', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto(OWNER)
-    const form = page.locator('form')
+    const form = page.locator('form', { has: page.getByLabel('Your first name') })
     await expect(form).toBeVisible()
     const box = await form.boundingBox()
     expect(box).not.toBeNull()
@@ -80,7 +80,8 @@ test.describe('contact.vcf', () => {
 test.describe('enquiry form states', () => {
   test('shows Sending while held, then Saved with a reference', async ({ page, request }) => {
     await page.goto(CLIENT)
-    // wait for React to attach to the form, otherwise the click is a native GET submit
+    // Wait for React to attach to the form, otherwise the click is a native GET submit. The card
+    // exposes no ready signal and test-only changes cannot add one, so this reads React's props key.
     await page.waitForFunction(() => {
       const f = document.querySelector('form')
       return !!f && Object.keys(f).some((k) => k.startsWith('__reactProps'))
@@ -95,7 +96,7 @@ test.describe('enquiry form states', () => {
 
     await request.get(`${FAKE}/__release`)
     const saved = page.getByRole('status')
-    await expect(saved).toContainText('Saved. Reference: LC-0A1B2C3D4E5F', { timeout: 30_000 }) // first submit compiles the action under next dev
+    await expect(saved).toContainText('Saved. Reference: LC-0A1B2C3D4E5F')
     await expect(page.getByRole('button', { name: 'Send enquiry' })).toHaveCount(0)
   })
 })
