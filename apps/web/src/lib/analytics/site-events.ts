@@ -71,7 +71,8 @@ export function cleanCampaignTag(value: string | null | undefined): string | nul
   const v = value?.trim()
   if (!v || v.length > SITE_EVENT_LIMITS.utm) return null
   if (!/^[A-Za-z0-9][A-Za-z0-9 _.+-]*$/.test(v)) return null
-  if (/\d{6,}/.test(v)) return null // long digit runs look like phone or account numbers
+  // Long digit runs look like phone or account numbers; separators are ignored for this test (UNI-3003)
+  if (/\d{6,}/.test(v.replace(/[\s_.+-]/g, ''))) return null
   return v
 }
 
