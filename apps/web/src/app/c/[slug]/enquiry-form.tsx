@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 
-import { CollectionNotice } from '../../cards/collection-notice'
+import { CollectionNotice } from '@/components/public/collection-notice'
 import { submitEnquiryAction } from './actions'
 import styles from './card.module.css'
 
@@ -73,7 +73,8 @@ export function EnquiryForm({ slug, fallback, owner }: { slug: string; fallback?
           <input name="lc_extra" value={website} onChange={(e) => setWebsite(e.target.value)} tabIndex={-1} autoComplete="off" />
         </label>
       </div>
-      <CollectionNotice to={owner ? `${owner} and Unite Group` : 'Unite Group'} />
+      <p className={styles.recipient}>Your message goes to {owner ? `${owner} and Unite Group` : 'Unite Group'}.</p>
+      <CollectionNotice form="card-enquiry" tone="dark" />
       <label className={styles.consent}>
         <input type="checkbox" name="consent" checked={consent} onChange={(e) => setConsent(e.target.checked)} required />
         I agree to my details being used to reply to this enquiry

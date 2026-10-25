@@ -125,6 +125,13 @@
   overflow: hidden;
 }
 
+.enquiry .recipient {
+  margin: 0 0 4px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #a6a29b;
+}
+
 .enquiry .consent {
   display: flex;
   align-items: flex-start;
