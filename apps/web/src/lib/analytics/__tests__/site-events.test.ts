@@ -88,4 +88,12 @@ describe('cleanCampaignTag', () => {
     for (const v of ['a@b.co', '0412345678', 'call <b>', '', ' ', '-lead', 'x'.repeat(101)]) expect(cleanCampaignTag(v)).toBeNull()
     expect(cleanCampaignTag(null)).toBeNull()
   })
+  // UNI-3003: separators split the digit run, so a formatted phone number used to pass the 6-digit test.
+  it('UNI-3003 drops phone numbers written with spaces, dashes, dots or underscores', () => {
+    for (const v of ['0412 345 678', '0412-345-678', '0412.345.678', '0412_345_678', '61 412 345 678', '07 3123 4567', '1300 123 456'])
+      expect(cleanCampaignTag(v)).toBeNull()
+  })
+  it('UNI-3003 still keeps campaign tags that carry a short number', () => {
+    for (const v of ['oct-2026', 'summer 2026 sale', 'q4-26', 'card-v2.1']) expect(cleanCampaignTag(v)).toBe(v)
+  })
 })

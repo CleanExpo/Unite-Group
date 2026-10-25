@@ -4,6 +4,7 @@
  * Tiered limits:
  *   AI routes (/advisory, /campaigns, /coaches, /ai/): 5 req/min
  *   Auth routes (/auth): 10 req/min
+ *   Analytics beacon (/api/events, exact path): 120 req/min backstop
  *   Standard API routes (/api/*): 30 req/min
  *   CRON routes (/api/cron): SKIP (validated by CRON_SECRET)
  *   Non-API routes: SKIP
@@ -33,7 +34,7 @@ interface SlidingWindowEntry {
   timestamps: number[];
 }
 
-type Tier = 'ai' | 'auth' | 'standard';
+type Tier = 'ai' | 'auth' | 'analytics' | 'standard';
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -45,6 +46,8 @@ const CLEANUP_INTERVAL_MS = 60_000; // purge stale entries every 60 s
 const TIER_LIMITS: Record<Tier, number> = {
   ai: 5,
   auth: 10,
+  // Backstop above the route's own 60/min silent-204 limiter (UNI-3002)
+  analytics: 120,
   standard: 30,
 };
 
@@ -90,6 +93,10 @@ export function classifyTier(pathname: string): Tier | null {
 
   // CRON routes — skip (validated by CRON_SECRET)
   if (pathname.startsWith('/api/cron')) return null;
+
+  // First-party analytics beacon — own bucket so beacons never starve other
+  // /api/* calls. Exact path only: /api/events/x and /api/agents/events differ.
+  if (pathname === '/api/events') return 'analytics';
 
   // Drip lifecycle actions are CRUD/workflow operations, not AI generation.
   if (pathname.startsWith('/api/campaigns/drip')) return 'standard';

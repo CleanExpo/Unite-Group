@@ -169,12 +169,16 @@ export function parseSourceParam(value: string | string[] | undefined): InboxSou
  * PostgREST `or` filter matching any of `emails` case-insensitively (ilike). Stored contact emails keep
  * the case they were typed in, so an exact `in` would miss "Ann@Example.com" for the lowercased
  * "ann@example.com". Values are double-quoted so commas and parentheses cannot break the filter; an
- * address containing a quote or backslash cannot be quoted safely and is left unlinked. `_` and `%`
- * stay LIKE wildcards: that can only over-match, and the caller keys results by exact lowercased email.
+ * address containing a double quote or '*' cannot be expressed literally and is left unlinked (results
+ * are keyed by exact lowercased email, so that lead just gets no contact link).
+ * UNI-3007: '%' and '_' are LIKE wildcards, so each of backslash, '%' and '_' is backslash-escaped
+ * (layer 1, LIKE), then every backslash is doubled because PostgREST treats backslash as an escape
+ * inside a double-quoted value (layer 2, PostgREST). PostgREST also turns '*' into '%', hence the skip.
  */
 export function contactEmailFilter(emails: string[]): string {
   return emails
-    .filter((e) => !/["\\]/.test(e))
+    .filter((e) => !/["*]/.test(e))
+    .map((e) => e.replace(/[\\%_]/g, (c) => '\\' + c).replace(/\\/g, '\\\\'))
     .map((e) => `email.ilike."${e}"`)
     .join(',')
 }
