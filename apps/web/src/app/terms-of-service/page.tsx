@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import styles from '../legal-prose.module.css'
 import { COMPANY_NAME, companyAbnLabel } from '@/lib/legal/company'
 
 export const metadata: Metadata = {
@@ -39,7 +40,7 @@ export default function TermsOfServicePage() {
       </header>
 
       {/* Body */}
-      <main className="max-w-3xl mx-auto px-6 py-14">
+      <main className={`max-w-3xl mx-auto px-6 py-14 ${styles.prose}`}>
         <h1
           style={{
             fontSize: '28px',

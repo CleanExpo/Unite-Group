@@ -299,6 +299,9 @@ svg.lucide {
     /* Colour Tokens — candy green primary, dark ink on cream */
     --color-accent:         #16a34a;
     --color-accent-text:    #15803d; /* darker green for TEXT on light (AA ~4.8:1); #16a34a stays for fills/buttons */
+    /* Label on the --color-accent-10/-20 tint (primary button). #15803d is only 4.42:1 on that
+       tint over the canvas and 3.95:1 on hover, so labels use this; 5.6:1 or more on both. */
+    --color-accent-on-tint: #166534;
     --color-accent-dim:     rgba(22, 163, 74, 0.08);
     --color-accent-border:  rgba(22, 163, 74, 0.3);
     --color-text-primary:   #0A0A0A;

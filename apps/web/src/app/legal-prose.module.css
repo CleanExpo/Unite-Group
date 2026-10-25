@@ -1,0 +1,15 @@
+/* Bullets for the legal pages. The global reset strips list markers, which
+   ran every list item into plain lines on /privacy-policy and /terms-of-service. */
+.prose ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+  margin: 0.5rem 0 0.75rem;
+}
+
+.prose li {
+  margin-bottom: 0.35rem;
+}
+
+.prose li::marker {
+  color: rgba(28, 25, 23, 0.55);
+}
