@@ -35,10 +35,11 @@
 }
 .line { font-size: 15px; line-height: 1.35; color: var(--pub-ink-soft); }
 
-/* Today reads as a link: bright name, accent border on hover, focus ring from the page. */
-.page .live { text-decoration: none; color: var(--pub-ink); }
-.page .live:hover { border-color: var(--pub-accent); color: var(--pub-ink); }
-.live:hover .name { color: var(--pub-accent-strong); }
+/* Today reads as a link: bright name, accent border on hover, focus ring from the page. `.list .live` (two classes)
+   outranks the page-wide `.page a` and `.page a:hover` link colours from public.module.css without a :global. */
+.list .live { text-decoration: none; color: var(--pub-ink); }
+.list .live:hover { border-color: var(--pub-accent); color: var(--pub-ink); }
+.list .live:hover .name { color: var(--pub-accent-strong); }
 .live:focus-visible { outline: 3px solid var(--pub-focus); outline-offset: 2px; }
 
 /* Coming is visibly quieter: muted ink, dashed line, no hover. */
