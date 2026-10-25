@@ -3,7 +3,7 @@
 //
 // Every fact here is taken from the privacy policy page (src/app/privacy-policy/page.tsx):
 // the collector is the company in section 1, the purposes are sections 10 and 13.1, the recipients
-// are section 13.2 (Supabase hosts the database, Vercel hosts the website and keeps request logs, SendGrid
+// are section 13.2 (Supabase hosts the database, Vercel hosts the website and keeps request logs, Mailtrap
 // delivers the emails our system sends),
 // "we do not sell" is sections 10 and 13.1, and access, correction and complaints are sections 10 and 13.4.
 // Section 13 "covers the public parts of our website" and "applies in addition to the sections above", so its
@@ -40,7 +40,7 @@ export const COLLECTION_PURPOSES: Record<CollectionNoticeForm, string> = {
 
 /** Who the details may go to (section 13.2) and the no-sale promise (sections 10 and 13.1). */
 export const COLLECTION_RECIPIENTS =
-  'We store them in our database, hosted by Supabase. Vercel hosts the website and keeps request logs, and the emails we send you are delivered by SendGrid. We do not sell your information.'
+  'We store them in our database, hosted by Supabase. Vercel hosts the website and keeps request logs, and the emails we send you are delivered by Mailtrap. We do not sell your information.'
 
 /** How to access or correct the details (sections 10 and 13.4). */
 export const COLLECTION_ACCESS = `You can ask to see, correct or delete your information at any time by emailing ${PRIVACY_CONTACT_EMAIL}.`

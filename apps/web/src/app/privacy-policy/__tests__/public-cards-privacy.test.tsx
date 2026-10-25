@@ -34,7 +34,7 @@ describe('privacy policy: public website and Living Business Cards', () => {
 
   it('names the recipients the code actually uses', () => {
     const s = section()
-    for (const r of ['Stripe', 'CARSI Pty Ltd', 'Supabase', 'Vercel', 'SendGrid']) expect(s, r).toContain(r)
+    for (const r of ['Stripe', 'CARSI Pty Ltd', 'Supabase', 'Vercel', 'Mailtrap']) expect(s, r).toContain(r)
   })
 
   it('says card-owner delivery only once the forms are switched on', () => {

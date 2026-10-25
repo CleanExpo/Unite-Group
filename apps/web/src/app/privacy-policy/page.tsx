@@ -187,7 +187,7 @@ export default function PrivacyPolicyPage() {
               <tr><td>Anthropic</td><td>AI completions (Claude API)</td><td>US</td></tr>
               <tr><td>Google (OAuth + APIs)</td><td>Authentication, Gmail, Calendar, Drive</td><td>Global</td></tr>
               <tr><td>Xero</td><td>Accounting data</td><td>AU / NZ</td></tr>
-              <tr><td>Twilio SendGrid</td><td>Enquiry alert emails (first name, business name and package requested)</td><td>Overseas / US</td></tr>
+              <tr><td>Mailtrap (Railsware)</td><td>Enquiry alert emails (first name, business name and package requested)</td><td>Overseas / US</td></tr>
             </tbody>
           </table>
           <p>
@@ -248,9 +248,9 @@ export default function PrivacyPolicyPage() {
           </p>
           <p>
             We store enquiries in our customer database (hosted with Supabase), which only {COMPANY} staff can
-            access. We also send your first name, business name and the package requested through SendGrid
+            access. We also send your first name, business name and the package requested through Mailtrap
             to our alert mailbox, with a sign-in link to the enquiry. Contact details and your message
-            stay in the Application. SendGrid processes this alert overseas; the email copy is retained
+            stay in the Application. Mailtrap processes this alert overseas; the email copy is retained
             according to the alert mailbox account settings. We do not sell your information. We keep enquiry records for as long as needed to respond and
             follow up, unless you ask us to delete them sooner.
           </p>
@@ -325,7 +325,7 @@ export default function PrivacyPolicyPage() {
             </li>
             <li>Supabase, which hosts our database.</li>
             <li>Vercel, which hosts the website and keeps request logs.</li>
-            <li>SendGrid, which delivers the emails our system sends.</li>
+            <li>Mailtrap, which delivers the emails our system sends.</li>
             <li>ElevenLabs, which provides the voice agent that answers calls to the Margot phone line, and Twilio, the phone carrier for that line.</li>
           </ul>
           <p>

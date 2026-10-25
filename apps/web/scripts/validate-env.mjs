@@ -54,8 +54,10 @@ const INTEGRATION = [
   { name: 'LEAD_ALERT_EMAIL_TO', hint: 'Enquiry alert email destination', group: 'Alerts' },
   { name: 'ALERT_HEALTH_TOKEN', hint: 'Read-only alert health bearer', group: 'Alerts' },
   { name: 'ALERT_DEDUP_SECRET', hint: 'Server secret that keys the enquiry duplicate hash', group: 'Alerts' },
-  { name: 'SENDGRID_API_KEY', hint: 'SendGrid email API key', group: 'Alerts' },
-  { name: 'SENDGRID_FROM_EMAIL', hint: 'SendGrid verified sender', group: 'Alerts' },
+  { name: 'SENDGRID_API_KEY', hint: 'SendGrid email API key (campaigns only, being retired)', group: 'Alerts' },
+  { name: 'SENDGRID_FROM_EMAIL', hint: 'SendGrid verified sender (campaigns only, being retired)', group: 'Alerts' },
+  { name: 'MAILTRAP_API_KEY', hint: 'Mailtrap sending API key (lead alerts, card emails)', group: 'Alerts' },
+  { name: 'MAILTRAP_FROM_EMAIL', hint: 'Mailtrap verified sender, defaults to contact@unite-group.in', group: 'Alerts' },
   // Linear
   { name: 'LINEAR_API_KEY', hint: 'Linear personal API key', group: 'Linear' },
   // Xero — CARSI account

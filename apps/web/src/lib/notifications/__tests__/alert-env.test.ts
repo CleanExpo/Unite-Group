@@ -6,7 +6,7 @@ describe('alert environment declarations', () => {
   it('keeps both new variables in the advisory integration tier', () => {
     const source = readFileSync('scripts/validate-env.mjs', 'utf8')
     const integration = source.split('const INTEGRATION = [')[1].split('\n]')[0]
-    for (const name of ['LEAD_ALERT_EMAIL_TO', 'ALERT_HEALTH_TOKEN', 'ALERT_DEDUP_SECRET', 'SENDGRID_API_KEY', 'SENDGRID_FROM_EMAIL']) {
+    for (const name of ['LEAD_ALERT_EMAIL_TO', 'ALERT_HEALTH_TOKEN', 'ALERT_DEDUP_SECRET', 'MAILTRAP_API_KEY', 'MAILTRAP_FROM_EMAIL']) {
       expect(integration).toContain(`name: '${name}'`)
     }
     const result = spawnSync(process.execPath, ['scripts/validate-env.mjs', '--ci'], {

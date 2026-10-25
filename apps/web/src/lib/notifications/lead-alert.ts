@@ -1,7 +1,8 @@
 import { dedupKey } from './dedup-key'
 import { GROW_PACKAGES } from '@/app/grow/packages'
 import { EDITIONS } from '@/app/cards/editions'
-import { sendEmail } from '@/lib/integrations/sendgrid'
+import { mailtrapFromEmail, sendEmail } from '@/lib/integrations/mailtrap'
+import { CONTACT_ALERT_DEFAULT_TO } from './lead-alert-recipient'
 import { createServiceClient } from '@/lib/supabase/service'
 
 const CAP_MS = 6000
@@ -111,15 +112,15 @@ async function deliver(payload: LeadAlertPayload, signal: AbortSignal, startedAt
   }
   if (signal.aborted) return { email: 'failed' }
   let outcome: Outcome = 'unconfigured'
-  const to = process.env.LEAD_ALERT_EMAIL_TO?.trim()
-  const from = process.env.SENDGRID_FROM_EMAIL?.trim()
-  if (to && from && process.env.SENDGRID_API_KEY?.trim()) {
+  const to = process.env.LEAD_ALERT_EMAIL_TO?.trim() || CONTACT_ALERT_DEFAULT_TO
+  const from = mailtrapFromEmail()
+  if (process.env.MAILTRAP_API_KEY?.trim()) {
     try {
       const content = buildAlertText(payload)
-      // SendGrid must time out before the cap does, or an accepted email leaves its row pending.
+      // Mailtrap must time out before the cap does, or an accepted email leaves its row pending.
       const timeoutMs = Math.min(5000, CAP_MS - (Date.now() - startedAt) - 500)
       if (timeoutMs < 1000) throw new Error('No time left to send')
-      await sendEmail({ to: { email: to }, from: { email: from }, subject: 'New enquiry', ...content, timeoutMs, disableTracking: true })
+      await sendEmail({ to: { email: to }, from: { email: from }, subject: 'New enquiry', ...content, timeoutMs, categories: ['lead-alert'] })
       outcome = signal.aborted ? 'failed' : 'sent'
     } catch (error) {
       outcome = 'failed'

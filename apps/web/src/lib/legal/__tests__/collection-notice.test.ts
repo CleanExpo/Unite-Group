@@ -46,7 +46,7 @@ describe('collection notice parity with the privacy policy', () => {
   it('has the policy sentences behind the recipients, the no-sale promise and access', () => {
     expect(policy).toContain('Supabase, which hosts our database.')
     expect(policy).toContain('Vercel, which hosts the website and keeps request logs.')
-    expect(policy).toContain('SendGrid, which delivers the emails our system sends.')
+    expect(policy).toContain('Mailtrap, which delivers the emails our system sends.')
     expect(policy).toContain('We do not sell')
     expect(policy).toMatch(/see, correct or delete|access, correct or delete/)
   })
@@ -71,7 +71,7 @@ describe('collection notice parity with the privacy policy', () => {
 
   it('pins the recipient and access sentences to the wording the policy sentences above back', () => {
     expect(COLLECTION_RECIPIENTS).toBe(
-      'We store them in our database, hosted by Supabase. Vercel hosts the website and keeps request logs, and the emails we send you are delivered by SendGrid. We do not sell your information.',
+      'We store them in our database, hosted by Supabase. Vercel hosts the website and keeps request logs, and the emails we send you are delivered by Mailtrap. We do not sell your information.',
     )
     expect(COLLECTION_ACCESS).toBe(
       'You can ask to see, correct or delete your information at any time by emailing contact@unite-group.in.',
@@ -85,6 +85,6 @@ describe('collection notice parity with the privacy policy', () => {
 
   it.each(forms)('the %s notice states its purpose, the recipients and the contact', (form) => {
     const text = collectionNoticeText(form)
-    for (const w of [COLLECTION_PURPOSES[form], 'Supabase', 'Vercel', 'SendGrid', PRIVACY_CONTACT_EMAIL, 'We do not sell']) expect(text, w).toContain(w)
+    for (const w of [COLLECTION_PURPOSES[form], 'Supabase', 'Vercel', 'Mailtrap', PRIVACY_CONTACT_EMAIL, 'We do not sell']) expect(text, w).toContain(w)
   })
 })

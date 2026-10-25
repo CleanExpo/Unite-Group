@@ -7,7 +7,7 @@ vi.mock('@/lib/supabase/service', () => ({
   createServiceClient: () => ({ from: mocks.from, rpc: mocks.rpc }),
   hasSupabaseServiceConfig: () => true,
 }))
-vi.mock('@/lib/integrations/sendgrid', () => ({ sendEmail: mocks.sendEmail }))
+vi.mock('@/lib/integrations/mailtrap', () => ({ sendEmail: mocks.sendEmail, mailtrapFromEmail: () => 'sender@example.invalid' }))
 import { notify } from '../index'
 import { buildAlertText, packageLabel } from '../lead-alert'
 import { POST } from '@/app/api/leads/route'
@@ -67,8 +67,7 @@ beforeEach(() => {
   vi.unstubAllEnvs()
   vi.stubEnv('FOUNDER_USER_ID', founder)
   vi.stubEnv('LEAD_ALERT_EMAIL_TO', 'destination@example.invalid')
-  vi.stubEnv('SENDGRID_API_KEY', 'test-placeholder')
-  vi.stubEnv('SENDGRID_FROM_EMAIL', 'sender@example.invalid')
+  vi.stubEnv('MAILTRAP_API_KEY', 'test-placeholder')
   vi.stubEnv('ALERT_DEDUP_SECRET', 'test-placeholder-dedup-secret')
   vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://app.example.invalid')
   for (const method of ['log', 'warn', 'error'] as const) vi.spyOn(console, method).mockImplementation(() => {})
@@ -172,7 +171,13 @@ describe('lead alert privacy and delivery', () => {
     expect(() => buildAlertText(payload())).toThrow('Invalid alert base URL')
   })
 
-  it.each(['LEAD_ALERT_EMAIL_TO', 'SENDGRID_API_KEY', 'SENDGRID_FROM_EMAIL'])('returns unconfigured before sending when %s is unset', async (name) => {
+  it('sends to contact@unite-group.in when LEAD_ALERT_EMAIL_TO is unset', async () => {
+    vi.stubEnv('LEAD_ALERT_EMAIL_TO', '')
+    expect(await notify(payload())).toEqual({ email: 'sent' })
+    expect(mocks.sendEmail.mock.calls[0][0].to).toEqual({ email: 'contact@unite-group.in' })
+  })
+
+  it.each(['MAILTRAP_API_KEY'])('returns unconfigured before sending when %s is unset', async (name) => {
     vi.stubEnv(name, '')
     expect(await notify(payload())).toEqual({ email: 'unconfigured' })
     expect(mocks.sendEmail).not.toHaveBeenCalled()
@@ -235,10 +240,11 @@ describe('atomic claim contract with predicate-aware fake', () => {
     expect(JSON.stringify(vi.mocked(console.error).mock.calls)).toContain('ALERT_DEDUP_SECRET')
   })
 
-  it('sends with tracking off and the lead id in plain text so the mailbox copy can be found and erased', async () => {
+  it('sends through Mailtrap with a lead-alert category and the lead id in plain text so the mailbox copy can be found and erased', async () => {
     await notify(payload())
     const input = mocks.sendEmail.mock.calls[0][0]
-    expect(input.disableTracking).toBe(true)
+    expect(input.categories).toEqual(['lead-alert'])
+    expect(input.from).toEqual({ email: 'sender@example.invalid' })
     expect(input.text).toContain('Ref: lead-1')
   })
 

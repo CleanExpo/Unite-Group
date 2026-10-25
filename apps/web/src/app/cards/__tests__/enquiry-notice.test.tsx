@@ -33,7 +33,7 @@ describe('/cards/order enquiry form collection notice (APP 5)', () => {
     expect(COMPANY_NAME).toBe('Unite-Group Nexus Pty Ltd')
     expect(t).toContain(COLLECTION_PURPOSES['card-enquiry'])
     expect(t).toContain('Supabase')
-    expect(t).toContain('SendGrid')
+    expect(t).toContain('Mailtrap')
     expect(t).toContain(PRIVACY_CONTACT_EMAIL)
   })
 

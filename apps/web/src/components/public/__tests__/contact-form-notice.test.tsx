@@ -34,7 +34,7 @@ describe('home contact form APP 5 collection notice', () => {
     expect(text).toContain('Unite-Group Nexus Pty Ltd')
     expect(text).toContain(COLLECTION_PURPOSES.home)
     expect(text).toContain('Supabase')
-    expect(text).toContain('SendGrid')
+    expect(text).toContain('Mailtrap')
     expect(text).toContain(PRIVACY_CONTACT_EMAIL)
     expect(text).toContain('contact@unite-group.in')
   })
