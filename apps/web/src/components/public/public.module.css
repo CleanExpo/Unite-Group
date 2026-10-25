@@ -230,11 +230,7 @@
 @media (min-width: 1000px) { .grid4 { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .steps { grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 800px) { .steps { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-.grid4 .mediaCard { aspect-ratio: 4 / 3; }
-@media (min-width: 1000px) { .grid4 .mediaCard { aspect-ratio: 3 / 4; } }
 .grid4 .cardTitle { font-size: clamp(1.4rem, 2.4vw, 1.9rem); }
-.steps .mediaCard { aspect-ratio: 4 / 3; }
-.stepNo { font-family: var(--pub-mono); font-size: 13px; color: var(--pub-accent-strong); }
 
 /* ---- living cards: price and the one bright button ---- */
 .offer { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-top: 28px; }

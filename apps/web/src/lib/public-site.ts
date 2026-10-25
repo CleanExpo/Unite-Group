@@ -70,7 +70,7 @@ export const PILLARS: readonly Pillar[] = [
   },
 ]
 
-export const pillarPath = (slug: Pillar['slug']) => `/solutions/${slug}`
+export const pillarPath = (slug: Pillar['slug']): `/solutions/${Pillar['slug']}` => `/solutions/${slug}`
 
 /** The only product on sale. It sits in the Conversion layer (spec s10). */
 export const SHIPPED_PILLAR: Pillar['slug'] = 'conversion'
@@ -89,3 +89,5 @@ export const PUBLIC_ROUTES = [
   '/privacy-policy',
   '/terms-of-service',
 ] as const
+
+export type PublicRoute = (typeof PUBLIC_ROUTES)[number]

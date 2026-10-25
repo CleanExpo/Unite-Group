@@ -63,6 +63,16 @@ serving the previous deployment while the fix sits merged and undeployed. That
 is a silent stale-production incident that looks exactly like a successful
 merge. Ambiguity always builds.
 
+`[VERIFIED]` **A redeploy of the same commit builds.** When
+`VERCEL_GIT_PREVIOUS_SHA` equals the commit being deployed, the script exits 1
+(build). A commit diffed against itself is always empty, which would otherwise
+read as "nothing changed" and skip. Redeploying one commit is the only way to
+apply an environment-variable change, since env values are baked in at build
+time. Before this guard, the redeploy `dpl_9ebQne2UxJSCTQZEr1yvFzEWUKsa` of
+`main` `9de05deb` (25/10/2026) was canceled by the ignored build step and the
+new env never went live. Covered by the test "a redeploy of the same commit
+builds" in `scripts/__tests__/preflight.test.mjs`.
+
 `[VERIFIED]` The trigger set is wider than `apps/web/`. The app's `prebuild`
 runs `sync-portfolio-registry.mjs` and `sync-capability-registry.mjs`, which
 read `.portfolio/PORTFOLIO.yaml`, `.claude/agents`, `.claude/skills` and
