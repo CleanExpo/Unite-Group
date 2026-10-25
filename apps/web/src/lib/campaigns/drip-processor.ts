@@ -1,7 +1,8 @@
 // src/lib/campaigns/drip-processor.ts
 // Shared drip-step processor (UNI-2356): advances due enrollments for a
-// campaign — live SendGrid sends when dryRun is false, dry-run bookkeeping
-// otherwise. Used by POST /api/campaigns/drip (process_pending) and the
+// campaign — live SendGrid sends when dryRun is false, a read-only preview
+// otherwise (UNI-2931: a dry run performs no writes at all). Used by
+// POST /api/campaigns/drip (process_pending) and the
 // /api/cron/drip-process cron so both paths share one send/advance semantics.
 
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -32,7 +33,7 @@ export interface ProcessCampaignDripInput {
   campaignId: string
   /** Business key the campaign belongs to — drives the from-address. */
   businessKey: string
-  /** true (default upstream) never touches the provider. */
+  /** true (default upstream) is a read-only preview: no provider call, no DB writes. */
   dryRun: boolean
   now?: Date
 }
@@ -41,6 +42,11 @@ export interface DripProcessSummary {
   processed: number
   skipped: number
   failed: number
+  /**
+   * Dry run only: due non-test recipients the preview does not simulate (a live
+   * run would attempt them). Absent on live runs.
+   */
+  blocked?: number
   dryRun: boolean
   providerSend: 'not_attempted' | 'attempted'
   /** true when a live run was refused because DRIP_LIVE_SEND_ENABLED is not 'true'. */
@@ -80,11 +86,15 @@ export function resolveDripFromAddress(businessKey: string): EmailRecipient {
 /**
  * Process every due active enrollment of one campaign.
  *
- * dryRun=true keeps the pre-UNI-2356 semantics exactly: safe test recipients
- * are advanced with a `dry_run_processed` event, everything else is blocked
- * and marked failed. dryRun=false is the new live lane: each due step is sent
- * via SendGrid, recorded as a `sent` event (provider_send='sent',
- * metadata.messageId), and the enrollment advances or completes.
+ * dryRun=true is a read-only preview (UNI-2931): it reads steps and due
+ * enrollments and writes NOTHING (no enrollment, event or campaign update) and
+ * never sends. `processed` counts due safe-test-recipient enrollments that
+ * would advance, `skipped` counts due enrollments with no matching step (would
+ * complete), `blocked` counts due non-test recipients the preview does not
+ * simulate, and `failed` is always 0.
+ * dryRun=false is the live lane: each due step is sent via SendGrid, recorded
+ * as a `sent` event (provider_send='sent', metadata.messageId), and the
+ * enrollment advances or completes.
  */
 export async function processCampaignDrip(
   input: ProcessCampaignDripInput
@@ -106,6 +116,7 @@ export async function processCampaignDrip(
   let processed = 0
   let skipped = 0
   let failed = 0
+  let blocked = 0
 
   const { data: stepsData, error: stepsError } = await supabase
     .from('drip_steps')
@@ -131,6 +142,14 @@ export async function processCampaignDrip(
 
   for (const enrollment of (enrollments ?? []) as DripEnrollmentRow[]) {
     const step = stepsByOrder.get(enrollment.current_step_order)
+    if (dryRun) {
+      // Read-only preview: classify, never write.
+      if (!step) skipped++
+      else if (isSafeDryRunRecipient(enrollment.email)) processed++
+      else blocked++
+      continue
+    }
+
     if (!step) {
       const { error } = await supabase
         .from('drip_enrollments')
@@ -142,25 +161,33 @@ export async function processCampaignDrip(
       continue
     }
 
-    if (dryRun && !isSafeDryRunRecipient(enrollment.email)) {
+    let messageId: string
+    try {
+      messageId = await sendEmail({
+        to: { email: enrollment.email, name: enrollment.name ?? undefined },
+        from: resolveDripFromAddress(businessKey),
+        subject: step.subject,
+        html: step.body_html,
+        text: step.body_text ?? undefined,
+        categories: ['drip'],
+        customArgs: { drip_enrollment_id: enrollment.id, drip_step_id: step.id },
+      })
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err)
+      console.error('[drip-processor] send failed:', message)
+
       const { error: updateError } = await supabase
         .from('drip_enrollments')
         .update({
           status: 'failed',
           metadata: {
-            blockedReason: 'unsafe_or_live_send_blocked',
+            blockedReason: 'provider_send_failed',
             blockedAt: now.toISOString(),
-            dryRun,
+            error: message,
           } satisfies JsonObject,
         })
         .eq('id', enrollment.id)
         .eq('founder_id', founderId)
-
-      if (updateError) {
-        console.error('[drip-processor] unsafe send block failed:', updateError.message)
-        failed++
-        continue
-      }
 
       const { error: eventError } = await supabase.from('drip_events').insert({
         founder_id: founderId,
@@ -169,72 +196,18 @@ export async function processCampaignDrip(
         contact_id: enrollment.contact_id,
         step_id: step.id,
         event_type: 'failed',
-        provider_send: 'not_attempted',
-        metadata: { dryRun, reason: 'unsafe_or_live_send_blocked' } satisfies JsonObject,
+        provider_send: 'error',
+        metadata: { dryRun: false, error: message } satisfies JsonObject,
       })
 
-      if (eventError) {
-        console.error('[drip-processor] unsafe send event failed:', eventError?.message)
+      if (updateError || eventError) {
+        console.error(
+          '[drip-processor] send-failure bookkeeping failed:',
+          updateError?.message ?? eventError?.message
+        )
       }
       failed++
       continue
-    }
-
-    let eventType: 'dry_run_processed' | 'sent' = 'dry_run_processed'
-    let providerSend = 'not_attempted'
-    let eventMetadata: JsonObject = { dryRun: true }
-
-    if (!dryRun) {
-      try {
-        const messageId = await sendEmail({
-          to: { email: enrollment.email, name: enrollment.name ?? undefined },
-          from: resolveDripFromAddress(businessKey),
-          subject: step.subject,
-          html: step.body_html,
-          text: step.body_text ?? undefined,
-          categories: ['drip'],
-          customArgs: { drip_enrollment_id: enrollment.id, drip_step_id: step.id },
-        })
-        eventType = 'sent'
-        providerSend = 'sent'
-        eventMetadata = { dryRun: false, messageId }
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err)
-        console.error('[drip-processor] send failed:', message)
-
-        const { error: updateError } = await supabase
-          .from('drip_enrollments')
-          .update({
-            status: 'failed',
-            metadata: {
-              blockedReason: 'provider_send_failed',
-              blockedAt: now.toISOString(),
-              error: message,
-            } satisfies JsonObject,
-          })
-          .eq('id', enrollment.id)
-          .eq('founder_id', founderId)
-
-        const { error: eventError } = await supabase.from('drip_events').insert({
-          founder_id: founderId,
-          campaign_id: campaignId,
-          enrollment_id: enrollment.id,
-          contact_id: enrollment.contact_id,
-          step_id: step.id,
-          event_type: 'failed',
-          provider_send: 'error',
-          metadata: { dryRun: false, error: message } satisfies JsonObject,
-        })
-
-        if (updateError || eventError) {
-          console.error(
-            '[drip-processor] send-failure bookkeeping failed:',
-            updateError?.message ?? eventError?.message
-          )
-        }
-        failed++
-        continue
-      }
     }
 
     const nextOrder = enrollment.current_step_order + 1
@@ -256,9 +229,9 @@ export async function processCampaignDrip(
       enrollment_id: enrollment.id,
       contact_id: enrollment.contact_id,
       step_id: step.id,
-      event_type: eventType,
-      provider_send: providerSend,
-      metadata: eventMetadata,
+      event_type: 'sent',
+      provider_send: 'sent',
+      metadata: { dryRun: false, messageId } satisfies JsonObject,
     })
 
     const { error: updateError } = await supabase
@@ -271,7 +244,7 @@ export async function processCampaignDrip(
     else processed++
   }
 
-  if (failed > 0) {
+  if (!dryRun && failed > 0) {
     await supabase
       .from('drip_campaigns')
       .update({ status: 'partial' })
@@ -283,6 +256,7 @@ export async function processCampaignDrip(
     processed,
     skipped,
     failed,
+    ...(dryRun ? { blocked } : {}),
     dryRun,
     providerSend: dryRun ? 'not_attempted' : 'attempted',
   }

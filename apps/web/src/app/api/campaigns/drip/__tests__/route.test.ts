@@ -129,4 +129,24 @@ describe('POST /api/campaigns/drip', () => {
     expect(res.status).toBe(409)
     expect(await res.json()).toMatchObject({ error: 'Contact is already enrolled' })
   })
+
+  it('UNI-2931 process_pending dry run (default) performs no writes and reports blocked', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
+    const campaign = { id: 'dc-1', founder_id: 'user-1', business_key: 'synthex', name: 'T', subject: 'S', body_html: '<p>', body_text: null, status: 'active', source: 'api', metadata: {}, created_at: '', updated_at: '' }
+    mockSingle.mockResolvedValue({ data: campaign, error: null })
+    const step = { id: 'step-1', step_order: 1, subject: 'S', body_html: '<p>', body_text: null, delay_minutes: 0 }
+    const enr = (id: string, email: string) => ({ id, contact_id: `c-${id}`, email, name: null, current_step_order: 1 })
+    chain.order
+      .mockResolvedValueOnce({ data: [step], error: null })
+      .mockResolvedValueOnce({ data: [enr('e1', 'real@example.com'), enr('e2', 'x@unite-hub.test')], error: null })
+
+    const res = await POST(req({ action: 'process_pending', campaignId: 'dc-1' }))
+
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({
+      result: { processed: 1, skipped: 0, failed: 0, blocked: 1, dryRun: true, providerSend: 'not_attempted' },
+    })
+    expect(chain.update).not.toHaveBeenCalled()
+    expect(chain.insert).not.toHaveBeenCalled()
+  })
 })
