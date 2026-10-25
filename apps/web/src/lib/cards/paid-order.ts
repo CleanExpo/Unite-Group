@@ -1,13 +1,13 @@
 // Paid living-card orders (UNI-2996 B5).
 //
-// A checkout.session.completed whose price is one of CARD_TIERS, or a whole multiple (1..5) of the
-// extra-business add-on, becomes one card_orders row, then one alert email with the buyer's name and
-// what they bought. The add-on is its own Payment Link with adjustable quantity (a link URL cannot carry
-// one), so its quantity is recovered from the amount and stored only on add-on rows. No card data ever
-// reaches this code: Stripe's session carries none. Idempotency is the UNIQUE(stripe_session_id)
-// constraint, not a timer: a redelivered event inserts nothing and so sends nothing. Only sessions
-// from the listed card Payment Links count (STRIPE_CARD_PAYMENT_LINK_IDS); the price match alone
-// never creates an order.
+// A checkout.session.completed whose price is one of CARD_TIERS, or a session from the extra-business
+// Payment Link (STRIPE_CARD_EXTRA_BUSINESS_PAYMENT_LINK_ID) paying 1..5 x its price, becomes one
+// card_orders row, then one alert email with the buyer's name and what they bought. The add-on is its
+// own Payment Link with adjustable quantity (a link URL cannot carry one), so its quantity is recovered
+// from the amount and stored only on add-on rows. No card data ever reaches this code: Stripe's session
+// carries none. Idempotency is the UNIQUE(stripe_session_id) constraint, not a timer: a redelivered
+// event inserts nothing and so sends nothing. Tier orders count only from the listed card Payment Links
+// (STRIPE_CARD_PAYMENT_LINK_IDS); the price match alone never creates an order.
 
 import type Stripe from 'stripe'
 
@@ -28,23 +28,6 @@ export type CardPurchase =
   | { kind: 'tier'; tier: CardTier }
   | { kind: 'extra_business'; quantity: number }
 
-/**
- * What a session paid for: a card tier (exact price, checked first) or the extra-business add-on
- * (amount a whole multiple of its price, 1..maxQuantity). Anything else is null.
- */
-export function matchCardPurchase(
-  session: Pick<Stripe.Checkout.Session, 'amount_total' | 'currency'>,
-): CardPurchase | null {
-  const tier = matchCardTier(session)
-  if (tier) return { kind: 'tier', tier }
-  const amount = session.amount_total
-  if (session.currency?.toLowerCase() !== 'aud' || typeof amount !== 'number') return null
-  const unit = CARD_EXTRA_BUSINESS.priceAud * 100
-  const quantity = amount / unit
-  if (!Number.isInteger(quantity) || quantity < 1 || quantity > CARD_EXTRA_BUSINESS.maxQuantity) return null
-  return { kind: 'extra_business', quantity }
-}
-
 /** The Payment Link a session came from: Stripe sends its id (plink_...) or, when expanded, the object. */
 function paymentLinkId(session: Pick<Stripe.Checkout.Session, 'payment_link'>): string | null {
   const link = session.payment_link as string | { id?: string } | null | undefined
@@ -63,6 +46,24 @@ export function isCardPaymentLink(session: Pick<Stripe.Checkout.Session, 'paymen
   return allowed.includes(id)
 }
 
+/**
+ * True when the session came from the extra-business Payment Link, whose plink_ id (not secret) is
+ * STRIPE_CARD_EXTRA_BUSINESS_PAYMENT_LINK_ID. Unset or empty fails closed: no add-on is ever recorded.
+ */
+function isExtraBusinessLink(session: Pick<Stripe.Checkout.Session, 'payment_link'>): boolean {
+  const id = paymentLinkId(session)
+  const configured = process.env.STRIPE_CARD_EXTRA_BUSINESS_PAYMENT_LINK_ID?.trim()
+  return Boolean(id && configured && id === configured)
+}
+
+/** How many add-ons an AUD amount buys: a whole multiple of the unit price, 1..maxQuantity, else null. */
+function extraBusinessQuantity(session: Pick<Stripe.Checkout.Session, 'amount_total' | 'currency'>): number | null {
+  const amount = session.amount_total
+  if (session.currency?.toLowerCase() !== 'aud' || typeof amount !== 'number') return null
+  const quantity = amount / (CARD_EXTRA_BUSINESS.priceAud * 100)
+  return Number.isInteger(quantity) && quantity >= 1 && quantity <= CARD_EXTRA_BUSINESS.maxQuantity ? quantity : null
+}
+
 /** client_reference_id when the payment link carried one, else the checkout session id. */
 export function cardOrderReference(session: Pick<Stripe.Checkout.Session, 'id' | 'client_reference_id'>): string {
   return session.client_reference_id?.trim() || session.id
@@ -78,11 +79,23 @@ export async function recordPaidCardOrder(admin: Admin, event: Stripe.Event): Pr
   if (event.type !== 'checkout.session.completed') return 'ignored'
   const session = event.data?.object as Stripe.Checkout.Session | undefined
   if (!session || session.payment_status !== 'paid') return 'ignored'
-  const purchase = matchCardPurchase(session)
-  if (!purchase) return 'ignored'
-  if (!isCardPaymentLink(session)) {
-    console.warn('[cards] paid session at a card price ignored: payment link not in STRIPE_CARD_PAYMENT_LINK_IDS')
-    return 'ignored'
+  // Classify by Payment Link first: the add-on link is add-on only, every other link is tier only.
+  let purchase: CardPurchase
+  if (isExtraBusinessLink(session)) {
+    const quantity = extraBusinessQuantity(session)
+    if (!quantity) {
+      console.warn('[cards] paid session on the extra-business link did not match 1 to 5 x A$199: not recorded')
+      return 'ignored'
+    }
+    purchase = { kind: 'extra_business', quantity }
+  } else {
+    const tier = matchCardTier(session)
+    if (!tier) return 'ignored'
+    if (!isCardPaymentLink(session)) {
+      console.warn('[cards] paid session at a card price ignored: payment link not in STRIPE_CARD_PAYMENT_LINK_IDS')
+      return 'ignored'
+    }
+    purchase = { kind: 'tier', tier }
   }
 
   const founderId = process.env.FOUNDER_USER_ID?.trim()

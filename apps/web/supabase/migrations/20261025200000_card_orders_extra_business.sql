@@ -3,6 +3,8 @@
 -- Extra-business add-on for card_orders (UNI-2996): A$199 each, 1 to 5, bought as its own Payment Link with
 -- adjustable quantity. The Stripe webhook records it as tier 'extra_business' with the quantity bought.
 -- Tier orders do not send quantity, so they keep inserting whether or not this migration has been applied.
+-- Until this migration is applied, add-on orders fail to insert, the webhook answers 500 and Stripe retries.
+-- So apply it before setting STRIPE_CARD_EXTRA_BUSINESS_PAYMENT_LINK_ID. Tier orders are unaffected.
 -- Rollback: forward-only. Delete any extra_business rows, then restore the two-tier check and drop quantity
 -- in a reviewed forward migration so the ledger stays truthful.
 

@@ -59,7 +59,8 @@ describe('recordPaidCardOrder', () => {
     }) as never
 
   beforeEach(() => {
-    vi.stubEnv('STRIPE_CARD_PAYMENT_LINK_IDS', 'plink_card,plink_extra')
+    vi.stubEnv('STRIPE_CARD_PAYMENT_LINK_IDS', 'plink_card')
+    vi.stubEnv('STRIPE_CARD_EXTRA_BUSINESS_PAYMENT_LINK_ID', 'plink_extra')
     vi.stubEnv('FOUNDER_USER_ID', '00000000-0000-0000-0000-00000000000a')
     vi.stubEnv('LEAD_ALERT_EMAIL_TO', 'alerts@example.invalid')
     vi.stubEnv('SENDGRID_FROM_EMAIL', 'from@example.invalid')
@@ -99,9 +100,37 @@ describe('recordPaidCardOrder', () => {
     ['zero', { amount_total: 0, payment_link: 'plink_extra' }],
     ['non-AUD', { amount_total: 19900, currency: 'usd', payment_link: 'plink_extra' }],
     ['unpaid', { amount_total: 19900, payment_status: 'unpaid', payment_link: 'plink_extra' }],
+    ['a tier link at 39800 (discounted Made for you)', { amount_total: 39800, payment_link: 'plink_card' }],
+    ['a tier link at 19900 (discounted Ready)', { amount_total: 19900, payment_link: 'plink_card' }],
+    ['the add-on link at a tier price (44900)', { amount_total: 44900, payment_link: 'plink_extra' }],
+    ['a discounted add-on (17910)', { amount_total: 17910, payment_link: 'plink_extra' }],
   ])('ignores %s', async (_n, over) => {
     expect(await recordPaidCardOrder(admin, event(over))).toBe('ignored')
     expect(insert).not.toHaveBeenCalled()
+  })
+
+  it('records 2 extra businesses at 39800 on the add-on link', async () => {
+    expect(await recordPaidCardOrder(admin, event({ amount_total: 39800, payment_link: 'plink_extra' }))).toBe('created')
+    expect(insert.mock.calls[0][0]).toMatchObject({ tier: 'extra_business', quantity: 2 })
+  })
+
+  it('warns when the add-on link pays an amount that is not 1 to 5 x A$199', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    await recordPaidCardOrder(admin, event({ amount_total: 17910, payment_link: 'plink_extra' }))
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('extra-business link did not match 1 to 5 x A$199'))
+    warn.mockRestore()
+  })
+
+  it('records nothing for the add-on link when its env var is unset (fail closed)', async () => {
+    vi.stubEnv('STRIPE_CARD_EXTRA_BUSINESS_PAYMENT_LINK_ID', '')
+    expect(await recordPaidCardOrder(admin, event({ amount_total: 19900, payment_link: 'plink_extra' }))).toBe('ignored')
+    expect(insert).not.toHaveBeenCalled()
+  })
+
+  it('lets the add-on path win when the link is in both lists', async () => {
+    vi.stubEnv('STRIPE_CARD_PAYMENT_LINK_IDS', 'plink_card,plink_extra')
+    expect(await recordPaidCardOrder(admin, event({ amount_total: 39800, payment_link: 'plink_extra' }))).toBe('created')
+    expect(insert.mock.calls[0][0]).toMatchObject({ tier: 'extra_business', quantity: 2 })
   })
 
   it('treats a duplicate (23505) as duplicate and sends nothing', async () => {

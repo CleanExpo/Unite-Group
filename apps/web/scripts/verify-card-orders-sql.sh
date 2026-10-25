@@ -45,7 +45,7 @@ expect_fail "anon insert intake" "set role anon; insert into card_order_intakes 
 expect_fail "duplicate stripe_session_id" "set role service_role; insert into card_orders ($COLS) values ($FA,'ref_9','cs_test_1','evt_9','ready',24900,'aud',false)"
 expect_fail "unknown tier" "set role service_role; insert into card_orders ($COLS) values ($FA,'ref_8','cs_test_8','evt_8','gold',24900,'aud',false)"
 expect_fail "extra_business quantity 6" "set role service_role; insert into card_orders ($COLS, quantity) values ($FA,'ref_7','cs_test_7','evt_7','extra_business',119400,'aud',false,6)"
-expect_fail "extra_business quantity 0" "set role service_role; insert into card_orders ($COLS, quantity) values ($FA,'ref_6','cs_test_6','evt_6','extra_business',0,'aud',false,0)"
+expect_fail "extra_business quantity 0" "set role service_role; insert into card_orders ($COLS, quantity) values ($FA,'ref_6','cs_test_6','evt_6','extra_business',19900,'aud',false,0)"
 expect_fail "ready with quantity 2" "set role service_role; insert into card_orders ($COLS, quantity) values ($FA,'ref_5','cs_test_5','evt_5','ready',49800,'aud',false,2)"
 expect_fail "second intake for one order" "set role service_role; insert into card_order_intakes (order_id, founder_id, name, email) select id, founder_id, 'Again', 'a@example.invalid' from card_orders where reference = 'ref_1'"
 echo "card_orders SQL contract: PASS"
