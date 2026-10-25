@@ -147,7 +147,7 @@ describe('reviewed production runtime surfaces', () => {
       '--memory 128m',
       "test \"$contents\" = 'index.js'",
       'command -v "$executable"',
-      'test "$status" -eq 2',
+      'test "$status" -eq 0',
     ]) {
       expect(verifier).toContain(boundary)
     }

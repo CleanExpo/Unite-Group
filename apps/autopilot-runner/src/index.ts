@@ -15,13 +15,16 @@ function log(message: string): void {
 
 /**
  * Keep the former container command deterministic while making activation
- * impossible. `2` distinguishes an attempted retired activation from a normal
- * live-off drain without reading any other configuration or credential.
+ * impossible. An attempted activation (CC_LINEAR_LIVE=1) is refused and logged
+ * distinctly, but exits 0: the refusal is the correct outcome, and a non-zero
+ * exit made Railway mark every deploy of the surviving service CRASHED, which
+ * failed the GitHub "autopilot-runner / production" deployment on each push to
+ * main (a84a123f, 26/10/2026). No other configuration or credential is read.
  */
 export async function main(env: NodeJS.ProcessEnv = process.env): Promise<number> {
   if (env.CC_LINEAR_LIVE === '1') {
     log('CC_LINEAR_LIVE is permanently retired; no credentials, work, Git, or network were accessed.')
-    return 2
+    return 0
   }
 
   log('legacy Linear author/publisher retired; draining with no work claimed.')

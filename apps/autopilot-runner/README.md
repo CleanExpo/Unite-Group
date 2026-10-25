@@ -70,7 +70,7 @@ flag is intentionally insufficient.
 - `main` branch protection (1 required review) is kept; a distinct reviewer
   GitHub App satisfies it only after an independent gauntlet re-passes.
 - `CC_LINEAR_LIVE` cannot activate hosted execution. Exact `1` is rejected with
-  exit code 2 before any configuration, credential, filesystem, Git, subprocess,
+  exit code 0 (so Railway does not mark the deploy CRASHED) before any configuration, credential, filesystem, Git, subprocess,
   or network access; all other values drain with exit code 0.
 - CRM `cc_tasks` is authoritative for OWNEST. Hermes Kanban is a disposable
   execution projection and cannot promote, reopen, or complete CRM work by
