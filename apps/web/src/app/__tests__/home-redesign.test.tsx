@@ -54,9 +54,9 @@ beforeEach(() => vi.clearAllMocks())
 afterEach(() => vi.unstubAllEnvs())
 
 describe('the dark home: section order', () => {
-  it('runs hero, the start chooser, three media cards, the group, the living-cards gallery, four jobs, three steps, results, FAQ, contact, footer', async () => {
+  it('runs hero, the start chooser, three media cards, the group, today and coming, the living-cards gallery, four jobs, three steps, results, FAQ, contact, footer', async () => {
     const html = await signedOut()
-    const ids = ['hero', 'start', 'highlights', 'group', 'cards', 'pillars', 'how', 'proof', 'answers', 'contact', 'footer']
+    const ids = ['hero', 'start', 'highlights', 'group', 'today', 'cards', 'pillars', 'how', 'proof', 'answers', 'contact', 'footer']
     const at = ids.map((id) => html.indexOf(`id="${id}"`))
     for (const [i, id] of ids.entries()) expect(at[i], id).toBeGreaterThan(-1)
     expect([...at].sort((a, b) => a - b)).toEqual(at)
@@ -212,7 +212,7 @@ describe('images come from one map, and no file appears twice', () => {
   // picture, and may appear once in the tiles and once in any business list (Phill 25/10/2026).
   it('references no image, poster, video or background file more than once on the home page (not twice in one section either)', async () => {
     const html = await signedOut()
-    const markers = ['header', 'hero', 'start', 'highlights', 'group', 'cards', 'pillars', 'how', 'proof', 'answers', 'contact', 'footer']
+    const markers = ['header', 'hero', 'start', 'highlights', 'group', 'today', 'cards', 'pillars', 'how', 'proof', 'answers', 'contact', 'footer']
     const starts = markers.map((m) => (m === 'header' ? html.indexOf('<header') : html.indexOf(`id="${m}"`)))
     for (const [i, m] of markers.entries()) expect(starts[i], m).toBeGreaterThan(-1)
     // one entry per element (an img with its src and srcset is ONE reference), keyed by file, remembering the section

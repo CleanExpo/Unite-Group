@@ -1,0 +1,49 @@
+/* Today and Coming: two columns from 900px, stacked below. Dark panels, 1px lines, no images. */
+.cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: 32px; margin-top: 28px; }
+@media (min-width: 900px) { .cols { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; } }
+
+.col { min-width: 0; }
+.colTitle {
+  margin: 0 0 12px;
+  font-family: var(--pub-mono);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--pub-muted);
+}
+.list { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.item { min-width: 0; }
+
+.row {
+  display: grid;
+  gap: 6px;
+  padding: 16px 18px;
+  border: 1px solid var(--pub-line);
+  border-radius: var(--pub-radius);
+  background: var(--pub-bg);
+  overflow-wrap: anywhere;
+}
+.head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; }
+.name {
+  font-family: var(--pub-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+.line { font-size: 15px; line-height: 1.35; color: var(--pub-ink-soft); }
+
+/* Today reads as a link: bright name, accent border on hover, focus ring from the page. */
+.page .live { text-decoration: none; color: var(--pub-ink); }
+.page .live:hover { border-color: var(--pub-accent); color: var(--pub-ink); }
+.live:hover .name { color: var(--pub-accent-strong); }
+.live:focus-visible { outline: 3px solid var(--pub-focus); outline-offset: 2px; }
+
+/* Coming is visibly quieter: muted ink, dashed line, no hover. */
+.quiet { border-style: dashed; background: transparent; color: var(--pub-muted); }
+.quiet .name { color: var(--pub-muted); }
+.quiet .line { color: var(--pub-muted); }
+
+.note { margin: 14px 0 0; font-size: 14px; color: var(--pub-muted); }
