@@ -236,6 +236,7 @@ test.describe('authenticated drip campaign lifecycle', () => {
           processed: 1,
           skipped: 0,
           failed: 0,
+          blocked: 0,
           dryRun: true,
           providerSend: 'not_attempted',
         },
@@ -271,10 +272,11 @@ test.describe('authenticated drip campaign lifecycle', () => {
         campaign_id: campaignId,
         contact_id: contactId,
         email: contactEmail,
-        status: 'completed',
-        current_step_order: 2,
+        // UNI-2931: a dry run changes nothing, so the enrollment is untouched.
+        status: 'active',
+        current_step_order: 1,
       })
-      expect(persistedEnrollments?.[0]?.completed_at).toBeTruthy()
+      expect(persistedEnrollments?.[0]?.completed_at).toBeNull()
 
       const { data: persistedEvents, error: eventsError } = await admin
         .from('drip_events')
@@ -282,14 +284,8 @@ test.describe('authenticated drip campaign lifecycle', () => {
         .eq('campaign_id', campaignId!)
         .eq('founder_id', state.users[0].id!)
       expect(eventsError, JSON.stringify({ step: 'admin-reread-events', error: eventsError })).toBeNull()
-      expect(persistedEvents?.length).toBe(1)
-      expect(persistedEvents?.[0]).toMatchObject({
-        campaign_id: campaignId,
-        contact_id: contactId,
-        step_id: persistedSteps?.[0]?.id,
-        event_type: 'dry_run_processed',
-        provider_send: 'not_attempted',
-      })
+      // UNI-2931: a dry run writes no drip_events row.
+      expect(persistedEvents).toEqual([])
 
       const { data: crossFounderRows, error: crossFounderRereadError } = await admin
         .from('drip_campaigns')
@@ -318,7 +314,7 @@ test.describe('authenticated drip campaign lifecycle', () => {
       appendEvidence(`  - created drip contact ${contactId}: ${contactEmail}`)
       appendEvidence(`  - created drip campaign ${campaignId}`)
       appendEvidence('  - added one drip step and enrolled the tagged contact in dedicated drip tables')
-      appendEvidence('  - process_pending dry-run returned processed=1, failed=0, providerSend=not_attempted')
+      appendEvidence('  - process_pending dry-run returned processed=1, failed=0, blocked=0, providerSend=not_attempted and wrote nothing')
       appendEvidence(`  - cross-user isolation verified: user B received 404 for campaign ${campaignId}`)
     } finally {
       await contextB?.close().catch(() => undefined)

@@ -142,42 +142,72 @@ describe('processCampaignDrip', () => {
     })
   })
 
-  it('keeps dry-run semantics: unsafe recipients are blocked, never sent', async () => {
+  it('UNI-2931 dry run over a non-test and a test recipient performs zero writes and reports blocked', async () => {
     responses.drip_steps = [{ data: [STEP_1], error: null }]
     responses.drip_enrollments = [
-      { data: [enrollment()], error: null },
-      { error: null }, // blocked update
+      {
+        data: [
+          enrollment({ id: 'enr-real', email: 'real@example.com' }),
+          enrollment({ id: 'enr-test', email: 'x__PW_TEST__@example.com' }),
+        ],
+        error: null,
+      },
     ]
-    responses.drip_events = [{ error: null }]
-    responses.drip_campaigns = [{ error: null }]
 
     const summary = await processCampaignDrip(baseInput(true))
 
     expect(sendEmail).not.toHaveBeenCalled()
-    expect(summary).toMatchObject({ processed: 0, failed: 1, providerSend: 'not_attempted' })
-    const event = inserts.find((i) => i.table === 'drip_events')
-    expect(event?.payload).toMatchObject({
-      event_type: 'failed',
-      provider_send: 'not_attempted',
-      metadata: expect.objectContaining({ reason: 'unsafe_or_live_send_blocked' }),
+    expect(updates).toEqual([])
+    expect(inserts).toEqual([])
+    // only reads: drip_steps and drip_enrollments; no write table touched
+    expect(supabase.from.mock.calls.map((c) => c[0])).toEqual(['drip_steps', 'drip_enrollments'])
+    expect(summary).toEqual({
+      processed: 1,
+      skipped: 0,
+      failed: 0,
+      blocked: 1,
+      dryRun: true,
+      providerSend: 'not_attempted',
     })
   })
 
-  it('dry-run processes safe test recipients without touching the provider', async () => {
+  it('UNI-2931 dry run never flips the campaign to partial', async () => {
+    responses.drip_steps = [{ data: [STEP_1], error: null }]
+    responses.drip_enrollments = [{ data: [enrollment()], error: null }]
+
+    await processCampaignDrip(baseInput(true))
+
+    expect(updates.filter((u) => u.table === 'drip_campaigns')).toEqual([])
+    expect(updates.filter((u) => u.table === 'drip_enrollments')).toEqual([])
+    expect(inserts.filter((i) => i.table === 'drip_events')).toEqual([])
+  })
+
+  it('UNI-2931 dry run over safe test recipients writes nothing and does not touch the provider', async () => {
     responses.drip_steps = [{ data: [STEP_1], error: null }]
     responses.drip_enrollments = [
       { data: [enrollment({ email: 'demo@unite-hub.test' })], error: null },
-      { error: null }, // advance update
     ]
-    responses.drip_events = [{ error: null }]
 
     const summary = await processCampaignDrip(baseInput(true))
 
     expect(sendEmail).not.toHaveBeenCalled()
-    expect(summary).toMatchObject({ processed: 1, failed: 0, providerSend: 'not_attempted' })
-    expect(inserts.find((i) => i.table === 'drip_events')?.payload).toMatchObject({
-      event_type: 'dry_run_processed',
-    })
+    expect(updates).toEqual([])
+    expect(inserts).toEqual([])
+    expect(summary).toMatchObject({ processed: 1, failed: 0, blocked: 0, providerSend: 'not_attempted' })
+  })
+
+  it('UNI-2931 dry run counts a missing-step enrollment as skipped without completing it', async () => {
+    responses.drip_steps = [{ data: [STEP_1], error: null }]
+    responses.drip_enrollments = [
+      { data: [enrollment({ current_step_order: 5 })], error: null },
+    ]
+
+    const summary = await processCampaignDrip(baseInput(true))
+
+    expect(updates).toEqual([])
+    expect(inserts).toEqual([])
+    expect(sendEmail).not.toHaveBeenCalled()
+    expect(summary).toMatchObject({ processed: 0, skipped: 1, failed: 0, blocked: 0, dryRun: true })
   })
 
   it('completes enrollments whose step no longer exists', async () => {

@@ -11,6 +11,14 @@ import {
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300 // 5 minutes — one live SendGrid send per due enrollment
 
+/**
+ * Machine-readable outcome of every non-error response (UNI-2931). Held stays
+ * HTTP 200 (repo held-cron convention) so monitoring keys off `status`:
+ * held = gate off; ok = live run, nothing failed; partial = live run where
+ * at least one campaign threw or at least one enrolment failed.
+ */
+export type DripProcessCronStatus = 'held' | 'ok' | 'partial'
+
 type ActiveCampaignRow = {
   id: string
   business_key: string
@@ -26,10 +34,9 @@ type ActiveCampaignRow = {
  * GET (not POST): Vercel Cron invokes the path with a GET request, matching
  * every other cron route in this app. Manual triggers use GET + CRON_SECRET.
  *
- * DORMANT unless DRIP_LIVE_SEND_ENABLED=true (UNI-2918). Dormant rather than
- * dry-run on purpose: the dry-run lane marks every non-test recipient's
- * enrollment `failed`, so a dry-run cron would destroy real enrollments every
- * 30 minutes. Dormant reads and writes nothing.
+ * DORMANT unless DRIP_LIVE_SEND_ENABLED=true (UNI-2918): the cron reads and
+ * writes nothing until the live-send gate is set. A held run still returns
+ * HTTP 200 with `dormant: true` and `status: 'held'`.
  */
 export async function GET(request: NextRequest) {
   const denied = assertCronAuth(request)
@@ -37,6 +44,7 @@ export async function GET(request: NextRequest) {
 
   if (!isDripLiveSendEnabled()) {
     return NextResponse.json({
+      status: 'held' satisfies DripProcessCronStatus,
       dormant: true,
       message: 'DRIP_LIVE_SEND_ENABLED is not true — drip sends are held',
     })
@@ -80,12 +88,19 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  const processed = results.reduce((sum, r) => sum + r.processed, 0)
+  const skipped = results.reduce((sum, r) => sum + r.skipped, 0)
+  const failed = results.reduce((sum, r) => sum + r.failed, 0)
+  const status: DripProcessCronStatus = failedCampaigns > 0 || failed > 0 ? 'partial' : 'ok'
+
   return NextResponse.json({
+    status,
+    dormant: false,
     campaigns: (campaigns ?? []).length,
     failedCampaigns,
-    processed: results.reduce((sum, r) => sum + r.processed, 0),
-    skipped: results.reduce((sum, r) => sum + r.skipped, 0),
-    failed: results.reduce((sum, r) => sum + r.failed, 0),
+    processed,
+    skipped,
+    failed,
     results,
   })
 }
