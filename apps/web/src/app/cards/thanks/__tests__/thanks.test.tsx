@@ -1,11 +1,13 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 
 import ThanksPage from '../page'
-import { buildIntakeBody, checkLogoFile, checkoutSessionId } from '../intake-form'
+import { buildIntakeBody, checkLogoFile } from '../intake-form'
+import { checkoutSessionId } from '../session-id'
 
 const render = async (params: Record<string, string | string[] | undefined>) =>
   renderToStaticMarkup(await ThanksPage({ searchParams: Promise.resolve(params) }))
@@ -80,5 +82,86 @@ describe('checkLogoFile', () => {
   it('refuses other types and anything over 5 MB, with a reason', () => {
     expect(checkLogoFile(file('application/pdf', 1000))).toMatch(/PNG|JPEG/)
     expect(checkLogoFile(file('image/png', 5 * 1024 * 1024 + 1))).toMatch(/5 MB/)
+  })
+})
+
+/** Whether a module's directive prologue (leading string-literal statements; comments are not statements) holds 'use client'. */
+function isClientModule(src: string, name: string): boolean {
+  const kind = name.endsWith('x') ? ts.ScriptKind.TSX : ts.ScriptKind.TS
+  const sf = ts.createSourceFile(name, src, ts.ScriptTarget.Latest, true, kind)
+  for (const st of sf.statements) {
+    if (!ts.isExpressionStatement(st) || !ts.isStringLiteral(st.expression)) break
+    if (st.expression.text === 'use client') return true
+  }
+  return false
+}
+
+/** Non-component values a Server Component imports from client modules: calling them on the server throws. */
+function clientBoundaryViolations(pageSrc: string, readModule: (spec: string) => { src: string; name: string }): string[] {
+  const sf = ts.createSourceFile('page.tsx', pageSrc, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+  const bad: string[] = []
+  for (const st of sf.statements) {
+    if (!ts.isImportDeclaration(st) || !ts.isStringLiteral(st.moduleSpecifier)) continue
+    const spec = st.moduleSpecifier.text
+    if (!spec.startsWith('.')) continue
+    const mod = readModule(spec)
+    if (!isClientModule(mod.src, mod.name)) continue
+    const clause = st.importClause
+    if (!clause) continue
+    if (clause.name && !/^[A-Z]/.test(clause.name.text)) bad.push(`${clause.name.text} from ${spec}`)
+    const nb = clause.namedBindings
+    if (nb && ts.isNamespaceImport(nb)) bad.push(`* as ${nb.name.text} from ${spec}`)
+    if (nb && ts.isNamedImports(nb)) {
+      for (const el of nb.elements) if (!/^[A-Z]/.test(el.name.text)) bad.push(`${el.name.text} from ${spec}`)
+    }
+  }
+  return bad
+}
+
+describe('server/client boundary', () => {
+  // A Server Component cannot call a function exported from a 'use client' module: Next throws at request time
+  // and the page 500s (live /cards/thanks, 25/10/2026). Vitest imports both as plain modules, so check the source.
+  const dir = join(__dirname, '..')
+  const onDisk = (spec: string) => {
+    if (spec.endsWith('.css')) return { src: '', name: 'style.ts' }
+    const name = ['.tsx', '.ts'].map((e) => spec + e).find((f) => existsSync(join(dir, f)))
+    if (!name) throw new Error(`cannot resolve page.tsx import ${spec}`)
+    return { src: readFileSync(join(dir, name), 'utf8'), name }
+  }
+
+  it('page.tsx imports only components from client modules', () => {
+    expect(clientBoundaryViolations(readFileSync(join(dir, 'page.tsx'), 'utf8'), onDisk)).toEqual([])
+  })
+
+  it('the helper the page calls is not in a client module, and the form is', () => {
+    expect(isClientModule(onDisk('./session-id').src, 'session-id.ts')).toBe(false)
+    expect(isClientModule(onDisk('./intake-form').src, 'intake-form.tsx')).toBe(true)
+  })
+
+  describe('negative controls: the guard fires on these', () => {
+    const page = (imp: string) => `${imp}\nexport default function P() { return null }`
+    it('a client directive after header comments is still seen', () => {
+      const src = "// header\n// more header\n'use client'\nexport function helper() {}\n"
+      expect(isClientModule(src, 'x.ts')).toBe(true)
+      expect(clientBoundaryViolations(page("import { helper } from './x'"), () => ({ src, name: 'x.ts' }))).toEqual(['helper from ./x'])
+    })
+    it('a double-quoted directive and a double-quoted import are both seen', () => {
+      const src = '/* c */\n"use client"\nexport function checkLogoFile() {}\n'
+      expect(clientBoundaryViolations(page('import { checkLogoFile } from "./intake-form"'), () => ({ src, name: 'x.tsx' }))).toEqual([
+        'checkLogoFile from ./intake-form',
+      ])
+    })
+    it('default and namespace imports of client exports are flagged; components are allowed', () => {
+      const src = "'use client'\nexport default function helper() {}\nexport function Widget() { return null }\n"
+      const read = () => ({ src, name: 'x.tsx' })
+      expect(clientBoundaryViolations(page("import helper from './x'"), read)).toEqual(['helper from ./x'])
+      expect(clientBoundaryViolations(page("import * as m from './x'"), read)).toEqual(['* as m from ./x'])
+      expect(clientBoundaryViolations(page("import { Widget } from './x'"), read)).toEqual([])
+    })
+    it('a non-client module is not flagged; a string after code is not a directive', () => {
+      const plain = () => ({ src: 'export function helper() {}\n', name: 'x.ts' })
+      expect(clientBoundaryViolations(page("import { helper } from './x'"), plain)).toEqual([])
+      expect(isClientModule("import a from 'a'\n'use client'\n", 'x.ts')).toBe(false)
+    })
   })
 })
