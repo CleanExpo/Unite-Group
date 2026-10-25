@@ -26,7 +26,13 @@ const signedOut = async () => {
   vi.mocked(getUser).mockResolvedValue(null as Awaited<ReturnType<typeof getUser>>)
   return renderToStaticMarkup(await RootPage())
 }
-const between = (html: string, a: string, b: string) => html.slice(html.indexOf(`id="${a}"`), html.indexOf(`id="${b}"`))
+/** The markup from one section id to the next; fails loudly if either id is missing, so a check never runs on nothing. */
+function between(html: string, a: string, b: string) {
+  const [from, to] = [html.indexOf(`id="${a}"`), html.indexOf(`id="${b}"`)]
+  expect(from, `id="${a}"`).toBeGreaterThan(-1)
+  expect(to, `id="${b}" after id="${a}"`).toBeGreaterThan(from)
+  return html.slice(from, to)
+}
 const imgs = (html: string) => [...html.matchAll(/<img\b[^>]*>/g)].map((m) => m[0])
 const attr = (tag: string, name: string) => tag.match(new RegExp(`\\b${name}="([^"]*)"`))?.[1]
 
