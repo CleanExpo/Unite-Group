@@ -154,6 +154,69 @@ describe('POST /api/leads', () => {
     expect(res.status).toBe(500)
   })
 
+  describe('failure logging carries no undefined and no personal data', () => {
+    const PII = 'Jane@Example.com 0400000000 SecretMessage'
+    // PostgrestError-shaped: no `name`, personal values in message/details/hint
+    const nameless = { message: PII, details: PII, hint: PII, code: 'XX000' }
+    const logged = (spy: ReturnType<typeof vi.spyOn>) => spy.mock.calls
+    const expectClean = (spy: ReturnType<typeof vi.spyOn>) => {
+      const calls = logged(spy)
+      expect(calls.length).toBeGreaterThan(0)
+      for (const call of calls) {
+        expect(call).not.toContain(undefined)
+        expect(call).not.toContain(null)
+      }
+      const text = JSON.stringify(calls)
+      for (const value of ['Jane', 'Example.com', '0400000000', 'SecretMessage', 'XX000']) expect(text).not.toContain(value)
+    }
+
+    it.each([
+      ['an error with no name', { data: null, error: nameless }, 'Error'],
+      ['no error and no row', { data: null, error: null }, 'no row returned'],
+    ])('insert failure with %s logs a fixed label', async (_label, response, expected) => {
+      const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      responses.crm_leads = [response]
+      const res = await POST(req({ ...VALID_LEAD, phone: '0400000000', message: 'SecretMessage' }))
+      expect(res.status).toBe(500)
+      expectClean(spy)
+      expect(spy).toHaveBeenCalledWith('[leads] insert failed:', expected)
+    })
+
+    it('keeps a real error name when the error has one', async () => {
+      const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      responses.crm_leads = [{ data: null, error: { ...nameless, name: 'PostgrestError' } }]
+      await POST(req(VALID_LEAD))
+      expect(spy).toHaveBeenCalledWith('[leads] insert failed:', 'PostgrestError')
+      expectClean(spy)
+    })
+
+    it('timeline insert failure with a nameless error logs a fixed label', async () => {
+      const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      responses.crm_leads = [{ data: { id: 'lead-1' }, error: null }]
+      responses.agent_actions = [{ data: null, error: nameless }]
+      const res = await POST(req(VALID_LEAD))
+      expect(res.status).toBe(201)
+      expectClean(spy)
+      expect(spy).toHaveBeenCalledWith('[leads] timeline insert failed:', 'Error')
+    })
+
+    it('drip enrol failure with a nameless error logs a fixed label', async () => {
+      const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      responses.crm_leads = [{ data: { id: 'lead-1' }, error: null }]
+      responses.drip_campaigns = [{ data: { id: 'camp-1' }, error: null }]
+      responses.drip_steps = [{ data: [{ id: 'step-1', step_order: 1 }], error: null }]
+      responses.contacts = [
+        { data: null, error: null },
+        { data: { id: 'c-1', email: 'jane@example.com', first_name: 'Jane', last_name: null }, error: null },
+      ]
+      responses.drip_enrollments = [{ data: null, error: null }, { data: null, error: nameless }]
+      const res = await POST(req({ ...VALID_LEAD, marketing_consent: true, drip_campaign_id: 'camp-1' }))
+      expect(res.status).toBe(201)
+      expectClean(spy)
+      expect(spy).toHaveBeenCalledWith('[leads] drip enroll failed:', 'Error')
+    })
+  })
+
   it('creates a contact and enrolls it when drip_campaign_id is provided', async () => {
     responses.crm_leads = [{ data: { id: 'lead-1' }, error: null }]
     responses.drip_campaigns = [{ data: { id: 'camp-1' }, error: null }]

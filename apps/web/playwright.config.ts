@@ -20,6 +20,8 @@ const chromiumUse = {
 export default defineConfig({
   testDir: './e2e',
   testMatch: '**/*.spec.ts',
+  // card/ has its own config (playwright.card.config.ts) with a fake Supabase and a flagged server
+  testIgnore: '**/card/**',
 
   fullyParallel: true,
   forbidOnly: !!process.env.CI,

@@ -15,7 +15,7 @@ export function Proof() {
               See it before you ask
             </h2>
             <p className={s.cardLine}>Watch the card films in our showroom.</p>
-            <a href="/cards" className={s.buttonPrimary}>
+            <a href="/cards" className={s.buttonSecondary}>
               Open the showroom
             </a>
           </div>

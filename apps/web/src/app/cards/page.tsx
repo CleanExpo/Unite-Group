@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 
+import { MargotPhoneLine } from '@/components/public/margot-phone-line'
 import { COMPANY_NAME, companyAbnLabel } from '@/lib/legal/company'
+import { readMargotPhoneNumber } from '@/lib/margot/phone-line'
 
 import { EditionTile } from './edition-tile'
 import { EDITIONS } from './editions'
@@ -159,6 +161,7 @@ export default function CardsShowroomPage() {
           <span>
             {COMPANY_NAME} · {companyAbnLabel()}
           </span>
+          <MargotPhoneLine number={readMargotPhoneNumber()} />
           <span className="flex gap-4">
             <a href="/privacy-policy" className="hover:text-white">Privacy</a>
             <a href="/terms-of-service" className="hover:text-white">Terms</a>

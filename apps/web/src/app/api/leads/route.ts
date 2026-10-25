@@ -46,6 +46,13 @@ type ContactRow = {
 const MAX_SHORT_FIELD = 256
 const MAX_LONG_FIELD = 4000
 
+// Log label only: the error name, or a fixed fallback. Never message, details, hint or code,
+// which can echo submitted personal data. PostgrestError often has no name.
+function errorLabel(error: unknown): string {
+  const name = (error as { name?: unknown } | null)?.name
+  return typeof name === 'string' && name.trim() ? name : 'Error'
+}
+
 function clean(value: unknown, max: number): string | null {
   if (typeof value !== 'string') return null
   const trimmed = value.trim()
@@ -144,7 +151,7 @@ async function enrollLeadInDrip(
   })
 
   if (enrollError) {
-    console.error('[leads] drip enroll failed:', enrollError.name)
+    console.error('[leads] drip enroll failed:', errorLabel(enrollError))
     return { enrolled: false, contactId: contact.id, reason: 'enroll_failed' }
   }
 
@@ -208,7 +215,7 @@ export async function POST(request: NextRequest) {
     .single()
 
   if (insertError || !leadRow) {
-    console.error('[leads] insert failed:', insertError?.name)
+    console.error('[leads] insert failed:', insertError ? errorLabel(insertError) : 'no row returned')
     return NextResponse.json({ error: 'Failed to capture lead' }, { status: 500 })
   }
 
@@ -228,7 +235,7 @@ export async function POST(request: NextRequest) {
       }),
     ])
   } catch (error) {
-    console.error('[leads] alert failed:', error instanceof Error ? error.name : 'Error')
+    console.error('[leads] alert failed:', errorLabel(error))
   } finally {
     if (alertTimer) clearTimeout(alertTimer)
   }
@@ -252,9 +259,9 @@ export async function POST(request: NextRequest) {
   const timelineInsert = buildCrmTimelineAgentActionInsert(timelineEvent)
   try {
     const { error: timelineError } = await supabase.from('agent_actions').insert(timelineInsert)
-    if (timelineError) console.error('[leads] timeline insert failed:', timelineError.name)
+    if (timelineError) console.error('[leads] timeline insert failed:', errorLabel(timelineError))
   } catch (err) {
-    console.error('[leads] timeline insert failed:', err instanceof Error ? err.name : 'Error')
+    console.error('[leads] timeline insert failed:', errorLabel(err))
   }
 
   const dripCampaignId = clean(body.drip_campaign_id, MAX_SHORT_FIELD)

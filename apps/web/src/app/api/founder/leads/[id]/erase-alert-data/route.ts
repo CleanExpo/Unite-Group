@@ -35,7 +35,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     const pattern = String(lead.email).replace(/[\\%_]/g, (character) => `\\${character}`)
     const { data: related, error: relatedError } = await client.from('crm_leads')
-      .select('id, email, interests').eq('founder_id', founder).ilike('email', pattern)
+      .select('id, email, interests, additional_data').eq('founder_id', founder).ilike('email', pattern)
     if (relatedError) throw relatedError
 
     let erased = 0
@@ -46,6 +46,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         p_dedup_key: dedupKey(founder, String(row.email), packageLabel(row.interests ?? null)),
       })
       if (error) throw error
+      // Tombstone (no personal data): the log rows are gone, so tell the alert health
+      // check this enquiry was erased on purpose rather than never alerted.
+      const { error: markError } = await client.from('crm_leads')
+        .update({ additional_data: { ...(row.additional_data ?? {}), alert_erased_at: new Date().toISOString() } })
+        .eq('founder_id', founder).eq('id', row.id)
+      if (markError) throw markError
       erased++
     }
     return NextResponse.redirect(new URL(`/founder/leads/${id}?erased=${erased}`, request.url), 303)

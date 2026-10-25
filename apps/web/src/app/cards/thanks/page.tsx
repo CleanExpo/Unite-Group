@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 
 import s from '../order/order.module.css'
-import { IntakeForm, checkoutSessionId } from './intake-form'
+import { IntakeForm } from './intake-form'
+import { checkoutSessionId } from './session-id'
 
 export const metadata: Metadata = {
   title: 'Thank you | Unite Group',
