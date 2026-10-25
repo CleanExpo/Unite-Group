@@ -18,10 +18,15 @@
   justify-content: center;
   padding: 18px 18px 0;
   border-bottom: 1px solid var(--pub-line);
+  align-items: flex-end;
   background:
     radial-gradient(120% 90% at 85% 0%, rgba(236, 123, 65, 0.16), rgba(236, 123, 65, 0) 60%),
     var(--pub-bg-alt);
 }
+
+/* A screen shorter than square (the Experience crop) still gets a stage as tall as a square one, so the titles below a row
+   line up: this empty sizer is as tall as a square frame (its width plus the 24px bar) and the frame sits on the bottom edge. */
+.stage::before { content: ''; flex: none; width: 0; padding-top: calc(min(100%, var(--w)) + 24px); }
 
 /* The screen rises out of the stage: a frame on three sides, open at the bottom edge. */
 .frame {

@@ -9,10 +9,10 @@ import type { Pillar } from '@/lib/public-site'
 
 export type Screen = { src: string; width: number; height: number; cssWidth: number; frame: 'phone' | 'browser'; alt: string }
 
-const screen = (name: string, size: number, cssWidth: number, frame: Screen['frame'], alt: string): Screen => ({
+const screen = (name: string, size: number, cssWidth: number, frame: Screen['frame'], alt: string, height = size): Screen => ({
   src: `/home/screens/${name}.webp`,
   width: size,
-  height: size,
+  height,
   cssWidth,
   frame,
   alt,
@@ -28,7 +28,7 @@ export const STEP_SCREENS: Record<StepScreen, Screen> = {
 
 export const JOB_SCREENS: Record<Pillar['slug'], Screen> = {
   visibility: screen('job-visibility-referrers', 672, 336, 'browser', 'The site analytics screen listing top referrers with sample counts: google.com, chatgpt.com, bing.com, perplexity.ai and linkedin.com'),
-  experience: screen('job-experience-reveal', 640, 320, 'phone', 'The /cards screen on a phone playing the Signature reveal opener, which ends on the logo'),
+  experience: screen('job-experience-reveal', 640, 320, 'phone', 'The /cards screen on a phone playing the Signature reveal opener, which ends on the logo', 477),
   conversion: screen('job-conversion-enquiry', 640, 320, 'phone', 'The enquiry form on a sample living card screen, filled in by Alex Example asking for a bathroom refit quote'),
   intelligence: screen('job-intelligence-inbox', 640, 320, 'browser', 'The Nexus inbox screen with a card enquiry from Sam Sample and a website lead from Alex Example, each dated and sourced'),
 }

@@ -23,13 +23,28 @@ async function pixels() {
 describe('Experience screen has no reflection strip under the wordmark', () => {
   it('is dark floor only between the wordmark and the tile bottom border', async () => {
     const { w, h, at } = await pixels()
-    // last row of the wordmark: the last row with a run of near-white pixels across the centre, above any caption row
-    let wordmarkEnd = -1
-    for (let y = 0; y < h; y++) {
+    // last row of the wordmark: after the logo, the last bright row before four dark rows in a row (anti-aliased edges included)
+    const rowMax = (y: number) => {
+      let m = 0
+      for (let x = 130; x < 510; x++) m = Math.max(m, at(x, y))
+      return m
+    }
+    // the wordmark starts at the first row below the U with a run of near-white pixels
+    let start = 340
+    while (start < h) {
       let white = 0
-      for (let x = 130; x < 510; x++) if (at(x, y) > 200) white++
-      if (white >= 20) wordmarkEnd = y
-      else if (wordmarkEnd > -1 && at(40, y) > 25) break
+      for (let x = 130; x < 510; x++) if (at(x, start) > 200) white++
+      if (white >= 20) break
+      start++
+    }
+    expect(start, 'wordmark start found').toBeLessThan(h)
+    let wordmarkEnd = -1
+    let dark = 0
+    for (let y = start; y < h; y++) {
+      if (rowMax(y) > 80) {
+        wordmarkEnd = y
+        dark = 0
+      } else if (wordmarkEnd > -1 && ++dark >= 4) break
     }
     expect(wordmarkEnd, 'wordmark found').toBeGreaterThan(300)
     // the tile's bottom border: the first row after the wordmark whose left-inside pixel is border-bright
