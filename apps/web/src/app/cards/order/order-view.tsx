@@ -2,6 +2,7 @@ import { COMPANY_NAME, companyAbnLabel } from '@/lib/legal/company'
 
 import { formatAud, stripePaymentLink } from '../../grow/packages'
 import { EDITIONS } from '../editions'
+import { CollectionNotice } from '../collection-notice'
 import { CardEnquiryForm } from './enquiry-form'
 import { Film } from './film'
 import { BuyFilm, StickyBar } from './order-buy'
@@ -76,7 +77,7 @@ export function OrderView({ edition, referrer }: { edition: string | null; refer
               A short film that ends on your logo and contact details. Pick one of our ten, or have one made for your business.
             </p>
             <div className={s.heroActions}>
-              <a href="#choose" className={s.primary}>
+              <a href="#choose" data-track="cta" data-track-label="order-hero-choose" className={s.primary}>
                 Choose your film
               </a>
               <a href="/cards" className={s.secondary}>
@@ -109,7 +110,7 @@ export function OrderView({ edition, referrer }: { edition: string | null; refer
                           <span className={s.priceNote}>AUD</span>
                         </p>
                         <p className={s.tierLine}>{t.line}</p>
-                        <a href={t.link} rel="noopener" className={`${s.primary} ${s.block}`}>
+                        <a href={t.link} rel="noopener" data-track="cta" data-track-label={`order-tier-${t.id}`} className={`${s.primary} ${s.block}`}>
                           Order {t.name.toLowerCase()}
                         </a>
                       </article>
@@ -124,11 +125,18 @@ export function OrderView({ edition, referrer }: { edition: string | null; refer
                     Send us your details below and we will contact you to build your card. You approve a private proof before
                     anything goes live, and nothing is charged on this page.
                   </p>
-                  <a href="#enquire" className={`${s.primary} ${s.block}`}>
+                  <a href="#enquire" data-track="cta" data-track-label="order-send-details" className={`${s.primary} ${s.block}`}>
                     Send my details
                   </a>
                 </div>
               )}
+
+              <p className={s.chosen}>
+                By paying you agree to our order terms.{' '}
+                <a href="/cards/terms" className={s.navLink}>
+                  Order terms
+                </a>
+              </p>
             </div>
           </div>
         </section>
@@ -159,6 +167,7 @@ export function OrderView({ edition, referrer }: { edition: string | null; refer
                 : 'We will contact you to build your card. Nothing is charged on this page.'}
             </p>
             <CardEnquiryForm referrer={referrer} />
+            <CollectionNotice />
           </div>
         </section>
       </main>

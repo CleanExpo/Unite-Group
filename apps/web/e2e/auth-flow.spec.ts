@@ -62,10 +62,12 @@ test.describe('Auth Flow', () => {
     await expect(emailInput).toHaveAttribute('required', '')
   })
 
-  test('unauthenticated root redirects to login', async ({ page }) => {
+  // Phill 25/10/2026 (UNI-3001): / is the public home for signed-out visitors; private routes still redirect
+  test('unauthenticated root shows the public home, not the login page', async ({ page }) => {
     await page.goto('/')
 
-    await expect(page).toHaveURL(/\/auth\/login/)
+    await expect(page).not.toHaveURL(/\/auth\/login/)
+    await expect(page.locator('h1')).toContainText('Every business')
   })
 
   test('unauthenticated /founder route redirects to login', async ({ page }) => {

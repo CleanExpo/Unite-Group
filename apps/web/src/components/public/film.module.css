@@ -1,0 +1,27 @@
+/* A film: a fixed aspect box (no layout shift), the poster under, the film over it once it plays. */
+.film { position: relative; overflow: hidden; width: 100%; aspect-ratio: var(--film-ratio); background: var(--pub-night); }
+.media { position: absolute; inset: 0; }
+.media[data-fade] { -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 70%, transparent 100%); mask-image: linear-gradient(to bottom, #000 0, #000 70%, transparent 100%); }
+.layer { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% var(--film-y, 50%); transform: scale(var(--film-scale, 1)); transform-origin: 50% var(--film-y, 50%); }
+.video { opacity: 0; transition: opacity 0.4s ease; }
+[data-film-state='playing'] .video, [data-film-state='paused'] .video, [data-film-state='held'] .video { opacity: 1; }
+
+.controls { position: absolute; right: var(--controls-right, 12px); top: 12px; display: flex; gap: 8px; }
+.controls button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 16px;
+  border: 1px solid rgba(244, 241, 236, 0.55);
+  border-radius: 999px;
+  background: rgba(8, 9, 20, 0.72);
+  color: var(--pub-night-ink);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.controls button:hover:not(:disabled) { border-color: var(--pub-highlight); }
+.controls button:disabled { cursor: default; opacity: 0.6; }
+.controls button:focus-visible { outline: 3px solid var(--pub-highlight); outline-offset: 2px; }
+
+/* In a small tile the controls sit along the bottom, clear of the label at the top. */
+.film[data-controls='bottom'] .controls { top: auto; bottom: 8px; right: 8px; }

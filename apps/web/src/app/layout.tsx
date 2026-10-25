@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import "./globals.css";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { Analytics } from '@vercel/analytics/react';
+import { SiteTracker } from '@/components/analytics/site-tracker';
 
 export const metadata: Metadata = {
   title: 'Unite-Group Nexus',
@@ -23,10 +24,11 @@ export default async function RootLayout({
   const nonce = (await headers()).get('x-nonce') ?? '';
 
   return (
-    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable} light`} suppressHydrationWarning>
+    <html lang="en-AU" className={`${GeistSans.variable} ${GeistMono.variable} light`} suppressHydrationWarning>
       <body nonce={nonce} suppressHydrationWarning>
         <ThemeProvider>{children}</ThemeProvider>
         <Analytics />
+        <SiteTracker />
       </body>
     </html>
   );

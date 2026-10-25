@@ -12,6 +12,7 @@ import { MISSION_CONTROL_HOME } from '@/lib/navigation/mission-control'
 
 const BREADCRUMB_MAP: Record<string, string> = {
   '/founder/dashboard':   'Dashboard',
+  '/founder/inbox':       'Inbox',
   '/founder/bookkeeper':  'Bookkeeper',
   '/founder/xero':        'Xero',
   '/founder/invoices':    'Invoices',
@@ -25,6 +26,7 @@ const BREADCRUMB_MAP: Record<string, string> = {
   '/founder/boardroom':   'CEO Boardroom',
   '/founder/social':      'Social',
   '/founder/analytics':   'Analytics',
+  '/founder/site-analytics': 'Site Analytics',
   '/founder/campaigns':   'Campaigns',
   '/founder/experiments': 'Experiments',
   '/founder/contacts':    'Contacts',

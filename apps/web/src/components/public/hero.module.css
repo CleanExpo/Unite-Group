@@ -1,0 +1,61 @@
+/* Hero, Mode B (Cinematic Spotlight). Dark band, edge to edge, one focal point: the copper U.
+   The stage has a fixed height, so the poster, the film and the text below cannot shift. */
+
+.hero { background: var(--pub-night); color: var(--pub-night-ink); }
+.stage { position: relative; width: 100%; }
+.stage .film { --film-y: 46%; --film-scale: 1.28; --controls-right: max(16px, calc((100% - var(--pub-max)) / 2 + 24px)); aspect-ratio: auto; height: clamp(300px, calc(100svh - 440px), 620px); }
+
+.copy {
+  position: relative;
+  z-index: 1;
+  max-width: 66rem;
+  margin: -56px auto 0;
+  padding: 0 16px 64px;
+  text-align: center;
+}
+.wordmark {
+  margin: 0;
+  font-family: var(--pub-mono);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--pub-night-soft);
+}
+.h1 {
+  margin: 14px 0 0;
+  font-family: var(--pub-display);
+  font-size: clamp(2.8rem, 9vw, 6.4rem);
+  text-wrap: balance;
+  line-height: 0.95;
+  letter-spacing: 0.005em;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--pub-night-ink);
+}
+.accent { color: var(--pub-highlight); }
+.sub { margin: 16px auto 0; max-width: 40rem; font-size: 18px; line-height: 1.4; color: var(--pub-night-soft); }
+.actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px 16px; margin-top: 28px; }
+
+.cta, .ghost {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 24px;
+  border-radius: var(--pub-radius);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.hero a.cta { background: var(--pub-highlight); color: var(--pub-night); border: 1px solid var(--pub-highlight); }
+.hero a.cta:hover { background: #f58f5c; border-color: #f58f5c; color: var(--pub-night); }
+.hero a.ghost { color: var(--pub-night-ink); border: 1px solid rgba(244, 241, 236, 0.5); background: transparent; }
+.hero a.ghost:hover { border-color: var(--pub-highlight); color: var(--pub-highlight); }
+.hero a:focus-visible { outline: 3px solid var(--pub-highlight); outline-offset: 3px; }
+
+@media (max-width: 640px) {
+  .stage .film { height: clamp(240px, 52svh, 360px); --film-y: 46%; --film-scale: 1.15; }
+  .copy { margin-top: -36px; padding-bottom: 48px; }
+  .wordmark { letter-spacing: 0.22em; font-size: 12px; }
+  .sub { font-size: 16px; }
+}

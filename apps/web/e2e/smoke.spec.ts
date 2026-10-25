@@ -36,14 +36,14 @@ test.describe('Smoke — No Auth Required', () => {
   });
 
   /**
-   * Test 2: Unauthenticated root request redirects to the login page.
-   * The root page performs a server-side redirect when no session is present.
+   * Test 2: an unauthenticated visitor on / sees the public home (Phill 25/10/2026, UNI-3001).
+   * The root page sends only a signed-in user on, to /founder/command-centre.
    */
-  test('root redirect — visiting / redirects to /auth/login', async ({ page }) => {
+  test('root — visiting / signed out shows the public home', async ({ page }) => {
     await page.goto('/');
 
-    // Middleware or root page.tsx redirects unauthenticated visitors to login.
-    await expect(page).toHaveURL(/\/auth\/login/);
+    await expect(page).not.toHaveURL(/\/auth\/login/);
+    await expect(page.locator('h1')).toContainText('Every business');
   });
 
   /**

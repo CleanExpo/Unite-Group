@@ -1,0 +1,22 @@
+.notice {
+  margin: 1rem 0 0;
+  max-width: 40rem;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #a6a29b;
+}
+
+.notice a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.notice a:hover {
+  color: #f3f1ec;
+}
+
+.notice a:focus-visible {
+  outline: 2px solid #ffd2bf;
+  outline-offset: 3px;
+}

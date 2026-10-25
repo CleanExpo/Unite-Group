@@ -60,15 +60,20 @@ const PUBLIC_PATHS = [
   '/api/cron',
   '/api/webhooks', // External provider callbacks verify their own signatures/secrets
   '/api/leads',    // Public website lead capture (UNI-2355) — service-role insert, rate-limited above
+  '/api/events',   // First-party site analytics intake (UNI-3001) — service-role insert, honours DNT/GPC, rate-limited in-route
   '/api/agent',    // Public site chat agent — auth is the publishable site key, validated in-route (UNI-2359)
   '/widget',       // Embeddable chat widget script must load on third-party sites (UNI-2359)
   '/cards/media',  // Living-card showroom clips: static files in public/cards/media (.mp4 is not in the matcher's asset list)
+  '/landing/media',  // Home hero preview renders (webp, jpg, webm, mp4): static files in public/landing/media; .mp4 and .webm are not in the matcher's asset list
+  '/_vercel/insights',        // Vercel Web Analytics script and beacon; segment-aware, so '/_vercel/other' and '/_vercelx' stay closed
+  '/_vercel/speed-insights', // Vercel Speed Insights script and beacon
 ] as const;
 
 // Single public files and pages, matched EXACTLY. They have no sub-routes, so the
 // segment rule above would grant '/llms.txt/<anything>' an exemption nobody
 // approved (independent review, Wave 1).
 const EXACT_PUBLIC_FILES: ReadonlySet<string> = new Set([
+  '/', // Public Nexus landing page for signed-out visitors; the page itself sends a signed-in user to /founder/command-centre
   '/llms.txt', // AI-agent identification file; static, no private data
   '/robots.txt',
   '/sitemap.xml',
@@ -77,6 +82,14 @@ const EXACT_PUBLIC_FILES: ReadonlySet<string> = new Set([
   '/grow', // Public SMB services offer page; its form posts to the public /api/leads
   '/cards', // Public living-card showroom (ten editions + signature reveal)
   '/cards/order', // Public card enquiry page; no payment, its form posts to the public /api/leads
+  '/cards/terms', // Public card order terms; static text, no data. Exact path only
+  '/cards/thanks', // Post-payment thank-you with the intake form; the buyer is signed out. Exact: no sub-routes
+  '/api/cards/intake', // The intake form's POST, service-role insert against an order reference; rate-limited above. Exact: no siblings
+  // The four pillar pages (UNI-3001). Exact paths only: a prefix rule would also open '/solutions/anything'.
+  '/solutions/visibility',
+  '/solutions/experience',
+  '/solutions/conversion',
+  '/solutions/intelligence',
 ]);
 
 export function isPublicPath(pathname: string): boolean {

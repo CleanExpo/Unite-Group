@@ -1,0 +1,45 @@
+/* The living-card gallery: ten tall tiles, poster first. The film is mounted by gallery-tile.tsx only when motion allows. */
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 28px 0 0; padding: 0; list-style: none; }
+@media (min-width: 700px) { .grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; } }
+
+.tile {
+  position: relative;
+  display: block;
+  aspect-ratio: 9 / 16;
+  overflow: hidden;
+  border: 1px solid var(--pub-line);
+  border-radius: 16px;
+  background: var(--pub-bg);
+  color: var(--pub-ink);
+  text-decoration: none;
+  isolation: isolate;
+}
+.grid a.tile, .grid a.tile:hover { color: var(--pub-ink); }
+.tile:hover, .tile:focus-visible { border-color: var(--pub-highlight); }
+.poster, .video { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; }
+.video { z-index: 1; }
+.tile::after { content: ''; position: absolute; inset: auto 0 0 0; height: 40%; z-index: 2; background: linear-gradient(to top, rgba(8, 9, 20, 0.92), rgba(8, 9, 20, 0)); }
+.name {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 3;
+  font-family: var(--pub-display);
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.ai {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  z-index: 3;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(8, 9, 20, 0.78);
+  color: var(--pub-ink);
+  font-family: var(--pub-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}

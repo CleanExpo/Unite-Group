@@ -1,0 +1,57 @@
+# Card payment links: getting the order reference and the thank-you page onto them
+
+UNI-2996 B5. This is Phill's Stripe step. The code does not change the links, and nothing here was done in Stripe.
+Do it in Stripe TEST mode first and pay with a Stripe test card before touching the live links.
+
+## What the code now does
+
+When Stripe sends `checkout.session.completed` to `/api/webhooks/stripe`, a paid session that came from one of the two card
+Payment Links (listed in `STRIPE_CARD_PAYMENT_LINK_IDS`) and whose amount is A$249 or A$449
+(the two `CARD_TIERS` in `src/app/cards/order/order-view.tsx`) becomes one `card_orders` row and one email to
+`LEAD_ALERT_EMAIL_TO` with the buyer's name and the tier only. The order's reference is the session's
+`client_reference_id`; if the link carried none, it is the checkout session id (`cs_...`). The reference is only a label for
+you: the thank-you form is tied to the order by the checkout session id alone, never by the reference. The same event arriving twice
+changes nothing the second time. If the price of a tier changes, change `CARD_TIERS`; the match is on AUD amount.
+
+## Steps in Stripe
+
+1. **Webhook endpoint.** Dashboard, Developers, Webhooks: the endpoint `https://unite-group.in/api/webhooks/stripe` must be
+   subscribed to `checkout.session.completed` (it only receives events you select). Its signing secret is the existing
+   `STRIPE_WEBHOOK_SECRET`.
+2. **Send the buyer to the thank-you page.** For each of the two Payment Links (Ready-made, Made for you): edit the link,
+   "After the payment", choose "Don't show confirmation page", "Redirect customers to your website", and enter
+   `https://unite-group.in/cards/thanks?session_id={CHECKOUT_SESSION_ID}`. Stripe replaces `{CHECKOUT_SESSION_ID}` with the
+   real session id. The page finds the order by that session id alone, so this works whether or not the link has a `client_reference_id`. Without `session_id` in the address the form does not appear. When Stripe recorded the buyer's email, the email typed into the form must match it.
+3. **Optional: label a payment for yourself.** When you send someone a link by email, you may add
+   `?client_reference_id=<value>` to the link, for example `https://buy.stripe.com/xxxx?client_reference_id=sample-plumbing-2610`
+   (letters, digits, `-` and `_` only, at most 200 characters). It is stored as the order's `reference` so you can recognise the
+   order. It is NOT a key to anything: a readable value can be guessed, so the thank-you form never accepts it, and the buyer
+   page works only from the unguessable `session_id` Stripe puts in the redirect (step 2).
+
+## Environment (Vercel project)
+
+| Name | Needed for |
+|---|---|
+| `LEAD_ALERT_EMAIL_TO` | the address that receives the order alert; unset means no email, the order is still recorded |
+| `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL` | the existing mail sender the alert uses |
+| `STRIPE_CARD_PAYMENT_LINK_IDS` | the two card Payment Link ids (`plink_...`, from each link's page in the Stripe dashboard), comma-separated. Not secret. Unset means no order is recorded: the price alone never counts, so another product at A$249 or A$449 cannot become a card order |
+| `FOUNDER_USER_ID` | already set; the order's owner |
+| `STRIPE_WEBHOOK_SECRET` | already set |
+
+## Database
+
+`supabase/migrations/20261025100000_card_orders.sql` creates `card_orders` and `card_order_intakes`. It is founder-gated and
+has not been applied anywhere. Until it is applied, the webhook answers 500 for a paid card order (so Stripe retries and
+nothing is lost), and the thank-you form cannot save.
+
+## Check it end to end (test mode)
+
+Pay a test-mode link with Stripe's test card, then confirm: one `card_orders` row, one alert email, the redirect landing on
+`/cards/thanks?session_id=cs_test_...`, and a submitted intake appearing as one `card_order_intakes` row. Resend the same
+event from the dashboard: still one row and no second email.
+
+## Not built
+
+Logo upload. The thank-you form checks the chosen file (PNG, JPEG, WebP, SVG, up to 5 MB) but does not send or store it;
+there is no public upload path that is safe yet (`TODO(logo-upload)` in `src/app/cards/thanks/intake-form.tsx`). The
+confirmation tells the buyer we will email to collect the logo.
