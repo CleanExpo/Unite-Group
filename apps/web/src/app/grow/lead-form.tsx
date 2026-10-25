@@ -56,7 +56,7 @@ export function LeadForm() {
   if (status.kind === 'sent') {
     return (
       <div role="status" className="rounded-sm border border-green-700/30 bg-green-50 p-6 text-stone-800">
-        <p className="text-lg font-semibold text-green-800">Thank you. We have your details and will reply by email.</p>
+        <p className="text-lg font-semibold text-green-800">Thank you. We have your details.</p>
       </div>
     )
   }

@@ -32,6 +32,8 @@ describe('privacy policy marketing email wording', () => {
   it('says what the enquiry records and claims no unsubscribe link, double opt-in or review cycle', () => {
     const s10 = section('10. Website Enquiries and Free Audits')
     expect(s10).toContain('whether you ticked the box agreeing to receive marketing email')
+    expect(s10).toContain('Our enquiry form adds you to an automated email sequence only if you ticked that box.')
+    expect(s10).not.toMatch(/sequences only take in/i)
     expect(s10).not.toMatch(/unsubscribe/i)
     expect(s10).not.toMatch(/double opt-in|confirm your subscription/i)
     expect(s10).not.toMatch(/review(ed)? (yearly|annually|regularly)/i)

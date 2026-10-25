@@ -35,7 +35,7 @@ describe('/grow makes no delivery claim', () => {
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'a@b.co' } })
     fireEvent.submit(container.querySelector('form')!)
     const status = await screen.findByRole('status')
-    expect(status.textContent).toBe('Thank you. We have your details and will reply by email.')
+    expect(status.textContent).toBe('Thank you. We have your details.')
   })
 
   it('the page and form copy name no destination or reader', () => {

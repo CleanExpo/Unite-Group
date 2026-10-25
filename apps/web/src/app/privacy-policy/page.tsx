@@ -243,8 +243,8 @@ export default function PrivacyPolicyPage() {
             Business Profile) to prepare the audit.
           </p>
           <p>
-            Your enquiry records whether you ticked the box agreeing to receive marketing email. Our automated
-            email sequences only take in enquiries that recorded that agreement. To ask us not to send you
+            Your enquiry records whether you ticked the box agreeing to receive marketing email. Our enquiry
+            form adds you to an automated email sequence only if you ticked that box. To ask us not to send you
             marketing email, email{' '}
             <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: '#15803d' }}>{CONTACT_EMAIL}</a>.
           </p>
