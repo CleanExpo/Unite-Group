@@ -111,6 +111,17 @@ export function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
+// Top-level URL segments that hold real private routes. A signed-out visitor at one of these is sent to sign in.
+// A signed-out visitor at anything else that is not public gets the not-found page instead of the founder sign-in
+// (go-live audit D11: /about, /contact, /terms, /zzz all landed on a Google sign-in wall). The not-found answer is a
+// rewrite made here, so it fails closed: even if a real private route were missed from this list, the visitor would
+// see a 404, never the route. src/__tests__/golive-404-proxy.test.ts scans src/app so a new private root cannot be missed.
+const PROTECTED_ROOTS: ReadonlySet<string> = new Set(['founder', 'api', 'docs', 'preview', 'c']);
+
+function isProtectedRoot(pathname: string): boolean {
+  return PROTECTED_ROOTS.has(pathname.split('/')[1] ?? '');
+}
+
 // These exact POST handlers authenticate their own bearer or enrolled signature.
 // Cookies grant no transport authority; siblings and descendants stay private.
 function isRouteAuthenticatedPath(pathname: string): boolean {
@@ -180,6 +191,15 @@ export async function proxy(request: NextRequest) {
   // 3. Auth guard — redirect unauthenticated users to login
   // ------------------------------------------------------------------
   if (!user && !isPublicPath(pathname) && !routeAuthenticated) {
+    if (!isProtectedRoot(pathname)) {
+      // No such public page. A path that does not exist in the app renders app/not-found.tsx with a 404 status.
+      const notFound = NextResponse.rewrite(new URL('/__not-found', request.url), {
+        request: { headers: requestHeaders },
+        status: 404,
+      });
+      notFound.headers.set('Content-Security-Policy', buildCSP(nonce));
+      return notFound;
+    }
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = '/auth/login';
     loginUrl.searchParams.set('redirectTo', pathname);

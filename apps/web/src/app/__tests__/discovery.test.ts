@@ -12,10 +12,10 @@ import sitemap from '../sitemap'
 const llms = readFileSync(join(__dirname, '..', '..', '..', 'public', 'llms.txt'), 'utf8')
 
 describe('sitemap (AC-7)', () => {
-  it('lists the home, grow, cards, order, terms, four pillars and the two legal pages, and nothing private', () => {
+  it('lists the home, cards, order, terms, four pillars and the two legal pages, and nothing private (not /grow: noindex, D3)', () => {
     const paths = sitemap().map((e) => new URL(e.url).pathname)
     expect(paths).toEqual([
-      '/', '/grow', '/cards', '/cards/order', '/cards/terms',
+      '/', '/cards', '/cards/order', '/cards/terms',
       '/solutions/visibility', '/solutions/experience', '/solutions/conversion', '/solutions/intelligence',
       '/privacy-policy', '/terms-of-service',
     ])
@@ -50,8 +50,9 @@ describe('robots (AC-7)', () => {
 })
 
 describe('llms.txt (AC-7)', () => {
-  it('mentions the card offer and /grow, with prices from CARD_TIERS, and never the internal agency', () => {
-    expect(llms).toContain('/grow')
+  it('mentions the card offer and its terms, never /grow, with prices from CARD_TIERS, and never the internal agency', () => {
+    expect(llms).not.toContain('/grow')
+    expect(llms).toContain('/cards/terms')
     expect(llms).toMatch(/video business card/i)
     for (const t of CARD_TIERS) expect(llms).toContain(`$${t.priceAud} AUD`)
     expect(llms.match(/synthex/gi) ?? []).toHaveLength(0)

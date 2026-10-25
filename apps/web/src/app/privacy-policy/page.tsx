@@ -63,9 +63,9 @@ export default function PrivacyPolicyPage() {
             how we collect, use, disclose, and safeguard information in connection with the Application.
           </p>
           <p>
-            The Application is a private, single-operator business management platform. It is not a public-facing
-            SaaS product and is not intended for use by the general public. By accessing or using the Application,
-            you acknowledge this policy.
+            <a href={APP_URL} style={{ color: '#15803d' }}>unite-group.in</a> is the public website of {COMPANY}, where
+            we sell the Living Business Card. The Application itself is a private, single-operator business management
+            platform. By accessing or using the Application, you acknowledge this policy.
           </p>
           <p>
             We are bound by the <em>Privacy Act 1988</em> (Cth) and the Australian Privacy Principles (APPs)

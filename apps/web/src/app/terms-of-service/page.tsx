@@ -68,9 +68,11 @@ export default function TermsOfServicePage() {
             do not use the Application.
           </p>
           <p>
-            The Application is a <strong>private, single-operator business management platform</strong>. Access
-            is strictly limited to authorised personnel of {COMPANY}. It is not a public service and is not
-            offered to the general public.
+            <a href={APP_URL} style={{ color: '#15803d' }}>unite-group.in</a> is the public website of {COMPANY}. We
+            use it to sell the Living Business Card, and every card order is also covered by the{' '}
+            <a href="/cards/terms" style={{ color: '#15803d' }}>card order terms</a>. The Application itself is a{' '}
+            <strong>private, single-operator business management platform</strong>, and access to it is strictly
+            limited to authorised personnel of {COMPANY}.
           </p>
         </Section>
 

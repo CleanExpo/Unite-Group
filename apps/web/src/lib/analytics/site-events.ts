@@ -42,7 +42,6 @@ export const SITE_EVENT_LIMITS = {
  */
 export const TRACKED_PATHS: readonly string[] = [
   '/',
-  '/grow',
   '/cards',
   '/cards/order',
   '/cards/terms',

@@ -1,23 +1,30 @@
-import Link from 'next/link';
+import '@/styles/public-tokens.css'
 
+import s from '@/components/public/public.module.css'
+import { SiteFooter } from '@/components/public/site-footer'
+import { SiteNav } from '@/components/public/site-nav'
+
+// Any address that is not a page on this site. Same shell as the pillar pages: nav, one message, a way back, footer.
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-[#fffdf7] flex items-center justify-center p-8">
-      <div className="max-w-md w-full text-center">
-        <div className="text-8xl font-mono font-bold text-[#6b6b6b] mb-4">404</div>
-        <h1 className="text-2xl font-mono font-bold text-[#0A0A0A] mb-2">
-          Page Not Found
-        </h1>
-        <p className="text-sm text-[#5f5f66] mb-8">
-          The page you&apos;re looking for doesn&apos;t exist or has been moved.
-        </p>
-        <Link
-          href="/"
-          className="inline-flex items-center justify-center px-6 py-3 bg-[#16a34a] text-[#fffdf7] font-mono font-bold rounded-sm transition-colors hover:bg-[#16a34a]/90"
-        >
-          Back to Home
-        </Link>
-      </div>
+    <div className={s.page}>
+      <SiteNav />
+      <main id="main" className={s.wrap}>
+        <article className={s.pillarHero}>
+          <p className={s.eyebrow}>404</p>
+          <h1 className={s.h1}>Page not found</h1>
+          <p className={s.lead}>There is no page at this address. It may have moved, or the link may be mistyped.</p>
+          <p style={{ marginTop: 24 }}>
+            <a href="/" className={s.buttonPrimary}>
+              Go to the Unite Group home page
+            </a>
+          </p>
+          <p style={{ marginTop: 16 }}>
+            Or <a href="/#contact">ask a question</a> and we will point you to the right place.
+          </p>
+        </article>
+      </main>
+      <SiteFooter />
     </div>
-  );
+  )
 }

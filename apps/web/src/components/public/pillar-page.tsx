@@ -16,7 +16,7 @@ export function PillarPage({ slug }: { slug: Pillar['slug'] }) {
   return (
     <div className={s.page}>
       <SiteNav />
-      <main className={s.wrap}>
+      <main id="main" className={s.wrap}>
         <nav aria-label="Breadcrumb">
           <ol className={s.crumbs}>
             <li>

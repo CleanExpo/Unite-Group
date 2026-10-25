@@ -82,7 +82,6 @@ export const PRICE_NOTE = 'One-off price, GST included'
 /** Every public route, in sitemap order. */
 export const PUBLIC_ROUTES = [
   '/',
-  '/grow',
   '/cards',
   '/cards/order',
   '/cards/terms',

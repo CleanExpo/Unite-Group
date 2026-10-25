@@ -27,7 +27,7 @@ export function answers() {
     },
     {
       q: 'How long does my card stay online?',
-      a: `We have not set a hosting term yet, so we will not promise one here. Email ${CONTACT_EMAIL} and we will answer in writing.`,
+      a: `We host your card for 12 months from the day it goes live, with no monthly fee. We email you at least 30 days before hosting ends with the renewal price, and it does not renew unless you choose to pay. The full wording is in the card order terms. Email ${CONTACT_EMAIL} with any question.`,
     },
     {
       q: 'Who do you work with?',

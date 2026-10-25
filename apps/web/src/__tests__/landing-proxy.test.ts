@@ -8,6 +8,7 @@ vi.mock('@/lib/auth/private-access', () => ({ hasPrivateAccess: vi.fn(() => fals
 import { updateSession } from '@/lib/supabase/middleware'
 import { checkRateLimit } from '@/lib/middleware/rate-limit'
 import { isPublicPath, proxy } from '../proxy'
+import { deniedTo } from './proxy-denied'
 
 const get = (pathname: string) => proxy(new NextRequest(`https://app.test${pathname}`))
 
@@ -29,7 +30,7 @@ describe('pillar pages and hero media for signed-out visitors', () => {
     async (path) => {
       expect(isPublicPath(path)).toBe(false)
       if (path.endsWith('.png')) return // static-asset paths skip the proxy by matcher; covered by proxy-matcher.test.ts
-      expect(new URL((await get(path)).headers.get('location') ?? '').pathname).toBe('/auth/login')
+      expect(deniedTo(await get(path))).not.toBe('served')
     },
   )
 
@@ -39,8 +40,8 @@ describe('pillar pages and hero media for signed-out visitors', () => {
       expect((await get(`/landing/media/${f}`)).headers.get('location')).toBeNull()
     }
     expect(isPublicPath('/landing/other')).toBe(false)
-    expect(new URL((await get('/landing/other')).headers.get('location') ?? '').pathname).toBe('/auth/login')
-    expect(new URL((await get('/landing/mediax')).headers.get('location') ?? '').pathname).toBe('/auth/login')
+    expect(deniedTo(await get('/landing/other'))).toBe('not-found')
+    expect(deniedTo(await get('/landing/mediax'))).toBe('not-found')
   })
 })
 
@@ -59,7 +60,7 @@ describe('Vercel Web Analytics paths', () => {
     'still sends a signed-out request for %s to the login page',
     async (path) => {
       expect(isPublicPath(path)).toBe(false)
-      expect(new URL((await get(path)).headers.get('location') ?? '').pathname).toBe('/auth/login')
+      expect(deniedTo(await get(path))).not.toBe('served')
     },
   )
 })
@@ -72,12 +73,16 @@ describe('signed-out visitors and the public landing page', () => {
     expect(res.headers.get('x-middleware-next')).toBe('1')
   })
 
-  it.each(['/founder/command-centre', '/contacts', '/api/contacts', '/founder', '/x'])(
+  it.each(['/founder/command-centre', '/api/contacts', '/founder'])(
     'still sends a signed-out visitor at %s to the login page',
     async (path) => {
       expect(isPublicPath(path)).toBe(false)
-      const location = (await get(path)).headers.get('location') ?? ''
-      expect(new URL(location).pathname).toBe('/auth/login')
+      expect(deniedTo(await get(path))).toBe('/auth/login')
     },
   )
+
+  it.each(['/contacts', '/x'])('shows a signed-out visitor at %s the not-found page, not the sign-in wall', async (path) => {
+    expect(isPublicPath(path)).toBe(false)
+    expect(deniedTo(await get(path))).toBe('not-found')
+  })
 })

@@ -2,7 +2,7 @@
    The stage has a fixed height, so the poster, the film and the text below cannot shift. */
 
 .hero { background: var(--pub-night); color: var(--pub-night-ink); }
-.stage { position: relative; width: 100%; }
+.stage { position: relative; width: 100%; overflow: clip; } /* the film is scaled up inside its box; clip it to the screen (audit D25, 320 px) */
 .stage .film { --film-y: 46%; --film-scale: 1.28; --controls-right: max(16px, calc((100% - var(--pub-max)) / 2 + 24px)); aspect-ratio: auto; height: clamp(300px, calc(100svh - 440px), 620px); }
 
 .copy {

@@ -8,6 +8,7 @@ vi.mock('@/lib/auth/private-access', () => ({ hasPrivateAccess: vi.fn(() => fals
 import { updateSession } from '@/lib/supabase/middleware'
 import { checkRateLimit } from '@/lib/middleware/rate-limit'
 import { isPublicPath, proxy } from '../proxy'
+import { deniedTo } from './proxy-denied'
 
 const get = (pathname: string) => proxy(new NextRequest(`https://app.test${pathname}`))
 
@@ -28,7 +29,7 @@ describe('/cards/terms for signed-out visitors', () => {
     'does not open %s',
     async (path) => {
       expect(isPublicPath(path)).toBe(false)
-      expect(new URL((await get(path)).headers.get('location') ?? '').pathname).toBe('/auth/login')
+      expect(deniedTo(await get(path))).not.toBe('served')
     },
   )
 

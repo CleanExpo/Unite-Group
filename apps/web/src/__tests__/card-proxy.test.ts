@@ -8,6 +8,7 @@ vi.mock('@/lib/auth/private-access', () => ({ hasPrivateAccess: vi.fn(() => fals
 import { updateSession } from '@/lib/supabase/middleware'
 import { checkRateLimit } from '@/lib/middleware/rate-limit'
 import { isPublicPath, proxy } from '../proxy'
+import { deniedTo } from './proxy-denied'
 
 const get = (pathname: string) => proxy(new NextRequest(`https://app.test${pathname}`))
 
@@ -28,7 +29,7 @@ describe('owner card routes for signed-out visitors', () => {
     '/c/' + 'a'.repeat(65), '/c/sam/CONTACT.VCF', '/cx/sam', '/c/sam/contact.vcf.js',
   ])('still sends a signed-out visitor at %s to the login page', async (p) => {
     expect(isPublicPath(p)).toBe(false)
-    expect(new URL((await get(p)).headers.get('location') ?? '').pathname.replace(/\/$/, '')).toBe('/auth/login')
+    expect(deniedTo(await get(p))).not.toBe('served')
   })
 
   it('does not change the neighbours', () => {

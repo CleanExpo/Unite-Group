@@ -30,6 +30,22 @@
   outline-offset: 2px;
 }
 
+/* ---- skip link: first stop for the keyboard, hidden until it has focus ---- */
+.skipLink {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 10;
+  padding: 12px 20px;
+  border-radius: var(--pub-radius);
+  background: var(--pub-highlight);
+  color: var(--pub-night) !important;
+  font-weight: 600;
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+.skipLink:focus-visible { transform: none; }
+
 /* ---- nav ---- */
 .header {
   position: relative;
