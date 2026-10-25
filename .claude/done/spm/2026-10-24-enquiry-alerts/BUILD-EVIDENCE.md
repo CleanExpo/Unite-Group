@@ -77,7 +77,7 @@ Dependency repair: the worktree initially had only a partially populated .pnpm s
 
 One built review round: a read-only independent agent inspected health, SQL, the enquiry view and privacy wording; another inspected notification claim/send behaviour. No new blockers were reported; the notification reviewer identified the timeout persistence limit above. These are local code review observations, not signed release receipts. No further plan review was performed.
 
-Files reviewed: spec.md revision 5 and engineering.md; root CLAUDE.md and SOURCE-OF-TRUTH.md; web conventions; notification router, legacy sender and tests; leads route/tests; SendGrid installed implementation/types; grow packages/card editions; env validator; heartbeat/workflow/tests; privacy policy; relevant CRM policies and web migration location; cron authentication and founder/cookie/service client helpers. Source-manifest.json records exact hashes of the final changed files and locked inputs.
+Files reviewed: spec.md revision 5 and engineering.md; root CLAUDE.md and SOURCE-OF-TRUTH.md; web conventions; notification router, legacy sender and tests; leads route/tests; SendGrid installed implementation/types; grow packages/card editions; env validator; heartbeat/workflow/tests; privacy policy; relevant CRM policies and web migration location; cron authentication and founder/cookie/service client helpers. Source-manifest.json recorded exact hashes of the final changed files and locked inputs; it was dropped from the branch with the raw run logs (f973e8f1) and stays on the Mini.
 
 Files changed (reconciled 25/10/2026 against the merged work; the original build-time list was stale). Merged in #1234 (commit 0eb4bb8c), excluding this directory:
 
@@ -120,4 +120,4 @@ Anything changed after 0eb4bb8c is recorded by its own commit, not here. Raw run
 
 Recommended next step: host lead reviews and commits locally, then keeps the required two-part rollout: migration alone through AC-10 database-branch approval first, followed by code only after the table is confirmed through the approved path. Preview and production configuration and proof stay human-gated. This lane did not commit, push, open a PR, deploy, change Vercel settings or edit the locked work directory.
 
-Final read-only evidence audit: all 26 manifest hashes match current bytes; C1-C7 exit files and terminal logs agree; all 23 mutation table observations match the four JSON fragments; AC-10/11/12/14 NOT RUN boundaries confirmed.
+Final read-only evidence audit: all 26 manifest hashes matched the bytes at build time (the manifest is on the Mini, not in this directory); C1-C7 exit files and terminal logs agree; all 23 mutation table observations match the four JSON fragments; AC-10/11/12/14 NOT RUN boundaries confirmed.
