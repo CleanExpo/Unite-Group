@@ -39,6 +39,13 @@ describe('/cards/order enquiry form collection notice (APP 5)', () => {
 
   it('links the privacy policy', () => {
     expect(form.match(NOTICE)?.[0]).toContain(`href="${PRIVACY_POLICY_PATH}"`)
+    expect(form.match(NOTICE)?.[0]).toContain('href="/privacy-policy"')
+  })
+
+  it('asks for nothing: no input, button or select inside the notice', () => {
+    const n = form.match(NOTICE)?.[0] ?? ''
+    expect(n).not.toBe('')
+    expect(n).not.toMatch(/<(input|button|select|textarea)\b/)
   })
 
   it('leaves exactly one collection notice on the page, none after the form', () => {

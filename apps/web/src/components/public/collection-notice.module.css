@@ -5,7 +5,9 @@
   line-height: 1.6;
 }
 
-.notice a {
+.notice a,
+.notice.light a,
+.notice.dark a {
   color: inherit;
   text-decoration: underline;
   text-underline-offset: 3px;

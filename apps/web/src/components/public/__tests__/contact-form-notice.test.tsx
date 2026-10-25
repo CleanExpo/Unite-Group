@@ -41,5 +41,10 @@ describe('home contact form APP 5 collection notice', () => {
 
   it('links to the privacy policy inside the notice', () => {
     expect(notice()).toContain(`href="${PRIVACY_POLICY_PATH}"`)
+    expect(notice()).toContain('href="/privacy-policy"')
+  })
+
+  it('asks for nothing: no input, button or select inside the notice', () => {
+    expect(notice()).not.toMatch(/<(input|button|select|textarea)\b/)
   })
 })
