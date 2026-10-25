@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   filterInbox,
+  contactEmailFilter,
   loadInbox,
   mergeInbox,
   parseSourceParam,
@@ -179,5 +180,37 @@ describe('loadInbox', () => {
     }
     await loadInbox(client, { founderId: 'f-1', now: NOW })
     expect(seen).toEqual(['email.ilike."a,b(c)@example.com"'])
+  })
+
+  // UNI-3007: '_' and '%' are LIKE wildcards (and PostgREST turns '*' into '%'), so an address like
+  // ann_lee@x.com used to match annxlee@x.com too: an over-wide read of the founder's contacts.
+  // Emulates PostgREST: unquote ("\\" -> "\", "\"" -> "\""), '*' -> '%', then ILIKE with '\' as escape.
+  const postgrestIlikeMatches = (expr: string, stored: string) =>
+    [...expr.matchAll(/email\.ilike\."((?:[^"\\]|\\.)*)"/g)].some(([, quoted]) => {
+      const pattern = quoted.replace(/\\(.)/g, '$1').replace(/\*/g, '%')
+      let re = ''
+      for (let i = 0; i < pattern.length; i++) {
+        const ch = pattern[i]
+        if (ch === '\\' && i + 1 < pattern.length) re += pattern[++i].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        else if (ch === '%') re += '.*'
+        else if (ch === '_') re += '.'
+        else re += ch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      }
+      return new RegExp(`^${re}$`, 'is').test(stored)
+    })
+
+  it('UNI-3007 escapes LIKE wildcards so an address matches only itself (any case)', () => {
+    const expr = contactEmailFilter(['ann_lee@x.com', '100%real@x.com', 'back\\slash@x.com'])
+    expect(postgrestIlikeMatches(expr, 'ANN_LEE@x.com')).toBe(true)
+    expect(postgrestIlikeMatches(expr, 'annxlee@x.com')).toBe(false)
+    expect(postgrestIlikeMatches(expr, '100%real@x.com')).toBe(true)
+    expect(postgrestIlikeMatches(expr, '100-and-more-real@x.com')).toBe(false)
+    expect(postgrestIlikeMatches(expr, 'back\\slash@x.com')).toBe(true)
+    expect(postgrestIlikeMatches(expr, 'backslash@x.com')).toBe(false)
+  })
+
+  it('UNI-3007 never sends an address containing the PostgREST * wildcard or a double quote', () => {
+    expect(contactEmailFilter(['a*b@x.com', 'say"hi"@x.com'])).toBe('')
+    expect(postgrestIlikeMatches(contactEmailFilter(['a*b@x.com', 'ok@x.com']), 'aXXXb@x.com')).toBe(false)
   })
 })
