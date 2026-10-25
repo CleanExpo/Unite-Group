@@ -10,6 +10,8 @@ insert into card_orders (founder_id, reference, stripe_session_id, stripe_event_
   values ('00000000-0000-0000-0000-00000000000a', 'ref_1', 'cs_test_1', 'evt_1', 'ready', 'Sample Client', 24900, 'aud', false);
 insert into card_orders (founder_id, reference, stripe_session_id, stripe_event_id, tier, amount_total, currency, livemode)
   values ('00000000-0000-0000-0000-00000000000b', 'ref_2', 'cs_test_2', 'evt_2', 'custom', 44900, 'aud', false);
+insert into card_orders (founder_id, reference, stripe_session_id, stripe_event_id, tier, quantity, amount_total, currency, livemode)
+  values ('00000000-0000-0000-0000-00000000000b', 'ref_3', 'cs_test_3', 'evt_3', 'extra_business', 3, 59700, 'aud', false);
 insert into card_order_intakes (order_id, founder_id, name, business, email, where_met)
   select id, founder_id, 'Sample Client', 'Sample Plumbing Co', 'sample@example.invalid', 'Expo'
   from card_orders where reference = 'ref_1';

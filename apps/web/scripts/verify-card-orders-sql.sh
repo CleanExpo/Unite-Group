@@ -7,9 +7,11 @@ set -euo pipefail
 PGBIN=${PGBIN:-/opt/homebrew/opt/postgresql@15/bin}
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 MIGRATION=${MIGRATION_UNDER_TEST:-$ROOT/supabase/migrations/20261025100000_card_orders.sql}
+MIGRATION_EXTRA=${MIGRATION_EXTRA_UNDER_TEST:-$ROOT/supabase/migrations/20261025200000_card_orders_extra_business.sql}
 SETUP="$ROOT/scripts/__tests__/card-orders-stub-roles.sql"
 CONTRACT="$ROOT/scripts/__tests__/card-orders-contract.sql"
 [[ -f "$MIGRATION" ]] || { echo "missing migration $MIGRATION" >&2; exit 3; }
+[[ -f "$MIGRATION_EXTRA" ]] || { echo "missing migration $MIGRATION_EXTRA" >&2; exit 3; }
 
 DATA=$(mktemp -d "${TMPDIR:-/tmp}/card-orders-pg.XXXXXX")
 PORT=$(( 20000 + RANDOM % 20000 ))
@@ -24,6 +26,8 @@ psqlx() { "$PGBIN/psql" -h 127.0.0.1 -p "$PORT" -U postgres -d postgres -X -q -v
 psqlx -f "$SETUP"
 psqlx -f "$MIGRATION"
 psqlx -f "$MIGRATION"   # applying twice must be a no-op
+psqlx -f "$MIGRATION_EXTRA"
+psqlx -f "$MIGRATION_EXTRA"   # the add-on migration is idempotent too
 psqlx -f "$CONTRACT"
 
 # expect_fail LABEL SQL: the statement must be rejected
@@ -40,5 +44,8 @@ expect_fail "authenticated delete intake" "set role authenticated; delete from c
 expect_fail "anon insert intake" "set role anon; insert into card_order_intakes (order_id, founder_id, name, email) values (gen_random_uuid(),$FA,'n','e@example.invalid')"
 expect_fail "duplicate stripe_session_id" "set role service_role; insert into card_orders ($COLS) values ($FA,'ref_9','cs_test_1','evt_9','ready',24900,'aud',false)"
 expect_fail "unknown tier" "set role service_role; insert into card_orders ($COLS) values ($FA,'ref_8','cs_test_8','evt_8','gold',24900,'aud',false)"
+expect_fail "extra_business quantity 6" "set role service_role; insert into card_orders ($COLS, quantity) values ($FA,'ref_7','cs_test_7','evt_7','extra_business',119400,'aud',false,6)"
+expect_fail "extra_business quantity 0" "set role service_role; insert into card_orders ($COLS, quantity) values ($FA,'ref_6','cs_test_6','evt_6','extra_business',0,'aud',false,0)"
+expect_fail "ready with quantity 2" "set role service_role; insert into card_orders ($COLS, quantity) values ($FA,'ref_5','cs_test_5','evt_5','ready',49800,'aud',false,2)"
 expect_fail "second intake for one order" "set role service_role; insert into card_order_intakes (order_id, founder_id, name, email) select id, founder_id, 'Again', 'a@example.invalid' from card_orders where reference = 'ref_1'"
 echo "card_orders SQL contract: PASS"
