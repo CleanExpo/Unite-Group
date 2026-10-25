@@ -39,7 +39,7 @@ const section = (html: string, id: string, next: string) =>
 /** Every anchor in the nav, in document order. */
 function navLinks(html: string) {
   const header = html.slice(html.indexOf('<header'), html.indexOf('</header>'))
-  return [...header.matchAll(/<a [^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)].map((m) => ({ href: m[1], text: strip(m[2]) }))
+  return [...header.matchAll(/<a [^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)].map((m) => ({ href: m[1], text: strip(m[2]) })).filter((l) => l.href !== '#main') // the skip link is not a nav item (golive-copy.test.tsx covers it)
 }
 
 beforeEach(() => vi.clearAllMocks())
@@ -180,7 +180,7 @@ describe('/ pillars and honesty', () => {
     const count = answers.match(/<summary>/g)?.length ?? 0
     expect(count).toBeGreaterThanOrEqual(4)
     expect(count).toBeLessThanOrEqual(6)
-    expect(answers).toContain('We have not set a hosting term yet')
+    expect(answers).toContain('We host your card for 12 months') // the card terms are the source (go-live audit D5)
   })
 })
 
@@ -230,6 +230,7 @@ describe('/ contact and footer', () => {
     expect(footer).not.toContain('ABN pending')
     expect(footer).toContain('href="/privacy-policy"')
     expect(footer).toContain('href="/terms-of-service"')
+    expect(footer).toContain('href="/cards/terms"')
 
     vi.stubEnv('COMPANY_ABN', '51 824 753 556')
     const set = await signedOut()

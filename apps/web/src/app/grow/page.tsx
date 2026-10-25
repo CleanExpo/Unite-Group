@@ -12,7 +12,8 @@ export const metadata: Metadata = {
   description:
     'Unite Group sets up and runs your website, Google Business Profile, reviews and AI-search visibility. Fixed prices in AUD. Free AI-visibility audit.',
   alternates: { canonical: PAGE_URL },
-  robots: { index: true, follow: true },
+  // Kept for later but not offered: Synthex is internal only, so no priced customer offer is indexed (go-live audit D3).
+  robots: { index: false, follow: false },
 }
 
 const STEPS = [

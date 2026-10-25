@@ -127,6 +127,9 @@ const nextConfig = {
       destination: '/founder/command-centre',
       permanent: false,
     })),
+    // Go-live audit D11: the two obvious guesses a visitor types.
+    { source: '/terms', destination: '/terms-of-service', permanent: false },
+    { source: '/contact', destination: '/#contact', permanent: false },
     {
       source: '/policies/unite-group-application-privacy-policy.pdf',
       destination: '/privacy-policy',

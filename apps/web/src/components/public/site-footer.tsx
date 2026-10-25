@@ -22,6 +22,9 @@ export function SiteFooter({ position = false }: { position?: boolean }) {
             <a href="/terms-of-service">Terms</a>
           </li>
           <li>
+            <a href="/cards/terms">Card terms</a>
+          </li>
+          <li>
             <a href="/auth/login" data-footer-login className={s.founderLogin}>
               Founder login
             </a>

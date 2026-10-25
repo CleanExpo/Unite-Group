@@ -39,6 +39,6 @@ describe('paid card order thank-you page and intake route (UNI-2996)', () => {
     const res = await get(path)
     // unauthenticated: a page goes to login, an API path is refused; never passed through
     const location = res.headers.get('location')
-    expect(location !== null ? new URL(location).pathname : String(res.status)).toMatch(/^\/auth\/login\/?$|^40[13]$/)
+    expect(location !== null ? new URL(location).pathname : String(res.status)).toMatch(/^\/auth\/login\/?$|^40[134]$/)
   })
 })

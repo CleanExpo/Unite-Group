@@ -20,7 +20,7 @@ export function PublicHome() {
   return (
     <div className={s.page}>
       <SiteNav />
-      <main>
+      <main id="main">
         <Hero />
         <StartChooser />
         <Highlights />

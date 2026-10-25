@@ -4,10 +4,13 @@ import s from './public.module.css'
 
 // Position 0. The U mark and wordmark go to /. The first item is a keyboard-operable dropdown (details and summary: Enter or
 // Space opens it, Tab reaches each link, no script). No "Home" item, one Contact, no two links share an href.
-// Results, About and Resources are in-page anchors on the home page, so they exist wherever the nav shows.
+// See it first, How it works and Questions are in-page anchors named after their section titles (go-live audit D21) on the home page, so they exist wherever the nav shows.
 export function SiteNav() {
   return (
     <header className={s.header}>
+      <a href="#main" className={s.skipLink}>
+        Skip to content
+      </a>
       <div className={`${s.wrap} ${s.navRow}`}>
         <a href="/" className={s.logo}>
           <img src="/landing/logos/unite-group-nexus-mark.webp" alt="" width={36} height={36} />
@@ -31,13 +34,13 @@ export function SiteNav() {
               <a href="/cards">Living cards</a>
             </li>
             <li>
-              <a href="/#proof">Results</a>
+              <a href="/#proof">See it first</a>
             </li>
             <li>
-              <a href="/#how">About</a>
+              <a href="/#how">How it works</a>
             </li>
             <li>
-              <a href="/#answers">Resources</a>
+              <a href="/#answers">Questions</a>
             </li>
             <li>
               <a href="/#contact">Contact</a>

@@ -1,0 +1,40 @@
+import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { join, relative } from 'node:path'
+
+import { describe, expect, it } from 'vitest'
+
+import { metadata as growMeta } from '../grow/page'
+import sitemap from '../sitemap'
+import { PUBLIC_ROUTES } from '@/lib/public-site'
+
+const srcDir = join(__dirname, '..', '..')
+const walk = (dir: string): string[] =>
+  readdirSync(dir).flatMap((f) => {
+    const p = join(dir, f)
+    if (f === 'node_modules' || f === '__tests__' || f === 'fixtures') return []
+    return statSync(p).isDirectory() ? walk(p) : /\.(tsx?|css|md)$/.test(f) ? [p] : []
+  })
+
+describe('D3: /grow is kept but not offered', () => {
+  it('is noindex and nofollow', () => {
+    expect(growMeta.robots).toEqual({ index: false, follow: false })
+  })
+
+  it('is not in the sitemap or the public route list', () => {
+    expect(sitemap().some((e) => new URL(e.url).pathname === '/grow')).toBe(false)
+    expect((PUBLIC_ROUTES as readonly string[]).includes('/grow')).toBe(false)
+  })
+
+  it('is linked from no page or component', () => {
+    const offenders = walk(srcDir)
+      .filter((f) => !f.includes(`${join('app', 'grow')}`) && !f.includes('privacy-policy'))
+      .filter((f) => /href=["'`{]+[^"'`]*\/grow["'`}\s>]/.test(readFileSync(f, 'utf8')) || /href=\{`\$\{[A-Z_]+\}\/grow`\}/.test(readFileSync(f, 'utf8')))
+      .map((f) => relative(srcDir, f))
+    expect(offenders).toEqual([])
+  })
+
+  it('is not advertised in llms.txt', () => {
+    const llms = readFileSync(join(srcDir, '..', 'public', 'llms.txt'), 'utf8')
+    expect(llms).not.toContain('/grow')
+  })
+})
