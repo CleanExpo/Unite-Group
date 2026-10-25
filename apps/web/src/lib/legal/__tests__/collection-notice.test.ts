@@ -9,7 +9,9 @@ import { CONTACT_EMAIL } from '@/lib/public-site'
 
 import { COMPANY_NAME } from '../company'
 import {
+  COLLECTION_ACCESS,
   COLLECTION_PURPOSES,
+  COLLECTION_RECIPIENTS,
   PRIVACY_CONTACT_EMAIL,
   PRIVACY_POLICY_PATH,
   collectionNoticeText,
@@ -53,6 +55,27 @@ describe('collection notice parity with the privacy policy', () => {
     expect(PURPOSE_BACKING.map(([form]) => form).sort()).toEqual([...forms].sort())
     for (const [form, phrases] of PURPOSE_BACKING)
       for (const phrase of phrases) expect(policy, `${form}: ${phrase}`).toContain(phrase)
+  })
+
+  it('states no purpose the policy does not state: the notice purpose is made only of the backed phrases', () => {
+    for (const [form, phrases] of PURPOSE_BACKING) {
+      // The notice calls the audit "free"; the policy sentence does not carry that word.
+      let rest = COLLECTION_PURPOSES[form].replace('the free audit', 'the audit')
+      for (const phrase of phrases) {
+        expect(rest, `${form}: ${phrase}`).toContain(phrase)
+        rest = rest.replace(phrase, '')
+      }
+      expect(rest.replace(/\b(to|and)\b|[\s,]/g, ''), `${form}: unbacked purpose text`).toBe('')
+    }
+  })
+
+  it('pins the recipient and access sentences to the wording the policy sentences above back', () => {
+    expect(COLLECTION_RECIPIENTS).toBe(
+      'We store them in our database, hosted by Supabase. Vercel hosts the website and keeps request logs, and the emails we send you are delivered by SendGrid. We do not sell your information.',
+    )
+    expect(COLLECTION_ACCESS).toBe(
+      'You can ask to see, correct or delete your information at any time by emailing contact@unite-group.in.',
+    )
   })
 
   it('points at a real route', () => {
