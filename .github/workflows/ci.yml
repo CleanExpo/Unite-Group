@@ -1,9 +1,15 @@
 name: Monorepo CI
 
 on:
+  # UNI-3023 (25/10/2026): one run per pushed SHA, started by the push itself, on every branch.
+  # There is no pull_request trigger on purpose. With both, every PR ran this whole suite twice
+  # on the same SHA: once for the branch push or a lane's dispatch, and again the moment the PR
+  # opened. The required checks went back to pending, and that second run was the wait the
+  # founder kept seeing (#1252 and #1253 measured 25/10: about 10 minutes each, twice). Branch
+  # protection is strict=false and required checks match by head SHA, so the push run on the
+  # PR's own branch satisfies the PR. Fork PRs are not a concern for this private repository.
+  # canonical-naming.yml and swarm-review.yml stay on pull_request: they are cheap and not required.
   push:
-    branches: [main]
-  pull_request:
   # Manual escape hatch. Added 16/08/2026 after GitHub Actions silently failed to
   # dispatch on PR #1009: two pushes to the PR branch produced no workflow run at
   # all — not queued, not failed, absent — while Vercel built the same commits
@@ -83,8 +89,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-          # Judge the PR branch, not GitHub's temporary merge-into-base ref.
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          # Push and dispatch runs check out the pushed commit itself (never a merge ref).
+          ref: ${{ github.sha }}
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -94,17 +100,14 @@ jobs:
       # then has no common ancestor and dumps main's history as PR commits.
       # That is the #1104 update-branch failure. Do not reintroduce --depth=1.
       - name: Fetch the comparison base with enough history for merge-base
-        run: git fetch --no-tags origin "${{ github.base_ref || 'main' }}"
+        run: git fetch --no-tags origin main
 
       - run: node --test scripts/__tests__/check-commit-messages.test.mjs
 
+      # Every PR targets main (repo rule), so the PR range is origin/main..HEAD on any branch push.
+      # On main itself the range is empty, which passes; a missing base still fails closed.
       - name: Check commit messages in the PR range
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            node scripts/check-commit-messages.mjs "origin/${{ github.base_ref }}" HEAD
-          else
-            node scripts/check-commit-messages.mjs
-          fi
+        run: node scripts/check-commit-messages.mjs origin/main HEAD
 
   swarm:
     # The swarm's own logic gate. Added in the phase-3 PR after noticing that
@@ -761,9 +764,10 @@ jobs:
       - name: Scan git history for secrets
         # Pinned to the full commit SHA of gitleaks-action v3.0.0 for supply-chain
         # integrity. Runs in git mode (scans commits), config is .gitleaks.toml.
-        # Every event except a hand-started run on a branch other than main; see the
-        # next step for that one case.
-        if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
+        # Main only (push or dispatch). A push that creates a branch has no usable
+        # before-SHA, so the action would scan main's whole history (the UNI-2943
+        # failure); every other ref uses the range scan in the next step.
+        if: github.ref == 'refs/heads/main'
         uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -774,7 +778,7 @@ jobs:
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'ci-placeholder-anthropic-key' }}
 
-      - name: Scan this branch's commits for secrets (hand-started run on a branch)
+      - name: Scan this branch's commits for secrets (every ref except main)
         # UNI-2943. gitleaks-action v3.0.0 scans the FULL history on workflow_dispatch
         # and ignores BASE_REF for that event (src/index.js:176), so a hand-started run
         # always failed on findings already on main, never on the branch under test.
@@ -783,8 +787,9 @@ jobs:
         # side-branch commits too, and with --diff-merges=first-parent the patch a merge
         # commit itself introduces. (No --no-merges/--first-parent: those skip both.)
         # Same gitleaks version the action defaults to, same config, binary checked
-        # against the release's published sha256.
-        if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main'
+        # against the release's published sha256. UNI-3023: now every non-main run (branch
+        # pushes as well as hand-started runs), since CI no longer runs on pull_request.
+        if: github.ref != 'refs/heads/main'
         env:
           GITLEAKS_VERSION: 8.24.3
           GITLEAKS_SHA256: 9991e0b2903da4c8f6122b5c3186448b927a5da4deef1fe45271c3793f4ee29c

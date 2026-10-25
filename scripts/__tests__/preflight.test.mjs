@@ -368,12 +368,15 @@ test('a real range touching nothing apps/web depends on skips', (t) => {
   t.skip('no non-apps/web commit available in this checkout');
 });
 
-test('an identical range skips', () => {
+test('a redeploy of the same commit builds', () => {
+  // Env-var-only changes are applied by redeploying the SAME commit. The diff
+  // between a commit and itself is always empty, so without this guard such a
+  // redeploy is always skipped and the new env never reaches production.
   const head = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' }).trim();
   assert.equal(
     ignoreExitCode({ VERCEL_GIT_PREVIOUS_SHA: head, VERCEL_GIT_COMMIT_SHA: head }),
-    SKIP,
-    'an empty diff between two present commits has nothing to rebuild',
+    BUILD,
+    'previous SHA equal to current SHA is a deliberate redeploy and must build',
   );
 });
 

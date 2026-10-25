@@ -143,9 +143,11 @@ describe('four job cards and three step cards', () => {
   it('has the four pillars as image cards, each marked Coming and linked to its page', async () => {
     const jobs = blocks(between(await signedOut(), 'pillars', 'how'), 'data-job', 'article')
     expect(jobs).toHaveLength(4)
-    // each job has its own approved picture (Phill 25/10/2026), and the Intelligence picture is on the Intelligence card only
-    for (const [i, slug] of ['visibility', 'experience', 'conversion', 'intelligence'].entries()) {
-      expect(jobs[i], slug).toMatch(new RegExp(`<img[^>]*src="/landing/visuals/${slug}-1280\\.webp"[^>]*alt="[^"]{20,}"`))
+    // each job shows its own real product screen (Phill 25/10/2026: the real product, never abstract art)
+    const { JOB_SCREENS } = await import('@/components/public/home-screens')
+    for (const [i, slug] of (['visibility', 'experience', 'conversion', 'intelligence'] as const).entries()) {
+      expect(jobs[i], slug).toContain(`src="${JOB_SCREENS[slug].src}"`)
+      expect(jobs[i], slug).toMatch(/<img[^>]*alt="[^"]{20,}"/)
     }
     for (const [i, p] of PILLARS.entries()) {
       expect(jobs[i]).toContain(`href="${pillarPath(p.slug)}"`)
@@ -157,7 +159,11 @@ describe('four job cards and three step cards', () => {
   it('has three step cards: pick, send, approve', async () => {
     const steps = blocks(between(await signedOut(), 'how', 'proof'), 'data-step', 'article')
     expect(steps.map((s) => strip(s.match(/<h3[^>]*>([\s\S]*?)<\/h3>/)![1]))).toEqual(['Pick an opener', 'Send your details', 'Approve a proof'])
-    for (const [i, f] of ['step-pick', 'step-send', 'step-approve'].entries()) expect(steps[i], f).toMatch(new RegExp(`<img[^>]*src="/landing/visuals/${f}-1280\\.webp"[^>]*alt="[^"]{20,}"`))
+    const { STEP_SCREENS } = await import('@/components/public/home-screens')
+    for (const [i, k] of (['pick', 'send', 'approve'] as const).entries()) {
+      expect(steps[i], k).toContain(`src="${STEP_SCREENS[k].src}"`)
+      expect(steps[i], k).toMatch(/<img[^>]*alt="[^"]{20,}"/)
+    }
   })
 })
 
@@ -172,11 +178,10 @@ describe('almost no paragraphs', () => {
 })
 
 describe('images come from one map, and no file appears twice', () => {
-  it('maps every slot to an existing file with real alt text, repeats no file, and uses intelligence only in the Intelligence card', async () => {
+  it('maps every slot to an existing file with real alt text and repeats no file', async () => {
     const { VISUALS } = await import('@/components/public/visuals')
-    expect(Object.keys(VISUALS).sort()).toEqual(
-      ['conversion', 'experience', 'intelligence', 'network', 'nexus', 'showroom', 'stepApprove', 'stepPick', 'stepSend', 'visibility'].sort(),
-    )
+    // the job and step cards moved to real product screens (home-screens.ts); the map keeps the media cards and banner
+    expect(Object.keys(VISUALS).sort()).toEqual(['network', 'nexus', 'showroom'])
     const filled = Object.entries(VISUALS).flatMap(([slot, v]) => (v ? [[slot, v] as const] : []))
     // every slot has its own picture; the Nexus CRM card shows the real product, not an abstract image (Phill, 25/10/2026)
     expect(Object.entries(VISUALS).filter(([, v]) => !v).map(([k]) => k)).toEqual([])
@@ -193,7 +198,6 @@ describe('images come from one map, and no file appears twice', () => {
       expect(v.alt, `${slot} alt`).not.toMatch(/\b(image|picture|photo) of\b/i)
     }
     expect(new Set(files).size, 'a file is mapped to two slots').toBe(files.length)
-    expect(filled.filter(([, v]) => v.src.includes('intelligence')).map(([k]) => k)).toEqual(['intelligence'])
     expect(readdirSync(join(PUBLIC, 'landing', 'visuals')).filter((f) => !/\.webp$/.test(f))).toEqual([])
     // every mapped picture is on the page exactly once
     const html = await signedOut()
