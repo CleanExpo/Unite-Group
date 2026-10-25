@@ -25,6 +25,8 @@ _Read this first. Lists every concept + subfolder here so an agent loads only wh
 - [[spec/index]]
 - [[specs/index]]
 - [[superpowers/index]]
+- [[products/open-horizon/README]] — Open Horizon design system and agent starter (founder spec, 25/10/2026)
+- [[products/niche-agentic-products/README]] — Niche Agentic Products v2.0 (founder spec, 25/10/2026)
 
 ## Concepts
 - [[agent-governance-playbook]] — Agent Governance Playbook — Unite-Group monorepo

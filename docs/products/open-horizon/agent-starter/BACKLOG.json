@@ -1,0 +1,248 @@
+{
+  "title": "Open Horizon build backlog",
+  "version": "1.0",
+  "created_at": "2026-10-25",
+  "delivery_state": "proposed",
+  "tasks": [
+    {
+      "id": "P0-01",
+      "phase": "P0",
+      "title": "Environment inventory",
+      "state": "proposed",
+      "verified": false,
+      "evidence": [],
+      "owner": null,
+      "blocked_by": []
+    },
+    {
+      "id": "P0-02",
+      "phase": "P0",
+      "title": "Vendor capability/licensing matrix",
+      "state": "proposed",
+      "verified": false,
+      "evidence": [],
+      "owner": null,
+      "blocked_by": []
+    },
+    {
+      "id": "P0-03",
+      "phase": "P0",
+      "title": "Six-dimension source atlas",
+      "state": "proposed",
+      "verified": false,
+      "evidence": [],
+      "owner": null,
+      "blocked_by": []
+    },
+    {
+      "id": "P0-04",
+      "phase": "P0",
+      "title": "40-concept novelty matrix",
+      "state": "proposed",
+      "verified": false,
+      "evidence": [],
+      "owner": null,
+      "blocked_by": []
+    },
+    {
+      "id": "P0-05",
+      "phase": "P0",
+      "title": "Eight-experiment shortlist",
+      "state": "proposed",
+      "verified": false,
+      "evidence": [],
+      "owner": null,
+      "blocked_by": []
+    },
+    {
+      "id": "P1-01",
+      "phase": "P1",
+      "title": "Semantic shell and analytics schema",
+      "state": "proposed",
+      "verified": false,
+      "evidence": [],
+      "owner": null,
+      "blocked_by": []
+    },
+    {
+      "id": "P1-02",
+      "phase": "P1",
+      "title": "Baseline design",
+      "state": "proposed",
+      "verified": false,
+      "evidence": [],
+      "owner": null,
+      "blocked_by": []
+    },
+    {
+      "id": "P1-03",
+      "phase": "P1",
+      "title": "Prototype A: Mechanical Intelligence",
+      "state": "proposed",
+      "verified": false,
+      "evidence": [],
+      "owner": null,
+      "blocked_by": []
+    },
+    {
+      "id": "P1-04",
+      "phase": "P1",
+      "title": "Prototype B: Living Sculpture",
+      "state": "proposed",
+      "verified": false,
+      "evidence": [],
+      "owner": null,
+      "blocked_by": []
+    },
+    {
+      "id": "P1-05",
+      "phase": "P1",
+      "title": "Prototype C: Creative Laboratory",
+      "state": "proposed",
+      "verified": false,
+      "evidence": [],
+      "owner": null,
+      "blocked_by": []
+    },
+    {
+      "id": "P1-06",
+      "phase": "P1",
+      "title": "Mobile fallbacks and evidence",
+      "state": "proposed",
+      "verified": false,
+      "evidence": [],
+      "owner": null,
+      "blocked_by": []
+    },
+    {
+      "id": "P2-01",
+      "phase": "P2",
+      "title": "Three commercial collection points",
+      "state": "proposed",
+      "verified": false,
+      "evidence": [],
+      "owner": null,
+      "blocked_by": []
+    },
+    {
+      "id": "P2-02",
+      "phase": "P2",
+      "title": "Lead/booking/order adapter",
+      "state": "proposed",
+      "verified": false,
+      "evidence": [],
+      "owner": null,
+      "blocked_by": []
+    },
+    {
+      "id": "P2-03",
+      "phase": "P2",
+      "title": "Consent-aware analytics",
+      "state": "proposed",
+      "verified": false,
+      "evidence": [],
+      "owner": null,
+      "blocked_by": []
+    },
+    {
+      "id": "P2-04",
+      "phase": "P2",
+      "title": "Three offer landing pages",
+      "state": "proposed",
+      "verified": false,
+      "evidence": [],
+      "owner": null,
+      "blocked_by": []
+    },
+    {
+      "id": "P2-05",
+      "phase": "P2",
+      "title": "Lifecycle dry runs",
+      "state": "proposed",
+      "verified": false,
+      "evidence": [],
+      "owner": null,
+      "blocked_by": []
+    },
+    {
+      "id": "P3-01",
+      "phase": "P3",
+      "title": "Baseline user tests",
+      "state": "proposed",
+      "verified": false,
+      "evidence": [],
+      "owner": null,
+      "blocked_by": []
+    },
+    {
+      "id": "P3-02",
+      "phase": "P3",
+      "title": "Run controlled experiments",
+      "state": "proposed",
+      "verified": false,
+      "evidence": [],
+      "owner": null,
+      "blocked_by": []
+    },
+    {
+      "id": "P3-03",
+      "phase": "P3",
+      "title": "Document outcomes and falsifications",
+      "state": "proposed",
+      "verified": false,
+      "evidence": [],
+      "owner": null,
+      "blocked_by": []
+    },
+    {
+      "id": "P3-04",
+      "phase": "P3",
+      "title": "Two iterations per promising prototype",
+      "state": "proposed",
+      "verified": false,
+      "evidence": [],
+      "owner": null,
+      "blocked_by": []
+    },
+    {
+      "id": "P4-01",
+      "phase": "P4",
+      "title": "Threat/security/accessibility review",
+      "state": "proposed",
+      "verified": false,
+      "evidence": [],
+      "owner": null,
+      "blocked_by": []
+    },
+    {
+      "id": "P4-02",
+      "phase": "P4",
+      "title": "Asset performance optimisation",
+      "state": "proposed",
+      "verified": false,
+      "evidence": [],
+      "owner": null,
+      "blocked_by": []
+    },
+    {
+      "id": "P4-03",
+      "phase": "P4",
+      "title": "Editorial/publishing provenance",
+      "state": "proposed",
+      "verified": false,
+      "evidence": [],
+      "owner": null,
+      "blocked_by": []
+    },
+    {
+      "id": "P4-04",
+      "phase": "P4",
+      "title": "Approved production verification",
+      "state": "proposed",
+      "verified": false,
+      "evidence": [],
+      "owner": null,
+      "blocked_by": []
+    }
+  ]
+}

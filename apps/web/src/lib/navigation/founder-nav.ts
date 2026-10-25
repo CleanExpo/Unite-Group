@@ -6,7 +6,7 @@
 // destinations when they were maintained as separate hardcoded arrays).
 
 import type { LucideIcon } from 'lucide-react'
-import { BookOpen, Columns2, Lock, FileText, ClipboardCheck, Scale, Share2, FlaskConical, Users, Settings, Receipt, Mail, CalendarDays, Brain, Sparkles, BarChart2, Megaphone, ScrollText, Building2, Library, Command, Bot, NotebookText, GitPullRequest, TrendingUp, Clapperboard, Radar, Timer, SquareKanban, MessagesSquare, FolderOpen } from 'lucide-react'
+import { BookOpen, Columns2, Lock, FileText, ClipboardCheck, Scale, Share2, FlaskConical, Users, Settings, Receipt, Mail, CalendarDays, Brain, Sparkles, BarChart2, Megaphone, ScrollText, Building2, Library, Command, Bot, NotebookText, GitPullRequest, TrendingUp, Clapperboard, Radar, Timer, SquareKanban, MessagesSquare, FolderOpen, Inbox } from 'lucide-react'
 
 export interface FounderNavItem {
   href: string
@@ -25,6 +25,7 @@ export const FOUNDER_NAV_GROUPS = [
     label: null,
     items: [
       { href: '/founder/command-centre', label: 'Mission Control',  icon: Command },
+      { href: '/founder/inbox',          label: 'Inbox',           icon: Inbox },
       { href: '/founder/agents',         label: 'Agents',          icon: Radar },
       { href: '/founder/chat',           label: 'Chat',            icon: MessagesSquare },
       { href: '/founder/nexus',          label: 'PR Approvals',    icon: GitPullRequest },
