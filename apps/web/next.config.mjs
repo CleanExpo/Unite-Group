@@ -49,8 +49,21 @@ const nextConfig = {
 
   // Turbopack configuration (required for Next.js 16)
   turbopack: {
-    // Normalize root directory path for Windows file system consistency
-    root: path.resolve(process.cwd()),
+    // UNI-2779: src/lib/mission-authority/* imports the single canonical
+    // scripts/nexus-runner/mission-authority.json, which lives outside apps/web.
+    // Turbopack refuses files outside its root, so under Turbopack (the default
+    // `next build` / `next dev`) the root is the monorepo root.
+    //
+    // Next resolves outputFileTracingRoot from this same value, and that changes
+    // the emitted server layout (relativeAppDir, *.nft.json). Production builds
+    // with `next build --webpack` (package.json "build", vercel.json), so webpack
+    // keeps the exact previous root (process.cwd()) and its output is unchanged.
+    // Next sets process.env.TURBOPACK before loading this file whenever Turbopack
+    // is the selected bundler, and child workers inherit it.
+    root: process.env.TURBOPACK
+      ? path.resolve(import.meta.dirname, '..', '..')
+      : // Normalise root directory path for Windows file system consistency
+        path.resolve(process.cwd()),
   },
 
   // standalone output disabled — Vercel deployment does not require it
