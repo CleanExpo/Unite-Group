@@ -43,6 +43,10 @@ describe('pillar pages show real pictures', () => {
     expect(new Set(srcs).size).toBe(srcs.length)
   })
 
+  it.each(PILLARS.map((p) => p.slug))('%s: no symbolic /landing/visuals picture, only real product screens', (slug) => {
+    expect(decodeURIComponent(renderToStaticMarkup(pages[slug]()))).not.toContain('/landing/visuals/')
+  })
+
   it('conversion shows the Blueprint card poster inside a link to /cards', () => {
     const html = renderToStaticMarkup(ConversionPage())
     const poster = images(html).find((i) => i.src.includes('/cards/media/edition-blueprint-poster.jpg'))
