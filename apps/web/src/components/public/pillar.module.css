@@ -18,6 +18,8 @@
 .listGrid { display: grid; gap: 24px; align-items: center; margin-top: 40px; }
 @media (min-width: 760px) {
   .listGrid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; }
+  /* Alternate sides: hero picture on the right, supporting picture on the left. */
+  .listGrid .pic { order: -1; }
 }
 .listGrid h2, .section h2 { margin-top: 0; font-size: 20px; }
 
