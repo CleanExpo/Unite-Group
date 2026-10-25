@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 }
 
-const LAST_UPDATED = '25 October 2026'
+const LAST_UPDATED = '26 October 2026'
 const CONTACT_EMAIL = 'contact@unite-group.in'
 const COMPANY = COMPANY_NAME
 const APP_URL = 'https://unite-group.in'
@@ -215,8 +215,9 @@ export default function PrivacyPolicyPage() {
 
         <Section title="8. Cookies and Tracking">
           <p>
-            The Application uses a single session cookie managed by Supabase Auth (PKCE flow) to maintain
-            your authenticated session. No third-party advertising cookies are used. Vercel Analytics uses
+            When you sign in, Supabase Auth (PKCE flow) sets sign-in cookies to keep you signed in. They are
+            persistent cookies, not session cookies: they stay in your browser after you close it and can last
+            up to 400 days unless you sign out or clear them. No third-party advertising cookies are used. Vercel Analytics uses
             privacy-preserving, aggregated data without fingerprinting or cross-site tracking.
           </p>
         </Section>
@@ -242,9 +243,10 @@ export default function PrivacyPolicyPage() {
             Business Profile) to prepare the audit.
           </p>
           <p>
-            We send you marketing emails only if you tick the marketing box. You can unsubscribe from any
-            marketing email, or email{' '}
-            <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: '#15803d' }}>{CONTACT_EMAIL}</a>, and we will stop.
+            Your enquiry records whether you ticked the box agreeing to receive marketing email. Our automated
+            email sequences only take in enquiries that recorded that agreement. To ask us not to send you
+            marketing email, email{' '}
+            <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: '#15803d' }}>{CONTACT_EMAIL}</a>.
           </p>
           <p>
             We store enquiries in our customer database (hosted with Supabase), which only {COMPANY} staff can

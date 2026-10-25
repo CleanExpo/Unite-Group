@@ -80,7 +80,8 @@ describe('privacy policy: public website and Living Business Cards', () => {
 
   it('moves the last-updated date past the old one', () => {
     const h = decode(html())
-    expect(h).toContain('Last updated: 25 October 2026')
+    expect(h).toContain('Last updated: 26 October 2026')
+    expect(h).not.toContain('25 October 2026')
     expect(h).not.toContain('19 October 2026')
   })
 })
