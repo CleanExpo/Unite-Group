@@ -113,4 +113,64 @@ describe('GET /api/cron/drip-process', () => {
     const body = await res.json()
     expect(body).toMatchObject({ campaigns: 2, failedCampaigns: 1, processed: 1 })
   })
+
+  it('UNI-2931 held run reports status "held" with dormant true and touches nothing', async () => {
+    const { createServiceClient } = await import('@/lib/supabase/service')
+    vi.stubEnv('DRIP_LIVE_SEND_ENABLED', 'false')
+    const res = await GET(req())
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.status).toBe('held')
+    expect(body.dormant).toBe(true)
+    expect(createServiceClient).not.toHaveBeenCalled()
+    expect(processCampaignDrip).not.toHaveBeenCalled()
+  })
+
+  it('UNI-2931 healthy live run reports status "ok" and dormant false, distinct from held', async () => {
+    vi.stubEnv('DRIP_LIVE_SEND_ENABLED', 'false')
+    const held = await (await GET(req())).json()
+    vi.stubEnv('DRIP_LIVE_SEND_ENABLED', 'true')
+    campaignsResponse = { data: [{ id: 'camp-1', business_key: 'dr', name: 'DR welcome' }], error: null }
+    vi.mocked(processCampaignDrip).mockResolvedValueOnce({
+      processed: 1, skipped: 0, failed: 0, dryRun: false, providerSend: 'attempted',
+    })
+    const res = await GET(req())
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.status).toBe('ok')
+    expect(body.dormant).toBe(false)
+    expect(body.status).not.toBe(held.status)
+  })
+
+  it('UNI-2931 reports status "partial" when a campaign throws', async () => {
+    campaignsResponse = {
+      data: [
+        { id: 'camp-1', business_key: 'dr', name: 'DR welcome' },
+        { id: 'camp-2', business_key: 'nrpg', name: 'NRPG onboarding' },
+      ],
+      error: null,
+    }
+    vi.mocked(processCampaignDrip)
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockResolvedValueOnce({ processed: 1, skipped: 0, failed: 0, dryRun: false, providerSend: 'attempted' })
+    const res = await GET(req())
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.status).toBe('partial')
+    expect(body.dormant).toBe(false)
+    expect(body.failedCampaigns).toBe(1)
+  })
+
+  it('UNI-2931 reports partial when enrolments fail without the campaign throwing', async () => {
+    campaignsResponse = { data: [{ id: 'camp-1', business_key: 'dr', name: 'DR welcome' }], error: null }
+    vi.mocked(processCampaignDrip).mockResolvedValueOnce({
+      processed: 0, skipped: 0, failed: 2, dryRun: false, providerSend: 'attempted',
+    })
+    const res = await GET(req())
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.failedCampaigns).toBe(0)
+    expect(body.failed).toBe(2)
+    expect(body.status).toBe('partial')
+  })
 })
