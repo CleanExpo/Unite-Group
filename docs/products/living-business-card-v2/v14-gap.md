@@ -1,0 +1,48 @@
+# V14-GAP: Living Card 2.0 Phase 1, spec v1.4 against the branch (UNI-2996)
+
+Date 25/10/2026. Branch `docs/living-card-v2-phase0`. Baseline a0ed0fe4; the "after" column is the final commit in PC-REPORT-G10.md.
+
+## How v1.4 differs from v1.2 (method)
+
+`diff` of the two master files (v1.2 1201 lines, v1.4 1838 lines) shows exactly three kinds of change, all additive:
+
+1. Header line 5 and line 20: status string becomes "v1.3 Margot + Relationship Intelligence Engine"; the read-first list gains the Relationship Intelligence addendum. (The file is named V1_4 but its own status line says v1.3.)
+2. Lines 1201-1838 added: Section 23 "Relationship Intelligence and Reputation Engine" (the v1.3 addendum in full) and the "V2.1.4 Customer Continuity and Voice Discovery Addendum".
+3. Nothing in v1.2 lines 1-1200 changed or was removed. So v1.4 **removes nothing** and **changes no Phase 1 text in sections 0-22**: Phase 1 (section 19, v1.4 line 1097) and Gate 1 are word-for-word the v1.2 ones.
+
+Line numbers below are in the v1.4 file. "Phase 1" = master section 19 Phase 1: "Private proof of `/c/[slug]`, publicly safe profile/read snapshot, real contact fields, correct vCard, accessible save/call/contact actions, 1 real enquiry routed to owned CRM lead under controlled fixture, edit/autosave/versioning, safe publish/unpublish simulation."
+
+Status values: **MET** (file:line), **NOT MET** (then implemented here, see Fix column), **OUT** (out of Phase 1 scope), **CONFLICT** (met as instructed, spec tension flagged for the Mini).
+
+## A. Rows that touch Phase 1
+
+| # | v1.4 line | Spec text (quoted) | Status | Evidence / fix |
+|---|---|---|---|---|
+| 1 | 1342 | "returns a durable reference `LC-...`" | NOT MET, fixed | Receipt showed the raw row uuid. Now `cardReference()` `src/lib/card/enquiry.ts:31`, returned at `:64`, shown in `enquiry-form.tsx`. Test "v1.4 G1" (enquiry.test.ts, enquiry-form.test.tsx). |
+| 2 | 1540 | "Clear progress states `Sending → Saved → Team notified (if confirmed)`" | NOT MET, fixed (Sending, Saved). Team notified: MET by absence | Form had no Sending text. Now `enquiry-form.tsx:62` (Sending) and "Saved." on the receipt. No notification exists in Phase 1, so none is claimed; test "v1.4 G2" and "G4" assert the words "notified"/"team notified" never claim it. |
+| 3 | 1540 | "reference number, alternative contact if the service fails. Never say 'we're on it' before actual storage success." | alt contact NOT MET, fixed; storage-first MET | Fallback Call/Email links on failure: `enquiry-form.tsx:66-72`, wired from `card-view.tsx:31`. Test "v1.4 G3" (three tests incl. the page wiring). Storage-first: `enquiry-form.tsx` sets received only on `r.ok`; pre-existing tests in enquiry-form.test.tsx. |
+| 4 | 1541 | "Display business-approved response window; do not invent 24/7 service." | Display: OUT (no response-window field exists; owner config is later). No-invention: MET | Page and receipt make no response-time claim; test "v1.4 G4" fails on "24/7", "within N", "we're on it", "will reply". |
+| 5 | 1788 | "After every submitted request show real reference ID, next step, business hours / expected window if configured, and option to correct details." | Reference: row 1. Next step and correction route: NOT MET, fixed. Hours/window: OUT (nothing configured) | Receipt now states the next step and says how to correct details (use Call or Email and quote the reference). Copy says "We are building the owner inbox, so the business is not notified yet": no present-tense claim of an unbuilt feature. Test "v1.4 G4". |
+| 6 | 1332 | "contact buttons still work, owner sees an outage, and submissions either receive a confirmed durable queue receipt or a transparent failure with alternate contact details." | Contact buttons: MET. Transparent failure with alternate contact: fixed (row 3). Owner sees outage; durable queue: OUT | Buttons are plain server-HTML links `card-view.tsx:17-30`. Queue/outage view is CC-24 and the owner desk (not Phase 1). |
+| 7 | 1638 | Release blocker 2: "Anonymous attacker inserts high-volume fake reviews/leads or retrieves another tenant's card enquiries." | Cross-tenant read: MET. Volume: NOT MET, fixed for the Phase 1 write path | Reads: two-tenant proof `supabase/tests/card_profiles_rls.sql` (existing). Volume: `card_submit_enquiry` now refuses the 31st distinct enquiry per card per rolling hour (`20261025090000_card_profiles.sql:120-121`), mapped to HTTP-style 429 (`enquiry.ts:62`). SQL proof `supabase/tests/card_enquiry_cap.sql` plus a mutant in `scripts/card-db-proof.sh`. **Residual:** direct anon INSERT through the table policy (kept from the merged static-card flow) is not capped; closing that means redesigning a merged policy, so it is left for the Mini to decide. Per-IP limiting exists in the proxy (`src/proxy.ts:120`). |
+| 8 | 1637 | Release blocker 1: "Spoofed `business_key`, `card_slug`, site key or hidden form input routes a customer's message to a different tenant." | MET | Tenant is the slug's published `card_profiles` row, server-checked `enquiry.ts:46-48`; no business_key, no hidden input in the form; `/api/leads` not used. |
+| 9 | 1796 | "`tenant_id` server-resolved, not trusted from client input. Do not reuse founder-scoped `/api/leads` for arbitrary customers" | MET | As row 8; `grep -rn "api/leads" src/lib/card src/app/c` returns nothing. |
+| 10 | 1648 | Release blocker 12: "Personal data appears in client analytics, unredacted logs, campaign URLs..." | MET | `grep -rn "console\." src/lib/card src/app/c` (non-test) returns nothing; the form posts through a server action, not a query string. |
+| 11 | 1783 | "Never gate contact behind video, chatbot, login or microphone consent. Show call, save contact and enquiry above the fold in all conditions." | Call/Email/Save: MET. Enquiry: CONFLICT with the approved flag | Contact actions need no JS/video/login (`card-view.tsx:16-30`). The enquiry form renders only when `CARD_ENQUIRY_RECEIPT_ENABLED=1` (Codex finding, kept per brief). Fold position not measured on this run (no browser run): UNPROVEN. |
+| 12 | 1787 | "At mobile 320/390/430 px check keyboard, thumb reach, safe-area inset, focus-visible, caption contrast, 44px min touch targets" | Touch targets and button focus: MET. Rest: UNPROVEN, not built | `card.module.css` `.button` min-height 48px, `:focus-visible` outline; inputs 44px. No Playwright widths run (the Phase 1 plan's browser suite is not built). |
+| 13 | 1267 | "customers are never forced into watching a video, creating an account or interacting with AI just to call, message or save a contact." | MET | No media, no AI, no login on `/c/[slug]` (`card-view.tsx`, test "no `<script`/`<video`" in card-page.test.tsx). |
+| 14 | 1789, 1568 | "Margot is public Unite-Group Nexus showroom ambassador only unless independently authorised for other client brands" / client card should foreground their own team, not Synthex or Margot by default | CONFLICT (kept per brief) | The Margot AI phone line is added to every published card's vcard when `MARGOT_PHONE_NUMBER` is set (`vcard.ts:43`, `margot-phone.ts`). The brief says keep it; flagged because for another business's card this puts Margot's number in their contact file. Decision for Phill/Mini: restrict the TEL line to Phill's own slug before any second business is published. |
+| 15 | 1624 | "Lead receipt integrity: accepted events with persisted CRM case and owner binding" | Persisted + slug binding: MET. CRM case: OUT | Stored row in `card_enquiries` (A1 decision: enquiries go to `card_enquiries`, no CRM fan-out in Phase 1). |
+| 16 | 1496-1497 | Event envelope: "Reject ... events from disabled/unpublished cards" | MET | `enquiry.ts:48` (404) and DB policy `card_slug_accepts_capture`; proof in card_r2_anon_insert.sql. |
+
+## B. v1.4 additions that are not Phase 1
+
+OUT (later phases): L02-L32 modules and all CC-01..CC-32 including P0 CC-01 identity graph, CC-02 timeline, CC-03/04 missed-call and voice receptionist, CC-05 handoff, CC-06 reply copilot, CC-07 intent widget, CC-24 offline queue, CC-32 promise ledger (Phase 3+ / W1 spine, need AI, telephony or email); the 32-module catalogue; AI intervention classes (5.2) and opportunity radar (5.3); Gmail/Graph/GBP transport (6.6, 6.7); Experience Desk (7.2); Milestones R0-R5 (section 9); packages and pricing (10); voice/phone technical gates; review engine gates; "visitors must be told when interacting with AI" (no AI on the card, A12). Phone/SMS channels and spend are excluded by the brief; alerts stay email only.
+
+## C. Inherited from v1.2, unchanged by v1.4, not part of this delta
+
+Phase 1 items "edit/autosave/versioning, safe publish/unpublish simulation", the `/api/public/cards/{slug}` route set (the branch uses a server action), and the Playwright browser suite are v1.2 requirements that the earlier P0 slice (phase1-p0-plan.md) deliberately left out. They are NOT MET and were not built here: they are not v1.4 changes and need owner auth plus a revisions table.
+
+## Summary
+
+Rows 1, 2, 3, 5 and 7 were NOT MET and are fixed in this pass (LC- reference, Sending/Saved states, failure fallback contact, next step and correction route, per-card hourly volume cap). Rows 8, 9, 10, 13, 15 and 16 are MET at baseline; rows 4 and 6 are met in part with the rest OUT; rows 11 and 14 are CONFLICT/UNPROVEN items kept per instruction; row 12 is partly UNPROVEN. No Phase 2+ feature, vendor, paid API, phone or SMS channel was added.

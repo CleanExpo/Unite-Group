@@ -8,8 +8,8 @@ export interface EnquiryInput {
 }
 
 export type EnquiryResult =
-  | { ok: true; receipt: { id: string; status: 'received'; acceptedAt: string } }
-  | { ok: false; status: 400 | 404 | 500 | 503; error: string }
+  | { ok: true; receipt: { id: string; reference: string; status: 'received'; acceptedAt: string } }
+  | { ok: false; status: 400 | 404 | 429 | 500 | 503; error: string }
 
 type DbError = { message: string } | null
 export interface EnquiryClient {
@@ -25,7 +25,12 @@ export interface EnquiryClient {
 }
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
-const fail = (status: 400 | 404 | 500, error: string): EnquiryResult => ({ ok: false, status, error })
+const fail = (status: 400 | 404 | 429 | 500, error: string): EnquiryResult => ({ ok: false, status, error })
+
+/** The visitor-facing reference: LC- plus the first 12 hex characters of the stored row's id, so it can be looked up from the row. */
+export function cardReference(id: string): string {
+  return `LC-${id.replace(/-/g, '').slice(0, 12).toUpperCase()}`
+}
 
 /**
  * Store one enquiry for a published card and return a receipt. The receipt id is the stored row's id and is only
@@ -53,6 +58,8 @@ export async function submitCardEnquiry(client: EnquiryClient, slug: string, inp
       p_card_slug: slug, p_first_name: firstName, p_business: business, p_ask: ask, p_reply_email: replyEmail, p_source: 'card-profile',
     })
     .single()
+  // card_submit_enquiry refuses the (n+1)th enquiry for one card inside an hour with this exact message
+  if (error?.message.includes('card_enquiry_rate_limited')) return fail(429, 'this card is receiving a lot of enquiries right now, please try again later')
   if (error || !data?.id) return fail(500, 'could not store the enquiry')
-  return { ok: true, receipt: { id: data.id, status: 'received', acceptedAt: data.created_at ?? '' } }
+  return { ok: true, receipt: { id: data.id, reference: cardReference(data.id), status: 'received', acceptedAt: data.created_at ?? '' } }
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { submitCardEnquiry } from '../enquiry'
+import { cardReference, submitCardEnquiry } from '../enquiry'
 
 type R = { data: unknown; error: { message: string } | null }
 
@@ -25,7 +25,7 @@ describe('submitCardEnquiry (non-production receipt)', () => {
   it('returns a receipt only after the guarded insert returned a row, carrying that row id', async () => {
     const m = client({})
     const r = await submitCardEnquiry(m.c, 'sam', good)
-    expect(r).toEqual({ ok: true, receipt: { id: 'f3a1c0de-0000-4000-8000-000000000001', status: 'received', acceptedAt: '2026-10-25T01:02:03Z' } })
+    expect(r).toEqual({ ok: true, receipt: { id: 'f3a1c0de-0000-4000-8000-000000000001', reference: 'LC-F3A1C0DE0000', status: 'received', acceptedAt: '2026-10-25T01:02:03Z' } })
     expect(m.rpcCall).toHaveBeenCalledWith('card_submit_enquiry', {
       p_card_slug: 'sam', p_first_name: 'Jo', p_business: 'Jo Co', p_ask: 'Can you call me?', p_reply_email: 'jo@example.com', p_source: 'card-profile',
     })
@@ -75,5 +75,16 @@ describe('submitCardEnquiry (non-production receipt)', () => {
     const m = client({ profile: { data: null, error: { message: 'down' } } })
     expect(await submitCardEnquiry(m.c, 'sam', good)).toMatchObject({ ok: false, status: 500 })
     expect(m.rpcCall).not.toHaveBeenCalled()
+  })
+
+  it('v1.4 G1 the reference is LC- plus the first 12 hex characters of the stored row id', () => {
+    expect(cardReference('f3a1c0de-0000-4000-8000-000000000001')).toBe('LC-F3A1C0DE0000')
+    expect(cardReference('0a1b2c3d-4e5f-4000-8000-000000000001')).toBe('LC-0A1B2C3D4E5F')
+  })
+
+  it('v1.4 G5 a per-card volume refusal from the database is a 429 with no receipt, not a 500', async () => {
+    const r = await submitCardEnquiry(client({ rpc: { data: null, error: { message: 'card_enquiry_rate_limited' } } }).c, 'sam', good)
+    expect(r).toMatchObject({ ok: false, status: 429 })
+    expect(JSON.stringify(r)).not.toContain('receipt')
   })
 })

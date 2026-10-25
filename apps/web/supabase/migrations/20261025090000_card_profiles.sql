@@ -95,7 +95,7 @@ create policy card_feedback_anon_insert on public.card_feedback
 
 -- Enquiry duplicate guard (review round 2): the same (card_slug, reply_email, ask) within 10 minutes returns the row
 -- already stored instead of inserting another, so a retry gets the same receipt. An advisory transaction lock on the
--- key makes two racing retries serialise. Security invoker: only service_role (bypassrls, insert/select granted) may call it.
+-- key makes two racing retries serialise; a per-card hourly cap stops a flood of distinct messages. Security invoker: only service_role (bypassrls, insert/select granted) may call it.
 -- Rollback: drop function public.card_submit_enquiry(text, text, text, text, text, text).
 create or replace function public.card_submit_enquiry(
   p_card_slug text, p_first_name text, p_business text, p_ask text, p_reply_email text, p_source text
@@ -115,6 +115,11 @@ begin
     order by e.created_at desc
     limit 1;
   if v_id is null then
+    -- Volume cap (spec v1.4 release blocker 2): at most 30 enquiries per card per rolling hour, however many different
+    -- messages arrive. The advisory lock above is per message, so two racing different messages can overshoot by a few.
+    if (select count(*) from public.card_enquiries as c where c.card_slug = p_card_slug and c.created_at > now() - interval '1 hour') >= 30 then
+      raise exception 'card_enquiry_rate_limited';
+    end if;
     insert into public.card_enquiries as e (card_slug, first_name, business, ask, reply_email, source)
       values (p_card_slug, p_first_name, p_business, p_ask, p_reply_email, p_source)
       returning e.id, e.created_at into v_id, v_at;

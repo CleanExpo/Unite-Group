@@ -42,6 +42,19 @@ describe('/c/[slug]', () => {
     }
   })
 
+  it('v1.4 G3 the page hands the form the card\'s own phone and email as the fallback', async () => {
+    getPublishedCard.mockResolvedValue(card)
+    vi.stubEnv('CARD_ENQUIRY_RECEIPT_ENABLED', '1')
+    try {
+      const { CardView } = await import('../[slug]/card-view')
+      const el = CardView({ card, enquiryOpen: true }) as { props: { children: unknown } }
+      const form = JSON.stringify(el, (k, v) => (typeof v === 'function' ? v.name : v))
+      expect(form).toContain('"fallback":{"phone":"+61 400 000 001","email":"sam@example.com"}')
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
   it('404s for an unknown, unpublished or invalid slug (same outcome)', async () => {
     getPublishedCard.mockResolvedValue(null)
     await expect(CardPage(params('nobody'))).rejects.toThrow('NEXT_NOT_FOUND')

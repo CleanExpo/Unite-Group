@@ -25,7 +25,7 @@ describe('submitEnquiryAction is off unless explicitly enabled', () => {
     }
     createServiceClient.mockReturnValue(c)
     const r = await submitEnquiryAction('sam', { firstName: 'Jo', ask: 'hi' })
-    expect(r).toEqual({ ok: true, receipt: { id: 'id-1', status: 'received', acceptedAt: 't' } })
+    expect(r).toEqual({ ok: true, receipt: { id: 'id-1', reference: 'LC-ID1', status: 'received', acceptedAt: 't' } })
   })
 
   it('a client that cannot be created is a 500, not a receipt', async () => {

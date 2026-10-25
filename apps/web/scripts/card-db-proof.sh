@@ -5,7 +5,7 @@
 # It binds 127.0.0.1 on a random port with a throwaway data dir (a hook blocks unix-socket psql),
 # stubs the Supabase roles (anon, authenticated, service_role) and auth.users/auth.uid(), and removes everything on exit.
 set -u
-PGBIN=/opt/homebrew/opt/postgresql@15/bin
+PGBIN="${PGBIN:-/opt/homebrew/opt/postgresql@15/bin}"
 APP="$(cd "$(dirname "$0")/.." && pwd)"
 MIG="$APP/supabase/migrations"
 TESTS="$APP/supabase/tests"
@@ -96,6 +96,21 @@ for mut in \
   apply "$name" "$DATA/mutant.sql"
   out="$(PSQL -d "$name" -f "$TESTS/card_enquiry_dedupe.sql" 2>&1)"; rc=$?
   if [ $rc -ne 0 ] && ! echo "$out" | grep -q CARD_ENQUIRY_DEDUPE_PASS; then echo "RED-AS-EXPECTED  dedupe mutant ($mut)"; else echo "FAIL  dedupe proof stayed green on mutant ($mut)"; FAILS=$((FAILS+1)); fi
+done
+
+# 4c. per-card volume cap: 30 distinct enquiries an hour, the 31st refused
+fresh_db_reuse cap || exit 2
+apply cap "$BASE_MIG"; apply cap "$FIX_MIG"
+expect_pass "enquiry volume cap proof" cap "$TESTS/card_enquiry_cap.sql"
+for mut in "s/c.created_at > now() - interval '1 hour') >= 30/c.created_at > now() - interval '1 hour') >= 100000/"; do
+  name="mut$RANDOM"
+  fresh_db_reuse "$name" || exit 2
+  apply "$name" "$BASE_MIG"
+  sed -e "$mut" "$FIX_MIG" > "$DATA/mutant.sql"
+  if cmp -s "$FIX_MIG" "$DATA/mutant.sql"; then echo "FAIL  mutant did not change the migration: $mut"; FAILS=$((FAILS+1)); continue; fi
+  apply "$name" "$DATA/mutant.sql"
+  out="$(PSQL -d "$name" -f "$TESTS/card_enquiry_cap.sql" 2>&1)"; rc=$?
+  if [ $rc -ne 0 ] && ! echo "$out" | grep -q CARD_ENQUIRY_CAP_PASS; then echo "RED-AS-EXPECTED  cap mutant ($mut)"; else echo "FAIL  cap proof stayed green on mutant ($mut)"; FAILS=$((FAILS+1)); fi
 done
 
 # 5. negative controls: break the migration on purpose and watch the proof go red
