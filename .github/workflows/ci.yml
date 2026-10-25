@@ -158,11 +158,27 @@ jobs:
       - name: Test
         run: pnpm run test
 
+      - name: Unit-test the public-route smoke
+        # Cheap (no build, no server): discovery, coverage guard and error-marker
+        # detection of scripts/smoke-public-routes.mjs.
+        run: node --test scripts/__tests__/smoke-public-routes.test.mjs
+
       - name: Build
         # The shared wrapper supplies fixed structural placeholders through an
         # exact build-only environment. Local and CI verification cannot drift
         # or accidentally compile against live service/provider credentials.
         run: node ../../scripts/verify-web-ci-build.mjs
+
+      - name: Smoke public routes on the production build
+        # 25/10/2026: the live /cards/thanks returned HTTP 500 to every paying buyer
+        # because a Server Component called a function exported from a 'use client'
+        # module. vitest cannot see that; only a real production render fails. This
+        # serves the .next output from the Build step above (no second build) with the
+        # same placeholder environment and outbound HTTP refused, then requests every
+        # public route and fails on any 5xx, wrong status or Next error marker. A new
+        # page that is neither smoked nor excluded also fails the run.
+        timeout-minutes: 5
+        run: node scripts/smoke-public-routes.mjs
 
   workspace:
     name: apps/workspace — build

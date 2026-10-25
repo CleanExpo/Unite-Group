@@ -19,6 +19,7 @@
     "type-check:tests": "tsc --noEmit -p tsconfig.typetest.json",
     "type-check:all": "turbo run type-check",
     "test": "vitest run",
+    "smoke:public": "node scripts/smoke-public-routes.mjs",
     "test:all": "turbo run test",
     "test:coverage": "vitest run --coverage",
     "test:coverage:all": "turbo run test:coverage",

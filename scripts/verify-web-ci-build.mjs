@@ -40,7 +40,9 @@ const SAFE_PASSTHROUGH = Object.freeze([
 
 export const WEB_BUILD_PLACEHOLDERS = Object.freeze({
   NEXT_PUBLIC_SUPABASE_URL: 'https://example.supabase.co',
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: 'ci-placeholder-anon-key',
+  // 40+ characters: the runtime guard in apps/web/src/lib/supabase/env-guard.ts rejects shorter keys, and the
+  // value is inlined at build time, so a shorter placeholder makes every request of a served build fail.
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: 'ci-placeholder-anon-key-not-a-real-key-000000000',
   NEXT_PUBLIC_APP_URL: 'https://verification.invalid',
   ANTHROPIC_API_KEY: 'ci-placeholder-anthropic-key',
   SUPABASE_SERVICE_ROLE_KEY: 'ci-placeholder-service-role-key',
