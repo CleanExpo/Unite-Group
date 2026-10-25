@@ -1,5 +1,8 @@
 // src/lib/integrations/mailtrap.ts
 // Minimal Mailtrap Email Sending client (same provider CARSI uses). No SDK, one fetch.
+// Tracking: the Mailtrap send API has no per-message tracking switch. Open and click
+// tracking are controlled only in Mailtrap's sending-domain settings for unite-group.in,
+// which must have both turned off. This client sends no tracking fields.
 // Safe no-op: without MAILTRAP_API_KEY it logs a warning and returns null, it never throws for that.
 
 export interface MailtrapRecipient {
@@ -16,8 +19,6 @@ export interface MailtrapSendInput {
   replyTo?: MailtrapRecipient
   /** Mailtrap accepts one category; the first is used. */
   categories?: string[]
-  /** Kept for call-site compatibility; tracking is set per sending domain in Mailtrap. */
-  disableTracking?: boolean
   timeoutMs?: number
 }
 

@@ -29,6 +29,23 @@ describe('mailtrap sendEmail', () => {
     expect(JSON.parse(init.body)).toMatchObject({ to: [{ email: 'a@example.invalid' }], category: 'card-order-alert', text: 't' })
   })
 
+  it('sends exactly the Mailtrap body: from, to, content, category and no tracking fields', async () => {
+    vi.stubEnv('MAILTRAP_API_KEY', 'test-key')
+    const f = vi.fn().mockResolvedValue(new Response(JSON.stringify({ message_ids: ['m2'] }), { status: 200 }))
+    vi.stubGlobal('fetch', f)
+    await sendEmail({ to: { email: 'buyer@example.invalid' }, from: { email: 'contact@unite-group.in', name: 'Margot at Unite-Group' }, subject: 's', html: '<p>h</p>', text: 't', categories: ['card-order-welcome'] })
+    const body = JSON.parse(f.mock.calls[0][1].body)
+    expect(body).toEqual({
+      from: { email: 'contact@unite-group.in', name: 'Margot at Unite-Group' },
+      to: [{ email: 'buyer@example.invalid' }],
+      subject: 's',
+      html: '<p>h</p>',
+      text: 't',
+      category: 'card-order-welcome',
+    })
+    expect(JSON.stringify(body)).not.toMatch(/track/i)
+  })
+
   it('throws on an HTTP error', async () => {
     vi.stubEnv('MAILTRAP_API_KEY', 'test-key')
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status: 401 })))

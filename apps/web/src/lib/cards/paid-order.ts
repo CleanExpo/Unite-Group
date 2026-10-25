@@ -171,7 +171,6 @@ async function sendOrderAlert(
       text: line,
       html: `<p>${escapeHtml(line)}</p>`,
       categories: ['card-order-alert'],
-      disableTracking: true,
     })
   } catch (err) {
     console.error('[cards] order alert failed:', err instanceof Error ? err.message : err)
@@ -226,7 +225,6 @@ async function sendBuyerWelcome(
       text: msg.text,
       html: msg.html,
       categories: ['card-order-welcome'],
-      disableTracking: true,
     })
   } catch (err) {
     console.error('[cards] welcome email failed:', err instanceof Error ? err.message : err)

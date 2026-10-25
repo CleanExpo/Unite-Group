@@ -79,9 +79,10 @@ describe('recordPaidCardOrder', () => {
     expect(Object.keys(row)).not.toContain('quantity')
   })
 
-  it('turns click and open tracking off on the order alert and keeps its category', async () => {
+  it('sends the order alert with its category and no tracking flag', async () => {
     expect(await recordPaidCardOrder(admin, event({ amount_total: 24900 }))).toBe('created')
-    expect(sendEmail.mock.calls[0][0]).toMatchObject({ disableTracking: true, categories: ['card-order-alert'] })
+    expect(sendEmail.mock.calls[0][0]).toMatchObject({ categories: ['card-order-alert'] })
+    expect(sendEmail.mock.calls[0][0]).not.toHaveProperty('disableTracking')
   })
 
   it.each([1, 2, 5])('records %i extra business(es) with tier extra_business and quantity', async (n) => {
