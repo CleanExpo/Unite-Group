@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest'
 // reflection of the video's frame. Between the wordmark and the tile's bottom border there must now be nothing
 // brighter than a dim floor, so no reflection of any text can come back.
 
-const FILE = join(__dirname, '..', '..', '..', 'public', 'home', 'screens', 'job-experience-reveal.webp')
+const FILE = join(__dirname, '..', '..', '..', 'public', 'screens', 'home', 'job-experience-reveal.webp')
 
 async function pixels() {
   const { data, info } = await sharp(FILE).removeAlpha().raw().toBuffer({ resolveWithObject: true })

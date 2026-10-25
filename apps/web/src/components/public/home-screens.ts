@@ -10,7 +10,7 @@ import type { Pillar } from '@/lib/public-site'
 export type Screen = { src: string; width: number; height: number; cssWidth: number; frame: 'phone' | 'browser'; alt: string }
 
 const screen = (name: string, size: number, cssWidth: number, frame: Screen['frame'], alt: string, height = size): Screen => ({
-  src: `/home/screens/${name}.webp`,
+  src: `/screens/home/${name}.webp`,
   width: size,
   height,
   cssWidth,
