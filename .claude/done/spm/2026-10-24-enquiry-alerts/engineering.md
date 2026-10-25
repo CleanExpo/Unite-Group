@@ -1,7 +1,7 @@
 ---
 type: engineering-requirements
 spec: ./spec.md
-spec_sha256: 8c482332c5cccae2733922f72c2b6545d8ed14f562adca0a1cd132851b26630a
+spec_sha256: 6235441d6c76e20cb8f7b60d4f7a0591a27e38f4abe9b31a4e4b6a2d25416296
 reviewer: bench
 review_round: 2
 seated: [boris, eng-failure, eng-observability, eng-test, eng-contract, eng-data, eng-compliance, eng-secrets, eng-release]
@@ -28,7 +28,7 @@ disagreements:
   - "eng-test says the fake's reverse=true cases do not change visibility order. Accepted: the real order is proven by the Postgres 15 script (held-transaction case), and the fake tests only prove the client sends when the claim returns email. The test titles are not renamed in this PR."
 notes:
   - "Round 2: all nine seats ran cold against spec hash 8c482332c5cc and the branch at d74eec837 (some seats saw later local commits). Their blocking findings were met in code or narrowed as listed in the requirement register; status is PASS because no category is left blocking, NOT because the human-gated release items are done (they are listed there and are still open)."
-  - "The spec file was not edited, so this artifact stays bound to its hash. Spec text that now disagrees with the code is listed under spec amendments in the requirement register and must be amended in a spec revision before the next bench round."
+  - "25/10/2026: spec revision 6 amended sections 4.2 to 4.6, 5 and 7 to describe the built behaviour; this artifact is rebound to the new spec hash. The Round 2 seats ran against hash 8c482332c5cc."
   - "migration_drift.py exited 2 (no database URL available to this session): UNPROVEN, which is why eng-release sat. Nothing here proves any migration is applied in production."
   - "eng-authz was not seated although its predicate fires (new authenticated page, new bearer route, new founder-only erase route). boris covered invariants at specialist standard. Recorded as a dispatch miss."
 ---
@@ -89,4 +89,4 @@ Human-gated or not code, still open (the gate needs these before anything is cal
 5. SendGrid key rotation: create a Mail-Send-only key, set it, confirm with the AC-14 test enquiry, then delete the old key. The alert path and the drip share one key.
 6. Env changes reach only new deployments: set the variables before the merge or redeploy after.
 
-Spec amendments needed (spec not edited here to keep this artifact bound): 4.4 says `dedup_key` is a SHA-256 (now an HMAC); 4.5 says plain `create table` and "no delete policy" (merged file uses `if not exists`; the erasure migration grants delete to service_role); 4.6 response fields (`sent`, `delivery_note`, `destination`, `failed_ids`, `unalerted_ids`) and 7 (an aborted row stays `pending` and is counted failed after 15 s).
+Spec amendments (DONE in spec revision 6, 25/10/2026): 4.4 says `dedup_key` is a SHA-256 (now an HMAC); 4.5 says plain `create table` and "no delete policy" (merged file uses `if not exists`; the erasure migration grants delete to service_role); 4.6 response fields (`sent`, `delivery_note`, `destination`, `failed_ids`, `unalerted_ids`) and 7 (an aborted row stays `pending` and is counted failed after 15 s).

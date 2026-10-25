@@ -118,6 +118,20 @@ describe('lead alert privacy and delivery', () => {
     for (const value of [...forbidden, 'FirstSentinel', 'BusinessSentinel']) expect(output).not.toContain(value)
   })
 
+  it('alert email body and subject are exactly first name, business, ask, link and ref, with nothing else', async () => {
+    const response = await POST(new Request('https://app.example.invalid/api/leads', { method: 'POST', body: JSON.stringify({
+      first_name: 'FirstSentinel', last_name: 'SurnameSentinel', email, phone: '0400000000',
+      message: 'MessageSentinel', company: 'BusinessSentinel', interests: 'living-card',
+    }) }) as any)
+    expect(response.status).toBe(201)
+    const input = mocks.sendEmail.mock.calls[0][0]
+    expect(input.subject).toBe('New enquiry')
+    expect(input.text).toBe(['FirstSentinel', 'BusinessSentinel', 'Living card',
+      'https://app.example.invalid/founder/leads/lead-2', 'Ref: lead-2'].join('\n'))
+    expect(input.html.replace(/<[^>]+>/g, '|').split('|').filter(Boolean)).toEqual(
+      ['FirstSentinel', 'BusinessSentinel', 'Living card', 'View enquiry', 'Ref: lead-2'])
+  })
+
   it.each([false, true])('reconciles the real POST after the grace period (claim failure=%s)', async (failedClaim) => {
     leads = []
     claimError = failedClaim
