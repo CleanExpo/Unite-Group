@@ -21,13 +21,22 @@ const blocks = (html: string) => {
 
 const PRIVACY_LINE = 'Read our privacy policy for the full detail.'
 
+/**
+ * The extra-business add-on sentence (25/10/2026). NOT in the approved source: it is a declared addition,
+ * pending Phill's lawyer read, placed as the last item under Made for you.
+ */
+const EXTRA_BUSINESS_LINE =
+  'You can add up to five extra businesses to a Made for you order, at AUD 199 each (GST included). They are paid as a separate payment.'
+const MADE_FOR_YOU_LAST = '3. Your own card web page with that film, your business name and your contact details.'
+
 /** An independent reading of the approved source: drop the draft header line and the draft note, strip markers. */
 const expectedBlocks = (abn: string) =>
   SOURCE.split('\n')
     .slice(1) // line 1 is the DRAFT header line
     .filter((l) => l.trim() !== '' && !l.startsWith('Draft dated 25 October 2026.'))
     .flatMap((l) => (l.startsWith('5. We keep order and enquiry records') ? [l, PRIVACY_LINE] : [l]))
-    .map((l) => (l === PRIVACY_LINE ? l : /^#{1,2} /.test(l) ? l.replace(/^#{1,2} /, '') : l.replace(/^\d+\. /, '').replace(/^\*\*(.*)\*\*$/, '$1')))
+    .flatMap((l) => (l === MADE_FOR_YOU_LAST ? [l, EXTRA_BUSINESS_LINE] : [l]))
+    .map((l) => (l === PRIVACY_LINE || l === EXTRA_BUSINESS_LINE ? l : /^#{1,2} /.test(l) ? l.replace(/^#{1,2} /, '') : l.replace(/^\d+\. /, '').replace(/^\*\*(.*)\*\*$/, '$1')))
     .map((l) => l.replace('(ABN 95 691 477 844)', `(${abn})`))
 
 afterEach(() => vi.unstubAllEnvs())
@@ -36,6 +45,15 @@ describe('/cards/terms', () => {
   it('renders the approved text word for word, in order, with the verified ABN when COMPANY_ABN is unset', () => {
     vi.stubEnv('COMPANY_ABN', '')
     expect(blocks(page())).toEqual(expectedBlocks('ABN 95 691 477 844'))
+  })
+
+  it('adds the extra-business sentence once, as the last Made for you item, before the supply line', () => {
+    vi.stubEnv('COMPANY_ABN', '')
+    const text = blocks(page())
+    const at = text.indexOf(EXTRA_BUSINESS_LINE)
+    expect(text.filter((t) => t === EXTRA_BUSINESS_LINE)).toHaveLength(1)
+    expect(text[at - 1]).toBe(MADE_FOR_YOU_LAST.replace(/^3\. /, ''))
+    expect(text[at + 1]).toBe('We supply only what this section lists. Anything else is quoted separately before we start.')
   })
 
   it('shows the real ABN through companyAbnLabel() once it is set', () => {

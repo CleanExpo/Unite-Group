@@ -1,5 +1,6 @@
 // The approved text of the Living Business Card order terms (Phill, 25/10/2026), word for word.
-// Only two things differ from the approved file: the DRAFT header line and the internal draft note
+// One sentence is NOT in the approved file: the extra-business item under Made for you (25/10/2026),
+// pending Phill's lawyer read. Otherwise only two things differ from the approved file: the DRAFT header line and the internal draft note
 // are not published, and the ABN is the {{ABN}} token, filled by companyAbnLabel() (it reads
 // "ABN 95 691 477 844" unless COMPANY_ABN overrides it, the same text as the approved file).
 // Markers: "# " h1, "## " h2, "N. " list item, a whole line in ** ** a bold lead-in, anything else a paragraph.
@@ -22,6 +23,7 @@ export const CARD_ORDER_TERMS = `# Living Business Card: Order Terms
 1. We make a film for your business, instead of you picking one of the ten.
 2. You approve a private proof before it goes live.
 3. Your own card web page with that film, your business name and your contact details.
+4. You can add up to five extra businesses to a Made for you order, at AUD 199 each (GST included). They are paid as a separate payment.
 
 We supply only what this section lists. Anything else is quoted separately before we start.
 
