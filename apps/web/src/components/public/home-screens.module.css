@@ -25,6 +25,7 @@
 
 /* The screen rises out of the stage: a frame on three sides, open at the bottom edge. */
 .frame {
+  position: relative;
   width: 100%;
   overflow: hidden;
   border: 1px solid var(--pub-line-strong);
@@ -44,6 +45,23 @@
 .phone .bar { justify-content: center; border-bottom-color: #0e1014; background: #0e1014; }
 .phone .bar i { display: none; }
 .phone .bar i:first-child { display: block; width: 44px; height: 5px; border-radius: 999px; background: #262b42; }
+
+/* "Sample data": the names, counts and entries on every screen are invented, so a seed never looks live.
+   Quiet mono label in the chrome bar's right corner; --pub-muted clears 4.5:1 on both bar backgrounds. */
+.sample {
+  position: absolute;
+  top: 0;
+  right: 10px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  font-family: var(--pub-mono);
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: var(--pub-muted);
+  pointer-events: none;
+}
 
 .body { display: flex; flex: 1; flex-direction: column; gap: 8px; padding: 18px 20px 22px; }
 

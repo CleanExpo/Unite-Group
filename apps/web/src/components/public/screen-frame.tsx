@@ -11,6 +11,7 @@ export function ScreenFrame({ screen }: { screen: Screen }) {
           <i />
           <i />
         </span>
+        <span className={hs.sample}>Sample data</span>
         <img src={screen.src} alt={screen.alt} width={screen.width} height={screen.height} loading="lazy" decoding="async" />
       </div>
     </div>

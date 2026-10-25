@@ -132,7 +132,7 @@ describe('every home screen frame says it is sample data', () => {
       expect(frame, f.slice(0, 60)).toMatch(/<\/span><span class="[^"]*sample[^"]*">Sample data<\/span>/)
     }
     const css = readFileSync(join(PUB, 'home-screens.module.css'), 'utf8')
-    const rule = [...css.matchAll(/(?:^|\})\s*(?:\.[\w\s.]+\s)?\.sample\s*\{([^}]*)\}/g)].map((m) => m[1]).join(';')
+    const rule = [...css.matchAll(/\.sample\s*\{([^}]*)\}/g)].map((m) => m[1]).join(';')
     expect(rule, '.sample rule').toMatch(/font-family:\s*var\(--pub-mono\)/)
     const tokens = readFileSync(join(__dirname, '..', '..', 'styles', 'public-tokens.css'), 'utf8')
     const colour = rule.match(/(?:^|;)\s*color:\s*var\((--[\w-]+)\)/)?.[1] ?? ''
