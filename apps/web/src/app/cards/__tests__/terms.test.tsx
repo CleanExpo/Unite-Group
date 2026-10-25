@@ -77,9 +77,9 @@ describe('/cards/terms', () => {
   })
 
   it('shows the real ABN through companyAbnLabel() once it is set', () => {
-    vi.stubEnv('COMPANY_ABN', '95 691 477 844')
-    expect(blocks(page())).toEqual(expectedBlocks('ABN 95 691 477 844'))
-    expect(decode(page())).toContain('Unite-Group Nexus Pty Ltd (ABN 95 691 477 844)')
+    vi.stubEnv('COMPANY_ABN', '51 824 753 556')
+    expect(blocks(page())).toEqual(expectedBlocks('ABN 51 824 753 556'))
+    expect(decode(page())).toContain('Unite-Group Nexus Pty Ltd (ABN 51 824 753 556)')
   })
 
   it('carries the key clauses in the exact source wording', () => {
