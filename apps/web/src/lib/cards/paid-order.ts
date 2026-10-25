@@ -12,7 +12,7 @@
 import type Stripe from 'stripe'
 
 import { CARD_EXTRA_BUSINESS, CARD_TIERS } from '@/app/cards/order/order-view'
-import { sendEmail } from '@/lib/integrations/sendgrid'
+import { mailtrapFromEmail, sendEmail } from '@/lib/integrations/mailtrap'
 import type { createServiceClient } from '@/lib/supabase/service'
 
 type CardTier = (typeof CARD_TIERS)[number]
@@ -152,9 +152,9 @@ async function sendOrderAlert(
   livemode: boolean,
 ): Promise<void> {
   const to = process.env.LEAD_ALERT_EMAIL_TO?.trim()
-  const from = process.env.SENDGRID_FROM_EMAIL?.trim()
-  if (!to || !from) {
-    console.warn('[cards] order alert skipped: LEAD_ALERT_EMAIL_TO or SENDGRID_FROM_EMAIL not set')
+  const from = mailtrapFromEmail()
+  if (!to) {
+    console.warn('[cards] order alert skipped: LEAD_ALERT_EMAIL_TO not set')
     return
   }
   const who = name ?? 'A buyer'
@@ -166,7 +166,7 @@ async function sendOrderAlert(
   try {
     await sendEmail({
       to: { email: to },
-      from: { email: from },
+      from: { email: from, name: 'Unite-Group orders' },
       subject: `${livemode ? '' : '[TEST] '}New paid card order: ${label}`,
       text: line,
       html: `<p>${escapeHtml(line)}</p>`,
@@ -212,9 +212,9 @@ async function sendBuyerWelcome(
   tier: { name: string; priceAud: number },
   livemode: boolean,
 ): Promise<void> {
-  const from = (process.env.CARD_WELCOME_FROM_EMAIL || process.env.SENDGRID_FROM_EMAIL)?.trim()
-  if (!email || !from) {
-    console.warn('[cards] welcome email skipped: no buyer email or sender set')
+  const from = process.env.CARD_WELCOME_FROM_EMAIL?.trim() || mailtrapFromEmail()
+  if (!email) {
+    console.warn('[cards] welcome email skipped: no buyer email')
     return
   }
   const msg = buildBuyerWelcome(name, tier)

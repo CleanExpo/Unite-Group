@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CARD_TIERS } from '@/app/cards/order/order-view'
 
 const sendEmail = vi.hoisted(() => vi.fn())
-vi.mock('@/lib/integrations/sendgrid', () => ({ sendEmail }))
+vi.mock('@/lib/integrations/mailtrap', () => ({ sendEmail, mailtrapFromEmail: () => process.env.MAILTRAP_FROM_EMAIL || 'contact@unite-group.in' }))
 
 import { cardOrderReference, matchCardTier, recordPaidCardOrder } from '../paid-order'
 
@@ -63,7 +63,7 @@ describe('recordPaidCardOrder', () => {
     vi.stubEnv('STRIPE_CARD_EXTRA_BUSINESS_PAYMENT_LINK_ID', 'plink_extra')
     vi.stubEnv('FOUNDER_USER_ID', '00000000-0000-0000-0000-00000000000a')
     vi.stubEnv('LEAD_ALERT_EMAIL_TO', 'alerts@example.invalid')
-    vi.stubEnv('SENDGRID_FROM_EMAIL', 'from@example.invalid')
+    vi.stubEnv('MAILTRAP_FROM_EMAIL', 'from@example.invalid')
     insert.mockReset().mockResolvedValue({ error: null })
     sendEmail.mockReset().mockResolvedValue(undefined)
   })
