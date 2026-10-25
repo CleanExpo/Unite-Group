@@ -19,6 +19,20 @@ describe('EnquiryForm trust controls', () => {
     expect(document.body.textContent).toMatch(/Sam Lee/)
   })
 
+  // UNI-3021 (Bugbot on #1247): the owner inbox is not built, so the form must not say the message "goes to" anyone.
+  it('says Unite Group stores the message and the owner is not notified yet, never that it is delivered', () => {
+    for (const owner of ['Sam Lee', undefined]) {
+      render(<EnquiryForm slug="sam" owner={owner} />)
+      // The recipient line is the paragraph naming who the message is for; the collection notice is separate copy.
+      const line = [...document.querySelectorAll('p')].find((p) => /Unite Group/.test(p.textContent ?? '') && !/collects/.test(p.textContent ?? ''))
+      const text = line?.textContent ?? ''
+      expect(text).not.toMatch(/goes to|sent to|delivered|will be notified/i)
+      expect(text).toMatch(/Unite Group stores your message/)
+      if (owner) expect(text).toMatch(/Sam Lee is not notified yet/)
+      cleanup()
+    }
+  })
+
   it('has a required consent checkbox and does not call the action until it is ticked', async () => {
     submitEnquiryAction.mockResolvedValue({ ok: true, receipt: { id: 'i', reference: 'LC-I', status: 'received', acceptedAt: 't' } })
     render(<EnquiryForm slug="sam" />)

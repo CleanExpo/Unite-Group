@@ -73,7 +73,10 @@ export function EnquiryForm({ slug, fallback, owner }: { slug: string; fallback?
           <input name="lc_extra" value={website} onChange={(e) => setWebsite(e.target.value)} tabIndex={-1} autoComplete="off" />
         </label>
       </div>
-      <p className={styles.recipient}>Your message goes to {owner ? `${owner} and Unite Group` : 'Unite Group'}.</p>
+      {/* UNI-3021: the owner inbox is not built yet, so this never claims delivery (matches the receipt below). */}
+      <p className={styles.recipient}>
+        {owner ? `Unite Group stores your message for ${owner}. ${owner} is not notified yet.` : 'Unite Group stores your message.'}
+      </p>
       <CollectionNotice form="card-enquiry" tone="dark" />
       <label className={styles.consent}>
         <input type="checkbox" name="consent" checked={consent} onChange={(e) => setConsent(e.target.checked)} required />
