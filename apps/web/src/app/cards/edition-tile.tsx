@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 
+import s from './edition-tile.module.css'
 import { AI_LABEL, type Edition } from './editions'
 
 /**
@@ -11,6 +12,9 @@ import { AI_LABEL, type Edition } from './editions'
 export function EditionTile({ edition }: { edition: Edition }) {
   const video = useRef<HTMLVideoElement>(null)
   const [playing, setPlaying] = useState(false)
+
+  // Read at event time so a visitor who changes the setting mid-visit is respected.
+  const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
   function play() {
     const v = video.current
@@ -28,15 +32,17 @@ export function EditionTile({ edition }: { edition: Edition }) {
   }
 
   return (
-    <article data-edition={edition.name} className="flex flex-col">
+    <article data-edition={edition.name} className={s.tile}>
       <button
         type="button"
-        onMouseEnter={play}
+        onMouseEnter={() => {
+          if (!reducedMotion()) play()
+        }}
         onMouseLeave={stop}
         onClick={() => (playing ? stop() : play())}
         aria-pressed={playing}
         aria-label={`${playing ? 'Stop' : 'Play'} the ${edition.label} clip`}
-        className="group relative block w-full overflow-hidden rounded-sm border border-white/10 bg-[#04080e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e55a2b]"
+        className={s.playButton}
         style={{ aspectRatio: edition.aspect }}
       >
         <video
@@ -56,32 +62,32 @@ export function EditionTile({ edition }: { edition: Edition }) {
             }
           }}
           onEnded={() => setPlaying(false)}
-          className="absolute inset-0 h-full w-full object-cover"
+          className={s.video}
         />
         {!playing && (
           <span
             aria-hidden
-            className="absolute bottom-3 right-3 inline-flex h-9 w-9 items-center justify-center rounded-sm bg-black/55 text-white backdrop-blur-sm transition group-hover:bg-[#e55a2b]"
+            className={s.badge}
           >
-            <svg viewBox="0 0 16 16" className="ml-0.5 h-3.5 w-3.5" fill="currentColor">
+            <svg viewBox="0 0 16 16" className={s.icon} fill="currentColor">
               <path d="M4 2.5v11l9-5.5z" />
             </svg>
           </span>
         )}
       </button>
-      <div className="mt-3 flex items-baseline justify-between gap-3">
-        <h3 className="text-[15px] font-semibold text-white">{edition.label}</h3>
+      <div className={s.meta}>
+        <h3 className={s.label}>{edition.label}</h3>
         <a
           href={`/cards/order?edition=${edition.name}`}
           data-track="cta"
           data-track-label="cards-edition-order"
-          className="shrink-0 text-[13px] font-semibold text-[#ff8a5c] hover:text-white"
+          className={s.choose}
         >
           Choose this
         </a>
       </div>
-      <p className="mt-1 text-[14px] leading-snug text-stone-300">{edition.line}</p>
-      <p className="mt-2 font-mono text-[11px] tracking-[0.06em] text-stone-500">{AI_LABEL}</p>
+      <p className={s.line}>{edition.line}</p>
+      <p className={s.ai}>{AI_LABEL}</p>
     </article>
   )
 }

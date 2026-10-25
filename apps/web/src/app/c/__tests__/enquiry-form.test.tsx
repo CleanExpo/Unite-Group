@@ -16,6 +16,7 @@ async function fillAndSend() {
   const user = userEvent.setup()
   await user.type(screen.getByLabelText(/your first name/i), 'Jo')
   await user.type(screen.getByLabelText(/what do you need/i), 'A quote please')
+  await user.click(screen.getByRole('checkbox', { name: /agree/i }))
   await user.click(screen.getByRole('button', { name: /send enquiry/i }))
 }
 
@@ -98,7 +99,8 @@ describe('EnquiryForm', () => {
     render(<EnquiryForm slug="sam" fallback={{ phone: null, email: null }} />)
     await fillAndSend()
     await waitFor(() => expect(screen.getByRole('alert')).toBeTruthy())
-    expect(screen.queryAllByRole('link')).toHaveLength(0)
+    // only the privacy-policy link (always present) remains: no Call or Email invented
+    expect(screen.queryAllByRole('link').map((l) => l.getAttribute('href'))).toEqual(['/privacy-policy'])
   })
 
   it('v1.4 G4 the receipt states the next step and how to correct details, without claiming a notification or a response time', async () => {

@@ -28,7 +28,7 @@ export function CardView({ card, enquiryOpen = false }: { card: PublicCard; enqu
             <a className={styles.button} href={`/c/${card.slug}/contact.vcf`}>Save contact</a>
           </li>
         </ul>
-        {enquiryOpen ? <EnquiryForm slug={card.slug} fallback={{ phone: card.phone, email: card.email }} /> : null}
+        {enquiryOpen ? <EnquiryForm slug={card.slug} fallback={{ phone: card.phone, email: card.email }} owner={card.displayName} /> : null}
       </article>
     </main>
   )
