@@ -32,6 +32,20 @@ export const CARD_TIERS = [
 ] as const
 
 /**
+ * The extra-business add-on (Phill, 25/10/2026): AUD 199 each, GST included, up to five, on the
+ * Made for you card only. Kept out of CARD_TIERS: it is not a card on its own. Shown only while its
+ * own Stripe Payment Link is set; that link is a separate payment with an adjustable quantity.
+ */
+export const CARD_EXTRA_BUSINESS = {
+  id: 'extra_business',
+  name: 'Extra business',
+  priceAud: 199,
+  maxQuantity: 5,
+  forTier: 'custom',
+  paymentLinkEnv: 'STRIPE_PAYMENT_LINK_CARD_EXTRA_BUSINESS',
+} as const
+
+/**
  * The rendered order page for already-resolved params. Exported so tests render it without a request.
  * Layout follows the locked Wave gold standard (evidence/business-card-gold/gold/recipe.md).
  */
