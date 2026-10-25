@@ -70,10 +70,15 @@ export const DECLARED_GATES = Object.freeze([
   'alert-health',
 ]);
 
+const NOT_CONFIGURED_REASON = 'ALERT_HEALTH_TOKEN is not configured, so the alert health read was not attempted.';
+
 /** Capture one bounded read. No retries and no provider error text in evidence. */
 export async function captureAlertHealth({ url, token, fetchImpl = fetch }) {
   try {
-    if (!token?.trim()) return { name: 'alert-health', exitCode: 1, httpCode: null, response: '' };
+    // Unconfigured is not failed: nothing was attempted, so the gate says so (NOT RUN) rather than FAIL.
+    if (!token?.trim()) {
+      return { name: 'alert-health', exitCode: null, httpCode: null, response: '', notRun: NOT_CONFIGURED_REASON };
+    }
     const response = await fetchImpl(new URL('/api/health/alerts', url), {
       headers: { Authorization: `Bearer ${token.trim()}` },
       signal: AbortSignal.timeout(10000),
@@ -331,6 +336,10 @@ export function reconcileGates(declared, captured) {
         `\`${name}\` arrived with a pre-decided status ${JSON.stringify(entry.status)}; `
         + 'the capture records exit codes only and the verdict is derived here.',
       );
+      return { name, status: 'NOT_RUN', exitCode: null };
+    }
+    if (typeof entry.notRun === 'string' && entry.notRun) {
+      anomalies.push(`\`${name}\` did not run: ${entry.notRun}`);
       return { name, status: 'NOT_RUN', exitCode: null };
     }
     if (!Number.isInteger(entry.exitCode)) {

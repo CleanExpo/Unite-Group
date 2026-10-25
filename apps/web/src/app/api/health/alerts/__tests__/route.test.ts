@@ -1,17 +1,25 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GET } from '../route'
 
+const crypto = vi.hoisted(() => ({ compare: vi.fn() }))
+vi.mock('node:crypto', async (original) => {
+  const actual = await original<typeof import('node:crypto')>()
+  crypto.compare.mockImplementation(actual.timingSafeEqual)
+  return { ...actual, default: actual, timingSafeEqual: crypto.compare }
+})
+
 const state = vi.hoisted(() => ({
   tables: {} as Record<string, Record<string, unknown>[]>,
   fail: '',
   queries: [] as string[],
+  selects: [] as string[],
 }))
 vi.mock('@/lib/supabase/service', () => ({ createServiceClient: () => ({
   from(table: string) {
     state.queries.push(table)
     let rows = [...(state.tables[table] ?? [])]
     const query = {
-      select: () => query,
+      select(columns: string) { state.selects.push(`${table}: ${columns}`); return query },
       eq(key: string, value: unknown) { rows = rows.filter((r) => r[key] === value); return query },
       gte(key: string, value: string) { rows = rows.filter((r) => String(r[key]) >= value); return query },
       lte(key: string, value: string) { rows = rows.filter((r) => String(r[key]) <= value); return query },
@@ -48,6 +56,7 @@ beforeEach(() => {
   vi.stubEnv('FOUNDER_USER_ID', 'founder')
   state.tables = { alert_delivery_log: [], crm_leads: [], stripe_events: [] }
   state.queries = []
+  state.selects = []
   state.fail = ''
 })
 afterEach(() => { vi.useRealTimers(); vi.unstubAllEnvs() })
@@ -61,6 +70,36 @@ describe('alert health', () => {
     expect((await GET(request('test-cron-token'))).status).toBe(200)
     vi.stubEnv('CRON_SECRET', '')
     expect((await GET(request('undefined'))).status).toBe(500)
+  })
+
+  it('compares the bearer with timingSafeEqual and never throws on a length mismatch', async () => {
+    crypto.compare.mockClear()
+    expect((await GET(request('test-health-tokeX'))).status).toBe(401)
+    expect(crypto.compare).toHaveBeenCalledTimes(1)
+    expect((await GET(request('short'))).status).toBe(401)
+    expect((await GET(request('test-health-token-and-more'))).status).toBe(401)
+    expect(crypto.compare).toHaveBeenCalledTimes(1) // different length: rejected before the call
+    expect((await GET(request())).status).toBe(200)
+    expect(crypto.compare).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not count an erased enquiry as unalerted, but still counts a genuinely unalerted one', async () => {
+    state.tables.crm_leads = [
+      // PostgREST returns additional_data->>alert_erased_at as a top-level string or null.
+      { ...lead('erased'), alert_erased_at: '2026-10-24T18:00:00.000Z' },
+      { ...lead('keeps-other-data'), alert_erased_at: null },
+      { ...lead('missing'), alert_erased_at: null },
+      lead('no-column-value'),
+    ]
+    const body = await (await GET(request())).json()
+    expect(body.unalerted).toBe(3)
+    expect(body.unalerted_ids).toEqual(['keeps-other-data', 'missing', 'no-column-value'])
+  })
+
+  it('reads only the erasure marker from crm_leads.additional_data, never the whole column', async () => {
+    await GET(request())
+    expect(state.selects).toContain('crm_leads: id, captured_at, alert_erased_at:additional_data->>alert_erased_at')
+    expect(state.selects.filter((columns) => /additional_data(?!->>alert_erased_at)/.test(columns))).toEqual([])
   })
 
   it('counts exact per-source outcomes over 72 hours including stale pending', async () => {

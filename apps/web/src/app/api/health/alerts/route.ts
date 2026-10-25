@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto'
 import { NextResponse } from 'next/server'
 import { assertCronAuth } from '@/lib/cron-auth'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -20,6 +21,12 @@ type DeliveryRow = {
   updated_at: string
 }
 
+function bearerMatches(request: Request, token: string): boolean {
+  const received = Buffer.from(request.headers.get('authorization') ?? '')
+  const expected = Buffer.from(`Bearer ${token}`)
+  return received.length === expected.length && timingSafeEqual(received, expected)
+}
+
 export async function GET(request: Request) {
   const token = process.env.ALERT_HEALTH_TOKEN?.trim()
   if (token) {
@@ -27,7 +34,7 @@ export async function GET(request: Request) {
     if (token === process.env.CRON_SECRET?.trim()) {
       return NextResponse.json({ error: 'ALERT_HEALTH_TOKEN must differ from CRON_SECRET' }, { status: 500 })
     }
-    if (request.headers.get('authorization') !== `Bearer ${token}`) {
+    if (!bearerMatches(request, token)) {
       return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
     }
   } else {
@@ -42,7 +49,7 @@ export async function GET(request: Request) {
     const now = Date.now()
     const start = now - WINDOW_HOURS * 60 * 60 * 1000
     const logs: DeliveryRow[] = []
-    const leads: { id: string; captured_at: string }[] = []
+    const leads: { id: string; captured_at: string; alert_erased_at?: unknown }[] = []
     // Read an extra hour only for coverage of suppressions at the window edge.
     for (let offset = 0; ; offset += PAGE_SIZE) {
       const { data, error } = await supabase.from('alert_delivery_log')
@@ -57,12 +64,13 @@ export async function GET(request: Request) {
     }
     for (let offset = 0; ; offset += PAGE_SIZE) {
       const { data, error } = await supabase.from('crm_leads')
-        .select('id, captured_at').eq('founder_id', founderId)
+        // Only the erasure marker, never the rest of additional_data.
+        .select('id, captured_at, alert_erased_at:additional_data->>alert_erased_at').eq('founder_id', founderId)
         .gte('captured_at', new Date(start).toISOString())
         .lt('captured_at', new Date(now - 2 * 60 * 1000).toISOString())
         .order('id').range(offset, offset + PAGE_SIZE - 1)
       if (error || !data) throw new Error('ReadError')
-      leads.push(...data as { id: string; captured_at: string }[])
+      leads.push(...data as typeof leads)
       if (data.length < PAGE_SIZE) break
     }
 
@@ -78,7 +86,10 @@ export async function GET(request: Request) {
     let unconfigured = 0
     let deduped = 0
     const loggedIds = new Set(logs.map((row) => row.source_id))
-    const unalertedIds = new Set(leads.filter((lead) => !loggedIds.has(lead.id)).map((lead) => lead.id))
+    const unalertedIds = new Set(leads
+      // The founder erased this enquiry's alert log on purpose; the marker holds no personal data.
+      .filter((lead) => typeof lead.alert_erased_at !== 'string')
+      .filter((lead) => !loggedIds.has(lead.id)).map((lead) => lead.id))
     let lastFailureAt: string | null = null
     for (const [sourceId, rows] of sources) {
       const suppressed = rows.every((row) => row.outcome === 'deduped')

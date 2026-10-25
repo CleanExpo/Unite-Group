@@ -243,6 +243,12 @@ describe('atomic claim contract with predicate-aware fake', () => {
   })
 
   it.each([false, true])('claims the same source once in both request orders (reverse=%s)', async (reverse) => {
+    // Order is deliberately not asserted here: both requests carry the same source, so they are
+    // indistinguishable and "which one won" is unobservable under these fakes. The mock claim_alert
+    // resolves on microtask order only. Real lock ordering (a held claim blocks, then covers, a
+    // second claim) is proven against real Postgres by check 5 in scripts/verify-claim-alert-sql.mjs
+    // ("claim waits on the in-flight holder of the same key, then is deduped"). Here we assert only
+    // the invariant that matters: exactly one send and one claim row.
     const requests = [payload(), payload()]
     if (reverse) requests.reverse()
     await Promise.all(requests.map((request) => notify(request)))
@@ -261,7 +267,12 @@ describe('atomic claim contract with predicate-aware fake', () => {
     expect(mocks.sendEmail).toHaveBeenCalledTimes(1)
     release('accepted')
     await Promise.all([first, second])
-    expect(logs.map((row) => row.outcome).sort()).toEqual(['deduped', 'sent'])
+    // Deterministic: the first call is advanced 200ms (its claim and send are in flight) before the
+    // second starts, and the mock rpc is a microtask over a shared array, so claim order equals call
+    // order. The first source is therefore the sender and the second is the deduped one.
+    expect(logs.map((row) => [row.source_id, row.outcome])).toEqual(reverse
+      ? [['lead-2', 'sent'], ['lead-1', 'deduped']]
+      : [['lead-1', 'sent'], ['lead-2', 'deduped']])
   })
 
   it.each([10, 90])('keeps both POST leads but respects the 60-minute window at %s minutes', async (minutes) => {
