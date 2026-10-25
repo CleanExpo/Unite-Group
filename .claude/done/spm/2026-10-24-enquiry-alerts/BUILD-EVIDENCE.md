@@ -79,31 +79,44 @@ One built review round: a read-only independent agent inspected health, SQL, the
 
 Files reviewed: spec.md revision 5 and engineering.md; root CLAUDE.md and SOURCE-OF-TRUTH.md; web conventions; notification router, legacy sender and tests; leads route/tests; SendGrid installed implementation/types; grow packages/card editions; env validator; heartbeat/workflow/tests; privacy policy; relevant CRM policies and web migration location; cron authentication and founder/cookie/service client helpers. Source-manifest.json records exact hashes of the final changed files and locked inputs.
 
-Files changed:
+Files changed (reconciled 25/10/2026 against the merged work; the original build-time list was stale). Merged in #1234 (commit 0eb4bb8c), excluding this directory:
 
 - `.github/workflows/nexus-heartbeat.yml`
 - `apps/web/package.json`
 - `apps/web/scripts/validate-env.mjs`
+- `apps/web/scripts/verify-claim-alert-sql.mjs`
 - `apps/web/src/app/(founder)/founder/leads/[id]/__tests__/page.test.ts`
 - `apps/web/src/app/(founder)/founder/leads/[id]/page.tsx`
-- `apps/web/src/app/api/health/alerts/__tests__/migration.test.ts`
+- `apps/web/src/app/api/founder/leads/[id]/erase-alert-data/__tests__/route.test.ts`
+- `apps/web/src/app/api/founder/leads/[id]/erase-alert-data/route.ts`
 - `apps/web/src/app/api/health/alerts/__tests__/route.test.ts`
 - `apps/web/src/app/api/health/alerts/route.ts`
 - `apps/web/src/app/api/leads/__tests__/route.test.ts`
 - `apps/web/src/app/api/leads/route.ts`
+- `apps/web/src/app/privacy-policy/__tests__/erasure-wording.test.tsx`
 - `apps/web/src/app/privacy-policy/page.tsx`
 - `apps/web/src/lib/integrations/sendgrid.ts`
 - `apps/web/src/lib/notifications/__tests__/alert-env.test.ts`
 - `apps/web/src/lib/notifications/__tests__/lead-alert.test.ts`
 - `apps/web/src/lib/notifications/__tests__/notify.test-d.ts`
+- `apps/web/src/lib/notifications/__tests__/sendgrid-suppression.test.ts`
 - `apps/web/src/lib/notifications/__tests__/sendgrid-timeout.test.ts`
+- `apps/web/src/lib/notifications/dedup-key.ts`
 - `apps/web/src/lib/notifications/index.ts`
 - `apps/web/src/lib/notifications/lead-alert.ts`
-- `apps/web/supabase/migrations/20261024090000_alert_delivery_log.sql`
+- `apps/web/src/lib/notifications/sendgrid-suppression.ts`
+- `apps/web/supabase/migrations/20261025000000_alert_erasure.sql`
 - `apps/web/tsconfig.typetest.json`
 - `apps/web/vitest.config.mts`
 - `scripts/__tests__/nexus-heartbeat.test.mjs`
 - `scripts/nexus-heartbeat.mjs`
+
+Merged earlier in #1222 (commit f7cf7ad0), already applied in production and not changed by #1234:
+
+- `apps/web/supabase/migrations/20261024090000_alert_delivery_log.sql`
+- `apps/web/src/app/api/health/alerts/__tests__/migration.test.ts`
+
+Anything changed after 0eb4bb8c is recorded by its own commit, not here. Raw run logs and plan-round review notes named above were dropped from the branch and stay on the Mini.
 
 Recommended next step: host lead reviews and commits locally, then keeps the required two-part rollout: migration alone through AC-10 database-branch approval first, followed by code only after the table is confirmed through the approved path. Preview and production configuration and proof stay human-gated. This lane did not commit, push, open a PR, deploy, change Vercel settings or edit the locked work directory.
 
