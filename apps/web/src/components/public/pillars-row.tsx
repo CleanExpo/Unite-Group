@@ -1,10 +1,11 @@
 import { PILLARS, SHIPPED_PILLAR, lowestCardPrice, pillarPath } from '@/lib/public-site'
 
+import hs from './home-screens.module.css'
+import { JOB_SCREENS } from './home-screens'
 import s from './public.module.css'
-import { VisualImg } from './visual-img'
-import { VISUALS } from './visuals'
+import { ScreenFrame } from './screen-frame'
 
-// Position 3: four image cards, each a title, one line and a Coming chip, linked to its pillar page.
+// Position 3: four cards, each a real product screen, a title, one line and a Coming chip, linked to its pillar page.
 // Only the card is on sale, so only Conversion also says so.
 export function PillarsRow() {
   return (
@@ -15,17 +16,12 @@ export function PillarsRow() {
         </h2>
         <ul className={s.grid4}>
           {PILLARS.map((p) => {
-            const v = VISUALS[p.slug]
             const live = p.slug === SHIPPED_PILLAR
             return (
               <li key={p.slug}>
-                <article className={`${s.mediaCard} ${v ? '' : s.plainCard}`} data-job>
-                  {v && (
-                    <div className={s.mediaBox}>
-                      <VisualImg visual={v} />
-                    </div>
-                  )}
-                  <div className={s.mediaText}>
+                <article className={hs.card} data-job>
+                  <ScreenFrame screen={JOB_SCREENS[p.slug]} />
+                  <div className={hs.body}>
                     <h3 className={s.cardTitle}>
                       <a href={pillarPath(p.slug)} className={s.stretch}>
                         {p.name}

@@ -1,0 +1,85 @@
+/* The home's "Four jobs" and "How it works" cards: a real product screen in a drawn frame, then the words below it.
+   The words sit on the card, never on the screen, so the screen stays readable and the text keeps its contrast. */
+
+.card {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid var(--pub-line);
+  border-radius: 20px;
+  background: var(--pub-bg);
+}
+
+.stage {
+  display: flex;
+  justify-content: center;
+  padding: 18px 18px 0;
+  border-bottom: 1px solid var(--pub-line);
+  align-items: flex-end;
+  background:
+    radial-gradient(120% 90% at 85% 0%, rgba(236, 123, 65, 0.16), rgba(236, 123, 65, 0) 60%),
+    var(--pub-bg-alt);
+}
+
+/* A screen shorter than square (the Experience crop) still gets a stage as tall as a square one, so the titles below a row
+   line up: this empty sizer is as tall as a square frame (its width plus the 24px bar) and the frame sits on the bottom edge. */
+.stage::before { content: ''; flex: none; width: 0; padding-top: calc(min(100%, var(--w)) + 24px); }
+
+/* The screen rises out of the stage: a frame on three sides, open at the bottom edge. */
+.frame {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--pub-line-strong);
+  border-bottom: 0;
+  background: #0e1014;
+}
+.frame img { display: block; width: 100%; height: auto; }
+
+/* Both frames carry the same chrome (1px border, 24px top bar), so a phone and a browser of the same width are the same
+   height and the titles below line up across a row. The phone reads as a phone by its rounded top and speaker slot. */
+.browser { border-radius: 12px 12px 0 0; }
+.phone { border-radius: 26px 26px 0 0; }
+
+.bar { box-sizing: border-box; display: flex; align-items: center; gap: 5px; height: 24px; padding: 0 10px; background: #151827; border-bottom: 1px solid var(--pub-line); }
+.bar i { width: 7px; height: 7px; border-radius: 50%; background: var(--pub-line-strong); }
+/* a phone shows a speaker slot instead of the three window dots */
+.phone .bar { justify-content: center; border-bottom-color: #0e1014; background: #0e1014; }
+.phone .bar i { display: none; }
+.phone .bar i:first-child { display: block; width: 44px; height: 5px; border-radius: 999px; background: #262b42; }
+
+/* "Sample data": the names, counts and entries on every screen are invented, so a seed never looks live.
+   Quiet mono label in the chrome bar's right corner; --pub-muted clears 4.5:1 on both bar backgrounds. */
+.sample {
+  position: absolute;
+  top: 0;
+  right: 10px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  font-family: var(--pub-mono);
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: var(--pub-muted);
+  pointer-events: none;
+}
+
+.body { display: flex; flex: 1; flex-direction: column; gap: 8px; padding: 18px 20px 22px; }
+
+/* 01/02/03: dark numerals on a solid copper chip, 15px bold. #080914 on #ff9a63 is well above WCAG AA 4.5:1. */
+.stepNo {
+  align-self: flex-start;
+  padding: 3px 11px;
+  border-radius: 999px;
+  font-family: var(--pub-mono);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+  color: var(--pub-accent-ink);
+  background: var(--pub-accent-strong);
+}
