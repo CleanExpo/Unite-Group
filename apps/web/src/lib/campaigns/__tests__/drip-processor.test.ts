@@ -148,7 +148,7 @@ describe('processCampaignDrip', () => {
       {
         data: [
           enrollment({ id: 'enr-real', email: 'real@example.com' }),
-          enrollment({ id: 'enr-test', email: 'x@unite-hub.test' }),
+          enrollment({ id: 'enr-test', email: 'x__PW_TEST__@example.com' }),
         ],
         error: null,
       },

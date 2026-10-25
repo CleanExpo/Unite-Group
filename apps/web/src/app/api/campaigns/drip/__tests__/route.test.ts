@@ -138,7 +138,7 @@ describe('POST /api/campaigns/drip', () => {
     const enr = (id: string, email: string) => ({ id, contact_id: `c-${id}`, email, name: null, current_step_order: 1 })
     chain.order
       .mockResolvedValueOnce({ data: [step], error: null })
-      .mockResolvedValueOnce({ data: [enr('e1', 'real@example.com'), enr('e2', 'x@unite-hub.test')], error: null })
+      .mockResolvedValueOnce({ data: [enr('e1', 'real@example.com'), enr('e2', 'x__PW_TEST__@example.com')], error: null })
 
     const res = await POST(req({ action: 'process_pending', campaignId: 'dc-1' }))
 
