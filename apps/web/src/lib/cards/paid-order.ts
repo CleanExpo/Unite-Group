@@ -12,7 +12,7 @@
 import type Stripe from 'stripe'
 
 import { CARD_EXTRA_BUSINESS, CARD_TIERS } from '@/app/cards/order/order-view'
-import { sendEmail } from '@/lib/integrations/sendgrid'
+import { mailtrapFromEmail, sendEmail } from '@/lib/integrations/mailtrap'
 import type { createServiceClient } from '@/lib/supabase/service'
 
 type CardTier = (typeof CARD_TIERS)[number]
@@ -138,6 +138,9 @@ export async function recordPaidCardOrder(admin: Admin, event: Stripe.Event): Pr
   }
 
   await sendOrderAlert(name, purchase, session.amount_total ?? 0, event.livemode)
+  if (purchase.kind === 'tier') {
+    await sendBuyerWelcome(session.customer_details?.email?.trim() || null, name, purchase.tier, event.livemode)
+  }
   return 'created'
 }
 
@@ -149,9 +152,9 @@ async function sendOrderAlert(
   livemode: boolean,
 ): Promise<void> {
   const to = process.env.LEAD_ALERT_EMAIL_TO?.trim()
-  const from = process.env.SENDGRID_FROM_EMAIL?.trim()
-  if (!to || !from) {
-    console.warn('[cards] order alert skipped: LEAD_ALERT_EMAIL_TO or SENDGRID_FROM_EMAIL not set')
+  const from = mailtrapFromEmail()
+  if (!to) {
+    console.warn('[cards] order alert skipped: LEAD_ALERT_EMAIL_TO not set')
     return
   }
   const who = name ?? 'A buyer'
@@ -163,12 +166,11 @@ async function sendOrderAlert(
   try {
     await sendEmail({
       to: { email: to },
-      from: { email: from },
+      from: { email: from, name: 'Unite-Group orders' },
       subject: `${livemode ? '' : '[TEST] '}New paid card order: ${label}`,
       text: line,
       html: `<p>${escapeHtml(line)}</p>`,
       categories: ['card-order-alert'],
-      disableTracking: true,
     })
   } catch (err) {
     console.error('[cards] order alert failed:', err instanceof Error ? err.message : err)
@@ -177,4 +179,54 @@ async function sendOrderAlert(
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
+/** The buyer's welcome email, sent once per new tier order. Never throws. */
+export function buildBuyerWelcome(name: string | null, tier: { name: string; priceAud: number }): { subject: string; text: string; html: string } {
+  const greeting = name ? `Dear ${name.split(/\s+/)[0]},` : 'Hello,'
+  const lines = [
+    greeting,
+    `Thank you for ordering the ${tier.name} living business card (A$${tier.priceAud}, GST included). Your payment has been received.`,
+    'To start your card, please reply to this email with:',
+    '1. Your logo (PNG, SVG or JPEG).',
+    '2. Your name, title and business name as they should appear.',
+    '3. The phone, email, website and social links you would like on the card.',
+    'If you have not yet completed the short form on our thank-you page, you are welcome to send these details by reply instead.',
+    'We will send your first preview once we have everything. You can read the order terms at https://unite-group.in/cards/terms.',
+    'Kind regards,',
+    'Margot',
+    'Unite-Group',
+  ]
+  const subject = `Your ${tier.name} living card: next steps`
+  const html =
+    '<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#111">' +
+    lines.map((l) => `<p style="margin:0 0 12px">${escapeHtml(l)}</p>`).join('') +
+    '</div>'
+  return { subject, text: lines.join('\n\n'), html }
+}
+
+async function sendBuyerWelcome(
+  email: string | null,
+  name: string | null,
+  tier: { name: string; priceAud: number },
+  livemode: boolean,
+): Promise<void> {
+  const from = process.env.CARD_WELCOME_FROM_EMAIL?.trim() || mailtrapFromEmail()
+  if (!email) {
+    console.warn('[cards] welcome email skipped: no buyer email')
+    return
+  }
+  const msg = buildBuyerWelcome(name, tier)
+  try {
+    await sendEmail({
+      to: { email },
+      from: { email: from, name: 'Margot at Unite-Group' },
+      subject: `${livemode ? '' : '[TEST] '}${msg.subject}`,
+      text: msg.text,
+      html: msg.html,
+      categories: ['card-order-welcome'],
+    })
+  } catch (err) {
+    console.error('[cards] welcome email failed:', err instanceof Error ? err.message : err)
+  }
 }

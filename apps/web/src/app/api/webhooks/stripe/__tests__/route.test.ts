@@ -7,13 +7,14 @@ vi.mock('@/lib/integrations/stripe/client', () => ({
 vi.mock('@/lib/supabase/service', () => ({
   createServiceClient: vi.fn(),
 }))
-vi.mock('@/lib/integrations/sendgrid', () => ({
+vi.mock('@/lib/integrations/mailtrap', () => ({
   sendEmail: vi.fn(),
+  mailtrapFromEmail: () => process.env.MAILTRAP_FROM_EMAIL || 'contact@unite-group.in',
 }))
 
 import { getStripe } from '@/lib/integrations/stripe/client'
 import { createServiceClient } from '@/lib/supabase/service'
-import { sendEmail } from '@/lib/integrations/sendgrid'
+import { sendEmail } from '@/lib/integrations/mailtrap'
 import { POST } from '../route'
 
 function req(body = '{}', signature?: string | null): NextRequest {
@@ -127,18 +128,18 @@ function mockTables(events: Result, orders: Result) {
 }
 
 describe('POST /api/webhooks/stripe, paid card order', () => {
-  const saved = { to: process.env.LEAD_ALERT_EMAIL_TO, from: process.env.SENDGRID_FROM_EMAIL, f: process.env.FOUNDER_USER_ID, l: process.env.STRIPE_CARD_PAYMENT_LINK_IDS }
+  const saved = { to: process.env.LEAD_ALERT_EMAIL_TO, from: process.env.MAILTRAP_FROM_EMAIL, f: process.env.FOUNDER_USER_ID, l: process.env.STRIPE_CARD_PAYMENT_LINK_IDS }
   beforeEach(() => {
     vi.clearAllMocks()
     process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test'
     process.env.LEAD_ALERT_EMAIL_TO = 'alerts@example.invalid'
-    process.env.SENDGRID_FROM_EMAIL = 'noreply@example.invalid'
+    process.env.MAILTRAP_FROM_EMAIL = 'noreply@example.invalid'
     process.env.FOUNDER_USER_ID = '00000000-0000-0000-0000-000000000001'
     process.env.STRIPE_CARD_PAYMENT_LINK_IDS = 'plink_test_other, plink_test_card'
     vi.mocked(sendEmail).mockResolvedValue('sg-1')
   })
   afterEach(() => {
-    for (const [k, v] of [['LEAD_ALERT_EMAIL_TO', saved.to], ['SENDGRID_FROM_EMAIL', saved.from], ['FOUNDER_USER_ID', saved.f], ['STRIPE_CARD_PAYMENT_LINK_IDS', saved.l]] as const) {
+    for (const [k, v] of [['LEAD_ALERT_EMAIL_TO', saved.to], ['MAILTRAP_FROM_EMAIL', saved.from], ['FOUNDER_USER_ID', saved.f], ['STRIPE_CARD_PAYMENT_LINK_IDS', saved.l]] as const) {
       if (v === undefined) delete process.env[k]
       else process.env[k] = v
     }
@@ -173,8 +174,9 @@ describe('POST /api/webhooks/stripe, paid card order', () => {
     mockStripe(() => card())
     mockTables({ error: null }, { error: null })
     await POST(req('{}', 'sig'))
-    expect(sendEmail).toHaveBeenCalledTimes(1)
-    const arg = vi.mocked(sendEmail).mock.calls[0][0]
+    const alerts = vi.mocked(sendEmail).mock.calls.filter(([a]) => a.categories?.includes('card-order-alert'))
+    expect(alerts).toHaveLength(1)
+    const arg = alerts[0][0]
     expect(arg.to).toEqual({ email: 'alerts@example.invalid' })
     const text = `${arg.subject}\n${arg.text}\n${arg.html}`
     expect(text).toContain('Sample Client')
@@ -192,7 +194,8 @@ describe('POST /api/webhooks/stripe, paid card order', () => {
     t.card_orders.mockResolvedValue({ error: { code: '23505' } })
     const res = await POST(req('{}', 'sig'))
     expect(res.status).toBe(200)
-    expect(sendEmail).toHaveBeenCalledTimes(1)
+    // one alert plus one buyer welcome, never repeated on redelivery
+    expect(sendEmail).toHaveBeenCalledTimes(2)
   })
 
   it('still records an order that the ledger saw but a failed first attempt never wrote', async () => {
@@ -201,7 +204,7 @@ describe('POST /api/webhooks/stripe, paid card order', () => {
     const res = await POST(req('{}', 'sig'))
     expect(res.status).toBe(200)
     expect(t.card_orders).toHaveBeenCalledTimes(1)
-    expect(sendEmail).toHaveBeenCalledTimes(1)
+    expect(sendEmail).toHaveBeenCalledTimes(2)
   })
 
   it('never fails the webhook when the email fails', async () => {
@@ -212,14 +215,31 @@ describe('POST /api/webhooks/stripe, paid card order', () => {
     expect(res.status).toBe(200)
   })
 
-  it('skips the email, not the order, when the alert address is unset', async () => {
+  it('skips the alert, not the order or the buyer welcome, when the alert address is unset', async () => {
     delete process.env.LEAD_ALERT_EMAIL_TO
     mockStripe(() => card())
     const t = mockTables({ error: null }, { error: null })
     const res = await POST(req('{}', 'sig'))
     expect(res.status).toBe(200)
     expect(t.card_orders).toHaveBeenCalledTimes(1)
-    expect(sendEmail).not.toHaveBeenCalled()
+    const cats = vi.mocked(sendEmail).mock.calls.map(([a]) => a.categories?.[0])
+    expect(cats).toEqual(['card-order-welcome'])
+  })
+
+  it('sends the buyer one Margot welcome from the sender, with next steps and no card data', async () => {
+    mockStripe(() => card())
+    mockTables({ error: null }, { error: null })
+    await POST(req('{}', 'sig'))
+    const welcome = vi.mocked(sendEmail).mock.calls.filter(([a]) => a.categories?.includes('card-order-welcome'))
+    expect(welcome).toHaveLength(1)
+    const arg = welcome[0][0]
+    expect(arg.to).toEqual({ email: 'sample@example.invalid' })
+    expect(arg.from.name).toBe('Margot at Unite-Group')
+    const text = `${arg.subject}\n${arg.text}\n${arg.html}`
+    expect(text).toContain('Ready-made')
+    expect(text).toContain('logo')
+    expect(text).toContain('Margot')
+    expect(text).not.toMatch(/4242|card number|cvc/i)
   })
 
   it('returns 500 so Stripe retries when the order cannot be written', async () => {
