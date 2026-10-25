@@ -151,6 +151,30 @@ describe('alert health', () => {
     expect(await (await GET(request())).json()).toMatchObject({ unalerted: 1 })
   })
 
+  it('covers a suppression by its recorded covering source even when that row is timestamped later (reversed lock order)', async () => {
+    // claim_alert's now() is the transaction start: the suppressed claim began first but took the
+    // advisory lock second, so its deduped row is EARLIER than the sent row that covered it.
+    state.tables.crm_leads = [lead('suppressed', 10 * 60 * 1000), lead('winner', 10 * 60 * 1000)]
+    state.tables.alert_delivery_log = [
+      { ...log('suppressed', 'deduped', 5 * 60 * 1000, 'key'), covered_by_source_id: 'winner' },
+      log('winner', 'sent', 5 * 60 * 1000 - 50, 'key')]
+    expect(await (await GET(request())).json()).toMatchObject({ deduped: 1, sent: 1, unalerted: 0, unalerted_ids: [] })
+    expect(state.selects.find((s) => s.startsWith('alert_delivery_log'))).toContain('covered_by_source_id')
+  })
+
+  it('a recorded covering source counts only when that source was sent with the same key', async () => {
+    state.tables.alert_delivery_log = [
+      { ...log('a', 'deduped', 5 * 60 * 1000, 'key'), covered_by_source_id: 'failed-winner' },
+      log('failed-winner', 'failed', 6 * 60 * 1000, 'key'),
+      { ...log('b', 'deduped', 5 * 60 * 1000, 'key-b'), covered_by_source_id: 'other-key' },
+      log('other-key', 'sent', 6 * 60 * 1000, 'not-key-b'),
+      { ...log('c', 'deduped', 5 * 60 * 1000, 'key-c'), covered_by_source_id: 'absent' },
+      // A sent row with the same key that is NOT the recorded cover does not rescue c.
+      log('bystander', 'sent', 6 * 60 * 1000, 'key-c')]
+    const body = await (await GET(request())).json()
+    expect(body.unalerted_ids).toEqual(['a', 'b', 'c'])
+  })
+
   it('pages beyond the API row cap without dropping failures or missing leads', async () => {
     state.tables.alert_delivery_log = Array.from({ length: 1001 }, (_, i) => log(`source-${i}`, i === 999 ? 'failed' : 'sent'))
     state.tables.crm_leads = Array.from({ length: 1001 }, (_, i) => lead(`missing-${i}`))

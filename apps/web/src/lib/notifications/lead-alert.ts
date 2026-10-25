@@ -29,6 +29,12 @@ export function packageLabel(interests: string | null): string {
   return 'Not specified'
 }
 
+/** Every value packageLabel can return, so erasure can derive every keyed hash for one address. */
+export function allPackageLabels(): string[] {
+  return [...GROW_PACKAGES.map((item) => item.name), 'Living card',
+    ...EDITIONS.map((item) => `Living card: ${item.name}`), 'Not specified']
+}
+
 function flatten(value: string): string {
   return Array.from(value.replace(/[\p{Cf}\u2028\u2029]/gu, '')).filter((character) => {
     const code = character.charCodeAt(0)

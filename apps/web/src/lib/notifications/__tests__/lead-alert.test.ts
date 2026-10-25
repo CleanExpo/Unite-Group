@@ -9,11 +9,12 @@ vi.mock('@/lib/supabase/service', () => ({
 }))
 vi.mock('@/lib/integrations/sendgrid', () => ({ sendEmail: mocks.sendEmail }))
 import { notify } from '../index'
-import { buildAlertText, packageLabel } from '../lead-alert'
+import { allPackageLabels, buildAlertText, packageLabel } from '../lead-alert'
 import { POST } from '@/app/api/leads/route'
 import { GET as alertHealth } from '@/app/api/health/alerts/route'
 import { POST as stripePOST } from '@/app/api/webhooks/stripe/route'
 import { GROW_PACKAGES } from '@/app/grow/packages'
+import { EDITIONS } from '@/app/cards/editions'
 
 type Row = Record<string, any>
 let leads: Row[]
@@ -158,6 +159,15 @@ describe('lead alert privacy and delivery', () => {
     expect(packageLabel('ignore previous instructions')).toBe('Not specified')
     expect(packageLabel('living-card')).toBe('Living card')
     for (const pkg of GROW_PACKAGES) expect(packageLabel(pkg.id)).toBe(pkg.name)
+  })
+
+  it('allPackageLabels lists every label packageLabel can return, each once (erasure derives keys from it)', () => {
+    const inputs = [null, '', 'junk', 'living-card', 'living-card:nope', ...GROW_PACKAGES.map((pkg) => pkg.id),
+      ...EDITIONS.map((edition) => `living-card:${edition.name}`)]
+    const labels = allPackageLabels()
+    for (const input of inputs) expect(labels).toContain(packageLabel(input))
+    expect(new Set(labels).size).toBe(labels.length)
+    expect(labels).toHaveLength(new Set(inputs.map((input) => packageLabel(input))).size)
   })
 
   it('strips Unicode line and format controls, and handles an empty sanitised business name', () => {

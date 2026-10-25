@@ -17,6 +17,7 @@ type DeliveryRow = {
   source_id: string
   outcome: LogOutcome
   dedup_key: string | null
+  covered_by_source_id: string | null
   created_at: string
   updated_at: string
 }
@@ -53,7 +54,7 @@ export async function GET(request: Request) {
     // Read an extra hour only for coverage of suppressions at the window edge.
     for (let offset = 0; ; offset += PAGE_SIZE) {
       const { data, error } = await supabase.from('alert_delivery_log')
-        .select('id, source_id, outcome, dedup_key, created_at, updated_at')
+        .select('id, source_id, outcome, dedup_key, covered_by_source_id, created_at, updated_at')
         .eq('founder_id', founderId).eq('source_kind', 'new_lead')
         .gte('created_at', new Date(start - 60 * 60 * 1000).toISOString())
         .lte('created_at', new Date(now).toISOString())
@@ -95,10 +96,16 @@ export async function GET(request: Request) {
       const suppressed = rows.every((row) => row.outcome === 'deduped')
       if (suppressed) {
         deduped++
-        const covered = rows.some((row) => row.dedup_key && logs.some((other) =>
-          other.source_id !== sourceId && other.dedup_key === row.dedup_key && other.outcome === 'sent' &&
-          Date.parse(other.created_at) <= Date.parse(row.created_at) &&
-          Date.parse(other.created_at) >= Date.parse(row.created_at) - 60 * 60 * 1000))
+        const covered = rows.some((row) => row.dedup_key && (row.covered_by_source_id
+          // claim_alert records the covering source under the advisory lock; timestamps cannot be
+          // compared, because now() is the transaction start and lock order can differ from it.
+          ? logs.some((other) => other.source_id === row.covered_by_source_id && other.source_id !== sourceId &&
+            other.dedup_key === row.dedup_key && other.outcome === 'sent')
+          // Rows written before covered_by_source_id existed keep the timestamp rule.
+          : logs.some((other) =>
+            other.source_id !== sourceId && other.dedup_key === row.dedup_key && other.outcome === 'sent' &&
+            Date.parse(other.created_at) <= Date.parse(row.created_at) &&
+            Date.parse(other.created_at) >= Date.parse(row.created_at) - 60 * 60 * 1000)))
         if (!covered) unalertedIds.add(sourceId)
       } else {
         attempts++
