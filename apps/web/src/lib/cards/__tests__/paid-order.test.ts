@@ -157,6 +157,20 @@ describe('recordPaidCardOrder', () => {
     })
   })
 
+  it.each([24900, 44900])(
+    'treats a link listed as BOTH tier and add-on as add-on only: a %i tier-price payment on it is ignored, not recorded as a tier',
+    async (amount) => {
+      vi.stubEnv('STRIPE_CARD_PAYMENT_LINK_IDS', 'plink_card,plink_extra')
+      expect(await recordPaidCardOrder(admin, event({ amount_total: amount, payment_link: 'plink_extra' }))).toBe('ignored')
+      expect(insert).not.toHaveBeenCalled()
+    },
+  )
+
+  it('rejects an add-on-link payment with no currency', async () => {
+    expect(await recordPaidCardOrder(admin, event({ amount_total: 39800, currency: null, payment_link: 'plink_extra' }))).toBe('ignored')
+    expect(insert).not.toHaveBeenCalled()
+  })
+
   it('lets the add-on path win when the link is in both lists', async () => {
     vi.stubEnv('STRIPE_CARD_PAYMENT_LINK_IDS', 'plink_card,plink_extra')
     expect(await recordPaidCardOrder(admin, event({ amount_total: 39800, payment_link: 'plink_extra' }))).toBe('created')
