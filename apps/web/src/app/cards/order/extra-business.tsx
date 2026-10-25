@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 
+import { PAYMENT_ENTITY_LINE } from '../payment-entity'
 import s from './extra-business.module.css'
 
 const plural = (n: number) => `${n} extra ${n === 1 ? 'business' : 'businesses'}`
@@ -59,6 +60,7 @@ export function ExtraBusiness({ link, priceAud, maxQuantity }: { link: string; p
           >
             Pay for {plural(quantity)}
           </a>
+          <p className={s.note}>{PAYMENT_ENTITY_LINE}</p>
           <p className={s.note}>
             This is a second payment on Stripe and opens in a new tab. Set the quantity to {quantity} there.
           </p>

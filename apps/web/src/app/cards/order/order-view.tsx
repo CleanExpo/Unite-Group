@@ -4,6 +4,7 @@ import { readMargotPhoneNumber } from '@/lib/margot/phone-line'
 
 import { formatAud, stripePaymentLink } from '../../grow/packages'
 import { EDITIONS } from '../editions'
+import { PAYMENT_ENTITY_LINE } from '../payment-entity'
 import { CardEnquiryForm } from './enquiry-form'
 import { ExtraBusiness } from './extra-business'
 import { Film } from './film'
@@ -130,6 +131,7 @@ export function OrderView({ edition, referrer }: { edition: string | null; refer
                         <a href={t.link} rel="noopener" data-track="cta" data-track-label={`order-tier-${t.id}`} className={`${s.primary} ${s.block}`}>
                           Order {t.name.toLowerCase()}
                         </a>
+                        <p className={s.payEntity}>{PAYMENT_ENTITY_LINE}</p>
                         {extraLink && t.id === CARD_EXTRA_BUSINESS.forTier ? (
                           <ExtraBusiness
                             link={extraLink}
