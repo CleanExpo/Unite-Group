@@ -54,9 +54,9 @@ beforeEach(() => vi.clearAllMocks())
 afterEach(() => vi.unstubAllEnvs())
 
 describe('the dark home: section order', () => {
-  it('runs hero, three media cards, the group, the living-cards gallery, four jobs, three steps, results, FAQ, contact, footer', async () => {
+  it('runs hero, the start chooser, three media cards, the group, the living-cards gallery, four jobs, three steps, results, FAQ, contact, footer', async () => {
     const html = await signedOut()
-    const ids = ['hero', 'highlights', 'group', 'cards', 'pillars', 'how', 'proof', 'answers', 'contact', 'footer']
+    const ids = ['hero', 'start', 'highlights', 'group', 'cards', 'pillars', 'how', 'proof', 'answers', 'contact', 'footer']
     const at = ids.map((id) => html.indexOf(`id="${id}"`))
     for (const [i, id] of ids.entries()) expect(at[i], id).toBeGreaterThan(-1)
     expect([...at].sort((a, b) => a - b)).toEqual(at)
@@ -212,7 +212,7 @@ describe('images come from one map, and no file appears twice', () => {
   // picture, and may appear once in the tiles and once in any business list (Phill 25/10/2026).
   it('references no image, poster, video or background file more than once on the home page (not twice in one section either)', async () => {
     const html = await signedOut()
-    const markers = ['header', 'hero', 'highlights', 'group', 'cards', 'pillars', 'how', 'proof', 'answers', 'contact', 'footer']
+    const markers = ['header', 'hero', 'start', 'highlights', 'group', 'cards', 'pillars', 'how', 'proof', 'answers', 'contact', 'footer']
     const starts = markers.map((m) => (m === 'header' ? html.indexOf('<header') : html.indexOf(`id="${m}"`)))
     for (const [i, m] of markers.entries()) expect(starts[i], m).toBeGreaterThan(-1)
     // one entry per element (an img with its src and srcset is ONE reference), keyed by file, remembering the section
@@ -239,6 +239,16 @@ describe('images come from one map, and no file appears twice', () => {
     expect([...files.keys()].filter((f) => f.includes("/cards/media/edition-")).length, "positive control: the ten gallery posters were scanned").toBe(10)
     const repeated = [...files].filter(([, where]) => where.length > 1).map(([file, where]) => `${file} used ${where.length} times (${where.join(', ')})`)
     expect(repeated).toEqual([])
+  })
+})
+
+describe('one primary path', () => {
+  it('demotes the showroom button in the results banner to secondary and keeps From $249 as the one offer button', async () => {
+    const html = await signedOut()
+    const proof = between(html, 'proof', 'answers')
+    expect(proof).toMatch(/<a [^>]*class="[^"]*buttonSecondary[^"]*"[^>]*href="\/cards"|<a [^>]*href="\/cards"[^>]*class="[^"]*buttonSecondary/)
+    expect(proof).not.toContain('buttonPrimary')
+    expect(between(html, 'cards', 'pillars')).toMatch(/class="[^"]*buttonPrimary[^"]*"[^>]*>From \$249<|href="\/cards\/order"[^>]*class="[^"]*buttonPrimary/)
   })
 })
 

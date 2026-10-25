@@ -125,9 +125,11 @@ describe('/ hero and metadata', () => {
 
   it('keeps the card offer out of the hero and lower down: the group section, then the gallery, then the jobs', async () => {
     const html = await signedOut()
-    const hero = html.slice(html.indexOf('id="hero"'), html.indexOf('id="highlights"'))
+    const hero = html.slice(html.indexOf('id="hero"'), html.indexOf('id="start"'))
+    expect(html.indexOf('id="start"'), 'the chooser follows the hero').toBeLessThan(html.indexOf('id="highlights"'))
     expect(hero).not.toMatch(/living card|\$249|\$449|GST/)
     expect(hero).toContain('href="#contact"')
+    expect(hero).toContain('href="#start"')
     expect(html.indexOf('id="hero"')).toBeLessThan(html.indexOf('id="group"'))
     expect(html.indexOf('id="group"')).toBeLessThan(html.indexOf('id="cards"'))
     expect(html.indexOf('id="cards"')).toBeLessThan(html.indexOf('id="pillars"'))

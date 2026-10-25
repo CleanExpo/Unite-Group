@@ -21,8 +21,8 @@ export function Hero() {
         </h1>
         <p className={h.sub}>The CRM we are building to run the businesses behind it.</p>
         <div className={h.actions}>
-          <a href="#group" data-track="cta" data-track-label="home-hero-meet-group" className={h.cta}>
-            Meet the group
+          <a href="#start" data-track="cta" data-track-label="home-hero-start" className={h.cta}>
+            Where do you want to start?
           </a>
           <a href="#contact" data-track="cta" data-track-label="home-hero-ask-question" className={h.ghost}>
             Ask a question
