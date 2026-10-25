@@ -22,6 +22,13 @@ describe('mission-authority.json canonical source', () => {
     expect(sha256(JSON.stringify(policy))).toBe(sha256(JSON.stringify(parsed)))
     expect(policy).toStrictEqual(parsed)
   })
+
+  it('re-serialises the imported value to the canonical file byte for byte', () => {
+    // The canonical file is written as JSON.stringify(value, null, 2) plus a trailing newline,
+    // so the runtime value reproduces its exact bytes: nothing was dropped, coerced or reordered.
+    const bytes = readFileSync(CANONICAL)
+    expect(Buffer.from(`${JSON.stringify(policy, null, 2)}\n`, 'utf8').equals(bytes)).toBe(true)
+  })
 })
 
 describe('next.config.mjs turbopack.root', () => {
