@@ -334,8 +334,9 @@ export default function PrivacyPolicyPage() {
 
           <SubHeading>13.3 How long we keep it</SubHeading>
           <p>
-            We keep order and enquiry records while your card is hosted and for 12 months after, then delete them, except that records
-            we must keep by law, such as tax records, are kept for as long as the law requires.
+            We keep order and enquiry records only as long as we need them to supply your card and respond to you, and we
+            delete them when you ask us to, except that records we must keep by law, such as tax records, are kept for as
+            long as the law requires.
           </p>
 
           <SubHeading>13.4 Access, correction, deletion and complaints</SubHeading>

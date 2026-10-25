@@ -2,7 +2,8 @@
 // Exception: the extra-business item under Made for you (25/10/2026) is NOT in the approved file and
 // awaits Phill's lawyer read.
 // UNI-3017 (25/10/2026): section 13 item 2 (enquiries) differs from the approved file because card enquiry forms are
-// not switched on, so "emailed to you" was untrue. A lawyer should read it. Apart from that, two things differ from the approved file: the DRAFT
+// not switched on, so "emailed to you" was untrue. A lawyer should read it.
+// Section 13 item 5 (retention) also differs: no job deletes records 12 months after hosting, so the promise was untrue. Apart from that, two things differ from the approved file: the DRAFT
 // header line and the internal draft note are not published, and the ABN is the {{ABN}} token, filled by companyAbnLabel() (it reads
 // "ABN 95 691 477 844" unless COMPANY_ABN overrides it, the same text as the approved file).
 // Markers: "# " h1, "## " h2, "N. " list item, a whole line in ** ** a bold lead-in, anything else a paragraph.
@@ -104,7 +105,7 @@ We supply only what this section lists. Anything else is quoted separately befor
 2. Enquiry forms on cards are not switched on yet. When they are, messages sent through a card will be stored in the Unite-Group database and passed to the card owner. Our database administrators can technically read them.
 3. We do not sell your personal information.
 4. You can ask what we hold about you, ask us to correct it, or ask us to delete it, by emailing contact@unite-group.in.
-5. We keep order and enquiry records while your card is hosted and for 12 months after, then delete them, except records we must keep by law (such as tax records).
+5. We keep order and enquiry records only as long as we need them to supply your card and respond to you, and we delete them when you ask us to, except records we must keep by law (such as tax records).
 
 ## 14. General
 
