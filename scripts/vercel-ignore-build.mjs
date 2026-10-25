@@ -73,6 +73,15 @@ if (!previousSha) {
   finish(BUILD, 'VERCEL_GIT_PREVIOUS_SHA is unset — no baseline to compare against');
 }
 
+// Same commit as the previous deployment: the diff between a commit and itself
+// is always empty, which would SKIP. But the only way to deploy one commit
+// twice is a deliberate redeploy — typically to apply changed env vars, which
+// are baked in at build time. Skipping would make env-only changes unable to
+// reach production without an unrelated code merge.
+if (previousSha === currentSha) {
+  finish(BUILD, `same commit as the previous deployment (${previousSha.slice(0, 8)}), so this is a deliberate redeploy`);
+}
+
 // Confirm both objects are actually in this shallow clone before trusting a
 // diff. `git diff` against a missing object can report an empty result rather
 // than erroring, which would read as "nothing changed" and wrongly skip.
