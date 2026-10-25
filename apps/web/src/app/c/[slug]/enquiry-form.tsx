@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 
+import { CollectionNotice } from '@/components/public/collection-notice'
 import { submitEnquiryAction } from './actions'
 import styles from './card.module.css'
 
@@ -16,17 +17,23 @@ type View = { kind: 'idle' } | { kind: 'sending' } | { kind: 'error'; message: s
  * One enquiry. The reference number is shown only from a stored-row result; a failed or thrown call keeps what the
  * visitor typed and shows an error, never a receipt.
  */
-export function EnquiryForm({ slug, fallback }: { slug: string; fallback?: FallbackContact }) {
+export function EnquiryForm({ slug, fallback, owner }: { slug: string; fallback?: FallbackContact; owner?: string }) {
   const [view, setView] = useState<View>({ kind: 'idle' })
   const [firstName, setFirstName] = useState('')
   const [ask, setAsk] = useState('')
   const [replyEmail, setReplyEmail] = useState('')
+  const [consent, setConsent] = useState(false)
+  const [website, setWebsite] = useState('') // honeypot: hidden from people, so only a script fills it
+  const startedAt = useRef(0)
+  useEffect(() => { startedAt.current = Date.now() }, [])
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setView({ kind: 'sending' })
     try {
-      const r = await submitEnquiryAction(slug, { firstName, ask, replyEmail: replyEmail || null })
+      const r = await submitEnquiryAction(slug, {
+        firstName, ask, replyEmail: replyEmail || null, consent, website, startedAt: startedAt.current,
+      })
       setView(r.ok ? { kind: 'received', reference: r.receipt.reference } : { kind: 'error', message: r.error })
     } catch {
       setView({ kind: 'error', message: 'could not send, check your connection and try again' })
@@ -58,6 +65,19 @@ export function EnquiryForm({ slug, fallback }: { slug: string; fallback?: Fallb
       <label>
         Reply email (optional)
         <input name="replyEmail" type="email" value={replyEmail} onChange={(e) => setReplyEmail(e.target.value)} maxLength={254} />
+      </label>
+      <div className={styles.trap} aria-hidden="true">
+        {/* a non-semantic name, so browser and password-manager autofill leave it empty for real visitors */}
+        <label>
+          Leave this empty
+          <input name="lc_extra" value={website} onChange={(e) => setWebsite(e.target.value)} tabIndex={-1} autoComplete="off" />
+        </label>
+      </div>
+      <p className={styles.recipient}>Your message goes to {owner ? `${owner} and Unite Group` : 'Unite Group'}.</p>
+      <CollectionNotice form="card-enquiry" tone="dark" />
+      <label className={styles.consent}>
+        <input type="checkbox" name="consent" checked={consent} onChange={(e) => setConsent(e.target.checked)} required />
+        I agree to my details being used to reply to this enquiry
       </label>
       {view.kind === 'sending' ? <p role="status">Sending…</p> : null}
       {view.kind === 'error' ? (

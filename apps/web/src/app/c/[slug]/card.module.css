@@ -80,7 +80,7 @@
   color: #c9c3b8;
 }
 
-.enquiry input,
+.enquiry input:not([type='checkbox']),
 .enquiry textarea {
   min-height: 44px;
   padding: 10px 12px;
@@ -114,4 +114,34 @@
 .receipt {
   margin: 28px 0 0;
   overflow-wrap: anywhere;
+}
+
+/* Honeypot wrapper: off-screen rather than display:none, so naive bots still see and fill the field. */
+.trap {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.enquiry .recipient {
+  margin: 0 0 4px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #a6a29b;
+}
+
+.enquiry .consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.enquiry .consent input {
+  width: 18px;
+  height: 18px;
+  margin: 3px 0 0;
+  flex: none;
+  accent-color: #e55a2b;
 }

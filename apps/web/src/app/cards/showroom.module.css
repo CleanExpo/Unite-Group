@@ -1,0 +1,177 @@
+/* /cards facts sections: price, hosting, exclusions, FAQ. Dark palette matches the showroom page. */
+
+.section {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 3.5rem 1rem;
+}
+
+@media (min-width: 640px) {
+  .section {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+.eyebrow {
+  margin: 0;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: #ff8a5c;
+}
+
+.heading {
+  margin: 0.5rem 0 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.note {
+  margin: 0.5rem 0 0;
+  max-width: 40rem;
+  font-size: 15px;
+  color: #a8a29e;
+}
+
+.tiers {
+  display: grid;
+  gap: 1rem;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 640px) {
+  .tiers {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.tier {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 1.25rem;
+}
+
+.tierName {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.price {
+  margin: 0.5rem 0 0;
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.priceGst {
+  display: inline-block;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: #d6d3d1;
+  white-space: nowrap;
+}
+
+.tierLine {
+  margin: 0.5rem 0 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #d6d3d1;
+}
+
+.cols {
+  display: grid;
+  gap: 2.5rem;
+}
+
+@media (min-width: 768px) {
+  .cols {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.band {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.list {
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.list li {
+  margin-top: 0.75rem;
+  padding-left: 1rem;
+  border-left: 2px solid #e55a2b;
+  font-size: 15px;
+  line-height: 1.55;
+  color: #d6d3d1;
+}
+
+.faq {
+  margin-top: 1.5rem;
+  max-width: 48rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.faqItem {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.faqItem summary {
+  cursor: pointer;
+  padding: 1rem 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #f5f5f4;
+}
+
+.faqItem summary:focus-visible,
+.link:focus-visible {
+  outline: 2px solid #e55a2b;
+  outline-offset: 3px;
+}
+
+.faqItem p {
+  margin: 0 0 1rem;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #d6d3d1;
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+  font-size: 15px;
+}
+
+.link {
+  color: #ff8a5c;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link:hover {
+  color: #fff;
+}
+
+/* The showroom's own motion: none of it is needed to read the page. */
+@media (prefers-reduced-motion: reduce) {
+  .section,
+  .section *,
+  .faqItem summary {
+    transition: none;
+    animation: none;
+    scroll-behavior: auto;
+  }
+}

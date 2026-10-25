@@ -6,6 +6,9 @@ import { readMargotPhoneNumber } from '@/lib/margot/phone-line'
 
 import { EditionTile } from './edition-tile'
 import { EDITIONS } from './editions'
+import { CARD_TIERS } from './order/order-view'
+import s from './showroom.module.css'
+import { EXCLUSION_FACTS, FAQ_FACTS, HOSTING_FACTS, PRICE_NOTE, TIER_LINES } from './showroom-facts'
 
 export const metadata: Metadata = {
   title: 'Living business cards | Unite Group',
@@ -95,6 +98,61 @@ export default function CardsShowroomPage() {
               </div>
             ))}
           </div>
+        </section>
+
+        <section id="pricing" className={s.section}>
+          <p className={s.eyebrow}>PRICE</p>
+          <h2 className={s.heading}>Two ways to get a card</h2>
+          <p className={s.note}>{PRICE_NOTE}</p>
+          <ul className={s.tiers}>
+            {CARD_TIERS.map((tier) => (
+              <li key={tier.id} className={s.tier}>
+                <h3 className={s.tierName}>{tier.name}</h3>
+                <p className={s.price}>
+                  {`AUD ${tier.priceAud} `}<span className={s.priceGst}>(GST included)</span>
+                </p>
+                <p className={s.tierLine}>{TIER_LINES[tier.id]}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className={s.band}>
+          <div className={`${s.section} ${s.cols}`}>
+            <div id="hosting">
+              <h2 className={s.heading}>Hosting</h2>
+              <ul className={s.list}>
+                {HOSTING_FACTS.map((fact) => (
+                  <li key={fact}>{fact}</li>
+                ))}
+              </ul>
+            </div>
+            <div id="exclusions">
+              <h2 className={s.heading}>Not included, and limits</h2>
+              <ul className={s.list}>
+                {EXCLUSION_FACTS.map((fact) => (
+                  <li key={fact}>{fact}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section id="faq" className={s.section}>
+          <h2 className={s.heading}>Questions</h2>
+          <div className={s.faq}>
+            {FAQ_FACTS.map((item) => (
+              <details key={item.question} className={s.faqItem}>
+                <summary>{item.question}</summary>
+                <p>{item.answer.join(' ')}</p>
+              </details>
+            ))}
+          </div>
+          <p className={s.note}>Every answer is quoted from the order terms; section numbers refer to them.</p>
+          <p className={s.links}>
+            <a href="/cards/terms" className={s.link}>Order terms</a>
+            <a href="/cards/order" data-track="cta" data-track-label="cards-faq-order" className={s.link}>Get your own card</a>
+          </p>
         </section>
       </main>
 
