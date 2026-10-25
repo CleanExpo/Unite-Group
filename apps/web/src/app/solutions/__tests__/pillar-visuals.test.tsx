@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
@@ -44,6 +47,16 @@ describe('pillar pages show real pictures', () => {
 
   it.each(PILLARS.map((p) => p.slug))('%s: no symbolic /landing/visuals picture, only real product screens', (slug) => {
     expect(decodeURIComponent(renderToStaticMarkup(pages[slug]()))).not.toContain('/landing/visuals/')
+  })
+
+  // The map's width and height must be the file's real size: next/image reserves space from them.
+  it.each(PILLARS.flatMap((p) => Object.values(PILLAR_SCREENS[p.slug]).map((shot) => [shot.src, shot] as const)))('%s exists at its declared size', (_src, shot) => {
+    const buf = readFileSync(join(process.cwd(), 'public', shot.src))
+    expect(buf.toString('ascii', 0, 4) + buf.toString('ascii', 8, 12)).toBe('RIFFWEBP')
+    const chunk = buf.toString('ascii', 12, 16)
+    // Lossy VP8 stores 14-bit sizes after the start code; extended VP8X stores 24-bit sizes minus one.
+    const size = chunk === 'VP8 ' ? [buf.readUInt16LE(26) & 0x3fff, buf.readUInt16LE(28) & 0x3fff] : chunk === 'VP8X' ? [buf.readUIntLE(24, 3) + 1, buf.readUIntLE(27, 3) + 1] : null
+    expect(size, `unexpected webp chunk ${chunk}`).toEqual([shot.width, shot.height])
   })
 
   it('conversion shows the Blueprint card poster inside a link to /cards', () => {
