@@ -1,0 +1,36 @@
+/* Pictures on the four pillar pages. Shared page, type and button styles stay in public.module.css. */
+
+.heroGrid { display: grid; gap: 28px; align-items: center; }
+@media (min-width: 760px) {
+  .heroGrid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; }
+}
+
+.pic {
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--pub-line-strong);
+  border-radius: var(--pub-radius);
+  background: rgba(244, 241, 236, 0.04);
+}
+.pic img { display: block; width: 100%; height: auto; }
+
+.section { margin-top: 40px; }
+.listGrid { display: grid; gap: 24px; align-items: center; margin-top: 40px; }
+@media (min-width: 760px) {
+  .listGrid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; }
+}
+.listGrid h2, .section h2 { margin-top: 0; font-size: 20px; }
+
+.availableRow { display: grid; gap: 16px; align-items: center; }
+@media (min-width: 520px) {
+  .availableRow { grid-template-columns: 200px minmax(0, 1fr); gap: 24px; }
+}
+.poster {
+  display: block;
+  width: 100%;
+  max-width: 200px;
+  overflow: hidden;
+  border: 1px solid var(--pub-line-strong);
+  border-radius: var(--pub-radius);
+}
+.poster img { display: block; width: 100%; height: auto; }
