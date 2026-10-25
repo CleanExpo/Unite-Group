@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import s from '../order/order.module.css'
 import { IntakeForm } from './intake-form'
 import { checkoutSessionId } from './session-id'
+import t from './thanks.module.css'
 
 export const metadata: Metadata = {
   title: 'Thank you | Unite Group',
@@ -23,6 +24,11 @@ export default async function CardThanksPage({ searchParams }: { searchParams: P
       <header className={s.header}>
         <div className={`${s.wrap} ${s.headerRow}`}>
           <span className={s.wordmark}>UNITE GROUP</span>
+          <nav className={s.headerLinks} aria-label="Site">
+            <a href="/" className={s.navLink}>
+              Back to Unite Group
+            </a>
+          </nav>
         </div>
       </header>
       <main className={s.wrap}>
@@ -40,6 +46,10 @@ export default async function CardThanksPage({ searchParams }: { searchParams: P
             and we will sort it out.
           </p>
         )}
+        <p className={`${s.buyLine} ${t.help}`}>
+          Need a hand? Email <a href="mailto:contact@unite-group.in">contact@unite-group.in</a> or{' '}
+          <a href="/">go back to the Unite Group home page</a>.
+        </p>
       </main>
     </div>
   )
