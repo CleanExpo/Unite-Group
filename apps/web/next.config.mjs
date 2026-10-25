@@ -59,7 +59,9 @@ const nextConfig = {
     // with `next build --webpack` (package.json "build", vercel.json), so webpack
     // keeps the exact previous root (process.cwd()) and its output is unchanged.
     // Next sets process.env.TURBOPACK before loading this file whenever Turbopack
-    // is the selected bundler, and child workers inherit it.
+    // is the selected bundler, and child workers inherit it. `next start` does not
+    // set it, so a local Turbopack build served by `next start` reports the cwd
+    // root at serve time; production (webpack) is unaffected.
     root: process.env.TURBOPACK
       ? path.resolve(import.meta.dirname, '..', '..')
       : // Normalise root directory path for Windows file system consistency
