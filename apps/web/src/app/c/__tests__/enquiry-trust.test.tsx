@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const submitEnquiryAction = vi.fn()
 vi.mock('../[slug]/actions', () => ({ submitEnquiryAction: (...a: unknown[]) => submitEnquiryAction(...a) }))
 
-import { EnquiryForm } from '../[slug]/enquiry-form'
+import { EnquiryForm, RECIPIENT_LINE } from '../[slug]/enquiry-form'
 
 afterEach(() => {
   cleanup()
@@ -13,24 +13,20 @@ afterEach(() => {
 })
 
 describe('EnquiryForm trust controls', () => {
-  it('links the privacy policy and names the card owner when given', () => {
-    render(<EnquiryForm slug="sam" owner="Sam Lee" />)
+  it('links the privacy policy', () => {
+    render(<EnquiryForm slug="sam" />)
     expect(screen.getByRole('link', { name: /privacy policy/i }).getAttribute('href')).toBe('/privacy-policy')
-    expect(document.body.textContent).toMatch(/Sam Lee/)
   })
 
   // UNI-3021 (Bugbot on #1247): the owner inbox is not built, so the form must not say the message "goes to" anyone.
-  it('says Unite Group stores the message and the owner is not notified yet, never that it is delivered', () => {
-    for (const owner of ['Sam Lee', undefined]) {
-      render(<EnquiryForm slug="sam" owner={owner} />)
-      // The recipient line is the paragraph naming who the message is for; the collection notice is separate copy.
-      const line = [...document.querySelectorAll('p')].find((p) => /Unite Group/.test(p.textContent ?? '') && !/collects/.test(p.textContent ?? ''))
-      const text = line?.textContent ?? ''
-      expect(text).not.toMatch(/goes to|sent to|delivered|will be notified/i)
-      expect(text).toMatch(/Unite Group stores your message/)
-      if (owner) expect(text).toMatch(/Sam Lee is not notified yet/)
-      cleanup()
-    }
+  // The card's display name is free text (Codex review: "Sam Lee. Your message goes to Sam Lee"), so it is never
+  // part of this sentence: the line is fixed copy.
+  it('says Unite Group stores the message and the card owner is not notified yet, as fixed copy', () => {
+    render(<EnquiryForm slug="sam" />)
+    const line = [...document.querySelectorAll('p')].find((p) => p.textContent === RECIPIENT_LINE)
+    expect(line).toBeTruthy()
+    expect(RECIPIENT_LINE).toBe('Unite Group stores your message. The card owner is not notified yet.')
+    expect(RECIPIENT_LINE).not.toMatch(/goes to|sent to|delivered|will be notified/i)
   })
 
   it('has a required consent checkbox and does not call the action until it is ticked', async () => {
