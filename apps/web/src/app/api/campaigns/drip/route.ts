@@ -4,6 +4,7 @@
 import { NextResponse } from 'next/server'
 import { createClient, getUser } from '@/lib/supabase/server'
 import { processCampaignDrip } from '@/lib/campaigns/drip-processor'
+import { DripSendBlockedError } from '@/lib/campaigns/drip-errors'
 
 export const dynamic = 'force-dynamic'
 
@@ -368,6 +369,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ result })
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err)
+      if (err instanceof DripSendBlockedError) {
+        console.error('[campaigns/drip] send blocked:', message)
+        return NextResponse.json(
+          { error: 'Could not verify marketing consent and suppression, so nothing was sent' },
+          { status: 503 }
+        )
+      }
       console.error('[campaigns/drip] load pending failed:', message)
       return NextResponse.json({ error: 'Failed to process pending drip steps' }, { status: 500 })
     }

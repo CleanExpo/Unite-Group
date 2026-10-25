@@ -5,6 +5,16 @@ vi.mock('@/lib/integrations/sendgrid', () => ({
   sendEmail: vi.fn(),
 }))
 
+// The consent and suppression gate has its own tests (send-gate.test.ts, drip-consent-gate.test.ts); here it
+// passes every recipient so these cases keep exercising the send and advance semantics.
+vi.mock('../send-gate', () => ({
+  filterSendableRecipients: vi.fn(async (_s: unknown, _f: string, rs: Array<{ email: string; id: string }>) => ({
+    allowed: rs,
+    skipped: { noConsent: 0, suppressed: 0, suppressionUnknown: 0 },
+  })),
+}))
+vi.mock('@/lib/notifications/sendgrid-suppression', () => ({ checkSuppression: vi.fn(async () => 'clear') }))
+
 import { sendEmail } from '@/lib/integrations/sendgrid'
 import { isDripLiveSendEnabled, processCampaignDrip, resolveDripFromAddress } from '../drip-processor'
 

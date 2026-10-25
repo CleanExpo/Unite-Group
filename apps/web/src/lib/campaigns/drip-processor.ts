@@ -7,6 +7,9 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { sendEmail, type EmailRecipient } from '@/lib/integrations/sendgrid'
+import { filterSendableRecipients } from '@/lib/campaigns/send-gate'
+import { DripSendBlockedError } from '@/lib/campaigns/drip-errors'
+import { checkSuppression } from '@/lib/notifications/sendgrid-suppression'
 
 type JsonObject = Record<string, unknown>
 
@@ -140,6 +143,39 @@ export async function processCampaignDrip(
 
   if (enrollmentsError) throw enrollmentsError
 
+  // Live lane: the same Spam Act 2003 gate as the campaign sender (send-gate.ts). Only enrollments whose
+  // address has recorded marketing consent and is clear of SendGrid suppression are sent. Fails closed: an
+  // unreadable consent table or an unknown suppression state stops the run before any send.
+  let sendableIds: Set<string> | null = null
+  // The gate keeps the first enrollment per normalised address; remember which one that was.
+  const firstIdByAddress = new Map<string, string>()
+  // Enrollments that actually reached the provider in this run (allowed by the gate is not the same as sent).
+  const sentIds = new Set<string>()
+  if (!dryRun) {
+    const due = (enrollments ?? []) as DripEnrollmentRow[]
+    for (const e of due) {
+      const key = typeof e.email === 'string' ? e.email.trim().toLowerCase() : ''
+      if (key && !firstIdByAddress.has(key)) firstIdByAddress.set(key, e.id)
+    }
+    try {
+      const gated = await filterSendableRecipients(
+        supabase,
+        founderId,
+        due.map((e) => ({ email: e.email, id: e.id })),
+        { checkSuppression: (address) => checkSuppression(address, { apiKey: process.env.SENDGRID_API_KEY }) }
+      )
+      if (gated.skipped.suppressionUnknown > 0) {
+        throw new DripSendBlockedError(
+          `Suppression state unknown for ${gated.skipped.suppressionUnknown} recipient(s), so nothing was sent`
+        )
+      }
+      sendableIds = new Set(gated.allowed.map((r) => r.id))
+    } catch (err: unknown) {
+      if (err instanceof DripSendBlockedError) throw err
+      throw new DripSendBlockedError(err instanceof Error ? err.message : String(err))
+    }
+  }
+
   for (const enrollment of (enrollments ?? []) as DripEnrollmentRow[]) {
     const step = stepsByOrder.get(enrollment.current_step_order)
     if (dryRun) {
@@ -161,6 +197,27 @@ export async function processCampaignDrip(
       continue
     }
 
+    // No recorded consent, or suppressed: skip. The enrollment is left as it is and nothing is sent.
+    if (sendableIds && !sendableIds.has(enrollment.id)) {
+      // A second enrollment for an address already being sent to in this run is a duplicate. Leaving it due
+      // would send the same person the same step on the next run, so close it out once the first has really
+      // been sent. If the first send failed, leave this one due.
+      const key = enrollment.email.trim().toLowerCase()
+      const sentId = firstIdByAddress.get(key)
+      if (sentId && sentId !== enrollment.id && sentIds.has(sentId)) {
+        const { error } = await supabase
+          .from('drip_enrollments')
+          .update({ status: 'completed', completed_at: now.toISOString() })
+          .eq('id', enrollment.id)
+          .eq('founder_id', founderId)
+        if (error) failed++
+        else skipped++
+        continue
+      }
+      skipped++
+      continue
+    }
+
     let messageId: string
     try {
       messageId = await sendEmail({
@@ -170,6 +227,7 @@ export async function processCampaignDrip(
         html: step.body_html,
         text: step.body_text ?? undefined,
         categories: ['drip'],
+        unsubscribeLink: true,
         customArgs: { drip_enrollment_id: enrollment.id, drip_step_id: step.id },
       })
     } catch (err: unknown) {
@@ -209,6 +267,8 @@ export async function processCampaignDrip(
       failed++
       continue
     }
+
+    sentIds.add(enrollment.id)
 
     const nextOrder = enrollment.current_step_order + 1
     const nextStep = stepsByOrder.get(nextOrder)

@@ -24,6 +24,8 @@ export interface SendEmailInput {
   categories?: string[]
   customArgs?: Record<string, string>
   timeoutMs?: number
+  /** Append SendGrid's unsubscribe link to the message (marketing mail, Spam Act 2003). */
+  unsubscribeLink?: boolean
   /** Turn click and open tracking off for this message (no link rewriting, no pixel). */
   disableTracking?: boolean
 }
@@ -44,8 +46,17 @@ export async function sendEmail(input: SendEmailInput): Promise<string> {
     replyTo: input.replyTo,
     categories: input.categories,
     customArgs: input.customArgs,
-    ...(input.disableTracking
-      ? { trackingSettings: { clickTracking: { enable: false, enableText: false }, openTracking: { enable: false } } }
+    // One trackingSettings object, so asking for the unsubscribe link and for tracking off together
+    // keeps both (a second spread would replace the first and drop the link).
+    ...(input.unsubscribeLink || input.disableTracking
+      ? {
+          trackingSettings: {
+            ...(input.disableTracking
+              ? { clickTracking: { enable: false, enableText: false }, openTracking: { enable: false } }
+              : {}),
+            ...(input.unsubscribeLink ? { subscriptionTracking: { enable: true } } : {}),
+          },
+        }
       : {}),
   }
 
@@ -88,6 +99,8 @@ export async function sendBatchEmails(
       replyTo: input.replyTo,
       categories: input.categories,
       customArgs: input.customArgs,
+      // Every campaign message carries SendGrid's unsubscribe link (Spam Act 2003).
+      trackingSettings: { subscriptionTracking: { enable: true } },
     }))
 
     try {

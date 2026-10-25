@@ -5,6 +5,8 @@ import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sendCampaignEmail, type EmailRecipient } from '@/lib/integrations/sendgrid'
+import { filterSendableRecipients, type SkipCounts } from '@/lib/campaigns/send-gate'
+import { checkSuppression } from '@/lib/notifications/sendgrid-suppression'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
@@ -47,7 +49,46 @@ export async function POST(
     )
   }
 
-  // 4. Update status to 'sending'
+  // 4. Parse recipient list
+  const recipients: EmailRecipient[] = Array.isArray(campaign.recipient_list)
+    ? (campaign.recipient_list as Array<{ email: string; name?: string }>)
+    : []
+
+  if (recipients.length === 0) {
+    return NextResponse.json({ error: 'Campaign has no recipients' }, { status: 400 })
+  }
+
+  // 5. Spam Act 2003 gate: only recipients with recorded marketing consent who are not
+  // suppressed or unsubscribed. Runs BEFORE the campaign is marked 'sending', so a refusal
+  // never has a status to roll back. Fails closed: an unreadable consent table, a failed
+  // suppression lookup or any recipient with an unknown suppression state sends nothing.
+  let sendable: EmailRecipient[]
+  let skipped: SkipCounts
+  try {
+    const gated = await filterSendableRecipients(supabase, user.id, recipients, {
+      checkSuppression: (address) => checkSuppression(address, { apiKey: process.env.SENDGRID_API_KEY }),
+    })
+    if (gated.skipped.suppressionUnknown > 0) {
+      throw new Error(`Suppression state unknown for ${gated.skipped.suppressionUnknown} recipient(s)`)
+    }
+    sendable = gated.allowed
+    skipped = gated.skipped
+  } catch (err: unknown) {
+    console.error('[email/campaigns/send] Consent check failed:', err instanceof Error ? err.message : String(err))
+    return NextResponse.json(
+      { error: 'Could not verify marketing consent and suppression, so nothing was sent' },
+      { status: 503 }
+    )
+  }
+
+  if (sendable.length === 0) {
+    return NextResponse.json(
+      { error: 'No recipient has recorded marketing consent and is clear of suppression, so nothing was sent', skipped },
+      { status: 400 }
+    )
+  }
+
+  // 5b. Update status to 'sending'
   const { error: updateError } = await supabase
     .from('email_campaigns')
     .update({ status: 'sending' })
@@ -57,17 +98,6 @@ export async function POST(
   if (updateError) {
     console.error('[email/campaigns/send] Status update failed:', updateError.message)
     return NextResponse.json({ error: 'Failed to update campaign status' }, { status: 500 })
-  }
-
-  // 5. Parse recipient list
-  const recipients: EmailRecipient[] = Array.isArray(campaign.recipient_list)
-    ? (campaign.recipient_list as Array<{ email: string; name?: string }>)
-    : []
-
-  if (recipients.length === 0) {
-    // Revert status
-    await supabase.from('email_campaigns').update({ status: 'draft' }).eq('id', id).eq('founder_id', user.id)
-    return NextResponse.json({ error: 'Campaign has no recipients' }, { status: 400 })
   }
 
   // 6. Build from address using business brand identity
@@ -90,7 +120,7 @@ export async function POST(
   // 7. Send campaign
   try {
     const result = await sendCampaignEmail(
-      recipients,
+      sendable,
       fromAddress,
       campaign.subject,
       campaign.body_html,
@@ -115,6 +145,7 @@ export async function POST(
       status: finalStatus,
       sent: result.sent,
       failed: result.failed,
+      skipped,
     })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err)

@@ -3,6 +3,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn() }))
 vi.mock('@/lib/supabase/service', () => ({ createServiceClient: vi.fn() }))
 vi.mock('@/lib/integrations/sendgrid', () => ({ sendCampaignEmail: vi.fn() }))
+// Consent and suppression gating is covered in consent-gate.test.ts and send-gate.test.ts;
+// here the gate passes every recipient through so the founder-scoping assertions stay focused.
+vi.mock('@/lib/campaigns/send-gate', () => ({
+  filterSendableRecipients: vi.fn(async (_s: unknown, _f: string, recipients: Array<{ email: string }>) => ({
+    allowed: recipients,
+    skipped: { noConsent: 0, suppressed: 0, suppressionUnknown: 0 },
+  })),
+}))
 
 import { getUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -60,13 +68,13 @@ describe('POST /api/email/campaigns/[id]/send', () => {
     expect(everyUpdateFounderScoped(chain, 'user-123')).toBe(true)
   })
 
-  it('founder-scopes the revert UPDATE on the empty-recipients path', async () => {
+  it('rejects an empty recipient list with 400 before the campaign is ever marked sending', async () => {
     const chain = makeServiceChain([guard([])])
     vi.mocked(createServiceClient).mockReturnValue(chain as never)
 
     const res = await POST(req(), ctx())
 
     expect(res.status).toBe(400)
-    expect(everyUpdateFounderScoped(chain, 'user-123')).toBe(true)
+    expect(chain.updateChains).toHaveLength(0)
   })
 })
