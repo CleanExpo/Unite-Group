@@ -31,7 +31,7 @@ const isNotFound = (res: Response) =>
   !(res.headers.get('x-middleware-rewrite') ?? '').includes('/auth/login')
 
 describe('D11: unknown public paths 404 instead of the founder sign-in', () => {
-  it.each(['/about', '/contact', '/terms', '/pricing', '/privacy', '/cookies', '/login', '/zzz', '/cards/zzz', '/solutions/zzz', '/solutions', '/landing/other'])(
+  it.each(['/about', '/contact', '/terms', '/plans', '/pricingx', '/pricing/secret', '/signatures/extra', '/privacy', '/cookies', '/login', '/zzz', '/cards/zzz', '/solutions/zzz', '/solutions', '/landing/other'])(
     'returns the not-found page for a signed-out visitor at %s',
     async (path) => {
       expect(isPublicPath(path)).toBe(false)

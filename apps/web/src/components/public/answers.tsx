@@ -15,7 +15,7 @@ export function answers() {
     },
     {
       q: 'What does it cost?',
-      a: `${ready.name} is ${formatAud(ready.priceAud)} and ${custom.name} is ${formatAud(custom.priceAud)}. ${PRICE_NOTE}. There is no subscription.`,
+      a: `${ready.name} is ${formatAud(ready.priceAud)} and ${custom.name} is ${formatAud(custom.priceAud)}. ${PRICE_NOTE}. The card has no monthly fee. Our Starter plan is a separate monthly service, $99 a month, with email signatures at $22 each on our pricing page.`,
     },
     {
       q: 'Is the film made with AI?',

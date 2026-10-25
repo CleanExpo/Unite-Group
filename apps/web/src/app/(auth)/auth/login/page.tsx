@@ -139,7 +139,7 @@ export default function LoginPage() {
         Sign in
       </h1>
       <p className="text-sm mb-8" style={{ color: "var(--color-text-muted)" }}>
-        Continue to your Unite-Group Nexus command centre.
+        Sign in to your Unite-Group account.
       </p>
 
       {error && (

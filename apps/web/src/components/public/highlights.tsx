@@ -33,18 +33,18 @@ export function Highlights() {
                   Nexus CRM
                 </a>
               </h3>
-              <p className={s.cardLine}>The CRM we are building for the group.</p>
+              <p className={s.cardLine}>The CRM we are building to run your marketing.</p>
             </div>
           </article>
           <article className={s.mediaCard} data-media-card>
             <div className={s.mediaBox}>{picture(VISUALS.network)}</div>
             <div className={s.mediaText}>
               <h3 className={s.cardTitle}>
-                <a href="#group" className={s.stretch}>
-                  The network
+                <a href="/pricing" className={s.stretch}>
+                  Pricing
                 </a>
               </h3>
-              <p className={s.cardLine}>Disaster Recovery and NRPG, connecting homes with restorers.</p>
+              <p className={s.cardLine}>Starter $99 a month, with email signatures at $22 each.</p>
             </div>
           </article>
         </div>

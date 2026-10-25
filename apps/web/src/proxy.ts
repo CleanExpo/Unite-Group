@@ -80,6 +80,8 @@ const EXACT_PUBLIC_FILES: ReadonlySet<string> = new Set([
   '/site.webmanifest',
   '/founder-os-sw.js',
   '/grow', // Public SMB services offer page; its form posts to the public /api/leads
+  '/pricing', // Public plan and add-on prices; static
+  '/signatures', // Public email signature add-on page; static
   '/cards', // Public living-card showroom (ten editions + signature reveal)
   '/cards/order', // Public card enquiry page; no payment, its form posts to the public /api/leads
   '/cards/terms', // Public card order terms; static text, no data. Exact path only

@@ -130,6 +130,9 @@ const nextConfig = {
     // Go-live audit D11: the two obvious guesses a visitor types.
     { source: '/terms', destination: '/terms-of-service', permanent: false },
     { source: '/contact', destination: '/#contact', permanent: false },
+    { source: '/privacy', destination: '/privacy-policy', permanent: false },
+    { source: '/signup', destination: '/pricing', permanent: false },
+    { source: '/auth/signup', destination: '/pricing', permanent: false },
     {
       source: '/policies/unite-group-application-privacy-policy.pdf',
       destination: '/privacy-policy',

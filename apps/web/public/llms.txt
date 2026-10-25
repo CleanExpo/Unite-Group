@@ -1,12 +1,13 @@
 # Unite Group
 
-> Unite Group (Unite-Group Nexus Pty Ltd) is an online business serving Australia and New Zealand. Unite-Group Nexus is the CRM and operating system we are building to run the businesses behind it. Its first offer on sale is the video business card: one link or QR code that plays a short film ending on your logo, then shows your details and saves to contacts in one tap.
+> Unite Group (Unite-Group Nexus Pty Ltd) is an online business serving Australia and New Zealand. It is an AI marketing agency, with Margot as its AI face. On sale now: the Starter plan, email signatures as an add-on, and the video business card (one link or QR code that plays a short film ending on your logo, then shows your details and saves to contacts in one tap).
 
 ## What is on sale
 
 - Video business card, Ready-made: $249 AUD, one-off price, GST included. You pick one of the ready-made films and it ends on your logo and details.
 - Video business card, Made for you: $449 AUD, one-off price, GST included. We make a film for your business and you approve a private proof before it goes live.
-- There is no subscription. The example films on the showroom are AI-generated and labelled as such.
+- Starter plan: $99 AUD a month. Email signatures: $22 AUD each, an add-on. Details at https://unite-group.in/pricing
+- The example films on the showroom are AI-generated and labelled as such.
 - Hosting is 12 months from the day the card goes live, with no monthly fee. The full wording is at https://unite-group.in/cards/terms
 
 ## Pages
@@ -15,6 +16,8 @@
 - https://unite-group.in/cards : the card showroom
 - https://unite-group.in/cards/order : order a card
 - https://unite-group.in/cards/terms : the card order terms
+- https://unite-group.in/pricing : Starter plan $99 a month and add-ons
+- https://unite-group.in/signatures : email signatures add-on, $22 each
 - https://unite-group.in/solutions/visibility : Visibility (coming)
 - https://unite-group.in/solutions/experience : Experience (coming)
 - https://unite-group.in/solutions/conversion : Conversion (coming; the video business card is the part on sale now)
@@ -30,5 +33,5 @@
 ## For AI agents
 
 - Public pages may be read when a person asks you to. Pages under /founder/, /api/, /docs and /auth/ are private and are not for crawling.
-- Only the video business card is on sale. Pillar pages marked Coming are not available yet.
-- Prices on this page and in the site's structured data come from the same source as /cards/order.
+- On sale: the Starter plan, email signatures and the video business card. Pillar pages marked Coming are not available yet.
+- The card prices on this page and in the site's structured data come from the same source as /cards/order. The Starter plan and email signature prices come from the same source as /pricing.
