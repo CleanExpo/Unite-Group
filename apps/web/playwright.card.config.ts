@@ -10,7 +10,8 @@ import { VISUAL_ENV } from './playwright.visual.config'
  * Like the visual gate, it builds the app (`pnpm run build`, the production `next build --webpack`)
  * and serves it with `next start`, never reusing a running server, so the proofs see production
  * output rather than `next dev`. CARD_SKIP_BUILD=1 serves the existing .next build: local
- * iteration only, never a gate result.
+ * iteration only, never a gate result, and only after a build made by this config (a build made by
+ * another config inlines a different NEXT_PUBLIC_SUPABASE_URL).
  *
  * Needs Chromium: `npx playwright install chromium`.
  */
@@ -23,6 +24,7 @@ export default defineConfig({
   testDir: './e2e/card',
   testMatch: '**/*.spec.ts',
   fullyParallel: false,
+  forbidOnly: true,
   workers: 1,
   retries: 0,
   reporter: [['list']],

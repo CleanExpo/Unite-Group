@@ -1,6 +1,6 @@
 // Test-only stand-in for the Supabase REST API (PostgREST), used by playwright.card.config.ts.
 // It serves exactly what the /c/[slug] card needs and nothing else, so the card browser proofs
-// never touch a real Supabase project or the network.
+// never touch a real Supabase project or the network. Phone numbers are ACMA-reserved fictional numbers.
 //   GET  /rest/v1/card_profiles?card_slug=eq.<slug>   -> the seeded card as an array or a single object (by Accept), empty/406 when unknown
 //   POST /rest/v1/rpc/card_submit_enquiry             -> a stored-row result; held while the hold flag is set
 //   GET  /__hold  /__release  /__reset                -> test control of the enquiry response
@@ -11,11 +11,11 @@ const PORT = Number(process.env.FAKE_SUPABASE_PORT || 54399)
 const CARDS = {
   'phill-mcgurk': {
     card_slug: 'phill-mcgurk', display_name: 'Phill McGurk', role_title: 'Founder', business_name: 'Unite Group',
-    email: 'founder@example.test', phone: '+61 491 570 111', service_area: 'Brisbane, Queensland', published_at: '2026-10-24T00:00:00Z',
+    email: 'founder@example.test', phone: '+61 491 570 157', service_area: 'Brisbane, Queensland', published_at: '2026-10-24T00:00:00Z',
   },
   'acme-plumbing': {
     card_slug: 'acme-plumbing', display_name: 'Sam Example', role_title: 'Licensed Plumber', business_name: 'Acme Plumbing',
-    email: 'sam@example.test', phone: '0491 570 222', service_area: 'Gold Coast, Queensland', published_at: '2026-10-24T00:00:00Z',
+    email: 'sam@example.test', phone: '0491 570 158', service_area: 'Gold Coast, Queensland', published_at: '2026-10-24T00:00:00Z',
   },
 }
 

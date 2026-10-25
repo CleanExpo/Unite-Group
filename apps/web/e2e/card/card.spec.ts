@@ -11,21 +11,25 @@ const noHorizontalScroll = (page: Page) =>
     body: document.body.scrollWidth - document.documentElement.clientWidth,
   }))
 
-test.beforeEach(async ({ request }) => {
+test.beforeEach(async ({ context, request }) => {
+  // Only the local card server may be reached from the browser; anything else would be a leak.
+  await context.route(/^https?:\/\/(?!localhost:|127\.0\.0\.1:)/, (route) => route.abort())
   await request.get(`${FAKE}/__reset`)
 })
 
 test.describe('layout', () => {
-  for (const width of [320, 390, 430]) {
-    test(`no horizontal scroll at ${width}px`, async ({ page }) => {
-      await page.setViewportSize({ width, height: 844 })
-      await page.goto(OWNER)
-      await expect(page.getByRole('heading', { level: 1 })).toHaveText('Phill McGurk')
-      await expect(page.getByRole('button', { name: 'Send enquiry' })).toBeVisible()
-      const o = await noHorizontalScroll(page)
-      expect(o.doc).toBeLessThanOrEqual(0)
-      expect(o.body).toBeLessThanOrEqual(0)
-    })
+  for (const [path, name] of [[OWNER, 'Phill McGurk'], [CLIENT, 'Sam Example']]) {
+    for (const width of [320, 390, 430]) {
+      test(`no horizontal scroll at ${width}px on ${path}`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 844 })
+        await page.goto(path)
+        await expect(page.getByRole('heading', { level: 1 })).toHaveText(name)
+        await expect(page.getByRole('button', { name: 'Send enquiry' })).toBeVisible()
+        const o = await noHorizontalScroll(page)
+        expect(o.doc).toBeLessThanOrEqual(0)
+        expect(o.body).toBeLessThanOrEqual(0)
+      })
+    }
   }
 
   test('enquiry form starts above the fold at 390x844', async ({ page }) => {
@@ -48,7 +52,7 @@ test.describe('JavaScript disabled', () => {
   test('card still renders name, Call and Save contact', async ({ page }) => {
     await page.goto(CLIENT)
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Sam Example')
-    await expect(page.getByRole('link', { name: 'Call' })).toHaveAttribute('href', 'tel:0491570222')
+    await expect(page.getByRole('link', { name: 'Call' })).toHaveAttribute('href', 'tel:0491570158')
     await expect(page.getByRole('link', { name: 'Save contact' })).toHaveAttribute('href', `${CLIENT}/contact.vcf`)
   })
 })
