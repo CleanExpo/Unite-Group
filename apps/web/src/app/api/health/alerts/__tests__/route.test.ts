@@ -1,6 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GET } from '../route'
 
+const crypto = vi.hoisted(() => ({ compare: vi.fn() }))
+vi.mock('node:crypto', async (original) => {
+  const actual = await original<typeof import('node:crypto')>()
+  crypto.compare.mockImplementation(actual.timingSafeEqual)
+  return { ...actual, default: actual, timingSafeEqual: crypto.compare }
+})
+
 const state = vi.hoisted(() => ({
   tables: {} as Record<string, Record<string, unknown>[]>,
   fail: '',
@@ -61,6 +68,29 @@ describe('alert health', () => {
     expect((await GET(request('test-cron-token'))).status).toBe(200)
     vi.stubEnv('CRON_SECRET', '')
     expect((await GET(request('undefined'))).status).toBe(500)
+  })
+
+  it('compares the bearer with timingSafeEqual and never throws on a length mismatch', async () => {
+    crypto.compare.mockClear()
+    expect((await GET(request('test-health-tokeX'))).status).toBe(401)
+    expect(crypto.compare).toHaveBeenCalledTimes(1)
+    expect((await GET(request('short'))).status).toBe(401)
+    expect((await GET(request('test-health-token-and-more'))).status).toBe(401)
+    expect(crypto.compare).toHaveBeenCalledTimes(1) // different length: rejected before the call
+    expect((await GET(request())).status).toBe(200)
+    expect(crypto.compare).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not count an erased enquiry as unalerted, but still counts a genuinely unalerted one', async () => {
+    state.tables.crm_leads = [
+      { ...lead('erased'), additional_data: { alert_erased_at: '2026-10-24T18:00:00.000Z' } },
+      { ...lead('keeps-other-data'), additional_data: { note: 'x' } },
+      { ...lead('missing'), additional_data: {} },
+      lead('no-column-value'),
+    ]
+    const body = await (await GET(request())).json()
+    expect(body.unalerted).toBe(3)
+    expect(body.unalerted_ids).toEqual(['keeps-other-data', 'missing', 'no-column-value'])
   })
 
   it('counts exact per-source outcomes over 72 hours including stale pending', async () => {

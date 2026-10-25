@@ -14,12 +14,14 @@ const key = (email: string, label: string) => createHmac('sha256', SECRET).updat
 const call = (id = ID) => POST(new Request(`https://app.example.invalid/api/founder/leads/${id}/erase-alert-data`, { method: 'POST' }) as any,
   { params: Promise.resolve({ id }) })
 
-let leads: Array<{ id: string; email: string; interests: string | null; founder_id: string }>
+let leads: Array<{ id: string; email: string; interests: string | null; founder_id: string; additional_data?: Record<string, unknown> }>
+let updates: Array<{ id: unknown; patch: any }>
 let filters: Array<[string, unknown]>
 
 beforeEach(() => {
   vi.clearAllMocks()
   filters = []
+  updates = []
   vi.stubEnv('FOUNDER_USER_ID', founder)
   vi.stubEnv('ALERT_DEDUP_SECRET', SECRET)
   vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -39,6 +41,11 @@ beforeEach(() => {
         const plain = value.replace(/\\([\\%_])/g, '$1').toLowerCase()
         rows = rows.filter((row: any) => row[column].toLowerCase() === plain)
         return q
+      },
+      update: (patch: any) => {
+        const u: any = { eq: (column: string, value: unknown) => { filters.push([column, value]); if (column === 'id') updates.push({ id: value, patch }); return u },
+          then: (resolve: any, reject: any) => Promise.resolve({ error: null }).then(resolve, reject) }
+        return u
       },
       maybeSingle: async () => ({ data: rows[0] ?? null, error: null }),
       then: (resolve: any, reject: any) => Promise.resolve({ data: rows, error: null }).then(resolve, reject),
@@ -94,6 +101,24 @@ describe('POST erase-alert-data', () => {
     expect(response.status).toBe(500)
     expect(JSON.stringify(await response.json())).not.toContain('SENTINEL')
     expect(JSON.stringify(vi.mocked(console.error).mock.calls)).not.toContain('SENTINEL')
+  })
+
+  it('marks each erased lead with a non-personal tombstone, keeping other additional_data, so health stops counting it unalerted', async () => {
+    leads[1].additional_data = { keep: 'me' }
+    expect((await call()).status).toBe(303)
+    expect(updates.map((u) => u.id).sort()).toEqual([ID, OTHER])
+    for (const u of updates) {
+      expect(u.patch.additional_data.alert_erased_at).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+      expect(Object.keys(u.patch)).toEqual(['additional_data'])
+    }
+    expect(updates.find((u) => u.id === OTHER)!.patch.additional_data.keep).toBe('me')
+    expect(JSON.stringify(updates)).not.toContain('example.invalid')
+  })
+
+  it('does not mark a lead whose erasure failed', async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { name: 'PostgrestError' } })
+    expect((await call()).status).toBe(500)
+    expect(updates).toEqual([])
   })
 
   it('escapes LIKE wildcards in the email so one address cannot match other people', async () => {
