@@ -1,0 +1,121 @@
+/* Extra-business add-on inside the Made for you tier. Uses the tokens set on order.module.css's .page. */
+
+/* Two-column tiers: while the add-on is open, the Ready-made card keeps its own height instead of
+   stretching to match, so its Order button stays under its text. Matches only when the add-on renders. */
+:global(div):has(> :global(article) > .box) {
+  align-items: start;
+}
+
+.box {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+}
+
+.label {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.75rem;
+  padding: 0.25rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+}
+
+.step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.step:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.step:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.step:active:not(:disabled) {
+  background: var(--accent-press);
+}
+
+.step:disabled {
+  cursor: not-allowed;
+  color: var(--faint);
+}
+
+.count {
+  min-width: 2rem;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.pay {
+  margin-top: 1rem;
+}
+
+.total {
+  margin: 0 0 0.75rem;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.payLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 3rem;
+  padding: 0 1.25rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.payLink:hover {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.payLink:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.payLink:active {
+  border-color: var(--accent-press);
+  background: var(--accent-press);
+}
+
+.note {
+  margin: 0.75rem 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--faint);
+}
