@@ -49,7 +49,7 @@ export async function GET(request: Request) {
     const now = Date.now()
     const start = now - WINDOW_HOURS * 60 * 60 * 1000
     const logs: DeliveryRow[] = []
-    const leads: { id: string; captured_at: string; additional_data?: { alert_erased_at?: unknown } | null }[] = []
+    const leads: { id: string; captured_at: string; alert_erased_at?: unknown }[] = []
     // Read an extra hour only for coverage of suppressions at the window edge.
     for (let offset = 0; ; offset += PAGE_SIZE) {
       const { data, error } = await supabase.from('alert_delivery_log')
@@ -64,7 +64,8 @@ export async function GET(request: Request) {
     }
     for (let offset = 0; ; offset += PAGE_SIZE) {
       const { data, error } = await supabase.from('crm_leads')
-        .select('id, captured_at, additional_data').eq('founder_id', founderId)
+        // Only the erasure marker, never the rest of additional_data.
+        .select('id, captured_at, alert_erased_at:additional_data->>alert_erased_at').eq('founder_id', founderId)
         .gte('captured_at', new Date(start).toISOString())
         .lt('captured_at', new Date(now - 2 * 60 * 1000).toISOString())
         .order('id').range(offset, offset + PAGE_SIZE - 1)
@@ -87,7 +88,7 @@ export async function GET(request: Request) {
     const loggedIds = new Set(logs.map((row) => row.source_id))
     const unalertedIds = new Set(leads
       // The founder erased this enquiry's alert log on purpose; the marker holds no personal data.
-      .filter((lead) => typeof lead.additional_data?.alert_erased_at !== 'string')
+      .filter((lead) => typeof lead.alert_erased_at !== 'string')
       .filter((lead) => !loggedIds.has(lead.id)).map((lead) => lead.id))
     let lastFailureAt: string | null = null
     for (const [sourceId, rows] of sources) {
