@@ -132,7 +132,12 @@ export function discoverRoutes(appDir) {
   const root = join(appDir, 'src', 'app');
   const found = new Map();
   const add = (pattern, kind, file) => {
-    if (pattern === '/api' || pattern.startsWith('/api/')) return;
+    if (pattern === '/api' || pattern.startsWith('/api/')) {
+      // Route handlers under /api are out of scope by design. A page or metadata file there would be a public
+      // document the guard never requests, so it must stop the run instead of vanishing.
+      if (kind === 'handler') return;
+      throw new HarnessError(`a ${kind} file under src/app/api is not supported by the coverage guard: ${file}`);
+    }
     if (!found.has(pattern)) found.set(pattern, { pattern, kind, file });
   };
 
@@ -337,13 +342,15 @@ export function sitemapGaps(sitemapPaths, entries) {
  * Judge one response against its entry.
  * @returns {{ok: boolean, reason: string}}
  */
-export function evaluateResponse(entry, { status, location, contentType, body }) {
+export function evaluateResponse(entry, { status, location, contentType, body }, origin = 'http://smoke.invalid') {
   if (status >= 500) return { ok: false, reason: `server error ${status}` };
   if (status !== entry.status) return { ok: false, reason: `status ${status}, expected ${entry.status}` };
   if (entry.location !== undefined) {
     let actual = null;
     try {
-      actual = location ? new URL(location, 'http://smoke.invalid').pathname : null;
+      const target = location ? new URL(location, origin) : null;
+      // Same origin only: https://other.example/auth/login has the right pathname and the wrong destination.
+      actual = target && target.origin === new URL(origin).origin ? target.pathname : null;
     } catch {
       actual = null;
     }
@@ -515,10 +522,10 @@ export async function main(argv = process.argv.slice(2)) {
         // three hops so the chain must still END at the login page, never at a rendered page.
         for (let hop = 0; entry.follow && hop < 3 && result.status >= 300 && result.status < 400 && result.location; hop += 1) {
           const target = new URL(result.location, base);
-          if (target.pathname === entry.location) break;
+          if (target.origin !== new URL(base).origin || target.pathname === entry.location) break;
           result = await request(base, `${target.pathname}${target.search}`);
         }
-        const verdict = evaluateResponse(entry, result);
+        const verdict = evaluateResponse(entry, result, base);
         report(verdict.ok, verdict.ok ? label : `${result.status} expected ${entry.status} ${entry.path}`, verdict.reason);
         return result;
       } catch (error) {

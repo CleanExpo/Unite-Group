@@ -95,6 +95,17 @@ describe('route discovery', () => {
   });
 });
 
+describe('pages under /api', () => {
+  for (const file of ['api/status/page.tsx', 'api/health/live/page.tsx', '(app)/api/inner/page.tsx', 'api/feed/opengraph-image.tsx']) {
+    test(`${file} fails discovery instead of being dropped`, () => {
+      assert.throws(() => discoverRoutes(fixture(['page.tsx', file])), /under src\/app\/api is not supported by the coverage guard/);
+    });
+  }
+  test('route handlers under /api are still ignored', () => {
+    assert.deepEqual(discoverRoutes(fixture(['page.tsx', 'api/health/route.ts'])).map((r) => r.pattern), ['/']);
+  });
+});
+
 describe('parallel and intercepting routes', () => {
   for (const folder of ['@analytics', '@modal/(.)photo', 'feed/(..)photo', 'feed/(...)photo']) {
     test(`${folder} fails discovery instead of being skipped`, () => {
@@ -214,9 +225,13 @@ describe('evaluateResponse', () => {
     const body = '<template data-dgst="99"></template>';
     assert.equal(evaluateResponse({ path: '/x', status: 200 }, { ...ok, status: 200, body }).ok, false);
   });
-  test('redirect target must match by pathname', () => {
+  test('redirect target must match by pathname and stay on the smoke origin', () => {
     const entry = { path: '/docs', status: 307, location: '/auth/login' };
-    assert.equal(evaluateResponse(entry, { ...ok, status: 307, location: 'http://h/auth/login?redirectTo=%2Fdocs' }).ok, true);
+    const origin = 'http://127.0.0.1:3199';
+    assert.equal(evaluateResponse(entry, { ...ok, status: 307, location: `${origin}/auth/login?redirectTo=%2Fdocs` }, origin).ok, true);
+    assert.equal(evaluateResponse(entry, { ...ok, status: 307, location: '/auth/login' }, origin).ok, true);
+    assert.equal(evaluateResponse(entry, { ...ok, status: 307, location: 'https://evil.example/auth/login' }, origin).ok, false);
+    assert.equal(evaluateResponse(entry, { ...ok, status: 307, location: 'http://127.0.0.1:9/auth/login' }, origin).ok, false);
     assert.equal(evaluateResponse(entry, { ...ok, status: 307, location: '/somewhere' }).ok, false);
     assert.equal(evaluateResponse(entry, { ...ok, status: 200 }).ok, false);
   });
