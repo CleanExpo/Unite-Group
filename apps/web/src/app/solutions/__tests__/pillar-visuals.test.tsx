@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
-import { VISUALS } from '@/components/public/visuals'
+import { PILLAR_SCREENS } from '@/components/public/pillar-visuals'
 import { PILLARS } from '@/lib/public-site'
 
 import ConversionPage from '../conversion/page'
@@ -27,9 +27,8 @@ function images(html: string) {
 describe('pillar pages show real pictures', () => {
   it.each(PILLARS.map((p) => p.slug))('%s: hero picture with alt text, eager, and no repeated picture', (slug) => {
     const html = renderToStaticMarkup(pages[slug]())
-    const visual = VISUALS[slug]
-    if (!visual) throw new Error(`No visual for ${slug}`)
-    const hero = images(html).find((i) => i.src.includes(`/landing/visuals/${slug}-1280.webp`))
+    const visual = PILLAR_SCREENS[slug].hero
+    const hero = images(html).find((i) => i.src.includes(visual.src))
     expect(hero, `no <img> for ${slug} hero`).toBeDefined()
     expect(hero?.alt).not.toBe('')
     expect(hero?.alt).toBe(escapeAttr(visual.alt))
@@ -39,7 +38,7 @@ describe('pillar pages show real pictures', () => {
     expect(hero?.index).toBeLessThan(html.indexOf('</article>'))
 
     // The same file must never appear twice. next/image puts the same file in src and srcset, so compare the file inside src only.
-    const srcs = images(html).map((i) => i.src.match(/\/(?:landing|cards)\/[^&?\s]+\.(?:webp|jpg)/)?.[0] ?? i.src)
+    const srcs = images(html).map((i) => i.src.match(/\/(?:landing|cards|solutions)\/[^&?\s]+\.(?:webp|jpg)/)?.[0] ?? i.src)
     expect(new Set(srcs).size).toBe(srcs.length)
   })
 

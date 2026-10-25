@@ -5,21 +5,40 @@
   .heroGrid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; }
 }
 
-.pic {
+/* Product screens: a browser window or a phone, drawn in CSS so the capture stays a plain screenshot. */
+.browser {
   margin: 0;
   overflow: hidden;
   border: 1px solid var(--pub-line-strong);
   border-radius: var(--pub-radius);
-  background: rgba(244, 241, 236, 0.04);
+  background: #1a1d23;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+  justify-self: center;
+  width: 100%;
+  max-width: calc(var(--shot-w) + 2px);
 }
-.pic img { display: block; width: 100%; height: auto; }
+.browserBar { display: flex; gap: 6px; padding: 9px 12px; border-bottom: 1px solid var(--pub-line-strong); }
+.browserBar i { width: 9px; height: 9px; border-radius: 50%; background: rgba(244, 241, 236, 0.22); }
+.phone {
+  justify-self: center;
+  width: 100%;
+  max-width: min(280px, calc(var(--shot-w) + 22px));
+  margin: 0;
+  padding: 10px;
+  border: 1px solid var(--pub-line-strong);
+  border-radius: 34px;
+  background: #1a1d23;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+}
+.phone img { border-radius: 24px; }
+.browser img, .phone img { display: block; width: 100%; height: auto; }
 
 .section { margin-top: 40px; }
 .listGrid { display: grid; gap: 24px; align-items: center; margin-top: 40px; }
 @media (min-width: 760px) {
   .listGrid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; }
   /* Alternate sides: hero picture on the right, supporting picture on the left. */
-  .listGrid .pic { order: -1; }
+  .listGrid figure { order: -1; }
 }
 .listGrid h2, .section h2 { margin-top: 0; font-size: 20px; }
 

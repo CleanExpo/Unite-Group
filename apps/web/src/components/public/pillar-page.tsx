@@ -1,15 +1,34 @@
 import Image from 'next/image'
+import type { CSSProperties } from 'react'
 
 import '@/styles/public-tokens.css'
 
 import { PILLARS, SHIPPED_PILLAR, lowestCardPrice, type Pillar } from '@/lib/public-site'
 
 import ps from './pillar.module.css'
-import { SUPPORTING_SLOT } from './pillar-visuals'
+import { PILLAR_SCREENS, type Screen } from './pillar-visuals'
 import s from './public.module.css'
 import { SiteFooter } from './site-footer'
 import { SiteNav } from './site-nav'
-import { VISUALS } from './visuals'
+
+const WIDE_SIZES = '(min-width: 1280px) 600px, (min-width: 760px) 48vw, 100vw'
+
+// A real product screen in a CSS browser or phone frame. The phone frame caps its width, so its image is sized to match.
+function ScreenFigure({ shot, eager }: { shot: Screen; eager: boolean }) {
+  const phone = shot.frame === 'phone'
+  return (
+    <figure className={phone ? ps.phone : ps.browser} style={{ '--shot-w': `${shot.cssWidth}px` } as CSSProperties}>
+      {phone ? null : (
+        <span className={ps.browserBar} aria-hidden="true">
+          <i />
+          <i />
+          <i />
+        </span>
+      )}
+      <Image src={shot.src} width={shot.width} height={shot.height} alt={shot.alt} preload={eager} loading={eager ? undefined : 'lazy'} sizes={phone ? '280px' : WIDE_SIZES} />
+    </figure>
+  )
+}
 
 // One job per pillar page: say what the pillar is, that it is coming, and where to ask. The first
 // breadcrumb is "Unite Group", so the word Home never appears.
@@ -17,9 +36,7 @@ export function PillarPage({ slug }: { slug: Pillar['slug'] }) {
   const pillar = PILLARS.find((p) => p.slug === slug)
   if (!pillar) throw new Error(`Unknown pillar ${slug}`)
   const live = slug === SHIPPED_PILLAR
-  const hero = VISUALS[slug]
-  const supportSlot = SUPPORTING_SLOT[slug]
-  const support = supportSlot ? VISUALS[supportSlot] : null
+  const { hero, support } = PILLAR_SCREENS[slug]
 
   return (
     <div className={s.page}>
@@ -44,11 +61,7 @@ export function PillarPage({ slug }: { slug: Pillar['slug'] }) {
                 <span className={s.status}>Coming</span>
               </p>
             </div>
-            {hero && (
-              <figure className={ps.pic}>
-                <Image src={hero.src} width={hero.width} height={hero.height} alt={hero.alt} preload sizes="(min-width: 1280px) 600px, (min-width: 760px) 48vw, 100vw" />
-              </figure>
-            )}
+            <ScreenFigure shot={hero} eager />
           </div>
           <div className={support ? ps.listGrid : ps.section}>
             <div>
@@ -59,11 +72,7 @@ export function PillarPage({ slug }: { slug: Pillar['slug'] }) {
                 ))}
               </ul>
             </div>
-            {support && (
-              <figure className={ps.pic}>
-                <Image src={support.src} width={support.width} height={support.height} alt={support.alt} loading="lazy" sizes="(min-width: 1280px) 600px, (min-width: 760px) 48vw, 100vw" />
-              </figure>
-            )}
+            {support && <ScreenFigure shot={support} eager={false} />}
           </div>
           {live && (
             <aside className={s.available}>
