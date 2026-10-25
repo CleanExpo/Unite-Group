@@ -45,7 +45,7 @@ export const FAQ_FACTS: FaqFact[] = [
   {
     question: 'How many rounds of changes do I get?',
     answer: [
-      'Ready-made includes 3 rounds. Made for you includes up to 10 rounds.', // 6.2
+      'Ready-made includes 3 rounds. Made for you includes 10 rounds.', // 6.2
       'A round covers corrections and small changes.', // 6.3
     ],
   },
@@ -54,14 +54,14 @@ export const FAQ_FACTS: FaqFact[] = [
     answer: [
       'Cancel by email before we send your first preview and we refund you in full.', // 9.1
       'After we send your first preview, we do not give refunds for change of mind.', // 9.2
-      'If something is wrong with the card, email contact@unite-group.in and we will fix it.', // 9.3
+      'If something is wrong with your card, email contact@unite-group.in. If it is a small problem, we will fix it within a reasonable time.', // 9.3
       'Our services come with guarantees that cannot be excluded under the Australian Consumer Law.', // 12.1
     ],
   },
   {
     question: 'Can I change something after my card is live?',
     answer: [
-      'One small change (for example a new email address or logo file) within 30 days of going live is included.', // 8.1
+      'One small change, such as a new phone number, email address or logo file, within 30 days of going live is free.', // 8.1
       'Other changes are quoted before we do them.', // 8.2
     ],
   },
