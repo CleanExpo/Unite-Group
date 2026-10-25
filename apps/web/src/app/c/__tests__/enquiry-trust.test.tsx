@@ -16,7 +16,9 @@ describe('EnquiryForm trust controls', () => {
   it('links the privacy policy and names the card owner when given', () => {
     render(<EnquiryForm slug="sam" owner="Sam Lee" />)
     expect(screen.getByRole('link', { name: /privacy policy/i }).getAttribute('href')).toBe('/privacy-policy')
-    expect(document.body.textContent).toMatch(/Sam Lee/)
+    expect(document.body.textContent).toMatch(/Unite Group stores your enquiry for Sam Lee/)
+    // the owner inbox is not built: the form must not say the message is delivered to the owner
+    expect(document.body.textContent).not.toMatch(/goes to|sent to|delivered to/i)
   })
 
   it('has a required consent checkbox and does not call the action until it is ticked', async () => {

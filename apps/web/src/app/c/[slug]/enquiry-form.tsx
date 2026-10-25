@@ -73,7 +73,7 @@ export function EnquiryForm({ slug, fallback, owner }: { slug: string; fallback?
           <input name="lc_extra" value={website} onChange={(e) => setWebsite(e.target.value)} tabIndex={-1} autoComplete="off" />
         </label>
       </div>
-      <p className={styles.recipient}>Your message goes to {owner ? `${owner} and Unite Group` : 'Unite Group'}.</p>
+      <p className={styles.recipient}>{owner ? `Unite Group stores your enquiry for ${owner}.` : 'Unite Group stores your enquiry.'}</p>
       <CollectionNotice form="card-enquiry" tone="dark" />
       <label className={styles.consent}>
         <input type="checkbox" name="consent" checked={consent} onChange={(e) => setConsent(e.target.checked)} required />
