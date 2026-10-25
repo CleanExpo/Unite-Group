@@ -21,10 +21,8 @@ const url = (name: string) => BUSINESSES.find((b) => b.name === name)!.url!
 
 const TODAY = [
   { name: 'Living business card', href: '/cards' },
-  { name: 'CARSI', href: url('CARSI') },
-  { name: 'Disaster Recovery', href: url('Disaster Recovery') },
-  { name: 'RestoreAssist', href: url('RestoreAssist') },
-  { name: 'NRPG', href: url('NRPG') },
+  { name: 'Starter plan', href: '/pricing' },
+  { name: 'Email signatures', href: '/signatures' },
 ]
 const COMING = ['Revenue Intelligence', 'Experience Intelligence', 'Operations Intelligence']
 
@@ -58,7 +56,8 @@ describe('Today and what is coming', () => {
   it('is a section with id today, directly after the group and before the cards gallery, with its heading', async () => {
     const html = await home()
     const sections = [...html.matchAll(/<(?:section|footer)[^>]*\bid="([a-z]+)"/g)].map((m) => m[1])
-    expect(sections[sections.indexOf('group') + 1]).toBe('today')
+    expect(sections).not.toContain('group')
+    expect(sections[sections.indexOf('highlights') + 1]).toBe('today')
     expect(sections[sections.indexOf('today') + 1]).toBe('cards')
     expect(blocks(html, 'id="today"', 'section')).toHaveLength(1)
     expect(html).toMatch(/<h2[^>]*>Today, and what is coming<\/h2>/)

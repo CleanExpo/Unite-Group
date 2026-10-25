@@ -50,6 +50,8 @@ export const SMOKE_PATHS = Object.freeze([
   { path: '/cards', pattern: '/cards', status: 200 },
   { path: '/cards/order', pattern: '/cards/order', status: 200 },
   { path: '/cards/terms', pattern: '/cards/terms', status: 200 },
+  { path: '/pricing', pattern: '/pricing', status: 200 },
+  { path: '/signatures', pattern: '/signatures', status: 200 },
   // The 25/10/2026 incident: all three must render. The page is a Server Component.
   { path: '/cards/thanks', pattern: '/cards/thanks', status: 200, note: 'no order reference' },
   { path: '/cards/thanks?session_id=cs_test_x', pattern: '/cards/thanks', status: 200, note: 'looks like a Checkout session' },

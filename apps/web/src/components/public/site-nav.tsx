@@ -31,6 +31,9 @@ export function SiteNav() {
               </details>
             </li>
             <li>
+              <a href="/pricing">Pricing</a>
+            </li>
+            <li>
               <a href="/cards">Living cards</a>
             </li>
             <li>
