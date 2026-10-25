@@ -4,7 +4,7 @@ import '@/styles/public-tokens.css'
 
 import { PILLARS, SHIPPED_PILLAR, lowestCardPrice, type Pillar } from '@/lib/public-site'
 
-import p from './pillar.module.css'
+import ps from './pillar.module.css'
 import { SUPPORTING_SLOT } from './pillar-visuals'
 import s from './public.module.css'
 import { SiteFooter } from './site-footer'
@@ -35,7 +35,7 @@ export function PillarPage({ slug }: { slug: Pillar['slug'] }) {
           </ol>
         </nav>
         <article className={s.pillarHero}>
-          <div className={p.heroGrid}>
+          <div className={ps.heroGrid}>
             <div>
               <p className={s.eyebrow}>{pillar.name}</p>
               <h1 className={s.h1}>{pillar.headline}</h1>
@@ -45,12 +45,12 @@ export function PillarPage({ slug }: { slug: Pillar['slug'] }) {
               </p>
             </div>
             {hero && (
-              <figure className={p.pic}>
-                <Image src={hero.src} width={hero.width} height={hero.height} alt={hero.alt} priority sizes="(min-width: 1280px) 600px, (min-width: 760px) 48vw, 100vw" />
+              <figure className={ps.pic}>
+                <Image src={hero.src} width={hero.width} height={hero.height} alt={hero.alt} preload sizes="(min-width: 1280px) 600px, (min-width: 760px) 48vw, 100vw" />
               </figure>
             )}
           </div>
-          <div className={support ? p.listGrid : p.section}>
+          <div className={support ? ps.listGrid : ps.section}>
             <div>
               <h2 className={s.h2}>What it will do</h2>
               <ul className={s.bullets}>
@@ -60,15 +60,15 @@ export function PillarPage({ slug }: { slug: Pillar['slug'] }) {
               </ul>
             </div>
             {support && (
-              <figure className={p.pic}>
+              <figure className={ps.pic}>
                 <Image src={support.src} width={support.width} height={support.height} alt={support.alt} loading="lazy" sizes="(min-width: 1280px) 600px, (min-width: 760px) 48vw, 100vw" />
               </figure>
             )}
           </div>
           {live && (
             <aside className={s.available}>
-              <div className={p.availableRow}>
-                <a href="/cards" className={p.poster}>
+              <div className={ps.availableRow}>
+                <a href="/cards" className={ps.poster}>
                   <Image src="/cards/media/edition-blueprint-poster.jpg" width={720} height={1280} alt="The Blueprint edition of the living business card: a U sketched in white linework on navy, glowing orange" loading="lazy" sizes="200px" />
                 </a>
                 <div>
@@ -81,7 +81,7 @@ export function PillarPage({ slug }: { slug: Pillar['slug'] }) {
               </div>
             </aside>
           )}
-          <p className={p.section}>
+          <p className={ps.section}>
             <a href="/#contact">Ask a question</a>
           </p>
         </article>
