@@ -5,6 +5,7 @@ import { readMargotPhoneNumber } from '@/lib/margot/phone-line'
 import { formatAud, stripePaymentLink } from '../../grow/packages'
 import { EDITIONS } from '../editions'
 import { CardEnquiryForm } from './enquiry-form'
+import { ExtraBusiness } from './extra-business'
 import { Film } from './film'
 import { BuyFilm, StickyBar } from './order-buy'
 import s from './order.module.css'
@@ -31,6 +32,20 @@ export const CARD_TIERS = [
 ] as const
 
 /**
+ * The extra-business add-on (Phill, 25/10/2026): AUD 199 each, GST included, up to five, on the
+ * Made for you card only. Kept out of CARD_TIERS: it is not a card on its own. Shown only while its
+ * own Stripe Payment Link is set; that link is a separate payment with an adjustable quantity.
+ */
+export const CARD_EXTRA_BUSINESS = {
+  id: 'extra_business',
+  name: 'Extra business',
+  priceAud: 199,
+  maxQuantity: 5,
+  forTier: 'custom',
+  paymentLinkEnv: 'STRIPE_PAYMENT_LINK_CARD_EXTRA_BUSINESS',
+} as const
+
+/**
  * The rendered order page for already-resolved params. Exported so tests render it without a request.
  * Layout follows the locked Wave gold standard (evidence/business-card-gold/gold/recipe.md).
  */
@@ -39,6 +54,7 @@ export function OrderView({ edition, referrer }: { edition: string | null; refer
     const link = stripePaymentLink(process.env[t.paymentLinkEnv])
     return link ? [{ ...t, link }] : []
   })
+  const extraLink = stripePaymentLink(process.env[CARD_EXTRA_BUSINESS.paymentLinkEnv])
   const payLink = tiers.length > 0
   const fromPrice = payLink ? formatAud(Math.min(...tiers.map((t) => t.priceAud))) : null
   const signature = EDITIONS[0]
@@ -114,6 +130,13 @@ export function OrderView({ edition, referrer }: { edition: string | null; refer
                         <a href={t.link} rel="noopener" data-track="cta" data-track-label={`order-tier-${t.id}`} className={`${s.primary} ${s.block}`}>
                           Order {t.name.toLowerCase()}
                         </a>
+                        {extraLink && t.id === CARD_EXTRA_BUSINESS.forTier ? (
+                          <ExtraBusiness
+                            link={extraLink}
+                            priceAud={CARD_EXTRA_BUSINESS.priceAud}
+                            maxQuantity={CARD_EXTRA_BUSINESS.maxQuantity}
+                          />
+                        ) : null}
                       </article>
                     ))}
                   </div>

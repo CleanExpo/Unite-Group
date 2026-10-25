@@ -1,14 +1,17 @@
 // Paid living-card orders (UNI-2996 B5).
 //
-// A checkout.session.completed whose price is one of CARD_TIERS becomes one card_orders row, then
-// one alert email with the buyer's name and the tier only. No card data ever reaches this code:
-// Stripe's session carries none. Idempotency is the UNIQUE(stripe_session_id) constraint, not a
-// timer: a redelivered event inserts nothing and so sends nothing. Only sessions from the listed card
-// Payment Links count (STRIPE_CARD_PAYMENT_LINK_IDS); the price match alone never creates an order.
+// A checkout.session.completed whose price is one of CARD_TIERS, or a session from the extra-business
+// Payment Link (STRIPE_CARD_EXTRA_BUSINESS_PAYMENT_LINK_ID) paying 1..5 x its price, becomes one
+// card_orders row, then one alert email with the buyer's name and what they bought. The add-on is its
+// own Payment Link with adjustable quantity (a link URL cannot carry one), so its quantity is recovered
+// from the amount and stored only on add-on rows. No card data ever reaches this code: Stripe's session
+// carries none. Idempotency is the UNIQUE(stripe_session_id) constraint, not a timer: a redelivered
+// event inserts nothing and so sends nothing. Tier orders count only from the listed card Payment Links
+// (STRIPE_CARD_PAYMENT_LINK_IDS); the price match alone never creates an order.
 
 import type Stripe from 'stripe'
 
-import { CARD_TIERS } from '@/app/cards/order/order-view'
+import { CARD_EXTRA_BUSINESS, CARD_TIERS } from '@/app/cards/order/order-view'
 import { sendEmail } from '@/lib/integrations/sendgrid'
 import type { createServiceClient } from '@/lib/supabase/service'
 
@@ -20,6 +23,10 @@ export function matchCardTier(session: Pick<Stripe.Checkout.Session, 'amount_tot
   if (session.currency?.toLowerCase() !== 'aud' || typeof session.amount_total !== 'number') return null
   return CARD_TIERS.find((t) => t.priceAud * 100 === session.amount_total) ?? null
 }
+
+export type CardPurchase =
+  | { kind: 'tier'; tier: CardTier }
+  | { kind: 'extra_business'; quantity: number }
 
 /** The Payment Link a session came from: Stripe sends its id (plink_...) or, when expanded, the object. */
 function paymentLinkId(session: Pick<Stripe.Checkout.Session, 'payment_link'>): string | null {
@@ -39,6 +46,39 @@ export function isCardPaymentLink(session: Pick<Stripe.Checkout.Session, 'paymen
   return allowed.includes(id)
 }
 
+/**
+ * True when the session came from the extra-business Payment Link, whose plink_ id (not secret) is
+ * STRIPE_CARD_EXTRA_BUSINESS_PAYMENT_LINK_ID. Unset or empty fails closed: no add-on is ever recorded.
+ */
+function isExtraBusinessLink(session: Pick<Stripe.Checkout.Session, 'payment_link'>): boolean {
+  const id = paymentLinkId(session)
+  const configured = process.env.STRIPE_CARD_EXTRA_BUSINESS_PAYMENT_LINK_ID?.trim()
+  return Boolean(id && configured && id === configured)
+}
+
+/**
+ * The page shows the add-on button when STRIPE_PAYMENT_LINK_CARD_EXTRA_BUSINESS is set, but the webhook can only
+ * record it when STRIPE_CARD_EXTRA_BUSINESS_PAYMENT_LINK_ID is set too. With only the first, buyers can pay and
+ * nothing is recorded, so say so loudly instead of dropping the payment silently.
+ */
+function warnIfAddOnHalfConfigured(): void {
+  const pageLink = process.env[CARD_EXTRA_BUSINESS.paymentLinkEnv]?.trim()
+  const linkId = process.env.STRIPE_CARD_EXTRA_BUSINESS_PAYMENT_LINK_ID?.trim()
+  if (pageLink && !linkId) {
+    console.warn(
+      `[cards] ${CARD_EXTRA_BUSINESS.paymentLinkEnv} is set but STRIPE_CARD_EXTRA_BUSINESS_PAYMENT_LINK_ID is not: extra-business payments are being taken but NOT recorded. Set both together.`,
+    )
+  }
+}
+
+/** How many add-ons an AUD amount buys: a whole multiple of the unit price, 1..maxQuantity, else null. */
+function extraBusinessQuantity(session: Pick<Stripe.Checkout.Session, 'amount_total' | 'currency'>): number | null {
+  const amount = session.amount_total
+  if (session.currency?.toLowerCase() !== 'aud' || typeof amount !== 'number') return null
+  const quantity = amount / (CARD_EXTRA_BUSINESS.priceAud * 100)
+  return Number.isInteger(quantity) && quantity >= 1 && quantity <= CARD_EXTRA_BUSINESS.maxQuantity ? quantity : null
+}
+
 /** client_reference_id when the payment link carried one, else the checkout session id. */
 export function cardOrderReference(session: Pick<Stripe.Checkout.Session, 'id' | 'client_reference_id'>): string {
   return session.client_reference_id?.trim() || session.id
@@ -54,11 +94,24 @@ export async function recordPaidCardOrder(admin: Admin, event: Stripe.Event): Pr
   if (event.type !== 'checkout.session.completed') return 'ignored'
   const session = event.data?.object as Stripe.Checkout.Session | undefined
   if (!session || session.payment_status !== 'paid') return 'ignored'
-  const tier = matchCardTier(session)
-  if (!tier) return 'ignored'
-  if (!isCardPaymentLink(session)) {
-    console.warn('[cards] paid session at a card price ignored: payment link not in STRIPE_CARD_PAYMENT_LINK_IDS')
-    return 'ignored'
+  // Classify by Payment Link first: the add-on link is add-on only, every other link is tier only.
+  let purchase: CardPurchase
+  if (isExtraBusinessLink(session)) {
+    const quantity = extraBusinessQuantity(session)
+    if (!quantity) {
+      console.warn('[cards] paid session on the extra-business link did not match 1 to 5 x A$199: not recorded')
+      return 'ignored'
+    }
+    purchase = { kind: 'extra_business', quantity }
+  } else {
+    warnIfAddOnHalfConfigured()
+    const tier = matchCardTier(session)
+    if (!tier) return 'ignored'
+    if (!isCardPaymentLink(session)) {
+      console.warn('[cards] paid session at a card price ignored: payment link not in STRIPE_CARD_PAYMENT_LINK_IDS')
+      return 'ignored'
+    }
+    purchase = { kind: 'tier', tier }
   }
 
   const founderId = process.env.FOUNDER_USER_ID?.trim()
@@ -70,24 +123,31 @@ export async function recordPaidCardOrder(admin: Admin, event: Stripe.Event): Pr
     reference: cardOrderReference(session),
     stripe_session_id: session.id,
     stripe_event_id: event.id,
-    tier: tier.id,
+    tier: purchase.kind === 'tier' ? purchase.tier.id : CARD_EXTRA_BUSINESS.id,
     customer_name: name,
     customer_email: session.customer_details?.email?.trim() || null,
     amount_total: session.amount_total,
     currency: 'aud',
     livemode: event.livemode,
+    // Only add-on rows carry quantity, so tier orders still insert before the quantity migration is applied.
+    ...(purchase.kind === 'extra_business' ? { quantity: purchase.quantity } : {}),
   })
   if (error) {
     if ((error as { code?: string }).code === '23505') return 'duplicate'
     throw new Error(`card_orders insert failed: ${(error as { message?: string }).message ?? 'unknown'}`)
   }
 
-  await sendOrderAlert(name, tier, event.livemode)
+  await sendOrderAlert(name, purchase, session.amount_total ?? 0, event.livemode)
   return 'created'
 }
 
-/** One email, name and tier only. Never throws. */
-async function sendOrderAlert(name: string | null, tier: CardTier, livemode: boolean): Promise<void> {
+/** One email, name and purchase only. Never throws. */
+async function sendOrderAlert(
+  name: string | null,
+  purchase: CardPurchase,
+  amountCents: number,
+  livemode: boolean,
+): Promise<void> {
   const to = process.env.LEAD_ALERT_EMAIL_TO?.trim()
   const from = process.env.SENDGRID_FROM_EMAIL?.trim()
   if (!to || !from) {
@@ -95,12 +155,16 @@ async function sendOrderAlert(name: string | null, tier: CardTier, livemode: boo
     return
   }
   const who = name ?? 'A buyer'
-  const line = `${who} paid for the ${tier.name} living card (A$${tier.priceAud}).`
+  const label = purchase.kind === 'tier' ? purchase.tier.name : `${CARD_EXTRA_BUSINESS.name}${purchase.quantity > 1 ? ` x${purchase.quantity}` : ''}`
+  const line =
+    purchase.kind === 'tier'
+      ? `${who} paid for the ${purchase.tier.name} living card (A$${purchase.tier.priceAud}).`
+      : `${who} paid for ${purchase.quantity} extra business${purchase.quantity > 1 ? 'es' : ''} on the Made for you living card (A$${amountCents / 100}).`
   try {
     await sendEmail({
       to: { email: to },
       from: { email: from },
-      subject: `${livemode ? '' : '[TEST] '}New paid card order: ${tier.name}`,
+      subject: `${livemode ? '' : '[TEST] '}New paid card order: ${label}`,
       text: line,
       html: `<p>${escapeHtml(line)}</p>`,
       categories: ['card-order-alert'],

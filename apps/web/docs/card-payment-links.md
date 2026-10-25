@@ -35,8 +35,22 @@ changes nothing the second time. If the price of a tier changes, change `CARD_TI
 | `LEAD_ALERT_EMAIL_TO` | the address that receives the order alert; unset means no email, the order is still recorded |
 | `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL` | the existing mail sender the alert uses |
 | `STRIPE_CARD_PAYMENT_LINK_IDS` | the two card Payment Link ids (`plink_...`, from each link's page in the Stripe dashboard), comma-separated. Not secret. Unset means no order is recorded: the price alone never counts, so another product at A$249 or A$449 cannot become a card order |
+| `STRIPE_PAYMENT_LINK_CARD_EXTRA_BUSINESS` | the add-on's `https://buy.stripe.com/...` URL; its presence shows the extra-business control on `/cards/order` |
+| `STRIPE_CARD_EXTRA_BUSINESS_PAYMENT_LINK_ID` | the add-on link's single `plink_...` id. Not secret. Lets the webhook record add-on payments; unset means none is ever recorded |
 | `FOUNDER_USER_ID` | already set; the order's owner |
 | `STRIPE_WEBHOOK_SECRET` | already set |
+
+## Extra-business add-on
+
+Each extra business is A$199, up to 5, bought on its own Payment Link (a link URL cannot carry a quantity). In Stripe, TEST mode first:
+
+1. Create a product "Extra business" at AUD 199, one-off, with the same tax setting as the existing card links. The order page and terms say "GST included", so check that setting is what makes that true.
+2. Create a Payment Link for it with "Let customers adjust quantity" enabled, minimum 1 and maximum 5.
+3. Leave the confirmation as Stripe's own page (no redirect to `/cards/thanks`): the thank-you intake form would otherwise attach to the add-on order.
+4. Apply `supabase/migrations/20261025200000_card_orders_extra_business.sql` first (founder-gated; until then add-on orders fail to insert, the webhook answers 500 and Stripe retries).
+5. Set `STRIPE_PAYMENT_LINK_CARD_EXTRA_BUSINESS` (the `https://buy.stripe.com/...` URL) and `STRIPE_CARD_EXTRA_BUSINESS_PAYMENT_LINK_ID` (the `plink_...` id).
+
+The webhook records a payment from that link as tier `extra_business` with the quantity worked out from the amount (1 to 5 x A$199). A discounted or odd amount on that link is not recorded (a warning is logged). An add-on payment is not linked to the Made for you order automatically; match it by buyer name or email.
 
 ## Database
 
