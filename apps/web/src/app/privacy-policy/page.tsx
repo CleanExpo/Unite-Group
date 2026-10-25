@@ -304,9 +304,9 @@ export default function PrivacyPolicyPage() {
               if you choose to tell us, where we met. We use these to supply, host and support your card.
             </li>
             <li>
-              <strong>Card visitors:</strong> if a visitor sends an enquiry or feedback from a card, we collect what they
-              type into the form, including any name or contact details they give, so it can reach the card owner and be
-              stored for them.
+              <strong>Card visitors:</strong> enquiry forms on cards are not switched on yet. When a card has an enquiry or
+              feedback form, we will collect what a visitor types into it, including any name or contact details they
+              give, store it, and pass it to the card owner.
             </li>
             <li>
               <strong>Everyone:</strong> standard server logs (IP address, browser type, pages visited and times) to keep
@@ -317,7 +317,7 @@ export default function PrivacyPolicyPage() {
 
           <SubHeading>13.2 Who receives it</SubHeading>
           <ul>
-            <li>Where a card has an enquiry or feedback form, the message is sent to the owner of the card by email.</li>
+            <li>Enquiry forms on cards are not switched on yet. When they are, messages will be stored and passed to the card owner.</li>
             <li>
               Stripe, and our related company CARSI Pty Ltd, which processes card payments. Stripe collects your payment
               details at checkout; we do not see your full card number.

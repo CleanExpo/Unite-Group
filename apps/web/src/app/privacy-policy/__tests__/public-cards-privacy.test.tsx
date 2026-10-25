@@ -37,8 +37,8 @@ describe('privacy policy: public website and Living Business Cards', () => {
     for (const r of ['Stripe', 'CARSI Pty Ltd', 'Supabase', 'Vercel', 'SendGrid']) expect(s, r).toContain(r)
   })
 
-  it('says card-owner delivery only where a card has a form', () => {
-    expect(section()).toContain('Where a card has an enquiry or feedback form, the message is sent to the owner of the card by email.')
+  it('says card-owner delivery only once the forms are switched on', () => {
+    expect(section()).toContain('Enquiry forms on cards are not switched on yet. When they are, messages will be stored and passed to the card owner.')
   })
 
   it('discloses the Margot phone line: AI answer, recording and transcription, CRM summary, and its two providers', () => {
