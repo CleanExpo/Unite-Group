@@ -127,6 +127,36 @@ describe('recordPaidCardOrder', () => {
     expect(insert).not.toHaveBeenCalled()
   })
 
+  describe('half-set add-on env (page link set, webhook link id not)', () => {
+    const PAGE_LINK = 'https://buy.stripe.com/test_x'
+    const addOnPayment = () => event({ amount_total: 39800, payment_link: 'plink_extra' })
+
+    it('logs exactly one clear warning naming both variables, and records nothing', async () => {
+      vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_EXTRA_BUSINESS', PAGE_LINK)
+      vi.stubEnv('STRIPE_CARD_EXTRA_BUSINESS_PAYMENT_LINK_ID', '')
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      expect(await recordPaidCardOrder(admin, addOnPayment())).toBe('ignored')
+      const half = warn.mock.calls.filter((c) => String(c[0]).includes('STRIPE_CARD_EXTRA_BUSINESS_PAYMENT_LINK_ID'))
+      expect(half).toHaveLength(1)
+      expect(String(half[0][0])).toContain('STRIPE_PAYMENT_LINK_CARD_EXTRA_BUSINESS')
+      expect(insert).not.toHaveBeenCalled()
+      warn.mockRestore()
+    })
+
+    it.each([
+      ['both set', PAGE_LINK, 'plink_extra'],
+      ['neither set', '', ''],
+      ['only the webhook id set', '', 'plink_extra'],
+    ])('does not warn when %s', async (_n, page, id) => {
+      vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_EXTRA_BUSINESS', page)
+      vi.stubEnv('STRIPE_CARD_EXTRA_BUSINESS_PAYMENT_LINK_ID', id)
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      await recordPaidCardOrder(admin, addOnPayment())
+      expect(warn.mock.calls.filter((c) => String(c[0]).includes('STRIPE_CARD_EXTRA_BUSINESS_PAYMENT_LINK_ID'))).toHaveLength(0)
+      warn.mockRestore()
+    })
+  })
+
   it('lets the add-on path win when the link is in both lists', async () => {
     vi.stubEnv('STRIPE_CARD_PAYMENT_LINK_IDS', 'plink_card,plink_extra')
     expect(await recordPaidCardOrder(admin, event({ amount_total: 39800, payment_link: 'plink_extra' }))).toBe('created')

@@ -56,6 +56,21 @@ function isExtraBusinessLink(session: Pick<Stripe.Checkout.Session, 'payment_lin
   return Boolean(id && configured && id === configured)
 }
 
+/**
+ * The page shows the add-on button when STRIPE_PAYMENT_LINK_CARD_EXTRA_BUSINESS is set, but the webhook can only
+ * record it when STRIPE_CARD_EXTRA_BUSINESS_PAYMENT_LINK_ID is set too. With only the first, buyers can pay and
+ * nothing is recorded, so say so loudly instead of dropping the payment silently.
+ */
+function warnIfAddOnHalfConfigured(): void {
+  const pageLink = process.env[CARD_EXTRA_BUSINESS.paymentLinkEnv]?.trim()
+  const linkId = process.env.STRIPE_CARD_EXTRA_BUSINESS_PAYMENT_LINK_ID?.trim()
+  if (pageLink && !linkId) {
+    console.warn(
+      `[cards] ${CARD_EXTRA_BUSINESS.paymentLinkEnv} is set but STRIPE_CARD_EXTRA_BUSINESS_PAYMENT_LINK_ID is not: extra-business payments are being taken but NOT recorded. Set both together.`,
+    )
+  }
+}
+
 /** How many add-ons an AUD amount buys: a whole multiple of the unit price, 1..maxQuantity, else null. */
 function extraBusinessQuantity(session: Pick<Stripe.Checkout.Session, 'amount_total' | 'currency'>): number | null {
   const amount = session.amount_total
@@ -89,6 +104,7 @@ export async function recordPaidCardOrder(admin: Admin, event: Stripe.Event): Pr
     }
     purchase = { kind: 'extra_business', quantity }
   } else {
+    warnIfAddOnHalfConfigured()
     const tier = matchCardTier(session)
     if (!tier) return 'ignored'
     if (!isCardPaymentLink(session)) {
