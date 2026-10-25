@@ -25,6 +25,8 @@ const norm = (h: string) =>
 /** The one terms addition, in the buy box. */
 const TERMS_ADDITION =
   '<p class="_chosen">By paying you agree to our order terms. <a href="/cards/terms" class="_navLink">Order terms</a></p>'
+/** The CARSI Pty Ltd payment line under each Order button (UNI-3017). */
+const PAYMENT_ADDITION = /<p class="_payEntity">[^<]*<\/p>/g
 /** The shared APP 5 notice, inside the enquiry form directly before the submit button. */
 const NOTICE_ADDITION = /<p[^>]*data-collection-notice="card-enquiry"[^>]*>[\s\S]*?<\/p>/
 
@@ -53,7 +55,7 @@ describe('/cards/order terms link', () => {
   it.each(CASES)('is otherwise identical to the page on origin/main (%s)', (f, on, edition, ref) => {
     if (on) online()
     const html = norm(render(edition, ref))
-    const stripped = html.replace(TERMS_ADDITION, '').replace(NOTICE_ADDITION, '')
+    const stripped = html.replace(TERMS_ADDITION, '').replace(NOTICE_ADDITION, '').replace(PAYMENT_ADDITION, '')
     expect(stripped).toBe(norm(fixture(f)))
   })
 

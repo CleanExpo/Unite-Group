@@ -434,6 +434,13 @@
   color: var(--muted);
 }
 
+.payEntity {
+  margin: 0.6rem 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
 .offline {
   margin-top: 1.5rem;
   padding: 1.25rem;

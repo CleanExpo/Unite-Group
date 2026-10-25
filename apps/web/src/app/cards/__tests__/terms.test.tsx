@@ -29,11 +29,26 @@ const EXTRA_BUSINESS_LINE =
   'You can add up to five extra businesses to a Made for you order, at AUD 199 each (GST included). They are paid as a separate payment.'
 const MADE_FOR_YOU_LAST = '3. Your own card web page with that film, your business name and your contact details.'
 
+/**
+ * UNI-3017: declared deviations from the approved source. Card enquiry forms are not switched on, so the approved
+ * "emailed to you" sentence was untrue. Pending a lawyer read.
+ */
+const ENQUIRY_SOURCE_LINE =
+  '2. People who view your card can send you an enquiry or feedback. It is stored in the Unite-Group database and emailed to you. Our database administrators can technically read it.'
+const ENQUIRY_TRUE_LINE =
+  '2. Enquiry forms on cards are not switched on yet. When they are, messages sent through a card will be stored in the Unite-Group database and passed to the card owner. Our database administrators can technically read them.'
+
+const RETENTION_SOURCE_LINE =
+  '5. We keep order and enquiry records while your card is hosted and for 12 months after, then delete them, except records we must keep by law (such as tax records).'
+const RETENTION_TRUE_LINE =
+  '5. We keep order and enquiry records only as long as we need them to supply your card and respond to you, and we delete them when you ask us to, except records we must keep by law (such as tax records).'
+
 /** An independent reading of the approved source: drop the draft header line and the draft note, strip markers. */
 const expectedBlocks = (abn: string) =>
   SOURCE.split('\n')
     .slice(1) // line 1 is the DRAFT header line
     .filter((l) => l.trim() !== '' && !l.startsWith('Draft dated 25 October 2026.'))
+    .map((l) => (l === ENQUIRY_SOURCE_LINE ? ENQUIRY_TRUE_LINE : l === RETENTION_SOURCE_LINE ? RETENTION_TRUE_LINE : l))
     .flatMap((l) => (l.startsWith('5. We keep order and enquiry records') ? [l, PRIVACY_LINE] : [l]))
     .flatMap((l) => (l === MADE_FOR_YOU_LAST ? [l, EXTRA_BUSINESS_LINE] : [l]))
     .map((l) => (l === PRIVACY_LINE || l === EXTRA_BUSINESS_LINE ? l : /^#{1,2} /.test(l) ? l.replace(/^#{1,2} /, '') : l.replace(/^\d+\. /, '').replace(/^\*\*(.*)\*\*$/, '$1')))

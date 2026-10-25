@@ -304,9 +304,9 @@ export default function PrivacyPolicyPage() {
               if you choose to tell us, where we met. We use these to supply, host and support your card.
             </li>
             <li>
-              <strong>Card visitors:</strong> if a visitor sends an enquiry or feedback from a card, we collect what they
-              type into the form, including any name or contact details they give, so it can reach the card owner and be
-              stored for them.
+              <strong>Card visitors:</strong> enquiry forms on cards are not switched on yet. When a card has an enquiry or
+              feedback form, we will collect what a visitor types into it, including any name or contact details they
+              give, store it, and pass it to the card owner.
             </li>
             <li>
               <strong>Everyone:</strong> standard server logs (IP address, browser type, pages visited and times) to keep
@@ -317,7 +317,7 @@ export default function PrivacyPolicyPage() {
 
           <SubHeading>13.2 Who receives it</SubHeading>
           <ul>
-            <li>Where a card has an enquiry or feedback form, the message is sent to the owner of the card by email.</li>
+            <li>Enquiry forms on cards are not switched on yet. When they are, messages will be stored and passed to the card owner.</li>
             <li>
               Stripe, and our related company CARSI Pty Ltd, which processes card payments. Stripe collects your payment
               details at checkout; we do not see your full card number.
@@ -334,8 +334,9 @@ export default function PrivacyPolicyPage() {
 
           <SubHeading>13.3 How long we keep it</SubHeading>
           <p>
-            We keep order and enquiry records while your card is hosted and for 12 months after, then delete them, except that records
-            we must keep by law, such as tax records, are kept for as long as the law requires.
+            We keep order and enquiry records only as long as we need them to supply your card and respond to you, and we
+            delete them when you ask us to, except that records we must keep by law, such as tax records, are kept for as
+            long as the law requires.
           </p>
 
           <SubHeading>13.4 Access, correction, deletion and complaints</SubHeading>
