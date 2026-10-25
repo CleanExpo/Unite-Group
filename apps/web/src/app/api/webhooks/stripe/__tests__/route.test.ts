@@ -127,19 +127,18 @@ function mockTables(events: Result, orders: Result) {
 }
 
 describe('POST /api/webhooks/stripe, paid card order', () => {
-  const saved = { to: process.env.LEAD_ALERT_EMAIL_TO, from: process.env.SENDGRID_FROM_EMAIL, key: process.env.SENDGRID_API_KEY, f: process.env.FOUNDER_USER_ID, l: process.env.STRIPE_CARD_PAYMENT_LINK_IDS }
+  const saved = { to: process.env.LEAD_ALERT_EMAIL_TO, from: process.env.SENDGRID_FROM_EMAIL, f: process.env.FOUNDER_USER_ID, l: process.env.STRIPE_CARD_PAYMENT_LINK_IDS }
   beforeEach(() => {
     vi.clearAllMocks()
     process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test'
     process.env.LEAD_ALERT_EMAIL_TO = 'alerts@example.invalid'
     process.env.SENDGRID_FROM_EMAIL = 'noreply@example.invalid'
-    process.env.SENDGRID_API_KEY = 'test-placeholder'
     process.env.FOUNDER_USER_ID = '00000000-0000-0000-0000-000000000001'
     process.env.STRIPE_CARD_PAYMENT_LINK_IDS = 'plink_test_other, plink_test_card'
     vi.mocked(sendEmail).mockResolvedValue('sg-1')
   })
   afterEach(() => {
-    for (const [k, v] of [['LEAD_ALERT_EMAIL_TO', saved.to], ['SENDGRID_FROM_EMAIL', saved.from], ['SENDGRID_API_KEY', saved.key], ['FOUNDER_USER_ID', saved.f], ['STRIPE_CARD_PAYMENT_LINK_IDS', saved.l]] as const) {
+    for (const [k, v] of [['LEAD_ALERT_EMAIL_TO', saved.to], ['SENDGRID_FROM_EMAIL', saved.from], ['FOUNDER_USER_ID', saved.f], ['STRIPE_CARD_PAYMENT_LINK_IDS', saved.l]] as const) {
       if (v === undefined) delete process.env[k]
       else process.env[k] = v
     }

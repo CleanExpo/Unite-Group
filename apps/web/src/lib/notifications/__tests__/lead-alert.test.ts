@@ -179,43 +179,6 @@ describe('lead alert privacy and delivery', () => {
     expect(logs[0].outcome).toBe('unconfigured')
   })
 
-  it('sends through Mailtrap when MAILTRAP_API_KEY is set, from the unite-group.in default, and never calls SendGrid', async () => {
-    vi.stubEnv('SENDGRID_API_KEY', '')
-    vi.stubEnv('SENDGRID_FROM_EMAIL', '')
-    vi.stubEnv('MAILTRAP_API_KEY', 'test-placeholder-mailtrap')
-    vi.stubEnv('MAILTRAP_TRACKING_DISABLED', 'true')
-    const fetchMock = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ success: true, message_ids: ['mt-1'] }) }) as Response)
-    vi.stubGlobal('fetch', fetchMock)
-    expect(await notify(payload())).toEqual({ email: 'sent' })
-    expect(mocks.sendEmail).not.toHaveBeenCalled()
-    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
-    expect(url).toBe('https://send.api.mailtrap.io/api/send')
-    const body = JSON.parse(init.body as string)
-    expect(body).toMatchObject({ from: { email: 'alerts@unite-group.in' }, to: [{ email: 'destination@example.invalid' }], subject: 'New enquiry' })
-    expect(body.text).toContain('FirstSentinel')
-    expect(logs[0].outcome).toBe('sent')
-    vi.unstubAllGlobals()
-  })
-
-  it('records a Mailtrap 2xx with a whitespace-only message id as failed, never sent', async () => {
-    vi.stubEnv('MAILTRAP_API_KEY', 'test-placeholder-mailtrap')
-    vi.stubEnv('MAILTRAP_TRACKING_DISABLED', 'true')
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ success: true, message_ids: ['   '] }) }) as Response))
-    expect(await notify(payload())).toEqual({ email: 'failed' })
-    expect(logs[0].outcome).toBe('failed')
-    vi.unstubAllGlobals()
-  })
-
-  it('records a Mailtrap rejection as failed, never sent', async () => {
-    vi.stubEnv('MAILTRAP_API_KEY', 'test-placeholder-mailtrap')
-    vi.stubEnv('MAILTRAP_TRACKING_DISABLED', 'true')
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 403, json: async () => ({}) }) as Response))
-    expect(await notify(payload())).toEqual({ email: 'failed' })
-    expect(mocks.sendEmail).not.toHaveBeenCalled()
-    expect(logs[0].outcome).toBe('failed')
-    vi.unstubAllGlobals()
-  })
-
   it('uses the env recipient and never user_settings; provider failure is safe and never exposes its message', async () => {
     mocks.sendEmail.mockRejectedValue(new Error('SENTINEL-KEY destination@example.invalid'))
     expect(await notify(payload())).toEqual({ email: 'failed' })

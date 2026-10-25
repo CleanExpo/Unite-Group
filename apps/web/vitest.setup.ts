@@ -11,8 +11,3 @@ import '@testing-library/jest-dom';
 // mission-provenance-forgery.test.ts deliberately unsets it to prove the closed
 // direction still holds.
 process.env.MISSION_PROVENANCE_SECRET ??= 'test-mission-provenance-key-not-a-real-secret';
-
-// Alert email must never reach a real provider from a test run, whatever the developer or CI environment holds.
-// Tests that exercise the Mailtrap path set the variable with vi.stubEnv and stub fetch.
-delete process.env.MAILTRAP_API_KEY
-delete process.env.EMAIL_FROM

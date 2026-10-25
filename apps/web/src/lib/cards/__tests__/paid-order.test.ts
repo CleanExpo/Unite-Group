@@ -63,7 +63,6 @@ describe('recordPaidCardOrder', () => {
     vi.stubEnv('STRIPE_CARD_EXTRA_BUSINESS_PAYMENT_LINK_ID', 'plink_extra')
     vi.stubEnv('FOUNDER_USER_ID', '00000000-0000-0000-0000-00000000000a')
     vi.stubEnv('LEAD_ALERT_EMAIL_TO', 'alerts@example.invalid')
-    vi.stubEnv('SENDGRID_API_KEY', 'test-placeholder')
     vi.stubEnv('SENDGRID_FROM_EMAIL', 'from@example.invalid')
     insert.mockReset().mockResolvedValue({ error: null })
     sendEmail.mockReset().mockResolvedValue(undefined)
@@ -78,6 +77,11 @@ describe('recordPaidCardOrder', () => {
     const row = insert.mock.calls[0][0] as Record<string, unknown>
     expect(row.tier).toBe(tier)
     expect(Object.keys(row)).not.toContain('quantity')
+  })
+
+  it('turns click and open tracking off on the order alert and keeps its category', async () => {
+    expect(await recordPaidCardOrder(admin, event({ amount_total: 24900 }))).toBe('created')
+    expect(sendEmail.mock.calls[0][0]).toMatchObject({ disableTracking: true, categories: ['card-order-alert'] })
   })
 
   it.each([1, 2, 5])('records %i extra business(es) with tier extra_business and quantity', async (n) => {

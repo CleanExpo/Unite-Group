@@ -3,7 +3,6 @@ import { NextResponse } from 'next/server'
 import { assertCronAuth } from '@/lib/cron-auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import type { LogOutcome } from '@/lib/notifications/lead-alert'
-import { resolveEmailSender } from '@/lib/integrations/email-provider'
 import { checkSuppression } from '@/lib/notifications/sendgrid-suppression'
 
 export const dynamic = 'force-dynamic'
@@ -11,8 +10,7 @@ export const dynamic = 'force-dynamic'
 const WINDOW_HOURS = 72
 const PAGE_SIZE = 500
 const MAX_IDS = 20
-const SENDGRID_NOTE = 'sent means SendGrid accepted the message (HTTP 202); delivery is not confirmed'
-const MAILTRAP_NOTE = 'sent means Mailtrap accepted the message (HTTP 2xx); delivery is not confirmed'
+const DELIVERY_NOTE = 'sent means SendGrid accepted the message (HTTP 202); delivery is not confirmed'
 
 type DeliveryRow = {
   id: string
@@ -118,12 +116,10 @@ export async function GET(request: Request) {
         }
       }
     }
-    // The suppression lists are SendGrid's. They say nothing about mail sent through Mailtrap, so that case stays 'unknown'.
-    const mailtrap = resolveEmailSender({ noTracking: true })?.provider === 'mailtrap'
-    const destination = await checkSuppression(process.env.LEAD_ALERT_EMAIL_TO ?? '', { apiKey: mailtrap ? undefined : process.env.SENDGRID_API_KEY })
+    const destination = await checkSuppression(process.env.LEAD_ALERT_EMAIL_TO ?? '', { apiKey: process.env.SENDGRID_API_KEY })
     const ids = (values: Iterable<string>) => [...values].sort().slice(0, MAX_IDS)
     return NextResponse.json({ window_hours: WINDOW_HOURS, attempts, failed, unconfigured,
-      deduped, unalerted: unalertedIds.size, last_failure_at: lastFailureAt, sent, delivery_note: mailtrap ? MAILTRAP_NOTE : SENDGRID_NOTE,
+      deduped, unalerted: unalertedIds.size, last_failure_at: lastFailureAt, sent, delivery_note: DELIVERY_NOTE,
       destination, failed_ids: ids(failedIds), unalerted_ids: ids(unalertedIds) })
   } catch {
     return NextResponse.json({ error: 'Alert health unavailable' }, { status: 503 })
