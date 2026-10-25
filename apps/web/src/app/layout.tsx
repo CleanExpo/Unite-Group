@@ -22,12 +22,14 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const nonce = (await headers()).get('x-nonce') ?? '';
+  // Vercel Web Analytics is off on the project; the founder enables it in Vercel and sets this flag (default off stops the /_vercel/insights 404).
+  const webAnalyticsEnabled = process.env.VERCEL_WEB_ANALYTICS_ENABLED === '1';
 
   return (
     <html lang="en-AU" className={`${GeistSans.variable} ${GeistMono.variable} light`} suppressHydrationWarning>
       <body nonce={nonce} suppressHydrationWarning>
         <ThemeProvider>{children}</ThemeProvider>
-        <Analytics />
+        {webAnalyticsEnabled ? <Analytics /> : null}
         <SiteTracker />
       </body>
     </html>
