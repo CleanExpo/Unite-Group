@@ -25,7 +25,7 @@ export function CardsStrip() {
           ))}
         </ul>
         <div className={s.offer}>
-          <a href="/cards/order" className={s.buttonPrimary}>
+          <a href="/cards/order" data-track="cta" data-track-label="home-strip-order" className={s.buttonPrimary}>
             From {lowestCardPrice()}
           </a>
           <ul className={s.prices}>
@@ -36,7 +36,7 @@ export function CardsStrip() {
             ))}
           </ul>
           <p className={s.priceNote}>{PRICE_NOTE}</p>
-          <a href="/cards" className={s.buttonSecondary}>
+          <a href="/cards" data-track="cta" data-track-label="home-strip-see-card" className={s.buttonSecondary}>
             See the living card
           </a>
         </div>

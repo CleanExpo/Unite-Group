@@ -60,6 +60,7 @@ const PUBLIC_PATHS = [
   '/api/cron',
   '/api/webhooks', // External provider callbacks verify their own signatures/secrets
   '/api/leads',    // Public website lead capture (UNI-2355) — service-role insert, rate-limited above
+  '/api/events',   // First-party site analytics intake (UNI-3001) — service-role insert, honours DNT/GPC, rate-limited in-route
   '/api/agent',    // Public site chat agent — auth is the publishable site key, validated in-route (UNI-2359)
   '/widget',       // Embeddable chat widget script must load on third-party sites (UNI-2359)
   '/cards/media',  // Living-card showroom clips: static files in public/cards/media (.mp4 is not in the matcher's asset list)

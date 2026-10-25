@@ -21,10 +21,10 @@ export function Hero() {
         </h1>
         <p className={h.sub}>The CRM we are building to run the businesses behind it.</p>
         <div className={h.actions}>
-          <a href="#group" className={h.cta}>
+          <a href="#group" data-track="cta" data-track-label="home-hero-meet-group" className={h.cta}>
             Meet the group
           </a>
-          <a href="#contact" className={h.ghost}>
+          <a href="#contact" data-track="cta" data-track-label="home-hero-ask-question" className={h.ghost}>
             Ask a question
           </a>
         </div>

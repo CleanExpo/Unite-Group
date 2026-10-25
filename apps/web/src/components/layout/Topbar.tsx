@@ -26,6 +26,7 @@ const BREADCRUMB_MAP: Record<string, string> = {
   '/founder/boardroom':   'CEO Boardroom',
   '/founder/social':      'Social',
   '/founder/analytics':   'Analytics',
+  '/founder/site-analytics': 'Site Analytics',
   '/founder/campaigns':   'Campaigns',
   '/founder/experiments': 'Experiments',
   '/founder/contacts':    'Contacts',

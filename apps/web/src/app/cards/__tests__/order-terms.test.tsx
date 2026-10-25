@@ -15,7 +15,12 @@ const render = (edition: string | null, referrer: string | null) =>
  * captured from origin/main when the footer still said 'ABN pending'; the ABN fallback is a separate, tested
  * change (company.test.ts), so the old label is mapped to the new one here.
  */
-const norm = (h: string) => h.replace(/_([A-Za-z]+)_[0-9a-f]{6}/g, '_$1').replaceAll('ABN pending', 'ABN 95 691 477 844')
+const norm = (h: string) =>
+  h
+    .replace(/_([A-Za-z]+)_[0-9a-f]{6}/g, '_$1')
+    .replaceAll('ABN pending', 'ABN 95 691 477 844')
+    // Site analytics (UNI-3001) adds data-track* attributes to CTAs and films; they are not part of this baseline.
+    .replace(/ data-track(?:-[a-z-]+)?="[^"]*"/g, '')
 
 /** The one terms addition, in the buy box. */
 const TERMS_ADDITION =

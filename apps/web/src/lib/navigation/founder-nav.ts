@@ -68,6 +68,7 @@ export const FOUNDER_NAV_GROUPS = [
       { href: '/founder/campaigns',   label: 'Campaigns',   icon: Megaphone },
       { href: '/founder/brand-video', label: 'Brand Video', icon: Clapperboard },
       { href: '/founder/analytics',   label: 'Analytics',   icon: BarChart2 },
+      { href: '/founder/site-analytics', label: 'Site Analytics', icon: BarChart2 },
       { href: '/founder/experiments', label: 'Experiments', icon: FlaskConical },
     ],
   },
