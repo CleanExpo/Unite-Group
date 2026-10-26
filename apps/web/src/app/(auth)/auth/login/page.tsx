@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createBrowserClient } from "@supabase/ssr";
 import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
+import { buildEmailLinkOptions, buildGoogleSignInOptions } from "@/lib/auth/google-oauth-options";
 
 function getSupabase() {
   return createBrowserClient(
@@ -48,6 +49,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [linkLoading, setLinkLoading] = useState(false);
+  const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [queryString, setQueryString] = useState("");
   // Google is the only sign-in Phill uses. Email/password stays as a hidden
@@ -108,6 +111,28 @@ export default function LoginPage() {
     router.push(redirectPath);
   }
 
+  async function handleEmailLink() {
+    setError("");
+    setNotice("");
+    if (!email) {
+      setError("Enter your email first.");
+      return;
+    }
+    setLinkLoading(true);
+    const callbackUrl = new URL("/api/auth/callback", window.location.origin);
+    callbackUrl.searchParams.set("next", redirectPath);
+    const { error } = await getSupabase().auth.signInWithOtp({
+      email,
+      options: buildEmailLinkOptions(callbackUrl.toString()),
+    });
+    setLinkLoading(false);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setNotice("Check your email for a sign-in link. Open it in this browser.");
+  }
+
   async function handleGoogleSignIn() {
     setGoogleLoading(true);
     setError("");
@@ -118,9 +143,7 @@ export default function LoginPage() {
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: {
-        redirectTo: callbackUrl.toString(),
-      },
+      options: buildGoogleSignInOptions(callbackUrl.toString()),
     });
 
     if (error) {
@@ -145,6 +168,12 @@ export default function LoginPage() {
       {error && (
         <p className="text-sm text-danger mb-4 border border-danger/20 bg-(--color-danger-dim) px-3 py-2 rounded-sm">
           {error}
+        </p>
+      )}
+
+      {notice && (
+        <p className="text-sm mb-4 border px-3 py-2 rounded-sm" style={{ borderColor: "var(--color-border)" }}>
+          {notice}
         </p>
       )}
 
@@ -222,6 +251,19 @@ export default function LoginPage() {
               Sign in
             </Button>
           </form>
+
+          <Button
+            type="button"
+            variant="secondary"
+            size="md"
+            fullWidth
+            loading={linkLoading}
+            disabled={googleLoading || loading}
+            onClick={handleEmailLink}
+            className="mt-3 text-xs uppercase tracking-[0.2em]"
+          >
+            Email me a sign-in link
+          </Button>
 
           <div className="mt-5 text-center">
             <Link
