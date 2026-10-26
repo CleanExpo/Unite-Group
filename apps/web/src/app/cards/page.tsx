@@ -9,6 +9,9 @@ import { SITE_URL } from '@/lib/public-site'
 
 import { serializeJsonLd } from '@/app/grow/packages'
 
+import { SectionIntro } from '@/components/public/section-intro'
+import m from '@/components/public/marketing-page.module.css'
+
 import { EditionTile } from './edition-tile'
 import { EDITIONS } from './editions'
 import p from './showroom-page.module.css'
@@ -44,76 +47,85 @@ export default function CardsShowroomPage() {
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(productLd) }} />
       ) : null}
       <SiteNav />
-      <div className={p.toolbar}>
-        <div className={p.toolbarInner}>
-          <a href="/cards/order" data-track="cta" data-track-label="cards-header-get-card" className={p.btnPrimary}>
-            Get your own card
-          </a>
-        </div>
-      </div>
 
-      <main id="main">
-        <section className={p.hero} aria-labelledby="cards-title">
-          <div>
-            <p className={p.eyebrow}>Living business cards</p>
-            <h1 id="cards-title" className={p.h1}>
-              A business card that opens like a film and ends on your logo.
-            </h1>
-            <p className={p.lead}>
-              One link or QR code. It plays a short opener, then shows your details, saves to contacts in one tap, and links to
-              your businesses. Tap any edition below to watch it.
-            </p>
-            <div className={p.actions}>
-              <a href="/cards/order" data-track="cta" data-track-label="cards-hero-get-card" className={p.btnPrimary}>
-                Get your own card
-              </a>
-              <a href="#editions" data-track="cta" data-track-label="cards-hero-see-editions" className={p.btnSecondary}>
-                See the editions
-              </a>
-              <a href={CONTACT_MAILTO} data-contact-email className={p.btnSecondary}>
-                Email us
-              </a>
+      <main id="main" className={m.main}>
+        <section className={m.heroBand} aria-labelledby="cards-title">
+          <div className={m.wrap}>
+            <nav aria-label="Breadcrumb">
+              <ol className={m.crumbs}>
+                <li><a href="/">Unite Group</a></li>
+                <li aria-current="page">Living cards</li>
+              </ol>
+            </nav>
+            <div className={p.heroGrid}>
+              <div>
+                <SectionIntro
+                  as="h1"
+                  id="cards-title"
+                  eyebrow="Living business cards"
+                  title="A business card that opens like a film and ends on your logo."
+                  lead="One link or QR code. A short opener, your details, one-tap save to contacts, and links to your businesses."
+                />
+                <div className={m.actions}>
+                  <a href="/cards/order" data-track="cta" data-track-label="cards-hero-get-card" className={m.btnPrimary}>
+                    Get your own card
+                  </a>
+                  <a href="#editions" data-track="cta" data-track-label="cards-hero-see-editions" className={m.btnSecondary}>
+                    See the editions
+                  </a>
+                  <a href={CONTACT_MAILTO} data-contact-email className={m.btnSecondary}>
+                    Email us
+                  </a>
+                </div>
+              </div>
+              <div className={p.qrWrap} data-card-qr>
+                <EditionTile edition={signature} />
+                <figure className={p.qrFigure}>
+                  <img src="/cards/living-card-qr.png" alt="QR code that opens unite-group.in/cards" width={128} height={128} />
+                  <figcaption>Scan to open this page</figcaption>
+                </figure>
+              </div>
             </div>
           </div>
-          <div className={p.qrWrap} data-card-qr>
-            <EditionTile edition={signature} />
-            <figure className={p.qrFigure}>
-              <img src="/cards/living-card-qr.png" alt="QR code that opens unite-group.in/cards" width={128} height={128} />
-              <figcaption>Scan to open this page</figcaption>
-            </figure>
+        </section>
+
+        <section id="editions" className={m.section}>
+          <div className={m.wrap}>
+            <SectionIntro
+              title="Nine editions"
+              lead="Every example ends on the Unite Group logo. Yours ends on your own. Each clip is AI-generated and runs for about four seconds."
+            />
+            <div className={p.grid}>
+              {editions.map((edition) => (
+                <EditionTile key={edition.name} edition={edition} />
+              ))}
+            </div>
           </div>
         </section>
 
-        <section id="editions" className={p.editions}>
-          <h2 className={p.h2}>Nine editions</h2>
-          <p className={p.editionsLead}>
-            Every example ends on the Unite Group logo. Yours ends on your own. Each clip is AI-generated and runs for about four
-            seconds.
-          </p>
-          <div className={p.grid}>
-            {editions.map((edition) => (
-              <EditionTile key={edition.name} edition={edition} />
-            ))}
+        <section className={m.sectionAlt} aria-label="How you get your card">
+          <div className={m.wrap}>
+            <SectionIntro title="How you get your card" />
+            <div className={m.stepsRow}>
+              {STEPS.map((step, i) => (
+                <div key={step.title} className={m.stepCard}>
+                  <p className={m.stepNo}>Step {i + 1}</p>
+                  <h3 className={m.stepTitle}>{step.title}</h3>
+                  <p className={m.stepBody}>{step.body}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
-        <section className={p.stepsBand} aria-label="How you get your card">
-          <div className={p.stepsInner}>
-            {STEPS.map((step, i) => (
-              <div key={step.title}>
-                <p className={p.stepNo}>Step {i + 1}</p>
-                <h3 className={p.stepTitle}>{step.title}</h3>
-                <p className={p.stepBody}>{step.body}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section id="pricing" className={s.section}>
-          <p className={s.eyebrow}>Price</p>
-          <h2 className={s.heading}>{live.length > 1 ? 'Two ways to get a card' : 'Get a card'}</h2>
-          <p className={s.note}>{live.length ? PRICE_NOTE : 'Online orders are not open yet. Ask us about a card.'}</p>
-          <ul className={s.tiers}>
+        <section id="pricing" className={m.section}>
+          <div className={m.wrap}>
+            <SectionIntro
+              eyebrow="Price"
+              title={live.length > 1 ? 'Two ways to get a card' : 'Get a card'}
+              lead={live.length ? PRICE_NOTE : 'Online orders are not open yet. Ask us about a card.'}
+            />
+            <ul className={s.tiers}>
             {live.map((tier) => (
               <li key={tier.id} className={s.tier}>
                 <h3 className={s.tierName}>{tier.name}</h3>
@@ -125,10 +137,11 @@ export default function CardsShowroomPage() {
               </li>
             ))}
           </ul>
+          </div>
         </section>
 
-        <section className={s.band}>
-          <div className={`${s.section} ${s.cols}`}>
+        <section className={m.sectionAlt} aria-label="Hosting and limits">
+          <div className={`${m.wrap} ${s.cols}`}>
             <div id="hosting">
               <h2 className={s.heading}>Hosting</h2>
               <ul className={s.list}>
@@ -148,9 +161,10 @@ export default function CardsShowroomPage() {
           </div>
         </section>
 
-        <section id="faq" className={s.section}>
-          <h2 className={s.heading}>Questions</h2>
-          <div className={s.faq}>
+        <section id="faq" className={m.section}>
+          <div className={m.wrap}>
+            <SectionIntro title="Questions" />
+            <div className={s.faq}>
             {FAQ_FACTS.map((item) => (
               <details key={item.question} className={s.faqItem}>
                 <summary>{item.question}</summary>
@@ -159,14 +173,30 @@ export default function CardsShowroomPage() {
             ))}
           </div>
           <p className={s.note}>Every answer is quoted from the order terms; section numbers refer to them.</p>
-          <p className={s.links}>
-            <a href="/cards/terms" className={s.link}>
-              Order terms
-            </a>
-            <a href="/cards/order" data-track="cta" data-track-label="cards-faq-order" className={s.link}>
-              Get your own card
-            </a>
-          </p>
+            <p className={s.links}>
+              <a href="/cards/terms" className={s.link}>
+                Order terms
+              </a>
+              <a href="/cards/order" data-track="cta" data-track-label="cards-faq-order" className={s.link}>
+                Get your own card
+              </a>
+            </p>
+          </div>
+        </section>
+
+        <section className={m.sectionAlt}>
+          <div className={m.wrap}>
+            <SectionIntro
+              title="Ready for your logo?"
+              lead="Pick an edition, send your details, and approve a proof before anything goes live."
+            />
+            <div className={m.actions}>
+              <a href="/cards/order" data-track="cta" data-track-label="cards-footer-order" className={m.btnPrimary}>
+                Get your own card
+              </a>
+              <a href="/pricing" className={m.btnSecondary}>See full pricing</a>
+            </div>
+          </div>
         </section>
       </main>
 

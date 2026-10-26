@@ -1,9 +1,10 @@
 import type { Metadata } from 'next'
 
-import s from '@/components/public/public.module.css'
 import { PublicPageShell } from '@/components/public/public-page-shell'
 import { SiteFooter } from '@/components/public/site-footer'
 import { SiteNav } from '@/components/public/site-nav'
+import { SectionIntro } from '@/components/public/section-intro'
+import m from '@/components/public/marketing-page.module.css'
 import { formatAud, serializeJsonLd } from '@/app/grow/packages'
 import { pricingPageJsonLd } from '@/lib/pricing-jsonld'
 import { cardFromAud, PLUS_GST, SIGNATURE_ADDON, STARTER_PLAN } from '@/lib/public-pricing'
@@ -22,60 +23,78 @@ export default function PricingPage() {
     <PublicPageShell>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(pricingPageJsonLd()) }} />
       <SiteNav />
-      <main id="main" className={s.wrap} data-pricing>
-        <nav aria-label="Breadcrumb">
-          <ol className={s.crumbs}>
-            <li><a href="/">Unite Group</a></li>
-            <li aria-current="page">Pricing</li>
-          </ol>
-        </nav>
-        <header className={s.pillarHero}>
-          <p className={s.eyebrow}>Pricing</p>
-          <h1 className={s.h1}>One plan. Add what you need.</h1>
-          <p className={s.lead}>Prices are in Australian dollars. GST is shown on each line.</p>
-        </header>
-
-        <section className={s.section} aria-labelledby="plan-title" data-plan="starter">
-          <h2 id="plan-title" className={s.h2}>{STARTER_PLAN.name}</h2>
-          <p className={s.lead}>
-            <strong>{formatAud(STARTER_PLAN.priceAud)}</strong> a {STARTER_PLAN.period}, {PLUS_GST}
-          </p>
-          <p>{STARTER_PLAN.line}</p>
-          <p style={{ marginTop: '1.25rem' }}>
-            <a href="/#contact" className={s.buttonPrimary}>
-              Ask about Starter
-            </a>
-          </p>
+      <main id="main" className={m.main} data-pricing>
+        <section className={m.heroBand}>
+          <div className={m.wrap}>
+            <nav aria-label="Breadcrumb">
+              <ol className={m.crumbs}>
+                <li><a href="/">Unite Group</a></li>
+                <li aria-current="page">Pricing</li>
+              </ol>
+            </nav>
+            <SectionIntro
+              as="h1"
+              eyebrow="Pricing"
+              title="One plan. Add what you need."
+              lead="Australian dollars on every line. GST is called out so nothing is hidden."
+            />
+          </div>
         </section>
 
-        <section className={s.section} aria-labelledby="addons-title">
-          <h2 id="addons-title" className={s.h2}>Add-ons</h2>
-          <ul className={s.bullets}>
-            <li data-addon="signatures">
-              <a href={SIGNATURE_ADDON.href}><strong>{SIGNATURE_ADDON.name}</strong></a>: {formatAud(SIGNATURE_ADDON.priceAud)}{' '}
-              {SIGNATURE_ADDON.unit}, {PLUS_GST}. {SIGNATURE_ADDON.line}
-            </li>
-            <li data-addon="card">
-              <a href="/cards"><strong>Living business card</strong></a>
-              {cardFrom !== null ? (
-                <>
-                  : from {formatAud(cardFrom)}, one-off price, GST included. <a href="/cards/order">Order a card</a>
-                </>
-              ) : (
-                <>
-                  : online orders are not open yet. <a href="/cards/order">See the card</a>
-                </>
-              )}
-            </li>
-          </ul>
+        <section className={m.section} aria-labelledby="plan-title" data-plan="starter">
+          <div className={m.wrap}>
+            <div className={m.planGrid}>
+              <article className={`${m.planCard} ${m.planCardFeatured}`}>
+                <h2 id="plan-title" className={m.planPrice}>{STARTER_PLAN.name}</h2>
+                <p className={m.planMeta}>
+                  <strong>{formatAud(STARTER_PLAN.priceAud)}</strong> a {STARTER_PLAN.period}, {PLUS_GST}
+                </p>
+                <p className={m.planBody}>{STARTER_PLAN.line}</p>
+                <div className={m.actions}>
+                  <a href="/#contact" className={m.btnPrimary}>Ask about Starter</a>
+                </div>
+              </article>
+
+              <div>
+                <SectionIntro title="Add-ons" lead="Stack a living card or signatures when you are ready." />
+                <ul className={m.addonList}>
+                  <li className={m.addonItem} data-addon="signatures">
+                    <a href={SIGNATURE_ADDON.href}>{SIGNATURE_ADDON.name}</a>
+                    {' — '}
+                    {formatAud(SIGNATURE_ADDON.priceAud)} {SIGNATURE_ADDON.unit}, {PLUS_GST}. {SIGNATURE_ADDON.line}
+                  </li>
+                  <li className={m.addonItem} data-addon="card">
+                    <a href="/cards">Living business card</a>
+                    {cardFrom !== null ? (
+                      <>
+                        {' — from '}
+                        {formatAud(cardFrom)}, one-off, GST included.{' '}
+                        <a href="/cards/order">Order a card</a>
+                      </>
+                    ) : (
+                      <>
+                        {' — online orders are not open yet. '}
+                        <a href="/cards/order">See the card</a>
+                      </>
+                    )}
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
         </section>
 
-        <section className={s.section}>
-          <p>
-            <a href="/#contact" className={s.buttonSecondary}>
-              Ask a question
-            </a>
-          </p>
+        <section className={m.sectionAlt}>
+          <div className={m.wrap}>
+            <SectionIntro
+              title="Not sure yet?"
+              lead="Tell us what you are trying to fix — we reply by email, no funnel."
+            />
+            <div className={m.actions}>
+              <a href="/#contact" className={m.btnSecondary}>Ask a question</a>
+              <a href="/cards" className={m.btnSecondary}>Open the showroom</a>
+            </div>
+          </div>
         </section>
       </main>
       <SiteFooter />

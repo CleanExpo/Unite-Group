@@ -1,105 +1,29 @@
-/* /grow — Forge Cinema (matches public marketing site). */
-
-.hero {
-  max-width: var(--pub-max);
-  margin: 0 auto;
-  padding: 3.5rem 16px 3rem;
-}
-
-@media (min-width: 640px) {
-  .hero { padding-left: 24px; padding-right: 24px; padding-top: 4.5rem; }
-}
-
-.eyebrow {
-  margin: 0;
-  font-family: var(--pub-mono);
-  font-size: 12px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--pub-muted);
-}
-
-.h1 {
-  margin: 1rem 0 0;
-  max-width: 40rem;
-  font-family: var(--pub-display);
-  font-size: clamp(2.1rem, 5.4vw, 3.4rem);
-  font-weight: 700;
-  line-height: 1.05;
-  text-transform: uppercase;
-}
-
-.lead {
-  margin: 1.25rem 0 0;
-  max-width: 36rem;
-  font-size: 17px;
-  line-height: 1.55;
-  color: var(--pub-ink-soft);
-}
-
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 2rem;
-}
-
-.packages {
-  max-width: var(--pub-max);
-  margin: 0 auto;
-  padding: 0 16px 4rem;
-}
-
-@media (min-width: 640px) {
-  .packages { padding-left: 24px; padding-right: 24px; }
-}
-
-.h2 {
-  margin: 0;
-  font-family: var(--pub-display);
-  font-size: clamp(1.5rem, 3vw, 2rem);
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.packagesNote {
-  margin: 0.5rem 0 0;
-  font-size: 15px;
-  color: var(--pub-muted);
-}
-
-.grid {
-  display: grid;
-  gap: 1.25rem;
-  margin-top: 2rem;
-}
-
-@media (min-width: 768px) {
-  .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
+/* /grow — package cards and audit form (layout from marketing-page.module.css). */
 
 .card {
   display: flex;
   flex-direction: column;
-  padding: 1.5rem;
+  padding: clamp(18px, 3vw, 24px);
   border: 1px solid var(--pub-line);
-  border-radius: var(--pub-radius-lg);
-  background: linear-gradient(165deg, var(--pub-surface) 0%, var(--pub-bg) 100%);
+  border-radius: var(--pub-radius-xl);
+  background: rgba(18, 22, 42, 0.55);
+  height: 100%;
 }
 
 .cardFeatured {
-  border-color: rgba(236, 123, 65, 0.55);
-  box-shadow: 0 18px 40px -28px rgba(236, 123, 65, 0.45);
+  border-color: rgba(236, 123, 65, 0.45);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(236, 123, 65, 0.12);
 }
 
 .cardTitle {
   margin: 0;
-  font-size: 1.125rem;
+  font-family: var(--pub-display);
+  font-size: 1.15rem;
   font-weight: 600;
 }
 
 .cardPitch {
-  margin: 0.4rem 0 0;
+  margin: 0.5rem 0 0;
   min-height: 3rem;
   font-size: 15px;
   line-height: 1.45;
@@ -111,7 +35,8 @@
 }
 
 .priceMain {
-  font-size: 1.875rem;
+  font-family: var(--pub-display);
+  font-size: clamp(1.5rem, 2.5vw, 1.875rem);
   font-weight: 600;
   letter-spacing: -0.02em;
 }
@@ -148,7 +73,7 @@
   height: 6px;
   flex: none;
   border-radius: 999px;
-  background: var(--pub-accent);
+  background: var(--pub-highlight);
 }
 
 .cardActions {
@@ -159,97 +84,13 @@
   padding-top: 1.5rem;
 }
 
-.btnPrimary,
-.btnSecondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 44px;
-  padding: 0 1.25rem;
-  border-radius: var(--pub-radius);
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.btnPrimary {
-  background: var(--pub-accent);
-  color: var(--pub-accent-ink);
-  border: 1px solid var(--pub-accent);
-}
-
-.btnPrimary:hover {
-  background: var(--pub-accent-strong);
-  border-color: var(--pub-accent-strong);
-}
-
-.btnSecondary {
-  color: var(--pub-ink);
-  border: 1px solid var(--pub-line-strong);
-  background: transparent;
-}
-
-.btnSecondary:hover {
-  border-color: var(--pub-accent);
-  color: var(--pub-accent-strong);
-}
-
-.stepsBand {
-  border-block: 1px solid var(--pub-line);
-  background: var(--pub-surface);
-}
-
-.stepsInner {
-  max-width: var(--pub-max);
-  margin: 0 auto;
-  padding: 3.5rem 16px;
-  display: grid;
-  gap: 2rem;
-}
-
-@media (min-width: 768px) {
-  .stepsInner {
-    padding-left: 24px;
-    padding-right: 24px;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-.stepNo {
-  margin: 0;
-  font-family: var(--pub-mono);
-  font-size: 12px;
-  letter-spacing: 0.14em;
-  color: var(--pub-accent-strong);
-}
-
-.stepTitle {
-  margin: 0.5rem 0 0;
-  font-size: 1.125rem;
-  font-weight: 600;
-}
-
-.stepBody {
-  margin: 0.5rem 0 0;
-  font-size: 15px;
-  line-height: 1.55;
-  color: var(--pub-ink-soft);
-}
-
-.audit {
-  max-width: 42rem;
-  margin: 0 auto;
-  padding: 4rem 16px;
-}
-
-@media (min-width: 640px) {
-  .audit { padding-left: 24px; padding-right: 24px; }
-}
-
 .auditLead {
-  margin: 0.5rem 0 0;
-  font-size: 15px;
-  color: var(--pub-ink-soft);
+  margin: 0;
+  font-size: 14px;
+  color: var(--pub-muted);
 }
 
-.formWrap { margin-top: 2rem; }
+.formWrap {
+  margin-top: 1.5rem;
+  max-width: 42rem;
+}
