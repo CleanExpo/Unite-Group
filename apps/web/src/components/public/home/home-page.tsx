@@ -9,7 +9,7 @@ import {
   pillarPath,
 } from '@/lib/public-site'
 import { readMargotPhoneNumber } from '@/lib/margot/phone-line'
-import { CONTACT_EMAIL } from '@/lib/public-site'
+import { CONTACT_MAILTO } from '../site-nav'
 
 import { answers } from '../answers'
 import { CARD_FILM, HERO_FILM } from '../film-config'
@@ -358,7 +358,9 @@ export function HomePage() {
               </div>
               <div className={hp.contactAside}>
                 <MargotPhoneLine number={readMargotPhoneNumber()} />
-                <p>Or email <span>{CONTACT_EMAIL}</span>.</p>
+                <p>
+                  Or <a href={CONTACT_MAILTO} data-contact-email>Email us</a>.
+                </p>
               </div>
             </section>
           </div>

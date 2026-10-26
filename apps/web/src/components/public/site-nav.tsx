@@ -12,9 +12,9 @@ const ON_PAGE = [
   { href: '/#proof', label: 'See it first' },
   { href: '/#how', label: 'How it works' },
   { href: '/#answers', label: 'Questions' },
+  { href: '/#contact', label: 'Contact form' },
 ] as const
 
-// Position 0 — keyboard-operable dropdowns (details/summary). In-page anchors keep go-live labels (D21).
 export function SiteNav() {
   return (
     <header className={n.header}>
@@ -23,14 +23,14 @@ export function SiteNav() {
       </a>
       <div className={n.bar}>
         <a href="/" className={n.logo}>
-          <img src="/landing/logos/unite-group-nexus-mark.webp" alt="" width={36} height={36} />
+          <img src="/landing/logos/unite-group-nexus-mark.webp" alt="" width={32} height={32} />
           Unite Group
         </a>
         <nav aria-label="Main" className={n.nav}>
-          <ul className={n.primary}>
+          <ul className={n.links}>
             <li>
               <details className={n.dropdown}>
-                <summary>What we do</summary>
+                <summary>Solutions</summary>
                 <ul className={n.menu}>
                   {PILLARS.map((p) => (
                     <li key={p.slug}>
@@ -40,32 +40,31 @@ export function SiteNav() {
                 </ul>
               </details>
             </li>
+            <li><a href="/cards">Cards</a></li>
+            <li><a href="/pricing">Pricing</a></li>
+            <li><a href="/grow">Grow your business</a></li>
             <li>
-              <a href="/cards">Living cards</a>
-            </li>
-            <li>
-              <a href="/pricing">Pricing</a>
-            </li>
-            <li className={n.growItem}>
-              <a href="/grow">Grow your business</a>
+              <details className={n.dropdown}>
+                <summary>Explore</summary>
+                <ul className={n.menu}>
+                  {ON_PAGE.map((link) => (
+                    <li key={link.href}>
+                      <a href={link.href}>{link.label}</a>
+                    </li>
+                  ))}
+                  <li className={n.menuDivider} aria-hidden="true" />
+                  <li>
+                    <a href={CONTACT_MAILTO} data-contact-email>
+                      Email us
+                    </a>
+                  </li>
+                </ul>
+              </details>
             </li>
           </ul>
-          <ul className={n.onPage} aria-label="On this page">
-            {ON_PAGE.map((link) => (
-              <li key={link.href}>
-                <a href={link.href}>{link.label}</a>
-              </li>
-            ))}
-          </ul>
-          <div className={n.actions}>
-            <a href="/cards/order" className={n.orderCta} data-track="cta" data-track-label="nav-order-card">
-              Order a card
-            </a>
-            <a href="/#contact">Contact</a>
-            <a href={CONTACT_MAILTO} className={n.email} data-contact-email>
-              Email us
-            </a>
-          </div>
+          <a href="/cards/order" className={n.orderCta} data-track="cta" data-track-label="nav-order-card">
+            Order card
+          </a>
         </nav>
       </div>
     </header>
