@@ -25,7 +25,7 @@ export function StartChooser() {
                 href={o.href}
                 data-track="cta"
                 data-track-label={`home-start-${o.key}`}
-                className={o.paid ? c.paid : ''}
+                className={'paid' in o && o.paid ? c.paid : ''}
               >
                 {o.key === 'create' ? createLabel : o.name}
                 {'coming' in o && (

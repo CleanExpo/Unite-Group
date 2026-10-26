@@ -8,7 +8,13 @@ import n from './site-nav.module.css'
 export const CONTACT_EMAIL = 'contact@unite-group.in'
 export const CONTACT_MAILTO = `mailto:${CONTACT_EMAIL}`
 
-// Primary IA only — product routes, one CTA, contact. In-page sections live in the footer.
+const ON_PAGE = [
+  { href: '/#proof', label: 'See it first' },
+  { href: '/#how', label: 'How it works' },
+  { href: '/#answers', label: 'Questions' },
+] as const
+
+// Position 0 — keyboard-operable dropdowns (details/summary). In-page anchors keep go-live labels (D21).
 export function SiteNav() {
   return (
     <header className={n.header}>
@@ -40,9 +46,16 @@ export function SiteNav() {
             <li>
               <a href="/pricing">Pricing</a>
             </li>
-            <li>
+            <li className={n.growItem}>
               <a href="/grow">Grow your business</a>
             </li>
+          </ul>
+          <ul className={n.onPage} aria-label="On this page">
+            {ON_PAGE.map((link) => (
+              <li key={link.href}>
+                <a href={link.href}>{link.label}</a>
+              </li>
+            ))}
           </ul>
           <div className={n.actions}>
             <a href="/cards/order" className={n.orderCta} data-track="cta" data-track-label="nav-order-card">

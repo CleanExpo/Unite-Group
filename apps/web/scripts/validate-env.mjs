@@ -23,15 +23,23 @@ if (skipValidation) {
   process.exit(0)
 }
 
-// Load .env.local if not in CI mode
-if (!isCI) {
-  const envPath = join(process.cwd(), '.env.local')
+// Merge local env files (never override vars already set — CI/Vercel inject first).
+const envFiles = [
+  join(process.cwd(), '.env.local'),
+  join(process.cwd(), '.env'),
+  join(process.cwd(), '../../.env'),
+]
+const loaded = []
+for (const envPath of envFiles) {
   if (existsSync(envPath)) {
-    config({ path: envPath })
-    console.log('  Loaded .env.local\n')
-  } else {
-    console.warn('  .env.local not found — using system environment variables\n')
+    config({ path: envPath, override: false })
+    loaded.push(envPath.replace(process.cwd(), '.').replace(/^\.\/\.\.\/\.\./, '../..'))
   }
+}
+if (loaded.length > 0) {
+  console.log(`  Loaded env: ${loaded.join(', ')}\n`)
+} else if (!isCI) {
+  console.warn('  No .env.local found — using system environment variables only\n')
 }
 
 // ─── Tier Definitions ───────────────────────────────────────────────────────
@@ -165,15 +173,21 @@ if (process.env.DR_XERO_CLIENT_SECRET && !process.env.DR_CLIENT_SECRET) {
 console.log('└─────────────────────────────────────────────────────────')
 console.log('')
 
+const enforce = process.env.CI === 'true' || process.env.VERCEL === '1'
+
 if (hasBlockers) {
   console.error('\u274C VALIDATION FAILED — missing CRITICAL or REQUIRED env vars')
   console.error('')
   console.error('To fix:')
-  console.error('  1. Copy .env.example to .env.local')
-  console.error('  2. Fill in the missing values')
-  console.error('  3. For Vercel: vercel env add <NAME>')
+  console.error('  1. Copy .env.example to apps/web/.env.local')
+  console.error('  2. Fill in the missing values (or copy from repo root .env where applicable)')
+  console.error('  3. For Vercel/CI: vercel env add <NAME>')
   console.error('')
-  process.exit(1)
+  if (enforce) {
+    process.exit(1)
+  }
+  console.warn('\u26A0\uFE0F  Local build: continuing without full env (CI/Vercel will still enforce).\n')
+  process.exit(0)
 }
 
 console.log('\u2705 VALIDATION PASSED — all critical + required vars present')
