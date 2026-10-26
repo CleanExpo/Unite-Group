@@ -9,7 +9,7 @@ const OPTIONS = [
   { key: 'discover', no: '01', name: 'Discover', href: '/pricing', line: 'See the Starter plan and add-ons' },
   { key: 'diagnose', no: '02', name: 'Diagnose', href: '/solutions/intelligence', line: 'A check of what is holding your business back', coming: true },
   { key: 'create', no: '03', name: 'Create', href: '/cards/order', line: '', paid: true },
-  { key: 'results', no: '04', name: 'Explore results', href: '/cards', line: 'Watch the ten living cards we have made' },
+  { key: 'results', no: '04', name: 'Explore results', href: '/cards', line: 'Watch the living cards we have made' },
   { key: 'talk', no: '05', name: 'Talk', href: '#contact', line: 'Ask a question and we reply by email' },
 ] as const
 

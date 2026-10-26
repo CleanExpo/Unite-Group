@@ -1,4 +1,4 @@
-/* The living-card gallery: ten tall tiles, poster first. The film is mounted by gallery-tile.tsx only when motion allows. */
+/* The living-card gallery: nine tall tiles, poster first. The film is mounted by gallery-tile.tsx only when motion allows. */
 .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 28px 0 0; padding: 0; list-style: none; }
 @media (min-width: 700px) { .grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; } }
 

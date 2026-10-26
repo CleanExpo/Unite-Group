@@ -25,12 +25,13 @@ describe('D3: /grow is kept but not offered', () => {
     expect((PUBLIC_ROUTES as readonly string[]).includes('/grow')).toBe(false)
   })
 
-  it('is linked from no page or component', () => {
+  // Phill 26/10/2026 (UNI-3034): link the live /grow page from the main nav and the home page. Only those two.
+  it('is linked only from the main nav and the home hero', () => {
     const offenders = walk(srcDir)
       .filter((f) => !f.includes(`${join('app', 'grow')}`) && !f.includes('privacy-policy'))
       .filter((f) => /href=["'`{]+[^"'`]*\/grow["'`}\s>]/.test(readFileSync(f, 'utf8')) || /href=\{`\$\{[A-Z_]+\}\/grow`\}/.test(readFileSync(f, 'utf8')))
       .map((f) => relative(srcDir, f))
-    expect(offenders).toEqual([])
+    expect(offenders.sort()).toEqual(['components/public/hero.tsx', 'components/public/site-nav.tsx'])
   })
 
   it('is not advertised in llms.txt', () => {

@@ -6,8 +6,9 @@ import { PRICE_NOTE, lowestCardPrice } from '@/lib/public-site'
 import { GalleryTile } from './gallery-tile'
 import g from './gallery.module.css'
 import s from './public.module.css'
+import { CONTACT_MAILTO } from './site-nav'
 
-// Position 2: the ten edition films from public/cards/media as a gallery, poster first. Prices come from liveCardTiers,
+// Position 2: the nine edition films from public/cards/media as a gallery, poster first. Prices come from liveCardTiers,
 // the same payment-link gate /cards/order reads, so they cannot drift. The signature U reveal plays in the media row above.
 export function CardsStrip() {
   const films = EDITIONS.filter((e) => e.name !== 'signature')
@@ -44,6 +45,9 @@ export function CardsStrip() {
           )}
           <a href="/cards" data-track="cta" data-track-label="home-strip-see-card" className={s.buttonSecondary}>
             See the living card
+          </a>
+          <a href={CONTACT_MAILTO} data-contact-email className={s.buttonSecondary}>
+            Email us
           </a>
         </div>
       </div>

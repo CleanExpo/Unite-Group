@@ -48,6 +48,8 @@
 
 /* ---- nav ---- */
 .header {
+  font-family: var(--pub-font);
+  line-height: 1.6;
   position: relative;
   z-index: 5;
   border-bottom: 1px solid rgba(244, 241, 236, 0.1);

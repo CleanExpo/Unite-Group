@@ -58,7 +58,6 @@ export const EDITIONS: readonly Edition[] = [
   edition('skyline', 'Skyline', 'A fast flight through a city at night, up to the logo.', 'b19f1950-7276-4a0a-a744-2de2a760c34f', 3.95),
   edition('origami', 'Origami', 'Dark paper folds itself into the U, then it lights up.', '99497770-0c6d-4e59-95df-0265cdac0735', 3.95),
   edition('portal', 'Portal', 'A cracked phone screen gives way to a vortex that opens on the logo.', '8e9d89bc-f798-4196-af4f-400838d99ae5', 3.95),
-  edition('restoration', 'Clean Slate', 'A stained, cracked wall cleans back to the logo.', '14c4fc3e-1476-4364-9d4a-6f1dd6d267c5', 3.95),
   edition('magnet', 'Magnet', 'Scattered beads are pulled together into the logo.', '0737511e-1b52-4b58-aab7-756189148826', 3.45),
 ]
 

@@ -2,6 +2,8 @@ import { MargotPhoneLine } from '@/components/public/margot-phone-line'
 import { COMPANY_NAME, companyAbnLabel } from '@/lib/legal/company'
 import { readMargotPhoneNumber } from '@/lib/margot/phone-line'
 
+import { SiteNav } from '@/components/public/site-nav'
+
 import { formatAud, stripePaymentLink } from '../../grow/packages'
 import { EDITIONS } from '../editions'
 import { PAYMENT_ENTITY_LINE } from '../payment-entity'
@@ -20,7 +22,7 @@ export const CARD_TIERS = [
     id: 'ready',
     name: 'Ready-made',
     priceAud: 249,
-    line: 'Pick one of the ten card films below. It ends on your logo and details.',
+    line: 'Pick one of the nine card films below. It ends on your logo and details.',
     paymentLinkEnv: 'STRIPE_PAYMENT_LINK_CARD_READY',
   },
   {
@@ -67,7 +69,7 @@ export function OrderView({ edition, referrer }: { edition: string | null; refer
         { value: 'One-off', label: 'GST included, no subscription' },
       ]
     : [
-        { value: 'Ten films', label: 'to choose from' },
+        { value: 'Nine films', label: 'to choose from' },
         { value: 'Your logo', label: 'at the end of every film' },
         { value: 'Private proof', label: 'before anything goes live' },
         { value: 'Nothing charged', label: 'on this page' },
@@ -75,6 +77,7 @@ export function OrderView({ edition, referrer }: { edition: string | null; refer
 
   return (
     <div className={s.page}>
+      <SiteNav />
       <header className={s.header}>
         <div className={`${s.wrap} ${s.headerRow}`}>
           <span className={s.wordmark}>UNITE GROUP</span>
@@ -86,13 +89,13 @@ export function OrderView({ edition, referrer }: { edition: string | null; refer
         </div>
       </header>
 
-      <main>
+      <main id="main">
         <section className={`${s.wrap} ${s.hero}`}>
           <div>
             <p className={s.eyebrow}>LIVING BUSINESS CARD</p>
             <h1 className={s.title}>Get your own living card</h1>
             <p className={s.lead}>
-              A short film that ends on your logo and contact details. Pick one of our ten, or have one made for your business.
+              A short film that ends on your logo and contact details. Pick one of our nine, or have one made for your business.
             </p>
             <div className={s.heroActions}>
               <a href="#choose" data-track="cta" data-track-label="order-hero-choose" className={s.primary}>

@@ -79,6 +79,7 @@ describe('/ nav rules (AC-2)', () => {
   it('links only to pages or anchors that exist', async () => {
     const html = await signedOut()
     for (const { href } of navLinks(html)) {
+      if (href === 'mailto:contact@unite-group.in') continue // UNI-3034 Email us; MX checked
       if (href.startsWith('/#')) expect(html, href).toContain(`id="${href.slice(2)}"`)
       else if (href !== '/') expect(existsSync(join(__dirname, '..', href.slice(1), 'page.tsx')), href).toBe(true)
     }

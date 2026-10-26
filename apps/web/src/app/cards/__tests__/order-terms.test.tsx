@@ -4,6 +4,8 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { SiteNav } from '@/components/public/site-nav'
+
 import { OrderView } from '../order/order-view'
 
 const fixture = (n: string) => readFileSync(join(__dirname, 'fixtures', n), 'utf8')
@@ -21,6 +23,10 @@ const norm = (h: string) =>
     .replaceAll('ABN pending', 'ABN 95 691 477 844')
     // Site analytics (UNI-3001) adds data-track* attributes to CTAs and films; they are not part of this baseline.
     .replace(/ data-track(?:-[a-z-]+)?="[^"]*"/g, '')
+
+/** The shared site header (UNI-3034: /cards pages lost the site nav). Tested in site-header.test.tsx. */
+const NAV_LOGO_PRELOAD = '<link rel="preload" as="image" href="/landing/logos/unite-group-nexus-mark.webp"/>'
+const SITE_NAV_ADDITION = () => norm(renderToStaticMarkup(createElement(SiteNav))).replace(NAV_LOGO_PRELOAD, '')
 
 /** The one terms addition, in the buy box. */
 const TERMS_ADDITION =
@@ -55,7 +61,8 @@ describe('/cards/order terms link', () => {
   it.each(CASES)('is otherwise identical to the page on origin/main (%s)', (f, on, edition, ref) => {
     if (on) online()
     const html = norm(render(edition, ref))
-    const stripped = html.replace(TERMS_ADDITION, '').replace(NOTICE_ADDITION, '').replace(PAYMENT_ADDITION, '')
+    expect(html).toContain(SITE_NAV_ADDITION())
+    const stripped = html.replace(NAV_LOGO_PRELOAD, '').replace(SITE_NAV_ADDITION(), '').replace(TERMS_ADDITION, '').replace(NOTICE_ADDITION, '').replace(PAYMENT_ADDITION, '')
     expect(stripped).toBe(norm(fixture(f)))
   })
 

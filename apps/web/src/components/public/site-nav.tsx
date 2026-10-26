@@ -1,6 +1,12 @@
+import '@/styles/public-tokens.css'
+
 import { PILLARS, pillarPath } from '@/lib/public-site'
 
 import s from './public.module.css'
+
+/** The public contact address. unite-group.in has Google MX records (checked 26/10/2026, UNI-3034). */
+export const CONTACT_EMAIL = 'contact@unite-group.in'
+export const CONTACT_MAILTO = `mailto:${CONTACT_EMAIL}`
 
 // Position 0. The U mark and wordmark go to /. The first item is a keyboard-operable dropdown (details and summary: Enter or
 // Space opens it, Tab reaches each link, no script). No "Home" item, one Contact, no two links share an href.
@@ -37,6 +43,9 @@ export function SiteNav() {
               <a href="/cards">Living cards</a>
             </li>
             <li>
+              <a href="/grow">Grow your business</a>
+            </li>
+            <li>
               <a href="/#proof">See it first</a>
             </li>
             <li>
@@ -47,6 +56,11 @@ export function SiteNav() {
             </li>
             <li>
               <a href="/#contact">Contact</a>
+            </li>
+            <li>
+              <a href={CONTACT_MAILTO} data-contact-email>
+                Email us
+              </a>
             </li>
           </ul>
         </nav>
