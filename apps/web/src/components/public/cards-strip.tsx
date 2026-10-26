@@ -7,7 +7,7 @@ import { GalleryTile } from './gallery-tile'
 import g from './gallery.module.css'
 import s from './public.module.css'
 
-// Position 2: the ten edition films from public/cards/media as a gallery, poster first. Prices come from CARD_TIERS,
+// Position 2: the nine edition films from public/cards/media as a gallery, poster first. Prices come from CARD_TIERS,
 // the same constant /cards/order reads, so they cannot drift. The signature U reveal plays in the media row above.
 export function CardsStrip() {
   const films = EDITIONS.filter((e) => e.name !== 'signature')

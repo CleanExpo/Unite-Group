@@ -41,10 +41,10 @@ export function Highlights() {
             <div className={s.mediaText}>
               <h3 className={s.cardTitle}>
                 <a href="#group" className={s.stretch}>
-                  The network
+                  The group
                 </a>
               </h3>
-              <p className={s.cardLine}>Disaster Recovery and NRPG, connecting homes with restorers.</p>
+              <p className={s.cardLine}>The businesses we run on it.</p>
             </div>
           </article>
         </div>

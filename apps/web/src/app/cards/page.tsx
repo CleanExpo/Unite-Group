@@ -13,7 +13,7 @@ import { EXCLUSION_FACTS, FAQ_FACTS, HOSTING_FACTS, PRICE_NOTE, TIER_LINES } fro
 export const metadata: Metadata = {
   title: 'Living business cards | Unite Group',
   description:
-    'A business card that opens on a short film ending on your logo. See all ten editions and the signature reveal, then ask us to build yours.',
+    'A business card that opens on a short film ending on your logo. See all nine editions and the signature reveal, then ask us to build yours.',
   alternates: { canonical: 'https://unite-group.in/cards' },
   robots: { index: true, follow: true },
 }
@@ -76,7 +76,7 @@ export default function CardsShowroomPage() {
         </section>
 
         <section id="editions" className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
-          <h2 className="text-2xl font-semibold tracking-[-0.015em]">Ten editions</h2>
+          <h2 className="text-2xl font-semibold tracking-[-0.015em]">Nine editions</h2>
           <p className="mt-2 max-w-2xl text-[15px] text-stone-400">
             Every example ends on the Unite Group logo. Yours ends on your own. Each clip is AI-generated in Higgsfield and runs
             for about four seconds.

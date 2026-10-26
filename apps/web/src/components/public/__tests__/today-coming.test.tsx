@@ -21,10 +21,6 @@ const url = (name: string) => BUSINESSES.find((b) => b.name === name)!.url!
 
 const TODAY = [
   { name: 'Living business card', href: '/cards' },
-  { name: 'CARSI', href: url('CARSI') },
-  { name: 'Disaster Recovery', href: url('Disaster Recovery') },
-  { name: 'RestoreAssist', href: url('RestoreAssist') },
-  { name: 'NRPG', href: url('NRPG') },
 ]
 const COMING = ['Revenue Intelligence', 'Experience Intelligence', 'Operations Intelligence']
 

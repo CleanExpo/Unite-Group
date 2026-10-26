@@ -11,7 +11,7 @@ import { buildCardEnquiryBody } from '../order/enquiry-form'
 import { ENQUIRY_FORM_ID } from '../order/order-buy'
 import { AI_LABEL, EDITIONS, cleanRef, resolveEdition } from '../editions'
 
-const NAMES = ['signature', 'blueprint', 'forge', 'constellation', 'ink', 'rewind', 'skyline', 'origami', 'portal', 'restoration', 'magnet']
+const NAMES = ['signature', 'blueprint', 'forge', 'constellation', 'ink', 'rewind', 'skyline', 'origami', 'portal', 'magnet']
 
 const showroom = () => renderToStaticMarkup(createElement(CardsShowroomPage))
 const order = (edition: string | null, referrer: string | null = null) =>
@@ -20,7 +20,7 @@ const order = (edition: string | null, referrer: string | null = null) =>
 const checkedEditions = (html: string) => [...html.matchAll(/<input[^>]*name="edition"[^>]*>/g)].filter((m) => m[0].includes('checked')).map((m) => /value="([^"]+)"/.exec(m[0])?.[1])
 
 describe('/cards showroom', () => {
-  it('shows the signature reveal and all ten editions, each with its poster, clip and AI label', () => {
+  it('shows the signature reveal and all nine editions, each with its poster, clip and AI label', () => {
     const html = showroom()
     for (const name of NAMES) {
       const start = html.indexOf(`data-edition="${name}"`)
@@ -34,7 +34,7 @@ describe('/cards showroom', () => {
       expect(tile).toContain(e.line)
       expect(tile).toContain(`href="/cards/order?edition=${name}"`)
     }
-    expect(html.match(/data-edition="/g)).toHaveLength(11)
+    expect(html.match(/data-edition="/g)).toHaveLength(10)
   })
 
   it('serves every clip and poster from the local copy, never a CDN', () => {
@@ -168,13 +168,13 @@ describe('buildCardEnquiryBody', () => {
   it('sends the existing /api/leads contract: name, email, edition interest, card referrer', () => {
     expect(
       buildCardEnquiryBody(
-        form({ first_name: ' Sam ', email: 'sam@example.com.au', company: 'Sam Restorations', website: 'sam.com.au', edition: 'forge', message: 'Need 3 cards' }),
+        form({ first_name: ' Sam ', email: 'sam@example.com.au', company: 'Sam Cafe', website: 'sam.com.au', edition: 'forge', message: 'Need 3 cards' }),
         'phill-mcgurk',
       ),
     ).toMatchObject({
       first_name: 'Sam',
       email: 'sam@example.com.au',
-      company: 'Sam Restorations',
+      company: 'Sam Cafe',
       interests: 'living-card:forge',
       message: 'Website: sam.com.au\nNeed 3 cards',
       referral_source: 'cards:phill-mcgurk',

@@ -75,11 +75,11 @@ describe('the dark home: section order', () => {
 })
 
 describe('three big media cards', () => {
-  it('are Living cards, Nexus CRM and The network, each a title and one short caption, with real media', async () => {
+  it('are Living cards, Nexus CRM and The group, each a title and one short caption, with real media', async () => {
     const cards = blocks(between(await signedOut(), 'highlights', 'group'), 'data-media-card', 'article')
     expect(cards).toHaveLength(3)
     const titles = cards.map((c) => strip(c.match(/<h3[^>]*>([\s\S]*?)<\/h3>/)![1]))
-    expect(titles).toEqual(['Living cards', 'Nexus CRM', 'The network'])
+    expect(titles).toEqual(['Living cards', 'Nexus CRM', 'The group'])
     for (const c of cards) {
       expect(c.match(/<p[ >]/g)).toHaveLength(1)
     }
@@ -94,14 +94,13 @@ describe('three big media cards', () => {
   })
 })
 
-describe('six business tiles with the approved logos', () => {
-  it('shows the six tiles in order, each a link, with real logos and the NRPG and Trade Hall symbols that are the approved files', async () => {
+describe('business tiles with the approved logos', () => {
+  it('shows the tiles in order, each a link, with real logos and the Trade Hall symbol that is the approved file, and no restoration-industry business', async () => {
     const tiles = blocks(await signedOut(), 'data-tile', 'li')
-    expect(tiles).toHaveLength(6)
-    expect(tiles.map((t) => t.replace(/<[^>]*>/g, ' ').trim().split(/\s+/)[0])).toEqual(['Synthex', 'CARSI', 'Disaster', 'NRPG', 'Trade', 'RestoreAssist'])
-    const nrpg = tiles.find((t) => t.includes('NRPG'))!
+    expect(tiles).toHaveLength(2)
+    expect(tiles.map((t) => t.replace(/<[^>]*>/g, ' ').trim().split(/\s+/)[0])).toEqual(['Synthex', 'Trade'])
     expect(tiles.find((t) => t.includes('Trade Hall'))).toContain('src="/landing/logos/trade-hall-floor-symbol-dark.svg"')
-    expect(nrpg).toContain('src="/landing/logos/nrpg-reveal-symbol-dark.svg"')
+    expect(tiles.join(' ')).not.toMatch(/carsi|disaster|nrpg|restor/i)
     for (const t of tiles) {
       expect(t).toMatch(/<a [^>]*href="https:\/\//)
       const src = t.match(/<img[^>]*src="([^"]+)"/)?.[1]
@@ -112,13 +111,13 @@ describe('six business tiles with the approved logos', () => {
 })
 
 describe('the living cards gallery', () => {
-  it('shows the ten edition films, poster first and labelled AI-generated, with an orange From $249 button', async () => {
+  it('shows the nine edition films, poster first and labelled AI-generated, with an orange From $249 button', async () => {
     const html = await signedOut()
     const cards = between(html, 'cards', 'pillars')
     const tiles = blocks(cards, 'data-gallery-tile', 'a')
-    expect(tiles).toHaveLength(10)
+    expect(tiles).toHaveLength(9)
     const names = tiles.map((t) => t.match(/data-gallery-tile="([a-z]+)"/)![1])
-    expect(names).toEqual(['blueprint', 'forge', 'constellation', 'ink', 'rewind', 'skyline', 'origami', 'portal', 'restoration', 'magnet'])
+    expect(names).toEqual(['blueprint', 'forge', 'constellation', 'ink', 'rewind', 'skyline', 'origami', 'portal', 'magnet'])
     for (const t of tiles) {
       const poster = t.match(/<img[^>]*src="([^"]+)"/)?.[1]
       expect(poster, t).toBeTruthy()
@@ -210,7 +209,7 @@ describe('images come from one map, and no file appears twice', () => {
   // Phill 25/10/2026: the same image must not appear in more than one place on the home page.
   // WHAT THIS SCANS: every CONTENT file the home renders, that is each <img>, <video> and <source> tag (src, srcset, poster)
   // in the rendered home markup, plus every url() in the component stylesheets: the film posters, the three media cards,
-  // the ten gallery stills, and the job, step and banner pictures. One tag is one reference, so an img with a src and a
+  // the nine gallery stills, and the job, step and banner pictures. One tag is one reference, so an img with a src and a
   // srcset counts once. A file used by two tags fails, in the same section or in two.
   // WHAT IT SKIPS: files under /landing/logos/ (the business logos and the nav mark). A logo is the brand's mark, not a
   // picture, and may appear once in the tiles and once in any business list (Phill 25/10/2026).
@@ -240,7 +239,7 @@ describe('images come from one map, and no file appears twice', () => {
     for (const f of readdirSync(join(__dirname, '..', '..', 'components', 'public')).filter((n) => n.endsWith('.css'))) {
       for (const x of readFileSync(join(__dirname, '..', '..', 'components', 'public', f), 'utf8').matchAll(/url\(\s*['"]?([^'")]+)/g)) note([x[1]], `css:${f}`)
     }
-    expect([...files.keys()].filter((f) => f.includes("/cards/media/edition-")).length, "positive control: the ten gallery posters were scanned").toBe(10)
+    expect([...files.keys()].filter((f) => f.includes("/cards/media/edition-")).length, "positive control: the nine gallery posters were scanned").toBe(9)
     const repeated = [...files].filter(([, where]) => where.length > 1).map(([file, where]) => `${file} used ${where.length} times (${where.join(', ')})`)
     expect(repeated).toEqual([])
   })
