@@ -22,9 +22,12 @@ const norm = (h: string) =>
     // Site analytics (UNI-3001) adds data-track* attributes to CTAs and films; they are not part of this baseline.
     .replace(/ data-track(?:-[a-z-]+)?="[^"]*"/g, '')
 
-/** The one terms addition, in the buy box. */
-const TERMS_ADDITION =
+/** The one terms addition, in the buy box. 'By paying' only while there is something to pay (PC-UG-FUNNEL-CHECK, J3). */
+const TERMS_ONLINE =
   '<p class="_chosen">By paying you agree to our order terms. <a href="/cards/terms" class="_navLink">Order terms</a></p>'
+const TERMS_OFFLINE =
+  '<p class="_chosen">Our order terms apply when we build your card. <a href="/cards/terms" class="_navLink">Order terms</a></p>'
+const terms = (on: boolean) => (on ? TERMS_ONLINE : TERMS_OFFLINE)
 /** The CARSI Pty Ltd payment line under each Order button (UNI-3017). */
 const PAYMENT_ADDITION = /<p class="_payEntity">[^<]*<\/p>/g
 /** The shared APP 5 notice, inside the enquiry form directly before the submit button. */
@@ -49,13 +52,18 @@ describe('/cards/order terms link', () => {
     if (on) online()
     const html = render(edition, ref)
     expect(html.match(/href="\/cards\/terms"/g)).toHaveLength(1)
-    expect(norm(html)).toContain(TERMS_ADDITION)
+    expect(norm(html)).toContain(terms(on))
+  })
+
+  it.each(CASES)('says "By paying" only when the pay buttons are live (%s)', (_f, on, edition, ref) => {
+    if (on) online()
+    expect(render(edition, ref).includes('By paying')).toBe(on)
   })
 
   it.each(CASES)('is otherwise identical to the page on origin/main (%s)', (f, on, edition, ref) => {
     if (on) online()
     const html = norm(render(edition, ref))
-    const stripped = html.replace(TERMS_ADDITION, '').replace(NOTICE_ADDITION, '').replace(PAYMENT_ADDITION, '')
+    const stripped = html.replace(terms(on), '').replace(NOTICE_ADDITION, '').replace(PAYMENT_ADDITION, '')
     expect(stripped).toBe(norm(fixture(f)))
   })
 
