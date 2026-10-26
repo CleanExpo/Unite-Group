@@ -121,16 +121,18 @@ export default function LoginPage() {
     setLinkLoading(true);
     const callbackUrl = new URL("/api/auth/callback", window.location.origin);
     callbackUrl.searchParams.set("next", redirectPath);
-    const { error } = await getSupabase().auth.signInWithOtp({
-      email,
-      options: buildEmailLinkOptions(callbackUrl.toString()),
-    });
+    // Deliberately ignore the result: success and "no such account" must look
+    // identical in the UI so this form cannot be used to enumerate accounts.
+    await getSupabase()
+      .auth.signInWithOtp({
+        email,
+        options: buildEmailLinkOptions(callbackUrl.toString()),
+      })
+      .catch(() => undefined);
     setLinkLoading(false);
-    if (error) {
-      setError(error.message);
-      return;
-    }
-    setNotice("Check your email for a sign-in link. Open it in this browser.");
+    setNotice(
+      "If an account exists for that email, a sign-in link is on its way. Open it in this browser.",
+    );
   }
 
   async function handleGoogleSignIn() {
