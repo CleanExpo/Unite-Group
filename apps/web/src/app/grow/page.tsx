@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { COMPANY_NAME, companyAbnLabel } from '@/lib/legal/company'
 
 import { LeadForm } from './lead-form'
+import { liveCardOffers } from './living-card'
 import { GROW_PACKAGES, formatAud, paymentLinkFor, serializeJsonLd } from './packages'
 
 const PAGE_URL = 'https://unite-group.in/grow'
@@ -45,6 +46,7 @@ function jsonLd() {
 }
 
 export default function GrowPage() {
+  const cardOffers = liveCardOffers()
   return (
     <div className="min-h-screen bg-[#fbfaf6] text-stone-900">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd()) }} />
@@ -120,6 +122,32 @@ export default function GrowPage() {
             })}
           </div>
         </section>
+
+        {cardOffers.length > 0 && (
+          <section id="living-card" className="mx-auto max-w-6xl px-6 pb-16">
+            <h2 className="text-2xl font-semibold tracking-[-0.015em]">Living Business Card</h2>
+            <p className="mt-2 text-[15px] text-stone-600">A short film that works as your business card. Prices in AUD, one-off, GST included.</p>
+            <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+              {cardOffers.map((offer) => (
+                <article key={offer.id} data-card-offer={offer.id} className="flex flex-col rounded-sm border border-stone-200 bg-white p-6">
+                  <h3 className="text-lg font-semibold">{offer.name}</h3>
+                  {offer.priceAud > 0 && (
+                    <p className="mt-3">
+                      <span className="text-3xl font-semibold tracking-[-0.02em]">{formatAud(offer.priceAud)}</span>
+                      <span className="text-[15px] text-stone-500">{offer.id === 'extra_business' ? ' each' : ''} inc GST</span>
+                    </p>
+                  )}
+                  <p className="mt-3 text-[15px] text-stone-600">{offer.line}</p>
+                  <div className="mt-auto pt-6">
+                    <a href={offer.link} className="inline-flex min-h-11 w-full items-center justify-center rounded-sm bg-green-700 px-5 text-[14px] font-semibold text-white hover:bg-green-800">
+                      Buy {offer.name}
+                    </a>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="border-y border-stone-200 bg-white">
           <div className="mx-auto grid max-w-6xl gap-8 px-6 py-14 md:grid-cols-3">
