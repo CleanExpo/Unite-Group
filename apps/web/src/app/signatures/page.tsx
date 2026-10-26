@@ -6,12 +6,12 @@ import s from '@/components/public/public.module.css'
 import { SiteFooter } from '@/components/public/site-footer'
 import { SiteNav } from '@/components/public/site-nav'
 import { formatAud } from '@/app/grow/packages'
-import { SIGNATURE_ADDON } from '@/lib/public-pricing'
+import { PLUS_GST, SIGNATURE_ADDON } from '@/lib/public-pricing'
 import { CONTACT_EMAIL, SITE_URL } from '@/lib/public-site'
 
 export const metadata: Metadata = {
   title: 'Email signatures | Unite Group',
-  description: `Branded email signatures for your team, ${formatAud(SIGNATURE_ADDON.priceAud)} each, introduced by Margot.`,
+  description: `Branded email signatures for your team, ${formatAud(SIGNATURE_ADDON.priceAud)} each (${PLUS_GST}), introduced by Margot.`,
   alternates: { canonical: `${SITE_URL}/signatures` },
   robots: { index: true, follow: true },
 }
@@ -30,7 +30,7 @@ export default function SignaturesPage() {
         </nav>
         <p className={s.eyebrow}>Add-on</p>
         <h1 className={s.h1}>Email signatures, {formatAud(SIGNATURE_ADDON.priceAud)} each</h1>
-        <p className={s.lead}>{SIGNATURE_ADDON.line}</p>
+        <p className={s.lead}>{SIGNATURE_ADDON.line} Prices are {PLUS_GST}.</p>
 
         <section aria-labelledby="margot-title">
           <h2 id="margot-title" className={s.h2}>Meet Margot</h2>

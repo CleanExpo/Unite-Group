@@ -49,6 +49,16 @@ describe('/pricing (UNI-3017)', () => {
     expect(html).toContain('href="/cards/order"')
     expect(html).not.toMatch(/buy\.stripe\.com|checkout\.stripe/)
   })
+  it('says the plan prices are plus GST and invites an enquiry, since there is no plan checkout', () => {
+    const t = text(renderToStaticMarkup(<PricingPage />))
+    expect(t).toContain('$99 a month, plus GST')
+    expect(t).toContain('$22 each, plus GST')
+    expect(t).toContain('Ask about Starter')
+    expect(pricingMeta.description).toContain('plus GST')
+    const llms = readFileSync(join(root, 'public', 'llms.txt'), 'utf8')
+    expect(llms).not.toMatch(/on sale/i)
+    expect(llms).toContain('Both exclude GST')
+  })
   it('is canonical and never names the restoration sister companies', () => {
     expect(pricingMeta.alternates?.canonical).toBe('https://unite-group.in/pricing')
     expect(renderToStaticMarkup(<PricingPage />)).not.toMatch(/Disaster Recovery|NRPG|RestoreAssist|CARSI|PI CEO/)

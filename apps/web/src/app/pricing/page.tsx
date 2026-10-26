@@ -6,12 +6,12 @@ import s from '@/components/public/public.module.css'
 import { SiteFooter } from '@/components/public/site-footer'
 import { SiteNav } from '@/components/public/site-nav'
 import { formatAud } from '@/app/grow/packages'
-import { cardFromAud, SIGNATURE_ADDON, STARTER_PLAN } from '@/lib/public-pricing'
+import { cardFromAud, PLUS_GST, SIGNATURE_ADDON, STARTER_PLAN } from '@/lib/public-pricing'
 import { SITE_URL } from '@/lib/public-site'
 
 export const metadata: Metadata = {
   title: 'Pricing | Unite Group',
-  description: `Starter plan ${formatAud(STARTER_PLAN.priceAud)} a month. Add email signatures at ${formatAud(SIGNATURE_ADDON.priceAud)} each and order a living business card.`,
+  description: `Starter plan ${formatAud(STARTER_PLAN.priceAud)} a month and email signatures at ${formatAud(SIGNATURE_ADDON.priceAud)} each, ${PLUS_GST}. Ask us to start.`,
   alternates: { canonical: `${SITE_URL}/pricing` },
   robots: { index: true, follow: true },
 }
@@ -34,16 +34,16 @@ export default function PricingPage() {
 
         <section aria-labelledby="plan-title" data-plan="starter">
           <h2 id="plan-title" className={s.h2}>{STARTER_PLAN.name}</h2>
-          <p><strong>{formatAud(STARTER_PLAN.priceAud)}</strong> a {STARTER_PLAN.period}</p>
+          <p><strong>{formatAud(STARTER_PLAN.priceAud)}</strong> a {STARTER_PLAN.period}, {PLUS_GST}</p>
           <p>{STARTER_PLAN.line}</p>
-          <a href="/#contact" className={s.buttonPrimary}>Start with Starter</a>
+          <a href="/#contact" className={s.buttonPrimary}>Ask about Starter</a>
         </section>
 
         <section aria-labelledby="addons-title">
           <h2 id="addons-title" className={s.h2}>Add-ons</h2>
           <ul className={s.bullets}>
             <li data-addon="signatures">
-              <a href={SIGNATURE_ADDON.href}><strong>{SIGNATURE_ADDON.name}</strong></a>: {formatAud(SIGNATURE_ADDON.priceAud)} {SIGNATURE_ADDON.unit}. {SIGNATURE_ADDON.line}
+              <a href={SIGNATURE_ADDON.href}><strong>{SIGNATURE_ADDON.name}</strong></a>: {formatAud(SIGNATURE_ADDON.priceAud)} {SIGNATURE_ADDON.unit}, {PLUS_GST}. {SIGNATURE_ADDON.line}
             </li>
             <li data-addon="card">
               <a href="/cards"><strong>Living business card</strong></a>
