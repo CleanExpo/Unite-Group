@@ -55,6 +55,12 @@ describe('POST /api/founder/design-events', () => {
     expect(inserts[0]).toMatchObject({ founder_id: 'founder-1', template: 'forge', reason: 'too dark' })
   })
 
+  it('503 when PostgREST has no design_events in its schema cache (PGRST205)', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'founder-1' } as never)
+    insertError = { code: 'PGRST205', message: "Could not find the table 'public.design_events' in the schema cache" }
+    expect((await post({ system: 'card', template: 'forge', action: 'chosen' })).status).toBe(503)
+  })
+
   it('503 when the table is not migrated yet', async () => {
     vi.mocked(getUser).mockResolvedValue({ id: 'founder-1' } as never)
     insertError = { code: '42P01', message: 'relation does not exist' }

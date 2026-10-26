@@ -22,6 +22,19 @@ describe('/cards/order default film', () => {
     expect(loadPreferredEdition).not.toHaveBeenCalled()
   })
 
+  it('a present but unknown ?edition= never falls through to the learned film', async () => {
+    vi.mocked(loadPreferredEdition).mockClear()
+    vi.mocked(loadPreferredEdition).mockResolvedValue('blueprint')
+    expect((await render({ edition: 'bogus' })).edition).toBeNull()
+    expect((await render({ edition: '<script>' })).edition).toBeNull()
+    expect(loadPreferredEdition).not.toHaveBeenCalled()
+  })
+
+  it('an empty ?edition= counts as absent', async () => {
+    vi.mocked(loadPreferredEdition).mockResolvedValue('blueprint')
+    expect((await render({ edition: '' })).edition).toBe('blueprint')
+  })
+
   it('keeps today’s behaviour (nothing chosen) without a lesson', async () => {
     vi.mocked(loadPreferredEdition).mockResolvedValue(null)
     expect((await render({})).edition).toBeNull()

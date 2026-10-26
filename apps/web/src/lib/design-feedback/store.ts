@@ -6,9 +6,12 @@ import type { DesignEvent, DesignLesson } from './lessons'
 
 type Client = Pick<SupabaseClient, 'from'>
 
-/** Postgres 42P01: the table is not migrated yet. */
+/** The table is not migrated yet: Postgres 42P01, or PostgREST PGRST205 (not in its schema cache). */
+const TABLE_MISSING_CODES = new Set(['42P01', 'PGRST205'])
 export function isUndefinedTable(error: unknown): boolean {
-  return Boolean(error && typeof error === 'object' && (error as { code?: string }).code === '42P01')
+  if (!error || typeof error !== 'object') return false
+  const code = (error as { code?: unknown }).code
+  return typeof code === 'string' && TABLE_MISSING_CODES.has(code)
 }
 
 export async function recordDesignEvent(client: Client, founderId: string, event: DesignEvent) {

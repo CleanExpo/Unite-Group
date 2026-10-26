@@ -55,6 +55,7 @@ describe('store', () => {
 
   it('recognises a missing table', () => {
     expect(isUndefinedTable({ code: '42P01' })).toBe(true)
+    expect(isUndefinedTable({ code: 'PGRST205' })).toBe(true)
     expect(isUndefinedTable({ code: '23505' })).toBe(false)
   })
 })
