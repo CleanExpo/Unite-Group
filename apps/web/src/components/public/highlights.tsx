@@ -37,6 +37,10 @@ export function Highlights() {
                 </a>
               </h3>
               <p className={s.cardLine}>The CRM we are building to run your marketing.</p>
+              {/* Not for sale yet: labelled Coming like every future item on the page (Phill, 25/10/2026). */}
+              <span className={s.chip} data-chip="coming">
+                Coming
+              </span>
             </div>
           </article>
           <article className={s.mediaCard} data-media-card>
