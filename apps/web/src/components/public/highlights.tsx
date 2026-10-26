@@ -1,3 +1,6 @@
+import { formatAud } from '@/app/grow/packages'
+import { PLUS_GST, SIGNATURE_ADDON, STARTER_PLAN } from '@/lib/public-pricing'
+
 import { CARD_FILM } from './film-config'
 import { FilmPlayer } from './film-player'
 import s from './public.module.css'
@@ -44,7 +47,7 @@ export function Highlights() {
                   Pricing
                 </a>
               </h3>
-              <p className={s.cardLine}>Starter $99 a month, with email signatures at $22 each.</p>
+              <p className={s.cardLine}>Starter {formatAud(STARTER_PLAN.priceAud)} a month, signatures {formatAud(SIGNATURE_ADDON.priceAud)} each, {PLUS_GST}.</p>
             </div>
           </article>
         </div>

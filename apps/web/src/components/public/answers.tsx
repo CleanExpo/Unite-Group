@@ -1,5 +1,6 @@
 import { CARD_TIERS } from '@/app/cards/order/order-view'
 import { formatAud } from '@/app/grow/packages'
+import { PLUS_GST, SIGNATURE_ADDON, STARTER_PLAN } from '@/lib/public-pricing'
 import { CONTACT_EMAIL, PRICE_NOTE } from '@/lib/public-site'
 
 import s from './public.module.css'
@@ -15,7 +16,7 @@ export function answers() {
     },
     {
       q: 'What does it cost?',
-      a: `${ready.name} is ${formatAud(ready.priceAud)} and ${custom.name} is ${formatAud(custom.priceAud)}. ${PRICE_NOTE}. The card has no monthly fee. Our Starter plan is a separate monthly service, $99 a month, with email signatures at $22 each on our pricing page.`,
+      a: `${ready.name} is ${formatAud(ready.priceAud)} and ${custom.name} is ${formatAud(custom.priceAud)}. ${PRICE_NOTE}. The card has no monthly fee. Our Starter plan is a separate monthly service, ${formatAud(STARTER_PLAN.priceAud)} a month, with email signatures at ${formatAud(SIGNATURE_ADDON.priceAud)} each, both ${PLUS_GST}, on our pricing page.`,
     },
     {
       q: 'Is the film made with AI?',
