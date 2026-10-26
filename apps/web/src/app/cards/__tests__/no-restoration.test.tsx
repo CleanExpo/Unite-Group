@@ -15,19 +15,32 @@ import { PAYMENT_ENTITY_LINE } from '../payment-entity'
  * Phill's hard rule (26/10/2026): the Unite-Group website never shows his own businesses or restoration,
  * training, CARSI, Disaster Recovery, NRPG or RestoreAssist content. These are the public card routes.
  * The one allowed mention is CARSI Pty Ltd as the related company that takes card payments (founder decision
- * 26/10/2026). Only these exact payment sentences are removed before the scan; any other sentence naming CARSI
- * still fails.
+ * 26/10/2026). Only these exact payment sentences are removed before the scan, and only where they belong; any
+ * other sentence naming CARSI, or a payment sentence anywhere else, still fails.
  */
 const BANNED = /restor|training|disaster\s*recovery|nrpg|restoreassist|synthex|trade\s*hall|carsi/i
 // Fixed here, not imported: an edit to the production constant must not widen its own exemption.
 const APPROVED_PAYMENT_LINE = 'Payment is taken by our related company CARSI Pty Ltd, which appears on your statement.'
-const ALLOWED_PAYMENT_SENTENCES = [
-  APPROVED_PAYMENT_LINE,
+const TERMS_PAYMENT_LINES = [
   'Payment is processed by our related company, CARSI Pty Ltd.',
   'Our related company CARSI Pty Ltd handles your payment and sees your payment details.',
 ]
+const ALLOWED_PAYMENT_SENTENCES = [APPROVED_PAYMENT_LINE, ...TERMS_PAYMENT_LINES]
 
-const withoutAllowed = (text: string) => ALLOWED_PAYMENT_SENTENCES.reduce((t, s) => t.split(s).join(' '), text)
+/**
+ * Where each payment sentence may appear: beside the pay buttons on /cards/order and in the order terms. Keyed by
+ * route file for the render scan and by source file for the source scan; every other route and file allows none.
+ */
+const PAYMENT_ROUTES: Record<string, readonly string[]> = {
+  'order/page.tsx': [APPROVED_PAYMENT_LINE],
+  'terms/page.tsx': TERMS_PAYMENT_LINES,
+}
+const PAYMENT_SOURCES: Record<string, readonly string[]> = {
+  'app/cards/payment-entity.ts': [APPROVED_PAYMENT_LINE],
+  'app/cards/terms/terms-content.ts': TERMS_PAYMENT_LINES,
+}
+
+const withoutAllowed = (text: string, allowed: readonly string[]) => allowed.reduce((t, s) => t.split(s).join(' '), text)
 
 // Compatibility forms fold to plain letters; every default-ignorable code point (format controls, joiners,
 // variation selectors, Hangul fillers) and every combining mark goes.
@@ -52,13 +65,13 @@ const visibleText = (html: string, sep: string) => {
 /**
  * Scans the markup itself (attributes and hidden nodes included) and the visible text twice: text nodes joined
  * directly, so a word split by inline markup joins back up, and joined by spaces, so a phrase split across
- * elements still reads as one.
+ * elements still reads as one. `allowed` names the payment sentences this place may show; the default is none.
  */
-const scan = (html: string) => {
+const scan = (html: string, allowed: readonly string[] = []) => {
   const views = [
-    fold(withoutAllowed(new DOMParser().parseFromString(html, 'text/html').body.innerHTML)),
-    lettersOnly(withoutAllowed(visibleText(html, ''))),
-    lettersOnly(withoutAllowed(visibleText(html, ' '))),
+    fold(withoutAllowed(new DOMParser().parseFromString(html, 'text/html').body.innerHTML, allowed)),
+    lettersOnly(withoutAllowed(visibleText(html, ''), allowed)),
+    lettersOnly(withoutAllowed(visibleText(html, ' '), allowed)),
   ]
   for (const view of views) {
     const hit = BANNED.exec(view)?.[0]
@@ -196,7 +209,7 @@ describe('public card routes carry no restoration or sister-business content', (
     if (on) online()
     const { page, meta } = await renderRoute(path, params)
     expect(page, 'positive control: the page rendered').toContain(shows)
-    expect(scan(page)).toBeNull()
+    expect(scan(page, PAYMENT_ROUTES[path] ?? [])).toBeNull()
     expect(scan(meta)).toBeNull()
   })
 
@@ -221,7 +234,7 @@ describe('public card routes carry no restoration or sister-business content', (
     // Positive control: the walk reached the client forms whose sent and error states never render on the server.
     for (const f of ['app/cards/order/enquiry-form.tsx', 'app/cards/order/extra-business.tsx', 'app/cards/thanks/intake-form.tsx'])
       expect(files, f).toContain(f)
-    for (const f of files) expect(scan(shippedText(f, readFileSync(join(SRC, f), 'utf8'))), f).toBeNull()
+    for (const f of files) expect(scan(shippedText(f, readFileSync(join(SRC, f), 'utf8')), PAYMENT_SOURCES[f] ?? []), f).toBeNull()
   })
 
   it('the edition list itself', () => {
@@ -235,12 +248,12 @@ describe('public card routes carry no restoration or sister-business content', (
     expect(page, 'positive control: the picker rendered').toContain('name="edition"')
     // Pay buttons, and the payment line under each, show only when the payment links are set.
     if (on) expect(page, 'positive control: the payment line rendered').toContain(PAYMENT_ENTITY_LINE)
-    expect(scan(page)).toBeNull()
+    expect(scan(page, PAYMENT_ROUTES['order/page.tsx'])).toBeNull()
   })
 
   it('/cards/order?edition=restoration picks nothing and shows nothing restoration', () => {
     expect(resolveEdition('restoration')).toBeNull()
-    expect(scan(order('restoration'))).toBeNull()
+    expect(scan(order('restoration'), PAYMENT_ROUTES['order/page.tsx'])).toBeNull()
   })
 
   it('the home page film strip', () => {
@@ -250,14 +263,29 @@ describe('public card routes carry no restoration or sister-business content', (
   })
 
   it('only the exact payment sentences are allowed to name CARSI', () => {
-    for (const s of ALLOWED_PAYMENT_SENTENCES) expect(scan(`<p>${s}</p>`), s).toBeNull()
-    expect(scan(`<p>${PAYMENT_ENTITY_LINE}</p><p>Thank you</p>`)).toBeNull()
-    expect(scan('<p>Our related company CARSI Pty Ltd runs courses.</p>')).toBe('CARSI')
-    expect(scan(`<p>${PAYMENT_ENTITY_LINE} Our CARSI course</p>`)).toBe('CARSI')
-    expect(scan('<p>Payment is processed by our related company, CARSI Pty Ltd, a training provider.</p>')).not.toBeNull()
-    expect(scan('<p>CARSI Pty Ltd runs the course.</p>')).toBe('CARSI')
-    expect(scan('<p title="restoration">x</p>')).toBe('restor')
-    expect(scan('<p>Book a training course</p>')).toBe('training')
+    const all = ALLOWED_PAYMENT_SENTENCES
+    for (const s of all) expect(scan(`<p>${s}</p>`, all), s).toBeNull()
+    expect(scan(`<p>${PAYMENT_ENTITY_LINE}</p><p>Thank you</p>`, PAYMENT_ROUTES['order/page.tsx'])).toBeNull()
+    expect(scan('<p>Our related company CARSI Pty Ltd runs courses.</p>', all)).toBe('CARSI')
+    expect(scan(`<p>${PAYMENT_ENTITY_LINE} Our CARSI course</p>`, all)).toBe('CARSI')
+    expect(scan('<p>Payment is processed by our related company, CARSI Pty Ltd, a training provider.</p>', all)).not.toBeNull()
+    expect(scan('<p>CARSI Pty Ltd runs the course.</p>', all)).toBe('CARSI')
+    expect(scan('<p title="restoration">x</p>', all)).toBe('restor')
+    expect(scan('<p>Book a training course</p>', all)).toBe('training')
+  })
+
+  it('a payment sentence is allowed only on /cards/order and the terms, never on another card route or file', () => {
+    expect(Object.keys(PAYMENT_ROUTES).sort()).toEqual(['order/page.tsx', 'terms/page.tsx'])
+    expect(Object.keys(PAYMENT_SOURCES).sort()).toEqual(['app/cards/payment-entity.ts', 'app/cards/terms/terms-content.ts'])
+    const others = discoverRouteFiles().filter((path) => !PAYMENT_ROUTES[path])
+    expect(others, 'positive control: the showroom is one of the other routes').toContain('page.tsx')
+    for (const s of ALLOWED_PAYMENT_SENTENCES) {
+      expect(scan(`<p>${s}</p>`), s).toBe('CARSI')
+      for (const path of others) expect(scan(`<main><p>${s}</p></main>`, PAYMENT_ROUTES[path] ?? []), path).toBe('CARSI')
+    }
+    // Each place allows only its own sentences: no terms sentence beside the pay buttons, no pay-button line in the terms.
+    for (const s of TERMS_PAYMENT_LINES) expect(scan(`<p>${s}</p>`, PAYMENT_ROUTES['order/page.tsx']), s).toBe('CARSI')
+    expect(scan(`<p>${APPROVED_PAYMENT_LINE}</p>`, PAYMENT_ROUTES['terms/page.tsx'])).toBe('CARSI')
   })
 
   it.each([
