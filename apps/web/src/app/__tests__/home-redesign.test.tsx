@@ -85,6 +85,8 @@ describe('three big media cards', () => {
     expect(cards).toHaveLength(3)
     const titles = cards.map((c) => strip(c.match(/<h3[^>]*>([\s\S]*?)<\/h3>/)![1]))
     expect(titles).toEqual(['Living cards', 'Nexus CRM', 'Pricing'])
+    // Nexus CRM is not for sale yet, so its card says Coming; the two live cards do not.
+    expect(cards.map((c) => /data-chip="coming"[^>]*>\s*Coming\s*</.test(c))).toEqual([false, true, false])
     for (const c of cards) {
       expect(c.match(/<p[ >]/g)).toHaveLength(1)
     }
