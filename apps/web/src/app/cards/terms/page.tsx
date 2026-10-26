@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 
+import { SiteNav } from '@/components/public/site-nav'
 import { companyAbnLabel } from '@/lib/legal/company'
 
 import { CARD_ORDER_TERMS } from './terms-content'
@@ -76,10 +77,11 @@ export default function CardTermsPage() {
 
   return (
     <div className={s.page}>
+      <SiteNav />
       <nav className={s.nav} aria-label="Cards">
         <a href="/cards/order">Back to the order page</a>
       </nav>
-      <main className={s.main}>
+      <main id="main" className={s.main}>
         <article className={s.article}>{out}</article>
       </main>
     </div>

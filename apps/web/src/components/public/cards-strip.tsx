@@ -1,6 +1,8 @@
 import { EDITIONS } from '@/app/cards/editions'
 import { CARD_TIERS } from '@/app/cards/order/order-view'
 import { formatAud } from '@/app/grow/packages'
+
+import { CONTACT_MAILTO } from './site-nav'
 import { PRICE_NOTE, lowestCardPrice } from '@/lib/public-site'
 
 import { GalleryTile } from './gallery-tile'
@@ -38,6 +40,9 @@ export function CardsStrip() {
           <p className={s.priceNote}>{PRICE_NOTE}</p>
           <a href="/cards" data-track="cta" data-track-label="home-strip-see-card" className={s.buttonSecondary}>
             See the living card
+          </a>
+          <a href={CONTACT_MAILTO} data-contact-email className={s.buttonSecondary}>
+            Email us
           </a>
         </div>
       </div>

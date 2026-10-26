@@ -27,6 +27,9 @@ export function Hero() {
           <a href="#contact" data-track="cta" data-track-label="home-hero-ask-question" className={h.ghost}>
             Ask a question
           </a>
+          <a href="/grow" data-track="cta" data-track-label="home-hero-grow" className={h.ghost}>
+            Grow your business
+          </a>
         </div>
       </div>
     </section>

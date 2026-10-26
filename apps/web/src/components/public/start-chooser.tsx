@@ -7,7 +7,7 @@ const OPTIONS = [
   { key: 'discover', no: '01', name: 'Discover', href: '#group', line: 'See the six businesses and what each one does' },
   { key: 'diagnose', no: '02', name: 'Diagnose', href: '/solutions/intelligence', line: 'A check of what is holding your business back', coming: true },
   { key: 'create', no: '03', name: 'Create', href: '/cards/order', line: 'Order a living video card, from $249', paid: true },
-  { key: 'results', no: '04', name: 'Explore results', href: '/cards', line: 'Watch the ten living cards we have made' },
+  { key: 'results', no: '04', name: 'Explore results', href: '/cards', line: 'Watch the living cards we have made' },
   { key: 'talk', no: '05', name: 'Talk', href: '#contact', line: 'Ask a question and we reply by email' },
 ] as const
 

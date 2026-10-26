@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 
+import { CONTACT_MAILTO, SiteNav } from '@/components/public/site-nav'
 import { MargotPhoneLine } from '@/components/public/margot-phone-line'
 import { COMPANY_NAME, companyAbnLabel } from '@/lib/legal/company'
 import { readMargotPhoneNumber } from '@/lib/margot/phone-line'
@@ -28,9 +29,9 @@ export default function CardsShowroomPage() {
   const [signature, ...editions] = EDITIONS
   return (
     <div className="min-h-screen bg-[#0b0d10] text-stone-100">
-      <header className="border-b border-white/10">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
-          <span className="font-mono text-[13px] tracking-[0.15em] text-[#ff8a5c]">UNITE GROUP</span>
+      <SiteNav />
+      <div className="border-b border-white/10">
+        <div className="mx-auto flex max-w-6xl items-center justify-end px-4 py-4 sm:px-6">
           <a
             href="/cards/order"
             data-track="cta"
@@ -40,9 +41,9 @@ export default function CardsShowroomPage() {
             Get your own card
           </a>
         </div>
-      </header>
+      </div>
 
-      <main>
+      <main id="main">
         <section className="mx-auto grid max-w-6xl gap-10 px-4 pb-14 pt-12 sm:px-6 sm:pt-20 md:grid-cols-[1fr_minmax(0,22rem)] md:items-center">
           <div>
             <p className="font-mono text-[12px] tracking-[0.14em] text-stone-400">LIVING BUSINESS CARDS</p>
@@ -70,9 +71,29 @@ export default function CardsShowroomPage() {
               >
                 See the editions
               </a>
+              <a
+                href={CONTACT_MAILTO}
+                data-contact-email
+                className="inline-flex min-h-12 items-center rounded-sm border border-white/20 px-7 text-[15px] font-semibold text-stone-100 hover:border-white/40"
+              >
+                Email us
+              </a>
             </div>
           </div>
-          <EditionTile edition={signature} />
+          <div className="relative" data-card-qr>
+            <EditionTile edition={signature} />
+            {/* Phill 26/10/2026: the QR code sits on the card face. It encodes https://unite-group.in/cards (zbarimg-checked). */}
+            <figure className="pointer-events-none absolute bottom-14 right-3 m-0 rounded-md bg-white p-2 text-center shadow-lg">
+              <img
+                src="/cards/living-card-qr.png"
+                alt="QR code that opens unite-group.in/cards"
+                width={128}
+                height={128}
+                className="block h-32 w-32"
+              />
+              <figcaption className="mt-1 text-[11px] font-semibold leading-tight text-stone-900">Scan to open this page</figcaption>
+            </figure>
+          </div>
         </section>
 
         <section id="editions" className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
