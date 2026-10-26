@@ -56,7 +56,7 @@ docker run "${runtime_args[@]}" \
 status=$?
 set -e
 
-test "$status" -eq 2
+test "$status" -eq 0  # refusal exits 0 so Railway does not mark the deploy CRASHED (UNI-3017)
 test "$(cat "$OUTPUT_DIR/retired.log")" = \
   '[autopilot-runner] CC_LINEAR_LIVE is permanently retired; no credentials, work, Git, or network were accessed.'
 if grep -Eq 'poison-(anthropic|supabase)-secret' "$OUTPUT_DIR/retired.log"; then

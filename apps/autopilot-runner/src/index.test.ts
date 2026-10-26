@@ -21,11 +21,16 @@ describe('main (entrypoint, non-network paths)', () => {
       CRON_SECRET: 'must-not-be-used',
       GH_RUNNER_PRIVATE_KEY: 'must-not-be-used',
       ANTHROPIC_API_KEY: 'must-not-be-used',
-    })).toBe(2)
+    })).toBe(0)
     expect(log).toHaveBeenCalledExactlyOnceWith(
       '[autopilot-runner] CC_LINEAR_LIVE is permanently retired; no credentials, work, Git, or network were accessed.',
     )
     expect(log.mock.calls.flat().join(' ')).not.toMatch(/must-not-be-used/)
+  })
+
+  it('never exits non-zero, so the hosting platform does not mark the tombstone deploy CRASHED (UNI-3017)', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+    for (const v of ['1', '0', 'true', '']) expect(await main({ CC_LINEAR_LIVE: v })).toBe(0)
   })
 
   it('keeps the retired entrypoint structurally disconnected from authoring and publication modules', () => {
