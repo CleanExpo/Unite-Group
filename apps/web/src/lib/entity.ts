@@ -2,8 +2,8 @@
 // OnlineBusiness and never LocalBusiness. sameAs is left out until Phill confirms accounts;
 // no confirmed list exists in the repo (searched `sameAs` across apps/web/src, 25/10/2026).
 
-import { CARD_TIERS } from '@/app/cards/order/order-view'
 import { COMPANY_NAME } from '@/lib/legal/company'
+import { liveCardTiers } from '@/lib/public-pricing'
 import { CONTACT_EMAIL, SITE_URL } from '@/lib/public-site'
 
 export const LOGO_URL = `${SITE_URL}/logos/unite-group-nexus-logo.png`
@@ -35,8 +35,9 @@ export function websiteJsonLd() {
   }
 }
 
+/** Offers only for tiers a buyer can pay for now: structured data must not offer what cannot be bought. */
 export function cardProductsJsonLd() {
-  return CARD_TIERS.map((tier) => ({
+  return liveCardTiers().map((tier) => ({
     '@type': 'Product',
     '@id': `${SITE_URL}/cards/order#${tier.id}`,
     name: `Video business card, ${tier.name}`,

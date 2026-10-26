@@ -42,7 +42,12 @@ function navLinks(html: string) {
   return [...header.matchAll(/<a [^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)].map((m) => ({ href: m[1], text: strip(m[2]) })).filter((l) => l.href !== '#main') // the skip link is not a nav item (golive-copy.test.tsx covers it)
 }
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => {
+  vi.clearAllMocks()
+  // Card prices show only while a card payment link is live (liveCardTiers); open both by default.
+  vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', 'https://buy.stripe.com/test_ready')
+  vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_CUSTOM', 'https://buy.stripe.com/test_custom')
+})
 afterEach(() => vi.unstubAllEnvs())
 
 describe('/ nav rules (AC-2)', () => {
@@ -98,7 +103,7 @@ describe('/ hero and metadata', () => {
     expect(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1].replace(/<[^>]*>/g, '')).toBe('Every business. One system.')
     expect(String(metadata.title)).toBe('Unite Group | Every business. One system.')
     const description = String(metadata.description)
-    expect(description).toMatch(/Unite-Group Nexus is the CRM and operating system we are building to run the businesses behind it/)
+    expect(description).toMatch(/Unite Group is an AI marketing agency with Margot as its AI face/)
     expect(description).toContain('Australia and New Zealand')
     expect(`${metadata.title} ${description}`).not.toMatch(/makes video business cards|video business card/i)
     expect(`${metadata.title} ${description}`).not.toMatch(/synthex/i)
@@ -130,8 +135,8 @@ describe('/ hero and metadata', () => {
     expect(hero).not.toMatch(/living card|\$249|\$449|GST/)
     expect(hero).toContain('href="#contact"')
     expect(hero).toContain('href="#start"')
-    expect(html.indexOf('id="hero"')).toBeLessThan(html.indexOf('id="group"'))
-    expect(html.indexOf('id="group"')).toBeLessThan(html.indexOf('id="today"'))
+    expect(html).not.toContain('id="group"')
+    expect(html.indexOf('id="hero"')).toBeLessThan(html.indexOf('id="today"'))
     expect(html.indexOf('id="today"')).toBeLessThan(html.indexOf('id="cards"'))
     expect(html.indexOf('id="cards"')).toBeLessThan(html.indexOf('id="pillars"'))
     const cards = html.slice(html.indexOf('id="cards"'), html.indexOf('id="pillars"'))
@@ -158,6 +163,15 @@ describe('/ pillars and honesty', () => {
     expect(row.match(/Card from \$249/g)).toHaveLength(1)
     expect(row).not.toMatch(/Ask us/)
     for (const p of PILLARS) expect(row).toContain(`href="${pillarPath(p.slug)}"`)
+  })
+
+  it('names no card price on the Conversion chip while online ordering is off', async () => {
+    vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', '')
+    vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_CUSTOM', '')
+    const html = await signedOut()
+    const row = html.slice(html.indexOf('id="pillars"'), html.indexOf('id="how"'))
+    expect(row.match(/Card on enquiry/g)).toHaveLength(1)
+    expect(row).not.toMatch(/Card from \$/)
   })
 
   it('has one honest proof sentence: no table, no numbers, no testimonials', async () => {

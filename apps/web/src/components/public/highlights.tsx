@@ -1,3 +1,6 @@
+import { formatAud } from '@/app/grow/packages'
+import { PLUS_GST, SIGNATURE_ADDON, STARTER_PLAN } from '@/lib/public-pricing'
+
 import { CARD_FILM } from './film-config'
 import { FilmPlayer } from './film-player'
 import s from './public.module.css'
@@ -33,18 +36,22 @@ export function Highlights() {
                   Nexus CRM
                 </a>
               </h3>
-              <p className={s.cardLine}>The CRM we are building for the group.</p>
+              <p className={s.cardLine}>The CRM we are building to run your marketing.</p>
+              {/* Not for sale yet: labelled Coming like every future item on the page (Phill, 25/10/2026). */}
+              <span className={s.chip} data-chip="coming">
+                Coming
+              </span>
             </div>
           </article>
           <article className={s.mediaCard} data-media-card>
             <div className={s.mediaBox}>{picture(VISUALS.network)}</div>
             <div className={s.mediaText}>
               <h3 className={s.cardTitle}>
-                <a href="#group" className={s.stretch}>
-                  The network
+                <a href="/pricing" className={s.stretch}>
+                  Pricing
                 </a>
               </h3>
-              <p className={s.cardLine}>Disaster Recovery and NRPG, connecting homes with restorers.</p>
+              <p className={s.cardLine}>Starter {formatAud(STARTER_PLAN.priceAud)} a month, signatures {formatAud(SIGNATURE_ADDON.priceAud)} each, {PLUS_GST}.</p>
             </div>
           </article>
         </div>

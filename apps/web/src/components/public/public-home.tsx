@@ -8,7 +8,6 @@ import { Highlights } from './highlights'
 import { HowItWorks } from './how-it-works'
 import { PillarsRow } from './pillars-row'
 import { StartChooser } from './start-chooser'
-import { Story } from './story'
 import { Proof } from './proof'
 import s from './public.module.css'
 import { SiteFooter } from './site-footer'
@@ -25,7 +24,6 @@ export function PublicHome() {
         <Hero />
         <StartChooser />
         <Highlights />
-        <Story />
         <TodayComing />
         <CardsStrip />
         <PillarsRow />

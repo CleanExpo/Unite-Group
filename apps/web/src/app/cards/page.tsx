@@ -2,11 +2,11 @@ import type { Metadata } from 'next'
 
 import { MargotPhoneLine } from '@/components/public/margot-phone-line'
 import { COMPANY_NAME, companyAbnLabel } from '@/lib/legal/company'
+import { liveCardTiers } from '@/lib/public-pricing'
 import { readMargotPhoneNumber } from '@/lib/margot/phone-line'
 
 import { EditionTile } from './edition-tile'
 import { EDITIONS } from './editions'
-import { CARD_TIERS } from './order/order-view'
 import s from './showroom.module.css'
 import { EXCLUSION_FACTS, FAQ_FACTS, HOSTING_FACTS, PRICE_NOTE, TIER_LINES } from './showroom-facts'
 
@@ -26,6 +26,7 @@ const STEPS = [
 
 export default function CardsShowroomPage() {
   const [signature, ...editions] = EDITIONS
+  const live = liveCardTiers()
   return (
     <div className="min-h-screen bg-[#0b0d10] text-stone-100">
       <header className="border-b border-white/10">
@@ -102,10 +103,10 @@ export default function CardsShowroomPage() {
 
         <section id="pricing" className={s.section}>
           <p className={s.eyebrow}>PRICE</p>
-          <h2 className={s.heading}>Two ways to get a card</h2>
-          <p className={s.note}>{PRICE_NOTE}</p>
+          <h2 className={s.heading}>{live.length > 1 ? 'Two ways to get a card' : 'Get a card'}</h2>
+          <p className={s.note}>{live.length ? PRICE_NOTE : 'Online orders are not open yet. Ask us about a card.'}</p>
           <ul className={s.tiers}>
-            {CARD_TIERS.map((tier) => (
+            {live.map((tier) => (
               <li key={tier.id} className={s.tier}>
                 <h3 className={s.tierName}>{tier.name}</h3>
                 <p className={s.price}>
