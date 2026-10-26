@@ -11,6 +11,7 @@ import CardsShowroomPage from '@/app/cards/page'
 import CardTermsPage from '@/app/cards/terms/page'
 import { OrderView } from '@/app/cards/order/order-view'
 import { PublicHome } from '@/components/public/public-home'
+import { PAYMENT_ENTITY_LINE } from '@/app/cards/payment-entity'
 import { CONTACT_MAILTO } from '@/components/public/site-nav'
 
 // Phill 26/10/2026 (UNI-3034): /grow is linked from the nav and the home page; /cards, /cards/order and /cards/terms
@@ -98,12 +99,15 @@ const visible = (html: string) =>
     .replace(/&#x27;|&#39;/g, "'")
     .replace(/\s+/g, ' ')
 const offending = (html: string) => {
-  const allowed = /Payment is (?:taken|processed) by our related company,? CARSI Pty Ltd[^.]*\./g
   const attrs = [...html.matchAll(/(?:href|src|alt|title|content|aria-label|value)="([^"]*)"/g)].map((m) => m[1])
-  return [visible(html).replace(allowed, ''), ...attrs].filter((t) => BANNED.test(t))
+  return [visible(html).replaceAll(PAYMENT_ENTITY_LINE, ''), ...attrs].filter((t) => BANNED.test(t))
 }
 
 describe('rendered public pages carry no restoration-industry content', () => {
+  it('the one allowed line is the unchanged payment-entity disclosure', () => {
+    expect(PAYMENT_ENTITY_LINE).toBe('Payment is taken by our related company CARSI Pty Ltd, which appears on your statement.')
+  })
+
   it.each(pages.slice(0, 3))('%s', async (_p, render) => {
     expect(offending(render())).toEqual([])
   })
@@ -115,6 +119,7 @@ describe('rendered public pages carry no restoration-industry content', () => {
 
   it('the guard can fail: planted copy is caught, the payment line is allowed', () => {
     expect(offending('<main><p>CARSI restoration training</p></main>')).not.toEqual([])
-    expect(offending('<p>Payment is taken by our related company CARSI Pty Ltd, which appears on your statement.</p>')).toEqual([])
+    expect(offending(`<p>${PAYMENT_ENTITY_LINE}</p>`)).toEqual([])
+    expect(offending('<p>Payment is taken by our related company CARSI Pty Ltd, and Restoration training is advertised.</p>')).not.toEqual([])
   })
 })
