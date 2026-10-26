@@ -16,10 +16,34 @@ import { PAYMENT_ENTITY_LINE } from '../payment-entity'
  * 26/10/2026). Only the legal phrase "our related company[,] CARSI Pty Ltd" is removed before the scan, so any
  * other CARSI mention, and every other banned word in the same sentence, still fails.
  */
-const BANNED = /restor|training|disaster recovery|nrpg|restoreassist|synthex|trade hall|carsi/i
+const BANNED = /restor|training|disaster\s+recovery|nrpg|restoreassist|synthex|trade\s+hall|carsi/i
 const PAYMENT_ENTITY = /\b[Oo]ur related company,? CARSI Pty Ltd\b/g
 
-const scan = (html: string) => BANNED.exec(html.replace(PAYMENT_ENTITY, ''))?.[0] ?? null
+// Entities and invisible characters can split a word in the markup while the reader still sees it whole.
+const decode = (s: string) =>
+  s
+    .replace(/&(nbsp|#160|#xa0);/gi, ' ')
+    .replace(/&shy;/gi, '')
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec: string) => String.fromCodePoint(Number(dec)))
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/[­​-‍⁠﻿]/g, '')
+
+/**
+ * Scans the markup (attributes included) and the visible text twice: with tags removed, so a word split by
+ * inline markup joins back up, and with tags as spaces, so a phrase split across elements still reads as one.
+ */
+const scan = (html: string) => {
+  const raw = decode(html)
+  for (const view of [raw, raw.replace(/<[^>]*>/g, ''), raw.replace(/<[^>]*>/g, ' ')]) {
+    const hit = BANNED.exec(view.replace(PAYMENT_ENTITY, ''))?.[0]
+    if (hit) return hit
+  }
+  return null
+}
 
 const online = () => {
   vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', 'https://buy.stripe.com/test_ready')
@@ -125,5 +149,35 @@ describe('public card routes carry no restoration or sister-business content', (
     expect(scan('<p title="restoration">x</p>')).toBe('restor')
     expect(scan('Book a training course')).toBe('training')
     expect(scan(PAYMENT_ENTITY_LINE)).toBeNull()
+  })
+
+  it.each([
+    ['Disaster', 'Recovery'],
+    ['Trade', 'Hall'],
+  ])('the scan sees "%s %s" however the markup splits it', (a, b) => {
+    for (const shape of [
+      `<p>${a} <em>${b}</em></p>`,
+      `<p>${a}&nbsp;${b}</p>`,
+      `<p>${a}&#160;${b}</p>`,
+      `<p>${a}\n   ${b}</p>`,
+      `<span>${a}</span><span>${b}</span>`,
+      `<p>${a.slice(0, 3)}<b>${a.slice(3)}</b> ${b}</p>`,
+    ])
+      expect(scan(shape), shape).not.toBeNull()
+  })
+
+  it('the scan sees single banned words split by markup, entities or invisible characters', () => {
+    for (const shape of [
+      '<p>train<strong>ing</strong></p>',
+      '<p>Re<b>store</b>Assist</p>',
+      '<p>NR<i>PG</i></p>',
+      '<p>Syn&shy;thex</p>',
+      '<p>Syn­thex</p>',
+      '<p>C&#65;RSI</p>',
+      '<p>CA&#x52;SI</p>',
+      '<p>restor​ation</p>',
+    ])
+      expect(scan(shape), shape).not.toBeNull()
+    expect(scan(`<p>${PAYMENT_ENTITY_LINE}</p><p>Thank you</p>`)).toBeNull()
   })
 })
