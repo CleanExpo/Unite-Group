@@ -1,7 +1,8 @@
-import { mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join, relative } from 'node:path'
+import { dirname, join, relative, resolve } from 'node:path'
 import { createElement } from 'react'
+import ts from 'typescript'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -18,8 +19,10 @@ import { PAYMENT_ENTITY_LINE } from '../payment-entity'
  * still fails.
  */
 const BANNED = /restor|training|disaster\s*recovery|nrpg|restoreassist|synthex|trade\s*hall|carsi/i
+// Fixed here, not imported: an edit to the production constant must not widen its own exemption.
+const APPROVED_PAYMENT_LINE = 'Payment is taken by our related company CARSI Pty Ltd, which appears on your statement.'
 const ALLOWED_PAYMENT_SENTENCES = [
-  PAYMENT_ENTITY_LINE,
+  APPROVED_PAYMENT_LINE,
   'Payment is processed by our related company, CARSI Pty Ltd.',
   'Our related company CARSI Pty Ltd handles your payment and sees your payment details.',
 ]
@@ -117,7 +120,48 @@ const ROUTES: Record<string, RouteCase[]> = {
 const renderRoute = async (path: string, params?: Record<string, string>) => {
   const mod = await import(/* @vite-ignore */ `../${path}`)
   const props = params ? { searchParams: Promise.resolve(params) } : {}
-  return { page: html(await mod.default(props)), meta: JSON.stringify(mod.metadata ?? null) }
+  return {
+    page: html(await mod.default(props)),
+    meta: JSON.stringify(mod.metadata ?? null),
+    generatesMetadata: typeof mod.generateMetadata === 'function',
+  }
+}
+
+const APP = join(__dirname, '..', '..')
+const SRC = join(APP, '..')
+const SOURCE_EXTENSIONS = ['', '.tsx', '.ts', '.jsx', '.js', '.mdx', '.md', '/index.tsx', '/index.ts', '/index.js']
+
+/**
+ * Every project source file a card route loads, following static and dynamic imports from each route file:
+ * client components, their error and sent states, CSS (which can draw text with content:), payment and terms copy.
+ * Package imports are skipped; '@/' resolves to src/.
+ */
+/** What a source file can put on a page: code with its comments removed (strings and JSX text kept), or CSS without comments. */
+const shippedText = (file: string, text: string) =>
+  file.endsWith('.css')
+    ? text.replace(/\/\*[\s\S]*?\*\//g, ' ')
+    : ts.transpileModule(text, {
+        fileName: file,
+        compilerOptions: { removeComments: true, jsx: ts.JsxEmit.Preserve, target: ts.ScriptTarget.ESNext },
+      }).outputText
+
+const reachableSources = (routeFiles: string[]) => {
+  const seen = new Set<string>()
+  const queue = routeFiles.map((f) => join(APP, 'cards', f))
+  while (queue.length) {
+    const file = queue.pop() as string
+    if (seen.has(file)) continue
+    seen.add(file)
+    const text = readFileSync(file, 'utf8')
+    for (const [, spec] of text.matchAll(/(?:from|import)\s*\(?\s*['"]([^'"]+)['"]/g)) {
+      const base = spec.startsWith('@/') ? join(SRC, spec.slice(2)) : spec.startsWith('.') ? resolve(dirname(file), spec) : null
+      if (!base) continue
+      const hit = SOURCE_EXTENSIONS.map((ext) => base + ext).find((p) => existsSync(p) && statSync(p).isFile())
+      expect(hit, `${relative(SRC, file)} imports ${spec}, which the guard cannot find`).toBeDefined()
+      queue.push(hit as string)
+    }
+  }
+  return [...seen].map((f) => relative(SRC, f).split('\\').join('/')).sort()
 }
 
 // An unregistered file still gets one bare render and scan; the inventory leg fails it regardless.
@@ -134,7 +178,10 @@ describe('public card routes carry no restoration or sister-business content', (
   it('route discovery finds every route file name and extension Next.js serves', () => {
     const root = mkdtempSync(join(tmpdir(), 'cards-routes-'))
     try {
-      const routeFiles = ['page.js', 'a/page.jsx', 'b/page.ts', 'c/page.tsx', 'd/page.mdx', 'layout.tsx', 'e/route.ts', 'f/not-found.js']
+      // An independent list, so a name dropped from ROUTE_FILE fails here.
+      const names = ['page', 'layout', 'template', 'default', 'loading', 'error', 'global-error', 'not-found', 'forbidden',
+        'unauthorized', 'route', 'opengraph-image', 'twitter-image', 'icon', 'apple-icon', 'sitemap', 'robots', 'manifest']
+      const routeFiles = names.flatMap((n) => ['js', 'jsx', 'ts', 'tsx', 'md', 'mdx'].map((e) => `${n}-${e}/${n}.${e}`))
       for (const f of [...routeFiles, 'g/helper.tsx', 'h/page-view.tsx', '__tests__/page.tsx']) {
         mkdirSync(dirname(join(root, f)), { recursive: true })
         writeFileSync(join(root, f), '')
@@ -151,6 +198,30 @@ describe('public card routes carry no restoration or sister-business content', (
     expect(page, 'positive control: the page rendered').toContain(shows)
     expect(scan(page)).toBeNull()
     expect(scan(meta)).toBeNull()
+  })
+
+  it('no card route builds its metadata at request time, which the render scan cannot see', async () => {
+    for (const path of discoverRouteFiles()) expect((await renderRoute(path, {})).generatesMetadata, path).toBe(false)
+  })
+
+  it('the source scan drops comments but keeps strings, JSX text and CSS content', () => {
+    const code = "// Synthex kit\n/* restoration */ const u = 'https://x.test/a'; const t = <p>Restoration</p>"
+    expect(scan(shippedText('x.tsx', code))).toBe('Restor')
+    expect(scan(shippedText('x.tsx', "// Synthex kit\nconst u = 'https://x.test/training'"))).toBe('training')
+    expect(scan(shippedText('x.tsx', '// Synthex kit\n/* NRPG */ const a = 1'))).toBeNull()
+    expect(scan(shippedText('x.module.css', '/* CARSI */ .a::before { content: "CARSI" }'))).toBe('CARSI')
+  })
+
+  it('the payment line on /cards/order is the approved sentence, word for word', () => {
+    expect(PAYMENT_ENTITY_LINE).toBe(APPROVED_PAYMENT_LINE)
+  })
+
+  it('every source file the card routes load, including client-only form states and CSS', () => {
+    const files = reachableSources(discoverRouteFiles())
+    // Positive control: the walk reached the client forms whose sent and error states never render on the server.
+    for (const f of ['app/cards/order/enquiry-form.tsx', 'app/cards/order/extra-business.tsx', 'app/cards/thanks/intake-form.tsx'])
+      expect(files, f).toContain(f)
+    for (const f of files) expect(scan(shippedText(f, readFileSync(join(SRC, f), 'utf8'))), f).toBeNull()
   })
 
   it('the edition list itself', () => {
