@@ -5,10 +5,6 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { CardsStrip } from '@/components/public/cards-strip'
-import CardsShowroomPage, { metadata as showroomMeta } from '../page'
-import CardOrderPage, { metadata as orderMeta } from '../order/page'
-import CardTermsPage, { metadata as termsMeta } from '../terms/page'
-import CardThanksPage, { metadata as thanksMeta } from '../thanks/page'
 import { OrderView } from '../order/order-view'
 import { EDITIONS, resolveEdition } from '../editions'
 import { PAYMENT_ENTITY_LINE } from '../payment-entity'
@@ -34,34 +30,72 @@ afterEach(() => vi.unstubAllEnvs())
 
 const html = (node: Parameters<typeof renderToStaticMarkup>[0]) => renderToStaticMarkup(node)
 const order = (edition: string | null) => html(createElement(OrderView, { edition, referrer: null }))
-const thanks = async (searchParams: Record<string, string>) =>
-  html(await CardThanksPage({ searchParams: Promise.resolve(searchParams) }))
+
+/** Every page.tsx under app/cards, found on disk, as a path relative to app/cards. */
+const discoverPages = () => {
+  const root = join(__dirname, '..')
+  const pages: string[] = []
+  const walk = (dir: string) => {
+    for (const name of readdirSync(dir)) {
+      const path = join(dir, name)
+      if (name === '__tests__' || name === 'node_modules') continue
+      if (statSync(path).isDirectory()) walk(path)
+      else if (name === 'page.tsx') pages.push(relative(root, path).split('\\').join('/'))
+    }
+  }
+  walk(root)
+  return pages.sort()
+}
+
+type RouteCase = { params?: Record<string, string>; shows: string | RegExp }
+
+/**
+ * The inputs each card page is rendered with, and text proving the render really happened. A new card page
+ * fails the guard until it has an entry here; the scan then renders it from its own module.
+ */
+const ROUTES: Record<string, RouteCase[]> = {
+  'page.tsx': [{ shows: 'data-edition="' }],
+  'order/page.tsx': [
+    { params: {}, shows: 'name="edition"' },
+    { params: { edition: 'restoration' }, shows: 'name="edition"' },
+  ],
+  'terms/page.tsx': [{ shows: PAYMENT_ENTITY }],
+  'thanks/page.tsx': [
+    { params: {}, shows: 'Thank you' },
+    { params: { session_id: 'cs_test_a1B2c3' }, shows: 'Thank you' },
+  ],
+}
+
+/** Imports the page at `path` itself, so the module rendered is always the one the path names. */
+const renderRoute = async (path: string, params?: Record<string, string>) => {
+  const mod = await import(/* @vite-ignore */ `../${path}`)
+  const props = params ? { searchParams: Promise.resolve(params) } : {}
+  return { page: html(await mod.default(props)), meta: JSON.stringify(mod.metadata ?? null) }
+}
+
+// An unregistered page still gets one bare render and scan; the inventory leg fails it regardless.
+const ROUTE_CASES = discoverPages().flatMap((path) =>
+  (ROUTES[path] ?? [{ shows: '' }]).flatMap((c) => [false, true].map((on) => ({ path, on, ...c }))),
+)
 
 describe('public card routes carry no restoration or sister-business content', () => {
-  it('covers every page under /cards, so a new card route must be added here', () => {
-    const root = join(__dirname, '..')
-    const pages: string[] = []
-    const walk = (dir: string) => {
-      for (const name of readdirSync(dir)) {
-        const path = join(dir, name)
-        if (name === '__tests__' || name === 'node_modules') continue
-        if (statSync(path).isDirectory()) walk(path)
-        else if (name === 'page.tsx') pages.push(relative(root, path).split('\\').join('/'))
-      }
-    }
-    walk(root)
-    expect(pages.sort()).toEqual(['order/page.tsx', 'page.tsx', 'terms/page.tsx', 'thanks/page.tsx'])
+  it('the route registry lists exactly the pages under /cards, each with at least one render', () => {
+    expect(discoverPages()).toEqual(Object.keys(ROUTES).sort())
+    for (const [path, cases] of Object.entries(ROUTES)) expect(cases.length, path).toBeGreaterThan(0)
+  })
+
+  it.each(ROUTE_CASES)('/cards/$path params=$params online=$on', async ({ path, params, shows, on }) => {
+    if (on) online()
+    const { page, meta } = await renderRoute(path, params)
+    if (typeof shows === 'string') expect(page, 'positive control: the page rendered').toContain(shows)
+    else expect(page.match(shows), 'positive control: the page rendered').not.toBeNull()
+    expect(scan(page)).toBeNull()
+    expect(scan(meta)).toBeNull()
   })
 
   it('the edition list itself', () => {
     expect(EDITIONS.length, 'positive control: editions were read').toBeGreaterThan(5)
     for (const e of EDITIONS) expect(scan(JSON.stringify(e)), e.name).toBeNull()
-  })
-
-  it('/cards showroom', () => {
-    const page = html(createElement(CardsShowroomPage))
-    expect(page, 'positive control: the showroom rendered its tiles').toContain('data-edition="')
-    expect(scan(page)).toBeNull()
   })
 
   it.each([false, true])('/cards/order with payment links online=%s', (on) => {
@@ -76,28 +110,6 @@ describe('public card routes carry no restoration or sister-business content', (
   it('/cards/order?edition=restoration picks nothing and shows nothing restoration', () => {
     expect(resolveEdition('restoration')).toBeNull()
     expect(scan(order('restoration'))).toBeNull()
-  })
-
-  it('/cards/order page wrapper', async () => {
-    const page = html(await CardOrderPage({ searchParams: Promise.resolve({ edition: 'restoration' }) }))
-    expect(page).toContain('name="edition"')
-    expect(scan(page)).toBeNull()
-  })
-
-  it('/cards/terms', () => {
-    const page = html(createElement(CardTermsPage))
-    expect(page.match(PAYMENT_ENTITY), 'positive control: the terms rendered the payment entity').not.toBeNull()
-    expect(scan(page)).toBeNull()
-  })
-
-  it.each([{}, { session_id: 'cs_test_a1B2c3' }])('/cards/thanks %o', async (params) => {
-    const page = await thanks(params)
-    expect(page).toContain('Thank you')
-    expect(scan(page)).toBeNull()
-  })
-
-  it('every card route\'s metadata', () => {
-    for (const meta of [showroomMeta, orderMeta, termsMeta, thanksMeta]) expect(scan(JSON.stringify(meta))).toBeNull()
   })
 
   it('the home page film strip', () => {
