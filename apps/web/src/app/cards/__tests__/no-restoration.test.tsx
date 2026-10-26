@@ -1,5 +1,6 @@
-import { readdirSync, statSync } from 'node:fs'
-import { join, relative } from 'node:path'
+import { mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { dirname, join, relative } from 'node:path'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -13,33 +14,51 @@ import { PAYMENT_ENTITY_LINE } from '../payment-entity'
  * Phill's hard rule (26/10/2026): the Unite-Group website never shows his own businesses or restoration,
  * training, CARSI, Disaster Recovery, NRPG or RestoreAssist content. These are the public card routes.
  * The one allowed mention is CARSI Pty Ltd as the related company that takes card payments (founder decision
- * 26/10/2026). Only the legal phrase "our related company[,] CARSI Pty Ltd" is removed before the scan, so any
- * other CARSI mention, and every other banned word in the same sentence, still fails.
+ * 26/10/2026). Only these exact payment sentences are removed before the scan; any other sentence naming CARSI
+ * still fails.
  */
-const BANNED = /restor|training|disaster\s+recovery|nrpg|restoreassist|synthex|trade\s+hall|carsi/i
-const PAYMENT_ENTITY = /\b[Oo]ur related company,? CARSI Pty Ltd\b/g
+const BANNED = /restor|training|disaster\s*recovery|nrpg|restoreassist|synthex|trade\s*hall|carsi/i
+const ALLOWED_PAYMENT_SENTENCES = [
+  PAYMENT_ENTITY_LINE,
+  'Payment is processed by our related company, CARSI Pty Ltd.',
+  'Our related company CARSI Pty Ltd handles your payment and sees your payment details.',
+]
 
-// Entities and invisible characters can split a word in the markup while the reader still sees it whole.
-const decode = (s: string) =>
-  s
-    .replace(/&(nbsp|#160|#xa0);/gi, ' ')
-    .replace(/&shy;/gi, '')
-    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => String.fromCodePoint(parseInt(hex, 16)))
-    .replace(/&#(\d+);/g, (_, dec: string) => String.fromCodePoint(Number(dec)))
-    .replace(/&quot;/g, '"')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&')
-    .replace(/[­​-‍⁠﻿]/g, '')
+const withoutAllowed = (text: string) => ALLOWED_PAYMENT_SENTENCES.reduce((t, s) => t.split(s).join(' '), text)
+
+// Compatibility forms fold to plain letters; every default-ignorable code point (format controls, joiners,
+// variation selectors, Hangul fillers) and every combining mark goes.
+const fold = (text: string) =>
+  text.normalize('NFKD').replace(/[\p{Default_Ignorable_Code_Point}\p{Cf}\p{Mn}\p{Me}]/gu, '')
+
+// Only letters, digits and whitespace stay, so no invisible or punctuation character can sit inside a word.
+const lettersOnly = (text: string) => fold(text).replace(/[^\p{L}\p{N}\s]/gu, '')
+
+/** The text a browser shows: parsed like a browser, hidden nodes dropped, text nodes joined by `sep`. */
+const visibleText = (html: string, sep: string) => {
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  doc
+    .querySelectorAll('[hidden], template, script, style, noscript, [style*="display:none"], [style*="display: none"]')
+    .forEach((n) => n.remove())
+  const parts: string[] = []
+  const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT)
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) parts.push(n.nodeValue ?? '')
+  return parts.join(sep)
+}
 
 /**
- * Scans the markup (attributes included) and the visible text twice: with tags removed, so a word split by
- * inline markup joins back up, and with tags as spaces, so a phrase split across elements still reads as one.
+ * Scans the markup itself (attributes and hidden nodes included) and the visible text twice: text nodes joined
+ * directly, so a word split by inline markup joins back up, and joined by spaces, so a phrase split across
+ * elements still reads as one.
  */
 const scan = (html: string) => {
-  const raw = decode(html)
-  for (const view of [raw, raw.replace(/<[^>]*>/g, ''), raw.replace(/<[^>]*>/g, ' ')]) {
-    const hit = BANNED.exec(view.replace(PAYMENT_ENTITY, ''))?.[0]
+  const views = [
+    fold(withoutAllowed(new DOMParser().parseFromString(html, 'text/html').body.innerHTML)),
+    lettersOnly(withoutAllowed(visibleText(html, ''))),
+    lettersOnly(withoutAllowed(visibleText(html, ' '))),
+  ]
+  for (const view of views) {
+    const hit = BANNED.exec(view)?.[0]
     if (hit) return hit
   }
   return null
@@ -55,27 +74,31 @@ afterEach(() => vi.unstubAllEnvs())
 const html = (node: Parameters<typeof renderToStaticMarkup>[0]) => renderToStaticMarkup(node)
 const order = (edition: string | null) => html(createElement(OrderView, { edition, referrer: null }))
 
-/** Every page.tsx under app/cards, found on disk, as a path relative to app/cards. */
-const discoverPages = () => {
-  const root = join(__dirname, '..')
-  const pages: string[] = []
+// Next.js treats these file names as routes or route UI in any of its page extensions.
+const ROUTE_FILE =
+  /^(page|layout|template|default|loading|error|global-error|not-found|forbidden|unauthorized|route|opengraph-image|twitter-image|icon|apple-icon|sitemap|robots|manifest)\.(js|jsx|ts|tsx|md|mdx)$/
+
+/** Every Next.js route file under `root` (app/cards by default), found on disk, as a path relative to it. */
+const discoverRouteFiles = (root = join(__dirname, '..')) => {
+  const files: string[] = []
   const walk = (dir: string) => {
     for (const name of readdirSync(dir)) {
       const path = join(dir, name)
       if (name === '__tests__' || name === 'node_modules') continue
       if (statSync(path).isDirectory()) walk(path)
-      else if (name === 'page.tsx') pages.push(relative(root, path).split('\\').join('/'))
+      else if (ROUTE_FILE.test(name)) files.push(relative(root, path).split('\\').join('/'))
     }
   }
   walk(root)
-  return pages.sort()
+  return files.sort()
 }
 
-type RouteCase = { params?: Record<string, string>; shows: string | RegExp }
+type RouteCase = { params?: Record<string, string>; shows: string }
 
 /**
- * The inputs each card page is rendered with, and text proving the render really happened. A new card page
- * fails the guard until it has an entry here; the scan then renders it from its own module.
+ * The inputs each card route file is rendered with, and text proving the render really happened. A new route
+ * file (any extension, page or layout) fails the guard until it has an entry here; the scan then renders it from
+ * its own module.
  */
 const ROUTES: Record<string, RouteCase[]> = {
   'page.tsx': [{ shows: 'data-edition="' }],
@@ -83,36 +106,49 @@ const ROUTES: Record<string, RouteCase[]> = {
     { params: {}, shows: 'name="edition"' },
     { params: { edition: 'restoration' }, shows: 'name="edition"' },
   ],
-  'terms/page.tsx': [{ shows: PAYMENT_ENTITY }],
+  'terms/page.tsx': [{ shows: 'CARSI Pty Ltd' }],
   'thanks/page.tsx': [
     { params: {}, shows: 'Thank you' },
     { params: { session_id: 'cs_test_a1B2c3' }, shows: 'Thank you' },
   ],
 }
 
-/** Imports the page at `path` itself, so the module rendered is always the one the path names. */
+/** Imports the route file at `path` itself, so the module rendered is always the one the path names. */
 const renderRoute = async (path: string, params?: Record<string, string>) => {
   const mod = await import(/* @vite-ignore */ `../${path}`)
   const props = params ? { searchParams: Promise.resolve(params) } : {}
   return { page: html(await mod.default(props)), meta: JSON.stringify(mod.metadata ?? null) }
 }
 
-// An unregistered page still gets one bare render and scan; the inventory leg fails it regardless.
-const ROUTE_CASES = discoverPages().flatMap((path) =>
+// An unregistered file still gets one bare render and scan; the inventory leg fails it regardless.
+const ROUTE_CASES = discoverRouteFiles().flatMap((path) =>
   (ROUTES[path] ?? [{ shows: '' }]).flatMap((c) => [false, true].map((on) => ({ path, on, ...c }))),
 )
 
 describe('public card routes carry no restoration or sister-business content', () => {
-  it('the route registry lists exactly the pages under /cards, each with at least one render', () => {
-    expect(discoverPages()).toEqual(Object.keys(ROUTES).sort())
+  it('the route registry lists exactly the route files under /cards, each with at least one render', () => {
+    expect(discoverRouteFiles()).toEqual(Object.keys(ROUTES).sort())
     for (const [path, cases] of Object.entries(ROUTES)) expect(cases.length, path).toBeGreaterThan(0)
+  })
+
+  it('route discovery finds every route file name and extension Next.js serves', () => {
+    const root = mkdtempSync(join(tmpdir(), 'cards-routes-'))
+    try {
+      const routeFiles = ['page.js', 'a/page.jsx', 'b/page.ts', 'c/page.tsx', 'd/page.mdx', 'layout.tsx', 'e/route.ts', 'f/not-found.js']
+      for (const f of [...routeFiles, 'g/helper.tsx', 'h/page-view.tsx', '__tests__/page.tsx']) {
+        mkdirSync(dirname(join(root, f)), { recursive: true })
+        writeFileSync(join(root, f), '')
+      }
+      expect(discoverRouteFiles(root)).toEqual([...routeFiles].sort())
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
   })
 
   it.each(ROUTE_CASES)('/cards/$path params=$params online=$on', async ({ path, params, shows, on }) => {
     if (on) online()
     const { page, meta } = await renderRoute(path, params)
-    if (typeof shows === 'string') expect(page, 'positive control: the page rendered').toContain(shows)
-    else expect(page.match(shows), 'positive control: the page rendered').not.toBeNull()
+    expect(page, 'positive control: the page rendered').toContain(shows)
     expect(scan(page)).toBeNull()
     expect(scan(meta)).toBeNull()
   })
@@ -142,13 +178,15 @@ describe('public card routes carry no restoration or sister-business content', (
     expect(scan(strip)).toBeNull()
   })
 
-  it('the scan still sees banned words next to the allowed payment entity', () => {
-    expect(scan(`${PAYMENT_ENTITY_LINE} Our CARSI course`)).toBe('CARSI')
-    expect(scan('Payment is processed by our related company, CARSI Pty Ltd, a training provider.')).toBe('training')
-    expect(scan('CARSI Pty Ltd runs the course.')).toBe('CARSI')
+  it('only the exact payment sentences are allowed to name CARSI', () => {
+    for (const s of ALLOWED_PAYMENT_SENTENCES) expect(scan(`<p>${s}</p>`), s).toBeNull()
+    expect(scan(`<p>${PAYMENT_ENTITY_LINE}</p><p>Thank you</p>`)).toBeNull()
+    expect(scan('<p>Our related company CARSI Pty Ltd runs courses.</p>')).toBe('CARSI')
+    expect(scan(`<p>${PAYMENT_ENTITY_LINE} Our CARSI course</p>`)).toBe('CARSI')
+    expect(scan('<p>Payment is processed by our related company, CARSI Pty Ltd, a training provider.</p>')).not.toBeNull()
+    expect(scan('<p>CARSI Pty Ltd runs the course.</p>')).toBe('CARSI')
     expect(scan('<p title="restoration">x</p>')).toBe('restor')
-    expect(scan('Book a training course')).toBe('training')
-    expect(scan(PAYMENT_ENTITY_LINE)).toBeNull()
+    expect(scan('<p>Book a training course</p>')).toBe('training')
   })
 
   it.each([
@@ -162,22 +200,31 @@ describe('public card routes carry no restoration or sister-business content', (
       `<p>${a}\n   ${b}</p>`,
       `<span>${a}</span><span>${b}</span>`,
       `<p>${a.slice(0, 3)}<b>${a.slice(3)}</b> ${b}</p>`,
+      `<p>${a}\u200E ${b}</p>`,
+      `<p>${a}<span hidden>x</span>${b}</p>`,
+      `<p>${a}-${b}</p>`,
+      `<p>${a}\u2800${b}</p>`,
     ])
       expect(scan(shape), shape).not.toBeNull()
   })
 
-  it('the scan sees single banned words split by markup, entities or invisible characters', () => {
-    for (const shape of [
+  it('the scan sees single banned words split by markup, entities, hidden nodes or invisible characters', () => {
+    const shapes = [
       '<p>train<strong>ing</strong></p>',
       '<p>Re<b>store</b>Assist</p>',
       '<p>NR<i>PG</i></p>',
       '<p>Syn&shy;thex</p>',
-      '<p>Syn­thex</p>',
       '<p>C&#65;RSI</p>',
       '<p>CA&#x52;SI</p>',
-      '<p>restor​ation</p>',
-    ])
-      expect(scan(shape), shape).not.toBeNull()
-    expect(scan(`<p>${PAYMENT_ENTITY_LINE}</p><p>Thank you</p>`)).toBeNull()
+      '<span>CAR</span><span hidden>noise</span><span>SI</span>',
+      '<span>CAR</span><span style="display:none">noise</span><span>SI</span>',
+      '<p>\uFF23\uFF21\uFF32\uFF33\uFF29</p>',
+      '<p>res\u2800toration</p>',
+      '<p>res.toration</p>',
+    ]
+    // Every format control, joiner, variation selector or combining mark between two letters.
+    for (const mark of ['\u00AD', '\u200B', '\u200C', '\u200D', '\u200E', '\u200F', '\u2060', '\u061C', '\u180E', '\uFEFF', '\uFE0F', '\u034F', '\u0301', '\u3164', '\uFFA0', '\u115F', '\u180B'])
+      shapes.push(`<p>res${mark}toration</p>`, `<p>train${mark}ing</p>`, `<p>C${mark}ARSI</p>`)
+    for (const shape of shapes) expect(scan(shape), JSON.stringify(shape)).not.toBeNull()
   })
 })
