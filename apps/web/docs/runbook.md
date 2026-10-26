@@ -55,9 +55,10 @@ OPENROUTER_API_KEY=sk-or-xxx
 PERPLEXITY_API_KEY=pplx-xxx
 GEMINI_API_KEY=xxx
 
-# Email (at least one)
+# Email
 SENDGRID_API_KEY=xxx
-RESEND_API_KEY=xxx
+MAILTRAP_API_KEY=xxx
+LEAD_ALERT_EMAIL_TO=contact@unite-group.in
 EMAIL_SERVER_HOST=smtp.gmail.com
 EMAIL_SERVER_PORT=587
 EMAIL_SERVER_USER=xxx

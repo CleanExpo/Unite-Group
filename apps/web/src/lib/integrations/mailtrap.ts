@@ -30,6 +30,11 @@ export function mailtrapFromEmail(): string {
   return process.env.MAILTRAP_FROM_EMAIL?.trim() || DEFAULT_FROM_EMAIL
 }
 
+/** Order and enquiry alert destination: LEAD_ALERT_EMAIL_TO, else contact@unite-group.in. */
+export function leadAlertEmailTo(): string {
+  return process.env.LEAD_ALERT_EMAIL_TO?.trim() || DEFAULT_FROM_EMAIL
+}
+
 /** Send one email. Returns the first message id, or null when no API key is set. Throws on HTTP errors. */
 export async function sendEmail(input: MailtrapSendInput): Promise<string | null> {
   const key = process.env.MAILTRAP_API_KEY?.trim()

@@ -215,15 +215,16 @@ describe('POST /api/webhooks/stripe, paid card order', () => {
     expect(res.status).toBe(200)
   })
 
-  it('skips the alert, not the order or the buyer welcome, when the alert address is unset', async () => {
+  it('still sends the order alert to contact@unite-group.in when LEAD_ALERT_EMAIL_TO is unset', async () => {
     delete process.env.LEAD_ALERT_EMAIL_TO
     mockStripe(() => card())
     const t = mockTables({ error: null }, { error: null })
     const res = await POST(req('{}', 'sig'))
     expect(res.status).toBe(200)
     expect(t.card_orders).toHaveBeenCalledTimes(1)
-    const cats = vi.mocked(sendEmail).mock.calls.map(([a]) => a.categories?.[0])
-    expect(cats).toEqual(['card-order-welcome'])
+    const alert = vi.mocked(sendEmail).mock.calls.find(([a]) => a.categories?.includes('card-order-alert'))
+    expect(alert?.[0].to).toEqual({ email: 'contact@unite-group.in' })
+    expect(vi.mocked(sendEmail).mock.calls.some(([a]) => a.categories?.includes('card-order-welcome'))).toBe(true)
   })
 
   it('sends the buyer one Margot welcome from the sender, with next steps and no card data', async () => {

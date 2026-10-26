@@ -85,6 +85,12 @@ describe('recordPaidCardOrder', () => {
     expect(sendEmail.mock.calls[0][0]).not.toHaveProperty('disableTracking')
   })
 
+  it('sends the order alert to contact@unite-group.in when LEAD_ALERT_EMAIL_TO is unset', async () => {
+    vi.stubEnv('LEAD_ALERT_EMAIL_TO', '')
+    expect(await recordPaidCardOrder(admin, event({ amount_total: 24900 }))).toBe('created')
+    expect(sendEmail.mock.calls[0][0].to).toEqual({ email: 'contact@unite-group.in' })
+  })
+
   it.each([1, 2, 5])('records %i extra business(es) with tier extra_business and quantity', async (n) => {
     expect(
       await recordPaidCardOrder(admin, event({ amount_total: 19900 * n, payment_link: 'plink_extra' }, false)),

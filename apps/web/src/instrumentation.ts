@@ -31,6 +31,7 @@ export async function register() {
     { name: 'HeyGen',   vars: ['HEYGEN_API_KEY'] },
     { name: 'Reddit',   vars: ['REDDIT_CLIENT_ID', 'REDDIT_CLIENT_SECRET'] },
     { name: 'SendGrid', vars: ['SENDGRID_API_KEY'] },
+    { name: 'Mailtrap', vars: ['MAILTRAP_API_KEY'] },
   ] as const
 
   // ─── Check required (always) ───────────────────────────────────────────────

@@ -51,10 +51,12 @@ const REQUIRED = [
 
 const INTEGRATION = [
   // Enquiry alerts are optional at build time.
-  { name: 'LEAD_ALERT_EMAIL_TO', hint: 'Enquiry alert email destination', group: 'Alerts' },
+  { name: 'LEAD_ALERT_EMAIL_TO', hint: 'Order/enquiry alert destination (default contact@unite-group.in)', group: 'Alerts' },
+  { name: 'MAILTRAP_API_KEY', hint: 'Mailtrap Email Sending API key (card order alerts)', group: 'Alerts' },
+  { name: 'MAILTRAP_FROM_EMAIL', hint: 'Mailtrap sender override (default contact@unite-group.in)', group: 'Alerts' },
   { name: 'ALERT_HEALTH_TOKEN', hint: 'Read-only alert health bearer', group: 'Alerts' },
   { name: 'ALERT_DEDUP_SECRET', hint: 'Server secret that keys the enquiry duplicate hash', group: 'Alerts' },
-  { name: 'SENDGRID_API_KEY', hint: 'SendGrid email API key', group: 'Alerts' },
+  { name: 'SENDGRID_API_KEY', hint: 'SendGrid email API key (enquiry alerts, drip)', group: 'Alerts' },
   { name: 'SENDGRID_FROM_EMAIL', hint: 'SendGrid verified sender', group: 'Alerts' },
   // Linear
   { name: 'LINEAR_API_KEY', hint: 'Linear personal API key', group: 'Linear' },
