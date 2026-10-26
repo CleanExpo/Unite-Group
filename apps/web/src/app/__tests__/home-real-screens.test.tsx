@@ -98,17 +98,18 @@ const contrast = (a: string, b: string) => {
 describe('the 01/02/03 step labels are readable', () => {
   it('sit on their own solid background at 4.5:1 or better (WCAG AA) and at least 14px', async () => {
     const html = between(await signedOut(), 'how', 'proof')
-    const labels = [...html.matchAll(/<span class="([^"]*stepNo[^"]*)"[^>]*>(\d\d)<\/span>/g)]
+    const labels = [...html.matchAll(/<span class="([^"]*stepBadge[^"]*)"[^>]*>(\d\d)<\/span>/g)]
     expect(labels.map((m) => m[2])).toEqual(['01', '02', '03'])
-    // the rule lives in whichever public stylesheet defines .stepNo with a background; colours resolve through the tokens
+    // The home page draws the steps itself (home/home-page.tsx); the rule is .stepBadge in its own stylesheet, and
+    // colours resolve through the tokens.
     const tokens = readFileSync(join(__dirname, '..', '..', 'styles', 'public-tokens.css'), 'utf8')
     const resolve = (v: string) => {
       const name = v.match(/var\((--[\w-]+)\)/)?.[1]
       return (name ? tokens.match(new RegExp(`${name}:\\s*(#[0-9a-f]{6})`, 'i'))?.[1] : v.match(/#[0-9a-f]{6}/i)?.[0]) ?? ''
     }
-    const rules = ['home-screens.module.css', 'public.module.css']
+    const rules = ['home/home-page.module.css']
       .filter((f) => existsSync(join(PUB, f)))
-      .flatMap((f) => [...readFileSync(join(PUB, f), 'utf8').matchAll(/\.stepNo\s*\{([^}]*)\}/g)].map((m) => m[1]))
+      .flatMap((f) => [...readFileSync(join(PUB, f), 'utf8').matchAll(/\.stepBadge\s*\{([^}]*)\}/g)].map((m) => m[1]))
     const rule = rules.find((r) => /background(-color)?:/.test(r)) ?? ''
     const fg = resolve(rule.match(/(?:^|;)\s*color:\s*([^;]+)/)?.[1] ?? '')
     const bg = resolve(rule.match(/background(?:-color)?:\s*([^;]+)/)?.[1] ?? '')

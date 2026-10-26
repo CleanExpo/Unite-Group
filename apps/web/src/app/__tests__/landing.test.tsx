@@ -101,7 +101,7 @@ describe('/ positions (AC-3)', () => {
 describe('/ hero and metadata', () => {
   it('says the umbrella line in the H1, and carries Unite Group and the honest Nexus line in the metadata', async () => {
     const html = await signedOut()
-    expect(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1].replace(/<[^>]*>/g, '')).toBe('Your business deserves a clearer front door.')
+    expect(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1].replace(/<[^>]*>/g, '')).toBe('Every business. One system.')
     expect(String(metadata.title)).toBe('Unite Group | Living business cards & growth for Australian businesses')
     const description = String(metadata.description)
     expect(description).toMatch(/Margot as your AI guide/)

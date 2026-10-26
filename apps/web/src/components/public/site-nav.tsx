@@ -12,7 +12,7 @@ const ON_PAGE = [
   { href: '/#proof', label: 'See it first' },
   { href: '/#how', label: 'How it works' },
   { href: '/#answers', label: 'Questions' },
-  { href: '/#contact', label: 'Contact form' },
+  { href: '/#contact', label: 'Contact' },
 ] as const
 
 export function SiteNav() {
@@ -30,7 +30,7 @@ export function SiteNav() {
           <ul className={n.links}>
             <li>
               <details className={n.dropdown}>
-                <summary>Solutions</summary>
+                <summary>What we do</summary>
                 <ul className={n.menu}>
                   {PILLARS.map((p) => (
                     <li key={p.slug}>

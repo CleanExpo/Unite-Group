@@ -1,14 +1,17 @@
 /** Home page marketing copy — single source for the public landing experience. */
 
+// The wordmark, title, agency line and the three links are Phill's (25-26/10/2026, UNI-3017 and UNI-3034).
 export const HOME_HERO = {
-  kicker: 'Unite Group · Australia & New Zealand',
-  title: 'Your business deserves a clearer front door.',
-  lead:
-    'Film-first introductions, honest pricing, and growth work you can follow — with Margot keeping the conversation human.',
-  primaryCta: 'Choose where to begin',
+  wordmark: 'Unite-Group',
+  kicker: 'Australia & New Zealand',
+  title: 'Every business. One system.',
+  lead: 'An AI marketing agency, with Margot as its AI face.',
+  primaryCta: 'Where do you want to start?',
   primaryHref: '#start',
-  secondaryCta: 'Write to us',
+  secondaryCta: 'Ask a question',
   secondaryHref: '#contact',
+  growCta: 'Grow your business',
+  growHref: '/grow',
 } as const
 
 export const HOME_START = {

@@ -3,6 +3,7 @@ import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { HOME_HERO } from '@/components/public/home-copy'
 import { TODAY } from '@/components/public/today-coming-data'
 import { SIGNATURE_ADDON, STARTER_PLAN } from '@/lib/public-pricing'
 
@@ -25,9 +26,13 @@ describe('Unite Group brand only (UNI-3017)', () => {
     expect(login).not.toMatch(/pi[\s-]?ceo|Unite-Group Nexus/i)
   })
   it('the home hero says Unite-Group, the agency, not Nexus or the CRM line', () => {
-    const hero = read('components/public/hero.tsx').replace(/^\s*\/\/.*$/gm, '')
-    expect(hero).not.toMatch(/Unite-Group Nexus|The CRM we are building/)
-    expect(hero).toContain('AI marketing agency')
+    // The live home renders its hero from HOME_HERO in home/home-page.tsx (hero.tsx is no longer on the page).
+    const words = [HOME_HERO.wordmark, HOME_HERO.kicker, HOME_HERO.title, HOME_HERO.lead].join(' ')
+    expect(words).not.toMatch(/Unite-Group Nexus|The CRM we are building/)
+    expect(HOME_HERO.wordmark).toBe('Unite-Group')
+    expect(HOME_HERO.lead).toContain('AI marketing agency')
+    const page = read('components/public/home/home-page.tsx')
+    for (const field of ['wordmark', 'title', 'lead']) expect(page).toContain(`{HOME_HERO.${field}}`)
   })
   it('llms.txt describes the Starter plan and no longer says there is no subscription', () => {
     const llms = readFileSync(join(src, '..', 'public', 'llms.txt'), 'utf8')

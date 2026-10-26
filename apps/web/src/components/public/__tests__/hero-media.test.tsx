@@ -107,8 +107,8 @@ describe('hero server markup: the words and the poster come before any video', (
 describe('the film: plays once when visible, holds on the poster frame, can be replayed and paused', () => {
   it('mounts a muted, inline, non-looping video with Replay and Pause controls when motion is allowed', () => {
     setup(false)
-    const { container } = render(<FilmPlayer film={HERO_FILM} priority />)
-    expect(container.querySelector('video')).toBeNull() // not before it is in view
+    const { container } = render(<FilmPlayer film={HERO_FILM} />)
+    expect(container.querySelector('video')).toBeNull() // a film below the hero waits until it is in view
     see()
     const video = container.querySelector('video')!
     expect(video).not.toBeNull()
@@ -121,6 +121,18 @@ describe('the film: plays once when visible, holds on the poster frame, can be r
     expect(container.querySelector('img')?.getAttribute('src')).toBe(HERO_FILM.poster)
     const buttons = [...container.querySelectorAll('button')].map((b) => b.textContent)
     expect(buttons).toEqual(['Replay', 'Pause'])
+  })
+
+  it('mounts the priority (hero) film at once when motion is allowed, without waiting to be seen', () => {
+    setup(false)
+    const { container } = render(<FilmPlayer film={HERO_FILM} priority />)
+    expect(container.querySelector('video')).not.toBeNull()
+  })
+
+  it('never mounts the priority (hero) film when the visitor asks for reduced motion', () => {
+    setup(true)
+    const { container } = render(<FilmPlayer film={HERO_FILM} priority />)
+    expect(container.querySelector('video')).toBeNull()
   })
 
   it('starts once when it scrolls into view, then holds', () => {

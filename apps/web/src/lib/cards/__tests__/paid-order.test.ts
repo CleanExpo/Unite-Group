@@ -3,7 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CARD_TIERS } from '@/app/cards/order/order-view'
 
 const sendEmail = vi.hoisted(() => vi.fn())
-vi.mock('@/lib/integrations/mailtrap', () => ({ sendEmail, mailtrapFromEmail: () => process.env.MAILTRAP_FROM_EMAIL || 'contact@unite-group.in' }))
+// Only the send is replaced; the address helpers stay real, so a new or changed helper cannot drift from the mock.
+vi.mock('@/lib/integrations/mailtrap', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/integrations/mailtrap')>()),
+  sendEmail,
+}))
 
 import { cardOrderReference, matchCardTier, recordPaidCardOrder } from '../paid-order'
 
