@@ -54,7 +54,7 @@ describe('/cards/order terms link', () => {
   it.each(CASES)('shows exactly one Order terms link and the agreement line (%s)', (_f, on, edition, ref) => {
     if (on) online()
     const html = render(edition, ref)
-    expect(html.match(/href="\/cards\/terms"/g)).toHaveLength(1)
+    expect(html.match(/href="\/cards\/terms"[^>]*>[^<]*Order terms/g)).toHaveLength(1)
     expect(norm(html)).toContain(TERMS_ADDITION)
   })
 
