@@ -14,7 +14,7 @@ import RootPage from '@/app/page'
 
 // Design-pass gap 05.2 / 05.5: the hero has ONE primary step, and it leads to this chooser.
 const OPTIONS = [
-  { label: 'discover', no: '01', name: 'Discover', href: '#group', line: 'See the six businesses and what each one does' },
+  { label: 'discover', no: '01', name: 'Discover', href: '#group', line: 'See our businesses and what each one does' },
   { label: 'diagnose', no: '02', name: 'Diagnose', href: '/solutions/intelligence', line: 'A check of what is holding your business back' },
   { label: 'create', no: '03', name: 'Create', href: '/cards/order', line: 'Order a living video card, from $249' },
   { label: 'results', no: '04', name: 'Explore results', href: '/cards', line: 'Watch the living cards we have made' },

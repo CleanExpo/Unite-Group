@@ -75,3 +75,15 @@ describe('QR code on the /cards card', () => {
     expect(createHash('sha256').update(png).digest('hex')).toBe('f9e8ea772732eb68a08b10b7a8470eab666cf8e7b4cdcd48c3fca149cf7c2bf0')
   })
 })
+
+describe('film and business counts (UNI-3034 review)', () => {
+  it('/cards and / never say ten films or six businesses', () => {
+    for (const [, render] of [pages[0], pages[1]]) {
+      const html = render()
+      expect(html).not.toMatch(/\bten (card )?films|\bthe ten\b|six businesses/i)
+    }
+  })
+  it('the guard can fail', () => {
+    expect('one of the ten').toMatch(/\bthe ten\b/)
+  })
+})
