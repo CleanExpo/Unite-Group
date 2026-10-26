@@ -43,6 +43,9 @@ describe('privacy policy: public website and Living Business Cards', () => {
     const row = h.match(/<tr><td>Mailtrap<\/td><td>([\s\S]*?)<\/td><td>([^<]*)<\/td><\/tr>/)
     expect(row, 'Mailtrap provider row').not.toBeNull()
     expect(decode(row![1])).toContain('email address')
+    // Both emails state the price paid (paid-order.ts sendOrderAlert and buildBuyerWelcome).
+    expect(decode(row![1])).toContain('amount paid')
+    expect(decode(row![1])).toContain('its price')
     expect(row![2]).toMatch(/US/)
     expect(section()).toContain('Mailtrap, which delivers the emails sent when you buy a card')
   })

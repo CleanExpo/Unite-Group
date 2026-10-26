@@ -1,5 +1,5 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs'
-import { join, relative } from 'node:path'
+import { join, relative, sep } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
@@ -30,7 +30,7 @@ describe('D3: /grow is kept but not offered', () => {
     const offenders = walk(srcDir)
       .filter((f) => !f.includes(`${join('app', 'grow')}`) && !f.includes('privacy-policy'))
       .filter((f) => /href=["'`{]+[^"'`]*\/grow["'`}\s>]/.test(readFileSync(f, 'utf8')) || /href=\{`\$\{[A-Z_]+\}\/grow`\}/.test(readFileSync(f, 'utf8')))
-      .map((f) => relative(srcDir, f))
+      .map((f) => relative(srcDir, f).split(sep).join('/'))
     expect(offenders.sort()).toEqual(['components/public/home/home-page.tsx', 'components/public/site-nav.tsx'])
   })
 

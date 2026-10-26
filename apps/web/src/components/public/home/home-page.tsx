@@ -116,7 +116,8 @@ export function HomePage() {
                   <a href={HOME_HERO.secondaryHref} data-track="cta" data-track-label="home-hero-ask-question">
                     {HOME_HERO.secondaryCta}
                   </a>
-                  <a href={HOME_HERO.growHref} data-track="cta" data-track-label="home-hero-grow">
+                  {/* A literal href: golive-grow.test.ts finds every /grow link by reading the source. */}
+                  <a href="/grow" data-track="cta" data-track-label="home-hero-grow">
                     {HOME_HERO.growCta}
                   </a>
                 </div>
