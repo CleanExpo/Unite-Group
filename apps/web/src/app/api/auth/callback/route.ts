@@ -6,6 +6,7 @@ import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { EmailOtpType } from '@supabase/supabase-js'
+import { safeNextPath } from '@/lib/auth/implicit-fragment'
 
 const EMAIL_OTP_TYPES = new Set(['magiclink', 'email', 'signup', 'recovery', 'invite', 'email_change'])
 
@@ -20,7 +21,7 @@ export async function GET(request: Request) {
   const providerErrorDescription = searchParams.get('error_description')
   const rawNext = searchParams.get('next') ?? '/founder/command-centre'
   // Prevent open redirect: only allow relative paths (must start with / but not //)
-  const next = /^\/(?!\/)/.test(rawNext) ? rawNext : '/founder/command-centre'
+  const next = safeNextPath(rawNext)
 
   if (providerError) {
     const loginUrl = new URL('/auth/login', origin)

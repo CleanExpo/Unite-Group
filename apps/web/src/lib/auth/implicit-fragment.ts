@@ -11,7 +11,22 @@ export function parseImplicitFragment(hash: string): { access_token: string; ref
   return { access_token, refresh_token }
 }
 
-/** Only same-site relative paths (no protocol-relative //host). */
+const DEFAULT_NEXT = '/founder/command-centre'
+
+/**
+ * Only same-site relative paths. Rejects protocol-relative //host, backslashes
+ * (browsers treat /\\host as //host), control characters, and anything that
+ * resolves to a different origin.
+ */
 export function safeNextPath(raw: string | null): string {
-  return raw && /^\/(?!\/)/.test(raw) ? raw : '/founder/command-centre'
+  if (!raw || !raw.startsWith('/') || raw.startsWith('//')) return DEFAULT_NEXT
+  if (/[\\\u0000-\u001f\u007f]/.test(raw)) return DEFAULT_NEXT
+  const base = 'https://same-origin.invalid'
+  try {
+    const url = new URL(raw, base)
+    if (url.origin !== base) return DEFAULT_NEXT
+    return `${url.pathname}${url.search}${url.hash}`
+  } catch {
+    return DEFAULT_NEXT
+  }
 }
