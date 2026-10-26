@@ -23,10 +23,15 @@ export const SIGNATURE_ADDON = {
 } as const
 
 /**
- * The lowest card price a buyer can pay right now, or null while online ordering is off.
- * Same gate as the order page: a tier counts only while its Stripe Payment Link is set.
+ * The card tiers a buyer can pay for right now. Same gate as the order page: a tier counts only while
+ * its Stripe Payment Link is set. Every public page that names a card price reads this, never CARD_TIERS.
  */
+export function liveCardTiers(env: Record<string, string | undefined> = process.env) {
+  return CARD_TIERS.filter((t) => stripePaymentLink(env[t.paymentLinkEnv]) !== null)
+}
+
+/** The lowest card price a buyer can pay right now, or null while online ordering is off. */
 export function cardFromAud(env: Record<string, string | undefined> = process.env): number | null {
-  const live = CARD_TIERS.filter((t) => stripePaymentLink(env[t.paymentLinkEnv]) !== null)
+  const live = liveCardTiers(env)
   return live.length ? Math.min(...live.map((t) => t.priceAud)) : null
 }

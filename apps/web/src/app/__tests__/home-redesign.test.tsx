@@ -52,8 +52,9 @@ const between = (html: string, a: string, b: string) => html.slice(html.indexOf(
 
 beforeEach(() => {
   vi.clearAllMocks()
-  // Card from-prices show only while a card payment link is live (cardFromAud); open that gate by default.
+  // Card prices show only while a card payment link is live (liveCardTiers); open both by default.
   vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', 'https://buy.stripe.com/test_ready')
+  vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_CUSTOM', 'https://buy.stripe.com/test_custom')
 })
 afterEach(() => vi.unstubAllEnvs())
 
@@ -129,7 +130,11 @@ describe('the living cards gallery', () => {
     vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_CUSTOM', '')
     const cards = between(await signedOut(), 'cards', 'pillars')
     expect(cards).toMatch(/<a [^>]*href="\/cards\/order"[^>]*>Ask about a card<\/a>/)
-    expect(cards).not.toMatch(/>From \$/)
+    expect(cards).not.toMatch(/\$\d/)
+    expect(cards).not.toContain('GST included')
+    const cost = between(await signedOut(), 'answers', 'contact')
+    expect(cost).toContain('Online card orders are not open yet')
+    expect(cost).not.toMatch(/\$249|\$449/)
   })
 
   it('plays only when motion is allowed: hover on a pointer device, in view on touch, never under reduced motion', () => {

@@ -12,6 +12,7 @@ describe('cards strip price parity (AC-4)', () => {
   it('shows exactly the CARD_TIERS prices, the GST line, the AI label and an order link under each price', () => {
     // The From button names a price only while a card payment link is live (cardFromAud).
     vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', 'https://buy.stripe.com/test_ready')
+    vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_CUSTOM', 'https://buy.stripe.com/test_custom')
     const html = renderToStaticMarkup(<CardsStrip />)
     expect(CARD_TIERS.map((t) => t.priceAud)).toEqual([249, 449])
     const tiers = html.split('data-tier="').slice(1)
@@ -37,5 +38,16 @@ describe('cards strip price parity (AC-4)', () => {
       expect(strip).toContain(formatAud(t.priceAud))
     }
     expect(order).toContain('GST included')
+  })
+
+  it('lists only the tiers a buyer can pay for: none while ordering is off, $449 alone when only made-for-you is live', () => {
+    vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', '')
+    vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_CUSTOM', '')
+    let html = renderToStaticMarkup(<CardsStrip />)
+    expect(html).not.toMatch(/\$\d/)
+    expect(html).not.toContain('data-tier=')
+    vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_CUSTOM', 'https://buy.stripe.com/test_custom')
+    html = renderToStaticMarkup(<CardsStrip />)
+    expect(html.match(/\$\d+/g)).toEqual(['$449', '$449'])
   })
 })

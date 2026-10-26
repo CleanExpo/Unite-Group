@@ -44,8 +44,9 @@ function navLinks(html: string) {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  // Card from-prices show only while a card payment link is live (cardFromAud); open that gate by default.
+  // Card prices show only while a card payment link is live (liveCardTiers); open both by default.
   vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', 'https://buy.stripe.com/test_ready')
+  vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_CUSTOM', 'https://buy.stripe.com/test_custom')
 })
 afterEach(() => vi.unstubAllEnvs())
 
