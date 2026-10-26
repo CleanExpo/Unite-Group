@@ -1,35 +1,49 @@
 import { FilmPlayer } from './film-player'
 import { HERO_FILM } from './film-config'
+import { HOME_HERO } from './home-copy'
 import h from './hero.module.css'
 
-// Position 1: molten orange shards on navy-black. The U is the single focal point.
-// The H1, the wordmark, the one Nexus line and both CTAs are real HTML in the server markup; the poster (the exact
-// last frame of the film) paints with them, and the film starts later, only when motion is allowed.
-// The card offer is not here: it is one offer, lower down (Phill 25/10/2026).
+// Editorial hero: shared typographic voice, framed film with replay/pause once motion is allowed.
 export function Hero() {
   return (
-    <section data-position id="hero" data-mode="spotlight" className={h.hero} aria-labelledby="hero-title">
-      <div className={h.stage} data-hero-media>
-        <FilmPlayer film={HERO_FILM} priority fade className={h.film} />
-      </div>
-      <div className={h.copy}>
-        <p className={h.wordmark} data-wordmark>
-          Unite-Group
-        </p>
-        <h1 id="hero-title" className={h.h1}>
-          Every business. <span className={h.accent}>One system.</span>
-        </h1>
-        <p className={h.sub}>An AI marketing agency, with Margot as its AI face.</p>
-        <div className={h.actions}>
-          <a href="#start" data-track="cta" data-track-label="home-hero-start" className={h.cta}>
-            Where do you want to start?
-          </a>
-          <a href="#contact" data-track="cta" data-track-label="home-hero-ask-question" className={h.ghost}>
-            Ask a question
-          </a>
-          <a href="/grow" data-track="cta" data-track-label="home-hero-grow" className={h.ghost}>
-            Grow your business
-          </a>
+    <section data-position id="hero" data-mode="forge-cinema" className={h.hero} aria-labelledby="hero-title">
+      <div className={h.shell}>
+        <div className={h.grid}>
+          <div className={h.copy}>
+            <p className={h.eyebrow}>
+              <span className={h.eyebrowLine} aria-hidden="true" />
+              {HOME_HERO.kicker}
+            </p>
+            <h1 id="hero-title" className={h.h1}>
+              {HOME_HERO.title}
+            </h1>
+            <p className={h.lead}>{HOME_HERO.lead}</p>
+            <div className={h.actions}>
+              <a href={HOME_HERO.primaryHref} data-track="cta" data-track-label="home-hero-start" className={h.cta}>
+                {HOME_HERO.primaryCta}
+              </a>
+              <a href={HOME_HERO.secondaryHref} data-track="cta" data-track-label="home-hero-ask-question" className={h.ghost}>
+                {HOME_HERO.secondaryCta}
+              </a>
+            </div>
+          </div>
+          <div className={h.stageWrap}>
+            <div className={h.stageFrame}>
+              <div className={h.stage} data-hero-media>
+                <span className={h.stageGrain} aria-hidden="true" />
+                <FilmPlayer
+                  film={HERO_FILM}
+                  priority
+                  fade
+                  controls="bottom"
+                  progress
+                  visibleThreshold={0.2}
+                  className={h.film}
+                />
+              </div>
+              <p className={h.stageCaption}>Hero film · copper U assembly</p>
+            </div>
+          </div>
         </div>
       </div>
     </section>

@@ -1,0 +1,96 @@
+/* Showroom tiles — only used on the home page bento grid. */
+
+.tile {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+  overflow: hidden;
+  border: 1px solid rgba(244, 241, 236, 0.1);
+  border-radius: var(--pub-radius-lg);
+  background: #06070e;
+  color: var(--pub-ink);
+  text-decoration: none;
+  isolation: isolate;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.2s ease,
+    box-shadow 0.35s ease;
+}
+
+.tile:hover,
+.tile:focus-visible {
+  border-color: rgba(236, 123, 65, 0.55);
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55), 0 0 32px rgba(236, 123, 65, 0.12);
+  z-index: 2;
+}
+
+.poster,
+.video {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video {
+  z-index: 1;
+}
+
+.tile:hover .poster,
+.tile:focus-visible .poster {
+  transform: scale(1.04);
+  transition: transform 0.6s ease;
+}
+
+.tile::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 55%;
+  z-index: 2;
+  background: linear-gradient(to top, rgba(4, 5, 10, 0.95), transparent);
+  pointer-events: none;
+}
+
+.name {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  z-index: 3;
+  font-family: var(--pub-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.ai {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  z-index: 3;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(244, 241, 236, 0.12);
+  background: rgba(4, 5, 10, 0.75);
+  backdrop-filter: blur(8px);
+  font-family: var(--pub-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile,
+  .tile:hover,
+  .poster {
+    transform: none;
+    transition: none;
+  }
+}

@@ -1,38 +1,16 @@
-import '@/styles/public-tokens.css'
-
-import { Answers } from './answers'
-import { CardsStrip } from './cards-strip'
-import { ContactBand } from './contact-band'
-import { Hero } from './hero'
-import { Highlights } from './highlights'
-import { HowItWorks } from './how-it-works'
-import { PillarsRow } from './pillars-row'
-import { StartChooser } from './start-chooser'
-import { Proof } from './proof'
-import s from './public.module.css'
+import { HomePage } from './home/home-page'
+import { PublicPageShell } from './public-page-shell'
 import { SiteFooter } from './site-footer'
 import { SiteNav } from './site-nav'
-import { TodayComing } from './today-coming'
 
-// The public home, dark, in the order Phill set on 25/10/2026: hero, three media cards, the group (not a position), today and coming (not a position),
-// then the positions: living cards gallery, four jobs, how it works, results, FAQ, contact, footer.
 export function PublicHome() {
   return (
-    <div className={s.page}>
+    <PublicPageShell>
       <SiteNav />
       <main id="main">
-        <Hero />
-        <StartChooser />
-        <Highlights />
-        <TodayComing />
-        <CardsStrip />
-        <PillarsRow />
-        <HowItWorks />
-        <Proof />
-        <Answers />
-        <ContactBand />
+        <HomePage />
       </main>
       <SiteFooter position />
-    </div>
+    </PublicPageShell>
   )
 }

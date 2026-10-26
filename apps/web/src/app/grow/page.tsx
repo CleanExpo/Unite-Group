@@ -1,7 +1,11 @@
 import type { Metadata } from 'next'
 
+import { PublicPageShell } from '@/components/public/public-page-shell'
+import { SiteFooter } from '@/components/public/site-footer'
+import { SiteNav } from '@/components/public/site-nav'
 import { COMPANY_NAME, companyAbnLabel } from '@/lib/legal/company'
 
+import g from './grow-page.module.css'
 import { LeadForm } from './lead-form'
 import { GROW_PACKAGES, formatAud, paymentLinkFor, serializeJsonLd } from './packages'
 
@@ -12,7 +16,6 @@ export const metadata: Metadata = {
   description:
     'Unite Group sets up and runs your website, Google Business Profile, reviews and AI-search visibility. Fixed prices in AUD. Free AI-visibility audit.',
   alternates: { canonical: PAGE_URL },
-  // Kept for later but not offered: Synthex is internal only, so no priced customer offer is indexed (go-live audit D3).
   robots: { index: false, follow: false },
 }
 
@@ -46,72 +49,58 @@ function jsonLd() {
 
 export default function GrowPage() {
   return (
-    <div className="min-h-screen bg-[#fbfaf6] text-stone-900">
+    <PublicPageShell>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd()) }} />
+      <SiteNav />
 
-      <header className="border-b border-stone-200 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <span className="font-mono text-[13px] tracking-[0.15em] text-green-800">UNITE GROUP</span>
-          <a href="#audit" className="rounded-sm border border-green-700 px-4 py-2 text-[14px] font-semibold text-green-800 hover:bg-green-50">
-            Free audit
-          </a>
-        </div>
-      </header>
-
-      <main>
-        <section className="mx-auto max-w-6xl px-6 pb-14 pt-16 sm:pt-24">
-          <p className="font-mono text-[12px] tracking-[0.14em] text-stone-500">FOR AUSTRALIAN AND NEW ZEALAND LOCAL BUSINESSES</p>
-          <h1 className="mt-4 max-w-3xl text-[clamp(2.1rem,5.4vw,3.6rem)] font-semibold leading-[1.08] tracking-[-0.025em]">
-            More calls, more reviews, and found on Google and in AI answers.
-          </h1>
-          <p className="mt-5 max-w-2xl text-[17px] leading-relaxed text-stone-600">
+      <main id="main">
+        <section className={g.hero}>
+          <p className={g.eyebrow}>For Australian and New Zealand local businesses</p>
+          <h1 className={g.h1}>More calls, more reviews, and found on Google and in AI answers.</h1>
+          <p className={g.lead}>
             We set up and run your website, Google Business Profile, reviews and AI-search visibility. Fixed monthly prices, and you
             approve everything public before it goes out.
           </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <a href="#audit" className="inline-flex min-h-12 items-center rounded-sm bg-green-700 px-7 text-[15px] font-semibold text-white hover:bg-green-800">
+          <div className={g.actions}>
+            <a href="#audit" className={g.btnPrimary}>
               Get a free AI-visibility audit
             </a>
-            <a href="#packages" className="inline-flex min-h-12 items-center rounded-sm border border-stone-300 bg-white px-7 text-[15px] font-semibold text-stone-800 hover:border-stone-400">
+            <a href="#packages" className={g.btnSecondary}>
               See packages
             </a>
           </div>
         </section>
 
-        <section id="packages" className="mx-auto max-w-6xl px-6 pb-16">
-          <h2 className="text-2xl font-semibold tracking-[-0.015em]">Packages</h2>
-          <p className="mt-2 text-[15px] text-stone-600">Prices in AUD, excluding GST.</p>
-          <div className="mt-8 grid gap-5 md:grid-cols-3">
+        <section id="packages" className={g.packages}>
+          <h2 className={g.h2}>Packages</h2>
+          <p className={g.packagesNote}>Prices in AUD, excluding GST.</p>
+          <div className={g.grid}>
             {GROW_PACKAGES.map((pkg, index) => {
               const payLink = paymentLinkFor(pkg)
               return (
-                <article
-                  key={pkg.id}
-                  data-package={pkg.id}
-                  className={`flex flex-col rounded-sm border bg-white p-6 ${index === 1 ? 'border-green-700 shadow-[0_18px_40px_-28px_rgba(21,128,61,0.6)]' : 'border-stone-200'}`}
-                >
-                  <h3 className="text-lg font-semibold">{pkg.name}</h3>
-                  <p className="mt-1.5 min-h-[3rem] text-[15px] text-stone-600">{pkg.pitch}</p>
-                  <p className="mt-5">
-                    <span className="text-3xl font-semibold tracking-[-0.02em]">{formatAud(pkg.monthlyAud)}</span>
-                    <span className="text-[15px] text-stone-500"> /month</span>
+                <article key={pkg.id} data-package={pkg.id} className={`${g.card} ${index === 1 ? g.cardFeatured : ''}`}>
+                  <h3 className={g.cardTitle}>{pkg.name}</h3>
+                  <p className={g.cardPitch}>{pkg.pitch}</p>
+                  <p className={g.priceRow}>
+                    <span className={g.priceMain}>{formatAud(pkg.monthlyAud)}</span>
+                    <span className={g.pricePeriod}> /month</span>
                   </p>
-                  <p className="mt-1 text-[14px] text-stone-500">plus {formatAud(pkg.setupAud)} setup</p>
-                  <ul className="mt-5 space-y-2.5 text-[14px] leading-snug text-stone-700">
+                  <p className={g.setup}>plus {formatAud(pkg.setupAud)} setup</p>
+                  <ul className={g.includes}>
                     {pkg.includes.map((item) => (
-                      <li key={item} className="flex gap-2">
-                        <span aria-hidden className="mt-[0.45em] h-1.5 w-1.5 flex-none rounded-full bg-green-700" />
+                      <li key={item}>
+                        <span aria-hidden className={g.dot} />
                         {item}
                       </li>
                     ))}
                   </ul>
-                  <div className="mt-auto flex flex-col gap-2 pt-6">
+                  <div className={g.cardActions}>
                     {payLink && (
-                      <a href={payLink} className="inline-flex min-h-11 items-center justify-center rounded-sm bg-green-700 px-5 text-[14px] font-semibold text-white hover:bg-green-800">
+                      <a href={payLink} className={g.btnPrimary}>
                         Start {pkg.name}
                       </a>
                     )}
-                    <a href="#audit" className="inline-flex min-h-11 items-center justify-center rounded-sm border border-stone-300 px-5 text-[14px] font-semibold text-stone-800 hover:border-stone-400">
+                    <a href="#audit" className={g.btnSecondary}>
                       Free audit first
                     </a>
                   </div>
@@ -121,40 +110,33 @@ export default function GrowPage() {
           </div>
         </section>
 
-        <section className="border-y border-stone-200 bg-white">
-          <div className="mx-auto grid max-w-6xl gap-8 px-6 py-14 md:grid-cols-3">
+        <section className={g.stepsBand} aria-label="How it works">
+          <div className={g.stepsInner}>
             {STEPS.map((step, i) => (
               <div key={step.title}>
-                <p className="font-mono text-[12px] tracking-[0.14em] text-green-800">STEP {i + 1}</p>
-                <h3 className="mt-2 text-lg font-semibold">{step.title}</h3>
-                <p className="mt-2 text-[15px] leading-relaxed text-stone-600">{step.body}</p>
+                <p className={g.stepNo}>Step {i + 1}</p>
+                <h3 className={g.stepTitle}>{step.title}</h3>
+                <p className={g.stepBody}>{step.body}</p>
               </div>
             ))}
           </div>
         </section>
 
-        <section id="audit" className="mx-auto max-w-3xl px-6 py-16">
-          <h2 className="text-2xl font-semibold tracking-[-0.015em]">Get your free AI-visibility audit</h2>
-          <p className="mt-2 text-[15px] text-stone-600">
+        <section id="audit" className={g.audit}>
+          <h2 className={g.h2}>Get your free AI-visibility audit</h2>
+          <p className={g.auditLead}>
             We check your site speed, your Google Business Profile, and whether ChatGPT, Perplexity and Google mention your business.
           </p>
-          <div className="mt-8">
+          <div className={g.formWrap}>
             <LeadForm />
           </div>
+          <p className={g.auditLead} style={{ marginTop: '1.5rem' }}>
+            {COMPANY_NAME} · {companyAbnLabel()}
+          </p>
         </section>
       </main>
 
-      <footer className="border-t border-stone-200 bg-white">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-6 text-[13px] text-stone-500">
-          <span>
-            {COMPANY_NAME} · {companyAbnLabel()}
-          </span>
-          <span className="flex gap-4">
-            <a href="/privacy-policy" className="hover:text-stone-800">Privacy</a>
-            <a href="/terms-of-service" className="hover:text-stone-800">Terms</a>
-          </span>
-        </div>
-      </footer>
-    </div>
+      <SiteFooter />
+    </PublicPageShell>
   )
 }

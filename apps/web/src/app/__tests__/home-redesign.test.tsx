@@ -67,15 +67,15 @@ describe('the dark home: section order', () => {
     expect([...at].sort((a, b) => a - b)).toEqual(at)
   })
 
-  it('is dark: a near-black canvas, light ink, and the condensed uppercase headline in the stylesheet', () => {
+  it('is dark: a near-black canvas, light ink, and a display-font hero title in the stylesheet', () => {
     const tokens = readFileSync(join(__dirname, '..', '..', 'styles', 'public-tokens.css'), 'utf8')
     expect(tokens).toMatch(/--pub-canvas:\s*#0[0-9a-f]{5}/i)
     expect(tokens).toMatch(/--pub-ink:\s*#f/i)
-    const hero = PUB_CSS('hero.module.css')
+    const hero = PUB_CSS('home/home-page.module.css')
     const h1 = hero.match(/\.h1\s*\{[^}]*\}/)?.[0] ?? ''
-    expect(h1).toMatch(/text-transform:\s*uppercase/)
     expect(h1).toMatch(/font-family:\s*var\(--pub-display\)/)
-    expect(tokens).toMatch(/--pub-display:[^;]*Condensed|--pub-display:[^;]*Narrow/)
+    expect(h1).toMatch(/font-weight:\s*600/)
+    expect(tokens).toMatch(/--pub-display:[^;]*syne|--pub-display:[^;]*instrument/i)
   })
 })
 
@@ -212,7 +212,7 @@ describe('images come from one map, and no file appears twice', () => {
     // every mapped picture is on the page exactly once
     const html = await signedOut()
     for (const [slot, v] of filled) expect(html.split(`src="${v.src}"`).length - 1, slot).toBe(1)
-    for (const f of ['public-home.tsx', 'highlights.tsx', 'pillars-row.tsx', 'how-it-works.tsx', 'proof.tsx']) {
+    for (const f of ['public-home.tsx', 'home/home-page.tsx']) {
       expect(readFileSync(join(__dirname, '..', '..', 'components', 'public', f), 'utf8'), f).not.toMatch(/\/landing\/visuals\//)
     }
   })

@@ -40,17 +40,17 @@ export const COLLECTION_PURPOSES: Record<CollectionNoticeForm, string> = {
 
 /** Who the details may go to (section 13.2) and the no-sale promise (sections 10 and 13.1). */
 export const COLLECTION_RECIPIENTS =
-  'We store them in our database, hosted by Supabase. Vercel hosts the website and keeps request logs, and the emails we send you are delivered by SendGrid. We do not sell your information.'
+  'We store your details in a database hosted by Supabase. Vercel hosts this website and keeps request logs. Email we send you is delivered by SendGrid. We do not sell your information.'
 
 /** How to access or correct the details (sections 10 and 13.4). */
-export const COLLECTION_ACCESS = `You can ask to see, correct or delete your information at any time by emailing ${PRIVACY_CONTACT_EMAIL}.`
+export const COLLECTION_ACCESS = `You may request access to, correction of, or deletion of your information at any time by emailing ${PRIVACY_CONTACT_EMAIL}.`
 
 /** The sentence that carries the privacy policy link; the component renders LINK_TEXT as the link. */
 export const COLLECTION_POLICY_LEAD = 'Read our'
 export const COLLECTION_POLICY_LINK_TEXT = 'privacy policy'
-export const COLLECTION_POLICY_TAIL = ', which also explains how to make a complaint.'
+export const COLLECTION_POLICY_TAIL = ' for full details, including how to make a complaint.'
 
 /** The full notice text before the privacy policy link, for one form. */
 export function collectionNoticeText(form: CollectionNoticeForm): string {
-  return `${COMPANY_NAME} collects these details ${COLLECTION_PURPOSES[form]}. ${COLLECTION_RECIPIENTS} ${COLLECTION_ACCESS}`
+  return `${COMPANY_NAME} collects the information you provide ${COLLECTION_PURPOSES[form]}. ${COLLECTION_RECIPIENTS} ${COLLECTION_ACCESS}`
 }

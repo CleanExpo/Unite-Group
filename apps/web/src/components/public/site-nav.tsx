@@ -2,32 +2,30 @@ import '@/styles/public-tokens.css'
 
 import { PILLARS, pillarPath } from '@/lib/public-site'
 
-import s from './public.module.css'
+import n from './site-nav.module.css'
 
 /** The public contact address. unite-group.in has Google MX records (checked 26/10/2026, UNI-3034). */
 export const CONTACT_EMAIL = 'contact@unite-group.in'
 export const CONTACT_MAILTO = `mailto:${CONTACT_EMAIL}`
 
-// Position 0. The U mark and wordmark go to /. The first item is a keyboard-operable dropdown (details and summary: Enter or
-// Space opens it, Tab reaches each link, no script). No "Home" item, one Contact, no two links share an href.
-// See it first, How it works and Questions are in-page anchors named after their section titles (go-live audit D21) on the home page, so they exist wherever the nav shows.
+// Primary IA only — product routes, one CTA, contact. In-page sections live in the footer.
 export function SiteNav() {
   return (
-    <header className={s.header}>
-      <a href="#main" className={s.skipLink}>
+    <header className={n.header}>
+      <a href="#main" className={n.skipLink}>
         Skip to content
       </a>
-      <div className={`${s.wrap} ${s.navRow}`}>
-        <a href="/" className={s.logo}>
+      <div className={n.bar}>
+        <a href="/" className={n.logo}>
           <img src="/landing/logos/unite-group-nexus-mark.webp" alt="" width={36} height={36} />
           Unite Group
         </a>
-        <nav aria-label="Main">
-          <ul className={s.navList}>
+        <nav aria-label="Main" className={n.nav}>
+          <ul className={n.primary}>
             <li>
-              <details className={s.dropdown}>
+              <details className={n.dropdown}>
                 <summary>What we do</summary>
-                <ul className={s.menu}>
+                <ul className={n.menu}>
                   {PILLARS.map((p) => (
                     <li key={p.slug}>
                       <a href={pillarPath(p.slug)}>{p.name}</a>
@@ -37,32 +35,24 @@ export function SiteNav() {
               </details>
             </li>
             <li>
-              <a href="/pricing">Pricing</a>
+              <a href="/cards">Living cards</a>
             </li>
             <li>
-              <a href="/cards">Living cards</a>
+              <a href="/pricing">Pricing</a>
             </li>
             <li>
               <a href="/grow">Grow your business</a>
             </li>
-            <li>
-              <a href="/#proof">See it first</a>
-            </li>
-            <li>
-              <a href="/#how">How it works</a>
-            </li>
-            <li>
-              <a href="/#answers">Questions</a>
-            </li>
-            <li>
-              <a href="/#contact">Contact</a>
-            </li>
-            <li>
-              <a href={CONTACT_MAILTO} data-contact-email>
-                Email us
-              </a>
-            </li>
           </ul>
+          <div className={n.actions}>
+            <a href="/cards/order" className={n.orderCta} data-track="cta" data-track-label="nav-order-card">
+              Order a card
+            </a>
+            <a href="/#contact">Contact</a>
+            <a href={CONTACT_MAILTO} className={n.email} data-contact-email>
+              Email us
+            </a>
+          </div>
         </nav>
       </div>
     </header>

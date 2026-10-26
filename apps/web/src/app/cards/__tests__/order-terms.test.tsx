@@ -34,7 +34,7 @@ const TERMS_ADDITION =
 /** The CARSI Pty Ltd payment line under each Order button (UNI-3017). */
 const PAYMENT_ADDITION = /<p class="_payEntity">[^<]*<\/p>/g
 /** The shared APP 5 notice, inside the enquiry form directly before the submit button. */
-const NOTICE_ADDITION = /<p[^>]*data-collection-notice="card-enquiry"[^>]*>[\s\S]*?<\/p>/
+const NOTICE_ADDITION = /<aside[^>]*data-collection-notice="card-enquiry"[^>]*>[\s\S]*?<\/aside>/
 
 const online = () => {
   vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', 'https://buy.stripe.com/test_ready')

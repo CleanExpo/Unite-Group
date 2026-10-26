@@ -1,0 +1,37 @@
+/* One continuous product band: jump links → three doors → live status → showroom. */
+
+.stack {
+  background:
+    radial-gradient(90% 50% at 50% 0%, rgba(236, 123, 65, 0.09), transparent 55%),
+    linear-gradient(180deg, var(--pub-night) 0%, var(--pub-bg-alt) 42%, var(--pub-bg) 100%);
+}
+
+.slice {
+  padding: 0;
+}
+
+.sliceJump {
+  padding: clamp(12px, 2vw, 18px) 0 0;
+  border-bottom: 1px solid rgba(35, 40, 66, 0.65);
+}
+
+.sliceOffers {
+  padding: clamp(1.25rem, 3vw, 1.75rem) 0;
+}
+
+.sliceStatus {
+  padding: 0 0 clamp(1rem, 2.5vw, 1.5rem);
+}
+
+.sliceGallery {
+  padding: 0 0 var(--pub-section-space);
+}
+
+.stack :global(.section) {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.stack :global(.section)::after {
+  display: none;
+}

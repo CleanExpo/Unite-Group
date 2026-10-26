@@ -31,7 +31,7 @@ describe('D3: /grow is kept but not offered', () => {
       .filter((f) => !f.includes(`${join('app', 'grow')}`) && !f.includes('privacy-policy'))
       .filter((f) => /href=["'`{]+[^"'`]*\/grow["'`}\s>]/.test(readFileSync(f, 'utf8')) || /href=\{`\$\{[A-Z_]+\}\/grow`\}/.test(readFileSync(f, 'utf8')))
       .map((f) => relative(srcDir, f))
-    expect(offenders.sort()).toEqual(['components/public/hero.tsx', 'components/public/site-nav.tsx'])
+    expect(offenders.sort()).toEqual(['components/public/home/home-page.tsx', 'components/public/site-nav.tsx'])
   })
 
   it('is not advertised in llms.txt', () => {

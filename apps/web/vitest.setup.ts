@@ -1,4 +1,17 @@
 import '@testing-library/jest-dom';
+import { vi } from 'vitest';
+
+// Public pages load Instrument Sans via next/font; Vitest has no next/font transform.
+vi.mock('next/font/google', () => ({
+  Instrument_Sans: () => ({
+    variable: 'font-instrument-display-mock',
+    className: 'font-instrument-display-mock',
+  }),
+  Syne: () => ({
+    variable: 'font-syne-display-mock',
+    className: 'font-syne-display-mock',
+  }),
+}));
 
 // Voice mission provenance is an HMAC keyed on a server-side secret, and
 // verification fails closed when the key is absent — a mission that cannot be

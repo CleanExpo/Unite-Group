@@ -14,11 +14,34 @@ type State = 'poster' | 'playing' | 'paused' | 'held'
  * its last frame (the poster is that frame). Replay and Pause are real buttons. It never loops, never has sound,
  * and a film that fails to load leaves the poster in place.
  */
-export function FilmPlayer({ film, priority = false, className = '', fade = false, controls = 'top' }: { film: Film; priority?: boolean; className?: string; fade?: boolean; controls?: 'top' | 'bottom' }) {
+export function FilmPlayer({
+  film,
+  priority = false,
+  className = '',
+  fade = false,
+  cover = false,
+  controls = 'top',
+  progress = false,
+  visibleThreshold = 0.4,
+  raisedControls = false,
+}: {
+  film: Film
+  priority?: boolean
+  className?: string
+  fade?: boolean
+  cover?: boolean
+  controls?: 'top' | 'bottom'
+  /** Thin playback track along the bottom edge (hero). */
+  progress?: boolean
+  visibleThreshold?: number
+  /** Lift bottom controls above an overlapping copy panel (cinema hero). */
+  raisedControls?: boolean
+}) {
   const [motion, setMotion] = useState(false)
   const [seen, setSeen] = useState(false)
   const [failed, setFailed] = useState(false)
   const [state, setState] = useState<State>('poster')
+  const [pct, setPct] = useState(0)
   const root = useRef<HTMLDivElement>(null)
   const video = useRef<HTMLVideoElement>(null)
   const started = useRef(false)
@@ -42,19 +65,24 @@ export function FilmPlayer({ film, priority = false, className = '', fade = fals
     void v.play().catch(() => setState('poster'))
   }
 
+  // LCP hero: start as soon as motion is allowed (no scroll gate).
+  useEffect(() => {
+    if (priority && motion && !failed) setSeen(true)
+  }, [priority, motion, failed])
+
   // Mount the film only once it is half in view; then play it once.
   useEffect(() => {
     const el = root.current
-    if (!motion || failed || seen || !el || typeof IntersectionObserver === 'undefined') return
+    if (priority || !motion || failed || seen || !el || typeof IntersectionObserver === 'undefined') return
     const io = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) setSeen(true)
       },
-      { threshold: 0.4 },
+      { threshold: visibleThreshold },
     )
     io.observe(el)
     return () => io.disconnect()
-  }, [motion, failed, seen])
+  }, [motion, failed, seen, visibleThreshold])
 
   const live = motion && seen && !failed
 
@@ -72,6 +100,7 @@ export function FilmPlayer({ film, priority = false, className = '', fade = fals
     const v = video.current
     if (!v) return
     started.current = true
+    setPct(0)
     v.currentTime = 0
     run(v)
   }
@@ -81,7 +110,19 @@ export function FilmPlayer({ film, priority = false, className = '', fade = fals
     if (state === 'playing') {
       v.pause()
       setState('paused')
-    } else if (state === 'paused') run(v)
+    } else if (state === 'paused' || state === 'held') {
+      if (state === 'held') {
+        v.currentTime = 0
+        setPct(0)
+      }
+      run(v)
+    }
+  }
+
+  const onTime = () => {
+    const v = video.current
+    if (!v?.duration || !Number.isFinite(v.duration)) return
+    setPct(Math.min(1, v.currentTime / v.duration))
   }
 
   return (
@@ -90,12 +131,14 @@ export function FilmPlayer({ film, priority = false, className = '', fade = fals
       data-film
       data-film-state={live ? state : 'poster'}
       data-controls={controls}
-      className={`${f.film} ${className}`}
-      style={{ '--film-ratio': `${film.width} / ${film.height}` } as CSSProperties}
+      data-controls-raised={raisedControls || undefined}
+      data-progress={progress || undefined}
+      className={`${f.film} ${cover ? f.cover : ''} ${className}`}
+      style={{ '--film-ratio': `${film.width} / ${film.height}`, '--film-pct': pct } as CSSProperties}
     >
       <div className={f.media} data-fade={fade || undefined}>
         <img
-          className={f.layer}
+          className={f.poster}
           src={film.poster}
           srcSet={film.posterSet?.map((p) => `${p.src} ${p.w}w`).join(', ')}
           sizes={film.posterSet ? film.sizes : undefined}
@@ -115,7 +158,11 @@ export function FilmPlayer({ film, priority = false, className = '', fade = fals
             preload="metadata"
             aria-hidden="true"
             tabIndex={-1}
-            onEnded={() => setState('held')}
+            onTimeUpdate={onTime}
+            onEnded={() => {
+              setState('held')
+              setPct(1)
+            }}
           >
             {sources.map((src, i) => (
               <source key={src.src} src={src.src} type={src.type} onError={i === sources.length - 1 ? () => setFailed(true) : undefined} />
@@ -124,14 +171,27 @@ export function FilmPlayer({ film, priority = false, className = '', fade = fals
         )}
       </div>
       {live && (
-        <div className={f.controls}>
-          <button type="button" onClick={replay}>
-            Replay
-          </button>
-          <button type="button" onClick={toggle} disabled={state === 'held' || state === 'poster'} aria-pressed={state === 'paused'}>
-            {state === 'paused' ? 'Play' : 'Pause'}
-          </button>
-        </div>
+        <>
+          {progress ? (
+            <div className={f.track} aria-hidden="true">
+              <div className={f.fill} />
+            </div>
+          ) : null}
+          <div className={f.controls}>
+            <button type="button" onClick={replay} aria-label="Replay film">
+              Replay
+            </button>
+            <button
+              type="button"
+              onClick={toggle}
+              disabled={state === 'poster'}
+              aria-pressed={state === 'paused'}
+              aria-label={state === 'paused' || state === 'held' ? 'Play film' : 'Pause film'}
+            >
+              {state === 'paused' || state === 'held' ? 'Play' : 'Pause'}
+            </button>
+          </div>
+        </>
       )}
     </div>
   )

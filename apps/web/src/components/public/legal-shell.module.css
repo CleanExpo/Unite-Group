@@ -1,0 +1,83 @@
+/* Light readable band for legal copy; nav/footer stay Forge Cinema dark. */
+
+.root {
+  min-height: 100vh;
+  background: var(--pub-canvas);
+}
+
+.main {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 2rem 16px 4rem;
+  background: #fffdf7;
+  color: rgba(28, 25, 23, 0.88);
+  border-inline: 1px solid var(--pub-line);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+}
+
+@media (min-width: 640px) {
+  .main { padding-inline: 24px; margin-top: 0; margin-bottom: 2rem; border-radius: 0 0 var(--pub-radius-lg) var(--pub-radius-lg); }
+}
+
+.kicker {
+  margin: 0 0 1.5rem;
+  font-family: var(--pub-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(28, 25, 23, 0.55);
+}
+
+.prose :global(h1) {
+  margin: 0 0 0.35rem;
+  font-family: var(--pub-display);
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #1c1917;
+}
+
+.prose :global(h2) {
+  margin: 2rem 0 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1c1917;
+}
+
+.prose :global(h3) {
+  margin: 1.25rem 0 0.35rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.prose :global(p),
+.prose :global(li) {
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.prose :global(a) {
+  color: #15803d;
+  text-underline-offset: 3px;
+}
+
+.prose :global(a:hover) {
+  color: #166534;
+}
+
+.prose :global(ul) {
+  list-style: disc;
+  padding-left: 1.25rem;
+  margin: 0.5rem 0 0.75rem;
+}
+
+.prose :global(li::marker) {
+  color: rgba(28, 25, 23, 0.55);
+}
+
+.meta {
+  margin: 0 0 3rem;
+  font-family: var(--pub-mono);
+  font-size: 13px;
+  color: rgba(28, 25, 23, 0.7);
+}

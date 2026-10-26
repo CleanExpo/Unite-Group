@@ -1,10 +1,9 @@
 import Image from 'next/image'
 import type { CSSProperties } from 'react'
 
-import '@/styles/public-tokens.css'
-
 import { PILLARS, SHIPPED_PILLAR, lowestCardPrice, type Pillar } from '@/lib/public-site'
 
+import { PublicPageShell } from './public-page-shell'
 import ps from './pillar.module.css'
 import { PILLAR_SCREENS, type Screen } from './pillar-visuals'
 import s from './public.module.css'
@@ -40,7 +39,7 @@ export function PillarPage({ slug }: { slug: Pillar['slug'] }) {
   const from = lowestCardPrice()
 
   return (
-    <div className={s.page}>
+    <PublicPageShell>
       <SiteNav />
       <main id="main" className={s.wrap}>
         <nav aria-label="Breadcrumb">
@@ -98,6 +97,6 @@ export function PillarPage({ slug }: { slug: Pillar['slug'] }) {
         </article>
       </main>
       <SiteFooter />
-    </div>
+    </PublicPageShell>
   )
 }

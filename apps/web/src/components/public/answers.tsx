@@ -2,12 +2,11 @@ import { formatAud } from '@/app/grow/packages'
 import { PLUS_GST, SIGNATURE_ADDON, STARTER_PLAN, liveCardTiers } from '@/lib/public-pricing'
 import { CONTACT_EMAIL, PRICE_NOTE } from '@/lib/public-site'
 
+import { HOME_FAQ } from './home-copy'
 import s from './public.module.css'
+import { SectionIntro } from './section-intro'
 
-// Position 6. Real questions with answers that match /cards and /cards/order. Where a fact is not set,
-// the answer says so plainly instead of guessing.
 export function answers() {
-  // Card prices only for tiers a buyer can pay for now, the same gate as /cards/order.
   const live = liveCardTiers()
   const card = live.length
     ? `${live.map((t) => `${t.name} is ${formatAud(t.priceAud)}`).join(' and ')}. ${PRICE_NOTE}.`
@@ -44,9 +43,7 @@ export function Answers() {
   return (
     <section data-position id="answers" className={s.section} aria-labelledby="answers-title">
       <div className={s.wrap}>
-        <h2 id="answers-title" className={s.h2}>
-          Questions
-        </h2>
+        <SectionIntro id="answers-title" eyebrow={HOME_FAQ.eyebrow} title={HOME_FAQ.title} lead={HOME_FAQ.lead} />
         <div className={s.faq}>
           {answers().map((item) => (
             <details key={item.q}>

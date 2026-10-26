@@ -1,57 +1,54 @@
-import { formatAud } from '@/app/grow/packages'
-import { PLUS_GST, SIGNATURE_ADDON, STARTER_PLAN } from '@/lib/public-pricing'
-
 import { CARD_FILM } from './film-config'
 import { FilmPlayer } from './film-player'
+import { HOME_HIGHLIGHTS } from './home-copy'
+import hl from './highlights.module.css'
+import ps from './home-product-stack.module.css'
 import s from './public.module.css'
 import { VisualImg } from './visual-img'
 import { VISUALS, type Visual } from './visuals'
 
-// Three big media cards, the first row under the hero: full-bleed picture or film, a bold title and ONE caption line.
-// The film card plays the U reveal once with Replay and Pause; its title link sits under the film's own buttons.
 export function Highlights() {
   const picture = (v: Visual | null) => (v ? <VisualImg visual={v} /> : null)
+  const [film, nexus, pricing] = HOME_HIGHLIGHTS.cards
   return (
-    <section id="highlights" className={`${s.section} ${s.tight}`} aria-label="Highlights">
+    <section id="highlights" className={`${s.section} ${ps.slice} ${ps.sliceOffers}`} aria-label={HOME_HIGHLIGHTS.srTitle}>
       <div className={s.wrap}>
-        <h2 className={s.srOnly}>Highlights</h2>
-        <div className={s.mediaRow}>
-          <article className={`${s.mediaCard} ${s.mediaFilm}`} data-media-card>
-            <div className={s.mediaBox}>
-              <FilmPlayer film={CARD_FILM} />
+        <div className={hl.row}>
+          <article className={`${hl.card} ${hl.filmCard}`} data-media-card data-spot="film">
+            <div className={hl.media}>
+              <FilmPlayer film={CARD_FILM} controls="bottom" />
             </div>
-            <span className={s.badge}>AI-generated</span>
-            <div className={s.mediaText}>
-              <h3 className={s.cardTitle}>
-                <a href="/cards">Living cards</a>
+            <span className={hl.badge}>AI-generated</span>
+            <div className={hl.text}>
+              <h3 className={hl.title}>
+                <a href={film.href}>{film.title}</a>
               </h3>
-              <p className={s.cardLine}>A video card that ends on your logo.</p>
+              <p className={hl.line}>{film.line}</p>
             </div>
           </article>
-          <article className={`${s.mediaCard} ${VISUALS.nexus ? '' : s.plainCard}`} data-media-card>
-            <div className={s.mediaBox}>{picture(VISUALS.nexus)}</div>
-            <div className={s.mediaText}>
-              <h3 className={s.cardTitle}>
-                <a href="/solutions/intelligence" className={s.stretch}>
-                  Nexus CRM
+          <article className={hl.card} data-media-card data-spot="nexus">
+            <div className={hl.media}>{picture(VISUALS.nexus)}</div>
+            <div className={hl.text}>
+              <h3 className={hl.title}>
+                <a href={nexus.href} className={hl.stretch}>
+                  {nexus.title}
                 </a>
               </h3>
-              <p className={s.cardLine}>The CRM we are building to run your marketing.</p>
-              {/* Not for sale yet: labelled Coming like every future item on the page (Phill, 25/10/2026). */}
+              <p className={hl.line}>{nexus.line}</p>
               <span className={s.chip} data-chip="coming">
                 Coming
               </span>
             </div>
           </article>
-          <article className={s.mediaCard} data-media-card>
-            <div className={s.mediaBox}>{picture(VISUALS.network)}</div>
-            <div className={s.mediaText}>
-              <h3 className={s.cardTitle}>
-                <a href="/pricing" className={s.stretch}>
-                  Pricing
+          <article className={hl.card} data-media-card data-spot="pricing">
+            <div className={hl.media}>{picture(VISUALS.network)}</div>
+            <div className={hl.text}>
+              <h3 className={hl.title}>
+                <a href={pricing.href} className={hl.stretch}>
+                  {pricing.title}
                 </a>
               </h3>
-              <p className={s.cardLine}>Starter {formatAud(STARTER_PLAN.priceAud)} a month, signatures {formatAud(SIGNATURE_ADDON.priceAud)} each, {PLUS_GST}.</p>
+              <p className={hl.line}>{pricing.line}</p>
             </div>
           </article>
         </div>

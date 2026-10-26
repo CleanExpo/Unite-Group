@@ -1,0 +1,222 @@
+/* Living cards showroom — uses var(--pub-*) from public-tokens.css on the page root. */
+
+.toolbar {
+  border-bottom: 1px solid var(--pub-line);
+  background: var(--pub-night);
+}
+
+.toolbarInner {
+  max-width: var(--pub-max);
+  margin: 0 auto;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .toolbarInner { padding-left: 24px; padding-right: 24px; }
+}
+
+.hero {
+  max-width: var(--pub-max);
+  margin: 0 auto;
+  padding: 3rem 16px 3.5rem;
+  display: grid;
+  gap: 2.5rem;
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .hero {
+    padding: 4rem 24px 3.5rem;
+    grid-template-columns: 1fr minmax(0, 22rem);
+  }
+}
+
+.eyebrow {
+  margin: 0;
+  font-family: var(--pub-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--pub-muted);
+}
+
+.h1 {
+  margin: 1rem 0 0;
+  max-width: 36rem;
+  font-family: var(--pub-display);
+  font-size: clamp(2.1rem, 5.4vw, 3.4rem);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+.lead {
+  margin: 1.25rem 0 0;
+  max-width: 36rem;
+  font-size: 17px;
+  line-height: 1.55;
+  color: var(--pub-ink-soft);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 2rem;
+}
+
+.btnPrimary,
+.btnSecondary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 1.75rem;
+  border-radius: var(--pub-radius);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.btnPrimary {
+  background: var(--pub-accent);
+  color: var(--pub-accent-ink);
+  border: 1px solid var(--pub-accent);
+}
+
+.btnPrimary:hover {
+  background: var(--pub-accent-strong);
+  border-color: var(--pub-accent-strong);
+  color: var(--pub-accent-ink);
+}
+
+.btnSecondary {
+  color: var(--pub-ink);
+  border: 1px solid var(--pub-line-strong);
+  background: transparent;
+}
+
+.btnSecondary:hover {
+  border-color: var(--pub-accent);
+  color: var(--pub-accent-strong);
+}
+
+.qrWrap { position: relative; }
+
+.qrFigure {
+  pointer-events: none;
+  position: absolute;
+  right: 0.75rem;
+  bottom: 3.5rem;
+  margin: 0;
+  padding: 0.5rem;
+  border-radius: var(--pub-radius);
+  background: #fff;
+  text-align: center;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+.qrFigure img {
+  display: block;
+  width: 8rem;
+  height: 8rem;
+}
+
+.qrFigure figcaption {
+  margin-top: 0.25rem;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #111;
+}
+
+.editions {
+  max-width: var(--pub-max);
+  margin: 0 auto;
+  padding: 0 16px 4rem;
+}
+
+@media (min-width: 640px) {
+  .editions { padding-left: 24px; padding-right: 24px; }
+}
+
+.h2 {
+  margin: 0;
+  font-family: var(--pub-display);
+  font-size: clamp(1.6rem, 3vw, 2rem);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.editionsLead {
+  margin: 0.5rem 0 0;
+  max-width: 36rem;
+  font-size: 15px;
+  color: var(--pub-muted);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2rem 1rem;
+  margin-top: 2rem;
+}
+
+@media (min-width: 640px) {
+  .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1024px) {
+  .grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+
+.stepsBand {
+  border-block: 1px solid var(--pub-line);
+  background: var(--pub-surface);
+}
+
+.stepsInner {
+  max-width: var(--pub-max);
+  margin: 0 auto;
+  padding: 3.5rem 16px;
+  display: grid;
+  gap: 2rem;
+}
+
+@media (min-width: 768px) {
+  .stepsInner {
+    padding-left: 24px;
+    padding-right: 24px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.stepNo {
+  margin: 0;
+  font-family: var(--pub-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: var(--pub-accent-strong);
+}
+
+.stepTitle {
+  margin: 0.5rem 0 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.stepBody {
+  margin: 0.5rem 0 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--pub-ink-soft);
+}
+
+.page a:focus-visible {
+  outline: 3px solid var(--pub-focus);
+  outline-offset: 2px;
+}

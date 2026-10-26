@@ -9,7 +9,7 @@ import { IntakeForm } from '../intake-form'
 const decode = (s: string) =>
   s.replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
 const html = () => renderToStaticMarkup(createElement(IntakeForm, { reference: 'cs_test_a1' }))
-const notice = () => /<p[^>]*data-collection-notice="card-intake"[^>]*>[\s\S]*?<\/p>/.exec(html())?.[0] ?? ''
+const notice = () => /<aside[^>]*data-collection-notice="card-intake"[^>]*>[\s\S]*?<\/aside>/.exec(html())?.[0] ?? ''
 
 describe('/cards/thanks intake form: APP 5 collection notice', () => {
   it('renders the card-intake notice inside the form, before the submit button', () => {

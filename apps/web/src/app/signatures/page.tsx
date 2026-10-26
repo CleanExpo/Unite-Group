@@ -1,8 +1,7 @@
 import type { Metadata } from 'next'
 
-import '@/styles/public-tokens.css'
-
 import s from '@/components/public/public.module.css'
+import { PublicPageShell } from '@/components/public/public-page-shell'
 import { SiteFooter } from '@/components/public/site-footer'
 import { SiteNav } from '@/components/public/site-nav'
 import { formatAud } from '@/app/grow/packages'
@@ -18,7 +17,7 @@ export const metadata: Metadata = {
 
 export default function SignaturesPage() {
   return (
-    <div className={s.page}>
+    <PublicPageShell>
       <SiteNav />
       <main id="main" className={s.wrap} data-signatures>
         <nav aria-label="Breadcrumb">
@@ -58,6 +57,6 @@ export default function SignaturesPage() {
         <p>Signatures are an add-on to the <a href="/pricing">Starter plan</a>.</p>
       </main>
       <SiteFooter />
-    </div>
+    </PublicPageShell>
   )
 }

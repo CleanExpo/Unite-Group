@@ -10,11 +10,16 @@ import { SITE_URL } from "@/lib/public-site";
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: "Unite Group | Every business. One system.",
+  title: "Unite Group | Living business cards & growth for Australian businesses",
   description:
-    "Unite Group is an AI marketing agency with Margot as its AI face. Starter plan $99 a month excluding GST, email signatures and living business cards. Serving Australia and New Zealand.",
+    "Living business cards, Starter plans and email signatures for businesses in Australia and New Zealand. One system to be found, impress and convert — with Margot as your AI guide.",
   alternates: { canonical: SITE_URL },
   robots: { index: true, follow: true },
+  openGraph: {
+    title: "Unite Group | Every business. One system.",
+    description: "Living business cards and clear growth paths for Australian businesses.",
+    url: SITE_URL,
+  },
 };
 
 export default async function RootPage() {
