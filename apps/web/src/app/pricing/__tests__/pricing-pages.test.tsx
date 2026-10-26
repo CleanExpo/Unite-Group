@@ -2,35 +2,56 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import PricingPage, { metadata as pricingMeta } from '@/app/pricing/page'
 import SignaturesPage, { metadata as sigMeta } from '@/app/signatures/page'
 import { isPublicPath } from '@/proxy'
-import { CARD_FROM_AUD, SIGNATURE_ADDON, STARTER_PLAN } from '@/lib/public-pricing'
+import { cardFromAud, SIGNATURE_ADDON, STARTER_PLAN } from '@/lib/public-pricing'
 
 const text = (h: string) => h.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ')
 const root = join(__dirname, '..', '..', '..', '..')
 
 describe('/pricing (UNI-3017)', () => {
-  const html = renderToStaticMarkup(<PricingPage />)
-  it('shows Starter at $99 a month, signatures at $22 each and the card from $249', () => {
+  const READY = 'STRIPE_PAYMENT_LINK_CARD_READY'
+  const CUSTOM = 'STRIPE_PAYMENT_LINK_CARD_CUSTOM'
+  afterEach(() => vi.unstubAllEnvs())
+
+  it('shows Starter at $99 a month and signatures at $22 each', () => {
     expect(STARTER_PLAN.priceAud).toBe(99)
     expect(SIGNATURE_ADDON.priceAud).toBe(22)
-    expect(CARD_FROM_AUD).toBe(249)
-    const t = text(html)
+    const t = text(renderToStaticMarkup(<PricingPage />))
     expect(t).toContain('$99 a month')
     expect(t).toContain('$22 each')
-    expect(t).toContain('from $249')
+  })
+  it('shows the card from-price only from tiers whose payment link is set, like the order page', () => {
+    vi.stubEnv(READY, '')
+    vi.stubEnv(CUSTOM, 'https://buy.stripe.com/test_custom')
+    expect(cardFromAud()).toBe(449)
+    expect(text(renderToStaticMarkup(<PricingPage />))).toContain('from $449')
+    vi.stubEnv(READY, 'https://buy.stripe.com/test_ready')
+    expect(cardFromAud()).toBe(249)
+    expect(text(renderToStaticMarkup(<PricingPage />))).toContain('from $249')
+  })
+  it('shows no card price while online ordering is off', () => {
+    vi.stubEnv(READY, '')
+    vi.stubEnv(CUSTOM, 'not-a-stripe-link')
+    expect(cardFromAud()).toBeNull()
+    const t = text(renderToStaticMarkup(<PricingPage />))
+    expect(t).not.toMatch(/\$249|\$449|GST included/)
+    expect(t).toContain('online orders are not open yet')
+    expect(pricingMeta.description).not.toMatch(/\$249|\$449/)
   })
   it('links to the signatures page, the card and the existing card order page, and creates no new payment link', () => {
+    vi.stubEnv(READY, 'https://buy.stripe.com/test_ready')
+    const html = renderToStaticMarkup(<PricingPage />)
     expect(html).toContain('href="/signatures"')
     expect(html).toContain('href="/cards/order"')
     expect(html).not.toMatch(/buy\.stripe\.com|checkout\.stripe/)
   })
   it('is canonical and never names the restoration sister companies', () => {
     expect(pricingMeta.alternates?.canonical).toBe('https://unite-group.in/pricing')
-    expect(html).not.toMatch(/Disaster Recovery|NRPG|RestoreAssist|CARSI|PI CEO/)
+    expect(renderToStaticMarkup(<PricingPage />)).not.toMatch(/Disaster Recovery|NRPG|RestoreAssist|CARSI|PI CEO/)
   })
 })
 

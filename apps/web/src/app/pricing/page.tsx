@@ -6,17 +6,18 @@ import s from '@/components/public/public.module.css'
 import { SiteFooter } from '@/components/public/site-footer'
 import { SiteNav } from '@/components/public/site-nav'
 import { formatAud } from '@/app/grow/packages'
-import { CARD_FROM_AUD, SIGNATURE_ADDON, STARTER_PLAN } from '@/lib/public-pricing'
+import { cardFromAud, SIGNATURE_ADDON, STARTER_PLAN } from '@/lib/public-pricing'
 import { SITE_URL } from '@/lib/public-site'
 
 export const metadata: Metadata = {
   title: 'Pricing | Unite Group',
-  description: `Starter plan ${formatAud(STARTER_PLAN.priceAud)} a month. Add email signatures at ${formatAud(SIGNATURE_ADDON.priceAud)} each and a living business card from ${formatAud(CARD_FROM_AUD)}.`,
+  description: `Starter plan ${formatAud(STARTER_PLAN.priceAud)} a month. Add email signatures at ${formatAud(SIGNATURE_ADDON.priceAud)} each and order a living business card.`,
   alternates: { canonical: `${SITE_URL}/pricing` },
   robots: { index: true, follow: true },
 }
 
 export default function PricingPage() {
+  const cardFrom = cardFromAud()
   return (
     <div className={s.page}>
       <SiteNav />
@@ -45,7 +46,12 @@ export default function PricingPage() {
               <a href={SIGNATURE_ADDON.href}><strong>{SIGNATURE_ADDON.name}</strong></a>: {formatAud(SIGNATURE_ADDON.priceAud)} {SIGNATURE_ADDON.unit}. {SIGNATURE_ADDON.line}
             </li>
             <li data-addon="card">
-              <a href="/cards"><strong>Living business card</strong></a>: from {formatAud(CARD_FROM_AUD)}, one-off price, GST included. <a href="/cards/order">Order a card</a>
+              <a href="/cards"><strong>Living business card</strong></a>
+              {cardFrom !== null ? (
+                <>: from {formatAud(cardFrom)}, one-off price, GST included. <a href="/cards/order">Order a card</a></>
+              ) : (
+                <>: online orders are not open yet. <a href="/cards/order">See the card</a></>
+              )}
             </li>
           </ul>
         </section>
