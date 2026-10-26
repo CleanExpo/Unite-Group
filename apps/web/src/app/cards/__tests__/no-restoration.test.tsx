@@ -14,7 +14,7 @@ import { PAYMENT_ENTITY_LINE } from '../payment-entity'
  * The one allowed mention is the legal payment-entity line, which stays true until card payments move to a
  * Unite-Group entity; it is removed before the scan, by its exact text, so nothing else can hide behind it.
  */
-const BANNED = /restor|disaster recovery|nrpg|restoreassist|synthex|trade hall|carsi/i
+const BANNED = /restor|training|disaster recovery|nrpg|restoreassist|synthex|trade hall|carsi/i
 
 const scan = (html: string) => {
   const text = html.split(PAYMENT_ENTITY_LINE).join('')
@@ -63,6 +63,8 @@ describe('card pages carry no restoration or sister-business content', () => {
 
   it('the scan still sees a banned word next to the allowed payment line', () => {
     expect(scan(`${PAYMENT_ENTITY_LINE} Our CARSI course`)).toBe('CARSI')
+    expect(scan('<p title="restoration">x</p>')).toBe('restor')
+    expect(scan('Book a training course')).toBe('training')
     expect(scan(PAYMENT_ENTITY_LINE)).toBeNull()
   })
 })

@@ -167,7 +167,14 @@ describe('lead alert privacy and delivery', () => {
     const labels = allPackageLabels()
     for (const input of inputs) expect(labels).toContain(packageLabel(input))
     expect(new Set(labels).size).toBe(labels.length)
-    expect(labels).toHaveLength(new Set(inputs.map((input) => packageLabel(input))).size)
+    // Plus one: the retired Restoration edition, which packageLabel no longer returns.
+    expect(labels).toHaveLength(new Set(inputs.map((input) => packageLabel(input))).size + 1)
+  })
+
+  it('keeps the erasure label of a retired edition after it leaves EDITIONS', () => {
+    expect(EDITIONS.some((edition) => edition.name === 'restoration')).toBe(false)
+    expect(packageLabel('living-card:restoration')).toBe('Not specified')
+    expect(allPackageLabels()).toContain('Living card: restoration')
   })
 
   it('strips Unicode line and format controls, and handles an empty sanitised business name', () => {

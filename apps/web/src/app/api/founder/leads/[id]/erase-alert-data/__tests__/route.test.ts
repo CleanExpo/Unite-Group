@@ -165,6 +165,8 @@ describe('POST erase-alert-data', () => {
     expect(args.p_dedup_keys).toEqual(allPackageLabels().map((label) => key('buyer@example.invalid', label)))
     expect(args.p_dedup_keys).toContain(key('buyer@example.invalid', 'Living card'))
     expect(args.p_dedup_keys).toContain(key('buyer@example.invalid', 'Not specified'))
+    // An alert sent while the Restoration edition was on sale stays erasable after it was retired.
+    expect(args.p_dedup_keys).toContain(key('buyer@example.invalid', 'Living card: restoration'))
     expect(JSON.stringify(args)).not.toContain('example.invalid')
   })
 

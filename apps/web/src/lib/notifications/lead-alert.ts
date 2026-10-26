@@ -29,10 +29,17 @@ export function packageLabel(interests: string | null): string {
   return 'Not specified'
 }
 
-/** Every value packageLabel can return, so erasure can derive every keyed hash for one address. */
+/**
+ * Editions taken off sale. Alerts sent while one was on sale carry its label, so erasure must keep deriving
+ * that keyed hash after the edition leaves EDITIONS. Add a name here when an edition is retired; never remove one.
+ */
+const RETIRED_EDITIONS: readonly string[] = ['restoration']
+
+/** Every value packageLabel can return, plus retired edition labels, so erasure derives every keyed hash for one address. */
 export function allPackageLabels(): string[] {
   return [...GROW_PACKAGES.map((item) => item.name), 'Living card',
-    ...EDITIONS.map((item) => `Living card: ${item.name}`), 'Not specified']
+    ...EDITIONS.map((item) => `Living card: ${item.name}`),
+    ...RETIRED_EDITIONS.map((name) => `Living card: ${name}`), 'Not specified']
 }
 
 function flatten(value: string): string {
