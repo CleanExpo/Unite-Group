@@ -111,6 +111,17 @@ describe('/ hero and metadata', () => {
     expect(`${metadata.title} ${description}`).not.toMatch(/synthex/i)
   })
 
+  // Phill 26/10/2026 (UNI-3034): one primary CTA to the chooser, then Ask a question and Grow your business.
+  it('links the hero to the chooser, the contact form and /grow, in that order, with one primary CTA', async () => {
+    const html = await signedOut()
+    const start = html.lastIndexOf('<', html.indexOf('id="hero"'))
+    const hero = html.slice(start, html.indexOf('</section>', start))
+    const anchors = [...hero.matchAll(/<a [^>]*>/g)].map((m) => m[0])
+    expect(anchors.map((a) => a.match(/href="([^"]*)"/)?.[1])).toEqual(['#start', '#contact', '/grow'])
+    expect(anchors[0]).toContain('data-track-label="home-hero-start"')
+    expect(anchors.filter((a) => a.includes('data-track-label="home-hero-start"'))).toHaveLength(1)
+  })
+
   it('paints the words and the poster first, and mounts no video on the server', async () => {
     const html = await signedOut()
     expect(html).toContain('data-hero-media')

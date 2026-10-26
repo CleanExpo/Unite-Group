@@ -25,9 +25,6 @@ export function Hero() {
               <a href={HOME_HERO.secondaryHref} data-track="cta" data-track-label="home-hero-ask-question" className={h.ghost}>
                 {HOME_HERO.secondaryCta}
               </a>
-              <a href={HOME_HERO.growHref} data-track="cta" data-track-label="home-hero-grow" className={h.ghost}>
-                {HOME_HERO.growCta}
-              </a>
             </div>
           </div>
           <div className={h.stageWrap}>

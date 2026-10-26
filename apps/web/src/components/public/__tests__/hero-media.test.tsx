@@ -71,17 +71,16 @@ describe('hero server markup: the words and the poster come before any video', (
 
   it('has exactly one primary CTA and it goes to the chooser; the secondary stays the contact link', () => {
     const anchors = [...html.matchAll(/<a [^>]*>/g)].map((m) => m[0])
-    expect(anchors).toHaveLength(3)
+    expect(anchors).toHaveLength(2)
     const primary = anchors.filter((a) => !/ghost/.test(a))
     expect(primary).toHaveLength(1)
     expect(primary[0]).toContain('href="#start"')
     expect(primary[0]).toContain('data-track-label="home-hero-start"')
     expect(html).not.toMatch(/href="#group"/)
     const secondary = anchors.filter((a) => /ghost/.test(a))
-    // Phill 26/10/2026 (UNI-3034): the hero also links to /grow
-    expect(secondary).toHaveLength(2)
+    // The redesign moved the /grow link to the live home hero (home/home-page.tsx); landing.test checks it there.
+    expect(secondary).toHaveLength(1)
     expect(secondary[0]).toContain('href="#contact"')
-    expect(secondary[1]).toContain('href="/grow"')
   })
 
   it('shows the finished-U poster as a sized, high-priority img and mounts no video on the server', () => {

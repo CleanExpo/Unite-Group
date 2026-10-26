@@ -11,7 +11,6 @@ export const HOME_HERO = {
   secondaryCta: 'Ask a question',
   secondaryHref: '#contact',
   growCta: 'Grow your business',
-  growHref: '/grow',
 } as const
 
 export const HOME_START = {

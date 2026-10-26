@@ -15,6 +15,12 @@ const walk = (dir: string): string[] =>
     return statSync(p).isDirectory() ? walk(p) : /\.(tsx?|css|md)$/.test(f) ? [p] : []
   })
 
+/** True when the source links /grow. A quoted '/grow' value counts too: it is a constant waiting to be an href. */
+const linksGrow = (src: string) =>
+  /href=["'`{]+[^"'`]*\/grow["'`}\s>]/.test(src) ||
+  /href=\{`\$\{[A-Z_]+\}\/grow`\}/.test(src) ||
+  /(["'`])\/grow(?:[?#][^"'`]*)?\1/.test(src)
+
 describe('D3: /grow is kept but not offered', () => {
   it('is noindex and nofollow', () => {
     expect(growMeta.robots).toEqual({ index: false, follow: false })
@@ -28,10 +34,18 @@ describe('D3: /grow is kept but not offered', () => {
   // Phill 26/10/2026 (UNI-3034): link the live /grow page from the main nav and the home page. Only those two.
   it('is linked only from the main nav and the home hero', () => {
     const offenders = walk(srcDir)
-      .filter((f) => !f.includes(`${join('app', 'grow')}`) && !f.includes('privacy-policy'))
-      .filter((f) => /href=["'`{]+[^"'`]*\/grow["'`}\s>]/.test(readFileSync(f, 'utf8')) || /href=\{`\$\{[A-Z_]+\}\/grow`\}/.test(readFileSync(f, 'utf8')))
+      // proxy.ts names /grow in its public-route list, which is access control, not a link.
+      .filter((f) => !f.includes(`${join('app', 'grow')}`) && !f.includes('privacy-policy') && f !== join(srcDir, 'proxy.ts'))
+      .filter((f) => linksGrow(readFileSync(f, 'utf8')))
       .map((f) => relative(srcDir, f).split(sep).join('/'))
     expect(offenders.sort()).toEqual(['components/public/home/home-page.tsx', 'components/public/site-nav.tsx'])
+  })
+
+  // Independent review of 3fcdf888 planted this on /cards/order and the scan missed it.
+  it('counts a /grow link built from a constant, and not an import from app/grow', () => {
+    expect(linksGrow("const reviewGrow = '/grow'\nexport const A = () => <a href={reviewGrow}>Grow</a>")).toBe(true)
+    expect(linksGrow("export const GROW = { href: `/grow#form` }")).toBe(true)
+    expect(linksGrow("import { formatAud } from '@/app/grow/packages'")).toBe(false)
   })
 
   it('is not advertised in llms.txt', () => {
