@@ -71,6 +71,7 @@ export const SMOKE_PATHS = Object.freeze([
   { path: '/sitemap.xml', pattern: '/sitemap.xml', status: 200, bodyIncludes: '<urlset' },
   { path: '/llms.txt', pattern: null, publicFile: 'llms.txt', status: 200, note: 'static file in public/' },
   { path: '/site.webmanifest', pattern: null, publicFile: 'site.webmanifest', status: 200, note: 'static file in public/' },
+  { path: '/auth/confirm', pattern: '/auth/confirm', status: 200 },
   { path: '/auth/login', pattern: '/auth/login', status: 200 },
   { path: '/auth/reset-password', pattern: '/auth/reset-password', status: 200 },
   { path: '/forgot-password', pattern: '/forgot-password', status: 200 },
