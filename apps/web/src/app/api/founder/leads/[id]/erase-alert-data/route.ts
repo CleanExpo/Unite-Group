@@ -1,6 +1,10 @@
 // Founder-only erasure of what the app keeps about an enquiry outside crm_leads:
 // its alert delivery log rows (by lead id and by keyed duplicate hash) and its
 // crm_timeline agent_actions rows, for every enquiry made with the same email.
+// Matching every enquiry from the address happens in ONE founder-scoped SQL call
+// (erase_lead_alert_data_for_email: exact lower(email) equality, no API row cap,
+// one transaction), never in the API layer, where PostgREST's ilike treats '*' as a
+// wildcard and a select stops at the row cap.
 // It does NOT delete crm_leads and it cannot delete the alert email in the mailbox;
 // both stay manual steps named in the privacy policy.
 
@@ -9,7 +13,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getFounderUserId } from '@/lib/auth/founder-user-id'
 import { dedupKey } from '@/lib/notifications/dedup-key'
-import { packageLabel } from '@/lib/notifications/lead-alert'
+import { allPackageLabels } from '@/lib/notifications/lead-alert'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,27 +37,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (leadError) throw leadError
     if (!lead?.email) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    const pattern = String(lead.email).replace(/[\\%_]/g, (character) => `\\${character}`)
-    const { data: related, error: relatedError } = await client.from('crm_leads')
-      .select('id, email, interests, additional_data').eq('founder_id', founder).ilike('email', pattern)
-    if (relatedError) throw relatedError
-
-    let erased = 0
-    for (const row of related ?? []) {
-      const { error } = await client.rpc('erase_lead_alert_data', {
-        p_founder: founder,
-        p_lead_id: row.id,
-        p_dedup_key: dedupKey(founder, String(row.email), packageLabel(row.interests ?? null)),
-      })
-      if (error) throw error
-      // Tombstone (no personal data): the log rows are gone, so tell the alert health
-      // check this enquiry was erased on purpose rather than never alerted.
-      const { error: markError } = await client.from('crm_leads')
-        .update({ additional_data: { ...(row.additional_data ?? {}), alert_erased_at: new Date().toISOString() } })
-        .eq('founder_id', founder).eq('id', row.id)
-      if (markError) throw markError
-      erased++
-    }
+    // The keyed hash lower-cases the email, so one key per package covers every enquiry
+    // from this address, including log rows whose lead was already deleted.
+    const keys = allPackageLabels().map((label) => dedupKey(founder, String(lead.email), label))
+      .filter((value): value is string => value !== null)
+    const { data: result, error } = await client.rpc('erase_lead_alert_data_for_email', {
+      p_founder: founder, p_lead_id: id, p_dedup_keys: keys,
+    })
+    if (error) throw error
+    const row = Array.isArray(result) ? result[0] : null
+    if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    const erased = Number(row.leads_erased)
+    if (!Number.isInteger(erased) || erased < 1) throw new Error('UnexpectedEraseResult')
     return NextResponse.redirect(new URL(`/founder/leads/${id}?erased=${erased}`, request.url), 303)
   } catch (error) {
     const detail = error as { name?: unknown } | null
