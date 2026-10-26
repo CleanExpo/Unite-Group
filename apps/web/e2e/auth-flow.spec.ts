@@ -69,7 +69,7 @@ test.describe('Auth Flow', () => {
     await page.goto('/')
 
     await expect(page).not.toHaveURL(/\/auth\/login/)
-    await expect(page.locator('h1')).toContainText('Your business deserves')
+    await expect(page.locator('h1')).toContainText('Every business. One system.')
   })
 
   test('unauthenticated /founder route redirects to login', async ({ page }) => {
