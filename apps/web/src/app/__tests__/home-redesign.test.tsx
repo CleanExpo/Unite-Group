@@ -112,13 +112,13 @@ describe('six business tiles with the approved logos', () => {
 })
 
 describe('the living cards gallery', () => {
-  it('shows the ten edition films, poster first and labelled AI-generated, with an orange From $249 button', async () => {
+  it('shows the nine edition films, poster first and labelled AI-generated, with an orange From $249 button', async () => {
     const html = await signedOut()
     const cards = between(html, 'cards', 'pillars')
     const tiles = blocks(cards, 'data-gallery-tile', 'a')
-    expect(tiles).toHaveLength(10)
+    expect(tiles).toHaveLength(9)
     const names = tiles.map((t) => t.match(/data-gallery-tile="([a-z]+)"/)![1])
-    expect(names).toEqual(['blueprint', 'forge', 'constellation', 'ink', 'rewind', 'skyline', 'origami', 'portal', 'restoration', 'magnet'])
+    expect(names).toEqual(['blueprint', 'forge', 'constellation', 'ink', 'rewind', 'skyline', 'origami', 'portal', 'magnet'])
     for (const t of tiles) {
       const poster = t.match(/<img[^>]*src="([^"]+)"/)?.[1]
       expect(poster, t).toBeTruthy()
@@ -240,7 +240,7 @@ describe('images come from one map, and no file appears twice', () => {
     for (const f of readdirSync(join(__dirname, '..', '..', 'components', 'public')).filter((n) => n.endsWith('.css'))) {
       for (const x of readFileSync(join(__dirname, '..', '..', 'components', 'public', f), 'utf8').matchAll(/url\(\s*['"]?([^'")]+)/g)) note([x[1]], `css:${f}`)
     }
-    expect([...files.keys()].filter((f) => f.includes("/cards/media/edition-")).length, "positive control: the ten gallery posters were scanned").toBe(10)
+    expect([...files.keys()].filter((f) => f.includes("/cards/media/edition-")).length, "positive control: the nine gallery posters were scanned").toBe(9)
     const repeated = [...files].filter(([, where]) => where.length > 1).map(([file, where]) => `${file} used ${where.length} times (${where.join(', ')})`)
     expect(repeated).toEqual([])
   })
