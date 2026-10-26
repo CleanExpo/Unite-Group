@@ -36,7 +36,11 @@ async function chooser() {
   return { html, block, items }
 }
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => {
+  vi.clearAllMocks()
+  // The Create line names a price only while a card payment link is live (cardFromAud); open that gate here.
+  vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', 'https://buy.stripe.com/test_ready')
+})
 afterEach(() => vi.unstubAllEnvs())
 
 describe('the start chooser', () => {
@@ -95,5 +99,16 @@ describe('the start chooser', () => {
   it('carries no pictures', async () => {
     const { block } = await chooser()
     expect(block).not.toMatch(/<img|<video|<picture|url\(/)
+  })
+
+  it('names no card price on Create while online ordering is off, and $449 when only made-for-you is live', async () => {
+    vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', '')
+    vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_CUSTOM', '')
+    let create = strip((await chooser()).items[2])
+    expect(create).toContain('Ask us about a living video card')
+    expect(create).not.toMatch(/\$\d/)
+    vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_CUSTOM', 'https://buy.stripe.com/test_custom')
+    create = strip((await chooser()).items[2])
+    expect(create).toContain('Order a living video card, from $449')
   })
 })

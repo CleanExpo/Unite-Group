@@ -11,6 +11,7 @@ import s from './public.module.css'
 // the same constant /cards/order reads, so they cannot drift. The signature U reveal plays in the media row above.
 export function CardsStrip() {
   const films = EDITIONS.filter((e) => e.name !== 'signature')
+  const from = lowestCardPrice()
   return (
     <section data-position id="cards" className={s.section} aria-labelledby="cards-title">
       <div className={s.wrap}>
@@ -26,7 +27,7 @@ export function CardsStrip() {
         </ul>
         <div className={s.offer}>
           <a href="/cards/order" data-track="cta" data-track-label="home-strip-order" className={s.buttonPrimary}>
-            From {lowestCardPrice()}
+            {from ? `From ${from}` : 'Ask about a card'}
           </a>
           <ul className={s.prices}>
             {CARD_TIERS.map((t) => (

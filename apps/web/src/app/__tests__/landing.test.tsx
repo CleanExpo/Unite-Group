@@ -42,7 +42,11 @@ function navLinks(html: string) {
   return [...header.matchAll(/<a [^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)].map((m) => ({ href: m[1], text: strip(m[2]) })).filter((l) => l.href !== '#main') // the skip link is not a nav item (golive-copy.test.tsx covers it)
 }
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => {
+  vi.clearAllMocks()
+  // Card from-prices show only while a card payment link is live (cardFromAud); open that gate by default.
+  vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', 'https://buy.stripe.com/test_ready')
+})
 afterEach(() => vi.unstubAllEnvs())
 
 describe('/ nav rules (AC-2)', () => {
@@ -158,6 +162,15 @@ describe('/ pillars and honesty', () => {
     expect(row.match(/Card from \$249/g)).toHaveLength(1)
     expect(row).not.toMatch(/Ask us/)
     for (const p of PILLARS) expect(row).toContain(`href="${pillarPath(p.slug)}"`)
+  })
+
+  it('names no card price on the Conversion chip while online ordering is off', async () => {
+    vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', '')
+    vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_CUSTOM', '')
+    const html = await signedOut()
+    const row = html.slice(html.indexOf('id="pillars"'), html.indexOf('id="how"'))
+    expect(row.match(/Card on enquiry/g)).toHaveLength(1)
+    expect(row).not.toMatch(/Card from \$/)
   })
 
   it('has one honest proof sentence: no table, no numbers, no testimonials', async () => {

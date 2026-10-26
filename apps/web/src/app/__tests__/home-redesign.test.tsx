@@ -50,7 +50,11 @@ function blocks(html: string, attr: string, tag: string) {
 }
 const between = (html: string, a: string, b: string) => html.slice(html.indexOf(`id="${a}"`), html.indexOf(`id="${b}"`))
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => {
+  vi.clearAllMocks()
+  // Card from-prices show only while a card payment link is live (cardFromAud); open that gate by default.
+  vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', 'https://buy.stripe.com/test_ready')
+})
 afterEach(() => vi.unstubAllEnvs())
 
 describe('the dark home: section order', () => {
@@ -118,6 +122,14 @@ describe('the living cards gallery', () => {
       expect(t).not.toContain('<video')
     }
     expect(cards).toMatch(/<a [^>]*href="\/cards\/order"[^>]*>From \$249<\/a>/)
+  })
+
+  it('offers no card price while online ordering is off', async () => {
+    vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', '')
+    vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_CUSTOM', '')
+    const cards = between(await signedOut(), 'cards', 'pillars')
+    expect(cards).toMatch(/<a [^>]*href="\/cards\/order"[^>]*>Ask about a card<\/a>/)
+    expect(cards).not.toMatch(/>From \$/)
   })
 
   it('plays only when motion is allowed: hover on a pointer device, in view on touch, never under reduced motion', () => {

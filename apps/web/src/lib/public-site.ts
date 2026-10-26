@@ -1,8 +1,8 @@
 // One source for the public home, the four pillar pages, the sitemap and llms.txt (spec 2026-10-23, s9).
 // Nothing here may name the internal agency: this module feeds public routes only.
 
-import { CARD_TIERS } from '@/app/cards/order/order-view'
 import { formatAud } from '@/app/grow/packages'
+import { cardFromAud } from '@/lib/public-pricing'
 
 export const SITE_URL = 'https://unite-group.in'
 export const CONTACT_EMAIL = 'contact@unite-group.in'
@@ -75,7 +75,11 @@ export const pillarPath = (slug: Pillar['slug']): `/solutions/${Pillar['slug']}`
 /** The only product on sale. It sits in the Conversion layer (spec s10). */
 export const SHIPPED_PILLAR: Pillar['slug'] = 'conversion'
 
-export const lowestCardPrice = () => formatAud(Math.min(...CARD_TIERS.map((t) => t.priceAud)))
+/** The lowest card price a buyer can pay right now, formatted, or null while online ordering is off (cardFromAud). */
+export const lowestCardPrice = (): string | null => {
+  const from = cardFromAud()
+  return from === null ? null : formatAud(from)
+}
 
 export const PRICE_NOTE = 'One-off price, GST included'
 

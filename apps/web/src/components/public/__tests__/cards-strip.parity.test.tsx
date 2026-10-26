@@ -10,6 +10,8 @@ afterEach(() => vi.unstubAllEnvs())
 
 describe('cards strip price parity (AC-4)', () => {
   it('shows exactly the CARD_TIERS prices, the GST line, the AI label and an order link under each price', () => {
+    // The From button names a price only while a card payment link is live (cardFromAud).
+    vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', 'https://buy.stripe.com/test_ready')
     const html = renderToStaticMarkup(<CardsStrip />)
     expect(CARD_TIERS.map((t) => t.priceAud)).toEqual([249, 449])
     const tiers = html.split('data-tier="').slice(1)
