@@ -1,6 +1,5 @@
-import { CARD_TIERS } from '@/app/cards/order/order-view'
 import { formatAud } from '@/app/grow/packages'
-import { PLUS_GST, SIGNATURE_ADDON, STARTER_PLAN } from '@/lib/public-pricing'
+import { PLUS_GST, SIGNATURE_ADDON, STARTER_PLAN, liveCardTiers } from '@/lib/public-pricing'
 import { CONTACT_EMAIL, PRICE_NOTE } from '@/lib/public-site'
 
 import s from './public.module.css'
@@ -8,7 +7,11 @@ import s from './public.module.css'
 // Position 6. Real questions with answers that match /cards and /cards/order. Where a fact is not set,
 // the answer says so plainly instead of guessing.
 export function answers() {
-  const [ready, custom] = CARD_TIERS
+  // Card prices only for tiers a buyer can pay for now, the same gate as /cards/order.
+  const live = liveCardTiers()
+  const card = live.length
+    ? `${live.map((t) => `${t.name} is ${formatAud(t.priceAud)}`).join(' and ')}. ${PRICE_NOTE}.`
+    : 'Online card orders are not open yet, so ask us for a price.'
   return [
     {
       q: 'What is a video business card?',
@@ -16,7 +19,7 @@ export function answers() {
     },
     {
       q: 'What does it cost?',
-      a: `${ready.name} is ${formatAud(ready.priceAud)} and ${custom.name} is ${formatAud(custom.priceAud)}. ${PRICE_NOTE}. The card has no monthly fee. Our Starter plan is a separate monthly service, ${formatAud(STARTER_PLAN.priceAud)} a month, with email signatures at ${formatAud(SIGNATURE_ADDON.priceAud)} each, both ${PLUS_GST}, on our pricing page.`,
+      a: `${card} The card has no monthly fee. Our Starter plan is a separate monthly service, ${formatAud(STARTER_PLAN.priceAud)} a month, with email signatures at ${formatAud(SIGNATURE_ADDON.priceAud)} each, both ${PLUS_GST}, on our pricing page.`,
     },
     {
       q: 'Is the film made with AI?',
