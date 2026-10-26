@@ -87,3 +87,34 @@ describe('film and business counts (UNI-3034 review)', () => {
     expect('one of the ten').toMatch(/\bthe ten\b/)
   })
 })
+
+// UNI-3034 review: scan the rendered pages, not only the data. The only allowed match is the payment-entity line
+// (terms section 1.2, ABN 95 691 477 844), shown wherever a pay button is.
+const BANNED = /carsi|disaster|nrpg|restor|training|water damage/i
+const visible = (html: string) =>
+  html
+    .replace(/<script[\s\S]*?<\/script>/g, ' ')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&#x27;|&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+const offending = (html: string) => {
+  const allowed = /Payment is (?:taken|processed) by our related company,? CARSI Pty Ltd[^.]*\./g
+  const attrs = [...html.matchAll(/(?:href|src|alt|title|content|aria-label|value)="([^"]*)"/g)].map((m) => m[1])
+  return [visible(html).replace(allowed, ''), ...attrs].filter((t) => BANNED.test(t))
+}
+
+describe('rendered public pages carry no restoration-industry content', () => {
+  it.each(pages.slice(0, 3))('%s', async (_p, render) => {
+    expect(offending(render())).toEqual([])
+  })
+
+  it('page metadata is clean', async () => {
+    const metas = [(await import('@/app/page')).metadata, (await import('@/app/cards/page')).metadata, (await import('@/app/cards/order/page')).metadata]
+    for (const m of metas) expect(JSON.stringify(m ?? {})).not.toMatch(BANNED)
+  })
+
+  it('the guard can fail: planted copy is caught, the payment line is allowed', () => {
+    expect(offending('<main><p>CARSI restoration training</p></main>')).not.toEqual([])
+    expect(offending('<p>Payment is taken by our related company CARSI Pty Ltd, which appears on your statement.</p>')).toEqual([])
+  })
+})
