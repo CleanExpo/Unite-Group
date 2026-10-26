@@ -37,6 +37,7 @@ export function PillarPage({ slug }: { slug: Pillar['slug'] }) {
   if (!pillar) throw new Error(`Unknown pillar ${slug}`)
   const live = slug === SHIPPED_PILLAR
   const { hero, support } = PILLAR_SCREENS[slug]
+  const from = lowestCardPrice()
 
   return (
     <div className={s.page}>
@@ -83,7 +84,7 @@ export function PillarPage({ slug }: { slug: Pillar['slug'] }) {
                 </a>
                 <div>
                   <h2>Available now: the video business card</h2>
-                  <p>From {lowestCardPrice()}, one-off price, GST included.</p>
+                  <p>{from ? `From ${from}, one-off price, GST included.` : 'Online orders are not open yet. Ask us about a card.'}</p>
                   <a href="/cards" className={s.buttonPrimary}>
                     See the living card
                   </a>

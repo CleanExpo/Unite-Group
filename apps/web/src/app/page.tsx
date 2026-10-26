@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: "Unite Group | Every business. One system.",
   description:
-    "Unite-Group Nexus is the CRM and operating system we are building to run the businesses behind it. Online business serving Australia and New Zealand.",
+    "Unite Group is an AI marketing agency with Margot as its AI face. Starter plan $99 a month excluding GST, email signatures and living business cards. Serving Australia and New Zealand.",
   alternates: { canonical: SITE_URL },
   robots: { index: true, follow: true },
 };

@@ -14,12 +14,12 @@ export function Hero() {
       </div>
       <div className={h.copy}>
         <p className={h.wordmark} data-wordmark>
-          Unite-Group Nexus
+          Unite-Group
         </p>
         <h1 id="hero-title" className={h.h1}>
           Every business. <span className={h.accent}>One system.</span>
         </h1>
-        <p className={h.sub}>The CRM we are building to run the businesses behind it.</p>
+        <p className={h.sub}>An AI marketing agency, with Margot as its AI face.</p>
         <div className={h.actions}>
           <a href="#start" data-track="cta" data-track-label="home-hero-start" className={h.cta}>
             Where do you want to start?

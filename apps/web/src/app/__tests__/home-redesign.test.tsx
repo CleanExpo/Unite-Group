@@ -50,13 +50,18 @@ function blocks(html: string, attr: string, tag: string) {
 }
 const between = (html: string, a: string, b: string) => html.slice(html.indexOf(`id="${a}"`), html.indexOf(`id="${b}"`))
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => {
+  vi.clearAllMocks()
+  // Card prices show only while a card payment link is live (liveCardTiers); open both by default.
+  vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', 'https://buy.stripe.com/test_ready')
+  vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_CUSTOM', 'https://buy.stripe.com/test_custom')
+})
 afterEach(() => vi.unstubAllEnvs())
 
 describe('the dark home: section order', () => {
-  it('runs hero, the start chooser, three media cards, the group, today and coming, the living-cards gallery, four jobs, three steps, results, FAQ, contact, footer', async () => {
+  it('runs hero, the start chooser, three media cards, today and coming, the living-cards gallery, four jobs, three steps, results, FAQ, contact, footer', async () => {
     const html = await signedOut()
-    const ids = ['hero', 'start', 'highlights', 'group', 'today', 'cards', 'pillars', 'how', 'proof', 'answers', 'contact', 'footer']
+    const ids = ['hero', 'start', 'highlights', 'today', 'cards', 'pillars', 'how', 'proof', 'answers', 'contact', 'footer']
     const at = ids.map((id) => html.indexOf(`id="${id}"`))
     for (const [i, id] of ids.entries()) expect(at[i], id).toBeGreaterThan(-1)
     expect([...at].sort((a, b) => a - b)).toEqual(at)
@@ -75,11 +80,13 @@ describe('the dark home: section order', () => {
 })
 
 describe('three big media cards', () => {
-  it('are Living cards, Nexus CRM and The group, each a title and one short caption, with real media', async () => {
-    const cards = blocks(between(await signedOut(), 'highlights', 'group'), 'data-media-card', 'article')
+  it('are Living cards, Nexus CRM and Pricing, each a title and one short caption, with real media', async () => {
+    const cards = blocks(between(await signedOut(), 'highlights', 'today'), 'data-media-card', 'article')
     expect(cards).toHaveLength(3)
     const titles = cards.map((c) => strip(c.match(/<h3[^>]*>([\s\S]*?)<\/h3>/)![1]))
-    expect(titles).toEqual(['Living cards', 'Nexus CRM', 'The group'])
+    expect(titles).toEqual(['Living cards', 'Nexus CRM', 'Pricing'])
+    // Nexus CRM is not for sale yet, so its card says Coming; the two live cards do not.
+    expect(cards.map((c) => /data-chip="coming"[^>]*>\s*Coming\s*</.test(c))).toEqual([false, true, false])
     for (const c of cards) {
       expect(c.match(/<p[ >]/g)).toHaveLength(1)
     }
@@ -90,23 +97,15 @@ describe('three big media cards', () => {
     expect(cards[0]).toContain('data-film')
     expect(cards[0]).toContain('href="/cards"')
     expect(cards[1]).toContain('href="/solutions/intelligence"')
-    expect(cards[2]).toContain('href="#group"')
+    expect(cards[2]).toContain('href="/pricing"')
   })
 })
 
-describe('business tiles with the approved logos', () => {
-  it('shows the tiles in order, each a link, with real logos and the Trade Hall symbol that is the approved file, and no restoration-industry business', async () => {
-    const tiles = blocks(await signedOut(), 'data-tile', 'li')
-    expect(tiles).toHaveLength(2)
-    expect(tiles.map((t) => t.replace(/<[^>]*>/g, ' ').trim().split(/\s+/)[0])).toEqual(['Synthex', 'Trade'])
-    expect(tiles.find((t) => t.includes('Trade Hall'))).toContain('src="/landing/logos/trade-hall-floor-symbol-dark.svg"')
-    expect(tiles.join(' ')).not.toMatch(/carsi|disaster|nrpg|restor/i)
-    for (const t of tiles) {
-      expect(t).toMatch(/<a [^>]*href="https:\/\//)
-      const src = t.match(/<img[^>]*src="([^"]+)"/)?.[1]
-      if (src) expect(existsSync(join(PUBLIC, src)), src).toBe(true)
-    }
-    expect(tiles.filter((t) => !t.includes('<img'))).toHaveLength(0)
+describe('no restoration sister-company tiles on the home (UNI-3017)', () => {
+  it('renders no business tiles and no restoration brand names', async () => {
+    const html = await signedOut()
+    expect(blocks(html, 'data-tile', 'li')).toHaveLength(0)
+    expect(html).not.toMatch(/CARSI|Disaster Recovery|NRPG|Trade Hall|RestoreAssist/)
   })
 })
 
@@ -126,6 +125,18 @@ describe('the living cards gallery', () => {
       expect(t).not.toContain('<video')
     }
     expect(cards).toMatch(/<a [^>]*href="\/cards\/order"[^>]*>From \$249<\/a>/)
+  })
+
+  it('offers no card price while online ordering is off', async () => {
+    vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', '')
+    vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_CUSTOM', '')
+    const cards = between(await signedOut(), 'cards', 'pillars')
+    expect(cards).toMatch(/<a [^>]*href="\/cards\/order"[^>]*>Ask about a card<\/a>/)
+    expect(cards).not.toMatch(/\$\d/)
+    expect(cards).not.toContain('GST included')
+    const cost = between(await signedOut(), 'answers', 'contact')
+    expect(cost).toContain('Online card orders are not open yet')
+    expect(cost).not.toMatch(/\$249|\$449/)
   })
 
   it('plays only when motion is allowed: hover on a pointer device, in view on touch, never under reduced motion', () => {
@@ -215,7 +226,7 @@ describe('images come from one map, and no file appears twice', () => {
   // picture, and may appear once in the tiles and once in any business list (Phill 25/10/2026).
   it('references no image, poster, video or background file more than once on the home page (not twice in one section either)', async () => {
     const html = await signedOut()
-    const markers = ['header', 'hero', 'start', 'highlights', 'group', 'today', 'cards', 'pillars', 'how', 'proof', 'answers', 'contact', 'footer']
+    const markers = ['header', 'hero', 'start', 'highlights', 'today', 'cards', 'pillars', 'how', 'proof', 'answers', 'contact', 'footer']
     const starts = markers.map((m) => (m === 'header' ? html.indexOf('<header') : html.indexOf(`id="${m}"`)))
     for (const [i, m] of markers.entries()) expect(starts[i], m).toBeGreaterThan(-1)
     // one entry per element (an img with its src and srcset is ONE reference), keyed by file, remembering the section
@@ -262,7 +273,8 @@ describe('the Margot phone slot in the contact band', () => {
       else vi.stubEnv('MARGOT_PHONE_NUMBER', v)
       const html = await signedOut()
       expect(html, String(v)).not.toContain('tel:')
-      expect(html, String(v)).not.toContain('Margot')
+      const contact = html.slice(html.indexOf('id="contact"'), html.indexOf('id="footer"'))
+      expect(contact, String(v)).not.toContain('Margot')
     }
   })
 

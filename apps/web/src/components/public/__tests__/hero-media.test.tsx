@@ -60,11 +60,11 @@ const strip = (html: string) => html.replace(/<script[\s\S]*?<\/script>/g, '').r
 describe('hero server markup: the words and the poster come before any video', () => {
   const html = renderToStaticMarkup(<Hero />)
 
-  it('has the H1, the UNITE-GROUP NEXUS wordmark, the Nexus line and both CTAs as real HTML', () => {
+  it('has the H1, the Unite-Group wordmark, the agency line and both CTAs as real HTML', () => {
     expect(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1].replace(/<[^>]*>/g, '')).toBe('Every business. One system.')
-    expect(html).toMatch(/data-wordmark[^>]*>Unite-Group Nexus</)
+    expect(html).toMatch(/data-wordmark[^>]*>Unite-Group</)
     const text = strip(html)
-    expect(text).toMatch(/The CRM we are building to run the businesses behind it/)
+    expect(text).toMatch(/An AI marketing agency, with Margot as its AI face/)
     expect(html).toMatch(/<a [^>]*href="#start"[^>]*>Where do you want to start\?</)
     expect(html).toMatch(/<a [^>]*href="#contact"[^>]*>Ask a question</)
   })
