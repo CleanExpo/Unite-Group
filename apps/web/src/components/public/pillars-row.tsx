@@ -8,6 +8,7 @@ import { ScreenFrame } from './screen-frame'
 // Position 3: four cards, each a real product screen, a title, one line and a Coming chip, linked to its pillar page.
 // Only the card is on sale, so only Conversion also says so.
 export function PillarsRow() {
+  const from = lowestCardPrice()
   return (
     <section data-position id="pillars" className={s.section} aria-labelledby="pillars-title">
       <div className={s.wrap}>
@@ -30,7 +31,7 @@ export function PillarsRow() {
                     <p className={s.cardLine}>{p.line}</p>
                     <span className={s.chips}>
                       <span className={s.chip}>Coming</span>
-                      {live && <span className={`${s.chip} ${s.chipLive}`}>Card from {lowestCardPrice()}</span>}
+                      {live && <span className={`${s.chip} ${s.chipLive}`}>{from ? `Card from ${from}` : 'Card on enquiry'}</span>}
                     </span>
                   </div>
                 </article>
