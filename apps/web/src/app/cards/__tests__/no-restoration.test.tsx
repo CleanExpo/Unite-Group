@@ -41,18 +41,34 @@ const PAYMENT_SOURCES: Record<string, readonly string[]> = {
   'app/cards/terms/terms-content.ts': TERMS_PAYMENT_LINES,
 }
 
-/** The block that holds the Buy Ready-made button on /cards, found by the button itself (not a marker),
- *  and the page without it. The block is the nearest <div> around the button, up to its first </div>. */
-const BUY_CTA = 'data-track-label="cards-hero-buy-ready"'
-const buyBlock = (page: string) => {
-  const cta = page.indexOf(BUY_CTA)
-  if (cta < 0) return { block: '', rest: page }
-  const open = page.lastIndexOf('<div', cta)
-  const end = page.indexOf('</div>', cta) + '</div>'.length
-  const block = page.slice(open, end)
-  // A </div> between the div and the button means the button is not inside it.
-  if (open < 0 || page.slice(open, cta).includes('</div>')) return { block: '', rest: page }
-  return { block, rest: page.slice(0, open) + page.slice(end) }
+/** Every real pay button (an off-page link with a pay CTA label) and the <p> lines right after it.
+ *  The approved payment line is allowed only as one of those sibling lines, once per button.
+ *  Returns how many pay buttons there are, how many carry the line, and the page with those lines removed. */
+const PAY_CTA_LABEL = /^(cards-hero-buy-ready|order-tier-.+|order-extra-business)$/
+const PAY_BUTTON = /<a\b([^>]*)>[\s\S]*?<\/a>((?:<p\b[^>]*>[^<]*<\/p>)*)/g
+const payLines = (page: string) => {
+  let buttons = 0
+  let withLine = 0
+  const rest = page.replace(PAY_BUTTON, (whole, attrs: string, after: string) => {
+    const label = /data-track-label="([^"]*)"/.exec(attrs)?.[1] ?? ''
+    const href = /href="([^"]*)"/.exec(attrs)?.[1] ?? ''
+    if (!PAY_CTA_LABEL.test(label) || href === '' || href.startsWith('#')) return whole
+    buttons += 1
+    const line = `>${APPROVED_PAYMENT_LINE}</p>`
+    if (after.split(line).length - 1 !== 1) return whole
+    withLine += 1
+    return whole.replace(line, '></p>')
+  })
+  return { buttons, withLine, rest }
+}
+
+/** The page passes when the payment line shows once under each pay button and nowhere else. */
+const expectPaymentLinePlaced = (page: string, on: boolean, where: string) => {
+  const { buttons, withLine, rest } = payLines(page)
+  if (on) expect(buttons, `${where}: positive control, pay buttons rendered`).toBeGreaterThan(0)
+  else expect(buttons, `${where}: no pay buttons while payments are offline`).toBe(0)
+  expect(withLine, `${where}: the payment line sits once under every pay button`).toBe(buttons)
+  expect(scan(rest), `${where}: no payment line anywhere else`).toBeNull()
 }
 
 const withoutAllowed = (text: string, allowed: readonly string[]) => allowed.reduce((t, s) => t.split(s).join(' '), text)
@@ -226,30 +242,26 @@ describe('public card routes carry no restoration or sister-business content', (
     expect(page, 'positive control: the page rendered').toContain(shows)
     expect(scan(page, PAYMENT_ROUTES[path] ?? [])).toBeNull()
     expect(scan(meta)).toBeNull()
-    if (path === 'page.tsx' && on) {
-      // The showroom's payment line is allowed only inside the Buy Ready-made block (#1289), once.
-      const { block, rest } = buyBlock(page)
-      expect(block, 'the Buy button is in the block').toContain(BUY_CTA)
-      expect(block.split(APPROVED_PAYMENT_LINE).length - 1, 'the payment line sits once beside the Buy button').toBe(1)
-      expect(scan(rest), 'no payment line elsewhere on /cards').toBeNull()
-    }
-    if (path === 'page.tsx' && !on) {
-      // Payments offline: no Buy button, so no payment line anywhere and no exception applies.
-      expect(page).not.toContain(BUY_CTA)
-      expect(scan(page), 'no payment line on /cards while payments are offline').toBeNull()
-    }
+    if (path in PAYMENT_ROUTES && path !== 'terms/page.tsx') expectPaymentLinePlaced(page, on, path)
   })
 
-  it('the /cards placement check fails when the payment line sits away from the Buy button', () => {
-    const buy = `<div><a href="https://buy" ${BUY_CTA}>Buy Ready, A$99</a><p>${APPROVED_PAYMENT_LINE}</p></div>`
-    // Planted a second time in the footer: the rest of the page is no longer clean.
-    expect(scan(buyBlock(`<main>${buy}<footer><p>${APPROVED_PAYMENT_LINE}</p></footer></main>`).rest)).not.toBeNull()
-    // The marker moved to a far footer div with the line, but no Buy button there: the line is outside the block.
-    const moved = `<main><div><a href="https://buy" ${BUY_CTA}>Buy</a></div><footer><div data-buy-now="x"><p>${APPROVED_PAYMENT_LINE}</p></div></footer></main>`
-    expect(buyBlock(moved).block).not.toContain(APPROVED_PAYMENT_LINE)
-    expect(scan(buyBlock(moved).rest)).not.toBeNull()
-    // No Buy button at all: there is no block.
-    expect(buyBlock('<main><p>x</p></main>').block).toBe('')
+  it('the payment-line placement check fails when the line is moved, doubled or left without a button', () => {
+    const line = `<p>${APPROVED_PAYMENT_LINE}</p>`
+    const buy = `<a href="https://buy" data-track-label="cards-hero-buy-ready">Buy</a><p>GST included.</p>${line}`
+    const check = (page: string) => payLines(page)
+    expect(check(`<div>${buy}</div>`)).toMatchObject({ buttons: 1, withLine: 1 })
+    expect(scan(check(`<div>${buy}</div>`).rest)).toBeNull()
+    // Doubled into the footer.
+    expect(scan(check(`<div>${buy}</div><footer>${line}</footer>`).rest)).not.toBeNull()
+    // Moved away from the button (a marker-carrying div elsewhere does not count).
+    const moved = check(`<div><a href="https://buy" data-track-label="cards-hero-buy-ready">Buy</a></div><div data-buy-now="x">${line}</div>`)
+    expect(moved.withLine).toBe(0)
+    expect(scan(moved.rest)).not.toBeNull()
+    // Beside an in-page link, not a pay button.
+    expect(check(`<a href="#choose" data-track-label="order-hero-choose">Choose</a>${line}`).buttons).toBe(0)
+    expect(scan(check(`<a href="#choose" data-track-label="order-hero-choose">Choose</a>${line}`).rest)).not.toBeNull()
+    // Offline (no buttons) with the line planted.
+    expect(scan(check(`<main>${line}</main>`).rest)).not.toBeNull()
   })
 
   it('no card route builds its metadata at request time, which the render scan cannot see', async () => {
@@ -288,6 +300,7 @@ describe('public card routes carry no restoration or sister-business content', (
     // Pay buttons, and the payment line under each, show only when the payment links are set.
     if (on) expect(page, 'positive control: the payment line rendered').toContain(PAYMENT_ENTITY_LINE)
     expect(scan(page, PAYMENT_ROUTES['order/page.tsx'])).toBeNull()
+    expectPaymentLinePlaced(page, on, '/cards/order')
   })
 
   it('/cards/order?edition=restoration picks nothing and shows nothing restoration', () => {
