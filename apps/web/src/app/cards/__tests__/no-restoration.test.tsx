@@ -6,6 +6,7 @@ import ts from 'typescript'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { stripePaymentLink } from '@/app/grow/packages'
 import { CardsStrip } from '@/components/public/cards-strip'
 import { OrderView } from '../order/order-view'
 import { EDITIONS, resolveEdition } from '../editions'
@@ -42,6 +43,7 @@ const PAYMENT_SOURCES: Record<string, readonly string[]> = {
 }
 
 /** Every real pay button (an off-page link with a pay CTA label) and the <p> lines right after it.
+ *  A pay button must link to a valid Stripe payment link (the same check the pages use).
  *  The approved payment line is allowed only as one of those sibling lines, once per button.
  *  Returns how many pay buttons there are, how many carry the line, and the page with those lines removed. */
 const PAY_CTA_LABEL = /^(cards-hero-buy-ready|order-tier-.+|order-extra-business)$/
@@ -52,7 +54,7 @@ const payLines = (page: string) => {
   const rest = page.replace(PAY_BUTTON, (whole, attrs: string, after: string) => {
     const label = /data-track-label="([^"]*)"/.exec(attrs)?.[1] ?? ''
     const href = /href="([^"]*)"/.exec(attrs)?.[1] ?? ''
-    if (!PAY_CTA_LABEL.test(label) || href === '' || href.startsWith('#')) return whole
+    if (!PAY_CTA_LABEL.test(label) || stripePaymentLink(href.replace(/&amp;/g, '&')) === null) return whole
     buttons += 1
     const line = `>${APPROVED_PAYMENT_LINE}</p>`
     if (after.split(line).length - 1 !== 1) return whole
@@ -247,19 +249,23 @@ describe('public card routes carry no restoration or sister-business content', (
 
   it('the payment-line placement check fails when the line is moved, doubled or left without a button', () => {
     const line = `<p>${APPROVED_PAYMENT_LINE}</p>`
-    const buy = `<a href="https://buy" data-track-label="cards-hero-buy-ready">Buy</a><p>GST included.</p>${line}`
+    const buy = `<a href="https://buy.stripe.com/test_ready" data-track-label="cards-hero-buy-ready">Buy</a><p>GST included.</p>${line}`
     const check = (page: string) => payLines(page)
     expect(check(`<div>${buy}</div>`)).toMatchObject({ buttons: 1, withLine: 1 })
     expect(scan(check(`<div>${buy}</div>`).rest)).toBeNull()
     // Doubled into the footer.
     expect(scan(check(`<div>${buy}</div><footer>${line}</footer>`).rest)).not.toBeNull()
     // Moved away from the button (a marker-carrying div elsewhere does not count).
-    const moved = check(`<div><a href="https://buy" data-track-label="cards-hero-buy-ready">Buy</a></div><div data-buy-now="x">${line}</div>`)
+    const moved = check(`<div><a href="https://buy.stripe.com/test_ready" data-track-label="cards-hero-buy-ready">Buy</a></div><div data-buy-now="x">${line}</div>`)
     expect(moved.withLine).toBe(0)
     expect(scan(moved.rest)).not.toBeNull()
     // Beside an in-page link, not a pay button.
     expect(check(`<a href="#choose" data-track-label="order-hero-choose">Choose</a>${line}`).buttons).toBe(0)
     expect(scan(check(`<a href="#choose" data-track-label="order-hero-choose">Choose</a>${line}`).rest)).not.toBeNull()
+    // The Buy CTA turned into a local link is not a pay button, so its line counts as misplaced.
+    const local = check(`<a href="/cards/order" data-track-label="cards-hero-buy-ready">Buy</a>${line}`)
+    expect(local.buttons).toBe(0)
+    expect(scan(local.rest)).not.toBeNull()
     // Offline (no buttons) with the line planted.
     expect(scan(check(`<main>${line}</main>`).rest)).not.toBeNull()
   })
