@@ -2,6 +2,7 @@ import { EDITIONS } from '@/app/cards/editions'
 import { formatAud } from '@/app/grow/packages'
 import { liveCardTiers } from '@/lib/public-pricing'
 import {
+  CONTACT_EMAIL,
   PILLARS,
   PRICE_NOTE,
   SHIPPED_PILLAR,
@@ -38,19 +39,25 @@ import hp from './home-page.module.css'
 
 type StartLink = {
   key: string
-  label: string
+  no: string
+  name: string
+  line: string
   href: string
   coming?: boolean
   paid?: boolean
 }
 
+// Phill's five steps, names and lines (design-pass gap 05.2 / 05.5). The Create line names a price only while
+// online ordering is live; see createLine.
 const START_LINKS: StartLink[] = [
-  { key: 'discover', label: 'Pricing', href: '/pricing' },
-  { key: 'diagnose', label: 'Nexus CRM', href: '/solutions/intelligence', coming: true },
-  { key: 'create', label: 'Order a card', href: '/cards/order', paid: true },
-  { key: 'results', label: 'Showroom', href: '/cards' },
-  { key: 'talk', label: 'Ask a question', href: '#contact' },
+  { key: 'discover', no: '01', name: 'Discover', line: 'See the Starter plan and add-ons', href: '/pricing' },
+  { key: 'diagnose', no: '02', name: 'Diagnose', line: 'A check of what is holding your business back', href: '/solutions/intelligence', coming: true },
+  { key: 'create', no: '03', name: 'Create', line: 'Ask us about a living video card', href: '/cards/order', paid: true },
+  { key: 'results', no: '04', name: 'Explore results', line: 'Watch the living cards we have made', href: '/cards' },
+  { key: 'talk', no: '05', name: 'Talk', line: 'Ask a question and we reply by email', href: '#contact' },
 ]
+
+const createLine = (from: string | null) => (from ? `Order a living video card, from ${from}` : START_LINKS[2].line)
 
 const STEPS = [
   { title: 'Pick an opener', body: 'Select one of nine films from the showroom.', screen: 'pick' as const },
@@ -91,7 +98,9 @@ export function HomePage() {
               <p className={hp.heroFilmTag}>Hero film · copper U assembly</p>
             </div>
             <div className={hp.heroPanel}>
-              <p className={hp.kicker}>{HOME_HERO.kicker}</p>
+              <p className={hp.kicker}>
+                <span data-wordmark>{HOME_HERO.wordmark}</span> · {HOME_HERO.kicker}
+              </p>
               <h1 id="hero-title" className={hp.h1}>{HOME_HERO.title}</h1>
               <p className={hp.lead}>{HOME_HERO.lead}</p>
               <div className={hp.heroActions}>
@@ -107,7 +116,10 @@ export function HomePage() {
                   <a href={HOME_HERO.secondaryHref} data-track="cta" data-track-label="home-hero-ask-question">
                     {HOME_HERO.secondaryCta}
                   </a>
-                  <a href="/grow" data-track="cta" data-track-label="home-hero-grow">Grow your business</a>
+                  {/* One of the two allowed /grow links (with the main nav); golive-grow.test.ts checks the rendered pages. */}
+                  <a href="/grow" data-track="cta" data-track-label="home-hero-grow">
+                    {HOME_HERO.growCta}
+                  </a>
                 </div>
               </div>
             </div>
@@ -116,8 +128,11 @@ export function HomePage() {
       </section>
 
       <div className={hp.chapterIntro}>
-        <section id="start" className={hp.sectionTight} aria-label="Quick links">
+        <section id="start" className={hp.sectionTight} aria-labelledby="start-title">
           <div className={hp.wrap}>
+            <h2 id="start-title" className={hp.pathTitle}>
+              Where do you want to start?
+            </h2>
             <ol className={hp.pathRail}>
               {START_LINKS.map((link) => (
                 <li key={link.key}>
@@ -127,8 +142,12 @@ export function HomePage() {
                     data-track-label={`home-start-${link.key}`}
                     className={link.paid ? hp.pathPaid : ''}
                   >
-                    {link.key === 'create' ? (from ? `Order · from ${from}` : 'Order a card') : link.label}
-                    {link.coming ? <span className={pub.chip} data-chip="coming">Coming</span> : null}
+                    <span className={hp.pathNo}>{link.no}</span>
+                    <span className={hp.pathName}>
+                      {link.name}
+                      {link.coming ? <span className={pub.chip} data-chip="coming">Coming</span> : null}
+                    </span>
+                    <p className={hp.pathLine}>{link.key === 'create' ? createLine(from) : link.line}</p>
                   </a>
                 </li>
               ))}
@@ -174,8 +193,11 @@ export function HomePage() {
           </div>
         </section>
 
-        <section id="today" className={hp.sectionTight} aria-label="Live and coming products">
+        <section id="today" className={hp.sectionTight} aria-labelledby="today-title">
           <div className={hp.wrap}>
+            <h2 id="today-title" className={hp.pathTitle}>
+              Today, and what is coming
+            </h2>
             <div className={hp.statusBar}>
               <div className={hp.statusRow}>
                 <span className={hp.statusLabel}>Live</span>
@@ -252,6 +274,9 @@ export function HomePage() {
             )}
             <a href="/cards" data-track="cta" data-track-label="home-strip-see-card" className={pub.buttonSecondary}>
               See the living card
+            </a>
+            <a href={CONTACT_MAILTO} data-contact-email className={pub.buttonSecondary}>
+              Email us
             </a>
           </div>
         </div>
@@ -359,7 +384,7 @@ export function HomePage() {
               <div className={hp.contactAside}>
                 <MargotPhoneLine number={readMargotPhoneNumber()} />
                 <p>
-                  Or <a href={CONTACT_MAILTO} data-contact-email>Email us</a>.
+                  Or email <span>{CONTACT_EMAIL}</span>.
                 </p>
               </div>
             </section>

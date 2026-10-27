@@ -7,9 +7,10 @@ vi.mock('@/lib/integrations/stripe/client', () => ({
 vi.mock('@/lib/supabase/service', () => ({
   createServiceClient: vi.fn(),
 }))
-vi.mock('@/lib/integrations/mailtrap', () => ({
+// Only the send is replaced; the address helpers stay real, so a new or changed helper cannot drift from the mock.
+vi.mock('@/lib/integrations/mailtrap', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/integrations/mailtrap')>()),
   sendEmail: vi.fn(),
-  mailtrapFromEmail: () => process.env.MAILTRAP_FROM_EMAIL || 'contact@unite-group.in',
 }))
 
 import { getStripe } from '@/lib/integrations/stripe/client'

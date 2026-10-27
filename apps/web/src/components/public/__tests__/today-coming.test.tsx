@@ -108,10 +108,17 @@ describe('Today and what is coming', () => {
     expect(coming).not.toMatch(/synthex|trade hall|certified|iicrc|24\/7/i)
   })
 
-  it('has its own stylesheet with a stacked layout and two columns from 900px', () => {
-    const css = readFileSync(join(__dirname, '..', 'today-coming.module.css'), 'utf8')
-    expect(css).toMatch(/@media \(min-width: 900px\)/)
-    expect(css).toMatch(/minmax\(0, 1fr\)/)
+  // The home page draws this section itself (home/home-page.tsx); today-coming.tsx is no longer on the page.
+  it('is styled by the home page stylesheet, which defines every class the section uses', async () => {
+    const section = blocks(await home(), 'id="today"', 'section')[0]
+    const tsx = readFileSync(join(__dirname, '..', 'home', 'home-page.tsx'), 'utf8')
+    const block = tsx.slice(tsx.indexOf('id="today"'), tsx.indexOf('</section>', tsx.indexOf('id="today"')))
+    const used = [...new Set([...block.matchAll(/hp\.(\w+)/g)].map((m) => m[1]))]
+    expect(used.length, 'classes used by #today').toBeGreaterThan(3)
+    const css = readFileSync(join(__dirname, '..', 'home', 'home-page.module.css'), 'utf8')
+    for (const c of used) expect(css, c).toMatch(new RegExp(`\\.${c}\\b`))
+    expect(section).toMatch(/data-today-list/)
+    expect(section).toMatch(/data-coming-list/)
   })
 })
 

@@ -6,13 +6,13 @@ import h from './hero.module.css'
 // Editorial hero: shared typographic voice, framed film with replay/pause once motion is allowed.
 export function Hero() {
   return (
-    <section data-position id="hero" data-mode="forge-cinema" className={h.hero} aria-labelledby="hero-title">
+    <section data-position id="hero" data-mode="spotlight" className={h.hero} aria-labelledby="hero-title">
       <div className={h.shell}>
         <div className={h.grid}>
           <div className={h.copy}>
             <p className={h.eyebrow}>
               <span className={h.eyebrowLine} aria-hidden="true" />
-              {HOME_HERO.kicker}
+              <span data-wordmark>{HOME_HERO.wordmark}</span> · {HOME_HERO.kicker}
             </p>
             <h1 id="hero-title" className={h.h1}>
               {HOME_HERO.title}

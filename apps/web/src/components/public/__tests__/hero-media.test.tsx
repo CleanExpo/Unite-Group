@@ -71,17 +71,16 @@ describe('hero server markup: the words and the poster come before any video', (
 
   it('has exactly one primary CTA and it goes to the chooser; the secondary stays the contact link', () => {
     const anchors = [...html.matchAll(/<a [^>]*>/g)].map((m) => m[0])
-    expect(anchors).toHaveLength(3)
+    expect(anchors).toHaveLength(2)
     const primary = anchors.filter((a) => !/ghost/.test(a))
     expect(primary).toHaveLength(1)
     expect(primary[0]).toContain('href="#start"')
     expect(primary[0]).toContain('data-track-label="home-hero-start"')
     expect(html).not.toMatch(/href="#group"/)
     const secondary = anchors.filter((a) => /ghost/.test(a))
-    // Phill 26/10/2026 (UNI-3034): the hero also links to /grow
-    expect(secondary).toHaveLength(2)
+    // The redesign moved the /grow link to the live home hero (home/home-page.tsx); landing.test checks it there.
+    expect(secondary).toHaveLength(1)
     expect(secondary[0]).toContain('href="#contact"')
-    expect(secondary[1]).toContain('href="/grow"')
   })
 
   it('shows the finished-U poster as a sized, high-priority img and mounts no video on the server', () => {
@@ -107,8 +106,8 @@ describe('hero server markup: the words and the poster come before any video', (
 describe('the film: plays once when visible, holds on the poster frame, can be replayed and paused', () => {
   it('mounts a muted, inline, non-looping video with Replay and Pause controls when motion is allowed', () => {
     setup(false)
-    const { container } = render(<FilmPlayer film={HERO_FILM} priority />)
-    expect(container.querySelector('video')).toBeNull() // not before it is in view
+    const { container } = render(<FilmPlayer film={HERO_FILM} />)
+    expect(container.querySelector('video')).toBeNull() // a film below the hero waits until it is in view
     see()
     const video = container.querySelector('video')!
     expect(video).not.toBeNull()
@@ -121,6 +120,18 @@ describe('the film: plays once when visible, holds on the poster frame, can be r
     expect(container.querySelector('img')?.getAttribute('src')).toBe(HERO_FILM.poster)
     const buttons = [...container.querySelectorAll('button')].map((b) => b.textContent)
     expect(buttons).toEqual(['Replay', 'Pause'])
+  })
+
+  it('mounts the priority (hero) film at once when motion is allowed, without waiting to be seen', () => {
+    setup(false)
+    const { container } = render(<FilmPlayer film={HERO_FILM} priority />)
+    expect(container.querySelector('video')).not.toBeNull()
+  })
+
+  it('never mounts the priority (hero) film when the visitor asks for reduced motion', () => {
+    setup(true)
+    const { container } = render(<FilmPlayer film={HERO_FILM} priority />)
+    expect(container.querySelector('video')).toBeNull()
   })
 
   it('starts once when it scrolls into view, then holds', () => {

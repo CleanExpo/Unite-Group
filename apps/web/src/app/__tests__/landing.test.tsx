@@ -55,16 +55,17 @@ describe('/ nav rules (AC-2)', () => {
     const links = navLinks(await signedOut())
     expect(links.length).toBeGreaterThan(6)
     expect(links.filter((l) => /^home$/i.test(l.text))).toHaveLength(0)
+    expect(links.filter((l) => l.text === 'Contact')).toHaveLength(1)
     expect(links.filter((l) => l.text === 'Email us')).toHaveLength(0)
     const hrefs = links.map((l) => l.href)
     expect(new Set(hrefs).size).toBe(hrefs.length)
     expect(links[0]).toEqual({ href: '/', text: 'Unite Group' })
   })
 
-  it('opens with a Solutions dropdown whose four links resolve to real public pages', async () => {
+  it('opens with a "What we do" dropdown whose four links resolve to real public pages', async () => {
     const html = await signedOut()
     const nav = html.slice(html.indexOf('<nav aria-label="Main"'), html.indexOf('</nav>'))
-    expect(nav.indexOf('<summary>Solutions</summary>')).toBeGreaterThan(-1)
+    expect(nav.indexOf('<summary>What we do</summary>')).toBeGreaterThan(-1)
     expect(nav.indexOf('<summary>')).toBeLessThan(nav.indexOf('href="/cards"'))
     const start = nav.indexOf('<summary>')
     const menu = nav.slice(nav.indexOf('<ul', start), nav.indexOf('</ul>', start))
@@ -101,7 +102,7 @@ describe('/ positions (AC-3)', () => {
 describe('/ hero and metadata', () => {
   it('says the umbrella line in the H1, and carries Unite Group and the honest Nexus line in the metadata', async () => {
     const html = await signedOut()
-    expect(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1].replace(/<[^>]*>/g, '')).toBe('Your business deserves a clearer front door.')
+    expect(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1].replace(/<[^>]*>/g, '')).toBe('Every business. One system.')
     expect(String(metadata.title)).toBe('Unite Group | Living business cards & growth for Australian businesses')
     const description = String(metadata.description)
     expect(description).toMatch(/Margot as your AI guide/)
@@ -109,6 +110,17 @@ describe('/ hero and metadata', () => {
     expect(description).toMatch(/Living business cards/)
     expect(`${metadata.title} ${description}`).not.toMatch(/makes video business cards|video business card/i)
     expect(`${metadata.title} ${description}`).not.toMatch(/synthex/i)
+  })
+
+  // Phill 26/10/2026 (UNI-3034): one primary CTA to the chooser, then Ask a question and Grow your business.
+  it('links the hero to the chooser, the contact form and /grow, in that order, with one primary CTA', async () => {
+    const html = await signedOut()
+    const start = html.lastIndexOf('<', html.indexOf('id="hero"'))
+    const hero = html.slice(start, html.indexOf('</section>', start))
+    const anchors = [...hero.matchAll(/<a [^>]*>/g)].map((m) => m[0])
+    expect(anchors.map((a) => a.match(/href="([^"]*)"/)?.[1])).toEqual(['#start', '#contact', '/grow'])
+    expect(anchors[0]).toContain('data-track-label="home-hero-start"')
+    expect(anchors.filter((a) => a.includes('data-track-label="home-hero-start"'))).toHaveLength(1)
   })
 
   it('paints the words and the poster first, and mounts no video on the server', async () => {
@@ -207,6 +219,7 @@ describe('/ contact and footer', () => {
     const contact = html.slice(html.indexOf('id="contact"'), html.indexOf('<footer'))
     expect(contact.match(/<form/g)).toHaveLength(1)
     expect(contact).toContain('contact@unite-group.in')
+    expect(contact).not.toContain('href="mailto:')
 
     const form = new FormData()
     form.set('first_name', ' Sam ')

@@ -102,7 +102,9 @@ describe('/cards/terms', () => {
   it('has a single h1, fourteen numbered sections and the section 12 heading the refund clause points to', () => {
     const html = page()
     expect(html.match(/<h1/g)).toHaveLength(1)
-    const h2 = [...html.matchAll(/<h2[^>]*>([\s\S]*?)<\/h2>/g)].map((m) => decode(m[1]))
+    // Count inside the terms article: the site footer (fcf5d42a) carries its own h2 for the call to action.
+    const article = /<article[^>]*>([\s\S]*)<\/article>/.exec(html)?.[1] ?? ''
+    const h2 = [...article.matchAll(/<h2[^>]*>([\s\S]*?)<\/h2>/g)].map((m) => decode(m[1]))
     expect(h2).toHaveLength(14)
     expect(h2[11]).toBe('12. Your rights under the Australian Consumer Law')
   })

@@ -86,7 +86,7 @@ export function SiteFooter({ position = false }: { position?: boolean }) {
                   <li key={link.href}>
                     <a
                       href={link.href}
-                      {...(link.founder ? { 'data-footer-login': true, className: f.founderLogin } : {})}
+                      {...('founder' in link && link.founder ? { 'data-footer-login': true, className: f.founderLogin } : {})}
                     >
                       {link.label}
                     </a>

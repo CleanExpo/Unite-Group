@@ -159,6 +159,7 @@ export default function PrivacyPolicyPage() {
               <tr><td>Google (OAuth + APIs)</td><td>Authentication, Gmail, Calendar, Drive</td><td>Global</td></tr>
               <tr><td>Xero</td><td>Accounting data</td><td>AU / NZ</td></tr>
               <tr><td>Twilio SendGrid</td><td>Enquiry alert emails (first name, business name and package requested)</td><td>Overseas / US</td></tr>
+              <tr><td>Mailtrap</td><td>Living card order emails: the order alert to us (your name, what you bought and the amount paid) and your welcome email (your name, email address, the card ordered and its price)</td><td>Overseas / US</td></tr>
             </tbody>
           </table>
           <p>
@@ -297,6 +298,7 @@ export default function PrivacyPolicyPage() {
             <li>Supabase, which hosts our database.</li>
             <li>Vercel, which hosts the website and keeps request logs.</li>
             <li>SendGrid, which delivers the emails our system sends.</li>
+            <li>Mailtrap, which delivers the emails sent when you buy a card: our order alert and your welcome email.</li>
             <li>ElevenLabs, which provides the voice agent that answers calls to the Margot phone line, and Twilio, the phone carrier for that line.</li>
           </ul>
           <p>

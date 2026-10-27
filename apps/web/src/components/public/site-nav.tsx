@@ -23,7 +23,7 @@ export function SiteNav() {
           <ul className={n.links}>
             <li>
               <details className={n.dropdown}>
-                <summary>Solutions</summary>
+                <summary>What we do</summary>
                 <ul className={n.menu}>
                   {PILLARS.map((p) => (
                     <li key={p.slug}>
@@ -35,6 +35,7 @@ export function SiteNav() {
             </li>
             <li><a href="/cards">Cards</a></li>
             <li><a href="/pricing">Pricing</a></li>
+            <li><a href="/#contact">Contact</a></li>
             <li><a href="/grow">Grow your business</a></li>
           </ul>
           <a href="/cards/order" className={n.orderCta} data-track="cta" data-track-label="nav-order-card">
