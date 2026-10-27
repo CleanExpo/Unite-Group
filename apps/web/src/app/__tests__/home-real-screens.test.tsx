@@ -49,14 +49,16 @@ function webpSize(file: string) {
   return { width: b.readUInt16LE(26) & 0x3fff, height: b.readUInt16LE(28) & 0x3fff }
 }
 
-const SECTIONS = [
-  { name: 'Four jobs', from: 'pillars', to: 'how', count: 4 },
-  { name: 'How it works', from: 'how', to: 'proof', count: 3 },
-] as const
+// 27/10/2026 redesign (Phill approved): the Four jobs cards left the home; How it works keeps its three real screens.
+const SECTIONS = [{ name: 'How it works', from: 'how', to: 'answers', count: 3 }] as const
 
 beforeEach(() => vi.clearAllMocks())
 
-describe('the Four jobs and How it works cards show the real product', () => {
+describe('the How it works cards show the real product', () => {
+  it('the whole home references no abstract /landing/visuals/ picture', async () => {
+    expect(decodeURIComponent(await signedOut())).not.toContain('/landing/visuals/')
+  })
+
   it.each(SECTIONS)('$name references no abstract /landing/visuals/ picture', async ({ from, to }) => {
     const part = between(await signedOut(), from, to)
     expect(part.length).toBeGreaterThan(100)
@@ -97,7 +99,7 @@ const contrast = (a: string, b: string) => {
 
 describe('the 01/02/03 step labels are readable', () => {
   it('sit on their own solid background at 4.5:1 or better (WCAG AA) and at least 14px', async () => {
-    const html = between(await signedOut(), 'how', 'proof')
+    const html = between(await signedOut(), 'how', 'answers')
     const labels = [...html.matchAll(/<span class="([^"]*stepBadge[^"]*)"[^>]*>(\d\d)<\/span>/g)]
     expect(labels.map((m) => m[2])).toEqual(['01', '02', '03'])
     // The home page draws the steps itself (home/home-page.tsx); the rule is .stepBadge in its own stylesheet, and
@@ -143,10 +145,10 @@ describe('the "Where do you want to start?" steps are readable', () => {
 // Founder rule: a seed must never look live. The analytics counts and inbox entries on these screens are invented,
 // so every frame says so in a small visible caption.
 describe('every home screen frame says it is sample data', () => {
-  it('renders the visible caption "Sample data" inside each of the 7 frames, in readable contrast', async () => {
+  it('renders the visible caption "Sample data" inside each of the 3 frames (the three steps), in readable contrast', async () => {
     const html = await signedOut()
     const frames = html.split('data-frame=').slice(1)
-    expect(frames).toHaveLength(7)
+    expect(frames).toHaveLength(3)
     for (const f of frames) {
       const frame = f.slice(0, f.indexOf('<img'))
       // a sibling of the (aria-hidden) chrome bar, so a screen reader announces it too
