@@ -9,7 +9,7 @@ describe('card slug', () => {
 
   it.each([
     '', '../etc', 'Upper', 'a'.repeat(65), 'has space', 'under_score', 'a/b', 'a.vcf', '%2e%2e', 'ｐhill', 'phi̇ll', 'a\nb',
-    'admin', 'api', 'studio',
+    'admin', 'api', 'studio', 'sample',
   ])('rejects %j', (s) => {
     expect(isValidSlug(s)).toBe(false)
   })
