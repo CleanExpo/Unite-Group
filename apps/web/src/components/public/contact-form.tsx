@@ -7,7 +7,7 @@ import { CARD_TIERS } from '@/app/cards/order/order-view'
 import { formatAud } from '@/app/grow/packages'
 import { CONTACT_EMAIL } from '@/lib/public-site'
 
-import s from './public.module.css'
+import s from './layout/public.module.css'
 
 type Status = { kind: 'idle' } | { kind: 'sending' } | { kind: 'sent' } | { kind: 'error'; message: string }
 

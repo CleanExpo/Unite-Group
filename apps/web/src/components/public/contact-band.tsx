@@ -3,9 +3,9 @@ import { CONTACT_EMAIL } from '@/lib/public-site'
 
 import cb from './contact-band.module.css'
 import { ContactForm } from './contact-form'
-import { HOME_CONTACT } from './home-copy'
-import { MargotPhoneLine } from './margot-phone-line'
-import s from './public.module.css'
+import { HOME_CONTACT } from './home/copy'
+import { MargotPhoneLine } from './site/margot-phone-line'
+import s from './layout/public.module.css'
 import { SectionIntro } from './section-intro'
 
 export function ContactBand() {

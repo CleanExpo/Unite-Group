@@ -1,5 +1,5 @@
 import ps from './home-product-stack.module.css'
-import s from './public.module.css'
+import s from './layout/public.module.css'
 import { COMING, COMING_NOTE, TODAY } from './today-coming-data'
 import t from './today-coming.module.css'
 

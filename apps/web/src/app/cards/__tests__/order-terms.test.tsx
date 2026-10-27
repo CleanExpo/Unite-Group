@@ -4,7 +4,7 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { SiteNav } from '@/components/public/site-nav'
+import { SiteNav } from '@/components/public/site/site-nav'
 
 import { OrderView } from '../order/order-view'
 

@@ -2,9 +2,9 @@ import '@/styles/public-tokens.css'
 
 import type { ReactNode } from 'react'
 
-import { PublicPageShell } from './public-page-shell'
-import { SiteFooter } from './site-footer'
-import { SiteNav } from './site-nav'
+import { PublicPageShell } from '../layout/public-page-shell'
+import { SiteFooter } from '../site/site-footer'
+import { SiteNav } from '../site/site-nav'
 import ls from './legal-shell.module.css'
 
 export type LegalCrumb = { label: string; href?: string }

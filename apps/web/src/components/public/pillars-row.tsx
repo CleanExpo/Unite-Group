@@ -1,9 +1,9 @@
 import { PILLARS, SHIPPED_PILLAR, lowestCardPrice, pillarPath } from '@/lib/public-site'
 
 import hs from './home-screens.module.css'
-import { HOME_PILLARS } from './home-copy'
+import { HOME_PILLARS } from './home/copy'
 import { JOB_SCREENS } from './home-screens'
-import s from './public.module.css'
+import s from './layout/public.module.css'
 import { ScreenFrame } from './screen-frame'
 import { SectionIntro } from './section-intro'
 

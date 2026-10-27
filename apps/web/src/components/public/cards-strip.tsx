@@ -4,11 +4,11 @@ import { liveCardTiers } from '@/lib/public-pricing'
 import { PRICE_NOTE, lowestCardPrice } from '@/lib/public-site'
 
 import o from './cards-offer.module.css'
-import { HOME_CARDS } from './home-copy'
+import { HOME_CARDS } from './home/copy'
 import { GalleryTile } from './gallery-tile'
 import g from './gallery.module.css'
 import ps from './home-product-stack.module.css'
-import s from './public.module.css'
+import s from './layout/public.module.css'
 import { SectionIntro } from './section-intro'
 
 export function CardsStrip() {

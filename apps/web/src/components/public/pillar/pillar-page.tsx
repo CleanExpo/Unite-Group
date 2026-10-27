@@ -7,9 +7,9 @@ import { PILLAR_CHAPTER } from './pillar-page-copy'
 import ps from './pillar.module.css'
 import pp from './pillar-solution.module.css'
 import { PILLAR_SCREENS, type Screen } from './pillar-visuals'
-import { PublicPageShell } from './public-page-shell'
-import { SiteFooter } from './site-footer'
-import { SiteNav } from './site-nav'
+import { PublicPageShell } from '../layout/public-page-shell'
+import { SiteFooter } from '../site/site-footer'
+import { SiteNav } from '../site/site-nav'
 
 const WIDE_SIZES = '(min-width: 1280px) 600px, (min-width: 760px) 48vw, 100vw'
 

@@ -2,7 +2,7 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
-import { MargotPhoneLine } from '../margot-phone-line'
+import { MargotPhoneLine } from '../site/margot-phone-line'
 
 const html = (number: string | null) => renderToStaticMarkup(createElement(MargotPhoneLine, { number }))
 

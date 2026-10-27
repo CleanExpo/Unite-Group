@@ -1,6 +1,6 @@
 import { FilmPlayer } from './film-player'
 import { HERO_FILM } from './film-config'
-import { HOME_HERO } from './home-copy'
+import { HOME_HERO } from './home/copy'
 import h from './hero.module.css'
 
 // Editorial hero: shared typographic voice, framed film with replay/pause once motion is allowed.

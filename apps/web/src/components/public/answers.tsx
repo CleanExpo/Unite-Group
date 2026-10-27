@@ -2,8 +2,8 @@ import { formatAud } from '@/app/grow/packages'
 import { PLUS_GST, SIGNATURE_ADDON, STARTER_PLAN, liveCardTiers } from '@/lib/public-pricing'
 import { CONTACT_EMAIL, PRICE_NOTE } from '@/lib/public-site'
 
-import { HOME_FAQ } from './home-copy'
-import s from './public.module.css'
+import { HOME_FAQ } from './home/copy'
+import s from './layout/public.module.css'
 import { SectionIntro } from './section-intro'
 
 export function answers() {

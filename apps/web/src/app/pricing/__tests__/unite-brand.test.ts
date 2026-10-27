@@ -3,7 +3,7 @@ import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { HOME_HERO } from '@/components/public/home-copy'
+import { HOME_HERO } from '@/components/public/home/copy'
 import { TODAY } from '@/components/public/today-coming-data'
 import { SIGNATURE_ADDON, STARTER_PLAN } from '@/lib/public-pricing'
 
@@ -12,7 +12,7 @@ const read = (p: string) => readFileSync(join(src, p), 'utf8')
 
 describe('Unite Group brand only (UNI-3017)', () => {
   it('the home page no longer renders the restoration sister-company block', () => {
-    expect(read('components/public/public-home.tsx')).not.toContain('<Story')
+    expect(read('components/public/home/public-home.tsx')).not.toContain('<Story')
     expect(read('components/public/highlights.tsx')).not.toMatch(/Disaster Recovery|NRPG|#group/)
     expect(read('app/page.tsx')).not.toMatch(/Disaster Recovery|NRPG|CARSI|RestoreAssist/)
     expect(TODAY.map((t) => t.name)).toEqual(['Living business card', 'Starter plan', 'Email signatures'])

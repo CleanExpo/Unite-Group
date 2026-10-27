@@ -1,5 +1,5 @@
 import { ALSO, TILES } from './businesses'
-import s from './public.module.css'
+import s from './layout/public.module.css'
 import t from './story.module.css'
 
 // "The group": dark glass tiles, each the business's real logo and one line. A name links only where its site

@@ -2,7 +2,7 @@ import { COMPANY_NAME, companyAbnLabel } from '@/lib/legal/company'
 import { readMargotPhoneNumber } from '@/lib/margot/phone-line'
 import { PILLARS, pillarPath } from '@/lib/public-site'
 
-import { HOME_FOOTER } from './home-copy'
+import { HOME_FOOTER } from '../home/copy'
 import { MargotPhoneLine } from './margot-phone-line'
 import f from './site-footer.module.css'
 

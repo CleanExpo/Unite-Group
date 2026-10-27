@@ -1,6 +1,6 @@
-import { HOME_PROOF } from './home-copy'
+import { HOME_PROOF } from './home/copy'
 import p from './proof.module.css'
-import s from './public.module.css'
+import s from './layout/public.module.css'
 import { VisualImg } from './visual-img'
 import { VISUALS } from './visuals'
 

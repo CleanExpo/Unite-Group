@@ -10,7 +10,7 @@ import {
   pillarPath,
 } from '@/lib/public-site'
 import { readMargotPhoneNumber } from '@/lib/margot/phone-line'
-import { CONTACT_MAILTO } from '../site-nav'
+import { CONTACT_MAILTO } from '../site/site-nav'
 
 import { answers } from '../answers'
 import { CARD_FILM, HERO_FILM } from '../film-config'
@@ -25,11 +25,11 @@ import {
   HOME_HOW,
   HOME_PILLARS,
   HOME_PROOF,
-} from '../home-copy'
+} from './copy'
 import { JOB_SCREENS, STEP_SCREENS } from '../home-screens'
 import { ContactForm } from '../contact-form'
-import { MargotPhoneLine } from '../margot-phone-line'
-import pub from '../public.module.css'
+import { MargotPhoneLine } from '../site/margot-phone-line'
+import pub from '../layout/public.module.css'
 import { ScreenFrame } from '../screen-frame'
 import { COMING, COMING_NOTE, TODAY } from '../today-coming-data'
 import { VisualImg } from '../visual-img'

@@ -1,4 +1,4 @@
-import s from './public.module.css'
+import s from './layout/public.module.css'
 import c from './start-chooser.module.css'
 import ps from './home-product-stack.module.css'
 

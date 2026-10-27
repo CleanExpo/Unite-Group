@@ -1,7 +1,7 @@
 import hs from './home-screens.module.css'
-import { HOME_HOW } from './home-copy'
+import { HOME_HOW } from './home/copy'
 import { STEP_SCREENS } from './home-screens'
-import s from './public.module.css'
+import s from './layout/public.module.css'
 import { ScreenFrame } from './screen-frame'
 import { SectionIntro } from './section-intro'
 

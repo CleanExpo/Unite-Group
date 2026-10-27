@@ -5,10 +5,10 @@ vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn(async () => null) }))
 vi.mock('next/navigation', () => ({ redirect: vi.fn() }))
 
 import { Answers } from '@/components/public/answers'
-import { SiteFooter } from '@/components/public/site-footer'
-import { SiteNav } from '@/components/public/site-nav'
-import { PublicHome } from '@/components/public/public-home'
-import { PillarPage } from '@/components/public/pillar-page'
+import { SiteFooter } from '@/components/public/site/site-footer'
+import { SiteNav } from '@/components/public/site/site-nav'
+import { PublicHome } from '@/components/public/home/public-home'
+import { PillarPage } from '@/components/public/pillar/pillar-page'
 import { CARD_ORDER_TERMS } from '../cards/terms/terms-content'
 import PrivacyPolicyPage from '../privacy-policy/page'
 import TermsOfServicePage from '../terms-of-service/page'

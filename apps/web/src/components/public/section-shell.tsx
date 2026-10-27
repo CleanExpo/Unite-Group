@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-import s from './public.module.css'
+import s from './layout/public.module.css'
 import sh from './section-shell.module.css'
 
 export type SectionPattern =

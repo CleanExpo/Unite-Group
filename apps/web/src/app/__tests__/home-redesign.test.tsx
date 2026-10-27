@@ -214,7 +214,7 @@ describe('images come from one map, and no file appears twice', () => {
     // every mapped picture is on the page exactly once
     const html = await signedOut()
     for (const [slot, v] of filled) expect(html.split(`src="${v.src}"`).length - 1, slot).toBe(1)
-    for (const f of ['public-home.tsx', 'home/home-page.tsx']) {
+    for (const f of ['home/public-home.tsx', 'home/home-page.tsx']) {
       expect(readFileSync(join(__dirname, '..', '..', 'components', 'public', f), 'utf8'), f).not.toMatch(/\/landing\/visuals\//)
     }
   })

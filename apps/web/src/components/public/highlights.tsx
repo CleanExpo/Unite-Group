@@ -1,9 +1,9 @@
 import { CARD_FILM } from './film-config'
 import { FilmPlayer } from './film-player'
-import { HOME_HIGHLIGHTS } from './home-copy'
+import { HOME_HIGHLIGHTS } from './home/copy'
 import hl from './highlights.module.css'
 import ps from './home-product-stack.module.css'
-import s from './public.module.css'
+import s from './layout/public.module.css'
 import { VisualImg } from './visual-img'
 import { VISUALS, type Visual } from './visuals'
 

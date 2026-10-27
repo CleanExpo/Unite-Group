@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
-import { PILLAR_SCREENS } from '@/components/public/pillar-visuals'
+import { PILLAR_SCREENS } from '@/components/public/pillar/pillar-visuals'
 import { PILLARS } from '@/lib/public-site'
 
 import ConversionPage from '../conversion/page'

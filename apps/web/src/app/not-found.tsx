@@ -1,8 +1,8 @@
 import '@/styles/public-tokens.css'
 
-import s from '@/components/public/public.module.css'
-import { SiteFooter } from '@/components/public/site-footer'
-import { SiteNav } from '@/components/public/site-nav'
+import s from '@/components/public/layout/public.module.css'
+import { SiteFooter } from '@/components/public/site/site-footer'
+import { SiteNav } from '@/components/public/site/site-nav'
 
 // Any address that is not a page on this site. Same shell as the pillar pages: nav, one message, a way back, footer.
 export default function NotFound() {
