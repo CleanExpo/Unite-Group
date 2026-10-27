@@ -233,6 +233,11 @@ describe('public card routes carry no restoration or sister-business content', (
       expect(block.split(APPROVED_PAYMENT_LINE).length - 1, 'the payment line sits once beside the Buy button').toBe(1)
       expect(scan(rest), 'no payment line elsewhere on /cards').toBeNull()
     }
+    if (path === 'page.tsx' && !on) {
+      // Payments offline: no Buy button, so no payment line anywhere and no exception applies.
+      expect(page).not.toContain(BUY_CTA)
+      expect(scan(page), 'no payment line on /cards while payments are offline').toBeNull()
+    }
   })
 
   it('the /cards placement check fails when the payment line sits away from the Buy button', () => {
