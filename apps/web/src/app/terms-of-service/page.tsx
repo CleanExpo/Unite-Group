@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
-import styles from '../legal-prose.module.css'
-import { COMPANY_NAME, companyAbnLabel } from '@/lib/legal/company'
+
+import { LegalSection as Section } from '@/components/public/legal-document'
+import { LegalPageShell } from '@/components/public/legal-page-shell'
+import { COMPANY_NAME } from '@/lib/legal/company'
 
 export const metadata: Metadata = {
   title: 'Terms of Service — Unite-Group Application',
@@ -15,63 +17,32 @@ const APP_URL = 'https://unite-group.in'
 
 export default function TermsOfServicePage() {
   return (
-    <div
-      className="min-h-screen"
-      style={{ background: '#fffdf7', color: 'rgba(28,25,23,0.88)' }}
+    <LegalPageShell
+      tone="site"
+      title="Terms of Service"
+      lastUpdated={LAST_UPDATED}
+      breadcrumb={[{ label: 'Unite Group', href: '/' }, { label: 'Terms of service' }]}
+      related={[
+        { href: '/privacy-policy', label: 'Privacy policy' },
+        { href: '/cards/terms', label: 'Card order terms' },
+      ]}
     >
-      {/* Header */}
-      <header
-        style={{
-          borderBottom: '1px solid rgba(28,25,23,0.1)',
-          background: '#fff7ec',
-        }}
-      >
-        <div className="max-w-3xl mx-auto px-6 py-5 flex items-center justify-between">
-          <a
-            href={APP_URL}
-            style={{ color: '#15803d', fontFamily: 'var(--font-mono)', fontSize: '13px', letterSpacing: '0.15em', textDecoration: 'none' }}
-          >
-            UNITE-GROUP
-          </a>
-          <span style={{ color: 'rgba(28,25,23,0.68)', fontSize: '11px', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}>
-            TERMS OF SERVICE
-          </span>
-        </div>
-      </header>
-
-      {/* Body */}
-      <main className={`max-w-3xl mx-auto px-6 py-14 ${styles.prose}`}>
-        <h1
-          style={{
-            fontSize: '28px',
-            fontWeight: 600,
-            letterSpacing: '-0.02em',
-            marginBottom: '6px',
-            color: '#1c1917',
-          }}
-        >
-          Terms of Service
-        </h1>
-        <p style={{ color: 'rgba(28,25,23,0.7)', fontSize: '13px', fontFamily: 'var(--font-mono)', marginBottom: '48px' }}>
-          Last updated: {LAST_UPDATED}
-        </p>
-
         <Section title="1. About These Terms">
           <p>
             These Terms of Service (&#8220;Terms&#8221;) govern your use of the Unite-Group Application
             (the &#8220;Application&#8221;) operated by {COMPANY} (&#8220;we&#8221;, &#8220;our&#8221;,
             &#8220;us&#8221;) and available at{' '}
-            <a href={APP_URL} style={{ color: '#15803d' }}>{APP_URL}</a>.
+            <a href={APP_URL}>{APP_URL}</a>.
           </p>
           <p>
             By accessing or using the Application, you agree to be bound by these Terms and our{' '}
-            <a href="/privacy-policy" style={{ color: '#15803d' }}>Privacy Policy</a>. If you do not agree,
+            <a href="/privacy-policy">Privacy Policy</a>. If you do not agree,
             do not use the Application.
           </p>
           <p>
-            <a href={APP_URL} style={{ color: '#15803d' }}>unite-group.in</a> is the public website of {COMPANY}. We
+            <a href={APP_URL}>unite-group.in</a> is the public website of {COMPANY}. We
             use it to sell the Living Business Card, and every card order is also covered by the{' '}
-            <a href="/cards/terms" style={{ color: '#15803d' }}>card order terms</a>. The Application itself is a{' '}
+            <a href="/cards/terms">card order terms</a>. The Application itself is a{' '}
             <strong>private, single-operator business management platform</strong>, and access to it is strictly
             limited to authorised personnel of {COMPANY}.
           </p>
@@ -142,7 +113,7 @@ export default function TermsOfServicePage() {
         <Section title="6. Data and Privacy">
           <p>
             Our collection and handling of personal information is governed by our{' '}
-            <a href="/privacy-policy" style={{ color: '#15803d' }}>Privacy Policy</a>, which forms part of
+            <a href="/privacy-policy">Privacy Policy</a>, which forms part of
             these Terms. By using the Application, you consent to the data practices described in that policy.
           </p>
           <p>
@@ -207,7 +178,7 @@ export default function TermsOfServicePage() {
           <p>
             You are responsible for maintaining the confidentiality of your account credentials and for all
             activity that occurs under your account. You must notify us immediately at{' '}
-            <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: '#15803d' }}>{CONTACT_EMAIL}</a> if you
+            <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> if you
             suspect unauthorised access to your account.
           </p>
         </Section>
@@ -250,50 +221,11 @@ export default function TermsOfServicePage() {
             <strong>{COMPANY}</strong><br />
             Australia<br />
             Email:{' '}
-            <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: '#15803d' }}>
+            <a href={`mailto:${CONTACT_EMAIL}`}>
               {CONTACT_EMAIL}
             </a>
           </address>
         </Section>
-      </main>
-
-      <footer
-        style={{
-          borderTop: '1px solid rgba(28,25,23,0.08)',
-          padding: '24px',
-          textAlign: 'center',
-          color: 'rgba(28,25,23,0.66)',
-          fontSize: '11px',
-          fontFamily: 'var(--font-mono)',
-          letterSpacing: '0.08em',
-        }}
-      >
-        © 2026 {COMPANY} — {companyAbnLabel()} · Australia ·{' '}
-        <a href="/privacy-policy" style={{ color: 'rgba(28,25,23,0.7)' }}>Privacy Policy</a>
-      </footer>
-    </div>
-  )
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section style={{ marginBottom: '40px' }}>
-      <h2
-        style={{
-          fontSize: '15px',
-          fontWeight: 600,
-          color: '#15803d',
-          letterSpacing: '0.02em',
-          marginBottom: '14px',
-          paddingBottom: '8px',
-          borderBottom: '1px solid rgba(22, 163, 74,0.10)',
-        }}
-      >
-        {title}
-      </h2>
-      <div style={{ fontSize: '14px', lineHeight: '1.8', color: 'rgba(28,25,23,0.82)' }}>
-        {children}
-      </div>
-    </section>
+    </LegalPageShell>
   )
 }

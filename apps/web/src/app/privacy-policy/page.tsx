@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
-import styles from '../legal-prose.module.css'
+
+import { LegalSection as Section, LegalSubHeading as SubHeading } from '@/components/public/legal-document'
+import { LegalPageShell } from '@/components/public/legal-page-shell'
 import { COMPANY_NAME, companyAbnLabel } from '@/lib/legal/company'
 
 export const metadata: Metadata = {
@@ -15,56 +17,25 @@ const APP_URL = 'https://unite-group.in'
 
 export default function PrivacyPolicyPage() {
   return (
-    <div
-      className="min-h-screen"
-      style={{ background: '#fffdf7', color: 'rgba(28,25,23,0.88)' }}
+    <LegalPageShell
+      tone="site"
+      title="Privacy Policy"
+      lastUpdated={LAST_UPDATED}
+      breadcrumb={[{ label: 'Unite Group', href: '/' }, { label: 'Privacy Policy' }]}
+      related={[
+        { href: '/terms-of-service', label: 'Terms of service' },
+        { href: '/cards/terms', label: 'Card order terms' },
+      ]}
     >
-      {/* Header */}
-      <header
-        style={{
-          borderBottom: '1px solid rgba(28,25,23,0.1)',
-          background: '#fff7ec',
-        }}
-      >
-        <div className="max-w-3xl mx-auto px-6 py-5 flex items-center justify-between">
-          <a
-            href={APP_URL}
-            style={{ color: '#15803d', fontFamily: 'var(--font-mono)', fontSize: '13px', letterSpacing: '0.15em', textDecoration: 'none' }}
-          >
-            UNITE-GROUP
-          </a>
-          <span style={{ color: 'rgba(28,25,23,0.68)', fontSize: '11px', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}>
-            PRIVACY POLICY
-          </span>
-        </div>
-      </header>
-
-      {/* Body */}
-      <main className={`max-w-3xl mx-auto px-6 py-14 ${styles.prose}`}>
-        <h1
-          style={{
-            fontSize: '28px',
-            fontWeight: 600,
-            letterSpacing: '-0.02em',
-            marginBottom: '6px',
-            color: '#1c1917',
-          }}
-        >
-          Privacy Policy
-        </h1>
-        <p style={{ color: 'rgba(28,25,23,0.7)', fontSize: '13px', fontFamily: 'var(--font-mono)', marginBottom: '48px' }}>
-          Last updated: {LAST_UPDATED}
-        </p>
-
         <Section title="1. Overview">
           <p>
             {COMPANY} ({companyAbnLabel()}) (&#8220;we&#8221;, &#8220;our&#8221;, &#8220;us&#8221;) operates the Unite-Group Application
             (the &#8220;Application&#8221;) available at{' '}
-            <a href={APP_URL} style={{ color: '#15803d' }}>{APP_URL}</a>. This Privacy Policy explains
+            <a href={APP_URL}>{APP_URL}</a>. This Privacy Policy explains
             how we collect, use, disclose, and safeguard information in connection with the Application.
           </p>
           <p>
-            <a href={APP_URL} style={{ color: '#15803d' }}>unite-group.in</a> is the public website of {COMPANY}, where
+            <a href={APP_URL}>unite-group.in</a> is the public website of {COMPANY}, where
             we sell the Living Business Card. The Application itself is a private, single-operator business management
             platform. By accessing or using the Application, you acknowledge this policy.
           </p>
@@ -137,7 +108,7 @@ export default function PrivacyPolicyPage() {
           <p>
             The Application requests the following Google OAuth scopes to provide its features. Use of
             information received from Google APIs adheres to the{' '}
-            <a href="https://developers.google.com/terms/api-services-user-data-policy" style={{ color: '#15803d' }}>
+            <a href="https://developers.google.com/terms/api-services-user-data-policy">
               Google API Services User Data Policy
             </a>
             , including the Limited Use requirements.
@@ -205,7 +176,7 @@ export default function PrivacyPolicyPage() {
             <li>Correct inaccurate information</li>
             <li>Request deletion of your account and associated data (subject to legal retention requirements)</li>
             <li>Withdraw consent for third-party integrations at any time (by disconnecting them within the Application or revoking OAuth access at the provider)</li>
-            <li>Lodge a complaint with the Office of the Australian Information Commissioner (OAIC) at <a href="https://www.oaic.gov.au" style={{ color: '#15803d' }}>oaic.gov.au</a></li>
+            <li>Lodge a complaint with the Office of the Australian Information Commissioner (OAIC) at <a href="https://www.oaic.gov.au">oaic.gov.au</a></li>
           </ul>
           <p>
             If you are located in the EEA or UK, you may also have rights under GDPR / UK GDPR including
@@ -231,7 +202,7 @@ export default function PrivacyPolicyPage() {
         <Section title="10. Website Enquiries and Free Audits">
           <p>
             When you request a free audit or ask about our services at{' '}
-            <a href={`${APP_URL}/grow`} style={{ color: '#15803d' }}>{APP_URL}/grow</a>, at an event, or
+            <a href={`${APP_URL}/grow`}>{APP_URL}/grow</a>, at an event, or
             through a referral link, we collect your name, email address, and optionally your phone number,
             business name, website address, the package you are interested in, and anything you tell us in the
             message box. We also record how you reached us (for example &#8220;event&#8221; or &#8220;LinkedIn&#8221;).
@@ -244,7 +215,7 @@ export default function PrivacyPolicyPage() {
           <p>
             We send you marketing emails only if you tick the marketing box. You can unsubscribe from any
             marketing email, or email{' '}
-            <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: '#15803d' }}>{CONTACT_EMAIL}</a>, and we will stop.
+            <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>, and we will stop.
           </p>
           <p>
             We store enquiries in our customer database (hosted with Supabase), which only {COMPANY} staff can
@@ -259,7 +230,7 @@ export default function PrivacyPolicyPage() {
             removes its alert delivery log and activity timeline entries (the delivery log holds only an
             internal reference and a keyed value used to spot repeat enquiries), and deletes the enquiry
             alert email copy from the alert mailbox, subject to legal retention requirements. You can ask to see, correct or delete your information at any time by emailing{' '}
-            <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: '#15803d' }}>{CONTACT_EMAIL}</a>.
+            <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
           </p>
         </Section>
 
@@ -279,7 +250,7 @@ export default function PrivacyPolicyPage() {
             <strong>{COMPANY}</strong><br />
             Australia<br />
             Email:{' '}
-            <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: '#15803d' }}>
+            <a href={`mailto:${CONTACT_EMAIL}`}>
               {CONTACT_EMAIL}
             </a>
           </address>
@@ -343,10 +314,10 @@ export default function PrivacyPolicyPage() {
           <SubHeading>13.4 Access, correction, deletion and complaints</SubHeading>
           <p>
             You can ask to access, correct or delete the information we hold about you by emailing{' '}
-            <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: '#15803d' }}>{CONTACT_EMAIL}</a>. If you are unhappy with how
+            <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. If you are unhappy with how
             we handle your information, you can complain to us at the same address. You can also complain to the Office of
             the Australian Information Commissioner (OAIC) at{' '}
-            <a href="https://www.oaic.gov.au" style={{ color: '#15803d' }}>www.oaic.gov.au</a> or on 1300 363 992.
+            <a href="https://www.oaic.gov.au">www.oaic.gov.au</a> or on 1300 363 992.
           </p>
           <SubHeading>13.5 Calls to the Margot phone line</SubHeading>
           <p>
@@ -355,63 +326,6 @@ export default function PrivacyPolicyPage() {
             business, email address or reason for calling that you give.
           </p>
         </Section>
-      </main>
-
-      <footer
-        style={{
-          borderTop: '1px solid rgba(28,25,23,0.08)',
-          padding: '24px',
-          textAlign: 'center',
-          color: 'rgba(28,25,23,0.66)',
-          fontSize: '11px',
-          fontFamily: 'var(--font-mono)',
-          letterSpacing: '0.08em',
-        }}
-      >
-        © 2026 {COMPANY} — {companyAbnLabel()} · Australia ·{' '}
-        <a href="/terms-of-service" style={{ color: 'rgba(28,25,23,0.7)' }}>Terms of Service</a>
-      </footer>
-    </div>
-  )
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section style={{ marginBottom: '40px' }}>
-      <h2
-        style={{
-          fontSize: '15px',
-          fontWeight: 600,
-          color: '#15803d',
-          letterSpacing: '0.02em',
-          marginBottom: '14px',
-          paddingBottom: '8px',
-          borderBottom: '1px solid rgba(22, 163, 74,0.10)',
-        }}
-      >
-        {title}
-      </h2>
-      <div style={{ fontSize: '14px', lineHeight: '1.8', color: 'rgba(28,25,23,0.82)' }} className="prose-content">
-        {children}
-      </div>
-    </section>
-  )
-}
-
-function SubHeading({ children }: { children: React.ReactNode }) {
-  return (
-    <h3
-      style={{
-        fontSize: '13px',
-        fontWeight: 600,
-        color: 'rgba(28,25,23,0.78)',
-        letterSpacing: '0.04em',
-        marginTop: '20px',
-        marginBottom: '8px',
-        textTransform: 'uppercase',
-      }}
-    >
-      {children}
-    </h3>
+    </LegalPageShell>
   )
 }

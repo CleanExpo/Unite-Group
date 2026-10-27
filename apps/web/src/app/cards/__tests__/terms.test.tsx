@@ -109,9 +109,10 @@ describe('/cards/terms', () => {
 
   it('links the privacy policy from section 13 and nowhere else in the article', () => {
     const html = page()
-    const s13 = html.slice(html.indexOf('13. Privacy'), html.indexOf('14. General'))
+    const article = /<article[^>]*>([\s\S]*)<\/article>/.exec(html)?.[1] ?? ''
+    const s13 = article.slice(article.indexOf('13. Privacy'), article.indexOf('14. General'))
     expect(s13).toContain('<a href="/privacy-policy"')
-    expect(html.match(/href="\/privacy-policy"/g)).toHaveLength(1)
+    expect(article.match(/href="\/privacy-policy"/g)).toHaveLength(1)
   })
 
   it('leaves out the draft header line and every internal placeholder', () => {
