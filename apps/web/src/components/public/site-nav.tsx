@@ -8,13 +8,6 @@ import n from './site-nav.module.css'
 export const CONTACT_EMAIL = 'contact@unite-group.in'
 export const CONTACT_MAILTO = `mailto:${CONTACT_EMAIL}`
 
-const ON_PAGE = [
-  { href: '/#proof', label: 'See it first' },
-  { href: '/#how', label: 'How it works' },
-  { href: '/#answers', label: 'Questions' },
-  { href: '/#contact', label: 'Contact form' },
-] as const
-
 export function SiteNav() {
   return (
     <header className={n.header}>
@@ -43,24 +36,6 @@ export function SiteNav() {
             <li><a href="/cards">Cards</a></li>
             <li><a href="/pricing">Pricing</a></li>
             <li><a href="/grow">Grow your business</a></li>
-            <li>
-              <details className={n.dropdown}>
-                <summary>Explore</summary>
-                <ul className={n.menu}>
-                  {ON_PAGE.map((link) => (
-                    <li key={link.href}>
-                      <a href={link.href}>{link.label}</a>
-                    </li>
-                  ))}
-                  <li className={n.menuDivider} aria-hidden="true" />
-                  <li>
-                    <a href={CONTACT_MAILTO} data-contact-email>
-                      Email us
-                    </a>
-                  </li>
-                </ul>
-              </details>
-            </li>
           </ul>
           <a href="/cards/order" className={n.orderCta} data-track="cta" data-track-label="nav-order-card">
             Order card

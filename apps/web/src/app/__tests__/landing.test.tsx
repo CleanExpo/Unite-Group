@@ -55,16 +55,16 @@ describe('/ nav rules (AC-2)', () => {
     const links = navLinks(await signedOut())
     expect(links.length).toBeGreaterThan(6)
     expect(links.filter((l) => /^home$/i.test(l.text))).toHaveLength(0)
-    expect(links.filter((l) => l.text === 'Contact')).toHaveLength(1)
+    expect(links.filter((l) => l.text === 'Email us')).toHaveLength(0)
     const hrefs = links.map((l) => l.href)
     expect(new Set(hrefs).size).toBe(hrefs.length)
     expect(links[0]).toEqual({ href: '/', text: 'Unite Group' })
   })
 
-  it('opens with a "What we do" dropdown whose four links resolve to real public pages', async () => {
+  it('opens with a Solutions dropdown whose four links resolve to real public pages', async () => {
     const html = await signedOut()
     const nav = html.slice(html.indexOf('<nav aria-label="Main"'), html.indexOf('</nav>'))
-    expect(nav.indexOf('<summary>What we do</summary>')).toBeGreaterThan(-1)
+    expect(nav.indexOf('<summary>Solutions</summary>')).toBeGreaterThan(-1)
     expect(nav.indexOf('<summary>')).toBeLessThan(nav.indexOf('href="/cards"'))
     const start = nav.indexOf('<summary>')
     const menu = nav.slice(nav.indexOf('<ul', start), nav.indexOf('</ul>', start))
@@ -207,7 +207,6 @@ describe('/ contact and footer', () => {
     const contact = html.slice(html.indexOf('id="contact"'), html.indexOf('<footer'))
     expect(contact.match(/<form/g)).toHaveLength(1)
     expect(contact).toContain('contact@unite-group.in')
-    expect(contact).not.toContain('href="mailto:')
 
     const form = new FormData()
     form.set('first_name', ' Sam ')

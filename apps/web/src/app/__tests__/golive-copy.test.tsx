@@ -49,19 +49,19 @@ describe('D5: the FAQ hosting answer is the card terms', () => {
   })
 })
 
-describe('D21: nav labels match the sections they go to', () => {
-  it('names each in-page anchor after its section title', () => {
-    const html = renderToStaticMarkup(<SiteNav />)
-    expect(html).not.toMatch(/>Results<|>About<|>Resources</)
+describe('D21: home section titles stay honest', () => {
+  it('keeps the proof, how and questions sections on the home page', () => {
     const home = renderToStaticMarkup(<PublicHome />)
-    for (const [href, label, title] of [
-      ['/#proof', 'See it first', 'See it before you ask'],
-      ['/#how', 'How it works', 'How it works'],
-      ['/#answers', 'Questions', 'Questions'],
-    ]) {
-      expect(html, label).toMatch(new RegExp(`href="${href}"[^>]*>${label}<`))
-      expect(home, title).toContain(`>${title}<`)
+    expect(home).not.toMatch(/>Results<|>About<|>Resources</)
+    for (const title of ['See it before you ask', 'How it works', 'Questions']) {
+      expect(home).toContain(`>${title}<`)
     }
+  })
+
+  it('does not offer Explore or Email us in the main nav', () => {
+    const html = renderToStaticMarkup(<SiteNav />)
+    expect(html).not.toContain('>Explore<')
+    expect(html).not.toMatch(/href="mailto:contact@unite-group.in"[^>]*>\s*Email us/)
   })
 })
 
