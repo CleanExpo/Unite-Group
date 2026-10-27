@@ -17,6 +17,7 @@ vi.mock('@/lib/supabase/server', () => ({
 }))
 vi.mock('@/lib/error-reporting', () => ({
   sanitiseError: (_e: unknown, msg: string) => msg,
+  captureApiError: vi.fn(),
 }))
 vi.mock('@/lib/ai/client', () => ({ getAIClient: vi.fn() }))
 vi.mock('@/lib/site-agent/grounding', () => ({
@@ -57,7 +58,10 @@ describe('GET /api/founder/chat', () => {
       messages: [{ role: 'user', content: 'hello' }],
       businessKey: 'carsi',
       updatedAt: '2026-08-06T14:00:00.000Z',
+      // No user turn carries a turnId, so no cc_tasks readback is made.
+      receipts: {},
     })
+    expect(mockFrom).not.toHaveBeenCalledWith('cc_tasks')
   })
 })
 

@@ -23,6 +23,7 @@ import {
   type SupabaseLike,
 } from '@/lib/command-centre/tasks'
 import { isLegalTransition } from '@/lib/command-centre/task-transitions'
+import { makeUniqueEnforcingDb } from './unique-enforcing-db'
 import { HARD_GATED_TASK_TYPES } from '@/lib/operator-gateway/lanes'
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
@@ -47,93 +48,6 @@ function mission(overrides: Partial<NormalisedVoiceMission> = {}): NormalisedVoi
   const parsed = parseVoiceMissionPacket(validPacket())
   if (!parsed.ok) throw new Error('fixture packet must parse')
   return { ...parsed.mission, ...overrides }
-}
-
-// A stateful SupabaseLike fake that enforces UNIQUE(founder_id, external_ref)
-// the way Postgres does — a second insert on the same key raises 23505, which
-// is the exact condition createTaskOnce recovers from.
-function makeUniqueEnforcingDb() {
-  const rows: Array<Record<string, unknown>> = []
-  const events: Array<Record<string, unknown>> = []
-  const inserts: Array<{ table: string; values: Record<string, unknown> }> = []
-  let seq = 0
-
-  const client: SupabaseLike = {
-    from(table: string) {
-      const store = table === CC_TASK_EVENTS_TABLE ? events : rows
-      return {
-        insert(values: unknown) {
-          const v = values as Record<string, unknown>
-          inserts.push({ table, values: v })
-          // cc_task_events' only uniqueness is PRIMARY KEY(id); the bridge
-          // supplies a deterministic id, so a repeat insert must collide here
-          // exactly as Postgres would.
-          const eventPkClash =
-            table === CC_TASK_EVENTS_TABLE && v.id != null && store.some((r) => r.id === v.id)
-          const duplicate =
-            table === CC_TASKS_TABLE &&
-            v.external_ref != null &&
-            rows.some(
-              (r) => r.founder_id === v.founder_id && r.external_ref === v.external_ref,
-            )
-          return {
-            select() {
-              return {
-                single: () => {
-                  if (eventPkClash) {
-                    return Promise.resolve({
-                      data: null,
-                      error: { code: '23505', message: 'duplicate key value violates cc_task_events_pkey' },
-                    })
-                  }
-                  if (duplicate) {
-                    return Promise.resolve({
-                      data: null,
-                      error: { code: '23505', message: 'duplicate key value violates unique constraint' },
-                    })
-                  }
-                  const row = {
-                    id: (v.id as string) ?? `${table}-${++seq}`,
-                    created_at: '2026-07-28T00:00:00.000Z',
-                    updated_at: '2026-07-28T00:00:00.000Z',
-                    metadata: {},
-                    ...v,
-                  }
-                  store.push(row)
-                  return Promise.resolve({ data: row, error: null })
-                },
-              }
-            },
-          }
-        },
-        update() {
-          throw new Error('update not used by this path')
-        },
-        select() {
-          const filters: Array<[string, unknown]> = []
-          const chain = {
-            eq(column: string, value: unknown) {
-              filters.push([column, value])
-              return chain
-            },
-            single: () => {
-              const match = rows.find((r) => filters.every(([c, v]) => r[c] === v))
-              return Promise.resolve(
-                match
-                  ? { data: match, error: null }
-                  : { data: null, error: { code: 'PGRST116', message: 'no rows' } },
-              )
-            },
-            order: () => chain,
-            limit: () => Promise.resolve({ data: rows, error: null }),
-          }
-          return chain as never
-        },
-      }
-    },
-  } as unknown as SupabaseLike
-
-  return { client, rows, events, inserts }
 }
 
 const ORIGINAL_ENV = process.env[VOICE_MISSION_AUTONOMY_ENV]

@@ -17,6 +17,12 @@
 // like /api/agent. Mission Control rule: real model responses, honest errors —
 // failures surface as JSON (pre-stream) or a terminal `{"error": ...}` SSE
 // event (mid-stream), never swallowed.
+//
+// Mission Control chat W1a: GET, PUT and POST check the founder allow-list in-route (403),
+// and — only after every early return — records at most one captured delivery
+// mission for a build request carrying a valid turnId. Its receipt is the first
+// SSE frame (`data: {"mission": ...}`); the answer streams after it unchanged.
+// GET re-reads each persisted turn's receipt from cc_tasks in one query.
 
 import { NextResponse } from 'next/server'
 import type Anthropic from '@anthropic-ai/sdk'
@@ -24,7 +30,8 @@ import { getUser, createClient } from '@/lib/supabase/server'
 import { getAIClient } from '@/lib/ai/client'
 import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 import { ground, formatGroundingContext, type GroundingResult } from '@/lib/site-agent/grounding'
-import { sanitiseError } from '@/lib/error-reporting'
+import { captureApiError, sanitiseError } from '@/lib/error-reporting'
+import { hasPrivateAccess } from '@/lib/auth/private-access'
 import type { Json } from '@/types/database'
 import {
   parseFounderChatBody,
@@ -32,6 +39,14 @@ import {
   buildFounderSystemPrompt,
 } from '@/lib/founder-chat/messages'
 import { normaliseStoredMessages, parsePersistBody } from '@/lib/founder-chat/persist'
+import {
+  captureMission,
+  readMissionReceipts,
+  type ReceiptReadClient,
+} from '@/lib/founder-chat/mission-capture'
+import { classifyMissionIntent } from '@/lib/founder-chat/mission-intent'
+import type { MissionReceipt } from '@/lib/founder-chat/mission-receipt'
+import type { SupabaseLike } from '@/lib/command-centre/tasks'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -41,6 +56,10 @@ const MODEL = ANTHROPIC_MODELS.OPUS
 const MAX_OUTPUT_TOKENS = 4096
 
 const NO_STORE_HEADERS = { 'Cache-Control': 'no-store' } as const
+const ROUTE = '/api/founder/chat'
+const STREAM_FAILED_MESSAGE = 'The answer stopped before it finished. Try again.'
+const AI_UNAVAILABLE_MESSAGE = 'The chat model is not available right now. Try again later.'
+const GROUNDING_FAILED_MESSAGE = 'Could not load business context. Try again.'
 
 const encoder = new TextEncoder()
 
@@ -50,11 +69,17 @@ function sseEvent(payload: object): Uint8Array {
 
 const SSE_DONE = encoder.encode('data: [DONE]\n\n')
 
+function forbidden() {
+  return NextResponse.json({ error: 'Forbidden' }, { status: 403, headers: NO_STORE_HEADERS })
+}
+
 export async function GET() {
   const user = await getUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorised' }, { status: 401, headers: NO_STORE_HEADERS })
   }
+  // Allow-list checked in-route for the thread read too, not only in the proxy.
+  if (!hasPrivateAccess(user)) return forbidden()
 
   try {
     const supabase = await createClient()
@@ -66,11 +91,22 @@ export async function GET() {
 
     if (error) throw error
 
+    const messages = normaliseStoredMessages(data?.messages ?? [])
+    const turns = messages.flatMap((m) =>
+      m.role === 'user' && m.turnId ? [{ turnId: m.turnId, text: m.content }] : [],
+    )
+    const receipts = await readMissionReceipts(
+      supabase as unknown as ReceiptReadClient,
+      user.id,
+      turns,
+    )
+
     return NextResponse.json(
       {
-        messages: normaliseStoredMessages(data?.messages ?? []),
+        messages,
         businessKey: data?.business_key ?? null,
         updatedAt: data?.updated_at ?? null,
+        receipts,
       },
       { headers: NO_STORE_HEADERS },
     )
@@ -91,6 +127,8 @@ export async function PUT(request: Request) {
   if (!user) {
     return NextResponse.json({ error: 'Unauthorised' }, { status: 401, headers: NO_STORE_HEADERS })
   }
+  // Allow-list checked in-route for the thread write too, not only in the proxy.
+  if (!hasPrivateAccess(user)) return forbidden()
 
   let raw: unknown
   try {
@@ -149,6 +187,10 @@ export async function POST(request: Request) {
   if (!user) {
     return NextResponse.json({ error: 'Unauthorised' }, { status: 401, headers: NO_STORE_HEADERS })
   }
+  // The founder allow-list is enforced here as well as in the proxy, before any work.
+  if (!hasPrivateAccess(user)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403, headers: NO_STORE_HEADERS })
+  }
 
   let raw: unknown
   try {
@@ -166,9 +208,9 @@ export async function POST(request: Request) {
   try {
     client = getAIClient()
   } catch (err) {
-    // Founder-facing surface: report the real configuration failure.
-    const message = err instanceof Error ? err.message : 'Anthropic client not configured'
-    return NextResponse.json({ error: message }, { status: 503, headers: NO_STORE_HEADERS })
+    // Logged server-side in full; the browser gets a fixed message, never the raw error.
+    captureApiError(err, { route: ROUTE, founderId: user.id, stage: 'ai_client' })
+    return NextResponse.json({ error: AI_UNAVAILABLE_MESSAGE }, { status: 503, headers: NO_STORE_HEADERS })
   }
 
   const turns = trimToLeadingUserTurn(parsed.messages)
@@ -182,8 +224,8 @@ export async function POST(request: Request) {
       const supabase = await createClient()
       grounding = await ground(supabase, user.id, parsed.businessKey, query)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Grounding failed'
-      return NextResponse.json({ error: message }, { status: 500, headers: NO_STORE_HEADERS })
+      captureApiError(err, { route: ROUTE, founderId: user.id, stage: 'grounding' })
+      return NextResponse.json({ error: GROUNDING_FAILED_MESSAGE }, { status: 500, headers: NO_STORE_HEADERS })
     }
     if (!grounding.businessName) {
       // ground() fails closed when the key resolves to no business — for the
@@ -200,14 +242,37 @@ export async function POST(request: Request) {
     grounding ? formatGroundingContext(grounding.snippets) : '',
   )
 
+  // Mission capture: after every early return, before the stream, in its own
+  // try/catch. A failure here never blocks the answer.
+  // The session client is a factory: captureMission classifies first and opens
+  // it only for a build request, so a question never touches the database.
+  let receipt: MissionReceipt | null = null
+  try {
+    const captured = await captureMission({
+      founderId: user.id,
+      turnId: parsed.turnId,
+      text: query,
+      client: async () => (await createClient()) as unknown as SupabaseLike,
+    })
+    receipt = captured.receipt
+  } catch (err) {
+    // Unexpected throw: "not confirmed" only where a build capture was owed.
+    captureApiError(err, { route: ROUTE, founderId: user.id, turnId: parsed.turnId, stage: 'create_task' })
+    receipt = parsed.turnId && classifyMissionIntent(query) === 'build_request' ? { kind: 'not_confirmed' } : null
+  }
+
+  // Model-bound turns carry role and content only — never a turnId.
+  const modelTurns = turns.map(({ role, content }) => ({ role, content }))
+
   const readable = new ReadableStream<Uint8Array>({
     async start(controller) {
+      if (receipt) controller.enqueue(sseEvent({ mission: receipt }))
       try {
         const stream = await client.messages.create({
           model: MODEL,
           max_tokens: MAX_OUTPUT_TOKENS,
           system,
-          messages: turns,
+          messages: modelTurns,
           stream: true,
         })
         for await (const event of stream) {
@@ -216,9 +281,9 @@ export async function POST(request: Request) {
           }
         }
       } catch (err) {
-        // Founder-facing: surface the real provider error as a terminal event.
-        const message = err instanceof Error ? err.message : 'stream_failed'
-        controller.enqueue(sseEvent({ error: message }))
+        // Logged server-side in full; the founder sees a sanitised terminal event.
+        captureApiError(err, { route: ROUTE, founderId: user.id, turnId: parsed.turnId, stage: 'stream' })
+        controller.enqueue(sseEvent({ error: STREAM_FAILED_MESSAGE }))
       } finally {
         controller.enqueue(SSE_DONE)
         controller.close()

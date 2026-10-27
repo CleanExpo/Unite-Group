@@ -16,17 +16,17 @@ describe('parseFounderChatBody', () => {
 
   it('accepts a valid body without businessKey', () => {
     const parsed = parseFounderChatBody({ messages: [userMessage] })
-    expect(parsed).toEqual({ ok: true, messages: [userMessage], businessKey: null })
+    expect(parsed).toEqual({ ok: true, messages: [userMessage], businessKey: null, turnId: null })
   })
 
   it('accepts a valid body with a businessKey and trims it', () => {
     const parsed = parseFounderChatBody({ messages: [userMessage], businessKey: '  synthex  ' })
-    expect(parsed).toEqual({ ok: true, messages: [userMessage], businessKey: 'synthex' })
+    expect(parsed).toEqual({ ok: true, messages: [userMessage], businessKey: 'synthex', turnId: null })
   })
 
   it('treats an empty businessKey as null (no grounding)', () => {
     const parsed = parseFounderChatBody({ messages: [userMessage], businessKey: '   ' })
-    expect(parsed).toEqual({ ok: true, messages: [userMessage], businessKey: null })
+    expect(parsed).toEqual({ ok: true, messages: [userMessage], businessKey: null, turnId: null })
   })
 
   it('rejects a non-string businessKey', () => {
@@ -144,5 +144,53 @@ describe('extractSseEvents', () => {
     const { events, done } = extractSseEvents('data: {broken\n\n: comment\n\ndata: {"delta":"ok"}\n\n')
     expect(events).toEqual([{ delta: 'ok' }])
     expect(done).toBe(false)
+  })
+})
+
+describe('Mission Control chat W1a — turnId and the mission frame', () => {
+  const TURN = '7b0c2f1e-3a4d-4c5e-8f60-1a2b3c4d5e6f'
+  const recorded = {
+    kind: 'recorded',
+    taskId: 'task-1',
+    externalRef: `delivery:chat:${TURN}`,
+    status: 'proposed',
+    title: 'Build a dashboard',
+    projectKey: 'Synthex',
+    humanApprovalRequired: true,
+  }
+
+  it('AC-18 accepts a UUID turnId and rejects anything else with an error', () => {
+    const ok = parseFounderChatBody({ messages: [{ role: 'user', content: 'hi' }], turnId: TURN.toUpperCase() })
+    expect(ok).toEqual({ ok: true, messages: [{ role: 'user', content: 'hi' }], businessKey: null, turnId: TURN })
+    for (const turnId of ['not-a-uuid', 42, '', `${TURN}x`, { id: TURN }]) {
+      expect(parseFounderChatBody({ messages: [{ role: 'user', content: 'hi' }], turnId })).toEqual({
+        ok: false,
+        error: 'turnId must be a UUID',
+      })
+    }
+  })
+
+  it('AC-18 never passes a message turnId or other stored fields on to the model', () => {
+    const parsed = parseFounderChatBody({
+      messages: [{ role: 'user', content: 'hi', turnId: TURN, status: 'running' }],
+    })
+    expect(parsed).toMatchObject({ ok: true, messages: [{ role: 'user', content: 'hi' }] })
+  })
+
+  it('AC-11 keeps a valid mission frame and drops malformed ones', () => {
+    const stream = [
+      `data: ${JSON.stringify({ mission: recorded })}`,
+      `data: ${JSON.stringify({ mission: { kind: 'running' } })}`,
+      `data: ${JSON.stringify({ mission: { kind: 'recorded' } })}`,
+      `data: ${JSON.stringify({ mission: 'recorded' })}`,
+      'data: null',
+      'data: {"mission":',
+      `data: ${JSON.stringify({ delta: 'Hi' })}`,
+      'data: [DONE]',
+      '',
+    ].join('\n\n')
+    const { events, done } = extractSseEvents(stream)
+    expect(events).toEqual([{ mission: recorded }, { delta: 'Hi' }])
+    expect(done).toBe(true)
   })
 })
