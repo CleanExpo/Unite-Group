@@ -34,7 +34,20 @@ describe('privacy policy: public website and Living Business Cards', () => {
 
   it('names the recipients the code actually uses', () => {
     const s = section()
-    for (const r of ['Stripe', 'CARSI Pty Ltd', 'Supabase', 'Vercel', 'SendGrid']) expect(s, r).toContain(r)
+    for (const r of ['Stripe', 'CARSI Pty Ltd', 'Supabase', 'Vercel', 'SendGrid', 'Mailtrap']) expect(s, r).toContain(r)
+  })
+
+  // Paid card orders send the order alert and the buyer's welcome email through Mailtrap (src/lib/cards/paid-order.ts).
+  it('names Mailtrap in the provider table and among the recipients of a card buyer\'s details', () => {
+    const h = html()
+    const row = h.match(/<tr><td>Mailtrap<\/td><td>([\s\S]*?)<\/td><td>([^<]*)<\/td><\/tr>/)
+    expect(row, 'Mailtrap provider row').not.toBeNull()
+    expect(decode(row![1])).toContain('email address')
+    // Both emails state the price paid (paid-order.ts sendOrderAlert and buildBuyerWelcome).
+    expect(decode(row![1])).toContain('amount paid')
+    expect(decode(row![1])).toContain('its price')
+    expect(row![2]).toMatch(/US/)
+    expect(section()).toContain('Mailtrap, which delivers the emails sent when you buy a card')
   })
 
   it('says card-owner delivery only once the forms are switched on', () => {

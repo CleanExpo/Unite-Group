@@ -166,3 +166,23 @@ scripts/swarm/bench-results.json
 # Only reviewed schemas/contracts belong in Git; machine paths and live state do not.
 /.nexus/runtime/
 /apps/web/data/command-centre/control-plane.v1.json
+
+# npm lockfile when installs run outside the pnpm workspace root
+package-lock.json
+
+# Accidental per-app lockfiles (canonical locks live under apps/web, apps/workspace)
+/apps/empire/pnpm-lock.yaml
+
+# Playwright and Turborepo local outputs
+test-results/
+playwright-report/
+blob-report/
+**/.turbo/
+
+# Cursor IDE machine-local state (bootstrap scripts under .cursor/ stay tracked)
+.cursor/projects/
+.cursor/plans/
+.cursor/**/*.log
+
+# Wrapper checkout: clone nested inside a parent folder that also has .git
+/Unite-Group/

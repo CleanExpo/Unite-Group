@@ -1,6 +1,83 @@
-/* The living-card gallery: ten tall tiles, poster first. The film is mounted by gallery-tile.tsx only when motion allows. */
-.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 28px 0 0; padding: 0; list-style: none; }
-@media (min-width: 700px) { .grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; } }
+.intro {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+  align-items: center;
+}
+
+.intro::after {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.track {
+  position: relative;
+  margin-top: clamp(1.25rem, 3vw, 2rem);
+}
+
+@media (max-width: 699px) {
+  .track {
+    margin-inline: calc(-1 * var(--pub-gutter));
+    padding-inline: var(--pub-gutter);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: var(--pub-gutter);
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .track::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .track::-webkit-scrollbar-thumb {
+    background: rgba(236, 123, 65, 0.35);
+    border-radius: 999px;
+  }
+
+  .grid {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 12px;
+    width: max-content;
+    padding-bottom: 8px;
+  }
+
+  .grid > li {
+    flex: 0 0 min(42vw, 168px);
+    scroll-snap-align: start;
+  }
+}
+
+@media (min-width: 700px) {
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: clamp(14px, 2.2vw, 22px);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+}
+
+@media (min-width: 1100px) {
+  .track {
+    margin-inline: calc(-1 * min(8vw, 80px));
+  }
+
+  .grid {
+    gap: 18px;
+  }
+
+  .tile {
+    border-radius: var(--pub-radius-xl);
+  }
+}
+
+.grid {
+  list-style: none;
+  padding: 0;
+}
 
 .tile {
   position: relative;
@@ -8,38 +85,99 @@
   aspect-ratio: 9 / 16;
   overflow: hidden;
   border: 1px solid var(--pub-line);
-  border-radius: 16px;
-  background: var(--pub-bg);
+  border-radius: var(--pub-radius-lg);
+  background: linear-gradient(180deg, var(--pub-surface) 0%, var(--pub-bg) 100%);
   color: var(--pub-ink);
   text-decoration: none;
   isolation: isolate;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+  box-shadow:
+    0 1px 0 rgba(244, 241, 236, 0.04) inset,
+    0 14px 36px rgba(0, 0, 0, 0.35);
+  transition:
+    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.22s ease,
+    box-shadow 0.32s ease;
 }
-.grid a.tile, .grid a.tile:hover { color: var(--pub-ink); }
-.tile:hover, .tile:focus-visible { border-color: var(--pub-highlight); }
-.poster, .video { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; }
-.video { z-index: 1; }
-.tile::after { content: ''; position: absolute; inset: auto 0 0 0; height: 40%; z-index: 2; background: linear-gradient(to top, rgba(8, 9, 20, 0.92), rgba(8, 9, 20, 0)); }
+
+.grid a.tile,
+.grid a.tile:hover {
+  color: var(--pub-ink);
+}
+
+.tile:hover,
+.tile:focus-visible {
+  border-color: rgba(236, 123, 65, 0.65);
+  transform: translateY(-6px) scale(1.02);
+  box-shadow:
+    0 1px 0 rgba(244, 241, 236, 0.06) inset,
+    0 24px 52px rgba(0, 0, 0, 0.5),
+    0 0 28px rgba(236, 123, 65, 0.14);
+  z-index: 2;
+}
+
+.poster,
+.video {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.video {
+  z-index: 1;
+}
+
+.tile:hover .poster,
+.tile:focus-visible .poster {
+  transform: scale(1.06);
+}
+
+.tile::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 48%;
+  z-index: 2;
+  background: linear-gradient(to top, rgba(8, 9, 20, 0.96), rgba(8, 9, 20, 0));
+}
+
 .name {
   position: absolute;
   left: 12px;
   bottom: 12px;
   z-index: 3;
   font-family: var(--pub-display);
-  font-size: 20px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  font-size: clamp(1rem, 2.2vw, 1.12rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
 }
+
 .ai {
   position: absolute;
   left: 8px;
   top: 8px;
   z-index: 3;
-  padding: 2px 10px;
+  padding: 3px 10px;
   border-radius: 999px;
-  background: rgba(8, 9, 20, 0.78);
+  border: 1px solid rgba(244, 241, 236, 0.15);
+  background: rgba(8, 9, 20, 0.82);
   color: var(--pub-ink);
   font-family: var(--pub-mono);
-  font-size: 11px;
-  letter-spacing: 0.04em;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile,
+  .tile:hover,
+  .tile:focus-visible,
+  .poster {
+    transform: none;
+    transition: none;
+  }
 }

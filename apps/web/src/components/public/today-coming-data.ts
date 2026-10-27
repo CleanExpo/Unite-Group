@@ -1,26 +1,15 @@
-import { BUSINESSES } from './businesses'
-
 // What a visitor can use today, and what is not live yet. The site may only advertise what has shipped and works.
-// Sources: Wiki carsi.md, dr-nrpg.md, restore-assist.md, nexus-doctrine.md; Niche Agentic spec v2.0 section 2.1
-// (founder-drive-2026-10-25b); go-live list W9/W10.
-// Urls come from businesses.ts, never retyped. Synthex and Trade Hall are left out on purpose: no sourced
-// customer line exists for either yet.
+// Unite Group sells its own agency products only (UNI-3017): the restoration sister companies are not shown here.
+import { formatAud } from '@/app/grow/packages'
+import { PLUS_GST, SIGNATURE_ADDON, STARTER_PLAN } from '@/lib/public-pricing'
 
 export type TodayItem = { name: string; line: string; href: string }
 export type ComingItem = { name: string; line: string }
 
-const urlOf = (name: string): string => {
-  const url = BUSINESSES.find((b) => b.name === name)?.url
-  if (!url) throw new Error(`businesses.ts has no url for ${name}`)
-  return url
-}
-
 export const TODAY: readonly TodayItem[] = [
-  { name: 'Living business card', line: 'A video card that ends on your logo, from $249', href: '/cards' },
-  { name: 'CARSI', line: 'Online training for restoration and cleaning pros', href: urlOf('CARSI') },
-  { name: 'Disaster Recovery', line: 'Connects homes and businesses with restoration companies', href: urlOf('Disaster Recovery') },
-  { name: 'RestoreAssist', line: 'A field app for restoration crews', href: urlOf('RestoreAssist') },
-  { name: 'NRPG', line: 'The restoration company network', href: urlOf('NRPG') },
+  { name: 'Living business card', line: 'A video card that ends on your logo', href: '/cards' },
+  { name: 'Starter plan', line: `Your marketing run by us, ${formatAud(STARTER_PLAN.priceAud)} a month ${PLUS_GST}`, href: '/pricing' },
+  { name: 'Email signatures', line: `A signature for each team member, ${formatAud(SIGNATURE_ADDON.priceAud)} each ${PLUS_GST}`, href: '/signatures' },
 ]
 
 export const COMING: readonly ComingItem[] = [

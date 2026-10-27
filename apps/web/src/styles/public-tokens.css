@@ -12,6 +12,8 @@
   --pub-bg: #0d1020;
   --pub-canvas: #080914;
   --pub-bg-alt: #0b0d1c;
+  --pub-surface: #12162a;
+  --pub-surface-raised: #181d34;
   --pub-ink: #f4f1ec;
   --pub-ink-soft: #c9ccd6;
   --pub-muted: #a3a8b8;
@@ -28,9 +30,15 @@
   --pub-night-ink: #f4f1ec;
   --pub-night-soft: #c9ccd6;
   --pub-radius: 8px;
-  --pub-max: 72rem;
+  --pub-radius-lg: 20px;
+  --pub-radius-xl: 28px;
+  /* Content column: 80% of viewport, capped for ultra-wide screens. */
+  --pub-max: min(80vw, 1360px);
+  --pub-gutter: clamp(16px, 3vw, 28px);
   --pub-font: var(--font-geist-sans), system-ui, -apple-system, 'Segoe UI', sans-serif;
   --pub-mono: var(--font-geist-mono), ui-monospace, 'SF Mono', Menlo, monospace;
-  /* Condensed display type for the headlines: faces already on the device, no web font to buy or load. */
-  --pub-display: 'Avenir Next Condensed', 'Arial Narrow', 'Roboto Condensed', 'Helvetica Neue', var(--font-geist-sans), system-ui, sans-serif;
+  /* Syne for display headlines; Instrument Sans + condensed stack as fallback (no-FOIT). */
+  --pub-display: var(--font-syne-display), var(--font-instrument-display), 'Avenir Next Condensed', 'Arial Narrow', 'Roboto Condensed', 'Helvetica Neue', var(--font-geist-sans), system-ui, sans-serif;
+  --pub-section-space: clamp(4rem, 9vw, 5.75rem);
+  --pub-glow: radial-gradient(120% 80% at 50% -20%, rgba(236, 123, 65, 0.28), rgba(236, 123, 65, 0) 55%);
 }

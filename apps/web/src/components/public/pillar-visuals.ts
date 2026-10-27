@@ -30,7 +30,7 @@ export const PILLAR_SCREENS: Record<Pillar['slug'], PillarScreens> = {
     support: screen('visibility-top-referrers', 1116, 803, 'browser', 'Top referrers from the same screen: google.com, chatgpt.com, bing.com, perplexity.ai and linkedin.com, with sample counts', 3),
   },
   experience: {
-    hero: screen('experience-card-editions', 1360, 1190, 'browser', 'The living business card showroom: three of the ten editions, Blueprint, Forge and Constellation, each a short clip ending on the logo with a play button and a Choose this link'),
+    hero: screen('experience-card-editions', 1360, 1190, 'browser', 'The living business card showroom: three of the nine editions, Blueprint, Forge and Constellation, each a short clip ending on the logo with a play button and a Choose this link'),
     support: screen('experience-cards-phone', 780, 1688, 'phone', 'The living business card page on a phone: the headline, a Get your own card button and the signature reveal clip'),
   },
   conversion: {

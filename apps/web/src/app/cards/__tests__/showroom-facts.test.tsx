@@ -1,6 +1,6 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import CardsShowroomPage from '../page'
 import { CARD_TIERS } from '../order/order-view'
@@ -13,7 +13,11 @@ import {
   provenanceStrings,
 } from '../showroom-facts'
 
+// Prices show only for tiers whose payment link is live (liveCardTiers); open both for the page under test.
+vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', 'https://buy.stripe.com/test_ready')
+vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_CUSTOM', 'https://buy.stripe.com/test_custom')
 const html = renderToStaticMarkup(createElement(CardsShowroomPage))
+vi.unstubAllEnvs()
 const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')
 
 describe('/cards showroom facts', () => {
@@ -25,6 +29,15 @@ describe('/cards showroom facts', () => {
     expect(text).toContain('AUD 249')
     expect(text).toContain('AUD 449')
     expect(text).toContain('GST included')
+  })
+
+  it('names no tier price while online ordering is off', () => {
+    vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', '')
+    vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_CUSTOM', '')
+    const closed = renderToStaticMarkup(createElement(CardsShowroomPage)).replace(/<[^>]+>/g, ' ')
+    vi.unstubAllEnvs()
+    expect(closed).not.toMatch(/AUD \d/)
+    expect(closed).toContain('Online orders are not open yet')
   })
 
   it('states the 12-month hosting term and the renewal rule', () => {

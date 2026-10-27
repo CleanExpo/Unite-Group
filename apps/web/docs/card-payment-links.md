@@ -32,8 +32,9 @@ changes nothing the second time. If the price of a tier changes, change `CARD_TI
 
 | Name | Needed for |
 |---|---|
-| `LEAD_ALERT_EMAIL_TO` | the address that receives the order alert; unset means no email, the order is still recorded |
-| `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL` | the existing mail sender the alert uses |
+| `MAILTRAP_API_KEY` | Mailtrap Email Sending API key; without it the order is still recorded but no alert is sent |
+| `LEAD_ALERT_EMAIL_TO` | the address that receives the order alert; defaults to `contact@unite-group.in` when unset |
+| `MAILTRAP_FROM_EMAIL` | optional sender override; defaults to `contact@unite-group.in` |
 | `STRIPE_CARD_PAYMENT_LINK_IDS` | the two card Payment Link ids (`plink_...`, from each link's page in the Stripe dashboard), comma-separated. Not secret. Unset means no order is recorded: the price alone never counts, so another product at A$249 or A$449 cannot become a card order |
 | `STRIPE_PAYMENT_LINK_CARD_EXTRA_BUSINESS` | the add-on's `https://buy.stripe.com/...` URL; its presence shows the extra-business control on `/cards/order` |
 | `STRIPE_CARD_EXTRA_BUSINESS_PAYMENT_LINK_ID` | the add-on link's single `plink_...` id. Not secret. Lets the webhook record add-on payments; unset means none is ever recorded |

@@ -21,10 +21,8 @@ const url = (name: string) => BUSINESSES.find((b) => b.name === name)!.url!
 
 const TODAY = [
   { name: 'Living business card', href: '/cards' },
-  { name: 'CARSI', href: url('CARSI') },
-  { name: 'Disaster Recovery', href: url('Disaster Recovery') },
-  { name: 'RestoreAssist', href: url('RestoreAssist') },
-  { name: 'NRPG', href: url('NRPG') },
+  { name: 'Starter plan', href: '/pricing' },
+  { name: 'Email signatures', href: '/signatures' },
 ]
 const COMING = ['Revenue Intelligence', 'Experience Intelligence', 'Operations Intelligence']
 
@@ -58,7 +56,8 @@ describe('Today and what is coming', () => {
   it('is a section with id today, directly after the group and before the cards gallery, with its heading', async () => {
     const html = await home()
     const sections = [...html.matchAll(/<(?:section|footer)[^>]*\bid="([a-z]+)"/g)].map((m) => m[1])
-    expect(sections[sections.indexOf('group') + 1]).toBe('today')
+    expect(sections).not.toContain('group')
+    expect(sections[sections.indexOf('highlights') + 1]).toBe('today')
     expect(sections[sections.indexOf('today') + 1]).toBe('cards')
     expect(blocks(html, 'id="today"', 'section')).toHaveLength(1)
     expect(html).toMatch(/<h2[^>]*>Today, and what is coming<\/h2>/)
@@ -100,16 +99,26 @@ describe('Today and what is coming', () => {
     const html = await home()
     const sec = text(blocks(html, 'id="today"', 'section')[0])
     for (const bad of [/synthex/i, /trade hall/i, /certified/i, /iicrc/i, /24\/7/, /!/]) expect(sec).not.toMatch(bad)
-    expect(sec).toContain('from $249')
+    // The card price shows only behind the order page's payment-link gate, never here unconditionally.
+    expect(sec).not.toMatch(/\$249|\$449/)
+    expect(sec).toContain('$99 a month plus GST')
+    expect(sec).toContain('$22 each plus GST')
     const coming = text(blocks(html, 'data-coming', 'div')[0])
     expect(coming).not.toMatch(/\$/)
     expect(coming).not.toMatch(/synthex|trade hall|certified|iicrc|24\/7/i)
   })
 
-  it('has its own stylesheet with a stacked layout and two columns from 900px', () => {
-    const css = readFileSync(join(__dirname, '..', 'today-coming.module.css'), 'utf8')
-    expect(css).toMatch(/@media \(min-width: 900px\)/)
-    expect(css).toMatch(/minmax\(0, 1fr\)/)
+  // The home page draws this section itself (home/home-page.tsx); today-coming.tsx is no longer on the page.
+  it('is styled by the home page stylesheet, which defines every class the section uses', async () => {
+    const section = blocks(await home(), 'id="today"', 'section')[0]
+    const tsx = readFileSync(join(__dirname, '..', 'home', 'home-page.tsx'), 'utf8')
+    const block = tsx.slice(tsx.indexOf('id="today"'), tsx.indexOf('</section>', tsx.indexOf('id="today"')))
+    const used = [...new Set([...block.matchAll(/hp\.(\w+)/g)].map((m) => m[1]))]
+    expect(used.length, 'classes used by #today').toBeGreaterThan(3)
+    const css = readFileSync(join(__dirname, '..', 'home', 'home-page.module.css'), 'utf8')
+    for (const c of used) expect(css, c).toMatch(new RegExp(`\\.${c}\\b`))
+    expect(section).toMatch(/data-today-list/)
+    expect(section).toMatch(/data-coming-list/)
   })
 })
 

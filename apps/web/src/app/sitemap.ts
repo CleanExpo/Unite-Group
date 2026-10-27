@@ -14,6 +14,8 @@ const ROUTES: Record<PublicRoute, { lastModified: string; priority: number; chan
   '/solutions/visibility': { lastModified: '2026-10-25', priority: 0.6, changeFrequency: 'monthly' },
   '/solutions/experience': { lastModified: '2026-10-25', priority: 0.6, changeFrequency: 'monthly' },
   '/solutions/intelligence': { lastModified: '2026-10-25', priority: 0.6, changeFrequency: 'monthly' },
+  '/pricing': { lastModified: '2026-10-25', priority: 0.8, changeFrequency: 'monthly' },
+  '/signatures': { lastModified: '2026-10-25', priority: 0.7, changeFrequency: 'monthly' },
   '/cards/terms': { lastModified: '2026-10-25', priority: 0.3, changeFrequency: 'monthly' },
   '/privacy-policy': { lastModified: '2026-10-25', priority: 0.2, changeFrequency: 'yearly' },
   '/terms-of-service': { lastModified: '2026-10-25', priority: 0.2, changeFrequency: 'yearly' },

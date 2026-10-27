@@ -12,7 +12,7 @@
 import type Stripe from 'stripe'
 
 import { CARD_EXTRA_BUSINESS, CARD_TIERS } from '@/app/cards/order/order-view'
-import { mailtrapFromEmail, sendEmail } from '@/lib/integrations/mailtrap'
+import { leadAlertEmailTo, mailtrapFromEmail, sendEmail } from '@/lib/integrations/mailtrap'
 import type { createServiceClient } from '@/lib/supabase/service'
 
 type CardTier = (typeof CARD_TIERS)[number]
@@ -151,12 +151,8 @@ async function sendOrderAlert(
   amountCents: number,
   livemode: boolean,
 ): Promise<void> {
-  const to = process.env.LEAD_ALERT_EMAIL_TO?.trim()
+  const to = leadAlertEmailTo()
   const from = mailtrapFromEmail()
-  if (!to) {
-    console.warn('[cards] order alert skipped: LEAD_ALERT_EMAIL_TO not set')
-    return
-  }
   const who = name ?? 'A buyer'
   const label = purchase.kind === 'tier' ? purchase.tier.name : `${CARD_EXTRA_BUSINESS.name}${purchase.quantity > 1 ? ` x${purchase.quantity}` : ''}`
   const line =

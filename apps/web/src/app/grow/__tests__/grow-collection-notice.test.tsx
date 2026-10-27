@@ -17,7 +17,7 @@ const decode = (s: string) => s.replace(/&#x27;/g, "'").replace(/&amp;/g, '&')
 function notice() {
   const start = html.indexOf('data-collection-notice="grow"')
   expect(start).toBeGreaterThan(-1)
-  return html.slice(start, html.indexOf('</p>', start))
+  return html.slice(start, html.indexOf('</aside>', start))
 }
 
 describe('/grow lead form APP 5 collection notice', () => {

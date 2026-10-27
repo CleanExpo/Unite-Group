@@ -1,0 +1,83 @@
+.sample {
+  margin: 1.5rem 0 0;
+  max-width: 26rem;
+  padding: 18px 20px;
+  border: 1px solid var(--pub-line);
+  border-radius: var(--pub-radius-lg);
+  background: rgba(18, 22, 42, 0.55);
+}
+
+.sample p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.sample p + p {
+  margin-top: 0.35rem;
+}
+
+.sample a {
+  color: var(--pub-highlight);
+  text-decoration: none;
+}
+
+.sample a:hover {
+  text-decoration: underline;
+}
+
+.sample figcaption {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--pub-muted);
+}
+
+.steps {
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 36rem;
+}
+
+.steps li {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--pub-ink-soft);
+}
+
+.stepNo {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  font-family: var(--pub-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pub-accent-ink);
+  background: var(--pub-highlight);
+}
+
+.planNote {
+  margin: 1.75rem 0 0;
+  font-size: 15px;
+  color: var(--pub-muted);
+}
+
+.planNote a {
+  color: var(--pub-ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.planNote a:hover {
+  color: var(--pub-highlight);
+}

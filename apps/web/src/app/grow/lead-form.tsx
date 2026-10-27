@@ -1,15 +1,15 @@
 'use client'
 
+import '@/styles/public-tokens.css'
+
 import { useState, type FormEvent } from 'react'
 
 import { CollectionNotice } from '@/components/public/collection-notice'
 
+import f from './grow-form.module.css'
 import { GROW_PACKAGES } from './packages'
 
 type Status = { kind: 'idle' } | { kind: 'sending' } | { kind: 'sent' } | { kind: 'error'; message: string }
-
-const field = 'w-full rounded-sm border border-stone-300 bg-white px-3 py-2.5 text-[15px] text-stone-900 outline-none focus:border-green-700 focus:ring-2 focus:ring-green-700/20'
-const label = 'mb-1.5 block text-[13px] font-medium text-stone-700'
 
 /** Builds the /api/leads body. Exported for tests so the wire contract is checked, not paraphrased. */
 export function buildLeadBody(form: FormData, source: string | null) {
@@ -55,63 +55,77 @@ export function LeadForm() {
 
   if (status.kind === 'sent') {
     return (
-      <div role="status" className="rounded-sm border border-green-700/30 bg-green-50 p-6 text-stone-800">
-        <p className="text-lg font-semibold text-green-800">Thanks, we have your details.</p>
-        <p className="mt-2 text-[15px]">We will email you your free AI-visibility audit and the next steps.</p>
+      <div role="status" className={f.sent}>
+        <p className={f.sentTitle}>Thanks, we have your details.</p>
+        <p className={f.sentBody}>We will email you your free AI-visibility audit and the next steps.</p>
       </div>
     )
   }
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
+    <form onSubmit={onSubmit} className={f.form}>
       <div>
-        <label htmlFor="first_name" className={label}>Your name</label>
-        <input id="first_name" name="first_name" required autoComplete="given-name" className={field} />
+        <label htmlFor="first_name" className={f.label}>
+          Your name
+        </label>
+        <input id="first_name" name="first_name" required autoComplete="given-name" className={f.field} />
       </div>
       <div>
-        <label htmlFor="company" className={label}>Business name</label>
-        <input id="company" name="company" autoComplete="organization" className={field} />
+        <label htmlFor="company" className={f.label}>
+          Business name
+        </label>
+        <input id="company" name="company" autoComplete="organization" className={f.field} />
       </div>
       <div>
-        <label htmlFor="email" className={label}>Email</label>
-        <input id="email" name="email" type="email" required autoComplete="email" className={field} />
+        <label htmlFor="email" className={f.label}>
+          Email
+        </label>
+        <input id="email" name="email" type="email" required autoComplete="email" className={f.field} />
       </div>
       <div>
-        <label htmlFor="phone" className={label}>Phone</label>
-        <input id="phone" name="phone" type="tel" autoComplete="tel" className={field} />
+        <label htmlFor="phone" className={f.label}>
+          Phone
+        </label>
+        <input id="phone" name="phone" type="tel" autoComplete="tel" className={f.field} />
       </div>
       <div>
-        <label htmlFor="website" className={label}>Your website (if you have one)</label>
-        <input id="website" name="website" inputMode="url" placeholder="yourbusiness.com.au" className={field} />
+        <label htmlFor="website" className={f.label}>
+          Your website (if you have one)
+        </label>
+        <input id="website" name="website" inputMode="url" placeholder="yourbusiness.com.au" className={f.field} />
       </div>
       <div>
-        <label htmlFor="package" className={label}>Interested in</label>
-        <select id="package" name="package" defaultValue="" className={field}>
+        <label htmlFor="package" className={f.label}>
+          Interested in
+        </label>
+        <select id="package" name="package" defaultValue="" className={f.field}>
           <option value="">Not sure yet</option>
           {GROW_PACKAGES.map((pkg) => (
-            <option key={pkg.id} value={pkg.id}>{pkg.name}</option>
+            <option key={pkg.id} value={pkg.id}>
+              {pkg.name}
+            </option>
           ))}
         </select>
       </div>
-      <div className="sm:col-span-2">
-        <label htmlFor="message" className={label}>Anything we should know?</label>
-        <textarea id="message" name="message" rows={3} className={field} />
+      <div className={f.wide}>
+        <label htmlFor="message" className={f.label}>
+          Anything we should know?
+        </label>
+        <textarea id="message" name="message" rows={3} className={f.field} />
       </div>
-      <label className="flex items-start gap-2.5 text-[14px] text-stone-700 sm:col-span-2">
-        <input type="checkbox" name="marketing_consent" className="mt-1 h-4 w-4 accent-green-700" />
+      <label className={`${f.wide} ${f.consent}`}>
+        <input type="checkbox" name="marketing_consent" className={f.check} />
         <span>Yes, Unite Group may email me marketing updates. You can unsubscribe at any time.</span>
       </label>
-      <div className="sm:col-span-2">
-        <CollectionNotice form="grow" tone="light" />
-        <button
-          type="submit"
-          disabled={status.kind === 'sending'}
-          className="inline-flex min-h-12 items-center rounded-sm bg-green-700 px-7 text-[15px] font-semibold text-white hover:bg-green-800 disabled:opacity-60"
-        >
+      <div className={f.wide}>
+        <CollectionNotice form="grow" tone="dark" />
+        <button type="submit" disabled={status.kind === 'sending'} className={f.submit}>
           {status.kind === 'sending' ? 'Sending…' : 'Get my free audit'}
         </button>
         {status.kind === 'error' && (
-          <p role="alert" className="mt-3 text-[14px] text-red-700">{status.message}</p>
+          <p role="alert" className={f.error}>
+            {status.message}
+          </p>
         )}
       </div>
     </form>

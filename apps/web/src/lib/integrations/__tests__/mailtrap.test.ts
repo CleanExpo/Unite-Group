@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { MAILTRAP_SEND_URL, mailtrapFromEmail, sendEmail } from '../mailtrap'
+import { MAILTRAP_SEND_URL, leadAlertEmailTo, mailtrapFromEmail, sendEmail } from '../mailtrap'
 
 afterEach(() => {
   vi.unstubAllEnvs()
@@ -55,5 +55,15 @@ describe('mailtrap sendEmail', () => {
   it('defaults the sender to contact@unite-group.in', () => {
     vi.stubEnv('MAILTRAP_FROM_EMAIL', '')
     expect(mailtrapFromEmail()).toBe('contact@unite-group.in')
+  })
+
+  it('defaults order alerts to contact@unite-group.in when LEAD_ALERT_EMAIL_TO is unset', () => {
+    vi.stubEnv('LEAD_ALERT_EMAIL_TO', '')
+    expect(leadAlertEmailTo()).toBe('contact@unite-group.in')
+  })
+
+  it('uses LEAD_ALERT_EMAIL_TO when set', () => {
+    vi.stubEnv('LEAD_ALERT_EMAIL_TO', 'ops@example.invalid')
+    expect(leadAlertEmailTo()).toBe('ops@example.invalid')
   })
 })

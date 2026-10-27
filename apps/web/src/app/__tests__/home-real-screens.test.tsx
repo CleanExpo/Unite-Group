@@ -98,17 +98,18 @@ const contrast = (a: string, b: string) => {
 describe('the 01/02/03 step labels are readable', () => {
   it('sit on their own solid background at 4.5:1 or better (WCAG AA) and at least 14px', async () => {
     const html = between(await signedOut(), 'how', 'proof')
-    const labels = [...html.matchAll(/<span class="([^"]*stepNo[^"]*)"[^>]*>(\d\d)<\/span>/g)]
+    const labels = [...html.matchAll(/<span class="([^"]*stepBadge[^"]*)"[^>]*>(\d\d)<\/span>/g)]
     expect(labels.map((m) => m[2])).toEqual(['01', '02', '03'])
-    // the rule lives in whichever public stylesheet defines .stepNo with a background; colours resolve through the tokens
+    // The home page draws the steps itself (home/home-page.tsx); the rule is .stepBadge in its own stylesheet, and
+    // colours resolve through the tokens.
     const tokens = readFileSync(join(__dirname, '..', '..', 'styles', 'public-tokens.css'), 'utf8')
     const resolve = (v: string) => {
       const name = v.match(/var\((--[\w-]+)\)/)?.[1]
       return (name ? tokens.match(new RegExp(`${name}:\\s*(#[0-9a-f]{6})`, 'i'))?.[1] : v.match(/#[0-9a-f]{6}/i)?.[0]) ?? ''
     }
-    const rules = ['home-screens.module.css', 'public.module.css']
+    const rules = ['home/home-page.module.css']
       .filter((f) => existsSync(join(PUB, f)))
-      .flatMap((f) => [...readFileSync(join(PUB, f), 'utf8').matchAll(/\.stepNo\s*\{([^}]*)\}/g)].map((m) => m[1]))
+      .flatMap((f) => [...readFileSync(join(PUB, f), 'utf8').matchAll(/\.stepBadge\s*\{([^}]*)\}/g)].map((m) => m[1]))
     const rule = rules.find((r) => /background(-color)?:/.test(r)) ?? ''
     const fg = resolve(rule.match(/(?:^|;)\s*color:\s*([^;]+)/)?.[1] ?? '')
     const bg = resolve(rule.match(/background(?:-color)?:\s*([^;]+)/)?.[1] ?? '')
@@ -116,6 +117,26 @@ describe('the 01/02/03 step labels are readable', () => {
     expect(bg, 'label background').toMatch(/^#[0-9a-f]{6}$/i)
     expect(contrast(fg, bg)).toBeGreaterThanOrEqual(4.5)
     expect(Number(rule.match(/font-size:\s*(\d+)px/)?.[1] ?? 0)).toBeGreaterThanOrEqual(14)
+  })
+})
+
+describe('the "Where do you want to start?" steps are readable', () => {
+  it('each of the five steps shows its number, name and line at 14px or more', async () => {
+    const html = await signedOut()
+    const from = html.indexOf('id="start"')
+    expect(from, 'id="start"').toBeGreaterThan(-1)
+    const steps = html.slice(from, html.indexOf('</ol>', from))
+    const css = readFileSync(join(PUB, 'home', 'home-page.module.css'), 'utf8')
+    for (const cls of ['pathNo', 'pathName', 'pathLine']) {
+      // CSS-module class names render with a hash around the name (_pathNo_b9af75 here), so match the name between
+      // separators; pathNo must not match pathName.
+      expect(steps.match(new RegExp(`class="(?:[^"]*[\\s_])?${cls}(?=[\\s"_])`, 'g')) ?? [], cls).toHaveLength(5)
+      const rules = [...css.matchAll(new RegExp(`\\.${cls}\\s*\\{([^}]*)\\}`, 'g'))].map((m) => m[1])
+      expect(rules.length, `.${cls} rule`).toBeGreaterThan(0)
+      for (const rule of rules) {
+        expect(Number(rule.match(/font-size:\s*(\d+)px/)?.[1] ?? 0), `.${cls} font-size`).toBeGreaterThanOrEqual(14)
+      }
+    }
   })
 })
 

@@ -13,7 +13,7 @@ const text = (html: string) => decode(html.replace(/<[^>]+>/g, ''))
 
 const form = renderToStaticMarkup(createElement(CardEnquiryForm, { referrer: null }))
 const page = renderToStaticMarkup(createElement(OrderView, { edition: null, referrer: null }))
-const NOTICE = /<p[^>]*data-collection-notice="card-enquiry"[^>]*>[\s\S]*?<\/p>/
+const NOTICE = /<aside[^>]*data-collection-notice="card-enquiry"[^>]*>[\s\S]*?<\/aside>/
 
 describe('/cards/order enquiry form collection notice (APP 5)', () => {
   it('renders inside the form, before the submit button', () => {

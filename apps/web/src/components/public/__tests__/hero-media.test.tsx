@@ -60,11 +60,11 @@ const strip = (html: string) => html.replace(/<script[\s\S]*?<\/script>/g, '').r
 describe('hero server markup: the words and the poster come before any video', () => {
   const html = renderToStaticMarkup(<Hero />)
 
-  it('has the H1, the UNITE-GROUP NEXUS wordmark, the Nexus line and both CTAs as real HTML', () => {
+  it('has the H1, the Unite-Group wordmark, the agency line and both CTAs as real HTML', () => {
     expect(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1].replace(/<[^>]*>/g, '')).toBe('Every business. One system.')
-    expect(html).toMatch(/data-wordmark[^>]*>Unite-Group Nexus</)
+    expect(html).toMatch(/data-wordmark[^>]*>Unite-Group</)
     const text = strip(html)
-    expect(text).toMatch(/The CRM we are building to run the businesses behind it/)
+    expect(text).toMatch(/An AI marketing agency, with Margot as its AI face/)
     expect(html).toMatch(/<a [^>]*href="#start"[^>]*>Where do you want to start\?</)
     expect(html).toMatch(/<a [^>]*href="#contact"[^>]*>Ask a question</)
   })
@@ -78,6 +78,7 @@ describe('hero server markup: the words and the poster come before any video', (
     expect(primary[0]).toContain('data-track-label="home-hero-start"')
     expect(html).not.toMatch(/href="#group"/)
     const secondary = anchors.filter((a) => /ghost/.test(a))
+    // The redesign moved the /grow link to the live home hero (home/home-page.tsx); landing.test checks it there.
     expect(secondary).toHaveLength(1)
     expect(secondary[0]).toContain('href="#contact"')
   })
@@ -105,8 +106,8 @@ describe('hero server markup: the words and the poster come before any video', (
 describe('the film: plays once when visible, holds on the poster frame, can be replayed and paused', () => {
   it('mounts a muted, inline, non-looping video with Replay and Pause controls when motion is allowed', () => {
     setup(false)
-    const { container } = render(<FilmPlayer film={HERO_FILM} priority />)
-    expect(container.querySelector('video')).toBeNull() // not before it is in view
+    const { container } = render(<FilmPlayer film={HERO_FILM} />)
+    expect(container.querySelector('video')).toBeNull() // a film below the hero waits until it is in view
     see()
     const video = container.querySelector('video')!
     expect(video).not.toBeNull()
@@ -119,6 +120,18 @@ describe('the film: plays once when visible, holds on the poster frame, can be r
     expect(container.querySelector('img')?.getAttribute('src')).toBe(HERO_FILM.poster)
     const buttons = [...container.querySelectorAll('button')].map((b) => b.textContent)
     expect(buttons).toEqual(['Replay', 'Pause'])
+  })
+
+  it('mounts the priority (hero) film at once when motion is allowed, without waiting to be seen', () => {
+    setup(false)
+    const { container } = render(<FilmPlayer film={HERO_FILM} priority />)
+    expect(container.querySelector('video')).not.toBeNull()
+  })
+
+  it('never mounts the priority (hero) film when the visitor asks for reduced motion', () => {
+    setup(true)
+    const { container } = render(<FilmPlayer film={HERO_FILM} priority />)
+    expect(container.querySelector('video')).toBeNull()
   })
 
   it('starts once when it scrolls into view, then holds', () => {

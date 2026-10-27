@@ -71,10 +71,10 @@ describe('collection notice parity with the privacy policy', () => {
 
   it('pins the recipient and access sentences to the wording the policy sentences above back', () => {
     expect(COLLECTION_RECIPIENTS).toBe(
-      'We store them in our database, hosted by Supabase. Vercel hosts the website and keeps request logs, and the emails we send you are delivered by SendGrid. We do not sell your information.',
+      'We store your details in a database hosted by Supabase. Vercel hosts this website and keeps request logs. Email we send you is delivered by SendGrid. We do not sell your information.',
     )
     expect(COLLECTION_ACCESS).toBe(
-      'You can ask to see, correct or delete your information at any time by emailing contact@unite-group.in.',
+      'You may request access to, correction of, or deletion of your information at any time by emailing contact@unite-group.in.',
     )
   })
 

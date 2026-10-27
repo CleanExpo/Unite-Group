@@ -45,11 +45,13 @@ test.describe('Auth Flow', () => {
     await expect(googleButton).toBeVisible()
   })
 
-  test('login page displays Nexus branding', async ({ page }) => {
+  test('login page displays Unite-Group branding', async ({ page }) => {
     await page.goto('/auth/login')
 
-    await expect(page.getByText('PI CEO', { exact: true })).toBeVisible()
-    await expect(page.getByText('Unite-Group Nexus', { exact: true })).toBeVisible()
+    await expect(page.getByText('Unite-Group', { exact: true }).first()).toBeVisible()
+    await expect(page.getByText('AI marketing agency', { exact: true })).toBeVisible()
+    await expect(page.getByText(/pi ceo/i)).toHaveCount(0)
+    await expect(page.getByText('Unite-Group Nexus', { exact: true })).toHaveCount(0)
     await expect(page.locator('h1')).toContainText('Sign in')
   })
 
@@ -67,7 +69,7 @@ test.describe('Auth Flow', () => {
     await page.goto('/')
 
     await expect(page).not.toHaveURL(/\/auth\/login/)
-    await expect(page.locator('h1')).toContainText('Every business')
+    await expect(page.locator('h1')).toContainText('Every business. One system.')
   })
 
   test('unauthenticated /founder route redirects to login', async ({ page }) => {

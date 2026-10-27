@@ -47,10 +47,31 @@ describe('GET /api/auth/callback', () => {
     expect(res.headers.get('location')).toContain('/auth/login')
   })
 
-  it('redirects to login when no code or error', async () => {
+  it('hands off to the client confirm page when no code or error (implicit fragment)', async () => {
     const res = await GET(req(''))
     expect(res.status).toBe(307)
-    expect(res.headers.get('location')).toContain('/auth/login')
+    expect(res.headers.get('location')).toBe('https://app.test/auth/confirm?next=%2Ffounder%2Fcommand-centre')
+  })
+
+  it('verifies an email token_hash and redirects to next', async () => {
+    const verifyOtp = vi.fn().mockResolvedValue({ error: null })
+    vi.mocked(createServerClient).mockReturnValue({ auth: { verifyOtp } } as any)
+    const res = await GET(req('?token_hash=th123&type=magiclink&next=%2Ffounder'))
+    expect(verifyOtp).toHaveBeenCalledWith({ token_hash: 'th123', type: 'magiclink' })
+    expect(res.headers.get('location')).toBe('https://app.test/founder')
+  })
+
+  it('redirects to login when token_hash verification fails', async () => {
+    vi.mocked(createServerClient).mockReturnValue({
+      auth: { verifyOtp: vi.fn().mockResolvedValue({ error: { message: 'expired' } }) },
+    } as any)
+    const res = await GET(req('?token_hash=bad&type=magiclink'))
+    expect(res.headers.get('location')).toContain('error=oauth_failed')
+  })
+
+  it('ignores an unknown otp type', async () => {
+    const res = await GET(req('?token_hash=th&type=bogus'))
+    expect(res.headers.get('location')).toContain('/auth/confirm')
   })
 
   it('preserves a valid task deep link after login', async () => {

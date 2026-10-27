@@ -1,0 +1,242 @@
+/* Shared marketing subpages — same column and tone as the home page. */
+
+.main {
+  background: var(--pub-canvas);
+  color: var(--pub-ink);
+}
+
+.wrap {
+  width: var(--pub-max);
+  max-width: var(--pub-max);
+  margin: 0 auto;
+  padding: 0 var(--pub-gutter);
+}
+
+.heroBand {
+  position: relative;
+  overflow: clip;
+  padding: clamp(2.5rem, 6vw, 3.75rem) 0 clamp(2rem, 4vw, 3rem);
+  background:
+    radial-gradient(90% 70% at 20% -30%, rgba(236, 123, 65, 0.16), transparent 55%),
+    linear-gradient(180deg, var(--pub-night) 0%, var(--pub-canvas) 100%);
+  border-bottom: 1px solid rgba(244, 241, 236, 0.06);
+}
+
+.heroBand::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(236, 123, 65, 0.35), transparent);
+}
+
+.section {
+  padding: clamp(2.5rem, 5vw, 3.75rem) 0;
+}
+
+.sectionAlt {
+  padding: clamp(2.5rem, 5vw, 3.75rem) 0;
+  background: linear-gradient(180deg, var(--pub-bg-alt) 0%, var(--pub-canvas) 100%);
+  border-block: 1px solid var(--pub-line);
+}
+
+.sectionTight {
+  padding: clamp(1.5rem, 3vw, 2.25rem) 0;
+}
+
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: var(--pub-muted);
+}
+
+.crumbs a {
+  color: var(--pub-ink-soft);
+  text-decoration: none;
+}
+
+.crumbs a:hover {
+  color: var(--pub-highlight);
+}
+
+.crumbs li + li::before {
+  content: '/';
+  margin-right: 8px;
+  color: var(--pub-line-strong);
+}
+
+.planGrid {
+  display: grid;
+  gap: 14px;
+}
+
+@media (min-width: 900px) {
+  .planGrid {
+    grid-template-columns: 1.1fr 0.9fr;
+    align-items: start;
+  }
+}
+
+.planCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  padding: clamp(18px, 3vw, 24px);
+  border: 1px solid var(--pub-line);
+  border-radius: var(--pub-radius-xl);
+  background: rgba(18, 22, 42, 0.55);
+}
+
+.planCardFeatured {
+  border-color: rgba(236, 123, 65, 0.45);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(236, 123, 65, 0.12);
+}
+
+.planPrice {
+  margin: 0;
+  font-family: var(--pub-display);
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.planMeta {
+  margin: 0;
+  font-size: 14px;
+  color: var(--pub-muted);
+}
+
+.planBody {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--pub-ink-soft);
+}
+
+.addonList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.addonItem {
+  padding: 14px 16px;
+  border-radius: var(--pub-radius-lg);
+  border: 1px solid rgba(244, 241, 236, 0.08);
+  background: rgba(8, 9, 20, 0.45);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--pub-ink-soft);
+}
+
+.addonItem a {
+  color: var(--pub-ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.addonItem a:hover {
+  color: var(--pub-highlight);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin-top: 8px;
+}
+
+.btnPrimary,
+.btnSecondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 22px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.btnPrimary {
+  background: linear-gradient(135deg, var(--pub-highlight), #e8955c);
+  color: var(--pub-accent-ink) !important;
+  border: 1px solid var(--pub-highlight);
+}
+
+.btnPrimary:hover {
+  filter: brightness(1.05);
+}
+
+.btnSecondary {
+  color: var(--pub-ink-soft);
+  border: 1px solid var(--pub-line-strong);
+  background: transparent;
+}
+
+.btnSecondary:hover {
+  border-color: var(--pub-highlight);
+  color: var(--pub-ink);
+}
+
+.stepsRow {
+  display: grid;
+  gap: clamp(16px, 3vw, 24px);
+}
+
+@media (min-width: 768px) {
+  .stepsRow {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.stepCard {
+  padding: 16px 18px;
+  border-radius: var(--pub-radius-lg);
+  border: 1px solid rgba(244, 241, 236, 0.08);
+  background: rgba(8, 9, 20, 0.4);
+}
+
+.stepNo {
+  margin: 0;
+  font-family: var(--pub-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--pub-highlight);
+}
+
+.stepTitle {
+  margin: 8px 0 0;
+  font-family: var(--pub-display);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.stepBody {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--pub-ink-soft);
+}
+
+.packageGrid {
+  display: grid;
+  gap: 14px;
+}
+
+@media (min-width: 900px) {
+  .packageGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

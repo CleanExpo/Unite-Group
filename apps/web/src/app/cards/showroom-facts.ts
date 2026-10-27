@@ -6,10 +6,14 @@
 /** Order terms section 3.2, word for word. */
 export const PRICE_NOTE = 'Prices are in Australian dollars and include GST. You pay the full price up front.'
 
-/** Each tier's line as the terms put it (section 2). The order page's own lines say "below", which points the wrong way here. */
+/**
+ * Each tier's line, cut from the terms (section 2). The terms' film count ("ten") is out of date now nine
+ * editions are shown (UNI-3034), so the showroom quotes only the parts without a count. Changing the
+ * approved terms text needs Phill's sign-off.
+ */
 export const TIER_LINES: Record<'ready' | 'custom', string> = {
-  ready: 'You pick one of our ten card films. It ends on your logo and details.', // 2
-  custom: 'We make a film for your business, instead of you picking one of the ten.', // 2
+  ready: 'It ends on your logo and details.', // 2
+  custom: 'We make a film for your business', // 2
 }
 
 export const HOSTING_FACTS = [

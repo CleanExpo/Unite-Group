@@ -1,4 +1,9 @@
 import { MargotPhoneLine } from '@/components/public/margot-phone-line'
+import { PublicPageShell } from '@/components/public/public-page-shell'
+import { SectionIntro } from '@/components/public/section-intro'
+import { SiteFooter } from '@/components/public/site-footer'
+import { SiteNav } from '@/components/public/site-nav'
+import m from '@/components/public/marketing-page.module.css'
 import { COMPANY_NAME, companyAbnLabel } from '@/lib/legal/company'
 import { readMargotPhoneNumber } from '@/lib/margot/phone-line'
 
@@ -20,7 +25,7 @@ export const CARD_TIERS = [
     id: 'ready',
     name: 'Ready-made',
     priceAud: 249,
-    line: 'Pick one of the ten card films below. It ends on your logo and details.',
+    line: 'Pick one of the nine card films below. It ends on your logo and details.',
     paymentLinkEnv: 'STRIPE_PAYMENT_LINK_CARD_READY',
   },
   {
@@ -67,47 +72,51 @@ export function OrderView({ edition, referrer }: { edition: string | null; refer
         { value: 'One-off', label: 'GST included, no subscription' },
       ]
     : [
-        { value: 'Ten films', label: 'to choose from' },
+        { value: 'Nine films', label: 'to choose from' },
         { value: 'Your logo', label: 'at the end of every film' },
         { value: 'Private proof', label: 'before anything goes live' },
         { value: 'Nothing charged', label: 'on this page' },
       ]
 
   return (
-    <div className={s.page}>
-      <header className={s.header}>
-        <div className={`${s.wrap} ${s.headerRow}`}>
-          <span className={s.wordmark}>UNITE GROUP</span>
-          <nav className={s.headerLinks} aria-label="Cards">
-            <a href="/cards" className={s.navLink}>
-              See all editions
-            </a>
-          </nav>
-        </div>
-      </header>
+    <PublicPageShell>
+      <SiteNav />
 
-      <main>
-        <section className={`${s.wrap} ${s.hero}`}>
-          <div>
-            <p className={s.eyebrow}>LIVING BUSINESS CARD</p>
-            <h1 className={s.title}>Get your own living card</h1>
-            <p className={s.lead}>
-              A short film that ends on your logo and contact details. Pick one of our ten, or have one made for your business.
-            </p>
-            <div className={s.heroActions}>
-              <a href="#choose" data-track="cta" data-track-label="order-hero-choose" className={s.primary}>
-                Choose your film
-              </a>
-              <a href="/cards" className={s.secondary}>
-                See all editions
-              </a>
+      <main id="main" className={m.main}>
+        <section className={m.heroBand} aria-labelledby="order-title">
+          <div className={m.wrap}>
+            <nav aria-label="Breadcrumb">
+              <ol className={m.crumbs}>
+                <li><a href="/">Unite Group</a></li>
+                <li><a href="/cards">Living cards</a></li>
+                <li aria-current="page">Order</li>
+              </ol>
+            </nav>
+            <div className={s.heroGrid}>
+              <div>
+                <SectionIntro
+                  as="h1"
+                  id="order-title"
+                  eyebrow="Living business card"
+                  title="Get your own living card"
+                  lead="A short film that ends on your logo and contact details. Pick one of our nine, or have one made for your business."
+                />
+                <div className={m.actions}>
+                  <a href="#choose" data-track="cta" data-track-label="order-hero-choose" className={m.btnPrimary}>
+                    Choose your film
+                  </a>
+                  <a href="/cards" className={m.btnSecondary}>See all editions</a>
+                </div>
+              </div>
+              <div className={s.heroFilm}>
+                <Film edition={signature} />
+              </div>
             </div>
           </div>
-          <Film edition={signature} />
         </section>
 
-        <section id="choose" className={s.buy} aria-label="Choose your card">
-          <div className={`${s.wrap} ${s.buyGrid}`}>
+        <section id="choose" className={`${m.sectionAlt} ${s.buy}`} aria-label="Choose your card">
+          <div className={`${m.wrap} ${s.buyGrid}`}>
             <BuyFilm edition={edition} />
 
             <div className={s.buyBox} data-buy-box>
@@ -128,7 +137,13 @@ export function OrderView({ edition, referrer }: { edition: string | null; refer
                           <span className={s.priceNote}>AUD</span>
                         </p>
                         <p className={s.tierLine}>{t.line}</p>
-                        <a href={t.link} rel="noopener" data-track="cta" data-track-label={`order-tier-${t.id}`} className={`${s.primary} ${s.block}`}>
+                        <a
+                          href={t.link}
+                          rel="noopener"
+                          data-track="cta"
+                          data-track-label={`order-tier-${t.id}`}
+                          className={`${s.primary} ${s.block}`}
+                        >
                           Order {t.name.toLowerCase()}
                         </a>
                         <p className={s.payEntity}>{PAYMENT_ENTITY_LINE}</p>
@@ -167,54 +182,49 @@ export function OrderView({ edition, referrer }: { edition: string | null; refer
           </div>
         </section>
 
-        <dl className={`${s.wrap} ${s.facts}`}>
-          {facts.map((f) => (
-            <div key={f.value} className={s.fact}>
-              <dt className={s.factValue}>{f.value}</dt>
-              <dd className={s.factLabel}>{f.label}</dd>
-            </div>
-          ))}
-        </dl>
-
-        <section className={`${s.wrap} ${s.statement}`}>
-          <p className={s.statementTag}>EVERY EDITION</p>
-          <h2 className={s.statementTitle}>It ends on your logo.</h2>
-          <p className={s.statementBody}>
-            The films on this page finish on the cracked U. Yours finishes on your own logo and contact details, not ours.
-          </p>
+        <section className={m.sectionTight} aria-label="At a glance">
+          <dl className={`${m.wrap} ${s.facts}`}>
+            {facts.map((f) => (
+              <div key={f.value} className={s.fact}>
+                <dt className={s.factValue}>{f.value}</dt>
+                <dd className={s.factLabel}>{f.label}</dd>
+              </div>
+            ))}
+          </dl>
         </section>
 
-        <section id="enquire" className={s.enquire}>
-          <div className={s.enquireInner}>
-            <h2 className={s.enquireTitle}>{payLink ? 'Talk to us first' : 'Send us your details'}</h2>
-            <p className={s.enquireLine}>
-              {payLink
-                ? 'Send your details and we’ll call you before you order.'
-                : 'We will contact you to build your card. Nothing is charged on this page.'}
+        <section className={m.sectionAlt}>
+          <div className={`${m.wrap} ${s.statement}`}>
+            <p className={s.statementTag}>Every edition</p>
+            <h2 className={s.statementTitle}>It ends on your logo.</h2>
+            <p className={s.statementBody}>
+              The films on this page finish on the cracked U. Yours finishes on your own logo and contact details, not ours.
             </p>
-            <CardEnquiryForm referrer={referrer} />
+          </div>
+        </section>
+
+        <section id="enquire" className={m.section}>
+          <div className={m.wrap}>
+            <SectionIntro
+              title={payLink ? 'Talk to us first' : 'Send us your details'}
+              lead={
+                payLink
+                  ? 'Send your details and we’ll call you before you order.'
+                  : 'We will contact you to build your card. Nothing is charged on this page.'
+              }
+            />
+            <div className={s.enquireForm}>
+              <CardEnquiryForm referrer={referrer} />
+            </div>
+            <p className={s.legalLine}>
+              {COMPANY_NAME} · {companyAbnLabel()} · <MargotPhoneLine number={readMargotPhoneNumber()} />
+            </p>
           </div>
         </section>
       </main>
 
-      <footer className={s.footer}>
-        <div className={`${s.wrap} ${s.footerRow}`}>
-          <span>
-            {COMPANY_NAME} · {companyAbnLabel()}
-          </span>
-          <MargotPhoneLine number={readMargotPhoneNumber()} />
-          <span className={s.footerLinks}>
-            <a href="/privacy-policy" className={s.navLink}>
-              Privacy
-            </a>
-            <a href="/terms-of-service" className={s.navLink}>
-              Terms
-            </a>
-          </span>
-        </div>
-      </footer>
-
+      <SiteFooter />
       <StickyBar price={fromPrice} />
-    </div>
+    </PublicPageShell>
   )
 }

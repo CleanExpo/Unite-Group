@@ -50,36 +50,43 @@ function blocks(html: string, attr: string, tag: string) {
 }
 const between = (html: string, a: string, b: string) => html.slice(html.indexOf(`id="${a}"`), html.indexOf(`id="${b}"`))
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => {
+  vi.clearAllMocks()
+  // Card prices show only while a card payment link is live (liveCardTiers); open both by default.
+  vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', 'https://buy.stripe.com/test_ready')
+  vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_CUSTOM', 'https://buy.stripe.com/test_custom')
+})
 afterEach(() => vi.unstubAllEnvs())
 
 describe('the dark home: section order', () => {
-  it('runs hero, the start chooser, three media cards, the group, today and coming, the living-cards gallery, four jobs, three steps, results, FAQ, contact, footer', async () => {
+  it('runs hero, the start chooser, three media cards, today and coming, the living-cards gallery, four jobs, three steps, results, FAQ, contact, footer', async () => {
     const html = await signedOut()
-    const ids = ['hero', 'start', 'highlights', 'group', 'today', 'cards', 'pillars', 'how', 'proof', 'answers', 'contact', 'footer']
+    const ids = ['hero', 'start', 'highlights', 'today', 'cards', 'pillars', 'how', 'proof', 'answers', 'contact', 'footer']
     const at = ids.map((id) => html.indexOf(`id="${id}"`))
     for (const [i, id] of ids.entries()) expect(at[i], id).toBeGreaterThan(-1)
     expect([...at].sort((a, b) => a - b)).toEqual(at)
   })
 
-  it('is dark: a near-black canvas, light ink, and the condensed uppercase headline in the stylesheet', () => {
+  it('is dark: a near-black canvas, light ink, and a display-font hero title in the stylesheet', () => {
     const tokens = readFileSync(join(__dirname, '..', '..', 'styles', 'public-tokens.css'), 'utf8')
     expect(tokens).toMatch(/--pub-canvas:\s*#0[0-9a-f]{5}/i)
     expect(tokens).toMatch(/--pub-ink:\s*#f/i)
-    const hero = PUB_CSS('hero.module.css')
+    const hero = PUB_CSS('home/home-page.module.css')
     const h1 = hero.match(/\.h1\s*\{[^}]*\}/)?.[0] ?? ''
-    expect(h1).toMatch(/text-transform:\s*uppercase/)
     expect(h1).toMatch(/font-family:\s*var\(--pub-display\)/)
-    expect(tokens).toMatch(/--pub-display:[^;]*Condensed|--pub-display:[^;]*Narrow/)
+    expect(h1).toMatch(/font-weight:\s*600/)
+    expect(tokens).toMatch(/--pub-display:[^;]*syne|--pub-display:[^;]*instrument/i)
   })
 })
 
 describe('three big media cards', () => {
-  it('are Living cards, Nexus CRM and The network, each a title and one short caption, with real media', async () => {
-    const cards = blocks(between(await signedOut(), 'highlights', 'group'), 'data-media-card', 'article')
+  it('are Living cards, Nexus CRM and Pricing, each a title and one short caption, with real media', async () => {
+    const cards = blocks(between(await signedOut(), 'highlights', 'today'), 'data-media-card', 'article')
     expect(cards).toHaveLength(3)
     const titles = cards.map((c) => strip(c.match(/<h3[^>]*>([\s\S]*?)<\/h3>/)![1]))
-    expect(titles).toEqual(['Living cards', 'Nexus CRM', 'The network'])
+    expect(titles).toEqual(['Living cards', 'Nexus CRM', 'Pricing'])
+    // Nexus CRM is not for sale yet, so its card says Coming; the two live cards do not.
+    expect(cards.map((c) => /data-chip="coming"[^>]*>\s*Coming\s*</.test(c))).toEqual([false, true, false])
     for (const c of cards) {
       expect(c.match(/<p[ >]/g)).toHaveLength(1)
     }
@@ -90,35 +97,26 @@ describe('three big media cards', () => {
     expect(cards[0]).toContain('data-film')
     expect(cards[0]).toContain('href="/cards"')
     expect(cards[1]).toContain('href="/solutions/intelligence"')
-    expect(cards[2]).toContain('href="#group"')
+    expect(cards[2]).toContain('href="/pricing"')
   })
 })
 
-describe('six business tiles with the approved logos', () => {
-  it('shows the six tiles in order, each a link, with real logos and the NRPG and Trade Hall symbols that are the approved files', async () => {
-    const tiles = blocks(await signedOut(), 'data-tile', 'li')
-    expect(tiles).toHaveLength(6)
-    expect(tiles.map((t) => t.replace(/<[^>]*>/g, ' ').trim().split(/\s+/)[0])).toEqual(['Synthex', 'CARSI', 'Disaster', 'NRPG', 'Trade', 'RestoreAssist'])
-    const nrpg = tiles.find((t) => t.includes('NRPG'))!
-    expect(tiles.find((t) => t.includes('Trade Hall'))).toContain('src="/landing/logos/trade-hall-floor-symbol-dark.svg"')
-    expect(nrpg).toContain('src="/landing/logos/nrpg-reveal-symbol-dark.svg"')
-    for (const t of tiles) {
-      expect(t).toMatch(/<a [^>]*href="https:\/\//)
-      const src = t.match(/<img[^>]*src="([^"]+)"/)?.[1]
-      if (src) expect(existsSync(join(PUBLIC, src)), src).toBe(true)
-    }
-    expect(tiles.filter((t) => !t.includes('<img'))).toHaveLength(0)
+describe('no restoration sister-company tiles on the home (UNI-3017)', () => {
+  it('renders no business tiles and no restoration brand names', async () => {
+    const html = await signedOut()
+    expect(blocks(html, 'data-tile', 'li')).toHaveLength(0)
+    expect(html).not.toMatch(/CARSI|Disaster Recovery|NRPG|Trade Hall|RestoreAssist/)
   })
 })
 
 describe('the living cards gallery', () => {
-  it('shows the ten edition films, poster first and labelled AI-generated, with an orange From $249 button', async () => {
+  it('shows the nine edition films, poster first and labelled AI-generated, with an orange From $249 button', async () => {
     const html = await signedOut()
     const cards = between(html, 'cards', 'pillars')
     const tiles = blocks(cards, 'data-gallery-tile', 'a')
-    expect(tiles).toHaveLength(10)
+    expect(tiles).toHaveLength(9)
     const names = tiles.map((t) => t.match(/data-gallery-tile="([a-z]+)"/)![1])
-    expect(names).toEqual(['blueprint', 'forge', 'constellation', 'ink', 'rewind', 'skyline', 'origami', 'portal', 'restoration', 'magnet'])
+    expect(names).toEqual(['blueprint', 'forge', 'constellation', 'ink', 'rewind', 'skyline', 'origami', 'portal', 'magnet'])
     for (const t of tiles) {
       const poster = t.match(/<img[^>]*src="([^"]+)"/)?.[1]
       expect(poster, t).toBeTruthy()
@@ -127,6 +125,18 @@ describe('the living cards gallery', () => {
       expect(t).not.toContain('<video')
     }
     expect(cards).toMatch(/<a [^>]*href="\/cards\/order"[^>]*>From \$249<\/a>/)
+  })
+
+  it('offers no card price while online ordering is off', async () => {
+    vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', '')
+    vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_CUSTOM', '')
+    const cards = between(await signedOut(), 'cards', 'pillars')
+    expect(cards).toMatch(/<a [^>]*href="\/cards\/order"[^>]*>Ask about a card<\/a>/)
+    expect(cards).not.toMatch(/\$\d/)
+    expect(cards).not.toContain('GST included')
+    const cost = between(await signedOut(), 'answers', 'contact')
+    expect(cost).toContain('Online card orders are not open yet')
+    expect(cost).not.toMatch(/\$249|\$449/)
   })
 
   it('plays only when motion is allowed: hover on a pointer device, in view on touch, never under reduced motion', () => {
@@ -202,7 +212,7 @@ describe('images come from one map, and no file appears twice', () => {
     // every mapped picture is on the page exactly once
     const html = await signedOut()
     for (const [slot, v] of filled) expect(html.split(`src="${v.src}"`).length - 1, slot).toBe(1)
-    for (const f of ['public-home.tsx', 'highlights.tsx', 'pillars-row.tsx', 'how-it-works.tsx', 'proof.tsx']) {
+    for (const f of ['public-home.tsx', 'home/home-page.tsx']) {
       expect(readFileSync(join(__dirname, '..', '..', 'components', 'public', f), 'utf8'), f).not.toMatch(/\/landing\/visuals\//)
     }
   })
@@ -210,13 +220,13 @@ describe('images come from one map, and no file appears twice', () => {
   // Phill 25/10/2026: the same image must not appear in more than one place on the home page.
   // WHAT THIS SCANS: every CONTENT file the home renders, that is each <img>, <video> and <source> tag (src, srcset, poster)
   // in the rendered home markup, plus every url() in the component stylesheets: the film posters, the three media cards,
-  // the ten gallery stills, and the job, step and banner pictures. One tag is one reference, so an img with a src and a
+  // the nine gallery stills, and the job, step and banner pictures. One tag is one reference, so an img with a src and a
   // srcset counts once. A file used by two tags fails, in the same section or in two.
   // WHAT IT SKIPS: files under /landing/logos/ (the business logos and the nav mark). A logo is the brand's mark, not a
   // picture, and may appear once in the tiles and once in any business list (Phill 25/10/2026).
   it('references no image, poster, video or background file more than once on the home page (not twice in one section either)', async () => {
     const html = await signedOut()
-    const markers = ['header', 'hero', 'start', 'highlights', 'group', 'today', 'cards', 'pillars', 'how', 'proof', 'answers', 'contact', 'footer']
+    const markers = ['header', 'hero', 'start', 'highlights', 'today', 'cards', 'pillars', 'how', 'proof', 'answers', 'contact', 'footer']
     const starts = markers.map((m) => (m === 'header' ? html.indexOf('<header') : html.indexOf(`id="${m}"`)))
     for (const [i, m] of markers.entries()) expect(starts[i], m).toBeGreaterThan(-1)
     // one entry per element (an img with its src and srcset is ONE reference), keyed by file, remembering the section
@@ -240,7 +250,7 @@ describe('images come from one map, and no file appears twice', () => {
     for (const f of readdirSync(join(__dirname, '..', '..', 'components', 'public')).filter((n) => n.endsWith('.css'))) {
       for (const x of readFileSync(join(__dirname, '..', '..', 'components', 'public', f), 'utf8').matchAll(/url\(\s*['"]?([^'")]+)/g)) note([x[1]], `css:${f}`)
     }
-    expect([...files.keys()].filter((f) => f.includes("/cards/media/edition-")).length, "positive control: the ten gallery posters were scanned").toBe(10)
+    expect([...files.keys()].filter((f) => f.includes("/cards/media/edition-")).length, "positive control: the nine gallery posters were scanned").toBe(9)
     const repeated = [...files].filter(([, where]) => where.length > 1).map(([file, where]) => `${file} used ${where.length} times (${where.join(', ')})`)
     expect(repeated).toEqual([])
   })
@@ -263,7 +273,8 @@ describe('the Margot phone slot in the contact band', () => {
       else vi.stubEnv('MARGOT_PHONE_NUMBER', v)
       const html = await signedOut()
       expect(html, String(v)).not.toContain('tel:')
-      expect(html, String(v)).not.toContain('Margot')
+      const contact = html.slice(html.indexOf('id="contact"'), html.indexOf('id="footer"'))
+      expect(contact, String(v)).not.toContain('Margot')
     }
   })
 

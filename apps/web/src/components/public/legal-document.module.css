@@ -1,0 +1,80 @@
+.section {
+  margin-bottom: 2.5rem;
+}
+
+.sectionTitle {
+  margin: 0 0 0.85rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(28, 25, 23, 0.1);
+  font-family: var(--pub-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #1c1917;
+}
+
+.sectionBody {
+  font-size: 15px;
+  line-height: 1.7;
+  color: rgba(28, 25, 23, 0.86);
+}
+
+.sectionBody p {
+  margin: 0 0 0.85rem;
+}
+
+.sectionBody ul {
+  margin: 0.5rem 0 0.85rem;
+  padding-left: 1.25rem;
+  list-style: disc;
+}
+
+.sectionBody li {
+  margin-bottom: 0.35rem;
+}
+
+.sectionBody li::marker {
+  color: rgba(28, 25, 23, 0.45);
+}
+
+.sectionBody a {
+  color: #b45309;
+  text-underline-offset: 3px;
+}
+
+.sectionBody a:hover {
+  color: #92400e;
+}
+
+.sectionBody table {
+  width: 100%;
+  margin: 0.75rem 0 1rem;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.sectionBody th,
+.sectionBody td {
+  padding: 8px 10px;
+  border: 1px solid rgba(28, 25, 23, 0.12);
+  text-align: left;
+}
+
+.sectionBody th {
+  background: rgba(28, 25, 23, 0.04);
+  font-weight: 600;
+}
+
+.sectionBody code {
+  font-family: var(--pub-mono);
+  font-size: 0.9em;
+}
+
+.subHeading {
+  margin: 1.25rem 0 0.5rem;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(28, 25, 23, 0.65);
+}

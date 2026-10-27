@@ -1,26 +1,24 @@
 import hs from './home-screens.module.css'
+import { HOME_HOW } from './home-copy'
 import { STEP_SCREENS } from './home-screens'
 import s from './public.module.css'
 import { ScreenFrame } from './screen-frame'
+import { SectionIntro } from './section-intro'
 
-// Position 4: three steps that run today; the wording matches the /cards showroom. Each step shows the real screen
-// for that step, with sample data (Phill, 25/10/2026: the real product, never abstract art).
 export const STEPS = [
-  { title: 'Pick an opener', body: 'Choose a film that ends on your logo.', screen: 'pick' },
-  { title: 'Send your details', body: 'Logo, colours and contact details.', screen: 'send' },
-  { title: 'Approve a proof', body: 'Check a private link before it goes live.', screen: 'approve' },
+  { title: 'Pick an opener', body: 'Select one of nine films from the showroom.', screen: 'pick' },
+  { title: 'Send your details', body: 'Logo, palette, and how people should reach you.', screen: 'send' },
+  { title: 'Approve a proof', body: 'Review a private link before anything goes live.', screen: 'approve' },
 ] as const
 
 export function HowItWorks() {
   return (
     <section data-position id="how" className={s.section} aria-labelledby="how-title">
       <div className={s.wrap}>
-        <h2 id="how-title" className={s.h2}>
-          How it works
-        </h2>
-        <ol className={s.steps}>
+        <SectionIntro id="how-title" eyebrow={HOME_HOW.eyebrow} title={HOME_HOW.title} lead={HOME_HOW.lead} />
+        <ol className={`${s.steps} ${hs.stepFlow}`}>
           {STEPS.map((step, i) => (
-            <li key={step.title}>
+            <li key={step.title} data-step-index={i + 1}>
               <article className={hs.card} data-step>
                 <ScreenFrame screen={STEP_SCREENS[step.screen]} />
                 <div className={hs.body}>
