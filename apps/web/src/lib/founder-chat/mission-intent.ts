@@ -41,7 +41,7 @@ const RUN_IN_PRODUCTION = /^(?:please )?run\b[^?]*\b(?:in|on|against|to) (?:prod
 // or targets production. Derived nouns ("payment", "approval", "deployment")
 // are not the verb and do not count.
 const PROTECTED_ANYWHERE =
-  /\b(?:releas(?:e|es|ed|ing)|deploy(?:s|ed|ing)?|merg(?:e|es|ed|ing)|publish(?:es|ed|ing)?|delet(?:e|es|ed|ing)|pay(?:s|ing)?|paid|approv(?:e|es|ed|ing)|push(?:es|ed|ing)?|ship(?:s|ped|ping)?|launch(?:es|ed|ing)?|(?:go|goes|going|gone|went) live|promot(?:e|es|ed|ing)|execut(?:e|es|ed|ing)|migrat(?:e|es|ed|ing)|drop(?:s|ped|ping)?|rollbacks?|roll(?:s|ed|ing)? back|revert(?:s|ed|ing)?|send(?:s|ing)?|sent)\b|\b(?:in|on|against|to) (?:prod|production)\b/
+  /\b(?:releas(?:e|es|ed|ing)|deploy(?:s|ed|ing)?|merg(?:e|es|ed|ing)|publish(?:es|ed|ing)?|delet(?:e|es|ed|ing)|pay(?:s|ing)?|paid|approv(?:e|es|ed|ing)|push(?:es|ed|ing)?|ship(?:s|ped|ping)?|launch(?:es|ed|ing)?|(?:go|goes|going|gone|went) ?live|promot(?:e|es|ed|ing)|execut(?:e|es|ed|ing)|migrat(?:e|es|ed|ing)|drop(?:s|ped|ping)?|rollbacks?|roll(?:s|ed|ing)? ?back|revert(?:s|ed|ing)?|send(?:s|ing)?|sent)\b|\b(?:in|on|against|to) (?:prod|production)\b/
 
 // Imperative verb must open the turn (optionally after "please").
 const BUILD_VERB_FIRST =
@@ -81,6 +81,31 @@ const TYPOGRAPHIC: ReadonlyArray<readonly [RegExp, string]> = [
   [/[   -   　]/g, ' '],
 ]
 
+// Canonical variants a protected verb can hide behind (would-be builds only):
+//   V2 joins letters split by punctuation: de'ploy, de-ploy, de_ploy, p.u.s.h,
+//      go-live -> golive, roll-back -> rollback;
+//   V3 turns punctuation into spaces and joins runs of 2+ single letters:
+//      "d e p l o y" -> deploy, go-live -> "go live".
+const PUNCT_BETWEEN_LETTERS = /([a-z])[^a-z ]+(?=[a-z])/g
+const NON_LETTER = /[^a-z ]+/g
+const SINGLE_LETTER_RUN = /\b[a-z](?: [a-z]\b)+/g
+
+function joinAcrossPunctuation(text: string): string {
+  return text.replace(PUNCT_BETWEEN_LETTERS, '$1')
+}
+
+function spellOutLetters(text: string): string {
+  return text
+    .replace(NON_LETTER, ' ')
+    .replace(/ +/g, ' ')
+    .replace(SINGLE_LETTER_RUN, (run) => run.replace(/ /g, ''))
+}
+
+/** Fail-safe: a protected action named in the text or in any canonical variant of it. */
+function namesProtectedAction(text: string): boolean {
+  return [text, joinAcrossPunctuation(text), spellOutLetters(text)].some((variant) => PROTECTED_ANYWHERE.test(variant))
+}
+
 // Fail closed on the whole lookalike class: after the maps above, a build
 // request carrying ANY character outside printable ASCII is not recorded.
 const NON_PRINTABLE_ASCII = /[^\x20-\x7E]/
@@ -98,7 +123,7 @@ export function classifyMissionIntent(raw: string): MissionIntentKind {
   if (text.length === 0) return 'question'
   if (PROTECTED_LEADING.test(text) || RUN_IN_PRODUCTION.test(text)) return 'unsupported_action'
   const imperativeBuild = !text.endsWith('?') && aimsAtWork(text)
-  if (imperativeBuild && PROTECTED_ANYWHERE.test(text)) return 'unsupported_action'
+  if (imperativeBuild && namesProtectedAction(text)) return 'unsupported_action'
   if (imperativeBuild && NON_PRINTABLE_ASCII.test(text)) return 'unsupported_action'
   return imperativeBuild ? 'build_request' : 'question'
 }

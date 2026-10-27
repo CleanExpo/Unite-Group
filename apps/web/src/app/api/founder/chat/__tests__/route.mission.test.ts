@@ -292,6 +292,28 @@ describe('POST /api/founder/chat — mission capture', () => {
     expect(emDashed[0].mission).toMatchObject({ kind: 'recorded' })
   })
 
+  it('AC-5 a protected verb disguised by hyphens, punctuation or spacing streams unsupported_action and inserts nothing', async () => {
+    for (const text of [
+      'Build a reporting dashboard for Synthex and go-live with it',
+      'Build a reporting dashboard for Synthex and roll-back the deployment',
+      'Build a reporting dashboard for Synthex and de\u2019ploy it',
+      'Build a reporting dashboard for Synthex and de\u2014ploy it',
+      'Build a reporting dashboard for Synthex and de\u2026ploy it',
+      "Build a reporting dashboard for Synthex and de'ploy it",
+      'Build a reporting dashboard for Synthex and de-ploy it',
+      'Build a reporting dashboard for Synthex and d e p l o y it',
+      'Build a reporting dashboard for Synthex and de_ploy it',
+      'Build a reporting dashboard for Synthex and re-lease it',
+      'Build a reporting dashboard for Synthex and p.u.s.h it live',
+    ]) {
+      const frames = await drain(await post(turn(text)))
+      expect(frames[0], JSON.stringify(text)).toEqual({ mission: { kind: 'unsupported_action' } })
+    }
+    expect(db.inserts).toHaveLength(0)
+    const signUp = await drain(await post(turn('Build a sign-up form for CARSI', TURN_2)))
+    expect(signUp[0].mission).toMatchObject({ kind: 'recorded' })
+  })
+
   it('AC-6 no session is 401 and a session off the allow-list is 403, with no task in either', async () => {
     vi.mocked(getUser).mockResolvedValue(null as never)
     const unauthorised = await post(turn(BUILD))

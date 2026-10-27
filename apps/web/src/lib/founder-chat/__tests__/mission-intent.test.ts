@@ -107,6 +107,32 @@ describe('classifyMissionIntent', () => {
     for (const text of unsupported) expect(classifyMissionIntent(text), text).toBe('unsupported_action')
   })
 
+  it('AC-5 a protected verb disguised by hyphens, punctuation or spacing is unsupported_action; derived nouns stay builds', () => {
+    for (const text of [
+      'Build a reporting dashboard for Synthex and go-live with it',
+      'Build a reporting dashboard for Synthex and roll-back the deployment',
+      'Build a reporting dashboard for Synthex and de\u2019ploy it',
+      'Build a reporting dashboard for Synthex and de\u2014ploy it',
+      'Build a reporting dashboard for Synthex and de\u2026ploy it',
+      "Build a reporting dashboard for Synthex and de'ploy it",
+      'Build a reporting dashboard for Synthex and de-ploy it',
+      'Build a reporting dashboard for Synthex and d e p l o y it',
+      'Build a reporting dashboard for Synthex and de_ploy it',
+      'Build a reporting dashboard for Synthex and re-lease it',
+      'Build a reporting dashboard for Synthex and p.u.s.h it live',
+    ]) {
+      expect(classifyMissionIntent(text), JSON.stringify(text)).toBe('unsupported_action')
+    }
+    for (const text of [
+      'Build a payment page for CARSI',
+      'Build an approval screen for Unite-Group',
+      'Build a deployment report page for Synthex',
+      'Build a sign-up form for CARSI',
+    ]) {
+      expect(classifyMissionIntent(text), text).toBe('build_request')
+    }
+  })
+
   it('AC-5 a build request carrying any non-ASCII character after normalisation is unsupported_action', () => {
     for (const text of [
       'Build a reporting dashboard for Synthex. de\u00ADploy it',

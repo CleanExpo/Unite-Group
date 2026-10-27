@@ -182,7 +182,7 @@
   {
     "id": "s",
     "file": "src/lib/founder-chat/mission-intent.ts",
-    "find": "  if (imperativeBuild && PROTECTED_ANYWHERE.test(text)) return 'unsupported_action'\n",
+    "find": "  if (imperativeBuild && namesProtectedAction(text)) return 'unsupported_action'\n",
     "replace": "  if (imperativeBuild && new RegExp(`(?:\\\\band|\\\\bthen|[,;:]) ${PROTECTED_VERB}\\\\b`).test(text)) return 'unsupported_action'\n",
     "tests": [
       "src/lib/founder-chat/__tests__/mission-intent.test.ts"
@@ -204,6 +204,16 @@
     "file": "src/lib/founder-chat/mission-intent.ts",
     "find": "  if (imperativeBuild && NON_PRINTABLE_ASCII.test(text)) return 'unsupported_action'\n",
     "replace": "",
+    "tests": [
+      "src/lib/founder-chat/__tests__/mission-intent.test.ts"
+    ],
+    "expect": "AC-5"
+  },
+  {
+    "id": "v",
+    "file": "src/lib/founder-chat/mission-intent.ts",
+    "find": "[text, joinAcrossPunctuation(text), spellOutLetters(text)]",
+    "replace": "[text]",
     "tests": [
       "src/lib/founder-chat/__tests__/mission-intent.test.ts"
     ],

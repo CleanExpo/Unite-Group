@@ -255,6 +255,27 @@ describe('captureMission', () => {
     expect(db.rows[0].objective).toBe(curly)
   })
 
+  it('AC-5 a protected verb disguised by hyphens, punctuation or spacing records nothing', async () => {
+    const db = makeUniqueEnforcingDb()
+    for (const text of [
+      'Build a reporting dashboard for Synthex and go-live with it',
+      'Build a reporting dashboard for Synthex and roll-back the deployment',
+      'Build a reporting dashboard for Synthex and de\u2019ploy it',
+      'Build a reporting dashboard for Synthex and de\u2014ploy it',
+      'Build a reporting dashboard for Synthex and de\u2026ploy it',
+      "Build a reporting dashboard for Synthex and de'ploy it",
+      'Build a reporting dashboard for Synthex and de-ploy it',
+      'Build a reporting dashboard for Synthex and d e p l o y it',
+      'Build a reporting dashboard for Synthex and de_ploy it',
+      'Build a reporting dashboard for Synthex and re-lease it',
+      'Build a reporting dashboard for Synthex and p.u.s.h it live',
+    ]) {
+      expect((await capture(db, { text })).receipt, JSON.stringify(text)).toEqual({ kind: 'unsupported_action' })
+    }
+    expect(db.inserts).toHaveLength(0)
+    expect((await capture(db, { text: 'Build a sign-up form for CARSI' })).receipt?.kind).toBe('recorded')
+  })
+
   it('AC-13 the same turnId with different text is a conflict and writes no new row', async () => {
     const db = makeUniqueEnforcingDb()
     await capture(db)
