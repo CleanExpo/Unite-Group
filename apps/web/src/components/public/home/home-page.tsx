@@ -12,7 +12,7 @@ import {
 import { readMargotPhoneNumber } from '@/lib/margot/phone-line'
 import { CONTACT_MAILTO } from '../site/site-nav'
 
-import { answers } from '../answers'
+import { homeFaqItems } from './faq-data'
 import { CARD_FILM, HERO_FILM } from '../film-config'
 import { FilmPlayer } from '../film-player'
 import { GalleryTile } from '../gallery-tile'
@@ -365,7 +365,7 @@ export function HomePage() {
               <h2 id="answers-title" className={hp.sectionTitle}>{HOME_FAQ.title}</h2>
               <p className={hp.sectionLead}>{HOME_FAQ.lead}</p>
               <div className={`${pub.faq} ${hp.faqBlock}`}>
-                {answers().map((item) => (
+                {homeFaqItems().map((item) => (
                   <details key={item.q}>
                     <summary>{item.q}</summary>
                     <p>{item.a}</p>

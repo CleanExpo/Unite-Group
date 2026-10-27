@@ -7,7 +7,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { stripePaymentLink } from '@/app/grow/packages'
-import { CardsStrip } from '@/components/public/cards-strip'
+import { PublicHome } from '@/components/public/home/public-home'
 import { OrderView } from '../order/order-view'
 import { EDITIONS, resolveEdition } from '../editions'
 import { PAYMENT_ENTITY_LINE } from '../payment-entity'
@@ -315,8 +315,9 @@ describe('public card routes carry no restoration or sister-business content', (
   })
 
   it('the home page film strip', () => {
-    const strip = html(createElement(CardsStrip))
-    expect(strip, 'positive control: the strip rendered its tiles').toContain('data-gallery-tile="')
+    const home = html(createElement(PublicHome))
+    const strip = home.slice(home.indexOf('id="cards"'), home.indexOf('id="pillars"'))
+    expect(strip, 'positive control: the gallery rendered its tiles').toContain('data-gallery-tile="')
     expect(scan(strip)).toBeNull()
   })
 

@@ -2,11 +2,8 @@ import { formatAud } from '@/app/grow/packages'
 import { PLUS_GST, SIGNATURE_ADDON, STARTER_PLAN, liveCardTiers } from '@/lib/public-pricing'
 import { CONTACT_EMAIL, PRICE_NOTE } from '@/lib/public-site'
 
-import { HOME_FAQ } from './home/copy'
-import s from './layout/public.module.css'
-import { SectionIntro } from './section-intro'
-
-export function answers() {
+/** FAQ copy for the home page #answers section. */
+export function homeFaqItems() {
   const live = liveCardTiers()
   const card = live.length
     ? `${live.map((t) => `${t.name} is ${formatAud(t.priceAud)}`).join(' and ')}. ${PRICE_NOTE}.`
@@ -37,22 +34,4 @@ export function answers() {
       a: 'We are an online business serving customers in Australia and New Zealand. We do not have a shopfront.',
     },
   ] as const
-}
-
-export function Answers() {
-  return (
-    <section data-position id="answers" className={s.section} aria-labelledby="answers-title">
-      <div className={s.wrap}>
-        <SectionIntro id="answers-title" eyebrow={HOME_FAQ.eyebrow} title={HOME_FAQ.title} lead={HOME_FAQ.lead} />
-        <div className={s.faq}>
-          {answers().map((item) => (
-            <details key={item.q}>
-              <summary>{item.q}</summary>
-              <p>{item.a}</p>
-            </details>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
 }

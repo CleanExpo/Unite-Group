@@ -1,26 +1,26 @@
+import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { CARD_TIERS, OrderView } from '@/app/cards/order/order-view'
 import { formatAud } from '@/app/grow/packages'
+import { PublicHome } from '@/components/public/home/public-home'
 
-import { CardsStrip } from '../cards-strip'
+const cardsSection = (html: string) => html.slice(html.indexOf('id="cards"'), html.indexOf('id="pillars"'))
 
 afterEach(() => vi.unstubAllEnvs())
 
-describe('cards strip price parity (AC-4)', () => {
+describe('home cards gallery price parity (AC-4)', () => {
   it('shows exactly the CARD_TIERS prices, the GST line, the AI label and an order link under each price', () => {
-    // The From button names a price only while a card payment link is live (cardFromAud).
     vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', 'https://buy.stripe.com/test_ready')
     vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_CUSTOM', 'https://buy.stripe.com/test_custom')
-    const html = renderToStaticMarkup(<CardsStrip />)
+    const html = cardsSection(renderToStaticMarkup(createElement(PublicHome)))
     expect(CARD_TIERS.map((t) => t.priceAud)).toEqual([249, 449])
     const tiers = html.split('data-tier="').slice(1)
     expect(tiers).toHaveLength(2)
     CARD_TIERS.forEach((t, i) => {
       expect(tiers[i]).toContain(`${t.name} ${formatAud(t.priceAud)}<`)
     })
-    // Phill 25/10/2026: the tier cards became one bright button, a price line and one GST line.
     expect(html.match(/One-off price, GST included/g)).toHaveLength(1)
     expect(html).toMatch(/<a [^>]*href="\/cards\/order"[^>]*>From \$249<\/a>/)
     expect(html).toContain('AI-generated')
@@ -32,7 +32,7 @@ describe('cards strip price parity (AC-4)', () => {
     vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', 'https://buy.stripe.com/test_ready')
     vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_CUSTOM', 'https://buy.stripe.com/test_custom')
     const order = renderToStaticMarkup(<OrderView edition={null} referrer={null} />)
-    const strip = renderToStaticMarkup(<CardsStrip />)
+    const strip = cardsSection(renderToStaticMarkup(createElement(PublicHome)))
     for (const t of CARD_TIERS) {
       expect(order).toContain(formatAud(t.priceAud))
       expect(strip).toContain(formatAud(t.priceAud))
@@ -43,11 +43,11 @@ describe('cards strip price parity (AC-4)', () => {
   it('lists only the tiers a buyer can pay for: none while ordering is off, $449 alone when only made-for-you is live', () => {
     vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', '')
     vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_CUSTOM', '')
-    let html = renderToStaticMarkup(<CardsStrip />)
+    let html = cardsSection(renderToStaticMarkup(createElement(PublicHome)))
     expect(html).not.toMatch(/\$\d/)
     expect(html).not.toContain('data-tier=')
     vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_CUSTOM', 'https://buy.stripe.com/test_custom')
-    html = renderToStaticMarkup(<CardsStrip />)
+    html = cardsSection(renderToStaticMarkup(createElement(PublicHome)))
     expect(html.match(/\$\d+/g)).toEqual(['$449', '$449'])
   })
 })

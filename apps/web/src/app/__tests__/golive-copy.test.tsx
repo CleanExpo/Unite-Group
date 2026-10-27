@@ -4,7 +4,6 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn(async () => null) }))
 vi.mock('next/navigation', () => ({ redirect: vi.fn() }))
 
-import { Answers } from '@/components/public/answers'
 import { SiteFooter } from '@/components/public/site/site-footer'
 import { SiteNav } from '@/components/public/site/site-nav'
 import { PublicHome } from '@/components/public/home/public-home'
@@ -41,7 +40,7 @@ describe('D2: the legal pages no longer say the site is not public', () => {
 
 describe('D5: the FAQ hosting answer is the card terms', () => {
   it('states 12 months and no monthly fee, and no longer says no term is set', () => {
-    const t = text(<Answers />)
+    const t = text(<PublicHome />)
     expect(t).not.toMatch(/not set a hosting term/i)
     expect(t).toMatch(/12 months/)
     expect(t).toMatch(/no monthly fee/i)

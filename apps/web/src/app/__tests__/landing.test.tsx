@@ -272,8 +272,7 @@ describe('/ copy rules (AC-13 part)', () => {
   it('never names the internal agency and avoids banned phrases, US spellings and emoji', async () => {
     const html = await signedOut()
     const text = strip(html)
-    // the name may appear only in the businesses list (tiles), which is a <ul data-businesses> and nowhere else
-    expect(html.replace(/<ul[^>]*data-businesses(?!-)[\s\S]*?<\/ul>/, '')).not.toMatch(/synthex/i)
+    expect(html).not.toMatch(/synthex/i)
     expect(text).not.toMatch(/AI platform|#1|revolutioni[sz]/i)
     expect(text).not.toMatch(/\bHome\b/)
     expect(text).not.toMatch(/\b(color|colors|center|organization)\b/i)

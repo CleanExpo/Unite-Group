@@ -5,9 +5,9 @@ import { join } from 'node:path'
 import sharp from 'sharp'
 import { describe, expect, it } from 'vitest'
 
-import { BUSINESSES, TILES } from '../businesses'
-
 const WEB = join(__dirname, '..', '..', '..', '..')
+/** Legacy portfolio tile assets kept in public/logos; no longer rendered on the marketing home. */
+const PORTFOLIO_TILE_LOGOS = ['/landing/logos/synthex.webp', '/landing/logos/trade-hall-floor-symbol-dark.svg']
 const LOGOS = join(WEB, 'public', 'landing', 'logos')
 
 // Every logo served is a resize of a logo file already tracked in the repo. Nothing is drawn or generated.
@@ -28,7 +28,7 @@ describe('the final Trade Hall logo', () => {
     }
     expect(readdirSync(LOGOS).filter((f) => /nrpg|trade/i.test(f)).sort()).toEqual(Object.keys(FINAL_LOGOS).sort())
     expect(readdirSync(LOGOS).filter((f) => /carsi|disaster|restore/i.test(f))).toEqual([])
-    expect(BUSINESSES.find((b) => b.name === 'Trade Hall')?.logo).toBe('/landing/logos/trade-hall-floor-symbol-dark.svg')
+    expect(PORTFOLIO_TILE_LOGOS).toContain('/landing/logos/trade-hall-floor-symbol-dark.svg')
   })
 })
 
@@ -51,20 +51,19 @@ describe('the approved Synthex tile', () => {
   })
 })
 
-describe('business logos come from repo files', () => {
-  it('every tile carries a logo file', () => {
-    const withLogo = TILES.filter((b) => b.logo)
-    expect(withLogo.map((b) => b.name)).toEqual(['Synthex', 'Trade Hall'])
-    expect(TILES.filter((b) => !b.logo)).toEqual([])
-    for (const b of withLogo) expect(existsSync(join(WEB, 'public', b.logo!)), b.name).toBe(true)
+describe('portfolio tile logos on disk', () => {
+  it('keeps the approved tile files in public/landing/logos', () => {
+    for (const logo of PORTFOLIO_TILE_LOGOS) {
+      expect(existsSync(join(WEB, 'public', logo)), logo).toBe(true)
+      expect(logo).toMatch(/^\/landing\/logos\/[a-z0-9-]+\.(webp|svg)$/)
+    }
   })
 
-  it('serves only webp, with no PNG, no hotlink and nothing the businesses list does not use', () => {
+  it('serves only webp or svg in logos/, with no stray PNG masters', () => {
     const files = readdirSync(LOGOS)
     expect(files.filter((f) => /\.png$/i.test(f))).toEqual([])
-    const used = new Set(BUSINESSES.map((b) => b.logo?.split('/').pop()).filter(Boolean))
-    for (const f of files.filter((n) => n.endsWith('.webp') && n !== 'unite-group-nexus-mark.webp')) expect(used.has(f), f).toBe(true)
-    for (const b of BUSINESSES) if (b.logo) expect(b.logo).toMatch(/^\/landing\/logos\/[a-z-]+\.(webp|svg)$/)
+    const allowedWebp = new Set(['synthex.webp', 'unite-group-nexus-mark.webp'])
+    for (const f of files.filter((n) => n.endsWith('.webp'))) expect(allowedWebp.has(f), f).toBe(true)
   })
 
   it('records provenance in a README beside the files', () => {

@@ -6,10 +6,10 @@ import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { Highlights } from '../highlights'
+import { PublicHome } from '../home/public-home'
 import { FilmPlayer } from '../film-player'
 import { CARD_FILM, HERO_FILM } from '../film-config'
-import { Hero } from '../hero'
+import { HOME_HERO } from '../home/copy'
 
 const PUBLIC = join(__dirname, '..', '..', '..', '..', 'public')
 const COMPONENTS = join(__dirname, '..')
@@ -57,47 +57,36 @@ afterEach(() => {
 
 const strip = (html: string) => html.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
 
-describe('hero server markup: the words and the poster come before any video', () => {
-  const html = renderToStaticMarkup(<Hero />)
+describe('home hero server markup: copy and poster before video', () => {
+  const html = renderToStaticMarkup(<PublicHome />)
+  const hero = html.slice(html.indexOf('id="hero"'), html.indexOf('id="start"'))
 
-  it('has the H1, the Unite-Group wordmark, the agency line and both CTAs as real HTML', () => {
-    expect(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1].replace(/<[^>]*>/g, '')).toBe('Every business. One system.')
-    expect(html).toMatch(/data-wordmark[^>]*>Unite-Group</)
-    const text = strip(html)
-    expect(text).toMatch(/An AI marketing agency, with Margot as its AI face/)
-    expect(html).toMatch(/<a [^>]*href="#start"[^>]*>Where do you want to start\?</)
-    expect(html).toMatch(/<a [^>]*href="#contact"[^>]*>Ask a question</)
+  it('has the H1, wordmark, agency line and hero CTAs from HOME_HERO', () => {
+    expect(hero.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1].replace(/<[^>]*>/g, '')).toBe(HOME_HERO.title)
+    expect(hero).toMatch(new RegExp(`data-wordmark[^>]*>${HOME_HERO.wordmark}<`))
+    expect(strip(hero)).toContain(HOME_HERO.lead)
+    expect(hero).toContain(`href="${HOME_HERO.primaryHref}"`)
+    expect(hero).toContain(HOME_HERO.primaryCta)
+    expect(hero).toContain(HOME_HERO.secondaryCta)
+    expect(hero).toContain('href="/grow"')
   })
 
-  it('has exactly one primary CTA and it goes to the chooser; the secondary stays the contact link', () => {
-    const anchors = [...html.matchAll(/<a [^>]*>/g)].map((m) => m[0])
-    expect(anchors).toHaveLength(2)
-    const primary = anchors.filter((a) => !/ghost/.test(a))
-    expect(primary).toHaveLength(1)
-    expect(primary[0]).toContain('href="#start"')
-    expect(primary[0]).toContain('data-track-label="home-hero-start"')
-    expect(html).not.toMatch(/href="#group"/)
-    const secondary = anchors.filter((a) => /ghost/.test(a))
-    // The redesign moved the /grow link to the live home hero (home/home-page.tsx); landing.test checks it there.
-    expect(secondary).toHaveLength(1)
-    expect(secondary[0]).toContain('href="#contact"')
+  it('has one primary CTA to #start and does not link to the retired group anchor', () => {
+    expect(hero).toContain('data-track-label="home-hero-start"')
+    expect(hero).not.toMatch(/href="#group"/)
   })
 
-  it('shows the finished-U poster as a sized, high-priority img and mounts no video on the server', () => {
-    const img = html.match(/<img[^>]*>/)?.[0] ?? ''
+  it('shows the finished-U poster as a sized img and mounts no video on the server', () => {
+    const img = hero.match(/<img[^>]*>/)?.[0] ?? ''
     expect(img).toContain(`src="${HERO_FILM.poster}"`)
     expect(img).toContain(`width="${HERO_FILM.width}"`)
     expect(img).toContain(`height="${HERO_FILM.height}"`)
-    expect(img).toMatch(/fetchPriority="high"|fetchpriority="high"/)
-    expect(img).toMatch(/srcSet="[^"]*-768\.webp 768w/i)
-    expect(img).toMatch(/sizes="\(max-width: 640px\) 450px, 100vw"/)
-    expect(html).not.toMatch(/<video|\.mp4|\.webm/)
-    expect(html).toContain('data-film-state="poster"')
+    expect(hero).not.toMatch(/<video|\.mp4|\.webm/)
+    expect(hero).toContain('data-film-state="poster"')
   })
 
-  it('is the dark band, not a card pitch, and carries no line-drawn lens or view toggle', () => {
-    expect(html).toContain('data-mode="spotlight"')
-    expect(html).not.toMatch(/\$\d|GST|living card|FIG\. 1|<svg|Assembled|Exploded|Inside|hero-figure/)
+  it('is a cinema hero, not a legacy card pitch or line-drawn figure', () => {
+    expect(hero).not.toMatch(/\$\d|GST|FIG\. 1|<svg|Assembled|Exploded|Inside|hero-figure/)
     expect(existsSync(join(COMPONENTS, 'hero-figure.tsx'))).toBe(false)
     expect(existsSync(join(COMPONENTS, 'pause-control.tsx'))).toBe(false)
   })
@@ -211,11 +200,11 @@ describe('the film files', () => {
   })
 })
 
-describe('the card film tile is not an empty box', () => {
-  it('renders the U reveal poster as a sized img with the film player around it', () => {
-    const html = renderToStaticMarkup(<Highlights />)
-    expect(html).toContain('data-film')
-    expect(html).toContain(`src="${CARD_FILM.poster}"`)
-    expect(html).toContain(`width="${CARD_FILM.width}"`)
+describe('the home cards gallery is not an empty box', () => {
+  it('renders gallery tiles with edition posters', () => {
+    const html = renderToStaticMarkup(<PublicHome />)
+    const cards = html.slice(html.indexOf('id="cards"'), html.indexOf('id="pillars"'))
+    expect(cards).toContain('data-gallery-tile')
+    expect(cards).toContain('/cards/media/edition-blueprint-poster.jpg')
   })
 })

@@ -11,7 +11,8 @@ Next.js **App Router** pages under `src/app/` stay thin: metadata, data loaders,
 | `legal/` | Policy shells and section primitives (`LegalPageShell`, `LegalSection`) |
 | `pillar/` | `/solutions/*` pillar marketing (`PillarPage`, copy, visuals) |
 | `home/` | Landing page (`PublicHome`, `HomePage`, `copy.ts`) |
-| *(root)* | Reusable sections still migrating (film, contact form, chooser, legacy section components) |
+| *(root)* | Shared primitives (film player, contact form, section intro, gallery tile, visuals) |
+| `home/faq-data.ts` | FAQ items for the `#answers` section on the home page |
 
 ## Import convention
 

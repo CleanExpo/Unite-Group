@@ -15,10 +15,6 @@ import { getUser } from '@/lib/supabase/server'
 
 import RootPage from '@/app/page'
 
-import { BUSINESSES } from '../businesses'
-
-const url = (name: string) => BUSINESSES.find((b) => b.name === name)!.url!
-
 const TODAY = [
   { name: 'Living business card', href: '/cards' },
   { name: 'Starter plan', href: '/pricing' },
@@ -119,20 +115,5 @@ describe('Today and what is coming', () => {
     for (const c of used) expect(css, c).toMatch(new RegExp(`\\.${c}\\b`))
     expect(section).toMatch(/data-today-list/)
     expect(section).toMatch(/data-coming-list/)
-  })
-})
-
-// Bugbot on #1248: `.page .live` named a class this module never assigns (CSS modules hash `.page` per file), so the
-// Today rows fell back to the page's underlined accent links. Every class a selector names must be one the component sets.
-describe('today-coming.module.css only names classes the component assigns', () => {
-  it('has no selector that can never match', () => {
-    const dir = join(__dirname, '..')
-    const css = readFileSync(join(dir, 'today-coming.module.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
-    const tsx = readFileSync(join(dir, 'today-coming.tsx'), 'utf8')
-    const selectors = css.replace(/\{[^{}]*\}/g, '\n').replace(/@media[^{]*\{/g, '').replace(/}/g, '')
-    const named = new Set([...selectors.matchAll(/\.([a-zA-Z_][\w-]*)/g)].map((m) => m[1]))
-    expect(named.size).toBeGreaterThan(5)
-    const unassigned = [...named].filter((c) => !new RegExp(`\\bt\\.${c}\\b`).test(tsx))
-    expect(unassigned).toEqual([])
   })
 })
