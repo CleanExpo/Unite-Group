@@ -80,12 +80,14 @@ describe('the dark home: section order', () => {
 })
 
 describe('three big media cards', () => {
-  it('are Living cards, Nexus CRM and Pricing, each a title and one short caption, with real media', async () => {
+  it('are Living cards, CRM and Pricing, each a title and one short caption, with real media', async () => {
     const cards = blocks(between(await signedOut(), 'highlights', 'today'), 'data-media-card', 'article')
     expect(cards).toHaveLength(3)
     const titles = cards.map((c) => strip(c.match(/<h3[^>]*>([\s\S]*?)<\/h3>/)![1]))
-    expect(titles).toEqual(['Living cards', 'Nexus CRM', 'Pricing'])
-    // Nexus CRM is not for sale yet, so its card says Coming; the two live cards do not.
+    expect(titles).toEqual(['Living cards', 'CRM', 'Pricing'])
+    // Phill, 27/10/2026: the homepage says just "CRM", never "Nexus CRM".
+    expect(await signedOut()).not.toMatch(/Nexus\s*CRM/i)
+    // CRM is not for sale yet, so its card says Coming; the two live cards do not.
     expect(cards.map((c) => /data-chip="coming"[^>]*>\s*Coming\s*</.test(c))).toEqual([false, true, false])
     for (const c of cards) {
       expect(c.match(/<p[ >]/g)).toHaveLength(1)
@@ -193,11 +195,11 @@ describe('images come from one map, and no file appears twice', () => {
     // the job and step cards moved to real product screens (home-screens.ts); the map keeps the media cards and banner
     expect(Object.keys(VISUALS).sort()).toEqual(['network', 'nexus', 'showroom'])
     const filled = Object.entries(VISUALS).flatMap(([slot, v]) => (v ? [[slot, v] as const] : []))
-    // every slot has its own picture; the Nexus CRM card shows the real product, not an abstract image (Phill, 25/10/2026)
+    // every slot has its own picture; the CRM card shows the real product, not an abstract image (Phill, 25/10/2026)
     expect(Object.entries(VISUALS).filter(([, v]) => !v).map(([k]) => k)).toEqual([])
     expect(VISUALS.nexus?.src).toBe('/landing/visuals/nexus-1280.webp')
     expect(VISUALS.nexus?.small).toBe('/landing/visuals/nexus-640.webp')
-    expect(VISUALS.nexus?.alt).toMatch(/Nexus CRM inbox/)
+    expect(VISUALS.nexus?.alt).toMatch(/^The CRM inbox/)
     const files: string[] = []
     for (const [slot, v] of filled) {
       for (const f of [v.src, v.small]) {
