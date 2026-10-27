@@ -1,24 +1,43 @@
-/* Pictures on the four pillar pages. Shared page, type and button styles stay in public.module.css. */
+/* Product screen frames on pillar pages. */
 
-.heroGrid { display: grid; gap: 28px; align-items: center; }
-@media (min-width: 760px) {
-  .heroGrid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; }
-}
-
-/* Product screens: a browser window or a phone, drawn in CSS so the capture stays a plain screenshot. */
 .browser {
   margin: 0;
   overflow: hidden;
   border: 1px solid var(--pub-line-strong);
-  border-radius: var(--pub-radius);
+  border-radius: var(--pub-radius-lg);
   background: #1a1d23;
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
   justify-self: center;
   width: 100%;
   max-width: calc(var(--shot-w) + 2px);
 }
-.browserBar { display: flex; gap: 6px; padding: 9px 12px; border-bottom: 1px solid var(--pub-line-strong); }
-.browserBar i { width: 9px; height: 9px; border-radius: 50%; background: rgba(244, 241, 236, 0.22); }
+
+.browserCinema {
+  max-width: min(100%, calc(var(--shot-w) + 2px));
+  width: 100%;
+  box-shadow: none;
+  border-color: rgba(244, 241, 236, 0.08);
+}
+
+.browserTheater {
+  max-width: min(920px, 100%);
+  margin-inline: auto;
+}
+
+.browserBar {
+  display: flex;
+  gap: 6px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--pub-line-strong);
+}
+
+.browserBar i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(244, 241, 236, 0.22);
+}
+
 .phone {
   justify-self: center;
   width: 100%;
@@ -30,28 +49,24 @@
   background: #1a1d23;
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
 }
-.phone img { border-radius: 24px; }
-.browser img, .phone img { display: block; width: 100%; height: auto; }
 
-.section { margin-top: 40px; }
-.listGrid { display: grid; gap: 24px; align-items: center; margin-top: 40px; }
-@media (min-width: 760px) {
-  .listGrid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; }
-  /* Alternate sides: hero picture on the right, supporting picture on the left. */
-  .listGrid figure { order: -1; }
+.phoneCinema {
+  max-width: min(320px, 85%);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.5);
 }
-.listGrid h2, .section h2 { margin-top: 0; font-size: 20px; }
 
-.availableRow { display: grid; gap: 16px; align-items: center; }
-@media (min-width: 520px) {
-  .availableRow { grid-template-columns: 200px minmax(0, 1fr); gap: 24px; }
+.phoneTheater {
+  max-width: min(300px, 100%);
+  margin-inline: auto;
 }
-.poster {
+
+.phone img {
+  border-radius: 24px;
+}
+
+.browser img,
+.phone img {
   display: block;
   width: 100%;
-  max-width: 200px;
-  overflow: hidden;
-  border: 1px solid var(--pub-line-strong);
-  border-radius: var(--pub-radius);
+  height: auto;
 }
-.poster img { display: block; width: 100%; height: auto; }

@@ -36,9 +36,9 @@ describe('pillar pages show real pictures', () => {
     expect(hero?.alt).not.toBe('')
     expect(hero?.alt).toBe(escapeAttr(visual.alt))
     expect(hero?.loading).not.toBe('lazy')
-    // The hero picture is an <img> inside the article, not decoration elsewhere.
-    expect(hero?.index).toBeGreaterThan(html.indexOf('<article'))
-    expect(hero?.index).toBeLessThan(html.indexOf('</article>'))
+    // The hero picture sits in the first screen band inside main.
+    expect(hero?.index).toBeGreaterThan(html.indexOf('<main'))
+    expect(hero?.index).toBeLessThan(html.indexOf('id="pillar-will"'))
 
     // The same file must never appear twice. next/image puts the same file in src and srcset, so compare the file inside src only.
     const srcs = images(html).map((i) => i.src.match(/\/(?:landing|cards|solutions)\/[^&?\s]+\.(?:webp|jpg)/)?.[0] ?? i.src)
