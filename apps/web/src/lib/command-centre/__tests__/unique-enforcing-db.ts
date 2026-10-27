@@ -5,9 +5,9 @@
 //
 // Lifted from voice-mission-bridge.test.ts so the founder-chat mission capture
 // (W1a AC-2) runs its concurrency proof behind the REAL createTaskOnce too.
-// insert(...).select().single() resolves synchronously relative to the caller,
-// so two Promise.all callers on one key see the first row before the second
-// insert is checked — the same ordering the unique index gives.
+// The key is reserved inside insert() itself, so two Promise.all callers on one
+// key collide however the caller interleaves insert() and single() — the same
+// guarantee the unique index gives.
 
 import { CC_TASK_EVENTS_TABLE, CC_TASKS_TABLE, type SupabaseLike } from '../tasks'
 
@@ -49,6 +49,21 @@ export function makeUniqueEnforcingDb(options: UniqueEnforcingDbOptions = {}) {
             table === CC_TASKS_TABLE &&
             v.external_ref != null &&
             rows.some((r) => r.founder_id === v.founder_id && r.external_ref === v.external_ref)
+          // Reserve the key AT insert(), the moment Postgres would take the index
+          // lock, so a second insert on the same key collides even if a caller
+          // awaits between insert() and single().
+          let row: Row | null = null
+          if (!override && !eventPkClash && !duplicate) {
+            row = {
+              id: (v.id as string) ?? `${table}-${++seq}`,
+              created_at: '2026-07-28T00:00:00.000Z',
+              updated_at: '2026-07-28T00:00:00.000Z',
+              metadata: {},
+              ...v,
+            }
+            store.push(row)
+          }
+          const reserved = row
           return {
             select() {
               return {
@@ -60,21 +75,13 @@ export function makeUniqueEnforcingDb(options: UniqueEnforcingDbOptions = {}) {
                       error: { code: '23505', message: 'duplicate key value violates cc_task_events_pkey' },
                     })
                   }
-                  if (duplicate) {
+                  if (duplicate || !reserved) {
                     return Promise.resolve({
                       data: null,
                       error: { code: '23505', message: 'duplicate key value violates unique constraint' },
                     })
                   }
-                  const row = {
-                    id: (v.id as string) ?? `${table}-${++seq}`,
-                    created_at: '2026-07-28T00:00:00.000Z',
-                    updated_at: '2026-07-28T00:00:00.000Z',
-                    metadata: {},
-                    ...v,
-                  }
-                  store.push(row)
-                  return Promise.resolve({ data: row, error: null })
+                  return Promise.resolve({ data: reserved, error: null })
                 },
               }
             },

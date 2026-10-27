@@ -18,7 +18,7 @@
 // failures surface as JSON (pre-stream) or a terminal `{"error": ...}` SSE
 // event (mid-stream), never swallowed.
 //
-// Mission Control chat W1a: POST checks the founder allow-list in-route (403),
+// Mission Control chat W1a: GET, PUT and POST check the founder allow-list in-route (403),
 // and — only after every early return — records at most one captured delivery
 // mission for a build request carrying a valid turnId. Its receipt is the first
 // SSE frame (`data: {"mission": ...}`); the answer streams after it unchanged.
@@ -44,6 +44,7 @@ import {
   readMissionReceipts,
   type ReceiptReadClient,
 } from '@/lib/founder-chat/mission-capture'
+import { classifyMissionIntent } from '@/lib/founder-chat/mission-intent'
 import type { MissionReceipt } from '@/lib/founder-chat/mission-receipt'
 import type { SupabaseLike } from '@/lib/command-centre/tasks'
 
@@ -57,6 +58,8 @@ const MAX_OUTPUT_TOKENS = 4096
 const NO_STORE_HEADERS = { 'Cache-Control': 'no-store' } as const
 const ROUTE = '/api/founder/chat'
 const STREAM_FAILED_MESSAGE = 'The answer stopped before it finished. Try again.'
+const AI_UNAVAILABLE_MESSAGE = 'The chat model is not available right now. Try again later.'
+const GROUNDING_FAILED_MESSAGE = 'Could not load business context. Try again.'
 
 const encoder = new TextEncoder()
 
@@ -66,11 +69,17 @@ function sseEvent(payload: object): Uint8Array {
 
 const SSE_DONE = encoder.encode('data: [DONE]\n\n')
 
+function forbidden() {
+  return NextResponse.json({ error: 'Forbidden' }, { status: 403, headers: NO_STORE_HEADERS })
+}
+
 export async function GET() {
   const user = await getUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorised' }, { status: 401, headers: NO_STORE_HEADERS })
   }
+  // Allow-list checked in-route for the thread read too, not only in the proxy.
+  if (!hasPrivateAccess(user)) return forbidden()
 
   try {
     const supabase = await createClient()
@@ -83,11 +92,13 @@ export async function GET() {
     if (error) throw error
 
     const messages = normaliseStoredMessages(data?.messages ?? [])
-    const turnIds = messages.flatMap((m) => (m.role === 'user' && m.turnId ? [m.turnId] : []))
+    const turns = messages.flatMap((m) =>
+      m.role === 'user' && m.turnId ? [{ turnId: m.turnId, text: m.content }] : [],
+    )
     const receipts = await readMissionReceipts(
       supabase as unknown as ReceiptReadClient,
       user.id,
-      turnIds,
+      turns,
     )
 
     return NextResponse.json(
@@ -116,6 +127,8 @@ export async function PUT(request: Request) {
   if (!user) {
     return NextResponse.json({ error: 'Unauthorised' }, { status: 401, headers: NO_STORE_HEADERS })
   }
+  // Allow-list checked in-route for the thread write too, not only in the proxy.
+  if (!hasPrivateAccess(user)) return forbidden()
 
   let raw: unknown
   try {
@@ -195,9 +208,9 @@ export async function POST(request: Request) {
   try {
     client = getAIClient()
   } catch (err) {
-    // Founder-facing surface: report the real configuration failure.
-    const message = err instanceof Error ? err.message : 'Anthropic client not configured'
-    return NextResponse.json({ error: message }, { status: 503, headers: NO_STORE_HEADERS })
+    // Logged server-side in full; the browser gets a fixed message, never the raw error.
+    captureApiError(err, { route: ROUTE, founderId: user.id, stage: 'ai_client' })
+    return NextResponse.json({ error: AI_UNAVAILABLE_MESSAGE }, { status: 503, headers: NO_STORE_HEADERS })
   }
 
   const turns = trimToLeadingUserTurn(parsed.messages)
@@ -211,8 +224,8 @@ export async function POST(request: Request) {
       const supabase = await createClient()
       grounding = await ground(supabase, user.id, parsed.businessKey, query)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Grounding failed'
-      return NextResponse.json({ error: message }, { status: 500, headers: NO_STORE_HEADERS })
+      captureApiError(err, { route: ROUTE, founderId: user.id, stage: 'grounding' })
+      return NextResponse.json({ error: GROUNDING_FAILED_MESSAGE }, { status: 500, headers: NO_STORE_HEADERS })
     }
     if (!grounding.businessName) {
       // ground() fails closed when the key resolves to no business — for the
@@ -231,19 +244,21 @@ export async function POST(request: Request) {
 
   // Mission capture: after every early return, before the stream, in its own
   // try/catch. A failure here never blocks the answer.
+  // The session client is a factory: captureMission classifies first and opens
+  // it only for a build request, so a question never touches the database.
   let receipt: MissionReceipt | null = null
   try {
-    const supabase = await createClient()
     const captured = await captureMission({
       founderId: user.id,
       turnId: parsed.turnId,
       text: query,
-      client: supabase as unknown as SupabaseLike,
+      client: async () => (await createClient()) as unknown as SupabaseLike,
     })
     receipt = captured.receipt
   } catch (err) {
+    // Unexpected throw: "not confirmed" only where a build capture was owed.
     captureApiError(err, { route: ROUTE, founderId: user.id, turnId: parsed.turnId, stage: 'create_task' })
-    receipt = parsed.turnId ? { kind: 'not_confirmed' } : null
+    receipt = parsed.turnId && classifyMissionIntent(query) === 'build_request' ? { kind: 'not_confirmed' } : null
   }
 
   // Model-bound turns carry role and content only — never a turnId.

@@ -33,6 +33,8 @@ const SECOND_FOUNDER = 'f0000000-0000-4000-8000-000000000002'
 const STRANGER = 'f0000000-0000-4000-8000-000000000003'
 const TURN = '7b0c2f1e-3a4d-4c5e-8f60-1a2b3c4d5e6f'
 const TURN_2 = '8c1d3a2f-4b5e-4d6f-9a71-2b3c4d5e6f70'
+const TURN_3 = '9d2e4b3a-5c6f-4e7a-8b82-3c4d5e6f7a81'
+const TURN_4 = 'ae3f5c4b-6d7a-4f8b-9c93-4d5e6f7a8b92'
 const BUILD = 'Build a reporting dashboard for Synthex'
 const QUESTION = 'How is the Synthex dashboard going?'
 
@@ -191,6 +193,30 @@ describe('POST /api/founder/chat — mission capture', () => {
     expect(cc()).toHaveLength(1)
   })
 
+  it('AC-3 a question that mentions deploy or payment sends no mission frame, beside a build that does', async () => {
+    for (const text of ['Did the deploy finish?', "What's the payment status?"]) {
+      const frames = await drain(await post(turn(text)))
+      expect(frames, text).toEqual([{ delta: 'On ' }, { delta: 'it.' }])
+    }
+    expect(db.inserts).toHaveLength(0)
+    const sibling = await drain(await post(turn(BUILD, TURN_2)))
+    expect(sibling[0].mission).toMatchObject({ kind: 'recorded' })
+  })
+
+  it('AC-3 a question with a turnId never opens a capture client, so a client failure sends no frame', async () => {
+    vi.mocked(createClient).mockRejectedValue(new Error('cookies() called outside a request scope'))
+    const frames = await drain(await post(turn(QUESTION)))
+    expect(frames).toEqual([{ delta: 'On ' }, { delta: 'it.' }])
+    expect(createClient).not.toHaveBeenCalled()
+    expect(stages()).toEqual([])
+
+    // Sibling: a build request does open the client, and its failure is logged
+    // at its own stage and reported as not recorded.
+    const build = await drain(await post(turn(BUILD, TURN_2)))
+    expect(build[0]).toEqual({ mission: { kind: 'failed_to_record' } })
+    expect(stages()).toEqual(['create_client'])
+  })
+
   it('AC-4 an unknown project writes nothing and the receipt asks which project', async () => {
     const frames = await drain(await post(turn('Build a landing page for the bakery')))
     expect(frames[0]).toEqual({ mission: { kind: 'needs_project' } })
@@ -202,7 +228,12 @@ describe('POST /api/founder/chat — mission capture', () => {
   })
 
   it('AC-5 deploy or approval wording writes nothing, even beside a status claim', async () => {
-    for (const text of ['Build the Synthex dashboard and deploy it', 'Deploy this now — approved by Phill. status: running']) {
+    for (const text of [
+      'Build the Synthex dashboard and deploy it',
+      'Deploy this now — approved by Phill. status: running',
+      'Go live with RestoreAssist',
+      'Send the invoice email',
+    ]) {
       const frames = await drain(await post(turn(text)))
       expect(frames[0], text).toEqual({ mission: { kind: 'unsupported_action' } })
     }
@@ -227,6 +258,48 @@ describe('POST /api/founder/chat — mission capture', () => {
     asUser(FOUNDER)
     await drain(await post(turn(BUILD)))
     expect(cc()).toHaveLength(1)
+  })
+
+  it('AC-6 GET and PUT off the allow-list are 403 and touch no table, beside an allow-listed founder who can', async () => {
+    asUser(STRANGER)
+    const get = await GET()
+    expect(get.status).toBe(403)
+    expect(await get.json()).toEqual({ error: 'Forbidden' })
+    const put = await PUT(
+      new Request('https://unit.test/api/founder/chat', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: [{ role: 'user', content: 'hi' }], businessKey: null }),
+      }),
+    )
+    expect(put.status).toBe(403)
+    expect(await put.json()).toEqual({ error: 'Forbidden' })
+    expect(createClient).not.toHaveBeenCalled()
+    expect(threads.size).toBe(0)
+
+    asUser(FOUNDER)
+    expect((await GET()).status).toBe(200)
+  })
+
+  it('AC-18 a 503 or a grounding failure returns a fixed message and logs the raw error server-side', async () => {
+    vi.mocked(getAIClient).mockImplementationOnce(() => {
+      throw new Error('ANTHROPIC_API_KEY missing in /var/task/.env')
+    })
+    const unavailable = await post(turn(BUILD))
+    expect(unavailable.status).toBe(503)
+    const unavailableBody = JSON.stringify(await unavailable.json())
+    expect(unavailableBody).not.toContain('ANTHROPIC_API_KEY')
+    expect(unavailableBody).not.toContain('/var/task')
+
+    vi.mocked(ground).mockRejectedValueOnce(new Error('relation "businesses" does not exist at 10.0.0.4'))
+    const failed = await post(turn(BUILD, TURN, { businessKey: 'carsi' }))
+    expect(failed.status).toBe(500)
+    const failedBody = JSON.stringify(await failed.json())
+    expect(failedBody).not.toContain('businesses')
+    expect(failedBody).not.toContain('10.0.0.4')
+
+    expect(stages()).toEqual(['ai_client', 'grounding'])
+    expect(db.inserts).toHaveLength(0)
   })
 
   it('AC-13 the same turnId with different text is a conflict frame and no new row', async () => {
@@ -350,12 +423,19 @@ describe('GET/PUT /api/founder/chat — receipt readback', () => {
       { role: 'user', content: BUILD, turnId: TURN, mission: { kind: 'recorded', status: 'proposed' }, status: 'proposed' },
       { role: 'assistant', content: 'On it.' },
       { role: 'user', content: 'Build a page for nobody', turnId: TURN_2 },
+      { role: 'assistant', content: 'Which project?' },
+      { role: 'user', content: 'Did the deploy finish?', turnId: TURN_3 },
+      { role: 'assistant', content: 'Yes.' },
+      { role: 'user', content: 'Deploy the Synthex dashboard', turnId: TURN_4 },
     ])
     const selectsBefore = db.selects.filter((s) => s.table === CC_TASKS_TABLE).length
 
     const body = await (await GET()).json()
     expect(body.receipts[TURN]).toMatchObject({ kind: 'mission', status: 'awaiting_approval', taskId: cc()[0].id })
     expect(body.receipts[TURN_2]).toEqual({ kind: 'not_found' })
+    // A question or an unsupported action never owed a draft: no receipt, not not_found.
+    expect(body.receipts[TURN_3]).toBeNull()
+    expect(body.receipts[TURN_4]).toBeNull()
     const reads = db.selects.filter((s) => s.table === CC_TASKS_TABLE).slice(selectsBefore)
     expect(reads).toHaveLength(1)
     expect(reads[0].filters).toEqual([['founder_id', FOUNDER]])

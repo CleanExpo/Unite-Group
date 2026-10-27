@@ -160,6 +160,48 @@ describe('captureMission', () => {
     expect(stages()).toEqual(['resolve_project', 'resolve_project'])
   })
 
+  it('AC-4 a project registry that never answers is registry_unavailable within the deadline', async () => {
+    const db = makeUniqueEnforcingDb()
+    const started = Date.now()
+    const result = await capture(db, {}, { loadProjects: () => new Promise(() => {}), signal: AbortSignal.timeout(30) })
+    expect(result.receipt).toEqual({ kind: 'registry_unavailable' })
+    expect(Date.now() - started).toBeLessThan(1000)
+    expect(db.inserts).toHaveLength(0)
+    expect(stages()).toEqual(['resolve_project'])
+  }, 3000)
+
+  it('AC-3 a question or unsupported turn never asks for a database client; a build does', async () => {
+    const db = makeUniqueEnforcingDb()
+    const factory = vi.fn(async () => db.client)
+    const run = (text: string, turnId = TURN) =>
+      captureMission({ founderId: FOUNDER, turnId, text, client: factory }, { loadProjects })
+    expect((await run('How is the Synthex dashboard going?')).receipt).toBeNull()
+    expect((await run('Deploy the Synthex dashboard')).receipt).toEqual({ kind: 'unsupported_action' })
+    expect(factory).not.toHaveBeenCalled()
+    expect((await run(BUILD)).receipt?.kind).toBe('recorded')
+    expect(factory).toHaveBeenCalledTimes(1)
+  })
+
+  it('AC-14 a build whose database client cannot be created is failed_to_record at stage create_client', async () => {
+    const result = await captureMission(
+      { founderId: FOUNDER, turnId: TURN, text: BUILD, client: async () => { throw new Error('cookies unavailable') } },
+      { loadProjects },
+    )
+    expect(result.receipt).toEqual({ kind: 'failed_to_record' })
+    expect(stages()).toEqual(['create_client'])
+  })
+
+  it('AC-2 the shared fake reserves the key at insert, so two inserts before either single() collide', async () => {
+    const db = makeUniqueEnforcingDb()
+    const values = { founder_id: FOUNDER, external_ref: `delivery:chat:${TURN}`, status: 'proposed' }
+    const first = db.client.from(CC_TASKS_TABLE).insert(values)
+    const second = db.client.from(CC_TASKS_TABLE).insert(values)
+    const [a, b] = await Promise.all([first.select().single(), second.select().single()])
+    expect(a.error).toBeNull()
+    expect(b.error).toMatchObject({ code: '23505' })
+    expect(db.rows).toHaveLength(1)
+  })
+
   it('AC-5 deploy or approval wording records nothing, even inside a build request', async () => {
     const db = makeUniqueEnforcingDb()
     for (const text of [
@@ -273,7 +315,11 @@ describe('readMissionReceipts', () => {
     const db = makeUniqueEnforcingDb()
     await capture(db)
     db.rows[0].status = 'awaiting_approval'
-    const receipts = await readMissionReceipts(db.client as unknown as ReceiptReadClient, FOUNDER, [TURN, TURN_2, TURN])
+    const receipts = await readMissionReceipts(db.client as unknown as ReceiptReadClient, FOUNDER, [
+      { turnId: TURN, text: BUILD },
+      { turnId: TURN_2, text: BUILD },
+      { turnId: TURN, text: BUILD },
+    ])
     expect(receipts[TURN]).toMatchObject({ kind: 'mission', status: 'awaiting_approval' })
     expect(receipts[TURN_2]).toEqual({ kind: 'not_found' })
     const reads = db.selects.filter((s) => s.table === CC_TASKS_TABLE)
@@ -285,17 +331,37 @@ describe('readMissionReceipts', () => {
   it('AC-7 another founder cannot read the row, and a query error is unavailable', async () => {
     const db = makeUniqueEnforcingDb()
     await capture(db)
-    const foreign = await readMissionReceipts(db.client as unknown as ReceiptReadClient, OTHER_FOUNDER, [TURN])
+    const foreign = await readMissionReceipts(db.client as unknown as ReceiptReadClient, OTHER_FOUNDER, [{ turnId: TURN, text: BUILD }])
     expect(foreign[TURN]).toEqual({ kind: 'not_found' })
 
     const failing = makeUniqueEnforcingDb({
       onSelect: () => Promise.resolve({ data: null, error: { message: 'timeout' } }),
     })
-    const unavailable = await readMissionReceipts(failing.client as unknown as ReceiptReadClient, FOUNDER, [TURN])
+    const unavailable = await readMissionReceipts(failing.client as unknown as ReceiptReadClient, FOUNDER, [{ turnId: TURN, text: BUILD }])
     expect(unavailable[TURN]).toEqual({ kind: 'unavailable' })
     expect(stages()).toContain('readback')
 
     const none = await readMissionReceipts(db.client as unknown as ReceiptReadClient, FOUNDER, [])
     expect(none).toEqual({})
+  })
+
+  it('AC-7 a persisted question or unsupported turn reads back no receipt and is not queried; a lost draft is not_found', async () => {
+    const db = makeUniqueEnforcingDb()
+    const QUESTION_TURN = '9d2e4b3a-5c6f-4e7a-8b82-3c4d5e6f7a81'
+    const receipts = await readMissionReceipts(db.client as unknown as ReceiptReadClient, FOUNDER, [
+      { turnId: QUESTION_TURN, text: 'Did the Synthex deploy finish?' },
+      { turnId: TURN, text: 'Deploy the Synthex dashboard' },
+      { turnId: TURN_2, text: 'Build a landing page for the bakery' },
+    ])
+    expect(receipts).toEqual({ [QUESTION_TURN]: null, [TURN]: null, [TURN_2]: { kind: 'not_found' } })
+    const reads = db.selects.filter((s) => s.table === CC_TASKS_TABLE)
+    expect(reads).toHaveLength(1)
+    expect(reads[0].inFilters).toEqual([['external_ref', [`delivery:chat:${TURN_2}`]]])
+
+    const onlyQuestions = await readMissionReceipts(db.client as unknown as ReceiptReadClient, FOUNDER, [
+      { turnId: QUESTION_TURN, text: "What's the payment status?" },
+    ])
+    expect(onlyQuestions).toEqual({ [QUESTION_TURN]: null })
+    expect(db.selects.filter((s) => s.table === CC_TASKS_TABLE)).toHaveLength(1)
   })
 })

@@ -40,6 +40,38 @@ describe('classifyMissionIntent', () => {
     for (const text of questions) expect(classifyMissionIntent(text), text).toBe('question')
   })
 
+  it('AC-12 a build verb aimed at the founder, not at a piece of work, is a question', () => {
+    const questions = [
+      'Update me on the Synthex dashboard',
+      'Write me a summary of the report',
+      'Make sense of this list',
+      'Fix my understanding of the API',
+      'Update us on the CARSI landing page',
+    ]
+    for (const text of questions) expect(classifyMissionIntent(text), text).toBe('question')
+    // Siblings: the work noun close behind the verb still makes a build request.
+    for (const text of [
+      'Build the RestoreAssist inspection view and verify it',
+      'Add a new monthly revenue chart to the Synthex dashboard',
+      'Build a payment page for CARSI',
+      'Build an approval screen for Unite-Group',
+    ]) {
+      expect(classifyMissionIntent(text), text).toBe('build_request')
+    }
+  })
+
+  it('AC-3 a question that mentions a protected action word is still a question', () => {
+    const questions = [
+      'Did the Synthex deploy finish?',
+      'Did the deploy finish?',
+      "What's the payment status?",
+      'When was the last CARSI release?',
+      'Has the approval come through for Unite-Group?',
+      'Is the merge done',
+    ]
+    for (const text of questions) expect(classifyMissionIntent(text), text).toBe('question')
+  })
+
   it('AC-12 a build verb phrased as a question stays a question', () => {
     expect(classifyMissionIntent('Build a dashboard page for Synthex?')).toBe('question')
     expect(classifyMissionIntent('   ')).toBe('question')
@@ -59,6 +91,18 @@ describe('classifyMissionIntent', () => {
       'Ship the Synthex dashboard',
       'Launch the CARSI site today',
       'Release the new Unite-Group form',
+      'Deploy this now',
+      'Go live with RestoreAssist',
+      'Migrate the database',
+      'Roll back the release',
+      'Rollback the Synthex deploy',
+      'Send the invoice email',
+      'Promote the preview to production',
+      'Execute the cleanup script',
+      'Drop the old CARSI table',
+      'Run the migration in production',
+      'Please deploy the Synthex dashboard',
+      'Build the CARSI landing page, then publish it',
     ]
     for (const text of unsupported) expect(classifyMissionIntent(text), text).toBe('unsupported_action')
   })

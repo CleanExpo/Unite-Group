@@ -9,7 +9,8 @@
 //   - writes through the session (RLS) client with founder_id = the session user;
 //   - the founder's words never set status, approval or events: the row is
 //     always born 'proposed' with humanApprovalRequired true;
-//   - the whole store sequence is bounded by one deadline; a timeout or network
+//   - the registry read and the whole store sequence are bounded by one deadline;
+//     a registry timeout is "registry unavailable"; a store timeout or network
 //     failure is "not confirmed", a Postgres error is "not recorded";
 //   - "recorded" only when both the row and its created event came back.
 
@@ -34,7 +35,13 @@ export const CAPTURE_DEADLINE_MS = 5000
 export const CHAT_EXTERNAL_REF_PREFIX = 'delivery:chat:'
 const ROUTE = '/api/founder/chat'
 
-export type CaptureStage = 'classify' | 'resolve_project' | 'create_task' | 'append_event' | 'readback'
+export type CaptureStage =
+  | 'classify'
+  | 'resolve_project'
+  | 'create_client'
+  | 'create_task'
+  | 'append_event'
+  | 'readback'
 
 export interface CaptureMissionInput {
   founderId: string
@@ -42,11 +49,15 @@ export interface CaptureMissionInput {
   turnId: string | null
   /** The founder's latest message, exactly as sent. */
   text: string
-  client: SupabaseLike
+  /**
+   * The session (RLS) client, or a factory for it. A factory is called only on
+   * the build path, so a question or unsupported turn never opens a client.
+   */
+  client: SupabaseLike | (() => Promise<SupabaseLike>)
 }
 
 export interface CaptureMissionOptions {
-  /** Defaults to AbortSignal.timeout(CAPTURE_DEADLINE_MS). */
+  /** Defaults to AbortSignal.timeout(CAPTURE_DEADLINE_MS); bounds the registry read and every store call. */
   signal?: AbortSignal
   /** Defaults to the portfolio registry. */
   loadProjects?: () => Promise<CommandCentreProject[]>
@@ -92,7 +103,9 @@ export async function captureMission(
   input: CaptureMissionInput,
   options: CaptureMissionOptions = {},
 ): Promise<CaptureMissionResult> {
-  const { founderId, turnId, text, client } = input
+  const { founderId, turnId, text } = input
+  // One deadline for the whole capture, created before any awaited work.
+  const signal = options.signal ?? AbortSignal.timeout(CAPTURE_DEADLINE_MS)
   const externalRef = turnId ? `${CHAT_EXTERNAL_REF_PREFIX}${turnId}` : null
   let projectKey: string | null = null
   let task: CommandCentreTask | null = null
@@ -133,7 +146,7 @@ export async function captureMission(
   // build_request — resolve the project only now, never for a question.
   let projects: CommandCentreProject[]
   try {
-    const resolved = resolveDeliveryProjects(await (options.loadProjects ?? getProjects)())
+    const resolved = resolveDeliveryProjects(await withDeadline((options.loadProjects ?? getProjects)(), signal))
     if (resolved.error) throw new Error(resolved.error)
     projects = resolved.projects
   } catch (err) {
@@ -144,7 +157,16 @@ export async function captureMission(
   if (!project) return finish(kind, { kind: 'needs_project' })
   projectKey = project.name
 
-  const signal = options.signal ?? AbortSignal.timeout(CAPTURE_DEADLINE_MS)
+  // The database client is opened only now, for a build request with a project.
+  let client: SupabaseLike
+  try {
+    client = typeof input.client === 'function' ? await withDeadline(input.client(), signal) : input.client
+  } catch (err) {
+    report(err, 'create_client')
+    // No client means no write was possible: a definite "not recorded".
+    return finish(kind, { kind: 'failed_to_record' })
+  }
+
   const inputHash = hashDeliveryInput({ source: 'founder_chat', idea: text, projectKey })
 
   try {
@@ -233,18 +255,32 @@ export interface ReceiptReadClient {
 
 type ReadbackRow = Parameters<typeof readbackReceipt>[0]
 
+export interface PersistedTurn {
+  turnId: string
+  /** The persisted user message text, re-classified to decide if a receipt is owed. */
+  text: string
+}
+
 /**
  * Resolve each persisted user turn's receipt from the cc_tasks row read NOW for
- * (founder, delivery:chat:<turnId>) in ONE query. Missing row → not_found;
- * query failure → unavailable for every turn (fails closed, never a stored value).
+ * (founder, delivery:chat:<turnId>) in ONE query. A turn that classifies as a
+ * question or unsupported action never owed a draft → null (no receipt) and is
+ * not queried. Missing row → not_found; query failure → unavailable for every
+ * queried turn (fails closed, never a stored value).
  */
 export async function readMissionReceipts(
   client: ReceiptReadClient,
   founderId: string,
-  turnIds: string[],
-): Promise<Record<string, MissionReceipt>> {
-  const unique = [...new Set(turnIds)]
-  const receipts: Record<string, MissionReceipt> = {}
+  turns: readonly PersistedTurn[],
+): Promise<Record<string, MissionReceipt | null>> {
+  const receipts: Record<string, MissionReceipt | null> = {}
+  const owed = new Set<string>()
+  for (const { turnId, text } of turns) {
+    if (Object.hasOwn(receipts, turnId) || owed.has(turnId)) continue
+    if (classifyMissionIntent(text) === 'build_request') owed.add(turnId)
+    else receipts[turnId] = null
+  }
+  const unique = [...owed]
   if (unique.length === 0) return receipts
   const refs = unique.map((turnId) => `${CHAT_EXTERNAL_REF_PREFIX}${turnId}`)
   let rows: ReadbackRow[]
