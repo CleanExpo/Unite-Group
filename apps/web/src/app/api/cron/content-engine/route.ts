@@ -7,6 +7,7 @@ import { sanitiseError } from '@/lib/error-reporting'
 import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 import { NextResponse } from 'next/server'
 import { assertCronAuth } from '@/lib/cron-auth'
+import { cronAiDisabledResponse } from '@/lib/cron-ai-gate'
 import { getFounderUserId } from '@/lib/auth/founder-user-id'
 import { createServiceClient } from '@/lib/supabase/service'
 import { generateContent } from '@/lib/content/generator'
@@ -59,6 +60,10 @@ export async function GET(request: Request) {
   // 1. Verify CRON_SECRET
   const denied = assertCronAuth(request)
   if (denied) return denied
+
+  // Founder rule "NO API KEYS": no model spend unless CRON_AI_ENABLED is exactly 'true'.
+  const aiOff = cronAiDisabledResponse()
+  if (aiOff) return aiOff
 
   const founderId = getFounderUserId()
   if (!founderId) {

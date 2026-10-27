@@ -6,6 +6,7 @@
 import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { assertCronAuth } from '@/lib/cron-auth'
+import { cronAiDisabledResponse } from '@/lib/cron-ai-gate'
 import { getFounderUserId } from '@/lib/auth/founder-user-id'
 import { createServiceClient } from '@/lib/supabase/service'
 import { fetchNewComments, replyToFacebookComment, replyToInstagramComment } from '@/lib/integrations/social/engagement'
@@ -71,6 +72,10 @@ export async function GET(request: Request) {
   // 1. Verify CRON_SECRET
   const denied = assertCronAuth(request)
   if (denied) return denied
+
+  // Founder rule "NO API KEYS": no model spend unless CRON_AI_ENABLED is exactly 'true'.
+  const aiOff = cronAiDisabledResponse()
+  if (aiOff) return aiOff
 
   const founderId = getFounderUserId()
   if (!founderId) {

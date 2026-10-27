@@ -75,7 +75,11 @@ route writes nothing; arming it is a founder/Board act paired with the
 `.spm/2026-08-07-p9-board-meetings-collision.md`) ·
 `EMAIL_TRIAGE_ENABLED` (daily email-triage cron, default off — unarmed the
 route reads no mailbox, calls no model, archives nothing and opens no Linear
-issue; only exactly `true` arms it, UNI-3052).
+issue; only exactly `true` arms it, UNI-3052) ·
+`CRON_AI_ENABLED` (every cron that calls a paid model through an API key —
+strategy-daily, ceo-board-meeting, coaches/*, content-engine, engagement-monitor,
+campaign-engine — default off: founder rule "NO API KEYS"; unarmed each returns
+200 skipped before any model call or DB access; only exactly `true` arms it, UNI-3054).
 
 **OWNEST host profile (local-only, dormant and not armable)**
 `SUPABASE_URL` · `SUPABASE_SERVICE_ROLE_KEY` (server-only; never passed to
