@@ -26,6 +26,8 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { GET } from '../route'
 
 vi.stubEnv('CRON_SECRET', 'test-secret')
+// These tests exercise the enabled path; the CRON_AI_ENABLED off-switch has its own suite.
+vi.stubEnv('CRON_AI_ENABLED', 'true')
 vi.stubEnv('FOUNDER_USER_ID', 'founder-1')
 
 function req(auth = 'Bearer test-secret') {

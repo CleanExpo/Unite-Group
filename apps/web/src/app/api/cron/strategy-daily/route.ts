@@ -5,6 +5,7 @@
 
 import { NextResponse } from 'next/server'
 import { assertCronAuth } from '@/lib/cron-auth'
+import { cronAiDisabledResponse } from '@/lib/cron-ai-gate'
 import { getFounderUserId } from '@/lib/auth/founder-user-id'
 import { runDailyAnalysis } from '@/lib/strategy/daily-analysis'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -23,6 +24,10 @@ export async function GET(request: Request) {
   // 1. Auth
   const denied = assertCronAuth(request)
   if (denied) return denied
+
+  // Founder rule "NO API KEYS": no model spend unless CRON_AI_ENABLED is exactly 'true'.
+  const aiOff = cronAiDisabledResponse()
+  if (aiOff) return aiOff
 
   const startTime = Date.now()
   const url = new URL(request.url)

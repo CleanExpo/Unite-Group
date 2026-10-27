@@ -5,6 +5,7 @@
 import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { assertCronAuth } from '@/lib/cron-auth'
+import { cronAiDisabledResponse } from '@/lib/cron-ai-gate'
 import { getFounderUserId } from '@/lib/auth/founder-user-id'
 import { runCoach } from '@/lib/coaches/runner'
 import { fetchLifeData } from '@/lib/coaches/life'
@@ -20,6 +21,10 @@ export async function GET(request: Request) {
   // 1. Authenticate
   const denied = assertCronAuth(request)
   if (denied) return denied
+
+  // Founder rule "NO API KEYS": no model spend unless CRON_AI_ENABLED is exactly 'true'.
+  const aiOff = cronAiDisabledResponse()
+  if (aiOff) return aiOff
 
   // 2. Get founder ID
   const founderId = getFounderUserId()
