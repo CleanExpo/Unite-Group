@@ -6,7 +6,7 @@ import { InsightsBoard } from '../InsightsBoard'
 
 // BusinessFilter pulls its own data; stub it so this test isolates the board's
 // fetch/error behaviour.
-vi.mock('@/components/founder/kanban/BusinessFilter', () => ({
+vi.mock('@/founder/kanban/BusinessFilter', () => ({
   BusinessFilter: () => null,
 }))
 

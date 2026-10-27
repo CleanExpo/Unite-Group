@@ -1,4 +1,4 @@
-import { BookkeeperView } from '@/components/founder/bookkeeper/BookkeeperView'
+import { BookkeeperView } from '@/founder/bookkeeper/BookkeeperView'
 
 export const dynamic = 'force-dynamic'
 

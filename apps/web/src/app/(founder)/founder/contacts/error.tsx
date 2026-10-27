@@ -1,6 +1,6 @@
 'use client'
 
-import { RouteErrorBoundary } from '@/components/founder/RouteErrorBoundary'
+import { RouteErrorBoundary } from '@/founder/RouteErrorBoundary'
 
 export default function ContactsError({
   error,

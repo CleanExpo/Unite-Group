@@ -7,7 +7,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { stripePaymentLink } from '@/app/grow/packages'
-import { PublicHome } from '@/components/public/home/public-home'
+import { PublicHome } from '@/public/home/public-home'
 import { OrderView } from '../order/order-view'
 import { EDITIONS, resolveEdition } from '../editions'
 import { PAYMENT_ENTITY_LINE } from '../payment-entity'

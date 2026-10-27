@@ -8,12 +8,12 @@ import { PortfolioHealthTile } from '@/components/command-centre/portfolio-healt
 import { DeckMoreLine, DECK_LIST_CAP } from '@/components/command-centre/DeckDetails'
 // Founder cockpit tiles — consolidated from the retired /founder/dashboard (UNI-2306)
 // so the command deck is the one canonical console. Surface move: data routes unchanged.
-import { KPIGrid } from '@/components/founder/dashboard/KPIGrid'
+import { KPIGrid } from '@/founder/dashboard/KPIGrid'
 import { RevenuePanelTile } from '@/components/command-centre/revenue/RevenuePanelTile'
-import { FounderStats } from '@/components/founder/dashboard/FounderStats'
-import { CoachBriefs } from '@/components/founder/dashboard/CoachBriefs'
-import { ExperimentsDashboardWidget } from '@/components/founder/dashboard/ExperimentsDashboardWidget'
-import { HubStatusWidget } from '@/components/founder/dashboard/HubStatusWidget'
+import { FounderStats } from '@/founder/dashboard/FounderStats'
+import { CoachBriefs } from '@/founder/dashboard/CoachBriefs'
+import { ExperimentsDashboardWidget } from '@/founder/dashboard/ExperimentsDashboardWidget'
+import { HubStatusWidget } from '@/founder/dashboard/HubStatusWidget'
 import { MissionControlShell } from '../MissionControlShell'
 import { ProjectIntegrationWorkPacketControl } from '../ProjectIntegrationWorkPacketControl'
 import { swatchFor, ledState, connectionLedState, hostOf } from '../deck-visual-helpers'

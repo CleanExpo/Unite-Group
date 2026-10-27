@@ -7,24 +7,24 @@ import CampaignDetailPage from '@/app/(founder)/founder/campaigns/[id]/page'
 
 const { push } = vi.hoisted(() => ({ push: vi.fn() }))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }), usePathname: () => '/founder/campaigns/new' }))
-vi.mock('@/components/founder/campaigns/BrandProfileSelector', () => ({
+vi.mock('@/founder/campaigns/BrandProfileSelector', () => ({
   BrandProfileSelector: ({ onSelect, onScanNew }: { onSelect: (p: object) => void; onScanNew: () => void }) => <>
     <button onClick={() => onSelect({ id: 'brand-real-id', clientName: 'Chosen brand', businessKey: null })}>Choose existing brand</button>
     <button onClick={onScanNew}>Scan new website</button>
   </>,
 }))
-vi.mock('@/components/founder/campaigns/BrandScanner', () => ({
+vi.mock('@/founder/campaigns/BrandScanner', () => ({
   BrandScanner: ({ onScanComplete }: { onScanComplete: (id: string, name: string) => void }) =>
     <button onClick={() => onScanComplete('scanned-profile', 'Scanned brand')}>Complete scan</button>,
 }))
-vi.mock('@/components/founder/campaigns/CampaignGenerator', () => ({
+vi.mock('@/founder/campaigns/CampaignGenerator', () => ({
   CampaignGenerator: ({ brandProfileId, brandName, onGenerated, onBack }: { brandProfileId: string; brandName: string; onGenerated: (id: string) => void; onBack: () => void }) => <>
     <p>{brandProfileId} / {brandName}</p>
     <button onClick={() => onGenerated('created-campaign-id')}>Generate campaign</button>
     <button onClick={onBack}>Change brand</button>
   </>,
 }))
-vi.mock('@/components/founder/campaigns/AssetPreview', () => ({ AssetPreview: () => <p>Existing asset</p> }))
+vi.mock('@/founder/campaigns/AssetPreview', () => ({ AssetPreview: () => <p>Existing asset</p> }))
 
 beforeEach(() => { vi.clearAllMocks(); vi.unstubAllGlobals() })
 

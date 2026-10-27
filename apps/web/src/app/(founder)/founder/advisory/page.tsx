@@ -1,5 +1,5 @@
 import { Suspense } from 'react'
-import { AdvisoryWorkbench } from '@/components/founder/advisory/AdvisoryWorkbench'
+import { AdvisoryWorkbench } from '@/founder/advisory/AdvisoryWorkbench'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 export default function AdvisoryPage() {

@@ -6,7 +6,7 @@ import { loadProjectIntegrationStatuses } from '@/lib/command-centre/project-int
 import { getUser } from '@/lib/supabase/server'
 import { loadPipelineOpportunities } from '@/lib/command-centre/pipeline-opportunities'
 import { PortfolioView } from './PortfolioView'
-import { IntegrationStatus } from '@/components/founder/dashboard/IntegrationStatus'
+import { IntegrationStatus } from '@/founder/dashboard/IntegrationStatus'
 import { BusinessFocusRail } from '@/components/command-centre/business-focus/BusinessFocusRail'
 
 export default async function PortfolioDeckPage() {

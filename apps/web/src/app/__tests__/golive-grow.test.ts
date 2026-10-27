@@ -19,8 +19,8 @@ vi.mock('next/navigation', () => ({
 }))
 // The main nav is one of the two places allowed to link /grow. Rendering every page without it leaves only the links
 // the page itself draws. Its exports stay real, so a constant imported from site-nav.tsx still renders.
-vi.mock('@/components/public/site/site-nav', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/components/public/site/site-nav')>()),
+vi.mock('@/public/site/site-nav', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/public/site/site-nav')>()),
   SiteNav: () => null,
 }))
 // An owner card comes from the database; this one is a fixed sample so the page renders whole.
@@ -172,7 +172,7 @@ describe('D3: /grow is kept but not offered', () => {
 // file (review of 21cce962). The pages are now checked as a visitor gets them.
 describe('D3: /grow is linked only from the main nav and the home hero, on the pages visitors get', () => {
   it('the main nav itself links /grow exactly once (the check can see a real link)', async () => {
-    const { SiteNav } = await vi.importActual<typeof import('@/components/public/site/site-nav')>('@/components/public/site/site-nav')
+    const { SiteNav } = await vi.importActual<typeof import('@/public/site/site-nav')>('@/public/site/site-nav')
     expect(growHrefs(renderToStaticMarkup(createElement(SiteNav)))).toEqual(['/grow'])
   })
 

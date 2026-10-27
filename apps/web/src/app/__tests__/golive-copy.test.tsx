@@ -4,10 +4,10 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn(async () => null) }))
 vi.mock('next/navigation', () => ({ redirect: vi.fn() }))
 
-import { SiteFooter } from '@/components/public/site/site-footer'
-import { SiteNav } from '@/components/public/site/site-nav'
-import { PublicHome } from '@/components/public/home/public-home'
-import { PillarPage } from '@/components/public/pillar/pillar-page'
+import { SiteFooter } from '@/public/site/site-footer'
+import { SiteNav } from '@/public/site/site-nav'
+import { PublicHome } from '@/public/home/public-home'
+import { PillarPage } from '@/public/pillar/pillar-page'
 import { CARD_ORDER_TERMS } from '../cards/terms/terms-content'
 import PrivacyPolicyPage from '../privacy-policy/page'
 import TermsOfServicePage from '../terms-of-service/page'

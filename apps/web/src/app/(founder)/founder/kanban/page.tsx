@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 
-import { HermesKanbanStatus } from '@/components/founder/kanban/HermesKanbanStatus'
-import { KanbanBoard } from '@/components/founder/kanban/KanbanBoard'
+import { HermesKanbanStatus } from '@/founder/kanban/HermesKanbanStatus'
+import { KanbanBoard } from '@/founder/kanban/KanbanBoard'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 export default function KanbanPage() {

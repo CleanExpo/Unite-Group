@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from 'react'
 
-import { CollectionNotice } from '@/components/public/collection-notice'
+import { CollectionNotice } from '@/public/collection-notice'
 
 import f from './enquiry-form.module.css'
 import { ENQUIRY_FORM_ID } from './order-buy'

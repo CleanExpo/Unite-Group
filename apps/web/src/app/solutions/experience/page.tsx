@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 
-import { PillarPage } from '@/components/public/pillar/pillar-page'
+import { PillarPage } from '@/public/pillar/pillar-page'
 import { PILLARS, SITE_URL, pillarPath } from '@/lib/public-site'
 
 const pillar = PILLARS.find((p) => p.slug === 'experience')!

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 
-import { CollectionNotice } from '@/components/public/collection-notice'
+import { CollectionNotice } from '@/public/collection-notice'
 import { submitEnquiryAction } from './actions'
 import styles from './card.module.css'
 

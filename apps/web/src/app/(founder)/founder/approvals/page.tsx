@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { redirect } from 'next/navigation'
 import { getUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { ApprovalQueue } from '@/components/founder/approvals/ApprovalQueue'
+import { ApprovalQueue } from '@/founder/approvals/ApprovalQueue'
 import { PageHeader } from '@/components/ui/PageHeader'
 import type { Tables } from '@/types/database'
 

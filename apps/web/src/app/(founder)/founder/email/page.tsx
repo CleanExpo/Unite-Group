@@ -5,7 +5,7 @@ import {
   isGoogleConfigured,
   getConnectedGoogleAccountsWithScopeStatus,
 } from '@/lib/integrations/google'
-import { EmailWorkbench } from '@/components/founder/email/EmailWorkbench'
+import { EmailWorkbench } from '@/founder/email/EmailWorkbench'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 export default async function EmailPage({

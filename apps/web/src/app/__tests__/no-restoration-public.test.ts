@@ -9,10 +9,10 @@ vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn() }))
 vi.mock('next/navigation', () => ({ redirect: vi.fn() }))
 
 import { EDITIONS } from '@/app/cards/editions'
-import { PublicHome } from '@/components/public/home/public-home'
+import { PublicHome } from '@/public/home/public-home'
 import { entityJsonLd } from '@/lib/entity'
 import { getUser } from '@/lib/supabase/server'
-import { COMING, TODAY } from '@/components/public/today-coming-data'
+import { COMING, TODAY } from '@/public/today-coming-data'
 
 // Phill 26/10/2026 (UNI-3034): no CARSI, Disaster Recovery, NRPG, restoration or training content on the public home
 // or card pages. The CARSI Pty Ltd payment-entity disclosure is a legal line and is checked elsewhere.

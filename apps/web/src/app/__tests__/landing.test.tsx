@@ -14,7 +14,7 @@ vi.mock('next/navigation', () => ({
 import { redirect } from 'next/navigation'
 import { getUser } from '@/lib/supabase/server'
 
-import { buildHomeLeadBody } from '@/components/public/contact-form'
+import { buildHomeLeadBody } from '@/public/contact-form'
 import { PILLARS, pillarPath } from '@/lib/public-site'
 import { isPublicPath } from '@/proxy'
 

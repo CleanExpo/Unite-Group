@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { redirect } from 'next/navigation'
 import { getUser } from '@/lib/supabase/server'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { PiRouterPanel } from '@/components/founder/pi/PiRouterPanel'
+import { PiRouterPanel } from '@/founder/pi/PiRouterPanel'
 
 export default async function FounderPiPage() {
   const user = await getUser()

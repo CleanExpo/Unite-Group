@@ -7,7 +7,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { MissionControlShell } from '@/app/(founder)/founder/command-centre/MissionControlShell'
 import { useRouter } from 'next/navigation'
-import { AssetPreview } from '@/components/founder/campaigns/AssetPreview'
+import { AssetPreview } from '@/founder/campaigns/AssetPreview'
 import type { Campaign, CampaignAsset } from '@/lib/campaigns/types'
 import type { CampaignApprovalState } from '@/lib/campaigns/approval'
 

@@ -1,4 +1,4 @@
-import { SkillHealthDashboard } from '@/components/founder/skills/SkillHealthDashboard'
+import { SkillHealthDashboard } from '@/founder/skills/SkillHealthDashboard'
 
 export const metadata = { title: 'Skills | Nexus' }
 

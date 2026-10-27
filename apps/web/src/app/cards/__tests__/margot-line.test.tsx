@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import CardsShowroomPage from '../page'
 import { OrderView } from '../order/order-view'
-import { SiteFooter } from '@/components/public/site/site-footer'
+import { SiteFooter } from '@/public/site/site-footer'
 
 const pages = {
   '/cards': () => renderToStaticMarkup(createElement(CardsShowroomPage)),

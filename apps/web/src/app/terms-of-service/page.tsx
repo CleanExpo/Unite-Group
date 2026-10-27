@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
-import { LegalSection as Section } from '@/components/public/legal/legal-document'
-import { LegalPageShell } from '@/components/public/legal/legal-page-shell'
+import { LegalSection as Section } from '@/public/legal/legal-document'
+import { LegalPageShell } from '@/public/legal/legal-page-shell'
 import { COMPANY_NAME } from '@/lib/legal/company'
 
 export const metadata: Metadata = {

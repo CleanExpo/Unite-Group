@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-import { OwnBoard } from '@/components/founder/kanban/OwnBoard'
+import { OwnBoard } from '@/founder/kanban/OwnBoard'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 export default function OwnKanbanPage() {

@@ -3,8 +3,8 @@ import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { HOME_HERO } from '@/components/public/home/copy'
-import { TODAY } from '@/components/public/today-coming-data'
+import { HOME_HERO } from '@/public/home/copy'
+import { TODAY } from '@/public/today-coming-data'
 import { SIGNATURE_ADDON, STARTER_PLAN } from '@/lib/public-pricing'
 
 const src = join(__dirname, '..', '..', '..')

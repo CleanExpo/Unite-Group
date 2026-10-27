@@ -3,7 +3,7 @@
 // Reads use the signed-in founder's RLS-scoped client (no service role).
 import { redirect } from 'next/navigation'
 import { createClient, getUser } from '@/lib/supabase/server'
-import { InboxView } from '@/components/founder/inbox/InboxView'
+import { InboxView } from '@/founder/inbox/InboxView'
 import { loadInbox, parseSourceParam, type InboxClient } from '@/lib/crm/inbox'
 
 export const dynamic = 'force-dynamic'

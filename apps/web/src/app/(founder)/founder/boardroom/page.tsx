@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-import { BoardroomClient } from '@/components/founder/boardroom/BoardroomClient'
+import { BoardroomClient } from '@/founder/boardroom/BoardroomClient'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 export default function BoardroomPage() {

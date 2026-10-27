@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import { getUser } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { InvoicesClient } from '@/components/founder/invoices/InvoicesClient'
+import { InvoicesClient } from '@/founder/invoices/InvoicesClient'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Invoices — Nexus' }

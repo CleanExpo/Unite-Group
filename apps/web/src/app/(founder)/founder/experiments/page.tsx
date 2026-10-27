@@ -5,7 +5,7 @@ import { getUser } from '@/lib/supabase/server'
 import { captureApiError } from '@/lib/error-reporting'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/service'
-import { ExperimentsPageClient } from '@/components/founder/experiments/ExperimentsPageClient'
+import { ExperimentsPageClient } from '@/founder/experiments/ExperimentsPageClient'
 import type { Experiment } from '@/lib/experiments/types'
 
 interface ExperimentRow {

@@ -81,9 +81,12 @@ export default defineConfig({
     hookTimeout: 30000,
   },
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-      '@config': path.resolve(__dirname, './config'),
-    },
+    // More specific than `@` → `src/` (otherwise `@/public/*` resolves to `src/public/*`).
+    alias: [
+      { find: '@/public', replacement: path.resolve(__dirname, 'src/components/public') },
+      { find: '@/founder', replacement: path.resolve(__dirname, 'src/components/founder') },
+      { find: '@', replacement: path.resolve(__dirname, 'src') },
+      { find: '@config', replacement: path.resolve(__dirname, 'config') },
+    ],
   },
 });

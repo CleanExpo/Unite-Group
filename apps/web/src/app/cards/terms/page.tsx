@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 
-import { LegalPageShell } from '@/components/public/legal/legal-page-shell'
+import { LegalPageShell } from '@/public/legal/legal-page-shell'
 import { companyAbnLabel } from '@/lib/legal/company'
 
 import { CARD_ORDER_TERMS } from './terms-content'

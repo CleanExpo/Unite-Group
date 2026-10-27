@@ -29,9 +29,9 @@
       }
     ],
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"],
+      "@/public/*": ["./src/components/public/*"],
+      "@/founder/*": ["./src/components/founder/*"]
     },
     "allowJs": true
   },

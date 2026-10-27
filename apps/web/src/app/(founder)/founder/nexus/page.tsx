@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { redirect } from 'next/navigation'
 import { getUser } from '@/lib/supabase/server'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { NexusPRDashboard } from '@/components/founder/nexus/NexusPRDashboard'
+import { NexusPRDashboard } from '@/founder/nexus/NexusPRDashboard'
 
 export default async function NexusApprovalsPage() {
   const user = await getUser()

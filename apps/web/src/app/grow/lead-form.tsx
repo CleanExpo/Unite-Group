@@ -4,7 +4,7 @@ import '@/styles/public-tokens.css'
 
 import { useState, type FormEvent } from 'react'
 
-import { CollectionNotice } from '@/components/public/collection-notice'
+import { CollectionNotice } from '@/public/collection-notice'
 
 import f from './grow-form.module.css'
 import { GROW_PACKAGES } from './packages'

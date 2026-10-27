@@ -2,8 +2,8 @@ export const dynamic = 'force-dynamic'
 
 import { getUser } from '@/lib/supabase/server'
 import { isXeroConfigured, loadXeroTokens } from '@/lib/integrations/xero'
-import { ConnectCard } from '@/components/founder/integrations/ConnectCard'
-import { XeroConnectButton } from '@/components/founder/xero/XeroConnectButton'
+import { ConnectCard } from '@/founder/integrations/ConnectCard'
+import { XeroConnectButton } from '@/founder/xero/XeroConnectButton'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { BUSINESSES } from '@/lib/businesses'
 

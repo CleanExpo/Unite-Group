@@ -1,7 +1,7 @@
 // src/app/(founder)/founder/campaigns/page.tsx
 export const dynamic = 'force-dynamic'
 
-import { CampaignsView } from '@/components/founder/campaigns/CampaignsView'
+import { CampaignsView } from '@/founder/campaigns/CampaignsView'
 import { redirect } from 'next/navigation'
 import { getUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'

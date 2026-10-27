@@ -4,7 +4,7 @@ const { getUser, from, order, variantsIn } = vi.hoisted(() => ({ getUser: vi.fn(
 vi.mock('@/lib/supabase/server', () => ({ getUser }));
 vi.mock('@/lib/supabase/service', () => ({ createServiceClient: () => ({ from }) }));
 vi.mock('next/navigation', () => ({ redirect: (path: string) => { throw new Error(`redirect:${path}`); } }));
-vi.mock('@/components/founder/experiments/ExperimentsPageClient', () => ({ ExperimentsPageClient: () => null }));
+vi.mock('@/founder/experiments/ExperimentsPageClient', () => ({ ExperimentsPageClient: () => null }));
 const experiment = { id: 'experiment-1', founder_id: 'founder-1', title: 'Existing experiment', status: 'draft' };
 describe('experiment variant count reads', () => {
   beforeEach(() => {

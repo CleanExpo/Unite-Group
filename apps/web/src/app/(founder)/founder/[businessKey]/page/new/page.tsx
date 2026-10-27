@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-import { NovelEditor } from '@/components/founder/editor/NovelEditor'
+import { NovelEditor } from '@/founder/editor/NovelEditor'
 
 interface Props {
   params: Promise<{ businessKey: string }>

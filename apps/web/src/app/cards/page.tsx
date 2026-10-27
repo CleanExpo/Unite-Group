@@ -1,16 +1,16 @@
 import type { Metadata } from 'next'
 
-import { SiteFooter } from '@/components/public/site/site-footer'
-import { PublicPageShell } from '@/components/public/layout/public-page-shell'
-import { CONTACT_MAILTO, SiteNav } from '@/components/public/site/site-nav'
+import { SiteFooter } from '@/public/site/site-footer'
+import { PublicPageShell } from '@/public/layout/public-page-shell'
+import { CONTACT_MAILTO, SiteNav } from '@/public/site/site-nav'
 import { cardsShowroomJsonLd } from '@/lib/cards-jsonld'
 import { liveCardTiers } from '@/lib/public-pricing'
 import { SITE_URL } from '@/lib/public-site'
 
 import { formatAud, serializeJsonLd, stripePaymentLink } from '@/app/grow/packages'
 
-import { SectionIntro } from '@/components/public/section-intro'
-import m from '@/components/public/layout/marketing-page.module.css'
+import { SectionIntro } from '@/public/section-intro'
+import m from '@/public/layout/marketing-page.module.css'
 
 import { EditionTile } from './edition-tile'
 import { EDITIONS } from './editions'

@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-import { StrategyRoomClient } from '@/components/founder/strategy/StrategyRoomClient'
+import { StrategyRoomClient } from '@/founder/strategy/StrategyRoomClient'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 export default function StrategyPage() {

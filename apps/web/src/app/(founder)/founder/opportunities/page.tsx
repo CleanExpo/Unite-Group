@@ -1,5 +1,5 @@
 // src/app/(founder)/founder/opportunities/page.tsx
-import { OpportunitiesPageClient } from '@/components/founder/opportunities/OpportunitiesPageClient'
+import { OpportunitiesPageClient } from '@/founder/opportunities/OpportunitiesPageClient'
 
 export const dynamic = 'force-dynamic'
 

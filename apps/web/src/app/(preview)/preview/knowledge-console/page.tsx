@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { KnowledgeConsoleClient } from '@/components/founder/knowledge-console/KnowledgeConsoleClient'
+import { KnowledgeConsoleClient } from '@/founder/knowledge-console/KnowledgeConsoleClient'
 
 export const dynamic = 'force-dynamic'
 

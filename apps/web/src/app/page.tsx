@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/supabase/server";
 import { serializeJsonLd } from "@/app/grow/packages";
-import { PublicHome } from "@/components/public/home/public-home";
+import { PublicHome } from "@/public/home/public-home";
 import { entityJsonLd } from "@/lib/entity";
 import { SITE_URL } from "@/lib/public-site";
 

@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 import { getUser } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/service'
-import { ExperimentDetailClient } from '@/components/founder/experiments/ExperimentDetailClient'
+import { ExperimentDetailClient } from '@/founder/experiments/ExperimentDetailClient'
 import type {
   Experiment,
   ExperimentVariant,

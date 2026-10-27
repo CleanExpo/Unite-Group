@@ -10,9 +10,9 @@ vi.mock('next/navigation', () => ({ redirect: vi.fn() }))
 import CardsShowroomPage from '@/app/cards/page'
 import CardTermsPage from '@/app/cards/terms/page'
 import { OrderView } from '@/app/cards/order/order-view'
-import { PublicHome } from '@/components/public/home/public-home'
+import { PublicHome } from '@/public/home/public-home'
 import { PAYMENT_ENTITY_LINE } from '@/app/cards/payment-entity'
-import { CONTACT_MAILTO } from '@/components/public/site/site-nav'
+import { CONTACT_MAILTO } from '@/public/site/site-nav'
 
 // Phill 26/10/2026 (UNI-3034): /grow is linked from the nav and the home page; /cards, /cards/order and /cards/terms
 // carry the same site header as the home page; Email us stays in the page body on / and /cards; the QR code sits on the /cards card face.

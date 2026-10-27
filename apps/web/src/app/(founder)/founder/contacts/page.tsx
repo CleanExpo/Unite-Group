@@ -1,5 +1,5 @@
 // src/app/(founder)/founder/contacts/page.tsx
-import { ContactsPageClient } from '@/components/founder/contacts/ContactsPageClient'
+import { ContactsPageClient } from '@/founder/contacts/ContactsPageClient'
 
 export const dynamic = 'force-dynamic'
 

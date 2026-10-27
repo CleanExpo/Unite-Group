@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useUIStore } from '@/store/ui'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
-import { NotificationBell } from '@/components/founder/notifications/NotificationBell'
+import { NotificationBell } from '@/founder/notifications/NotificationBell'
 import { MISSION_CONTROL_HOME } from '@/lib/navigation/mission-control'
 
 const BREADCRUMB_MAP: Record<string, string> = {

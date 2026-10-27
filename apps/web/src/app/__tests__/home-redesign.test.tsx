@@ -156,7 +156,7 @@ describe('four job cards and three step cards', () => {
     const jobs = blocks(between(await signedOut(), 'pillars', 'how'), 'data-job', 'article')
     expect(jobs).toHaveLength(4)
     // each job shows its own real product screen (Phill 25/10/2026: the real product, never abstract art)
-    const { JOB_SCREENS } = await import('@/components/public/home-screens')
+    const { JOB_SCREENS } = await import('@/public/home-screens')
     for (const [i, slug] of (['visibility', 'experience', 'conversion', 'intelligence'] as const).entries()) {
       expect(jobs[i], slug).toContain(`src="${JOB_SCREENS[slug].src}"`)
       expect(jobs[i], slug).toMatch(/<img[^>]*alt="[^"]{20,}"/)
@@ -171,7 +171,7 @@ describe('four job cards and three step cards', () => {
   it('has three step cards: pick, send, approve', async () => {
     const steps = blocks(between(await signedOut(), 'how', 'proof'), 'data-step', 'article')
     expect(steps.map((s) => strip(s.match(/<h3[^>]*>([\s\S]*?)<\/h3>/)![1]))).toEqual(['Pick an opener', 'Send your details', 'Approve a proof'])
-    const { STEP_SCREENS } = await import('@/components/public/home-screens')
+    const { STEP_SCREENS } = await import('@/public/home-screens')
     for (const [i, k] of (['pick', 'send', 'approve'] as const).entries()) {
       expect(steps[i], k).toContain(`src="${STEP_SCREENS[k].src}"`)
       expect(steps[i], k).toMatch(/<img[^>]*alt="[^"]{20,}"/)
@@ -191,7 +191,7 @@ describe('almost no paragraphs', () => {
 
 describe('images come from one map, and no file appears twice', () => {
   it('maps every slot to an existing file with real alt text and repeats no file', async () => {
-    const { VISUALS } = await import('@/components/public/visuals')
+    const { VISUALS } = await import('@/public/visuals')
     // the job and step cards moved to real product screens (home-screens.ts); the map keeps the media cards and banner
     expect(Object.keys(VISUALS).sort()).toEqual(['network', 'nexus', 'showroom'])
     const filled = Object.entries(VISUALS).flatMap(([slot, v]) => (v ? [[slot, v] as const] : []))

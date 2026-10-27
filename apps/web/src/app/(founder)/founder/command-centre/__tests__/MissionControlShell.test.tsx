@@ -6,7 +6,7 @@ import { MISSION_CONTROL_ROUTES } from '@/lib/navigation/mission-control'
 import { useUIStore } from '@/store/ui'
 
 vi.mock('next/navigation', () => ({ usePathname: () => '/founder/command-centre' }))
-vi.mock('@/components/founder/notifications/NotificationBell', () => ({ NotificationBell: () => <button>Notifications</button> }))
+vi.mock('@/founder/notifications/NotificationBell', () => ({ NotificationBell: () => <button>Notifications</button> }))
 
 beforeEach(() => {
   useUIStore.setState({ deckTheme: 'deck', commandBarOpen: false, captureOpen: false, sidebarOpen: false })

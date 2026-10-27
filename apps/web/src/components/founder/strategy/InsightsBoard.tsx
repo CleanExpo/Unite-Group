@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { InsightCard, type Insight, type InsightStatus } from './InsightCard'
-import { BusinessFilter } from '@/components/founder/kanban/BusinessFilter'
+import { BusinessFilter } from '@/founder/kanban/BusinessFilter'
 
 const COLUMNS: { status: InsightStatus; label: string }[] = [
   { status: 'new',       label: 'NEW' },

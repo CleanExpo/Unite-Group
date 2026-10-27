@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
 
-import { PublicPageShell } from '@/components/public/layout/public-page-shell'
-import { SiteFooter } from '@/components/public/site/site-footer'
-import { SiteNav } from '@/components/public/site/site-nav'
-import { SectionIntro } from '@/components/public/section-intro'
-import m from '@/components/public/layout/marketing-page.module.css'
+import { PublicPageShell } from '@/public/layout/public-page-shell'
+import { SiteFooter } from '@/public/site/site-footer'
+import { SiteNav } from '@/public/site/site-nav'
+import { SectionIntro } from '@/public/section-intro'
+import m from '@/public/layout/marketing-page.module.css'
 import { COMPANY_NAME, companyAbnLabel } from '@/lib/legal/company'
 
 import g from './grow-page.module.css'
