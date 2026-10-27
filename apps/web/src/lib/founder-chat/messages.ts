@@ -7,9 +7,24 @@
 // session-authenticated, so the caps are generosity-vs-cost guards, not
 // abuse guards.
 
+import { isMissionReceipt, type MissionReceipt } from './mission-receipt'
+
 export interface FounderChatMessage {
   role: 'user' | 'assistant'
   content: string
+  /**
+   * Mission Control chat W1a: the client's id for this user turn. Stored on
+   * the user message only as a pointer; the receipt is always re-read from
+   * cc_tasks. Never sent to the model.
+   */
+  turnId?: string
+}
+
+const TURN_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/** A turnId is a canonical UUID string; anything else is rejected or dropped. */
+export function isTurnId(value: unknown): value is string {
+  return typeof value === 'string' && TURN_ID_PATTERN.test(value)
 }
 
 export const MAX_MESSAGES = 40
@@ -17,14 +32,22 @@ export const MAX_CONTENT_CHARS = 8000
 const MAX_BUSINESS_KEY_CHARS = 120
 
 export type ParsedFounderChatBody =
-  | { ok: true; messages: FounderChatMessage[]; businessKey: string | null }
+  | { ok: true; messages: FounderChatMessage[]; businessKey: string | null; turnId: string | null }
   | { ok: false; error: string }
 
 export function parseFounderChatBody(raw: unknown): ParsedFounderChatBody {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     return { ok: false, error: 'Body must be a JSON object' }
   }
-  const body = raw as { messages?: unknown; businessKey?: unknown }
+  const body = raw as { messages?: unknown; businessKey?: unknown; turnId?: unknown }
+
+  let turnId: string | null = null
+  if (body.turnId !== undefined && body.turnId !== null) {
+    if (!isTurnId(body.turnId)) {
+      return { ok: false, error: 'turnId must be a UUID' }
+    }
+    turnId = body.turnId.toLowerCase()
+  }
 
   let businessKey: string | null = null
   if (body.businessKey !== undefined && body.businessKey !== null) {
@@ -60,6 +83,7 @@ export function parseFounderChatBody(raw: unknown): ParsedFounderChatBody {
     if (message.content.length > MAX_CONTENT_CHARS) {
       return { ok: false, error: `message content must be at most ${MAX_CONTENT_CHARS} characters` }
     }
+    // Model-bound: role and content only. A stored turnId never reaches the model.
     messages.push({ role: message.role, content: message.content })
   }
 
@@ -67,7 +91,7 @@ export function parseFounderChatBody(raw: unknown): ParsedFounderChatBody {
     return { ok: false, error: 'the last message must be from the user' }
   }
 
-  return { ok: true, messages, businessKey }
+  return { ok: true, messages, businessKey, turnId }
 }
 
 /**
@@ -114,6 +138,8 @@ export function buildFounderSystemPrompt(
 export interface FounderChatStreamEvent {
   delta?: string
   error?: string
+  /** Mission Control chat W1a receipt frame (always the first frame when present). */
+  mission?: MissionReceipt
 }
 
 export interface ExtractedSseEvents {
@@ -138,9 +164,14 @@ export function extractSseEvents(buffer: string): ExtractedSseEvents {
         continue
       }
       try {
-        const parsed = JSON.parse(payload) as FounderChatStreamEvent
-        if (typeof parsed.delta === 'string' || typeof parsed.error === 'string') {
-          events.push(parsed)
+        const parsed = JSON.parse(payload) as Record<string, unknown> | null
+        if (!parsed || typeof parsed !== 'object') continue
+        const event: FounderChatStreamEvent = {}
+        if (typeof parsed.delta === 'string') event.delta = parsed.delta
+        if (typeof parsed.error === 'string') event.error = parsed.error
+        if (isMissionReceipt(parsed.mission)) event.mission = parsed.mission
+        if (event.delta !== undefined || event.error !== undefined || event.mission !== undefined) {
+          events.push(event)
         }
       } catch {
         // Malformed frame — skip it rather than abort the whole stream.

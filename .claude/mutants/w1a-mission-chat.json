@@ -1,0 +1,142 @@
+[
+  {
+    "id": "a",
+    "file": "src/lib/founder-chat/mission-intent.ts",
+    "find": "return imperativeBuild ? 'build_request' : 'question'",
+    "replace": "return 'question'",
+    "tests": [
+      "src/lib/founder-chat/__tests__/mission-intent.test.ts"
+    ],
+    "expect": "AC-3"
+  },
+  {
+    "id": "b",
+    "file": "src/lib/founder-chat/mission-intent.ts",
+    "find": "return imperativeBuild ? 'build_request' : 'question'",
+    "replace": "return 'build_request'",
+    "tests": [
+      "src/lib/founder-chat/__tests__/mission-intent.test.ts"
+    ],
+    "expect": "AC-12"
+  },
+  {
+    "id": "c",
+    "file": "src/lib/founder-chat/mission-capture.ts",
+    "find": "const externalRef = turnId ? `${CHAT_EXTERNAL_REF_PREFIX}${turnId}` : null",
+    "replace": "const externalRef = turnId ? `${CHAT_EXTERNAL_REF_PREFIX}${founderId}` : null",
+    "tests": [
+      "src/lib/founder-chat/__tests__/mission-capture.test.ts"
+    ],
+    "expect": "AC-1"
+  },
+  {
+    "id": "d",
+    "file": "src/lib/founder-chat/mission-capture.ts",
+    "find": "          status: 'proposed',\n",
+    "replace": "          status: 'awaiting_approval',\n",
+    "tests": [
+      "src/lib/founder-chat/__tests__/mission-capture.test.ts"
+    ],
+    "expect": "AC-1"
+  },
+  {
+    "id": "e",
+    "file": "src/lib/founder-chat/mission-capture.ts",
+    "find": "          humanApprovalRequired: true,\n",
+    "replace": "          humanApprovalRequired: false,\n",
+    "tests": [
+      "src/lib/founder-chat/__tests__/mission-capture.test.ts"
+    ],
+    "expect": "AC-1"
+  },
+  {
+    "id": "f",
+    "file": "src/lib/founder-chat/mission-capture.ts",
+    "find": "  if (!project) return finish(kind, { kind: 'needs_project' })\n  projectKey = project.name\n",
+    "replace": "  projectKey = project?.name ?? null\n",
+    "tests": [
+      "src/lib/founder-chat/__tests__/mission-capture.test.ts"
+    ],
+    "expect": "AC-4"
+  },
+  {
+    "id": "g",
+    "file": "src/lib/founder-chat/mission-capture.ts",
+    "find": "    return finish(kind, storeFailureReceipt(err))\n",
+    "replace": "    return finish(kind, { kind: 'recorded' } as MissionReceipt)\n",
+    "tests": [
+      "src/lib/founder-chat/__tests__/mission-capture.test.ts"
+    ],
+    "expect": "AC-14"
+  },
+  {
+    "id": "h",
+    "file": "src/app/api/founder/chat/route.ts",
+    "find": "  // The founder allow-list is enforced here as well as in the proxy, before any work.\n  if (!hasPrivateAccess(user)) {\n    return NextResponse.json({ error: 'Forbidden' }, { status: 403, headers: NO_STORE_HEADERS })\n  }\n\n  let raw: unknown\n  try {\n    raw = await request.json()\n  } catch {\n    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400, headers: NO_STORE_HEADERS })\n  }\n\n  const parsed = parseFounderChatBody(raw)\n  if (!parsed.ok) {\n    return NextResponse.json({ error: parsed.error }, { status: 400, headers: NO_STORE_HEADERS })\n  }\n\n  let client: Anthropic\n  try {\n    client = getAIClient()\n  } catch (err) {\n    // Founder-facing surface: report the real configuration failure.\n    const message = err instanceof Error ? err.message : 'Anthropic client not configured'\n    return NextResponse.json({ error: message }, { status: 503, headers: NO_STORE_HEADERS })\n  }\n\n  const turns = trimToLeadingUserTurn(parsed.messages)\n  const query = turns[turns.length - 1].content\n\n  // Optional business grounding \u2014 the same path the public agent uses,\n  // founder-scoped by the session (RLS) client.\n  let grounding: GroundingResult | null = null\n  if (parsed.businessKey) {\n    try {\n      const supabase = await createClient()\n      grounding = await ground(supabase, user.id, parsed.businessKey, query)\n    } catch (err) {\n      const message = err instanceof Error ? err.message : 'Grounding failed'\n      return NextResponse.json({ error: message }, { status: 500, headers: NO_STORE_HEADERS })\n    }\n    if (!grounding.businessName) {\n      // ground() fails closed when the key resolves to no business \u2014 for the\n      // founder that is a real error, not something to paper over.\n      return NextResponse.json(\n        { error: `No business found for key \"${parsed.businessKey}\"` },\n        { status: 404, headers: NO_STORE_HEADERS },\n      )\n    }\n  }\n\n  const system = buildFounderSystemPrompt(\n    grounding?.businessName ?? null,\n    grounding ? formatGroundingContext(grounding.snippets) : '',\n  )\n\n  // Mission capture: after every early return, before the stream, in its own\n  // try/catch. A failure here never blocks the answer.\n  let receipt: MissionReceipt | null = null\n  try {\n    const supabase = await createClient()\n    const captured = await captureMission({\n      founderId: user.id,\n      turnId: parsed.turnId,\n      text: query,\n      client: supabase as unknown as SupabaseLike,\n    })\n    receipt = captured.receipt\n  } catch (err) {\n    captureApiError(err, { route: ROUTE, founderId: user.id, turnId: parsed.turnId, stage: 'create_task' })\n    receipt = parsed.turnId ? { kind: 'not_confirmed' } : null\n  }\n",
+    "replace": "\n  let raw: unknown\n  try {\n    raw = await request.json()\n  } catch {\n    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400, headers: NO_STORE_HEADERS })\n  }\n\n  const parsed = parseFounderChatBody(raw)\n  if (!parsed.ok) {\n    return NextResponse.json({ error: parsed.error }, { status: 400, headers: NO_STORE_HEADERS })\n  }\n\n  let client: Anthropic\n  try {\n    client = getAIClient()\n  } catch (err) {\n    // Founder-facing surface: report the real configuration failure.\n    const message = err instanceof Error ? err.message : 'Anthropic client not configured'\n    return NextResponse.json({ error: message }, { status: 503, headers: NO_STORE_HEADERS })\n  }\n\n  const turns = trimToLeadingUserTurn(parsed.messages)\n  const query = turns[turns.length - 1].content\n\n  // Optional business grounding \u2014 the same path the public agent uses,\n  // founder-scoped by the session (RLS) client.\n  let grounding: GroundingResult | null = null\n  if (parsed.businessKey) {\n    try {\n      const supabase = await createClient()\n      grounding = await ground(supabase, user.id, parsed.businessKey, query)\n    } catch (err) {\n      const message = err instanceof Error ? err.message : 'Grounding failed'\n      return NextResponse.json({ error: message }, { status: 500, headers: NO_STORE_HEADERS })\n    }\n    if (!grounding.businessName) {\n      // ground() fails closed when the key resolves to no business \u2014 for the\n      // founder that is a real error, not something to paper over.\n      return NextResponse.json(\n        { error: `No business found for key \"${parsed.businessKey}\"` },\n        { status: 404, headers: NO_STORE_HEADERS },\n      )\n    }\n  }\n\n  const system = buildFounderSystemPrompt(\n    grounding?.businessName ?? null,\n    grounding ? formatGroundingContext(grounding.snippets) : '',\n  )\n\n  // Mission capture: after every early return, before the stream, in its own\n  // try/catch. A failure here never blocks the answer.\n  let receipt: MissionReceipt | null = null\n  try {\n    const supabase = await createClient()\n    const captured = await captureMission({\n      founderId: user.id,\n      turnId: parsed.turnId,\n      text: query,\n      client: supabase as unknown as SupabaseLike,\n    })\n    receipt = captured.receipt\n  } catch (err) {\n    captureApiError(err, { route: ROUTE, founderId: user.id, turnId: parsed.turnId, stage: 'create_task' })\n    receipt = parsed.turnId ? { kind: 'not_confirmed' } : null\n  }\n  // The founder allow-list is enforced here as well as in the proxy, before any work.\n  if (!hasPrivateAccess(user)) {\n    return NextResponse.json({ error: 'Forbidden' }, { status: 403, headers: NO_STORE_HEADERS })\n  }\n",
+    "tests": [
+      "src/app/api/founder/chat/__tests__/route.mission.test.ts"
+    ],
+    "expect": "AC-6"
+  },
+  {
+    "id": "i",
+    "file": "src/lib/founder-chat/mission-receipt.ts",
+    "find": "  return { kind: 'mission', ...missionFields(row) }\n",
+    "replace": "  return { kind: 'mission', ...missionFields(row), status: 'proposed' }\n",
+    "tests": [
+      "src/app/api/founder/chat/__tests__/route.mission.test.ts"
+    ],
+    "expect": "AC-7"
+  },
+  {
+    "id": "j",
+    "file": "src/app/api/founder/chat/route.ts",
+    "find": "      if (receipt) controller.enqueue(sseEvent({ mission: receipt }))\n      try {\n        const stream = await client.messages.create({\n          model: MODEL,\n          max_tokens: MAX_OUTPUT_TOKENS,\n          system,\n          messages: modelTurns,\n          stream: true,\n        })\n        for await (const event of stream) {\n          if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {\n            controller.enqueue(sseEvent({ delta: event.delta.text }))\n          }\n        }\n      } catch (err) {\n        // Logged server-side in full; the founder sees a sanitised terminal event.\n        captureApiError(err, { route: ROUTE, founderId: user.id, turnId: parsed.turnId, stage: 'stream' })\n        controller.enqueue(sseEvent({ error: STREAM_FAILED_MESSAGE }))\n      } finally {\n        controller.enqueue(SSE_DONE)",
+    "replace": "      try {\n        const stream = await client.messages.create({\n          model: MODEL,\n          max_tokens: MAX_OUTPUT_TOKENS,\n          system,\n          messages: modelTurns,\n          stream: true,\n        })\n        for await (const event of stream) {\n          if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {\n            controller.enqueue(sseEvent({ delta: event.delta.text }))\n          }\n        }\n      } catch (err) {\n        // Logged server-side in full; the founder sees a sanitised terminal event.\n        captureApiError(err, { route: ROUTE, founderId: user.id, turnId: parsed.turnId, stage: 'stream' })\n        controller.enqueue(sseEvent({ error: STREAM_FAILED_MESSAGE }))\n      } finally {\n        if (receipt) controller.enqueue(sseEvent({ mission: receipt }))\n        controller.enqueue(SSE_DONE)",
+    "tests": [
+      "src/app/api/founder/chat/__tests__/route.mission.test.ts"
+    ],
+    "expect": "AC-18"
+  },
+  {
+    "id": "k",
+    "file": "src/lib/founder-chat/messages.ts",
+    "find": "    if (!isTurnId(body.turnId)) {\n      return { ok: false, error: 'turnId must be a UUID' }\n    }\n    turnId = body.turnId.toLowerCase()\n",
+    "replace": "    turnId = String(body.turnId)\n",
+    "tests": [
+      "src/app/api/founder/chat/__tests__/route.mission.test.ts"
+    ],
+    "expect": "AC-18"
+  },
+  {
+    "id": "l",
+    "file": "src/lib/founder-chat/mission-capture.ts",
+    "find": "    event = await withDeadline(appendCreatedEvent(task, turnId, client), signal)\n",
+    "replace": "    event = created ? await withDeadline(appendCreatedEvent(task, turnId, client), signal) : null\n",
+    "tests": [
+      "src/lib/founder-chat/__tests__/mission-capture.test.ts"
+    ],
+    "expect": "AC-16"
+  },
+  {
+    "id": "m",
+    "file": "src/lib/founder-chat/mission-capture.ts",
+    "find": "if (task.founder_id !== founderId || readDeliveryMetadata(task)?.inputHash !== inputHash) {",
+    "replace": "if (task.founder_id !== founderId) {",
+    "tests": [
+      "src/lib/founder-chat/__tests__/mission-capture.test.ts"
+    ],
+    "expect": "AC-13"
+  },
+  {
+    "id": "n",
+    "file": "src/lib/founder-chat/mission-capture.ts",
+    "find": "    report(err, 'create_task')\n",
+    "replace": "    void err\n",
+    "tests": [
+      "src/lib/founder-chat/__tests__/mission-capture.test.ts"
+    ],
+    "expect": "AC-14"
+  }
+]
