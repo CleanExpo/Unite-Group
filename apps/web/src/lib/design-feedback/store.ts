@@ -29,11 +29,12 @@ export async function recordDesignEvent(client: Client, founderId: string, event
 export const EVENT_WINDOW_DAYS = 180
 export const EVENT_READ_LIMIT = 5000
 
-export async function loadRecentEvents(client: Client, now: Date = new Date()) {
+export async function loadRecentEvents(client: Client, founderId: string, now: Date = new Date()) {
   const since = new Date(now.getTime() - EVENT_WINDOW_DAYS * 86_400_000).toISOString()
   return client
     .from('design_events')
     .select('system, template, action, edits, reason')
+    .eq('founder_id', founderId)
     .gte('occurred_at', since)
     .order('occurred_at', { ascending: false })
     .limit(EVENT_READ_LIMIT)
@@ -43,10 +44,11 @@ export async function saveLessons(client: Client, founderId: string, lessons: De
   return client.from('design_lessons').insert({ founder_id: founderId, lessons, event_count: eventCount })
 }
 
-export async function loadLatestLessons(client: Client): Promise<DesignLesson[]> {
+export async function loadLatestLessons(client: Client, founderId: string): Promise<DesignLesson[]> {
   const { data, error } = await client
     .from('design_lessons')
     .select('lessons')
+    .eq('founder_id', founderId)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()

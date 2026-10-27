@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { isDesignLessonsArmed } from '../arming'
 import { loadPreferredEdition } from '../preferred'
-import { loadLatestLessons, recordDesignEvent, saveLessons, isUndefinedTable } from '../store'
+import { loadLatestLessons, loadRecentEvents, recordDesignEvent, saveLessons, isUndefinedTable } from '../store'
 import { summarizeLessons } from '../lessons'
 
 type Result = { data: unknown; error: unknown }
@@ -32,6 +32,24 @@ describe('arming', () => {
   })
 })
 
+describe('owner scoping', () => {
+  it('reads only the founder\'s own lessons and events', async () => {
+    const { client, calls } = fakeClient()
+    await loadLatestLessons(client, 'founder-1')
+    await loadRecentEvents(client, 'founder-1')
+    for (const table of ['design_lessons', 'design_events']) {
+      expect(calls.filter((c) => c.table === table && c.method === 'eq').map((c) => c.args), table).toContainEqual(['founder_id', 'founder-1'])
+    }
+  })
+
+  it('pre-selects nothing, and opens no client, when FOUNDER_USER_ID is unset', async () => {
+    let made = 0
+    const env = { DESIGN_LESSONS_LIVE: '1' } as unknown as NodeJS.ProcessEnv
+    expect(await loadPreferredEdition(env, () => { made++; return fakeClient().client })).toBeNull()
+    expect(made).toBe(0)
+  })
+})
+
 describe('store', () => {
   it('writes the founder id from the session, never the payload', async () => {
     const { client, calls } = fakeClient()
@@ -49,8 +67,8 @@ describe('store', () => {
 
   it('reads the latest snapshot, or [] when there is none', async () => {
     const { client } = fakeClient({ design_lessons: [{ data: { lessons }, error: null }, { data: null, error: null }] })
-    expect(await loadLatestLessons(client)).toEqual(lessons)
-    expect(await loadLatestLessons(client)).toEqual([])
+    expect(await loadLatestLessons(client, 'founder-1')).toEqual(lessons)
+    expect(await loadLatestLessons(client, 'founder-1')).toEqual([])
   })
 
   it('recognises a missing table', () => {
@@ -61,7 +79,7 @@ describe('store', () => {
 })
 
 describe('loadPreferredEdition', () => {
-  const armed = { DESIGN_LESSONS_LIVE: '1' } as unknown as NodeJS.ProcessEnv
+  const armed = { DESIGN_LESSONS_LIVE: '1', FOUNDER_USER_ID: ' founder-1 ' } as unknown as NodeJS.ProcessEnv
 
   it('returns null and reads nothing when unarmed', async () => {
     let made = 0
@@ -74,8 +92,9 @@ describe('loadPreferredEdition', () => {
   })
 
   it('returns the learned edition when armed', async () => {
-    const { client } = fakeClient({ design_lessons: [{ data: { lessons }, error: null }] })
+    const { client, calls } = fakeClient({ design_lessons: [{ data: { lessons }, error: null }] })
     expect(await loadPreferredEdition(armed, () => client)).toBe('forge')
+    expect(calls.find((c) => c.method === 'eq')?.args).toEqual(['founder_id', 'founder-1'])
   })
 
   it('falls back to null on any read error', async () => {
