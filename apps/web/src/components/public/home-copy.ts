@@ -26,7 +26,7 @@ export const HOME_HIGHLIGHTS = {
   srTitle: 'Featured',
   cards: [
     { title: 'Living cards', href: '/cards', line: 'A short film that lands on your mark, not ours.' },
-    { title: 'Nexus CRM', href: '/solutions/intelligence', line: 'The inbox we are building around your pipeline.' },
+    { title: 'CRM', href: '/solutions/intelligence', line: 'The inbox we are building around your pipeline.' },
     { title: 'Pricing', href: '/pricing', line: 'Starter plan, signatures, and card tiers — GST where it applies.' },
   ],
 } as const

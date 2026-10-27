@@ -58,6 +58,14 @@ describe('Email us', () => {
     const body = html.slice(html.indexOf('<main'))
     expect(body).toMatch(/href="mailto:contact@unite-group.in"[^>]*>\s*Email us/)
   })
+
+  // Phill, 27/10/2026: keep Rana's Email us link. It must stay exactly one, outside the contact form section.
+  it('/ has exactly one Email us mailto, and none inside the contact section', () => {
+    const html = pages[0][1]()
+    expect(html.match(/href="mailto:[^"]*"[^>]*>\s*Email us/g)).toHaveLength(1)
+    const contact = html.slice(html.indexOf('id="contact"'), html.indexOf('<footer'))
+    expect(contact).not.toContain('href="mailto:')
+  })
 })
 
 describe('QR code on the /cards card', () => {
