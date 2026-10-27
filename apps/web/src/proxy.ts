@@ -77,6 +77,8 @@ const EXACT_PUBLIC_FILES: ReadonlySet<string> = new Set([
   '/llms.txt', // AI-agent identification file; static, no private data
   '/robots.txt',
   '/sitemap.xml',
+  '/video-sitemap.xml', // Video sitemap for the /cards films (UNI-3061); static, no private data
+  '/b79e59e5b8c83f6a68de976c06aaed09.txt', // IndexNow key file (UNI-3061); public by design, matches INDEXNOW_KEY
   '/site.webmanifest',
   '/founder-os-sw.js',
   '/grow', // Public SMB services offer page; its form posts to the public /api/leads

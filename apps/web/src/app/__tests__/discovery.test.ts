@@ -45,7 +45,7 @@ describe('robots (AC-7)', () => {
       expect(r.disallow).toBe('/')
       expect(r.allow).toBeUndefined()
     }
-    expect(robots().sitemap).toBe('https://unite-group.in/sitemap.xml')
+    expect(robots().sitemap).toEqual(['https://unite-group.in/sitemap.xml', 'https://unite-group.in/video-sitemap.xml'])
   })
 })
 
