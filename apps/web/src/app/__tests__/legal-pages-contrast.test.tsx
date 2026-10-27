@@ -13,7 +13,7 @@ import TermsOfServicePage from '../terms-of-service/page'
 // (4.5:1) on the background behind it. Anything the parser cannot read (a keyword such as `white`, hsl(),
 // an unknown variable) fails closed.
 // Since 076b0a91 both pages render through the shared legal shell in its 'site' tone: the dark site canvas,
-// coloured by components/public/legal-shell.module.css with tokens from styles/public-tokens.css. The
+// coloured by components/public/legal/legal-shell.module.css with tokens from styles/public-tokens.css. The
 // section component (legal-document.module.css) still sets dark ink, so any text the shell's light-ink
 // rules do not reach would be dark on dark: the third test below checks that none exists.
 const PAPER: [number, number, number] = [255, 253, 247]
@@ -85,7 +85,7 @@ const rgb = (value: string): [number, number, number] => {
   return [c[0], c[1], c[2]]
 }
 
-const SHELL = postcss.parse(readFileSync(join(PUBLIC, 'legal-shell.module.css'), 'utf8'))
+const SHELL = postcss.parse(readFileSync(join(PUBLIC, 'legal', 'legal-shell.module.css'), 'utf8'))
 const declared = (selector: string, prop: string) => {
   let value: string | undefined
   SHELL.walkRules((rule) => {

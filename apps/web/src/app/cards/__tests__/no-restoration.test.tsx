@@ -200,7 +200,7 @@ const reachableSources = (routeFiles: string[]) => {
     seen.add(file)
     const text = readFileSync(file, 'utf8')
     for (const [, spec] of text.matchAll(/(?:from|import)\s*\(?\s*['"]([^'"]+)['"]/g)) {
-      const base = spec.startsWith('@/') ? join(SRC, spec.slice(2)) : spec.startsWith('.') ? resolve(dirname(file), spec) : null
+      const base = spec.startsWith('@/public/') ? join(SRC, 'components', 'public', spec.slice(9)) : spec.startsWith('@/') ? join(SRC, spec.slice(2)) : spec.startsWith('.') ? resolve(dirname(file), spec) : null
       if (!base) continue
       const hit = SOURCE_EXTENSIONS.map((ext) => base + ext).find((p) => existsSync(p) && statSync(p).isFile())
       expect(hit, `${relative(SRC, file)} imports ${spec}, which the guard cannot find`).toBeDefined()

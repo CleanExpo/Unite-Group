@@ -109,7 +109,7 @@ const REVIEWED_GROW_STRINGS: Record<string, number> = {
 function closure(start: string[]): string[] {
   const seen = new Set<string>()
   const resolve = (from: string, spec: string) => {
-    const base = spec.startsWith('@/') ? join(SRC, spec.slice(2)) : spec.startsWith('.') ? join(dirname(from), spec) : null
+    const base = spec.startsWith('@/public/') ? join(SRC, 'components', 'public', spec.slice(9)) : spec.startsWith('@/') ? join(SRC, spec.slice(2)) : spec.startsWith('.') ? join(dirname(from), spec) : null
     if (!base) return null
     for (const p of [base, ...['.ts', '.tsx', '.js', '.mjs'].map((e) => base + e), ...['index.ts', 'index.tsx'].map((i) => join(base, i))]) {
       if (existsSync(p) && statSync(p).isFile()) return p
