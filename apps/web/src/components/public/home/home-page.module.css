@@ -925,6 +925,7 @@
   50% { transform: rotateX(3deg) rotateY(-4deg) translateY(-8px); }
 }
 @keyframes spotSheen { 0% { background-position: 120% 0; } 60%, 100% { background-position: -120% 0; } }
+.spotCopy { min-width: 0; }
 .liveList { list-style: none; margin: 1.25rem 0 0; padding: 0; display: grid; gap: 0.6rem; }
 .liveItem {
   display: grid;
@@ -943,7 +944,10 @@
 .liveItem [data-line] { grid-area: line; font-size: 0.9rem; color: var(--pub-ink-muted, rgba(255,255,255,0.72)); }
 .liveItem [data-chip] { grid-area: chip; }
 .liveDot { grid-area: dot; width: 8px; height: 8px; border-radius: 50%; background: #3ecf8e; box-shadow: 0 0 0 4px rgba(62, 207, 142, 0.15); }
-.comingLine { margin-top: 1rem; font-size: 0.88rem; color: var(--pub-ink-muted, rgba(255,255,255,0.7)); }
+.comingLine { margin-top: 1rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; font-size: 0.88rem; color: var(--pub-ink-muted, rgba(255,255,255,0.7)); }
+.comingNames { display: flex; flex-wrap: wrap; gap: 0.25rem 0.9rem; list-style: none; margin: 0; padding: 0; }
+.comingNames strong { font-weight: 500; }
+.comingNote { flex-basis: 100%; margin: 0; }
 @media (prefers-reduced-motion: reduce) {
   .spotCard, .spotSheen { animation: none; transition: none; transform: none; }
 }

@@ -52,6 +52,9 @@ const START_LINKS: StartLink[] = [
   { key: 'talk', no: '05', name: 'Talk', line: 'Ask a question and we reply by email', href: '#contact' },
 ]
 
+// Not for sale yet: CRM first (Phill, 27/10/2026: just "CRM"), then the three intelligence products.
+const COMING_NAMES = ['CRM', ...COMING.map((c) => c.name)]
+
 const createLine = (from: string | null) => (from ? `Order a living video card, from ${from}` : START_LINKS[2].line)
 
 const STEPS = [
@@ -173,11 +176,17 @@ export function HomePage() {
                   </li>
                 ))}
               </ul>
-              <p className={hp.comingLine} data-coming>
-                <span className={pub.chip} data-chip="coming">Coming</span>{' '}
-                <span data-coming-list>{['CRM', ...COMING.map((c) => c.name)].join(' · ')}</span>.{' '}
-                <span data-coming-note>{COMING_NOTE}</span>
-              </p>
+              <div className={hp.comingLine} data-coming>
+                <span className={pub.chip} data-chip="coming">Coming</span>
+                <ul className={hp.comingNames} data-coming-list>
+                  {COMING_NAMES.map((name) => (
+                    <li key={name} data-coming-item>
+                      <strong data-name>{name}</strong>
+                    </li>
+                  ))}
+                </ul>
+                <p className={hp.comingNote} data-coming-note>{COMING_NOTE}</p>
+              </div>
             </Reveal>
           </div>
         </div>

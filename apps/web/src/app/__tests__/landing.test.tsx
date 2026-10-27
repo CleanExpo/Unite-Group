@@ -91,8 +91,8 @@ describe('/ positions (AC-3)', () => {
   it('has the eight positions in the fixed order', async () => {
     const html = await signedOut()
     const ids = [...html.matchAll(/<(?:section|footer)[^>]*data-position[^>]*id="([a-z]+)"/g)].map((m) => m[1])
-    // Phill 25/10/2026: the living-cards gallery comes before the four jobs
-    expect(ids).toEqual(['hero', 'cards', 'pillars', 'how', 'proof', 'answers', 'contact', 'footer'])
+    // Phill 27/10/2026 (look approved): the spotlight replaces the four jobs and the showroom banner
+    expect(ids).toEqual(['hero', 'today', 'cards', 'how', 'answers', 'contact', 'footer'])
   })
 })
 
@@ -127,7 +127,12 @@ describe('/ hero and metadata', () => {
     const html = await signedOut()
     expect(html).toContain('data-hero-media')
     expect(html.indexOf('<h1')).toBeGreaterThan(-1)
-    expect(html).not.toMatch(/<video|\.mp4/)
+    // the hero mounts no video on the server; the one server-rendered video is the spotlight's moving card, which
+    // must never be a static picture (Phill), looping the first 1.8 s of the Constellation film below the fold
+    const hero = html.slice(html.indexOf('id="hero"'), html.indexOf('id="start"'))
+    expect(hero).not.toMatch(/<video|\.mp4/)
+    expect(html.match(/<video\b[^>]*>/g)).toEqual([expect.stringContaining('src="/cards/media/edition-constellation.mp4#t=0,1.8"')])
+    expect(html.indexOf('<video')).toBeGreaterThan(html.indexOf('id="today"'))
     expect(html).not.toMatch(/FIG\. 1|hero-figure|Pause the animation/)
     const dir = join(__dirname, '..', '..', 'components', 'public')
     expect(readdirSync(dir).filter((f) => /\.(png|jpe?g|webp|gif|mp4|webm|avif)$/i.test(f))).toEqual([])
@@ -145,15 +150,15 @@ describe('/ hero and metadata', () => {
   it('keeps the card offer out of the hero and lower down: the group section, then the gallery, then the jobs', async () => {
     const html = await signedOut()
     const hero = html.slice(html.indexOf('id="hero"'), html.indexOf('id="start"'))
-    expect(html.indexOf('id="start"'), 'the chooser follows the hero').toBeLessThan(html.indexOf('id="highlights"'))
+    expect(html.indexOf('id="start"'), 'the chooser follows the hero').toBeLessThan(html.indexOf('id="today"'))
     expect(hero).not.toMatch(/living card|\$249|\$449|GST/)
     expect(hero).toContain('href="#contact"')
     expect(hero).toContain('href="#start"')
     expect(html).not.toContain('id="group"')
     expect(html.indexOf('id="hero"')).toBeLessThan(html.indexOf('id="today"'))
     expect(html.indexOf('id="today"')).toBeLessThan(html.indexOf('id="cards"'))
-    expect(html.indexOf('id="cards"')).toBeLessThan(html.indexOf('id="pillars"'))
-    const cards = html.slice(html.indexOf('id="cards"'), html.indexOf('id="pillars"'))
+    expect(html.indexOf('id="cards"')).toBeLessThan(html.indexOf('id="how"'))
+    const cards = html.slice(html.indexOf('id="cards"'), html.indexOf('id="how"'))
     expect(cards).toContain('See the living card')
     expect(cards).toContain('$249')
     expect(cards).toContain('$449')
@@ -170,37 +175,31 @@ describe('/ hero and metadata', () => {
 })
 
 describe('/ pillars and honesty', () => {
-  it('marks every pillar Coming, and says on Conversion alone that the card is on sale', async () => {
+  // 27/10/2026 redesign: the pillar cards and showroom banner left the home. What is not live sits on ONE Coming line,
+  // and no Coming item carries a price or a link.
+  it('marks what is not live as Coming on one line, with no price and no link, and links every pillar page elsewhere', async () => {
     const html = await signedOut()
-    const row = html.slice(html.indexOf('id="pillars"'), html.indexOf('id="how"'))
-    expect(row.match(/>Coming</g)).toHaveLength(4)
-    expect(row.match(/Card from \$249/g)).toHaveLength(1)
-    expect(row).not.toMatch(/Ask us/)
-    for (const p of PILLARS) expect(row).toContain(`href="${pillarPath(p.slug)}"`)
+    expect(html).not.toContain('id="pillars"')
+    const line = html.slice(html.indexOf('data-coming'), html.indexOf('data-coming-note'))
+    expect(line.length).toBeGreaterThan(50)
+    expect(line).toContain('>Coming<')
+    expect(line).not.toMatch(/\$\d|<a /)
+    for (const p of PILLARS) expect(html).toContain(`href="${pillarPath(p.slug)}"`)
   })
 
-  it('names no card price on the Conversion chip while online ordering is off', async () => {
+  it('names no card price outside the gallery offer while online ordering is off', async () => {
     vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', '')
     vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_CUSTOM', '')
     const html = await signedOut()
-    const row = html.slice(html.indexOf('id="pillars"'), html.indexOf('id="how"'))
-    expect(row.match(/Card on enquiry/g)).toHaveLength(1)
-    expect(row).not.toMatch(/Card from \$/)
+    // the contact form's interest list names the two card offers by price (unchanged); everything else stays price-free
+    const rest = html.slice(0, html.indexOf('id="cards"')) + html.slice(html.indexOf('id="how"'), html.indexOf('id="contact"'))
+    expect(strip(rest)).not.toMatch(/Card from \$|\$249|\$449/)
   })
 
-  it('has one honest proof sentence: no table, no numbers, no testimonials', async () => {
+  it('makes no proof claim: no testimonials, no customer counts, and no showroom banner', async () => {
     const html = await signedOut()
-    const proof = section(html, 'proof', 'answers')
-    expect(proof).not.toMatch(/<table|<li/)
-    expect(strip(proof)).not.toMatch(/\d|testimonial/i)
-    expect(proof).toContain('href="/cards"')
-  })
-
-  // Codex 25/10: the hero film is not one of the card editions the showroom plays, so "every film we have made" was false
-  it('scopes the results banner to the card films the showroom really plays, never to every film', async () => {
-    const proof = strip(section(await signedOut(), 'proof', 'answers'))
-    expect(proof).not.toMatch(/every film|all (of )?our films|all films/i)
-    expect(proof).toMatch(/card films/i)
+    expect(html).not.toContain('id="proof"')
+    expect(strip(html)).not.toMatch(/testimonial|\d+\+? (happy )?(customers|clients|businesses)/i)
   })
 
   it('has four to six real questions and says plainly what is unknown', async () => {
