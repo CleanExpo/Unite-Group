@@ -3,7 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CARD_TIERS } from '@/app/cards/order/order-view'
 
 const sendEmail = vi.hoisted(() => vi.fn())
-vi.mock('@/lib/integrations/mailtrap', () => ({ sendEmail, mailtrapFromEmail: () => process.env.MAILTRAP_FROM_EMAIL || 'contact@unite-group.in' }))
+// Only the send is replaced; the address helpers stay real, so a new or changed helper cannot drift from the mock.
+vi.mock('@/lib/integrations/mailtrap', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/integrations/mailtrap')>()),
+  sendEmail,
+}))
 
 import { cardOrderReference, matchCardTier, recordPaidCardOrder } from '../paid-order'
 
@@ -83,6 +87,12 @@ describe('recordPaidCardOrder', () => {
     expect(await recordPaidCardOrder(admin, event({ amount_total: 24900 }))).toBe('created')
     expect(sendEmail.mock.calls[0][0]).toMatchObject({ categories: ['card-order-alert'] })
     expect(sendEmail.mock.calls[0][0]).not.toHaveProperty('disableTracking')
+  })
+
+  it('sends the order alert to contact@unite-group.in when LEAD_ALERT_EMAIL_TO is unset', async () => {
+    vi.stubEnv('LEAD_ALERT_EMAIL_TO', '')
+    expect(await recordPaidCardOrder(admin, event({ amount_total: 24900 }))).toBe('created')
+    expect(sendEmail.mock.calls[0][0].to).toEqual({ email: 'contact@unite-group.in' })
   })
 
   it.each([1, 2, 5])('records %i extra business(es) with tier extra_business and quantity', async (n) => {

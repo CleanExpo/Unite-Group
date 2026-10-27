@@ -2,8 +2,8 @@ import { ALSO, TILES } from './businesses'
 import s from './public.module.css'
 import t from './story.module.css'
 
-// "The group": six dark glass tiles, each the business's real logo and one line. A name links only where its site
-// answered 200 (see businesses.ts). The approved Disaster Recovery sentence is shown once, as a caption under the tiles.
+// "The group": dark glass tiles, each the business's real logo and one line. A name links only where its site
+// answered 200 (see businesses.ts).
 export function Story() {
   return (
     <section id="group" className={s.section} aria-labelledby="story-title">

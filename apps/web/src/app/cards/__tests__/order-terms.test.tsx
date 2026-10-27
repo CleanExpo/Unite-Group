@@ -4,6 +4,8 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { SiteNav } from '@/components/public/site-nav'
+
 import { OrderView } from '../order/order-view'
 
 const fixture = (n: string) => readFileSync(join(__dirname, 'fixtures', n), 'utf8')
@@ -11,7 +13,9 @@ const render = (edition: string | null, referrer: string | null) =>
   renderToStaticMarkup(createElement(OrderView, { edition, referrer }))
 
 /**
- * CSS-module class names carry a hash of the stylesheet; compare shapes, not hashes. The baselines were
+ * CSS-module class names carry a hash of the stylesheet; compare shapes, not hashes. The baselines were recaptured
+ * from the redesigned order page (926b8fcf) on 27/10/2026, and again for main's new footer (fcf5d42a; every
+ * difference sat between <footer and </footer>); they were first
  * captured from origin/main when the footer still said 'ABN pending'; the ABN fallback is a separate, tested
  * change (company.test.ts), so the old label is mapped to the new one here.
  */
@@ -22,6 +26,10 @@ const norm = (h: string) =>
     // Site analytics (UNI-3001) adds data-track* attributes to CTAs and films; they are not part of this baseline.
     .replace(/ data-track(?:-[a-z-]+)?="[^"]*"/g, '')
 
+/** The shared site header (UNI-3034: /cards pages lost the site nav). Tested in site-header.test.tsx. */
+const NAV_LOGO_PRELOAD = '<link rel="preload" as="image" href="/landing/logos/unite-group-nexus-mark.webp"/>'
+const SITE_NAV_ADDITION = () => norm(renderToStaticMarkup(createElement(SiteNav))).replace(NAV_LOGO_PRELOAD, '')
+
 /** The one terms addition, in the buy box. 'By paying' only while there is something to pay (PC-UG-FUNNEL-CHECK, J3). */
 const TERMS_ONLINE =
   '<p class="_chosen">By paying you agree to our order terms. <a href="/cards/terms" class="_navLink">Order terms</a></p>'
@@ -31,7 +39,7 @@ const terms = (on: boolean) => (on ? TERMS_ONLINE : TERMS_OFFLINE)
 /** The CARSI Pty Ltd payment line under each Order button (UNI-3017). */
 const PAYMENT_ADDITION = /<p class="_payEntity">[^<]*<\/p>/g
 /** The shared APP 5 notice, inside the enquiry form directly before the submit button. */
-const NOTICE_ADDITION = /<p[^>]*data-collection-notice="card-enquiry"[^>]*>[\s\S]*?<\/p>/
+const NOTICE_ADDITION = /<aside[^>]*data-collection-notice="card-enquiry"[^>]*>[\s\S]*?<\/aside>/
 
 const online = () => {
   vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', 'https://buy.stripe.com/test_ready')
@@ -51,7 +59,7 @@ describe('/cards/order terms link', () => {
   it.each(CASES)('shows exactly one Order terms link and the agreement line (%s)', (_f, on, edition, ref) => {
     if (on) online()
     const html = render(edition, ref)
-    expect(html.match(/href="\/cards\/terms"/g)).toHaveLength(1)
+    expect(html.match(/href="\/cards\/terms"[^>]*>[^<]*Order terms/g)).toHaveLength(1)
     expect(norm(html)).toContain(terms(on))
   })
 
@@ -63,7 +71,8 @@ describe('/cards/order terms link', () => {
   it.each(CASES)('is otherwise identical to the page on origin/main (%s)', (f, on, edition, ref) => {
     if (on) online()
     const html = norm(render(edition, ref))
-    const stripped = html.replace(terms(on), '').replace(NOTICE_ADDITION, '').replace(PAYMENT_ADDITION, '')
+    expect(html).toContain(SITE_NAV_ADDITION())
+    const stripped = html.replace(NAV_LOGO_PRELOAD, '').replace(SITE_NAV_ADDITION(), '').replace(terms(on), '').replace(NOTICE_ADDITION, '').replace(PAYMENT_ADDITION, '')
     expect(stripped).toBe(norm(fixture(f)))
   })
 

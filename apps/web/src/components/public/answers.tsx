@@ -1,13 +1,16 @@
-import { CARD_TIERS } from '@/app/cards/order/order-view'
 import { formatAud } from '@/app/grow/packages'
+import { PLUS_GST, SIGNATURE_ADDON, STARTER_PLAN, liveCardTiers } from '@/lib/public-pricing'
 import { CONTACT_EMAIL, PRICE_NOTE } from '@/lib/public-site'
 
+import { HOME_FAQ } from './home-copy'
 import s from './public.module.css'
+import { SectionIntro } from './section-intro'
 
-// Position 6. Real questions with answers that match /cards and /cards/order. Where a fact is not set,
-// the answer says so plainly instead of guessing.
 export function answers() {
-  const [ready, custom] = CARD_TIERS
+  const live = liveCardTiers()
+  const card = live.length
+    ? `${live.map((t) => `${t.name} is ${formatAud(t.priceAud)}`).join(' and ')}. ${PRICE_NOTE}.`
+    : 'Online card orders are not open yet, so ask us for a price.'
   return [
     {
       q: 'What is a video business card?',
@@ -15,7 +18,7 @@ export function answers() {
     },
     {
       q: 'What does it cost?',
-      a: `${ready.name} is ${formatAud(ready.priceAud)} and ${custom.name} is ${formatAud(custom.priceAud)}. ${PRICE_NOTE}. There is no subscription.`,
+      a: `${card} The card has no monthly fee. Our Starter plan is a separate monthly service, ${formatAud(STARTER_PLAN.priceAud)} a month, with email signatures at ${formatAud(SIGNATURE_ADDON.priceAud)} each, both ${PLUS_GST}, on our pricing page.`,
     },
     {
       q: 'Is the film made with AI?',
@@ -40,9 +43,7 @@ export function Answers() {
   return (
     <section data-position id="answers" className={s.section} aria-labelledby="answers-title">
       <div className={s.wrap}>
-        <h2 id="answers-title" className={s.h2}>
-          Questions
-        </h2>
+        <SectionIntro id="answers-title" eyebrow={HOME_FAQ.eyebrow} title={HOME_FAQ.title} lead={HOME_FAQ.lead} />
         <div className={s.faq}>
           {answers().map((item) => (
             <details key={item.q}>

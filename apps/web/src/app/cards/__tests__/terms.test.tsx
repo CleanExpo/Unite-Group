@@ -102,16 +102,19 @@ describe('/cards/terms', () => {
   it('has a single h1, fourteen numbered sections and the section 12 heading the refund clause points to', () => {
     const html = page()
     expect(html.match(/<h1/g)).toHaveLength(1)
-    const h2 = [...html.matchAll(/<h2[^>]*>([\s\S]*?)<\/h2>/g)].map((m) => decode(m[1]))
+    // Count inside the terms article: the site footer (fcf5d42a) carries its own h2 for the call to action.
+    const article = /<article[^>]*>([\s\S]*)<\/article>/.exec(html)?.[1] ?? ''
+    const h2 = [...article.matchAll(/<h2[^>]*>([\s\S]*?)<\/h2>/g)].map((m) => decode(m[1]))
     expect(h2).toHaveLength(14)
     expect(h2[11]).toBe('12. Your rights under the Australian Consumer Law')
   })
 
   it('links the privacy policy from section 13 and nowhere else in the article', () => {
     const html = page()
-    const s13 = html.slice(html.indexOf('13. Privacy'), html.indexOf('14. General'))
+    const article = /<article[^>]*>([\s\S]*)<\/article>/.exec(html)?.[1] ?? ''
+    const s13 = article.slice(article.indexOf('13. Privacy'), article.indexOf('14. General'))
     expect(s13).toContain('<a href="/privacy-policy"')
-    expect(html.match(/href="\/privacy-policy"/g)).toHaveLength(1)
+    expect(article.match(/href="\/privacy-policy"/g)).toHaveLength(1)
   })
 
   it('leaves out the draft header line and every internal placeholder', () => {

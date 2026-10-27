@@ -79,7 +79,7 @@ export const STATES: State[] = [
     kind: 'form',
     setup: async (page) => {
       await fillRequired(page)
-      await page.getByLabel('Business name').fill('Sample Restorations')
+      await page.getByLabel('Business name').fill('Sample Cafe')
       await page.getByLabel('Anything we should know?').fill('Three cards, one for each van.')
       await submit(page).scrollIntoViewIfNeeded()
     },

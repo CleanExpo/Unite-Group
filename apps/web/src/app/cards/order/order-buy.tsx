@@ -62,7 +62,7 @@ export function StickyBar({ price }: { price: string | null }) {
 
   return (
     <div className={s.sticky} data-visible={visible} aria-hidden={!visible}>
-      <div className={`${s.wrap} ${s.stickyRow}`}>
+      <div className={s.stickyRow}>
         <div>
           <p className={s.stickyName}>Living business card</p>
           <p className={s.stickyPrice}>{price ? `From ${price} AUD, GST included` : 'Ends on your logo'}</p>

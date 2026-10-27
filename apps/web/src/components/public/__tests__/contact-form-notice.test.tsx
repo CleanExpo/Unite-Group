@@ -14,10 +14,14 @@ import { ContactForm } from '../contact-form'
 const html = renderToStaticMarkup(createElement(ContactForm))
 const decode = (s: string) => s.replace(/&#x27;/g, "'").replace(/&amp;/g, '&')
 
+/** The whole notice: the element that carries data-collection-notice, to its own closing tag (one or more paragraphs). */
 function notice() {
   const start = html.indexOf('data-collection-notice="home"')
   expect(start).toBeGreaterThan(-1)
-  return html.slice(start, html.indexOf('</p>', start))
+  const tag = html.slice(html.lastIndexOf('<', start) + 1).match(/^[a-z]+/)![0]
+  const end = html.indexOf(`</${tag}>`, start)
+  expect(end, `closing </${tag}>`).toBeGreaterThan(start)
+  return html.slice(start, end)
 }
 
 describe('home contact form APP 5 collection notice', () => {

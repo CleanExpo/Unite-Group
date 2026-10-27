@@ -1,7 +1,13 @@
 import type { Metadata } from 'next'
 
+import { PublicPageShell } from '@/components/public/public-page-shell'
+import { SiteFooter } from '@/components/public/site-footer'
+import { SiteNav } from '@/components/public/site-nav'
+import { SectionIntro } from '@/components/public/section-intro'
+import m from '@/components/public/marketing-page.module.css'
 import { COMPANY_NAME, companyAbnLabel } from '@/lib/legal/company'
 
+import g from './grow-page.module.css'
 import { LeadForm } from './lead-form'
 import { GROW_PACKAGES, formatAud, paymentLinkFor, serializeJsonLd } from './packages'
 
@@ -12,7 +18,6 @@ export const metadata: Metadata = {
   description:
     'Unite Group sets up and runs your website, Google Business Profile, reviews and AI-search visibility. Fixed prices in AUD. Free AI-visibility audit.',
   alternates: { canonical: PAGE_URL },
-  // Kept for later but not offered: Synthex is internal only, so no priced customer offer is indexed (go-live audit D3).
   robots: { index: false, follow: false },
 }
 
@@ -46,115 +51,94 @@ function jsonLd() {
 
 export default function GrowPage() {
   return (
-    <div className="min-h-screen bg-[#fbfaf6] text-stone-900">
+    <PublicPageShell>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd()) }} />
+      <SiteNav />
 
-      <header className="border-b border-stone-200 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <span className="font-mono text-[13px] tracking-[0.15em] text-green-800">UNITE GROUP</span>
-          <a href="#audit" className="rounded-sm border border-green-700 px-4 py-2 text-[14px] font-semibold text-green-800 hover:bg-green-50">
-            Free audit
-          </a>
-        </div>
-      </header>
-
-      <main>
-        <section className="mx-auto max-w-6xl px-6 pb-14 pt-16 sm:pt-24">
-          <p className="font-mono text-[12px] tracking-[0.14em] text-stone-500">FOR AUSTRALIAN AND NEW ZEALAND LOCAL BUSINESSES</p>
-          <h1 className="mt-4 max-w-3xl text-[clamp(2.1rem,5.4vw,3.6rem)] font-semibold leading-[1.08] tracking-[-0.025em]">
-            More calls, more reviews, and found on Google and in AI answers.
-          </h1>
-          <p className="mt-5 max-w-2xl text-[17px] leading-relaxed text-stone-600">
-            We set up and run your website, Google Business Profile, reviews and AI-search visibility. Fixed monthly prices, and you
-            approve everything public before it goes out.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <a href="#audit" className="inline-flex min-h-12 items-center rounded-sm bg-green-700 px-7 text-[15px] font-semibold text-white hover:bg-green-800">
-              Get a free AI-visibility audit
-            </a>
-            <a href="#packages" className="inline-flex min-h-12 items-center rounded-sm border border-stone-300 bg-white px-7 text-[15px] font-semibold text-stone-800 hover:border-stone-400">
-              See packages
-            </a>
+      <main id="main" className={m.main}>
+        <section className={m.heroBand}>
+          <div className={m.wrap}>
+            <SectionIntro
+              as="h1"
+              eyebrow="For Australian and New Zealand local businesses"
+              title="More calls, more reviews, and found on Google and in AI answers."
+              lead="We set up and run your website, Google Business Profile, reviews and AI-search visibility. Fixed monthly prices, and you approve everything public before it goes out."
+            />
+            <div className={m.actions}>
+              <a href="#audit" className={m.btnPrimary}>Get a free AI-visibility audit</a>
+              <a href="#packages" className={m.btnSecondary}>See packages</a>
+            </div>
           </div>
         </section>
 
-        <section id="packages" className="mx-auto max-w-6xl px-6 pb-16">
-          <h2 className="text-2xl font-semibold tracking-[-0.015em]">Packages</h2>
-          <p className="mt-2 text-[15px] text-stone-600">Prices in AUD, excluding GST.</p>
-          <div className="mt-8 grid gap-5 md:grid-cols-3">
-            {GROW_PACKAGES.map((pkg, index) => {
-              const payLink = paymentLinkFor(pkg)
-              return (
-                <article
-                  key={pkg.id}
-                  data-package={pkg.id}
-                  className={`flex flex-col rounded-sm border bg-white p-6 ${index === 1 ? 'border-green-700 shadow-[0_18px_40px_-28px_rgba(21,128,61,0.6)]' : 'border-stone-200'}`}
-                >
-                  <h3 className="text-lg font-semibold">{pkg.name}</h3>
-                  <p className="mt-1.5 min-h-[3rem] text-[15px] text-stone-600">{pkg.pitch}</p>
-                  <p className="mt-5">
-                    <span className="text-3xl font-semibold tracking-[-0.02em]">{formatAud(pkg.monthlyAud)}</span>
-                    <span className="text-[15px] text-stone-500"> /month</span>
-                  </p>
-                  <p className="mt-1 text-[14px] text-stone-500">plus {formatAud(pkg.setupAud)} setup</p>
-                  <ul className="mt-5 space-y-2.5 text-[14px] leading-snug text-stone-700">
-                    {pkg.includes.map((item) => (
-                      <li key={item} className="flex gap-2">
-                        <span aria-hidden className="mt-[0.45em] h-1.5 w-1.5 flex-none rounded-full bg-green-700" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="mt-auto flex flex-col gap-2 pt-6">
-                    {payLink && (
-                      <a href={payLink} className="inline-flex min-h-11 items-center justify-center rounded-sm bg-green-700 px-5 text-[14px] font-semibold text-white hover:bg-green-800">
-                        Start {pkg.name}
-                      </a>
-                    )}
-                    <a href="#audit" className="inline-flex min-h-11 items-center justify-center rounded-sm border border-stone-300 px-5 text-[14px] font-semibold text-stone-800 hover:border-stone-400">
-                      Free audit first
-                    </a>
-                  </div>
-                </article>
-              )
-            })}
+        <section id="packages" className={m.section}>
+          <div className={m.wrap}>
+            <SectionIntro title="Packages" lead="Prices in AUD, excluding GST." />
+            <div className={m.packageGrid}>
+              {GROW_PACKAGES.map((pkg, index) => {
+                const payLink = paymentLinkFor(pkg)
+                return (
+                  <article key={pkg.id} data-package={pkg.id} className={`${g.card} ${index === 1 ? g.cardFeatured : ''}`}>
+                    <h3 className={g.cardTitle}>{pkg.name}</h3>
+                    <p className={g.cardPitch}>{pkg.pitch}</p>
+                    <p className={g.priceRow}>
+                      <span className={g.priceMain}>{formatAud(pkg.monthlyAud)}</span>
+                      <span className={g.pricePeriod}> /month</span>
+                    </p>
+                    <p className={g.setup}>plus {formatAud(pkg.setupAud)} setup</p>
+                    <ul className={g.includes}>
+                      {pkg.includes.map((item) => (
+                        <li key={item}>
+                          <span aria-hidden className={g.dot} />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                    <div className={g.cardActions}>
+                      {payLink ? (
+                        <a href={payLink} className={m.btnPrimary}>Start {pkg.name}</a>
+                      ) : null}
+                      <a href="#audit" className={m.btnSecondary}>Free audit first</a>
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
           </div>
         </section>
 
-        <section className="border-y border-stone-200 bg-white">
-          <div className="mx-auto grid max-w-6xl gap-8 px-6 py-14 md:grid-cols-3">
-            {STEPS.map((step, i) => (
-              <div key={step.title}>
-                <p className="font-mono text-[12px] tracking-[0.14em] text-green-800">STEP {i + 1}</p>
-                <h3 className="mt-2 text-lg font-semibold">{step.title}</h3>
-                <p className="mt-2 text-[15px] leading-relaxed text-stone-600">{step.body}</p>
-              </div>
-            ))}
+        <section className={m.sectionAlt} aria-label="How it works">
+          <div className={m.wrap}>
+            <SectionIntro title="How it works" />
+            <div className={m.stepsRow}>
+              {STEPS.map((step, i) => (
+                <div key={step.title} className={m.stepCard}>
+                  <p className={m.stepNo}>Step {i + 1}</p>
+                  <h3 className={m.stepTitle}>{step.title}</h3>
+                  <p className={m.stepBody}>{step.body}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
-        <section id="audit" className="mx-auto max-w-3xl px-6 py-16">
-          <h2 className="text-2xl font-semibold tracking-[-0.015em]">Get your free AI-visibility audit</h2>
-          <p className="mt-2 text-[15px] text-stone-600">
-            We check your site speed, your Google Business Profile, and whether ChatGPT, Perplexity and Google mention your business.
-          </p>
-          <div className="mt-8">
-            <LeadForm />
+        <section id="audit" className={m.section}>
+          <div className={m.wrap}>
+            <SectionIntro
+              title="Get your free AI-visibility audit"
+              lead="We check your site speed, your Google Business Profile, and whether ChatGPT, Perplexity and Google mention your business."
+            />
+            <div className={g.formWrap}>
+              <LeadForm />
+            </div>
+            <p className={g.auditLead} style={{ marginTop: '1.5rem' }}>
+              {COMPANY_NAME} · {companyAbnLabel()}
+            </p>
           </div>
         </section>
       </main>
 
-      <footer className="border-t border-stone-200 bg-white">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-6 text-[13px] text-stone-500">
-          <span>
-            {COMPANY_NAME} · {companyAbnLabel()}
-          </span>
-          <span className="flex gap-4">
-            <a href="/privacy-policy" className="hover:text-stone-800">Privacy</a>
-            <a href="/terms-of-service" className="hover:text-stone-800">Terms</a>
-          </span>
-        </div>
-      </footer>
-    </div>
+      <SiteFooter />
+    </PublicPageShell>
   )
 }

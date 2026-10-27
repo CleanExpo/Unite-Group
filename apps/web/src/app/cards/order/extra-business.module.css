@@ -9,7 +9,7 @@
 .box {
   margin-top: 1.25rem;
   padding-top: 1.25rem;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--pub-line);
 }
 
 .label {
@@ -17,7 +17,7 @@
   font-size: 14px;
   font-weight: 600;
   line-height: 1.45;
-  color: var(--text);
+  color: var(--pub-ink);
 }
 
 .stepper {
@@ -26,7 +26,7 @@
   gap: 0.25rem;
   margin-top: 0.75rem;
   padding: 0.25rem;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--pub-line-strong);
   border-radius: 999px;
 }
 
@@ -40,7 +40,7 @@
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: var(--text);
+  color: var(--pub-ink);
   font-size: 20px;
   line-height: 1;
   cursor: pointer;
@@ -51,17 +51,17 @@
 }
 
 .step:focus-visible {
-  outline: 2px solid var(--focus);
+  outline: 2px solid var(--pub-focus);
   outline-offset: 2px;
 }
 
 .step:active:not(:disabled) {
-  background: var(--accent-press);
+  background: var(--pub-accent-strong);
 }
 
 .step:disabled {
   cursor: not-allowed;
-  color: var(--faint);
+  color: var(--pub-muted);
 }
 
 .count {
@@ -79,7 +79,7 @@
 .total {
   margin: 0 0 0.75rem;
   font-size: 14px;
-  color: var(--muted);
+  color: var(--pub-muted);
 }
 
 .payLink {
@@ -89,35 +89,35 @@
   width: 100%;
   min-height: 3rem;
   padding: 0 1.25rem;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--pub-line-strong);
   border-radius: 999px;
   background: transparent;
-  color: var(--text);
+  color: var(--pub-ink);
   font-size: 15px;
   font-weight: 600;
   text-decoration: none;
 }
 
 .payLink:hover {
-  border-color: var(--accent);
-  background: var(--accent);
+  border-color: var(--pub-highlight);
+  background: var(--pub-highlight);
 }
 
 .payLink:focus-visible {
-  outline: 2px solid var(--focus);
+  outline: 2px solid var(--pub-focus);
   outline-offset: 3px;
 }
 
 .payLink:active {
-  border-color: var(--accent-press);
-  background: var(--accent-press);
+  border-color: var(--pub-accent-strong);
+  background: var(--pub-accent-strong);
 }
 
 .note {
   margin: 0.75rem 0 0;
   font-size: 13px;
   line-height: 1.5;
-  color: var(--faint);
+  color: var(--pub-muted);
 }
 
 .srOnly {

@@ -31,10 +31,10 @@
 .field {
   width: 100%;
   padding: 0.7rem 0.8rem;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 8px;
-  background: #0f1217;
-  color: #f3f1ec;
+  border: 1px solid var(--pub-line);
+  border-radius: var(--pub-radius);
+  background: rgba(8, 9, 20, 0.65);
+  color: var(--pub-ink);
   font-size: 15px;
   font-family: inherit;
   outline: none;

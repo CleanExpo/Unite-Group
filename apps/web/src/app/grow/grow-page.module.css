@@ -1,0 +1,96 @@
+/* /grow — package cards and audit form (layout from marketing-page.module.css). */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  padding: clamp(18px, 3vw, 24px);
+  border: 1px solid var(--pub-line);
+  border-radius: var(--pub-radius-xl);
+  background: rgba(18, 22, 42, 0.55);
+  height: 100%;
+}
+
+.cardFeatured {
+  border-color: rgba(236, 123, 65, 0.45);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(236, 123, 65, 0.12);
+}
+
+.cardTitle {
+  margin: 0;
+  font-family: var(--pub-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.cardPitch {
+  margin: 0.5rem 0 0;
+  min-height: 3rem;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--pub-ink-soft);
+}
+
+.priceRow {
+  margin: 1.25rem 0 0;
+}
+
+.priceMain {
+  font-family: var(--pub-display);
+  font-size: clamp(1.5rem, 2.5vw, 1.875rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.pricePeriod {
+  font-size: 15px;
+  color: var(--pub-muted);
+}
+
+.setup {
+  margin: 0.25rem 0 0;
+  font-size: 14px;
+  color: var(--pub-muted);
+}
+
+.includes {
+  margin: 1.25rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--pub-ink-soft);
+}
+
+.includes li {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.dot {
+  margin-top: 0.45em;
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 999px;
+  background: var(--pub-highlight);
+}
+
+.cardActions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 1.5rem;
+}
+
+.auditLead {
+  margin: 0;
+  font-size: 14px;
+  color: var(--pub-muted);
+}
+
+.formWrap {
+  margin-top: 1.5rem;
+  max-width: 42rem;
+}

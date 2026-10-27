@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 
+import { LegalPageShell } from '@/components/public/legal-page-shell'
 import { companyAbnLabel } from '@/lib/legal/company'
 
 import { CARD_ORDER_TERMS } from './terms-content'
-import s from './terms.module.css'
 
 export const metadata: Metadata = {
   title: 'Card order terms | Unite Group',
@@ -75,13 +75,18 @@ export default function CardTermsPage() {
   })
 
   return (
-    <div className={s.page}>
-      <nav className={s.nav} aria-label="Cards">
-        <a href="/cards/order">Back to the order page</a>
-      </nav>
-      <main className={s.main}>
-        <article className={s.article}>{out}</article>
-      </main>
-    </div>
+    <LegalPageShell
+      documentOwnsH1
+      eyebrow="Living business cards"
+      title="Card order terms"
+      breadcrumb={[
+        { label: 'Unite Group', href: '/' },
+        { label: 'Cards', href: '/cards' },
+        { label: 'Order terms' },
+      ]}
+      related={[{ href: '/cards/order', label: 'Back to order' }]}
+    >
+      <article>{out}</article>
+    </LegalPageShell>
   )
 }

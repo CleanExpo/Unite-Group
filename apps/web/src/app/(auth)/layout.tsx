@@ -7,11 +7,10 @@ export const dynamic = 'force-dynamic';
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Cinematic Pi-CEO hero — the same orange landing face as the Pi-Dev-Ops
-          dashboard, so the two surfaces stop reading as two different products. */}
+      {/* Unite-Group hero poster, the same copper U as the public home page. */}
       <Image
-        src="/pi-ceo-hero.webp"
-        alt="Pi CEO"
+        src="/landing/media/unite-group-hero-u-poster-16x9.jpg"
+        alt=""
         fill
         priority
         quality={85}
@@ -43,7 +42,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           >
             <Image
               src="/logos/unite-group-nexus-emblem-256.png"
-              alt="Unite-Group Nexus"
+              alt="Unite-Group"
               fill
               priority
               sizes="76px"
@@ -58,13 +57,13 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
               textShadow: '0 2px 28px rgba(0,0,0,0.85)',
             }}
           >
-            PI CEO
+            Unite-Group
           </p>
           <p
             className="text-[10px] font-mono tracking-[0.32em] uppercase mt-2"
             style={{ color: '#f97316' }}
           >
-            Unite-Group Nexus
+            AI marketing agency
           </p>
         </div>
 
@@ -89,7 +88,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           className="text-center text-[11px] mt-6 font-mono tracking-wider"
           style={{ color: 'rgba(250,250,250,0.55)' }}
         >
-          © 2026 Pi-CEO · Unite-Group. All rights reserved.
+          © 2026 Unite-Group. All rights reserved.
         </p>
       </div>
     </div>

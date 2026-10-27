@@ -15,7 +15,7 @@ describe('sitemap (AC-7)', () => {
   it('lists the home, cards, order, terms, four pillars and the two legal pages, and nothing private (not /grow: noindex, D3)', () => {
     const paths = sitemap().map((e) => new URL(e.url).pathname)
     expect(paths).toEqual([
-      '/', '/cards', '/cards/order', '/cards/terms',
+      '/', '/cards', '/cards/order', '/cards/terms', '/pricing', '/signatures',
       '/solutions/visibility', '/solutions/experience', '/solutions/conversion', '/solutions/intelligence',
       '/privacy-policy', '/terms-of-service',
     ])

@@ -2,9 +2,18 @@
 
 import { useEffect, useRef, useState } from 'react'
 
-import t from './gallery.module.css'
+import tDefault from './gallery.module.css'
+import tHome from './home/home-gallery.module.css'
 
-type Props = { name: string; label: string; video: string; poster: string; href: string }
+type Props = {
+  name: string
+  label: string
+  video: string
+  poster: string
+  href: string
+  /** Home bento uses taller tiles and deeper shadows. */
+  variant?: 'default' | 'home'
+}
 
 /**
  * One film in the gallery. The server renders the poster only. After mount, and only when motion is allowed, a muted
@@ -12,7 +21,8 @@ type Props = { name: string; label: string; video: string; poster: string; href:
  * it plays while the tile is mostly in view. Reduced motion never mounts a film; the poster stays. A film that fails
  * leaves the poster in place.
  */
-export function GalleryTile({ name, label, video, poster, href }: Props) {
+export function GalleryTile({ name, label, video, poster, href, variant = 'default' }: Props) {
+  const t = variant === 'home' ? tHome : tDefault
   const [motion, setMotion] = useState(false)
   const [hover, setHover] = useState(false)
   const [inView, setInView] = useState(false)

@@ -42,7 +42,12 @@ function navLinks(html: string) {
   return [...header.matchAll(/<a [^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)].map((m) => ({ href: m[1], text: strip(m[2]) })).filter((l) => l.href !== '#main') // the skip link is not a nav item (golive-copy.test.tsx covers it)
 }
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => {
+  vi.clearAllMocks()
+  // Card prices show only while a card payment link is live (liveCardTiers); open both by default.
+  vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', 'https://buy.stripe.com/test_ready')
+  vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_CUSTOM', 'https://buy.stripe.com/test_custom')
+})
 afterEach(() => vi.unstubAllEnvs())
 
 describe('/ nav rules (AC-2)', () => {
@@ -51,6 +56,7 @@ describe('/ nav rules (AC-2)', () => {
     expect(links.length).toBeGreaterThan(6)
     expect(links.filter((l) => /^home$/i.test(l.text))).toHaveLength(0)
     expect(links.filter((l) => l.text === 'Contact')).toHaveLength(1)
+    expect(links.filter((l) => l.text === 'Email us')).toHaveLength(0)
     const hrefs = links.map((l) => l.href)
     expect(new Set(hrefs).size).toBe(hrefs.length)
     expect(links[0]).toEqual({ href: '/', text: 'Unite Group' })
@@ -74,6 +80,7 @@ describe('/ nav rules (AC-2)', () => {
   it('links only to pages or anchors that exist', async () => {
     const html = await signedOut()
     for (const { href } of navLinks(html)) {
+      if (href === 'mailto:contact@unite-group.in') continue // UNI-3034 Email us; MX checked
       if (href.startsWith('/#')) expect(html, href).toContain(`id="${href.slice(2)}"`)
       else if (href !== '/') expect(existsSync(join(__dirname, '..', href.slice(1), 'page.tsx')), href).toBe(true)
     }
@@ -96,12 +103,24 @@ describe('/ hero and metadata', () => {
   it('says the umbrella line in the H1, and carries Unite Group and the honest Nexus line in the metadata', async () => {
     const html = await signedOut()
     expect(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1].replace(/<[^>]*>/g, '')).toBe('Every business. One system.')
-    expect(String(metadata.title)).toBe('Unite Group | Every business. One system.')
+    expect(String(metadata.title)).toBe('Unite Group | Living business cards & growth for Australian businesses')
     const description = String(metadata.description)
-    expect(description).toMatch(/Unite-Group Nexus is the CRM and operating system we are building to run the businesses behind it/)
+    expect(description).toMatch(/Margot as your AI guide/)
     expect(description).toContain('Australia and New Zealand')
+    expect(description).toMatch(/Living business cards/)
     expect(`${metadata.title} ${description}`).not.toMatch(/makes video business cards|video business card/i)
     expect(`${metadata.title} ${description}`).not.toMatch(/synthex/i)
+  })
+
+  // Phill 26/10/2026 (UNI-3034): one primary CTA to the chooser, then Ask a question and Grow your business.
+  it('links the hero to the chooser, the contact form and /grow, in that order, with one primary CTA', async () => {
+    const html = await signedOut()
+    const start = html.lastIndexOf('<', html.indexOf('id="hero"'))
+    const hero = html.slice(start, html.indexOf('</section>', start))
+    const anchors = [...hero.matchAll(/<a [^>]*>/g)].map((m) => m[0])
+    expect(anchors.map((a) => a.match(/href="([^"]*)"/)?.[1])).toEqual(['#start', '#contact', '/grow'])
+    expect(anchors[0]).toContain('data-track-label="home-hero-start"')
+    expect(anchors.filter((a) => a.includes('data-track-label="home-hero-start"'))).toHaveLength(1)
   })
 
   it('paints the words and the poster first, and mounts no video on the server', async () => {
@@ -130,8 +149,8 @@ describe('/ hero and metadata', () => {
     expect(hero).not.toMatch(/living card|\$249|\$449|GST/)
     expect(hero).toContain('href="#contact"')
     expect(hero).toContain('href="#start"')
-    expect(html.indexOf('id="hero"')).toBeLessThan(html.indexOf('id="group"'))
-    expect(html.indexOf('id="group"')).toBeLessThan(html.indexOf('id="today"'))
+    expect(html).not.toContain('id="group"')
+    expect(html.indexOf('id="hero"')).toBeLessThan(html.indexOf('id="today"'))
     expect(html.indexOf('id="today"')).toBeLessThan(html.indexOf('id="cards"'))
     expect(html.indexOf('id="cards"')).toBeLessThan(html.indexOf('id="pillars"'))
     const cards = html.slice(html.indexOf('id="cards"'), html.indexOf('id="pillars"'))
@@ -158,6 +177,15 @@ describe('/ pillars and honesty', () => {
     expect(row.match(/Card from \$249/g)).toHaveLength(1)
     expect(row).not.toMatch(/Ask us/)
     for (const p of PILLARS) expect(row).toContain(`href="${pillarPath(p.slug)}"`)
+  })
+
+  it('names no card price on the Conversion chip while online ordering is off', async () => {
+    vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', '')
+    vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_CUSTOM', '')
+    const html = await signedOut()
+    const row = html.slice(html.indexOf('id="pillars"'), html.indexOf('id="how"'))
+    expect(row.match(/Card on enquiry/g)).toHaveLength(1)
+    expect(row).not.toMatch(/Card from \$/)
   })
 
   it('has one honest proof sentence: no table, no numbers, no testimonials', async () => {

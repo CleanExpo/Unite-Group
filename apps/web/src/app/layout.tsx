@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
 import { headers } from "next/headers";
+import { publicDisplayFontClassName } from "./public-display-fonts";
 import "./globals.css";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { Analytics } from '@vercel/analytics/react';
@@ -26,7 +27,11 @@ export default async function RootLayout({
   const webAnalyticsEnabled = process.env.VERCEL_WEB_ANALYTICS_ENABLED === '1';
 
   return (
-    <html lang="en-AU" className={`${GeistSans.variable} ${GeistMono.variable} light`} suppressHydrationWarning>
+    <html
+      lang="en-AU"
+      className={`${GeistSans.variable} ${GeistMono.variable} ${publicDisplayFontClassName} light`}
+      suppressHydrationWarning
+    >
       <body nonce={nonce} suppressHydrationWarning>
         <ThemeProvider>{children}</ThemeProvider>
         {webAnalyticsEnabled ? <Analytics /> : null}

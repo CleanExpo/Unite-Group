@@ -1,0 +1,66 @@
+/* Living cards showroom — uses var(--pub-*) from public-tokens.css on the page root. */
+
+.heroGrid {
+  display: grid;
+  gap: clamp(1.5rem, 4vw, 2.5rem);
+  align-items: center;
+}
+
+@media (min-width: 900px) {
+  .heroGrid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 20rem);
+  }
+}
+
+.qrWrap {
+  position: relative;
+  max-width: 22rem;
+  margin-inline: auto;
+}
+
+.qrFigure {
+  pointer-events: none;
+  position: absolute;
+  right: 0.75rem;
+  bottom: 3.5rem;
+  margin: 0;
+  padding: 0.5rem;
+  border-radius: var(--pub-radius);
+  background: #fff;
+  text-align: center;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+.qrFigure img {
+  display: block;
+  width: 8rem;
+  height: 8rem;
+}
+
+.qrFigure figcaption {
+  margin-top: 0.25rem;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #111;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2rem 1rem;
+  margin-top: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1024px) {
+  .grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+
+.page a:focus-visible {
+  outline: 3px solid var(--pub-focus);
+  outline-offset: 2px;
+}
