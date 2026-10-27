@@ -36,7 +36,11 @@ export async function GET(request: Request) {
 
   const client = createServiceClient()
   const { data, error } = await loadRecentEvents(client, founderId)
-  if (error) return NextResponse.json({ error: 'Could not read design events' }, { status: 500 })
+  if (error) {
+    // The code only: messages and details can echo stored event text.
+    console.error('design-lessons: read failed', error.code)
+    return NextResponse.json({ error: 'Could not read design events' }, { status: 500 })
+  }
 
   const events: DesignEvent[] = []
   let skipped = 0
@@ -54,7 +58,10 @@ export async function GET(request: Request) {
 
   const lessons = summarizeLessons(events)
   const saved = await saveLessons(client, founderId, lessons, events.length)
-  if (saved.error) return NextResponse.json({ error: 'Could not save lessons' }, { status: 500 })
+  if (saved.error) {
+    console.error('design-lessons: save failed', saved.error.code)
+    return NextResponse.json({ error: 'Could not save lessons' }, { status: 500 })
+  }
 
   return NextResponse.json({
     success: true,
