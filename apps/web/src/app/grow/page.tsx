@@ -9,6 +9,8 @@ import { COMPANY_NAME, companyAbnLabel } from '@/lib/legal/company'
 
 import g from './grow-page.module.css'
 import { LeadForm } from './lead-form'
+import { LivingCardSection } from './living-card-section'
+import { liveCardOffers } from './living-card'
 import { GROW_PACKAGES, formatAud, paymentLinkFor, serializeJsonLd } from './packages'
 
 const PAGE_URL = 'https://unite-group.in/grow'
@@ -50,6 +52,7 @@ function jsonLd() {
 }
 
 export default function GrowPage() {
+  const cardOffers = liveCardOffers()
   return (
     <PublicPageShell>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd()) }} />
@@ -106,6 +109,8 @@ export default function GrowPage() {
             </div>
           </div>
         </section>
+
+        <LivingCardSection offers={cardOffers} />
 
         <section className={m.sectionAlt} aria-label="How it works">
           <div className={m.wrap}>
