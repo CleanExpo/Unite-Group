@@ -56,6 +56,7 @@ describe('/ nav rules (AC-2)', () => {
     expect(links.length).toBeGreaterThan(6)
     expect(links.filter((l) => /^home$/i.test(l.text))).toHaveLength(0)
     expect(links.filter((l) => l.text === 'Contact')).toHaveLength(1)
+    expect(links.filter((l) => l.text === 'Email us')).toHaveLength(0)
     const hrefs = links.map((l) => l.href)
     expect(new Set(hrefs).size).toBe(hrefs.length)
     expect(links[0]).toEqual({ href: '/', text: 'Unite Group' })

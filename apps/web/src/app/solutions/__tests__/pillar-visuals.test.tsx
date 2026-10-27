@@ -36,12 +36,16 @@ describe('pillar pages show real pictures', () => {
     expect(hero?.alt).not.toBe('')
     expect(hero?.alt).toBe(escapeAttr(visual.alt))
     expect(hero?.loading).not.toBe('lazy')
-    // The hero picture is an <img> inside the article, not decoration elsewhere.
-    expect(hero?.index).toBeGreaterThan(html.indexOf('<article'))
-    expect(hero?.index).toBeLessThan(html.indexOf('</article>'))
+    // The hero picture sits in the first screen band inside main.
+    expect(hero?.index).toBeGreaterThan(html.indexOf('<main'))
+    expect(hero?.index).toBeLessThan(html.indexOf('id="pillar-will"'))
 
     // The same file must never appear twice. next/image puts the same file in src and srcset, so compare the file inside src only.
-    const srcs = images(html).map((i) => i.src.match(/\/(?:landing|cards|solutions)\/[^&?\s]+\.(?:webp|jpg)/)?.[0] ?? i.src)
+    // Only the page content counts: the decorative logo mark sits in both the site nav and the site footer (fcf5d42a).
+    const main = html.slice(html.indexOf('<main'), html.indexOf('</main>'))
+    expect(main).not.toContain('<footer')
+    const srcs = images(main).map((i) => i.src.match(/\/(?:landing|cards|solutions)\/[^&?\s]+\.(?:webp|jpg)/)?.[0] ?? i.src)
+    expect(srcs.length).toBeGreaterThan(1)
     expect(new Set(srcs).size).toBe(srcs.length)
   })
 

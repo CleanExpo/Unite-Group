@@ -14,7 +14,8 @@ const render = (edition: string | null, referrer: string | null) =>
 
 /**
  * CSS-module class names carry a hash of the stylesheet; compare shapes, not hashes. The baselines were recaptured
- * from the redesigned order page (926b8fcf) on 27/10/2026; they were first
+ * from the redesigned order page (926b8fcf) on 27/10/2026, and again for main's new footer (fcf5d42a; every
+ * difference sat between <footer and </footer>); they were first
  * captured from origin/main when the footer still said 'ABN pending'; the ABN fallback is a separate, tested
  * change (company.test.ts), so the old label is mapped to the new one here.
  */

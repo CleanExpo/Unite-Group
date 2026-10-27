@@ -15,7 +15,7 @@ import { PAYMENT_ENTITY_LINE } from '@/app/cards/payment-entity'
 import { CONTACT_MAILTO } from '@/components/public/site-nav'
 
 // Phill 26/10/2026 (UNI-3034): /grow is linked from the nav and the home page; /cards, /cards/order and /cards/terms
-// carry the same site header as the home page; a visible "Email us" link; the QR code sits on the /cards card face.
+// carry the same site header as the home page; Email us stays in the page body on / and /cards; the QR code sits on the /cards card face.
 const mainNav = (html: string) => {
   const i = html.indexOf('<nav aria-label="Main"')
   return i < 0 ? '' : html.slice(i, html.indexOf('</nav>', i))
@@ -52,9 +52,9 @@ describe('Email us', () => {
     expect(CONTACT_MAILTO).toBe('mailto:contact@unite-group.in')
   })
 
-  it.each([pages[0], pages[1]])('%s shows a visible Email us link in the header and near the card CTA', (_p, render) => {
+  it.each([pages[0], pages[1]])('%s keeps Email us in the page body, not the top nav', (_p, render) => {
     const html = render()
-    expect(mainNav(html)).toMatch(/href="mailto:contact@unite-group.in"[^>]*>\s*Email us/)
+    expect(mainNav(html)).not.toMatch(/href="mailto:contact@unite-group.in"[^>]*>\s*Email us/)
     const body = html.slice(html.indexOf('<main'))
     expect(body).toMatch(/href="mailto:contact@unite-group.in"[^>]*>\s*Email us/)
   })
