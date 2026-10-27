@@ -107,6 +107,20 @@ describe('classifyMissionIntent', () => {
     for (const text of unsupported) expect(classifyMissionIntent(text), text).toBe('unsupported_action')
   })
 
+  it('AC-5 fullwidth or zero-width-split protected words are still unsupported_action', () => {
+    for (const text of [
+      'Build a reporting dashboard for Synthex. \uFF24\uFF45\uFF50\uFF4C\uFF4F\uFF59 it',
+      'Build a reporting dashboard for Synthex. De\u200Bploy it',
+      'Build a reporting dashboard for Synthex and re\u2060lease it',
+      '\uFF24\uFF45\uFF50\uFF4C\uFF4F\uFF59 the Synthex dashboard',
+      'Build a reporting dashboard for Synthex and pu\uFEFFsh it',
+    ]) {
+      expect(classifyMissionIntent(text), JSON.stringify(text)).toBe('unsupported_action')
+    }
+    // Sibling: a fullwidth build request without a protected word is still a build request.
+    expect(classifyMissionIntent('\uFF22uild a reporting dashboard for Synthex')).toBe('build_request')
+  })
+
   it('AC-5 a build request naming a protected action ANYWHERE is unsupported_action; derived nouns are not', () => {
     for (const text of [
       'Build a dashboard for Synthex. Deploy it',

@@ -363,7 +363,7 @@ describe('readMissionReceipts', () => {
     expect(none).toEqual({})
   })
 
-  it('AC-7 a persisted question or unsupported turn reads back no receipt and is not queried; a lost draft is not_found', async () => {
+  it('AC-7 a persisted question or unsupported turn with no row reads back no receipt; a lost draft is not_found', async () => {
     const db = makeUniqueEnforcingDb()
     const QUESTION_TURN = '9d2e4b3a-5c6f-4e7a-8b82-3c4d5e6f7a81'
     const receipts = await readMissionReceipts(db.client as unknown as ReceiptReadClient, FOUNDER, [
@@ -374,12 +374,18 @@ describe('readMissionReceipts', () => {
     expect(receipts).toEqual({ [QUESTION_TURN]: null, [TURN]: null, [TURN_2]: { kind: 'not_found' } })
     const reads = db.selects.filter((s) => s.table === CC_TASKS_TABLE)
     expect(reads).toHaveLength(1)
-    expect(reads[0].inFilters).toEqual([['external_ref', [`delivery:chat:${TURN_2}`]]])
-
-    const onlyQuestions = await readMissionReceipts(db.client as unknown as ReceiptReadClient, FOUNDER, [
-      { turnId: QUESTION_TURN, text: "What's the payment status?" },
+    // Every turnId is queried: the stored text is client-editable, so it never hides a row.
+    expect(reads[0].inFilters).toEqual([
+      ['external_ref', [`delivery:chat:${QUESTION_TURN}`, `delivery:chat:${TURN}`, `delivery:chat:${TURN_2}`]],
     ])
-    expect(onlyQuestions).toEqual({ [QUESTION_TURN]: null })
-    expect(db.selects.filter((s) => s.table === CC_TASKS_TABLE)).toHaveLength(1)
+  })
+
+  it('AC-7 a row found for a turn wins over its stored text, even when that text was edited to a question', async () => {
+    const db = makeUniqueEnforcingDb()
+    await capture(db)
+    const receipts = await readMissionReceipts(db.client as unknown as ReceiptReadClient, FOUNDER, [
+      { turnId: TURN, text: 'What happened?' },
+    ])
+    expect(receipts[TURN]).toMatchObject({ kind: 'mission', taskId: db.rows[0].id, status: 'proposed' })
   })
 })

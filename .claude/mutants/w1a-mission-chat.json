@@ -162,8 +162,8 @@
   {
     "id": "q",
     "file": "src/lib/founder-chat/mission-capture.ts",
-    "find": "    if (classifyMissionIntent(text) === 'build_request') owed.add(turnId)\n",
-    "replace": "    if (text !== null) owed.add(turnId)\n",
+    "find": "    if (row) receipts[turnId] = readbackReceipt(row)\n",
+    "replace": "    if (row && owedIfMissing.get(turnId)) receipts[turnId] = readbackReceipt(row)\n",
     "tests": [
       "src/lib/founder-chat/__tests__/mission-capture.test.ts"
     ],
@@ -184,6 +184,16 @@
     "file": "src/lib/founder-chat/mission-intent.ts",
     "find": "  if (imperativeBuild && PROTECTED_ANYWHERE.test(text)) return 'unsupported_action'\n",
     "replace": "  if (imperativeBuild && new RegExp(`(?:\\\\band|\\\\bthen|[,;:]) ${PROTECTED_VERB}\\\\b`).test(text)) return 'unsupported_action'\n",
+    "tests": [
+      "src/lib/founder-chat/__tests__/mission-intent.test.ts"
+    ],
+    "expect": "AC-5"
+  },
+  {
+    "id": "t",
+    "file": "src/lib/founder-chat/mission-intent.ts",
+    "find": ".normalize('NFKC').replace(ZERO_WIDTH, '')",
+    "replace": "",
     "tests": [
       "src/lib/founder-chat/__tests__/mission-intent.test.ts"
     ],

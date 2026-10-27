@@ -261,6 +261,20 @@ describe('POST /api/founder/chat — mission capture', () => {
     expect(cc()).toHaveLength(1)
   })
 
+  it('AC-5 fullwidth or zero-width-split protected words stream unsupported_action and insert nothing', async () => {
+    for (const text of [
+      'Build a reporting dashboard for Synthex. \uFF24\uFF45\uFF50\uFF4C\uFF4F\uFF59 it',
+      'Build a reporting dashboard for Synthex. De\u200Bploy it',
+      'Build a reporting dashboard for Synthex and re\u2060lease it',
+      '\uFF24\uFF45\uFF50\uFF4C\uFF4F\uFF59 the Synthex dashboard',
+      'Build a reporting dashboard for Synthex and pu\uFEFFsh it',
+    ]) {
+      const frames = await drain(await post(turn(text)))
+      expect(frames[0], JSON.stringify(text)).toEqual({ mission: { kind: 'unsupported_action' } })
+    }
+    expect(db.inserts).toHaveLength(0)
+  })
+
   it('AC-6 no session is 401 and a session off the allow-list is 403, with no task in either', async () => {
     vi.mocked(getUser).mockResolvedValue(null as never)
     const unauthorised = await post(turn(BUILD))
@@ -457,6 +471,14 @@ describe('GET/PUT /api/founder/chat — receipt readback', () => {
     const reads = db.selects.filter((s) => s.table === CC_TASKS_TABLE).slice(selectsBefore)
     expect(reads).toHaveLength(1)
     expect(reads[0].filters).toEqual([['founder_id', FOUNDER]])
+  })
+
+  it('AC-7 a recorded draft still reads back after PUT edits its turn text into a question', async () => {
+    await drain(await post(turn(BUILD)))
+    expect(cc()).toHaveLength(1)
+    await put([{ role: 'user', content: 'What happened?', turnId: TURN }])
+    const body = await (await GET()).json()
+    expect(body.receipts[TURN]).toMatchObject({ kind: 'mission', taskId: cc()[0].id, status: 'proposed' })
   })
 
   it('AC-7 another founder sees not_found for a foreign turnId, and a failed read is unavailable', async () => {

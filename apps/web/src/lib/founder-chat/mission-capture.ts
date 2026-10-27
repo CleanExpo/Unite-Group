@@ -263,10 +263,12 @@ export interface PersistedTurn {
 
 /**
  * Resolve each persisted user turn's receipt from the cc_tasks row read NOW for
- * (founder, delivery:chat:<turnId>) in ONE query. A turn that classifies as a
- * question or unsupported action never owed a draft → null (no receipt) and is
- * not queried. Missing row → not_found; query failure → unavailable for every
- * queried turn (fails closed, never a stored value).
+ * (founder, delivery:chat:<turnId>) in ONE query covering EVERY persisted turnId.
+ * The stored text is client-editable (PUT), so it never hides a row: a found row
+ * is always its mission receipt. Only when no row exists does the text decide:
+ * a question or unsupported action never owed a draft → null (no receipt); a
+ * build request → not_found. Query failure → unavailable for every turn (fails
+ * closed, never a stored value).
  */
 export async function readMissionReceipts(
   client: ReceiptReadClient,
@@ -274,13 +276,13 @@ export async function readMissionReceipts(
   turns: readonly PersistedTurn[],
 ): Promise<Record<string, MissionReceipt | null>> {
   const receipts: Record<string, MissionReceipt | null> = {}
-  const owed = new Set<string>()
+  // turnId → whether a missing row means a lost draft (any copy reads as a build).
+  const owedIfMissing = new Map<string, boolean>()
   for (const { turnId, text } of turns) {
-    if (Object.hasOwn(receipts, turnId) || owed.has(turnId)) continue
-    if (classifyMissionIntent(text) === 'build_request') owed.add(turnId)
-    else receipts[turnId] = null
+    const owed = classifyMissionIntent(text) === 'build_request'
+    owedIfMissing.set(turnId, (owedIfMissing.get(turnId) ?? false) || owed)
   }
-  const unique = [...owed]
+  const unique = [...owedIfMissing.keys()]
   if (unique.length === 0) return receipts
   const refs = unique.map((turnId) => `${CHAT_EXTERNAL_REF_PREFIX}${turnId}`)
   let rows: ReadbackRow[]
@@ -300,7 +302,8 @@ export async function readMissionReceipts(
   const byRef = new Map(rows.map((row) => [row.external_ref, row]))
   for (const turnId of unique) {
     const row = byRef.get(`${CHAT_EXTERNAL_REF_PREFIX}${turnId}`)
-    receipts[turnId] = row ? readbackReceipt(row) : { kind: 'not_found' }
+    if (row) receipts[turnId] = readbackReceipt(row)
+    else receipts[turnId] = owedIfMissing.get(turnId) ? { kind: 'not_found' } : null
   }
   return receipts
 }

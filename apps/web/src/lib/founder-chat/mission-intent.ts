@@ -67,8 +67,18 @@ function aimsAtWork(text: string): boolean {
   return WORK_OBJECT.test(rest.split(' ', OBJECT_WINDOW_WORDS).join(' '))
 }
 
+// Zero-width characters that can split a word without showing (U+200B-U+200D,
+// U+2060, U+FEFF).
+const ZERO_WIDTH = /[​-‍⁠﻿]/g
+
+/** Classifier view only: NFKC folds fullwidth/compatibility forms, zero-width marks go. */
+function normaliseForClassify(raw: string): string {
+  // Re-cap after NFKC, which can expand a character into several.
+  return raw.slice(0, MAX_CLASSIFY_CHARS).normalize('NFKC').replace(ZERO_WIDTH, '').slice(0, MAX_CLASSIFY_CHARS)
+}
+
 export function classifyMissionIntent(raw: string): MissionIntentKind {
-  const text = raw.slice(0, MAX_CLASSIFY_CHARS).trim().toLowerCase().replace(/\s+/g, ' ')
+  const text = normaliseForClassify(raw).trim().toLowerCase().replace(/\s+/g, ' ')
   if (text.length === 0) return 'question'
   if (PROTECTED_LEADING.test(text) || RUN_IN_PRODUCTION.test(text)) return 'unsupported_action'
   const imperativeBuild = !text.endsWith('?') && aimsAtWork(text)
