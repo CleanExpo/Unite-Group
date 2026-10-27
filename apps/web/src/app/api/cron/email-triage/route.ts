@@ -2,6 +2,11 @@
 // GET /api/cron/email-triage
 // Daily email triage CRON — runs at 05:00 AEST (19:00 UTC prev day)
 // Fetches last 50 unread threads per Gmail account, runs AI triage, auto-archives noise
+//
+// DORMANT unless EMAIL_TRIAGE_ENABLED === 'true' (UNI-3052). Arming it is the
+// FOUNDER's prod env flip, not ours: when armed this run archives threads in real
+// inboxes and opens Linear issues. Unarmed, it returns 200 after the cron auth
+// check — no mailbox read, no model call, no archive, no Linear issue.
 
 import { NextResponse } from 'next/server'
 import { assertCronAuth } from '@/lib/cron-auth'
@@ -23,6 +28,16 @@ export async function GET(request: Request) {
 
   const denied = assertCronAuth(request)
   if (denied) return denied
+
+  // Off-switch (UNI-3052): dark unless the founder has flipped the prod env flag.
+  // Return BEFORE the account loop — no Gmail read, no LLM call, no archive, no
+  // Linear issue. Exact match: 'TRUE' or ' true ' stay off.
+  if (process.env.EMAIL_TRIAGE_ENABLED !== 'true') {
+    return NextResponse.json({
+      dormant: true,
+      skipped: 'EMAIL_TRIAGE_ENABLED is not true',
+    })
+  }
 
   const founderId = getFounderUserId()
   if (!founderId) {
