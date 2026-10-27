@@ -4,10 +4,16 @@ import styles from './card.module.css'
 import { EnquiryForm } from './enquiry-form'
 
 /** The persistent card: server HTML, real links, no media. The enquiry form (the only script) renders only when enquiries are open. */
-export function CardView({ card, enquiryOpen = false }: { card: PublicCard; enquiryOpen?: boolean }) {
+export function CardView({ card, enquiryOpen = false, sample = false }: { card: PublicCard; enquiryOpen?: boolean; sample?: boolean }) {
   const telHref = card.phone ? `tel:${card.phone.replace(/[^+\d]/g, '')}` : null
   return (
     <main className={styles.page}>
+      {sample ? (
+        <p className={styles.sample} data-sample-card>
+          SAMPLE card. This is how your customers see your card page. The business is made up.{' '}
+          <a href="/cards">Get your own card</a>
+        </p>
+      ) : null}
       <article className={styles.card}>
         {card.businessName ? <p className={styles.business}>{card.businessName}</p> : null}
         <h1 className={styles.name}>{card.displayName}</h1>

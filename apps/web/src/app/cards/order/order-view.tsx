@@ -173,7 +173,7 @@ export function OrderView({ edition, referrer }: { edition: string | null; refer
               )}
 
               <p className={s.chosen}>
-                By paying you agree to our order terms.{' '}
+                {payLink ? 'By paying you agree to our order terms.' : 'Our order terms apply when we build your card.'}{' '}
                 <a href="/cards/terms" className={s.navLink}>
                   Order terms
                 </a>
