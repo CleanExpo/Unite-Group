@@ -11,7 +11,7 @@ function client() {
   return {
     from: (table: string) => {
       const b: Record<string, unknown> = {}
-      for (const m of ['select', 'insert', 'gte', 'order', 'limit']) {
+      for (const m of ['select', 'insert', 'eq', 'gte', 'order', 'limit']) {
         b[m] = (...args: unknown[]) => {
           calls.push({ table, method: m, args })
           return b
@@ -62,5 +62,7 @@ describe('GET /api/cron/design-lessons', () => {
     expect(body.top[0]).toBe('forge')
     const insert = calls.find((c) => c.table === 'design_lessons' && c.method === 'insert')
     expect(insert?.args[0]).toMatchObject({ founder_id: 'founder-1', event_count: 3 })
+    // Owner scoping: the events read is filtered to the founder.
+    expect(calls.find((c) => c.table === 'design_events' && c.method === 'eq')?.args).toEqual(['founder_id', 'founder-1'])
   })
 })

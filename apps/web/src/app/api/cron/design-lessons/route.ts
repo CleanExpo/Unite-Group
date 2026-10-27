@@ -35,7 +35,7 @@ export async function GET(request: Request) {
   if (!founderId) return NextResponse.json({ error: 'FOUNDER_USER_ID not configured' }, { status: 500 })
 
   const client = createServiceClient()
-  const { data, error } = await loadRecentEvents(client)
+  const { data, error } = await loadRecentEvents(client, founderId)
   if (error) return NextResponse.json({ error: 'Could not read design events' }, { status: 500 })
 
   const events: DesignEvent[] = []
