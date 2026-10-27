@@ -9,8 +9,8 @@ import PrivacyPolicyPage from '../privacy-policy/page'
 import TermsOfServicePage from '../terms-of-service/page'
 
 // The privacy policy and terms render through the shared legal shell (076b0a91) in its 'site' tone, so the
-// bullets come from the .proseSite rules in components/public/legal-shell.module.css.
-const SHELL_CSS = join(__dirname, '..', '..', 'components', 'public', 'legal-shell.module.css')
+// bullets come from the .proseSite rules in components/public/legal/legal-shell.module.css.
+const SHELL_CSS = join(__dirname, '..', '..', 'components', 'public', 'legal', 'legal-shell.module.css')
 const UL = '.proseSite :global(section ul)'
 
 // SOURCE PIN on legal-shell.module.css, plus a render check that the pages use that rule's container.

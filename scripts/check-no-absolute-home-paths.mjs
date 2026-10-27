@@ -224,7 +224,7 @@ const ALLOWLIST = new Map([
     'product doc citing a founder-machine path as historical context',
   ],
   [
-    'apps/web/docs/synthex-scheduled-verify.md',
+    'apps/web/docs/runbooks/synthex-scheduled-verify.md',
     'product doc citing a founder-machine path as historical context',
   ],
   [
