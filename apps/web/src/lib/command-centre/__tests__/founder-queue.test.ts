@@ -171,7 +171,7 @@ describe('evaluateFounderQueue fails closed on structurally malformed ledgers (P
 })
 
 describe('loadFounderQueue against the live ledger', () => {
-  it('reads FOUNDER-QUEUE.md from the repo root (dev fallback) and ages every open row', async () => {
+  it('reads FOUNDER-QUEUE.md from docs/governance (dev fallback) and ages every open row', async () => {
     const result = await loadFounderQueue()
     expect(result.ok).toBe(true)
     if (!result.ok) return
@@ -182,7 +182,7 @@ describe('loadFounderQueue against the live ledger', () => {
 
   it('PARITY: the TypeScript parser and scripts/founder-queue.mjs agree on the live ledger', async () => {
     const root = path.resolve(process.cwd(), '..', '..')
-    const raw = readFileSync(path.join(root, 'FOUNDER-QUEUE.md'), 'utf8')
+    const raw = readFileSync(path.join(root, 'docs/governance/FOUNDER-QUEUE.md'), 'utf8')
     const mjsPath = pathToFileURL(path.join(root, 'scripts', 'founder-queue.mjs')).href
     const mjs = await import(mjsPath)
     const theirs = mjs.parseFounderQueue(raw)

@@ -6,7 +6,7 @@
 -- The Supabase branch-promote workflow is broken for this project (prod's 96-entry
 -- migration history fails to replay at migration ~13). So schema must be applied as
 -- DIRECT DDL to prod. This script is the curated, prod-safe form of the 9-file
--- runbook in docs/SCHEMA-AUDIT-2026-06-18.md §3.
+-- runbook in docs/runbooks/SCHEMA-AUDIT-2026-06-18.md §3.
 --
 -- IT DELIBERATELY EXCLUDES objects that ALREADY EXIST or CONFLICT on prod (verified 18/06/2026):
 --   • team_members  (already exists — only board_meetings/notes/ceo_decisions here)

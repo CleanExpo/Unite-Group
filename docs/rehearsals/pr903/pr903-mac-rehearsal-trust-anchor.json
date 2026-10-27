@@ -1,26 +1,26 @@
 {
   "schema_version": "2.0",
   "artifact": "pr903-mac-rehearsal-trust-anchor",
-  "self_sha256": "9058762bbb77baefe931b3920e12c882e6a38a47fe66e83e79dbb0e26a468776",
+  "self_sha256": "b7d3243ce892bc95bb1b18cdb0bb9a7ffcbdd2abb6bb30c03b7b436d3d81353c",
   "identity": {
     "binding_mode": "external_exact_pr_authority_v1",
     "repository": "CleanExpo/Unite-Group",
     "pr_number": 903,
     "input_base_sha": "8e30cabe2811ba270777076a16dc817f6aaa3efd",
     "governed_paths": [
-      "PR903-MAC-RUNTIME-REHEARSAL-PLAN.md",
+      "docs/rehearsals/pr903/PR903-MAC-RUNTIME-REHEARSAL-PLAN.md",
       "apps/web/package.json",
       "apps/web/pnpm-lock.yaml",
       "apps/workspace/package.json",
       "apps/workspace/pnpm-lock.yaml",
       "packages/pi-ceo-operator-mcp/package-lock.json",
       "packages/pi-ceo-operator-mcp/package.json",
-      "pr903-mac-command-receipt.schema.json",
-      "pr903-mac-rehearsal-trust-anchor.json",
-      "pr903-mac-runtime-rehearsal-plan.json",
-      "validate_pr903_mac_rehearsal_envelope.py"
+      "docs/rehearsals/pr903/pr903-mac-command-receipt.schema.json",
+      "docs/rehearsals/pr903/pr903-mac-rehearsal-trust-anchor.json",
+      "docs/rehearsals/pr903/pr903-mac-runtime-rehearsal-plan.json",
+      "scripts/pr903/validate_pr903_mac_rehearsal_envelope.py"
     ],
-    "changed_files_sha256": "2f57c865c390c81d419a8ab4ecdace89e5987c779d941705ad30ec28b628b184",
+    "changed_files_sha256": "631b3b50edb896052b759f4cfb9a51d6b00a0bf0a6b792caef574894b5f47c34",
     "changed_files_digest_algorithm": "SHA-256 of canonical ordered governed_paths JSON plus LF",
     "manifest_sha256": "b608639c7dca082b557fcc3259ee81554e702a7255cef2d0b28f3f3258475007",
     "lockfile_sha256": "fa44571489dbb490a322f2e6fb7da1d8a2352bcd6580b4965a04fc4c77b27015"
@@ -32,7 +32,7 @@
     },
     "plan": {
       "path": "pr903-mac-runtime-rehearsal-plan.json",
-      "sha256": "d20b5a6a207515aa0bfe454f747866a5b6c21012689b5bb9111e1446c7525686"
+      "sha256": "2aab423970a41ab495eb78ceef6dcd018e723443e88eb1537459d268775a5a20"
     },
     "receipt_schema": {
       "path": "pr903-mac-command-receipt.schema.json",
@@ -40,7 +40,7 @@
     },
     "validator": {
       "path": "validate_pr903_mac_rehearsal_envelope.py",
-      "sha256": "00942c937087bbed14b454776e3e60404df3339d3874046c25fce3463e4a3723"
+      "sha256": "5ace8b2d4abbfa0d985e821d5b435297f7d6df9a13e74496cd1b4abe7ae30f79"
     }
   },
   "expected_commands": [

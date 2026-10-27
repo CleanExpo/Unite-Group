@@ -47,7 +47,7 @@ lines.push('- Supabase touched: no')
 lines.push('- hard gates bypassed: no')
 lines.push('- external execution enabled: no')
 
-writeFileSync('BOARD_DECISION_FIRST_SIMULATION.md', `${lines.join('\n')}\n`)
+writeFileSync('docs/engineering/BOARD_DECISION_FIRST_SIMULATION.md', `${lines.join('\n')}\n`)
 console.log(JSON.stringify({
   nextRecommendedMove: simulation.nextRecommendedMove.moveId,
   nextRecommendedAction: simulation.nextRecommendedMove.decision,

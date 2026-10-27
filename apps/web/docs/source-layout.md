@@ -1,6 +1,21 @@
 # `apps/web` source layout
 
-**Grounded 27/10/2026:** tree matches `apps/web/src` after public-layer refactor — repo `SOURCE-OF-TRUTH.md` remains the monorepo SSOT.
+**Grounded 27/10/2026:** tree matches `apps/web` after public-layer refactor — repo [`docs/governance/SOURCE-OF-TRUTH.md`](../../../docs/governance/SOURCE-OF-TRUTH.md) remains the monorepo SSOT.
+
+## Package root (`apps/web/`)
+
+Keep the Next.js root limited to config, static assets, and entry tooling. Prefer `docs/` and `config/` over new top-level markdown or JSON registries.
+
+| Path | Role |
+|------|------|
+| `src/` | Application source (see below) |
+| `public/` | Static files served at `/` |
+| `docs/` | Documentation — `guides/`, `product/`, `runbooks/`, `operations/`, `engineering/`, `plans/` (see `docs/index.md`) |
+| `config/` | Non-secret machine config (`config/project-dod/` for DoD registry + JSON Schema) |
+| `e2e/`, `scripts/`, `supabase/` | Tests, automation, database |
+| `next.config.mjs`, `tsconfig.json`, `package.json` | Framework and toolchain |
+
+Agent-only dotdirs (`.claude`, `.portfolio`, `.beads`, …) stay at the package root for tooling; do not treat them as product code.
 
 ## Top level (`src/`)
 

@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import {
   AGE_IS_COMPUTED,
+  QUEUE_PATH,
   computeAgeDays,
   main,
   oldestOpen,
@@ -16,7 +17,6 @@ import {
 } from '../founder-queue.mjs';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const QUEUE_PATH = join(repositoryRoot, 'FOUNDER-QUEUE.md');
 
 const NOW = '2026-08-16T00:00:00Z';
 

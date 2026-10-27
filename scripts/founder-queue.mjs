@@ -13,11 +13,11 @@
  */
 
 import { readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { FOUNDER_QUEUE_PATH } from './lib/repo-governance-paths.mjs';
 
-const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-export const QUEUE_PATH = join(repositoryRoot, 'FOUNDER-QUEUE.md');
+export const QUEUE_PATH = FOUNDER_QUEUE_PATH;
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/u;
 const MS_PER_DAY = 86_400_000;

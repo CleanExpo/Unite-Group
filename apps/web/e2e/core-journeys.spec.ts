@@ -6,6 +6,7 @@ import { config as loadDotenv } from 'dotenv'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { qualifyLead } from '../src/lib/crm/qualify-lead'
 import { hasSupabaseAdminProvisioning, loadSupabaseAdminConfig } from './support/supabase-admin-config'
+import { OPERATIONS_EVIDENCE_PATH } from './support/operations-docs'
 
 if (existsSync('.env.local')) loadDotenv({ path: '.env.local', override: false })
 
@@ -34,7 +35,7 @@ function randomPassword() {
 
 function appendEvidence(line: string) {
   if (process.env.CORE_JOURNEYS_APPEND_EVIDENCE !== '1') return
-  appendFileSync('EVIDENCE.md', `${line}\n`)
+  appendFileSync(OPERATIONS_EVIDENCE_PATH, `${line}\n`)
 }
 
 function makeAdminClient() {

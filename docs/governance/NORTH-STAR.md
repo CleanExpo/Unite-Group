@@ -34,7 +34,7 @@ goal, and a handoff that reports only gates is reporting a proxy.
 
 ## Authority
 
-Subordinate to `CONSTITUTION.md` and `SOURCE-OF-TRUTH.md`. Where this file and
+Subordinate to [`../constitution/EPIC-000-nexus-engineering-constitution.md`](../constitution/EPIC-000-nexus-engineering-constitution.md) and [`SOURCE-OF-TRUTH.md`](SOURCE-OF-TRUTH.md). Where this file and
 either of those disagree, they win and this file is wrong.
 
 **Not yet registered in `.portfolio/PORTFOLIO.yaml`.** An earlier draft of this

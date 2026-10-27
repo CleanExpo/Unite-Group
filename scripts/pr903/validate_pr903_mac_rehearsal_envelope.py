@@ -18,6 +18,8 @@ from pathlib import Path
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 GIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 ZERO_SHA256 = "0" * 64
+PR903_DIR = Path("docs/rehearsals/pr903")
+VALIDATOR_REL = Path("scripts/pr903/validate_pr903_mac_rehearsal_envelope.py")
 FLAGS = [
     "--evidence-root", "--run-root", "--repo-root", "--plan",
     "--receipt-schema", "--trust-anchor", "--receipts-dir",
@@ -216,9 +218,9 @@ def validate_paths(args):
     expected = {
         "run_root": paths["evidence_root"] / "runs" / args.expected_run_id,
         "repo_root": paths["run_root"] / "source",
-        "plan": paths["repo_root"] / "pr903-mac-runtime-rehearsal-plan.json",
-        "receipt_schema": paths["repo_root"] / "pr903-mac-command-receipt.schema.json",
-        "trust_anchor": paths["repo_root"] / "pr903-mac-rehearsal-trust-anchor.json",
+        "plan": paths["repo_root"] / PR903_DIR / "pr903-mac-runtime-rehearsal-plan.json",
+        "receipt_schema": paths["repo_root"] / PR903_DIR / "pr903-mac-command-receipt.schema.json",
+        "trust_anchor": paths["repo_root"] / PR903_DIR / "pr903-mac-rehearsal-trust-anchor.json",
         "receipts_dir": paths["run_root"] / "receipts",
         "streams_dir": paths["run_root"] / "streams",
         "authority_receipt": paths["run_root"] / "authority" / "pr-authority-receipt.json",
@@ -265,7 +267,12 @@ def validate_trust(paths):
         raise Rejection("REJECT_TRUST_ANCHOR", "governed path digest mismatch")
     files = anchor["files"]
     exact_keys(files, {"plan_markdown", "plan", "receipt_schema", "validator"}, "files", "REJECT_TRUST_ANCHOR")
-    supplied = {"plan_markdown": paths["repo_root"] / "PR903-MAC-RUNTIME-REHEARSAL-PLAN.md", "plan": paths["plan"], "receipt_schema": paths["receipt_schema"], "validator": paths["repo_root"] / "validate_pr903_mac_rehearsal_envelope.py"}
+    supplied = {
+        "plan_markdown": paths["repo_root"] / PR903_DIR / "PR903-MAC-RUNTIME-REHEARSAL-PLAN.md",
+        "plan": paths["plan"],
+        "receipt_schema": paths["receipt_schema"],
+        "validator": paths["repo_root"] / VALIDATOR_REL,
+    }
     for key, path in supplied.items():
         exact_keys(files[key], {"path", "sha256"}, "files.%s" % key, "REJECT_TRUST_ANCHOR")
         if files[key]["path"] != path.name or sha256_bytes(safe_read(path, "REJECT_TRUST_ANCHOR")) != files[key]["sha256"]:

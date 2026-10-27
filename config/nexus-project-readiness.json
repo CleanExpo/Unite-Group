@@ -77,7 +77,7 @@
           ]
         },
         {
-          "path": "SOURCE-OF-TRUTH.md",
+          "path": "docs/governance/SOURCE-OF-TRUTH.md",
           "require": [
             "SUPERSEDED 2026-06-20"
           ]

@@ -276,7 +276,7 @@ export function getCommandCentreOperatorSurfaceView(
       { label: 'Hermes control panel registry', href: 'src/lib/operator-gateway/control-panel.ts', source: 'static_registry' },
       { label: 'Gateway status API', href: '/api/hermes/operator-gateway/status', source: 'crm_route' },
       { label: 'Agentic Nexus dashboard summary', href: '2nd-brain/.agentic_nexus/DASHBOARD_STATUS_SUMMARY.md', source: 'agentic_nexus' },
-      { label: 'Project DoD coverage registry', href: 'project_dod_registry.jsonl', source: 'static_registry' },
+      { label: 'Project DoD coverage registry', href: 'config/project-dod/project_dod_registry.jsonl', source: 'static_registry' },
       { label: 'Project DoD coverage status API', href: '/api/hermes/operator-gateway/project-coverage', source: 'crm_route' },
       { label: 'Compound Engineering connector status API', href: '/api/hermes/operator-gateway/compound-engineering', source: 'crm_route' },
       { label: 'Multi-CLI runtime topology API', href: '/api/hermes/operator-gateway/runtime-topology', source: 'crm_route' },

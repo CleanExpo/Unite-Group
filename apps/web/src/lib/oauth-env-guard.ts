@@ -10,7 +10,7 @@
 // TikTok) to convert the silent failure into a loud one.
 //
 // This is the bounded work item that complements the docs/env-vars.md
-// gap analysis and the docs/oauth-routes.md reference.
+// gap analysis and the docs/reference/oauth-routes.md reference.
 
 import { NextResponse } from 'next/server'
 

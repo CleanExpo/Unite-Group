@@ -1,7 +1,7 @@
 # Agent instructions — Unite-Group monorepo
 
 This file is read by Codex (and other) agents working in this repo. The
-canonical, full rules live in **`CLAUDE.md`** and **`SOURCE-OF-TRUTH.md`** —
+canonical, full rules live in **`CLAUDE.md`** and **`docs/governance/SOURCE-OF-TRUTH.md`** —
 read those first. This file restates the rules most often broken by automated
 agents.
 

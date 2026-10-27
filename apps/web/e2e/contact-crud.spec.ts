@@ -4,9 +4,10 @@ import { test, expect, type APIRequestContext, type Browser, type Page } from '@
 import { revealEmailLogin } from './support/email-login'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { loadSupabaseAdminConfig } from './support/supabase-admin-config'
+import { OPERATIONS_DECISIONS_PATH, OPERATIONS_EVIDENCE_PATH } from './support/operations-docs'
 
-const evidencePath = 'EVIDENCE.md'
-const decisionsPath = 'DECISIONS_NEEDED.md'
+const evidencePath = OPERATIONS_EVIDENCE_PATH
+const decisionsPath = OPERATIONS_DECISIONS_PATH
 
 type TestUser = {
   label: 'A' | 'B'

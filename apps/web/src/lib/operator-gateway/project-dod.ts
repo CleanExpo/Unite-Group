@@ -148,7 +148,8 @@ export interface ProjectDodCoverageStatus {
 }
 
 const REPO_ROOT = process.cwd()
-const REGISTRY_PATH = join(REPO_ROOT, 'project_dod_registry.jsonl')
+const PROJECT_DOD_DIR = join(REPO_ROOT, 'config', 'project-dod')
+const REGISTRY_PATH = join(PROJECT_DOD_DIR, 'project_dod_registry.jsonl')
 
 const VALID_CATEGORIES: ProjectRequirementCategory[] = [
   'capability_check',

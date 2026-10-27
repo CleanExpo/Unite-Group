@@ -1,7 +1,7 @@
 # Unite-Group
 
 The single canonical monorepo for the Unite-Group product and ecosystem
-(see `SOURCE-OF-TRUTH.md`).
+(see [`docs/governance/SOURCE-OF-TRUTH.md`](docs/governance/SOURCE-OF-TRUTH.md)).
 
 - **Product**: `apps/web` — Unite-Group (AI-first CRM + command centre), Next.js 16 / React 19 / Supabase / Vercel
 - **Agent command centre**: `apps/workspace`
@@ -12,6 +12,10 @@ The single canonical monorepo for the Unite-Group product and ecosystem
 - **Identity spine (gated greenfield)**: `packages/spine`
 - **Portfolio-health MCP**: `packages/pi-ceo-operator-mcp`
 - **Knowledge vault**: `docs/brain`
+- **Documentation index**: [`docs/README.md`](docs/README.md)
+- **Governance registers**: [`docs/governance/`](docs/governance/README.md) (source of truth, north star, founder queue)
+- **Monorepo changelog**: `docs/CHANGELOG.md`
+- **Archive / specs / rehearsals**: `docs/archive`, `docs/specs`, `docs/rehearsals/pr903`
 - **Convergence programme**: `docs/convergence/` + `.claude/skills/fable-prompt-engineer/`
 
 ## Develop

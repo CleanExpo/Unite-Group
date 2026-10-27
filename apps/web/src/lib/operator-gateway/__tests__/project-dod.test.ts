@@ -257,7 +257,7 @@ function requirement(
     category: 'test_check',
     description: `Requirement ${requirementId} must be independently checkable before the project is done.`,
     probeType: 'file_exists',
-    probeCommandOrCheck: pass ? 'project_dod_registry.jsonl' : 'missing-unit-test-artifact.json',
+    probeCommandOrCheck: pass ? 'config/project-dod/project_dod_registry.jsonl' : 'missing-unit-test-artifact.json',
     passCondition: pass ? 'local file probe passes' : 'local file probe misses',
     evidenceRequired: ['coverage result evidence'],
     priority,

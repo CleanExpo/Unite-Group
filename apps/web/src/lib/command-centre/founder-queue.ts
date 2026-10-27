@@ -266,7 +266,7 @@ function inTreeQueuePath(): string {
 
 /** The ledger itself, two levels above apps/web (repo root). Dev/test fallback only. */
 function repoRootQueuePath(): string {
-  return path.join(process.cwd(), '..', '..', 'FOUNDER-QUEUE.md')
+  return path.join(process.cwd(), '..', '..', 'docs/governance/FOUNDER-QUEUE.md')
 }
 
 async function readQueueSource(): Promise<{ source: string; raw: string }> {

@@ -12,6 +12,13 @@ updated: 2026-07-06
 _Read this first. Lists every concept + subfolder here so an agent loads only what it needs (OKF / LLM-Wiki pattern)._
 
 ## Concepts
+- [[GOOGLE-OAUTH-SETUP]] — Google OAuth (Gmail · Calendar · Drive)
+- [[SOCIAL-OAUTH-SETUP]] — Social OAuth providers
+- [[XERO-OAUTH-SETUP]] — Xero OAuth
+- [[NON_CODER_BUILD_GUIDE]] — Idea to production (non-coder path)
+- [[cloudinary]] — Cloudinary secure uploads
+- [[brand-video]] — Brand video worker notes
+- [[card-payment-links]] — Stripe payment link → thanks page flow
 - [[CI_CD_GUIDE]] — CI/CD Guide
 - [[INTEGRATION-GUIDE]] — Frontend-Backend Integration Guide
 - [[MIGRATION_GUIDE]] — Supabase Migration Guide

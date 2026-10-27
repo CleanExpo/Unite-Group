@@ -60,14 +60,14 @@ function makeRoot({ risky = false } = {}) {
             forbid: ['Unite-Hub is a SEPARATE LIVE'],
           },
           {
-            path: 'SOURCE-OF-TRUTH.md',
+            path: 'docs/governance/SOURCE-OF-TRUTH.md',
             require: ['SUPERSEDED 2026-06-20'],
           },
         ],
       },
     ],
   }, null, 2));
-  write(root, 'SOURCE-OF-TRUTH.md', 'SUPERSEDED 2026-06-20\n');
+  write(root, 'docs/governance/SOURCE-OF-TRUTH.md', 'SUPERSEDED 2026-06-20\n');
   write(root, 'AGENTS.md', risky
     ? 'Unite-Hub is a SEPARATE LIVE parallel product.\n'
     : 'Unite-Group is the canonical product.\n');

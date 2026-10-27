@@ -1,6 +1,6 @@
 # Unite-Group — THE canonical monorepo
 
-**Read `SOURCE-OF-TRUTH.md` first.** This repo (`CleanExpo/Unite-Group`) is the
+**Read `docs/governance/SOURCE-OF-TRUTH.md` first.** This repo (`CleanExpo/Unite-Group`) is the
 single canonical repository for the Unite-Group product and ecosystem. On
 12/06/2026 it absorbed the former standalone CRM repository, hermes-workspace,
 Unite-Group-Spine, pi-ceo-operator-mcp and brain-1 with full git history. On
@@ -187,7 +187,7 @@ review to pick up an unrelated Linear ticket.
 
 Steps 1 and 2 are unconditional. Step 3 applies only when no task was given.
 
-1. Read `SOURCE-OF-TRUTH.md`, then `NORTH-STAR.md`, then `FOUNDER-QUEUE.md`.
+1. Read `docs/governance/SOURCE-OF-TRUTH.md`, then `docs/governance/NORTH-STAR.md`, then `docs/governance/FOUNDER-QUEUE.md`.
 2. **State the top FOUNDER-QUEUE blocker and its age in the first reply.** Not a
    summary of the queue — the single oldest open decision and how many days it
    has been waiting. **Read the age from `node scripts/founder-queue.mjs`, never
@@ -202,7 +202,7 @@ Steps 1 and 2 are unconditional. Step 3 applies only when no task was given.
    commissioned to review, verify or investigate discharges this by delivering
    its report with the evidence in it — its deliverable was never code.
 
-`NORTH-STAR.md` opens with a disambiguation block: "NorthStar" already names the
+`docs/governance/NORTH-STAR.md` opens with a disambiguation block: "NorthStar" already names the
 honest-sources rule and the `apps/web` completion spec, and those are three
 different things.
 

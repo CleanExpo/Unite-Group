@@ -4,6 +4,7 @@ import { test, expect, type BrowserContext, type Page } from '@playwright/test'
 import { revealEmailLogin } from './support/email-login'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { loadSupabaseAdminConfig } from './support/supabase-admin-config'
+import { OPERATIONS_EVIDENCE_PATH } from './support/operations-docs'
 
 type TestUser = {
   label: 'A' | 'B'
@@ -28,7 +29,7 @@ function randomPassword() {
 
 function appendEvidence(line: string) {
   if (process.env.FILE_UPLOAD_APPEND_EVIDENCE !== '1') return
-  appendFileSync('EVIDENCE.md', `${line}\n`)
+  appendFileSync(OPERATIONS_EVIDENCE_PATH, `${line}\n`)
 }
 
 function makeAdminClient() {

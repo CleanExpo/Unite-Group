@@ -104,7 +104,7 @@ Per provider, the bounded time is ~10-15 min for the operator (excluding the OAu
 1. `src/app/api/auth/linkedin/__tests__/oauth.test.ts` — 6 new tests (LinkedIn authorize + callback)
 2. `src/app/api/auth/tiktok/__tests__/oauth.test.ts` — 5 new tests (TikTok authorize + callback)
 3. `src/app/api/auth/meta/__tests__/callback.test.ts` — 3 new tests (Meta callback specifically, complementing the existing oauth.test.ts which only covers authorize)
-4. This doc (`docs/oauth-routes.md`)
+4. This doc (`docs/reference/oauth-routes.md`)
 
 **Total:** 14 new tests + 1 reference doc. All bounded, all mergeable, all on main.
 

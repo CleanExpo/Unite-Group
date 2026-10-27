@@ -23,7 +23,7 @@
  *   (.claude/skills/brand-video/pipeline/image_gen.py, GEMINI_API_KEY) — the
  *   validated prod path that returns a native 16:9 PNG over HTTPS. Optionally,
  *   set IMAGE_API_URL to POST the styled prompt to a custom HTTP image endpoint
- *   instead. See src/lib/brand-video/README.md.
+ *   instead. See docs/guides/brand-video.md.
  *
  * Optional env:
  *   IMAGE_API_URL, IMAGE_API_KEY     — override: custom HTTP image generator

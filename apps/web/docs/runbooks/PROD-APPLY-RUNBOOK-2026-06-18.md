@@ -40,11 +40,11 @@ After each script, optionally confirm via `GET /api/health` →
    `configured:true`) with 6 stored accounts, but the tokens are **stale** (last used
    08/05). **Reconnect** each at `/founder/email` (or
    `/api/auth/google/authorize?email=<addr>`). The new `drive.readonly` scope (#321)
-   also lights up Notes. Guide: `docs/GOOGLE-OAUTH-SETUP.md`.
+   also lights up Notes. Guide: `docs/guides/GOOGLE-OAUTH-SETUP.md`.
 2. **Xero** — 3 orgs have (never-used) tokens. Confirm `XERO_CLIENT_*`/`DR_CLIENT_*`
    are set (`GET /api/health` → `integrations.xero`), then connect at `/founder/xero`.
-   Guide: `docs/XERO-OAUTH-SETUP.md`.
-3. **Social** — set provider creds + connect per `docs/SOCIAL-OAUTH-SETUP.md`; verify
+   Guide: `docs/guides/XERO-OAUTH-SETUP.md`.
+3. **Social** — set provider creds + connect per `docs/guides/SOCIAL-OAUTH-SETUP.md`; verify
    via `/api/social/status`.
 
 ---

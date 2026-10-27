@@ -191,7 +191,7 @@ const ALLOWLIST = new Map([
     'reference-only empire doc citing a founder-machine path as historical context',
   ],
   [
-    'apps/web/PROJECT_DEFINITION_OF_DONE_ENGINE_RESULTS.md',
+    'apps/web/docs/engineering/PROJECT_DEFINITION_OF_DONE_ENGINE_RESULTS.md',
     'product doc citing a founder-machine path as historical context',
   ],
   [
@@ -388,7 +388,7 @@ const ALLOWLIST = new Map([
     'markdown citing a founder-machine path as historical context',
   ],
   [
-    'spec.md',
+    'docs/specs/spec.md',
     'markdown citing a founder-machine path as historical context',
   ],
 ]);

@@ -1,1 +1,0 @@
-docs/constitution/EPIC-000-nexus-engineering-constitution.md

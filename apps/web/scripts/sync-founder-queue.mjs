@@ -3,7 +3,7 @@
 /**
  * Mission Control Day 1 — Founder queue sync.
  *
- * Copies the repo-root FOUNDER-QUEUE.md ledger to an in-tree location
+ * Copies docs/governance/FOUNDER-QUEUE.md to an in-tree location
  * (`data/command-centre/founder-queue.md`) so it is inside apps/web's
  * output-file-tracing root and ships in the Vercel lambda bundle. The root
  * file sits two levels above apps/web and is never traced into the
@@ -20,7 +20,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const source = resolve(appRoot, '..', '..', 'FOUNDER-QUEUE.md')
+const source = resolve(appRoot, '..', '..', 'docs/governance/FOUNDER-QUEUE.md')
 const target = join(appRoot, 'data', 'command-centre', 'founder-queue.md')
 
 if (!existsSync(source)) {
