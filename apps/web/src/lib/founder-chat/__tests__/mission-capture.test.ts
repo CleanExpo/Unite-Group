@@ -237,6 +237,24 @@ describe('captureMission', () => {
     expect(db.rows).toHaveLength(1)
   })
 
+  it('AC-5 a build request carrying a non-ASCII character records nothing; curly quotes still record', async () => {
+    const db = makeUniqueEnforcingDb()
+    for (const text of [
+      'Build a reporting dashboard for Synthex. de\u00ADploy it',
+      'Build a reporting dashboard for Synthex. de\u034Fploy it',
+      'Build a reporting dashboard for Synthex. d\u0435ploy it',
+      'Build a reporting dashboard for Synthex. depl\u03BFy it',
+      'Build a reporting dashboard for Synthex. de\u0301ploy it',
+      'Build a reporting dashboard for Synthex \u{1F680}',
+    ]) {
+      expect((await capture(db, { text })).receipt, JSON.stringify(text)).toEqual({ kind: 'unsupported_action' })
+    }
+    expect(db.inserts).toHaveLength(0)
+    const curly = 'Build the \u201CQuick Quote\u201D page for CARSI'
+    expect((await capture(db, { text: curly })).receipt?.kind).toBe('recorded')
+    expect(db.rows[0].objective).toBe(curly)
+  })
+
   it('AC-13 the same turnId with different text is a conflict and writes no new row', async () => {
     const db = makeUniqueEnforcingDb()
     await capture(db)

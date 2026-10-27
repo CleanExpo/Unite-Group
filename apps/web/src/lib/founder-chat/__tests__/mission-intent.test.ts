@@ -107,6 +107,31 @@ describe('classifyMissionIntent', () => {
     for (const text of unsupported) expect(classifyMissionIntent(text), text).toBe('unsupported_action')
   })
 
+  it('AC-5 a build request carrying any non-ASCII character after normalisation is unsupported_action', () => {
+    for (const text of [
+      'Build a reporting dashboard for Synthex. de\u00ADploy it',
+      'Build a reporting dashboard for Synthex. de\u034Fploy it',
+      'Build a reporting dashboard for Synthex. d\u0435ploy it',
+      'Build a reporting dashboard for Synthex. depl\u03BFy it',
+      'Build a reporting dashboard for Synthex. de\u0301ploy it',
+      'Build a reporting dashboard for Synthex \u{1F680}',
+    ]) {
+      expect(classifyMissionIntent(text), JSON.stringify(text)).toBe('unsupported_action')
+    }
+    // Siblings: typographic punctuation maps to ASCII, so these stay build requests.
+    for (const text of [
+      'Build the \u201CQuick Quote\u201D page for CARSI',
+      'Build Phill\u2019s reporting dashboard for Synthex',
+      'Build a reporting dashboard for Synthex \u2014 monthly view',
+      'Build a reporting dashboard for Synthex \u2013 weekly\u2026',
+      'Build a\u00A0reporting dashboard for Synthex',
+    ]) {
+      expect(classifyMissionIntent(text), JSON.stringify(text)).toBe('build_request')
+    }
+    // A non-ASCII question is still a question.
+    expect(classifyMissionIntent('Did the d\u0435ploy finish?')).toBe('question')
+  })
+
   it('AC-5 fullwidth or zero-width-split protected words are still unsupported_action', () => {
     for (const text of [
       'Build a reporting dashboard for Synthex. \uFF24\uFF45\uFF50\uFF4C\uFF4F\uFF59 it',

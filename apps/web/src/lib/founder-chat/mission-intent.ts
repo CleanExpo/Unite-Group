@@ -68,13 +68,29 @@ function aimsAtWork(text: string): boolean {
 }
 
 // Zero-width characters that can split a word without showing (U+200B-U+200D,
-// U+2060, U+FEFF).
+// U+2060, U+FEFF). Stripped so a split protected verb is still seen as one word.
 const ZERO_WIDTH = /[​-‍⁠﻿]/g
+
+// Common typographic punctuation, mapped to ASCII so ordinary prose survives the
+// printable-ASCII rule below: curly quotes, dashes, ellipsis, Unicode spaces.
+const TYPOGRAPHIC: ReadonlyArray<readonly [RegExp, string]> = [
+  [/[‘’‚‛′]/g, "'"],
+  [/[“”„‟″]/g, '"'],
+  [/[‐-―−]/g, '-'],
+  [/…/g, '...'],
+  [/[   -   　]/g, ' '],
+]
+
+// Fail closed on the whole lookalike class: after the maps above, a build
+// request carrying ANY character outside printable ASCII is not recorded.
+const NON_PRINTABLE_ASCII = /[^\x20-\x7E]/
 
 /** Classifier view only: NFKC folds fullwidth/compatibility forms, zero-width marks go. */
 function normaliseForClassify(raw: string): string {
-  // Re-cap after NFKC, which can expand a character into several.
-  return raw.slice(0, MAX_CLASSIFY_CHARS).normalize('NFKC').replace(ZERO_WIDTH, '').slice(0, MAX_CLASSIFY_CHARS)
+  let text = raw.slice(0, MAX_CLASSIFY_CHARS).normalize('NFKC').replace(ZERO_WIDTH, '')
+  for (const [pattern, ascii] of TYPOGRAPHIC) text = text.replace(pattern, ascii)
+  // Re-cap after NFKC and the maps, which can expand a character into several.
+  return text.slice(0, MAX_CLASSIFY_CHARS)
 }
 
 export function classifyMissionIntent(raw: string): MissionIntentKind {
@@ -83,5 +99,6 @@ export function classifyMissionIntent(raw: string): MissionIntentKind {
   if (PROTECTED_LEADING.test(text) || RUN_IN_PRODUCTION.test(text)) return 'unsupported_action'
   const imperativeBuild = !text.endsWith('?') && aimsAtWork(text)
   if (imperativeBuild && PROTECTED_ANYWHERE.test(text)) return 'unsupported_action'
+  if (imperativeBuild && NON_PRINTABLE_ASCII.test(text)) return 'unsupported_action'
   return imperativeBuild ? 'build_request' : 'question'
 }

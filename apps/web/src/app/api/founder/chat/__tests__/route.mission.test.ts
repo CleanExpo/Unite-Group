@@ -275,6 +275,23 @@ describe('POST /api/founder/chat — mission capture', () => {
     expect(db.inserts).toHaveLength(0)
   })
 
+  it('AC-5 a build request carrying a non-ASCII character streams unsupported_action and inserts nothing', async () => {
+    for (const text of [
+      'Build a reporting dashboard for Synthex. de\u00ADploy it',
+      'Build a reporting dashboard for Synthex. de\u034Fploy it',
+      'Build a reporting dashboard for Synthex. d\u0435ploy it',
+      'Build a reporting dashboard for Synthex. depl\u03BFy it',
+      'Build a reporting dashboard for Synthex. de\u0301ploy it',
+      'Build a reporting dashboard for Synthex \u{1F680}',
+    ]) {
+      const frames = await drain(await post(turn(text)))
+      expect(frames[0], JSON.stringify(text)).toEqual({ mission: { kind: 'unsupported_action' } })
+    }
+    expect(db.inserts).toHaveLength(0)
+    const emDashed = await drain(await post(turn('Build a reporting dashboard for Synthex \u2014 monthly view', TURN_2)))
+    expect(emDashed[0].mission).toMatchObject({ kind: 'recorded' })
+  })
+
   it('AC-6 no session is 401 and a session off the allow-list is 403, with no task in either', async () => {
     vi.mocked(getUser).mockResolvedValue(null as never)
     const unauthorised = await post(turn(BUILD))

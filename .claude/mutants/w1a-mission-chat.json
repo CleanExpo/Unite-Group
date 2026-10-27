@@ -198,5 +198,15 @@
       "src/lib/founder-chat/__tests__/mission-intent.test.ts"
     ],
     "expect": "AC-5"
+  },
+  {
+    "id": "u",
+    "file": "src/lib/founder-chat/mission-intent.ts",
+    "find": "  if (imperativeBuild && NON_PRINTABLE_ASCII.test(text)) return 'unsupported_action'\n",
+    "replace": "",
+    "tests": [
+      "src/lib/founder-chat/__tests__/mission-intent.test.ts"
+    ],
+    "expect": "AC-5"
   }
 ]
