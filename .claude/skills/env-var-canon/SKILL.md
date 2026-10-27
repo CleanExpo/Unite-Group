@@ -72,7 +72,10 @@ recorded here; confirm placement live per "Two planes".
 `PI_CEO_WEEKLY_REVIEW_LIVE` (weekly Pi-CEO review, default off — unarmed the
 route writes nothing; arming it is a founder/Board act paired with the
 `apps/web/vercel.json` cron registration, see
-`.spm/2026-08-07-p9-board-meetings-collision.md`).
+`.spm/2026-08-07-p9-board-meetings-collision.md`) ·
+`EMAIL_TRIAGE_ENABLED` (daily email-triage cron, default off — unarmed the
+route reads no mailbox, calls no model, archives nothing and opens no Linear
+issue; only exactly `true` arms it, UNI-3052).
 
 **OWNEST host profile (local-only, dormant and not armable)**
 `SUPABASE_URL` · `SUPABASE_SERVICE_ROLE_KEY` (server-only; never passed to
