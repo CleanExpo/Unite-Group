@@ -83,6 +83,20 @@ export default function SignaturesPage() {
             </p>
           </div>
         </section>
+
+        <section className={m.section} aria-labelledby="signatures-cta">
+          <div className={m.wrap}>
+            <SectionIntro
+              id="signatures-cta"
+              title="Ready for consistent signatures?"
+              lead="Tell us how many people need one and we will send a proof before anything goes live."
+            />
+            <div className={m.actions}>
+              <a href="/#contact" className={m.btnPrimary}>Start with contact</a>
+              <a href="/cards/order" className={m.btnSecondary}>Order a card first</a>
+            </div>
+          </div>
+        </section>
       </main>
       <SiteFooter />
     </PublicPageShell>
