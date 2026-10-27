@@ -41,13 +41,18 @@ const PAYMENT_SOURCES: Record<string, readonly string[]> = {
   'app/cards/terms/terms-content.ts': TERMS_PAYMENT_LINES,
 }
 
-/** The Buy Ready-made block on /cards (its first closing div ends it) and the page without it. */
+/** The block that holds the Buy Ready-made button on /cards, found by the button itself (not a marker),
+ *  and the page without it. The block is the nearest <div> around the button, up to its first </div>. */
+const BUY_CTA = 'data-track-label="cards-hero-buy-ready"'
 const buyBlock = (page: string) => {
-  const start = page.indexOf('data-buy-now=')
-  if (start < 0) return { block: '', rest: page }
-  const open = page.lastIndexOf('<div', start)
-  const end = page.indexOf('</div>', start) + '</div>'.length
-  return { block: page.slice(open, end), rest: page.slice(0, open) + page.slice(end) }
+  const cta = page.indexOf(BUY_CTA)
+  if (cta < 0) return { block: '', rest: page }
+  const open = page.lastIndexOf('<div', cta)
+  const end = page.indexOf('</div>', cta) + '</div>'.length
+  const block = page.slice(open, end)
+  // A </div> between the div and the button means the button is not inside it.
+  if (open < 0 || page.slice(open, cta).includes('</div>')) return { block: '', rest: page }
+  return { block, rest: page.slice(0, open) + page.slice(end) }
 }
 
 const withoutAllowed = (text: string, allowed: readonly string[]) => allowed.reduce((t, s) => t.split(s).join(' '), text)
@@ -224,14 +229,21 @@ describe('public card routes carry no restoration or sister-business content', (
     if (path === 'page.tsx' && on) {
       // The showroom's payment line is allowed only inside the Buy Ready-made block (#1289), once.
       const { block, rest } = buyBlock(page)
+      expect(block, 'the Buy button is in the block').toContain(BUY_CTA)
       expect(block.split(APPROVED_PAYMENT_LINE).length - 1, 'the payment line sits once beside the Buy button').toBe(1)
       expect(scan(rest), 'no payment line elsewhere on /cards').toBeNull()
     }
   })
 
-  it('the /cards placement check fails when the payment line moves outside the Buy block', () => {
-    const page = `<main><div data-buy-now="x"><a>Buy</a><p>${APPROVED_PAYMENT_LINE}</p></div><footer><p>${APPROVED_PAYMENT_LINE}</p></footer></main>`
-    expect(scan(buyBlock(page).rest)).toBe('CARSI')
+  it('the /cards placement check fails when the payment line sits away from the Buy button', () => {
+    const buy = `<div><a href="https://buy" ${BUY_CTA}>Buy Ready, A$99</a><p>${APPROVED_PAYMENT_LINE}</p></div>`
+    // Planted a second time in the footer: the rest of the page is no longer clean.
+    expect(scan(buyBlock(`<main>${buy}<footer><p>${APPROVED_PAYMENT_LINE}</p></footer></main>`).rest)).not.toBeNull()
+    // The marker moved to a far footer div with the line, but no Buy button there: the line is outside the block.
+    const moved = `<main><div><a href="https://buy" ${BUY_CTA}>Buy</a></div><footer><div data-buy-now="x"><p>${APPROVED_PAYMENT_LINE}</p></div></footer></main>`
+    expect(buyBlock(moved).block).not.toContain(APPROVED_PAYMENT_LINE)
+    expect(scan(buyBlock(moved).rest)).not.toBeNull()
+    // No Buy button at all: there is no block.
     expect(buyBlock('<main><p>x</p></main>').block).toBe('')
   })
 
