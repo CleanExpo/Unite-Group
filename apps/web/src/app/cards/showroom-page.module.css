@@ -64,3 +64,16 @@
   outline: 3px solid var(--pub-focus);
   outline-offset: 2px;
 }
+
+/* One-click buy under the hero lead (UNI-3049): the button, then the price and payment-entity lines. */
+.buyNow {
+  margin: 8px 0 14px;
+  max-width: 30rem;
+}
+
+.buyNote {
+  margin: 0.5rem 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--pub-muted);
+}

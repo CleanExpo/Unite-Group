@@ -7,13 +7,15 @@ import { cardsShowroomJsonLd } from '@/lib/cards-jsonld'
 import { liveCardTiers } from '@/lib/public-pricing'
 import { SITE_URL } from '@/lib/public-site'
 
-import { serializeJsonLd } from '@/app/grow/packages'
+import { formatAud, serializeJsonLd, stripePaymentLink } from '@/app/grow/packages'
 
 import { SectionIntro } from '@/components/public/section-intro'
 import m from '@/components/public/marketing-page.module.css'
 
 import { EditionTile } from './edition-tile'
 import { EDITIONS } from './editions'
+import { CARD_TIERS } from './order/order-view'
+import { PAYMENT_ENTITY_LINE } from './payment-entity'
 import p from './showroom-page.module.css'
 import s from './showroom.module.css'
 import { EXCLUSION_FACTS, FAQ_FACTS, HOSTING_FACTS, PRICE_NOTE, TIER_LINES } from './showroom-facts'
@@ -41,6 +43,10 @@ export default function CardsShowroomPage() {
   const [signature, ...editions] = EDITIONS
   const live = liveCardTiers()
   const productLd = cardsShowroomJsonLd()
+  // One-click buy (UNI-3049): the Ready-made Payment Link straight from the hero. Same env var and validator as the
+  // order page, so an unset or non-Stripe value shows no button and /cards/order stays the way in.
+  const ready = CARD_TIERS.find((t) => t.id === 'ready')
+  const buyLink = ready ? stripePaymentLink(process.env[ready.paymentLinkEnv]) : null
   return (
     <PublicPageShell>
       {productLd ? (
@@ -66,8 +72,17 @@ export default function CardsShowroomPage() {
                   title="A business card that opens like a film and ends on your logo."
                   lead="One link or QR code. A short opener, your details, one-tap save to contacts, and links to your businesses."
                 />
+                {ready && buyLink ? (
+                  <div className={p.buyNow} data-buy-now={ready.id}>
+                    <a href={buyLink} rel="noopener" data-track="cta" data-track-label="cards-hero-buy-ready" className={m.btnPrimary}>
+                      {`Buy ${ready.name}, A${formatAud(ready.priceAud)}`}
+                    </a>
+                    <p className={p.buyNote}>One-off price, GST included.</p>
+                    <p className={p.buyNote}>{PAYMENT_ENTITY_LINE}</p>
+                  </div>
+                ) : null}
                 <div className={m.actions}>
-                  <a href="/cards/order" data-track="cta" data-track-label="cards-hero-get-card" className={m.btnPrimary}>
+                  <a href="/cards/order" data-track="cta" data-track-label="cards-hero-get-card" className={buyLink ? m.btnSecondary : m.btnPrimary}>
                     Get your own card
                   </a>
                   <a href="#editions" data-track="cta" data-track-label="cards-hero-see-editions" className={m.btnSecondary}>
