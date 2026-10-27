@@ -41,6 +41,15 @@ const PAYMENT_SOURCES: Record<string, readonly string[]> = {
   'app/cards/terms/terms-content.ts': TERMS_PAYMENT_LINES,
 }
 
+/** The Buy Ready-made block on /cards (its first closing div ends it) and the page without it. */
+const buyBlock = (page: string) => {
+  const start = page.indexOf('data-buy-now=')
+  if (start < 0) return { block: '', rest: page }
+  const open = page.lastIndexOf('<div', start)
+  const end = page.indexOf('</div>', start) + '</div>'.length
+  return { block: page.slice(open, end), rest: page.slice(0, open) + page.slice(end) }
+}
+
 const withoutAllowed = (text: string, allowed: readonly string[]) => allowed.reduce((t, s) => t.split(s).join(' '), text)
 
 // Compatibility forms fold to plain letters; every default-ignorable code point (format controls, joiners,
@@ -212,6 +221,18 @@ describe('public card routes carry no restoration or sister-business content', (
     expect(page, 'positive control: the page rendered').toContain(shows)
     expect(scan(page, PAYMENT_ROUTES[path] ?? [])).toBeNull()
     expect(scan(meta)).toBeNull()
+    if (path === 'page.tsx' && on) {
+      // The showroom's payment line is allowed only inside the Buy Ready-made block (#1289), once.
+      const { block, rest } = buyBlock(page)
+      expect(block.split(APPROVED_PAYMENT_LINE).length - 1, 'the payment line sits once beside the Buy button').toBe(1)
+      expect(scan(rest), 'no payment line elsewhere on /cards').toBeNull()
+    }
+  })
+
+  it('the /cards placement check fails when the payment line moves outside the Buy block', () => {
+    const page = `<main><div data-buy-now="x"><a>Buy</a><p>${APPROVED_PAYMENT_LINE}</p></div><footer><p>${APPROVED_PAYMENT_LINE}</p></footer></main>`
+    expect(scan(buyBlock(page).rest)).toBe('CARSI')
+    expect(buyBlock('<main><p>x</p></main>').block).toBe('')
   })
 
   it('no card route builds its metadata at request time, which the render scan cannot see', async () => {
