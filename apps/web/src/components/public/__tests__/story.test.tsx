@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest'
 import { entityJsonLd } from '@/lib/entity'
 
 import { ALSO, BUSINESSES, TILES } from '../businesses'
-import { Hero } from '../hero'
+import { HomePage } from '../home/home-page'
 import { Story } from '../story'
 
 const PUBLIC = join(__dirname, '..', '..', '..', '..', 'public')
@@ -17,9 +17,10 @@ const tileList = (html: string) => html.slice(html.indexOf('data-businesses'), h
 const tiles = (html: string) => tileList(html).split('<li ').slice(1).map((p) => p.slice(0, p.indexOf('</li>')))
 
 describe('hero story line', () => {
-  it('says Every business. One system. as the H1, and drops the earlier lines', () => {
-    const html = renderToStaticMarkup(<Hero />)
-    expect(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1].replace(/<[^>]*>/g, '')).toBe('Every business. One system.')
+  // Live hero is in home/home-page.tsx since the 27/10/2026 redesign; Phill 27/10: tests follow the live wording.
+  it('says the live H1 on the home page, and drops the earlier lines', () => {
+    const html = renderToStaticMarkup(<HomePage />)
+    expect(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1].replace(/<[^>]*>/g, '')).toBe('Your business deserves a clearer front door.')
     expect(strip(html)).not.toMatch(/searches in|call out|makes video business cards/i)
   })
 })
