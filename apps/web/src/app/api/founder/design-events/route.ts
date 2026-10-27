@@ -36,6 +36,8 @@ export async function POST(request: Request) {
     if (isUndefinedTable(error)) {
       return NextResponse.json({ error: 'design_events is not migrated yet' }, { status: 503, headers: NO_STORE })
     }
+    // The code only: messages and details can echo the submitted reason.
+    console.error('design-events: record failed', error.code)
     return NextResponse.json({ error: 'Could not record the event' }, { status: 500, headers: NO_STORE })
   }
   return NextResponse.json({ recorded: true }, { status: 201, headers: NO_STORE })
