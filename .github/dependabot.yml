@@ -33,6 +33,13 @@ updates:
     ignore:
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+      # vitest is held at 3.x by the pnpm override in apps/web/package.json.
+      # #906 bumped @vitest/coverage-v8 alone to 4.x and `test:coverage` stopped
+      # starting (UNI-3076). Majors of the runner and its plugins move together, by hand.
+      - dependency-name: "vitest"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@vitest/*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: "npm"
     directory: "/apps/workspace"
     schedule:
