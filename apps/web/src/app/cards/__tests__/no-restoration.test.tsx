@@ -28,10 +28,11 @@ const TERMS_PAYMENT_LINES = [
 const ALLOWED_PAYMENT_SENTENCES = [APPROVED_PAYMENT_LINE, ...TERMS_PAYMENT_LINES]
 
 /**
- * Where each payment sentence may appear: beside the pay buttons on /cards/order and in the order terms. Keyed by
+ * Where each payment sentence may appear: beside the pay buttons on /cards/order, beside the Buy Ready-made button on /cards (UNI-3049, #1289), and in the order terms. Keyed by
  * route file for the render scan and by source file for the source scan; every other route and file allows none.
  */
 const PAYMENT_ROUTES: Record<string, readonly string[]> = {
+  'page.tsx': [APPROVED_PAYMENT_LINE],
   'order/page.tsx': [APPROVED_PAYMENT_LINE],
   'terms/page.tsx': TERMS_PAYMENT_LINES,
 }
@@ -274,11 +275,11 @@ describe('public card routes carry no restoration or sister-business content', (
     expect(scan('<p>Book a training course</p>', all)).toBe('training')
   })
 
-  it('a payment sentence is allowed only on /cards/order and the terms, never on another card route or file', () => {
-    expect(Object.keys(PAYMENT_ROUTES).sort()).toEqual(['order/page.tsx', 'terms/page.tsx'])
+  it('a payment sentence is allowed only on /cards/order, the /cards showroom and the terms, never on another card route or file', () => {
+    expect(Object.keys(PAYMENT_ROUTES).sort()).toEqual(['order/page.tsx', 'page.tsx', 'terms/page.tsx'])
     expect(Object.keys(PAYMENT_SOURCES).sort()).toEqual(['app/cards/payment-entity.ts', 'app/cards/terms/terms-content.ts'])
     const others = discoverRouteFiles().filter((path) => !PAYMENT_ROUTES[path])
-    expect(others, 'positive control: the showroom is one of the other routes').toContain('page.tsx')
+    expect(others, 'positive control: the thank-you page is one of the other routes').toContain('thanks/page.tsx')
     for (const s of ALLOWED_PAYMENT_SENTENCES) {
       expect(scan(`<p>${s}</p>`), s).toBe('CARSI')
       for (const path of others) expect(scan(`<main><p>${s}</p></main>`, PAYMENT_ROUTES[path] ?? []), path).toBe('CARSI')
