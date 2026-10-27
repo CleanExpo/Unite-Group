@@ -2,6 +2,7 @@
 // Pure helpers for founder-chat thread persistence (UNI-2373 P6).
 
 import {
+  isTurnId,
   MAX_CONTENT_CHARS,
   MAX_MESSAGES,
   type FounderChatMessage,
@@ -13,18 +14,34 @@ export interface FounderChatThreadPayload {
   updatedAt: string | null
 }
 
+/**
+ * Rebuild one message from known fields only. A user message keeps a valid
+ * turnId (the pointer the GET readback resolves against cc_tasks); a malformed
+ * turnId is dropped without rejecting the message. Nothing else survives —
+ * no status, title or receipt is ever stored in the thread.
+ */
+function storedMessage(
+  role: 'user' | 'assistant',
+  content: string,
+  turnId: unknown,
+): FounderChatMessage {
+  return role === 'user' && isTurnId(turnId)
+    ? { role, content, turnId: turnId.toLowerCase() }
+    : { role, content }
+}
+
 export function normaliseStoredMessages(raw: unknown): FounderChatMessage[] {
   if (!Array.isArray(raw)) return []
   const out: FounderChatMessage[] = []
   for (const entry of raw) {
     if (!entry || typeof entry !== 'object') continue
-    const message = entry as { role?: unknown; content?: unknown }
+    const message = entry as { role?: unknown; content?: unknown; turnId?: unknown }
     if (message.role !== 'user' && message.role !== 'assistant') continue
     if (typeof message.content !== 'string') continue
     const content = message.content
     if (content.trim().length === 0) continue
     if (content.length > MAX_CONTENT_CHARS) continue
-    out.push({ role: message.role, content })
+    out.push(storedMessage(message.role, content, message.turnId))
     if (out.length >= MAX_MESSAGES) break
   }
   return out
@@ -64,7 +81,7 @@ export function parsePersistBody(
     if (!entry || typeof entry !== 'object') {
       return { ok: false, error: 'each message must be an object' }
     }
-    const message = entry as { role?: unknown; content?: unknown }
+    const message = entry as { role?: unknown; content?: unknown; turnId?: unknown }
     if (message.role !== 'user' && message.role !== 'assistant') {
       return { ok: false, error: 'message role must be "user" or "assistant"' }
     }
@@ -74,7 +91,7 @@ export function parsePersistBody(
     if (message.content.length > MAX_CONTENT_CHARS) {
       return { ok: false, error: `message content must be at most ${MAX_CONTENT_CHARS} characters` }
     }
-    messages.push({ role: message.role, content: message.content })
+    messages.push(storedMessage(message.role, message.content, message.turnId))
   }
 
   return { ok: true, messages, businessKey }

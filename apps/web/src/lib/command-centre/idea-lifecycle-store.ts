@@ -1,7 +1,8 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
 import { appendTaskEventOnce, createTaskOnce, type CommandCentreTask } from './tasks'
-import { DELIVERY_SCOPE, readDeliveryMetadata, type DeliveryMetadata } from './delivery-types'
+import { readDeliveryMetadata } from './delivery-types'
+import { buildCapturedDelivery } from './delivery-envelope'
 import { DeliveryConflict, DeliveryNotFound, hashDeliveryInput, type DeliveryMutationClient, type DeliveryStoreClient } from './delivery-store'
 import { isPreparationLeaseActive } from './intent-store'
 import { createIdeaLifecycle, readIdeaLifecycle, type LifecycleObservations } from './idea-lifecycle'
@@ -30,13 +31,7 @@ export async function captureIdeaLifecycle(
   const lifecycle = createIdeaLifecycle(input, context)
   const inputHash = hashDeliveryInput(input)
   const deliveryIdea = input.rawIdea.trim().slice(0, 12000)
-  const delivery: DeliveryMetadata = {
-    schemaVersion: 1, kind: 'software_delivery', lane: 'unknown', revision: 1,
-    inputHash, projectKey: null, originalIdea: deliveryIdea,
-    presetIds: [], recipeVersions: {}, answers: {}, questions: [], phase: 'captured',
-    spec: null, specVersion: null, harness: [], sourceRefs: [], board: null,
-    lease: null, approval: null, error: null, scope: DELIVERY_SCOPE,
-  }
+  const delivery = buildCapturedDelivery({ inputHash, projectKey: null, originalIdea: deliveryIdea })
   const result = await createTaskOnce({
     founderId, externalRef: `delivery:research:${input.requestId}`,
     title: input.title, objective: deliveryIdea, status: 'proposed', origin: 'idea',
