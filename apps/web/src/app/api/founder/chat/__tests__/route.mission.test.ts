@@ -243,6 +243,24 @@ describe('POST /api/founder/chat — mission capture', () => {
     expect(cc()[0]).toMatchObject({ status: 'proposed', human_approval_required: true })
   })
 
+  it('AC-5 a build request naming a protected action anywhere streams unsupported_action and inserts nothing', async () => {
+    for (const text of [
+      'Build a dashboard for Synthex. Deploy it',
+      'Build a dashboard for Synthex to deploy it',
+      'Build a dashboard for Synthex, then please deploy it',
+      'Build a dashboard for Synthex and deploy it',
+      'Build the Synthex dashboard; release it tomorrow',
+      'Build the Synthex dashboard so we can ship it',
+      'Build the Synthex dashboard and get it deployed',
+    ]) {
+      const frames = await drain(await post(turn(text)))
+      expect(frames[0], text).toEqual({ mission: { kind: 'unsupported_action' } })
+    }
+    expect(db.inserts).toHaveLength(0)
+    await drain(await post(turn(BUILD, TURN_2)))
+    expect(cc()).toHaveLength(1)
+  })
+
   it('AC-6 no session is 401 and a session off the allow-list is 403, with no task in either', async () => {
     vi.mocked(getUser).mockResolvedValue(null as never)
     const unauthorised = await post(turn(BUILD))

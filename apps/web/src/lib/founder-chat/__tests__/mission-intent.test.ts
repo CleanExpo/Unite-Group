@@ -107,6 +107,23 @@ describe('classifyMissionIntent', () => {
     for (const text of unsupported) expect(classifyMissionIntent(text), text).toBe('unsupported_action')
   })
 
+  it('AC-5 a build request naming a protected action ANYWHERE is unsupported_action; derived nouns are not', () => {
+    for (const text of [
+      'Build a dashboard for Synthex. Deploy it',
+      'Build a dashboard for Synthex to deploy it',
+      'Build a dashboard for Synthex, then please deploy it',
+      'Build a dashboard for Synthex and deploy it',
+      'Build the Synthex dashboard; release it tomorrow',
+      'Build the Synthex dashboard so we can ship it',
+      'Build the Synthex dashboard and get it deployed',
+    ]) {
+      expect(classifyMissionIntent(text), text).toBe('unsupported_action')
+    }
+    for (const text of ['Build a payment page for CARSI', 'Build an approval screen for Unite-Group', 'Build a deployment report page for Synthex']) {
+      expect(classifyMissionIntent(text), text).toBe('build_request')
+    }
+  })
+
   it('AC-20 an 8000-character adversarial input classifies in under 50 ms', () => {
     const inputs = [
       'build '.repeat(MAX_CLASSIFY_CHARS / 6),

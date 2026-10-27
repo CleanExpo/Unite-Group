@@ -178,5 +178,15 @@
       "src/app/api/founder/chat/__tests__/route.mission.test.ts"
     ],
     "expect": "AC-6"
+  },
+  {
+    "id": "s",
+    "file": "src/lib/founder-chat/mission-intent.ts",
+    "find": "  if (imperativeBuild && PROTECTED_ANYWHERE.test(text)) return 'unsupported_action'\n",
+    "replace": "  if (imperativeBuild && new RegExp(`(?:\\\\band|\\\\bthen|[,;:]) ${PROTECTED_VERB}\\\\b`).test(text)) return 'unsupported_action'\n",
+    "tests": [
+      "src/lib/founder-chat/__tests__/mission-intent.test.ts"
+    ],
+    "expect": "AC-5"
   }
 ]

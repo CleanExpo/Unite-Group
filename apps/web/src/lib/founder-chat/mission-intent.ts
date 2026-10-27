@@ -8,8 +8,10 @@
 //     publish, delete, pay, approve, push, ship, launch, go live, promote,
 //     execute, run … in production, migrate, drop, roll back, send) →
 //     unsupported_action, so nothing is recorded or started;
-//   - a build request that goes on to ask for a protected action in a later
-//     clause ("Build X and deploy it", "…, then publish it") → unsupported_action;
+//   - fail-safe: a build request that names a protected action ANYWHERE, in any
+//     inflection ("Build X. Deploy it", "Build X so we can ship it") →
+//     unsupported_action. Accepted false refusals: "Build a shipping page",
+//     "Build a push notification panel", "Build a release notes page";
 //   - an imperative build verb FIRST whose own object is a piece of work (a work
 //     noun within a few words of the verb, not "me"/"us"/"sense of"/"my …")
 //     → build_request. "Build a payment page" is a build request: "payment" is
@@ -34,8 +36,12 @@ const PROTECTED_VERB =
 const PROTECTED_LEADING = new RegExp(`^${OPENER}${PROTECTED_VERB}\\b`)
 // "Run … in production" opens with run and targets production.
 const RUN_IN_PRODUCTION = /^(?:please )?run\b[^?]*\b(?:in|on|against|to) (?:prod|production)\b/
-// A later clause of a build request asks for a protected action.
-const PROTECTED_CLAUSE = new RegExp(`(?:\\band|\\bthen|[,;:]|\\balso) (?:then |also |immediately )?${PROTECTED_VERB}\\b`)
+// Fail-safe: a build request that names a protected action ANYWHERE, in any
+// inflection of the verb (deploys, deployed, released, sending, sent, paid …),
+// or targets production. Derived nouns ("payment", "approval", "deployment")
+// are not the verb and do not count.
+const PROTECTED_ANYWHERE =
+  /\b(?:releas(?:e|es|ed|ing)|deploy(?:s|ed|ing)?|merg(?:e|es|ed|ing)|publish(?:es|ed|ing)?|delet(?:e|es|ed|ing)|pay(?:s|ing)?|paid|approv(?:e|es|ed|ing)|push(?:es|ed|ing)?|ship(?:s|ped|ping)?|launch(?:es|ed|ing)?|(?:go|goes|going|gone|went) live|promot(?:e|es|ed|ing)|execut(?:e|es|ed|ing)|migrat(?:e|es|ed|ing)|drop(?:s|ped|ping)?|rollbacks?|roll(?:s|ed|ing)? back|revert(?:s|ed|ing)?|send(?:s|ing)?|sent)\b|\b(?:in|on|against|to) (?:prod|production)\b/
 
 // Imperative verb must open the turn (optionally after "please").
 const BUILD_VERB_FIRST =
@@ -66,6 +72,6 @@ export function classifyMissionIntent(raw: string): MissionIntentKind {
   if (text.length === 0) return 'question'
   if (PROTECTED_LEADING.test(text) || RUN_IN_PRODUCTION.test(text)) return 'unsupported_action'
   const imperativeBuild = !text.endsWith('?') && aimsAtWork(text)
-  if (imperativeBuild && PROTECTED_CLAUSE.test(text)) return 'unsupported_action'
+  if (imperativeBuild && PROTECTED_ANYWHERE.test(text)) return 'unsupported_action'
   return imperativeBuild ? 'build_request' : 'question'
 }

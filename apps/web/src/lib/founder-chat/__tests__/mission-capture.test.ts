@@ -219,6 +219,24 @@ describe('captureMission', () => {
     expect(db.rows).toHaveLength(1)
   })
 
+  it('AC-5 a build request naming a protected action anywhere records nothing', async () => {
+    const db = makeUniqueEnforcingDb()
+    for (const text of [
+      'Build a dashboard for Synthex. Deploy it',
+      'Build a dashboard for Synthex to deploy it',
+      'Build a dashboard for Synthex, then please deploy it',
+      'Build a dashboard for Synthex and deploy it',
+      'Build the Synthex dashboard; release it tomorrow',
+      'Build the Synthex dashboard so we can ship it',
+      'Build the Synthex dashboard and get it deployed',
+    ]) {
+      expect((await capture(db, { text })).receipt, text).toEqual({ kind: 'unsupported_action' })
+    }
+    expect(db.inserts).toHaveLength(0)
+    await capture(db)
+    expect(db.rows).toHaveLength(1)
+  })
+
   it('AC-13 the same turnId with different text is a conflict and writes no new row', async () => {
     const db = makeUniqueEnforcingDb()
     await capture(db)
