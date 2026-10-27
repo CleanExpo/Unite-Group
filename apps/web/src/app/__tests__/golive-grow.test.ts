@@ -88,8 +88,22 @@ const growHrefs = (html: string) =>
  * True when the source holds a string that could become a /grow link: '/grow', '/grow#form', `${BASE}/grow`, or a bare
  * 'grow' piece of a split string. Import and re-export specifiers are paths to modules, not links, so they are removed.
  */
-const hasGrowString = (src: string) =>
-  /(["'`])(?:[^"'`\n]*\/)?grow(?:[?#/][^"'`\n]*)?\1/.test(src.replace(/^\s*(?:import|export)\b[^\n]*\bfrom\s*['"][^'"]+['"];?\s*$/gm, ''))
+const growStrings = (src: string) =>
+  [...src.replace(/^\s*(?:import|export)\b[^\n]*\bfrom\s*['"][^'"]+['"];?\s*$/gm, '').matchAll(/(["'`])(?:[^"'`\n]*\/)?grow(?:[?#/][^"'`\n]*)?\1/g)].map((m) => m[0])
+const hasGrowString = (src: string) => growStrings(src).length > 0
+
+/**
+ * Every file a public page loads that holds a "grow" string, with how many, checked by hand. The render checks below
+ * see only server markup; a link a browser-only component adds after it mounts is invisible there (review of
+ * 2870c868 planted one in FilmPlayer). So a new "grow" string anywhere in that code fails here until a person has
+ * looked at what it does and added it.
+ */
+const REVIEWED_GROW_STRINGS: Record<string, number> = {
+  'components/public/site-nav.tsx': 1, // the main nav link, allowed
+  'components/public/home/home-page.tsx': 1, // the home hero link, allowed
+  'app/privacy-policy/page.tsx': 1, // section 10 names the /grow form as a collection point, allowed
+  'lib/legal/collection-notice.ts': 1, // 'grow' names a form type in CollectionNoticeForm; not a link
+}
 
 /** The project files a module imports, followed to the end. Packages are not followed. */
 function closure(start: string[]): string[] {
@@ -172,6 +186,16 @@ describe('D3: /grow is linked only from the main nav and the home hero, on the p
     // A render entry for a page that no longer exists is a check of nothing.
     const keys = new Set(publicPages().map((p) => p.key))
     expect(Object.keys(RENDERS).filter((k) => !keys.has(k))).toEqual([])
+  })
+
+  it('every "grow" string any public page loads, server or browser code, is one this guard has reviewed', () => {
+    const files = new Set(publicPages().filter((p) => p.key !== '/grow').flatMap((p) => closure(p.files)))
+    const found: Record<string, number> = {}
+    for (const f of [...files].sort()) {
+      const n = growStrings(readFileSync(f, 'utf8')).length
+      if (n) found[posix(relative(SRC, f))] = n
+    }
+    expect(found).toEqual(REVIEWED_GROW_STRINGS)
   })
 
   it.each(Object.keys(RENDERS).filter((k) => k !== '/' && k !== PRIVACY))('%s draws no /grow link of its own', async (key) => {
