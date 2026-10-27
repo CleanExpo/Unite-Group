@@ -120,6 +120,26 @@ describe('the 01/02/03 step labels are readable', () => {
   })
 })
 
+describe('the "Where do you want to start?" steps are readable', () => {
+  it('each of the five steps shows its number, name and line at 14px or more', async () => {
+    const html = await signedOut()
+    const from = html.indexOf('id="start"')
+    expect(from, 'id="start"').toBeGreaterThan(-1)
+    const steps = html.slice(from, html.indexOf('</ol>', from))
+    const css = readFileSync(join(PUB, 'home', 'home-page.module.css'), 'utf8')
+    for (const cls of ['pathNo', 'pathName', 'pathLine']) {
+      // CSS-module class names render with a hash around the name (_pathNo_b9af75 here), so match the name between
+      // separators; pathNo must not match pathName.
+      expect(steps.match(new RegExp(`class="(?:[^"]*[\\s_])?${cls}(?=[\\s"_])`, 'g')) ?? [], cls).toHaveLength(5)
+      const rules = [...css.matchAll(new RegExp(`\\.${cls}\\s*\\{([^}]*)\\}`, 'g'))].map((m) => m[1])
+      expect(rules.length, `.${cls} rule`).toBeGreaterThan(0)
+      for (const rule of rules) {
+        expect(Number(rule.match(/font-size:\s*(\d+)px/)?.[1] ?? 0), `.${cls} font-size`).toBeGreaterThanOrEqual(14)
+      }
+    }
+  })
+})
+
 // Founder rule: a seed must never look live. The analytics counts and inbox entries on these screens are invented,
 // so every frame says so in a small visible caption.
 describe('every home screen frame says it is sample data', () => {

@@ -298,7 +298,7 @@
 
 .pathNo {
   font-family: var(--pub-mono);
-  font-size: 12px;
+  font-size: 14px;
   letter-spacing: 0.08em;
   color: var(--pub-muted);
 }
@@ -312,7 +312,7 @@
 
 .pathLine {
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 400;
   line-height: 1.4;
   color: var(--pub-muted);
