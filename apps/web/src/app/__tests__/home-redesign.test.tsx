@@ -329,6 +329,9 @@ describe('the spotlight shows without JS and keeps moving', () => {
       expect(rule(sel), sel).not.toMatch(/display:\s*none|opacity:\s*0|visibility:\s*hidden/)
     }
     expect(HOME_CSS).toMatch(/\.spotVideo\[hidden\]\s*\{\s*display:\s*none/)
+    // blocked autoplay: the film stays transparent over the face until CardLoop marks it playing
+    expect(HOME_CSS).toMatch(/\.spotVideo:not\(\[data-playing\]\)\s*\{\s*opacity:\s*0/)
+    expect(card).not.toContain('data-playing')
   })
 })
 
