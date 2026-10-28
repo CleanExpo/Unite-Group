@@ -1,5 +1,12 @@
 // src/lib/cron-auth.test.ts
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+const timingSafeEqualSpy = vi.hoisted(() => vi.fn())
+vi.mock('node:crypto', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:crypto')>()
+  timingSafeEqualSpy.mockImplementation(actual.timingSafeEqual)
+  return { ...actual, timingSafeEqual: timingSafeEqualSpy }
+})
 
 import { assertCronAuth, isCronAuthorised } from './cron-auth'
 
@@ -69,5 +76,30 @@ describe('isCronAuthorised', () => {
 
   it('is true for the correct bearer', () => {
     expect(isCronAuthorised(req(`Bearer ${SECRET}`))).toBe(true)
+  })
+})
+
+// A plain === stops at the first differing byte, so response time leaks how much
+// of a guessed secret is right. Both guards must compare through timingSafeEqual.
+describe('constant-time comparison', () => {
+  beforeEach(() => {
+    process.env.CRON_SECRET = SECRET
+    timingSafeEqualSpy.mockClear()
+  })
+
+  it('isCronAuthorised compares through timingSafeEqual', () => {
+    expect(isCronAuthorised(req('Bearer test-cron-secreX'))).toBe(false)
+    expect(timingSafeEqualSpy).toHaveBeenCalled()
+  })
+
+  it('assertCronAuth compares through timingSafeEqual', () => {
+    expect(assertCronAuth(req(`Bearer ${SECRET}`))).toBeNull()
+    expect(timingSafeEqualSpy).toHaveBeenCalled()
+  })
+
+  it('rejects headers shorter or longer than the secret without throwing', () => {
+    expect(isCronAuthorised(req('Bearer t'))).toBe(false)
+    expect(isCronAuthorised(req(`Bearer ${SECRET}${'x'.repeat(5000)}`))).toBe(false)
+    expect(assertCronAuth(req('Bearer t'))!.status).toBe(401)
   })
 })
