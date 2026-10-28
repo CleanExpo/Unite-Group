@@ -159,7 +159,9 @@ jobs:
         # UNI-3076: the same suite as `pnpm run test`, run once, with v8 coverage. It fails
         # when vitest.config.mts thresholds fail (lines/statements 80, functions 80,
         # branches 75). json-summary is a reporter in that config, so local and CI match.
-        run: pnpm run test:coverage
+        # Runs the locked `test` script with --coverage passed through (not `test:coverage`),
+        # so scripts/nexus-project-readiness.mjs still sees the required `test` command.
+        run: pnpm run test --coverage
 
       - name: Upload coverage summary
         # Not `if: always()`: when coverage fails the Test step has already failed the job,
