@@ -32,6 +32,13 @@ afterEach(() => {
 const video = () => render(<CardLoop />).container.querySelector('video') as HTMLVideoElement
 
 describe('/cards/thanks moving card', () => {
+  it('server HTML never autoplays, even before the reduced-motion check runs', async () => {
+    const { renderToStaticMarkup } = await import('react-dom/server')
+    mockMotion(true)
+    const html = renderToStaticMarkup(<CardLoop />)
+    expect(html).not.toMatch(/autoplay/i)
+  })
+
   it('under reduced motion does not autoplay but still moves (gentle drift on the poster)', () => {
     mockMotion(true)
     const r = render(<CardLoop />)
@@ -46,7 +53,7 @@ describe('/cards/thanks moving card', () => {
   it('autoplays the full Constellation film, muted, inline and looping, with a poster', () => {
     mockMotion(false)
     const v = video()
-    expect(v.autoplay).toBe(true)
+    expect(v.autoplay).toBe(false) // playback is started by the client effect, never by server HTML
     expect(play).toHaveBeenCalled()
     expect(v.getAttribute('src')).toBe(CARD_LOOP_SRC)
     expect(CARD_LOOP_SRC).toBe('/cards/media/edition-constellation.mp4')

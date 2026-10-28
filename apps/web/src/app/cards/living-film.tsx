@@ -25,11 +25,14 @@ export function LivingFilm({
 }) {
   const video = useRef<HTMLVideoElement>(null)
   const [reduced, setReduced] = useState(false)
+  // nothing autoplays from server HTML: motion starts only once the client has checked reduced motion
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
     const mq = typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-reduced-motion: reduce)') : null
     const apply = () => setReduced(mq?.matches ?? false)
     apply()
+    setReady(true)
     mq?.addEventListener?.('change', apply)
     return () => mq?.removeEventListener?.('change', apply)
   }, [])
@@ -61,7 +64,7 @@ export function LivingFilm({
     return () => io.disconnect()
   }, [reduced])
 
-  if (youtubeId) {
+  if (youtubeId && ready && !reduced) {
     const q = `autoplay=1&mute=1&loop=1&playlist=${youtubeId}&controls=0&playsinline=1&rel=0`
     return (
       <div className={`${s.frame} ${className ?? ''}`} data-living-film="youtube">
@@ -85,7 +88,6 @@ export function LivingFilm({
         poster={poster}
         aria-label={label}
         data-still={reduced ? 'true' : 'false'}
-        autoPlay={!reduced}
         muted
         loop
         playsInline
