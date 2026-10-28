@@ -18,6 +18,12 @@ const repoRoot = resolve(packageRoot, "../..");
 async function runtime() { return import("../../src/runtime.js"); }
 async function workflow() { return readFile(resolve(repoRoot, ".github/workflows/ci.yml"), "utf8"); }
 
+// The alpic CLI flushes PostHog usage telemetry on exit. Tests must not call out to
+// telemetry: on a host where that fetch fails the CLI waits ~17s and blows the 5s
+// timeout. ALPIC_TELEMETRY_DISABLED=1 is alpic's documented opt-out (`alpic telemetry
+// status`, dist/lib/telemetry.js). UNI-3089.
+const NO_TELEMETRY = { ALPIC_TELEMETRY_DISABLED: "1" } as const;
+
 describe("Alpic, platform and closure contracts", () => {
   test("ALP-01 permits only the no-credential version probe with clean telemetry", async () => {
     const { allowedAlpicArgv } = await runtime();
@@ -26,7 +32,7 @@ describe("Alpic, platform and closure contracts", () => {
     const result = await exec(resolve(packageRoot, "node_modules/.bin/alpic"), argv, {
       cwd: packageRoot,
       timeout: 5000,
-      env: { PATH: process.env.PATH ?? "", HOME: await mkdtemp(join(tmpdir(), "alpic-version-")), NO_COLOR: "1" },
+      env: { PATH: process.env.PATH ?? "", HOME: await mkdtemp(join(tmpdir(), "alpic-version-")), NO_COLOR: "1", ...NO_TELEMETRY },
     });
     expect(result.stdout.trim()).toMatch(/^alpic\/1\./);
     expect(`${result.stdout}${result.stderr}`).not.toMatch(/sentry|opentelemetry|posthog.*error/i);
@@ -40,7 +46,7 @@ describe("Alpic, platform and closure contracts", () => {
     const result = await exec(resolve(packageRoot, "node_modules/.bin/alpic"), argv, {
       cwd: packageRoot,
       timeout: 5000,
-      env: { PATH: process.env.PATH ?? "", HOME: await mkdtemp(join(tmpdir(), "alpic-help-")), NO_COLOR: "1" },
+      env: { PATH: process.env.PATH ?? "", HOME: await mkdtemp(join(tmpdir(), "alpic-help-")), NO_COLOR: "1", ...NO_TELEMETRY },
     });
     expect(result.stdout).toContain("USAGE");
     expect(`${result.stdout}${result.stderr}`).not.toMatch(/sentry|opentelemetry|posthog.*error/i);
