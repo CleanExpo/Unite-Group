@@ -59,12 +59,15 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs())
 
 describe('the dark home: section order', () => {
-  it('runs hero, the start chooser, three media cards, today and coming, the living-cards gallery, four jobs, three steps, results, FAQ, contact, footer', async () => {
+  // Phill 27/10/2026 (look approved): the repeated doors, the four Coming pillars and the showroom banner are gone; one
+  // spotlight (moving card + live list) sits between the chooser and the gallery.
+  it('runs hero, the start chooser, the live-today spotlight, the living-cards gallery, three steps, FAQ, contact, footer', async () => {
     const html = await signedOut()
-    const ids = ['hero', 'start', 'highlights', 'today', 'cards', 'pillars', 'how', 'proof', 'answers', 'contact', 'footer']
+    const ids = ['hero', 'start', 'today', 'cards', 'how', 'answers', 'contact', 'footer']
     const at = ids.map((id) => html.indexOf(`id="${id}"`))
     for (const [i, id] of ids.entries()) expect(at[i], id).toBeGreaterThan(-1)
     expect([...at].sort((a, b) => a - b)).toEqual(at)
+    for (const gone of ['highlights', 'pillars', 'proof']) expect(html, gone).not.toContain(`id="${gone}"`)
   })
 
   it('is dark: a near-black canvas, light ink, and a display-font hero title in the stylesheet', () => {
@@ -79,27 +82,24 @@ describe('the dark home: section order', () => {
   })
 })
 
-describe('three big media cards', () => {
-  it('are Living cards, CRM and Pricing, each a title and one short caption, with real media', async () => {
-    const cards = blocks(between(await signedOut(), 'highlights', 'today'), 'data-media-card', 'article')
-    expect(cards).toHaveLength(3)
-    const titles = cards.map((c) => strip(c.match(/<h3[^>]*>([\s\S]*?)<\/h3>/)![1]))
-    expect(titles).toEqual(['Living cards', 'CRM', 'Pricing'])
-    // Phill, 27/10/2026: the homepage says just "CRM", never "Nexus CRM".
-    expect(await signedOut()).not.toMatch(/Nexus\s*CRM/i)
-    // CRM is not for sale yet, so its card says Coming; the two live cards do not.
-    expect(cards.map((c) => /data-chip="coming"[^>]*>\s*Coming\s*</.test(c))).toEqual([false, true, false])
-    for (const c of cards) {
-      expect(c.match(/<p[ >]/g)).toHaveLength(1)
-    }
-    // a picture only where a distinct file exists (Phill 25/10/2026); the Nexus card now shows the real product Inbox
-    expect(cards[0]).toContain('data-film')
-    expect(cards[1]).toMatch(/<img[^>]*src="\/landing\/visuals\/nexus-1280\.webp"/)
-    expect(cards[2]).toMatch(/<img[^>]*src="\/landing\/visuals\/network-1280\.webp"/)
-    expect(cards[0]).toContain('data-film')
-    expect(cards[0]).toContain('href="/cards"')
-    expect(cards[1]).toContain('href="/solutions/intelligence"')
-    expect(cards[2]).toContain('href="/pricing"')
+describe('the live-today spotlight', () => {
+  it('shows one moving card (never a static picture), the live list, and CRM on the one Coming line', async () => {
+    const html = await signedOut()
+    const spot = between(html, 'today', 'cards')
+    // Phill, 27/10/2026: the homepage says just "CRM", never "Nexus CRM", and no "Nexus" in the spotlight at all.
+    expect(html).not.toMatch(/Nexus\s*CRM/i)
+    expect(spot).not.toMatch(/Nexus/i)
+    const card = blocks(spot, 'data-moving-card', 'a')
+    expect(card).toHaveLength(1)
+    expect(card[0]).toContain('href="/cards"')
+    expect(card[0]).toMatch(/<video[^>]*src="\/cards\/media\/edition-constellation\.mp4#t=0,1\.8"/)
+    expect(card[0]).not.toContain('<img')
+    expect(card[0]).toContain('AI-generated')
+    expect(blocks(spot, 'data-today-item', 'li').length).toBeGreaterThanOrEqual(3)
+    const coming = blocks(spot, 'data-coming', 'div')
+    expect(coming).toHaveLength(1)
+    expect(strip(coming[0])).toMatch(/^Coming\s*CRM/)
+    expect(spot.match(/data-chip="coming"/g)).toHaveLength(1)
   })
 })
 
@@ -114,7 +114,7 @@ describe('no restoration sister-company tiles on the home (UNI-3017)', () => {
 describe('the living cards gallery', () => {
   it('shows the nine edition films, poster first and labelled AI-generated, with an orange From $249 button', async () => {
     const html = await signedOut()
-    const cards = between(html, 'cards', 'pillars')
+    const cards = between(html, 'cards', 'how')
     const tiles = blocks(cards, 'data-gallery-tile', 'a')
     expect(tiles).toHaveLength(9)
     const names = tiles.map((t) => t.match(/data-gallery-tile="([a-z]+)"/)![1])
@@ -132,7 +132,7 @@ describe('the living cards gallery', () => {
   it('offers no card price while online ordering is off', async () => {
     vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_READY', '')
     vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_CUSTOM', '')
-    const cards = between(await signedOut(), 'cards', 'pillars')
+    const cards = between(await signedOut(), 'cards', 'how')
     expect(cards).toMatch(/<a [^>]*href="\/cards\/order"[^>]*>Ask about a card<\/a>/)
     expect(cards).not.toMatch(/\$\d/)
     expect(cards).not.toContain('GST included')
@@ -151,25 +151,15 @@ describe('the living cards gallery', () => {
   })
 })
 
-describe('four job cards and three step cards', () => {
-  it('has the four pillars as image cards, each marked Coming and linked to its page', async () => {
-    const jobs = blocks(between(await signedOut(), 'pillars', 'how'), 'data-job', 'article')
-    expect(jobs).toHaveLength(4)
-    // each job shows its own real product screen (Phill 25/10/2026: the real product, never abstract art)
-    const { JOB_SCREENS } = await import('@/public/home-screens')
-    for (const [i, slug] of (['visibility', 'experience', 'conversion', 'intelligence'] as const).entries()) {
-      expect(jobs[i], slug).toContain(`src="${JOB_SCREENS[slug].src}"`)
-      expect(jobs[i], slug).toMatch(/<img[^>]*alt="[^"]{20,}"/)
-    }
-    for (const [i, p] of PILLARS.entries()) {
-      expect(jobs[i]).toContain(`href="${pillarPath(p.slug)}"`)
-      expect(jobs[i]).toContain('>Coming<')
-      expect(jobs[i].match(/<p[ >]/g)).toHaveLength(1)
-    }
+describe('the pillars and the three step cards', () => {
+  it('no longer repeats the four Coming pillars on the home: each pillar page stays reachable from the nav or footer', async () => {
+    const html = await signedOut()
+    expect(blocks(html, 'data-job', 'article')).toHaveLength(0)
+    for (const p of PILLARS) expect(html, p.slug).toContain(`href="${pillarPath(p.slug)}"`)
   })
 
   it('has three step cards: pick, send, approve', async () => {
-    const steps = blocks(between(await signedOut(), 'how', 'proof'), 'data-step', 'article')
+    const steps = blocks(between(await signedOut(), 'how', 'answers'), 'data-step', 'article')
     expect(steps.map((s) => strip(s.match(/<h3[^>]*>([\s\S]*?)<\/h3>/)![1]))).toEqual(['Pick an opener', 'Send your details', 'Approve a proof'])
     const { STEP_SCREENS } = await import('@/public/home-screens')
     for (const [i, k] of (['pick', 'send', 'approve'] as const).entries()) {
@@ -182,9 +172,9 @@ describe('four job cards and three step cards', () => {
 describe('almost no paragraphs', () => {
   it('keeps every card and tile caption to one short line', async () => {
     const html = await signedOut()
-    const area = html.slice(html.indexOf('id="highlights"'), html.indexOf('id="proof"'))
+    const area = html.slice(html.indexOf('id="today"'), html.indexOf('id="answers"'))
     const paragraphs = [...area.matchAll(/<p(?![^>]*data-dr-line)[^>]*>([\s\S]*?)<\/p>/g)].map((m) => strip(m[1]))
-    expect(paragraphs.length).toBeGreaterThan(8)
+    expect(paragraphs.length).toBeGreaterThan(6)
     for (const p of paragraphs) expect(p.length, p).toBeLessThanOrEqual(64)
   })
 })
@@ -211,9 +201,9 @@ describe('images come from one map, and no file appears twice', () => {
     }
     expect(new Set(files).size, 'a file is mapped to two slots').toBe(files.length)
     expect(readdirSync(join(PUBLIC, 'landing', 'visuals')).filter((f) => !/\.webp$/.test(f))).toEqual([])
-    // every mapped picture is on the page exactly once
+    // the home no longer shows the media-card pictures (27/10/2026 redesign); none may appear more than once
     const html = await signedOut()
-    for (const [slot, v] of filled) expect(html.split(`src="${v.src}"`).length - 1, slot).toBe(1)
+    for (const [slot, v] of filled) expect(html.split(`src="${v.src}"`).length - 1, slot).toBeLessThanOrEqual(1)
     for (const f of ['home/public-home.tsx', 'home/home-page.tsx']) {
       expect(readFileSync(join(__dirname, '..', '..', 'components', 'public', f), 'utf8'), f).not.toMatch(/\/landing\/visuals\//)
     }
@@ -228,7 +218,7 @@ describe('images come from one map, and no file appears twice', () => {
   // picture, and may appear once in the tiles and once in any business list (Phill 25/10/2026).
   it('references no image, poster, video or background file more than once on the home page (not twice in one section either)', async () => {
     const html = await signedOut()
-    const markers = ['header', 'hero', 'start', 'highlights', 'today', 'cards', 'pillars', 'how', 'proof', 'answers', 'contact', 'footer']
+    const markers = ['header', 'hero', 'start', 'today', 'cards', 'how', 'answers', 'contact', 'footer']
     const starts = markers.map((m) => (m === 'header' ? html.indexOf('<header') : html.indexOf(`id="${m}"`)))
     for (const [i, m] of markers.entries()) expect(starts[i], m).toBeGreaterThan(-1)
     // one entry per element (an img with its src and srcset is ONE reference), keyed by file, remembering the section
@@ -259,12 +249,12 @@ describe('images come from one map, and no file appears twice', () => {
 })
 
 describe('one primary path', () => {
-  it('demotes the showroom button in the results banner to secondary and keeps From $249 as the one offer button', async () => {
+  it('keeps From $249 as the one offer button: every other link to /cards is secondary or the moving card', async () => {
     const html = await signedOut()
-    const proof = between(html, 'proof', 'answers')
-    expect(proof).toMatch(/<a [^>]*class="[^"]*buttonSecondary[^"]*"[^>]*href="\/cards"|<a [^>]*href="\/cards"[^>]*class="[^"]*buttonSecondary/)
-    expect(proof).not.toContain('buttonPrimary')
-    expect(between(html, 'cards', 'pillars')).toMatch(/class="[^"]*buttonPrimary[^"]*"[^>]*>From \$249<|href="\/cards\/order"[^>]*class="[^"]*buttonPrimary/)
+    // the contact form's submit button is the only other primary, and it is a form button, not an offer link
+    expect(html.match(/<a [^>]*buttonPrimary/g)).toHaveLength(1)
+    expect(between(html, 'cards', 'how')).toMatch(/class="[^"]*buttonPrimary[^"]*"[^>]*>From \$249<|href="\/cards\/order"[^>]*class="[^"]*buttonPrimary/)
+    expect(between(html, 'cards', 'how')).toMatch(/<a [^>]*href="\/cards"[^>]*class="[^"]*buttonSecondary/)
   })
 })
 

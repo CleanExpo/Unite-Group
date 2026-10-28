@@ -3,37 +3,32 @@ import { formatAud } from '@/app/grow/packages'
 import { liveCardTiers } from '@/lib/public-pricing'
 import {
   CONTACT_EMAIL,
-  PILLARS,
   PRICE_NOTE,
-  SHIPPED_PILLAR,
   lowestCardPrice,
-  pillarPath,
 } from '@/lib/public-site'
 import { readMargotPhoneNumber } from '@/lib/margot/phone-line'
 import { CONTACT_MAILTO } from '../site/site-nav'
 
 import { homeFaqItems } from './faq-data'
-import { CARD_FILM, HERO_FILM } from '../film-config'
+import { HERO_FILM } from '../film-config'
 import { FilmPlayer } from '../film-player'
 import { GalleryTile } from '../gallery-tile'
+import { Reveal } from '../reveal'
+import { CardLoop } from '@/app/cards/thanks/card-loop'
 import {
   HOME_CARDS,
   HOME_CONTACT,
   HOME_FAQ,
   HOME_HERO,
-  HOME_HIGHLIGHTS,
+  HOME_TODAY,
   HOME_HOW,
-  HOME_PILLARS,
-  HOME_PROOF,
 } from './copy'
-import { JOB_SCREENS, STEP_SCREENS } from '../home-screens'
+import { STEP_SCREENS } from '../home-screens'
 import { ContactForm } from '../contact-form'
 import { MargotPhoneLine } from '../site/margot-phone-line'
 import pub from '../layout/public.module.css'
 import { ScreenFrame } from '../screen-frame'
 import { COMING, COMING_NOTE, TODAY } from '../today-coming-data'
-import { VisualImg } from '../visual-img'
-import { VISUALS } from '../visuals'
 
 import hp from './home-page.module.css'
 
@@ -57,6 +52,9 @@ const START_LINKS: StartLink[] = [
   { key: 'talk', no: '05', name: 'Talk', line: 'Ask a question and we reply by email', href: '#contact' },
 ]
 
+// Not for sale yet: CRM first (Phill, 27/10/2026: just "CRM"), then the three intelligence products.
+const COMING_NAMES = ['CRM', ...COMING.map((c) => c.name)]
+
 const createLine = (from: string | null) => (from ? `Order a living video card, from ${from}` : START_LINKS[2].line)
 
 const STEPS = [
@@ -76,8 +74,6 @@ export function HomePage() {
   const from = lowestCardPrice()
   const live = liveCardTiers()
   const films = EDITIONS.filter((e) => e.name !== 'signature')
-  const [filmCard, nexusCard, pricingCard] = HOME_HIGHLIGHTS.cards
-  const showroom = VISUALS.showroom
 
   return (
     <div className={hp.page}>
@@ -95,7 +91,6 @@ export function HomePage() {
                 className={hp.heroFilm}
               />
               <div className={hp.heroVignette} aria-hidden="true" />
-              <p className={hp.heroFilmTag}>Hero film · copper U assembly</p>
             </div>
             <div className={hp.heroPanel}>
               <p className={hp.kicker}>
@@ -154,84 +149,48 @@ export function HomePage() {
             </ol>
           </div>
         </section>
-
-        <section id="highlights" className={hp.sectionTight} aria-label={HOME_HIGHLIGHTS.srTitle}>
-          <div className={hp.wrap}>
-            <div className={hp.doors}>
-              <article className={`${hp.door} ${hp.doorFilm}`} data-media-card data-spot="film">
-                <div className={hp.doorMedia}>
-                  <FilmPlayer film={CARD_FILM} controls="bottom" />
-                </div>
-                <span className={hp.aiTag}>AI-generated</span>
-                <div className={hp.doorBody}>
-                  <h3 className={hp.doorTitle}>
-                    <a href={filmCard.href}>{filmCard.title}</a>
-                  </h3>
-                  <p className={hp.doorLine}>{filmCard.line}</p>
-                </div>
-              </article>
-              <article className={hp.door} data-media-card data-spot="nexus">
-                <div className={hp.doorMedia}>{VISUALS.nexus ? <VisualImg visual={VISUALS.nexus} /> : null}</div>
-                <div className={hp.doorBody}>
-                  <h3 className={hp.doorTitle}>
-                    <a href={nexusCard.href} className={hp.doorStretch}>{nexusCard.title}</a>
-                  </h3>
-                  <p className={hp.doorLine}>{nexusCard.line}</p>
-                  <span className={pub.chip} data-chip="coming">Coming</span>
-                </div>
-              </article>
-              <article className={hp.door} data-media-card data-spot="pricing">
-                <div className={hp.doorMedia}>{VISUALS.network ? <VisualImg visual={VISUALS.network} /> : null}</div>
-                <div className={hp.doorBody}>
-                  <h3 className={hp.doorTitle}>
-                    <a href={pricingCard.href} className={hp.doorStretch}>{pricingCard.title}</a>
-                  </h3>
-                  <p className={hp.doorLine}>{pricingCard.line}</p>
-                </div>
-              </article>
-            </div>
-          </div>
-        </section>
-
-        <section id="today" className={hp.sectionTight} aria-labelledby="today-title">
-          <div className={hp.wrap}>
-            <h2 id="today-title" className={hp.pathTitle}>
-              Today, and what is coming
-            </h2>
-            <div className={hp.statusBar}>
-              <div className={hp.statusRow}>
-                <span className={hp.statusLabel}>Live</span>
-                <ul className={hp.pillList} data-today-list>
-                  {TODAY.map((item) => (
-                    <li key={item.name} data-today-item>
-                      <a href={item.href} className={hp.pill}>
-                        <strong data-name>{item.name}</strong>
-                        <span data-line>{item.line}</span>
-                        <span className={`${pub.chip} ${pub.chipLive}`} data-chip="live">Live</span>
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className={hp.statusRow} data-coming>
-                <span className={hp.statusLabel}>Coming</span>
-                <ul className={hp.pillList} data-coming-list>
-                  {COMING.map((item) => (
-                    <li key={item.name} data-coming-item>
-                      <span className={`${hp.pill} ${hp.pillMuted}`}>
-                        <strong data-name>{item.name}</strong>
-                        <span data-line>{item.line}</span>
-                        <span className={pub.chip} data-chip="coming">Coming</span>
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <p className={hp.statusNote} data-coming-note>{COMING_NOTE}</p>
-            </div>
-          </div>
-        </section>
       </div>
+
+      <section data-position id="today" className={hp.spotlight} aria-labelledby="today-title">
+        <div className={hp.wrap}>
+          <div className={hp.spotGrid}>
+            <Reveal motion="scale" className={hp.spotCardCol}>
+              <a href="/cards" className={hp.spotCard} data-moving-card aria-label="See the living card">
+                <CardLoop className={hp.spotVideo} />
+                <span className={hp.spotSheen} aria-hidden="true" />
+                <span className={hp.aiTag}>AI-generated</span>
+              </a>
+            </Reveal>
+            <Reveal delay={1} className={hp.spotCopy}>
+              <p className={hp.eyebrow}>{HOME_TODAY.eyebrow}</p>
+              <h2 id="today-title" className={hp.sectionTitle}>{HOME_TODAY.title}</h2>
+              <ul className={hp.liveList} data-today-list>
+                {TODAY.map((item) => (
+                  <li key={item.name} data-today-item>
+                    <a href={item.href} className={hp.liveItem}>
+                      <span className={hp.liveDot} aria-hidden="true" />
+                      <strong data-name>{item.name}</strong>
+                      <span data-line>{item.line}</span>
+                      <span className={`${pub.chip} ${pub.chipLive}`} data-chip="live">Live</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+              <div className={hp.comingLine} data-coming>
+                <span className={pub.chip} data-chip="coming">Coming</span>
+                <ul className={hp.comingNames} data-coming-list>
+                  {COMING_NAMES.map((name) => (
+                    <li key={name} data-coming-item>
+                      <strong data-name>{name}</strong>
+                    </li>
+                  ))}
+                </ul>
+                <p className={hp.comingNote} data-coming-note>{COMING_NOTE}</p>
+              </div>
+            </Reveal>
+          </div>
+        </div>
+      </section>
 
       <section data-position id="cards" className={hp.chapterShow} aria-labelledby="cards-title">
         <div className={hp.wrapWide}>
@@ -283,39 +242,6 @@ export function HomePage() {
       </section>
 
       <div className={hp.chapterSystem}>
-        <section data-position id="pillars" aria-labelledby="pillars-title">
-          <div className={hp.wrap}>
-            <p className={hp.eyebrow}>{HOME_PILLARS.eyebrow}</p>
-            <h2 id="pillars-title" className={hp.sectionTitle}>{HOME_PILLARS.title}</h2>
-            <ul className={hp.pillarGrid}>
-              {PILLARS.map((p) => {
-                const shipped = p.slug === SHIPPED_PILLAR
-                return (
-                  <li key={p.slug} data-pillar={p.slug} {...(shipped ? { 'data-featured': '' } : {})}>
-                    <article className={`${hp.pillarCard} ${shipped ? hp.pillarCardFeatured : ''}`} data-job>
-                      <ScreenFrame screen={JOB_SCREENS[p.slug]} />
-                      <div className={hp.pillarBody}>
-                        <h3 className={hp.pillarName}>
-                          <a href={pillarPath(p.slug)} className={hp.pillarStretch}>{p.name}</a>
-                        </h3>
-                        <p className={hp.pillarLine}>{p.line}</p>
-                        <span className={pub.chips}>
-                          <span className={pub.chip}>Coming</span>
-                          {shipped && (
-                            <span className={`${pub.chip} ${pub.chipLive}`}>
-                              {from ? `Card from ${from}` : 'Card on enquiry'}
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                    </article>
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
-        </section>
-
         <section data-position id="how" className={hp.processBlock} aria-labelledby="how-title">
           <div className={hp.wrap}>
             <p className={hp.eyebrow}>{HOME_HOW.eyebrow}</p>
@@ -338,24 +264,6 @@ export function HomePage() {
           </div>
         </section>
       </div>
-
-      <section data-position id="proof" className={hp.chapterProof} aria-labelledby="proof-title">
-        <div className={hp.wrap}>
-          <div className={hp.proofPanel}>
-            {showroom ? (
-              <div className={hp.proofVisual}>
-                <VisualImg visual={showroom} />
-              </div>
-            ) : null}
-            <div className={hp.proofCopy}>
-              <p className={hp.eyebrow}>{HOME_PROOF.eyebrow}</p>
-              <h2 id="proof-title" className={hp.sectionTitle}>{HOME_PROOF.title}</h2>
-              <p className={hp.proofLine}>{HOME_PROOF.line}</p>
-              <a href="/cards" className={pub.buttonSecondary}>{HOME_PROOF.cta}</a>
-            </div>
-          </div>
-        </div>
-      </section>
 
       <div className={hp.chapterClose}>
         <div className={hp.wrap}>

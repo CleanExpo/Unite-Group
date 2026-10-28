@@ -44,10 +44,10 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs())
 
 describe('the start chooser', () => {
-  it('is the section right after the hero, before the highlights', async () => {
+  it('is the section right after the hero, before the live-today spotlight', async () => {
     const { html } = await chooser()
     const ids = [...html.matchAll(/<section[^>]*\bid="([a-z]+)"/g)].map((m) => m[1])
-    expect(ids.slice(0, 3)).toEqual(['hero', 'start', 'highlights'])
+    expect(ids.slice(0, 3)).toEqual(['hero', 'start', 'today'])
   })
 
   it('is labelled by a visible h2 "Where do you want to start?"', async () => {
