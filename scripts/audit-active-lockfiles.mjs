@@ -252,6 +252,53 @@ function normaliseVulnerabilities(report) {
   return values
 }
 
+// Package-count floor (UNI-3082). A scanner that read nothing reports zero vulnerabilities, which
+// is indistinguishable from a clean scan unless the number of packages it actually read is checked.
+// The floor is derived from the lockfile itself, not hard-coded: half of the packages the lockfile
+// lists, at least 1. Half is deliberately loose. On 28/10/2026 the scanner totals equalled the
+// lockfile entry counts exactly (npm audit metadata.dependencies.total and pnpm
+// metadata.totalDependencies), so the margin only absorbs scanner-side dedupe or link handling;
+// an empty, truncated or silently skipped scan still lands far below it. A lockfile that lists no
+// packages gives no basis for a floor, so it fails closed instead of setting the floor to zero.
+export const PACKAGE_FLOOR_FRACTION = 0.5
+
+export function packageFloor(lockfilePackages) {
+  return Math.max(1, Math.ceil(lockfilePackages * PACKAGE_FLOOR_FRACTION))
+}
+
+// npm: report.metadata.dependencies.total. pnpm: report.metadata.totalDependencies. A missing or
+// non-integer field is UNKNOWN, never zero and never a pass.
+function normalisePackageCount(report, manager) {
+  const metadata = report?.metadata
+  const [path, value] = manager === 'pnpm'
+    ? ['metadata.totalDependencies', metadata?.totalDependencies]
+    : ['metadata.dependencies.total', metadata?.dependencies?.total]
+  if (!Number.isInteger(value) || value < 0) {
+    throw new Error(`Audit scanner JSON is missing ${path} (a non-negative integer package count)`)
+  }
+  return value
+}
+
+// Counts the packages a lockfile lists, from the lockfile itself.
+export async function countLockfilePackages(root, entry) {
+  const text = await readFile(resolve(root, entry.lockfile), 'utf8')
+  if (entry.manager === 'pnpm') {
+    // pnpm-lock.yaml v9: one two-space-indented key per package under the top-level `packages:`.
+    let inPackages = false
+    let count = 0
+    for (const line of text.split(/\r?\n/)) {
+      if (/^packages:\s*$/.test(line)) { inPackages = true; continue }
+      if (/^\S/.test(line)) inPackages = false
+      else if (inPackages && /^ {2}\S/.test(line)) count += 1
+    }
+    return count
+  }
+  const lock = JSON.parse(text)
+  const packages = lock?.packages
+  if (!packages || typeof packages !== 'object' || Array.isArray(packages)) return 0
+  return Object.keys(packages).filter((key) => key !== '' && !packages[key]?.link).length
+}
+
 // Every leaf below is copied straight out of scanner JSON, so every one is scanner-controlled
 // and attacker-length: the package NAME is an object key, and ranges and advisory URLs are free
 // text. Capping `error` and `stderr` while leaving these raw moved the bloat rather than removing
@@ -485,6 +532,7 @@ export function parseAuditReport(stdout, {
   parseJson = JSON.parse,
   exceptions = ACCEPTED_RISK_EXCEPTIONS,
   now = new Date(),
+  manager = 'npm',
 } = {}) {
   let report
   try {
@@ -498,8 +546,10 @@ export function parseAuditReport(stdout, {
   }
   const { findings, findingsTruncated } = normaliseFindings(report)
   const vulnerabilities = normaliseVulnerabilities(report)
+  const packagesScanned = normalisePackageCount(report, manager)
   return {
     vulnerabilities,
+    packagesScanned,
     findings,
     findingsTruncated,
     acceptedRisk: vulnerabilities.high > 0 || vulnerabilities.critical > 0
@@ -583,19 +633,29 @@ export async function runActiveLockfileAudits({
     lockCounts.set(entry.lockfile, (lockCounts.get(entry.lockfile) ?? 0) + 1)
     workspaceCounts.set(entry.workspace, (workspaceCounts.get(entry.workspace) ?? 0) + 1)
   }
-  const validations = await Promise.all(activeEntries.map(async (entry) => ({
-    entry,
-    errors: await validateInventoryEntry(entry, {
+  const validations = await Promise.all(activeEntries.map(async (entry) => {
+    const errors = await validateInventoryEntry(entry, {
       root,
       duplicate: lockCounts.get(entry.lockfile) > 1,
       collision: workspaceCounts.get(entry.workspace) > 1,
-    }),
-  })))
+    })
+    let lockfilePackages = null
+    let lockfileCountError = null
+    if (errors.length === 0) {
+      try {
+        lockfilePackages = await countLockfilePackages(root, entry)
+        if (lockfilePackages === 0) lockfileCountError = `${entry.lockfile} lists no packages, so no package-count floor can be derived`
+      } catch (error) {
+        lockfileCountError = `Could not count the packages in ${entry.lockfile}: ${boundedMessage(error?.message)}`
+      }
+    }
+    return { entry, errors, lockfilePackages, lockfileCountError }
+  }))
   const inventoryErrors = activeEntries.length === 0
     ? ['No tracked JavaScript lockfiles were discovered']
     : validations.flatMap(({ errors }) => errors)
   const inventoryError = inventoryErrors.length > 0 ? inventoryErrors.join('; ') : null
-  async function auditOne({ entry, errors }) {
+  async function auditOne({ entry, errors, lockfilePackages, lockfileCountError }) {
     if (errors.length > 0) {
       return {
         ...entry,
@@ -609,6 +669,23 @@ export async function runActiveLockfileAudits({
         stderr: '',
       }
     }
+    // The floor comes from the lockfile, resolved up front (see `validations`) so scans still start
+    // in inventory order. A lockfile that cannot be read, or lists no packages, is an error: there
+    // is nothing to hold the scan against.
+    if (lockfileCountError) {
+      return {
+        ...entry,
+        status: 'error',
+        exitCode: null,
+        timedOut: false,
+        vulnerabilities: { ...ZERO_VULNERABILITIES },
+        findings: [],
+        findingsTruncated: 0,
+        error: lockfileCountError,
+        stderr: '',
+      }
+    }
+    const floor = packageFloor(lockfilePackages)
     const execution = await runAudit(entry, { root })
     // A scanner that returns nothing usable must become a recorded failure, not a
     // thrown one. Throwing here escapes Promise.all and aborts the whole run, so the
@@ -647,7 +724,10 @@ export async function runActiveLockfileAudits({
       }
     }
     try {
-      const parsed = parseAuditReport(execution.stdout, { parseJson, exceptions, now })
+      const parsed = parseAuditReport(execution.stdout, { parseJson, exceptions, now, manager: entry.manager })
+      if (parsed.packagesScanned < floor) {
+        throw new Error(`Audit of ${entry.lockfile} read ${parsed.packagesScanned} packages, below the floor of ${floor} (half of the ${lockfilePackages} the lockfile lists)`)
+      }
       const breached = parsed.vulnerabilities.high > 0 || parsed.vulnerabilities.critical > 0
       // A breached scan passes only when every high/critical finding traces to an advisory an
       // active exception names, and the scanner exited the way it does for "vulnerabilities
@@ -664,6 +744,9 @@ export async function runActiveLockfileAudits({
         timeoutMs: execution.timeoutMs ?? null,
         timedOut: false,
         vulnerabilities: parsed.vulnerabilities,
+        packagesScanned: parsed.packagesScanned,
+        lockfilePackages,
+        packageFloor: floor,
         findings: parsed.findings,
         findingsTruncated: parsed.findingsTruncated,
         acceptedRisk: parsed.acceptedRisk,
