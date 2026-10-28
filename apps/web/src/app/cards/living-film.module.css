@@ -1,0 +1,29 @@
+.frame {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+}
+
+.media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  object-fit: cover;
+}
+
+/* Reduced motion: no film, but a slow, small drift so the card still lives. */
+.gentle .media {
+  animation: drift 9s ease-in-out infinite;
+}
+
+@keyframes drift {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.04); filter: brightness(1.12); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gentle .media { animation-duration: 12s; }
+}

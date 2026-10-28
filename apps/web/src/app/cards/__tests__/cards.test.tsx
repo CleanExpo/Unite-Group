@@ -29,7 +29,7 @@ describe('/cards showroom', () => {
       const e = EDITIONS.find((x) => x.name === name)!
       expect(tile).toContain(`poster="${e.poster}"`)
       expect(tile).toContain(`src="${e.video}"`)
-      expect(tile).toContain('preload="none"')
+      expect(tile).toContain('preload="metadata"')
       expect(tile).toContain(AI_LABEL)
       expect(tile).toContain(e.line)
       expect(tile).toContain(`href="/cards/order?edition=${name}"`)

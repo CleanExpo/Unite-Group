@@ -61,6 +61,21 @@ export const EDITIONS: readonly Edition[] = [
   edition('magnet', 'Magnet', 'Scattered beads are pulled together into the logo.', '0737511e-1b52-4b58-aab7-756189148826', 3.45),
 ]
 
+/**
+ * YouTube ids for each edition film, once Phill confirms them from YouTube Studio. Empty on purpose: never
+ * guess an id. An edition with no id plays its hosted MP4.
+ */
+export const EDITION_YOUTUBE_IDS: Readonly<Record<string, string>> = {}
+
+/** The configured YouTube id for an edition, or null. Only 11-character YouTube ids are accepted. */
+export function youtubeIdFor(name: string, ids: Readonly<Record<string, string>> = EDITION_YOUTUBE_IDS): string | null {
+  const id = ids[name]
+  return id && /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null
+}
+
+/** The edition the sample card and the receipt show. */
+export const DEMO_EDITION = 'constellation'
+
 export const AI_LABEL = 'AI-generated clip (Higgsfield)'
 
 /** A known edition name from ?edition=, or null. Unknown and malformed values are ignored, never guessed. */

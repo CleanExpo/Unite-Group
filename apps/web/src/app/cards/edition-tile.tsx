@@ -1,17 +1,21 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import s from './edition-tile.module.css'
 import { AI_LABEL, type Edition } from './editions'
 
 /**
- * One edition: poster at rest, its 4 s clip on hover or tap. Clips use preload="none"
- * so eleven tiles cost eleven posters, not 14 MB of video, until someone asks to watch.
+ * One edition: its clip loops on its own while the tile is on screen (IntersectionObserver), and on hover or
+ * tap. Under reduced motion nothing autoplays (hover is ignored too); a tap still plays. If autoplay is
+ * blocked, the poster stays. Clips use preload="metadata",
+ * and only tiles on screen play, so off-screen tiles cost a poster and a few KB.
  */
 export function EditionTile({ edition }: { edition: Edition }) {
   const video = useRef<HTMLVideoElement>(null)
   const [playing, setPlaying] = useState(false)
+  const inView = useRef(false)
+  const userStopped = useRef(false)
 
   // Read at event time so a visitor who changes the setting mid-visit is respected.
   const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -22,6 +26,28 @@ export function EditionTile({ edition }: { edition: Edition }) {
     if (v.currentTime >= edition.stopAt) v.currentTime = 0
     void v.play().then(() => setPlaying(true), () => setPlaying(false))
   }
+
+  useEffect(() => {
+    const v = video.current
+    if (!v || typeof IntersectionObserver !== 'function') return
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          inView.current = e.isIntersecting
+          if (e.isIntersecting) {
+            if (!reducedMotion() && !userStopped.current) play()
+          } else if (!v.paused) {
+            v.pause()
+            setPlaying(false)
+          }
+        }
+      },
+      { threshold: 0.4 },
+    )
+    io.observe(v)
+    return () => io.disconnect()
+    // play/reducedMotion read refs at call time; observe once per tile
+  }, [])
 
   function stop() {
     const v = video.current
@@ -38,8 +64,18 @@ export function EditionTile({ edition }: { edition: Edition }) {
         onMouseEnter={() => {
           if (!reducedMotion()) play()
         }}
-        onMouseLeave={stop}
-        onClick={() => (playing ? stop() : play())}
+        onMouseLeave={() => {
+          if (!inView.current || reducedMotion()) stop()
+        }}
+        onClick={() => {
+          if (playing) {
+            userStopped.current = true
+            stop()
+          } else {
+            userStopped.current = false
+            play()
+          }
+        }}
         aria-pressed={playing}
         aria-label={`${playing ? 'Stop' : 'Play'} the ${edition.label} clip`}
         className={s.playButton}
@@ -52,12 +88,16 @@ export function EditionTile({ edition }: { edition: Edition }) {
           ref={video}
           src={edition.video}
           poster={edition.poster}
-          preload="none"
+          preload="metadata"
           muted
           playsInline
           onTimeUpdate={(e) => {
-            if (e.currentTarget.currentTime >= edition.stopAt) {
-              e.currentTarget.pause()
+            const v = e.currentTarget
+            if (v.currentTime < edition.stopAt) return
+            if (inView.current && !reducedMotion() && !userStopped.current) {
+              v.currentTime = 0
+            } else {
+              v.pause()
               setPlaying(false)
             }
           }}

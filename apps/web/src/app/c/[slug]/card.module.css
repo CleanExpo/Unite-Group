@@ -164,3 +164,18 @@
   flex: none;
   accent-color: #e55a2b;
 }
+
+.film {
+  width: min(100%, 18rem);
+  aspect-ratio: 9 / 16;
+  max-height: 62vh;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #11151a;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .film { box-shadow: none; }
+}

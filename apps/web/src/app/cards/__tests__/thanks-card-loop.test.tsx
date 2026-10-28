@@ -2,7 +2,7 @@
 import { cleanup, render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { CARD_LOOP_END, CARD_LOOP_SRC, CardLoop } from '../thanks/card-loop'
+import { CARD_LOOP_POSTER, CARD_LOOP_SRC, CardLoop } from '../thanks/card-loop'
 
 function mockMotion(reduced: boolean) {
   vi.stubGlobal('matchMedia', (query: string) => ({
@@ -32,28 +32,27 @@ afterEach(() => {
 const video = () => render(<CardLoop />).container.querySelector('video') as HTMLVideoElement
 
 describe('/cards/thanks moving card', () => {
-  it('holds the film still under reduced motion: no autoplay, never played', () => {
+  it('under reduced motion does not autoplay but still moves (gentle drift on the poster)', () => {
     mockMotion(true)
-    const v = video()
+    const r = render(<CardLoop />)
+    const v = r.container.querySelector('video') as HTMLVideoElement
     expect(v.autoplay).toBe(false)
     expect(v.dataset.still).toBe('true')
     expect(play).not.toHaveBeenCalled()
+    expect(v.getAttribute('poster')).toBe(CARD_LOOP_POSTER)
+    expect(r.container.querySelector('[data-living-film]')?.className).toMatch(/gentle/)
   })
 
-  it('plays the loop when motion is not reduced', () => {
+  it('autoplays the full Constellation film, muted, inline and looping, with a poster', () => {
     mockMotion(false)
     const v = video()
     expect(v.autoplay).toBe(true)
     expect(play).toHaveBeenCalled()
-  })
-
-  it('loops only the opening of the Constellation film, before the wordmark, with no poster', () => {
-    mockMotion(false)
-    const v = video()
+    expect(v.getAttribute('src')).toBe(CARD_LOOP_SRC)
     expect(CARD_LOOP_SRC).toBe('/cards/media/edition-constellation.mp4')
-    expect(CARD_LOOP_END).toBeLessThan(2.2)
-    expect(v.getAttribute('src')).toBe(`${CARD_LOOP_SRC}#t=0,${CARD_LOOP_END}`)
-    expect(v.hasAttribute('poster')).toBe(false)
+    expect(v.loop).toBe(true)
     expect(v.muted).toBe(true)
+    expect(v.hasAttribute('playsinline')).toBe(true)
+    expect(v.getAttribute('poster')).toBe(CARD_LOOP_POSTER)
   })
 })
