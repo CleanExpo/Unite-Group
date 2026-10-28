@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render } from '@testing-library/react'
+import { act, cleanup, render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { EDITION_YOUTUBE_IDS, EDITIONS, youtubeIdFor } from '../editions'
@@ -42,5 +42,28 @@ describe('LivingFilm', () => {
     const v = r.container.querySelector('video') as HTMLVideoElement
     expect(v.getAttribute('src')).toBe('/x.mp4')
     expect(v.loop).toBe(true)
+  })
+
+  it('plays when scrolled into view and pauses when it leaves', () => {
+    let fire: (hit: boolean) => void = () => {}
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        constructor(cb: (e: { isIntersecting: boolean }[]) => void) {
+          fire = (hit) => cb([{ isIntersecting: hit }])
+        }
+        observe() {}
+        disconnect() {}
+      },
+    )
+    const play = HTMLMediaElement.prototype.play as unknown as ReturnType<typeof vi.fn>
+    const pause = HTMLMediaElement.prototype.pause as unknown as ReturnType<typeof vi.fn>
+    render(<LivingFilm src="/x.mp4" poster="/x.jpg" label="Ink" />)
+    expect(play).not.toHaveBeenCalled()
+    act(() => fire(true))
+    expect(play).toHaveBeenCalledTimes(1)
+    act(() => fire(false))
+    expect(pause).toHaveBeenCalled()
+    vi.unstubAllGlobals()
   })
 })
