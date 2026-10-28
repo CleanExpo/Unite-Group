@@ -6,7 +6,8 @@ import { useEffect, useRef, useState } from 'react'
  * The receipt's moving card: the Constellation edition film, looped over its first 1.8 s only, so it shows the
  * stars joining into the U and never reaches the wordmark that fades in at about 2.2 s. No poster: every
  * edition poster carries the wordmark. A visitor who prefers reduced motion gets the film held still on its
- * first frame (no autoplay, no loop).
+ * first frame (no autoplay, no loop). If the film fails to load, the video hides itself so whatever the host
+ * draws underneath (the home spotlight's still card face) shows instead of a blank frame.
  */
 export const CARD_LOOP_SRC = '/cards/media/edition-constellation.mp4'
 export const CARD_LOOP_END = 1.8
@@ -14,6 +15,7 @@ export const CARD_LOOP_END = 1.8
 export function CardLoop({ className }: { className?: string }) {
   const video = useRef<HTMLVideoElement>(null)
   const [still, setStill] = useState(true)
+  const [failed, setFailed] = useState(false)
   useEffect(() => {
     const mq = typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-reduced-motion: reduce)') : null
     const apply = () => {
@@ -39,6 +41,9 @@ export function CardLoop({ className }: { className?: string }) {
       src={`${CARD_LOOP_SRC}#t=0,${CARD_LOOP_END}`}
       autoPlay={!still}
       data-still={still ? 'true' : 'false'}
+      data-failed={failed ? 'true' : undefined}
+      hidden={failed}
+      onError={() => setFailed(true)}
       muted
       playsInline
       preload="auto"

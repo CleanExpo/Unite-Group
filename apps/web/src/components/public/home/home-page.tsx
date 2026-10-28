@@ -155,6 +155,13 @@ export function HomePage() {
           <div className={hp.spotGrid}>
             <div className={hp.spotCardCol} data-spot-col>
               <a href="/cards" className={hp.spotCard} data-moving-card aria-label="See the living card">
+                {/* the still card face sits under the film: it shows before the first frame, when autoplay is
+                    blocked before any frame loads, and when the film fails (CardLoop hides itself on error) */}
+                <span className={hp.spotFace} data-card-face aria-hidden="true">
+                  <span className={hp.spotFaceMark}>U</span>
+                  <span className={hp.spotFaceName}>Living Business Card</span>
+                  <span className={hp.spotFaceLine}>Tap to see it move</span>
+                </span>
                 <CardLoop className={hp.spotVideo} />
                 <span className={hp.spotSheen} aria-hidden="true" />
                 <span className={hp.aiTag}>AI-generated</span>

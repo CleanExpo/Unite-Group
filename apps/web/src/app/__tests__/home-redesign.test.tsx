@@ -314,8 +314,21 @@ describe('the spotlight shows without JS and keeps moving', () => {
     for (const sel of ['spotCard', 'spotSheen', 'spotCardCol', 'spotCopy']) expect(reduced, sel).toContain(`.${sel}`)
   })
 
-  it('shows a still card face when the film cannot autoplay or load', () => {
-    expect(rule('spotCard')).toMatch(/background:[^;]*gradient/)
+  it('draws a real still card face under the film, shown before the first frame and whenever the film fails', async () => {
+    const card = blocks(between(await signedOut(), 'today', 'cards'), 'data-moving-card', 'a')[0]
+    const face = blocks(card, 'data-card-face', 'span')[0]
+    expect(face).toBeTruthy()
+    expect(face).toContain('>U</span>')
+    expect(strip(face)).toContain('Living Business Card')
+    expect(strip(face)).toContain('Tap to see it move')
+    // the face comes first and sits below the film (z-index), so a frame-less or hidden video reveals it
+    expect(card.indexOf('data-card-face')).toBeLessThan(card.indexOf('<video'))
+    expect(rule('spotFace')).toMatch(/z-index:\s*0/)
+    expect(rule('spotVideo')).toMatch(/z-index:\s*1/)
+    for (const sel of ['spotFace', 'spotFaceMark', 'spotFaceName']) {
+      expect(rule(sel), sel).not.toMatch(/display:\s*none|opacity:\s*0|visibility:\s*hidden/)
+    }
+    expect(HOME_CSS).toMatch(/\.spotVideo\[hidden\]\s*\{\s*display:\s*none/)
   })
 })
 
