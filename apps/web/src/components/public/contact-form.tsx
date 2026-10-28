@@ -109,7 +109,7 @@ export function ContactForm() {
         <span>Yes, Unite Group may email me marketing updates. You can unsubscribe at any time.</span>
       </label>
       <div>
-        <CollectionNotice form="home" tone="dark" />
+        <CollectionNotice form="home" tone="dark" collapsible />
         <button type="submit" disabled={status.kind === 'sending'} className={s.buttonPrimary}>
           {status.kind === 'sending' ? 'Sending...' : 'Send your question'}
         </button>

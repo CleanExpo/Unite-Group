@@ -32,8 +32,8 @@ export const HOME_HIGHLIGHTS = {
 } as const
 
 export const HOME_TODAY = {
-  eyebrow: 'Roadmap',
-  title: 'Live now, and what follows',
+  eyebrow: 'Live today',
+  title: 'What you can use now',
   todayTitle: 'Shipping today',
   comingTitle: 'In the workshop',
 } as const

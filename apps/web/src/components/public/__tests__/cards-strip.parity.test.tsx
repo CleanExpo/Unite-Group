@@ -6,7 +6,8 @@ import { CARD_TIERS, OrderView } from '@/app/cards/order/order-view'
 import { formatAud } from '@/app/grow/packages'
 import { PublicHome } from '@/components/public/home/public-home'
 
-const cardsSection = (html: string) => html.slice(html.indexOf('id="cards"'), html.indexOf('id="pillars"'))
+// the pillars section left the home (UNI-3058), so the cards section now ends where How it works starts
+const cardsSection = (html: string) => html.slice(html.indexOf('id="cards"'), html.indexOf('id="how"'))
 
 afterEach(() => vi.unstubAllEnvs())
 

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render } from '@testing-library/react'
+import { cleanup, fireEvent, render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { CARD_LOOP_END, CARD_LOOP_SRC, CardLoop } from '../thanks/card-loop'
@@ -55,5 +55,25 @@ describe('/cards/thanks moving card', () => {
     expect(v.getAttribute('src')).toBe(`${CARD_LOOP_SRC}#t=0,${CARD_LOOP_END}`)
     expect(v.hasAttribute('poster')).toBe(false)
     expect(v.muted).toBe(true)
+  })
+})
+
+describe('CardLoop when the film fails (UNI-3058)', () => {
+  it('hides itself on a media error so the host still face shows', () => {
+    const v = video()
+    expect(v.hidden).toBe(false)
+    fireEvent.error(v)
+    expect(v.hidden).toBe(true)
+    expect(v.dataset.failed).toBe('true')
+  })
+  it('marks itself playing only on a real playing event, never when play() is rejected', async () => {
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockRejectedValue(new DOMException('blocked', 'NotAllowedError'))
+    const v = video()
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(v.dataset.playing).toBeUndefined()
+    fireEvent.playing(v)
+    expect(v.dataset.playing).toBe('true')
+    play.mockRestore()
   })
 })
