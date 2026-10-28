@@ -155,8 +155,21 @@ jobs:
       - name: Type-check
         run: pnpm run type-check
 
-      - name: Test
-        run: pnpm run test
+      - name: Test with coverage
+        # UNI-3076: the same suite as `pnpm run test`, run once, with v8 coverage. It fails
+        # when vitest.config.mts thresholds fail (lines/statements 80, functions 80,
+        # branches 75). json-summary is a reporter in that config, so local and CI match.
+        run: pnpm run test:coverage
+
+      - name: Upload coverage summary
+        # Not `if: always()`: when coverage fails the Test step has already failed the job,
+        # and a missing summary after a passing run must fail loudly (if-no-files-found).
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: web-coverage-summary-${{ github.sha }}
+          path: apps/web/coverage/coverage-summary.json
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Unit-test the public-route smoke
         # Cheap (no build, no server): discovery, coverage guard and error-marker
