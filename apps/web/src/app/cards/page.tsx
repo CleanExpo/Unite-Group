@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import { SiteFooter } from '@/public/site/site-footer'
 import { PublicPageShell } from '@/public/layout/public-page-shell'
 import { CONTACT_MAILTO, SiteNav } from '@/public/site/site-nav'
-import { cardsShowroomJsonLd } from '@/lib/cards-jsonld'
+import { cardsPageGraphJsonLd, cardsShowroomJsonLd } from '@/lib/cards-jsonld'
 import { liveCardTiers } from '@/lib/public-pricing'
 import { SITE_URL } from '@/lib/public-site'
 
@@ -52,6 +52,7 @@ export default function CardsShowroomPage() {
       {productLd ? (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(productLd) }} />
       ) : null}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(cardsPageGraphJsonLd()) }} />
       <SiteNav />
 
       <main id="main" className={m.main}>

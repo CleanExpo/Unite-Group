@@ -2,6 +2,9 @@ import { COMPANY_NAME } from '@/lib/legal/company'
 import { liveCardTiers } from '@/lib/public-pricing'
 import { SITE_URL } from '@/lib/public-site'
 
+import { FAQ_FACTS } from '@/app/cards/showroom-facts'
+import { cardVideosJsonLd } from '@/lib/cards-video'
+
 /** Product + Offer JSON-LD for /cards when tiers are purchasable online. */
 export function cardsShowroomJsonLd(): Record<string, unknown> | null {
   const tiers = liveCardTiers()
@@ -26,4 +29,22 @@ export function cardsShowroomJsonLd(): Record<string, unknown> | null {
       seller: { '@type': 'Organization', name: COMPANY_NAME, url: SITE_URL },
     })),
   }
+}
+
+/** FAQPage built from the questions /cards shows in its visible Questions section, word for word. */
+export function cardsFaqJsonLd() {
+  return {
+    '@type': 'FAQPage',
+    '@id': `${SITE_URL}/cards#faq`,
+    mainEntity: FAQ_FACTS.map((f) => ({
+      '@type': 'Question',
+      name: f.question,
+      acceptedAnswer: { '@type': 'Answer', text: f.answer.join(' ') },
+    })),
+  }
+}
+
+/** The ten card films (VideoObject) and the visible FAQ (FAQPage) for /cards, always present. */
+export function cardsPageGraphJsonLd() {
+  return { '@context': 'https://schema.org', '@graph': [...cardVideosJsonLd(), cardsFaqJsonLd()] }
 }

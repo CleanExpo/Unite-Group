@@ -20,6 +20,6 @@ export default function robots(): MetadataRoute.Robots {
       { userAgent: [...USER_TRIGGERED_FETCHERS], allow: '/', disallow: [...PRIVATE_PATHS] },
       { userAgent: [...TRAINING_CRAWLERS], disallow: '/' },
     ],
-    sitemap: `${SITE_URL}/sitemap.xml`,
+    sitemap: [`${SITE_URL}/sitemap.xml`, `${SITE_URL}/video-sitemap.xml`],
   }
 }
