@@ -23,8 +23,12 @@ const EXPECTED_ENTRIES = EXPECTED_LOCKS.map((lockfile) => ({
   workspace: dirname(lockfile),
   lockfile,
 }))
+// Scanner package totals large enough to clear the UNI-3082 floor of any real lockfile, for tests
+// that are about something other than the floor. The npm and pnpm field names are both present.
+const PACKAGE_COUNTS = { dependencies: { total: 100000 }, totalDependencies: 100000 }
 const CLEAN_AUDIT = JSON.stringify({
   metadata: {
+    ...PACKAGE_COUNTS,
     vulnerabilities: { info: 0, low: 0, moderate: 0, high: 0, critical: 0, total: 0 },
   },
 })
@@ -39,7 +43,8 @@ async function makeFixture(t, { locks = ['app/package-lock.json'], manifest = {}
   for (const lockfile of locks) {
     const workspace = join(root, dirname(lockfile))
     await mkdir(workspace, { recursive: true })
-    await writeFile(join(root, lockfile), '{}\n')
+    // A lockfile that lists no packages now fails closed (UNI-3082), so fixtures list a few.
+    await writeFile(join(root, lockfile), lockfile.endsWith('pnpm-lock.yaml') ? pnpmLockWith(4) : npmLockWith(4))
     await writeFile(join(workspace, 'package.json'), `${JSON.stringify(manifest)}\n`)
   }
   return root
@@ -325,9 +330,9 @@ test('dependency audit collects a machine-readable result for every lock after a
     runAudit: async (entry) => {
       visited.push(entry.lockfile)
       if (visited.length === 1) {
-        return { exitCode: 1, stdout: '{"metadata":{"vulnerabilities":{"info":0,"low":0,"moderate":0,"high":1,"critical":0}}}', stderr: '' }
+        return { exitCode: 1, stdout: '{"metadata":{"dependencies":{"total":100000},"totalDependencies":100000,"vulnerabilities":{"info":0,"low":0,"moderate":0,"high":1,"critical":0}}}', stderr: '' }
       }
-      return { exitCode: 0, stdout: '{"metadata":{"vulnerabilities":{"info":0,"low":0,"moderate":0,"high":0,"critical":0}}}', stderr: '' }
+      return { exitCode: 0, stdout: '{"metadata":{"dependencies":{"total":100000},"totalDependencies":100000,"vulnerabilities":{"info":0,"low":0,"moderate":0,"high":0,"critical":0}}}', stderr: '' }
     },
   })
 
@@ -345,6 +350,7 @@ test('an apps/empire high finding fails the aggregate even when every other lock
       exitCode: entry.lockfile === 'apps/empire/package-lock.json' ? 1 : 0,
       stdout: JSON.stringify({
         metadata: {
+          ...PACKAGE_COUNTS,
           vulnerabilities: {
             info: 0,
             low: 0,
@@ -372,7 +378,7 @@ test('scanner errors fail closed without suppressing later lock results', async 
     entries: EXPECTED_ENTRIES,
     runAudit: async (entry) => entry.lockfile === EXPECTED_LOCKS[0]
       ? { exitCode: 2, stdout: 'not-json', stderr: 'scanner unavailable' }
-      : { exitCode: 0, stdout: '{"metadata":{"vulnerabilities":{"info":0,"low":0,"moderate":0,"high":0,"critical":0}}}', stderr: '' },
+      : { exitCode: 0, stdout: '{"metadata":{"dependencies":{"total":100000},"totalDependencies":100000,"vulnerabilities":{"info":0,"low":0,"moderate":0,"high":0,"critical":0}}}', stderr: '' },
   })
 
   assert.equal(result.passed, false)
@@ -551,7 +557,7 @@ test('structurally incomplete scanner JSON fails closed instead of normalising m
     entries: EXPECTED_ENTRIES,
     runAudit: async (entry) => entry.lockfile === EXPECTED_LOCKS[0]
       ? { exitCode: 0, stdout: '{}', stderr: '' }
-      : { exitCode: 0, stdout: '{"metadata":{"vulnerabilities":{"info":0,"low":0,"moderate":0,"high":0,"critical":0}}}', stderr: '' },
+      : { exitCode: 0, stdout: '{"metadata":{"dependencies":{"total":100000},"totalDependencies":100000,"vulnerabilities":{"info":0,"low":0,"moderate":0,"high":0,"critical":0}}}', stderr: '' },
   })
 
   assert.equal(result.passed, false)
@@ -599,6 +605,7 @@ test('the CLI path parses --output, audits all locks, writes every result, and r
         exitCode: failed ? 1 : 0,
         stdout: JSON.stringify({
           metadata: {
+            ...PACKAGE_COUNTS,
             vulnerabilities: {
               info: 0,
               low: 0,
@@ -929,7 +936,7 @@ test('a malformed advisory via fails the scan closed instead of being dropped', 
   // Zero metadata counts plus a high finding whose `via` is not an array. Treating the bad
   // `via` as "no advisories" let the zero counts decide, and the scan reported passed.
   const malformed = JSON.stringify({
-    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 0, critical: 0, total: 0 } },
+    metadata: { ...PACKAGE_COUNTS, vulnerabilities: { info: 0, low: 0, moderate: 0, high: 0, critical: 0, total: 0 } },
     vulnerabilities: { 'bad-pkg': { severity: 'high', range: '*', via: 'malformed' } },
   })
   const report = await runActiveLockfileAudits({
@@ -1061,7 +1068,7 @@ test('findings are bounded per field, per advisory and in count, without changin
     vulnerabilities[`pkg-${i}`] = { severity: 'high', range: '<1.0.0', via: [{ title: 'T'.repeat(9_000) }] }
   }
   const hostileValid = JSON.stringify({
-    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 500, critical: 1, total: 501 } },
+    metadata: { ...PACKAGE_COUNTS, vulnerabilities: { info: 0, low: 0, moderate: 0, high: 500, critical: 1, total: 501 } },
     vulnerabilities,
   })
 
@@ -1070,7 +1077,7 @@ test('findings are bounded per field, per advisory and in count, without changin
   // tell a bounded second loop from an unbounded one — verified by mutation: reverting the v6
   // loop alone left this suite 35/35 green until this shape was added. Both loops, one test.
   const hostileV6 = JSON.stringify({
-    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 2, critical: 0, total: 2 } },
+    metadata: { ...PACKAGE_COUNTS, vulnerabilities: { info: 0, low: 0, moderate: 0, high: 2, critical: 0, total: 2 } },
     advisories: {
       1: {
         severity: 'high',
@@ -1152,7 +1159,7 @@ test('findings are bounded per field, per advisory and in count, without changin
 // shape npm reports: the advisory sits on braces, and chokidar is high only because it uses braces.
 function bracesReport(advisory = 'GHSA-vfj7-8cjw-p6xm') {
   return JSON.stringify({
-    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 2, critical: 0, total: 2 } },
+    metadata: { ...PACKAGE_COUNTS, vulnerabilities: { info: 0, low: 0, moderate: 0, high: 2, critical: 0, total: 2 } },
     vulnerabilities: {
       braces: {
         severity: 'high',
@@ -1222,7 +1229,7 @@ test('more than 100 excused findings are all printed, none summarised away', asy
   const via = [{ url: 'https://github.com/advisories/GHSA-vfj7-8cjw-p6xm', severity: 'high' }]
   const vulnerabilities = Object.fromEntries(Array.from({ length: 101 }, (_, i) => [`pkg-${i}`, { severity: 'high', via }]))
   const stdout = JSON.stringify({
-    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 101, critical: 0, total: 101 } },
+    metadata: { ...PACKAGE_COUNTS, vulnerabilities: { info: 0, low: 0, moderate: 0, high: 101, critical: 0, total: 101 } },
     vulnerabilities,
   })
   let printed = ''
@@ -1244,7 +1251,7 @@ test('a high count the findings do not account for is never excused', async (t) 
   const { runActiveLockfileAudits } = await loadRunner()
   const root = await makeFixture(t)
   const stdout = JSON.stringify({
-    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 2, critical: 0, total: 2 } },
+    metadata: { ...PACKAGE_COUNTS, vulnerabilities: { info: 0, low: 0, moderate: 0, high: 2, critical: 0, total: 2 } },
     vulnerabilities: {
       braces: { severity: 'high', via: [{ url: 'https://github.com/advisories/GHSA-vfj7-8cjw-p6xm', severity: 'high' }] },
     },
@@ -1269,7 +1276,7 @@ test('an advisory whose URL is not the canonical GHSA URL is never excused, what
     'https://example.com/advisories/GHSA-vfj7-8cjw-p6xm',
   ]) {
     const outcome = evaluateAcceptedRisk({
-      metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 1, critical: 0, total: 1 } },
+      metadata: { ...PACKAGE_COUNTS, vulnerabilities: { info: 0, low: 0, moderate: 0, high: 1, critical: 0, total: 1 } },
       advisories: { 1: { module_name: 'braces', severity: 'high', github_advisory_id: 'GHSA-vfj7-8cjw-p6xm', url } },
     }, { exceptions: ACCEPTED_RISK_EXCEPTIONS, now })
     assert.equal(outcome.blocking, true, url)
@@ -1284,11 +1291,11 @@ test('high and critical counts are reconciled separately, so a severity disagree
   // agree (1 = 1), so only a per-severity comparison sees the disagreement.
   const via = [{ url: 'https://github.com/advisories/GHSA-vfj7-8cjw-p6xm', severity: 'high' }]
   const npmShape = {
-    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 0, critical: 1, total: 1 } },
+    metadata: { ...PACKAGE_COUNTS, vulnerabilities: { info: 0, low: 0, moderate: 0, high: 0, critical: 1, total: 1 } },
     vulnerabilities: { braces: { severity: 'high', via } },
   }
   const pnpmShape = {
-    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 0, critical: 1, total: 1 } },
+    metadata: { ...PACKAGE_COUNTS, vulnerabilities: { info: 0, low: 0, moderate: 0, high: 0, critical: 1, total: 1 } },
     advisories: { 1: { module_name: 'braces', severity: 'high', github_advisory_id: 'GHSA-vfj7-8cjw-p6xm', url: via[0].url } },
   }
   for (const report of [npmShape, pnpmShape]) {
@@ -1302,11 +1309,11 @@ test('the braces exception covers only the accepted high severity, so a critical
   const url = 'https://github.com/advisories/GHSA-vfj7-8cjw-p6xm'
   const counts = { info: 0, low: 0, moderate: 0, high: 0, critical: 1, total: 1 }
   const npmShape = {
-    metadata: { vulnerabilities: counts },
+    metadata: { ...PACKAGE_COUNTS, vulnerabilities: counts },
     vulnerabilities: { braces: { severity: 'critical', via: [{ url, severity: 'critical' }] } },
   }
   const pnpmShape = {
-    metadata: { vulnerabilities: counts },
+    metadata: { ...PACKAGE_COUNTS, vulnerabilities: counts },
     advisories: { 1: { module_name: 'braces', severity: 'critical', github_advisory_id: 'GHSA-vfj7-8cjw-p6xm', url } },
   }
   for (const report of [npmShape, pnpmShape]) {
@@ -1319,11 +1326,131 @@ test('the braces exception covers only the accepted high severity, so a critical
 test('a package rated worse than every excused cause it carries is never excused', async () => {
   const { evaluateAcceptedRisk, ACCEPTED_RISK_EXCEPTIONS } = await loadRunner()
   const outcome = evaluateAcceptedRisk({
-    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 0, critical: 1, total: 1 } },
+    metadata: { ...PACKAGE_COUNTS, vulnerabilities: { info: 0, low: 0, moderate: 0, high: 0, critical: 1, total: 1 } },
     vulnerabilities: {
       braces: { severity: 'critical', via: [{ url: 'https://github.com/advisories/GHSA-vfj7-8cjw-p6xm', severity: 'high' }] },
     },
   }, { exceptions: ACCEPTED_RISK_EXCEPTIONS, now: new Date('2026-10-05T00:00:00Z') })
   assert.equal(outcome.blocking, true)
   assert.deepEqual(outcome.excused, [])
+})
+
+// UNI-3082: a scan that read too few packages must fail, per lockfile. The floor is derived from
+// the lockfile itself (half of the packages it lists), so these fixtures write real lockfile bodies.
+function npmLockWith(count) {
+  const packages = { '': { name: 'fixture' } }
+  for (let i = 0; i < count; i += 1) packages[`node_modules/pkg-${i}`] = { version: '1.0.0' }
+  return `${JSON.stringify({ lockfileVersion: 3, packages })}\n`
+}
+
+function pnpmLockWith(count) {
+  const keys = Array.from({ length: count }, (_, i) => `  pkg-${i}@1.0.0:\n    resolution: {integrity: sha512-x}\n`)
+  return `lockfileVersion: '9.0'\n\npackages:\n\n${keys.join('\n')}\nsnapshots:\n\n${keys.map((_, i) => `  pkg-${i}@1.0.0: {}\n`).join('\n')}`
+}
+
+async function floorFixture(t, { npmCount = 10, pnpmCount = 10 } = {}) {
+  const root = await makeFixture(t, { locks: ['npmapp/package-lock.json', 'pnpmapp/pnpm-lock.yaml'] })
+  await writeFile(join(root, 'npmapp', 'package-lock.json'), npmLockWith(npmCount))
+  await writeFile(join(root, 'pnpmapp', 'pnpm-lock.yaml'), pnpmLockWith(pnpmCount))
+  const entries = [
+    { manager: 'npm', workspace: 'npmapp', lockfile: 'npmapp/package-lock.json' },
+    { manager: 'pnpm', workspace: 'pnpmapp', lockfile: 'pnpmapp/pnpm-lock.yaml' },
+  ]
+  return { root, entries }
+}
+
+function scannerOutput(manager, count) {
+  const vulnerabilities = { info: 0, low: 0, moderate: 0, high: 0, critical: 0 }
+  const metadata = manager === 'pnpm'
+    ? { vulnerabilities, ...(count === undefined ? {} : { totalDependencies: count }) }
+    : { vulnerabilities, ...(count === undefined ? {} : { dependencies: { total: count } }) }
+  return JSON.stringify({ metadata })
+}
+
+function auditReturning(counts) {
+  return async (entry) => ({ exitCode: 0, stdout: scannerOutput(entry.manager, counts[entry.manager]), stderr: '' })
+}
+
+test('a scan that read zero packages fails that lockfile, naming it', async (t) => {
+  const { runActiveLockfileAudits } = await loadRunner()
+  const { root, entries } = await floorFixture(t)
+  const result = await runActiveLockfileAudits({ entries, root, runAudit: auditReturning({ npm: 0, pnpm: 10 }) })
+
+  assert.equal(result.passed, false)
+  assert.equal(result.results[0].status, 'error')
+  assert.match(result.results[0].error, /npmapp\/package-lock\.json/)
+  assert.match(result.results[0].error, /0 packages/)
+  assert.equal(result.results[1].status, 'passed')
+})
+
+test('a scan below half the lockfile package count fails, and exactly the floor passes', async (t) => {
+  const { runActiveLockfileAudits } = await loadRunner()
+  const { root, entries } = await floorFixture(t)
+  const below = await runActiveLockfileAudits({ entries, root, runAudit: auditReturning({ npm: 10, pnpm: 4 }) })
+  assert.equal(below.passed, false)
+  assert.equal(below.results[0].status, 'passed')
+  assert.equal(below.results[1].status, 'error')
+  assert.match(below.results[1].error, /pnpmapp\/pnpm-lock\.yaml/)
+  assert.match(below.results[1].error, /4 packages.*floor of 5/)
+
+  const atFloor = await runActiveLockfileAudits({ entries, root, runAudit: auditReturning({ npm: 5, pnpm: 5 }) })
+  assert.equal(atFloor.passed, true)
+})
+
+test('a scanner report without the package-count field fails closed for npm and pnpm', async (t) => {
+  const { runActiveLockfileAudits } = await loadRunner()
+  const { root, entries } = await floorFixture(t)
+  const result = await runActiveLockfileAudits({ entries, root, runAudit: auditReturning({}) })
+
+  assert.equal(result.passed, false)
+  assert.equal(result.results[0].status, 'error')
+  assert.match(result.results[0].error, /metadata\.dependencies\.total/)
+  assert.equal(result.results[1].status, 'error')
+  assert.match(result.results[1].error, /metadata\.totalDependencies/)
+})
+
+test('a non-integer or negative package count is never read as a pass', async (t) => {
+  const { runActiveLockfileAudits } = await loadRunner()
+  const { root, entries } = await floorFixture(t)
+  for (const bad of ['10', -1, 1.5, null, Number.NaN]) {
+    const result = await runActiveLockfileAudits({ entries, root, runAudit: auditReturning({ npm: bad, pnpm: bad }) })
+    assert.equal(result.passed, false, `count ${String(bad)}`)
+    assert.equal(result.results[0].status, 'error')
+    assert.equal(result.results[1].status, 'error')
+  }
+})
+
+test('a normal scan still passes and records what was read against the floor', async (t) => {
+  const { runActiveLockfileAudits } = await loadRunner()
+  const { root, entries } = await floorFixture(t)
+  const result = await runActiveLockfileAudits({ entries, root, runAudit: auditReturning({ npm: 10, pnpm: 10 }) })
+
+  assert.equal(result.passed, true)
+  assert.deepEqual(result.results.map(({ status }) => status), ['passed', 'passed'])
+  for (const scan of result.results) {
+    assert.equal(scan.packagesScanned, 10)
+    assert.equal(scan.lockfilePackages, 10)
+    assert.equal(scan.packageFloor, 5)
+  }
+})
+
+test('a lockfile that lists no packages fails closed instead of setting a floor of zero', async (t) => {
+  const { runActiveLockfileAudits } = await loadRunner()
+  const { root, entries } = await floorFixture(t, { npmCount: 0, pnpmCount: 0 })
+  const result = await runActiveLockfileAudits({ entries, root, runAudit: auditReturning({ npm: 10, pnpm: 10 }) })
+
+  assert.equal(result.passed, false)
+  for (const scan of result.results) {
+    assert.equal(scan.status, 'error')
+    assert.match(scan.error, /lists no packages/)
+  }
+})
+
+test('a package-count breach fails even when the scan also found nothing and exited zero', async (t) => {
+  const { runActiveLockfileAudits } = await loadRunner()
+  const { root, entries } = await floorFixture(t)
+  const result = await runActiveLockfileAudits({ entries: [entries[0]], root, runAudit: auditReturning({ npm: 1 }) })
+  assert.equal(result.passed, false)
+  assert.equal(result.results[0].vulnerabilities.high, 0)
+  assert.equal(result.results[0].status, 'error')
 })
