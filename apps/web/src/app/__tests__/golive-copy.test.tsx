@@ -49,10 +49,10 @@ describe('D5: the FAQ hosting answer is the card terms', () => {
 })
 
 describe('D21: home section titles stay honest', () => {
-  it('keeps the proof, how and questions sections on the home page', () => {
+  it('keeps the live-today, how and questions sections on the home page', () => {
     const home = renderToStaticMarkup(<PublicHome />)
     expect(home).not.toMatch(/>Results<|>About<|>Resources</)
-    for (const title of ['See it before you ask', 'How it works', 'Questions']) {
+    for (const title of ['What you can use now', 'How it works', 'Questions']) {
       expect(home).toContain(`>${title}<`)
     }
   })

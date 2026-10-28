@@ -20,7 +20,8 @@ const TODAY = [
   { name: 'Starter plan', href: '/pricing' },
   { name: 'Email signatures', href: '/signatures' },
 ]
-const COMING = ['Revenue Intelligence', 'Experience Intelligence', 'Operations Intelligence']
+// 27/10/2026 redesign: CRM leads the one Coming line (it was its own Coming card before)
+const COMING = ['CRM', 'Revenue Intelligence', 'Experience Intelligence', 'Operations Intelligence']
 
 async function home() {
   vi.mocked(getUser).mockResolvedValue(null as Awaited<ReturnType<typeof getUser>>)
@@ -49,14 +50,14 @@ beforeEach(() => vi.clearAllMocks())
 afterEach(() => vi.unstubAllEnvs())
 
 describe('Today and what is coming', () => {
-  it('is a section with id today, directly after the group and before the cards gallery, with its heading', async () => {
+  it('is a section with id today, directly after the start chooser and before the cards gallery, with its heading', async () => {
     const html = await home()
     const sections = [...html.matchAll(/<(?:section|footer)[^>]*\bid="([a-z]+)"/g)].map((m) => m[1])
     expect(sections).not.toContain('group')
-    expect(sections[sections.indexOf('highlights') + 1]).toBe('today')
+    expect(sections[sections.indexOf('start') + 1]).toBe('today')
     expect(sections[sections.indexOf('today') + 1]).toBe('cards')
     expect(blocks(html, 'id="today"', 'section')).toHaveLength(1)
-    expect(html).toMatch(/<h2[^>]*>Today, and what is coming<\/h2>/)
+    expect(html).toMatch(/<h2[^>]*>What you can use now<\/h2>/)
   })
 
   it('lists the five live items in order, each linked to its page with a Live chip', async () => {
@@ -71,22 +72,24 @@ describe('Today and what is coming', () => {
     }
   })
 
-  it('lists exactly the three coming items, each with a Coming chip and no link anywhere in the column', async () => {
-    const col = blocks(await home(), 'data-coming-list', 'ul')[0]
+  it('lists exactly the four coming names under one Coming chip, with no link anywhere on the line', async () => {
+    const line = blocks(await home(), 'data-coming', 'div')[0]
+    expect(line).not.toMatch(/<a[\s>]|href=/)
+    expect(line.match(/data-chip="coming"[^>]*>Coming</g)).toHaveLength(1)
+    const col = blocks(line, 'data-coming-list', 'ul')[0]
     expect(col).not.toMatch(/<a[\s>]/)
     expect(col).not.toMatch(/href=/)
     const items = blocks(col, 'data-coming-item', 'li')
     expect(items).toHaveLength(COMING.length)
     for (const [i, name] of COMING.entries()) {
       expect(text(blocks(items[i], 'data-name', 'strong')[0]), name).toBe(name)
-      expect(items[i], name).toMatch(/data-chip="coming"[^>]*>Coming</)
     }
   })
 
-  it('keeps every line to 60 characters and shows the note under the Coming column', async () => {
+  it('keeps every line to 60 characters and shows the note under the Coming names', async () => {
     const html = await home()
     const lines = blocks(html, 'data-line', 'span').map(text)
-    expect(lines).toHaveLength(TODAY.length + COMING.length)
+    expect(lines).toHaveLength(TODAY.length)
     for (const l of lines) expect(l.length, l).toBeLessThanOrEqual(60)
     expect(text(blocks(html, 'data-coming-note', 'p')[0])).toBe('Coming means it is not for sale yet.')
   })
