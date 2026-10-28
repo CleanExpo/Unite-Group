@@ -16,16 +16,16 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
+  }
+
   if (process.env.MARGOT_DRAFTS_ENABLED !== 'true') {
     return NextResponse.json({
       dormant: true,
       message: 'MARGOT_DRAFTS_ENABLED is not true — Margot drafts are dormant',
     });
-  }
-
-  const user = await getUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
   }
 
   const { id } = await params;

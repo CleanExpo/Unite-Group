@@ -15,16 +15,16 @@ import type { IncomingEmail } from '@/lib/margot/draft-reply-prompt';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
+  const user = await getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
+  }
+
   if (process.env.MARGOT_DRAFTS_ENABLED !== 'true') {
     return NextResponse.json({
       dormant: true,
       message: 'MARGOT_DRAFTS_ENABLED is not true — Margot drafts are dormant',
     });
-  }
-
-  const user = await getUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
   }
 
   const input = (await request.json().catch(() => null)) as {
