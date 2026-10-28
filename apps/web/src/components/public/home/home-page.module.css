@@ -896,7 +896,9 @@
 @media (min-width: 900px) {
   .spotGrid { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); }
 }
-.spotCardCol { perspective: 1200px; }
+.spotCardCol { perspective: 1200px; animation: spotIn 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+/* CSS-only entrance: the spotlight is fully visible in server HTML, with or without JS (it only moves, never hides). */
+@keyframes spotIn { from { transform: translateY(14px) scale(0.98); } to { transform: none; } }
 .spotCard {
   position: relative;
   display: block;
@@ -905,7 +907,8 @@
   margin: 0 auto;
   border-radius: clamp(18px, 2.4vw, 26px);
   overflow: hidden;
-  background: #07080b;
+  /* fallback when the film cannot autoplay or load: a still card face, never an empty box */
+  background: radial-gradient(120% 90% at 30% 20%, rgba(236, 123, 65, 0.35), transparent 60%), linear-gradient(160deg, #141821, #07080b);
   border: 1px solid rgba(236, 123, 65, 0.28);
   box-shadow: 0 30px 80px -30px rgba(236, 123, 65, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
   transform: rotateX(6deg) rotateY(-10deg);
@@ -925,7 +928,7 @@
   50% { transform: rotateX(3deg) rotateY(-4deg) translateY(-8px); }
 }
 @keyframes spotSheen { 0% { background-position: 120% 0; } 60%, 100% { background-position: -120% 0; } }
-.spotCopy { min-width: 0; }
+.spotCopy { min-width: 0; animation: spotIn 0.7s 0.08s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .liveList { list-style: none; margin: 1.25rem 0 0; padding: 0; display: grid; gap: 0.6rem; }
 .liveItem {
   display: grid;
@@ -949,5 +952,5 @@
 .comingNames strong { font-weight: 500; }
 .comingNote { flex-basis: 100%; margin: 0; }
 @media (prefers-reduced-motion: reduce) {
-  .spotCard, .spotSheen { animation: none; transition: none; transform: none; }
+  .spotCard, .spotSheen, .spotCardCol, .spotCopy { animation: none; transition: none; transform: none; }
 }

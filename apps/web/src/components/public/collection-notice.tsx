@@ -31,20 +31,26 @@ export function CollectionNotice({
   const toneClass = tone === 'dark' ? s.dark : s.light
   if (collapsible) {
     return (
-      <details className={`${s.box} ${toneClass} ${s.compact}`} data-collection-notice={form} aria-label="Privacy collection notice">
-        <summary className={s.title}>
-          Privacy: what we collect and why. See our <a href={PRIVACY_POLICY_PATH}>{COLLECTION_POLICY_LINK_TEXT}</a>.
-        </summary>
-        <p className={s.lead}>
-          {COMPANY_NAME} collects the information you provide {COLLECTION_PURPOSES[form]}.
+      <div data-collection-notice={form}>
+        <details className={`${s.box} ${toneClass} ${s.compact}`} aria-label="Privacy collection notice">
+          <summary className={s.title}>
+            Privacy: what we collect and why
+          </summary>
+          <p className={s.lead}>
+            {COMPANY_NAME} collects the information you provide {COLLECTION_PURPOSES[form]}.
+          </p>
+          <p className={s.detail}>{COLLECTION_RECIPIENTS}</p>
+          <p className={s.detail}>
+            {COLLECTION_ACCESS} {COLLECTION_POLICY_LEAD}{' '}
+            <a href={PRIVACY_POLICY_PATH}>{COLLECTION_POLICY_LINK_TEXT}</a>
+            {COLLECTION_POLICY_TAIL}
+          </p>
+        </details>
+        {/* the policy link sits outside <summary>: a link inside summary is not reliably reachable or announced */}
+        <p className={s.detail} data-collection-policy-link>
+          See our <a href={PRIVACY_POLICY_PATH}>{COLLECTION_POLICY_LINK_TEXT}</a>.
         </p>
-        <p className={s.detail}>{COLLECTION_RECIPIENTS}</p>
-        <p className={s.detail}>
-          {COLLECTION_ACCESS} {COLLECTION_POLICY_LEAD}{' '}
-          <a href={PRIVACY_POLICY_PATH}>{COLLECTION_POLICY_LINK_TEXT}</a>
-          {COLLECTION_POLICY_TAIL}
-        </p>
-      </details>
+      </div>
     )
   }
   return (

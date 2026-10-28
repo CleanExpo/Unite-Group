@@ -13,7 +13,6 @@ import { homeFaqItems } from './faq-data'
 import { HERO_FILM } from '../film-config'
 import { FilmPlayer } from '../film-player'
 import { GalleryTile } from '../gallery-tile'
-import { Reveal } from '../reveal'
 import { CardLoop } from '@/app/cards/thanks/card-loop'
 import {
   HOME_CARDS,
@@ -154,14 +153,14 @@ export function HomePage() {
       <section data-position id="today" className={hp.spotlight} aria-labelledby="today-title">
         <div className={hp.wrap}>
           <div className={hp.spotGrid}>
-            <Reveal motion="scale" className={hp.spotCardCol}>
+            <div className={hp.spotCardCol} data-spot-col>
               <a href="/cards" className={hp.spotCard} data-moving-card aria-label="See the living card">
                 <CardLoop className={hp.spotVideo} />
                 <span className={hp.spotSheen} aria-hidden="true" />
                 <span className={hp.aiTag}>AI-generated</span>
               </a>
-            </Reveal>
-            <Reveal delay={1} className={hp.spotCopy}>
+            </div>
+            <div className={hp.spotCopy} data-spot-copy>
               <p className={hp.eyebrow}>{HOME_TODAY.eyebrow}</p>
               <h2 id="today-title" className={hp.sectionTitle}>{HOME_TODAY.title}</h2>
               <ul className={hp.liveList} data-today-list>
@@ -187,7 +186,7 @@ export function HomePage() {
                 </ul>
                 <p className={hp.comingNote} data-coming-note>{COMING_NOTE}</p>
               </div>
-            </Reveal>
+            </div>
           </div>
         </div>
       </section>

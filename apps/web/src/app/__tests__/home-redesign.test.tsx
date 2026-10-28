@@ -203,7 +203,11 @@ describe('images come from one map, and no file appears twice', () => {
     expect(readdirSync(join(PUBLIC, 'landing', 'visuals')).filter((f) => !/\.webp$/.test(f))).toEqual([])
     // the home no longer shows the media-card pictures (27/10/2026 redesign); none may appear more than once
     const html = await signedOut()
-    for (const [slot, v] of filled) expect(html.split(`src="${v.src}"`).length - 1, slot).toBeLessThanOrEqual(1)
+    // exact count, not "at most one": the 27/10/2026 home shows none of the media-card pictures (review finding, UNI-3058)
+    for (const [slot, v] of filled) {
+      expect(html.split(`src="${v.src}"`).length - 1, slot).toBe(0)
+      expect(html.split(`${v.small} `).length - 1, `${slot} small`).toBe(0)
+    }
     for (const f of ['home/public-home.tsx', 'home/home-page.tsx']) {
       expect(readFileSync(join(__dirname, '..', '..', 'components', 'public', f), 'utf8'), f).not.toMatch(/\/landing\/visuals\//)
     }
@@ -277,5 +281,54 @@ describe('the Margot phone slot in the contact band', () => {
     expect(contact).toContain('href="tel:+61731234567"')
     expect(contact).toContain('Call Margot (AI assistant)')
     expect(contact).toContain('Answered by our AI assistant. Messages go to our team by email.')
+  })
+})
+
+// Review findings on #1296 (UNI-3058): the spotlight and the live list must be visible in the server HTML, with no JS.
+describe('the spotlight shows without JS and keeps moving', () => {
+  const HOME_CSS = PUB_CSS('home/home-page.module.css')
+  const rule = (sel: string) => HOME_CSS.match(new RegExp(`\\.${sel}\\s*\\{([^}]*)\\}`))?.[1] ?? ''
+  const keyframes = (name: string) => HOME_CSS.match(new RegExp(`@keyframes ${name}\\s*\\{([\\s\\S]*?)\\}\\s*\\}`))?.[1] ?? ''
+
+  it('renders the moving card and every live item with no JS-gated wrapper or hidden start state', async () => {
+    const spot = between(await signedOut(), 'today', 'cards')
+    expect(spot).toContain('data-moving-card')
+    expect(spot).toMatch(/<video[^>]*playsInline/i)
+    expect(blocks(spot, 'data-today-item', 'li').length).toBeGreaterThanOrEqual(3)
+    expect(spot).not.toMatch(/reveal/i)
+    expect(spot).not.toMatch(/opacity\s*:\s*0/)
+    expect(spot).not.toMatch(/<[^>]*\shidden(?:[\s>=])/)
+    expect(PUB_CSS('home/home-page.tsx')).not.toMatch(/\bReveal\b|IntersectionObserver/)
+  })
+
+  it('moves with CSS alone: float + sheen loops, an entrance that never starts transparent, still for reduced motion', () => {
+    expect(rule('spotCard')).toMatch(/animation:\s*spotFloat[^;]*infinite/)
+    expect(rule('spotSheen')).toMatch(/animation:\s*spotSheen[^;]*infinite/)
+    for (const sel of ['spotCardCol', 'spotCopy']) {
+      expect(rule(sel), sel).toMatch(/animation:\s*spotIn/)
+      expect(rule(sel), sel).not.toMatch(/opacity/)
+    }
+    expect(keyframes('spotIn')).not.toBe('')
+    expect(keyframes('spotIn')).not.toMatch(/opacity/)
+    const reduced = HOME_CSS.slice(HOME_CSS.lastIndexOf('prefers-reduced-motion'))
+    for (const sel of ['spotCard', 'spotSheen', 'spotCardCol', 'spotCopy']) expect(reduced, sel).toContain(`.${sel}`)
+  })
+
+  it('shows a still card face when the film cannot autoplay or load', () => {
+    expect(rule('spotCard')).toMatch(/background:[^;]*gradient/)
+  })
+})
+
+describe('the compact privacy notice keeps its link outside <summary>', () => {
+  it('summary holds text only, and the policy link sits just before the submit button', async () => {
+    const html = await signedOut()
+    const notice = blocks(html, 'data-collection-notice', 'div').find((b) => b.startsWith('<div data-collection-notice="home"'))!
+    expect(notice).toBeTruthy()
+    const summary = notice.match(/<summary[^>]*>([\s\S]*?)<\/summary>/)![1]
+    expect(summary).not.toMatch(/<a\b/)
+    const after = notice.slice(notice.indexOf('</details>'))
+    expect(after).toMatch(/data-collection-policy-link[\s\S]*<a href="\/privacy-policy">/)
+    expect(html.slice(html.indexOf('data-collection-notice="home"'))).toMatch(/<\/div><button type="submit"/)
+    expect(notice).toContain('Unite-Group Nexus Pty Ltd')
   })
 })
