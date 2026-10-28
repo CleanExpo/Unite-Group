@@ -10,7 +10,7 @@ const ofType = (t: string) => graph().filter((n) => n['@type'] === t)
 afterEach(() => vi.unstubAllEnvs())
 
 describe('entity JSON-LD (AC-8)', () => {
-  it('has one OnlineBusiness with name, url, logo and AU and NZ, and no sameAs or LocalBusiness', () => {
+  it('has one OnlineBusiness with name, url, logo and AU and NZ, sameAs only the confirmed LinkedIn page, and no LocalBusiness', () => {
     const orgs = ofType('OnlineBusiness')
     expect(orgs).toHaveLength(1)
     const org = orgs[0]
@@ -18,7 +18,7 @@ describe('entity JSON-LD (AC-8)', () => {
     expect(org.url).toBe('https://unite-group.in')
     expect(org.logo).toMatch(/^https:\/\/unite-group\.in\/.+\.png$/)
     expect(org.areaServed.map((a: { name: string }) => a.name)).toEqual(['Australia', 'New Zealand'])
-    expect('sameAs' in org).toBe(false)
+    expect(org.sameAs).toEqual(['https://www.linkedin.com/company/unite-group-australia'])
     expect(JSON.stringify(entityJsonLd())).not.toMatch(/LocalBusiness/)
   })
 
@@ -35,6 +35,7 @@ describe('entity JSON-LD (AC-8)', () => {
       expect(products[i].offers['@type']).toBe('Offer')
       expect(products[i].offers.price).toBe(String(t.priceAud))
       expect(products[i].offers.priceCurrency).toBe('AUD')
+      expect(products[i].offers.availability).toBe('https://schema.org/InStock')
     })
   })
 
