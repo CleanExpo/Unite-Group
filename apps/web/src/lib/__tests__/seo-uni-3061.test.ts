@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -12,6 +13,22 @@ import { INDEXNOW_KEY, INDEXNOW_KEY_PATH, indexNowPayload } from '@/lib/indexnow
 import { isPublicPath } from '@/proxy'
 
 const PUBLIC = join(__dirname, '../../../public')
+// SHA-256 of each thumbnail after a visual check on 28/10/2026 that it shows no wordmark
+// (no "Nexus" text). A changed or added image fails here until it is looked at again
+// and its new hash is recorded. Pixels cannot be read for text in a unit test.
+const REVIEWED_THUMBS: Record<string, string> = {
+  'edition-blueprint-thumb.jpg': '2f7f7ba5c97c65fe9357fa5a978aa550e75f2536545a0c4c662c8a937ffb6e0d',
+  'edition-constellation-thumb.jpg': 'f62cc05ca2af0d52d59084824ac32d04b553862f69dfb6ef2739df3630779bc2',
+  'edition-forge-thumb.jpg': '3fc00e293d56bde52b346db0158ccafaafe0336ef62045c18dc3315ab012d2e0',
+  'edition-ink-thumb.jpg': 'cff70afb5764330042746d08e2863eb6f772a3ec6e6b22312bf60aa4752b7234',
+  'edition-magnet-thumb.jpg': '4f9b008b972aa17aeca60fff13955434063809252d39c7a506a6c015e6cbd3f6',
+  'edition-origami-thumb.jpg': '94611c62b5348586ab8f7fe57ee85bda15b65f7aa9d47bf034b2a8b9bb863d12',
+  'edition-portal-thumb.jpg': '1f7bfb26c7ff514f7f38053ac1a427c1b95087034593f0f39b94c2965893af12',
+  'edition-rewind-thumb.jpg': '6c27300eb15102db8df68c6cc028dafc8eba1f8d1790f81895cb687af7c79f93',
+  'edition-signature-thumb.jpg': '8e59af84588488d7547c54004ed89d3b621a38b6afd04d195caa11af2b5d73d3',
+  'edition-skyline-thumb.jpg': '1e55c221d8802e436ddaa650e1242b2c73d0106d4cceccf811227d1e90749a29',
+}
+
 const fileFor = (url: string) => join(PUBLIC, new URL(url).pathname)
 
 describe('card VideoObject JSON-LD (UNI-3061)', () => {
@@ -37,9 +54,17 @@ describe('card VideoObject JSON-LD (UNI-3061)', () => {
     }
   })
 
-  it('new copy and thumbnails never say Nexus or CARSI', () => {
+  it('new copy and thumbnail URLs never say Nexus or CARSI', () => {
     for (const f of cardFilms()) {
       expect(`${f.name} ${f.description} ${f.thumbnailUrl}`).not.toMatch(/nexus|carsi/i)
+    }
+  })
+
+  it('every thumbnail is the exact image that was visually checked for wordmarks', () => {
+    for (const f of cardFilms()) {
+      const name = new URL(f.thumbnailUrl).pathname.split('/').pop()!
+      const sha = createHash('sha256').update(readFileSync(fileFor(f.thumbnailUrl))).digest('hex')
+      expect(sha, name).toBe(REVIEWED_THUMBS[name])
     }
   })
 })
