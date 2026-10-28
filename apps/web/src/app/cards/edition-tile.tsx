@@ -101,7 +101,16 @@ export function EditionTile({ edition }: { edition: Edition }) {
               setPlaying(false)
             }
           }}
-          onEnded={() => setPlaying(false)}
+          onEnded={(e) => {
+            // a browser can reach the end without a timeupdate past stopAt: restart while the tile is on screen
+            const v = e.currentTarget
+            if (inView.current && !reducedMotion() && !userStopped.current) {
+              v.currentTime = 0
+              void v.play()?.catch(() => setPlaying(false))
+            } else {
+              setPlaying(false)
+            }
+          }}
           className={s.video}
         />
         {!playing && (

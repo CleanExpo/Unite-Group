@@ -58,6 +58,17 @@ describe('/cards tiles autoplay on view', () => {
     expect(play).toHaveBeenCalledTimes(1)
   })
 
+  it('keeps looping when the clip ends while the tile is in view', () => {
+    mockMotion(false)
+    const show = stubIO()
+    const el = tile()
+    show(true)
+    expect(play).toHaveBeenCalledTimes(1)
+    const v = (el.tagName === 'VIDEO' ? el : el.querySelector('video')) as HTMLVideoElement
+    fireEvent.ended(v)
+    expect(play).toHaveBeenCalledTimes(2)
+  })
+
   it('does not autoplay in view under reduced motion', () => {
     mockMotion(true)
     const show = stubIO()
