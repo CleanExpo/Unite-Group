@@ -1,10 +1,14 @@
 import type { PublicCard } from '@/lib/card/published'
 
+import { DEMO_EDITION, EDITIONS, youtubeIdFor } from '@/app/cards/editions'
+import { LivingFilm } from '@/app/cards/living-film'
+
 import styles from './card.module.css'
 import { EnquiryForm } from './enquiry-form'
 
-/** The persistent card: server HTML, real links, no media. The enquiry form (the only script) renders only when enquiries are open. */
+/** The persistent card: server HTML and real links. The sample shows the moving Constellation film (client script) so buyers see a living card; client cards stay media-free. The enquiry form (the only script) renders only when enquiries are open. */
 export function CardView({ card, enquiryOpen = false, sample = false }: { card: PublicCard; enquiryOpen?: boolean; sample?: boolean }) {
+  const demo = EDITIONS.find((e) => e.name === DEMO_EDITION)
   const telHref = card.phone ? `tel:${card.phone.replace(/[^+\d]/g, '')}` : null
   return (
     <main className={styles.page}>
@@ -13,6 +17,11 @@ export function CardView({ card, enquiryOpen = false, sample = false }: { card: 
           SAMPLE card. This is how your customers see your card page. The business is made up.{' '}
           <a href="/cards">Get your own card</a>
         </p>
+      ) : null}
+      {sample && demo ? (
+        <div className={styles.film} data-sample-film>
+          <LivingFilm src={demo.video} poster={demo.poster} label={`${demo.label} edition film`} youtubeId={youtubeIdFor(demo.name)} />
+        </div>
       ) : null}
       <article className={styles.card}>
         {card.businessName ? <p className={styles.business}>{card.businessName}</p> : null}

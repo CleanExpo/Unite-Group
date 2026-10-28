@@ -19,10 +19,19 @@ const params = (slug: string) => ({ params: Promise.resolve({ slug }) })
 beforeEach(() => { getPublishedCard.mockReset(); notFound.mockClear() })
 
 describe('/c/[slug]', () => {
+  it('the sample card shows the moving Constellation film', async () => {
+    const sample = renderToStaticMarkup(await CardPage(params('sample')))
+    expect(sample).toContain('data-sample-film')
+    expect(sample).toContain('/cards/media/edition-constellation.mp4')
+    expect(sample).toMatch(/<video[^>]*loop/)
+    expect(sample).toContain('edition-constellation-poster.jpg')
+  })
+
   it('renders name, role, Call, Email and Save contact in server HTML', async () => {
     getPublishedCard.mockResolvedValue(card)
     const html = renderToStaticMarkup(await CardPage(params('sam')))
     expect(html).toContain('Sam Smith')
+    expect(html).not.toContain('<video')
     expect(html).toContain('Owner')
     expect(html).toContain('href="tel:+61400000001"')
     expect(html).toContain('href="mailto:sam@example.com"')

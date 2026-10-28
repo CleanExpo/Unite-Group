@@ -4,7 +4,7 @@ import '@/styles/public-tokens.css'
 
 import s from '../order/order.module.css'
 import r from './thanks.module.css'
-import { CardLoop } from './card-loop'
+import { ThanksFilm } from './thanks-film'
 import { IntakeForm } from './intake-form'
 import { checkoutSessionId } from './session-id'
 
@@ -53,7 +53,7 @@ export default async function CardThanksPage({ searchParams }: { searchParams: P
         </section>
         <aside className={r.stage} aria-hidden="true">
           <div className={r.card}>
-            <CardLoop className={r.video} />
+            <ThanksFilm className={r.video} />
             <span className={r.sheen} />
           </div>
         </aside>

@@ -43,7 +43,8 @@ function buildCSP(nonce: string): string {
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
-    "upgrade-insecure-requests",
+    // Dev only: skip so LAN http (e.g. http://192.168.x.x:3100) can load fonts, images and films.
+    isDev ? null : "upgrade-insecure-requests",
   ].filter(Boolean).join('; ');
 }
 

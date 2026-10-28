@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { EditionTile } from '../edition-tile'
@@ -38,6 +38,45 @@ const tile = () => {
   render(<EditionTile edition={EDITIONS[1]} />)
   return screen.getByRole('button', { name: /play the/i })
 }
+
+describe('/cards tiles autoplay on view', () => {
+  function stubIO() {
+    const cbs: Array<(e: Array<{ isIntersecting: boolean }>) => void> = []
+    vi.stubGlobal('IntersectionObserver', class {
+      constructor(cb: (e: Array<{ isIntersecting: boolean }>) => void) { cbs.push(cb) }
+      observe() {}
+      disconnect() {}
+    })
+    return (isIntersecting: boolean) => act(() => cbs.forEach((cb) => cb([{ isIntersecting }])))
+  }
+
+  it('plays when the tile scrolls into view and motion is not reduced', () => {
+    mockMotion(false)
+    const show = stubIO()
+    tile()
+    show(true)
+    expect(play).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps looping when the clip ends while the tile is in view', () => {
+    mockMotion(false)
+    const show = stubIO()
+    const el = tile()
+    show(true)
+    expect(play).toHaveBeenCalledTimes(1)
+    const v = (el.tagName === 'VIDEO' ? el : el.querySelector('video')) as HTMLVideoElement
+    fireEvent.ended(v)
+    expect(play).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not autoplay in view under reduced motion', () => {
+    mockMotion(true)
+    const show = stubIO()
+    tile()
+    show(true)
+    expect(play).not.toHaveBeenCalled()
+  })
+})
 
 describe('/cards reduced motion', () => {
   it('hover does not start a clip when the visitor prefers reduced motion', () => {
