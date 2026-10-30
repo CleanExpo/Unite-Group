@@ -10,6 +10,7 @@ const ROUTES: Record<PublicRoute, { lastModified: string; priority: number; chan
   '/': { lastModified: '2026-10-25', priority: 1, changeFrequency: 'monthly' },
   '/cards': { lastModified: '2026-10-25', priority: 0.9, changeFrequency: 'monthly' },
   '/cards/order': { lastModified: '2026-10-25', priority: 0.8, changeFrequency: 'monthly' },
+  '/video/ten-clips': { lastModified: '2026-10-30', priority: 0.8, changeFrequency: 'monthly' },
   '/solutions/conversion': { lastModified: '2026-10-25', priority: 0.7, changeFrequency: 'monthly' },
   '/solutions/visibility': { lastModified: '2026-10-25', priority: 0.6, changeFrequency: 'monthly' },
   '/solutions/experience': { lastModified: '2026-10-25', priority: 0.6, changeFrequency: 'monthly' },

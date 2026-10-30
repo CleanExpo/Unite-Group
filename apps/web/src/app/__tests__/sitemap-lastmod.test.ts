@@ -52,6 +52,7 @@ describe('sitemap lastmod and priority (D28)', () => {
       '/solutions/visibility': 0.6,
       '/solutions/experience': 0.6,
       '/solutions/intelligence': 0.6,
+      '/video/ten-clips': 0.8,
       '/pricing': 0.8,
       '/signatures': 0.7,
       '/cards/terms': 0.3,
