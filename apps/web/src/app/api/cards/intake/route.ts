@@ -13,8 +13,17 @@
 // Delivery details (film choice, what to show at the end of the film, logo link, Made-for-you brief) are
 // emailed to the lead-alert address (contact@unite-group.in) via Mailtrap, the same way paid-order alerts go.
 // card_order_intakes has no columns for them, and adding some is a founder-gated migration (follow-up).
-// The email goes BEFORE the insert and a failed send is a 502 with nothing stored, so the buyer can retry and
-// the film choice can never be silently lost.
+// The intake row is INSERTED FIRST and is the claim (UNIQUE order_id): a 23505 means another request already
+// holds the claim, so this one returns 409 and sends nothing. Only the request whose insert succeeded sends the
+// email, so concurrent submits and retries after a stored-but-failed response cannot double-send. If the send
+// fails, the claim THIS request inserted is deleted by id so the buyer can retry, and the response is a 502.
+// If that delete fails, the claim stays (it blocks a resend; the order is visible in the table) and the buyer is
+// told to reply to their receipt email.
+// KNOWN RESIDUAL RISK: a provider that accepted the message but timed out looks the same as a failed send, so a
+// retry can send ONE duplicate internal alert to contact@ (never a customer-facing duplicate, no data loss).
+// Closing it needs delivery_state + provider_message_id columns: a founder-gated migration (follow-up).
+// ALSO a follow-up migration: service_role currently has select+insert only on card_order_intakes
+// (20261025100000_card_orders.sql), so the claim delete is denied until `grant delete` is added.
 
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -108,6 +117,27 @@ export async function POST(request: NextRequest) {
     `Brief: ${brief ?? '(none)'}`,
     `Where we met: ${whereMet ?? '(not given)'}`,
   ]
+  // Claim the order first. UNIQUE(order_id) makes this atomic across concurrent requests.
+  const { data: claim, error: claimError } = await admin
+    .from('card_order_intakes')
+    .insert({
+      order_id: order.id,
+      founder_id: order.founder_id,
+      name,
+      business,
+      email,
+      where_met: whereMet,
+    })
+    .select('id')
+    .single()
+  if (claimError || !claim) {
+    if ((claimError as { code?: string } | null)?.code === '23505') {
+      return NextResponse.json({ error: 'We already have your details for this order' }, { status: 409 })
+    }
+    console.error('[cards/intake] claim insert failed:', (claimError as { message?: string } | null)?.message)
+    return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })
+  }
+
   try {
     const sent = await sendEmail({
       to: { email: leadAlertEmailTo() },
@@ -121,23 +151,23 @@ export async function POST(request: NextRequest) {
     if (sent === null) throw new Error('email not sent (no API key)')
   } catch (err) {
     console.error('[cards/intake] delivery email failed:', err instanceof Error ? err.message : err)
-    return NextResponse.json({ error: 'We could not send your details just now. Please try again, or reply to your payment receipt email.' }, { status: 502 })
-  }
-
-  const { error } = await admin.from('card_order_intakes').insert({
-    order_id: order.id,
-    founder_id: order.founder_id,
-    name,
-    business,
-    email,
-    where_met: whereMet,
-  })
-  if (error) {
-    if ((error as { code?: string }).code === '23505') {
-      return NextResponse.json({ error: 'We already have your details for this order' }, { status: 409 })
+    // Release ONLY the claim this request inserted, so the buyer can retry.
+    let released = false
+    try {
+      const { error: deleteError } = await admin.from('card_order_intakes').delete().eq('id', claim.id)
+      if (deleteError) console.error('[cards/intake] could not release claim:', (deleteError as { message?: string }).message)
+      else released = true
+    } catch (deleteErr) {
+      console.error('[cards/intake] could not release claim:', deleteErr instanceof Error ? deleteErr.message : deleteErr)
     }
-    console.error('[cards/intake] insert failed:', (error as { message?: string }).message)
-    return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: released
+          ? 'We could not send your details just now. Please try again, or reply to your payment receipt email.'
+          : 'We could not send your details just now. Please reply to your payment receipt email with them.',
+      },
+      { status: 502 },
+    )
   }
   return NextResponse.json({ received: true }, { status: 201 })
 }
