@@ -12,10 +12,10 @@ import sitemap from '../sitemap'
 const llms = readFileSync(join(__dirname, '..', '..', '..', 'public', 'llms.txt'), 'utf8')
 
 describe('sitemap (AC-7)', () => {
-  it('lists the home, cards, order, terms, four pillars and the two legal pages, and nothing private (not /grow: noindex, D3)', () => {
+  it('lists the home, cards, order, terms, ten-clips, four pillars and the two legal pages, and nothing private (not /grow: noindex, D3)', () => {
     const paths = sitemap().map((e) => new URL(e.url).pathname)
     expect(paths).toEqual([
-      '/', '/cards', '/cards/order', '/cards/terms', '/pricing', '/signatures',
+      '/', '/cards', '/cards/order', '/cards/terms', '/video/ten-clips', '/pricing', '/signatures',
       '/solutions/visibility', '/solutions/experience', '/solutions/conversion', '/solutions/intelligence',
       '/privacy-policy', '/terms-of-service',
     ])

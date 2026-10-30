@@ -1,0 +1,98 @@
+/* /video/ten-clips: offer layout on top of marketing-page.module.css. Tokens from public-tokens.css. */
+
+.split {
+  display: grid;
+  gap: clamp(20px, 4vw, 40px);
+  align-items: start;
+}
+
+@media (min-width: 900px) {
+  .split {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  }
+}
+
+.list {
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.list li {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--pub-ink-soft);
+}
+
+.dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: 0.5em;
+  border-radius: 50%;
+  background: var(--pub-highlight);
+}
+
+.priceCard {
+  padding: clamp(18px, 3vw, 26px);
+  border: 1px solid rgba(236, 123, 65, 0.45);
+  border-radius: var(--pub-radius-xl);
+  background: rgba(18, 22, 42, 0.55);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(236, 123, 65, 0.12);
+}
+
+.priceName {
+  margin: 0;
+  font-family: var(--pub-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.price {
+  margin: 0.75rem 0 0;
+  font-family: var(--pub-display);
+  font-size: clamp(2rem, 4vw, 2.6rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.priceNote {
+  margin: 0.25rem 0 0;
+  font-size: 15px;
+  color: var(--pub-muted);
+}
+
+.fine {
+  margin: 1rem 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--pub-ink-soft);
+}
+
+.promise {
+  margin: 1.25rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--pub-ink);
+}
+
+.sample {
+  max-width: 280px;
+}
+
+.sampleLabel {
+  margin: 0.4rem 0 0;
+  font-family: var(--pub-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--pub-ink-soft);
+}
+
+.formWrap {
+  margin-top: 1.5rem;
+}

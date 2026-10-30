@@ -43,6 +43,7 @@ import CardOrderPage from '../cards/order/page'
 import CardTermsPage from '../cards/terms/page'
 import CardThanksPage from '../cards/thanks/page'
 import PricingPage from '../pricing/page'
+import TenClipsPage from '../video/ten-clips/page'
 import SignaturesPage from '../signatures/page'
 import VisibilityPage from '../solutions/visibility/page'
 import ExperiencePage from '../solutions/experience/page'
@@ -67,6 +68,7 @@ const RENDERS: Record<string, () => Promise<ReactElement>> = {
   '/cards/terms': sync(CardTermsPage),
   '/cards/thanks': () => CardThanksPage({ searchParams: noProps }),
   '/pricing': sync(PricingPage),
+  '/video/ten-clips': sync(TenClipsPage),
   '/signatures': sync(SignaturesPage),
   '/solutions/visibility': sync(VisibilityPage),
   '/solutions/experience': sync(ExperiencePage),
