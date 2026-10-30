@@ -10,20 +10,17 @@
 // is a 409 and cannot overwrite the first. No file is accepted here: the buyer gives a link to their logo or
 // replies to the receipt email with it.
 //
-// Delivery details (film choice, what to show at the end of the film, logo link, Made-for-you brief) are
-// emailed to the lead-alert address (contact@unite-group.in) via Mailtrap, the same way paid-order alerts go.
-// card_order_intakes has no columns for them, and adding some is a founder-gated migration (follow-up).
-// The intake row is INSERTED FIRST and is the claim (UNIQUE order_id): a 23505 means another request already
-// holds the claim, so this one returns 409 and sends nothing. Only the request whose insert succeeded sends the
-// email, so concurrent submits and retries after a stored-but-failed response cannot double-send. If the send
-// fails, the claim THIS request inserted is deleted by id so the buyer can retry, and the response is a 502.
-// If that delete fails, the claim stays (it blocks a resend; the order is visible in the table) and the buyer is
-// told to reply to their receipt email.
-// KNOWN RESIDUAL RISK: a provider that accepted the message but timed out looks the same as a failed send, so a
-// retry can send ONE duplicate internal alert to contact@ (never a customer-facing duplicate, no data loss).
-// Closing it needs delivery_state + provider_message_id columns: a founder-gated migration (follow-up).
-// ALSO a follow-up migration: service_role currently has select+insert only on card_order_intakes
-// (20261025100000_card_orders.sql), so the claim delete is denied until `grant delete` is added.
+// The whole payload (film, end-of-film contact details, logo link, brief) is stored on the claim row, so a paid
+// buyer's details are never lost, whatever happens to the alert email. The row is INSERTED FIRST and is the claim
+// (UNIQUE order_id): a 23505 means another request holds the claim, so this one returns 409 and sends nothing.
+// Only the claim winner emails the lead-alert address (contact@unite-group.in) via Mailtrap, then records the
+// outcome in delivery_state ('pending' -> 'sent' or 'failed'), with provider_message_id and delivered_at on success.
+// A failed send is a 202 ("we have your details"), not an error: nothing is deleted, no retry is needed, and a retry
+// gets 409. Failed rows are found with: select * from card_order_intakes where delivery_state <> 'sent'.
+// If the status update itself fails it is logged and the same response is returned (the details are already stored).
+// Needs migration 20261030120000_card_order_intakes_payload_delivery.sql (founder-gated); service_role has no DELETE.
+// KNOWN RESIDUAL RISK: a provider that accepted the message but timed out is recorded 'failed' although the alert may
+// have arrived; the details are stored either way.
 
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -117,7 +114,7 @@ export async function POST(request: NextRequest) {
     `Brief: ${brief ?? '(none)'}`,
     `Where we met: ${whereMet ?? '(not given)'}`,
   ]
-  // Claim the order first. UNIQUE(order_id) makes this atomic across concurrent requests.
+  // Claim the order first, with the full payload. UNIQUE(order_id) makes this atomic across concurrent requests.
   const { data: claim, error: claimError } = await admin
     .from('card_order_intakes')
     .insert({
@@ -127,6 +124,11 @@ export async function POST(request: NextRequest) {
       business,
       email,
       where_met: whereMet,
+      film,
+      contact_details: contactDetails,
+      logo_link: logoLink,
+      brief,
+      delivery_state: 'pending',
     })
     .select('id')
     .single()
@@ -138,8 +140,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })
   }
 
+  // Record the delivery outcome. Never throws: the details are already stored, so a failure here is only logged.
+  const recordDelivery = async (patch: { delivery_state: 'sent' | 'failed'; provider_message_id?: string | null; delivered_at?: string }) => {
+    try {
+      const { error } = await admin.from('card_order_intakes').update(patch).eq('id', claim.id)
+      if (error) console.error('[cards/intake] could not record delivery state:', (error as { message?: string }).message)
+    } catch (err) {
+      console.error('[cards/intake] could not record delivery state:', err instanceof Error ? err.message : err)
+    }
+  }
+
+  let messageId: string | null = null
   try {
-    const sent = await sendEmail({
+    messageId = await sendEmail({
       to: { email: leadAlertEmailTo() },
       from: { email: mailtrapFromEmail(), name: 'Unite-Group orders' },
       replyTo: { email },
@@ -148,26 +161,15 @@ export async function POST(request: NextRequest) {
       html: lines.map((l) => `<p>${escapeHtml(l)}</p>`).join(''),
       categories: ['card-intake'],
     })
-    if (sent === null) throw new Error('email not sent (no API key)')
+    if (messageId === null) throw new Error('email not sent (no API key or no message id)')
   } catch (err) {
     console.error('[cards/intake] delivery email failed:', err instanceof Error ? err.message : err)
-    // Release ONLY the claim this request inserted, so the buyer can retry.
-    let released = false
-    try {
-      const { error: deleteError } = await admin.from('card_order_intakes').delete().eq('id', claim.id)
-      if (deleteError) console.error('[cards/intake] could not release claim:', (deleteError as { message?: string }).message)
-      else released = true
-    } catch (deleteErr) {
-      console.error('[cards/intake] could not release claim:', deleteErr instanceof Error ? deleteErr.message : deleteErr)
-    }
+    await recordDelivery({ delivery_state: 'failed' })
     return NextResponse.json(
-      {
-        error: released
-          ? 'We could not send your details just now. Please try again, or reply to your payment receipt email.'
-          : 'We could not send your details just now. Please reply to your payment receipt email with them.',
-      },
-      { status: 502 },
+      { received: true, message: "We have your details. If you don't hear from us within one business day, reply to your payment receipt email." },
+      { status: 202 },
     )
   }
+  await recordDelivery({ delivery_state: 'sent', provider_message_id: messageId, delivered_at: new Date().toISOString() })
   return NextResponse.json({ received: true }, { status: 201 })
 }
