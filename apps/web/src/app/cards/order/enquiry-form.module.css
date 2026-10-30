@@ -70,6 +70,13 @@
   outline-offset: 2px;
 }
 
+.hint {
+  margin: 0.4rem 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #a6a29b;
+}
+
 .alert {
   margin: 0.75rem 0 0;
   font-size: 14px;

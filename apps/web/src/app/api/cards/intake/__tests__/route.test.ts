@@ -2,12 +2,28 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/supabase/service', () => ({ createServiceClient: vi.fn() }))
+vi.mock('@/lib/integrations/mailtrap', () => ({
+  sendEmail: vi.fn(async () => 'msg-1'),
+  leadAlertEmailTo: () => 'contact@unite-group.in',
+  mailtrapFromEmail: () => 'contact@unite-group.in',
+}))
 
 import { createServiceClient } from '@/lib/supabase/service'
+import { sendEmail } from '@/lib/integrations/mailtrap'
 import { POST } from '../route'
 
-const ORDER = { id: 'order-1', founder_id: 'founder-1', customer_email: 'sample@example.invalid' }
-const BODY = { session_id: 'cs_test_a1', name: 'Sample Client', business: 'Sample Plumbing Co', email: 'sample@example.invalid', where_met: 'Expo stand' }
+const ORDER = { id: 'order-1', founder_id: 'founder-1', customer_email: 'sample@example.invalid', tier: 'ready' }
+const BODY = {
+  session_id: 'cs_test_a1',
+  film: 'forge',
+  name: 'Sample Client',
+  business: 'Sample Plumbing Co',
+  email: 'sample@example.invalid',
+  contact_details: 'Sample Client, Director, 0400 000 000',
+  logo_link: 'https://example.invalid/logo.png',
+  brief: '',
+  where_met: 'Expo stand',
+}
 
 const req = (body: unknown, raw = false) =>
   new NextRequest('http://localhost/api/cards/intake', {
@@ -17,11 +33,12 @@ const req = (body: unknown, raw = false) =>
   })
 
 /** card_orders: select().eq().limit() resolves to `orders`; card_order_intakes: insert() resolves to `insert`. */
-function mockDb(orders: { data: unknown[] | null; error?: unknown }, insertResult: { error?: unknown } = { error: null }) {
+function mockDb(orders: { data: unknown[] | null; error?: unknown }, insertResult: { error?: unknown } = { error: null }, existing: unknown[] = []) {
   const eq = vi.fn(() => ({ limit: vi.fn(async () => ({ error: null, ...orders })) }))
   const insert = vi.fn(async () => insertResult)
+  const existingEq = vi.fn(() => ({ limit: vi.fn(async () => ({ error: null, data: existing })) }))
   ;(createServiceClient as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
-    from: vi.fn((t: string) => (t === 'card_orders' ? { select: vi.fn(() => ({ eq })) } : { insert })),
+    from: vi.fn((t: string) => (t === 'card_orders' ? { select: vi.fn(() => ({ eq })) } : { insert, select: vi.fn(() => ({ eq: existingEq })) })),
   })
   return { eq, insert }
 }
@@ -89,9 +106,9 @@ describe('POST /api/cards/intake', () => {
     expect(await b.json()).toEqual(aBody)
   })
 
-  it('treats business and where_met as optional', async () => {
+  it('treats business, where_met, logo link and brief as optional', async () => {
     const db = mockDb({ data: [ORDER] })
-    const res = await POST(req({ session_id: 'cs_test_a1', name: 'A', email: 'sample@example.invalid' }))
+    const res = await POST(req({ session_id: 'cs_test_a1', film: 'forge', contact_details: 'x', name: 'A', email: 'sample@example.invalid' }))
     expect(res.status).toBe(201)
     expect(db.insert).toHaveBeenCalledWith(expect.objectContaining({ business: null, where_met: null }))
   })
@@ -103,6 +120,11 @@ describe('POST /api/cards/intake', () => {
     ['missing session id', { ...BODY, session_id: '' }],
     ['session id with filter characters', { ...BODY, session_id: 'cs_test_a,b.eq.c' }],
     ['over-long name', { ...BODY, name: 'x'.repeat(121) }],
+    ['no film', { ...BODY, film: '' }],
+    ['an unknown film', { ...BODY, film: 'not-a-film' }],
+    ['no contact details', { ...BODY, contact_details: ' ' }],
+    ['a logo link that is not http(s)', { ...BODY, logo_link: 'javascript:alert(1)' }],
+    ['an over-long brief', { ...BODY, brief: 'x'.repeat(1501) }],
   ])('rejects %s with 400 before touching the database', async (_label, body) => {
     const db = mockDb({ data: [ORDER] })
     const res = await POST(req(body))
@@ -122,9 +144,38 @@ describe('POST /api/cards/intake', () => {
     expect(db.insert).not.toHaveBeenCalled()
   })
 
-  it('returns 409 on a second submission for the same order', async () => {
+  it('returns 409 on a second submission for the same order, without emailing again', async () => {
+    mockDb({ data: [ORDER] }, { error: null }, [{ id: 'intake-1' }])
+    expect((await POST(req(BODY))).status).toBe(409)
+    expect(sendEmail).not.toHaveBeenCalled()
+  })
+
+  it('returns 409 when the insert loses a race on the unique order', async () => {
     mockDb({ data: [ORDER] }, { error: { code: '23505' } })
     expect((await POST(req(BODY))).status).toBe(409)
+  })
+
+  it('emails the film, contact details and logo link to the lead-alert address, escaped, replying to the buyer', async () => {
+    mockDb({ data: [ORDER] })
+    await POST(req({ ...BODY, brief: '<b>modern</b>', film: 'made-for-you' }))
+    const mail = (sendEmail as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]
+    expect(mail.to).toEqual({ email: 'contact@unite-group.in' })
+    expect(mail.replyTo).toEqual({ email: 'sample@example.invalid' })
+    expect(mail.subject).toContain('Made for you')
+    expect(mail.text).toContain('Show at the end of the film: Sample Client, Director, 0400 000 000')
+    expect(mail.text).toContain('Logo link: https://example.invalid/logo.png')
+    expect(mail.html).toContain('&lt;b&gt;modern&lt;/b&gt;')
+    expect(mail.html).not.toContain('<b>')
+  })
+
+  it('stores nothing and returns 502 when the delivery email cannot be sent, so the buyer can retry', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const db = mockDb({ data: [ORDER] })
+    ;(sendEmail as unknown as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('down'))
+    expect((await POST(req(BODY))).status).toBe(502)
+    ;(sendEmail as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null)
+    expect((await POST(req(BODY))).status).toBe(502)
+    expect(db.insert).not.toHaveBeenCalled()
   })
 
   it('returns 500, not a success, when the lookup or the write fails', async () => {

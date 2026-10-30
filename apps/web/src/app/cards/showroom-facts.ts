@@ -7,8 +7,8 @@
 export const PRICE_NOTE = 'Prices are in Australian dollars and include GST. You pay the full price up front.'
 
 /**
- * Each tier's line, cut from the terms (section 2). The terms' film count ("ten") is out of date now nine
- * editions are shown (UNI-3034), so the showroom quotes only the parts without a count. Changing the
+ * Each tier's line, cut from the terms (section 2). The terms say "ten" films, which matches EDITIONS: the signature
+ * reveal plus nine editions. The showroom still quotes only the parts without a count. Changing the
  * approved terms text needs Phill's sign-off.
  */
 export const TIER_LINES: Record<'ready' | 'custom', string> = {

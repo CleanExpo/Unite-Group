@@ -65,8 +65,16 @@ Pay a test-mode link with Stripe's test card, then confirm: one `card_orders` ro
 `/cards/thanks?session_id=cs_test_...`, and a submitted intake appearing as one `card_order_intakes` row. Resend the same
 event from the dashboard: still one row and no second email.
 
+## What the thank-you form collects
+
+Film (any of the ten showroom films, or Made for you), name, business, email, the contact details to show at the end of
+the film, an optional logo link, an optional Made-for-you brief and where you met. The form sends an email to
+`LEAD_ALERT_EMAIL_TO` (default contact@unite-group.in) via Mailtrap with the film and details, reply-to the buyer. The
+email is sent before anything is stored; if it cannot be sent the buyer sees an error and can retry. name, business,
+email and where-met are also stored in `card_order_intakes`.
+
 ## Not built
 
-Logo upload. The thank-you form checks the chosen file (PNG, JPEG, WebP, SVG, up to 5 MB) but does not send or store it;
-there is no public upload path that is safe yet (`TODO(logo-upload)` in `src/app/cards/thanks/intake-form.tsx`). The
-confirmation tells the buyer we will email to collect the logo.
+Logo upload. There is no public upload path that is safe yet, so the form takes a link to the logo, and tells the buyer
+to reply to the payment receipt email with the file if they have no link. Storing the film choice in `card_order_intakes`
+needs a new column (a founder-gated migration); until then the film lives in the alert email only.

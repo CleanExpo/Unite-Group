@@ -25,7 +25,7 @@ export const CARD_TIERS = [
     id: 'ready',
     name: 'Ready-made',
     priceAud: 249,
-    line: 'Pick one of the nine card films below. It ends on your logo and details.',
+    line: 'Pick one of the ten card films below. It ends on your logo and details.',
     paymentLinkEnv: 'STRIPE_PAYMENT_LINK_CARD_READY',
   },
   {
@@ -99,7 +99,7 @@ export function OrderView({ edition, referrer }: { edition: string | null; refer
                   id="order-title"
                   eyebrow="Living business card"
                   title="Get your own living card"
-                  lead="A short film that ends on your logo and contact details. Pick one of our nine, or have one made for your business."
+                  lead="A short film that ends on your logo and contact details. Pick one of our ten, or have one made for your business."
                 />
                 <div className={m.actions}>
                   <a href="#choose" data-track="cta" data-track-label="order-hero-choose" className={m.btnPrimary}>
