@@ -86,14 +86,20 @@ describe('QR code on the /cards card', () => {
 })
 
 describe('film and business counts (UNI-3034 review)', () => {
-  it('/cards and / never say ten films or six businesses', () => {
+  // The showroom lists the signature reveal plus nine editions, so ten films (founder decision; EDITIONS.length).
+  // "nine films" would now be the wrong count; "six businesses" stays banned.
+  it('/cards and / never say nine films or six businesses', () => {
     for (const [, render] of [pages[0], pages[1]]) {
       const html = render()
-      expect(html).not.toMatch(/\bten (card )?films|\bthe ten\b|six businesses/i)
+      expect(html).not.toMatch(/\bnine (card )?films|\bone of nine\b|\bthe nine\b|six businesses/i)
     }
   })
+  it('the showroom really holds ten films', async () => {
+    const { EDITIONS } = await import('../cards/editions')
+    expect(EDITIONS).toHaveLength(10)
+  })
   it('the guard can fail', () => {
-    expect('one of the ten').toMatch(/\bthe ten\b/)
+    expect('one of nine films').toMatch(/\bnine (card )?films/i)
   })
 })
 

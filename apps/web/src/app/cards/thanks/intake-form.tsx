@@ -1,31 +1,25 @@
 'use client'
 
-import { useState, type ChangeEvent, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 
 import { CollectionNotice } from '@/public/collection-notice'
 
+import { EDITIONS } from '../editions'
 import f from '../order/enquiry-form.module.css'
 import s from '../order/order.module.css'
 
-const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml']
-const LOGO_MAX_BYTES = 5 * 1024 * 1024
-
-/** Null when the file is fine (or absent); otherwise the reason to show the buyer. */
-export function checkLogoFile(file: File | null): string | null {
-  if (!file || file.size === 0) return null
-  if (!LOGO_TYPES.includes(file.type)) return 'Please choose a PNG, JPEG, WebP or SVG image.'
-  if (file.size > LOGO_MAX_BYTES) return 'That logo is over 5 MB. Please choose a smaller file.'
-  return null
-}
-
-/** The /api/cards/intake body. The logo file is deliberately not part of it. Exported so tests check the wire contract. */
+/** The /api/cards/intake body. No file goes with it: the buyer gives a link to their logo or replies to the receipt email. Exported so tests check the wire contract. */
 export function buildIntakeBody(form: FormData, sessionId: string) {
   const value = (name: string) => String(form.get(name) ?? '').trim()
   return {
     session_id: sessionId,
+    film: value('film'),
     name: value('name'),
     business: value('business'),
     email: value('email'),
+    contact_details: value('contact_details'),
+    logo_link: value('logo_link'),
+    brief: value('brief'),
     where_met: value('where_met'),
   }
 }
@@ -34,25 +28,12 @@ type Status = { kind: 'idle' } | { kind: 'sending' } | { kind: 'sent' } | { kind
 
 export function IntakeForm({ reference }: { reference: string }) {
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
-  const [logoError, setLogoError] = useState<string | null>(null)
-
-  function onLogo(event: ChangeEvent<HTMLInputElement>) {
-    setLogoError(checkLogoFile(event.currentTarget.files?.[0] ?? null))
-  }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
-    const logoProblem = checkLogoFile(form.get('logo') instanceof File ? (form.get('logo') as File) : null)
-    if (logoProblem) {
-      setLogoError(logoProblem)
-      return
-    }
     setStatus({ kind: 'sending' })
     try {
-      // TODO(logo-upload): the chosen logo is validated here but NOT sent or stored. No public, size-limited,
-      // virus-scanned upload path exists in this app yet (every storage write today is a signed-in founder
-      // action). Until one does, the confirmation below tells the buyer we will ask for the logo by email.
       const res = await fetch('/api/cards/intake', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -73,7 +54,7 @@ export function IntakeForm({ reference }: { reference: string }) {
     return (
       <div role="status" className={f.sent}>
         <p className={f.sentTitle}>Got it, thank you.</p>
-        <p className={f.sentBody}>We will email you shortly to collect your logo file and confirm the next step.</p>
+        <p className={f.sentBody}>We will use these to make your card. If you did not give a logo link, please reply to your payment receipt email with your logo attached.</p>
       </div>
     )
   }
@@ -94,9 +75,27 @@ export function IntakeForm({ reference }: { reference: string }) {
           <input id="email" name="email" type="email" required maxLength={254} autoComplete="email" className={f.field} />
         </div>
         <div className={f.wide}>
-          <label htmlFor="logo" className={f.label}>Your logo (PNG, JPEG, WebP or SVG, up to 5 MB)</label>
-          <input id="logo" name="logo" type="file" accept={LOGO_TYPES.join(',')} onChange={onLogo} className={f.field} />
-          {logoError && <p role="alert" className={f.alert}>{logoError}</p>}
+          <label htmlFor="film" className={f.label}>Which film did you choose?</label>
+          <select id="film" name="film" required defaultValue="" className={f.field}>
+            <option value="" disabled>Choose a film</option>
+            {EDITIONS.map((e) => (
+              <option key={e.name} value={e.name}>{e.label}</option>
+            ))}
+            <option value="made-for-you">Made for you (we make one for your business)</option>
+          </select>
+        </div>
+        <div className={f.wide}>
+          <label htmlFor="contact_details" className={f.label}>Contact details to show at the end of the film</label>
+          <textarea id="contact_details" name="contact_details" required rows={3} maxLength={500} placeholder="Name, title, phone, email, website" className={f.field} />
+        </div>
+        <div className={f.wide}>
+          <label htmlFor="logo_link" className={f.label}>Link to your logo (optional)</label>
+          <input id="logo_link" name="logo_link" type="url" maxLength={500} placeholder="https://" className={f.field} />
+          <p className={f.hint}>No link? Leave this blank and reply to your payment receipt email with your logo attached (PNG, SVG or JPEG).</p>
+        </div>
+        <div className={f.wide}>
+          <label htmlFor="brief" className={f.label}>Made for you only: a short brief (optional)</label>
+          <textarea id="brief" name="brief" rows={4} maxLength={1500} placeholder="What your business does, and the feel you want" className={f.field} />
         </div>
         <div className={f.wide}>
           <label htmlFor="where_met" className={f.label}>Where did we meet? (optional)</label>

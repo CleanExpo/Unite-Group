@@ -57,7 +57,7 @@ const COMING_NAMES = ['CRM', ...COMING.map((c) => c.name)]
 const createLine = (from: string | null) => (from ? `Order a living video card, from ${from}` : START_LINKS[2].line)
 
 const STEPS = [
-  { title: 'Pick an opener', body: 'Select one of nine films from the showroom.', screen: 'pick' as const },
+  { title: 'Pick an opener', body: 'Select one of ten films from the showroom.', screen: 'pick' as const },
   { title: 'Send your details', body: 'Logo, palette, and how people should reach you.', screen: 'send' as const },
   { title: 'Approve a proof', body: 'Review a private link before anything goes live.', screen: 'approve' as const },
 ]
