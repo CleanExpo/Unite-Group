@@ -85,7 +85,7 @@ const EXACT_PUBLIC_FILES: ReadonlySet<string> = new Set([
   '/grow', // Public SMB services offer page; its form posts to the public /api/leads
   '/pricing', // Public plan and add-on prices; static
   '/signatures', // Public email signature add-on page; static
-  '/cards', // Public living-card showroom (nine editions + signature reveal)
+  '/cards', // Public living-card showroom (signature reveal + nine editions: ten films)
   '/cards/order', // Public card enquiry page; no payment, its form posts to the public /api/leads
   '/cards/terms', // Public card order terms; static text, no data. Exact path only
   '/cards/thanks', // Post-payment thank-you with the intake form; the buyer is signed out. Exact: no sub-routes

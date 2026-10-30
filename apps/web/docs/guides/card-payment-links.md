@@ -65,8 +65,20 @@ Pay a test-mode link with Stripe's test card, then confirm: one `card_orders` ro
 `/cards/thanks?session_id=cs_test_...`, and a submitted intake appearing as one `card_order_intakes` row. Resend the same
 event from the dashboard: still one row and no second email.
 
+## What the thank-you form collects
+
+Film (any of the ten showroom films, or Made for you), name, business, email, the contact details to show at the end of
+the film, an optional logo link, an optional Made-for-you brief and where you met. The whole submission is stored in `card_order_intakes`
+first (that insert is the claim, one per order), then the claim winner emails `LEAD_ALERT_EMAIL_TO` (default
+contact@unite-group.in) via Mailtrap with the film and details, reply-to the buyer.
+
+`delivery_state` on the row is `pending` (stored, not yet emailed), `sent` (with `provider_message_id` and
+`delivered_at`) or `failed`. If the email fails the buyer still sees a success (HTTP 202), their details stay stored, and
+a second submit gets 409. Find rows whose alert did not go out and follow them up by hand:
+`select id, created_at, name, email, film, delivery_state from card_order_intakes where delivery_state <> 'sent' order by created_at;`
+This needs migration `20261030120000_card_order_intakes_payload_delivery.sql` (founder-gated; apply it before the route deploys).
+
 ## Not built
 
-Logo upload. The thank-you form checks the chosen file (PNG, JPEG, WebP, SVG, up to 5 MB) but does not send or store it;
-there is no public upload path that is safe yet (`TODO(logo-upload)` in `src/app/cards/thanks/intake-form.tsx`). The
-confirmation tells the buyer we will email to collect the logo.
+Logo upload. There is no public upload path that is safe yet, so the form takes a link to the logo, and tells the buyer
+to reply to the payment receipt email with the file if they have no link.

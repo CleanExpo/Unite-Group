@@ -6,7 +6,8 @@ import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 
 import ThanksPage from '../page'
-import { buildIntakeBody, checkLogoFile } from '../intake-form'
+import { buildIntakeBody } from '../intake-form'
+import { EDITIONS } from '../../editions'
 import { checkoutSessionId } from '../session-id'
 
 const render = async (params: Record<string, string | string[] | undefined>) =>
@@ -31,8 +32,8 @@ describe('/cards/thanks', () => {
   it('thanks the buyer and shows the intake fields, carrying the reference', async () => {
     const html = await render({ session_id: 'cs_test_a1' })
     expect(html).toContain('Thank you')
-    for (const name of ['name', 'business', 'email', 'where_met']) expect(html).toMatch(new RegExp(`<(input|textarea)[^>]*name="${name}"`))
-    expect(html).toMatch(/<input[^>]*type="file"[^>]*name="logo"|<input[^>]*name="logo"[^>]*type="file"/)
+    for (const name of ['name', 'business', 'email', 'contact_details', 'logo_link', 'brief', 'where_met']) expect(html).toMatch(new RegExp(`<(input|textarea|select)[^>]*name="${name}"`))
+    expect(html).not.toMatch(/type="file"/)
     expect(html).toContain('cs_test_a1')
   })
 
@@ -52,36 +53,35 @@ describe('/cards/thanks', () => {
     expect(html).not.toMatch(/card number|cvc|expiry/)
   })
 
-  it('leaves the logo upload as an explicit, named TODO until a safe public upload path exists', () => {
-    const src = readFileSync(join(__dirname, '..', 'intake-form.tsx'), 'utf8')
-    expect(src).toContain('TODO(logo-upload)')
+  it('offers every showroom edition plus Made for you, and tells the buyer to email the logo if they have no link', async () => {
+    const html = await render({ session_id: 'cs_test_a1' })
+    const options = [...html.matchAll(/<option value="([^"]*)"/g)].map((m) => m[1])
+    expect(options).toEqual(['', ...EDITIONS.map((e) => e.name), 'made-for-you'])
+    expect(html).toContain('reply to your payment receipt email')
   })
 })
 
 describe('buildIntakeBody', () => {
-  it('sends the typed fields and the reference, and never the file', () => {
+  it('sends the typed fields and the reference, trimmed', () => {
     const form = new FormData()
+    form.set('film', 'forge')
     form.set('name', ' Sample Client ')
     form.set('business', 'Sample Plumbing Co')
     form.set('email', 'sample@example.invalid')
+    form.set('contact_details', ' 0400 000 000 ')
+    form.set('logo_link', 'https://example.invalid/logo.png')
     form.set('where_met', 'Expo')
-    form.set('logo', new File(['x'], 'logo.png', { type: 'image/png' }))
-    const body = buildIntakeBody(form, 'cs_test_a1')
-    expect(body).toEqual({ session_id: 'cs_test_a1', name: 'Sample Client', business: 'Sample Plumbing Co', email: 'sample@example.invalid', where_met: 'Expo' })
-    expect(JSON.stringify(body)).not.toContain('logo')
-  })
-})
-
-describe('checkLogoFile', () => {
-  const file = (type: string, size: number) => new File([new Uint8Array(size)], 'logo', { type })
-  it('accepts a PNG, JPEG, WebP or SVG up to 5 MB, and no file at all', () => {
-    for (const t of ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml']) expect(checkLogoFile(file(t, 1000))).toBeNull()
-    expect(checkLogoFile(null)).toBeNull()
-    expect(checkLogoFile(file('', 0))).toBeNull() // an empty file input
-  })
-  it('refuses other types and anything over 5 MB, with a reason', () => {
-    expect(checkLogoFile(file('application/pdf', 1000))).toMatch(/PNG|JPEG/)
-    expect(checkLogoFile(file('image/png', 5 * 1024 * 1024 + 1))).toMatch(/5 MB/)
+    expect(buildIntakeBody(form, 'cs_test_a1')).toEqual({
+      session_id: 'cs_test_a1',
+      film: 'forge',
+      name: 'Sample Client',
+      business: 'Sample Plumbing Co',
+      email: 'sample@example.invalid',
+      contact_details: '0400 000 000',
+      logo_link: 'https://example.invalid/logo.png',
+      brief: '',
+      where_met: 'Expo',
+    })
   })
 })
 
