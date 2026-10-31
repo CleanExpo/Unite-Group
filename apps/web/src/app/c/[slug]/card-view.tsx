@@ -7,7 +7,9 @@ import styles from './card.module.css'
 import { EnquiryForm } from './enquiry-form'
 
 /** The persistent card: server HTML and real links. The sample shows the moving Constellation film (client script) so buyers see a living card; client cards stay media-free. The enquiry form (the only script) renders only when enquiries are open. */
-export function CardView({ card, enquiryOpen = false, sample = false }: { card: PublicCard; enquiryOpen?: boolean; sample?: boolean }) {
+export function CardView({
+  card, enquiryOpen = false, ownerAlerts = false, sample = false,
+}: { card: PublicCard; enquiryOpen?: boolean; ownerAlerts?: boolean; sample?: boolean }) {
   const demo = EDITIONS.find((e) => e.name === DEMO_EDITION)
   const telHref = card.phone ? `tel:${card.phone.replace(/[^+\d]/g, '')}` : null
   return (
@@ -43,7 +45,7 @@ export function CardView({ card, enquiryOpen = false, sample = false }: { card: 
             <a className={styles.button} href={`/c/${card.slug}/contact.vcf`}>Save contact</a>
           </li>
         </ul>
-        {enquiryOpen ? <EnquiryForm slug={card.slug} fallback={{ phone: card.phone, email: card.email }} /> : null}
+        {enquiryOpen ? <EnquiryForm slug={card.slug} fallback={{ phone: card.phone, email: card.email }} ownerAlerts={ownerAlerts} /> : null}
       </article>
     </main>
   )

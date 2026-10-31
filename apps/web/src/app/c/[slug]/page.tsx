@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
+import { canEmailCardOwner } from '@/lib/card/enquiry-alert'
 import { getPublishedCard } from '@/lib/card/published'
 import { isSampleSlug, SAMPLE_CARD } from '@/lib/card/sample'
 
@@ -31,5 +32,7 @@ export default async function OwnerCardPage({ params }: Props) {
   if (isSampleSlug(slug)) return <CardView card={SAMPLE_CARD} sample />
   const card = await getPublishedCard(slug)
   if (!card) notFound()
-  return <CardView card={card} enquiryOpen={process.env.CARD_ENQUIRY_RECEIPT_ENABLED === '1'} />
+  return (
+    <CardView card={card} enquiryOpen={process.env.CARD_ENQUIRY_RECEIPT_ENABLED === '1'} ownerAlerts={canEmailCardOwner(card.email)} />
+  )
 }

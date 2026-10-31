@@ -1,3 +1,4 @@
+import type { CardEnquiryAlert } from './enquiry-alert'
 import { isValidSlug } from './slug'
 
 export interface EnquiryInput {
@@ -8,14 +9,14 @@ export interface EnquiryInput {
 }
 
 export type EnquiryResult =
-  | { ok: true; receipt: { id: string; reference: string; status: 'received'; acceptedAt: string } }
+  | { ok: true; receipt: { id: string; reference: string; status: 'received'; acceptedAt: string; ownerNotified: boolean } }
   | { ok: false; status: 400 | 404 | 429 | 500 | 503; error: string }
 
 type DbError = { message: string } | null
 export interface EnquiryClient {
   from(table: string): {
     select(columns: string): {
-      eq(column: string, value: string): { maybeSingle(): PromiseLike<{ data: { published_at: string | null } | null; error: DbError }> }
+      eq(column: string, value: string): { maybeSingle(): PromiseLike<{ data: { published_at: string | null; email?: string | null } | null; error: DbError }> }
     }
   }
   /** card_submit_enquiry: inserts, or returns the row already stored for the same (slug, email, ask) in the last 10 minutes. */
@@ -24,7 +25,10 @@ export interface EnquiryClient {
   }
 }
 
-const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
+export const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
+// card_submit_enquiry hands back the row it already stored for a repeat (same card, email and message inside 10 minutes).
+// A row created before this request started, beyond clock skew between the app and the database, is that repeat.
+const FRESH_SKEW_MS = 5000
 const fail = (status: 400 | 404 | 429 | 500, error: string): EnquiryResult => ({ ok: false, status, error })
 
 /** The visitor-facing reference: LC- plus the first 12 hex characters of the stored row's id, so it can be looked up from the row. */
@@ -37,7 +41,12 @@ export function cardReference(id: string): string {
  * returned after the insert gave a row back; every other path is an error. The caller supplies the client
  * (a service-role one in the server action); nothing here connects to a database by itself.
  */
-export async function submitCardEnquiry(client: EnquiryClient, slug: string, input: EnquiryInput): Promise<EnquiryResult> {
+export async function submitCardEnquiry(
+  client: EnquiryClient,
+  slug: string,
+  input: EnquiryInput,
+  notify?: (alert: CardEnquiryAlert) => Promise<{ ownerNotified: boolean }>,
+): Promise<EnquiryResult> {
   if (!isValidSlug(slug)) return fail(400, 'invalid card')
   const firstName = input.firstName?.trim() ?? ''
   const ask = input.ask?.trim() ?? ''
@@ -48,11 +57,12 @@ export async function submitCardEnquiry(client: EnquiryClient, slug: string, inp
   if (business && business.length > 120) return fail(400, 'invalid business')
   if (replyEmail && (replyEmail.length > 254 || !EMAIL_RE.test(replyEmail))) return fail(400, 'invalid email')
 
-  const profile = await client.from('card_profiles').select('published_at').eq('card_slug', slug).maybeSingle()
+  const profile = await client.from('card_profiles').select('published_at, email').eq('card_slug', slug).maybeSingle()
   if (profile.error) return fail(500, 'could not check the card')
   if (!profile.data?.published_at) return fail(404, 'card not found')
 
   // The ten-minute duplicate guard lives in the database function so two racing retries cannot both insert.
+  const askedAt = Date.now()
   const { data, error } = await client
     .rpc('card_submit_enquiry', {
       p_card_slug: slug, p_first_name: firstName, p_business: business, p_ask: ask, p_reply_email: replyEmail, p_source: 'card-profile',
@@ -61,5 +71,20 @@ export async function submitCardEnquiry(client: EnquiryClient, slug: string, inp
   // card_submit_enquiry refuses the (n+1)th enquiry for one card inside an hour with this exact message
   if (error?.message.includes('card_enquiry_rate_limited')) return fail(429, 'this card is receiving a lot of enquiries right now, please try again later')
   if (error || !data?.id) return fail(500, 'could not store the enquiry')
-  return { ok: true, receipt: { id: data.id, reference: cardReference(data.id), status: 'received', acceptedAt: data.created_at ?? '' } }
+  const reference = cardReference(data.id)
+  // UNI-3021: the row is stored; the owner email is best effort and can never turn a stored enquiry into an error.
+  // A repeat gets the same receipt but no second email, so the message and reply email are not sent out twice.
+  const createdAt = Date.parse(data.created_at ?? '')
+  const isNewRow = Number.isFinite(createdAt) && createdAt >= askedAt - FRESH_SKEW_MS
+  let ownerNotified = false
+  if (notify && isNewRow) {
+    try {
+      ownerNotified = (await notify({
+        reference, cardSlug: slug, ownerEmail: profile.data.email ?? null, firstName, business, ask, replyEmail,
+      })).ownerNotified === true
+    } catch (err) {
+      console.error('[cards] enquiry alert failed:', err instanceof Error ? err.message : String(err))
+    }
+  }
+  return { ok: true, receipt: { id: data.id, reference, status: 'received', acceptedAt: data.created_at ?? '', ownerNotified } }
 }

@@ -3,6 +3,7 @@
 import { headers } from 'next/headers'
 
 import { clientIpFrom, guardEnquiry, type GuardInput } from '@/lib/card/enquiry-guard'
+import { sendCardEnquiryAlerts } from '@/lib/card/enquiry-alert'
 import { submitCardEnquiry, type EnquiryClient, type EnquiryInput, type EnquiryResult } from '@/lib/card/enquiry'
 import { createServiceClient } from '@/lib/supabase/service'
 
@@ -23,5 +24,5 @@ export async function submitEnquiryAction(slug: string, input: EnquiryInput & Gu
   } catch {
     return { ok: false, status: 500, error: 'could not store the enquiry' }
   }
-  return submitCardEnquiry(client, slug, input)
+  return submitCardEnquiry(client, slug, input, sendCardEnquiryAlerts)
 }
