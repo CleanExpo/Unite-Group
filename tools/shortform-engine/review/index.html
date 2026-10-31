@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cut Review</title>
+<link rel="stylesheet" href="/review.css">
+</head>
+<body>
+<header class="bar">
+  <div class="brand"><span class="mark" aria-hidden="true"></span><span>Cut Review</span></div>
+  <div class="meta">
+    <span id="job" class="job"></span>
+    <span id="version" class="chip"></span>
+    <span id="status" class="chip status"></span>
+  </div>
+</header>
+
+<main class="deck">
+  <section class="stage" aria-label="Review copy">
+    <div class="frame">
+      <video id="player" playsinline controls preload="auto"></video>
+    </div>
+    <div class="scrub" id="scrub" aria-label="Notes on the timeline">
+      <div class="scrub-fill" id="scrubFill"></div>
+    </div>
+    <p class="hint">Press <kbd>N</kbd> to pause and write a note at the playhead.</p>
+  </section>
+
+  <section class="panel" aria-label="Notes">
+    <form id="composer" class="composer" autocomplete="off">
+      <label for="noteText" class="at">Note at <strong id="noteAt">0:00.0</strong></label>
+      <textarea id="noteText" rows="3" placeholder="What should change here?" maxlength="1000"></textarea>
+      <label class="always"><input type="checkbox" id="lasting"> Always do this (save as a style rule)</label>
+      <button type="submit" class="btn ghost" id="addBtn">Add note</button>
+    </form>
+
+    <ol id="notes" class="notes"></ol>
+    <p id="empty" class="empty">No notes yet. Watch it through, then add notes or approve.</p>
+
+    <div class="actions">
+      <button id="sendBtn" class="btn primary" type="button">Send notes</button>
+      <button id="approveBtn" class="btn approve" type="button">Approve and render 1080p</button>
+      <p id="message" class="message" role="status" aria-live="polite"></p>
+      <a id="finalLink" class="final" href="/final.mp4" hidden>Open the 1080p final</a>
+    </div>
+  </section>
+</main>
+<script src="/review.js"></script>
+</body>
+</html>
