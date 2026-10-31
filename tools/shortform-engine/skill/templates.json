@@ -1,0 +1,53 @@
+{
+  "business-reel": {
+    "purpose": "Founder or client speaking to camera about one offer. Hook in 2 seconds, one idea, one call to action.",
+    "target_seconds": [25, 45],
+    "video_filter": "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1",
+    "cut": {"max_pause": 0.25},
+    "music": {"file": null, "under_db": 25},
+    "stacks": [],
+    "inserts": [],
+    "corrections": []
+  },
+  "explainer": {
+    "purpose": "Teach one thing in steps. A type moment lists the steps over the blurred speaker; captions follow the voice.",
+    "target_seconds": [35, 60],
+    "video_filter": "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1",
+    "cut": {"max_pause": 0.3},
+    "music": {"file": null, "under_db": 25},
+    "stacks": [],
+    "inserts": [],
+    "corrections": []
+  },
+  "split-screen": {
+    "purpose": "Speaker on the bottom half, proof footage on the top half (screen recording, job site, product).",
+    "target_seconds": [25, 50],
+    "video_filter": "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1",
+    "cut": {"max_pause": 0.3},
+    "music": {"file": null, "under_db": 25},
+    "stacks": [],
+    "inserts": [{"type": "broll", "layout": "split", "file": "broll/REPLACE.mp4", "anchor": {"src": "clip01", "t": 3.0}, "duration": 4.0}],
+    "corrections": []
+  },
+  "broll-stacked": {
+    "purpose": "Mostly B-roll with big stacked type carrying the message; the speaker anchors the open and the close.",
+    "target_seconds": [15, 30],
+    "video_filter": "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1",
+    "cut": {"max_pause": 0.22},
+    "music": {"file": null, "under_db": 22},
+    "stacks": [],
+    "inserts": [],
+    "corrections": []
+  },
+  "clip-from-long": {
+    "purpose": "Pull a 30 to 60 second moment out of a long landscape recording (webinar, podcast, site walk) and reframe it 9:16.",
+    "target_seconds": [30, 60],
+    "video_filter": "crop=ih*9/16:ih,scale=1080:1920,setsar=1",
+    "cut": {"max_pause": 0.35},
+    "keep_only": [],
+    "music": {"file": null, "under_db": 25},
+    "stacks": [],
+    "inserts": [],
+    "corrections": []
+  }
+}
