@@ -11,15 +11,22 @@ export interface FallbackContact {
   email: string | null
 }
 
-type View = { kind: 'idle' } | { kind: 'sending' } | { kind: 'error'; message: string } | { kind: 'received'; reference: string }
+type View =
+  | { kind: 'idle' }
+  | { kind: 'sending' }
+  | { kind: 'error'; message: string }
+  | { kind: 'received'; reference: string; ownerNotified: boolean }
 
 export const RECIPIENT_LINE = 'Unite Group stores your message. The card owner is not notified yet.'
+export const RECIPIENT_LINE_EMAILED = 'Unite Group stores your message and emails a copy to the card owner.'
 
 /**
  * One enquiry. The reference number is shown only from a stored-row result; a failed or thrown call keeps what the
  * visitor typed and shows an error, never a receipt.
  */
-export function EnquiryForm({ slug, fallback }: { slug: string; fallback?: FallbackContact }) {
+export function EnquiryForm({
+  slug, fallback, ownerAlerts = false,
+}: { slug: string; fallback?: FallbackContact; ownerAlerts?: boolean }) {
   const [view, setView] = useState<View>({ kind: 'idle' })
   const [firstName, setFirstName] = useState('')
   const [ask, setAsk] = useState('')
@@ -36,7 +43,9 @@ export function EnquiryForm({ slug, fallback }: { slug: string; fallback?: Fallb
       const r = await submitEnquiryAction(slug, {
         firstName, ask, replyEmail: replyEmail || null, consent, website, startedAt: startedAt.current,
       })
-      setView(r.ok ? { kind: 'received', reference: r.receipt.reference } : { kind: 'error', message: r.error })
+      setView(r.ok
+        ? { kind: 'received', reference: r.receipt.reference, ownerNotified: r.receipt.ownerNotified === true }
+        : { kind: 'error', message: r.error })
     } catch {
       setView({ kind: 'error', message: 'could not send, check your connection and try again' })
     }
@@ -46,10 +55,17 @@ export function EnquiryForm({ slug, fallback }: { slug: string; fallback?: Fallb
     return (
       <div className={styles.receipt} role="status">
         <p>Saved. Reference: {view.reference}</p>
-        <p>
-          Next step: your enquiry is stored. We are building the owner inbox, so the business is not notified yet. For a
-          faster answer use Call or Email above and quote this reference; use the same way to correct anything you sent.
-        </p>
+        {view.ownerNotified ? (
+          <p>
+            Next step: your enquiry is stored and we have emailed a copy to the card owner. For a faster answer use Call
+            or Email above and quote this reference; use the same way to correct anything you sent.
+          </p>
+        ) : (
+          <p>
+            Next step: your enquiry is stored, but the business is not notified yet. For a faster answer use Call or
+            Email above and quote this reference; use the same way to correct anything you sent.
+          </p>
+        )}
       </div>
     )
   }
@@ -75,9 +91,9 @@ export function EnquiryForm({ slug, fallback }: { slug: string; fallback?: Fallb
           <input name="lc_extra" value={website} onChange={(e) => setWebsite(e.target.value)} tabIndex={-1} autoComplete="off" />
         </label>
       </div>
-      {/* UNI-3021: the owner inbox is not built yet, so this never claims delivery (matches the receipt below). Fixed copy:
-          the card's display name is free text, so it is never interpolated into this trust sentence. */}
-      <p className={styles.recipient}>{RECIPIENT_LINE}</p>
+      {/* UNI-3021: an owner email is promised only when the server can attempt one (ownerAlerts); the receipt then says
+          whether it went. Fixed copy: the card's display name is free text, so it is never interpolated here. */}
+      <p className={styles.recipient}>{ownerAlerts ? RECIPIENT_LINE_EMAILED : RECIPIENT_LINE}</p>
       <CollectionNotice form="card-enquiry" tone="dark" />
       <label className={styles.consent}>
         <input type="checkbox" name="consent" checked={consent} onChange={(e) => setConsent(e.target.checked)} required />

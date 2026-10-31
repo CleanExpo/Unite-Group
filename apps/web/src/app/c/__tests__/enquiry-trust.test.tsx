@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const submitEnquiryAction = vi.fn()
 vi.mock('../[slug]/actions', () => ({ submitEnquiryAction: (...a: unknown[]) => submitEnquiryAction(...a) }))
 
-import { EnquiryForm, RECIPIENT_LINE } from '../[slug]/enquiry-form'
+import { EnquiryForm, RECIPIENT_LINE, RECIPIENT_LINE_EMAILED } from '../[slug]/enquiry-form'
 
 afterEach(() => {
   cleanup()
@@ -27,6 +27,23 @@ describe('EnquiryForm trust controls', () => {
     expect(line).toBeTruthy()
     expect(RECIPIENT_LINE).toBe('Unite Group stores your message. The card owner is not notified yet.')
     expect(RECIPIENT_LINE).not.toMatch(/goes to|sent to|delivered|will be notified/i)
+  })
+
+  // UNI-3021: the form promises an email to the owner only when the server can send one (Mailtrap key set and an owner
+  // email on the card); the receipt then reports whether it actually went.
+  it('with owner alerts on, says Unite Group stores the message and emails a copy to the card owner, as fixed copy', () => {
+    render(<EnquiryForm slug="sam" ownerAlerts />)
+    const lines = [...document.querySelectorAll('p')].map((p) => p.textContent)
+    expect(lines).toContain(RECIPIENT_LINE_EMAILED)
+    expect(lines).not.toContain(RECIPIENT_LINE)
+    expect(RECIPIENT_LINE_EMAILED).toBe('Unite Group stores your message and emails a copy to the card owner.')
+  })
+
+  it('with owner alerts off (the default), keeps the not-notified line', () => {
+    render(<EnquiryForm slug="sam" />)
+    const lines = [...document.querySelectorAll('p')].map((p) => p.textContent)
+    expect(lines).toContain(RECIPIENT_LINE)
+    expect(lines).not.toContain(RECIPIENT_LINE_EMAILED)
   })
 
   it('has a required consent checkbox and does not call the action until it is ticked', async () => {
