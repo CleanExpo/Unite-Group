@@ -114,4 +114,26 @@ describe('EnquiryForm', () => {
     expect(text).toMatch(/not notified yet/i)
     expect(text).not.toMatch(/24\/7|within \d|we.re on it|team (has been )?notified|will reply/i)
   })
+
+  // UNI-3021: the receipt says the owner was emailed only when the server says Mailtrap accepted the owner's email.
+  it('says the card owner was emailed only when the receipt carries ownerNotified: true', async () => {
+    submitEnquiryAction.mockResolvedValue({ ok: true, receipt: { id: 'i', reference: 'LC-I', status: 'received', acceptedAt: 't', ownerNotified: true } })
+    render(<EnquiryForm slug="sam" ownerAlerts />)
+    await fillAndSend()
+    await waitFor(() => expect(screen.getByText(/next step/i)).toBeTruthy())
+    const text = document.body.textContent ?? ''
+    expect(text).toMatch(/emailed a copy to the card owner/i)
+    expect(text).not.toMatch(/not notified/i)
+    expect(text).toMatch(/quote this reference/i)
+  })
+
+  it('a stored enquiry whose owner email did not go through says so, even when alerts are switched on', async () => {
+    submitEnquiryAction.mockResolvedValue({ ok: true, receipt: { id: 'i', reference: 'LC-I', status: 'received', acceptedAt: 't', ownerNotified: false } })
+    render(<EnquiryForm slug="sam" ownerAlerts />)
+    await fillAndSend()
+    await waitFor(() => expect(screen.getByText(/next step/i)).toBeTruthy())
+    const text = document.body.textContent ?? ''
+    expect(text).toMatch(/not notified yet/i)
+    expect(text).not.toMatch(/emailed a copy/i)
+  })
 })

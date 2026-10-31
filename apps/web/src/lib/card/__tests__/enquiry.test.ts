@@ -25,7 +25,7 @@ describe('submitCardEnquiry (non-production receipt)', () => {
   it('returns a receipt only after the guarded insert returned a row, carrying that row id', async () => {
     const m = client({})
     const r = await submitCardEnquiry(m.c, 'sam', good)
-    expect(r).toEqual({ ok: true, receipt: { id: 'f3a1c0de-0000-4000-8000-000000000001', reference: 'LC-F3A1C0DE0000', status: 'received', acceptedAt: '2026-10-25T01:02:03Z' } })
+    expect(r).toEqual({ ok: true, receipt: { id: 'f3a1c0de-0000-4000-8000-000000000001', reference: 'LC-F3A1C0DE0000', status: 'received', acceptedAt: '2026-10-25T01:02:03Z', ownerNotified: false } })
     expect(m.rpcCall).toHaveBeenCalledWith('card_submit_enquiry', {
       p_card_slug: 'sam', p_first_name: 'Jo', p_business: 'Jo Co', p_ask: 'Can you call me?', p_reply_email: 'jo@example.com', p_source: 'card-profile',
     })
