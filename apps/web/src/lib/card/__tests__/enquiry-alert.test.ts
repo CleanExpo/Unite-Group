@@ -124,6 +124,10 @@ function client(profile: R = { data: { published_at: '2026-10-25T00:00:00Z', ema
 const good = { firstName: 'Jo', ask: 'Can you call me?', business: 'Jo Co', replyEmail: 'jo@example.com' }
 
 describe('submitCardEnquiry with an owner alert (UNI-3021)', () => {
+  // The stub row was created at 01:02:03Z; "now" is just after, so it is the row this request inserted.
+  beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-10-25T01:02:03.500Z')) })
+  afterEach(() => { vi.useRealTimers() })
+
   it('passes the stored row reference and the card owner email to the alert', async () => {
     const m = client()
     const notify = vi.fn().mockResolvedValue({ ownerNotified: true })
@@ -145,6 +149,22 @@ describe('submitCardEnquiry with an owner alert (UNI-3021)', () => {
       receipt: { id: 'f3a1c0de-0000-4000-8000-000000000001', reference: 'LC-F3A1C0DE0000', status: 'received', acceptedAt: '2026-10-25T01:02:03Z', ownerNotified: false },
     })
     expect(vi.mocked(console.error).mock.calls.flat().join(' ')).toContain('mail down')
+  })
+
+  it('a repeat that returns the row stored minutes ago gets the same receipt and no second email', async () => {
+    vi.setSystemTime(new Date('2026-10-25T01:07:03Z'))
+    const notify = vi.fn().mockResolvedValue({ ownerNotified: true })
+    const r = await submitCardEnquiry(client().c, 'sam', good, notify)
+    expect(notify).not.toHaveBeenCalled()
+    expect(r).toMatchObject({ ok: true, receipt: { reference: 'LC-F3A1C0DE0000', ownerNotified: false } })
+  })
+
+  it('a row with no readable created_at is not treated as new, so it cannot trigger an email', async () => {
+    const m = client()
+    const c = { ...(m.c as object), rpc: () => ({ single: () => Promise.resolve({ data: { id: 'f3a1c0de-0000-4000-8000-000000000001', created_at: 'garbage' }, error: null }) }) }
+    const notify = vi.fn().mockResolvedValue({ ownerNotified: true })
+    await submitCardEnquiry(c as never, 'sam', good, notify)
+    expect(notify).not.toHaveBeenCalled()
   })
 
   it('never alerts when the enquiry was not stored', async () => {

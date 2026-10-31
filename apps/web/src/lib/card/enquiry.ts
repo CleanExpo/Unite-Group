@@ -26,6 +26,9 @@ export interface EnquiryClient {
 }
 
 export const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
+// card_submit_enquiry hands back the row it already stored for a repeat (same card, email and message inside 10 minutes).
+// A row created before this request started, beyond clock skew between the app and the database, is that repeat.
+const FRESH_SKEW_MS = 5000
 const fail = (status: 400 | 404 | 429 | 500, error: string): EnquiryResult => ({ ok: false, status, error })
 
 /** The visitor-facing reference: LC- plus the first 12 hex characters of the stored row's id, so it can be looked up from the row. */
@@ -59,6 +62,7 @@ export async function submitCardEnquiry(
   if (!profile.data?.published_at) return fail(404, 'card not found')
 
   // The ten-minute duplicate guard lives in the database function so two racing retries cannot both insert.
+  const askedAt = Date.now()
   const { data, error } = await client
     .rpc('card_submit_enquiry', {
       p_card_slug: slug, p_first_name: firstName, p_business: business, p_ask: ask, p_reply_email: replyEmail, p_source: 'card-profile',
@@ -69,8 +73,11 @@ export async function submitCardEnquiry(
   if (error || !data?.id) return fail(500, 'could not store the enquiry')
   const reference = cardReference(data.id)
   // UNI-3021: the row is stored; the owner email is best effort and can never turn a stored enquiry into an error.
+  // A repeat gets the same receipt but no second email, so the message and reply email are not sent out twice.
+  const createdAt = Date.parse(data.created_at ?? '')
+  const isNewRow = Number.isFinite(createdAt) && createdAt >= askedAt - FRESH_SKEW_MS
   let ownerNotified = false
-  if (notify) {
+  if (notify && isNewRow) {
     try {
       ownerNotified = (await notify({
         reference, cardSlug: slug, ownerEmail: profile.data.email ?? null, firstName, business, ask, replyEmail,
