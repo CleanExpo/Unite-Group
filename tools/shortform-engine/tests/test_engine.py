@@ -183,6 +183,95 @@ class AudioTests(unittest.TestCase):
         self.assertIn("[6:a]adelay=2000|2000", f)
         self.assertIn("amix=inputs=4", f)
 
+    def test_final_loudness_targets_house_level(self):
+        from engine import compose
+
+        class FakeVU:
+            LOUDNORM_I = -14.0
+            seen = None
+
+            def apply_loudnorm_two_pass(self, src, dst, preview=False):
+                FakeVU.seen = self.LOUDNORM_I
+
+        compose.apply_house_loudness(FakeVU(), Path("a.mp4"), Path("b.mp4"))
+        self.assertEqual(FakeVU.seen, -16.0)
+
+
+class TranscribeTests(unittest.TestCase):
+    def test_vad_filter_on_so_avatar_silence_is_not_hallucinated(self):
+        from engine import transcribe_local
+        self.assertIs(transcribe_local.TRANSCRIBE_OPTIONS["vad_filter"], True)
+        self.assertTrue(transcribe_local.TRANSCRIBE_OPTIONS["word_timestamps"])
+
+    def test_prompt_hallucination_falls_back_to_unprompted_pass(self):
+        # v06, batch 01/11: the filler prompt turned 27 s of clean avatar speech
+        # into "Thank you."; the unprompted pass returned all 58 words.
+        import sys
+        import types
+        from engine import transcribe_local as tl
+
+        def word(t, i):
+            return types.SimpleNamespace(word=t, start=i * 0.4, end=i * 0.4 + 0.3, probability=0.9)
+
+        class FakeModel:
+            calls = []
+
+            def __init__(self, *a, **k):
+                pass
+
+            def transcribe(self, wav, **kw):
+                FakeModel.calls.append(kw)
+                n = 2 if "initial_prompt" in kw else 58
+                seg = types.SimpleNamespace(words=[word(f" w{i}", i) for i in range(n)])
+                return iter([seg]), types.SimpleNamespace(duration=27.4, duration_after_vad=26.0)
+
+        fake = types.ModuleType("faster_whisper")
+        fake.WhisperModel = FakeModel
+        old_mod, old_extract = sys.modules.get("faster_whisper"), tl.extract_audio
+        sys.modules["faster_whisper"] = fake
+        tl.extract_audio = lambda video, wav: None
+        try:
+            d = Path(tempfile.mkdtemp())
+            clip = d / "clip.mp4"
+            clip.write_bytes(b"x")
+            data = tl.transcribe(clip, d / "t.json", force=True)
+        finally:
+            tl.extract_audio = old_extract
+            if old_mod is None:
+                sys.modules.pop("faster_whisper", None)
+            else:
+                sys.modules["faster_whisper"] = old_mod
+            shutil.rmtree(d)
+        self.assertEqual(len([w for w in data["words"] if w["type"] == "word"]), 58)
+        self.assertEqual(len(FakeModel.calls), 2)
+        self.assertNotIn("initial_prompt", FakeModel.calls[1])
+        self.assertTrue(FakeModel.calls[1]["vad_filter"])
+
+
+class OverlayTests(unittest.TestCase):
+    def _chain(self, layout="full", typ="broll", dur=4.0):
+        from engine import compose
+        ins = [{"type": typ, "layout": layout, "start": 2.0, "end": 2.0 + dur, "duration": dur}]
+        return compose.overlay_chain(ins)
+
+    def test_broll_crossfades_in_and_out(self):
+        vf, cur = self._chain()
+        joined = ";".join(vf)
+        self.assertIn("format=yuva420p", joined)
+        self.assertIn("fade=t=in:st=2.000:d=0.400:alpha=1", joined)
+        self.assertIn("fade=t=out:st=5.600:d=0.400:alpha=1", joined)
+        self.assertEqual(cur, "[v1]")
+
+    def test_split_face_band_also_fades(self):
+        vf, _ = self._chain(layout="split")
+        face = [p for p in vf if "crop=1080:960:0:180" in p][0]
+        self.assertIn("fade=t=in", face)
+        self.assertIn("fade=t=out", face)
+
+    def test_short_insert_fade_is_clamped(self):
+        vf, _ = self._chain(dur=0.6)
+        self.assertIn("d=0.200", ";".join(vf))
+
 
 class ReviewFlowTests(unittest.TestCase):
     def setUp(self):

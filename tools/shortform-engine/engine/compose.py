@@ -151,6 +151,55 @@ def prepare_inserts(plan: dict, ranges: list[dict], edit: Path, job: Path) -> li
     return out
 
 
+# House rules: soft crossfades on every insert, never a hard cut (video boards,
+# ops/video-boards/README.md), and -16 LUFS integrated on the master.
+CROSSFADE_S = 0.4
+HOUSE_LUFS = -16.0
+
+
+def _alpha_fade(s: float, e: float) -> str:
+    d = min(CROSSFADE_S, (e - s) / 3)
+    return (f"format=yuva420p,fade=t=in:st={s:.3f}:d={d:.3f}:alpha=1,"
+            f"fade=t=out:st={e - d:.3f}:d={d:.3f}:alpha=1")
+
+
+def overlay_chain(inserts: list[dict]) -> tuple[list[str], str]:
+    """Filter-graph steps that lay each insert over the base video ([0:v]).
+
+    Every layer that appears for an insert window fades in and out on its
+    alpha, so the switch to and from B-roll or type is a crossfade.
+    """
+    vf: list[str] = []
+    cur = "[0:v]"
+    for k, x in enumerate(inserts, start=1):
+        s, e = x["start"], x["end"]
+        en = f"enable='between(t,{s:.3f},{e:.3f})'"
+        fade = _alpha_fade(s, e)
+        if x["type"] == "type":
+            # blur and darken the speaker's footage for the window, type on top
+            vf.append(f"{cur}split[c{k}a][c{k}b]")
+            vf.append(f"[c{k}b]boxblur=22:2,eq=brightness=-0.32:saturation=0.7,{fade}[c{k}bl]")
+            vf.append(f"[c{k}a][c{k}bl]overlay={en}[c{k}m]")
+            cur = f"[c{k}m]"
+        y = 0
+        if x["layout"] == "split":
+            # speaker's face band moves to the bottom half, B-roll takes the top
+            vf.append(f"{cur}split[c{k}a][c{k}b]")
+            vf.append(f"[c{k}b]crop=1080:960:0:180,{fade}[c{k}face]")
+            vf.append(f"[c{k}a][c{k}face]overlay=0:960:{en}[c{k}m]")
+            cur = f"[c{k}m]"
+        vf.append(f"[{k}:v]setpts=PTS-STARTPTS+{s:.3f}/TB,{fade}[o{k}]")
+        vf.append(f"{cur}[o{k}]overlay=0:{y}:{en}:eof_action=pass[v{k}]")
+        cur = f"[v{k}]"
+    return vf, cur
+
+
+def apply_house_loudness(vu, src: Path, dst: Path) -> None:
+    """video-use's two-pass loudnorm, aimed at the house level, not its -14."""
+    vu.LOUDNORM_I = HOUSE_LUFS
+    vu.apply_loudnorm_two_pass(src, dst, preview=False)
+
+
 def caption_style(plan: dict, style_rules: dict) -> CaptionStyle:
     merged = {**style_rules, **(plan.get("caption_style") or {})}
     names = {f.name for f in fields(CaptionStyle)}
@@ -235,27 +284,7 @@ def render(job: Path, mode: str, house: dict | None = None) -> dict:
         inputs += ["-i", str(x["file"])]
     m_idx = 1 + len(inserts)
     inputs += ["-stream_loop", "-1", "-i", str(music), "-i", str(whoosh), "-i", str(pop)]
-    vf: list[str] = []
-    cur = "[0:v]"
-    for k, x in enumerate(inserts, start=1):
-        s, e = x["start"], x["end"]
-        en = f"enable='between(t,{s:.3f},{e:.3f})'"
-        if x["type"] == "type":
-            # blur and darken the speaker's footage for the window, type on top
-            vf.append(f"{cur}split[c{k}a][c{k}b]")
-            vf.append(f"[c{k}b]boxblur=22:2,eq=brightness=-0.32:saturation=0.7[c{k}bl]")
-            vf.append(f"[c{k}a][c{k}bl]overlay={en}[c{k}m]")
-            cur = f"[c{k}m]"
-        y = 0
-        if x["layout"] == "split":
-            # speaker's face band moves to the bottom half, B-roll takes the top
-            vf.append(f"{cur}split[c{k}a][c{k}b]")
-            vf.append(f"[c{k}b]crop=1080:960:0:180[c{k}face]")
-            vf.append(f"[c{k}a][c{k}face]overlay=0:960:{en}[c{k}m]")
-            cur = f"[c{k}m]"
-        vf.append(f"[{k}:v]setpts=PTS-STARTPTS+{s:.3f}/TB[o{k}]")
-        vf.append(f"{cur}[o{k}]overlay=0:{y}:{en}:eof_action=pass[v{k}]")
-        cur = f"[v{k}]"
+    vf, cur = overlay_chain(inserts)
     ass_abs = str(ass_path.resolve()).replace(":", r"\:").replace("'", r"\'")
     vf.append(f"{cur}ass='{ass_abs}'[vout]")
     af = audio.mix_filter(m_idx, m_idx + 1, gain, duration, sfx_events)
@@ -267,7 +296,7 @@ def render(job: Path, mode: str, house: dict | None = None) -> dict:
                     "-crf", "18", "-pix_fmt", "yuv420p", "-r", "24",
                     "-c:a", "aac", "-b:a", "192k", "-ar", "48000", str(prenorm)], check=True)
     normed = edit / f"{mode}.normed.mp4"
-    vu.apply_loudnorm_two_pass(prenorm, normed, preview=False)
+    apply_house_loudness(vu, prenorm, normed)
     prenorm.unlink(missing_ok=True)
     timings["composite_s"] = round(time.time() - t, 2)
 

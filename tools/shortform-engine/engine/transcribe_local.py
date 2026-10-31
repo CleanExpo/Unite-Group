@@ -21,6 +21,24 @@ from pathlib import Path
 DEFAULT_MODEL = os.environ.get("SHORTFORM_WHISPER_MODEL", "small.en")
 FILLER_PROMPT = "Um, so, uh, I was, like, you know, thinking. Uh, okay. Hmm."
 
+TRANSCRIBE_OPTIONS = {
+    "word_timestamps": True, "language": "en", "initial_prompt": FILLER_PROMPT,
+    "vad_filter": True, "condition_on_previous_text": False,
+}
+# On clean speech with no fillers (HeyGen Margot renders v06 and v08, batch
+# 01/11) the filler prompt makes Whisper hallucinate one "Thank you." for the
+# whole clip. Normal speech runs about 2.5 words a second; below this floor
+# the prompted pass is treated as a hallucination and the clip is
+# transcribed again without the prompt.
+MIN_WORDS_PER_SPEECH_S = 0.8
+
+
+def _run(model, wav: Path, **opts) -> tuple[list[dict], object]:
+    segments, info = model.transcribe(str(wav), **opts)
+    words = [{"text": w.word, "start": w.start, "end": w.end, "probability": w.probability}
+             for seg in segments for w in (seg.words or [])]
+    return words, info
+
 
 def source_fingerprint(path: Path) -> dict:
     st = path.stat()
@@ -73,14 +91,13 @@ def transcribe(video: Path, out_json: Path, model_name: str = DEFAULT_MODEL,
     with tempfile.TemporaryDirectory() as td:
         wav = Path(td) / "audio.wav"
         extract_audio(video, wav)
-        segments, info = model.transcribe(
-            str(wav), word_timestamps=True, language="en",
-            initial_prompt=FILLER_PROMPT, vad_filter=False,
-            condition_on_previous_text=False,
-        )
-        words = [{"text": w.word, "start": w.start, "end": w.end,
-                  "probability": w.probability}
-                 for seg in segments for w in (seg.words or [])]
+        words, info = _run(model, wav, **TRANSCRIBE_OPTIONS)
+        speech_s = getattr(info, "duration_after_vad", None) or info.duration
+        if len(words) < MIN_WORDS_PER_SPEECH_S * speech_s:
+            plain = {k: v for k, v in TRANSCRIBE_OPTIONS.items() if k != "initial_prompt"}
+            retry, _ = _run(model, wav, **plain)
+            if len(retry) > len(words):
+                words = retry
     data = words_to_scribe(words)
     data["source"] = str(video)
     data["source_fingerprint"] = fp
