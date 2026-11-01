@@ -15,7 +15,7 @@
     "relay": "tsx strangler/relayer-worker.ts"
   },
   "dependencies": {
-    "postgres": "^3.4.5"
+    "postgres": "^4.0.0"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
