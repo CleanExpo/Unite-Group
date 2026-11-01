@@ -24,6 +24,7 @@ export const VISUAL_ENV = {
   // Syntactically valid, never live. Every request to buy.stripe.com is blocked in the specs.
   STRIPE_PAYMENT_LINK_CARD_READY: 'https://buy.stripe.com/test_visual_fixture_ready',
   STRIPE_PAYMENT_LINK_CARD_CUSTOM: 'https://buy.stripe.com/test_visual_fixture_custom',
+  STRIPE_PAYMENT_LINK_CARD_EXTRA_BUSINESS: 'https://buy.stripe.com/test_visual_fixture_extra_business',
   NEXT_TELEMETRY_DISABLED: '1',
   CI: '1',
 }

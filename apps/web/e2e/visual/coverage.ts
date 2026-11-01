@@ -20,6 +20,8 @@ export const STATE_PSEUDO = new Set([
 const STRUCTURAL_PSEUDO = new Set([
   'root', 'not', 'is', 'where', 'has', 'first-child', 'last-child', 'only-child', 'nth-child',
   'nth-last-child', 'first-of-type', 'last-of-type', 'nth-of-type', 'only-of-type', 'empty',
+  // CSS Modules scoping, not a state: :global(div) names an unhashed element or class.
+  'global',
 ])
 
 const TAILWIND_STATE = /(?:^|[\s"'`{])((?:hover|focus|focus-visible|focus-within|active|checked|disabled|enabled|invalid|user-invalid|open|visited|target|placeholder-shown|(?:peer|group)(?:-[a-z-]+)?|aria-[a-z-]+|data-[a-z-]+)):[^\s"'`}]+/g

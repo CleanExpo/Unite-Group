@@ -66,8 +66,7 @@
 
 /* Buttons (buy box + enquiry + thanks) */
 
-.primary,
-.secondary {
+.primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -90,8 +89,7 @@
   filter: brightness(1.05);
 }
 
-.primary:focus-visible,
-.secondary:focus-visible {
+.primary:focus-visible {
   outline: 2px solid var(--pub-focus);
   outline-offset: 3px;
 }
@@ -99,17 +97,6 @@
 .primary:disabled {
   cursor: progress;
   opacity: 0.55;
-}
-
-.secondary {
-  border: 1px solid var(--pub-line-strong);
-  background: transparent;
-  color: var(--pub-ink-soft);
-}
-
-.secondary:hover {
-  border-color: var(--pub-highlight);
-  color: var(--pub-ink);
 }
 
 .block {
@@ -279,10 +266,17 @@
   color: var(--pub-muted);
 }
 
+/* The rounded border lives on the label and the image is a plain rectangle set 2px inside it, clear of the 6px inner
+   curve, so nothing clips the image. An image under a rounded clip (its own or the label's) was drawn with corner
+   pixels that changed from one paint to the next, which made the visual gate fail at random (UNI-3038). */
 .thumb {
   position: relative;
   display: block;
+  padding: 2px;
   cursor: pointer;
+  border: 2px solid var(--pub-line);
+  border-radius: var(--pub-radius);
+  background: #050d20;
 }
 
 .thumbInput {
@@ -297,26 +291,23 @@
   width: 100%;
   aspect-ratio: 9 / 16;
   object-fit: cover;
-  border: 2px solid var(--pub-line);
-  border-radius: var(--pub-radius);
-  background: #050d20;
 }
 
-.thumb:hover .thumbImg {
+.thumb:hover {
   border-color: var(--pub-line-strong);
 }
 
-.thumbInput:checked + .thumbImg {
+.thumb:has(.thumbInput:checked) {
   border-color: var(--pub-highlight);
   box-shadow: 0 0 0 1px rgba(236, 123, 65, 0.35);
 }
 
-.thumbInput:focus-visible + .thumbImg {
+.thumb:has(.thumbInput:focus-visible) {
   outline: 2px solid var(--pub-focus);
   outline-offset: 2px;
 }
 
-.thumb:active .thumbImg {
+.thumb:active {
   transform: scale(0.97);
 }
 
@@ -626,7 +617,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .thumb:active .thumbImg {
+  .thumb:active {
     transform: none;
   }
 

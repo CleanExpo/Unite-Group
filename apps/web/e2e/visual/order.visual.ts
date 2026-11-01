@@ -47,6 +47,8 @@ async function load(page: Page, state: State): Promise<FormControl> {
     [...document.images].filter((img) => !img.complete || img.naturalWidth < 2).map((img) => img.currentSrc || img.src),
   )
   expect(broken, 'every image decoded at its real size').toEqual([])
+  // complete is not painted: wait for every image to be ready to draw, or a capture can catch it mid-decode (UNI-3038).
+  await page.evaluate(() => Promise.all([...document.images].map((img) => img.decode().catch(() => undefined))))
   return ctl
 }
 
@@ -114,10 +116,8 @@ async function matchedStateSelectors(page: Page, fullPage: boolean): Promise<str
 }
 
 async function apply(page: Page, state: State, ctl: FormControl) {
-  if (state.kind === 'page' || state.kind === 'form') {
-    await state.setup?.(page, ctl)
-    return
-  }
+  await state.setup?.(page, ctl)
+  if (state.kind === 'page' || state.kind === 'form') return
   const el = state.target!(page)
   await expect(el).toHaveCount(1)
   await el.evaluate((node) => node.scrollIntoView({ block: 'center' }))
