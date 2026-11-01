@@ -19,7 +19,7 @@ export type State = {
   path?: string
   /** The element the state applies to. Not used for kind 'page'. */
   target?: (page: Page) => Locator
-  /** Extra steps for 'page' and 'form' states, run after load. */
+  /** Extra steps run after load and before the state is applied (for interaction states, before the target is used). */
   setup?: (page: Page, ctl: FormControl) => Promise<void>
   /** Full-page screenshot instead of the viewport. */
   fullPage?: boolean
@@ -28,7 +28,8 @@ export type State = {
 /** Lets a form state hold or answer the intercepted /api/leads request. No real lead is ever sent. */
 export type FormControl = { answer: (status: number, body: unknown) => void; hold: () => void }
 
-const nav = (p: Page) => p.getByRole('navigation', { name: 'Cards' }).getByRole('link', { name: 'See all editions' })
+// The page's own "Cards" nav was replaced by the shared site header (SiteNav, aria-label "Main"); its Cards link is the nav state.
+const nav = (p: Page) => p.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Cards', exact: true })
 const heroPrimary = (p: Page) => p.getByRole('link', { name: 'Choose your film' })
 const heroSecondary = (p: Page) => p.locator('main section').first().getByRole('link', { name: 'See all editions' })
 const heroPlay = (p: Page) => p.locator('main section').first().getByRole('button', { name: /^Play / })
@@ -40,6 +41,17 @@ const nameField = (p: Page) => p.getByLabel('Your name')
 const consent = (p: Page) => p.getByRole('checkbox')
 const submit = (p: Page) => p.getByRole('button', { name: /Send my request|Sending/ })
 const privacy = (p: Page) => p.getByRole('contentinfo').getByRole('link', { name: 'Privacy' })
+const orderTerms = (p: Page) => p.getByRole('main').getByRole('link', { name: 'Order terms' })
+// Extra-business add-on (UNI-3038): its minus button is disabled at rest, which the full-page captures show.
+const extraMore = (p: Page) => p.getByRole('button', { name: 'One more extra business' })
+const extraPay = (p: Page) => p.locator('[data-extra-business]').getByRole('link')
+
+/** The pay link renders only once at least one extra business is chosen. */
+async function addExtraBusiness(page: Page) {
+  await extraMore(page).click()
+  await extraPay(page).waitFor()
+  await page.mouse.move(1, 1)
+}
 
 async function fillRequired(page: Page) {
   await nameField(page).fill('Sam Sample')
@@ -69,6 +81,9 @@ export const STATES: State[] = [
   ...interactive('edition-thumb', thumb, ['focus', 'checked']),
   ...interactive('edition-thumb-label', thumbLabel, ['hover', 'pressed']),
   ...interactive('order-ready', orderReady, ['hover', 'focus', 'pressed']),
+  ...interactive('order-terms', orderTerms, ['hover', 'focus', 'pressed']),
+  ...interactive('extra-step', extraMore, ['hover', 'focus', 'pressed']),
+  ...interactive('extra-pay', extraPay, ['hover', 'focus', 'pressed']).map((s) => ({ ...s, setup: addExtraBusiness })),
   ...interactive('name-field', nameField, ['focus']),
   ...interactive('consent', consent, ['focus', 'checked']),
   ...interactive('submit', submit, ['hover', 'focus', 'pressed']),
