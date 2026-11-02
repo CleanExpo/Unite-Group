@@ -7,6 +7,7 @@ vi.mock('next/navigation', () => ({
   }),
 }))
 vi.mock('@/lib/supabase/client', () => ({ createClient: vi.fn() }))
+vi.mock('@/lib/error-reporting', () => ({ captureClientError: vi.fn() }))
 vi.mock('@/lib/portal/owner', async (importOriginal) => {
   const real = await importOriginal<typeof import('@/lib/portal/owner')>()
   return { ...real, getPortalOwner: vi.fn() }
@@ -18,6 +19,10 @@ import { NO_PASSWORD_LINE, PORTAL_STEPS } from '@/components/portal/portal-copy'
 
 import PortalLayout, { metadata } from '../layout'
 import PortalPage from '../portal/page'
+import PortalLoading from '../portal/loading'
+import PortalError from '../portal/error'
+import { NoPortalYet, PortalUnavailable } from '@/components/portal/portal-notice'
+import { renderedFindings } from '@/__tests__/portal-forbidden-words'
 
 const access = (a: PortalAccess) => vi.mocked(getPortalOwner).mockResolvedValue(a)
 const render = async (node: Promise<React.ReactNode>) => renderToStaticMarkup(<>{await node}</>)
@@ -77,5 +82,51 @@ describe('portal owner guard', () => {
 
   it('keeps the portal out of search results', () => {
     expect(metadata.robots).toEqual({ index: false, follow: false })
+  })
+})
+
+// The source scan (src/__tests__/portal-no-password.test.ts) reads the files; this reads what React actually renders,
+// so a prompt assembled at run time (joined, replaced, computed) is caught too. Every state a visitor can reach.
+describe('no rendered portal page asks for a password', () => {
+  const OWNER: PortalAccess = { status: 'owner', userId: 'u1', email: 'sam@example.test', name: 'Sam', cardSlugs: ['sam-plumbing', 'sam-gas'] }
+  const BARE_OWNER: PortalAccess = { status: 'owner', userId: 'u2', email: null, name: null, cardSlugs: ['x'] }
+  const ACCESS: [string, PortalAccess][] = [
+    ['non-owner', { status: 'not_owner', email: 'v@example.test' }],
+    ['non-owner, no email', { status: 'not_owner', email: null }],
+    ['error', { status: 'error', email: 'v@example.test' }],
+    ['owner', OWNER],
+    ['owner, no name', BARE_OWNER],
+  ]
+
+  async function everyState(): Promise<[string, string][]> {
+    const out: [string, string][] = []
+    for (const [name, a] of ACCESS) {
+      access(a)
+      out.push([`layout: ${name}`, await render(PortalLayout({ children: CHILD }))])
+      if (a.status === 'owner') out.push([`page: ${name}`, await render(PortalPage())])
+    }
+    out.push(['loading', renderToStaticMarkup(<PortalLoading />)])
+    out.push(['error boundary', renderToStaticMarkup(<PortalError error={new Error('x')} reset={() => {}} />)])
+    out.push(['no portal yet', renderToStaticMarkup(<NoPortalYet email={null} />)])
+    out.push(['unavailable', renderToStaticMarkup(<PortalUnavailable email={null} />)])
+    return out
+  }
+
+  it('finds nothing in any state, and really rendered the welcome page with its promise line (positive control)', async () => {
+    const states = await everyState()
+    expect(states.length).toBe(11)
+    expect(states.some(([, html]) => html.includes(NO_PASSWORD_LINE.replace(/'/g, '&#x27;')))).toBe(true)
+    expect(states.map(([name, html]) => [name, renderedFindings(html)]).filter(([, f]) => f.length > 0)).toEqual([])
+  })
+
+  it.each([
+    ['a password field', '<input type="password"/>'],
+    ['a prompt built at run time', `<p>Enter your ${'passXord'.replace('X', 'w')}</p>`],
+    ['an invisible split', `<p>pass${String.fromCodePoint(0xad)}word</p>`],
+    ['a split across markup', '<p>pass<b></b>word</p>'],
+    ['the promise line made longer', `<p>${NO_PASSWORD_LINE} Now type your password.</p>`],
+    ['login details', '<label>Your login details</label>'],
+  ])('fires on %s', (_name, html) => {
+    expect(renderedFindings(html).length).toBeGreaterThan(0)
   })
 })
