@@ -1,0 +1,16 @@
+.page { max-width: 720px; margin: 0 auto; padding: 32px 20px 64px; display: grid; gap: 16px; }
+.title { margin: 0; font-size: 1.75rem; }
+.why { margin: 0; font-size: 1.125rem; font-weight: 600; }
+.lead, .note { margin: 0; line-height: 1.5; }
+.note { font-size: 0.875rem; opacity: 0.8; }
+.error { margin: 0; color: #b42318; }
+.panel { display: grid; gap: 14px; padding: 20px; border: 1px solid rgba(127, 127, 127, 0.35); border-radius: 2px; }
+.panel h2 { margin: 0; font-size: 1.25rem; }
+.form { display: grid; gap: 10px; }
+.form label { display: grid; gap: 4px; font-size: 0.875rem; }
+.form input[type='text'], .form input[type='email'], .form input:not([type]) { padding: 10px; font-size: 1rem; border-radius: 2px; }
+.consent { display: flex !important; gap: 8px; align-items: flex-start; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; }
+.button { display: inline-block; padding: 10px 14px; font-weight: 600; border-radius: 2px; background: #e55a2b; color: #fff; text-decoration: none; border: 0; cursor: pointer; }
+.secondary { background: transparent; color: inherit; border: 1px solid currentColor; }
+.message { white-space: pre-wrap; padding: 12px; font-size: 0.875rem; border-left: 3px solid #e55a2b; background: rgba(127, 127, 127, 0.08); }

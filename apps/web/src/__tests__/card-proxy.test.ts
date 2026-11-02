@@ -19,7 +19,7 @@ beforeEach(() => {
 })
 
 describe('owner card routes for signed-out visitors', () => {
-  it.each(['/c/sam', '/c/sam-cleaning-2', '/c/sam/contact.vcf'])('lets a signed-out visitor reach %s', async (p) => {
+  it.each(['/c/sam', '/c/sam-cleaning-2', '/c/sam/contact.vcf', '/c/sam/review'])('lets a signed-out visitor reach %s', async (p) => {
     expect(isPublicPath(p)).toBe(true)
     expect((await get(p)).headers.get('location')).toBeNull()
   })
@@ -27,6 +27,7 @@ describe('owner card routes for signed-out visitors', () => {
   it.each([
     '/c', '/c/', '/c/sam/other', '/c/sam/contact.vcf/x', '/c/sam/', '/c/Sam', '/c/sam%2Fcontact.vcf', '/c/a/b/c',
     '/c/' + 'a'.repeat(65), '/c/sam/CONTACT.VCF', '/cx/sam', '/c/sam/contact.vcf.js',
+    '/c/sam/review/x', '/c/sam/reviews', '/c/sam/Review', '/c/sam/review.js', '/c/sam/contact.vcf/review',
   ])('still sends a signed-out visitor at %s to the login page', async (p) => {
     expect(isPublicPath(p)).toBe(false)
     expect(deniedTo(await get(p))).not.toBe('served')

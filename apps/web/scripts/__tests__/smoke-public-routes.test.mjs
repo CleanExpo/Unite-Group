@@ -235,6 +235,13 @@ describe('evaluateResponse', () => {
     assert.equal(evaluateResponse(entry, { ...ok, status: 307, location: '/somewhere' }).ok, false);
     assert.equal(evaluateResponse(entry, { ...ok, status: 200 }).ok, false);
   });
+  test('an off-site redirect must match the whole Location value', () => {
+    const entry = { path: '/c/x/review', status: 302, locationHref: 'https://search.google.com/local/writereview?placeid=ChIJabc1234567' };
+    assert.equal(evaluateResponse(entry, { ...ok, status: 302, location: entry.locationHref }).ok, true);
+    assert.equal(evaluateResponse(entry, { ...ok, status: 302, location: 'https://search.google.com/local/writereview?placeid=ChIJother00000' }).ok, false);
+    assert.equal(evaluateResponse(entry, { ...ok, status: 302, location: 'https://evil.example/local/writereview?placeid=ChIJabc1234567' }).ok, false);
+    assert.equal(evaluateResponse(entry, { ...ok, status: 302, location: null }).ok, false);
+  });
   test('required body text is enforced', () => {
     assert.equal(evaluateResponse({ path: '/robots.txt', status: 200, bodyIncludes: 'User-Agent' }, { ...ok, status: 200 }).ok, false);
   });
@@ -374,5 +381,53 @@ const run = (url) => fetch(url).then(async (r) => r.status + ' ' + (await r.text
     assert.equal(unknown, '200 []');
     assert.match(published, /^200 \[\{"card_slug":"smoke-published-card"/);
     assert.deepEqual([badColumn, otherSlug, extraParam], ['fetch failed', 'fetch failed', 'fetch failed']);
+  });
+
+  test('the card stub answers the review redirect read with a valid Place ID, and refuses any column the migrations do not grant anon', () => {
+    const probe = join(mkdtempSync(join(tmpdir(), 'smoke-stub-')), 'probe.cjs');
+    temporary.push(dirname(probe));
+    const columns = /REVIEW_COLUMNS\s*=\s*'([^']+)'/.exec(readFileSync(join(realAppDir, 'src', 'lib', 'card', 'review-store.ts'), 'utf8'))[1];
+    writeFileSync(probe, `
+const base = 'https://example.supabase.co/rest/v1/card_profiles';
+const q = (select, slug, extra = '') => base + '?select=' + encodeURIComponent(select) + '&card_slug=eq.' + slug + extra;
+const run = (url) => fetch(url).then(async (r) => r.status + ' ' + (await r.text()).slice(0, 200), (e) => e.message);
+(async () => {
+  const columns = ${JSON.stringify(columns)};
+  console.log(JSON.stringify([
+    await run(q(columns, 'smoke-unknown-card')),
+    await run(q(columns, 'smoke-published-card')),
+    await run(q('google_place_id, nonexistent_column', 'smoke-published-card')),
+    await run(q('google_place_id, founder_id', 'smoke-published-card')),
+    await run(q(columns, 'smoke-published-card', '&extra=1')),
+    await fetch('https://example.supabase.co/rest/v1/rpc/card_log_review_event', { method: 'POST', body: '{}' }).then((r) => String(r.status), (e) => e.message),
+  ]));
+})();`);
+    const result = spawnSync(process.execPath, ['--require', join(realAppDir, 'scripts', 'smoke-offline-preload.cjs'), probe], { encoding: 'utf8', timeout: 20_000 });
+    assert.equal(result.status, 0, result.stderr);
+    const [unknown, published, missingColumn, ungrantedColumn, extraParam, rpc] = JSON.parse(result.stdout.trim().split('\n').pop());
+    assert.equal(unknown, '200 []');
+    assert.equal(published, '200 [{"google_place_id":"ChIJsmokeTestPlaceId0001","published_at":"2026-01-01T00:00:00.000Z"}]');
+    assert.deepEqual([missingColumn, ungrantedColumn, extraParam, rpc], ['fetch failed', 'fetch failed', 'fetch failed', 'fetch failed']);
+  });
+
+  test('a column the app names but the migrations never grant anon fails the stub, wherever the app declares it', () => {
+    // Round-4 review: a stub that trusts the app's own column constant passes a typo that production refuses.
+    // Plant that typo in a copy of the app source next to the real migrations and the real preload.
+    const root = mkdtempSync(join(tmpdir(), 'smoke-stub-app-'));
+    temporary.push(root);
+    mkdirSync(join(root, 'scripts'));
+    mkdirSync(join(root, 'src', 'lib', 'card'), { recursive: true });
+    writeFileSync(join(root, 'scripts', 'smoke-offline-preload.cjs'), readFileSync(join(realAppDir, 'scripts', 'smoke-offline-preload.cjs')));
+    symlinkSync(join(realAppDir, 'supabase'), join(root, 'supabase'));
+    const planted = 'google_place_id, nonexistent_column, published_at';
+    writeFileSync(join(root, 'src', 'lib', 'card', 'review-store.ts'), `export const REVIEW_COLUMNS = '${planted}'\n`);
+    writeFileSync(join(root, 'src', 'lib', 'card', 'published.ts'), readFileSync(join(realAppDir, 'src', 'lib', 'card', 'published.ts')));
+    const probe = join(root, 'probe.cjs');
+    writeFileSync(probe, `
+const url = 'https://example.supabase.co/rest/v1/card_profiles?select=' + encodeURIComponent(${JSON.stringify(planted)}) + '&card_slug=eq.smoke-published-card';
+fetch(url).then((r) => console.log(String(r.status)), (e) => console.log(e.message));`);
+    const result = spawnSync(process.execPath, ['--require', join(root, 'scripts', 'smoke-offline-preload.cjs'), probe], { encoding: 'utf8', timeout: 20_000 });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout.trim().split('\n').pop(), 'fetch failed');
   });
 });
