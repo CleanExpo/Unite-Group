@@ -91,6 +91,7 @@ const EXACT_PUBLIC_FILES: ReadonlySet<string> = new Set([
   '/video/ten-clips', // Public offer page; its form posts to the public /api/leads. Exact path only
   '/cards/thanks', // Post-payment thank-you with the intake form; the buyer is signed out. Exact: no sub-routes
   '/api/cards/intake', // The intake form's POST, service-role insert against an order reference; rate-limited above. Exact: no siblings
+  '/portal/join', // Portal invite claim (UNI-3167): the holder may have no account yet. Its actions check the code, a database rate limit, and an aal2 session themselves. Exact: the rest of /portal is not opened here
   // The four pillar pages (UNI-3001). Exact paths only: a prefix rule would also open '/solutions/anything'.
   '/solutions/visibility',
   '/solutions/experience',
