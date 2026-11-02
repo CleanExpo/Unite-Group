@@ -10,6 +10,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
 import { checkRateLimit } from '@/lib/middleware/rate-limit';
+import { isPortalPath } from '@/lib/portal/paths';
 import { hasPrivateAccess, isPrivateAccessConfigured } from '@/lib/auth/private-access';
 
 const isDev = process.env.NODE_ENV === 'development';
@@ -132,9 +133,7 @@ function isProtectedRoot(pathname: string): boolean {
 // The business-owner portal: exactly /portal and pages beneath it (not '/portalx', not '/portal-admin').
 // A signed-in visitor here skips the founder allow-list below; the (portal) layout then admits only card owners
 // (src/lib/portal/owner.ts). Pages only: the portal has no API routes, so founder APIs keep the allow-list.
-export function isPortalPath(pathname: string): boolean {
-  return pathname === '/portal' || pathname.startsWith('/portal/');
-}
+export { isPortalPath };
 
 // These exact POST handlers authenticate their own bearer or enrolled signature.
 // Cookies grant no transport authority; siblings and descendants stay private.
