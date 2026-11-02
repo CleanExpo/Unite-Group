@@ -3,7 +3,7 @@
 import { headers } from 'next/headers'
 
 import { formatInviteCode, normaliseInviteCode } from '@/lib/portal/invites/code'
-import { checkInviteForLink, linkClientKey, normaliseEmail, redeemInvite, type LinkCheck, type RedeemClient } from '@/lib/portal/invites/join'
+import { checkInviteForLink, linkClientAddress, linkClientKey, normaliseEmail, redeemInvite, type LinkCheck, type RedeemClient } from '@/lib/portal/invites/join'
 import type { RedeemAppOutcome, RedeemOutcome } from '@/lib/portal/invites/outcomes'
 import { createClient, getUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -18,7 +18,7 @@ export async function requestJoinLinkAction(rawCode: string, rawEmail: string): 
   const email = normaliseEmail(rawEmail)
   if (!email) return { ok: false, outcome: 'bad_email' }
   const h = await headers()
-  const clientKey = linkClientKey(h.get('x-forwarded-for') ?? h.get('x-real-ip'))
+  const clientKey = linkClientKey(linkClientAddress(h))
   let check: LinkCheck
   try {
     check = await checkInviteForLink(createServiceClient(), rawCode, email, clientKey)

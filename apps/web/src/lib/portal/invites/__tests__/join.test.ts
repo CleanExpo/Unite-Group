@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { describe, expect, it, vi } from 'vitest'
 
 import { hashInviteCode, normaliseInviteCode } from '../code'
-import { checkInviteForLink, linkClientKey, normaliseEmail, redeemInvite, type RedeemClient } from '../join'
+import { checkInviteForLink, linkClientAddress, linkClientKey, normaliseEmail, redeemInvite, type RedeemClient } from '../join'
 import { REDEEM_COPY, REDEEM_OUTCOMES } from '../outcomes'
 import { BRII_EXAMPLE_CODE, BRII_OWNER_EMAIL } from '../__fixtures__/brii'
 
@@ -24,6 +24,23 @@ describe('linkClientKey', () => {
     expect(KEY).not.toContain('203.0.113.9')
     expect(linkClientKey('203.0.113.9, 10.0.0.1')).toBe(KEY)
     expect(linkClientKey(null)).toBe(linkClientKey('unknown'))
+  })
+})
+
+describe('linkClientAddress', () => {
+  const headers = (values: Record<string, string>) => new Headers(values)
+
+  it('keys on the Vercel-set address, so a caller-prepended x-forwarded-for cannot mint a fresh limit', () => {
+    const a = linkClientAddress(headers({ 'x-vercel-forwarded-for': '203.0.113.9', 'x-forwarded-for': '198.51.100.1, 203.0.113.9' }))
+    const b = linkClientAddress(headers({ 'x-vercel-forwarded-for': '203.0.113.9', 'x-forwarded-for': '198.51.100.2, 203.0.113.9' }))
+    expect(a).toBe('203.0.113.9')
+    expect(linkClientKey(a)).toBe(linkClientKey(b))
+  })
+
+  it('falls back to x-forwarded-for, then x-real-ip, then nothing (non-Vercel runs)', () => {
+    expect(linkClientAddress(headers({ 'x-forwarded-for': '198.51.100.7, 10.0.0.1', 'x-real-ip': '10.0.0.2' }))).toBe('198.51.100.7')
+    expect(linkClientAddress(headers({ 'x-vercel-forwarded-for': ' ', 'x-real-ip': '10.0.0.2' }))).toBe('10.0.0.2')
+    expect(linkClientAddress(headers({}))).toBeNull()
   })
 })
 

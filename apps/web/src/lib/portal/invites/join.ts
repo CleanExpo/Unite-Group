@@ -15,6 +15,20 @@ const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 
 export type LinkCheck = 'ok' | 'not_found' | 'expired' | 'revoked' | 'used' | 'wrong_email' | 'rate_limited'
 
+/**
+ * The caller's address for the rate limit, in the same order as getClientIp in lib/middleware/rate-limit.ts.
+ * Vercel sets x-vercel-forwarded-for itself; a caller can only prepend to x-forwarded-for, so that header (and
+ * x-real-ip) is a fallback for non-Vercel runs only. Reading x-forwarded-for first let one caller mint a fresh
+ * limit per request.
+ */
+export function linkClientAddress(headers: { get(name: string): string | null }): string | null {
+  for (const name of ['x-vercel-forwarded-for', 'x-forwarded-for', 'x-real-ip']) {
+    const first = headers.get(name)?.split(',')[0]?.trim()
+    if (first) return first
+  }
+  return null
+}
+
 /** The rate-limit key: a hash of the caller's network address. The address itself is never stored. */
 export function linkClientKey(address: string | null | undefined): string {
   const first = (address ?? '').split(',')[0]?.trim() || 'unknown'
