@@ -26,7 +26,7 @@ Windows has no POSIX modes, so there only the symlink rule applies. Keep the fol
 
 ## Layouts
 
-Each save or reset writes a new file, `layouts/screen-<n>.r<revision>.json`. The highest revision is the current layout, and the last 10 are kept. A save names the revision the window last loaded (`If-Match` header, or a `revision` field). If another window saved first, the server changes nothing and answers 409 with its layout. The window then asks: reload the other layout, or overwrite it with yours. A save is never dropped without that choice. If the session has ended, the window stays on the page and holds the change: sign in again in another window and press Retry, or sign in here and drop it. A file that cannot be read is never overwritten, and it is renamed aside rather than deleted.
+Each save or reset writes a new file, `layouts/screen-<n>.r<revision>.json`. The highest revision is the current layout, and the last 10 are kept. A save names the revision the window last loaded (`If-Match` header, or a `revision` field). If another window saved first, the server changes nothing and answers 409 with its layout. The window then asks: reload the other layout, or overwrite it with yours. A save is never dropped without that choice. If the session has ended, the window stays on the page and holds the change: sign in again in another window and press Retry, or sign in here and drop it. A save that fails for any other reason is held the same way, with Retry or Discard and reload. A file that cannot be read is never overwritten, and it is renamed aside rather than deleted.
 
 ## Settings
 

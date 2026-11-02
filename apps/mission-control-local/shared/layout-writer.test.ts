@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createLayoutWriter } from './layout-writer.ts';
+import { createSignInGuard } from './sign-in-guard.ts';
 import type { Conflict, LayoutOp, SendResult } from './layout-writer.ts';
 import type { LayoutItem, LayoutResponse } from './types.ts';
 
@@ -135,7 +136,7 @@ test('layout writer: when a queued write follows a conflicted one, the newest ch
   assert.deepEqual(h.conflicts[0]?.mine, newest);
 });
 
-test('layout writer: a failed send reports a failure and does not open a conflict', async () => {
+test('layout writer: a failed send holds the change, keeps it unsaved, and retry sends the newest one', async () => {
   const h = harness();
   h.writer.loaded(layout(1));
   h.writer.write({ kind: 'save', items: clock(1) });
@@ -143,8 +144,35 @@ test('layout writer: a failed send reports a failure and does not open a conflic
   await tick();
   assert.equal(h.failed(), 1);
   assert.equal(h.conflicts.length, 0);
-  h.writer.write({ kind: 'save', items: clock(2) });
-  assert.equal(h.sent[1]?.revision, 1);
+  assert.equal(h.unsaved.at(-1), true);
+  const newer: LayoutOp = { kind: 'save', items: clock(2) };
+  h.writer.write(newer); // Held with the open question, not sent.
+  assert.equal(h.sent.length, 1);
+  h.writer.retry();
+  assert.deepEqual(h.sent[1], { op: newer, revision: 1 });
+  h.pending[1]?.resolve({ status: 'ok', layout: layout(2, clock(2)) });
+  await tick();
+  assert.equal(h.unsaved.at(-1), false);
+});
+
+test('layout writer: after a failed save, a signed-out fleet poll cannot leave the page', async () => {
+  let navigated = 0;
+  const guard = createSignInGuard(() => (navigated += 1));
+  const pending: { reject: (e: Error) => void }[] = [];
+  const writer = createLayoutWriter(
+    () => new Promise((_resolve, reject) => pending.push({ reject })),
+    { onLayout: () => {}, onConflict: () => {}, onSignedOut: () => {}, onFailed: () => {}, onUnsaved: (v) => guard.setUnsaved(v) },
+  );
+  writer.loaded(layout(1));
+  writer.write({ kind: 'save', items: clock(1) });
+  assert.equal(guard.signedOut(), false); // In flight.
+  pending[0]?.reject(new Error('network down'));
+  await tick();
+  assert.equal(guard.signedOut(), false); // Failed, still held.
+  assert.equal(navigated, 0);
+  writer.abandon(); // The user chose to drop it.
+  assert.equal(guard.signedOut(), true);
+  assert.equal(navigated, 1);
 });
 
 test('layout writer: a signed-out reply holds the change and says so, and later changes are held too', async () => {
@@ -193,6 +221,6 @@ test('layout writer: unsaved is true from the first write until it lands, and ab
   assert.equal(h.sent.length, 2); // Abandoned means no longer held: new writes are sent again.
   h.pending[1]?.reject(new Error('500'));
   await tick();
-  assert.equal(h.unsaved.at(-1), false);
+  assert.equal(h.unsaved.at(-1), true); // A failed save is held, never quietly dropped.
   assert.equal(h.failed(), 1);
 });

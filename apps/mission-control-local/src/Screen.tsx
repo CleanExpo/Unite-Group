@@ -40,11 +40,13 @@ export function Screen({ screen }: { screen: ScreenId }) {
 
   const [conflict, setConflict] = useState<Conflict | null>(null);
   const [signedOut, setSignedOut] = useState<LayoutOp | null>(null);
+  const [failed, setFailed] = useState<LayoutOp | null>(null);
 
   const apply = useCallback((layout: LayoutResponse) => {
     setItems(layout.items);
     setConflict(null);
     setSignedOut(null);
+    setFailed(null);
     setNotice(
       layout.warning
         ? 'The saved layout file could not be read, so this is the default. That file is kept, not overwritten.'
@@ -88,7 +90,7 @@ export function Screen({ screen }: { screen: ScreenId }) {
         onConflict: setConflict,
         onSignedOut: setSignedOut,
         onUnsaved: (unsaved) => signIn.setUnsaved(unsaved),
-        onFailed: () => setNotice('The last layout change was not saved. It will be lost on reload.'),
+        onFailed: setFailed,
       }),
     [apply, send],
   );
@@ -129,7 +131,7 @@ export function Screen({ screen }: { screen: ScreenId }) {
   const remove = (id: string) => save(items.filter((box) => box.i !== id));
 
   // While another window's change is waiting on a decision, nothing else can be edited.
-  const loaded = load === 'ready' && conflict === null && signedOut === null;
+  const loaded = load === 'ready' && conflict === null && signedOut === null && failed === null;
   const available = addableWidgets(loaded, items);
   const other = screen === '1' ? '2' : '1';
   const onStop = (layout: readonly GridBox[]) => save(plain(layout));
@@ -151,7 +153,7 @@ export function Screen({ screen }: { screen: ScreenId }) {
             onChange={(event) => add(event.target.value)}
           >
             <option value="">
-              {signedOut ? 'Retry or sign in first' : conflict ? 'Reload or overwrite first' : !loaded ? 'Layout not loaded' : available.length === 0 ? 'All on screen' : 'Choose'}
+              {failed ? 'Retry or discard first' : signedOut ? 'Retry or sign in first' : conflict ? 'Reload or overwrite first' : !loaded ? 'Layout not loaded' : available.length === 0 ? 'All on screen' : 'Choose'}
             </option>
             {available.map((w) => (
               <option key={w.id} value={w.id}>
@@ -189,6 +191,31 @@ export function Screen({ screen }: { screen: ScreenId }) {
           </button>
           <button type="button" className={styles.button} onClick={() => writer.overwrite()}>
             Overwrite with mine
+          </button>
+        </div>
+      ) : null}
+      {failed ? (
+        <div className={styles.notice} role="alertdialog" aria-label="Layout not saved">
+          <p>Your last layout change was not saved. Retry, or discard it and reload the saved layout.</p>
+          <button
+            type="button"
+            className={styles.button}
+            onClick={() => {
+              setFailed(null);
+              writer.retry();
+            }}
+          >
+            Retry
+          </button>
+          <button
+            type="button"
+            className={styles.button}
+            onClick={() => {
+              writer.abandon();
+              window.location.reload();
+            }}
+          >
+            Discard and reload
           </button>
         </div>
       ) : null}
