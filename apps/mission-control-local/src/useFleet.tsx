@@ -3,12 +3,14 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { FleetSnapshot } from '../shared/types.ts';
+import { signIn } from './session.ts';
 
 export const POLL_MS = 3_000;
 
 export type FleetState =
   | { kind: 'loading' }
   | { kind: 'server-unreachable' }
+  | { kind: 'signed-out' }
   | { kind: 'snapshot'; snapshot: FleetSnapshot };
 
 const FleetContext = createContext<FleetState>({ kind: 'loading' });
@@ -28,10 +30,10 @@ export function FleetProvider({ children }: { children: ReactNode }) {
       try {
         const res = await fetch('/api/fleet', { cache: 'no-store' });
         if (res.status === 401) {
-          window.location.assign('/login');
-          return;
-        }
-        if (res.ok) next = { kind: 'snapshot', snapshot: (await res.json()) as FleetSnapshot };
+          // Leaves for the login page, unless this window holds an unsaved layout change.
+          if (signIn.signedOut()) return;
+          next = { kind: 'signed-out' };
+        } else if (res.ok) next = { kind: 'snapshot', snapshot: (await res.json()) as FleetSnapshot };
       } catch {
         // Stays server-unreachable, which the widgets show as its own state.
       }

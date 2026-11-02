@@ -19,6 +19,13 @@ type Live = Extract<FleetSnapshot, { status: 'live' }>;
 export function FleetGate({ children }: { children: (fleet: Live) => ReactNode }) {
   const fleet = useFleet();
   if (fleet.kind === 'loading') return <p className={styles.note}>Waiting for first reading.</p>;
+  if (fleet.kind === 'signed-out') {
+    return (
+      <p className={styles.down} role="status">
+        Signed out. No live data.
+      </p>
+    );
+  }
   if (fleet.kind === 'server-unreachable') {
     return (
       <p className={styles.down} role="status">

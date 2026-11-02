@@ -18,6 +18,8 @@ function harness() {
   const pending: { resolve: (r: SendResult) => void; reject: (e: Error) => void }[] = [];
   const shown: LayoutResponse[] = [];
   const conflicts: Conflict[] = [];
+  const signedOut: LayoutOp[] = [];
+  const unsaved: boolean[] = [];
   let failed = 0;
   const writer = createLayoutWriter(
     (op, revision) =>
@@ -28,10 +30,12 @@ function harness() {
     {
       onLayout: (l) => shown.push(l),
       onConflict: (c) => conflicts.push(c),
+      onSignedOut: (op) => signedOut.push(op),
+      onUnsaved: (value) => unsaved.push(value),
       onFailed: () => (failed += 1),
     },
   );
-  return { sent, pending, shown, conflicts, writer, failed: () => failed };
+  return { sent, pending, shown, conflicts, signedOut, unsaved, writer, failed: () => failed };
 }
 
 test('layout writer: sends the loaded revision and bases each next write on the last success', async () => {
@@ -141,4 +145,54 @@ test('layout writer: a failed send reports a failure and does not open a conflic
   assert.equal(h.conflicts.length, 0);
   h.writer.write({ kind: 'save', items: clock(2) });
   assert.equal(h.sent[1]?.revision, 1);
+});
+
+test('layout writer: a signed-out reply holds the change and says so, and later changes are held too', async () => {
+  const h = harness();
+  h.writer.loaded(layout(3));
+  const mine: LayoutOp = { kind: 'save', items: clock(1) };
+  h.writer.write(mine);
+  h.pending[0]?.resolve({ status: 'signed-out' });
+  await tick();
+  assert.deepEqual(h.signedOut, [mine]);
+  assert.equal(h.failed(), 0);
+  assert.deepEqual(h.shown, []);
+  assert.equal(h.unsaved.at(-1), true); // Still unsaved, so nothing may leave the page.
+  const newer: LayoutOp = { kind: 'reset' };
+  h.writer.write(newer);
+  assert.equal(h.sent.length, 1);
+  assert.deepEqual(h.signedOut.at(-1), newer);
+});
+
+test('layout writer: retry after signing back in sends the held change on the known revision', async () => {
+  const h = harness();
+  h.writer.loaded(layout(3));
+  const mine: LayoutOp = { kind: 'save', items: clock(1) };
+  h.writer.write(mine);
+  h.pending[0]?.resolve({ status: 'signed-out' });
+  await tick();
+  h.writer.retry();
+  assert.deepEqual(h.sent[1], { op: mine, revision: 3 });
+  h.pending[1]?.resolve({ status: 'ok', layout: layout(4, clock(1)) });
+  await tick();
+  assert.deepEqual(h.shown.map((l) => l.revision), [4]);
+  assert.equal(h.unsaved.at(-1), false);
+});
+
+test('layout writer: unsaved is true from the first write until it lands, and abandon clears it', async () => {
+  const h = harness();
+  h.writer.loaded(layout(1));
+  h.writer.write({ kind: 'save', items: clock(1) });
+  assert.deepEqual(h.unsaved, [true]);
+  h.pending[0]?.resolve({ status: 'conflict', current: layout(2) });
+  await tick();
+  assert.equal(h.unsaved.at(-1), true);
+  h.writer.abandon();
+  assert.equal(h.unsaved.at(-1), false);
+  h.writer.write({ kind: 'save', items: clock(2) });
+  assert.equal(h.sent.length, 2); // Abandoned means no longer held: new writes are sent again.
+  h.pending[1]?.reject(new Error('500'));
+  await tick();
+  assert.equal(h.unsaved.at(-1), false);
+  assert.equal(h.failed(), 1);
 });

@@ -8,6 +8,7 @@ import type { LayoutConflict, LayoutItem, LayoutResponse, ScreenId } from '../sh
 import { addableWidgets, GRID_COLS, WIDGET_CATALOGUE } from '../shared/widget-catalogue.ts';
 import type { WidgetId } from '../shared/widget-catalogue.ts';
 import { WIDGET_COMPONENTS } from './registry.tsx';
+import { signIn } from './session.ts';
 import { useFleet } from './useFleet.tsx';
 import styles from './Screen.module.css';
 
@@ -23,6 +24,7 @@ function plain(boxes: readonly GridBox[]): LayoutItem[] {
 function brokerLabel(fleet: ReturnType<typeof useFleet>): { text: string; bad: boolean } {
   if (fleet.kind === 'loading') return { text: 'Broker: checking', bad: false };
   if (fleet.kind === 'server-unreachable') return { text: 'Server down', bad: true };
+  if (fleet.kind === 'signed-out') return { text: 'Signed out', bad: true };
   if (fleet.snapshot.status === 'down') return { text: 'Broker down', bad: true };
   if (fleet.snapshot.source === 'fixture') return { text: 'FIXTURE DATA', bad: true };
   return { text: 'Broker live', bad: false };
@@ -37,10 +39,12 @@ export function Screen({ screen }: { screen: ScreenId }) {
   const broker = brokerLabel(fleet);
 
   const [conflict, setConflict] = useState<Conflict | null>(null);
+  const [signedOut, setSignedOut] = useState<LayoutOp | null>(null);
 
   const apply = useCallback((layout: LayoutResponse) => {
     setItems(layout.items);
     setConflict(null);
+    setSignedOut(null);
     setNotice(
       layout.warning
         ? 'The saved layout file could not be read, so this is the default. That file is kept, not overwritten.'
@@ -48,8 +52,6 @@ export function Screen({ screen }: { screen: ScreenId }) {
     );
     setLoad('ready');
   }, []);
-
-  const signOut = () => window.location.assign('/login');
 
   const send = useCallback(
     async (op: LayoutOp, revision: number): Promise<SendResult> => {
@@ -69,12 +71,23 @@ export function Screen({ screen }: { screen: ScreenId }) {
     [screen],
   );
 
+  // Closing or reloading the window would lose a change that is not saved yet.
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => {
+      if (signIn.hasUnsaved()) event.preventDefault();
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, []);
+
   // Saves and resets share one queue, so a reset cannot be overwritten by an older save.
   const writer = useMemo(
     () =>
       createLayoutWriter(send, {
         onLayout: apply,
         onConflict: setConflict,
+        onSignedOut: setSignedOut,
+        onUnsaved: (unsaved) => signIn.setUnsaved(unsaved),
         onFailed: () => setNotice('The last layout change was not saved. It will be lost on reload.'),
       }),
     [apply, send],
@@ -84,7 +97,7 @@ export function Screen({ screen }: { screen: ScreenId }) {
     let live = true;
     fetch(`/api/layouts/${screen}`)
       .then(async (res) => {
-        if (res.status === 401) return signOut();
+        if (res.status === 401) return void signIn.signedOut();
         if (!res.ok) throw new Error(String(res.status));
         const layout = (await res.json()) as LayoutResponse;
         if (!live) return;
@@ -116,7 +129,7 @@ export function Screen({ screen }: { screen: ScreenId }) {
   const remove = (id: string) => save(items.filter((box) => box.i !== id));
 
   // While another window's change is waiting on a decision, nothing else can be edited.
-  const loaded = load === 'ready' && conflict === null;
+  const loaded = load === 'ready' && conflict === null && signedOut === null;
   const available = addableWidgets(loaded, items);
   const other = screen === '1' ? '2' : '1';
   const onStop = (layout: readonly GridBox[]) => save(plain(layout));
@@ -138,7 +151,7 @@ export function Screen({ screen }: { screen: ScreenId }) {
             onChange={(event) => add(event.target.value)}
           >
             <option value="">
-              {conflict ? 'Reload or overwrite first' : !loaded ? 'Layout not loaded' : available.length === 0 ? 'All on screen' : 'Choose'}
+              {signedOut ? 'Retry or sign in first' : conflict ? 'Reload or overwrite first' : !loaded ? 'Layout not loaded' : available.length === 0 ? 'All on screen' : 'Choose'}
             </option>
             {available.map((w) => (
               <option key={w.id} value={w.id}>
@@ -176,6 +189,34 @@ export function Screen({ screen }: { screen: ScreenId }) {
           </button>
           <button type="button" className={styles.button} onClick={() => writer.overwrite()}>
             Overwrite with mine
+          </button>
+        </div>
+      ) : null}
+      {signedOut ? (
+        <div className={styles.notice} role="alertdialog" aria-label="Signed out">
+          <p>
+            Your session has ended, so your last change is not saved. Sign in again in another
+            window, then press Retry. Or sign in here, which drops this change.
+          </p>
+          <button
+            type="button"
+            className={styles.button}
+            onClick={() => {
+              setSignedOut(null);
+              writer.retry();
+            }}
+          >
+            Retry
+          </button>
+          <button
+            type="button"
+            className={styles.button}
+            onClick={() => {
+              writer.abandon();
+              signIn.signedOut();
+            }}
+          >
+            Sign in here
           </button>
         </div>
       ) : null}
