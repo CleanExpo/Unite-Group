@@ -37,7 +37,7 @@ describe('robots (AC-7)', () => {
     for (const agent of ['*', ...ALLOWED_AI]) {
       const r = forAgent(agent)!
       expect(r, agent).toBeTruthy()
-      expect(r.disallow, agent).toEqual(['/founder/', '/api/', '/docs', '/auth/'])
+      expect(r.disallow, agent).toEqual(['/founder/', '/api/', '/docs', '/auth/', '/portal'])
       expect(r.allow, agent).toBe('/')
     }
   })
