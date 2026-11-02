@@ -104,6 +104,13 @@ export const JOBS = [
     cmd: ['python3', ['-m', 'unittest', 'discover', '-s', 'tests'], 'tools/complete-requires-push'],
   },
   {
+    id: 'fleet-router',
+    ciJob: 'fleet-router',
+    label: 'tools/fleet-router — tests',
+    paths: ['tools/fleet-router/'],
+    cmd: ['node', ['--test'], 'tools/fleet-router'],
+  },
+  {
     id: 'dependency-audit',
     ciJob: 'dependency-audit',
     label: 'Active lockfiles — high-severity audit',
