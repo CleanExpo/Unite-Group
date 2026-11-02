@@ -2,8 +2,10 @@
 // card shows the job its machine claimed. Broker payloads here are mocked; one test goes
 // through a fake broker over HTTP so the whole proxy path is covered.
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import type { AddressInfo } from 'node:net';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -129,6 +131,55 @@ test('fleet honesty: through the proxy, an offline PC the broker calls idle arri
   }
 });
 
+test('fleet honesty: a cached broker reply cannot keep a machine online past 45s', async () => {
+  // Codex round 1: lastSeen 44.9s old at the first read, the clock moves 1.5s, the second
+  // read comes from the 2-second cache. The machine must now read stale with no state.
+  const dir = mkdtempSync(join(tmpdir(), 'mc-fleet-'));
+  const path = join(dir, 'status.json');
+  writeFileSync(path, JSON.stringify({
+    capturedAt: NOW,
+    machines: [{ machineId: 'mac-mini', state: 'idle', lastSeen: NOW - 44_900 }],
+    jobs: [],
+  }));
+  let clock = NOW;
+  const read = createFleetSource({ fixturePath: path, now: () => clock });
+  const first = await read();
+  assert.equal(first.status === 'live' && first.machines[0]?.health, 'online');
+  writeFileSync(path, 'not json: a second file read would fail, so this proves the cache answered');
+  clock += 1_500;
+  const second = await read();
+  assert.equal(second.status, 'live', 'served from the cache');
+  if (second.status !== 'live') return;
+  assert.equal(second.machines[0]?.health, 'stale');
+  assert.equal(second.machines[0]?.state, null);
+  assert.equal(second.machines[0]?.ageMs, 46_400);
+  assert.equal(second.fetchedAt, NOW + 1_500);
+});
+
+test('fleet honesty: through the proxy, a cached reply crossing 45s arrives stale', { skip: NEEDS_SOCKET }, async () => {
+  const payload = { machines: [{ machineId: 'windows-pc', state: 'idle', lastSeen: NOW - 44_900 }], jobs: [] };
+  const calls: string[] = [];
+  const server = createServer((req, res) => {
+    calls.push(`${req.method} ${req.url}`);
+    res.end(JSON.stringify(payload));
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  try {
+    let clock = NOW;
+    const read = createFleetSource({ brokerPort: (server.address() as AddressInfo).port, now: () => clock });
+    assert.equal((await read()).status, 'live');
+    clock += 1_500;
+    const snapshot = await read();
+    assert.deepEqual(calls, ['GET /status'], 'one broker call: the second answer came from the cache');
+    const pc = snapshot.status === 'live' ? snapshot.machines.find((m) => m.id === 'windows-pc') : undefined;
+    assert.equal(pc?.health, 'stale');
+    assert.equal(pc?.state, null);
+  } finally {
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
 // ---------- current job per machine ----------
 
 test('current job: each machine gets the running job it claimed, and never another machine\'s', () => {
@@ -224,6 +275,38 @@ test('job queue: the age shown is the time in the current phase', () => {
       ['done', null, 100_000],
     ],
   );
+});
+
+test('job queue: a job sent back to the queue after its lease expired has no known queue time', () => {
+  // Codex round 1: the broker re-queues on lease expiry (attempt 2) and keeps createdAt and
+  // the old claimedAt, and records no re-queue time. createdAt is not the time queued.
+  const view = toFleetView(
+    {
+      machines: [],
+      jobs: [
+        job(1, { status: 'pending', attempt: 2, createdAt: NOW - 3_600_000, claimedAt: NOW - 600_000 }),
+        job(2, { status: 'pending', attempt: 2, createdAt: NOW - 3_600_000 }),
+        job(3, { status: 'pending', createdAt: NOW - 3_600_000, claimedAt: NOW - 600_000 }),
+        job(4, { status: 'pending', attempt: 1, createdAt: NOW - 3_600_000 }),
+      ],
+    },
+    NOW,
+  );
+  assert.deepEqual(
+    view?.jobs.map((j) => [j.id, j.phase, j.phaseAgeMs, j.ageMs]),
+    [
+      ['00000001', 'queued', null, 3_600_000],
+      ['00000002', 'queued', null, 3_600_000],
+      ['00000003', 'queued', null, 3_600_000],
+      ['00000004', 'queued', 3_600_000, 3_600_000],
+    ],
+  );
+  // A re-claimed job is timed from its new claim.
+  const again = toFleetView(
+    { machines: [], jobs: [job(5, { status: 'running', attempt: 2, createdAt: NOW - 3_600_000, claimedAt: NOW - 20_000 })] },
+    NOW,
+  );
+  assert.equal(again?.jobs[0]?.phaseAgeMs, 20_000);
 });
 
 test('job queue: counts cover every job, not just the newest 50 sent', () => {

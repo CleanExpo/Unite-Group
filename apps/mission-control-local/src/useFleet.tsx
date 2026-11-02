@@ -12,7 +12,7 @@ export type FleetState =
   | { kind: 'loading' }
   | { kind: 'server-unreachable' }
   | { kind: 'signed-out' }
-  | { kind: 'snapshot'; snapshot: FleetSnapshot };
+  | { kind: 'snapshot'; snapshot: FleetSnapshot; startedAt: number };
 
 const FleetContext = createContext<FleetState>({ kind: 'loading' });
 

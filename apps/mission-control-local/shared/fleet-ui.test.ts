@@ -38,6 +38,7 @@ test('card words: an online machine shows its state, heartbeat and current job',
   assert.deepEqual(card, {
     health: 'Online',
     tone: 'go',
+    fresh: true,
     state: 'State: working',
     heartbeat: 'Heartbeat 3s ago',
     job: 'Current job: spm-harness aaaa1111, claimed 50s ago',
@@ -69,7 +70,9 @@ test('card words: a stale, offline or not-reporting machine never says Online, i
 test('card words: each health has its own label, light and reason the state is hidden', () => {
   assert.deepEqual(
     (['stale', 'offline', 'not-reporting'] as const).map((health) => {
-      const c = machineCardText(machine({ health, ageMs: health === 'not-reporting' ? null : 400_000 }));
+      // Each age matches its health: the card works health out from the age too.
+      const ageMs = { stale: 60_000, offline: 400_000, 'not-reporting': null }[health];
+      const c = machineCardText(machine({ health, ageMs }));
       return [c.health, c.tone, c.state];
     }),
     [
@@ -115,9 +118,35 @@ test('card words: more than one claimed job raises a warning', () => {
   assert.equal(card.warning, 'The broker shows 2 claimed jobs for this machine.');
 });
 
+test('card words: a reading that crosses 45s while on screen turns Stale and hides the state', () => {
+  // Codex round 1: a reading taken at 44.9s was still shown as Online at 46.4s.
+  const online = machine({ state: 'idle', health: 'online', ageMs: 44_900 });
+  assert.equal(machineCardText(online, 0).health, 'Online');
+  const later = machineCardText(online, 1_500);
+  assert.equal(later.health, 'Stale');
+  assert.equal(later.fresh, false);
+  assert.equal(later.heartbeat, 'Heartbeat 46s ago');
+  assert.doesNotMatch(Object.values(later).join(' '), /\bonline\b|\bidle\b|\bworking\b/i);
+  // The same at the 5-minute line.
+  assert.equal(machineCardText(machine({ health: 'stale', ageMs: 299_000 }), 2_000).health, 'Offline');
+});
+
+test('card words: time on screen only makes a reading staler, never fresher', () => {
+  // The server's verdict stands even if the age it sent looks young.
+  assert.equal(machineCardText(machine({ state: 'idle', health: 'stale', ageMs: 1_000 })).health, 'Stale');
+  // A browser clock that moved back cannot take age away.
+  const back = machineCardText(machine({ state: 'idle', health: 'online', ageMs: 44_900 }), -60_000);
+  assert.equal(back.heartbeat, 'Heartbeat 45s ago');
+  assert.equal(back.health, 'Online');
+  // No heartbeat stays no heartbeat, however long it is shown.
+  assert.equal(machineCardText(machine({ health: 'not-reporting', ageMs: null }), 600_000).heartbeat, 'No usable heartbeat');
+});
+
 test('card words: the machine widget prints only card words, never the raw state or age', () => {
   const src = readFileSync(new URL('../src/widgets/MachineWidget.tsx', import.meta.url), 'utf8');
-  assert.match(src, /machineCardText\(machine\)/);
+  // It re-renders on a clock and passes how long the reading has been on screen.
+  assert.match(src, /useNow\(\)/);
+  assert.match(src, /machineCardText\(machine, now - startedAt\)/);
   // The widget may read health for styling, but the words on screen come from the card.
   assert.doesNotMatch(src, /machine\.state|machine\.ageMs|machine\.lastSeenAt|formatAge/);
 });
@@ -165,7 +194,21 @@ test('fleet poll: 401 is signed out, errors and odd bodies are unreachable, a sn
     }),
     { kind: 'server-unreachable' },
   );
-  assert.deepEqual(await readFleet(reply(200, live)), { kind: 'snapshot', snapshot: live });
+  const clock = () => 42;
+  assert.deepEqual(await readFleet(reply(200, live), 1_000, clock), { kind: 'snapshot', snapshot: live, startedAt: 42 });
   const down = { status: 'down', reason: 'timeout', fetchedAt: 1, lastGoodAt: null };
-  assert.deepEqual(await readFleet(reply(200, down)), { kind: 'snapshot', snapshot: down });
+  assert.deepEqual(await readFleet(reply(200, down), 1_000, clock), { kind: 'snapshot', snapshot: down, startedAt: 42 });
+});
+
+test('fleet poll: the reading is timed from when the request began, so a slow reply counts as age', LIMIT, async () => {
+  let t = 1_000;
+  const result = await readFleet(
+    async () => {
+      t += 2_500; // the browser clock moves on while the server is slow to answer
+      return { status: 200, ok: true, json: async () => live };
+    },
+    5_000,
+    () => t,
+  );
+  assert.equal(result.kind === 'snapshot' && result.startedAt, 1_000);
 });

@@ -16,7 +16,8 @@ const REASONS: Record<BrokerFailure, string> = {
 
 type Live = Extract<FleetSnapshot, { status: 'live' }>;
 
-export function FleetGate({ children }: { children: (fleet: Live) => ReactNode }) {
+/** startedAt is when this window asked for the snapshot, by the browser's clock. */
+export function FleetGate({ children }: { children: (fleet: Live, startedAt: number) => ReactNode }) {
   const fleet = useFleet();
   if (fleet.kind === 'loading') return <p className={styles.note}>Waiting for first reading.</p>;
   if (fleet.kind === 'signed-out') {
@@ -47,5 +48,5 @@ export function FleetGate({ children }: { children: (fleet: Live) => ReactNode }
       </div>
     );
   }
-  return <>{children(snapshot)}</>;
+  return <>{children(snapshot, fleet.startedAt)}</>;
 }

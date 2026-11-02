@@ -1,6 +1,7 @@
 import { machineCardText } from '../../shared/machine-card.ts';
 import type { CardTone } from '../../shared/machine-card.ts';
 import type { MachineId } from '../../shared/types.ts';
+import { useNow } from '../useNow.ts';
 import { FleetGate } from './FleetGate.tsx';
 import styles from './widgets.module.css';
 
@@ -11,14 +12,16 @@ const LED: Record<CardTone, string | undefined> = {
 };
 
 export function MachineWidget({ machineId }: { machineId: MachineId }) {
+  // Re-renders every second, so a card turns Stale at 45 seconds between polls too.
+  const now = useNow();
   return (
     <FleetGate>
-      {(fleet) => {
+      {(fleet, startedAt) => {
         const machine = fleet.machines.find((m) => m.id === machineId);
         if (!machine) return <p className={styles.down}>No record for {machineId}.</p>;
         // Every word below comes from machineCardText, which the tests check.
-        const card = machineCardText(machine);
-        const fresh = machine.health === 'online';
+        const card = machineCardText(machine, now - startedAt);
+        const { fresh } = card;
         return (
           <div className={styles.machine}>
             <div className={styles.machineHead}>

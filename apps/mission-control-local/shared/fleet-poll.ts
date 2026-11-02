@@ -8,7 +8,8 @@ export const FLEET_TIMEOUT_MS = 8_000;
 export type FleetRead =
   | { kind: 'server-unreachable' }
   | { kind: 'signed-out' }
-  | { kind: 'snapshot'; snapshot: FleetSnapshot };
+  /** startedAt: the browser's clock when the request began. Ages grow from there. */
+  | { kind: 'snapshot'; snapshot: FleetSnapshot; startedAt: number };
 
 type FetchLike = (url: string, init: { cache: 'no-store'; signal: AbortSignal }) => Promise<{
   status: number;
@@ -25,7 +26,13 @@ function isSnapshot(v: unknown): v is FleetSnapshot {
   return s.status === 'live' && Array.isArray(s.machines) && Array.isArray(s.jobs);
 }
 
-export async function readFleet(fetchFn: FetchLike, timeoutMs = FLEET_TIMEOUT_MS): Promise<FleetRead> {
+export async function readFleet(
+  fetchFn: FetchLike,
+  timeoutMs = FLEET_TIMEOUT_MS,
+  clock: () => number = Date.now,
+): Promise<FleetRead> {
+  // Taken before the request, so time spent waiting counts as age: it errs towards stale.
+  const startedAt = clock();
   const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
   // Does not rely on fetch honouring the signal: the race settles either way.
@@ -40,7 +47,7 @@ export async function readFleet(fetchFn: FetchLike, timeoutMs = FLEET_TIMEOUT_MS
     if (res.status === 401) return { kind: 'signed-out' };
     if (!res.ok) return UNREACHABLE;
     const body = await res.json();
-    return isSnapshot(body) ? { kind: 'snapshot', snapshot: body } : UNREACHABLE;
+    return isSnapshot(body) ? { kind: 'snapshot', snapshot: body, startedAt } : UNREACHABLE;
   })().catch(() => UNREACHABLE);
   try {
     return await Promise.race([read, timedOut]);

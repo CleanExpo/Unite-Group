@@ -2,13 +2,12 @@
 // Named fields are copied across; anything the broker adds later stays out by default.
 import { isIP } from 'node:net';
 import { MACHINE_IDS } from '../shared/types.ts';
+import { healthFor, OFFLINE_AFTER_MS, STALE_AFTER_MS } from '../shared/health.ts';
 import { JOB_PHASES } from '../shared/types.ts';
-import type { ClaimedJobView, JobPhase, JobView, MachineHealth, MachineView, RepoView } from '../shared/types.ts';
+import type { ClaimedJobView, JobPhase, JobView, MachineView, RepoView } from '../shared/types.ts';
 import { redactDeep } from './redact.ts';
 
-// Matches the broker's own 45-second freshness window, so the two never disagree.
-export const STALE_AFTER_MS = 45_000;
-export const OFFLINE_AFTER_MS = 300_000;
+export { healthFor, OFFLINE_AFTER_MS, STALE_AFTER_MS };
 export const MAX_JOBS = 50;
 // The broker stamps lastSeen with its own clock, on the same Mini as this server. A time
 // further ahead than this means a clock moved, so it cannot prove the machine is fresh.
@@ -42,12 +41,6 @@ const time = (v: unknown): number | null =>
   typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : null;
 const age = (at: number | null, now: number): number | null =>
   at === null ? null : Math.max(0, now - at);
-
-export function healthFor(ageMs: number | null): MachineHealth {
-  if (ageMs === null) return 'not-reporting';
-  if (ageMs >= OFFLINE_AFTER_MS) return 'offline';
-  return ageMs >= STALE_AFTER_MS ? 'stale' : 'online';
-}
 
 function shortSha(v: unknown): string | null {
   return typeof v === 'string' && /^[0-9a-f]{7,64}$/i.test(v) ? v.slice(0, 8) : null;
@@ -114,8 +107,12 @@ function jobRow(raw: Dict, now: number): JobRow {
   const claimedAt = time(raw.claimedAt);
   const status = known(raw.status, JOB_STATUSES);
   const phase = PHASE[status] ?? 'unknown';
+  // A lease that expires sends a job back to pending (attempt 2) without a new time, and
+  // keeps the old claimedAt. createdAt then measures the job's life, not its time queued,
+  // so a re-queued job's queue time is unknown rather than wrong.
+  const requeued = (typeof raw.attempt === 'number' && raw.attempt > 1) || claimedAt !== null;
   const phaseStart =
-    phase === 'queued' ? createdAt
+    phase === 'queued' ? (requeued ? null : createdAt)
     : phase === 'claimed' ? claimedAt
     : phase === 'done' ? time(raw.completedAt)
     : null;
