@@ -151,6 +151,13 @@ select pg_temp.expect_raise($$select public.portal_save_connection('facebook', '
 select pg_temp.expect_raise($$select public.portal_save_connection('facebook', 'https://user:pw@www.facebook.com/brii', null, null)$$, 'portal_bad_input', 'link with credentials refused');
 select pg_temp.expect_raise($$select public.portal_save_connection('facebook', 'https://www.facebook.com@evil.example/brii', null, null)$$, 'portal_bad_input', 'link hiding another host behind @ refused');
 select pg_temp.expect_raise($$select public.portal_save_connection('facebook', 'https://www.facebook.com/brii', null, 'key AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')$$, 'portal_bad_input', 'notes holding a key-shaped string refused');
+-- the per-kind host list, the home-page rule and the Maps rule hold in the database, not only in the app
+select pg_temp.expect_raise($$select public.portal_save_connection('facebook', 'https://evil.example/phish', null, null)$$, 'portal_bad_input', 'link on a host outside the Facebook list refused');
+select pg_temp.expect_raise($$select public.portal_save_connection('facebook', 'https://www.instagram.com/brii', null, null)$$, 'portal_bad_input', 'Instagram link saved as Facebook refused');
+select pg_temp.expect_raise($$select public.portal_save_connection('facebook', 'https://www.facebook.com/', null, null)$$, 'portal_bad_input', 'Facebook home page refused');
+select pg_temp.expect_raise($$select public.portal_save_connection('facebook', 'https://www.facebook.com?ref=home', null, null)$$, 'portal_bad_input', 'Facebook link with no path refused');
+select pg_temp.expect_raise($$select public.portal_save_connection('gbp', 'https://www.google.com/search?q=brii', null, null)$$, 'portal_bad_input', 'Google search link refused as a business profile');
+select pg_temp.expect_value($$select public.portal_save_connection('gbp', 'https://www.google.com.au/maps/place/Brii', null, null)$$, 'link_saved', 'A Google Maps place link is a business profile');
 -- TikTok and YouTube handles carry @ in the path; that is a real profile link, not a login
 select pg_temp.expect_value($$select public.portal_save_connection('tiktok', 'https://www.tiktok.com/@brii.training', null, null)$$, 'link_saved', 'A saves a TikTok @handle link');
 select pg_temp.expect_value($$select public.portal_save_connection('youtube', 'https://www.youtube.com/@briitraining', null, null)$$, 'link_saved', 'A saves a YouTube @handle link');
@@ -166,6 +173,7 @@ select pg_temp.expect_error($$update public.portal_connections set status = 'ver
 reset role;
 set role service_role;
 select pg_temp.expect_error($$update public.portal_connections set status = 'verified' where kind = 'gsc'$$, '23514', 'verified needs a verified time');
+select pg_temp.expect_error($$insert into public.portal_connections (tenant_slug, kind, profile_url) values ('beta', 'facebook', 'https://evil.example/phish')$$, '23514', 'the table refuses a wrong-host link even from the team role');
 update public.portal_connections set status = 'verified', verified_at = now() where kind = 'gsc';
 reset role;
 set role authenticated;

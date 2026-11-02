@@ -1,6 +1,40 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
 import { describe, expect, it } from 'vitest'
 
-import { validateConnectionValue, validateNotes } from '../validate'
+import { ALLOWED_HOSTS, GOOGLE_MAPS_ONLY, validateConnectionValue, validateNotes } from '../validate'
+
+const MIGRATION = readFileSync(
+  join(__dirname, '..', '..', '..', '..', '..', 'supabase', 'migrations', '20261102180200_portal_connections.sql'),
+  'utf8',
+)
+
+/** The quoted names inside one `( ... )` list of the migration. */
+function quoted(list: string): string[] {
+  return [...list.matchAll(/'([^']+)'/g)].map((m) => m[1]).sort()
+}
+
+describe('the database holds the same host rules as the app', () => {
+  it('each kind has the same allowed hosts in portal_connection_link_ok', () => {
+    for (const [kind, hosts] of Object.entries(ALLOWED_HOSTS)) {
+      const match = MIGRATION.match(new RegExp(`when '${kind}' then h in \\(([^)]*)\\)`))
+      expect(match, `no SQL host list for ${kind}`).not.toBeNull()
+      expect(quoted(match![1]), kind).toEqual([...hosts].sort())
+    }
+  })
+
+  it('the plain Google hosts need a /maps path in the database too', () => {
+    const match = MIGRATION.match(/h not in \(([^)]*)\) or pth like '\/maps%'/)
+    expect(match).not.toBeNull()
+    expect(quoted(match![1])).toEqual([...GOOGLE_MAPS_ONLY].sort())
+  })
+
+  it('portal_save_connection checks every profile link with portal_connection_link_ok', () => {
+    expect(MIGRATION).toContain('not public.portal_connection_link_ok(p_kind, p_profile_url)')
+    expect(MIGRATION).toContain('check (profile_url is null or public.portal_connection_link_ok(kind, profile_url))')
+  })
+})
 
 describe('connection link validation', () => {
   const accept: Array<[Parameters<typeof validateConnectionValue>[0], string]> = [

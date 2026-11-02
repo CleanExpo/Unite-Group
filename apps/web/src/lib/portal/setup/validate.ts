@@ -1,7 +1,8 @@
 import { PROPERTY_KINDS, type ConnectionKind } from './types'
 
-// Checks for what the owner pastes into the setup checklist. The database function repeats the shape rules
-// (https only, no "@" before the first "/", key-shaped notes refused); this file adds the allowed hosts per kind.
+// Checks for what the owner pastes into the setup checklist, so she gets a plain message before saving.
+// The database repeats every rule here (portal_connection_link_ok and portal_save_connection in
+// 20261102180200_portal_connections.sql); a test pins the host lists below to that migration.
 
 export const VALUE_MAX = 300
 export const NOTES_MAX = 500
@@ -21,7 +22,7 @@ export const ALLOWED_HOSTS: Record<Exclude<ConnectionKind, 'gsc' | 'bing'>, read
 }
 
 /** On these Google hosts only a Maps link is a business profile; a search or home link is not. */
-const GOOGLE_MAPS_ONLY = new Set(['www.google.com', 'google.com', 'www.google.com.au', 'google.com.au'])
+export const GOOGLE_MAPS_ONLY = new Set(['www.google.com', 'google.com', 'www.google.com.au', 'google.com.au'])
 
 /** Same shape the database enforces: https, no "@" or space in the host part, "@" allowed in the path. */
 const HTTPS_SHAPE = /^https:\/\/[^/\s@]+(\/\S*)?$/

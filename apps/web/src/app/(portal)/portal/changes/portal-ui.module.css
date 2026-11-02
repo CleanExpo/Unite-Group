@@ -87,6 +87,9 @@
 .btnGhost { background: transparent; color: var(--pub-ink); border-color: var(--pub-line-strong); }
 .btnGhost:hover { border-color: var(--pub-accent); }
 .btn:disabled, .btnGhost:disabled { opacity: 0.6; cursor: progress; }
+/* public.module.css colours every `.page a` orange; a link styled as a button keeps the button's own ink. */
+a.btn[href], a.btn[href]:hover { color: var(--pub-accent-ink); text-decoration: none; }
+a.btnGhost[href], a.btnGhost[href]:hover { color: var(--pub-ink); text-decoration: none; }
 
 .ok { margin: 0; font-size: 14px; color: var(--pub-ink); }
 .err { margin: 0; font-size: 14px; color: var(--pub-danger); }
@@ -161,6 +164,13 @@
 .thumb { width: 132px; height: 74px; object-fit: cover; border-radius: var(--pub-radius); display: block; }
 
 .progressRow { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 1.25rem; }
-.progress { width: min(320px, 100%); height: 10px; accent-color: var(--pub-accent); }
+/* accent-color alone leaves Chromium's native green bar, so the track and fill are styled directly. */
+.progress {
+  width: min(320px, 100%); height: 10px; appearance: none; border: 0; border-radius: 999px; overflow: hidden;
+  background: var(--pub-line); accent-color: var(--pub-accent);
+}
+.progress::-webkit-progress-bar { background: var(--pub-line); border-radius: 999px; }
+.progress::-webkit-progress-value { background: var(--pub-accent); border-radius: 999px; }
+.progress::-moz-progress-bar { background: var(--pub-accent); border-radius: 999px; }
 .progressText { margin: 0; font-size: 15px; font-weight: 600; color: var(--pub-ink); }
 .next { margin: 0.5rem 0 0; font-size: 15px; color: var(--pub-ink-soft); }

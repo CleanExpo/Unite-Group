@@ -9,8 +9,35 @@
 --    OAuth tokens are out of scope here; the secrets broker (UNI-3142) comes later and will not live in this table.
 --  * An aal2 owner may save a link and say she has granted access. Only our team (service_role) sets verified.
 -- Rollback (a separate reviewed forward migration, written out in the PR body): remove the functions
---   portal_mark_connection_access_granted and portal_save_connection, then the table portal_connections.
---   No other table is touched.
+--   portal_mark_connection_access_granted and portal_save_connection, then the table portal_connections,
+--   then the function portal_connection_link_ok. No other table is touched.
+
+-- Is this a real profile link for this kind? The same rules as validateConnectionValue in
+-- src/lib/portal/setup/validate.ts (a test pins the host lists to that file), held here so a direct call to
+-- portal_save_connection, or a write by any role, meets them too:
+--   https only, no "@" before the first "/", a host from the list for the kind, a path that is not the home page,
+--   and on the plain Google hosts only a /maps path. GSC and Bing take a property id, never a profile link.
+create or replace function public.portal_connection_link_ok(p_kind text, p_url text)
+returns boolean
+language sql immutable set search_path = pg_catalog as $$
+  select coalesce(
+    char_length(p_url) <= 300
+    and p_url ~ '^https://[^/[:space:]@]+(/[^[:space:]]*)?$'
+    and (select pth not in ('', '/') and case p_kind
+        when 'gbp' then h in ('g.page', 'maps.app.goo.gl', 'share.google', 'business.google.com', 'maps.google.com',
+          'maps.google.com.au', 'www.google.com', 'google.com', 'www.google.com.au', 'google.com.au')
+          and (h not in ('www.google.com', 'google.com', 'www.google.com.au', 'google.com.au') or pth like '/maps%')
+        when 'facebook' then h in ('www.facebook.com', 'facebook.com', 'm.facebook.com')
+        when 'instagram' then h in ('www.instagram.com', 'instagram.com')
+        when 'linkedin' then h in ('www.linkedin.com', 'linkedin.com', 'au.linkedin.com')
+        when 'youtube' then h in ('www.youtube.com', 'youtube.com', 'm.youtube.com')
+        when 'tiktok' then h in ('www.tiktok.com', 'tiktok.com')
+        when 'x' then h in ('x.com', 'www.x.com', 'twitter.com', 'www.twitter.com')
+        else false end
+      from (select lower(substring(p_url from '^https://([^/:?#]+)')) as h,
+                   coalesce(substring(p_url from '^https://[^/?#]+(/[^?#]*)'), '') as pth) as u),
+    false)
+$$;
 
 create table if not exists public.portal_connections (
   id uuid primary key default gen_random_uuid(),
@@ -31,6 +58,7 @@ create table if not exists public.portal_connections (
   constraint portal_connections_one_per_kind unique (tenant_slug, kind),
   constraint portal_connections_value_by_kind check (
     (kind in ('gsc', 'bing') and profile_url is null) or (kind not in ('gsc', 'bing') and property_id is null)),
+  constraint portal_connections_profile_link check (profile_url is null or public.portal_connection_link_ok(kind, profile_url)),
   constraint portal_connections_verified_time check ((status = 'verified') = (verified_at is not null))
 );
 
@@ -61,8 +89,7 @@ begin
   if p_kind is null or p_kind not in ('gsc', 'bing', 'gbp', 'facebook', 'instagram', 'linkedin', 'youtube', 'tiktok', 'x')
      or (p_kind in ('gsc', 'bing') and (p_property_id is null or p_profile_url is not null))
      or (p_kind not in ('gsc', 'bing') and (p_profile_url is null or p_property_id is not null))
-     or (p_profile_url is not null and (char_length(p_profile_url) > 300
-         or p_profile_url !~ '^https://[^/[:space:]@]+(/[^[:space:]]*)?$'))
+     or (p_profile_url is not null and not public.portal_connection_link_ok(p_kind, p_profile_url))
      or (p_property_id is not null and (char_length(p_property_id) > 300
          or p_property_id !~ '^(sc-domain:[a-z0-9.-]{1,253}|https://[^/[:space:]@]+(/[^[:space:]]*)?)$'))
      or (p_notes is not null and (char_length(p_notes) > 500 or p_notes ~ '[A-Za-z0-9_+/=-]{32,}'))
