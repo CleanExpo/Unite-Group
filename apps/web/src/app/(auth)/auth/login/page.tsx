@@ -7,6 +7,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
 import { buildEmailLinkOptions, buildGoogleSignInOptions } from "@/lib/auth/google-oauth-options";
+import { isPortalPath } from "@/lib/portal/paths";
 
 function getSupabase() {
   return createBrowserClient(
@@ -66,6 +67,11 @@ export default function LoginPage() {
     const params = new URLSearchParams(queryString);
     return normaliseRedirectPath(params.get("redirectTo"));
   }, [queryString]);
+
+  // A business owner heading to their portal was promised "You never give us your password", so they get Google
+  // and the emailed sign-in link only: no password field, no forgot-password link. Everyone else, the founder
+  // included, keeps the page exactly as it was.
+  const ownerSignIn = isPortalPath(redirectPath);
 
   useEffect(() => {
     const params = new URLSearchParams(queryString);
@@ -164,7 +170,7 @@ export default function LoginPage() {
         Sign in
       </h1>
       <p className="text-sm mb-8" style={{ color: "var(--color-text-muted)" }}>
-        Sign in to your Unite-Group account.
+        {ownerSignIn ? "Sign in to your owner portal with Google or an emailed link." : "Sign in to your Unite-Group account."}
       </p>
 
       {error && (
@@ -196,8 +202,32 @@ export default function LoginPage() {
         {googleLoading ? "Redirecting…" : "Continue with Google"}
       </button>
 
-      {/* Email fallback — hidden by default; only here so a Google outage can't lock you out */}
-      {!showEmail ? (
+      {ownerSignIn ? (
+        <div className="mt-6 space-y-3">
+          <Input
+            id="login-email"
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoComplete="email"
+          />
+          <Button
+            type="button"
+            variant="secondary"
+            size="md"
+            fullWidth
+            loading={linkLoading}
+            disabled={googleLoading}
+            onClick={handleEmailLink}
+            className="text-xs uppercase tracking-[0.2em]"
+          >
+            Email me a sign-in link
+          </Button>
+        </div>
+      ) : /* Email fallback — hidden by default; only here so a Google outage can't lock you out */
+      !showEmail ? (
         <button
           type="button"
           onClick={() => setShowEmail(true)}
