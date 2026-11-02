@@ -90,7 +90,7 @@
 }
 
 .signOut:focus-visible,
-.cardLink:focus-visible,
+.stepLink:focus-visible,
 .ctaPrimary:focus-visible,
 .ctaSecondary:focus-visible,
 .brand:focus-visible {
@@ -207,36 +207,13 @@
   color: var(--pub-ink-soft);
 }
 
-.cardList {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.cardLink {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 48px;
-  padding: 0 16px;
-  border: 1px solid var(--pub-line-strong);
-  border-radius: var(--pub-radius);
+.planName {
+  margin: 6px 0 0;
+  font-family: var(--pub-display);
+  font-weight: 800;
+  font-size: clamp(1.4rem, 2.6vw, 1.9rem);
+  line-height: 1.15;
   color: var(--pub-ink);
-  text-decoration: none;
-  transition: border-color 160ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.cardLink:hover {
-  border-color: var(--pub-accent);
-}
-
-.cardPath {
-  font-family: var(--pub-mono);
-  font-size: 14px;
-  overflow-wrap: anywhere;
 }
 
 .promise {
@@ -334,6 +311,22 @@
   color: var(--pub-ink-soft);
 }
 
+.stepLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  margin-top: 8px;
+  color: var(--pub-accent-strong);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.stepLink:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
 .stepPromise {
   margin: 10px 0 0;
   font-size: 14px;
@@ -358,6 +351,11 @@
 .step[data-status='up-next'] .status {
   border-color: var(--pub-accent);
   color: var(--pub-accent-strong);
+}
+
+.step[data-status='done'] .status {
+  border-color: var(--pub-line-strong);
+  color: var(--pub-ink);
 }
 
 /* —— Actions —— */

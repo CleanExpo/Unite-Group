@@ -6,7 +6,7 @@ import { portalContext } from '@/lib/portal/changes/server'
 import { markAccessGranted, saveConnection } from '@/lib/portal/setup/service'
 
 // Server actions for /portal/setup. Identity and tenant come from the session only. Only a public link, a property id
-// and short notes are ever sent; there is no field for a password, token or key.
+// and short notes are ever sent; there is no field for a secret, token or key.
 
 export type SetupFormState = { ok: boolean; message: string } | null
 

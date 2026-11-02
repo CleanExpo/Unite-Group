@@ -164,7 +164,10 @@ const SAMPLES: [string, string][] = [
 describe('the portal never asks for a password', () => {
   it('reads the real portal files (positive control on the scan itself)', () => {
     const names = PORTAL_ROOTS.flatMap(files).map((f) => relative(SRC, f))
-    expect(names).toContain(join('app', '(portal)', 'layout.tsx'))
+    expect(names).toContain(join('app', '(portal)', 'portal', 'join', 'join-steps.tsx'))
+    expect(names).toContain(join('app', '(portal)', 'portal', 'join', 'second-factor.tsx'))
+    expect(names).toContain(join('app', '(portal)', 'portal', 'setup', 'setup-card.tsx'))
+    expect(names).toContain(join('app', '(portal)', 'portal', 'changes', 'change-form.tsx'))
     expect(names).toContain(join('app', '(portal)', 'portal', 'page.tsx'))
     expect(names).toContain(join('components', 'portal', 'portal-welcome.tsx'))
     expect(names).toContain(join('components', 'portal', 'portal-copy.ts'))

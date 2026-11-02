@@ -76,7 +76,7 @@ function SignInStep({ code }: { code: string }) {
   return (
     <>
       <h2 id="join-step">Sign in with your email</h2>
-      <p className={styles.body}>We will email you a sign-in link. There is no password to remember.</p>
+      <p className={styles.body}>We will email you a sign-in link. Nothing to remember: the link signs you in.</p>
       {result?.ok ? (
         <Message tone="ok" copy={{ title: 'Check your email', body: 'Open the sign-in link we just sent, on this device. It brings you back here.' }} />
       ) : (

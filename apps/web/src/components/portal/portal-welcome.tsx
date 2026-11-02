@@ -1,41 +1,33 @@
-import { ArrowUpRight, ClipboardList, Link2, PenLine, Search, ShieldCheck, Star, type LucideIcon } from 'lucide-react'
+import { ArrowRight, ClipboardList, LayoutTemplate, Link2, PenLine, Rocket, ShieldCheck, UserCheck, type LucideIcon } from 'lucide-react'
 
-import { NO_PASSWORD_LINE, PORTAL_STEPS, STATUS_LABEL, STATUS_NOTE, type PortalStep } from './portal-copy'
+import { NO_PASSWORD_LINE, PLAN_LABEL, PORTAL_STEPS, STATUS_LABEL, STATUS_NOTE, type PortalStep } from './portal-copy'
 import { PortalShell } from './portal-shell'
 import s from './portal.module.css'
 
 const STEP_ICON: Record<PortalStep['id'], LucideIcon> = {
-  intake: ClipboardList,
-  connect: Link2,
-  audit: Search,
-  profile: PenLine,
-  reviews: Star,
+  account: UserCheck,
+  details: ClipboardList,
+  connections: Link2,
+  build: LayoutTemplate,
+  changes: PenLine,
+  launch: Rocket,
 }
 
-/** The owner's welcome page: their card(s), the promise line and the five-step checklist. */
-export function PortalWelcome({ name, email, cardSlugs }: { name: string | null; email: string | null; cardSlugs: string[] }) {
+/** The owner's welcome page: their plan, the promise line and the pipeline checklist. Same for every business. */
+export function PortalWelcome({ email, plan }: { email: string | null; plan: keyof typeof PLAN_LABEL }) {
   return (
     <PortalShell
       kicker="Your portal"
-      title={name ? `Welcome, ${name}.` : 'Welcome to your portal.'}
-      lead="Five steps to get your business found and chosen. We do the heavy lifting and show you where things are up to."
+      title="Welcome to your portal."
+      lead="Six steps from first hello to your new website going live. We do the heavy lifting and show you where things are up to."
       signedInAs={email}
     >
-      <section className={s.section} aria-labelledby="portal-cards">
+      <section className={s.section} aria-labelledby="portal-plan">
         <div className={s.wrap}>
           <div className={s.split}>
             <div className={s.panel}>
-              <p className={s.eyebrow} id="portal-cards">{cardSlugs.length === 1 ? 'Your card' : 'Your cards'}</p>
-              <ul className={s.cardList}>
-                {cardSlugs.map((slug) => (
-                  <li key={slug}>
-                    <a href={`/c/${slug}`} className={s.cardLink}>
-                      <span className={s.cardPath}>unite-group.in/c/{slug}</span>
-                      <ArrowUpRight size={16} aria-hidden="true" />
-                    </a>
-                  </li>
-                ))}
-              </ul>
+              <p className={s.eyebrow} id="portal-plan">Your plan</p>
+              <p className={s.planName} data-testid="portal-plan">{PLAN_LABEL[plan]}</p>
             </div>
             <div className={`${s.panel} ${s.promise}`}>
               <ShieldCheck size={22} aria-hidden="true" className={s.promiseIcon} />
@@ -62,7 +54,13 @@ export function PortalWelcome({ name, email, cardSlugs }: { name: string | null;
                   <div className={s.stepBody}>
                     <h3 className={s.stepTitle}>{step.title}</h3>
                     <p className={s.stepText}>{step.body}</p>
-                    {step.id === 'connect' ? <p className={s.stepPromise}>{NO_PASSWORD_LINE}</p> : null}
+                    {step.id === 'connections' ? <p className={s.stepPromise}>{NO_PASSWORD_LINE}</p> : null}
+                    {step.href ? (
+                      <a href={step.href} className={s.stepLink}>
+                        {step.linkText}
+                        <ArrowRight size={16} aria-hidden="true" />
+                      </a>
+                    ) : null}
                   </div>
                   <span className={s.status}>{STATUS_LABEL[step.status]}</span>
                 </li>

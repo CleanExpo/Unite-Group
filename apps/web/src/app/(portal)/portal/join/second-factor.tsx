@@ -13,7 +13,7 @@ type Enrolment = { factorId: string; qrCode: string; secret: string }
 
 /**
  * Step 3: confirm it is you with an authenticator app (Supabase MFA, TOTP). This lifts the session to aal2.
- * An owner with a confirmed app enters a code; an owner without one sets it up first. No password anywhere.
+ * An owner with a confirmed app enters a code; an owner without one sets it up first.
  */
 export function SecondFactorStep({ email }: { email: string | null }) {
   const router = useRouter()
@@ -80,7 +80,7 @@ export function SecondFactorStep({ email }: { email: string | null }) {
       <label>
         6-digit code from your app
         <input inputMode="numeric" pattern="[0-9]{6}" maxLength={6} required value={code}
-          onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} autoComplete="one-time-code" />
+          onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, ''))} autoComplete="one-time-code" />
       </label>
       <div className={styles.row}>
         <button type="submit" className={styles.button} disabled={busy || code.length !== 6}>{busy ? 'Checking…' : 'Confirm'}</button>

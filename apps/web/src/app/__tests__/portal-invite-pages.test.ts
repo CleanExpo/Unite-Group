@@ -98,11 +98,13 @@ describe('/portal/join proxy rule', () => {
     }
   })
 
+  // Only /portal/join is public. Every other /portal path sends a signed-out visitor to sign in. (A signed-in visitor
+  // reaches any /portal page, which checks owner access itself: portal foundation S1, src/__tests__/portal-proxy.test.ts.)
   it.each(['/portal', '/portal/join/x', '/portal/joinx', '/portal/admin'])('does not open %s', async (path) => {
-    updateSession.mockResolvedValue({ response: NextResponse.next(), user: OWNER })
+    updateSession.mockResolvedValue({ response: NextResponse.next(), user: null })
     hasPrivateAccess.mockReturnValue(false)
     const res = await proxy(new NextRequest(`https://app.test${path}`))
-    expect(new URL(res.headers.get('location') ?? 'https://x/none').searchParams.get('access')).toBe('denied')
+    expect(new URL(res.headers.get('location') ?? 'https://x/none').pathname).toBe('/auth/login')
   })
 })
 

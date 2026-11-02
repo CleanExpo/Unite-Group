@@ -1,14 +1,18 @@
-# Portal S1 screenshots (02/11/2026)
+# Portal S1 screenshots (03/11/2026)
 
-Rendered by Playwright Chromium against `next dev` on this branch's portal code, at 1440x900 (desktop) and 390x844 @2x (phone). The branch was later rebased onto main twice; neither rebase changed any portal page, component or style file (the second merged main's robots.ts edit from PR #1341).
+Rendered by Playwright Chromium against `next dev` on this branch after the rebase onto main `33964213` (UNI-3167/3168
+portal work), at 1440x900 (desktop) and 390x844 @2x (phone).
 
-- `portal-welcome-*`: the real `PortalWelcome` component with sample props (name "Sam", card `sam-plumbing`), mounted on a
-  temporary local-only page because there is no test owner account to sign in with. The scratch page was deleted and
-  never committed.
-- `portal-no-portal-yet-*`: the real `NoPortalYet` component, same method.
-- `portal-signed-out-redirect-desktop` and `-phone`: a live, signed-out request to `/portal`, which the proxy sent to
-  `/auth/login?redirectTo=%2Fportal`. Retaken on 02/11/2026 after the owner sign-in change: the page shows only
-  "Continue with Google" and "Email me a sign-in link". The capture script counted 0 password fields and 0
-  "Use email instead" buttons at both sizes.
+- `portal-welcome-*`: the real `PortalWelcome` component with sample props (email `owner@example.test`, free plan),
+  mounted on a temporary local-only page because there is no test owner account to sign in with. The scratch page was
+  deleted and never committed. Shows the six pipeline stages; "Open the checklist" goes to /portal/setup and
+  "Ask for a change" to /portal/changes.
+- `portal-no-portal-yet-*`: the real `NoPortalYet` component (signed in, no portal), same method. Points at /portal/join.
+- `portal-confirm-it-is-you-*`: the real `ConfirmItIsYou` component (owner signed in with the emailed link only, no
+  second step yet), same method.
+- `portal-signed-out-redirect-*`: a live, signed-out request to `/portal`, which landed on
+  `/auth/login?redirectTo=%2Fportal`. The capture counted 0 password fields at both sizes.
+
+A live signed-out request to `/portal/join` on the same server returned 200 with "Enter your invite code".
 
 Imagery is the existing generated Unite-Group hero still (`public/landing/media/unite-group-hero-u-poster-16x9.jpg`).

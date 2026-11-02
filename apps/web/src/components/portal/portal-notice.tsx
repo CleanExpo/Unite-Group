@@ -1,13 +1,16 @@
+import { PORTAL_VERIFY_PATH } from '@/lib/portal/changes/access'
+import { PORTAL_PATH } from '@/lib/portal/paths'
+
 import { PortalShell } from './portal-shell'
 import s from './portal.module.css'
 
-/** A signed-in visitor who does not own a card yet. Friendly, and nothing from the founder area. */
+/** A signed-in visitor with no portal yet. Friendly, and nothing from the founder area. */
 export function NoPortalYet({ email }: { email: string | null }) {
   return (
     <PortalShell
       kicker="Owner portal"
       title="No portal here yet."
-      lead="Your portal opens once your living card is set up. If you have ordered one, we are on it."
+      lead="Your portal opens with the invite code we send you. If you are expecting one, it is on its way."
       signedInAs={email}
     >
       <section className={s.section} aria-label="What to do next">
@@ -15,10 +18,10 @@ export function NoPortalYet({ email }: { email: string | null }) {
           <div className={s.panel}>
             <p className={s.panelText}>
               {email ? <>You are signed in as <strong>{email}</strong>. </> : null}
-              If you ordered your card with a different email, sign out and sign in with that one.
+              If your invite was sent to a different email, sign out and sign in with that one.
             </p>
             <div className={s.actions}>
-              <a href="/cards" className={s.ctaPrimary}>See the living card</a>
+              <a href="/portal/join" className={s.ctaPrimary}>I have an invite code</a>
               <a href="/#contact" className={s.ctaSecondary}>Ask us a question</a>
             </div>
           </div>
@@ -28,22 +31,22 @@ export function NoPortalYet({ email }: { email: string | null }) {
   )
 }
 
-/** The ownership check could not run. Never shown as "no portal": that would tell an owner they have nothing. */
-export function PortalUnavailable({ email }: { email: string | null }) {
+/** An owner signed in with the emailed link only. The portal needs the second step (the authenticator app code) too. */
+export function ConfirmItIsYou({ email }: { email: string | null }) {
   return (
     <PortalShell
       kicker="Owner portal"
-      title="We could not open your portal."
-      lead="Something on our side did not answer just now. Please try again in a minute."
+      title="Confirm it is you."
+      lead="For your security, the portal needs your second sign-in step: the code from your authenticator app."
       signedInAs={email}
     >
-      <section className={s.section} aria-label="Try again">
+      <section className={s.section} aria-label="Confirm it is you">
         <div className={s.wrap}>
-          <div className={s.panel} role="alert">
-            <p className={s.panelText}>Your details are safe. Nothing was changed.</p>
+          <div className={s.panel} role="status">
             <div className={s.actions}>
-              <a href="/portal" className={s.ctaPrimary}>Try again</a>
-              <a href="/#contact" className={s.ctaSecondary}>Contact us</a>
+              <a href={`${PORTAL_VERIFY_PATH}?redirectTo=${encodeURIComponent(PORTAL_PATH)}`} className={s.ctaPrimary}>
+                Confirm it is me
+              </a>
             </div>
           </div>
         </div>
