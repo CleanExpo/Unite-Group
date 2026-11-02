@@ -313,6 +313,20 @@ jobs:
         working-directory: tools/complete-requires-push
         run: python3 -m unittest discover -s tests -v
 
+  fleet-router:
+    name: tools/fleet-router — tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # UNI-3147: stdlib only, no dependencies, and the only network is a loopback fake broker.
+      - name: Test the fleet router
+        working-directory: tools/fleet-router
+        run: node --test
+
   docs-watch:
     name: Nexus official-docs watcher — Node ${{ matrix.node-version }}
     runs-on: ubuntu-latest
