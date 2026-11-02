@@ -25,20 +25,20 @@ afterEach(() => {
   vi.unstubAllEnvs()
 })
 
-describe('extra business add-on placement', () => {
+describe('staff card add-on placement', () => {
   it('renders inside the custom tier only, not the ready tier', () => {
     env({ ready: true, custom: true, extra: ADDON })
     const h = html()
-    expect(tierSlice(h, 'custom')).toContain('Add another business, AUD 199 each, GST included')
-    expect(tierSlice(h, 'ready')).not.toContain('Add another business')
-    expect(tierSlice(h, 'ready')).not.toContain('extra business')
+    expect(tierSlice(h, 'custom')).toContain('Add staff cards, AUD 199 each, GST included. One card per staff member, no limit.')
+    expect(tierSlice(h, 'ready')).not.toContain('Add staff cards')
+    expect(tierSlice(h, 'ready')).not.toContain('staff card')
   })
 
   it('renders no add-on markup when the env is unset or empty (identity with origin/main: order-terms.test.tsx)', () => {
     env({ ready: true, custom: true })
     const h = html()
     expect(h).not.toMatch(/extra/i)
-    expect(h).not.toContain('Add another business')
+    expect(h).not.toContain('Add staff cards')
     vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_EXTRA_BUSINESS', '')
     expect(html()).toBe(h)
   })
@@ -46,23 +46,23 @@ describe('extra business add-on placement', () => {
   it('shows no control when the custom tier is unset', () => {
     env({ ready: true, extra: ADDON })
     const h = html()
-    expect(h).not.toContain('Add another business')
+    expect(h).not.toContain('Add staff cards')
     expect(h).not.toContain('data-tier="custom"')
   })
 
   it('shows no control when the link is not a Stripe Payment Link', () => {
     env({ ready: true, custom: true, extra: 'https://example.com/pay' })
-    expect(html()).not.toContain('Add another business')
+    expect(html()).not.toContain('Add staff cards')
   })
 })
 
-describe('extra business stepper', () => {
+describe('staff card stepper', () => {
   const mount = async () => {
     const { ExtraBusiness } = await import('../order/extra-business')
-    render(createElement(ExtraBusiness, { link: ADDON, priceAud: 199, maxQuantity: 5 }))
+    render(createElement(ExtraBusiness, { link: ADDON, priceAud: 199 }))
   }
-  const plus = () => screen.getByRole('button', { name: 'One more extra business' })
-  const minus = () => screen.getByRole('button', { name: 'One fewer extra business' })
+  const plus = () => screen.getByRole('button', { name: 'One more staff card' })
+  const minus = () => screen.getByRole('button', { name: 'One fewer staff card' })
 
   it('starts at 0 with no payment link and minus disabled', async () => {
     await mount()
@@ -75,12 +75,12 @@ describe('extra business stepper', () => {
     await mount()
     fireEvent.click(plus())
     fireEvent.click(plus())
-    const link = screen.getByRole('link', { name: 'Pay for 2 extra businesses' })
+    const link = screen.getByRole('link', { name: 'Pay for 2 staff cards' })
     expect(link.getAttribute('href')).toBe(ADDON)
     expect(link.getAttribute('target')).toBe('_blank')
     expect(link.getAttribute('rel')).toBe('noopener noreferrer')
     expect(link.getAttribute('data-track-label')).toBe('order-extra-business')
-    expect(document.body.textContent).toContain('2 extra businesses: AUD 398, GST included.')
+    expect(document.body.textContent).toContain('2 staff cards: AUD 398, GST included.')
   })
 
   it('announces the count with context in a polite live region, not a bare number', async () => {
@@ -89,22 +89,23 @@ describe('extra business stepper', () => {
     fireEvent.click(plus())
     const live = document.querySelectorAll('[aria-live="polite"]')
     expect(live).toHaveLength(1)
-    expect(live[0].textContent).toBe('2 extra businesses selected')
+    expect(live[0].textContent).toBe('2 staff cards selected')
   })
 
   it('uses the singular for one', async () => {
     await mount()
     fireEvent.click(plus())
-    expect(screen.getByRole('link', { name: 'Pay for 1 extra business' })).toBeTruthy()
-    expect(document.body.textContent).toContain('1 extra business: AUD 199, GST included.')
+    expect(screen.getByRole('link', { name: 'Pay for 1 staff card' })).toBeTruthy()
+    expect(document.body.textContent).toContain('1 staff card: AUD 199, GST included.')
   })
 
-  it('disables plus at 5 and minus steps back down to 0 and hides the link', async () => {
+  it('has no upper limit and minus steps back down to 0 and hides the link', async () => {
     await mount()
-    for (let i = 0; i < 7; i++) fireEvent.click(plus())
-    expect(screen.getByRole('link', { name: 'Pay for 5 extra businesses' })).toBeTruthy()
-    expect(plus()).toHaveProperty('disabled', true)
-    for (let i = 0; i < 5; i++) fireEvent.click(minus())
+    for (let i = 0; i < 12; i++) fireEvent.click(plus())
+    expect(screen.getByRole('link', { name: 'Pay for 12 staff cards' })).toBeTruthy()
+    expect(document.body.textContent).toContain('12 staff cards: AUD 2388, GST included.')
+    expect(plus()).toHaveProperty('disabled', false)
+    for (let i = 0; i < 12; i++) fireEvent.click(minus())
     expect(minus()).toHaveProperty('disabled', true)
     expect(screen.queryByRole('link')).toBeNull()
   })

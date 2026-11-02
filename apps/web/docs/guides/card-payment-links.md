@@ -36,22 +36,22 @@ changes nothing the second time. If the price of a tier changes, change `CARD_TI
 | `LEAD_ALERT_EMAIL_TO` | the address that receives the order alert; defaults to `contact@unite-group.in` when unset |
 | `MAILTRAP_FROM_EMAIL` | optional sender override; defaults to `contact@unite-group.in` |
 | `STRIPE_CARD_PAYMENT_LINK_IDS` | the two card Payment Link ids (`plink_...`, from each link's page in the Stripe dashboard), comma-separated. Not secret. Unset means no order is recorded: the price alone never counts, so another product at A$249 or A$449 cannot become a card order |
-| `STRIPE_PAYMENT_LINK_CARD_EXTRA_BUSINESS` | the add-on's `https://buy.stripe.com/...` URL; its presence shows the extra-business control on `/cards/order` |
+| `STRIPE_PAYMENT_LINK_CARD_EXTRA_BUSINESS` | the add-on's `https://buy.stripe.com/...` URL; its presence shows the staff-card control on `/cards/order` |
 | `STRIPE_CARD_EXTRA_BUSINESS_PAYMENT_LINK_ID` | the add-on link's single `plink_...` id. Not secret. Lets the webhook record add-on payments; unset means none is ever recorded |
 | `FOUNDER_USER_ID` | already set; the order's owner |
 | `STRIPE_WEBHOOK_SECRET` | already set |
 
-## Extra-business add-on
+## Staff-card add-on (env names keep the original EXTRA_BUSINESS spelling)
 
-Each extra business is A$199, up to 5, bought on its own Payment Link (a link URL cannot carry a quantity). In Stripe, TEST mode first:
+Each staff card is A$199, one-off, with no limit (one card per staff member; a new staff member needs a new card), bought on its own Payment Link (a link URL cannot carry a quantity). In Stripe, TEST mode first:
 
-1. Create a product "Extra business" at AUD 199, one-off, with the same tax setting as the existing card links. The order page and terms say "GST included", so check that setting is what makes that true.
-2. Create a Payment Link for it with "Let customers adjust quantity" enabled, minimum 1 and maximum 5.
+1. Create a product "Staff card" (or rename the existing "Extra business" product; the price and link stay the same) at AUD 199, one-off, with the same tax setting as the existing card links. The order page and terms say "GST included", so check that setting is what makes that true.
+2. Create a Payment Link for it with "Let customers adjust quantity" enabled, minimum 1. Stripe requires a maximum; set it to its highest allowed value (an existing link set to 5 must be raised in the dashboard, or buyers cannot pay for more than 5).
 3. Leave the confirmation as Stripe's own page (no redirect to `/cards/thanks`): the thank-you intake form would otherwise attach to the add-on order.
-4. Apply `supabase/migrations/20261025200000_card_orders_extra_business.sql` first (founder-gated; until then add-on orders fail to insert, the webhook answers 500 and Stripe retries).
+4. Apply `supabase/migrations/20261025200000_card_orders_extra_business.sql` and then `supabase/migrations/20261102120000_card_orders_staff_card_no_limit.sql` first (founder-gated; until then add-on orders fail to insert, the webhook answers 500 and Stripe retries).
 5. Set `STRIPE_PAYMENT_LINK_CARD_EXTRA_BUSINESS` (the `https://buy.stripe.com/...` URL) and `STRIPE_CARD_EXTRA_BUSINESS_PAYMENT_LINK_ID` (the `plink_...` id).
 
-The webhook records a payment from that link as tier `extra_business` with the quantity worked out from the amount (1 to 5 x A$199). A discounted or odd amount on that link is not recorded (a warning is logged). An add-on payment is not linked to the Made for you order automatically; match it by buyer name or email.
+The webhook records a payment from that link as tier `extra_business` with the quantity worked out from the amount (any whole number of A$199). A discounted or odd amount on that link is not recorded (a warning is logged). An add-on payment is not linked to the Made for you order automatically; match it by buyer name or email.
 
 ## Database
 

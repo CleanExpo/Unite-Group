@@ -38,15 +38,15 @@ export const CARD_TIERS = [
 ] as const
 
 /**
- * The extra-business add-on (Phill, 25/10/2026): AUD 199 each, GST included, up to five, on the
- * Made for you card only. Kept out of CARD_TIERS: it is not a card on its own. Shown only while its
+ * The staff-card add-on (Phill, 02/11/2026, was "extra business, up to five" from 25/10/2026): AUD 199
+ * each, one-off, GST included, no limit, on the Made for you card only. The id and env names keep their
+ * original extra_business spelling so live payment links, the webhook and stored orders are unchanged. Kept out of CARD_TIERS: it is not a card on its own. Shown only while its
  * own Stripe Payment Link is set; that link is a separate payment with an adjustable quantity.
  */
 export const CARD_EXTRA_BUSINESS = {
   id: 'extra_business',
-  name: 'Extra business',
+  name: 'Staff card',
   priceAud: 199,
-  maxQuantity: 5,
   forTier: 'custom',
   paymentLinkEnv: 'STRIPE_PAYMENT_LINK_CARD_EXTRA_BUSINESS',
 } as const
@@ -72,7 +72,7 @@ export function OrderView({ edition, referrer }: { edition: string | null; refer
         { value: 'One-off', label: 'GST included, no subscription' },
       ]
     : [
-        { value: 'Nine films', label: 'to choose from' },
+        { value: 'Ten films', label: 'to choose from' },
         { value: 'Your logo', label: 'at the end of every film' },
         { value: 'Private proof', label: 'before anything goes live' },
         { value: 'Nothing charged', label: 'on this page' },
@@ -151,7 +151,6 @@ export function OrderView({ edition, referrer }: { edition: string | null; refer
                           <ExtraBusiness
                             link={extraLink}
                             priceAud={CARD_EXTRA_BUSINESS.priceAud}
-                            maxQuantity={CARD_EXTRA_BUSINESS.maxQuantity}
                           />
                         ) : null}
                       </article>

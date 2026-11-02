@@ -29,7 +29,7 @@ Your card is digital: a short film and your own web page. We do not print or pos
 1. We make a film for your business, instead of you picking one of the ten.
 2. You approve a private preview before it goes live.
 3. Your own card web page with that film, your business name and your contact details.
-4. You can add up to five extra businesses to a Made for you order, at AUD 199 each (GST included). They are paid as a separate payment.
+4. You can add staff cards to a Made for you order, at AUD 199 each (GST included), with no limit. Each staff card is for one staff member and includes 3 rounds. A new staff member needs a new staff card. They are paid as a separate payment.
 
 We supply only what this section lists. Anything else is quoted separately before we start.
 

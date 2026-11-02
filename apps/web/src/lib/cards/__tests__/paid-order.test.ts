@@ -95,7 +95,7 @@ describe('recordPaidCardOrder', () => {
     expect(sendEmail.mock.calls[0][0].to).toEqual({ email: 'contact@unite-group.in' })
   })
 
-  it.each([1, 2, 5])('records %i extra business(es) with tier extra_business and quantity', async (n) => {
+  it.each([1, 2, 5, 6, 25])('records %i staff card(s) with tier extra_business and quantity', async (n) => {
     expect(
       await recordPaidCardOrder(admin, event({ amount_total: 19900 * n, payment_link: 'plink_extra' }, false)),
     ).toBe('created')
@@ -104,8 +104,8 @@ describe('recordPaidCardOrder', () => {
     expect(row.quantity).toBe(n)
     expect(row.amount_total).toBe(19900 * n)
     const mail = sendEmail.mock.calls[0][0] as { subject: string; text: string }
-    expect(mail.subject).toBe(`[TEST] New paid card order: Extra business${n > 1 ? ` x${n}` : ''}`)
-    expect(mail.text).toContain(n === 1 ? '1 extra business ' : `${n} extra businesses`)
+    expect(mail.subject).toBe(`[TEST] New paid card order: Staff card${n > 1 ? ` x${n}` : ''}`)
+    expect(mail.text).toContain(n === 1 ? '1 staff card ' : `${n} staff cards`)
     expect(mail.text).toContain(`A$${199 * n}`)
   })
 
@@ -125,15 +125,15 @@ describe('recordPaidCardOrder', () => {
     expect(insert).not.toHaveBeenCalled()
   })
 
-  it('records 2 extra businesses at 39800 on the add-on link', async () => {
+  it('records 2 staff cards at 39800 on the add-on link', async () => {
     expect(await recordPaidCardOrder(admin, event({ amount_total: 39800, payment_link: 'plink_extra' }))).toBe('created')
     expect(insert.mock.calls[0][0]).toMatchObject({ tier: 'extra_business', quantity: 2 })
   })
 
-  it('warns when the add-on link pays an amount that is not 1 to 5 x A$199', async () => {
+  it('warns when the add-on link pays an amount that is not a whole number of A$199', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     await recordPaidCardOrder(admin, event({ amount_total: 17910, payment_link: 'plink_extra' }))
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('extra-business link did not match 1 to 5 x A$199'))
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('extra-business link did not match a whole number of A$199 staff cards'))
     warn.mockRestore()
   })
 

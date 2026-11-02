@@ -5,25 +5,25 @@ import { useState } from 'react'
 import { PAYMENT_ENTITY_LINE } from '../payment-entity'
 import s from './extra-business.module.css'
 
-const plural = (n: number) => `${n} extra ${n === 1 ? 'business' : 'businesses'}`
+const plural = (n: number) => `${n} staff ${n === 1 ? 'card' : 'cards'}`
 
 /**
- * The extra-business add-on on the Made for you tier. Stripe Payment Link URLs take no quantity, so the
+ * The staff-card add-on on the Made for you tier (one card per staff member, no limit). Stripe Payment Link URLs take no quantity, so the
  * add-on is a second payment: the buyer's count is shown here and set again on Stripe. At zero no link renders.
  */
-export function ExtraBusiness({ link, priceAud, maxQuantity }: { link: string; priceAud: number; maxQuantity: number }) {
+export function ExtraBusiness({ link, priceAud }: { link: string; priceAud: number }) {
   const [quantity, setQuantity] = useState(0)
 
   return (
     <div role="group" aria-labelledby="extra-business-label" className={s.box} data-extra-business>
       <p id="extra-business-label" className={s.label}>
-        Add another business, AUD {priceAud} each, GST included
+        Add staff cards, AUD {priceAud} each, GST included. One card per staff member, no limit.
       </p>
       <div className={s.stepper}>
         <button
           type="button"
           className={s.step}
-          aria-label="One fewer extra business"
+          aria-label="One fewer staff card"
           disabled={quantity <= 0}
           onClick={() => setQuantity((q) => Math.max(0, q - 1))}
         >
@@ -38,9 +38,8 @@ export function ExtraBusiness({ link, priceAud, maxQuantity }: { link: string; p
         <button
           type="button"
           className={s.step}
-          aria-label="One more extra business"
-          disabled={quantity >= maxQuantity}
-          onClick={() => setQuantity((q) => Math.min(maxQuantity, q + 1))}
+          aria-label="One more staff card"
+          onClick={() => setQuantity((q) => q + 1)}
         >
           +
         </button>

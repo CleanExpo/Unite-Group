@@ -22,11 +22,11 @@ const blocks = (html: string) => {
 const PRIVACY_LINE = 'Read our privacy policy for the full detail.'
 
 /**
- * The extra-business add-on sentence (25/10/2026). NOT in the approved source: it is a declared addition,
+ * The staff-card add-on sentence (25/10/2026, reworded to staff cards with no limit by Phill 02/11/2026, UNI-3146). NOT in the approved source: it is a declared addition,
  * pending Phill's lawyer read, placed as the last item under Made for you.
  */
 const EXTRA_BUSINESS_LINE =
-  'You can add up to five extra businesses to a Made for you order, at AUD 199 each (GST included). They are paid as a separate payment.'
+  'You can add staff cards to a Made for you order, at AUD 199 each (GST included), with no limit. Each staff card is for one staff member and includes 3 rounds. A new staff member needs a new staff card. They are paid as a separate payment.'
 const MADE_FOR_YOU_LAST = '3. Your own card web page with that film, your business name and your contact details.'
 
 /**
