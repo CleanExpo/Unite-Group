@@ -15,7 +15,8 @@
  * SMOKE_OFFLINE_NO_STUBS=1 to refuse that too and observe the plain-outage behaviour. The stub answers only the
  * app's exact public query (the PUBLIC_COLUMNS list read from src/lib/card/published.ts plus one card_slug
  * equality filter, on smoke-unknown-card -> no row, smoke-published-card -> one published row), and refuses any
- * other query like an outage. It cannot prove the live database accepts the query; it proves the app sends the
+ * other query like an outage. The review redirect's read (REVIEW_COLUMNS from src/lib/card/review-store.ts) is
+ * answered the same way, with a format-valid Place ID on the published card. It cannot prove the live database accepts the query; it proves the app sends the
  * declared one and renders both the not-found and the published-card branches.
  *
  * node:http and node:https requests to non-loopback hosts are refused too (connection error, no socket
@@ -55,16 +56,20 @@ function headerOf(input, init, name) {
   return input && input.headers && typeof input.headers.get === 'function' ? input.headers.get(name) : null;
 }
 
-// The columns the app's public card lookup selects, read from the app source so the stub cannot drift from it.
-function publicCardColumns() {
+// A column list the app selects, read from the app source so the stub cannot drift from it.
+function sourceColumns(file, name) {
   try {
-    const source = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'src', 'lib', 'card', 'published.ts'), 'utf8');
-    const match = /PUBLIC_COLUMNS\s*=\s*'([^']+)'/.exec(source);
+    const source = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'src', 'lib', 'card', file), 'utf8');
+    const match = new RegExp(`${name}\\s*=\\s*'([^']+)'`).exec(source);
     return match ? match[1].replace(/\s+/g, '') : null;
   } catch {
     return null;
   }
 }
+const publicCardColumns = () => sourceColumns('published.ts', 'PUBLIC_COLUMNS');
+const reviewColumns = () => sourceColumns('review-store.ts', 'REVIEW_COLUMNS');
+// A format-valid Place ID (src/lib/card/review-link.ts PLACE_ID_RE) for the published smoke card.
+const STUB_PLACE_ID = 'ChIJsmokeTestPlaceId0001';
 
 const STUB_PUBLISHED_SLUG = 'smoke-published-card';
 const STUB_UNKNOWN_SLUG = 'smoke-unknown-card';
@@ -73,16 +78,19 @@ function cardLookupStub(url, input, init) {
   if (noStubs) return null;
   if (!url.hostname.endsWith('.supabase.co') || url.pathname !== '/rest/v1/card_profiles') return null;
   if (methodOf(input, init) !== 'GET') return null;
-  // Answer only the exact public query: the app's own column list and one card_slug equality filter on a
-  // known smoke slug. Anything else (a renamed column, an extra filter, another slug) is refused like an
-  // outage, so a broken query fails the smoke with a 500 instead of passing as "no such card".
-  const columns = publicCardColumns();
+  // Answer only two exact queries, each with the app's own column list (PUBLIC_COLUMNS for the card page,
+  // REVIEW_COLUMNS for the review redirect) and one card_slug equality filter on a known smoke slug. Anything
+  // else (a renamed column, an extra filter, another slug) is refused like an outage, so a broken query fails
+  // the smoke instead of passing as "no such card".
   const names = [...url.searchParams.keys()].sort().join(',');
   const filter = /^eq\.(.+)$/.exec(url.searchParams.get('card_slug') || '');
-  if (columns === null || names !== 'card_slug,select' || (url.searchParams.get('select') || '').replace(/\s+/g, '') !== columns || filter === null) return null;
+  const selected = (url.searchParams.get('select') || '').replace(/\s+/g, '');
+  const publicColumns = publicCardColumns();
+  const review = selected === reviewColumns() && selected !== '';
+  if (names !== 'card_slug,select' || filter === null || (!review && (publicColumns === null || selected !== publicColumns))) return null;
   const headers = { 'Content-Type': 'application/json' };
   if (filter[1] === STUB_PUBLISHED_SLUG) {
-    const row = {
+    const row = review ? { google_place_id: STUB_PLACE_ID, published_at: '2026-01-01T00:00:00.000Z' } : {
       card_slug: STUB_PUBLISHED_SLUG,
       display_name: 'Smoke Test Owner',
       role_title: 'Smoke test role',

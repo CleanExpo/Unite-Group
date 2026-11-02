@@ -20,6 +20,9 @@ export interface ReviewStoreClient {
   rpc(fn: string, args: Record<string, unknown>): PromiseLike<{ data: unknown; error: DbError }>
 }
 
+/** The two columns the review redirect reads; anon is granted google_place_id by the review migration. */
+export const REVIEW_COLUMNS = 'google_place_id, published_at'
+
 export function anonReviewClient(): ReviewStoreClient {
   const { url, anonKey } = getSupabaseAnonConfig()
   return createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } }) as unknown as ReviewStoreClient
@@ -39,7 +42,7 @@ export async function getCardReviewLink(slug: string, client?: ReviewStoreClient
   } catch {
     return { state: 'unavailable' }
   }
-  const { data, error } = await c.from('card_profiles').select('google_place_id, published_at').eq('card_slug', slug).maybeSingle()
+  const { data, error } = await c.from('card_profiles').select(REVIEW_COLUMNS).eq('card_slug', slug).maybeSingle()
   if (error) {
     console.error('[cards] review link read failed:', error.message)
     return { state: 'unavailable' }

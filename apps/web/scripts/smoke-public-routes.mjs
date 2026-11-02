@@ -61,10 +61,11 @@ export const SMOKE_PATHS = Object.freeze([
   { path: `${UNKNOWN_CARD}/contact.vcf`, pattern: '/c/[slug]/contact.vcf', status: 404, note: 'unknown but valid-looking slug' },
   { path: PUBLISHED_CARD, pattern: '/c/[slug]', status: 200, bodyIncludes: 'Smoke Test Owner', note: 'published card (stubbed row) renders CardView' },
   { path: `${PUBLISHED_CARD}/contact.vcf`, pattern: '/c/[slug]/contact.vcf', status: 200, bodyIncludes: 'Smoke Test Owner', note: 'published card (stubbed row)' },
-  // The review redirect reads card_profiles.google_place_id, which the stub refuses (as production does before the
-  // review migration is applied): the route answers 503, never a redirect or a false 404.
-  { path: `${UNKNOWN_CARD}/review`, pattern: '/c/[slug]/review', status: 503, note: 'review column read refused by the stub' },
-  { path: `${PUBLISHED_CARD}/review`, pattern: '/c/[slug]/review', status: 503, note: 'review column read refused by the stub' },
+  // The review redirect: the stub answers its REVIEW_COLUMNS read, so an unknown card is a plain 404 and the published
+  // card goes straight to Google's write-a-review page (exact URL, no gating page). The tap log RPC is refused like
+  // an outage, which also proves a logging fault never blocks the redirect.
+  { path: `${UNKNOWN_CARD}/review`, pattern: '/c/[slug]/review', status: 404, note: 'unknown but valid-looking slug' },
+  { path: `${PUBLISHED_CARD}/review`, pattern: '/c/[slug]/review', status: 302, locationHref: 'https://search.google.com/local/writereview?placeid=ChIJsmokeTestPlaceId0001', note: 'published card (stubbed Place ID)' },
   { path: '/c', pattern: null, status: 307, location: LOGIN_PATH, note: 'bare /c stays private' },
   { path: '/privacy-policy', pattern: '/privacy-policy', status: 200 },
   { path: '/terms-of-service', pattern: '/terms-of-service', status: 200 },
@@ -364,6 +365,10 @@ export function evaluateResponse(entry, { status, location, contentType, body },
       actual = null;
     }
     if (actual !== entry.location) return { ok: false, reason: `redirected to ${location ?? '(no Location)'}, expected ${entry.location}` };
+  }
+  // An off-site redirect is matched on the whole Location value: right host, path and query, nothing else.
+  if (entry.locationHref !== undefined && location !== entry.locationHref) {
+    return { ok: false, reason: `redirected to ${location ?? '(no Location)'}, expected ${entry.locationHref}` };
   }
   const textual = !contentType || /text|json|xml|vcard|javascript/i.test(contentType);
   if (textual) {
