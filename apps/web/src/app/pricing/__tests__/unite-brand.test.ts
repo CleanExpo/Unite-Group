@@ -38,7 +38,7 @@ describe('Unite Group brand only (UNI-3017)', () => {
     const llms = readFileSync(join(src, '..', 'public', 'llms.txt'), 'utf8')
     expect(llms).not.toMatch(/no subscription|Only the video business card is on sale|CRM and operating system/)
     expect(llms).toContain('Starter plan')
-    expect(llms).toContain(`$${STARTER_PLAN.priceAud} AUD a month`)
+    expect(llms).toContain(`A$${(STARTER_PLAN.priceAud * 1.1).toFixed(2)} a month, GST included ($${STARTER_PLAN.priceAud} plus GST)`)
     expect(llms).toContain(`$${SIGNATURE_ADDON.priceAud} AUD each`)
     expect(llms).not.toMatch(/^- Prices on this page/m)
   })
