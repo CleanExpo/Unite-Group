@@ -53,4 +53,13 @@ describe('/grow Living Business Card section', () => {
     expect(html).not.toMatch(/restoration|training/i)
     expect(GROW_CARD_OFFERS.map((o) => o.id)).toEqual(['ready', 'custom', 'extra_business', 'nfc_tap'])
   })
+
+  it('does not read as if extra businesses are included', () => {
+    vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_CUSTOM', 'https://buy.stripe.com/test_custom')
+    vi.stubEnv('STRIPE_PAYMENT_LINK_CARD_EXTRA_BUSINESS', 'https://buy.stripe.com/test_extra')
+    const html = render()
+    expect(offer(html, 'custom')).not.toMatch(/can include/i)
+    expect(offer(html, 'custom')).toContain('One business per card; extras are priced separately')
+    expect(offer(html, 'extra_business')).not.toContain('One card for several businesses')
+  })
 })
