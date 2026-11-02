@@ -51,6 +51,10 @@
  */
 import { createHash } from 'node:crypto'
 import missionAuthority from './mission-authority.json' with { type: 'json' }
+// One spelling of "is this word a path" and "what is this program called",
+// shared with the hook that supplies trustExecutable. A second copy here is how
+// a gate and the check it delegates to quietly stop agreeing (UNI-3153).
+import { isExplicitProgramPath, programBasename } from './executable-trust.ts'
 
 export type AutonomyTier = 'L0' | 'L1' | 'L2' | 'L3'
 
@@ -407,12 +411,22 @@ const SHELL_METACHARACTERS: ReadonlyArray<{ pattern: RegExp; name: string }> = [
 /**
  * Executables that run something else, so classifying them classifies nothing.
  * `xargs git` looks like `xargs`; `eval "$CMD"` looks like `eval`.
+ *
+ * The Windows row was added by UNI-3153, with the Windows trusted directories.
+ * Every name on it ships in System32, so each became reachable the moment that
+ * directory was trusted: `cmd /c`, `powershell -Command`, `wscript` and
+ * `cscript` run a script, `rundll32`, `regsvr32` and `mshta` run code out of a
+ * library or a page, `forfiles /c` runs a command per file, and `wsl` runs a
+ * Linux command with the lane's own files mounted. None of them is a command
+ * that can be reasoned about from its first word.
  */
 const INDIRECTION_EXECUTABLES = new Set([
   'eval', 'exec', 'source', '.', 'sh', 'bash', 'zsh', 'dash', 'ksh', 'fish',
   'env', 'xargs', 'nohup', 'nice', 'time', 'timeout', 'watch', 'sudo', 'doas',
   'su', 'ssh', 'scp', 'rsync', 'find', 'make', 'npx', 'pnpx', 'bunx', 'python',
   'python3', 'perl', 'ruby', 'node', 'deno', 'bun',
+  'cmd', 'powershell', 'pwsh', 'wscript', 'cscript', 'rundll32', 'regsvr32',
+  'mshta', 'forfiles', 'start', 'wsl',
 ])
 
 /**
@@ -794,7 +808,9 @@ export function classifyShellCommand(
   // not trusted at all. Checked before the policy mappings too, or a lane's
   // own `gh` script runs as the draft-PR action (Codex review r9).
   const firstWord = words[0] ?? ''
-  const trusted = trustExecutable ? trustExecutable(firstWord) : !firstWord.includes('/')
+  // `!firstWord.includes('/')` was this fallback, which on Windows read
+  // `C:\lane\cat.exe` as a bare name and trusted it (UNI-3153).
+  const trusted = trustExecutable ? trustExecutable(firstWord) : !isExplicitProgramPath(firstWord)
   if (!trusted) {
     return { tier: 'L3', reason: `'${firstWord}' does not resolve to a trusted system program` }
   }
@@ -809,7 +825,13 @@ export function classifyShellCommand(
     }
   }
 
-  const executable = (words[0] ?? '').split('/').pop() ?? ''
+  // Backslashes and a trailing `.exe` are part of the same name on Windows, so
+  // this is not `split('/')`: that left `C:\Windows\System32\cmd.exe` whole and
+  // the indirection check below looked up the entire string and missed
+  // (UNI-3153). Measured, not assumed: that command was still refused, by the
+  // operand check further down, for its backslashes. The wrong refusal, which
+  // is why it is fixed here — see programBasename for the whole reasoning.
+  const executable = programBasename(words[0] ?? '')
   if (executable === '') {
     return { tier: 'L3', reason: 'command has no resolvable executable' }
   }

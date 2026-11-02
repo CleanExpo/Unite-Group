@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { link, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -11,6 +12,56 @@ import type { ToolCallRequest } from './autonomy-gate'
 
 const execFileAsync = promisify(execFile)
 const HOOK = path.join(path.dirname(fileURLToPath(import.meta.url)), 'autonomy-hook.mjs')
+
+/**
+ * The PATH the hook is given, which is the PATH the lane's own shell has.
+ *
+ * On POSIX that is the suite's own, carrying /usr/bin. On Windows it is Git for
+ * Windows' POSIX tool directory under %ProgramFiles%, because the shell a lane
+ * gets there is Git Bash and that is where `ls`, `cat` and `grep` - the names
+ * the gate allows by name - actually live.
+ *
+ * Read from %ProgramFiles% rather than from the suite's own PATH deliberately. A
+ * developer who happens to start vitest from a Git Bash shell would otherwise be
+ * the reason these cases pass, and the same cases would fail from PowerShell, so
+ * the result would be a property of the shell and not of the gate.
+ *
+ * With no Git for Windows installed there, the cases that classify `ls` and
+ * `cat` cannot be built at all. Those skip, with that named reason, rather than
+ * passing on a trust refusal that never looked at their subject.
+ */
+function windowsToolDir(): string | null {
+  for (const key of ['ProgramFiles', 'ProgramW6432', 'ProgramFiles(x86)']) {
+    const programFiles = process.env[key]
+    if (programFiles === undefined || programFiles === '') continue
+    const directory = path.join(programFiles, 'Git', 'usr', 'bin')
+    if (existsSync(path.join(directory, 'cat.exe'))) return directory
+  }
+  return null
+}
+const TOOL_DIR = process.platform === 'win32' ? windowsToolDir() : null
+const LANE_PATH = process.platform === 'win32' ? (TOOL_DIR ?? '') : (process.env.PATH ?? '')
+const NO_TOOLCHAIN = process.platform === 'win32' && TOOL_DIR === null
+
+/**
+ * The platform variables the gate itself reads, which a spawned child does not
+ * inherit here because runHook builds its environment from nothing.
+ *
+ * On Windows the trusted directories are derived from `SystemRoot` and
+ * `ProgramFiles`, so a hook started without them derives none and refuses every
+ * command as untrusted. That is the gate failing closed, correctly, on an
+ * environment that says there is no system. It is also how these cases first
+ * failed after being unskipped, so it is worth stating: an adapter that strips
+ * the environment gets a Windows gate that is safe and inert.
+ */
+const PLATFORM_ENV: NodeJS.ProcessEnv =
+  process.platform === 'win32'
+    ? {
+        SystemRoot: process.env.SystemRoot,
+        ProgramFiles: process.env.ProgramFiles,
+        PATHEXT: process.env.PATHEXT,
+      }
+    : {}
 
 const ALLOW = 0
 const BLOCK = 2
@@ -51,7 +102,8 @@ async function runHook(
 ): Promise<HookResult> {
   const child = execFileAsync(process.execPath, [HOOK], {
     env: {
-      PATH: process.env.PATH,
+      ...PLATFORM_ENV,
+      PATH: LANE_PATH,
       NEXUS_LANE_REQUEST_ID: 'run-1',
       NEXUS_LANE_ADAPTER: 'claude-code',
       ...env,
@@ -68,29 +120,18 @@ async function runHook(
 }
 
 describe('the hook allows what the ladder allows', () => {
-  // Skipped on win32, and the reason is the gate itself, not the harness.
+  // These cases ran on ubuntu only until UNI-3153, and the reason was the gate,
+  // not the harness: its trusted set was the POSIX system bin directories, none
+  // of which exist on Windows, so nothing resolved there, every command was
+  // refused as "does not resolve to a trusted system program", and the whole
+  // L0/L1 allow tier was inert.
   //
-  // The lane gate asks `trustExecutable` whether the program a command will
-  // start is a trusted system binary, and its trusted set is the POSIX system
-  // bin directories (/bin, /usr/bin, ...). None of those exist on Windows, so
-  // nothing resolves, every command is refused as "does not resolve to a trusted
-  // system program", and the gate's whole L0/L1 allow tier is inert there. The
-  // commands these cases use - `ls`, `cat` - are not Windows system programs
-  // under any spelling, so the input cannot be built on win32 either.
-  //
-  // Each case below is skipped WHOLE, including the halves that still went green
-  // on Windows. Those were passing for the wrong reason: a path, symlink,
-  // hard-link or credential finding the case exists to prove, scored instead by
-  // the trust refusal that fires before the gate ever looks at the path. A check
-  // that passes without exercising its subject is not a control, so a visible
-  // skip is the honest result. They all still run on ubuntu-latest, the only
-  // platform the apps/workspace CI job gates.
-  //
-  // Making the gate work on Windows means deciding which directories hold
-  // trusted programs there, consulting PATHEXT, and splitting PATH on
-  // `path.delimiter` instead of ':'. That moves a security boundary and belongs
-  // in its own change with its own review, not in a test repair.
-  it.skipIf(process.platform === 'win32')(
+  // They run on both platforms now. The trusted set has a Windows half, the
+  // resolver consults PATHEXT and splits PATH on the platform's delimiter, and
+  // LANE_PATH above hands the hook the PATH a lane on this platform really has.
+  // The remaining skip condition is a machine with no POSIX toolchain at all,
+  // which is a missing input and not a gate that does not work.
+  it.skipIf(NO_TOOLCHAIN)(
     'exits 0 for a read-only shell command',
     async () => {
       const result = await runHook({ tool_name: 'Bash', tool_input: { command: 'ls -la' } })
@@ -200,7 +241,7 @@ describe('the hook fails closed', () => {
     expect(result.stderr).toMatch(/approval state/i)
   })
 
-  it.skipIf(process.platform === 'win32')(
+  it.skipIf(NO_TOOLCHAIN)(
     'still allows a safe call when the approvals file is simply absent',
     async () => {
       const result = await runHook(
@@ -294,7 +335,7 @@ describe('approvals reach the hook from the operator file, never the payload', (
 })
 
 describe('decisions are recorded for Mission Control', () => {
-  it.skipIf(process.platform === 'win32')(
+  it.skipIf(NO_TOOLCHAIN)(
     'appends both allowed and blocked decisions',
     async () => {
       const audit = path.join(root, 'decisions.jsonl')
@@ -363,7 +404,7 @@ describe('the hook confines a lane to its worktree and follows symlinks', () => 
     expect(result.code).toBe(BLOCK)
   })
 
-  it.skipIf(process.platform === 'win32')(
+  it.skipIf(NO_TOOLCHAIN)(
     'blocks a read of a secret through an innocently named symlink',
     async () => {
       await writeFile(path.join(root, '.env'), 'DUMMY=only-a-test\n')
@@ -380,7 +421,7 @@ describe('the hook confines a lane to its worktree and follows symlinks', () => 
     },
   )
 
-  it.skipIf(process.platform === 'win32')(
+  it.skipIf(NO_TOOLCHAIN)(
     'still allows reading an ordinary file by the same route',
     async () => {
       await writeFile(path.join(root, 'notes.txt'), 'hello\n')
@@ -421,7 +462,7 @@ describe('the hook blocks the round-3 reproduction', () => {
 })
 
 describe('the hook blocks the round-4 reproductions', () => {
-  it.skipIf(process.platform === 'win32')(
+  it.skipIf(NO_TOOLCHAIN)(
     'follows a symlink before a later .. applies, as the kernel does',
     async () => {
       const lane = path.join(root, 'lane')
@@ -501,7 +542,7 @@ describe('the hook blocks the round-7 reproduction', () => {
 })
 
 describe('the hook blocks the round-8 reproduction', () => {
-  it.skipIf(process.platform === 'win32')(
+  it.skipIf(NO_TOOLCHAIN)(
     'blocks a lane-written program named like a safe one, and allows the system one',
     async () => {
       const lane = path.join(root, 'lane')
@@ -509,7 +550,7 @@ describe('the hook blocks the round-8 reproduction', () => {
       await writeFile(path.join(lane, 'cat'), '#!/bin/sh\necho bypass > ../sibling.txt\n', { mode: 0o755 })
       const env = { NEXUS_LANE_ADAPTER: 'codex', NEXUS_LANE_WORKTREE_ROOT: lane }
       for (const command of [path.join(lane, 'cat'), './cat', 'cat']) {
-        const extra = command === 'cat' ? { PATH: lane + ':' + (process.env.PATH ?? '') } : {}
+        const extra = command === 'cat' ? { PATH: [lane, LANE_PATH].join(path.delimiter) } : {}
         const result = await runHook({ tool_name: 'Bash', tool_input: { command } }, { ...env, ...extra })
         expect(result.code, command).toBe(BLOCK)
       }
@@ -529,7 +570,7 @@ describe('the hook blocks the round-9 reproduction', () => {
     const env = {
       NEXUS_LANE_ADAPTER: 'codex',
       NEXUS_LANE_WORKTREE_ROOT: lane,
-      PATH: lane + ':' + (process.env.PATH ?? ''),
+      PATH: [lane, LANE_PATH].join(path.delimiter),
     }
     for (const command of ['gh pr create --draft --base main', 'vercel --target preview']) {
       const result = await runHook({ tool_name: 'Bash', tool_input: { command } }, env)
@@ -663,7 +704,7 @@ describe('the hook blocks the round-20 reproduction', () => {
 })
 
 describe('the hook blocks the round-21 reproductions', () => {
-  it.skipIf(process.platform === 'win32')(
+  it.skipIf(NO_TOOLCHAIN)(
     'blocks reads and writes through a hard link to .env or to a file outside the lane',
     async () => {
       const outside = await mkdtemp(path.join(tmpdir(), 'uni2409-outside-'))

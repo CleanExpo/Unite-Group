@@ -24,6 +24,7 @@ import { appendFileSync, readFileSync, realpathSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
 import path from 'node:path'
 import { evaluateToolCall } from './autonomy-gate.ts'
+import { makeExecutableTrust } from './executable-trust.ts'
 
 const BLOCK = 2
 const ALLOW = 0
@@ -123,65 +124,11 @@ function makeSharedFileCheck(resolvePath) {
   }
 }
 
-/**
- * Directories whose programs are system binaries, not files a lane wrote.
- * Trust is judged on a program's real path, so the directory a symlink lands in
- * must be listed. Ubuntu 26.04 links /usr/bin/cat, ls and the rest of coreutils
- * into /usr/lib/cargo/bin/coreutils (root-owned, written only by the package
- * manager); without it every coreutils program counts as untrusted (UNI-3475).
- */
-const SYSTEM_BIN_DIRS = [
-  '/bin',
-  '/usr/bin',
-  '/usr/local/bin',
-  '/sbin',
-  '/usr/sbin',
-  '/opt/homebrew/bin',
-  '/usr/lib/cargo/bin/coreutils',
-]
-
-function realOrNull(p) {
-  try {
-    return realpathSync(p)
-  } catch {
-    return null
-  }
-}
-
-/**
- * Find the program the shell will start for `word`, as the shell does: an
- * explicit path as written (relative to `base`), a bare name through PATH in
- * order, a relative or empty entry taken from the working directory. It is
- * trusted only if it really lives in a system bin directory, so a program the
- * working directory supplies (`./node_modules/.bin/cat`) is never trusted.
- */
-function makeExecutableTrust(base, resolvePath) {
-  const systemDirs = new Set(SYSTEM_BIN_DIRS.map(realOrNull).filter(Boolean))
-  return (word) => {
-    let candidate = null
-    if (word.includes('/')) {
-      candidate = resolvePath(word)
-    } else {
-      for (const entry of (process.env.PATH || '').split(':')) {
-        // An empty or relative entry is searched from the working directory,
-        // as the shell does; a match there is judged like any other.
-        const dir = path.isAbsolute(entry) ? entry : path.resolve(base, entry)
-        const file = path.join(dir, word)
-        try {
-          if (statSync(file).isFile()) {
-            candidate = file
-            break
-          }
-        } catch {
-          // not in this directory; keep looking
-        }
-      }
-    }
-    if (candidate === null) return false
-    const real = realOrNull(candidate)
-    return real !== null && systemDirs.has(path.dirname(real))
-  }
-}
+// The executable-trust decision moved to ./executable-trust.ts (UNI-3153). It is
+// the gate's security boundary and this file is a CLI that runs main() on
+// import, so it could not be unit-tested while it lived here. The trusted
+// directories, the PATH delimiter and the Windows name resolution live there
+// with their reasoning.
 
 /** Append the decision so Mission Control can show what was blocked, and why. */
 function audit(path, record) {
