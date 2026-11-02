@@ -12,7 +12,7 @@ const STEP_ICON: Record<PortalStep['id'], LucideIcon> = {
   reviews: Star,
 }
 
-/** The owner's welcome page: their card(s), the no-password promise and the five-step checklist. */
+/** The owner's welcome page: their card(s), the promise line and the five-step checklist. */
 export function PortalWelcome({ name, email, cardSlugs }: { name: string | null; email: string | null; cardSlugs: string[] }) {
   return (
     <PortalShell
@@ -39,7 +39,7 @@ export function PortalWelcome({ name, email, cardSlugs }: { name: string | null;
             </div>
             <div className={`${s.panel} ${s.promise}`}>
               <ShieldCheck size={22} aria-hidden="true" className={s.promiseIcon} />
-              <p className={s.promiseText} data-testid="portal-no-password">{NO_PASSWORD_LINE}</p>
+              <p className={s.promiseText} data-testid="portal-promise">{NO_PASSWORD_LINE}</p>
             </div>
           </div>
         </div>

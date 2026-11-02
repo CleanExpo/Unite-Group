@@ -1,78 +1,115 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { NO_PASSWORD_LINE } from '@/components/portal/portal-copy'
+
 // The portal promise is "You never give us your password." This test holds the code to it: no file in the portal
 // route group or the portal components may ask an owner for a password or their login details.
-// Test files are skipped (they hold the planted samples below); everything else under the two roots is read.
+//
+// The rule is a ban, not a list of shapes. Any password wording anywhere in a portal source file fails, in an
+// attribute, in rendered text, in a string or in a comment. The only exceptions are the exact approved promise line
+// and the name of the constant that holds it. A matcher for known attribute shapes missed visible text such as
+// "Enter your Google password" and computed input types (independent review, 02/11/2026), so the shapes are gone.
+// Separately, an input type may only be a literal: `type={anything}` is refused, so a type cannot be assembled at run time.
 
 const SRC = join(__dirname, '..')
-const ROOTS = [join(SRC, 'app', '(portal)'), join(SRC, 'components', 'portal')]
+const PORTAL_ROOTS = [join(SRC, 'app', '(portal)'), join(SRC, 'components', 'portal')]
 
 function files(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
     const path = join(dir, name)
     if (statSync(path).isDirectory()) return name === '__tests__' ? [] : files(path)
-    return /\.(tsx?|jsx?|mdx?|css|json)$/.test(name) ? [path] : []
+    return [path]
   })
 }
 
-const SECRET = String.raw`(?:pass(?:word|wd|code|phrase)?|pwd|login[\s_-]*details|log[\s_-]*in[\s_-]*details|sign[\s_-]*in[\s_-]*details)`
+// Words that ask for or name a secret sign-in value.
+const SECRET_WORDS =
+  /pass\s*-?\s*(?:word|wd|code|phrase)|\bpwd\b|\bpasswd\b|\b(?:log|sign)[\s_-]*(?:in|on)[\s_-]*(?:details|credentials)\b|\blogin[\s_-]*(?:details|credentials)\b|\bcredentials?\b|current-password|new-password/i
 
-const RULES: { name: string; pattern: RegExp }[] = [
-  // type="password", type='password', type={'password'}, type: 'password'
-  { name: 'password input type', pattern: /\btype\s*(?:=|:)\s*\{?\s*["'`]password["'`]/i },
-  // name/id/htmlFor/autoComplete naming a password field
-  { name: 'password field name or id', pattern: new RegExp(String.raw`\b(?:name|id|htmlFor|autoComplete)\s*(?:=|:)\s*\{?\s*["'\`][^"'\`]*(?:passw|passwd|pwd|current-password|new-password)`, 'i') },
-  // the Input component's label prop, placeholders and accessible names asking for a secret
-  { name: 'label or placeholder asking for a password', pattern: new RegExp(String.raw`\b(?:label|placeholder|aria-label|title)\s*(?:=|:)\s*\{?\s*["'\`][^"'\`]*${SECRET}`, 'i') },
-  // <label ...>Your password</label> and the like
-  { name: '<label> text asking for a password', pattern: new RegExp(String.raw`<label\b[^>]*>[^<]*${SECRET}`, 'i') },
-  // a direct password sign-in call
-  { name: 'password sign-in call', pattern: /signInWithPassword|updateUser\(\s*\{\s*password/ },
-]
+// The only places the word may appear: the approved line itself (as written in source, in any quote style) and the
+// constant name that carries it to the page.
+const ALLOWED = [NO_PASSWORD_LINE, NO_PASSWORD_LINE.replace(/'/g, "\\'"), NO_PASSWORD_LINE.replace(/'/g, '&apos;'), 'NO_PASSWORD_LINE']
 
+/** Every reason this source would let the portal ask for a password. Empty means clean. */
 function findings(source: string): string[] {
-  return RULES.filter((rule) => rule.pattern.test(source)).map((rule) => rule.name)
+  let text = source
+  for (const ok of ALLOWED) text = text.split(ok).join(' ')
+  const out: string[] = []
+  const word = text.match(SECRET_WORDS)
+  if (word) out.push(`password wording: "${word[0]}"`)
+  // type={...} lets a page build "password" from parts at run time; only literal types are allowed.
+  if (/\btype\s*=\s*\{/.test(text)) out.push('computed input type')
+  if (/\btype\s*:\s*(?!['"`])[A-Za-z_$]/.test(text)) out.push('computed input type (props object)')
+  return out
+}
+
+function scanRoots(): { file: string; problems: string[] }[] {
+  return PORTAL_ROOTS.flatMap(files).map((file) => ({ file, problems: findings(readFileSync(file, 'utf8')) }))
 }
 
 describe('the portal never asks for a password', () => {
-  const scanned = ROOTS.flatMap(files)
-
   it('reads the real portal files (positive control on the scan itself)', () => {
-    const names = scanned.map((f) => relative(SRC, f))
+    const names = PORTAL_ROOTS.flatMap(files).map((f) => relative(SRC, f))
     expect(names).toContain(join('app', '(portal)', 'layout.tsx'))
     expect(names).toContain(join('app', '(portal)', 'portal', 'page.tsx'))
     expect(names).toContain(join('components', 'portal', 'portal-welcome.tsx'))
-    expect(scanned.length).toBeGreaterThanOrEqual(8)
+    expect(names).toContain(join('components', 'portal', 'portal-copy.ts'))
+    expect(names.length).toBeGreaterThanOrEqual(10)
   })
 
-  it.each(ROOTS.flatMap(files).map((f) => [relative(SRC, f), f]))('%s has no password field, name or prompt', (_name, file) => {
-    expect(findings(readFileSync(file, 'utf8'))).toEqual([])
+  it('finds nothing in the portal as it stands', () => {
+    expect(scanRoots().filter((r) => r.problems.length > 0)).toEqual([])
   })
 
-  // Each planted sample must be caught, so a clean result above means the rules can actually fire.
+  it('still lets the approved promise line through, and only that line', () => {
+    expect(findings(`export const NO_PASSWORD_LINE = "${NO_PASSWORD_LINE}"`)).toEqual([])
+    expect(findings('<p>{NO_PASSWORD_LINE}</p>')).toEqual([])
+    expect(findings('<p>You never give us your password.</p>').length).toBeGreaterThan(0)
+  })
+
+  // Each planted sample must be caught.
   it.each([
     '<input type="password" />',
     "<Input type={'password'} />",
-    "{ type: 'password' }",
-    '<input name="password" />',
-    '<input id="login-passwd" />',
+    "const fieldKind = 'password'; return <input type={fieldKind} />",
+    "const k = 'pass' + 'word'; return <input type={k} />",
+    "createElement('input', { type: kind })",
     '<input name="pwd" />',
+    '<input id="login-passwd" />',
     '<Input autoComplete="current-password" />',
     '<Input label="Password" />',
-    '<input placeholder="Enter your Google password" />',
+    '<p>Enter your Google password to connect your account.</p>',
+    '<p>Type your passcode here</p>',
+    '<label htmlFor="x">Your Microsoft pass word</label>',
     '<input aria-label="Your login details" />',
-    '<label htmlFor="x">Your password</label>',
-    '<label>Sign-in details</label>',
+    '<p>Send us your sign-in details</p>',
+    '<p>We need your credentials</p>',
     'await supabase.auth.signInWithPassword({ email, password })',
   ])('catches a planted password request: %s', (sample) => {
     expect(findings(sample).length).toBeGreaterThan(0)
   })
 
-  it('does not flag the promise itself', () => {
-    expect(findings('<p>{NO_PASSWORD_LINE}</p>')).toEqual([])
-    expect(findings("export const NO_PASSWORD_LINE = \"You never give us your password. You click Allow on Google's or Microsoft's own screen.\"")).toEqual([])
+  // The same planted requests, written as real files inside each scanned root, must turn the real scan red.
+  it.each(PORTAL_ROOTS.map((root) => [relative(SRC, root), root]))('fails the real file scan when a prompt is planted in %s', (_name, root) => {
+    // A unique name per run, and 'wx' refuses to overwrite: a plant must never replace or delete a real file.
+    const tag = `zz-plant-${process.pid}-${Date.now()}`
+    const plants = [
+      [`${tag}-text.tsx`, 'export const X = () => <p>Enter your Google password to connect your account.</p>\n'],
+      [`${tag}-computed.tsx`, "const fieldKind = 'pass' + 'word'\nexport const Y = () => <input type={fieldKind} />\n"],
+    ]
+    for (const [name, body] of plants) {
+      const path = join(root, name)
+      writeFileSync(path, body, { flag: 'wx' })
+      try {
+        const hit = scanRoots().find((r) => r.file === path)
+        expect(hit?.problems.length, `${name} in ${root}`).toBeGreaterThan(0)
+      } finally {
+        rmSync(path, { force: true })
+      }
+    }
+    expect(scanRoots().filter((r) => r.problems.length > 0)).toEqual([])
   })
 })
