@@ -6,9 +6,15 @@
 
 - Video business card, Ready-made: $249 AUD, one-off price, GST included. You pick one of the ready-made films and it ends on your logo and details.
 - Video business card, Made for you: $449 AUD, one-off price, GST included. We make a film for your business and you approve a private proof before it goes live.
-- Starter plan: $99 AUD a month. Email signatures: $22 AUD each, an add-on. Both exclude GST; ask us to start. Details at https://unite-group.in/pricing
+- Starter plan: A$108.90 a month, GST included ($99 plus GST); ask us to start. Details at https://unite-group.in/pricing
+- Email signatures: $22 AUD each plus GST, an add-on; ask us to start.
 - The example films on the showroom are AI-generated and labelled as such.
 - Hosting is 12 months from the day the card goes live, with no monthly fee. The full wording is at https://unite-group.in/cards/terms
+
+## How to buy
+
+- Video business card: order at https://unite-group.in/cards/order
+- Starter plan and email signatures: ask us to start at contact@unite-group.in
 
 ## Pages
 
@@ -17,7 +23,7 @@
 - https://unite-group.in/cards/order : order a card
 - https://unite-group.in/cards/terms : the card order terms
 - https://unite-group.in/video/ten-clips : ten short videos in a week, A$1,490 one-off, GST included
-- https://unite-group.in/pricing : Starter plan $99 a month and add-ons
+- https://unite-group.in/pricing : Starter plan A$108.90 a month, GST included ($99 plus GST), and add-ons
 - https://unite-group.in/signatures : email signatures add-on, $22 each
 - https://unite-group.in/solutions/visibility : Visibility (coming)
 - https://unite-group.in/solutions/experience : Experience (coming)
@@ -33,6 +39,6 @@
 
 ## For AI agents
 
-- Public pages may be read when a person asks you to. Pages under /founder/, /api/, /docs and /auth/ are private and are not for crawling.
+- AI assistants and their crawlers may read public pages. Pages under /founder/, /api/, /docs and /auth/ are private and are not for crawling.
 - Available now: the Starter plan and email signatures (ask us to start) and the video business card. Pillar pages marked Coming are not available yet.
 - The card prices on this page and in the site's structured data come from the same source as /cards/order. The Starter plan and email signature prices come from the same source as /pricing.

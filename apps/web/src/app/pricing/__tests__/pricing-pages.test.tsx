@@ -57,7 +57,10 @@ describe('/pricing (UNI-3017)', () => {
     expect(pricingMeta.description).toContain('plus GST')
     const llms = readFileSync(join(root, 'public', 'llms.txt'), 'utf8')
     expect(llms).not.toMatch(/on sale/i)
-    expect(llms).toContain('Both exclude GST')
+    const starterTotal = `A$${(STARTER_PLAN.priceAud * 1.1).toFixed(2)} a month, GST included`
+    expect(llms).toContain(`- Starter plan: ${starterTotal}`)
+    expect(llms).toContain(`/pricing : Starter plan ${starterTotal}`)
+    expect(llms).toContain(`$${SIGNATURE_ADDON.priceAud} AUD each plus GST`)
   })
   it('is canonical and never names the restoration sister companies', () => {
     expect(pricingMeta.alternates?.canonical).toBe('https://unite-group.in/pricing')

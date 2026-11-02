@@ -35,6 +35,12 @@ describe('entity JSON-LD (AC-8)', () => {
       expect(products[i].offers['@type']).toBe('Offer')
       expect(products[i].offers.price).toBe(String(t.priceAud))
       expect(products[i].offers.priceCurrency).toBe('AUD')
+      expect(products[i].offers.priceSpecification).toEqual({
+        '@type': 'PriceSpecification',
+        price: String(t.priceAud),
+        priceCurrency: 'AUD',
+        valueAddedTaxIncluded: true,
+      })
       expect(products[i].offers.availability).toBe('https://schema.org/InStock')
     })
   })

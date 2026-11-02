@@ -28,18 +28,28 @@ describe('robots (AC-7)', () => {
   const rules = () => [robots().rules].flat()
   const forAgent = (a: string) => rules().find((r) => [r.userAgent].flat().includes(a))
 
-  it('keeps /founder/, /api/ and /docs disallowed for everyone who may read the site', () => {
-    for (const agent of ['*', 'ChatGPT-User', 'Claude-Web']) {
+  const ALLOWED_AI = [
+    'GPTBot', 'OAI-SearchBot', 'ChatGPT-User', 'ClaudeBot', 'Claude-User',
+    'Claude-SearchBot', 'Claude-Web', 'Google-Extended', 'PerplexityBot', 'Perplexity-User',
+  ]
+
+  it('keeps every private path disallowed, exactly, for everyone who may read the site', () => {
+    for (const agent of ['*', ...ALLOWED_AI]) {
       const r = forAgent(agent)!
       expect(r, agent).toBeTruthy()
-      expect([r.disallow].flat()).toEqual(expect.arrayContaining(['/founder/', '/api/', '/docs']))
-      expect(r.allow).toBe('/')
+      expect(r.disallow, agent).toEqual(['/founder/', '/api/', '/docs', '/auth/'])
+      expect(r.allow, agent).toBe('/')
     }
   })
 
-  it('lets user-triggered fetchers read public paths and blocks training crawlers outright', () => {
-    for (const agent of ['ChatGPT-User', 'Claude-Web', 'Claude-User']) expect(forAgent(agent)!.allow).toBe('/')
-    for (const agent of ['GPTBot', 'CCBot', 'anthropic-ai', 'ClaudeBot', 'Google-Extended']) {
+  it('never disallows /cards for the named AI assistants', () => {
+    for (const agent of ALLOWED_AI) {
+      for (const path of [forAgent(agent)!.disallow].flat()) expect('/cards'.startsWith(path as string), agent).toBe(false)
+    }
+  })
+
+  it('blocks the crawlers not named by the founder decision outright', () => {
+    for (const agent of ['CCBot', 'anthropic-ai', 'Applebot-Extended', 'Bytespider']) {
       const r = forAgent(agent)!
       expect(r, agent).toBeTruthy()
       expect(r.disallow).toBe('/')

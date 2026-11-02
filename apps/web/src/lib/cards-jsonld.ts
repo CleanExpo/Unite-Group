@@ -23,6 +23,7 @@ export function cardsShowroomJsonLd(): Record<string, unknown> | null {
       name: tier.name,
       price: tier.priceAud,
       priceCurrency: 'AUD',
+      priceSpecification: { '@type': 'PriceSpecification', price: tier.priceAud, priceCurrency: 'AUD', valueAddedTaxIncluded: true },
       availability: 'https://schema.org/InStock',
       url: `${SITE_URL}/cards/order`,
       priceValidUntil: new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10),

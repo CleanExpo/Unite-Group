@@ -52,6 +52,7 @@ export function cardProductsJsonLd() {
       '@type': 'Offer',
       price: String(tier.priceAud),
       priceCurrency: 'AUD',
+      priceSpecification: { '@type': 'PriceSpecification', price: String(tier.priceAud), priceCurrency: 'AUD', valueAddedTaxIncluded: true },
       availability: 'https://schema.org/InStock',
       url: `${SITE_URL}/cards/order`,
       seller: { '@id': ORG_ID },
