@@ -49,7 +49,7 @@ export const FAQ_FACTS: FaqFact[] = [
   {
     question: 'How many rounds of changes do I get?',
     answer: [
-      'Ready-made includes 3 rounds. Made for you includes 10 rounds.', // 6.2
+      'Starter pack includes 3 rounds. Business Pack includes 10 rounds.', // 6.2
       'A round covers corrections and small changes.', // 6.3
     ],
   },

@@ -96,7 +96,7 @@ describe('buildFollowUpEmail', () => {
     const all = `${m.subject}\n${m.text}\n${m.html}`
     expect(all).not.toMatch(/nexus|carsi|restoration|disaster|nrpg/i)
     expect(all).not.toMatch(/\d+\s*(stars?|reviews|customers)/i)
-    expect(m.text).toContain('Made for you')
+    expect(m.text).toContain('Business Pack')
     expect(m.html).not.toContain('<b>')
     expect(m.html).toContain('&lt;b&gt;Sam')
   })

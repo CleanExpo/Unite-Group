@@ -21,6 +21,8 @@ const siteNav = () => norm(renderToStaticMarkup(createElement(SiteNav))).replace
 
 const TERMS =
   '<p class="_chosen">By paying you agree to our order terms. <a href="/cards/terms" class="_navLink">Order terms</a></p>'
+const TERMS_OFFLINE =
+  '<p class="_chosen">Our order terms apply when we build your card. <a href="/cards/terms" class="_navLink">Order terms</a></p>'
 const NOTICE = /<aside[^>]*data-collection-notice="card-enquiry"[^>]*>[\s\S]*?<\/aside>/
 const PAYMENT = /<p class="_payEntity">[^<]*<\/p>/g
 
@@ -29,6 +31,7 @@ function strip(html: string) {
     .replace(NAV_LOGO_PRELOAD, '')
     .replace(siteNav(), '')
     .replace(TERMS, '')
+    .replace(TERMS_OFFLINE, '')
     .replace(NOTICE, '')
     .replace(PAYMENT, '')
 }

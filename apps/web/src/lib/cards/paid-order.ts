@@ -12,6 +12,7 @@
 import type Stripe from 'stripe'
 
 import { CARD_EXTRA_BUSINESS, CARD_TIERS } from '@/app/cards/order/order-view'
+import { provisionCardOrder } from '@/lib/card/staff-provisioning'
 import { leadAlertEmailTo, mailtrapFromEmail, sendEmail } from '@/lib/integrations/mailtrap'
 import type { createServiceClient } from '@/lib/supabase/service'
 
@@ -133,7 +134,11 @@ export async function recordPaidCardOrder(admin: Admin, event: Stripe.Event): Pr
     ...(purchase.kind === 'extra_business' ? { quantity: purchase.quantity } : {}),
   })
   if (error) {
-    if ((error as { code?: string }).code === '23505') return 'duplicate'
+    if ((error as { code?: string }).code === '23505') {
+      // A redelivery, possibly because set-up failed last time. Set-up is safe to repeat; the emails below are not sent again.
+      await provisionCardOrder(admin, session.id)
+      return 'duplicate'
+    }
     throw new Error(`card_orders insert failed: ${(error as { message?: string }).message ?? 'unknown'}`)
   }
 
@@ -141,6 +146,8 @@ export async function recordPaidCardOrder(admin: Admin, event: Stripe.Event): Pr
   if (purchase.kind === 'tier') {
     await sendBuyerWelcome(session.customer_details?.email?.trim() || null, name, purchase.tier, event.livemode)
   }
+  // After the emails, so a failed set-up throws, Stripe retries, and the retry reaches this through the duplicate path above.
+  await provisionCardOrder(admin, session.id)
   return 'created'
 }
 
@@ -158,7 +165,7 @@ async function sendOrderAlert(
   const line =
     purchase.kind === 'tier'
       ? `${who} paid for the ${purchase.tier.name} living card (A$${purchase.tier.priceAud}).`
-      : `${who} paid for ${purchase.quantity} staff card${purchase.quantity > 1 ? 's' : ''} on the Made for you living card (A$${amountCents / 100}).`
+      : `${who} paid for ${purchase.quantity} staff card${purchase.quantity > 1 ? 's' : ''} for a Business Pack account (A$${amountCents / 100}).`
   try {
     await sendEmail({
       to: { email: to },

@@ -213,7 +213,7 @@ describe('POST /api/cards/intake', () => {
     const mail = (sendEmail as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]
     expect(mail.to).toEqual({ email: 'contact@unite-group.in' })
     expect(mail.replyTo).toEqual({ email: 'sample@example.invalid' })
-    expect(mail.subject).toContain('Made for you')
+    expect(mail.subject).toContain('Business Pack')
     expect(mail.text).toContain('Show at the end of the film: Sample Client, Director, 0400 000 000')
     expect(mail.text).toContain('Logo link: https://example.invalid/logo.png')
     expect(mail.html).toContain('&lt;b&gt;modern&lt;/b&gt;')

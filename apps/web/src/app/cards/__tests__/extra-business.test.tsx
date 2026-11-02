@@ -29,7 +29,7 @@ describe('staff card add-on placement', () => {
   it('renders inside the custom tier only, not the ready tier', () => {
     env({ ready: true, custom: true, extra: ADDON })
     const h = html()
-    expect(tierSlice(h, 'custom')).toContain('Add staff cards, AUD 199 each, GST included. One card per staff member, no limit.')
+    expect(tierSlice(h, 'custom')).toContain('Add staff cards, AUD 199 each, GST included. One card per staff member, no limit, 3 rounds of changes each.')
     expect(tierSlice(h, 'ready')).not.toContain('Add staff cards')
     expect(tierSlice(h, 'ready')).not.toContain('staff card')
   })

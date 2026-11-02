@@ -17,21 +17,23 @@ import { BuyFilm, StickyBar } from './order-buy'
 import s from './order.module.css'
 
 /**
- * The two card tiers (Phill, 23/10/2026). Prices are AUD, one-off, GST included.
+ * The two card tiers (Phill, 23/10/2026, renamed with round counts 02/11/2026). Prices are AUD, one-off, GST included.
  * A tier is shown, with its price, only while its own Stripe Payment Link is set.
  */
 export const CARD_TIERS = [
   {
     id: 'ready',
-    name: 'Ready-made',
+    name: 'Starter pack',
     priceAud: 249,
+    rounds: 3,
     line: 'Pick one of the ten card films below. It ends on your logo and details.',
     paymentLinkEnv: 'STRIPE_PAYMENT_LINK_CARD_READY',
   },
   {
     id: 'custom',
-    name: 'Made for you',
+    name: 'Business Pack',
     priceAud: 449,
+    rounds: 10,
     line: 'We make a film for your business. You approve a private proof before it goes live.',
     paymentLinkEnv: 'STRIPE_PAYMENT_LINK_CARD_CUSTOM',
   },
@@ -39,7 +41,7 @@ export const CARD_TIERS = [
 
 /**
  * The staff-card add-on (Phill, 02/11/2026, was "extra business, up to five" from 25/10/2026): AUD 199
- * each, one-off, GST included, no limit, on the Made for you card only. The id and env names keep their
+ * each, one-off, GST included, no limit, 3 rounds each, linked to the owner's Business Pack account. The id and env names keep their
  * original extra_business spelling so live payment links, the webhook and stored orders are unchanged. Kept out of CARD_TIERS: it is not a card on its own. Shown only while its
  * own Stripe Payment Link is set; that link is a separate payment with an adjustable quantity.
  */
@@ -47,6 +49,7 @@ export const CARD_EXTRA_BUSINESS = {
   id: 'extra_business',
   name: 'Staff card',
   priceAud: 199,
+  rounds: 3,
   forTier: 'custom',
   paymentLinkEnv: 'STRIPE_PAYMENT_LINK_CARD_EXTRA_BUSINESS',
 } as const
@@ -137,6 +140,7 @@ export function OrderView({ edition, referrer }: { edition: string | null; refer
                           <span className={s.priceNote}>AUD</span>
                         </p>
                         <p className={s.tierLine}>{t.line}</p>
+                        <p className={s.tierLine} data-tier-rounds>Includes {t.rounds} rounds of changes.</p>
                         <a
                           href={t.link}
                           rel="noopener"
@@ -144,7 +148,7 @@ export function OrderView({ edition, referrer }: { edition: string | null; refer
                           data-track-label={`order-tier-${t.id}`}
                           className={`${s.primary} ${s.block}`}
                         >
-                          Order {t.name.toLowerCase()}
+                          Order {t.name}
                         </a>
                         <p className={s.payEntity}>{PAYMENT_ENTITY_LINE}</p>
                         {extraLink && t.id === CARD_EXTRA_BUSINESS.forTier ? (

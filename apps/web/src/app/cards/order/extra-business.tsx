@@ -8,7 +8,7 @@ import s from './extra-business.module.css'
 const plural = (n: number) => `${n} staff ${n === 1 ? 'card' : 'cards'}`
 
 /**
- * The staff-card add-on on the Made for you tier (one card per staff member, no limit). Stripe Payment Link URLs take no quantity, so the
+ * The staff-card add-on on the Business Pack tier (one card per staff member, no limit). Stripe Payment Link URLs take no quantity, so the
  * add-on is a second payment: the buyer's count is shown here and set again on Stripe. At zero no link renders.
  */
 export function ExtraBusiness({ link, priceAud }: { link: string; priceAud: number }) {
@@ -17,7 +17,7 @@ export function ExtraBusiness({ link, priceAud }: { link: string; priceAud: numb
   return (
     <div role="group" aria-labelledby="extra-business-label" className={s.box} data-extra-business>
       <p id="extra-business-label" className={s.label}>
-        Add staff cards, AUD {priceAud} each, GST included. One card per staff member, no limit.
+        Add staff cards, AUD {priceAud} each, GST included. One card per staff member, no limit, 3 rounds of changes each. You control the business details on every card; each staff member changes only their own name, photo and mobile.
       </p>
       <div className={s.stepper}>
         <button

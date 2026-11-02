@@ -28,7 +28,7 @@ import { EDITIONS } from '@/app/cards/editions'
 import { leadAlertEmailTo, mailtrapFromEmail, sendEmail } from '@/lib/integrations/mailtrap'
 import { createServiceClient } from '@/lib/supabase/service'
 
-/** The film values the thank-you form may send: any showroom edition, or Made for you (no film picked). */
+/** The film values the thank-you form may send: any showroom edition, or Business Pack (no film picked). */
 export const MADE_FOR_YOU = 'made-for-you'
 export const FILM_CHOICES: readonly string[] = [...EDITIONS.map((e) => e.name), MADE_FOR_YOU]
 
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
   }
   if (existing.length > 0) return NextResponse.json({ error: 'We already have your details for this order' }, { status: 409 })
 
-  const filmLabel = film === MADE_FOR_YOU ? 'Made for you (no film chosen)' : (EDITIONS.find((e) => e.name === film)?.label ?? film)
+  const filmLabel = film === MADE_FOR_YOU ? 'Business Pack (no film chosen)' : (EDITIONS.find((e) => e.name === film)?.label ?? film)
   const lines = [
     `Order reference: ${sessionId}`,
     `Tier: ${order.tier ?? 'unknown'}`,

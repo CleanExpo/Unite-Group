@@ -26,10 +26,14 @@ export function CardView({
         </div>
       ) : null}
       <article className={styles.card}>
+        {card.staff?.logoUrl ? <img className={styles.logo} src={card.staff.logoUrl} alt="" referrerPolicy="no-referrer" /> : null}
+        {card.staff?.photoUrl ? <img className={styles.photo} src={card.staff.photoUrl} alt={card.displayName} referrerPolicy="no-referrer" /> : null}
         {card.businessName ? <p className={styles.business}>{card.businessName}</p> : null}
         <h1 className={styles.name}>{card.displayName}</h1>
         {card.roleTitle ? <p className={styles.role}>{card.roleTitle}</p> : null}
         {card.serviceArea ? <p className={styles.area}>{card.serviceArea}</p> : null}
+        {card.staff?.address ? <p className={styles.area}>{card.staff.address}</p> : null}
+        {card.staff?.offer ? <p className={styles.area} data-card-offer>{card.staff.offer}</p> : null}
         <ul className={styles.actions}>
           {telHref ? (
             <li>
@@ -39,6 +43,11 @@ export function CardView({
           {card.email ? (
             <li>
               <a className={styles.button} href={`mailto:${card.email}`}>Email</a>
+            </li>
+          ) : null}
+          {card.staff?.website ? (
+            <li>
+              <a className={styles.button} href={card.staff.website} rel="noopener noreferrer nofollow">Website</a>
             </li>
           ) : null}
           <li>

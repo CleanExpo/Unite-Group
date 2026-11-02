@@ -81,7 +81,7 @@ export function IntakeForm({ reference }: { reference: string }) {
             {EDITIONS.map((e) => (
               <option key={e.name} value={e.name}>{e.label}</option>
             ))}
-            <option value="made-for-you">Made for you (we make one for your business)</option>
+            <option value="made-for-you">Business Pack (we make one for your business)</option>
           </select>
         </div>
         <div className={f.wide}>
@@ -94,7 +94,7 @@ export function IntakeForm({ reference }: { reference: string }) {
           <p className={f.hint}>No link? Leave this blank and reply to your payment receipt email with your logo attached (PNG, SVG or JPEG).</p>
         </div>
         <div className={f.wide}>
-          <label htmlFor="brief" className={f.label}>Made for you only: a short brief (optional)</label>
+          <label htmlFor="brief" className={f.label}>Business Pack only: a short brief (optional)</label>
           <textarea id="brief" name="brief" rows={4} maxLength={1500} placeholder="What your business does, and the feel you want" className={f.field} />
         </div>
         <div className={f.wide}>

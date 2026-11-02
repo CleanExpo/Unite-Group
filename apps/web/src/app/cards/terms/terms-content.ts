@@ -5,7 +5,7 @@
 // - 13.2 (enquiries) and 13.6 (retention) keep the softened wording: enquiry email delivery and 12-month deletion are not
 //   confirmed live, so the v4 wording would be untrue (UNI-3017).
 // - 3.4 says a tax invoice is sent on request: no automatic tax invoice email exists yet.
-// - the extra-business item under Made for you is kept from the previous version.
+// - the tier names (Starter pack, Business Pack; Phill 02/11/2026) and the two staff-card items under Business Pack differ from v4, pending the lawyer read.
 // Markers: "# " h1, "## " h2, "N. " list item, a whole line in ** ** a bold lead-in, anything else a paragraph.
 export const CARD_ORDER_TERMS = `# Living Business Card: Order Terms
 
@@ -20,16 +20,17 @@ export const CARD_ORDER_TERMS = `# Living Business Card: Order Terms
 
 Your card is digital: a short film and your own web page. We do not print or post a physical card.
 
-**Ready-made, AUD 249 (GST included)**
+**Starter pack, AUD 249 (GST included)**
 1. You pick one of our ten card films. It ends on your logo and details.
 2. Your own card web page with that film, your business name and your contact details.
 3. You approve a private preview before it goes live.
 
-**Made for you, AUD 449 (GST included)**
+**Business Pack, AUD 449 (GST included)**
 1. We make a film for your business, instead of you picking one of the ten.
 2. You approve a private preview before it goes live.
 3. Your own card web page with that film, your business name and your contact details.
-4. You can add staff cards to a Made for you order, at AUD 199 each (GST included), with no limit. Each staff card is for one staff member and includes 3 rounds. A new staff member needs a new staff card. They are paid as a separate payment.
+4. You can add staff cards to a Business Pack order, at AUD 199 each (GST included), with no limit. Each staff card is for one staff member and includes 3 rounds. A new staff member needs a new staff card. They are paid as a separate payment.
+5. The Business Pack buyer holds the main account and controls the business details shown on every staff card. A staff member can change only their own name, photo and mobile. Staff cards cannot be transferred to another person, and the main account holder can deactivate a staff card.
 
 We supply only what this section lists. Anything else is quoted separately before we start.
 
@@ -57,7 +58,7 @@ We supply only what this section lists. Anything else is quoted separately befor
 ## 6. Revisions
 
 1. Before your card goes live you can ask for changes to the preview. Each set of changes you send counts as one round.
-2. Ready-made includes 3 rounds. Made for you includes 10 rounds.
+2. Starter pack includes 3 rounds. Business Pack includes 10 rounds.
 3. A round covers corrections and small changes. A new concept or full redesign is not a revision; we quote it first.
 4. More rounds than included are quoted before we do them.
 5. If you do not reply to a preview within 14 days, we email a reminder. If you still do not reply within 7 days after that reminder, the preview counts as approved and we make the card live. The reminder email will say clearly that your card will go live if you do not reply. Going live this way does not stop you asking us to fix mistakes we made, and it does not affect your rights under the Australian Consumer Law.

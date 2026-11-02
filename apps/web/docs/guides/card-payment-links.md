@@ -18,7 +18,7 @@ changes nothing the second time. If the price of a tier changes, change `CARD_TI
 1. **Webhook endpoint.** Dashboard, Developers, Webhooks: the endpoint `https://unite-group.in/api/webhooks/stripe` must be
    subscribed to `checkout.session.completed` (it only receives events you select). Its signing secret is the existing
    `STRIPE_WEBHOOK_SECRET`.
-2. **Send the buyer to the thank-you page.** For each of the two Payment Links (Ready-made, Made for you): edit the link,
+2. **Send the buyer to the thank-you page.** For each of the two Payment Links (Starter pack, Business Pack): edit the link,
    "After the payment", choose "Don't show confirmation page", "Redirect customers to your website", and enter
    `https://unite-group.in/cards/thanks?session_id={CHECKOUT_SESSION_ID}`. Stripe replaces `{CHECKOUT_SESSION_ID}` with the
    real session id. The page finds the order by that session id alone, so this works whether or not the link has a `client_reference_id`. Without `session_id` in the address the form does not appear. When Stripe recorded the buyer's email, the email typed into the form must match it.
@@ -51,7 +51,27 @@ Each staff card is A$199, one-off, with no limit (one card per staff member; a n
 4. Apply `supabase/migrations/20261025200000_card_orders_extra_business.sql` and then `supabase/migrations/20261102120000_card_orders_staff_card_no_limit.sql` first (founder-gated; until then add-on orders fail to insert, the webhook answers 500 and Stripe retries).
 5. Set `STRIPE_PAYMENT_LINK_CARD_EXTRA_BUSINESS` (the `https://buy.stripe.com/...` URL) and `STRIPE_CARD_EXTRA_BUSINESS_PAYMENT_LINK_ID` (the `plink_...` id).
 
-The webhook records a payment from that link as tier `extra_business` with the quantity worked out from the amount (any whole number of A$199). A discounted or odd amount on that link is not recorded (a warning is logged). An add-on payment is not linked to the Made for you order automatically; match it by buyer name or email.
+The webhook records a payment from that link as tier `extra_business` with the quantity worked out from the amount (any whole number of A$199). A discounted or odd amount on that link is not recorded (a warning is logged). See "Business Pack accounts and staff cards" below for how it links to the owner's account.
+
+## Business Pack accounts and staff cards (UNI-3146)
+
+Apply `supabase/migrations/20261102130000_card_business_accounts_staff_cards.sql` first (founder-gated). Until then the webhook logs a warning, records the order as before, and no account or staff card is set up. Apply it before merging: the terms and order page describe owner control as soon as they deploy.
+
+- **A Business Pack order** opens the owner's main account and emails the buyer a private link, `https://unite-group.in/cards/manage#k=...`. Buyers have no sign-in; the link is the key. Only its sha256 hash is stored.
+- **The owner** sets business name, logo link, phone, email, website, address and offer. Staff cards read these at render time, so a change reaches every card.
+- **A staff-card order** adds one seat per card bought to the account whose owner email equals the buyer's checkout email. The owner makes a link for each seat and sends it. Making a new link kills the old one.
+- **A staff member** changes only their own name, photo link and mobile. The card appears at `/c/s-...` once it has a name and the account has a business name.
+- **Deactivating** is final: the card leaves the web, its link dies and the database refuses any further change. A new staff member needs a new card.
+
+Limits:
+
+- The link is matched on email only. A different email, or two accounts on one email, is not guessed at: the order stays recorded and you get an alert. Link it by hand: `select public.card_provision_staff_cards('<order id>', '<account id>');`
+- A staff card bought before the Business Pack, on the same email, does not link itself later. Use the same call.
+- A lost owner link, or an account email that failed to send, needs a new token. Generate one on your own machine, store its sha256 hash in `owner_token_hash`, and send `https://unite-group.in/cards/manage#k=<token>`.
+- Logos and photos are https links. There is no file upload.
+- Nothing in code stops a staff member typing a different person's name, or an owner handing a seat's new link to someone else. "Not transferable" is a term of sale backed by deactivation and the one-way status, not a technical lock.
+
+Stripe objects: nothing changes. The existing add-on Payment Link and its env names are used as they are.
 
 ## Database
 
@@ -67,8 +87,8 @@ event from the dashboard: still one row and no second email.
 
 ## What the thank-you form collects
 
-Film (any of the ten showroom films, or Made for you), name, business, email, the contact details to show at the end of
-the film, an optional logo link, an optional Made-for-you brief and where you met. The whole submission is stored in `card_order_intakes`
+Film (any of the ten showroom films, or Business Pack), name, business, email, the contact details to show at the end of
+the film, an optional logo link, an optional Business Pack brief and where you met. The whole submission is stored in `card_order_intakes`
 first (that insert is the claim, one per order), then the claim winner emails `LEAD_ALERT_EMAIL_TO` (default
 contact@unite-group.in) via Mailtrap with the film and details, reply-to the buyer.
 

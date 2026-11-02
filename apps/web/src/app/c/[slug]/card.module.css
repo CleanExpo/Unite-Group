@@ -179,3 +179,21 @@
 @media (prefers-reduced-motion: reduce) {
   .film { box-shadow: none; }
 }
+
+/* Staff card images (UNI-3146): owner and staff supplied, so bounded here whatever their size. */
+.logo {
+  display: block;
+  max-width: 160px;
+  max-height: 64px;
+  margin-bottom: 1rem;
+  object-fit: contain;
+}
+
+.photo {
+  display: block;
+  width: 96px;
+  height: 96px;
+  margin-bottom: 1rem;
+  border-radius: 4px;
+  object-fit: cover;
+}

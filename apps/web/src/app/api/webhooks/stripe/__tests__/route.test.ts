@@ -7,6 +7,9 @@ vi.mock('@/lib/integrations/stripe/client', () => ({
 vi.mock('@/lib/supabase/service', () => ({
   createServiceClient: vi.fn(),
 }))
+// Account and seat set-up has its own suite (lib/card/__tests__/staff-provisioning.test.ts).
+const provisionCardOrder = vi.hoisted(() => vi.fn(async () => 'none'))
+vi.mock('@/lib/card/staff-provisioning', () => ({ provisionCardOrder }))
 // Only the send is replaced; the address helpers stay real, so a new or changed helper cannot drift from the mock.
 vi.mock('@/lib/integrations/mailtrap', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/integrations/mailtrap')>()),
@@ -181,7 +184,7 @@ describe('POST /api/webhooks/stripe, paid card order', () => {
     expect(arg.to).toEqual({ email: 'alerts@example.invalid' })
     const text = `${arg.subject}\n${arg.text}\n${arg.html}`
     expect(text).toContain('Sample Client')
-    expect(text).toContain('Ready-made')
+    expect(text).toContain('Starter pack')
     expect(text).not.toContain('sample@example.invalid')
     expect(text).not.toMatch(/4242|card number|cvc/i)
   })
@@ -238,7 +241,7 @@ describe('POST /api/webhooks/stripe, paid card order', () => {
     expect(arg.to).toEqual({ email: 'sample@example.invalid' })
     expect(arg.from.name).toBe('Margot at Unite-Group')
     const text = `${arg.subject}\n${arg.text}\n${arg.html}`
-    expect(text).toContain('Ready-made')
+    expect(text).toContain('Starter pack')
     expect(text).toContain('logo')
     expect(text).toContain('Margot')
     expect(text).not.toMatch(/4242|card number|cvc/i)
