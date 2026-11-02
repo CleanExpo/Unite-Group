@@ -2,8 +2,9 @@
 // after a user action, never on the grid's own mount-time layout callback.
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import ReactGridLayout, { useContainerWidth } from 'react-grid-layout';
-import { createLatestWins } from '../shared/latest-wins.ts';
-import type { LayoutItem, LayoutResponse, ScreenId } from '../shared/types.ts';
+import { createLayoutWriter } from '../shared/layout-writer.ts';
+import type { Conflict, LayoutOp, SendResult } from '../shared/layout-writer.ts';
+import type { LayoutConflict, LayoutItem, LayoutResponse, ScreenId } from '../shared/types.ts';
 import { addableWidgets, GRID_COLS, WIDGET_CATALOGUE } from '../shared/widget-catalogue.ts';
 import type { WidgetId } from '../shared/widget-catalogue.ts';
 import { WIDGET_COMPONENTS } from './registry.tsx';
@@ -35,39 +36,60 @@ export function Screen({ screen }: { screen: ScreenId }) {
   const fleet = useFleet();
   const broker = brokerLabel(fleet);
 
+  const [conflict, setConflict] = useState<Conflict | null>(null);
+
   const apply = useCallback((layout: LayoutResponse) => {
     setItems(layout.items);
+    setConflict(null);
     setNotice(
       layout.warning
-        ? 'The saved layout file could not be read, so this is the default. It is kept aside on the next save.'
+        ? 'The saved layout file could not be read, so this is the default. That file is kept, not overwritten.'
         : null,
     );
     setLoad('ready');
   }, []);
 
-  const call = useCallback(
-    async (method: string, body?: unknown): Promise<LayoutResponse | null> => {
+  const signOut = () => window.location.assign('/login');
+
+  const send = useCallback(
+    async (op: LayoutOp, revision: number): Promise<SendResult> => {
       const res = await fetch(`/api/layouts/${screen}`, {
-        method,
-        ...(body === undefined
-          ? {}
-          : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
+        method: op.kind === 'reset' ? 'DELETE' : 'PUT',
+        headers: {
+          'If-Match': `"${revision}"`,
+          ...(op.kind === 'save' ? { 'Content-Type': 'application/json' } : {}),
+        },
+        ...(op.kind === 'save' ? { body: JSON.stringify({ items: op.items }) } : {}),
       });
-      if (res.status === 401) {
-        window.location.assign('/login');
-        return null;
-      }
+      if (res.status === 401) return { status: 'signed-out' };
+      if (res.status === 409) return { status: 'conflict', current: ((await res.json()) as LayoutConflict).current };
       if (!res.ok) throw new Error(String(res.status));
-      return (await res.json()) as LayoutResponse;
+      return { status: 'ok', layout: (await res.json()) as LayoutResponse };
     },
     [screen],
   );
 
+  // Saves and resets share one queue, so a reset cannot be overwritten by an older save.
+  const writer = useMemo(
+    () =>
+      createLayoutWriter(send, {
+        onLayout: apply,
+        onConflict: setConflict,
+        onFailed: () => setNotice('The last layout change was not saved. It will be lost on reload.'),
+      }),
+    [apply, send],
+  );
+
   useEffect(() => {
     let live = true;
-    call('GET')
-      .then((layout) => {
-        if (live && layout) apply(layout);
+    fetch(`/api/layouts/${screen}`)
+      .then(async (res) => {
+        if (res.status === 401) return signOut();
+        if (!res.ok) throw new Error(String(res.status));
+        const layout = (await res.json()) as LayoutResponse;
+        if (!live) return;
+        writer.loaded(layout);
+        apply(layout);
       })
       .catch(() => {
         if (live) setLoad('failed');
@@ -75,30 +97,14 @@ export function Screen({ screen }: { screen: ScreenId }) {
     return () => {
       live = false;
     };
-  }, [apply, call]);
-
-  // Saves and resets share one queue, so a reset cannot be overwritten by an older save.
-  const write = useMemo(
-    () =>
-      createLatestWins<LayoutItem[] | 'reset', LayoutResponse | null>(
-        (op) => (op === 'reset' ? call('DELETE') : call('PUT', { items: op })),
-        (outcome) => {
-          if (!outcome.ok) {
-            setNotice('The last layout change was not saved. It will be lost on reload.');
-          } else if (outcome.result) {
-            apply(outcome.result);
-          }
-        },
-      ),
-    [apply, call],
-  );
+  }, [apply, screen, writer]);
 
   const save = (next: LayoutItem[]) => {
     setItems(next);
-    write(next);
+    writer.write({ kind: 'save', items: next });
   };
 
-  const reset = () => write('reset');
+  const reset = () => writer.write({ kind: 'reset' });
 
   const add = (id: string) => {
     const spec = specFor(id);
@@ -109,7 +115,8 @@ export function Screen({ screen }: { screen: ScreenId }) {
 
   const remove = (id: string) => save(items.filter((box) => box.i !== id));
 
-  const loaded = load === 'ready';
+  // While another window's change is waiting on a decision, nothing else can be edited.
+  const loaded = load === 'ready' && conflict === null;
   const available = addableWidgets(loaded, items);
   const other = screen === '1' ? '2' : '1';
   const onStop = (layout: readonly GridBox[]) => save(plain(layout));
@@ -131,7 +138,7 @@ export function Screen({ screen }: { screen: ScreenId }) {
             onChange={(event) => add(event.target.value)}
           >
             <option value="">
-              {!loaded ? 'Layout not loaded' : available.length === 0 ? 'All on screen' : 'Choose'}
+              {conflict ? 'Reload or overwrite first' : !loaded ? 'Layout not loaded' : available.length === 0 ? 'All on screen' : 'Choose'}
             </option>
             {available.map((w) => (
               <option key={w.id} value={w.id}>
@@ -158,6 +165,20 @@ export function Screen({ screen }: { screen: ScreenId }) {
           {notice}
         </p>
       ) : null}
+      {conflict ? (
+        <div className={styles.notice} role="alertdialog" aria-label="Layout changed in another window">
+          <p>
+            This layout was changed in another window. Your last change is not saved yet. Reload to show
+            the other window&apos;s layout, or overwrite it with yours.
+          </p>
+          <button type="button" className={styles.button} onClick={() => writer.reload()}>
+            Reload
+          </button>
+          <button type="button" className={styles.button} onClick={() => writer.overwrite()}>
+            Overwrite with mine
+          </button>
+        </div>
+      ) : null}
       {load === 'failed' ? (
         <p className={styles.notice} role="alert">
           The layout could not be loaded. Reload the page to try again.
@@ -176,7 +197,8 @@ export function Screen({ screen }: { screen: ScreenId }) {
               return { ...box, minW: spec?.minW, minH: spec?.minH };
             })}
             gridConfig={{ cols: GRID_COLS, rowHeight: 40, margin: [10, 10] }}
-            dragConfig={{ enabled: true, handle: `.${styles.widgetHead}`, cancel: 'button' }}
+            dragConfig={{ enabled: loaded, handle: `.${styles.widgetHead}`, cancel: 'button' }}
+            resizeConfig={{ enabled: loaded }}
             onDragStop={onStop}
             onResizeStop={onStop}
           >
@@ -191,6 +213,7 @@ export function Screen({ screen }: { screen: ScreenId }) {
                     <button
                       type="button"
                       className={styles.remove}
+                      disabled={!loaded}
                       aria-label={`Remove ${spec.title}`}
                       onClick={() => remove(box.i)}
                     >

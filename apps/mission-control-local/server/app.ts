@@ -6,7 +6,7 @@ import type { IncomingMessage, Server, ServerResponse } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { SCREENS } from '../shared/types.ts';
-import type { FleetSnapshot, ScreenId } from '../shared/types.ts';
+import type { FleetSnapshot, LayoutConflict, LayoutItem, LayoutResponse, ScreenId } from '../shared/types.ts';
 import { parseLayoutItems } from '../shared/widget-catalogue.ts';
 import { readCookie, SESSION_COOKIE, SESSION_MS } from './auth.ts';
 import type { Auth } from './auth.ts';
@@ -62,6 +62,22 @@ const redirect = (res: ServerResponse, to: string, extra = {}) => {
   res.writeHead(303, { ...SECURITY_HEADERS, Location: to, ...extra });
   res.end();
 };
+
+const etag = (layout: LayoutResponse) => ({ ETag: `"${layout.revision}"` });
+const layoutReply = (res: ServerResponse, layout: LayoutResponse) =>
+  send(res, 200, 'application/json; charset=utf-8', JSON.stringify(layout), etag(layout));
+
+const REVISION = /^"(\d{1,15})"$/;
+
+/** If-Match wins over a body field. Only one exact strong tag is accepted, never `*`. */
+export function expectedRevision(ifMatch: string | undefined, bodyRevision: unknown): number | 'missing' | 'bad' {
+  if (ifMatch !== undefined) {
+    const match = REVISION.exec(ifMatch.trim());
+    return match ? Number(match[1]) : 'bad';
+  }
+  if (bodyRevision === undefined) return 'missing';
+  return Number.isSafeInteger(bodyRevision) && (bodyRevision as number) >= 0 ? (bodyRevision as number) : 'bad';
+}
 
 export function createApp(deps: AppDeps): Server {
   const { auth, layouts, fleet, clientDir } = deps;
@@ -136,11 +152,11 @@ export function createApp(deps: AppDeps): Server {
     if (screen !== undefined) {
       if (!SCREENS.includes(screen as ScreenId)) return json(res, 404, { error: 'unknown-screen' });
       const id = screen as ScreenId;
-      if (method === 'GET') return json(res, 200, await layouts.get(id));
-      if (method === 'DELETE') {
-        await layouts.reset(id);
-        return json(res, 200, await layouts.get(id));
-      }
+      if (method === 'GET') return layoutReply(res, await layouts.get(id));
+      if (method !== 'PUT' && method !== 'DELETE') return json(res, 405, { error: 'method-not-allowed' });
+
+      let items: LayoutItem[] | null = null;
+      let bodyRevision: unknown;
       if (method === 'PUT') {
         let parsed: unknown;
         try {
@@ -149,12 +165,22 @@ export function createApp(deps: AppDeps): Server {
           if (err instanceof BodyTooLarge) throw err;
           return json(res, 400, { error: 'bad-json' });
         }
-        const items = parseLayoutItems((parsed as { items?: unknown } | null)?.items);
+        items = parseLayoutItems((parsed as { items?: unknown } | null)?.items);
         if (!items) return json(res, 400, { error: 'bad-layout' });
-        await layouts.save(id, items);
-        return json(res, 200, await layouts.get(id));
+        bodyRevision = (parsed as { revision?: unknown }).revision;
       }
-      return json(res, 405, { error: 'method-not-allowed' });
+
+      // Every write names the revision it was based on, so a stale window cannot win silently.
+      const expected = expectedRevision(req.headers['if-match'], bodyRevision);
+      if (expected === 'missing') return json(res, 428, { error: 'revision-required' });
+      if (expected === 'bad') return json(res, 400, { error: 'bad-revision' });
+
+      const result = items ? await layouts.save(id, items, expected) : await layouts.reset(id, expected);
+      if (!result.ok) {
+        const conflict: LayoutConflict = { error: 'layout-changed', current: result.current };
+        return send(res, 409, 'application/json; charset=utf-8', JSON.stringify(conflict), etag(result.current));
+      }
+      return layoutReply(res, result.layout);
     }
 
     return json(res, 404, { error: 'not-found' });

@@ -16,13 +16,25 @@ npm start
 
 Open `http://127.0.0.1:42140/screen/1` and `http://127.0.0.1:42140/screen/2`. The server refuses to start without a passcode. This PR adds no launchd job, so starting it at login is a later step.
 
+When the passcode comes from the file, the server checks before it starts and refuses with a plain error if any check fails:
+
+- The data folder and the passcode file must be real, not symlinks.
+- Both must belong to the user running the server.
+- The folder must be mode exactly `700`, and the file must give no access to group or other (`600` or `400`). Another user who could write the folder could swap the passcode.
+
+Windows has no POSIX modes, so there only the symlink rule applies. Keep the folder private to your account. `MC_PASSCODE` skips the file checks.
+
+## Layouts
+
+Each save or reset writes a new file, `layouts/screen-<n>.r<revision>.json`. The highest revision is the current layout, and the last 10 are kept. A save names the revision the window last loaded (`If-Match` header, or a `revision` field). If another window saved first, the server changes nothing and answers 409 with its layout. The window then asks: reload the other layout, or overwrite it with yours. A save is never dropped without that choice. A file that cannot be read is never overwritten, and it is renamed aside rather than deleted.
+
 ## Settings
 
 | Variable | What it does |
 |---|---|
 | `MC_PASSCODE` | Passcode, used instead of the file |
 | `MC_PORT` | Port, default 42140 |
-| `MC_DATA_DIR` | Folder for `passcode` and the `layouts/` folder (one JSON file per screen), default `~/.unite-mission-control` |
+| `MC_DATA_DIR` | Folder for `passcode` and the `layouts/` folder (see Layouts), default `~/.unite-mission-control` |
 | `MC_FIXTURE` | Path to a fixture such as `fixtures/status.json`. The toolbar then shows FIXTURE DATA |
 | `MC_SHOW_TAILSCALE_IP` | Set to `1` to show each machine's Tailscale IP. Hidden otherwise |
 

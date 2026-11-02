@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
+import type { Stats } from 'node:fs';
 import { request } from 'node:http';
 import type { Server } from 'node:http';
 import { homedir, networkInterfaces, tmpdir } from 'node:os';
@@ -12,9 +13,9 @@ import { fileURLToPath } from 'node:url';
 import type { FleetSnapshot } from '../shared/types.ts';
 import { DEFAULT_LAYOUTS } from '../shared/widget-catalogue.ts';
 import { BIND_HOST, createApp, listen } from './app.ts';
-import { createAuth, loadPasscode, LOCKOUT_MS, MAX_FAILURES, PasscodeConfigError, readCookie } from './auth.ts';
+import { checkPrivate, createAuth, loadPasscode, LOCKOUT_MS, MAX_FAILURES, PasscodeConfigError, readCookie } from './auth.ts';
 import { readConfig } from './config.ts';
-import { createLayoutStore } from './layouts.ts';
+import { createLayoutStore, KEEP_REVISIONS } from './layouts.ts';
 import { LOOPBACK, memoryConnection, NEEDS_SOCKET } from './test-transport.ts';
 
 const PASSCODE = 'test-only-passcode';
@@ -22,7 +23,24 @@ const APP_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 const tmp = mkdtempSync(join(tmpdir(), 'mc-local-'));
 const layoutsDir = join(tmp, 'data', 'layouts');
-const screenFile = (screen: string) => join(layoutsDir, `screen-${screen}.json`);
+const POSIX = process.platform !== 'win32';
+/** The current (highest) revision file for a screen, read straight from disk. */
+function screenFile(screen: string, dir = layoutsDir): string {
+  const revisions = readdirSync(dir)
+    .map((f) => new RegExp(`^screen-${screen}[.]r([0-9]+)[.]json$`).exec(f)?.[1])
+    .filter((r): r is string => r !== undefined)
+    .map(Number);
+  return join(dir, `screen-${screen}.r${Math.max(...revisions)}.json`);
+}
+/** Reads the screen's current revision, then writes based on it, as a window would. */
+async function put(screen: string, items: unknown, extra: { body?: string } = {}) {
+  const { revision } = JSON.parse((await send('GET', `/api/layouts/${screen}`, { cookie })).body);
+  return send('PUT', `/api/layouts/${screen}`, { cookie, ifMatch: `"${revision}"`, body: extra.body ?? JSON.stringify({ items }) });
+}
+async function del(screen: string) {
+  const { revision } = JSON.parse((await send('GET', `/api/layouts/${screen}`, { cookie })).body);
+  return send('DELETE', `/api/layouts/${screen}`, { cookie, ifMatch: `"${revision}"` });
+}
 const clientDir = join(tmp, 'client');
 mkdirSync(join(clientDir, 'assets'), { recursive: true });
 writeFileSync(join(clientDir, 'index.html'), '<title>client shell</title>');
@@ -43,7 +61,7 @@ interface Reply {
 function send(
   method: string,
   path: string,
-  options: { host?: string; origin?: string | null; cookie?: string; body?: string } = {},
+  options: { host?: string; origin?: string | null; cookie?: string; body?: string; ifMatch?: string } = {},
 ): Promise<Reply> {
   const host = options.host ?? `127.0.0.1:${port}`;
   const origin = options.origin === undefined && method !== 'GET' ? `http://${host}` : options.origin;
@@ -59,6 +77,7 @@ function send(
           Host: host,
           ...(origin ? { Origin: origin } : {}),
           ...(options.cookie ? { Cookie: options.cookie } : {}),
+          ...(options.ifMatch === undefined ? {} : { 'If-Match': options.ifMatch }),
           ...(options.body === undefined ? {} : { 'Content-Length': Buffer.byteLength(options.body) }),
         },
       },
@@ -226,19 +245,19 @@ test('layouts: default, save per screen, survive a new store, reset one screen o
 
   const screenOne = [{ i: 'clock', x: 2, y: 1, w: 3, h: 3 }];
   const screenTwo = [{ i: 'job-queue', x: 0, y: 0, w: 6, h: 6 }];
-  const saved = await send('PUT', '/api/layouts/1', { cookie, body: JSON.stringify({ items: screenOne }) });
-  assert.equal(saved.status, 200);
-  await send('PUT', '/api/layouts/2', { cookie, body: JSON.stringify({ items: screenTwo }) });
+  assert.equal((await put('1', screenOne)).status, 200);
+  assert.equal((await put('2', screenTwo)).status, 200);
 
   assert.deepEqual(JSON.parse(readFileSync(screenFile('1'), 'utf8')).items, screenOne);
   assert.deepEqual(JSON.parse(readFileSync(screenFile('2'), 'utf8')).items, screenTwo);
-  assert.equal(statSync(screenFile('1')).mode & 0o777, 0o600);
+  // Windows has no POSIX modes; Linux CI runs this line.
+  if (POSIX) assert.equal(statSync(screenFile('1')).mode & 0o777, 0o600);
 
   const reopened = await createLayoutStore(layoutsDir).get('1');
   assert.deepEqual(reopened.items, screenOne);
   assert.equal(reopened.source, 'saved');
 
-  const reset = JSON.parse((await send('DELETE', '/api/layouts/1', { cookie })).body);
+  const reset = JSON.parse((await del('1')).body);
   assert.equal(reset.source, 'default');
   assert.deepEqual(reset.items, DEFAULT_LAYOUTS['1']);
   const other = JSON.parse((await send('GET', '/api/layouts/2', { cookie })).body);
@@ -246,34 +265,115 @@ test('layouts: default, save per screen, survive a new store, reset one screen o
 });
 
 test('an empty saved layout stays empty and is not replaced by the default', async () => {
-  await send('PUT', '/api/layouts/2', { cookie, body: '{"items":[]}' });
+  await put('2', []);
   const reply = JSON.parse((await send('GET', '/api/layouts/2', { cookie })).body);
   assert.deepEqual(reply.items, []);
   assert.equal(reply.source, 'saved');
 });
 
 test('bad layout bodies are refused and change nothing', async () => {
-  await send('PUT', '/api/layouts/1', { cookie, body: '{"items":[]}' });
-  const before = readFileSync(screenFile('1'), 'utf8');
+  await put('1', []);
+  const before = screenFile('1');
+  const beforeBody = readFileSync(before, 'utf8');
   const bodies = ['not json', 'null', '{}', '{"items":[{"i":"nope","x":0,"y":0,"w":1,"h":1}]}'];
-  for (const body of bodies) {
-    assert.equal((await send('PUT', '/api/layouts/1', { cookie, body })).status, 400, body);
-  }
+  for (const body of bodies) assert.equal((await put('1', null, { body })).status, 400, body);
   const huge = JSON.stringify({ items: [], pad: 'x'.repeat(70 * 1024) });
-  assert.equal((await send('PUT', '/api/layouts/1', { cookie, body: huge })).status, 413);
-  assert.equal(readFileSync(screenFile('1'), 'utf8'), before);
+  assert.equal((await put('1', null, { body: huge })).status, 413);
+  assert.equal(screenFile('1'), before);
+  assert.equal(readFileSync(before, 'utf8'), beforeBody);
 });
 
-test('concurrent saves leave a whole file holding both screens', async () => {
-  const one = [{ i: 'clock', x: 0, y: 0, w: 2, h: 2 }];
-  const two = [{ i: 'job-queue', x: 0, y: 0, w: 4, h: 4 }];
-  await Promise.all([
-    ...Array.from({ length: 5 }, () => send('PUT', '/api/layouts/1', { cookie, body: JSON.stringify({ items: one }) })),
-    ...Array.from({ length: 5 }, () => send('PUT', '/api/layouts/2', { cookie, body: JSON.stringify({ items: two }) })),
-  ]);
-  assert.deepEqual(JSON.parse(readFileSync(screenFile('1'), 'utf8')).items, one);
-  assert.deepEqual(JSON.parse(readFileSync(screenFile('2'), 'utf8')).items, two);
+const clockAt = (x: number) => [{ i: 'clock', x, y: 0, w: 2, h: 2 }];
+
+test('layout revision: GET carries the revision and ETag, and each write moves it on by one', async () => {
+  const got = await send('GET', '/api/layouts/2', { cookie });
+  const { revision } = JSON.parse(got.body);
+  assert.equal(got.headers.etag, `"${revision}"`);
+  const saved = await send('PUT', '/api/layouts/2', { cookie, ifMatch: `"${revision}"`, body: '{"items":[]}' });
+  assert.equal(saved.status, 200);
+  assert.equal(JSON.parse(saved.body).revision, revision + 1);
+  assert.equal(saved.headers.etag, `"${revision + 1}"`);
+  const fresh = await createLayoutStore(mkdtempSync(join(tmpdir(), 'mc-rev0-'))).get('1');
+  assert.equal(fresh.revision, 0);
+});
+
+test('layout revision: a write with no revision is refused with 428 and changes nothing', async () => {
+  await put('1', []);
+  const before = screenFile('1');
+  assert.equal((await send('PUT', '/api/layouts/1', { cookie, body: '{"items":[]}' })).status, 428);
+  assert.equal((await send('DELETE', '/api/layouts/1', { cookie })).status, 428);
+  assert.equal(screenFile('1'), before);
+});
+
+test('layout revision: malformed revisions are refused, including the * wildcard', async () => {
+  for (const ifMatch of ['*', 'W/"1"', '"abc"', '1', '"-1"', '"1", "2"']) {
+    assert.equal((await send('PUT', '/api/layouts/1', { cookie, ifMatch, body: '{"items":[]}' })).status, 400, ifMatch);
+  }
+  for (const revision of ['1', -1, 1.5, null]) {
+    const body = JSON.stringify({ items: [], revision });
+    assert.equal((await send('PUT', '/api/layouts/1', { cookie, body })).status, 400, String(revision));
+  }
+});
+
+test('layout revision: a stale write gets 409 with the current layout and revision, and changes nothing', async () => {
+  const mine = [{ i: 'clock', x: 0, y: 0, w: 2, h: 2 }];
+  const theirs = [{ i: 'job-queue', x: 1, y: 1, w: 4, h: 4 }];
+  const { revision: seen } = JSON.parse((await send('GET', '/api/layouts/1', { cookie })).body);
+  // Another window saves first.
+  const other = await send('PUT', '/api/layouts/1', { cookie, ifMatch: `"${seen}"`, body: JSON.stringify({ items: theirs }) });
+  assert.equal(other.status, 200);
+  const onDisk = screenFile('1');
+  const stale = await send('PUT', '/api/layouts/1', { cookie, ifMatch: `"${seen}"`, body: JSON.stringify({ items: mine }) });
+  assert.equal(stale.status, 409);
+  const body = JSON.parse(stale.body);
+  assert.equal(body.error, 'layout-changed');
+  assert.deepEqual(body.current.items, theirs);
+  assert.equal(body.current.revision, seen + 1);
+  assert.equal(stale.headers.etag, `"${seen + 1}"`);
+  assert.equal(screenFile('1'), onDisk);
+  assert.deepEqual(JSON.parse(readFileSync(onDisk, 'utf8')).items, theirs);
+  const staleReset = await send('DELETE', '/api/layouts/1', { cookie, ifMatch: `"${seen}"` });
+  assert.equal(staleReset.status, 409);
+  assert.equal(screenFile('1'), onDisk);
+});
+
+test('layout revision: If-Match wins over a body revision, and a body revision alone works', async () => {
+  const { revision } = JSON.parse((await send('GET', '/api/layouts/2', { cookie })).body);
+  const viaBody = await send('PUT', '/api/layouts/2', { cookie, body: JSON.stringify({ items: [], revision }) });
+  assert.equal(viaBody.status, 200);
+  // The body names the right revision but the header names a stale one: the header decides.
+  const body = JSON.stringify({ items: [], revision: revision + 1 });
+  assert.equal((await send('PUT', '/api/layouts/2', { cookie, ifMatch: `"${revision}"`, body })).status, 409);
+});
+
+test('layout revision: concurrent writes on one revision produce exactly one winner', async () => {
+  const { revision } = JSON.parse((await send('GET', '/api/layouts/1', { cookie })).body);
+  const items = (x: number) => [{ i: 'clock', x, y: 0, w: 2, h: 2 }];
+  const replies = await Promise.all(
+    Array.from({ length: 6 }, (_, n) =>
+      send('PUT', '/api/layouts/1', { cookie, ifMatch: `"${revision}"`, body: JSON.stringify({ items: items(n) }) }),
+    ),
+  );
+  const winners = replies.filter((r) => r.status === 200);
+  assert.equal(winners.length, 1);
+  assert.equal(replies.filter((r) => r.status === 409).length, 5);
+  assert.deepEqual(JSON.parse(readFileSync(screenFile('1'), 'utf8')).items, JSON.parse(winners[0]!.body).items);
   assert.ok(!readdirSync(layoutsDir).some((f) => f.endsWith('.tmp')));
+});
+
+test('layout revision: two server instances racing on one screen and revision never both win', async () => {
+  const mine = [{ i: 'clock', x: 0, y: 0, w: 2, h: 2 }];
+  const theirs = [{ i: 'job-queue', x: 0, y: 0, w: 4, h: 4 }];
+  for (let run = 0; run < 30; run += 1) {
+    const dir = mkdtempSync(join(tmpdir(), 'mc-race-'));
+    const [a, b] = await Promise.all([createLayoutStore(dir).save('1', mine, 0), createLayoutStore(dir).save('1', theirs, 0)]);
+    assert.equal([a, b].filter((r) => r.ok).length, 1, `run ${run}`);
+    const winner = a.ok ? a : b;
+    const loser = a.ok ? b : a;
+    assert.ok(winner.ok && !loser.ok);
+    assert.deepEqual(loser.current.items, winner.layout.items);
+    assert.deepEqual((await createLayoutStore(dir).get('1')).items, winner.layout.items);
+  }
 });
 
 test('two server instances saving different screens do not lose either one', async () => {
@@ -281,29 +381,56 @@ test('two server instances saving different screens do not lose either one', asy
   const two = [{ i: 'job-queue', x: 0, y: 0, w: 4, h: 4 }];
   for (let run = 0; run < 30; run += 1) {
     const dir = mkdtempSync(join(tmpdir(), 'mc-two-'));
-    const first = createLayoutStore(dir);
-    const second = createLayoutStore(dir);
-    await Promise.all([first.save('1', one), second.save('2', two)]);
+    await Promise.all([createLayoutStore(dir).save('1', one, 0), createLayoutStore(dir).save('2', two, 0)]);
     const reader = createLayoutStore(dir);
     assert.deepEqual((await reader.get('1')).items, one);
     assert.deepEqual((await reader.get('2')).items, two);
   }
 });
 
-test('an unreadable layout file warns, and is kept aside rather than overwritten', async () => {
+test('layout revision: an unreadable revision warns, is never overwritten, and survives pruning', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'mc-corrupt-'));
-  const file = join(dir, 'screen-1.json');
+  const file = join(dir, 'screen-1.r3.json');
   writeFileSync(file, '{ not json');
   const store = createLayoutStore(dir);
   const read = await store.get('1');
   assert.equal(read.warning, 'layout-file-unreadable');
   assert.equal(read.source, 'default');
+  assert.equal(read.revision, 3);
+  const saved = await store.save('1', [{ i: 'clock', x: 0, y: 0, w: 2, h: 2 }], 3);
+  assert.ok(saved.ok);
+  assert.equal(saved.layout.revision, 4);
   assert.equal(readFileSync(file, 'utf8'), '{ not json');
-  await store.save('1', [{ i: 'clock', x: 0, y: 0, w: 2, h: 2 }]);
-  const aside = readdirSync(dir).find((f) => f.includes('.unreadable-'));
+  assert.equal((await store.get('1')).warning, undefined);
+  // Push it past the keep window: it is renamed aside, never deleted.
+  for (let rev = 4; rev < 4 + KEEP_REVISIONS; rev += 1) assert.ok((await store.save('1', [], rev)).ok);
+  const aside = readdirSync(dir).find((f) => f.startsWith('screen-1.r3.json.unreadable-'));
   assert.ok(aside);
   assert.equal(readFileSync(join(dir, aside), 'utf8'), '{ not json');
-  assert.equal((await store.get('1')).warning, undefined);
+  const kept = readdirSync(dir).filter((f) => /^screen-1[.]r[0-9]+[.]json$/.test(f));
+  assert.equal(kept.length, KEEP_REVISIONS);
+});
+
+test('layout revision: a write naming a revision that does not exist yet is refused', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'mc-future-'));
+  const store = createLayoutStore(dir);
+  assert.ok((await store.save('1', [], 0)).ok);
+  const ahead = await store.save('1', clockAt(5), 6);
+  assert.equal(ahead.ok, false);
+  assert.equal((await store.get('1')).revision, 1);
+  assert.deepEqual(readdirSync(dir).filter((f) => f.endsWith('.json')), ['screen-1.r1.json']);
+});
+
+test('layout revision: a reset is a revision of its own and shows the default', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'mc-reset-'));
+  const store = createLayoutStore(dir);
+  assert.ok((await store.save('2', [], 0)).ok);
+  const reset = await store.reset('2', 1);
+  assert.ok(reset.ok);
+  assert.equal(reset.layout.revision, 2);
+  assert.equal(reset.layout.source, 'default');
+  assert.deepEqual(reset.layout.items, DEFAULT_LAYOUTS['2']);
+  assert.equal((await store.reset('2', 1)).ok, false);
 });
 
 test('the default data directory is outside the repo', () => {
@@ -352,17 +479,101 @@ test('readCookie finds the named cookie only', () => {
   assert.equal(readCookie(undefined, 'mc_session'), undefined);
 });
 
-test('loadPasscode fails closed on missing, short and open-permission sources', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'mc-pass-'));
-  assert.throws(() => loadPasscode({}, dir), PasscodeConfigError);
-  assert.throws(() => loadPasscode({ MC_PASSCODE: 'short' }, dir), PasscodeConfigError);
-  assert.equal(loadPasscode({ MC_PASSCODE: PASSCODE }, dir), PASSCODE);
+function privateDir(prefix: string): string {
+  const dir = mkdtempSync(join(tmpdir(), prefix));
+  if (POSIX) chmodSync(dir, 0o700);
+  return dir;
+}
+
+function writePasscode(dir: string, mode = 0o600): string {
   const file = join(dir, 'passcode');
   writeFileSync(file, `${PASSCODE}\n`);
-  chmodSync(file, 0o644);
-  assert.throws(() => loadPasscode({}, dir), /readable by other users/);
-  chmodSync(file, 0o600);
+  if (POSIX) chmodSync(file, mode);
+  return file;
+}
+
+/** A stand-in for lstat output, so the ownership and mode rules run on every platform. */
+function fakeStats(kind: 'folder' | 'file', mode: number, uid: number): Stats {
+  return {
+    isSymbolicLink: () => false,
+    isDirectory: () => kind === 'folder',
+    isFile: () => kind === 'file',
+    mode: (kind === 'folder' ? 0o040000 : 0o100000) | mode,
+    uid,
+  } as Stats;
+}
+
+test('passcode: fails closed on missing and short sources, and loads from a private folder and file', () => {
+  const dir = privateDir('mc-pass-');
+  assert.throws(() => loadPasscode({}, dir), /No passcode/);
+  assert.throws(() => loadPasscode({}, join(dir, 'absent')), /No passcode/);
+  assert.throws(() => loadPasscode({ MC_PASSCODE: 'short' }, dir), PasscodeConfigError);
+  assert.equal(loadPasscode({ MC_PASSCODE: PASSCODE }, dir), PASSCODE);
+  writePasscode(dir);
   assert.equal(loadPasscode({}, dir), PASSCODE);
+  assert.equal(loadPasscode({}, `${dir}/`), PASSCODE);
+});
+
+test('passcode: the ownership and mode rules refuse a foreign owner and any group or other bit', () => {
+  const me = 501;
+  assert.doesNotThrow(() => checkPrivate('/d', fakeStats('folder', 0o700, me), 'folder', true, me));
+  assert.doesNotThrow(() => checkPrivate('/f', fakeStats('file', 0o600, me), 'file', true, me));
+  assert.doesNotThrow(() => checkPrivate('/f', fakeStats('file', 0o400, me), 'file', true, me));
+  assert.throws(() => checkPrivate('/d', fakeStats('folder', 0o700, me + 1), 'folder', true, me), /not owned/);
+  assert.throws(() => checkPrivate('/f', fakeStats('file', 0o600, 0), 'file', true, me), /not owned/);
+  assert.throws(() => checkPrivate('/d', fakeStats('folder', 0o700, me), 'folder', true, undefined), /not owned/);
+  for (const mode of [0o750, 0o710, 0o701, 0o707, 0o777, 0o500, 0o600]) {
+    assert.throws(() => checkPrivate('/d', fakeStats('folder', mode, me), 'folder', true, me), /chmod 700/, mode.toString(8));
+  }
+  for (const mode of [0o640, 0o604, 0o610, 0o601, 0o666]) {
+    assert.throws(() => checkPrivate('/f', fakeStats('file', mode, me), 'file', true, me), /chmod 600/, mode.toString(8));
+  }
+  assert.throws(() => checkPrivate('/d', fakeStats('file', 0o700, me), 'folder', true, me), /not a folder/);
+  assert.throws(() => checkPrivate('/f', fakeStats('folder', 0o600, me), 'file', true, me), /not a file/);
+  const link = { ...fakeStats('folder', 0o700, me), isSymbolicLink: () => true } as Stats;
+  assert.throws(() => checkPrivate('/d', link, 'folder', false, me), /symlink/);
+});
+
+test('passcode: a symlinked data folder or passcode file is refused', (t) => {
+  const real = privateDir('mc-real-');
+  writePasscode(real);
+  const outer = privateDir('mc-links-');
+  const folderLink = join(outer, 'data');
+  // A junction needs no admin rights on Windows; on POSIX the type is ignored.
+  symlinkSync(real, folderLink, 'junction');
+  assert.throws(() => loadPasscode({}, folderLink), /symlink/);
+  assert.throws(() => loadPasscode({}, `${folderLink}/`), /symlink/);
+
+  const dir = privateDir('mc-filelink-');
+  try {
+    symlinkSync(join(real, 'passcode'), join(dir, 'passcode'), 'file');
+  } catch (err) {
+    // Windows refuses file symlinks without Developer Mode. Linux CI runs this half.
+    if (!POSIX && (err as NodeJS.ErrnoException).code === 'EPERM') return t.diagnostic('file symlink not permitted here');
+    throw err;
+  }
+  assert.throws(() => loadPasscode({}, dir), PasscodeConfigError);
+});
+
+test('passcode: on POSIX a real folder open to others, or a file open to others, is refused', { skip: !POSIX && 'POSIX modes do not exist on Windows; Linux CI runs this' }, () => {
+  const dir = privateDir('mc-modes-');
+  writePasscode(dir);
+  for (const mode of [0o750, 0o705, 0o777]) {
+    chmodSync(dir, mode);
+    assert.throws(() => loadPasscode({}, dir), /chmod 700/, mode.toString(8));
+  }
+  chmodSync(dir, 0o700);
+  assert.equal(loadPasscode({}, dir), PASSCODE);
+  for (const mode of [0o640, 0o604, 0o644]) {
+    chmodSync(join(dir, 'passcode'), mode);
+    assert.throws(() => loadPasscode({}, dir), /readable by other users/, mode.toString(8));
+  }
+  chmodSync(join(dir, 'passcode'), 0o600);
+  assert.equal(loadPasscode({}, dir), PASSCODE);
+  // The rules switched off (Windows) accept the same folder whatever its mode.
+  chmodSync(dir, 0o777);
+  assert.equal(loadPasscode({}, dir, false), PASSCODE);
+  chmodSync(dir, 0o700);
 });
 
 test('the real entry point refuses to start with no passcode, and does not print one when set', { skip: NEEDS_SOCKET }, async () => {

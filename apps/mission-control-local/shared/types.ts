@@ -67,8 +67,16 @@ export interface LayoutItem {
 
 export interface LayoutResponse {
   screen: ScreenId;
+  /** Grows by one on every save or reset. 0 means nothing was ever saved. Sent back as If-Match. */
+  revision: number;
   items: LayoutItem[];
   source: 'saved' | 'default';
   /** Set when a saved file exists but could not be read, so defaults are not mistaken for it. */
   warning?: 'layout-file-unreadable';
+}
+
+/** The 409 body: the write was based on an old revision, so it changed nothing. */
+export interface LayoutConflict {
+  error: 'layout-changed';
+  current: LayoutResponse;
 }
