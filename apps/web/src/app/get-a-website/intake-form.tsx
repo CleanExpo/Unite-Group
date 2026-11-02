@@ -152,7 +152,7 @@ export function IntakeForm() {
         <span>Also send me marketing updates (optional). You can unsubscribe at any time.</span>
       </label>
       <div className={f.wide}>
-        <CollectionNotice form="home" tone="dark" />
+        <CollectionNotice form="website-intake" tone="dark" />
         <button type="submit" disabled={status.kind === 'sending'} className={f.submit}>
           {status.kind === 'sending' ? 'Sending…' : 'Send my answers'}
         </button>

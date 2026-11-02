@@ -33,7 +33,7 @@ describe('/get-a-website', () => {
     }
     for (const option of [...PHOTO_OPTIONS, ...BUDGET_BANDS, ...TIMELINES]) expect(words(html)).toContain(option)
     for (const step of STEPS) expect(words(html)).toContain(step.title)
-    expect(html).toContain('data-collection-notice="home"')
+    expect(html).toContain('data-collection-notice="website-intake"')
   })
 
   it('requires contact consent and leaves both consent boxes unticked', () => {

@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -28,9 +28,55 @@ const forms = Object.keys(COLLECTION_PURPOSES) as CollectionNoticeForm[]
 const PURPOSE_BACKING: Array<[CollectionNoticeForm, string[]]> = [
   ['grow', ['run the audit you asked for', 'send you the results', 'reply to your enquiry']],
   ['home', ['reply to your enquiry']],
+  ['website-intake', ['reply to your enquiry']],
   ['card-enquiry', ['reply to your enquiry']],
+  ['card-owner-enquiry', ['reply to your enquiry']],
   ['card-intake', ['supply, host and support your card']],
 ]
+
+const EMAIL_PROVIDER: Record<CollectionNoticeForm, 'SendGrid' | 'Mailtrap' | null> = {
+  grow: 'SendGrid',
+  home: 'SendGrid',
+  'website-intake': null,
+  'card-enquiry': 'SendGrid',
+  'card-owner-enquiry': 'Mailtrap',
+  'card-intake': 'Mailtrap',
+}
+
+describe('each form uses the notice for the path it really sends through', () => {
+  const src = (path: string) => readFileSync(join(process.cwd(), 'src', path), 'utf8')
+
+  it.each([
+    ['app/grow/lead-form.tsx', 'grow', '/api/leads'],
+    ['components/public/contact-form.tsx', 'home', '/api/leads'],
+    ['app/video/ten-clips/ten-clips-form.tsx', 'home', '/api/leads'],
+    ['app/get-a-website/intake-form.tsx', 'website-intake', '/api/leads'],
+    ['app/cards/order/enquiry-form.tsx', 'card-enquiry', '/api/leads'],
+    ['app/cards/thanks/intake-form.tsx', 'card-intake', '/api/cards/intake'],
+  ])('%s shows the %s notice and posts to %s', (file, form, endpoint) => {
+    const code = src(file)
+    expect(code).toContain(`form="${form}"`)
+    expect(code).toContain(`'${endpoint}'`)
+  })
+
+  it('the form on a card page shows the Mailtrap notice and its alerts send with Mailtrap', () => {
+    expect(src('app/c/[slug]/enquiry-form.tsx')).toContain('form="card-owner-enquiry"')
+    expect(src('app/c/[slug]/actions.ts')).toContain("from '@/lib/card/enquiry-alert'")
+    expect(src('lib/card/enquiry-alert.ts')).toContain("from '@/lib/integrations/mailtrap'")
+  })
+
+  it('the provider each path imports is the one its notice names', () => {
+    expect(src('lib/notifications/lead-alert.ts')).toContain("from '@/lib/integrations/sendgrid'")
+    expect(src('app/api/cards/intake/route.ts')).toContain("from '@/lib/integrations/mailtrap'")
+    expect(src('lib/cards/paid-order.ts')).toContain("from '@/lib/integrations/mailtrap'")
+    expect(src('lib/cards/follow-up.ts')).toContain("from '@/lib/integrations/mailtrap'")
+  })
+
+  it('the website intake path sends no email', () => {
+    expect(src('app/get-a-website/offer.ts')).toContain("INTAKE_SOURCE = 'website_intake'")
+    expect(src('app/api/leads/route.ts')).toContain('website intake leads notify in-app only')
+  })
+})
 
 describe('collection notice parity with the privacy policy', () => {
   it('names the company the policy names, and starts with it', () => {
@@ -47,7 +93,7 @@ describe('collection notice parity with the privacy policy', () => {
     expect(policy).toContain('Supabase, which hosts our database.')
     expect(policy).toContain('Vercel, which hosts the website and keeps request logs.')
     expect(policy).toContain(
-      'SendGrid, which delivers the enquiry alert we receive when you send an enquiry through a website form (your first name, business name and the package requested), and any marketing email you have agreed to receive.',
+      'SendGrid, which delivers the enquiry alert we receive when you send an enquiry through a website form (your first name, business name and the package requested), and any marketing email you have agreed to receive. The form asking us to build you a website sends no alert email: it notifies us inside the Application.',
     )
     expect(policy).toContain(
       'Mailtrap, which delivers the emails sent when you buy a card: our order alert, your welcome email, any reminder about your order, and the email that passes us the details you give on the thank-you page.',
@@ -77,11 +123,15 @@ describe('collection notice parity with the privacy policy', () => {
 
   it('pins the recipient and access sentences to the wording the policy sentences above back', () => {
     const enquiry =
-      'We store your details in a database hosted by Supabase. Vercel hosts this website and keeps request logs. SendGrid delivers the enquiry alert we receive, which carries your first name, business name and the package you asked about. We do not sell your information.'
+      'We store your details in a database hosted by Supabase. Vercel hosts this website and keeps request logs. SendGrid delivers the enquiry alert we receive, which carries your first name, business name and the package you asked about, and any marketing email you agree to receive. We do not sell your information.'
     expect(COLLECTION_RECIPIENTS).toEqual({
       grow: enquiry,
       home: enquiry,
+      'website-intake':
+        'We store your details in a database hosted by Supabase. Vercel hosts this website and keeps request logs. We do not sell your information.',
       'card-enquiry': enquiry,
+      'card-owner-enquiry':
+        'We store your details in a database hosted by Supabase. Vercel hosts this website and keeps request logs. Mailtrap delivers the email that passes your enquiry to the card owner, and a short alert to us with the card and the first name you give. We do not sell your information.',
       'card-intake':
         'We store your details in a database hosted by Supabase. Vercel hosts this website and keeps request logs. Mailtrap delivers the emails about your card order, including the email that passes us the details you give here. We do not sell your information.',
     })
@@ -97,11 +147,13 @@ describe('collection notice parity with the privacy policy', () => {
 
   it.each(forms)('the %s notice states its purpose, the recipients and the contact', (form) => {
     const text = collectionNoticeText(form)
-    const provider = form === 'card-intake' ? 'Mailtrap' : 'SendGrid'
-    const other = form === 'card-intake' ? 'SendGrid' : 'Mailtrap'
-    for (const w of [COLLECTION_PURPOSES[form], 'Supabase', 'Vercel', provider, PRIVACY_CONTACT_EMAIL, 'We do not sell']) expect(text, w).toContain(w)
-    // Each form's email goes through one provider; the notice must not name the other.
-    expect(text, `${form} must not name ${other}`).not.toContain(other)
+    const provider = EMAIL_PROVIDER[form]
+    for (const w of [COLLECTION_PURPOSES[form], 'Supabase', 'Vercel', PRIVACY_CONTACT_EMAIL, 'We do not sell']) expect(text, w).toContain(w)
+    // Each form's email goes through one provider, or none; the notice must name only that one.
+    for (const name of ['SendGrid', 'Mailtrap'] as const) {
+      if (name === provider) expect(text, `${form} must name ${name}`).toContain(name)
+      else expect(text, `${form} must not name ${name}`).not.toContain(name)
+    }
     expect(text).not.toContain('Email we send you')
   })
 })

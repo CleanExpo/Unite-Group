@@ -23,7 +23,7 @@ export const PRIVACY_POLICY_PATH = '/privacy-policy'
 export const PRIVACY_CONTACT_EMAIL = 'contact@unite-group.in'
 
 /** Each public form that collects personal information. */
-export type CollectionNoticeForm = 'grow' | 'home' | 'card-enquiry' | 'card-intake'
+export type CollectionNoticeForm = 'grow' | 'home' | 'website-intake' | 'card-enquiry' | 'card-owner-enquiry' | 'card-intake'
 
 /** Why each form collects the details, in the policy's own terms. */
 export const COLLECTION_PURPOSES: Record<CollectionNoticeForm, string> = {
@@ -31,9 +31,14 @@ export const COLLECTION_PURPOSES: Record<CollectionNoticeForm, string> = {
   grow: 'to run the free audit you asked for, send you the results and reply to your enquiry',
   // Section 10: "reply to your enquiry".
   home: 'to reply to your enquiry',
+  // Section 10: "reply to your enquiry". The /get-a-website request form.
+  'website-intake': 'to reply to your enquiry',
   // Section 10: "reply to your enquiry". The form is a pre-purchase enquiry ("Nothing has been charged"),
   // so the 13.1 buyer purpose "contact you about your order" is not claimed here.
   'card-enquiry': 'to reply to your enquiry',
+  // Section 10: "reply to your enquiry". The enquiry form on a card's own page (/c/[slug]); the recipients
+  // sentence says the card owner gets it.
+  'card-owner-enquiry': 'to reply to your enquiry',
   // Section 13.1 (card owners): "supply, host and support your card".
   'card-intake': 'to supply, host and support your card',
 }
@@ -43,17 +48,23 @@ const RECIPIENTS_HOSTING =
 const RECIPIENTS_NO_SALE = 'We do not sell your information.'
 // Enquiry forms post to /api/leads, whose alert to us goes through SendGrid (src/lib/notifications/lead-alert.ts).
 const RECIPIENTS_ENQUIRY_EMAIL =
-  'SendGrid delivers the enquiry alert we receive, which carries your first name, business name and the package you asked about.'
+  'SendGrid delivers the enquiry alert we receive, which carries your first name, business name and the package you asked about, and any marketing email you agree to receive.'
+// The form on a card's own page goes through src/lib/card/enquiry-alert.ts, which sends with Mailtrap.
+const RECIPIENTS_CARD_OWNER_EMAIL =
+  'Mailtrap delivers the email that passes your enquiry to the card owner, and a short alert to us with the card and the first name you give.'
 // The thank-you page posts to /api/cards/intake, and card order emails go through Mailtrap
 // (src/app/api/cards/intake/route.ts, src/lib/cards/paid-order.ts, src/lib/cards/follow-up.ts).
 const RECIPIENTS_CARD_EMAIL =
   'Mailtrap delivers the emails about your card order, including the email that passes us the details you give here.'
 
-/** Who the details may go to (section 13.2) and the no-sale promise (sections 10 and 13.1), per form: each form's email goes through one provider. */
+/** Who the details may go to (section 13.2) and the no-sale promise (sections 10 and 13.1), per form: each form's email goes through one provider, or none. */
 export const COLLECTION_RECIPIENTS: Record<CollectionNoticeForm, string> = {
   grow: `${RECIPIENTS_HOSTING} ${RECIPIENTS_ENQUIRY_EMAIL} ${RECIPIENTS_NO_SALE}`,
   home: `${RECIPIENTS_HOSTING} ${RECIPIENTS_ENQUIRY_EMAIL} ${RECIPIENTS_NO_SALE}`,
+  // A website intake lead notifies us in the app only, so no email provider receives it (/api/leads, UNI-3172).
+  'website-intake': `${RECIPIENTS_HOSTING} ${RECIPIENTS_NO_SALE}`,
   'card-enquiry': `${RECIPIENTS_HOSTING} ${RECIPIENTS_ENQUIRY_EMAIL} ${RECIPIENTS_NO_SALE}`,
+  'card-owner-enquiry': `${RECIPIENTS_HOSTING} ${RECIPIENTS_CARD_OWNER_EMAIL} ${RECIPIENTS_NO_SALE}`,
   'card-intake': `${RECIPIENTS_HOSTING} ${RECIPIENTS_CARD_EMAIL} ${RECIPIENTS_NO_SALE}`,
 }
 

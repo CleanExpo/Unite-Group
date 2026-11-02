@@ -159,7 +159,7 @@ export default function PrivacyPolicyPage() {
               <tr><td>Google (OAuth + APIs)</td><td>Authentication, Gmail, Calendar, Drive</td><td>Global</td></tr>
               <tr><td>Xero</td><td>Accounting data</td><td>AU / NZ</td></tr>
               <tr><td>Twilio SendGrid</td><td>Enquiry alert emails (first name, business name and package requested)</td><td>Overseas / US</td></tr>
-              <tr><td>Mailtrap</td><td>Living card order emails: the order alert to us (your name, what you bought and the amount paid) and your welcome email (your name, email address, the card ordered and its price); and, once card enquiry forms are switched on, the email passing a card enquiry to the card owner (what the visitor typed, including any name and reply email) and our short alert (the card, first name and reference)</td><td>Overseas / US</td></tr>
+              <tr><td>Mailtrap</td><td>Living card order emails: the order alert to us (your name, what you bought and the amount paid) your welcome email (your name, email address, the card ordered and its price), any reminder about your order, and the email passing us the details you give on the thank-you page; and, once card enquiry forms are switched on, the email passing a card enquiry to the card owner (what the visitor typed, including any name and reply email) and our short alert (the card, first name and reference)</td><td>Overseas / US</td></tr>
             </tbody>
           </table>
           <p>
@@ -223,7 +223,7 @@ export default function PrivacyPolicyPage() {
             access. We also send your first name, business name and the package requested through SendGrid
             to our alert mailbox, with a sign-in link to the enquiry. Contact details and your message
             stay in the Application. SendGrid processes this alert overseas; the email copy is retained
-            according to the alert mailbox account settings. We do not sell your information. We keep enquiry records for as long as needed to respond and
+            according to the alert mailbox account settings. The form asking us to build you a website is the exception: it sends no alert email and notifies us inside the Application. We do not sell your information. We keep enquiry records for as long as needed to respond and
             follow up, unless you ask us to delete them sooner.
           </p>
           <p>
@@ -299,7 +299,8 @@ export default function PrivacyPolicyPage() {
             <li>Vercel, which hosts the website and keeps request logs.</li>
             <li>
               SendGrid, which delivers the enquiry alert we receive when you send an enquiry through a website form (your
-              first name, business name and the package requested), and any marketing email you have agreed to receive.
+              first name, business name and the package requested), and any marketing email you have agreed to receive. The form asking us to build you a website sends no alert email: it
+              notifies us inside the Application.
             </li>
             <li>
               Mailtrap, which delivers the emails sent when you buy a card: our order alert, your welcome email, any

@@ -94,7 +94,7 @@ export function EnquiryForm({
       {/* UNI-3021: an owner email is promised only when the server can attempt one (ownerAlerts); the receipt then says
           whether it went. Fixed copy: the card's display name is free text, so it is never interpolated here. */}
       <p className={styles.recipient}>{ownerAlerts ? RECIPIENT_LINE_EMAILED : RECIPIENT_LINE}</p>
-      <CollectionNotice form="card-enquiry" tone="dark" />
+      <CollectionNotice form="card-owner-enquiry" tone="dark" />
       <label className={styles.consent}>
         <input type="checkbox" name="consent" checked={consent} onChange={(e) => setConsent(e.target.checked)} required />
         I agree to my details being used to reply to this enquiry
