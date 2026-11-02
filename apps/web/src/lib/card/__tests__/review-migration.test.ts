@@ -53,6 +53,16 @@ describe('card review requests migration structure', () => {
     expect(statements).toContain("p_channel not in ('owner_sms', 'owner_email', 'owner_share')")
   })
 
+  it('a STOP and a new request for the same customer take the same lock, so they cannot interleave', () => {
+    const lock = "perform pg_advisory_xact_lock(hashtextextended(p_card_slug || E'\\x1f' || p_recipient_hash, 0));"
+    const create = statements.slice(statements.indexOf('function public.card_create_review_request'), statements.indexOf('function public.card_record_review_optout'))
+    const optout = statements.slice(statements.indexOf('function public.card_record_review_optout'))
+    expect(create).toContain(lock)
+    expect(optout).toContain(lock)
+    // the lock is taken before the opt-out row is written, not after
+    expect(optout.indexOf(lock)).toBeLessThan(optout.indexOf('insert into public.card_review_optouts'))
+  })
+
   it('events hold no IP, user agent, name or contact column', () => {
     const events = statements.slice(statements.indexOf('create table if not exists public.card_review_events'))
     const body = events.slice(0, events.indexOf(');'))

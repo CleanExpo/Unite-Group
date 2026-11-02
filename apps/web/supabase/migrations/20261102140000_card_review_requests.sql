@@ -170,6 +170,7 @@ revoke all on function public.card_create_review_request(text, text, text, text,
 grant execute on function public.card_create_review_request(text, text, text, text, boolean) to authenticated;
 
 -- Owner records that a customer asked not to be contacted. Idempotent; marks that customer's requests opted_out.
+-- Takes the same advisory lock as card_create_review_request, so the two cannot interleave for one recipient.
 create or replace function public.card_record_review_optout(p_card_slug text, p_recipient_hash text)
 returns boolean
 language plpgsql security definer set search_path = public, pg_temp as $$
@@ -178,6 +179,9 @@ begin
     select 1 from public.card_owners as o where o.card_slug = p_card_slug and o.founder_id = auth.uid()
   ) then raise exception 'card_review_not_owner'; end if;
   if p_recipient_hash is null or p_recipient_hash !~ '^[0-9a-f]{64}$' then raise exception 'card_review_bad_input'; end if;
+  -- the same per-recipient lock card_create_review_request takes, so a STOP and a new request for the same customer
+  -- serialise: a request can never be created between the opt-out check and this insert (review 02/11/2026, P1)
+  perform pg_advisory_xact_lock(hashtextextended(p_card_slug || E'\x1f' || p_recipient_hash, 0));
   insert into public.card_review_optouts (card_slug, recipient_hash) values (p_card_slug, p_recipient_hash)
     on conflict on constraint card_review_optouts_pkey do nothing;
   update public.card_review_requests as r set status = 'opted_out'

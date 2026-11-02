@@ -13,7 +13,10 @@ import styles from './card-reviews.module.css'
 const BASE_URL = 'https://unite-group.in'
 export const CONSENT_LABEL = 'This customer agreed I can message them about this job'
 
-type Ready = { message: string; sms: string | null; mailto: string | null; duplicate: boolean }
+type Ready = { message: string; sms: string | null; mailto: string | null }
+
+/** Shown instead of a message when this customer was already asked today: one request per customer per day. */
+export const DUPLICATE_NOTE = 'You already asked this customer today. We have not prepared another message.'
 
 /** One card: its Google Place ID, and the "ask for a review" form. Nothing here sends a message. */
 export function ReviewCardPanel({ card }: { card: OwnerCard }) {
@@ -28,6 +31,7 @@ export function ReviewCardPanel({ card }: { card: OwnerCard }) {
   const [busy, setBusy] = useState(false)
   const [askError, setAskError] = useState<string | null>(null)
   const [ready, setReady] = useState<Ready | null>(null)
+  const [duplicate, setDuplicate] = useState(false)
 
   const [stopContact, setStopContact] = useState('')
   const [stopMsg, setStopMsg] = useState<string | null>(null)
@@ -49,10 +53,13 @@ export function ReviewCardPanel({ card }: { card: OwnerCard }) {
     e.preventDefault()
     setAskError(null)
     setReady(null)
+    setDuplicate(false)
     setBusy(true)
     try {
       const r = await createReviewRequestAction({ slug: card.slug, firstName, contact, channel, consent })
       if (!r.ok) { setAskError(r.error); return }
+      // a repeat for the same customer today gets no new message and no send buttons
+      if (r.duplicate) { setDuplicate(true); return }
       const message = buildRequestMessage({
         firstName: firstName.trim(), senderName: sender, businessName: card.businessName, link: requestReviewLink(BASE_URL, card.slug, r.requestId),
       })
@@ -61,7 +68,6 @@ export function ReviewCardPanel({ card }: { card: OwnerCard }) {
         message,
         sms: channel === 'owner_sms' ? smsHref(to.replace(/[\s()-]/g, ''), message) : null,
         mailto: channel === 'owner_email' ? mailtoHref(to, 'A quick favour', message) : null,
-        duplicate: r.duplicate,
       })
     } catch {
       setAskError('could not prepare the message, check your connection')
@@ -90,7 +96,8 @@ export function ReviewCardPanel({ card }: { card: OwnerCard }) {
     try {
       const r = await recordOptOutAction(card.slug, stopContact)
       setStopMsg(r.ok ? 'Recorded. You will not be able to ask this customer again from this card.' : r.error)
-      if (r.ok) setStopContact('')
+      // a message prepared before the STOP must not stay sendable
+      if (r.ok) { setStopContact(''); setReady(null); setDuplicate(false) }
     } catch { setStopMsg('could not record, check your connection') }
   }
 
@@ -146,9 +153,9 @@ export function ReviewCardPanel({ card }: { card: OwnerCard }) {
           </p>
           <div className={styles.row}><button className={styles.button} type="submit" disabled={busy}>Prepare message</button></div>
           {askError ? <p role="alert">{askError}</p> : null}
+          {duplicate ? <p role="status" data-request-duplicate>{DUPLICATE_NOTE}</p> : null}
           {ready ? (
             <div className={styles.form} data-request-ready>
-              {ready.duplicate ? <p className={styles.note}>You already asked this customer today. This is the same request.</p> : null}
               <p className={styles.message}>{ready.message}</p>
               <div className={styles.row}>
                 {ready.sms ? <a className={styles.button} href={ready.sms}>Open my texts</a> : null}
