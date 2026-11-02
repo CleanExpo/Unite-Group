@@ -173,6 +173,13 @@ export const JOBS = [
     paths: ['apps/spec-board/'],
     cmd: ['npm', ['run', 'verify:spec-board']],
   },
+  {
+    id: 'mission-control-local',
+    ciJob: 'mission-control-local',
+    label: 'apps/mission-control-local — type-check, test, build',
+    paths: ['apps/mission-control-local/'],
+    cmd: ['npm', ['run', 'verify:mission-control-local']],
+  },
 ];
 
 /**

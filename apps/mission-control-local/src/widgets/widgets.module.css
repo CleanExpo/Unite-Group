@@ -1,0 +1,145 @@
+.note {
+  margin: 0;
+  color: var(--deck-muted);
+}
+
+.down {
+  margin: 0;
+  padding: 10px;
+  border-left: 3px solid var(--deck-abort);
+  background: var(--deck-panel-hi);
+  color: var(--deck-abort-text);
+}
+
+.down p {
+  margin: 6px 0 0;
+  color: var(--deck-muted);
+}
+
+.muted {
+  color: var(--deck-muted);
+}
+
+.warn {
+  color: var(--deck-amber);
+}
+
+.push {
+  margin-left: auto;
+  color: var(--deck-muted);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.machine {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.machineHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.led {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.ledGo {
+  background: var(--deck-go);
+  box-shadow: 0 0 8px var(--deck-go);
+}
+
+.ledAmber {
+  background: var(--deck-amber);
+  box-shadow: 0 0 8px var(--deck-amber);
+}
+
+.ledAbort {
+  background: var(--deck-abort);
+  box-shadow: 0 0 8px var(--deck-abort);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.chipOn,
+.chipOff {
+  padding: 2px 8px;
+  border: 1px solid var(--deck-line);
+  border-radius: 3px;
+}
+
+.chipOn {
+  background: var(--deck-panel-hi);
+}
+
+.chipOff {
+  color: var(--deck-dim);
+  text-decoration: line-through;
+}
+
+.repos {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.repos li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  border-top: 1px solid var(--deck-line);
+}
+
+.jobs {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.jobs th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--deck-muted);
+}
+
+.jobs th,
+.jobs td {
+  padding: 5px 8px 5px 0;
+  border-bottom: 1px solid var(--deck-line);
+}
+
+.clock {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+}
+
+.clockTime {
+  font-size: 40px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}

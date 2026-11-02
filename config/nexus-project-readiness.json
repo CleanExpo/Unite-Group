@@ -48,6 +48,16 @@
       ]
     },
     {
+      "path": "apps/mission-control-local",
+      "manager": "npm",
+      "lockfile": "package-lock.json",
+      "requiredScripts": [
+        "type-check",
+        "test",
+        "build"
+      ]
+    },
+    {
       "path": "packages/pi-ceo-operator-mcp",
       "manager": "npm",
       "lockfile": "package-lock.json",

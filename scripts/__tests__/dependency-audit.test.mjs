@@ -10,6 +10,7 @@ const RUNNER = join(ROOT, 'scripts', 'audit-active-lockfiles.mjs')
 const EXPECTED_LOCKS = [
   'apps/autopilot-runner/package-lock.json',
   'apps/empire/package-lock.json',
+  'apps/mission-control-local/package-lock.json',
   'apps/spec-board/package-lock.json',
   'apps/web/.portfolio/package-lock.json',
   'apps/web/pnpm-lock.yaml',

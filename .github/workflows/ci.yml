@@ -797,6 +797,34 @@ jobs:
           SUPABASE_URL: ${{ secrets.FABEL_SUPABASE_URL || 'https://example.supabase.co' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.FABEL_SUPABASE_SERVICE_ROLE_KEY || 'ci-placeholder-service-role-key' }}
 
+  mission-control-local:
+    name: apps/mission-control-local — type-check, test, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mission-control-local
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: apps/mission-control-local/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npm run type-check
+
+      # Fixtures only: no live fleet broker is needed.
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
   gitleaks:
     name: gitleaks — secret scan (git commits)
     runs-on: ubuntu-latest

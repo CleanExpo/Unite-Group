@@ -100,6 +100,25 @@ updates:
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
   - package-ecosystem: "npm"
+    directory: "/apps/mission-control-local"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Australia/Brisbane"
+    open-pull-requests-limit: 1
+    versioning-strategy: increase-if-necessary
+    labels:
+      - "dependencies"
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+  - package-ecosystem: "npm"
     directory: "/apps/autopilot-runner"
     schedule:
       interval: "weekly"
