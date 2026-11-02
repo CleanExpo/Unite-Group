@@ -1,4 +1,4 @@
-import { join, resolve } from 'node:path'
+import { isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { existsSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { getHermesRoot, getLocalBinDir, getProfilesDir } from './claude-paths'
@@ -89,11 +89,28 @@ export function getSwarmEnvironment(): SwarmEnvironment {
   }
 }
 
+/**
+ * Is `pathValue` a forbidden root, or anything underneath one?
+ *
+ * Containment is asked of `path.relative`, not of a string prefix. The prefix
+ * form tested ``startsWith(`${root}/`)`` with a literal forward slash, while
+ * the roots themselves are built by `join` — so on Windows a root reads
+ * `C:\Users\<name>\.ssh`, no descendant ever matched, and every key under it
+ * was reported as permitted. `path.relative` uses the platform separator and
+ * folds case where the filesystem does, so each of those spellings is caught.
+ *
+ * `..` is compared whole, not by prefix: a child legitimately named `..foo`
+ * yields the relative path `..foo`, which a `startsWith('..')` test would have
+ * read as "outside the root" and allowed.
+ */
 export function isForbiddenSwarmPath(
   pathValue: string | null | undefined,
 ): boolean {
   if (!pathValue) return false
-  return SWARM_FORBIDDEN_PATHS.some(
-    (root) => pathValue === root || pathValue.startsWith(`${root}/`),
-  )
+  return SWARM_FORBIDDEN_PATHS.some((root) => {
+    const rel = relative(root, pathValue)
+    if (rel === '') return true
+    if (isAbsolute(rel)) return false
+    return rel !== '..' && !rel.startsWith(`..${sep}`)
+  })
 }

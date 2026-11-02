@@ -88,7 +88,9 @@ describe('CliLaneAdapter', () => {
     expect(cap!.input).toBe('build it')
     expect(cap!.args).not.toContain('build it')
     expect(cap!.cwd).toBe('/w/lane')
-    expect(cap!.env.CLAUDE_CONFIG_DIR).toBe('/accts/max-2')
+    // path.join, as the adapter builds it: the literal '/accts/max-2'
+    // only matches on POSIX.
+    expect(cap!.env.CLAUDE_CONFIG_DIR).toBe(path.join('/accts', 'max-2'))
   })
 
   it('pipes Codex missions over stdin instead of exposing them in argv', async () => {
@@ -103,7 +105,7 @@ describe('CliLaneAdapter', () => {
     expect(cap!.args).toEqual(['exec', '-'])
     expect(cap!.input).toBe('x')
     expect(cap!.args).not.toContain('x')
-    expect(cap!.env.CODEX_HOME).toBe('/accts/openai-pro')
+    expect(cap!.env.CODEX_HOME).toBe(path.join('/accts', 'openai-pro'))
   })
 
   it.each(['review', 'resume', '--dangerously-bypass-approvals-and-sandbox'])(
@@ -145,7 +147,7 @@ describe('CliLaneAdapter', () => {
 
     expect(capturedEnv).not.toHaveProperty('UNRELATED_SERVER_SECRET')
     expect(capturedEnv?.PATH).toBeTruthy()
-    expect(capturedEnv?.CODEX_HOME).toBe('/accts/max-1')
+    expect(capturedEnv?.CODEX_HOME).toBe(path.join('/accts', 'max-1'))
   })
 
   it('forwards the admitted shared OAuth token only to Claude children', async () => {
@@ -375,99 +377,120 @@ describe('CliLaneAdapter', () => {
     }
   })
 
-  it('rejects a child terminated by an external signal', async () => {
-    await expect(
-      supervisedSpawn(
-        process.execPath,
-        ['-e', "process.kill(process.pid, 'SIGTERM')"],
-        { cwd: process.cwd(), env: process.env },
-      ),
-    ).rejects.toThrow(/signal|terminated/i)
-  })
+  // terminateProcessTree refuses win32 by design - it throws 'Safe CLI process
+  // containment is unsupported on Windows without Job Object ownership' before
+  // it signals anything - so a test that drives a real child through the
+  // termination path cannot be constructed there. The refusal IS the production
+  // behaviour, not a defect to work around, and these still run on
+  // ubuntu-latest, the only platform the apps/workspace CI job gates.
+  it.skipIf(process.platform === 'win32')(
+    'rejects a child terminated by an external signal',
+    async () => {
+      await expect(
+        supervisedSpawn(
+          process.execPath,
+          ['-e', "process.kill(process.pid, 'SIGTERM')"],
+          { cwd: process.cwd(), env: process.env },
+        ),
+      ).rejects.toThrow(/signal|terminated/i)
+    },
+  )
 
-  it('checks the process group after a normal parent exit', async () => {
-    const terminate = vi.fn(async () => {})
-    const spawnWithTreeCheck = createSupervisedSpawn(
-      terminate,
-      process.platform,
-      () => true,
-    )
+  it.skipIf(process.platform === 'win32')(
+    'checks the process group after a normal parent exit',
+    async () => {
+      const terminate = vi.fn(async () => {})
+      const spawnWithTreeCheck = createSupervisedSpawn(
+        terminate,
+        process.platform,
+        () => true,
+      )
 
-    await expect(
-      spawnWithTreeCheck(process.execPath, ['-e', 'process.exit(0)'], {
-        cwd: process.cwd(),
-        env: process.env,
-      }),
-    ).resolves.toMatchObject({ code: 0 })
+      await expect(
+        spawnWithTreeCheck(process.execPath, ['-e', 'process.exit(0)'], {
+          cwd: process.cwd(),
+          env: process.env,
+        }),
+      ).resolves.toMatchObject({ code: 0 })
 
-    expect(terminate).toHaveBeenCalledOnce()
-    expect(terminate).toHaveBeenCalledWith(
-      expect.any(Number),
-      expect.objectContaining({
-        force: false,
-        ownedPids: expect.any(Set),
-      }),
-    )
-  })
+      expect(terminate).toHaveBeenCalledOnce()
+      expect(terminate).toHaveBeenCalledWith(
+        expect.any(Number),
+        expect.objectContaining({
+          force: false,
+          ownedPids: expect.any(Set),
+        }),
+      )
+    },
+  )
 
-  it('decodes UTF-8 output across child stream chunk boundaries', async () => {
-    const spawnWithTreeCheck = createSupervisedSpawn(
-      async () => {},
-      process.platform,
-      () => true,
-    )
-    const script = [
-      "const bytes = Buffer.from('😀')",
-      'process.stdout.write(bytes.subarray(0, 2))',
-      'setTimeout(() => process.stdout.write(bytes.subarray(2)), 10)',
-    ].join(';')
+  it.skipIf(process.platform === 'win32')(
+    'decodes UTF-8 output across child stream chunk boundaries',
+    async () => {
+      const spawnWithTreeCheck = createSupervisedSpawn(
+        async () => {},
+        process.platform,
+        () => true,
+      )
+      const script = [
+        "const bytes = Buffer.from('😀')",
+        'process.stdout.write(bytes.subarray(0, 2))',
+        'setTimeout(() => process.stdout.write(bytes.subarray(2)), 10)',
+      ].join(';')
 
-    await expect(
-      spawnWithTreeCheck(process.execPath, ['-e', script], {
-        cwd: process.cwd(),
-        env: process.env,
-      }),
-    ).resolves.toMatchObject({ stdout: '😀' })
-  })
+      await expect(
+        spawnWithTreeCheck(process.execPath, ['-e', script], {
+          cwd: process.cwd(),
+          env: process.env,
+        }),
+      ).resolves.toMatchObject({ stdout: '😀' })
+    },
+  )
 
   // ── UNI-2406: live output forwarding ──────────────────────────────────────
 
-  it('forwards process output to the live sink as it is written', async () => {
-    const chunks: Array<[string, string]> = []
-    const script =
-      'process.stdout.write("first\\n"); process.stderr.write("problem\\n"); process.stdout.write("second\\n")'
-    const result = await supervisedSpawn(process.execPath, ['-e', script], {
-      cwd: process.cwd(),
-      env: process.env,
-      onOutput: (channel, chunk) => chunks.push([channel, chunk]),
-    })
-
-    expect(result.code).toBe(0)
-    const joined = chunks.map(([, chunk]) => chunk).join('')
-    expect(joined).toContain('first')
-    expect(joined).toContain('second')
-    expect(chunks.some(([channel]) => channel === 'stderr')).toBe(true)
-    // The live sink must not replace the buffered result the orchestrator
-    // still settles the lane's `lastOutput` from.
-    expect(result.stdout).toContain('first')
-    expect(result.stdout).toContain('second')
-  })
-
-  it('survives a live sink that throws, rather than taking the child down with it', async () => {
-    const result = await supervisedSpawn(
-      process.execPath,
-      ['-e', 'process.stdout.write("still ran\\n")'],
-      {
+  it.skipIf(process.platform === 'win32')(
+    'forwards process output to the live sink as it is written',
+    async () => {
+      const chunks: Array<[string, string]> = []
+      const script =
+        'process.stdout.write("first\\n"); process.stderr.write("problem\\n"); process.stdout.write("second\\n")'
+      const result = await supervisedSpawn(process.execPath, ['-e', script], {
         cwd: process.cwd(),
         env: process.env,
-        onOutput: () => {
-          throw new Error('consumer exploded')
+        onOutput: (channel, chunk) => chunks.push([channel, chunk]),
+      })
+
+      expect(result.code).toBe(0)
+      const joined = chunks.map(([, chunk]) => chunk).join('')
+      expect(joined).toContain('first')
+      expect(joined).toContain('second')
+      expect(chunks.some(([channel]) => channel === 'stderr')).toBe(true)
+      // The live sink must not replace the buffered result the orchestrator
+      // still settles the lane's `lastOutput` from.
+      expect(result.stdout).toContain('first')
+      expect(result.stdout).toContain('second')
+    },
+  )
+
+  it.skipIf(process.platform === 'win32')(
+    'survives a live sink that throws, rather than taking the child down with it',
+    async () => {
+      const result = await supervisedSpawn(
+        process.execPath,
+        ['-e', 'process.stdout.write("still ran\\n")'],
+        {
+          cwd: process.cwd(),
+          env: process.env,
+          onOutput: () => {
+            throw new Error('consumer exploded')
+          },
         },
-      },
-    )
-    expect(result.code).toBe(0)
-    expect(result.stdout).toContain('still ran')
-  })
+      )
+      expect(result.code).toBe(0)
+      expect(result.stdout).toContain('still ran')
+    },
+  )
 
   it('passes the live sink through the adapter to the spawn', async () => {
     const seen: Array<[string, string]> = []

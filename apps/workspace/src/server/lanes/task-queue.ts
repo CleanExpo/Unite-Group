@@ -244,6 +244,31 @@ async function readQueueRaw(queuePath: string): Promise<string> {
   }
 }
 
+/**
+ * Persist a directory entry so the rename that published the file survives a
+ * crash. POSIX does this by fsync on the directory handle.
+ *
+ * Windows has no directory fsync: NTFS answers the attempt with EPERM, which
+ * aborted every queue write on Windows before a single record was appended.
+ * The sync is durability hardening on top of an already-renamed file, so the
+ * write is not lost by skipping it — but the skip is narrow on purpose. Only
+ * EPERM, only on win32, is tolerated; every other error, and every error on
+ * every other platform, still propagates. A blanket catch here would have
+ * silently dropped real durability failures on Linux, where this sync is the
+ * thing that makes the atomic rename atomic.
+ */
+async function syncDirectory(directoryPath: string): Promise<void> {
+  const directory = await fs.open(directoryPath, 'r')
+  try {
+    await directory.sync()
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code
+    if (!(process.platform === 'win32' && code === 'EPERM')) throw error
+  } finally {
+    await directory.close()
+  }
+}
+
 async function writeQueueAtomically(
   queuePath: string,
   content: string,
@@ -267,12 +292,7 @@ async function writeQueueAtomically(
     await fs.unlink(temporaryPath).catch(() => {})
     throw error
   }
-  const directory = await fs.open(queueDir, 'r')
-  try {
-    await directory.sync()
-  } finally {
-    await directory.close()
-  }
+  await syncDirectory(queueDir)
 }
 
 async function recoverTornQueueTail(queuePath: string): Promise<void> {
@@ -527,12 +547,7 @@ async function withQueueLock<T>(
       } finally {
         await ownerHandle.close()
       }
-      const lockDirectory = await fs.open(lockPath, 'r')
-      try {
-        await lockDirectory.sync()
-      } finally {
-        await lockDirectory.close()
-      }
+      await syncDirectory(lockPath)
     } catch (error) {
       if (acquired) {
         await cleanupFailedQueueLock(lockPath, acquiredIdentity, metadata.token)
