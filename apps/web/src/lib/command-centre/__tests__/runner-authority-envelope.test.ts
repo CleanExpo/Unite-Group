@@ -277,6 +277,10 @@ function run([tool, ...args]: Cmd, extraEnv: Record<string, string> = {}) {
     encoding: 'utf8' as const,
     env: {
       ...process.env,
+      // The shim's git config pin is asserted below; a pin inherited from the caller's shell must not satisfy or fail it.
+      GIT_CONFIG_COUNT: undefined,
+      GIT_CONFIG_KEY_0: undefined,
+      GIT_CONFIG_VALUE_0: undefined,
       ...extraEnv,
       // Native Windows callers must pass literal {} and [] through MSYS argv parsing.
       ...(process.platform === 'win32' ? { MSYS: 'noglob' } : {}),
