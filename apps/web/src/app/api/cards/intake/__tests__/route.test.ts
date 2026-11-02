@@ -37,11 +37,11 @@ function mockDb(
   orders: { data: unknown[] | null; error?: unknown },
   insertResult: { error?: unknown } = { error: null },
   existing: unknown[] = [],
-  extras: { data: unknown[] | null; error?: unknown } = { data: [] },
+  extras: { data: unknown[] | null; error?: unknown; hang?: boolean } = { data: [] },
 ) {
   // The extra-business read: select('customer_email, quantity').eq()....ilike() resolves to `extras`.
   const extrasEq = vi.fn(() => extrasChain)
-  const extrasIlike = vi.fn(async () => ({ error: null, ...extras }))
+  const extrasIlike = vi.fn(() => (extras.hang ? new Promise(() => {}) : Promise.resolve({ error: null, ...extras })))
   const extrasChain = { eq: extrasEq, ilike: extrasIlike }
   const eq = vi.fn(() => ({ limit: vi.fn(async () => ({ error: null, ...orders })) }))
   // insert(row).select('id').single(): the claim insert returns the new row id (or the error).
@@ -388,6 +388,22 @@ describe('POST /api/cards/intake: extra businesses in the alert email', () => {
     expect(alert().text).toContain('Extra businesses paid with this email: could not be checked')
     expect(alert().text).not.toContain('with this email: 0')
     quiet.mockRestore()
+  })
+
+  it('a lookup that never answers still lets the alert go, and records it sent', async () => {
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    try {
+      const db = mockDb({ data: [ORDER] }, undefined, [], { data: null, hang: true })
+      const pending = POST(req(BODY))
+      await vi.advanceTimersByTimeAsync(3_000)
+      expect((await pending).status).toBe(201)
+      expect(alert().text).toContain('Extra businesses paid with this email: could not be checked')
+      expect(db.update).toHaveBeenCalledWith(expect.objectContaining({ delivery_state: 'sent' }))
+    } finally {
+      vi.useRealTimers()
+      quiet.mockRestore()
+    }
   })
 
   it('does not read extras at all when the claim is lost', async () => {

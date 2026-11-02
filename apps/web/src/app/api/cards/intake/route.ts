@@ -53,17 +53,21 @@ function text(value: unknown, max: number): string | null {
 /**
  * The alert's extra-business line. An add-on is its own payment, not linked to the main order, so it is matched by
  * buyer email within the same founder and the same Stripe mode. Every card_orders row is a paid session. Never
- * throws: a failed lookup says so rather than reading as zero, and the alert still goes.
+ * throws and never waits long: this runs after the claim, so a read that hangs would otherwise strand the alert (a
+ * retry gets 409). A failed or slow lookup says so rather than reading as zero, and the alert still goes.
  */
+const EXTRA_LOOKUP_TIMEOUT_MS = 3_000
+
 async function extraBusinessLine(
   admin: ReturnType<typeof createServiceClient>,
   order: { founder_id: string; livemode: boolean },
   buyerEmail: string,
 ): Promise<string> {
   const label = 'Extra businesses paid with this email'
+  let timer: ReturnType<typeof setTimeout> | undefined
   try {
     const email = buyerEmail.trim().toLowerCase()
-    const { data, error } = await admin
+    const lookup = admin
       .from('card_orders')
       .select('customer_email, quantity')
       .eq('founder_id', order.founder_id)
@@ -71,6 +75,10 @@ async function extraBusinessLine(
       .eq('livemode', order.livemode)
       // ilike for case; _ and % are common in emails and are wildcards to ilike, so escape them.
       .ilike('customer_email', email.replace(/[\\%_]/g, '\\$&'))
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error('timed out')), EXTRA_LOOKUP_TIMEOUT_MS)
+    })
+    const { data, error } = await Promise.race([lookup, timeout])
     if (error || !data) throw new Error(error?.message ?? 'no data')
     const rows = (data as Array<{ customer_email: string | null; quantity: number }>).filter(
       (row) => row.customer_email?.trim().toLowerCase() === email,
@@ -82,6 +90,8 @@ async function extraBusinessLine(
   } catch (err) {
     console.error('[cards/intake] extra-business lookup failed:', err instanceof Error ? err.message : err)
     return `${label}: could not be checked`
+  } finally {
+    clearTimeout(timer)
   }
 }
 
