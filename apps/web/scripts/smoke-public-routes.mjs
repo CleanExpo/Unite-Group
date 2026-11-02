@@ -84,6 +84,10 @@ export const SMOKE_PATHS = Object.freeze([
   { path: '/auth/login', pattern: '/auth/login', status: 200 },
   { path: '/auth/reset-password', pattern: '/auth/reset-password', status: 200 },
   { path: '/forgot-password', pattern: '/forgot-password', status: 200 },
+  // The business-owner invite page (UNI-3167): public so an owner with a code can sign in. No session here, so it
+  // renders step 1 without a code and step 2 (the email form) with one; the code is not checked until a link is asked for.
+  { path: '/portal/join', pattern: '/portal/join', status: 200, bodyIncludes: 'Enter your invite code', note: 'step 1: no code' },
+  { path: '/portal/join?code=SMOKE-TEST-CODE', pattern: '/portal/join', status: 200, bodyIncludes: 'Sign in with your email', note: 'step 2: code in the link' },
   // Private by the proxy: anything not public redirects to the login page.
   { path: '/docs', pattern: '/docs', status: 307, location: LOGIN_PATH, note: 'private' },
   { path: '/preview/knowledge-console', pattern: '/preview/knowledge-console', status: 307, location: LOGIN_PATH, note: 'public only when KNOWLEDGE_CONSOLE_PREVIEW=1' },
