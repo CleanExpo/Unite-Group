@@ -129,6 +129,22 @@ describe('review link store', () => {
     expect(await getCardReviewLink('sam', reader({ data: null, error: { message: 'column card_profiles.google_place_id does not exist' } }))).toEqual({ state: 'unavailable' })
   })
 
+  it('before the review migration is applied (column or table absent) the card simply has no review link, not a fault', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    // Postgres undefined_column / undefined_table, and PostgREST's schema-cache "not found" codes
+    for (const code of ['42703', '42P01', 'PGRST204', 'PGRST205']) {
+      const error = { code, message: 'column card_profiles.google_place_id does not exist' }
+      expect(await getCardReviewLink('sam', reader({ data: null, error } as never))).toEqual({ state: 'none' })
+    }
+    expect(warn).toHaveBeenCalled()
+    // every other read fault stays "unavailable": permission refused after the migration, timeouts, network
+    for (const code of ['42501', '57014', 'PGRST301', '', undefined]) {
+      const error = { code, message: 'read failed' }
+      expect(await getCardReviewLink('sam', reader({ data: null, error } as never))).toEqual({ state: 'unavailable' })
+    }
+  })
+
   it('logs an event with no personal fields and reports false on any failure', async () => {
     const rpc = vi.fn().mockResolvedValue({ data: true, error: null })
     expect(await logReviewEvent({ slug: 'sam', kind: 'review_tap', uaClass: 'mobile' }, { rpc } as never)).toBe(true)

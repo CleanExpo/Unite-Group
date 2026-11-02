@@ -8,7 +8,7 @@ import { isValidSlug } from './slug'
 // Reads a card's Google review link and records tap events, both with the publishable key only:
 // the database (column grant + security-definer RPC) decides what anon may see and write.
 
-type DbError = { message: string } | null
+type DbError = { message: string; code?: string } | null
 export interface ReviewStoreClient {
   from(table: 'card_profiles'): {
     select(columns: string): {
@@ -29,9 +29,16 @@ export function anonReviewClient(): ReviewStoreClient {
 }
 
 /**
- * Three answers, never two: a card with a usable review link, a card without one, or a read that failed (for example
- * before the google_place_id migration is applied). A failed read is never reported as "no link".
+ * Three answers, never two: a card with a usable review link, a card without one, or a read that failed. A failed read
+ * is never reported as "no link".
+ *
+ * One exception, by design: until the review migration is applied the google_place_id column (or the table) does not
+ * exist, so no card can have a review link yet. That is "none" (the button stays hidden and /review is a 404), not an
+ * outage. Only the schema-absent codes qualify; a permission refusal, timeout or network fault stays "unavailable".
  */
+// Postgres undefined_column / undefined_table, and PostgREST's schema-cache column / table not found.
+const SCHEMA_ABSENT_CODES = new Set(['42703', '42P01', 'PGRST204', 'PGRST205'])
+
 export type ReviewLinkState = { state: 'ready'; url: string } | { state: 'none' } | { state: 'unavailable' }
 
 export async function getCardReviewLink(slug: string, client?: ReviewStoreClient): Promise<ReviewLinkState> {
@@ -44,6 +51,10 @@ export async function getCardReviewLink(slug: string, client?: ReviewStoreClient
   }
   const { data, error } = await c.from('card_profiles').select(REVIEW_COLUMNS).eq('card_slug', slug).maybeSingle()
   if (error) {
+    if (error.code && SCHEMA_ABSENT_CODES.has(error.code)) {
+      console.warn('[cards] review link schema not deployed yet (%s): treating as no review link', error.code)
+      return { state: 'none' }
+    }
     console.error('[cards] review link read failed:', error.message)
     return { state: 'unavailable' }
   }
