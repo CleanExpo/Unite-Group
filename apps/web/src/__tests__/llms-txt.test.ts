@@ -23,4 +23,17 @@ describe('public/llms.txt', () => {
     expect(howToBuy).toContain('https://unite-group.in/cards/order')
     expect(llms).not.toContain('199')
   })
+
+  // UNI-3175: Phill confirmed on 2 Nov 2026 that $99 and $22 already include GST.
+  it('shows Starter at A$99 and signatures at A$22, both GST included', () => {
+    expect(llms).toContain('- Starter plan: A$99 a month, GST included;')
+    expect(llms).toContain('/pricing : Starter plan A$99 a month, GST included,')
+    expect(llms).toContain('- Email signatures: A$22 each, GST included,')
+    expect(llms).toContain('/signatures : email signatures add-on, A$22 each, GST included')
+  })
+
+  it('never adds 10% to those prices or says GST is on top', () => {
+    expect(llms).not.toMatch(/108\.9|24\.20/)
+    expect(llms).not.toMatch(/plus GST|\+ ?GST|\bex\.? ?GST|excl/i)
+  })
 })

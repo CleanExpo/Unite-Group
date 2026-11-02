@@ -4,8 +4,8 @@
 import { CARD_TIERS } from '@/app/cards/order/order-view'
 import { stripePaymentLink } from '@/app/grow/packages'
 
-/** Plan and add-on prices are shown excluding GST, the same as the /grow packages. */
-export const PLUS_GST = 'plus GST'
+/** The Starter and email signature prices already include GST (Phill, 2 Nov 2026, UNI-3175). Never add 10%. */
+export const GST_INCLUDED = 'GST included'
 
 export const STARTER_PLAN = {
   name: 'Starter',

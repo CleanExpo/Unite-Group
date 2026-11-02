@@ -27,7 +27,7 @@ export const HOME_HIGHLIGHTS = {
   cards: [
     { title: 'Living cards', href: '/cards', line: 'A short film that lands on your mark, not ours.' },
     { title: 'CRM', href: '/solutions/intelligence', line: 'The inbox we are building around your pipeline.' },
-    { title: 'Pricing', href: '/pricing', line: 'Starter plan, signatures, and card tiers — GST where it applies.' },
+    { title: 'Pricing', href: '/pricing', line: 'Starter plan, signatures, and card tiers — GST included.' },
   ],
 } as const
 

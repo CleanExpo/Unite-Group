@@ -1,6 +1,6 @@
 import { formatAud } from '@/app/grow/packages'
 import { COMPANY_NAME } from '@/lib/legal/company'
-import { SIGNATURE_ADDON, STARTER_PLAN } from '@/lib/public-pricing'
+import { GST_INCLUDED, SIGNATURE_ADDON, STARTER_PLAN } from '@/lib/public-pricing'
 import { SITE_URL } from '@/lib/public-site'
 
 export function pricingPageJsonLd(): Record<string, unknown> {
@@ -9,7 +9,7 @@ export function pricingPageJsonLd(): Record<string, unknown> {
     '@type': 'WebPage',
     name: 'Unite Group pricing',
     url: `${SITE_URL}/pricing`,
-    description: `Starter plan ${formatAud(STARTER_PLAN.priceAud)} a month and email signatures at ${formatAud(SIGNATURE_ADDON.priceAud)} each.`,
+    description: `Starter plan ${formatAud(STARTER_PLAN.priceAud)} a month and email signatures at ${formatAud(SIGNATURE_ADDON.priceAud)} each, ${GST_INCLUDED}.`,
     isPartOf: { '@type': 'WebSite', name: COMPANY_NAME, url: SITE_URL },
     mainEntity: {
       '@type': 'OfferCatalog',
@@ -20,6 +20,7 @@ export function pricingPageJsonLd(): Record<string, unknown> {
           name: STARTER_PLAN.name,
           price: STARTER_PLAN.priceAud,
           priceCurrency: 'AUD',
+          priceSpecification: { '@type': 'PriceSpecification', price: STARTER_PLAN.priceAud, priceCurrency: 'AUD', valueAddedTaxIncluded: true },
           description: STARTER_PLAN.line,
         },
         {
@@ -27,6 +28,7 @@ export function pricingPageJsonLd(): Record<string, unknown> {
           name: SIGNATURE_ADDON.name,
           price: SIGNATURE_ADDON.priceAud,
           priceCurrency: 'AUD',
+          priceSpecification: { '@type': 'PriceSpecification', price: SIGNATURE_ADDON.priceAud, priceCurrency: 'AUD', valueAddedTaxIncluded: true },
           description: SIGNATURE_ADDON.line,
         },
       ],

@@ -100,8 +100,8 @@ describe('Today and what is coming', () => {
     for (const bad of [/synthex/i, /trade hall/i, /certified/i, /iicrc/i, /24\/7/, /!/]) expect(sec).not.toMatch(bad)
     // The card price shows only behind the order page's payment-link gate, never here unconditionally.
     expect(sec).not.toMatch(/\$249|\$449/)
-    expect(sec).toContain('$99 a month plus GST')
-    expect(sec).toContain('$22 each plus GST')
+    expect(sec).toContain('$99 a month, GST included')
+    expect(sec).toContain('$22 each, GST included')
     const coming = text(blocks(html, 'data-coming', 'div')[0])
     expect(coming).not.toMatch(/\$/)
     expect(coming).not.toMatch(/synthex|trade hall|certified|iicrc|24\/7/i)
