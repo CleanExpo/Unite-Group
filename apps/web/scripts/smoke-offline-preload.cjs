@@ -9,15 +9,14 @@
  * (next/dist/server/lib/patch-fetch.js, patchFetch: createDedupeFetch(globalThis.fetch)), so this wrapper
  * stays underneath Next's own caching layer.
  *
- * One deliberate exception, an in-process stub and not a network call: the public card lookup
- * (GET <supabase>/rest/v1/card_profiles) is answered as "Supabase is up and holds no such card", so the
- * unknown-card routes (/c/<slug>) can be smoked for their real not-found behaviour. Set
- * SMOKE_OFFLINE_NO_STUBS=1 to refuse that too and observe the plain-outage behaviour. The stub answers only the
- * app's exact public query (the PUBLIC_COLUMNS list read from src/lib/card/published.ts plus one card_slug
- * equality filter, on smoke-unknown-card -> no row, smoke-published-card -> one published row), and refuses any
- * other query like an outage. The review redirect's read (REVIEW_COLUMNS from src/lib/card/review-store.ts) is
- * answered the same way, with a format-valid Place ID on the published card. It cannot prove the live database accepts the query; it proves the app sends the
- * declared one and renders both the not-found and the published-card branches.
+ * One deliberate exception, an in-process stub and not a network call: GET <supabase>/rest/v1/card_profiles with
+ * one card_slug equality filter is answered as "Supabase is up", so the card routes can be smoked for their real
+ * behaviour: smoke-unknown-card -> no row, smoke-published-card -> one published row with a format-valid Place ID.
+ * The selected columns must all be granted to anon by the migrations (supabase/migrations/*.sql, `grant select
+ * (...) on table public.card_profiles to anon`); any other column, filter or slug is refused like an outage. It
+ * cannot prove the live database has been migrated; it proves the app only asks for columns the migrations grant
+ * and renders the not-found, published-card and review-redirect branches. Set SMOKE_OFFLINE_NO_STUBS=1 in the
+ * preload's own environment to refuse every query and observe the plain-outage behaviour.
  *
  * node:http and node:https requests to non-loopback hosts are refused too (connection error, no socket
  * opened), for SDKs that do not use fetch. Raw net/tls sockets are not intercepted.
@@ -56,20 +55,40 @@ function headerOf(input, init, name) {
   return input && input.headers && typeof input.headers.get === 'function' ? input.headers.get(name) : null;
 }
 
-// A column list the app selects, read from the app source so the stub cannot drift from it.
-function sourceColumns(file, name) {
+// The columns anon may read on card_profiles, taken from the migrations' own `grant select (...) ... to anon`
+// statements: the database's contract, not the app's. A selection naming any other column (a typo, a column that
+// does not exist, one anon was never granted) is refused like an outage, as PostgREST would refuse it.
+function anonGrantedColumns() {
   try {
-    const source = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'src', 'lib', 'card', file), 'utf8');
-    const match = new RegExp(`${name}\\s*=\\s*'([^']+)'`).exec(source);
-    return match ? match[1].replace(/\s+/g, '') : null;
+    const fs = require('node:fs');
+    const dir = require('node:path').join(__dirname, '..', 'supabase', 'migrations');
+    const granted = new Set();
+    for (const file of fs.readdirSync(dir).filter((name) => name.endsWith('.sql'))) {
+      const sql = fs.readFileSync(require('node:path').join(dir, file), 'utf8');
+      for (const match of sql.matchAll(/grant\s+select\s*\(([^)]+)\)\s+on\s+table\s+public\.card_profiles\s+to\s+anon\b/gi)) {
+        for (const column of match[1].split(',')) granted.add(column.trim());
+      }
+    }
+    return granted;
   } catch {
-    return null;
+    return new Set();
   }
 }
-const publicCardColumns = () => sourceColumns('published.ts', 'PUBLIC_COLUMNS');
-const reviewColumns = () => sourceColumns('review-store.ts', 'REVIEW_COLUMNS');
+
 // A format-valid Place ID (src/lib/card/review-link.ts PLACE_ID_RE) for the published smoke card.
 const STUB_PLACE_ID = 'ChIJsmokeTestPlaceId0001';
+// Every column the stub can answer for the published card; a selection returns exactly the columns it names.
+const PUBLISHED_ROW = Object.freeze({
+  card_slug: 'smoke-published-card',
+  display_name: 'Smoke Test Owner',
+  role_title: 'Smoke test role',
+  business_name: 'Smoke Test Business',
+  email: 'smoke@example.invalid',
+  phone: null,
+  service_area: null,
+  published_at: '2026-01-01T00:00:00.000Z',
+  google_place_id: STUB_PLACE_ID,
+});
 
 const STUB_PUBLISHED_SLUG = 'smoke-published-card';
 const STUB_UNKNOWN_SLUG = 'smoke-unknown-card';
@@ -78,28 +97,18 @@ function cardLookupStub(url, input, init) {
   if (noStubs) return null;
   if (!url.hostname.endsWith('.supabase.co') || url.pathname !== '/rest/v1/card_profiles') return null;
   if (methodOf(input, init) !== 'GET') return null;
-  // Answer only two exact queries, each with the app's own column list (PUBLIC_COLUMNS for the card page,
-  // REVIEW_COLUMNS for the review redirect) and one card_slug equality filter on a known smoke slug. Anything
-  // else (a renamed column, an extra filter, another slug) is refused like an outage, so a broken query fails
-  // the smoke instead of passing as "no such card".
+  // Answer only a select of granted columns with one card_slug equality filter on a known smoke slug. Anything else
+  // (an ungranted or misspelt column, an extra filter, another slug) is refused like an outage, so a broken query
+  // fails the smoke instead of passing as "no such card".
   const names = [...url.searchParams.keys()].sort().join(',');
   const filter = /^eq\.(.+)$/.exec(url.searchParams.get('card_slug') || '');
-  const selected = (url.searchParams.get('select') || '').replace(/\s+/g, '');
-  const publicColumns = publicCardColumns();
-  const review = selected === reviewColumns() && selected !== '';
-  if (names !== 'card_slug,select' || filter === null || (!review && (publicColumns === null || selected !== publicColumns))) return null;
+  const selected = (url.searchParams.get('select') || '').split(',').map((column) => column.trim());
+  const granted = anonGrantedColumns();
+  if (names !== 'card_slug,select' || filter === null) return null;
+  if (selected.some((column) => !granted.has(column) || !Object.hasOwn(PUBLISHED_ROW, column))) return null;
   const headers = { 'Content-Type': 'application/json' };
   if (filter[1] === STUB_PUBLISHED_SLUG) {
-    const row = review ? { google_place_id: STUB_PLACE_ID, published_at: '2026-01-01T00:00:00.000Z' } : {
-      card_slug: STUB_PUBLISHED_SLUG,
-      display_name: 'Smoke Test Owner',
-      role_title: 'Smoke test role',
-      business_name: 'Smoke Test Business',
-      email: 'smoke@example.invalid',
-      phone: null,
-      service_area: null,
-      published_at: '2026-01-01T00:00:00.000Z',
-    };
+    const row = Object.fromEntries(selected.map((column) => [column, PUBLISHED_ROW[column]]));
     return new Response(JSON.stringify(/vnd\.pgrst\.object/.test(headerOf(input, init, 'accept') || '') ? row : [row]), { status: 200, headers });
   }
   if (filter[1] !== STUB_UNKNOWN_SLUG) return null;
