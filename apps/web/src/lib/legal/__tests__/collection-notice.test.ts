@@ -104,7 +104,8 @@ describe('collection notice parity with the privacy policy', () => {
       'Enquiry alert emails (first name, business name and package requested) and any marketing email you have agreed to receive (your name and email address)',
     )
     expect(policy).toContain('where the card has an email address for its owner, the email passing a card enquiry to the card owner')
-    expect(policy).toContain('owner, where the card has an email address for them, and a short alert')
+    expect(policy).toContain('owner, where the card has an email address for them, and, unless that email already comes to us, a short alert')
+    expect(policy).toContain('and, unless that email already comes to us, our short alert')
     expect(policy).toContain('We do not sell')
     expect(policy).toMatch(/see, correct or delete|access, correct or delete/)
   })
@@ -137,7 +138,7 @@ describe('collection notice parity with the privacy policy', () => {
         'We store your details in a database hosted by Supabase. Vercel hosts this website and keeps request logs. We do not sell your information.',
       'card-enquiry': enquiry,
       'card-owner-enquiry':
-        'We store your details in a database hosted by Supabase. Vercel hosts this website and keeps request logs. Mailtrap delivers the email that passes your enquiry to the card owner, when the card has an email address for them, and a short alert to us with the card and the first name you give. We do not sell your information.',
+        'We store your details in a database hosted by Supabase. Vercel hosts this website and keeps request logs. Mailtrap delivers the email that passes your enquiry to the card owner, when the card has an email address for them, and a short alert to us with the card and the first name you give, unless that email already comes to us. We do not sell your information.',
       'card-intake':
         'We store your details in a database hosted by Supabase. Vercel hosts this website and keeps request logs. Mailtrap delivers the emails about your card order, including the email that passes us the details you give here. We do not sell your information.',
     })

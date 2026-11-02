@@ -159,7 +159,7 @@ export default function PrivacyPolicyPage() {
               <tr><td>Google (OAuth + APIs)</td><td>Authentication, Gmail, Calendar, Drive</td><td>Global</td></tr>
               <tr><td>Xero</td><td>Accounting data</td><td>AU / NZ</td></tr>
               <tr><td>Twilio SendGrid</td><td>Enquiry alert emails (first name, business name and package requested) and any marketing email you have agreed to receive (your name and email address)</td><td>Overseas / US</td></tr>
-              <tr><td>Mailtrap</td><td>Living card order emails: the order alert to us (your name, what you bought and the amount paid) your welcome email (your name, email address, the card ordered and its price), any reminder about your order, and the email passing us the details you give on the thank-you page; and, once card enquiry forms are switched on, where the card has an email address for its owner, the email passing a card enquiry to the card owner (what the visitor typed, including any name and reply email) and our short alert (the card, first name and reference)</td><td>Overseas / US</td></tr>
+              <tr><td>Mailtrap</td><td>Living card order emails: the order alert to us (your name, what you bought and the amount paid) your welcome email (your name, email address, the card ordered and its price), any reminder about your order, and the email passing us the details you give on the thank-you page; and, once card enquiry forms are switched on, where the card has an email address for its owner, the email passing a card enquiry to the card owner (what the visitor typed, including any name and reply email) and, unless that email already comes to us, our short alert (the card, first name and reference)</td><td>Overseas / US</td></tr>
             </tbody>
           </table>
           <p>
@@ -306,7 +306,7 @@ export default function PrivacyPolicyPage() {
               Mailtrap, which delivers the emails sent when you buy a card: our order alert, your welcome email, any
               reminder about your order, and the email that passes us the details you give on the thank-you page. When a
               card&#8217;s enquiry form is switched on, Mailtrap also delivers the email that passes an enquiry to the card
-              owner, where the card has an email address for them, and a short alert to us with the card, the first name given and the reference.
+              owner, where the card has an email address for them, and, unless that email already comes to us, a short alert to us with the card, the first name given and the reference.
             </li>
             <li>ElevenLabs, which provides the voice agent that answers calls to the Margot phone line, and Twilio, the phone carrier for that line.</li>
           </ul>
