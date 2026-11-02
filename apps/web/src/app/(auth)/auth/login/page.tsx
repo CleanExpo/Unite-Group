@@ -53,7 +53,9 @@ export default function LoginPage() {
   const [linkLoading, setLinkLoading] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
-  const [queryString, setQueryString] = useState("");
+  // null until the browser has read the address. The server-rendered first paint cannot know the return path,
+  // so it shows Google only: neither the founder's email fallback nor the owner's link form (see below).
+  const [queryString, setQueryString] = useState<string | null>(null);
   // Google is the only sign-in Phill uses. Email/password stays as a hidden
   // fallback (revealed on demand) purely so a Google outage can never lock the
   // founder out of his own CRM.
@@ -64,7 +66,7 @@ export default function LoginPage() {
   }, []);
 
   const redirectPath = useMemo(() => {
-    const params = new URLSearchParams(queryString);
+    const params = new URLSearchParams(queryString ?? "");
     return normaliseRedirectPath(params.get("redirectTo"));
   }, [queryString]);
 
@@ -74,7 +76,7 @@ export default function LoginPage() {
   const ownerSignIn = isPortalPath(redirectPath);
 
   useEffect(() => {
-    const params = new URLSearchParams(queryString);
+    const params = new URLSearchParams(queryString ?? "");
     if (params.get("access") === "denied") {
       setError(
         "Access denied. Your account is not on the founder allow-list. " +
@@ -202,7 +204,7 @@ export default function LoginPage() {
         {googleLoading ? "Redirecting…" : "Continue with Google"}
       </button>
 
-      {ownerSignIn ? (
+      {queryString === null ? null : ownerSignIn ? (
         <div className="mt-6 space-y-3">
           <Input
             id="login-email"
