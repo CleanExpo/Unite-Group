@@ -70,7 +70,7 @@ export async function GET() {
   // '/api/health' is in the proxy's PUBLIC_PATHS and this is a segment-child of it, so the proxy's founder gate
   // does not run here. This route applies the same check itself, as /api/health/connectors does.
   if (!hasPrivateAccess({ id: user.id, email: user.email })) {
-    return NextResponse.json({ error: 'Forbidden', message: 'This Unite-Hub CRM is private.' }, { status: 403 })
+    return NextResponse.json({ error: 'Forbidden', message: 'This Unite-Group CRM is private.' }, { status: 403 })
   }
 
   const env = Object.fromEntries(CARD_ENV_NAMES.map((name) => [name, envSet(name)]))
