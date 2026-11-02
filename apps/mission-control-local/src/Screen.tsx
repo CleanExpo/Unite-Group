@@ -1,7 +1,8 @@
 // One full-screen window: toolbar plus the widget grid. A layout is saved only
 // after a user action, never on the grid's own mount-time layout callback.
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import ReactGridLayout, { useContainerWidth } from 'react-grid-layout';
+import { createLatestWins } from '../shared/latest-wins.ts';
 import type { LayoutItem, LayoutResponse, ScreenId } from '../shared/types.ts';
 import { GRID_COLS, WIDGET_CATALOGUE } from '../shared/widget-catalogue.ts';
 import type { WidgetId } from '../shared/widget-catalogue.ts';
@@ -76,23 +77,28 @@ export function Screen({ screen }: { screen: ScreenId }) {
     };
   }, [apply, call]);
 
-  const save = useCallback(
-    (next: LayoutItem[]) => {
-      setItems(next);
-      call('PUT', { items: next })
-        .then(() => setNotice(null))
-        .catch(() => setNotice('This layout was not saved. It will be lost on reload.'));
-    },
-    [call],
+  // Saves and resets share one queue, so a reset cannot be overwritten by an older save.
+  const write = useMemo(
+    () =>
+      createLatestWins<LayoutItem[] | 'reset', LayoutResponse | null>(
+        (op) => (op === 'reset' ? call('DELETE') : call('PUT', { items: op })),
+        (outcome) => {
+          if (!outcome.ok) {
+            setNotice('The last layout change was not saved. It will be lost on reload.');
+          } else if (outcome.result) {
+            apply(outcome.result);
+          }
+        },
+      ),
+    [apply, call],
   );
 
-  const reset = () => {
-    call('DELETE')
-      .then((layout) => {
-        if (layout) apply(layout);
-      })
-      .catch(() => setNotice('The reset did not save. Try again.'));
+  const save = (next: LayoutItem[]) => {
+    setItems(next);
+    write(next);
   };
+
+  const reset = () => write('reset');
 
   const add = (id: string) => {
     const spec = specFor(id);

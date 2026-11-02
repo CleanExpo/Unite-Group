@@ -1,5 +1,6 @@
 // Turns the broker's /status payload into the small view the browser may see.
 // Named fields are copied across; anything the broker adds later stays out by default.
+import { isIP } from 'node:net';
 import { MACHINE_IDS } from '../shared/types.ts';
 import type { JobView, MachineHealth, MachineView, RepoView } from '../shared/types.ts';
 import { redactDeep } from './redact.ts';
@@ -51,7 +52,10 @@ function machineView(raw: Dict, now: number, showIp: boolean): MachineView {
       : [],
     repos: repoViews(raw.repos),
   };
-  if (showIp && typeof raw.tailscaleIp === 'string') view.tailscaleIp = raw.tailscaleIp;
+  // Only a bare IP address qualifies, because this value is exempt from the scrubber below.
+  if (showIp && typeof raw.tailscaleIp === 'string' && isIP(raw.tailscaleIp) !== 0) {
+    view.tailscaleIp = raw.tailscaleIp;
+  }
   return view;
 }
 
@@ -76,14 +80,17 @@ export function toFleetView(
   if (!isDict(payload) || !Array.isArray(payload.machines) || !Array.isArray(payload.jobs)) {
     return null;
   }
-  const reported = payload.machines.filter(isDict);
+  // One malformed record makes the whole read a failure, so it cannot pass as an empty fleet.
+  const reported = payload.machines;
+  const rawJobs = payload.jobs;
+  if (!reported.every((m) => isDict(m) && typeof m.machineId === 'string' && m.machineId)) return null;
+  if (!rawJobs.every((j) => isDict(j) && typeof j.id === 'string' && j.id)) return null;
   const showIp = options.showTailscaleIp === true;
   const known = MACHINE_IDS.map((id) => {
-    const raw = reported.find((m) => m.machineId === id);
+    const raw = (reported as Dict[]).find((m) => m.machineId === id);
     return raw ? machineView(raw, now, showIp) : machineView({ machineId: id }, now, false);
   });
-  const jobs = payload.jobs
-    .filter(isDict)
+  const jobs = (rawJobs as Dict[])
     .map((j) => jobView(j, now))
     .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
   // The opted-in IP is the one value the scrubber must leave alone.

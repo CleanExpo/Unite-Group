@@ -98,8 +98,43 @@ test('jobs come newest first and are capped, with the true total kept', () => {
   assert.equal(view?.jobs[0]?.id, `job-${MAX_JOBS + 4}`.slice(0, 8));
 });
 
+test('an opted-in tailscaleIp that is not a bare IP is dropped', () => {
+  const planted = '100.64.0.1 Bearer illustrative-value';
+  const view = toFleetView(
+    { machines: [{ machineId: 'mac-mini', tailscaleIp: planted }], jobs: [] },
+    NOW,
+    { showTailscaleIp: true },
+  );
+  assert.equal(view?.machines[0]?.tailscaleIp, undefined);
+  assert.ok(!JSON.stringify(view).includes('illustrative-value'));
+});
+
+test('a malformed record reads as a failed broker, through to the snapshot', async () => {
+  await withBroker(
+    (_url, res) => res.end('{"machines":[null],"jobs":[null]}'),
+    async (brokerPort) => {
+      const snapshot = await createFleetSource({ brokerPort })();
+      assert.equal(snapshot.status === 'down' && snapshot.reason, 'bad-payload');
+    },
+  );
+});
+
 test('a payload of the wrong shape is a failure, not an empty fleet', () => {
-  for (const bad of [null, [], {}, { machines: [] }, { machines: 'x', jobs: [] }]) {
+  const machine = { machineId: 'mac-mini' };
+  const job = { id: 'j1' };
+  for (const bad of [
+    null,
+    [],
+    {},
+    { machines: [] },
+    { machines: 'x', jobs: [] },
+    { machines: [null], jobs: [] },
+    { machines: [{ label: 'no id' }], jobs: [] },
+    { machines: [machine, 'x'], jobs: [] },
+    { machines: [], jobs: [null] },
+    { machines: [], jobs: [{ status: 'no id' }] },
+    { machines: [], jobs: [job, 5] },
+  ]) {
     assert.equal(toFleetView(bad, NOW), null);
   }
 });
