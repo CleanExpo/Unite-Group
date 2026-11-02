@@ -50,4 +50,6 @@ EXPOSE 3000
 # Run the built server directly rather than via `npm start` / `skybridge start`.
 # Each wrapper adds a process layer that can swallow SIGTERM, which makes
 # graceful shutdowns time out on platforms like Cloud Run, Fly, and k8s.
-CMD ["node", "dist/server.js"]
+# dist/__entry.js is the file `skybridge start` runs: it binds the compiled Vite
+# manifest, then imports dist/index.js, which starts the server.
+CMD ["node", "dist/__entry.js"]

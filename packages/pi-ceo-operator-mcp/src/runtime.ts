@@ -4,7 +4,7 @@ import { homedir as nodeHomedir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import type { Request, Response } from "express";
-import { McpServer } from "skybridge/server";
+import { Skybridge } from "skybridge/server";
 import { z } from "zod";
 
 export const SERVER_INFO = { name: "pi-ceo-operator", version: "0.1.0" } as const;
@@ -151,57 +151,55 @@ export function allowedAlpicArgv(probe: "version" | "help" | string): string[] {
   throw new Error("EVIDENCE_INCOMPLETE: no approved third Alpic command");
 }
 
+// Skybridge 2 builds a fresh MCP server for every request and runs `handler` on
+// it, so the handler only registers tools. Dependencies are resolved once, here,
+// and captured by the handler closure.
 export function createOperatorServer(overrides: Partial<RuntimeDependencies> = {}) {
   const deps = dependencies(overrides);
-  const server = new McpServer(SERVER_INFO, { capabilities: {} });
-  server.express.get("/healthz", (_request: Request, response: Response) => response.json({ status: "ready", service: "pi-ceo-operator" }));
-  return server
-    .registerTool(
-      {
-        name: "get-portfolio-health",
-        description: "Get a read-only snapshot of CI health across the Unite-Group portfolio.",
-        // Skybridge 1.2.7 accepts a complete Zod schema at runtime but its
-        // overload exposes only the raw-shape branch. Preserve strict parsing
-        // while containing the compatibility cast at this framework boundary.
-        inputSchema: portfolioInput as never,
-        annotations: { readOnlyHint: true, openWorldHint: false, destructiveHint: false },
-        view: { component: "portfolio-health", description: "Portfolio health grid card" },
-        _meta: { "openai/toolInvocation/invoking": "Reading portfolio health", "openai/toolInvocation/invoked": "Portfolio health ready" },
-      },
-      async (args) => {
-        validatePortfolioInput(args);
-        const structuredContent = await getPortfolioHealth(deps);
-        const summary = `Portfolio snapshot — ${structuredContent.total_fails} fails across the rolling-10 window of ${PORTFOLIO_REPOS.length} repos. ${structuredContent.repos_with_errors ? `${structuredContent.repos_with_errors} repo(s) returned a redacted error.` : "All repos returned data."}`;
-        return { structuredContent, content: [{ type: "text" as const, text: summary }] };
-      },
-    )
-    .registerTool(
-      {
-        name: "get-pilot-v1-outcomes",
-        description: "Read recent Pilot V1 scheduler outcomes from the local Hermes log. Read-only.",
-        inputSchema: pilotInput as never,
-        annotations: { readOnlyHint: true, openWorldHint: false, destructiveHint: false },
-      },
-      async (args) => {
-        const { limit } = validatePilotInput(args);
-        const structuredContent = await getPilotV1Outcomes(limit, deps);
-        const counts = structuredContent.outcomes.reduce<Record<string, number>>((acc, outcome) => {
-          acc[outcome.outcome] = (acc[outcome.outcome] ?? 0) + 1;
-          return acc;
-        }, {});
-        const summary = structuredContent.error
-          ? `Could not read Pilot V1 log: ${structuredContent.error}`
-          : `Read ${structuredContent.outcomes.length} recent Pilot V1 cycles. Outcomes: ${Object.entries(counts).map(([key, value]) => `${value}× ${key}`).join(", ")}.`;
-        return { structuredContent, content: [{ type: "text" as const, text: summary }] };
-      },
-    );
-}
-
-export async function applyProductionManifest(
-  server: ReturnType<typeof createOperatorServer>,
-  importer: () => Promise<{ default: Record<string, { file: string }> }> = () => import("./vite-manifest.js"),
-) {
-  const { default: manifest } = await importer();
-  server.setViteManifest(manifest);
-  return server;
+  const app = new Skybridge({
+    ...SERVER_INFO,
+    capabilities: {},
+    handler: (server) => server
+      .registerTool(
+        {
+          name: "get-portfolio-health",
+          description: "Get a read-only snapshot of CI health across the Unite-Group portfolio.",
+          // Skybridge 2.1 accepts a complete Zod schema at runtime but its
+          // overload exposes only the raw-shape branch. Preserve strict parsing
+          // while containing the compatibility cast at this framework boundary.
+          inputSchema: portfolioInput as never,
+          annotations: { readOnlyHint: true, openWorldHint: false, destructiveHint: false },
+          view: { component: "portfolio-health", description: "Portfolio health grid card" },
+          _meta: { "openai/toolInvocation/invoking": "Reading portfolio health", "openai/toolInvocation/invoked": "Portfolio health ready" },
+        },
+        async (args) => {
+          validatePortfolioInput(args);
+          const structuredContent = await getPortfolioHealth(deps);
+          const summary = `Portfolio snapshot — ${structuredContent.total_fails} fails across the rolling-10 window of ${PORTFOLIO_REPOS.length} repos. ${structuredContent.repos_with_errors ? `${structuredContent.repos_with_errors} repo(s) returned a redacted error.` : "All repos returned data."}`;
+          return { structuredContent, content: [{ type: "text" as const, text: summary }] };
+        },
+      )
+      .registerTool(
+        {
+          name: "get-pilot-v1-outcomes",
+          description: "Read recent Pilot V1 scheduler outcomes from the local Hermes log. Read-only.",
+          inputSchema: pilotInput as never,
+          annotations: { readOnlyHint: true, openWorldHint: false, destructiveHint: false },
+        },
+        async (args) => {
+          const { limit } = validatePilotInput(args);
+          const structuredContent = await getPilotV1Outcomes(limit, deps);
+          const counts = structuredContent.outcomes.reduce<Record<string, number>>((acc, outcome) => {
+            acc[outcome.outcome] = (acc[outcome.outcome] ?? 0) + 1;
+            return acc;
+          }, {});
+          const summary = structuredContent.error
+            ? `Could not read Pilot V1 log: ${structuredContent.error}`
+            : `Read ${structuredContent.outcomes.length} recent Pilot V1 cycles. Outcomes: ${Object.entries(counts).map(([key, value]) => `${value}× ${key}`).join(", ")}.`;
+          return { structuredContent, content: [{ type: "text" as const, text: summary }] };
+        },
+      ),
+  });
+  app.express.get("/healthz", (_request: Request, response: Response) => response.json({ status: "ready", service: "pi-ceo-operator" }));
+  return app;
 }
