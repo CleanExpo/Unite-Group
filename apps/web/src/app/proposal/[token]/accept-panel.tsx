@@ -8,7 +8,7 @@ import s from './proposal.module.css'
 const MESSAGES: Record<string, string> = {
   invalid_code: 'That code did not work. Please check it, or talk to your Unite Group contact.',
   payment_off: 'Online payment is not switched on yet. Please talk to your Unite Group contact.',
-  payment_pending: 'Your payment went through and we are waiting for Stripe to confirm it. Please refresh this page shortly. You do not need to pay again.',
+  payment_pending: 'Your Checkout is finished and we are waiting for Stripe to confirm the payment. Please refresh this page shortly. Please do not start another payment.',
   closed: 'This proposal is no longer open. Please refresh the page.',
   already_ordered: 'This proposal has already been accepted. Please refresh the page.',
 }

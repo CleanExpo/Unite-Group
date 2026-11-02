@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
-import { checkoutIsComplete, closeCheckout, testModeStripe } from '@/lib/proposals/checkout'
+import { closeBeforeComp, closeCheckout, testModeStripe } from '@/lib/proposals/checkout'
 import { lookupProposal } from '@/lib/proposals/store'
 import { hashCompCode } from '@/lib/proposals/tokens'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -33,17 +33,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (found.state === 'ordered') return NextResponse.json({ error: 'already_ordered' }, { status: 409 })
   if (found.state !== 'open') return NextResponse.json({ error: 'closed' }, { status: 410 })
 
-  // A finished Checkout whose webhook is on its way must not be overtaken by a code, or the client has paid for nothing.
+  // A code must not overtake a payment, or the client has paid for nothing. So the saved Checkout is made unpayable first;
+  // if the code then turns out to be wrong, accepting by card simply opens a new one.
   const sessionId = found.proposal.stripe_session_id
   if (sessionId) {
     const stripe = testModeStripe()
     if (!stripe) return NextResponse.json({ error: 'unavailable' }, { status: 503 })
     try {
-      if (await checkoutIsComplete(stripe, sessionId)) {
+      if ((await closeBeforeComp(stripe, sessionId)) === 'complete') {
         return NextResponse.json({ error: 'payment_pending' }, { status: 409 })
       }
     } catch (err) {
-      console.error('[proposals] checkout status read failed:', err instanceof Error ? err.message : err)
+      console.error('[proposals] could not close the Checkout before redeeming:', err instanceof Error ? err.message : err)
       return NextResponse.json({ error: 'unavailable' }, { status: 503 })
     }
   }
@@ -60,8 +61,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   if (data === 'redeemed') {
-    // A Checkout left open could still be paid. Close it; if that fails the webhook flags the payment for a refund.
-    await closeCheckout(sessionId)
+    // A Checkout opened while this was running is saved before its URL is released, so a read now finds it. If this read
+    // or the close fails, the webhook still flags any payment on it for a refund.
+    const { data: latest, error: latestError } = await admin
+      .from('website_proposals')
+      .select('stripe_session_id')
+      .eq('founder_id', found.proposal.founder_id)
+      .eq('id', found.proposal.id)
+      .maybeSingle<{ stripe_session_id: string | null }>()
+    if (latestError) console.error('[proposals] could not re-read the Checkout after redeeming:', latestError.message)
+    const latestSession = latest?.stripe_session_id ?? null
+    if (latestSession !== sessionId) await closeCheckout(latestSession)
     return NextResponse.json({ redeemed: true })
   }
   if (data === 'already_ordered') return NextResponse.json({ error: 'already_ordered' }, { status: 409 })

@@ -21,9 +21,24 @@ export class CheckoutPendingError extends Error {
   }
 }
 
-/** Whether this Checkout was finished at Stripe. Stripe faults throw: an unknown answer must not read as "no". */
-export async function checkoutIsComplete(stripe: Stripe, sessionId: string): Promise<boolean> {
-  return (await stripe.checkout.sessions.retrieve(sessionId)).status === 'complete'
+/**
+ * Makes a saved Checkout unpayable before a comp code commits, because a status check alone can be overtaken by the
+ * payment. 'closed' means Stripe says it can no longer be paid; 'complete' means the client got there first. An unknown
+ * answer throws, so the caller redeems nothing. Expiring is the atomic step: Stripe refuses it once the session is complete.
+ */
+export async function closeBeforeComp(stripe: Stripe, sessionId: string): Promise<'closed' | 'complete'> {
+  const before = (await stripe.checkout.sessions.retrieve(sessionId)).status
+  if (before === 'complete') return 'complete'
+  if (before === 'expired') return 'closed'
+  try {
+    await stripe.checkout.sessions.expire(sessionId)
+    return 'closed'
+  } catch (err) {
+    const after = (await stripe.checkout.sessions.retrieve(sessionId)).status
+    if (after === 'complete') return 'complete'
+    if (after === 'expired') return 'closed'
+    throw err
+  }
 }
 
 /**

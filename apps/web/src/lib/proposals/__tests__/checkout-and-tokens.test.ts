@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type Stripe from 'stripe'
 
@@ -85,6 +88,15 @@ describe('openCheckoutUrl', () => {
     await openCheckoutUrl(stripe, { ...PROPOSAL, stripe_session_id: 'cs_old' }, URLS)
     const [, options] = create.mock.calls[0] as unknown as [unknown, { idempotencyKey: string }]
     expect(options.idempotencyKey).toBe('proposal:p1:cs_old')
+  })
+})
+
+describe('the accept panel', () => {
+  it('never says a payment went through while it only knows Checkout finished', () => {
+    const source = readFileSync(resolve(process.cwd(), 'src/app/proposal/[token]/accept-panel.tsx'), 'utf8')
+    const line = source.split('\n').find((text) => text.includes('payment_pending:'))
+    expect(line).toContain('waiting for Stripe to confirm')
+    expect(line).not.toMatch(/went through|has been paid|you have paid/i)
   })
 })
 

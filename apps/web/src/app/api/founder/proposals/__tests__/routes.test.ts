@@ -19,7 +19,7 @@ const CODE = '44444444-4444-4444-8444-444444444444'
 
 const LEAD_ROW = { id: LEAD, first_name: 'Sam', last_name: 'Owner', company: 'Example Cafe', email: 'sam@example.test' }
 
-function setup(rows: { lead?: object | null; proposal?: object | null } = {}) {
+function setup(rows: { lead?: object | null; proposal?: object | null; written?: object | null } = {}) {
   const inserts: { table: string; row: Record<string, unknown> }[] = []
   const updates: { table: string; row: object; filters: [string, unknown][] }[] = []
   const from = (table: string) => {
@@ -49,7 +49,21 @@ function setup(rows: { lead?: object | null; proposal?: object | null } = {}) {
       },
       update: (row: object) => {
         updates.push({ table, row, filters })
-        return read
+        // What the write itself hands back: the row it changed, or nothing when no row matched.
+        const written = {
+          ...read,
+          eq: (column: string, value: unknown) => {
+            read.eq(column, value)
+            return written
+          },
+          is: (column: string, value: unknown) => {
+            read.is(column, value)
+            return written
+          },
+          select: () => written,
+          maybeSingle: async () => ({ data: rows.written === undefined ? (rows.proposal === undefined ? { id: PROPOSAL } : rows.proposal) : rows.written, error: null }),
+        }
+        return written
       },
     }
   }
@@ -188,10 +202,25 @@ describe('founder proposal routes', () => {
       expect(updates).toHaveLength(1)
     })
 
-    it('finds nothing to withdraw outside this founder', async () => {
+    it('closes the session the withdrawing write returned, not one read earlier', async () => {
+      setup({ proposal: { stripe_session_id: 'cs_old' }, written: { stripe_session_id: 'cs_saved_in_between' } })
+      await withdraw(new Request('http://x'), idParams())
+      expect(expire).toHaveBeenCalledWith('cs_saved_in_between')
+      expect(expire).not.toHaveBeenCalledWith('cs_old')
+    })
+
+    it('still closes the Checkout when the proposal was already withdrawn', async () => {
+      setup({ proposal: { stripe_session_id: 'cs_open' }, written: null })
+      const res = await withdraw(new Request('http://x'), idParams())
+      expect(await res.json()).toEqual({ withdrawn: true, checkoutClosed: true })
+      expect(expire).toHaveBeenCalledWith('cs_open')
+    })
+
+    it('finds nothing to withdraw outside this founder, and the write was scoped to them', async () => {
       const { updates } = setup({ proposal: null })
       expect((await withdraw(new Request('http://x'), idParams())).status).toBe(404)
-      expect(updates).toEqual([])
+      expect(updates[0].filters).toContainEqual(['founder_id', FOUNDER])
+      expect(expire).not.toHaveBeenCalled()
     })
   })
 

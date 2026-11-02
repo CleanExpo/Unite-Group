@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
-import { CheckoutPendingError, openCheckoutUrl, testModeStripe } from '@/lib/proposals/checkout'
+import { CheckoutPendingError, closeCheckout, openCheckoutUrl, testModeStripe } from '@/lib/proposals/checkout'
 import { lookupProposal } from '@/lib/proposals/store'
 import { createServiceClient } from '@/lib/supabase/service'
 
@@ -66,13 +66,40 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: 'checkout_failed' }, { status: 502 })
   }
 
-  // A failed save only costs a new session later: the webhook matches on metadata, not on this column.
-  const { error: saveError } = await admin
+  // No URL leaves here until the session is saved on a proposal that is still open, so withdrawing or redeeming can always
+  // find and close it. The write and withdrawal's write take turns on the row: whichever runs second sees the other.
+  const { data: saved, error: saveError } = await admin
     .from('website_proposals')
     .update({ stripe_session_id: checkout.sessionId })
     .eq('founder_id', proposal.founder_id)
     .eq('id', proposal.id)
-  if (saveError) console.error('[proposals] session id save failed:', saveError.message)
+    .is('withdrawn_at', null)
+    .select('id')
+    .maybeSingle<{ id: string }>()
+  if (saveError) {
+    console.error('[proposals] session id save failed:', saveError.message)
+    await closeCheckout(checkout.sessionId)
+    return NextResponse.json({ error: 'unavailable' }, { status: 503 })
+  }
+  if (!saved) {
+    await closeCheckout(checkout.sessionId)
+    return NextResponse.json({ error: 'closed' }, { status: 410 })
+  }
+
+  // Read after the save: a redeem that commits later re-reads the row and closes this session, one committed earlier shows here.
+  const { data: order, error: orderError } = await admin
+    .from('website_orders')
+    .select('id')
+    .eq('founder_id', proposal.founder_id)
+    .eq('proposal_id', proposal.id)
+    .maybeSingle<{ id: string }>()
+  if (orderError || order) {
+    if (orderError) console.error('[proposals] order check failed:', orderError.message)
+    await closeCheckout(checkout.sessionId)
+    return orderError
+      ? NextResponse.json({ error: 'unavailable' }, { status: 503 })
+      : NextResponse.json({ error: 'already_ordered' }, { status: 409 })
+  }
 
   return NextResponse.json({ url: checkout.url })
 }

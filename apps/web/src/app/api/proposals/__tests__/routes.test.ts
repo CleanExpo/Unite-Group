@@ -30,28 +30,52 @@ type Setup = {
   order?: object | null
   proposalError?: string
   rpc?: { data?: unknown; error?: { message: string } | null }
+  /** What saving the session id hands back: null when no row matched, because the proposal was withdrawn meanwhile. */
+  saved?: object | null
+  saveError?: string
+  /** An order that appears after the first look-up, from a redeem committing mid-request. */
+  orderLater?: object | null
+  orderLaterError?: string
+  /** The session id on the row when it is read again after redeeming. */
+  latestSession?: string | null
 }
 
-function setup({ proposal = PROPOSAL, order = null, proposalError, rpc }: Setup = {}) {
+function setup({ proposal = PROPOSAL, order = null, proposalError, rpc, saved = { id: 'p1' }, saveError, orderLater, orderLaterError, latestSession }: Setup = {}) {
   const updates: object[] = []
+  const onlyIf: [string, unknown][] = []
   const rpcCall = vi.fn(async () => ({ data: rpc?.data ?? null, error: rpc?.error ?? null }))
+  const reads = { website_proposals: 0, website_orders: 0 }
   const from = (table: string) => {
-    const single = async () =>
-      table === 'website_proposals'
-        ? { data: proposalError ? null : proposal, error: proposalError ? { message: proposalError } : null }
-        : { data: order, error: null }
+    const single = async () => {
+      const nth = ++reads[table as keyof typeof reads]
+      if (table === 'website_proposals') {
+        if (nth > 1 && latestSession !== undefined) return { data: { stripe_session_id: latestSession }, error: null }
+        return { data: proposalError ? null : proposal, error: proposalError ? { message: proposalError } : null }
+      }
+      if (nth > 1 && orderLaterError) return { data: null, error: { message: orderLaterError } }
+      return { data: nth > 1 && orderLater !== undefined ? orderLater : order, error: null }
+    }
     const chain = { eq: () => chain, maybeSingle: single }
     return {
       select: () => chain,
       update: (row: object) => {
         updates.push(row)
-        const after = { eq: () => after, then: (done: (v: { error: null }) => void) => done({ error: null }) }
+        const after = {
+          eq: () => after,
+          is: (column: string, value: unknown) => {
+            onlyIf.push([column, value])
+            return after
+          },
+          select: () => after,
+          maybeSingle: async () => ({ data: saveError ? null : saved, error: saveError ? { message: saveError } : null }),
+          then: (done: (v: { error: null }) => void) => done({ error: null }),
+        }
         return after
       },
     }
   }
   ;(createServiceClient as unknown as ReturnType<typeof vi.fn>).mockReturnValue({ from, rpc: rpcCall })
-  return { updates, rpcCall }
+  return { updates, onlyIf, rpcCall }
 }
 
 function stripeMock() {
@@ -116,6 +140,42 @@ describe('POST /api/proposals/[token]/checkout', () => {
     expect(res.status).toBe(409)
     expect((await res.json()).error).toBe('payment_pending')
     expect(create).not.toHaveBeenCalled()
+  })
+
+  it('closes the new session and releases no URL when the proposal was withdrawn while it was created', async () => {
+    const { onlyIf } = setup({ saved: null })
+    const { expire } = stripeMock()
+    const res = await checkout(post('checkout', ACCEPT), params())
+    expect(onlyIf).toContainEqual(['withdrawn_at', null])
+    expect(res.status).toBe(410)
+    expect(await res.json()).toEqual({ error: 'closed' })
+    expect(expire).toHaveBeenCalledWith('cs_1')
+  })
+
+  it('closes the new session and releases no URL when it could not be saved', async () => {
+    setup({ saveError: 'down' })
+    const { expire } = stripeMock()
+    const res = await checkout(post('checkout', ACCEPT), params())
+    expect(res.status).toBe(503)
+    expect(await res.json()).toEqual({ error: 'unavailable' })
+    expect(expire).toHaveBeenCalledWith('cs_1')
+  })
+
+  it('closes the new session and releases no URL when a code was redeemed while it was created', async () => {
+    setup({ orderLater: { id: 'o1' } })
+    const { expire } = stripeMock()
+    const res = await checkout(post('checkout', ACCEPT), params())
+    expect(res.status).toBe(409)
+    expect(await res.json()).toEqual({ error: 'already_ordered' })
+    expect(expire).toHaveBeenCalledWith('cs_1')
+  })
+
+  it('releases no URL when the order check fails, because no answer is not a no', async () => {
+    setup({ orderLaterError: 'down' })
+    const { expire } = stripeMock()
+    const res = await checkout(post('checkout', ACCEPT), params())
+    expect(res.status).toBe(503)
+    expect(expire).toHaveBeenCalledWith('cs_1')
   })
 
   it('refuses a live key before touching the database or Stripe', async () => {
@@ -184,14 +244,52 @@ describe('POST /api/proposals/[token]/redeem', () => {
     expect(JSON.stringify(args)).not.toContain('AAAA')
   })
 
-  it('closes an open Checkout after redeeming, and a failure to close does not undo the redemption', async () => {
-    setup({ proposal: { ...PROPOSAL, stripe_session_id: 'cs_open' }, rpc: { data: 'redeemed' } })
+  it('makes an open Checkout unpayable before the code commits', async () => {
+    const { rpcCall } = setup({ proposal: { ...PROPOSAL, stripe_session_id: 'cs_open' }, rpc: { data: 'redeemed' } })
+    const { expire } = stripeMock()
+    const res = await redeem(post('redeem', CODE), params())
+    expect(res.status).toBe(200)
+    expect(expire).toHaveBeenCalledWith('cs_open')
+    expect(expire.mock.invocationCallOrder[0]).toBeLessThan(rpcCall.mock.invocationCallOrder[0])
+  })
+
+  it('does not ask Stripe to close a Checkout that has already expired', async () => {
+    const { rpcCall } = setup({ proposal: { ...PROPOSAL, stripe_session_id: 'cs_gone' }, rpc: { data: 'redeemed' } })
+    const { expire, retrieve } = stripeMock()
+    retrieve.mockResolvedValueOnce({ id: 'cs_gone', status: 'expired', url: null })
+    expect((await redeem(post('redeem', CODE), params())).status).toBe(200)
+    expect(expire).not.toHaveBeenCalled()
+    expect(rpcCall).toHaveBeenCalled()
+  })
+
+  it('redeems nothing when the payment finishes just as the Checkout is being closed', async () => {
+    const { rpcCall } = setup({ proposal: { ...PROPOSAL, stripe_session_id: 'cs_racing' }, rpc: { data: 'redeemed' } })
+    const { expire, retrieve } = stripeMock()
+    retrieve.mockResolvedValueOnce({ id: 'cs_racing', status: 'open', url: 'https://checkout.example.test/open' })
+    expire.mockRejectedValueOnce(new Error('session is complete'))
+    retrieve.mockResolvedValueOnce({ id: 'cs_racing', status: 'complete', url: null })
+    const res = await redeem(post('redeem', CODE), params())
+    expect(res.status).toBe(409)
+    expect((await res.json()).error).toBe('payment_pending')
+    expect(rpcCall).not.toHaveBeenCalled()
+  })
+
+  it('redeems nothing when the Checkout cannot be closed and is still open', async () => {
+    const { rpcCall } = setup({ proposal: { ...PROPOSAL, stripe_session_id: 'cs_open' }, rpc: { data: 'redeemed' } })
+    const { expire } = stripeMock()
+    expire.mockRejectedValueOnce(new Error('stripe down'))
+    expect((await redeem(post('redeem', CODE), params())).status).toBe(503)
+    expect(rpcCall).not.toHaveBeenCalled()
+  })
+
+  it('closes a Checkout opened while the code was redeeming, and failing to does not undo the redemption', async () => {
+    setup({ rpc: { data: 'redeemed' }, latestSession: 'cs_new' })
     const { expire } = stripeMock()
     expire.mockRejectedValueOnce(new Error('already gone'))
     vi.spyOn(console, 'warn').mockImplementation(() => {})
     const res = await redeem(post('redeem', CODE), params())
     expect(res.status).toBe(200)
-    expect(expire).toHaveBeenCalledWith('cs_open')
+    expect(expire).toHaveBeenCalledWith('cs_new')
   })
 
   it('will not let a code overtake a finished payment whose webhook is on the way', async () => {
