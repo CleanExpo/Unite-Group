@@ -70,6 +70,22 @@ describe('ReviewCardPanel', () => {
     expect(recordOptOutAction).toHaveBeenCalledWith('sam', '0412 345 678')
   })
 
+  it('a Prepare answer that arrives after a recorded STOP never shows send controls', async () => {
+    let finish: (v: unknown) => void = () => {}
+    createReviewRequestAction.mockReturnValue(new Promise((res) => { finish = res }))
+    recordOptOutAction.mockResolvedValue({ ok: true })
+    const user = userEvent.setup()
+    render(<ReviewCardPanel card={card} />)
+    await prepare(user)
+    await user.type(screen.getAllByLabelText(/their mobile or email/i)[1], '0412 345 678')
+    await user.click(screen.getByRole('button', { name: /don't ask them again/i }))
+    await screen.findByText(/Recorded\./)
+    finish({ ok: true, requestId: REQUEST_ID, duplicate: false })
+    await waitFor(() => expect(screen.getByRole('button', { name: /prepare message/i })).not.toBeDisabled())
+    expect(sendControls()).toEqual([null, null, null])
+    expect(screen.queryByText(/Reply STOP/)).toBeNull()
+  })
+
   it('a failed STOP keeps nothing new and says why', async () => {
     recordOptOutAction.mockResolvedValue({ ok: false, status: 500, error: 'could not record the opt-out' })
     const user = userEvent.setup()

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 
 import { buildGoogleReviewUrl, PLACE_ID_FINDER_URL } from '@/lib/card/review-link'
 import { buildRequestMessage, mailtoHref, requestReviewLink, smsHref } from '@/lib/card/review-message'
@@ -33,6 +33,9 @@ export function ReviewCardPanel({ card }: { card: OwnerCard }) {
   const [ready, setReady] = useState<Ready | null>(null)
   const [duplicate, setDuplicate] = useState(false)
 
+  // bumped by every recorded STOP: a Prepare answer that arrives after one is thrown away
+  const stopGeneration = useRef(0)
+
   const [stopContact, setStopContact] = useState('')
   const [stopMsg, setStopMsg] = useState<string | null>(null)
 
@@ -55,8 +58,10 @@ export function ReviewCardPanel({ card }: { card: OwnerCard }) {
     setReady(null)
     setDuplicate(false)
     setBusy(true)
+    const generation = stopGeneration.current
     try {
       const r = await createReviewRequestAction({ slug: card.slug, firstName, contact, channel, consent })
+      if (generation !== stopGeneration.current) return
       if (!r.ok) { setAskError(r.error); return }
       // a repeat for the same customer today gets no new message and no send buttons
       if (r.duplicate) { setDuplicate(true); return }
@@ -97,7 +102,7 @@ export function ReviewCardPanel({ card }: { card: OwnerCard }) {
       const r = await recordOptOutAction(card.slug, stopContact)
       setStopMsg(r.ok ? 'Recorded. You will not be able to ask this customer again from this card.' : r.error)
       // a message prepared before the STOP must not stay sendable
-      if (r.ok) { setStopContact(''); setReady(null); setDuplicate(false) }
+      if (r.ok) { stopGeneration.current += 1; setStopContact(''); setReady(null); setDuplicate(false) }
     } catch { setStopMsg('could not record, check your connection') }
   }
 
