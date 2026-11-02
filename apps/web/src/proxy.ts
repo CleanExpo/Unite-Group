@@ -10,6 +10,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
 import { checkRateLimit } from '@/lib/middleware/rate-limit';
+import { isPortalOwnerPage, isPortalPath } from '@/lib/portal/paths';
 import { hasPrivateAccess, isPrivateAccessConfigured } from '@/lib/auth/private-access';
 
 const isDev = process.env.NODE_ENV === 'development';
@@ -126,13 +127,19 @@ export function isPublicPath(pathname: string): boolean {
 // (go-live audit D11: /about, /contact, /terms, /zzz all landed on a Google sign-in wall). The not-found answer is a
 // rewrite made here, so it fails closed: even if a real private route were missed from this list, the visitor would
 // see a 404, never the route. src/__tests__/golive-404-proxy.test.ts scans src/app so a new private root cannot be missed.
-// 'portal' (UNI-3168): owner portal pages. Signed-out owners are sent to sign in. The founder allow-list below still
-// applies to every signed-in user; letting portal owners past it is the portal foundation's job (S1), not this list's.
+// 'portal' (UNI-3168): owner portal pages. Signed-out owners are sent to sign in. A signed-in visitor at the /portal
+// home skips the founder allow-list (isPortalOwnerPage, below); the home then admits only its owners.
 const PROTECTED_ROOTS: ReadonlySet<string> = new Set(['founder', 'api', 'docs', 'preview', 'c', 'portal']);
 
 function isProtectedRoot(pathname: string): boolean {
   return PROTECTED_ROOTS.has(pathname.split('/')[1] ?? '');
 }
+
+// The business-owner portal: exactly /portal and pages beneath it (not '/portalx', not '/portal-admin').
+// Only the /portal home lets a signed-in visitor skip the founder allow-list below (isPortalOwnerPage); the home then
+// admits only its owners (src/lib/portal/owner.ts). Pages only: the portal has no API routes, so founder APIs keep
+// the allow-list.
+export { isPortalOwnerPage, isPortalPath };
 
 // These exact POST handlers authenticate their own bearer or enrolled signature.
 // Cookies grant no transport authority; siblings and descendants stay private.
@@ -221,7 +228,7 @@ export async function proxy(request: NextRequest) {
   // ------------------------------------------------------------------
   // 4. Private CRM guard — only explicit founder/invite allow-list can enter
   // ------------------------------------------------------------------
-  if (user && !isPublicPath(pathname) && !routeAuthenticated && !hasPrivateAccess(user)) {
+  if (user && !isPublicPath(pathname) && !routeAuthenticated && !isPortalOwnerPage(pathname) && !hasPrivateAccess(user)) {
     // Log the rejected identity so a lockout is diagnosable from Vercel runtime
     // logs alone (2026-07-14: a stale FOUNDER_USER_ID denied the real founder
     // and the logs showed nothing about who was rejected or why).

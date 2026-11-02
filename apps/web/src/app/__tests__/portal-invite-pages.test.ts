@@ -98,11 +98,14 @@ describe('/portal/join proxy rule', () => {
     }
   })
 
+  // The public rule is exact: a signed-out visitor anywhere else under /portal is sent to sign in. (Signed-in visitors
+  // on /portal pages pass the founder allow-list by design since the portal foundation, UNI-3174, and each page checks
+  // its own owner; src/__tests__/portal-proxy.test.ts holds that rule.)
   it.each(['/portal', '/portal/join/x', '/portal/joinx', '/portal/admin'])('does not open %s', async (path) => {
-    updateSession.mockResolvedValue({ response: NextResponse.next(), user: OWNER })
+    updateSession.mockResolvedValue({ response: NextResponse.next(), user: null })
     hasPrivateAccess.mockReturnValue(false)
     const res = await proxy(new NextRequest(`https://app.test${path}`))
-    expect(new URL(res.headers.get('location') ?? 'https://x/none').searchParams.get('access')).toBe('denied')
+    expect(new URL(res.headers.get('location') ?? 'https://x/none').pathname).toBe('/auth/login')
   })
 })
 

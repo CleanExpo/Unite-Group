@@ -108,6 +108,9 @@ export const SMOKE_PATHS = Object.freeze([
  */
 export const EXCLUDED = Object.freeze([
   { pattern: '/founder/**', reason: 'private CRM; the run asserts each page redirects to the login page' },
+  // Exact: /portal/join is public and /portal/changes and /portal/setup are smoked above, so a new /portal page must
+  // be listed on purpose.
+  { pattern: '/portal', reason: 'owner portal home (UNI-3174); the run asserts it redirects to the login page' },
 ]);
 
 // ---------------------------------------------------------------------------
