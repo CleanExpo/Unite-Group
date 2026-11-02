@@ -22,7 +22,7 @@
     "@modelcontextprotocol/sdk": "^1.29.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "skybridge": "^1.2.7",
+    "skybridge": "^2.1.0",
     "vite": "^8.1.4"
   },
   "devDependencies": {
