@@ -16,7 +16,7 @@ const REASONS: Record<BrokerFailure, string> = {
 
 type Live = Extract<FleetSnapshot, { status: 'live' }>;
 
-/** startedAt is when this window asked for the snapshot, by the browser's clock. */
+/** startedAt is when this window asked for the snapshot, on the monotonic clock (shared/clock.ts). */
 export function FleetGate({ children }: { children: (fleet: Live, startedAt: number) => ReactNode }) {
   const fleet = useFleet();
   if (fleet.kind === 'loading') return <p className={styles.note}>Waiting for first reading.</p>;

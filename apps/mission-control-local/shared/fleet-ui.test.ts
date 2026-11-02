@@ -200,6 +200,31 @@ test('fleet poll: 401 is signed out, errors and odd bodies are unreachable, a sn
   assert.deepEqual(await readFleet(reply(200, down), 1_000, clock), { kind: 'snapshot', snapshot: down, startedAt: 42 });
 });
 
+test('fleet poll: a reading is timed on a clock that a wall-clock rollback cannot move', LIMIT, async () => {
+  // Codex round 2: startedAt and the widget ticker used Date.now, so setting the wall clock
+  // back made time on screen negative and kept a stale card Online.
+  const realNow = Date.now;
+  Date.now = () => realNow() - 60_000;
+  try {
+    const before = performance.now();
+    const result = await readFleet(reply(200, live));
+    const after = performance.now();
+    assert.equal(result.kind, 'snapshot');
+    const startedAt = result.kind === 'snapshot' ? result.startedAt : Number.NaN;
+    assert.ok(startedAt >= before && startedAt <= after, `startedAt ${startedAt} not on the monotonic clock`);
+  } finally {
+    Date.now = realNow;
+  }
+});
+
+test('card words: the widget ticker uses the same monotonic clock as readFleet, never the wall clock', () => {
+  const ticker = readFileSync(new URL('../src/useNow.ts', import.meta.url), 'utf8');
+  assert.match(ticker, /monotonicNow/);
+  assert.doesNotMatch(ticker, /Date\.now/);
+  const clock = readFileSync(new URL('./clock.ts', import.meta.url), 'utf8');
+  assert.match(clock, /performance\.now\(\)/);
+});
+
 test('fleet poll: the reading is timed from when the request began, so a slow reply counts as age', LIMIT, async () => {
   let t = 1_000;
   const result = await readFleet(
