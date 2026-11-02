@@ -126,12 +126,19 @@ export function isPublicPath(pathname: string): boolean {
 // (go-live audit D11: /about, /contact, /terms, /zzz all landed on a Google sign-in wall). The not-found answer is a
 // rewrite made here, so it fails closed: even if a real private route were missed from this list, the visitor would
 // see a 404, never the route. src/__tests__/golive-404-proxy.test.ts scans src/app so a new private root cannot be missed.
-// 'portal' (UNI-3168): owner portal pages. Signed-out owners are sent to sign in. The founder allow-list below still
-// applies to every signed-in user; letting portal owners past it is the portal foundation's job (S1), not this list's.
+// 'portal' (UNI-3168): owner portal pages. Signed-out owners are sent to sign in. Signed-in visitors on /portal skip the
+// founder allow-list (isPortalPath below, S1); every portal page then checks owner access itself.
 const PROTECTED_ROOTS: ReadonlySet<string> = new Set(['founder', 'api', 'docs', 'preview', 'c', 'portal']);
 
 function isProtectedRoot(pathname: string): boolean {
   return PROTECTED_ROOTS.has(pathname.split('/')[1] ?? '');
+}
+
+// The business-owner portal: exactly /portal and pages beneath it (not '/portalx', not '/portal-admin').
+// A signed-in visitor here skips the founder allow-list below; the (portal) layout then admits only card owners
+// (src/lib/portal/owner.ts). Pages only: the portal has no API routes, so founder APIs keep the allow-list.
+export function isPortalPath(pathname: string): boolean {
+  return pathname === '/portal' || pathname.startsWith('/portal/');
 }
 
 // These exact POST handlers authenticate their own bearer or enrolled signature.
@@ -221,7 +228,7 @@ export async function proxy(request: NextRequest) {
   // ------------------------------------------------------------------
   // 4. Private CRM guard — only explicit founder/invite allow-list can enter
   // ------------------------------------------------------------------
-  if (user && !isPublicPath(pathname) && !routeAuthenticated && !hasPrivateAccess(user)) {
+  if (user && !isPublicPath(pathname) && !routeAuthenticated && !isPortalPath(pathname) && !hasPrivateAccess(user)) {
     // Log the rejected identity so a lockout is diagnosable from Vercel runtime
     // logs alone (2026-07-14: a stale FOUNDER_USER_ID denied the real founder
     // and the logs showed nothing about who was rejected or why).

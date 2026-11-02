@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/supabase/server";
+import { hasPrivateAccess } from "@/lib/auth/private-access";
 import { serializeJsonLd } from "@/app/grow/packages";
 import { PublicHome } from "@/public/home/public-home";
 import { entityJsonLd } from "@/lib/entity";
@@ -26,7 +27,9 @@ export default async function RootPage() {
   const user = await getUser();
 
   if (user) {
-    redirect("/founder/command-centre");
+    // The founder goes to the command centre. Any other signed-in user is a business owner (or wants to be one):
+    // the founder area would only refuse them, so send them to their portal, which decides what they can see.
+    redirect(hasPrivateAccess(user) ? "/founder/command-centre" : "/portal");
   }
 
   // Signed-out visitors see the public home; the founder's sign-in is its small footer link.
