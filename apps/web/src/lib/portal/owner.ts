@@ -69,5 +69,4 @@ export const getPortalOwner = cache(async function getPortalOwner(): Promise<Por
   return resolvePortalAccess(user, client)
 })
 
-export const PORTAL_PATH = '/portal'
-export const PORTAL_LOGIN_URL = `/auth/login?redirectTo=${encodeURIComponent(PORTAL_PATH)}`
+export { PORTAL_LOGIN_URL, PORTAL_PATH } from './paths'
