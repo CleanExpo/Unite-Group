@@ -1,6 +1,6 @@
 # Portal S1 screenshots (02/11/2026)
 
-Rendered by Playwright Chromium against `next dev` on the portal code of commit 5a55ae81 (captured before a rebase onto main that changed no file under apps/web), at 1440x900 (desktop) and 390x844 @2x (phone).
+Rendered by Playwright Chromium against `next dev` on this branch's portal code, at 1440x900 (desktop) and 390x844 @2x (phone). The branch was later rebased onto main twice; neither rebase changed any portal page, component or style file (the second merged main's robots.ts edit from PR #1341).
 
 - `portal-welcome-*`: the real `PortalWelcome` component with sample props (name "Sam", card `sam-plumbing`), mounted on a
   temporary local-only page because there is no test owner account to sign in with. The scratch page was deleted and
