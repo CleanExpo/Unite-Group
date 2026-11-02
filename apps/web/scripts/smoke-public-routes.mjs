@@ -108,6 +108,7 @@ export const SMOKE_PATHS = Object.freeze([
  */
 export const EXCLUDED = Object.freeze([
   { pattern: '/founder/**', reason: 'private CRM; the run asserts each page redirects to the login page' },
+  { pattern: '/portal/**', reason: 'private owner portal; the run asserts each page redirects to the login page' },
 ]);
 
 // ---------------------------------------------------------------------------
