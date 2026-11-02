@@ -90,6 +90,7 @@ export const PUBLIC_ROUTES = [
   '/cards/order',
   '/cards/terms',
   '/video/ten-clips',
+  '/get-a-website',
   '/pricing',
   '/signatures',
   ...PILLARS.map((p) => pillarPath(p.slug)),

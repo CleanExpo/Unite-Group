@@ -1,0 +1,54 @@
+/* /get-a-website: layout on top of marketing-page.module.css. Tokens from public-tokens.css. */
+
+.heroSplit {
+  display: grid;
+  gap: clamp(20px, 4vw, 40px);
+  align-items: center;
+}
+
+@media (min-width: 900px) {
+  .heroSplit {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  }
+}
+
+.picture {
+  margin: 0;
+  overflow: hidden;
+  border-radius: var(--pub-radius);
+}
+
+.picture img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.formWrap {
+  max-width: 760px;
+  margin-top: 1.5rem;
+}
+
+.formHeading {
+  margin: 0.75rem 0 0;
+  font-family: var(--pub-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--pub-ink);
+}
+
+.bookCall {
+  max-width: 620px;
+  margin-top: 2rem;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--pub-ink-soft);
+}
+
+.bookTitle {
+  margin: 0 0 0.5rem;
+  font-family: var(--pub-display);
+  font-size: 1.375rem;
+  font-weight: 600;
+  color: var(--pub-ink);
+}

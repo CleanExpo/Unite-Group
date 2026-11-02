@@ -46,6 +46,7 @@ export const TRACKED_PATHS: readonly string[] = [
   '/cards/order',
   '/cards/terms',
   '/video/ten-clips',
+  '/get-a-website',
   '/pricing',
   '/signatures',
   '/solutions/visibility',
