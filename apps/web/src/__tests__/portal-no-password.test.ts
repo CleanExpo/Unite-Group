@@ -1,4 +1,5 @@
-import { readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { cpSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -113,8 +114,8 @@ function findings(source: string): string[] {
   return out
 }
 
-function scanRoots(): { file: string; problems: string[] }[] {
-  return [...PORTAL_ROOTS.flatMap(files), ...PORTAL_COPY_FILES].map((file) => ({ file, problems: findings(readFileSync(file, 'utf8')) }))
+function scanRoots(roots: string[] = PORTAL_ROOTS): { file: string; problems: string[] }[] {
+  return [...roots.flatMap(files), ...PORTAL_COPY_FILES].map((file) => ({ file, problems: findings(readFileSync(file, 'utf8')) }))
 }
 
 /** Quoted string literals in a source file: '...', "..." and template text. */
@@ -123,14 +124,26 @@ function literals(source: string): string[] {
 }
 
 /** Password wording in any string literal of a lib/portal module (tests and fixtures excluded). */
-function libLiteralFindings(): { file: string; literal: string; word: string }[] {
-  const libFiles = files(PORTAL_LIB).filter((f) => !f.includes('__fixtures__') && /\.tsx?$/.test(f))
+function libLiteralFindings(lib: string = PORTAL_LIB): { file: string; literal: string; word: string }[] {
+  const libFiles = files(lib).filter((f) => !f.includes('__fixtures__') && /\.tsx?$/.test(f))
   return libFiles.flatMap((file) =>
     literals(readFileSync(file, 'utf8')).flatMap((literal) => {
       const letters = decode(literal).split(NO_PASSWORD_LINE).join(' ').toLowerCase().replace(/[^a-z]/g, '')
       return FORBIDDEN.filter((w) => letters.includes(w) || [...letters].reverse().join('').includes(w)).map((word) => ({ file, literal, word }))
     }),
   )
+}
+
+// Plants go into a throwaway copy of a scanned folder, never the real source tree: other suites walk src/app while this
+// one runs, and a plant that appears and vanishes under them fails them (golive-grow, 03/11/2026: ENOENT on a plant).
+function withCopy(root: string, run: (copy: string) => void): void {
+  const copy = join(mkdtempSync(join(tmpdir(), 'portal-plant-')), 'root')
+  cpSync(root, copy, { recursive: true })
+  try {
+    run(copy)
+  } finally {
+    rmSync(join(copy, '..'), { recursive: true, force: true })
+  }
 }
 
 const ch = (code: number) => String.fromCodePoint(code)
@@ -214,20 +227,21 @@ describe('the portal never asks for a password', () => {
   })
 
   // The same samples, written as real files inside each scanned folder, must turn the real file scan red.
-  it.each(PORTAL_ROOTS.map((root) => [relative(SRC, root), root]))('fails the real file scan for every sample planted in %s', (_name, root) => {
-    // A unique name per run, and 'wx' refuses to overwrite: a plant must never replace or delete a real file.
-    const tag = `zz-plant-${process.pid}-${Date.now()}`
-    SAMPLES.forEach(([name, body], index) => {
-      const path = join(root, `${tag}-${index}.${name.startsWith('CSS') ? 'css' : 'tsx'}`)
-      writeFileSync(path, `${body}\n`, { flag: 'wx' })
-      try {
-        const hit = scanRoots().find((r) => r.file === path)
-        expect(hit?.problems.length, `${name} planted in ${root}`).toBeGreaterThan(0)
-      } finally {
-        rmSync(path, { force: true })
-      }
+  it.each(PORTAL_ROOTS.map((root) => [relative(SRC, root), root]))('fails the real file scan for every sample planted in a copy of %s', (_name, root) => {
+    withCopy(root, (copy) => {
+      const roots = PORTAL_ROOTS.map((r) => (r === root ? copy : r))
+      expect(scanRoots(roots).filter((r) => r.problems.length > 0)).toEqual([])
+      SAMPLES.forEach(([name, body], index) => {
+        const path = join(copy, `zz-plant-${index}.${name.startsWith('CSS') ? 'css' : 'tsx'}`)
+        writeFileSync(path, `${body}\n`, { flag: 'wx' })
+        try {
+          const hit = scanRoots(roots).find((r) => r.file === path)
+          expect(hit?.problems.length, `${name} planted in ${root}`).toBeGreaterThan(0)
+        } finally {
+          rmSync(path, { force: true })
+        }
+      })
     })
-    expect(scanRoots().filter((r) => r.problems.length > 0)).toEqual([])
   })
 
   it('reads the portal copy modules in lib/portal too (positive control)', () => {
@@ -241,14 +255,11 @@ describe('the portal never asks for a password', () => {
   })
 
   it('catches password wording planted in a lib/portal string literal, and leaves code names alone', () => {
-    const tag = `zz-plant-${process.pid}-${Date.now()}`
-    const path = join(PORTAL_LIB, 'setup', `${tag}.ts`)
-    writeFileSync(path, "export const STEP = 'Enter your password below.'\nconst ok = new URL('https://x').password\n", { flag: 'wx' })
-    try {
-      expect(libLiteralFindings().map((f) => [relative(SRC, f.file), f.word])).toEqual([[relative(SRC, path), 'password']])
-    } finally {
-      rmSync(path, { force: true })
-    }
-    expect(libLiteralFindings()).toEqual([])
+    withCopy(PORTAL_LIB, (copy) => {
+      expect(libLiteralFindings(copy)).toEqual([])
+      const path = join(copy, 'setup', 'zz-plant.ts')
+      writeFileSync(path, "export const STEP = 'Enter your password below.'\nconst ok = new URL('https://x').password\n", { flag: 'wx' })
+      expect(libLiteralFindings(copy).map((f) => [relative(copy, f.file), f.word])).toEqual([[join('setup', 'zz-plant.ts'), 'password']])
+    })
   })
 })
