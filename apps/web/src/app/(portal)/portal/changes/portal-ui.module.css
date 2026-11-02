@@ -162,6 +162,11 @@ a.btnGhost[href], a.btnGhost[href]:hover { color: var(--pub-ink); text-decoratio
 .videoLink:hover { border-color: var(--pub-accent); }
 
 .thumb { width: 132px; height: 74px; object-fit: cover; border-radius: var(--pub-radius); display: block; }
+/* On a phone the thumbnail sits above the title, so the title is not squeezed into a narrow column. */
+@media (max-width: 520px) {
+  .videoLink { grid-template-columns: 1fr; }
+  .thumb { width: 100%; height: auto; aspect-ratio: 16 / 9; }
+}
 
 .progressRow { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 1.25rem; }
 /* accent-color alone leaves Chromium's native green bar, so the track and fill are styled directly. */
