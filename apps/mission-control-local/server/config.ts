@@ -6,7 +6,7 @@ export const DEFAULT_PORT = 42140;
 export interface Config {
   port: number;
   dataDir: string;
-  layoutsFile: string;
+  layoutsDir: string;
   fixturePath?: string;
   showTailscaleIp: boolean;
 }
@@ -21,7 +21,7 @@ export function readConfig(env: NodeJS.ProcessEnv): Config {
   return {
     port,
     dataDir,
-    layoutsFile: join(dataDir, 'layouts.json'),
+    layoutsDir: join(dataDir, 'layouts'),
     fixturePath: env.MC_FIXTURE || undefined,
     showTailscaleIp: env.MC_SHOW_TAILSCALE_IP === '1',
   };

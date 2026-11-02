@@ -22,7 +22,7 @@ Open `http://127.0.0.1:42140/screen/1` and `http://127.0.0.1:42140/screen/2`. Th
 |---|---|
 | `MC_PASSCODE` | Passcode, used instead of the file |
 | `MC_PORT` | Port, default 42140 |
-| `MC_DATA_DIR` | Folder for `passcode` and `layouts.json`, default `~/.unite-mission-control` |
+| `MC_DATA_DIR` | Folder for `passcode` and the `layouts/` folder (one JSON file per screen), default `~/.unite-mission-control` |
 | `MC_FIXTURE` | Path to a fixture such as `fixtures/status.json`. The toolbar then shows FIXTURE DATA |
 | `MC_SHOW_TAILSCALE_IP` | Set to `1` to show each machine's Tailscale IP. Hidden otherwise |
 

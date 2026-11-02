@@ -13,7 +13,7 @@ try {
   const passcode = loadPasscode(process.env, config.dataDir);
   const server = createApp({
     auth: createAuth(passcode),
-    layouts: createLayoutStore(config.layoutsFile),
+    layouts: createLayoutStore(config.layoutsDir),
     fleet: createFleetSource({
       fixturePath: config.fixturePath,
       showTailscaleIp: config.showTailscaleIp,

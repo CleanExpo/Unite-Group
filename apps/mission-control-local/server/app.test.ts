@@ -20,7 +20,8 @@ const PASSCODE = 'test-only-passcode';
 const APP_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 const tmp = mkdtempSync(join(tmpdir(), 'mc-local-'));
-const layoutsFile = join(tmp, 'data', 'layouts.json');
+const layoutsDir = join(tmp, 'data', 'layouts');
+const screenFile = (screen: string) => join(layoutsDir, `screen-${screen}.json`);
 const clientDir = join(tmp, 'client');
 mkdirSync(join(clientDir, 'assets'), { recursive: true });
 writeFileSync(join(clientDir, 'index.html'), '<title>client shell</title>');
@@ -74,7 +75,7 @@ function send(
 before(async () => {
   server = createApp({
     auth: createAuth(PASSCODE),
-    layouts: createLayoutStore(layoutsFile),
+    layouts: createLayoutStore(layoutsDir),
     fleet: async () => fleetReply,
     clientDir,
   });
@@ -218,11 +219,11 @@ test('layouts: default, save per screen, survive a new store, reset one screen o
   assert.equal(saved.status, 200);
   await send('PUT', '/api/layouts/2', { cookie, body: JSON.stringify({ items: screenTwo }) });
 
-  const onDisk = JSON.parse(readFileSync(layoutsFile, 'utf8'));
-  assert.deepEqual(onDisk.screens, { 1: screenOne, 2: screenTwo });
-  assert.equal(statSync(layoutsFile).mode & 0o777, 0o600);
+  assert.deepEqual(JSON.parse(readFileSync(screenFile('1'), 'utf8')).items, screenOne);
+  assert.deepEqual(JSON.parse(readFileSync(screenFile('2'), 'utf8')).items, screenTwo);
+  assert.equal(statSync(screenFile('1')).mode & 0o777, 0o600);
 
-  const reopened = await createLayoutStore(layoutsFile).get('1');
+  const reopened = await createLayoutStore(layoutsDir).get('1');
   assert.deepEqual(reopened.items, screenOne);
   assert.equal(reopened.source, 'saved');
 
@@ -241,14 +242,15 @@ test('an empty saved layout stays empty and is not replaced by the default', asy
 });
 
 test('bad layout bodies are refused and change nothing', async () => {
-  const before = readFileSync(layoutsFile, 'utf8');
+  await send('PUT', '/api/layouts/1', { cookie, body: '{"items":[]}' });
+  const before = readFileSync(screenFile('1'), 'utf8');
   const bodies = ['not json', 'null', '{}', '{"items":[{"i":"nope","x":0,"y":0,"w":1,"h":1}]}'];
   for (const body of bodies) {
     assert.equal((await send('PUT', '/api/layouts/1', { cookie, body })).status, 400, body);
   }
   const huge = JSON.stringify({ items: [], pad: 'x'.repeat(70 * 1024) });
   assert.equal((await send('PUT', '/api/layouts/1', { cookie, body: huge })).status, 413);
-  assert.equal(readFileSync(layoutsFile, 'utf8'), before);
+  assert.equal(readFileSync(screenFile('1'), 'utf8'), before);
 });
 
 test('concurrent saves leave a whole file holding both screens', async () => {
@@ -258,15 +260,30 @@ test('concurrent saves leave a whole file holding both screens', async () => {
     ...Array.from({ length: 5 }, () => send('PUT', '/api/layouts/1', { cookie, body: JSON.stringify({ items: one }) })),
     ...Array.from({ length: 5 }, () => send('PUT', '/api/layouts/2', { cookie, body: JSON.stringify({ items: two }) })),
   ]);
-  assert.deepEqual(JSON.parse(readFileSync(layoutsFile, 'utf8')).screens, { 1: one, 2: two });
-  assert.ok(!readdirSync(dirname(layoutsFile)).some((f) => f.endsWith('.tmp')));
+  assert.deepEqual(JSON.parse(readFileSync(screenFile('1'), 'utf8')).items, one);
+  assert.deepEqual(JSON.parse(readFileSync(screenFile('2'), 'utf8')).items, two);
+  assert.ok(!readdirSync(layoutsDir).some((f) => f.endsWith('.tmp')));
+});
+
+test('two server instances saving different screens do not lose either one', async () => {
+  const one = [{ i: 'clock', x: 0, y: 0, w: 2, h: 2 }];
+  const two = [{ i: 'job-queue', x: 0, y: 0, w: 4, h: 4 }];
+  for (let run = 0; run < 30; run += 1) {
+    const dir = mkdtempSync(join(tmpdir(), 'mc-two-'));
+    const first = createLayoutStore(dir);
+    const second = createLayoutStore(dir);
+    await Promise.all([first.save('1', one), second.save('2', two)]);
+    const reader = createLayoutStore(dir);
+    assert.deepEqual((await reader.get('1')).items, one);
+    assert.deepEqual((await reader.get('2')).items, two);
+  }
 });
 
 test('an unreadable layout file warns, and is kept aside rather than overwritten', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'mc-corrupt-'));
-  const file = join(dir, 'layouts.json');
+  const file = join(dir, 'screen-1.json');
   writeFileSync(file, '{ not json');
-  const store = createLayoutStore(file);
+  const store = createLayoutStore(dir);
   const read = await store.get('1');
   assert.equal(read.warning, 'layout-file-unreadable');
   assert.equal(read.source, 'default');
@@ -279,9 +296,9 @@ test('an unreadable layout file warns, and is kept aside rather than overwritten
 });
 
 test('the default data directory is outside the repo', () => {
-  const { layoutsFile: file, dataDir } = readConfig({});
+  const { layoutsDir: dir, dataDir } = readConfig({});
   assert.equal(dataDir, join(homedir(), '.unite-mission-control'));
-  assert.ok(relative(APP_ROOT, file).startsWith('..'));
+  assert.ok(relative(APP_ROOT, dir).startsWith('..'));
 });
 
 test('MC_PORT must be a port', () => {
